@@ -1,0 +1,11 @@
+{
+  "name": "@aklapper/portfolio",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "nx": {
+    "name": "portfolio",
+    "projectType": "application",
+    "sourceRoot": "apps/portfolio/portfolio/src"
+  }
+}

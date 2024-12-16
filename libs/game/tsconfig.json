@@ -1,0 +1,23 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {},
+  "files": [],
+  "include": [],
+  "references": [
+    {
+      "path": "../games/chutes-and-ladders"
+    },
+    {
+      "path": "../types/types-game"
+    },
+    {
+      "path": "../games-components"
+    },
+    {
+      "path": "./tsconfig.lib.json"
+    },
+    {
+      "path": "./tsconfig.spec.json"
+    }
+  ]
+}

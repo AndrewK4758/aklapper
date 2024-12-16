@@ -1,0 +1,31 @@
+{
+  "name": "mocks",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/mocks/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "main": "libs/mocks/src/index.ts",
+        "outputPath": "libs/mocks/dist",
+        "outputFileName": "main.js",
+        "tsConfig": "libs/mocks/tsconfig.lib.json",
+        "platform": "node",
+        "format": ["esm"],
+        "declarationRootDir": "libs/mocks/src"
+      },
+      "configurations": {
+        "development": {
+          "minify": false
+        },
+        "production": {
+          "minify": true
+        }
+      }
+    }
+  }
+}

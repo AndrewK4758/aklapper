@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "outDir": "../../../dist/tic-tac-toe/out-tsc",
+    "declaration": true,
+    "types": ["node"]
+  },
+  "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../../games-components/tsconfig.lib.json"
+    },
+    {
+      "path": "../../types/types-game/tsconfig.lib.json"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "socket-io-server",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/socket-io/server/src",
+  "projectType": "library",
+  "tags": [],
+  "// targets": "to see all targets run: nx show project socket-io-server --web",
+  "targets": {}
+}

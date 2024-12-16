@@ -1,0 +1,31 @@
+{
+  "name": "game",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/game/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "main": "libs/game/src/index.ts",
+        "outputPath": "libs/game/dist",
+        "outputFileName": "main.js",
+        "tsConfig": "libs/game/tsconfig.lib.json",
+        "platform": "node",
+        "format": ["esm"],
+        "declarationRootDir": "libs/game/src"
+      },
+      "configurations": {
+        "development": {
+          "minify": false
+        },
+        "production": {
+          "minify": true
+        }
+      }
+    }
+  }
+}

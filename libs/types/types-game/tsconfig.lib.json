@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "outDir": "../../../dist/types-game/out-tsc",
+    "declaration": true,
+    "types": ["node"]
+  },
+
+  "include": ["src/**/*.ts"]
+}

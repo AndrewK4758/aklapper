@@ -1,0 +1,15 @@
+{
+  "name": "@aklapper/chain",
+  "version": "0.0.1",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/main.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "module": "./dist/main.js",
+  "type": "module",
+  "main": "./dist/main.js"
+}

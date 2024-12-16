@@ -1,0 +1,31 @@
+{
+  "name": "game-instance",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/models/game-instance/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "main": "libs/models/game-instance/src/index.ts",
+        "outputPath": "libs/models/game-instance/dist",
+        "outputFileName": "main.js",
+        "tsConfig": "libs/models/game-instance/tsconfig.lib.json",
+        "platform": "node",
+        "format": ["esm"],
+        "declarationRootDir": "libs/models/game-instance/src"
+      },
+      "configurations": {
+        "development": {
+          "minify": false
+        },
+        "production": {
+          "minify": true
+        }
+      }
+    }
+  }
+}

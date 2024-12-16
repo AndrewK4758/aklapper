@@ -1,0 +1,40 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "outDir": "../../dist/games-chains/out-tsc",
+    "declaration": true,
+    "types": ["node"]
+  },
+  "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "src/**/*.test.ts"],
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../games/tic-tac-toe/tsconfig.lib.json"
+    },
+    {
+      "path": "../mocks/tsconfig.lib.json"
+    },
+    {
+      "path": "../game/tsconfig.lib.json"
+    },
+    {
+      "path": "../games-components/tsconfig.lib.json"
+    },
+    {
+      "path": "../games/chutes-and-ladders/tsconfig.lib.json"
+    },
+    {
+      "path": "../models/game-instance/tsconfig.lib.json"
+    },
+    {
+      "path": "../utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../types/types-game/tsconfig.lib.json"
+    },
+    {
+      "path": "../chain/tsconfig.lib.json"
+    }
+  ]
+}

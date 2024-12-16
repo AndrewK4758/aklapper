@@ -1,0 +1,51 @@
+{
+  "name": "vertex-api",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apis/vertex/vertex-api/src",
+  "projectType": "application",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "platform": "node",
+        "outputPath": "dist/apis/vertex/vertex-api",
+        "main": "apis/vertex/vertex-api/src/main.ts",
+        "tsConfig": "apis/vertex/vertex-api/tsconfig.app.json",
+        "assets": ["apis/vertex/vertex-api/src/assets"],
+        "generatePackageJson": true,
+        "esbuildConfig": "apis/vertex/vertex-api/esbuild.config.cjs"
+      },
+      "configurations": {
+        "development": {},
+        "production": {
+          "esbuildOptions": {
+            "sourcemap": false,
+            "outExtension": {
+              ".js": ".js"
+            }
+          }
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "dependsOn": ["build"],
+      "options": {
+        "buildTarget": "vertex-api:build",
+        "runBuildTargetDependencies": false
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "vertex-api:build:development"
+        },
+        "production": {
+          "buildTarget": "vertex-api:build:production"
+        }
+      }
+    }
+  }
+}

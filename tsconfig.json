@@ -2,5 +2,123 @@
   "extends": "./tsconfig.base.json",
   "compileOnSave": false,
   "files": [],
-  "references": []
+  "references": [
+    {
+      "path": "./apps/local-model/local-model-e2e"
+    },
+    {
+      "path": "./apis/portfolio/portfolio-api-e2e"
+    },
+    {
+      "path": "./libs/games/chutes-and-ladders"
+    },
+    {
+      "path": "./apps/local-model/local-model"
+    },
+    {
+      "path": "./apis/portfolio/portfolio-api"
+    },
+    {
+      "path": "./apps/portfolio/portfolio-e2e"
+    },
+    {
+      "path": "./libs/gen-ai/prompt-buillder"
+    },
+    {
+      "path": "./apps/games-ui/games-ui-e2e"
+    },
+    {
+      "path": "./apis/vertex/vertex-api-e2e"
+    },
+    {
+      "path": "./libs/models/all-games-map"
+    },
+    {
+      "path": "./libs/models/game-instance"
+    },
+    {
+      "path": "./libs/models/game-builder"
+    },
+    {
+      "path": "./apis/games/games-api-e2e"
+    },
+    {
+      "path": "./apps/portfolio/portfolio"
+    },
+    {
+      "path": "./apis/crud/crud-api-e2e"
+    },
+    {
+      "path": "./apps/games-ui/games-ui"
+    },
+    {
+      "path": "./libs/games/tic-tac-toe"
+    },
+    {
+      "path": "./apis/vertex/vertex-api"
+    },
+    {
+      "path": "./apps/crud/crud-ui-e2e"
+    },
+    {
+      "path": "./libs/games-components"
+    },
+    {
+      "path": "./libs/socket-io/client"
+    },
+    {
+      "path": "./libs/socket-io/server"
+    },
+    {
+      "path": "./libs/types/types-game"
+    },
+    {
+      "path": "./libs/gen-ai/vertex-ai"
+    },
+    {
+      "path": "./apis/games/games-api"
+    },
+    {
+      "path": "./libs/types/types-api"
+    },
+    {
+      "path": "./libs/media-recorder"
+    },
+    {
+      "path": "./libs/types/types-ai"
+    },
+    {
+      "path": "./apis/crud/crud-api"
+    },
+    {
+      "path": "./apps/crud/crud-ui"
+    },
+    {
+      "path": "./libs/games-chains"
+    },
+    {
+      "path": "./libs/react-shared"
+    },
+    {
+      "path": "./libs/models/rule"
+    },
+    {
+      "path": "./libs/password"
+    },
+    {
+      "path": "./libs/prisma"
+    },
+    {
+      "path": "./libs/chain"
+    },
+    {
+      "path": "./libs/mocks"
+    },
+    {
+      "path": "./libs/utils"
+    },
+    {
+      "path": "./libs/game"
+    }
+  ]
 }

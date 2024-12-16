@@ -1,0 +1,31 @@
+{
+  "name": "games-components",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/games-components/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "main": "libs/games-components/src/index.ts",
+        "outputPath": "libs/games-components/dist",
+        "outputFileName": "main.js",
+        "tsConfig": "libs/games-components/tsconfig.lib.json",
+        "platform": "node",
+        "format": ["esm"],
+        "declarationRootDir": "libs/games-components/src"
+      },
+      "configurations": {
+        "development": {
+          "minify": false
+        },
+        "production": {
+          "minify": true
+        }
+      }
+    }
+  }
+}

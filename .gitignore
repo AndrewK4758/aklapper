@@ -3,10 +3,19 @@
 # compiled output
 dist
 tmp
-out-tsc
+/out-tsc
 
 # dependencies
 node_modules
+*/.venv
+*/__pycache__/*
+__pycache__
+build
+dist
+.tox
+venv
+.venv
+.pytest_cache
 
 # IDEs and editors
 /.idea
@@ -37,6 +46,40 @@ testem.log
 # System Files
 .DS_Store
 Thumbs.db
-
+vite.config.mts.timestamp-*
 .nx/cache
-.nx/workspace-data
+.nx/workspace-data/*
+.cache/*
+
+# env
+./env/*
+.env.*
+.env/*
+env/
+
+/secrets/
+secrets/
+/secrets
+secrets
+
+tokens
+/tokens
+tokens/
+/tokens/
+./tokens/*
+
+rag-data/*
+/rag-data/*
+rag-data/
+/rag-data/
+
+*/wdg-agents/data_store/*
+
+.nx/workspace-data/d/daemon.log
+.nx/workspace-data/file-map.json
+
+.tool-versions
+
+
+
+vite.config.*.timestamp*

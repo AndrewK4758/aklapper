@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "outDir": "../../../dist/types-ai/out-tsc",
+    "declaration": true,
+    "types": ["node"]
+  },
+
+  "include": ["src/**/*.ts"]
+}
