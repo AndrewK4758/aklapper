@@ -1,7 +1,7 @@
 {
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "./out-tsc/vitest",
+    "outDir": ".../../../dist/apps/portfolio/out-tsc/vitest",
     "types": [
       "vitest/globals",
       "vitest/importMeta",

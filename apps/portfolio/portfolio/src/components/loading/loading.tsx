@@ -11,7 +11,7 @@ const loadingValues = [
   'Creating Players',
   'Registering on Game Instance',
   'Verify Ready to Play Status',
-  'Set Players on Start',
+  'Set Players on Start'
 ];
 
 /**

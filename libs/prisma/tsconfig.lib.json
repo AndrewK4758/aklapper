@@ -2,7 +2,8 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "module": "ESNext",
-    "outDir": "../../dist/prisma/out-tsc",
+    "moduleResolution": "bundler",
+    "outDir": "dist/out-tsc",
     "declaration": true,
     "types": ["node"]
   },

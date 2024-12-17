@@ -11,11 +11,10 @@
       "defaultConfiguration": "production",
       "options": {
         "main": "libs/game/src/index.ts",
-        "outputPath": "libs/game/dist",
+        "outputPath": "dist/libs/game",
         "outputFileName": "main.js",
         "tsConfig": "libs/game/tsconfig.lib.json",
-        "platform": "node",
-        "format": ["esm"],
+        "esbuildConfig": "libs/game/esbuild.config.cjs",
         "declarationRootDir": "libs/game/src"
       },
       "configurations": {

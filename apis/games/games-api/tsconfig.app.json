@@ -1,12 +1,12 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../../dist/out-tsc",
+    "outDir": "../../../dist/apis/games-api/out-tsc",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "types": ["node"]
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "../../../libs/types/**/*/src/**/*.d.ts"],
   "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
   "references": [
     {
@@ -26,6 +26,9 @@
     },
     {
       "path": "../../../libs/games/tic-tac-toe/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/games-chains/tsconfig.lib.json"
     },
     {
       "path": "../../../libs/models/rule/tsconfig.lib.json"

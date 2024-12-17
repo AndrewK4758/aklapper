@@ -11,23 +11,15 @@
       "defaultConfiguration": "production",
       "options": {
         "platform": "node",
-        "outputPath": "dist/apis/portfolio/portfolio-api",
+        "outputPath": "dist/apis/portfolio-api",
         "main": "apis/portfolio/portfolio-api/src/main.ts",
         "tsConfig": "apis/portfolio/portfolio-api/tsconfig.app.json",
         "assets": ["apis/portfolio/portfolio-api/src/assets"],
-        "generatePackageJson": true,
         "esbuildConfig": "apis/portfolio/portfolio-api/esbuild.config.cjs"
       },
       "configurations": {
         "development": {},
-        "production": {
-          "esbuildOptions": {
-            "sourcemap": false,
-            "outExtension": {
-              ".js": ".js"
-            }
-          }
-        }
+        "production": {}
       }
     },
     "serve": {

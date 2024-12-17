@@ -1,5 +1,9 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "workspaceLayout": {
+    "appsDir": "apps",
+    "libsDir": "libs"
+  },
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "production": [
@@ -50,7 +54,9 @@
         "libs/types/types-ai/*",
         "libs/types/types-api/*",
         "libs/types/types-game/*",
-        "libs/socket-io/client/*"
+        "libs/socket-io/client/*",
+        "libs/gen-ai/promp-builder/*",
+        "libs/gen-ai/prompt-builder/*"
       ]
     },
     {

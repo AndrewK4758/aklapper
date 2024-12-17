@@ -1,4 +1,4 @@
-import { IInstanceOfGame } from '../interfaces/game-instance';
+import { IInstanceOfGame } from '../interfaces/instance-of-game';
 import { Request, Response } from 'express';
 import type { Server } from 'socket.io';
 
@@ -12,7 +12,7 @@ export enum Color {
   ORANGE = 'Orange',
   PINK = 'Pink',
   BLACK = 'Black',
-  BROWN = 'Brown',
+  BROWN = 'Brown'
 }
 
 export enum SpaceType {
@@ -20,7 +20,7 @@ export enum SpaceType {
   NORMAL = 1,
   CHUTE = 2,
   LADDER = 3,
-  FINISH = 4,
+  FINISH = 4
 }
 
 export type ContextData = {
@@ -40,7 +40,7 @@ export const enum GameContextKeys {
   ACTION = 'ACTION',
   NEXT = 'NEXT-HANDLER',
   OUTPUT = 'OUT',
-  IO = 'IO',
+  IO = 'IO'
 }
 
 export enum TurnStatus {
@@ -48,7 +48,7 @@ export enum TurnStatus {
   INVALID = 'INVALID PLAYER',
   NOT_READY = 'GAME NOT READY',
   GAME_WON = 'GAME WON',
-  NULL_SELECT = 'NOTHING SELECTED',
+  NULL_SELECT = 'NOTHING SELECTED'
 }
 
 export type AvatarTotem = {

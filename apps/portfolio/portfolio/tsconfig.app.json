@@ -1,7 +1,7 @@
 {
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "out-tsc/portfolio",
+    "outDir": "../../../dist/apps/portfolio/out-tsc/portfolio",
     "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
     "jsx": "react-jsx",
     "lib": ["dom"],
@@ -11,7 +11,6 @@
     "moduleResolution": "bundler"
   },
   "exclude": [
-    "dist",
     "tests/**/*.spec.ts",
     "tests/**/*.test.ts",
     "tests/**/*.spec.tsx",
@@ -25,8 +24,18 @@
     "vitest.config.ts",
     "vitest.config.mts"
   ],
-  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
+  "include": [
+    "src/**/*.js",
+    "src/**/*.jsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "../../../libs/react-shared/src/**/*.ts",
+    "../../../libs/react-shared/src/**/*.tsx"
+  ],
   "references": [
+    {
+      "path": "../../../libs/gen-ai/prompt-builder/tsconfig.lib.json"
+    },
     {
       "path": "../../../libs/media-recorder/tsconfig.lib.json"
     },

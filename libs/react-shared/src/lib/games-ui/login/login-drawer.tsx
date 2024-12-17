@@ -1,8 +1,8 @@
-import { useState, MouseEvent, KeyboardEvent, Fragment } from 'react';
 import Box from '@mui/material/Box';
-import Drawer from '@mui/material/Drawer';
 import Button from '@mui/material/Button';
+import Drawer from '@mui/material/Drawer';
 import List from '@mui/material/List';
+import { Fragment, KeyboardEvent, MouseEvent, useState } from 'react';
 import Login from './login';
 
 type Anchor = 'right';
@@ -10,7 +10,7 @@ type Anchor = 'right';
 export const LoginDrawer = () => {
   const anchor = 'right';
   const [state, setState] = useState({
-    right: false,
+    right: false
   });
 
   const toggleDrawer = (anchor: Anchor, open: boolean) => (event: KeyboardEvent | MouseEvent) => {
@@ -42,7 +42,7 @@ export const LoginDrawer = () => {
           fontSize: '2rem',
           p: 0,
           m: 0,
-          flex: '1 0 auto',
+          flex: '1 0 auto'
         }}
       >
         {'Login'}

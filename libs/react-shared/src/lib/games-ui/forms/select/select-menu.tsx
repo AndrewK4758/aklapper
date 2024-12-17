@@ -1,10 +1,10 @@
-import { Text } from '../../game-board/game-board-tic-tac-toe';
 import { AvatarTotem } from '@aklapper/types-game';
 import { SxProps } from '@mui/material';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import { useField } from 'formik';
 import type { JSX } from 'react';
+import Text from '../../../text/text';
 import Theme from '../../../theme/theme';
 
 interface IAvatarColorSelectValues {

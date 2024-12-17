@@ -4,6 +4,26 @@
   "sourceRoot": "libs/socket-io/server/src",
   "projectType": "library",
   "tags": [],
-  "// targets": "to see all targets run: nx show project socket-io-server --web",
-  "targets": {}
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "main": "libs/socket-io/server/src/index.ts",
+        "esbuildConfig": "libs/socket-io/server/esbuild.config.cjs",
+        "outputPath": "dist/libs/socket-io-server",
+        "tsConfig": "libs/socket-io/server/tsconfig.lib.json",
+        "declarationRootDir": "libs/socket-io/server/src"
+      },
+      "configurations": {
+        "development": {
+          "minify": false
+        },
+        "production": {
+          "minify": true
+        }
+      }
+    }
+  }
 }

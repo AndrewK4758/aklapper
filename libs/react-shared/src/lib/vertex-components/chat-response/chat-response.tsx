@@ -1,11 +1,11 @@
 // import styles from './chat-response.module.css';
-import { Label } from '../../label/label';
 import { handleScrollIntoView } from '@aklapper/utils';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import type { SxProps } from '@mui/material/styles';
 import { useEffect, useRef, type CSSProperties, type Dispatch, type SetStateAction } from 'react';
+import { Label } from '../../label/label';
 import Theme from '../../styles/theme';
 
 const tooltipTitle = 'Response from text query';
@@ -23,14 +23,14 @@ export function PromptResponse({
   setLoading,
   setPromptResponse,
   chatResponseLabelProps,
-  chatResponseTextProps,
+  chatResponseTextProps
 }: ChatResponseProps) {
   const divRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (divRef.current) handleScrollIntoView(divRef.current);
     setLoading(false);
-  }, []);
+  }, [setLoading]);
   return (
     <Box
       key={'chat-response-wrapper-box'}

@@ -11,11 +11,10 @@
       "defaultConfiguration": "production",
       "options": {
         "main": "libs/games/chutes-and-ladders/src/index.ts",
-        "outputPath": "libs/games/chutes-and-ladders/dist",
+        "outputPath": "dist/libs/games/chutes-and-ladders",
         "outputFileName": "main.js",
         "tsConfig": "libs/games/chutes-and-ladders/tsconfig.lib.json",
-        "platform": "node",
-        "format": ["esm"],
+        "esbuildConfig": "libs/games/chutes-and-ladders/esbuild.config.cjs",
         "declarationRootDir": "libs/games/chutes-and-ladders/src"
       },
       "configurations": {

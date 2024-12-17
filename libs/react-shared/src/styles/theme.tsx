@@ -1,4 +1,4 @@
-import { darkScrollbar } from '@mui/material';
+import darkScrollbar from '@mui/material/darkScrollbar';
 import createTheme, { type Theme as SxTheme } from '@mui/material/styles/createTheme';
 import { enUS } from '@mui/x-date-pickers/locales';
 
@@ -8,31 +8,31 @@ export const Theme: SxTheme = createTheme(
     palette: {
       common: {
         black: '#ffffff',
-        white: '#fffdf6',
+        white: '#fffdf6'
       },
       primary: {
         main: '#00dfb9',
         light: '#33e5c7',
         dark: '#009c81',
-        contrastText: '#3a3c41',
+        contrastText: '#3a3c41'
       },
       secondary: {
         main: '#cb91ff',
         light: '#e4c4ff',
         dark: '#58278b',
-        contrastText: '#f9f871',
+        contrastText: '#f9f871'
       },
       background: {
         paper: '#1f1f1f',
-        default: '#3a3c41',
+        default: '#3a3c41'
       },
       text: {
         primary: '#cbcbcb', //'#f3ead9',
-        secondary: '#3a3c41',
-      },
+        secondary: '#3a3c41'
+      }
     },
     shape: {
-      borderRadius: 10,
+      borderRadius: 10
     },
     typography: {
       fontFamily: 'League Gothic',
@@ -41,16 +41,16 @@ export const Theme: SxTheme = createTheme(
         fontSize: '1rem',
         fontFamily: 'Roboto',
         letterSpacing: 1.5,
-        wordSpacing: 1,
-      },
+        wordSpacing: 1
+      }
     },
     components: {
       MuiCssBaseline: {
-        styleOverrides: themeParam => ({ body: themeParam.palette.mode === 'dark' ? darkScrollbar() : null }),
-      },
-    },
+        styleOverrides: themeParam => ({ body: themeParam.palette.mode === 'dark' ? darkScrollbar() : null })
+      }
+    }
   },
-  enUS,
+  enUS
 );
 
 export default Theme;

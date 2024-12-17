@@ -1,90 +1,57 @@
-# Aklapper
+# Personal Portfolio Projects
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+Welcome to my personal Portfolio for browser based web applications. Inside you will find a fully functioning foundation that you need to begin to develop a simple game, at an enterprise level. Everything is very modular and modifiable form so you can have creative independence in how you use the api & libraries. I chose to make my app using React; but any library or framework will pair easily. The structure is made with an NX MonoRepo to make reusability, security, scalability, and maintainability much easier. All you need to do is fork the repo and develop or contribute. The following sections will explain the technology and choices behind my portfolio. My portfolio is basically a summary of all the projects within. All are fully fuctional and can be used on [my personal website https://andrew-k.us](https://andrew-k.us) Thank you for coming by and enjoy.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is almost ready ✨.
+## Language and Technologies
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/js?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+- Typescript
+- Plain CSS
+- Axios for all HTTP requests
+- Vite for all testing
+- Webpack for api bundler
+- Vite for Apps and Libraries
+- PostgreSQL for DB
 
-## Finish your CI setup
+## Structure of my portfolio
 
-[Click here to finish setting up your workspace!](https://cloud.nx.app/connect/BhkC8pPRsj)
+- It is broken into 3 parts:
 
+  - APIS
+  - APPS
+  - LIBS
 
-## Generate a library
+  ### APIS:
 
-```sh
-npx nx g @nx/js:lib packages/pkg1 --publishable --importPath=@my-org/pkg1
-```
+  A simple Express app which gives the user the ability to create their own endpoints for each game while retaining the same structure and reusability. Some highlight features are:
 
-## Run tasks
+  - Dynamic Endpoints.
+  - Use of context object design pattern to encapsulate all necessary information inside each request and response to execute an action on the active game.
+  - Actions are developed using commands to build a chain of responsibility for all given actions; then tying all individual chains together. This provides granular control of exactly how an action executes and very detailed and exact debugging if an action does fail unexpecetedly; as well as, decoupling of each request from specific games and the ability to centrally handle requests without having to redesign a new set of endpoints and actions for every single game developed.
+  - Connections to Google Cloud Services (Storage, Vertex AI) for use in APPS.
+  - Handles all query types for Gemini through Vertex AI API.
 
-To build the library use:
+  ### APPS
 
-```sh
-npx nx build pkg1
-```
+  My app Chutes & Ladders is designed with React, React-Router, and MUI Material as the 3 principal libraries; additionally, Formik and Yup are used to handle client-side form validation. React-Router provides a client side browser router to minimize the number of calls to the api, while keeping the flow of the user experience fluid and consistent. Some highlight features are:
 
-To run any task with Nx use:
+  - Reusable React components.
+  - Browser Router to handle all client side routing, clean and easy URLs, and maintaining the UI in sync with the URL in the address bar.
+  - MUI Material theme used to make the UI responsive to mobile, tablets, laptop, and Desktop devices; as well as, making application level changes to visual design much easier by having the majority of visual design choices tied to a MUI Material component.
+  - Local Model provides the interface to query Ollama models locally and RAG train your locally hosted model.
+  - Portfolio is a "summary" of all other projects where I provide the ability to test each app and api in one React App. I left out the local model because I didnt want the cloud bill for hosting this app to be unreasonable for a developer portfolio
 
-```sh
-npx nx <target> <project-name>
-```
+  ### LIBS (libraries)
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+  The libraries provided are sufficient to generate any board style game. Each are as follows:
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+  - Chain, which holds all classes for Context, Command, and Chain (CoR) objects.
 
-## Versioning and releasing
+  - Chains-For-Games, which holds all individual chains associated with each action taken on the active game.
 
-To version and release the library use
+  - Chutes-and-Ladders, which holds all business logic and rules specific to an instance of Chutes & Ladders
 
-```
-npx nx release
-```
+  - Game, which holds generic game class where all instances of a specific game live; in addition to, game specific properties, such as: active players array, ready to start flag, game won flag, etc.
 
-Pass `--dry-run` to see what would happen without actually releasing the library.
+  - Game-Types, which holds all types, interfaces, and enums for other libs and apps.
 
-[Learn more about Nx release &raquo;](hhttps://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Keep TypeScript project references up to date
-
-Nx automatically updates TypeScript [project references](https://www.typescriptlang.org/docs/handbook/project-references.html) in `tsconfig.json` files to ensure they remain accurate based on your project dependencies (`import` or `require` statements). This sync is automatically done when running tasks such as `build` or `typecheck`, which require updated references to function correctly.
-
-To manually trigger the process to sync the project graph dependencies information to the TypeScript project references, run the following command:
-
-```sh
-npx nx sync
-```
-
-You can enforce that the TypeScript project references are always in the correct state when running in CI by adding a step to your CI job configuration that runs the following command:
-
-```sh
-npx nx sync:check
-```
-
-[Learn more about nx sync](https://nx.dev/reference/nx-commands#sync)
-
-
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Useful links
-
-Learn more:
-
-- [Learn more about this workspace setup](https://nx.dev/nx-api/js?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+  - Models, which holds all data structures and builder classes to build a game for the api, map active games, and de-referencing utilities for context object along with other game functionality. The maps of game instances and active games is where any metrics you would like to track should be implemented.

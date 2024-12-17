@@ -7,15 +7,15 @@ const baseURL = import.meta.env.VITE_REST_API_SERVER_URL;
 
 const registerUserAction = async (
   values: IRegisterUserClient,
-  setRegisterError: Dispatch<SetStateAction<IActionError | null>>,
+  setRegisterError: Dispatch<SetStateAction<IActionError | null>>
 ) => {
   const { firstName, lastName, email, playerName, password, thumbnail }: IRegisterUserClient = values;
 
   const reqHeaders: Partial<AxiosRequestConfig> = {
     headers: {
       'current-game': sessionStorage.getItem('__current_game__'),
-      'Content-Type': 'multipart/form-data',
-    },
+      'Content-Type': 'multipart/form-data'
+    }
   };
 
   const registerUserData = {
@@ -24,7 +24,7 @@ const registerUserAction = async (
     email: email,
     playerName: playerName,
     password: password,
-    thumbnail: thumbnail,
+    thumbnail: thumbnail
   };
 
   try {

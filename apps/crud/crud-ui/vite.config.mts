@@ -3,6 +3,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
+import { cwd } from 'process';
 
 export default defineConfig({
   root: __dirname,
@@ -25,7 +26,7 @@ export default defineConfig({
   //  plugins: [ nxViteTsPaths() ],
   // },
   build: {
-    outDir: '../../../dist/apps/crud-ui',
+    outDir: `${cwd()}/dist/apps/crud`,
     emptyOutDir: true,
     reportCompressedSize: true,
     commonjsOptions: {

@@ -2,7 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "module": "ESNext",
-    "outDir": "../../../dist/tic-tac-toe/out-tsc",
+    "outDir": "dist/out-tsc",
     "declaration": true,
     "types": ["node"]
   },

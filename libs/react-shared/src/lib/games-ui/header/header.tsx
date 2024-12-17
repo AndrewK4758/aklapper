@@ -1,8 +1,8 @@
-import { Text } from '../game-board/game-board-tic-tac-toe';
 import { SxProps } from '@mui/material';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import { ElementType, useContext, useEffect } from 'react';
+import Text from '../../text/text';
 import Theme from '../../theme/theme';
 import { ActiveUserContext } from '../context/active-user-context';
 import LoginDrawer from '../login/login-drawer';

@@ -24,8 +24,8 @@ export class MRC implements IMediaRecorderClient {
           channelCount: 2,
           echoCancellation: true,
           facingMode: { exact: 'front', ideal: 'front' },
-          noiseSuppression: true,
-        },
+          noiseSuppression: true
+        }
       });
     } else return await navigator.mediaDevices.getUserMedia(constraints);
   };

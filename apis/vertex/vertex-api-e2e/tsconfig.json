@@ -7,6 +7,9 @@
       "path": "../../../libs/socket-io/server"
     },
     {
+      "path": "../../../libs/gen-ai/prompt-builder"
+    },
+    {
       "path": "../../../libs/types/types-ai"
     },
     {

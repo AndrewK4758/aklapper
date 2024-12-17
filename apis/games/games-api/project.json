@@ -10,30 +10,15 @@
       "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production",
       "options": {
-        "platform": "node",
-        "outputPath": "dist/apis/games/games-api",
+        "outputPath": "dist/apis/games-api",
         "main": "apis/games/games-api/src/main.ts",
         "tsConfig": "apis/games/games-api/tsconfig.app.json",
         "assets": ["apis/games/games-api/src/assets"],
-        "generatePackageJson": true,
-        "esbuildConfig": "apis/games/games-api/esbuild.config.cjs",
-        "esbuildOptions": {
-          "sourcemap": true,
-          "outExtension": {
-            ".js": ".js"
-          }
-        }
+        "esbuildConfig": "apis/games/games-api/esbuild.config.cjs"
       },
       "configurations": {
         "development": {},
-        "production": {
-          "esbuildOptions": {
-            "sourcemap": false,
-            "outExtension": {
-              ".js": ".js"
-            }
-          }
-        }
+        "production": {}
       }
     },
     "serve": {

@@ -1,8 +1,8 @@
+import { GamePlayerValidation } from '@aklapper/types-game';
 import axios, { AxiosError } from 'axios';
 import { Dispatch, SetStateAction } from 'react';
-import { ActiveUserData } from '../../header/header';
 import { IActionError } from '../../../../interfaces/action-error';
-import { GamePlayerValidation } from '@aklapper/types-game';
+import { ActiveUserData } from '../../header/header';
 import { LoginDataProps } from '../validations/login-validation-schema';
 
 const baseURL = import.meta.env.VITE_REST_API_SERVER_URL;
@@ -10,7 +10,7 @@ const baseURL = import.meta.env.VITE_REST_API_SERVER_URL;
 const loginUserAction = async (
   values: LoginDataProps,
   setActiveUser: Dispatch<SetStateAction<ActiveUserData>>,
-  setLoginError: Dispatch<SetStateAction<IActionError>>,
+  setLoginError: Dispatch<SetStateAction<IActionError>>
 ) => {
   try {
     const resp = await axios.patch(`${baseURL}/login`, { email: values.email, password: values.password });

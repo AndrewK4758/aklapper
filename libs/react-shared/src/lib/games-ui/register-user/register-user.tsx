@@ -1,5 +1,4 @@
 // import styles from './register-user.tsx.module.css';
-import { Text } from '../game-board/game-board-tic-tac-toe';
 import { IRegisterUserClient } from '@aklapper/types-api';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -7,6 +6,7 @@ import InputLabel from '@mui/material/InputLabel';
 import { Form, Formik, FormikProps } from 'formik';
 import { ChangeEvent, Fragment, MouseEvent, useState } from 'react';
 import { IActionError } from '../../../interfaces/action-error';
+import Text from '../../text/text';
 import ActionError from '../errors/action-error';
 import FormikTextInput from '../text-input/formik-text-input';
 import registerUserAction from './actions/register-user-action';
@@ -16,7 +16,7 @@ import {
   breakpointsButtonSx,
   breakpointsLabelSx,
   breakpointsTextBoxSx,
-  inputStyle,
+  inputStyle
 } from './styles/register-user-css-sx-props';
 import { initialValues, supportedFormat, validationSchema } from './validations/validation-schema';
 

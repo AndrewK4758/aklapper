@@ -11,11 +11,10 @@
       "defaultConfiguration": "production",
       "options": {
         "main": "libs/mocks/src/index.ts",
-        "outputPath": "libs/mocks/dist",
+        "outputPath": "dist/libs/mocks",
         "outputFileName": "main.js",
         "tsConfig": "libs/mocks/tsconfig.lib.json",
-        "platform": "node",
-        "format": ["esm"],
+        "esbuildConfig": "libs/mocks/esbuild.config.cjs",
         "declarationRootDir": "libs/mocks/src"
       },
       "configurations": {

@@ -11,11 +11,10 @@
       "defaultConfiguration": "production",
       "options": {
         "main": "libs/chain/src/index.ts",
-        "outputPath": "libs/chain/dist",
+        "outputPath": "dist/libs/chain",
         "outputFileName": "main.js",
         "tsConfig": "libs/chain/tsconfig.lib.json",
-        "platform": "node",
-        "format": ["esm"],
+        "esbuildConfig": "libs/chain/esbuild.config.cjs",
         "declarationRootDir": "libs/chain/src"
       },
       "configurations": {

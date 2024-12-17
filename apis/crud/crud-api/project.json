@@ -15,19 +15,11 @@
         "main": "apis/crud/crud-api/src/main.ts",
         "tsConfig": "apis/crud/crud-api/tsconfig.app.json",
         "assets": ["apis/crud/crud-api/src/assets"],
-        "generatePackageJson": true,
         "esbuildConfig": "apis/crud/crud-api/esbuild.config.cjs"
       },
       "configurations": {
         "development": {},
-        "production": {
-          "esbuildOptions": {
-            "sourcemap": false,
-            "outExtension": {
-              ".js": ".js"
-            }
-          }
-        }
+        "production": {}
       }
     },
     "serve": {

@@ -1,7 +1,5 @@
-import { Waiting } from '@aklapper/react-shared';
 import { lazy } from 'react';
 import type { RouteObject } from 'react-router-dom';
-import suspenseImg from '../assets/swirly-dots-to-chrome.webp';
 import Layout from '../components/layout/layout';
 import GameLoading from '../components/loading/loading';
 import PrivacyPolicy from '../components/privacy-policy/privacy-policy';
@@ -34,7 +32,6 @@ const routes: RouteObject[] = [
   {
     path: '/',
     Component: Layout,
-    hydrateFallbackElement: <Waiting src={suspenseImg} />,
     action: emailFormAction,
     children: [
       {

@@ -14,3 +14,5 @@ export const RenderList = ({ id, data, listMapCallback, sx }: RenderListProps) =
     {data.map(listMapCallback)}
   </Box>
 );
+
+export default RenderList;

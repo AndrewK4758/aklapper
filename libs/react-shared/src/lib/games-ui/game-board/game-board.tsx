@@ -1,9 +1,9 @@
-import { RenderList } from './game-board';
-import { Text } from './game-board-tic-tac-toe';
 import { ILiteSpace } from '@aklapper/types-game';
 import { SxProps } from '@mui/material';
 import Grid2 from '@mui/material/Grid2';
-import { breakpointsRowSx, avatarSize, breakpointsSpaceSx, spaceStyle } from '../../styles/game-board-styles';
+import RenderList from '../../render-list/render-list';
+import { avatarSize, breakpointsRowSx, breakpointsSpaceSx, spaceStyle } from '../../styles/game-board-styles';
+import Text from '../../text/text';
 
 export interface GameBoardProps {
   row: ILiteSpace[];

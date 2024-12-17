@@ -25,7 +25,7 @@
     },
     "build": {
       "executor": "@nxlv/python:build",
-      "outputs": ["{projectRoot}/dist"],
+      "outputs": ["{workspaceRoot}/dist/apps/wdg-agents"],
       "options": {
         "outputPath": "apps/wdg-agents/dist",
         "publish": false,

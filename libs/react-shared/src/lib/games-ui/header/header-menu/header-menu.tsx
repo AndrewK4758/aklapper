@@ -1,4 +1,4 @@
-import { Text } from '../../game-board/game-board-tic-tac-toe';
+import Text from '../../../text/text';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import { SxProps } from '@mui/material';
 import IconButton from '@mui/material/IconButton';

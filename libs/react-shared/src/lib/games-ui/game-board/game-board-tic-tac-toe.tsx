@@ -1,5 +1,4 @@
-import { Text } from './game-board-tic-tac-toe';
-import { type Row } from '@aklapper/types-game';
+import type { ILiteSpace, Row } from '@aklapper/types-game';
 import Box from '@mui/material/Box';
 import Grid2 from '@mui/material/Grid2';
 import type { SxProps } from '@mui/material/styles';
@@ -13,6 +12,7 @@ import {
   selectedSpaceStyle,
   svgSpaceTTTStyles
 } from '../../styles/game-board-styles';
+import Text from '../../text/text';
 
 export interface GameBoardPropsTicTacToe {
   row: Row;
@@ -62,7 +62,7 @@ export const GameBoardMapTicTacToe = ({
     id={`row-${id}`}
     sx={rowSizeTTT}
   >
-    {row.map((e, i, _arr) => (
+    {row.map((e: ILiteSpace, i: number, _arr: ILiteSpace[]) => (
       <Grid2
         key={`space-${e.display}-${i}`}
         id={`space-${e.display}-${i}`}

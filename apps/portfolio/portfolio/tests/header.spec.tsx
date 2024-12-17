@@ -1,4 +1,3 @@
-import '@testing-library/jest-dom';
 import { fireEvent, render, screen, type RenderResult } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import Header from '../src/components/header/header';
@@ -10,7 +9,7 @@ describe('Test Header component', () => {
     baseComponent = render(
       <BrowserRouter>
         <Header />
-      </BrowserRouter>,
+      </BrowserRouter>
     );
     const emailButton = baseComponent.getByTestId('email-icon');
     fireEvent.click(emailButton);

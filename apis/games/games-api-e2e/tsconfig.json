@@ -22,6 +22,9 @@
       "path": "../../../libs/games/tic-tac-toe"
     },
     {
+      "path": "../../../libs/games-chains"
+    },
+    {
       "path": "../../../libs/models/rule"
     },
     {

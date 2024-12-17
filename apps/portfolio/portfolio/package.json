@@ -1,8 +1,26 @@
 {
   "name": "@aklapper/portfolio",
-  "version": "0.0.1",
   "private": true,
   "type": "module",
+  "scripts": {
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@aklapper/react-shared": "workspace:*",
+    "@aklapper/prompt-builder": "workspace:*",
+    "@aklapper/socket-io-client": "workspace:*",
+    "@aklapper/mocks": "workspace:*",
+    "@aklapper/game": "workspace:*",
+    "@aklapper/games-components": "workspace:*",
+    "@aklapper/chutes-and-ladders": "workspace:*",
+    "@aklapper/game-instance": "workspace:*",
+    "@aklapper/chain": "workspace:*",
+    "@aklapper/utils": "workspace:*",
+    "@aklapper/types-ai": "workspace:*",
+    "@aklapper/vertex-ai": "workspace:*",
+    "@aklapper/types-api": "workspace:*",
+    "@aklapper/types-game": "workspace:*"
+  },
   "nx": {
     "name": "portfolio",
     "projectType": "application",

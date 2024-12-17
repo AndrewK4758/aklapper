@@ -1,5 +1,5 @@
 import { ContextBuilder } from '@aklapper/chain';
-import { activeGameDisplayChain } from '@aklapper/chainsgames-chains';
+import { activeGameDisplayChain } from '@aklapper/games-chains';
 import { InstanceOfGame } from '@aklapper/game-instance';
 import { Chain, GameContextKeys } from '@aklapper/types-game';
 import { Request, Response } from 'express';
@@ -9,7 +9,7 @@ const performAction = async (
   req: Request | null,
   resp: Response | null,
   gameWS: InstanceOfGame | null,
-  actionWS: string | null,
+  actionWS: string | null
 ) => {
   console.log('Perform Action Called');
   //check for no rest-api objects

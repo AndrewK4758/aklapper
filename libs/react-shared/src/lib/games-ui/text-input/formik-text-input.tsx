@@ -1,10 +1,10 @@
-import { Label } from '../../label/label';
-import { Text } from '../game-board/game-board-tic-tac-toe';
 import Box from '@mui/material/Box';
 import type { SxProps } from '@mui/material/styles';
 import TextField from '@mui/material/TextField';
 import { useField } from 'formik';
 import { ElementType, FocusEvent } from 'react';
+import { Label } from '../../label/label';
+import Text from '../../text/text';
 import Theme from '../../theme/theme';
 
 export interface FormikTextInputProps {

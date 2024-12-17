@@ -1,7 +1,7 @@
 import { Box, ListItem, SxProps } from '@mui/material';
 import { Variant } from '@mui/material/styles/createTypography';
 import { ElementType } from 'react';
-import { Text } from '../../game-board/game-board-tic-tac-toe';
+import Text from '../../../text/text';
 
 export interface HeadingWithDetailsProps {
   component: ElementType;
@@ -22,7 +22,7 @@ export function HeadingWithDetails({
   titleSx,
   valueVariant,
   valueText,
-  valueSx,
+  valueSx
 }: HeadingWithDetailsProps) {
   return (
     <Box component={'div'} key={id}>

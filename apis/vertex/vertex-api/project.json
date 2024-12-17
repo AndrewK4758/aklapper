@@ -11,23 +11,15 @@
       "defaultConfiguration": "production",
       "options": {
         "platform": "node",
-        "outputPath": "dist/apis/vertex/vertex-api",
+        "outputPath": "dist/apis/vertex-api",
         "main": "apis/vertex/vertex-api/src/main.ts",
         "tsConfig": "apis/vertex/vertex-api/tsconfig.app.json",
         "assets": ["apis/vertex/vertex-api/src/assets"],
-        "generatePackageJson": true,
         "esbuildConfig": "apis/vertex/vertex-api/esbuild.config.cjs"
       },
       "configurations": {
         "development": {},
-        "production": {
-          "esbuildOptions": {
-            "sourcemap": false,
-            "outExtension": {
-              ".js": ".js"
-            }
-          }
-        }
+        "production": {}
       }
     },
     "serve": {

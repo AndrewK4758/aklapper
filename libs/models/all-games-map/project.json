@@ -4,6 +4,27 @@
   "sourceRoot": "libs/models/all-games-map/src",
   "projectType": "library",
   "tags": [],
-  "// targets": "to see all targets run: nx show project all-games-map --web",
-  "targets": {}
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "main": "libs/models/all-games-map/src/index.ts",
+        "outputPath": "dist/libs/models/all-games-map",
+        "outputFileName": "main.js",
+        "tsConfig": "libs/models/all-games-map/tsconfig.lib.json",
+        "esbuildConfig": "libs/models/all-games-map/esbuild.config.cjs",
+        "declarationRootDir": "libs/models/all-games-map/src"
+      },
+      "configurations": {
+        "development": {
+          "minify": false
+        },
+        "production": {
+          "minify": true
+        }
+      }
+    }
+  }
 }

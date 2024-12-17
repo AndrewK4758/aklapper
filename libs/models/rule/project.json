@@ -4,6 +4,27 @@
   "sourceRoot": "libs/models/rule/src",
   "projectType": "library",
   "tags": [],
-  "// targets": "to see all targets run: nx show project rule --web",
-  "targets": {}
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "main": "libs/models/rule/src/index.ts",
+        "outputPath": "dist/libs/models/rule",
+        "outputFileName": "main.js",
+        "tsConfig": "libs/models/rule/tsconfig.lib.json",
+        "esbuildConfig": "libs/models/rule/esbuild.config.cjs",
+        "declarationRootDir": "libs/models/rule/src"
+      },
+      "configurations": {
+        "development": {
+          "minify": false
+        },
+        "production": {
+          "minify": true
+        }
+      }
+    }
+  }
 }

@@ -1,4 +1,5 @@
 // import styles from './join-game.module.css';
+import { GamePlayerValidation } from '@aklapper/types-game';
 import { SxProps } from '@mui/material';
 import Button from '@mui/material/Button';
 import { Form, Formik } from 'formik';
@@ -6,7 +7,6 @@ import { useNavigate } from 'react-router-dom';
 import * as Yup from 'yup';
 import { FormActionProps } from '../../../../interfaces/form-action-props';
 import FormikTextInput from '../../text-input/formik-text-input';
-import { GamePlayerValidation } from '@aklapper/types-game';
 
 export interface JoinGameProps extends FormActionProps {
   breakpointsJoinGameButton?: SxProps;

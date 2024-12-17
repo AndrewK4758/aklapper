@@ -1,4 +1,3 @@
-
 class MediaRecorderMock extends EventTarget {
   constructor(stream, options) {
     super();
@@ -12,6 +11,7 @@ class MediaRecorderMock extends EventTarget {
     this.recordedBlobs = [];
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   start(_timeslice) {
     this.state = 'recording';
     if (this.onstart) {

@@ -22,12 +22,6 @@
       "path": "./apps/portfolio/portfolio-e2e"
     },
     {
-      "path": "./libs/gen-ai/prompt-buillder"
-    },
-    {
-      "path": "./apps/games-ui/games-ui-e2e"
-    },
-    {
       "path": "./apis/vertex/vertex-api-e2e"
     },
     {
@@ -47,9 +41,6 @@
     },
     {
       "path": "./apis/crud/crud-api-e2e"
-    },
-    {
-      "path": "./apps/games-ui/games-ui"
     },
     {
       "path": "./libs/games/tic-tac-toe"
@@ -119,6 +110,15 @@
     },
     {
       "path": "./libs/game"
+    },
+    {
+      "path": "./libs/gen-ai/prompt-builder"
+    },
+    {
+      "path": "./apps/games/games-ui"
+    },
+    {
+      "path": "./apps/games/games-ui-e2e"
     }
   ]
 }

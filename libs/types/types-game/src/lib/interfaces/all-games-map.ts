@@ -1,4 +1,4 @@
-import { IInstanceOfGame } from './game-instance';
+import { IInstanceOfGame } from './instance-of-game';
 import { GameInstanceID } from '../types/game';
 
 export interface IAllGamesMap {

@@ -25,13 +25,11 @@ export { Theme as GamesTheme } from './lib/styles/theme';
 export * from './lib/vertex-components/chat-input/chat-input';
 export * from './lib/vertex-components/chat-response/chat-response';
 
-
-export * from './lib/page-layout/page-layout';
 export * from './lib/waiting/waiting';
 export * from './lib/tab-label/tab-label';
 export * from './lib/label/label';
 export * from './lib/label/gen-ai-modes-styles';
-// export * from './styles/theme';
+export { Theme } from './styles/theme';
 export * from './lib/formik/formik-validation-error';
 export * from './lib/text/text';
 export * from './lib/render-list/render-list';

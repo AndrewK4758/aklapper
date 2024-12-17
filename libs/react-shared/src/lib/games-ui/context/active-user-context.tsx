@@ -11,10 +11,10 @@ const activeUserInit: ActiveUserData = {
   playerName: '',
   activeGames: [],
   friends: [],
-  thumbnail: '',
+  thumbnail: ''
 };
 
 export const ActiveUserContext = createContext<IActiveUserContext>({
   activeUser: activeUserInit,
-  setActiveUser: user => user,
+  setActiveUser: user => user
 });

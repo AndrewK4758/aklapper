@@ -2,7 +2,7 @@
 import { Box, SxProps } from '@mui/material';
 import { Variant } from '@mui/material/styles/createTypography';
 import { CSSProperties, ElementType } from 'react';
-import { Text } from '../../game-board/game-board-tic-tac-toe';
+import Text from '../../../text/text';
 
 const avatarSvgStyle: CSSProperties = {
   height: 'auto',

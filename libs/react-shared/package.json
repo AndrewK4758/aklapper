@@ -1,14 +1,25 @@
 {
   "name": "@aklapper/react-shared",
-  "version": "0.0.1",
   "private": true,
   "type": "module",
   "main": "./index.js",
   "types": "./index.d.ts",
+  "dependencies": {
+    "@aklapper/mocks": "workspace:*",
+    "@aklapper/game": "workspace:*",
+    "@aklapper/games-components": "workspace:*",
+    "@aklapper/chutes-and-ladders": "workspace:*",
+    "@aklapper/game-instance": "workspace:*",
+    "@aklapper/chain": "workspace:*",
+    "@aklapper/utils": "workspace:*",
+    "@aklapper/types-ai": "workspace:*",
+    "@aklapper/vertex-ai": "workspace:*",
+    "@aklapper/types-game": "workspace:*"
+  },
   "exports": {
     ".": {
-      "import": "./index.mjs",
-      "require": "./index.js"
+      "types": "./src/index.d.ts",
+      "import": "./index.js"
     }
   }
 }

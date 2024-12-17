@@ -10,7 +10,7 @@ export const initialValues: IRegisterUserClient = {
   email: '' as EmailAddress,
   playerName: '',
   password: '',
-  thumbnail: '',
+  thumbnail: ''
 };
 
 export const supportedFormat = ['jpg', 'jpeg', 'png', 'svg', 'webp'];
@@ -35,5 +35,5 @@ export const validationSchema = Yup.object({
       const splitValue = (value as File).name.split('.');
       return supportedFormat.includes(splitValue[splitValue.length - 1]);
     } else return false;
-  }),
+  })
 });
