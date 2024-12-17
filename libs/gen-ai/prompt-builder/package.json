@@ -1,0 +1,12 @@
+{
+  "name": "@aklapper/prompt-builder",
+  "private": true,
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./main.js"
+    }
+  },
+  "type": "module"
+}

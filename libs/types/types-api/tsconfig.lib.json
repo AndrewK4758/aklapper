@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "outDir": "dist/out-tsc",
+    "declaration": true,
+    "types": ["node"]
+  },
+
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../types-game/tsconfig.lib.json"
+    }
+  ]
+}

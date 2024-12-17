@@ -1,0 +1,11 @@
+{
+  "name": "@aklapper/games-ui",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "nx": {
+    "name": "games-ui",
+    "projectType": "application",
+    "sourceRoot": "apps/games-ui/games-ui/src"
+  }
+}

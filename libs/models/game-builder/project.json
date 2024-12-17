@@ -1,0 +1,30 @@
+{
+  "name": "game-builder",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/models/game-builder/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "main": "libs/models/game-builder/src/index.ts",
+        "outputPath": "dist/libs/models/game-builder",
+        "outputFileName": "main.js",
+        "tsConfig": "libs/models/game-builder/tsconfig.lib.json",
+        "esbuildConfig": "libs/models/game-builder/esbuild.config.cjs",
+        "declarationRootDir": "libs/models/game-builder/src"
+      },
+      "configurations": {
+        "development": {
+          "minify": false
+        },
+        "production": {
+          "minify": true
+        }
+      }
+    }
+  }
+}

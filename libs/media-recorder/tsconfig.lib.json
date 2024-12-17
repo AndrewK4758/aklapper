@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist/out-tsc",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "declaration": true,
+    "lib": ["DOM"],
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"]
+}

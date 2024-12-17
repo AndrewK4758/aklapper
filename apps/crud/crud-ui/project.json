@@ -1,0 +1,9 @@
+{
+  "name": "crud-ui",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/crud/crud-ui/src",
+  "projectType": "application",
+  "tags": [],
+  "// targets": "to see all targets run: nx show project crud-ui --web",
+  "targets": {}
+}

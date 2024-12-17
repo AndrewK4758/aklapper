@@ -1,0 +1,60 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "outDir": "../../../dist/out-tsc",
+    "sourceMap": false,
+    "module": "commonjs"
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.js",
+    "playwright.config.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.js",
+    "src/**/*.test.ts",
+    "src/**/*.test.js",
+    "src/**/*.d.ts"
+  ],
+  "references": [
+    {
+      "path": "../../../libs/mocks"
+    },
+    {
+      "path": "../../../libs/game"
+    },
+    {
+      "path": "../../../libs/games-components"
+    },
+    {
+      "path": "../../../libs/games/chutes-and-ladders"
+    },
+    {
+      "path": "../../../libs/models/game-instance"
+    },
+    {
+      "path": "../../../libs/chain"
+    },
+    {
+      "path": "../../../libs/utils"
+    },
+    {
+      "path": "../../../libs/types/types-ai"
+    },
+    {
+      "path": "../../../libs/gen-ai/vertex-ai"
+    },
+    {
+      "path": "../../../libs/types/types-api"
+    },
+    {
+      "path": "../../../libs/types/types-game"
+    },
+    {
+      "path": "../../../libs/react-shared"
+    },
+    {
+      "path": "../crud-ui"
+    }
+  ]
+}

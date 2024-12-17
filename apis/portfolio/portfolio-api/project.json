@@ -1,0 +1,43 @@
+{
+  "name": "portfolio-api",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apis/portfolio/portfolio-api/src",
+  "projectType": "application",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "platform": "node",
+        "outputPath": "dist/apis/portfolio-api",
+        "main": "apis/portfolio/portfolio-api/src/main.ts",
+        "tsConfig": "apis/portfolio/portfolio-api/tsconfig.app.json",
+        "assets": ["apis/portfolio/portfolio-api/src/assets"],
+        "esbuildConfig": "apis/portfolio/portfolio-api/esbuild.config.cjs"
+      },
+      "configurations": {
+        "development": {},
+        "production": {}
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "dependsOn": ["build"],
+      "options": {
+        "buildTarget": "portfolio-api:build",
+        "runBuildTargetDependencies": false
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "portfolio-api:build:development"
+        },
+        "production": {
+          "buildTarget": "portfolio-api:build:production"
+        }
+      }
+    }
+  }
+}

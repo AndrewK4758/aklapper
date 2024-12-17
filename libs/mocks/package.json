@@ -1,0 +1,15 @@
+{
+  "name": "@aklapper/mocks",
+  "private": true,
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./main.js"
+    }
+  },
+  "dependencies": {
+    "@aklapper/types-game": "workspace:*"
+  },
+  "type": "module"
+}

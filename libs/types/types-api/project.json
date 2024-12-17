@@ -1,0 +1,30 @@
+{
+  "name": "types-api",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/types/types-api/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "main": "libs/types/types-api/src/index.ts",
+        "outputPath": "dist/libs/types-api",
+        "outputFileName": "main.js",
+        "tsConfig": "libs/types/types-api/tsconfig.lib.json",
+        "esbuildConfig": "libs/types/types-api/esbuild.config.cjs",
+        "declarationRootDir": "libs/types/types-api/src"
+      },
+      "configurations": {
+        "development": {
+          "minify": false
+        },
+        "production": {
+          "minify": true
+        }
+      }
+    }
+  }
+}

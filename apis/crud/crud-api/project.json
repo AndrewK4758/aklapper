@@ -1,0 +1,43 @@
+{
+  "name": "crud-api",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apis/crud/crud-api/src",
+  "projectType": "application",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "platform": "node",
+        "outputPath": "dist/apis/crud-api",
+        "main": "apis/crud/crud-api/src/main.ts",
+        "tsConfig": "apis/crud/crud-api/tsconfig.app.json",
+        "assets": ["apis/crud/crud-api/src/assets"],
+        "esbuildConfig": "apis/crud/crud-api/esbuild.config.cjs"
+      },
+      "configurations": {
+        "development": {},
+        "production": {}
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "dependsOn": ["build"],
+      "options": {
+        "buildTarget": "crud-api:build",
+        "runBuildTargetDependencies": false
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "crud-api:build:development"
+        },
+        "production": {
+          "buildTarget": "crud-api:build:production"
+        }
+      }
+    }
+  }
+}

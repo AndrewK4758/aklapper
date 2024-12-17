@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "out-tsc",
+    "module": "ESNext",
+    "moduleResolution": "node10",
+    "types": ["jest", "node"]
+  },
+  "include": [
+    "jest.config.ts",
+    "tests/**/*.test.ts",
+    "tests/**/*.spec.ts",
+    "src/**/*.d.ts",
+    "src/**/*.ts",
+    "../../games-components/src/**/*.ts",
+    "../../game/src/**/*.ts",
+    "../../types/types-game/src/**/*.ts",
+    "../../games/**/*/src/**/*.ts"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@aklapper/game",
+  "private": true,
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./main.js"
+    }
+  },
+  "type": "module",
+  "dependencies": {
+    "@aklapper/chutes-and-ladders": "workspace:*",
+    "@aklapper/types-game": "workspace:*",
+    "@aklapper/games-components": "workspace:*"
+  }
+}

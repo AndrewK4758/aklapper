@@ -1,0 +1,30 @@
+{
+  "name": "chain",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/chain/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "main": "libs/chain/src/index.ts",
+        "outputPath": "dist/libs/chain",
+        "outputFileName": "main.js",
+        "tsConfig": "libs/chain/tsconfig.lib.json",
+        "esbuildConfig": "libs/chain/esbuild.config.cjs",
+        "declarationRootDir": "libs/chain/src"
+      },
+      "configurations": {
+        "development": {
+          "minify": false
+        },
+        "production": {
+          "minify": true
+        }
+      }
+    }
+  }
+}

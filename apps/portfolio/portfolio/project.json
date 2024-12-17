@@ -1,0 +1,20 @@
+{
+  "name": "portfolio",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/portfolio/portfolio/src",
+  "projectType": "application",
+  "tags": [],
+  "targets": {
+    "deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "./apps/portfolio/portfolio",
+        "commands": [
+          {
+            "command": "gcloud app deploy website.yaml --quiet"
+          }
+        ]
+      }
+    }
+  }
+}

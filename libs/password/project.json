@@ -1,0 +1,30 @@
+{
+  "name": "password",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/password/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "main": "libs/password/src/index.ts",
+        "outputPath": "dist/libs/password",
+        "outputFileName": "main.js",
+        "tsConfig": "libs/password/tsconfig.lib.json",
+        "esbuildConfig": "libs/password/esbuild.config.cjs",
+        "declarationRootDir": "libs/password/src"
+      },
+      "configurations": {
+        "development": {
+          "minify": false
+        },
+        "production": {
+          "minify": true
+        }
+      }
+    }
+  }
+}
