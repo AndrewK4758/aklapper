@@ -3,16 +3,16 @@ import { FocusEvent } from 'react';
 import { FormikProps } from 'formik';
 import { album } from '@prisma/client';
 
-const baseURL = import.meta.env.VITE_DATA_API_URL;
+const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
 const handleNewAlbumBlur = async (
   e: FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>,
   formik: FormikProps<album>,
-  artistID: number,
+  artistID: number
 ) => {
   try {
     const resp = await axios.get(`${baseURL}/albums?title=${e.target.value}&artistID=${artistID}`, {
-      headers: { 'Content-Type': 'text/plain' },
+      headers: { 'Content-Type': 'text/plain' }
     });
     console.log(resp.data.message);
     formik.setTouched({ title: resp.data.message }, true);

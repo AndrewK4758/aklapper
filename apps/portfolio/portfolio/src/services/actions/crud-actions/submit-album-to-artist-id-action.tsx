@@ -4,7 +4,7 @@ import type { RefObject } from 'react';
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import axios, { AxiosError, AxiosResponse } from 'axios';
 
-const baseURL = import.meta.env.VITE_DATA_API_URL;
+const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
 const handleSubmitNewAlbum = async (values: album, formik: FormikProps<album>, apiRef: RefObject<GridApiCommunity>) => {
   try {
@@ -15,8 +15,8 @@ const handleSubmitNewAlbum = async (values: album, formik: FormikProps<album>, a
       `${baseURL}/albums`,
       { title: albumTitle, artistID: artistID },
       {
-        headers: { 'Content-Type': 'application/json' },
-      },
+        headers: { 'Content-Type': 'application/json' }
+      }
     );
 
     if (resp.data.newAlbum) {

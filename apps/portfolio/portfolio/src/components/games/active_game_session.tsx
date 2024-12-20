@@ -1,13 +1,19 @@
-import { IPlayersAndBoard } from '@aklapper/chainsgames-chains';
 import { rowFinder } from '@aklapper/games-components';
 import {
   breakpointsBottomMenuButtonsBox,
   breakpointsBottomMenuGameBoard,
-  breakpointsPlayerInTurnText
-} from '@aklapper/react-components';
-import { Text } from '@aklapper/react-shared';
+  breakpointsPlayerInTurnText,
+  Text
+} from '@aklapper/react-shared';
 import { ClientSocket } from '@aklapper/socket-io-client';
-import { GameBoard, type GamePlayerValidation, IActivePlayersInGame, ILiteSpace, type Row } from '@aklapper/types-game';
+import {
+  GameBoard,
+  type GamePlayerValidation,
+  IActivePlayersInGame,
+  ILiteSpace,
+  type IPlayersAndBoard,
+  type Row
+} from '@aklapper/types-game';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
@@ -86,7 +92,7 @@ const ActiveGameSession = () => {
       socket.disconnect();
       socket.removeAllListeners();
     };
-  }, []);
+  });
 
   useEffect(() => {
     socket.emit('action', { action: ActionType.BOARD });
@@ -118,7 +124,7 @@ const ActiveGameSession = () => {
     socket.on('no-game-error', ({ errorMessage }) => {
       console.error(errorMessage);
     });
-  }, [id]);
+  }, [id, socket]);
 
   return (
     <Paper key={`active-${id}-game`} id={`active-${id}-game`}>

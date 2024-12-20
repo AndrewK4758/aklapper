@@ -4,27 +4,5 @@
   "sourceRoot": "libs/games-chains/src",
   "projectType": "library",
   "tags": [],
-  "targets": {
-    "build": {
-      "executor": "@nx/esbuild:esbuild",
-      "outputs": ["{options.outputPath}"],
-      "defaultConfiguration": "production",
-      "options": {
-        "main": "libs/games-chains/src/index.ts",
-        "outputPath": "dist/libs/games-chains",
-        "outputFileName": "main.js",
-        "tsConfig": "libs/games-chains/tsconfig.lib.json",
-        "esbuildConfig": "libs/games-chains/esbuild.config.cjs",
-        "declarationRootDir": "libs/games-chains/src"
-      },
-      "configurations": {
-        "development": {
-          "minify": false
-        },
-        "production": {
-          "minify": true
-        }
-      }
-    }
-  }
+  "targets": {}
 }

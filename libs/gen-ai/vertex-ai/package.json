@@ -4,12 +4,11 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./index.d.ts",
-      "import": "./main.js"
+      "types": "./src/index.d.ts",
+      "import": "./index.js",
+      "meta": "./meta.json"
     }
   },
   "type": "module",
-  "dependencies": {
-    "@aklapper/types-ai": "workspace:*"
-  }
+  "dependencies": {}
 }

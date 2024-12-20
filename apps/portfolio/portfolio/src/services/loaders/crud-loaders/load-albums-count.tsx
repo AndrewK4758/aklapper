@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { LoaderFunction } from 'react-router-dom';
 
-const baseURL = import.meta.env.VITE_DATA_API_URL;
+const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
 const loadAlbumsCount: LoaderFunction = async () => {
   try {

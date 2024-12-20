@@ -1,4 +1,4 @@
-import { GameBoardMap, breakpointsGameBoardBox } from '@aklapper/react-components';
+import { GameBoardMap, breakpointsGameBoardBox } from '@aklapper/react-shared';
 import { RenderList } from '@aklapper/react-shared';
 import { GameBoard, ILiteSpace } from '@aklapper/types-game';
 import Box from '@mui/material/Box';

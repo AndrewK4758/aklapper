@@ -1,24 +1,23 @@
-import { RenderList, Text } from '@aklapper/react-shared';
+import { Text, TechList } from '@aklapper/react-shared';
 import Container from '@mui/material/Container';
-import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Paper from '@mui/material/Paper';
-import type { JSX } from 'react';
+import type { JSX, ReactNode } from 'react';
 import { techListSectionContainer, techlistTextStyle } from '../../../styles/intro-styles';
 import { analytics, build, cloud, data, languages, libraries, styles, testing } from '../static/tech-stack-text';
 
 /**
  * This function renders a single list item for the tech stack list.
  *
- * @param {string} e - The text of the list item.
+ * @param {unknown} e - The text of the list item.
  * @param {number} _i - The index of the list item.
- * @param {string[]} _arr - The array of list items.
+ * @param {unknown[]} _arr - The array of list items.
  * @returns {JSX.Element} The rendered list item.
  */
 
-const renderTechLists = (e: string, _i: number, _arr: string[]): JSX.Element => (
+const renderTechLists = (e: unknown, _i: number, _arr: unknown[]): ReactNode => (
   <ListItem
     key={`${e}-wrapper`}
     id={`${e}-wrapper`}
@@ -26,14 +25,14 @@ const renderTechLists = (e: string, _i: number, _arr: string[]): JSX.Element => 
     sx={{ justifyContent: 'space-between' }}
   >
     <ListItemText key={`${e}`} id={`${e}`} data-testid={`${e}`}>
-      {e}
+      {e as string}
     </ListItemText>
     <ListItemIcon key={`${e}-svg-icon-wrapper`} id={`${e}-svg-icon-wrapper`} data-testid={`${e}-svg-icon-wrapper`}>
       <img
         key={`${e}-svg-icon`}
         data-testid={`${e}-svg-icon`}
         id={`${e}-svg-icon`}
-        src={`/icons/${e.toLowerCase()}-icon.svg`}
+        src={`/icons/${(e as string).toLowerCase()}-icon.svg`}
         alt={`${e}-icon`}
         style={{ width: '32px', height: 'auto' }}
       />
@@ -48,7 +47,7 @@ const renderTechLists = (e: string, _i: number, _arr: string[]): JSX.Element => 
  */
 
 const TechStackList = (): JSX.Element => (
-  <Paper elevation={24} sx={{ height: 'fit-content', p: 2 }}>
+  <Paper elevation={2} sx={{ height: 'fit-content', p: 2 }}>
     <Container
       component={'div'}
       id="tech-list-text-container"
@@ -71,94 +70,103 @@ const TechStackList = (): JSX.Element => (
       data-testid="tech-list-title-text"
       sx={{ display: 'flex', flexWrap: 'wrap' }}
     >
-      <Container
-        component={'section'}
-        id="languages-wrapper"
-        data-testid="tech-list-title-text"
-        sx={techListSectionContainer}
-      >
-        <Text component={'h5'} titleVariant="h5" sx={techlistTextStyle} titleText={'Languages'} />
-        <List key={'languages-list'} id={'languages-list'}>
-          <RenderList data={languages} listMapCallback={renderTechLists} />
-        </List>
-      </Container>
-      <Container
-        component={'section'}
-        id="libraries-wrapper"
-        data-testid="tech-list-title-text"
-        sx={techListSectionContainer}
-      >
-        <Text component={'h5'} titleVariant="h5" sx={techlistTextStyle} titleText={'Libraries'} />
-        <List key={'libraries-list'} id={'libraries-list'}>
-          <RenderList data={libraries} listMapCallback={renderTechLists} />
-        </List>
-      </Container>
-      <Container
-        component={'section'}
-        id="build-wrapper"
-        data-testid="tech-list-title-text"
-        sx={techListSectionContainer}
-      >
-        <Text component={'h5'} titleVariant="h5" sx={techlistTextStyle} titleText={'Build'} />
-        <List key={'build-list'} id={'build-list'}>
-          <RenderList data={build} listMapCallback={renderTechLists} />
-        </List>
-      </Container>
-      <Container
-        component={'section'}
-        id="databases-wrapper"
-        data-testid="tech-list-title-text"
-        sx={techListSectionContainer}
-      >
-        <Text component={'h5'} titleVariant="h5" sx={techlistTextStyle} titleText={'Databases'} />
-        <List key={'databases-list'} id={'databases-list'}>
-          <RenderList data={data} listMapCallback={renderTechLists} />
-        </List>
-      </Container>
-      <Container
-        component={'section'}
-        id="cloud-wrapper"
-        data-testid="tech-list-title-text"
-        sx={techListSectionContainer}
-      >
-        <Text component={'h5'} titleVariant="h5" sx={techlistTextStyle} titleText={'Cloud'} />
-        <List key={'cloud-list'} id={'cloud-list'}>
-          <RenderList data={cloud} listMapCallback={renderTechLists} />
-        </List>
-      </Container>
-      <Container
-        component={'section'}
-        id="styles-wrapper"
-        data-testid="tech-list-title-text"
-        sx={techListSectionContainer}
-      >
-        <Text component={'h5'} titleVariant="h5" sx={techlistTextStyle} titleText={'Styles'} />
-        <List key={'styles-list'} id={'styles-list'}>
-          <RenderList data={styles} listMapCallback={renderTechLists} />
-        </List>
-      </Container>
-      <Container
-        component={'section'}
-        id="analytics-wrapper"
-        data-testid="tech-list-title-text"
-        sx={techListSectionContainer}
-      >
-        <Text component={'h5'} titleVariant="h5" sx={techlistTextStyle} titleText={'Analytics'} />
-        <List key={'analytics-list'} id={'analytics-list'}>
-          <RenderList data={analytics} listMapCallback={renderTechLists} />
-        </List>
-      </Container>
-      <Container
-        component={'section'}
-        id="testing-wrapper"
-        data-testid="tech-list-title-text"
-        sx={techListSectionContainer}
-      >
-        <Text component={'h5'} titleVariant="h5" sx={techlistTextStyle} titleText={'Testing'} />
-        <List key={'testing-list'} id={'testing-list'}>
-          <RenderList data={testing} listMapCallback={renderTechLists} />
-        </List>
-      </Container>
+      <TechList
+        id="languages"
+        labelText="Languages"
+        tooltipTitle={'My strongest languages'}
+        labelVariant={'body1'}
+        variant="h5"
+        techListContainerSxProps={techListSectionContainer}
+        techListTextSxProps={techlistTextStyle}
+        data={languages}
+        renderTechLists={renderTechLists}
+        placement="top"
+      />
+      <TechList
+        id="libraries"
+        labelText="Libraries"
+        tooltipTitle={'My most used libraries'}
+        labelVariant="body1"
+        variant="h5"
+        techListContainerSxProps={techListSectionContainer}
+        techListTextSxProps={techlistTextStyle}
+        data={libraries}
+        renderTechLists={renderTechLists}
+        placement="top"
+      />
+      <TechList
+        id="build-list"
+        labelText="Build"
+        tooltipTitle="The build tools I use for building anything web"
+        labelVariant="body1"
+        variant="h5"
+        techListContainerSxProps={techListSectionContainer}
+        techListTextSxProps={techlistTextStyle}
+        data={build}
+        renderTechLists={renderTechLists}
+        placement="top"
+      />
+
+      <TechList
+        id="databases"
+        labelText="Databases"
+        tooltipTitle="My most used databases"
+        labelVariant="body1"
+        variant="h5"
+        techListContainerSxProps={techListSectionContainer}
+        techListTextSxProps={techlistTextStyle}
+        data={data}
+        renderTechLists={renderTechLists}
+        placement="top"
+      />
+      <TechList
+        id="cloud"
+        labelText="Cloud"
+        tooltipTitle="The cloud tools I am most comfortable with"
+        labelVariant="body1"
+        variant="h5"
+        techListContainerSxProps={techListSectionContainer}
+        techListTextSxProps={techlistTextStyle}
+        data={cloud}
+        renderTechLists={renderTechLists}
+        placement="top"
+      />
+      <TechList
+        id="styles"
+        labelText="Styles"
+        tooltipTitle="The style tools I use for building anything web"
+        labelVariant="body1"
+        variant="h5"
+        techListContainerSxProps={techListSectionContainer}
+        techListTextSxProps={techlistTextStyle}
+        data={styles}
+        renderTechLists={renderTechLists}
+        placement="top"
+      />
+      <TechList
+        id="analytics"
+        labelText="Analytics"
+        tooltipTitle="The analytics tools I use"
+        labelVariant="body1"
+        variant="h5"
+        techListContainerSxProps={techListSectionContainer}
+        techListTextSxProps={techlistTextStyle}
+        data={analytics}
+        renderTechLists={renderTechLists}
+        placement="top"
+      />
+      <TechList
+        id="testing"
+        labelText="Testing"
+        tooltipTitle="The tools I use for unit & e2e testing"
+        labelVariant="body1"
+        variant="h5"
+        techListContainerSxProps={techListSectionContainer}
+        techListTextSxProps={techlistTextStyle}
+        data={testing}
+        renderTechLists={renderTechLists}
+        placement="top"
+      />
     </Container>
   </Paper>
 );

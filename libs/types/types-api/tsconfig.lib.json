@@ -3,13 +3,15 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "outDir": "dist/out-tsc",
+    "outDir": "out-tsc",
     "declaration": true,
-    "types": ["node"]
+    "types": ["node", "vite/client"]
   },
-
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "../../chain/src/**/*.ts", "../types-game/src/**/*.ts"],
   "references": [
+    {
+      "path": "../../chain/tsconfig.lib.json"
+    },
     {
       "path": "../types-game/tsconfig.lib.json"
     }

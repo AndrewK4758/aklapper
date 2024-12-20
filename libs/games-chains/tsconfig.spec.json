@@ -6,5 +6,13 @@
     "moduleResolution": "node10",
     "types": ["jest", "node"]
   },
-  "include": ["jest.config.ts", "tests/**/*.test.ts", "tests/**/*.spec.ts", "src/**/*.d.ts", "src/**/*.ts"]
+  "include": [
+    "jest.config.ts",
+    "tests/**/*.test.ts",
+    "tests/**/*.spec.ts",
+    "src/**/*.d.ts",
+    "src/**/*.ts",
+    "../games/tic-tac-toe/src/**/*.ts",
+    "../mocks/src/**/*.ts"
+  ]
 }

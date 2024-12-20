@@ -1,12 +1,12 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../../dist/apis/crud-api/out-tsc",
+    "outDir": "out-tsc",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "types": ["node"]
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "../../../libs/prisma/src/**/*.ts"],
   "exclude": ["jest.config.ts", "src/**/*.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
   "references": [
     {

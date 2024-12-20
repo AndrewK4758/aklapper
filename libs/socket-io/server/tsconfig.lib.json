@@ -3,9 +3,9 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "outDir": "dist/out-tsc",
+    "outDir": "out-tsc",
     "declaration": true,
-    "types": ["node"]
+    "types": ["node", "vite/client"]
   },
   "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
   "include": ["src/**/*.ts", "../../types/types-ai/src/**/*.ts"],

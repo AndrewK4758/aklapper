@@ -11,10 +11,14 @@
       "defaultConfiguration": "production",
       "options": {
         "outputPath": "dist/apis/games-api",
+        "outputFileName": "main.js",
         "main": "apis/games/games-api/src/main.ts",
         "tsConfig": "apis/games/games-api/tsconfig.app.json",
         "assets": ["apis/games/games-api/src/assets"],
-        "esbuildConfig": "apis/games/games-api/esbuild.config.cjs"
+        "target": "node23",
+        "format": ["esm"],
+        "sourcemap": true,
+        "metafile": true
       },
       "configurations": {
         "development": {},

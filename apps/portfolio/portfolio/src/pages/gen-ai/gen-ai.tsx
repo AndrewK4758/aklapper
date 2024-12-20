@@ -1,5 +1,4 @@
-import { PromptResponse } from '@aklapper/react-components';
-import { renderPreTagInsideParentDiv, Text, Waiting } from '@aklapper/react-shared';
+import { PromptResponse, renderPreTagInsideParentDiv, Text, Waiting } from '@aklapper/react-shared';
 import type { PromptRequest } from '@aklapper/vertex-ai';
 import { Modal } from '@mui/material';
 import AppBar from '@mui/material/AppBar';
@@ -18,10 +17,9 @@ import {
   type CSSProperties,
   type Dispatch,
   type JSX,
-  type SetStateAction,
+  type SetStateAction
 } from 'react';
 import { Outlet, useNavigate, useOutletContext } from 'react-router-dom';
-import suspenseImg from '../../assets/swirly-dots-to-chrome.webp';
 import { MediaRecorderClientContextProvider } from '../../contexts/audio-context';
 import useScrollIntoView from '../../hooks/use-scroll-into-view';
 import loadContextPath from '../../services/loaders/gen-ai/load-context-path';
@@ -35,7 +33,7 @@ import {
   pagesTitlesBoxStyles,
   pagesTitleSx,
   pagesToolbarStyles,
-  pagesWrapperStyles,
+  pagesWrapperStyles
 } from '../../styles/pages-styles';
 import Theme from '../../styles/theme';
 import { body, title } from '../static/gen-ai-text';
@@ -161,7 +159,7 @@ const GenAiHome = (): JSX.Element => {
       {open && (
         <Box component={'section'} key={'prompt-builder-form-wrapper'} id="prompt-builder-form-wrapper" width={'75vw'}>
           <Container component={'div'} key={'prompt-builder-collapse-box'} id="prompt-builder-collapse-box">
-            <Suspense fallback={<Waiting src={suspenseImg} />}>
+            <Suspense fallback={<Waiting src={'/swirly-dots-to-chrome.webp'} />}>
               <Collapse appear={open} in={open} collapsedSize={0} component={'div'}>
                 <PromptBuilder loading={loading} setLoading={setLoading} setPrompt={setPrompt} />
               </Collapse>
@@ -191,7 +189,7 @@ const GenAiHome = (): JSX.Element => {
           maxHeight={'350px'}
           flex={'0 1 40%'}
         >
-          <Waiting src={suspenseImg} />
+          <Waiting src={'/swirly-dots-to-chrome.webp'} />
         </Box>
       </Modal>
 

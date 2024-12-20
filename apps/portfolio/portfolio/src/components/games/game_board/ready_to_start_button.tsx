@@ -4,7 +4,7 @@ import axios, { type AxiosRequestConfig } from 'axios';
 import { Dispatch, type JSX } from 'react';
 import { useParams } from 'react-router-dom';
 import { Socket } from 'socket.io-client';
-import { breakpointsStartGameButtonBox, breakpointsStartGameButtonFormButton } from '@aklapper/react-components';
+import { breakpointsStartGameButtonBox, breakpointsStartGameButtonFormButton } from '@aklapper/react-shared';
 import getGameInstanceInfo from '../../../utils/utils';
 import { Action, ActionType } from './socket-reducer';
 

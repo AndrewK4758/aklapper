@@ -10,11 +10,10 @@ import dayjs, { type Dayjs } from 'dayjs';
 import { jwtDecode } from 'jwt-decode';
 import { useContext, useState, type CSSProperties, type Dispatch, type SetStateAction } from 'react';
 import { Form, useNavigation } from 'react-router-dom';
-import suspenseImg from '../../../assets/swirly-dots-to-chrome.webp';
 import {
   GoogleUserContext,
   type GoogleUserContextInfo,
-  type GoogleUserContextProps,
+  type GoogleUserContextProps
 } from '../../../contexts/contact-context';
 import '../../../styles/google-calendar.css';
 import { timePickerSxProps } from '../../../styles/header-styles';
@@ -30,34 +29,34 @@ const dateCalendarSlotProps: DateCalendarSlotProps<Dayjs> = {
   switchViewIcon: {
     sx: {
       scale: 1.5,
-      color: Theme.palette.primary.dark,
-    },
+      color: Theme.palette.primary.dark
+    }
   },
   rightArrowIcon: {
     sx: {
       scale: 1.5,
-      color: Theme.palette.primary.dark,
-    },
+      color: Theme.palette.primary.dark
+    }
   },
   leftArrowIcon: {
     sx: {
       scale: 1.5,
-      color: Theme.palette.primary.dark,
-    },
+      color: Theme.palette.primary.dark
+    }
   },
   day: {
     sx: {
       fontSize: '1.5rem',
       backgroundColor: Theme.palette.background.default,
       color: Theme.palette.primary.dark,
-      borderRadius: 1,
-    },
+      borderRadius: 1
+    }
   },
   calendarHeader: {
     sx: {
-      scale: 1.1,
-    },
-  },
+      scale: 1.1
+    }
+  }
 };
 
 const timePickerSlotProps: TimePickerSlotProps<Dayjs, false> = {
@@ -65,13 +64,13 @@ const timePickerSlotProps: TimePickerSlotProps<Dayjs, false> = {
     sx: {
       border: `2px solid ${Theme.palette.primary.dark}`,
       borderRadius: 1,
-      backgroundColor: Theme.palette.background.default,
-    },
+      backgroundColor: Theme.palette.background.default
+    }
   },
   actionBar: {
     sx: {
-      borderTop: `2px solid ${Theme.palette.primary.dark}`,
-    },
+      borderTop: `2px solid ${Theme.palette.primary.dark}`
+    }
   },
   textField: {
     variant: 'filled',
@@ -79,30 +78,30 @@ const timePickerSlotProps: TimePickerSlotProps<Dayjs, false> = {
       p: 1,
       width: '80%',
       backgroundColor: Theme.palette.background.default,
-      borderRadius: 1,
-    },
+      borderRadius: 1
+    }
   },
   rightArrowIcon: {
     sx: {
       scale: 1.5,
-      color: Theme.palette.primary.dark,
-    },
+      color: Theme.palette.primary.dark
+    }
   },
   leftArrowIcon: {
     sx: {
       scale: 1.5,
-      color: Theme.palette.primary.dark,
-    },
+      color: Theme.palette.primary.dark
+    }
   },
   openPickerIcon: {
-    sx: { scale: 1.5, color: Theme.palette.primary.dark },
+    sx: { scale: 1.5, color: Theme.palette.primary.dark }
   },
   desktopPaper: {
     elevation: 12,
     sx: {
-      border: `3px solid ${Theme.palette.primary.dark}`,
-    },
-  },
+      border: `3px solid ${Theme.palette.primary.dark}`
+    }
+  }
 };
 
 type TimesAndDates = {
@@ -114,7 +113,7 @@ type TimesAndDates = {
 const initState: TimesAndDates = {
   startTime: minTime,
   endTime: minTime.add(1, 'hour'),
-  date: tomorrow,
+  date: tomorrow
 };
 
 interface GoogleCalendarProps {
@@ -130,7 +129,7 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
     onSuccess: code => onGoogleSuccess(code, setUser),
     onError: err => console.error(err),
     flow: 'auth-code',
-    scope: 'https://www.googleapis.com/auth/calendar.events',
+    scope: 'https://www.googleapis.com/auth/calendar.events'
   });
 
   return (
@@ -167,7 +166,7 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
         sx={{
           ...flexColumnStyles,
           alignItems: 'center',
-          flex: 1,
+          flex: 1
         }}
       >
         <Form
@@ -175,7 +174,7 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
           style={{
             ...(flexColumnStyles as CSSProperties),
             width: '100%',
-            flex: 1,
+            flex: 1
           }}
         >
           <Box
@@ -188,7 +187,7 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
               width: '100%',
               flex: '3 1 auto',
               alignContent: 'center',
-              justifyContent: 'center',
+              justifyContent: 'center'
             }}
           >
             <DateCalendar
@@ -214,7 +213,7 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-evenly',
-              alignItems: 'center',
+              alignItems: 'center'
             }}
           >
             <Label
@@ -288,7 +287,7 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
                 Submit Event
               </Button>
             ) : null}
-            {state === 'loading' && <Waiting src={suspenseImg} />}
+            {state === 'loading' && <Waiting src={'/swirly-dots-to-chrome.webp'} />}
           </Box>
         </Form>
       </Box>
@@ -323,7 +322,7 @@ const onGoogleSuccess = async (code: CodeResponse, setUser: Dispatch<SetStateAct
 
 const handleSubmitEvent = async (
   { date, startTime, endTime }: TimesAndDates,
-  setOpen: Dispatch<SetStateAction<boolean>>,
+  setOpen: Dispatch<SetStateAction<boolean>>
 ) => {
   try {
     const tempStartDateTime = date.toDate();
@@ -348,8 +347,8 @@ const handleSubmitEvent = async (
       `${baseURL}/create-events`,
       { start: startDateTime, end: endDateTime },
       {
-        withCredentials: true,
-      },
+        withCredentials: true
+      }
     );
 
     if (result) setOpen(false);

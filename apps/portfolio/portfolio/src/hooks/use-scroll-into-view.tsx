@@ -8,10 +8,10 @@ import { useLayoutEffect, type RefObject } from 'react';
  * @param {unknown[]} [dependencies=[]] - An optional array of dependencies that trigger the scroll effect when they change.
  */
 
-export const useScrollIntoView = (elementRef: RefObject<HTMLElement | null>, dependencies: unknown[] = []) => {
+export const useScrollIntoView = (elementRef: RefObject<HTMLElement | null>) => {
   useLayoutEffect(() => {
     if (elementRef.current) handleScrollIntoView(elementRef.current);
-  }, dependencies);
+  }, [elementRef]);
 };
 
 export default useScrollIntoView;

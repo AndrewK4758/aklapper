@@ -4,13 +4,10 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./index.d.ts",
-      "import": "./main.js"
+      "types": "./src/index.d.ts",
+      "import": "./index.js"
     }
   },
   "type": "module",
-  "dependencies": {
-    "@aklapper/games-components": "workspace:*",
-    "@aklapper/types-game": "workspace:*"
-  }
+  "dependencies": {}
 }

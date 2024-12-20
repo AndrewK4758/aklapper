@@ -11,10 +11,20 @@
       "defaultConfiguration": "production",
       "options": {
         "main": "libs/socket-io/server/src/index.ts",
-        "esbuildConfig": "libs/socket-io/server/esbuild.config.cjs",
-        "outputPath": "dist/libs/socket-io-server",
+        "outputPath": "dist/libs/socket-io/server",
         "tsConfig": "libs/socket-io/server/tsconfig.lib.json",
-        "declarationRootDir": "libs/socket-io/server/src"
+        "outputFileName": "index.js",
+        "format": ["esm"],
+        "target": "node23",
+        "sourcemap": true,
+        "metafile": true,
+        "assets": [
+          {
+            "glob": "./README.md",
+            "input": ".",
+            "output": "."
+          }
+        ]
       },
       "configurations": {
         "development": {

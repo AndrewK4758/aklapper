@@ -2,7 +2,7 @@ import axios from 'axios';
 
 import { ActionFunction, ActionFunctionArgs } from 'react-router-dom';
 
-const baseUrl = import.meta.env.VITE_SERVER_URL_VERTEX;
+const baseUrl = import.meta.env.VITE_VERTEX_API_URL;
 
 const vertexSubmitAction: ActionFunction = async ({ request }: ActionFunctionArgs) => {
   const { promptInput } = await request.json();
@@ -12,7 +12,7 @@ const vertexSubmitAction: ActionFunction = async ({ request }: ActionFunctionArg
   const resp = await axios.post(
     `${baseUrl}/text`,
     { input: promptInput },
-    { headers: { 'Content-Type': `application/json` } },
+    { headers: { 'Content-Type': `application/json` } }
   );
 
   const { vertexResponse } = resp.data;

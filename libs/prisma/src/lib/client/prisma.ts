@@ -11,7 +11,7 @@ import { PrismaClient, Prisma } from '@prisma/client';
 // };
 
 const prismaClient = new PrismaClient({
-  datasourceUrl: process.env.DB_URL_DEV,
+  datasourceUrl: process.env['DB_URL_DEV']
 });
 
 export const prisma = prismaClient.$extends({
@@ -22,7 +22,7 @@ export const prisma = prismaClient.$extends({
 
         const result = await (context as any).findFirst(where);
         return result !== null;
-      },
-    },
-  },
+      }
+    }
+  }
 });

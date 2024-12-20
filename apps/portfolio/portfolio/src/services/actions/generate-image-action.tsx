@@ -2,7 +2,7 @@ import type { ImagenConfig } from '@aklapper/vertex-ai';
 import axios from 'axios';
 import { type ActionFunction, type ActionFunctionArgs } from 'react-router-dom';
 
-const baseURL = import.meta.env.VITE_SERVER_URL_VERTEX;
+const baseURL = import.meta.env.VITE_VERTEX_API_URL;
 
 const generateImageAction: ActionFunction = async ({ request }: ActionFunctionArgs) => {
   const values = (await request.json()) as Partial<ImagenConfig>;
@@ -11,7 +11,7 @@ const generateImageAction: ActionFunction = async ({ request }: ActionFunctionAr
     const resp = await axios.post(
       `${baseURL}/images`,
       { prompt: prompt, sampleCount: Number(sampleCount), aspectRatio: aspectRatio, seed: seed },
-      { headers: { 'Content-Type': 'application/json' } },
+      { headers: { 'Content-Type': 'application/json' } }
     );
 
     return resp.data as string[];

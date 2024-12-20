@@ -4,14 +4,10 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./index.d.ts",
-      "import": "./main.js"
+      "types": "./src/index.d.ts",
+      "import": "./index.js"
     }
   },
   "type": "module",
-  "dependencies": {
-    "@aklapper/chutes-and-ladders": "workspace:*",
-    "@aklapper/types-game": "workspace:*",
-    "@aklapper/games-components": "workspace:*"
-  }
+  "dependencies": {}
 }

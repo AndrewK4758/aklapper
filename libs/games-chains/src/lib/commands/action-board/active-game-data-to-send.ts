@@ -1,7 +1,13 @@
 import { CommandBuilder } from '@aklapper/chain';
-import { Context, GameContextKeys, GameInstanceID, IRegisterFormValues, type ILiteSpace } from '@aklapper/types-game';
+import {
+  type Context,
+  GameContextKeys,
+  type GameInstanceID,
+  type ILiteSpace,
+  type IPlayersAndBoard,
+  type IRegisterFormValues
+} from '@aklapper/types-game';
 import { deRefContextObject } from '@aklapper/utils';
-import { IPlayersAndBoard } from '../../completed-chains/active-game-display-chain';
 
 export const activeDataToSend = CommandBuilder.build((context: Context) => {
   if (context.get(GameContextKeys.NEXT) && context.getString(GameContextKeys.NEXT) === 'active-data-to-send') {
@@ -11,7 +17,7 @@ export const activeDataToSend = CommandBuilder.build((context: Context) => {
       avatarInTurn: context.get('player-in-turn') as string,
       gameBoard: game.instance.instance.displayGameBoard() as ILiteSpace[],
       activePlayersInGame: context.get('active-players-in-game') as IRegisterFormValues[],
-      winner: context.get('winner-message') as string,
+      winner: context.get('winner-message') as string
     };
 
     if (!req && !resp) {

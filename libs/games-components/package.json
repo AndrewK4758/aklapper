@@ -5,11 +5,9 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./src/index.d.ts",
-      "import": "./main.js"
+      "import": "./indexs.js"
     }
   },
   "type": "module",
-  "dependencies": {
-    "@aklapper/types-game": "workspace:*"
-  }
+  "dependencies": {}
 }

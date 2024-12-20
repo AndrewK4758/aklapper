@@ -33,3 +33,4 @@ export { Theme } from './styles/theme';
 export * from './lib/formik/formik-validation-error';
 export * from './lib/text/text';
 export * from './lib/render-list/render-list';
+export * from './lib/tech-stack-list/tech-list';

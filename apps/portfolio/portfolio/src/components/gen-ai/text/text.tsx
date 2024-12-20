@@ -1,4 +1,4 @@
-import { ChatInput } from '@aklapper/react-components';
+import { ChatInput } from '@aklapper/react-shared';
 import { labelSx, textInputSx, topLevelModeStyle } from '@aklapper/react-shared';
 import type { PromptRequest } from '@aklapper/vertex-ai';
 import { FileData } from '@google-cloud/vertexai';
@@ -14,7 +14,7 @@ import type { OutletContextProps } from '../../../pages/gen-ai/gen-ai';
 
 const validationSchema = Yup.object<PromptRequest>().shape({
   text: Yup.string().required('Must be a valid question or statement').min(2, 'Must be a valid question or statement'),
-  fileData: Yup.mixed<FileData>().nullable().notRequired(),
+  fileData: Yup.mixed<FileData>().nullable().notRequired()
 });
 
 /**
@@ -49,7 +49,7 @@ const TextGenerator = (): JSX.Element => {
         socket.removeAllListeners();
       }
     };
-  }, []);
+  }, [setLoading, setPromptResponse, socket]);
 
   return (
     <Box

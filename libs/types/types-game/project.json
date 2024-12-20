@@ -4,27 +4,5 @@
   "sourceRoot": "libs/types/types-game/src",
   "projectType": "library",
   "tags": [],
-  "targets": {
-    "build": {
-      "executor": "@nx/esbuild:esbuild",
-      "outputs": ["{options.outputPath}"],
-      "defaultConfiguration": "production",
-      "options": {
-        "main": "libs/types/types-game/src/index.ts",
-        "outputPath": "dist/libs/types-game",
-        "outputFileName": "main.js",
-        "tsConfig": "libs/types/types-game/tsconfig.lib.json",
-        "esbuildConfig": "libs/types/types-game/esbuild.config.cjs",
-        "declarationRootDir": "libs/types/types-game/src"
-      },
-      "configurations": {
-        "development": {
-          "minify": false
-        },
-        "production": {
-          "minify": true
-        }
-      }
-    }
-  }
+  "targets": {}
 }

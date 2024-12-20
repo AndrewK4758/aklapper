@@ -11,11 +11,20 @@
       "defaultConfiguration": "production",
       "options": {
         "main": "libs/gen-ai/prompt-builder/src/index.ts",
-        "outputPath": "dist/libs/prompt-builder",
-        "outputFileName": "main.js",
+        "outputPath": "dist/libs/gen-ai/prompt-builder",
+        "outputFileName": "index.js",
         "tsConfig": "libs/gen-ai/prompt-builder/tsconfig.lib.json",
-        "esbuildConfig": "libs/gen-ai/prompt-builder/esbuild.config.cjs",
-        "declarationRootDir": "libs/gen-ai/prompt-builder/src"
+        "format": ["esm"],
+        "target": "node23",
+        "sourcemap": true,
+        "metafile": true,
+        "assets": [
+          {
+            "glob": "./README.md",
+            "input": ".",
+            "output": "."
+          }
+        ]
       },
       "configurations": {
         "development": {

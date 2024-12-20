@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../../dist/socket-io-server/out-tsc",
+    "outDir": "out-tsc",
     "module": "commonjs",
     "moduleResolution": "node10",
     "types": ["jest", "node"]

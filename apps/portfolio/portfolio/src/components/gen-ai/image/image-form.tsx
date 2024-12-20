@@ -6,7 +6,7 @@ import {
   Text,
   textInputSx,
   tooltipSx,
-  Waiting,
+  Waiting
 } from '@aklapper/react-shared';
 import { AspectRatio } from '@aklapper/types-ai';
 import { type ImagenConfig } from '@aklapper/vertex-ai';
@@ -25,7 +25,6 @@ import { useFormik, type FormikProps } from 'formik';
 import { type ChangeEvent, type JSX } from 'react';
 import { Form, useActionData, useNavigation, useOutletContext, useSubmit } from 'react-router-dom';
 import * as Yup from 'yup';
-import suspenseImg from '../../../assets/swirly-dots-to-chrome.webp';
 import type { OutletContextProps } from '../../../pages/gen-ai/gen-ai';
 import { forrmControlLabelStyles, radioGroupStyles, sampleCountRadioTextStyles } from '../../../styles/gen-ai-styles';
 import { centerFlex } from '../../../styles/pages-styles';
@@ -37,7 +36,7 @@ const validationSchema = Yup.object({
   prompt: Yup.string().required('The prompt is required'),
   sampleCount: Yup.number().required('Sample Count is required'),
   seed: Yup.number().required('Seed is required'),
-  aspectRatio: Yup.string().oneOf(Object.values(AspectRatio)),
+  aspectRatio: Yup.string().oneOf(Object.values(AspectRatio))
 });
 
 /**
@@ -57,13 +56,13 @@ const ImageForm = (): JSX.Element => {
     prompt: prompt.text === null ? '' : prompt.text,
     sampleCount: 1,
     seed: 100,
-    aspectRatio: AspectRatio['1:1'],
+    aspectRatio: AspectRatio['1:1']
   };
 
   const formik = useFormik({
     initialValues: initialValues,
     validationSchema: validationSchema,
-    onSubmit: values => submit(values, { encType: 'application/json', relative: 'route', method: 'post' }),
+    onSubmit: values => submit(values, { encType: 'application/json', relative: 'route', method: 'post' })
   });
 
   return (
@@ -245,8 +244,8 @@ const ImageForm = (): JSX.Element => {
                 slotProps={{
                   input: {
                     'aria-labelledby': 'seed-slider',
-                    sx: { textAlign: 'center', fontSize: '1.5rem', color: Theme.palette.primary.main },
-                  },
+                    sx: { textAlign: 'center', fontSize: '1.5rem', color: Theme.palette.primary.main }
+                  }
                 }}
               />
             </Box>
@@ -266,7 +265,7 @@ const ImageForm = (): JSX.Element => {
                 sx={{
                   ...centerFlex,
                   flex: '0 1 50%',
-                  height: 'fit-content',
+                  height: 'fit-content'
                 }}
               >
                 <Button
@@ -286,11 +285,11 @@ const ImageForm = (): JSX.Element => {
                 sx={{
                   ...centerFlex,
                   flex: '0 1 50%',
-                  height: 'fit-content',
+                  height: 'fit-content'
                 }}
               >
                 <Text component={'h4'} titleVariant="h4" titleText={'Generating'} sx={{ textAlign: 'center' }} />
-                <Waiting src={suspenseImg} />
+                <Waiting src={'/swirly-dots-to-chrome.webp'} />
               </Box>
             )}
           </Box>
@@ -302,7 +301,7 @@ const ImageForm = (): JSX.Element => {
         sx={{
           ...centerFlex,
           flex: '1 0 20%',
-          flexWrap: 'wrap',
+          flexWrap: 'wrap'
         }}
       >
         {pics &&
@@ -332,7 +331,7 @@ export default ImageForm;
 
 const handleSliderInputChange = (
   event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  formik: FormikProps<Partial<ImagenConfig>>,
+  formik: FormikProps<Partial<ImagenConfig>>
 ) => {
   formik.setFieldValue('seed', event.target.value === '' ? 0 : Number(event.target.value));
 };
@@ -349,7 +348,7 @@ const handleSliderInputChange = (
 const handleFormikValueChange = async (
   name: string,
   value: string | number | number[],
-  formik: FormikProps<Partial<ImagenConfig>>,
+  formik: FormikProps<Partial<ImagenConfig>>
 ) => {
   await formik.setFieldValue(name, value);
 };

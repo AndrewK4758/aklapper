@@ -1,9 +1,20 @@
 {
   "extends": "../../../tsconfig.base.json",
-  "compilerOptions": {},
+  "compilerOptions": {
+    "module": "ESNext",
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
+  },
   "files": [],
   "include": [],
   "references": [
+    {
+      "path": "../../chain"
+    },
     {
       "path": "../types-game"
     },

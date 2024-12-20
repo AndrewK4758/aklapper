@@ -10,7 +10,7 @@ import { DataGrid, GridActionsCellItem, GridColDef, GridRowParams, useGridApiRef
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { artist } from '@prisma/client';
 import axios from 'axios';
-import { RefObject, useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
+import { MutableRefObject, useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import { Outlet, useLoaderData, useNavigate } from 'react-router-dom';
 import useScrollIntoView from '../../../hooks/use-scroll-into-view';
 import loadArtists from '../../../services/loaders/crud-loaders/load-artists';
@@ -19,7 +19,7 @@ import AddArtist from './add-artist';
 
 const paginationModelInit = {
   pageSize: 25,
-  page: 0,
+  page: 0
 };
 
 /**
@@ -44,14 +44,14 @@ const Artist = (): JSX.Element => {
     () => ({
       cursor: paginationModel.page === 0 ? 1 : paginationModel.pageSize * paginationModel.page,
       pageSize: paginationModel.pageSize,
-      skip: paginationModel.page === 0 ? 0 : 1,
+      skip: paginationModel.page === 0 ? 0 : 1
     }),
-    [paginationModel],
+    [paginationModel]
   );
 
   const fetchArtists = useCallback(
     async (pageSize: number, skip: number, cursor: number) => await loadArtists(pageSize, skip, cursor),
-    [],
+    []
   );
 
   useScrollIntoView(divRef);
@@ -67,7 +67,7 @@ const Artist = (): JSX.Element => {
       field: 'artist_id',
       headerName: 'Artist ID',
       type: 'number',
-      flex: 0.75,
+      flex: 0.75
     },
     {
       field: 'name',
@@ -76,7 +76,7 @@ const Artist = (): JSX.Element => {
       editable: true,
       filterable: true,
       headerClassName: 'artist-name',
-      flex: 3,
+      flex: 3
     },
     {
       field: 'update-delete',
@@ -98,9 +98,9 @@ const Artist = (): JSX.Element => {
             onClick={() => {
               handleDeleteArtist(params.row, apiRef);
             }}
-          />,
+          />
         ];
-      },
+      }
     },
     {
       field: 'details',
@@ -114,10 +114,10 @@ const Artist = (): JSX.Element => {
             title="Albums"
             icon={<DetailsIcon />}
             onClick={() => nav(`${params.row.artist_id}/albums`)}
-          />,
+          />
         ];
-      },
-    },
+      }
+    }
   ];
 
   const getID = (row: artist) => row.artist_id;
@@ -154,7 +154,7 @@ const Artist = (): JSX.Element => {
               titleVariant={'h3'}
               id="artists-title"
               sx={{
-                textAlign: 'center',
+                textAlign: 'center'
               }}
             />
           </Paper>
@@ -203,13 +203,13 @@ export default Artist;
 
 const baseURL = import.meta.env.VITE_DATA_API_URL;
 
-const handleUpdateArtistName = async (values: artist, apiRef: RefObject<GridApiCommunity>) => {
+const handleUpdateArtistName = async (values: artist, apiRef: MutableRefObject<GridApiCommunity>) => {
   try {
     const { artist_id, name } = values;
     const resp = await axios.patch(
       `${baseURL}/artists`,
       { artistID: artist_id, name: name },
-      { headers: { 'Content-Type': 'application/json' } },
+      { headers: { 'Content-Type': 'application/json' } }
     );
 
     if (resp.data) {
@@ -221,11 +221,11 @@ const handleUpdateArtistName = async (values: artist, apiRef: RefObject<GridApiC
   }
 };
 
-const handleDeleteArtist = async (values: artist, apiRef: RefObject<GridApiCommunity>) => {
+const handleDeleteArtist = async (values: artist, apiRef: MutableRefObject<GridApiCommunity>) => {
   try {
     const { artist_id } = values;
     const resp = await axios.delete(`${baseURL}/artists/${artist_id}`, {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' }
     });
 
     console.log(resp.data);

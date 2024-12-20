@@ -4,27 +4,5 @@
   "sourceRoot": "libs/utils/src",
   "projectType": "library",
   "tags": [],
-  "targets": {
-    "build": {
-      "executor": "@nx/esbuild:esbuild",
-      "outputs": ["{options.outputPath}"],
-      "defaultConfiguration": "production",
-      "options": {
-        "main": "libs/utils/src/index.ts",
-        "outputPath": "dist/libs/utils",
-        "outputFileName": "main.js",
-        "tsConfig": "libs/utils/tsconfig.lib.json",
-        "esbuildConfig": "libs/utils/esbuild.config.cjs",
-        "declarationRootDir": "libs/utils/src"
-      },
-      "configurations": {
-        "development": {
-          "minify": false
-        },
-        "production": {
-          "minify": true
-        }
-      }
-    }
-  }
+  "targets": {}
 }

@@ -6,14 +6,14 @@ import FormLabel from '@mui/material/FormLabel';
 import TextField from '@mui/material/TextField';
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { useFormik } from 'formik';
-import { FocusEvent, RefObject, type JSX } from 'react';
+import { FocusEvent, MutableRefObject, type JSX } from 'react';
 import { Form, useParams } from 'react-router-dom';
 import handleSubmitNewAlbum from '../../../services/actions/crud-actions/submit-album-on-artist-action';
 import handleNewAlbumBlur from '../../../services/events/crud-events/handle-validate-artist-albums-on-blur';
 import { crudAddButtonStyles, inverseColors } from '../../../styles/crud-styles';
 
 interface AddAlbumOnArtistProps {
-  apiRef: RefObject<GridApiCommunity>;
+  apiRef: MutableRefObject<GridApiCommunity>;
 }
 
 export type ArtistAndAlbum = { title: string; album_id: number; artist_id: number };
@@ -36,7 +36,7 @@ const AddAlbumOnArtist = ({ apiRef }: AddAlbumOnArtistProps): JSX.Element => {
     onSubmit: values => {
       handleSubmitNewAlbum(values, formik, artistID, apiRef);
     },
-    validateOnBlur: true,
+    validateOnBlur: true
   });
 
   formik.handleBlur = (e: FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>) => {

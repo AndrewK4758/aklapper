@@ -12,7 +12,6 @@ import { enUS } from '@mui/x-date-pickers/locales';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider/LocalizationProvider';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { type Dispatch, lazy, type SetStateAction, Suspense, useState } from 'react';
-import suspenseImg from '../../assets/swirly-dots-to-chrome.webp';
 import GoogleUserContextProvider from '../../contexts/contact-context';
 import { fullSizeBlock } from '../../styles/pages-styles';
 import { flexColumnStyles } from '../../styles/prompt-builder-styles';
@@ -44,7 +43,7 @@ const EmailDialog = ({ open, setOpen }: EmailDialogProps) => {
   const [tab, setTab] = useState<number>(0);
 
   return (
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_CLIENT_ID}>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_OAUTH_CLIENT_ID}>
       <LocalizationProvider
         dateAdapter={AdapterDayjs}
         localeText={enUS.components.MuiLocalizationProvider.defaultProps.localeText}
@@ -124,7 +123,7 @@ const EmailDialog = ({ open, setOpen }: EmailDialogProps) => {
                 data-testid="calendar-and-email-section"
                 sx={{ ...flexColumnStyles, flex: 4 }}
               >
-                <Suspense fallback={<Waiting src={suspenseImg} />}>
+                <Suspense fallback={<Waiting src={'/swirly-dots-to-chrome.webp'} />}>
                   {tab === 0 && <GoogleCalendar setOpen={setOpen} />}
                   {tab === 1 && <EmailForm setOpen={setOpen} />}
                 </Suspense>

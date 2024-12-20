@@ -5,10 +5,17 @@
     "moduleResolution": "bundler",
     "outDir": "dist/out-tsc",
     "declaration": true,
-    "types": ["node"]
+    "types": ["node", "vite/client"]
   },
   "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
-  "include": ["src/**/*.ts"],
+  "include": [
+    "src/**/*.ts",
+    "../../games-components/src/**/*.ts",
+    "../../types/types-game/src/**/*.ts",
+    "../../games/**/*/src/**/*.ts",
+    "../../chain/src/**/*.ts",
+    "../rule/src/**/*.ts"
+  ],
   "references": [
     {
       "path": "../../games-components/tsconfig.lib.json"

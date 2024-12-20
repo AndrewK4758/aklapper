@@ -10,12 +10,10 @@ export const baseStyleForLayoutItems: SxProps = {
 
 export const headerWrapperSxProps: SxProps = {
   position: 'fixed',
-  top: '1vh',
-  width: '55vw',
+  width: '100vw',
   display: 'flex',
   height: '8vh',
   maxHeight: '120px',
-  justifyContent: 'center',
   alignContent: 'center',
   zIndex: 5
 };
@@ -23,13 +21,15 @@ export const headerWrapperSxProps: SxProps = {
 export const homeWrapperSxProps: SxProps = {
   ...baseStyleForLayoutItems,
   flex: '1 0 100%',
+  alignItems: 'flex-start',
   justifyContent: 'space-between',
   gap: '25vh'
 };
 
 export const mainWrapperSxProps: SxProps = {
   ...baseStyleForLayoutItems,
-  marginTop: '20vh',
+
+  marginTop: '12vh',
   gap: '15vh'
 };
 

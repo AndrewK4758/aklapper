@@ -31,33 +31,7 @@
           "configName": "tsconfig.lib.json"
         }
       },
-      "exclude": [
-        "libs/chain/chain/*",
-        "libs/chain/*",
-        "libs/games-chains/*",
-        "libs/game/*",
-        "libs/games/*",
-        "libs/games/chutes-and-ladders/*",
-        "libs/games/tic-tac-toe/*",
-        "libs/games-components/*",
-        "libs/gen-ai/prompt-buillder/*",
-        "libs/gen-ai/vertex-ai/*",
-        "libs/mocks/*",
-        "libs/models/all-games-map/*",
-        "libs/models/game-builder/*",
-        "libs/models/game-instance/*",
-        "libs/models/rule/*",
-        "libs/password/*",
-        "libs/prisma/*",
-        "libs/utils/*",
-        "libs/socket-io/server/*",
-        "libs/types/types-ai/*",
-        "libs/types/types-api/*",
-        "libs/types/types-game/*",
-        "libs/socket-io/client/*",
-        "libs/gen-ai/promp-builder/*",
-        "libs/gen-ai/prompt-builder/*"
-      ]
+      "exclude": []
     },
     {
       "plugin": "@nx/vite/plugin",
@@ -88,11 +62,9 @@
         "targetName": "test"
       },
       "exclude": [
-        "apis/data/data-api-e2e/**/*",
+        "apis/crud/crud-api-e2e/**/*",
         "apis/games/games-api-e2e/**/*",
         "apis/portfolio/portfolio-api-e2e/**/*",
-        "apis/games/games-api-e2e/**/*",
-        "apis/crud/crud-api-e2e/**/*",
         "apis/vertex/vertex-api-e2e/**/*"
       ]
     },

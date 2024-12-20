@@ -1,11 +1,11 @@
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { track } from '@prisma/client';
 import axios from 'axios';
-import { MutableRefObject } from 'react';
+import { RefObject } from 'react';
 
-const baseURL = import.meta.env.VITE_DATA_API_URL;
+const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
-const handleUpdateTrack = async (values: track, apiRef: MutableRefObject<GridApiCommunity>) => {
+const handleUpdateTrack = async (values: track, apiRef: RefObject<GridApiCommunity>) => {
   try {
     const { track_id, album_id, name, unit_price, genre_id, media_type_id, composer, milliseconds, bytes } = values;
 
@@ -18,13 +18,13 @@ const handleUpdateTrack = async (values: track, apiRef: MutableRefObject<GridApi
       media_type_id: media_type_id,
       composer: composer,
       milliseconds: milliseconds,
-      bytes: bytes,
+      bytes: bytes
     };
 
     const resp = await axios.patch(
       `${baseURL}/tracks`,
       { trackData: trackData },
-      { headers: { 'Content-Type': 'application/json' } },
+      { headers: { 'Content-Type': 'application/json' } }
     );
 
     console.log(resp.data);
@@ -43,8 +43,8 @@ const handleUpdateTrack = async (values: track, apiRef: MutableRefObject<GridApi
           media_type_id: media_type_id,
           composer: composer,
           milliseconds: milliseconds,
-          bytes: bytes,
-        },
+          bytes: bytes
+        }
       ]);
     }
   } catch (error) {

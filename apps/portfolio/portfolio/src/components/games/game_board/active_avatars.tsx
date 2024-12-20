@@ -7,7 +7,7 @@ import {
   breakpointsPlayersBox,
   breakpointsPlayersInGameBox,
   breakpointsPlayersInGameText
-} from '@aklapper/react-components';
+} from '@aklapper/react-shared';
 import { RenderList, Text } from '@aklapper/react-shared';
 import { IRegisterFormValues } from '@aklapper/types-game';
 import Box from '@mui/material/Box';

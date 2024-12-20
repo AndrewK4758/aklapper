@@ -4,27 +4,5 @@
   "sourceRoot": "libs/games/tic-tac-toe/src",
   "projectType": "library",
   "tags": [],
-  "targets": {
-    "build": {
-      "executor": "@nx/esbuild:esbuild",
-      "outputs": ["{options.outputPath}"],
-      "defaultConfiguration": "production",
-      "options": {
-        "main": "libs/games/tic-tac-toe/src/index.ts",
-        "outputPath": "dist/libs/games/tic-tac-toe",
-        "outputFileName": "main.js",
-        "tsConfig": "libs/games/tic-tac-toe/tsconfig.lib.json",
-        "esbuildConfig": "libs/games/tic-tac-toe/esbuild.config.cjs",
-        "declarationRootDir": "libs/games/tic-tac-toe/src"
-      },
-      "configurations": {
-        "development": {
-          "minify": false
-        },
-        "production": {
-          "minify": true
-        }
-      }
-    }
-  }
+  "targets": {}
 }

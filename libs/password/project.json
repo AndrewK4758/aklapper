@@ -12,10 +12,19 @@
       "options": {
         "main": "libs/password/src/index.ts",
         "outputPath": "dist/libs/password",
-        "outputFileName": "main.js",
+        "outputFileName": "index.js",
         "tsConfig": "libs/password/tsconfig.lib.json",
-        "esbuildConfig": "libs/password/esbuild.config.cjs",
-        "declarationRootDir": "libs/password/src"
+        "platform": "node",
+        "format": ["esm"],
+        "sourcemap": true,
+        "metafile": true,
+        "assets": [
+          {
+            "glob": "./README.md",
+            "input": ".",
+            "output": "."
+          }
+        ]
       },
       "configurations": {
         "development": {

@@ -1,6 +1,7 @@
-import { IInstanceOfGame } from '../interfaces/instance-of-game';
 import { Request, Response } from 'express';
 import type { Server } from 'socket.io';
+import { IInstanceOfGame } from '../interfaces/instance-of-game';
+import type { ILiteSpace } from '../interfaces/lite-space';
 
 export enum Color {
   RED = 'Red',
@@ -101,4 +102,8 @@ export interface IActivePlayersInGame {
 
 export interface ITestCtxOutput {
   message: string;
+}
+
+export interface IPlayersAndBoard extends IActivePlayersInGame {
+  gameBoard: ILiteSpace[];
 }

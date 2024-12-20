@@ -4,20 +4,10 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./index.d.ts",
-      "import": "./main.js"
+      "types": "./src/index.d.ts",
+      "import": "./index.js"
     }
   },
   "type": "module",
-  "dependencies": {
-    "@aklapper/tic-tac-toe": "workspaces:*",
-    "@aklapper/mocks": "workspaces:*",
-    "@aklapper/game": "workspaces:*",
-    "@aklapper/games-components": "workspaces:*",
-    "@aklapper/chutes-and-ladders": "workspaces:*",
-    "@aklapper/games-instance": "workspaces:*",
-    "@aklapper/utils": "workspaces:*",
-    "@aklapper/types-game": "workspaces:*",
-    "@aklapper/chain": "workspaces:*"
-  }
+  "dependencies": {}
 }

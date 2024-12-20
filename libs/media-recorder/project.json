@@ -9,11 +9,21 @@
       "executor": "@nx/esbuild:esbuild",
       "outputs": ["{options.outputPath}"],
       "options": {
-        "outputPath": "dist/libs/media-recorder",
         "main": "libs/media-recorder/src/index.ts",
         "tsConfig": "libs/media-recorder/tsconfig.lib.json",
-        "assets": ["libs/media-recorder/*.md"],
-        "esbuildConfig": "libs/media-recorder/esbuild.config.cjs"
+        "outputPath": "dist/libs/media-recorder",
+        "outputFileName": "index.js",
+        "format": ["esm"],
+        "target": "node23",
+        "sourcemap": true,
+        "metafile": true,
+        "assets": [
+          {
+            "glob": "./README.md",
+            "input": ".",
+            "output": "."
+          }
+        ]
       }
     }
   }

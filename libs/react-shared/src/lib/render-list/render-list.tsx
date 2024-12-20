@@ -1,10 +1,10 @@
 import Box from '@mui/material/Box';
 import type { SxProps } from '@mui/material/styles';
-import type { JSX } from 'react';
+import type { ReactNode } from 'react';
 
 export interface RenderListProps {
   data: unknown[];
-  listMapCallback(e: unknown, i: number, arr: unknown[]): JSX.Element;
+  listMapCallback(e: unknown, i: number, arr: unknown[]): ReactNode;
   sx?: SxProps;
   id?: string;
 }

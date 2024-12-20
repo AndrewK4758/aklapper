@@ -1,9 +1,9 @@
 import Box from '@mui/material/Box';
 import type { JSX } from 'react';
 import Intro from '../../components/intro/intro';
-import PicutreAndResume from '../../components/intro/picture-resume';
 import TechStackList from '../../components/intro/tech-list/tech-list';
 import { baseStyleForHomeItems } from '../../styles/intro-styles';
+import PicutreAndResume from '../../components/intro/picture-resume';
 
 /**
  * This is the main home component that renders the introduction section of the portfolio website.
@@ -26,7 +26,11 @@ const Home = (): JSX.Element => (
       id="intro-wrapper"
       sx={{
         ...baseStyleForHomeItems,
-        justifyContent: 'space-between',
+        alignSelf: 'center',
+        alignContent: 'space-between',
+        gap: '2.5vw',
+        width: '90vw',
+        height: 'fit-content'
       }}
     >
       <Intro />
@@ -39,7 +43,7 @@ const Home = (): JSX.Element => (
       id="tech-stack-wrapper"
       sx={{
         ...baseStyleForHomeItems,
-        justifyContent: 'center',
+        justifyContent: 'center'
       }}
     >
       <TechStackList />

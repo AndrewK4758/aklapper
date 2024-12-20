@@ -12,10 +12,14 @@
       "options": {
         "platform": "node",
         "outputPath": "dist/apis/portfolio-api",
+        "outputFileName": "main.js",
         "main": "apis/portfolio/portfolio-api/src/main.ts",
         "tsConfig": "apis/portfolio/portfolio-api/tsconfig.app.json",
         "assets": ["apis/portfolio/portfolio-api/src/assets"],
-        "esbuildConfig": "apis/portfolio/portfolio-api/esbuild.config.cjs"
+        "target": "node23",
+        "format": ["esm"],
+        "sourcemap": true,
+        "metafile": true
       },
       "configurations": {
         "development": {},

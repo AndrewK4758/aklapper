@@ -21,14 +21,14 @@ export const LocalModel = () => {
     setSocketListeners(socket, [
       ['connect', () => console.log(`Connected on id: ${socket.id}`)],
       ['promptResponse', response => setPromptResponse(response as string)],
-      ['promptResponseError', error => console.log(error)],
+      ['promptResponseError', error => console.log(error)]
     ]);
 
     return () => {
       socket.removeAllListeners();
       socket.disconnect();
     };
-  }, []);
+  });
   return (
     <Box key={'local-model-wrapper-box'} id="local-model-wrapper-box" sx={topLevelModeStyle}>
       <Paper
@@ -42,7 +42,7 @@ export const LocalModel = () => {
           sx={{
             display: 'flex',
             flexDirection: 'column',
-            height: 'fit-content',
+            height: 'fit-content'
           }}
         >
           <ModelQuery />
@@ -53,7 +53,7 @@ export const LocalModel = () => {
           id="local-model-wrapper-response-container"
           sx={{
             display: 'flex',
-            flexDirection: 'column',
+            flexDirection: 'column'
           }}
         >
           <Label

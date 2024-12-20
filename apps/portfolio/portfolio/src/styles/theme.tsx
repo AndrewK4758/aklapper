@@ -16,48 +16,46 @@ const darkScrollbarGlobal = {
 
 const Theme: ThemeType = createTheme(
   {
-    defaultColorScheme: 'dark',
+    // defaultColorScheme: 'dark',
     palette: {
-      common: {
-        black: '#ffffff',
-        white: '#fffdf6'
-      },
-      primary: {
-        main: '#00dfb9',
-        light: '#33e5c7',
-        dark: '#009c81',
-        contrastText: '#3a3c41'
-      },
-      secondary: {
-        main: '#cb91ff',
-        light: '#e4c4ff',
-        dark: '#58278b',
-        contrastText: '#f9f871'
-      },
+      //   common: {
+      //     black: '#ffffff',
+      //     white: '#fffdf6'
+      //   },
+      //   primary: {
+      //     main: '#00dfb9',
+      //     light: '#33e5c7',
+      //     dark: '#009c81',
+      //     contrastText: '#3a3c41'
+      //   },
+      //   secondary: {
+      //     main: '#cb91ff',
+      //     light: '#e4c4ff',
+      //     dark: '#58278b',
+      //     contrastText: '#f9f871'
+      //   },
       background: {
-        paper: '#1f1f1f',
-        default: '#3a3c41'
-      },
-      text: {
-        primary: '#cbcbcb',
-        secondary: '#3a3c41'
+        paper: '#eeebe9',
+        default: '#dfddda'
       }
+      //   text: {
+      //     primary: '#cbcbcb',
+      //     secondary: '#3a3c41'
+      //   }
     },
     shape: {
       borderRadius: 10
     },
     typography: {
-      fontFamily: 'League Gothic',
-
       allVariants: {
-        fontWeight: 'bold',
+        fontFamily: 'League Gothic',
         letterSpacing: 3,
         wordSpacing: 3.5
       },
+      //
 
       body1: {
-        fontSize: '1rem',
-        fontFamily: 'Roboto',
+        fontFamily: 'Lucida',
         letterSpacing: 2.0,
         wordSpacing: 1.5
       }
@@ -69,7 +67,8 @@ const Theme: ThemeType = createTheme(
       MuiButton: {
         defaultProps: { sx: { fontSize: '2rem' } }
       },
-      MuiInputBase: { defaultProps: { sx: { color: '#cbcbcb' } } }
+
+      MuiTooltip: { styleOverrides: { tooltip: { fontSize: '1rem' } }, defaultProps: { sx: { fontSize: '2rem' } } }
     }
   },
   enUS

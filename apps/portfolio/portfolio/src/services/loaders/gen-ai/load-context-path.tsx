@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getContextPath } from '@aklapper/utils';
 
-const baseUrl = import.meta.env.VITE_SERVER_URL_VERTEX;
+const baseUrl = import.meta.env.VITE_VERTEX_API_URL;
 
 const loadContextPath = async () => {
   try {

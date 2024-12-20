@@ -3,7 +3,7 @@ import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import type { FC, JSX } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import routes from '../routes/routes';
-import Theme from '../styles/theme.tsx';
+import Theme from '../styles/theme';
 // import createEmotionCache from '../contexts/emotion-cache.tsx';
 // import { CacheProvider } from '@emotion/react';
 

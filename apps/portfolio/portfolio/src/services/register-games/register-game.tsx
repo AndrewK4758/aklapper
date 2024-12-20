@@ -7,8 +7,6 @@ const registerGame = async (gameName: string) => {
   try {
     const resp = await axios.post(`${baseUrl}/games/${gameName}`);
 
-    // sessionStorage.setItem('__current_game__', resp.headers['current-game']);
-
     return resp.headers['current-game'];
   } catch (error) {
     console.error(error);

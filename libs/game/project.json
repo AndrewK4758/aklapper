@@ -4,27 +4,5 @@
   "sourceRoot": "libs/game/src",
   "projectType": "library",
   "tags": [],
-  "targets": {
-    "build": {
-      "executor": "@nx/esbuild:esbuild",
-      "outputs": ["{options.outputPath}"],
-      "defaultConfiguration": "production",
-      "options": {
-        "main": "libs/game/src/index.ts",
-        "outputPath": "dist/libs/game",
-        "outputFileName": "main.js",
-        "tsConfig": "libs/game/tsconfig.lib.json",
-        "esbuildConfig": "libs/game/esbuild.config.cjs",
-        "declarationRootDir": "libs/game/src"
-      },
-      "configurations": {
-        "development": {
-          "minify": false
-        },
-        "production": {
-          "minify": true
-        }
-      }
-    }
-  }
+  "targets": {}
 }

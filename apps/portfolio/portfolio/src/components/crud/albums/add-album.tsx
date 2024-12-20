@@ -8,7 +8,7 @@ import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { album } from '@prisma/client';
 import axios from 'axios';
 import { FormikProps, useFormik } from 'formik';
-import type { JSX, RefObject } from 'react';
+import type { JSX, MutableRefObject } from 'react';
 import { Form } from 'react-router-dom';
 import * as Yup from 'yup';
 import handleSubmitNewAlbum from '../../../services/actions/crud-actions//submit-album-to-artist-id-action';
@@ -17,12 +17,12 @@ import { flexColumnStyles } from '../../../styles/prompt-builder-styles';
 import type { ArtistAndAlbum } from './add-album-on-artist';
 
 interface AddAlbumProps {
-  apiRef: RefObject<GridApiCommunity>;
+  apiRef: MutableRefObject<GridApiCommunity>;
 }
 
 const validationSchema = Yup.object({
   title: Yup.string().required('Must have title to album'),
-  artist_id: Yup.number().positive('Must be greater than 0').required('Need artist ID to add the album on'),
+  artist_id: Yup.number().positive('Must be greater than 0').required('Need artist ID to add the album on')
 });
 
 /**
@@ -30,7 +30,7 @@ const validationSchema = Yup.object({
  * It allows users to input the album title and then submits the data to the server.
  *
  * @param {AddAlbumOnArtistProps} props - The props for the AddAlbumOnArtist component.
- * @param {RefObject<GridApiCommunity>} props.apiRef - A ref to the DataGrid API object.
+ * @param {MutableRefObject<GridApiCommunity>} props.apiRef - A ref to the DataGrid API object.
  * @returns {JSX.Element} The rendered AddAlbum component.
  */
 
@@ -41,7 +41,7 @@ const AddAlbum = ({ apiRef }: AddAlbumProps): JSX.Element => {
     onSubmit: values => {
       handleSubmitNewAlbum(values, formik, apiRef);
     },
-    validateOnBlur: true,
+    validateOnBlur: true
   });
 
   formik.handleBlur = () => {
@@ -116,7 +116,7 @@ const handleNewAlbumBlur = async (formik: FormikProps<album>) => {
   try {
     const { title, artist_id } = formik.values;
     const resp = await axios.get(`${baseURL}/albums?title=${title}&artistID=${artist_id}`, {
-      headers: { 'Content-Type': 'text/plain' },
+      headers: { 'Content-Type': 'text/plain' }
     });
 
     formik.setTouched({ title: resp.data.message, artist_id: true }, true);

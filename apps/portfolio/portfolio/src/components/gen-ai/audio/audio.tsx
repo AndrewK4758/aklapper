@@ -20,7 +20,7 @@ import { audioText } from '../static/audio-text';
 import AudioVisualizer from './audio-visualizer';
 
 const options: MediaRecorderOptions = {
-  mimeType: 'audio/webm',
+  mimeType: 'audio/webm'
 };
 
 /**
@@ -55,14 +55,14 @@ const GenAiAudio = (): JSX.Element => {
         socket.removeAllListeners();
       }
     };
-  }, []);
+  });
 
   useEffect(() => {
     if (!stream) createStream(setStream, { audio: true, video: false });
     if (stream) {
       mrcRef.current = new MRC(stream, options);
     }
-  }, [stream]);
+  }, [MRC, createStream, setStream, stream]);
 
   useEffect(() => {
     if (audRef.current && blob) {
@@ -78,10 +78,10 @@ const GenAiAudio = (): JSX.Element => {
       const promptData: PromptRequest = {
         fileData: {
           fileUri: path,
-          mimeType: blob.type,
+          mimeType: blob.type
         },
 
-        text: null,
+        text: null
       };
 
       socket.emit('prompt', promptData);
@@ -101,7 +101,7 @@ const GenAiAudio = (): JSX.Element => {
           key={'gen-audio-container'}
           id="gen-audio-container"
           sx={{
-            paddingY: 2,
+            paddingY: 2
           }}
         >
           <Box component={'section'} key={'gen-audio-header-wrapper'} id={'gen-audio-header-wrapper'}>
@@ -173,7 +173,7 @@ const handleFileUpload = async (fileInputRef: RefObject<HTMLAudioElement | null>
       const resp = await axios.post(
         `${baseUrl}/upload`,
         { file: file, contextPath: contextPath },
-        { headers: { 'Content-Type': 'multipart/form-data' } },
+        { headers: { 'Content-Type': 'multipart/form-data' } }
       );
 
       const { path } = resp.data;

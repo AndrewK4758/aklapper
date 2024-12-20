@@ -8,7 +8,7 @@ import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { Prisma, track } from '@prisma/client';
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import { FormikProps, useFormik } from 'formik';
-import { FocusEvent, RefObject } from 'react';
+import { FocusEvent, MutableRefObject } from 'react';
 import { Form } from 'react-router-dom';
 import { crudAddButtonStyles, crudAddErrorTextStyles, inverseColors } from '../../../styles/crud-styles';
 
@@ -16,7 +16,7 @@ const baseURL = import.meta.env.VITE_DATA_API_URL;
 
 interface AddTrackProps {
   albumID: number;
-  apiRef: RefObject<GridApiCommunity>;
+  apiRef: MutableRefObject<GridApiCommunity>;
 }
 
 const initialValues: track = {
@@ -28,7 +28,7 @@ const initialValues: track = {
   milliseconds: 0,
   bytes: 0,
   unit_price: new Prisma.Decimal(0.0),
-  composer: '',
+  composer: ''
 };
 
 /**
@@ -37,7 +37,7 @@ const initialValues: track = {
  *
  * @param {AddTrackProps} props - The props for the AddTrack component.
  * @param {number} props.albumID - The ID of the album to add the track to.
- * @param {RefObject<GridApiCommunity>} props.apiRef - A ref to the DataGrid API object.
+ * @param {MutableRefObject<GridApiCommunity>} props.apiRef - A ref to the DataGrid API object.
  * @returns {JSX.Element} The rendered AddTrack component.
  */
 
@@ -47,7 +47,7 @@ const AddTrack = ({ albumID, apiRef }: AddTrackProps) => {
     onSubmit: values => {
       handleSubmitNewTrack(values, formik, albumID, apiRef);
     },
-    validateOnBlur: true,
+    validateOnBlur: true
   });
 
   formik.handleBlur = (e: FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>) => {
@@ -96,14 +96,14 @@ const AddTrack = ({ albumID, apiRef }: AddTrackProps) => {
  * @param {track} values - The track data from the form.
  * @param {FormikProps<track>} formik - The Formik props object.
  * @param {number} albumID - The ID of the album to add the track to.
- * @param {RefObject<GridApiCommunity>} apiRef - A ref to the DataGrid API object.
+ * @param {MutableRefObject<GridApiCommunity>} apiRef - A ref to the DataGrid API object.
  */
 
 const handleSubmitNewTrack = async (
   values: track,
   formik: FormikProps<track>,
   albumID: number,
-  apiRef: RefObject<GridApiCommunity>,
+  apiRef: MutableRefObject<GridApiCommunity>
 ) => {
   try {
     const trackName = values.name;
@@ -111,8 +111,8 @@ const handleSubmitNewTrack = async (
       `${baseURL}/tracks`,
       { name: trackName, albumID: albumID },
       {
-        headers: { 'Content-Type': 'application/json' },
-      },
+        headers: { 'Content-Type': 'application/json' }
+      }
     );
 
     if (resp.data.newTrack) {
@@ -128,8 +128,8 @@ const handleSubmitNewTrack = async (
           genre_id: genre_id,
           bytes: bytes,
           composer: composer,
-          unit_price: unit_price,
-        },
+          unit_price: unit_price
+        }
       ]);
     }
   } catch (error) {
@@ -152,11 +152,11 @@ const handleSubmitNewTrack = async (
 const handleNewTrackBlur = async (
   e: FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>,
   formik: FormikProps<track>,
-  albumID: number,
+  albumID: number
 ) => {
   try {
     const resp = await axios.get(`${baseURL}/tracks?albumID=${albumID}&name=${e.target.value}`, {
-      headers: { 'Content-Type': 'text/plain' },
+      headers: { 'Content-Type': 'text/plain' }
     });
 
     formik.setTouched({ name: resp.data.message }, true);

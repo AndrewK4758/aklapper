@@ -12,7 +12,6 @@ import {
   outletWrapperSxProps
 } from '../../styles/layout-styles';
 import Header from '../header/header';
-import Menus from '../menus/menus';
 
 /**
  * This component renders the main layout of the application.
@@ -50,7 +49,6 @@ const Layout = (): JSX.Element => {
           </Box>
         </WebSocketContextProvider>
       </Box>
-      <Menus loading={loading} setLoading={setLoading} />
       <Box
         component={'div'}
         key={'footer-wrapper'}

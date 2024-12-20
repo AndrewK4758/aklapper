@@ -13,12 +13,12 @@ interface INewEntryReturn {
   newEntry: NewEntryReturn;
 }
 
-const baseURL = import.meta.env.VITE_DATA_API_URL;
+const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
 const handleSubmitNewEntry = async (
   values: NewEntry,
   setSubmitting: (isSubmitting: boolean) => void,
-  nav: NavigateFunction,
+  nav: NavigateFunction
 ) => {
   try {
     setSubmitting(true);
@@ -27,7 +27,7 @@ const handleSubmitNewEntry = async (
     const resp = await axios.post(
       `${baseURL}/new-entry`,
       { artist: artist, album: album, track: track },
-      { headers: { 'Content-Type': 'application/json' } },
+      { headers: { 'Content-Type': 'application/json' } }
     );
 
     const { newEntry } = resp.data as INewEntryReturn;

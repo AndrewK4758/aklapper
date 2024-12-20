@@ -1,16 +1,16 @@
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { album } from '@prisma/client';
 import axios from 'axios';
-import { MutableRefObject } from 'react';
+import { RefObject } from 'react';
 
-const baseURL = import.meta.env.VITE_DATA_API_URL;
+const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
-const handleDeleteAlbum = async (values: album, apiRef: MutableRefObject<GridApiCommunity>) => {
+const handleDeleteAlbum = async (values: album, apiRef: RefObject<GridApiCommunity>) => {
   try {
     const { album_id } = values;
 
     const resp = await axios.delete(`${baseURL}/albums/${album_id}`, {
-      headers: { 'Content-Type': 'text/plain' },
+      headers: { 'Content-Type': 'text/plain' }
     });
 
     console.log(resp.data);

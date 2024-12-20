@@ -1,0 +1,17 @@
+{
+  "name": "@aklapper/portfolio",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./index.js"
+    }
+  },
+  "dependencies": {},
+  "nx": {
+    "name": "@aklapper/portfolio",
+    "sourceRoot": "apps/portfolio/portfolio/src",
+    "projectType": "application"
+  }
+}

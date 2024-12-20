@@ -1,8 +1,7 @@
-import { IPlayersAndBoard } from '@aklapper/chainsgames-chains';
 import { rowFinder } from '@aklapper/games-components';
-import { GamesTheme as Theme } from '@aklapper/react-components';
+import { GamesTheme as Theme } from '@aklapper/react-shared';
 import { Text } from '@aklapper/react-shared';
-import { GameBoard, IActivePlayersInGame, ILiteSpace, type Row } from '@aklapper/types-game';
+import type { GameBoard, IPlayersAndBoard, IActivePlayersInGame, ILiteSpace, Row } from '@aklapper/types-game';
 import { SxProps } from '@mui/material';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
@@ -76,7 +75,7 @@ const ActiveGameSession = () => {
       });
     }
     socket.emit('create-room', getGameInstanceInfo()?.gameInstanceID);
-  }, []);
+  });
 
   useEffect(() => {
     socket.emit('action', { action: ActionType.BOARD });
@@ -114,7 +113,7 @@ const ActiveGameSession = () => {
         socket.removeAllListeners();
       }
     };
-  }, [id]);
+  }, [id, socket]);
 
   return (
     <>

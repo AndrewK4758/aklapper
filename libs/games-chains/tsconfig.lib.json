@@ -4,10 +4,19 @@
     "module": "ESNext",
     "outDir": "dist/out-tsc",
     "declaration": true,
-    "types": ["node"]
+    "types": ["node", "vite/client"]
   },
   "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "src/**/*.test.ts"],
-  "include": ["src/**/*.ts"],
+  "include": [
+    "src/**/*.ts",
+    "../games-components/src/**/*.ts",
+    "../types/types-game/src/**/*.ts",
+    "../games/**/*/src/**/*.ts",
+    "../game/src/**/*.ts",
+    "../models/game-instance/src/**/*.ts",
+    "../utils/src/**/*.ts",
+    "../chain/src/**/*.ts"
+  ],
   "references": [
     {
       "path": "../games/tic-tac-toe/tsconfig.lib.json"

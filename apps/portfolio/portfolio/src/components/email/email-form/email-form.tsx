@@ -34,7 +34,7 @@ const initialValues = {
   subject: 'I saw your website and wanted to reach out...',
   body: '',
   date: dayjs().add(1, 'day').format('MM-DD-YYYY/HH:mm'),
-  attachment: null,
+  attachment: null
 };
 
 const validationSchema = Yup.object({
@@ -43,7 +43,7 @@ const validationSchema = Yup.object({
   phone: Yup.string().notRequired().phone('US', 'Please enter a valid US phone number'),
   subject: Yup.string().max(160, 'Must me less than 160 characters').required('Subject is required'),
   body: Yup.string().max(2000, 'Must be less than 2000 characters').required('Please enter your message'),
-  attachment: Yup.mixed().notRequired(),
+  attachment: Yup.mixed().notRequired()
 });
 
 interface EmaiFormProps {
@@ -62,7 +62,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
   const formik = useFormik({
     initialValues: initialValues,
     validationSchema: validationSchema,
-    onSubmit: values => handleSubmitMessage(values, submit, setOpen),
+    onSubmit: values => handleSubmitMessage(values, submit, setOpen)
   });
 
   return (
@@ -100,7 +100,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
               label="Name"
               onBlur={formik.handleBlur}
               onChange={formik.handleChange}
-              slotProps={textFieldSlotProps}
+              // slotProps={textFieldSlotProps}
             />
 
             <FormikValidationError<MessageMeFormValues>
@@ -121,7 +121,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
               defaultValue={GoogleUserContextValues ? GoogleUserContextValues.email : ''}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
-              slotProps={textFieldSlotProps}
+              // slotProps={textFieldSlotProps}
             />
 
             <FormikValidationError<MessageMeFormValues>
@@ -141,7 +141,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
               label="Phone"
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
-              slotProps={textFieldSlotProps}
+              // slotProps={textFieldSlotProps}
             />
             <FormikValidationError<MessageMeFormValues>
               formik={formik}
@@ -160,7 +160,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
               defaultValue={'I saw your website and wanted to reach out...'}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
-              slotProps={textFieldSlotProps}
+              // slotProps={textFieldSlotProps}
             />
 
             <FormikValidationError<MessageMeFormValues>
@@ -182,19 +182,6 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
               label="Body"
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
-              slotProps={{
-                inputLabel: { sx: { fontSize: '1.5rem', color: Theme.palette.primary.dark } },
-                input: { sx: { p: 0 } },
-                htmlInput: {
-                  sx: {
-                    borderRadius: 1,
-                    padding: 2,
-                    paddingTop: 3,
-                    fontSize: '1.5rem',
-                    backgroundColor: Theme.palette.background.default,
-                  },
-                },
-              }}
             />
 
             <FormikValidationError<MessageMeFormValues>
@@ -270,7 +257,7 @@ export default EmaiForm;
 const handleSubmitMessage = async (
   values: MessageMeFormValues,
   submit: SubmitFunction,
-  setOpen: Dispatch<SetStateAction<boolean>>,
+  setOpen: Dispatch<SetStateAction<boolean>>
 ) => {
   try {
     const { name, email, phone, subject, body, date, attachment } = values;

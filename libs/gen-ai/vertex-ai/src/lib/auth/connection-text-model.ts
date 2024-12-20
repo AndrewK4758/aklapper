@@ -12,10 +12,7 @@ export const MODEL = 'gemini-1.5-pro-001';
 
 const vertexAI = new VertexAI({
   project: PROJECT,
-  location: LOCATION,
-  googleAuthOptions: {
-    // keyFile: process.env.KEY_FILE,
-  },
+  location: LOCATION
 });
 
 export default vertexAI;

@@ -1,4 +1,4 @@
-import { GameBoardMapTicTacToe, breakpointsGameBoardBoxTicTacToe } from '@aklapper/react-components';
+import { GameBoardMapTicTacToe, breakpointsGameBoardBoxTicTacToe } from '@aklapper/react-shared';
 import type { GameBoard } from '@aklapper/types-game';
 import Box from '@mui/material/Box';
 import type { Dispatch, JSX, SetStateAction } from 'react';

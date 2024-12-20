@@ -10,27 +10,6 @@
       "options": {
         "cwd": "./libs/prisma"
       }
-    },
-    "build": {
-      "executor": "@nx/esbuild:esbuild",
-      "outputs": ["{options.outputPath}"],
-      "defaultConfiguration": "production",
-      "options": {
-        "main": "libs/prisma/src/index.ts",
-        "outputPath": "dist/libs/prisma",
-        "outputFileName": "main.js",
-        "tsConfig": "libs/prisma/tsconfig.lib.json",
-        "esbuildConfig": "libs/prisma/esbuild.config.cjs",
-        "declarationRootDir": "libs/prisma/src"
-      },
-      "configurations": {
-        "development": {
-          "minify": false
-        },
-        "production": {
-          "minify": true
-        }
-      }
     }
   }
 }

@@ -47,7 +47,7 @@ export const AudioVisualizer = ({ stream }: AudioVisualizerProps): JSX.Element =
           0,
           Math.floor(canvas.height / 1.5),
           Math.floor(canvas.width / 1.5),
-          0,
+          0
         );
 
         gradient.addColorStop(0, `${Theme.palette.primary.main}`);
@@ -64,7 +64,7 @@ export const AudioVisualizer = ({ stream }: AudioVisualizerProps): JSX.Element =
       };
       visualize();
     }
-  }, []);
+  });
 
   return (
     <canvas

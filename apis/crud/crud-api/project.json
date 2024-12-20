@@ -10,12 +10,15 @@
       "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production",
       "options": {
-        "platform": "node",
         "outputPath": "dist/apis/crud-api",
+        "outputFileName": "main.js",
         "main": "apis/crud/crud-api/src/main.ts",
         "tsConfig": "apis/crud/crud-api/tsconfig.app.json",
         "assets": ["apis/crud/crud-api/src/assets"],
-        "esbuildConfig": "apis/crud/crud-api/esbuild.config.cjs"
+        "target": "node23",
+        "format": ["esm"],
+        "sourcemap": true,
+        "metafile": true
       },
       "configurations": {
         "development": {},

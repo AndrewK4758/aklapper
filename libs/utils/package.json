@@ -5,17 +5,9 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./index.d.ts",
-      "import": "./main.js"
+      "types": "./src/index.d.ts",
+      "import": "./index.js"
     }
   },
-  "dependencies": {
-    "@aklapper/mocks": "workspace:*",
-    "@aklapper/game": "workspace:*",
-    "@aklapper/games-components": "workspace:*",
-    "@aklapper/chutes-and-ladders": "workspace:*",
-    "@aklapper/game-instance": "workspace:*",
-    "@aklapper/chain": "workspace:*",
-    "@aklapper/types-game": "workspace:*"
-  }
+  "dependencies": {}
 }

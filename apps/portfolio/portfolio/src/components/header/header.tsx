@@ -1,18 +1,14 @@
-import { Text } from '@aklapper/react-shared';
+import MenuOpenIcon from '@mui/icons-material/MenuOpen';
+import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
-import IconButton from '@mui/material/IconButton';
-import Paper from '@mui/material/Paper';
-import { useState, type JSX } from 'react';
-import EmailIcon from '../../components/icons/email-icon';
-import { iconSxProps, iconWrapperSxProps, socialMediaLinksWrapper } from '../../styles/header-styles';
-import Theme from '../../styles/theme';
-import EmailDialog from '../email/email-dialog';
-import DiscordIcon from '../icons/discord-icon';
-import FacebookIcon from '../icons/facebook-icon';
-import GitHibIcon from '../icons/github-icon';
-import HuggingFaceIcon from '../icons/huggingface-icon';
-import LinkedinIcon from '../icons/linkedin-logo';
-import XIcon from '../icons/x-logo-icon';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
+import Toolbar from '@mui/material/Toolbar';
+import { useState, type Dispatch, type JSX, type SetStateAction, type SyntheticEvent } from 'react';
+import { useNavigate, type NavigateFunction } from 'react-router-dom';
+import { buttonSXProps, menuOpenIconSxProps, socialMediaLinksWrapper } from '../../styles/header-styles';
+import Connect from './connect/connect';
+import { Label } from '@aklapper/react-shared';
 
 /**
  * This component renders the header section of the application, which includes social media links and an email contact form.
@@ -21,148 +17,141 @@ import XIcon from '../icons/x-logo-icon';
  */
 
 const Header = (): JSX.Element => {
-  const [openEmail, setOpenEmail] = useState<boolean>(false);
+  const [tab, setTab] = useState<number>(0);
+  const [openMenu, setOpenMenu] = useState<boolean>(false);
+  const nav = useNavigate();
+
   return (
-    <Paper
-      elevation={24}
+    <Box
       component={'div'}
-      key={'social-media-icons'}
-      id="social-media-icons"
-      data-testid="social-media-icons"
+      key={'navbar-wrapper'}
+      id="navbar-wrapper"
+      data-testid="navbar-wrapper"
       sx={socialMediaLinksWrapper}
     >
-      <Box
-        component={'div'}
-        key={'social-media-text-wrapper'}
-        id="social-media-text-wrapper"
-        data-testid="social-media-text-wrapper"
-        flex={'1 0 25%'}
+      <AppBar
+        elevation={4}
+        //primary color generator
+        component={'nav'}
+        key={'navbar-appbar'}
+        id="navbar-appbar"
+        data-testid="navbar-appbar"
+        sx={{ height: '8vh' }}
       >
-        <Text
-          component={'h4'}
-          titleVariant="h4"
-          sx={{ color: Theme.palette.secondary.main, textAlign: 'center' }}
-          key={'social-media-text'}
-          id="social-media-text"
-          data-testid="social-media-text"
-          titleText={`Connect & Colab \u27F6`}
-        />
+        <Toolbar
+          component={'section'}
+          id="navbar-toolbar"
+          data-testid="navbar-toolbar"
+          sx={{ display: 'flex', flexDirection: 'row', height: '100%' }}
+        >
+          <Tabs
+            textColor="inherit"
+            value={tab}
+            onChange={(tab: SyntheticEvent<Element, Event>, idx: number) =>
+              handleTabChange((tab.currentTarget.textContent as string).toLowerCase(), idx, setTab, nav)
+            }
+            variant="fullWidth"
+            TabIndicatorProps={{
+              sx: { background: '#FFFFFF' }
+            }}
+            sx={{ flex: '100%' }}
+          >
+            <Tab
+              sx={{ ...buttonSXProps }}
+              label={
+                <Label
+                  tooltipTitle={'HOME DESCRIPTION'}
+                  labelVariant={'h2'}
+                  labelText={'Home'}
+                  placement={'top'}
+                  sx={{ fontSize: '2.5rem' }}
+                />
+              }
+              id="home-button"
+              data-testid="home-button"
+              onClick={() => window.scrollTo({ behavior: 'smooth', top: 0 })}
+            />
+
+            <Tab
+              label={
+                <Label
+                  tooltipTitle={'GAME DESCRIPTION'}
+                  labelVariant={'h2'}
+                  labelText={'Games'}
+                  placement={'top'}
+                  sx={{ fontSize: '2.5rem' }}
+                />
+              }
+              id="games-button"
+              data-testid="games-button"
+              sx={buttonSXProps}
+            />
+
+            <Tab
+              label={
+                <Label
+                  tooltipTitle={'CRUD DESCRIPTION'}
+                  labelVariant={'h2'}
+                  labelText={'CRUD'}
+                  placement={'top'}
+                  sx={{ fontSize: '2.5rem' }}
+                />
+              }
+              id="crud-button"
+              data-testid="crud-button"
+              sx={buttonSXProps}
+            />
+
+            <Tab
+              label={
+                <Label
+                  tooltipTitle={'GEN-AI DESCRIPTION'}
+                  labelVariant={'h2'}
+                  labelText={'Gen-AI'}
+                  placement={'top'}
+                  sx={{ fontSize: '2.5rem' }}
+                />
+              }
+              id="gen-ai-button"
+              data-testid="gen-ai-button"
+              sx={buttonSXProps}
+            />
+
+            <Tab
+              autoFocus={true}
+              label={
+                <Label
+                  tooltipTitle={'CONTACT DESCRIPTION'}
+                  labelVariant={'h2'}
+                  labelText={'Contact'}
+                  placement={'top'}
+                  sx={{ fontSize: '2.5rem' }}
+                />
+              }
+              id="contact-menu-button"
+              data-testid="contact-menu-button"
+              icon={<MenuOpenIcon sx={menuOpenIconSxProps} />}
+              iconPosition="end"
+              onClick={() => setOpenMenu(true)}
+              sx={buttonSXProps}
+            />
+          </Tabs>
+        </Toolbar>
+      </AppBar>
+      <Box component={'div'} key={'connect-wrapper'} id={'connect-wrapper'} flex={1}>
+        <Connect openMenu={openMenu} setOpenMenu={setOpenMenu} />
       </Box>
-      <Box
-        component={'div'}
-        key={'social-media-icon-wrapper'}
-        id="social-media-icon-wrapper"
-        data-testid="social-media-icon-wrapper"
-        sx={iconWrapperSxProps}
-      >
-        <Box
-          component={'span'}
-          key={'github-icon-span'}
-          id="github-icon-span"
-          data-testid="github-icon-span"
-          sx={iconSxProps}
-        >
-          <IconButton
-            key={'github-icon'}
-            id="github-icon"
-            data-testid="github-icon"
-            href="https://github.com/AndrewK4758"
-          >
-            <GitHibIcon sx={{ scale: 1.25 }} />
-          </IconButton>
-        </Box>
-        <Box
-          component={'span'}
-          key={'facebook-icon-span'}
-          id="facebook-icon-span"
-          data-testid="facebook-icon-span"
-          sx={iconSxProps}
-        >
-          <IconButton
-            key={'facebook-icon'}
-            id="facebook-icon"
-            data-testid="facebook-icon"
-            href="https://www.facebook.com/AKlapper47"
-          >
-            <FacebookIcon sx={{ scale: 1.25 }} />
-          </IconButton>
-        </Box>
-        <Box
-          component={'span'}
-          key={'linkedin-icon-span'}
-          id="likedin-icon-span"
-          data-testid="likedin-icon-span"
-          sx={iconSxProps}
-        >
-          <IconButton
-            key={'linkedin-icon'}
-            id="linkedin-icon"
-            data-testid="linkedin-icon"
-            href="https://www.linkedin.com/in/andrew-klapper-a9204b23b/"
-          >
-            <LinkedinIcon sx={{ scale: 1.25 }} />
-          </IconButton>
-        </Box>
-        <Box
-          component={'span'}
-          key={'huggingface-icon-span'}
-          id="huggingface-icon-span"
-          data-testid="huggingface-icon-span"
-          sx={iconSxProps}
-        >
-          <IconButton
-            key={'huggingface-icon'}
-            id="huggingface-icon"
-            data-testid="huggingface-icon"
-            href="https://huggingface.co/ak475826"
-          >
-            <HuggingFaceIcon sx={{ scale: 1.5 }} />
-          </IconButton>
-        </Box>
-        <Box component={'span'} key={'x-icon-span'} id="x-icon-span" data-testid="x-icon-span" sx={iconSxProps}>
-          <IconButton key={'x-icon'} id="x-icon" data-testid="x-icon" href="https://x.com/ak475826">
-            <XIcon sx={{ scale: 1 }} />
-          </IconButton>
-        </Box>
-        <Box
-          component={'span'}
-          key={'discord-icon-span'}
-          id="discord-icon-span"
-          data-testid="discord-icon-span"
-          sx={iconSxProps}
-        >
-          <IconButton
-            key={'discord-icon'}
-            id="discord-icon"
-            data-testid="discord-icon"
-            href="https://discord.com/users/989564035542446190"
-          >
-            <DiscordIcon sx={{ scale: 1.25 }} />
-          </IconButton>
-        </Box>
-        <Box
-          component={'span'}
-          key={'email-icon-span'}
-          id="email-icon-span"
-          data-testid="email-icon-span"
-          sx={iconSxProps}
-        >
-          <IconButton color="secondary" id="email-icon" data-testid="email-icon" onClick={() => setOpenEmail(true)}>
-            <EmailIcon sx={{ scale: 1.25 }} />
-          </IconButton>
-        </Box>
-      </Box>
-      <Box
-        component={'div'}
-        key={'email-form-wrapper'}
-        id="email-form-wrapper"
-        data-testid="email-form-wrapper"
-        width={'100%'}
-      >
-        <EmailDialog open={openEmail} setOpen={setOpenEmail} />
-      </Box>
-    </Paper>
+    </Box>
   );
 };
 
 export default Header;
+
+const handleTabChange = (tab: string, idx: number, setTab: Dispatch<SetStateAction<number>>, nav: NavigateFunction) => {
+  console.log(tab);
+  if (tab === 'contact') return;
+  else {
+    setTab(idx);
+    tab[0] === 'h' ? nav('/') : nav(tab);
+  }
+};
