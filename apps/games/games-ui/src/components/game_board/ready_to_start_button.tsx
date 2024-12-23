@@ -1,10 +1,10 @@
-import { GamesTheme as Theme } from '@aklapper/react-components';
+import { GamesTheme as Theme } from '../../styles/games-theme';
 import { SxProps } from '@mui/material';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
-import getGameInstanceInfo from '../../services/utils/utils';
+import getGameInstanceInfo from '../../utils/utils';
 import { Dispatch } from 'react';
 import { Socket } from 'socket.io-client';
 import { Action, ActionType } from './socket-reducer';

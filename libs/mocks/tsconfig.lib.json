@@ -3,7 +3,9 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "outDir": "out-tsc",
+    "outDir": "./out-tsc",
+    "rootDir": "./src",
+    "declarationDir": "../../dist/libs/mocks/src",
     "declaration": true,
     "types": ["node", "jest", "vite/client"]
   },

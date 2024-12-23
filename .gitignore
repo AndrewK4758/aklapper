@@ -83,3 +83,5 @@ rag-data/
 
 
 vite.config.*.timestamp*
+
+vitest.config.*.timestamp*

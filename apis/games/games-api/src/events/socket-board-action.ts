@@ -1,4 +1,4 @@
-import type { SocketCallback } from '@aklapper/types-ai';
+import type { SocketCallback } from '@aklapper/types-api';
 import { IInstanceOfGame } from '@aklapper/types-game';
 import { Socket } from 'socket.io';
 import performAction from '../controllers/perform_action_context_object';

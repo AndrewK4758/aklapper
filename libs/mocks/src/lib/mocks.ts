@@ -19,7 +19,10 @@ export const mockReqObj = (): Partial<Request> => {
       headers.set('current-game', JSON.stringify(__current_game__));
 
       return headers.get(name);
-    })
+    }),
+    headers: {
+      origin: 'http://localhost:3000'
+    }
   };
   return req;
 };

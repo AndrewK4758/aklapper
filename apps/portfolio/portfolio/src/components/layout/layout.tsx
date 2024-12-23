@@ -21,7 +21,6 @@ import Header from '../header/header';
  */
 const Layout = (): JSX.Element => {
   const [loading, setLoading] = useState<boolean>(false);
-
   return (
     <Box component={'div'} key={'app-wrapper'} id="app-wrapper" data-testid="app-wrapper" sx={baseStyleForLayoutItems}>
       <Box

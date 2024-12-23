@@ -1,4 +1,4 @@
-import { Text } from '@aklapper/react-shared';
+import { Text, useScrollIntoView } from '@aklapper/react-shared';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -8,7 +8,6 @@ import Toolbar from '@mui/material/Toolbar';
 import { lazy, useRef, useState, type JSX } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import CrudHome from '../../components/crud/crud-home';
-import useScrollIntoView from '../../hooks/use-scroll-into-view';
 import { crudAppWrapperStyles, crudDataGridGridsSxProps, crudPaperSxProps } from '../../styles/crud-styles';
 import {
   headerModalButtonStyles,
@@ -17,7 +16,7 @@ import {
   pagesTitlesBoxStyles,
   pagesTitleSx,
   pagesToolbarStyles,
-  pagesWrapperStyles,
+  pagesWrapperStyles
 } from '../../styles/pages-styles';
 import { body, title } from '../static/crud-text';
 

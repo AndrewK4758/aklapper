@@ -1,18 +1,19 @@
 import { SxProps } from '@mui/material/styles';
 import Theme from './theme';
+import type { CSSProperties } from 'react';
 
 //-------IMAGE FORM--------//
 
 export const helperTextSx: SxProps = {
   color: Theme.palette.error.main,
-  fontSize: '1.25rem',
+  fontSize: '1.25rem'
 };
 
 export const labelSx: SxProps = {
   fontSize: '2rem',
   color: Theme.palette.primary.main,
   width: 'fit-content',
-  '&:hover': { cursor: 'pointer' },
+  '&:hover': { cursor: 'pointer' }
 };
 
 export const tooltipSx: SxProps = {
@@ -20,20 +21,20 @@ export const tooltipSx: SxProps = {
   fontSize: '1rem',
   color: Theme.palette.text.primary,
   backgroundColor: Theme.palette.background.default,
-  border: `2px solid ${Theme.palette.primary.main}`,
+  border: `2px solid ${Theme.palette.primary.main}`
 };
 
 export const textInputSx: SxProps = {
   color: Theme.palette.primary.main,
   backgroundColor: Theme.palette.background.default,
-  borderRadius: 1,
+  borderRadius: 1
 };
 
 export const sampleCountRadioTextStyles: SxProps = {
   display: 'flex',
   flexDirection: 'row',
   gap: 2,
-  alignItems: 'center',
+  alignItems: 'center'
 };
 
 export const forrmControlLabelStyles: SxProps = { alignContent: 'center', fontSize: '1.5rem' };
@@ -43,5 +44,23 @@ export const radioGroupStyles: SxProps = {
   display: 'flex',
   flexDirection: 'row',
   gap: 4,
-  paddingLeft: 2,
+  paddingLeft: 2
+};
+
+export const topLevelModeStyle: SxProps = {
+  minHeight: '100%',
+  height: 'fit-content',
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'space-between',
+  borderRadius: 1,
+  width: '60vw'
+};
+
+export const renderPreTagInsideParentDiv: SxProps | CSSProperties = {
+  width: '100%',
+  height: 'fit-content',
+  minHeight: '10vh',
+  overflow: 'hidden',
+  whiteSpace: 'pre-wrap'
 };

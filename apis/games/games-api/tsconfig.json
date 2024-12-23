@@ -16,15 +16,6 @@
       "path": "../../../libs/socket-io/server"
     },
     {
-      "path": "../../../libs/types/types-ai"
-    },
-    {
-      "path": "../../../libs/games/tic-tac-toe"
-    },
-    {
-      "path": "../../../libs/games-chains"
-    },
-    {
       "path": "../../../libs/models/rule"
     },
     {
@@ -34,10 +25,10 @@
       "path": "../../../libs/types/types-api"
     },
     {
-      "path": "../../../libs/mocks"
+      "path": "../../../libs/games/tic-tac-toe"
     },
     {
-      "path": "../../../libs/utils"
+      "path": "../../../libs/mocks"
     },
     {
       "path": "../../../libs/game"
@@ -50,6 +41,12 @@
     },
     {
       "path": "../../../libs/models/game-instance"
+    },
+    {
+      "path": "../../../libs/utils"
+    },
+    {
+      "path": "../../../libs/games-chains"
     },
     {
       "path": "../../../libs/types/types-game"

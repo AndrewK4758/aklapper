@@ -24,7 +24,6 @@
     "../gen-ai/vertex-ai/src/**/*.d.ts",
     "../types/**/*/src/**/*.ts",
     "../types/**/*/src/**/*.d.ts",
-    "../utils/src/**/*.ts",
-    "../mocks/src/**/*.ts"
+    "../utils/src/**/*.ts"
   ]
 }

@@ -1,5 +1,4 @@
-import { ChatInput } from '@aklapper/react-shared';
-import { labelSx, textInputSx, topLevelModeStyle } from '@aklapper/react-shared';
+import { useScrollIntoView } from '@aklapper/react-shared';
 import type { PromptRequest } from '@aklapper/vertex-ai';
 import { FileData } from '@google-cloud/vertexai';
 import Box from '@mui/material/Box';
@@ -9,8 +8,10 @@ import { useContext, useEffect, useRef, type JSX } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import * as Yup from 'yup';
 import { WebSocketContext, WebSocketContextType } from '../../../contexts/websocket-context';
-import useScrollIntoView from '../../../hooks/use-scroll-into-view';
 import type { OutletContextProps } from '../../../pages/gen-ai/gen-ai';
+import { topLevelModeStyle } from '../../../styles/gen-ai-styles';
+import { labelSx, textInputSx } from '../../../styles/gen-ai-styles';
+import ChatInput from '../../chat-input/chat-input';
 
 const validationSchema = Yup.object<PromptRequest>().shape({
   text: Yup.string().required('Must be a valid question or statement').min(2, 'Must be a valid question or statement'),

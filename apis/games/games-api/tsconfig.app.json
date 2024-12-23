@@ -1,15 +1,19 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../../dist/apis/games-api/out-tsc",
+    "outDir": "out-tsc",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "rootDir": "./src",
+    "declaration": true,
+    "declarationDir": "../../../dist/apis/games-api/src",
     "types": ["node"]
   },
   "include": [
     "src/**/*.ts",
-    "../../../libs/types/**/*/src/**/*.d.ts",
-    "../../../libs/types/**/*/src/**/*.ts",
+    "../../../libs/types/types-game/src/**/*.ts",
+    "../../../libs/types/types-api/src/**/*.ts",
+    "../../../libs/types/types-game/src/**/*.ts",
     "../../../libs/password/src/**/*.ts",
     "../../../libs/prisma/src/**/*.ts",
     "../../../libs/socket-io/server/src/**/*.ts",
@@ -23,8 +27,7 @@
     "../../../libs/games/chutes-and-ladders/src/**/*.ts",
     "../../../libs/game/src/**/*.ts",
     "../../../libs/models/game-instance/src/**/*.ts",
-    "../../../libs/models/all-games-map/src/**/*.ts",
-    "../../../libs/gen-ai/vertex-ai/src/**/*.ts"
+    "../../../libs/models/all-games-map/src/**/*.ts"
   ],
   "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
   "references": [
@@ -41,15 +44,6 @@
       "path": "../../../libs/socket-io/server/tsconfig.lib.json"
     },
     {
-      "path": "../../../libs/types/types-ai/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/games/tic-tac-toe/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/games-chains/tsconfig.lib.json"
-    },
-    {
       "path": "../../../libs/models/rule/tsconfig.lib.json"
     },
     {
@@ -59,10 +53,10 @@
       "path": "../../../libs/types/types-api/tsconfig.lib.json"
     },
     {
-      "path": "../../../libs/mocks/tsconfig.lib.json"
+      "path": "../../../libs/games/tic-tac-toe/tsconfig.lib.json"
     },
     {
-      "path": "../../../libs/utils/tsconfig.lib.json"
+      "path": "../../../libs/mocks/tsconfig.lib.json"
     },
     {
       "path": "../../../libs/game/tsconfig.lib.json"
@@ -75,6 +69,12 @@
     },
     {
       "path": "../../../libs/models/game-instance/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/games-chains/tsconfig.lib.json"
     },
     {
       "path": "../../../libs/types/types-game/tsconfig.lib.json"

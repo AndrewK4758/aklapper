@@ -1,4 +1,3 @@
-import { GamesTheme as Theme } from '@aklapper/react-components';
 import { Text } from '@aklapper/react-shared';
 import { IRegisterLoaderAndFilter } from '@aklapper/types-game';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -8,6 +7,7 @@ import Container from '@mui/material/Container';
 import IconButton from '@mui/material/IconButton';
 import { useLocation, useRouteLoaderData } from 'react-router-dom';
 import RegisterPlayerAndAvatarForm from '../components/formik_form_components/register_player_and_avatar_formik';
+import { GamesTheme as Theme } from '../styles/games-theme';
 
 const breakpointsRegisterPlayerTitle: SxProps = {
   [Theme.breakpoints.down('md')]: {

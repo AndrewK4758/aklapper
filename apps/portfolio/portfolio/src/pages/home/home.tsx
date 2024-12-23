@@ -1,9 +1,9 @@
 import Box from '@mui/material/Box';
-import type { JSX } from 'react';
+import { type JSX } from 'react';
 import Intro from '../../components/intro/intro';
-import TechStackList from '../../components/intro/tech-list/tech-list';
 import { baseStyleForHomeItems } from '../../styles/intro-styles';
 import PicutreAndResume from '../../components/intro/picture-resume';
+import { flexColumnStyles } from '../../styles/prompt-builder-styles';
 
 /**
  * This is the main home component that renders the introduction section of the portfolio website.
@@ -12,43 +12,27 @@ import PicutreAndResume from '../../components/intro/picture-resume';
  * @returns {JSX.Element} The rendered home component.
  */
 
-const Home = (): JSX.Element => (
-  <Box
-    component={'div'}
-    key={'home'}
-    id="home"
-    data-testid="home"
-    sx={{ ...baseStyleForHomeItems, flexDirection: 'column', gap: '15vh' }}
-  >
-    <Box
-      component={'div'}
-      key={'intro-wrapper'}
-      id="intro-wrapper"
-      sx={{
-        ...baseStyleForHomeItems,
-        alignSelf: 'center',
-        alignContent: 'space-between',
-        gap: '2.5vw',
-        width: '90vw',
-        height: 'fit-content'
-      }}
-    >
-      <Intro />
+const Home = (): JSX.Element => {
+  return (
+    <Box component={'div'} key={'home'} id="home" data-testid="home" sx={{ ...flexColumnStyles, width: '100vw' }}>
+      <Box
+        component={'div'}
+        key={'intro-wrapper'}
+        id="intro-wrapper"
+        sx={{
+          ...baseStyleForHomeItems,
+          alignSelf: 'center',
+          alignContent: 'space-between',
+          gap: '2.5vw',
+          width: '90vw'
+        }}
+      >
+        <Intro />
 
-      <PicutreAndResume />
+        <PicutreAndResume />
+      </Box>
     </Box>
-    <Box
-      component={'div'}
-      key={'tech-stack-wrapper'}
-      id="tech-stack-wrapper"
-      sx={{
-        ...baseStyleForHomeItems,
-        justifyContent: 'center'
-      }}
-    >
-      <TechStackList />
-    </Box>
-  </Box>
-);
+  );
+};
 
 export default Home;

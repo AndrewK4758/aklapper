@@ -9,11 +9,11 @@ export default defineConfig({
   root: __dirname,
   cacheDir: '../../../node_modules/.vite/libs/games/chutes-and-ladders',
   plugins: [
-    nxViteTsPaths({ debug: true, mainFields: ['exports', '.', 'types', 'imports'] }),
+    nxViteTsPaths({ debug: true }),
     nxCopyAssetsPlugin(['*.md']),
     dts({
       entryRoot: 'src',
-      outDir: '../../../dist/libs/chutes-and-ladders/src',
+      outDir: '../../../dist/libs/games/chutes-and-ladders/src',
       tsconfigPath: path.join(__dirname, 'tsconfig.lib.json')
     })
   ],
@@ -24,7 +24,7 @@ export default defineConfig({
   // Configuration for building your library.
   // See: https://vitejs.dev/guide/build.html#library-mode
   build: {
-    outDir: '../../../dist/libs/chutes-and-ladders',
+    outDir: '../../../dist/libs/games/chutes-and-ladders',
     emptyOutDir: true,
     reportCompressedSize: true,
     commonjsOptions: {

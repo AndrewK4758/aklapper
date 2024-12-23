@@ -13,12 +13,6 @@
   "include": [],
   "references": [
     {
-      "path": "../../chain"
-    },
-    {
-      "path": "../types-game"
-    },
-    {
       "path": "./tsconfig.lib.json"
     }
   ]

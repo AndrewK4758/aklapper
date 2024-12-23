@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, type RenderResult } from '@testing-library/react';
+import { act, fireEvent, render, screen, type RenderResult } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router-dom';
 import Header from '../src/components/header/header';
 
@@ -11,20 +12,19 @@ describe('Test Header component', () => {
         <Header />
       </BrowserRouter>
     );
-    const emailButton = baseComponent.getByTestId('email-icon');
-    fireEvent.click(emailButton);
+
+    const contactMenuButton = baseComponent.getByTestId('contact-menu-button');
+    fireEvent.click(contactMenuButton);
   });
 
   it('Should test and pass all of the icon buttons', () => {
-    const text = baseComponent.getByTestId('social-media-text');
     const github = baseComponent.getByTestId('github-icon');
     const facebook = baseComponent.getByTestId('facebook-icon');
     const linkedin = baseComponent.getByTestId('linkedin-icon');
-    const huggingFace = baseComponent.getByTestId('huggingface-icon');
+    const huggingFace = baseComponent.getByTestId('hugging-face-icon');
     const x = baseComponent.getByTestId('x-icon');
     const discord = baseComponent.getByTestId('discord-icon');
 
-    expect(text).toHaveTextContent(`Connect & Colab \u27F6`);
     expect(github).toHaveAttribute('href', 'https://github.com/AndrewK4758');
     expect(facebook).toHaveAttribute('href', 'https://www.facebook.com/AKlapper47');
     expect(linkedin).toHaveAttribute('href', 'https://www.linkedin.com/in/andrew-klapper-a9204b23b/');
@@ -33,12 +33,14 @@ describe('Test Header component', () => {
     expect(discord).toHaveAttribute('href', 'https://discord.com/users/989564035542446190');
   });
 
-  it('Should test the email dialog opening', () => {
-    const emailDialog = baseComponent.getByTestId('email-dialog');
-    expect(emailDialog).toBeInTheDocument();
-  });
+  it('Should test the email dialog opening', async () => {
+    const emailButton = baseComponent.getByTestId('email-icon');
+    await act(async () => {
+      emailButton.click();
+    });
 
-  it('Should test the 2 tabs in email dialog', () => {
+    expect(document.getElementById('email-dialog')).toBeInTheDocument();
+
     const tab1 = baseComponent.getByTestId('appointment-request-tab');
     const tab2 = baseComponent.getByTestId('email-me-tab');
 

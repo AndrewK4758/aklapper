@@ -8,7 +8,7 @@ import type { Request, Response } from 'express';
 import { Server } from 'socket.io';
 import { deRefContextObject } from '../src/lib/de-ref-context-object';
 
-let context: Context, req: Partial<Request>, resp: Partial<Response>;
+let context: Context<GameContextKeys | string>, req: Partial<Request>, resp: Partial<Response>;
 describe('Test de referencing context object', () => {
   beforeAll(() => {
     req = mockReqObj();
@@ -17,8 +17,8 @@ describe('Test de referencing context object', () => {
     context = ContextBuilder.build();
     context.put(GameContextKeys.ACTION, 'action');
     context.put(GameContextKeys.GAME, new InstanceOfGame(1, 'gameid', new Game(new ChutesAndLadders(5, 5))));
-    context.put(GameContextKeys.REQUEST, req);
-    context.put(GameContextKeys.RESPONSE, resp);
+    context.put(GameContextKeys.REQUEST, req as Request);
+    context.put(GameContextKeys.RESPONSE, resp as Response);
     context.put(GameContextKeys.NEXT, 'next-handler');
     context.put(GameContextKeys.OUTPUT, { message: 'output' });
     context.put(GameContextKeys.IO, new Server());

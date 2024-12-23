@@ -1,6 +1,13 @@
-import { IPlayersAndBoard } from '@aklapper/chainsgames-chains';
 import { EmailAddress, IRegisterUserClient } from '@aklapper/types-api';
-import { Color, GameInstanceID, GamePlayerValidation, IBuiltGame, PlayerID, TurnStatus } from '@aklapper/types-game';
+import {
+  Color,
+  GameInstanceID,
+  GamePlayerValidation,
+  IBuiltGame,
+  IPlayersAndBoard,
+  PlayerID,
+  TurnStatus
+} from '@aklapper/types-game';
 import axios from 'axios';
 
 let __current_game__: GamePlayerValidation,
@@ -35,7 +42,7 @@ describe('Games api test wrapper', () => {
         lastName: lastName,
         email: email,
         password: password,
-        playerName: playerName,
+        playerName: playerName
       };
       const resp = await axios.post('/register', userInfo);
       console.log(resp.data);
@@ -48,7 +55,7 @@ describe('Games api test wrapper', () => {
     it('Should login user based on email & password or JWT', async () => {
       const loginInfo = {
         email: PERMENANT_EMAIL,
-        password: PERMENANT_PASSWORD,
+        password: PERMENANT_PASSWORD
       };
 
       const resp = await axios.patch('/login', loginInfo);
@@ -88,7 +95,7 @@ describe('Games api test wrapper', () => {
         const resp = await axios.patch(
           '/games/Chutes-&-Ladders/load-register',
           {},
-          { headers: { 'current-game': JSON.stringify(__current_game__) } },
+          { headers: { 'current-game': JSON.stringify(__current_game__) } }
         );
 
         expect(resp.data.avatarList.length).toEqual(4);
@@ -107,12 +114,12 @@ describe('Games api test wrapper', () => {
               playerName: `Player ${i}`,
               avatarName: name,
 
-              avatarColor: Color.BLACK,
+              avatarColor: Color.BLACK
             },
-            { headers: { 'current-game': JSON.stringify(__current_game__) } },
+            { headers: { 'current-game': JSON.stringify(__current_game__) } }
           );
           __current_game__ = JSON.parse(resp.headers['current-game']);
-          playerIDs.push(__current_game__.playerID);
+          playerIDs.push(__current_game__.playerID as string);
 
           expect(resp.data.message).toEqual('Player Created');
           expect((__current_game__.playerID as PlayerID).length).toEqual(6);
@@ -128,8 +135,8 @@ describe('Games api test wrapper', () => {
             '/games/Chutes-&-Ladders/start',
             {},
             {
-              headers: { 'current-game': JSON.stringify(__current_game__) },
-            },
+              headers: { 'current-game': JSON.stringify(__current_game__) }
+            }
           );
 
           __current_game__ = JSON.parse(resp.headers['current-game']);
@@ -145,8 +152,8 @@ describe('Games api test wrapper', () => {
               '/games/Chutes-&-Ladders/board',
               {},
               {
-                headers: { 'current-game': JSON.stringify(__current_game__) },
-              },
+                headers: { 'current-game': JSON.stringify(__current_game__) }
+              }
             );
 
             __current_game__ = JSON.parse(resp.headers['current-game']);
@@ -166,8 +173,8 @@ describe('Games api test wrapper', () => {
               '/games/Chutes-&-Ladders/take-turn',
               {},
               {
-                headers: { 'current-game': JSON.stringify(__current_game__) },
-              },
+                headers: { 'current-game': JSON.stringify(__current_game__) }
+              }
             );
             console.log(resp.data.turnStatus);
             if (resp.data.turnStatus === TurnStatus.INVALID) {
@@ -177,9 +184,9 @@ describe('Games api test wrapper', () => {
                 {},
                 {
                   headers: {
-                    'current-game': JSON.stringify(__current_game__),
-                  },
-                },
+                    'current-game': JSON.stringify(__current_game__)
+                  }
+                }
               );
 
               expect(resp.status).toEqual(201);
@@ -196,8 +203,8 @@ describe('Games api test wrapper', () => {
               '/games/Chutes-&-Ladders/take-turn',
               {},
               {
-                headers: { 'current-game': JSON.stringify(__current_game__) },
-              },
+                headers: { 'current-game': JSON.stringify(__current_game__) }
+              }
             );
 
             expect(resp.data.turnStatus).toEqual(TurnStatus.INVALID);
@@ -209,7 +216,7 @@ describe('Games api test wrapper', () => {
             const resp = await axios.patch(
               '/games/Chutes-&-Ladders/reset',
               {},
-              { headers: { 'current-game': JSON.stringify(__current_game__) } },
+              { headers: { 'current-game': JSON.stringify(__current_game__) } }
             );
 
             expect(resp.data.message).toEqual('Game Started');

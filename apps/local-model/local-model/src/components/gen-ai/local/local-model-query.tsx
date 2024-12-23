@@ -1,4 +1,6 @@
-import { FormikValidationError, Label, labelSx, textInputSx, Theme, tooltipSx } from '@aklapper/react-shared';
+import { FormikValidationError, Label } from '@aklapper/react-shared';
+import { labelSx, textInputSx, tooltipSx } from '../../../styles/gen-ai-modes-styles';
+import Theme from '../../../styles/theme';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
@@ -9,11 +11,11 @@ import * as Yup from 'yup';
 import { WebSocketContext } from '../../../contexts/websocket-context';
 
 const initialValues = {
-  modelTextQuery: '',
+  modelTextQuery: ''
 };
 
 const validationSchema = Yup.object({
-  modelTextQuery: Yup.string().required('You must provide a query to iteract with the model'),
+  modelTextQuery: Yup.string().required('You must provide a query to iteract with the model')
 });
 
 const ModelQuery = () => {
@@ -25,7 +27,7 @@ const ModelQuery = () => {
     onSubmit: ({ modelTextQuery }) => {
       socket.emit('modelQuery', { modelTextQuery: modelTextQuery });
       formik.resetForm({ isSubmitting: true });
-    },
+    }
   });
 
   return (

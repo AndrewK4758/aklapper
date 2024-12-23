@@ -1,4 +1,4 @@
-import { FormikValidationError, helperTextSx } from '@aklapper/react-shared';
+import { FormikValidationError } from '@aklapper/react-shared';
 import { DialogActions } from '@mui/material';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -12,9 +12,9 @@ import { Form, useSubmit, type SubmitFunction } from 'react-router-dom';
 import * as Yup from 'yup';
 import 'yup-phone-lite';
 import { GoogleUserContext, GoogleUserContextProps } from '../../../contexts/contact-context';
-import { dialogActionsStyles, textFieldSlotProps } from '../../../styles/header-styles';
+import { helperTextSx } from '../../../styles/gen-ai-styles';
+import { dialogActionsStyles } from '../../../styles/header-styles';
 import { flexColumnStyles } from '../../../styles/prompt-builder-styles';
-import Theme from '../../../styles/theme';
 import AppointmentMaker from '../appointment-maker/appointment-maker';
 
 export type MessageMeFormValues = {

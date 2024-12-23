@@ -9,7 +9,7 @@ import { Request, Response } from 'express';
 import { loadRegister } from '../src/lib/commands/action-load-register/load-register-start';
 import { sendLoadRegister } from '../src/lib/commands/action-load-register/send-load-register-data';
 
-let ctx: Context, game: InstanceOfGame, req: Partial<Request>, resp: Partial<Response>;
+let ctx: Context<GameContextKeys | string>, game: InstanceOfGame, req: Partial<Request>, resp: Partial<Response>;
 describe('test load register chain', () => {
   beforeEach(() => {
     game = new InstanceOfGame(getCurrentMinute(), 'game-ID', new Game(new ChutesAndLadders(5, 5)));
@@ -20,8 +20,8 @@ describe('test load register chain', () => {
     resp = mockRespObj();
 
     ctx.put(GameContextKeys.ACTION, 'load-register');
-    ctx.put(GameContextKeys.REQUEST, req);
-    ctx.put(GameContextKeys.RESPONSE, resp);
+    ctx.put(GameContextKeys.REQUEST, req as Request);
+    ctx.put(GameContextKeys.RESPONSE, resp as Response);
     ctx.put(GameContextKeys.NEXT, '');
     ctx.put(GameContextKeys.OUTPUT, {});
     ctx.put(GameContextKeys.GAME, game);

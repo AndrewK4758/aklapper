@@ -2,7 +2,7 @@
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     "allowJs": true,
-    "outDir": "dist",
+    "outDir": "dist/out-tsc",
     "sourceMap": false,
     "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo"
   },
@@ -16,6 +16,40 @@
     "src/**/*.test.js",
     "src/**/*.d.ts"
   ],
-  "exclude": ["dist", "eslint.config.js"],
-  "references": []
+  "exclude": ["dist", "eslint.config.cjs"],
+  "references": [
+    {
+      "path": "../../../libs/types/types-api"
+    },
+    {
+      "path": "../../../libs/mocks"
+    },
+    {
+      "path": "../../../libs/game"
+    },
+    {
+      "path": "../../../libs/games-components"
+    },
+    {
+      "path": "../../../libs/games/chutes-and-ladders"
+    },
+    {
+      "path": "../../../libs/models/game-instance"
+    },
+    {
+      "path": "../../../libs/chain"
+    },
+    {
+      "path": "../../../libs/utils"
+    },
+    {
+      "path": "../../../libs/types/types-game"
+    },
+    {
+      "path": "../../../libs/react-shared"
+    },
+    {
+      "path": "../games-ui"
+    }
+  ]
 }

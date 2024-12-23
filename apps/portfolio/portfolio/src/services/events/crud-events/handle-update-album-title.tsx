@@ -16,7 +16,7 @@ const handleUpdateAlbumTitle = async (values: album, apiRef: RefObject<GridApiCo
       }
     );
 
-    if (resp.data.updatedAlbum) {
+    if (resp.data.updatedAlbum && apiRef.current) {
       const { album_id, title } = resp.data.updatedAlbum;
       apiRef.current.updateRows([{ album_id: album_id, title: title }]);
     }

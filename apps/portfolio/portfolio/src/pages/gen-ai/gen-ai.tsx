@@ -1,4 +1,4 @@
-import { PromptResponse, renderPreTagInsideParentDiv, Text, Waiting } from '@aklapper/react-shared';
+import { Text, useScrollIntoView, Waiting } from '@aklapper/react-shared';
 import type { PromptRequest } from '@aklapper/vertex-ai';
 import { Modal } from '@mui/material';
 import AppBar from '@mui/material/AppBar';
@@ -20,9 +20,10 @@ import {
   type SetStateAction
 } from 'react';
 import { Outlet, useNavigate, useOutletContext } from 'react-router-dom';
+import PromptResponse from '../../components/chat-response/chat-response';
 import { MediaRecorderClientContextProvider } from '../../contexts/audio-context';
-import useScrollIntoView from '../../hooks/use-scroll-into-view';
 import loadContextPath from '../../services/loaders/gen-ai/load-context-path';
+import { renderPreTagInsideParentDiv } from '../../styles/gen-ai-styles';
 import {
   fullPageModalStyles,
   fullSizeBlock,
@@ -189,7 +190,7 @@ const GenAiHome = (): JSX.Element => {
           maxHeight={'350px'}
           flex={'0 1 40%'}
         >
-          <Waiting src={'/swirly-dots-to-chrome.webp'} />
+          <Waiting src={'./assets/swirly-dots-to-chrome.webp'} />
         </Box>
       </Modal>
 

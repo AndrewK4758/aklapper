@@ -2,9 +2,9 @@ import { CommandBuilder } from '@aklapper/chain';
 import { deRefContextObject, getPlayerID } from '@aklapper/utils';
 import { Player } from '@aklapper/games-components';
 import { Context, GameContextKeys, TurnStatus } from '@aklapper/types-game';
-import { nextCommandMap } from '../../utils/context-next-map';
+import { gameCommandMap, type NextCommandMap } from '../../utils/context-next-map';
 
-export const verifyPlayerTakingTurn = CommandBuilder.build((context: Context) => {
+export const verifyPlayerTakingTurn = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.NEXT) && context.getString(GameContextKeys.NEXT) === 'verify-player') {
     const { req, game } = deRefContextObject(context);
 
@@ -13,7 +13,9 @@ export const verifyPlayerTakingTurn = CommandBuilder.build((context: Context) =>
     if (playerTakingTurn === game.instance.playerInTurn.id) {
       context.put('player-taking-turn', game.instance.playerInTurn as Player);
 
-      const nextCommand = nextCommandMap.get(req.params['id'])?.get(context.getString(GameContextKeys.NEXT));
+      const nextCommand = (gameCommandMap.get(req.params['id']) as NextCommandMap).get(
+        context.getString(GameContextKeys.NEXT)
+      ) as string;
 
       context.put(GameContextKeys.NEXT, nextCommand);
       return true;

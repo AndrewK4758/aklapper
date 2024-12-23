@@ -11,7 +11,7 @@ import { makeNewGameBoard } from '../src/lib/commands/action-reset-game/make-new
 import { mockReqObj } from '@aklapper/mocks';
 import { Request } from 'express';
 
-let ctx: Context,
+let ctx: Context<GameContextKeys | string>,
   instanceOfGame: InstanceOfGame,
   player1: IPlayer,
   player2: IPlayer,
@@ -42,7 +42,7 @@ describe('test reset game chain', () => {
     ctx = ContextBuilder.build();
     ctx.put(GameContextKeys.ACTION, 'reset');
     ctx.put(GameContextKeys.GAME, instanceOfGame);
-    ctx.put(GameContextKeys.REQUEST, req);
+    ctx.put(GameContextKeys.REQUEST, req as Request);
   });
 
   describe('it should reset game', () => {

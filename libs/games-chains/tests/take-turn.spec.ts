@@ -18,7 +18,7 @@ interface ICtxOutput {
   turnStatus: TurnStatus;
 }
 
-let ctx: Context,
+let ctx: Context<GameContextKeys | string>,
   instanceOfGame: InstanceOfGame,
   game: Game,
   output: ICtxOutput,
@@ -46,7 +46,7 @@ describe('should execute all steps of taking turn', () => {
     instanceOfGame.instance.instance.startSpace.land(avatar2);
 
     instanceOfGame.instance.playerInTurn = instanceOfGame.instance.playersArray.find(
-      ({ id }) => id === 'p-2-id',
+      ({ id }) => id === 'p-2-id'
     ) as Player;
 
     turnStatus = TurnStatus.NOT_READY;
@@ -58,8 +58,8 @@ describe('should execute all steps of taking turn', () => {
     if (req.params) req.params['id'] = 'Chutes-&-Ladders';
 
     ctx.put(GameContextKeys.ACTION, 'take-turn');
-    ctx.put(GameContextKeys.REQUEST, req);
-    ctx.put(GameContextKeys.RESPONSE, resp);
+    ctx.put(GameContextKeys.REQUEST, req as Request);
+    ctx.put(GameContextKeys.RESPONSE, resp as Response);
     ctx.put(GameContextKeys.GAME, instanceOfGame);
   });
 

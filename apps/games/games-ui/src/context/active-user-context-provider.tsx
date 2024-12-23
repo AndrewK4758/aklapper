@@ -1,4 +1,4 @@
-import { ActiveUserData, IActiveUserContext, ActiveUserContext } from '@aklapper/react-components';
+import { ActiveUserData, IActiveUserContext, ActiveUserContext } from './active-user-context';
 import { ReactNode, useState } from 'react';
 
 const activeUserInit: ActiveUserData = {
@@ -6,7 +6,7 @@ const activeUserInit: ActiveUserData = {
   playerName: undefined,
   activeGames: undefined,
   friends: undefined,
-  thumbnail: undefined,
+  thumbnail: undefined
 };
 
 type Props = { children: ReactNode };
@@ -16,7 +16,7 @@ const ActiveUserProvider = ({ children }: Props) => {
 
   const values: IActiveUserContext = {
     activeUser,
-    setActiveUser,
+    setActiveUser
   };
   return <ActiveUserContext.Provider value={values}>{children}</ActiveUserContext.Provider>;
 };

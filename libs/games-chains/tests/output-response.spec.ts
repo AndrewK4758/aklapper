@@ -1,17 +1,20 @@
 import { ContextBuilder } from '@aklapper/chain';
 import { Context, GameContextKeys, ITestCtxOutput } from '@aklapper/types-game';
-import { mockRespObj } from '@aklapper/mocks';
-import { Response } from 'express';
+import { mockReqObj, mockRespObj } from '@aklapper/mocks';
+import { Response, type Request } from 'express';
 import { outputContextResponse } from '../src/lib/commands/action-output/output-context-response';
 
-let ctx: Context, output: ITestCtxOutput, resp: Partial<Response>;
+let ctx: Context<GameContextKeys>, output: ITestCtxOutput, req: Partial<Request>, resp: Partial<Response>;
 
 describe('test output response chain', () => {
-  beforeAll(() => {
+  beforeEach(() => {
     ctx = ContextBuilder.build();
     output = { message: 'output to client as json' } as ITestCtxOutput;
+    req = mockReqObj();
     resp = mockRespObj();
-    ctx.put(GameContextKeys.RESPONSE, resp);
+
+    ctx.put(GameContextKeys.REQUEST, req as Request);
+    ctx.put(GameContextKeys.RESPONSE, resp as Response);
   });
 
   it('should put the value of the out property on the context object onto the response object to send to client', () => {
@@ -25,8 +28,6 @@ describe('test output response chain', () => {
   });
 
   it('should send status of 200 without data being sent from context object', () => {
-    ctx.state.clear();
-    ctx.put(GameContextKeys.RESPONSE, resp);
     const commandResult = outputContextResponse.execute(ctx);
 
     expect(commandResult).toBeTruthy();

@@ -2,7 +2,10 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "module": "ESNext",
-    "outDir": "out-tsc",
+    "moduleResolution": "bundler",
+    "outDir": "./out-tsc",
+    "rootDir": "./src",
+    "declarationDir": "../../dist/libs/game/src",
     "declaration": true,
     "types": ["node", "vite/client"]
   },
@@ -11,7 +14,7 @@
     "src/**/*.ts",
     "../games-components/src/**/*.ts",
     "../types/types-game/src/**/*.ts",
-    "../games/**/*/src/**/*.ts"
+    "../games/chutes-and-ladders/src/**/*.ts"
   ],
   "references": [
     {

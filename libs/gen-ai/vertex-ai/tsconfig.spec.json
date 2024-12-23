@@ -2,6 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "out-tsc",
+    "tsBuildInfoFile": "tsconfig.spec.tsbuildinfo",
     "module": "commonjs",
     "moduleResolution": "node10",
     "types": ["jest", "node"]
@@ -12,7 +13,6 @@
     "tests/**/*.spec.ts",
     "src/**/*.d.ts",
     "src/**/*.ts",
-    "../../types/types-ai/src/**/*.ts",
-    "../../types/types-ai/src/**/*.d.ts"
+    "../../types/types-ai/src/**/*.ts"
   ]
 }

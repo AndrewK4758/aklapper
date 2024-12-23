@@ -2,7 +2,7 @@ import { CommandBuilder } from '@aklapper/chain';
 import { deRefContextObject } from '@aklapper/utils';
 import { Context, GameContextKeys } from '@aklapper/types-game';
 
-export const checkIfWinner = CommandBuilder.build((context: Context) => {
+export const checkIfWinner = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.NEXT) && context.getString(GameContextKeys.NEXT) === 'check-if-winner') {
     const { game } = deRefContextObject(context);
 

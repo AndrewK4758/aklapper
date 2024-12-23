@@ -9,7 +9,7 @@ import {
 } from '@aklapper/types-game';
 import { deRefContextObject } from '@aklapper/utils';
 
-export const activeDataToSend = CommandBuilder.build((context: Context) => {
+export const activeDataToSend = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.NEXT) && context.getString(GameContextKeys.NEXT) === 'active-data-to-send') {
     const { req, resp, game, io } = deRefContextObject(context);
 

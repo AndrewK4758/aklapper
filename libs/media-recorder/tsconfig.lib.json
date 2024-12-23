@@ -1,9 +1,11 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "out-tsc",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "outDir": "./out-tsc",
+    "rootDir": "./src",
+    "declarationDir": "../../dist/libs/media-recorder/src",
     "declaration": true,
     "lib": ["DOM"],
     "types": ["node"]

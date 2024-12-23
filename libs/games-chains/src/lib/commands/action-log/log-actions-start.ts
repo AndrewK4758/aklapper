@@ -1,8 +1,8 @@
 import { CommandBuilder } from '@aklapper/chain';
+import { Context, type GameContextKeys } from '@aklapper/types-game';
 import { deRefContextObject } from '@aklapper/utils';
-import { Context } from '@aklapper/types-game';
 
-export const logAction = CommandBuilder.build((context: Context) => {
+export const logAction = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   const { action } = deRefContextObject(context);
   if (action) {
     console.log(`Action: ${action}`);

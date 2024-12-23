@@ -1,4 +1,4 @@
-import { GamesTheme as Theme } from '@aklapper/react-components';
+import { GamesTheme as Theme } from '../../styles/games-theme';
 import { SxProps } from '@mui/material';
 import Button from '@mui/material/Button';
 import axios from 'axios';
@@ -6,7 +6,7 @@ import { Dispatch } from 'react';
 import { useParams } from 'react-router-dom';
 import { Socket } from 'socket.io-client';
 import { Action, ActionType } from './socket-reducer';
-import getGameInstanceInfo from '../../services/utils/utils';
+import getGameInstanceInfo from '../../utils/utils';
 
 const breakpointsTakeTurnButton: SxProps = {
   backgroundColor: Theme.palette.info.main,

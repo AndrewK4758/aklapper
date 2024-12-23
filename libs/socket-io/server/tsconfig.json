@@ -13,7 +13,7 @@
   "include": [],
   "references": [
     {
-      "path": "../../types/types-ai"
+      "path": "../../types/types-api"
     },
     {
       "path": "./tsconfig.lib.json"

@@ -2,11 +2,14 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "module": "ESNext",
-    "outDir": "dist/out-tsc",
+    "moduleResolution": "bundler",
+    "outDir": "out-tsc",
+    "rootDir": "./src",
+    "declarationDir": "../../dist/libs/games-chains/src",
     "declaration": true,
     "types": ["node", "vite/client"]
   },
-  "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "src/**/*.test.ts"],
+  "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
   "include": [
     "src/**/*.ts",
     "../games-components/src/**/*.ts",

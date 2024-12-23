@@ -1,14 +1,19 @@
+import { Label } from '@aklapper/react-shared';
 import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
-import Tab from '@mui/material/Tab';
-import Tabs from '@mui/material/Tabs';
+import Button from '@mui/material/Button';
+import ButtonGroup from '@mui/material/ButtonGroup';
 import Toolbar from '@mui/material/Toolbar';
-import { useState, type Dispatch, type JSX, type SetStateAction, type SyntheticEvent } from 'react';
-import { useNavigate, type NavigateFunction } from 'react-router-dom';
-import { buttonSXProps, menuOpenIconSxProps, socialMediaLinksWrapper } from '../../styles/header-styles';
-import Connect from './connect/connect';
-import { Label } from '@aklapper/react-shared';
+import { useState, type JSX } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  buttonSXProps,
+  menuOpenIconSxProps,
+  navbarToolbarSxProps,
+  socialMediaLinksWrapper
+} from '../../styles/header-styles';
+import Connect from './contact/contact';
 
 /**
  * This component renders the header section of the application, which includes social media links and an email contact form.
@@ -17,7 +22,6 @@ import { Label } from '@aklapper/react-shared';
  */
 
 const Header = (): JSX.Element => {
-  const [tab, setTab] = useState<number>(0);
   const [openMenu, setOpenMenu] = useState<boolean>(false);
   const nav = useNavigate();
 
@@ -38,104 +42,75 @@ const Header = (): JSX.Element => {
         data-testid="navbar-appbar"
         sx={{ height: '8vh' }}
       >
-        <Toolbar
-          component={'section'}
-          id="navbar-toolbar"
-          data-testid="navbar-toolbar"
-          sx={{ display: 'flex', flexDirection: 'row', height: '100%' }}
-        >
-          <Tabs
-            textColor="inherit"
-            value={tab}
-            onChange={(tab: SyntheticEvent<Element, Event>, idx: number) =>
-              handleTabChange((tab.currentTarget.textContent as string).toLowerCase(), idx, setTab, nav)
-            }
-            variant="fullWidth"
-            TabIndicatorProps={{
-              sx: { background: '#FFFFFF' }
-            }}
-            sx={{ flex: '100%' }}
-          >
-            <Tab
-              sx={{ ...buttonSXProps }}
-              label={
+        <Toolbar component={'section'} id="navbar-toolbar" data-testid="navbar-toolbar" sx={navbarToolbarSxProps}>
+          <Box component={'nav'} id="navbar-navbar" data-testid="navbar-navbar" key="navbar-navbar" flex={'100%'}>
+            <ButtonGroup fullWidth={true} variant="text" color="inherit">
+              <Button
+                sx={buttonSXProps}
+                id="home-button"
+                data-testid="home-button"
+                onClick={() => {
+                  nav('/');
+                  window.scrollTo({ behavior: 'smooth', top: 0 });
+                }}
+              >
                 <Label
                   tooltipTitle={'HOME DESCRIPTION'}
                   labelVariant={'h2'}
                   labelText={'Home'}
-                  placement={'top'}
+                  placement={'bottom'}
                   sx={{ fontSize: '2.5rem' }}
                 />
-              }
-              id="home-button"
-              data-testid="home-button"
-              onClick={() => window.scrollTo({ behavior: 'smooth', top: 0 })}
-            />
+              </Button>
 
-            <Tab
-              label={
+              <Button id="games-button" data-testid="games-button" onClick={() => nav('games')} sx={buttonSXProps}>
                 <Label
                   tooltipTitle={'GAME DESCRIPTION'}
                   labelVariant={'h2'}
                   labelText={'Games'}
-                  placement={'top'}
+                  placement={'bottom'}
                   sx={{ fontSize: '2.5rem' }}
                 />
-              }
-              id="games-button"
-              data-testid="games-button"
-              sx={buttonSXProps}
-            />
+              </Button>
 
-            <Tab
-              label={
+              <Button id="crud-button" data-testid="crud-button" onClick={() => nav('crud')} sx={buttonSXProps}>
                 <Label
                   tooltipTitle={'CRUD DESCRIPTION'}
                   labelVariant={'h2'}
                   labelText={'CRUD'}
-                  placement={'top'}
+                  placement={'bottom'}
                   sx={{ fontSize: '2.5rem' }}
                 />
-              }
-              id="crud-button"
-              data-testid="crud-button"
-              sx={buttonSXProps}
-            />
+              </Button>
 
-            <Tab
-              label={
+              <Button id="gen-ai-button" data-testid="gen-ai-button" onClick={() => nav('gen-ai')} sx={buttonSXProps}>
                 <Label
                   tooltipTitle={'GEN-AI DESCRIPTION'}
                   labelVariant={'h2'}
                   labelText={'Gen-AI'}
-                  placement={'top'}
+                  placement={'bottom'}
                   sx={{ fontSize: '2.5rem' }}
                 />
-              }
-              id="gen-ai-button"
-              data-testid="gen-ai-button"
-              sx={buttonSXProps}
-            />
+              </Button>
 
-            <Tab
-              autoFocus={true}
-              label={
+              <Button
+                autoFocus={true}
+                id="contact-menu-button"
+                data-testid="contact-menu-button"
+                endIcon={<MenuOpenIcon sx={menuOpenIconSxProps} />}
+                onClick={() => setOpenMenu(true)}
+                sx={buttonSXProps}
+              >
                 <Label
                   tooltipTitle={'CONTACT DESCRIPTION'}
                   labelVariant={'h2'}
                   labelText={'Contact'}
-                  placement={'top'}
+                  placement={'bottom'}
                   sx={{ fontSize: '2.5rem' }}
                 />
-              }
-              id="contact-menu-button"
-              data-testid="contact-menu-button"
-              icon={<MenuOpenIcon sx={menuOpenIconSxProps} />}
-              iconPosition="end"
-              onClick={() => setOpenMenu(true)}
-              sx={buttonSXProps}
-            />
-          </Tabs>
+              </Button>
+            </ButtonGroup>
+          </Box>
         </Toolbar>
       </AppBar>
       <Box component={'div'} key={'connect-wrapper'} id={'connect-wrapper'} flex={1}>
@@ -146,12 +121,3 @@ const Header = (): JSX.Element => {
 };
 
 export default Header;
-
-const handleTabChange = (tab: string, idx: number, setTab: Dispatch<SetStateAction<number>>, nav: NavigateFunction) => {
-  console.log(tab);
-  if (tab === 'contact') return;
-  else {
-    setTab(idx);
-    tab[0] === 'h' ? nav('/') : nav(tab);
-  }
-};

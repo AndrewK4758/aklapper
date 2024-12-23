@@ -2,7 +2,7 @@ import { CommandBuilder } from '@aklapper/chain';
 import { deRefContextObject } from '@aklapper/utils';
 import { Context, GameContextKeys, IPlayer } from '@aklapper/types-game';
 
-export const setAvatarOnStartChutesAndLadders = CommandBuilder.build((context: Context) => {
+export const setAvatarOnStartChutesAndLadders = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.NEXT) && context.getString(GameContextKeys.NEXT) === 'set-avatars-on-start') {
     if (context.get('ready-to-play')) {
       const { game } = deRefContextObject(context);

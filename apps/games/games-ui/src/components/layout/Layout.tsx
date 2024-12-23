@@ -1,6 +1,10 @@
-import { Footer, Header, Main, GamesTheme as Theme } from '@aklapper/react-components';
+import { GamesTheme as Theme } from '../../styles/games-theme';
+import Container from '@mui/material/Container';
 import type { SxProps } from '@mui/material/styles';
 import { Fragment } from 'react';
+import { Outlet } from 'react-router-dom';
+import Footer from '../footer/footer';
+import Header from '../header/header';
 
 const breakpointsAppBar: SxProps = {
   paddingX: '1rem',
@@ -79,7 +83,10 @@ const Layout = () => (
       sxAppBar={breakpointsAppBar}
       sxText={breakpointsText}
     />
-    <Main component={'main'} id={'main-container'} maxWidth={false} breakpointsMain={breakpointsMain} />
+    <Container component={'main'} id="main-wrapper" maxWidth={false} sx={breakpointsMain}>
+      <Outlet />
+    </Container>
+
     <Footer component={'footer'} breakpointsFooter={breakpointsFooter} breakpointsFooterText={breakpointsFooterText} />
   </Fragment>
 );

@@ -1,10 +1,5 @@
 import { rowFinder } from '@aklapper/games-components';
-import {
-  breakpointsBottomMenuButtonsBox,
-  breakpointsBottomMenuGameBoard,
-  breakpointsPlayerInTurnText,
-  Text
-} from '@aklapper/react-shared';
+import { Text, useScrollIntoView } from '@aklapper/react-shared';
 import { ClientSocket } from '@aklapper/socket-io-client';
 import {
   GameBoard,
@@ -20,7 +15,11 @@ import Paper from '@mui/material/Paper';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type { ManagerOptions, Socket } from 'socket.io-client';
-import useScrollIntoView from '../../hooks/use-scroll-into-view';
+import {
+  breakpointsBottomMenuButtonsBox,
+  breakpointsBottomMenuGameBoard,
+  breakpointsPlayerInTurnText
+} from '../../styles/games-styles';
 import getGameInstanceInfo from '../../utils/utils';
 import ActiveAvatars from './game_board/active_avatars';
 import ResetGame from './game_board/reset_game';
@@ -68,7 +67,7 @@ const ActiveGameSession = () => {
     extraHeaders: { 'current-game': JSON.stringify(getGameInstanceInfo()) }
   };
 
-  const clientSocket = new ClientSocket(import.meta.env.VITE_WS_SERVER_URL_GAMES, socketManagerOptions);
+  const clientSocket = new ClientSocket(import.meta.env.VITE_GAMES_WS_URL, socketManagerOptions);
   const socketRef = useRef<Socket>(clientSocket.clientIo);
   const [state, dispatch] = useReducer(socketReducer, {}, socketInit);
   const [space, setSpace] = useState<string | undefined>();
@@ -87,11 +86,6 @@ const ActiveGameSession = () => {
     });
 
     socket.emit('create-room', (getGameInstanceInfo() as GamePlayerValidation).gameInstanceID);
-
-    return () => {
-      socket.disconnect();
-      socket.removeAllListeners();
-    };
   });
 
   useEffect(() => {
@@ -124,7 +118,12 @@ const ActiveGameSession = () => {
     socket.on('no-game-error', ({ errorMessage }) => {
       console.error(errorMessage);
     });
-  }, [id, socket]);
+    return () => {
+      socket.disconnect();
+      socket.removeAllListeners();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   return (
     <Paper key={`active-${id}-game`} id={`active-${id}-game`}>

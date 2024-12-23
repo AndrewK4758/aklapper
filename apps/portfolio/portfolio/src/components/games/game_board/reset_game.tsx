@@ -3,9 +3,20 @@ import axios from 'axios';
 import { Dispatch, type JSX, type SetStateAction } from 'react';
 import { useParams } from 'react-router-dom';
 import { Socket } from 'socket.io-client';
-import { breakpointsResetGameButton } from '@aklapper/react-shared';
 import getGameInstanceInfo from '../../../utils/utils';
 import { Action, ActionType } from './socket-reducer';
+import Theme from '../../../styles/theme';
+import type { SxProps } from '@mui/material/styles';
+
+const breakpointsResetGameButton: SxProps = {
+  marginLeft: '.5rem',
+  backgroundColor: Theme.palette.info.main,
+  [Theme.breakpoints.down('md')]: {
+    fontSize: '17px',
+    width: 130,
+    height: 35
+  }
+};
 
 interface ResetGameProps {
   dispatch: Dispatch<Action>;

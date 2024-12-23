@@ -1,5 +1,6 @@
 // import styles from '../../../styles/prompt-builder-response.module.css';
-import { renderPreTagInsideParentDiv, Text } from '@aklapper/react-shared';
+import { Text } from '@aklapper/react-shared';
+import { renderPreTagInsideParentDiv } from '../../../styles/gen-ai-styles';
 import Box from '@mui/material/Box';
 import type { CSSProperties } from 'react';
 import { fullSizeBlock } from '../../../styles/pages-styles';

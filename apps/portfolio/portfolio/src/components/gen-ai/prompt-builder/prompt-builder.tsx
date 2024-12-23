@@ -1,13 +1,5 @@
 import { IPromptInputData, ResponseType } from '@aklapper/prompt-builder';
-import {
-  FormikValidationError,
-  helperTextSx,
-  Label,
-  labelSx,
-  Text,
-  textInputSx,
-  tooltipSx,
-} from '@aklapper/react-shared';
+import { FormikValidationError, Label, Text, useScrollIntoView } from '@aklapper/react-shared';
 import { getContextPath } from '@aklapper/utils';
 import type { PromptRequest } from '@aklapper/vertex-ai';
 import Box from '@mui/material/Box';
@@ -27,16 +19,16 @@ import {
   useNavigate,
   useSubmit,
   type NavigateFunction,
-  type SubmitTarget,
+  type SubmitTarget
 } from 'react-router-dom';
 import * as Yup from 'yup';
-import useScrollIntoView from '../../../hooks/use-scroll-into-view';
+import { helperTextSx, labelSx, textInputSx, tooltipSx } from '../../../styles/gen-ai-styles';
 import { fullSizeBlock } from '../../../styles/pages-styles';
 import {
   coloredTitleStyles,
   flexColumnStyles,
   formLabelSxProps,
-  radioButtonLabelSxProps,
+  radioButtonLabelSxProps
 } from '../../../styles/prompt-builder-styles';
 import '../../../styles/prompt-builder.css';
 import Theme from '../../../styles/theme';
@@ -51,7 +43,7 @@ import {
   responseInstructions,
   SUPPORTED_FORMATS,
   textData,
-  tone,
+  tone
 } from '../static/definitions';
 import { promptBuilderHeaderText } from '../static/prompt-builder-text';
 import PromptBuilderResponse from './prompt-builder-response';
@@ -64,7 +56,7 @@ const initialValues: IPromptInputData = {
   constraints: '',
   tone: '',
   responseFormat: ResponseType.TEXT,
-  responseInstructions: '',
+  responseInstructions: ''
 };
 
 const validationSchema = Yup.object({
@@ -75,7 +67,7 @@ const validationSchema = Yup.object({
   constraints: Yup.string(),
   tone: Yup.string(),
   resposeFormat: Yup.string().oneOf(Object.values(ResponseType)),
-  responseInstructions: Yup.string(),
+  responseInstructions: Yup.string()
 });
 
 interface PromptBuilderProps {
@@ -113,7 +105,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
     onSubmit: values => submit(values as SubmitTarget, { method: 'POST', encType: 'application/json' }),
     onReset: () => setFileName(''),
     validateOnBlur: true,
-    validateOnChange: true,
+    validateOnChange: true
   });
 
   /**
@@ -389,7 +381,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   id="prompt-builder-response-format-radio-box"
                   sx={{
                     backgroundColor: Theme.palette.background.default,
-                    borderRadius: 1,
+                    borderRadius: 1
                   }}
                 >
                   <RadioGroup
@@ -406,7 +398,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                       display: 'flex',
                       flexDirection: 'row',
                       justifyContent: 'space-around',
-                      paddingLeft: 2,
+                      paddingLeft: 2
                     }}
                   >
                     <FormControlLabel
@@ -602,7 +594,7 @@ const handleCopyPromptToClipboardAndAddToInput = async (
   buildPrompt: string,
   setPrompt: Dispatch<SetStateAction<PromptRequest>>,
   setOpenPromptResponse: Dispatch<SetStateAction<boolean>>,
-  nav: NavigateFunction,
+  nav: NavigateFunction
 ) => {
   setPrompt(prev => ({ ...prev, text: buildPrompt }));
   await navigator.clipboard.writeText(buildPrompt);
@@ -610,7 +602,7 @@ const handleCopyPromptToClipboardAndAddToInput = async (
   nav('text');
 };
 
-const baseUrl = import.meta.env.VITE_SERVER_URL_VERTEX;
+const baseUrl = import.meta.env.VITE_VERTEX_API_URL;
 
 /**
  * This function handles the file upload event.
@@ -626,7 +618,7 @@ export const handleFileUpload = async (
   fileInputRef: RefObject<HTMLInputElement | null>,
   setPrompt: Dispatch<SetStateAction<PromptRequest>>,
   setFileName: Dispatch<SetStateAction<string>>,
-  setLoading: Dispatch<SetStateAction<boolean>>,
+  setLoading: Dispatch<SetStateAction<boolean>>
 ) => {
   try {
     if (fileInputRef.current) {
@@ -639,7 +631,7 @@ export const handleFileUpload = async (
         const resp = await axios.post(
           `${baseUrl}/upload`,
           { file: file, contextPath: contextPath },
-          { headers: { 'Content-Type': 'multipart/form-data' } },
+          { headers: { 'Content-Type': 'multipart/form-data' } }
         );
 
         const { path } = resp.data as { path: string };

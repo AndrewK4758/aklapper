@@ -15,15 +15,14 @@ const Layout = () => {
         <Paper
           component={'div'}
           key={'header-paper'}
-          elevation={12}
-          sx={{ position: 'sticky', left: 0, right: 0, top: 0, height: '80px', display: 'flex', zIndex: 10 }}
+          sx={{ position: 'sticky', left: 0, right: 0, top: 0, height: '80px', display: 'flex' }}
         >
           <Box
             sx={{
               flex: '1 0 100%',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-evenly',
+              justifyContent: 'space-evenly'
             }}
           >
             <Button type="button" variant="contained" onClick={() => nav('/')} sx={{ width: '123px' }}>
@@ -52,7 +51,7 @@ const Layout = () => {
           zIndex: 2,
           height: '100vh',
           display: 'flex',
-          minHeight: 'fit-content',
+          minHeight: 'fit-content'
         }}
       >
         <HomePage />
@@ -62,11 +61,11 @@ const Layout = () => {
         component={'footer'}
         sx={{ position: 'sticky', left: 0, right: 0, bottom: 0, width: '100%', zIndex: 10 }}
       >
-        <Paper elevation={6}>
+        <Box>
           <Typography variant="h3" sx={{ textAlign: 'center' }}>
             Footer
           </Typography>
-        </Paper>
+        </Box>
       </Box>
     </Fragment>
   );

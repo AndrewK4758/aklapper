@@ -1,7 +1,7 @@
 import type { Server as httpServer } from 'http';
 import { Server, ServerOptions } from 'socket.io';
-import type { ISocketServer } from '../interfaces/socket-server';
-import { type SocketMiddleware, type SocketCallback } from '@aklapper/types-ai';
+import type ISocketServer from '../interfaces/socket-server';
+import { type SocketMiddleware, type SocketCallback } from '@aklapper/types-api';
 
 export class SocketServer implements ISocketServer {
   io: Server;
@@ -9,7 +9,7 @@ export class SocketServer implements ISocketServer {
     httpServer: httpServer,
     serverOptions: Partial<ServerOptions>,
     listeners: SocketCallback[],
-    middleware?: SocketMiddleware[],
+    middleware?: SocketMiddleware[]
   ) {
     this.io = new Server(httpServer, serverOptions);
     listeners.forEach(listener => {

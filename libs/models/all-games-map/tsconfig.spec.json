@@ -17,6 +17,8 @@
     "../game-instance/src/**/*.ts",
     "../../game/src/**/*.ts",
     "../../games/chutes-and-ladders/src/**/*.ts",
-    "../../mocks/src/**/*.ts"
+    "../../mocks/src/**/*.ts",
+    "../../types/types-game/src/**/*.ts",
+    "../../games-components/src/**/*.ts"
   ]
 }

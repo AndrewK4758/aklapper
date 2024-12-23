@@ -1,10 +1,10 @@
-import type { Context } from '@aklapper/types-game';
+import type { Context, GameContextKeys } from '@aklapper/types-game';
 import { CommandBuilder, ChainBuilder, ContextBuilder } from '../src/lib/base';
 
 describe('Test simple command & simple chain', () => {
   describe('Simple Command', () => {
     it('should work', () => {
-      const cmd = CommandBuilder.build((context: Context) => {
+      const cmd = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
         context.state.set('out', context.get('in'));
         return true;
       });
@@ -20,12 +20,12 @@ describe('Test simple command & simple chain', () => {
     it('should pass', () => {
       const ctx = ContextBuilder.build();
 
-      const cmd1 = CommandBuilder.build((context: Context) => {
+      const cmd1 = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
         context.put('in', 2);
         return context.getNumber('in') === 2;
       });
 
-      const cmd2 = CommandBuilder.build((context: Context) => {
+      const cmd2 = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
         context.put('out', context.getNumber('in') + 2);
         return context.getNumber('in') === 4;
       });

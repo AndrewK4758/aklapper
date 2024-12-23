@@ -1,4 +1,4 @@
-import type { SocketListenerTuple } from '@aklapper/types-ai';
+import type { SocketListenerTuple } from '@aklapper/types-api';
 import type { Socket } from 'socket.io-client';
 
 export const setSocketListeners = (socket: Socket, listenersArr: SocketListenerTuple[]) => {

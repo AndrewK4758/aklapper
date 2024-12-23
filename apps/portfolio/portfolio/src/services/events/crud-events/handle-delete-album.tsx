@@ -14,7 +14,7 @@ const handleDeleteAlbum = async (values: album, apiRef: RefObject<GridApiCommuni
     });
 
     console.log(resp.data);
-    if (resp.data.deletedAlbum) {
+    if (resp.data.deletedAlbum && apiRef.current) {
       const { album_id } = resp.data.deletedAlbum;
       apiRef.current.updateRows([{ album_id: album_id, _action: 'delete' }]);
     }

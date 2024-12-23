@@ -1,4 +1,4 @@
-import { Text } from '@aklapper/react-shared';
+import { Text, useScrollIntoView } from '@aklapper/react-shared';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import DetailsIcon from '@mui/icons-material/Details';
 import UploadIcon from '@mui/icons-material/Upload';
@@ -10,9 +10,8 @@ import { DataGrid, GridActionsCellItem, GridColDef, GridRowParams, useGridApiRef
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { artist } from '@prisma/client';
 import axios from 'axios';
-import { MutableRefObject, useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
+import { RefObject, useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import { Outlet, useLoaderData, useNavigate } from 'react-router-dom';
-import useScrollIntoView from '../../../hooks/use-scroll-into-view';
 import loadArtists from '../../../services/loaders/crud-loaders/load-artists';
 import { dataGridStyleUpdate, inverseColors } from '../../../styles/crud-styles';
 import AddArtist from './add-artist';
@@ -203,7 +202,7 @@ export default Artist;
 
 const baseURL = import.meta.env.VITE_DATA_API_URL;
 
-const handleUpdateArtistName = async (values: artist, apiRef: MutableRefObject<GridApiCommunity>) => {
+const handleUpdateArtistName = async (values: artist, apiRef: RefObject<GridApiCommunity>) => {
   try {
     const { artist_id, name } = values;
     const resp = await axios.patch(
@@ -212,7 +211,7 @@ const handleUpdateArtistName = async (values: artist, apiRef: MutableRefObject<G
       { headers: { 'Content-Type': 'application/json' } }
     );
 
-    if (resp.data) {
+    if (resp.data && apiRef.current) {
       const { artist_id, name } = resp.data.updatedArtist;
       apiRef.current.updateRows([{ artist_id: artist_id, name: name }]);
     }
@@ -221,7 +220,7 @@ const handleUpdateArtistName = async (values: artist, apiRef: MutableRefObject<G
   }
 };
 
-const handleDeleteArtist = async (values: artist, apiRef: MutableRefObject<GridApiCommunity>) => {
+const handleDeleteArtist = async (values: artist, apiRef: RefObject<GridApiCommunity>) => {
   try {
     const { artist_id } = values;
     const resp = await axios.delete(`${baseURL}/artists/${artist_id}`, {
@@ -229,7 +228,7 @@ const handleDeleteArtist = async (values: artist, apiRef: MutableRefObject<GridA
     });
 
     console.log(resp.data);
-    if (resp.data.deletedArtist) {
+    if (resp.data.deletedArtist && apiRef.current) {
       const { artist_id } = resp.data.deletedArtist;
       apiRef.current.updateRows([{ artist_id: artist_id, _action: 'delete' }]);
     }

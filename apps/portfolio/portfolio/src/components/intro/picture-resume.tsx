@@ -8,6 +8,7 @@ import resume from '../../assets/Resume.pdf';
 import ResumeIcon from '../../components/icons/resume-icon';
 import { introPicStyles, picAndResumeCardStyles } from '../../styles/intro-styles';
 import { Tooltip } from '@mui/material';
+import TechStackList from './tech-list/tech-list';
 
 /**
  * This component renders a card containing a picture of me and a button to download my resume.
@@ -48,6 +49,7 @@ const PicutreAndResume = (): JSX.Element => (
         </Button>
       </Tooltip>
     </CardActions>
+    <TechStackList />
   </Paper>
 );
 

@@ -1,0 +1,11 @@
+{
+  "name": "crud-ui-e2e",
+  "private": true,
+  "nx": {
+    "projectType": "application",
+    "sourceRoot": "apps/crud-ui/crud-ui-e2e/src",
+    "implicitDependencies": [
+      "crud-ui"
+    ]
+  }
+}

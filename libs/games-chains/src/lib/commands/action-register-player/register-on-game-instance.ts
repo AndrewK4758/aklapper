@@ -2,7 +2,7 @@ import { CommandBuilder } from '@aklapper/chain';
 import { deRefContextObject } from '@aklapper/utils';
 import { Context, GameContextKeys, IRegisterFormValues, PlayerID } from '@aklapper/types-game';
 
-export const registerOnGameInstance = CommandBuilder.build((context: Context) => {
+export const registerOnGameInstance = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.NEXT) && context.getString(GameContextKeys.NEXT) === 'register-on-game') {
     const { req, game } = deRefContextObject(context);
 

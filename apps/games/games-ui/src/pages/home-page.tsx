@@ -1,6 +1,7 @@
-import { GamesTheme as Theme, JoinGame } from '@aklapper/react-components';
 import { Text } from '@aklapper/react-shared';
+import { GamesTheme as Theme } from '../styles/games-theme';
 import type { SxProps } from '@mui/material/styles';
+import JoinGame from '../components/join-game/join-game';
 
 const breakpointsHomeTextTitle: SxProps = {
   'min-width:900px': {
@@ -45,35 +46,6 @@ const breakpointsJoinGameText: SxProps = {
     width: 230
   }
 };
-
-// const breakpointsChatInputText: SxProps = {
-//   backgroundColor: Theme.palette.info.main,
-//   width: '80vw',
-//   justifySelf: 'center',
-//   alignSelf: 'center',
-//   ['min-width:900px']: {
-//     fontSize: '17px',
-//     textAlign: 'center',
-//     height: 35,
-//     width: 230,
-//   },
-// };
-
-// const breakpointsChatResponse: SxProps = {
-//   backgroundColor: Theme.palette.info.main,
-//   width: '100%',
-//   minHeight: 'fit-content',
-//   borderRadius: '15px',
-//   justifyContent: 'center',
-//   alignContent: 'center',
-//   color: Theme.palette.primary.main,
-//   border: `5px solid ${Theme.palette.success.main}`,
-//   boxShadow: Theme.shadows[14],
-//   ['min-width:900px']: {
-//     fontSize: '17px',
-//     textAlign: 'center',
-//   },
-// };
 
 const Home = () => (
   <>

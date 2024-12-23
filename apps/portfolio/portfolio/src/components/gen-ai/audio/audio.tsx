@@ -1,5 +1,6 @@
 import type { MRC } from '@aklapper/media-recorder';
-import { Text, topLevelModeStyle } from '@aklapper/react-shared';
+import { Text, useScrollIntoView } from '@aklapper/react-shared';
+import { topLevelModeStyle } from '../../../styles/gen-ai-styles';
 import type { PromptRequest } from '@aklapper/vertex-ai';
 import HearingIcon from '@mui/icons-material/Hearing';
 import MicNoneIcon from '@mui/icons-material/MicNone';
@@ -13,7 +14,6 @@ import { useContext, useEffect, useRef, useState, type JSX, type RefObject } fro
 import { useOutletContext } from 'react-router-dom';
 import { MediaRecorderClientContext } from '../../../contexts/audio-context';
 import { WebSocketContext } from '../../../contexts/websocket-context';
-import useScrollIntoView from '../../../hooks/use-scroll-into-view';
 import type { OutletContextProps } from '../../../pages/gen-ai/gen-ai';
 import { flexColumnStyles } from '../../../styles/prompt-builder-styles';
 import { audioText } from '../static/audio-text';

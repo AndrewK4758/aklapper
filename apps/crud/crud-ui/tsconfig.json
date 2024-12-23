@@ -32,15 +32,6 @@
       "path": "../../../libs/utils"
     },
     {
-      "path": "../../../libs/types/types-ai"
-    },
-    {
-      "path": "../../../libs/gen-ai/vertex-ai"
-    },
-    {
-      "path": "../../../libs/types/types-api"
-    },
-    {
       "path": "../../../libs/types/types-game"
     },
     {

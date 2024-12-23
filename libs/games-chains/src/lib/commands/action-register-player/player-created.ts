@@ -2,7 +2,7 @@ import { CommandBuilder } from '@aklapper/chain';
 import { deRefContextObject, getCurrentMinute } from '@aklapper/utils';
 import { Context, GameContextKeys, GamePlayerValidation, PlayerID } from '@aklapper/types-game';
 
-export const playerCreated = CommandBuilder.build((context: Context) => {
+export const playerCreated = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.NEXT) && context.getString(GameContextKeys.NEXT) === 'player-created') {
     const { game, req, resp } = deRefContextObject(context);
 
@@ -15,7 +15,7 @@ export const playerCreated = CommandBuilder.build((context: Context) => {
     resp.setHeader('current-game', JSON.stringify(__current_game__));
 
     context.put(GameContextKeys.OUTPUT, {
-      message: 'Player Created',
+      message: 'Player Created'
     });
     return true;
   } else return false;

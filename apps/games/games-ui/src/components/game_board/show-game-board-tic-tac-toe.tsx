@@ -1,8 +1,9 @@
-import { GameBoardMapTicTacToe, GamesTheme as Theme } from '@aklapper/react-components';
+import { GamesTheme as Theme } from '../../styles/games-theme';
+import type { GameBoard } from '@aklapper/types-game';
 import { SxProps } from '@mui/material';
 import Box from '@mui/material/Box';
 import { Fragment, type Dispatch, type JSX, type SetStateAction } from 'react';
-import type { GameBoard } from '@aklapper/types-game';
+import GameBoardMapTicTacToe from './game-boards/game-board-tic-tac-toe';
 
 const breakpointsGameBoardBox: SxProps = {
   border: `5px solid ${Theme.palette.success.main}`,

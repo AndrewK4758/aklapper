@@ -14,7 +14,7 @@
   },
 
   "vitest.logLevel": "verbose",
-  "playwright.showTrace": true,
+  "playwright.showTrace": false,
 
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "[javascript]": {

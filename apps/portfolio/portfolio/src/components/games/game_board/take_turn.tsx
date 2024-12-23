@@ -3,7 +3,7 @@ import Button from '@mui/material/Button';
 import axios from 'axios';
 import { Dispatch, type JSX } from 'react';
 import { Socket } from 'socket.io-client';
-import { breakpointsTakeTurnButton } from '@aklapper/react-shared';
+import { breakpointsTakeTurnButton } from '../../../styles/games-styles';
 import getGameInstanceInfo from '../../../utils/utils';
 import { Action, ActionType } from './socket-reducer';
 

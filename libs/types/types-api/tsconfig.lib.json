@@ -4,16 +4,11 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "out-tsc",
+    "rootDir": "./src",
+    "declarationDir": "../../../dist/libs/types/types-api/src",
     "declaration": true,
     "types": ["node", "vite/client"]
   },
-  "include": ["src/**/*.ts", "../../chain/src/**/*.ts", "../types-game/src/**/*.ts"],
-  "references": [
-    {
-      "path": "../../chain/tsconfig.lib.json"
-    },
-    {
-      "path": "../types-game/tsconfig.lib.json"
-    }
-  ]
+  "include": ["src/**/*.ts"],
+  "references": []
 }

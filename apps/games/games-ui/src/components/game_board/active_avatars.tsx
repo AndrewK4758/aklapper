@@ -1,10 +1,11 @@
 import { Player } from '@aklapper/games-components';
-import { PlayersInGame, GamesTheme as Theme } from '@aklapper/react-components';
 import { RenderList, Text } from '@aklapper/react-shared';
 import { IRegisterFormValues } from '@aklapper/types-game';
 import { Box, SxProps } from '@mui/material';
 import Container from '@mui/material/Container';
 import { Fragment } from 'react/jsx-runtime';
+import { PlayersInGame } from '../players-in-game/players-in-game';
+import { GamesTheme as Theme } from '../../styles/games-theme';
 
 const breakpointsActiveGameTitleContainer: SxProps = {
   flex: '0 1 80%',

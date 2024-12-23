@@ -1,4 +1,4 @@
-import { GamesTheme as Theme } from '@aklapper/react-components';
+import { GamesTheme as Theme } from './styles/games-theme';
 import { ThemeProvider } from '@emotion/react';
 import CssBaseline from '@mui/material/CssBaseline';
 import { StrictMode } from 'react';

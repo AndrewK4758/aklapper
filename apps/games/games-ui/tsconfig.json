@@ -3,10 +3,16 @@
   "include": [],
   "references": [
     {
+      "path": "../../../libs/types/types-api"
+    },
+    {
       "path": "../../../libs/mocks"
     },
     {
       "path": "../../../libs/game"
+    },
+    {
+      "path": "../../../libs/games-components"
     },
     {
       "path": "../../../libs/games/chutes-and-ladders"
@@ -21,22 +27,10 @@
       "path": "../../../libs/utils"
     },
     {
-      "path": "../../../libs/types/types-ai"
-    },
-    {
-      "path": "../../../libs/gen-ai/vertex-ai"
+      "path": "../../../libs/types/types-game"
     },
     {
       "path": "../../../libs/react-shared"
-    },
-    {
-      "path": "../../../libs/games-components"
-    },
-    {
-      "path": "../../../libs/types/types-api"
-    },
-    {
-      "path": "../../../libs/types/types-game"
     },
     {
       "path": "./tsconfig.app.json"

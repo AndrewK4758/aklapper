@@ -9,11 +9,11 @@ export default defineConfig({
   root: __dirname,
   cacheDir: '../../../node_modules/.vite/libs/games/tic-tac-toe',
   plugins: [
-    nxViteTsPaths({ debug: true, mainFields: ['exports', '.', 'types', 'imports'] }),
+    nxViteTsPaths({ debug: true }),
     nxCopyAssetsPlugin(['*.md']),
     dts({
       entryRoot: 'src',
-      outDir: '../../../dist/libs/tic-tac-toe/src',
+      outDir: '../../../dist/libs/games/tic-tac-toe/src',
       tsconfigPath: path.join(__dirname, 'tsconfig.lib.json')
     })
   ],
@@ -24,7 +24,7 @@ export default defineConfig({
   // Configuration for building your library.
   // See: https://vitejs.dev/guide/build.html#library-mode
   build: {
-    outDir: '../../../dist/libs/tic-tac-toe',
+    outDir: '../../../dist/libs/games/tic-tac-toe',
     emptyOutDir: true,
     reportCompressedSize: true,
     commonjsOptions: {

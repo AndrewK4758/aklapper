@@ -4,6 +4,9 @@
   "include": [],
   "references": [
     {
+      "path": "../../../libs/types/types-api"
+    },
+    {
       "path": "../../../libs/socket-io/server"
     },
     {

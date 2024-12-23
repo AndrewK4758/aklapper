@@ -1,6 +1,6 @@
 {
-  "name": "@aklapper/local-model",
-  "version": "0.0.1",
+  "name": "local-model",
+  "type": "module",
   "private": true,
   "nx": {
     "name": "local-model",

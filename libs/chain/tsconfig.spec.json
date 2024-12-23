@@ -8,8 +8,8 @@
   },
   "include": [
     "jest.config.ts",
-    "src/**/*.test.ts",
-    "src/**/*.spec.ts",
+    "tests/**/*.test.ts",
+    "tests/**/*.spec.ts",
     "src/**/*.d.ts",
     "src/**/*.ts",
     "../types/types-game/src/**/*.ts"

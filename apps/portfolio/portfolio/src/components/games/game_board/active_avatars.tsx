@@ -1,18 +1,51 @@
 import { Player } from '@aklapper/games-components';
-import {
-  PlayersInGame,
-  activeGameHeaderBoxStyles,
-  breakpointsActiveGameTitleContainer,
-  breakpointsActiveGameTitleText,
-  breakpointsPlayersBox,
-  breakpointsPlayersInGameBox,
-  breakpointsPlayersInGameText
-} from '@aklapper/react-shared';
+import PlayersInGame from '../players-in-game/players-in-game';
 import { RenderList, Text } from '@aklapper/react-shared';
 import { IRegisterFormValues } from '@aklapper/types-game';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
+import type { SxProps } from '@mui/material/styles';
+import Theme from '../../../styles/theme';
 
+const breakpointsActiveGameTitleContainer: SxProps = {
+  flex: '0 1 80%',
+  [Theme.breakpoints.down('md')]: {
+    flex: '1 0 60%'
+  }
+};
+
+const breakpointsActiveGameTitleText: SxProps = {
+  textAlign: 'start',
+  flex: '1 0 45%',
+  [Theme.breakpoints.down('md')]: {
+    flex: '1 0 100%',
+    fontSize: '1.5rem',
+    textAlign: 'center'
+  }
+};
+
+const breakpointsPlayersInGameBox: SxProps = {
+  flex: '1 0 55%',
+  display: 'flex',
+  flexWrap: 'wrap',
+  flexDirection: 'row',
+  height: '100%',
+  [Theme.breakpoints.down('md')]: {}
+};
+
+const breakpointsPlayersBox: SxProps = {
+  flex: '1 0 50%',
+  display: 'flex',
+  flexDirection: 'row',
+  [Theme.breakpoints.down('md')]: {}
+};
+
+const breakpointsPlayersInGameText: SxProps = {
+  flex: '0 1 auto',
+  [Theme.breakpoints.down('md')]: {
+    fontSize: '1rem'
+  }
+};
 /**
  *
  * @param e Player
@@ -50,7 +83,12 @@ export default function ActiveAvatars({ avatarsInGame, winner }: ActiveAvatarsPr
   return (
     <Container component={'section'} maxWidth={false} sx={breakpointsActiveGameTitleContainer}>
       {!winner ? (
-        <Box component={'section'} key={'active-game-header'} id={'active-game-header'} sx={activeGameHeaderBoxStyles}>
+        <Box
+          component={'section'}
+          key={'active-game-header'}
+          id={'active-game-header'}
+          sx={{ display: 'flex', justifyContent: 'center' }}
+        >
           <Box
             component={'section'}
             key={'active-game-header-text-box'}
@@ -65,7 +103,11 @@ export default function ActiveAvatars({ avatarsInGame, winner }: ActiveAvatarsPr
             />
           </Box>
           <Box component={'section'} sx={breakpointsPlayersInGameBox}>
-            <RenderList data={avatarsInGame} listMapCallback={playersInGameMap} sx={activeGameHeaderBoxStyles} />
+            <RenderList
+              data={avatarsInGame}
+              listMapCallback={playersInGameMap}
+              sx={{ display: 'flex', justifyContent: 'center' }}
+            />
           </Box>
         </Box>
       ) : (

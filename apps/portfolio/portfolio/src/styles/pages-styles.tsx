@@ -23,7 +23,7 @@ export const pagesTitlesBoxStyles: SxProps = {
   paddingY: 2
 };
 
-export const pagesToolbarStyles: SxProps = { display: 'flex', justifyContent: 'space-evenly', flex: '1 0 100%' };
+export const pagesToolbarStyles: SxProps = { display: 'flex', justifyContent: 'space-evenly', flex: '0 1 100%' };
 
 export const pagesButtonStyles: SxProps = { fontSize: '2rem', color: Theme.palette.text.secondary };
 
@@ -63,8 +63,7 @@ export const headerModalButtonStyles: SxProps = {
 };
 
 export const pagesTitleSx: SxProps = {
-  width: 'fit-content',
-  maxWidth: '80%',
+  // fontSize: '15rem',
   textAlign: 'center',
   flex: '1 0 100%'
 };

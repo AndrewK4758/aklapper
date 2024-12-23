@@ -3,6 +3,7 @@
   "compilerOptions": {
     "outDir": "out-tsc",
     "module": "commonjs",
+    "tsBuildInfoFile": "tsconfig.spec.tsbuildinfo",
     "moduleResolution": "node10",
     "types": ["jest", "node"]
   },
@@ -18,6 +19,15 @@
     "../../../libs/types/**/*/src/**/*.d.ts",
     "../../../libs/types/**/*/src/**/*.ts",
     "../../../libs/game/src/**/*.ts",
-    "../../../libs/models/game-instance/src/**/*.ts"
+    "../../../libs/models/game-instance/src/**/*.ts",
+    "../../../libs/utils/src/**/*.ts",
+    "../../../libs/socket-io/server/src/**/*.ts",
+    "../../../libs/prisma/src/**/*.ts",
+    "../../../libs/password/src/**/*.ts",
+    "../../../libs/models/rule/src/**/*.ts",
+    "../../../libs/chain/src/**/*.ts",
+    "../../../libs/models/all-games-map/src/**/*.ts",
+    "../../../libs/mocks/src/**/*.ts",
+    "../../../libs/games-components/src/**/*.ts"
   ]
 }

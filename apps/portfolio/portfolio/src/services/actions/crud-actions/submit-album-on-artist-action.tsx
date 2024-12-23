@@ -24,7 +24,7 @@ const handleSubmitNewAlbum = async (
     );
     console.log(resp.data);
 
-    if (resp.data.newAlbum) {
+    if (resp.data.newAlbum && apiRef.current) {
       const { title, album_id, artist_id } = resp.data.newAlbum;
       apiRef.current.updateRows([{ album_id: album_id, title: title, artist_id: artist_id }]);
     }

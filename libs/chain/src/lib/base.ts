@@ -1,54 +1,54 @@
-import type { Context, Command, Chain } from '@aklapper/types-game';
+import type { Context, Command, Chain, GameContextKeys, GameContextState } from '@aklapper/types-game';
 
-class BaseContext implements Context {
-  state: Map<string, unknown>;
+class BaseContext<T extends GameContextKeys | string> implements Context<T> {
+  state: Map<T, GameContextState[T]>;
   constructor() {
-    this.state = new Map<string, unknown>();
+    this.state = new Map<T, GameContextState[T]>();
   }
-  put(key: string, value: unknown) {
+  put<K extends T>(key: K, value: GameContextState[K]): void {
     this.state.set(key, value);
   }
-  get(key: string): unknown {
+  get<K extends T>(key: K): GameContextState[K] | unknown {
     return this.state.get(key);
   }
-  getString(key: string): string {
+  getString<K extends T>(key: K): string {
     return this.get(key) as string;
   }
-  getNumber(key: string): number {
+  getNumber<K extends T>(key: K): number {
     return this.get(key) as number;
   }
 }
 
 export class ContextBuilder {
-  static build(): Context {
-    return new BaseContext() as Context;
+  static build<T extends GameContextKeys | string>(): Context<T> {
+    return new BaseContext() as Context<T>;
   }
 }
 
 class BaseCommand implements Command {
-  executor: (context: Context) => boolean;
-  constructor(executor: (context: Context) => boolean) {
+  executor: <T extends GameContextKeys | string>(context: Context<T>) => boolean;
+  constructor(executor: <T extends GameContextKeys | string>(context: Context<T>) => boolean) {
     this.executor = executor;
   }
-  execute(context: Context): boolean {
+  execute<T extends GameContextKeys | string>(context: Context<T>): boolean {
     return this.executor(context);
   }
 }
 
 export class CommandBuilder {
-  static build(executor: (context: Context) => boolean): Command {
+  static build(executor: (context: Context<GameContextKeys | string>) => boolean): Command {
     return new BaseCommand(executor) as Command;
   }
 }
 
 class BaseChain implements Chain {
-  commands: Array<Command>;
+  commands: Command[];
   continueOnError: boolean;
-  constructor(commands: Array<Command>, continueOnError: boolean) {
+  constructor(commands: Command[], continueOnError: boolean) {
     this.commands = commands.slice();
     this.continueOnError = continueOnError;
   }
-  execute(context: Context) {
+  execute(context: Context<GameContextKeys | string>) {
     for (const command of this.commands) {
       const ans = command.execute(context);
       if (!this.continueOnError && !ans) {
@@ -57,7 +57,7 @@ class BaseChain implements Chain {
     }
     return true;
   }
-  getCommands(): Array<Command> {
+  getCommands(): Command[] {
     return this.commands;
   }
 }

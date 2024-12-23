@@ -34,7 +34,7 @@ export type ContextData = {
   io: Server;
 };
 
-export const enum GameContextKeys {
+export enum GameContextKeys {
   GAME = 'GAME',
   REQUEST = 'REQUEST',
   RESPONSE = 'RESPONSE',

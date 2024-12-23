@@ -1,4 +1,4 @@
-import { Text } from '@aklapper/react-shared';
+import { Text, useScrollIntoView } from '@aklapper/react-shared';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -9,7 +9,6 @@ import { useRef, useState, type Dispatch, type JSX, type SetStateAction } from '
 import { Outlet, useNavigation, useSubmit, type SubmitFunction } from 'react-router-dom';
 import ChutesAndLaddersIcon from '../../components/icons/chutes-and-ladders';
 import TicTacToeIcon from '../../components/icons/tic-tac-toe-icon';
-import useScrollIntoView from '../../hooks/use-scroll-into-view';
 import {
   pagesButtonStyles,
   pagesOutletStyles,
@@ -38,21 +37,22 @@ const Games = (): JSX.Element => {
   return (
     <Box ref={divRef} component={'div'} key={'games-wrapper'} id="games-wrapper" sx={pagesWrapperStyles}>
       <Paper
-        elevation={24}
+        elevation={2}
         component={'div'}
         key={'games-header-wrapper'}
         id="games-header-wrapper"
         sx={{ width: '60vw' }}
       >
         <Box component={'section'} key={'games-title-wrapper'} id="games-title-wrapper" sx={pagesTitlesBoxStyles}>
-          <Text component={'h3'} titleVariant="h3" titleText={title} sx={pagesTitleSx} />
+          <Text component={'h2'} titleVariant="h2" titleText={title} sx={pagesTitleSx} />
         </Box>
         <AppBar
           component={'div'}
           id="games-navbar-wrapper"
           key={'games-navbar-wrapper'}
-          elevation={24}
+          elevation={0}
           position="static"
+          sx={{ width: '95%', justifySelf: 'center' }}
         >
           <Toolbar component={'nav'} id="games-navbar" key={'games-navbar'} sx={pagesToolbarStyles}>
             <Button

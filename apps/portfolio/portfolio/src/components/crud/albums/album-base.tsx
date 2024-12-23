@@ -1,4 +1,4 @@
-import { Text } from '@aklapper/react-shared';
+import { Text, useScrollIntoView } from '@aklapper/react-shared';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import DetailsIcon from '@mui/icons-material/Details';
 import UploadIcon from '@mui/icons-material/Upload';
@@ -11,7 +11,6 @@ import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { album } from '@prisma/client';
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import { Outlet, useLoaderData, useNavigate } from 'react-router-dom';
-import useScrollIntoView from '../../../hooks/use-scroll-into-view';
 import handleDeleteAlbum from '../../../services/events/crud-events/handle-delete-album';
 import handleUpdateAlbumTitle from '../../../services/events/crud-events/handle-update-album-title';
 import loadAlbums from '../../../services/loaders/crud-loaders/load-albums';
@@ -20,7 +19,7 @@ import AddAlbum from './add-album';
 
 const paginationModelInit = {
   pageSize: 25,
-  page: 0,
+  page: 0
 };
 
 /**
@@ -45,14 +44,14 @@ const Album = (): JSX.Element => {
     () => ({
       cursor: paginationModel.page === 0 ? 1 : paginationModel.pageSize * paginationModel.page,
       pageSize: paginationModel.pageSize,
-      skip: paginationModel.page === 0 ? 0 : 1,
+      skip: paginationModel.page === 0 ? 0 : 1
     }),
-    [paginationModel],
+    [paginationModel]
   );
 
   const fetchAlbums = useCallback(
     async (pageSize: number, skip: number, cursor: number) => await loadAlbums(pageSize, skip, cursor),
-    [],
+    []
   );
 
   useScrollIntoView(divRef);
@@ -68,20 +67,20 @@ const Album = (): JSX.Element => {
       field: 'album_id',
       headerName: 'Album ID',
       type: 'number',
-      flex: 1,
+      flex: 1
     },
     {
       field: 'title',
       headerName: 'Title',
       type: 'string',
       flex: 3,
-      editable: true,
+      editable: true
     },
     {
       field: 'artist_id',
       headerName: 'Artist ID',
       type: 'number',
-      flex: 1,
+      flex: 1
     },
     {
       field: 'update-delete',
@@ -106,9 +105,9 @@ const Album = (): JSX.Element => {
             onClick={() => {
               handleDeleteAlbum(params.row, apiRef);
             }}
-          />,
+          />
         ];
-      },
+      }
     },
     {
       field: 'details',
@@ -122,10 +121,10 @@ const Album = (): JSX.Element => {
             title="Tracks"
             icon={<DetailsIcon />}
             onClick={() => nav(`${params.row.album_id}/tracks`)}
-          />,
+          />
         ];
-      },
-    },
+      }
+    }
   ];
 
   const getID = (row: album) => row.album_id;
@@ -148,7 +147,7 @@ const Album = (): JSX.Element => {
           flexWrap: 'wrap',
           flex: matchesSize ? '1 0 100%' : '1 0 50%',
           border: '3px solid purple',
-          borderRadius: 1,
+          borderRadius: 1
         }}
       >
         <Container key={'albums-title-wrapper'} component={'section'} id="album-title-wrapper" sx={{ paddingY: 2 }}>
@@ -165,7 +164,7 @@ const Album = (): JSX.Element => {
               titleVariant={'h3'}
               id="albums-title"
               sx={{
-                textAlign: 'center',
+                textAlign: 'center'
               }}
             />
           </Paper>

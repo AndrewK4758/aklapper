@@ -3,9 +3,12 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "outDir": "dist/out-tsc",
+    "outDir": "out-tsc",
+    "rootDir": "./src",
+    "declarationDir": "../../../dist/libs/types/types-ai/src",
     "declaration": true,
     "types": ["node", "vite/client"]
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "references": []
 }

@@ -1,7 +1,7 @@
 import { Socket } from 'socket.io';
 import { GameInstanceID, GamePlayerValidation } from '@aklapper/types-game';
 import { allGamesMap } from './all-games-map';
-import type { SocketMiddleware, SocketMiddlewareNext } from '@aklapper/types-ai';
+import type { SocketMiddleware, SocketMiddlewareNext } from '@aklapper/types-api';
 
 const addGameToSocketInstance: SocketMiddleware = (socket: Socket, next: SocketMiddlewareNext) => {
   if (socket.handshake.headers['current-game']) {

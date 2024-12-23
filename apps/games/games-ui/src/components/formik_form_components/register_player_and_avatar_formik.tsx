@@ -1,14 +1,15 @@
-import { SelectMenu, FormikTextInput, GamesTheme as Theme } from '@aklapper/react-components';
+import { FormikTextInput, SelectMenu } from '@aklapper/react-shared';
+import { IRegisterUserClient } from '@aklapper/types-api';
 import { AvatarTotem, Color, ILoadRegisterData } from '@aklapper/types-game';
 import { SxProps } from '@mui/material';
-import MenuItem from '@mui/material/MenuItem';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
+import MenuItem from '@mui/material/MenuItem';
 import { Form, Formik } from 'formik';
 import { CSSProperties } from 'react';
 import { useParams, useRouteLoaderData, useSubmit } from 'react-router-dom';
 import * as Yup from 'yup';
-import { IRegisterUserClient } from '@aklapper/types-api';
+import { GamesTheme as Theme } from '../../styles/games-theme';
 
 //AFTER API WORK ON AUTO SELECTING THE PLAYER NAME TO BE THE NAME OF THE REGISTERED USER
 
@@ -134,6 +135,7 @@ export default function RegisterPlayerAndAvatarForm() {
               label="Player Name"
               textSx={breakpointsRegisterPlayerTextInput}
               labelSx={breakpointsRegisterPlayerLabel}
+              Theme={Theme}
             />
           )}
           <SelectMenu
@@ -143,6 +145,7 @@ export default function RegisterPlayerAndAvatarForm() {
             mapCallback={avatarListMap}
             labelSx={breakpointsRegisterPlayerLabel}
             selectSx={breakpointsRegisterPlayerSelectInput}
+            Theme={Theme}
           />
           <SelectMenu
             name="avatarColor"
@@ -151,6 +154,7 @@ export default function RegisterPlayerAndAvatarForm() {
             mapCallback={avatarColorMap}
             labelSx={breakpointsRegisterPlayerLabel}
             selectSx={breakpointsRegisterPlayerSelectInput}
+            Theme={Theme}
           />
         </Container>
         <Button type="submit" variant="outlined" sx={breakpointsRegisterPlayerButton}>

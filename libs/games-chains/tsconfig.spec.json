@@ -1,8 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../dist/out-tsc",
+    "outDir": "out-tsc",
     "module": "commonjs",
+    "tsBuildInfoFile": "tsconfig.spec.tsbuildinfo",
     "moduleResolution": "node10",
     "types": ["jest", "node"]
   },
@@ -13,6 +14,13 @@
     "src/**/*.d.ts",
     "src/**/*.ts",
     "../games/tic-tac-toe/src/**/*.ts",
-    "../mocks/src/**/*.ts"
+    "../mocks/src/**/*.ts",
+    "../games-components/src/**/*.ts",
+    "../types/types-game/src/**/*.ts",
+    "../games/**/*/src/**/*.ts",
+    "../game/src/**/*.ts",
+    "../models/game-instance/src/**/*.ts",
+    "../utils/src/**/*.ts",
+    "../chain/src/**/*.ts"
   ]
 }

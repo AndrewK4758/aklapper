@@ -1,4 +1,4 @@
-import type { SocketCallback } from '@aklapper/types-ai';
+import type { SocketCallback } from '@aklapper/types-api';
 import { generateTextContent } from '@aklapper/vertex-ai';
 import { type Socket } from 'socket.io';
 

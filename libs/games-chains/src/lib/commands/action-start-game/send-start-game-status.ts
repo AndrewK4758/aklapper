@@ -2,7 +2,7 @@ import { CommandBuilder } from '@aklapper/chain';
 import { deRefContextObject } from '@aklapper/utils';
 import { Context, GameContextKeys, GameInstanceID } from '@aklapper/types-game';
 
-export const sendStartGameStatus = CommandBuilder.build((context: Context) => {
+export const sendStartGameStatus = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.NEXT) && context.getString(GameContextKeys.NEXT) === 'send-start-game-status') {
     const { game, req, resp } = deRefContextObject(context);
 

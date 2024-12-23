@@ -12,7 +12,7 @@ import { playerCreated } from '../src/lib/commands/action-register-player/player
 import { registerOnGameInstance } from '../src/lib/commands/action-register-player/register-on-game-instance';
 import { registerAction } from '../src/lib/commands/action-register-player/register-player-start';
 
-let ctx: Context, game: InstanceOfGame, req: Partial<Request>, resp: Partial<Response>;
+let ctx: Context<GameContextKeys | string>, game: InstanceOfGame, req: Partial<Request>, resp: Partial<Response>;
 
 describe('test register chain', () => {
   beforeEach(() => {
@@ -23,8 +23,8 @@ describe('test register chain', () => {
     req = mockReqObj();
     resp = mockRespObj();
 
-    ctx.put(GameContextKeys.REQUEST, req);
-    ctx.put(GameContextKeys.RESPONSE, resp);
+    ctx.put(GameContextKeys.REQUEST, req as Request);
+    ctx.put(GameContextKeys.RESPONSE, resp as Response);
     ctx.put(GameContextKeys.ACTION, 'register');
     ctx.put(GameContextKeys.NEXT, '');
     ctx.put(GameContextKeys.GAME, game);

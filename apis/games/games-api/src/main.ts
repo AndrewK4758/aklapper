@@ -22,17 +22,24 @@ const __dirname =
 const app: Express = express();
 
 export const corsOptions: CorsOptions = {
-  origin: ['https://andrew-k.us', 'https://www.andrew-k.us', 'http://localhost:4700'],
+  origin: [
+    'https://andrew-k.us',
+    'https://www.andrew-k.us',
+    'http://localhost:4700',
+    'ws://localhost:4700',
+    'http://localhost:3200',
+    'ws://localhost:3200'
+  ],
   methods: '*',
   exposedHeaders: '*',
   optionsSuccessStatus: 204,
   allowedHeaders: '*',
-  credentials: false,
+  credentials: false
 };
 
 const serverOptions: Partial<ServerOptions> = {
   cleanupEmptyChildNamespaces: true,
-  cors: corsOptions,
+  cors: corsOptions
 };
 
 const httpServer = createServer(app);

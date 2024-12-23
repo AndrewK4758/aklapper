@@ -7,11 +7,10 @@ import GameDetails from '../pages/game_details';
 import GamesList from '../pages/games_list';
 import Home from '../pages/home-page';
 import RegisterPlayerAndAvatarOnGame from '../pages/register_player_and_avatar_on_game';
-import registerGameInstanceOnServerAction from '../services/action_functions/register_game_on_server_action';
-import registerPlayerAndAvatarAction from '../services/action_functions/register_player_avatar_action';
-import vertexSubmitAction from '../services/action_functions/vertex-submit-action';
-import loadGameList from '../services/loader_functions/load_game_list';
-import loadPlayerAvatarRegisterFilterData from '../services/loader_functions/load_register_player_avatar_data_and_filter';
+import registerGameInstanceOnServerAction from '../services/games/action_functions/register_game_on_server_action';
+import registerPlayerAndAvatarAction from '../services/games/action_functions/register_player_avatar_action';
+import loadGameList from '../services/games/loader_functions/load_game_list';
+import loadPlayerAvatarRegisterFilterData from '../services/games/loader_functions/load_register_player_avatar_data_and_filter';
 
 const router = createBrowserRouter([
   {
@@ -20,8 +19,7 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        Component: Home,
-        action: vertexSubmitAction,
+        Component: Home
       },
       {
         path: 'games',
@@ -30,7 +28,7 @@ const router = createBrowserRouter([
         children: [
           {
             index: true,
-            Component: GamesList,
+            Component: GamesList
           },
           {
             path: ':id',
@@ -39,28 +37,28 @@ const router = createBrowserRouter([
             children: [
               {
                 index: true,
-                Component: GameDetails,
+                Component: GameDetails
               },
               {
                 path: 'register',
                 loader: loadPlayerAvatarRegisterFilterData,
                 Component: RegisterPlayerAndAvatarOnGame,
                 id: 'registerData',
-                errorElement: <NoGameError />,
+                errorElement: <NoGameError />
               },
               {
                 path: 'play',
                 action: registerPlayerAndAvatarAction,
                 Component: ActiveGameSession,
                 id: 'gameBoard',
-                errorElement: <NotEnoughPlayersError />,
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
+                errorElement: <NotEnoughPlayersError />
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
 ]);
 
 const App = () => (

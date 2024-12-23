@@ -1,4 +1,5 @@
-import { Label, labelSx, tooltipSx, topLevelModeStyle } from '@aklapper/react-shared';
+import { Label } from '@aklapper/react-shared';
+import { labelSx, tooltipSx, topLevelModeStyle } from '../../../styles/gen-ai-modes-styles';
 import { setSocketListeners } from '@aklapper/socket-io-client';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';

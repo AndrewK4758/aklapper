@@ -2,9 +2,9 @@ import { ContextBuilder } from '@aklapper/chain';
 import { ChutesAndLadders } from '@aklapper/chutes-and-ladders';
 import { Game } from '@aklapper/game';
 import { InstanceOfGame } from '@aklapper/game-instance';
-import { getCurrentMinute } from '@aklapper/utils';
-import { Color, Context, GameContextKeys, TurnStatus } from '@aklapper/types-game';
 import { mockReqObj, mockRespObj } from '@aklapper/mocks';
+import { Color, Context, GameContextKeys, TurnStatus, type IInstanceOfGame } from '@aklapper/types-game';
+import { getCurrentMinute } from '@aklapper/utils';
 import { Request, Response } from 'express';
 import { sendStartGameStatus } from '../src/lib/commands/action-start-game/send-start-game-status';
 import { setAvatarOnStartChutesAndLadders } from '../src/lib/commands/action-start-game/set-on-start-chutes-and-ladders';
@@ -12,16 +12,16 @@ import { setPlayerInTurn } from '../src/lib/commands/action-start-game/set-playe
 import { startGame } from '../src/lib/commands/action-start-game/start-game-start';
 import { verifyReadyToPlay } from '../src/lib/commands/action-start-game/verify-ready-to-play';
 
-let ctx: Context,
+let ctx: Context<GameContextKeys | string>,
   instanceOfGame: InstanceOfGame,
   game: Game,
   instance: ChutesAndLadders,
   req: Partial<Request>,
   resp: Partial<Response>;
 
-describe('execute all steps of starting a game', () => {
+describe('Test start game chain', () => {
   beforeAll(() => {
-    ctx = ContextBuilder.build();
+    ctx = ContextBuilder.build<GameContextKeys | string>();
 
     instance = new ChutesAndLadders(5, 5);
     game = new Game(instance);
@@ -33,37 +33,36 @@ describe('execute all steps of starting a game', () => {
     req = mockReqObj();
     resp = mockRespObj();
 
-    ctx.put(GameContextKeys.ACTION, 'start');
-    ctx.put(GameContextKeys.REQUEST, req);
-    ctx.put(GameContextKeys.RESPONSE, resp);
-    ctx.put(GameContextKeys.GAME, instanceOfGame);
+    ctx.put(GameContextKeys.ACTION, 'something-else');
+    ctx.put(GameContextKeys.REQUEST, req as Request);
+    ctx.put(GameContextKeys.RESPONSE, resp as Response);
+    ctx.put(GameContextKeys.GAME, instanceOfGame as IInstanceOfGame);
   });
 
   afterAll(() => {
     ctx.state.clear();
   });
 
-  it('should verify the context action is start and send to next-handler', () => {
+  it('should fail', () => {
     const commandResult = startGame.execute(ctx);
 
-    expect(commandResult).toBeTruthy();
-    expect(ctx.getString(GameContextKeys.NEXT)).toEqual('verify-ready-to-play');
+    expect(commandResult).toEqual(false);
   });
 
-  it('should fail', () => {
-    ctx.put(GameContextKeys.ACTION, 'something-else');
-
+  it('Should verify the context action and add correct next-handler', () => {
+    ctx.put(GameContextKeys.ACTION, 'start');
     const commandResult = startGame.execute(ctx);
 
-    expect(commandResult).toBeFalsy();
+    expect(commandResult).toEqual(true);
+    expect(ctx.getString(GameContextKeys.NEXT)).toEqual('verify-ready-to-play');
   });
 
   it('should verify the game is ready to play', () => {
     ctx.put(GameContextKeys.NEXT, 'verify-ready-to-play');
     const commandResult = verifyReadyToPlay.execute(ctx);
+    expect(commandResult).toEqual(true);
 
-    expect(commandResult).toBeTruthy();
-    expect(ctx.get('ready-to-play')).toBeTruthy();
+    expect(ctx.get('ready-to-play')).toEqual(true);
     expect(game.playersArray.length).toEqual(2);
   });
 
@@ -74,7 +73,7 @@ describe('execute all steps of starting a game', () => {
 
     const commandResult = verifyReadyToPlay.execute(ctx);
 
-    expect(commandResult).toBeFalsy();
+    expect(commandResult).toEqual(false);
     expect(ctx.get(GameContextKeys.OUTPUT)).toEqual(output);
   });
 
@@ -91,6 +90,7 @@ describe('execute all steps of starting a game', () => {
       expect(p.order).toBeTruthy();
     });
   });
+
   it('should fail', () => {
     ctx.put(GameContextKeys.NEXT, 'set-avatars-on-start');
     ctx.put('ready-to-play', false);

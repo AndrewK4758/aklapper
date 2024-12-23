@@ -2,17 +2,16 @@ import { ContextBuilder } from '@aklapper/chain';
 import { ChutesAndLadders, TOTAL_SPACES } from '@aklapper/chutes-and-ladders';
 import { Game } from '@aklapper/game';
 import { InstanceOfGame } from '@aklapper/game-instance';
-import { Context, Color, GameContextKeys, IRegisterFormValues } from '@aklapper/types-game';
-import { getCurrentMinute } from '@aklapper/utils';
 import { mockReqObj, mockRespObj } from '@aklapper/mocks';
+import { Color, Context, GameContextKeys, IPlayersAndBoard, IRegisterFormValues } from '@aklapper/types-game';
+import { getCurrentMinute } from '@aklapper/utils';
 import { Request, Response } from 'express';
-import { IPlayersAndBoard } from '../src/lib/completed-chains/active-game-display-chain';
 import { activeDataToSend } from '../src/lib/commands/action-board/active-game-data-to-send';
 import { boardStart } from '../src/lib/commands/action-board/board-start';
 import { checkIfWinner } from '../src/lib/commands/action-board/check-if-winner';
 import { readyToPlayCheck } from '../src/lib/commands/action-board/ready-to-play';
 
-let ctx: Context, game: InstanceOfGame, req: Partial<Request>, resp: Partial<Response>;
+let ctx: Context<GameContextKeys | string>, game: InstanceOfGame, req: Partial<Request>, resp: Partial<Response>;
 
 describe('test display board and active player chain', () => {
   beforeEach(() => {
@@ -26,8 +25,8 @@ describe('test display board and active player chain', () => {
     game.instance.register('player2', 'p-2-id', 'PREDATOR', Color.BLACK);
 
     ctx.put(GameContextKeys.ACTION, 'board');
-    ctx.put(GameContextKeys.REQUEST, req);
-    ctx.put(GameContextKeys.RESPONSE, resp);
+    ctx.put(GameContextKeys.REQUEST, req as Request);
+    ctx.put(GameContextKeys.RESPONSE, resp as Response);
     ctx.put(GameContextKeys.GAME, game);
   });
   it('should return all players registered in the game instance', () => {
@@ -62,13 +61,13 @@ describe('test display board and active player chain', () => {
       {
         playerName: game.instance.playersArray[0].name,
         avatarName: game.instance.playersArray[0].avatar.name,
-        avatarColor: game.instance.playersArray[0].avatar.color,
+        avatarColor: game.instance.playersArray[0].avatar.color
       },
       {
         playerName: game.instance.playersArray[1].name,
         avatarName: game.instance.playersArray[1].avatar.name,
-        avatarColor: game.instance.playersArray[1].avatar.color,
-      },
+        avatarColor: game.instance.playersArray[1].avatar.color
+      }
     ];
 
     ctx.put('active-players-in-game', activePlayersInGame);

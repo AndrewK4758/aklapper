@@ -4,14 +4,16 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "out-tsc",
+    "rootDir": "./src",
+    "declarationDir": "../../../dist/libs/socket-io/server/src",
     "declaration": true,
     "types": ["node", "vite/client"]
   },
   "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
-  "include": ["src/**/*.ts", "../../types/types-ai/src/**/*.ts"],
+  "include": ["src/**/*.ts", "../../types/types-api/src/**/*.ts"],
   "references": [
     {
-      "path": "../../types/types-ai/tsconfig.lib.json"
+      "path": "../../types/types-api/tsconfig.lib.json"
     }
   ]
 }

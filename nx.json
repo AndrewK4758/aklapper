@@ -1,7 +1,6 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "workspaceLayout": {
-    "appsDir": "apps",
     "libsDir": "libs"
   },
   "namedInputs": {
@@ -24,6 +23,7 @@
       "plugin": "@nx/js/typescript",
       "options": {
         "typecheck": {
+          "dependsOn": ["^build"],
           "targetName": "typecheck"
         },
         "build": {
@@ -53,7 +53,8 @@
     {
       "plugin": "@nx/playwright/plugin",
       "options": {
-        "targetName": "e2e"
+        "targetName": "e2e",
+        "ciTargetName": "e2e-ci"
       }
     },
     {
@@ -65,7 +66,11 @@
         "apis/crud/crud-api-e2e/**/*",
         "apis/games/games-api-e2e/**/*",
         "apis/portfolio/portfolio-api-e2e/**/*",
-        "apis/vertex/vertex-api-e2e/**/*"
+        "apis/vertex/vertex-api-e2e/**/*",
+        "apps/portfolio/portfolio-e2e/**/*",
+        "apps/games/games-ui-e2e/**/*",
+        "apps/crud/crud-ui-e2e/**/*",
+        "apps/local-model/local-model-e2e/**/*"
       ]
     },
     {

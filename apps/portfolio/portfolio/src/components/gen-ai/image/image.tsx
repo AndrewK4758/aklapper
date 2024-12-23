@@ -1,9 +1,9 @@
-import { topLevelModeStyle } from '@aklapper/react-shared';
+import { useScrollIntoView } from '@aklapper/react-shared';
+import { topLevelModeStyle } from '../../../styles/gen-ai-styles';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import { lazy, useRef, type JSX } from 'react';
-import useScrollIntoView from '../../../hooks/use-scroll-into-view';
 
 const ImageForm = lazy(() => import('./image-form'));
 

@@ -3,7 +3,7 @@ import { deRefContextObject } from '@aklapper/utils';
 import { Player } from '@aklapper/games-components';
 import { Context, GameContextKeys, TurnStatus } from '@aklapper/types-game';
 
-export const setGamePiece = CommandBuilder.build((context: Context) => {
+export const setGamePiece = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.NEXT) && context.getString(GameContextKeys.NEXT) === 'set-game-piece') {
     const { req, game } = deRefContextObject(context);
     const { position } = req.body;

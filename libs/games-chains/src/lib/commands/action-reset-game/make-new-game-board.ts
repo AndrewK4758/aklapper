@@ -2,7 +2,7 @@ import { CommandBuilder } from '@aklapper/chain';
 import { deRefContextObject } from '@aklapper/utils';
 import { Context, GameContextKeys, ISpace } from '@aklapper/types-game';
 
-export const makeNewGameBoard = CommandBuilder.build((context: Context) => {
+export const makeNewGameBoard = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.NEXT) && context.getString(GameContextKeys.NEXT) === 'make-game-board') {
     const { game } = deRefContextObject(context);
 

@@ -2,8 +2,11 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "module": "ESNext",
-    "outDir": "dist/out-tsc",
+    "moduleResolution": "bundler",
+    "outDir": "./out-tsc",
+    "rootDir": "./src",
     "declaration": true,
+    "declarationDir": "../../../dist/libs/games/chutes-and-ladders/src",
     "types": ["node", "vite/client"]
   },
   "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],

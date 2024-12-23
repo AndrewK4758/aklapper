@@ -18,8 +18,8 @@ import { useFormik } from 'formik';
 import { FocusEvent, Fragment, useState } from 'react';
 import { Form, useNavigate } from 'react-router-dom';
 import * as Yup from 'yup';
-import handleSubmitNewEntry, { NewEntryReturn } from '../../services/actions/submit.new-entry-action.tsx';
-import handleNewArtistBlur from '../../services/events/handle-validate-artist-on-blur.tsx';
+import handleSubmitNewEntry, { NewEntryReturn } from '../../services/actions/submit.new-entry-action';
+import handleNewArtistBlur from '../../services/events/handle-validate-artist-on-blur';
 
 const AddEntryStyle: SxProps = {
   position: 'absolute',
@@ -33,17 +33,17 @@ const AddEntryStyle: SxProps = {
   bgcolor: 'background.paper',
   border: '10px solid purple',
   boxShadow: 24,
-  p: 4,
+  p: 4
 };
 
 const steps = ['Artist', 'Album', 'Track'];
 
 const initialValues: NewEntry = {
   artist: {
-    name: '',
+    name: ''
   },
   album: {
-    title: '',
+    title: ''
   },
   track: {
     name: '',
@@ -52,16 +52,16 @@ const initialValues: NewEntry = {
     milliseconds: 0,
     media_type_id: 0,
     genre_id: 0,
-    unit_price: new Prisma.Decimal(0.0),
-  },
+    unit_price: new Prisma.Decimal(0.0)
+  }
 };
 
 const artistVal = Yup.object({
-  name: Yup.string().max(200, 'Must be less than 200 characters').required('Required'),
+  name: Yup.string().max(200, 'Must be less than 200 characters').required('Required')
 });
 
 const albumVal = Yup.object({
-  title: Yup.string().max(160, 'Must be less than 160 characters').required('Required'),
+  title: Yup.string().max(160, 'Must be less than 160 characters').required('Required')
 });
 
 const trackVal = Yup.object({
@@ -78,13 +78,13 @@ const trackVal = Yup.object({
     .required('Enter length of track in milliseconds'),
   media_type_id: Yup.number().required('Enter media type number').positive('Enter media type number'),
   genre_id: Yup.number().required('Enter genre ID number').positive('Enter genre ID number'),
-  unit_price: Yup.number().required('Enter unit price in form 0.00').positive('Enter unit price in form 0.00'),
+  unit_price: Yup.number().required('Enter unit price in form 0.00').positive('Enter unit price in form 0.00')
 });
 
 const validationSchema = Yup.object({
   artist: artistVal,
   album: albumVal,
-  track: trackVal,
+  track: trackVal
 });
 
 export type NewEntry = {
@@ -115,12 +115,12 @@ const AddEntry = () => {
       console.log(newEntry);
       const ids: NewEntryIDs = {
         artistID: newEntry.artist_id,
-        albumID: newEntry.album[0].album_id,
+        albumID: newEntry.album[0].album_id
       };
 
       setOpen(!open);
       nav(`/home`, { state: { ids }, replace: true });
-    },
+    }
   });
 
   formik.handleBlur = (e: FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>) => {
@@ -169,7 +169,7 @@ const AddEntry = () => {
   const handleComplete = () => {
     setCompleted({
       ...completed,
-      [activeStep]: true,
+      [activeStep]: true
     });
     handleNext();
   };

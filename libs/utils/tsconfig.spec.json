@@ -18,6 +18,7 @@
     "../mocks/src/**/*.ts",
     "../models/game-instance/src/**/*.ts",
     "../types/types-game/src/**/*.ts",
-    "../games-components/src/**/*.ts"
+    "../games-components/src/**/*.ts",
+    "../types/types-game/src/**/*.d.ts"
   ]
 }

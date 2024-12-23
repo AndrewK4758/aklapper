@@ -1,10 +1,18 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "out-tsc",
+    "outDir": "./out-tsc",
+    "tsBuildInfoFile": "tsconfig.spec.tsbuildinfo",
     "module": "commonjs",
     "moduleResolution": "node10",
     "types": ["jest", "node"]
   },
-  "include": ["jest.config.ts", "tests/**/*.test.ts", "tests/**/*.spec.ts", "src/**/*.ts", "src/**/*.d.ts"]
+  "include": [
+    "jest.config.ts",
+    "tests/**/*.test.ts",
+    "tests/**/*.spec.ts",
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "../../../libs/prisma/src/**/*.ts"
+  ]
 }

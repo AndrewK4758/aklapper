@@ -3,7 +3,9 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "outDir": "out-tsc",
+    "outDir": "./out-tsc",
+    "rootDir": "./src",
+    "declarationDir": "../../../dist/libs/types/types-game/src",
     "declaration": true,
     "types": ["node", "vite/client"]
   },

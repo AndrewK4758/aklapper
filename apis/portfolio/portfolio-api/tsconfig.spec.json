@@ -1,7 +1,8 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../../dist/apis/portfolio-api/tests/out-tsc",
+    "outDir": "./out-tsc",
+    "tsBuildInfoFile": "tsconfig.spec.tsbuildinfo",
     "module": "commonjs",
     "moduleResolution": "node10",
     "types": ["jest", "node"]

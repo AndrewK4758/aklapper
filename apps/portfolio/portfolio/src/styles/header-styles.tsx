@@ -10,7 +10,10 @@ export const socialMediaLinksWrapper: SxProps = {
   height: '8vh'
 };
 
+export const navbarToolbarSxProps: SxProps = { display: 'flex', flexDirection: 'row', height: '100%' };
+
 export const buttonSXProps: SxProps = {
+  flex: 1,
   fontSize: '1.5rem'
 };
 
@@ -40,7 +43,7 @@ export const iconSxProps: SxProps = {
 
 export const drawerPaperProps: PaperProps = { sx: { height: '92vh', top: '8vh' } };
 
-export const connectButtonSxProps: SxProps = {
+export const contactButtonSxProps: SxProps = {
   height: '100%',
   width: '100%',
   p: 0,
@@ -49,7 +52,7 @@ export const connectButtonSxProps: SxProps = {
   }
 };
 
-export const connectTooltipSxProps: SxProps = { fontSize: '1rem' };
+export const contactTooltipSxProps: SxProps = { fontSize: '1rem' };
 
 export const iconSize: SxProps = { width: '100%', height: 'auto' };
 

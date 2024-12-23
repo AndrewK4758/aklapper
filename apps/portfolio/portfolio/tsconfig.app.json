@@ -1,13 +1,15 @@
 {
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "out-tsc",
-    "tsBuildInfoFile": "../../../dist/apps/portfolio/tsconfig.lib.tsbuildinfo",
-    "jsx": "react-jsx",
-    "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
-    "rootDir": "src",
     "module": "esnext",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "outDir": "out-tsc",
+    "rootDir": "./src",
+    "declaration": true,
+    "declarationDir": "../../../dist/apps/portfolio/src",
+    "tsBuildInfoFile": "tsconfig.app.tsbuildinfo",
+    "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
+    "jsx": "react-jsx"
   },
   "exclude": [
     "tests/**/*.spec.ts",
@@ -38,65 +40,49 @@
     "../../../libs/utils/src/**/*.ts",
     "../../../libs/types/types-ai/src/**/*.ts",
     "../../../libs/gen-ai/vertex-ai/src/**/*.ts",
-    "../../../libs/types/types-api/src/**/*.ts",
     "../../../libs/types/types-game/src/**/*.ts",
-    "../../../libs/react-shared/src/**/*.ts",
-    "tests/connect.spec.tsx",
-    "tests/connect-icon.spec.tsx"
+    "../../../libs/react-shared/src/**/*.ts"
   ],
   "references": [
     {
       "path": "../../../libs/gen-ai/prompt-builder/tsconfig.lib.json"
     },
-
     {
       "path": "../../../libs/media-recorder/tsconfig.lib.json"
     },
-
-    {
-      "path": "../../../libs/socket-io/client/tsconfig.lib.json"
-    },
-
-    {
-      "path": "../../../libs/mocks/tsconfig.lib.json"
-    },
-
-    {
-      "path": "../../../libs/game/tsconfig.lib.json"
-    },
-
-    {
-      "path": "../../../libs/games-components/tsconfig.lib.json"
-    },
-
-    {
-      "path": "../../../libs/games/chutes-and-ladders/tsconfig.lib.json"
-    },
-
-    {
-      "path": "../../../libs/models/game-instance/tsconfig.lib.json"
-    },
-
-    {
-      "path": "../../../libs/chain/tsconfig.lib.json"
-    },
-
-    {
-      "path": "../../../libs/utils/tsconfig.lib.json"
-    },
-
-    {
-      "path": "../../../libs/types/types-ai/tsconfig.lib.json"
-    },
-
-    {
-      "path": "../../../libs/gen-ai/vertex-ai/tsconfig.lib.json"
-    },
-
     {
       "path": "../../../libs/types/types-api/tsconfig.lib.json"
     },
-
+    {
+      "path": "../../../libs/socket-io/client/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/types/types-ai/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/gen-ai/vertex-ai/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/mocks/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/game/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/games-components/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/games/chutes-and-ladders/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/models/game-instance/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/chain/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/utils/tsconfig.lib.json"
+    },
     {
       "path": "../../../libs/types/types-game/tsconfig.lib.json"
     },

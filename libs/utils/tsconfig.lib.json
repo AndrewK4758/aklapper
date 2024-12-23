@@ -4,6 +4,8 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "out-tsc",
+    "rootDir": "./src",
+    "declarationDir": "../../dist/libs/utils/src",
     "declaration": true,
     "types": ["node", "vite/client"]
   },

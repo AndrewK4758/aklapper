@@ -2,7 +2,7 @@ import { CommandBuilder } from '@aklapper/chain';
 import { deRefContextObject } from '@aklapper/utils';
 import { Context, GameContextKeys, IPlayer, IRegisterFormValues } from '@aklapper/types-game';
 
-export const boardStart = CommandBuilder.build((context: Context) => {
+export const boardStart = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (
     context.get(GameContextKeys.ACTION) &&
     context.getString(GameContextKeys.ACTION) === 'board' &&
@@ -14,7 +14,7 @@ export const boardStart = CommandBuilder.build((context: Context) => {
       return {
         playerName: p.name,
         avatarName: p.avatar.name,
-        avatarColor: p.avatar.color,
+        avatarColor: p.avatar.color
       };
     });
     context.put('active-players-in-game', activePlayersArray);

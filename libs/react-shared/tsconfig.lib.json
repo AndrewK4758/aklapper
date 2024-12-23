@@ -4,6 +4,9 @@
     "outDir": "out-tsc",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "rootDir": "./src",
+    "declarationDir": "../../dist/libs/react-shared/src",
+    "declaration": true,
     "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"]
   },
   "exclude": [
@@ -33,13 +36,12 @@
     "src/**/*.jsx",
     "src/**/*.ts",
     "src/**/*.tsx",
-    "../gen-ai/vertex-ai/src/**/*.ts",
-    "../types/**/*/src/**/*.ts",
-    "../types/**/*/src/**/*.d.ts",
+    "../types/types-game/src/**/*.ts",
+    "../types/types-game/src/**/*.d.ts",
     "../utils/src/**/*.ts",
     "../game/src/**/*.ts",
     "../games-components/src/**/*.ts",
-    "../games/**/*/src/**/*.ts",
+    "../games/chutes-and-ladders/src/**/*.ts",
     "../models/game-instance/src/**/*.ts",
     "../chain/src/**/*.ts"
   ],
@@ -64,15 +66,6 @@
     },
     {
       "path": "../utils/tsconfig.lib.json"
-    },
-    {
-      "path": "../types/types-ai/tsconfig.lib.json"
-    },
-    {
-      "path": "../gen-ai/vertex-ai/tsconfig.lib.json"
-    },
-    {
-      "path": "../types/types-api/tsconfig.lib.json"
     },
     {
       "path": "../types/types-game/tsconfig.lib.json"

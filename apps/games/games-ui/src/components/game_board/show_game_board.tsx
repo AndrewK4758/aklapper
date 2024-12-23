@@ -1,8 +1,9 @@
-import { GameBoardMap, GamesTheme as Theme } from '@aklapper/react-components';
 import { RenderList } from '@aklapper/react-shared';
 import { GameBoard, ILiteSpace } from '@aklapper/types-game';
 import { SxProps } from '@mui/material';
 import Box from '@mui/material/Box';
+import { GamesTheme as Theme } from '../../styles/games-theme';
+import GameBoardMap from './game-boards/game-board';
 
 const breakpointsGameBoardBox: SxProps = {
   border: `5px solid ${Theme.palette.success.main}`,

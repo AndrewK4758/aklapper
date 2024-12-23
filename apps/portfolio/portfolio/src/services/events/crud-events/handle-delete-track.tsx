@@ -14,7 +14,7 @@ const handleDeleteTrack = async (values: track, apiRef: RefObject<GridApiCommuni
     });
 
     console.log(resp.data);
-    if (resp.data.deletedTrack) {
+    if (resp.data.deletedTrack && apiRef.current) {
       const { track_id } = resp.data.deletedTrack;
       apiRef.current.updateRows([{ track_id: track_id, _action: 'delete' }]);
     }

@@ -2,6 +2,8 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
+import dts from 'vite-plugin-dts';
+import path from 'path';
 
 export default defineConfig({
   root: __dirname,
@@ -14,7 +16,17 @@ export default defineConfig({
     port: 4800,
     host: 'localhost'
   },
-  plugins: [react({ babel: { targets: { esmodules: true } } }), nxViteTsPaths(), nxCopyAssetsPlugin(['**/*/.md'])],
+  plugins: [
+    react({ babel: { targets: { esmodules: true } } }),
+    dts({
+      entryRoot: 'src',
+      outDir: '../../../dist/apps/portfolio/src',
+      tsconfigPath: path.join(__dirname, 'tsconfig.app.json')
+    }),
+    nxViteTsPaths({ debug: true }),
+    nxCopyAssetsPlugin(['**/*/.md'])
+  ],
+
   // Uncomment this if you are using workers.
   // worker: {
   //  plugins: [ nxViteTsPaths() ],
@@ -41,6 +53,15 @@ export default defineConfig({
         }
       }
     },
+    target: 'esnext'
+  },
+
+  esbuild: {
+    jsx: 'automatic',
+    format: 'esm',
+    color: true,
+    platform: 'browser',
+    sourcemap: true,
     target: 'esnext'
   },
 

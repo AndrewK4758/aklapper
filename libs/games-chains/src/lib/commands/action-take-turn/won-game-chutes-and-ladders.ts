@@ -3,7 +3,7 @@ import { deRefContextObject } from '@aklapper/utils';
 import { Player } from '@aklapper/games-components';
 import { Context, GameContextKeys } from '@aklapper/types-game';
 
-export const wonGameCheckChutesAndLadders = CommandBuilder.build((context: Context) => {
+export const wonGameCheckChutesAndLadders = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.NEXT) && context.getString(GameContextKeys.NEXT) === 'won-game') {
     const { game } = deRefContextObject(context);
 

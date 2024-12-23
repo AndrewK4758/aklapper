@@ -4,6 +4,9 @@
     "outDir": "out-tsc",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "rootDir": "./src",
+    "declaration": true,
+    "declarationDir": "../../../dist/apis/crud-api/src",
     "types": ["node"]
   },
   "include": ["src/**/*.ts", "../../../libs/prisma/src/**/*.ts"],

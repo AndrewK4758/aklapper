@@ -1,7 +1,6 @@
 import { rowFinder } from '@aklapper/games-components';
-import { GamesTheme as Theme } from '@aklapper/react-shared';
 import { Text } from '@aklapper/react-shared';
-import type { GameBoard, IPlayersAndBoard, IActivePlayersInGame, ILiteSpace, Row } from '@aklapper/types-game';
+import type { GameBoard, IActivePlayersInGame, ILiteSpace, IPlayersAndBoard, Row } from '@aklapper/types-game';
 import { SxProps } from '@mui/material';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
@@ -16,8 +15,9 @@ import ShowGameBoard from '../components/game_board/show_game_board';
 import socketReducer, { ActionType } from '../components/game_board/socket-reducer';
 import TakeTurnTicTacToe from '../components/game_board/take-turn-tic-tac-toe';
 import TakeTurn from '../components/game_board/take_turn';
-import getGameInstanceInfo from '../services/utils/utils';
-import ClientSocket from '../services/utils/web-socket/socket-instance';
+import { GamesTheme as Theme } from '../styles/games-theme';
+import getGameInstanceInfo from '../utils/utils';
+import ClientSocket from '../utils/web-socket/socket-instance';
 
 const breakpointsBottomMenuGameBoard: SxProps = {
   marginTop: '2rem',
