@@ -16,6 +16,7 @@ dist
 venv
 .venv
 .pytest_cache
+rag-data
 
 # IDEs and editors
 /.idea
@@ -28,60 +29,34 @@ venv
 
 # IDE - VSCode
 .vscode/*
-!.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+.tool-versions
 
 # misc
 /.sass-cache
 /connect.lock
 /coverage
+.coverage
 /libpeerconnection.log
 npm-debug.log
 yarn-error.log
 testem.log
 /typings
+reports/*
+coverage/*
 
 # System Files
 .DS_Store
 Thumbs.db
-vite.config.mts.timestamp-*
 .nx/cache
 .nx/workspace-data/*
 .cache/*
+vite.config.*.timestamp*
+vitest.config.*.timestamp*
 
 # env
-./env/*
-.env.*
-.env/*
+.env
 env/
-
-/secrets/
-secrets/
-/secrets
 secrets
-
-tokens
-/tokens
-tokens/
-/tokens/
-./tokens/*
-
-rag-data/*
-/rag-data/*
-rag-data/
-/rag-data/
-
-*/wdg-agents/data_store/*
-
-.nx/workspace-data/d/daemon.log
-.nx/workspace-data/file-map.json
-
-.tool-versions
-
-
-
-vite.config.*.timestamp*
-
-vitest.config.*.timestamp*

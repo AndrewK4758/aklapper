@@ -34,7 +34,7 @@ export const reaper = (instanceTimeMap: IInstanceTimeMap) => {
       const dayOldGames = instanceTimeMap.Map.get(minuteAhead);
       const dayOldGamesDB = await getInstanceTimeMapValue(minuteAhead);
       (dayOldGamesDB as instance_time_map).games_in_minute.forEach(
-        async game => await updateInstanceTimeMap(2000, game),
+        async (game: string) => await updateInstanceTimeMap(2000, game)
       );
       (instanceTimeMap.Map.get(2000) as GamesInMinute).push(...(dayOldGames as GamesInMinute));
       await updateInstanceTimeMap(minuteAhead, '');
