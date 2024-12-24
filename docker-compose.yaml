@@ -2,7 +2,7 @@ services:
   postgres-apis-test:
     image: games-api-db-test
     ports:
-      - '5432:5432'
+      - '5431:5432'
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
