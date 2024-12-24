@@ -62,7 +62,13 @@ jobs:
 
       # Lint Test & Build all projects
       - name: Lint Test Build all projects
+        env:
+          DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
+          GCS_BUCKET: ${{ secrets.GCS_BUCKET }}
+          GCS_SERVICE_ACCT_SECRET: ${{ secrets.GCS_SERVICE_ACCT_SECRET }}
+
         run: pnpx nx run-many -t=lint,test,build
+
       # # Lint all projects
       # - name: Lint all projects
       #   run: pnpm exec nx affecred -t=lint
