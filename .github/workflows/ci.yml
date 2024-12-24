@@ -34,12 +34,12 @@ jobs:
       # Start Cloud SQL Proxy
       - name: Start Cloud SQL Proxy
         run: |
-          ./cloud_sql_proxy -instances=games-424800:us-central1:games=tcp:5432 &
+          ./cloud_sql_proxy -instances=games-424800:us-central1:games
 
       # Connect to Cloud SQL Proxy instance
       - name: Connect to Cloud SQL
         run: |
-          psql -h localhost -p 5432 -U aklapper@games-424800.iam games -w
+          psql -h localhost -p 5432 -U aklapper@games-424800.iam games
 
       - uses: pnpm/action-setup@v4
         with:
