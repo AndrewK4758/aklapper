@@ -3,12 +3,6 @@ import express, { Express } from 'express';
 import { createServer } from 'http';
 import { join } from 'path';
 import Routes, { router } from './routes/routes';
-import { cwd } from 'process';
-
-const __dirname =
-  process.env.NODE_ENV === 'production'
-    ? `${cwd()}/apis/data-api/data-api/dist`
-    : `${cwd()}/apis/data-api/data-api/src`;
 
 const app: Express = express();
 
@@ -18,7 +12,7 @@ export const corsOptions: CorsOptions = {
   exposedHeaders: '*',
   optionsSuccessStatus: 204,
   allowedHeaders: '*',
-  credentials: false,
+  credentials: false
 };
 
 export const httpServer = createServer(app);

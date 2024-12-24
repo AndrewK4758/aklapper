@@ -3,15 +3,9 @@ import cors, { CorsOptions } from 'cors';
 import express, { Express } from 'express';
 import { createServer } from 'http';
 import { join } from 'path';
-import { cwd } from 'process';
 import type { ServerOptions } from 'socket.io';
 import handleTextDataChunks from './controllers/gen-ai-text-handler';
 import router, { Routes } from './routes/routes';
-
-const __dirname =
-  process.env.NODE_ENV === 'production'
-    ? `${cwd()}/apis/portfolio-api/portfolio-api/dist`
-    : `${cwd()}/apis/portfolio-api/portfolio-api/src`;
 
 const app: Express = express();
 
@@ -21,7 +15,7 @@ export const corsOptions: CorsOptions = {
   exposedHeaders: '*',
   optionsSuccessStatus: 204,
   allowedHeaders: '*',
-  credentials: false,
+  credentials: false
 };
 
 export const httpServer = createServer(app);
@@ -34,7 +28,7 @@ app.use('/api/v1', router);
 
 const serverOptions: Partial<ServerOptions> = {
   cleanupEmptyChildNamespaces: true,
-  cors: corsOptions,
+  cors: corsOptions
 };
 
 export const socketServer = new SocketServer(httpServer, serverOptions, [handleTextDataChunks]);

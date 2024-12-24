@@ -1,0 +1,14 @@
+services:
+  postgres-apis-test:
+    image: games-api-db-test
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./apis/games/games-api/init.sql:/docker-entrypoint-initb.d/init.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U testuser -d mytestdb']
+      interval: 10s
+      timeout: 5s
+      retries: 5

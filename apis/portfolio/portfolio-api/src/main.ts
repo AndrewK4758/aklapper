@@ -2,18 +2,12 @@ import cors, { CorsOptions } from 'cors';
 import express, { Express } from 'express';
 import { join } from 'path';
 import router, { PortfolioRoutes } from './routes/routes';
-import { cwd } from 'process';
-
-const __dirname =
-  process.env.NODE_ENV === 'production'
-    ? `${cwd()}/apis/portfolio-api/portfolio-api/dist`
-    : `${cwd()}/apis/portfolio-api/portfolio-api/src`;
 
 const app: Express = express();
 
 export const corsOptions: CorsOptions = {
   origin: ['https://www.andrew-k.us', 'https://andrew-k.us', 'http://localhost:4700'],
-  credentials: true,
+  credentials: true
 };
 
 app.use('*', cors(corsOptions));

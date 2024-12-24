@@ -7,12 +7,6 @@ import { ServerOptions } from 'socket.io';
 import socketBoardAction from './events/socket-board-action';
 import addGameToSocketInstance from './middleware/socket-add-game-middleware';
 import router, { GameRoutes } from './routes/routes';
-import { cwd } from 'process';
-
-const __dirname =
-  process.env.NODE_ENV === 'production'
-    ? `${cwd()}/apis/games-api/games-api/dist`
-    : `${cwd()}/apis/games-api/games-api/src`;
 
 /**
  * Add cleanup service to take games in users active_game col and compare last active to current minute and if

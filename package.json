@@ -11,7 +11,9 @@
     "lint": "pnpx nx run-many -t=lint --exclude=games-ui,data-ui,local-model,wdg-agents,data-api-e2e,games-api-e2e,vertex-api-e2e,portfolio-api-e2e,react-shared,react-shared,portfolio",
     "build": "npx nx run-many -t=build --parallel=1 --exclude=games-ui,data-ui,local-model,wdg-agents,data-api-e2e,games-api-e2e,vertex-api-e2e,portfolio-api-e2e,react-shared,react-shared,portfolio",
     "test": "pnpx nx run-many -t=test --exclude=games-ui,data-ui,local-model,wdg-agents,data-api-e2e,games-api-e2e,vertex-api-e2e,portfolio-api-e2e,react-shared,react-shared,portfolio",
-    "generate": "pnpx nx run prisma:generate",
+    "generate:dev": "NODE_ENV=development pnpx nx run prisma:generate",
+    "generate:prod": "NODE_ENV=production pnpx nx run prisma:generate",
+    "generate:test": "NODE_ENV=testing pnpx nx run prisma:generate",
     "docker games-api": "pnpx nx run games-api:docker-build"
   },
   "keywords": [

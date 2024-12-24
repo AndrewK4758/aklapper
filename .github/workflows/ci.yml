@@ -1,4 +1,4 @@
-name: CI
+name: My Portfolio CI
 
 on:
   push:
@@ -37,7 +37,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - uses: nrwl/nx-set-shas@v4
 
-      - run: pnpm generate
+      # Create prisma client for unit tests
+      - name: Generate Prisma Client
+        run: pnpm generate
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
@@ -46,7 +48,28 @@ jobs:
           virtualenvs-in-project: true
           installer-parallel: true
 
-      # Prepend any command with "nx-cloud record --" to record its logs to Nx Cloud
-      # - run: pnpm exec nx-cloud record -- echo Hello World
-      # Nx Affected runs only tasks affected by the changes in this PR/commit. Learn more: https://nx.dev/ci/features/affected
-      - run: pnpm exec nx affected -t lint test build
+      # Build PostgreSQL Database Image for games-api & crud-api Unit Tests
+      - name: Build PostgreSQL Test Database Image
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        run: pnpx nx docker-build-db-test games-api --build-arg POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD}}
+
+      # Start PostgreSQL Test Database Image
+      - name: Start PostgreSQL Test Database Container
+        run: pnpx nx docker-start-db games-api
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+
+      # Lint all projects
+      - name: Lint all projects
+        run: pnpm exec nx affecred -t lint
+
+      # Test all projects
+      - name: Test all projects
+        run: pnpm exec nx affecred -test
+
+        #Build all projects
+      - name: Build all Projects
+        env:
+          NODE_ENV: 'testing'
+        run: pnpm exec nx affected -t build
