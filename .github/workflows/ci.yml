@@ -25,9 +25,21 @@ jobs:
           credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           service_account: aklapper@games-424800.iam.gserviceaccount.com
 
+      # Install Cloud SQL Proxy
+      - name: Install Cloud SQL Proxy
+        run: |
+          wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy
+          chmod +x cloud_sql_proxy
+
+      # Start Cloud SQL Proxy
+      - name: Start Cloud SQL Proxy
+        run: |
+          ./cloud_sql_proxy -instances=games-424800:us-central1:games=tcp:5432 &
+
+      # Connect to Cloud SQL Proxy instance
       - name: Connect to Cloud SQL
         run: |
-          gcloud beta sql connect games --user=aklapper@games-424800.iam --quiet
+          psql -h localhost -p 5432 -U aklapper@games-424800.iam games
 
       - uses: pnpm/action-setup@v4
         with:
