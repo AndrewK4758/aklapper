@@ -19,7 +19,7 @@ COPY ../../../libs/prisma ./
 RUN pnpx prisma generate
 
 # Copy the entire project to the container
-COPY apis/games-api/games-api/dist .
+COPY dist/apis/games-api .
 
 # Expose port 3000 (or the port your app uses)
 EXPOSE 3000
