@@ -19,11 +19,11 @@ jobs:
           fetch-depth: 0
 
       - name: Authenticate to Google Cloud
-        id: auth
-        uses: google-github-actions/auth@v0
+        uses: google-github-actions/auth@v2
         with:
           project_id: games-424800
-          credentials_json: '${{ secrets.GCP_SERVICE_ACCOUNT }}'
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          service_account: aklapper@games-424800.iam.gserviceaccount.com
 
       - name: Connect to Cloud SQL
         run: |
