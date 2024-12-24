@@ -62,7 +62,7 @@ jobs:
 
       # Lint Test & Build all projects
       - name: Lint Test Build all projects
-        run: pnpx nx run-many -t=lint,test,build --env=NODE_ENV=testing
+        run: NODE_ENV=testing pnpx nx run-many -t=lint,test,build NODE_ENV=testing
       # # Lint all projects
       # - name: Lint all projects
       #   run: pnpm exec nx affecred -t=lint
