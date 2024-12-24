@@ -1,19 +1,20 @@
 import { configDotenv } from 'dotenv';
+import { cwd } from 'process';
 
 configDotenv({ path: `${cwd()}/libs/prisma/.env` });
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { PrismaClient, Prisma } from '@prisma/client';
-import { cwd } from 'process';
-const url = () =>
-  process.env['NODE_ENV'] === 'production'
-    ? process.env['DB_URL_SSL']
-    : process.env['NODE_ENV'] === 'testing'
-      ? process.env['DB_URL_TEST']
-      : process.env['DB_URL_DEV'];
+// const url = () =>
+//   process.env['NODE_ENV'] === 'production'
+//     ? process.env['DB_URL_SSL']
+//     : process.env['NODE_ENV'] === 'testing'
+//       ? process.env['DB_URL_TEST']
+//       : process.env['DB_URL_DEV'];
 
-console.log(url());
+// console.log(url());
 const prismaClient = new PrismaClient({
-  datasourceUrl: process.env['DB_URL_SERVICE_ACCT']
+  datasourceUrl: process.env['DB_URL_TEST']
 });
 
 export const prisma = prismaClient.$extends({
