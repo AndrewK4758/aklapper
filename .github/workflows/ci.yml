@@ -102,14 +102,10 @@ jobs:
       - name: Test all projects
         env:
           DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
-          GCS_BUCKET: ${{ secrets.GCS_BUCKET }}
-          GCS_SERVICE_ACCT_SECRET: ${{ secrets.GCS_SERVICE_ACCT_SECRET }}
         run: pnpx nx affected -t test --exclude=crud-api
 
         #Build all projects
       - name: Build all Projects
         env:
           DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
-          GCS_BUCKET: ${{ secrets.GCS_BUCKET }}
-          GCS_SERVICE_ACCT_SECRET: ${{ secrets.GCS_SERVICE_ACCT_SECRET }}
         run: pnpx nx affected -t build

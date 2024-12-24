@@ -4,15 +4,9 @@ services:
     ports:
       - '5431:5432'
     volumes:
-      - ./apis/games/games-api/games-init.sql:/docker-entrypoint-initb.d/init.sql
+      - ./db-init.sql:/docker-entrypoint-initb.d/init.sql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U testuser -d mytestdb']
       interval: 10s
       timeout: 5s
       retries: 5
-    depends_on:
-      - cloudsql-proxy
-
-  cloudsql-proxy:
-    image: gcr.io/cloudsql-docker/gce-proxy:1.28
-    command: /cloud_sql_proxy -instances=games-424800:us-central1:games=tcp:5432
