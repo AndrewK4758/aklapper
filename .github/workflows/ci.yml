@@ -39,7 +39,7 @@ jobs:
       # Connect to Cloud SQL Proxy instance
       - name: Connect to Cloud SQL
         run: |
-          psql -h localhost -p 5432 -U aklapper@games-424800.iam games
+          psql -h localhost -p 5432 -U aklapper@games-424800.iam games -w
 
       - uses: pnpm/action-setup@v4
         with:
