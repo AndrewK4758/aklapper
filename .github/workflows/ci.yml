@@ -38,11 +38,11 @@ jobs:
 
       - name: Install and run Cloud SQL Proxy
         run: |
-          docker pull gcr.io/cloud-sql-connectors/cloud-sql-proxy:v2
+          docker pull gcr.io/cloud-sql-connectors/cloud-sql-proxy
           docker run -d --name=cloud-sql-proxy \
             -v /cloudsql:/cloudsql \
             -p 5432:5432 \
-            gcr.io/cloud-sql-connectors/cloud-sql-proxy:v2 \
+            gcr.io/cloud-sql-connectors/cloud-sql-proxy \
             -instances=your-project-id:your-region:your-instance-name=tcp:5432
           sleep 5
 
