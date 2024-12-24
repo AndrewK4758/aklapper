@@ -27,7 +27,7 @@ jobs:
 
       - name: Connect to Cloud SQL
         run: |
-          gcloud sql connect games --user=aklapper@games-424800.iam < /dev/null
+          gcloud sql connect games --user=aklapper@games-424800.iam --password=${{ secrets.POSTGRES_PASSWORD }}
 
       - uses: pnpm/action-setup@v4
         with:
