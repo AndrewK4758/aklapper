@@ -27,8 +27,7 @@ jobs:
 
       - name: Connect to Cloud SQL
         run: |
-          gcloud sql connect your-instance-name --user=your-db-user 
-          # Example: gcloud sql connect my-sql-instance --user=root
+          gcloud sql connect games --user=aklapper@games-424800.iam
 
       - uses: pnpm/action-setup@v4
         with:
