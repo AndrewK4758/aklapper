@@ -26,15 +26,25 @@ jobs:
           service_account: aklapper@games-424800.iam.gserviceaccount.com
 
       # Install Cloud SQL Proxy
-      - name: Install Cloud SQL Proxy
-        run: |
-          wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy
-          chmod +x cloud_sql_proxy
+      # - name: Install Cloud SQL Proxy
+      #   run: |
+      #     wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy
+      #     chmod +x cloud_sql_proxy
 
-      # Start Cloud SQL Proxy
-      - name: Start Cloud SQL Proxy
+      # # Start Cloud SQL Proxy
+      # - name: Start Cloud SQL Proxy
+      #   run: |
+      #     ./cloud_sql_proxy -instances=games-424800:us-central1:games
+
+      - name: Install and run Cloud SQL Proxy
         run: |
-          ./cloud_sql_proxy -instances=games-424800:us-central1:games
+          docker pull gcr.io/cloud-sql-connectors/cloud-sql-proxy:v2
+          docker run -d --name=cloud-sql-proxy \
+            -v /cloudsql:/cloudsql \
+            -p 5432:5432 \
+            gcr.io/cloud-sql-connectors/cloud-sql-proxy:v2 \
+            -instances=your-project-id:your-region:your-instance-name=tcp:5432
+          sleep 5
 
       # Connect to Cloud SQL Proxy instance
       - name: Connect to Cloud SQL
