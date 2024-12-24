@@ -9,4 +9,4 @@ ENV POSTGRES_PASSWORD=11560000
 ENV POSTGRES_DB=games
 
 # Copy any initialization SQL scripts to the container
-COPY apis/games/games-api/games-init.sql /docker-entrypoint-initdb.d/
+COPY db-init.sql /docker-entrypoint-initdb.d/
