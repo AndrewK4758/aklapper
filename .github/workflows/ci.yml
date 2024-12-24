@@ -39,7 +39,7 @@ jobs:
 
       # Create prisma client for unit tests
       - name: Generate Prisma Client
-        run: pnpm generate
+        run: pnpm generate:test
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
