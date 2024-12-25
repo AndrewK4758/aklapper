@@ -9,7 +9,7 @@ export default defineConfig({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/libs/chain',
   plugins: [
-    nxViteTsPaths({ debug: true, mainFields: ['exports', '.', 'types', 'import'] }),
+    nxViteTsPaths({ debug: true }),
     nxCopyAssetsPlugin(['*.md']),
     dts({
       logLevel: 'info',
@@ -46,7 +46,8 @@ export default defineConfig({
       external: [],
       output: {
         esModule: true,
-        format: 'esm'
+        format: 'esm',
+        sourcemap: true
       }
     }
   },
