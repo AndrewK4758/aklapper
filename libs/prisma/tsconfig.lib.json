@@ -3,7 +3,8 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "outDir": "./out-tsc",
+    "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
+    "outDir": "out-tsc",
     "rootDir": "./src",
     "declarationDir": "../../dist/libs/prisma/src",
     "declaration": true,
