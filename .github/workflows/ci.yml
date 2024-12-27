@@ -63,6 +63,14 @@ jobs:
       - name: Lint all projects
         run: pnpx nx affected -t lint
 
+      # Build Docker Container for API Unit Tests
+      - name: Build Docker Container
+        run: docker build -f ./Dockerfile.db.testing . -t ci-test
+
+      # Start Docker Container for API Unit Tests
+      - name: Start Docker Container
+        run: docker compose -f ./docker-compose.yaml up ci-test -d
+
       # Test all projects
       - name: Test all projects
         env:

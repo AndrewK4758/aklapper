@@ -13,9 +13,9 @@ const opts: DefaultEsmTransformOptions = {
 const config: Config = {
   displayName: 'crud-api',
   preset: '../../../jest.preset.js',
-  globalSetup: '<rootDir>/tests/support/global-setup.ts',
-  globalTeardown: '<rootDir>/tests/support/global-teardown.ts',
-  setupFiles: ['<rootDir>/tests/support/test-setup.ts'],
+  // globalSetup: '<rootDir>/tests/support/global-setup.ts',
+  // globalTeardown: '<rootDir>/tests/support/global-teardown.ts',
+  // setupFiles: ['<rootDir>/tests/support/test-setup.ts'],
   testEnvironment: 'node',
   transform: {
     '^.+\\.[tj]s$': ['ts-jest', opts]
