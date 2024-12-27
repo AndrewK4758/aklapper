@@ -66,10 +66,6 @@ jobs:
       - name: Lint all projects
         run: pnpx nx affected -t lint
 
-      #Typecheck all projects
-      - name: Typecheck all Projects
-        run: pnpx nx affected -t typecheck
-
       # Build Docker Container for API Unit Tests
       - name: Build Docker Container
         run: docker build -f ./Dockerfile.db.testing . -t ci-test
@@ -90,3 +86,7 @@ jobs:
         env:
           NODE_ENV: production
         run: pnpx nx affected -t build
+
+      #Typecheck all projects
+      - name: Typecheck all Projects
+        run: pnpx nx affected -t typecheck
