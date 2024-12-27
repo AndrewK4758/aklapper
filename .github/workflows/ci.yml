@@ -162,6 +162,10 @@ jobs:
         with:
           python-version: 3.12.8
 
+      # Create prisma client for build
+      - name: Generate Prisma Client
+        run: pnpm generate
+
       #Build all projects
       - name: Build all Projects
         env:
