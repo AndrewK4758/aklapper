@@ -3,6 +3,9 @@ import express, { Express } from 'express';
 import { createServer } from 'http';
 import { join } from 'path';
 import Routes, { router } from './routes/routes';
+import { cwd } from 'process';
+
+const __dirname = join(cwd(), 'apis/crud/crud-api');
 
 const app: Express = express();
 

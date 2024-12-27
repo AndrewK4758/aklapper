@@ -14,9 +14,10 @@
     "src/**/*.spec.js",
     "src/**/*.test.ts",
     "src/**/*.test.js",
-    "src/**/*.d.ts"
+    "src/**/*.d.ts",
+    "../../../eslint.config.js"
   ],
-  "exclude": ["dist", "eslint.config.cjs"],
+  "exclude": ["dist", "eslint.config.js"],
   "references": [
     {
       "path": "../../../libs/mocks"

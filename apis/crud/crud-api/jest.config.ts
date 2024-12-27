@@ -12,7 +12,7 @@ const opts: DefaultEsmTransformOptions = {
 
 const config: Config = {
   displayName: 'crud-api',
-  preset: '../../../jest.preset.js',
+  preset: '../../../jest.preset.cjs',
   testEnvironment: 'node',
   transform: {
     '^.+\\.[tj]s$': ['ts-jest', opts]

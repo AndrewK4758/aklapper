@@ -1,9 +1,14 @@
 import { render } from '@testing-library/react';
-import HomePage from '../src/pages/home-page';
+import Layout from '../src/pages/layout/layout';
+import { BrowserRouter } from 'react-router-dom';
 
 describe('HomePage', () => {
   it('Should Pass', () => {
-    const baseComponent = render(<HomePage />);
+    const baseComponent = render(
+      <BrowserRouter>
+        <Layout />
+      </BrowserRouter>
+    );
 
     expect(baseComponent).toBeTruthy();
   });

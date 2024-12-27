@@ -32,7 +32,6 @@
     "../../../libs/games/chutes-and-ladders/src/**/*.ts",
     "../../../libs/models/game-instance/src/**/*.ts",
     "../../../libs/chain/src/**/*.ts",
-    // "../../../libs/utils/src/**/*.ts",
     "../../../libs/types/types-game/src/**/*.ts",
     "../../../libs/react-shared/src/**/*.ts"
   ],
