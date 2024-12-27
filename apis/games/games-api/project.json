@@ -48,16 +48,6 @@
     },
     "docker-push": {
       "command": "docker push us-central1-docker.pkg.dev/games-424800/portfolio/games-api"
-    },
-    "docker-build-db-test": {
-      "command": "docker build -f apis/games/games-api/Dockerfile.db.testing . -t games-api-test"
-    },
-    "docker-start-db": {
-      "dependsOn": ["^docker-build-db-test"],
-      "command": "docker compose -f ./docker-compose.yaml up games-api-test -d"
-    },
-    "docker-stop-db": {
-      "command": "docker compose down"
     }
   }
 }

@@ -1,10 +1,10 @@
+import { Prisma, PrismaClient } from '@prisma/client';
 import { configDotenv } from 'dotenv';
 import { cwd } from 'process';
 
 configDotenv({ path: `${cwd()}/libs/prisma/.env` });
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { PrismaClient, Prisma } from '@prisma/client';
 const url = () => {
   if (process.env) {
     switch (process.env['NODE_ENV']) {

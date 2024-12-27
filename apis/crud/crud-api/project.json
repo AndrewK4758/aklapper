@@ -41,16 +41,6 @@
           "buildTarget": "crud-api:build:production"
         }
       }
-    },
-    "docker-build-db-test": {
-      "command": "docker build -f apis/crud/crud-api/Dockerfile.db.testing . -t crud-api-test"
-    },
-    "docker-start-db": {
-      "dependsOn": ["^docker-build-db-test"],
-      "command": "docker compose -f ./docker-compose.yaml up crud-api-test -d"
-    },
-    "docker-stop-db": {
-      "command": "docker compose down"
     }
   }
 }
