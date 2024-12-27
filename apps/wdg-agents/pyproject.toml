@@ -18,7 +18,8 @@ license = 'Proprietary'
 readme = 'README.md'
 
   [[tool.poetry.packages]]
-  include = "apps/wdg_agents"
+  include = "wdg_agents"
+  from = "apps"
 
   [tool.poetry.dependencies]
   python = ">=3.9,<4"

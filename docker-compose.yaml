@@ -1,12 +1,24 @@
 services:
-  postgres-apis-test:
-    image: games-api-db-test
+  games-api-test:
+    image: games-api-test
     ports:
       - '5431:5432'
     volumes:
       - ./db-init.sql:/docker-entrypoint-initb.d/init.sql
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U testuser -d mytestdb']
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d aklapper']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  crud-api-test:
+    image: crud-api-test
+    ports:
+      - '5431:5432'
+    volumes:
+      - ./db-init.sql:/docker-entrypoint-initb.d/init.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d aklapper']
       interval: 10s
       timeout: 5s
       retries: 5

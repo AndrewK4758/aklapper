@@ -18,39 +18,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      # - name: Authenticate to Google Cloud
-      #   uses: google-github-actions/auth@v2
-      #   with:
-      #     project_id: games-424800
-      #     credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-      #     service_account: aklapper@games-424800.iam.gserviceaccount.com
-
-      # # Install Cloud SQL Proxy
-      # # - name: Install Cloud SQL Proxy
-      # #   run: |
-      # #     wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy
-      # #     chmod +x cloud_sql_proxy
-
-      # # # Start Cloud SQL Proxy
-      # # - name: Start Cloud SQL Proxy
-      # #   run: |
-      # #     ./cloud_sql_proxy -instances=games-424800:us-central1:games
-
-      # - name: Install and run Cloud SQL Proxy
-      #   run: |
-      #     docker pull gcr.io/cloud-sql-connectors/cloud-sql-proxy
-      #     docker run -d --name=cloud-sql-proxy \
-      #       -v /cloudsql:/cloudsql \
-      #       -p 5432:5432 \
-      #       gcr.io/cloud-sql-connectors/cloud-sql-proxy \
-      #       -instances=your-project-id:your-region:your-instance-name=tcp:5432
-      #     sleep 5
-
-      # # Connect to Cloud SQL Proxy instance
-      # - name: Connect to Cloud SQL
-      #   run: |
-      #     psql -h localhost -p 5432 -U aklapper@games-424800.iam games
-
       - uses: pnpm/action-setup@v4
         with:
           version: 9
@@ -72,7 +39,7 @@ jobs:
 
       # Create prisma client for unit tests
       - name: Generate Prisma Client
-        run: pnpm generate:test
+        run: pnpm generate
 
         # Install Poetry for wdg-agents
       - name: Install Poetry
@@ -82,30 +49,6 @@ jobs:
           virtualenvs-in-project: true
           installer-parallel: true
 
-      # Build PostgreSQL Database Image for games-api & crud-api Unit Tests
-      - name: Build PostgreSQL Test Database Image
-        env:
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-        run: pnpx nx docker-build-db-test games-api --build-arg POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD}}
-
-      # Start PostgreSQL Test Database Image
-      - name: Start PostgreSQL Test Database Container
-        env:
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-        run: pnpx nx docker-start-db games-api
-
       # Lint all projects
-      - name: Lint all projects
-        run: pnpx nx affected -t lint --exclude=wdg-agents
-
-      # Test all projects
-      - name: Test all projects
-        env:
-          DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
-        run: pnpx nx affected -t test --exclude=crud-api
-
-        #Build all projects
-      - name: Build all Projects
-        env:
-          DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
-        run: pnpx nx affected -t build
+      - name: Lint Test Build Typecheck all projects
+        run: pnpx nx affected -t lint test build typecheck

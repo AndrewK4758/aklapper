@@ -24,10 +24,10 @@ DB_DIRECTORY = "db"
 DOCUMENT_SOURCE_DIRECTORY = "rag-data"
 
 CHUNK_SIZE = 1500
-CHUNK_OVERLAP = 100
+CHUNK_OVERLAP = 400
 HIDE_SOURCE_DOCUMENTS = False
 
-embeddingModel = OllamaEmbeddings(model="llama3.2")
+embeddingModel = OllamaEmbeddings(model="gemma2:2b")
 
 
 class MyEmbeddingFunction(EmbeddingFunction):
@@ -46,7 +46,7 @@ system_prompt = (
 )
 
 
-def read_files(native_db):
+def read_files(native_db: chromadb.PersistentClient) -> None:
     """This method loads the PDF files from the source directory
     and uses the explicit PyPDFLoader to ensure each PDF is broken
     down into individual pages for citation."""
@@ -77,7 +77,7 @@ def read_files(native_db):
                 )
 
 
-def get_collection(native_db) -> Collection:
+def get_collection(native_db: chromadb.PersistentClient) -> Collection:
     with SuppressStdout():
         print("DEBUG: call get_collection()")
         collection = None
@@ -88,7 +88,7 @@ def get_collection(native_db) -> Collection:
             collection: Collection = native_db.get_or_create_collection(
                 "PDFS", embedding_function=MyEmbeddingFunction()
             )
-            print(collection)
+            print(collection, "COLLECTION")
         return collection
 
 

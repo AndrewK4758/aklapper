@@ -5,8 +5,8 @@ ARG POSTGRES_PASSWORD
 
 # Set environment variables for database configuration
 ENV POSTGRES_USER=postgres
-ENV POSTGRES_PASSWORD=11560000
-ENV POSTGRES_DB=games
+ENV POSTGRES_PASSWORD=postgres
+ENV POSTGRES_DB=aklapper
 
 # Copy any initialization SQL scripts to the container
 COPY db-init.sql /docker-entrypoint-initdb.d/

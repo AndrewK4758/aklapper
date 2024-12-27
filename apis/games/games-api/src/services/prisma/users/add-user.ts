@@ -13,10 +13,11 @@ const addUser = async ({
   password,
   playerName,
   thumbnail,
-  role,
+  role
 }: IRegisterUser): Promise<users> => {
-  const hashPassword = await generatePassword(password);
   try {
+    const hashPassword = await generatePassword(password);
+
     return await prisma.users.create({
       data: {
         id: id,
@@ -27,8 +28,8 @@ const addUser = async ({
         password: hashPassword,
         player_name: playerName,
         thumbnail: thumbnail as string,
-        role: role,
-      },
+        role: role
+      }
     });
   } catch (error) {
     const err = error as PrismaClientKnownRequestError;

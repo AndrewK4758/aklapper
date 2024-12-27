@@ -10,7 +10,10 @@ export default defineConfig({
   cacheDir: '../../../node_modules/.vite/apps/games-ui/games-ui',
   server: {
     port: 3200,
-    host: 'localhost'
+    host: 'localhost',
+    watch: {
+      ignored: ['**/node_modules/**']
+    }
   },
   preview: {
     port: 3300,

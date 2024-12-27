@@ -5,16 +5,21 @@ configDotenv({ path: `${cwd()}/libs/prisma/.env` });
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { PrismaClient, Prisma } from '@prisma/client';
-// const url = () =>
-//   process.env['NODE_ENV'] === 'production'
-//     ? process.env['DB_URL_SSL']
-//     : process.env['NODE_ENV'] === 'testing'
-//       ? process.env['DB_URL_TEST']
-//       : process.env['DB_URL_DEV'];
+const url = () => {
+  if (process.env) {
+    switch (process.env['NODE_ENV']) {
+      case 'production':
+        return process.env['PG_AE_URL'];
+      case 'testing':
+        return process.env['DB_URL_TEST'];
+      default:
+        return process.env['DB_URL_DEV'];
+    }
+  } else return 'postgresql://postgres:postgres@localhost:5431/aklapper';
+};
 
-// console.log(url());
 const prismaClient = new PrismaClient({
-  datasourceUrl: process.env['DB_URL_TEST']
+  datasourceUrl: url()
 });
 
 export const prisma = prismaClient.$extends({

@@ -37,17 +37,24 @@
       "executor": "@nxlv/python:install",
       "options": {
         "silent": false,
-        "args": "",
+        "args": "-vvv",
         "cacheDir": ".cache/pypoetry",
-        "verbose": false,
-        "debug": false
+        "verbose": true,
+        "debug": true
+      }
+    },
+    "start-poetry": {
+      "executor": "@nxlv/python:run-commands",
+      "options": {
+        "command": "poetry shell",
+        "cwd": "apps/wdg-agents"
       }
     },
     "lint": {
       "executor": "@nxlv/python:flake8",
       "outputs": ["{workspaceRoot}/reports/apps/wdg-agents/pylint.txt"],
       "options": {
-        "outputFile": "reports/apps/wdg-agents/pylint.txt"
+        "outputFile": "{workspaceRoot}/reports/apps/wdg-agents/pylint.txt"
       }
     },
     "test": {

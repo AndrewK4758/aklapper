@@ -7,11 +7,14 @@ import { ServerOptions } from 'socket.io';
 import socketBoardAction from './events/socket-board-action';
 import addGameToSocketInstance from './middleware/socket-add-game-middleware';
 import router, { GameRoutes } from './routes/routes';
+import { cwd } from 'process';
 
 /**
  * Add cleanup service to take games in users active_game col and compare last active to current minute and if
  * greater than some timeframe, remove the game from active_game array
  */
+
+const __dirname = join(cwd(), 'apis/games/games-api');
 
 const app: Express = express();
 
