@@ -124,7 +124,7 @@ jobs:
         if: always()
         run: docker compose -f ./docker-compose.yaml down
 
-  build:
+  build_and_typecheck:
     runs-on: ubuntu-latest
     needs: ['lint', 'test']
     steps:
@@ -171,30 +171,6 @@ jobs:
         env:
           NODE_ENV: production
         run: pnpx nx affected -t build
-
-  typecheck:
-    runs-on: ubuntu-latest
-    needs: ['build']
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      # Cache node_modules
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 23
-          cache: 'pnpm'
-
-      # Install Dependencies
-      - run: pnpm install --frozen-lockfile
-
-      # Add Nx Cloud Build Cache
-      - uses: nrwl/nx-set-shas@v4
 
       #Typecheck all projects
       - name: Typecheck all Projects
