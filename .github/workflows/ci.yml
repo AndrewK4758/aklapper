@@ -79,10 +79,6 @@ jobs:
       # Install Dependencies
       - run: pnpm install --frozen-lockfile
 
-      # Install Python app wdg-agents to pass lint and test
-      - name: Install wdg-agents
-        run: pnpx nx install wdg-agents
-
       # Add Nx Cloud Build Cache
       - uses: nrwl/nx-set-shas@v4
 
@@ -99,6 +95,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.12.8
+
+      # Install Python app wdg-agents to pass lint and test
+      - name: Install wdg-agents
+        run: pnpx nx install wdg-agents
 
       # Create prisma client for unit tests
       - name: Generate Prisma Client
