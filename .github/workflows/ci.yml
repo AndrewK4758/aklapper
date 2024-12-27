@@ -74,6 +74,7 @@ jobs:
       # Test all projects
       - name: Test all projects
         env:
+          NODE_ENV: 'testing'
           DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
         run: pnpx nx affected -t test
 
