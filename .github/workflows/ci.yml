@@ -50,5 +50,23 @@ jobs:
           installer-parallel: true
 
       # Lint all projects
-      - name: Lint Test Build Typecheck all projects
-        run: pnpx nx affected -t lint test build typecheck
+      - name: Lint all projects
+        run: pnpx nx affected -t lint
+
+      # Test all projects
+      - name: Test all projects
+        env:
+          DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
+        run: pnpx nx affected -t test --exclude=crud-api
+
+      #Build all projects
+      - name: Build all Projects
+        env:
+          DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
+        run: pnpx nx affected -t build
+
+      #Typecheck all projects
+      - name: Typecheck all Projects
+        env:
+          DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
+        run: pnpx nx affected -t typecheck
