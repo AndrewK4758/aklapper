@@ -1,19 +1,31 @@
-/// <reference types='vitest' />
-import { defineConfig } from 'vite';
+import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
+import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import react from '@vitejs/plugin-react';
+import path from 'path';
+import dts from 'vite-plugin-dts';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   root: __dirname,
   cacheDir: '../../../node_modules/.vite/apps/local-model/local-model',
   server: {
-    port: 4200,
+    port: 5800,
     host: 'localhost'
   },
   preview: {
-    port: 4300,
+    port: 5900,
     host: 'localhost'
   },
-  plugins: [react()],
+  plugins: [
+    react({ babel: { targets: { esmodules: true } } }),
+    dts({
+      entryRoot: 'src',
+      outDir: '../../../dist/apps/local-model/src',
+      tsconfigPath: path.join(__dirname, 'tsconfig.app.json')
+    }),
+    nxViteTsPaths({ debug: true }),
+    nxCopyAssetsPlugin(['**/*.md'])
+  ],
   // Uncomment this if you are using workers.
   // worker: {
   //  plugins: [ nxViteTsPaths() ],

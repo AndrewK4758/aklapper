@@ -6,7 +6,7 @@ import { IBuiltGame } from '../interfaces/built-game';
 import { IInstanceOfGame } from '../interfaces/interfaces';
 import { LoginData } from '../types/login-data';
 
-export declare global {
+declare global {
   namespace Express {
     interface Request {
       allGamesMap: IAllGamesMap;
@@ -20,3 +20,5 @@ export declare global {
     }
   }
 }
+
+export {};
