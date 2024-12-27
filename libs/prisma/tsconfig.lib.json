@@ -4,9 +4,8 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
-    "outDir": "out-tsc",
+    "outDir": "../../dist/libs/prisma",
     "rootDir": "./src",
-    "declarationDir": "../../dist/libs/prisma/src",
     "declaration": true,
     "types": ["node", "vite/client"]
   },

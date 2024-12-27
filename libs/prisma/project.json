@@ -10,6 +10,15 @@
       "options": {
         "cwd": "./libs/prisma"
       }
+    },
+    "build": {
+      "executor": "@nx/js:tsc",
+      "options": {
+        "main": "libs/prisma/src/index.ts",
+        "command": "tsc --build tsconfig.lib.json --pretty --verbose ",
+        "outputPath": "<workspaceRoot>/dist/libs/prisma",
+        "tsConfig": "libs/prisma/tsconfig.lib.json"
+      }
     }
   }
 }
