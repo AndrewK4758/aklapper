@@ -57,7 +57,7 @@ jobs:
       - name: Test all projects
         env:
           DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
-        run: pnpx nx affected -t test --exclude=crud-api
+        run: pnpx nx affected -t test
 
       #Build all projects
       - name: Build all Projects
