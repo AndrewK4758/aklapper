@@ -1,14 +1,15 @@
+import { Tooltip } from '@mui/material';
 import Button from '@mui/material/Button';
 import CardActions from '@mui/material/CardActions';
 import CardMedia from '@mui/material/CardMedia';
-import Paper from '@mui/material/Paper';
-import type { JSX } from 'react';
-import myPic from '../../assets/self.webp';
+import Card from '@mui/material/Card';
+import { lazy, type JSX } from 'react';
 import resume from '../../assets/Resume.pdf';
+import myPic from '../../assets/self.webp';
 import ResumeIcon from '../../components/icons/resume-icon';
 import { introPicStyles, picAndResumeCardStyles } from '../../styles/intro-styles';
-import { Tooltip } from '@mui/material';
-import TechStackList from './tech-list/tech-list';
+
+const TechStackList = lazy(() => import('./tech-list/tech-list'));
 
 /**
  * This component renders a card containing a picture of me and a button to download my resume.
@@ -17,11 +18,10 @@ import TechStackList from './tech-list/tech-list';
  */
 
 const PicutreAndResume = (): JSX.Element => (
-  <Paper
+  <Card
     key={'picture-and-resume-paper'}
     id={'picture-and-resume-paper'}
     data-testid={'picture-and-resume-paper'}
-    elevation={2}
     sx={picAndResumeCardStyles}
   >
     <CardMedia
@@ -40,17 +40,19 @@ const PicutreAndResume = (): JSX.Element => (
           key={'card-media-resume-button'}
           id={'card-media-resume-button'}
           data-testid={'card-media-resume-button'}
-          LinkComponent={'button'}
+          variant="contained"
+          LinkComponent={'a'}
           href={resume}
+          onClick={e => console.log(e)}
           download={`andrew-klapper-resume-${new Date().toLocaleDateString()}`}
-          endIcon={<ResumeIcon sx={{ width: '3rem', height: 'auto' }} />}
+          endIcon={<ResumeIcon sx={{ scale: 1.5 }} />}
         >
           Resume
         </Button>
       </Tooltip>
     </CardActions>
     <TechStackList />
-  </Paper>
+  </Card>
 );
 
 export default PicutreAndResume;

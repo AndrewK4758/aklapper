@@ -33,7 +33,7 @@ export const IntroText = () => (
         }}
         onMouseLeave={e => {
           e.currentTarget.style.color = Theme.palette.secondary.main;
-          e.currentTarget.style.backgroundColor = Theme.palette.background.default;
+          e.currentTarget.style.backgroundColor = Theme.palette.background.paper;
         }}
       >
         Woodstock Developers Group

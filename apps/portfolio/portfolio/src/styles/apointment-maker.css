@@ -17,18 +17,8 @@
   color: var(--textPrimary);
 }
 
-.css-1f4jwp7-MuiTypography-root-MuiDayCalendar-weekDayLabel {
-  scale: 1.75;
-  color: var(--secondaryDark);
-}
-
 .css-1ecnh9w-MuiButtonBase-root-MuiButton-root {
   scale: 1.25 !important;
-}
-
-.css-kgflii-MuiTypography-root-MuiClock-meridiemText {
-  font-size: 1rem;
-  color: var(--secondaryDark);
 }
 
 .css-179dbev-MuiButtonBase-root-MuiIconButton-root .css-cowzbw-MuiSvgIcon-root {

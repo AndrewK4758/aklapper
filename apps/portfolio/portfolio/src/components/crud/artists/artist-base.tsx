@@ -10,13 +10,15 @@ import { DataGrid, GridActionsCellItem, GridColDef, GridRowParams, useGridApiRef
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { artist } from '@prisma/client';
 import axios from 'axios';
-import { RefObject, useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
+import { RefObject, useRef, useState, type JSX } from 'react';
 import { Outlet, useLoaderData, useNavigate } from 'react-router-dom';
+import useFetchDataGridData from '../../../hooks/useFetchDataGridData';
+import type { PaginationModel } from '../../../pages/crud/crud';
 import loadArtists from '../../../services/loaders/crud-loaders/load-artists';
-import { dataGridStyleUpdate, inverseColors } from '../../../styles/crud-styles';
+import { dataGridStyleUpdate } from '../../../styles/crud-styles';
 import AddArtist from './add-artist';
 
-const paginationModelInit = {
+const paginationModelInit: PaginationModel = {
   pageSize: 25,
   page: 0
 };
@@ -30,36 +32,18 @@ const paginationModelInit = {
 
 const Artist = (): JSX.Element => {
   const COUNT = useLoaderData() as number;
-  const [artists, setArtists] = useState<artist[]>();
+  const [artists, setArtists] = useState<artist[] | undefined>(undefined);
   const [rowCountState, setRowCountState] = useState(COUNT);
-  const [paginationModel, setPaginationModel] = useState(paginationModelInit);
+  const [paginationModel, setPaginationModel] = useState<PaginationModel>(paginationModelInit);
   const matchesSize = useMediaQuery('(max-width:1200px)');
   const divRef = useRef<HTMLDivElement>(null);
   const nav = useNavigate();
 
   const apiRef = useGridApiRef<GridApiCommunity>();
 
-  const queryOptions = useMemo(
-    () => ({
-      cursor: paginationModel.page === 0 ? 1 : paginationModel.pageSize * paginationModel.page,
-      pageSize: paginationModel.pageSize,
-      skip: paginationModel.page === 0 ? 0 : 1
-    }),
-    [paginationModel]
-  );
-
-  const fetchArtists = useCallback(
-    async (pageSize: number, skip: number, cursor: number) => await loadArtists(pageSize, skip, cursor),
-    []
-  );
-
   useScrollIntoView(divRef);
 
-  useEffect(() => {
-    fetchArtists(queryOptions.pageSize, queryOptions.skip, queryOptions.cursor)
-      .then(({ allArtists }) => setArtists(allArtists))
-      .catch(err => console.error(err));
-  }, [fetchArtists, queryOptions]);
+  useFetchDataGridData<artist[] | undefined>(paginationModel, setArtists, loadArtists);
 
   const columns: GridColDef[] = [
     {
@@ -131,21 +115,19 @@ const Artist = (): JSX.Element => {
       flexDirection={matchesSize ? 'column' : 'row'}
       gap={0.5}
     >
-      <Box
+      <Paper
         component={'div'}
         key="artists"
         id="artists"
-        flex={matchesSize ? '0 1 100%' : '0 1 50%'}
-        border={'3px solid purple'}
-        borderRadius={1}
+        sx={{ flex: matchesSize ? '0 1 100%' : '0 1 50%', border: '3px solid purple', borderRadius: 1 }}
       >
         <Container component={'div'} key={'artists-title-box'} id="artists-title-box" sx={{ paddingY: 2 }}>
           <Paper
-            elevation={6}
+            elevation={1}
             key={'artist-list-box'}
             id="artist-list-box"
             component={'div'}
-            sx={{ ...inverseColors, height: 'fit-content' }}
+            sx={{ height: 'fit-content' }}
           >
             <Text
               component={'h3'}
@@ -161,12 +143,7 @@ const Artist = (): JSX.Element => {
         <Container component={'div'} key={'add-artist-box'} id={'add-artist-box'} sx={{ paddingY: 1 }}>
           <AddArtist rowCountState={rowCountState} setRowCountState={setRowCountState} COUNT={COUNT} />
         </Container>
-        <Box
-          component={'div'}
-          key={'artist-data-grid-wrapper'}
-          id="artist-data-grid-wrapper"
-          sx={{ ...inverseColors, borderRadius: 1 }}
-        >
+        <Box component={'div'} key={'artist-data-grid-wrapper'} id="artist-data-grid-wrapper" sx={{ borderRadius: 1 }}>
           <DataGrid
             logLevel="debug"
             key={'artist-data-grid'}
@@ -185,7 +162,7 @@ const Artist = (): JSX.Element => {
             sx={dataGridStyleUpdate}
           />
         </Box>
-      </Box>
+      </Paper>
       <Box
         key={'albums-for-artist-box'}
         component={'div'}

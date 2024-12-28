@@ -1,11 +1,12 @@
 import { Text, useScrollIntoView, Waiting } from '@aklapper/react-shared';
 import type { PromptRequest } from '@aklapper/vertex-ai';
-import { Modal } from '@mui/material';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import ButtonGroup from '@mui/material/ButtonGroup';
 import Collapse from '@mui/material/Collapse';
 import Container from '@mui/material/Container';
+import Modal from '@mui/material/Modal';
 import Paper from '@mui/material/Paper';
 import Toolbar from '@mui/material/Toolbar';
 import {
@@ -19,8 +20,8 @@ import {
   type JSX,
   type SetStateAction
 } from 'react';
-import { Outlet, useNavigate, useOutletContext } from 'react-router-dom';
-import PromptResponse from '../../components/chat-response/chat-response';
+import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
+import PromptResponse from '../../components/gen-ai/chat-response/chat-response';
 import { MediaRecorderClientContextProvider } from '../../contexts/audio-context';
 import loadContextPath from '../../services/loaders/gen-ai/load-context-path';
 import { renderPreTagInsideParentDiv } from '../../styles/gen-ai-styles';
@@ -29,14 +30,12 @@ import {
   fullSizeBlock,
   headerModalButtonStyles,
   modalButtonBoxStyles,
-  pagesButtonStyles,
   pagesOutletStyles,
   pagesTitlesBoxStyles,
   pagesTitleSx,
   pagesToolbarStyles,
   pagesWrapperStyles
 } from '../../styles/pages-styles';
-import Theme from '../../styles/theme';
 import { body, title } from '../static/gen-ai-text';
 
 const PromptBuilder = lazy(() => import('../../components/gen-ai/prompt-builder/prompt-builder'));
@@ -69,6 +68,7 @@ const GenAiHome = (): JSX.Element => {
   const [open, setOpen] = useState<boolean>(false);
   const [promptResponse, setPromptResponse] = useState<string[]>([]);
   const divRef = useRef<HTMLElement>(null);
+  const { pathname } = useLocation();
   const nav = useNavigate();
 
   useScrollIntoView(divRef);
@@ -87,62 +87,75 @@ const GenAiHome = (): JSX.Element => {
       sx={pagesWrapperStyles}
     >
       <Paper
-        elevation={24}
+        elevation={2}
         component={'div'}
         key={'gen-ai-header-wrapper'}
         id="gen-ai-header-wrapper"
-        sx={{ width: '60vw' }}
+        sx={{ width: '70vw' }}
       >
         <Box component={'section'} key={'gen-ai-title-wrapper'} id="gen-ai-title-wrapper" sx={pagesTitlesBoxStyles}>
           <Text component={'h3'} titleVariant="h3" titleText={title} sx={pagesTitleSx} />
         </Box>
-        <AppBar
-          component={'div'}
-          id="gen-ai-navbar-wrapper"
-          key={'gen-ai-navbar-wrapper'}
-          elevation={24}
-          position="static"
-        >
-          <Toolbar component={'nav'} id="gen-ai-navbar" key={'gen-ai-navbar'} sx={pagesToolbarStyles}>
-            <Button
-              LinkComponent={'button'}
-              key={'gen-ai-text-button'}
-              id="gen-ai-text-button"
-              sx={pagesButtonStyles}
-              onClick={() => nav('text', { replace: true })}
-            >
-              Text
-            </Button>
-            <Button
-              LinkComponent={'button'}
-              key={'gen-ai-image'}
-              id="gen-ai-image"
-              sx={pagesButtonStyles}
-              onClick={() => nav('image', { replace: true })}
-            >
-              Image
-            </Button>
-            <Button
-              LinkComponent={'button'}
-              key={'gen-ai-audio'}
-              id="gen-ai-audio"
-              sx={pagesButtonStyles}
-              onClick={() => nav('audio', { replace: true })}
-            >
-              Audio
-            </Button>
-          </Toolbar>
-        </AppBar>
-        <Container sx={{ paddingY: 2 }}>
-          <Box component={'div'} key={'gen-ai-header-text-wrapper'} id="gen-ai-header-text-wrapper">
-            <Text
-              component={'p'}
-              key={'gen-ai-header-text'}
-              id="gen-ai-header-text"
-              titleVariant="body1"
-              titleText={body}
-            />
-          </Box>
+        <Container key={'gen-ai-header-container'} id={'gen-ai-header-container'} maxWidth={false}>
+          <AppBar
+            component={'div'}
+            id="gen-ai-navbar-wrapper"
+            key={'gen-ai-navbar-wrapper'}
+            position="static"
+            sx={{ borderRadius: 1 }}
+          >
+            <Toolbar component={'nav'} id="gen-ai-navbar" key={'gen-ai-navbar'} sx={pagesToolbarStyles}>
+              <ButtonGroup key={'gen-ai-button-group'} id={'gen-ai-button-group'} fullWidth={true}>
+                <Button
+                  LinkComponent={'button'}
+                  color="inherit"
+                  variant="text"
+                  key={'gen-ai-text-button'}
+                  id="gen-ai-text-button"
+                  onClick={() => nav('text', { replace: true })}
+                >
+                  Text
+                </Button>
+                <Button
+                  LinkComponent={'button'}
+                  color="inherit"
+                  variant="text"
+                  key={'gen-ai-image'}
+                  id="gen-ai-image"
+                  onClick={() => nav('image', { replace: true })}
+                >
+                  Image
+                </Button>
+                <Button
+                  LinkComponent={'button'}
+                  color="inherit"
+                  variant="text"
+                  key={'gen-ai-audio'}
+                  id="gen-ai-audio"
+                  onClick={() => nav('audio', { replace: true })}
+                >
+                  Audio
+                </Button>
+              </ButtonGroup>
+            </Toolbar>
+          </AppBar>
+        </Container>
+        <Container maxWidth={false} sx={{ paddingY: 2 }}>
+          <Collapse
+            in={pathname === '/gen-ai' && !open}
+            key={'gen-ai-header-text-collapse'}
+            id={'gen-ai-header-text-collapse'}
+          >
+            <Box component={'div'} key={'gen-ai-header-text-wrapper'} id="gen-ai-header-text-wrapper">
+              <Text
+                component={'p'}
+                key={'gen-ai-header-text'}
+                id="gen-ai-header-text"
+                titleVariant="body1"
+                titleText={body}
+              />
+            </Box>
+          </Collapse>
           <Box key={'prompt-builder-wrapper'} id={'prompt-builder-wrapper'} sx={modalButtonBoxStyles}>
             <Button
               key={'prompt-builder-button'}
@@ -161,7 +174,7 @@ const GenAiHome = (): JSX.Element => {
         <Box component={'section'} key={'prompt-builder-form-wrapper'} id="prompt-builder-form-wrapper" width={'75vw'}>
           <Container component={'div'} key={'prompt-builder-collapse-box'} id="prompt-builder-collapse-box">
             <Suspense fallback={<Waiting src={'/swirly-dots-to-chrome.webp'} />}>
-              <Collapse appear={open} in={open} collapsedSize={0} component={'div'}>
+              <Collapse in={open} component={'div'}>
                 <PromptBuilder loading={loading} setLoading={setLoading} setPrompt={setPrompt} />
               </Collapse>
             </Suspense>
@@ -212,7 +225,7 @@ const GenAiHome = (): JSX.Element => {
                 response={promptResponse}
                 setLoading={setLoading}
                 setPromptResponse={setPromptResponse}
-                chatResponseLabelProps={{ textAlign: 'center', color: Theme.palette.secondary.light }}
+                chatResponseLabelProps={{ textAlign: 'center' }}
                 chatResponseTextProps={renderPreTagInsideParentDiv as CSSProperties}
               />
             </Container>

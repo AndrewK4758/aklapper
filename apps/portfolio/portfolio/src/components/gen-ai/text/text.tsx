@@ -4,14 +4,15 @@ import { FileData } from '@google-cloud/vertexai';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
-import { useContext, useEffect, useRef, type JSX } from 'react';
+import { useContext, useRef, type JSX } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import * as Yup from 'yup';
 import { WebSocketContext, WebSocketContextType } from '../../../contexts/websocket-context';
 import type { OutletContextProps } from '../../../pages/gen-ai/gen-ai';
 import { topLevelModeStyle } from '../../../styles/gen-ai-styles';
 import { labelSx, textInputSx } from '../../../styles/gen-ai-styles';
-import ChatInput from '../../chat-input/chat-input';
+import ChatInput from '../chat-input/chat-input';
+import useGenAiWebsockets from '../../../hooks/useGenAiWebsockets';
 
 const validationSchema = Yup.object<PromptRequest>().shape({
   text: Yup.string().required('Must be a valid question or statement').min(2, 'Must be a valid question or statement'),
@@ -32,25 +33,7 @@ const TextGenerator = (): JSX.Element => {
 
   useScrollIntoView(divRef);
 
-  useEffect(() => {
-    if (!socket.connected) socket.connect();
-
-    socket.on('connect', () => {
-      console.log(`Connected as ${socket.id}`);
-    });
-
-    socket.on('chunk', ({ response }) => {
-      setPromptResponse(prev => [...prev, response]);
-      setLoading(false);
-    });
-
-    return () => {
-      if (socket.connected) {
-        socket.disconnect();
-        socket.removeAllListeners();
-      }
-    };
-  }, [setLoading, setPromptResponse, socket]);
+  useGenAiWebsockets(socket, setLoading, setPromptResponse);
 
   return (
     <Box

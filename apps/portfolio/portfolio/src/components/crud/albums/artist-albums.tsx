@@ -9,16 +9,19 @@ import { DataGrid, GridActionsCellItem, GridColDef, GridRowParams, useGridApiRef
 import { album } from '@prisma/client';
 import { useState, type JSX } from 'react';
 import { Outlet, useLoaderData, useNavigate } from 'react-router-dom';
+import { PaginationModel } from '../../../pages/crud/crud';
 import handleDeleteAlbum from '../../../services/events/crud-events/handle-delete-album';
 import handleUpdateAlbumTitle from '../../../services/events/crud-events/handle-update-album-title';
 import { ArtistAlbums } from '../../../services/loaders/crud-loaders/load-artist-albums';
-import { dataGridStyleUpdate, inverseColors } from '../../../styles/crud-styles';
+import { dataGridStyleUpdate } from '../../../styles/crud-styles';
 import AddAlbumOnArtist from './add-album-on-artist';
 
 export interface AlbumState {
   albumTitle: string;
   albumID: number;
 }
+
+const paginationModelInit: PaginationModel = { page: 0, pageSize: 5 };
 
 /**
  * This component renders a page displaying a list of albums for a specific artist.
@@ -29,7 +32,7 @@ export interface AlbumState {
 
 const AlbumsOnArtist = (): JSX.Element => {
   const { albums } = useLoaderData() as ArtistAlbums;
-  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 5 });
+  const [paginationModel, setPaginationModel] = useState<PaginationModel>(paginationModelInit);
   const nav = useNavigate();
 
   const apiRef = useGridApiRef();
@@ -39,20 +42,20 @@ const AlbumsOnArtist = (): JSX.Element => {
       field: 'album_id',
       headerName: 'Album ID',
       type: 'number',
-      flex: 0.75,
+      flex: 0.75
     },
     {
       field: 'title',
       headerName: 'Title',
       type: 'string',
       flex: 4,
-      editable: true,
+      editable: true
     },
     {
       field: 'artist_id',
       headerName: 'Artist ID',
       type: 'number',
-      flex: 1,
+      flex: 1
     },
     {
       field: 'update-delete',
@@ -78,9 +81,9 @@ const AlbumsOnArtist = (): JSX.Element => {
             onClick={async () => {
               await handleDeleteAlbum(params.row, apiRef);
             }}
-          />,
+          />
         ];
-      },
+      }
     },
     {
       field: 'details',
@@ -94,10 +97,10 @@ const AlbumsOnArtist = (): JSX.Element => {
             title="Details"
             icon={<DetailsIcon />}
             onClick={() => nav(`${params.row.album_id}/tracks`)}
-          />,
+          />
         ];
-      },
-    },
+      }
+    }
   ];
 
   const getID = (row: album) => {
@@ -114,23 +117,21 @@ const AlbumsOnArtist = (): JSX.Element => {
       flexWrap={'wrap'}
       gap={0.5}
     >
-      <Box
+      <Paper
         component={'div'}
         key={'albums-box'}
         id={'albums-box'}
-        flex={'1 0 100%'}
-        border={'3px solid purple'}
-        borderRadius={1}
+        sx={{ flex: '1 0 100%', border: '3px solid purple', borderRadius: 1 }}
       >
         <Container
           component={'div'}
           key="album-title"
           id="album-title"
           sx={{
-            paddingY: 2,
+            paddingY: 2
           }}
         >
-          <Paper elevation={6} key={'title-bar'} sx={{ ...inverseColors, height: 'fit-content' }}>
+          <Paper elevation={1} key={'title-bar'} sx={{ height: 'fit-content' }}>
             <Text
               component={'h3'}
               titleText={'Artist Albums'}
@@ -147,7 +148,7 @@ const AlbumsOnArtist = (): JSX.Element => {
           component={'div'}
           key={'artist-album-datagrid-wrapper'}
           id="artist-album-datagrid-wrapper"
-          sx={{ ...inverseColors, borderRadius: 1, flex: 1 }}
+          sx={{ borderRadius: 1, flex: 1 }}
         >
           <DataGrid
             key={'artist-albums-data-grid'}
@@ -163,7 +164,7 @@ const AlbumsOnArtist = (): JSX.Element => {
             sx={dataGridStyleUpdate}
           />
         </Box>
-      </Box>
+      </Paper>
       <Box component={'div'} key={'tracks-outlet-wrapper'} id={'tracks-outlet-wrapper'} width={'100%'}>
         <Outlet />
       </Box>

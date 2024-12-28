@@ -1,7 +1,6 @@
 import { lazy } from 'react';
 import type { RouteObject } from 'react-router-dom';
 import Layout from '../components/layout/layout';
-import GameLoading from '../components/loading/loading';
 import PrivacyPolicy from '../components/privacy-policy/privacy-policy';
 import emailFormAction from '../services/actions/email-form-action';
 import generateImageAction from '../services/actions/generate-image-action';
@@ -38,7 +37,6 @@ const routes: RouteObject[] = [
         path: 'games',
         action: registerPlayersAndStartGame,
         Component: Games,
-        HydrateFallback: GameLoading,
         children: [
           {
             index: true,

@@ -95,7 +95,6 @@ const ImageForm = (): JSX.Element => {
               multiline={true}
               focused={true}
               fullWidth={true}
-              rows={2}
               placeholder="The picture you want the AI to create"
               variant="outlined"
               onBlur={formik.handleBlur}

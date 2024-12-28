@@ -9,12 +9,12 @@ export const pagesWrapperStyles: SxProps = {
   alignItems: 'center',
   height: 'fit-content',
   minHeight: '80vh',
-  width: '80vw'
+  width: '100vw'
 };
 
 export const centerFlex: SxProps = {
   display: 'flex',
-  alignItems: 'center',
+  alignContent: 'center',
   justifyContent: 'center'
 };
 
@@ -23,9 +23,12 @@ export const pagesTitlesBoxStyles: SxProps = {
   paddingY: 2
 };
 
-export const pagesToolbarStyles: SxProps = { display: 'flex', justifyContent: 'space-evenly', flex: '0 1 100%' };
+export const iconStateStyle = (state: 'loading' | 'idle' | 'submitting'): SxProps => ({
+  opacity: state !== 'idle' ? 0.38 : 1,
+  scale: 1.75
+});
 
-export const pagesButtonStyles: SxProps = { fontSize: '2rem', color: Theme.palette.text.secondary };
+export const pagesToolbarStyles: SxProps = { display: 'flex', justifyContent: 'space-evenly', flex: '0 1 100%' };
 
 export const modalButtonBoxStyles: SxProps = {
   display: 'flex',

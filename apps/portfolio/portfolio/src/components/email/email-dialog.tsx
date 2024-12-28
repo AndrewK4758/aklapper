@@ -76,11 +76,6 @@ const EmailDialog = ({ open, setOpen }: EmailDialogProps) => {
                 key={'contact-tabs'}
                 value={tab}
                 onChange={(_e, tab) => setTab(tab)}
-                TabIndicatorProps={{
-                  sx: {
-                    borderBottom: `4px solid ${Theme.palette.secondary.dark}`
-                  }
-                }}
                 sx={{ height: 'fit-content' }}
               >
                 <Tab

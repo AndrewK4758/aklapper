@@ -100,7 +100,6 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
               label="Name"
               onBlur={formik.handleBlur}
               onChange={formik.handleChange}
-              // slotProps={textFieldSlotProps}
             />
 
             <FormikValidationError<MessageMeFormValues>
@@ -121,7 +120,6 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
               defaultValue={GoogleUserContextValues ? GoogleUserContextValues.email : ''}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
-              // slotProps={textFieldSlotProps}
             />
 
             <FormikValidationError<MessageMeFormValues>
@@ -141,7 +139,6 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
               label="Phone"
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
-              // slotProps={textFieldSlotProps}
             />
             <FormikValidationError<MessageMeFormValues>
               formik={formik}
@@ -160,7 +157,6 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
               defaultValue={'I saw your website and wanted to reach out...'}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
-              // slotProps={textFieldSlotProps}
             />
 
             <FormikValidationError<MessageMeFormValues>

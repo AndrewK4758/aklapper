@@ -28,7 +28,7 @@ export const TechList = ({
   placement
 }: TechListProps) => (
   <Container
-    component={'section'}
+    component={'div'}
     id={`${id}-wrapper`}
     data-testid={`tech-list-${id}-title-text`}
     sx={techListContainerSxProps}

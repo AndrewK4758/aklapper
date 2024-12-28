@@ -13,11 +13,13 @@ export const body = (
       target="_blank"
       rel="noopener"
       to={'https://github.com/lerocha/chinook-database'}
-      style={{ color: Theme.palette.secondary.contrastText }}
-      onMouseOver={e => {
-        e.currentTarget.style.backgroundColor = Theme.palette.secondary.dark;
+      style={{ color: Theme.palette.secondary.main }}
+      onMouseEnter={e => {
+        e.currentTarget.style.color = Theme.palette.secondary.contrastText;
+        e.currentTarget.style.backgroundColor = Theme.palette.secondary.main;
       }}
-      onMouseOut={e => {
+      onMouseLeave={e => {
+        e.currentTarget.style.color = Theme.palette.secondary.main;
         e.currentTarget.style.backgroundColor = Theme.palette.background.paper;
       }}
     >

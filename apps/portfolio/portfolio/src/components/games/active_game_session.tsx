@@ -1,20 +1,13 @@
-import { rowFinder } from '@aklapper/games-components';
-import { Text, useScrollIntoView } from '@aklapper/react-shared';
+import { Text } from '@aklapper/react-shared';
 import { ClientSocket } from '@aklapper/socket-io-client';
-import {
-  GameBoard,
-  type GamePlayerValidation,
-  IActivePlayersInGame,
-  ILiteSpace,
-  type IPlayersAndBoard,
-  type Row
-} from '@aklapper/types-game';
+import { GameBoard, IActivePlayersInGame } from '@aklapper/types-game';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import { useReducer, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type { ManagerOptions, Socket } from 'socket.io-client';
+import useGamesWebsockets from '../../hooks/useGamesWebsockets';
 import {
   breakpointsBottomMenuButtonsBox,
   breakpointsBottomMenuGameBoard,
@@ -25,7 +18,7 @@ import ActiveAvatars from './game_board/active_avatars';
 import ResetGame from './game_board/reset_game';
 import ShowGameBoardTicTacToe from './game_board/show-game-board-tic-tac-toe';
 import ShowGameBoard from './game_board/show_game_board';
-import socketReducer, { ActionType } from './game_board/socket-reducer';
+import socketReducer from './game_board/socket-reducer';
 import TakeTurnTicTacToe from './game_board/take-turn-tic-tac-toe';
 import TakeTurn from './game_board/take_turn';
 
@@ -61,7 +54,7 @@ const socketInit = () => {
  * @returns {JSX.Element} The rendered active game session component.
  */
 
-const ActiveGameSession = () => {
+const ActiveGameSession = (): JSX.Element => {
   const socketManagerOptions: Partial<ManagerOptions> = {
     autoConnect: false,
     extraHeaders: { 'current-game': JSON.stringify(getGameInstanceInfo()) }
@@ -71,64 +64,19 @@ const ActiveGameSession = () => {
   const socketRef = useRef<Socket>(clientSocket.clientIo);
   const [state, dispatch] = useReducer(socketReducer, {}, socketInit);
   const [space, setSpace] = useState<string | undefined>();
-  const divRef = useRef<HTMLDivElement>(null);
-  const { id } = useParams();
+  // const divRef = useRef<HTMLDivElement>(null);
+  const { id } = useParams() as { id: string };
 
   const socket = socketRef.current;
 
-  useScrollIntoView(divRef);
+  // useScrollIntoView(divRef);
 
-  useEffect(() => {
-    if (!socket.connected) socket.connect();
-
-    socket.on('connect', () => {
-      console.log(`Player connected with ID: ${socket.id}`);
-    });
-
-    socket.emit('create-room', (getGameInstanceInfo() as GamePlayerValidation).gameInstanceID);
-  });
-
-  useEffect(() => {
-    socket.emit('action', { action: ActionType.BOARD });
-
-    socket.on('game-data', async ({ gameBoard, activePlayersInGame, winner, avatarInTurn }: IPlayersAndBoard) => {
-      const gameBoardClient: GameBoard = [];
-      const maxRowLength = Math.sqrt(gameBoard.length);
-      let indexOfSpace = 1;
-      let row: Row = [];
-      gameBoard.forEach((s: ILiteSpace) => {
-        const rowCount = rowFinder(indexOfSpace, gameBoard.length);
-        row.push(s);
-
-        if (row.length === maxRowLength) {
-          if (id === 'Chutes-&-Ladders') {
-            row = rowCount % 2 !== 0 ? row : row.reverse();
-          }
-          gameBoardClient.push(row);
-          row = [];
-        }
-        indexOfSpace++;
-      });
-
-      dispatch({
-        type: ActionType.BOARD,
-        payload: { gameBoard: gameBoardClient, activePlayersInGame, avatarInTurn, winner } as IActiveGameInfo
-      });
-    });
-    socket.on('no-game-error', ({ errorMessage }) => {
-      console.error(errorMessage);
-    });
-    return () => {
-      socket.disconnect();
-      socket.removeAllListeners();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  useGamesWebsockets(socket, id, dispatch);
 
   return (
     <Paper key={`active-${id}-game`} id={`active-${id}-game`}>
       <Box
-        ref={divRef}
+        // ref={divRef}
         component={'section'}
         key={`${id}-active-avatar-wrapper`}
         id="active-avatar-wrapper"

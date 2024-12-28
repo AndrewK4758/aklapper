@@ -1,6 +1,7 @@
+import { Label } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
-import Collapse from '@mui/material/Collapse';
 import Container from '@mui/material/Container';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import List from '@mui/material/List';
@@ -12,9 +13,13 @@ import { debounce } from '@mui/material/utils';
 import { album, artist } from '@prisma/client';
 import axios from 'axios';
 import { useState, type ChangeEvent, type Dispatch, type JSX, type SetStateAction } from 'react';
-import { inverseColors } from '../../styles/crud-styles';
+import {
+  crudSearchCloseButtonBoxSxProps,
+  searchBoxCardSxProps,
+  searchBoxResultsWrapperSxProps
+} from '../../styles/crud-styles';
 import { pagesTitlesBoxStyles } from '../../styles/pages-styles';
-import Theme from '../../styles/theme';
+import { flexColumnStyles } from '../../styles/prompt-builder-styles';
 
 type InitVals = {
   artist: Partial<artist>[];
@@ -23,11 +28,11 @@ type InitVals = {
 
 const initVals: InitVals = {
   artist: [],
-  album: [],
+  album: []
 };
 
 interface SearchProps {
-  open: boolean;
+  setOpen: Dispatch<SetStateAction<boolean>>;
 }
 
 /**
@@ -40,102 +45,140 @@ interface SearchProps {
  * @returns {JSX.Element} The rendered search modal component.
  */
 
-const Search = ({ open }: SearchProps): JSX.Element => {
+const Search = ({ setOpen }: SearchProps): JSX.Element => {
   const [artAlbVals, setArtVals] = useState(initVals);
   const [searchParam, setSearchParam] = useState<string>('artist');
 
   return (
-    <Box component={'div'} key={'search-box-wrapper'} id="search-box-wrapper">
-      <Container key={'search-box-container'} id="search-box-container" sx={{}}>
-        <Collapse appear={open} in={open} collapsedSize={0} component={'div'}>
-          <Card
-            square
-            component={'section'}
-            key={'search-box-container'}
-            sx={{
-              ...inverseColors,
-              padding: 2,
-              display: 'flex',
-              border: '5px solid purple',
-              borderRadius: 1,
-            }}
-          >
-            <Box component={'div'} key={'search-radio-group-box'}>
-              <RadioGroup
-                defaultValue={'artist'}
-                name="artist-album-select"
-                sx={{
-                  ...pagesTitlesBoxStyles,
-                  height: '100%',
-                  flexDirection: 'column',
-                }}
-              >
-                <FormControlLabel
-                  value={'artist'}
-                  label="Artist"
-                  control={<Radio value={'artist'} onChange={e => setSearchParam(e.target.value)} />}
-                />
-                <FormControlLabel
-                  value={'album'}
-                  label="Album"
-                  control={
-                    <Radio
-                      onChange={e => {
-                        setSearchParam(e.target.value);
-                      }}
-                    />
-                  }
-                  slotProps={{ typography: { sx: { fontSize: '1 rem' } } }}
-                  sx={{ width: '100%', paddingLeft: 1 }}
-                />
-              </RadioGroup>
-            </Box>
-
-            <Box component={'div'} key={'search-input-box'} sx={{ paddingY: 1 }}>
-              <TextField
-                component={'search'}
-                label="Search"
-                variant="outlined"
-                type="text"
-                name="artist-search"
-                helperText="Search is performed automatically. Case is insensitive"
-                onChange={debounce(e => handleSearchParams(e, setArtVals, searchParam), 560)}
-                slotProps={{
-                  formHelperText: { sx: { fontFamily: 'monospace' } },
-                  input: { sx: { color: Theme.palette.text.secondary } },
-                }}
+    <Box
+      component={'div'}
+      key={'search-box-wrapper'}
+      id="search-box-wrapper"
+      sx={{ ...flexColumnStyles, alignItems: 'center', width: '95%', gap: '2.5vh' }}
+    >
+      <Card elevation={2} component={'section'} key={'search-box-container'} sx={searchBoxCardSxProps}>
+        <Container
+          key={'search-box-container'}
+          id="search-box-container"
+          maxWidth={false}
+          sx={{
+            flex: '1 0 100%',
+            display: 'flex',
+            justifyContent: 'space-evenly',
+            alignItems: 'center',
+            padding: 0,
+            gap: 1
+          }}
+        >
+          <Box component={'div'} key={'search-radio-group-box'} flex={1}>
+            <RadioGroup
+              defaultValue={'artist'}
+              name="artist-album-select"
+              sx={{
+                ...pagesTitlesBoxStyles,
+                height: '100%',
+                flexDirection: 'column'
+              }}
+            >
+              <FormControlLabel
+                value={'artist'}
+                label="Artist"
+                control={<Radio value={'artist'} onChange={e => setSearchParam(e.target.value)} />}
               />
+              <FormControlLabel
+                value={'album'}
+                label="Album"
+                control={<Radio value={'album'} onChange={e => setSearchParam(e.target.value)} />}
+              />
+            </RadioGroup>
+          </Box>
+
+          <Box component={'div'} key={'search-input-box'} sx={{ flex: 5 }}>
+            <TextField
+              component={'search'}
+              label={
+                <Label
+                  tooltipTitle={
+                    'Search for artist or album. Search is automatic and debounced after .56 second of no typing'
+                  }
+                  labelVariant={'body1'}
+                  labelText={'Search'}
+                  placement={'top'}
+                />
+              }
+              variant="standard"
+              type="text"
+              name="artist-search"
+              onChange={debounce(e => handleSearchParams(e, setArtVals, searchParam), 560)}
+              sx={{ width: '100%' }}
+            />
+          </Box>
+          <Box
+            key={'crud-search-close-button-box'}
+            id={'crud-search-close-button-box'}
+            sx={crudSearchCloseButtonBoxSxProps}
+          >
+            <Button
+              key={'crud-search-close-button'}
+              id={'crud-search-close-button'}
+              color="primary"
+              onClick={() => setOpen(false)}
+              sx={{ fontSize: '1rem' }}
+            >
+              Close
+            </Button>
+          </Box>
+        </Container>
+      </Card>
+      <List component={'ul'} key={'search-results'} id="search-results" sx={{ width: '100%' }}>
+        <Card key={'search-reults-card'} id={'search-reults-card'}>
+          {artAlbVals.artist.length > 0 ? (
+            <Box
+              key={'artist-search-results-wrapper'}
+              id={'artist-search-results-wrapper'}
+              sx={searchBoxResultsWrapperSxProps}
+            >
+              {artAlbVals.artist.map(e => (
+                <Box component={'div'} key={`${e.artist_id}-box`} id={`${e.artist_id}-box`} width={'fit-content'}>
+                  <ListItem component={'li'} key={e.name} sx={{ fontWeight: 'bold' }}>
+                    {e.name}
+                  </ListItem>
+                </Box>
+              ))}
             </Box>
-          </Card>
-          <Container>
-            <List component={'ul'} key={'search-list'} id="search-list">
-              {artAlbVals.artist.length > 0 ? (
-                <Box key={'artist-search-list-wrapper'} id={'artist-search-list-wrapper'}>
-                  {artAlbVals.artist.map(e => (
-                    <ListItem component={'li'} key={e.artist_id} sx={{ fontWeight: 'bold' }}>
-                      {e.name}
-                    </ListItem>
-                  ))}
+          ) : null}
+          {artAlbVals.album.length > 0 ? (
+            <Box
+              key={'album-search-results-wrapper'}
+              id={'album-search-results-wrapper'}
+              sx={searchBoxResultsWrapperSxProps}
+            >
+              {artAlbVals.album.map(e => (
+                <Box
+                  component={'div'}
+                  key={`${(e as album).album_id}-box`}
+                  id={`${(e as album).album_id}-box`}
+                  width={'fit-content'}
+                >
+                  <ListItem component={'li'} key={(e as album).title} sx={{ fontWeight: 'bold' }}>
+                    {(e as album).title}
+                  </ListItem>
                 </Box>
-              ) : null}
-              {artAlbVals.album.length > 0 ? (
-                <Box key={'album-search-list-wrapper'} id={'album-search-list-wrapper'}>
-                  {artAlbVals.album.map(e => (
-                    <ListItem component={'li'} key={e?.album_id} sx={{ fontWeight: 'bold' }}>
-                      {e?.title}
-                    </ListItem>
-                  ))}
-                </Box>
-              ) : null}
-            </List>
-          </Container>
-        </Collapse>
-      </Container>
+              ))}
+            </Box>
+          ) : null}
+        </Card>
+      </List>
     </Box>
   );
 };
 
 export default Search;
+
+type SearchReturnType = {
+  artist: artist[];
+  album: album[];
+};
 
 /**
  * This function handles the search input change event.
@@ -149,7 +192,7 @@ export default Search;
 const handleSearchParams = async (
   e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   setArtVals: Dispatch<SetStateAction<InitVals>>,
-  searchParam: string,
+  searchParam: string
 ) => {
   const searchParams = e.target.value;
 
@@ -163,7 +206,7 @@ const handleSearchParams = async (
   }
 };
 
-const baseURL = import.meta.env.VITE_DATA_API_URL;
+const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
 /**
  * This function fetches search results from the server based on the search query and type.
@@ -173,13 +216,13 @@ const baseURL = import.meta.env.VITE_DATA_API_URL;
  * @returns {Promise<any>} A promise that resolves with the search results.
  */
 
-const searchArtistsAndAlbums = async (search: string, type: string) => {
+const searchArtistsAndAlbums = async (search: string, type: string): Promise<SearchReturnType | null> => {
   try {
     const resp = await axios.get(`${baseURL}/search?search=${search}&type=${type}`, {
-      headers: { 'Content-Type': 'text/plain' },
+      headers: { 'Content-Type': 'text/plain' }
     });
 
-    return resp.data;
+    return resp.data as SearchReturnType;
   } catch (error) {
     console.error(error);
     return null;

@@ -35,7 +35,6 @@ const Header = (): JSX.Element => {
     >
       <AppBar
         elevation={4}
-        //primary color generator
         component={'nav'}
         key={'navbar-appbar'}
         id="navbar-appbar"

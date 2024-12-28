@@ -38,14 +38,13 @@ export const SUPPORTED_FORMATS = [
   '.avi',
   '.wmv',
   '.mpegps',
-  '.flv',
+  '.flv'
 ];
 
 const listHeader: SxProps = {
-  color: Theme.palette.secondary.light,
   fontSize: '1.1rem',
   fontWeight: 'bold',
-  borderBottom: `1px solid ${Theme.palette.primary.contrastText}`,
+  borderBottom: `1px solid ${Theme.palette.primary.contrastText}`
 };
 
 export const objective = (

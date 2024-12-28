@@ -13,57 +13,55 @@ const nextYear = dayjs().year(new Date().getFullYear() + 1);
 const dateTimePickerSlotProps: DateTimePickerSlotProps<Dayjs, false> = {
   textField: {
     color: 'primary',
-    variant: 'filled',
+    variant: 'outlined',
     sx: {
       p: 1,
       width: '100%',
-      backgroundColor: Theme.palette.background.default,
-      borderRadius: 1,
-    },
+      borderRadius: 1
+    }
   },
   switchViewIcon: {
     sx: {
       scale: 1.5,
-      color: Theme.palette.primary.dark,
-    },
+      color: Theme.palette.primary.dark
+    }
   },
   rightArrowIcon: {
     sx: {
       scale: 1.5,
-      color: Theme.palette.primary.dark,
-    },
+      color: Theme.palette.primary.dark
+    }
   },
   leftArrowIcon: {
     sx: {
       scale: 1.5,
-      color: Theme.palette.primary.dark,
-    },
+      color: Theme.palette.primary.dark
+    }
   },
   openPickerIcon: {
-    sx: { scale: 1.5, color: Theme.palette.secondary.dark },
+    sx: { scale: 1.5 }
   },
   desktopPaper: {
-    elevation: 12,
+    elevation: 2,
     sx: {
-      border: `3px solid ${Theme.palette.primary.dark}`,
-    },
+      backgroundColor: Theme.palette.background.default,
+      border: `3px solid ${Theme.palette.primary.dark}`
+    }
   },
   day: {
     sx: {
       fontSize: '1.5rem',
-      backgroundColor: Theme.palette.background.default,
-      color: Theme.palette.primary.dark,
-      borderRadius: 1,
-    },
+      borderRadius: 1
+    }
   },
   calendarHeader: {
     sx: {
-      scale: 1.1,
-    },
+      scale: 1.1
+    }
   },
   actionBar: {
-    actions: ['accept', 'clear'],
-  },
+    actions: ['accept', 'clear']
+  }
 };
 
 interface AppointmentMakerProps {
@@ -78,13 +76,15 @@ const AppointmentMaker = ({ formik }: AppointmentMakerProps) => (
       formatDensity="spacious"
       viewRenderers={{
         hours: renderTimeViewClock,
-        minutes: renderTimeViewClock,
+        minutes: renderTimeViewClock
       }}
       defaultValue={tomorrow}
       label={
         <Label
           placement="top"
-          tooltipTitle=""
+          tooltipTitle={
+            'Select a data and time to set an appointment with me. I will receive an email with the request and confirm with you via the email you provide. '
+          }
           labelVariant="body1"
           labelText="Set Appointment Date Time"
           sx={{ fontSize: '1.25rem' }}

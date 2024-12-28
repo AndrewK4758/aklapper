@@ -6,9 +6,10 @@ import type { GamePlayerValidation } from '@aklapper/types-game';
 import gamesAutoStartError from '../../errors/games-auto-start-error';
 
 const registerPlayersAndStartGame: ActionFunction = async ({ request }: ActionFunctionArgs) => {
+  let __current_game__: GamePlayerValidation;
+
   const gameName = await request.text();
 
-  let __current_game__: GamePlayerValidation;
   try {
     const gameInstanceID = (await registerGame(gameName)) as string;
 

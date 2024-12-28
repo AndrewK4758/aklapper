@@ -8,7 +8,7 @@ import { Form, Formik, type FormikState, type FormikValues } from 'formik';
 import type { Dispatch, SetStateAction } from 'react';
 import type { Socket } from 'socket.io-client';
 import * as Yup from 'yup';
-import Theme from '../../styles/theme';
+import Theme from '../../../styles/theme';
 
 interface ChatInputProps<T extends Yup.Maybe<Yup.AnyObject>> extends FormActionProps {
   breakpointsChatInputButton: SxProps;
@@ -80,7 +80,9 @@ export const ChatInput = <T extends FormikValues>({
             key={'chat-input-form-button-box'}
             id={'chat-input-form-button-box'}
             component={'section'}
-            sx={{ flex: '1 0 100%', display: 'flex', justifyContent: 'flex-end' }}
+            display={'flex'}
+            flex={'1 0 100%'}
+            justifyContent={'flex-end'}
           >
             <Button
               key={'chat-input-form-button'}

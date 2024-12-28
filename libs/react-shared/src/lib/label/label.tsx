@@ -9,7 +9,7 @@ const labelWrapperSxProps: SxProps = {
   display: 'flex',
   justifyContent: 'space-evenly',
   alignContent: 'center',
-  gap: 2,
+  gap: 2
 };
 
 const labelBoxSxProps: SxProps = { display: 'flex', alignContent: 'center' };
@@ -72,7 +72,7 @@ export const Label = forwardRef<HTMLDivElement, LabelProps>(
         </Box>
       )}
     </Box>
-  ),
+  )
 );
 
 export default Label;

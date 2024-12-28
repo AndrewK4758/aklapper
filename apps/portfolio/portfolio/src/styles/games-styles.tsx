@@ -75,6 +75,8 @@ export const breakpointsPlayersInGameText: SxProps = {
   }
 };
 
+export const gamesButtonLabelsSxProps: SxProps = { color: 'inherit', fontSize: '2rem' };
+
 //-------READY TO START BUTTON-------//
 
 export const breakpointsStartGameButtonBox: SxProps = {

@@ -2,34 +2,50 @@ import type { SxProps } from '@mui/material/styles';
 
 export const inverseColors: SxProps = {
   backgroundColor: '#FFFFFF',
-  color: '#1f1f1f',
+  color: '#1f1f1f'
 };
 
 export const baseCrudDisplayStyleSxProps: SxProps = {
   display: 'flex',
   flexWrap: 'wrap',
   alignItems: 'center',
-  justifyContent: 'center',
+  justifyContent: 'center'
 };
 
-export const crudPaperSxProps: SxProps = {
-  ...baseCrudDisplayStyleSxProps,
-  width: '100%',
-};
+// export const crudPaperSxProps: SxProps = {
+//   ...baseCrudDisplayStyleSxProps,
+//   width: '100%'
+// };
 
 export const crudHomeContainerSxProps: SxProps = {
-  m: 2,
-  flex: '0 1 100%',
-};
-
-export const crudDataGridGridsSxProps: SxProps = {
-  flex: '0 1 100%',
+  flex: '0 1 60%',
+  borderRadius: 1
 };
 
 export const crudHomeTextStyles: SxProps = {
-  ...inverseColors,
   flex: 1,
-  textAlign: 'center',
+  textAlign: 'center'
+};
+
+export const searchBoxCardSxProps: SxProps = {
+  display: 'flex',
+  borderRadius: 1,
+  width: '60vw'
+};
+
+export const crudSearchCloseButtonBoxSxProps: SxProps = {
+  flex: 1,
+  display: 'flex',
+  alignItems: 'flex-end',
+  justifyContent: 'flex-end',
+  height: '100%'
+};
+
+export const searchBoxResultsWrapperSxProps: SxProps = {
+  display: 'flex',
+  flexDirection: 'column',
+  flexWrap: 'wrap',
+  maxHeight: '70vh'
 };
 
 export const AddEntryModalStyle: SxProps = {
@@ -40,14 +56,14 @@ export const AddEntryModalStyle: SxProps = {
   maxHeight: 'fit-content',
   border: '7.5px solid purple',
   boxShadow: 24,
-  borderRadius: 1,
+  borderRadius: 1
 };
 
 export const crudAppWrapperStyles: SxProps = {
   width: '90vw',
   minHeight: '30vh',
   height: 'fit-content',
-  borderRadius: 1,
+  borderRadius: 1
 };
 
 export const crudAddButtonStyles: SxProps = { m: 1, flex: '1 0 30%', fontSize: '1rem' };
@@ -59,20 +75,23 @@ export const dataGridStyleUpdate: SxProps = {
   fontSize: '.875rem',
   fontFamily: 'monospace',
   '& .MuiDataGrid-columnHeader': {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFFFF'
   },
   '& .MuiDataGrid-scrollbarFiller--header': {
-    backgroundColor: 'white',
+    backgroundColor: 'white'
   },
   '& .MuiToolbar-root': {
-    color: '#1f1f1f',
+    color: '#1f1f1f'
   },
   '& .MuiTablePagination-selectLabel': {
     fontSize: '1rem',
-    fontFamily: 'Mono',
+    fontFamily: 'Mono'
   },
   '& .MuiTablePagination-displayedRows': {
     fontSize: '1rem',
-    fontFamily: 'Mono',
+    fontFamily: 'Mono'
   },
+  '& .MuiDataGrid-columnHeaderTitle': {
+    fontSize: '.7rem'
+  }
 };

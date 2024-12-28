@@ -1,26 +1,38 @@
-import { Text, useScrollIntoView } from '@aklapper/react-shared';
+import { Text, useScrollIntoView, Waiting } from '@aklapper/react-shared';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import Toolbar from '@mui/material/Toolbar';
-import { lazy, useRef, useState, type JSX } from 'react';
+import { lazy, Suspense, useRef, useState, type JSX } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import CrudHome from '../../components/crud/crud-home';
-import { crudAppWrapperStyles, crudDataGridGridsSxProps, crudPaperSxProps } from '../../styles/crud-styles';
+import { crudAppWrapperStyles } from '../../styles/crud-styles';
 import {
   headerModalButtonStyles,
   modalButtonBoxStyles,
-  pagesButtonStyles,
   pagesTitlesBoxStyles,
   pagesTitleSx,
   pagesToolbarStyles,
   pagesWrapperStyles
 } from '../../styles/pages-styles';
 import { body, title } from '../static/crud-text';
+import ButtonGroup from '@mui/material/ButtonGroup';
+import waiting from '../../assets/swirly-dots-to-chrome.webp';
+import { Collapse } from '@mui/material';
 
 const Search = lazy(() => import('../../components/crud/search'));
+
+export type PaginationModel = {
+  pageSize: number;
+  page: number;
+};
+
+export type QueryOptions = {
+  cursor: number;
+  pageSize: number;
+  skip: number;
+};
 
 /**
  * This component renders the CRUD (Create, Read, Update, Delete) section of the application.
@@ -40,68 +52,112 @@ const Crud = (): JSX.Element => {
   return (
     <Box ref={divRef} component={'div'} key={'crud-wrapper'} id="crud-wrapper" sx={pagesWrapperStyles}>
       <Paper
-        elevation={24}
+        elevation={2}
         component={'div'}
         key={'crud-header-wrapper'}
         id="crud-header-wrapper"
-        sx={{ width: '60vw' }}
+        sx={{ width: '70vw' }}
       >
         <Box component={'section'} key={'crud-title-wrapper'} id="crud-title-wrapper" sx={pagesTitlesBoxStyles}>
           <Text component={'h3'} titleVariant="h3" titleText={title} sx={pagesTitleSx} />
         </Box>
-        <AppBar component={'div'} id="crud-navbar-wrapper" key={'crud-navbar-wrapper'} elevation={24} position="static">
-          <Toolbar component={'nav'} id="crud-navbar" key={'crud-navbar'} sx={pagesToolbarStyles}>
-            <Button
-              LinkComponent={'button'}
-              key={'crud-home-button'}
-              id="crud-home-button"
-              onClick={() => nav('/crud')}
-              sx={pagesButtonStyles}
-            >
-              Home
-            </Button>
-            <Button type="submit" variant="text" onClick={() => nav('artists')} sx={pagesButtonStyles}>
-              All Artists
-            </Button>
-            <Button type="submit" variant="text" onClick={() => nav('albums')} sx={pagesButtonStyles}>
-              All Albums
-            </Button>
-            <Button type="submit" variant="text" onClick={() => nav('add-entry')} sx={pagesButtonStyles}>
-              Add Entry
-            </Button>
-          </Toolbar>
-        </AppBar>
         <Container
           component={'div'}
-          key={'crud-header-text-wrapper'}
-          id="crud-header-text-wrapper"
-          sx={{ paddingY: 2 }}
+          id="crud-navbar-container"
+          key={'crud-navbar-container'}
+          maxWidth={false}
+          sx={{ paddingBottom: 2 }}
         >
-          <Text key={'crud-header-text'} id="crud-header-text" component={'p'} titleVariant="body1" titleText={body} />
-        </Container>
-        <Box key={'crud-search-button'} id={'crud-search-button'} sx={modalButtonBoxStyles}>
-          <Button color="secondary" variant="text" onClick={() => setOpen(!open)} sx={headerModalButtonStyles}>
-            {open ? 'Close' : 'Search'}
-          </Button>
-        </Box>
-
-        {open && <Search open={open} />}
-      </Paper>
-
-      <Box component={'div'} key={`crud-app-wrapper`} id={`crud-app-wrapper`} sx={crudAppWrapperStyles}>
-        <Paper key={'crud-paper-wrapper'} id="crud-paper-wrapper" sx={crudPaperSxProps}>
-          {pathname === '/crud' && <CrudHome />}
-          <Box
+          <AppBar
             component={'div'}
-            key={'data-grid-grids-wrapper'}
-            id="data-grid-grids-wrapper"
-            sx={crudDataGridGridsSxProps}
+            id="crud-navbar-wrapper"
+            key={'crud-navbar-wrapper'}
+            elevation={0}
+            position="static"
+            sx={{ borderRadius: 1 }}
           >
-            <Box key={'crud-outlet-wrapper'} id={'crud-outlet-wrapper'}>
-              <Outlet />
-            </Box>
-          </Box>
-        </Paper>
+            <Toolbar component={'nav'} id="crud-navbar" key={'crud-navbar'} sx={pagesToolbarStyles}>
+              <ButtonGroup
+                id="crud-navbar-button-group"
+                key={'crud-navbar-button-group'}
+                fullWidth={true}
+                color="inherit"
+              >
+                <Button
+                  LinkComponent={'button'}
+                  key={'crud-home-button'}
+                  id="crud-home-button"
+                  variant="text"
+                  color="inherit"
+                  onClick={() => nav('/crud')}
+                >
+                  Home
+                </Button>
+                <Button
+                  LinkComponent={'button'}
+                  key={'crud-artists-button'}
+                  id="crud-artists-button"
+                  type="submit"
+                  variant="text"
+                  color="inherit"
+                  onClick={() => nav('artists')}
+                >
+                  All Artists
+                </Button>
+                <Button
+                  LinkComponent={'button'}
+                  key={'crud-albums-button'}
+                  id="crud-albums-button"
+                  type="submit"
+                  variant="text"
+                  color="inherit"
+                  onClick={() => nav('albums')}
+                >
+                  All Albums
+                </Button>
+                <Button
+                  LinkComponent={'button'}
+                  key={'crud-add-entry-button'}
+                  id="crud-add-entry-button"
+                  type="submit"
+                  variant="text"
+                  color="inherit"
+                  onClick={() => nav('add-entry')}
+                >
+                  Add Entry
+                </Button>
+              </ButtonGroup>
+            </Toolbar>
+          </AppBar>
+        </Container>
+        <Collapse in={pathname === '/crud'}>
+          <Container
+            component={'div'}
+            key={'crud-header-text-wrapper'}
+            id="crud-header-text-wrapper"
+            maxWidth={false}
+            sx={{ paddingY: 2 }}
+          >
+            <Text
+              key={'crud-header-text'}
+              id="crud-header-text"
+              component={'p'}
+              titleVariant="body1"
+              titleText={body}
+            />
+          </Container>
+        </Collapse>
+        <Box key={'crud-search-button'} id={'crud-search-button'} sx={modalButtonBoxStyles}>
+          {!open && (
+            <Button color="secondary" variant="text" onClick={() => setOpen(!open)} sx={headerModalButtonStyles}>
+              {'Search'}
+            </Button>
+          )}
+        </Box>
+      </Paper>
+      <Suspense fallback={<Waiting src={waiting} />}>{open && <Search setOpen={setOpen} />}</Suspense>
+      <Box component={'div'} key={`crud-app-wrapper`} id={`crud-app-wrapper`} sx={crudAppWrapperStyles}>
+        <Outlet />
       </Box>
     </Box>
   );
