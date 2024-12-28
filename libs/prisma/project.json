@@ -16,7 +16,7 @@
       "options": {
         "main": "libs/prisma/src/index.ts",
         "command": "tsc --build tsconfig.lib.json --pretty --verbose ",
-        "outputPath": "<workspaceRoot>/dist/libs/prisma",
+        "outputPath": "dist/libs/prisma",
         "tsConfig": "libs/prisma/tsconfig.lib.json"
       }
     }
