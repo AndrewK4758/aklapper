@@ -8,10 +8,9 @@
     "deploy": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "./apps/portfolio/portfolio",
         "commands": [
           {
-            "command": "gcloud app deploy website.yaml --quiet"
+            "command": "gcloud app deploy website.yaml --quiet --verbosity=debug"
           }
         ]
       }

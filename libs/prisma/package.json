@@ -4,9 +4,9 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./src/index.d.ts",
-      "import": "./index.js"
+      "types": "./src/index.d.ts"
     }
   },
-  "type": "module"
+  "type": "module",
+  "dependencies": {}
 }

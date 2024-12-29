@@ -42,6 +42,13 @@
           "buildTarget": "vertex-api:build:production"
         }
       }
+    },
+    "docker-build": {
+      "dependsOn": ["build"],
+      "command": "docker build -f apis/vertex/vertex-api/Dockerfile . -t us-central1-docker.pkg.dev/games-424800/portfolio/vertex-api"
+    },
+    "docker-push": {
+      "command": "docker push us-central1-docker.pkg.dev/games-424800/portfolio/vertex-api"
     }
   }
 }

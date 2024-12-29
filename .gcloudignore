@@ -28,23 +28,27 @@
 
 # Node.js dependencies:
 
-node_modules/**
-.github/**
-.nx/**
-coverage/**
+node_modules
+.github
+.nx
+coverage
 .env
-*/env/**
+env
 
-.vscode/**
-**/tokens/**
-**/secrets/**
-.cache/**
-apis/**
-apps/wdg-agents/**
-apps/local-model/**
-apps/games-ui/**
-apps/data-ui/**
-reports/**
-tmp/**
-pnpm-lock.yaml
+apis
+libs
+wdg-agents
+local-model
+
+.vscode
+tokens
+secrets
+.cache
+
+reports
+tmp
 .tool-versions
+!dist
+!apps
+!node_modules/.prisma
+!node_modules/@prisma/client

@@ -9,8 +9,7 @@ import { useOutletContext } from 'react-router-dom';
 import * as Yup from 'yup';
 import { WebSocketContext, WebSocketContextType } from '../../../contexts/websocket-context';
 import type { OutletContextProps } from '../../../pages/gen-ai/gen-ai';
-import { topLevelModeStyle } from '../../../styles/gen-ai-styles';
-import { labelSx, textInputSx } from '../../../styles/gen-ai-styles';
+import { labelSx, textInputSx, topLevelModeStyle } from '../../../styles/gen-ai-styles';
 import ChatInput from '../chat-input/chat-input';
 import useGenAiWebsockets from '../../../hooks/useGenAiWebsockets';
 

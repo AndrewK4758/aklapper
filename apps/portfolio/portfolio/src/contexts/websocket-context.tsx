@@ -23,12 +23,13 @@ interface WebSocketContextProviderProps {
  */
 
 export const WebSocketContextProvider = ({ children }: WebSocketContextProviderProps): JSX.Element => {
-  const clientSocket = new ClientSocket(import.meta.env.VITE_WS_SERVER_URL_VERTEX, {
+  const clientSocket = new ClientSocket(import.meta.env.VITE_VERTEX_WS_URL, {
     autoConnect: false,
     reconnectionAttempts: 10,
     reconnectionDelay: 2500,
     withCredentials: false,
-    transports: ['polling', 'websocket'],
+    secure: true,
+    transports: ['polling', 'websocket', 'webtransport']
   });
   const socketRef = useRef<Socket>(clientSocket.clientIo);
   const socket = socketRef.current;

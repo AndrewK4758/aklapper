@@ -9,17 +9,19 @@ env_variables:
   NODE_ENV: 'production'
 
 handlers:
-  - url: /(.*\.(js|css|yaml|png|jpg|jpeg|gif|svg|ico|webp|json|xml|txt|map|woff|woff2|ttf|eot|pdf|md)$)
-    static_files: ../../../dist/apps/portfolio\1
-    upload: dist/(.*)
+  - url: /dist/apps/portfolio
+    static_dir: dist/apps/portfolio
     secure: always
     http_headers:
       Access-Control-Allow-Origin: '*'
       Access-Control-Expose-Headers: '*'
+  - url: /(.*\..*)
+    static_files: dist/apps/portfolio/\1
+    upload: dist/apps/portfolio/(.*)
 
   - url: /.*
-    static_files: ../../../dist/apps/portfolio/index.html
-    upload: ../../../dist/apps/portfolio/index.html
+    static_files: dist/apps/portfolio/index.html
+    upload: dist/apps/portfolio/index.html
     secure: always
     http_headers:
       Access-Control-Allow-Origin: '*'

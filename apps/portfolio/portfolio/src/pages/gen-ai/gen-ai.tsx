@@ -37,6 +37,7 @@ import {
   pagesWrapperStyles
 } from '../../styles/pages-styles';
 import { body, title } from '../static/gen-ai-text';
+import waiting from '../../assets/swirly-dots-to-chrome.webp';
 
 const PromptBuilder = lazy(() => import('../../components/gen-ai/prompt-builder/prompt-builder'));
 
@@ -203,11 +204,11 @@ const GenAiHome = (): JSX.Element => {
           maxHeight={'350px'}
           flex={'0 1 40%'}
         >
-          <Waiting src={'./assets/swirly-dots-to-chrome.webp'} />
+          <Waiting src={waiting} />
         </Box>
       </Modal>
 
-      {promptResponse.length ? (
+      {promptResponse.length > 0 ? (
         <Box
           component={'div'}
           key={'gen-ai-response-wrapper'}

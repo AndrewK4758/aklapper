@@ -4,8 +4,7 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./src/index.d.ts",
-      "import": "./index.js"
+      "types": "./src/index.d.ts"
     }
   },
   "dependencies": {},

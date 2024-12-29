@@ -12,6 +12,7 @@ import { enUS } from '@mui/x-date-pickers/locales';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider/LocalizationProvider';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { type Dispatch, lazy, type SetStateAction, Suspense, useState } from 'react';
+import waiting from '../../assets/swirly-dots-to-chrome.webp';
 import GoogleUserContextProvider from '../../contexts/contact-context';
 import { fullSizeBlock } from '../../styles/pages-styles';
 import { flexColumnStyles } from '../../styles/prompt-builder-styles';
@@ -118,7 +119,7 @@ const EmailDialog = ({ open, setOpen }: EmailDialogProps) => {
                 data-testid="calendar-and-email-section"
                 sx={{ ...flexColumnStyles, flex: 4 }}
               >
-                <Suspense fallback={<Waiting src={'/swirly-dots-to-chrome.webp'} />}>
+                <Suspense fallback={<Waiting src={waiting} />}>
                   {tab === 0 && <GoogleCalendar setOpen={setOpen} />}
                   {tab === 1 && <EmailForm setOpen={setOpen} />}
                 </Suspense>
