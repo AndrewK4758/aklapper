@@ -6,24 +6,25 @@ import Header from '../src/components/header/header';
 let baseComponent: RenderResult;
 
 describe('Test Header component', () => {
-  beforeEach(() => {
-    baseComponent = render(
-      <BrowserRouter>
-        <Header />
-      </BrowserRouter>
-    );
-
-    const contactMenuButton = baseComponent.getByTestId('contact-menu-button');
+  beforeEach(async () => {
+    act(() => {
+      baseComponent = render(
+        <BrowserRouter>
+          <Header />
+        </BrowserRouter>
+      );
+    });
+    const contactMenuButton = await baseComponent.findByTestId('contact-menu-button');
     fireEvent.click(contactMenuButton);
   });
 
-  it('Should test and pass all of the icon buttons', () => {
-    const github = baseComponent.getByTestId('github-icon');
-    const facebook = baseComponent.getByTestId('facebook-icon');
-    const linkedin = baseComponent.getByTestId('linkedin-icon');
-    const huggingFace = baseComponent.getByTestId('hugging-face-icon');
-    const x = baseComponent.getByTestId('x-icon');
-    const discord = baseComponent.getByTestId('discord-icon');
+  it('Should test and pass all of the icon buttons', async () => {
+    const github = await baseComponent.findByTestId('github-icon');
+    const facebook = await baseComponent.findByTestId('facebook-icon');
+    const linkedin = await baseComponent.findByTestId('linkedin-icon');
+    const huggingFace = await baseComponent.findByTestId('hugging-face-icon');
+    const x = await baseComponent.findByTestId('x-icon');
+    const discord = await baseComponent.findByTestId('discord-icon');
 
     expect(github).toHaveAttribute('href', 'https://github.com/AndrewK4758');
     expect(facebook).toHaveAttribute('href', 'https://www.facebook.com/AKlapper47');
@@ -34,17 +35,17 @@ describe('Test Header component', () => {
   });
 
   it('Should test the email dialog opening', async () => {
-    const emailButton = baseComponent.getByTestId('email-icon');
+    const emailButton = await baseComponent.findByTestId('email-icon');
     await act(async () => {
-      emailButton.click();
+      await emailButton.click();
     });
 
     expect(document.getElementById('email-dialog')).toBeInTheDocument();
 
-    const tab1 = baseComponent.getByTestId('appointment-request-tab');
-    const tab2 = baseComponent.getByTestId('email-me-tab');
+    const tab1 = await baseComponent.findByTestId('appointment-request-tab');
+    const tab2 = await baseComponent.findByTestId('email-me-tab');
 
-    expect(screen.getByRole('tab', { selected: true })).toEqual(tab1);
-    expect(screen.getByRole('tab', { selected: false })).toEqual(tab2);
+    expect(await screen.findByRole('tab', { selected: true })).toEqual(tab1);
+    expect(await screen.findByRole('tab', { selected: false })).toEqual(tab2);
   });
 });

@@ -4,11 +4,9 @@ import type { FC, JSX } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import routes from '../routes/routes';
 import Theme from '../styles/theme';
-// import createEmotionCache from '../contexts/emotion-cache.tsx';
-// import { CacheProvider } from '@emotion/react';
 
 export const router = createBrowserRouter(routes);
-// const cache = createEmotionCache();
+
 /**
  * This is the root component of the application.
  * It provides the necessary context providers for styling, date localization, and Google OAuth.
