@@ -1,4 +1,4 @@
-name: My Portfolio CI
+name: aklapper CI
 
 on:
   push:
@@ -11,10 +11,64 @@ permissions:
   contents: read
 
 env:
-  github_action_ci: ${{ secrets.NX_CLOUD_TOKEN }}
+  # GCP Project Id
+  PROJECT_ID: games-424800
+  # GCP Project Region
+  REGION: us-central1
+  # GCP Artifact Registry Repo name
+  GAR_REPO: portfolio
+  #NX Cloud Auth Token
+  NX_CLOUD_TOKEN: ${{ secrets.NX_CLOUD_TOKEN }}
+
+# https://iam.googleapis.com/projects/120904484903/locations/global/workloadIdentityPools/aklapper-pool/providers/portfolio-ci
+
+# assertion.sub
 
 jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.cache/poetry
+            ~/.pnpm-store
+            node_modules
+            .venv
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install pnpm Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
+
+      - name: Setup Python Version for wdg-agents
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12.8
+
+      - name: Install wdg-agents
+        run: pnpx nx install wdg-agents
+
+      - name: Generate Prisma Client
+        run: pnpm generate
   lint:
+    needs: ['setup']
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,35 +85,48 @@ jobs:
           node-version: 23
           cache: pnpm
 
-      # Install Dependencies
-      - run: pnpm install --frozen-lockfile
-
-      # Add Nx Cloud Build Cache
-      - uses: nrwl/nx-set-shas@v4
-
-        # Install Poetry for wdg-agents
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+      # Use cached dependencies
+      - name: Cache dependencies
+        uses: actions/cache@v3
         with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
+          path: |
+            ~/.cache/pip
+            ~/.cache/poetry
+            ~/.pnpm-store
+            node_modules
+            .venv
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
-      # Setup Python Version for wdg-agents
-      - name: Setup Python Version for wdg-agents
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.12.8
+      # # Install Dependencies
+      # - run: pnpm install --frozen-lockfile
 
-      # Install Python app wdg-agents to pass lint
-      - name: Install wdg-agents
-        run: pnpx nx install wdg-agents
+      # # Add Nx Cloud Build Cache
+      # - uses: nrwl/nx-set-shas@v4
+
+      #   # Install Poetry for wdg-agents
+      # - name: Install Poetry
+      #   uses: snok/install-poetry@v1
+      #   with:
+      #     virtualenvs-create: true
+      #     virtualenvs-in-project: true
+      #     installer-parallel: true
+
+      # # Setup Python Version for wdg-agents
+      # - name: Setup Python Version for wdg-agents
+      #   uses: actions/setup-python@v5
+      #   with:
+      #     python-version: 3.12.8
+
+      # # Install Python app wdg-agents to pass lint
+      # - name: Install wdg-agents
+      #   run: pnpx nx install wdg-agents
 
       # Lint all projects
       - name: Lint all projects
         run: pnpx nx affected -t lint
 
   test:
+    needs: ['setup']
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -76,33 +143,45 @@ jobs:
           node-version: 23
           cache: pnpm
 
-      # Install Dependencies
-      - run: pnpm install --frozen-lockfile
+      # Use cached dependencies
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.cache/poetry
+            ~/.pnpm-store
+            node_modules
+            .venv
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       # Add Nx Cloud Build Cache
       - uses: nrwl/nx-set-shas@v4
 
-      # Install Poetry for wdg-agents
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
+      # # Install Dependencies
+      # - run: pnpm install --frozen-lockfile
 
-      # Setup Python Version for wdg-agents
-      - name: Setup Python Version for wdg-agents
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.12.8
+      # # Install Poetry for wdg-agents
+      # - name: Install Poetry
+      #   uses: snok/install-poetry@v1
+      #   with:
+      #     virtualenvs-create: true
+      #     virtualenvs-in-project: true
+      #     installer-parallel: true
 
-      # Install Python app wdg-agents to pass lint and test
-      - name: Install wdg-agents
-        run: pnpx nx install wdg-agents
+      # # Setup Python Version for wdg-agents
+      # - name: Setup Python Version for wdg-agents
+      #   uses: actions/setup-python@v5
+      #   with:
+      #     python-version: 3.12.8
 
-      # Create prisma client for unit tests
-      - name: Generate Prisma Client
-        run: pnpm generate
+      # # Install Python app wdg-agents to pass lint and test
+      # - name: Install wdg-agents
+      #   run: pnpx nx install wdg-agents
+
+      # # Create prisma client for unit tests
+      # - name: Generate Prisma Client
+      #   run: pnpm generate
 
       # Build Docker Container for API Unit Tests
       - name: Build Docker Container
@@ -125,8 +204,8 @@ jobs:
         run: docker compose -f ./docker-compose.yaml down
 
   build_and_typecheck:
-    runs-on: ubuntu-latest
     needs: ['lint', 'test']
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -142,29 +221,41 @@ jobs:
           node-version: 23
           cache: pnpm
 
-      # Install Dependencies
-      - run: pnpm install --frozen-lockfile
+      # Use cached dependencies
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.cache/poetry
+            ~/.pnpm-store
+            node_modules
+            .venv
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       # Add Nx Cloud Build Cache
       - uses: nrwl/nx-set-shas@v4
 
-      # Install Poetry for wdg-agents
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
+      # # Install Dependencies
+      # - run: pnpm install --frozen-lockfile
+      #
+      # # Install Poetry for wdg-agents
+      # - name: Install Poetry
+      #   uses: snok/install-poetry@v1
+      #   with:
+      #     virtualenvs-create: true
+      #     virtualenvs-in-project: true
+      #     installer-parallel: true
 
-      # Setup Python Version for wdg-agents
-      - name: Setup Python Version for wdg-agents
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.12.8
+      # # Setup Python Version for wdg-agents
+      # - name: Setup Python Version for wdg-agents
+      #   uses: actions/setup-python@v5
+      #   with:
+      #     python-version: 3.12.8
 
-      # Create prisma client for build
-      - name: Generate Prisma Client
-        run: pnpm generate
+      # # Create prisma client for build
+      # - name: Generate Prisma Client
+      #   run: pnpm generate
 
       #Build all projects
       - name: Build all Projects
@@ -175,3 +266,121 @@ jobs:
       #Typecheck all projects
       - name: Typecheck all Projects
         run: pnpx nx affected -t typecheck
+
+  # Deploy to CD Pipleline with GCP
+  deploy:
+    needs: ['build_and_typecheck']
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      # Cache node_modules
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 23
+          cache: pnpm
+
+      # Use cached dependencies
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.cache/poetry
+            ~/.pnpm-store
+            node_modules
+            .venv
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      # # Install Dependencies
+      # - run: pnpm install --frozen-lockfile
+
+      # Add Nx Cloud Build Cache
+      - uses: nrwl/nx-set-shas@v4
+
+      # Decode GCP Service Key Credentials
+      - name: Decode GCP Service Key Credentials
+        run: |
+          echo "${{ secrets.GCP_SA_CREDENTIALS_JSON }}" | base64 --decode > ${HOME}/gcloud-sa-key.json
+          gcloud auth activate-service-account --key-file=${HOME}/gcloud-sa-key.json
+          gcloud config set project ${{ env.PROJECT_ID }}
+
+      # Configure Docker with GCP
+      - name: Configure Docker
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      # # Create prisma client for build
+      # - name: Generate Prisma Client
+      #   run: pnpm generate
+
+      #Build all projects
+      - name: Build all Projects
+        env:
+          NODE_ENV: production
+        run: pnpx nx run-many -t build
+
+      # Build all API's Docker Images for GCP Cloud Run Deployment
+      - name: Build all API Docker Images &pPush all API Docker Images to GCP Artifact Registery
+        env:
+          PROJECT_ID: ${{ env.PROJECT_ID }}
+          REGION: ${{ env.REGION }}
+          GAR_REPO: ${{ env.GAR_REPO }}
+        run: |
+          pnpx nx docker-build crud-api  
+          pnpx nx docker-push crud-api 
+          pnpx nx docker-build games-api 
+          pnpx nx docker-push games-api 
+          pnpx nx docker-build portfolio-api 
+          pnpx nx docker-push portfolio-api 
+          pnpx nx docker-build vertex-api
+          pnpx nx docker-push vertex-api
+
+      # Deploy all APIs to Cloud Run
+      - name: Deploy APIs to Cloud Run
+        run: |
+          gcloud run deploy crud-api \
+            --image us-central1-docker.pkg.dev/games-424800/portfolio/crud-api:latest \
+            --region us-central1 \
+            --platform managed \
+            --max-instances 1 \
+            --port 4000 \ \
+            --no-traffic
+
+          gcloud run deploy games-api \
+            --image us-central1-docker.pkg.dev/games-424800/portfolio/games-api:latest \
+            --region us-central1 \
+            --platform managed \
+            --max-instances 1 \
+            --port 3000 \
+            --no-traffic
+
+          gcloud run deploy portfolio-api \
+            --image us-central1-docker.pkg.dev/games-424800/portfolio/portfolio-api:latest \
+            --region us-central1 \
+            --platform managed \
+            --max-instances 1 \
+            --port 4758 \
+            --no-traffic
+
+          gcloud run deploy vertex-api \
+            --image us-central1-docker.pkg.dev/games-424800/portfolio/vertex-api:latest \
+            --region us-central1 \
+            --platform managed \
+            --max-instances 1 \
+            --port 5000 \
+            --no-traffic
+
+      # Migrate traffic to new revisions if health checks pass
+      - name: Migrate traffic to new revisions
+        run: |
+          gcloud run services update-traffic crud-api --to-latest --region us-central1
+          gcloud run services update-traffic games-api --to-latest --region us-central1
+          gcloud run services update-traffic portfolio-api --to-latest --region us-central1
+          gcloud run services update-traffic vertex-api --to-latest --region us-central1

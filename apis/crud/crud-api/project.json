@@ -44,10 +44,10 @@
     },
     "docker-build": {
       "dependsOn": ["build"],
-      "command": "docker build -t us-central1-docker.pkg.dev/games-424800/portfolio/crud-api -f apis/crud/crud-api/Dockerfile . --label crud-api"
+      "command": "docker build -t us-central1-docker.pkg.dev/games-424800/portfolio/crud-api:latest -f apis/crud/crud-api/Dockerfile . --label crud-api"
     },
     "docker-push": {
-      "command": "docker push us-central1-docker.pkg.dev/games-424800/portfolio/crud-api"
+      "command": "docker push us-central1-docker.pkg.dev/games-424800/portfolio/crud-api:latest"
     }
   }
 }

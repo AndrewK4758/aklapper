@@ -59,3 +59,5 @@ vitest.config.*.timestamp*
 .env
 env/
 secrets
+# Ignore generated credentials from google-github-actions/auth
+gha-creds-*.json

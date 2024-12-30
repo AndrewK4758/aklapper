@@ -35,6 +35,7 @@ export default defineConfig({
   build: {
     outDir: `../../../dist/apps/portfolio`,
     manifest: true,
+    minify: true,
     sourcemap: true,
     emptyOutDir: true,
     reportCompressedSize: true,
@@ -45,7 +46,7 @@ export default defineConfig({
       perf: true,
       output: {
         esModule: true,
-        format: 'es',
+        format: 'esm',
         generatedCode: {
           arrowFunctions: true,
           constBindings: true,

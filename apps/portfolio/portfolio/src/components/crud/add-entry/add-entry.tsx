@@ -12,7 +12,8 @@ import StepButton from '@mui/material/StepButton';
 import Stepper from '@mui/material/Stepper';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import { album, artist, Prisma, track } from '@prisma/client';
+import type { album, artist, track } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/index-browser.js';
 import { useFormik } from 'formik';
 import { FocusEvent, Fragment, useState, type CSSProperties, type JSX } from 'react';
 import { Form, useLocation, useNavigate } from 'react-router-dom';
@@ -27,10 +28,10 @@ import Theme from '../../../styles/theme';
 
 const initialValues: NewEntry = {
   artist: {
-    name: '',
+    name: ''
   },
   album: {
-    title: '',
+    title: ''
   },
   track: {
     name: '',
@@ -39,16 +40,16 @@ const initialValues: NewEntry = {
     milliseconds: 0,
     media_type_id: 0,
     genre_id: 0,
-    unit_price: new Prisma.Decimal(0.0),
-  },
+    unit_price: new Decimal(0.0)
+  }
 };
 
 const artistVal = Yup.object({
-  name: Yup.string().max(200, 'Must be less than 200 characters').required('Required'),
+  name: Yup.string().max(200, 'Must be less than 200 characters').required('Required')
 });
 
 const albumVal = Yup.object({
-  title: Yup.string().max(160, 'Must be less than 160 characters').required('Required'),
+  title: Yup.string().max(160, 'Must be less than 160 characters').required('Required')
 });
 
 const trackVal = Yup.object({
@@ -65,13 +66,13 @@ const trackVal = Yup.object({
     .required('Enter length of track in milliseconds'),
   media_type_id: Yup.number().required('Enter media type number').positive('Enter media type number'),
   genre_id: Yup.number().required('Enter genre ID number').positive('Enter genre ID number'),
-  unit_price: Yup.number().required('Enter unit price in form 0.00').positive('Enter unit price in form 0.00'),
+  unit_price: Yup.number().required('Enter unit price in form 0.00').positive('Enter unit price in form 0.00')
 });
 
 const validationSchema = Yup.object({
   artist: artistVal,
   album: albumVal,
-  track: trackVal,
+  track: trackVal
 });
 
 export type NewEntry = {
@@ -105,7 +106,7 @@ const AddEntry = (): JSX.Element => {
     validationSchema: validationSchema,
     onSubmit: async (values, { setSubmitting }) => await handleSubmitNewEntry(values, setSubmitting, nav),
     onReset: () => handleReset(),
-    validateOnMount: false,
+    validateOnMount: false
   });
 
   formik.handleBlur = (e: FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>) => {
@@ -154,7 +155,7 @@ const AddEntry = (): JSX.Element => {
   const handleComplete = () => {
     setCompleted({
       ...completed,
-      [activeStep]: true,
+      [activeStep]: true
     });
     handleNext();
   };
