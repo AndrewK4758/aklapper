@@ -101,13 +101,17 @@ jobs:
             .venv
           key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
-      # Add Poetry Path
-      - name: Add Poetry to PATH
-        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+      # Install Poetry for Python venv managment
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
 
       # Lint all projects
       - name: Lint all projects
-        run: pnpx nx affected -t lint
+        run: pnpx nx run-many -t lint
 
   test:
     needs: ['setup']
@@ -139,9 +143,13 @@ jobs:
             .venv
           key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
-      # Add Poetry Path
-      - name: Add Poetry to PATH
-        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+      # Install Poetry for Python venv managment
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
 
       # Add Nx Cloud Build Cache
       - uses: nrwl/nx-set-shas@v4
@@ -159,7 +167,7 @@ jobs:
         env:
           NODE_ENV: testing
           DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
-        run: pnpx nx affected -t test
+        run: pnpx nx run-many -t test
 
       # Stop Docker Container
       - name: Stop Docker Container
@@ -196,9 +204,13 @@ jobs:
             .venv
           key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
-      # Add Poetry Path
-      - name: Add Poetry to PATH
-        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+      # Install Poetry for Python venv managment
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
 
       # Add Nx Cloud Build Cache
       - uses: nrwl/nx-set-shas@v4
@@ -207,13 +219,13 @@ jobs:
       - name: Build all Projects
         env:
           NODE_ENV: production
-        run: pnpx nx affected -t build
+        run: pnpx nx run-many -t build
 
       #Typecheck all projects
       - name: Typecheck all Projects
         env:
           NODE_ENV: production
-        run: pnpx nx affected -t typecheck
+        run: pnpx nx run-many -t typecheck
 
   # Deploy to CD Pipleline with GCP
   deploy:
@@ -268,19 +280,20 @@ jobs:
           GAR_REPO: ${{ env.GAR_REPO }}
           NODE_ENV: production
         run: |
-          pnpx nx docker-build crud-api  
-          pnpx nx docker-build games-api 
-          pnpx nx docker-build portfolio-api 
-          pnpx nx docker-build vertex-api
+          pnpx nx run-many -t docker-build
+        #crud-api
+        #pnpx nx docker-build games-api
+        #pnpx nx docker-build portfolio-api
+        #pnpx nx docker-build vertex-api
 
       # Push all API's Docker Images for GCP Cloud Run Deployment
       - name: Push all API Docker Images to GCP Artifact Registery
         run: |
-
-          pnpx nx docker-push crud-api 
-          pnpx nx docker-push games-api 
-          pnpx nx docker-push portfolio-api 
-          pnpx nx docker-push vertex-api
+          pnpx nx run-many -t docker-push
+        #crud-api
+        #pnpx nx docker-push games-api
+        #pnpx nx docker-push portfolio-api
+        #pnpx nx docker-push vertex-api
 
       # Deploy all APIs to Cloud Run
       - name: Deploy APIs to Cloud Run
