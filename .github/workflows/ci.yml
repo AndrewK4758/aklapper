@@ -20,10 +20,6 @@ env:
   #NX Cloud Auth Token
   NX_CLOUD_TOKEN: ${{ secrets.NX_CLOUD_TOKEN }}
 
-# https://iam.googleapis.com/projects/120904484903/locations/global/workloadIdentityPools/aklapper-pool/providers/portfolio-ci
-
-# assertion.sub
-
 jobs:
   setup:
     runs-on: ubuntu-latest
@@ -36,6 +32,7 @@ jobs:
         with:
           version: 9
 
+      # Cache Dependencies for all jobs
       - name: Cache dependencies
         uses: actions/cache@v3
         with:
@@ -47,9 +44,11 @@ jobs:
             .venv
           key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
+      # Install Node / Js dependencies
       - name: Install pnpm Dependencies
         run: pnpm install --frozen-lockfile
 
+      # Install Poetry for Python venv managment
       - name: Install Poetry
         uses: snok/install-poetry@v1
         with:
@@ -57,6 +56,7 @@ jobs:
           virtualenvs-in-project: true
           installer-parallel: true
 
+      # Setup Python for wdg-agents
       - name: Setup Python Version for wdg-agents
         uses: actions/setup-python@v5
         with:
