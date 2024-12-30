@@ -248,6 +248,7 @@ jobs:
       # Build all API's Docker Images for GCP Cloud Run Deployment
       - name: Build all API Docker Images & Push all API Docker Images to GCP Artifact Registery
         env:
+          PG_AE_URL: ${{ secrets.PG_AE_URL }}
           PROJECT_ID: ${{ env.PROJECT_ID }}
           REGION: ${{ env.REGION }}
           GAR_REPO: ${{ env.GAR_REPO }}
@@ -285,6 +286,7 @@ jobs:
       - name: Deploy Portfolio to App Engine
         env:
           NODE_ENV: production
+          VITE_OAUTH_CLIENT_ID: ${{ secrets.VITE_OAUTH_CLIENT_ID }}
           VITE_CRUD_API_URL: ${{ secrets.VITE_CRUD_API_URL }}
           VITE_GAMES_API_URL: ${{ secrets.VITE_GAMES_API_URL }}
           VITE_PORTFOLIO_API_URL: ${{ secrets.VITE_PORTFOLIO_API_URL }}
