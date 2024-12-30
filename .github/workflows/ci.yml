@@ -218,20 +218,20 @@ jobs:
           node-version: 23
           cache: pnpm
 
-      # Use cached dependencies
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/pip
-            ~/.cache/poetry
-            ~/.pnpm-store
-            node_modules
-            **/.venv
-          key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+      # # Use cached dependencies
+      # - name: Cache dependencies
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: |
+      #       ~/.cache/pip
+      #       ~/.cache/poetry
+      #       ~/.pnpm-store
+      #       node_modules
+      #       .venv
+      #     key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
-      # # Install Dependencies
-      # - run: pnpm install --frozen-lockfile
+      # Install Dependencies
+      - run: pnpm install --frozen-lockfile
 
       # Add Nx Cloud Build Cache
       - uses: nrwl/nx-set-shas@v4
