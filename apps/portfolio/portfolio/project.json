@@ -13,7 +13,10 @@
           {
             "command": "gcloud app deploy website.yaml --quiet --verbosity=debug"
           }
-        ]
+        ],
+        "env": {
+          "NODE_ENV": "production"
+        }
       }
     }
   }
