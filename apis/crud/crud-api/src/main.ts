@@ -4,8 +4,11 @@ import { createServer } from 'http';
 import { join } from 'path';
 import Routes, { router } from './routes/routes';
 import { cwd } from 'process';
+import { configDotenv } from 'dotenv';
 
 const __dirname = join(cwd(), 'apis/crud/crud-api');
+
+configDotenv({ path: join(__dirname, '.env') });
 
 const app: Express = express();
 

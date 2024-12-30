@@ -21,12 +21,12 @@ import {
 import { pagesTitlesBoxStyles } from '../../styles/pages-styles';
 import { flexColumnStyles } from '../../styles/prompt-builder-styles';
 
-type InitVals = {
+type SearchValues = {
   artist: Partial<artist>[];
   album: Partial<album[]>;
 };
 
-const initVals: InitVals = {
+const initVals: SearchValues = {
   artist: [],
   album: []
 };
@@ -46,7 +46,7 @@ interface SearchProps {
  */
 
 const Search = ({ setOpen }: SearchProps): JSX.Element => {
-  const [artAlbVals, setArtVals] = useState(initVals);
+  const [artAlbVals, setArtVals] = useState<SearchValues>(initVals);
   const [searchParam, setSearchParam] = useState<string>('artist');
 
   return (
@@ -185,13 +185,13 @@ type SearchReturnType = {
  * It debounces the input change, fetches search results from the server, and updates the search results state.
  *
  * @param {ChangeEvent<HTMLInputElement | HTMLTextAreaElement>} e - The change event object.
- * @param {Dispatch<SetStateAction<InitVals>>} setArtVals - A function to update the search results state.
+ * @param {Dispatch<SetStateAction<SearchValues>>} setArtVals - A function to update the search results state.
  * @param {string} searchParam - The type of search to perform ('artist' or 'album').
  */
 
 const handleSearchParams = async (
   e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  setArtVals: Dispatch<SetStateAction<InitVals>>,
+  setArtVals: Dispatch<SetStateAction<SearchValues>>,
   searchParam: string
 ) => {
   const searchParams = e.target.value;
@@ -212,11 +212,11 @@ const baseURL = import.meta.env.VITE_CRUD_API_URL;
  * This function fetches search results from the server based on the search query and type.
  *
  * @param {string} search - The search query.
- * @param {string} type - The type of search to perform ('artist' or 'album').
- * @returns {Promise<any>} A promise that resolves with the search results.
+ * @param {artist | album} type - The type of search to perform ('artist' or 'album').
+ * @returns {Promise<SearchReturnType>} A promise that resolves with the search results.
  */
 
-const searchArtistsAndAlbums = async (search: string, type: string): Promise<SearchReturnType | null> => {
+const searchArtistsAndAlbums = async (search: string, type: string): Promise<SearchReturnType> => {
   try {
     const resp = await axios.get(`${baseURL}/search?search=${search}&type=${type}`, {
       headers: { 'Content-Type': 'text/plain' }
@@ -225,6 +225,6 @@ const searchArtistsAndAlbums = async (search: string, type: string): Promise<Sea
     return resp.data as SearchReturnType;
   } catch (error) {
     console.error(error);
-    return null;
+    return { artist: [], album: [] } as SearchReturnType;
   }
 };

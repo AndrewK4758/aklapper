@@ -68,7 +68,7 @@ jobs:
       - name: Generate Prisma Client
         env:
           NODE_ENV: production
-          PG_AE_URL: ${{ secrets.PG_AE_URL }}
+          DB_URL_PROD: ${{ secrets.DB_URL_PROD }}
         run: pnpm generate
 
   lint:
@@ -199,6 +199,8 @@ jobs:
 
       #Typecheck all projects
       - name: Typecheck all Projects
+        env:
+          NODE_ENV: production
         run: pnpx nx affected -t typecheck
 
   # Deploy to CD Pipleline with GCP
@@ -229,7 +231,7 @@ jobs:
       - name: Generate Prisma Client
         env:
           NODE_ENV: production
-          PG_AE_URL: ${{ secrets.PG_AE_URL }}
+          DB_URL_PROD: ${{ secrets.DB_URL_PROD }}
         run: pnpm generate
 
       # Add Nx Cloud Build Cache
@@ -246,41 +248,46 @@ jobs:
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
 
       # Build all API's Docker Images for GCP Cloud Run Deployment
-      - name: Build all API Docker Images & Push all API Docker Images to GCP Artifact Registery
+      - name: Build all API Docker Images for GCP Artifact Registery
         env:
-          PG_AE_URL: ${{ secrets.PG_AE_URL }}
+          DB_URL_PROD: ${{ secrets.DB_URL_PROD }}
           PROJECT_ID: ${{ env.PROJECT_ID }}
           REGION: ${{ env.REGION }}
           GAR_REPO: ${{ env.GAR_REPO }}
           NODE_ENV: production
         run: |
           pnpx nx docker-build crud-api  
-          pnpx nx docker-push crud-api 
           pnpx nx docker-build games-api 
-          pnpx nx docker-push games-api 
           pnpx nx docker-build portfolio-api 
-          pnpx nx docker-push portfolio-api 
           pnpx nx docker-build vertex-api
+
+      # Push all API's Docker Images for GCP Cloud Run Deployment
+      - name: Push all API Docker Images to GCP Artifact Registery
+        run: |
+
+          pnpx nx docker-push crud-api 
+          pnpx nx docker-push games-api 
+          pnpx nx docker-push portfolio-api 
           pnpx nx docker-push vertex-api
 
       # Deploy all APIs to Cloud Run
       - name: Deploy APIs to Cloud Run
         run: |
-          gcloud run deploy crud-api --image us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/crud-api:latest --max-instances 1 --port 4000 --region ${{env.REGION}} --platform managed --allow-unauthenticated --no-traffic --add-cloudsql-instances ${{ secrets.GCP_SQL_STRING }} --set-env-vars INSTANCE_CONNECTION_NAME=${{ secrets.GCP_SQL_STRING }} 
+          gcloud run deploy crud-api --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/crud-api:latest --region=${{env.REGION}} --platform=managed --max-instances=1 --port=4000 --allow-unauthenticated --no-traffic --add-cloudsql-instances=${{ secrets.GCP_SQL_STRING }} 
 
-          gcloud run deploy games-api --image us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/games-api:latest --region ${{env.REGION}} --platform managed --max-instances 1 --port 3000 --allow-unauthenticated --no-traffic
+          gcloud run deploy games-api --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/games-api:latest --region=${{env.REGION}} --platform=managed --max-instances=1 --port=3000 --allow-unauthenticated --no-traffic
 
-          gcloud run deploy portfolio-api --image us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/portfolio-api:latest --region ${{env.REGION}} --platform managed --max-instances 1 --port 4758 --allow-unauthenticated --no-traffic
+          gcloud run deploy portfolio-api --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/portfolio-api:latest --region=${{env.REGION}} --platform=managed --max-instances=1 --port=4758 --allow-unauthenticated --no-traffic
 
-          gcloud run deploy vertex-api --image us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/vertex-api:latest --region ${{env.REGION}} --platform managed --max-instances 1 --port 5000 --allow-unauthenticated --no-traffic
+          gcloud run deploy vertex-api --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/vertex-api:latest --region=${{env.REGION}} --platform=managed --max-instances=1 --port=5000 --allow-unauthenticated --no-traffic
 
       # Migrate traffic to new revisions if health checks pass
       - name: Migrate traffic to new revisions
         run: |
-          gcloud run services update-traffic crud-api --to-latest --region us-central1
-          gcloud run services update-traffic games-api --to-latest --region us-central1
-          gcloud run services update-traffic portfolio-api --to-latest --region us-central1
-          gcloud run services update-traffic vertex-api --to-latest --region us-central1
+          gcloud run services update-traffic crud-api --to-latest --region=us-central1
+          gcloud run services update-traffic games-api --to-latest --region=us-central1
+          gcloud run services update-traffic portfolio-api --to-latest --region=us-central1
+          gcloud run services update-traffic vertex-api --to-latest --region=us-central1
 
       # Deploy to Portfolio to App Engine
       - name: Deploy Portfolio to App Engine
