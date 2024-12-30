@@ -7,10 +7,10 @@ WORKDIR /api
 # Install pnpm
 RUN npm install -g pnpm
 
-COPY package.json .
+COPY package.json pnpm-lock.yaml ./
 
 # Install dependencies using pnpm
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 ENV NODE_ENV='production'
 

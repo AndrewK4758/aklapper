@@ -240,7 +240,7 @@ jobs:
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
 
       # Build all API's Docker Images for GCP Cloud Run Deployment
-      - name: Build all API Docker Images &pPush all API Docker Images to GCP Artifact Registery
+      - name: Build all API Docker Images & Push all API Docker Images to GCP Artifact Registery
         env:
           PROJECT_ID: ${{ env.PROJECT_ID }}
           REGION: ${{ env.REGION }}
