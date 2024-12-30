@@ -261,7 +261,7 @@ jobs:
       # Deploy all APIs to Cloud Run
       - name: Deploy APIs to Cloud Run
         run: |
-          gcloud run deploy crud-api --image us-central1-docker.pkg.dev/games-424800/portfolio/crud-api:latest --max-instances 1 --port 4000 --region ${{env.REGION}} --platform managed --allow-unauthenticated --no-traffic
+          gcloud run deploy crud-api --image us-central1-docker.pkg.dev/games-424800/portfolio/crud-api:latest --max-instances 1 --port 4000 --region ${{env.REGION}} --platform managed --allow-unauthenticated --no-traffic --set-cloudsql-instances=${{ secrets.GCP_SQL_STRING }}
 
           gcloud run deploy games-api --image us-central1-docker.pkg.dev/games-424800/portfolio/games-api:latest --region ${{env.REGION}} --platform managed --max-instances 1 --port 3000 --allow-unauthenticated --no-traffic
 
