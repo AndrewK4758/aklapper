@@ -1,15 +1,15 @@
 /// <reference types='vitest' />
+import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
+import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
+import * as path from 'path';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
-import * as path from 'path';
-import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
-import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
 
 export default defineConfig({
   root: __dirname,
   cacheDir: '../../../node_modules/.vite/libs/socket-io/client',
   plugins: [
-    nxViteTsPaths({ debug: true, mainFields: ['exports', '.', 'types', 'imports'] }),
+    nxViteTsPaths({ debug: true }),
     nxCopyAssetsPlugin(['*.md']),
     dts({
       entryRoot: 'src',
@@ -39,7 +39,7 @@ export default defineConfig({
       // Don't forget to update your package.json as well.
       formats: ['es']
     },
-    target: 'node23',
+    target: 'esnext',
     rollupOptions: {
       // External packages that should not be bundled into your library.
       external: [],
@@ -52,7 +52,7 @@ export default defineConfig({
   esbuild: {
     format: 'esm',
     color: true,
-    platform: 'node'
+    platform: 'browser'
   },
   logLevel: 'info'
 });

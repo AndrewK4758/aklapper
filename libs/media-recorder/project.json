@@ -14,7 +14,8 @@
         "outputPath": "dist/libs/media-recorder",
         "outputFileName": "index.js",
         "format": ["esm"],
-        "target": "node23",
+        "target": "esnext",
+        "platform": "browser",
         "sourcemap": true,
         "metafile": true,
         "assets": [
