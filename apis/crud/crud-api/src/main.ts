@@ -13,12 +13,12 @@ configDotenv({ path: join(__dirname, '.env') });
 const app: Express = express();
 
 export const corsOptions: CorsOptions = {
-  origin: '*',
+  origin: ['http://localhost:4700', 'https://andrew-k.us', 'https://www.andrew-k.us'],
   methods: '*',
   exposedHeaders: '*',
   optionsSuccessStatus: 204,
   allowedHeaders: '*',
-  credentials: false
+  credentials: true
 };
 
 export const httpServer = createServer(app);
@@ -31,7 +31,7 @@ app.use('/api/v1', router);
 
 new Routes();
 
-const port = process.env.PORT || 4000;
+const port = process.env.PORT ?? 4000;
 
 const server = app.listen(port, () => {
   console.log(`Listening at http://localhost:${port}/api/v1`);
