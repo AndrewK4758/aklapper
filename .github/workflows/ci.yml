@@ -98,30 +98,6 @@ jobs:
             .venv
           key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
-      # # Install Dependencies
-      # - run: pnpm install --frozen-lockfile
-
-      # # Add Nx Cloud Build Cache
-      # - uses: nrwl/nx-set-shas@v4
-
-      #   # Install Poetry for wdg-agents
-      # - name: Install Poetry
-      #   uses: snok/install-poetry@v1
-      #   with:
-      #     virtualenvs-create: true
-      #     virtualenvs-in-project: true
-      #     installer-parallel: true
-
-      # # Setup Python Version for wdg-agents
-      # - name: Setup Python Version for wdg-agents
-      #   uses: actions/setup-python@v5
-      #   with:
-      #     python-version: 3.12.8
-
-      # # Install Python app wdg-agents to pass lint
-      # - name: Install wdg-agents
-      #   run: pnpx nx install wdg-agents
-
       # Lint all projects
       - name: Lint all projects
         run: pnpx nx affected -t lint
@@ -158,31 +134,6 @@ jobs:
 
       # Add Nx Cloud Build Cache
       - uses: nrwl/nx-set-shas@v4
-
-      # # Install Dependencies
-      # - run: pnpm install --frozen-lockfile
-
-      # # Install Poetry for wdg-agents
-      # - name: Install Poetry
-      #   uses: snok/install-poetry@v1
-      #   with:
-      #     virtualenvs-create: true
-      #     virtualenvs-in-project: true
-      #     installer-parallel: true
-
-      # # Setup Python Version for wdg-agents
-      # - name: Setup Python Version for wdg-agents
-      #   uses: actions/setup-python@v5
-      #   with:
-      #     python-version: 3.12.8
-
-      # # Install Python app wdg-agents to pass lint and test
-      # - name: Install wdg-agents
-      #   run: pnpx nx install wdg-agents
-
-      # # Create prisma client for unit tests
-      # - name: Generate Prisma Client
-      #   run: pnpm generate
 
       # Build Docker Container for API Unit Tests
       - name: Build Docker Container
@@ -237,27 +188,6 @@ jobs:
       # Add Nx Cloud Build Cache
       - uses: nrwl/nx-set-shas@v4
 
-      # # Install Dependencies
-      # - run: pnpm install --frozen-lockfile
-      #
-      # # Install Poetry for wdg-agents
-      # - name: Install Poetry
-      #   uses: snok/install-poetry@v1
-      #   with:
-      #     virtualenvs-create: true
-      #     virtualenvs-in-project: true
-      #     installer-parallel: true
-
-      # # Setup Python Version for wdg-agents
-      # - name: Setup Python Version for wdg-agents
-      #   uses: actions/setup-python@v5
-      #   with:
-      #     python-version: 3.12.8
-
-      # # Create prisma client for build
-      # - name: Generate Prisma Client
-      #   run: pnpm generate
-
       #Build all projects
       - name: Build all Projects
         env:
@@ -297,7 +227,7 @@ jobs:
             ~/.cache/poetry
             ~/.pnpm-store
             node_modules
-            .venv
+            **/.venv
           key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       # # Install Dependencies
@@ -315,16 +245,6 @@ jobs:
       # Configure Docker with GCP
       - name: Configure Docker
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
-
-      # # Create prisma client for build
-      # - name: Generate Prisma Client
-      #   run: pnpm generate
-
-      #Build all projects
-      - name: Build all Projects
-        env:
-          NODE_ENV: production
-        run: pnpx nx run-many -t build --exclude wdg-agents
 
       # Build all API's Docker Images for GCP Cloud Run Deployment
       - name: Build all API Docker Images &pPush all API Docker Images to GCP Artifact Registery
@@ -384,3 +304,7 @@ jobs:
           gcloud run services update-traffic games-api --to-latest --region us-central1
           gcloud run services update-traffic portfolio-api --to-latest --region us-central1
           gcloud run services update-traffic vertex-api --to-latest --region us-central1
+
+      # Deploy to Portfolio to App Engine
+      - name: Deploy Portfolio to App Engine
+        run: pnpx nx deploy portfolio
