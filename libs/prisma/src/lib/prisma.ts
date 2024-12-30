@@ -12,8 +12,10 @@ const url = () => {
         return process.env['PG_AE_URL'];
       case 'testing':
         return process.env['DB_URL_TEST'];
-      default:
+      case 'development':
         return process.env['DB_URL_DEV'];
+      default:
+        return process.env['AG_AE_URL'];
     }
   } else return 'postgresql://postgres:postgres@localhost:5431/aklapper';
 };
