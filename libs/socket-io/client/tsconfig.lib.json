@@ -5,6 +5,7 @@
     "moduleResolution": "bundler",
     "outDir": "out-tsc",
     "rootDir": "./src",
+    "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
     "declarationDir": "../../../dist/libs/socket-io/client/src",
     "declaration": true,
     "types": ["node", "vite/client"]

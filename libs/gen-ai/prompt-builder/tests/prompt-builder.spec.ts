@@ -1,4 +1,4 @@
-import { parseInput } from '../src/lib/parser/parser';
+import { parseInput } from '../src/lib/parser';
 import { ResponseType } from '../src/types/prompt-input-data-types';
 
 describe('promptBuilder', () => {
@@ -10,7 +10,7 @@ describe('promptBuilder', () => {
     const xmlHeader = '<?xml version="1.0" encoding="UTF-8"?>';
 
     expect(output).toEqual(
-      `${xmlHeader}\n<root>\n  <objective>${objective}</objective>\n  <responseFormat>${ResponseType.TEXT}</responseFormat>\n</root>`,
+      `${xmlHeader}\n<root>\n  <objective>${objective}</objective>\n  <responseFormat>${ResponseType.TEXT}</responseFormat>\n</root>`
     );
   });
 });

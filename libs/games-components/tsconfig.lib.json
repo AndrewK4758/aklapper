@@ -3,8 +3,9 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "outDir": "./out-tsc",
+    "outDir": "out-tsc",
     "rootDir": "./src",
+    "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
     "declarationDir": "../../dist/libs/games-components/src",
     "declaration": true,
     "types": ["node", "vite/client"]

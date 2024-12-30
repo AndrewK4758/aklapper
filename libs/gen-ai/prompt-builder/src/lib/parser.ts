@@ -1,4 +1,4 @@
-import type { IPromptInputData } from '../../interfaces/prompt-input-data';
+import type { IPromptInputData } from '../interfaces/prompt-input-data';
 
 let xmlOutput = '<?xml version="1.0" encoding="UTF-8"?>';
 export const parseInput = (promptInput: IPromptInputData) => {
