@@ -306,11 +306,10 @@ jobs:
       - uses: nrwl/nx-set-shas@v4
 
       # Auth with GCP Service Key Credentials
-      - name: Auth with GCP Service Key Credentials
-        run: |
-          echo "${{ secrets.GCP_SA_CREDENTIALS_JSON }}" | base64 --decode > ${HOME}/gcloud-sa-key.json
-          gcloud auth activate-service-account --key-file=${HOME}/gcloud-sa-key.json
-          gcloud config set project ${{ env.PROJECT_ID }}
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_CREDENTIALS_JSON }}
 
       # Configure Docker with GCP
       - name: Configure Docker
