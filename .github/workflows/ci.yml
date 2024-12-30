@@ -308,7 +308,8 @@ jobs:
       # Auth with GCP Service Key Credentials
       - name: Auth with GCP Service Key Credentials
         run: |
-          gcloud auth activate-service-account --key-file=${{ secrets.GCP_SA_CREDENTIALS_JSON }}
+          echo "${{ secrets.GCP_SA_CREDENTIALS_JSON }}" | base64 --decode > ${HOME}/gcloud-sa-key.json
+          gcloud auth activate-service-account --key-file=${HOME}/gcloud-sa-key.json
           gcloud config set project ${{ env.PROJECT_ID }}
 
       # Configure Docker with GCP
