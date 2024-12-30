@@ -62,9 +62,6 @@ jobs:
         with:
           python-version: 3.12.8
 
-      - name: Install wdg-agents
-        run: pnpx nx install wdg-agents
-
       - name: Generate Prisma Client
         env:
           NODE_ENV: production
@@ -108,6 +105,10 @@ jobs:
           virtualenvs-create: true
           virtualenvs-in-project: true
           installer-parallel: true
+
+      # Install wdg-agents
+      - name: Install wdg-agents
+        run: pnpx nx install wdg-agents
 
       # Lint all projects
       - name: Lint all projects
@@ -161,6 +162,10 @@ jobs:
       # Start Docker Container for API Unit Tests
       - name: Start Docker Container
         run: docker compose -f ./docker-compose.yaml up ci-test -d
+
+      # Install wdg-agents
+      - name: Install wdg-agents
+        run: pnpx nx install wdg-agents
 
       # Test all projects
       - name: Test all projects
