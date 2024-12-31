@@ -13,7 +13,7 @@ configDotenv({ path: join(__dirname, '.env') });
 const app: Express = express();
 
 export const corsOptions: CorsOptions = {
-  origin: ['http://localhost:4700', 'https://andrew-k.us', 'https://www.andrew-k.us'],
+  origin: ['http://localhost:4700', 'http://localhost:4800', 'https://andrew-k.us', 'https://www.andrew-k.us'],
   methods: '*',
   exposedHeaders: '*',
   optionsSuccessStatus: 204,

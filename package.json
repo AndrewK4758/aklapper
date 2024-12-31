@@ -40,6 +40,7 @@
     "@nx/web": "20.3.0",
     "@nxlv/python": "20.3.0",
     "@playwright/test": "^1.49.1",
+    "@rollup/plugin-node-resolve": "^16.0.0",
     "@swc-node/register": "1.10.9",
     "@swc/cli": "0.5.2",
     "@swc/core": "1.10.4",

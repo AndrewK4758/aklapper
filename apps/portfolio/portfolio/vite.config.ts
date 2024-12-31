@@ -1,5 +1,6 @@
 import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
+import { nodeResolve } from '@rollup/plugin-node-resolve';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import dts from 'vite-plugin-dts';
@@ -52,7 +53,15 @@ export default defineConfig({
           constBindings: true,
           symbols: true
         }
-      }
+      },
+      plugins: [
+        nodeResolve({
+          browser: true,
+          preferBuiltins: false,
+          exportConditions: ['browser', 'development', 'module', 'import'],
+          extensions: ['.js', '.jsx', '.ts', '.tsx', '.json', '.mjs', '.mts']
+        })
+      ]
     },
     target: 'esnext'
   },
