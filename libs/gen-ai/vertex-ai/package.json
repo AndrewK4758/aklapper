@@ -1,0 +1,14 @@
+{
+  "name": "@aklapper/vertex-ai",
+  "private": true,
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./index.js",
+      "meta": "./meta.json"
+    }
+  },
+  "type": "module",
+  "dependencies": {}
+}

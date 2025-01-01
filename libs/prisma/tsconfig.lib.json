@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
+    "outDir": "../../dist/libs/prisma/src",
+    "rootDir": "./src",
+    "declaration": true,
+    "types": ["node", "vite/client"]
+  },
+  "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
+  "include": ["src/**/*.ts"]
+}

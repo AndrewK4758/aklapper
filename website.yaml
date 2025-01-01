@@ -1,0 +1,28 @@
+runtime: nodejs22
+
+service: default
+
+instance_class: f2
+
+env_variables:
+  GCLOUD_STORAGE_BUCKET: gs://portfolio-gen-ai
+  NODE_ENV: 'production'
+
+handlers:
+  - url: /dist/apps/portfolio
+    static_dir: dist/apps/portfolio
+    secure: always
+    http_headers:
+      Access-Control-Allow-Origin: '*'
+      Access-Control-Expose-Headers: '*'
+  - url: /(.*\..*)
+    static_files: dist/apps/portfolio/\1
+    upload: dist/apps/portfolio/(.*)
+
+  - url: /.*
+    static_files: dist/apps/portfolio/index.html
+    upload: dist/apps/portfolio/index.html
+    secure: always
+    http_headers:
+      Access-Control-Allow-Origin: '*'
+      Access-Control-Expose-Headers: '*'

@@ -1,0 +1,39 @@
+{
+  "name": "prompt-builder",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/gen-ai/prompt-builder/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "main": "libs/gen-ai/prompt-builder/src/index.ts",
+        "outputPath": "dist/libs/gen-ai/prompt-builder",
+        "outputFileName": "index.js",
+        "tsConfig": "libs/gen-ai/prompt-builder/tsconfig.lib.json",
+        "format": ["esm"],
+        "target": "node23",
+        "sourcemap": true,
+        "metafile": true,
+        "assets": [
+          {
+            "glob": "./README.md",
+            "input": ".",
+            "output": "."
+          }
+        ]
+      },
+      "configurations": {
+        "development": {
+          "minify": false
+        },
+        "production": {
+          "minify": true
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "@aklapper/react-shared",
+  "private": true,
+  "type": "module",
+  "dependencies": {},
+  "main": "dist/index.js",
+  "types": "dist/src/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "nx": {
+    "name": "@aklapper/react-shared",
+    "sourceRoot": "libs/react-shared/src",
+    "projectType": "library"
+  }
+}

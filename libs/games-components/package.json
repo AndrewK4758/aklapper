@@ -1,0 +1,13 @@
+{
+  "name": "@aklapper/games-components",
+  "private": true,
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./indexs.js"
+    }
+  },
+  "type": "module",
+  "dependencies": {}
+}

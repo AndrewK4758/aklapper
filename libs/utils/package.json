@@ -1,0 +1,13 @@
+{
+  "name": "@aklapper/utils",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./index.js"
+    }
+  },
+  "dependencies": {}
+}

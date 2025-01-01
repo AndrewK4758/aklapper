@@ -1,0 +1,50 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "outDir": "out-tsc",
+    "rootDir": "./src",
+    "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
+    "declarationDir": "../../../dist/libs/models/all-games-map/src",
+    "declaration": true,
+    "types": ["node", "vite/client"]
+  },
+  "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
+  "include": [
+    "src/**/*.ts",
+    "../../chain/src/**/*.ts",
+    "../../utils/src/**/*.ts",
+    "../game-instance/src/**/*.ts",
+    "../../game/src/**/*.ts",
+    "../../games/chutes-and-ladders/src/**/*.ts",
+    "../../games-components/src/**/*.ts",
+    "../../types/types-game/src/**/*.ts"
+  ],
+  "references": [
+    {
+      "path": "../../mocks/tsconfig.lib.json"
+    },
+    {
+      "path": "../../chain/tsconfig.lib.json"
+    },
+    {
+      "path": "../../utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../game-instance/tsconfig.lib.json"
+    },
+    {
+      "path": "../../game/tsconfig.lib.json"
+    },
+    {
+      "path": "../../games-components/tsconfig.lib.json"
+    },
+    {
+      "path": "../../games/chutes-and-ladders/tsconfig.lib.json"
+    },
+    {
+      "path": "../../types/types-game/tsconfig.lib.json"
+    }
+  ]
+}

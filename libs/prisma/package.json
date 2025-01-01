@@ -1,0 +1,12 @@
+{
+  "name": "@aklapper/prisma",
+  "private": true,
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./src/index.d.ts"
+    }
+  },
+  "type": "module",
+  "dependencies": {}
+}

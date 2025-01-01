@@ -1,0 +1,8 @@
+{
+  "name": "games-chains",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/games-chains/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {}
+}

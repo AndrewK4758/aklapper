@@ -1,0 +1,8 @@
+{
+  "name": "all-games-map",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/models/all-games-map/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {}
+}

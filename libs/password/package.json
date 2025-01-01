@@ -1,0 +1,12 @@
+{
+  "name": "@aklapper/password",
+  "private": true,
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./index.js"
+    }
+  },
+  "type": "module"
+}

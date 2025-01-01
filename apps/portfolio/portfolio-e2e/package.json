@@ -1,0 +1,12 @@
+{
+  "name": "portfolio-e2e",
+  "private": true,
+  "type": "module",
+  "nx": {
+    "projectType": "application",
+    "sourceRoot": "apps/portfolio/portfolio-e2e/src",
+    "implicitDependencies": [
+      "portfolio"
+    ]
+  }
+}

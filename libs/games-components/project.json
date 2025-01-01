@@ -1,0 +1,8 @@
+{
+  "name": "games-components",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/games-components/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {}
+}

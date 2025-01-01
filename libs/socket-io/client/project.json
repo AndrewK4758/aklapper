@@ -1,0 +1,8 @@
+{
+  "name": "socket-io-client",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/socket-io/client/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {}
+}

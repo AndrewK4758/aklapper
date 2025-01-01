@@ -1,0 +1,75 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "outDir": "out-tsc",
+    "rootDir": "./src",
+    "declaration": true,
+    "declarationDir": "../../../dist/apps/games/src",
+    "tsBuildInfoFile": "tsconfig.app.tsbuildinfo",
+    "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
+    "jsx": "react-jsx"
+  },
+  "exclude": [
+    "dist",
+    "tests/**/*.spec.ts",
+    "tests/**/*.test.ts",
+    "tests/**/*.spec.tsx",
+    "tests/**/*.test.tsx",
+    "tests/**/*.spec.js",
+    "tests/**/*.test.js",
+    "tests/**/*.spec.jsx",
+    "tests/**/*.test.jsx",
+    "vite.config.ts",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "vitest.config.mts"
+  ],
+  "include": [
+    "src/**/*.js",
+    "src/**/*.jsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "../../../libs/game/src/**/*.ts",
+    "../../../libs/games/chutes-and-ladders/src/**/*.ts",
+    "../../../libs/models/game-instance/src/**/*.ts",
+    "../../../libs/chain/src/**/*.ts",
+    "../../../libs/react-shared/src/**/*.ts",
+    "../../../libs/games-components/src/**/*.ts",
+    "../../../libs/types/types-api/src/**/*.ts",
+    "../../../libs/types/types-game/src/**/*.ts"
+  ],
+  "references": [
+    {
+      "path": "../../../libs/types/types-api/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/mocks/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/game/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/games-components/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/games/chutes-and-ladders/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/models/game-instance/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/chain/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/types/types-game/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/react-shared/tsconfig.lib.json"
+    }
+  ]
+}

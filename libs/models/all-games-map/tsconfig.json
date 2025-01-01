@@ -1,0 +1,46 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "files": [],
+  "include": [],
+  "references": [
+    {
+      "path": "../../mocks"
+    },
+    {
+      "path": "../../chain"
+    },
+    {
+      "path": "../../utils"
+    },
+    {
+      "path": "../game-instance"
+    },
+    {
+      "path": "../../game"
+    },
+    {
+      "path": "../../games-components"
+    },
+    {
+      "path": "../../games/chutes-and-ladders"
+    },
+    {
+      "path": "../../types/types-game"
+    },
+    {
+      "path": "./tsconfig.lib.json"
+    },
+    {
+      "path": "./tsconfig.spec.json"
+    }
+  ]
+}

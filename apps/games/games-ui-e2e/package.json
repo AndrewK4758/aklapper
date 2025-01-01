@@ -1,0 +1,12 @@
+{
+  "name": "games-ui-e2e",
+  "type": "module",
+  "private": true,
+  "nx": {
+    "projectType": "application",
+    "sourceRoot": "apps/games-ui/games-ui-e2e/src",
+    "implicitDependencies": [
+      "games-ui"
+    ]
+  }
+}

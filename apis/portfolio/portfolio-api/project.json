@@ -1,0 +1,55 @@
+{
+  "name": "portfolio-api",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apis/portfolio/portfolio-api/src",
+  "projectType": "application",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "platform": "node",
+        "outputPath": "dist/apis/portfolio-api",
+        "outputFileName": "main.js",
+        "main": "apis/portfolio/portfolio-api/src/main.ts",
+        "tsConfig": "apis/portfolio/portfolio-api/tsconfig.app.json",
+        "assets": ["apis/portfolio/portfolio-api/src/assets"],
+        "target": "node23",
+        "format": ["esm"],
+        "sourcemap": true,
+        "metafile": true
+      },
+      "configurations": {
+        "development": {},
+        "production": {}
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "dependsOn": ["build"],
+      "options": {
+        "buildTarget": "portfolio-api:build",
+        "runBuildTargetDependencies": false
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "portfolio-api:build:development"
+        },
+        "production": {
+          "buildTarget": "portfolio-api:build:production"
+        }
+      }
+    },
+    "docker-build": {
+      "dependsOn": ["build"],
+      "command": "docker build -f apis/portfolio/portfolio-api/Dockerfile . -t us-central1-docker.pkg.dev/games-424800/portfolio/portfolio-api:latest"
+    },
+
+    "docker-push": {
+      "command": "docker push us-central1-docker.pkg.dev/games-424800/portfolio/portfolio-api:latest"
+    }
+  }
+}

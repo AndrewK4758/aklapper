@@ -1,0 +1,13 @@
+{
+  "name": "@aklapper/media-recorder",
+  "private": true,
+  "type": "module",
+  "dependencies": {},
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./index.js"
+    }
+  }
+}
