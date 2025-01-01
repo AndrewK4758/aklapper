@@ -127,7 +127,7 @@ const Tracks = (): JSX.Element => {
   return (
     <Paper component={'div'} key={'track-box'} id={'track-box'} sx={{ border: '3px solid purple', borderRadius: 1 }}>
       <Container key={'artist-title'} component={'div'} sx={{ paddingY: 2 }}>
-        <Paper key={'title-bar'} component={'div'} elevation={6}>
+        <Paper key={'title-bar'} component={'div'}>
           <Text component={'h3'} titleVariant="h3" titleText="Album Tracks" sx={{ textAlign: 'center' }} />
         </Paper>
       </Container>

@@ -14,7 +14,7 @@ import { Outlet, useLoaderData, useNavigate } from 'react-router-dom';
 import handleDeleteAlbum from '../../../services/events/crud-events/handle-delete-album';
 import handleUpdateAlbumTitle from '../../../services/events/crud-events/handle-update-album-title';
 import loadAlbums from '../../../services/loaders/crud-loaders/load-albums';
-import { dataGridStyleUpdate, inverseColors } from '../../../styles/crud-styles';
+import { dataGridStyleUpdate } from '../../../styles/crud-styles';
 import AddAlbum from './add-album';
 
 const paginationModelInit = {
@@ -139,7 +139,7 @@ const Album = (): JSX.Element => {
       flexDirection={matchesSize ? 'column' : 'row'}
       gap={0.5}
     >
-      <Box
+      <Paper
         component={'div'}
         key={'album-box'}
         id="album-box"
@@ -151,13 +151,7 @@ const Album = (): JSX.Element => {
         }}
       >
         <Container key={'albums-title-wrapper'} component={'section'} id="album-title-wrapper" sx={{ paddingY: 2 }}>
-          <Paper
-            elevation={6}
-            key={'album-title-bar'}
-            id="album-title-bar"
-            component={'div'}
-            sx={{ ...inverseColors, height: 'fit-content' }}
-          >
+          <Paper key={'album-title-bar'} id="album-title-bar" component={'div'} sx={{ height: 'fit-content' }}>
             <Text
               component={'h3'}
               titleText={'Album List'}
@@ -172,12 +166,7 @@ const Album = (): JSX.Element => {
         <Container component={'div'} key={'add-album-box'} id={'add-album-box'} sx={{ paddingY: 1 }}>
           <AddAlbum apiRef={apiRef} />
         </Container>
-        <Box
-          component={'div'}
-          key={'all-albums-datagrid'}
-          id="all-albums-datagrid"
-          sx={{ ...inverseColors, borderRadius: 1 }}
-        >
+        <Box component={'div'} key={'all-albums-datagrid'} id="all-albums-datagrid" sx={{ borderRadius: 1 }}>
           <DataGrid
             logLevel="info"
             key={'album-data-grid'}
@@ -197,7 +186,7 @@ const Album = (): JSX.Element => {
             sx={dataGridStyleUpdate}
           />
         </Box>
-      </Box>
+      </Paper>
       <Box
         key={'tracks-on-album-box'}
         component={'div'}

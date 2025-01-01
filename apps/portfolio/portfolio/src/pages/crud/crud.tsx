@@ -1,13 +1,21 @@
 import { Text, useScrollIntoView, Waiting } from '@aklapper/react-shared';
+import { Collapse } from '@mui/material';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import ButtonGroup from '@mui/material/ButtonGroup';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import Toolbar from '@mui/material/Toolbar';
 import { lazy, Suspense, useRef, useState, type JSX } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { crudAppWrapperStyles } from '../../styles/crud-styles';
+import waiting from '../../assets/swirly-dots-to-chrome.webp';
+import {
+  crudAppWrapperStyles,
+  crudButtonSxProps,
+  crudHeaderTextSxProps,
+  crudPaperSxProps
+} from '../../styles/crud-styles';
 import {
   headerModalButtonStyles,
   modalButtonBoxStyles,
@@ -17,9 +25,6 @@ import {
   pagesWrapperStyles
 } from '../../styles/pages-styles';
 import { body, title } from '../static/crud-text';
-import ButtonGroup from '@mui/material/ButtonGroup';
-import waiting from '../../assets/swirly-dots-to-chrome.webp';
-import { Collapse } from '@mui/material';
 
 const Search = lazy(() => import('../../components/crud/search'));
 
@@ -51,13 +56,7 @@ const Crud = (): JSX.Element => {
 
   return (
     <Box ref={divRef} component={'div'} key={'crud-wrapper'} id="crud-wrapper" sx={pagesWrapperStyles}>
-      <Paper
-        elevation={2}
-        component={'div'}
-        key={'crud-header-wrapper'}
-        id="crud-header-wrapper"
-        sx={{ width: '70vw' }}
-      >
+      <Paper elevation={2} component={'div'} key={'crud-header-wrapper'} id="crud-header-wrapper" sx={crudPaperSxProps}>
         <Box component={'section'} key={'crud-title-wrapper'} id="crud-title-wrapper" sx={pagesTitlesBoxStyles}>
           <Text component={'h3'} titleVariant="h3" titleText={title} sx={pagesTitleSx} />
         </Box>
@@ -90,6 +89,7 @@ const Crud = (): JSX.Element => {
                   variant="text"
                   color="inherit"
                   onClick={() => nav('/crud')}
+                  sx={crudButtonSxProps}
                 >
                   Home
                 </Button>
@@ -101,6 +101,7 @@ const Crud = (): JSX.Element => {
                   variant="text"
                   color="inherit"
                   onClick={() => nav('artists')}
+                  sx={crudButtonSxProps}
                 >
                   All Artists
                 </Button>
@@ -112,6 +113,7 @@ const Crud = (): JSX.Element => {
                   variant="text"
                   color="inherit"
                   onClick={() => nav('albums')}
+                  sx={crudButtonSxProps}
                 >
                   All Albums
                 </Button>
@@ -123,6 +125,7 @@ const Crud = (): JSX.Element => {
                   variant="text"
                   color="inherit"
                   onClick={() => nav('add-entry')}
+                  sx={crudButtonSxProps}
                 >
                   Add Entry
                 </Button>
@@ -144,6 +147,7 @@ const Crud = (): JSX.Element => {
               component={'p'}
               titleVariant="body1"
               titleText={body}
+              sx={crudHeaderTextSxProps}
             />
           </Container>
         </Collapse>

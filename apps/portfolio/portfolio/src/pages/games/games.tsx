@@ -12,7 +12,7 @@ import { Outlet, useNavigation, useParams, useSubmit } from 'react-router-dom';
 import ChutesAndLaddersIcon from '../../components/icons/chutes-and-ladders';
 import TicTacToeIcon from '../../components/icons/tic-tac-toe-icon';
 import GameLoading from '../../components/loading/loading';
-import { gamesButtonLabelsSxProps } from '../../styles/games-styles';
+import { gamesButtonLabelsSxProps, gamesButtonSxProps } from '../../styles/games-styles';
 import {
   iconStateStyle,
   pagesOutletStyles,
@@ -21,6 +21,7 @@ import {
   pagesWrapperStyles
 } from '../../styles/pages-styles';
 import { body, title } from '../static/games-text';
+import { crudPaperSxProps } from '../../styles/crud-styles';
 
 /**
  * This component renders the main games page, providing an interface for users to select and play different games.
@@ -43,7 +44,7 @@ const Games = (): JSX.Element => {
         component={'div'}
         key={'games-header-wrapper'}
         id="games-header-wrapper"
-        sx={{ width: '70vw' }}
+        sx={crudPaperSxProps}
       >
         <Box component={'section'} key={'games-title-wrapper'} id="games-title-wrapper" sx={pagesTitlesBoxStyles}>
           <Text component={'h2'} titleVariant="h2" titleText={title} sx={pagesTitleSx} />
@@ -82,6 +83,7 @@ const Games = (): JSX.Element => {
                       replace: true
                     });
                   }}
+                  sx={gamesButtonSxProps}
                 >
                   <Label
                     tooltipTitle={
@@ -94,7 +96,7 @@ const Games = (): JSX.Element => {
                     labelVariant={'button'}
                     labelText={'Chutes & Ladders'}
                     placement={'top'}
-                    sx={gamesButtonLabelsSxProps}
+                    labelTextsx={gamesButtonLabelsSxProps}
                   />
                 </Button>
 
@@ -115,6 +117,7 @@ const Games = (): JSX.Element => {
                       replace: true
                     });
                   }}
+                  sx={gamesButtonSxProps}
                 >
                   <Label
                     tooltipTitle={
@@ -127,7 +130,7 @@ const Games = (): JSX.Element => {
                     labelVariant={'button'}
                     labelText={'Tic Tac Toe'}
                     placement={'top'}
-                    sx={gamesButtonLabelsSxProps}
+                    labelTextsx={gamesButtonLabelsSxProps}
                   />
                 </Button>
               </ButtonGroup>

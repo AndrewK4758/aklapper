@@ -1,68 +1,14 @@
 import { Label } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
-import { DateTimePicker, renderTimeViewClock, type DateTimePickerSlotProps } from '@mui/x-date-pickers';
-import dayjs, { type Dayjs } from 'dayjs';
+import { DateTimePicker, renderTimeViewClock } from '@mui/x-date-pickers';
+import dayjs from 'dayjs';
 import type { FormikProps } from 'formik';
-import '../../../styles/apointment-maker.css';
+import { dateTimePickerLabelTextSxProps, dateTimePickerSlotProps } from '../../../styles/header-styles';
 import Theme from '../../../styles/theme';
 import { MessageMeFormValues } from '../email-form/email-form';
 
 const tomorrow = dayjs().add(1, 'day');
 const nextYear = dayjs().year(new Date().getFullYear() + 1);
-
-const dateTimePickerSlotProps: DateTimePickerSlotProps<Dayjs, false> = {
-  textField: {
-    color: 'primary',
-    variant: 'outlined',
-    sx: {
-      p: 1,
-      width: '100%',
-      borderRadius: 1
-    }
-  },
-  switchViewIcon: {
-    sx: {
-      scale: 1.5,
-      color: Theme.palette.primary.dark
-    }
-  },
-  rightArrowIcon: {
-    sx: {
-      scale: 1.5,
-      color: Theme.palette.primary.dark
-    }
-  },
-  leftArrowIcon: {
-    sx: {
-      scale: 1.5,
-      color: Theme.palette.primary.dark
-    }
-  },
-  openPickerIcon: {
-    sx: { scale: 1.5 }
-  },
-  desktopPaper: {
-    elevation: 2,
-    sx: {
-      backgroundColor: Theme.palette.background.default,
-      border: `3px solid ${Theme.palette.primary.dark}`
-    }
-  },
-  day: {
-    sx: {
-      fontSize: '1.5rem',
-      borderRadius: 1
-    }
-  },
-  calendarHeader: {
-    sx: {
-      scale: 1.1
-    }
-  },
-  actionBar: {
-    actions: ['accept', 'clear']
-  }
-};
 
 interface AppointmentMakerProps {
   formik: FormikProps<MessageMeFormValues>;
@@ -87,13 +33,13 @@ const AppointmentMaker = ({ formik }: AppointmentMakerProps) => (
           }
           labelVariant="body1"
           labelText="Set Appointment Date Time"
-          sx={{ fontSize: '1.25rem' }}
+          labelTextsx={dateTimePickerLabelTextSxProps}
         />
       }
       minDate={tomorrow}
       maxDate={nextYear}
       disablePast={true}
-      orientation="landscape"
+      orientation={Theme.breakpoints.down('lg') ? 'portrait' : 'landscape'}
       onAccept={data => {
         formik.setFieldValue('date', data?.toISOString());
       }}

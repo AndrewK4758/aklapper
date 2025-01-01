@@ -1,13 +1,18 @@
 import { Tooltip } from '@mui/material';
 import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
 import CardMedia from '@mui/material/CardMedia';
-import Card from '@mui/material/Card';
 import { lazy, type JSX } from 'react';
 import resume from '../../assets/Resume.pdf';
 import myPic from '../../assets/self.webp';
 import ResumeIcon from '../../components/icons/resume-icon';
-import { introPicStyles, picAndResumeCardStyles } from '../../styles/intro-styles';
+import {
+  introButtonSxProps,
+  introIconSxProps,
+  introPicStyles,
+  picAndResumeCardStyles
+} from '../../styles/intro-styles';
 
 const TechStackList = lazy(() => import('./tech-list/tech-list'));
 
@@ -45,7 +50,8 @@ const PicutreAndResume = (): JSX.Element => (
           href={resume}
           onClick={e => console.log(e)}
           download={`andrew-klapper-resume-${new Date().toLocaleDateString()}`}
-          endIcon={<ResumeIcon sx={{ scale: 1.5 }} />}
+          endIcon={<ResumeIcon sx={introIconSxProps} />}
+          sx={introButtonSxProps}
         >
           Resume
         </Button>

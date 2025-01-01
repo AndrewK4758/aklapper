@@ -10,7 +10,7 @@ import { FocusEvent, MutableRefObject, type JSX } from 'react';
 import { Form, useParams } from 'react-router-dom';
 import handleSubmitNewAlbum from '../../../services/actions/crud-actions/submit-album-on-artist-action';
 import handleNewAlbumBlur from '../../../services/events/crud-events/handle-validate-artist-albums-on-blur';
-import { crudAddButtonStyles, inverseColors } from '../../../styles/crud-styles';
+import { crudAddButtonStyles } from '../../../styles/crud-styles';
 
 interface AddAlbumOnArtistProps {
   apiRef: MutableRefObject<GridApiCommunity>;
@@ -48,7 +48,7 @@ const AddAlbumOnArtist = ({ apiRef }: AddAlbumOnArtistProps): JSX.Element => {
       component={'div'}
       id="add-album-on-artist-container"
       key={'add-album-on-artist-container'}
-      sx={{ ...inverseColors, borderRadius: 1, paddingY: 2 }}
+      sx={{ borderRadius: 1, paddingY: 2 }}
     >
       <Form method="post" onSubmit={formik.handleSubmit}>
         <Box sx={{ display: 'flex', flexDirection: 'column' }}>

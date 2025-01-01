@@ -42,11 +42,11 @@ const Layout = (): JSX.Element => {
         >
           <Home />
         </Box>
-        <WebSocketContextProvider>
-          <Box component={'div'} key={'outlet-ref-wrapper'} id="outlet-ref-wrapper" sx={outletWrapperSxProps}>
+        <Box component={'div'} key={'outlet-ref-wrapper'} id="outlet-ref-wrapper" sx={outletWrapperSxProps}>
+          <WebSocketContextProvider>
             <Outlet context={{ loading, setLoading }} />
-          </Box>
-        </WebSocketContextProvider>
+          </WebSocketContextProvider>
+        </Box>
       </Box>
       <Box
         component={'div'}

@@ -4,7 +4,9 @@ import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import type { SxProps } from '@mui/material/styles';
 import { useEffect, useRef, type CSSProperties, type Dispatch, type SetStateAction } from 'react';
-import { flexColumnStyles } from '../../../styles/prompt-builder-styles';
+import { crudHeaderTextSxProps } from '../../../styles/crud-styles';
+import { buttonSXProps } from '../../../styles/header-styles';
+import { flexColumnStyles } from '../../../styles/pages-styles';
 
 const tooltipTitle = 'Response from text query';
 
@@ -43,16 +45,21 @@ export function PromptResponse({
           tooltipTitle={tooltipTitle}
           labelVariant={'h3'}
           labelText={'Query Response'}
-          sx={chatResponseLabelProps}
+          labelTextsx={chatResponseLabelProps}
         />
       </Box>
       <Box key={'chat-response-box'} id="chat-response-wrapper-box" sx={{ width: '100%', borderRadius: 1 }}>
-        <Container>
+        <Container sx={crudHeaderTextSxProps}>
           <pre style={chatResponseTextProps}>{response}</pre>
         </Container>
       </Box>
       <Box key={'chat-response-button-box'} id="chat-response-button-wrapper-box" sx={{ alignSelf: 'flex-end' }}>
-        <Button key={'chat-response-button'} id={'chat-response-button'} onClick={() => setPromptResponse([])}>
+        <Button
+          key={'chat-response-button'}
+          id={'chat-response-button'}
+          onClick={() => setPromptResponse([])}
+          sx={buttonSXProps}
+        >
           Clear
         </Button>
       </Box>

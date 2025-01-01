@@ -22,16 +22,25 @@ import {
   type SubmitTarget
 } from 'react-router-dom';
 import * as Yup from 'yup';
-import { helperTextSx, labelSx, textInputSx, tooltipSx } from '../../../styles/gen-ai-styles';
-import { fullSizeBlock } from '../../../styles/pages-styles';
+import { crudHeaderTextSxProps } from '../../../styles/crud-styles';
 import {
-  coloredTitleStyles,
-  flexColumnStyles,
   formLabelSxProps,
-  radioButtonLabelSxProps
-} from '../../../styles/prompt-builder-styles';
+  helperTextSx,
+  labelSx,
+  promptBuilderRadioGroupSxProps,
+  promptBuilderResponseFormatBoxSxProps,
+  promptBuilderResponseFormatIconsSxProps,
+  promptBuilderResponseFormatLabelSxProps,
+  promptBuilderTextFieldSlotProps,
+  promptBuilderUploadFileTextSxProps,
+  promptBuillderFormBoxSxProps,
+  radioButtonLabelSxProps,
+  textInputSx,
+  tooltipSx
+} from '../../../styles/gen-ai-styles';
+import { buttonSXProps } from '../../../styles/header-styles';
+import { flexColumnStyles, fullSizeBlock, pagesTitleSx } from '../../../styles/pages-styles';
 import '../../../styles/prompt-builder.css';
-import Theme from '../../../styles/theme';
 import ImageIcon from '../../icons/image-icon';
 import JsonIcon from '../../icons/json-icon';
 import TextIcon from '../../icons/text-icon';
@@ -121,23 +130,24 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
 
   return (
     <Box component={'div'} key={'prompt-builder-wrapper'} id="prompt-builder-wrapper" ref={divRef} width={'100%'}>
-      <Paper key={'prompt-builder-paper'} id="prompt-builder-paper" sx={{ height: 'fit-content', minHeight: '30vh' }}>
+      <Paper key={'prompt-builder-paper'} id="prompt-builder-paper">
         <Container
           component={'section'}
           key={'prompt-builder'}
           id="prompt-builder"
+          maxWidth={false}
           sx={{ ...flexColumnStyles, gap: 4 }}
         >
           <Box component={'section'} key={'prompt-builder-header-box'} id="prompt-builder-header-box">
-            <Text component={'h2'} titleVariant="h2" titleText={'Prompt Builder'} sx={coloredTitleStyles} />
-            <Text component={'p'} titleVariant="body1" titleText={promptBuilderHeaderText} />
+            <Text component={'h2'} titleVariant="h2" titleText={'Prompt Builder'} sx={pagesTitleSx} />
+            <Text component={'p'} titleVariant="body1" titleText={promptBuilderHeaderText} sx={crudHeaderTextSxProps} />
           </Box>
           <Form key={'prompt-builder-form'} method="POST" onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
             <Box
               component={'section'}
               key={'prompt-builder-input-elements-box'}
               id="prompt-builder-input-elements-box"
-              sx={{ ...flexColumnStyles, gap: 2 }}
+              sx={promptBuillderFormBoxSxProps}
             >
               <Box component={'section'} key={'prompt-builder-objective-box'} id="prompt-builder-objective-box">
                 <Label
@@ -145,7 +155,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   tooltipTitle={objective}
                   labelText="Objective"
                   labelVariant="h3"
-                  sx={labelSx}
+                  labelTextsx={labelSx}
                   tooltipSx={tooltipSx}
                 />
                 <TextField
@@ -164,6 +174,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   name={'objective'}
                   sx={textInputSx}
                   value={formik.values.objective}
+                  slotProps={promptBuilderTextFieldSlotProps}
                 />
                 <FormikValidationError<IPromptInputData>
                   elementName="objective"
@@ -177,7 +188,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   tooltipTitle={instructions}
                   labelText="Instructions"
                   labelVariant="h3"
-                  sx={labelSx}
+                  labelTextsx={labelSx}
                   tooltipSx={tooltipSx}
                 />
                 <TextField
@@ -195,6 +206,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   name={'instructions'}
                   sx={textInputSx}
                   value={formik.values.instructions}
+                  slotProps={promptBuilderTextFieldSlotProps}
                 />
                 <FormikValidationError<IPromptInputData>
                   elementName="instructions"
@@ -208,7 +220,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   tooltipTitle={textData}
                   labelText="Text Data"
                   labelVariant="h3"
-                  sx={labelSx}
+                  labelTextsx={labelSx}
                   tooltipSx={tooltipSx}
                 />
                 <TextField
@@ -226,6 +238,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   name={'textData'}
                   sx={textInputSx}
                   value={formik.values.textData}
+                  slotProps={promptBuilderTextFieldSlotProps}
                 />
                 <FormikValidationError<IPromptInputData>
                   elementName="textData"
@@ -239,7 +252,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   tooltipTitle={examples}
                   labelText="Examples"
                   labelVariant="h3"
-                  sx={labelSx}
+                  labelTextsx={labelSx}
                   tooltipSx={tooltipSx}
                 />
                 <TextField
@@ -257,6 +270,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   name={'examples'}
                   sx={textInputSx}
                   value={formik.values.examples}
+                  slotProps={promptBuilderTextFieldSlotProps}
                 />
                 <FormikValidationError<IPromptInputData>
                   elementName="examples"
@@ -270,7 +284,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   tooltipTitle={constraints}
                   labelText="Constraints"
                   labelVariant="h3"
-                  sx={labelSx}
+                  labelTextsx={labelSx}
                   tooltipSx={tooltipSx}
                 />
                 <TextField
@@ -288,6 +302,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   name={'constraints'}
                   sx={textInputSx}
                   value={formik.values.constraints}
+                  slotProps={promptBuilderTextFieldSlotProps}
                 />
                 <FormikValidationError<IPromptInputData>
                   elementName="constraints"
@@ -301,7 +316,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   tooltipTitle={tone}
                   labelText="Tone"
                   labelVariant="h3"
-                  sx={labelSx}
+                  labelTextsx={labelSx}
                   tooltipSx={tooltipSx}
                 />
                 <TextField
@@ -319,6 +334,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   name={'tone'}
                   sx={textInputSx}
                   value={formik.values.tone}
+                  slotProps={promptBuilderTextFieldSlotProps}
                 />
                 <FormikValidationError<IPromptInputData>
                   elementName="tone"
@@ -336,7 +352,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   tooltipTitle={responseInstructions}
                   labelText="Response Instructions"
                   labelVariant="h3"
-                  sx={labelSx}
+                  labelTextsx={labelSx}
                   tooltipSx={tooltipSx}
                 />
                 <TextField
@@ -354,6 +370,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   name={'responseInstructions'}
                   sx={textInputSx}
                   value={formik.values.responseInstructions}
+                  slotProps={promptBuilderTextFieldSlotProps}
                 />
                 <FormikValidationError<IPromptInputData>
                   elementName="responseIsnstructions"
@@ -371,7 +388,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   tooltipTitle=""
                   tooltipSx={{}}
                   labelVariant="h4"
-                  sx={{ color: Theme.palette.primary.main }}
+                  labelTextsx={promptBuilderResponseFormatLabelSxProps}
                   labelText="Response Format"
                   placement="top"
                 />
@@ -379,10 +396,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   component={'section'}
                   key={'prompt-builder-response-format-radio-box'}
                   id="prompt-builder-response-format-radio-box"
-                  sx={{
-                    backgroundColor: Theme.palette.background.default,
-                    borderRadius: 1
-                  }}
+                  sx={promptBuilderResponseFormatBoxSxProps}
                 >
                   <RadioGroup
                     key={'prompt-builder-response-format'}
@@ -393,13 +407,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                     value={formik.values.responseFormat}
                     name={'responseFormat'}
                     color="primary"
-                    sx={{
-                      fontSize: '1.5rem',
-                      display: 'flex',
-                      flexDirection: 'row',
-                      justifyContent: 'space-around',
-                      paddingLeft: 2
-                    }}
+                    sx={promptBuilderRadioGroupSxProps}
                   >
                     <FormControlLabel
                       value={ResponseType.TEXT}
@@ -410,8 +418,8 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                           labelVariant={'h4'}
                           labelText={'Text'}
                           placement={undefined}
-                          Icon={<TextIcon sx={{ scale: 1.5 }} />}
-                          sx={radioButtonLabelSxProps}
+                          Icon={<TextIcon sx={promptBuilderResponseFormatIconsSxProps} />}
+                          labelTextsx={radioButtonLabelSxProps}
                         />
                       }
                       sx={formLabelSxProps}
@@ -426,8 +434,8 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                           labelVariant={'h4'}
                           labelText={'JSON'}
                           placement={undefined}
-                          sx={radioButtonLabelSxProps}
-                          Icon={<JsonIcon sx={{ scale: 1.5 }} />}
+                          labelTextsx={radioButtonLabelSxProps}
+                          Icon={<JsonIcon sx={promptBuilderResponseFormatIconsSxProps} />}
                         />
                       }
                       sx={formLabelSxProps}
@@ -442,8 +450,8 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                           labelVariant={'h4'}
                           labelText={'Image'}
                           placement={'top'}
-                          Icon={<ImageIcon sx={{ scale: 1.5, color: Theme.palette.primary.main }} />}
-                          sx={radioButtonLabelSxProps}
+                          Icon={<ImageIcon sx={promptBuilderResponseFormatIconsSxProps} />}
+                          labelTextsx={radioButtonLabelSxProps}
                           tooltipSx={{ fontSize: '1rem' }}
                         />
                       }
@@ -486,7 +494,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                     component={'h4'}
                     titleVariant="h4"
                     titleText={`Uploaded File: `}
-                    sx={{ color: Theme.palette.primary.main }}
+                    sx={promptBuilderUploadFileTextSxProps}
                   />
                   {loading ? null : (
                     <Text
@@ -520,6 +528,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                     key={'prompt-builder-upload-file-button'}
                     id="prompt-builder-upload-file-button"
                     onClick={handleFileUploadButtonClick}
+                    sx={buttonSXProps}
                   >
                     Upload File
                   </Button>
@@ -529,6 +538,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   type="submit"
                   key={'prompt-builder-submit-button'}
                   id="prompt-builder-submit-button"
+                  sx={buttonSXProps}
                 >
                   Build Prompt
                 </Button>
@@ -538,6 +548,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   key={'prompt-builder-reset-button'}
                   id="prompt-builder-reset-button"
                   onReset={formik.handleReset}
+                  sx={buttonSXProps}
                 >
                   Clear Values
                 </Button>
@@ -550,6 +561,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                     onClick={() =>
                       handleCopyPromptToClipboardAndAddToInput(action, setPrompt, setOpenPromptResponse, nav)
                     }
+                    sx={buttonSXProps}
                   >
                     Copy & Add to Input
                   </Button>
@@ -561,6 +573,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                     id="open-prompt"
                     type="button"
                     onClick={() => setOpenPromptResponse(!openPromptResponse)}
+                    sx={buttonSXProps}
                   >
                     {!openPromptResponse ? 'Open Prompt' : 'Close Prompt'}
                   </Button>

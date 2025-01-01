@@ -1,8 +1,7 @@
 import linearProgressClasses from '@mui/material/LinearProgress/linearProgressClasses';
 import type { SxProps } from '@mui/material/styles';
 import Theme from './theme';
-import { flexColumnStyles } from './prompt-builder-styles';
-import { centerFlex } from './pages-styles';
+import { centerFlex, flexColumnStyles } from './pages-styles';
 
 export const loadingPaperStyles: SxProps = {
   ...flexColumnStyles,
@@ -10,13 +9,13 @@ export const loadingPaperStyles: SxProps = {
   height: '20vh',
   maxHeight: 'fit-content',
   justifyContent: 'center',
-  borderRadius: 1,
+  borderRadius: 1
 };
 
 export const loadingBarWrapperStyles: SxProps = {
   ...centerFlex,
   flex: '1 0 75%',
-  width: '100%',
+  width: '100%'
 };
 
 export const loadingBarStyles: SxProps = {
@@ -25,16 +24,16 @@ export const loadingBarStyles: SxProps = {
   flex: '1 0 80%',
   borderRadius: 0.6,
   [`&.${linearProgressClasses.colorPrimary}`]: {
-    background: `linear-gradient(to right, ${Theme.palette.secondary.light},${Theme.palette.primary.light})`,
+    background: `linear-gradient(to right, ${Theme.palette.secondary.light},${Theme.palette.primary.light})`
   },
   [`& .${linearProgressClasses.bar}`]: {
     borderRadius: 0.6,
-    background: `linear-gradient(to right, ${Theme.palette.primary.light},${Theme.palette.secondary.light})`,
-  },
+    background: `linear-gradient(to right, ${Theme.palette.primary.light},${Theme.palette.secondary.light})`
+  }
 };
 
 export const loadingBarTextStyles: SxProps = {
   ...centerFlex,
   flex: '1 0 75%',
-  width: '100%',
+  width: '100%'
 };

@@ -1,14 +1,9 @@
 // import styles from './players-in-game.module.css';
 import { Box, SxProps } from '@mui/material';
 import { Variant } from '@mui/material/styles/createTypography';
-import { CSSProperties, ElementType } from 'react';
+import type { ElementType } from 'react';
 import { Text } from '@aklapper/react-shared';
-
-const avatarSvgStyle: CSSProperties = {
-  height: 'auto',
-  width: '30%',
-  maxWidth: '100px'
-};
+import { avatarSvgStyle } from '../../../styles/games-styles';
 
 export interface PlayersInGameProps {
   component: ElementType;

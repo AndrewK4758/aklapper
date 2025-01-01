@@ -1,6 +1,8 @@
 import type { SxProps } from '@mui/material/styles';
 import Theme from './theme';
 
+export const flexColumnStyles: SxProps = { display: 'flex', flexDirection: 'column' };
+
 export const pagesWrapperStyles: SxProps = {
   flex: '1 0 100%',
   display: 'flex',
@@ -9,7 +11,10 @@ export const pagesWrapperStyles: SxProps = {
   alignItems: 'center',
   height: 'fit-content',
   minHeight: '80vh',
-  width: '100vw'
+  width: '100vw',
+  [Theme.breakpoints.down('lg')]: {
+    gap: '2vh'
+  }
 };
 
 export const centerFlex: SxProps = {
@@ -25,7 +30,10 @@ export const pagesTitlesBoxStyles: SxProps = {
 
 export const iconStateStyle = (state: 'loading' | 'idle' | 'submitting'): SxProps => ({
   opacity: state !== 'idle' ? 0.38 : 1,
-  scale: 1.75
+  scale: 1.75,
+  [Theme.breakpoints.down('lg')]: {
+    scale: 1.25
+  }
 });
 
 export const pagesToolbarStyles: SxProps = { display: 'flex', justifyContent: 'space-evenly', flex: '0 1 100%' };
@@ -45,18 +53,6 @@ export const pagesOutletStyles: SxProps = {
   height: 'fit-content'
 };
 
-export const fullPageModalStyles: SxProps = {
-  height: '100vh',
-  width: '100vw',
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  overflowY: 'auto'
-};
-
 export const fullSizeBlock: SxProps = { height: '100%', width: '100%' };
 
 export const headerModalButtonStyles: SxProps = {
@@ -66,7 +62,9 @@ export const headerModalButtonStyles: SxProps = {
 };
 
 export const pagesTitleSx: SxProps = {
-  // fontSize: '15rem',
   textAlign: 'center',
-  flex: '1 0 100%'
+  flex: '1 0 100%',
+  [Theme.breakpoints.down('lg')]: {
+    fontSize: '2rem'
+  }
 };

@@ -11,8 +11,13 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Zoom from '@mui/material/Zoom';
 import { useState, type JSX } from 'react';
-import { techListSectionContainer, techlistTextStyle } from '../../../styles/intro-styles';
-import { flexColumnStyles } from '../../../styles/prompt-builder-styles';
+import {
+  introButtonSxProps,
+  introIconSxProps,
+  techListSectionContainer,
+  techlistTextStyle
+} from '../../../styles/intro-styles';
+import { flexColumnStyles } from '../../../styles/pages-styles';
 import { analytics, build, cloud, data, languages, libraries, styles, testing } from '../static/tech-stack-text';
 
 /**
@@ -70,7 +75,8 @@ const TechStackList = (): JSX.Element => {
           LinkComponent={'button'}
           variant="contained"
           onClick={() => setOpen(true)}
-          endIcon={<MenuOpen sx={{ marginLeft: 1, scale: 2.5 }} />}
+          endIcon={<MenuOpen sx={introIconSxProps} />}
+          sx={introButtonSxProps}
         >
           My Core Tech Stack
         </Button>

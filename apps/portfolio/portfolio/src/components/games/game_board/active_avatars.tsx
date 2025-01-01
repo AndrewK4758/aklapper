@@ -4,48 +4,16 @@ import { RenderList, Text } from '@aklapper/react-shared';
 import { IRegisterFormValues } from '@aklapper/types-game';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
-import type { SxProps } from '@mui/material/styles';
-import Theme from '../../../styles/theme';
+import {
+  breakpointsPlayersBox,
+  breakpointsPlayersInGameText,
+  breakpointsActiveGameTitleContainer,
+  breakpointsActiveGameTitleText,
+  breakpointsPlayersInGameBox,
+  activeAvatarsActiveGameHeaderBoxSxProps,
+  activeAvatarsActivePlayersInGameListSxProps
+} from '../../../styles/games-styles';
 
-const breakpointsActiveGameTitleContainer: SxProps = {
-  flex: '0 1 80%',
-  [Theme.breakpoints.down('md')]: {
-    flex: '1 0 60%'
-  }
-};
-
-const breakpointsActiveGameTitleText: SxProps = {
-  textAlign: 'start',
-  flex: '1 0 45%',
-  [Theme.breakpoints.down('md')]: {
-    flex: '1 0 100%',
-    fontSize: '1.5rem',
-    textAlign: 'center'
-  }
-};
-
-const breakpointsPlayersInGameBox: SxProps = {
-  flex: '1 0 55%',
-  display: 'flex',
-  flexWrap: 'wrap',
-  flexDirection: 'row',
-  height: '100%',
-  [Theme.breakpoints.down('md')]: {}
-};
-
-const breakpointsPlayersBox: SxProps = {
-  flex: '1 0 50%',
-  display: 'flex',
-  flexDirection: 'row',
-  [Theme.breakpoints.down('md')]: {}
-};
-
-const breakpointsPlayersInGameText: SxProps = {
-  flex: '0 1 auto',
-  [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem'
-  }
-};
 /**
  *
  * @param e Player
@@ -60,7 +28,7 @@ const playersInGameMap = (e: IRegisterFormValues, _i: number, _arr: Player[]) =>
     component={'span'}
     id={e.playerName}
     boxSx={breakpointsPlayersBox}
-    textSx={{ ...breakpointsPlayersInGameText, color: '#cb91ff' }}
+    textSx={breakpointsPlayersInGameText}
     playerVariant="h4"
     playerName={`${e.playerName}: `}
     avatarName={e.avatarName}
@@ -87,7 +55,7 @@ export default function ActiveAvatars({ avatarsInGame, winner }: ActiveAvatarsPr
           component={'section'}
           key={'active-game-header'}
           id={'active-game-header'}
-          sx={{ display: 'flex', justifyContent: 'center' }}
+          sx={activeAvatarsActiveGameHeaderBoxSxProps}
         >
           <Box
             component={'section'}
@@ -106,7 +74,7 @@ export default function ActiveAvatars({ avatarsInGame, winner }: ActiveAvatarsPr
             <RenderList
               data={avatarsInGame}
               listMapCallback={playersInGameMap}
-              sx={{ display: 'flex', justifyContent: 'center' }}
+              sx={activeAvatarsActivePlayersInGameListSxProps}
             />
           </Box>
         </Box>

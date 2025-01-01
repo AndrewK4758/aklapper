@@ -3,9 +3,10 @@ import Button from '@mui/material/Button';
 import axios from 'axios';
 import { Dispatch, type JSX } from 'react';
 import { Socket } from 'socket.io-client';
-import { breakpointsTakeTurnButtonTTT } from '../../../styles/game-board-styles';
+// import { breakpointsTakeTurnButtonTTT } from '../../../styles/game-board-styles';
 import getGameInstanceInfo from '../../../utils/utils';
 import { Action, ActionType } from './socket-reducer';
+import { breakpointsTakeTurnButtonTTT } from '../../../styles/games-styles';
 
 interface TakeTurnProps {
   dispatch: Dispatch<Action>;

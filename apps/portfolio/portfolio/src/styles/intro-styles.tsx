@@ -1,10 +1,21 @@
 import type { SxProps } from '@mui/material/styles';
+import { flexColumnStyles } from './pages-styles';
 import Theme from './theme';
-import { flexColumnStyles } from './prompt-builder-styles';
 
 export const baseStyleForHomeItems: SxProps = {
   width: '100vw',
   display: 'flex'
+};
+
+export const introWrapperSxProps: SxProps = {
+  ...baseStyleForHomeItems,
+  alignSelf: 'center',
+  alignContent: 'space-between',
+  gap: '2.5vw',
+  width: '90vw',
+  [Theme.breakpoints.down('lg')]: {
+    flexDirection: 'column-reverse'
+  }
 };
 
 export const introCardSxProps: SxProps = {
@@ -15,13 +26,21 @@ export const introCardSxProps: SxProps = {
 export const introTitleTextSxProps: SxProps = {
   borderBottom: `3px solid ${Theme.palette.divider}`,
   width: 'fit-content',
-  alignSelf: 'center'
+  alignSelf: 'center',
+  [Theme.breakpoints.down('lg')]: {
+    justifySelf: 'center',
+    fontSize: '2.5rem'
+  }
 };
 
 export const introTextSxProps: SxProps = {
   flex: '0 1 75%',
   fontSize: '1.25rem',
-  paddingTop: 4
+  paddingTop: 4,
+  [Theme.breakpoints.down('lg')]: {
+    fontSize: '1rem',
+    paddingTop: 1.5
+  }
 };
 
 export const picAndResumeCardStyles: SxProps = {
@@ -36,6 +55,19 @@ export const introPicStyles: SxProps = {
   width: '90%',
   paddingTop: 3,
   height: 'auto'
+};
+
+export const introIconSxProps: SxProps = {
+  scale: 1.5,
+  [Theme.breakpoints.down('lg')]: {
+    scale: 1
+  }
+};
+
+export const introButtonSxProps: SxProps = {
+  [Theme.breakpoints.down('lg')]: {
+    fontSize: '1rem'
+  }
 };
 
 export const techListSectionContainer: SxProps = {

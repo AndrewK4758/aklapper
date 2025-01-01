@@ -1,19 +1,13 @@
 import { Label } from '@aklapper/react-shared';
-import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import AppBar from '@mui/material/AppBar';
-import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Toolbar from '@mui/material/Toolbar';
 import { useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  buttonSXProps,
-  menuOpenIconSxProps,
-  navbarToolbarSxProps,
-  socialMediaLinksWrapper
-} from '../../styles/header-styles';
+import { buttonSXProps, navbarAppbarSxProps, navbarToolbarSxProps } from '../../styles/header-styles';
 import Connect from './contact/contact';
+import Theme from '../../styles/theme';
 
 /**
  * This component renders the header section of the application, which includes social media links and an email contact form.
@@ -26,96 +20,90 @@ const Header = (): JSX.Element => {
   const nav = useNavigate();
 
   return (
-    <Box
-      component={'div'}
-      key={'navbar-wrapper'}
-      id="navbar-wrapper"
-      data-testid="navbar-wrapper"
-      sx={socialMediaLinksWrapper}
-    >
+    <>
       <AppBar
         elevation={4}
         component={'nav'}
         key={'navbar-appbar'}
         id="navbar-appbar"
         data-testid="navbar-appbar"
-        sx={{ height: '8vh' }}
+        sx={navbarAppbarSxProps}
       >
         <Toolbar component={'section'} id="navbar-toolbar" data-testid="navbar-toolbar" sx={navbarToolbarSxProps}>
-          <Box component={'nav'} id="navbar-navbar" data-testid="navbar-navbar" key="navbar-navbar" flex={'100%'}>
-            <ButtonGroup fullWidth={true} variant="text" color="inherit">
-              <Button
-                sx={buttonSXProps}
-                id="home-button"
-                data-testid="home-button"
-                onClick={() => {
-                  nav('/');
-                  window.scrollTo({ behavior: 'smooth', top: 0 });
+          <ButtonGroup fullWidth={true} variant="text" color="inherit" size="medium">
+            <Button
+              id="home-button"
+              data-testid="home-button"
+              sx={buttonSXProps}
+              onClick={() => {
+                nav('/');
+                window.scrollTo({ behavior: 'smooth', top: 0 });
+              }}
+            >
+              <Label
+                tooltipTitle={'HOME DESCRIPTION'}
+                labelVariant={'h2'}
+                labelText={'Home'}
+                placement={'bottom'}
+                labelTextsx={{
+                  fontSize: '2.5rem',
+                  width: '100%',
+                  [Theme.breakpoints.down('lg')]: { fontSize: '1rem' }
                 }}
-              >
-                <Label
-                  tooltipTitle={'HOME DESCRIPTION'}
-                  labelVariant={'h2'}
-                  labelText={'Home'}
-                  placement={'bottom'}
-                  sx={{ fontSize: '2.5rem' }}
-                />
-              </Button>
+              />
+            </Button>
 
-              <Button id="games-button" data-testid="games-button" onClick={() => nav('games')} sx={buttonSXProps}>
-                <Label
-                  tooltipTitle={'GAME DESCRIPTION'}
-                  labelVariant={'h2'}
-                  labelText={'Games'}
-                  placement={'bottom'}
-                  sx={{ fontSize: '2.5rem' }}
-                />
-              </Button>
+            <Button id="games-button" data-testid="games-button" onClick={() => nav('games')} sx={buttonSXProps}>
+              <Label
+                tooltipTitle={'GAME DESCRIPTION'}
+                labelVariant={'h2'}
+                labelText={'Games'}
+                placement={'bottom'}
+                labelTextsx={{ fontSize: '2.5rem', [Theme.breakpoints.down('lg')]: { fontSize: '1rem' } }}
+              />
+            </Button>
 
-              <Button id="crud-button" data-testid="crud-button" onClick={() => nav('crud')} sx={buttonSXProps}>
-                <Label
-                  tooltipTitle={'CRUD DESCRIPTION'}
-                  labelVariant={'h2'}
-                  labelText={'CRUD'}
-                  placement={'bottom'}
-                  sx={{ fontSize: '2.5rem' }}
-                />
-              </Button>
+            <Button id="crud-button" data-testid="crud-button" onClick={() => nav('crud')} sx={buttonSXProps}>
+              <Label
+                tooltipTitle={'CRUD DESCRIPTION'}
+                labelVariant={'h2'}
+                labelText={'CRUD'}
+                placement={'bottom'}
+                labelTextsx={{ fontSize: '2.5rem', [Theme.breakpoints.down('lg')]: { fontSize: '1rem' } }}
+              />
+            </Button>
 
-              <Button id="gen-ai-button" data-testid="gen-ai-button" onClick={() => nav('gen-ai')} sx={buttonSXProps}>
-                <Label
-                  tooltipTitle={'GEN-AI DESCRIPTION'}
-                  labelVariant={'h2'}
-                  labelText={'Gen-AI'}
-                  placement={'bottom'}
-                  sx={{ fontSize: '2.5rem' }}
-                />
-              </Button>
+            <Button id="gen-ai-button" data-testid="gen-ai-button" onClick={() => nav('gen-ai')} sx={buttonSXProps}>
+              <Label
+                tooltipTitle={'GEN-AI DESCRIPTION'}
+                labelVariant={'h2'}
+                labelText={'Gen-AI'}
+                placement={'bottom'}
+                labelTextsx={{ fontSize: '2.5rem', [Theme.breakpoints.down('lg')]: { fontSize: '1rem' } }}
+              />
+            </Button>
 
-              <Button
-                autoFocus={true}
-                id="contact-menu-button"
-                data-testid="contact-menu-button"
-                endIcon={<MenuOpenIcon sx={menuOpenIconSxProps} />}
-                onClick={() => setOpenMenu(true)}
-                sx={buttonSXProps}
-              >
-                <Label
-                  tooltipTitle={'CONTACT DESCRIPTION'}
-                  labelVariant={'h2'}
-                  labelText={'Contact'}
-                  placement={'bottom'}
-                  sx={{ fontSize: '2.5rem' }}
-                />
-              </Button>
-            </ButtonGroup>
-          </Box>
+            <Button
+              autoFocus={true}
+              id="contact-menu-button"
+              data-testid="contact-menu-button"
+              onClick={() => setOpenMenu(true)}
+              sx={buttonSXProps}
+            >
+              <Label
+                tooltipTitle={'CONTACT DESCRIPTION'}
+                labelVariant={'h2'}
+                labelText={'Contact'}
+                placement={'bottom'}
+                labelTextsx={{ fontSize: '2.5rem', [Theme.breakpoints.down('lg')]: { fontSize: '1rem' } }}
+              />
+            </Button>
+          </ButtonGroup>
         </Toolbar>
       </AppBar>
-      <Box component={'div'} key={'connect-wrapper'} id={'connect-wrapper'} flex={1}>
-        <Connect openMenu={openMenu} setOpenMenu={setOpenMenu} />
-      </Box>
-    </Box>
+
+      <Connect openMenu={openMenu} setOpenMenu={setOpenMenu} />
+    </>
   );
 };
 

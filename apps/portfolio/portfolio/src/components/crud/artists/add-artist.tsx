@@ -10,8 +10,8 @@ import { Dispatch, FocusEvent, SetStateAction, type JSX } from 'react';
 import { Form } from 'react-router-dom';
 import handleSubmitNewArtist from '../../../services/actions/crud-actions/submit-artist-action';
 import handleNewArtistBlur from '../../../services/events/crud-events/handle-validate-artist-on-blur';
-import { crudAddButtonStyles, crudAddErrorTextStyles, inverseColors } from '../../../styles/crud-styles';
-import { flexColumnStyles } from '../../../styles/prompt-builder-styles';
+import { crudAddButtonStyles, crudAddErrorTextStyles } from '../../../styles/crud-styles';
+import { flexColumnStyles } from '../../../styles/pages-styles';
 
 interface AddArtistProps {
   rowCountState: number;
@@ -38,7 +38,7 @@ const AddArtist = ({ rowCountState, setRowCountState, COUNT }: AddArtistProps): 
       handleSubmitNewArtist(values, formik);
     },
     validateOnBlur: true,
-    validateOnMount: false,
+    validateOnMount: false
   });
 
   formik.handleBlur = (e: FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>) => {
@@ -50,7 +50,7 @@ const AddArtist = ({ rowCountState, setRowCountState, COUNT }: AddArtistProps): 
       component={'div'}
       id="add-artist-container"
       key={'add-artist-container'}
-      sx={{ ...inverseColors, borderRadius: 1, paddingY: 2 }}
+      sx={{ borderRadius: 1, paddingY: 2 }}
     >
       <Form method="post" onSubmit={formik.handleSubmit}>
         <Box key={'add-artist-box'} id={'add-artist-box'} sx={flexColumnStyles}>

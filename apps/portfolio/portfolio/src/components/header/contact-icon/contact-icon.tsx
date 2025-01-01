@@ -4,6 +4,7 @@ import IconButton from '@mui/material/IconButton';
 import type { SxProps } from '@mui/material/styles';
 import type { Dispatch, ReactElement, SetStateAction } from 'react';
 import Box from '@mui/material/Box';
+import { contactIconWrapperSxProps } from '../../../styles/header-styles';
 
 interface ContactIconProps {
   id: string;
@@ -35,13 +36,7 @@ export function ContactIcon({
       key={`${id}-icon-wrapper`}
       id={`${id}-icon-wrapper`}
       data-testid={`${id}-icon-wrapper`}
-      sx={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}
+      sx={contactIconWrapperSxProps}
     >
       <MenuItem
         component={`li`}

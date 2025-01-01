@@ -12,8 +12,8 @@ import type { JSX, MutableRefObject } from 'react';
 import { Form } from 'react-router-dom';
 import * as Yup from 'yup';
 import handleSubmitNewAlbum from '../../../services/actions/crud-actions//submit-album-to-artist-id-action';
-import { crudAddButtonStyles, crudAddErrorTextStyles, inverseColors } from '../../../styles/crud-styles';
-import { flexColumnStyles } from '../../../styles/prompt-builder-styles';
+import { crudAddButtonStyles, crudAddErrorTextStyles } from '../../../styles/crud-styles';
+import { flexColumnStyles } from '../../../styles/pages-styles';
 import type { ArtistAndAlbum } from './add-album-on-artist';
 
 interface AddAlbumProps {
@@ -53,7 +53,7 @@ const AddAlbum = ({ apiRef }: AddAlbumProps): JSX.Element => {
       component={'div'}
       id="add-album-container"
       key={'add-album-container'}
-      sx={{ ...inverseColors, borderRadius: 1, paddingY: 2 }}
+      sx={{ borderRadius: 1, paddingY: 2 }}
     >
       <Form method="post" onSubmit={formik.handleSubmit}>
         <Box component={'div'} sx={flexColumnStyles}>

@@ -10,7 +10,7 @@ import axios, { AxiosError, AxiosResponse } from 'axios';
 import { FormikProps, useFormik } from 'formik';
 import { FocusEvent, MutableRefObject } from 'react';
 import { Form } from 'react-router-dom';
-import { crudAddButtonStyles, crudAddErrorTextStyles, inverseColors } from '../../../styles/crud-styles';
+import { crudAddButtonStyles, crudAddErrorTextStyles } from '../../../styles/crud-styles';
 
 const baseURL = import.meta.env.VITE_DATA_API_URL;
 
@@ -55,7 +55,7 @@ const AddTrack = ({ albumID, apiRef }: AddTrackProps) => {
   };
 
   return (
-    <Container sx={{ ...inverseColors, borderRadius: 1, paddingY: 1 }}>
+    <Container sx={{ borderRadius: 1, paddingY: 1 }}>
       <Form method="post" onSubmit={formik.handleSubmit}>
         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
           <FormLabel htmlFor="track-name" hidden>

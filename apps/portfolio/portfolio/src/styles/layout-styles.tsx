@@ -1,4 +1,5 @@
 import type { SxProps } from '@mui/material/styles';
+import Theme from './theme';
 
 export const baseStyleForLayoutItems: SxProps = {
   flex: '1 0 100%',
@@ -8,14 +9,18 @@ export const baseStyleForLayoutItems: SxProps = {
   width: '100vw'
 };
 
-export const headerWrapperSxProps: SxProps = {
-  position: 'fixed',
-  width: '100vw',
-  display: 'flex',
-  height: '8vh',
+export const headerHeightSxProps: SxProps = {
+  height: '5.8vh',
   maxHeight: '120px',
-  alignContent: 'center',
-  zIndex: 5
+  minHeight: 'fit-content',
+  width: '100vw'
+};
+
+export const headerWrapperSxProps: SxProps = {
+  ...headerHeightSxProps,
+  position: 'fixed',
+  zIndex: 5,
+  [Theme.breakpoints.down('lg')]: {}
 };
 
 export const homeWrapperSxProps: SxProps = {
@@ -31,7 +36,11 @@ export const homeWrapperSxProps: SxProps = {
 export const mainWrapperSxProps: SxProps = {
   ...baseStyleForLayoutItems,
   marginTop: '12vh',
-  gap: '15vh'
+  gap: '15vh',
+  [Theme.breakpoints.down('lg')]: {
+    marginTop: '8vh',
+    gap: '5vh'
+  }
 };
 
 export const outletWrapperSxProps: SxProps = {
@@ -39,7 +48,10 @@ export const outletWrapperSxProps: SxProps = {
   height: 'fit-content',
   minHeight: '50vh',
   paddingBottom: '15vh',
-  top: '100vh'
+  top: '100vh',
+  [Theme.breakpoints.down('lg')]: {
+    paddingBottom: '8vh'
+  }
 };
 
 export const footerWrapperSxProps: SxProps = {

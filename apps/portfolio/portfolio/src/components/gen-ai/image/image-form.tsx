@@ -24,12 +24,20 @@ import {
   radioGroupStyles,
   sampleCountRadioTextStyles,
   textInputSx,
-  tooltipSx
+  tooltipSx,
+  promptBuillderFormBoxSxProps,
+  genAiImageHeaderBoxSxProps,
+  genAiSampleCountTextSxProps,
+  genAiImageSampleCountRadioSxProps,
+  genAiImageDetailsBoxSxProps,
+  genAiSliderInputSlotProps,
+  genAiGenerateImageButtonBoxSxProps
 } from '../../../styles/gen-ai-styles';
-import { centerFlex } from '../../../styles/pages-styles';
-import { coloredTitleStyles, flexColumnStyles } from '../../../styles/prompt-builder-styles';
-import Theme from '../../../styles/theme';
+import { centerFlex, pagesTitleSx } from '../../../styles/pages-styles';
 import { imageGenDescription, promptTooltipText, sampleCountTooltipText, seedTooltipText } from '../static/image-text';
+import waiting from '../../../assets/swirly-dots-to-chrome.webp';
+import { crudHeaderTextSxProps } from '../../../styles/crud-styles';
+import { buttonSXProps } from '../../../styles/header-styles';
 
 const validationSchema = Yup.object({
   prompt: Yup.string().required('The prompt is required'),
@@ -66,10 +74,15 @@ const ImageForm = (): JSX.Element => {
 
   return (
     <Box component={'div'} key={'image-gen-wrapper'} id="image-gen-wrapper" height={'fit-content'} minHeight={'50vh'}>
-      <Container component={'section'} key={'image-gen'} id="image-gen" sx={{ ...flexColumnStyles, gap: 4 }}>
-        <Box component={'div'} key={'image-gen-header-wrapper'} id="image-gen-header-wrapper" sx={{ gap: 4 }}>
-          <Text component={'h2'} titleVariant="h2" titleText="Image Generator" sx={coloredTitleStyles} />
-          <Text component={'p'} titleVariant="body1" titleText={imageGenDescription} />
+      <Container component={'section'} key={'image-gen'} id="image-gen" sx={promptBuillderFormBoxSxProps}>
+        <Box
+          component={'div'}
+          key={'image-gen-header-wrapper'}
+          id="image-gen-header-wrapper"
+          sx={genAiImageHeaderBoxSxProps}
+        >
+          <Text component={'h2'} titleVariant="h2" titleText="Image Generator" sx={pagesTitleSx} />
+          <Text component={'p'} titleVariant="body1" titleText={imageGenDescription} sx={crudHeaderTextSxProps} />
         </Box>
 
         <Form
@@ -86,7 +99,7 @@ const ImageForm = (): JSX.Element => {
               labelVariant="h5"
               tooltipTitle={promptTooltipText}
               tooltipSx={tooltipSx}
-              sx={labelSx}
+              labelTextsx={labelSx}
             />
             <TextField
               key={'image-prompt-input'}
@@ -115,7 +128,7 @@ const ImageForm = (): JSX.Element => {
             component={'section'}
             key={'image-form-sample-count-aspect-ratio-box'}
             id="image-form-sample-count-aspect-ratio-box"
-            sx={{ ...centerFlex, justifyContent: 'space-around' }}
+            sx={genAiImageDetailsBoxSxProps}
           >
             <Box component={'section'} key={'image-form-sample-count-box'} id="image-form-sample-count-box">
               <Label
@@ -124,7 +137,7 @@ const ImageForm = (): JSX.Element => {
                 labelVariant="h5"
                 tooltipTitle={sampleCountTooltipText}
                 tooltipSx={tooltipSx}
-                sx={labelSx}
+                labelTextsx={labelSx}
               />
 
               <RadioGroup
@@ -140,10 +153,10 @@ const ImageForm = (): JSX.Element => {
               >
                 <FormControlLabel
                   value={1}
-                  control={<Radio />}
+                  control={<Radio sx={genAiImageSampleCountRadioSxProps} />}
                   label={
                     <Box sx={sampleCountRadioTextStyles}>
-                      <Text component={'h4'} titleVariant="h4" titleText={1} />
+                      <Text component={'h4'} titleVariant="h4" titleText={1} sx={genAiSampleCountTextSxProps} />
                     </Box>
                   }
                   sx={forrmControlLabelStyles}
@@ -151,10 +164,10 @@ const ImageForm = (): JSX.Element => {
 
                 <FormControlLabel
                   value={2}
-                  control={<Radio />}
+                  control={<Radio sx={genAiImageSampleCountRadioSxProps} />}
                   label={
                     <Box sx={sampleCountRadioTextStyles}>
-                      <Text component={'h4'} titleVariant="h4" titleText={2} />
+                      <Text component={'h4'} titleVariant="h4" titleText={2} sx={genAiSampleCountTextSxProps} />
                     </Box>
                   }
                   sx={forrmControlLabelStyles}
@@ -162,20 +175,20 @@ const ImageForm = (): JSX.Element => {
 
                 <FormControlLabel
                   value={3}
-                  control={<Radio />}
+                  control={<Radio sx={genAiImageSampleCountRadioSxProps} />}
                   label={
                     <Box sx={sampleCountRadioTextStyles}>
-                      <Text component={'h4'} titleVariant="h4" titleText={3} />
+                      <Text component={'h4'} titleVariant="h4" titleText={3} sx={genAiSampleCountTextSxProps} />
                     </Box>
                   }
                   sx={forrmControlLabelStyles}
                 />
                 <FormControlLabel
                   value={4}
-                  control={<Radio />}
+                  control={<Radio sx={genAiImageSampleCountRadioSxProps} />}
                   label={
                     <Box sx={sampleCountRadioTextStyles}>
-                      <Text component={'h4'} titleVariant="h4" titleText={4} />
+                      <Text component={'h4'} titleVariant="h4" titleText={4} sx={genAiSampleCountTextSxProps} />
                     </Box>
                   }
                   sx={forrmControlLabelStyles}
@@ -189,7 +202,7 @@ const ImageForm = (): JSX.Element => {
                 labelVariant="h5"
                 tooltipTitle={'Select the Aspect Ratio of the output image.'}
                 tooltipSx={tooltipSx}
-                sx={labelSx}
+                labelTextsx={labelSx}
               />
               <Select
                 key={'image-aspect-ratio-input'}
@@ -218,7 +231,7 @@ const ImageForm = (): JSX.Element => {
               labelVariant="h5"
               tooltipTitle={seedTooltipText}
               tooltipSx={tooltipSx}
-              sx={labelSx}
+              labelTextsx={labelSx}
             />
             <Box
               component={'section'}
@@ -233,18 +246,13 @@ const ImageForm = (): JSX.Element => {
                 value={formik.values.seed}
                 onChange={(_, newValue) => handleFormikValueChange('seed', newValue, formik)}
                 aria-labelledby="seed-slider"
-                sx={{ flex: '1 0 90%' }}
+                sx={{ flex: '0 1 80%' }}
               />
               <Input
                 value={formik.values.seed}
                 onChange={e => handleSliderInputChange(e, formik)}
-                sx={{ flex: '1 0 10%' }}
-                slotProps={{
-                  input: {
-                    'aria-labelledby': 'seed-slider',
-                    sx: { textAlign: 'center', fontSize: '1.5rem', color: Theme.palette.primary.main }
-                  }
-                }}
+                sx={{ flex: '0 1 20%' }}
+                slotProps={genAiSliderInputSlotProps}
               />
             </Box>
           </Box>
@@ -260,18 +268,9 @@ const ImageForm = (): JSX.Element => {
                 component={'span'}
                 key={'image-gen-button-box'}
                 id="image-gen-button-box"
-                sx={{
-                  ...centerFlex,
-                  flex: '0 1 50%',
-                  height: 'fit-content'
-                }}
+                sx={genAiGenerateImageButtonBoxSxProps}
               >
-                <Button
-                  type="submit"
-                  key={'gen-image-button'}
-                  id="gen-image-button"
-                  sx={{ fontSize: '3rem', flex: '0 1 65%' }}
-                >
+                <Button type="submit" key={'gen-image-button'} id="gen-image-button" sx={buttonSXProps}>
                   Generate Image
                 </Button>
               </Box>
@@ -287,7 +286,7 @@ const ImageForm = (): JSX.Element => {
                 }}
               >
                 <Text component={'h4'} titleVariant="h4" titleText={'Generating'} sx={{ textAlign: 'center' }} />
-                <Waiting src={'/swirly-dots-to-chrome.webp'} />
+                <Waiting src={waiting} />
               </Box>
             )}
           </Box>

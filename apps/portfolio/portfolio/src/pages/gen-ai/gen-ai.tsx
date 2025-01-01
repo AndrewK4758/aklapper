@@ -6,7 +6,7 @@ import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Collapse from '@mui/material/Collapse';
 import Container from '@mui/material/Container';
-import Modal from '@mui/material/Modal';
+import Dialog from '@mui/material/Dialog';
 import Paper from '@mui/material/Paper';
 import Toolbar from '@mui/material/Toolbar';
 import {
@@ -21,14 +21,15 @@ import {
   type SetStateAction
 } from 'react';
 import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
+import waiting from '../../assets/swirly-dots-to-chrome.webp';
 import PromptResponse from '../../components/gen-ai/chat-response/chat-response';
 import { MediaRecorderClientContextProvider } from '../../contexts/audio-context';
 import loadContextPath from '../../services/loaders/gen-ai/load-context-path';
+import { crudHeaderTextSxProps, crudPaperSxProps } from '../../styles/crud-styles';
 import { renderPreTagInsideParentDiv } from '../../styles/gen-ai-styles';
+import { buttonSXProps } from '../../styles/header-styles';
 import {
-  fullPageModalStyles,
   fullSizeBlock,
-  headerModalButtonStyles,
   modalButtonBoxStyles,
   pagesOutletStyles,
   pagesTitlesBoxStyles,
@@ -37,7 +38,6 @@ import {
   pagesWrapperStyles
 } from '../../styles/pages-styles';
 import { body, title } from '../static/gen-ai-text';
-import waiting from '../../assets/swirly-dots-to-chrome.webp';
 
 const PromptBuilder = lazy(() => import('../../components/gen-ai/prompt-builder/prompt-builder'));
 
@@ -92,7 +92,7 @@ const GenAiHome = (): JSX.Element => {
         component={'div'}
         key={'gen-ai-header-wrapper'}
         id="gen-ai-header-wrapper"
-        sx={{ width: '70vw' }}
+        sx={crudPaperSxProps}
       >
         <Box component={'section'} key={'gen-ai-title-wrapper'} id="gen-ai-title-wrapper" sx={pagesTitlesBoxStyles}>
           <Text component={'h3'} titleVariant="h3" titleText={title} sx={pagesTitleSx} />
@@ -106,7 +106,7 @@ const GenAiHome = (): JSX.Element => {
             sx={{ borderRadius: 1 }}
           >
             <Toolbar component={'nav'} id="gen-ai-navbar" key={'gen-ai-navbar'} sx={pagesToolbarStyles}>
-              <ButtonGroup key={'gen-ai-button-group'} id={'gen-ai-button-group'} fullWidth={true}>
+              <ButtonGroup key={'gen-ai-button-group'} id={'gen-ai-button-group'} size="medium" fullWidth={true}>
                 <Button
                   LinkComponent={'button'}
                   color="inherit"
@@ -114,6 +114,7 @@ const GenAiHome = (): JSX.Element => {
                   key={'gen-ai-text-button'}
                   id="gen-ai-text-button"
                   onClick={() => nav('text', { replace: true })}
+                  sx={buttonSXProps}
                 >
                   Text
                 </Button>
@@ -124,6 +125,7 @@ const GenAiHome = (): JSX.Element => {
                   key={'gen-ai-image'}
                   id="gen-ai-image"
                   onClick={() => nav('image', { replace: true })}
+                  sx={buttonSXProps}
                 >
                   Image
                 </Button>
@@ -134,6 +136,7 @@ const GenAiHome = (): JSX.Element => {
                   key={'gen-ai-audio'}
                   id="gen-ai-audio"
                   onClick={() => nav('audio', { replace: true })}
+                  sx={buttonSXProps}
                 >
                   Audio
                 </Button>
@@ -154,6 +157,7 @@ const GenAiHome = (): JSX.Element => {
                 id="gen-ai-header-text"
                 titleVariant="body1"
                 titleText={body}
+                sx={crudHeaderTextSxProps}
               />
             </Box>
           </Collapse>
@@ -164,7 +168,7 @@ const GenAiHome = (): JSX.Element => {
               color="secondary"
               variant="text"
               onClick={() => setOpen(!open)}
-              sx={headerModalButtonStyles}
+              sx={buttonSXProps}
             >
               {open ? 'Close' : 'Prompt Builder'}
             </Button>
@@ -172,14 +176,17 @@ const GenAiHome = (): JSX.Element => {
         </Container>
       </Paper>
       {open && (
-        <Box component={'section'} key={'prompt-builder-form-wrapper'} id="prompt-builder-form-wrapper" width={'75vw'}>
-          <Container component={'div'} key={'prompt-builder-collapse-box'} id="prompt-builder-collapse-box">
-            <Suspense fallback={<Waiting src={'/swirly-dots-to-chrome.webp'} />}>
-              <Collapse in={open} component={'div'}>
-                <PromptBuilder loading={loading} setLoading={setLoading} setPrompt={setPrompt} />
-              </Collapse>
-            </Suspense>
-          </Container>
+        <Box
+          component={'section'}
+          key={'prompt-builder-form-wrapper'}
+          id="prompt-builder-form-wrapper"
+          sx={crudPaperSxProps}
+        >
+          <Suspense fallback={<Waiting src={waiting} />}>
+            <Collapse in={open} component={'div'}>
+              <PromptBuilder loading={loading} setLoading={setLoading} setPrompt={setPrompt} />
+            </Collapse>
+          </Suspense>
         </Box>
       )}
 
@@ -189,12 +196,11 @@ const GenAiHome = (): JSX.Element => {
         </Box>
       </MediaRecorderClientContextProvider>
 
-      <Modal
+      <Dialog
         open={loading}
         component={'div'}
         key={'gen-ai-response-loading-wrapper'}
         id="gen-ai-response-loading-wrapper"
-        sx={fullPageModalStyles}
       >
         <Box
           component={'div'}
@@ -206,7 +212,7 @@ const GenAiHome = (): JSX.Element => {
         >
           <Waiting src={waiting} />
         </Box>
-      </Modal>
+      </Dialog>
 
       {promptResponse.length > 0 ? (
         <Box

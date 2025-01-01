@@ -2,8 +2,8 @@ import { Label, Waiting } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
-import { DateCalendar, type DateCalendarSlotProps } from '@mui/x-date-pickers/DateCalendar';
-import { TimePicker, type TimePickerSlotProps } from '@mui/x-date-pickers/TimePicker';
+import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { useGoogleLogin, type CodeResponse } from '@react-oauth/google';
 import axios from 'axios';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -15,94 +15,21 @@ import {
   type GoogleUserContextInfo,
   type GoogleUserContextProps
 } from '../../../contexts/contact-context';
-import '../../../styles/google-calendar.css';
-import { timePickerSxProps } from '../../../styles/header-styles';
-import { flexColumnStyles } from '../../../styles/prompt-builder-styles';
-import Theme from '../../../styles/theme';
+import {
+  connectGoogleCalendarButtonSxProps,
+  dateCalendarSlotProps,
+  dateCalendarSxProps,
+  timePickerLabelSxProps,
+  timePickerSlotProps,
+  timePickerSxProps,
+  timePickerWrapperSxProps
+} from '../../../styles/header-styles';
+import { flexColumnStyles } from '../../../styles/pages-styles';
 
 const tomorrow = dayjs().add(1, 'day');
 const nextYear = dayjs().add(1, 'year');
 const minTime = tomorrow.set('hour', 8).set('minutes', 30);
 const maxTime = tomorrow.set('hour', 19).set('minutes', 30);
-
-const dateCalendarSlotProps: DateCalendarSlotProps<Dayjs> = {
-  switchViewIcon: {
-    sx: {
-      scale: 1.5,
-      color: Theme.palette.primary.dark
-    }
-  },
-  rightArrowIcon: {
-    sx: {
-      scale: 1.5,
-      color: Theme.palette.primary.dark
-    }
-  },
-  leftArrowIcon: {
-    sx: {
-      scale: 1.5,
-      color: Theme.palette.primary.dark
-    }
-  },
-  day: {
-    sx: {
-      fontSize: '1.5rem',
-      backgroundColor: Theme.palette.background.default,
-      color: Theme.palette.primary.dark,
-      borderRadius: 1
-    }
-  },
-  calendarHeader: {
-    sx: {
-      scale: 1.1
-    }
-  }
-};
-
-const timePickerSlotProps: TimePickerSlotProps<Dayjs, false> = {
-  digitalClockSectionItem: {
-    sx: {
-      border: `2px solid ${Theme.palette.primary.dark}`,
-      borderRadius: 1,
-      backgroundColor: Theme.palette.background.default
-    }
-  },
-  actionBar: {
-    sx: {
-      borderTop: `2px solid ${Theme.palette.primary.dark}`
-    }
-  },
-  textField: {
-    variant: 'filled',
-    sx: {
-      p: 1,
-      width: '80%',
-      backgroundColor: Theme.palette.background.default,
-      borderRadius: 1
-    }
-  },
-  rightArrowIcon: {
-    sx: {
-      scale: 1.5,
-      color: Theme.palette.primary.dark
-    }
-  },
-  leftArrowIcon: {
-    sx: {
-      scale: 1.5,
-      color: Theme.palette.primary.dark
-    }
-  },
-  openPickerIcon: {
-    sx: { scale: 1.5, color: Theme.palette.primary.dark }
-  },
-  desktopPaper: {
-    elevation: 12,
-    sx: {
-      border: `3px solid ${Theme.palette.primary.dark}`
-    }
-  }
-};
 
 type TimesAndDates = {
   startTime: Dayjs;
@@ -154,6 +81,7 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
           id="google-auth"
           data-testid="google-auth"
           onClick={() => login()}
+          sx={connectGoogleCalendarButtonSxProps}
         >
           Connect Your Google Calendar
         </Button>
@@ -200,7 +128,7 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
               value={values.date}
               onChange={data => setValues({ ...values, date: data })}
               slotProps={dateCalendarSlotProps}
-              sx={{ scale: 1.4 }}
+              sx={dateCalendarSxProps}
             />
           </Box>
           <Box
@@ -208,13 +136,7 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
             key={'time-pickers-wrapper'}
             id="time-pickers-wrapper"
             data-testid="time-pickers-wrapper"
-            sx={{
-              flex: '1 0 auto',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-evenly',
-              alignItems: 'center'
-            }}
+            sx={timePickerWrapperSxProps}
           >
             <Label
               tooltipTitle={
@@ -223,7 +145,7 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
               labelVariant={'h4'}
               labelText={'Suggested Meeting Time'}
               placement={'top'}
-              sx={{ color: Theme.palette.primary.main }}
+              labelTextsx={timePickerLabelSxProps}
               tooltipSx={{ fontSize: '1.4rem' }}
             />
             <TimePicker
@@ -235,7 +157,7 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
                   tooltipTitle=""
                   labelVariant="body1"
                   labelText="Start Time"
-                  sx={timePickerSxProps}
+                  labelTextsx={timePickerSxProps}
                 />
               }
               minTime={minTime}
@@ -255,7 +177,7 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
                   tooltipTitle=""
                   labelVariant="body1"
                   labelText="End Time"
-                  sx={timePickerSxProps}
+                  labelTextsx={timePickerSxProps}
                 />
               }
               minTime={values.startTime.add(1, 'hour')}

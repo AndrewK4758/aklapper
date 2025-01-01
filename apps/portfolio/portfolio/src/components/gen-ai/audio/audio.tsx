@@ -1,6 +1,5 @@
 import type { MRC } from '@aklapper/media-recorder';
 import { Text, useScrollIntoView } from '@aklapper/react-shared';
-import { topLevelModeStyle } from '../../../styles/gen-ai-styles';
 import type { PromptRequest } from '@aklapper/vertex-ai';
 import HearingIcon from '@mui/icons-material/Hearing';
 import MicNoneIcon from '@mui/icons-material/MicNone';
@@ -15,7 +14,10 @@ import { useOutletContext } from 'react-router-dom';
 import { MediaRecorderClientContext } from '../../../contexts/audio-context';
 import { WebSocketContext } from '../../../contexts/websocket-context';
 import type { OutletContextProps } from '../../../pages/gen-ai/gen-ai';
-import { flexColumnStyles } from '../../../styles/prompt-builder-styles';
+import { crudHeaderTextSxProps } from '../../../styles/crud-styles';
+import { genAiAudioIconButtonSxProps, topLevelModeStyle } from '../../../styles/gen-ai-styles';
+import { buttonSXProps } from '../../../styles/header-styles';
+import { pagesTitleSx } from '../../../styles/pages-styles';
 import { audioText } from '../static/audio-text';
 import AudioVisualizer from './audio-visualizer';
 
@@ -90,24 +92,12 @@ const GenAiAudio = (): JSX.Element => {
 
   return (
     <Box component={'div'} key={'gen-audio-wrapper'} id="gen-audio-wrapper" ref={divRef} sx={topLevelModeStyle}>
-      <Paper
-        component={'div'}
-        key={'gen-audio-paper'}
-        id="gen-audio-paper"
-        sx={{ ...flexColumnStyles, flex: '1 0 100%' }}
-      >
-        <Container
-          component={'section'}
-          key={'gen-audio-container'}
-          id="gen-audio-container"
-          sx={{
-            paddingY: 2
-          }}
-        >
+      <Paper component={'div'} key={'gen-audio-paper'} id="gen-audio-paper">
+        <Container component={'section'} key={'gen-audio-container'} id="gen-audio-container">
           <Box component={'section'} key={'gen-audio-header-wrapper'} id={'gen-audio-header-wrapper'}>
-            <Text component={'h3'} titleVariant="h3" titleText={'Audio'} sx={{ textAlign: 'center', paddingY: 2 }} />
+            <Text component={'h3'} titleVariant="h3" titleText={'Audio'} sx={pagesTitleSx} />
 
-            <Text component={'p'} titleVariant="body1" titleText={audioText} />
+            <Text component={'p'} titleVariant="body1" titleText={audioText} sx={crudHeaderTextSxProps} />
           </Box>
           <Box component={'section'} key={'gen-audio-recorder-wrapper'} id="gen-audio-recorder-wrapper">
             {recording && <AudioVisualizer stream={stream as MediaStream} />}
@@ -121,29 +111,39 @@ const GenAiAudio = (): JSX.Element => {
             display={'flex'}
             justifyContent={'space-evenly'}
           >
-            {blob && <Button onClick={() => uploadFile()}>Query Gemini</Button>}
+            {blob && (
+              <Button onClick={() => uploadFile()} sx={buttonSXProps}>
+                Query Gemini
+              </Button>
+            )}
 
             <Button
-              endIcon={<MicNoneIcon sx={{ scale: 2 }} />}
+              endIcon={<MicNoneIcon sx={genAiAudioIconButtonSxProps} />}
               onClick={() => {
                 mrcRef.current?.startRecording(setBlob);
                 setRecording(true);
               }}
+              sx={buttonSXProps}
             >
               Start
             </Button>
 
             <Button
-              endIcon={<MicOffIcon sx={{ scale: 2 }} />}
+              endIcon={<MicOffIcon sx={genAiAudioIconButtonSxProps} />}
               onClick={() => {
                 mrcRef.current?.stopRecording();
                 setRecording(false);
               }}
+              sx={buttonSXProps}
             >
               Stop
             </Button>
 
-            <Button endIcon={<HearingIcon sx={{ scale: 2 }} />} onClick={() => audRef.current?.play()}>
+            <Button
+              endIcon={<HearingIcon sx={genAiAudioIconButtonSxProps} />}
+              onClick={() => audRef.current?.play()}
+              sx={buttonSXProps}
+            >
               Listen
             </Button>
           </Box>

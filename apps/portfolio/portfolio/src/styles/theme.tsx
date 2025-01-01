@@ -43,7 +43,11 @@ const Theme: ThemeType = createTheme(
         styleOverrides: { body: darkScrollbarGlobal }
       },
       MuiButton: {
-        defaultProps: { sx: { fontSize: '2rem' } }
+        defaultProps: {
+          sx: {
+            fontSize: '2rem'
+          }
+        }
       },
 
       MuiButtonGroup: {

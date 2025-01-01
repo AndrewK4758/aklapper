@@ -2,7 +2,7 @@ import { RenderList, Text } from '@aklapper/react-shared';
 import { ILiteSpace } from '@aklapper/types-game';
 import { SxProps } from '@mui/material';
 import Grid2 from '@mui/material/Grid2';
-import { avatarSize, breakpointsRowSx, breakpointsSpaceSx, spaceStyle } from '../../../styles/game-board-styles';
+import { avatarSize, breakpointsRowSx, breakpointsSpaceSx, spaceStyle } from '../../../styles/games-styles';
 
 export interface GameBoardProps {
   row: ILiteSpace[];

@@ -1,10 +1,8 @@
-import { TabLabel, Waiting } from '@aklapper/react-shared';
+import { Label, Waiting } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
-import type { PaperProps } from '@mui/material/Paper';
-import { type SxProps } from '@mui/material/styles';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -14,26 +12,12 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { type Dispatch, lazy, type SetStateAction, Suspense, useState } from 'react';
 import waiting from '../../assets/swirly-dots-to-chrome.webp';
 import GoogleUserContextProvider from '../../contexts/contact-context';
+import { contactDialogCloseButtonSxProps, emailDialogPaperProps, mainSx, subSx } from '../../styles/header-styles';
 import { fullSizeBlock } from '../../styles/pages-styles';
-import { flexColumnStyles } from '../../styles/prompt-builder-styles';
-import Theme from '../../styles/theme';
+import { flexColumnStyles } from '../../styles/pages-styles';
 
 const EmailForm = lazy(() => import('./email-form/email-form'));
 const GoogleCalendar = lazy(() => import('./google-calendar/google-calendar'));
-
-const subSx: SxProps = { fontSize: '1.25rem', color: Theme.palette.text.primary };
-const mainSx: SxProps = { fontSize: '2.2rem', color: Theme.palette.primary.dark };
-
-const paperProps: PaperProps = {
-  elevation: 24,
-  component: 'div',
-  sx: {
-    m: 0,
-    minWidth: '40vw',
-    width: 'fit-content',
-    height: '90%'
-  }
-};
 
 interface EmailDialogProps {
   open: boolean;
@@ -56,7 +40,7 @@ const EmailDialog = ({ open, setOpen }: EmailDialogProps) => {
             data-testid="email-dialog"
             fullWidth
             scroll="body"
-            PaperProps={paperProps}
+            PaperProps={emailDialogPaperProps}
           >
             <Box
               component={'section'}
@@ -77,21 +61,19 @@ const EmailDialog = ({ open, setOpen }: EmailDialogProps) => {
                 key={'contact-tabs'}
                 value={tab}
                 onChange={(_e, tab) => setTab(tab)}
-                sx={{ height: 'fit-content' }}
               >
                 <Tab
                   key={'appointment-request-tab'}
                   id="appointment-request-tab"
                   data-testid="appointment-request-tab"
                   label={
-                    <TabLabel
-                      id="appointment-request"
-                      mainVariant="h3"
-                      mainText="Appointment Request"
-                      mainSx={mainSx}
-                      subVariant="caption"
-                      subText="Add to Google Calendar"
-                      subSx={subSx}
+                    <Label
+                      tooltipTitle={'Add to Google Calendar'}
+                      labelVariant={'h3'}
+                      labelText={'Appt. Request'}
+                      placement={'bottom'}
+                      labelTextsx={mainSx}
+                      tooltipSx={subSx}
                     />
                   }
                 />
@@ -100,14 +82,13 @@ const EmailDialog = ({ open, setOpen }: EmailDialogProps) => {
                   id="email-me-tab"
                   data-testid="email-me-tab"
                   label={
-                    <TabLabel
-                      id="email-me"
-                      mainVariant="h3"
-                      mainText="Email Me"
-                      mainSx={mainSx}
-                      subVariant="caption"
-                      subText="Send Email / Upload Appointment Details"
-                      subSx={subSx}
+                    <Label
+                      tooltipTitle={'Send Email / Upload Appointment Details'}
+                      labelVariant={'h3'}
+                      labelText={'Email Me'}
+                      placement={'bottom'}
+                      labelTextsx={mainSx}
+                      tooltipSx={subSx}
                     />
                   }
                 />
@@ -135,6 +116,7 @@ const EmailDialog = ({ open, setOpen }: EmailDialogProps) => {
                   id="close-email-me-button"
                   data-testid="close-email-me-button"
                   onClick={() => setOpen(false)}
+                  sx={contactDialogCloseButtonSxProps}
                 >
                   Close
                 </Button>

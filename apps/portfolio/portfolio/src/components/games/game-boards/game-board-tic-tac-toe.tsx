@@ -12,7 +12,7 @@ import {
   rowSizeTTT,
   selectedSpaceStyle,
   svgSpaceTTTStyles
-} from '../../../styles/game-board-styles';
+} from '../../../styles/games-styles';
 
 export interface GameBoardPropsTicTacToe {
   row: Row;

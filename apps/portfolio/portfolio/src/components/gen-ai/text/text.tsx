@@ -1,17 +1,16 @@
 import { useScrollIntoView } from '@aklapper/react-shared';
 import type { PromptRequest } from '@aklapper/vertex-ai';
 import { FileData } from '@google-cloud/vertexai';
-import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import { useContext, useRef, type JSX } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import * as Yup from 'yup';
 import { WebSocketContext, WebSocketContextType } from '../../../contexts/websocket-context';
-import type { OutletContextProps } from '../../../pages/gen-ai/gen-ai';
-import { labelSx, textInputSx, topLevelModeStyle } from '../../../styles/gen-ai-styles';
-import ChatInput from '../chat-input/chat-input';
 import useGenAiWebsockets from '../../../hooks/useGenAiWebsockets';
+import type { OutletContextProps } from '../../../pages/gen-ai/gen-ai';
+import { genAiTextInputButtonSxProps, labelSx, textInputSx, topLevelModeStyle } from '../../../styles/gen-ai-styles';
+import ChatInput from '../chat-input/chat-input';
 
 const validationSchema = Yup.object<PromptRequest>().shape({
   text: Yup.string().required('Must be a valid question or statement').min(2, 'Must be a valid question or statement'),
@@ -35,36 +34,28 @@ const TextGenerator = (): JSX.Element => {
   useGenAiWebsockets(socket, setLoading, setPromptResponse);
 
   return (
-    <Box
-      component={'section'}
-      key={'prompt-builder-wrapper'}
-      id="prompt-builder-wrapper"
-      ref={divRef}
-      sx={topLevelModeStyle}
-    >
-      <Paper component={'div'} key={'prompt-builder-paper'} id="prompt-builder-paper">
-        <Container component={'section'} key={'text-input-wrapper'} id="text-input-wrapper" sx={{ paddingY: 2 }}>
-          <ChatInput<PromptRequest>
-            method="post"
-            action=""
-            type="text"
-            buttonText="Submit Prompt"
-            buttonType="submit"
-            names={Object.keys(prompt)}
-            labelText={'Prompt Input'}
-            variant="text"
-            socket={socket}
-            setLoading={setLoading}
-            initialValues={prompt}
-            validationSchema={validationSchema}
-            breakpointsChatInputButton={{ fontSize: '2rem' }}
-            breakpointsChatInputText={textInputSx}
-            breakpointsChatInputLabel={labelSx}
-            breakpointsWrapperBoxSx={{ width: '100%' }}
-          />
-        </Container>
-      </Paper>
-    </Box>
+    <Paper component={'div'} key={'gen-ai-text-input-paper'} id="gen-ai-text-input-paper" sx={topLevelModeStyle}>
+      <Container component={'section'} key={'gen-ai-text-input-wrapper'} id="gen-ai-text-input-wrapper">
+        <ChatInput<PromptRequest>
+          method="post"
+          action=""
+          type="text"
+          buttonText="Submit Prompt"
+          buttonType="submit"
+          names={Object.keys(prompt)}
+          labelText={'Prompt Input'}
+          variant="text"
+          socket={socket}
+          setLoading={setLoading}
+          initialValues={prompt}
+          validationSchema={validationSchema}
+          breakpointsChatInputButton={genAiTextInputButtonSxProps}
+          breakpointsChatInputText={textInputSx}
+          breakpointsChatInputLabel={labelSx}
+          breakpointsWrapperBoxSx={{ width: '100%' }}
+        />
+      </Container>
+    </Paper>
   );
 };
 

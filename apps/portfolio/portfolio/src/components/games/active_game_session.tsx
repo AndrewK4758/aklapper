@@ -1,4 +1,4 @@
-import { Text } from '@aklapper/react-shared';
+import { Text, useScrollIntoView } from '@aklapper/react-shared';
 import { ClientSocket } from '@aklapper/socket-io-client';
 import { GameBoard, IActivePlayersInGame } from '@aklapper/types-game';
 import Box from '@mui/material/Box';
@@ -11,7 +11,8 @@ import useGamesWebsockets from '../../hooks/useGamesWebsockets';
 import {
   breakpointsBottomMenuButtonsBox,
   breakpointsBottomMenuGameBoard,
-  breakpointsPlayerInTurnText
+  breakpointsPlayerInTurnText,
+  gamesPaperSxProps
 } from '../../styles/games-styles';
 import getGameInstanceInfo from '../../utils/utils';
 import ActiveAvatars from './game_board/active_avatars';
@@ -64,19 +65,19 @@ const ActiveGameSession = (): JSX.Element => {
   const socketRef = useRef<Socket>(clientSocket.clientIo);
   const [state, dispatch] = useReducer(socketReducer, {}, socketInit);
   const [space, setSpace] = useState<string | undefined>();
-  // const divRef = useRef<HTMLDivElement>(null);
+  const divRef = useRef<HTMLDivElement>(null);
   const { id } = useParams() as { id: string };
 
   const socket = socketRef.current;
 
-  // useScrollIntoView(divRef);
+  useScrollIntoView(divRef);
 
   useGamesWebsockets(socket, id, dispatch);
 
   return (
-    <Paper key={`active-${id}-game`} id={`active-${id}-game`}>
+    <Paper key={`active-${id}-game`} id={`active-${id}-game`} sx={gamesPaperSxProps}>
       <Box
-        // ref={divRef}
+        ref={divRef}
         component={'section'}
         key={`${id}-active-avatar-wrapper`}
         id="active-avatar-wrapper"

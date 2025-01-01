@@ -12,13 +12,13 @@ const labelWrapperSxProps: SxProps = {
   gap: 2
 };
 
-const labelBoxSxProps: SxProps = { display: 'flex', alignContent: 'center' };
+const iconAndChildrenSxProps: SxProps = { display: 'flex', justifyItems: 'center', alignContent: 'center' };
 
 export interface LabelProps {
   tooltipTitle: ReactNode;
   labelVariant: Variant;
   labelText: string;
-  sx?: SxProps;
+  labelTextsx?: SxProps;
   tooltipSx?: SxProps;
   placement:
     | 'bottom'
@@ -39,15 +39,16 @@ export interface LabelProps {
 }
 
 export const Label = forwardRef<HTMLDivElement, LabelProps>(
-  ({ labelText, labelVariant, placement, sx, tooltipSx, tooltipTitle, Icon, children }, ref) => (
+  ({ labelText, labelVariant, placement, labelTextsx, tooltipSx, tooltipTitle, Icon, children }, ref) => (
     <Box component={'span'} key={`${labelText}-wrapper-box`} id={`${labelText}-wrapper-box`} sx={labelWrapperSxProps}>
       <Box
         component={'span'}
         key={`${labelText}-box`}
         id={`${labelText}-box`}
-        display={'flex'}
-        alignItems={'center'}
-        gap={1}
+        // display={'flex'}
+        // alignItems={'center'}
+        // justifyItems={'center'}
+        // width={'100%'}
       >
         <Tooltip
           id={`${labelText}-tooltip`}
@@ -58,16 +59,28 @@ export const Label = forwardRef<HTMLDivElement, LabelProps>(
           title={tooltipTitle}
           slotProps={{ tooltip: { sx: tooltipSx } }}
         >
-          <Typography variant={labelVariant} key={`${labelText}-label-text`} id={`${labelText}-label-text`} sx={sx}>
+          <Typography
+            variant={labelVariant}
+            key={`${labelText}-label-text`}
+            id={`${labelText}-label-text`}
+            sx={labelTextsx}
+          >
             {labelText}
           </Typography>
         </Tooltip>
-        <Box component={'span'} key={`${labelText}-icon`} id={`${labelText}-icon`} sx={labelBoxSxProps}>
-          {Icon}
-        </Box>
+        {Icon && (
+          <Box component={'span'} key={`${labelText}-icon`} id={`${labelText}-icon`} sx={iconAndChildrenSxProps}>
+            {Icon}
+          </Box>
+        )}
       </Box>
       {children && (
-        <Box component={'span'} key={`${labelText}-box-children`} id={`${labelText}-box-children`} sx={labelBoxSxProps}>
+        <Box
+          component={'span'}
+          key={`${labelText}-box-children`}
+          id={`${labelText}-box-children`}
+          sx={iconAndChildrenSxProps}
+        >
           {children}
         </Box>
       )}

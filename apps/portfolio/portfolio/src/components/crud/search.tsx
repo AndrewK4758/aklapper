@@ -18,8 +18,7 @@ import {
   searchBoxCardSxProps,
   searchBoxResultsWrapperSxProps
 } from '../../styles/crud-styles';
-import { pagesTitlesBoxStyles } from '../../styles/pages-styles';
-import { flexColumnStyles } from '../../styles/prompt-builder-styles';
+import { flexColumnStyles, pagesTitlesBoxStyles } from '../../styles/pages-styles';
 
 type SearchValues = {
   artist: Partial<artist>[];
@@ -54,7 +53,7 @@ const Search = ({ setOpen }: SearchProps): JSX.Element => {
       component={'div'}
       key={'search-box-wrapper'}
       id="search-box-wrapper"
-      sx={{ ...flexColumnStyles, alignItems: 'center', width: '95%', gap: '2.5vh' }}
+      sx={{ ...flexColumnStyles, alignItems: 'center', width: '95%', gap: 1 }}
     >
       <Card elevation={2} component={'section'} key={'search-box-container'} sx={searchBoxCardSxProps}>
         <Container

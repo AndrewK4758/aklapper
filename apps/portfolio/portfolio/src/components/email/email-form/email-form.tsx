@@ -13,8 +13,8 @@ import * as Yup from 'yup';
 import 'yup-phone-lite';
 import { GoogleUserContext, GoogleUserContextProps } from '../../../contexts/contact-context';
 import { helperTextSx } from '../../../styles/gen-ai-styles';
-import { dialogActionsStyles } from '../../../styles/header-styles';
-import { flexColumnStyles } from '../../../styles/prompt-builder-styles';
+import { dialogActionsStyles, emailButtonSxProps, emailStackSxProps } from '../../../styles/header-styles';
+import { flexColumnStyles } from '../../../styles/pages-styles';
 import AppointmentMaker from '../appointment-maker/appointment-maker';
 
 export type MessageMeFormValues = {
@@ -85,7 +85,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
           component={'section'}
           id="email-me-inputs-stack"
           data-testid="email-me-inputs-stack"
-          sx={{ flex: '1 0 100%', justifyContent: 'space-between', gap: 4, paddingTop: 4 }}
+          sx={emailStackSxProps}
         >
           <Box component={'span'} key={'name-wrapper'} id="name-wrapper" data-testid="name-wrapper">
             <TextField
@@ -157,6 +157,11 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
               defaultValue={'I saw your website and wanted to reach out...'}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
+              sx={{
+                '& .MuiInputBase-input': {
+                  fontSize: '0.75rem'
+                }
+              }}
             />
 
             <FormikValidationError<MessageMeFormValues>
@@ -227,10 +232,20 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
           </Box>
 
           <DialogActions sx={dialogActionsStyles}>
-            <Button id="upload-file-button" data-testid="upload-file-button" onClick={handleFileSubmit}>
+            <Button
+              id="upload-file-button"
+              data-testid="upload-file-button"
+              onClick={handleFileSubmit}
+              sx={emailButtonSxProps}
+            >
               Upload File
             </Button>
-            <Button type="submit" id="submit-email-me-button" data-testid="submit-email-me-button">
+            <Button
+              type="submit"
+              id="submit-email-me-button"
+              data-testid="submit-email-me-button"
+              sx={emailButtonSxProps}
+            >
               Submit
             </Button>
             <Button
@@ -238,6 +253,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
               id="reset-email-me-button"
               data-testid="reset-email-me-button"
               onReset={formik.handleReset}
+              sx={emailButtonSxProps}
             >
               Reset
             </Button>

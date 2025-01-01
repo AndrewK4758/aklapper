@@ -37,7 +37,7 @@ export function FormikTextInput({
 
   return (
     <Box key={`${label}-wrapper`} id={`${label}-wrapper`}>
-      <Label tooltipTitle={label} labelVariant={'h2'} labelText={label} sx={labelSx} placement={'top'} />
+      <Label tooltipTitle={label} labelVariant={'h2'} labelText={label} labelTextsx={labelSx} placement={'top'} />
       <TextField
         id="chat-text-input-id"
         autoComplete={autoComplete}
@@ -59,7 +59,17 @@ export function FormikTextInput({
           id="formik-error-text-input"
           titleVariant="body1"
           titleText={meta.error}
-          sx={{ ...labelSx, color: Theme.palette.error.main, fontFamily: 'Roboto', fontSize: '1.25rem', paddingY: 2 }}
+          sx={{
+            ...labelSx,
+            color: Theme.palette.error.main,
+            fontFamily: 'Roboto',
+            fontSize: '1.25rem',
+            paddingY: 2,
+            [Theme.breakpoints.down('lg')]: {
+              fontSize: '0.875rem',
+              paddingY: 1
+            }
+          }}
         />
       ) : null}
     </Box>
