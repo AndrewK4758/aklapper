@@ -1,8 +1,0 @@
-{
-  "name": "types-game",
-  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "libs/types/types-game/src",
-  "projectType": "library",
-  "tags": [],
-  "targets": {}
-}
