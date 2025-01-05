@@ -35,8 +35,8 @@ export default defineConfig({
 
   build: {
     outDir: `../../../dist/apps/portfolio`,
-    manifest: true,
     minify: true,
+    manifest: true,
     sourcemap: true,
     emptyOutDir: true,
     reportCompressedSize: true,

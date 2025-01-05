@@ -1,15 +1,16 @@
 {
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
+    "outDir": "out-tsc",
+    "tsBuildInfoFile": "tsconfig.app.tsbuildinfo",
+    "jsx": "react-jsx",
+    "lib": ["DOM"],
+    "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
+    "rootDir": "./src",
     "module": "esnext",
     "moduleResolution": "bundler",
-    "outDir": "out-tsc",
-    "rootDir": "./src",
     "declaration": true,
-    "declarationDir": "../../../dist/apps/portfolio/src",
-    "tsBuildInfoFile": "tsconfig.app.tsbuildinfo",
-    "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
-    "jsx": "react-jsx"
+    "declarationDir": "../../../dist/apps/portfolio/src"
   },
   "exclude": [
     "tests/**/*.spec.ts",

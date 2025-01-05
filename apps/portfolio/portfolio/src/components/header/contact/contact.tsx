@@ -69,7 +69,7 @@ export function Contact({ openMenu, setOpenMenu }: ContactProps) {
           <ContactIcon
             id="github"
             tooltipText="Github"
-            iconHref="https://github.com/AndrewK4758"
+            iconHref="https://github.com/AndrewK4758/aklapper"
             Icon={<GitHibIcon sx={iconSize} />}
             itemSx={iconSxProps}
             buttonSx={contactButtonSxProps}

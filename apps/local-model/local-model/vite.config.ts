@@ -33,11 +33,40 @@ export default defineConfig({
   build: {
     outDir: '../../../dist/apps/local-model',
     emptyOutDir: true,
+    manifest: true,
+    sourcemap: true,
     reportCompressedSize: true,
     commonjsOptions: {
       transformMixedEsModules: true
-    }
+    },
+    rollupOptions: {
+      perf: true,
+      output: {
+        esModule: true,
+        format: 'esm',
+        generatedCode: {
+          arrowFunctions: true,
+          constBindings: true,
+          symbols: true
+        }
+      }
+    },
+    target: 'esnext'
   },
+
+  esbuild: {
+    jsx: 'automatic',
+    format: 'esm',
+    color: true,
+    platform: 'browser',
+    sourcemap: true,
+    target: 'esnext'
+  },
+
+  logLevel: 'info',
+  appType: 'spa',
+  publicDir: 'public',
+  envDir: './env',
   test: {
     watch: false,
     globals: true,

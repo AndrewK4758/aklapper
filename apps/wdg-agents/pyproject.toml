@@ -30,6 +30,8 @@ readme = 'README.md'
   langchain-ollama = "^0.2.0"
   langchain-chroma = "^0.1.4"
   sentence-transformers = "^3.2.1"
+  flask = "^3.1.0"
+  flask-cors = "^5.0.0"
 
   [tool.poetry.group.dev.dependencies]
   autopep8 = "2.0.2"
@@ -47,3 +49,5 @@ build-backend = "poetry.core.masonry.api"
 agent = 'wdg_agents.agent_1:main'
 
 example = 'wdg_agents.cli:main'
+
+start-flask = 'wdg_agents.api:run_server'

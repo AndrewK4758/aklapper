@@ -13,7 +13,6 @@
     "declarationDir": "../../../dist/apps/local-model/src"
   },
   "exclude": [
-    "dist",
     "tests/**/*.spec.ts",
     "tests/**/*.test.ts",
     "tests/**/*.spec.tsx",
@@ -22,26 +21,9 @@
     "tests/**/*.test.js",
     "tests/**/*.spec.jsx",
     "tests/**/*.test.jsx",
-    "vite.config.ts",
-    "vitest.config.ts"
+    "vite.config.ts"
   ],
-  "include": [
-    "src/**/*.js",
-    "src/**/*.jsx",
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "../../../libs/socket-io/client/src/**/*.ts",
-    "../../../libs/mocks/src/**/*.ts",
-    "../../../libs/game/src/**/*.ts",
-    "../../../libs/games-components/src/**/*.ts",
-    "../../../libs/games/chutes-and-ladders/src/**/*.ts",
-    "../../../libs/models/game-instance/src/**/*.ts",
-    "../../../libs/chain/src/**/*.ts",
-    "../../../libs/utils/src/**/*.ts",
-    "../../../libs/types/types-game/src/**/*.ts",
-    "../../../libs/react-shared/src/**/*.ts",
-    "../../../libs/react-shared/src/**/*.tsx"
-  ],
+  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
       "path": "../../../libs/types/types-api/tsconfig.lib.json"
