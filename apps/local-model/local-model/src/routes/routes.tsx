@@ -1,6 +1,7 @@
 import { RouteObject } from 'react-router-dom';
 import Layout from '../components/layout/layout';
 import { lazy } from 'react';
+import loadAvailableModels from '../services/loaders/load-available-models';
 
 const QueryModel = lazy(() => import('../components/query-model/query-model'));
 
@@ -11,7 +12,9 @@ const routes: RouteObject[] = [
     children: [
       {
         path: 'query-model',
-        Component: QueryModel
+        Component: QueryModel,
+        loader: loadAvailableModels,
+        hydrateFallbackElement: <h1>Fallback Element</h1>
       }
     ]
   }

@@ -48,7 +48,6 @@ export const outletWrapperSxProps: SxProps = {
   height: 'fit-content',
   minHeight: '50vh',
   paddingBottom: '15vh',
-  border: '5px solid pink',
   [Theme.breakpoints.down('lg')]: {
     paddingBottom: '8vh'
   }

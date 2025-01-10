@@ -1,21 +1,37 @@
-import { Form } from 'react-router-dom';
 import { Label } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
-import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
-import Container from '@mui/material/Container';
-import { useFormik } from 'formik';
-import axios from 'axios';
 import ButtonGroup from '@mui/material/ButtonGroup';
+import Container from '@mui/material/Container';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
+import axios from 'axios';
+import { useFormik } from 'formik';
+import type { Dispatch, SetStateAction } from 'react';
+import { Form, useLoaderData, useOutletContext } from 'react-router-dom';
 
-const initialValues = {
+type QueryFormValues = {
+  model: string;
+  query: string;
+};
+
+const initialValues: QueryFormValues = {
+  model: '',
   query: ''
 };
 
+type OutletContext = {
+  promptResponse: string[];
+  setPromptResponse: Dispatch<SetStateAction<string[]>>;
+};
+
 export default function QueryModel() {
+  const { setPromptResponse } = useOutletContext<OutletContext>();
+  const modelList: string[] = useLoaderData();
+
   const formik = useFormik({
     initialValues: initialValues,
-    onSubmit: async ({ query }) => await handleQueryModel(query)
+    onSubmit: async values => await handleQueryModel(values, setPromptResponse)
   });
 
   return (
@@ -23,7 +39,7 @@ export default function QueryModel() {
       id="query-model-wrapper"
       data-testid="query-model-wrapper"
       key={'query-model-wrapper'}
-      sx={{ width: '100%', flex: 1, display: 'flex', border: '5px solid red' }}
+      sx={{ width: '100%', flex: 1, display: 'flex' }}
     >
       <Form
         method="POST"
@@ -32,7 +48,7 @@ export default function QueryModel() {
         data-testid="query-model-form"
         key={'query-model-form'}
         onSubmit={formik.handleSubmit}
-        style={{ flex: 1, display: 'flex', border: '5px solid blue' }}
+        style={{ flex: 1, display: 'flex' }}
       >
         <Container
           id="query-model-container"
@@ -44,15 +60,46 @@ export default function QueryModel() {
             flexDirection: 'column',
             alignContent: 'center',
             justifyContent: 'center',
-            border: '5px solid green',
-            width: '100%'
+            width: '100%',
+            gap: 2
           }}
         >
+          <Box
+            id="query-model-select-model-box"
+            data-testid="query-model-select-model-box"
+            key={'query-model-select-model-box'}
+          >
+            <TextField
+              autoFocus={true}
+              select={true}
+              id="query-model-model-select"
+              data-testid="query-model-model-select"
+              key={'query-model-model-select'}
+              name="model"
+              variant="outlined"
+              onChange={formik.handleChange}
+              label={
+                <Label
+                  tooltipTitle={'Select model to use'}
+                  labelVariant={'overline'}
+                  labelText={'Model'}
+                  placement={'top'}
+                />
+              }
+              sx={{ width: '50%' }}
+            >
+              {modelList.map((model: string, _i: number, _arr: string[]) => (
+                <MenuItem id={model} data-testid={model} key={model} value={model}>
+                  {model}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
+
           <Box
             id="query-model-text-input-box"
             data-testid="query-model-text-input-box"
             key={'query-model-text-input-box'}
-            sx={{ border: 4 }}
           >
             <TextField
               fullWidth={true}
@@ -63,6 +110,7 @@ export default function QueryModel() {
               name="query"
               multiline={true}
               rows={2}
+              onChange={formik.handleChange}
               label={
                 <Label
                   tooltipTitle={'Query & Chat with local LLM Model'}
@@ -71,10 +119,9 @@ export default function QueryModel() {
                   placement={'top'}
                 />
               }
-              onChange={formik.handleChange}
             />
           </Box>
-          <ButtonGroup fullWidth={true} sx={{ border: '5px solid orange' }}>
+          <ButtonGroup fullWidth={true}>
             <Button id="query-model-reset" data-testid="query-model-reset" key={'query-model-reset'} type="reset">
               <Label
                 tooltipTitle={'Reset Query Box'}
@@ -99,18 +146,20 @@ export default function QueryModel() {
 }
 
 const baseUrl = import.meta.env.VITE_LOCAL_SERVER_URL;
-console.log(baseUrl);
 
-const handleQueryModel = async (query: string) => {
+const handleQueryModel = async (values: QueryFormValues, setPromptResponse: Dispatch<SetStateAction<string[]>>) => {
   try {
-    console.log(query);
+    const { model, query } = values;
+    
     const resp = await axios.post(
       `${baseUrl}/query-model`,
-      { query: query },
+      { model: model, query: query },
       { headers: { 'Content-Type': 'application/json' } }
     );
 
-    console.log(resp);
+    const { query_response } = resp.data;
+
+    setPromptResponse(query_response);
   } catch (error) {
     console.error(error);
   }

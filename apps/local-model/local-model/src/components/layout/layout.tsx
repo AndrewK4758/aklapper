@@ -11,8 +11,11 @@ import {
 import { Label, Text } from '@aklapper/react-shared';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Button from '@mui/material/Button';
+import { useState } from 'react';
+import ModelResponse from '../gen-ai/local/local-model-response';
 
 export default function Layout() {
+  const [promptResponse, setPromptResponse] = useState<string>('');
   const nav = useNavigate();
   return (
     <Box component={'div'} id="app-wrapper" data-testid="app-wrapper" key={'app-wrapper'}>
@@ -53,7 +56,16 @@ export default function Layout() {
           key={'outlet-wrapper'}
           sx={outletWrapperSxProps}
         >
-          <Outlet />
+          <Outlet context={{ promptResponse, setPromptResponse }} />
+        </Box>
+        <Box
+          component={'div'}
+          id="prompt-response-wrapper"
+          data-testid="prompt-response-wrapper"
+          key={'prompt-response-wrapper'}
+          sx={outletWrapperSxProps}
+        >
+          <ModelResponse promptResponse={promptResponse} />
         </Box>
       </Box>
       <Box

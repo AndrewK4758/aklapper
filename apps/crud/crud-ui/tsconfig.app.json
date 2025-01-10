@@ -4,7 +4,6 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "out-tsc",
-    "rootDir": "./src",
     "declaration": true,
     "declarationDir": "../../../dist/apps/crud/src",
     "tsBuildInfoFile": "tsconfig.app.tsbuildinfo",

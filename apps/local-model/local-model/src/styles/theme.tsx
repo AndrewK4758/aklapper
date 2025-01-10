@@ -1,6 +1,22 @@
-import { createTheme } from '@mui/material';
+import createTheme from '@mui/material/styles/createTheme';
+import type { Theme as MuiTheme } from '@mui/material/styles';
 
-const Theme = createTheme({
+const Theme: MuiTheme = createTheme({
+  palette: {
+    background: {
+      default: '#333539',
+      paper: '#111316'
+    },
+
+    text: {
+      primary: '#dddad8',
+      secondary: '#eeebe9',
+      disabled: '#ffb9b6'
+    },
+
+    divider: '#eeebe9'
+  },
+
   components: {
     MuiButton: {
       defaultProps: { sx: { fontSize: '2rem' } }

@@ -6,7 +6,6 @@
     "jsx": "react-jsx",
     "lib": ["dom"],
     "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
-    "rootDir": "./src",
     "module": "esnext",
     "moduleResolution": "bundler",
     "declaration": true,
@@ -23,7 +22,14 @@
     "tests/**/*.test.jsx",
     "vite.config.ts"
   ],
-  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
+  "include": [
+    "src/**/*.js",
+    "src/**/*.jsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "../../../libs/react-shared/src/**/*.ts",
+    "../../../libs/react-shared/src/**/*.tsx"
+  ],
   "references": [
     {
       "path": "../../../libs/types/types-api/tsconfig.lib.json"

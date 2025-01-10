@@ -4,7 +4,6 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "outDir": "out-tsc",
-    "rootDir": "./src",
     "declaration": true,
     "declarationDir": "../../../dist/apps/games/src",
     "tsBuildInfoFile": "tsconfig.app.tsbuildinfo",

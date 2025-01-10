@@ -10,6 +10,7 @@
     "ms-python.vscode-pylance",
     "ms-python.debugpy",
     "ms-python.python",
-    "ms-python.isort"
+    "ms-python.isort",
+    "ms-python.autopep8"
   ]
 }

@@ -6,7 +6,6 @@
     "jsx": "react-jsx",
     "lib": ["DOM"],
     "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
-    "rootDir": "./src",
     "module": "esnext",
     "moduleResolution": "bundler",
     "declaration": true,

@@ -4,7 +4,8 @@
     "allowJs": true,
     "outDir": "dist/out-tsc",
     "sourceMap": false,
-    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo"
+    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo",
+    "esModuleInterop": true
   },
   "include": [
     "**/*.ts",

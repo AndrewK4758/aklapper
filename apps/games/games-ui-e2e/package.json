@@ -1,6 +1,5 @@
 {
   "name": "games-ui-e2e",
-  "type": "module",
   "private": true,
   "nx": {
     "projectType": "application",
