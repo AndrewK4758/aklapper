@@ -26,7 +26,7 @@ describe('Test Header component', () => {
     const x = await baseComponent.findByTestId('x-icon');
     const discord = await baseComponent.findByTestId('discord-icon');
 
-    expect(github).toHaveAttribute('href', 'https://github.com/AndrewK4758');
+    expect(github).toHaveAttribute('href', 'https://github.com/AndrewK4758/aklapper');
     expect(facebook).toHaveAttribute('href', 'https://www.facebook.com/AKlapper47');
     expect(linkedin).toHaveAttribute('href', 'https://www.linkedin.com/in/andrew-klapper-a9204b23b/');
     expect(huggingFace).toHaveAttribute('href', 'https://huggingface.co/ak475826');
