@@ -193,8 +193,8 @@ importers:
         specifier: 20.3.1
         version: 20.3.1(@babel/traverse@7.26.4)(@swc-node/register@1.10.9(@swc/core@1.10.6(@swc/helpers@0.5.15))(@swc/types@0.1.17)(typescript@5.7.3))(@swc/core@1.10.6(@swc/helpers@0.5.15))(@types/node@22.10.5)(nx@20.3.1(@swc-node/register@1.10.9(@swc/core@1.10.6(@swc/helpers@0.5.15))(@swc/types@0.1.17)(typescript@5.7.3))(@swc/core@1.10.6(@swc/helpers@0.5.15)))(typescript@5.7.3)
       '@nxlv/python':
-        specifier: 20.3.1
-        version: 20.3.1(nx@20.3.1(@swc-node/register@1.10.9(@swc/core@1.10.6(@swc/helpers@0.5.15))(@swc/types@0.1.17)(typescript@5.7.3))(@swc/core@1.10.6(@swc/helpers@0.5.15)))
+        specifier: 20.3.2
+        version: 20.3.2(nx@20.3.1(@swc-node/register@1.10.9(@swc/core@1.10.6(@swc/helpers@0.5.15))(@swc/types@0.1.17)(typescript@5.7.3))(@swc/core@1.10.6(@swc/helpers@0.5.15)))
       '@playwright/test':
         specifier: ^1.49.1
         version: 1.49.1
@@ -2274,8 +2274,8 @@ packages:
   '@nx/workspace@20.3.1':
     resolution: {integrity: sha512-2GQX19POWzTDV8XIAc/UCNruzs77jD2WwAkYAOveiTBqJIJVd64ueOBXZw1YkZLhXTFd0C13xT1CFo2fOvyJLg==}
 
-  '@nxlv/python@20.3.1':
-    resolution: {integrity: sha512-hcMZRl7P/6CpAb9t8iNACzRyczgsohOEKvEN081MSW4PAwNaWy52a85CHaUUH9DsFLjIFYcOQcEon01BvPyrJQ==}
+  '@nxlv/python@20.3.2':
+    resolution: {integrity: sha512-O2EDAb2SdPruEY8rcgNA0m2bF1Aff5d6YSlp6gr6bfJLNWY3Cf0pWgGOI9Y1mP4dScCaDzl8Sdf00vGtvfz1gQ==}
 
   '@oxc-resolver/binding-darwin-arm64@1.12.0':
     resolution: {integrity: sha512-wYe+dlF8npM7cwopOOxbdNjtmJp17e/xF5c0K2WooQXy5VOh74icydM33+Uh/SZDgwyum09/U1FVCX5GdeQk+A==}
@@ -11402,7 +11402,7 @@ snapshots:
       - '@swc/core'
       - debug
 
-  '@nxlv/python@20.3.1(nx@20.3.1(@swc-node/register@1.10.9(@swc/core@1.10.6(@swc/helpers@0.5.15))(@swc/types@0.1.17)(typescript@5.7.3))(@swc/core@1.10.6(@swc/helpers@0.5.15)))':
+  '@nxlv/python@20.3.2(nx@20.3.1(@swc-node/register@1.10.9(@swc/core@1.10.6(@swc/helpers@0.5.15))(@swc/types@0.1.17)(typescript@5.7.3))(@swc/core@1.10.6(@swc/helpers@0.5.15)))':
     dependencies:
       '@iarna/toml': 2.2.5
       '@nx/devkit': 20.3.1(nx@20.3.1(@swc-node/register@1.10.9(@swc/core@1.10.6(@swc/helpers@0.5.15))(@swc/types@0.1.17)(typescript@5.7.3))(@swc/core@1.10.6(@swc/helpers@0.5.15)))
