@@ -9,7 +9,11 @@ export default defineConfig({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/libs/game',
   plugins: [
-    nxViteTsPaths({ debug: true, mainFields: ['exports', '.', 'types', 'imports'] }),
+    nxViteTsPaths({
+      debug: true,
+      buildLibsFromSource: false,
+      mainFields: [['exports', '.', 'types', 'imports', 'default'], 'types', 'main']
+    }),
     nxCopyAssetsPlugin(['*.md']),
     dts({
       logLevel: 'info',

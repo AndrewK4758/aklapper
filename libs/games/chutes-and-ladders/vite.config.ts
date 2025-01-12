@@ -9,7 +9,11 @@ export default defineConfig({
   root: __dirname,
   cacheDir: '../../../node_modules/.vite/libs/games/chutes-and-ladders',
   plugins: [
-    nxViteTsPaths({ debug: true }),
+    nxViteTsPaths({
+      debug: true,
+      buildLibsFromSource: false,
+      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'main']
+    }),
     nxCopyAssetsPlugin(['*.md']),
     dts({
       entryRoot: 'src',

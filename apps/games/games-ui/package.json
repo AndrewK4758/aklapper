@@ -3,6 +3,15 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": "./index-[hash].js",
+      "require": null,
+      "default": "./index-[hash].js"
+    }
+  },
+  "main": "./index-[hash].js",
   "nx": {
     "name": "games-ui",
     "projectType": "application",

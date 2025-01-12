@@ -16,7 +16,11 @@ export default defineConfig({
   },
   plugins: [
     react({ babel: { targets: { esmodules: true } } }),
-    nxViteTsPaths({ debug: true }),
+    nxViteTsPaths({
+      debug: true,
+      buildLibsFromSource: true,
+      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'main']
+    }),
     nxCopyAssetsPlugin(['*.md'])
   ],
   // Uncomment this if you are using workers.

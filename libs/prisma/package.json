@@ -4,9 +4,18 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./src/index.d.ts"
+      "types": "./src/index.d.ts",
+      "require": null,
+      "default": "./index.js"
     }
   },
+  "main": "./index.js",
+  "types": "./src/index.d.ts",
   "type": "module",
-  "dependencies": {}
+  "dependencies": {},
+  "nx": {
+    "name": "@aklapper/prisma",
+    "sourceRoot": "libs/prisma/src",
+    "projectType": "library"
+  }
 }

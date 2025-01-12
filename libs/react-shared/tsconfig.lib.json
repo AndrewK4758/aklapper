@@ -1,25 +1,15 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "out-tsc",
+    "declarationDir": "../../dist/libs/react-shared/src",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "rootDir": "./src",
     "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
-    "declarationDir": "../../dist/libs/react-shared/src",
-    "declaration": true,
     "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"]
   },
   "exclude": [
-    "**/*.spec.ts",
-    "**/*.test.ts",
-    "**/*.spec.tsx",
-    "**/*.test.tsx",
-    "**/*.spec.js",
-    "**/*.test.js",
-    "**/*.spec.jsx",
-    "**/*.test.jsx",
     "vite.config.ts",
-    "vitest.config.ts",
     "tests/**/*.test.ts",
     "tests/**/*.spec.ts",
     "tests/**/*.test.tsx",

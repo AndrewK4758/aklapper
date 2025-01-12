@@ -6,9 +6,13 @@
     ".": {
       "types": "./src/index.d.ts",
       "import": "./index.js",
-      "meta": "./meta.json"
+      "meta": "./meta.json",
+      "require": null,
+      "default": "./index.js"
     }
   },
+  "main": "./index.js",
+  "types": "./src/index.d.ts",
   "type": "module",
   "dependencies": {}
 }

@@ -2,8 +2,6 @@ import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import react from '@vitejs/plugin-react';
-import path from 'path';
-import dts from 'vite-plugin-dts';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
@@ -11,7 +9,10 @@ export default defineConfig({
   cacheDir: '../../../node_modules/.vite/apps/portfolio/portfolio',
   server: {
     port: 4700,
-    host: 'localhost'
+    host: 'localhost',
+    watch: {
+      ignored: ['**/node_modules/**']
+    }
   },
   preview: {
     port: 4800,
@@ -19,18 +20,30 @@ export default defineConfig({
   },
   plugins: [
     react({ babel: { targets: { esmodules: true } } }),
-    dts({
-      entryRoot: 'src',
-      outDir: '../../../dist/apps/portfolio/src',
-      tsconfigPath: path.join(__dirname, 'tsconfig.app.json')
+    nxViteTsPaths({
+      debug: true,
+      buildLibsFromSource: true,
+      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'main']
     }),
-    nxViteTsPaths({ debug: true }),
-    nxCopyAssetsPlugin(['**/*/.md'])
+    nxCopyAssetsPlugin(['./*.md'])
   ],
 
   // Uncomment this if you are using workers.
   // worker: {
   //  plugins: [ nxViteTsPaths() ],
+  // },
+
+  // resolve: {
+  //   alias: {
+  //     '@aklapper/games-components': '../../../dist/libs/games-components/index.js',
+  //     '@aklapper/media-recorder': '../../../dist/libs/media-recorder/index.js',
+  //     '@aklapper/prompt-builder': '../../../dist/libs/gen-ai/prompt-builder/index.js',
+  //     '@aklapper/react-shared': '../../../dist/libs/react-shared/index.js',
+  //     '@aklapper/socket-io-client': '../../../dist/libs/socket-io/client/index.js',
+  //     '@aklapper/types-ai': '../../../dist/libs/types/types-ai/index.js',
+  //     '@aklapper/types-game': '../../../dist/libs/types/types-game/index.js',
+  //     '@aklapper/utils': '../../../dist/libs/utils/index.js'
+  //   }
   // },
 
   build: {
@@ -59,7 +72,7 @@ export default defineConfig({
           browser: true,
           preferBuiltins: false,
           exportConditions: ['browser', 'development', 'module', 'import'],
-          extensions: ['.js', '.jsx', '.ts', '.tsx', '.json', '.mjs', '.mts']
+          extensions: ['.js', '.ts', '.json', '.mjs', '.mts']
         })
       ]
     },

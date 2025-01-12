@@ -1,6 +1,7 @@
 {
   "name": "crud-ui-e2e",
   "private": true,
+  "type": "module",
   "nx": {
     "projectType": "application",
     "sourceRoot": "apps/crud-ui/crud-ui-e2e/src",

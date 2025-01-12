@@ -1,4 +1,3 @@
-/// <reference types='vitest' />
 import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import * as path from 'path';
@@ -9,7 +8,11 @@ export default defineConfig({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/libs/chain',
   plugins: [
-    nxViteTsPaths({ debug: true }),
+    nxViteTsPaths({
+      debug: true,
+      buildLibsFromSource: false,
+      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'main']
+    }),
     nxCopyAssetsPlugin(['*.md']),
     dts({
       logLevel: 'info',
@@ -24,9 +27,17 @@ export default defineConfig({
   // },
   // Configuration for building your library.
   // See: https://vitejs.dev/guide/build.html#library-mode
+
+  // resolve: {
+  //   alias: {
+  //     '@aklapper/types-game': '../../dist/libs/types/types-game/index.js'
+  //   }
+  // },
+
   build: {
     outDir: '../../dist/libs/chain',
     emptyOutDir: true,
+    sourcemap: true,
     reportCompressedSize: true,
     commonjsOptions: {
       transformMixedEsModules: true
@@ -46,8 +57,7 @@ export default defineConfig({
       external: [],
       output: {
         esModule: true,
-        format: 'esm',
-        sourcemap: true
+        format: 'esm'
       }
     }
   },

@@ -1,13 +1,11 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "declarationDir": "../../dist/libs/mocks/src",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "outDir": "out-tsc",
     "rootDir": "./src",
     "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
-    "declarationDir": "../../dist/libs/mocks/src",
-    "declaration": true,
     "types": ["node", "jest", "vite/client"]
   },
   "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],

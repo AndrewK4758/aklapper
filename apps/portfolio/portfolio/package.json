@@ -3,10 +3,14 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./package.json": "./package.json",
     ".": {
-      "types": "./src/index.d.ts"
+      "import": "./index-[hash].js",
+      "require": null,
+      "default": "./index-[hash].js"
     }
   },
+  "main": "./index-[hash].js",
   "dependencies": {},
   "nx": {
     "name": "@aklapper/portfolio",

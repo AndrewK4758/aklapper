@@ -17,8 +17,6 @@
   },
   "include": [
     "vite.config.ts",
-    "vite.config.ts",
-    "vitest.config.ts",
     "tests/**/*.test.ts",
     "tests/**/*.spec.ts",
     "tests/**/*.test.tsx",

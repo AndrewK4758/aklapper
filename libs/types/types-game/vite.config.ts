@@ -9,7 +9,11 @@ export default defineConfig({
   root: __dirname,
   cacheDir: '../../../node_modules/.vite/libs/types/types-game',
   plugins: [
-    nxViteTsPaths({ debug: true, mainFields: ['exports', '.', 'types', 'imports'] }),
+    nxViteTsPaths({
+      debug: true,
+      buildLibsFromSource: false,
+      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'main']
+    }),
     nxCopyAssetsPlugin(['*.md']),
     dts({
       logLevel: 'info',

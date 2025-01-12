@@ -1,11 +1,10 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "declarationDir": "../../../dist/apps/crud/src",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "outDir": "out-tsc",
-    "declaration": true,
-    "declarationDir": "../../../dist/apps/crud/src",
+    "rootDir": "./src",
     "tsBuildInfoFile": "tsconfig.app.tsbuildinfo",
     "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
     "jsx": "react-jsx"

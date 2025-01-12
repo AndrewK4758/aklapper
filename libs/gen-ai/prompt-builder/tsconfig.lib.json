@@ -1,13 +1,11 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "declarationDir": "../../../dist/libs/gen-ai/prompt-builder/src",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "outDir": "out-tsc",
     "rootDir": "./src",
     "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
-    "declarationDir": "../../../dist/libs/gen-ai/prompt-builder/src",
-    "declaration": true,
     "types": ["node"]
   },
   "exclude": ["jest.config.ts", "src/**/*.spec.ts", "src/**/*.test.ts"],

@@ -1,12 +1,10 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "declarationDir": "../../dist/libs/game/src",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "outDir": "out-tsc",
     "rootDir": "./src",
-    "declarationDir": "../../dist/libs/game/src",
-    "declaration": true,
     "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
     "types": ["node", "vite/client"]
   },

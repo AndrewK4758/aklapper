@@ -1,4 +1,3 @@
-/// <reference types='vitest' />
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 import * as path from 'path';
@@ -9,7 +8,11 @@ export default defineConfig({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/libs/games-chains',
   plugins: [
-    nxViteTsPaths({ debug: true }),
+    nxViteTsPaths({
+      debug: true,
+      buildLibsFromSource: false,
+      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'main']
+    }),
     nxCopyAssetsPlugin(['*.md']),
     dts({
       entryRoot: 'src',

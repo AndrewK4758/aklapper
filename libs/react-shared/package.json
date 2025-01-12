@@ -3,17 +3,16 @@
   "private": true,
   "type": "module",
   "dependencies": {},
-  "main": "dist/index.js",
-  "types": "dist/src/index.d.ts",
-  "files": [
-    "dist"
-  ],
   "exports": {
     ".": {
-      "types": "./dist/src/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./src/index.d.ts",
+      "import": "./index.js",
+      "require": null,
+      "default": "./index.js"
     }
   },
+  "main": "./index.js",
+  "types": "./src/index.d.ts",
   "nx": {
     "name": "@aklapper/react-shared",
     "sourceRoot": "libs/react-shared/src",

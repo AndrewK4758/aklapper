@@ -6,8 +6,17 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./src/index.d.ts",
-      "import": "./index.js"
+      "import": "./index.js",
+      "require": null,
+      "default": "./index.js"
     }
   },
-  "dependencies": {}
+  "main": "./index.js",
+  "types": "./src/index.d.ts",
+  "dependencies": {},
+  "nx": {
+    "name": "@aklapper/utils",
+    "sourceRoot": "libs/utils/src",
+    "projectType": "library"
+  }
 }

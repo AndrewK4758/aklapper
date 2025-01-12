@@ -1,13 +1,11 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "strict": false,
-    "outDir": "out-tsc",
+    "declarationDir": "../../../dist/apis/vertex-api/src",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "rootDir": "./src",
-    "declaration": true,
-    "declarationDir": "../../../dist/apis/vertex-api/src",
+    "strict": false,
     "types": ["node"]
   },
   "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],

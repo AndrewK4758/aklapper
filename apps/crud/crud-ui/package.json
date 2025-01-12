@@ -4,10 +4,12 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./src/index.d.ts",
-      "import": "./index.js"
+      "import": "./index.js",
+      "require": null,
+      "default": "./index.js"
     }
   },
+  "main": "./index.js",
   "dependencies": {},
   "nx": {
     "name": "@aklapper/crud-ui",

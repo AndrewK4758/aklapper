@@ -5,8 +5,12 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./src/index.d.ts",
-      "import": "./index.js"
+      "import": "./index.js",
+      "require": null,
+      "default": "./index.js"
     }
   },
+  "main": "./index.js",
+  "types": "./src/index.d.ts",
   "type": "module"
 }

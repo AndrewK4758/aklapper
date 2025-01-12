@@ -5,8 +5,17 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./src/index.d.ts",
-      "import": "./index.js"
+      "import": "./index.js",
+      "require": null,
+      "default": "./index.js"
     }
   },
-  "type": "module"
+  "main": "./index.js",
+  "types": "./src/index.d.ts",
+  "type": "module",
+  "nx": {
+    "name": "@aklapper/types-ai",
+    "sourceRoot": "libs/types/types-ai/src",
+    "projectType": "library"
+  }
 }

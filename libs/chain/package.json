@@ -1,13 +1,19 @@
 {
   "name": "@aklapper/chain",
+  "type": "module",
   "private": true,
   "exports": {
     "./package.json": "./package.json",
     ".": {
       "types": "./src/index.d.ts",
-      "import": "./index.js"
+      "import": "./index.js",
+      "require": null,
+      "default": "./index.js"
     }
   },
-  "type": "module",
-  "dependencies": {}
+  "types": "./src/index.d.ts",
+  "main": "./index.js",
+  "dependencies": {
+    "@aklapper/types-game": "0.0.0"
+  }
 }

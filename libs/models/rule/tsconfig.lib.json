@@ -1,13 +1,11 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "declarationDir": "../../../dist/libs/models/rule/src",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "outDir": "./out-tsc",
     "rootDir": "./src",
     "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
-    "declarationDir": "../../../dist/libs/models/rule/src",
-    "declaration": true,
     "types": ["node", "vite/client"]
   },
   "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
