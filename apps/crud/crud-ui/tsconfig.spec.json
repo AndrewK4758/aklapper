@@ -1,7 +1,6 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "out-tsc",
     "target": "ESNext",
     "moduleResolution": "bundler",
     "tsBuildInfoFile": "tsconfig.spec.tsbuildinfo",

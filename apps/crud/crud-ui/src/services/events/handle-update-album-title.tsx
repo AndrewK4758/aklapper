@@ -1,11 +1,11 @@
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { album } from '@prisma/client';
 import axios from 'axios';
-import { MutableRefObject } from 'react';
+import { RefObject } from 'react';
 
 const baseURL = import.meta.env.VITE_DATA_API_URL;
 
-const handleUpdateAlbumTitle = async (values: album, apiRef: MutableRefObject<GridApiCommunity>) => {
+const handleUpdateAlbumTitle = async (values: album, apiRef: RefObject<GridApiCommunity>) => {
   try {
     const { album_id, title } = values;
     const resp = await axios.patch(
@@ -16,7 +16,7 @@ const handleUpdateAlbumTitle = async (values: album, apiRef: MutableRefObject<Gr
       },
     );
 
-    if (resp.data.updatedAlbum) {
+    if (resp.data.updatedAlbum && apiRef.current) {
       const { album_id, title } = resp.data.updatedAlbum;
       apiRef.current.updateRows([{ album_id: album_id, title: title }]);
     }

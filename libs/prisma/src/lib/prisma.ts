@@ -5,22 +5,21 @@ import { cwd } from 'process';
 configDotenv({ path: `${cwd()}/libs/prisma/.env` });
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const url = () => {
-  switch (process.env['NODE_ENV']) {
+const url = (NODE_ENV: string) => {
+  switch (NODE_ENV) {
     case 'production':
       return process.env['DB_URL_PROD'];
     case 'testing':
       return process.env['DB_URL_TEST'];
-    case 'development':
-      return process.env['DB_URL_DEV'];
     default:
-      return process.env['INSTANCE_CONNECTION_NAME'];
+      return process.env['DB_URL_DEV'];
   }
 };
 
 const prismaClient = new PrismaClient({
   datasourceUrl:
-    url() ?? 'postgresql://postgres:11560000@localhost/aklapper?host=/cloudsql/games-424800:us-central1:aklapper/'
+    url(process.env['NODE_ENV'] ??  'development') 
+    // ?? 'postgresql://postgres:11560000@localhost/aklapper?host=/cloudsql/games-424800:us-central1:aklapper/'
 });
 
 export const prisma = prismaClient.$extends({

@@ -1,8 +1,10 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "out-tsc",
     "module": "commonjs",
+    "moduleResolution": "node10",
+    "noImplicitAny": false,
+    "tsBuildInfoFile": "tsconfig.spec.tsbuildinfo",
     "types": ["jest", "node"]
   },
   "include": [

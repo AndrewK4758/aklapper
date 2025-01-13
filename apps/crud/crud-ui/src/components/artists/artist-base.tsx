@@ -14,7 +14,7 @@ import {
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { artist } from '@prisma/client';
 import axios from 'axios';
-import { MutableRefObject, useCallback, useLayoutEffect, useMemo, useState } from 'react';
+import { RefObject, useCallback, useEffect, useMemo, useState } from 'react';
 import { Outlet, useNavigate, useRouteLoaderData } from 'react-router-dom';
 import loadArtists from '../../services/loaders/load-artists';
 import AddArtist from './add-artist';
@@ -54,7 +54,7 @@ const Artist = () => {
     [],
   );
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     fetchArtists(queryOptions.pageSize, queryOptions.skip, queryOptions.cursor)
       .then(({ allArtists }) => setArtists(allArtists))
       .catch(err => console.error(err));
@@ -155,7 +155,6 @@ const Artist = () => {
 
           <Box component={'div'} key={'artist-data-grid-wrapper'}>
             <DataGrid
-              autoHeight
               aria-label="artist-data-grid"
               apiRef={apiRef}
               columns={columns}
@@ -180,7 +179,7 @@ const Artist = () => {
 };
 
 export default Artist;
-const handleUpdateArtistName = async (values: artist, apiRef: MutableRefObject<GridApiCommunity>) => {
+const handleUpdateArtistName = async (values: artist, apiRef: RefObject<GridApiCommunity>) => {
   try {
     const { artist_id, name } = values;
     const resp = await axios.patch(
@@ -191,7 +190,7 @@ const handleUpdateArtistName = async (values: artist, apiRef: MutableRefObject<G
       },
     );
 
-    if (resp.data) {
+    if (resp.data && apiRef.current) {
       const { artist_id, name } = resp.data.updatedArtist;
       apiRef.current.updateRows([{ artist_id: artist_id, name: name }]);
     }
@@ -201,7 +200,7 @@ const handleUpdateArtistName = async (values: artist, apiRef: MutableRefObject<G
   }
 };
 
-const handleDeleteArtist = async (values: artist, apiRef: MutableRefObject<GridApiCommunity>) => {
+const handleDeleteArtist = async (values: artist, apiRef: RefObject<GridApiCommunity>) => {
   try {
     const { artist_id } = values;
     const resp = await axios.delete(`${baseURL}/artists/${artist_id}`, {
@@ -209,7 +208,7 @@ const handleDeleteArtist = async (values: artist, apiRef: MutableRefObject<GridA
     });
 
     console.log(resp.data);
-    if (resp.data.deletedArtist) {
+    if (resp.data.deletedArtist && apiRef.current) {
       const { artist_id } = resp.data.deletedArtist;
       apiRef.current.updateRows([{ artist_id: artist_id, _action: 'delete' }]);
     }

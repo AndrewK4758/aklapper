@@ -4,9 +4,6 @@
   "include": [],
   "references": [
     {
-      "path": "../portfolio-api"
-    },
-    {
       "path": "./tsconfig.spec.json"
     }
   ],

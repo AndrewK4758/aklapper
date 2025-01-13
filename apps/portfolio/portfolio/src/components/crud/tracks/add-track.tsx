@@ -8,7 +8,7 @@ import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { Prisma, track } from '@prisma/client';
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import { FormikProps, useFormik } from 'formik';
-import { FocusEvent, MutableRefObject } from 'react';
+import { FocusEvent, RefObject } from 'react';
 import { Form } from 'react-router-dom';
 import { crudAddButtonStyles, crudAddErrorTextStyles } from '../../../styles/crud-styles';
 
@@ -16,7 +16,7 @@ const baseURL = import.meta.env.VITE_DATA_API_URL;
 
 interface AddTrackProps {
   albumID: number;
-  apiRef: MutableRefObject<GridApiCommunity>;
+  apiRef: RefObject<GridApiCommunity>;
 }
 
 const initialValues: track = {
@@ -37,7 +37,7 @@ const initialValues: track = {
  *
  * @param {AddTrackProps} props - The props for the AddTrack component.
  * @param {number} props.albumID - The ID of the album to add the track to.
- * @param {MutableRefObject<GridApiCommunity>} props.apiRef - A ref to the DataGrid API object.
+ * @param {RefObject<GridApiCommunity>} props.apiRef - A ref to the DataGrid API object.
  * @returns {JSX.Element} The rendered AddTrack component.
  */
 
@@ -96,14 +96,14 @@ const AddTrack = ({ albumID, apiRef }: AddTrackProps) => {
  * @param {track} values - The track data from the form.
  * @param {FormikProps<track>} formik - The Formik props object.
  * @param {number} albumID - The ID of the album to add the track to.
- * @param {MutableRefObject<GridApiCommunity>} apiRef - A ref to the DataGrid API object.
+ * @param {RefObject<GridApiCommunity>} apiRef - A ref to the DataGrid API object.
  */
 
 const handleSubmitNewTrack = async (
   values: track,
   formik: FormikProps<track>,
   albumID: number,
-  apiRef: MutableRefObject<GridApiCommunity>
+  apiRef: RefObject<GridApiCommunity>
 ) => {
   try {
     const trackName = values.name;
@@ -115,7 +115,7 @@ const handleSubmitNewTrack = async (
       }
     );
 
-    if (resp.data.newTrack) {
+    if (resp.data.newTrack && apiRef.current) {
       const { name, track_id, milliseconds, media_type_id, genre_id, bytes, composer, unit_price } = resp.data
         .newTrack as track;
 

@@ -1,20 +1,32 @@
 import axios from 'axios';
 import { artist } from '@prisma/client';
 
-let dataPost: { name: string }, dataUpdate: artist, artist_id: number;
+
+
+let dataPost: { name: string }, artist_id: number, dataUpdate: artist;
 describe('Test all endpoints for artist CRUD', () => {
   beforeAll(() => {
     dataPost = { name: 'POSTED IN JEST' };
   });
 
-  beforeEach(() => {
-    dataUpdate = { artist_id: Number(artist_id), name: 'UPDATED IN JEST' };
+  afterEach(() => {
+    console.log(artist_id)
+    dataUpdate = { artist_id: artist_id ?? 0, name: 'UPDATED IN JEST' };
   });
+
+  // afterAll(async () => {
+  //   await axios.delete(`artist/${artist_id}`)
+  // })
   describe('GET /artists', () => {
     it('should return a list of artists', async () => {
-      const resp = await axios.get(`/artists`);
+      const TAKE = 25
+      const SKIP = 0
+      const CURSOR = 1
 
-      expect(resp.data.length).toBeGreaterThan(1);
+      const resp = await axios.get(`/artists?take=${TAKE}&skip=${SKIP}&cursor=${CURSOR}`);
+
+      const {allArtists} = resp.data
+      expect(allArtists.length).toEqual(TAKE);
     });
   });
 
@@ -23,6 +35,7 @@ describe('Test all endpoints for artist CRUD', () => {
       const resp = await axios.post('/artists', dataPost);
 
       artist_id = Number(resp.data.newArtist.artist_id);
+
       expect(resp.data.newArtist.name).toEqual(dataPost.name);
     });
   });
@@ -37,9 +50,10 @@ describe('Test all endpoints for artist CRUD', () => {
 
   describe('DELETE /artists/:id', () => {
     it('Should return the value of deletedArtist', async () => {
+      console.log(artist_id)
       const resp = await axios.delete(`/artists/${artist_id}`);
 
-      expect(resp.data.deletedArtist).toEqual(dataUpdate);
+      expect(resp.data.deletedArtist).toEqual({...dataPost, artist_id: artist_id});
     });
   });
 });

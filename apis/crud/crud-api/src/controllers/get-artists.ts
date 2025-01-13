@@ -19,6 +19,7 @@ const getArtists = async (req: Request, resp: Response, next: NextFunction): Pro
   if (!req.query.take) next();
   else {
     try {
+
       const { take, skip, cursor } = req.query;
 
       const query = {

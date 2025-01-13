@@ -1,0 +1,1 @@
+{"version":3,"file":"login-data.d.ts","sourceRoot":"","sources":["login-data.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,YAAY,EAAE,MAAM,iBAAiB,CAAC;AAC/C,MAAM,MAAM,SAAS,GAAG;IAAE,MAAM,EAAE,MAAM,CAAC;IAAC,KAAK,EAAE,YAAY,CAAC;IAAC,QAAQ,EAAE,MAAM,CAAC;IAAC,UAAU,EAAE,MAAM,CAAA;CAAE,CAAC"}

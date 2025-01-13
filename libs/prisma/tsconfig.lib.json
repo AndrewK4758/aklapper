@@ -1,11 +1,11 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../dist/libs/prisma/src",
+    "outDir": "../../dist",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
-    "rootDir": "./src",
+    "rootDirs": ["./src","../../"],
     "types": ["node", "vite/client"]
   },
   "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],

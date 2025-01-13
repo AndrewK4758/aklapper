@@ -9,3 +9,10 @@ exclude =
 	.venv,
 	.pytest_cache
 max-line-length = 120
+
+ignore = 
+    W291,  
+    W293,  
+    F401,  
+    E402,  
+    E302   

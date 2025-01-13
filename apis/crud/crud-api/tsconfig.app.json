@@ -1,10 +1,10 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "declarationDir": "../../../dist/apis/crud-api/src",
+    "declarationDir": "../../../dist",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "rootDir": "./src",
+    "rootDirs": ["./src","../../../"],
     "types": ["node"]
   },
   "include": ["src/**/*.ts", "../../../libs/prisma/src/**/*.ts"],

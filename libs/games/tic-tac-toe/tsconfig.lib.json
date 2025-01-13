@@ -1,10 +1,10 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "declarationDir": "../../../dist/libs/games/tic-tac-toe/src",
+    "declarationDir": "../../../dist",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "rootDir": "./src",
+    "rootDirs": ["./src","../../../"],
     "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
     "types": ["node", "vite/client"]
   },

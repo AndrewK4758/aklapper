@@ -8,7 +8,7 @@ import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { album } from '@prisma/client';
 import axios from 'axios';
 import { FormikProps, useFormik } from 'formik';
-import type { JSX, MutableRefObject } from 'react';
+import type { JSX, RefObject } from 'react';
 import { Form } from 'react-router-dom';
 import * as Yup from 'yup';
 import handleSubmitNewAlbum from '../../../services/actions/crud-actions//submit-album-to-artist-id-action';
@@ -17,7 +17,7 @@ import { flexColumnStyles } from '../../../styles/pages-styles';
 import type { ArtistAndAlbum } from './add-album-on-artist';
 
 interface AddAlbumProps {
-  apiRef: MutableRefObject<GridApiCommunity>;
+  apiRef: RefObject<GridApiCommunity>;
 }
 
 const validationSchema = Yup.object({
@@ -30,7 +30,7 @@ const validationSchema = Yup.object({
  * It allows users to input the album title and then submits the data to the server.
  *
  * @param {AddAlbumOnArtistProps} props - The props for the AddAlbumOnArtist component.
- * @param {MutableRefObject<GridApiCommunity>} props.apiRef - A ref to the DataGrid API object.
+ * @param {RefObject<GridApiCommunity>} props.apiRef - A ref to the DataGrid API object.
  * @returns {JSX.Element} The rendered AddAlbum component.
  */
 

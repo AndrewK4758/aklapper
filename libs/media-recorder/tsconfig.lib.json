@@ -1,10 +1,10 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "declarationDir": "../../dist/libs/media-recorder/src",
+    "declarationDir": "../../dist",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "rootDir": "./src",
+    "rootDirs": ["./src","../../"],
     "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
     "lib": ["DOM"],
     "types": ["node"]

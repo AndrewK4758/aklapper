@@ -1,7 +1,9 @@
 {
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "out-tsc/vitest",
+    "jsx": "react-jsx",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "types": [
       "vitest/globals",
       "vitest/importMeta",
@@ -11,9 +13,6 @@
       "@nx/react/typings/cssmodule.d.ts",
       "@nx/react/typings/image.d.ts"
     ],
-    "jsx": "react-jsx",
-    "module": "esnext",
-    "moduleResolution": "bundler"
   },
   "include": [
     "vite.config.ts",

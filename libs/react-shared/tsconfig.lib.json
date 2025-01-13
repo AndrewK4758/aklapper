@@ -1,10 +1,10 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "declarationDir": "../../dist/libs/react-shared/src",
+    "declarationDir": "../../dist",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "rootDir": "./src",
+    "rootDirs": ["./src","../../"],
     "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
     "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"]
   },

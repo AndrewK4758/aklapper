@@ -33,19 +33,6 @@ export default defineConfig({
   //  plugins: [ nxViteTsPaths() ],
   // },
 
-  // resolve: {
-  //   alias: {
-  //     '@aklapper/games-components': '../../../dist/libs/games-components/index.js',
-  //     '@aklapper/media-recorder': '../../../dist/libs/media-recorder/index.js',
-  //     '@aklapper/prompt-builder': '../../../dist/libs/gen-ai/prompt-builder/index.js',
-  //     '@aklapper/react-shared': '../../../dist/libs/react-shared/index.js',
-  //     '@aklapper/socket-io-client': '../../../dist/libs/socket-io/client/index.js',
-  //     '@aklapper/types-ai': '../../../dist/libs/types/types-ai/index.js',
-  //     '@aklapper/types-game': '../../../dist/libs/types/types-game/index.js',
-  //     '@aklapper/utils': '../../../dist/libs/utils/index.js'
-  //   }
-  // },
-
   build: {
     outDir: `../../../dist/apps/portfolio`,
     minify: true,

@@ -1,11 +1,12 @@
 {
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
-    "declarationDir": "../../../dist/apps/local-model/src",
+    "declarationDir": "../../../dist",
     "jsx": "react-jsx",
     "lib": ["dom"],
     "module": "esnext",
     "moduleResolution": "bundler",
+    "rootDirs": ["./src","../../../"],
     "tsBuildInfoFile": "tsconfig.app.tsbuildinfo",
     "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"]
   },

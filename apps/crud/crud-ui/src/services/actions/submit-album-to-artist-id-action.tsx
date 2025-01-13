@@ -1,6 +1,6 @@
 import { album } from '@prisma/client';
 import { FormikProps } from 'formik';
-import { MutableRefObject } from 'react';
+import { RefObject } from 'react';
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import axios, { AxiosError, AxiosResponse } from 'axios';
 
@@ -9,7 +9,7 @@ const baseURL = import.meta.env.VITE_DATA_API_URL;
 const handleSubmitNewAlbum = async (
   values: album,
   formik: FormikProps<album>,
-  apiRef: MutableRefObject<GridApiCommunity>,
+  apiRef: RefObject<GridApiCommunity>,
 ) => {
   try {
     const albumTitle = values.title;
@@ -24,7 +24,7 @@ const handleSubmitNewAlbum = async (
     );
     console.log(resp.data);
 
-    if (resp.data.newAlbum) {
+    if (resp.data.newAlbum && apiRef.current) {
       const { title, album_id, artist_id } = resp.data.newAlbum;
       apiRef.current.updateRows([{ album_id: album_id, title: title, artist_id: artist_id }]);
     }

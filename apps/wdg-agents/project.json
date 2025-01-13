@@ -37,7 +37,6 @@
       "executor": "@nxlv/python:install",
       "options": {
         "silent": false,
-        "args": "-vvv",
         "cacheDir": ".cache/pypoetry",
         "verbose": true,
         "debug": true

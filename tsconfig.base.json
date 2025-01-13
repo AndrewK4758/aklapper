@@ -16,7 +16,7 @@
     "isolatedModules": true,
     "lib": ["ESNext", "DOM", "DOM.AsyncIterable"],
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "node10",
     "noEmitOnError": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,

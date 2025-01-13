@@ -12,6 +12,30 @@
         "passWithNoTests": true
       },
       "dependsOn": ["games-api:build"]
+    },
+    "docker-compose-up-e2e":{
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{workspaceRoot}",
+        "parallel": false,
+        "commands": [
+          {
+            "description": "Build Postgres Docker image for e2e Testing",
+            "command": "docker build -f ./Dockerfile.db.testing . -t ci-test"
+          },
+          {
+            "description": "Start Docker container for e2e Testing",
+            "command": "docker compose -f ./docker-compose.yaml up ci-test -d && sleep 2.5"
+          }
+        ]
+      }
+    },
+    "docker-compose-down-e2e":{
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{workspaceRoot}",
+        "command": "docker compose -f ./docker-compose.yaml down"
+      }
     }
   }
 }

@@ -8,14 +8,14 @@ import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { Prisma, track } from '@prisma/client';
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import { FormikProps, useFormik } from 'formik';
-import { ChangeEvent, FocusEvent, MutableRefObject } from 'react';
+import { ChangeEvent, FocusEvent, RefObject } from 'react';
 import { Form } from 'react-router-dom';
 
 const baseURL = import.meta.env.VITE_DATA_API_URL;
 
 interface AddTrackProps {
   albumID: number;
-  apiRef: MutableRefObject<GridApiCommunity>;
+  apiRef: RefObject<GridApiCommunity>;
 }
 
 const initialValues: track = {
@@ -92,7 +92,7 @@ const handleSubmitNewTrack = async (
   values: track,
   formik: FormikProps<track>,
   albumID: number,
-  apiRef: MutableRefObject<GridApiCommunity>,
+  apiRef: RefObject<GridApiCommunity>,
 ) => {
   try {
     const trackName = values.name;
@@ -104,7 +104,7 @@ const handleSubmitNewTrack = async (
       },
     );
 
-    if (resp.data.newTrack) {
+    if (resp.data.newTrack && apiRef.current) {
       const { name, track_id, milliseconds, media_type_id, genre_id, bytes, composer, unit_price } = resp.data
         .newTrack as track;
 

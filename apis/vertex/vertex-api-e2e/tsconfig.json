@@ -4,24 +4,6 @@
   "include": [],
   "references": [
     {
-      "path": "../../../libs/types/types-api"
-    },
-    {
-      "path": "../../../libs/socket-io/server"
-    },
-    {
-      "path": "../../../libs/gen-ai/prompt-builder"
-    },
-    {
-      "path": "../../../libs/types/types-ai"
-    },
-    {
-      "path": "../../../libs/gen-ai/vertex-ai"
-    },
-    {
-      "path": "../vertex-api"
-    },
-    {
       "path": "./tsconfig.spec.json"
     }
   ],

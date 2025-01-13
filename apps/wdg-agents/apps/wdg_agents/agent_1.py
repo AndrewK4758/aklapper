@@ -52,11 +52,12 @@ def use_local_llm(model, query):
 
     local_model = ChatOllama(name='local chatbot with websearch agent', model=model, verbose=VERBOSE_MODE)
 
-    system_prompt = """You are a helpful AI assistant that can search the internet. Use the available tools to answer queries.  
+    system_prompt = """You are a helpful AI assistant that can search the internet. Use the available 
+    tools to answer queries.  
 
         Available tools: {tool_names}
         Tools: {tools}
-        
+                
         Your reasoning process should follow these steps:
         - Thought: Decide the next action or search step.
         - Action: Select a tool from {tool_names}.
@@ -119,7 +120,7 @@ def use_model_with_agent(model: str, query: str):
         chain = use_agent(model, query)
 
         full_input = {
-            "input": query,  # The key should be "input" for ReAct agents
+            "input": query,  # The key should match what is used in the system and other prompts in use_local_llm
             "tools": tools,
             "tool_names": tool_names,
             "agent_scratchpad": []
