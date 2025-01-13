@@ -1,1 +1,0 @@
-{"version":3,"file":"prompt-request-types.d.ts","sourceRoot":"","sources":["prompt-request-types.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,QAAQ,EAAE,MAAM,wBAAwB,CAAC;AAEvD,MAAM,CAAC,OAAO,MAAM,aAAa,GAAG,QAAQ,MAAM,EAAE,CAAC;AAErD,MAAM,CAAC,OAAO,MAAM,aAAa,GAAG;IAClC,IAAI,EAAE,MAAM,GAAG,IAAI,CAAC;IACpB,QAAQ,EAAE,QAAQ,GAAG,IAAI,GAAG,SAAS,CAAC;CACvC,CAAC"}

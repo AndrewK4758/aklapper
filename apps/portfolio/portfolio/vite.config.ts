@@ -22,7 +22,7 @@ export default defineConfig({
     react({ babel: { targets: { esmodules: true } } }),
     nxViteTsPaths({
       debug: true,
-      buildLibsFromSource: true,
+      buildLibsFromSource: false,
       mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'main']
     }),
     nxCopyAssetsPlugin(['./*.md'])

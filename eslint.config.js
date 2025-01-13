@@ -5,7 +5,7 @@ export default [
   ...nx.configs['flat/typescript'],
   ...nx.configs['flat/javascript'],
   {
-    ignores: ['**/dist', '**/out-tsc/**', '**/.gcloudignore']
+    ignores: ['**/dist', '**/out-tsc/**', '**/.gcloudignore', '**/.dockerignore', '**/env/**', '**/.env']
   },
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],

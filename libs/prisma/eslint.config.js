@@ -1,3 +1,9 @@
 import baseConfig from '../../eslint.config.js';
 
-export default [...baseConfig];
+export default [...baseConfig, 
+  { 
+    rules: {
+      '@typescript-eslint/no-empty-object-type': 'off'
+    },
+  }
+];

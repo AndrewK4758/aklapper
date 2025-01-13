@@ -4,6 +4,8 @@
     "jsx": "react-jsx",
     "module": "esnext",
     "moduleResolution": "bundler",
+    "outDir": "tests/out-tsc",
+    "tsBuildInfoFile": "tsconfig.spec.tsbuildinfo",
     "types": [
       "vitest/globals",
       "vitest/importMeta",

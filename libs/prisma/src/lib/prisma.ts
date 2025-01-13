@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { Prisma, PrismaClient } from '@prisma/client';
 import { configDotenv } from 'dotenv';
 import { cwd } from 'process';
 
 configDotenv({ path: `${cwd()}/libs/prisma/.env` });
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 const url = (NODE_ENV: string) => {
   switch (NODE_ENV) {
     case 'production':
