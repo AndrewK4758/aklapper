@@ -1,16 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { Prisma, PrismaClient } from '@prisma/client';
-import { configDotenv } from 'dotenv';
-import { cwd } from 'process';
 
-configDotenv({ path: `${cwd()}/libs/prisma/.env` });
+console.log(process.env['NODE_ENV'], 'PRISMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
 
 const url = (NODE_ENV: string) => {
   switch (NODE_ENV) {
     case 'production':
       return process.env['DB_URL_PROD'];
-    case 'testing':
+    case 'test':
       return process.env['DB_URL_TEST'];
     default:
       return process.env['DB_URL_DEV'];
@@ -19,9 +16,9 @@ const url = (NODE_ENV: string) => {
 
 const prismaClient = new PrismaClient({
   datasourceUrl:
-    url(process.env['NODE_ENV'] ??  'development') 
+    url(process.env['NODE_ENV'] as string) 
     // ?? 'postgresql://postgres:11560000@localhost/aklapper?host=/cloudsql/games-424800:us-central1:aklapper/'
-});
+});    
 
 export const prisma = prismaClient.$extends({
   model: {

@@ -31,13 +31,16 @@
       "dependsOn": ["build"],
       "options": {
         "buildTarget": "games-api:build",
-        "runBuildTargetDependencies": false
+        "runBuildTargetDependencies": true
       },
       "configurations": {
         "development": {
           "buildTarget": "games-api:build:development"
         },
         "production": {
+          "buildTarget": "games-api:build:production"
+        },
+        "test":{
           "buildTarget": "games-api:build:production"
         }
       }

@@ -178,7 +178,7 @@ jobs:
       # Test all projects
       - name: Test all projects
         env:
-          NODE_ENV: testing
+          NODE_ENV: test
           DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
         run: pnpx nx affected -t=test
 
@@ -371,5 +371,5 @@ jobs:
           VITE_PORTFOLIO_API_URL: ${{ secrets.VITE_PORTFOLIO_API_URL }}
           VITE_VERTEX_API_URL: ${{ secrets.VITE_VERTEX_API_URL }}
           VITE_GAMES_WS_URL: ${{ secrets.VITE_GAMES_WS_URL }}
-          VITE_VERTEX_WS_URL: ${{ secrets.VITE_VERTEX_WS_URL }}
+          VITE_VERTEX_WS_URL: ${{ secrets.VITE_VERTEX_WS_URL }}1
         run: pnpx nx deploy portfolio

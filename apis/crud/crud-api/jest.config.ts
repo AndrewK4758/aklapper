@@ -7,7 +7,7 @@ const opts: DefaultEsmTransformOptions = {
   },
   diagnostics: {
     warnOnly: true
-  }
+  },
 };
 
 const config: Config = {
@@ -24,5 +24,5 @@ const config: Config = {
     '^(\\.{1,2}/.*)\\.js$': '$1'
   }
 };
-
+console.log(process.env['NODE_ENV'], 'config file')
 export default config;

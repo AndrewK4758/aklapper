@@ -11,14 +11,16 @@ const registerUser = async (req: Request, resp: Response) => {
     const thumbnail = req.file;
     const id = new ShortUniqueId().rnd();
 
-    const gcsFilename = `users-thumbnails/${id}`;
+    if (thumbnail) {
+      const gcsFilename = `users-thumbnails/${id}`;
 
-    const buffer = bucket.file(gcsFilename);
+      const buffer = bucket.file(gcsFilename);
 
-    await buffer.save((thumbnail as Express.Multer.File).buffer, {
-      resumable: false,
-      contentType: (thumbnail as Express.Multer.File).mimetype,
-    });
+      await buffer.save((thumbnail as Express.Multer.File).buffer, {
+        resumable: false,
+        contentType: (thumbnail as Express.Multer.File).mimetype
+      });
+    }
 
     const registerUser: IRegisterUser = {
       id: id,
@@ -28,18 +30,19 @@ const registerUser = async (req: Request, resp: Response) => {
       createdOn: new Date(),
       password: password,
       playerName: playerName,
-      thumbnail: `https://storage.googleapis.com/bgdk-build-for-deploy/users-thumbnails/${id}`,
-      role: USER_ROLE.USER,
+      thumbnail: thumbnail ? `https://storage.googleapis.com/bgdk-build-for-deploy/users-thumbnails/${id}` : '',
+      role: USER_ROLE.USER
     };
 
     await addUser(registerUser);
-    resp.status(201).json({ message: 'Register User succesful' });
+
+    resp.status(201).json({ message: 'Register User Succesful' });
   } catch (err) {
     console.error(err);
     const { errorMessage } = registerUserError((err as Error).message);
     const error = {
       errorMessage: errorMessage,
-      err: (err as Error).message,
+      err: (err as Error).message
     };
     resp.status(422).json(error);
   }

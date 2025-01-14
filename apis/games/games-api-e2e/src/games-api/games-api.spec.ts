@@ -1,3 +1,4 @@
+import { generatePassword } from '@aklapper/password';
 import { EmailAddress, IRegisterUserClient } from '@aklapper/types-api';
 import {
   Color,
@@ -17,26 +18,25 @@ let __current_game__: GamePlayerValidation,
   email: EmailAddress,
   password: string,
   playerName: string,
-  bearer: string,
-  PERMENANT_EMAIL: EmailAddress,
-  PERMENANT_PASSWORD: string;
+  registerSuccessMessage: string;
 
 describe('Games api test wrapper', () => {
-  beforeAll(() => {
-    bearer = '';
+  beforeAll(async () => {
+    // PERMENANT_EMAIL = 'DONT@DELETE.COM';
+    // PERMENANT_PASSWORD = await generatePassword('PASSWORD');
     firstName = 'test';
     lastName = 'erase';
     email = 'email@test.email';
-    password = 'test';
+    password = await generatePassword('PASSWORD');
     playerName = 'Test Player';
-    PERMENANT_EMAIL = 'EMAIL@DO-NOT.ERASE';
-    PERMENANT_PASSWORD = 'DOnotERASE';
+
+    registerSuccessMessage = 'Register User Succesful';
   });
   afterAll(() => {
     jest.clearAllMocks();
   });
   describe('Test register route', () => {
-    it('Should register user in db and return status 202', async () => {
+    it('Should register user in db and return status 201', async () => {
       const userInfo: IRegisterUserClient = {
         firstName: firstName,
         lastName: lastName,
@@ -44,32 +44,28 @@ describe('Games api test wrapper', () => {
         password: password,
         playerName: playerName
       };
-      const resp = await axios.post('/register', userInfo);
-      console.log(resp.data);
-      console.log(resp.headers);
+      const resp = await axios.post('/register-user', userInfo);
 
+      const { message } = resp.data;
       expect(resp.status).toBe(201);
+      expect(message).toEqual(registerSuccessMessage);
     });
   });
   describe('Test login route', () => {
-    it('Should login user based on email & password or JWT', async () => {
+    it('Should login user based on email & password', async () => {
       const loginInfo = {
-        email: PERMENANT_EMAIL,
-        password: PERMENANT_PASSWORD
+        email: email,
+        password: password
       };
 
       const resp = await axios.patch('/login', loginInfo);
 
-      console.log(resp.headers);
-      bearer = resp.headers['authorization'];
-
       expect(resp.status).toEqual(200);
-      expect(bearer).toBeTruthy();
     });
   });
   describe('GET Games ', () => {
     it("should return an array of games names and id's", async () => {
-      const resp = await axios.get(`/games`, { headers: { Authorization: bearer } });
+      const resp = await axios.get(`/games`);
 
       const data = resp.data as IBuiltGame[];
 
@@ -80,7 +76,7 @@ describe('Games api test wrapper', () => {
 
   describe('POST Register Game button functionallity', () => {
     it('Should return a gameID', async () => {
-      const resp = await axios.post('/games/Chutes-&-Ladders', {}, { headers: { Authorization: bearer } });
+      const resp = await axios.post('/games/Chutes-&-Ladders', {});
 
       __current_game__ = JSON.parse(resp.headers['current-game']);
 
@@ -176,7 +172,7 @@ describe('Games api test wrapper', () => {
                 headers: { 'current-game': JSON.stringify(__current_game__) }
               }
             );
-            console.log(resp.data.turnStatus);
+
             if (resp.data.turnStatus === TurnStatus.INVALID) {
               __current_game__.playerID = playerIDs[1];
               const resp = await axios.patch(

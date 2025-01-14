@@ -2,8 +2,8 @@ import createArtists from '../src/services/prisma/artist/create-artists';
 import deleteArtists from '../src/services/prisma/artist/delete-artist';
 import findArtists from '../src/services/prisma/artist/find-artists';
 
-let name: string;
 
+let name: string;
 describe('Test createArtists service', () => {
   beforeAll(async () => {
     name = 'CREATED ARTIST IN SERVICE';

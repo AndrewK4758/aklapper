@@ -12,6 +12,25 @@
         "passWithNoTests": true
       },
       "dependsOn": ["crud-api:build"]
+    },
+    "docker-compose-up-db":{
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{workspaceRoot}",
+        "commands": [
+          {
+            "description": "Start Docker container for e2e Testing",
+            "command": "docker compose -f ./docker-compose.yaml up ci-test -d && sleep 2.5"
+          }
+        ]
+      }
+    },
+    "docker-compose-down-db":{
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{workspaceRoot}",
+        "command": "docker compose -f ./docker-compose.yaml down"
+      }
     }
   }
 }

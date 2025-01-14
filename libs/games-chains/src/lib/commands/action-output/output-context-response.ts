@@ -7,7 +7,7 @@ export const outputContextResponse = CommandBuilder.build((context: Context<Game
 
   if (resp) {
     const origin = req.headers.origin as string;
-    resp.setHeader('Access-Control-Allow-Origin', origin);
+    resp.setHeader('Access-Control-Allow-Origin', origin ?? 'http://localhost');
     if (context.get(GameContextKeys.OUTPUT)) {
       resp.status(201).json(context.get(GameContextKeys.OUTPUT));
       return true;

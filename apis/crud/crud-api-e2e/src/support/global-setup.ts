@@ -1,12 +1,17 @@
-/* eslint-disable*/
-
-var __TEARDOWN_MESSAGE__: string;
+import { execSync } from 'child_process';
+// var __TEARDOWN_MESSAGE__: string;
 
 module.exports = async function () {
   // Start services that that the app needs to run (e.g. database, docker-compose, etc.).
-  console.log('\nSetting up...\n');
-  __TEARDOWN_MESSAGE__ = 'Shutdown docker-compose.yaml'
+  console.log('\nStarting crud-api Postgres Docker container for e2e Test\n');
+  try {
+    execSync('nx docker-compose-up-db crud-api-e2e');
+
+    globalThis.__TEARDOWN_MESSAGE__ = 'Shutdown docker-compose.yaml';
+  } catch (error) {
+    console.error(error);
+  }
+
+  // const __TEARDOWN_MESSAGE__ = 'Shutdown docker-compose.yaml'
   // Hint: Use `globalThis` to pass variables to global teardown.
-  
-  globalThis.__TEARDOWN_MESSAGE__ = '\nTearing down...\n';
 };
