@@ -1,6 +1,6 @@
 import { Board, Space, LiteSpace } from '@aklapper/games-components';
 import { SpaceType, Color, AvatarTotem, type ITicTacToe, type ILiteSpace } from '@aklapper/types-game';
-import AvatarTotems from './avatar-totems';
+import AvatarTotems from './avatar-totems.ts';
 
 export const WINNING_POSITIONS: string[][] = [
   ['1', '2', '3'],
@@ -10,7 +10,7 @@ export const WINNING_POSITIONS: string[][] = [
   ['2', '5', '8'],
   ['3', '6', '9'],
   ['1', '5', '9'],
-  ['3', '5', '7'],
+  ['3', '5', '7']
 ];
 export const TOTAL_SPACES = 9;
 export const ROWS = Math.sqrt(TOTAL_SPACES);

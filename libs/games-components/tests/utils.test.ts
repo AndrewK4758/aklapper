@@ -1,4 +1,4 @@
-import { Die } from '../src/lib/die';
+import { Die } from '../src/lib/die.ts';
 import {
   generateRandomNumber,
   rangeSelector,
@@ -6,9 +6,9 @@ import {
   rollMultipleDiceAndSum,
   rollMultipleDiceMultipleTimes,
   rollSingleDiceMultipleTimes,
-  rollSingleDiceMultipleTimesAndSum,
-} from '../src/lib/utils';
-import { SummedRoll } from '../src/lib/summed_roll';
+  rollSingleDiceMultipleTimesAndSum
+} from '../src/lib/utils.ts';
+import { SummedRoll } from '../src/lib/summed_roll.ts';
 
 let D1: Die,
   D2: Die,
@@ -133,5 +133,5 @@ describe('Test all utils functions', () => {
 });
 
 console.log(
-  'An 6 sided die would be optimum because it would take, at min, 19 rounds if someone were to roll an 8 at each turn and not land on any chutes or ladders spaces. \n Also, each player would have the ability to progress far enough through one row on one turn to increase the probability of landing on a chute or ladder space',
+  'An 6 sided die would be optimum because it would take, at min, 19 rounds if someone were to roll an 8 at each turn and not land on any chutes or ladders spaces. \n Also, each player would have the ability to progress far enough through one row on one turn to increase the probability of landing on a chute or ladder space'
 );

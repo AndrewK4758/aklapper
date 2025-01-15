@@ -7,12 +7,12 @@ import { getCurrentMinute } from '@aklapper/utils';
 import { Context, Color, GameContextKeys, SpaceType, TurnStatus, type IAvatar } from '@aklapper/types-game';
 import { mockReqObj, mockRespObj } from '@aklapper/mocks';
 import { Request, Response } from 'express';
-import { moveAvatar } from '../src/lib/commands/action-take-turn/move-avatar';
-import { rollDice } from '../src/lib/commands/action-take-turn/roll-dice';
-import { rotatePlayer } from '../src/lib/commands/action-take-turn/rotate-player';
-import { takeTurnStart } from '../src/lib/commands/action-take-turn/take-turn-start';
-import { verifyPlayerTakingTurn } from '../src/lib/commands/action-take-turn/verify-player-taking-turn';
-import { wonGameCheckChutesAndLadders } from '../src/lib/commands/action-take-turn/won-game-chutes-and-ladders';
+import { moveAvatar } from '../src/lib/commands/action-take-turn/move-avatar.ts';
+import { rollDice } from '../src/lib/commands/action-take-turn/roll-dice.ts';
+import { rotatePlayer } from '../src/lib/commands/action-take-turn/rotate-player.ts';
+import { takeTurnStart } from '../src/lib/commands/action-take-turn/take-turn-start.ts';
+import { verifyPlayerTakingTurn } from '../src/lib/commands/action-take-turn/verify-player-taking-turn.ts';
+import { wonGameCheckChutesAndLadders } from '../src/lib/commands/action-take-turn/won-game-chutes-and-ladders.ts';
 
 interface ICtxOutput {
   turnStatus: TurnStatus;

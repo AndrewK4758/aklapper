@@ -3,7 +3,7 @@ import { activeGameDisplayChain } from '@aklapper/games-chains';
 import { InstanceOfGame } from '@aklapper/game-instance';
 import { GameContextKeys } from '@aklapper/types-game';
 import { Request, Response } from 'express';
-import { socketServer } from '../main';
+import { socketServer } from '../main.ts';
 
 const performAction = async (
   req: Request | null,

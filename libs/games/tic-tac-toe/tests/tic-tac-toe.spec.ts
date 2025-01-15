@@ -1,5 +1,5 @@
 import { Space } from '@aklapper/games-components';
-import { TicTacToe } from '../src/lib/tic-tac-toe';
+import { TicTacToe } from '../src/lib/tic-tac-toe.ts';
 
 let game: TicTacToe;
 

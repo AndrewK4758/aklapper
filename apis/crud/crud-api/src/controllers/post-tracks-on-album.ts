@@ -1,7 +1,7 @@
 import { Prisma, track } from '@prisma/client';
 import { DefaultArgs } from '@prisma/client/runtime/library';
 import { Request, Response } from 'express';
-import createTracks from '../services/prisma/tracks/create-tracks';
+import createTracks from '../services/prisma/tracks/create-tracks.ts';
 
 /**
  * Handles POST requests to create a new track and associate it with an album.

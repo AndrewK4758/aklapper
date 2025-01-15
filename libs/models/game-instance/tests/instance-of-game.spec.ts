@@ -1,7 +1,7 @@
 import { ChutesAndLadders } from '@aklapper/chutes-and-ladders';
 import { Game } from '@aklapper/game';
 import { GameInstanceID, Minute } from '@aklapper/types-game';
-import { InstanceOfGame } from '../src/lib/instance-of-game';
+import { InstanceOfGame } from '../src/lib/instance-of-game.ts';
 
 let activeGame: InstanceOfGame, minute: Minute, gameInstanceID: GameInstanceID;
 

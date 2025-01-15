@@ -1,5 +1,5 @@
-import { IInstanceOfGame } from './instance-of-game';
-import { GameInstanceID } from '../types/game';
+import { IInstanceOfGame } from './instance-of-game.ts';
+import { GameInstanceID } from '../types/game.ts';
 
 export interface IAllGamesMap {
   AllGames: Map<GameInstanceID, IInstanceOfGame>;

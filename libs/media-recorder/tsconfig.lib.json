@@ -2,9 +2,9 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "declarationDir": "../../dist",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "rootDirs": ["./src","../../"],
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
+    "rootDirs": ["./src", "../../"],
     "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
     "lib": ["DOM"],
     "types": ["node"]

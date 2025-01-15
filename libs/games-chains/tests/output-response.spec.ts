@@ -2,7 +2,7 @@ import { ContextBuilder } from '@aklapper/chain';
 import { Context, GameContextKeys, ITestCtxOutput } from '@aklapper/types-game';
 import { mockReqObj, mockRespObj } from '@aklapper/mocks';
 import { Response, type Request } from 'express';
-import { outputContextResponse } from '../src/lib/commands/action-output/output-context-response';
+import { outputContextResponse } from '../src/lib/commands/action-output/output-context-response.ts';
 
 let ctx: Context<GameContextKeys>, output: ITestCtxOutput, req: Partial<Request>, resp: Partial<Response>;
 

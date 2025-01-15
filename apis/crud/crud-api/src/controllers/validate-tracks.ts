@@ -1,6 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
-import validateTrack from '../services/prisma/tracks/validate-track';
+import validateTrack from '../services/prisma/tracks/validate-track.ts';
 
 /**
  * Handles GET requests to validate if a track exists within a specific album in the database.
@@ -17,7 +17,7 @@ const validateTracks = async (req: Request, resp: Response) => {
     const { albumID, name } = req.query;
 
     const query = {
-      where: { album_id: { equals: parseInt(albumID as string, 10) }, name: { equals: `${name}` as string } },
+      where: { album_id: { equals: parseInt(albumID as string, 10) }, name: { equals: `${name}` as string } }
     } as Prisma.trackWhereInput;
 
     const validatedTrack = await validateTrack(query);

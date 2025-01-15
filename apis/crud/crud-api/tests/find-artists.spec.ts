@@ -1,5 +1,5 @@
 import type { artist } from '@prisma/client';
-import findArtists from '../src/services/prisma/artist/find-artists';
+import findArtists from '../src/services/prisma/artist/find-artists.ts';
 
 describe('Test Prisma findArtist service', () => {
   it('Should pass and return list of Artists', async () => {

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import type { SendMailOptions } from 'nodemailer';
-import createTransporter from '../services/nodemailer';
+import createTransporter from '../services/nodemailer.ts';
 
 type ContactMessage = {
   name: string;
@@ -28,7 +28,7 @@ const postEmail = async (req: Request, resp: Response) => {
       text: `Sender Info:\n\rName: ${name}\n\rEmail: ${email}\n\rPhone: ${phone}\n\rMessage: ${body}`,
       attachments: attachment
         ? [{ filename: attachment.filename, content: attachment.buffer, contentType: attachment.mimetype }]
-        : [],
+        : []
     };
 
     const mailOptionsFromMe: SendMailOptions = {
@@ -36,7 +36,7 @@ const postEmail = async (req: Request, resp: Response) => {
       date: date,
       to: email,
       subject: `Thank You for Reaching Out`,
-      text: `${name},\n\r\n\rI usually am able to review messages and respond within 1 day. If I will take longer to respond, I will advise before the day is over.\n\r\nThank You,\n\r\n\rAndrew Klapper\n\rhttps://andrew-k.us`,
+      text: `${name},\n\r\n\rI usually am able to review messages and respond within 1 day. If I will take longer to respond, I will advise before the day is over.\n\r\nThank You,\n\r\n\rAndrew Klapper\n\rhttps://andrew-k.us`
     };
 
     const transporter = await createTransporter();

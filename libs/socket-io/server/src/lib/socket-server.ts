@@ -1,6 +1,6 @@
 import type { Server as httpServer } from 'http';
 import { Server, ServerOptions } from 'socket.io';
-import type ISocketServer from '../interfaces/socket-server';
+import type ISocketServer from '../interfaces/socket-server.ts';
 import { type SocketMiddleware, type SocketCallback } from '@aklapper/types-api';
 
 export class SocketServer implements ISocketServer {

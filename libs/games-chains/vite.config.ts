@@ -26,6 +26,18 @@ export default defineConfig({
   // },
   // Configuration for building your library.
   // See: https://vitejs.dev/guide/build.html#library-mode
+
+  resolve: {
+    alias: {
+      '@aklapper/chain': 'dist/libs/chain/index.js',
+      '@aklapper/tic-tac-toe': 'dist/libs/games/tic-tac-toe/index.js',
+      '@aklapper/chutes-and-ladders': 'dist/libs/games/chutes-and-ladders/index.js',
+      '@aklapper/games-components': 'dist/libs/games-components/index.js',
+      '@aklapper/types-game': 'dist/libs/types/types-game/index.js',
+      '@aklapper/utils': 'dist/libs/utils/index.js'
+    }
+  },
+
   build: {
     outDir: '../../dist/libs/games-chains',
     emptyOutDir: true,

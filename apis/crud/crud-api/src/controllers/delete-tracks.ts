@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { DefaultArgs } from '@prisma/client/runtime/library';
 import { Request, Response } from 'express';
-import deleteTrack from '../services/prisma/tracks/delete-track';
+import deleteTrack from '../services/prisma/tracks/delete-track.ts';
 
 /**
  * Handles DELETE requests to delete a track from the database.
@@ -16,7 +16,7 @@ const deleteTracks = async (req: Request, resp: Response) => {
     const { id } = req.params;
 
     const query: Prisma.trackDeleteArgs<DefaultArgs> = {
-      where: { track_id: parseInt(id, 10) },
+      where: { track_id: parseInt(id, 10) }
     };
     const deletedTrack = await deleteTrack(query);
 

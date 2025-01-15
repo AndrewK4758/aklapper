@@ -1,15 +1,14 @@
 import { ContextBuilder } from '@aklapper/chain';
 import { ChutesAndLadders } from '@aklapper/chutes-and-ladders';
-import { deRefContextObject } from '@aklapper/utils';
 import { Game } from '@aklapper/game';
 import { InstanceOfGame } from '@aklapper/game-instance';
-import { getCurrentMinute } from '@aklapper/utils';
-import { Context, GameContextKeys, Color, IPlayer, type ILiteSpace } from '@aklapper/types-game';
-import { resetGame } from '../src/lib/commands/action-reset-game/reset-game-start';
-import { flipHaveWinnerFlag } from '../src/lib/commands/action-reset-game/flip-winner-flag';
-import { makeNewGameBoard } from '../src/lib/commands/action-reset-game/make-new-game-board';
 import { mockReqObj } from '@aklapper/mocks';
+import { Color, Context, GameContextKeys, IPlayer, type ILiteSpace } from '@aklapper/types-game';
+import { deRefContextObject, getCurrentMinute } from '@aklapper/utils';
 import { Request } from 'express';
+import { flipHaveWinnerFlag } from '../src/lib/commands/action-reset-game/flip-winner-flag.ts';
+import { makeNewGameBoard } from '../src/lib/commands/action-reset-game/make-new-game-board.ts';
+import { resetGame } from '../src/lib/commands/action-reset-game/reset-game-start.ts';
 
 let ctx: Context<GameContextKeys | string>,
   instanceOfGame: InstanceOfGame,

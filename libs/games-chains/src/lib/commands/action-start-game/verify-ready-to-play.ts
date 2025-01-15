@@ -1,7 +1,7 @@
 import { CommandBuilder } from '@aklapper/chain';
 import { deRefContextObject } from '@aklapper/utils';
 import { Context, GameContextKeys, TurnStatus } from '@aklapper/types-game';
-import { gameCommandMap, type NextCommandMap } from '../../utils/context-next-map';
+import { gameCommandMap, type NextCommandMap } from '../../utils/context-next-map.ts';
 
 export const verifyReadyToPlay = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.NEXT) && context.getString(GameContextKeys.NEXT) === 'verify-ready-to-play') {

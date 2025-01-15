@@ -3,7 +3,7 @@ import { Game } from '@aklapper/game';
 import { InstanceOfGame } from '@aklapper/game-instance';
 import { GameInstanceID, Minute } from '@aklapper/types-game';
 import { getCurrentMinute } from '@aklapper/utils';
-import { AllGamesMap } from '../src/lib/all-games-map';
+import { AllGamesMap } from '../src/lib/all-games-map.ts';
 
 let activeGame: InstanceOfGame, minute: Minute, gameInstanceID: GameInstanceID, allGamesMap: AllGamesMap;
 

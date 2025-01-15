@@ -1,4 +1,4 @@
-import { IAvatar } from './avatar';
+import { IAvatar } from './avatar.ts';
 
 export interface IPlayer {
   Name: string;

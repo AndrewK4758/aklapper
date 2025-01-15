@@ -1,3 +1,3 @@
-export * from './lib/parser';
-export * from './interfaces/prompt-input-data';
-export * from './types/prompt-input-data-types';
+export * from './lib/parser.ts';
+export * from './interfaces/prompt-input-data.ts';
+export * from './types/prompt-input-data-types.ts';

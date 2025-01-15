@@ -1,6 +1,6 @@
 import type { artist } from '@prisma/client';
-import createArtists from '../src/services/prisma/artist/create-artists';
-import deleteArtists from '../src/services/prisma/artist/delete-artist';
+import createArtists from '../src/services/prisma/artist/create-artists.ts';
+import deleteArtists from '../src/services/prisma/artist/delete-artist.ts';
 
 let id: number, name: string;
 

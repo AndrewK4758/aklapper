@@ -1,5 +1,5 @@
 import { Color, IAvatar } from '@aklapper/types-game';
-import { Space } from './space';
+import { Space } from './space.ts';
 
 export class Avatar implements IAvatar {
   Name: string;

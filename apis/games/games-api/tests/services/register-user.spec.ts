@@ -1,6 +1,6 @@
-import addUser from '../../src/services/prisma/users/add-user';
 import { USER_ROLE, type IRegisterUser } from '@aklapper/types-api';
 import ShortUniqueId from 'short-unique-id';
+import addUser from '../../src/services/prisma/users/add-user.ts';
 
 describe('Test add user service', () => {
   it('should pass and return the details of the newly added user', async () => {
@@ -13,7 +13,7 @@ describe('Test add user service', () => {
       createdOn: new Date(),
       password: 'password',
       playerName: 'player-name',
-      role: USER_ROLE.USER,
+      role: USER_ROLE.USER
     };
 
     const newUser = await addUser(userInfo);

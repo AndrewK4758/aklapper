@@ -1,10 +1,10 @@
-import { IAllGamesMap } from '../interfaces/all-games-map';
-import { IInstanceTimeMap } from '../interfaces/instance-time-map';
-import { Chain } from '../interfaces/chain';
-import { GameNameString, PlayerID } from './game';
-import { IBuiltGame } from '../interfaces/built-game';
-import { IInstanceOfGame } from '../interfaces/interfaces';
-import { LoginData } from '../types/login-data';
+import { IAllGamesMap } from '../interfaces/all-games-map.ts';
+import { IInstanceTimeMap } from '../interfaces/instance-time-map.ts';
+import { Chain } from '../interfaces/chain.ts';
+import { GameNameString, PlayerID } from './game.ts';
+import { IBuiltGame } from '../interfaces/built-game.ts';
+import { IInstanceOfGame } from '../interfaces/interfaces.ts';
+import { LoginData } from '../types/login-data.ts';
 
 declare global {
   namespace Express {

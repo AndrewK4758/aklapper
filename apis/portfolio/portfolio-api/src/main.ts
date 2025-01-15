@@ -1,7 +1,7 @@
 import cors, { CorsOptions } from 'cors';
 import express, { Express } from 'express';
 import { join } from 'path';
-import router, { PortfolioRoutes } from './routes/routes';
+import router, { PortfolioRoutes } from './routes/routes.ts';
 import { cwd } from 'process';
 
 const __dirname = join(cwd(), 'apis/portfolio/portfolio-api');

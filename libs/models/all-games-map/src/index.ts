@@ -1,1 +1,1 @@
-export * from './lib/all-games-map';
+export * from './lib/all-games-map.ts';

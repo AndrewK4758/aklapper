@@ -1,7 +1,7 @@
 import { Request } from 'express';
 import { mockReqObj } from '@aklapper/mocks';
-import useSelectedGame from '../../src/middleware/use-selected-game';
-import games from '../../src/data/games-list';
+import useSelectedGame from '../../src/middleware/use-selected-game.ts';
+import games from '../../src/data/games-list.ts';
 import type { IBuiltGame } from '@aklapper/types-game';
 
 let req: Partial<Request>;

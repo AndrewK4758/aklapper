@@ -17,6 +17,7 @@ export default defineConfig({
     dts({
       logLevel: 'info',
       entryRoot: 'src',
+      insertTypesEntry: true,
       outDir: '../../dist/libs/chain/src',
       tsconfigPath: path.join(__dirname, 'tsconfig.lib.json')
     })

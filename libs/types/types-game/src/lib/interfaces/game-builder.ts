@@ -1,5 +1,5 @@
-import { Command } from './chain';
-import { IBuiltGame } from './built-game';
+import { Command } from './chain.ts';
+import { IBuiltGame } from './built-game.ts';
 
 export interface IGameBuilder {
   setId(id: string): IGameBuilder;

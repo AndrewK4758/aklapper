@@ -6,7 +6,7 @@ import { Game } from '@aklapper/game';
 import { ChutesAndLadders } from '@aklapper/chutes-and-ladders';
 import type { Request, Response } from 'express';
 import { Server } from 'socket.io';
-import { deRefContextObject } from '../src/lib/de-ref-context-object';
+import { deRefContextObject } from '../src/lib/de-ref-context-object.ts';
 
 let context: Context<GameContextKeys | string>, req: Partial<Request>, resp: Partial<Response>;
 describe('Test de referencing context object', () => {

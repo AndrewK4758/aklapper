@@ -6,11 +6,11 @@ import { getCurrentMinute } from '@aklapper/utils';
 import { Context, Color, GameContextKeys } from '@aklapper/types-game';
 import { mockReqObj, mockRespObj } from '@aklapper/mocks';
 import { Request, Response } from 'express';
-import { createPlayerID } from '../src/lib/commands/action-register-player/create-player-id';
-import { filterSelectedAvatar } from '../src/lib/commands/action-register-player/filter-selected-avatar';
-import { playerCreated } from '../src/lib/commands/action-register-player/player-created';
-import { registerOnGameInstance } from '../src/lib/commands/action-register-player/register-on-game-instance';
-import { registerAction } from '../src/lib/commands/action-register-player/register-player-start';
+import { createPlayerID } from '../src/lib/commands/action-register-player/create-player-id.ts';
+import { filterSelectedAvatar } from '../src/lib/commands/action-register-player/filter-selected-avatar.ts';
+import { playerCreated } from '../src/lib/commands/action-register-player/player-created.ts';
+import { registerOnGameInstance } from '../src/lib/commands/action-register-player/register-on-game-instance.ts';
+import { registerAction } from '../src/lib/commands/action-register-player/register-player-start.ts';
 
 let ctx: Context<GameContextKeys | string>, game: InstanceOfGame, req: Partial<Request>, resp: Partial<Response>;
 

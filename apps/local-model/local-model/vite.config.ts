@@ -27,6 +27,13 @@ export default defineConfig({
   // worker: {
   //  plugins: [ nxViteTsPaths() ],
   // },
+
+  resolve: {
+    alias: {
+      '@aklapper/react-shared': 'dist/libs/react-shared/index.js'
+    }
+  },
+
   build: {
     outDir: '../../../dist/apps/local-model',
     emptyOutDir: true,

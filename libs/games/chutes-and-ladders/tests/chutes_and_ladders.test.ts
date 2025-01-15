@@ -6,8 +6,8 @@ import {
   START,
   MAX_SPECIAL_DISTANCE,
   uniqueSpecialValues,
-  specialsDumps,
-} from '../src/lib/chutes_and_ladders';
+  specialsDumps
+} from '../src/lib/chutes_and_ladders.ts';
 
 let game: ChutesAndLadders, gameBoard: ILiteSpace[];
 

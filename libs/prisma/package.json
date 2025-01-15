@@ -6,7 +6,8 @@
     ".": {
       "types": "./src/index.d.ts",
       "require": null,
-      "default": "./index.js"
+      "default": "./index.js",
+      "import": "./dist/main.js"
     }
   },
   "main": "./index.js",
@@ -25,12 +26,39 @@
         }
       },
       "build": {
-        "executor": "@nx/js:tsc",
+        "executor": "@nx/esbuild:esbuild",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "defaultConfiguration": "production",
         "options": {
           "main": "libs/prisma/src/index.ts",
-          "command": "tsc --build tsconfig.lib.json --pretty --verbose ",
           "outputPath": "dist/libs/prisma",
-          "tsConfig": "libs/prisma/tsconfig.lib.json"
+          "outputFileName": "index.js",
+          "tsConfig": "libs/prisma/tsconfig.lib.json",
+          "platform": "node",
+          "format": [
+            "esm"
+          ],
+          "target": "node23",
+          "sourcemap": true,
+          "metafile": true,
+          "declarationRootDir": "libs/prisma/src",
+          "assets": [
+            {
+              "glob": "./README.md",
+              "input": ".",
+              "output": "."
+            }
+          ]
+        }
+      },
+      "configurations": {
+        "development": {
+          "minify": false
+        },
+        "production": {
+          "minify": true
         }
       }
     }

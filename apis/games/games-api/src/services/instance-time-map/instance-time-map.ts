@@ -1,9 +1,9 @@
 import { GameInstanceID, GamesInMinute, IInstanceTimeMap, Minute } from '@aklapper/types-game';
 import { getCurrentMinute } from '@aklapper/utils';
 import type { instance_time_map } from '@prisma/client';
-import deleteValuesInstanceTimeMap from '../prisma/instance-time-map/delete-values-instance-time-map';
-import getInstanceTimeMapValue from '../prisma/instance-time-map/get-one-value-instance-time-map';
-import updateInstanceTimeMap from '../prisma/instance-time-map/update-instance-time-map';
+import deleteValuesInstanceTimeMap from '../prisma/instance-time-map/delete-values-instance-time-map.ts';
+import getInstanceTimeMapValue from '../prisma/instance-time-map/get-one-value-instance-time-map.ts';
+import updateInstanceTimeMap from '../prisma/instance-time-map/update-instance-time-map.ts';
 
 export class InstanceTimeMap implements IInstanceTimeMap {
   Map: Map<Minute, GamesInMinute>;

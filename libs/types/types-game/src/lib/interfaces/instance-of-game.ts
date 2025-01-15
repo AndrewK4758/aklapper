@@ -1,5 +1,5 @@
-import type { GameInstanceID, Minute } from '../types/game';
-import { IGame } from './game';
+import type { GameInstanceID, Minute } from '../types/game.ts';
+import { IGame } from './game.ts';
 
 export interface IInstanceOfGame {
   gameInstanceID: GameInstanceID;

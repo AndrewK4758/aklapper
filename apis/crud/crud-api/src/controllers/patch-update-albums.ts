@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import updateAlbum from '../services/prisma/album/update-albums';
+import updateAlbum from '../services/prisma/album/update-albums.ts';
 
 /**
  * This function handles PATCH requests to update the title of an existing album.

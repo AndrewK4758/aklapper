@@ -1,5 +1,5 @@
-import { parseInput } from '../src/lib/parser';
-import { ResponseType } from '../src/types/prompt-input-data-types';
+import { parseInput } from '../src/lib/parser.ts';
+import { ResponseType } from '../src/types/prompt-input-data-types.ts';
 
 describe('promptBuilder', () => {
   it('should work', () => {

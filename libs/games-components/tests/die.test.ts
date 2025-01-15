@@ -1,4 +1,4 @@
-import { Die } from '../src/lib/die';
+import { Die } from '../src/lib/die.ts';
 
 let D1: Die, D2: Die, D1_Sides: number, D2_Sides: number, minSideValue: number, max: number, min: number;
 describe('Test funcntionality of Die Class', () => {

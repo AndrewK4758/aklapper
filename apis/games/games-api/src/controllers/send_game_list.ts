@@ -1,6 +1,6 @@
 import type { IBuiltGame } from '@aklapper/types-game';
 import { Request, Response } from 'express';
-import games from '../data/games-list';
+import games from '../data/games-list.ts';
 
 const sendGameList = async (_req: Request, resp: Response): Promise<void> => {
   const gamesToSend = games.map(game => {
@@ -9,7 +9,7 @@ const sendGameList = async (_req: Request, resp: Response): Promise<void> => {
       id: game.id,
       description: game.description,
       rules: game.rules,
-      imageURL: game.imageURL,
+      imageURL: game.imageURL
     };
   }) as IBuiltGame[];
 

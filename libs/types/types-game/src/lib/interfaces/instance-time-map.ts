@@ -1,4 +1,4 @@
-import { Minute, GamesInMinute, GameInstanceID } from '../types/game';
+import { Minute, GamesInMinute, GameInstanceID } from '../types/game.ts';
 
 export interface IInstanceTimeMap {
   Map: Map<Minute, GamesInMinute>;

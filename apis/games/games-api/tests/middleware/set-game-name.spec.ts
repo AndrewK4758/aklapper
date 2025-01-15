@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import useSetSelectedGameName from '../../src/middleware/set-selected-game-name';
+import useSetSelectedGameName from '../../src/middleware/set-selected-game-name.ts';
 import { mockReqObj } from '@aklapper/mocks';
 
 let req: Partial<Request>;

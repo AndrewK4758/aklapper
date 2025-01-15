@@ -1,6 +1,6 @@
 import type { Server } from 'socket.io';
-import { GameContextKeys } from '../types/game';
-import type { IInstanceOfGame } from './instance-of-game';
+import { GameContextKeys } from '../types/game.ts';
+import type { IInstanceOfGame } from './instance-of-game.ts';
 import type { Request, Response } from 'express';
 
 export type Context<K extends GameContextKeys | string> = {

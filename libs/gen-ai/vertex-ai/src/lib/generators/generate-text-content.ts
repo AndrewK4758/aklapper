@@ -1,6 +1,6 @@
 import { GenerateContentRequest } from '@google-cloud/vertexai';
-import type { PromptRequest } from '../../types/prompt-request-types';
-import generativeTextModel from '../models/generative-text-model';
+import type { PromptRequest } from '../../types/prompt-request-types.ts';
+import generativeTextModel from '../models/generative-text-model.ts';
 
 export const generateTextContent = async ({ text, fileData }: PromptRequest) => {
   console.log(text, fileData);
@@ -8,9 +8,9 @@ export const generateTextContent = async ({ text, fileData }: PromptRequest) => 
     contents: [
       {
         role: 'user',
-        parts: [{ text: 'Respond without any unnecessary text or format characters' }],
-      },
-    ],
+        parts: [{ text: 'Respond without any unnecessary text or format characters' }]
+      }
+    ]
   };
 
   if (text && text.length) {

@@ -26,6 +26,12 @@ export default defineConfig({
   // },
   // Configuration for building your library.
   // See: https://vitejs.dev/guide/build.html#library-mode
+
+  resolve: {
+    alias: {
+      '@aklapper/types-game': 'dist/libs/types/types-game/index.js'
+    }
+  },
   build: {
     outDir: '../../dist/libs/games-components',
     emptyOutDir: true,

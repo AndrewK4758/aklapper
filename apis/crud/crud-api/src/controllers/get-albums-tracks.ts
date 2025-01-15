@@ -1,8 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { DefaultArgs } from '@prisma/client/runtime/library';
 import { NextFunction, Request, Response } from 'express';
-import albumTracksCount from '../services/prisma/tracks/album-tracks-count';
-import getAlbumTracks from '../services/prisma/tracks/get-album-tracks';
+import albumTracksCount from '../services/prisma/tracks/album-tracks-count.ts';
+import getAlbumTracks from '../services/prisma/tracks/get-album-tracks.ts';
 
 /**
  * Middleware function that retrieves tracks for an album and their count.
@@ -22,7 +22,7 @@ const getAlbumsTracks = async (req: Request, resp: Response, next: NextFunction)
       const albumID = parseInt(req.query.albumID as string, 10);
 
       const query = {
-        where: { album_id: { equals: albumID } },
+        where: { album_id: { equals: albumID } }
       } as Prisma.trackFindManyArgs<DefaultArgs>;
 
       const tracks = await getAlbumTracks(query);

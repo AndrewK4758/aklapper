@@ -1,4 +1,4 @@
-import vertexAI from '../src/lib/auth/connection-text-model';
+import vertexAI from '../src/lib/auth/connection-text-model.ts';
 
 describe('vertexAi', () => {
   it('should work', () => {

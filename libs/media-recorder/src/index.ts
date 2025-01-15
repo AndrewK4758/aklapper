@@ -1,1 +1,1 @@
-export * from './lib/mrc';
+export * from './lib/mrc.ts';

@@ -17,6 +17,7 @@ export default defineConfig({
     nxCopyAssetsPlugin(['*.md']),
     dts({
       entryRoot: 'src',
+      insertTypesEntry: true,
       outDir: `../../dist/libs/react-shared/src`,
       tsconfigPath: path.join(__dirname, 'tsconfig.lib.json')
     })
@@ -27,10 +28,18 @@ export default defineConfig({
   // },
   // Configuration for building your library.
   // See: https://vitejs.dev/guide/build.html#library-mode
+
+  resolve: {
+    alias: {
+      '@aklapper/utils': 'dist/libs/utils/index.js'
+    }
+  },
+
   build: {
     outDir: `../../dist/libs/react-shared`,
     emptyOutDir: true,
     reportCompressedSize: true,
+    sourcemap: true,
     commonjsOptions: {
       transformMixedEsModules: true
     },

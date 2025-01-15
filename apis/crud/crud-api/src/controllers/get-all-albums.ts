@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { DefaultArgs } from '@prisma/client/runtime/library';
 import { Request, Response } from 'express';
-import findAllAlbums from '../services/prisma/album/find-albums';
+import findAllAlbums from '../services/prisma/album/find-albums.ts';
 
 /**
  * Retrieves a paginated list of albums from the database.
@@ -21,7 +21,7 @@ const getAlbums = async (req: Request, resp: Response) => {
       const query = {
         take: parseInt(take as string, 10),
         skip: parseInt(skip as string, 10),
-        cursor: { album_id: parseInt(cursor as string, 10) },
+        cursor: { album_id: parseInt(cursor as string, 10) }
       } as Prisma.albumFindManyArgs<DefaultArgs>;
       const albums = await findAllAlbums(query);
 

@@ -4,9 +4,6 @@
   "include": [],
   "references": [
     {
-      "path": "../../../libs/prisma"
-    },
-    {
       "path": "./tsconfig.app.json"
     },
     {

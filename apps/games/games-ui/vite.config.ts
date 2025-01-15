@@ -27,6 +27,14 @@ export default defineConfig({
   // worker: {
   //  plugins: [ nxViteTsPaths() ],
   // },
+
+  resolve: {
+    alias: {
+      '@aklapper/react-shared': 'dist/libs/react-shared/index.js',
+      '@aklapper/games-components': 'dist/libs/games-components/index.js'
+    }
+  },
+
   build: {
     outDir: `../../../dist/apps/games`,
     emptyOutDir: true,

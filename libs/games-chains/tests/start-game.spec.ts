@@ -6,11 +6,11 @@ import { mockReqObj, mockRespObj } from '@aklapper/mocks';
 import { Color, Context, GameContextKeys, TurnStatus, type IInstanceOfGame } from '@aklapper/types-game';
 import { getCurrentMinute } from '@aklapper/utils';
 import { Request, Response } from 'express';
-import { sendStartGameStatus } from '../src/lib/commands/action-start-game/send-start-game-status';
-import { setAvatarOnStartChutesAndLadders } from '../src/lib/commands/action-start-game/set-on-start-chutes-and-ladders';
-import { setPlayerInTurn } from '../src/lib/commands/action-start-game/set-player-in-turn';
-import { startGame } from '../src/lib/commands/action-start-game/start-game-start';
-import { verifyReadyToPlay } from '../src/lib/commands/action-start-game/verify-ready-to-play';
+import { sendStartGameStatus } from '../src/lib/commands/action-start-game/send-start-game-status.ts';
+import { setAvatarOnStartChutesAndLadders } from '../src/lib/commands/action-start-game/set-on-start-chutes-and-ladders.ts';
+import { setPlayerInTurn } from '../src/lib/commands/action-start-game/set-player-in-turn.ts';
+import { startGame } from '../src/lib/commands/action-start-game/start-game-start.ts';
+import { verifyReadyToPlay } from '../src/lib/commands/action-start-game/verify-ready-to-play.ts';
 
 let ctx: Context<GameContextKeys | string>,
   instanceOfGame: InstanceOfGame,

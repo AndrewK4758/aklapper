@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { NextFunction, Request, Response } from 'express';
-import validateAlbum from '../services/prisma/album/validate-album';
+import validateAlbum from '../services/prisma/album/validate-album.ts';
 
 /**
  * Middleware function that validates if an album exists in the database.
@@ -21,8 +21,8 @@ const validateAlbums = async (req: Request, resp: Response, next: NextFunction) 
       const query = {
         where: {
           title: { equals: title as string, mode: 'insensitive' },
-          artist_id: { equals: parseInt(artistID as string, 10) },
-        },
+          artist_id: { equals: parseInt(artistID as string, 10) }
+        }
       } as Prisma.albumWhereInput;
 
       const album = await validateAlbum(query);

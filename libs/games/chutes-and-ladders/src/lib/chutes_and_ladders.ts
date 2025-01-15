@@ -1,6 +1,6 @@
 import { Board, Die, LiteSpace, Space, rangeSelector, rowFinder } from '@aklapper/games-components';
 import { AvatarTotem, Color, SpaceType, type IChutesAndLadders, type ILiteSpace } from '@aklapper/types-game';
-import AvatarTotems from './avatar-totems';
+import AvatarTotems from './avatar-totems.ts';
 
 export const TOTAL_SPACES = 100;
 export const START = 1;

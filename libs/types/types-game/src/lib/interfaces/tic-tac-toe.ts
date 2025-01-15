@@ -1,6 +1,6 @@
-import { AvatarTotem, Color } from '../types/game';
-import type { ILiteSpace } from './lite-space';
-import { ISpace } from './space';
+import { AvatarTotem, Color } from '../types/game.ts';
+import type { ILiteSpace } from './lite-space.ts';
+import { ISpace } from './space.ts';
 
 export interface ITicTacToe {
   MIN_PLAYERS: number;

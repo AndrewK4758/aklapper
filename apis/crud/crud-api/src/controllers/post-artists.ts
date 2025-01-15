@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import createArtists from '../services/prisma/artist/create-artists';
-import createArtistsError from '../errors/create-artist-error';
+import createArtists from '../services/prisma/artist/create-artists.ts';
+import createArtistsError from '../errors/create-artist-error.ts';
 
 /**
  * Handles POST requests to create a new artist in the database.
@@ -14,7 +14,7 @@ const postArtists = async (req: Request, resp: Response): Promise<void> => {
   const { name } = req.body;
   try {
     const newArtist = await createArtists(name);
-    resp.status(201).json({message: 'Artist Created Sucessful', newArtist: newArtist});
+    resp.status(201).json({ message: 'Artist Created Sucessful', newArtist: newArtist });
   } catch (error) {
     console.error(error);
     resp.status(400).json(createArtistsError());

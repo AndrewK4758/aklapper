@@ -1,6 +1,6 @@
 import { SpaceType } from '@aklapper/types-game';
-import { Board } from '../src/lib/board';
-import { Space } from '../src/lib/space';
+import { Board } from '../src/lib/board.ts';
+import { Space } from '../src/lib/space.ts';
 
 let space: Space;
 

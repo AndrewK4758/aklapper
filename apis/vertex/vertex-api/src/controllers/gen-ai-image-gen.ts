@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import generateImage from '../services/vertex-ai-endpoint';
+import generateImage from '../services/vertex-ai-endpoint.ts';
 import type { ImagenConfig } from '@aklapper/vertex-ai';
 
 const generateImages = async (req: Request, resp: Response) => {

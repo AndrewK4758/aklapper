@@ -1,3 +1,3 @@
-export * from './lib/set-socket-listeners';
-export * from './lib/socket-instance';
-export * from './lib/socket-outlet-context';
+export * from './lib/set-socket-listeners.ts';
+export * from './lib/socket-instance.ts';
+export * from './lib/socket-outlet-context.ts';

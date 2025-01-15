@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { google, type Auth } from 'googleapis';
-import userTokensMap from '../../models/users-tokens-map';
-import oauth2Client from '../../services/google-oauth';
+import userTokensMap from '../../models/users-tokens-map.ts';
+import oauth2Client from '../../services/google-oauth.ts';
 
 const createEvents = async (req: Request, resp: Response, next: NextFunction) => {
   try {
@@ -26,10 +26,10 @@ const createEvents = async (req: Request, resp: Response, next: NextFunction) =>
       requestBody: {
         summary: 'Meeting w/ Andrew Klapper',
         start: {
-          dateTime: start,
+          dateTime: start
         },
         end: {
-          dateTime: end,
+          dateTime: end
         },
         eventType: 'default',
         attendees: [
@@ -37,13 +37,13 @@ const createEvents = async (req: Request, resp: Response, next: NextFunction) =>
             displayName: 'Andrew Klapper',
             email: 'andrew@andrew-k.us',
             comment:
-              'Thanks for setting a time to get together. Please feel free to schedule a Google Meet video conference if that is your preference. If you need to reschedule, please update the event and I will respond with a confirmation.',
-          },
+              'Thanks for setting a time to get together. Please feel free to schedule a Google Meet video conference if that is your preference. If you need to reschedule, please update the event and I will respond with a confirmation.'
+          }
         ],
-        colorId: '2',
+        colorId: '2'
       },
 
-      sendNotifications: true,
+      sendNotifications: true
     });
 
     resp.status(201).json({ result });

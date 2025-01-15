@@ -1,5 +1,5 @@
-import { Player } from '../src/lib/player';
-import { Avatar } from '../src/lib/avatar';
+import { Player } from '../src/lib/player.ts';
+import { Avatar } from '../src/lib/avatar.ts';
 import { Color } from '@aklapper/types-game';
 
 let player: Player, avatar: Avatar, pName: string, aName: string, id: string;

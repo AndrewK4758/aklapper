@@ -1,5 +1,5 @@
-import { SpaceType } from '../types/game';
-import { IAvatar } from './avatar';
+import { SpaceType } from '../types/game.ts';
+import { IAvatar } from './avatar.ts';
 
 export interface ISpace {
   Value: string;

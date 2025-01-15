@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import updateTrack from '../services/prisma/tracks/update-track';
+import updateTrack from '../services/prisma/tracks/update-track.ts';
 
 /**
  * Handles PATCH requests to update a track in the database.

@@ -1,6 +1,6 @@
 import { Color, SpaceType } from '@aklapper/types-game';
-import { Avatar } from '../src/lib/avatar';
-import { Space } from '../src/lib/space';
+import { Avatar } from '../src/lib/avatar.ts';
+import { Space } from '../src/lib/space.ts';
 
 let avatar: Avatar, space: Space, nextSpace: Space;
 

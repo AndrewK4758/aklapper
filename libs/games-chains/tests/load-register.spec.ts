@@ -6,8 +6,8 @@ import { getCurrentMinute } from '@aklapper/utils';
 import { Context, Color, GameContextKeys, ILoadRegisterData } from '@aklapper/types-game';
 import { mockReqObj, mockRespObj } from '@aklapper/mocks';
 import { Request, Response } from 'express';
-import { loadRegister } from '../src/lib/commands/action-load-register/load-register-start';
-import { sendLoadRegister } from '../src/lib/commands/action-load-register/send-load-register-data';
+import { loadRegister } from '../src/lib/commands/action-load-register/load-register-start.ts';
+import { sendLoadRegister } from '../src/lib/commands/action-load-register/send-load-register-data.ts';
 
 let ctx: Context<GameContextKeys | string>, game: InstanceOfGame, req: Partial<Request>, resp: Partial<Response>;
 describe('test load register chain', () => {

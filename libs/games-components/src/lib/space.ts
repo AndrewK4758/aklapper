@@ -1,5 +1,5 @@
 import { SpaceType, ISpace, IAvatar } from '@aklapper/types-game';
-import { Avatar } from './avatar';
+import { Avatar } from './avatar.ts';
 
 export class Space implements ISpace {
   Value: string;

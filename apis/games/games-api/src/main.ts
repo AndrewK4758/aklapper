@@ -4,9 +4,9 @@ import express, { Express } from 'express';
 import { createServer } from 'http';
 import { join } from 'path';
 import { ServerOptions } from 'socket.io';
-import socketBoardAction from './events/socket-board-action';
-import addGameToSocketInstance from './middleware/socket-add-game-middleware';
-import router, { GameRoutes } from './routes/routes';
+import socketBoardAction from './events/socket-board-action.ts';
+import addGameToSocketInstance from './middleware/socket-add-game-middleware.ts';
+import router, { GameRoutes } from './routes/routes.ts';
 import { configDotenv } from 'dotenv';
 import { cwd } from 'process';
 

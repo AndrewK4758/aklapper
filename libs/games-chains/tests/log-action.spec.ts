@@ -1,6 +1,6 @@
 import { ContextBuilder } from '@aklapper/chain';
 import { Context, GameContextKeys } from '@aklapper/types-game';
-import { logAction } from '../src/lib/commands/action-log/log-actions-start';
+import { logAction } from '../src/lib/commands/action-log/log-actions-start.ts';
 
 let ctx: Context<GameContextKeys | string>;
 describe('it should log the action property to the console', () => {

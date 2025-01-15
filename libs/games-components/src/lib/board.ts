@@ -1,5 +1,5 @@
 import { IBoard } from '@aklapper/types-game';
-import { Space } from './space';
+import { Space } from './space.ts';
 
 export class Board implements IBoard {
   TotalSpaces: number;

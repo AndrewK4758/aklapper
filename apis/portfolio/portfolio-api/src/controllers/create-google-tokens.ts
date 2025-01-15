@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
-import oauth2Client from '../services/google-oauth';
-import userTokensMap from '../models/users-tokens-map';
+import oauth2Client from '../services/google-oauth.ts';
+import userTokensMap from '../models/users-tokens-map.ts';
 import ShortUniqueId from 'short-unique-id';
 
 const createTokens = async (req: Request, resp: Response, next: NextFunction) => {
@@ -17,7 +17,7 @@ const createTokens = async (req: Request, resp: Response, next: NextFunction) =>
       maxAge: 1000 * 60 * 5,
       httpOnly: true,
       sameSite: 'none',
-      secure: true,
+      secure: true
     });
 
     const origin = process.env.NODE_ENV === 'production' ? 'https://www.andrew-k.us' : 'http://localhost:4700';

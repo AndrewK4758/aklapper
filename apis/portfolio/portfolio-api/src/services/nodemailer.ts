@@ -3,7 +3,7 @@ import { configDotenv } from 'dotenv';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { resolve } from 'path';
 import { cwd } from 'process';
-import cca from './masl';
+import cca from './masl.ts';
 import type { AuthenticationResult } from '@azure/msal-node';
 
 configDotenv({

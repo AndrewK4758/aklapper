@@ -33,9 +33,6 @@
       "path": "../../../libs/password/tsconfig.lib.json"
     },
     {
-      "path": "../../../libs/prisma/tsconfig.lib.json"
-    },
-    {
       "path": "../../../libs/models/all-games-map/tsconfig.lib.json"
     },
     {

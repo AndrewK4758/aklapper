@@ -2,8 +2,8 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "declarationDir": "../../../dist",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
     "rootDirs": ["./src", "../../../"],
     "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
     "types": ["node", "vite/client"]

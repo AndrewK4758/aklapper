@@ -6,10 +6,10 @@ import { mockReqObj, mockRespObj } from '@aklapper/mocks';
 import { Color, Context, GameContextKeys, IPlayersAndBoard, IRegisterFormValues } from '@aklapper/types-game';
 import { getCurrentMinute } from '@aklapper/utils';
 import { Request, Response } from 'express';
-import { activeDataToSend } from '../src/lib/commands/action-board/active-game-data-to-send';
-import { boardStart } from '../src/lib/commands/action-board/board-start';
-import { checkIfWinner } from '../src/lib/commands/action-board/check-if-winner';
-import { readyToPlayCheck } from '../src/lib/commands/action-board/ready-to-play';
+import { activeDataToSend } from '../src/lib/commands/action-board/active-game-data-to-send.ts';
+import { boardStart } from '../src/lib/commands/action-board/board-start.ts';
+import { checkIfWinner } from '../src/lib/commands/action-board/check-if-winner.ts';
+import { readyToPlayCheck } from '../src/lib/commands/action-board/ready-to-play.ts';
 
 let ctx: Context<GameContextKeys | string>, game: InstanceOfGame, req: Partial<Request>, resp: Partial<Response>;
 

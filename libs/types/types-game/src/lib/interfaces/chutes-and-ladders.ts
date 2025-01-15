@@ -1,8 +1,8 @@
-import { AvatarTotem, Color } from '../types/game';
-import { IDie } from './die';
-import { ISpace } from './space';
+import { AvatarTotem, Color } from '../types/game.ts';
+import { IDie } from './die.ts';
+import { ISpace } from './space.ts';
 
-import type { ILiteSpace } from './lite-space';
+import type { ILiteSpace } from './lite-space.ts';
 
 export interface IChutesAndLadders {
   MAX_PLAYERS: number;

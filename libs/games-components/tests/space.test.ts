@@ -1,5 +1,5 @@
-import { Avatar } from '../src/lib/avatar';
-import { Space } from '../src/lib/space';
+import { Avatar } from '../src/lib/avatar.ts';
+import { Space } from '../src/lib/space.ts';
 import { SpaceType, Color } from '@aklapper/types-game';
 
 // Setup of spaces & avatars

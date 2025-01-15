@@ -1,7 +1,7 @@
 import { album, artist, Prisma, track } from '@prisma/client';
 import { DefaultArgs } from '@prisma/client/runtime/library';
 import { Request, Response } from 'express';
-import createNewEntry from '../services/post/create-new-entry';
+import createNewEntry from '../services/post/create-new-entry.ts';
 
 interface NewEntryData {
   artist: artist;
@@ -37,13 +37,13 @@ const createNewEntrys = async (req: Request, resp: Response) => {
                   composer: track.composer,
                   milliseconds: track.milliseconds,
                   bytes: track.bytes,
-                  unit_price: track.unit_price,
-                },
-              },
-            },
-          ],
-        },
-      },
+                  unit_price: track.unit_price
+                }
+              }
+            }
+          ]
+        }
+      }
     } as Prisma.artistCreateArgs<DefaultArgs>;
 
     const newEntry = await createNewEntry(query);

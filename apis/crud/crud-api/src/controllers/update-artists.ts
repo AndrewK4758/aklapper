@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import updateArtistError from '../errors/update-artist-error';
-import updateArtist from '../services/prisma/artist/update-artists';
+import updateArtistError from '../errors/update-artist-error.ts';
+import updateArtist from '../services/prisma/artist/update-artists.ts';
 
 /**
  * Handles PATCH requests to update an artist in the database.
