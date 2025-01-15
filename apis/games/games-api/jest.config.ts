@@ -16,6 +16,8 @@ const config: Config = {
   displayName: 'games-api',
   preset: '../../../jest.preset.cjs',
   testEnvironment: 'node',
+  globalSetup: '<rootDir>/tests/support/global-setup.ts',
+  globalTeardown: '<rootDir>/tests/support/global-teardown.ts',
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1' // Important for correct imports
   },

@@ -16,6 +16,8 @@ const config: Config = {
   displayName: 'crud-api',
   preset: '../../../jest.preset.cjs',
   testEnvironment: 'node',
+  globalSetup: '<rootDir>/tests/support/global-setup.ts',
+  globalTeardown: '<rootDir>/tests/support/global-teardown.ts',
   transform: {
     '^.+\\.[tj]s$': ['ts-jest', opts]
   },

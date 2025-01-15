@@ -25,11 +25,11 @@
       "docker-build-ci-database": {
         "executor": "nx:run-commands",
         "options": {
-          "cwd": "{workspaceRoot}",
+          "cwd": "{workspaceRoot}/apis/games/games-api",
           "commands": [
             {
-              "description": "Build Docker Database for e2e Test",
-              "command": "docker build -f ./Dockerfile.db.testing . -t ci-database"
+              "description": "Build Postgres Docker Database for e2e Test",
+              "command": "docker build -f ./Dockerfile.games-api-db . -t ci-games-api"
             }
           ]
         }
@@ -37,11 +37,11 @@
       "docker-compose-up-db": {
         "executor": "nx:run-commands",
         "options": {
-          "cwd": "{workspaceRoot}",
+          "cwd": "{workspaceRoot}/apis/games/games-api",
           "commands": [
             {
               "description": "Start Docker Database Container",
-              "command": "docker compose -f ./docker-compose.database.yaml up ci-database -d && sleep 2.5"
+              "command": "docker compose -f ./docker-compose.games.yaml up ci-games-api -d"
             }
           ]
         }
@@ -49,11 +49,11 @@
       "docker-compose-down-db": {
         "executor": "nx:run-commands",
         "options": {
-          "cwd": "{workspaceRoot}",
+          "cwd": "{workspaceRoot}/apis/games/games-api",
           "commands": [
             {
               "description": "Shutdown Docker Database container",
-              "command": "docker compose -f ./docker-compose.database.yaml down"
+              "command": "docker compose -f ./docker-compose.games.yaml down"
             }
           ]
         }

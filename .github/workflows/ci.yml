@@ -163,14 +163,6 @@ jobs:
       # Add Nx Cloud Build Cache
       - uses: nrwl/nx-set-shas@v4
 
-      # Build Docker Container for API Unit Tests
-      - name: Build Docker Container
-        run: docker build -f ./Dockerfile.db.testing . -t ci-database
-
-      # Start Docker Container for API Unit Tests
-      - name: Start Docker Container
-        run: docker compose -f ./docker-compose.database.yaml up ci-database -d
-
       # Install wdg-agents
       - name: Install wdg-agents
         run: pnpx nx install wdg-agents
@@ -181,11 +173,6 @@ jobs:
           NODE_ENV: test
           DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
         run: pnpx nx affected -t=test
-
-      # Stop Docker Container
-      - name: Stop Docker Container
-        if: always()
-        run: docker compose -f ./docker-compose.database.yaml down
 
   build_and_typecheck:
     needs: ['lint', 'test']
