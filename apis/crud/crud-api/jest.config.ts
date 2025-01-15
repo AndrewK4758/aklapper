@@ -1,13 +1,15 @@
 import { DefaultEsmTransformOptions } from 'ts-jest';
 import type { Config } from 'jest';
+
 const opts: DefaultEsmTransformOptions = {
   tsconfig: '<rootDir>/tsconfig.spec.json',
+  isolatedModules: true,
   babelConfig: {
     targets: { esmodules: true, node: 'current' }
   },
   diagnostics: {
     warnOnly: true
-  },
+  }
 };
 
 const config: Config = {
@@ -24,5 +26,4 @@ const config: Config = {
     '^(\\.{1,2}/.*)\\.js$': '$1'
   }
 };
-console.log(process.env['NODE_ENV'], 'config file')
 export default config;

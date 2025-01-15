@@ -4,6 +4,12 @@
   "include": [],
   "references": [
     {
+      "path": "../../../libs/password"
+    },
+    {
+      "path": "../../../libs/prisma"
+    },
+    {
       "path": "../../../libs/models/all-games-map"
     },
     {

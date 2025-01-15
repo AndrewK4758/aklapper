@@ -1,7 +1,9 @@
+import { Config } from 'jest';
 import { DefaultEsmTransformOptions } from 'ts-jest';
 
-const opts: DefaultEsmTransformOptions = {
+const tsJestOptions: DefaultEsmTransformOptions = {
   tsconfig: '<rootDir>/tsconfig.spec.json',
+  isolatedModules: true,
   babelConfig: {
     targets: { esmodules: true, node: 'current' }
   },
@@ -10,17 +12,19 @@ const opts: DefaultEsmTransformOptions = {
   }
 };
 
-export default {
+const config: Config = {
   displayName: 'mocks',
   preset: '../../jest.preset.cjs',
   testEnvironment: 'node',
-  transform: {
-    '^.+\\.[tj]s$': ['ts-jest', opts]
-  },
-  extensionsToTreatAsEsm: ['.jsx', '.ts', '.tsx', '.mts'],
-  moduleFileExtensions: ['ts', 'js', 'html', 'mts'],
-  coverageDirectory: '../../coverage/libs/mocks',
   moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1'
-  }
+    '^(\\.{1,2}/.*)\\.js$': '$1' // Important for correct imports
+  },
+  transform: {
+    '^.+\\.[tj]s$': ['ts-jest', tsJestOptions]
+  },
+  extensionsToTreatAsEsm: ['.ts', '.mts'],
+  moduleFileExtensions: ['ts', 'js', 'html'],
+  coverageDirectory: '../../coverage/libs/mocks'
 };
+
+export default config;

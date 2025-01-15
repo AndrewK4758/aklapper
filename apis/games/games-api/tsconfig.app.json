@@ -2,10 +2,10 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "declarationDir": "../../../dist",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
     "rootDirs": ["./src", "../../../"],
-    "types": ["node"]
+    "types": ["node", "express"]
   },
   "include": [
     "src/**/*.ts",
@@ -29,6 +29,12 @@
   ],
   "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
   "references": [
+    {
+      "path": "../../../libs/password/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/prisma/tsconfig.lib.json"
+    },
     {
       "path": "../../../libs/models/all-games-map/tsconfig.lib.json"
     },

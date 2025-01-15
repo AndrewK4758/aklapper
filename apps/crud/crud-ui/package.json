@@ -12,7 +12,7 @@
   "main": "./index.js",
   "dependencies": {},
   "nx": {
-    "name": "@aklapper/crud-ui",
+    "name": "crud-ui",
     "sourceRoot": "apps/crud/crud-ui/src",
     "projectType": "application"
   }

@@ -2,6 +2,7 @@
   "extends": "./tsconfig.base.json",
   "compileOnSave": false,
   "files": [],
+  "exclude": ["node_modules", "dist"],
   "references": [
     {
       "path": "./apps/local-model/local-model-e2e"

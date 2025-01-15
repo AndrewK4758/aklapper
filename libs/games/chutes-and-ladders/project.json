@@ -1,8 +1,0 @@
-{
-  "name": "chutes-and-ladders",
-  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "libs/games/chutes-and-ladders/src",
-  "projectType": "library",
-  "tags": [],
-  "targets": {}
-}

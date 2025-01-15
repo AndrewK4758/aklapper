@@ -2,7 +2,7 @@ import cors, { CorsOptions } from 'cors';
 import express, { Express } from 'express';
 import { createServer } from 'http';
 import { join } from 'path';
-import Routes, { router } from './routes/routes';
+import Routes, { router } from './routes/routes.ts';
 import { cwd } from 'process';
 import { configDotenv } from 'dotenv';
 
@@ -13,7 +13,13 @@ configDotenv({ path: join(__dirname, '.env') });
 const app: Express = express();
 
 export const corsOptions: CorsOptions = {
-  origin: ['http://localhost:4700', 'http://localhost:4800', 'https://andrew-k.us', 'https://www.andrew-k.us'],
+  origin: [
+    'http://localhost:4700',
+    'http://localhost:4800',
+    'https://andrew-k.us',
+    'https://www.andrew-k.us',
+    'http://localhost'
+  ],
   methods: '*',
   exposedHeaders: '*',
   optionsSuccessStatus: 204,

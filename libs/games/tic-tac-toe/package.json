@@ -13,5 +13,10 @@
   "main": "./index.js",
   "types": "./src/index.d.ts",
   "type": "module",
-  "dependencies": {}
+  "dependencies": {},
+  "nx": {
+    "name": "tic-tac-toe",
+    "sourceRoot": "libs/games/tic-tac-toe/src",
+    "projectType": "library"
+  }
 }

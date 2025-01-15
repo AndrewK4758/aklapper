@@ -13,5 +13,10 @@
   "main": "./index.js",
   "types": "./src/index.d.ts",
   "dependencies": {},
-  "type": "module"
+  "type": "module",
+  "nx": {
+    "name": "mocks",
+    "sourceRoot": "libs/mocks/src",
+    "projectType": "library"
+  }
 }

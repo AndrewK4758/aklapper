@@ -1,6 +1,7 @@
 {
   "name": "@aklapper/game",
   "private": true,
+  "type": "module",
   "exports": {
     "./package.json": "./package.json",
     ".": {
@@ -8,6 +9,10 @@
       "import": "./index.js"
     }
   },
-  "type": "module",
-  "dependencies": {}
+  "dependencies": {},
+  "nx": {
+    "name": "game",
+    "sourceRoot": "libs/game/src",
+    "projectType": "library"
+  }
 }

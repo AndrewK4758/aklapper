@@ -13,5 +13,10 @@
   "main": "./index.js",
   "types": "./src/index.d.ts",
   "type": "module",
-  "dependencies": {}
+  "dependencies": {},
+  "nx": {
+    "name": "chutes-and-ladders",
+    "sourceRoot": "libs/games/chutes-and-ladders/src",
+    "projectType": "library"
+  }
 }

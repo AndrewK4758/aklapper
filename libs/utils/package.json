@@ -15,7 +15,7 @@
   "types": "./src/index.d.ts",
   "dependencies": {},
   "nx": {
-    "name": "@aklapper/utils",
+    "name": "utils",
     "sourceRoot": "libs/utils/src",
     "projectType": "library"
   }

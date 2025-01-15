@@ -16,7 +16,7 @@
   "dependencies": {},
   "type": "module",
   "nx": {
-    "name": "@aklapper/types-game",
+    "name": "types-game",
     "sourceRoot": "libs/types/types-game/src",
     "projectType": "library"
   }

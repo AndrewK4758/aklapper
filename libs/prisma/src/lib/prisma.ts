@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Prisma, PrismaClient } from '@prisma/client';
+import { configDotenv } from 'dotenv';
+import { cwd } from 'process';
 
-console.log(process.env['NODE_ENV'], 'PRISMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+configDotenv({ path: `${cwd()}/libs/prisma/.env` });
 
 const url = (NODE_ENV: string) => {
   switch (NODE_ENV) {
@@ -15,10 +17,9 @@ const url = (NODE_ENV: string) => {
 };
 
 const prismaClient = new PrismaClient({
-  datasourceUrl:
-    url(process.env['NODE_ENV'] as string) 
-    // ?? 'postgresql://postgres:11560000@localhost/aklapper?host=/cloudsql/games-424800:us-central1:aklapper/'
-});    
+  datasourceUrl: url(process.env['NODE_ENV'] as string),
+  errorFormat: 'pretty'
+});
 
 export const prisma = prismaClient.$extends({
   model: {

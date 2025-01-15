@@ -15,7 +15,7 @@
   "type": "module",
   "dependencies": {},
   "nx": {
-    "name": "@aklapper/game-instance",
+    "name": "game-instance",
     "sourceRoot": "libs/models/game-instance/src",
     "projectType": "library"
   }

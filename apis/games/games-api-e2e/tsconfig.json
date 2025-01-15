@@ -1,7 +1,15 @@
 {
   "extends": "../../../tsconfig.base.json",
   "files": [],
-  "include": [],
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "noUnusedLocals": false,
+    "noImplicitAny": false,
+    "outDir": "tests/out-tsc",
+    "tsBuildInfoFile": "tsconfig.tsbuildinfo",
+    "types": ["jest", "node"]
+  },
+  "include": ["jest.config.ts", "src/**/*.ts"],
   "references": [
     {
       "path": "../../../libs/types/types-game"
@@ -10,10 +18,7 @@
       "path": "../../../libs/types/types-api"
     },
     {
-      "path": "./tsconfig.spec.json"
+      "path": "../../../libs/password"
     }
-  ],
-  "compilerOptions": {
-    "esModuleInterop": true
-  }
+  ]
 }

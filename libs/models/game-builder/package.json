@@ -15,7 +15,7 @@
   "type": "module",
   "dependencies": {},
   "nx": {
-    "name": "@akalpper/game-builder",
+    "name": "game-builder",
     "sourceRoot": "libs/models/game-builder/src",
     "projectType": "library"
   }

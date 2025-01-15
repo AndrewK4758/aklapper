@@ -14,7 +14,7 @@
   "main": "./index.js",
   "types": "./src/index.d.ts",
   "nx": {
-    "name": "@aklapper/react-shared",
+    "name": "react-shared",
     "sourceRoot": "libs/react-shared/src",
     "projectType": "library"
   }

@@ -13,7 +13,9 @@
   },
   "types": "./src/index.d.ts",
   "main": "./index.js",
-  "dependencies": {
-    "@aklapper/types-game": "0.0.0"
+  "nx": {
+    "name": "chain",
+    "sourceRoot": "libs/chain/src",
+    "projectType": "library"
   }
 }

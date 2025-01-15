@@ -15,7 +15,7 @@
   "type": "module",
   "dependencies": {},
   "nx": {
-    "name": "@aklapper/rule",
+    "name": "rule",
     "sourceRoot": "libs/models/rule/src",
     "projectType": "library"
   }

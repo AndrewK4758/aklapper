@@ -19,13 +19,12 @@ const getArtists = async (req: Request, resp: Response, next: NextFunction): Pro
   if (!req.query.take) next();
   else {
     try {
-
       const { take, skip, cursor } = req.query;
 
       const query = {
         take: parseInt(take as string, 10),
         skip: parseInt(skip as string, 10),
-        cursor: { artist_id: parseInt(cursor as string, 10) },
+        cursor: { artist_id: parseInt(cursor as string, 10) }
       } as Prisma.artistFindManyArgs<DefaultArgs>;
 
       const allArtists = await findArtists(query);

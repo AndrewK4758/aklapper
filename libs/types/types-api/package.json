@@ -15,7 +15,7 @@
   "type": "module",
   "dependencies": {},
   "nx": {
-    "name": "@aklapper/types-api",
+    "name": "types-api",
     "sourceRoot": "libs/types/types-api/src",
     "projectType": "library"
   }

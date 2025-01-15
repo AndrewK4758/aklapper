@@ -1,13 +1,13 @@
 {
   "extends": "../../../tsconfig.base.json",
   "files": [],
-  "include": [],
-  "references": [
-    {
-      "path": "./tsconfig.spec.json"
-    }
-  ],
   "compilerOptions": {
-    "esModuleInterop": true
-  }
+    "esModuleInterop": true,
+    "noUnusedLocals": false,
+    "noImplicitAny": false,
+    "outDir": "tests/out-tsc",
+    "tsBuildInfoFile": "tsconfig.tsbuildinfo",
+    "types": ["jest", "node"]
+  },
+  "include": ["jest.config.ts", "src/**/*.ts"]
 }

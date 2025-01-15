@@ -5,14 +5,77 @@
   "dependencies": {},
   "exports": {
     ".": {
-      "types": "./apis/crud/crud-api/src/index.d.ts",
       "import": "./main.js"
     }
   },
+  "main": "./main.js",
+  "meta": "./meta.json",
   "private": true,
   "nx": {
-    "name": "@aklapper/crud-api",
+    "name": "crud-api",
+    "sourceRoot": "apis/crud/crud-api/src",
     "projectType": "application",
-    "sourceRoot": "apis/crud/crud-api/src"
+    "targets": {
+      "build": {
+        "executor": "@nx/esbuild:esbuild",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "defaultConfiguration": "production",
+        "options": {
+          "outputPath": "dist/apis/crud-api",
+          "outputFileName": "main.js",
+          "main": "apis/crud/crud-api/src/main.ts",
+          "tsConfig": "apis/crud/crud-api/tsconfig.app.json",
+          "assets": [
+            "apis/crud/crud-api/src/assets"
+          ],
+          "target": "node23",
+          "format": [
+            "esm"
+          ],
+          "sourcemap": true,
+          "metafile": true
+        },
+        "configurations": {
+          "development": {},
+          "production": {}
+        }
+      },
+      "serve": {
+        "executor": "@nx/js:node",
+        "defaultConfiguration": "production",
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "buildTarget": "crud-api:build",
+          "runBuildTargetDependencies": true
+        },
+        "configurations": {
+          "development": {
+            "buildTarget": "crud-api:build:development"
+          },
+          "production": {
+            "buildTarget": "crud-api:build:production"
+          },
+          "test": {
+            "buildTarget": "crud-api:build:production"
+          }
+        }
+      },
+      "docker-build": {
+        "dependsOn": [
+          "build"
+        ],
+        "command": "docker build --build-arg NODE_ENV=production -f apis/crud/crud-api/Dockerfile . -t us-central1-docker.pkg.dev/games-424800/portfolio/crud-api:latest"
+      },
+      "docker-push": {
+        "dependsOn": [
+          "docker-build"
+        ],
+        "command": "docker push us-central1-docker.pkg.dev/games-424800/portfolio/crud-api:latest"
+      }
+    }
   }
 }

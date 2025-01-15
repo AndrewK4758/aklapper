@@ -13,5 +13,10 @@
   "main": "./index.js",
   "types": "./src/index.d.ts",
   "type": "module",
-  "dependencies": {}
+  "dependencies": {},
+  "nx": {
+    "name": "games-chains",
+    "sourceRoot": "libs/games-chains/src",
+    "projectType": "library"
+  }
 }

@@ -2,10 +2,10 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "declarationDir": "../../../dist",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "rootDirs": ["./src","../../../"],
-    "types": ["node"]
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
+    "rootDirs": ["./src", "../../../"],
+    "types": ["node", "express"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"]

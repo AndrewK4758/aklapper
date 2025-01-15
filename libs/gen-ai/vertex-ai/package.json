@@ -14,5 +14,46 @@
   "main": "./index.js",
   "types": "./src/index.d.ts",
   "type": "module",
-  "dependencies": {}
+  "dependencies": {},
+  "nx": {
+    "name": "vertex-ai",
+    "sourceRoot": "libs/gen-ai/vertex-ai/src",
+    "projectType": "library",
+    "targets": {
+      "build": {
+        "executor": "@nx/esbuild:esbuild",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "defaultConfiguration": "production",
+        "options": {
+          "main": "libs/gen-ai/vertex-ai/src/index.ts",
+          "outputPath": "dist/libs/gen-ai/vertex-ai",
+          "tsConfig": "libs/gen-ai/vertex-ai/tsconfig.lib.json",
+          "outputFileName": "index.js",
+          "format": [
+            "esm"
+          ],
+          "target": "node23",
+          "sourcemap": true,
+          "metafile": true,
+          "assets": [
+            {
+              "glob": "./README.md",
+              "input": ".",
+              "output": "."
+            }
+          ]
+        },
+        "configurations": {
+          "development": {
+            "minify": false
+          },
+          "production": {
+            "minify": true
+          }
+        }
+      }
+    }
+  }
 }

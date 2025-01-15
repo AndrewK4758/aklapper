@@ -15,7 +15,7 @@
   "type": "module",
   "dependencies": {},
   "nx": {
-    "name": "@aklapper/socket-io-client",
+    "name": "socket-io-client",
     "sourceRoot": "libs/socket-io/client/src",
     "projectType": "library"
   }

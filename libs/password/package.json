@@ -14,8 +14,44 @@
   "types": "./src/index.d.ts",
   "type": "module",
   "nx": {
-    "name": "@aklapper/password",
+    "name": "password",
     "sourceRoot": "libs/password/src",
-    "projectType": "library"
+    "projectType": "library",
+    "targets": {
+      "build": {
+        "executor": "@nx/esbuild:esbuild",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "defaultConfiguration": "production",
+        "options": {
+          "main": "libs/password/src/index.ts",
+          "outputPath": "dist/libs/password",
+          "outputFileName": "index.js",
+          "tsConfig": "libs/password/tsconfig.lib.json",
+          "platform": "node",
+          "format": [
+            "esm"
+          ],
+          "sourcemap": true,
+          "metafile": true,
+          "assets": [
+            {
+              "glob": "./README.md",
+              "input": ".",
+              "output": "."
+            }
+          ]
+        },
+        "configurations": {
+          "development": {
+            "minify": false
+          },
+          "production": {
+            "minify": true
+          }
+        }
+      }
+    }
   }
 }

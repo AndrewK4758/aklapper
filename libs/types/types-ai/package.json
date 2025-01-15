@@ -14,7 +14,7 @@
   "types": "./src/index.d.ts",
   "type": "module",
   "nx": {
-    "name": "@aklapper/types-ai",
+    "name": "types-ai",
     "sourceRoot": "libs/types/types-ai/src",
     "projectType": "library"
   }

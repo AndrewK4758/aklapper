@@ -4,7 +4,7 @@
     "declarationDir": "../../../dist",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "rootDirs": ["./src","../../../"],
+    "rootDirs": ["./src", "../../../"],
     "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
     "types": ["node", "vite/client"]
   },

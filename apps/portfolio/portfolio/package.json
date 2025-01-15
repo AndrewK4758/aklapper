@@ -13,8 +13,27 @@
   "main": "./index-[hash].js",
   "dependencies": {},
   "nx": {
-    "name": "@aklapper/portfolio",
+    "name": "portfolio",
     "sourceRoot": "apps/portfolio/portfolio/src",
-    "projectType": "application"
+    "projectType": "application",
+    "targets": {
+      "deploy": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "build"
+        ],
+        "defaultConfiguration": "production",
+        "options": {
+          "commands": [
+            {
+              "command": "gcloud app deploy website.yaml --quiet --verbosity=debug"
+            }
+          ],
+          "env": {
+            "NODE_ENV": "production"
+          }
+        }
+      }
+    }
   }
 }

@@ -15,8 +15,36 @@
   "main": "./index.js",
   "types": "./src/index.d.ts",
   "nx": {
-    "name": "@aklapper/media-recorder",
+    "name": "media-recorder",
     "sourceRoot": "libs/media-recorder/src",
-    "projectType": "library"
+    "projectType": "library",
+    "targets": {
+      "build": {
+        "executor": "@nx/esbuild:esbuild",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "main": "libs/media-recorder/src/index.ts",
+          "tsConfig": "libs/media-recorder/tsconfig.lib.json",
+          "outputPath": "dist/libs/media-recorder",
+          "outputFileName": "index.js",
+          "format": [
+            "esm"
+          ],
+          "target": "esnext",
+          "platform": "browser",
+          "sourcemap": true,
+          "metafile": true,
+          "assets": [
+            {
+              "glob": "./README.md",
+              "input": ".",
+              "output": "."
+            }
+          ]
+        }
+      }
+    }
   }
 }

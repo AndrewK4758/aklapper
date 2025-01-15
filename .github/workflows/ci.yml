@@ -165,11 +165,11 @@ jobs:
 
       # Build Docker Container for API Unit Tests
       - name: Build Docker Container
-        run: docker build -f ./Dockerfile.db.testing . -t ci-test
+        run: docker build -f ./Dockerfile.db.testing . -t ci-database
 
       # Start Docker Container for API Unit Tests
       - name: Start Docker Container
-        run: docker compose -f ./docker-compose.yaml up ci-test -d
+        run: docker compose -f ./docker-compose.database.yaml up ci-database -d
 
       # Install wdg-agents
       - name: Install wdg-agents
@@ -185,7 +185,7 @@ jobs:
       # Stop Docker Container
       - name: Stop Docker Container
         if: always()
-        run: docker compose -f ./docker-compose.yaml down
+        run: docker compose -f ./docker-compose.database.yaml down
 
   build_and_typecheck:
     needs: ['lint', 'test']

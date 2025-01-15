@@ -2,11 +2,11 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "../../dist",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
     "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
-    "rootDirs": ["./src","../../"],
-    "types": ["node", "vite/client"]
+    "rootDirs": ["./src", "../../"],
+    "types": ["node"]
   },
   "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
   "include": ["src/**/*.ts"]

@@ -2,10 +2,10 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "declarationDir": "../../../dist",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
     "rootDirs": ["./src","../../../"],
-    "types": ["node"]
+    "types": ["node", "express"]
   },
   "include": ["src/**/*.ts", "../../../libs/prisma/src/**/*.ts"],
   "exclude": ["jest.config.ts", "src/**/*.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],

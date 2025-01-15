@@ -15,7 +15,7 @@
   "type": "module",
   "dependencies": {},
   "nx": {
-    "name": "@aklapper/all-games-map",
+    "name": "all-games-map",
     "sourceRoot": "libs/models/all-games-map/src",
     "projectType": "library"
   }

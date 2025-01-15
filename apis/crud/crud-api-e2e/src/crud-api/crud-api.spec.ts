@@ -16,7 +16,6 @@ describe('Test all endpoints for artist CRUD', () => {
       const CURSOR = 1;
 
       const resp = await axios.get(`/artists?take=${TAKE}&skip=${SKIP}&cursor=${CURSOR}`);
-
       const { allArtists } = resp.data;
       expect(allArtists.length).toEqual(TAKE);
     });
@@ -36,14 +35,12 @@ describe('Test all endpoints for artist CRUD', () => {
     it('Should return the value of the updatedArtist', async () => {
       const resp = await axios.patch('/artists', dataUpdate);
 
-      console.log(resp.data);
       expect(resp.data.updatedArtist.name).toEqual(dataUpdate.name);
     });
   });
 
   describe('DELETE /artists/:id', () => {
     it('Should return the value of deletedArtist', async () => {
-      // console.log(artist_id)
       const resp = await axios.delete(`/artists/${artist_id}`);
 
       expect(resp.data.deletedArtist).toEqual({ ...dataPost, artist_id: artist_id });

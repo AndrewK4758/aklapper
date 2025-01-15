@@ -13,5 +13,10 @@
   },
   "main": "./index.js",
   "types": "./src/index.d.ts",
-  "dependencies": {}
+  "dependencies": {},
+  "nx": {
+    "name": "games-components",
+    "sourceRoot": "libs/games-components/src",
+    "projectType": "library"
+  }
 }

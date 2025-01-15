@@ -1,0 +1,63 @@
+{
+  "name": "@aklapper/games-api-e2e",
+  "private": true,
+  "type": "module",
+  "nx": {
+    "name": "games-api-e2e",
+    "projectType": "application",
+    "implicitDependencies": [
+      "games-api"
+    ],
+    "targets": {
+      "e2e": {
+        "executor": "@nx/jest:jest",
+        "outputs": [
+          "{workspaceRoot}/coverage/{e2eProjectRoot}"
+        ],
+        "options": {
+          "jestConfig": "apis/games/games-api-e2e/jest.config.ts",
+          "passWithNoTests": true
+        },
+        "dependsOn": [
+          "games-api:build"
+        ]
+      },
+      "docker-build-ci-database": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "{workspaceRoot}",
+          "commands": [
+            {
+              "description": "Build Docker Database for e2e Test",
+              "command": "docker build -f ./Dockerfile.db.testing . -t ci-database"
+            }
+          ]
+        }
+      },
+      "docker-compose-up-db": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "{workspaceRoot}",
+          "commands": [
+            {
+              "description": "Start Docker Database Container",
+              "command": "docker compose -f ./docker-compose.database.yaml up ci-database -d && sleep 2.5"
+            }
+          ]
+        }
+      },
+      "docker-compose-down-db": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "{workspaceRoot}",
+          "commands": [
+            {
+              "description": "Shutdown Docker Database container",
+              "command": "docker compose -f ./docker-compose.database.yaml down"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
