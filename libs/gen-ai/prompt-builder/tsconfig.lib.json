@@ -2,8 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "declarationDir": "../../../dist",
-    "module": "NodeNext",
-    "moduleResolution": "nodenext",
+    "outDir": "../../../dist",
     "rootDirs": ["./src", "../../../"],
     "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
     "types": ["node"]

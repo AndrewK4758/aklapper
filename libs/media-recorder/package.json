@@ -20,29 +20,17 @@
     "projectType": "library",
     "targets": {
       "build": {
-        "executor": "@nx/esbuild:esbuild",
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "^typecheck"
+        ],
         "outputs": [
           "{options.outputPath}"
         ],
         "options": {
-          "main": "libs/media-recorder/src/index.ts",
-          "tsConfig": "libs/media-recorder/tsconfig.lib.json",
-          "outputPath": "dist/libs/media-recorder",
-          "outputFileName": "index.js",
-          "format": [
-            "esm"
-          ],
-          "target": "esnext",
-          "platform": "browser",
-          "sourcemap": true,
-          "metafile": true,
-          "assets": [
-            {
-              "glob": "./README.md",
-              "input": ".",
-              "output": "."
-            }
-          ]
+          "cwd": "libs/media-recorder",
+          "color": true,
+          "command": "vite build"
         }
       }
     }

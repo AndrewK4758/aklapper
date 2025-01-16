@@ -18,3 +18,5 @@ export * from './lib/interfaces/rule.ts';
 export * from './lib/interfaces/space.ts';
 export * from './lib/interfaces/summed-roll.ts';
 export * from './lib/interfaces/tic-tac-toe.ts';
+
+export * from './lib/get-node-env.ts';

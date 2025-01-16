@@ -3,6 +3,8 @@ import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
+// eslint-disable-next-line @nx/enforce-module-boundaries
+import { getNodeEnv } from '../../../libs/types/types-game/src/index.ts';
 
 export default defineConfig({
   root: __dirname,
@@ -21,9 +23,9 @@ export default defineConfig({
   plugins: [
     react({ babel: { targets: { esmodules: true } } }),
     nxViteTsPaths({
-      debug: true,
-      buildLibsFromSource: false,
-      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'main']
+      debug: getNodeEnv() !== 'production',
+      buildLibsFromSource: getNodeEnv() !== 'production',
+      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'module', 'main']
     }),
     nxCopyAssetsPlugin(['./*.md'])
   ],
@@ -35,14 +37,23 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@aklapper/games-components': 'dist/libs/games-components/index.js',
-      '@aklapper/media-recorder': 'dist/libs/media-recorder/index.js',
-      '@aklapper/prompt-builder': 'dist/libs/gen-ai/prompt-builder/index.js',
-      '@aklapper/react-shared': 'dist/libs/react-shared/index.js',
-      '@aklapper/socket-io-client': 'dist/libs/socket-io/client/index.js',
-      '@aklapper/types-ai': 'dist/libs/types/types-ai/index.js',
-      '@aklapper/types-game': 'dist/libs/types/types-game/index.js',
-      '@aklapper/utils': 'dist/libs/utils/index.js'
+      '@aklapper/games-components':
+        getNodeEnv() === 'production' ? 'dist/libs/games-components/index.js' : 'libs/games-components/src/index.ts',
+      '@aklapper/media-recorder':
+        getNodeEnv() === 'production' ? 'dist/libs/media-recorder/index.js' : 'libs/media-recorder/src/index.ts',
+      '@aklapper/prompt-builder':
+        getNodeEnv() === 'production'
+          ? 'dist/libs/gen-ai/prompt-builder/index.js'
+          : 'libs/gen-ai/prompt-builder/src/index.ts',
+      '@aklapper/react-shared':
+        getNodeEnv() === 'production' ? 'dist/libs/react-shared/index.js' : 'libs/react-shared/src/index.ts',
+      '@aklapper/socket-io-client':
+        getNodeEnv() === 'production' ? 'dist/libs/socket-io/client/index.js' : 'libs/socket-io/client/src/index.ts',
+      '@aklapper/types-ai':
+        getNodeEnv() === 'production' ? 'dist/libs/types/types-ai/index.js' : 'libs/types/types-ai/src/index.ts',
+      '@aklapper/types-game':
+        getNodeEnv() === 'production' ? 'dist/libs/types/types-game/index.js' : 'libs/types/types-game/src/index.ts',
+      '@aklapper/utils': getNodeEnv() === 'production' ? 'dist/libs/utils/index.js' : 'libs/utils/src/index.ts'
     }
   },
 

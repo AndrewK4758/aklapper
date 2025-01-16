@@ -17,7 +17,8 @@
     "../../game/src/**/*.ts",
     "../../games/chutes-and-ladders/src/**/*.ts",
     "../../games-components/src/**/*.ts",
-    "../../types/types-game/src/**/*.ts"
+    "../../types/types-game/src/**/*.ts",
+    "vite.config.ts"
   ],
   "references": [
     {

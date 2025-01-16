@@ -9,5 +9,10 @@
     "lib": ["DOM"],
     "types": ["node"]
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../types/types-game/tsconfig.lib.json"
+    }
+  ]
 }

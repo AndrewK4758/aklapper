@@ -1,5 +1,5 @@
 import { ChutesAndLadders } from '@aklapper/chutes-and-ladders';
-import { GameBuilder } from '../src/lib/game-builder';
+import { GameBuilder } from '../src/lib/game-builder.ts';
 
 let gb: GameBuilder;
 

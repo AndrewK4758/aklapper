@@ -7,5 +7,9 @@
   },
   "include": ["src/**/*.ts", "../../../libs/prisma/src/**/*.ts"],
   "exclude": ["jest.config.ts", "src/**/*.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
-  "references": []
+  "references": [
+    {
+      "path": "../../../libs/prisma/tsconfig.lib.json"
+    }
+  ]
 }

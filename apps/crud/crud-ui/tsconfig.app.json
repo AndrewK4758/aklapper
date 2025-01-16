@@ -2,9 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "declarationDir": "../../../dist",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "rootDirs": ["./src","../../../"],
+    "rootDirs": ["./src", "../../../"],
     "tsBuildInfoFile": "tsconfig.app.tsbuildinfo",
     "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
     "jsx": "react-jsx"
@@ -20,19 +18,7 @@
     "tests/**/*.test.jsx",
     "vite.config.ts"
   ],
-  "include": [
-    "src/**/*.js",
-    "src/**/*.jsx",
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "../../../libs/game/src/**/*.ts",
-    "../../../libs/games-components/src/**/*.ts",
-    "../../../libs/games/chutes-and-ladders/src/**/*.ts",
-    "../../../libs/models/game-instance/src/**/*.ts",
-    "../../../libs/chain/src/**/*.ts",
-    "../../../libs/types/types-game/src/**/*.ts",
-    "../../../libs/react-shared/src/**/*.ts"
-  ],
+  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
       "path": "../../../libs/mocks/tsconfig.lib.json"

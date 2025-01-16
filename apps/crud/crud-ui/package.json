@@ -14,6 +14,22 @@
   "nx": {
     "name": "crud-ui",
     "sourceRoot": "apps/crud/crud-ui/src",
-    "projectType": "application"
+    "projectType": "application",
+    "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "^typecheck"
+        ],
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "cwd": "apps/crud/crud-ui",
+          "color": true,
+          "command": "vite build"
+        }
+      }
+    }
   }
 }

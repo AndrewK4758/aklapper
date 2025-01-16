@@ -1,11 +1,10 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "declarationDir": "../../dist",
     "outDir": "../../dist",
-    "module": "NodeNext",
-    "moduleResolution": "nodenext",
-    "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
     "rootDirs": ["./src", "../../"],
+    "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
     "types": ["node"]
   },
   "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],

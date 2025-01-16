@@ -17,6 +17,20 @@
     "sourceRoot": "apps/portfolio/portfolio/src",
     "projectType": "application",
     "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "^typecheck"
+        ],
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "cwd": "apps/portfolio/portfolio",
+          "color": true,
+          "command": "vite build"
+        }
+      },
       "deploy": {
         "executor": "nx:run-commands",
         "dependsOn": [

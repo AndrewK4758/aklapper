@@ -7,11 +7,12 @@ import Paper from '@mui/material/Paper';
 import { lazy, useContext, useEffect, useState } from 'react';
 import { WebSocketContext } from '../../../contexts/websocket-context';
 import ModelResponse from './local-model-response';
+import type { Socket } from 'node_modules/.pnpm/socket.io-client@4.8.1/node_modules/socket.io-client/build/esm/socket.d.ts';
 
 const ModelQuery = lazy(() => import('./local-model-query'));
 
 export const LocalModel = () => {
-  const { socket } = useContext(WebSocketContext);
+  const { socket } = useContext<{socket: Socket}>(WebSocketContext);
   const [promptResponse, setPromptResponse] = useState<string>('');
 
   useEffect(() => {

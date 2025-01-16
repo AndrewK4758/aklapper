@@ -17,6 +17,22 @@
   "nx": {
     "name": "utils",
     "sourceRoot": "libs/utils/src",
-    "projectType": "library"
+    "projectType": "library",
+    "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "^typecheck"
+        ],
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "cwd": "libs/utils",
+          "color": true,
+          "command": "vite build"
+        }
+      }
+    }
   }
 }

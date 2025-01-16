@@ -3,21 +3,21 @@ import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import * as path from 'path';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
+import { getNodeEnv } from './src/lib/get-node-env.ts';
 
 export default defineConfig({
   root: __dirname,
   cacheDir: '../../../node_modules/.vite/libs/types/types-game',
   plugins: [
     nxViteTsPaths({
-      debug: true,
-      buildLibsFromSource: false,
-      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'main']
+      debug: getNodeEnv() !== 'production',
+      buildLibsFromSource: getNodeEnv() !== 'production',
+      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'module', 'main']
     }),
     nxCopyAssetsPlugin(['*.md']),
     dts({
       logLevel: 'info',
       entryRoot: 'src',
-      insertTypesEntry: true,
       outDir: '../../../dist/libs/types/types-game/src',
       tsconfigPath: path.join(__dirname, 'tsconfig.lib.json')
     })
@@ -31,6 +31,8 @@ export default defineConfig({
   build: {
     outDir: '../../../dist/libs/types/types-game',
     emptyOutDir: true,
+    sourcemap: true,
+    manifest: true,
     reportCompressedSize: true,
     commonjsOptions: {
       transformMixedEsModules: true

@@ -1,7 +1,7 @@
 import { ChutesAndLadders } from '@aklapper/chutes-and-ladders';
 import { Player, Space } from '@aklapper/games-components';
 import { Color, SpaceType } from '@aklapper/types-game';
-import { Game } from '../src/lib/game';
+import { Game } from '../src/lib/game.ts';
 
 let game: Game, instance: ChutesAndLadders, playerInTurn: Player;
 

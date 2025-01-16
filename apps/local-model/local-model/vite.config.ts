@@ -2,6 +2,8 @@ import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
+// eslint-disable-next-line @nx/enforce-module-boundaries
+import { getNodeEnv } from '../../../libs/types/types-game/src/index';
 
 export default defineConfig({
   root: __dirname,
@@ -17,9 +19,9 @@ export default defineConfig({
   plugins: [
     react({ babel: { targets: { esmodules: true } } }),
     nxViteTsPaths({
-      debug: true,
-      buildLibsFromSource: false,
-      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'main']
+      debug: getNodeEnv() !== 'production',
+      buildLibsFromSource: getNodeEnv() !== 'production',
+      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'module', 'main']
     }),
     nxCopyAssetsPlugin(['**/*.md'])
   ],
@@ -30,7 +32,11 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@aklapper/react-shared': 'dist/libs/react-shared/index.js'
+      '@aklapper/react-shared':
+        getNodeEnv() === 'production' ? 'dist/libs/react-shared/index.js' : 'libs/react-shared/src/index.ts',
+      '@aklapper/utils': getNodeEnv() === 'production' ? 'dist/libs/utils/index.js' : 'libs/utils/src/index.ts',
+      '@aklapper/types-game':
+        getNodeEnv() === 'production' ? 'dist/libs/types/types-game/index.js' : 'libs/types/types-game/src/index.ts'
     }
   },
 

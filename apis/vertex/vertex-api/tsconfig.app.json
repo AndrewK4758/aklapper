@@ -3,18 +3,10 @@
   "compilerOptions": {
     "declarationDir": "../../../dist",
     "rootDirs": ["./src", "../../../"],
-    "strict": false,
     "types": ["node", "express"]
   },
   "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
-  "include": [
-    "src/**/*.ts",
-    "../../../libs/socket-io/server/src/**/*.ts",
-    "../../../libs/gen-ai/prompt-builder/src/**/*.ts",
-    "../../../libs/gen-ai/vertex-ai/src/**/*.ts",
-    "../../../libs/types/types-ai/src/**/*.ts",
-    "../../../libs/types/types-api/src/**/*.ts"
-  ],
+  "include": ["src/**/*.ts"],
   "references": [
     {
       "path": "../../../libs/socket-io/server/tsconfig.lib.json"
@@ -24,6 +16,9 @@
     },
     {
       "path": "../../../libs/types/types-api/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/types/types-game/tsconfig.lib.json"
     },
     {
       "path": "../../../libs/types/types-ai/tsconfig.lib.json"

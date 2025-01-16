@@ -13,6 +13,22 @@
   "nx": {
     "name": "game",
     "sourceRoot": "libs/game/src",
-    "projectType": "library"
+    "projectType": "library",
+    "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "^typecheck"
+        ],
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "cwd": "libs/game",
+          "color": true,
+          "command": "vite build"
+        }
+      }
+    }
   }
 }

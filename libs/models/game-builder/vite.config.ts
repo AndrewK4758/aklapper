@@ -3,15 +3,17 @@ import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import * as path from 'path';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
+// eslint-disable-next-line @nx/enforce-module-boundaries
+import { getNodeEnv } from '../../types/types-game/src/index.ts';
 
 export default defineConfig({
   root: __dirname,
   cacheDir: '../../../node_modules/.vite/libs/models/game-builder',
   plugins: [
     nxViteTsPaths({
-      debug: true,
-      buildLibsFromSource: false,
-      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'main']
+      debug: getNodeEnv() !== 'production',
+      buildLibsFromSource: getNodeEnv() !== 'production',
+      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'module', 'main']
     }),
     nxCopyAssetsPlugin(['*.md']),
     dts({
@@ -29,8 +31,9 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@aklapper/chain': 'dist/libs/chain/index.js',
-      '@aklapper/rule': 'dist/libs/models/rule/index.js'
+      '@aklapper/chain': getNodeEnv() === 'production' ? 'dist/libs/chain/index.js' : 'libs/chain/src/index.ts',
+      '@aklapper/rule':
+        getNodeEnv() === 'production' ? 'dist/libs/models/rule/index.js' : 'libs/models/rule/src/index.ts'
     }
   },
 

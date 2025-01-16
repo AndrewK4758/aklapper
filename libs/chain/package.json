@@ -16,6 +16,22 @@
   "nx": {
     "name": "chain",
     "sourceRoot": "libs/chain/src",
-    "projectType": "library"
+    "projectType": "library",
+    "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "^typecheck"
+        ],
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "cwd": "libs/chain",
+          "color": true,
+          "command": "vite build"
+        }
+      }
+    }
   }
 }

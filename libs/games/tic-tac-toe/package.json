@@ -17,6 +17,22 @@
   "nx": {
     "name": "tic-tac-toe",
     "sourceRoot": "libs/games/tic-tac-toe/src",
-    "projectType": "library"
+    "projectType": "library",
+    "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "^typecheck"
+        ],
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "cwd": "libs/games/tic-tac-toe",
+          "color": true,
+          "command": "vite build"
+        }
+      }
+    }
   }
 }

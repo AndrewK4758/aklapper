@@ -21,6 +21,9 @@
     "targets": {
       "build": {
         "executor": "@nx/esbuild:esbuild",
+        "dependsOn": [
+          "typecheck"
+        ],
         "outputs": [
           "{options.outputPath}"
         ],
@@ -30,6 +33,8 @@
           "outputPath": "dist/libs/socket-io/server",
           "tsConfig": "libs/socket-io/server/tsconfig.lib.json",
           "outputFileName": "index.js",
+          "declaration": true,
+          "declarationRootDir": "dist/libs/socket-io/server/src",
           "format": [
             "esm"
           ],

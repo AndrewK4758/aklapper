@@ -1,9 +1,9 @@
 import { Router, json, urlencoded } from 'express';
 import multer from 'multer';
-import generateImages from '../controllers/gen-ai-image-gen';
-import promptBuilder from '../controllers/prompt-builder';
-import uploadToGcsBucket from '../controllers/upload-files-to-gcs-bucket';
-import createContextPath from '../controllers/create-context-path';
+import generateImages from '../controllers/gen-ai-image-gen.ts';
+import promptBuilder from '../controllers/prompt-builder.ts';
+import uploadToGcsBucket from '../controllers/upload-files-to-gcs-bucket.ts';
+import createContextPath from '../controllers/create-context-path.ts';
 
 const router: Router = Router();
 

@@ -17,7 +17,8 @@
     "../game/src/**/*.ts",
     "../models/game-instance/src/**/*.ts",
     "../utils/src/**/*.ts",
-    "../chain/src/**/*.ts"
+    "../chain/src/**/*.ts",
+    "vite.config.ts"
   ],
   "references": [
     {

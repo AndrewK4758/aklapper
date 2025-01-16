@@ -15,6 +15,22 @@
   "nx": {
     "name": "games-ui",
     "projectType": "application",
-    "sourceRoot": "apps/games-ui/games-ui/src"
+    "sourceRoot": "apps/games-ui/games-ui/src",
+    "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "^typecheck"
+        ],
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "cwd": "apps/games/games-ui",
+          "color": true,
+          "command": "vite build"
+        }
+      }
+    }
   }
 }

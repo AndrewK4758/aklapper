@@ -17,6 +17,22 @@
   "nx": {
     "name": "all-games-map",
     "sourceRoot": "libs/models/all-games-map/src",
-    "projectType": "library"
+    "projectType": "library",
+    "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "^typecheck"
+        ],
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "cwd": "libs/models/all-games-map",
+          "color": true,
+          "command": "vite build"
+        }
+      }
+    }
   }
 }

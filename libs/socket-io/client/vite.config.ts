@@ -1,22 +1,24 @@
-/// <reference types='vitest' />
 import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import * as path from 'path';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
+// eslint-disable-next-line @nx/enforce-module-boundaries
+import { getNodeEnv } from '../../types/types-game/src/index.ts';
 
 export default defineConfig({
   root: __dirname,
   cacheDir: '../../../node_modules/.vite/libs/socket-io/client',
   plugins: [
     nxViteTsPaths({
-      debug: true,
-      buildLibsFromSource: false,
-      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'main']
+      debug: getNodeEnv() !== 'production',
+      buildLibsFromSource: getNodeEnv() !== 'production',
+      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'module', 'main']
     }),
     nxCopyAssetsPlugin(['*.md']),
     dts({
       entryRoot: 'src',
+      insertTypesEntry: true,
       outDir: '../../../dist/libs/socket-io/client/src',
       tsconfigPath: path.join(__dirname, 'tsconfig.lib.json')
     })
@@ -30,6 +32,8 @@ export default defineConfig({
   build: {
     outDir: '../../../dist/libs/socket-io/client',
     emptyOutDir: true,
+    manifest: true,
+    sourcemap: true,
     reportCompressedSize: true,
     commonjsOptions: {
       transformMixedEsModules: true

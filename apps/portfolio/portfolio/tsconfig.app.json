@@ -6,7 +6,7 @@
     "lib": ["DOM"],
     "module": "esnext",
     "moduleResolution": "bundler",
-    "rootDirs": ["./src","../../../"],
+    "rootDirs": ["./src", "../../../"],
     "tsBuildInfoFile": "tsconfig.app.tsbuildinfo",
     "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"]
   },
@@ -21,27 +21,7 @@
     "tests/**/*.test.jsx",
     "vite.config.ts"
   ],
-  "include": [
-    "src/**/*.js",
-    "src/**/*.jsx",
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "../../../libs/react-shared/src/**/*.ts",
-    "../../../libs/react-shared/src/**/*.tsx",
-    "../../../libs/gen-ai/prompt-builder/src/**/*.ts",
-    "../../../libs/media-recorder/src/**/*.ts",
-    "../../../libs/socket-io/client/src/**/*.ts",
-    "../../../libs/game/src/**/*.ts",
-    "../../../libs/games-components/src/**/*.ts",
-    "../../../libs/games/chutes-and-ladders/src/**/*.ts",
-    "../../../libs/models/game-instance/src/**/*.ts",
-    "../../../libs/chain/src/**/*.ts",
-    "../../../libs/utils/src/**/*.ts",
-    "../../../libs/types/types-ai/src/**/*.ts",
-    "../../../libs/gen-ai/vertex-ai/src/**/*.ts",
-    "../../../libs/types/types-game/src/**/*.ts",
-    "../../../libs/react-shared/src/**/*.ts"
-  ],
+  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
       "path": "../../../libs/gen-ai/prompt-builder/tsconfig.lib.json"

@@ -2,14 +2,12 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "declarationDir": "../../dist",
-    "module": "NodeNext",
-    "moduleResolution": "nodenext",
     "rootDirs": ["./src", "../../"],
     "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
     "types": ["node", "vite/client"]
   },
   "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
-  "include": ["src/**/*.ts", "../types/types-game/src/**/*.ts"],
+  "include": ["src/**/*.ts", "../types/types-game/src/**/*.ts", "vite.config.ts"],
   "references": [
     {
       "path": "../types/types-game/tsconfig.lib.json"

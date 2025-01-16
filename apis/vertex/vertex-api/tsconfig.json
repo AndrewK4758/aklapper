@@ -4,13 +4,16 @@
   "include": [],
   "references": [
     {
-      "path": "../../../libs/types/types-api"
-    },
-    {
       "path": "../../../libs/socket-io/server"
     },
     {
       "path": "../../../libs/gen-ai/prompt-builder"
+    },
+    {
+      "path": "../../../libs/types/types-api"
+    },
+    {
+      "path": "../../../libs/types/types-game"
     },
     {
       "path": "../../../libs/types/types-ai"
@@ -26,6 +29,6 @@
     }
   ],
   "compilerOptions": {
-    "esModuleInterop": true
+    "strict": false
   }
 }

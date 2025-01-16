@@ -11,4 +11,4 @@ ENV POSTGRES_DB=aklapper
 EXPOSE 5431:5432
 
 # Copy any initialization SQL scripts to the container
-COPY db-init.sql /docker-entrypoint-initdb.d/
+COPY games-init.sql /docker-entrypoint-initdb.d/

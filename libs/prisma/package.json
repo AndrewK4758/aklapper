@@ -1,18 +1,18 @@
 {
   "name": "@aklapper/prisma",
   "private": true,
+  "type": "module",
   "exports": {
     "./package.json": "./package.json",
     ".": {
       "types": "./src/index.d.ts",
-      "require": null,
       "default": "./index.js",
-      "import": "./dist/main.js"
+      "require": null,
+      "import": "./index.js"
     }
   },
   "main": "./index.js",
   "types": "./src/index.d.ts",
-  "type": "module",
   "dependencies": {},
   "nx": {
     "name": "prisma",
@@ -27,6 +27,9 @@
       },
       "build": {
         "executor": "@nx/esbuild:esbuild",
+        "dependsOn": [
+          "typecheck"
+        ],
         "outputs": [
           "{options.outputPath}"
         ],
@@ -36,6 +39,8 @@
           "outputPath": "dist/libs/prisma",
           "outputFileName": "index.js",
           "tsConfig": "libs/prisma/tsconfig.lib.json",
+          "declaration": true,
+          "declarationRootDir": "libs/prisma/src",
           "platform": "node",
           "format": [
             "esm"
@@ -43,7 +48,6 @@
           "target": "node23",
           "sourcemap": true,
           "metafile": true,
-          "declarationRootDir": "libs/prisma/src",
           "assets": [
             {
               "glob": "./README.md",

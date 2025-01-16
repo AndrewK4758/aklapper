@@ -1,8 +1,6 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "module": "ESNext",
-    "moduleResolution": "bundler",
     "outDir": "tests/out-tsc",
     "tsBuildInfoFile": "tsconfig.spec.tsbuildinfo",
     "types": ["vitest/globals", "vitest/importMeta", "vite/client", "node", "vitest"]

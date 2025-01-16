@@ -1,9 +1,9 @@
 import { createContext, ReactElement, useRef } from 'react';
 import { ClientSocket } from '@aklapper/socket-io-client';
-import { Socket } from 'socket.io-client';
+import { type Socket } from 'socket.io-client';
 
 export type WebSocket = {
-  socket: Socket;
+  socket: Socket ;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -16,8 +16,8 @@ interface WebsocketContextProviderProps {
 const baseUrl = import.meta.env.VITE_WS_SERVER_URL_VERTEX;
 
 const WebsocketContextProvider = ({ children }: WebsocketContextProviderProps) => {
-  const clientSocket = new ClientSocket(baseUrl, { autoConnect: false });
-  const socketRef = useRef<Socket>(clientSocket.clientIo);
+  const {clientIo} = new ClientSocket(baseUrl, { autoConnect: false });
+  const socketRef = useRef(clientIo);
   const socket = socketRef.current;
 
   return <WebSocketContext.Provider value={{ socket: socket }}>{children}</WebSocketContext.Provider>;

@@ -17,6 +17,9 @@
     "targets": {
       "build": {
         "executor": "@nx/esbuild:esbuild",
+        "dependsOn": [
+          "^typecheck"
+        ],
         "outputs": [
           "{options.outputPath}"
         ],
@@ -26,6 +29,8 @@
           "outputFileName": "main.js",
           "main": "apis/games/games-api/src/main.ts",
           "tsConfig": "apis/games/games-api/tsconfig.app.json",
+          "declaration": true,
+          "declarationRootDir": "dist/apis/games-api",
           "assets": [
             "apis/games/games-api/src/assets"
           ],

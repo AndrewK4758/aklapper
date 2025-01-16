@@ -1,6 +1,7 @@
 {
   "name": "@aklapper/password",
   "private": true,
+  "type": "module",
   "exports": {
     "./package.json": "./package.json",
     ".": {
@@ -12,7 +13,6 @@
   },
   "main": "./index.js",
   "types": "./src/index.d.ts",
-  "type": "module",
   "nx": {
     "name": "password",
     "sourceRoot": "libs/password/src",
@@ -20,6 +20,9 @@
     "targets": {
       "build": {
         "executor": "@nx/esbuild:esbuild",
+        "dependsOn": [
+          "typecheck"
+        ],
         "outputs": [
           "{options.outputPath}"
         ],
@@ -29,10 +32,13 @@
           "outputPath": "dist/libs/password",
           "outputFileName": "index.js",
           "tsConfig": "libs/password/tsconfig.lib.json",
+          "declaration": true,
+          "declarationRootDir": "dist/libs/password/src",
           "platform": "node",
           "format": [
             "esm"
           ],
+          "target": "node23",
           "sourcemap": true,
           "metafile": true,
           "assets": [

@@ -7,6 +7,9 @@
   "include": [],
   "references": [
     {
+      "path": "../../types/types-game"
+    },
+    {
       "path": "../../types/types-api"
     },
     {

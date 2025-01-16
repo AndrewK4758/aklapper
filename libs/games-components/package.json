@@ -17,6 +17,22 @@
   "nx": {
     "name": "games-components",
     "sourceRoot": "libs/games-components/src",
-    "projectType": "library"
+    "projectType": "library",
+    "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "^typecheck"
+        ],
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "cwd": "libs/games-components",
+          "color": true,
+          "command": "vite build"
+        }
+      }
+    }
   }
 }

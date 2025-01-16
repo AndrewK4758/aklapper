@@ -3,21 +3,22 @@ import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import * as path from 'path';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
+// eslint-disable-next-line @nx/enforce-module-boundaries
+import { getNodeEnv } from '../types/types-game/src/index.ts';
 
 export default defineConfig({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/libs/chain',
   plugins: [
     nxViteTsPaths({
-      debug: true,
-      buildLibsFromSource: false,
-      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'main']
+      debug: getNodeEnv() !== 'production',
+      buildLibsFromSource: getNodeEnv() !== 'production',
+      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'module', 'main']
     }),
     nxCopyAssetsPlugin(['*.md']),
     dts({
       logLevel: 'info',
       entryRoot: 'src',
-      insertTypesEntry: true,
       outDir: '../../dist/libs/chain/src',
       tsconfigPath: path.join(__dirname, 'tsconfig.lib.json')
     })
@@ -29,16 +30,18 @@ export default defineConfig({
   // Configuration for building your library.
   // See: https://vitejs.dev/guide/build.html#library-mode
 
-  // resolve: {
-  //   alias: {
-  //     '@aklapper/types-game': '../../dist/libs/types/types-game/index.js'
-  //   }
-  // },
+  resolve: {
+    alias: {
+      '@aklapper/types-game':
+        getNodeEnv() === 'production' ? 'dist/libs/types/types-game/index.js' : 'libs/types/types-game/src/index.ts'
+    }
+  },
 
   build: {
     outDir: '../../dist/libs/chain',
     emptyOutDir: true,
     sourcemap: true,
+    manifest: true,
     reportCompressedSize: true,
     commonjsOptions: {
       transformMixedEsModules: true

@@ -3,15 +3,17 @@ import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import * as path from 'path';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
+// eslint-disable-next-line @nx/enforce-module-boundaries
+import { getNodeEnv } from '../../types/types-game/src/index.ts';
 
 export default defineConfig({
   root: __dirname,
   cacheDir: '../../../node_modules/.vite/libs/games/tic-tac-toe',
   plugins: [
     nxViteTsPaths({
-      debug: true,
-      buildLibsFromSource: false,
-      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'main']
+      debug: getNodeEnv() !== 'production',
+      buildLibsFromSource: getNodeEnv() !== 'production',
+      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'module', 'main']
     }),
     nxCopyAssetsPlugin(['*.md']),
     dts({
@@ -29,10 +31,13 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@aklapper/types-game': 'dist/libs/types/types-game/index.js',
-      '@aklapper/games-components': 'dist/libs/games-components/index.js'
+      '@aklapper/types-game':
+        getNodeEnv() === 'production' ? 'dist/libs/types/types-game/index.js' : 'libs/types/types-game/src/index.ts',
+      '@aklapper/games-components':
+        getNodeEnv() === 'production' ? 'dist/libs/games-components/index.js' : 'libs/games-components/src/index.ts'
     }
   },
+
   build: {
     outDir: '../../../dist/libs/games/tic-tac-toe',
     emptyOutDir: true,

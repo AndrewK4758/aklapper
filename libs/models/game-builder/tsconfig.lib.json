@@ -2,8 +2,6 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "declarationDir": "../../../dist",
-    "module": "NodeNext",
-    "moduleResolution": "nodenext",
     "rootDirs": ["./src", "../../../"],
     "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
     "types": ["node", "vite/client"]
@@ -15,7 +13,8 @@
     "../../types/types-game/src/**/*.ts",
     "../../games/chutes-and-ladders/src/**/*.ts",
     "../../chain/src/**/*.ts",
-    "../rule/src/**/*.ts"
+    "../rule/src/**/*.ts",
+    "vite.config.ts"
   ],
   "references": [
     {

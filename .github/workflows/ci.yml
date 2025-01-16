@@ -30,7 +30,7 @@ jobs:
 
       - uses: actions/setup-node@v3
         with:
-          node-version: '22'
+          node-version: '23'
 
       - uses: pnpm/action-setup@v4
         with:
@@ -128,7 +128,7 @@ jobs:
 
       - uses: actions/setup-node@v3
         with:
-          node-version: '22'
+          node-version: '23'
 
       - uses: pnpm/action-setup@v4
         with:
@@ -174,7 +174,7 @@ jobs:
           DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
         run: pnpx nx affected -t=test
 
-  build_and_typecheck:
+  typecheck_and_build:
     needs: ['lint', 'test']
     runs-on: ubuntu-latest
     steps:
@@ -221,15 +221,9 @@ jobs:
           NODE_ENV: production
         run: pnpx nx affected -t=build
 
-      #Typecheck all projects
-      - name: Typecheck all Projects
-        env:
-          NODE_ENV: production
-        run: pnpx nx affected -t=typecheck
-
   # Build Docker Image & Push to GCP Artifact Registry
   prepare-apis:
-    needs: ['build_and_typecheck']
+    needs: ['typecheck_and_build']
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -298,7 +292,7 @@ jobs:
       # Deploy all APIs to Cloud Run
       - name: Deploy APIs to Cloud Run
         run: |
-          gcloud run deploy crud-api --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/crud-api:latest --region=${{ env.REGION }} --platform=managed --max-instances=1 --port=${{ secrets.CRUD_API_PORT }} --allow-unauthenticated --no-traffic --add-cloudsql-instances=${{ secrets.GCP_SQL_STRING }} 
+          gcloud run deploy crud-api --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/crud-api:latest --region=${{ env.REGION }} --platform=managed --max-instances=1 --port=${{ secrets.CRUD_API_PORT }} --allow-unauthenticated --no-traffic --add-cloudsql-instances=${{ secrets.GCP_SQL_STRING }}
 
           gcloud run deploy games-api --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/games-api:latest --region=${{ env.REGION }} --platform=managed --max-instances=1 --port=${{ secrets.GAMES_API_PORT }} --allow-unauthenticated --no-traffic
 
@@ -319,7 +313,7 @@ jobs:
           gcloud run services update-traffic vertex-api --to-latest --region=us-central1
 
   deploy-portfolio:
-    needs: ['build_and_typecheck']
+    needs: ['typecheck_and_build']
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

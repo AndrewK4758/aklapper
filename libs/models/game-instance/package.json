@@ -17,6 +17,22 @@
   "nx": {
     "name": "game-instance",
     "sourceRoot": "libs/models/game-instance/src",
-    "projectType": "library"
+    "projectType": "library",
+    "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "^typecheck"
+        ],
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "cwd": "libs/models/game-instance",
+          "color": true,
+          "command": "vite build"
+        }
+      }
+    }
   }
 }

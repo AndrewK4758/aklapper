@@ -1,17 +1,19 @@
+import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
+import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
+import * as path from 'path';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
-import * as path from 'path';
-import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
-import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
+// eslint-disable-next-line @nx/enforce-module-boundaries
+import { getNodeEnv } from '../types/types-game/src/index.ts';
 
 export default defineConfig({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/libs/games-chains',
   plugins: [
     nxViteTsPaths({
-      debug: true,
-      buildLibsFromSource: false,
-      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'main']
+      debug: getNodeEnv() !== 'production',
+      buildLibsFromSource: getNodeEnv() !== 'production',
+      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'module', 'main']
     }),
     nxCopyAssetsPlugin(['*.md']),
     dts({
@@ -29,12 +31,18 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@aklapper/chain': 'dist/libs/chain/index.js',
-      '@aklapper/tic-tac-toe': 'dist/libs/games/tic-tac-toe/index.js',
-      '@aklapper/chutes-and-ladders': 'dist/libs/games/chutes-and-ladders/index.js',
-      '@aklapper/games-components': 'dist/libs/games-components/index.js',
-      '@aklapper/types-game': 'dist/libs/types/types-game/index.js',
-      '@aklapper/utils': 'dist/libs/utils/index.js'
+      '@aklapper/chain': getNodeEnv() === 'production' ? 'dist/libs/chain/index.js' : 'libs/chain/src/index.ts',
+      '@aklapper/tic-tac-toe':
+        getNodeEnv() === 'production' ? 'dist/libs/games/tic-tac-toe/index.js' : 'libs/games/tic-tac-toe/src/index.ts',
+      '@aklapper/chutes-and-ladders':
+        getNodeEnv() === 'production'
+          ? 'dist/libs/games/chutes-and-ladders/index.js'
+          : 'libs/games/chutes-and-ladders/src/index.ts',
+      '@aklapper/games-components':
+        getNodeEnv() === 'production' ? 'dist/libs/games-components/index.js' : ' libs/games-components/src/index.ts',
+      '@aklapper/types-game':
+        getNodeEnv() === 'production' ? 'dist/libs/types/types-game/index.js' : 'libs/types/types-game/src/index.ts',
+      '@aklapper/utils': getNodeEnv() === 'production' ? 'dist/libs/utils/index.js' : 'libs/utils/src/index.ts'
     }
   },
 

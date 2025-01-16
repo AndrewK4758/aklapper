@@ -2,35 +2,17 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "declarationDir": "../../../dist",
-    "module": "NodeNext",
-    "moduleResolution": "nodenext",
     "rootDirs": ["./src", "../../../"],
-    "types": ["node", "express"]
+    "types": ["node", "express", "../../../libs/types/types-game/src/lib/types/express-request.d.ts"]
   },
-  "include": [
-    "src/**/*.ts",
-    "../../../libs/types/types-game/src/**/*.ts",
-    "../../../libs/types/types-api/src/**/*.ts",
-    "../../../libs/types/types-game/src/**/*.ts",
-    "../../../libs/password/src/**/*.ts",
-    "../../../libs/prisma/src/**/*.ts",
-    "../../../libs/socket-io/server/src/**/*.ts",
-    "../../../libs/utils/src/**/*.ts",
-    "../../../libs/games-chains/src/**/*.ts",
-    "../../../libs/models/rule/src/**/*.ts",
-    "../../../libs/models/game-builder/src/**/*.ts",
-    "../../../libs/chain/src/**/*.ts",
-    "../../../libs/games/tic-tac-toe/src/**/*.ts",
-    "../../../libs/games-components/src/**/*.ts",
-    "../../../libs/games/chutes-and-ladders/src/**/*.ts",
-    "../../../libs/game/src/**/*.ts",
-    "../../../libs/models/game-instance/src/**/*.ts",
-    "../../../libs/models/all-games-map/src/**/*.ts"
-  ],
+  "include": ["src/**/*.ts"],
   "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
   "references": [
     {
       "path": "../../../libs/password/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/prisma/tsconfig.lib.json"
     },
     {
       "path": "../../../libs/models/all-games-map/tsconfig.lib.json"

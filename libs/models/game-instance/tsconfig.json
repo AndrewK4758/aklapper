@@ -7,15 +7,6 @@
   "include": [],
   "references": [
     {
-      "path": "../../game"
-    },
-    {
-      "path": "../../games-components"
-    },
-    {
-      "path": "../../games/chutes-and-ladders"
-    },
-    {
       "path": "../../types/types-game"
     },
     {
