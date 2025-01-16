@@ -9,12 +9,7 @@
     "types": ["node", "vite/client"]
   },
   "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
-  "include": [
-    "src/**/*.ts",
-    "../../games-components/src/**/*.ts",
-    "../../types/types-game/src/**/*.ts",
-    "vite.config.ts"
-  ],
+  "include": ["src/**/*.ts"],
   "references": [
     {
       "path": "../../games-components/tsconfig.lib.json"

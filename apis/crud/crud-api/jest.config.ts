@@ -1,5 +1,5 @@
-import { DefaultEsmTransformOptions } from 'ts-jest';
 import type { Config } from 'jest';
+import { DefaultEsmTransformOptions } from 'ts-jest';
 
 const opts: DefaultEsmTransformOptions = {
   tsconfig: '<rootDir>/tsconfig.spec.json',
@@ -14,7 +14,7 @@ const opts: DefaultEsmTransformOptions = {
 
 const config: Config = {
   displayName: 'crud-api',
-  preset: '../../../jest.preset.cjs',
+  preset: '../../../jest.preset.js',
   testEnvironment: 'node',
   globalSetup: '<rootDir>/tests/support/global-setup.ts',
   globalTeardown: '<rootDir>/tests/support/global-teardown.ts',

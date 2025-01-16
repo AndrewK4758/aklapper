@@ -5,12 +5,10 @@
     "tsBuildInfoFile": "tsconfig.spec.tsbuildinfo",
     "types": ["jest", "node"]
   },
-  "include": [
-    "jest.config.ts",
-    "tests/**/*.test.ts",
-    "tests/**/*.spec.ts",
-    "src/**/*.d.ts",
-    "src/**/*.ts",
-    "../types/types-game/src/**/*.ts"
+  "include": ["jest.config.ts", "tests/**/*.test.ts", "tests/**/*.spec.ts", "src/**/*.d.ts", "src/**/*.ts"],
+  "references": [
+    {
+      "path": "../types/types-game/tsconfig.lib.json"
+    }
   ]
 }

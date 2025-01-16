@@ -9,17 +9,7 @@
     "types": ["node", "vite/client"]
   },
   "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
-  "include": [
-    "src/**/*.ts",
-    "../games-components/src/**/*.ts",
-    "../types/types-game/src/**/*.ts",
-    "../games/**/*/src/**/*.ts",
-    "../game/src/**/*.ts",
-    "../models/game-instance/src/**/*.ts",
-    "../utils/src/**/*.ts",
-    "../chain/src/**/*.ts",
-    "vite.config.ts"
-  ],
+  "include": ["src/**/*.ts"],
   "references": [
     {
       "path": "../games/tic-tac-toe/tsconfig.lib.json"

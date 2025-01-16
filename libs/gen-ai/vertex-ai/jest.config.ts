@@ -14,7 +14,7 @@ const tsJestOptions: DefaultEsmTransformOptions = {
 
 const config: Config = {
   displayName: 'vertex-ai',
-  preset: '../../../jest.preset.cjs',
+  preset: '../../../jest.preset.js',
   testEnvironment: 'node',
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1' // Important for correct imports

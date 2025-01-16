@@ -17,11 +17,32 @@
     "tests/**/*.spec.jsx",
     "src/**/*.d.ts",
     "src/**/*.ts",
-    "src/**/*.tsx",
-    "../gen-ai/vertex-ai/src/**/*.ts",
-    "../gen-ai/vertex-ai/src/**/*.d.ts",
-    "../types/**/*/src/**/*.ts",
-    "../types/**/*/src/**/*.d.ts",
-    "../utils/src/**/*.ts"
+    "src/**/*.tsx"
+  ],
+  "references": [
+    {
+      "path": "../mocks/tsconfig.lib.json"
+    },
+    {
+      "path": "../game/tsconfig.lib.json"
+    },
+    {
+      "path": "../games-components/tsconfig.lib.json"
+    },
+    {
+      "path": "../games/chutes-and-ladders/tsconfig.lib.json"
+    },
+    {
+      "path": "../models/game-instance/tsconfig.lib.json"
+    },
+    {
+      "path": "../chain/tsconfig.lib.json"
+    },
+    {
+      "path": "../utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../types/types-game/tsconfig.lib.json"
+    }
   ]
 }

@@ -5,12 +5,10 @@
     "tsBuildInfoFile": "tsconfig.spec.tsbuildinfo",
     "types": ["jest", "node"]
   },
-  "include": [
-    "jest.config.ts",
-    "tests/**/*.test.ts",
-    "tests/**/*.spec.ts",
-    "src/**/*.ts",
-    "src/**/*.d.ts",
-    "../../../libs/prisma/src/**/*.ts"
+  "include": ["jest.config.ts", "tests/**/*.test.ts", "tests/**/*.spec.ts", "src/**/*.ts", "src/**/*.d.ts"],
+  "references": [
+    {
+      "path": "../../../libs/prisma/tsconfig.lib.json"
+    }
   ]
 }

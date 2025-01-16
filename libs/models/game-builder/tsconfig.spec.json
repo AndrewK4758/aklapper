@@ -1,21 +1,25 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "nodenext",
     "tsBuildInfoFile": "tsconfig.spec.tsbuildinfo",
     "types": ["jest", "node"]
   },
-  "include": [
-    "jest.config.ts",
-    "tests/**/*.test.ts",
-    "tests/**/*.spec.ts",
-    "src/**/*.d.ts",
-    "src/**/*.ts",
-    "../../chain/src/**/*.ts",
-    "../../games-components/src/**/*.ts",
-    "../../types/types-game/src/**/*.ts",
-    "../../games/chutes-and-ladders/src/**/*.ts",
-    "../rule/src/**/*.ts"
+  "include": ["jest.config.ts", "tests/**/*.test.ts", "tests/**/*.spec.ts", "src/**/*.d.ts", "src/**/*.ts"],
+  "references": [
+    {
+      "path": "../../games-components/tsconfig.lib.json"
+    },
+    {
+      "path": "../../games/chutes-and-ladders/tsconfig.lib.json"
+    },
+    {
+      "path": "../../chain/tsconfig.lib.json"
+    },
+    {
+      "path": "../rule/tsconfig.lib.json"
+    },
+    {
+      "path": "../../types/types-game/tsconfig.lib.json"
+    }
   ]
 }

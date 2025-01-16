@@ -16,20 +16,7 @@
     "tests/**/*.test.jsx",
     "tests/**/*.spec.jsx"
   ],
-  "include": [
-    "src/**/*.js",
-    "src/**/*.jsx",
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "../types/types-game/src/**/*.ts",
-    "../types/types-game/src/**/*.d.ts",
-    "../utils/src/**/*.ts",
-    "../game/src/**/*.ts",
-    "../games-components/src/**/*.ts",
-    "../games/chutes-and-ladders/src/**/*.ts",
-    "../models/game-instance/src/**/*.ts",
-    "../chain/src/**/*.ts"
-  ],
+  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
       "path": "../mocks/tsconfig.lib.json"

@@ -14,7 +14,7 @@ const tsJestOptions: DefaultEsmTransformOptions = {
 
 const config: Config = {
   displayName: 'portfolio-api-e2e',
-  preset: '../../../jest.preset.cjs',
+  preset: '../../../jest.preset.js',
   globalSetup: '<rootDir>/src/support/global-setup.ts',
   globalTeardown: '<rootDir>/src/support/global-teardown.ts',
   setupFiles: ['<rootDir>/src/support/test-setup.ts'],

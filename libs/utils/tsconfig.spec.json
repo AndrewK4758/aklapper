@@ -5,19 +5,28 @@
     "tsBuildInfoFile": "tsconfig.spec.tsbuildinfo",
     "types": ["jest", "node"]
   },
-  "include": [
-    "jest.config.ts",
-    "tests/**/*.test.ts",
-    "tests/**/*.spec.ts",
-    "src/**/*.d.ts",
-    "src/**/*.ts",
-    "../chain/src/**/*.ts",
-    "../game/src/**/*.ts",
-    "../games/chutes-and-ladders/src/**/*.ts",
-    "../mocks/src/**/*.ts",
-    "../models/game-instance/src/**/*.ts",
-    "../types/types-game/src/**/*.ts",
-    "../games-components/src/**/*.ts",
-    "../types/types-game/src/**/*.d.ts"
+  "include": ["jest.config.ts", "tests/**/*.test.ts", "tests/**/*.spec.ts", "src/**/*.d.ts", "src/**/*.ts"],
+  "references": [
+    {
+      "path": "../mocks/tsconfig.lib.json"
+    },
+    {
+      "path": "../game/tsconfig.lib.json"
+    },
+    {
+      "path": "../games-components/tsconfig.lib.json"
+    },
+    {
+      "path": "../games/chutes-and-ladders/tsconfig.lib.json"
+    },
+    {
+      "path": "../models/game-instance/tsconfig.lib.json"
+    },
+    {
+      "path": "../chain/tsconfig.lib.json"
+    },
+    {
+      "path": "../types/types-game/tsconfig.lib.json"
+    }
   ]
 }
