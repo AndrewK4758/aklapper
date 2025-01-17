@@ -66,11 +66,19 @@ jobs:
         with:
           python-version: 3.12.8
 
-      - name: Generate Prisma Client
+      # Generate Prisma Client For Games-Api
+      - name: Generate Prisma Client for Games-Api
+        run: pnpm generate-games
         env:
           NODE_ENV: production
           DB_URL_PROD: ${{ secrets.DB_URL_PROD }}
-        run: pnpm generate
+
+      # Generate Prisma Client For CRUD-Api
+      - name: Generate Prisma Client for CRUD-Api
+        run: pnpm generate-chinook
+        env:
+          NODE_ENV: production
+          DB_URL_PROD: ${{ secrets.DB_URL_PROD }}
 
   lint:
     needs: ['setup']
@@ -170,10 +178,16 @@ jobs:
       # Generate Prisma Client For Games-Api
       - name: Generate Prisma Client for Games-Api
         run: pnpm generate-games
+        env:
+          NODE_ENV: production
+          DB_URL_PROD: ${{ secrets.DB_URL_TEST }}
 
       # Generate Prisma Client For CRUD-Api
       - name: Generate Prisma Client for CRUD-Api
         run: pnpm generate-chinook
+        env:
+          NODE_ENV: production
+          DB_URL_PROD: ${{ secrets.DB_URL_TEST }}
 
       # Test all projects
       - name: Test all projects
@@ -257,12 +271,19 @@ jobs:
       - name: Install Portfolio Dependencies for Deploy to Cloud Build
         run: pnpm install --frozen-lockfile
 
-      # Generate Prisma Client
-      - name: Generate Prisma Client
+      # Generate Prisma Client For Games-Api
+      - name: Generate Prisma Client for Games-Api
+        run: pnpm generate-games
         env:
           NODE_ENV: production
           DB_URL_PROD: ${{ secrets.DB_URL_PROD }}
-        run: pnpm generate
+
+      # Generate Prisma Client For CRUD-Api
+      - name: Generate Prisma Client for CRUD-Api
+        run: pnpm generate-chinook
+        env:
+          NODE_ENV: production
+          DB_URL_PROD: ${{ secrets.DB_URL_PROD }}
 
       # Add Nx Cloud Build Cache
       - uses: nrwl/nx-set-shas@v4
