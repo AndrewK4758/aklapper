@@ -14,16 +14,11 @@ const tsJestOptions: DefaultEsmTransformOptions = {
 
 const config: Config = {
   displayName: 'chutes-and-ladders',
-  preset: '../../../jest.preset.js',
+  preset: '../../../jest.preset.ts',
   testEnvironment: 'node',
-  moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1' // Important for correct imports
-  },
   transform: {
     '^.+\\.[tj]s$': ['ts-jest', tsJestOptions]
   },
-  extensionsToTreatAsEsm: ['.ts', '.mts'],
-  moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../../coverage/libs/games/chutes-and-ladders'
 };
 

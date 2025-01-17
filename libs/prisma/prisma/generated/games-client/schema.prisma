@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/games-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DB_URL_DEV")
+}
+
+model active_game_state {
+  game_id                   String @id
+  players_array             Json[] @db.Json
+  player_in_turn            Int    @db.SmallInt
+  special_space_values      Int[]  @db.SmallInt
+  special_space_dump_values Int[]  @db.SmallInt
+}
+
+model instance_time_map {
+  minute_of_day   Int      @id @db.SmallInt
+  games_in_minute String[]
+}
+
+model users {
+  id           String   @id(map: "games_pkey") @db.VarChar(6)
+  first_name   String   @db.VarChar(255)
+  last_name    String   @db.VarChar(255)
+  email        String   @unique(map: "email") @db.VarChar(255)
+  created_on   DateTime @db.Date
+  password     String   @db.VarChar(255)
+  player_name  String   @db.VarChar(255)
+  active_games String[] @db.VarChar(255)
+  friends      String[] @db.VarChar(255)
+  role         String   @db.VarChar(8)
+  thumbnail    String?  @unique(map: "thumbnail") @db.VarChar(255)
+}

@@ -18,7 +18,6 @@ export default defineConfig({
     nxCopyAssetsPlugin(['*.md']),
     dts({
       entryRoot: 'src',
-      insertTypesEntry: true,
       outDir: '../../../dist/libs/games/chutes-and-ladders/src',
       tsconfigPath: path.join(__dirname, 'tsconfig.lib.json')
     })

@@ -14,14 +14,11 @@ const tsJestOptions: DefaultEsmTransformOptions = {
 
 const config: Config = {
   displayName: 'crud-api-e2e',
-  preset: '../../../jest.preset.js',
+  preset: '../../../jest.preset.ts',
   globalSetup: '<rootDir>/src/support/global-setup.ts',
   globalTeardown: '<rootDir>/src/support/global-teardown.ts',
   setupFiles: ['<rootDir>/src/support/test-setup.ts'],
   testEnvironment: 'node',
-  moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1' // Important for correct imports
-  },
   transform: {
     '^.+\\.[tj]s$': ['ts-jest', tsJestOptions]
   },

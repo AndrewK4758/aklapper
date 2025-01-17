@@ -8,7 +8,7 @@ ENV POSTGRES_USER=postgres
 ENV POSTGRES_PASSWORD=postgres
 ENV POSTGRES_DB=aklapper
 
-EXPOSE 5431:5432
+EXPOSE 5430:5432
 
 # Copy any initialization SQL scripts to the container
 COPY games-init.sql /docker-entrypoint-initdb.d/

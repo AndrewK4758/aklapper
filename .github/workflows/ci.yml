@@ -167,6 +167,14 @@ jobs:
       - name: Install wdg-agents
         run: pnpx nx install wdg-agents
 
+      # Generate Prisma Client For Games-Api
+      - name: Generate Prisma Client for Games-Api
+        run: pnpm generate-games
+
+      # Generate Prisma Client For CRUD-Api
+      - name: Generate Prisma Client for CRUD-Api
+        run: pnpm generate-chinook
+
       # Test all projects
       - name: Test all projects
         env:

@@ -19,8 +19,14 @@
     "sourceRoot": "libs/prisma/src",
     "projectType": "library",
     "targets": {
-      "generate": {
-        "command": "pnpx prisma generate",
+      "generate-chinook": {
+        "command": "pnpx prisma generate --schema prisma/schema-chinook.prisma",
+        "options": {
+          "cwd": "./libs/prisma"
+        }
+      },
+      "generate-games": {
+        "command": "pnpx prisma generate --schema prisma/schema-games.prisma",
         "options": {
           "cwd": "./libs/prisma"
         }

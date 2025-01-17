@@ -58,5 +58,11 @@
       "@aklapper/utils": ["libs/utils/src/index.ts"],
       "@aklapper/vertex-ai": ["libs/gen-ai/vertex-ai/src/index.ts"]
     }
+  },
+  "ts-node": {
+    "experimentalReplAwait": true,
+    "esm": true,
+    "pretty": true,
+    "preferTsExts": true
   }
 }

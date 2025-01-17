@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "gcp-build": "",
-    "generate": "pnpx nx run prisma:generate"
+    "generate-chinook": "pnpx nx run prisma:generate-chinook --verbose",
+    "generate-games": "pnpx nx run prisma:generate-games --verbose"
   },
   "keywords": [
     "Typescript, NodeJS, JavaScript, React, React Router, Nx, MonoRepo, FullStack, Google Cloud Platform, Vite, Vitest, Jest, Express"

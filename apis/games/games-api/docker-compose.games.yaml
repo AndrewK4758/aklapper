@@ -2,7 +2,7 @@ services:
   ci-games-api:
     image: ci-games-api
     ports:
-      - '5431:5432'
+      - '5430:5432'
     volumes:
       - ./games-init.sql:/docker-entrypoint-initb.d/init.sql
     healthcheck:

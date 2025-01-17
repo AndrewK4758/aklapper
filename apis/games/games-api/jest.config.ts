@@ -14,18 +14,13 @@ const tsJestOptions: DefaultEsmTransformOptions = {
 
 const config: Config = {
   displayName: 'games-api',
-  preset: '../../../jest.preset.js',
+  preset: '../../../jest.preset.ts',
   testEnvironment: 'node',
   globalSetup: '<rootDir>/tests/support/global-setup.ts',
   globalTeardown: '<rootDir>/tests/support/global-teardown.ts',
-  moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1'
-  },
   transform: {
     '^.+\\.[tj]s$': ['ts-jest', tsJestOptions]
   },
-  extensionsToTreatAsEsm: ['.ts', '.mts'],
-  moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../../coverage/apis/games/games-api'
 };
 

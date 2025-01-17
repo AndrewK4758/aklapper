@@ -14,7 +14,7 @@ const opts: DefaultEsmTransformOptions = {
 
 const config: Config = {
   displayName: 'crud-api',
-  preset: '../../../jest.preset.js',
+  preset: '../../../jest.preset.ts',
   testEnvironment: 'node',
   globalSetup: '<rootDir>/tests/support/global-setup.ts',
   globalTeardown: '<rootDir>/tests/support/global-teardown.ts',
@@ -23,9 +23,6 @@ const config: Config = {
   },
   extensionsToTreatAsEsm: ['.jsx', '.ts', '.tsx', '.mts'],
   moduleFileExtensions: ['ts', 'js', 'html', 'mts'],
-  coverageDirectory: '../../../coverage/apis/crud/crud-api',
-  moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1'
-  }
+  coverageDirectory: '../../../coverage/apis/crud/crud-api'
 };
 export default config;
