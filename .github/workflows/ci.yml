@@ -182,7 +182,7 @@ jobs:
           DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
         run: pnpx nx affected -t=test
 
-  typecheck_and_build:
+  build_and_typecheck:
     needs: ['lint', 'test']
     runs-on: ubuntu-latest
     steps:
@@ -223,15 +223,21 @@ jobs:
       # Add Nx Cloud Build Cache
       - uses: nrwl/nx-set-shas@v4
 
-      #Build all projects
+      # Build all projects
       - name: Build all Projects
         env:
           NODE_ENV: production
         run: pnpx nx affected -t=build
 
+      # Typecheck all projects
+      - name: Typecheck all Projects
+        env:
+          NODE_ENV: production
+        run: pnpx nx affected -t=typecheck
+
   # Build Docker Image & Push to GCP Artifact Registry
   prepare-apis:
-    needs: ['typecheck_and_build']
+    needs: ['build_and_typecheck']
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -321,7 +327,7 @@ jobs:
           gcloud run services update-traffic vertex-api --to-latest --region=us-central1
 
   deploy-portfolio:
-    needs: ['typecheck_and_build']
+    needs: ['build_and_typecheck']
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -22,9 +22,6 @@
     "targets": {
       "build": {
         "executor": "@nx/esbuild:esbuild",
-        "dependsOn": [
-          "typecheck"
-        ],
         "outputs": [
           "{options.outputPath}"
         ],

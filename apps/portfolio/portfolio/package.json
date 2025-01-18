@@ -19,9 +19,6 @@
     "targets": {
       "build": {
         "executor": "nx:run-commands",
-        "dependsOn": [
-          "^typecheck"
-        ],
         "outputs": [
           "{options.outputPath}"
         ],
