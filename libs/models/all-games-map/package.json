@@ -1,0 +1,38 @@
+{
+  "name": "@aklapper/all-games-map",
+  "private": true,
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./index.js",
+      "require": null,
+      "default": "./index.js"
+    }
+  },
+  "main": "./index.js",
+  "types": "./src/index.d.ts",
+  "type": "module",
+  "dependencies": {},
+  "nx": {
+    "name": "all-games-map",
+    "sourceRoot": "libs/models/all-games-map/src",
+    "projectType": "library",
+    "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "^typecheck"
+        ],
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "cwd": "libs/models/all-games-map",
+          "color": true,
+          "command": "vite build"
+        }
+      }
+    }
+  }
+}

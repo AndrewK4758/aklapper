@@ -1,0 +1,61 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "files": [],
+  "include": [],
+  "references": [
+    {
+      "path": "../../../libs/models/all-games-map"
+    },
+    {
+      "path": "../../../libs/socket-io/server"
+    },
+    {
+      "path": "../../../libs/types/types-api"
+    },
+    {
+      "path": "../../../libs/models/rule"
+    },
+    {
+      "path": "../../../libs/models/game-builder"
+    },
+    {
+      "path": "../../../libs/games/tic-tac-toe"
+    },
+    {
+      "path": "../../../libs/games/chutes-and-ladders"
+    },
+    {
+      "path": "../../../libs/games-components"
+    },
+    {
+      "path": "../../../libs/game"
+    },
+    {
+      "path": "../../../libs/mocks"
+    },
+    {
+      "path": "../../../libs/models/game-instance"
+    },
+    {
+      "path": "../../../libs/utils"
+    },
+    {
+      "path": "../../../libs/games-chains"
+    },
+    {
+      "path": "../../../libs/types/types-game"
+    },
+    {
+      "path": "../../../libs/chain"
+    },
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.spec.json"
+    }
+  ],
+  "compilerOptions": {
+    "esModuleInterop": true
+  }
+}

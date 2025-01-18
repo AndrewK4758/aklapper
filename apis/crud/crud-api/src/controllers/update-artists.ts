@@ -1,0 +1,32 @@
+import { Request, Response } from 'express';
+import updateArtistError from '../errors/update-artist-error.ts';
+import updateArtist from '../services/prisma/artist/update-artists.ts';
+
+/**
+ * Handles PATCH requests to update an artist in the database.
+ *
+ * @param req - The Express request object containing the artist ID and new name in the request body.
+ * @param resp - The Express response object used to send the response back to the client.
+ * @returns No explicit return value. It sends a JSON response indicating success or failure, along with the updated artist data or an error message.
+ */
+
+const updateArtists = async (req: Request, resp: Response): Promise<void> => {
+  try {
+    const { artist_id, name } = req.body;
+
+    console.log(artist_id, name);
+    const updatedArtist = await updateArtist(artist_id, name);
+
+    const output = {
+      updatedArtist: updatedArtist
+    };
+
+    console.log(output);
+    resp.status(202).json(output);
+  } catch (err) {
+    console.error(err);
+    resp.status(400).json(updateArtistError());
+  }
+};
+
+export default updateArtists;

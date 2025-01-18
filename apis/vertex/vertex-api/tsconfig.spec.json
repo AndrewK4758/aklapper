@@ -1,0 +1,29 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "tests/out-tsc",
+    "tsBuildInfoFile": "tsconfig.spec.tsbuildinfo",
+    "types": ["jest", "node"]
+  },
+  "include": ["jest.config.ts", "tests/**/*.test.ts", "tests/**/*.spec.ts", "src/**/*.d.ts", "src/**/*.ts"],
+  "references": [
+    {
+      "path": "../../../libs/socket-io/server/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/gen-ai/prompt-builder/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/types/types-api/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/types/types-game/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/types/types-ai/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/gen-ai/vertex-ai/tsconfig.lib.json"
+    }
+  ]
+}

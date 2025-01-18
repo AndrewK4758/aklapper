@@ -1,0 +1,38 @@
+{
+  "name": "@aklapper/utils",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./index.js",
+      "require": null,
+      "default": "./index.js"
+    }
+  },
+  "main": "./index.js",
+  "types": "./src/index.d.ts",
+  "dependencies": {},
+  "nx": {
+    "name": "utils",
+    "sourceRoot": "libs/utils/src",
+    "projectType": "library",
+    "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "^typecheck"
+        ],
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "cwd": "libs/utils",
+          "color": true,
+          "command": "vite build"
+        }
+      }
+    }
+  }
+}

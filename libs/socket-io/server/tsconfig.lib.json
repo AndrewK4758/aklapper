@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declarationDir": "../../../dist",
+    "outDir": "../../../dist",
+    "rootDirs": ["./src", "../../../"],
+    "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
+    "types": ["node", "vite/client"]
+  },
+  "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
+  "include": ["src/**/*.ts", "../../types/types-api/src/**/*.ts"],
+  "references": [
+    {
+      "path": "../../types/types-game/tsconfig.lib.json"
+    },
+    {
+      "path": "../../types/types-api/tsconfig.lib.json"
+    }
+  ]
+}

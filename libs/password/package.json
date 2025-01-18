@@ -1,0 +1,61 @@
+{
+  "name": "@aklapper/password",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./index.js",
+      "require": null,
+      "default": "./index.js"
+    }
+  },
+  "main": "./index.js",
+  "types": "./src/index.d.ts",
+  "nx": {
+    "name": "password",
+    "sourceRoot": "libs/password/src",
+    "projectType": "library",
+    "targets": {
+      "build": {
+        "executor": "@nx/esbuild:esbuild",
+        "dependsOn": [
+          "typecheck"
+        ],
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "defaultConfiguration": "production",
+        "options": {
+          "main": "libs/password/src/index.ts",
+          "outputPath": "dist/libs/password",
+          "outputFileName": "index.js",
+          "tsConfig": "libs/password/tsconfig.lib.json",
+          "platform": "node",
+          "format": [
+            "esm"
+          ],
+          "target": "node23",
+          "sourcemap": true,
+          "metafile": true,
+          "assets": [
+            {
+              "glob": "./README.md",
+              "input": ".",
+              "output": "."
+            }
+          ]
+        },
+        "configurations": {
+          "development": {
+            "minify": false
+          },
+          "production": {
+            "minify": true
+          }
+        }
+      }
+    }
+  }
+}

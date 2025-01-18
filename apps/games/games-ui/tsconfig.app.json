@@ -1,0 +1,57 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "declarationDir": "../../../dist",
+    "outDir": "../../../dist",
+    "jsx": "react-jsx",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "rootDirs": ["./src", "../../../"],
+    "tsBuildInfoFile": "tsconfig.app.tsbuildinfo",
+    "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"]
+  },
+  "exclude": [
+    "tests/**/*.spec.ts",
+    "tests/**/*.test.ts",
+    "tests/**/*.spec.tsx",
+    "tests/**/*.test.tsx",
+    "tests/**/*.spec.js",
+    "tests/**/*.test.js",
+    "tests/**/*.spec.jsx",
+    "tests/**/*.test.jsx",
+    "vite.config.ts"
+  ],
+  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
+  "references": [
+    {
+      "path": "../../../libs/types/types-api/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/mocks/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/game/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/games-components/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/games/chutes-and-ladders/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/models/game-instance/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/chain/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/types/types-game/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/react-shared/tsconfig.lib.json"
+    }
+  ]
+}

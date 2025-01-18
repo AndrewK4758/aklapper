@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declarationDir": "../../../dist",
+    "outDir": "../../../dist",
+    "rootDirs": ["./src", "../../../"],
+    "types": ["node", "express"]
+  },
+  "include": ["src/**/*.ts", "../../../libs/prisma/src/**/*.ts", "../../../libs/types/types-game/src/**/*.ts"],
+  "exclude": ["jest.config.ts", "src/**/*.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
+  "references": [
+    {
+      "path": "../../../libs/types/types-game/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/prisma/tsconfig.lib.json"
+    }
+  ]
+}

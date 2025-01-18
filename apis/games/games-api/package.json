@@ -1,0 +1,93 @@
+{
+  "name": "@aklapper/games-api",
+  "version": "0.0.1",
+  "type": "module",
+  "dependencies": {},
+  "exports": {
+    ".": {
+      "types": "./apis/games/games-api/src/index.d.ts",
+      "import": "./main.js"
+    }
+  },
+  "private": true,
+  "nx": {
+    "name": "games-api",
+    "sourceRoot": "apis/games/games-api/src",
+    "projectType": "application",
+    "targets": {
+      "build": {
+        "executor": "@nx/esbuild:esbuild",
+        "dependsOn": [
+          "^typecheck"
+        ],
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "defaultConfiguration": "production",
+        "options": {
+          "main": "apis/games/games-api/src/main.ts",
+          "outputPath": "dist/apis/games-api",
+          "tsConfig": "apis/games/games-api/tsconfig.app.json",
+          "outputFileName": "main.js",
+          "declaration": true,
+          "declarationRootDir": "./",
+          "assets": [
+            "apis/games/games-api/src/assets"
+          ],
+          "target": "node23",
+          "format": [
+            "esm"
+          ],
+          "sourcemap": true,
+          "metafile": true
+        },
+        "configurations": {
+          "development": {},
+          "production": {}
+        }
+      },
+      "serve": {
+        "executor": "@nx/js:node",
+        "defaultConfiguration": "development",
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "buildTarget": "games-api:build",
+          "runBuildTargetDependencies": true
+        },
+        "configurations": {
+          "development": {
+            "buildTarget": "games-api:build:development"
+          },
+          "production": {
+            "buildTarget": "games-api:build:production"
+          },
+          "test": {
+            "buildTarget": "games-api:build:production"
+          }
+        }
+      },
+      "docker-build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "cwd": "{workspaceRoot}/apis/games/games-api",
+          "command": "docker build -f Dockerfile . -t us-central1-docker.pkg.dev/games-424800/portfolio/games-api:latest"
+        }
+      },
+      "docker-push": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "docker-build"
+        ],
+        "options": {
+          "cwd": "{workspaceRoot}/apis/games/games-api",
+          "command": "docker push us-central1-docker.pkg.dev/games-424800/portfolio/games-api:latest"
+        }
+      }
+    }
+  }
+}

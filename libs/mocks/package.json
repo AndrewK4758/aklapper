@@ -1,0 +1,38 @@
+{
+  "name": "@aklapper/mocks",
+  "private": true,
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./index.js",
+      "require": null,
+      "default": "./index.js"
+    }
+  },
+  "main": "./index.js",
+  "types": "./src/index.d.ts",
+  "dependencies": {},
+  "type": "module",
+  "nx": {
+    "name": "mocks",
+    "sourceRoot": "libs/mocks/src",
+    "projectType": "library",
+    "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "^typecheck"
+        ],
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "cwd": "libs/mocks",
+          "color": true,
+          "command": "vite build"
+        }
+      }
+    }
+  }
+}

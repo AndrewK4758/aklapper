@@ -1,0 +1,16 @@
+{
+  "recommendations": [
+    "Orta.vscode-jest",
+    "esbenp.prettier-vscode",
+    "firsttris.vscode-jest-runner",
+    "EditorConfig.EditorConfig",
+    "dbaeumer.vscode-eslint",
+    "ms-playwright.playwright",
+    "vitest.explorer",
+    "ms-python.vscode-pylance",
+    "ms-python.debugpy",
+    "ms-python.python",
+    "ms-python.isort",
+    "ms-python.autopep8"
+  ]
+}
