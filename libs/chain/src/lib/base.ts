@@ -45,7 +45,7 @@ class BaseChain implements Chain {
   commands: Command[];
   continueOnError: boolean;
   constructor(commands: Command[], continueOnError: boolean) {
-    this.commands = commands.slice();
+    this.commands = [...commands];
     this.continueOnError = continueOnError;
   }
   execute(context: Context<GameContextKeys | string>) {

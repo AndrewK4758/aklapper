@@ -180,7 +180,6 @@ jobs:
         env:
           NODE_ENV: test
           DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
-          DB_URL_TEST_GAMES: ${{ secrets.DB_URL_TEST_GAMES }}
         run: pnpx nx affected -t=test
 
   typecheck_and_build:
