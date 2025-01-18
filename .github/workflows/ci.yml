@@ -66,16 +66,9 @@ jobs:
         with:
           python-version: 3.12.8
 
-      # Generate Prisma Client For Games-Api
-      - name: Generate Prisma Client for Games-Api
-        run: pnpm generate-games
-        env:
-          NODE_ENV: production
-          DB_URL_PROD: ${{ secrets.DB_URL_PROD }}
-
       # Generate Prisma Client For CRUD-Api
       - name: Generate Prisma Client for CRUD-Api
-        run: pnpm generate-chinook
+        run: pnpm generate
         env:
           NODE_ENV: production
           DB_URL_PROD: ${{ secrets.DB_URL_PROD }}
@@ -175,20 +168,11 @@ jobs:
       - name: Install wdg-agents
         run: pnpx nx install wdg-agents
 
-      # Generate Prisma Client For Games-Api
-      - name: Generate Prisma Client for Games-Api
-        run: pnpm generate-games
-        env:
-          NODE_ENV: test
-          PRISMA_DB_NAME: ${{ secrets.PRISMA_DB_NAME_GAMES }}
-          DB_URL_TEST_GAMES: ${{ secrets.DB_URL_TEST_GAMES }}
-
       # Generate Prisma Client For CRUD-Api
       - name: Generate Prisma Client for CRUD-Api
-        run: pnpm generate-chinook
+        run: pnpm generate
         env:
           NODE_ENV: test
-          PRISMA_DB_NAME: ${{ secrets.PRISMA_DB_NAME_CRUD }}
           DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
 
       # Test all projects
@@ -274,16 +258,9 @@ jobs:
       - name: Install Portfolio Dependencies for Deploy to Cloud Build
         run: pnpm install --frozen-lockfile
 
-      # Generate Prisma Client For Games-Api
-      - name: Generate Prisma Client for Games-Api
-        run: pnpm generate-games
-        env:
-          NODE_ENV: production
-          DB_URL_PROD: ${{ secrets.DB_URL_PROD }}
-
       # Generate Prisma Client For CRUD-Api
       - name: Generate Prisma Client for CRUD-Api
-        run: pnpm generate-chinook
+        run: pnpm generate
         env:
           NODE_ENV: production
           DB_URL_PROD: ${{ secrets.DB_URL_PROD }}
