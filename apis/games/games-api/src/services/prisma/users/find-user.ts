@@ -1,10 +1,10 @@
-import { prisma } from '@aklapper/prisma';
+import { prismaClientGames } from '@aklapper/prisma';
 import { users, type Prisma } from '@prisma/client';
 import type { DefaultArgs } from '@prisma/client/runtime/library';
 
 const findUser = async (query: Prisma.usersFindUniqueArgs<DefaultArgs>): Promise<users | null> => {
   try {
-    return await prisma.users.findUnique(query);
+    return await prismaClientGames.users.findUnique(query);
   } catch (error) {
     const err = error as Error;
     console.error(err);

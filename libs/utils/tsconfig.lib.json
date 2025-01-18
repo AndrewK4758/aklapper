@@ -2,9 +2,10 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "declarationDir": "../../dist",
+    "outDir": "../../dist",
     "rootDirs": ["./src", "../../"],
     "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
-    "types": ["node", "vite/client"]
+    "types": ["node", "vite/client", "../types/types-game/src/lib/types/express-request.d.ts"]
   },
   "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
   "include": ["src/**/*.ts"],

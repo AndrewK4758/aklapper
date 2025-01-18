@@ -2,6 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "declarationDir": "../../../dist",
+    "outDir": "../../../dist",
     "rootDirs": ["./src", "../../../"],
     "tsBuildInfoFile": "tsconfig.app.tsbuildinfo",
     "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],

@@ -22,8 +22,6 @@ const config: Config = {
   transform: {
     '^.+\\.[tj]s$': ['ts-jest', tsJestOptions]
   },
-  extensionsToTreatAsEsm: ['.ts', '.mts'],
-  moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../../coverage/apis/crud/crud-api'
 };
 

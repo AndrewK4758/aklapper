@@ -45,8 +45,6 @@
           "outputPath": "dist/libs/prisma",
           "outputFileName": "index.js",
           "tsConfig": "libs/prisma/tsconfig.lib.json",
-          "declaration": true,
-          "declarationRootDir": "libs/prisma/src",
           "platform": "node",
           "format": [
             "esm"

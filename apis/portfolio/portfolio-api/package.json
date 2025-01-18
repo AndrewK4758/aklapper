@@ -30,6 +30,8 @@
           "outputFileName": "main.js",
           "main": "apis/portfolio/portfolio-api/src/main.ts",
           "tsConfig": "apis/portfolio/portfolio-api/tsconfig.app.json",
+          "declaration": true,
+          "declarationRootDir": "./",
           "assets": [
             "apis/portfolio/portfolio-api/src/assets"
           ],

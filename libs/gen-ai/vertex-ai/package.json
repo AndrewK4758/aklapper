@@ -34,8 +34,6 @@
           "outputPath": "dist/libs/gen-ai/vertex-ai",
           "tsConfig": "libs/gen-ai/vertex-ai/tsconfig.lib.json",
           "outputFileName": "index.js",
-          "declaration": true,
-          "declarationRootDir": "dist/libs/gen-ai/vertex-ai/src",
           "format": [
             "esm"
           ],

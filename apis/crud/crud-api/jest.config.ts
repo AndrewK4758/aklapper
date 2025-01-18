@@ -18,6 +18,7 @@ const config: Config = {
   testEnvironment: 'node',
   globalSetup: '<rootDir>/tests/support/global-setup.ts',
   globalTeardown: '<rootDir>/tests/support/global-teardown.ts',
+  setupFiles: ['<rootDir>/tests/support/test-setup.ts'],
   transform: {
     '^.+\\.[tj]s$': ['ts-jest', opts]
   },

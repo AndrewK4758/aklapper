@@ -45,7 +45,7 @@ const HomePage = () => {
         >
           <Grid2 component={'div'} id="title-grid" size={2}>
             <Container component={'div'} sx={{ paddingY: 1 }}>
-              <Text component={'h2'} titleVariant="h2" titleText={'Media Data Manager'} sx={{ textAlign: 'center' }} />
+              <Text id='home-page-title' component={'h1'} titleVariant="h1" titleText={'Media Data Manager'} sx={{ textAlign: 'center', fontSize: '4rem' }} />
               <Text
                 component={'h3'}
                 titleVariant="h5"

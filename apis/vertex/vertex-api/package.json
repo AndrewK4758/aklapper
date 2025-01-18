@@ -30,6 +30,8 @@
           "outputFileName": "main.js",
           "main": "apis/vertex/vertex-api/src/main.ts",
           "tsConfig": "apis/vertex/vertex-api/tsconfig.app.json",
+          "declaration": true,
+          "declarationRootDir": "./",
           "assets": [
             "apis/vertex/vertex-api/src/assets"
           ],
@@ -60,6 +62,9 @@
             "buildTarget": "vertex-api:build:development"
           },
           "production": {
+            "buildTarget": "vertex-api:build:production"
+          },
+          "test": {
             "buildTarget": "vertex-api:build:production"
           }
         }

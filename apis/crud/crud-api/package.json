@@ -30,6 +30,8 @@
           "outputFileName": "main.js",
           "main": "apis/crud/crud-api/src/main.ts",
           "tsConfig": "apis/crud/crud-api/tsconfig.app.json",
+          "declaration": true,
+          "declarationRootDir": "./",
           "assets": [
             "apis/crud/crud-api/src/assets"
           ],

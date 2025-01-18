@@ -1,9 +1,9 @@
 import { GameInstanceID, Minute } from '@aklapper/types-game';
-import { prisma } from '@aklapper/prisma';
+import { prismaClientGames } from '@aklapper/prisma';
 
 const updateInstanceTimeMap = async (minute: Minute, gameID: GameInstanceID): Promise<void> => {
   try {
-    await prisma.instance_time_map.upsert({
+    await prismaClientGames.instance_time_map.upsert({
       where: {
         minute_of_day: minute
       },

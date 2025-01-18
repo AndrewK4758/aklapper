@@ -1,5 +1,5 @@
 import { generatePassword } from '@aklapper/password';
-import { prisma } from '@aklapper/prisma';
+import { prismaClientGames } from '@aklapper/prisma';
 import type { IRegisterUser } from '@aklapper/types-api';
 import type { users } from '@prisma/client';
 import type { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
@@ -18,7 +18,7 @@ const addUser = async ({
   try {
     const hashPassword = await generatePassword(password);
 
-    return await prisma.users.create({
+    return await prismaClientGames.users.create({
       data: {
         id: id,
         first_name: firstName,

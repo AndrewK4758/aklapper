@@ -1,16 +1,16 @@
-import { prisma } from '@aklapper/prisma';
+import { prismaClientGames } from '@aklapper/prisma';
 
 const updateUserActiveGames = async (userID: string, gameID: string) => {
   try {
-    await prisma.users.update({
+    await prismaClientGames.users.update({
       where: {
-        id: userID,
+        id: userID
       },
       data: {
         active_games: {
-          push: gameID,
-        },
-      },
+          push: gameID
+        }
+      }
     });
   } catch (err) {
     console.error(err);

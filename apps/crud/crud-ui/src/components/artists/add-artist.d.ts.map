@@ -1,1 +1,0 @@
-{"version":3,"file":"add-artist.d.ts","sourceRoot":"","sources":["add-artist.tsx"],"names":[],"mappings":"AAQA,OAAO,EAAE,QAAQ,EAAc,cAAc,EAAE,MAAM,OAAO,CAAC;AAK7D,UAAU,cAAc;IACtB,aAAa,EAAE,MAAM,CAAC;IACtB,gBAAgB,EAAE,QAAQ,CAAC,cAAc,CAAC,MAAM,CAAC,CAAC,CAAC;IACnD,KAAK,EAAE,MAAM,CAAC;CACf;AAED,QAAA,MAAM,SAAS,+CAAgD,cAAc,4CAiD5E,CAAC;AAEF,eAAe,SAAS,CAAC"}

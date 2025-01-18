@@ -54,3 +54,4 @@ tmp
 !node_modules/@prisma/client
 # Ignore generated credentials from google-github-actions/auth
 gha-creds-*.json
+prisma/generated/*

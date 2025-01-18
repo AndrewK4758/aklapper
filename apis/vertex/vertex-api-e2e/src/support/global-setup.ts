@@ -1,10 +1,16 @@
-/* eslint-disable */
-var __TEARDOWN_MESSAGE__: string;
+import { exec, execSync } from 'child_process';
 
-module.exports = async function () {
-  // Start services that that the app needs to run (e.g. database, docker-compose, etc.).
-  console.log('\nSetting up...\n');
+const __STARTUP_MESSAGE__ = '\nStarting Verex-API for e2e Test\n';
+const __API_SLEEP__ = 'sleep 10';
 
-  // Hint: Use `globalThis` to pass variables to global teardown.
-  globalThis.__TEARDOWN_MESSAGE__ = '\nTearing down...\n';
-};
+export default async function () {
+  console.log(__STARTUP_MESSAGE__);
+  exec('nx run vertex-api:serve:test', (err, stdout, stderr) => {
+    if (err) console.error(err);
+
+    console.log(stdout, 'srdout');
+
+    if (stderr) console.error(stderr);
+  });
+  execSync(__API_SLEEP__);
+}

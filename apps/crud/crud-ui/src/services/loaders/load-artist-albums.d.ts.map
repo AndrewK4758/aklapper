@@ -1,1 +1,0 @@
-{"version":3,"file":"load-artist-albums.d.ts","sourceRoot":"","sources":["load-artist-albums.tsx"],"names":[],"mappings":"AAAA,OAAO,EAAE,KAAK,EAAE,MAAM,gBAAgB,CAAC;AAEvC,OAAO,EAAE,cAAc,EAAsB,MAAM,kBAAkB,CAAC;AAItE,MAAM,MAAM,YAAY,GAAG;IACzB,MAAM,EAAE,KAAK,EAAE,CAAC;CACjB,CAAC;AAEF,QAAA,MAAM,gBAAgB,EAAE,cAcvB,CAAC;AACF,eAAe,gBAAgB,CAAC"}

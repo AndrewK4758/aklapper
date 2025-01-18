@@ -4,7 +4,8 @@
     "allowJs": true,
     "outDir": "dist/out-tsc",
     "sourceMap": false,
-    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo"
+    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo",
+    "esModuleInterop": true
   },
   "include": [
     "**/*.ts",
@@ -14,8 +15,7 @@
     "src/**/*.spec.js",
     "src/**/*.test.ts",
     "src/**/*.test.js",
-    "src/**/*.d.ts",
-    "../../../eslint.config.js"
+    "src/**/*.d.ts"
   ],
   "exclude": ["dist", "eslint.config.js"],
   "references": []

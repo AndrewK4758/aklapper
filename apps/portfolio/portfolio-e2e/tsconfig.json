@@ -15,8 +15,7 @@
     "src/**/*.spec.js",
     "src/**/*.test.ts",
     "src/**/*.test.js",
-    "src/**/*.d.ts",
-    "../../../eslint.config.js"
+    "src/**/*.d.ts"
   ],
   "exclude": ["dist", "eslint.confcig.js"],
   "references": []

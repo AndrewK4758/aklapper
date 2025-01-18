@@ -18,8 +18,6 @@ const postEmail = async (req: Request, resp: Response) => {
     const { name, email, phone, subject, body, date } = req.body as ContactMessage;
     const attachment = req.file as ContactMessageAttachment;
 
-    console.log(req.body, '\n\r', req.file);
-
     const mailOptionsToMe: SendMailOptions = {
       from: 'info@andrew-k.us',
       date: date,

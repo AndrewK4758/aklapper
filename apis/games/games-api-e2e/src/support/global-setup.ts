@@ -2,7 +2,7 @@ import { exec, execSync } from 'child_process';
 
 const __TEARDOWN_MESSAGE__ = '\n Run docker down command after every e2e test \n';
 
-module.exports = async function () {
+export default async function () {
   console.log('\nStarting Games-API & Postgres Docker Container for e2e Test\n');
   try {
     execSync('nx docker-compose-up-db games-api-e2e');
@@ -24,4 +24,4 @@ module.exports = async function () {
   } catch (error) {
     console.error(error);
   }
-};
+}

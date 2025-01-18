@@ -60,9 +60,6 @@
     }
   },
   "ts-node": {
-    "experimentalReplAwait": true,
-    "esm": true,
-    "pretty": true,
-    "preferTsExts": true
+    "pretty": true
   }
 }

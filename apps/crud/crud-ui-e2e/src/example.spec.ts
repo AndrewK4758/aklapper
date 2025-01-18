@@ -1,8 +1,12 @@
 import { test, expect } from '@playwright/test';
 
-test('has title', async ({ page }) => {
-  await page.goto('/');
+const homeTitleText = 'Media Data Manager';
 
-  // Expect h1 to contain a substring.
-  expect(await page.locator('h1').innerText()).toContain('Welcome');
+test.describe('Crud-UI e2e Test', () => {
+  test('has title', async ({ page }) => {
+    await page.goto('/');
+    const titleText = await page.getByTestId('home-page-title').textContent();
+
+    expect(titleText).toMatch(homeTitleText);
+  });
 });

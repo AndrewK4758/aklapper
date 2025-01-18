@@ -20,10 +20,8 @@ let __current_game__: GamePlayerValidation,
   playerName: string,
   registerSuccessMessage: string;
 
-describe('Games api test wrapper', () => {
+describe('Games API E2E Test', () => {
   beforeAll(async () => {
-    // PERMENANT_EMAIL = 'DONT@DELETE.COM';
-    // PERMENANT_PASSWORD = await generatePassword('PASSWORD');
     firstName = 'test';
     lastName = 'erase';
     email = 'email@test.email';

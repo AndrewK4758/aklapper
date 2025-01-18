@@ -25,12 +25,12 @@
         ],
         "defaultConfiguration": "production",
         "options": {
-          "outputPath": "dist/apis/games-api",
-          "outputFileName": "main.js",
           "main": "apis/games/games-api/src/main.ts",
+          "outputPath": "dist/apis/games-api",
           "tsConfig": "apis/games/games-api/tsconfig.app.json",
+          "outputFileName": "main.js",
           "declaration": true,
-          "declarationRootDir": "dist/apis/games-api",
+          "declarationRootDir": "./",
           "assets": [
             "apis/games/games-api/src/assets"
           ],

@@ -179,21 +179,24 @@ jobs:
       - name: Generate Prisma Client for Games-Api
         run: pnpm generate-games
         env:
-          NODE_ENV: production
-          DB_URL_PROD: ${{ secrets.DB_URL_TEST }}
+          NODE_ENV: test
+          PRISMA_DB_NAME: ${{ secrets.PRISMA_DB_NAME_GAMES }}
+          DB_URL_TEST_GAMES: ${{ secrets.DB_URL_TEST_GAMES }}
 
       # Generate Prisma Client For CRUD-Api
       - name: Generate Prisma Client for CRUD-Api
         run: pnpm generate-chinook
         env:
-          NODE_ENV: production
-          DB_URL_PROD: ${{ secrets.DB_URL_TEST }}
+          NODE_ENV: test
+          PRISMA_DB_NAME: ${{ secrets.PRISMA_DB_NAME_CRUD }}
+          DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
 
       # Test all projects
       - name: Test all projects
         env:
           NODE_ENV: test
           DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
+          DB_URL_TEST_GAMES: ${{ secrets.DB_URL_TEST_GAMES }}
         run: pnpx nx affected -t=test
 
   typecheck_and_build:

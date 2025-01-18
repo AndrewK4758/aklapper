@@ -2,7 +2,7 @@ import { exec, execSync } from 'child_process';
 
 const __TEARDOWN_MESSAGE__ = 'Stopping Crud-API & Postgres Docker Container';
 
-module.exports = async function () {
+export default async function () {
   console.log('\nStarting Crud-API & Postgres Docker container for e2e Test\n');
   try {
     execSync('nx docker-compose-up-db crud-api-e2e');
@@ -25,4 +25,4 @@ module.exports = async function () {
   } catch (error) {
     console.error(error);
   }
-};
+}

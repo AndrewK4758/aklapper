@@ -32,8 +32,6 @@
           "outputPath": "dist/libs/password",
           "outputFileName": "index.js",
           "tsConfig": "libs/password/tsconfig.lib.json",
-          "declaration": true,
-          "declarationRootDir": "dist/libs/password/src",
           "platform": "node",
           "format": [
             "esm"

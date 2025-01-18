@@ -3,7 +3,7 @@ import ShortUniqueId from 'short-unique-id';
 
 const createContextPath = (_req: Request, resp: Response) => {
   try {
-    const contextId = new ShortUniqueId().randomUUID();
+    const contextId = new ShortUniqueId().randomUUID(8);
 
     resp.status(201).send(contextId);
   } catch (err) {

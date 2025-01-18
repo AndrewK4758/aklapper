@@ -5,7 +5,7 @@
     "esModuleInterop": true,
     "noUnusedLocals": false,
     "noImplicitAny": false,
-    "outDir": "tests/out-tsc",
+    "outDir": "out-tsc",
     "tsBuildInfoFile": "tsconfig.tsbuildinfo",
     "types": ["jest", "node"]
   },

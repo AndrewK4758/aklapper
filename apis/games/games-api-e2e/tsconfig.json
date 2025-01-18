@@ -5,11 +5,16 @@
     "esModuleInterop": true,
     "noUnusedLocals": false,
     "noImplicitAny": false,
-    "outDir": "tests/out-tsc",
+    "outDir": "out-tsc",
     "tsBuildInfoFile": "tsconfig.tsbuildinfo",
     "types": ["jest", "node"]
   },
-  "include": ["jest.config.ts", "src/**/*.ts"],
+  "include": [
+    "jest.config.ts",
+    "src/**/*.ts",
+    "../../../libs/types/types-game/src/**/*.ts",
+    "../../../libs/password/src/**/*.ts"
+  ],
   "references": [
     {
       "path": "../../../libs/types/types-game"

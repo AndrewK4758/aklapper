@@ -17,6 +17,7 @@ export class PortfolioRoutes {
     router.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
     //-------------------------------------------------//
+
     router.post('/email', upload.single('attachment'), postEmail);
     router.post('/create-tokens', createTokens);
     router.post('/create-events', createEvents);

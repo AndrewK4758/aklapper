@@ -32,8 +32,6 @@
           "outputPath": "dist/libs/gen-ai/prompt-builder",
           "outputFileName": "index.js",
           "tsConfig": "libs/gen-ai/prompt-builder/tsconfig.lib.json",
-          "declaration": true,
-          "declarationRootDir": "dist/libs/gen-ai/prompt-builder/src",
           "format": [
             "esm"
           ],

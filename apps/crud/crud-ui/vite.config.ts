@@ -2,6 +2,7 @@ import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
+import { nodeResolve } from '@rollup/plugin-node-resolve';
 // eslint-disable-next-line @nx/enforce-module-boundaries
 import { getNodeEnv } from '../../../libs/types/types-game/src/index.ts';
 
@@ -54,7 +55,16 @@ export default defineConfig({
           constBindings: true,
           symbols: true
         }
-      }
+      },
+
+      plugins: [
+        nodeResolve({
+          browser: true,
+          preferBuiltins: false,
+          exportConditions: ['browser', 'development', 'module', 'import'],
+          extensions: ['.js', '.ts', '.json', '.mjs', '.mts']
+        })
+      ]
     },
     target: 'esnext'
   },

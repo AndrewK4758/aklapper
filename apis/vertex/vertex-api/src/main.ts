@@ -13,7 +13,7 @@ const __dirname = join(cwd(), 'apis/vertex/vertex-api');
 const app: Express = express();
 
 export const corsOptions: CorsOptions = {
-  origin: ['http://localhost:4700', 'https://andrew-k.us', 'https://www.andrew-k.us'],
+  origin: ['http://localhost:4700', 'https://andrew-k.us', 'https://www.andrew-k.us', 'http://localhost'],
   exposedHeaders: '*',
   credentials: false
 };

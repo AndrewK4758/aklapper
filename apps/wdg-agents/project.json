@@ -40,8 +40,7 @@
       "options": {
         "silent": false,
         "cacheDir": ".cache/pypoetry",
-        "verbose": true,
-        "debug": true
+        "verbose": true
       }
     },
     "start-poetry": {
