@@ -4,9 +4,9 @@ import { SxProps } from '@mui/material';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import MenuItem from '@mui/material/MenuItem';
-import { Form, Formik } from 'formik';
+import { useFormik } from 'formik';
 import { CSSProperties } from 'react';
-import { useParams, useRouteLoaderData, useSubmit } from 'react-router-dom';
+import { Form, useParams, useRouteLoaderData, useSubmit } from 'react-router-dom';
 import * as Yup from 'yup';
 import { GamesTheme as Theme } from '../../styles/games-theme';
 
@@ -114,47 +114,48 @@ export default function RegisterPlayerAndAvatarForm() {
 
   const id = params.id;
 
+  const formik = useFormik({
+    initialValues: initialValues,
+    validationSchema: validationSchema,
+    onSubmit: values => submit(values, { method: 'patch', action: `/games/${id}/play`, encType: 'application/json' })
+  });
+
   return (
-    <Formik
-      initialValues={initialValues}
-      validationSchema={validationSchema}
-      onSubmit={values => submit(values, { method: 'patch', action: `/games/${id}/play`, encType: 'application/json' })}
-    >
-      <Form>
-        <Container component={'section'} sx={breakpointsFormContianer}>
-            <FormikTextInput
-              autoComplete="off"
-              labelComponent={'h2'}
-              type="text"
-              name="playerName"
-              label="Player Name"
-              textSx={breakpointsRegisterPlayerTextInput}
-              labelSx={breakpointsRegisterPlayerLabel}
-              Theme={Theme}
-            />
-          <SelectMenu
-            name="avatarName"
-            label="Avatar Name"
-            data={avatars}
-            mapCallback={avatarListMap}
-            labelSx={breakpointsRegisterPlayerLabel}
-            selectSx={breakpointsRegisterPlayerSelectInput}
-            Theme={Theme}
-          />
-          <SelectMenu
-            name="avatarColor"
-            label="Avatar Color"
-            data={colors}
-            mapCallback={avatarColorMap}
-            labelSx={breakpointsRegisterPlayerLabel}
-            selectSx={breakpointsRegisterPlayerSelectInput}
-            Theme={Theme}
-          />
-        </Container>
-        <Button type="submit" variant="outlined" sx={breakpointsRegisterPlayerButton}>
-          {'Register'}
-        </Button>
-      </Form>
-    </Formik>
+    <Form>
+      <Container component={'section'} sx={breakpointsFormContianer}>
+        <FormikTextInput
+          autoComplete="off"
+          labelComponent={'h2'}
+          type="text"
+          name="playerName"
+          label="Player Name"
+          textSx={breakpointsRegisterPlayerTextInput}
+          labelSx={breakpointsRegisterPlayerLabel}
+          Theme={Theme}
+          formik={formik}
+        />
+        <SelectMenu
+          name="avatarName"
+          label="Avatar Name"
+          data={avatars}
+          mapCallback={avatarListMap}
+          labelSx={breakpointsRegisterPlayerLabel}
+          selectSx={breakpointsRegisterPlayerSelectInput}
+          Theme={Theme}
+        />
+        <SelectMenu
+          name="avatarColor"
+          label="Avatar Color"
+          data={colors}
+          mapCallback={avatarColorMap}
+          labelSx={breakpointsRegisterPlayerLabel}
+          selectSx={breakpointsRegisterPlayerSelectInput}
+          Theme={Theme}
+        />
+      </Container>
+      <Button type="submit" variant="outlined" sx={breakpointsRegisterPlayerButton}>
+        {'Register'}
+      </Button>
+    </Form>
   );
 }

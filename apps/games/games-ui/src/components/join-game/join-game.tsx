@@ -2,8 +2,8 @@
 import { GamePlayerValidation } from '@aklapper/types';
 import { SxProps } from '@mui/material';
 import Button from '@mui/material/Button';
-import { Form, Formik } from 'formik';
-import { useNavigate } from 'react-router-dom';
+import { useFormik } from 'formik';
+import { Form, useNavigate } from 'react-router-dom';
 import * as Yup from 'yup';
 import { FormActionProps, FormikTextInput } from '@aklapper/react-shared';
 import GamesTheme from '../../styles/games-theme';
@@ -51,31 +51,32 @@ export const JoinGame = ({
 
     nav(`/games/${gameName}/register`);
   };
+
+  const formik = useFormik({
+    initialValues: { gamePath: '' },
+    validationSchema: validationSchema,
+    onSubmit: values => handleSubmit(values)
+  });
   return (
-    <Formik
-      initialValues={{ gamePath: '' }}
-      validationSchema={validationSchema}
-      onSubmit={values => handleSubmit(values)}
-    >
-      <Form method={method}>
-        <FormikTextInput
-          autoComplete="off"
-          labelComponent={'h2'}
-          label={'Game Path'}
-          id="gamePath"
-          type={type}
-          placeholder="Enter GameID to join"
-          name={names[0]}
-          Theme={GamesTheme}
-          textSx={breakpointsJoinGameText}
-          labelSx={breakpointsJoinGameLabel}
-        />
-        <br />
-        <Button type={buttonType} variant={variant} sx={breakpointsJoinGameButton}>
-          {buttonText}
-        </Button>
-      </Form>
-    </Formik>
+    <Form method={method}>
+      <FormikTextInput
+        formik={formik}
+        autoComplete="off"
+        labelComponent={'h2'}
+        label={'Game Path'}
+        id="gamePath"
+        type={type}
+        placeholder="Enter GameID to join"
+        name={names[0]}
+        Theme={GamesTheme}
+        textSx={breakpointsJoinGameText}
+        labelSx={breakpointsJoinGameLabel}
+      />
+      <br />
+      <Button type={buttonType} variant={variant} sx={breakpointsJoinGameButton}>
+        {buttonText}
+      </Button>
+    </Form>
   );
 };
 

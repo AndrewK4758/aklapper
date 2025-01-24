@@ -5,12 +5,7 @@
     "tsBuildInfoFile": "out-tsc/crud-ui/tsconfig.app.tsbuildinfo",
     "jsx": "react-jsx",
     "lib": ["dom"],
-    "types": [
-      "node",
-      "@nx/react/typings/cssmodule.d.ts",
-      "@nx/react/typings/image.d.ts",
-      "vite/client"
-    ],
+    "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
     "rootDir": "src",
     "module": "esnext",
     "moduleResolution": "bundler",
@@ -32,7 +27,13 @@
     "vite.config.ts",
     "eslint.config.js"
   ],
-  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
+  "include": [
+    "src/**/*.js",
+    "src/**/*.jsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "../../../libs/react-shared/dist/index.d.ts"
+  ],
   "references": [
     {
       "path": "../../../libs/react-shared/tsconfig.lib.json"
