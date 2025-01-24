@@ -65,5 +65,5 @@
     "@nx/js:tsc": { "cache": true, "dependsOn": ["^build"], "inputs": ["production", "^production"] }
   },
   "generators": { "@nx/react": { "library": { "unitTestRunner": "vitest" } } },
-  "nxCloudId": "6793e0b5403d18a7ebb8ea81"
+  "nxCloudId": "6793e339a43d353bb1fbd676"
 }
