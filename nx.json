@@ -1,10 +1,7 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "namedInputs": {
-    "default": [
-      "{projectRoot}/**/*",
-      "sharedGlobals"
-    ],
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "production": [
       "default",
       "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
@@ -15,25 +12,15 @@
       "!{projectRoot}/jest.config.[jt]s",
       "!{projectRoot}/test-setup.[jt]s"
     ],
-    "sharedGlobals": [
-      "{workspaceRoot}/.github/workflows/ci.yml"
-    ]
+    "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"]
   },
-  "nxCloudId": "675fcdb3f97f39373b8eb100",
+  "nxCloudId": "67933048835d7e56f76bc752",
   "plugins": [
     {
       "plugin": "@nx/js/typescript",
       "options": {
-        "typecheck": {
-          "dependsOn": [
-            "^build"
-          ],
-          "targetName": "typecheck"
-        },
-        "build": {
-          "targetName": "build",
-          "configName": "tsconfig.lib.json"
-        }
+        "typecheck": { "dependsOn": ["^build"], "targetName": "typecheck" },
+        "build": { "targetName": "build", "configName": "tsconfig.lib.json" }
       },
       "exclude": []
     },
@@ -48,24 +35,11 @@
         "typecheckTargetName": "typecheck"
       }
     },
-    {
-      "plugin": "@nx/eslint/plugin",
-      "options": {
-        "targetName": "lint"
-      }
-    },
-    {
-      "plugin": "@nx/playwright/plugin",
-      "options": {
-        "targetName": "e2e",
-        "ciTargetName": "e2e-ci"
-      }
-    },
+    { "plugin": "@nx/eslint/plugin", "options": { "targetName": "lint" } },
+    { "plugin": "@nx/playwright/plugin", "options": { "targetName": "e2e", "ciTargetName": "e2e-ci" } },
     {
       "plugin": "@nx/jest/plugin",
-      "options": {
-        "targetName": "test"
-      },
+      "options": { "targetName": "test" },
       "exclude": [
         "apis/crud/crud-api-e2e/**/*",
         "apis/games/games-api-e2e/**/*",
@@ -77,43 +51,17 @@
         "apps/local-model/local-model-e2e/**/*"
       ]
     },
-    {
-      "plugin": "@nxlv/python"
-    }
+    { "plugin": "@nxlv/python" }
   ],
   "targetDefaults": {
-    "e2e-ci--**/*": {
-      "dependsOn": [
-        "^build"
-      ]
-    },
-    "@nx/esbuild:esbuild": {
-      "cache": true,
-      "dependsOn": [
-        "^build"
-      ],
-      "inputs": [
-        "production",
-        "^production"
-      ]
-    }
+    "e2e-ci--**/*": { "dependsOn": ["^build"] },
+    "@nx/esbuild:esbuild": { "cache": true, "dependsOn": ["^build"], "inputs": ["production", "^production"] }
   },
   "generators": {
     "@nx/react": {
-      "application": {
-        "babel": true,
-        "style": "css",
-        "linter": "eslint",
-        "bundler": "vite"
-      },
-      "component": {
-        "style": "css"
-      },
-      "library": {
-        "style": "css",
-        "linter": "eslint",
-        "unitTestRunner": "vitest"
-      }
+      "application": { "babel": true, "style": "css", "linter": "eslint", "bundler": "vite" },
+      "component": { "style": "css" },
+      "library": { "style": "css", "linter": "eslint", "unitTestRunner": "vitest" }
     }
   }
 }
