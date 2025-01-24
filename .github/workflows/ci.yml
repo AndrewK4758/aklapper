@@ -160,7 +160,7 @@ jobs:
           installer-parallel: true
       - run: |
           poetry self add poetry-plugin-export
-          poetry self add poetry-shell-plugin
+          poetry self add poetry-plugin-shell
 
       # Generate Prisma Client For CRUD-Api
       - name: Generate Prisma Client for CRUD-Api
@@ -220,7 +220,7 @@ jobs:
           installer-parallel: true
       - run: |
           poetry self add poetry-plugin-export
-          poetry self add poetry-shell-plugin
+          poetry self add poetry-plugin-shell
 
       # Build all projects
       - name: Build all Projects
