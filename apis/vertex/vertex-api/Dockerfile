@@ -15,7 +15,7 @@ RUN pnpm install --frozen-lockfile
 ENV NODE_ENV='production'
 
 # Copy the entire project to the container
-COPY dist/apis/vertex-api .
+COPY dist/apis/vertex/vertex-api .
 
 # Expose port 3000 (or the port your app uses)
 EXPOSE 5000

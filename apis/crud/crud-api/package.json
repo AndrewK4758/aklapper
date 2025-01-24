@@ -77,8 +77,7 @@
           "build"
         ],
         "options": {
-          "cwd": "{workspaceRoot}/apis/crud/crud-api",
-          "command": "docker build --build-arg NODE_ENV=production -f Dockerfile . -t us-central1-docker.pkg.dev/games-424800/portfolio/crud-api:latest"
+          "command": "docker build --build-arg NODE_ENV=production -f ./apis/crud/crud-api/Dockerfile . -t us-central1-docker.pkg.dev/games-424800/portfolio/crud-api:latest"
         }
       },
       "docker-push": {

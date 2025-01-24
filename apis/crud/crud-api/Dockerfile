@@ -18,10 +18,10 @@ RUN pnpm install --frozen-lockfile
 
 COPY libs/prisma .
 
-RUN pnpx prisma generate-chinook
+RUN pnpx prisma generate
 
 # Copy the entire project to the container
-COPY dist/apis/crud-api .
+COPY dist/apis/crud/crud-api .
 
 EXPOSE 4000
 

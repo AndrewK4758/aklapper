@@ -14,12 +14,8 @@ RUN pnpm install --frozen-lockfile
 
 ENV NODE_ENV='production'
 
-COPY ../../../libs/prisma ./
-
-RUN pnpx prisma generate
-
 # Copy the entire project to the container
-COPY dist/apis/games-api .
+COPY dist/apis/games/games-api .
 
 # Expose port 3000 (or the port your app uses)
 EXPOSE 3000
