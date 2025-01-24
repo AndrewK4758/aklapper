@@ -1,13 +1,11 @@
-import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
-import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
+/// <reference types='vitest' />
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vitest/config';
-import { nodeResolve } from '@rollup/plugin-node-resolve';
-// eslint-disable-next-line @nx/enforce-module-boundaries
-import { getNodeEnv } from '../../../libs/types/types-game/src/index.ts';
+import { cwd } from 'process';
+import { defineConfig } from 'vite';
+import { resolve } from 'path';
 
 export default defineConfig({
-  root: __dirname,
+  root: cwd(),
   cacheDir: '../../../node_modules/.vite/apps/crud/crud-ui',
   server: {
     port: 4200,
@@ -17,15 +15,7 @@ export default defineConfig({
     port: 4300,
     host: 'localhost'
   },
-  plugins: [
-    react({ babel: { targets: { esmodules: true } } }),
-    nxViteTsPaths({
-      debug: getNodeEnv() !== 'production',
-      buildLibsFromSource: getNodeEnv() !== 'production',
-      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'module', 'main']
-    }),
-    nxCopyAssetsPlugin(['*.md'])
-  ],
+  plugins: [react()],
   // Uncomment this if you are using workers.
   // worker: {
   //  plugins: [ nxViteTsPaths() ],
@@ -33,14 +23,19 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@aklapper/react-shared':
-        getNodeEnv() === 'production' ? 'dist/libs/react-shared/index.js' : 'libs/react-shared/src/index.ts'
+      '@aklapper/react-shared': resolve('../../../', 'libs/react-shared/src/index.ts'),
+      '@aklapper/utils': resolve('../../../', 'libs/utils/src/index.ts'),
+      '@aklapper/types': resolve('../../../', 'libs/types/src/index.ts'),
+
+      '.prisma/client/index-browser': '@prisma/client/index-browser.js'
     }
   },
 
   build: {
-    outDir: `../../../dist/apps/crud`,
+    outDir: './dist',
     emptyOutDir: true,
+    manifest: true,
+    sourcemap: true,
     reportCompressedSize: true,
     commonjsOptions: {
       transformMixedEsModules: true
@@ -55,16 +50,7 @@ export default defineConfig({
           constBindings: true,
           symbols: true
         }
-      },
-
-      plugins: [
-        nodeResolve({
-          browser: true,
-          preferBuiltins: false,
-          exportConditions: ['browser', 'development', 'module', 'import'],
-          extensions: ['.js', '.ts', '.json', '.mjs', '.mts']
-        })
-      ]
+      }
     },
     target: 'esnext'
   },
@@ -78,7 +64,6 @@ export default defineConfig({
   appType: 'spa',
   publicDir: 'public',
   envDir: './env',
-
   test: {
     watch: false,
     globals: true,
@@ -86,7 +71,7 @@ export default defineConfig({
     include: ['tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],
     coverage: {
-      reportsDirectory: '../../../coverage/apps/crud/crud-ui',
+      reportsDirectory: './test-output/vitest/coverage',
       provider: 'v8'
     }
   }

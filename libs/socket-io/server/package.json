@@ -1,58 +1,25 @@
 {
   "name": "@aklapper/socket-io-server",
+  "version": "0.0.1",
+  "type": "module",
   "private": true,
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./src/index.d.ts",
-      "import": "./index.js",
-      "require": null,
-      "default": "./index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
-  "main": "./index.js",
-  "types": "./src/index.d.ts",
-  "dependencies": {},
-  "type": "module",
+  "module": "./dist/index.js",
   "nx": {
-    "name": "socket-io-server",
     "sourceRoot": "libs/socket-io/server/src",
     "projectType": "library",
-    "targets": {
-      "build": {
-        "executor": "@nx/esbuild:esbuild",
-        "outputs": [
-          "{options.outputPath}"
-        ],
-        "defaultConfiguration": "production",
-        "options": {
-          "main": "libs/socket-io/server/src/index.ts",
-          "outputPath": "dist/libs/socket-io/server",
-          "tsConfig": "libs/socket-io/server/tsconfig.lib.json",
-          "outputFileName": "index.js",
-          "format": [
-            "esm"
-          ],
-          "target": "node23",
-          "sourcemap": true,
-          "metafile": true,
-          "assets": [
-            {
-              "glob": "./README.md",
-              "input": ".",
-              "output": "."
-            }
-          ]
-        },
-        "configurations": {
-          "development": {
-            "minify": false
-          },
-          "production": {
-            "minify": true
-          }
-        }
-      }
-    }
+    "name": "socket-io-server"
   }
 }

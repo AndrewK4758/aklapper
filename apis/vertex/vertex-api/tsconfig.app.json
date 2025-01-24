@@ -1,20 +1,30 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
-    "declarationDir": "../../../dist",
-    "rootDirs": ["./src", "../../../"],
-    "types": ["node", "express"]
+    "outDir": "out-tsc/vertex-api",
+    "module": "nodenext",
+    "types": ["node"],
+    "rootDir": "src",
+    "strict": false,
+    "moduleResolution": "nodenext",
+    "tsBuildInfoFile": "out-tsc/vertex-api/tsconfig.app.tsbuildinfo",
+    "paths": {
+      "@aklapper/prompt-builder": ["../../../libs/gen-ai/prompt-builder/src/index.ts"],
+      "@aklapper/socket-io-server": ["../../../libs/socket-io/server/src/index.ts"],
+      "@aklapper/types": ["../../../libs/types/src/index.ts"],
+      "@aklapper/vertex-ai": ["../../../libs/gen-ai/vertex-ai/src/index.ts"]
+    }
   },
-  "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
   "include": [
     "src/**/*.ts",
-    "../../../libs/socket-io/server/src/**/*.ts",
     "../../../libs/gen-ai/prompt-builder/src/**/*.ts",
-    "../../../libs/types/types-api/src/**/*.ts",
-    "../../../libs/types/types-game/src/**/*.ts",
-    "../../../libs/types/types-ai/src/**/*.ts",
-    "../../../libs/gen-ai/vertex-ai/src/**/*.ts"
+    "../../../libs/gen-ai/vertex-ai/src/**/*.ts",
+    "../../../libs/types/src/**/*.ts",
+    "../../../libs/types/src/lib/game/types/express-request.d.ts",
+    "../../../libs/types/src/**/*.ts",
+    "../../../libs/socket-io/server/src/**/*.ts"
   ],
+  "exclude": ["out-tsc", "dist", "vitest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts", "eslint.config.js"],
   "references": [
     {
       "path": "../../../libs/socket-io/server/tsconfig.lib.json"
@@ -23,13 +33,7 @@
       "path": "../../../libs/gen-ai/prompt-builder/tsconfig.lib.json"
     },
     {
-      "path": "../../../libs/types/types-api/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/types/types-game/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/types/types-ai/tsconfig.lib.json"
+      "path": "../../../libs/types/tsconfig.lib.json"
     },
     {
       "path": "../../../libs/gen-ai/vertex-ai/tsconfig.lib.json"

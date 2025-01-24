@@ -1,5 +1,5 @@
 import { GamesTheme as Theme } from '../../styles/games-theme';
-import type { GameBoard } from '@aklapper/types-game';
+import type { GameBoard } from '@aklapper/types';
 import { SxProps } from '@mui/material';
 import Box from '@mui/material/Box';
 import { Fragment, type Dispatch, type JSX, type SetStateAction } from 'react';

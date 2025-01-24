@@ -3,46 +3,25 @@
   "include": [],
   "references": [
     {
+      "path": "../../../libs/utils"
+    },
+    {
       "path": "../../../libs/gen-ai/prompt-builder"
-    },
-    {
-      "path": "../../../libs/media-recorder"
-    },
-    {
-      "path": "../../../libs/types/types-api"
-    },
-    {
-      "path": "../../../libs/socket-io/client"
-    },
-    {
-      "path": "../../../libs/types/types-ai"
     },
     {
       "path": "../../../libs/gen-ai/vertex-ai"
     },
     {
-      "path": "../../../libs/mocks"
-    },
-    {
-      "path": "../../../libs/game"
+      "path": "../../../libs/media-recorder"
     },
     {
       "path": "../../../libs/games-components"
     },
     {
-      "path": "../../../libs/games/chutes-and-ladders"
+      "path": "../../../libs/types"
     },
     {
-      "path": "../../../libs/models/game-instance"
-    },
-    {
-      "path": "../../../libs/chain"
-    },
-    {
-      "path": "../../../libs/utils"
-    },
-    {
-      "path": "../../../libs/types/types-game"
+      "path": "../../../libs/socket-io/client"
     },
     {
       "path": "../../../libs/react-shared"

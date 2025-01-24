@@ -1,4 +1,4 @@
-import { IRegisterLoaderAndFilter } from '@aklapper/types-game';
+import { IRegisterLoaderAndFilter } from '@aklapper/types';
 import axios from 'axios';
 import { LoaderFunction, LoaderFunctionArgs } from 'react-router-dom';
 import getGameInstanceInfo from '../../../utils/utils';

@@ -2,7 +2,7 @@ import cors, { CorsOptions } from 'cors';
 import express, { Express } from 'express';
 import { createServer } from 'http';
 import { join } from 'path';
-import Routes, { router } from './routes/routes.ts';
+import Routes, { router } from './routes/routes.js';
 import { cwd } from 'process';
 import { configDotenv } from 'dotenv';
 

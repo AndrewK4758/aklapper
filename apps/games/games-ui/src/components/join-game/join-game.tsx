@@ -1,5 +1,5 @@
 // import styles from './join-game.module.css';
-import { GamePlayerValidation } from '@aklapper/types-game';
+import { GamePlayerValidation } from '@aklapper/types';
 import { SxProps } from '@mui/material';
 import Button from '@mui/material/Button';
 import { Form, Formik } from 'formik';

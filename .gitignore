@@ -3,19 +3,10 @@
 # compiled output
 dist
 tmp
-**/out-tsc
+out-tsc
 
 # dependencies
 node_modules
-*/.venv
-*/__pycache__/*
-__pycache__
-build
-.tox
-venv
-.venv
-.pytest_cache
-rag-data
 
 # IDEs and editors
 /.idea
@@ -28,39 +19,33 @@ rag-data
 
 # IDE - VSCode
 .vscode/*
+!.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-.tool-versions
 
 # misc
 /.sass-cache
 /connect.lock
 /coverage
-.coverage
 /libpeerconnection.log
 npm-debug.log
 yarn-error.log
 testem.log
 /typings
-reports/*
-coverage/*
 
 # System Files
 .DS_Store
 Thumbs.db
+
 .nx/cache
-.nx/workspace-data/*
-.cache/*
+.nx/workspace-data
+
 vite.config.*.timestamp*
 vitest.config.*.timestamp*
+test-output
+.cache
 
-# env
 .env
-env/
+env
 secrets
-# Ignore generated credentials from google-github-actions/auth
-gha-creds-*.json
-prisma/generated/*
-
-*.tsbuildinfo

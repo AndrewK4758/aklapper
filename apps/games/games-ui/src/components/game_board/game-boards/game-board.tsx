@@ -1,5 +1,5 @@
 import { RenderList, Text } from '@aklapper/react-shared';
-import { ILiteSpace } from '@aklapper/types-game';
+import { ILiteSpace } from '@aklapper/types';
 import { SxProps } from '@mui/material';
 import Grid2 from '@mui/material/Grid2';
 import { avatarSize, breakpointsRowSx, breakpointsSpaceSx, spaceStyle } from '../../../styles/game-board-styles';

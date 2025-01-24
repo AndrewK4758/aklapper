@@ -1,5 +1,5 @@
 import { Avatar, generateRandomNumber, Player } from '@aklapper/games-components';
-import { AllGameTypes, Color, SpaceType, IGame } from '@aklapper/types-game';
+import { AllGameTypes, Color, IGame, SpaceType } from '@aklapper/types';
 
 export class Game implements IGame {
   game: AllGameTypes;
@@ -47,3 +47,5 @@ export class Game implements IGame {
     return locationType === SpaceType.FINISH;
   }
 }
+
+export default Game;

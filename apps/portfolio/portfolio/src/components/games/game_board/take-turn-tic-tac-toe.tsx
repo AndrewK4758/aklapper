@@ -1,4 +1,4 @@
-import type { GamePlayerValidation } from '@aklapper/types-game';
+import type { GamePlayerValidation } from '@aklapper/types';
 import Button from '@mui/material/Button';
 import axios from 'axios';
 import { Dispatch, type JSX } from 'react';

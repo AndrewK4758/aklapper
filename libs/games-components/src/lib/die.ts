@@ -1,5 +1,5 @@
-import { IDie } from '@aklapper/types-game';
-import { generateRandomNumber } from './utils.ts';
+import { IDie } from '@aklapper/types';
+import { generateRandomNumber } from './utils.js';
 
 export class Die implements IDie {
   Sides: number;
@@ -15,3 +15,5 @@ export class Die implements IDie {
     return generateRandomNumber(this.sides);
   }
 }
+
+export default Die;

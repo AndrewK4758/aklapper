@@ -1,14 +1,22 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "tests/out-tsc",
-    "tsBuildInfoFile": "tsconfig.spec.tsbuildinfo",
-    "types": ["jest", "node"]
+    "outDir": "./out-tsc/jest",
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
+    "types": ["vitest/globals", "vitest/importMeta", "vite/client", "node", "vitest", "jest"],
+    "paths": {
+      "@aklapper/types": ["../types/src/index.ts"]
+    }
   },
-  "include": ["jest.config.ts", "tests/**/*.test.ts", "tests/**/*.spec.ts", "src/**/*.d.ts", "src/**/*.ts"],
+  "include": ["vitest.config.ts", "tests/**/*.test.ts", "tests/**/*.spec.ts", "src/**/*.d.ts"],
+  "exclude": [],
   "references": [
     {
-      "path": "../types/types-game/tsconfig.lib.json"
+      "path": "./tsconfig.lib.json"
+    },
+    {
+      "path": "../types/tsconfig.lib.json"
     }
   ]
 }

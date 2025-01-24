@@ -1,7 +1,8 @@
 {
   "name": "local-model-e2e",
-  "type": "module",
+  "version": "0.0.1",
   "private": true,
+  "type": "module",
   "nx": {
     "projectType": "application",
     "sourceRoot": "apps/local-model/local-model-e2e/src",

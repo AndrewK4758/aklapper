@@ -1,13 +1,13 @@
 import { ContextBuilder } from '@aklapper/chain';
-import { ChutesAndLadders } from '@aklapper/chutes-and-ladders';
 import { Game } from '@aklapper/game';
-import { InstanceOfGame } from '@aklapper/game-instance';
-import { getCurrentMinute } from '@aklapper/utils';
-import { Context, Color, GameContextKeys, ILoadRegisterData } from '@aklapper/types-game';
+import { ChutesAndLadders } from '@aklapper/games';
 import { mockReqObj, mockRespObj } from '@aklapper/mocks';
+import { InstanceOfGame } from '@aklapper/models';
+import { Color, Context, GameContextKeys, ILoadRegisterData } from '@aklapper/types';
+import { getCurrentMinute } from '@aklapper/utils';
 import { Request, Response } from 'express';
-import { loadRegister } from '../src/lib/commands/action-load-register/load-register-start.ts';
-import { sendLoadRegister } from '../src/lib/commands/action-load-register/send-load-register-data.ts';
+import { loadRegister } from '../src/lib/commands/action-load-register/load-register-start.js';
+import { sendLoadRegister } from '../src/lib/commands/action-load-register/send-load-register-data.js';
 
 let ctx: Context<GameContextKeys | string>, game: InstanceOfGame, req: Partial<Request>, resp: Partial<Response>;
 describe('test load register chain', () => {

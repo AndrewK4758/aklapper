@@ -1,9 +1,9 @@
-import { AllGamesMap } from '@aklapper/all-games-map';
+import { AllGamesMap } from '@aklapper/models';
 import { mockReqObj, mockRespObj } from '@aklapper/mocks';
 import { Request, Response } from 'express';
-import populateInstanceMaps from '../../src/controllers/populate_instance_map.ts';
-import games from '../../src/data/games-list.ts';
-import { InstanceTimeMap } from '../../src/services/instance-time-map/instance-time-map.ts';
+import populateInstanceMaps from '../../src/controllers/populate_instance_map.js';
+import games from '../../src/data/games-list.js';
+import { InstanceTimeMap } from '../../src/services/instance-time-map/instance-time-map.js';
 
 let req: Partial<Request>, resp: Partial<Response>;
 

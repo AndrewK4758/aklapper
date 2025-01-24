@@ -1,6 +1,6 @@
 import axios from 'axios';
 import gamesAutoStartError from '../../errors/games-auto-start-error';
-import type { GamePlayerValidation } from '@aklapper/types-game';
+import type { GamePlayerValidation } from '@aklapper/types';
 
 const baseUrl = import.meta.env.VITE_GAMES_API_URL;
 

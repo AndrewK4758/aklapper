@@ -1,35 +1,22 @@
-import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
-import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
-import { nodeResolve } from '@rollup/plugin-node-resolve';
+/// <reference types='vitest' />
+import { defineConfig, UserConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vitest/config';
-// eslint-disable-next-line @nx/enforce-module-boundaries
-import { getNodeEnv } from '../../../libs/types/types-game/src/index.ts';
+import { cwd } from 'process';
+import { resolve } from 'path';
+import { workspaceRoot } from '@nx/devkit';
 
-export default defineConfig({
-  root: __dirname,
-  cacheDir: '../../../node_modules/.vite/apps/portfolio/portfolio',
+const config: UserConfig = defineConfig({
+  root: cwd(),
+  cacheDir: resolve(workspaceRoot, 'node_modules/.vite/apps/portfolio/portfolio'),
   server: {
     port: 4700,
-    host: 'localhost',
-    watch: {
-      ignored: ['**/node_modules/**']
-    }
+    host: 'localhost'
   },
   preview: {
     port: 4800,
     host: 'localhost'
   },
-  plugins: [
-    react({ babel: { targets: { esmodules: true } } }),
-    nxViteTsPaths({
-      debug: getNodeEnv() !== 'production',
-      buildLibsFromSource: getNodeEnv() !== 'production',
-      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'module', 'main']
-    }),
-    nxCopyAssetsPlugin(['./*.md'])
-  ],
-
+  plugins: [react({ babel: { targets: { esmodules: true } } })],
   // Uncomment this if you are using workers.
   // worker: {
   //  plugins: [ nxViteTsPaths() ],
@@ -37,32 +24,29 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@aklapper/games-components':
-        getNodeEnv() === 'production' ? 'dist/libs/games-components/index.js' : 'libs/games-components/src/index.ts',
-      '@aklapper/media-recorder':
-        getNodeEnv() === 'production' ? 'dist/libs/media-recorder/index.js' : 'libs/media-recorder/src/index.ts',
-      '@aklapper/prompt-builder':
-        getNodeEnv() === 'production'
-          ? 'dist/libs/gen-ai/prompt-builder/index.js'
-          : 'libs/gen-ai/prompt-builder/src/index.ts',
-      '@aklapper/react-shared':
-        getNodeEnv() === 'production' ? 'dist/libs/react-shared/index.js' : 'libs/react-shared/src/index.ts',
-      '@aklapper/socket-io-client':
-        getNodeEnv() === 'production' ? 'dist/libs/socket-io/client/index.js' : 'libs/socket-io/client/src/index.ts',
-      '@aklapper/types-ai':
-        getNodeEnv() === 'production' ? 'dist/libs/types/types-ai/index.js' : 'libs/types/types-ai/src/index.ts',
-      '@aklapper/types-game':
-        getNodeEnv() === 'production' ? 'dist/libs/types/types-game/index.js' : 'libs/types/types-game/src/index.ts',
-      '@aklapper/utils': getNodeEnv() === 'production' ? 'dist/libs/utils/index.js' : 'libs/utils/src/index.ts'
+      '@aklapper/games-components': resolve(workspaceRoot, 'libs/games-components'),
+
+      '@aklapper/media-recorder': resolve(workspaceRoot, 'libs/media-recorder'),
+
+      '@aklapper/prompt-builder': resolve(workspaceRoot, 'libs/gen-ai/prompt-builder'),
+
+      '@aklapper/react-shared': resolve(workspaceRoot, 'libs/react-shared'),
+
+      '@aklapper/socket-io-client': resolve(workspaceRoot, 'libs/socket-io/client'),
+
+      '@aklapper/types': resolve(workspaceRoot, 'libs/types'),
+
+      '@aklapper/utils': resolve(workspaceRoot, 'libs/utils'),
+
+      '.prisma/client/index-browser': '@prisma/client/index-browser.js'
     }
   },
 
   build: {
-    outDir: `../../../dist/apps/portfolio`,
-    minify: true,
+    outDir: './dist',
+    emptyOutDir: true,
     manifest: true,
     sourcemap: true,
-    emptyOutDir: true,
     reportCompressedSize: true,
     commonjsOptions: {
       transformMixedEsModules: true
@@ -77,15 +61,7 @@ export default defineConfig({
           constBindings: true,
           symbols: true
         }
-      },
-      plugins: [
-        nodeResolve({
-          browser: true,
-          preferBuiltins: false,
-          exportConditions: ['browser', 'development', 'module', 'import'],
-          extensions: ['.js', '.ts', '.json', '.mjs', '.mts']
-        })
-      ]
+      }
     },
     target: 'esnext'
   },
@@ -111,8 +87,10 @@ export default defineConfig({
     include: ['tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],
     coverage: {
-      reportsDirectory: '../../../coverage/apps/portfolio/portfolio',
+      reportsDirectory: './test-output/vitest/coverage',
       provider: 'v8'
     }
   }
 });
+
+export default config;

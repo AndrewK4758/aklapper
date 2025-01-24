@@ -1,7 +1,7 @@
-import type { SocketCallback } from '@aklapper/types-api';
-import { IInstanceOfGame } from '@aklapper/types-game';
+import type { SocketCallback } from '@aklapper/types';
+import type { InstanceOfGame } from '@aklapper/models';
 import { Socket } from 'socket.io';
-import performAction from '../controllers/perform_action_context_object.ts';
+import performAction from '../controllers/perform_action_context_object.js';
 
 interface SocketAction {
   action: string;
@@ -9,7 +9,7 @@ interface SocketAction {
 
 const socketBoardAction: SocketCallback = (socket: Socket) => {
   socket.on('action', ({ action }: SocketAction) => {
-    const game: IInstanceOfGame = socket.data;
+    const game: InstanceOfGame = socket.data;
     performAction(null, null, game, action);
   });
 };

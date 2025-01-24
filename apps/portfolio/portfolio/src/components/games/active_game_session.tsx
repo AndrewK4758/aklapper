@@ -1,10 +1,10 @@
 import { Text, useScrollIntoView } from '@aklapper/react-shared';
 import { ClientSocket } from '@aklapper/socket-io-client';
-import { GameBoard, IActivePlayersInGame } from '@aklapper/types-game';
+import { GameBoard, IActivePlayersInGame } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
-import { useReducer, useRef, useState } from 'react';
+import { useReducer, useRef, useState, type JSX } from 'react';
 import { useParams } from 'react-router-dom';
 import type { ManagerOptions, Socket } from 'socket.io-client';
 import useGamesWebsockets from '../../hooks/useGamesWebsockets';

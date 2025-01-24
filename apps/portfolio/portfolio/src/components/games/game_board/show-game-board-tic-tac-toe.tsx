@@ -1,4 +1,4 @@
-import type { GameBoard } from '@aklapper/types-game';
+import type { GameBoard } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import type { Dispatch, JSX, SetStateAction } from 'react';
 import { breakpointsGameBoardBoxTicTacToe } from '../../../styles/games-styles';

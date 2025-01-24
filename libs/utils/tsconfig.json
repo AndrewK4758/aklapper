@@ -1,8 +1,5 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "noPropertyAccessFromIndexSignature": true
-  },
   "files": [],
   "include": [],
   "references": [
@@ -10,22 +7,16 @@
       "path": "../mocks"
     },
     {
+      "path": "../models"
+    },
+    {
       "path": "../game"
-    },
-    {
-      "path": "../games-components"
-    },
-    {
-      "path": "../games/chutes-and-ladders"
-    },
-    {
-      "path": "../models/game-instance"
     },
     {
       "path": "../chain"
     },
     {
-      "path": "../types/types-game"
+      "path": "../types"
     },
     {
       "path": "./tsconfig.lib.json"

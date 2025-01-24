@@ -1,35 +1,25 @@
 {
   "name": "@aklapper/games-components",
-  "type": "module",
+  "version": "0.0.1",
   "private": true,
+  "type": "module",
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./src/index.d.ts",
-      "import": "./indexs.js",
-      "require": null,
-      "default": "./index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
-  "main": "./index.js",
-  "types": "./src/index.d.ts",
-  "dependencies": {},
+  "module": "./dist/index.js",
   "nx": {
-    "name": "games-components",
     "sourceRoot": "libs/games-components/src",
     "projectType": "library",
-    "targets": {
-      "build": {
-        "executor": "nx:run-commands",
-        "outputs": [
-          "{options.outputPath}"
-        ],
-        "options": {
-          "cwd": "libs/games-components",
-          "color": true,
-          "command": "vite build"
-        }
-      }
-    }
+    "name": "games-components"
   }
 }

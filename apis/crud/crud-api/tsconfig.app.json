@@ -1,17 +1,19 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
-    "declarationDir": "../../../dist",
-    "outDir": "../../../dist",
-    "rootDirs": ["./src", "../../../"],
-    "types": ["node", "express"]
+    "outDir": "out-tsc/crud-api",
+    "module": "nodenext",
+    "types": ["node"],
+    "rootDir": "src",
+    "moduleResolution": "nodenext",
+    "tsBuildInfoFile": "out-tsc/crud-api/tsconfig.app.tsbuildinfo",
+    "paths": {
+      "@aklapper/prisma": ["../../../libs/prisma/src/index.ts"]
+    }
   },
-  "include": ["src/**/*.ts", "../../../libs/prisma/src/**/*.ts", "../../../libs/types/types-game/src/**/*.ts"],
-  "exclude": ["jest.config.ts", "src/**/*.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
+  "include": ["src/**/*.ts", "../../../libs/prisma/src/**/*.ts"],
+  "exclude": ["out-tsc", "dist", "vitest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts", "eslint.config.js"],
   "references": [
-    {
-      "path": "../../../libs/types/types-game/tsconfig.lib.json"
-    },
     {
       "path": "../../../libs/prisma/tsconfig.lib.json"
     }

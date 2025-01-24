@@ -1,15 +1,16 @@
 import { ContextBuilder } from '@aklapper/chain';
-import { ChutesAndLadders, TOTAL_SPACES } from '@aklapper/chutes-and-ladders';
+import '@aklapper/games-components';
+import { ChutesAndLadders, TOTAL_SPACES } from '@aklapper/games';
 import { Game } from '@aklapper/game';
-import { InstanceOfGame } from '@aklapper/game-instance';
+import { InstanceOfGame } from '@aklapper/models';
 import { mockReqObj, mockRespObj } from '@aklapper/mocks';
-import { Color, Context, GameContextKeys, IPlayersAndBoard, IRegisterFormValues } from '@aklapper/types-game';
+import { Color, Context, GameContextKeys, IPlayersAndBoard, IRegisterFormValues } from '@aklapper/types';
 import { getCurrentMinute } from '@aklapper/utils';
 import { Request, Response } from 'express';
-import { activeDataToSend } from '../src/lib/commands/action-board/active-game-data-to-send.ts';
-import { boardStart } from '../src/lib/commands/action-board/board-start.ts';
-import { checkIfWinner } from '../src/lib/commands/action-board/check-if-winner.ts';
-import { readyToPlayCheck } from '../src/lib/commands/action-board/ready-to-play.ts';
+import { activeDataToSend } from '../src/lib/commands/action-board/active-game-data-to-send.js';
+import { boardStart } from '../src/lib/commands/action-board/board-start.js';
+import { checkIfWinner } from '../src/lib/commands/action-board/check-if-winner.js';
+import { readyToPlayCheck } from '../src/lib/commands/action-board/ready-to-play.js';
 
 let ctx: Context<GameContextKeys | string>, game: InstanceOfGame, req: Partial<Request>, resp: Partial<Response>;
 

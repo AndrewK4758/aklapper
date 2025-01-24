@@ -7,7 +7,7 @@ import Paper from '@mui/material/Paper';
 import { lazy, useContext, useEffect, useState } from 'react';
 import { WebSocketContext } from '../../../contexts/websocket-context';
 import ModelResponse from './local-model-response';
-import type { Socket } from 'node_modules/.pnpm/socket.io-client@4.8.1/node_modules/socket.io-client/build/esm/socket.d.ts';
+import type { Socket } from 'socket.io-client';
 
 const ModelQuery = lazy(() => import('./local-model-query'));
 
@@ -23,7 +23,7 @@ export const LocalModel = () => {
     setSocketListeners(socket, [
       ['connect', () => console.log(`Connected on id: ${socket.id}`)],
       ['promptResponse', response => setPromptResponse(response as string)],
-      ['promptResponseError', error => console.log(error)]
+      ['promptResponseError', error => console.error(error)]
     ]);
 
     return () => {

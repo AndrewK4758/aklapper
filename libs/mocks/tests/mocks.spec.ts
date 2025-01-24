@@ -1,4 +1,4 @@
-import { mockReqObj, mockRespObj } from '../src/lib/mocks.ts';
+import { mockReqObj, mockRespObj } from '../src/lib/mocks.js';
 
 describe('mocks', () => {
   it('should work', () => {

@@ -1,57 +1,25 @@
 {
   "name": "@aklapper/prompt-builder",
+  "version": "0.0.1",
   "private": true,
+  "type": "module",
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./src/index.d.ts",
-      "import": "./index.js",
-      "require": null,
-      "default": "./index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
-  "main": "./index.js",
-  "types": "./src/index.d.ts",
-  "type": "module",
+  "module": "./dist/index.js",
   "nx": {
-    "name": "prompt-builder",
     "sourceRoot": "libs/gen-ai/prompt-builder/src",
     "projectType": "library",
-    "targets": {
-      "build": {
-        "executor": "@nx/esbuild:esbuild",
-        "outputs": [
-          "{options.outputPath}"
-        ],
-        "defaultConfiguration": "production",
-        "options": {
-          "main": "libs/gen-ai/prompt-builder/src/index.ts",
-          "outputPath": "dist/libs/gen-ai/prompt-builder",
-          "outputFileName": "index.js",
-          "tsConfig": "libs/gen-ai/prompt-builder/tsconfig.lib.json",
-          "format": [
-            "esm"
-          ],
-          "target": "node23",
-          "sourcemap": true,
-          "metafile": true,
-          "assets": [
-            {
-              "glob": "./README.md",
-              "input": ".",
-              "output": "."
-            }
-          ]
-        },
-        "configurations": {
-          "development": {
-            "minify": false
-          },
-          "production": {
-            "minify": true
-          }
-        }
-      }
-    }
+    "name": "prompt-builder"
   }
 }

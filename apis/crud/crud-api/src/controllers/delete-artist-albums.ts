@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import deleteArtistAlbums from '../services/prisma/album/delete-albums.ts';
+import deleteArtistAlbums from '../services/prisma/album/delete-albums.js';
 
 /**
  * This function handles DELETE requests to delete an album associated with a specific artist.

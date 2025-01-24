@@ -1,8 +1,10 @@
+import { GameInstanceID, Minute } from '@aklapper/types';
 import { getCurrentMinute } from '@aklapper/utils';
-import { GameInstanceID, Minute } from '@aklapper/types-game';
-import { InstanceTimeMap } from '../../src/services/instance-time-map/instance-time-map.ts';
+import { InstanceTimeMap } from '../../src/services/instance-time-map/instance-time-map.js';
 
-let instanceMap: InstanceTimeMap, minute: Minute, gameInstanceID: GameInstanceID;
+let instanceMap: InstanceTimeMap,
+  minute: Minute,
+  gameInstanceID: GameInstanceID;
 
 describe('test instance map class', () => {
   beforeAll(() => {

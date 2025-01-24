@@ -1,10 +1,11 @@
 {
   "name": "crud-ui-e2e",
+  "version": "0.0.1",
   "private": true,
   "type": "module",
   "nx": {
     "projectType": "application",
-    "sourceRoot": "apps/crud-ui/crud-ui-e2e/src",
+    "sourceRoot": "apps/crud/crud-ui-e2e/src",
     "implicitDependencies": [
       "crud-ui"
     ]

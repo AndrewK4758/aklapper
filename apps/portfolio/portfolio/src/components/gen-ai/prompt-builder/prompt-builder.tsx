@@ -616,7 +616,7 @@ const handleCopyPromptToClipboardAndAddToInput = async (
 };
 
 const baseUrl = import.meta.env.VITE_VERTEX_API_URL;
-
+console.log(baseUrl)
 /**
  * This function handles the file upload event.
  * It uploads the file to the server and updates the prompt state with the file data.

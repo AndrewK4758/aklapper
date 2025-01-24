@@ -1,7 +1,7 @@
 import cors, { CorsOptions } from 'cors';
 import express, { Express } from 'express';
 import { join } from 'path';
-import router, { PortfolioRoutes } from './routes/routes.ts';
+import router, { PortfolioRoutes } from './routes/routes.js';
 import { cwd } from 'process';
 
 const __dirname = join(cwd(), 'apis/portfolio/portfolio-api');
@@ -9,8 +9,12 @@ const __dirname = join(cwd(), 'apis/portfolio/portfolio-api');
 const app: Express = express();
 
 export const corsOptions: CorsOptions = {
-  origin: ['https://www.andrew-k.us', 'https://andrew-k.us', 'http://localhost:4700'],
-  credentials: true
+  origin: [
+    'https://www.andrew-k.us',
+    'https://andrew-k.us',
+    'http://localhost:4700',
+  ],
+  credentials: true,
 };
 
 app.use('*', cors(corsOptions));
@@ -26,6 +30,6 @@ const host = process.env.HOST || 'localhost';
 const server = app.listen(port, () => {
   console.log(`Listening at http://${host}:${port}/api/v1`);
 });
-server.on('error', err => console.error(err));
+server.on('error', (err) => console.error(err));
 
 export default app;

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import findArtistError from '../errors/find-artist-error.ts';
-import findArtist from '../services/prisma/artist/find-artist.ts';
+import findArtistError from '../errors/find-artist-error.js';
+import findArtist from '../services/prisma/artist/find-artist.js';
 
 /**
  * Handles GET requests to retrieve an artist from the database by ID.

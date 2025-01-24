@@ -7,13 +7,15 @@ import Collapse from '@mui/material/Collapse';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import Toolbar from '@mui/material/Toolbar';
-import { useRef, type JSX } from 'react';
-import { Outlet, useNavigation, useParams, useSubmit } from 'react-router-dom';
+import { useRef, type Dispatch, type JSX, type SetStateAction } from 'react';
+import { Outlet, useNavigation, useOutletContext, useParams, useSubmit, type SubmitFunction } from 'react-router-dom';
 import ChutesAndLaddersIcon from '../../components/icons/chutes-and-ladders';
 import TicTacToeIcon from '../../components/icons/tic-tac-toe-icon';
 import GameLoading from '../../components/loading/loading';
 import { gamesButtonLabelsSxProps, gamesButtonSxProps } from '../../styles/games-styles';
 import {
+  gamesOutletGameWrapperSxProps,
+  gamesOutletWrapperSxProps,
   iconStateStyle,
   pagesOutletStyles,
   pagesTitlesBoxStyles,
@@ -22,6 +24,7 @@ import {
 } from '../../styles/pages-styles';
 import { body, title } from '../static/games-text';
 import { crudPaperSxProps } from '../../styles/crud-styles';
+import type { LoadingOutletContext } from '../../types/types';
 
 /**
  * This component renders the main games page, providing an interface for users to select and play different games.
@@ -32,6 +35,7 @@ import { crudPaperSxProps } from '../../styles/crud-styles';
 const Games = (): JSX.Element => {
   const params = useParams();
   const { state } = useNavigation();
+  const { loading, setLoading } = useOutletContext<LoadingOutletContext>();
   const divRef = useRef<HTMLElement>(null);
   const submit = useSubmit();
 
@@ -69,20 +73,12 @@ const Games = (): JSX.Element => {
                 <Button
                   LinkComponent={'button'}
                   key={'chutes-and-ladders-button'}
-                  title="Chutes & Ladders"
                   id="Chutes-&-Ladders"
                   color="inherit"
                   variant="text"
                   disabled={state !== 'idle'}
                   endIcon={<ChutesAndLaddersIcon sx={iconStateStyle(state)} />}
-                  onClick={async e => {
-                    await submit(e.currentTarget.id, {
-                      method: 'post',
-                      encType: 'text/plain',
-                      relative: 'path',
-                      replace: true
-                    });
-                  }}
+                  onClick={async e => loadAndStartGame(e.currentTarget.id, submit, setLoading)}
                   sx={gamesButtonSxProps}
                 >
                   <Label
@@ -103,20 +99,12 @@ const Games = (): JSX.Element => {
                 <Button
                   LinkComponent={'button'}
                   key={'tic-tac-toe-button'}
-                  title="Tic Tac Toe"
                   id="Tic-Tac-Toe"
                   color="inherit"
                   variant="text"
                   disabled={state !== 'idle'}
                   endIcon={<TicTacToeIcon sx={iconStateStyle(state)} />}
-                  onClick={async e => {
-                    await submit(e.currentTarget.id, {
-                      method: 'post',
-                      encType: 'text/plain',
-                      relative: 'path',
-                      replace: true
-                    });
-                  }}
+                  onClick={async e => loadAndStartGame(e.currentTarget.id, submit, setLoading)}
                   sx={gamesButtonSxProps}
                 >
                   <Label
@@ -155,11 +143,51 @@ const Games = (): JSX.Element => {
           </Container>
         </Collapse>
       </Paper>
-      <Box component={'div'} key={`games-outlet-wrapper`} id={`games-outlet-wrapper`} sx={pagesOutletStyles}>
-        {state !== 'idle' ? <GameLoading /> : <Outlet />}
+      <Box
+        component={'div'}
+        key={`games-outlet-wrapper`}
+        id={`games-outlet-wrapper`}
+        sx={{ ...pagesOutletStyles, flexDirection: 'column', height: '100vh' }}
+      >
+        <Box
+          component={'div'}
+          key={'games-outlet-loading-wrapper'}
+          id={'games-outlet-loading-wrapper'}
+          sx={gamesOutletWrapperSxProps(state)}
+        >
+          {state !== 'idle' && <GameLoading />}
+        </Box>
+        <Box
+          component={'div'}
+          key={'games-outlet-game-wrapper'}
+          id={'games-outlet-game-wrapper'}
+          sx={gamesOutletGameWrapperSxProps}
+        >
+          {!loading && <Outlet />}
+        </Box>
       </Box>
     </Box>
   );
 };
 
 export default Games;
+
+const loadAndStartGame = async (
+  gameName: string,
+  submit: SubmitFunction,
+  setLoading: Dispatch<SetStateAction<boolean>>
+) => {
+  try {
+    setLoading(true);
+    await submit(gameName, {
+      method: 'post',
+      encType: 'text/plain',
+      relative: 'path',
+      replace: true
+    });
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setLoading(false);
+  }
+};

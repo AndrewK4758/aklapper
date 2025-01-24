@@ -1,13 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "noPropertyAccessFromIndexSignature": true
-  },
   "files": [],
   "include": [],
   "references": [
     {
-      "path": "../types/types-game"
+      "path": "../types"
     },
     {
       "path": "./tsconfig.lib.json"

@@ -1,5 +1,5 @@
 import { Text } from '@aklapper/react-shared';
-import type { ILiteSpace, Row } from '@aklapper/types-game';
+import type { ILiteSpace, Row } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import Grid2 from '@mui/material/Grid2';
 import type { SxProps } from '@mui/material/styles';

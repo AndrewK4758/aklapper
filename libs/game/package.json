@@ -1,29 +1,30 @@
 {
   "name": "@aklapper/game",
-  "private": true,
+  "version": "0.0.1",
   "type": "module",
+  "private": true,
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./src/index.d.ts",
-      "import": "./index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
-  "dependencies": {},
+  "module": "./dist/index.js",
   "nx": {
-    "name": "game",
     "sourceRoot": "libs/game/src",
     "projectType": "library",
+    "name": "game",
     "targets": {
-      "build": {
-        "executor": "nx:run-commands",
-        "outputs": [
-          "{options.outputPath}"
-        ],
+      "test": {
         "options": {
-          "cwd": "libs/game",
-          "color": true,
-          "command": "vite build"
+          "args": []
         }
       }
     }

@@ -1,14 +1,14 @@
 import { SocketServer } from '@aklapper/socket-io-server';
 import cors, { CorsOptions } from 'cors';
+import { configDotenv } from 'dotenv';
 import express, { Express } from 'express';
 import { createServer } from 'http';
 import { join } from 'path';
-import { ServerOptions } from 'socket.io';
-import socketBoardAction from './events/socket-board-action.ts';
-import addGameToSocketInstance from './middleware/socket-add-game-middleware.ts';
-import router, { GameRoutes } from './routes/routes.ts';
-import { configDotenv } from 'dotenv';
 import { cwd } from 'process';
+import { ServerOptions } from 'socket.io';
+import socketBoardAction from './events/socket-board-action.js';
+import addGameToSocketInstance from './middleware/socket-add-game-middleware.js';
+import router, { GameRoutes } from './routes/routes.js';
 
 const __dirname = join(cwd(), 'apis/games/games-api');
 
@@ -23,18 +23,18 @@ export const corsOptions: CorsOptions = {
     'http://localhost:4700',
     'http://localhost:3200',
     'ws://localhost:3200',
-    'http://localhost'
+    'http://localhost',
   ],
   methods: '*',
   exposedHeaders: '*',
   optionsSuccessStatus: 204,
   allowedHeaders: '*',
-  credentials: false
+  credentials: false,
 };
 
 const serverOptions: Partial<ServerOptions> = {
   cleanupEmptyChildNamespaces: true,
-  cors: corsOptions
+  cors: corsOptions,
 };
 
 const httpServer = createServer(app);
@@ -45,7 +45,12 @@ app.enable('trust proxy');
 app.use('/assets', express.static(join(__dirname, 'assets')));
 app.use('/api/v1', router);
 
-export const socketServer = new SocketServer(httpServer, serverOptions, [socketBoardAction], [addGameToSocketInstance]);
+export const socketServer = new SocketServer(
+  httpServer,
+  serverOptions,
+  [socketBoardAction],
+  [addGameToSocketInstance],
+);
 
 new GameRoutes();
 

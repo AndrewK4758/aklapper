@@ -1,4 +1,10 @@
-import type { Context, Command, Chain, GameContextKeys, GameContextState } from '@aklapper/types-game';
+import type {
+  Context,
+  Command,
+  Chain,
+  GameContextKeys,
+  GameContextState,
+} from '@aklapper/types';
 
 class BaseContext<T extends GameContextKeys | string> implements Context<T> {
   state: Map<T, GameContextState[T]>;
@@ -26,8 +32,14 @@ export class ContextBuilder {
 }
 
 class BaseCommand implements Command {
-  executor: <T extends GameContextKeys | string>(context: Context<T>) => boolean;
-  constructor(executor: <T extends GameContextKeys | string>(context: Context<T>) => boolean) {
+  executor: <T extends GameContextKeys | string>(
+    context: Context<T>,
+  ) => boolean;
+  constructor(
+    executor: <T extends GameContextKeys | string>(
+      context: Context<T>,
+    ) => boolean,
+  ) {
     this.executor = executor;
   }
   execute<T extends GameContextKeys | string>(context: Context<T>): boolean {
@@ -36,7 +48,9 @@ class BaseCommand implements Command {
 }
 
 export class CommandBuilder {
-  static build(executor: (context: Context<GameContextKeys | string>) => boolean): Command {
+  static build(
+    executor: (context: Context<GameContextKeys | string>) => boolean,
+  ): Command {
     return new BaseCommand(executor) as Command;
   }
 }

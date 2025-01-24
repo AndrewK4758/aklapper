@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import createAlbum from '../services/prisma/album/create-albums.ts';
+import createAlbum from '../services/prisma/album/create-albums.js';
 
 /**
  * This function handles POST requests to add a new album to an existing artist.

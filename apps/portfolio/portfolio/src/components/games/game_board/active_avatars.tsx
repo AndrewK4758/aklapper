@@ -1,7 +1,7 @@
 import { Player } from '@aklapper/games-components';
 import PlayersInGame from '../players-in-game/players-in-game';
 import { RenderList, Text } from '@aklapper/react-shared';
-import { IRegisterFormValues } from '@aklapper/types-game';
+import { IRegisterFormValues } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import {

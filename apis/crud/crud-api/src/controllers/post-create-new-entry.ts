@@ -1,7 +1,7 @@
 import { album, artist, Prisma, track } from '@prisma/client';
 import { DefaultArgs } from '@prisma/client/runtime/library';
 import { Request, Response } from 'express';
-import createNewEntry from '../services/post/create-new-entry.ts';
+import createNewEntry from '../services/post/create-new-entry.js';
 
 interface NewEntryData {
   artist: artist;
@@ -37,13 +37,13 @@ const createNewEntrys = async (req: Request, resp: Response) => {
                   composer: track.composer,
                   milliseconds: track.milliseconds,
                   bytes: track.bytes,
-                  unit_price: track.unit_price
-                }
-              }
-            }
-          ]
-        }
-      }
+                  unit_price: track.unit_price,
+                },
+              },
+            },
+          ],
+        },
+      },
     } as Prisma.artistCreateArgs<DefaultArgs>;
 
     const newEntry = await createNewEntry(query);
@@ -51,7 +51,9 @@ const createNewEntrys = async (req: Request, resp: Response) => {
     resp.status(200).json({ newEntry: newEntry });
   } catch (err) {
     console.error(err);
-    resp.status(500).json({ newEntry: `Error adding entry. Please submit again` });
+    resp
+      .status(500)
+      .json({ newEntry: `Error adding entry. Please submit again` });
   }
 };
 export default createNewEntrys;

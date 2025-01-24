@@ -1,13 +1,11 @@
 {
   "extends": "../../../tsconfig.base.json",
-  "files": [],
   "compilerOptions": {
+    "outDir": "out-tsc/portfolio-api-e2e",
     "esModuleInterop": true,
     "noUnusedLocals": false,
-    "noImplicitAny": false,
-    "outDir": "out-tsc",
-    "tsBuildInfoFile": "tsconfig.tsbuildinfo",
-    "types": ["jest", "node"]
+    "noImplicitAny": false
   },
-  "include": ["jest.config.ts", "src/**/*.ts"]
+  "include": ["jest.config.ts", "src/**/*.ts"],
+  "references": []
 }

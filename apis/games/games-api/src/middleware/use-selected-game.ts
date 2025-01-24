@@ -1,5 +1,5 @@
-import { IBuiltGame } from '@aklapper/types-game';
-import games from '../data/games-list.ts';
+import { IBuiltGame } from '@aklapper/types';
+import games from '../data/games-list.js';
 import type { Request } from 'express';
 
 const useSelectedGame = (req: Request): IBuiltGame | undefined =>

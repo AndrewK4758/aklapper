@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { NextFunction, Request, Response } from 'express';
-import validateAlbum from '../services/prisma/album/validate-album.ts';
+import validateAlbum from '../services/prisma/album/validate-album.js';
 
 /**
  * Middleware function that validates if an album exists in the database.
@@ -13,7 +13,11 @@ import validateAlbum from '../services/prisma/album/validate-album.ts';
  * @returns No explicit return value. It either sends a JSON response indicating album existence or calls the `next()` middleware function.
  */
 
-const validateAlbums = async (req: Request, resp: Response, next: NextFunction) => {
+const validateAlbums = async (
+  req: Request,
+  resp: Response,
+  next: NextFunction,
+) => {
   if (req.query.title) {
     try {
       const { artistID, title } = req.query;
@@ -21,14 +25,17 @@ const validateAlbums = async (req: Request, resp: Response, next: NextFunction) 
       const query = {
         where: {
           title: { equals: title as string, mode: 'insensitive' },
-          artist_id: { equals: parseInt(artistID as string, 10) }
-        }
+          artist_id: { equals: parseInt(artistID as string, 10) },
+        },
       } as Prisma.albumWhereInput;
 
       const album = await validateAlbum(query);
 
       if (album) resp.status(200).json({ message: 'Album Already Exists' });
-      else resp.status(200).json({ message: 'Album Not in List. Please Submit to Continue' });
+      else
+        resp
+          .status(200)
+          .json({ message: 'Album Not in List. Please Submit to Continue' });
     } catch (error) {
       console.error(error);
     }

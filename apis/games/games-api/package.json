@@ -1,19 +1,12 @@
 {
   "name": "@aklapper/games-api",
   "version": "0.0.1",
-  "type": "module",
-  "dependencies": {},
-  "exports": {
-    ".": {
-      "types": "./apis/games/games-api/src/index.d.ts",
-      "import": "./main.js"
-    }
-  },
   "private": true,
+  "type": "module",
   "nx": {
     "name": "games-api",
-    "sourceRoot": "apis/games/games-api/src",
     "projectType": "application",
+    "sourceRoot": "apis/games/games-api/src",
     "targets": {
       "build": {
         "executor": "@nx/esbuild:esbuild",
@@ -22,25 +15,36 @@
         ],
         "defaultConfiguration": "production",
         "options": {
-          "main": "apis/games/games-api/src/main.ts",
-          "outputPath": "dist/apis/games-api",
-          "tsConfig": "apis/games/games-api/tsconfig.app.json",
-          "outputFileName": "main.js",
-          "declaration": true,
-          "declarationRootDir": "./",
-          "assets": [
-            "apis/games/games-api/src/assets"
-          ],
+          "platform": "node",
           "target": "node23",
+          "metafile": true,
+          "outputPath": "dist/apis/games/games-api",
           "format": [
             "esm"
           ],
-          "sourcemap": true,
-          "metafile": true
+          "bundle": true,
+          "main": "apis/games/games-api/src/main.ts",
+          "tsConfig": "apis/games/games-api/tsconfig.app.json",
+          "assets": [
+            "apis/games/games-api/src/assets"
+          ],
+          "esbuildOptions": {
+            "sourcemap": true,
+            "outExtension": {
+              ".js": ".js"
+            }
+          }
         },
         "configurations": {
           "development": {},
-          "production": {}
+          "production": {
+            "esbuildOptions": {
+              "sourcemap": false,
+              "outExtension": {
+                ".js": ".js"
+              }
+            }
+          }
         }
       },
       "serve": {
@@ -51,7 +55,7 @@
         ],
         "options": {
           "buildTarget": "games-api:build",
-          "runBuildTargetDependencies": true
+          "runBuildTargetDependencies": false
         },
         "configurations": {
           "development": {
@@ -59,10 +63,12 @@
           },
           "production": {
             "buildTarget": "games-api:build:production"
-          },
-          "test": {
-            "buildTarget": "games-api:build:production"
           }
+        }
+      },
+      "test": {
+        "options": {
+          "passWithNoTests": true
         }
       },
       "docker-build": {

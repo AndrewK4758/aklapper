@@ -1,8 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { DefaultArgs } from '@prisma/client/runtime/library';
 import { NextFunction, Request, Response } from 'express';
-import albumTracksCount from '../services/prisma/tracks/album-tracks-count.ts';
-import getAlbumTracks from '../services/prisma/tracks/get-album-tracks.ts';
+import albumTracksCount from '../services/prisma/tracks/album-tracks-count.js';
+import getAlbumTracks from '../services/prisma/tracks/get-album-tracks.js';
 
 /**
  * Middleware function that retrieves tracks for an album and their count.

@@ -1,8 +1,8 @@
-import { GamesTheme as Theme } from '../../styles/games-theme';
 import Container from '@mui/material/Container';
 import type { SxProps } from '@mui/material/styles';
 import { Fragment } from 'react';
 import { Outlet } from 'react-router-dom';
+import { GamesTheme as Theme } from '../../styles/games-theme';
 import Footer from '../footer/footer';
 import Header from '../header/header';
 
@@ -23,19 +23,6 @@ const breakpointsAppBar: SxProps = {
   [Theme.breakpoints.up('md')]: {
     height: '65px',
     top: 0
-  }
-};
-
-const breakpointsText: SxProps = {
-  flex: '1 0 auto',
-  textAlign: 'center',
-  alignSelf: 'center',
-  textDecoration: 'none',
-  display: 'flex',
-  height: '65px',
-  color: Theme.palette.primary.main,
-  [Theme.breakpoints.down('md')]: {
-    fontSize: '2rem'
   }
 };
 
@@ -78,10 +65,7 @@ const Layout = () => (
   <Fragment key={'Layout'}>
     <Header
       componentAppBar={'header'}
-      componentLogin={'div'}
-      componentRegister={'div'}
       sxAppBar={breakpointsAppBar}
-      sxText={breakpointsText}
     />
     <Container component={'main'} id="main-wrapper" maxWidth={false} sx={breakpointsMain}>
       <Outlet />

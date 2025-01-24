@@ -54,7 +54,6 @@ export function ContactIcon({
           data-testid={`${id}-icon-tooltip`}
           title={`${tooltipText}`}
           slotProps={{ tooltip: { sx: tooltipSx } }}
-
         >
           <IconButton
             key={`${id}-icon`}

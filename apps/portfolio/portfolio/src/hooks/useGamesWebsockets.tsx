@@ -1,10 +1,10 @@
+import { rowFinder } from '@aklapper/games-components';
+import type { GameBoard, GamePlayerValidation, ILiteSpace, IPlayersAndBoard, Row } from '@aklapper/types';
 import { useEffect } from 'react';
 import type { Socket } from 'socket.io-client';
+import type { IActiveGameInfo } from '../components/games/active_game_session.jsx';
+import { ActionType, type Action } from '../components/games/game_board/socket-reducer.jsx';
 import getGameInstanceInfo from '../utils/utils';
-import type { GameBoard, GamePlayerValidation, ILiteSpace, IPlayersAndBoard, Row } from '@aklapper/types-game';
-import { ActionType, type Action } from '../components/games/game_board/socket-reducer';
-import { rowFinder } from '@aklapper/games-components';
-import type { IActiveGameInfo } from '../components/games/active_game_session';
 
 const useGamesWebsockets = (socket: Socket, id: string, dispatch: (value: Action) => void) => {
   useEffect(() => {
@@ -51,7 +51,7 @@ const useGamesWebsockets = (socket: Socket, id: string, dispatch: (value: Action
       socket.disconnect();
       socket.removeAllListeners();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [id]);
 };
 

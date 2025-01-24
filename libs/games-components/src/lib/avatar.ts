@@ -1,5 +1,5 @@
-import { Color, IAvatar } from '@aklapper/types-game';
-import { Space } from './space.ts';
+import { Color, IAvatar } from '@aklapper/types';
+import { Space } from './space.js';
 
 export class Avatar implements IAvatar {
   Name: string;
@@ -57,3 +57,5 @@ export class Avatar implements IAvatar {
     }
   }
 }
+
+export default Avatar;

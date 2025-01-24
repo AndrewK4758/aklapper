@@ -1,7 +1,8 @@
 {
   "name": "@aklapper/vertex-api-e2e",
-  "private": true,
+  "version": "0.0.1",
   "type": "module",
+  "private": true,
   "nx": {
     "name": "vertex-api-e2e",
     "projectType": "application",

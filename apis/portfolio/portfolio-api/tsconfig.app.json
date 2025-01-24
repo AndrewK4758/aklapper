@@ -1,10 +1,13 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
-    "declarationDir": "../../../dist",
-    "rootDirs": ["./src", "../../../"],
-    "types": ["node", "express"]
+    "outDir": "out-tsc/portfolio-api",
+    "module": "nodenext",
+    "types": ["node"],
+    "rootDir": "src",
+    "moduleResolution": "nodenext",
+    "tsBuildInfoFile": "out-tsc/portfolio-api/tsconfig.app.tsbuildinfo"
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"]
+  "exclude": ["out-tsc", "dist", "vitest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts", "eslint.config.js"]
 }

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import updateAlbum from '../services/prisma/album/update-albums.ts';
+import updateAlbum from '../services/prisma/album/update-albums.js';
 
 /**
  * This function handles PATCH requests to update the title of an existing album.
@@ -15,7 +15,9 @@ const updateAlbums = async (req: Request, resp: Response) => {
 
     const updatedAlbum = await updateAlbum(parseInt(albumID, 10), title);
 
-    resp.status(200).json({ message: 'Album Updated', updatedAlbum: updatedAlbum });
+    resp
+      .status(200)
+      .json({ message: 'Album Updated', updatedAlbum: updatedAlbum });
   } catch (error) {
     console.error(error);
   }

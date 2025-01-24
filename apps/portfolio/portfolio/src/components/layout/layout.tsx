@@ -6,7 +6,6 @@ import Home from '../../pages/home/home';
 import {
   baseStyleForLayoutItems,
   footerWrapperSxProps,
-  headerWrapperSxProps,
   homeWrapperSxProps,
   mainWrapperSxProps,
   outletWrapperSxProps
@@ -23,15 +22,7 @@ const Layout = (): JSX.Element => {
   const [loading, setLoading] = useState<boolean>(false);
   return (
     <Box component={'div'} key={'app-wrapper'} id="app-wrapper" data-testid="app-wrapper" sx={baseStyleForLayoutItems}>
-      <Box
-        component={'div'}
-        key={'header-wrapper'}
-        id="header-wrapper"
-        data-testid="header-wrapper"
-        sx={headerWrapperSxProps}
-      >
-        <Header />
-      </Box>
+      <Header />
       <Box component={'main'} key={'main-wrapper'} id="main-wrapper" data-testid="main-wrapper" sx={mainWrapperSxProps}>
         <Box
           component={'div'}

@@ -27,14 +27,11 @@ export const crudHeaderTextSxProps: SxProps = {
     fontSize: '0.875rem'
   }
 };
-// export const crudHomeTextStyles: SxProps = {
-//   flex: 1,
-//   textAlign: 'center'
-// };
 
 export const crudButtonSxProps: SxProps = {
-  [Theme.breakpoints.down('lg')]: {
-    fontSize: '1rem'
+  fontSize: '2rem',
+  [Theme.breakpoints.down('md')]: {
+    p:0
   }
 };
 

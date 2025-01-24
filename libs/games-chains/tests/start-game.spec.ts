@@ -1,16 +1,22 @@
 import { ContextBuilder } from '@aklapper/chain';
-import { ChutesAndLadders } from '@aklapper/chutes-and-ladders';
 import { Game } from '@aklapper/game';
-import { InstanceOfGame } from '@aklapper/game-instance';
+import { ChutesAndLadders } from '@aklapper/games';
 import { mockReqObj, mockRespObj } from '@aklapper/mocks';
-import { Color, Context, GameContextKeys, TurnStatus, type IInstanceOfGame } from '@aklapper/types-game';
+import { InstanceOfGame } from '@aklapper/models';
+import {
+  Color,
+  Context,
+  GameContextKeys,
+  TurnStatus,
+  type IInstanceOfGame,
+} from '@aklapper/types';
 import { getCurrentMinute } from '@aklapper/utils';
 import { Request, Response } from 'express';
-import { sendStartGameStatus } from '../src/lib/commands/action-start-game/send-start-game-status.ts';
-import { setAvatarOnStartChutesAndLadders } from '../src/lib/commands/action-start-game/set-on-start-chutes-and-ladders.ts';
-import { setPlayerInTurn } from '../src/lib/commands/action-start-game/set-player-in-turn.ts';
-import { startGame } from '../src/lib/commands/action-start-game/start-game-start.ts';
-import { verifyReadyToPlay } from '../src/lib/commands/action-start-game/verify-ready-to-play.ts';
+import { sendStartGameStatus } from '../src/lib/commands/action-start-game/send-start-game-status.js';
+import { setAvatarOnStartChutesAndLadders } from '../src/lib/commands/action-start-game/set-on-start-chutes-and-ladders.js';
+import { setPlayerInTurn } from '../src/lib/commands/action-start-game/set-player-in-turn.js';
+import { startGame } from '../src/lib/commands/action-start-game/start-game-start.js';
+import { verifyReadyToPlay } from '../src/lib/commands/action-start-game/verify-ready-to-play.js';
 
 let ctx: Context<GameContextKeys | string>,
   instanceOfGame: InstanceOfGame,
@@ -85,7 +91,7 @@ describe('Test start game chain', () => {
 
     expect(commandResult).toBeTruthy();
 
-    game.playersArray.forEach(p => {
+    game.playersArray.forEach((p) => {
       expect(p.avatar.location.type).toEqual(game.instance.startSpace.type);
       expect(p.order).toBeTruthy();
     });
@@ -112,6 +118,8 @@ describe('Test start game chain', () => {
 
     const commandResult = sendStartGameStatus.execute(ctx);
     expect(commandResult).toBeTruthy();
-    expect((ctx.get(GameContextKeys.OUTPUT) as { message: string }).message).toEqual(output.message);
+    expect(
+      (ctx.get(GameContextKeys.OUTPUT) as { message: string }).message,
+    ).toEqual(output.message);
   });
 });

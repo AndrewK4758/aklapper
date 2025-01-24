@@ -2,94 +2,61 @@
   "extends": "./tsconfig.base.json",
   "compileOnSave": false,
   "files": [],
-  "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.spec.tsx", "**/*.test.ts", "**/*.test.tsx"],
+  "exclude": ["node_modules", "dist"],
   "references": [
     {
-      "path": "./apps/local-model/local-model-e2e"
-    },
-    {
-      "path": "./apis/portfolio/portfolio-api-e2e"
-    },
-    {
-      "path": "./libs/games/chutes-and-ladders"
-    },
-    {
-      "path": "./apps/local-model/local-model"
-    },
-    {
-      "path": "./apis/portfolio/portfolio-api"
-    },
-    {
-      "path": "./apps/portfolio/portfolio-e2e"
-    },
-    {
-      "path": "./apis/vertex/vertex-api-e2e"
-    },
-    {
-      "path": "./libs/models/all-games-map"
-    },
-    {
-      "path": "./libs/models/game-instance"
-    },
-    {
-      "path": "./libs/models/game-builder"
-    },
-    {
-      "path": "./apps/portfolio/portfolio"
-    },
-    {
-      "path": "./apis/crud/crud-api-e2e"
-    },
-    {
-      "path": "./libs/games/tic-tac-toe"
-    },
-    {
-      "path": "./apis/vertex/vertex-api"
-    },
-    {
-      "path": "./apps/crud/crud-ui-e2e"
-    },
-    {
-      "path": "./libs/games-components"
-    },
-    {
-      "path": "./libs/socket-io/client"
-    },
-    {
-      "path": "./libs/socket-io/server"
-    },
-    {
-      "path": "./libs/types/types-game"
-    },
-    {
-      "path": "./libs/gen-ai/vertex-ai"
-    },
-    {
-      "path": "./apis/games/games-api"
-    },
-    {
-      "path": "./libs/types/types-api"
-    },
-    {
-      "path": "./libs/media-recorder"
-    },
-    {
-      "path": "./libs/types/types-ai"
+      "path": "./apis/crud/crud-api-e2e/"
     },
     {
       "path": "./apis/crud/crud-api"
     },
     {
-      "path": "./apps/crud/crud-ui"
+      "path": "./apis/games/games-api-e2e"
+    },
+    {
+      "path": "./apis/games/games-api"
+    },
+    {
+      "path": "./apis/portfolio/portfolio-api-e2e"
+    },
+    {
+      "path": "./apis/portfolio/portfolio-api"
+    },
+    {
+      "path": "./apis/vertex/vertex-api-e2e"
+    },
+    {
+      "path": "./apis/vertex/vertex-api"
+    },
+    {
+      "path": "./libs/chain"
+    },
+    {
+      "path": "./libs/game"
+    },
+    {
+      "path": "./libs/games"
     },
     {
       "path": "./libs/games-chains"
     },
     {
-      "path": "./libs/react-shared"
+      "path": "./libs/games-components"
     },
     {
-      "path": "./libs/models/rule"
+      "path": "./libs/gen-ai/prompt-builder"
+    },
+    {
+      "path": "./libs/gen-ai/vertex-ai"
+    },
+    {
+      "path": "./libs/media-recorder"
+    },
+    {
+      "path": "./libs/mocks"
+    },
+    {
+      "path": "./libs/models"
     },
     {
       "path": "./libs/password"
@@ -98,28 +65,46 @@
       "path": "./libs/prisma"
     },
     {
-      "path": "./libs/chain"
+      "path": "./libs/socket-io/server"
     },
     {
-      "path": "./libs/mocks"
+      "path": "./libs/socket-io/client"
+    },
+    {
+      "path": "./libs/types"
     },
     {
       "path": "./libs/utils"
     },
     {
-      "path": "./libs/game"
+      "path": "./apps/crud/crud-ui-e2e"
     },
     {
-      "path": "./libs/gen-ai/prompt-builder"
-    },
-    {
-      "path": "./apps/games/games-ui"
+      "path": "./apps/crud/crud-ui"
     },
     {
       "path": "./apps/games/games-ui-e2e"
     },
     {
-      "path": "./apis/games/games-api-e2e"
+      "path": "./apps/games/games-ui"
+    },
+    {
+      "path": "./apps/portfolio/portfolio-e2e"
+    },
+    {
+      "path": "./apps/portfolio/portfolio"
+    },
+    {
+      "path": "./apps/local-model/local-model-e2e"
+    },
+    {
+      "path": "./apps/local-model/local-model"
+    },
+    {
+      "path": "./libs/react-shared"
+    },
+    {
+      "path": "./apis/crud/crud-api-e2e"
     }
   ]
 }

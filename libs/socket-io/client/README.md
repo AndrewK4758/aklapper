@@ -1,7 +1,7 @@
-# socket-io-client
+# client
 
 This library was generated with [Nx](https://nx.dev).
 
-## Running unit tests
+## Building
 
-Run `nx test socket-io-client` to execute the unit tests via [Jest](https://jestjs.io).
+Run `nx build client` to build the library.

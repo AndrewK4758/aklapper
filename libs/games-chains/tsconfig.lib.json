@@ -1,42 +1,48 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "declarationDir": "../../dist",
-    "module": "NodeNext",
-    "moduleResolution": "nodenext",
-    "rootDirs": ["./src", "../../"],
-    "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
-    "types": ["node", "vite/client"]
+    "baseUrl": ".",
+    "rootDir": "src",
+    "outDir": "dist",
+    "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
+    "emitDeclarationOnly": false,
+    "types": ["node"],
+    "paths": {
+      "@aklapper/chain": ["../chain/src/index.ts"],
+      "@aklapper/game": ["../game/src/index.ts"],
+      "@aklapper/games": ["../games/src/index.ts"],
+      "@aklapper/games-components": ["../games-components/src/index.ts"],
+      "@aklapper/models": ["../models/src/index.ts"],
+      "@aklapper/types": ["../types/src/index.ts"],
+      "@aklapper/utils": ["../utils/src/index.ts"]
+    }
   },
-  "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "../types/src/lib/game/types/express-request.d.ts"],
   "references": [
     {
-      "path": "../games/tic-tac-toe/tsconfig.lib.json"
+      "path": "../mocks/tsconfig.lib.json"
     },
     {
-      "path": "../mocks/tsconfig.lib.json"
+      "path": "../models/tsconfig.lib.json"
     },
     {
       "path": "../game/tsconfig.lib.json"
     },
     {
+      "path": "../games/tsconfig.lib.json"
+    },
+    {
       "path": "../games-components/tsconfig.lib.json"
-    },
-    {
-      "path": "../games/chutes-and-ladders/tsconfig.lib.json"
-    },
-    {
-      "path": "../models/game-instance/tsconfig.lib.json"
     },
     {
       "path": "../utils/tsconfig.lib.json"
     },
     {
-      "path": "../types/types-game/tsconfig.lib.json"
+      "path": "../types/tsconfig.lib.json"
     },
     {
       "path": "../chain/tsconfig.lib.json"
     }
-  ]
+  ],
+  "exclude": ["vitest.confige.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"]
 }

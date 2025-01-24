@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import deleteArtists from '../services/prisma/artist/delete-artist.ts';
-import deleteArtistError from '../errors/delete-artist-error.ts';
+import deleteArtists from '../services/prisma/artist/delete-artist.js';
+import deleteArtistError from '../errors/delete-artist-error.js';
 
 /**
  * Handles DELETE requests to delete an artist from the database.

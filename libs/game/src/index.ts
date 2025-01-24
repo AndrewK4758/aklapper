@@ -1,1 +1,1 @@
-export * from './lib/game.ts';
+export * from './lib/game.js';

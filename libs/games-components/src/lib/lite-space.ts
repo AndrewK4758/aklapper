@@ -1,4 +1,4 @@
-import { ILiteSpace } from '@aklapper/types-game';
+import { ILiteSpace } from '@aklapper/types';
 
 export class LiteSpace implements ILiteSpace {
   display: string;
@@ -9,3 +9,4 @@ export class LiteSpace implements ILiteSpace {
 
   static MakeSpace = (display: string) => new LiteSpace(display);
 }
+export default LiteSpace;

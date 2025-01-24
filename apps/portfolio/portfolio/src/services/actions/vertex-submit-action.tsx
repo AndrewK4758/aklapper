@@ -22,11 +22,3 @@ const vertexSubmitAction: ActionFunction = async ({ request }: ActionFunctionArg
 
 export default vertexSubmitAction;
 
-// const readChunks = async (reader: ReadableStreamDefaultReader<any>) => {
-//   const { done, value } = await reader.read();
-
-//   return {
-//     done,
-//     value,
-//   };
-// };

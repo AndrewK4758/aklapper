@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import updateArtistError from '../errors/update-artist-error.ts';
-import updateArtist from '../services/prisma/artist/update-artists.ts';
+import updateArtistError from '../errors/update-artist-error.js';
+import updateArtist from '../services/prisma/artist/update-artists.js';
 
 /**
  * Handles PATCH requests to update an artist in the database.
@@ -18,7 +18,7 @@ const updateArtists = async (req: Request, resp: Response): Promise<void> => {
     const updatedArtist = await updateArtist(artist_id, name);
 
     const output = {
-      updatedArtist: updatedArtist
+      updatedArtist: updatedArtist,
     };
 
     console.log(output);

@@ -1,5 +1,6 @@
+import { Color, type GamePlayerValidation, type IRegisterFormValues } from '@aklapper/types';
 import { Request, Response } from 'express';
-import { Color, type GamePlayerValidation, type IRegisterFormValues } from '@aklapper/types-game';
+import { vitest } from 'vitest';
 
 export const mockReqObj = (): Partial<Request> => {
   const req: Partial<Request> = {
@@ -9,7 +10,7 @@ export const mockReqObj = (): Partial<Request> => {
       avatarName: 'XENOMORPH',
       avatarColor: Color.BLACK
     } as IRegisterFormValues,
-    header: jest.fn().mockImplementation((name: string) => {
+    header: vitest.fn().mockImplementation((name: string) => {
       const headers = new Map<string, string>();
       const __current_game__ = {
         gameInstanceID: 'gameID',
@@ -30,18 +31,18 @@ const headers = new Map<string, string>();
 
 export const mockRespObj = (): Partial<Response> => {
   const resp: Partial<Response> = {
-    setHeader: jest.fn().mockImplementation((name: string, headerValue: string) => {
+    setHeader: vitest.fn().mockImplementation((name: string, headerValue: string) => {
       headers.set(name, headerValue);
     }),
-    header: jest.fn().mockImplementation(name => {
+    header: vitest.fn().mockImplementation(name => {
       return headers.get(name);
     }),
-    status: jest.fn().mockImplementation(code => {
+    status: vitest.fn().mockImplementation(code => {
       resp.status = code;
       return resp;
     }),
-    sendStatus: jest.fn().mockImplementation(result => (resp.status = result)),
-    json: jest.fn().mockImplementation(result => {
+    sendStatus: vitest.fn().mockImplementation(result => (resp.status = result)),
+    json: vitest.fn().mockImplementation(result => {
       resp.json = result;
       return resp;
     })

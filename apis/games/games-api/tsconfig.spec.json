@@ -1,80 +1,39 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "tests/out-tsc",
-    "tsBuildInfoFile": "tsconfig.spec.tsbuildinfo",
-    "types": ["jest", "node", "express"]
+    "outDir": "./out-tsc/jest",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["vitest/globals", "vitest/importMeta", "vite/client", "node", "vitest", "jest"],
+    "paths": {
+      "@aklapper/mocks": ["../../../libs/mocks/src/index.ts"],
+      "@aklapper/models": ["../../../libs/models/src/index.ts"],
+      "@aklapper/types": ["../../../libs/types/src/index.ts"],
+      "@aklapper/utils": ["../../../libs/utils/src/index.ts"]
+    }
   },
   "include": [
-    "jest.config.ts",
+    "vitest.config.ts",
     "tests/**/*.test.ts",
     "tests/**/*.spec.ts",
     "src/**/*.d.ts",
-    "src/**/*.ts",
-    "../../../libs/types/**/*/src/**/*.ts",
-    "../../../libs/password/src/**/*.ts",
-    "../../../libs/prisma/src/**/*.ts",
-    "../../../libs/models/**/*/src/**/*.ts",
-    "../../../libs/socket-io/server/src/**/*.ts",
-    "../../../libs/games/**/*/src/**/*.ts",
-    "../../../libs/mocks/src/**/*.ts",
-    "../../../libs/game/src/**/*.ts",
-    "../../../libs/games-components/src/**/*.ts",
-    "../../../libs/utils/src/**/*.ts",
-    "../../../libs/games-chains/src/**/*.ts",
-    "../../../libs/chain/src/**/*.ts"
+    "../../../libs/types/src/lib/game/types/express-request.d.ts"
   ],
   "references": [
     {
-      "path": "../../../libs/password/tsconfig.lib.json"
+      "path": "./tsconfig.app.json"
     },
     {
-      "path": "../../../libs/prisma/tsconfig.lib.json"
+      "path": "../../../libs/types/tsconfig.lib.json"
     },
     {
-      "path": "../../../libs/models/all-games-map/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/socket-io/server/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/models/rule/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/models/game-builder/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/types/types-api/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/games/tic-tac-toe/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/mocks/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/game/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/games-components/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/games/chutes-and-ladders/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/models/game-instance/tsconfig.lib.json"
+      "path": "../../../libs/models/tsconfig.lib.json"
     },
     {
       "path": "../../../libs/utils/tsconfig.lib.json"
     },
     {
-      "path": "../../../libs/games-chains/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/types/types-game/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/chain/tsconfig.lib.json"
+      "path": "../../../libs/mocks/tsconfig.lib.json"
     }
   ]
 }

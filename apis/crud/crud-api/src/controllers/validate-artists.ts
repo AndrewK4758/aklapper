@@ -1,6 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
-import validateArtist from '../services/prisma/artist/validate-artist-in-db.ts';
+import validateArtist from '../services/prisma/artist/validate-artist-in-db.js';
 
 /**
  * Handles GET requests to validate if an artist exists in the database.
@@ -17,7 +17,7 @@ const validateArtists = async (req: Request, resp: Response) => {
     const { name } = req.query;
 
     const query = {
-      where: { name: { equals: name as string, mode: 'insensitive' } }
+      where: { name: { equals: name as string, mode: 'insensitive' } },
     } as Prisma.artistWhereInput;
 
     const artist = await validateArtist(query);

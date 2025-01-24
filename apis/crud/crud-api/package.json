@@ -1,20 +1,12 @@
 {
   "name": "@aklapper/crud-api",
   "version": "0.0.1",
-  "type": "module",
-  "dependencies": {},
-  "exports": {
-    ".": {
-      "import": "./main.js"
-    }
-  },
-  "main": "./main.js",
-  "meta": "./meta.json",
   "private": true,
+  "type": "module",
   "nx": {
     "name": "crud-api",
-    "sourceRoot": "apis/crud/crud-api/src",
     "projectType": "application",
+    "sourceRoot": "apis/crud/crud-api/src",
     "targets": {
       "build": {
         "executor": "@nx/esbuild:esbuild",
@@ -23,36 +15,47 @@
         ],
         "defaultConfiguration": "production",
         "options": {
-          "outputPath": "dist/apis/crud-api",
-          "outputFileName": "main.js",
-          "main": "apis/crud/crud-api/src/main.ts",
-          "tsConfig": "apis/crud/crud-api/tsconfig.app.json",
-          "declaration": true,
-          "declarationRootDir": "./",
-          "assets": [
-            "apis/crud/crud-api/src/assets"
-          ],
+          "platform": "node",
           "target": "node23",
+          "metafile": true,
+          "outputPath": "dist/apis/crud/crud-api",
           "format": [
             "esm"
           ],
-          "sourcemap": true,
-          "metafile": true
+          "bundle": true,
+          "main": "apis/crud/crud-api/src/main.ts",
+          "tsConfig": "apis/crud/crud-api/tsconfig.app.json",
+          "assets": [
+            "apis/crud/crud-api/src/assets"
+          ],
+          "esbuildOptions": {
+            "sourcemap": true,
+            "outExtension": {
+              ".js": ".js"
+            }
+          }
         },
         "configurations": {
           "development": {},
-          "production": {}
+          "production": {
+            "esbuildOptions": {
+              "sourcemap": false,
+              "outExtension": {
+                ".js": ".js"
+              }
+            }
+          }
         }
       },
       "serve": {
         "executor": "@nx/js:node",
-        "defaultConfiguration": "production",
+        "defaultConfiguration": "development",
         "dependsOn": [
           "build"
         ],
         "options": {
           "buildTarget": "crud-api:build",
-          "runBuildTargetDependencies": true
+          "runBuildTargetDependencies": false
         },
         "configurations": {
           "development": {
@@ -60,10 +63,12 @@
           },
           "production": {
             "buildTarget": "crud-api:build:production"
-          },
-          "test": {
-            "buildTarget": "crud-api:build:production"
           }
+        }
+      },
+      "test": {
+        "options": {
+          "passWithNoTests": true
         }
       },
       "docker-build": {

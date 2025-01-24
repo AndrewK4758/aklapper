@@ -1,14 +1,26 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
-    "declarationDir": "../../../dist",
-    "outDir": "../../../dist",
-    "rootDirs": ["./src", "../../../"],
-    "tsBuildInfoFile": "tsconfig.app.tsbuildinfo",
-    "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
-    "jsx": "react-jsx"
+    "outDir": "out-tsc/crud-ui",
+    "tsBuildInfoFile": "out-tsc/crud-ui/tsconfig.app.tsbuildinfo",
+    "jsx": "react-jsx",
+    "lib": ["dom"],
+    "types": [
+      "node",
+      "@nx/react/typings/cssmodule.d.ts",
+      "@nx/react/typings/image.d.ts",
+      "vite/client"
+    ],
+    "rootDir": "src",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "paths": {
+      "@aklapper/react-shared": ["../../../libs/react-shared/src/index.ts"]
+    }
   },
   "exclude": [
+    "out-tsc",
+    "dist",
     "tests/**/*.spec.ts",
     "tests/**/*.test.ts",
     "tests/**/*.spec.tsx",
@@ -17,34 +29,11 @@
     "tests/**/*.test.js",
     "tests/**/*.spec.jsx",
     "tests/**/*.test.jsx",
-    "vite.config.ts"
+    "vite.config.ts",
+    "eslint.config.js"
   ],
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
-    {
-      "path": "../../../libs/mocks/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/game/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/games-components/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/games/chutes-and-ladders/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/models/game-instance/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/chain/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/utils/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../libs/types/types-game/tsconfig.lib.json"
-    },
     {
       "path": "../../../libs/react-shared/tsconfig.lib.json"
     }

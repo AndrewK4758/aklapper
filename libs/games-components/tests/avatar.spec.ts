@@ -1,6 +1,8 @@
-import { Color, SpaceType } from '@aklapper/types-game';
-import { Avatar } from '../src/lib/avatar.ts';
-import { Space } from '../src/lib/space.ts';
+import { Color, SpaceType } from '@aklapper/types';
+import { Avatar } from '../src/lib/avatar.js';
+import { Space } from '../src/lib/space.js';
+
+console.log(Color.BLACK, SpaceType.NORMAL);
 
 let avatar: Avatar, space: Space, nextSpace: Space;
 

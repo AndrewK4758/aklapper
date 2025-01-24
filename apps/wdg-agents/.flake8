@@ -7,7 +7,7 @@ exclude =
 	.tox,
 	venv,
 	.venv,
-	.pytest_cache,
+	.pytest_cache
   .poetry/plugins
 max-line-length = 120
 

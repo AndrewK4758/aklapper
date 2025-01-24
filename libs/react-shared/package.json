@@ -1,34 +1,21 @@
 {
   "name": "@aklapper/react-shared",
-  "private": true,
-  "type": "module",
-  "dependencies": {},
-  "exports": {
-    ".": {
-      "types": "./src/index.d.ts",
-      "import": "./index.js",
-      "require": null,
-      "default": "./index.js"
-    }
-  },
-  "main": "./index.js",
-  "types": "./src/index.d.ts",
+  "version": "0.0.1",
   "nx": {
     "name": "react-shared",
-    "sourceRoot": "libs/react-shared/src",
     "projectType": "library",
-    "targets": {
-      "build": {
-        "executor": "nx:run-commands",
-        "outputs": [
-          "{options.outputPath}"
-        ],
-        "options": {
-          "cwd": "libs/react-shared",
-          "color": true,
-          "command": "vite build"
-        }
-      }
+    "sourceRoot": "libs/react-shared/src"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     }
-  }
+  },
+  "types": "./dist/index.d.ts",
+  "module": "./dist/index.js",
+  "type": "module",
+  "main": "./dist/index.js"
 }

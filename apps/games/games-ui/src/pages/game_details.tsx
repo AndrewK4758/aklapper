@@ -1,6 +1,6 @@
 import { RenderList, Text } from '@aklapper/react-shared';
 import GamesTheme from '../styles/games-theme';
-import { IBuiltGame, IRule } from '@aklapper/types-game';
+import { IBuiltGame, IRule } from '@aklapper/types';
 import { SxProps } from '@mui/material';
 import Container from '@mui/material/Container';
 import List from '@mui/material/List';

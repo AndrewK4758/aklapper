@@ -26,28 +26,24 @@
     "build": {
       "executor": "@nxlv/python:build",
       "outputs": [
-        "{workspaceRoot}/dist/apps/wdg-agents"
+        "{projectRoot}/dist"
       ],
       "options": {
         "outputPath": "apps/wdg-agents/dist",
         "publish": false,
         "lockedVersions": true,
         "bundleLocalDependencies": true
-      }
+      },
+      "cache": true
     },
     "install": {
       "executor": "@nxlv/python:install",
       "options": {
         "silent": false,
+        "args": "",
         "cacheDir": ".cache/pypoetry",
-        "verbose": true
-      }
-    },
-    "start-poetry": {
-      "executor": "@nxlv/python:run-commands",
-      "options": {
-        "command": "poetry shell",
-        "cwd": "apps/wdg-agents"
+        "verbose": false,
+        "debug": false
       }
     },
     "lint": {
@@ -56,8 +52,9 @@
         "{workspaceRoot}/reports/apps/wdg-agents/pylint.txt"
       ],
       "options": {
-        "outputFile": "{workspaceRoot}/reports/apps/wdg-agents/pylint.txt"
-      }
+        "outputFile": "reports/apps/wdg-agents/pylint.txt"
+      },
+      "cache": true
     },
     "test": {
       "executor": "@nxlv/python:run-commands",
@@ -67,7 +64,15 @@
       ],
       "options": {
         "command": "poetry run pytest tests/",
-        "cwd": "apps/wdg-agents/apps"
+        "cwd": "apps/wdg-agents"
+      },
+      "cache": true
+    },
+    "shell": {
+      "executor": "@nxlv/python:run-commands",
+      "options": {
+        "command": "poetry shell",
+        "cwd": "apps/wdg-agents"
       }
     }
   },

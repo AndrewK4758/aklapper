@@ -1,8 +1,15 @@
-import { Context, GameContextKeys, ContextData, IInstanceOfGame } from '@aklapper/types-game';
+import {
+  Context,
+  ContextData,
+  GameContextKeys,
+  IInstanceOfGame,
+} from '@aklapper/types';
 import { Request, Response } from 'express';
 import { Server } from 'socket.io';
 
-export const deRefContextObject = (context: Context<GameContextKeys | string>): ContextData => {
+export const deRefContextObject = (
+  context: Context<GameContextKeys | string>,
+): ContextData => {
   const action = context.get(GameContextKeys.ACTION) as string;
   const game = context.get(GameContextKeys.GAME) as IInstanceOfGame;
   const req = context.get(GameContextKeys.REQUEST) as Request;
@@ -18,6 +25,6 @@ export const deRefContextObject = (context: Context<GameContextKeys | string>): 
     resp: resp,
     next: next,
     output: output,
-    io: io
+    io: io,
   };
 };

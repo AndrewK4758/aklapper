@@ -1,9 +1,9 @@
 import express, { Router } from 'express';
 import cookieParser from 'cookie-parser';
 import multer from 'multer';
-import postEmail from '../controllers/post-email.ts';
-import createTokens from '../controllers/create-google-tokens.ts';
-import createEvents from '../controllers/calendar/create-event.ts';
+import postEmail from '../controllers/post-email.js';
+import createTokens from '../controllers/create-google-tokens.js';
+import createEvents from '../controllers/calendar/create-event.js';
 
 const router: Router = Router();
 

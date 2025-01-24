@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Color, type GamePlayerValidation, type IRegisterFormValues } from '@aklapper/types-game';
+import { Color, type GamePlayerValidation, type IRegisterFormValues } from '@aklapper/types';
 import gamesAutoStartError from '../../errors/games-auto-start-error';
 
 const baseUrl = import.meta.env.VITE_GAMES_API_URL;

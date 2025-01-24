@@ -1,20 +1,11 @@
+import type { PaperProps } from '@mui/material/Paper';
 import type { SxProps } from '@mui/material/styles';
+import type { DateCalendarSlotProps } from '@mui/x-date-pickers/DateCalendar';
+import type { DateTimePickerSlotProps } from '@mui/x-date-pickers/DateTimePicker';
+import type { TimePickerSlotProps } from '@mui/x-date-pickers/TimePicker';
+import type { Dayjs } from 'dayjs';
 import { flexColumnStyles } from './pages-styles';
 import Theme from './theme';
-import type { PaperProps } from '@mui/material/Paper';
-import { headerHeightSxProps } from './layout-styles';
-import type { DateCalendarSlotProps } from '@mui/x-date-pickers/DateCalendar';
-import type { Dayjs } from 'dayjs';
-import type { TimePickerSlotProps } from '@mui/x-date-pickers/TimePicker';
-import type { DateTimePickerSlotProps } from '@mui/x-date-pickers/DateTimePicker';
-
-export const navbarAppbarSxProps: SxProps = {
-  ...headerHeightSxProps
-};
-
-export const navbarToolbarSxProps: SxProps = {
-  ...headerHeightSxProps
-};
 
 export const buttonSXProps: SxProps = {
   fontSize: '2rem',
@@ -241,7 +232,7 @@ export const mainSx: SxProps = {
   }
 };
 
-export const emailDialogPaperProps: PaperProps = {
+export const emailDialogPaperProps = {
   elevation: 2,
   component: 'div',
   sx: {

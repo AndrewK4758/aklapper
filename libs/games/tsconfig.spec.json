@@ -1,0 +1,29 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/jest",
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
+    "types": ["vitest/globals", "vitest/importMeta", "vite/client", "node", "vitest", "jest"],
+    "paths": {
+      "@aklapper/types": ["../types/src/index.ts"],
+      "@aklapper/game": ["../game/src/index.ts"],
+      "@aklapper/games-components": ["../games-components/src/index.ts"]
+    }
+  },
+  "include": ["vitest.config.ts", "tests/**/*.test.ts", "tests/**/*.spec.ts", "src/**/*.d.ts"],
+  "references": [
+    {
+      "path": "./tsconfig.lib.json"
+    },
+    {
+      "path": "../games-components/tsconfig.lib.json"
+    },
+    {
+      "path": "../types/tsconfig.lib.json"
+    },
+    {
+      "path": "../utils/tsconfig.lib.json"
+    }
+  ]
+}

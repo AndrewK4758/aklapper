@@ -5,6 +5,7 @@ let dataPost: { name: string }, artist_id: number, dataUpdate: artist;
 
 describe('Test all endpoints for artist CRUD', () => {
   beforeAll(() => {
+    axios.defaults.baseURL = 'http://localhost:4000/api/v1';
     dataPost = { name: 'POSTED IN JEST' };
     dataUpdate = { artist_id: 1, name: 'UPDATED IN JEST' };
   });

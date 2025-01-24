@@ -10,13 +10,7 @@
       "path": "../../../libs/gen-ai/prompt-builder"
     },
     {
-      "path": "../../../libs/types/types-api"
-    },
-    {
-      "path": "../../../libs/types/types-game"
-    },
-    {
-      "path": "../../../libs/types/types-ai"
+      "path": "../../../libs/types"
     },
     {
       "path": "../../../libs/gen-ai/vertex-ai"
@@ -27,8 +21,5 @@
     {
       "path": "./tsconfig.spec.json"
     }
-  ],
-  "compilerOptions": {
-    "strict": false
-  }
+  ]
 }

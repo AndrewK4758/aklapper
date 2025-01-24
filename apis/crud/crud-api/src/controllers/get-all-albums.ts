@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { DefaultArgs } from '@prisma/client/runtime/library';
 import { Request, Response } from 'express';
-import findAllAlbums from '../services/prisma/album/find-albums.ts';
+import findAllAlbums from '../services/prisma/album/find-albums.js';
 
 /**
  * Retrieves a paginated list of albums from the database.

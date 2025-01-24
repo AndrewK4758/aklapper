@@ -1,8 +1,8 @@
 import { Prisma, type album, type artist } from '@prisma/client';
 import { DefaultArgs } from '@prisma/client/runtime/library';
 import { Request, Response } from 'express';
-import searchAlbum from '../services/prisma/search-album.ts';
-import searchArtist from '../services/prisma/search-artist.ts';
+import searchAlbum from '../services/prisma/search-album.js';
+import searchArtist from '../services/prisma/search-artist.js';
 
 /**
  * Handles GET requests to search for artists or albums in the database.
@@ -20,14 +20,14 @@ const searchArtistsAndAlbums = async (req: Request, resp: Response) => {
 
     const queryArtist: Prisma.artistFindManyArgs<DefaultArgs> = {
       where: {
-        name: { startsWith: search as string, mode: 'insensitive' }
-      }
+        name: { startsWith: search as string, mode: 'insensitive' },
+      },
     };
 
     const queryAlbum: Prisma.albumFindManyArgs<DefaultArgs> = {
       where: {
-        title: { startsWith: search as string, mode: 'insensitive' }
-      }
+        title: { startsWith: search as string, mode: 'insensitive' },
+      },
     };
 
     type ResponseData = {
@@ -37,7 +37,7 @@ const searchArtistsAndAlbums = async (req: Request, resp: Response) => {
 
     const responseData: ResponseData = {
       artist: [],
-      album: []
+      album: [],
     };
 
     switch (type as string) {

@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 import { nxE2EPreset } from '@nx/playwright/preset';
+
 import { workspaceRoot } from '@nx/devkit';
 import { fileURLToPath } from 'url';
 
@@ -15,7 +16,6 @@ const baseURL = process.env['BASE_URL'] || 'http://localhost:4300';
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
-
 const __filename = fileURLToPath(import.meta.url);
 export default defineConfig({
   ...nxE2EPreset(__filename, { testDir: './src' }),
@@ -43,13 +43,13 @@ export default defineConfig({
       use: { ...devices['Desktop Firefox'] }
     },
 
-    /* {
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] }
     }
 
     // Uncomment for mobile browsers support
+    /* {
       name: 'Mobile Chrome',
       use: { ...devices['Pixel 5'] },
     },
@@ -59,15 +59,13 @@ export default defineConfig({
     }, */
 
     // Uncomment for branded browsers
-    /*
-     {
+    /* {
       name: 'Microsoft Edge',
       use: { ...devices['Desktop Edge'], channel: 'msedge' },
     },
-    */
     {
       name: 'Google Chrome',
-      use: { ...devices['Desktop Chrome'], channel: 'chrome' }
-    }
+      use: { ...devices['Desktop Chrome'], channel: 'chrome' },
+    } */
   ]
 });

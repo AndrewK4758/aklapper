@@ -1,4 +1,4 @@
-import { ISummedRoll } from '@aklapper/types-game';
+import { ISummedRoll } from '@aklapper/types';
 
 export class SummedRoll implements ISummedRoll {
   RollValues: number[];
@@ -15,3 +15,5 @@ export class SummedRoll implements ISummedRoll {
     return this.Sum;
   }
 }
+
+export default SummedRoll;

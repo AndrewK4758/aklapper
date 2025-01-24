@@ -1,11 +1,11 @@
-import { GameNameString, IBuiltGame, PlayerID } from '@aklapper/types-game';
+import { GameNameString, IBuiltGame, PlayerID } from '@aklapper/types';
 import { NextFunction, Request, Response, Router } from 'express';
-import useAllGamesMap from './all-games-map.ts';
-import useInstanceTimeMap from './instance-map.ts';
-import useSetSelectedGameName from './set-selected-game-name.ts';
-import useActiveGameInstance from './use-active-game-instance.ts';
-import usePlayerID from './use-player-id.ts';
-import useSelectedGame from './use-selected-game.ts';
+import useAllGamesMap from './all-games-map.js';
+import useInstanceTimeMap from './instance-map.js';
+import useSetSelectedGameName from './set-selected-game-name.js';
+import useActiveGameInstance from './use-active-game-instance.js';
+import usePlayerID from './use-player-id.js';
+import useSelectedGame from './use-selected-game.js';
 
 const reqFilter = (req: Request, _resp: Response, next: NextFunction): void => {
   req.playerID = usePlayerID(req) as PlayerID;

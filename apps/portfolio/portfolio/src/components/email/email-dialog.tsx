@@ -40,7 +40,8 @@ const EmailDialog = ({ open, setOpen }: EmailDialogProps) => {
             data-testid="email-dialog"
             fullWidth
             scroll="body"
-            PaperProps={emailDialogPaperProps}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            slotProps={{ paper: emailDialogPaperProps as any }}
           >
             <Box
               component={'section'}

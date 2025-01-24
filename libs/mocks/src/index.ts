@@ -1,1 +1,1 @@
-export * from './lib/mocks.ts';
+export * from './lib/mocks.js';

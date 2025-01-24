@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { DefaultArgs } from '@prisma/client/runtime/library';
 import { NextFunction, Request, Response } from 'express';
-import getArtistAlbums from '../services/prisma/album/get-artist-albums.ts';
+import getArtistAlbums from '../services/prisma/album/get-artist-albums.js';
 
 /**
  * Middleware function that retrieves albums for a specific artist.

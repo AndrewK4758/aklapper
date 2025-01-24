@@ -1,5 +1,5 @@
 import { FormikValidationError, Label, Text, Waiting } from '@aklapper/react-shared';
-import { AspectRatio } from '@aklapper/types-ai';
+import { AspectRatio } from '@aklapper/types';
 import { type ImagenConfig } from '@aklapper/vertex-ai';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';

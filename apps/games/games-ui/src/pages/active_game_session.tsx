@@ -1,6 +1,6 @@
 import { rowFinder } from '@aklapper/games-components';
 import { Text } from '@aklapper/react-shared';
-import type { GameBoard, IActivePlayersInGame, ILiteSpace, IPlayersAndBoard, Row } from '@aklapper/types-game';
+import type { GameBoard, IActivePlayersInGame, ILiteSpace, IPlayersAndBoard, Row } from '@aklapper/types';
 import { SxProps } from '@mui/material';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';

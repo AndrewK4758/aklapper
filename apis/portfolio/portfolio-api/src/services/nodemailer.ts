@@ -3,16 +3,16 @@ import { configDotenv } from 'dotenv';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { resolve } from 'path';
 import { cwd } from 'process';
-import cca from './masl.ts';
+import cca from './masl.js';
 import type { AuthenticationResult } from '@azure/msal-node';
 
 configDotenv({
-  path: resolve(cwd(), './apis/portfolio/portfolio-api/env/.env')
+  path: resolve(cwd(), './apis/portfolio/portfolio-api/env/.env'),
 });
 
 const getToken = async () => {
   const { accessToken } = (await cca.acquireTokenByClientCredential({
-    scopes: ['api://portfolio/.default']
+    scopes: ['api://portfolio/.default'],
   })) as AuthenticationResult;
   return accessToken;
 };
@@ -28,12 +28,12 @@ const createTransporter = async () => {
     auth: {
       accessToken: accessToken,
       user: process.env.MAIL_USERNAME,
-      pass: process.env.MAIL_PASSWORD
+      pass: process.env.MAIL_PASSWORD,
     },
     tls: {
       ciphers: 'SSLv3',
-      rejectUnauthorized: false
-    }
+      rejectUnauthorized: false,
+    },
   };
   return createTransport(nodemailerConfigOptions);
 };

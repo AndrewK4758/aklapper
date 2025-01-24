@@ -1,8 +1,7 @@
-// import styles from './players-in-game.module.css';
+import { Text } from '@aklapper/react-shared';
 import { Box, SxProps } from '@mui/material';
 import { Variant } from '@mui/material/styles/createTypography';
 import type { ElementType } from 'react';
-import { Text } from '@aklapper/react-shared';
 import { avatarSvgStyle } from '../../../styles/games-styles';
 
 export interface PlayersInGameProps {

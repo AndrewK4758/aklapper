@@ -1,32 +1,11 @@
 {
-  "name": "local-model",
-  "type": "module",
+  "name": "@aklapper/local-model",
+  "version": "0.0.1",
   "private": true,
-  "exports": {
-    "./package.json": "./package.json",
-    ".": {
-      "import": "./index-[hash].js",
-      "require": null,
-      "default": "./index-[hash].js"
-    }
-  },
-  "main": "./index-[hash].js",
+  "type": "module",
   "nx": {
     "name": "local-model",
     "projectType": "application",
-    "sourceRoot": "apps/local-model/local-model/src",
-    "targets": {
-      "build": {
-        "executor": "nx:run-commands",
-        "outputs": [
-          "{options.outputPath}"
-        ],
-        "options": {
-          "cwd": "apps/local-model/local-model",
-          "color": true,
-          "command": "vite build"
-        }
-      }
-    }
+    "sourceRoot": "apps/local-model/local-model/src"
   }
 }

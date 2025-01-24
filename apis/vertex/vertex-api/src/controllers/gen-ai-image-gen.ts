@@ -1,12 +1,18 @@
-import { Request, Response } from 'express';
-import generateImage from '../services/vertex-ai-endpoint.ts';
 import type { ImagenConfig } from '@aklapper/vertex-ai';
+import { Request, Response } from 'express';
+import generateImage from '../services/vertex-ai-endpoint.js';
 
 const generateImages = async (req: Request, resp: Response) => {
   try {
-    const { prompt, sampleCount, seed, aspectRatio } = req.body as Partial<ImagenConfig>;
+    const { prompt, sampleCount, seed, aspectRatio } =
+      req.body as Partial<ImagenConfig>;
 
-    const rawImageDataArray = await generateImage({ prompt, sampleCount, seed, aspectRatio });
+    const rawImageDataArray = await generateImage({
+      prompt,
+      sampleCount,
+      seed,
+      aspectRatio,
+    });
 
     resp.status(201).send(rawImageDataArray);
   } catch (error) {

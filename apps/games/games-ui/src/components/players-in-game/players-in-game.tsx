@@ -1,4 +1,3 @@
-// import styles from './players-in-game.module.css';
 import { Box, SxProps } from '@mui/material';
 import { Variant } from '@mui/material/styles/createTypography';
 import { CSSProperties, ElementType } from 'react';

@@ -1,5 +1,4 @@
-import { ChutesAndLadders } from '@aklapper/chutes-and-ladders';
-import { GameBuilder } from '@aklapper/game-builder';
+import { ChutesAndLadders, TicTacToe } from '@aklapper/games';
 import {
   activeGameDisplayChain,
   loadRegisterChain,
@@ -11,8 +10,8 @@ import {
   turnChain,
   turnChainTicTacToe
 } from '@aklapper/games-chains';
-import { TicTacToe } from '@aklapper/tic-tac-toe';
-import { IBuiltGame } from '@aklapper/types-game';
+import { GameBuilder } from '@aklapper/models';
+import { IBuiltGame } from '@aklapper/types';
 
 const gb = new GameBuilder();
 const games: IBuiltGame[] = [];

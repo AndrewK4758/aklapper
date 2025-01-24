@@ -1,4 +1,3 @@
-// import styles from '../../../styles/prompt-builder-response.module.css';
 import { Text } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
 import type { CSSProperties } from 'react';

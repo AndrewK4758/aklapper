@@ -1,6 +1,4 @@
 import { FormikValidationError, Label } from '@aklapper/react-shared';
-import { labelSx, textInputSx, tooltipSx } from '../../../styles/gen-ai-modes-styles';
-import Theme from '../../../styles/theme';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
@@ -9,6 +7,8 @@ import { useContext } from 'react';
 import { Form } from 'react-router-dom';
 import * as Yup from 'yup';
 import { WebSocketContext } from '../../../contexts/websocket-context';
+import { labelSx, textInputSx, tooltipSx } from '../../../styles/gen-ai-modes-styles';
+import Theme from '../../../styles/theme';
 
 const initialValues = {
   modelTextQuery: ''

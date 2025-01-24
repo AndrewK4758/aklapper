@@ -1,41 +1,7 @@
 {
-  "compilerOptions": {
-    "allowJs": false,
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": false,
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "jsx": "react-jsx",
-    "strict": true,
-    "types": ["vite/client", "vitest"]
-  },
   "files": [],
   "include": [],
   "references": [
-    {
-      "path": "../../../libs/mocks"
-    },
-    {
-      "path": "../../../libs/game"
-    },
-    {
-      "path": "../../../libs/games-components"
-    },
-    {
-      "path": "../../../libs/games/chutes-and-ladders"
-    },
-    {
-      "path": "../../../libs/models/game-instance"
-    },
-    {
-      "path": "../../../libs/chain"
-    },
-    {
-      "path": "../../../libs/utils"
-    },
-    {
-      "path": "../../../libs/types/types-game"
-    },
     {
       "path": "../../../libs/react-shared"
     },

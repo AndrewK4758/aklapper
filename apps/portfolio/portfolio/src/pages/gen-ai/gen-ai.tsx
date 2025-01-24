@@ -39,7 +39,7 @@ import {
 } from '../../styles/pages-styles';
 import { body, title } from '../static/gen-ai-text';
 
-const PromptBuilder = lazy(() => import('../../components/gen-ai/prompt-builder/prompt-builder'));
+const PromptBuilder = lazy(() => import('../../components/gen-ai/prompt-builder/prompt-builder.jsx'));
 
 export type OutletContextProps = {
   prompt: PromptRequest;

@@ -1,6 +1,6 @@
 import { RenderList, Text } from '@aklapper/react-shared';
 import { GamesTheme as Theme } from '../styles/games-theme';
-import { IBuiltGame } from '@aklapper/types-game';
+import { IBuiltGame } from '@aklapper/types';
 import { SxProps, useMediaQuery } from '@mui/material';
 import Container from '@mui/material/Container';
 import ImageList from '@mui/material/ImageList';

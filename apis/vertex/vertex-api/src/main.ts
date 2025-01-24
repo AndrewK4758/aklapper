@@ -3,19 +3,24 @@ import cors, { CorsOptions } from 'cors';
 import express, { Express } from 'express';
 import { createServer } from 'http';
 import { join } from 'path';
-import type { ServerOptions } from 'socket.io';
-import handleTextDataChunks from './controllers/gen-ai-text-handler.ts';
-import router, { Routes } from './routes/routes.ts';
 import { cwd } from 'process';
+import type { ServerOptions } from 'socket.io';
+import handleTextDataChunks from './controllers/gen-ai-text-handler.js';
+import router, { Routes } from './routes/routes.js';
 
 const __dirname = join(cwd(), 'apis/vertex/vertex-api');
 
 const app: Express = express();
 
 export const corsOptions: CorsOptions = {
-  origin: ['http://localhost:4700', 'https://andrew-k.us', 'https://www.andrew-k.us', 'http://localhost'],
+  origin: [
+    'http://localhost:4700',
+    'https://andrew-k.us',
+    'https://www.andrew-k.us',
+    'http://localhost',
+  ],
   exposedHeaders: '*',
-  credentials: false
+  credentials: false,
 };
 
 export const httpServer = createServer(app);
@@ -28,10 +33,12 @@ app.use('/api/v1', router);
 
 const serverOptions: Partial<ServerOptions> = {
   cleanupEmptyChildNamespaces: true,
-  cors: corsOptions
+  cors: corsOptions,
 };
 
-export const socketServer = new SocketServer(httpServer, serverOptions, [handleTextDataChunks]);
+export const socketServer = new SocketServer(httpServer, serverOptions, [
+  handleTextDataChunks,
+]);
 
 new Routes();
 

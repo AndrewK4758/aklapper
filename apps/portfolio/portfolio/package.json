@@ -1,33 +1,13 @@
 {
   "name": "@aklapper/portfolio",
-  "private": true,
+  "version": "0.0.1",
   "type": "module",
-  "exports": {
-    "./package.json": "./package.json",
-    ".": {
-      "import": "./index-[hash].js",
-      "require": null,
-      "default": "./index-[hash].js"
-    }
-  },
-  "main": "./index-[hash].js",
-  "dependencies": {},
+  "private": true,
   "nx": {
     "name": "portfolio",
-    "sourceRoot": "apps/portfolio/portfolio/src",
     "projectType": "application",
+    "sourceRoot": "apps/portfolio/portfolio/src",
     "targets": {
-      "build": {
-        "executor": "nx:run-commands",
-        "outputs": [
-          "{options.outputPath}"
-        ],
-        "options": {
-          "cwd": "apps/portfolio/portfolio",
-          "color": true,
-          "command": "vite build"
-        }
-      },
       "deploy": {
         "executor": "nx:run-commands",
         "dependsOn": [
@@ -35,6 +15,7 @@
         ],
         "defaultConfiguration": "production",
         "options": {
+          "cwd": "apps/portfolio/portfolio",
           "commands": [
             {
               "command": "gcloud app deploy website.yaml --quiet --verbosity=debug"

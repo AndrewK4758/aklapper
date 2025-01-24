@@ -1,35 +1,33 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "declarationDir": "../../dist",
-    "outDir": "../../dist",
-    "rootDirs": ["./src", "../../"],
-    "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
-    "types": ["node", "vite/client", "../types/types-game/src/lib/types/express-request.d.ts"]
+    "baseUrl": ".",
+    "rootDir": "src",
+    "outDir": "dist",
+    "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
+    "emitDeclarationOnly": false,
+    "types": ["node"],
+    "paths": {
+      "@aklapper/types": ["../types/src/index.ts"]
+    }
   },
-  "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "../types/src/lib/game/types/express-request.d.ts"],
   "references": [
     {
       "path": "../mocks/tsconfig.lib.json"
     },
     {
+      "path": "../models/tsconfig.lib.json"
+    },
+    {
       "path": "../game/tsconfig.lib.json"
-    },
-    {
-      "path": "../games-components/tsconfig.lib.json"
-    },
-    {
-      "path": "../games/chutes-and-ladders/tsconfig.lib.json"
-    },
-    {
-      "path": "../models/game-instance/tsconfig.lib.json"
     },
     {
       "path": "../chain/tsconfig.lib.json"
     },
     {
-      "path": "../types/types-game/tsconfig.lib.json"
+      "path": "../types/tsconfig.lib.json"
     }
-  ]
+  ],
+  "exclude": ["vitest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"]
 }

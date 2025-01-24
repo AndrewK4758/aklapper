@@ -1,35 +1,25 @@
 {
   "name": "@aklapper/socket-io-client",
-  "private": true,
+  "version": "0.0.1",
   "type": "module",
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "private": true,
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./src/index.d.ts",
-      "import": "./index.js",
-      "require": null,
-      "default": "./index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
-  "main": "./index.js",
-  "types": "./src/index.d.ts",
-  "dependencies": {},
+  "module": "./dist/index.js",
   "nx": {
-    "name": "socket-io-client",
     "sourceRoot": "libs/socket-io/client/src",
     "projectType": "library",
-    "targets": {
-      "build": {
-        "executor": "nx:run-commands",
-        "outputs": [
-          "{options.outputPath}"
-        ],
-        "options": {
-          "cwd": "libs/socket-io/client",
-          "color": true,
-          "command": "vite build"
-        }
-      }
-    }
+    "name": "socket-io-client"
   }
 }

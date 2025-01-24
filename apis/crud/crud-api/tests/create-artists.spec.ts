@@ -1,6 +1,9 @@
-import createArtists from '../src/services/prisma/artist/create-artists.ts';
-import deleteArtists from '../src/services/prisma/artist/delete-artist.ts';
-import findArtists from '../src/services/prisma/artist/find-artists.ts';
+import type { artist } from '@prisma/client';
+import type { PrismaClientKnownRequestError } from '@prisma/client/runtime/library.js';
+import PrismaErrorLogger from '../src/errors/log-error.js';
+import createArtists from '../src/services/prisma/artist/create-artists.js';
+import deleteArtists from '../src/services/prisma/artist/delete-artist.js';
+import findArtists from '../src/services/prisma/artist/find-artists.js';
 
 let name: string;
 describe('Test createArtists service', () => {
@@ -13,11 +16,20 @@ describe('Test createArtists service', () => {
     }
   });
   it('Should pass and return the value of the created artist_id and name', async () => {
-    const artist = await createArtists(name);
-    console.log(artist);
-    if (artist) {
-      expect(artist.name).toEqual(name);
-      expect(artist.artist_id).toBeTruthy();
-    } else expect(artist).toBeNull();
+    const artist = (await createArtists(name)) as artist;
+    expect(artist.name).toEqual(name);
+    expect(artist.artist_id).toBeTruthy();
+  });
+
+  it('Should catch and return BuiltErrorMessage', async () => {
+    try {
+      await createArtists(name);
+    } catch (err) {
+      const prismaError = new PrismaErrorLogger(err as PrismaClientKnownRequestError);
+      const parsedError = prismaError.displayError();
+      console.log(parsedError);
+
+      expect(prismaError).toBeInstanceOf(PrismaErrorLogger);
+    }
   });
 });

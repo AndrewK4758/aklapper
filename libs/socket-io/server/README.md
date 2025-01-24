@@ -1,7 +1,7 @@
-# socket-io-server
+# server
 
 This library was generated with [Nx](https://nx.dev).
 
-## Running unit tests
+## Building
 
-Run `nx test socket-io-server` to execute the unit tests via [Jest](https://jestjs.io).
+Run `nx build server` to build the library.

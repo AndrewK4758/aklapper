@@ -1,17 +1,18 @@
 import Box from '@mui/material/Box';
 import type { SxProps, Theme } from '@mui/material/styles';
+import type { Variant } from '@mui/material/styles/createTypography.js';
 import TextField from '@mui/material/TextField';
-import { useField } from 'formik';
-import { ElementType, FocusEvent } from 'react';
-import { Label } from '../label/label';
-import Text from '../text/text';
+import type { FormikProps } from 'formik';
+import { FocusEvent } from 'react';
+import { Label } from '../label/label.jsx';
+import Text from '../text/text.jsx';
 
-export interface FormikTextInputProps {
+export interface FormikTextInputProps<T> {
   name: string;
+  formik: FormikProps<T>
   type: string;
   label: string;
-  labelComponent: ElementType;
-  size?: string;
+  labelComponent: Variant;
   autoComplete: string;
   id?: string;
   placeholder?: string;
@@ -21,44 +22,47 @@ export interface FormikTextInputProps {
   Theme: Theme;
 }
 
-export function FormikTextInput({
+export function FormikTextInput<T>({
+  name,
+  formik,
+  type,
   label,
+  labelComponent,
+  autoComplete,
+  id,
+  placeholder,
   textSx,
   labelSx,
-  autoComplete,
-  labelComponent,
-  size,
   onBlurCB,
   Theme,
-  ...props
-}: FormikTextInputProps) {
-  const [field, meta] = useField(props);
-  if (onBlurCB) field.onBlur = onBlurCB;
-
+}: FormikTextInputProps<T>) {
+  if (onBlurCB) formik.handleBlur = onBlurCB;
+  const {value} = formik.getFieldProps(name)
+  console.log(value)
   return (
     <Box key={`${label}-wrapper`} id={`${label}-wrapper`}>
-      <Label tooltipTitle={label} labelVariant={'h2'} labelText={label} labelTextsx={labelSx} placement={'top'} />
-      <TextField
-        id="chat-text-input-id"
+      <Label tooltipTitle={label} labelVariant={labelComponent} labelText={label} labelTextsx={labelSx} placement={'top'} />
+ <TextField
+        id={id}
         autoComplete={autoComplete}
         multiline={true}
         variant="outlined"
-        {...props}
-        {...field}
-        name={field.name}
-        value={field.value}
+        type={type}
+        placeholder={placeholder}
+        name={name}
+        value={value}
         slotProps={{
           inputLabel: { sx: textSx }
         }}
         sx={textSx}
-        onBlur={field.onBlur}
-      />
-      {meta.touched && meta.error ? (
+        onBlur={formik.handleBlur}
+      /> 
+       {formik.getFieldMeta(name).touched && formik.getFieldMeta(name).error ? (
         <Text
           component={'p'}
           id="formik-error-text-input"
           titleVariant="body1"
-          titleText={meta.error}
+          titleText={formik.getFieldMeta(name).error}
           sx={{
             ...labelSx,
             color: Theme.palette.error.main,
@@ -71,7 +75,7 @@ export function FormikTextInput({
             }
           }}
         />
-      ) : null}
+      ) : null} 
     </Box>
   );
 }

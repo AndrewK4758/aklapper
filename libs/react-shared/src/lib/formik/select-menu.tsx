@@ -1,11 +1,11 @@
-import { AvatarTotem } from '@aklapper/types-game';
+import type { AvatarTotem } from '@aklapper/types';
 import { SxProps } from '@mui/material';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
+import type { Theme } from '@mui/material/styles';
 import { useField } from 'formik';
 import type { JSX } from 'react';
-import Text from '../text/text';
-import type { Theme } from '@mui/material/styles';
+import Text from '../text/text.jsx';
 
 interface IAvatarColorSelectValues {
   name: string;

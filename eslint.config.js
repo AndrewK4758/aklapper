@@ -5,7 +5,14 @@ export default [
   ...nx.configs['flat/typescript'],
   ...nx.configs['flat/javascript'],
   {
-    ignores: ['**/dist', '**/out-tsc/**', '**/.gcloudignore', '**/.dockerignore', '**/env/**', '**/.env']
+    ignores: [
+      '**/dist',
+      '**/out-tsc/**',
+      '**/.gcloudignore',
+      '**/.dockerignore',
+      '**/env/**',
+      '**/.env',
+    ],
   },
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
@@ -18,16 +25,25 @@ export default [
           depConstraints: [
             {
               sourceTag: '*',
-              onlyDependOnLibsWithTags: ['*']
-            }
-          ]
-        }
-      ]
-    }
+              onlyDependOnLibsWithTags: ['*'],
+            },
+          ],
+        },
+      ],
+    },
   },
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
     // Override or add rules here
-    rules: {}
-  }
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+    },
+  },
 ];

@@ -1,37 +1,9 @@
 {
-  "compilerOptions": {
-    "jsx": "react-jsx",
-    "esModuleInterop": false,
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "types": ["vite/client", "vitest"]
-  },
   "files": [],
   "include": [],
   "references": [
     {
-      "path": "../mocks"
-    },
-    {
-      "path": "../game"
-    },
-    {
-      "path": "../games-components"
-    },
-    {
-      "path": "../games/chutes-and-ladders"
-    },
-    {
-      "path": "../models/game-instance"
-    },
-    {
-      "path": "../chain"
-    },
-    {
-      "path": "../utils"
-    },
-    {
-      "path": "../types/types-game"
+      "path": "../types"
     },
     {
       "path": "./tsconfig.lib.json"

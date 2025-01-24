@@ -1,25 +1,18 @@
-import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
-import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
+/// <reference types='vitest' />
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import * as path from 'path';
 import dts from 'vite-plugin-dts';
-import { defineConfig } from 'vitest/config';
+import * as path from 'path';
+import { cwd } from 'process';
 
 export default defineConfig({
-  root: __dirname,
+  root: cwd(),
   cacheDir: '../../node_modules/.vite/libs/react-shared',
   plugins: [
-    react({ babel: { targets: { esmodules: true } } }),
-    nxViteTsPaths({
-      debug: process.env['NODE_ENV'] !== 'production',
-      buildLibsFromSource: process.env['NODE_ENV'] !== 'production'
-    }),
-    nxCopyAssetsPlugin(['*.md']),
+    react(),
     dts({
       entryRoot: 'src',
-      insertTypesEntry: true,
-      outDir: `../../dist/libs/react-shared/src`,
-      tsconfigPath: path.join(__dirname, 'tsconfig.lib.json')
+      tsconfigPath: path.join(cwd(), 'tsconfig.lib.json')
     })
   ],
   // Uncomment this if you are using workers.
@@ -28,18 +21,11 @@ export default defineConfig({
   // },
   // Configuration for building your library.
   // See: https://vitejs.dev/guide/build.html#library-mode
-
-  resolve: {
-    alias: {
-      '@aklapper/utils': 'dist/libs/utils/index.js'
-    }
-  },
-
   build: {
-    outDir: `../../dist/libs/react-shared`,
+    minify: false,
+    outDir: './dist',
     emptyOutDir: true,
     reportCompressedSize: true,
-    sourcemap: true,
     commonjsOptions: {
       transformMixedEsModules: true
     },
@@ -53,8 +39,9 @@ export default defineConfig({
       formats: ['es']
     },
     rollupOptions: {
-      perf: true,
+      // External packages that should not be bundled into your library.
       external: ['react', 'react-dom', 'react/jsx-runtime'],
+      perf: true,
       output: {
         esModule: true,
         format: 'esm',
@@ -73,9 +60,11 @@ export default defineConfig({
     color: true,
     platform: 'browser'
   },
+
   logLevel: 'info',
   appType: 'spa',
   publicDir: 'public',
+  envDir: './env',
 
   test: {
     watch: false,
@@ -84,7 +73,7 @@ export default defineConfig({
     include: ['tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],
     coverage: {
-      reportsDirectory: '../../coverage/libs/react-shared',
+      reportsDirectory: './test-output/vitest/coverage',
       provider: 'v8'
     }
   }

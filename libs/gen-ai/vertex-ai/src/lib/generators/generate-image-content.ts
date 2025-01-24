@@ -5,8 +5,8 @@ import {
   type SafetyFilterLevels,
   AspectRatio,
   SafetyFilterLevel,
-  PersonGeneration
-} from '@aklapper/types-ai';
+  PersonGeneration,
+} from '@aklapper/types';
 
 const projectId = 'games-424800';
 const location = 'us-central1';
@@ -31,7 +31,7 @@ export const imagenConfig: ImagenConfig = {
   sampleCount: 0,
   aspectRatio: AspectRatio['1:1'],
   safetyFilterLevel: SafetyFilterLevel.block_some,
-  personGeneration: PersonGeneration.allow_adult
+  personGeneration: PersonGeneration.allow_adult,
 };
 
 export const generateImageRequest = (config: ImagenConfig) => {
@@ -46,13 +46,13 @@ export const generateImageRequest = (config: ImagenConfig) => {
     addWatermark: false,
     aspectRatio: aspectRatio,
     seed: seed,
-    sampleCount: sampleCount
+    sampleCount: sampleCount,
   });
 
   const request = {
     endpoint,
     parameters,
-    instances
+    instances,
   };
 
   return request;

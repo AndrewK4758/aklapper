@@ -1,5 +1,5 @@
 import { Text } from '@aklapper/react-shared';
-import { IRegisterLoaderAndFilter } from '@aklapper/types-game';
+import { IRegisterLoaderAndFilter } from '@aklapper/types';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { SxProps } from '@mui/material';
 import Box from '@mui/material/Box';

@@ -1,27 +1,41 @@
 import { exec, execSync } from 'child_process';
 
-const __TEARDOWN_MESSAGE__ = 'Stopping Crud-API & Postgres Docker Container';
+const __SETUP_MESSAGE__ = '\nStarting Crud-API & Postgres Docker container for e2e Test\n';
+const __DOCKER_DB_STARTUP__ = 'nx docker-compose-up-db crud-api-e2e';
+const __NX_SERVE_CRUD_API__ = 'nx run crud-api:serve:test';
+const __WAIT_FOR_LOAD__ = 'sleep 5';
+
+type StartServerOutput = {
+  stdout?: string;
+  stderr?: string;
+  pid: number;
+};
+
+const startServer = (command: string): Promise<StartServerOutput> =>
+  new Promise((resolve, reject) => {
+    const serverProcess = exec(command, (error, stdout, stderr) => {
+      if (error) {
+        return reject(error);
+      }
+      if (stdout) console.log(`stdout: ${stdout}`);
+      if (stderr) console.log(`stderr: ${stderr}`);
+      resolve({ stderr, stdout, pid: -1 });
+    });
+    if (serverProcess && serverProcess.pid) {
+      resolve({ ...resolve, pid: serverProcess.pid });
+    }
+  });
 
 export default async function () {
-  console.log('\nStarting Crud-API & Postgres Docker container for e2e Test\n');
   try {
-    execSync('nx docker-compose-up-db crud-api-e2e');
+    console.log(__SETUP_MESSAGE__);
+    execSync(__DOCKER_DB_STARTUP__);
 
-    exec('nx run crud-api:serve:test', (error, stdout, stderr) => {
-      if (error) {
-        console.error(`exec error: ${error}`);
-        return;
-      }
-      console.log(`stdout:\n${stdout}`);
-      if (stderr) {
-        console.error(`stderr:\n${stderr}`);
-      }
-      console.log('CRUD-API START SUCESSFUL');
-    });
+    const serverProcessDetails = await startServer(__NX_SERVE_CRUD_API__);
 
-    execSync('sleep 5');
+    console.log(`Crud-API PID: ${serverProcessDetails.pid}`);
 
-    globalThis.__TEARDOWN_MESSAGE__ = __TEARDOWN_MESSAGE__;
+    execSync(__WAIT_FOR_LOAD__);
   } catch (error) {
     console.error(error);
   }

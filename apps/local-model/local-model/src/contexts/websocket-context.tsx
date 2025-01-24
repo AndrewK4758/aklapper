@@ -1,6 +1,7 @@
 import { createContext, ReactElement, useRef } from 'react';
 import { ClientSocket } from '@aklapper/socket-io-client';
-import { type Socket } from 'socket.io-client';
+import type {Socket} from 'socket.io-client'
+
 
 export type WebSocket = {
   socket: Socket ;

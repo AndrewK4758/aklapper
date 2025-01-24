@@ -1,9 +1,15 @@
 import { Text } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
+import Container from '@mui/material/Container';
 import LinearProgress from '@mui/material/LinearProgress';
-import Paper from '@mui/material/Paper';
 import { useEffect, useState, type JSX } from 'react';
-import { loadingBarStyles, loadingBarTextStyles, loadingPaperStyles } from '../../styles/loading-styles';
+import {
+  loadingBarBox,
+  loadingBarStyles,
+  loadingBarTextStyles,
+  loadingBarTextSxProps,
+  loadingPaperStyles
+} from '../../styles/loading-styles';
 
 const loadingValues = [
   'Creating Instance',
@@ -34,14 +40,14 @@ const GameLoading = (): JSX.Element => {
   });
 
   return (
-    <Paper component={'div'} id="game-loading" sx={loadingPaperStyles}>
-      <Box sx={loadingBarStyles}>
+    <Container fixed={false} maxWidth={false} sx={loadingPaperStyles}>
+      <Box component={'div'} id="game-loading" sx={loadingBarBox}>
         <LinearProgress variant="determinate" value={(loadingValueIdx + 1) * 16.67} sx={loadingBarStyles} />
       </Box>
       <Box sx={loadingBarTextStyles}>
-        <Text component={'p'} titleVariant="body1" titleText={loadingValue} sx={{ fontSize: '2rem' }} />
+        <Text component={'p'} titleVariant="body1" titleText={loadingValue} sx={loadingBarTextSxProps} />
       </Box>
-    </Paper>
+    </Container>
   );
 };
 

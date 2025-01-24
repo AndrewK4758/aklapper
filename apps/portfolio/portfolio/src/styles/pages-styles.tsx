@@ -68,3 +68,27 @@ export const pagesTitleSx: SxProps = {
     fontSize: '2rem'
   }
 };
+
+export const gamesOutletWrapperSxProps = (state: 'loading' | 'idle' | 'submitting') =>
+  state !== 'idle'
+    ? {
+        width: '100%',
+        flex: '0 1 20%',
+        [Theme.breakpoints.down('md')]: {
+          flex: '0 1 10%'
+        }
+      }
+    : ({
+        display: 'none'
+      } as SxProps);
+
+export const gamesOutletGameWrapperSxProps: SxProps = {
+  width: '100%',
+  flex: '0 1 80%',
+  display: 'flex',
+  alignContent: 'center',
+  justifyContent: 'center',
+  [Theme.breakpoints.down('md')]: {
+    flex: '0 1 90%'
+  }
+};

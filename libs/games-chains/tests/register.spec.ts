@@ -1,16 +1,16 @@
 import { ContextBuilder } from '@aklapper/chain';
-import { ChutesAndLadders } from '@aklapper/chutes-and-ladders';
+import { ChutesAndLadders } from '@aklapper/games';
 import { Game } from '@aklapper/game';
-import { InstanceOfGame } from '@aklapper/game-instance';
+import { InstanceOfGame } from '@aklapper/models';
 import { getCurrentMinute } from '@aklapper/utils';
-import { Context, Color, GameContextKeys } from '@aklapper/types-game';
+import { Context, Color, GameContextKeys } from '@aklapper/types';
 import { mockReqObj, mockRespObj } from '@aklapper/mocks';
 import { Request, Response } from 'express';
-import { createPlayerID } from '../src/lib/commands/action-register-player/create-player-id.ts';
-import { filterSelectedAvatar } from '../src/lib/commands/action-register-player/filter-selected-avatar.ts';
-import { playerCreated } from '../src/lib/commands/action-register-player/player-created.ts';
-import { registerOnGameInstance } from '../src/lib/commands/action-register-player/register-on-game-instance.ts';
-import { registerAction } from '../src/lib/commands/action-register-player/register-player-start.ts';
+import { createPlayerID } from '../src/lib/commands/action-register-player/create-player-id.js';
+import { filterSelectedAvatar } from '../src/lib/commands/action-register-player/filter-selected-avatar.js';
+import { playerCreated } from '../src/lib/commands/action-register-player/player-created.js';
+import { registerOnGameInstance } from '../src/lib/commands/action-register-player/register-on-game-instance.js';
+import { registerAction } from '../src/lib/commands/action-register-player/register-player-start.js';
 
 let ctx: Context<GameContextKeys | string>, game: InstanceOfGame, req: Partial<Request>, resp: Partial<Response>;
 

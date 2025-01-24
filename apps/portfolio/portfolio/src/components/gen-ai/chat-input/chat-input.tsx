@@ -1,10 +1,9 @@
-// import styles from './chat-input.module.css';
-
 import { FormActionProps, FormikTextInput } from '@aklapper/react-shared';
 import type { PromptRequest } from '@aklapper/vertex-ai';
 import { Box, SxProps } from '@mui/material';
 import Button from '@mui/material/Button';
-import { Form, Formik, type FormikState, type FormikValues } from 'formik';
+import { useFormik, type FormikState, type FormikValues } from 'formik';
+import {Form } from 'react-router-dom'
 import type { Dispatch, SetStateAction } from 'react';
 import type { Socket } from 'socket.io-client';
 import * as Yup from 'yup';
@@ -40,6 +39,15 @@ export const ChatInput = <T extends FormikValues>({
   breakpointsChatInputButton,
   breakpointsWrapperBoxSx
 }: ChatInputProps<T>) => {
+
+  const formik = useFormik({
+    initialValues: initialValues,
+    validationSchema: validationSchema,
+    onSubmit: ({ text, fileData }, { resetForm }) => 
+      submitPrompt<T>({ text, fileData }, resetForm, socket, setLoading),
+    onReset: () => null
+  })
+console.log(formik)
   return (
     <Box
       component={'div'}
@@ -47,26 +55,23 @@ export const ChatInput = <T extends FormikValues>({
       id={`gen-ai-text-input-wrapper`}
       sx={breakpointsWrapperBoxSx}
     >
-      <Formik
-        initialValues={initialValues}
-        validationSchema={validationSchema}
-        onSubmit={({ text, fileData }, { resetForm }) =>
-          submitPrompt<T>({ text, fileData }, resetForm, socket, setLoading)
-        }
-      >
-        <Form
+      
+         <Form
           key={'chat-input-form'}
           id="chat-input-form"
           method={method}
           action={`${action}`}
+
+          
           style={{ display: 'flex', flexWrap: 'wrap' }}
-        >
+        > 
           <Box key={'chat-input-form-text-box'} id="chat-input-form-text-box" sx={{ flex: '0 1 100%' }}>
-            <FormikTextInput
+            <FormikTextInput<T>
               key={'chat-input-form-text-input'}
               id="chat-input-form-text-input"
               autoComplete="off"
               placeholder="Enter prompt here"
+              formik={formik}
               type={type}
               name={names[0]}
               textSx={breakpointsChatInputText}
@@ -96,7 +101,6 @@ export const ChatInput = <T extends FormikValues>({
             </Button>
           </Box>
         </Form>
-      </Formik>
     </Box>
   );
 };

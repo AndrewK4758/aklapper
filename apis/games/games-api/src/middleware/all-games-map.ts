@@ -1,4 +1,4 @@
-import { AllGamesMap } from '@aklapper/all-games-map';
+import { AllGamesMap } from '@aklapper/models';
 
 export const allGamesMap = new AllGamesMap();
 

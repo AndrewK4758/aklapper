@@ -1,4 +1,4 @@
-import { Die } from '../src/lib/die.ts';
+import { Die } from '../src/lib/die.js';
 import {
   generateRandomNumber,
   rangeSelector,
@@ -7,8 +7,8 @@ import {
   rollMultipleDiceMultipleTimes,
   rollSingleDiceMultipleTimes,
   rollSingleDiceMultipleTimesAndSum
-} from '../src/lib/utils.ts';
-import { SummedRoll } from '../src/lib/summed_roll.ts';
+} from '../src/lib/utils.js';
+import { SummedRoll } from '../src/lib/summed_roll.js';
 
 let D1: Die,
   D2: Die,

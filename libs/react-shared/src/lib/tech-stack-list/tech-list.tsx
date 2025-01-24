@@ -4,7 +4,7 @@ import RenderList from '../render-list/render-list';
 import type { SxProps } from '@mui/material/styles';
 import type { ReactNode } from 'react';
 import type { Variant } from '@mui/material/styles/createTypography';
-import Label, { type LabelProps } from '../label/label';
+import Label, { type LabelProps } from '../label/label.jsx';
 
 interface TechListProps extends LabelProps {
   techListContainerSxProps: SxProps;

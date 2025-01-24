@@ -1,4 +1,9 @@
-import { GameInstanceID, GamesInMinute, IInstanceTimeMap, Minute } from '@aklapper/types-game';
+import {
+  GameInstanceID,
+  GamesInMinute,
+  IInstanceTimeMap,
+  Minute,
+} from '@aklapper/types';
 import { getCurrentMinute } from '@aklapper/utils';
 
 export class InstanceTimeMap implements IInstanceTimeMap {
@@ -28,7 +33,9 @@ export const reaper = (instanceTimeMap: IInstanceTimeMap) => {
       }
       const dayOldGames = instanceTimeMap.Map.get(minuteAhead);
 
-      (instanceTimeMap.Map.get(2000) as GamesInMinute).push(...(dayOldGames as GamesInMinute));
+      (instanceTimeMap.Map.get(2000) as GamesInMinute).push(
+        ...(dayOldGames as GamesInMinute),
+      );
       instanceTimeMap.Map.set(minuteAhead, []);
     }, 60 * 1000);
   }, dayMinusOneMinuteInMilli);

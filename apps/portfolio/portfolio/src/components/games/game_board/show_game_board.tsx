@@ -1,5 +1,5 @@
 import { RenderList } from '@aklapper/react-shared';
-import { GameBoard, ILiteSpace } from '@aklapper/types-game';
+import { GameBoard, ILiteSpace } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import { breakpointsGameBoardBox } from '../../../styles/games-styles';
 import GameBoardMap from '../game-boards/game-board';

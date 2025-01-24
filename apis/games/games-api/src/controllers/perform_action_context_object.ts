@@ -1,15 +1,15 @@
 import { ContextBuilder } from '@aklapper/chain';
 import { activeGameDisplayChain } from '@aklapper/games-chains';
-import { InstanceOfGame } from '@aklapper/game-instance';
-import { GameContextKeys } from '@aklapper/types-game';
+import { InstanceOfGame } from '@aklapper/models';
+import { GameContextKeys } from '@aklapper/types';
 import { Request, Response } from 'express';
-import { socketServer } from '../main.ts';
+import { socketServer } from '../main.js';
 
 const performAction = async (
   req: Request | null,
   resp: Response | null,
   gameWS: InstanceOfGame | null,
-  actionWS: string | null
+  actionWS: string | null,
 ) => {
   console.log('Perform Action Called');
   //check for no rest-api objects
@@ -27,7 +27,9 @@ const performAction = async (
     const game = (req as Request).activeGameInstance;
 
     if (game && req && resp) {
-      console.log(`Got Game: ${game.gameInstanceID} - ${game.instance.instance.constructor.name}`);
+      console.log(
+        `Got Game: ${game.gameInstanceID} - ${game.instance.instance.constructor.name}`,
+      );
 
       const { action } = (req as Request).params;
       const ctx = ContextBuilder.build();
@@ -38,7 +40,10 @@ const performAction = async (
       ctx.put(GameContextKeys.NEXT, '');
 
       if (req.gameSpecificChain) req.gameSpecificChain.execute(ctx);
-      else resp.status(500).send('Game not built correcty. No action execution chain found');
+      else
+        resp
+          .status(500)
+          .send('Game not built correcty. No action execution chain found');
     }
   }
 };

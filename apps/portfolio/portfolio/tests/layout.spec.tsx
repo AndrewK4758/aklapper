@@ -22,12 +22,6 @@ describe('Test Layout Component', () => {
     expect(appWrapper).toHaveAttribute('id', 'app-wrapper');
   });
 
-  it('Should render the header-wrapper', async () => {
-    const headerDiv = await baseComponent.findByTestId('header-wrapper');
-
-    expect(headerDiv).toBeInTheDocument();
-  });
-
   it('Should render the main component', async () => {
     const mainDiv = await baseComponent.findByTestId('main-wrapper');
     expect(mainDiv).toContainElement(await screen.findByTestId('home-wrapper'));

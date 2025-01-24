@@ -121,7 +121,7 @@ export function Contact({ openMenu, setOpenMenu }: ContactProps) {
           <ContactIcon
             id="email"
             tooltipText="Email & Google Calendar Event link"
-            iconHref=""
+            iconHref={''}
             Icon={<EmailIcon sx={iconSize} />}
             onClick={setOpenEmail}
             stateVariable={true}
@@ -131,7 +131,7 @@ export function Contact({ openMenu, setOpenMenu }: ContactProps) {
           <ContactIcon
             id="close"
             tooltipText="Close Contact Menu"
-            iconHref=""
+            iconHref={''}
             Icon={<ArrowForwardIosIcon color="action" sx={iconSize} />}
             onClick={setOpenMenu}
             stateVariable={false}

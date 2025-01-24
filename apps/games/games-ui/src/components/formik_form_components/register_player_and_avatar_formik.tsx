@@ -1,6 +1,5 @@
 import { FormikTextInput, SelectMenu } from '@aklapper/react-shared';
-import { IRegisterUserClient } from '@aklapper/types-api';
-import { AvatarTotem, Color, ILoadRegisterData } from '@aklapper/types-game';
+import { AvatarTotem, Color, ILoadRegisterData } from '@aklapper/types';
 import { SxProps } from '@mui/material';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
@@ -101,14 +100,11 @@ export default function RegisterPlayerAndAvatarForm() {
   const submit = useSubmit();
   const data = useRouteLoaderData('registerData') as ILoadRegisterData;
 
-  const user = JSON.parse(sessionStorage.getItem('user') as string) as IRegisterUserClient;
-
   const validationSchema = Yup.object().shape({
     playerName: Yup.string()
       .min(2, 'Must be min of 2 characters')
       .max(20, 'Must be 20 characters or less')
-      .required('Required, please enter player name')
-      .default(user.playerName),
+      .required('Required, please enter player name'),
     avatarName: Yup.string().required('Required, please select avatar name'),
     avatarColor: Yup.string().required('Required, please select avatar color')
   });
@@ -126,7 +122,6 @@ export default function RegisterPlayerAndAvatarForm() {
     >
       <Form>
         <Container component={'section'} sx={breakpointsFormContianer}>
-          {user.playerName ? null : (
             <FormikTextInput
               autoComplete="off"
               labelComponent={'h2'}
@@ -137,7 +132,6 @@ export default function RegisterPlayerAndAvatarForm() {
               labelSx={breakpointsRegisterPlayerLabel}
               Theme={Theme}
             />
-          )}
           <SelectMenu
             name="avatarName"
             label="Avatar Name"

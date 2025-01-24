@@ -1,6 +1,6 @@
-import { Avatar } from '../src/lib/avatar.ts';
-import { Space } from '../src/lib/space.ts';
-import { SpaceType, Color } from '@aklapper/types-game';
+import { Color, SpaceType } from '@aklapper/types';
+import { Avatar } from '../src/lib/avatar.js';
+import { Space } from '../src/lib/space.js';
 
 // Setup of spaces & avatars
 let s1: Space,
@@ -78,7 +78,8 @@ describe('Run all Space tests', () => {
 
     test('Test for #Special of Spaces', () => {
       while (cur) {
-        if (cur.type === SpaceType.CHUTE || cur.type === SpaceType.LADDER) expect(cur.special).not.toBeNull();
+        if (cur.type === SpaceType.CHUTE || cur.type === SpaceType.LADDER)
+          expect(cur.special).not.toBeNull();
         cur = cur.next;
       }
     });

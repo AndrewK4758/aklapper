@@ -1,12 +1,14 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "declarationDir": "../../dist",
-    "outDir": "../../dist",
-    "rootDirs": ["./src", "../../"],
-    "tsBuildInfoFile": "tsconfig.lib.tsbuildinfo",
-    "types": ["node", "vite/client"]
+    "baseUrl": ".",
+    "rootDir": "src",
+    "outDir": "dist",
+    "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
+    "emitDeclarationOnly": false,
+    "types": ["node"]
   },
-  "exclude": ["jest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "references": [],
+  "exclude": ["vitest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"]
 }

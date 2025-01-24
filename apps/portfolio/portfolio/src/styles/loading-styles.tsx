@@ -5,24 +5,19 @@ import { centerFlex, flexColumnStyles } from './pages-styles';
 
 export const loadingPaperStyles: SxProps = {
   ...flexColumnStyles,
-  width: '100%',
-  height: '20vh',
-  maxHeight: 'fit-content',
-  justifyContent: 'center',
-  borderRadius: 1
+  width: '100vw',
+  height: '100%',
+  justifyContent: 'center'
 };
 
-export const loadingBarWrapperStyles: SxProps = {
-  ...centerFlex,
-  flex: '1 0 75%',
-  width: '100%'
+export const loadingBarBox: SxProps = {
+  flex: '0 1 80%'
 };
 
 export const loadingBarStyles: SxProps = {
-  border: 5,
-  height: '50%',
-  flex: '1 0 80%',
-  borderRadius: 0.6,
+  width: '100%',
+  height: '100%',
+  borderRadius: 1,
   [`&.${linearProgressClasses.colorPrimary}`]: {
     background: `linear-gradient(to right, ${Theme.palette.secondary.light},${Theme.palette.primary.light})`
   },
@@ -34,6 +29,13 @@ export const loadingBarStyles: SxProps = {
 
 export const loadingBarTextStyles: SxProps = {
   ...centerFlex,
-  flex: '1 0 75%',
+  flex: '0 1 20%',
   width: '100%'
+};
+
+export const loadingBarTextSxProps: SxProps = {
+  fontSize: '2rem',
+  [Theme.breakpoints.down('md')]: {
+    fontSize: '1rem'
+  }
 };

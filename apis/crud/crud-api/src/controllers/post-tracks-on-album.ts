@@ -1,7 +1,7 @@
 import { Prisma, track } from '@prisma/client';
 import { DefaultArgs } from '@prisma/client/runtime/library';
 import { Request, Response } from 'express';
-import createTracks from '../services/prisma/tracks/create-tracks.ts';
+import createTracks from '../services/prisma/tracks/create-tracks.js';
 
 /**
  * Handles POST requests to create a new track and associate it with an album.
@@ -15,7 +15,9 @@ const createTracksOnAlbum = async (req: Request, resp: Response) => {
   try {
     const { name, albumID } = req.body;
 
-    const query = { data: { name: name, album_id: albumID } } as Prisma.trackCreateArgs<DefaultArgs>;
+    const query = {
+      data: { name: name, album_id: albumID },
+    } as Prisma.trackCreateArgs<DefaultArgs>;
 
     const newTrack: track | null = await createTracks(query);
 

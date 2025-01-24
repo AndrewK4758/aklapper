@@ -2,7 +2,6 @@ import '@testing-library/jest-dom';
 import { render, type RenderResult } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import Home from '../src/pages/home/home';
-// import Intro from '../src/components/intro/intro';
 import { ABOUT_ME_TITLE } from '../src/components/intro/static/intro-text';
 
 let baseComponent: RenderResult;

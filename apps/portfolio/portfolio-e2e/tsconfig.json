@@ -2,10 +2,8 @@
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     "allowJs": true,
-    "outDir": "dist/out-tsc",
-    "sourceMap": false,
-    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo",
-    "esModuleInterop": true
+    "outDir": "out-tsc/playwright",
+    "sourceMap": false
   },
   "include": [
     "**/*.ts",
@@ -15,9 +13,7 @@
     "src/**/*.spec.js",
     "src/**/*.test.ts",
     "src/**/*.test.js",
-    "src/**/*.d.ts",
-    "../../../eslint.config.js"
+    "src/**/*.d.ts"
   ],
-  "exclude": ["dist", "eslint.confcig.js"],
-  "references": []
+  "exclude": ["out-tsc", "test-output", "eslint.config.js"]
 }

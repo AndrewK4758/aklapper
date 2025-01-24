@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 const homeH1Title = "Hi, I'm Andrew Klapper";
+
 test.describe('Test Layout & HomePage', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
@@ -30,7 +31,7 @@ test.describe('Test Header links & Email / Appointment Maker', () => {
   });
 
   test('Github Link', async ({ page }) => {
-    await expect(page.getByTestId('github-icon')).toHaveAttribute('href');
+    await expect(page.getByTestId('github-icon')).toHaveAttribute('href', 'https://github.com/AndrewK4758/aklapper');
 
     const githubPagePromise = page.waitForEvent('popup');
 
@@ -42,7 +43,7 @@ test.describe('Test Header links & Email / Appointment Maker', () => {
   });
 
   test('Facebook Link', async ({ page }) => {
-    await expect(page.getByTestId('facebook-icon')).toHaveAttribute('href');
+    await expect(page.getByTestId('facebook-icon')).toHaveAttribute('href', 'https://www.facebook.com/AKlapper47');
 
     const facebookPagePromise = page.waitForEvent('popup');
 
@@ -54,7 +55,10 @@ test.describe('Test Header links & Email / Appointment Maker', () => {
   });
 
   test('LinkedIn Link', async ({ page }) => {
-    await expect(page.getByTestId('linkedin-icon')).toHaveAttribute('href');
+    await expect(page.getByTestId('linkedin-icon')).toHaveAttribute(
+      'href',
+      'https://www.linkedin.com/in/andrew-klapper-a9204b23b/'
+    );
 
     const linkedinPagePromise = page.waitForEvent('popup');
 
@@ -66,7 +70,7 @@ test.describe('Test Header links & Email / Appointment Maker', () => {
   });
 
   test('HuggingFace Link', async ({ page }) => {
-    await expect(page.getByTestId('hugging-face-icon')).toHaveAttribute('href');
+    await expect(page.getByTestId('hugging-face-icon')).toHaveAttribute('href', 'https://huggingface.co/ak475826');
 
     const huggingfacePromise = page.waitForEvent('popup');
 
@@ -78,7 +82,7 @@ test.describe('Test Header links & Email / Appointment Maker', () => {
   });
 
   test('X Link', async ({ page }) => {
-    await expect(page.getByTestId('x-icon')).toHaveAttribute('href');
+    await expect(page.getByTestId('x-icon')).toHaveAttribute('href', 'https://x.com/ak475826');
 
     const xPagePromise = page.waitForEvent('popup');
 

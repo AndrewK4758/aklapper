@@ -1,10 +1,13 @@
 import { ContextBuilder } from '@aklapper/chain';
-import { Context, GameContextKeys, ITestCtxOutput } from '@aklapper/types-game';
+import { Context, GameContextKeys, ITestCtxOutput } from '@aklapper/types';
 import { mockReqObj, mockRespObj } from '@aklapper/mocks';
 import { Response, type Request } from 'express';
-import { outputContextResponse } from '../src/lib/commands/action-output/output-context-response.ts';
+import { outputContextResponse } from '../src/lib/commands/action-output/output-context-response.js';
 
-let ctx: Context<GameContextKeys>, output: ITestCtxOutput, req: Partial<Request>, resp: Partial<Response>;
+let ctx: Context<GameContextKeys>,
+  output: ITestCtxOutput,
+  req: Partial<Request>,
+  resp: Partial<Response>;
 
 describe('test output response chain', () => {
   beforeEach(() => {

@@ -1,8 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { DefaultArgs } from '@prisma/client/runtime/library';
 import { NextFunction, Request, Response } from 'express';
-import findArtistError from '../errors/find-artist-error.ts';
-import findArtists from '../services/prisma/artist/find-artists.ts';
+import findArtistError from '../errors/find-artist-error.js';
+import findArtists from '../services/prisma/artist/find-artists.js';
 
 /**
  * Middleware function that retrieves a paginated list of artists from the database.
@@ -15,7 +15,11 @@ import findArtists from '../services/prisma/artist/find-artists.ts';
  * @returns No explicit return value. It either sends a JSON response with the paginated list of artists or calls the `next()` middleware function.
  */
 
-const getArtists = async (req: Request, resp: Response, next: NextFunction): Promise<void> => {
+const getArtists = async (
+  req: Request,
+  resp: Response,
+  next: NextFunction,
+): Promise<void> => {
   if (!req.query.take) next();
   else {
     try {
@@ -24,7 +28,7 @@ const getArtists = async (req: Request, resp: Response, next: NextFunction): Pro
       const query = {
         take: parseInt(take as string, 10),
         skip: parseInt(skip as string, 10),
-        cursor: { artist_id: parseInt(cursor as string, 10) }
+        cursor: { artist_id: parseInt(cursor as string, 10) },
       } as Prisma.artistFindManyArgs<DefaultArgs>;
 
       const allArtists = await findArtists(query);

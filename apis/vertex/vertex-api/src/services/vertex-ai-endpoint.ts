@@ -3,7 +3,7 @@ import { configDotenv } from 'dotenv';
 import { resolve } from 'path';
 import { cwd } from 'process';
 
-configDotenv({ path: resolve(cwd(), 'apis/vertex-api/vertex-api/env/.env') });
+configDotenv({ path: resolve(cwd(), 'apis/vertex/vertex-api/env/.env') });
 
 const generateImage = async ({ prompt, aspectRatio, sampleCount, seed }: Partial<ImagenConfig>) => {
   try {

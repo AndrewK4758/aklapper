@@ -1,30 +1,23 @@
-import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
-import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
+/// <reference types='vitest' />
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vitest/config';
-// eslint-disable-next-line @nx/enforce-module-boundaries
-import { getNodeEnv } from '../../../libs/types/types-game/src/index.ts';
+import { cwd } from 'process';
+import { resolve } from 'path';
+
+console.log();
 
 export default defineConfig({
-  root: __dirname,
-  cacheDir: '../../../node_modules/.vite/apps/games-ui/games-ui',
+  root: cwd(),
+  cacheDir: '../../../node_modules/.vite/apps/games/games-ui',
   server: {
-    port: 3200,
+    port: 4700,
     host: 'localhost'
   },
   preview: {
-    port: 3300,
+    port: 4800,
     host: 'localhost'
   },
-  plugins: [
-    react({ babel: { targets: { esmodules: true } } }),
-    nxViteTsPaths({
-      debug: getNodeEnv() !== 'production',
-      buildLibsFromSource: getNodeEnv() !== 'production',
-      mainFields: [['exports', '.', 'types', 'import', 'default'], 'types', 'module', 'main']
-    }),
-    nxCopyAssetsPlugin(['**/*.md'])
-  ],
+  plugins: [react({ babel: { targets: { esmodules: true } } })],
   // Uncomment this if you are using workers.
   // worker: {
   //  plugins: [ nxViteTsPaths() ],
@@ -32,45 +25,23 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@aklapper/react-shared':
-        getNodeEnv() === 'production' ? 'dist/libs/react-shared/index.js' : 'libs/react-shared/src/index.ts',
-      '@aklapper/games-components':
-        getNodeEnv() === 'production' ? 'dist/libs/games-components/index.js' : 'libs/games-components/src/index.ts'
+      '@aklapper/react-shared': resolve('../../../', 'libs/react-shared/src/index.ts'),
+      '@aklapper/games-components': resolve('../../../', 'libs/games-components/src/index.ts'),
+      '@aklapper/utils': resolve('../../../', 'libs/utils/src/index.ts'),
+      '@aklapper/types': resolve('../../../', 'libs/types/src/index.ts')
     }
   },
 
   build: {
-    outDir: `../../../dist/apps/games`,
+    outDir: './dist',
     emptyOutDir: true,
+    manifest: true,
+    sourcemap: true,
     reportCompressedSize: true,
     commonjsOptions: {
       transformMixedEsModules: true
-    },
-    rollupOptions: {
-      perf: true,
-      output: {
-        esModule: true,
-        format: 'esm',
-        generatedCode: {
-          arrowFunctions: true,
-          constBindings: true,
-          symbols: true
-        }
-      }
-    },
-    target: 'esnext'
+    }
   },
-  esbuild: {
-    jsx: 'automatic',
-    format: 'esm',
-    color: true,
-    platform: 'browser'
-  },
-  logLevel: 'info',
-  appType: 'spa',
-  publicDir: 'public',
-  envDir: './env',
-
   test: {
     watch: false,
     globals: true,
@@ -78,7 +49,7 @@ export default defineConfig({
     include: ['tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],
     coverage: {
-      reportsDirectory: '../../../coverage/apps/games-ui/games-ui',
+      reportsDirectory: './test-output/vitest/coverage',
       provider: 'v8'
     }
   }

@@ -37,7 +37,7 @@ describe('Test Header component', () => {
   it('Should test the email dialog opening', async () => {
     const emailButton = await baseComponent.findByTestId('email-icon');
     await act(async () => {
-      await emailButton.click();
+      emailButton.click();
     });
 
     expect(document.getElementById('email-dialog')).toBeInTheDocument();

@@ -6,7 +6,7 @@
 
 @font-face {
   font-family: 'League Gothic';
-  src: url('/fonts/LeagueGothic-Regular-VariableFont_wdth.ttf'), format('truetype');
+  src: url('../../fonts/LeagueGothic-Regular-VariableFont_wdth.ttf'), format('truetype');
 }
 
 * {
@@ -18,13 +18,18 @@
   word-spacing: 2.1px;
 }
 
+html {
+  width: 100vw;
+  height: fit-content;
+  overflow-x: hidden;
+}
+
 #root {
-  width: 100%;
+  width: 99.25%;
   height: auto;
   min-height: fit-content;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 input:-webkit-autofill,

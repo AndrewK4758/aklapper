@@ -1,19 +1,12 @@
 {
   "name": "@aklapper/portfolio-api",
   "version": "0.0.1",
-  "type": "module",
-  "dependencies": {},
-  "exports": {
-    ".": {
-      "types": "./apis/portfolio/portfolio-api/src/main.d.ts",
-      "import": "./main.js"
-    }
-  },
   "private": true,
+  "type": "module",
   "nx": {
     "name": "portfolio-api",
-    "sourceRoot": "apis/portfolio/portfolio-api/src",
     "projectType": "application",
+    "sourceRoot": "apis/portfolio/portfolio-api/src",
     "targets": {
       "build": {
         "executor": "@nx/esbuild:esbuild",
@@ -23,25 +16,35 @@
         "defaultConfiguration": "production",
         "options": {
           "platform": "node",
-          "outputPath": "dist/apis/portfolio-api",
-          "outputFileName": "main.js",
-          "main": "apis/portfolio/portfolio-api/src/main.ts",
-          "tsConfig": "apis/portfolio/portfolio-api/tsconfig.app.json",
-          "declaration": true,
-          "declarationRootDir": "./",
-          "assets": [
-            "apis/portfolio/portfolio-api/src/assets"
-          ],
           "target": "node23",
+          "metafile": true,
+          "outputPath": "dist/apis/portfolio/portfolio-api",
           "format": [
             "esm"
           ],
-          "sourcemap": true,
-          "metafile": true
+          "bundle": true,
+          "main": "apis/portfolio/portfolio-api/src/main.ts",
+          "tsConfig": "apis/portfolio/portfolio-api/tsconfig.app.json",
+          "assets": [
+            "apis/portfolio/portfolio-api/src/assets"
+          ],
+          "esbuildOptions": {
+            "sourcemap": true,
+            "outExtension": {
+              ".js": ".js"
+            }
+          }
         },
         "configurations": {
           "development": {},
-          "production": {}
+          "production": {
+            "esbuildOptions": {
+              "sourcemap": false,
+              "outExtension": {
+                ".js": ".js"
+              }
+            }
+          }
         }
       },
       "serve": {
@@ -61,6 +64,11 @@
           "production": {
             "buildTarget": "portfolio-api:build:production"
           }
+        }
+      },
+      "test": {
+        "options": {
+          "passWithNoTests": true
         }
       },
       "docker-build": {

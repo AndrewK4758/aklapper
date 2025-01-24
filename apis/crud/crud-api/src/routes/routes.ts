@@ -1,24 +1,24 @@
 import express, { Router } from 'express';
-import deleteArtistsAlbums from '../controllers/delete-artist-albums.ts';
-import deleteArtist from '../controllers/delete-artists.ts';
-import deleteTracks from '../controllers/delete-tracks.ts';
-import getAlbumsCount from '../controllers/get-albums-count.ts';
-import getAlbumsTracks from '../controllers/get-albums-tracks.ts';
-import getAlbums from '../controllers/get-all-albums.ts';
-import getArtistsAlbums from '../controllers/get-artist-albums.ts';
-import getArtistCount from '../controllers/get-artist-count.ts';
-import getArtists from '../controllers/get-artists.ts';
-import updateAlbums from '../controllers/patch-update-albums.ts';
-import updateTracks from '../controllers/patch-update-tracks.ts';
-import createAlbumsOnArtists from '../controllers/post-albums-on-artist.ts';
-import addArtists from '../controllers/post-artists.ts';
-import createNewEntrys from '../controllers/post-create-new-entry.ts';
-import createTracksOnAlbum from '../controllers/post-tracks-on-album.ts';
-import searchArtistsAndAlbums from '../controllers/search-artist-or-album.ts';
-import updateArtists from '../controllers/update-artists.ts';
-import validateAlbums from '../controllers/validate-albums.ts';
-import validateArtists from '../controllers/validate-artists.ts';
-import validateTracks from '../controllers/validate-tracks.ts';
+import deleteArtistsAlbums from '../controllers/delete-artist-albums.js';
+import deleteArtist from '../controllers/delete-artists.js';
+import deleteTracks from '../controllers/delete-tracks.js';
+import getAlbumsCount from '../controllers/get-albums-count.js';
+import getAlbumsTracks from '../controllers/get-albums-tracks.js';
+import getAlbums from '../controllers/get-all-albums.js';
+import getArtistsAlbums from '../controllers/get-artist-albums.js';
+import getArtistCount from '../controllers/get-artist-count.js';
+import getArtists from '../controllers/get-artists.js';
+import updateAlbums from '../controllers/patch-update-albums.js';
+import updateTracks from '../controllers/patch-update-tracks.js';
+import createAlbumsOnArtists from '../controllers/post-albums-on-artist.js';
+import addArtists from '../controllers/post-artists.js';
+import createNewEntrys from '../controllers/post-create-new-entry.js';
+import createTracksOnAlbum from '../controllers/post-tracks-on-album.js';
+import searchArtistsAndAlbums from '../controllers/search-artist-or-album.js';
+import updateArtists from '../controllers/update-artists.js';
+import validateAlbums from '../controllers/validate-albums.js';
+import validateArtists from '../controllers/validate-artists.js';
+import validateTracks from '../controllers/validate-tracks.js';
 
 export const router: Router = Router();
 
@@ -31,7 +31,13 @@ export default class Routes {
     router.patch('/artists', updateArtists);
     router.delete('/artists/:id', deleteArtist);
 
-    router.get('/albums', getAlbumsCount, getArtistsAlbums, validateAlbums, getAlbums);
+    router.get(
+      '/albums',
+      getAlbumsCount,
+      getArtistsAlbums,
+      validateAlbums,
+      getAlbums,
+    );
     router.post('/albums', createAlbumsOnArtists);
     router.patch('/albums', updateAlbums);
     router.delete('/albums/:id', deleteArtistsAlbums);

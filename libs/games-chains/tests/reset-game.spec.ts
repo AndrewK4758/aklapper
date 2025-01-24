@@ -1,14 +1,14 @@
 import { ContextBuilder } from '@aklapper/chain';
-import { ChutesAndLadders } from '@aklapper/chutes-and-ladders';
+import { ChutesAndLadders } from '@aklapper/games';
 import { Game } from '@aklapper/game';
-import { InstanceOfGame } from '@aklapper/game-instance';
+import { InstanceOfGame } from '@aklapper/models';
 import { mockReqObj } from '@aklapper/mocks';
-import { Color, Context, GameContextKeys, IPlayer, type ILiteSpace } from '@aklapper/types-game';
+import { Color, Context, GameContextKeys, IPlayer, type ILiteSpace } from '@aklapper/types';
 import { deRefContextObject, getCurrentMinute } from '@aklapper/utils';
 import { Request } from 'express';
-import { flipHaveWinnerFlag } from '../src/lib/commands/action-reset-game/flip-winner-flag.ts';
-import { makeNewGameBoard } from '../src/lib/commands/action-reset-game/make-new-game-board.ts';
-import { resetGame } from '../src/lib/commands/action-reset-game/reset-game-start.ts';
+import { flipHaveWinnerFlag } from '../src/lib/commands/action-reset-game/flip-winner-flag.js';
+import { makeNewGameBoard } from '../src/lib/commands/action-reset-game/make-new-game-board.js';
+import { resetGame } from '../src/lib/commands/action-reset-game/reset-game-start.js';
 
 let ctx: Context<GameContextKeys | string>,
   instanceOfGame: InstanceOfGame,
@@ -19,6 +19,8 @@ let ctx: Context<GameContextKeys | string>,
   req: Partial<Request>;
 describe('test reset game chain', () => {
   beforeAll(() => {
+    console.log(ChutesAndLadders);
+    console.log(new ChutesAndLadders(5, 5));
     instance = new ChutesAndLadders(5, 5);
     game = new Game(instance);
     instanceOfGame = new InstanceOfGame(getCurrentMinute(), 'game-ID', game);

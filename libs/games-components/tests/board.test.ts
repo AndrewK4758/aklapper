@@ -1,12 +1,15 @@
-import { SpaceType } from '@aklapper/types-game';
-import { Board } from '../src/lib/board.ts';
-import { Space } from '../src/lib/space.ts';
+import { SpaceType } from '@aklapper/types';
+import { Board } from '../src/lib/board.js';
+import { Space } from '../src/lib/space.js';
 
 let space: Space;
 
 describe('Test connection of spaces within the boardSetup method', () => {
   beforeEach(() => {
-    space = new Board(100, () => new Space(SpaceType.NORMAL, 'space')).boardSetup();
+    space = new Board(
+      100,
+      () => new Space(SpaceType.NORMAL, 'space'),
+    ).boardSetup();
   });
 
   test('test traversing entire list', () => {

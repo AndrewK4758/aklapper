@@ -1,5 +1,5 @@
-import { IPlayer } from '@aklapper/types-game';
-import { Avatar } from './avatar.ts';
+import { IPlayer } from '@aklapper/types';
+import { Avatar } from './avatar.js';
 
 export class Player implements IPlayer {
   Id: string;
@@ -35,3 +35,5 @@ export class Player implements IPlayer {
     this.Avatar = avatar;
   }
 }
+
+export default Player;

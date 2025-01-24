@@ -6,21 +6,7 @@ export const baseStyleForLayoutItems: SxProps = {
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  width: '100vw'
-};
-
-export const headerHeightSxProps: SxProps = {
-  height: '5.8vh',
-  maxHeight: '120px',
-  minHeight: 'fit-content',
-  width: '100vw'
-};
-
-export const headerWrapperSxProps: SxProps = {
-  ...headerHeightSxProps,
-  position: 'fixed',
-  zIndex: 5,
-  [Theme.breakpoints.down('lg')]: {}
+  width: '100%'
 };
 
 export const homeWrapperSxProps: SxProps = {

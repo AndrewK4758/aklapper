@@ -1,5 +1,5 @@
-import { SpaceType, ISpace, IAvatar } from '@aklapper/types-game';
-import { Avatar } from './avatar.ts';
+import { SpaceType, ISpace, IAvatar } from '@aklapper/types';
+import { Avatar } from './avatar.js';
 
 export class Space implements ISpace {
   Value: string;
@@ -10,6 +10,11 @@ export class Space implements ISpace {
   AvatarsInSpace: IAvatar[];
   Display: string;
 
+  /**
+   *
+   * @param spaceType SpaceType enum that provides the type of space being created
+   * @param spaceValue Non-unique number or string value that will be converted into string
+   */
   constructor(spaceType: SpaceType, spaceValue: string | number) {
     this.Type = spaceType;
     this.Value = String(spaceValue) as string;
@@ -87,3 +92,5 @@ export class Space implements ISpace {
     }
   }
 }
+
+export default Space;

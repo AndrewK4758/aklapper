@@ -1,19 +1,12 @@
 {
   "name": "@aklapper/vertex-api",
   "version": "0.0.1",
-  "type": "module",
-  "dependencies": {},
-  "exports": {
-    ".": {
-      "types": "./apis/vertex/vertex-api/src/index.d.ts",
-      "import": "./main.js"
-    }
-  },
   "private": true,
+  "type": "module",
   "nx": {
     "name": "vertex-api",
-    "sourceRoot": "apis/vertex-api/vertex-api/src",
     "projectType": "application",
+    "sourceRoot": "apis/vertex/vertex-api/src",
     "targets": {
       "build": {
         "executor": "@nx/esbuild:esbuild",
@@ -23,25 +16,35 @@
         "defaultConfiguration": "production",
         "options": {
           "platform": "node",
-          "outputPath": "dist/apis/vertex-api",
-          "outputFileName": "main.js",
-          "main": "apis/vertex/vertex-api/src/main.ts",
-          "tsConfig": "apis/vertex/vertex-api/tsconfig.app.json",
-          "declaration": true,
-          "declarationRootDir": "./",
-          "assets": [
-            "apis/vertex/vertex-api/src/assets"
-          ],
           "target": "node23",
+          "metafile": true,
+          "outputPath": "dist/apis/vertex/vertex-api",
           "format": [
             "esm"
           ],
-          "sourcemap": true,
-          "metafile": true
+          "bundle": true,
+          "main": "apis/vertex/vertex-api/src/main.ts",
+          "tsConfig": "apis/vertex/vertex-api/tsconfig.app.json",
+          "assets": [
+            "apis/vertex/vertex-api/src/assets"
+          ],
+          "esbuildOptions": {
+            "sourcemap": true,
+            "outExtension": {
+              ".js": ".js"
+            }
+          }
         },
         "configurations": {
           "development": {},
-          "production": {}
+          "production": {
+            "esbuildOptions": {
+              "sourcemap": false,
+              "outExtension": {
+                ".js": ".js"
+              }
+            }
+          }
         }
       },
       "serve": {
@@ -60,10 +63,12 @@
           },
           "production": {
             "buildTarget": "vertex-api:build:production"
-          },
-          "test": {
-            "buildTarget": "vertex-api:build:production"
           }
+        }
+      },
+      "test": {
+        "options": {
+          "passWithNoTests": true
         }
       },
       "docker-build": {

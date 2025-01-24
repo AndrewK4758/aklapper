@@ -1,4 +1,4 @@
-import { handleScrollIntoView } from '@aklapper/utils';
+import { handleScrollIntoView } from '../utils/handle-scroll-into-view';
 import { useLayoutEffect, type RefObject } from 'react';
 
 /**

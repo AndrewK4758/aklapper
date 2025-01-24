@@ -2,7 +2,7 @@ import { redirect, type ActionFunction, type ActionFunctionArgs } from 'react-ro
 import registerGame from '../register-games/register-game';
 import registerPlayers from '../register-games/registers-players';
 import startGame from '../register-games/start-game';
-import type { GamePlayerValidation } from '@aklapper/types-game';
+import type { GamePlayerValidation } from '@aklapper/types';
 import gamesAutoStartError from '../../errors/games-auto-start-error';
 
 const registerPlayersAndStartGame: ActionFunction = async ({ request }: ActionFunctionArgs) => {
