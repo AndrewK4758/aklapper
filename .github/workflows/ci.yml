@@ -322,6 +322,11 @@ jobs:
     steps:
       # Deploy all APIs to Cloud Run
       - name: Deploy APIs to Cloud Run
+        env:
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          REGION: ${{ env.REGION }}
+          GAR_REPO: ${{ env.GAR_REPO }}
+          NX_CLOUD_TOKEN: ${{ env.NX_CLOUD_TOKEN }}
         run: |
           gcloud run deploy crud-api --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/crud-api:latest --region=${{ env.REGION }} --platform=managed --max-instances=1 --port=${{ secrets.CRUD_API_PORT }} --allow-unauthenticated --no-traffic --add-cloudsql-instances=${{ secrets.GCP_SQL_STRING }}
 

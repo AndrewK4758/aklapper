@@ -1,7 +1,10 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "namedInputs": {
-    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "default": [
+      "{projectRoot}/**/*",
+      "sharedGlobals"
+    ],
     "production": [
       "default",
       "!{projectRoot}/.eslintrc.json",
@@ -15,18 +18,35 @@
     "sharedGlobals": []
   },
   "plugins": [
-    { "plugin": "@nxlv/python", "options": { "packageManager": "poetry" } },
+    {
+      "plugin": "@nxlv/python",
+      "options": {
+        "packageManager": "poetry"
+      }
+    },
     {
       "plugin": "@nx/js/typescript",
       "options": {
-        "typecheck": { "targetName": "typecheck" },
-        "build": { "targetName": "build", "configName": "tsconfig.lib.json" }
+        "typecheck": {
+          "targetName": "typecheck"
+        },
+        "build": {
+          "targetName": "build",
+          "configName": "tsconfig.lib.json"
+        }
       }
     },
-    { "plugin": "@nx/eslint/plugin", "options": { "targetName": "lint" } },
+    {
+      "plugin": "@nx/eslint/plugin",
+      "options": {
+        "targetName": "lint"
+      }
+    },
     {
       "plugin": "@nx/playwright/plugin",
-      "options": { "targetName": "e2e" },
+      "options": {
+        "targetName": "e2e"
+      },
       "include": [
         "apps/crud/crud-ui-e2e/**",
         "apps/games/games-ui-e2e/**",
@@ -47,7 +67,9 @@
     },
     {
       "plugin": "@nx/jest/plugin",
-      "options": { "targetName": "jest:test" },
+      "options": {
+        "targetName": "jest:test"
+      },
       "exclude": [
         "apis/crud/crud-api-e2e/**",
         "apis/games/games-api-e2e/**",
@@ -61,9 +83,32 @@
     }
   ],
   "targetDefaults": {
-    "@nx/esbuild:esbuild": { "cache": true, "dependsOn": ["^build"], "inputs": ["production", "^production"] },
-    "@nx/js:tsc": { "cache": true, "dependsOn": ["^build"], "inputs": ["production", "^production"] }
+    "@nx/esbuild:esbuild": {
+      "cache": true,
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "production",
+        "^production"
+      ]
+    },
+    "@nx/js:tsc": {
+      "cache": true,
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "production",
+        "^production"
+      ]
+    }
   },
-  "generators": { "@nx/react": { "library": { "unitTestRunner": "vitest" } } },
-  "nxCloudId": "6793e0b5403d18a7ebb8ea81"
+  "generators": {
+    "@nx/react": {
+      "library": {
+        "unitTestRunner": "vitest"
+      }
+    }
+  }
 }
