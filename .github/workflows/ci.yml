@@ -179,7 +179,7 @@ jobs:
 
       # Install WDG-AGENTS for test execution
       - name: Install WDG-AGENTS for test execution
-        run: nx install wdg-agents
+        run: pnpx nx install wdg-agents
 
       # Generate Prisma Client For CRUD-Api
       - name: Generate Prisma Client for CRUD-Api
