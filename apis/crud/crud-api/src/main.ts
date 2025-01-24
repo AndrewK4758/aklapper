@@ -18,7 +18,8 @@ export const corsOptions: CorsOptions = {
     'http://localhost:4800',
     'https://andrew-k.us',
     'https://www.andrew-k.us',
-    'http://localhost'
+    'http://localhost',
+    'https://games-424800.uc.r.appspot.com'
   ],
   methods: '*',
   exposedHeaders: '*',

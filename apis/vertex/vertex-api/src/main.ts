@@ -18,9 +18,10 @@ export const corsOptions: CorsOptions = {
     'https://andrew-k.us',
     'https://www.andrew-k.us',
     'http://localhost',
+    'https://games-424800.uc.r.appspot.com'
   ],
   exposedHeaders: '*',
-  credentials: false,
+  credentials: false
 };
 
 export const httpServer = createServer(app);
@@ -33,12 +34,10 @@ app.use('/api/v1', router);
 
 const serverOptions: Partial<ServerOptions> = {
   cleanupEmptyChildNamespaces: true,
-  cors: corsOptions,
+  cors: corsOptions
 };
 
-export const socketServer = new SocketServer(httpServer, serverOptions, [
-  handleTextDataChunks,
-]);
+export const socketServer = new SocketServer(httpServer, serverOptions, [handleTextDataChunks]);
 
 new Routes();
 

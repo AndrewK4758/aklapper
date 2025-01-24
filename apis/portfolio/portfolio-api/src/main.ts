@@ -13,8 +13,9 @@ export const corsOptions: CorsOptions = {
     'https://www.andrew-k.us',
     'https://andrew-k.us',
     'http://localhost:4700',
+    'https://games-424800.uc.r.appspot.com'
   ],
-  credentials: true,
+  credentials: true
 };
 
 app.use('*', cors(corsOptions));
@@ -30,6 +31,6 @@ const host = process.env.HOST || 'localhost';
 const server = app.listen(port, () => {
   console.log(`Listening at http://${host}:${port}/api/v1`);
 });
-server.on('error', (err) => console.error(err));
+server.on('error', err => console.error(err));
 
 export default app;

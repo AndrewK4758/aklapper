@@ -24,17 +24,18 @@ export const corsOptions: CorsOptions = {
     'http://localhost:3200',
     'ws://localhost:3200',
     'http://localhost',
+    'https://games-424800.uc.r.appspot.com'
   ],
   methods: '*',
   exposedHeaders: '*',
   optionsSuccessStatus: 204,
   allowedHeaders: '*',
-  credentials: false,
+  credentials: false
 };
 
 const serverOptions: Partial<ServerOptions> = {
   cleanupEmptyChildNamespaces: true,
-  cors: corsOptions,
+  cors: corsOptions
 };
 
 const httpServer = createServer(app);
@@ -45,12 +46,7 @@ app.enable('trust proxy');
 app.use('/assets', express.static(join(__dirname, 'assets')));
 app.use('/api/v1', router);
 
-export const socketServer = new SocketServer(
-  httpServer,
-  serverOptions,
-  [socketBoardAction],
-  [addGameToSocketInstance],
-);
+export const socketServer = new SocketServer(httpServer, serverOptions, [socketBoardAction], [addGameToSocketInstance]);
 
 new GameRoutes();
 
