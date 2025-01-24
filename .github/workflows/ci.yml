@@ -345,6 +345,11 @@ jobs:
     needs: ['deploy-apis']
     runs-on: ubuntu-latest
     steps:
+      # Authenticate With GCP
+      - uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.GCP_SA_CREDENTIALS_JSON }}
+          
       # Migrate traffic to new revisions if health checks pass
       - name: Migrate traffic to new revisions
         run: |
