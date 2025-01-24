@@ -320,6 +320,11 @@ jobs:
     needs: ['prepare-apis']
     runs-on: ubuntu-latest
     steps:
+      # Authenticate With GCP
+      - uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.GCP_SA_CREDENTIALS_JSON }}
+
       # Deploy all APIs to Cloud Run
       - name: Deploy APIs to Cloud Run
         env:
@@ -377,6 +382,11 @@ jobs:
             node_modules
             .venv
           key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      # Authenticate With GCP
+      - uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.GCP_SA_CREDENTIALS_JSON }}
 
       # Deploy to Portfolio to App Engine
       - name: Deploy Portfolio to App Engine

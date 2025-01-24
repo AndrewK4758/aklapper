@@ -19,9 +19,6 @@
           "parallel": false,
           "commands": [
             {
-              "command": "gcloud auth activate-service-account --key-file=${{ secrets.GCP_SA_CREDENTIALS_JSON }}"
-            },
-            {
               "command": "gcloud app deploy website.yaml --quiet --verbosity=debug"
             }
           ],
