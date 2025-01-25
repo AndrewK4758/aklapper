@@ -77,16 +77,12 @@
           "build"
         ],
         "options": {
-          "command": "docker build -f ./apis/games/games-api/Dockerfile . -t us-central1-docker.pkg.dev/games-424800/portfolio/games-api:latest"
+          "command": "docker build -f apis/games/games-api/Dockerfile . -t us-central1-docker.pkg.dev/games-424800/portfolio/games-api:latest"
         }
       },
       "docker-push": {
         "executor": "nx:run-commands",
-        "dependsOn": [
-          "docker-build"
-        ],
         "options": {
-          "cwd": "{workspaceRoot}/apis/games/games-api",
           "command": "docker push us-central1-docker.pkg.dev/games-424800/portfolio/games-api:latest"
         }
       }

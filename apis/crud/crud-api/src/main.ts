@@ -1,10 +1,12 @@
-import cors, { CorsOptions } from 'cors';
-import express, { Express } from 'express';
+import type { CorsOptions } from 'cors';
+import cors from 'cors';
+import { configDotenv } from 'dotenv';
+import type { Express } from 'express';
+import express from 'express';
 import { createServer } from 'http';
 import { join } from 'path';
-import Routes, { router } from './routes/routes.js';
 import { cwd } from 'process';
-import { configDotenv } from 'dotenv';
+import Routes, { router } from './routes/routes.js';
 
 const __dirname = join(cwd(), 'apis/crud/crud-api');
 
