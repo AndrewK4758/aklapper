@@ -53,6 +53,7 @@ export class PrismaErrorLogger {
         if (this.#error.meta instanceof Object) errorMetadata = Object.values(this.#error.meta);
         this.#parsedError.errorCode = `The Prisma Error Code to reference is: ${this.#error.code}\n`;
         this.#parsedError.errorMessage = `The Error Message is ${this.#error.message} | The affected section is ${errorMetadata} | The provided reason for the error ${this.#error.cause}`;
+        this.#parsedError.retryable = null;
         return this.#parsedError;
       }
 

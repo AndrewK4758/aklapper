@@ -11,7 +11,6 @@ describe('Test createArtists service', () => {
   });
   it('Should pass and return the value of the created artist_id and name', async () => {
     const artist = await deleteArtists(id);
-    console.log(artist);
     expect(artist).toBeTruthy();
     expect((artist as artist).name).toEqual(name);
   });

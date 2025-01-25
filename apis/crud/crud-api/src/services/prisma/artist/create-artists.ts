@@ -1,5 +1,4 @@
-import { prisma } from '@aklapper/prisma';
-import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
+import { prisma, PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
 import { artist } from '@prisma/client';
 
 /**
@@ -11,7 +10,7 @@ import { artist } from '@prisma/client';
 
 const createArtists = async (name: string): Promise<artist | ParsedPrismaError> => {
   try {
-    return prisma.artist.create({ data: { name: name } });
+    return await prisma.artist.create({ data: { name: name } });
   } catch (error) {
     const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
     return prismaError.parseErrors();
