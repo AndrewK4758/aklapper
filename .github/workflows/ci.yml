@@ -324,10 +324,36 @@ jobs:
     needs: ['prepare-apis']
     runs-on: ubuntu-latest
     steps:
+      #Use last git commit
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       # Install PNPM
       - uses: pnpm/action-setup@v4
         with:
           version: 9
+
+      # Setup Node Js
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 23
+          cache: pnpm
+
+      # Use cached dependencies
+      - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.cache/poetry
+            ~/.pnpm-store
+            node_modules
+            .venv
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      # Add Nx Cloud Build Cache
+      - uses: nrwl/nx-set-shas@v4
 
       # Authenticate With GCP
       - uses: 'google-github-actions/auth@v2'
@@ -424,4 +450,4 @@ jobs:
           VITE_VERTEX_API_URL: ${{ secrets.VITE_VERTEX_API_URL }}
           VITE_GAMES_WS_URL: ${{ secrets.VITE_GAMES_WS_URL }}
           VITE_VERTEX_WS_URL: ${{ secrets.VITE_VERTEX_WS_URL }}1
-        run: pnpx nx deploy portfolio
+        run: pnpx nx affected deploy-app-engine --verbose

@@ -8,15 +8,11 @@
     "projectType": "application",
     "sourceRoot": "apps/portfolio/portfolio/src",
     "targets": {
-      "deploy": {
+      "deploy-app-engine": {
         "executor": "nx:run-commands",
-        "dependsOn": [
-          "build"
-        ],
         "defaultConfiguration": "production",
         "options": {
           "cwd": "apps/portfolio/portfolio",
-          "parallel": false,
           "commands": [
             {
               "command": "gcloud app deploy website.yaml --quiet --verbosity=debug"
