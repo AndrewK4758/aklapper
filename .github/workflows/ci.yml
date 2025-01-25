@@ -318,7 +318,7 @@ jobs:
       # Push all API's Docker Images for GCP Cloud Run Deployment
       - name: Push all API Docker Images to GCP Artifact Registery
         run: |
-          pnpx nx affected -t docker-push
+          pnpx nx affected -t docker-push --verbose
 
   deploy-apis:
     needs: ['prepare-apis']
@@ -332,7 +332,7 @@ jobs:
 
       # Deploy all APIs to Cloud Run
       - name: Deploy APIs to Cloud Run
-        run: pnpx nx affected -t=deploy-GCP --verbose
+        run: pnpx nx affected -t deploy-cloud-run --verbose
         # env:
         #   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         #   REGION: ${{ env.REGION }}

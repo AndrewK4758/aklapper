@@ -80,7 +80,7 @@
       "docker-push": {
         "command": "docker push us-central1-docker.pkg.dev/games-424800/portfolio/portfolio-api:latest"
       },
-      "deploy-GCP": {
+      "deploy-cloud-run": {
         "executor": "nx:run-commands",
         "options": {
           "color": true,
