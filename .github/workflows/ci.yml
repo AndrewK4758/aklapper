@@ -324,6 +324,11 @@ jobs:
     needs: ['prepare-apis']
     runs-on: ubuntu-latest
     steps:
+      # Install PNPM
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       # Authenticate With GCP
       - uses: 'google-github-actions/auth@v2'
         name: Authenticate with GCP
