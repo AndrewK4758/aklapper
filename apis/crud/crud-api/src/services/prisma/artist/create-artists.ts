@@ -1,6 +1,6 @@
 import { prisma } from '@aklapper/prisma';
+import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
 import { artist } from '@prisma/client';
-import type { PrismaClientKnownRequestError } from '@prisma/client/runtime/library.js';
 
 /**
  * This function creates a new artist in the database.
@@ -9,11 +9,12 @@ import type { PrismaClientKnownRequestError } from '@prisma/client/runtime/libra
  * @returns A Promise that resolves to the newly created artist object, or BuiltErrorMessage if an error occurs.
  */
 
-const createArtists = async (name: string): Promise<artist | PrismaClientKnownRequestError> => {
+const createArtists = async (name: string): Promise<artist | ParsedPrismaError> => {
   try {
     return prisma.artist.create({ data: { name: name } });
-  } catch (err) {
-    return err as PrismaClientKnownRequestError;
+  } catch (error) {
+    const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
+    return prismaError.parseErrors();
   }
 };
 

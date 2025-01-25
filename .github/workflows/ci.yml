@@ -34,12 +34,13 @@ jobs:
         with:
           version: 9
 
+      # Setup Node js
       - uses: actions/setup-node@v4
         with:
           node-version: '23'
 
       # Cache Dependencies for all jobs
-      - name: Cache dependencies
+      - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
         uses: actions/cache@v3
         with:
           path: |
@@ -51,11 +52,11 @@ jobs:
           key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       # Install Node / Js dependencies
-      - name: Install pnpm Dependencies
+      - name: Install Nodejs Dependencies
         run: pnpm install --frozen-lockfile
 
-      # Setup Python for wdg-agents
-      - name: Setup Python Version for wdg-agents
+      # Set Python for wdg-agents
+      - name: Set Python Version for wdg-agents
         uses: actions/setup-python@v5
         with:
           python-version: 3.12.8
@@ -63,7 +64,7 @@ jobs:
       # Install Poetry for Python venv managment
       # Add Poetry Export Plugin
       # Add Poetry Shell Plugin
-      - name: Install Poetry
+      - name: Install Poetry w/ Exports/Shell Plugins
         uses: snok/install-poetry@v1
         with:
           virtualenvs-create: true
@@ -94,14 +95,14 @@ jobs:
         with:
           version: 9
 
-      # Cache node_modules
+      # Setup Node Js
       - uses: actions/setup-node@v4
         with:
           node-version: 23
           cache: pnpm
 
       # Use cached dependencies
-      - name: Cache dependencies
+      - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
         uses: actions/cache@v3
         with:
           path: |
@@ -111,6 +112,9 @@ jobs:
             node_modules
             .venv
           key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      # Add Nx Cloud Build Cache
+      - uses: nrwl/nx-set-shas@v4
 
       # Install Poetry for Python venv managment
       # Add Poetry Export Plugin
@@ -143,14 +147,14 @@ jobs:
         with:
           version: 9
 
-      # Cache node_modules
+      # Setup Node Js
       - uses: actions/setup-node@v4
         with:
           node-version: 23
           cache: pnpm
 
       # Use cached dependencies
-      - name: Cache dependencies
+      - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
         uses: actions/cache@v3
         with:
           path: |
@@ -209,14 +213,14 @@ jobs:
         with:
           version: 9
 
-      # Cache node_modules
+      # Setup Node Js
       - uses: actions/setup-node@v4
         with:
           node-version: 23
           cache: pnpm
 
       # Use cached dependencies
-      - name: Cache dependencies
+      - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
         uses: actions/cache@v3
         with:
           path: |
@@ -233,7 +237,7 @@ jobs:
       # Install Poetry for Python venv managment
       # Add Poetry Export Plugin
       # Add Poetry Shell Plugin
-      - name: Install Poetry
+      - name: Install Poetry w/ Exports/Shell Plugins
         uses: snok/install-poetry@v1
         with:
           virtualenvs-create: true
@@ -277,7 +281,7 @@ jobs:
           cache: pnpm
 
       # Install Dependencies
-      - name: Install Portfolio Dependencies for Deploy to Cloud Build
+      - name: Install Portfolio Dependencies for Deploy to GCP Cloud Run
         run: pnpm install --frozen-lockfile
 
       # Generate Prisma Client For CRUD-Api
@@ -291,8 +295,8 @@ jobs:
       - uses: nrwl/nx-set-shas@v4
 
       # Auth with GCP Service Key Credentials
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+      - uses: google-github-actions/auth@v2
+        name: Authenticate to Google Cloud
         with:
           credentials_json: ${{ secrets.GCP_SA_CREDENTIALS_JSON }}
 
@@ -322,52 +326,56 @@ jobs:
     steps:
       # Authenticate With GCP
       - uses: 'google-github-actions/auth@v2'
+        name: Authenticate with GCP
         with:
           credentials_json: ${{ secrets.GCP_SA_CREDENTIALS_JSON }}
 
       # Deploy all APIs to Cloud Run
       - name: Deploy APIs to Cloud Run
-        env:
-          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-          REGION: ${{ env.REGION }}
-          GAR_REPO: ${{ env.GAR_REPO }}
-          NX_CLOUD_TOKEN: ${{ env.NX_CLOUD_TOKEN }}
-        run: |
-          gcloud run deploy crud-api --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/crud-api:latest --region=${{ env.REGION }} --platform=managed --max-instances=1 --port=${{ secrets.CRUD_API_PORT }} --allow-unauthenticated --no-traffic --add-cloudsql-instances=${{ secrets.GCP_SQL_STRING }}
+        run: pnpx nx affected -t=deploy-GCP --verbose
+        # env:
+        #   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        #   REGION: ${{ env.REGION }}
+        #   GAR_REPO: ${{ env.GAR_REPO }}
+        #   NX_CLOUD_TOKEN: ${{ env.NX_CLOUD_TOKEN }}
+        # run: |
+        #   gcloud run deploy crud-api --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/crud-api:latest --region=${{ env.REGION }} --platform=managed --max-instances=1 --port=${{ secrets.CRUD_API_PORT }} --allow-unauthenticated --no-traffic --add-cloudsql-instances=${{ secrets.GCP_SQL_STRING }}
 
-          gcloud run deploy games-api --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/games-api:latest --region=${{ env.REGION }} --platform=managed --max-instances=1 --port=${{ secrets.GAMES_API_PORT }} --allow-unauthenticated --no-traffic
+        #   gcloud run deploy games-api --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/games-api:latest --region=${{ env.REGION }} --platform=managed --max-instances=1 --port=${{ secrets.GAMES_API_PORT }} --allow-unauthenticated --no-traffic
 
-          gcloud run deploy portfolio-api --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/portfolio-api:latest --region=${{ env.REGION }} --platform=managed --max-instances=1 --port=${{ secrets.PORTFOLIO_API_PORT }} --allow-unauthenticated --no-traffic
+        #   gcloud run deploy portfolio-api --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/portfolio-api:latest --region=${{ env.REGION }} --platform=managed --max-instances=1 --port=${{ secrets.PORTFOLIO_API_PORT }} --allow-unauthenticated --no-traffic
 
-          gcloud run deploy vertex-api --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/vertex-api:latest --region=${{ env.REGION }} --platform=managed --max-instances=1 --port=${{ secrets.VERTEX_API_PORT }} --allow-unauthenticated --no-traffic
+        #   gcloud run deploy vertex-api --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/vertex-api:latest --region=${{ env.REGION }} --platform=managed --max-instances=1 --port=${{ secrets.VERTEX_API_PORT }} --allow-unauthenticated --no-traffic
 
-  connect-apis:
-    needs: ['deploy-apis']
-    runs-on: ubuntu-latest
-    steps:
-      # Authenticate With GCP
-      - uses: 'google-github-actions/auth@v2'
-        with:
-          credentials_json: ${{ secrets.GCP_SA_CREDENTIALS_JSON }}
+  # connect-apis:
+  #   needs: ['deploy-apis']
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     # Authenticate With GCP
+  #     - uses: 'google-github-actions/auth@v2'
+  #       name: Authenticate with GCP
+  #       with:
+  #         credentials_json: ${{ secrets.GCP_SA_CREDENTIALS_JSON }}
 
-      # Migrate traffic to new revisions if health checks pass
-      - name: Migrate traffic to new revisions
-        env:
-          CLOUDSDK_CORE_PROJECT: ${{ secrets.CLOUDSDK_CORE_PROJECT }}
-          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-          REGION: ${{ env.REGION }}
-          GAR_REPO: ${{ env.GAR_REPO }}
-          NX_CLOUD_TOKEN: ${{ env.NX_CLOUD_TOKEN }}
-        run: |
-          gcloud run services update-traffic crud-api --to-latest --region=us-central1
-          gcloud run services update-traffic games-api --to-latest --region=us-central1
-          gcloud run services update-traffic portfolio-api --to-latest --region=us-central1
-          gcloud run services update-traffic vertex-api --to-latest --region=us-central1
+  #     # Migrate traffic to new revisions if health checks pass
+  #     - name: Migrate traffic to new revisions
+  #       env:
+  #         CLOUDSDK_CORE_PROJECT: ${{ secrets.CLOUDSDK_CORE_PROJECT }}
+  #         PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  #         REGION: ${{ env.REGION }}
+  #         GAR_REPO: ${{ env.GAR_REPO }}
+  #         NX_CLOUD_TOKEN: ${{ env.NX_CLOUD_TOKEN }}
+  #       run: |
+  #         gcloud run services update-traffic crud-api --to-latest --region=us-central1
+  #         gcloud run services update-traffic games-api --to-latest --region=us-central1
+  #         gcloud run services update-traffic portfolio-api --to-latest --region=us-central1
+  #         gcloud run services update-traffic vertex-api --to-latest --region=us-central1
 
   deploy-portfolio:
     needs: ['build_and_typecheck']
     runs-on: ubuntu-latest
     steps:
+      # Use last git commit
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -376,14 +384,14 @@ jobs:
         with:
           version: 9
 
-      # Cache node_modules
+      # Setup Node Js
       - uses: actions/setup-node@v4
         with:
           node-version: 23
           cache: pnpm
 
       # Use cached dependencies
-      - name: Cache dependencies
+      - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
         uses: actions/cache@v3
         with:
           path: |
@@ -396,6 +404,7 @@ jobs:
 
       # Authenticate With GCP
       - uses: 'google-github-actions/auth@v2'
+        name: Authenticate with GCP
         with:
           credentials_json: ${{ secrets.GCP_SA_CREDENTIALS_JSON }}
 

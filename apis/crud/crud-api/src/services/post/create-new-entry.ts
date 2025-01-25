@@ -1,5 +1,6 @@
 import { prisma } from '@aklapper/prisma';
-import { Prisma } from '@prisma/client';
+import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
+import { Prisma, type artist } from '@prisma/client';
 import { DefaultArgs } from '@prisma/client/runtime/library';
 
 /**
@@ -9,12 +10,12 @@ import { DefaultArgs } from '@prisma/client/runtime/library';
  * @returns A Promise that resolves to the newly created artist object, or null if an error occurs.
  */
 
-const createNewEntry = async (query: Prisma.artistCreateArgs<DefaultArgs>) => {
+const createNewEntry = async (query: Prisma.artistCreateArgs<DefaultArgs>): Promise<artist | ParsedPrismaError> => {
   try {
     return prisma.artist.create(query);
   } catch (err) {
-    console.error(err);
-    return null;
+    const prismaError = new PrismaErrorLogger(err as PrismaClientErrors);
+    return prismaError.parseErrors();
   }
 };
 

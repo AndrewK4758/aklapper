@@ -18,6 +18,7 @@ const deleteArtistsAlbums = async (req: Request, resp: Response) => {
     resp.status(200).json({ deletedAlbum: deletedAlbum });
   } catch (error) {
     console.error(error);
+    resp.status(500).json(error);
   }
 };
 

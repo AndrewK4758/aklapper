@@ -1,5 +1,6 @@
-import { artist } from '@prisma/client';
 import { prisma } from '@aklapper/prisma';
+import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
+import { artist } from '@prisma/client';
 
 /**
  * Finds an artist in the database by their ID.
@@ -8,12 +9,12 @@ import { prisma } from '@aklapper/prisma';
  * @returns A Promise that resolves to the artist object if found, otherwise null.
  */
 
-const findArtist = async (id: number): Promise<artist | null> => {
+const findArtist = async (id: number): Promise<(artist | null) | ParsedPrismaError> => {
   try {
     return await prisma.artist.findUnique({ where: { artist_id: id }, include: { album: true } });
-  } catch (err) {
-    console.log(err);
-    return null;
+  } catch (error) {
+    const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
+    return prismaError.parseErrors();
   }
 };
 

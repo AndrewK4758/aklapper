@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import deleteArtists from '../services/prisma/artist/delete-artist.js';
-import deleteArtistError from '../errors/delete-artist-error.js';
 
 /**
  * Handles DELETE requests to delete an artist from the database.
@@ -23,7 +22,7 @@ const deleteArtist = async (req: Request, resp: Response): Promise<void> => {
     resp.status(202).json(output);
   } catch (error) {
     console.error(error);
-    resp.status(400).json(deleteArtistError());
+    resp.status(400).json(error);
   }
 };
 

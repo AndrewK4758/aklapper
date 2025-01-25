@@ -37,23 +37,21 @@ const createNewEntrys = async (req: Request, resp: Response) => {
                   composer: track.composer,
                   milliseconds: track.milliseconds,
                   bytes: track.bytes,
-                  unit_price: track.unit_price,
-                },
-              },
-            },
-          ],
-        },
-      },
+                  unit_price: track.unit_price
+                }
+              }
+            }
+          ]
+        }
+      }
     } as Prisma.artistCreateArgs<DefaultArgs>;
 
     const newEntry = await createNewEntry(query);
 
     resp.status(200).json({ newEntry: newEntry });
-  } catch (err) {
-    console.error(err);
-    resp
-      .status(500)
-      .json({ newEntry: `Error adding entry. Please submit again` });
+  } catch (error) {
+    console.error(error);
+    resp.status(500).json(error);
   }
 };
 export default createNewEntrys;

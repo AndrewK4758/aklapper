@@ -1,7 +1,6 @@
-import { prisma } from '@aklapper/prisma';
-import { Prisma } from '@prisma/client';
+import { prisma, PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
+import { Prisma, type artist } from '@prisma/client';
 import { DefaultArgs } from '@prisma/client/runtime/library';
-
 /**
  * Searches for artists in the database based on the provided query.
  *
@@ -10,12 +9,14 @@ import { DefaultArgs } from '@prisma/client/runtime/library';
  * @returns A Promise that resolves to an array of `artist` objects if the search is successful, `null` if an error occurs.
  */
 
-const searchArtist = async (query: Prisma.artistFindManyArgs<DefaultArgs>) => {
+const searchArtist = async (
+  query: Prisma.artistFindManyArgs<DefaultArgs>
+): Promise<(artist[] | null) | ParsedPrismaError> => {
   try {
     return await prisma.artist.findMany(query);
   } catch (error) {
-    console.error(error);
-    return null;
+    const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
+    return prismaError.parseErrors();
   }
 };
 

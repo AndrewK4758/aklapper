@@ -31,6 +31,7 @@ const getAlbumsTracks = async (req: Request, resp: Response, next: NextFunction)
       resp.status(200).json({ tracks: tracks, count: tracksCount });
     } catch (error) {
       console.error(error);
+      resp.status(500).json(error);
     }
   }
 };

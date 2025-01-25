@@ -17,7 +17,7 @@ const validateArtists = async (req: Request, resp: Response) => {
     const { name } = req.query;
 
     const query = {
-      where: { name: { equals: name as string, mode: 'insensitive' } },
+      where: { name: { equals: name as string, mode: 'insensitive' } }
     } as Prisma.artistWhereInput;
 
     const artist = await validateArtist(query);
@@ -26,6 +26,7 @@ const validateArtists = async (req: Request, resp: Response) => {
     else resp.status(200).json({ message: 'Artist Not in List' });
   } catch (error) {
     console.error(error);
+    resp.status(500).json(error);
   }
 };
 

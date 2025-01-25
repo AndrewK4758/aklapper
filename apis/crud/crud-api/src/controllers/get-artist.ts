@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import findArtistError from '../errors/find-artist-error.js';
 import findArtist from '../services/prisma/artist/find-artist.js';
 
 /**
@@ -16,10 +15,10 @@ const getArtist = async (req: Request, resp: Response) => {
 
     const artist = await findArtist(parseInt(artistID, 10));
 
-    if (artist) resp.status(200).json(artist);
-    else resp.status(404).json(findArtistError());
+    resp.status(200).json(artist);
   } catch (error) {
     console.error(error);
+    resp.status(500).json(error);
   }
 };
 

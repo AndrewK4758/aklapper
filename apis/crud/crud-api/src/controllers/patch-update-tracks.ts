@@ -18,6 +18,7 @@ const updateTracks = async (req: Request, resp: Response) => {
     resp.status(200).json({ updatedTrack: updatedTrack });
   } catch (error) {
     console.error(error);
+    resp.status(500).json(error);
   }
 };
 export default updateTracks;

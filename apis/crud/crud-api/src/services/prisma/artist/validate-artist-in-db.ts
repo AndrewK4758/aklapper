@@ -1,4 +1,5 @@
 import { prisma } from '@aklapper/prisma';
+import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
 import type { Prisma } from '@prisma/client';
 
 /**
@@ -8,12 +9,12 @@ import type { Prisma } from '@prisma/client';
  * @returns A Promise that resolves to true if an artist matching the query exists, false otherwise, or null if an error occurs.
  */
 
-const validateArtist = async (query: Prisma.artistWhereInput) => {
+const validateArtist = async (query: Prisma.artistWhereInput): Promise<boolean | ParsedPrismaError> => {
   try {
     return await prisma.artist.exists(query);
-  } catch (err) {
-    console.error(err);
-    return null;
+  } catch (error) {
+    const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
+    return prismaError.parseErrors();
   }
 };
 

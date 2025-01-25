@@ -15,11 +15,10 @@ const updateAlbums = async (req: Request, resp: Response) => {
 
     const updatedAlbum = await updateAlbum(parseInt(albumID, 10), title);
 
-    resp
-      .status(200)
-      .json({ message: 'Album Updated', updatedAlbum: updatedAlbum });
+    resp.status(200).json({ message: 'Album Updated', updatedAlbum: updatedAlbum });
   } catch (error) {
     console.error(error);
+    resp.status(500).json(error);
   }
 };
 

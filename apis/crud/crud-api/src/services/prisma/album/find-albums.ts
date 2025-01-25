@@ -1,6 +1,6 @@
 import { prisma } from '@aklapper/prisma';
-import { album } from '@prisma/client';
-import { Prisma } from '@prisma/client';
+import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
+import { album, Prisma } from '@prisma/client';
 import { DefaultArgs } from '@prisma/client/runtime/library';
 
 /**
@@ -10,12 +10,12 @@ import { DefaultArgs } from '@prisma/client/runtime/library';
  * @returns A Promise that resolves to an array of album objects, or null if an error occurs.
  */
 
-const findAllAlbums = async (query: Prisma.albumFindManyArgs<DefaultArgs>): Promise<album[] | null> => {
+const findAllAlbums = async (query: Prisma.albumFindManyArgs<DefaultArgs>): Promise<album[] | ParsedPrismaError> => {
   try {
     return await prisma.album.findMany(query);
   } catch (error) {
-    console.error(error);
-    return null;
+    const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
+    return prismaError.parseErrors();
   }
 };
 

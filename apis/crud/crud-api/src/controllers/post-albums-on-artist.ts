@@ -18,6 +18,7 @@ const createAlbumsOnArtists = async (req: Request, resp: Response) => {
     resp.status(200).json({ message: 'Album Created', newAlbum: newAlbum });
   } catch (error) {
     console.error(error);
+    resp.status(500).json(error);
   }
 };
 

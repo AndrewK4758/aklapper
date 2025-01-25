@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import updateArtistError from '../errors/update-artist-error.js';
 import updateArtist from '../services/prisma/artist/update-artists.js';
 
 /**
@@ -18,14 +17,14 @@ const updateArtists = async (req: Request, resp: Response): Promise<void> => {
     const updatedArtist = await updateArtist(artist_id, name);
 
     const output = {
-      updatedArtist: updatedArtist,
+      updatedArtist: updatedArtist
     };
 
     console.log(output);
     resp.status(202).json(output);
-  } catch (err) {
-    console.error(err);
-    resp.status(400).json(updateArtistError());
+  } catch (error) {
+    console.error(error);
+    resp.status(500).json(error);
   }
 };
 

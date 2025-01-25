@@ -20,14 +20,14 @@ const searchArtistsAndAlbums = async (req: Request, resp: Response) => {
 
     const queryArtist: Prisma.artistFindManyArgs<DefaultArgs> = {
       where: {
-        name: { startsWith: search as string, mode: 'insensitive' },
-      },
+        name: { startsWith: search as string, mode: 'insensitive' }
+      }
     };
 
     const queryAlbum: Prisma.albumFindManyArgs<DefaultArgs> = {
       where: {
-        title: { startsWith: search as string, mode: 'insensitive' },
-      },
+        title: { startsWith: search as string, mode: 'insensitive' }
+      }
     };
 
     type ResponseData = {
@@ -37,7 +37,7 @@ const searchArtistsAndAlbums = async (req: Request, resp: Response) => {
 
     const responseData: ResponseData = {
       artist: [],
-      album: [],
+      album: []
     };
 
     switch (type as string) {
@@ -52,6 +52,7 @@ const searchArtistsAndAlbums = async (req: Request, resp: Response) => {
     resp.status(200).json(responseData);
   } catch (error) {
     console.error(error);
+    resp.status(500).json(error);
   }
 };
 

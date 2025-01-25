@@ -1,5 +1,6 @@
-import { artist } from '@prisma/client';
 import { prisma } from '@aklapper/prisma';
+import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
+import { artist } from '@prisma/client';
 
 /**
  * This function deletes an artist from the database by their ID.
@@ -8,12 +9,12 @@ import { prisma } from '@aklapper/prisma';
  * @returns A Promise that resolves to the deleted artist object, or null if an error occurs.
  */
 
-const deleteArtists = async (id: number): Promise<artist | null> => {
+const deleteArtists = async (id: number): Promise<artist | ParsedPrismaError> => {
   try {
     return prisma.artist.delete({ where: { artist_id: id } });
-  } catch (err) {
-    console.log(err);
-    return null;
+  } catch (error) {
+    const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
+    return prismaError.parseErrors();
   }
 };
 

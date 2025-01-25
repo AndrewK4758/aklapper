@@ -17,8 +17,9 @@ const getAlbumsCount = async (req: Request, resp: Response, next: NextFunction) 
     try {
       const count = await prisma.album.count();
       resp.status(200).json({ count: count });
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
+      resp.status(500).json(error);
     }
   } else next();
 };

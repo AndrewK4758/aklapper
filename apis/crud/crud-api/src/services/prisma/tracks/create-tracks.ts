@@ -1,5 +1,6 @@
 import { prisma } from '@aklapper/prisma';
-import { Prisma } from '@prisma/client';
+import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
+import { Prisma, type track } from '@prisma/client';
 import { DefaultArgs } from '@prisma/client/runtime/library';
 
 /**
@@ -9,12 +10,12 @@ import { DefaultArgs } from '@prisma/client/runtime/library';
  * @returns A Promise that resolves to the newly created track, or null if an error occurs.
  */
 
-const createTracks = async (query: Prisma.trackCreateArgs<DefaultArgs>) => {
+const createTracks = async (query: Prisma.trackCreateArgs<DefaultArgs>): Promise<track | ParsedPrismaError> => {
   try {
     return await prisma.track.create(query);
   } catch (error) {
-    console.error(error);
-    return null;
+    const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
+    return prismaError.parseErrors();
   }
 };
 

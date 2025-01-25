@@ -85,6 +85,13 @@
         "options": {
           "command": "docker push us-central1-docker.pkg.dev/games-424800/portfolio/games-api:latest"
         }
+      },
+      "deploy-GCP": {
+        "executor": "nx:run-commands",
+        "options": {
+          "color": true,
+          "command": "gcloud run deploy games-api --image=us-central1-docker.pkg.dev/games-424800/portfolio/games-api:latest --region=us-central1 --platform=managed --max-instances=1 --port=3000 --allow-unauthenticated"
+        }
       }
     }
   }

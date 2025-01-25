@@ -28,6 +28,7 @@ const getAlbums = async (req: Request, resp: Response) => {
       resp.status(200).json({ albums: albums });
     } catch (error) {
       console.error(error);
+      resp.status(500).json(error);
     }
   }
 };

@@ -1,5 +1,6 @@
 import { prisma } from '@aklapper/prisma';
-import { track, Prisma } from '@prisma/client';
+import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
+import { Prisma, track } from '@prisma/client';
 import { DefaultArgs } from '@prisma/client/runtime/library';
 
 /**
@@ -9,7 +10,7 @@ import { DefaultArgs } from '@prisma/client/runtime/library';
  * @returns A Promise that resolves to the updated track object, or null if an error occurs.
  */
 
-const updateTrack = async (trackData: track) => {
+const updateTrack = async (trackData: track): Promise<track | ParsedPrismaError> => {
   try {
     const { track_id, album_id, name, unit_price, genre_id, media_type_id, composer, milliseconds, bytes } = trackData;
 
@@ -23,13 +24,13 @@ const updateTrack = async (trackData: track) => {
         media_type_id: media_type_id,
         composer: composer,
         milliseconds: milliseconds,
-        bytes: bytes,
-      },
+        bytes: bytes
+      }
     } as Prisma.trackUpdateArgs<DefaultArgs>;
     return await prisma.track.update(query);
   } catch (error) {
-    console.error(error);
-    return null;
+    const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
+    return prismaError.parseErrors();
   }
 };
 

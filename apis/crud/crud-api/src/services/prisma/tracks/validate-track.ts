@@ -1,4 +1,5 @@
 import { prisma } from '@aklapper/prisma';
+import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
 import type { Prisma } from '@prisma/client';
 
 /**
@@ -8,12 +9,12 @@ import type { Prisma } from '@prisma/client';
  * @returns A Promise that resolves to true if a track matching the query exists, false otherwise, or null if an error occurs.
  */
 
-const validateTrack = async (query: Prisma.trackWhereInput): Promise<boolean | null> => {
+const validateTrack = async (query: Prisma.trackWhereInput): Promise<boolean | ParsedPrismaError> => {
   try {
     return await prisma.track.exists(query);
   } catch (error) {
-    console.error(error);
-    return null;
+    const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
+    return prismaError.parseErrors();
   }
 };
 

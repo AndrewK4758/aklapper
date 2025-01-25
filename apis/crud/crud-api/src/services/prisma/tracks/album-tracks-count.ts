@@ -1,4 +1,5 @@
 import { prisma } from '@aklapper/prisma';
+import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
 
 /**
  * Counts the number of tracks in a given album.
@@ -7,12 +8,12 @@ import { prisma } from '@aklapper/prisma';
  * @returns A Promise that resolves to the number of tracks, or null if an error occurs.
  */
 
-const albumTracksCount = async (albumID: number): Promise<number | null> => {
+const albumTracksCount = async (albumID: number): Promise<number | ParsedPrismaError> => {
   try {
     return await prisma.track.count({ where: { album_id: { equals: albumID } } });
   } catch (error) {
-    console.error(error);
-    return null;
+    const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
+    return prismaError.parseErrors();
   }
 };
 

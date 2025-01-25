@@ -1,6 +1,6 @@
 import type { artist } from '@prisma/client';
 import type { PrismaClientKnownRequestError } from '@prisma/client/runtime/library.js';
-import PrismaErrorLogger from '../src/errors/log-error.js';
+import PrismaErrorLogger from '../../../../libs/prisma/src/lib/log-prisma-error.js';
 import createArtists from '../src/services/prisma/artist/create-artists.js';
 import deleteArtists from '../src/services/prisma/artist/delete-artist.js';
 import findArtists from '../src/services/prisma/artist/find-artists.js';

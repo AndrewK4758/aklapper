@@ -1,7 +1,5 @@
 import { Request, Response } from 'express';
-import PrismaErrorLogger, { ParsedPrismaError } from '../errors/log-error.js';
 import createArtists from '../services/prisma/artist/create-artists.js';
-import type { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 /**
  * Handles POST requests to create a new artist in the database.
@@ -17,9 +15,8 @@ const postArtists = async (req: Request, resp: Response): Promise<void> => {
     const newArtist = await createArtists(name);
     resp.status(201).json({ message: 'Artist Created Sucessful', newArtist: newArtist });
   } catch (error) {
-    const prismeError = new PrismaErrorLogger(error as PrismaClientKnownRequestError);
-    console.log(prismeError.displayError(), 'IN POST RETURN CATCH DISPLAY ERROR');
-    resp.status(400).json(prismeError.displayError() as ParsedPrismaError);
+    console.error(error);
+    resp.status(500).json(error);
   }
 };
 

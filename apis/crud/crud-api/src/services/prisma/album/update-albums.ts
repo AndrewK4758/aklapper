@@ -1,4 +1,6 @@
 import { prisma } from '@aklapper/prisma';
+import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
+import type { album } from '@prisma/client';
 
 /**
  * Updates an existing album in the database.
@@ -8,17 +10,17 @@ import { prisma } from '@aklapper/prisma';
  * @returns A Promise that resolves to the updated album object, or null if an error occurs.
  */
 
-const updateAlbum = async (albumID: number, title: string) => {
+const updateAlbum = async (albumID: number, title: string): Promise<album | ParsedPrismaError> => {
   try {
     return await prisma.album.update({
       where: {
-        album_id: albumID,
+        album_id: albumID
       },
-      data: { title: title },
+      data: { title: title }
     });
   } catch (error) {
-    console.error(error);
-    return null;
+    const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
+    return prismaError.parseErrors();
   }
 };
 

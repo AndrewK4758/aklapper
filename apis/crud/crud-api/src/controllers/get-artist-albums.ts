@@ -26,8 +26,9 @@ const getArtistsAlbums = async (req: Request, resp: Response, next: NextFunction
       const albums = await getArtistAlbums(query);
 
       resp.status(200).json({ albums: albums });
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
+      resp.status(500).json(error);
     }
   } else next();
 };

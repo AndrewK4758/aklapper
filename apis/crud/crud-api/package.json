@@ -85,6 +85,13 @@
         "options": {
           "command": "docker push us-central1-docker.pkg.dev/games-424800/portfolio/crud-api:latest"
         }
+      },
+      "deploy-GCP": {
+        "executor": "nx:run-commands",
+        "options": {
+          "color": true,
+          "command": "gcloud run deploy crud-api --image=us-central1-docker.pkg.dev/games-424800/portfolio/crud-api:latest --region=us-central1 --platform=managed --max-instances=1 --port=4000 --allow-unauthenticated  --add-cloudsql-instances=games-424800:us-central1:aklapper"
+        }
       }
     }
   }
