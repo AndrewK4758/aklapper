@@ -352,6 +352,12 @@ jobs:
 
       # Migrate traffic to new revisions if health checks pass
       - name: Migrate traffic to new revisions
+        env:
+          CLOUDSDK_CORE_PROJECT: ${{ secrets.CLOUDSDK_CORE_PROJECT }}
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          REGION: ${{ env.REGION }}
+          GAR_REPO: ${{ env.GAR_REPO }}
+          NX_CLOUD_TOKEN: ${{ env.NX_CLOUD_TOKEN }}
         run: |
           gcloud run services update-traffic crud-api --to-latest --region=us-central1
           gcloud run services update-traffic games-api --to-latest --region=us-central1
