@@ -11,7 +11,7 @@ import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { artist } from '@prisma/client';
 import axios from 'axios';
 import { RefObject, useRef, useState, type JSX } from 'react';
-import { Outlet, useLoaderData, useNavigate } from 'react-router-dom';
+import { Outlet, useLoaderData, useNavigate } from 'react-router';
 import useFetchDataGridData from '../../../hooks/useFetchDataGridData';
 import type { PaginationModel } from '../../../pages/crud/crud';
 import loadArtists from '../../../services/loaders/crud-loaders/load-artists';

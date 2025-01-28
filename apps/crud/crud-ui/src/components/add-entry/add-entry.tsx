@@ -16,7 +16,7 @@ import Typography from '@mui/material/Typography';
 import { album, artist, track, Prisma } from '@prisma/client';
 import { useFormik } from 'formik';
 import { FocusEvent, Fragment, useState } from 'react';
-import { Form, useNavigate } from 'react-router-dom';
+import { Form, useNavigate } from 'react-router';
 import * as Yup from 'yup';
 import handleSubmitNewEntry, { NewEntryReturn } from '../../services/actions/submit.new-entry-action';
 import handleNewArtistBlur from '../../services/events/handle-validate-artist-on-blur';

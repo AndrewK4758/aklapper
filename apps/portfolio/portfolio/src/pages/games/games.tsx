@@ -8,7 +8,7 @@ import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import Toolbar from '@mui/material/Toolbar';
 import { useRef, type Dispatch, type JSX, type SetStateAction } from 'react';
-import { Outlet, useNavigation, useOutletContext, useParams, useSubmit, type SubmitFunction } from 'react-router-dom';
+import { Outlet, useNavigation, useOutletContext, useParams, useSubmit, type SubmitFunction } from 'react-router';
 import ChutesAndLaddersIcon from '../../components/icons/chutes-and-ladders';
 import TicTacToeIcon from '../../components/icons/tic-tac-toe-icon';
 import GameLoading from '../../components/loading/loading';
@@ -40,6 +40,10 @@ const Games = (): JSX.Element => {
   const submit = useSubmit();
 
   useScrollIntoView(divRef);
+
+  console.log(`STATE: ${state}`);
+  console.log(`LOADING: ${loading}`);
+  console.log(`\n`);
 
   return (
     <Box ref={divRef} component={'div'} key={'games-wrapper'} id="games-wrapper" sx={pagesWrapperStyles}>

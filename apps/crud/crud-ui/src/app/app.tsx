@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router';
 import AddEntry from '../components/add-entry/add-entry';
 import Album from '../components/albums/album-base';
 import AlbumsOnArtist from '../components/albums/artist-albums';

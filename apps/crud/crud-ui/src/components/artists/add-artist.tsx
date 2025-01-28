@@ -7,7 +7,7 @@ import TextField from '@mui/material/TextField';
 import { artist } from '@prisma/client';
 import { useFormik } from 'formik';
 import { Dispatch, FocusEvent, SetStateAction } from 'react';
-import { Form } from 'react-router-dom';
+import { Form } from 'react-router';
 import handleSubmitNewArtist from '../../services/actions/submit-artist-action';
 import handleNewArtistBlur from '../../services/events/handle-validate-artist-on-blur';
 

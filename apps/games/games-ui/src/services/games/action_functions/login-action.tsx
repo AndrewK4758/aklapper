@@ -1,6 +1,6 @@
 import type { AxiosError } from 'axios';
 import axios from 'axios';
-import { ActionFunction, ActionFunctionArgs } from 'react-router-dom';
+import { ActionFunction, ActionFunctionArgs } from 'react-router';
 
 const loginUserAction: ActionFunction = async ({ request }: ActionFunctionArgs) => {
   const { email, password } = await request.json();

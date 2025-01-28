@@ -9,7 +9,7 @@ import { album } from '@prisma/client';
 import axios from 'axios';
 import { FormikProps, useFormik } from 'formik';
 import type { JSX, RefObject } from 'react';
-import { Form } from 'react-router-dom';
+import { Form } from 'react-router';
 import * as Yup from 'yup';
 import handleSubmitNewAlbum from '../../../services/actions/crud-actions//submit-album-to-artist-id-action';
 import { crudAddButtonStyles, crudAddErrorTextStyles } from '../../../styles/crud-styles';

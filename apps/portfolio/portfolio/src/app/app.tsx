@@ -1,20 +1,20 @@
 import CssBaseline from '@mui/material/CssBaseline';
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
-import type { FC, JSX } from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import type { FC, ReactElement } from 'react';
+import { createBrowserRouter, RouterProvider } from 'react-router';
 import routes from '../routes/routes';
 import Theme from '../styles/theme';
 
-export const router = createBrowserRouter(routes);
+const router = createBrowserRouter(routes);
 
 /**
  * This is the root component of the application.
  * It provides the necessary context providers for styling, date localization, and Google OAuth.
  *
- * @returns {JSX.Element} The rendered App component with the Layout component and context providers.
+ * @returns {ReactElement<AppProps>} The rendered App component with the Layout component and context providers.
  */
 
-const App: FC = (): JSX.Element => (
+const App: FC = (): ReactElement => (
   <ThemeProvider theme={Theme}>
     <CssBaseline enableColorScheme />
     <RouterProvider router={router} />

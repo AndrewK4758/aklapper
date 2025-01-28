@@ -1,6 +1,6 @@
 import { Text } from '@aklapper/react-shared';
 import Container from '@mui/material/Container';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 
 interface INoGameError {
   noGameInstance: string;

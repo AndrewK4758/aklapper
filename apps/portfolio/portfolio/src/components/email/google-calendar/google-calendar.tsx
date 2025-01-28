@@ -9,7 +9,7 @@ import axios from 'axios';
 import dayjs, { type Dayjs } from 'dayjs';
 import { jwtDecode } from 'jwt-decode';
 import { useContext, useState, type CSSProperties, type Dispatch, type SetStateAction } from 'react';
-import { Form, useNavigation } from 'react-router-dom';
+import { Form, useNavigation } from 'react-router';
 import {
   GoogleUserContext,
   type GoogleUserContextInfo,

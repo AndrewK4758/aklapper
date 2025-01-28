@@ -1,6 +1,6 @@
 import { ButtonFormAction } from '@aklapper/react-shared';
 import { SxProps } from '@mui/material';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 
 export interface RegisterGameProps {
   registerGameButtonSx: SxProps;

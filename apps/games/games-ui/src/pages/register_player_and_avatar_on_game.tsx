@@ -5,7 +5,7 @@ import { SxProps } from '@mui/material';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import IconButton from '@mui/material/IconButton';
-import { useLocation, useRouteLoaderData } from 'react-router-dom';
+import { useLocation, useRouteLoaderData } from 'react-router';
 import RegisterPlayerAndAvatarForm from '../components/formik_form_components/register_player_and_avatar_formik';
 import { GamesTheme as Theme } from '../styles/games-theme';
 

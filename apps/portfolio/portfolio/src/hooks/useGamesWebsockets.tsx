@@ -6,7 +6,18 @@ import type { IActiveGameInfo } from '../components/games/active_game_session.js
 import { ActionType, type Action } from '../components/games/game_board/socket-reducer.jsx';
 import getGameInstanceInfo from '../utils/utils';
 
-const useGamesWebsockets = (socket: Socket, id: string, dispatch: (value: Action) => void) => {
+/**
+ * Connects to a Socket.IO server and handles game-related events to update the game state.
+ * It listens for 'game-data' events, which are emitted when the game starts or a player makes a move,
+ * and updates the UI accordingly.
+ *
+ * @param {Socket} socket - The Socket.IO client instance.
+ * @param {string} id - The game room ID.
+ * @param {Function} dispatch - The React dispatch function.
+ * @returns {void}
+ */
+
+const useGamesWebsockets = (socket: Socket, id: string, dispatch: (value: Action) => void): void => {
   useEffect(() => {
     if (!socket.connected) socket.connect();
 
@@ -51,7 +62,6 @@ const useGamesWebsockets = (socket: Socket, id: string, dispatch: (value: Action
       socket.disconnect();
       socket.removeAllListeners();
     };
-    
   }, [id]);
 };
 

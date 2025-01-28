@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import { act, render, screen, type RenderResult } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import Layout from '../src/components/layout/layout';
 
 let baseComponent: RenderResult;

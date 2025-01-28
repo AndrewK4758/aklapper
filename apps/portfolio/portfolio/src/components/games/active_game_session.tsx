@@ -5,7 +5,7 @@ import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import { useReducer, useRef, useState, type JSX } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import type { ManagerOptions, Socket } from 'socket.io-client';
 import useGamesWebsockets from '../../hooks/useGamesWebsockets';
 import {
@@ -36,21 +36,9 @@ const socketInit = () => {
  *
  * This component manages the real-time interaction and display of a game session
  * using websockets. It handles:
- *
- * - **Establishing a Websocket Connection:** Connects to the game server using `socket.io-client`,
- *   sending game instance information in the headers.
- * - **Joining a Game Room:** Emits a `create-room` event to join a specific game room
- *   based on the game instance ID.
- * - **Fetching Game Data:** Emits an `action` event to request the initial game board data.
- * - **Real-time Updates:** Listens for `game-data` events from the server to update the game board,
- *   active players, and the current player's turn in real-time.
- * - **Displaying Game Elements:**
- *   - Renders the game board using `ShowGameBoard` or `ShowGameBoardTicTacToe` based on the game type.
- *   - Shows active player avatars using `ActiveAvatars`.
- *   - Provides buttons for taking turns (`TakeTurn` or `TakeTurnTicTacToe`) and resetting the game (`ResetGame`).
- * - **Error Handling:** Listens for `no-game-error` events to handle potential game session errors.
- * - **Disconnecting:** Disconnects from the websocket server and removes all listeners
- *   when the component unmounts.
+ *   - Initializing the game board and player state.
+ *   - Updating the game board and player state based on server events.
+ *   - Rendering the game board, active players, turn information, and move controls.
  *
  * @returns {JSX.Element} The rendered active game session component.
  */

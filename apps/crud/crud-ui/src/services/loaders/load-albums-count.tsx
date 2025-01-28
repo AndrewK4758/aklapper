@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { LoaderFunction } from 'react-router-dom';
+import { LoaderFunction } from 'react-router';
 
 const baseURL = import.meta.env.VITE_DATA_API_URL;
 

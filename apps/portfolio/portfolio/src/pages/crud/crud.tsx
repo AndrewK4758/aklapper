@@ -8,7 +8,7 @@ import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import Toolbar from '@mui/material/Toolbar';
 import { lazy, Suspense, useRef, useState, type JSX } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router';
 import waiting from '../../assets/swirly-dots-to-chrome.webp';
 import {
   crudAppWrapperStyles,

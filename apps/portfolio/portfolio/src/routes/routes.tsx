@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import type { RouteObject } from 'react-router-dom';
+import type { RouteObject } from 'react-router';
 import Layout from '../components/layout/layout';
 import PrivacyPolicy from '../components/privacy-policy/privacy-policy';
 import emailFormAction from '../services/actions/email-form-action';
@@ -26,6 +26,17 @@ const GenAI = lazy(() => import('../pages/gen-ai/gen-ai'));
 const TextGenerator = lazy(() => import('../components/gen-ai/text/text'));
 const Image = lazy(() => import('../components/gen-ai/image/image'));
 const Audio = lazy(() => import('../components/gen-ai/audio/audio'));
+
+/**
+ * React Router DOM Route Object array.
+ *
+ * This array defines the routes for the application, mapping URLs to
+ * specific Components and their associated actions and loaders. It structus
+ * the application into main sections like "games", "crud", and "gen-ai",
+ * each with nested routes for specific functionalities.
+ *
+ * @type {RouteObject[]}
+ */
 
 const routes: RouteObject[] = [
   {

@@ -34,7 +34,11 @@ const config: UserConfig = defineConfig({
     port: 4800,
     host: 'localhost'
   },
-  plugins: [react({ babel: { targets: { esmodules: true } } })],
+  plugins: [
+    react({
+      babel: { targets: { esmodules: true } }
+    })
+  ],
   // Uncomment this if you are using workers.
   // worker: {
   //  plugins: [ nxViteTsPaths() ],
@@ -46,6 +50,7 @@ const config: UserConfig = defineConfig({
 
   build: {
     outDir: './dist',
+    minify: process.env['NODE_ENV'] === 'production',
     emptyOutDir: true,
     manifest: true,
     sourcemap: true,
@@ -56,6 +61,7 @@ const config: UserConfig = defineConfig({
     rollupOptions: {
       perf: true,
       output: {
+        strict: true,
         esModule: true,
         format: 'esm',
         generatedCode: {

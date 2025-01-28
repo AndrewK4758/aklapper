@@ -9,7 +9,7 @@ import { Prisma, track } from '@prisma/client';
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import { FormikProps, useFormik } from 'formik';
 import { ChangeEvent, FocusEvent, RefObject } from 'react';
-import { Form } from 'react-router-dom';
+import { Form } from 'react-router';
 
 const baseURL = import.meta.env.VITE_DATA_API_URL;
 

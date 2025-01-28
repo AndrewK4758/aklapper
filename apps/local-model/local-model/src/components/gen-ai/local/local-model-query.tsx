@@ -4,7 +4,7 @@ import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import { useFormik } from 'formik';
 import { useContext } from 'react';
-import { Form } from 'react-router-dom';
+import { Form } from 'react-router';
 import * as Yup from 'yup';
 import { WebSocketContext } from '../../../contexts/websocket-context';
 import { labelSx, textInputSx, tooltipSx } from '../../../styles/gen-ai-modes-styles';

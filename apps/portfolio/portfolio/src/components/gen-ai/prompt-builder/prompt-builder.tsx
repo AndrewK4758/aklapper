@@ -20,7 +20,7 @@ import {
   useSubmit,
   type NavigateFunction,
   type SubmitTarget
-} from 'react-router-dom';
+} from 'react-router';
 import * as Yup from 'yup';
 import { crudHeaderTextSxProps } from '../../../styles/crud-styles';
 import {

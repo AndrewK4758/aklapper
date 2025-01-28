@@ -20,7 +20,7 @@ import {
   type JSX,
   type SetStateAction
 } from 'react';
-import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router';
 import waiting from '../../assets/swirly-dots-to-chrome.webp';
 import PromptResponse from '../../components/gen-ai/chat-response/chat-response';
 import { MediaRecorderClientContextProvider } from '../../contexts/audio-context';

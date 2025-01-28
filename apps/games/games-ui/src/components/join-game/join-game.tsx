@@ -3,7 +3,7 @@ import { GamePlayerValidation } from '@aklapper/types';
 import { SxProps } from '@mui/material';
 import Button from '@mui/material/Button';
 import { useFormik } from 'formik';
-import { Form, useNavigate } from 'react-router-dom';
+import { Form, useNavigate } from 'react-router';
 import * as Yup from 'yup';
 import { FormActionProps, FormikTextInput } from '@aklapper/react-shared';
 import GamesTheme from '../../styles/games-theme';

@@ -19,8 +19,6 @@ let ctx: Context<GameContextKeys | string>,
   req: Partial<Request>;
 describe('test reset game chain', () => {
   beforeAll(() => {
-    console.log(ChutesAndLadders);
-    console.log(new ChutesAndLadders(5, 5));
     instance = new ChutesAndLadders(5, 5);
     game = new Game(instance);
     instanceOfGame = new InstanceOfGame(getCurrentMinute(), 'game-ID', game);

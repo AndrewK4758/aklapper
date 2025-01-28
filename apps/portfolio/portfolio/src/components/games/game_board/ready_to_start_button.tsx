@@ -3,7 +3,7 @@ import Container from '@mui/material/Container';
 import type { SxProps } from '@mui/material/styles';
 import axios, { type AxiosRequestConfig } from 'axios';
 import { Dispatch, type JSX } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { Socket } from 'socket.io-client';
 import Theme from '../../../styles/theme';
 import getGameInstanceInfo from '../../../utils/utils';

@@ -9,7 +9,7 @@ import { album } from '@prisma/client';
 import axios from 'axios';
 import { FormikProps, useFormik } from 'formik';
 import { ChangeEvent, RefObject } from 'react';
-import { Form } from 'react-router-dom';
+import { Form } from 'react-router';
 import handleSubmitNewAlbum from '../../services/actions/submit-album-to-artist-id-action';
 
 const baseURL = import.meta.env.VITE_DATA_API_URL;

@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, type RenderResult } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import Header from '../src/components/header/header';
 
 let baseComponent: RenderResult;

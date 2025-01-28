@@ -6,7 +6,7 @@ import Container from '@mui/material/Container';
 import MenuItem from '@mui/material/MenuItem';
 import { useFormik } from 'formik';
 import { CSSProperties } from 'react';
-import { Form, useParams, useRouteLoaderData, useSubmit } from 'react-router-dom';
+import { Form, useParams, useRouteLoaderData, useSubmit } from 'react-router';
 import * as Yup from 'yup';
 import { GamesTheme as Theme } from '../../styles/games-theme';
 

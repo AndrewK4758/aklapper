@@ -1,6 +1,6 @@
 import Box from '@mui/material/Box';
 import { useState, type JSX } from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet } from 'react-router';
 import WebSocketContextProvider from '../../contexts/websocket-context';
 import Home from '../../pages/home/home';
 import {

@@ -1,5 +1,5 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./out-tsc/jest",
     "module": "NodeNext",
@@ -15,21 +15,6 @@
   },
   "include": ["vitest.config.ts", "tests/**/*.test.ts", "tests/**/*.spec.ts", "src/**/*.d.ts"],
   "references": [
-    {
-      "path": "../types/tsconfig.lib.json"
-    },
-    {
-      "path": "../chain/tsconfig.lib.json"
-    },
-    {
-      "path": "../game/tsconfig.lib.json"
-    },
-    {
-      "path": "../models/tsconfig.lib.json"
-    },
-    {
-      "path": "../mocks/tsconfig.lib.json"
-    },
     {
       "path": "./tsconfig.lib.json"
     }

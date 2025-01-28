@@ -4,7 +4,7 @@ import { IBuiltGame, IRule } from '@aklapper/types';
 import { SxProps } from '@mui/material';
 import Container from '@mui/material/Container';
 import List from '@mui/material/List';
-import { useParams, useRouteLoaderData } from 'react-router-dom';
+import { useParams, useRouteLoaderData } from 'react-router';
 import HeadingWithDetails from '../components/header/heading-with-details';
 import RegisterGame from '../components/register-game/register_game';
 

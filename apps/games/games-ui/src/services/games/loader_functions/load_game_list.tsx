@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { LoaderFunction } from 'react-router-dom';
+import { LoaderFunction } from 'react-router';
 import getGameInstanceInfo from '../../../utils/utils';
 
 const loadGameList: LoaderFunction = async () => {

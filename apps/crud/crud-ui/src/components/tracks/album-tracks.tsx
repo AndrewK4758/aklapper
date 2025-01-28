@@ -6,7 +6,7 @@ import Paper from '@mui/material/Paper';
 import { DataGrid, GridActionsCellItem, GridColDef, GridRowParams, useGridApiRef } from '@mui/x-data-grid';
 import { track } from '@prisma/client';
 import { useState } from 'react';
-import { useLoaderData, useParams } from 'react-router-dom';
+import { useLoaderData, useParams } from 'react-router';
 import handleDeleteTrack from '../../services/events/handle-delete-track';
 import handleUpdateTrack from '../../services/events/handle-update-track';
 import { AlbumTracks } from '../../services/loaders/load-album-tracks';

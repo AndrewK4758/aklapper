@@ -20,30 +20,6 @@
   "references": [
     {
       "path": "./tsconfig.lib.json"
-    },
-    {
-      "path": "../mocks/tsconfig.lib.json"
-    },
-    {
-      "path": "../types/tsconfig.lib.json"
-    },
-    {
-      "path": "../chain/tsconfig.lib.json"
-    },
-    {
-      "path": "../game/tsconfig.lib.json"
-    },
-    {
-      "path": "../games/tsconfig.lib.json"
-    },
-    {
-      "path": "../models/tsconfig.lib.json"
-    },
-    {
-      "path": "../utils/tsconfig.lib.json"
-    },
-    {
-      "path": "../games-components/tsconfig.lib.json"
     }
   ]
 }

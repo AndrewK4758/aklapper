@@ -7,7 +7,7 @@ import TextField from '@mui/material/TextField';
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { useFormik } from 'formik';
 import { FocusEvent, RefObject } from 'react';
-import { Form, useParams } from 'react-router-dom';
+import { Form, useParams } from 'react-router';
 import handleSubmitNewAlbum from '../../services/actions/submit-album-on-artist-action';
 import handleNewAlbumBlur from '../../services/events/handle-validate-artist-albums-on-blur';
 

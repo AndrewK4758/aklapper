@@ -1,6 +1,6 @@
 import { IRegisterLoaderAndFilter } from '@aklapper/types';
 import axios from 'axios';
-import { LoaderFunction, LoaderFunctionArgs } from 'react-router-dom';
+import { LoaderFunction, LoaderFunctionArgs } from 'react-router';
 import getGameInstanceInfo from '../../../utils/utils';
 
 const loadPlayerAvatarRegisterFilterData: LoaderFunction = async ({ params }: LoaderFunctionArgs) => {

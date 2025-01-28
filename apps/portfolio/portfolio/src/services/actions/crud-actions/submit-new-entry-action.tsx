@@ -1,7 +1,7 @@
 import { track } from '@prisma/client';
 import axios from 'axios';
 import { NewEntry } from '../../../components/crud/add-entry/add-entry';
-import type { NavigateFunction } from 'react-router-dom';
+import type { NavigateFunction } from 'react-router';
 
 export type NewEntryReturn = {
   artist_id: number;

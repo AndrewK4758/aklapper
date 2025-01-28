@@ -10,7 +10,7 @@ import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import axios from 'axios';
 import { useContext, useEffect, useRef, useState, type JSX, type RefObject } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext } from 'react-router';
 import { MediaRecorderClientContext } from '../../../contexts/audio-context';
 import { WebSocketContext } from '../../../contexts/websocket-context';
 import type { OutletContextProps } from '../../../pages/gen-ai/gen-ai';

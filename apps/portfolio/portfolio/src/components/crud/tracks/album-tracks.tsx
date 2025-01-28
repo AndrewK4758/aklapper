@@ -7,7 +7,7 @@ import Paper from '@mui/material/Paper';
 import { DataGrid, GridActionsCellItem, GridColDef, GridRowParams, useGridApiRef } from '@mui/x-data-grid';
 import { track } from '@prisma/client';
 import { useState, type JSX } from 'react';
-import { useLoaderData, useParams } from 'react-router-dom';
+import { useLoaderData, useParams } from 'react-router';
 import { PaginationModel } from '../../../pages/crud/crud';
 import handleDeleteTrack from '../../../services/events/crud-events/handle-delete-track';
 import handleUpdateTrack from '../../../services/events/crud-events/handle-update-track';

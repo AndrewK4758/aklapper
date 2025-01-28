@@ -3,7 +3,7 @@ import { SxProps } from '@mui/material';
 import ImageListItem from '@mui/material/ImageListItem';
 import ImageListItemBar from '@mui/material/ImageListItemBar';
 import { CSSProperties, ReactNode } from 'react';
-import { Link, To } from 'react-router-dom';
+import { Link, To } from 'react-router';
 
 export interface ImageLinkProps {
   type: string;

@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router';
 import Layout from '../components/layout/Layout';
 import ActiveUserProvider from '../context/active-user-context-provider';
 import { NoGameError, NotEnoughPlayersError } from '../errors/error';

@@ -2,7 +2,7 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Modal from '@mui/material/Modal';
 import type { JSX } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import PrivacyPolicyText from '../../pages/static/privacy-policy-text';
 import { baseStyleForLayoutItems } from '../../styles/layout-styles';
 

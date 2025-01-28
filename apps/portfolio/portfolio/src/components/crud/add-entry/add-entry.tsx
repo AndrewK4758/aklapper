@@ -16,7 +16,7 @@ import type { album, artist, track } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/index-browser.js';
 import { useFormik } from 'formik';
 import { FocusEvent, Fragment, useState, type JSX } from 'react';
-import { Form, useLocation, useNavigate } from 'react-router-dom';
+import { Form, useLocation, useNavigate } from 'react-router';
 import * as Yup from 'yup';
 import { addEntrySteps } from '../../../pages/static/crud-text';
 import handleSubmitNewEntry from '../../../services/actions/crud-actions/submit-new-entry-action';

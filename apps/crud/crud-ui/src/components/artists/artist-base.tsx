@@ -15,7 +15,7 @@ import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { artist } from '@prisma/client';
 import axios from 'axios';
 import { RefObject, useCallback, useEffect, useMemo, useState } from 'react';
-import { Outlet, useNavigate, useRouteLoaderData } from 'react-router-dom';
+import { Outlet, useNavigate, useRouteLoaderData } from 'react-router';
 import loadArtists from '../../services/loaders/load-artists';
 import AddArtist from './add-artist';
 import { Container, Paper } from '@mui/material';

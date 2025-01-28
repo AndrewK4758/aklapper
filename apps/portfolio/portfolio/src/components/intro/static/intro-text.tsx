@@ -1,6 +1,6 @@
 import Theme from '../../../styles/theme';
 import Box from '@mui/material/Box';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 export const ABOUT_ME_TITLE = "Hi, I'm Andrew Klapper";
 

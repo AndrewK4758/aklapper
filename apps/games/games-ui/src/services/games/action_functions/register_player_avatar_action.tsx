@@ -1,6 +1,6 @@
 import { IRegisterFormValues } from '@aklapper/types';
 import axios from 'axios';
-import { ActionFunction, ActionFunctionArgs } from 'react-router-dom';
+import { ActionFunction, ActionFunctionArgs } from 'react-router';
 
 const registerPlayerAndAvatarAction: ActionFunction = async ({ request, params }: ActionFunctionArgs) => {
   const baseURL = import.meta.env.VITE_REST_API_SERVER_URL;

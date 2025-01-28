@@ -364,43 +364,6 @@ jobs:
       # Deploy all APIs to Cloud Run
       - name: Deploy APIs to Cloud Run
         run: pnpx nx affected -t deploy-cloud-run --verbose
-        # env:
-        #   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-        #   REGION: ${{ env.REGION }}
-        #   GAR_REPO: ${{ env.GAR_REPO }}
-        #   NX_CLOUD_TOKEN: ${{ env.NX_CLOUD_TOKEN }}
-        # run: |
-        #   gcloud run deploy crud-api --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/crud-api:latest --region=${{ env.REGION }} --platform=managed --max-instances=1 --port=${{ secrets.CRUD_API_PORT }} --allow-unauthenticated --no-traffic --add-cloudsql-instances=${{ secrets.GCP_SQL_STRING }}
-
-        #   gcloud run deploy games-api --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/games-api:latest --region=${{ env.REGION }} --platform=managed --max-instances=1 --port=${{ secrets.GAMES_API_PORT }} --allow-unauthenticated --no-traffic
-
-        #   gcloud run deploy portfolio-api --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/portfolio-api:latest --region=${{ env.REGION }} --platform=managed --max-instances=1 --port=${{ secrets.PORTFOLIO_API_PORT }} --allow-unauthenticated --no-traffic
-
-        #   gcloud run deploy vertex-api --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/portfolio/vertex-api:latest --region=${{ env.REGION }} --platform=managed --max-instances=1 --port=${{ secrets.VERTEX_API_PORT }} --allow-unauthenticated --no-traffic
-
-  # connect-apis:
-  #   needs: ['deploy-apis']
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     # Authenticate With GCP
-  #     - uses: 'google-github-actions/auth@v2'
-  #       name: Authenticate with GCP
-  #       with:
-  #         credentials_json: ${{ secrets.GCP_SA_CREDENTIALS_JSON }}
-
-  #     # Migrate traffic to new revisions if health checks pass
-  #     - name: Migrate traffic to new revisions
-  #       env:
-  #         CLOUDSDK_CORE_PROJECT: ${{ secrets.CLOUDSDK_CORE_PROJECT }}
-  #         PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  #         REGION: ${{ env.REGION }}
-  #         GAR_REPO: ${{ env.GAR_REPO }}
-  #         NX_CLOUD_TOKEN: ${{ env.NX_CLOUD_TOKEN }}
-  #       run: |
-  #         gcloud run services update-traffic crud-api --to-latest --region=us-central1
-  #         gcloud run services update-traffic games-api --to-latest --region=us-central1
-  #         gcloud run services update-traffic portfolio-api --to-latest --region=us-central1
-  #         gcloud run services update-traffic vertex-api --to-latest --region=us-central1
 
   deploy-portfolio:
     needs: ['build_and_typecheck']
@@ -450,4 +413,4 @@ jobs:
           VITE_VERTEX_API_URL: ${{ secrets.VITE_VERTEX_API_URL }}
           VITE_GAMES_WS_URL: ${{ secrets.VITE_GAMES_WS_URL }}
           VITE_VERTEX_WS_URL: ${{ secrets.VITE_VERTEX_WS_URL }}1
-        run: pnpx nx affected deploy-app-engine --verbose
+        run: pnpx nx affected -t deploy-app-engine --verbose

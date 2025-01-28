@@ -1,6 +1,6 @@
 import type { ImagenConfig } from '@aklapper/vertex-ai';
 import axios from 'axios';
-import { type ActionFunction, type ActionFunctionArgs } from 'react-router-dom';
+import { type ActionFunction, type ActionFunctionArgs } from 'react-router';
 
 const baseURL = import.meta.env.VITE_VERTEX_API_URL;
 

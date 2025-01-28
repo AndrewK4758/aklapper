@@ -1,6 +1,6 @@
 import { track } from '@prisma/client';
 import axios from 'axios';
-import { LoaderFunctionArgs, LoaderFunction } from 'react-router-dom';
+import { LoaderFunctionArgs, LoaderFunction } from 'react-router';
 
 const baseURL = import.meta.env.VITE_DATA_API_URL;
 

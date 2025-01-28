@@ -3,7 +3,7 @@ import { SxProps } from '@mui/material';
 import Button from '@mui/material/Button';
 import axios from 'axios';
 import { Dispatch } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { Socket } from 'socket.io-client';
 import { Action, ActionType } from './socket-reducer';
 import getGameInstanceInfo from '../../utils/utils';

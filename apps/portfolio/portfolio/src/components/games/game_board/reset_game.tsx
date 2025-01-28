@@ -1,7 +1,7 @@
 import Button from '@mui/material/Button';
 import axios from 'axios';
 import { Dispatch, type JSX, type SetStateAction } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { Socket } from 'socket.io-client';
 import { breakpointsResetGameButton } from '../../../styles/games-styles';
 import getGameInstanceInfo from '../../../utils/utils';

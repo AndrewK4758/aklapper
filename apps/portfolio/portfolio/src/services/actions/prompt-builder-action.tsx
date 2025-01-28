@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { ActionFunctionArgs, type ActionFunction } from 'react-router-dom';
+import { ActionFunctionArgs, type ActionFunction } from 'react-router';
 
 const baseURL = import.meta.env.VITE_VERTEX_API_URL;
 

@@ -3,7 +3,7 @@ import type { PromptRequest } from '@aklapper/vertex-ai';
 import { Box, SxProps } from '@mui/material';
 import Button from '@mui/material/Button';
 import { useFormik, type FormikState, type FormikValues } from 'formik';
-import {Form } from 'react-router-dom'
+import {Form } from 'react-router'
 import type { Dispatch, SetStateAction } from 'react';
 import type { Socket } from 'socket.io-client';
 import * as Yup from 'yup';

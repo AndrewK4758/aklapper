@@ -15,7 +15,7 @@ import {
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { album } from '@prisma/client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Outlet, useNavigate, useRouteLoaderData } from 'react-router-dom';
+import { Outlet, useNavigate, useRouteLoaderData } from 'react-router';
 import handleDeleteAlbum from '../../services/events/handle-delete-album';
 import handleUpdateAlbumTitle from '../../services/events/handle-update-album-title';
 import loadAlbums from '../../services/loaders/load-albums';

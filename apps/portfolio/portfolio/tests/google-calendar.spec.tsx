@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router';
 import GoogleCalendar from '../src/components/email/google-calendar/google-calendar';
 import dayjs from 'dayjs';
 import GoogleUserContextProvider from '../src/contexts/contact-context';

@@ -1,32 +1,21 @@
 {
-  "extends": "../../../tsconfig.base.json",
+  "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "out-tsc/portfolio",
     "tsBuildInfoFile": "out-tsc/portfolio/tsconfig.app.tsbuildinfo",
     "jsx": "react-jsx",
     "lib": ["dom"],
-    "types": [
-      "node",
-      "@nx/react/typings/cssmodule.d.ts",
-      "@nx/react/typings/image.d.ts",
-      "vite/client"
-    ],
+    "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
     "rootDir": "src",
     "module": "esnext",
     "moduleResolution": "bundler",
     "paths": {
-      "@aklapper/games-components": [
-        "../../../libs/games-components/src/index.ts"
-      ],
+      "@aklapper/games-components": ["../../../libs/games-components/src/index.ts"],
       "@aklapper/media-recorder": ["../../../libs/media-recorder/src/index.ts"],
-      "@aklapper/prompt-builder": [
-        "../../../libs/gen-ai/prompt-builder/src/index.ts"
-      ],
+      "@aklapper/prompt-builder": ["../../../libs/gen-ai/prompt-builder/src/index.ts"],
       "@aklapper/react-shared": ["../../../libs/react-shared/src/index.ts"],
 
-      "@aklapper/socket-io-client": [
-        "../../../libs/socket-io/client/src/index.ts"
-      ],
+      "@aklapper/socket-io-client": ["../../../libs/socket-io/client/src/index.ts"],
       "@aklapper/types": ["../../../libs/types/src/index.ts"],
       "@aklapper/utils": ["../../../libs/utils/src/index.ts"],
       "@aklapper/vertex-ai": ["../../../libs/gen-ai/vertex-ai/src/index.ts"]

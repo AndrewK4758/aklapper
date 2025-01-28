@@ -15,7 +15,7 @@ import Box from '@mui/material/Box';
 import { album, artist } from '@prisma/client';
 import axios from 'axios';
 import { ChangeEvent, Dispatch, SetStateAction, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet } from 'react-router';
 
 type InitVals = {
   artist: Partial<artist>[];

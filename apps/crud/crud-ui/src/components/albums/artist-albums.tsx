@@ -7,7 +7,7 @@ import Paper from '@mui/material/Paper';
 import { DataGrid, GridActionsCellItem, GridColDef, GridRowParams, useGridApiRef } from '@mui/x-data-grid';
 import { album } from '@prisma/client';
 import { useState } from 'react';
-import { Outlet, useNavigate, useRouteLoaderData } from 'react-router-dom';
+import { Outlet, useNavigate, useRouteLoaderData } from 'react-router';
 import handleDeleteAlbum from '../../services/events/handle-delete-album';
 import handleUpdateAlbumTitle from '../../services/events/handle-update-album-title';
 import { ArtistAlbums } from '../../services/loaders/load-artist-albums';

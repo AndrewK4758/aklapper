@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { ActionFunction, ActionFunctionArgs, redirect } from 'react-router-dom';
+import { ActionFunction, ActionFunctionArgs, redirect } from 'react-router';
 import getGameInstanceInfo from '../../../utils/utils';
 
 const registerGameInstanceOnServerAction: ActionFunction = async ({ params }: ActionFunctionArgs) => {

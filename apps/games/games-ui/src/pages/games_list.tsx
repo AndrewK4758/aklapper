@@ -4,7 +4,7 @@ import { IBuiltGame } from '@aklapper/types';
 import { SxProps, useMediaQuery } from '@mui/material';
 import Container from '@mui/material/Container';
 import ImageList from '@mui/material/ImageList';
-import { useRouteLoaderData } from 'react-router-dom';
+import { useRouteLoaderData } from 'react-router';
 import ImageLink from '../components/image-link/image-link';
 import Box from '@mui/material/Box';
 

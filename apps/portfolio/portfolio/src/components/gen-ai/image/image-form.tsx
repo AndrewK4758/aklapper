@@ -14,7 +14,7 @@ import Slider from '@mui/material/Slider';
 import TextField from '@mui/material/TextField';
 import { useFormik, type FormikProps } from 'formik';
 import { type ChangeEvent, type JSX } from 'react';
-import { Form, useActionData, useNavigation, useOutletContext, useSubmit } from 'react-router-dom';
+import { Form, useActionData, useNavigation, useOutletContext, useSubmit } from 'react-router';
 import * as Yup from 'yup';
 import type { OutletContextProps } from '../../../pages/gen-ai/gen-ai';
 import {

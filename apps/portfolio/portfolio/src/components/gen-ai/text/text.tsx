@@ -4,7 +4,7 @@ import { FileData } from '@google-cloud/vertexai';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import { useContext, useRef, type JSX } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext } from 'react-router';
 import * as Yup from 'yup';
 import { WebSocketContext, WebSocketContextType } from '../../../contexts/websocket-context';
 import useGenAiWebsockets from '../../../hooks/useGenAiWebsockets';

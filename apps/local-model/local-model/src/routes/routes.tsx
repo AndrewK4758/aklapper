@@ -1,4 +1,4 @@
-import { RouteObject } from 'react-router-dom';
+import { RouteObject } from 'react-router';
 import Layout from '../components/layout/layout';
 import { lazy } from 'react';
 import loadAvailableModels from '../services/loaders/load-available-models';

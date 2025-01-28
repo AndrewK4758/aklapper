@@ -2,7 +2,7 @@ import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Fragment } from 'react';
 import HomePage from '../home-page';
 
