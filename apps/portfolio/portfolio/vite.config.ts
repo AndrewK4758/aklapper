@@ -1,7 +1,6 @@
 /// <reference types='vitest' />
 import { defineConfig, UserConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { cwd } from 'process';
 import { resolve } from 'path';
 import { workspaceRoot } from '@nx/devkit';
 
@@ -24,7 +23,7 @@ const modules = {
 };
 
 const config: UserConfig = defineConfig({
-  root: cwd(),
+  root: resolve(workspaceRoot, 'apps/portfolio/portfolio'),
   cacheDir: resolve(workspaceRoot, 'node_modules/.vite/apps/portfolio/portfolio'),
   server: {
     port: 4700,
@@ -50,11 +49,12 @@ const config: UserConfig = defineConfig({
 
   build: {
     outDir: './dist',
-    minify: process.env['NODE_ENV'] === 'production',
+    minify: process.env['NODE_ENV'] !== 'production',
     emptyOutDir: true,
     manifest: true,
     sourcemap: true,
     reportCompressedSize: true,
+
     commonjsOptions: {
       transformMixedEsModules: true
     },

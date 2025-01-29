@@ -26,7 +26,7 @@ import {
 } from '../../styles/pages-styles';
 import { body, title } from '../static/crud-text';
 
-const Search = lazy(() => import('../../components/crud/search'));
+const Search = lazy(() => import('../../components/crud/search.jsx'));
 
 export type PaginationModel = {
   pageSize: number;
@@ -159,10 +159,12 @@ const Crud = (): JSX.Element => {
           )}
         </Box>
       </Paper>
-      <Suspense fallback={<Waiting src={waiting} />}>{open && <Search setOpen={setOpen} />}</Suspense>
-      <Box component={'div'} key={`crud-app-wrapper`} id={`crud-app-wrapper`} sx={crudAppWrapperStyles}>
-        <Outlet />
-      </Box>
+      <Suspense fallback={<Waiting src={waiting} />}>
+        {open && <Search setOpen={setOpen} />}
+        <Box component={'div'} key={`crud-app-wrapper`} id={`crud-app-wrapper`} sx={crudAppWrapperStyles}>
+          <Outlet />
+        </Box>
+      </Suspense>
     </Box>
   );
 };

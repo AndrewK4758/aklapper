@@ -11,6 +11,8 @@ import loadAlbumsCount from '../services/loaders/crud-loaders/load-albums-count'
 import loadArtistAlbums from '../services/loaders/crud-loaders/load-artist-albums';
 import loadArtistsCount from '../services/loaders/crud-loaders/load-artists-count';
 import registerPlayersAndStartGame from '../services/loaders/register-players-and-start-game';
+import { Waiting } from '@aklapper/react-shared';
+import waiting from '../assets/swirly-dots-to-chrome.webp';
 
 const Games = lazy(() => import('../pages/games/games'));
 const ActiveGameSession = lazy(() => import('../components/games/active_game_session'));
@@ -59,6 +61,7 @@ const routes: RouteObject[] = [
       {
         path: 'crud',
         Component: Crud,
+        hydrateFallbackElement: <Waiting src={waiting} />,
         children: [
           {
             index: true,
