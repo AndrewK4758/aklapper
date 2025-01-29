@@ -1,0 +1,23 @@
+{
+  "jest.enable": true,
+  "jest.rootPath": "./",
+
+  "jest.runMode": {
+    "type": "on-demand",
+    "showInlineError": true,
+    "coverage": true
+  },
+  "jest.outputConfig": {
+    "revealOn": "run",
+    "revealWithFocus": "test-results",
+    "clearOnRun": "none",
+    "coverage": true
+  },
+
+  "vitest.logLevel": "verbose",
+  "playwright.showTrace": false,
+
+  "typescript.tsdk": "node_modules/typescript/lib",
+
+  "testing.automaticallyOpenTestResults": "neverOpen"
+}

@@ -1,0 +1,28 @@
+{
+  "name": "@aklapper/portfolio",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "nx": {
+    "name": "portfolio",
+    "projectType": "application",
+    "sourceRoot": "apps/portfolio/portfolio/src",
+    "targets": {
+      "deploy-app-engine": {
+        "executor": "nx:run-commands",
+        "defaultConfiguration": "production",
+        "options": {
+          "cwd": "apps/portfolio/portfolio",
+          "commands": [
+            {
+              "command": "gcloud app deploy website.yaml --quiet --verbosity=debug"
+            }
+          ],
+          "env": {
+            "NODE_ENV": "production"
+          }
+        }
+      }
+    }
+  }
+}

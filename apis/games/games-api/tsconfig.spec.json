@@ -1,0 +1,39 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/jest",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["vitest/globals", "vitest/importMeta", "vite/client", "node", "vitest", "jest"],
+    "paths": {
+      "@aklapper/mocks": ["../../../libs/mocks/src/index.ts"],
+      "@aklapper/models": ["../../../libs/models/src/index.ts"],
+      "@aklapper/types": ["../../../libs/types/src/index.ts"],
+      "@aklapper/utils": ["../../../libs/utils/src/index.ts"]
+    }
+  },
+  "include": [
+    "vitest.config.ts",
+    "tests/**/*.test.ts",
+    "tests/**/*.spec.ts",
+    "src/**/*.d.ts",
+    "../../../libs/types/src/lib/game/types/express-request.d.ts"
+  ],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "../../../libs/types/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/models/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../libs/mocks/tsconfig.lib.json"
+    }
+  ]
+}

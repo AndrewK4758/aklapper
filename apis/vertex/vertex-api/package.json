@@ -1,0 +1,92 @@
+{
+  "name": "@aklapper/vertex-api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "nx": {
+    "name": "vertex-api",
+    "projectType": "application",
+    "sourceRoot": "apis/vertex/vertex-api/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/esbuild:esbuild",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "defaultConfiguration": "production",
+        "options": {
+          "platform": "node",
+          "target": "node23",
+          "metafile": true,
+          "outputPath": "dist/apis/vertex/vertex-api",
+          "format": [
+            "esm"
+          ],
+          "bundle": true,
+          "main": "apis/vertex/vertex-api/src/main.ts",
+          "tsConfig": "apis/vertex/vertex-api/tsconfig.app.json",
+          "assets": [
+            "apis/vertex/vertex-api/src/assets"
+          ],
+          "esbuildOptions": {
+            "sourcemap": true,
+            "outExtension": {
+              ".js": ".js"
+            }
+          }
+        },
+        "configurations": {
+          "development": {},
+          "production": {
+            "esbuildOptions": {
+              "sourcemap": false,
+              "outExtension": {
+                ".js": ".js"
+              }
+            }
+          }
+        }
+      },
+      "serve": {
+        "executor": "@nx/js:node",
+        "defaultConfiguration": "development",
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "buildTarget": "vertex-api:build",
+          "runBuildTargetDependencies": false
+        },
+        "configurations": {
+          "development": {
+            "buildTarget": "vertex-api:build:development"
+          },
+          "production": {
+            "buildTarget": "vertex-api:build:production"
+          }
+        }
+      },
+      "test": {
+        "options": {
+          "passWithNoTests": true
+        }
+      },
+      "docker-build": {
+        "dependsOn": [
+          "build"
+        ],
+        "command": "docker build -f apis/vertex/vertex-api/Dockerfile . -t us-central1-docker.pkg.dev/games-424800/portfolio/vertex-api:latest"
+      },
+      "docker-push": {
+        "command": "docker push us-central1-docker.pkg.dev/games-424800/portfolio/vertex-api:latest"
+      },
+      "deploy-cloud-run": {
+        "executor": "nx:run-commands",
+        "options": {
+          "color": true,
+          "command": "gcloud run deploy vertex-api --image=us-central1-docker.pkg.dev/games-424800/portfolio/vertex-api:latest --region=us-central1 --platform=managed --max-instances=1 --port=5000 --allow-unauthenticated"
+        }
+      }
+    }
+  }
+}
