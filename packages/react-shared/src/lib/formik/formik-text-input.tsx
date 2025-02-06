@@ -20,7 +20,7 @@ export interface FormikTextInputProps<T> {
   labelSx?: SxProps;
   onBlurCB?: (event: FocusEvent<unknown>) => void;
   Theme: Theme;
-  value: string;
+  valueField: keyof T;
 }
 
 export function FormikTextInput<T>({
@@ -35,10 +35,11 @@ export function FormikTextInput<T>({
   textSx,
   labelSx,
   onBlurCB,
-  value,
+  valueField,
   Theme
 }: FormikTextInputProps<T>) {
   if (onBlurCB) formik.handleBlur = onBlurCB;
+  const { value } = formik.getFieldProps(valueField as string);
 
   return (
     <Box key={`${label}-wrapper`} id={`${label}-wrapper`}>

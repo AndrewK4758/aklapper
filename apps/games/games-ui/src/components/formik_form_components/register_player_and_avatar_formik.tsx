@@ -133,6 +133,7 @@ export default function RegisterPlayerAndAvatarForm() {
           labelSx={breakpointsRegisterPlayerLabel}
           Theme={Theme}
           formik={formik}
+          valueField={'playerName'}
         />
         <SelectMenu
           name="avatarName"

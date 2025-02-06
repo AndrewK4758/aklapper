@@ -58,7 +58,7 @@ export const JoinGame = ({
     onSubmit: values => handleSubmit(values)
   });
   return (
-    <Form method={method}>
+    <Form method={method} onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
       <FormikTextInput
         formik={formik}
         autoComplete="off"
@@ -71,6 +71,7 @@ export const JoinGame = ({
         Theme={GamesTheme}
         textSx={breakpointsJoinGameText}
         labelSx={breakpointsJoinGameLabel}
+        valueField={'gamePath'}
       />
       <br />
       <Button type={buttonType} variant={variant} sx={breakpointsJoinGameButton}>

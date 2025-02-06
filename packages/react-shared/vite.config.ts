@@ -9,7 +9,7 @@ export default defineConfig({
   root: cwd(),
   cacheDir: '../../node_modules/.vite/libs/react-shared',
   plugins: [
-    react(),
+    react({ babel: { targets: { esmodules: true } } }),
     dts({
       entryRoot: 'src',
       tsconfigPath: path.join(cwd(), 'tsconfig.lib.json')
