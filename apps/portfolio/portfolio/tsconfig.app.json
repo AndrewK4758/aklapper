@@ -1,5 +1,5 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "out-tsc/portfolio",
     "tsBuildInfoFile": "out-tsc/portfolio/tsconfig.app.tsbuildinfo",
@@ -10,15 +10,15 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "paths": {
-      "@aklapper/games-components": ["../../../libs/games-components/src/index.ts"],
-      "@aklapper/media-recorder": ["../../../libs/media-recorder/src/index.ts"],
-      "@aklapper/prompt-builder": ["../../../libs/gen-ai/prompt-builder/src/index.ts"],
-      "@aklapper/react-shared": ["../../../libs/react-shared/src/index.ts"],
+      "@aklapper/games-components": ["../../../packages/games-components/src/index.ts"],
+      "@aklapper/media-recorder": ["../../../packages/media-recorder/src/index.ts"],
+      "@aklapper/prompt-builder": ["../../../packages/gen-ai/prompt-builder/src/index.ts"],
+      "@aklapper/react-shared": ["../../../packages/react-shared/src/index.ts"],
 
-      "@aklapper/socket-io-client": ["../../../libs/socket-io/client/src/index.ts"],
-      "@aklapper/types": ["../../../libs/types/src/index.ts"],
-      "@aklapper/utils": ["../../../libs/utils/src/index.ts"],
-      "@aklapper/vertex-ai": ["../../../libs/gen-ai/vertex-ai/src/index.ts"]
+      "@aklapper/socket-io-client": ["../../../packages/socket-io/client/src/index.ts"],
+      "@aklapper/types": ["../../../packages/types/src/index.ts"],
+      "@aklapper/utils": ["../../../packages/utils/src/index.ts"],
+      "@aklapper/vertex-ai": ["../../../packages/gen-ai/vertex-ai/src/index.ts"]
     }
   },
   "exclude": [
@@ -38,28 +38,28 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
-      "path": "../../../libs/utils/tsconfig.lib.json"
+      "path": "../../../packages/utils/tsconfig.lib.json"
     },
     {
-      "path": "../../../libs/gen-ai/prompt-builder/tsconfig.lib.json"
+      "path": "../../../packages/gen-ai/prompt-builder/tsconfig.lib.json"
     },
     {
-      "path": "../../../libs/gen-ai/vertex-ai/tsconfig.lib.json"
+      "path": "../../../packages/gen-ai/vertex-ai/tsconfig.lib.json"
     },
     {
-      "path": "../../../libs/media-recorder/tsconfig.lib.json"
+      "path": "../../../packages/media-recorder/tsconfig.lib.json"
     },
     {
-      "path": "../../../libs/games-components/tsconfig.lib.json"
+      "path": "../../../packages/games-components/tsconfig.lib.json"
     },
     {
-      "path": "../../../libs/types/tsconfig.lib.json"
+      "path": "../../../packages/types/tsconfig.lib.json"
     },
     {
-      "path": "../../../libs/socket-io/client/tsconfig.lib.json"
+      "path": "../../../packages/socket-io/client/tsconfig.lib.json"
     },
     {
-      "path": "../../../libs/react-shared/tsconfig.lib.json"
+      "path": "../../../packages/react-shared/tsconfig.lib.json"
     }
   ]
 }

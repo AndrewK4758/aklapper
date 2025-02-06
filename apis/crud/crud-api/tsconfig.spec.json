@@ -1,12 +1,12 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./out-tsc/jest",
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "types": ["vitest/globals", "vitest/importMeta", "vite/client", "node", "vitest", "jest"],
     "paths": {
-      "@aklapper/prisma": ["../../../libs/prisma/src/index.ts"]
+      "@aklapper/prisma": ["../../../packages/prisma/src/index.ts"]
     }
   },
   "include": ["vitest.config.ts", "tests/**/*.test.ts", "tests/**/*.spec.ts", "src/**/*.d.ts"],
@@ -15,7 +15,7 @@
       "path": "./tsconfig.app.json"
     },
     {
-      "path": "../../../libs/prisma/tsconfig.lib.json"
+      "path": "../../../packages/prisma/tsconfig.lib.json"
     }
   ]
 }

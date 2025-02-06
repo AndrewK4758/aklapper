@@ -5,20 +5,13 @@
     "tsBuildInfoFile": "out-tsc/local-model/tsconfig.app.tsbuildinfo",
     "jsx": "react-jsx",
     "lib": ["dom"],
-    "types": [
-      "node",
-      "@nx/react/typings/cssmodule.d.ts",
-      "@nx/react/typings/image.d.ts",
-      "vite/client"
-    ],
+    "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
     "rootDir": "src",
     "module": "esnext",
     "moduleResolution": "bundler",
     "paths": {
-      "@aklapper/react-shared": ["../../../libs/react-shared/src/index.ts"],
-      "@aklapper/socket-io-client": [
-        "../../../libs/socket-io/client/src/index.ts"
-      ]
+      "@aklapper/react-shared": ["../../../packages/react-shared/src/index.ts"],
+      "@aklapper/socket-io-client": ["../../../packages/socket-io/client/src/index.ts"]
     }
   },
   "exclude": [
@@ -38,10 +31,10 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
-      "path": "../../../libs/react-shared/tsconfig.lib.json"
+      "path": "../../../packages/socket-io/client/tsconfig.lib.json"
     },
     {
-      "path": "../../../libs/socket-io/client/tsconfig.lib.json"
+      "path": "../../../packages/react-shared/tsconfig.lib.json"
     }
   ]
 }

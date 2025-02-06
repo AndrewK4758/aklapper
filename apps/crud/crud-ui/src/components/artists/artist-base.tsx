@@ -9,7 +9,7 @@ import {
   GridColDef,
   GridPaginationModel,
   GridRowParams,
-  useGridApiRef,
+  useGridApiRef
 } from '@mui/x-data-grid';
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { artist } from '@prisma/client';
@@ -24,7 +24,7 @@ const baseURL = import.meta.env.VITE_DATA_API_URL;
 
 const paginationModelInit = {
   pageSize: 25,
-  page: 0,
+  page: 0
 };
 
 const Artist = () => {
@@ -40,9 +40,9 @@ const Artist = () => {
     () => ({
       cursor: paginationModel.page === 0 ? 1 : paginationModel.pageSize * paginationModel.page,
       pageSize: paginationModel.pageSize,
-      skip: paginationModel.page === 0 ? 0 : 1,
+      skip: paginationModel.page === 0 ? 0 : 1
     }),
-    [paginationModel],
+    [paginationModel]
   );
 
   const handlePaginationModelChange = (newPaginationModel: GridPaginationModel) => {
@@ -51,7 +51,7 @@ const Artist = () => {
 
   const fetchArtists = useCallback(
     (pageSize: number, skip: number, cursor: number) => loadArtists(pageSize, skip, cursor),
-    [],
+    []
   );
 
   useEffect(() => {
@@ -65,22 +65,22 @@ const Artist = () => {
       field: 'artist_id',
       headerName: 'Artist ID',
       type: 'number',
-      width: 80,
+      flex: 1
     },
     {
       field: 'name',
       headerName: 'Name',
-      width: 300,
+      flex: 3,
       type: 'string',
       editable: true,
       filterable: true,
-      headerClassName: 'artist-name',
+      headerClassName: 'artist-name'
     },
     {
       field: 'update-delete',
       type: 'actions',
       headerName: 'Update / Delete',
-      width: 120,
+      flex: 2,
       getActions: (params: GridRowParams) => {
         return [
           <GridActionsCellItem
@@ -96,15 +96,15 @@ const Artist = () => {
             onClick={() => {
               handleDeleteArtist(params.row, apiRef);
             }}
-          />,
+          />
         ];
-      },
+      }
     },
     {
       field: 'details',
       type: 'actions',
       headerName: 'Show Albums',
-      width: 120,
+      flex: 1,
       getActions: (params: GridRowParams) => {
         return [
           <GridActionsCellItem
@@ -112,16 +112,21 @@ const Artist = () => {
             title="Details"
             icon={<DetailsIcon />}
             onClick={() => nav(`${params.row.artist_id}/album`)}
-          />,
+          />
         ];
-      },
-    },
+      }
+    }
   ];
 
   const getID = (row: artist) => row.artist_id;
 
   return (
-    <Box component={'div'} key={'artist-album-wrapper'} id="artist-album-wrapper" sx={{ display: 'flex' }}>
+    <Box
+      component={'div'}
+      key={'artist-album-wrapper'}
+      id="artist-album-wrapper"
+      sx={{ display: 'flex', flexWrap: 'wrap', border: 10, width: '73vw' }}
+    >
       <Box
         component={'div'}
         key="artists"
@@ -129,7 +134,7 @@ const Artist = () => {
         sx={{
           flex: '1 0 50%',
           borderTop: '3px solid purple',
-          borderRight: '3px solid purple',
+          borderRight: '3px solid purple'
         }}
       >
         <Container component={'div'} id="artists-title-box" sx={{}}>
@@ -141,7 +146,7 @@ const Artist = () => {
               sx={{
                 textAlign: 'center',
                 fontSize: '22px',
-                fontWeight: 'bold',
+                fontWeight: 'bold'
               }}
             >
               {'Artist List'}
@@ -171,7 +176,7 @@ const Artist = () => {
           </Box>
         </Box>
       </Box>
-      <Box key={'albums-for-artist-box'} component={'div'} id="albums-for-artist-box" sx={{ flex: '0 1 50%' }}>
+      <Box key={'albums-for-artist-box'} component={'div'} id="albums-for-artist-box" sx={{ flex: '0 1 100%' }}>
         <Outlet />
       </Box>
     </Box>
@@ -186,8 +191,8 @@ const handleUpdateArtistName = async (values: artist, apiRef: RefObject<GridApiC
       `${baseURL}/artists`,
       { artistID: artist_id, name: name },
       {
-        headers: { 'Content-Type': 'application/json' },
-      },
+        headers: { 'Content-Type': 'application/json' }
+      }
     );
 
     if (resp.data && apiRef.current) {
@@ -204,7 +209,7 @@ const handleDeleteArtist = async (values: artist, apiRef: RefObject<GridApiCommu
   try {
     const { artist_id } = values;
     const resp = await axios.delete(`${baseURL}/artists/${artist_id}`, {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' }
     });
 
     console.log(resp.data);

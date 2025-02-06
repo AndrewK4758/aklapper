@@ -3,13 +3,13 @@
   "include": [],
   "references": [
     {
-      "path": "../../../libs/games-components"
+      "path": "../../../packages/games-components"
     },
     {
-      "path": "../../../libs/types"
+      "path": "../../../packages/types"
     },
     {
-      "path": "../../../libs/react-shared"
+      "path": "../../../packages/react-shared"
     },
     {
       "path": "./tsconfig.app.json"

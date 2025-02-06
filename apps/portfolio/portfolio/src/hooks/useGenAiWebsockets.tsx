@@ -30,14 +30,6 @@ const useGenAiWebsockets = (
         }
       ]
     ]);
-    // socket.on('connect', () => {
-    //   console.log(`Connected as ${socket.id}`);
-    // });
-
-    // socket.on('chunk', ({ response }) => {
-    //   setPromptResponse(prev => [...prev, response]);
-    //   setLoading(false);
-    // });
 
     return () => {
       if (socket.connected) {

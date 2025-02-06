@@ -3,10 +3,10 @@
   "include": [],
   "references": [
     {
-      "path": "../../../libs/socket-io/client"
+      "path": "../../../packages/socket-io/client"
     },
     {
-      "path": "../../../libs/react-shared"
+      "path": "../../../packages/react-shared"
     },
     {
       "path": "./tsconfig.app.json"

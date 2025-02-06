@@ -4,7 +4,7 @@ import { cwd } from 'node:process';
 import { defineConfig } from 'vitest/config';
 
 const modules = {
-  '@aklapper/prisma': resolve(workspaceRoot, 'libs/prisma/src/index.ts')
+  '@aklapper/prisma': resolve(workspaceRoot, 'packages/prisma/src/index.ts')
 };
 
 const config = defineConfig({

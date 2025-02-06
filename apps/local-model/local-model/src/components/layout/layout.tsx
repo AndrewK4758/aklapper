@@ -17,6 +17,7 @@ import ModelResponse from '../gen-ai/local/local-model-response';
 export default function Layout() {
   const [promptResponse, setPromptResponse] = useState<string>('');
   const nav = useNavigate();
+
   return (
     <Box component={'div'} id="app-wrapper" data-testid="app-wrapper" key={'app-wrapper'}>
       <AppBar

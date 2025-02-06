@@ -15,9 +15,9 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "paths": {
-      "@aklapper/react-shared": ["../../../libs/react-shared/src/index.ts"],
-      "@aklapper/types": ["../../../libs/types/src/index.ts"],
-      "@aklapper/games-components": ["../../../libs/games-components/src/index.ts"]
+      "@aklapper/react-shared": ["../../../packages/react-shared/src/index.ts"],
+      "@aklapper/types": ["../../../packages/types/src/index.ts"],
+      "@aklapper/games-components": ["../../../packages/games-components/src/index.ts"]
     }
   },
   "include": [
@@ -37,13 +37,13 @@
       "path": "./tsconfig.app.json"
     },
     {
-      "path": "../../../libs/games-components/tsconfig.lib.json"
+      "path": "../../../packages/games-components/tsconfig.lib.json"
     },
     {
-      "path": "../../../libs/types/tsconfig.lib.json"
+      "path": "../../../packages/types/tsconfig.lib.json"
     },
     {
-      "path": "../../../libs/react-shared/tsconfig.lib.json"
+      "path": "../../../packages/react-shared/tsconfig.lib.json"
     }
   ]
 }

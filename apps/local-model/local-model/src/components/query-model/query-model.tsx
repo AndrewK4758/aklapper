@@ -78,6 +78,7 @@ export default function QueryModel() {
               name="model"
               variant="outlined"
               onChange={formik.handleChange}
+              value={formik.values.model}
               label={
                 <Label
                   tooltipTitle={'Select model to use'}
@@ -150,14 +151,14 @@ const baseUrl = import.meta.env.VITE_LOCAL_SERVER_URL;
 const handleQueryModel = async (values: QueryFormValues, setPromptResponse: Dispatch<SetStateAction<string[]>>) => {
   try {
     const { model, query } = values;
-    
+
     const resp = await axios.post(
       `${baseUrl}/query-model`,
       { model: model, query: query },
       { headers: { 'Content-Type': 'application/json' } }
     );
 
-    const { query_response } = resp.data;
+    const query_response = resp.data;
 
     setPromptResponse(query_response);
   } catch (error) {

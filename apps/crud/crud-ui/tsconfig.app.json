@@ -10,7 +10,7 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "paths": {
-      "@aklapper/react-shared": ["../../../libs/react-shared/src/index.ts"]
+      "@aklapper/react-shared": ["../../../packages/react-shared/src/index.ts"]
     }
   },
   "exclude": [
@@ -32,11 +32,11 @@
     "src/**/*.jsx",
     "src/**/*.ts",
     "src/**/*.tsx",
-    "../../../libs/react-shared/dist/index.d.ts"
+    "../../../packages/react-shared/dist/index.d.ts"
   ],
   "references": [
     {
-      "path": "../../../libs/react-shared/tsconfig.lib.json"
+      "path": "../../../packages/react-shared/tsconfig.lib.json"
     }
   ]
 }

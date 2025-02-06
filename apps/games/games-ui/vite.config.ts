@@ -25,10 +25,10 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@aklapper/react-shared': resolve('../../../', 'libs/react-shared/src/index.ts'),
-      '@aklapper/games-components': resolve('../../../', 'libs/games-components/src/index.ts'),
-      '@aklapper/utils': resolve('../../../', 'libs/utils/src/index.ts'),
-      '@aklapper/types': resolve('../../../', 'libs/types/src/index.ts')
+      '@aklapper/react-shared': resolve('../../../', 'packages/react-shared/src/index.ts'),
+      '@aklapper/games-components': resolve('../../../', 'packages/games-components/src/index.ts'),
+      '@aklapper/utils': resolve('../../../', 'packages/utils/src/index.ts'),
+      '@aklapper/types': resolve('../../../', 'packages/types/src/index.ts')
     }
   },
 

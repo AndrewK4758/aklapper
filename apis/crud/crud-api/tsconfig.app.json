@@ -1,5 +1,5 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "out-tsc/crud-api",
     "module": "nodenext",
@@ -8,14 +8,14 @@
     "moduleResolution": "nodenext",
     "tsBuildInfoFile": "out-tsc/crud-api/tsconfig.app.tsbuildinfo",
     "paths": {
-      "@aklapper/prisma": ["../../../libs/prisma/src/index.ts"]
+      "@aklapper/prisma": ["../../../packages/prisma/src/index.ts"]
     }
   },
-  "include": ["src/**/*.ts", "../../../libs/prisma/src/**/*.ts"],
+  "include": ["src/**/*.ts", "../../../packages/prisma/src/**/*.ts"],
   "exclude": ["out-tsc", "dist", "vitest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts", "eslint.config.js"],
   "references": [
     {
-      "path": "../../../libs/prisma/tsconfig.lib.json"
+      "path": "../../../packages/prisma/tsconfig.lib.json"
     }
   ]
 }

@@ -1,12 +1,12 @@
-/// <reference types='vitest' />
 import react from '@vitejs/plugin-react';
 import { cwd } from 'process';
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import { workspaceRoot } from '@nx/devkit';
 
 export default defineConfig({
   root: cwd(),
-  cacheDir: '../../../node_modules/.vite/apps/crud/crud-ui',
+  cacheDir: `${workspaceRoot}/node_modules/.vite/apps/crud/crud-ui`,
   server: {
     port: 4200,
     host: 'localhost'
@@ -23,9 +23,9 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@aklapper/react-shared': resolve('../../../', 'libs/react-shared/src/index.ts'),
-      '@aklapper/utils': resolve('../../../', 'libs/utils/src/index.ts'),
-      '@aklapper/types': resolve('../../../', 'libs/types/src/index.ts'),
+      '@aklapper/react-shared': resolve(workspaceRoot, 'packages/react-shared/src/index.ts'),
+      '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src/index.ts'),
+      '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
 
       '.prisma/client/index-browser': '@prisma/client/index-browser.js'
     }

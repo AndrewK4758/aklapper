@@ -18,7 +18,7 @@ const Tracks = () => {
   const params = useParams();
   const [paginationModel, setPaginationModel] = useState({
     pageSize: 5,
-    page: 0,
+    page: 0
   });
 
   const albumID = parseInt(params.albumID as string, 10);
@@ -30,63 +30,63 @@ const Tracks = () => {
       field: 'track_id',
       headerName: 'Track ID',
       type: 'number',
-      width: 40,
+      flex: 0.5
     },
     {
       field: 'name',
       headerName: 'Name',
       type: 'string',
-      width: 200,
-      editable: true,
+      flex: 3,
+      editable: true
     },
     {
       field: 'unit_price',
       type: 'number',
-      width: 40,
+      flex: 0.5,
       headerName: 'Unit Price',
-      editable: true,
+      editable: true
     },
     {
       field: 'genre_id',
       type: 'number',
-      width: 40,
+      flex: 0.5,
       headerName: 'Genre ID',
-      editable: true,
+      editable: true
     },
     {
       field: 'media_type_id',
       type: 'number',
-      width: 40,
+      flex: 0.5,
       headerName: 'Media Type ID',
-      editable: true,
+      editable: true
     },
     {
       field: 'composer',
       type: 'string',
       width: 140,
       headerName: 'Composer',
-      editable: true,
+      editable: true
     },
     {
       field: 'milliseconds',
       type: 'number',
-      width: 40,
+      flex: 0.5,
       headerName: 'Milliseconds',
-      editable: true,
+      editable: true
     },
     {
       field: 'bytes',
       type: 'number',
-      width: 40,
+      flex: 0.5,
       headerName: 'Bytes',
-      editable: true,
+      editable: true
     },
 
     {
       field: 'update-delete',
       type: 'actions',
       headerName: 'Actions',
-      width: 100,
+      flex: 2,
       getActions: (params: GridRowParams<track>) => {
         return [
           <GridActionsCellItem
@@ -105,10 +105,10 @@ const Tracks = () => {
             onClick={() => {
               handleDeleteTrack(params.row, apiRef);
             }}
-          />,
+          />
         ];
-      },
-    },
+      }
+    }
   ];
 
   const getID = (row: track) => {
@@ -116,11 +116,7 @@ const Tracks = () => {
   };
 
   return (
-    <Box
-      component={'div'}
-      key={'track-box'}
-      sx={{ borderTop: '3px solid purple', flex: '1 0 50%', maxWidth: 'fit-content' }}
-    >
+    <Box component={'div'} key={'track-box'} sx={{ borderTop: '3px solid purple', flex: '1 0 100%' }}>
       <Container key={'artist-title'} component={'div'}>
         <Paper key={'title-bar'} component={'div'} elevation={6} sx={{ height: '2rem', display: 'flex' }}>
           <Text

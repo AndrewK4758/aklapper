@@ -59,7 +59,7 @@ const Layout = () => {
       <Box
         key={'footer'}
         component={'footer'}
-        sx={{ position: 'sticky', left: 0, right: 0, bottom: 0, width: '100%', zIndex: 10 }}
+        sx={{ position: 'relative', left: 0, right: 0, bottom: 0, width: '100%', zIndex: 10 }}
       >
         <Box>
           <Typography variant="h3" sx={{ textAlign: 'center' }}>

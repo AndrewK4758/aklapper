@@ -10,7 +10,7 @@ import {
   GridColDef,
   GridPaginationModel,
   GridRowParams,
-  useGridApiRef,
+  useGridApiRef
 } from '@mui/x-data-grid';
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { album } from '@prisma/client';
@@ -28,7 +28,7 @@ const Album = () => {
   const [rowCountState, setRowCountState] = useState(COUNT);
   const [paginationModel, setPaginationModel] = useState({
     pageSize: 25,
-    page: 0,
+    page: 0
   });
 
   const apiRef = useGridApiRef<GridApiCommunity>();
@@ -37,9 +37,9 @@ const Album = () => {
     () => ({
       cursor: paginationModel.page === 0 ? 1 : paginationModel.pageSize * paginationModel.page,
       pageSize: paginationModel.pageSize,
-      skip: paginationModel.page === 0 ? 0 : 1,
+      skip: paginationModel.page === 0 ? 0 : 1
     }),
-    [paginationModel],
+    [paginationModel]
   );
 
   const handlePaginationModelChange = (newPaginationModel: GridPaginationModel) => {
@@ -48,7 +48,7 @@ const Album = () => {
 
   const fetchAlbums = useCallback(
     async (pageSize: number, skip: number, cursor: number) => await loadAlbums(pageSize, skip, cursor),
-    [],
+    []
   );
 
   useEffect(() => {
@@ -62,26 +62,26 @@ const Album = () => {
       field: 'album_id',
       headerName: 'Album ID',
       type: 'number',
-      width: 80,
+      flex: 0.5
     },
     {
       field: 'title',
       headerName: 'Title',
       type: 'string',
-      width: 300,
-      editable: true,
+      flex: 3,
+      editable: true
     },
     {
       field: 'artist_id',
       headerName: 'Artist ID',
       type: 'number',
-      width: 80,
+      flex: 0.5
     },
     {
       field: 'update-delete',
       type: 'actions',
       headerName: 'Actions',
-      width: 180,
+      flex: 2,
       getActions: (params: GridRowParams<album>) => {
         return [
           <GridActionsCellItem
@@ -100,15 +100,15 @@ const Album = () => {
             onClick={() => {
               handleDeleteAlbum(params.row, apiRef);
             }}
-          />,
+          />
         ];
-      },
+      }
     },
     {
       field: 'details',
       type: 'actions',
       headerName: 'Show Details',
-      width: 120,
+      flex: 2,
       getActions: (params: GridRowParams) => {
         return [
           <GridActionsCellItem
@@ -116,10 +116,10 @@ const Album = () => {
             title="Details"
             icon={<DetailsIcon />}
             onClick={() => nav(`${params.row.album_id}/tracks`)}
-          />,
+          />
         ];
-      },
-    },
+      }
+    }
   ];
 
   const getID = (row: album) => {
@@ -141,7 +141,7 @@ const Album = () => {
                 flex: '1 0 100%',
                 textAlign: 'center',
                 fontSize: '22px',
-                fontWeight: 'bold',
+                fontWeight: 'bold'
               }}
             >
               {'All Albums'}
@@ -154,7 +154,6 @@ const Album = () => {
         <Box>
           <Box key={'all-albums-datagrid'}>
             <DataGrid
-              autoHeight
               apiRef={apiRef}
               columns={columns}
               rows={albums}

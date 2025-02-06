@@ -1,18 +1,17 @@
+import { Waiting } from '@aklapper/react-shared';
 import { lazy } from 'react';
 import type { RouteObject } from 'react-router';
+import waiting from '../assets/swirly-dots-to-chrome.webp';
 import Layout from '../components/layout/layout';
 import PrivacyPolicy from '../components/privacy-policy/privacy-policy';
 import emailFormAction from '../services/actions/email-form-action';
 import generateImageAction from '../services/actions/generate-image-action';
 import handlePromptBuilder from '../services/actions/prompt-builder-action';
-import vertexSubmitAction from '../services/actions/vertex-submit-action';
 import loadAlbumTracks from '../services/loaders/crud-loaders/load-album-tracks';
 import loadAlbumsCount from '../services/loaders/crud-loaders/load-albums-count';
 import loadArtistAlbums from '../services/loaders/crud-loaders/load-artist-albums';
 import loadArtistsCount from '../services/loaders/crud-loaders/load-artists-count';
 import registerPlayersAndStartGame from '../services/loaders/register-players-and-start-game';
-import { Waiting } from '@aklapper/react-shared';
-import waiting from '../assets/swirly-dots-to-chrome.webp';
 
 const Games = lazy(() => import('../pages/games/games'));
 const ActiveGameSession = lazy(() => import('../components/games/active_game_session'));
@@ -108,8 +107,7 @@ const routes: RouteObject[] = [
         children: [
           {
             path: 'text',
-            Component: TextGenerator,
-            action: vertexSubmitAction
+            Component: TextGenerator
           },
           {
             path: 'image',

@@ -5,6 +5,7 @@ interface ModelResponseProps {
 }
 
 const ModelResponse = ({ promptResponse }: ModelResponseProps) => {
+  console.log(promptResponse);
   return (
     <Box>
       <pre

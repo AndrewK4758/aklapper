@@ -8,11 +8,11 @@ export default defineConfig({
   root: cwd(),
   cacheDir: '../../../node_modules/.vite/apps/local-model/local-model',
   server: {
-    port: 4200,
+    port: 5800,
     host: 'localhost'
   },
   preview: {
-    port: 4300,
+    port: 5900,
     host: 'localhost'
   },
   plugins: [react()],
@@ -23,9 +23,9 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@aklapper/react-shared': resolve('../../../', 'libs/react-shared/src/index.ts'),
-      '@aklapper/utils': resolve('../../../', 'libs/utils/src/index.ts'),
-      '@aklapper/types': resolve('../../../', 'libs/types/src/index.ts')
+      '@aklapper/react-shared': resolve('../../../', 'packages/react-shared/src/index.ts'),
+      '@aklapper/utils': resolve('../../../', 'packages/utils/src/index.ts'),
+      '@aklapper/types': resolve('../../../', 'packages/types/src/index.ts')
     }
   },
 

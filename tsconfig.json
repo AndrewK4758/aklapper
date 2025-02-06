@@ -29,52 +29,52 @@
       "path": "./apis/vertex/vertex-api"
     },
     {
-      "path": "./libs/chain"
+      "path": "./packages/chain"
     },
     {
-      "path": "./libs/game"
+      "path": "./packages/game"
     },
     {
-      "path": "./libs/games"
+      "path": "./packages/games"
     },
     {
-      "path": "./libs/games-chains"
+      "path": "./packages/games-chains"
     },
     {
-      "path": "./libs/games-components"
+      "path": "./packages/games-components"
     },
     {
-      "path": "./libs/gen-ai/prompt-builder"
+      "path": "./packages/gen-ai/prompt-builder"
     },
     {
-      "path": "./libs/gen-ai/vertex-ai"
+      "path": "./packages/gen-ai/vertex-ai"
     },
     {
-      "path": "./libs/media-recorder"
+      "path": "./packages/media-recorder"
     },
     {
-      "path": "./libs/mocks"
+      "path": "./packages/mocks"
     },
     {
-      "path": "./libs/models"
+      "path": "./packages/models"
     },
     {
-      "path": "./libs/password"
+      "path": "./packages/password"
     },
     {
-      "path": "./libs/prisma"
+      "path": "./packages/prisma"
     },
     {
-      "path": "./libs/socket-io/server"
+      "path": "./packages/socket-io/server"
     },
     {
-      "path": "./libs/socket-io/client"
+      "path": "./packages/socket-io/client"
     },
     {
-      "path": "./libs/types"
+      "path": "./packages/types"
     },
     {
-      "path": "./libs/utils"
+      "path": "./packages/utils"
     },
     {
       "path": "./apps/crud/crud-ui-e2e"
@@ -101,7 +101,7 @@
       "path": "./apps/local-model/local-model"
     },
     {
-      "path": "./libs/react-shared"
+      "path": "./packages/react-shared"
     },
     {
       "path": "./apis/crud/crud-api-e2e"

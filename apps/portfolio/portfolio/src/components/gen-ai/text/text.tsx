@@ -37,8 +37,7 @@ const TextGenerator = (): JSX.Element => {
     <Paper component={'div'} key={'gen-ai-text-input-paper'} id="gen-ai-text-input-paper" sx={topLevelModeStyle}>
       <Container component={'section'} key={'gen-ai-text-input-wrapper'} id="gen-ai-text-input-wrapper">
         <ChatInput<PromptRequest>
-          method="post"
-          action=""
+          method="get"
           type="text"
           buttonText="Submit Prompt"
           buttonType="submit"

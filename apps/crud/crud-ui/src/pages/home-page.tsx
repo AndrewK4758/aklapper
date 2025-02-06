@@ -9,7 +9,7 @@ import {
   ListItem,
   Radio,
   RadioGroup,
-  TextField,
+  TextField
 } from '@mui/material';
 import Box from '@mui/material/Box';
 import { album, artist } from '@prisma/client';
@@ -23,7 +23,7 @@ type InitVals = {
 };
 const initVals: InitVals = {
   artist: [],
-  album: [],
+  album: []
 };
 
 const HomePage = () => {
@@ -45,7 +45,13 @@ const HomePage = () => {
         >
           <Grid2 component={'div'} id="title-grid" size={2}>
             <Container component={'div'} sx={{ paddingY: 1 }}>
-              <Text id='home-page-title' component={'h1'} titleVariant="h1" titleText={'Media Data Manager'} sx={{ textAlign: 'center', fontSize: '4rem' }} />
+              <Text
+                id="home-page-title"
+                component={'h1'}
+                titleVariant="h1"
+                titleText={'Media Data Manager'}
+                sx={{ textAlign: 'center', fontSize: '4rem' }}
+              />
               <Text
                 component={'h3'}
                 titleVariant="h5"
@@ -69,10 +75,10 @@ const HomePage = () => {
       </Box>
       <Box sx={{ height: 'fit-content', flex: '1 0 25%' }}>
         <Card
-          elevation={6}
+          elevation={2}
           component={'section'}
           key={'search-box-container'}
-          sx={{ paddingY: 1, display: 'flex', justifyContent: 'center' }}
+          sx={{ paddingY: 1, display: 'flex', justifyContent: 'center', marginTop: 1 }}
         >
           <Box component={'div'} key={'search-radio-group-box'}>
             <RadioGroup
@@ -84,7 +90,7 @@ const HomePage = () => {
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center',
-                alignItems: 'center',
+                alignItems: 'center'
               }}
             >
               <FormControlLabel
@@ -148,7 +154,7 @@ export default HomePage;
 const handleSearchParams = async (
   e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   setArtVals: Dispatch<SetStateAction<InitVals>>,
-  searchParam: string,
+  searchParam: string
 ) => {
   const searchParams = e.target.value;
 
@@ -167,7 +173,7 @@ const baseURL = import.meta.env.VITE_DATA_API_URL;
 const searchArtistsAndAlbums = async (search: string, type: string) => {
   try {
     const resp = await axios.get(`${baseURL}/search?search=${search}&type=${type}`, {
-      headers: { 'Content-Type': 'text/plain' },
+      headers: { 'Content-Type': 'text/plain' }
     });
 
     console.log(resp.data);

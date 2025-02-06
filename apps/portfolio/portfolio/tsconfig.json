@@ -3,28 +3,28 @@
   "include": [],
   "references": [
     {
-      "path": "../../../libs/utils"
+      "path": "../../../packages/utils"
     },
     {
-      "path": "../../../libs/gen-ai/prompt-builder"
+      "path": "../../../packages/gen-ai/prompt-builder"
     },
     {
-      "path": "../../../libs/gen-ai/vertex-ai"
+      "path": "../../../packages/gen-ai/vertex-ai"
     },
     {
-      "path": "../../../libs/media-recorder"
+      "path": "../../../packages/media-recorder"
     },
     {
-      "path": "../../../libs/games-components"
+      "path": "../../../packages/games-components"
     },
     {
-      "path": "../../../libs/types"
+      "path": "../../../packages/types"
     },
     {
-      "path": "../../../libs/socket-io/client"
+      "path": "../../../packages/socket-io/client"
     },
     {
-      "path": "../../../libs/react-shared"
+      "path": "../../../packages/react-shared"
     },
     {
       "path": "./tsconfig.app.json"

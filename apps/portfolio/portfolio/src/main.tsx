@@ -1,7 +1,7 @@
-import ReactDOM from 'react-dom/client';
 import { StrictMode } from 'react';
-import './styles/main-styles.css';
+import ReactDOM from 'react-dom/client';
 import App from './app/app';
+import './styles/main-styles.css';
 
 /**
  * This is the main entry point for the React application.

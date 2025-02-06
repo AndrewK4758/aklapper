@@ -31,7 +31,8 @@ export function PromptResponse({
 
   useEffect(() => {
     setLoading(false);
-  }, [setLoading]);
+  }, []);
+
   return (
     <Box
       key={'chat-response-wrapper-box'}

@@ -5,19 +5,19 @@ import { resolve } from 'path';
 import { workspaceRoot } from '@nx/devkit';
 
 const modules = {
-  '@aklapper/games-components': resolve(workspaceRoot, 'libs/games-components/src/index.ts'),
+  '@aklapper/games-components': resolve(workspaceRoot, 'packages/games-components/src/index.ts'),
 
-  '@aklapper/media-recorder': resolve(workspaceRoot, 'libs/media-recorder/src/index.ts'),
+  '@aklapper/media-recorder': resolve(workspaceRoot, 'packages/media-recorder/src/index.ts'),
 
-  '@aklapper/prompt-builder': resolve(workspaceRoot, 'libs/gen-ai/prompt-builder/src/index.ts'),
+  '@aklapper/prompt-builder': resolve(workspaceRoot, 'packages/gen-ai/prompt-builder/src/index.ts'),
 
-  '@aklapper/react-shared': resolve(workspaceRoot, 'libs/react-shared/src/index.ts'),
+  '@aklapper/react-shared': resolve(workspaceRoot, 'packages/react-shared/src/index.ts'),
 
-  '@aklapper/socket-io-client': resolve(workspaceRoot, 'libs/socket-io/client/src/index.ts'),
+  '@aklapper/socket-io-client': resolve(workspaceRoot, 'packages/socket-io/client/src/index.ts'),
 
-  '@aklapper/types': resolve(workspaceRoot, 'libs/types/src/index.ts'),
+  '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
 
-  '@aklapper/utils': resolve(workspaceRoot, 'libs/utils/src/index.ts'),
+  '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src/index.ts'),
 
   '.prisma/client/index-browser': '@prisma/client/index-browser.js'
 };

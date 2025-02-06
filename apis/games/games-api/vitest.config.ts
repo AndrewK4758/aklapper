@@ -4,16 +4,16 @@ import { cwd } from 'node:process';
 import { defineConfig } from 'vitest/config';
 
 const modules = {
-  '@aklapper/chain': resolve(workspaceRoot, './libs/chain/src/index.ts'),
-  '@aklapper/game': resolve(workspaceRoot, './libs/game/src/index.ts'),
-  '@aklapper/games': resolve(workspaceRoot, './libs/games/src/index.ts'),
-  '@aklapper/games-chains': resolve(workspaceRoot, './libs/games-chains/src/index.ts'),
-  '@aklapper/games-components': resolve(workspaceRoot, './libs/games-components/src/index.ts'),
-  '@aklapper/mocks': resolve(workspaceRoot, './libs/mocks/src/index.ts'),
-  '@aklapper/models': resolve(workspaceRoot, './libs/models/src/index.ts'),
-  '@aklapper/socket-io-server': resolve(workspaceRoot, './libs/socket-io/server/src/index.ts'),
-  '@aklapper/types': resolve(workspaceRoot, './libs/types/src/index.ts'),
-  '@aklapper/utils': resolve(workspaceRoot, './libs/utils/src/index.ts')
+  '@aklapper/chain': resolve(workspaceRoot, './packages/chain/src/index.ts'),
+  '@aklapper/game': resolve(workspaceRoot, './packages/game/src/index.ts'),
+  '@aklapper/games': resolve(workspaceRoot, './packages/games/src/index.ts'),
+  '@aklapper/games-chains': resolve(workspaceRoot, './packages/games-chains/src/index.ts'),
+  '@aklapper/games-components': resolve(workspaceRoot, './packages/games-components/src/index.ts'),
+  '@aklapper/mocks': resolve(workspaceRoot, './packages/mocks/src/index.ts'),
+  '@aklapper/models': resolve(workspaceRoot, './packages/models/src/index.ts'),
+  '@aklapper/socket-io-server': resolve(workspaceRoot, './packages/socket-io/server/src/index.ts'),
+  '@aklapper/types': resolve(workspaceRoot, './packages/types/src/index.ts'),
+  '@aklapper/utils': resolve(workspaceRoot, './packages/utils/src/index.ts')
 };
 
 const config = defineConfig({

@@ -37,6 +37,7 @@ langchain-google-community = "^2.0.3"
 langchain-google-vertexai = "^2.0.10"
 langgraph = "^0.2.61"
 langchain-experimental = "^0.3.4"
+tavily-python = "^0.5.0"
 
 [tool.poetry.requires-plugins]
 poetry-plugin-export = ">=1.9"

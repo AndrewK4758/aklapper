@@ -4,31 +4,31 @@
   "include": [],
   "references": [
     {
-      "path": "../../../libs/mocks"
+      "path": "../../../packages/mocks"
     },
     {
-      "path": "../../../libs/socket-io/server"
+      "path": "../../../packages/socket-io/server"
     },
     {
-      "path": "../../../libs/games"
+      "path": "../../../packages/games"
     },
     {
-      "path": "../../../libs/utils"
+      "path": "../../../packages/utils"
     },
     {
-      "path": "../../../libs/game"
+      "path": "../../../packages/game"
     },
     {
-      "path": "../../../libs/types"
+      "path": "../../../packages/types"
     },
     {
-      "path": "../../../libs/models"
+      "path": "../../../packages/models"
     },
     {
-      "path": "../../../libs/games-chains"
+      "path": "../../../packages/games-chains"
     },
     {
-      "path": "../../../libs/chain"
+      "path": "../../../packages/chain"
     },
     {
       "path": "./tsconfig.app.json"
