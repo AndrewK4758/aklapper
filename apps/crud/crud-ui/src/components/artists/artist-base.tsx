@@ -12,7 +12,7 @@ import {
   useGridApiRef
 } from '@mui/x-data-grid';
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
-import { artist } from '@prisma/client';
+import { artist } from '@prisma/client-generated';
 import axios from 'axios';
 import { RefObject, useCallback, useEffect, useMemo, useState } from 'react';
 import { Outlet, useNavigate, useRouteLoaderData } from 'react-router';

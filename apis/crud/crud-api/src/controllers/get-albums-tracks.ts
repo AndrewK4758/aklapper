@@ -1,5 +1,5 @@
-import { Prisma } from '@prisma/client';
-import { DefaultArgs } from '@prisma/client/runtime/library';
+import { Prisma } from '@prisma/client-generated';
+import { DefaultArgs } from '@prisma/client-generated/runtime/library';
 import { NextFunction, Request, Response } from 'express';
 import albumTracksCount from '../services/prisma/tracks/album-tracks-count.js';
 import getAlbumTracks from '../services/prisma/tracks/get-album-tracks.js';

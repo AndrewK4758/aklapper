@@ -1,5 +1,5 @@
-import { album, artist, Prisma, track } from '@prisma/client';
-import { DefaultArgs } from '@prisma/client/runtime/library';
+import { album, artist, Prisma, track } from '@prisma/client-generated';
+import { DefaultArgs } from '@prisma/client-generated/runtime/library';
 import { Request, Response } from 'express';
 import createNewEntry from '../services/post/create-new-entry.js';
 

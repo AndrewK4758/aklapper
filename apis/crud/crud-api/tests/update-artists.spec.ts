@@ -1,4 +1,4 @@
-import type { artist } from '@prisma/client';
+import type { artist } from '@prisma/client-generated';
 import createArtists from '../src/services/prisma/artist/create-artists.js';
 import updateArtist from '../src/services/prisma/artist/update-artists.js';
 import deleteArtists from '../src/services/prisma/artist/delete-artist.js';

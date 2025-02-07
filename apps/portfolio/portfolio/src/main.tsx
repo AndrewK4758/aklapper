@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './app/app';
 import './styles/main-styles.css';
+import App from './app/app';
 
 /**
  * This is the main entry point for the React application.
@@ -9,7 +9,8 @@ import './styles/main-styles.css';
  * and mounts it to the DOM.
  */
 
-ReactDOM.createRoot(document.getElementById('root') as HTMLDivElement).render(
+ReactDOM.hydrateRoot(
+  document.getElementById('root') as HTMLDivElement,
   <StrictMode>
     <App />
   </StrictMode>

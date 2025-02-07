@@ -1,4 +1,4 @@
-import { track } from '@prisma/client';
+import { track } from '@prisma/client-generated';
 import axios from 'axios';
 import { NewEntry } from '../../../components/crud/add-entry/add-entry';
 import type { NavigateFunction } from 'react-router';

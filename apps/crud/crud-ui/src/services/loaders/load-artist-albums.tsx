@@ -1,4 +1,4 @@
-import { album } from '@prisma/client';
+import { album } from '@prisma/client-generated';
 import axios from 'axios';
 import { LoaderFunction, LoaderFunctionArgs } from 'react-router';
 

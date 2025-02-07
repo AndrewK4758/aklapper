@@ -1,5 +1,5 @@
 import { prisma, PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
-import { artist } from '@prisma/client';
+import { artist } from '@prisma/client-generated';
 
 /**
  * This function creates a new artist in the database.

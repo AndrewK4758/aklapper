@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client-generated';
 import { NextFunction, Request, Response } from 'express';
 import validateAlbum from '../services/prisma/album/validate-album.js';
 

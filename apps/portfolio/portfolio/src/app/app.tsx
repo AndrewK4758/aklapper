@@ -1,11 +1,15 @@
 import CssBaseline from '@mui/material/CssBaseline';
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import type { FC, ReactElement } from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router';
+import { createMemoryRouter, RouterProvider } from 'react-router';
 import routes from '../routes/routes';
 import Theme from '../styles/theme';
 
-const router = createBrowserRouter(routes);
+const router = createMemoryRouter(routes, {
+  basename: '',
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  hydrationData: (window as any).__INITIAL_DATA__
+});
 
 /**
  * This is the root component of the application.

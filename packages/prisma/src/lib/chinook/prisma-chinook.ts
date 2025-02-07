@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client-generated';
 import { configDotenv } from 'dotenv';
 import { cwd } from 'process';
 import url from '../get-prisma-db-url.js';

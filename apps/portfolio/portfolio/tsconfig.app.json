@@ -9,12 +9,12 @@
     "rootDir": "src",
     "module": "esnext",
     "moduleResolution": "bundler",
+    "resolveJsonModule": true,
     "paths": {
       "@aklapper/games-components": ["../../../packages/games-components/src/index.ts"],
       "@aklapper/media-recorder": ["../../../packages/media-recorder/src/index.ts"],
       "@aklapper/prompt-builder": ["../../../packages/gen-ai/prompt-builder/src/index.ts"],
       "@aklapper/react-shared": ["../../../packages/react-shared/src/index.ts"],
-
       "@aklapper/socket-io-client": ["../../../packages/socket-io/client/src/index.ts"],
       "@aklapper/types": ["../../../packages/types/src/index.ts"],
       "@aklapper/utils": ["../../../packages/utils/src/index.ts"],
@@ -32,7 +32,9 @@
     "tests/**/*.test.js",
     "tests/**/*.spec.jsx",
     "tests/**/*.test.jsx",
+    "server.ts",
     "vite.config.ts",
+    "vite.config.server.ts",
     "eslint.config.js"
   ],
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],

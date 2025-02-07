@@ -6,7 +6,7 @@ import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import { DataGrid, GridActionsCellItem, GridColDef, GridRowParams, useGridApiRef } from '@mui/x-data-grid';
-import { album } from '@prisma/client';
+import { album } from '@prisma/client-generated';
 import { useState, type JSX } from 'react';
 import { Outlet, useLoaderData, useNavigate } from 'react-router';
 import { PaginationModel } from '../../../pages/crud/crud';

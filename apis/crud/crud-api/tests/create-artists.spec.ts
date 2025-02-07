@@ -1,4 +1,4 @@
-import { type artist } from '@prisma/client';
+import { type artist } from '@prisma/client-generated';
 import { PrismaErrorLogger } from '@aklapper/prisma';
 import createArtists from '../src/services/prisma/artist/create-artists.js';
 

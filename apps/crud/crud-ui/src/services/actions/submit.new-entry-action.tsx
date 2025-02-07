@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { NewEntry } from '../../components/add-entry/add-entry';
-import { track } from '@prisma/client';
+import { track } from '@prisma/client-generated';
 
 export type NewEntryReturn = {
   artist_id: number;

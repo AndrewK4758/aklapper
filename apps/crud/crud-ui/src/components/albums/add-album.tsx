@@ -5,7 +5,7 @@ import Container from '@mui/material/Container';
 import FormLabel from '@mui/material/FormLabel';
 import TextField from '@mui/material/TextField';
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
-import { album } from '@prisma/client';
+import { album } from '@prisma/client-generated';
 import axios from 'axios';
 import { FormikProps, useFormik } from 'formik';
 import { ChangeEvent, RefObject } from 'react';

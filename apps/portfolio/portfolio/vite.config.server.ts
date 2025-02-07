@@ -1,8 +1,8 @@
 /// <reference types='vitest' />
-import { workspaceRoot } from '@nx/devkit';
+import { defineConfig, UserConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
-import { defineConfig, UserConfig } from 'vite';
+import { workspaceRoot } from '@nx/devkit';
 
 const modules: { [key: string]: string } = {
   '@aklapper/games-components': resolve(workspaceRoot, 'packages/games-components/src/index.ts'),
@@ -29,14 +29,14 @@ const config: UserConfig = defineConfig({
   root: resolve(workspaceRoot, 'apps/portfolio/portfolio'),
   cacheDir: resolve(workspaceRoot, 'node_modules/.vite/apps/portfolio/portfolio'),
   server: {
-    port: 4700,
+    port: 5800,
     host: 'localhost'
   },
   preview: {
-    port: 4800,
+    port: 5900,
     host: 'localhost'
   },
-  plugins: [react({})],
+  plugins: [react()],
   // Uncomment this if you are using workers.
   // worker: {
   //  plugins: [ nxViteTsPaths() ],
@@ -46,8 +46,23 @@ const config: UserConfig = defineConfig({
     alias: modules
   },
 
+  ssr: {
+    noExternal: [
+      'react-router',
+      '@mui/material',
+      '@mui/icons-material',
+      '@mui/styles',
+      '@mui/x-data-grid',
+      '@mui/x-date-pickers',
+      '@mui/styled-engine-sc'
+    ]
+  },
+
   build: {
-    outDir: './dist/client',
+    ssr: true,
+    ssrEmitAssets: true,
+    ssrManifest: true,
+    outDir: './dist/server',
     minify: process.env['NODE_ENV'] !== 'production',
     emptyOutDir: true,
     manifest: true,
@@ -59,11 +74,10 @@ const config: UserConfig = defineConfig({
     },
     rollupOptions: {
       input: {
-        client: '/src/main.tsx'
+        server: './server.ts'
       },
       perf: true,
       output: {
-        entryFileNames: 'client.js',
         strict: true,
         esModule: true,
         format: 'esm',

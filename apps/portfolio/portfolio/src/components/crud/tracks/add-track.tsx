@@ -5,10 +5,10 @@ import Container from '@mui/material/Container';
 import FormLabel from '@mui/material/FormLabel';
 import TextField from '@mui/material/TextField';
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
-import { Prisma, track } from '@prisma/client';
+import { Prisma, track } from '@prisma/client-generated';
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import { FormikProps, useFormik } from 'formik';
-import { FocusEvent, RefObject } from 'react';
+import { FocusEvent, RefObject, type JSX } from 'react';
 import { Form } from 'react-router';
 import { crudAddButtonStyles, crudAddErrorTextStyles } from '../../../styles/crud-styles';
 
@@ -41,7 +41,7 @@ const initialValues: track = {
  * @returns {JSX.Element} The rendered AddTrack component.
  */
 
-const AddTrack = ({ albumID, apiRef }: AddTrackProps) => {
+const AddTrack = ({ albumID, apiRef }: AddTrackProps): JSX.Element => {
   const formik = useFormik({
     initialValues: initialValues,
     onSubmit: values => {

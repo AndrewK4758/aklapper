@@ -10,7 +10,7 @@ import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import TextField from '@mui/material/TextField';
 import { debounce } from '@mui/material/utils';
-import { album, artist } from '@prisma/client';
+import { album, artist } from '@prisma/client-generated';
 import axios from 'axios';
 import { useState, type ChangeEvent, type Dispatch, type JSX, type SetStateAction } from 'react';
 import {

@@ -1,6 +1,6 @@
 import { prisma } from '@aklapper/prisma';
 import { PrismaErrorLogger, type PrismaClientErrors, type ParsedPrismaError } from '@aklapper/prisma';
-import type { album } from '@prisma/client';
+import type { album } from '@prisma/client-generated';
 /**
  * Creates a new album in the database.
  *

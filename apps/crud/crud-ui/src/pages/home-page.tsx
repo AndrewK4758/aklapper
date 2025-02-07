@@ -12,7 +12,7 @@ import {
   TextField
 } from '@mui/material';
 import Box from '@mui/material/Box';
-import { album, artist } from '@prisma/client';
+import { album, artist } from '@prisma/client-generated';
 import axios from 'axios';
 import { ChangeEvent, Dispatch, SetStateAction, useState } from 'react';
 import { Outlet } from 'react-router';

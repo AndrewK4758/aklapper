@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@prisma/client-generated';
 import { Request, Response } from 'express';
 import validateArtist from '../services/prisma/artist/validate-artist-in-db.js';
 

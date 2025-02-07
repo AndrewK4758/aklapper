@@ -3,7 +3,7 @@ import {
   PrismaClientKnownRequestError,
   PrismaClientUnknownRequestError,
   PrismaClientValidationError
-} from '@prisma/client/runtime/library.js';
+} from '@prisma/client-generated/runtime/library.js';
 
 export type PrismaClientErrors =
   | PrismaClientKnownRequestError
