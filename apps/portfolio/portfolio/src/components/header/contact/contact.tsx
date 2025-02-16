@@ -9,16 +9,16 @@ import {
   iconSize,
   iconSxProps,
   iconWrapperSxProps
-} from '../../../styles/header-styles';
-import EmailDialog from '../../email/email-dialog';
-import DiscordIcon from '../../icons/discord-icon';
-import EmailIcon from '../../icons/email-icon';
-import FacebookIcon from '../../icons/facebook-icon';
-import GitHibIcon from '../../icons/github-icon';
-import HuggingFaceIcon from '../../icons/huggingface-icon';
-import LinkedinIcon from '../../icons/linkedin-logo';
-import XIcon from '../../icons/x-icon';
-import ContactIcon from '../contact-icon/contact-icon';
+} from '../../../styles/header-styles.jsx';
+import EmailDialog from '../../email/email-dialog.jsx';
+import DiscordIcon from '../../icons/discord-icon.jsx';
+import EmailIcon from '../../icons/email-icon.jsx';
+import FacebookIcon from '../../icons/facebook-icon.jsx';
+import GitHibIcon from '../../icons/github-icon.jsx';
+import HuggingFaceIcon from '../../icons/huggingface-icon.jsx';
+import LinkedinIcon from '../../icons/linkedin-logo.jsx';
+import XIcon from '../../icons/x-icon.jsx';
+import ContactIcon from '../contact-icon/contact-icon.jsx';
 
 interface ContactProps {
   openMenu: boolean;
@@ -68,7 +68,7 @@ export function Contact({ openMenu, setOpenMenu }: ContactProps) {
         >
           <ContactIcon
             id="github"
-            tooltipText="Github"
+            tooltipText="GitHub"
             iconHref="https://github.com/AndrewK4758/aklapper"
             Icon={<GitHibIcon sx={iconSize} />}
             itemSx={iconSxProps}

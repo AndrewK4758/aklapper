@@ -1,6 +1,6 @@
 import { useEffect, useRef, type CSSProperties, type JSX } from 'react';
-import { fullSizeBlock } from '../../../styles/pages-styles';
-import Theme from '../../../styles/theme';
+import { fullSizeBlock } from '../../../styles/pages-styles.jsx';
+import Theme from '../../../styles/theme.jsx';
 
 interface AudioVisualizerProps {
   stream: MediaStream;

@@ -1,4 +1,4 @@
-import { artist } from '@prisma/client-generated';
+import { artist } from '@prisma/client';
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import { FormikProps } from 'formik';
 

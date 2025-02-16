@@ -7,21 +7,21 @@ import Paper from '@mui/material/Paper';
 import { useReducer, useRef, useState, type JSX } from 'react';
 import { useParams } from 'react-router';
 import type { ManagerOptions, Socket } from 'socket.io-client';
-import useGamesWebsockets from '../../hooks/useGamesWebsockets';
+import useGamesWebsockets from '../../hooks/useGamesWebsockets.jsx';
 import {
   breakpointsBottomMenuButtonsBox,
   breakpointsBottomMenuGameBoard,
   breakpointsPlayerInTurnText,
   gamesPaperSxProps
-} from '../../styles/games-styles';
-import getGameInstanceInfo from '../../utils/utils';
-import ActiveAvatars from './game_board/active_avatars';
-import ResetGame from './game_board/reset_game';
-import ShowGameBoardTicTacToe from './game_board/show-game-board-tic-tac-toe';
-import ShowGameBoard from './game_board/show_game_board';
-import socketReducer from './game_board/socket-reducer';
-import TakeTurnTicTacToe from './game_board/take-turn-tic-tac-toe';
-import TakeTurn from './game_board/take_turn';
+} from '../../styles/games-styles.jsx';
+import getGameInstanceInfo from '../../utils/utils.jsx';
+import ActiveAvatars from './game_board/active_avatars.jsx';
+import ResetGame from './game_board/reset_game.jsx';
+import ShowGameBoardTicTacToe from './game_board/show-game-board-tic-tac-toe.jsx';
+import ShowGameBoard from './game_board/show_game_board.jsx';
+import socketReducer from './game_board/socket-reducer.jsx';
+import TakeTurnTicTacToe from './game_board/take-turn-tic-tac-toe.jsx';
+import TakeTurn from './game_board/take_turn.jsx';
 
 export interface IActiveGameInfo extends IActivePlayersInGame {
   gameBoard: GameBoard;

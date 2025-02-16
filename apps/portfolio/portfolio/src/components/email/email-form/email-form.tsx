@@ -1,8 +1,8 @@
 import { FormikValidationError } from '@aklapper/react-shared';
-import { DialogActions } from '@mui/material';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
+import DialogActions from '@mui/material/DialogActions';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import dayjs from 'dayjs';
@@ -11,11 +11,11 @@ import { useContext, useRef, type Dispatch, type SetStateAction } from 'react';
 import { Form, useSubmit, type SubmitFunction } from 'react-router';
 import * as Yup from 'yup';
 import 'yup-phone-lite';
-import { GoogleUserContext, GoogleUserContextProps } from '../../../contexts/contact-context';
-import { helperTextSx } from '../../../styles/gen-ai-styles';
-import { dialogActionsStyles, emailButtonSxProps, emailStackSxProps } from '../../../styles/header-styles';
-import { flexColumnStyles } from '../../../styles/pages-styles';
-import AppointmentMaker from '../appointment-maker/appointment-maker';
+import { GoogleUserContext, GoogleUserContextProps } from '../../../contexts/contact-context.jsx';
+import { helperTextSx } from '../../../styles/gen-ai-styles.jsx';
+import { dialogActionsStyles, emailButtonSxProps, emailStackSxProps } from '../../../styles/header-styles.jsx';
+import { flexColumnStyles } from '../../../styles/pages-styles.jsx';
+import AppointmentMaker from '../appointment-maker/appointment-maker.jsx';
 
 export type MessageMeFormValues = {
   name: string;

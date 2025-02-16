@@ -1,7 +1,7 @@
 import { prisma } from '@aklapper/prisma';
 import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
-import { Prisma, type artist } from '@prisma/client-generated';
-import { DefaultArgs } from '@prisma/client-generated/runtime/library';
+import { Prisma, type artist } from '@prisma/client';
+import { DefaultArgs } from '@prisma/client/runtime/library';
 
 /**
  * This function creates a new artist entry in the database, including associated albums and tracks.

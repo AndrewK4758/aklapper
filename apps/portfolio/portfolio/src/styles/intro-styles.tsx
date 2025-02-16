@@ -1,6 +1,6 @@
 import type { SxProps } from '@mui/material/styles';
-import { flexColumnStyles } from './pages-styles';
-import Theme from './theme';
+import { flexColumnStyles } from './pages-styles.jsx';
+import Theme from './theme.jsx';
 
 export const baseStyleForHomeItems: SxProps = {
   width: '100vw',
@@ -36,6 +36,7 @@ export const introTitleTextSxProps: SxProps = {
 export const introTextSxProps: SxProps = {
   flex: '0 1 75%',
   fontSize: '1.25rem',
+  fontFamily: 'Lucida',
   paddingTop: 4,
   [Theme.breakpoints.down('lg')]: {
     fontSize: '1rem',

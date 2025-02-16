@@ -8,9 +8,9 @@ import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { useFormik } from 'formik';
 import { FocusEvent, RefObject, type JSX } from 'react';
 import { Form, useParams } from 'react-router';
-import handleSubmitNewAlbum from '../../../services/actions/crud-actions/submit-album-on-artist-action';
-import handleNewAlbumBlur from '../../../services/events/crud-events/handle-validate-artist-albums-on-blur';
-import { crudAddButtonStyles } from '../../../styles/crud-styles';
+import handleSubmitNewAlbum from '../../../services/actions/crud-actions/submit-album-on-artist-action.jsx';
+import handleNewAlbumBlur from '../../../services/events/crud-events/handle-validate-artist-albums-on-blur.jsx';
+import { crudAddButtonStyles } from '../../../styles/crud-styles.jsx';
 
 interface AddAlbumOnArtistProps {
   apiRef: RefObject<GridApiCommunity>;

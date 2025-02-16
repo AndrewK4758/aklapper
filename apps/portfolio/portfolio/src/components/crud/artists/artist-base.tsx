@@ -8,15 +8,15 @@ import Paper from '@mui/material/Paper';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { DataGrid, GridActionsCellItem, GridColDef, GridRowParams, useGridApiRef } from '@mui/x-data-grid';
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
-import { artist } from '@prisma/client-generated';
+import { artist } from '@prisma/client';
 import axios from 'axios';
 import { RefObject, useRef, useState, type JSX } from 'react';
 import { Outlet, useLoaderData, useNavigate } from 'react-router';
-import useFetchDataGridData from '../../../hooks/useFetchDataGridData';
-import type { PaginationModel } from '../../../pages/crud/crud';
-import loadArtists from '../../../services/loaders/crud-loaders/load-artists';
-import { dataGridStyleUpdate } from '../../../styles/crud-styles';
-import AddArtist from './add-artist';
+import useFetchDataGridData from '../../../hooks/useFetchDataGridData.jsx';
+import type { PaginationModel } from '../../../pages/crud/crud.jsx';
+import loadArtists from '../../../services/loaders/crud-loaders/load-artists.jsx';
+import { dataGridStyleUpdate } from '../../../styles/crud-styles.jsx';
+import AddArtist from './add-artist.jsx';
 
 const paginationModelInit: PaginationModel = {
   pageSize: 25,

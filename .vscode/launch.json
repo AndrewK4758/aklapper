@@ -7,6 +7,12 @@
       "python": "${command:python.interpreterPath}",
       "program": "${file}",
       "envFile": "${workspaceFolder}/apps/wdg-agents/apps/wdg_agents/env/.env"
+    },
+    {
+      "name": "SSR PORTFOLIO",
+      "type": "node",
+      "request": "launch",
+      "program": "${file}"
     }
   ]
 }

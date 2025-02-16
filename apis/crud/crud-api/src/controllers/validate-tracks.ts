@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client-generated';
+import type { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
 import validateTrack from '../services/prisma/tracks/validate-track.js';
 

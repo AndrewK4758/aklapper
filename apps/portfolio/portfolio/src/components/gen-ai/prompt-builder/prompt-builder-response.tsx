@@ -1,9 +1,9 @@
 import { Text } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
 import type { CSSProperties } from 'react';
-import { crudHeaderTextSxProps } from '../../../styles/crud-styles';
-import { renderPreTagInsideParentDiv } from '../../../styles/gen-ai-styles';
-import { fullSizeBlock } from '../../../styles/pages-styles';
+import { crudHeaderTextSxProps } from '../../../styles/crud-styles.jsx';
+import { renderPreTagInsideParentDiv } from '../../../styles/gen-ai-styles.jsx';
+import { fullSizeBlock } from '../../../styles/pages-styles.jsx';
 
 interface PromptBuilderResponseProps {
   prompt: string;

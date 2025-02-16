@@ -4,7 +4,7 @@ import IconButton from '@mui/material/IconButton';
 import type { SxProps } from '@mui/material/styles';
 import type { Dispatch, ReactElement, SetStateAction } from 'react';
 import Box from '@mui/material/Box';
-import { contactIconWrapperSxProps } from '../../../styles/header-styles';
+import { contactIconWrapperSxProps } from '../../../styles/header-styles.jsx';
 
 interface ContactIconProps {
   id: string;

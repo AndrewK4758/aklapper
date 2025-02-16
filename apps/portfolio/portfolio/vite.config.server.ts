@@ -1,8 +1,8 @@
-/// <reference types='vitest' />
-import { defineConfig, UserConfig } from 'vite';
+import { workspaceRoot } from '@nx/devkit';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
-import { workspaceRoot } from '@nx/devkit';
+import type { UserConfig } from 'vite';
+import { defineConfig } from 'vite';
 
 const modules: { [key: string]: string } = {
   '@aklapper/games-components': resolve(workspaceRoot, 'packages/games-components/src/index.ts'),
@@ -19,23 +19,13 @@ const modules: { [key: string]: string } = {
 
   '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src/index.ts'),
 
-  '.prisma/client/index-browser': resolve(
-    workspaceRoot,
-    'node_modules/@prisma/client-generated/runtime/index-browser.js'
-  )
+  '.prisma/client/index-browser': resolve(workspaceRoot, 'node_modules/@prisma/client/runtime/index-browser.js')
 };
 
 const config: UserConfig = defineConfig({
   root: resolve(workspaceRoot, 'apps/portfolio/portfolio'),
   cacheDir: resolve(workspaceRoot, 'node_modules/.vite/apps/portfolio/portfolio'),
-  server: {
-    port: 5800,
-    host: 'localhost'
-  },
-  preview: {
-    port: 5900,
-    host: 'localhost'
-  },
+
   plugins: [react()],
   // Uncomment this if you are using workers.
   // worker: {
@@ -47,28 +37,19 @@ const config: UserConfig = defineConfig({
   },
 
   ssr: {
-    noExternal: [
-      'react-router',
-      '@mui/material',
-      '@mui/icons-material',
-      '@mui/styles',
-      '@mui/x-data-grid',
-      '@mui/x-date-pickers',
-      '@mui/styled-engine-sc'
-    ]
+    noExternal: ['@mui/material', '@mui/icons-material', '@mui/x-date-pickers']
   },
 
+  mode: 'development',
   build: {
     ssr: true,
     ssrEmitAssets: true,
     ssrManifest: true,
     outDir: './dist/server',
-    minify: process.env['NODE_ENV'] !== 'production',
+    minify: false,
     emptyOutDir: true,
-    manifest: true,
     sourcemap: true,
     reportCompressedSize: true,
-
     commonjsOptions: {
       transformMixedEsModules: true
     },
@@ -78,44 +59,27 @@ const config: UserConfig = defineConfig({
       },
       perf: true,
       output: {
+        assetFileNames: '[name].[ext]',
+        entryFileNames: 'server.js',
         strict: true,
         esModule: true,
         format: 'esm',
         generatedCode: {
           arrowFunctions: true,
           constBindings: true,
-          symbols: true
+          symbols: true,
+          objectShorthand: true,
+          reservedNamesAsProps: true
         }
       }
     },
-    target: 'esnext'
-  },
-
-  esbuild: {
-    jsx: 'automatic',
-    format: 'esm',
-    color: true,
-    platform: 'browser',
-    sourcemap: true,
-    target: 'esnext'
+    target: 'node23'
   },
 
   logLevel: 'info',
   appType: 'custom',
   publicDir: 'public',
-  envDir: './env',
-
-  test: {
-    watch: false,
-    globals: true,
-    environment: 'jsdom',
-    include: ['tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-    reporters: ['default'],
-    coverage: {
-      reportsDirectory: './test-output/vitest/coverage',
-      provider: 'v8'
-    }
-  }
+  envDir: './env'
 });
 
 export default config;

@@ -1,20 +1,21 @@
-import { Tooltip } from '@mui/material';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
 import CardMedia from '@mui/material/CardMedia';
+import Tooltip from '@mui/material/Tooltip';
 import { lazy, type JSX } from 'react';
 import resume from '../../assets/Resume.pdf';
 import myPic from '../../assets/self.webp';
-import ResumeIcon from '../../components/icons/resume-icon';
+import ResumeIcon from '../../components/icons/resume-icon.jsx';
 import {
   introButtonSxProps,
   introIconSxProps,
   introPicStyles,
   picAndResumeCardStyles
-} from '../../styles/intro-styles';
+} from '../../styles/intro-styles.jsx';
+import Theme from '../../styles/theme';
 
-const TechStackList = lazy(() => import('./tech-list/tech-list'));
+const TechStackList = lazy(() => import('./tech-list/tech-list.jsx'));
 
 /**
  * This component renders a card containing a picture of me and a button to download my resume.
@@ -48,9 +49,8 @@ const PicutreAndResume = (): JSX.Element => (
           variant="contained"
           LinkComponent={'a'}
           href={resume}
-          onClick={e => console.log(e)}
-          download={`andrew-klapper-resume-${new Date().toLocaleDateString()}`}
-          endIcon={<ResumeIcon sx={introIconSxProps} />}
+          download={`andrew-klapper-resume`}
+          endIcon={<ResumeIcon color={Theme.palette.mode === 'dark' ? '#000000' : '#FFFFFF'} sx={introIconSxProps} />}
           sx={introButtonSxProps}
         >
           Resume

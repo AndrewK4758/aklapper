@@ -16,10 +16,10 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
-      "path": "../types/tsconfig.lib.json"
+      "path": "../games/tsconfig.lib.json"
     },
     {
-      "path": "../games/tsconfig.lib.json"
+      "path": "../types/tsconfig.lib.json"
     },
     {
       "path": "../games-components/tsconfig.lib.json"

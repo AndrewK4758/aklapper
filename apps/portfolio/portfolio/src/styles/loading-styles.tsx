@@ -1,7 +1,7 @@
-import linearProgressClasses from '@mui/material/LinearProgress/linearProgressClasses';
+import linearProgressClasses from '@mui/material/LinearProgress/linearProgressClasses.js';
 import type { SxProps } from '@mui/material/styles';
-import Theme from './theme';
-import { centerFlex, flexColumnStyles } from './pages-styles';
+import Theme from './theme.jsx';
+import { centerFlex, flexColumnStyles } from './pages-styles.jsx';
 
 export const loadingPaperStyles: SxProps = {
   ...flexColumnStyles,

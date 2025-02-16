@@ -1,6 +1,6 @@
 import { prisma } from '@aklapper/prisma';
 import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
-import type { Prisma } from '@prisma/client-generated';
+import type { Prisma } from '@prisma/client';
 
 /**
  * This function checks if an artist exists in the database based on the provided query.

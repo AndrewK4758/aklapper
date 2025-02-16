@@ -1,277 +1,235 @@
 import os
-from typing import Literal, TypedDict
+from typing import TypedDict
+from rich.console import Console
+
 
 from dotenv import load_dotenv
-from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 from langchain_community.tools.tavily_search.tool import TavilySearchResults
-from langgraph.prebuilt.chat_agent_executor import create_react_agent
+from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 from langchain_ollama import ChatOllama
 
-from langchain_core.tools import Tool, tool
-from langgraph.graph.message import MessagesState
-from langgraph.graph.state import StateGraph, START, END
-from langchain_core.messages import HumanMessage
-from langgraph.checkpoint.memory import MemorySaver
+from langchain.prompts import PromptTemplate
+from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
+from langgraph.graph import END, StateGraph
 
-
-class AgentState(MessagesState):
-    next: str
-
-
-system_prompt = """You are a helpful AI assistant that can search the internet. Use the available
-    tools to answer queries"""
-
-# vectorstore = Chroma(embedding_function=OllamaEmbeddings(model='llama3.2'), persist_directory='./chroma_db_ollama')
-
-load_dotenv(dotenv_path="apps/wdg_agents/env/.env")
-
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-GOOGLE_CSE_ID = os.getenv("GOOGLE_CSE_ID")
+x = load_dotenv(dotenv_path="apps/wdg_agents/env/.env")
+print(os.getcwd())
 TAVILY_API_KEY = os.getenv('TAVILY_API_KEY')
-VERBOSE_MODE = os.getenv("VERBOSE_MODE", "False").lower() == "True"
+rich = Console()
 
-llm = ChatOllama(model='llama3.2:latest', temperature=1)
+llama = ChatOllama(model='llama3.2:latest', temperature=0)
+llama_json = ChatOllama(model='llama3.2:latest', format='json', temperature=0)
+
+# -----------------GENERATE PROMPT-------------------#
+
+generate_prompt = PromptTemplate(
+    template="""
+    
+    <|begin_of_text|>
+    
+    <|start_header_id|>system<|end_header_id|> 
+    
+    You are an AI assistant for Research Question Tasks, that synthesizes web search results. 
+    Strictly use the following pieces of web search context to answer the question. If you don't know the answer, just say that you don't know. 
+    keep the answer concise, but provide all of the details you can in the form of a research report. 
+    Only make direct references to material if provided in the context.
+    
+    <|eot_id|>
+    
+    <|start_header_id|>user<|end_header_id|>
+    
+    Question: {question} 
+    Web Search Context: {context} 
+    Answer: 
+    <|eot_id|>
+    
+    <|start_header_id|>assistant<|end_header_id|>""",
+    input_variables=["question", "context"],
+)
+
+generate_chain = generate_prompt | llama | StrOutputParser()
+# ----------------ROUTER PROMPT------------------#
+
+router_prompt = PromptTemplate(
+    template="""
+    
+    <|begin_of_text|>
+    
+    <|start_header_id|>system<|end_header_id|>
+    
+    You are an expert at routing a user question to either the final_response stage or web search. 
+    Use the web search for questions that require more context for a better answer, or recent events.
+    Otherwise, you can skip and go straight to the final_response phase to respond.
+    You do not need to be stringent with the keywords in the question related to these topics.
+    Give a binary choice 'web_search' or 'generate' based on the question. 
+    Return the JSON with a single key 'choice' with no premable or explanation. 
+    
+    Question to route: {question} 
+    
+    <|eot_id|>
+    
+    <|start_header_id|>assistant<|end_header_id|>
+    
+    """,
+    input_variables=["question"],
+)
+
+question_router = router_prompt | llama_json | JsonOutputParser()
+
+# Query Transformation
+
+query_prompt = PromptTemplate(
+    template="""
+    
+    <|begin_of_text|>
+    
+    <|start_header_id|>system<|end_header_id|> 
+    
+    You are an expert at crafting web search queries for research questions.
+    More often than not, a user will ask a basic question that they wish to learn more about, however it might not be in the best format. 
+    Reword their query to be the most effective web search string possible.
+    Return the JSON with a single key 'query' with no premable or explanation. 
+    
+    Question to transform: {question} 
+    
+    <|eot_id|>
+    
+    <|start_header_id|>assistant<|end_header_id|>
+    
+    """,
+    input_variables=["question"],
+)
+
+query_chain = query_prompt | llama_json | JsonOutputParser()
+
+tavily_client = TavilySearchAPIWrapper(tavily_api_key=TAVILY_API_KEY)  # type: ignore
+tavily_tool = TavilySearchResults(api_wrapper=tavily_client, max_results=25)
+
+# Graph State - Starting Point
 
 
-@tool
-def llm_tool(query: str):
-    "llm"
-    messages = [
-        {"role": "system", "content": system_prompt}, {"role": "user", "content": query},
-    ]
+class GraphState(TypedDict):
+    """
+    Represents the state of the graph.
 
-    response = llm.invoke(messages)
+    Attributes:
+      question: question
+      final_response: LLM final_response
+      web_search_query: question in web search format
+      context: web_search_query result
+    """
+    question: str
+    final_response: str
+    web_search_query: str
+    context: str
 
-    print(response)
-    return {
-        "messages": [
-            HumanMessage(content=response["messages"][-1].content, name="llm_node")  # type: ignore
-        ]
+# Graph Node - Generate - Final Step
+
+
+def generate(state):
+    """
+    Generate answer
+
+    Args:
+        state (dict): The current graph state
+
+    Returns:
+        state (dict): New key added to state, final_response, that contains LLM final_response
+    """
+
+    print("Step: Generating Final Response")
+    question = state["question"]
+    context = state["context"]
+
+    final_response = generate_chain.invoke({"question": question, "context": context})
+
+    return {"final_response": final_response}
+
+# Graph Node - Web Search Query - Step 2 (If needed)
+
+
+def transform_query(state):
+    """
+    Transform user question to web search
+
+    Args:
+        state (dict): The current graph state
+
+    Returns:
+        state (dict): Appended search query
+    """
+
+    print("Step: Optimizing Query for Web Search")
+
+    question = state['question']
+    gen_query = query_chain.invoke({"question": question})
+    search_query = gen_query["query"]
+
+    return {"web_search_query": search_query}
+
+
+def web_search(state):
+    """
+    Web search based on the question
+
+    Args:
+        state (dict): The current graph state
+
+    Returns:
+        state (dict): Appended web results to context
+    """
+
+    search_query = state['web_search_query']
+    print(f'Step: Searching the Web for: "{search_query}"')
+
+    search_result = tavily_tool.invoke(search_query)
+
+    return {"context": search_result}
+
+
+def route_question(state):
+    """
+    route question to web search or final_response.
+
+    Args:
+        state (dict): The current graph state
+
+    Returns:
+        str: Next node to call
+    """
+
+    print("Step: Routing Query")
+    question = state['question']
+    output = question_router.invoke({"question": question})
+
+    if output['choice'] == "web_search":
+        print("Step: Routing Query to Web Search")
+        return "websearch"
+    elif output['choice'] == 'generate':
+        print("Step: Routing Query to Generation")
+        return "generate"
+
+
+workflow_graph = StateGraph(GraphState)
+workflow_graph.add_node("websearch", web_search)
+workflow_graph.add_node("transform_query", transform_query)
+workflow_graph.add_node("generate", generate)
+
+workflow_graph.set_conditional_entry_point(
+    route_question,
+    {
+        "websearch": "transform_query",
+        "generate": "generate"
     }
-
-
-# llm_tool_instance = Tool(
-#     name='llm',
-#     description='This tool is used to query the llm',
-#     func=llm_tool
-# )
-
-tavily_client = TavilySearchAPIWrapper()  # type: ignore
-tavily_tool = TavilySearchResults(api_wrapper=tavily_client)
-
-llm_agent = create_react_agent(model=llm, tools=[tavily_tool], debug=VERBOSE_MODE, prompt=system_prompt)
-# web_search_agent = create_react_agent(model=llm, tools=[
-
-# tavily_tool], prompt='''You are highly trained in searching the internet. You are tasked with finding the answer to
-# the users question. Your can use the following tools: Tavily Search''')
-
-
-# @tool
-# def web_search_tool(state: MessagesState):
-#     "tool to query the web for web search agent"
-#     result = web_search_agent.invoke(state)
-
-#     return {
-#         "messages": [
-#             HumanMessage(content=result["messages"][-1].content, name='web searcher')
-#         ]
-#     }
-
-
-# web_search_tool_instance = Tool(
-#     name='web searcher',
-#     description='Tool to search the web',
-#     func=web_search_tool.invoke
-# )
-
-# builder = StateGraph(AgentState)
-# builder.add_edge(START, "llm")
-# builder.add_node("llm", llm_tool)
-# # builder.add_node("web searcher", web_search_tool_instance)
-
-# config = {"configurable": {"thread_id": "1"}}
-# memory = MemorySaver()
-
-# # builder.add_edge("llm", "web searcher")
-
-# # builder.add_conditional_edges("llm", lambda state: state["next"])
-
-# graph = builder.compile(checkpointer=memory)
-
-
-def main():
-    while True:
-        user_input = input(">> ")
-        if user_input.lower() in ["quit", "exit", "q"]:
-            print("Goodbye!")
-            break
-
-        for s in llm_tool(user_input):
-            print(s)
-            print("----")
-
-
-if __name__ == "__main__":
-    main()
-'''
-
-google_wrapper = GoogleSearchAPIWrapper()
-google_search = GoogleSearchResults(api_wrapper=google_wrapper, num_results=3, verbose=True, model_config={
-"strict": True,
-"revalidate_instances": 'always'
-})
-g_tool = Tool(
-name='Google search tool',
-description='Search google and return results',
-func=google_search.invoke,
 )
-# 
-result = google_search.invoke('how many gold medals did us win in 2004 olympics', {})
-x = result.replace('\\', ' ')
-y = x.replace("'", '"')
-z = json.loads(y)
-print(type(z))
-print('\n', z)
-# 
-x = result.replace("'[", '"[')
-y = x.replace("]'", ']"')
-replaced = y.replace("'", '"')
-# 
-print(type(replaced))
-print('\n')
-json_result = replaced
-# 
-print(json_result)
-print('\n')
-data = json.loads(json_result)
-# 
-for item in data:
-    print('\n')
-    print(item)
-    print('\n')
-# 
-x = result[0]
-y = result[1]
-print('\n')
-print(type(result))
-print('\n')
-print(x)
-print('\n')
-print(y)
-# 
-# 
-def web_search(query: str):
-# 
-    try:
-        return search.run(query)
-    except Exception as e:
-        print(f"Error during web search: {e}")
-        return "An error occurred while performing the web search."
-# 
-# 
-web_search_tool = Tool(
-    name="google web search tool",
-    description="Searches the web to retrieve the most relevant and up-to-date information for a query.",
-    func=web_search,
-)
-# 
-tools = [web_search_tool]
-# 
-tool_names = [web_search_tool.name]
-# 
-# 
-def use_local_llm(model):
-# 
-    llm = ChatOllama(name='local chatbot with websearch agent', model=model, verbose=VERBOSE_MODE)
-    # llm_with_tools = local_model.bind_tools(tools=web_search_tool)
-# 
-    system_prompt = """You are a helpful AI assistant that can search the internet. Use the available
-    tools to answer queries.
-# 
-        {query}
-# 
-        Available tools: {tool_names}
-        Tools: {tools}
-# 
-        Your reasoning process should follow these steps:
-        - Thought: Decide the next action or search step.
-        - Action: Return one of the available tools in the following format:
-      {
-          "tool": "tool_name",
-          "tool_input": "tool_input"
-      }
-        - Action messages: Provide messages for the selected tool.
-        - Observation: Note the tool’s output.
-        - Final Answer: Provide a complete and accurate answer based on your observations.
-# 
-        {agent_scratchpad}
-        """
-# 
-    return llm, system_prompt
-# 
-# 
-def use_model_with_agent(model: str, query: str):
-    llm, system_prompt = use_local_llm(model=model)
-# 
-    agent = create_react_agent(llm, tools)
-# 
-    agent_executor = AgentExecutor(name="web search agent", tools=tools, agent=agent,  verbose=True, debug=True,
-                                   handle_parsing_errors=True, return_intermediate_steps=True)
-# 
-    print(agent_executor)
-# 
-    full_input = [
-        SystemMessage(content=system_prompt),
-        HumanMessage(content=query)
-    ]
-# 
-    response = agent_executor.invoke({})
-# 
-    print(response)
-    return 'ABCD'
 
-    chat_prompt = ChatPromptTemplate.from_messages([
-        ("user", "{messages}"),
-        ("placeholder", "{agent_scratchpad}")
-    ]
-    )
+workflow_graph.add_edge("transform_query", "websearch")
+workflow_graph.add_edge("websearch", "generate")
+workflow_graph.add_edge("generate", END)
 
-    return local_with_tool, chat_prompt, system_prompt
+local_agent = workflow_graph.compile()
 
 
-def use_agent(model: str, query: str):
-    local_model, chat_prompt, system_prompt = use_local_llm(model, query)
-
-    agent = create_react_agent(model=local_model, tools=tools, debug=True, state_modifier=system_prompt)
-
-    agent_executor = AgentExecutor(
-
-name="web_search_agent", agent=agent, tools=tools, verbose=VERBOSE_MODE, handle_parsing_errors=True, 
-return_intermediate_steps=True
-    )
-
-    return agent_executor
-
-
-def use_model_with_agent(model: str, query: str):
-    try:
-        chain = use_agent(model, query)
-
-        full_messages = {
-            # The key should match what is used in the system and other prompts in use_local_llm
-            "messages": [("user", query)],
-            "tools": [("ai", tools)],
-            "tool_names": [("ai", tool_names)],
-            "agent_scratchpad": [("ai", "")]
-        }
-
-        agent_response = chain.invoke(full_messages)
-
-        return agent_response
-    except Exception as e:
-        print(f"Error in agent execution: {str(e)} \n {e.args}")
-        return {
-            "output": f"An error occurred while processing your request: {str(e)}",
-            "error": True
-        }
-'''
+def query_agent(query):
+    output = local_agent.invoke({"question": query})
+    return output["final_response"] + '\n'

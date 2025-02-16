@@ -1,9 +1,9 @@
-import { redirect, type ActionFunction, type ActionFunctionArgs } from 'react-router';
-import registerGame from '../register-games/register-game';
-import registerPlayers from '../register-games/registers-players';
-import startGame from '../register-games/start-game';
 import type { GamePlayerValidation } from '@aklapper/types';
-import gamesAutoStartError from '../../errors/games-auto-start-error';
+import { redirect, type ActionFunction, type ActionFunctionArgs } from 'react-router';
+import gamesAutoStartError from '../../errors/games-auto-start-error.jsx';
+import registerGame from '../register-games/register-game.jsx';
+import registerPlayers from '../register-games/registers-players.jsx';
+import startGame from '../register-games/start-game.jsx';
 
 /**
  * An action function for React Router DOM that registers players and starts a game.

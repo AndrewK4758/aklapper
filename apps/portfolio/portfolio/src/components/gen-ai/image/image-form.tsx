@@ -16,28 +16,33 @@ import { useFormik, type FormikProps } from 'formik';
 import { type ChangeEvent, type JSX } from 'react';
 import { Form, useActionData, useNavigation, useOutletContext, useSubmit } from 'react-router';
 import * as Yup from 'yup';
-import type { OutletContextProps } from '../../../pages/gen-ai/gen-ai';
+import waiting from '../../../assets/swirly-dots-to-chrome.webp';
+import type { OutletContextProps } from '../../../pages/gen-ai/gen-ai.jsx';
+import { crudHeaderTextSxProps } from '../../../styles/crud-styles.jsx';
 import {
   forrmControlLabelStyles,
+  genAiGenerateImageButtonBoxSxProps,
+  genAiImageDetailsBoxSxProps,
+  genAiImageHeaderBoxSxProps,
+  genAiImageSampleCountRadioSxProps,
+  genAiSampleCountTextSxProps,
+  genAiSliderInputSlotProps,
   helperTextSx,
   labelSx,
+  promptBuillderFormBoxSxProps,
   radioGroupStyles,
   sampleCountRadioTextStyles,
   textInputSx,
-  tooltipSx,
-  promptBuillderFormBoxSxProps,
-  genAiImageHeaderBoxSxProps,
-  genAiSampleCountTextSxProps,
-  genAiImageSampleCountRadioSxProps,
-  genAiImageDetailsBoxSxProps,
-  genAiSliderInputSlotProps,
-  genAiGenerateImageButtonBoxSxProps
-} from '../../../styles/gen-ai-styles';
-import { centerFlex, pagesTitleSx } from '../../../styles/pages-styles';
-import { imageGenDescription, promptTooltipText, sampleCountTooltipText, seedTooltipText } from '../static/image-text';
-import waiting from '../../../assets/swirly-dots-to-chrome.webp';
-import { crudHeaderTextSxProps } from '../../../styles/crud-styles';
-import { buttonSXProps } from '../../../styles/header-styles';
+  tooltipSx
+} from '../../../styles/gen-ai-styles.jsx';
+import { buttonSXProps } from '../../../styles/header-styles.jsx';
+import { centerFlex, pagesTitleSx } from '../../../styles/pages-styles.jsx';
+import {
+  imageGenDescription,
+  promptTooltipText,
+  sampleCountTooltipText,
+  seedTooltipText
+} from '../static/image-text.jsx';
 
 const validationSchema = Yup.object({
   prompt: Yup.string().required('The prompt is required'),

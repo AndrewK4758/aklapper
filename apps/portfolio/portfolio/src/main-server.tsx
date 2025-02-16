@@ -1,29 +1,31 @@
+import CssBaseline from '@mui/material/CssBaseline';
+import ThemeProvider from '@mui/material/styles/ThemeProvider';
+import type { Response } from 'express';
 import ReactDomServer from 'react-dom/server';
 import { createStaticHandler, createStaticRouter, StaticRouterProvider, type StaticHandlerContext } from 'react-router';
-import routes from './routes/routes';
-import type { Response } from 'express';
+import routes from './routes/routes.jsx';
+import Theme from './styles/theme.jsx';
 
-interface IRenderProps {
-  path: string;
-  port: number | string;
-  resp: Response;
-  template: string;
-}
+const handler = createStaticHandler(routes);
 
-const render = async ({ path, port, resp, template }: IRenderProps) => {
-  const handler = createStaticHandler(routes);
-  const context = (await handler.query(new Request(`http://localhost:${port}${path}`))) as StaticHandlerContext;
+const render = async (fullUrl: string, resp: Response, template: string) => {
+  console.log(fullUrl);
+  const context = (await handler.query(new Request(fullUrl))) as StaticHandlerContext;
   const router = createStaticRouter(routes, context);
-  const [startHTML, endHTML] = template.split('<!--REPLACE-->');
+  const [START_HTML, END_HTML] = template.split('<!--REPLACE-->');
 
   const { pipe, abort } = ReactDomServer.renderToPipeableStream(
-    <StaticRouterProvider router={router} context={context} />,
+    <ThemeProvider theme={Theme}>
+      <CssBaseline />
+      <StaticRouterProvider router={router} context={context} />
+    </ThemeProvider>,
     {
-      bootstrapModules: ['/client.js'],
       onShellReady() {
+        console.log('START RENDERING COMPONENTS');
         resp.statusCode = context.statusCode || 200;
         resp.setHeader('Content-Type', 'text/html');
-        resp.write(startHTML);
+        resp.setHeader('Access-Control-Allow-Origin', fullUrl);
+        resp.write(START_HTML);
         pipe(resp);
       },
       onShellError(error) {
@@ -33,10 +35,9 @@ const render = async ({ path, port, resp, template }: IRenderProps) => {
         console.error(`Suspense error: ${error}`);
       },
       onAllReady() {
-        console.log('ALL COMPONENTS RENDERED');
-        resp.write(endHTML);
+        resp.write(END_HTML);
         resp.end();
-        resp.send();
+        console.log('ALL COMPONENTS RENDERED');
       }
     }
   );
@@ -49,7 +50,6 @@ const render = async ({ path, port, resp, template }: IRenderProps) => {
   resp.on('finish', () => {
     clearTimeout(timeoutId);
   });
-
-  return resp;
 };
+
 export default render;

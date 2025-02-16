@@ -1,5 +1,5 @@
-import { GridApiCommunity } from '@mui/x-data-grid/internals';
-import { album } from '@prisma/client-generated';
+import { GridApiCommunity } from '@mui/x-data-grid/internals/index.js';
+import { album } from '@prisma/client';
 import axios from 'axios';
 import { RefObject } from 'react';
 

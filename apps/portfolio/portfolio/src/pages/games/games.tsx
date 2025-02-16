@@ -9,10 +9,11 @@ import Paper from '@mui/material/Paper';
 import Toolbar from '@mui/material/Toolbar';
 import { useRef, type Dispatch, type JSX, type SetStateAction } from 'react';
 import { Outlet, useNavigation, useOutletContext, useParams, useSubmit, type SubmitFunction } from 'react-router';
-import ChutesAndLaddersIcon from '../../components/icons/chutes-and-ladders';
-import TicTacToeIcon from '../../components/icons/tic-tac-toe-icon';
-import GameLoading from '../../components/loading/loading';
-import { gamesButtonLabelsSxProps, gamesButtonSxProps } from '../../styles/games-styles';
+import ChutesAndLaddersIcon from '../../components/icons/chutes-and-ladders.jsx';
+import TicTacToeIcon from '../../components/icons/tic-tac-toe-icon.jsx';
+import GameLoading from '../../components/loading/loading.jsx';
+import { crudPaperSxProps } from '../../styles/crud-styles.jsx';
+import { gamesButtonLabelsSxProps, gamesButtonSxProps } from '../../styles/games-styles.jsx';
 import {
   gamesOutletGameWrapperSxProps,
   gamesOutletWrapperSxProps,
@@ -21,10 +22,9 @@ import {
   pagesTitlesBoxStyles,
   pagesTitleSx,
   pagesWrapperStyles
-} from '../../styles/pages-styles';
+} from '../../styles/pages-styles.jsx';
+import type { LoadingOutletContext } from '../../types/types.jsx';
 import { body, title } from '../static/games-text';
-import { crudPaperSxProps } from '../../styles/crud-styles';
-import type { LoadingOutletContext } from '../../types/types';
 
 /**
  * This component renders the main games page, providing an interface for users to select and play different games.

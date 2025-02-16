@@ -10,15 +10,15 @@ import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import TextField from '@mui/material/TextField';
 import { debounce } from '@mui/material/utils';
-import { album, artist } from '@prisma/client-generated';
+import { album, artist } from '@prisma/client';
 import axios from 'axios';
 import { useState, type ChangeEvent, type Dispatch, type JSX, type SetStateAction } from 'react';
 import {
   crudSearchCloseButtonBoxSxProps,
   searchBoxCardSxProps,
   searchBoxResultsWrapperSxProps
-} from '../../styles/crud-styles';
-import { flexColumnStyles, pagesTitlesBoxStyles } from '../../styles/pages-styles';
+} from '../../styles/crud-styles.jsx';
+import { flexColumnStyles, pagesTitlesBoxStyles } from '../../styles/pages-styles.jsx';
 
 type SearchValues = {
   artist: Partial<artist>[];

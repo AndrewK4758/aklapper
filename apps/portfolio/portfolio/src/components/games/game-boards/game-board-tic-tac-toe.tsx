@@ -12,7 +12,7 @@ import {
   rowSizeTTT,
   selectedSpaceStyle,
   svgSpaceTTTStyles
-} from '../../../styles/games-styles';
+} from '../../../styles/games-styles.jsx';
 
 export interface GameBoardPropsTicTacToe {
   row: Row;
@@ -69,7 +69,6 @@ export const GameBoardMapTicTacToe = ({
         component={'div'}
         sx={setStyleOnState(state, e.display, breakpointsRowTTTSx, selectedSpaceStyle, nonSelectedSpaceStyle)}
         onClick={e => setStateAction(e.currentTarget.textContent as string)}
-        // style={state === e.display ? selectedSpaceStyle : nonSelectedSpaceStyle}
       >
         {e.display.indexOf('g') === e.display.length - 1 ? (
           <Box

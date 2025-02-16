@@ -15,35 +15,27 @@
         ],
         "defaultConfiguration": "production",
         "options": {
-          "platform": "node",
           "target": "node23",
           "metafile": true,
-          "outputPath": "dist/apis/crud/crud-api",
+          "bundle": true,
+          "main": "apis/crud/crud-api/src/main.ts",
+          "outputPath": "apis/crud/crud-api/dist",
+          "outputFileName": "main.js",
+          "tsConfig": "apis/crud/crud-api/tsconfig.app.json",
+          "platform": "node",
           "format": [
             "esm"
           ],
-          "bundle": true,
-          "main": "apis/crud/crud-api/src/main.ts",
-          "tsConfig": "apis/crud/crud-api/tsconfig.app.json",
           "assets": [
-            "apis/crud/crud-api/src/assets"
-          ],
-          "esbuildOptions": {
-            "sourcemap": true,
-            "outExtension": {
-              ".js": ".js"
-            }
-          }
+            "apis/crud/crud-api/assets"
+          ]
         },
         "configurations": {
-          "development": {},
+          "development": {
+            "minify": false
+          },
           "production": {
-            "esbuildOptions": {
-              "sourcemap": false,
-              "outExtension": {
-                ".js": ".js"
-              }
-            }
+            "minify": true
           }
         }
       },

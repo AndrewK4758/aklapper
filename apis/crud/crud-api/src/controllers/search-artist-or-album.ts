@@ -1,5 +1,5 @@
-import { Prisma, type album, type artist } from '@prisma/client-generated';
-import { DefaultArgs } from '@prisma/client-generated/runtime/library';
+import { Prisma, type album, type artist } from '@prisma/client';
+import { DefaultArgs } from '@prisma/client/runtime/library';
 import { Request, Response } from 'express';
 import searchAlbum from '../services/prisma/search-album.js';
 import searchArtist from '../services/prisma/search-artist.js';

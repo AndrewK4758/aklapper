@@ -4,9 +4,9 @@ import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import type { SxProps } from '@mui/material/styles';
 import { useEffect, useRef, type CSSProperties, type Dispatch, type SetStateAction } from 'react';
-import { crudHeaderTextSxProps } from '../../../styles/crud-styles';
-import { buttonSXProps } from '../../../styles/header-styles';
-import { flexColumnStyles } from '../../../styles/pages-styles';
+import { crudHeaderTextSxProps } from '../../../styles/crud-styles.jsx';
+import { buttonSXProps } from '../../../styles/header-styles.jsx';
+import { flexColumnStyles } from '../../../styles/pages-styles.jsx';
 
 const tooltipTitle = 'Response from text query';
 

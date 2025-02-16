@@ -1,4 +1,4 @@
-import { album } from '@prisma/client-generated';
+import { album } from '@prisma/client';
 import { FormikProps } from 'formik';
 import { RefObject } from 'react';
 import { GridApiCommunity } from '@mui/x-data-grid/internals';

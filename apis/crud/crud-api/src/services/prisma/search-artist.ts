@@ -1,6 +1,6 @@
 import { prisma, PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
-import { Prisma, type artist } from '@prisma/client-generated';
-import { DefaultArgs } from '@prisma/client-generated/runtime/library';
+import { Prisma, type artist } from '@prisma/client';
+import { DefaultArgs } from '@prisma/client/runtime/library';
 /**
  * Searches for artists in the database based on the provided query.
  *

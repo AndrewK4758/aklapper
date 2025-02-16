@@ -18,7 +18,7 @@
           "platform": "node",
           "target": "node23",
           "metafile": true,
-          "outputPath": "dist/apis/games/games-api",
+          "outputPath": "apis/games/games-api/dist",
           "format": [
             "esm"
           ],

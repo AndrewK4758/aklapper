@@ -12,15 +12,15 @@ import StepButton from '@mui/material/StepButton';
 import Stepper from '@mui/material/Stepper';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import type { album, artist, track } from '@prisma/client-generated';
-import { Decimal } from '@prisma/client-generated/runtime/index-browser.js';
+import type { album, artist, track } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/index-browser.js';
 import { useFormik } from 'formik';
 import { FocusEvent, Fragment, useState, type JSX } from 'react';
 import { Form, useLocation, useNavigate } from 'react-router';
 import * as Yup from 'yup';
-import { addEntrySteps } from '../../../pages/static/crud-text';
-import handleSubmitNewEntry from '../../../services/actions/crud-actions/submit-new-entry-action';
-import handleNewArtistBlur from '../../../services/events/crud-events/handle-validate-artist-on-blur';
+import { addEntrySteps } from '../../../pages/static/crud-text.jsx';
+import handleSubmitNewEntry from '../../../services/actions/crud-actions/submit-new-entry-action.jsx';
+import handleNewArtistBlur from '../../../services/events/crud-events/handle-validate-artist-on-blur.jsx';
 import {
   addEntryButtonSxProps,
   addEntryDescriptionSxProps,
@@ -33,7 +33,7 @@ import {
   addEntryStepperNextCompleteButtonSxProps,
   addEntryStepperTextSxProps,
   addEntryTitleTextSxProps
-} from '../../../styles/crud-styles';
+} from '../../../styles/crud-styles.jsx';
 
 const initialValues: NewEntry = {
   artist: {

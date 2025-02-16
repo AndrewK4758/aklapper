@@ -1,8 +1,8 @@
-import { album } from '@prisma/client-generated';
+import { GridApiCommunity } from '@mui/x-data-grid/internals/index.js';
+import { album } from '@prisma/client';
+import axios, { AxiosError, AxiosResponse } from 'axios';
 import { FormikProps } from 'formik';
 import type { RefObject } from 'react';
-import { GridApiCommunity } from '@mui/x-data-grid/internals';
-import axios, { AxiosError, AxiosResponse } from 'axios';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 

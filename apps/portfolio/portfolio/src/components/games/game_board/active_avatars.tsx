@@ -1,18 +1,18 @@
 import { Player } from '@aklapper/games-components';
-import PlayersInGame from '../players-in-game/players-in-game';
 import { RenderList, Text } from '@aklapper/react-shared';
 import { IRegisterFormValues } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import {
-  breakpointsPlayersBox,
-  breakpointsPlayersInGameText,
+  activeAvatarsActiveGameHeaderBoxSxProps,
+  activeAvatarsActivePlayersInGameListSxProps,
   breakpointsActiveGameTitleContainer,
   breakpointsActiveGameTitleText,
+  breakpointsPlayersBox,
   breakpointsPlayersInGameBox,
-  activeAvatarsActiveGameHeaderBoxSxProps,
-  activeAvatarsActivePlayersInGameListSxProps
-} from '../../../styles/games-styles';
+  breakpointsPlayersInGameText
+} from '../../../styles/games-styles.jsx';
+import PlayersInGame from '../players-in-game/players-in-game.jsx';
 
 /**
  *

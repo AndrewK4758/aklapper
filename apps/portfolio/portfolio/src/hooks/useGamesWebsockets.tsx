@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import type { Socket } from 'socket.io-client';
 import type { IActiveGameInfo } from '../components/games/active_game_session.jsx';
 import { ActionType, type Action } from '../components/games/game_board/socket-reducer.jsx';
-import getGameInstanceInfo from '../utils/utils';
+import getGameInstanceInfo from '../utils/utils.jsx';
 
 /**
  * Connects to a Socket.IO server and handles game-related events to update the game state.

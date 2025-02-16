@@ -2,10 +2,8 @@
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "out-tsc/crud-api",
-    "module": "nodenext",
     "types": ["node"],
     "rootDir": "src",
-    "moduleResolution": "nodenext",
     "tsBuildInfoFile": "out-tsc/crud-api/tsconfig.app.tsbuildinfo",
     "paths": {
       "@aklapper/prisma": ["../../../packages/prisma/src/index.ts"]

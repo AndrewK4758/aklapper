@@ -13,16 +13,9 @@ import TextField from '@mui/material/TextField';
 import axios from 'axios';
 import { useFormik } from 'formik';
 import { useRef, useState, type Dispatch, type JSX, type RefObject, type SetStateAction } from 'react';
-import {
-  Form,
-  useActionData,
-  useNavigate,
-  useSubmit,
-  type NavigateFunction,
-  type SubmitTarget
-} from 'react-router';
+import { Form, useActionData, useNavigate, useSubmit, type NavigateFunction, type SubmitTarget } from 'react-router';
 import * as Yup from 'yup';
-import { crudHeaderTextSxProps } from '../../../styles/crud-styles';
+import { crudHeaderTextSxProps } from '../../../styles/crud-styles.jsx';
 import {
   formLabelSxProps,
   helperTextSx,
@@ -37,13 +30,13 @@ import {
   radioButtonLabelSxProps,
   textInputSx,
   tooltipSx
-} from '../../../styles/gen-ai-styles';
-import { buttonSXProps } from '../../../styles/header-styles';
-import { flexColumnStyles, fullSizeBlock, pagesTitleSx } from '../../../styles/pages-styles';
+} from '../../../styles/gen-ai-styles.jsx';
+import { buttonSXProps } from '../../../styles/header-styles.jsx';
+import { flexColumnStyles, fullSizeBlock, pagesTitleSx } from '../../../styles/pages-styles.jsx';
 import '../../../styles/prompt-builder.css';
-import ImageIcon from '../../icons/image-icon';
-import JsonIcon from '../../icons/json-icon';
-import TextIcon from '../../icons/text-icon';
+import ImageIcon from '../../icons/image-icon.jsx';
+import JsonIcon from '../../icons/json-icon.jsx';
+import TextIcon from '../../icons/text-icon.jsx';
 import {
   constraints,
   examples,
@@ -53,9 +46,9 @@ import {
   SUPPORTED_FORMATS,
   textData,
   tone
-} from '../static/definitions';
-import { promptBuilderHeaderText } from '../static/prompt-builder-text';
-import PromptBuilderResponse from './prompt-builder-response';
+} from '../static/definitions.jsx';
+import { promptBuilderHeaderText } from '../static/prompt-builder-text.jsx';
+import PromptBuilderResponse from './prompt-builder-response.jsx';
 
 const initialValues: IPromptInputData = {
   objective: '',
@@ -616,7 +609,7 @@ const handleCopyPromptToClipboardAndAddToInput = async (
 };
 
 const baseUrl = import.meta.env.VITE_VERTEX_API_URL;
-console.log(baseUrl)
+console.log(baseUrl);
 /**
  * This function handles the file upload event.
  * It uploads the file to the server and updates the prompt state with the file data.

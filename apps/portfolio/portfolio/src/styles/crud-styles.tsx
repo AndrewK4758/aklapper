@@ -1,7 +1,7 @@
 import type { SxProps } from '@mui/material/styles';
-import Theme from './theme';
 import type { CSSProperties } from 'react';
-import { flexColumnStyles } from './pages-styles';
+import { flexColumnStyles } from './pages-styles.jsx';
+import Theme from './theme.jsx';
 
 export const baseCrudDisplayStyleSxProps: SxProps = {
   display: 'flex',
@@ -31,7 +31,7 @@ export const crudHeaderTextSxProps: SxProps = {
 export const crudButtonSxProps: SxProps = {
   fontSize: '2rem',
   [Theme.breakpoints.down('md')]: {
-    p:0
+    p: 0
   }
 };
 

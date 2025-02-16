@@ -1,5 +1,5 @@
 import type { SxProps } from '@mui/material/styles';
-import Theme from './theme';
+import Theme from './theme.jsx';
 
 export const baseStyleForLayoutItems: SxProps = {
   flex: '1 0 100%',

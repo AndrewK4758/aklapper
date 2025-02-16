@@ -1,5 +1,5 @@
 import { Text, useScrollIntoView, Waiting } from '@aklapper/react-shared';
-import { Collapse } from '@mui/material';
+import Collapse from '@mui/material/Collapse';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -15,7 +15,7 @@ import {
   crudButtonSxProps,
   crudHeaderTextSxProps,
   crudPaperSxProps
-} from '../../styles/crud-styles';
+} from '../../styles/crud-styles.jsx';
 import {
   headerModalButtonStyles,
   modalButtonBoxStyles,
@@ -23,8 +23,8 @@ import {
   pagesTitleSx,
   pagesToolbarStyles,
   pagesWrapperStyles
-} from '../../styles/pages-styles';
-import { body, title } from '../static/crud-text';
+} from '../../styles/pages-styles.jsx';
+import { body, title } from '../static/crud-text.jsx';
 
 const Search = lazy(() => import('../../components/crud/search.jsx'));
 

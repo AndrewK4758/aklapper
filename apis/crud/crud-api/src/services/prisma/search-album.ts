@@ -1,6 +1,6 @@
 import { prisma, PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
-import { Prisma, type album } from '@prisma/client-generated';
-import { DefaultArgs } from '@prisma/client-generated/runtime/library';
+import { Prisma, type album } from '@prisma/client';
+import { DefaultArgs } from '@prisma/client/runtime/library.js';
 
 /**
  * Searches for albums in the database based on the provided query.

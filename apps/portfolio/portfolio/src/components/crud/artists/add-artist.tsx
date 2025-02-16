@@ -4,14 +4,14 @@ import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import FormLabel from '@mui/material/FormLabel';
 import TextField from '@mui/material/TextField';
-import { artist } from '@prisma/client-generated';
+import { artist } from '@prisma/client';
 import { useFormik } from 'formik';
 import { Dispatch, FocusEvent, SetStateAction, type JSX } from 'react';
 import { Form } from 'react-router';
-import handleSubmitNewArtist from '../../../services/actions/crud-actions/submit-artist-action';
-import handleNewArtistBlur from '../../../services/events/crud-events/handle-validate-artist-on-blur';
-import { crudAddButtonStyles, crudAddErrorTextStyles } from '../../../styles/crud-styles';
-import { flexColumnStyles } from '../../../styles/pages-styles';
+import handleSubmitNewArtist from '../../../services/actions/crud-actions/submit-artist-action.jsx';
+import handleNewArtistBlur from '../../../services/events/crud-events/handle-validate-artist-on-blur.jsx';
+import { crudAddButtonStyles, crudAddErrorTextStyles } from '../../../styles/crud-styles.jsx';
+import { flexColumnStyles } from '../../../styles/pages-styles.jsx';
 
 interface AddArtistProps {
   rowCountState: number;

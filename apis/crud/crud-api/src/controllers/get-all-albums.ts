@@ -1,5 +1,5 @@
-import { Prisma } from '@prisma/client-generated';
-import { DefaultArgs } from '@prisma/client-generated/runtime/library';
+import { Prisma } from '@prisma/client';
+import { DefaultArgs } from '@prisma/client/runtime/library';
 import { Request, Response } from 'express';
 import findAllAlbums from '../services/prisma/album/find-albums.js';
 

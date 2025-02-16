@@ -1,7 +1,7 @@
 import { prisma } from '@aklapper/prisma';
 import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
-import { Prisma, type album } from '@prisma/client-generated';
-import { DefaultArgs } from '@prisma/client-generated/runtime/library';
+import { Prisma, type album } from '@prisma/client';
+import { DefaultArgs } from '@prisma/client/runtime/library';
 
 /**
  * This function retrieves a list of albums for a specific artist from the database.

@@ -1,6 +1,6 @@
+import type { artist } from '@prisma/client';
 import axios from 'axios';
-import type { QueryOptions } from '../../../pages/crud/crud';
-import type { artist } from '@prisma/client-generated';
+import type { QueryOptions } from '../../../pages/crud/crud.jsx';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 

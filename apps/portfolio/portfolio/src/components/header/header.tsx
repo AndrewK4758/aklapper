@@ -5,9 +5,8 @@ import ButtonGroup from '@mui/material/ButtonGroup';
 import Toolbar from '@mui/material/Toolbar';
 import { useState, type JSX } from 'react';
 import { useNavigate } from 'react-router';
-import { buttonSXProps } from '../../styles/header-styles';
-import Connect from './contact/contact';
-import Theme from '../../styles/theme';
+import { buttonSXProps, headerLabelSxProps } from '../../styles/header-styles.jsx';
+import Connect from './contact/contact.jsx';
 
 /**
  * This component renders the header section of the application, which includes social media links and an email contact form.
@@ -29,8 +28,8 @@ const Header = (): JSX.Element => {
       enableColorOnDark={true}
       position="fixed"
     >
-      <Toolbar disableGutters component={'section'} id="navbar-toolbar" data-testid="navbar-toolbar">
-        <ButtonGroup fullWidth={true} variant="text" color="inherit" size="medium">
+      <Toolbar disableGutters component={'div'} id="navbar-toolbar" data-testid="navbar-toolbar">
+        <ButtonGroup component={'section'} fullWidth={true} variant="text" color="inherit" size="medium">
           <Button
             id="home-button"
             data-testid="home-button"
@@ -45,11 +44,7 @@ const Header = (): JSX.Element => {
               labelVariant={'h2'}
               labelText={'Home'}
               placement={'bottom'}
-              labelTextsx={{
-                fontSize: '2.5rem',
-                width: '100%',
-                [Theme.breakpoints.down('lg')]: { fontSize: '1rem' }
-              }}
+              labelTextsx={headerLabelSxProps}
             />
           </Button>
 
@@ -59,7 +54,7 @@ const Header = (): JSX.Element => {
               labelVariant={'h2'}
               labelText={'Games'}
               placement={'bottom'}
-              labelTextsx={{ fontSize: '2.5rem', [Theme.breakpoints.down('lg')]: { fontSize: '1rem' } }}
+              labelTextsx={headerLabelSxProps}
             />
           </Button>
 
@@ -69,7 +64,7 @@ const Header = (): JSX.Element => {
               labelVariant={'h2'}
               labelText={'CRUD'}
               placement={'bottom'}
-              labelTextsx={{ fontSize: '2.5rem', [Theme.breakpoints.down('lg')]: { fontSize: '1rem' } }}
+              labelTextsx={headerLabelSxProps}
             />
           </Button>
 
@@ -79,7 +74,7 @@ const Header = (): JSX.Element => {
               labelVariant={'h2'}
               labelText={'Gen-AI'}
               placement={'bottom'}
-              labelTextsx={{ fontSize: '2.5rem', [Theme.breakpoints.down('lg')]: { fontSize: '1rem' } }}
+              labelTextsx={headerLabelSxProps}
             />
           </Button>
 
@@ -95,7 +90,7 @@ const Header = (): JSX.Element => {
               labelVariant={'h2'}
               labelText={'Contact'}
               placement={'bottom'}
-              labelTextsx={{ fontSize: '2.5rem', [Theme.breakpoints.down('lg')]: { fontSize: '1rem' } }}
+              labelTextsx={headerLabelSxProps}
             />
           </Button>
         </ButtonGroup>

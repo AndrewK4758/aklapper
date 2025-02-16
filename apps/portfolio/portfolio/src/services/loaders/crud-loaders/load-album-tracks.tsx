@@ -1,4 +1,4 @@
-import { track } from '@prisma/client-generated';
+import { track } from '@prisma/client';
 import axios from 'axios';
 import { LoaderFunctionArgs, LoaderFunction } from 'react-router';
 

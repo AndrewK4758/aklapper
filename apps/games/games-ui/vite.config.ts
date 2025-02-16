@@ -4,8 +4,6 @@ import react from '@vitejs/plugin-react';
 import { cwd } from 'process';
 import { resolve } from 'path';
 
-console.log();
-
 export default defineConfig({
   root: cwd(),
   cacheDir: '../../../node_modules/.vite/apps/games/games-ui',
@@ -17,7 +15,7 @@ export default defineConfig({
     port: 4800,
     host: 'localhost'
   },
-  plugins: [react({ babel: { targets: { esmodules: true } } })],
+  plugins: [react()],
   // Uncomment this if you are using workers.
   // worker: {
   //  plugins: [ nxViteTsPaths() ],
@@ -34,6 +32,7 @@ export default defineConfig({
 
   build: {
     outDir: './dist',
+    minify: false,
     emptyOutDir: true,
     manifest: true,
     sourcemap: true,

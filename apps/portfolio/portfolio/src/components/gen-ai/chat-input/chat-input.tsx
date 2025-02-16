@@ -1,13 +1,14 @@
 import { FormActionProps, FormikTextInput } from '@aklapper/react-shared';
 import type { PromptRequest } from '@aklapper/vertex-ai';
-import { Box, SxProps } from '@mui/material';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import type { SxProps } from '@mui/material/styles';
 import { useFormik, type FormikState, type FormikValues } from 'formik';
 import type { Dispatch, SetStateAction } from 'react';
 import { Form } from 'react-router';
 import type { Socket } from 'socket.io-client';
 import * as Yup from 'yup';
-import Theme from '../../../styles/theme';
+import Theme from '../../../styles/theme.jsx';
 
 interface ChatInputProps<T extends Yup.Maybe<Yup.AnyObject>> extends FormActionProps {
   breakpointsChatInputButton: SxProps;

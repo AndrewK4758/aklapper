@@ -1,8 +1,8 @@
 import { RenderList, Text } from '@aklapper/react-shared';
 import { ILiteSpace } from '@aklapper/types';
-import { SxProps } from '@mui/material';
 import Grid2 from '@mui/material/Grid2';
-import { avatarSize, breakpointsRowSx, breakpointsSpaceSx, spaceStyle } from '../../../styles/games-styles';
+import type { SxProps } from '@mui/material/styles';
+import { avatarSize, breakpointsRowSx, breakpointsSpaceSx, spaceStyle } from '../../../styles/games-styles.jsx';
 
 export interface GameBoardProps {
   row: ILiteSpace[];

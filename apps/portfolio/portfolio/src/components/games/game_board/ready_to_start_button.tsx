@@ -1,29 +1,12 @@
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
-import type { SxProps } from '@mui/material/styles';
 import axios, { type AxiosRequestConfig } from 'axios';
 import { Dispatch, type JSX } from 'react';
 import { useParams } from 'react-router';
 import { Socket } from 'socket.io-client';
-import Theme from '../../../styles/theme';
-import getGameInstanceInfo from '../../../utils/utils';
-import { Action, ActionType } from './socket-reducer';
-
-const breakpointsStartGameButtonBox: SxProps = {
-  flex: '0 1 20%',
-  justifyItems: 'center',
-  alignContent: 'center',
-  [Theme.breakpoints.down('md')]: {}
-};
-
-const breakpointsStartGameButtonFormButton: SxProps = {
-  textAlign: 'center',
-  [Theme.breakpoints.down('md')]: {
-    fontSize: '17px',
-    width: 130,
-    height: 35
-  }
-};
+import { breakpointsStartGameButtonBox, breakpointsStartGameButtonFormButton } from '../../../styles/games-styles.js';
+import getGameInstanceInfo from '../../../utils/utils.jsx';
+import { Action, ActionType } from './socket-reducer.jsx';
 
 interface ReadyToStartProps {
   dispatch: Dispatch<Action>;

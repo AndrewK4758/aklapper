@@ -11,15 +11,15 @@ import Paper from '@mui/material/Paper';
 import axios from 'axios';
 import { useContext, useEffect, useRef, useState, type JSX, type RefObject } from 'react';
 import { useOutletContext } from 'react-router';
-import { MediaRecorderClientContext } from '../../../contexts/audio-context';
-import { WebSocketContext } from '../../../contexts/websocket-context';
-import type { OutletContextProps } from '../../../pages/gen-ai/gen-ai';
-import { crudHeaderTextSxProps } from '../../../styles/crud-styles';
-import { genAiAudioIconButtonSxProps, topLevelModeStyle } from '../../../styles/gen-ai-styles';
-import { buttonSXProps } from '../../../styles/header-styles';
-import { pagesTitleSx } from '../../../styles/pages-styles';
-import { audioText } from '../static/audio-text';
-import AudioVisualizer from './audio-visualizer';
+import { MediaRecorderClientContext } from '../../../contexts/audio-context.jsx';
+import { WebSocketContext } from '../../../contexts/websocket-context.jsx';
+import type { OutletContextProps } from '../../../pages/gen-ai/gen-ai.jsx';
+import { crudHeaderTextSxProps } from '../../../styles/crud-styles.jsx';
+import { genAiAudioIconButtonSxProps, topLevelModeStyle } from '../../../styles/gen-ai-styles.jsx';
+import { buttonSXProps } from '../../../styles/header-styles.jsx';
+import { pagesTitleSx } from '../../../styles/pages-styles.jsx';
+import { audioText } from '../static/audio-text.jsx';
+import AudioVisualizer from './audio-visualizer.jsx';
 
 const options: MediaRecorderOptions = {
   mimeType: 'audio/webm'

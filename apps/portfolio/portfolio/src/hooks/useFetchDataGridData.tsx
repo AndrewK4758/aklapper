@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useCallback, type Dispatch, type SetStateAction } from 'react';
-import type { PaginationModel, QueryOptions } from '../pages/crud/crud';
-// import loadArtists from '../services/loaders/crud-loaders/load-artists';
+import type { PaginationModel, QueryOptions } from '../pages/crud/crud.jsx';
 
 const useFetchDataGridData = <T,>(
   paginationModel: PaginationModel,

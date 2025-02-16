@@ -9,7 +9,7 @@ import {
   loadingBarTextStyles,
   loadingBarTextSxProps,
   loadingPaperStyles
-} from '../../styles/loading-styles';
+} from '../../styles/loading-styles.jsx';
 
 const loadingValues = [
   'Creating Instance',

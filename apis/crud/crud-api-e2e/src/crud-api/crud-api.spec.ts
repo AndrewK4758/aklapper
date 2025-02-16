@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { artist } from '@prisma/client-generated';
+import { artist } from '@prisma/client';
 
 let dataPost: { name: string }, artist_id: number, dataUpdate: artist;
 

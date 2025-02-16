@@ -1,11 +1,11 @@
 import type { PaperProps } from '@mui/material/Paper';
 import type { SxProps } from '@mui/material/styles';
-import type { DateCalendarSlotProps } from '@mui/x-date-pickers/DateCalendar';
-import type { DateTimePickerSlotProps } from '@mui/x-date-pickers/DateTimePicker';
-import type { TimePickerSlotProps } from '@mui/x-date-pickers/TimePicker';
+import type { DateCalendarSlotProps } from '@mui/x-date-pickers/DateCalendar/index.js';
+import type { DateTimePickerSlotProps } from '@mui/x-date-pickers/DateTimePicker/index.js';
+import type { TimePickerSlotProps } from '@mui/x-date-pickers/TimePicker/index.js';
 import type { Dayjs } from 'dayjs';
-import { flexColumnStyles } from './pages-styles';
-import Theme from './theme';
+import { flexColumnStyles } from './pages-styles.js';
+import Theme from './theme.js';
 
 export const buttonSXProps: SxProps = {
   fontSize: '2rem',
@@ -13,6 +13,8 @@ export const buttonSXProps: SxProps = {
     fontSize: '1rem'
   }
 };
+
+export const headerLabelSxProps: SxProps = { fontSize: '2.5rem', [Theme.breakpoints.down('lg')]: { fontSize: '1rem' } };
 
 //--------CONNECT---------//
 
@@ -81,6 +83,7 @@ export const contactDialogCloseButtonSxProps: SxProps = {
 //-------GOOGLE CALENDAR--------//
 
 export const connectGoogleCalendarButtonSxProps: SxProps = {
+  fontSize: '2rem',
   [Theme.breakpoints.down('lg')]: {
     fontSize: '1rem'
   }

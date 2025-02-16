@@ -1,8 +1,9 @@
 import { Text } from '@aklapper/react-shared';
-import { Box, SxProps } from '@mui/material';
-import { Variant } from '@mui/material/styles/createTypography';
+import Box from '@mui/material/Box';
+import type { SxProps } from '@mui/material/styles';
+import { Variant } from '@mui/material/styles/createTypography.js';
 import type { ElementType } from 'react';
-import { avatarSvgStyle } from '../../../styles/games-styles';
+import { avatarSvgStyle } from '../../../styles/games-styles.jsx';
 
 export interface PlayersInGameProps {
   component: ElementType;

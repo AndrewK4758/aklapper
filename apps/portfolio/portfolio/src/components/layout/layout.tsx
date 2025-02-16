@@ -1,27 +1,29 @@
 import Box from '@mui/material/Box';
-import { useState, type JSX } from 'react';
+import type { JSX } from 'react';
+import { useState } from 'react';
 import { Link, Outlet } from 'react-router';
-import WebSocketContextProvider from '../../contexts/websocket-context';
-import Home from '../../pages/home/home';
+import WebSocketContextProvider from '../../contexts/websocket-context.jsx';
+import Home from '../../pages/home/home.jsx';
 import {
   baseStyleForLayoutItems,
   footerWrapperSxProps,
   homeWrapperSxProps,
   mainWrapperSxProps,
   outletWrapperSxProps
-} from '../../styles/layout-styles';
-import Header from '../header/header';
-
+} from '../../styles/layout-styles.jsx';
+import Header from '../header/header.jsx';
+import '../../styles/main-styles.css';
 /**
  * This component renders the main layout of the application.
  * It includes the header, home section, navigation menus, main content area, and footer.
  *
  * @returns {JSX.Element} The rendered Layout component.
  */
+
 const Layout = (): JSX.Element => {
   const [loading, setLoading] = useState<boolean>(false);
   return (
-    <Box component={'div'} key={'app-wrapper'} id="app-wrapper" data-testid="app-wrapper" sx={baseStyleForLayoutItems}>
+    <Box key={'app-wrapper'} id="app-wrapper" data-testid="app-wrapper" sx={baseStyleForLayoutItems}>
       <Header />
       <Box component={'main'} key={'main-wrapper'} id="main-wrapper" data-testid="main-wrapper" sx={mainWrapperSxProps}>
         <Box

@@ -1,6 +1,6 @@
 import type { SxProps } from '@mui/material/styles';
 import type { CSSProperties } from 'react';
-import Theme from './theme';
+import Theme from './theme.jsx';
 
 export const gamesPaperSxProps: SxProps = {
   width: '70vw',
@@ -259,8 +259,7 @@ export const svgSpaceTTTStyles: SxProps = {
   position: 'absolute',
   display: 'flex',
   justifyContent: 'center',
-  flex: 1,
-  border: 5
+  flex: 1
 };
 
 export const avatarSvgStyle: CSSProperties = {

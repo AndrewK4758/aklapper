@@ -1,6 +1,6 @@
 import { prisma } from '@aklapper/prisma';
 import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
-import { Prisma } from '@prisma/client-generated';
+import { Prisma } from '@prisma/client';
 
 /**
  * Checks if a track exists in the database.

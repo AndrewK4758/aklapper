@@ -1,4 +1,4 @@
-@import './main-styles.css';
+@import url(./colors-and-fonts.css);
 
 .css-1bz1rr0-MuiSvgIcon-root {
   color: var(--primary);

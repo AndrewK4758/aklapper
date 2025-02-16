@@ -1,32 +1,30 @@
-import { Waiting } from '@aklapper/react-shared';
 import { lazy } from 'react';
 import type { RouteObject } from 'react-router';
-import waiting from '../assets/swirly-dots-to-chrome.webp';
-import Layout from '../components/layout/layout';
-import PrivacyPolicy from '../components/privacy-policy/privacy-policy';
-import emailFormAction from '../services/actions/email-form-action';
-import generateImageAction from '../services/actions/generate-image-action';
-import handlePromptBuilder from '../services/actions/prompt-builder-action';
-import loadAlbumTracks from '../services/loaders/crud-loaders/load-album-tracks';
-import loadAlbumsCount from '../services/loaders/crud-loaders/load-albums-count';
-import loadArtistAlbums from '../services/loaders/crud-loaders/load-artist-albums';
-import loadArtistsCount from '../services/loaders/crud-loaders/load-artists-count';
-import registerPlayersAndStartGame from '../services/loaders/register-players-and-start-game';
+import Layout from '../components/layout/layout.jsx';
+import emailFormAction from '../services/actions/email-form-action.jsx';
+import PrivacyPolicy from '../components/privacy-policy/privacy-policy.jsx';
+import generateImageAction from '../services/actions/generate-image-action.jsx';
+import handlePromptBuilder from '../services/actions/prompt-builder-action.jsx';
+import loadAlbumTracks from '../services/loaders/crud-loaders/load-album-tracks.jsx';
+import loadAlbumsCount from '../services/loaders/crud-loaders/load-albums-count.jsx';
+import loadArtistAlbums from '../services/loaders/crud-loaders/load-artist-albums.jsx';
+import loadArtistsCount from '../services/loaders/crud-loaders/load-artists-count.jsx';
+import registerPlayersAndStartGame from '../services/loaders/register-players-and-start-game.jsx';
 
-const Games = lazy(() => import('../pages/games/games'));
-const ActiveGameSession = lazy(() => import('../components/games/active_game_session'));
+const Games = lazy(() => import('../pages/games/games.jsx'));
+const ActiveGameSession = lazy(() => import('../components/games/active_game_session.jsx'));
 
-const Crud = lazy(() => import('../pages/crud/crud'));
-const AddEntry = lazy(() => import('../components/crud/add-entry/add-entry'));
-const Album = lazy(() => import('../components/crud/albums/album-base'));
-const Artist = lazy(() => import('../components/crud/artists/artist-base'));
-const AlbumsOnArtist = lazy(() => import('../components/crud/albums/artist-albums'));
-const Tracks = lazy(() => import('../components/crud/tracks/album-tracks'));
+const Crud = lazy(() => import('../pages/crud/crud.jsx'));
+const AddEntry = lazy(() => import('../components/crud/add-entry/add-entry.jsx'));
+const Album = lazy(() => import('../components/crud/albums/album-base.jsx'));
+const Artist = lazy(() => import('../components/crud/artists/artist-base.jsx'));
+const AlbumsOnArtist = lazy(() => import('../components/crud/albums/artist-albums.jsx'));
+const Tracks = lazy(() => import('../components/crud/tracks/album-tracks.jsx'));
 
-const GenAI = lazy(() => import('../pages/gen-ai/gen-ai'));
-const TextGenerator = lazy(() => import('../components/gen-ai/text/text'));
-const Image = lazy(() => import('../components/gen-ai/image/image'));
-const Audio = lazy(() => import('../components/gen-ai/audio/audio'));
+const GenAI = lazy(() => import('../pages/gen-ai/gen-ai.jsx'));
+const TextGenerator = lazy(() => import('../components/gen-ai/text/text.jsx'));
+const Image = lazy(() => import('../components/gen-ai/image/image.jsx'));
+const Audio = lazy(() => import('../components/gen-ai/audio/audio.jsx'));
 
 /**
  * React Router DOM Route Object array.
@@ -42,45 +40,52 @@ const Audio = lazy(() => import('../components/gen-ai/audio/audio'));
 const routes: RouteObject[] = [
   {
     path: '/',
-    Component: Layout,
+    element: <Layout />,
     action: emailFormAction,
+    id: 'layout',
     children: [
       {
         path: 'games',
         action: registerPlayersAndStartGame,
-        Component: Games,
+        element: <Games />,
+        id: 'games',
         children: [
           {
             index: true,
             path: ':id',
-            Component: ActiveGameSession
+            id: 'active-game',
+            element: <ActiveGameSession />
           }
         ]
       },
       {
         path: 'crud',
-        Component: Crud,
-        hydrateFallbackElement: <Waiting src={waiting} />,
+        element: <Crud />,
+        id: 'crud',
         children: [
           {
             index: true,
             path: 'add-entry',
-            Component: AddEntry
+            id: 'add-entry',
+            element: <AddEntry />
           },
           {
             path: 'artists',
-            Component: Artist,
+            element: <Artist />,
+            id: 'artists',
             loader: loadArtistsCount,
             children: [
               {
                 path: ':artistID/albums',
                 loader: loadArtistAlbums,
-                Component: AlbumsOnArtist,
+                id: 'artist-albums',
+                element: <AlbumsOnArtist />,
                 children: [
                   {
                     path: ':albumID/tracks',
+                    id: 'album-tracks',
                     loader: loadAlbumTracks,
-                    Component: Tracks
+                    element: <Tracks />
                   }
                 ]
               }
@@ -88,12 +93,14 @@ const routes: RouteObject[] = [
           },
           {
             path: 'albums',
-            Component: Album,
+            element: <Album />,
+            id: 'albums',
             loader: loadAlbumsCount,
             children: [
               {
                 path: ':albumID/tracks',
-                Component: Tracks,
+                id: 'tracks',
+                element: <Tracks />,
                 loader: loadAlbumTracks
               }
             ]
@@ -102,27 +109,32 @@ const routes: RouteObject[] = [
       },
       {
         path: 'gen-ai',
-        Component: GenAI,
+        element: <GenAI />,
+        id: 'gen-ai',
         action: handlePromptBuilder,
         children: [
           {
             path: 'text',
-            Component: TextGenerator
+            id: 'text',
+            element: <TextGenerator />
           },
           {
             path: 'image',
-            Component: Image,
+            element: <Image />,
+            id: 'image',
             action: generateImageAction
           },
           {
             path: 'audio',
-            Component: Audio
+            id: 'audio',
+            element: <Audio />
           }
         ]
       },
       {
         path: 'privacy-policy',
-        Component: PrivacyPolicy
+        id: 'privacy-policy',
+        element: <PrivacyPolicy />
       }
     ]
   }

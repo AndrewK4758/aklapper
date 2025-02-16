@@ -16,9 +16,9 @@ import {
   introIconSxProps,
   techListSectionContainer,
   techlistTextStyle
-} from '../../../styles/intro-styles';
-import { flexColumnStyles } from '../../../styles/pages-styles';
-import { analytics, build, cloud, data, languages, libraries, styles, testing } from '../static/tech-stack-text';
+} from '../../../styles/intro-styles.jsx';
+import { flexColumnStyles } from '../../../styles/pages-styles.jsx';
+import { analytics, build, cloud, data, languages, libraries, styles, testing } from '../static/tech-stack-text.jsx';
 
 /**
  * This function renders a single list item for the tech stack list.

@@ -14,7 +14,7 @@ import {
   GoogleUserContext,
   type GoogleUserContextInfo,
   type GoogleUserContextProps
-} from '../../../contexts/contact-context';
+} from '../../../contexts/contact-context.jsx';
 import {
   connectGoogleCalendarButtonSxProps,
   dateCalendarSlotProps,
@@ -23,8 +23,8 @@ import {
   timePickerSlotProps,
   timePickerSxProps,
   timePickerWrapperSxProps
-} from '../../../styles/header-styles';
-import { flexColumnStyles } from '../../../styles/pages-styles';
+} from '../../../styles/header-styles.jsx';
+import { flexColumnStyles } from '../../../styles/pages-styles.jsx';
 
 const tomorrow = dayjs().add(1, 'day');
 const nextYear = dayjs().add(1, 'year');

@@ -5,12 +5,12 @@ import Container from '@mui/material/Container';
 import FormLabel from '@mui/material/FormLabel';
 import TextField from '@mui/material/TextField';
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
-import { Prisma, track } from '@prisma/client-generated';
+import { Prisma, track } from '@prisma/client';
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import { FormikProps, useFormik } from 'formik';
 import { FocusEvent, RefObject, type JSX } from 'react';
 import { Form } from 'react-router';
-import { crudAddButtonStyles, crudAddErrorTextStyles } from '../../../styles/crud-styles';
+import { crudAddButtonStyles, crudAddErrorTextStyles } from '../../../styles/crud-styles.jsx';
 
 const baseURL = import.meta.env.VITE_DATA_API_URL;
 

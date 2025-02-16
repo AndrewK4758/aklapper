@@ -1,4 +1,4 @@
-from wdg_agents.agent_1 import use_model_with_agent
+from wdg_agents.agent_1 import query_agent
 import os
 from typing import Dict
 
@@ -16,7 +16,7 @@ api = Flask(
     __name__,
     static_folder=static_path,
 )
-CORS(api, origins=["http://localhost:5800"])
+CORS(api, origins=["http://127.0.0.1:6900"])
 
 api.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 
@@ -41,16 +41,15 @@ def chat_with_llm():
     origin = request.origin
     input_data = request.get_json()
 
-    model = input_data["model"]
     query = input_data["query"]
 
-    use_model_with_agent(model, query)
+    llm_response = query_agent(query)
 
-    # print(f"QUERY RESPONSE: {query_response}")
+    print(f"QUERY RESPONSE: {llm_response}")
 
     response = Response()
     response.mimetype = "text/plain"
-    response.data = "XXXXXXXXXXXXXXXXXXXXX"
+    response.data = llm_response
     response.access_control_allow_origin = origin
     return response
 

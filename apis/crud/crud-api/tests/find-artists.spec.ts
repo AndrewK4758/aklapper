@@ -1,4 +1,4 @@
-import type { artist } from '@prisma/client-generated';
+import type { artist } from '@prisma/client';
 import findArtists from '../src/services/prisma/artist/find-artists.js';
 
 describe('Test Prisma findArtist service', () => {

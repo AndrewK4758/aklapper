@@ -1,8 +1,7 @@
-import Typography from '@mui/material/Typography';
+import Typography from '@mui/material/Typography/index.js';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import Theme from '../../../styles/theme';
-
 import type { SxProps } from '@mui/material/styles';
 
 export const FILE_SIZE = 1024 * 1024 * 5;

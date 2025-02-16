@@ -1,7 +1,5 @@
-import { StrictMode } from 'react';
 import ReactDOM from 'react-dom/client';
-import './styles/main-styles.css';
-import App from './app/app';
+import App from './app/app.jsx';
 
 /**
  * This is the main entry point for the React application.
@@ -9,9 +7,19 @@ import App from './app/app';
  * and mounts it to the DOM.
  */
 
-ReactDOM.hydrateRoot(
-  document.getElementById('root') as HTMLDivElement,
-  <StrictMode>
-    <App />
-  </StrictMode>
-);
+const rootDomNode = document.querySelector('#root') as HTMLDivElement;
+
+ReactDOM.hydrateRoot(rootDomNode, <App />, {
+  onRecoverableError: (error, errorInfo) => {
+    console.log(error);
+    console.log(errorInfo);
+  },
+  onCaughtError: (error, errorInfo) => {
+    console.log(error);
+    console.log(errorInfo);
+  },
+  onUncaughtError: (error, errorInfo) => {
+    console.log(error);
+    console.log(errorInfo);
+  }
+});

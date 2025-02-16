@@ -3,9 +3,9 @@ import Button from '@mui/material/Button';
 import axios from 'axios';
 import { Dispatch, type JSX } from 'react';
 import { Socket } from 'socket.io-client';
-import { breakpointsTakeTurnButton } from '../../../styles/games-styles';
-import getGameInstanceInfo from '../../../utils/utils';
-import { Action, ActionType } from './socket-reducer';
+import { breakpointsTakeTurnButton } from '../../../styles/games-styles.jsx';
+import getGameInstanceInfo from '../../../utils/utils.jsx';
+import { Action, ActionType } from './socket-reducer.jsx';
 
 const baseURL = import.meta.env.VITE_GAMES_API_URL;
 

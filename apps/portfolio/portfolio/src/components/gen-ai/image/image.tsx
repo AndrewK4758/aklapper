@@ -1,11 +1,11 @@
 import { useScrollIntoView } from '@aklapper/react-shared';
-import { topLevelModeStyle } from '../../../styles/gen-ai-styles';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import { lazy, useRef, type JSX } from 'react';
+import { topLevelModeStyle } from '../../../styles/gen-ai-styles.jsx';
 
-const ImageForm = lazy(() => import('./image-form'));
+const ImageForm = lazy(() => import('./image-form.jsx'));
 
 /**
  * This component renders the image generation section of the generative AI page.

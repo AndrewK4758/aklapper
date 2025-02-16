@@ -3,9 +3,9 @@ import Box from '@mui/material/Box';
 import { DateTimePicker, renderTimeViewClock } from '@mui/x-date-pickers';
 import dayjs from 'dayjs';
 import type { FormikProps } from 'formik';
-import { dateTimePickerLabelTextSxProps, dateTimePickerSlotProps } from '../../../styles/header-styles';
-import Theme from '../../../styles/theme';
-import { MessageMeFormValues } from '../email-form/email-form';
+import { dateTimePickerLabelTextSxProps, dateTimePickerSlotProps } from '../../../styles/header-styles.jsx';
+import Theme from '../../../styles/theme.jsx';
+import { MessageMeFormValues } from '../email-form/email-form.jsx';
 
 const tomorrow = dayjs().add(1, 'day');
 const nextYear = dayjs().year(new Date().getFullYear() + 1);

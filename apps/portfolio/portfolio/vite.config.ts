@@ -1,4 +1,3 @@
-/// <reference types='vitest' />
 import { workspaceRoot } from '@nx/devkit';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
@@ -19,10 +18,7 @@ const modules: { [key: string]: string } = {
 
   '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src/index.ts'),
 
-  '.prisma/client/index-browser': resolve(
-    workspaceRoot,
-    'node_modules/@prisma/client-generated/runtime/index-browser.js'
-  )
+  '.prisma/client/index-browser': resolve(workspaceRoot, 'node_modules/@prisma/client/runtime/index-browser.js')
 };
 
 const config: UserConfig = defineConfig({
@@ -36,47 +32,52 @@ const config: UserConfig = defineConfig({
     port: 4800,
     host: 'localhost'
   },
-  plugins: [react({})],
+  plugins: [react()],
+
   // Uncomment this if you are using workers.
   // worker: {
-  //  plugins: [ nxViteTsPaths() ],
+  //   plugins: [ nxViteTsPaths() ],
   // },
 
   resolve: {
     alias: modules
   },
 
+  mode: 'development',
+
   build: {
     outDir: './dist/client',
-    minify: process.env['NODE_ENV'] !== 'production',
+    minify: false,
     emptyOutDir: true,
     manifest: true,
     sourcemap: true,
     reportCompressedSize: true,
-
     commonjsOptions: {
       transformMixedEsModules: true
     },
     rollupOptions: {
       input: {
-        client: '/src/main.tsx'
+        browser: '/src/main.tsx'
       },
       perf: true,
       output: {
-        entryFileNames: 'client.js',
+        entryFileNames: 'browser.js',
+        assetFileNames: '[name].[ext]',
         strict: true,
         esModule: true,
         format: 'esm',
         generatedCode: {
           arrowFunctions: true,
           constBindings: true,
-          symbols: true
+          symbols: true,
+          objectShorthand: true,
+          reservedNamesAsProps: true
         }
       }
     },
     target: 'esnext'
   },
-
+  //
   esbuild: {
     jsx: 'automatic',
     format: 'esm',

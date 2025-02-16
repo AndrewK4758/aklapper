@@ -1,6 +1,6 @@
 import { prisma } from '@aklapper/prisma';
 import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
-import { artist } from '@prisma/client-generated';
+import { artist } from '@prisma/client';
 
 /**
  * Finds an artist in the database by their ID.

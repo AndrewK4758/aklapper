@@ -27,7 +27,7 @@ export default defineConfig({
       '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src/index.ts'),
       '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
 
-      '.prisma/client/index-browser': '@prisma/client-generated/index-browser.js'
+      '.prisma/client/index-browser': '@prisma/client/index-browser.js'
     }
   },
 

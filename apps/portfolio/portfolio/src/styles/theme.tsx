@@ -1,5 +1,7 @@
-import createTheme, { type Theme as ThemeType } from '@mui/material/styles/createTheme';
+import type { Theme as ThemeType } from '@mui/material/styles';
+import createTheme from '@mui/material/styles/createTheme.js';
 import { enUS } from '@mui/x-date-pickers/locales';
+import './main-styles.css';
 
 const darkScrollbarGlobal = {
   '&::-webkit-scrollbar': {
@@ -16,6 +18,7 @@ const darkScrollbarGlobal = {
 
 const Theme: ThemeType = createTheme(
   {
+    cssVariables: true,
     palette: {
       background: {
         paper: '#fefbf9',
@@ -26,12 +29,11 @@ const Theme: ThemeType = createTheme(
       borderRadius: 10
     },
     typography: {
+      fontFamily: 'League Gothic',
       allVariants: {
-        fontFamily: 'League Gothic',
-        letterSpacing: 3,
+        letterSpacing: 2,
         wordSpacing: 3.5
       },
-
       body1: {
         fontFamily: 'Lucida',
         letterSpacing: 2.0,
@@ -40,7 +42,9 @@ const Theme: ThemeType = createTheme(
     },
     components: {
       MuiCssBaseline: {
-        styleOverrides: { body: darkScrollbarGlobal }
+        styleOverrides: {
+          ...darkScrollbarGlobal
+        }
       },
       MuiButton: {
         defaultProps: {
@@ -49,17 +53,15 @@ const Theme: ThemeType = createTheme(
           }
         }
       },
-
       MuiButtonGroup: {
         defaultProps: {
           sx: {
             '& .MuiButtonGroup-grouped:not(:last-of-type)': {
-              borderColor: '#eeebe9 '
+              borderColor: '#fefbf9'
             }
           }
         }
       },
-
       MuiTooltip: { styleOverrides: { tooltip: { fontSize: '1rem' } }, defaultProps: { sx: { fontSize: '2rem' } } }
     }
   },

@@ -5,16 +5,16 @@ import Container from '@mui/material/Container';
 import FormLabel from '@mui/material/FormLabel';
 import TextField from '@mui/material/TextField';
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
-import { album } from '@prisma/client-generated';
+import { album } from '@prisma/client';
 import axios from 'axios';
 import { FormikProps, useFormik } from 'formik';
 import type { JSX, RefObject } from 'react';
 import { Form } from 'react-router';
 import * as Yup from 'yup';
-import handleSubmitNewAlbum from '../../../services/actions/crud-actions//submit-album-to-artist-id-action';
-import { crudAddButtonStyles, crudAddErrorTextStyles } from '../../../styles/crud-styles';
-import { flexColumnStyles } from '../../../styles/pages-styles';
-import type { ArtistAndAlbum } from './add-album-on-artist';
+import handleSubmitNewAlbum from '../../../services/actions/crud-actions//submit-album-to-artist-id-action.jsx';
+import { crudAddButtonStyles, crudAddErrorTextStyles } from '../../../styles/crud-styles.jsx';
+import { flexColumnStyles } from '../../../styles/pages-styles.jsx';
+import type { ArtistAndAlbum } from './add-album-on-artist.jsx';
 
 interface AddAlbumProps {
   apiRef: RefObject<GridApiCommunity>;

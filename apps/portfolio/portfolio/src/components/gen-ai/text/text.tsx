@@ -6,11 +6,16 @@ import Paper from '@mui/material/Paper';
 import { useContext, useRef, type JSX } from 'react';
 import { useOutletContext } from 'react-router';
 import * as Yup from 'yup';
-import { WebSocketContext, WebSocketContextType } from '../../../contexts/websocket-context';
-import useGenAiWebsockets from '../../../hooks/useGenAiWebsockets';
-import type { OutletContextProps } from '../../../pages/gen-ai/gen-ai';
-import { genAiTextInputButtonSxProps, labelSx, textInputSx, topLevelModeStyle } from '../../../styles/gen-ai-styles';
-import ChatInput from '../chat-input/chat-input';
+import { WebSocketContext, WebSocketContextType } from '../../../contexts/websocket-context.jsx';
+import useGenAiWebsockets from '../../../hooks/useGenAiWebsockets.jsx';
+import type { OutletContextProps } from '../../../pages/gen-ai/gen-ai.jsx';
+import {
+  genAiTextInputButtonSxProps,
+  labelSx,
+  textInputSx,
+  topLevelModeStyle
+} from '../../../styles/gen-ai-styles.jsx';
+import ChatInput from '../chat-input/chat-input.jsx';
 
 const validationSchema = Yup.object<PromptRequest>().shape({
   text: Yup.string().required('Must be a valid question or statement').min(2, 'Must be a valid question or statement'),

@@ -1,9 +1,9 @@
 import Box from '@mui/material/Box';
 import { type JSX } from 'react';
-import Intro from '../../components/intro/intro';
-import PicutreAndResume from '../../components/intro/picture-resume';
-import { introWrapperSxProps } from '../../styles/intro-styles';
-import { flexColumnStyles } from '../../styles/pages-styles';
+import Intro from '../../components/intro/intro.jsx';
+import PicutreAndResume from '../../components/intro/picture-resume.jsx';
+import { introWrapperSxProps } from '../../styles/intro-styles.jsx';
+import { flexColumnStyles } from '../../styles/pages-styles.jsx';
 
 /**
  * This is the main home component that renders the introduction section of the portfolio website.

@@ -8,14 +8,14 @@ import Paper from '@mui/material/Paper';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { DataGrid, GridActionsCellItem, GridColDef, GridRowParams, useGridApiRef } from '@mui/x-data-grid';
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
-import { album } from '@prisma/client-generated';
+import { album } from '@prisma/client';
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import { Outlet, useLoaderData, useNavigate } from 'react-router';
-import handleDeleteAlbum from '../../../services/events/crud-events/handle-delete-album';
-import handleUpdateAlbumTitle from '../../../services/events/crud-events/handle-update-album-title';
-import loadAlbums from '../../../services/loaders/crud-loaders/load-albums';
-import { dataGridStyleUpdate } from '../../../styles/crud-styles';
-import AddAlbum from './add-album';
+import handleDeleteAlbum from '../../../services/events/crud-events/handle-delete-album.jsx';
+import handleUpdateAlbumTitle from '../../../services/events/crud-events/handle-update-album-title.jsx';
+import loadAlbums from '../../../services/loaders/crud-loaders/load-albums.jsx';
+import { dataGridStyleUpdate } from '../../../styles/crud-styles.jsx';
+import AddAlbum from './add-album.jsx';
 
 const paginationModelInit = {
   pageSize: 25,

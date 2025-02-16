@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import Theme from '../../styles/theme';
+import Theme from '../../styles/theme.jsx';
 
 export const title = 'C.R.U.D. Data Manager';
 

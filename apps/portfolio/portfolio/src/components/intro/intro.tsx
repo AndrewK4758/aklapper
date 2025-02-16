@@ -2,8 +2,8 @@ import { Text } from '@aklapper/react-shared';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import type { JSX } from 'react';
-import { introCardSxProps, introTextSxProps, introTitleTextSxProps } from '../../styles/intro-styles';
-import { ABOUT_ME_TITLE, IntroText } from './static/intro-text';
+import { introCardSxProps, introTextSxProps, introTitleTextSxProps } from '../../styles/intro-styles.jsx';
+import { ABOUT_ME_TITLE, IntroText } from './static/intro-text.jsx';
 
 /**
  * This component renders a card containing a brief introduction of me.

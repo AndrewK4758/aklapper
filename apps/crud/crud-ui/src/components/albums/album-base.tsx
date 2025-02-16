@@ -13,7 +13,7 @@ import {
   useGridApiRef
 } from '@mui/x-data-grid';
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
-import { album } from '@prisma/client-generated';
+import { album } from '@prisma/client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Outlet, useNavigate, useRouteLoaderData } from 'react-router';
 import handleDeleteAlbum from '../../services/events/handle-delete-album';

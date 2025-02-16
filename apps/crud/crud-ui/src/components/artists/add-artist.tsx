@@ -4,7 +4,7 @@ import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import FormLabel from '@mui/material/FormLabel';
 import TextField from '@mui/material/TextField';
-import { artist } from '@prisma/client-generated';
+import { artist } from '@prisma/client';
 import { useFormik } from 'formik';
 import { Dispatch, FocusEvent, SetStateAction } from 'react';
 import { Form } from 'react-router';

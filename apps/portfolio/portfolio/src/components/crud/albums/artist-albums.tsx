@@ -6,15 +6,15 @@ import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import { DataGrid, GridActionsCellItem, GridColDef, GridRowParams, useGridApiRef } from '@mui/x-data-grid';
-import { album } from '@prisma/client-generated';
+import { album } from '@prisma/client';
 import { useState, type JSX } from 'react';
 import { Outlet, useLoaderData, useNavigate } from 'react-router';
-import { PaginationModel } from '../../../pages/crud/crud';
-import handleDeleteAlbum from '../../../services/events/crud-events/handle-delete-album';
-import handleUpdateAlbumTitle from '../../../services/events/crud-events/handle-update-album-title';
-import { ArtistAlbums } from '../../../services/loaders/crud-loaders/load-artist-albums';
-import { dataGridStyleUpdate } from '../../../styles/crud-styles';
-import AddAlbumOnArtist from './add-album-on-artist';
+import { PaginationModel } from '../../../pages/crud/crud.jsx';
+import handleDeleteAlbum from '../../../services/events/crud-events/handle-delete-album.jsx';
+import handleUpdateAlbumTitle from '../../../services/events/crud-events/handle-update-album-title.jsx';
+import { ArtistAlbums } from '../../../services/loaders/crud-loaders/load-artist-albums.jsx';
+import { dataGridStyleUpdate } from '../../../styles/crud-styles.jsx';
+import AddAlbumOnArtist from './add-album-on-artist.jsx';
 
 export interface AlbumState {
   albumTitle: string;

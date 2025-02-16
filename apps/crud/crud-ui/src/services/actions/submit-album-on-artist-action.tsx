@@ -1,5 +1,5 @@
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
-import { album } from '@prisma/client-generated';
+import { album } from '@prisma/client';
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import { FormikProps } from 'formik';
 import { RefObject } from 'react';

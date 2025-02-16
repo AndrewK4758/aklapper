@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { FocusEvent } from 'react';
 import { FormikProps } from 'formik';
-import { album } from '@prisma/client-generated';
+import { album } from '@prisma/client';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 

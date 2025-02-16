@@ -3,8 +3,8 @@ import Button from '@mui/material/Button';
 import Modal from '@mui/material/Modal';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
-import PrivacyPolicyText from '../../pages/static/privacy-policy-text';
-import { baseStyleForLayoutItems } from '../../styles/layout-styles';
+import PrivacyPolicyText from '../../pages/static/privacy-policy-text.jsx';
+import { baseStyleForLayoutItems } from '../../styles/layout-styles.jsx';
 
 /**
  * This component renders the privacy policy page as a modal dialog.
@@ -30,7 +30,7 @@ export const PrivacyPolicy = (): JSX.Element => {
           width: '90vw',
           top: '5%',
           left: '5%',
-          overflowY: 'scroll',
+          overflowY: 'scroll'
         }}
       >
         <Box
