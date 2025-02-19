@@ -1,0 +1,62 @@
+@import url(./colors-and-fonts.css);
+
+* {
+  -webkit-font-smoothing: antialiased;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  box-sizing: border-box;
+}
+
+html {
+  width: 100vw;
+  height: fit-content;
+  overflow-x: hidden;
+  scrollbar-color: #1f1f1f;
+  &::-webkit-scrollbar {
+    width: '16px';
+  }
+  &::-webkit-scrollbar-track {
+    background-color: #1f1f1f;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: #3a3c41;
+    border-radius: 4px;
+  }
+}
+
+#root {
+  width: 99.25%;
+  height: auto;
+  min-height: fit-content;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 100px var(--defaultBack) inset !important;
+  -webkit-text-fill-color: var(--textPrimary) !important;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: var(--textPrimary);
+}
+
+input::-webkit-inner-spin-button,
+& input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.floater::after {
+  content: '';
+  display: table;
+  clear: both;
+}
+
+pre {
+  max-width: 100%;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}

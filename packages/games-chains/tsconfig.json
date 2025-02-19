@@ -1,0 +1,37 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "files": [],
+  "include": [],
+  "references": [
+    {
+      "path": "../mocks"
+    },
+    {
+      "path": "../models"
+    },
+    {
+      "path": "../game"
+    },
+    {
+      "path": "../games"
+    },
+    {
+      "path": "../games-components"
+    },
+    {
+      "path": "../utils"
+    },
+    {
+      "path": "../types"
+    },
+    {
+      "path": "../chain"
+    },
+    {
+      "path": "./tsconfig.lib.json"
+    },
+    {
+      "path": "./tsconfig.spec.json"
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "name": "@aklapper/games-api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "nx": {
+    "name": "games-api",
+    "projectType": "application",
+    "sourceRoot": "apis/games/games-api/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/esbuild:esbuild",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "defaultConfiguration": "production",
+        "options": {
+          "platform": "node",
+          "target": "node23",
+          "metafile": true,
+          "outputPath": "apis/games/games-api/dist",
+          "format": [
+            "esm"
+          ],
+          "bundle": true,
+          "main": "apis/games/games-api/src/main.ts",
+          "tsConfig": "apis/games/games-api/tsconfig.app.json",
+          "assets": [
+            "apis/games/games-api/src/assets"
+          ],
+          "esbuildOptions": {
+            "sourcemap": true,
+            "outExtension": {
+              ".js": ".js"
+            }
+          }
+        },
+        "configurations": {
+          "development": {},
+          "production": {
+            "esbuildOptions": {
+              "sourcemap": false,
+              "outExtension": {
+                ".js": ".js"
+              }
+            }
+          }
+        }
+      },
+      "serve": {
+        "executor": "@nx/js:node",
+        "defaultConfiguration": "development",
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "buildTarget": "games-api:build",
+          "runBuildTargetDependencies": false
+        },
+        "configurations": {
+          "development": {
+            "buildTarget": "games-api:build:development"
+          },
+          "production": {
+            "buildTarget": "games-api:build:production"
+          }
+        }
+      },
+      "test": {
+        "options": {
+          "passWithNoTests": true
+        }
+      },
+      "docker-build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "command": "docker build -f apis/games/games-api/Dockerfile . -t us-central1-docker.pkg.dev/games-424800/portfolio/games-api:latest"
+        }
+      },
+      "docker-push": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "docker push us-central1-docker.pkg.dev/games-424800/portfolio/games-api:latest"
+        }
+      },
+      "deploy-cloud-run": {
+        "executor": "nx:run-commands",
+        "options": {
+          "color": true,
+          "command": "gcloud run deploy games-api --image=us-central1-docker.pkg.dev/games-424800/portfolio/games-api:latest --region=us-central1 --platform=managed --max-instances=1 --port=3000 --allow-unauthenticated"
+        }
+      }
+    }
+  }
+}

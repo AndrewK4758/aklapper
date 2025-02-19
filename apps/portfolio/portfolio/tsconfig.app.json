@@ -1,0 +1,67 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out-tsc/portfolio",
+    "tsBuildInfoFile": "out-tsc/portfolio/tsconfig.app.tsbuildinfo",
+    "jsx": "react-jsx",
+    "lib": ["dom"],
+    "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
+    "rootDir": "src",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "paths": {
+      "@aklapper/games-components": ["../../../packages/games-components/src/index.ts"],
+      "@aklapper/media-recorder": ["../../../packages/media-recorder/src/index.ts"],
+      "@aklapper/prompt-builder": ["../../../packages/gen-ai/prompt-builder/src/index.ts"],
+      "@aklapper/react-shared": ["../../../packages/react-shared/src/index.ts"],
+      "@aklapper/socket-io-client": ["../../../packages/socket-io/client/src/index.ts"],
+      "@aklapper/types": ["../../../packages/types/src/index.ts"],
+      "@aklapper/utils": ["../../../packages/utils/src/index.ts"],
+      "@aklapper/vertex-ai": ["../../../packages/gen-ai/vertex-ai/src/index.ts"]
+    }
+  },
+  "exclude": [
+    "out-tsc",
+    "dist",
+    "tests/**/*.spec.ts",
+    "tests/**/*.test.ts",
+    "tests/**/*.spec.tsx",
+    "tests/**/*.test.tsx",
+    "tests/**/*.spec.js",
+    "tests/**/*.test.js",
+    "tests/**/*.spec.jsx",
+    "tests/**/*.test.jsx",
+    "server.ts",
+    "vite.config.ts",
+    "vite.config.server.ts",
+    "eslint.config.js"
+  ],
+  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
+  "references": [
+    {
+      "path": "../../../packages/utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../packages/gen-ai/prompt-builder/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../packages/gen-ai/vertex-ai/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../packages/media-recorder/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../packages/games-components/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../packages/types/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../packages/socket-io/client/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../packages/react-shared/tsconfig.lib.json"
+    }
+  ]
+}

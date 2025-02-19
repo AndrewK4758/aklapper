@@ -1,0 +1,90 @@
+{
+  "name": "@aklapper/crud-api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "nx": {
+    "name": "crud-api",
+    "projectType": "application",
+    "sourceRoot": "apis/crud/crud-api/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/esbuild:esbuild",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "defaultConfiguration": "production",
+        "options": {
+          "target": "node23",
+          "metafile": true,
+          "bundle": true,
+          "main": "apis/crud/crud-api/src/main.ts",
+          "outputPath": "apis/crud/crud-api/dist",
+          "outputFileName": "main.js",
+          "tsConfig": "apis/crud/crud-api/tsconfig.app.json",
+          "platform": "node",
+          "format": [
+            "esm"
+          ],
+          "assets": [
+            "apis/crud/crud-api/assets"
+          ]
+        },
+        "configurations": {
+          "development": {
+            "minify": false
+          },
+          "production": {
+            "minify": true
+          }
+        }
+      },
+      "serve": {
+        "executor": "@nx/js:node",
+        "defaultConfiguration": "development",
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "buildTarget": "crud-api:build",
+          "runBuildTargetDependencies": false
+        },
+        "configurations": {
+          "development": {
+            "buildTarget": "crud-api:build:development"
+          },
+          "production": {
+            "buildTarget": "crud-api:build:production"
+          }
+        }
+      },
+      "test": {
+        "options": {
+          "passWithNoTests": true
+        }
+      },
+      "docker-build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "command": "docker build -f apis/crud/crud-api/Dockerfile . -t us-central1-docker.pkg.dev/games-424800/portfolio/crud-api:latest"
+        }
+      },
+      "docker-push": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "docker push us-central1-docker.pkg.dev/games-424800/portfolio/crud-api:latest"
+        }
+      },
+      "deploy-cloud-run": {
+        "executor": "nx:run-commands",
+        "options": {
+          "color": true,
+          "command": "gcloud run deploy crud-api --image=us-central1-docker.pkg.dev/games-424800/portfolio/crud-api:latest --region=us-central1 --platform=managed --max-instances=1 --port=4000 --allow-unauthenticated  --add-cloudsql-instances=games-424800:us-central1:aklapper"
+        }
+      }
+    }
+  }
+}

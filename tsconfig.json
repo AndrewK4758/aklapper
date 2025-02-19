@@ -1,0 +1,110 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compileOnSave": false,
+  "files": [],
+  "exclude": ["node_modules", "dist"],
+  "references": [
+    {
+      "path": "./apis/crud/crud-api-e2e/"
+    },
+    {
+      "path": "./apis/crud/crud-api"
+    },
+    {
+      "path": "./apis/games/games-api-e2e"
+    },
+    {
+      "path": "./apis/games/games-api"
+    },
+    {
+      "path": "./apis/portfolio/portfolio-api-e2e"
+    },
+    {
+      "path": "./apis/portfolio/portfolio-api"
+    },
+    {
+      "path": "./apis/vertex/vertex-api-e2e"
+    },
+    {
+      "path": "./apis/vertex/vertex-api"
+    },
+    {
+      "path": "./packages/chain"
+    },
+    {
+      "path": "./packages/game"
+    },
+    {
+      "path": "./packages/games"
+    },
+    {
+      "path": "./packages/games-chains"
+    },
+    {
+      "path": "./packages/games-components"
+    },
+    {
+      "path": "./packages/gen-ai/prompt-builder"
+    },
+    {
+      "path": "./packages/gen-ai/vertex-ai"
+    },
+    {
+      "path": "./packages/media-recorder"
+    },
+    {
+      "path": "./packages/mocks"
+    },
+    {
+      "path": "./packages/models"
+    },
+    {
+      "path": "./packages/password"
+    },
+    {
+      "path": "./packages/prisma"
+    },
+    {
+      "path": "./packages/socket-io/server"
+    },
+    {
+      "path": "./packages/socket-io/client"
+    },
+    {
+      "path": "./packages/types"
+    },
+    {
+      "path": "./packages/utils"
+    },
+    {
+      "path": "./apps/crud/crud-ui-e2e"
+    },
+    {
+      "path": "./apps/crud/crud-ui"
+    },
+    {
+      "path": "./apps/games/games-ui-e2e"
+    },
+    {
+      "path": "./apps/games/games-ui"
+    },
+    {
+      "path": "./apps/portfolio/portfolio-e2e"
+    },
+    {
+      "path": "./apps/portfolio/portfolio"
+    },
+    {
+      "path": "./apps/local-model/local-model-e2e"
+    },
+    {
+      "path": "./apps/local-model/local-model"
+    },
+    {
+      "path": "./packages/react-shared"
+    },
+    {
+      "path": "./apis/crud/crud-api-e2e"
+    }
+  ]
+}

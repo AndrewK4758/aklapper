@@ -1,0 +1,40 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out-tsc/local-model",
+    "tsBuildInfoFile": "out-tsc/local-model/tsconfig.app.tsbuildinfo",
+    "jsx": "react-jsx",
+    "lib": ["dom"],
+    "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
+    "rootDir": "src",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "paths": {
+      "@aklapper/react-shared": ["../../../packages/react-shared/src/index.ts"],
+      "@aklapper/socket-io-client": ["../../../packages/socket-io/client/src/index.ts"]
+    }
+  },
+  "exclude": [
+    "out-tsc",
+    "dist",
+    "tests/**/*.spec.ts",
+    "tests/**/*.test.ts",
+    "tests/**/*.spec.tsx",
+    "tests/**/*.test.tsx",
+    "tests/**/*.spec.js",
+    "tests/**/*.test.js",
+    "tests/**/*.spec.jsx",
+    "tests/**/*.test.jsx",
+    "vite.config.ts",
+    "eslint.config.js"
+  ],
+  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
+  "references": [
+    {
+      "path": "../../../packages/socket-io/client/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../packages/react-shared/tsconfig.lib.json"
+    }
+  ]
+}

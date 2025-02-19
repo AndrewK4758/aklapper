@@ -1,0 +1,11 @@
+{
+  "name": "@aklapper/local-model",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "nx": {
+    "name": "local-model",
+    "projectType": "application",
+    "sourceRoot": "apps/local-model/local-model/src"
+  }
+}

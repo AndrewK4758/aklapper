@@ -1,0 +1,49 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/vitest",
+    "types": [
+      "vitest/globals",
+      "vitest/importMeta",
+      "vite/client",
+      "node",
+      "vitest",
+      "@nx/react/typings/cssmodule.d.ts",
+      "@nx/react/typings/image.d.ts"
+    ],
+    "jsx": "react-jsx",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "paths": {
+      "@aklapper/react-shared": ["../../../packages/react-shared/src/index.ts"],
+      "@aklapper/types": ["../../../packages/types/src/index.ts"],
+      "@aklapper/games-components": ["../../../packages/games-components/src/index.ts"]
+    }
+  },
+  "include": [
+    "vite.config.ts",
+    "tests/**/*.test.ts",
+    "tests/**/*.spec.ts",
+    "tests/**/*.test.tsx",
+    "tests/**/*.spec.tsx",
+    "tests/**/*.test.js",
+    "tests/**/*.spec.js",
+    "tests/**/*.test.jsx",
+    "tests/**/*.spec.jsx",
+    "src/**/*.d.ts"
+  ],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "../../../packages/games-components/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../packages/types/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../packages/react-shared/tsconfig.lib.json"
+    }
+  ]
+}

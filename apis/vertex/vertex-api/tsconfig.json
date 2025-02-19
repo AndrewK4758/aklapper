@@ -1,0 +1,25 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "files": [],
+  "include": [],
+  "references": [
+    {
+      "path": "../../../packages/socket-io/server"
+    },
+    {
+      "path": "../../../packages/gen-ai/prompt-builder"
+    },
+    {
+      "path": "../../../packages/types"
+    },
+    {
+      "path": "../../../packages/gen-ai/vertex-ai"
+    },
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.spec.json"
+    }
+  ]
+}
