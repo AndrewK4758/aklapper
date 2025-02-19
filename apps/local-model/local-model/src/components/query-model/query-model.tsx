@@ -7,17 +7,19 @@ import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import axios from 'axios';
 import { useFormik } from 'formik';
-import { useRef, type Dispatch, type RefObject, type SetStateAction } from 'react';
+import { useRef, type Dispatch, type SetStateAction } from 'react';
 import { Form, useLoaderData, useOutletContext } from 'react-router';
 
 type QueryFormValues = {
   model: string;
   query: string;
+  files: FileList | null;
 };
 
 const initialValues: QueryFormValues = {
   model: '',
-  query: ''
+  query: '',
+  files: null
 };
 
 type OutletContext = {
@@ -39,6 +41,8 @@ export default function QueryModel() {
     if (uploadFileRef.current) uploadFileRef.current.click();
   };
 
+  console.log(formik.values);
+
   return (
     <Box
       id="query-model-wrapper"
@@ -48,7 +52,7 @@ export default function QueryModel() {
     >
       <Form
         method="POST"
-        encType="application/x-www-form-urlencoded"
+        encType="multipart/form-data"
         id="query-model-form"
         data-testid="query-model-form"
         key={'query-model-form'}
@@ -141,7 +145,12 @@ export default function QueryModel() {
               key="upload-pdfs-input"
               name="files"
               multiple={true}
-              onChange={() => handleUploadPDFs(uploadFileRef)}
+              onChange={async e =>
+                await formik.setFieldValue(
+                  e.currentTarget.name,
+                  (uploadFileRef.current as HTMLInputElement).files as FileList
+                )
+              }
             />
           </Box>
           <ButtonGroup fullWidth={true}>
@@ -186,13 +195,20 @@ const baseUrl = import.meta.env.VITE_LOCAL_SERVER_URL;
 
 const handleQueryModel = async (values: QueryFormValues, setPromptResponse: Dispatch<SetStateAction<string[]>>) => {
   try {
-    const { model, query } = values;
+    const { model, query, files } = values;
 
-    const resp = await axios.post(
-      `${baseUrl}/query-model`,
-      { model: model, query: query },
-      { headers: { 'Content-Type': 'application/json' } }
-    );
+    const formData = new FormData();
+    formData.append('model', model);
+    formData.append('query', query);
+
+    if (files) {
+      for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+      }
+    }
+    const resp = await axios.postForm(`${baseUrl}/query-model`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
 
     const query_response = resp.data;
 
@@ -202,22 +218,22 @@ const handleQueryModel = async (values: QueryFormValues, setPromptResponse: Disp
   }
 };
 
-const handleUploadPDFs = async (uploadFileRef: RefObject<HTMLInputElement | null>) => {
-  if (uploadFileRef.current) {
-    const files = uploadFileRef.current.files;
-    const formData = new FormData();
-    if (files) {
-      for (let i = 0; i < files.length; i++) {
-        formData.append('files', files[i]);
-      }
-      console.log(uploadFileRef.current);
-      console.log(files);
+// const handleUploadPDFs = async (uploadFileRef: RefObject<HTMLInputElement | null>) => {
+//   if (uploadFileRef.current) {
+//     const files = uploadFileRef.current.files;
+//     const formData = new FormData();
+//     if (files) {
+//       for (let i = 0; i < files.length; i++) {
+//         formData.append('files', files[i]);
+//       }
+//       console.log(uploadFileRef.current);
+//       console.log(files);
 
-      const resp = await axios.postForm(`${baseUrl}/query-model/upload`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+//       const resp = await axios.postForm(`${baseUrl}/query-model/upload`, formData, {
+//         headers: { 'Content-Type': 'multipart/form-data' }
+//       });
 
-      console.log(resp);
-    }
-  }
-};
+//       console.log(resp);
+//     }
+//   }
+// };

@@ -11,7 +11,8 @@ from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
 from langgraph.graph import END, StateGraph
 
-from wdg_agents.rag_chain import db
+from langchain_chroma import Chroma
+from langchain.chains.combine_documents import create_stuff_documents_chain
 
 x = load_dotenv(dotenv_path="apps/wdg_agents/env/.env")
 
@@ -252,7 +253,7 @@ workflow_graph.add_edge("generate", END)
 local_agent = workflow_graph.compile()
 
 
-def query_agent(model: str, query: str) -> str:
+async def query_agent(model: str, query: str, db: Chroma) -> str:
     global llama
     global llama_json
     llama = ChatOllama(model=model, temperature=0)
@@ -261,12 +262,16 @@ def query_agent(model: str, query: str) -> str:
     retriever = db.as_retriever(
         search_type="mmr",
         search_kwargs={
-            "k": 500,
+            "k": 5,
             "lambda_mult": 0.25,
         }
     )
 
-    docs = retriever.get_relevant_documents(query=query)
+    print("RETRIEVER: ", retriever, '\n')
+    test = await retriever.ainvoke(query)
+    print("TEST: ", test, '\n')
 
-    output = local_agent.invoke({"question": query, "context": docs})
+    chain = create_stuff_documents_chain(llm=llama, prompt=generate_prompt)
+    print("CHAIN: ", chain, '\n')
+    output = local_agent.invoke({"question": query, "context": test})
     return output["final_response"] + '\n'

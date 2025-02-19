@@ -39,37 +39,25 @@ def get_available_models():
 
 
 @api.route("/query-model", methods=["POST"])
-def chat_with_llm():
-    origin = request.origin
-    input_data = request.get_json()
-
-    model = input_data["model"]
-    query = input_data["query"]
-
-    llm_response = query_agent(model, query)
-
-    print(f"QUERY RESPONSE: {llm_response}")
-
+async def chat_with_llm():
     response = Response()
-    response.mimetype = "text/plain"
-    response.data = llm_response
-    response.access_control_allow_origin = origin
-    return response
-
-
-@api.route("/query-model/upload", methods=["POST"])
-async def upload_pdfs_to_llm():
-    response = Response()
-
     origin = request.origin
+    input_data = request.form
     files = request.files.getlist('files')
-    print('---------------\n')
-    print(files)
-    print('---------------\n')
 
-    await rag_db_with_documents('llama3.2:latest', files)  # type: ignore
+    model = input_data.get('model')
+    query = input_data.get('query')
 
-    response.access_control_allow_origin = origin
+    if model and query:
+        db = await rag_db_with_documents(model, files)
+
+        llm_response = await query_agent(model, query, db)  # type: ignore
+
+        print(f"QUERY RESPONSE: {llm_response}")
+
+        response.mimetype = "text/plain"
+        response.data = llm_response
+        response.access_control_allow_origin = origin
     return response
 
 

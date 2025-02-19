@@ -1,6 +1,8 @@
 from io import BytesIO
+import json
 import os
 from typing import IO, List
+import rich
 from werkzeug.datastructures import FileStorage
 
 import chromadb
@@ -75,21 +77,41 @@ async def read_files(native_db: ClientAPI, files: List[FileStorage]) -> bool:
         for file in files:
             filename, file_data = file.filename, file.stream
 
+            print(file.filename)
             loader = UnstructuredLoader(file=file_data, mode='element', metadata_filename=filename)
             print('loader: ', loader)
             pages = await loader.aload()
+
             text_splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
-            chunks = await text_splitter.atransform_documents(pages)
+            chunks = text_splitter.split_documents(pages)
+
             print(f"{filename} - Pages: {len(pages)}")
             for index, chunk in enumerate(chunks):
-                print(f'{chunk}\n\n')
-                chunk_metadata_source = chunk.metadata.get("source")
-                if chunk_metadata_source != None:
+                metadata = {}
+                languages = chunk.metadata.get('languages')
+                if languages:
+                    metadata['languages'] = languages[0]
+                metadata['page_number'] = chunk.metadata.get('page_number') or 0
+                metadata['parent_id'] = chunk.metadata.get('parent_id') or 0
+                metadata['filename'] = chunk.metadata.get('filename') or ''
+                metadata['filetype'] = chunk.metadata.get('filetype') or ''
+                metadata['category'] = chunk.metadata.get('category') or ''
+                metadata['element_id'] = chunk.metadata.get('element_id') or ''
+                rich.print(metadata)
+                print('---------------------------------------------------')
+                rich.print(chunk)
+                print('---------------------------------------------------')
+                chunk_element_id = chunk.metadata.get('element_id')
+                if chunk_element_id:
                     collection.upsert(
-                        ids=[chunk_metadata_source + str(index)],
-                        metadatas=chunk.metadata,
+                        ids=[chunk_element_id + str(index)],
+                        metadatas=metadata,
                         documents=chunk.page_content,
                     )
+                # chunk_metadata_source = chunk.metadata.get("source")
+                # if chunk_metadata_source != None:
+                    # print(chunk.page_content)
+
             file_data.close()
     except Exception as e:
         print(e)
@@ -98,17 +120,17 @@ async def read_files(native_db: ClientAPI, files: List[FileStorage]) -> bool:
 
 
 def get_collection(native_db: ClientAPI) -> Collection.Collection:
-    with SuppressStdout():
-        print("DEBUG: call get_collection()")
-        try:
-            # Delete all documents
-            native_db.delete_collection("PDFS")
-        finally:
-            collection = native_db.get_or_create_collection(
-                "PDFS", embedding_function=MyEmbeddingFunction()
-            )
-            print(collection, "COLLECTION")
-            return collection
+    # with SuppressStdout():
+    # try:
+    print("DEBUG: call get_collection()")
+    # Delete all documents
+    # native_db.delete_collection("PDFS")
+    # finally:
+    collection = native_db.get_or_create_collection(
+        name="PDFS", embedding_function=MyEmbeddingFunction()
+    )
+    print("COLLECTION: ", collection)
+    return collection
 
 
 def format_docs(docs):
@@ -116,23 +138,36 @@ def format_docs(docs):
     return "\n".join(doc.page_content for doc in docs)
 
 
-db = None
-
-
 async def rag_db_with_documents(model: str, files: List[FileStorage]):
     print("rag-chain main")
-    llm = OllamaLLM(model=model)
 
-    native_db = chromadb.PersistentClient("./data_store")
+    # llm = OllamaLLM(model=model)
+
+    native_db = chromadb.PersistentClient(path="./data_store")
 
     files_read_into_db = await read_files(native_db, files)
 
     print('read files into db: ', files_read_into_db)
-    global db
-    db = Chroma(client=native_db, collection_name="PDFS", embedding_function=embeddingModel)
-    print('db: ', db)
+
+    db = Chroma(client=native_db, collection_name="PDFS",
+                embedding_function=embeddingModel, persist_directory='./data_store')
 
     return db
+
+
+async def upload_pdfs_to_llm():
+    # response = Response()
+
+    # origin = request.origin
+    # files = request.files.getlist('files')
+    print('---------------\n')
+    # print(files)
+    print('---------------\n')
+
+    await rag_db_with_documents('llama3.2:latest', files)  # type: ignore
+
+    # response.access_control_allow_origin = origin
+    # return response
     # prompt = ChatPromptTemplate.from_messages([
     #     ("system", system_prompt.format_prompt(context="").to_string()),
     #     ("human", "{input}")
