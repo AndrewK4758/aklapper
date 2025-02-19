@@ -2,7 +2,6 @@ import os
 from typing import TypedDict
 from rich.console import Console
 
-
 from dotenv import load_dotenv
 from langchain_community.tools.tavily_search.tool import TavilySearchResults
 from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
@@ -12,13 +11,26 @@ from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
 from langgraph.graph import END, StateGraph
 
+from wdg_agents.rag_chain import db
+
 x = load_dotenv(dotenv_path="apps/wdg_agents/env/.env")
-print(os.getcwd())
-TAVILY_API_KEY = os.getenv('TAVILY_API_KEY')
+
+
+def get_tavily_api_key() -> str:
+    try:
+        key = os.getenv('TAVILY_API_KEY', "")
+        return key
+    except KeyError as e:
+        key = f"Tavily API Key not found. Please assign or add to .env file:\n\t{e}"
+        return key
+
+
+TAVILY_API_KEY = get_tavily_api_key()
 rich = Console()
 
-llama = ChatOllama(model='llama3.2:latest', temperature=0)
-llama_json = ChatOllama(model='llama3.2:latest', format='json', temperature=0)
+
+str_format = StrOutputParser()
+json_format = JsonOutputParser()
 
 # -----------------GENERATE PROMPT-------------------#
 
@@ -47,7 +59,6 @@ generate_prompt = PromptTemplate(
     input_variables=["question", "context"],
 )
 
-generate_chain = generate_prompt | llama | StrOutputParser()
 # ----------------ROUTER PROMPT------------------#
 
 router_prompt = PromptTemplate(
@@ -74,8 +85,6 @@ router_prompt = PromptTemplate(
     input_variables=["question"],
 )
 
-question_router = router_prompt | llama_json | JsonOutputParser()
-
 # Query Transformation
 
 query_prompt = PromptTemplate(
@@ -99,8 +108,6 @@ query_prompt = PromptTemplate(
     """,
     input_variables=["question"],
 )
-
-query_chain = query_prompt | llama_json | JsonOutputParser()
 
 tavily_client = TavilySearchAPIWrapper(tavily_api_key=TAVILY_API_KEY)  # type: ignore
 tavily_tool = TavilySearchResults(api_wrapper=tavily_client, max_results=25)
@@ -141,9 +148,13 @@ def generate(state):
     question = state["question"]
     context = state["context"]
 
-    final_response = generate_chain.invoke({"question": question, "context": context})
+    formatted_generate_prompt = generate_prompt.invoke({"question": question, "context": context})
 
-    return {"final_response": final_response}
+    generate_response = llama.invoke(formatted_generate_prompt)
+
+    formatted_generate_response = str_format.invoke(input=generate_response)
+
+    return {"final_response": formatted_generate_response}
 
 # Graph Node - Web Search Query - Step 2 (If needed)
 
@@ -160,10 +171,15 @@ def transform_query(state):
     """
 
     print("Step: Optimizing Query for Web Search")
-
     question = state['question']
-    gen_query = query_chain.invoke({"question": question})
-    search_query = gen_query["query"]
+
+    formatted_transform_query = query_prompt.invoke({"question": question})
+
+    query_response = llama_json.invoke(formatted_transform_query)
+
+    formatted_transform_query_response = json_format.invoke(query_response)
+
+    search_query = formatted_transform_query_response["query"]
 
     return {"web_search_query": search_query}
 
@@ -180,6 +196,7 @@ def web_search(state):
     """
 
     search_query = state['web_search_query']
+
     print(f'Step: Searching the Web for: "{search_query}"')
 
     search_result = tavily_tool.invoke(search_query)
@@ -200,12 +217,17 @@ def route_question(state):
 
     print("Step: Routing Query")
     question = state['question']
-    output = question_router.invoke({"question": question})
 
-    if output['choice'] == "web_search":
+    formatted_router_prompt = router_prompt.invoke({"question": question})
+
+    router_response = llama_json.invoke(formatted_router_prompt)
+
+    formatted_router_response = json_format.invoke(router_response)
+
+    if formatted_router_response['choice'] == "web_search":
         print("Step: Routing Query to Web Search")
         return "websearch"
-    elif output['choice'] == 'generate':
+    elif formatted_router_response['choice'] == 'generate':
         print("Step: Routing Query to Generation")
         return "generate"
 
@@ -230,6 +252,21 @@ workflow_graph.add_edge("generate", END)
 local_agent = workflow_graph.compile()
 
 
-def query_agent(query):
-    output = local_agent.invoke({"question": query})
+def query_agent(model: str, query: str) -> str:
+    global llama
+    global llama_json
+    llama = ChatOllama(model=model, temperature=0)
+    llama_json = ChatOllama(model=model, format='json', temperature=0)
+
+    retriever = db.as_retriever(
+        search_type="mmr",
+        search_kwargs={
+            "k": 500,
+            "lambda_mult": 0.25,
+        }
+    )
+
+    docs = retriever.get_relevant_documents(query=query)
+
+    output = local_agent.invoke({"question": query, "context": docs})
     return output["final_response"] + '\n'

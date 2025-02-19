@@ -7,7 +7,7 @@ import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import axios from 'axios';
 import { useFormik } from 'formik';
-import type { Dispatch, SetStateAction } from 'react';
+import { useRef, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import { Form, useLoaderData, useOutletContext } from 'react-router';
 
 type QueryFormValues = {
@@ -27,12 +27,17 @@ type OutletContext = {
 
 export default function QueryModel() {
   const { setPromptResponse } = useOutletContext<OutletContext>();
+  const uploadFileRef = useRef<HTMLInputElement>(null);
   const modelList: string[] = useLoaderData();
 
   const formik = useFormik({
     initialValues: initialValues,
     onSubmit: async values => await handleQueryModel(values, setPromptResponse)
   });
+
+  const handleClickUploadFiles = () => {
+    if (uploadFileRef.current) uploadFileRef.current.click();
+  };
 
   return (
     <Box
@@ -122,6 +127,23 @@ export default function QueryModel() {
               }
             />
           </Box>
+          <Box
+            component={'div'}
+            id="upload-pdfs-box"
+            key="upload-pdfs-box"
+            data-testid="upload-pdfs-box"
+            sx={{ display: 'none' }}
+          >
+            <input
+              type="file"
+              ref={uploadFileRef}
+              id="upload-pdfs-input"
+              key="upload-pdfs-input"
+              name="files"
+              multiple={true}
+              onChange={() => handleUploadPDFs(uploadFileRef)}
+            />
+          </Box>
           <ButtonGroup fullWidth={true}>
             <Button id="query-model-reset" data-testid="query-model-reset" key={'query-model-reset'} type="reset">
               <Label
@@ -136,6 +158,20 @@ export default function QueryModel() {
                 tooltipTitle={'Submit Query to local LLM Model'}
                 labelVariant={'button'}
                 labelText={'Query Model'}
+                placement={'top'}
+              />
+            </Button>
+            <Button
+              id="upload-pdfs-button"
+              data-testid="upload-pdfs-button"
+              key="upload-pdfs-button"
+              type="button"
+              onClick={handleClickUploadFiles}
+            >
+              <Label
+                tooltipTitle={'Upload ANY PDF documents you would like to use as context for your llm queries.'}
+                labelVariant={'button'}
+                labelText={'Upload .PDF Files'}
                 placement={'top'}
               />
             </Button>
@@ -163,5 +199,25 @@ const handleQueryModel = async (values: QueryFormValues, setPromptResponse: Disp
     setPromptResponse(query_response);
   } catch (error) {
     console.error(error);
+  }
+};
+
+const handleUploadPDFs = async (uploadFileRef: RefObject<HTMLInputElement | null>) => {
+  if (uploadFileRef.current) {
+    const files = uploadFileRef.current.files;
+    const formData = new FormData();
+    if (files) {
+      for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+      }
+      console.log(uploadFileRef.current);
+      console.log(files);
+
+      const resp = await axios.postForm(`${baseUrl}/query-model/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      console.log(resp);
+    }
   }
 };

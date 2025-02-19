@@ -38,6 +38,8 @@ langchain-google-vertexai = "^2.0.10"
 langgraph = "^0.2.61"
 langchain-experimental = "^0.3.4"
 tavily-python = "^0.5.0"
+langchain-unstructured = "^0.1.6"
+unstructured = {extras = ["pdf"], version = "^0.16.21"}
 
 [tool.poetry.requires-plugins]
 poetry-plugin-export = ">=1.9"

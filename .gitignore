@@ -51,3 +51,8 @@ env
 secrets
 reports
 .venv
+.tool-versions
+**/__pycache__/**
+apps/wdg-agents/apps/wdg_agents/__pycache__/agent_1.cpython-312.pyc
+apps/wdg-agents/apps/wdg_agents/__pycache__/api.cpython-312.pyc
+.pyc
