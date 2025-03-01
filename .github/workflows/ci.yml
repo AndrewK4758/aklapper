@@ -21,69 +21,69 @@ env:
   NX_CLOUD_TOKEN: ${{ secrets.NX_CLOUD_TOKEN }}
 
 jobs:
-  setup:
-    runs-on: ubuntu-latest
-    steps:
-      #Use last git commit
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+  # setup:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     #Use last git commit
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         fetch-depth: 0
 
-      # Install PNPM
-      - uses: pnpm/action-setup@v4
-        with:
-          version: '10'
+  #     # Install PNPM
+  #     - uses: pnpm/action-setup@v4
+  #       with:
+  #         version: '10'
 
-      # Setup Node js
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '23'
-          cache: 'pnpm'
+  #     # Setup Node js
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '23'
+  #         cache: 'pnpm'
 
-      # Cache Dependencies for all jobs
-      # - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: |
-      #       ~/.cache/pip
-      #       ~/.cache/poetry
-      #       ~/.pnpm-store
-      #       node_modules
-      #       .venv
-      #     key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+  #     # Cache Dependencies for all jobs
+  #     # - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
+  #     #   uses: actions/cache@v4
+  #     #   with:
+  #     #     path: |
+  #     #       ~/.cache/pip
+  #     #       ~/.cache/poetry
+  #     #       ~/.pnpm-store
+  #     #       node_modules
+  #     #       .venv
+  #     #     key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
-      # Install Node / Js dependencies
-      - name: Install Nodejs Dependencies
-        run: pnpm install -r --frozen-lockfile
+  #     # Install Node / Js dependencies
+  #     - name: Install Nodejs Dependencies
+  #       run: pnpm install -r --frozen-lockfile
 
-      # Set Python for wdg-agents
-      - name: Set Python Version for wdg-agents
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13.0'
+  #     # Set Python for wdg-agents
+  #     - name: Set Python Version for wdg-agents
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: '3.13.0'
 
-      # Install Poetry for Python venv managment
-      # Add Poetry Export Plugin
-      # Add Poetry Shell Plugin
-      - name: Install Poetry w/ Exports/Shell Plugins
-        uses: snok/install-poetry@v1
-        with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
-      - run: |
-          poetry self add poetry-plugin-export ;
-          poetry self add poetry-plugin-shell
+  #     # Install Poetry for Python venv managment
+  #     # Add Poetry Export Plugin
+  #     # Add Poetry Shell Plugin
+  #     - name: Install Poetry w/ Exports/Shell Plugins
+  #       uses: snok/install-poetry@v1
+  #       with:
+  #         virtualenvs-create: true
+  #         virtualenvs-in-project: true
+  #         installer-parallel: true
+  #     - run: |
+  #         poetry self add poetry-plugin-export ;
+  #         poetry self add poetry-plugin-shell
 
-      # Generate Prisma Client For CRUD-Api
-      - name: Generate Prisma Client for CRUD-Api
-        run: pnpm generate
-        env:
-          NODE_ENV: production
-          DB_URL_PROD: ${{ secrets.DB_URL_PROD }}
+  #     # Generate Prisma Client For CRUD-Api
+  #     - name: Generate Prisma Client for CRUD-Api
+  #       run: pnpm generate
+  #       env:
+  #         NODE_ENV: production
+  #         DB_URL_PROD: ${{ secrets.DB_URL_PROD }}
 
   lint:
-    needs: ['setup']
+    # needs: ['setup']
     runs-on: ubuntu-latest
     steps:
       #Use last git commit
@@ -143,7 +143,7 @@ jobs:
         run: pnpx nx affected -t=lint --verbose
 
   test:
-    needs: ['setup']
+    # needs: ['setup']
     runs-on: ubuntu-latest
     steps:
       #Use last git commit
@@ -235,7 +235,14 @@ jobs:
       # Install Node / Js dependencies
       - name: Install Nodejs Dependencies
         run: pnpm install -r --frozen-lockfile
-        
+
+      # Generate Prisma Client For CRUD-Api
+      - name: Generate Prisma Client for CRUD-Api
+        run: pnpm generate
+        env:
+          NODE_ENV: production
+          DB_URL_PROD: ${{ secrets.DB_URL_PROD }}
+
       # Use cached dependencies
       # - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
       #   uses: actions/cache@v4
