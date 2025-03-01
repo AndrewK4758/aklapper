@@ -18,23 +18,23 @@ const tsJestOptions: DefaultEsmTransformOptions = {
 };
 
 const modules = {
-  '@aklapper/chain': [resolve(workspaceRoot, './libs/chain/src/$1')],
-  '@aklapper/games': [resolve(workspaceRoot, './libs/games/src/$1')],
-  '@aklapper/game': [resolve(workspaceRoot, './libs/game/src/$1')],
-  '@aklapper/models': [resolve(workspaceRoot, './libs/models/src/$1')],
-  '@aklapper/games-chains': [resolve(workspaceRoot, './libs/games-chains/src/$1')],
-  '@aklapper/games-components': [resolve(workspaceRoot, './libs/games-components/src/$1')],
-  '@aklapper/media-recorder': [resolve(workspaceRoot, './libs/media-recorder/src/$1')],
-  '@aklapper/mocks': [resolve(workspaceRoot, './libs/mocks/src/$1')],
-  '@aklapper/password': [resolve(workspaceRoot, './libs/password/src/$1')],
-  '@aklapper/prisma': [resolve(workspaceRoot, './libs/prisma/src/$1')],
-  '@aklapper/prompt-builder': [resolve(workspaceRoot, './libs/gen-ai/prompt-builder/src/$1')],
-  '@aklapper/react-shared': [resolve(workspaceRoot, './libs/react-shared/src/$1')],
-  '@aklapper/socket-io-client': [resolve(workspaceRoot, './libs/socket-io/client/src/$1')],
-  '@aklapper/socket-io-server': [resolve(workspaceRoot, './libs/socket-io/server/src/$1')],
-  '@aklapper/types': [resolve(workspaceRoot, './libs/types/src/$1')],
-  '@aklapper/utils': [resolve(workspaceRoot, './libs/utils/src/$1')],
-  '@aklapper/vertex-ai': [resolve(workspaceRoot, './libs/gen-ai/vertex-ai/src/$1')]
+  '@aklapper/chain': [resolve(workspaceRoot, './packages/chain/src/$1')],
+  '@aklapper/games': [resolve(workspaceRoot, './packages/games/src/$1')],
+  '@aklapper/game': [resolve(workspaceRoot, './packages/game/src/$1')],
+  '@aklapper/models': [resolve(workspaceRoot, './packages/models/src/$1')],
+  '@aklapper/games-chains': [resolve(workspaceRoot, './packages/games-chains/src/$1')],
+  '@aklapper/games-components': [resolve(workspaceRoot, './packages/games-components/src/$1')],
+  '@aklapper/media-recorder': [resolve(workspaceRoot, './packages/media-recorder/src/$1')],
+  '@aklapper/mocks': [resolve(workspaceRoot, './packages/mocks/src/$1')],
+  '@aklapper/password': [resolve(workspaceRoot, './packages/password/src/$1')],
+  '@aklapper/prisma': [resolve(workspaceRoot, './packages/prisma/src/$1')],
+  '@aklapper/prompt-builder': [resolve(workspaceRoot, './packages/gen-ai/prompt-builder/src/$1')],
+  '@aklapper/react-shared': [resolve(workspaceRoot, './packages/react-shared/src/$1')],
+  '@aklapper/socket-io-client': [resolve(workspaceRoot, './packages/socket-io/client/src/$1')],
+  '@aklapper/socket-io-server': [resolve(workspaceRoot, './packages/socket-io/server/src/$1')],
+  '@aklapper/types': [resolve(workspaceRoot, './packages/types/src/$1')],
+  '@aklapper/utils': [resolve(workspaceRoot, './packages/utils/src/$1')],
+  '@aklapper/vertex-ai': [resolve(workspaceRoot, './packages/gen-ai/vertex-ai/src/$1')]
 };
 
 const config: Config = {

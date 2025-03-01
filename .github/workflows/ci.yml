@@ -53,13 +53,13 @@ jobs:
 
       # Install Node / Js dependencies
       - name: Install Nodejs Dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install -r --frozen-lockfile
 
       # Set Python for wdg-agents
       - name: Set Python Version for wdg-agents
         uses: actions/setup-python@v5
         with:
-          python-version: 3.12.8
+          python-version: 3.13.0
 
       # Install Poetry for Python venv managment
       # Add Poetry Export Plugin
@@ -171,6 +171,10 @@ jobs:
 
       # Add Nx Cloud Build Cache
       - uses: nrwl/nx-set-shas@v4
+
+      # Install Node / Js dependencies
+      - name: Install Nodejs Dependencies
+        run: pnpm install -r --frozen-lockfile
 
       # Install Poetry for Python venv managment
       # Add Poetry Export Plugin
@@ -286,7 +290,7 @@ jobs:
 
       # Install Dependencies
       - name: Install Portfolio Dependencies for Deploy to GCP Cloud Run
-        run: pnpm install --frozen-lockfile
+        run: pnpm install -r --frozen-lockfile
 
       # Generate Prisma Client For CRUD-Api
       - name: Generate Prisma Client for CRUD-Api
