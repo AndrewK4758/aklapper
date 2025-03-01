@@ -1,0 +1,15 @@
+{
+  "name": "local-model",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@aklapper/react-shared": "workspace:*",
+    "@aklapper/socket-io-client": "workspace:*"
+  },
+  "nx": {
+    "name": "local-model",
+    "projectType": "application",
+    "sourceRoot": "apps/react/local-model/local-model/src"
+  }
+}

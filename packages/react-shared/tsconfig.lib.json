@@ -8,11 +8,7 @@
     "jsx": "react-jsx",
     "module": "esnext",
     "moduleResolution": "bundler",
-    "tsBuildInfoFile": "out-tsc/react-shared/tsconfig.lib.tsbuildinfo",
-    "paths": {
-      "@aklapper/types": ["../types/src/index.ts"],
-      "@aklapper/utils": ["../utils/src/index.ts"]
-    }
+    "tsBuildInfoFile": "out-tsc/react-shared/tsconfig.lib.tsbuildinfo"
   },
   "exclude": [
     "out-tsc",
@@ -38,6 +34,9 @@
   ],
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
+    {
+      "path": "../utils/tsconfig.lib.json"
+    },
     {
       "path": "../types/tsconfig.lib.json"
     }

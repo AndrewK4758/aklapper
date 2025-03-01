@@ -6,6 +6,9 @@
   "dependencies": {
     "tslib": "^2.3.0"
   },
+  "devDependencies": {
+    "@aklapper/types": "workspace:*"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -20,6 +23,7 @@
   "nx": {
     "sourceRoot": "packages/chain/src",
     "projectType": "library",
-    "name": "chain"
+    "name": "chain",
+    "targets": {}
   }
 }

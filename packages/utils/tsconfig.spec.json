@@ -4,14 +4,15 @@
     "outDir": "./out-tsc/jest",
     "module": "NodeNext",
     "moduleResolution": "nodenext",
-    "types": ["vitest/globals", "vitest/importMeta", "vite/client", "node", "vitest", "jest"],
-    "paths": {
-      "@aklapper/types": ["../types/src/index.ts"],
-      "@aklapper/chain": ["../chain/src/index.ts"],
-      "@aklapper/game": ["../game/src/index.ts"],
-      "@aklapper/models": ["../models/src/index.ts"],
-      "@aklapper/mocks": ["../mocks/src/index.ts"]
-    }
+    "types": [
+      "vitest/globals",
+      "vitest/importMeta",
+      "vite/client",
+      "node",
+      "vitest",
+      "jest",
+      "../types/src/lib/game/types/express-request.d.ts"
+    ]
   },
   "include": ["vitest.config.ts", "tests/**/*.test.ts", "tests/**/*.spec.ts", "src/**/*.d.ts"],
   "references": [

@@ -1,5 +1,5 @@
-import type { Color } from '../types/game.ts';
-import type { ISpace } from './space.ts';
+import type { Color } from '../types/game.js';
+import type { ISpace } from './space.js';
 
 export interface IAvatar {
   Name: string;

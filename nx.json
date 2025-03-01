@@ -1,5 +1,10 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "workspaceLayout": {
+    "appsDir": "apps",
+    "libsDir": "packages"
+  },
+  "cli": { "packageManager": "pnpm" },
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "production": [
@@ -47,10 +52,10 @@
         "targetName": "e2e"
       },
       "include": [
-        "apps/crud/crud-ui-e2e/**",
-        "apps/games/games-ui-e2e/**",
-        "apps/portfolio/portfolio-e2e/**",
-        "apps/local-model/local-model-e2e/**"
+        "apps/react/crud/crud-ui-e2e/**",
+        "apps/react/games/games-ui-e2e/**",
+        "apps/react/portfolio/portfolio-e2e/**",
+        "apps/react/local-model/local-model-e2e/**"
       ]
     },
     {
@@ -70,14 +75,14 @@
         "targetName": "jest:test"
       },
       "exclude": [
-        "apis/crud/crud-api-e2e/**",
-        "apis/games/games-api-e2e/**",
-        "apis/portfolio/portfolio-api-e2e/**",
-        "apis/vertex/vertex-api-e2e/**",
-        "apps/crud/crud-ui-e2e/**",
-        "apps/games/games-ui-e2e/**",
-        "apps/portfolio/portfolio-e2e/**",
-        "apps/local-model/local-model-e2e/**"
+        "apps/apis/crud/crud-api-e2e/**",
+        "apps/apis/games/games-api-e2e/**",
+        "apps/apis/portfolio/portfolio-api-e2e/**",
+        "apps/apis/vertex/vertex-api-e2e/**",
+        "apps/react/crud/crud-ui-e2e/**",
+        "apps/react/games/games-ui-e2e/**",
+        "apps/react/portfolio/portfolio-e2e/**",
+        "apps/react/local-model/local-model-e2e/**"
       ]
     }
   ],

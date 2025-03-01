@@ -1,10 +1,10 @@
 import Container from '@mui/material/Container';
 import List from '@mui/material/List';
-import RenderList from '../render-list/render-list';
 import type { SxProps } from '@mui/material/styles';
+import type { Variant } from '@mui/material/styles/createTypography.js';
 import type { ReactNode } from 'react';
-import type { Variant } from '@mui/material/styles/createTypography';
 import Label, { type LabelProps } from '../label/label.jsx';
+import RenderList from '../render-list/render-list';
 
 interface TechListProps extends LabelProps {
   techListContainerSxProps: SxProps;
@@ -34,11 +34,12 @@ export const TechList = ({
     sx={techListContainerSxProps}
   >
     <Label
+      htmlFor={`${id}-list`}
       tooltipTitle={tooltipTitle}
       labelVariant={variant}
       labelText={labelText}
       placement={placement}
-      labelTextsx={techListTextSxProps}
+      labelTextSx={techListTextSxProps}
     />
     <List key={`${id}-list`} id={`${id}-list`}>
       <RenderList data={data} listMapCallback={renderTechLists} />

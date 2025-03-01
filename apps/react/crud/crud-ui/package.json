@@ -1,0 +1,14 @@
+{
+  "name": "crud-ui",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@aklapper/react-shared": "workspace:*"
+  },
+  "nx": {
+    "name": "crud-ui",
+    "projectType": "application",
+    "sourceRoot": "apps/react/crud/crud-ui/src"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/vitest",
+    "types": [
+      "vitest/globals",
+      "vitest/importMeta",
+      "vite/client",
+      "node",
+      "vitest",
+      "@nx/react/typings/cssmodule.d.ts",
+      "@nx/react/typings/image.d.ts"
+    ],
+    "jsx": "react-jsx",
+    "lib": ["DOM"],
+    "module": "esnext",
+    "moduleResolution": "bundler"
+  },
+  "include": [
+    "vite.config.ts",
+    "tests/**/*.test.ts",
+    "tests/**/*.spec.ts",
+    "tests/**/*.test.tsx",
+    "tests/**/*.spec.tsx",
+    "tests/**/*.test.js",
+    "tests/**/*.spec.js",
+    "tests/**/*.test.jsx",
+    "tests/**/*.spec.jsx",
+    "src/**/*.d.ts"
+  ],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    }
+  ]
+}

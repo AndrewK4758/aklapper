@@ -2,8 +2,6 @@
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./out-tsc/jest",
-    "module": "NodeNext",
-    "moduleResolution": "nodenext",
     "types": ["vitest/globals", "vitest/importMeta", "vite/client", "node", "vitest", "jest"]
   },
   "include": ["vitest.config.ts", "tests/**/*.test.ts", "tests/**/*.spec.ts", "src/**/*.d.ts"],

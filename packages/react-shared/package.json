@@ -1,10 +1,15 @@
 {
   "name": "@aklapper/react-shared",
   "version": "0.0.1",
+  "type": "module",
   "nx": {
     "name": "react-shared",
     "projectType": "library",
     "sourceRoot": "packages/react-shared/src"
+  },
+  "devDependencies": {
+    "@aklapper/types": "workspace:*",
+    "@aklapper/utils": "workspace:*"
   },
   "exports": {
     "./package.json": "./package.json",
@@ -16,6 +21,5 @@
   },
   "types": "./dist/index.d.ts",
   "module": "./dist/index.js",
-  "type": "module",
   "main": "./dist/index.js"
 }

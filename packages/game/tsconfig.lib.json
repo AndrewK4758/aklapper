@@ -6,12 +6,7 @@
     "outDir": "dist",
     "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
     "emitDeclarationOnly": false,
-    "types": ["node"],
-    "paths": {
-      "@aklapper/games-components": ["../games-components/src/index.ts"],
-      "@aklapper/types": ["../types/src/index.ts"],
-      "@aklapper/games": ["../games/src/index.ts"]
-    }
+    "types": ["node"]
   },
   "include": ["src/**/*.ts"],
   "references": [

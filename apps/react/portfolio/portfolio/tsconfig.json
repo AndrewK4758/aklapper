@@ -1,0 +1,40 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "files": [],
+  "include": [],
+  "references": [
+    {
+      "path": "../../../../packages/gen-ai/vertex-ai"
+    },
+    {
+      "path": "../../../../packages/utils"
+    },
+    {
+      "path": "../../../../packages/types"
+    },
+    {
+      "path": "../../../../packages/socket-io/client"
+    },
+    {
+      "path": "../../../../packages/react-shared"
+    },
+    {
+      "path": "../../../../packages/gen-ai/prompt-builder"
+    },
+    {
+      "path": "../../../../packages/media-recorder"
+    },
+    {
+      "path": "../../../../packages/games-components"
+    },
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.spec.json"
+    },
+    {
+      "path": "./tsconfig.node.json"
+    }
+  ]
+}

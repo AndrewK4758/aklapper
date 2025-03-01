@@ -6,6 +6,9 @@
   "dependencies": {
     "tslib": "^2.3.0"
   },
+  "devDependencies": {
+    "@aklapper/types": "workspace:*"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -21,7 +24,14 @@
     "sourceRoot": "packages/prisma/src",
     "projectType": "library",
     "name": "prisma",
-    "targets": {}
-  },
-  "prisma": "./prisma/schema.prisma"
+    "targets": {
+      "generate": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "packages/prisma",
+          "command": "pnpx prisma generate"
+        }
+      }
+    }
+  }
 }

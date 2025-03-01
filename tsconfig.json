@@ -5,30 +5,6 @@
   "exclude": ["node_modules", "dist"],
   "references": [
     {
-      "path": "./apis/crud/crud-api-e2e/"
-    },
-    {
-      "path": "./apis/crud/crud-api"
-    },
-    {
-      "path": "./apis/games/games-api-e2e"
-    },
-    {
-      "path": "./apis/games/games-api"
-    },
-    {
-      "path": "./apis/portfolio/portfolio-api-e2e"
-    },
-    {
-      "path": "./apis/portfolio/portfolio-api"
-    },
-    {
-      "path": "./apis/vertex/vertex-api-e2e"
-    },
-    {
-      "path": "./apis/vertex/vertex-api"
-    },
-    {
       "path": "./packages/chain"
     },
     {
@@ -77,34 +53,55 @@
       "path": "./packages/utils"
     },
     {
-      "path": "./apps/crud/crud-ui-e2e"
-    },
-    {
-      "path": "./apps/crud/crud-ui"
-    },
-    {
-      "path": "./apps/games/games-ui-e2e"
-    },
-    {
-      "path": "./apps/games/games-ui"
-    },
-    {
-      "path": "./apps/portfolio/portfolio-e2e"
-    },
-    {
-      "path": "./apps/portfolio/portfolio"
-    },
-    {
-      "path": "./apps/local-model/local-model-e2e"
-    },
-    {
-      "path": "./apps/local-model/local-model"
-    },
-    {
       "path": "./packages/react-shared"
     },
     {
-      "path": "./apis/crud/crud-api-e2e"
+      "path": "./apps/react/local-model/local-model-e2e"
+    },
+    {
+      "path": "./apps/apis/portfolio/portfolio-api-e2e"
+    },
+    {
+      "path": "./apps/react/local-model/local-model"
+    },
+    {
+      "path": "./apps/react/portfolio/portfolio-e2e"
+    },
+    {
+      "path": "./apps/apis/portfolio/portfolio-api"
+    },
+    {
+      "path": "./apps/apis/vertex/vertex-api-e2e"
+    },
+    {
+      "path": "./apps/react/portfolio/portfolio"
+    },
+    {
+      "path": "./apps/apis/games/games-api-e2e"
+    },
+    {
+      "path": "./apps/react/games/games-ui-e2e"
+    },
+    {
+      "path": "./apps/apis/crud/crud-api-e2e"
+    },
+    {
+      "path": "./apps/react/crud/crud-ui-e2e"
+    },
+    {
+      "path": "./apps/apis/vertex/vertex-api"
+    },
+    {
+      "path": "./apps/apis/games/games-api"
+    },
+    {
+      "path": "./apps/react/games/games-ui"
+    },
+    {
+      "path": "./apps/apis/crud/crud-api"
+    },
+    {
+      "path": "./apps/react/crud/crud-ui"
     }
   ]
 }

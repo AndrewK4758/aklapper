@@ -1,4 +1,4 @@
-import type { ISpace } from './space.ts';
+import type { ISpace } from './space.js';
 
 export interface IBoard {
   TotalSpaces: number;

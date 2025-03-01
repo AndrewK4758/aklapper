@@ -6,12 +6,7 @@
     "outDir": "dist",
     "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
     "emitDeclarationOnly": false,
-    "types": ["node"],
-    "paths": {
-      "@aklapper/chain": ["../chain/src/index.ts"],
-      "@aklapper/types": ["../types/src/index.ts"],
-      "@aklapper/game": ["../game/src/index.ts"]
-    }
+    "types": ["node", "../types/src/lib/game/types/express-request.d.ts"]
   },
   "include": ["src/**/*.ts"],
   "references": [

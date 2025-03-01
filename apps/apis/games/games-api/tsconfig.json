@@ -1,0 +1,43 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "files": [],
+  "include": [],
+  "references": [
+    {
+      "path": "../../../../packages/mocks"
+    },
+    {
+      "path": "../../../../packages/models"
+    },
+    {
+      "path": "../../../../packages/utils"
+    },
+    {
+      "path": "../../../../packages/types"
+    },
+    {
+      "path": "../../../../packages/socket-io/server"
+    },
+    {
+      "path": "../../../../packages/games-components"
+    },
+    {
+      "path": "../../../../packages/games-chains"
+    },
+    {
+      "path": "../../../../packages/games"
+    },
+    {
+      "path": "../../../../packages/game"
+    },
+    {
+      "path": "../../../../packages/chain"
+    },
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.spec.json"
+    }
+  ]
+}

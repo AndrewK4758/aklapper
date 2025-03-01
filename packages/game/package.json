@@ -6,6 +6,11 @@
   "dependencies": {
     "tslib": "^2.3.0"
   },
+  "devDependencies": {
+    "@aklapper/games-components": "workspace:*",
+    "@aklapper/types": "workspace:*",
+    "@aklapper/games": "workspace:*"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -21,12 +26,6 @@
     "sourceRoot": "packages/game/src",
     "projectType": "library",
     "name": "game",
-    "targets": {
-      "test": {
-        "options": {
-          "args": []
-        }
-      }
-    }
+    "targets": {}
   }
 }

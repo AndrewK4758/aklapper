@@ -6,6 +6,13 @@
   "dependencies": {
     "tslib": "^2.3.0"
   },
+  "devDependencies": {
+    "@aklapper/chain": "workspace:^",
+    "@aklapper/game": "workspace:^",
+    "@aklapper/mocks": "workspace:^",
+    "@aklapper/models": "workspace:^",
+    "@aklapper/types": "workspace:^"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

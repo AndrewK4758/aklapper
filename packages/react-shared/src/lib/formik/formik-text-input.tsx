@@ -14,7 +14,7 @@ export interface FormikTextInputProps<T> {
   label: string;
   labelComponent: Variant;
   autoComplete: string;
-  id?: string;
+  id: string;
   placeholder?: string;
   textSx?: SxProps;
   labelSx?: SxProps;
@@ -43,13 +43,6 @@ export function FormikTextInput<T>({
 
   return (
     <Box key={`${label}-wrapper`} id={`${label}-wrapper`}>
-      <Label
-        tooltipTitle={label}
-        labelVariant={labelComponent}
-        labelText={label}
-        labelTextsx={labelSx}
-        placement={'top'}
-      />
       <TextField
         id={id}
         autoComplete={autoComplete}
@@ -63,6 +56,16 @@ export function FormikTextInput<T>({
         slotProps={{
           inputLabel: { sx: textSx }
         }}
+        label={
+          <Label
+            htmlFor={id}
+            tooltipTitle={label}
+            labelVariant={labelComponent}
+            labelText={label}
+            labelTextSx={labelSx}
+            placement={'top'}
+          />
+        }
         sx={textSx}
         onBlur={formik.handleBlur}
       />

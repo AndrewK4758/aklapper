@@ -1,0 +1,16 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "out-tsc/crud-api",
+    "types": ["node"],
+    "tsBuildInfoFile": "out-tsc/crud-api/tsconfig.app.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["out-tsc", "dist", "vitest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts", "eslint.config.js"],
+  "references": [
+    {
+      "path": "../../../../packages/prisma/tsconfig.lib.json"
+    }
+  ]
+}

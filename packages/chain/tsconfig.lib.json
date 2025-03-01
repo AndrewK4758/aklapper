@@ -6,10 +6,7 @@
     "outDir": "dist",
     "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
     "emitDeclarationOnly": false,
-    "types": ["node"],
-    "paths": {
-      "@aklapper/types": ["../types/src/index.ts"]
-    }
+    "types": ["node", "../types/dist/lib/game/interfaces/chain.d.ts"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["vitest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],

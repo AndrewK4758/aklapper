@@ -6,11 +6,7 @@
     "outDir": "dist",
     "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
     "emitDeclarationOnly": false,
-    "types": ["node"],
-    "paths": {
-      "@aklapper/types": ["../types/src/index.ts"],
-      "@aklapper/games-components": ["../games-components/src/index.ts"]
-    }
+    "types": ["node"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["vitest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],

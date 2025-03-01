@@ -1,0 +1,46 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out-tsc/games-api",
+    "module": "nodenext",
+    "types": ["node"],
+    "rootDir": "src",
+    "moduleResolution": "nodenext",
+    "tsBuildInfoFile": "out-tsc/games-api/tsconfig.app.tsbuildinfo"
+  },
+
+  "include": ["src/**/*.ts"],
+  "exclude": ["out-tsc", "dist", "vitest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts", "eslint.config.js"],
+  "references": [
+    {
+      "path": "../../../../packages/mocks/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../../packages/models/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../../packages/utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../../packages/types/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../../packages/socket-io/server/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../../packages/games-components/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../../packages/games-chains/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../../packages/games/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../../packages/game/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../../packages/chain/tsconfig.lib.json"
+    }
+  ]
+}

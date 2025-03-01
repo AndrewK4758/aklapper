@@ -7,7 +7,7 @@ import { cwd } from 'process';
 
 export default defineConfig({
   root: cwd(),
-  cacheDir: '../../node_modules/.vite/libs/react-shared',
+  cacheDir: '../../node_modules/.vite/packages/react-shared',
   plugins: [
     react({ babel: { targets: { esmodules: true } } }),
     dts({

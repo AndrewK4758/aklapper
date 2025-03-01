@@ -4,56 +4,50 @@ import { Player } from '@aklapper/games-components';
 import { WINNING_POSITIONS } from '@aklapper/games';
 import { Context, GameContextKeys } from '@aklapper/types';
 
-export const wonGameCheckTicTacToe = CommandBuilder.build(
-  (context: Context<GameContextKeys | string>) => {
-    if (
-      context.get(GameContextKeys.NEXT) &&
-      context.getString(GameContextKeys.NEXT) === 'won-game'
-    ) {
-      const { game } = deRefContextObject(context);
+export const wonGameCheckTicTacToe = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
+  if (context.get(GameContextKeys.NEXT) && context.getString(GameContextKeys.NEXT) === 'won-game') {
+    const { game } = deRefContextObject(context);
 
-      const playerTakingTurn = context.get('player-taking-turn') as Player;
-      const occupiedSpaces: string[] = [];
-      let space = game.instance.instance.startSpace;
+    const playerTakingTurn = context.get('player-taking-turn') as Player;
+    const occupiedSpaces: string[] = [];
+    let space = game.instance.instance.startSpace;
 
-      while (space) {
-        if (space.occupied) {
-          if (space.avatarsInSpace[0].name === playerTakingTurn.avatar.name) {
-            occupiedSpaces.push(space.value);
-          }
+    while (space) {
+      if (space.occupied) {
+        if (space.avatarsInSpace[0].name === playerTakingTurn.avatar.name) {
+          occupiedSpaces.push(space.value);
         }
-        space = space.next;
       }
+      space = space.next;
+    }
 
-      if (occupiedSpaces.length === 5) {
-        context.put(GameContextKeys.OUTPUT, { message: 'STALEMATE' });
-        return false;
-      }
+    if (occupiedSpaces.length === 5) {
+      context.put(GameContextKeys.OUTPUT, { message: 'STALEMATE' });
+      return false;
+    }
 
-      WINNING_POSITIONS.forEach((v: string[]) => {
-        const occupiedSpacesLength = occupiedSpaces.length;
-        let start = 0;
-        let offset =
-          occupiedSpacesLength > v.length ? occupiedSpacesLength - v.length : 0;
-        const result = new Set<string>();
-        while (start < occupiedSpacesLength && offset < occupiedSpacesLength) {
-          if (v[start] === occupiedSpaces[start]) result.add(v[start]);
-          if (offset > 0) {
-            if (v[start] === occupiedSpaces[offset]) result.add(v[start]);
-          }
-          if (result.size === v.length) game.instance.haveWinner = true;
-          start++;
-          offset++;
+    WINNING_POSITIONS.forEach((v: string[]) => {
+      const occupiedSpacesLength = occupiedSpaces.length;
+      let start = 0;
+      let offset = occupiedSpacesLength > v.length ? occupiedSpacesLength - v.length : 0;
+      const result = new Set<string>();
+      while (start < occupiedSpacesLength && offset < occupiedSpacesLength) {
+        if (v[start] === occupiedSpaces[start]) result.add(v[start]);
+        if (offset > 0) {
+          if (v[start] === occupiedSpaces[offset]) result.add(v[start]);
         }
-      });
-
-      if (game.instance.haveWinner === true) return false;
-      else {
-        context.put(GameContextKeys.NEXT, 'rotate-player');
-        return true;
+        if (result.size === v.length) game.instance.haveWinner = true;
+        start++;
+        offset++;
       }
-    } else return false;
-  },
-);
+    });
+
+    if (game.instance.haveWinner === true) return false;
+    else {
+      context.put(GameContextKeys.NEXT, 'rotate-player');
+      return true;
+    }
+  } else return false;
+});
 
 export default wonGameCheckTicTacToe;

@@ -1,6 +1,6 @@
-import type { AvatarTotem, Color } from '../types/game.ts';
-import type { ILiteSpace } from './lite-space.ts';
-import type { ISpace } from './space.ts';
+import type { AvatarTotem, Color } from '../types/game.js';
+import type { ILiteSpace } from './lite-space.js';
+import type { ISpace } from './space.js';
 
 export interface ITicTacToe {
   MIN_PLAYERS: number;

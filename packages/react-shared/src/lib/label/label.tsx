@@ -1,15 +1,13 @@
 import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 import { type SxProps } from '@mui/material/styles';
 import type { Variant } from '@mui/material/styles/createTypography';
 import Tooltip from '@mui/material/Tooltip';
-import Typography from '@mui/material/Typography';
 import { forwardRef, type JSX, type ReactNode } from 'react';
 
 const labelWrapperSxProps: SxProps = {
-  display: 'flex',
-  justifyContent: 'space-evenly',
-  alignContent: 'center',
-  gap: 2
+  gap: 2,
+  flex: '0 1 100%'
 };
 
 const iconAndChildrenSxProps: SxProps = { display: 'flex', justifyItems: 'center', alignContent: 'center' };
@@ -18,7 +16,7 @@ export interface LabelProps {
   tooltipTitle: ReactNode;
   labelVariant: Variant;
   labelText: string;
-  labelTextsx?: SxProps;
+  labelTextSx?: SxProps;
   tooltipSx?: SxProps;
   placement:
     | 'bottom'
@@ -36,16 +34,13 @@ export interface LabelProps {
     | undefined;
   Icon?: JSX.Element | undefined;
   children?: ReactNode | ReactNode[];
+  htmlFor: string;
 }
 
 export const Label = forwardRef<HTMLDivElement, LabelProps>(
-  ({ labelText, labelVariant, placement, labelTextsx, tooltipSx, tooltipTitle, Icon, children }, ref) => (
-    <Box component={'span'} key={`${labelText}-wrapper-box`} id={`${labelText}-wrapper-box`} sx={labelWrapperSxProps}>
-      <Box
-        component={'span'}
-        key={`${labelText}-box`}
-        id={`${labelText}-box`}
-      >
+  ({ labelText, labelVariant, placement, labelTextSx, tooltipSx, tooltipTitle, Icon, children, htmlFor }, ref) => (
+    <Box component={'div'} key={`${labelText}-wrapper-box`} id={`${labelText}-wrapper-box`} sx={labelWrapperSxProps}>
+      <Box component={'div'} key={`${labelText}-box`} id={`${labelText}-box`}>
         <Tooltip
           id={`${labelText}-tooltip`}
           key={`${labelText}-tooltip`}
@@ -56,23 +51,26 @@ export const Label = forwardRef<HTMLDivElement, LabelProps>(
           slotProps={{ tooltip: { sx: tooltipSx } }}
         >
           <Typography
+            component={'label'}
+            is="label"
+            htmlFor={htmlFor}
             variant={labelVariant}
             key={`${labelText}-label-text`}
             id={`${labelText}-label-text`}
-            sx={labelTextsx}
+            sx={labelTextSx}
           >
             {labelText}
           </Typography>
         </Tooltip>
         {Icon && (
-          <Box component={'span'} key={`${labelText}-icon`} id={`${labelText}-icon`} sx={iconAndChildrenSxProps}>
+          <Box component={'div'} key={`${labelText}-icon`} id={`${labelText}-icon`} sx={iconAndChildrenSxProps}>
             {Icon}
           </Box>
         )}
       </Box>
       {children && (
         <Box
-          component={'span'}
+          component={'div'}
           key={`${labelText}-box-children`}
           id={`${labelText}-box-children`}
           sx={iconAndChildrenSxProps}

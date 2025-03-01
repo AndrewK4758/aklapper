@@ -1,0 +1,13 @@
+{
+  "name": "local-model-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "nx": {
+    "projectType": "application",
+    "sourceRoot": "apps/react/local-model/local-model-e2e/src",
+    "implicitDependencies": [
+      "local-model"
+    ]
+  }
+}

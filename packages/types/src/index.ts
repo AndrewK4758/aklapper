@@ -29,4 +29,4 @@ export * from './lib/game/interfaces/tic-tac-toe.js';
 export * from './lib/game/types/all-games-types.js';
 export * from './lib/game/types/game.js';
 
-// export * from './lib/game/types/express-request.d.js';
+// export * from './lib/game/types/express-request.js';

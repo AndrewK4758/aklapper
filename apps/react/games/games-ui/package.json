@@ -1,0 +1,16 @@
+{
+  "name": "games-ui",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@aklapper/games-components": "workspace:*",
+    "@aklapper/react-shared": "workspace:*",
+    "@aklapper/types": "workspace:*"
+  },
+  "nx": {
+    "name": "games-ui",
+    "projectType": "application",
+    "sourceRoot": "apps/react/games/games-ui/src"
+  }
+}

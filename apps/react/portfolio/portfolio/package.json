@@ -1,0 +1,95 @@
+{
+  "name": "portfolio",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@aklapper/games-components": "workspace:*",
+    "@aklapper/media-recorder": "workspace:*",
+    "@aklapper/prompt-builder": "workspace:*",
+    "@aklapper/react-shared": "workspace:*",
+    "@aklapper/socket-io-client": "workspace:*",
+    "@aklapper/types": "workspace:*",
+    "@aklapper/utils": "workspace:*",
+    "@aklapper/vertex-ai": "workspace:*"
+  },
+  "nx": {
+    "name": "portfolio",
+    "projectType": "application",
+    "sourceRoot": "apps/react/portfolio/portfolio/src",
+    "targets": {
+      "build-both": {
+        "executor": "nx:run-commands",
+        "outputs": [
+          "{workspaceRoot}/apps/react/portfolio/portfolio"
+        ],
+        "options": {
+          "cwd": "apps/react/portfolio/portfolio",
+          "commands": [
+            {
+              "color": "yellow",
+              "command": "nx build portfolio --verbose"
+            },
+            {
+              "color": "red",
+              "command": "nx build-server portfolio --verbose"
+            }
+          ],
+          "parallel": true
+        }
+      },
+      "build-server": {
+        "executor": "nx:run-commands",
+        "outputs": [
+          "{workspaceRoot}/apps/react/portfolio/portfolio"
+        ],
+        "options": {
+          "cwd": "apps/react/portfolio/portfolio",
+          "command": "vite build --config=vite.config.server.ts"
+        }
+      },
+      "serve-server": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "build-server"
+        ],
+        "options": {
+          "cwd": "apps/react/portfolio/portfolio",
+          "buildTarget": "portfolio:build-server",
+          "runBuildTargetDependencies": false,
+          "command": "node dist/server/server.js"
+        }
+      },
+      "deploy-app-engine": {
+        "executor": "nx:run-commands",
+        "defaultConfiguration": "production",
+        "options": {
+          "commands": [
+            {
+              "command": "gcloud app deploy website.yaml --quiet --verbosity=debug"
+            }
+          ],
+          "env": {
+            "NODE_ENV": "production"
+          }
+        }
+      },
+      "docker-build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "build",
+          "build-server"
+        ],
+        "options": {
+          "command": "docker build -f apps/react/portfolio/portfolio/Dockerfile . -t gcr.io/games-424800/default"
+        }
+      },
+      "docker-push": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "docker push gcr.io/games-424800/default:latest"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out-tsc/games-ui",
+    "tsBuildInfoFile": "out-tsc/games-ui/tsconfig.app.tsbuildinfo",
+    "jsx": "react-jsx",
+    "lib": ["dom"],
+    "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
+    "rootDir": "src",
+    "module": "esnext",
+    "moduleResolution": "bundler"
+  },
+  "exclude": [
+    "out-tsc",
+    "dist",
+    "tests/**/*.spec.ts",
+    "tests/**/*.test.ts",
+    "tests/**/*.spec.tsx",
+    "tests/**/*.test.tsx",
+    "tests/**/*.spec.js",
+    "tests/**/*.test.js",
+    "tests/**/*.spec.jsx",
+    "tests/**/*.test.jsx",
+    "vite.config.ts",
+    "eslint.config.js"
+  ],
+  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
+  "references": [
+    {
+      "path": "../../../../packages/games-components/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../../packages/types/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../../packages/react-shared/tsconfig.lib.json"
+    }
+  ]
+}

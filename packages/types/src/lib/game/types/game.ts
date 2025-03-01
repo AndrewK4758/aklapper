@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import type { Server } from 'socket.io';
-import type { IInstanceOfGame } from '../interfaces/instance-of-game.ts';
-import type { ILiteSpace } from '../interfaces/lite-space.ts';
+import type { IInstanceOfGame } from '../interfaces/instance-of-game.js';
+import type { ILiteSpace } from '../interfaces/lite-space.js';
 
 export enum Color {
   RED = 'Red',

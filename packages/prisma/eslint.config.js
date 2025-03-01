@@ -6,9 +6,9 @@ export default [
     files: ['**/*.json'],
     rules: {
       '@typescript-eslint/no-empty-object-type': 'off'
-    },
-    languageOptions: {
-      parser: await import('jsonc-eslint-parser')
     }
+    // languageOptions: {
+    //   parser: await import('jsonc-eslint-parser')
+    // }
   }
 ];

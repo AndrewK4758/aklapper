@@ -6,18 +6,9 @@
     "outDir": "dist",
     "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
     "emitDeclarationOnly": false,
-    "types": ["node"],
-    "paths": {
-      "@aklapper/chain": ["../chain/src/index.ts"],
-      "@aklapper/game": ["../game/src/index.ts"],
-      "@aklapper/games": ["../games/src/index.ts"],
-      "@aklapper/games-components": ["../games-components/src/index.ts"],
-      "@aklapper/models": ["../models/src/index.ts"],
-      "@aklapper/types": ["../types/src/index.ts"],
-      "@aklapper/utils": ["../utils/src/index.ts"]
-    }
+    "types": ["node", "../types/src/lib/game/types/express-request.d.ts"]
   },
-  "include": ["src/**/*.ts", "../types/src/lib/game/types/express-request.d.ts"],
+  "include": ["src/**/*.ts"],
   "references": [
     {
       "path": "../mocks/tsconfig.lib.json"

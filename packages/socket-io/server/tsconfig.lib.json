@@ -6,12 +6,9 @@
     "outDir": "dist",
     "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
     "emitDeclarationOnly": false,
-    "types": ["node"],
-    "paths": {
-      "@aklapper/types": ["../../types/src/index.ts"]
-    }
+    "types": ["node"]
   },
-  "include": ["src/**/*.ts", "../../types/src/**/*.ts"],
+  "include": ["src/**/*.ts"],
   "references": [
     {
       "path": "../../types/tsconfig.lib.json"

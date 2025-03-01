@@ -1,0 +1,64 @@
+{
+  "name": "crud-api-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "nx": {
+    "name": "crud-api-e2e",
+    "projectType": "application",
+    "implicitDependencies": [
+      "crud-api"
+    ],
+    "targets": {
+      "e2e": {
+        "executor": "@nx/jest:jest",
+        "outputs": [
+          "{workspaceRoot}/coverage/{e2eProjectRoot}"
+        ],
+        "options": {
+          "jestConfig": "apps/apis/crud/crud-api-e2e/jest.config.ts",
+          "passWithNoTests": true
+        },
+        "dependsOn": [
+          "crud-api:build"
+        ]
+      },
+      "docker-build-ci-database": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "{workspaceRoot}/apps/apis/crud/crud-api",
+          "commands": [
+            {
+              "description": "Build Docker Database for e2e Test",
+              "command": "docker build -f ./Dockerfile.crud-api-db . -t crud-api"
+            }
+          ]
+        }
+      },
+      "docker-compose-up-db": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "{workspaceRoot}/apps/apis/crud/crud-api",
+          "commands": [
+            {
+              "description": "Start Docker Database container",
+              "command": "docker compose -f docker-compose.crud.yaml up crud-api -d"
+            }
+          ]
+        }
+      },
+      "docker-compose-down-db": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "{workspaceRoot}/apps/apis/crud/crud-api",
+          "commands": [
+            {
+              "description": "Shutdown Docker Database container",
+              "command": "docker compose -f ./docker-compose.crud.yaml down"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

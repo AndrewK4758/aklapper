@@ -1,0 +1,28 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out-tsc/vertex-api",
+    "module": "nodenext",
+    "types": ["node"],
+    "rootDir": "src",
+    "strict": false,
+    "moduleResolution": "nodenext",
+    "tsBuildInfoFile": "out-tsc/vertex-api/tsconfig.app.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["out-tsc", "dist", "vitest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts", "eslint.config.js"],
+  "references": [
+    {
+      "path": "../../../../packages/gen-ai/vertex-ai/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../../packages/types/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../../packages/socket-io/server/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../../packages/gen-ai/prompt-builder/tsconfig.lib.json"
+    }
+  ]
+}
