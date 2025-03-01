@@ -32,24 +32,25 @@ jobs:
       # Install PNPM
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: '10'
 
       # Setup Node js
       - uses: actions/setup-node@v4
         with:
           node-version: '23'
+          cache: 'pnpm'
 
       # Cache Dependencies for all jobs
-      - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/pip
-            ~/.cache/poetry
-            ~/.pnpm-store
-            node_modules
-            .venv
-          key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+      # - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: |
+      #       ~/.cache/pip
+      #       ~/.cache/poetry
+      #       ~/.pnpm-store
+      #       node_modules
+      #       .venv
+      #     key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       # Install Node / Js dependencies
       - name: Install Nodejs Dependencies
@@ -59,7 +60,7 @@ jobs:
       - name: Set Python Version for wdg-agents
         uses: actions/setup-python@v5
         with:
-          python-version: 3.13.0
+          python-version: '3.13.0'
 
       # Install Poetry for Python venv managment
       # Add Poetry Export Plugin
@@ -93,25 +94,25 @@ jobs:
       # Install PNPM
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: '10'
 
       # Setup Node Js
       - uses: actions/setup-node@v4
         with:
-          node-version: 23
+          node-version: '23'
           cache: pnpm
 
       # Use cached dependencies
-      - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/pip
-            ~/.cache/poetry
-            ~/.pnpm-store
-            node_modules
-            .venv
-          key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+      # - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: |
+      #       ~/.cache/pip
+      #       ~/.cache/poetry
+      #       ~/.pnpm-store
+      #       node_modules
+      #       .venv
+      #     key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       # Add Nx Cloud Build Cache
       - uses: nrwl/nx-set-shas@v4
@@ -149,25 +150,25 @@ jobs:
       # Install PNPM
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: '10'
 
       # Setup Node Js
       - uses: actions/setup-node@v4
         with:
-          node-version: 23
+          node-version: '23'
           cache: pnpm
 
       # Use cached dependencies
-      - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/pip
-            ~/.cache/poetry
-            ~/.pnpm-store
-            node_modules
-            .venv
-          key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+      # - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: |
+      #       ~/.cache/pip
+      #       ~/.cache/poetry
+      #       ~/.pnpm-store
+      #       node_modules
+      #       .venv
+      #     key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       # Add Nx Cloud Build Cache
       - uses: nrwl/nx-set-shas@v4
@@ -219,25 +220,25 @@ jobs:
       # Install PNPM
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: '10'
 
       # Setup Node Js
       - uses: actions/setup-node@v4
         with:
-          node-version: 23
+          node-version: '23'
           cache: pnpm
 
       # Use cached dependencies
-      - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/pip
-            ~/.cache/poetry
-            ~/.pnpm-store
-            node_modules
-            .venv
-          key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+      # - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: |
+      #       ~/.cache/pip
+      #       ~/.cache/poetry
+      #       ~/.pnpm-store
+      #       node_modules
+      #       .venv
+      #     key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       # Add Nx Cloud Build Cache
       - uses: nrwl/nx-set-shas@v4
@@ -256,13 +257,13 @@ jobs:
           poetry self add poetry-plugin-shell
 
       # Build all projects
-      - name: Build all Projects
+      - name: Build all Affected Projects
         env:
           NODE_ENV: production
-        run: pnpx nx affected -t=build --verbose
+        run: pnpx nx affected -t=build,build-server --verbose
 
       # Typecheck all projects
-      - name: Typecheck all Projects
+      - name: Typecheck all Affected Projects
         env:
           NODE_ENV: production
         run: pnpx nx affected -t=typecheck --verbose
@@ -280,12 +281,12 @@ jobs:
       # Install PNPM
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: '10'
 
       # Cache node_modules
       - uses: actions/setup-node@v4
         with:
-          node-version: 23
+          node-version: '23'
           cache: pnpm
 
       # Install Dependencies
@@ -340,25 +341,25 @@ jobs:
       # Install PNPM
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: '10'
 
       # Setup Node Js
       - uses: actions/setup-node@v4
         with:
-          node-version: 23
+          node-version: '23'
           cache: pnpm
 
       # Use cached dependencies
-      - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/pip
-            ~/.cache/poetry
-            ~/.pnpm-store
-            node_modules
-            .venv
-          key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+      # - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: |
+      #       ~/.cache/pip
+      #       ~/.cache/poetry
+      #       ~/.pnpm-store
+      #       node_modules
+      #       .venv
+      #     key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       # Add Nx Cloud Build Cache
       - uses: nrwl/nx-set-shas@v4
@@ -389,20 +390,20 @@ jobs:
       # Setup Node Js
       - uses: actions/setup-node@v4
         with:
-          node-version: 23
+          node-version: '23'
           cache: pnpm
 
       # Use cached dependencies
-      - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/pip
-            ~/.cache/poetry
-            ~/.pnpm-store
-            node_modules
-            .venv
-          key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+      # - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: |
+      #       ~/.cache/pip
+      #       ~/.cache/poetry
+      #       ~/.pnpm-store
+      #       node_modules
+      #       .venv
+      #     key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       # Authenticate With GCP
       - uses: 'google-github-actions/auth@v2'
