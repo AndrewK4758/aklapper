@@ -337,7 +337,7 @@ jobs:
           GAR_REPO: ${{ env.GAR_REPO }}
           NODE_ENV: production
         run: |
-          pnpx nx affected -t docker-build
+          pnpx nx affected -t docker-build --exclude portfolio
 
       # Push all API's Docker Images for GCP Cloud Run Deployment
       - name: Push all API Docker Images to GCP Artifact Registery
@@ -387,7 +387,7 @@ jobs:
 
       # Deploy all APIs to Cloud Run
       - name: Deploy APIs to Cloud Run
-        run: pnpx nx affected -t deploy-cloud-run --verbose
+        run: pnpx nx affected -t deploy-cloud-run --verbose --exclude portfolio 
 
   deploy-portfolio:
     needs: ['build_and_typecheck']
