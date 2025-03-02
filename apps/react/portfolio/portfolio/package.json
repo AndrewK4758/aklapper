@@ -81,7 +81,7 @@
           "build-server"
         ],
         "options": {
-          "command": "docker build -f apps/react/portfolio/portfolio/Dockerfile . -t gcr.io/games-424800/default"
+          "command": "docker build -f Dockerfile . -t gcr.io/games-424800/default"
         }
       },
       "docker-push": {

@@ -6,28 +6,9 @@ service: default
 instance_class: F2
 
 handlers:
-  # - url: /dist/(.*)
-  # secure: always
-  # http_headers:
-  # Access-Control-Allow-Origin: '*'
-  # Access-Control-Expose-Headers: '*'
-  # static_files: dist/\1
-
-  # - url: /(.*\..*)
-  # upload: dist/(.*)
-
   - url: /.*
     script: auto
     secure: always
-    # http_headers:
-    #   Access-Control-Allow-Origin: '*'
-    #   Access-Control-Expose-Headers: '*'
-
-    # static_files: dist/index.html
-    # upload: dist/index.html
-
-  # - url: .*
-  # script: auto
 
 env_variables:
   GCLOUD_STORAGE_BUCKET: 'gs://portfolio-gen-ai'
