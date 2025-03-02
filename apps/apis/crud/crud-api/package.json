@@ -21,7 +21,7 @@
         "options": {
           "target": "node23",
           "metafile": true,
-          "bundle": false,
+          "bundle": true,
           "main": "apps/apis/crud/crud-api/src/main.ts",
           "outputPath": "apps/apis/crud/crud-api/dist",
           "outputFileName": "main.js",

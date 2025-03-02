@@ -10,7 +10,7 @@ import socketBoardAction from './events/socket-board-action.js';
 import addGameToSocketInstance from './middleware/socket-add-game-middleware.js';
 import router, { GameRoutes } from './routes/routes.js';
 
-const __dirname = join(cwd(), 'apis/games/games-api');
+const __dirname = join(cwd(), 'apps/apis/games/games-api');
 
 configDotenv({ path: join(__dirname, '.env') });
 

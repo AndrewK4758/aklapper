@@ -1,27 +1,18 @@
 import { exec, execSync } from 'child_process';
 
-const __TEARDOWN_MESSAGE__ = '\n Run docker down command after every e2e test \n';
+const __STARTUP_MESSAGE__ = '\n STARTING GAMES-API-E2E TEST \n';
+const __API_SLEEP__ = 'sleep 10';
 
 export default async function () {
-  console.log('\nStarting Games-API & Postgres Docker Container for e2e Test\n');
-  try {
-    execSync('nx docker-compose-up-db games-api-e2e');
-    exec('nx run games-api:serve:test', (error, stdout, stderr) => {
-      if (error) {
-        console.error(`exec error: ${error}`);
-        return;
-      }
-      console.log(`stdout:\n${stdout}`);
-      if (stderr) {
-        console.error(`stderr:\n${stderr}`);
-      }
-      console.log('CRUD-API START SUCESSFUL');
-    });
+  console.log(__STARTUP_MESSAGE__);
+  const serverProcess = exec('nx run games-api:serve', (err, stdout, stderr) => {
+    if (err) console.error(err);
 
-    execSync('sleep 5');
+    console.log(stdout, 'srdout');
 
-    globalThis.__TEARDOWN_MESSAGE__ = __TEARDOWN_MESSAGE__;
-  } catch (error) {
-    console.error(error);
-  }
+    if (stderr) console.error(stderr);
+  });
+  execSync(__API_SLEEP__);
+
+  globalThis.serverProcess = serverProcess;
 }

@@ -24,11 +24,11 @@
           "platform": "node",
           "target": "node23",
           "metafile": true,
-          "outputPath": "dist/apps/apis/vertex/vertex-api",
+          "outputPath": "apps/apis/vertex/vertex-api/dist",
           "format": [
             "esm"
           ],
-          "bundle": true,
+          "bundle": false,
           "main": "apps/apis/vertex/vertex-api/src/main.ts",
           "tsConfig": "apps/apis/vertex/vertex-api/tsconfig.app.json",
           "assets": [

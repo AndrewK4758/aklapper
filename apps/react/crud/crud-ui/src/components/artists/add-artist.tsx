@@ -41,17 +41,17 @@ const AddArtist = ({ rowCountState, setRowCountState, COUNT }: AddArtistProps) =
           <TextField
             autoComplete="off"
             name="name"
-            id="name"
             variant="outlined"
             color="primary"
             value={formik.values.name}
-            placeholder="Enter Artist Name"
+            label="Enter Artist Name"
             sx={{ flex: '1 0 50%' }}
             onChange={formik.handleChange}
             onBlur={e => formik.handleBlur(e)}
+            slotProps={{ htmlInput: { id: 'add-artist-input' } }}
           />
           {formik.touched.name && formik.errors.name ? (
-            <Text component={'p'} titleVariant="body1" titleText={formik.errors.name} />
+            <Text component={'p'} id="add-artist-blur-value" titleVariant="body1" titleText={formik.errors.name} />
           ) : null}
         </Box>
 

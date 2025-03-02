@@ -25,18 +25,43 @@ const Layout = () => {
               justifyContent: 'space-evenly'
             }}
           >
-            <Button type="button" variant="contained" onClick={() => nav('/')} sx={{ width: '123px' }}>
+            <Button
+              data-testid="home-button"
+              type="button"
+              variant="contained"
+              onClick={() => nav('/')}
+              sx={{ width: '123px' }}
+            >
               Home
             </Button>
-            <Button type="submit" variant="contained" onClick={() => nav('artists')} sx={{ width: '123px' }}>
+            <Button
+              data-testid="artists-button"
+              id="artists-button"
+              type="submit"
+              variant="contained"
+              onClick={() => nav('artists')}
+              sx={{ width: '123px' }}
+            >
               All Artists
             </Button>
 
-            <Button type="submit" variant="contained" onClick={() => nav('albums')} sx={{ width: '123px' }}>
+            <Button
+              data-testid="albums-button"
+              type="submit"
+              variant="contained"
+              onClick={() => nav('albums')}
+              sx={{ width: '123px' }}
+            >
               All Albums
             </Button>
 
-            <Button type="submit" variant="contained" onClick={() => nav('add-entry')} sx={{ width: '123px' }}>
+            <Button
+              data-testid="add-entry-button"
+              type="submit"
+              variant="contained"
+              onClick={() => nav('add-entry')}
+              sx={{ width: '123px' }}
+            >
               Add Entry
             </Button>
           </Box>

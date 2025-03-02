@@ -1,5 +1,5 @@
-import { defineConfig, devices } from '@playwright/test';
 import { nxE2EPreset } from '@nx/playwright/preset';
+import { defineConfig, devices } from '@playwright/test';
 
 import { workspaceRoot } from '@nx/devkit';
 import { fileURLToPath } from 'url';
@@ -17,8 +17,9 @@ const baseURL = process.env['BASE_URL'] || 'http://localhost:4300';
  * See https://playwright.dev/docs/test-configuration.
  */
 const __filename = fileURLToPath(import.meta.url);
+
 export default defineConfig({
-  ...nxE2EPreset(__filename, { testDir: './src' }),
+  ...nxE2EPreset(__filename, { testDir: './src/crud-ui-e2e' }),
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     baseURL,
@@ -32,6 +33,10 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     cwd: workspaceRoot
   },
+  globalTimeout: 30000,
+  globalSetup: './src/support/global-setup.ts',
+  globalTeardown: './src/support/global-teardown.ts',
+
   projects: [
     {
       name: 'chromium',

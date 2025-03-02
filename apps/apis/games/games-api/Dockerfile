@@ -15,7 +15,7 @@ RUN pnpm install --frozen-lockfile
 ENV NODE_ENV='production'
 
 # Copy the entire project to the container
-COPY dist/apis/games/games-api .
+COPY apps/apis/games/games-api/dist .
 
 # Expose port 3000 (or the port your app uses)
 EXPOSE 3000

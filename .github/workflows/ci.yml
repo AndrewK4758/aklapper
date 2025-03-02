@@ -408,6 +408,10 @@ jobs:
           node-version: '23'
           cache: pnpm
 
+      # Install Dependencies
+      - name: Install Portfolio Dependencies for Deploy to GCP Cloud Run
+        run: pnpm install -r --frozen-lockfile
+
       # Use cached dependencies
       # - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
       #   uses: actions/cache@v4

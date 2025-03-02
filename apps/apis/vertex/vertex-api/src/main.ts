@@ -1,6 +1,6 @@
 import { SocketServer } from '@aklapper/socket-io-server';
-import cors, { CorsOptions } from 'cors';
-import express, { Express } from 'express';
+import cors, { type CorsOptions } from 'cors';
+import express, { type Express } from 'express';
 import { createServer } from 'http';
 import { join } from 'path';
 import { cwd } from 'process';
@@ -8,7 +8,7 @@ import type { ServerOptions } from 'socket.io';
 import handleTextDataChunks from './controllers/gen-ai-text-handler.js';
 import router, { Routes } from './routes/routes.js';
 
-const __dirname = join(cwd(), 'apis/vertex/vertex-api');
+const __dirname = join(cwd(), 'apps/apis/vertex/vertex-api');
 
 const app: Express = express();
 

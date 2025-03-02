@@ -1,10 +1,11 @@
-import { execSync } from 'child_process';
+import type { ChildProcess } from 'child_process';
+
+const __TEARDOWN_MESSAGE__ = '\n FINISHED GAMES-API-E2E TEST \n';
 
 export default async function () {
-  try {
-    console.log(globalThis.__TEARDOWN_MESSAGE__);
-    execSync('nx docker-compose-down-db games-api-e2e');
-  } catch (error) {
-    console.error(error);
-  }
+  const serverProcess: ChildProcess = globalThis.serverProcess;
+
+  serverProcess.kill(9);
+
+  console.log(__TEARDOWN_MESSAGE__);
 }

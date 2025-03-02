@@ -8,15 +8,16 @@ import { join } from 'path';
 import { cwd } from 'process';
 import Routes, { router } from './routes/routes.js';
 
-const __dirname = join(cwd(), 'apis/crud/crud-api');
+const __dirname = join(cwd(), 'apps/apis/crud/crud-api');
 
-configDotenv({ path: join(__dirname, '.env') });
+configDotenv({ path: join(__dirname, 'env/.env') });
 
 const app: Express = express();
 
 export const corsOptions: CorsOptions = {
   origin: [
     'http://localhost:4700',
+    'http://localhost:4000',
     'http://localhost:4800',
     'http://localhost:4200',
     'http://localhost:4300',

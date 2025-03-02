@@ -18,11 +18,11 @@
           "platform": "node",
           "target": "node23",
           "metafile": true,
-          "outputPath": "dist/apis/portfolio/portfolio-api",
+          "outputPath": "apps/apis/portfolio/portfolio-api/dist",
           "format": [
             "esm"
           ],
-          "bundle": true,
+          "bundle": false,
           "main": "apps/apis/portfolio/portfolio-api/src/main.ts",
           "tsConfig": "apps/apis/portfolio/portfolio-api/tsconfig.app.json",
           "assets": [

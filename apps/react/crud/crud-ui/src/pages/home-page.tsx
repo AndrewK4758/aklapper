@@ -64,7 +64,6 @@ const HomePage = () => {
                 titleText={
                   'Columns have sorting & filtering, cells can be updated and changes can be sent to the back end, rows can be deleted, each catagory has the ability to create an entry, ADD ENTRY provides the opportunity to add all fields at once'
                 }
-                sx={{}}
               />
             </Container>
           </Grid2>

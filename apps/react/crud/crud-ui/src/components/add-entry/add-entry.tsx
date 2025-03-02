@@ -13,7 +13,8 @@ import StepButton from '@mui/material/StepButton';
 import Stepper from '@mui/material/Stepper';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import { album, artist, track, Prisma } from '@prisma/client';
+import { album, artist, track } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/index-browser.js';
 import { useFormik } from 'formik';
 import { FocusEvent, Fragment, useState } from 'react';
 import { Form, useNavigate } from 'react-router';
@@ -52,7 +53,7 @@ const initialValues: NewEntry = {
     milliseconds: 0,
     media_type_id: 0,
     genre_id: 0,
-    unit_price: new Prisma.Decimal(0.0)
+    unit_price: new Decimal(0.0)
   }
 };
 

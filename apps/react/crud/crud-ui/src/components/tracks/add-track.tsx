@@ -5,7 +5,8 @@ import Container from '@mui/material/Container';
 import FormLabel from '@mui/material/FormLabel';
 import TextField from '@mui/material/TextField';
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
-import { Prisma, track } from '@prisma/client';
+import { track } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/index-browser.js';
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import { FormikProps, useFormik } from 'formik';
 import { ChangeEvent, FocusEvent, RefObject } from 'react';
@@ -26,8 +27,8 @@ const initialValues: track = {
   genre_id: 0,
   milliseconds: 0,
   bytes: 0,
-  unit_price: new Prisma.Decimal(0.0),
-  composer: '',
+  unit_price: new Decimal(0.0),
+  composer: ''
 };
 
 const AddTrack = ({ albumID, apiRef }: AddTrackProps) => {
@@ -36,7 +37,7 @@ const AddTrack = ({ albumID, apiRef }: AddTrackProps) => {
     onSubmit: values => {
       handleSubmitNewTrack(values, formik, albumID, apiRef);
     },
-    validateOnBlur: true,
+    validateOnBlur: true
   });
 
   formik.handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -92,7 +93,7 @@ const handleSubmitNewTrack = async (
   values: track,
   formik: FormikProps<track>,
   albumID: number,
-  apiRef: RefObject<GridApiCommunity>,
+  apiRef: RefObject<GridApiCommunity>
 ) => {
   try {
     const trackName = values.name;
@@ -100,8 +101,8 @@ const handleSubmitNewTrack = async (
       `${baseURL}/tracks`,
       { name: trackName, albumID: albumID },
       {
-        headers: { 'Content-Type': 'application/json' },
-      },
+        headers: { 'Content-Type': 'application/json' }
+      }
     );
 
     if (resp.data.newTrack && apiRef.current) {
@@ -117,8 +118,8 @@ const handleSubmitNewTrack = async (
           genre_id: genre_id,
           bytes: bytes,
           composer: composer,
-          unit_price: unit_price,
-        },
+          unit_price: unit_price
+        }
       ]);
     }
   } catch (error) {
@@ -132,11 +133,11 @@ const handleSubmitNewTrack = async (
 const handleNewTrackBlur = async (
   e: FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>,
   formik: FormikProps<track>,
-  albumID: number,
+  albumID: number
 ) => {
   try {
     const resp = await axios.get(`${baseURL}/tracks?albumID=${albumID}&name=${e.target.value}`, {
-      headers: { 'Content-Type': 'text/plain' },
+      headers: { 'Content-Type': 'text/plain' }
     });
 
     formik.setTouched({ name: resp.data.message }, true);

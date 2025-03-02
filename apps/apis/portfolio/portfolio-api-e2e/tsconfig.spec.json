@@ -1,15 +1,12 @@
 {
   "extends": "../../../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "out-tsc/games-api-e2e",
+    "outDir": "out-tsc/portfolio-api-e2e",
     "esModuleInterop": true,
     "noUnusedLocals": false,
     "noImplicitAny": false
   },
   "include": ["jest.config.ts", "src/**/*.ts"],
-  "references": [
-    {
-      "path": "../../../../packages/types"
-    }
-  ]
+  "exclude": ["eslint.config.js"],
+  "references": []
 }

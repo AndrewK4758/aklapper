@@ -1,5 +1,5 @@
 {
-  "name": "@aklapper/games-api",
+  "name": "games-api",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -34,7 +34,7 @@
           "format": [
             "esm"
           ],
-          "bundle": true,
+          "bundle": false,
           "main": "apps/apis/games/games-api/src/main.ts",
           "tsConfig": "apps/apis/games/games-api/tsconfig.app.json",
           "assets": [

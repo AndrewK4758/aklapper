@@ -1,13 +1,10 @@
 import cors, { CorsOptions } from 'cors';
-import { configDotenv } from 'dotenv';
 import express, { Express } from 'express';
 import { join } from 'path';
 import { cwd } from 'process';
 import router, { PortfolioRoutes } from './routes/routes.js';
 
-configDotenv({ path: '../env/.env' });
-
-const __dirname = join(cwd(), 'apis/portfolio/portfolio-api');
+const __dirname = join(cwd(), 'apps/apis/portfolio/portfolio-api');
 
 const app: Express = express();
 

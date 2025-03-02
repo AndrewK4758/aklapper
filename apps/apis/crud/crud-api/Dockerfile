@@ -18,7 +18,7 @@ COPY packages/prisma/src ./libs/prisma/source
 RUN pnpx prisma generate
 
 # Copy the entire project to the container
-COPY dist/apis/crud/crud-api .
+COPY apps/apis/crud/crud-api/dist .
 
 ENV NODE_ENV='production'
 

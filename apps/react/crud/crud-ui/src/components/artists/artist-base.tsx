@@ -125,7 +125,7 @@ const Artist = () => {
       component={'div'}
       key={'artist-album-wrapper'}
       id="artist-album-wrapper"
-      sx={{ display: 'flex', flexWrap: 'wrap', border: 10, width: '73vw' }}
+      sx={{ display: 'flex', flexWrap: 'wrap', width: '73vw' }}
     >
       <Box
         component={'div'}
@@ -141,8 +141,10 @@ const Artist = () => {
           <Paper elevation={6} key={'artist-list-box'} sx={{ height: '2rem' }}>
             <Typography
               aria-label="artists"
-              component={'h1'}
-              id="artistsLabel"
+              component={'h2'}
+              variant="h2"
+              id="artists-label"
+              data-testid="artists-label"
               sx={{
                 textAlign: 'center',
                 fontSize: '22px',

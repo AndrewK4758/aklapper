@@ -5,7 +5,7 @@ import { resolve } from 'path';
 import { workspaceRoot } from '@nx/devkit';
 
 const tsJestOptions: DefaultEsmTransformOptions = {
-  tsconfig: '<rootDir>/tsconfig.json',
+  tsconfig: '<rootDir>/tsconfig.spec.json',
   isolatedModules: true,
   babelConfig: {
     sourceType: 'module',
