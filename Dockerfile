@@ -13,8 +13,8 @@ COPY packages/prisma/src ./libs/prisma/source
 
 RUN pnpx prisma generate
 
-COPY apps/portfolio/portfolio/dist ./dist/
-COPY apps/portfolio/portfolio/index.html ./
+COPY apps/react/portfolio/portfolio/dist ./dist/
+COPY apps/react/portfolio/portfolio/index.html ./
 
 EXPOSE 4700
 
