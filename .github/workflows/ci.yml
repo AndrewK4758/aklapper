@@ -364,6 +364,10 @@ jobs:
           node-version: '23'
           cache: pnpm
 
+      # Install Node / Js dependencies
+      - name: Install Nodejs Dependencies
+        run: pnpm install -r --frozen-lockfile
+
       # Use cached dependencies
       # - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
       #   uses: actions/cache@v4
