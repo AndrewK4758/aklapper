@@ -140,7 +140,7 @@ jobs:
 
       # Lint all projects
       - name: Lint all projects
-        run: pnpx nx affected -t=lint --verbose --nx-cloud-access-token=${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+        run: pnpx nx affected -t=lint --verbose
 
   test:
     # needs: ['setup']
@@ -210,7 +210,7 @@ jobs:
         env:
           NODE_ENV: test
           DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
-        run: pnpx nx affected -t=test --verbose --nx-cloud-access-token=${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+        run: pnpx nx affected -t=test --verbose
 
   build_and_typecheck:
     needs: ['lint', 'test']
@@ -275,13 +275,13 @@ jobs:
       - name: Build all Affected Projects
         env:
           NODE_ENV: production
-        run: pnpx nx affected -t=build,build-server --verbose --nx-cloud-access-token=${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+        run: pnpx nx affected -t=build,build-server --verbose
 
       # Typecheck all projects
       - name: Typecheck all Affected Projects
         env:
           NODE_ENV: production
-        run: pnpx nx affected -t=typecheck --verbose --nx-cloud-access-token=${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+        run: pnpx nx affected -t=typecheck --verbose
 
   # Build Docker Image & Push to GCP Artifact Registry
   prepare-apis:
@@ -337,12 +337,12 @@ jobs:
           GAR_REPO: ${{ env.GAR_REPO }}
           NODE_ENV: production
         run: |
-          pnpx nx affected -t docker-build --exclude portfolio --nx-cloud-access-token=${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+          pnpx nx affected -t docker-build --exclude portfolio
 
       # Push all API's Docker Images for GCP Cloud Run Deployment
       - name: Push all API Docker Images to GCP Artifact Registery
         run: |
-          pnpx nx affected -t docker-push --verbose --exclude=portfolio --nx-cloud-access-token=${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+          pnpx nx affected -t docker-push --verbose --exclude=portfolio
 
   deploy-apis:
     needs: ['prepare-apis']
@@ -387,7 +387,7 @@ jobs:
 
       # Deploy all APIs to Cloud Run
       - name: Deploy APIs to Cloud Run
-        run: pnpx nx affected -t deploy-cloud-run --verbose --exclude=portfolio --nx-cloud-access-token=${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+        run: pnpx nx affected -t deploy-cloud-run --verbose --exclude=portfolio
 
   deploy-portfolio:
     needs: ['build_and_typecheck']
@@ -441,4 +441,4 @@ jobs:
           VITE_VERTEX_API_URL: ${{ secrets.VITE_VERTEX_API_URL }}
           VITE_GAMES_WS_URL: ${{ secrets.VITE_GAMES_WS_URL }}
           VITE_VERTEX_WS_URL: ${{ secrets.VITE_VERTEX_WS_URL }}1
-        run: pnpx nx affected -t deploy-app-engine --verbose --nx-cloud-access-token=${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+        run: pnpx nx affected -t deploy-app-engine --verbose
