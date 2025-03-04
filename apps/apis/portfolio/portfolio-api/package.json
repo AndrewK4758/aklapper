@@ -22,7 +22,7 @@
           "format": [
             "esm"
           ],
-          "bundle": false,
+          "bundle": true,
           "main": "apps/apis/portfolio/portfolio-api/src/main.ts",
           "tsConfig": "apps/apis/portfolio/portfolio-api/tsconfig.app.json",
           "assets": [

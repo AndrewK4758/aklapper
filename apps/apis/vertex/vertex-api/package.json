@@ -28,7 +28,7 @@
           "format": [
             "esm"
           ],
-          "bundle": false,
+          "bundle": true,
           "main": "apps/apis/vertex/vertex-api/src/main.ts",
           "tsConfig": "apps/apis/vertex/vertex-api/tsconfig.app.json",
           "assets": [

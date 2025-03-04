@@ -34,7 +34,7 @@
           "format": [
             "esm"
           ],
-          "bundle": false,
+          "bundle": true,
           "main": "apps/apis/games/games-api/src/main.ts",
           "tsConfig": "apps/apis/games/games-api/tsconfig.app.json",
           "assets": [
