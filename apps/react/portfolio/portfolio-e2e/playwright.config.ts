@@ -1,11 +1,11 @@
-import { defineConfig, devices } from '@playwright/test';
 import { nxE2EPreset } from '@nx/playwright/preset';
+import { defineConfig, devices } from '@playwright/test';
 import { fileURLToPath } from 'url';
 
 import { workspaceRoot } from '@nx/devkit';
 
 // For CI, you may want to set BASE_URL to the deployed application.
-const baseURL = process.env['BASE_URL'] || 'http://localhost:4300';
+const baseURL = process.env['BASE_URL'] || 'http://localhost:4700';
 
 /**
  * Read environment variables from file.
@@ -26,12 +26,20 @@ export default defineConfig({
     trace: 'on-first-retry'
   },
   /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'pnpm exec nx run portfolio:preview',
-    url: 'http://localhost:4300',
-    reuseExistingServer: !process.env.CI,
-    cwd: workspaceRoot
-  },
+  webServer: [
+    // {
+    //   command: 'pnpm exec nx run portfolio:preview',
+    //   url: 'http://localhost:4300',
+    //   reuseExistingServer: !process.env.CI,
+    //   cwd: workspaceRoot
+    // },
+    {
+      command: 'nx serve-server portfolio --verbose',
+      url: 'http://localhost:4700',
+      reuseExistingServer: !process.env.CI,
+      cwd: workspaceRoot
+    }
+  ],
   projects: [
     {
       name: 'chromium',
@@ -41,31 +49,32 @@ export default defineConfig({
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] }
-    }
+    },
 
-    // {
-    //   name: 'webkit',
-    //   use: { ...devices['Desktop Safari'] },
-    // },
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] }
+    },
 
     // Uncomment for mobile browsers support
-    /* {
+    /*
+    {
       name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
+      use: { ...devices['Pixel 5'] }
     },
     {
       name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
-    }, */
-
+      use: { ...devices['iPhone 12'] }
+    },
+    */
     // Uncomment for branded browsers
-    /* {
+    {
       name: 'Microsoft Edge',
-      use: { ...devices['Desktop Edge'], channel: 'msedge' },
+      use: { ...devices['Desktop Edge'], channel: 'msedge' }
     },
     {
       name: 'Google Chrome',
-      use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    } */
+      use: { ...devices['Desktop Chrome'], channel: 'chrome' }
+    }
   ]
 });

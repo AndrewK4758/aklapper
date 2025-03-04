@@ -7,13 +7,13 @@ import Collapse from '@mui/material/Collapse';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import Toolbar from '@mui/material/Toolbar';
-import { useRef, type Dispatch, type JSX, type SetStateAction } from 'react';
-import { Outlet, useNavigation, useOutletContext, useParams, useSubmit, type SubmitFunction } from 'react-router';
+import { useRef, useState, type Dispatch, type JSX, type SetStateAction } from 'react';
+import { Outlet, useNavigation, useOutletContext, useSubmit, type SubmitFunction } from 'react-router';
 import ChutesAndLaddersIcon from '../../components/icons/chutes-and-ladders.jsx';
 import TicTacToeIcon from '../../components/icons/tic-tac-toe-icon.jsx';
 import GameLoading from '../../components/loading/loading.jsx';
 import { crudPaperSxProps } from '../../styles/crud-styles.jsx';
-import { gamesButtonLabelsSxProps, gamesButtonSxProps } from '../../styles/games-styles.jsx';
+import { gamesButtonLabelsSxProps, gamesButtonSxProps, gamesLabelWrapperSxProps } from '../../styles/games-styles.jsx';
 import {
   gamesOutletGameWrapperSxProps,
   gamesOutletWrapperSxProps,
@@ -33,10 +33,11 @@ import { body, title } from '../static/games-text';
  */
 
 const Games = (): JSX.Element => {
-  const params = useParams();
+  // const params = useParams();
   const { state } = useNavigation();
   const { loading, setLoading } = useOutletContext<LoadingOutletContext>();
   const divRef = useRef<HTMLElement>(null);
+  const [textView, setTextView] = useState<boolean>(true);
   const submit = useSubmit();
 
   useScrollIntoView(divRef);
@@ -82,7 +83,7 @@ const Games = (): JSX.Element => {
                   variant="text"
                   disabled={state !== 'idle'}
                   endIcon={<ChutesAndLaddersIcon sx={iconStateStyle(state)} />}
-                  onClick={async e => loadAndStartGame(e.currentTarget.id, submit, setLoading)}
+                  onClick={async e => loadAndStartGame(e.currentTarget.id, submit, setLoading, setTextView)}
                   sx={gamesButtonSxProps}
                 >
                   <Label
@@ -97,6 +98,7 @@ const Games = (): JSX.Element => {
                     labelVariant={'button'}
                     labelText={'Chutes & Ladders'}
                     placement={'top'}
+                    labelWrapperDivSxProps={gamesLabelWrapperSxProps}
                     labelTextSx={gamesButtonLabelsSxProps}
                   />
                 </Button>
@@ -109,7 +111,7 @@ const Games = (): JSX.Element => {
                   variant="text"
                   disabled={state !== 'idle'}
                   endIcon={<TicTacToeIcon sx={iconStateStyle(state)} />}
-                  onClick={async e => loadAndStartGame(e.currentTarget.id, submit, setLoading)}
+                  onClick={async e => loadAndStartGame(e.currentTarget.id, submit, setLoading, setTextView)}
                   sx={gamesButtonSxProps}
                 >
                   <Label
@@ -124,6 +126,7 @@ const Games = (): JSX.Element => {
                     labelVariant={'button'}
                     labelText={'Tic Tac Toe'}
                     placement={'top'}
+                    labelWrapperDivSxProps={gamesLabelWrapperSxProps}
                     labelTextSx={gamesButtonLabelsSxProps}
                   />
                 </Button>
@@ -131,7 +134,7 @@ const Games = (): JSX.Element => {
             </Toolbar>
           </AppBar>
         </Container>
-        <Collapse in={params.id === undefined}>
+        <Collapse in={textView}>
           <Container
             component={'div'}
             key={'games-header-text-wrapper'}
@@ -181,9 +184,11 @@ export default Games;
 const loadAndStartGame = async (
   gameName: string,
   submit: SubmitFunction,
-  setLoading: Dispatch<SetStateAction<boolean>>
+  setLoading: Dispatch<SetStateAction<boolean>>,
+  setTextView: Dispatch<SetStateAction<boolean>>
 ) => {
   try {
+    setTextView(false);
     setLoading(true);
     await submit(gameName, {
       method: 'post',

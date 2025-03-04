@@ -1,4 +1,4 @@
-import { Text, useScrollIntoView, Waiting } from '@aklapper/react-shared';
+import { Label, Text, useScrollIntoView, Waiting } from '@aklapper/react-shared';
 import Collapse from '@mui/material/Collapse';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
@@ -25,6 +25,7 @@ import {
   pagesWrapperStyles
 } from '../../styles/pages-styles.jsx';
 import { body, title } from '../static/crud-text.jsx';
+import { gamesButtonLabelsSxProps } from '../../styles/games-styles';
 
 const Search = lazy(() => import('../../components/crud/search.jsx'));
 
@@ -91,7 +92,20 @@ const Crud = (): JSX.Element => {
                   onClick={() => nav('/crud')}
                   sx={crudButtonSxProps}
                 >
-                  Home
+                  <Label
+                    htmlFor="crud-home-button"
+                    tooltipTitle={
+                      <pre>
+                        {
+                          'Clicking the button executes the following actions: \n- Starts the Chutes & Ladders instance\n- Registers 2 "Guest" Players\n- Automatically starts the game'
+                        }
+                      </pre>
+                    }
+                    labelVariant={'button'}
+                    labelText={'Home'}
+                    placement={'top'}
+                    labelTextSx={gamesButtonLabelsSxProps}
+                  />
                 </Button>
                 <Button
                   LinkComponent={'button'}
@@ -103,7 +117,20 @@ const Crud = (): JSX.Element => {
                   onClick={() => nav('artists')}
                   sx={crudButtonSxProps}
                 >
-                  All Artists
+                  <Label
+                    htmlFor="crud-artists-button"
+                    tooltipTitle={
+                      <pre>
+                        {
+                          'Clicking the button executes the following actions: \n- Starts the Chutes & Ladders instance\n- Registers 2 "Guest" Players\n- Automatically starts the game'
+                        }
+                      </pre>
+                    }
+                    labelVariant={'button'}
+                    labelText={'All Artists'}
+                    placement={'top'}
+                    labelTextSx={gamesButtonLabelsSxProps}
+                  />
                 </Button>
                 <Button
                   LinkComponent={'button'}
@@ -115,7 +142,20 @@ const Crud = (): JSX.Element => {
                   onClick={() => nav('albums')}
                   sx={crudButtonSxProps}
                 >
-                  All Albums
+                  <Label
+                    htmlFor="crud-albums-button"
+                    tooltipTitle={
+                      <pre>
+                        {
+                          'Clicking the button executes the following actions: \n- Starts the Chutes & Ladders instance\n- Registers 2 "Guest" Players\n- Automatically starts the game'
+                        }
+                      </pre>
+                    }
+                    labelVariant={'button'}
+                    labelText={'All Albums'}
+                    placement={'top'}
+                    labelTextSx={gamesButtonLabelsSxProps}
+                  />
                 </Button>
                 <Button
                   LinkComponent={'button'}
@@ -127,7 +167,20 @@ const Crud = (): JSX.Element => {
                   onClick={() => nav('add-entry')}
                   sx={crudButtonSxProps}
                 >
-                  Add Entry
+                  <Label
+                    htmlFor="crud-add-entry-button"
+                    tooltipTitle={
+                      <pre>
+                        {
+                          'Clicking the button executes the following actions: \n- Starts the Chutes & Ladders instance\n- Registers 2 "Guest" Players\n- Automatically starts the game'
+                        }
+                      </pre>
+                    }
+                    labelVariant={'button'}
+                    labelText={'Add Entry'}
+                    placement={'top'}
+                    labelTextSx={gamesButtonLabelsSxProps}
+                  />
                 </Button>
               </ButtonGroup>
             </Toolbar>

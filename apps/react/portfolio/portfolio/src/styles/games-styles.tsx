@@ -11,6 +11,8 @@ export const gamesPaperSxProps: SxProps = {
 };
 
 export const gamesButtonSxProps: SxProps = {
+  display: 'flex',
+  flexDirection: 'row',
   [Theme.breakpoints.down('lg')]: {
     p: 0
   }
@@ -106,11 +108,16 @@ export const breakpointsPlayersInGameText: SxProps = {
   }
 };
 
+export const gamesLabelWrapperSxProps: SxProps = {
+  display: 'flex',
+  flex: '0 1 100%'
+};
+
 export const gamesButtonLabelsSxProps: SxProps = {
   color: 'inherit',
   fontSize: '2rem',
   [Theme.breakpoints.down('lg')]: {
-    fontSize: '.75rem'
+    fontSize: '1rem'
   }
 };
 

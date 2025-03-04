@@ -6,6 +6,7 @@ export default async function () {
   try {
     console.log(__TEARDOWN_MESSAGE__);
     execSync('nx docker-compose-down-db crud-api-e2e');
+    execSync(`fuser -k ${globalThis.__API_PORT__}/tcp`);
   } catch (error) {
     console.error('ERROR: ', error);
   }

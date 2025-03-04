@@ -17,6 +17,7 @@ export interface LabelProps {
   labelVariant: Variant;
   labelText: string;
   labelTextSx?: SxProps;
+  labelWrapperDivSxProps?: SxProps;
   tooltipSx?: SxProps;
   placement:
     | 'bottom'
@@ -38,9 +39,23 @@ export interface LabelProps {
 }
 
 export const Label = forwardRef<HTMLDivElement, LabelProps>(
-  ({ labelText, labelVariant, placement, labelTextSx, tooltipSx, tooltipTitle, Icon, children, htmlFor }, ref) => (
-    <Box component={'div'} key={`${labelText}-wrapper-box`} id={`${labelText}-wrapper-box`} sx={labelWrapperSxProps}>
-      <Box component={'div'} key={`${labelText}-box`} id={`${labelText}-box`}>
+  (
+    {
+      labelText,
+      labelVariant,
+      placement,
+      labelTextSx,
+      tooltipSx,
+      tooltipTitle,
+      Icon,
+      children,
+      htmlFor,
+      labelWrapperDivSxProps = labelWrapperSxProps
+    },
+    ref
+  ) => (
+    <Box component={'div'} key={`${labelText}-wrapper-box`} id={`${labelText}-wrapper-box`}>
+      <Box component={'div'} key={`${labelText}-box`} id={`${labelText}-box`} sx={labelWrapperDivSxProps}>
         <Tooltip
           id={`${labelText}-tooltip`}
           key={`${labelText}-tooltip`}

@@ -6,7 +6,7 @@ const baseURL = import.meta.env.VITE_DATA_API_URL;
 
 const handleNewArtistBlur = async <T,>(
   e: FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>,
-  formik: FormikProps<T>,
+  formik: FormikProps<T>
 ) => {
   try {
     const name = e.target.value;
@@ -16,6 +16,8 @@ const handleNewArtistBlur = async <T,>(
 
     const resp = await axios.get(`${baseURL}/artists?name=${name}`);
 
+    console.log(resp.config.baseURL);
+    console.log(process.env.NODE_ENV);
     await formik.setFieldTouched(field, true, true);
     formik.setFieldError(field, resp.data.message);
   } catch (error) {

@@ -27,16 +27,17 @@ export default defineConfig({
     trace: 'on-first-retry'
   },
   /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'pnpm exec nx run crud-ui:preview',
-    url: 'http://localhost:4300',
-    reuseExistingServer: !process.env.CI,
-    cwd: workspaceRoot
-  },
-  globalTimeout: 30000,
+  webServer: [
+    {
+      command: 'nx run crud-ui:preview',
+      url: 'http://localhost:4300',
+      reuseExistingServer: !process.env.CI,
+      cwd: workspaceRoot,
+      timeout: 120 * 1000
+    }
+  ],
   globalSetup: './src/support/global-setup.ts',
   globalTeardown: './src/support/global-teardown.ts',
-
   projects: [
     {
       name: 'chromium',
@@ -51,26 +52,26 @@ export default defineConfig({
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] }
-    }
+    },
 
     // Uncomment for mobile browsers support
-    /* {
+    {
       name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
+      use: { ...devices['Pixel 5'] }
     },
     {
       name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
-    }, */
+      use: { ...devices['iPhone 12'] }
+    },
 
     // Uncomment for branded browsers
-    /* {
+    {
       name: 'Microsoft Edge',
-      use: { ...devices['Desktop Edge'], channel: 'msedge' },
+      use: { ...devices['Desktop Edge'], channel: 'msedge' }
     },
     {
       name: 'Google Chrome',
-      use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    } */
+      use: { ...devices['Desktop Chrome'], channel: 'chrome' }
+    }
   ]
 });

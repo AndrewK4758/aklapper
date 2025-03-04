@@ -9,7 +9,7 @@ const addArtistAlreadyInDB = 'AC/DC';
 test.describe('Crud-UI e2e Test', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    page.on('console', msg => console.log('PAGE LOG 1:', msg.text()));
+    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
   });
 
   test.describe('Layout Route', () => {
@@ -20,20 +20,17 @@ test.describe('Crud-UI e2e Test', () => {
     });
   });
   test.describe('Artists path', () => {
-    test('Navigates to All Artists', async ({ page }) => {
+    test.beforeEach(async ({ page }) => {
       const artistsButton = page.locator('#artists-button');
-
       await artistsButton.click();
-      await page.waitForURL('**/artists');
+    });
+    test('Navigates to All Artists', async ({ page }) => {
+      // await page.waitForURL('**/artists');
 
       expect(await page.locator('#artists-label').textContent()).toEqual('Artist List');
     });
     test('Test Add Artist input element', async ({ page }) => {
-      const artistsButton = page.locator('#artists-button');
-
-      await artistsButton.click();
-
-      await page.waitForURL('**/artists');
+      // await page.waitForURL('**/artists');
 
       const addArtistInput = page.locator('#add-artist-input');
 

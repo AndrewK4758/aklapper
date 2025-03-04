@@ -150,7 +150,12 @@ const GenAiHome = (): JSX.Element => {
             key={'gen-ai-header-text-collapse'}
             id={'gen-ai-header-text-collapse'}
           >
-            <Box component={'div'} key={'gen-ai-header-text-wrapper'} id="gen-ai-header-text-wrapper">
+            <Box
+              component={'div'}
+              key={'gen-ai-header-text-wrapper'}
+              id="gen-ai-header-text-wrapper"
+              sx={{ paddingY: 2 }}
+            >
               <Text
                 component={'p'}
                 key={'gen-ai-header-text'}
