@@ -11,6 +11,7 @@ COPY package.json pnpm-lock.yaml ./
 
 # Install dependencies using pnpm
 RUN pnpm install --frozen-lockfile --prod
+RUN pnpm approve-builds
 
 COPY packages/prisma/prisma ./libs/prisma/prisma
 COPY packages/prisma/src ./libs/prisma/source

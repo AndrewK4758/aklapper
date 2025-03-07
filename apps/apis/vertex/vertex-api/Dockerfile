@@ -11,6 +11,7 @@ COPY package.json pnpm-lock.yaml ./
 
 # Install dependencies using pnpm
 RUN pnpm install --frozen-lockfile
+RUN pnpm approve-builds
 
 ENV NODE_ENV='production'
 
