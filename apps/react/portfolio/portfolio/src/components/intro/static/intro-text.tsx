@@ -1,11 +1,11 @@
 import { Link } from 'react-router';
 import Theme from '../../../styles/theme.jsx';
-// import '../../../styles/main-styles.css';
+import Box from '@mui/material/Box';
 
 export const ABOUT_ME_TITLE = "Hi, I'm Andrew Klapper";
 
-export const IntroText = (
-  <div id="intro-text" data-testid="intro-text" key={'intro-text'}>
+export const IntroText = () => (
+  <Box component={'p'} id="intro-text" data-testid="intro-text" key={'intro-text'}>
     A am a full-stack web developer with 3 years of personal experience developing & deploying web based applications &
     projects. I specialize in <strong className="bold-text">Monorepo Architectures</strong>,{' '}
     <strong className="bold-text">Cloud Deployments</strong>, custom{' '}
@@ -52,5 +52,5 @@ export const IntroText = (
     interests like generative AI & & outdoor activities, such as: camping, fishing, & working on my project truck; which
     help me maintain a balanced lifestyle & foster a creative approach to problem-solving. I'm excited to bring my
     passion & skills to a team where I can contribute to meaningful projects & continue to grow as a developer.
-  </div>
+  </Box>
 );
