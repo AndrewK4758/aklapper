@@ -35,7 +35,7 @@ const PicutreAndResume = (): JSX.Element => (
       key={'card-media-resume-image'}
       id={'card-media-resume-image'}
       data-testid={'card-media-resume-image'}
-      src={'/server/self.webp'}
+      src={'/client/self.webp'}
       loading="lazy"
       alt="andrew"
       sx={introPicStyles}
@@ -48,7 +48,7 @@ const PicutreAndResume = (): JSX.Element => (
           data-testid={'card-media-resume-button'}
           variant="contained"
           LinkComponent={'a'}
-          href={'/server/Resume.pdf'}
+          href={'/client/Resume.pdf'}
           download={`andrew-klapper-resume`}
           endIcon={<ResumeIcon color={Theme.palette.mode === 'dark' ? '#000000' : '#FFFFFF'} sx={introIconSxProps} />}
           sx={introButtonSxProps}

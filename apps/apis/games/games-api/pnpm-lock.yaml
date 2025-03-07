@@ -1,0 +1,40 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    devDependencies:
+      '@aklapper/chain':
+        specifier: workspace:^
+        version: link:../../../../packages/chain
+      '@aklapper/game':
+        specifier: workspace:^
+        version: link:../../../../packages/game
+      '@aklapper/games':
+        specifier: workspace:^
+        version: link:../../../../packages/games
+      '@aklapper/games-chains':
+        specifier: workspace:^
+        version: link:../../../../packages/games-chains
+      '@aklapper/games-components':
+        specifier: workspace:^
+        version: link:../../../../packages/games-components
+      '@aklapper/mocks':
+        specifier: workspace:^
+        version: link:../../../../packages/mocks
+      '@aklapper/models':
+        specifier: workspace:^
+        version: link:../../../../packages/models
+      '@aklapper/socket-io-server':
+        specifier: workspace:^
+        version: link:../../../../packages/socket-io/server
+      '@aklapper/types':
+        specifier: workspace:^
+        version: link:../../../../packages/types
+      '@aklapper/utils':
+        specifier: workspace:^
+        version: link:../../../../packages/utils

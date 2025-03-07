@@ -33,7 +33,7 @@ export const PlayersInGame = ({
   <Box component={component} key={id} width={'fit-content'} whiteSpace={'preserve'} sx={boxSx}>
     <Text component={'p'} titleVariant={playerVariant} titleText={playerName} sx={textSx} />
     <img
-      src={`/server/game-avatars/${avatarName.toLowerCase()}.svg`}
+      src={`/client/game-avatars/${avatarName.toLowerCase()}.svg`}
       alt={`${avatarName} active in game`}
       style={avatarSvgStyle}
     />

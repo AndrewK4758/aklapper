@@ -30,7 +30,7 @@ const gameBoardRowMap = (e: ILiteSpace, i: number, _arr: string[]) => (
         key={`${e.display}-avatar-c&l`}
         id={`${e.display}-avatar-c&l`}
         data-testid={`${e.display}-avatar-c&l`}
-        src={`/server/game-avatars/${e.display}`}
+        src={`/client/game-avatars/${e.display}`}
         alt={`${e.display} game piece`}
         style={avatarSize}
       />

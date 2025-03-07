@@ -79,7 +79,7 @@ export const GameBoardMapTicTacToe = ({
           >
             <img
               key={`${e.display}-avatar-${i}`}
-              src={`/server/game-avatars/${e.display}`}
+              src={`/client/game-avatars/${e.display}`}
               alt={`${e.display} game piece`}
               style={avatarTTTSize}
             />

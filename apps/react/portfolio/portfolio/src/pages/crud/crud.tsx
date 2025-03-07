@@ -214,14 +214,11 @@ const Crud = (): JSX.Element => {
           )}
         </Box>
       </Paper>
-      <Suspense fallback={<Waiting src={waiting} />}>
-        {open && <Search setOpen={setOpen} />}
-        {!loading && (
-          <Box component={'div'} key={`crud-app-wrapper`} id={`crud-app-wrapper`} sx={crudAppWrapperStyles}>
-            <Outlet />
-          </Box>
-        )}
-      </Suspense>
+      <Suspense fallback={<Waiting src={waiting} />}>{open && <Search setOpen={setOpen} />}</Suspense>
+
+      <Box component={'div'} key={`crud-app-wrapper`} id={`crud-app-wrapper`} sx={crudAppWrapperStyles}>
+        <Suspense fallback={<Waiting src={waiting} />}>{!loading && <Outlet />}</Suspense>
+      </Box>
     </Box>
   );
 };

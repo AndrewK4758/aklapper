@@ -40,11 +40,11 @@ describe('Test Home Component', async () => {
     const resumePic = await baseComponent.findByTestId('card-media-resume-image');
     const resumeButton = await baseComponent.findByTestId('card-media-resume-button');
 
-    expect(resumePic).toHaveAttribute('src', '/server/self.webp');
+    expect(resumePic).toHaveAttribute('src', '/client/self.webp');
     expect(resumePic).toHaveAttribute('alt', 'andrew');
 
     expect(resumeButton).toHaveTextContent('Resume');
-    expect(resumeButton).toHaveAttribute('href', '/server/Resume.pdf');
+    expect(resumeButton).toHaveAttribute('href', '/client/Resume.pdf');
     expect(resumeButton).toHaveAttribute('download', `andrew-klapper-resume`);
   });
 });

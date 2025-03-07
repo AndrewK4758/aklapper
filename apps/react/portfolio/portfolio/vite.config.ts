@@ -60,8 +60,8 @@ const config: UserConfig = defineConfig({
       },
       perf: true,
       output: {
-        entryFileNames: 'browser.js',
-        assetFileNames: '[name].[ext]',
+        // entryFileNames: 'browser.js',
+        // assetFileNames: '[name].[ext]',
         strict: true,
         esModule: true,
         format: 'esm',

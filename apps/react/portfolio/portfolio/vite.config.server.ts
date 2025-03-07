@@ -27,6 +27,7 @@ const config: UserConfig = defineConfig({
   cacheDir: resolve(workspaceRoot, 'node_modules/.vite/apps/react/portfolio/portfolio'),
 
   plugins: [react()],
+
   // Uncomment this if you are using workers.
   // worker: {
   //  plugins: [ nxViteTsPaths() ],
@@ -43,7 +44,7 @@ const config: UserConfig = defineConfig({
   base: '/server',
   build: {
     ssr: true,
-    ssrEmitAssets: true,
+    ssrEmitAssets: false,
     ssrManifest: true,
     outDir: './dist/server',
     minify: false,
@@ -59,7 +60,6 @@ const config: UserConfig = defineConfig({
       },
       perf: true,
       output: {
-        assetFileNames: '[name].[ext]',
         entryFileNames: 'server.js',
         strict: true,
         esModule: true,
@@ -78,7 +78,7 @@ const config: UserConfig = defineConfig({
 
   logLevel: 'info',
   appType: 'custom',
-  publicDir: 'public',
+  publicDir: false,
   envDir: './env'
 });
 

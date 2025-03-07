@@ -5,11 +5,15 @@ import ReactDomServer from 'react-dom/server';
 import { createStaticHandler, createStaticRouter, StaticRouterProvider, type StaticHandlerContext } from 'react-router';
 import routes from './routes/routes.jsx';
 import Theme from './styles/theme.jsx';
+import getFilenamesFromManifest from './utils/get-files-from-manifest.js';
+
+const { js, css } = (await getFilenamesFromManifest()) as { js: string; css: string };
 
 const handler = createStaticHandler(routes);
 
 const render = async (fullUrl: string, resp: Response) => {
-  console.log(fullUrl);
+  console.info(`PATH: ${fullUrl}`);
+
   const context = (await handler.query(new Request(fullUrl))) as StaticHandlerContext;
   const router = createStaticRouter(routes, context);
 
@@ -33,8 +37,8 @@ const render = async (fullUrl: string, resp: Response) => {
         <meta name="robots" content="index, follow" />
         <meta name="language" content="English" />
         <meta name="author" content="Andrew Klapper" />
-        <link rel="icon" type="image/x-icon" href="/server/favicon.ico" />
-        <link rel="stylesheet" href="/client/browser.css" />
+        <link rel="icon" type="image/x-icon" href="/client/favicon.ico" />
+        <link rel="stylesheet" href={`/client/${css}`} />
       </head>
       <body>
         <div id="root">
@@ -46,7 +50,7 @@ const render = async (fullUrl: string, resp: Response) => {
       </body>
     </html>,
     {
-      bootstrapModules: ['/client/browser.js'],
+      bootstrapModules: [`/client/${js}`],
       onShellReady() {
         console.log('START RENDERING COMPONENTS');
         resp.statusCode = context.statusCode || 200;

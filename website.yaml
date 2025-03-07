@@ -15,10 +15,9 @@ env_variables:
   NODE_ENV: production
 
 automatic_scaling:
-  min_idle_instances: 0
-  max_idle_instances: 0
-  min_pending_latency: automatic
-  max_pending_latency: automatic
-  max_instances: 1
+  min_num_instances: 1
+  max_num_instances: 1
+  cpu_utilization:
+    target_utilization: 0.5
 
 service_account: aklapper@games-424800.iam.gserviceaccount.com
