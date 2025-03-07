@@ -44,7 +44,7 @@ describe('Test Home Component', async () => {
     expect(resumePic).toHaveAttribute('alt', 'andrew');
 
     expect(resumeButton).toHaveTextContent('Resume');
-    expect(resumeButton).toHaveAttribute('href', '/src/assets/Resume.pdf');
+    expect(resumeButton).toHaveAttribute('href', '/server/Resume.pdf');
     expect(resumeButton).toHaveAttribute('download', `andrew-klapper-resume`);
   });
 });
