@@ -449,6 +449,10 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SA_CREDENTIALS_JSON }}
 
+      # Configure Docker with GCP
+      - name: Configure Docker
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
       # Deploy to Portfolio to App Engine
       - name: Deploy Portfolio to App Engine
         env:
