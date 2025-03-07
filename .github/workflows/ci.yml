@@ -104,7 +104,9 @@ jobs:
 
       # Install Node / Js dependencies
       - name: Install Nodejs Dependencies
-        run: pnpm install -r --frozen-lockfile
+        run: |
+          pnpm install -r --frozen-lockfile
+          pnpm approve-builds
 
       # Use cached dependencies
       # - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
@@ -179,7 +181,9 @@ jobs:
 
       # Install Node / Js dependencies
       - name: Install Nodejs Dependencies
-        run: pnpm install -r --frozen-lockfile
+        run: |
+          pnpm install -r --frozen-lockfile
+          pnpm approve-builds
 
       # Install Poetry for Python venv managment
       # Add Poetry Export Plugin
@@ -234,7 +238,9 @@ jobs:
 
       # Install Node / Js dependencies
       - name: Install Nodejs Dependencies
-        run: pnpm install -r --frozen-lockfile
+        run: |
+          pnpm install -r --frozen-lockfile
+          pnpm approve-builds
 
       # Generate Prisma Client For CRUD-Api
       - name: Generate Prisma Client for CRUD-Api
@@ -366,8 +372,9 @@ jobs:
 
       # Install Node / Js dependencies
       - name: Install Nodejs Dependencies
-        run: pnpm install -r --frozen-lockfile
-
+        run: |
+          pnpm install -r --frozen-lockfile
+          pnpm approve-builds
       # Use cached dependencies
       # - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
       #   uses: actions/cache@v4
