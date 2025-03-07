@@ -58,7 +58,7 @@ const AddAlbum = ({ apiRef }: AddAlbumProps): JSX.Element => {
       <Form method="post" onSubmit={formik.handleSubmit}>
         <Box component={'div'} sx={flexColumnStyles}>
           <Box key={'add-album-input-divs-box'} component={'div'} onBlur={formik.handleBlur} sx={flexColumnStyles}>
-            <FormLabel htmlFor="name">Album Name</FormLabel>
+            <FormLabel htmlFor="title">Album Name</FormLabel>
             <TextField
               autoComplete="off"
               name="title"

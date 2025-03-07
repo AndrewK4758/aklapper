@@ -33,7 +33,6 @@ import {
 } from '../../../styles/gen-ai-styles.jsx';
 import { buttonSXProps } from '../../../styles/header-styles.jsx';
 import { flexColumnStyles, fullSizeBlock, pagesTitleSx } from '../../../styles/pages-styles.jsx';
-import '../../../styles/prompt-builder.css';
 import ImageIcon from '../../icons/image-icon.jsx';
 import JsonIcon from '../../icons/json-icon.jsx';
 import TextIcon from '../../icons/text-icon.jsx';
@@ -411,11 +410,12 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                     sx={promptBuilderRadioGroupSxProps}
                   >
                     <FormControlLabel
+                      id="response-format-text"
                       value={ResponseType.TEXT}
                       control={<Radio />}
                       label={
                         <Label
-                          htmlFor=""
+                          htmlFor="response-format-text"
                           tooltipTitle={undefined}
                           labelVariant={'h4'}
                           labelText={'Text'}
@@ -428,11 +428,12 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                     />
 
                     <FormControlLabel
+                      id="response-format-json"
                       value={ResponseType.JSON}
                       control={<Radio />}
                       label={
                         <Label
-                          htmlFor=""
+                          htmlFor="response-format-json"
                           tooltipTitle={undefined}
                           labelVariant={'h4'}
                           labelText={'JSON'}
@@ -445,11 +446,12 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                     />
 
                     <FormControlLabel
+                      id="response-format-image"
                       value={ResponseType.IMAGE}
                       control={<Radio />}
                       label={
                         <Label
-                          htmlFor=""
+                          htmlFor="response-format-image"
                           tooltipTitle={'WILL NOT WORK WITH TEXT OR AUDIO'}
                           labelVariant={'h4'}
                           labelText={'Image'}
@@ -620,7 +622,7 @@ const handleCopyPromptToClipboardAndAddToInput = async (
 };
 
 const baseUrl = import.meta.env.VITE_VERTEX_API_URL;
-console.log(baseUrl);
+
 /**
  * This function handles the file upload event.
  * It uploads the file to the server and updates the prompt state with the file data.

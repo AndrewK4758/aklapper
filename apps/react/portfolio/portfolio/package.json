@@ -27,12 +27,12 @@
           "cwd": "apps/react/portfolio/portfolio",
           "commands": [
             {
-              "color": "yellow",
-              "command": "nx build portfolio --verbose"
+              "bgColor": "bgYellow",
+              "command": "nx build portfolio"
             },
             {
-              "color": "red",
-              "command": "nx build-server portfolio --verbose"
+              "bgColor": "bgBlue",
+              "command": "nx build-server portfolio"
             }
           ],
           "parallel": true
@@ -51,7 +51,7 @@
       "serve-server": {
         "executor": "nx:run-commands",
         "dependsOn": [
-          "build-server"
+          "build-both"
         ],
         "options": {
           "cwd": "apps/react/portfolio/portfolio",
@@ -63,10 +63,13 @@
       "deploy-app-engine": {
         "executor": "nx:run-commands",
         "defaultConfiguration": "production",
+        "dependsOn": [
+          "docker-push"
+        ],
         "options": {
           "commands": [
             {
-              "command": "gcloud app deploy website.yaml --quiet --verbosity=debug"
+              "command": "gcloud app deploy website.yaml --image-url=gcr.io/games-424800/default:latest --quiet --verbosity=debug"
             }
           ],
           "env": {
@@ -77,15 +80,20 @@
       "docker-build": {
         "executor": "nx:run-commands",
         "dependsOn": [
-          "build",
-          "build-server"
+          "build-both"
         ],
         "options": {
+          "env": {
+            "NODE_ENV": "production"
+          },
           "command": "docker build -f Dockerfile . -t gcr.io/games-424800/default"
         }
       },
       "docker-push": {
         "executor": "nx:run-commands",
+        "dependsOn": [
+          "docker-build"
+        ],
         "options": {
           "command": "docker push gcr.io/games-424800/default:latest"
         }

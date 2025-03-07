@@ -90,7 +90,7 @@ const Header = (): JSX.Element => {
             sx={buttonSXProps}
           >
             <Label
-              htmlFor=""
+              htmlFor="x-button"
               tooltipTitle={'CONTACT DESCRIPTION'}
               labelVariant={'h2'}
               labelText={'Contact'}

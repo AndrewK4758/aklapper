@@ -6,7 +6,7 @@ import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { DataGrid, GridActionsCellItem, GridColDef, GridRowParams, useGridApiRef } from '@mui/x-data-grid';
+import { DataGrid, GridActionsCellItem, GridColDef, GridRowParams, GridToolbar, useGridApiRef } from '@mui/x-data-grid';
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { album } from '@prisma/client';
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
@@ -120,7 +120,7 @@ const Album = (): JSX.Element => {
             label="Tracks"
             title="Tracks"
             icon={<DetailsIcon />}
-            onClick={() => nav(`${params.row.album_id}/tracks`)}
+            onClick={() => nav(`${params.row.album_id}/tracks`, { replace: true })}
           />
         ];
       }
@@ -184,6 +184,18 @@ const Album = (): JSX.Element => {
             onPaginationModelChange={setPaginationModel}
             paginationModel={paginationModel}
             sx={dataGridStyleUpdate}
+            slots={{ toolbar: GridToolbar }}
+            slotProps={{
+              pagination: {
+                slotProps: {
+                  select: {
+                    slotProps: {
+                      input: { id: 'album-pagination-page-numbers' }
+                    }
+                  }
+                }
+              }
+            }}
           />
         </Box>
       </Paper>

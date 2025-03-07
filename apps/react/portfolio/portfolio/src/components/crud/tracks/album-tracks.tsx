@@ -4,7 +4,7 @@ import UploadIcon from '@mui/icons-material/Upload';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
-import { DataGrid, GridActionsCellItem, GridColDef, GridRowParams, useGridApiRef } from '@mui/x-data-grid';
+import { DataGrid, GridActionsCellItem, GridColDef, GridRowParams, GridToolbar, useGridApiRef } from '@mui/x-data-grid';
 import { track } from '@prisma/client';
 import { useState, type JSX } from 'react';
 import { useLoaderData, useParams } from 'react-router';
@@ -145,6 +145,18 @@ const Tracks = (): JSX.Element => {
           paginationModel={paginationModel}
           onPaginationModelChange={newPageModel => setPaginationModel(newPageModel)}
           sx={dataGridStyleUpdate}
+          slots={{ toolbar: GridToolbar }}
+          slotProps={{
+            pagination: {
+              slotProps: {
+                select: {
+                  slotProps: {
+                    input: { id: 'tracks-pagination-page-numbers' }
+                  }
+                }
+              }
+            }
+          }}
         />
       </Box>
     </Paper>

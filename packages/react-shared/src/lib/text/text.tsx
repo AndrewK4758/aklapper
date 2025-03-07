@@ -4,7 +4,7 @@ import { Variant } from '@mui/material/styles/createTypography';
 import { ReactNode, type ElementType } from 'react';
 
 export interface TextProps {
-  titleVariant: Variant;
+  titleVariant: Variant | 'inherit';
   id?: string;
   titleText: ReactNode;
   sx?: SxProps;

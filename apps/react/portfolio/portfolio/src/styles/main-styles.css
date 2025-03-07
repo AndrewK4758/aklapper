@@ -60,3 +60,7 @@ pre {
   white-space: pre-wrap;
   word-wrap: break-word;
 }
+
+strong.bold-text {
+  font-family: 'Lucida Bold';
+}

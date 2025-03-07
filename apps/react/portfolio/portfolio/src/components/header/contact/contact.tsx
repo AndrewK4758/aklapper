@@ -56,7 +56,7 @@ export function Contact({ openMenu, setOpenMenu }: ContactProps) {
         open={openMenu}
         anchor="right"
         elevation={6}
-        PaperProps={drawerPaperProps}
+        slotProps={{ paper: drawerPaperProps }}
       >
         <MenuList
           ref={contactMenuRef}

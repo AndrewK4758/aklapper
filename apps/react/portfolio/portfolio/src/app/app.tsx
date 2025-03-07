@@ -12,7 +12,7 @@ const router = createBrowserRouter(routes);
  * This is the root component of the application.
  * It provides the necessary context providers for styling, date localization, and Google OAuth.
  *
- * @returns {ReactElement<AppProps>} The rendered App component with the Layout component and context providers.
+ * @returns {ReactElement} The rendered App component with the Layout component and context providers.
  */
 
 const App: FC = (): ReactElement => (

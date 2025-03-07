@@ -5,7 +5,8 @@ import Container from '@mui/material/Container';
 import FormLabel from '@mui/material/FormLabel';
 import TextField from '@mui/material/TextField';
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
-import { Prisma, track } from '@prisma/client';
+import { track } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/index-browser.js';
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import { FormikProps, useFormik } from 'formik';
 import { FocusEvent, RefObject, type JSX } from 'react';
@@ -27,7 +28,7 @@ const initialValues: track = {
   genre_id: 0,
   milliseconds: 0,
   bytes: 0,
-  unit_price: new Prisma.Decimal(0.0),
+  unit_price: new Decimal(0.0),
   composer: ''
 };
 

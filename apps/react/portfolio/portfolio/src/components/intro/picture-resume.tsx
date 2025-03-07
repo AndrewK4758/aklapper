@@ -4,8 +4,8 @@ import CardActions from '@mui/material/CardActions';
 import CardMedia from '@mui/material/CardMedia';
 import Tooltip from '@mui/material/Tooltip';
 import { lazy, type JSX } from 'react';
-import resume from '../../assets/Resume.pdf';
-import myPic from '../../assets/self.webp';
+// import resume from '../../assets/Resume.pdf';
+// import myPic from '../../assets/self.webp';
 import ResumeIcon from '../../components/icons/resume-icon.jsx';
 import {
   introButtonSxProps,
@@ -35,7 +35,7 @@ const PicutreAndResume = (): JSX.Element => (
       key={'card-media-resume-image'}
       id={'card-media-resume-image'}
       data-testid={'card-media-resume-image'}
-      src={myPic}
+      src={'/server/self.webp'}
       loading="lazy"
       alt="andrew"
       sx={introPicStyles}
@@ -48,7 +48,7 @@ const PicutreAndResume = (): JSX.Element => (
           data-testid={'card-media-resume-button'}
           variant="contained"
           LinkComponent={'a'}
-          href={resume}
+          href={'/server/Resume.pdf'}
           download={`andrew-klapper-resume`}
           endIcon={<ResumeIcon color={Theme.palette.mode === 'dark' ? '#000000' : '#FFFFFF'} sx={introIconSxProps} />}
           sx={introButtonSxProps}

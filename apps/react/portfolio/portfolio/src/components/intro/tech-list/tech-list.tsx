@@ -44,7 +44,7 @@ const renderTechLists = (e: unknown, _i: number, _arr: unknown[]): JSX.Element =
         key={`${e}-svg-icon`}
         data-testid={`${e}-svg-icon`}
         id={`${e}-svg-icon`}
-        src={`/icons/${(e as string).toLowerCase()}-icon.svg`}
+        src={`/server/icons/${(e as string).toLowerCase()}-icon.svg`}
         alt={`${e}-icon`}
         style={{ width: '32px', height: 'auto' }}
       />

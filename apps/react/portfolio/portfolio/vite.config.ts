@@ -43,8 +43,7 @@ const config: UserConfig = defineConfig({
     alias: modules
   },
 
-  mode: 'development',
-
+  base: '/client',
   build: {
     outDir: './dist/client',
     minify: false,
@@ -77,7 +76,7 @@ const config: UserConfig = defineConfig({
     },
     target: 'esnext'
   },
-  //
+
   esbuild: {
     jsx: 'automatic',
     format: 'esm',

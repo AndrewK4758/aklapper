@@ -25,7 +25,6 @@ interface EmailDialogProps {
 
 const EmailDialog = ({ open, setOpen }: EmailDialogProps) => {
   const [tab, setTab] = useState<number>(0);
-
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_OAUTH_CLIENT_ID}>
       <LocalizationProvider

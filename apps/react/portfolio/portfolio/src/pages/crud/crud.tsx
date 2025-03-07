@@ -7,8 +7,8 @@ import ButtonGroup from '@mui/material/ButtonGroup';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import Toolbar from '@mui/material/Toolbar';
-import { lazy, Suspense, useRef, useState, type JSX } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router';
+import { lazy, Suspense, useRef, useState, type Dispatch, type JSX, type SetStateAction } from 'react';
+import { Outlet, useLocation, useNavigate, useOutletContext, type NavigateFunction } from 'react-router';
 import waiting from '../../assets/swirly-dots-to-chrome.webp';
 import {
   crudAppWrapperStyles,
@@ -26,6 +26,7 @@ import {
 } from '../../styles/pages-styles.jsx';
 import { body, title } from '../static/crud-text.jsx';
 import { gamesButtonLabelsSxProps } from '../../styles/games-styles';
+import type { LoadingOutletContext } from '../../types/types';
 
 const Search = lazy(() => import('../../components/crud/search.jsx'));
 
@@ -49,6 +50,7 @@ export type QueryOptions = {
 
 const Crud = (): JSX.Element => {
   const [open, setOpen] = useState<boolean>(false);
+  const { loading, setLoading } = useOutletContext<LoadingOutletContext>();
   const divRef = useRef<HTMLElement>(null);
   const { pathname } = useLocation();
   const nav = useNavigate();
@@ -89,7 +91,7 @@ const Crud = (): JSX.Element => {
                   id="crud-home-button"
                   variant="text"
                   color="inherit"
-                  onClick={() => nav('/crud')}
+                  onClick={() => nav('/crud', { replace: true })}
                   sx={crudButtonSxProps}
                 >
                   <Label
@@ -114,7 +116,7 @@ const Crud = (): JSX.Element => {
                   type="submit"
                   variant="text"
                   color="inherit"
-                  onClick={() => nav('artists')}
+                  onClick={() => handleNavigate('artists', nav, setLoading)}
                   sx={crudButtonSxProps}
                 >
                   <Label
@@ -139,7 +141,7 @@ const Crud = (): JSX.Element => {
                   type="submit"
                   variant="text"
                   color="inherit"
-                  onClick={() => nav('albums')}
+                  onClick={() => handleNavigate('albums', nav, setLoading)}
                   sx={crudButtonSxProps}
                 >
                   <Label
@@ -164,7 +166,7 @@ const Crud = (): JSX.Element => {
                   type="submit"
                   variant="text"
                   color="inherit"
-                  onClick={() => nav('add-entry')}
+                  onClick={() => handleNavigate('add-entry', nav, setLoading)}
                   sx={crudButtonSxProps}
                 >
                   <Label
@@ -214,12 +216,27 @@ const Crud = (): JSX.Element => {
       </Paper>
       <Suspense fallback={<Waiting src={waiting} />}>
         {open && <Search setOpen={setOpen} />}
-        <Box component={'div'} key={`crud-app-wrapper`} id={`crud-app-wrapper`} sx={crudAppWrapperStyles}>
-          <Outlet />
-        </Box>
+        {!loading && (
+          <Box component={'div'} key={`crud-app-wrapper`} id={`crud-app-wrapper`} sx={crudAppWrapperStyles}>
+            <Outlet />
+          </Box>
+        )}
       </Suspense>
     </Box>
   );
 };
 
 export default Crud;
+
+async function handleNavigate(path: string, nav: NavigateFunction, setLoading: Dispatch<SetStateAction<boolean>>) {
+  try {
+    setLoading(true);
+    await nav(path, { relative: 'route' });
+  } catch (error) {
+    console.error(error);
+    await nav('/crud');
+    setLoading(false);
+  } finally {
+    setLoading(false);
+  }
+}
