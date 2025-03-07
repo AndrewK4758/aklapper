@@ -30,7 +30,7 @@ const Intro = (): JSX.Element => (
         data-testid="about-me-text"
         component={'h6'}
         titleVariant="body1"
-        titleText={IntroText}
+        titleText={<IntroText />}
         sx={introTextSxProps}
       />
     </CardContent>
