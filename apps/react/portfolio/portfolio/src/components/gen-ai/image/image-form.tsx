@@ -35,7 +35,7 @@ import {
   textInputSx,
   tooltipSx
 } from '../../../styles/gen-ai-styles.jsx';
-import { buttonSXProps } from '../../../styles/header-styles.jsx';
+import { buttonSXProps } from '../../../styles/pages-styles.jsx';
 import { centerFlex, pagesTitleSx } from '../../../styles/pages-styles.jsx';
 import {
   imageGenDescription,

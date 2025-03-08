@@ -12,15 +12,13 @@ import { flexColumnStyles } from '../../styles/pages-styles.jsx';
  * @returns {JSX.Element} The rendered home component.
  */
 
-const Home = (): JSX.Element => {
-  return (
-    <Box component={'div'} key={'home'} id="home" data-testid="home" sx={{ ...flexColumnStyles, width: '100vw' }}>
-      <Box component={'div'} key={'intro-wrapper'} id="intro-wrapper" sx={introWrapperSxProps}>
-        <Intro />
-        <PicutreAndResume />
-      </Box>
+const Home = (): JSX.Element => (
+  <Box component={'div'} key={'home'} id="home" data-testid="home" sx={{ ...flexColumnStyles, width: '100vw' }}>
+    <Box component={'div'} key={'intro-wrapper'} id="intro-wrapper" sx={introWrapperSxProps}>
+      <Intro />
+      <PicutreAndResume />
     </Box>
-  );
-};
+  </Box>
+);
 
 export default Home;

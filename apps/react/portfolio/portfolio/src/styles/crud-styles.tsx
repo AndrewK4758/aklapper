@@ -28,14 +28,6 @@ export const crudHeaderTextSxProps: SxProps = {
   }
 };
 
-export const crudButtonSxProps: SxProps = {
-  fontSize: '2rem',
-  [Theme.breakpoints.down('md')]: {
-    p: 0,
-    fontSize: '1rem'
-  }
-};
-
 export const searchBoxCardSxProps: SxProps = {
   display: 'flex',
   borderRadius: 1,

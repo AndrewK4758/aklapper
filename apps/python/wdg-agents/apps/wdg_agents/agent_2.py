@@ -27,7 +27,7 @@ from langchain_community.document_loaders.parsers import TesseractBlobParser
 from pathlib import Path
 
 MODEL = 'llama3.2:latest'
-DB_PATH = './agent_2'
+DB_PATH = './agent_2_rag_db'
 DB_NAME = 'rag_vectors'
 GPU_COUNT = 1
 CPU_COUNT = cpu_count(logical=False)
@@ -128,7 +128,7 @@ async def add_files_to_vector_store(files: str) -> bool:
     return True
 
 
-asyncio.run(add_files_to_vector_store("../../../../projects/data/rag/"))
+asyncio.run(add_files_to_vector_store("/home/ak475826/projects/data/rag/"))
 
 
 class GraphState(TypedDict):

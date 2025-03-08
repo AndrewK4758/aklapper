@@ -31,7 +31,7 @@ import {
   textInputSx,
   tooltipSx
 } from '../../../styles/gen-ai-styles.jsx';
-import { buttonSXProps } from '../../../styles/header-styles.jsx';
+import { buttonSXProps } from '../../../styles/pages-styles.jsx';
 import { flexColumnStyles, fullSizeBlock, pagesTitleSx } from '../../../styles/pages-styles.jsx';
 import ImageIcon from '../../icons/image-icon.jsx';
 import JsonIcon from '../../icons/json-icon.jsx';

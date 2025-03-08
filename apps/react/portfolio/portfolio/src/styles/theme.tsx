@@ -18,6 +18,7 @@ const darkScrollbarGlobal = {
 
 const Theme: ThemeType = createTheme(
   {
+    colorSchemes: { dark: true },
     cssVariables: true,
     palette: {
       background: {
@@ -31,6 +32,7 @@ const Theme: ThemeType = createTheme(
     typography: {
       fontFamily: 'League Gothic',
       allVariants: {
+        fontFamily: 'Lucida',
         letterSpacing: 2,
         wordSpacing: 3.5
       },
@@ -50,15 +52,6 @@ const Theme: ThemeType = createTheme(
         defaultProps: {
           sx: {
             fontSize: '2rem'
-          }
-        }
-      },
-      MuiButtonGroup: {
-        defaultProps: {
-          sx: {
-            '& .MuiButtonGroup-grouped:not(:last-of-type)': {
-              borderColor: '#fefbf9'
-            }
           }
         }
       },

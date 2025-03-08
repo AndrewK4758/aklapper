@@ -21,6 +21,7 @@ import {
   pagesOutletStyles,
   pagesTitlesBoxStyles,
   pagesTitleSx,
+  pagesToolbarStyles,
   pagesWrapperStyles
 } from '../../styles/pages-styles.jsx';
 import type { LoadingOutletContext } from '../../types/types.jsx';
@@ -41,10 +42,6 @@ const Games = (): JSX.Element => {
   const submit = useSubmit();
 
   useScrollIntoView(divRef);
-
-  console.log(`STATE: ${state}`);
-  console.log(`LOADING: ${loading}`);
-  console.log(`\n`);
 
   return (
     <Box ref={divRef} component={'div'} key={'games-wrapper'} id="games-wrapper" sx={pagesWrapperStyles}>
@@ -73,8 +70,8 @@ const Games = (): JSX.Element => {
             position="static"
             sx={{ borderRadius: 1 }}
           >
-            <Toolbar component={'nav'} id="games-navbar" key={'games-navbar'}>
-              <ButtonGroup id="games-button-group" key={'games-button-group'} fullWidth={true}>
+            <Toolbar component={'nav'} id="games-navbar" key={'games-navbar'} sx={pagesToolbarStyles}>
+              <ButtonGroup id="games-button-group" key={'games-button-group'} color="inherit" fullWidth={true}>
                 <Button
                   LinkComponent={'button'}
                   key={'chutes-and-ladders-button'}
@@ -95,7 +92,7 @@ const Games = (): JSX.Element => {
                         }
                       </pre>
                     }
-                    labelVariant={'button'}
+                    labelVariant={'body1'}
                     labelText={'Chutes & Ladders'}
                     placement={'top'}
                     labelWrapperDivSxProps={gamesLabelWrapperSxProps}

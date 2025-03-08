@@ -39,6 +39,8 @@ langchain-experimental = "^0.3.4"
 ipython = "^8.32.0"
 pytesseract = "^0.3.13"
 pymupdf = "^1.25.3"
+psutil = "^7.0.0"
+pandas = "^2.2.3"
 
 
 [tool.poetry.requires-plugins]

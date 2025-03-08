@@ -10,6 +10,7 @@ import loadAlbumsCount from '../services/loaders/crud-loaders/load-albums-count.
 import loadArtistAlbums from '../services/loaders/crud-loaders/load-artist-albums.jsx';
 import loadArtistsCount from '../services/loaders/crud-loaders/load-artists-count.jsx';
 import registerPlayersAndStartGame from '../services/loaders/register-players-and-start-game.jsx';
+import BaseError from '../errors/redirect-to-home.js';
 
 const Games = lazy(() => import('../pages/games/games.jsx'));
 const ActiveGameSession = lazy(() => import('../components/games/active_game_session.jsx'));
@@ -42,19 +43,22 @@ const routes: RouteObject[] = [
     path: '/',
     element: <Layout />,
     action: emailFormAction,
+    errorElement: <BaseError />,
     id: 'layout',
     children: [
       {
         path: 'games',
         action: registerPlayersAndStartGame,
         element: <Games />,
+        errorElement: <BaseError />,
         id: 'games',
         children: [
           {
             index: true,
             path: ':id',
             id: 'active-game',
-            element: <ActiveGameSession />
+            element: <ActiveGameSession />,
+            errorElement: <BaseError />
           }
         ]
       },
@@ -62,30 +66,35 @@ const routes: RouteObject[] = [
         path: 'crud',
         element: <Crud />,
         id: 'crud',
+        errorElement: <BaseError />,
         children: [
           {
             index: true,
             path: 'add-entry',
             id: 'add-entry',
-            element: <AddEntry />
+            element: <AddEntry />,
+            errorElement: <BaseError />
           },
           {
             path: 'artists',
             element: <Artist />,
             id: 'artists',
             loader: loadArtistsCount,
+            errorElement: <BaseError />,
             children: [
               {
                 path: ':artistID/albums',
                 loader: loadArtistAlbums,
                 id: 'artist-albums',
                 element: <AlbumsOnArtist />,
+                errorElement: <BaseError />,
                 children: [
                   {
                     path: ':albumID/tracks',
                     id: 'album-tracks',
                     loader: loadAlbumTracks,
-                    element: <Tracks />
+                    element: <Tracks />,
+                    errorElement: <BaseError />
                   }
                 ]
               }
@@ -96,12 +105,14 @@ const routes: RouteObject[] = [
             element: <Album />,
             id: 'albums',
             loader: loadAlbumsCount,
+            errorElement: <BaseError />,
             children: [
               {
                 path: ':albumID/tracks',
                 id: 'tracks',
                 element: <Tracks />,
-                loader: loadAlbumTracks
+                loader: loadAlbumTracks,
+                errorElement: <BaseError />
               }
             ]
           }
@@ -112,29 +123,34 @@ const routes: RouteObject[] = [
         element: <GenAI />,
         id: 'gen-ai',
         action: handlePromptBuilder,
+        errorElement: <BaseError />,
         children: [
           {
             path: 'text',
             id: 'text',
-            element: <TextGenerator />
+            element: <TextGenerator />,
+            errorElement: <BaseError />
           },
           {
             path: 'image',
             element: <Image />,
             id: 'image',
-            action: generateImageAction
+            action: generateImageAction,
+            errorElement: <BaseError />
           },
           {
             path: 'audio',
             id: 'audio',
-            element: <Audio />
+            element: <Audio />,
+            errorElement: <BaseError />
           }
         ]
       },
       {
         path: 'privacy-policy',
         id: 'privacy-policy',
-        element: <PrivacyPolicy />
+        element: <PrivacyPolicy />,
+        errorElement: <BaseError />
       }
     ]
   }

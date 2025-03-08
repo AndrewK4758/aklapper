@@ -4,8 +4,6 @@ import CardActions from '@mui/material/CardActions';
 import CardMedia from '@mui/material/CardMedia';
 import Tooltip from '@mui/material/Tooltip';
 import { lazy, type JSX } from 'react';
-// import resume from '../../assets/Resume.pdf';
-// import myPic from '../../assets/self.webp';
 import ResumeIcon from '../../components/icons/resume-icon.jsx';
 import {
   introButtonSxProps,
@@ -31,18 +29,21 @@ const PicutreAndResume = (): JSX.Element => (
     sx={picAndResumeCardStyles}
   >
     <CardMedia
+      rel="preload"
+      crossOrigin=""
       component={'img'}
       key={'card-media-resume-image'}
       id={'card-media-resume-image'}
       data-testid={'card-media-resume-image'}
       src={'/client/self.webp'}
-      loading="lazy"
+      loading="eager"
       alt="andrew"
       sx={introPicStyles}
     />
     <CardActions key={'card-actions-wrapper'} id={'card-actions-wrapper'} data-testid={'card-actions-wrapper'}>
       <Tooltip title="Download my resume in PDF">
         <Button
+          rel="preload"
           key={'card-media-resume-button'}
           id={'card-media-resume-button'}
           data-testid={'card-media-resume-button'}

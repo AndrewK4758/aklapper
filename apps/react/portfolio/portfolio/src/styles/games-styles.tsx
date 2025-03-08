@@ -13,7 +13,7 @@ export const gamesPaperSxProps: SxProps = {
 export const gamesButtonSxProps: SxProps = {
   display: 'flex',
   flexDirection: 'row',
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     p: 0
   }
 };

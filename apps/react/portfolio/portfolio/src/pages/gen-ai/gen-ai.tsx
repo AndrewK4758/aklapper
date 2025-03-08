@@ -1,4 +1,4 @@
-import { Text, useScrollIntoView, Waiting } from '@aklapper/react-shared';
+import { Label, Text, useScrollIntoView, Waiting } from '@aklapper/react-shared';
 import type { PromptRequest } from '@aklapper/vertex-ai';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
@@ -27,8 +27,8 @@ import { MediaRecorderClientContextProvider } from '../../contexts/audio-context
 import loadContextPath from '../../services/loaders/gen-ai/load-context-path';
 import { crudHeaderTextSxProps, crudPaperSxProps } from '../../styles/crud-styles';
 import { renderPreTagInsideParentDiv } from '../../styles/gen-ai-styles';
-import { buttonSXProps } from '../../styles/header-styles';
 import {
+  buttonSXProps,
   fullSizeBlock,
   modalButtonBoxStyles,
   pagesOutletStyles,
@@ -38,6 +38,7 @@ import {
   pagesWrapperStyles
 } from '../../styles/pages-styles';
 import { body, title } from '../static/gen-ai-text';
+import { gamesButtonLabelsSxProps, gamesLabelWrapperSxProps } from '../../styles/games-styles';
 
 const PromptBuilder = lazy(() => import('../../components/gen-ai/prompt-builder/prompt-builder.jsx'));
 
@@ -102,11 +103,12 @@ const GenAiHome = (): JSX.Element => {
             component={'div'}
             id="gen-ai-navbar-wrapper"
             key={'gen-ai-navbar-wrapper'}
+            elevation={0}
             position="static"
             sx={{ borderRadius: 1 }}
           >
             <Toolbar component={'nav'} id="gen-ai-navbar" key={'gen-ai-navbar'} sx={pagesToolbarStyles}>
-              <ButtonGroup key={'gen-ai-button-group'} id={'gen-ai-button-group'} size="medium" fullWidth={true}>
+              <ButtonGroup key={'gen-ai-button-group'} id={'gen-ai-button-group'} color="inherit" fullWidth={true}>
                 <Button
                   LinkComponent={'button'}
                   color="inherit"
@@ -116,7 +118,15 @@ const GenAiHome = (): JSX.Element => {
                   onClick={() => nav('text', { replace: true })}
                   sx={buttonSXProps}
                 >
-                  Text
+                  <Label
+                    htmlFor="gen-ai-text-button"
+                    tooltipTitle={'Generate a Google Gemini LLM Text Response'}
+                    labelVariant="body1"
+                    labelText="Text"
+                    placement="top"
+                    labelWrapperDivSxProps={gamesLabelWrapperSxProps}
+                    labelTextSx={gamesButtonLabelsSxProps}
+                  />
                 </Button>
                 <Button
                   LinkComponent={'button'}
@@ -127,7 +137,15 @@ const GenAiHome = (): JSX.Element => {
                   onClick={() => nav('image', { replace: true })}
                   sx={buttonSXProps}
                 >
-                  Image
+                  <Label
+                    htmlFor="gen-ai-image"
+                    tooltipTitle={'Generate an Google Gemini LLM Image Response'}
+                    labelVariant="body1"
+                    labelText="Image"
+                    placement="top"
+                    labelWrapperDivSxProps={gamesLabelWrapperSxProps}
+                    labelTextSx={gamesButtonLabelsSxProps}
+                  />
                 </Button>
                 <Button
                   LinkComponent={'button'}
@@ -138,7 +156,15 @@ const GenAiHome = (): JSX.Element => {
                   onClick={() => nav('audio', { replace: true })}
                   sx={buttonSXProps}
                 >
-                  Audio
+                  <Label
+                    htmlFor="gen-ai-audio"
+                    tooltipTitle={'Generate a Google Gemini LLM Text Response with Audio as Input'}
+                    labelVariant="body1"
+                    labelText="Audio"
+                    placement="top"
+                    labelWrapperDivSxProps={gamesLabelWrapperSxProps}
+                    labelTextSx={gamesButtonLabelsSxProps}
+                  />
                 </Button>
               </ButtonGroup>
             </Toolbar>

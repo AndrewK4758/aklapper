@@ -22,6 +22,7 @@ import '../../styles/main-styles.css';
 
 const Layout = (): JSX.Element => {
   const [loading, setLoading] = useState<boolean>(false);
+
   return (
     <Box key={'app-wrapper'} id="app-wrapper" data-testid="app-wrapper" sx={baseStyleForLayoutItems}>
       <Header />

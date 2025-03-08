@@ -1,22 +1,19 @@
 import { Label, Text, useScrollIntoView, Waiting } from '@aklapper/react-shared';
-import Collapse from '@mui/material/Collapse';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
+import Collapse from '@mui/material/Collapse';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import Toolbar from '@mui/material/Toolbar';
 import { lazy, Suspense, useRef, useState, type Dispatch, type JSX, type SetStateAction } from 'react';
 import { Outlet, useLocation, useNavigate, useOutletContext, type NavigateFunction } from 'react-router';
 import waiting from '../../assets/swirly-dots-to-chrome.webp';
+import { crudAppWrapperStyles, crudHeaderTextSxProps, crudPaperSxProps } from '../../styles/crud-styles.jsx';
+import { gamesButtonLabelsSxProps } from '../../styles/games-styles';
 import {
-  crudAppWrapperStyles,
-  crudButtonSxProps,
-  crudHeaderTextSxProps,
-  crudPaperSxProps
-} from '../../styles/crud-styles.jsx';
-import {
+  buttonSXProps,
   headerModalButtonStyles,
   modalButtonBoxStyles,
   pagesTitlesBoxStyles,
@@ -24,9 +21,8 @@ import {
   pagesToolbarStyles,
   pagesWrapperStyles
 } from '../../styles/pages-styles.jsx';
-import { body, title } from '../static/crud-text.jsx';
-import { gamesButtonLabelsSxProps } from '../../styles/games-styles';
 import type { LoadingOutletContext } from '../../types/types';
+import { body, title } from '../static/crud-text.jsx';
 
 const Search = lazy(() => import('../../components/crud/search.jsx'));
 
@@ -92,7 +88,7 @@ const Crud = (): JSX.Element => {
                   variant="text"
                   color="inherit"
                   onClick={() => nav('/crud', { replace: true })}
-                  sx={crudButtonSxProps}
+                  sx={buttonSXProps}
                 >
                   <Label
                     htmlFor="crud-home-button"
@@ -112,12 +108,13 @@ const Crud = (): JSX.Element => {
                 <Button
                   LinkComponent={'button'}
                   key={'crud-artists-button'}
+                  disabled={loading}
                   id="crud-artists-button"
                   type="submit"
                   variant="text"
                   color="inherit"
                   onClick={() => handleNavigate('artists', nav, setLoading)}
-                  sx={crudButtonSxProps}
+                  sx={buttonSXProps}
                 >
                   <Label
                     htmlFor="crud-artists-button"
@@ -138,11 +135,12 @@ const Crud = (): JSX.Element => {
                   LinkComponent={'button'}
                   key={'crud-albums-button'}
                   id="crud-albums-button"
+                  disabled={loading}
                   type="submit"
                   variant="text"
                   color="inherit"
                   onClick={() => handleNavigate('albums', nav, setLoading)}
-                  sx={crudButtonSxProps}
+                  sx={buttonSXProps}
                 >
                   <Label
                     htmlFor="crud-albums-button"
@@ -163,11 +161,12 @@ const Crud = (): JSX.Element => {
                   LinkComponent={'button'}
                   key={'crud-add-entry-button'}
                   id="crud-add-entry-button"
+                  disabled={loading}
                   type="submit"
                   variant="text"
                   color="inherit"
                   onClick={() => handleNavigate('add-entry', nav, setLoading)}
-                  sx={crudButtonSxProps}
+                  sx={buttonSXProps}
                 >
                   <Label
                     htmlFor="crud-add-entry-button"
@@ -217,7 +216,7 @@ const Crud = (): JSX.Element => {
       <Suspense fallback={<Waiting src={waiting} />}>{open && <Search setOpen={setOpen} />}</Suspense>
 
       <Box component={'div'} key={`crud-app-wrapper`} id={`crud-app-wrapper`} sx={crudAppWrapperStyles}>
-        <Suspense fallback={<Waiting src={waiting} />}>{!loading && <Outlet />}</Suspense>
+        <Outlet />
       </Box>
     </Box>
   );

@@ -7,13 +7,6 @@ import type { Dayjs } from 'dayjs';
 import { flexColumnStyles } from './pages-styles.js';
 import Theme from './theme.js';
 
-export const buttonSXProps: SxProps = {
-  fontSize: '2rem',
-  [Theme.breakpoints.down('lg')]: {
-    fontSize: '1rem'
-  }
-};
-
 export const headerLabelSxProps: SxProps = { fontSize: '2.5rem', [Theme.breakpoints.down('lg')]: { fontSize: '1rem' } };
 
 //--------CONNECT---------//

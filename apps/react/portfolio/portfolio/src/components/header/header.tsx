@@ -5,8 +5,9 @@ import ButtonGroup from '@mui/material/ButtonGroup';
 import Toolbar from '@mui/material/Toolbar';
 import { useState, type JSX } from 'react';
 import { useNavigate } from 'react-router';
-import { buttonSXProps, headerLabelSxProps } from '../../styles/header-styles.jsx';
+import { headerLabelSxProps } from '../../styles/header-styles.jsx';
 import Connect from './contact/contact.jsx';
+import { buttonSXProps } from '../../styles/pages-styles.js';
 
 /**
  * This component renders the header section of the application, which includes social media links and an email contact form.
@@ -29,7 +30,19 @@ const Header = (): JSX.Element => {
       position="fixed"
     >
       <Toolbar disableGutters component={'div'} id="navbar-toolbar" data-testid="navbar-toolbar">
-        <ButtonGroup component={'section'} fullWidth={true} variant="text" color="inherit" size="medium">
+        <ButtonGroup
+          id="navbar-button-group"
+          component={'section'}
+          fullWidth={true}
+          variant="text"
+          color="inherit"
+          size="medium"
+          sx={{
+            '& .MuiButtonGroup-grouped': {
+              borderColor: 'inherit'
+            }
+          }}
+        >
           <Button
             id="home-button"
             data-testid="home-button"

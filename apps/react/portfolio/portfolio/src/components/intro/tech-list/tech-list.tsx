@@ -60,6 +60,7 @@ const renderTechLists = (e: unknown, _i: number, _arr: unknown[]): JSX.Element =
 
 const TechStackList = (): JSX.Element => {
   const [open, setOpen] = useState<boolean>(false);
+
   return (
     <>
       <Container
