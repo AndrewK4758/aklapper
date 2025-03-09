@@ -71,12 +71,11 @@ const Games = (): JSX.Element => {
             sx={{ borderRadius: 1 }}
           >
             <Toolbar component={'nav'} id="games-navbar" key={'games-navbar'} sx={pagesToolbarStyles}>
-              <ButtonGroup id="games-button-group" key={'games-button-group'} color="inherit" fullWidth={true}>
+              <ButtonGroup id="games-button-group" key={'games-button-group'} color="primary" fullWidth={true}>
                 <Button
                   LinkComponent={'button'}
                   key={'chutes-and-ladders-button'}
                   id="Chutes-&-Ladders"
-                  color="inherit"
                   variant="text"
                   disabled={state !== 'idle'}
                   endIcon={<ChutesAndLaddersIcon sx={iconStateStyle(state)} />}
@@ -92,7 +91,7 @@ const Games = (): JSX.Element => {
                         }
                       </pre>
                     }
-                    labelVariant={'body1'}
+                    labelVariant={'button'}
                     labelText={'Chutes & Ladders'}
                     placement={'top'}
                     labelWrapperDivSxProps={gamesLabelWrapperSxProps}
@@ -104,7 +103,6 @@ const Games = (): JSX.Element => {
                   LinkComponent={'button'}
                   key={'tic-tac-toe-button'}
                   id="Tic-Tac-Toe"
-                  color="inherit"
                   variant="text"
                   disabled={state !== 'idle'}
                   endIcon={<TicTacToeIcon sx={iconStateStyle(state)} />}

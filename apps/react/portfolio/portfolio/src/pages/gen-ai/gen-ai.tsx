@@ -108,10 +108,9 @@ const GenAiHome = (): JSX.Element => {
             sx={{ borderRadius: 1 }}
           >
             <Toolbar component={'nav'} id="gen-ai-navbar" key={'gen-ai-navbar'} sx={pagesToolbarStyles}>
-              <ButtonGroup key={'gen-ai-button-group'} id={'gen-ai-button-group'} color="inherit" fullWidth={true}>
+              <ButtonGroup key={'gen-ai-button-group'} id={'gen-ai-button-group'} color="primary" fullWidth={true}>
                 <Button
                   LinkComponent={'button'}
-                  color="inherit"
                   variant="text"
                   key={'gen-ai-text-button'}
                   id="gen-ai-text-button"
@@ -121,7 +120,7 @@ const GenAiHome = (): JSX.Element => {
                   <Label
                     htmlFor="gen-ai-text-button"
                     tooltipTitle={'Generate a Google Gemini LLM Text Response'}
-                    labelVariant="body1"
+                    labelVariant="button"
                     labelText="Text"
                     placement="top"
                     labelWrapperDivSxProps={gamesLabelWrapperSxProps}
@@ -130,7 +129,6 @@ const GenAiHome = (): JSX.Element => {
                 </Button>
                 <Button
                   LinkComponent={'button'}
-                  color="inherit"
                   variant="text"
                   key={'gen-ai-image'}
                   id="gen-ai-image"
@@ -140,7 +138,7 @@ const GenAiHome = (): JSX.Element => {
                   <Label
                     htmlFor="gen-ai-image"
                     tooltipTitle={'Generate an Google Gemini LLM Image Response'}
-                    labelVariant="body1"
+                    labelVariant="button"
                     labelText="Image"
                     placement="top"
                     labelWrapperDivSxProps={gamesLabelWrapperSxProps}
@@ -149,7 +147,6 @@ const GenAiHome = (): JSX.Element => {
                 </Button>
                 <Button
                   LinkComponent={'button'}
-                  color="inherit"
                   variant="text"
                   key={'gen-ai-audio'}
                   id="gen-ai-audio"
@@ -159,7 +156,7 @@ const GenAiHome = (): JSX.Element => {
                   <Label
                     htmlFor="gen-ai-audio"
                     tooltipTitle={'Generate a Google Gemini LLM Text Response with Audio as Input'}
-                    labelVariant="body1"
+                    labelVariant="button"
                     labelText="Audio"
                     placement="top"
                     labelWrapperDivSxProps={gamesLabelWrapperSxProps}

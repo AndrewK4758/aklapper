@@ -16,7 +16,7 @@ export interface AppProps {
  */
 
 const App: FC<AppProps> = ({ Router }: AppProps): ReactElement => (
-  <ThemeProvider theme={Theme} defaultMode="system">
+  <ThemeProvider theme={Theme} noSsr={false}>
     <CssBaseline />
     {Router}
   </ThemeProvider>

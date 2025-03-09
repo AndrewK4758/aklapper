@@ -168,6 +168,7 @@ const Artist = (): JSX.Element => {
               paginationModel={paginationModel}
               sx={dataGridStyleUpdate}
               slots={{ toolbar: GridToolbar }}
+              getRowClassName={params => (params.indexRelativeToCurrentPage % 2 === 0 ? 'even' : 'odd')}
               slotProps={{
                 pagination: {
                   slotProps: {

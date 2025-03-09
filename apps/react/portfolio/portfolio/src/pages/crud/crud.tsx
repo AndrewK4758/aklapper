@@ -79,14 +79,13 @@ const Crud = (): JSX.Element => {
                 id="crud-navbar-button-group"
                 key={'crud-navbar-button-group'}
                 fullWidth={true}
-                color="inherit"
+                color="primary"
               >
                 <Button
                   LinkComponent={'button'}
                   key={'crud-home-button'}
                   id="crud-home-button"
                   variant="text"
-                  color="inherit"
                   onClick={() => nav('/crud', { replace: true })}
                   sx={buttonSXProps}
                 >
@@ -112,7 +111,6 @@ const Crud = (): JSX.Element => {
                   id="crud-artists-button"
                   type="submit"
                   variant="text"
-                  color="inherit"
                   onClick={() => handleNavigate('artists', nav, setLoading)}
                   sx={buttonSXProps}
                 >
@@ -138,7 +136,6 @@ const Crud = (): JSX.Element => {
                   disabled={loading}
                   type="submit"
                   variant="text"
-                  color="inherit"
                   onClick={() => handleNavigate('albums', nav, setLoading)}
                   sx={buttonSXProps}
                 >
@@ -164,7 +161,6 @@ const Crud = (): JSX.Element => {
                   disabled={loading}
                   type="submit"
                   variant="text"
-                  color="inherit"
                   onClick={() => handleNavigate('add-entry', nav, setLoading)}
                   sx={buttonSXProps}
                 >

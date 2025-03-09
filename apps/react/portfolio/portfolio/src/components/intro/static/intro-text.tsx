@@ -38,11 +38,9 @@ export const IntroText = () => (
         }}
         onMouseEnter={e => {
           e.currentTarget.style.color = Theme.palette.secondary.contrastText;
-          e.currentTarget.style.backgroundColor = Theme.palette.secondary.main;
         }}
         onMouseLeave={e => {
           e.currentTarget.style.color = Theme.palette.secondary.main;
-          e.currentTarget.style.backgroundColor = Theme.palette.background.paper;
         }}
       >
         Woodstock Developers Group

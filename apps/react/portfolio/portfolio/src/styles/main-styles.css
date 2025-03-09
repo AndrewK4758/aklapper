@@ -37,10 +37,10 @@ input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 100px var(--defaultBack) inset !important;
-  -webkit-text-fill-color: var(--textPrimary) !important;
+  -webkit-box-shadow: 0 0 0 100px #121212 inset !important;
+  -webkit-text-fill-color: var(#ffffff) !important;
   -webkit-background-clip: text;
-  -webkit-text-fill-color: var(--textPrimary);
+  -webkit-text-fill-color: var(#ffffff);
 }
 
 input::-webkit-inner-spin-button,

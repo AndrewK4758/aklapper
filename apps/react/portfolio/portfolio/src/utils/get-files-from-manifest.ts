@@ -18,7 +18,6 @@ export default async function getFilenamesFromManifest(): Promise<HashFiles> {
   };
   for (const key in manifest) {
     if (key === 'src/main.tsx') {
-      console.log(key);
       reactJsFile = manifest[key].file;
       reactCssFile = manifest[key].css[0];
 

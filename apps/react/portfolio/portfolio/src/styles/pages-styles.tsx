@@ -47,8 +47,6 @@ export const pagesToolbarStyles: SxProps = {
   flex: '0 1 100%'
 };
 
-console.log(Theme);
-
 export const modalButtonBoxStyles: SxProps = {
   display: 'flex',
   flex: '0 1 100%',

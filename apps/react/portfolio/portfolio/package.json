@@ -27,11 +27,15 @@
           "cwd": "apps/react/portfolio/portfolio",
           "commands": [
             {
-              "bgColor": "bgYellow",
+              "prefix": "Browser:",
+              "prefixColor": "blue",
+              "description": "Build Process for the Client React App",
               "command": "nx build portfolio"
             },
             {
-              "bgColor": "bgBlue",
+              "prefix": "Server:",
+              "prefixColor": "yellow",
+              "description": "Build Process for the Server React App",
               "command": "nx build-server portfolio"
             }
           ],

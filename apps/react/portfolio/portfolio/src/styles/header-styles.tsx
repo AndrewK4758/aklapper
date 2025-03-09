@@ -24,6 +24,7 @@ export const iconWrapperSxProps: SxProps = {
   width: '8vw',
   maxWidth: '100px',
   overflow: 'hidden',
+  backgroundColor: '#9e9e9e',
   [Theme.breakpoints.down('lg')]: {
     width: '100%',
     maxWidth: '70px',
@@ -48,7 +49,7 @@ export const iconSxProps: SxProps = {
 };
 
 export const drawerPaperProps: PaperProps = {
-  sx: { height: '94.2vh', top: '5.8vh', width: 'fit-content' }
+  sx: { height: '94.5vh', top: '5.5vh', width: 'fit-content' }
 };
 
 export const contactButtonSxProps: SxProps = {

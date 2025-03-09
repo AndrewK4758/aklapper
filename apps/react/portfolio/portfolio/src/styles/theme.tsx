@@ -1,5 +1,6 @@
 import type { Theme as ThemeType } from '@mui/material/styles';
 import createTheme from '@mui/material/styles/createTheme.js';
+import type {} from '@mui/material/themeCssVarsAugmentation';
 import { enUS } from '@mui/x-date-pickers/locales';
 import './main-styles.css';
 
@@ -18,12 +19,38 @@ const darkScrollbarGlobal = {
 
 const Theme: ThemeType = createTheme(
   {
-    colorSchemes: { dark: true },
+    colorSchemes: {
+      dark: {
+        palette: {
+          AppBar: {
+            darkBg: '#212121',
+            defaultBg: '#121212',
+            darkColor: '#121212'
+          },
+          background: {
+            default: '#121212',
+            paper: '#212121'
+          },
+          text: {
+            primary: '#ffffff',
+            secondary: '#eeeeee'
+          }
+        }
+      },
+      light: {
+        palette: {
+          background: {
+            paper: '#fefbf9',
+            default: '#efedea'
+          }
+        }
+      }
+    },
     cssVariables: true,
     palette: {
-      background: {
-        paper: '#fefbf9',
-        default: '#efedea'
+      secondary: {
+        main: '#d500f9',
+        contrastText: '#ffd300'
       }
     },
     shape: {
@@ -32,7 +59,6 @@ const Theme: ThemeType = createTheme(
     typography: {
       fontFamily: 'League Gothic',
       allVariants: {
-        fontFamily: 'Lucida',
         letterSpacing: 2,
         wordSpacing: 3.5
       },

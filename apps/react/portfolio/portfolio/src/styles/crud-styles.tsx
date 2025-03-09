@@ -84,7 +84,7 @@ export const dataGridStyleUpdate: SxProps = {
     backgroundColor: 'white'
   },
   '& .MuiToolbar-root': {
-    color: '#1f1f1f'
+    color: Theme.palette.info.light
   },
   '& .MuiTablePagination-selectLabel': {
     fontSize: '1rem',
@@ -96,6 +96,15 @@ export const dataGridStyleUpdate: SxProps = {
   },
   '& .MuiDataGrid-columnHeaderTitle': {
     fontSize: '.7rem'
+  },
+  '& .MuiDataGrid-cell': {
+    color: Theme.palette.info.light
+  },
+  '& .MuiDataGrid-row': {
+    color: Theme.palette.info.light
+  },
+  '& .MuiTabePagination-root': {
+    color: Theme.palette.info.light
   }
 };
 //-----------Add Entry-----------//
