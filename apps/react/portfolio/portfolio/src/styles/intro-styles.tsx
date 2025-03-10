@@ -41,6 +41,9 @@ export const introTextSxProps: SxProps = {
   [Theme.breakpoints.down('lg')]: {
     fontSize: '1rem',
     paddingTop: 1.5
+  },
+  '& .bold-text': {
+    fontWeight: 'bolder'
   }
 };
 

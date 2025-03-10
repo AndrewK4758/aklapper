@@ -10,7 +10,7 @@ import { flexColumnStyles } from '../../../styles/pages-styles.jsx';
 
 const tooltipTitle = 'Response from text query';
 
-interface ChatResponseProps {
+interface PromptResponseProps {
   response: string[];
   setLoading: Dispatch<SetStateAction<boolean>>;
   setPromptResponse: Dispatch<SetStateAction<string[]>>;
@@ -24,7 +24,7 @@ export function PromptResponse({
   setPromptResponse,
   chatResponseLabelProps,
   chatResponseTextProps
-}: ChatResponseProps) {
+}: PromptResponseProps) {
   const divRef = useRef<HTMLDivElement>(null);
 
   useScrollIntoView(divRef);
@@ -42,7 +42,7 @@ export function PromptResponse({
     >
       <Box key={'chat-response-label-box'} id="chat-response-label-box">
         <Label
-          htmlFor="chat-response-label-box"
+          htmlFor="chat-response"
           placement="top"
           tooltipTitle={tooltipTitle}
           labelVariant={'h3'}
@@ -52,7 +52,9 @@ export function PromptResponse({
       </Box>
       <Box key={'chat-response-box'} id="chat-response-wrapper-box" sx={{ width: '100%', borderRadius: 1 }}>
         <Container sx={crudHeaderTextSxProps}>
-          <pre style={chatResponseTextProps}>{response}</pre>
+          <pre id="char-response" style={chatResponseTextProps}>
+            {response}
+          </pre>
         </Container>
       </Box>
       <Box key={'chat-response-button-box'} id="chat-response-button-wrapper-box" sx={{ alignSelf: 'flex-end' }}>

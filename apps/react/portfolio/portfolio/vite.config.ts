@@ -46,7 +46,7 @@ const config: UserConfig = defineConfig({
   base: '/client',
   build: {
     outDir: './dist/client',
-    minify: false,
+    minify: true,
     emptyOutDir: true,
     manifest: true,
     sourcemap: true,

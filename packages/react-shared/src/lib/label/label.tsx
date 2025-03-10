@@ -71,7 +71,7 @@ export const Label = forwardRef<HTMLDivElement, LabelProps>(
             htmlFor={htmlFor}
             variant={labelVariant}
             key={`${labelText}-label-text`}
-            id={`${labelText}-label-text`}
+            id={`${labelText}-label-text-id`}
             sx={labelTextSx}
           >
             {labelText}

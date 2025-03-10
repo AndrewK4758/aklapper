@@ -25,6 +25,7 @@ import {
   timePickerWrapperSxProps
 } from '../../../styles/header-styles.jsx';
 import { flexColumnStyles } from '../../../styles/pages-styles.jsx';
+import GoogleIcon from '@mui/icons-material/Google';
 
 const tomorrow = dayjs().add(1, 'day');
 const nextYear = dayjs().add(1, 'year');
@@ -74,16 +75,25 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
         data-testid="google-calendar-auth-box"
         display={'flex'}
         justifyContent={'center'}
+        alignContent={'center'}
       >
         <Button
           LinkComponent={'button'}
-          key={'google-auth'}
-          id="google-auth"
-          data-testid="google-auth"
+          key={'google-auth-button'}
+          id="google-auth-button"
+          data-testid="google-auth-button"
           onClick={() => login()}
-          sx={connectGoogleCalendarButtonSxProps}
         >
-          Connect Your Google Calendar
+          <Label
+            tooltipTitle={'Connect your Google Calendar to sync appointment request with your Google Calendar'}
+            labelVariant={'button'}
+            labelText={'Connect Google Calendar'}
+            placement={'top'}
+            htmlFor={'google-auth-button'}
+            labelWrapperDivSxProps={{ display: 'flex', alignItems: 'center', gap: 2 }}
+            labelTextSx={connectGoogleCalendarButtonSxProps}
+            Icon={<GoogleIcon color="inherit" fontSize="inherit" />}
+          />
         </Button>
       </Box>
       <Box
@@ -156,7 +166,7 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
                 <Label
                   htmlFor="start-time-picker"
                   placement="top"
-                  tooltipTitle=""
+                  tooltipTitle="Enter requested appointment start time"
                   labelVariant="body1"
                   labelText="Start Time"
                   labelTextSx={timePickerSxProps}
@@ -177,7 +187,7 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
                 <Label
                   htmlFor="end-time-picker"
                   placement="top"
-                  tooltipTitle=""
+                  tooltipTitle="Enter requested appointment end time"
                   labelVariant="body1"
                   labelText="End Time"
                   labelTextSx={timePickerSxProps}

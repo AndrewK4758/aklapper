@@ -61,12 +61,11 @@ export const ChatInput = <T extends FormikValues>({
         onReset={formik.handleReset}
         style={{ display: 'flex', flexWrap: 'wrap' }}
       >
-        <Box key={'chat-input-form-text-box'} id="chat-input-form-text-box" sx={{ flex: '0 1 100%' }}>
+        <Box key={'chat-input-form-text-box'} id="chat-input-form-text-box" sx={{ flex: '0 1 100%', paddingY: 4 }}>
           <FormikTextInput<T>
             key={'chat-input-form-text-input'}
             id="chat-input-form-text-input"
             autoComplete="off"
-            placeholder="Enter prompt here"
             formik={formik}
             type={type}
             name={names[0]}

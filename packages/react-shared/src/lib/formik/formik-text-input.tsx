@@ -5,10 +5,10 @@ import TextField from '@mui/material/TextField';
 import type { FormikProps } from 'formik';
 import { FocusEvent } from 'react';
 import { Label } from '../label/label.jsx';
-import Text from '../text/text.jsx';
+import FormikValidationError from './formik-validation-error.js';
 
-export interface FormikTextInputProps<T> {
-  name: string;
+export interface FormikTextInputProps<T extends object> {
+  name: keyof T;
   formik: FormikProps<T>;
   type: string;
   label: string;
@@ -23,7 +23,7 @@ export interface FormikTextInputProps<T> {
   valueField: keyof T;
 }
 
-export function FormikTextInput<T>({
+export function FormikTextInput<T extends object>({
   name,
   formik,
   type,
@@ -50,7 +50,7 @@ export function FormikTextInput<T>({
         variant="outlined"
         type={type}
         placeholder={placeholder}
-        name={name}
+        name={name as string}
         value={value}
         onChange={e => formik.setFieldValue('text', e.currentTarget.value)}
         slotProps={{
@@ -69,7 +69,21 @@ export function FormikTextInput<T>({
         sx={textSx}
         onBlur={formik.handleBlur}
       />
-      {formik.getFieldMeta(name).touched && formik.getFieldMeta(name).error ? (
+      <FormikValidationError<T>
+        formik={formik}
+        elementName={name}
+        helperTextSx={{
+          ...labelSx,
+          color: Theme.palette.error.main,
+          fontSize: '1.25rem',
+          paddingY: 2,
+          [Theme.breakpoints.down('lg')]: {
+            fontSize: '0.875rem',
+            paddingY: 1
+          }
+        }}
+      />
+      {/* {formik.getFieldMeta(name).touched && formik.getFieldMeta(name).error ? (
         <Text
           component={'p'}
           id="formik-error-text-input"
@@ -78,7 +92,6 @@ export function FormikTextInput<T>({
           sx={{
             ...labelSx,
             color: Theme.palette.error.main,
-            fontFamily: 'Roboto',
             fontSize: '1.25rem',
             paddingY: 2,
             [Theme.breakpoints.down('lg')]: {
@@ -87,7 +100,7 @@ export function FormikTextInput<T>({
             }
           }}
         />
-      ) : null}
+      ) : null} */}
     </Box>
   );
 }

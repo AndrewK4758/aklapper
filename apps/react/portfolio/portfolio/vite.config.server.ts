@@ -47,7 +47,7 @@ const config: UserConfig = defineConfig({
     ssrEmitAssets: false,
     ssrManifest: true,
     outDir: './dist/server',
-    minify: false,
+    minify: true,
     emptyOutDir: true,
     sourcemap: true,
     reportCompressedSize: true,

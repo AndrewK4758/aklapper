@@ -11,7 +11,6 @@ import {
   introPicStyles,
   picAndResumeCardStyles
 } from '../../styles/intro-styles.jsx';
-import Theme from '../../styles/theme';
 
 const TechStackList = lazy(() => import('./tech-list/tech-list.jsx'));
 
@@ -38,6 +37,8 @@ const PicutreAndResume = (): JSX.Element => (
       src={'/client/self.webp'}
       loading="eager"
       alt="andrew"
+      width={'100%'}
+      height={'100%'}
       sx={introPicStyles}
     />
     <CardActions key={'card-actions-wrapper'} id={'card-actions-wrapper'} data-testid={'card-actions-wrapper'}>
@@ -51,7 +52,7 @@ const PicutreAndResume = (): JSX.Element => (
           LinkComponent={'a'}
           href={'/client/Resume.pdf'}
           download={`andrew-klapper-resume`}
-          endIcon={<ResumeIcon color={Theme.palette.mode === 'dark' ? '#000000' : '#FFFFFF'} sx={introIconSxProps} />}
+          endIcon={<ResumeIcon sx={introIconSxProps} />}
           sx={introButtonSxProps}
         >
           Resume

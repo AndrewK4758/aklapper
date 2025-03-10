@@ -7,7 +7,7 @@ import type { Dayjs } from 'dayjs';
 import { flexColumnStyles } from './pages-styles.js';
 import Theme from './theme.js';
 
-export const headerLabelSxProps: SxProps = { fontSize: '2.5rem', [Theme.breakpoints.down('lg')]: { fontSize: '1rem' } };
+export const headerLabelSxProps: SxProps = { fontSize: '2.5rem', [Theme.breakpoints.down('md')]: { fontSize: '1rem' } };
 
 //--------CONNECT---------//
 
@@ -25,7 +25,7 @@ export const iconWrapperSxProps: SxProps = {
   maxWidth: '100px',
   overflow: 'hidden',
   backgroundColor: '#9e9e9e',
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     width: '100%',
     maxWidth: '70px',
     p: 0,
@@ -43,7 +43,7 @@ export const iconSxProps: SxProps = {
     cursor: 'auto',
     background: 'none'
   },
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     p: 1
   }
 };
@@ -69,7 +69,7 @@ export const iconSize: SxProps = {
 };
 
 export const contactDialogCloseButtonSxProps: SxProps = {
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     fontSize: '1rem'
   }
 };
@@ -78,14 +78,14 @@ export const contactDialogCloseButtonSxProps: SxProps = {
 
 export const connectGoogleCalendarButtonSxProps: SxProps = {
   fontSize: '2rem',
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     fontSize: '1rem'
   }
 };
 
 export const dateCalendarSxProps: SxProps = {
   scale: 1.4,
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     scale: 1
   }
 };
@@ -95,7 +95,7 @@ export const dateCalendarSlotProps: DateCalendarSlotProps<Dayjs> = {
     sx: {
       scale: 1.5,
       color: Theme.palette.primary.dark,
-      [Theme.breakpoints.down('lg')]: {
+      [Theme.breakpoints.down('md')]: {
         scale: 1
       }
     }
@@ -104,7 +104,7 @@ export const dateCalendarSlotProps: DateCalendarSlotProps<Dayjs> = {
     sx: {
       scale: 1.5,
       color: Theme.palette.primary.dark,
-      [Theme.breakpoints.down('lg')]: {
+      [Theme.breakpoints.down('md')]: {
         scale: 1
       }
     }
@@ -113,7 +113,7 @@ export const dateCalendarSlotProps: DateCalendarSlotProps<Dayjs> = {
     sx: {
       scale: 1.5,
       color: Theme.palette.primary.dark,
-      [Theme.breakpoints.down('lg')]: {
+      [Theme.breakpoints.down('md')]: {
         scale: 1
       }
     }
@@ -129,11 +129,11 @@ export const dateCalendarSlotProps: DateCalendarSlotProps<Dayjs> = {
   calendarHeader: {
     sx: {
       scale: 1.1,
-      [Theme.breakpoints.down('lg')]: {
+      [Theme.breakpoints.down('md')]: {
         scale: 1
       },
       '& .MuiPickersCalendarHeader-label': {
-        [Theme.breakpoints.down('lg')]: {
+        [Theme.breakpoints.down('md')]: {
           fontSize: '1rem'
         }
       }
@@ -159,7 +159,6 @@ export const timePickerSlotProps: TimePickerSlotProps<Dayjs, false> = {
     sx: {
       p: 1,
       width: '80%',
-      backgroundColor: Theme.palette.background.default,
       borderRadius: 1
     }
   },
@@ -167,7 +166,7 @@ export const timePickerSlotProps: TimePickerSlotProps<Dayjs, false> = {
     sx: {
       scale: 1.5,
       color: Theme.palette.primary.dark,
-      [Theme.breakpoints.down('lg')]: {
+      [Theme.breakpoints.down('md')]: {
         scale: 1
       }
     }
@@ -176,7 +175,7 @@ export const timePickerSlotProps: TimePickerSlotProps<Dayjs, false> = {
     sx: {
       scale: 1.5,
       color: Theme.palette.primary.dark,
-      [Theme.breakpoints.down('lg')]: {
+      [Theme.breakpoints.down('md')]: {
         scale: 1
       }
     }
@@ -185,7 +184,7 @@ export const timePickerSlotProps: TimePickerSlotProps<Dayjs, false> = {
     sx: {
       scale: 1.5,
       color: Theme.palette.primary.dark,
-      [Theme.breakpoints.down('lg')]: {
+      [Theme.breakpoints.down('md')]: {
         scale: 1
       }
     }
@@ -207,24 +206,24 @@ export const timePickerWrapperSxProps: SxProps = {
 
 export const timePickerLabelSxProps: SxProps = {
   color: Theme.palette.primary.main,
-  [Theme.breakpoints.down('lg')]: { fontSize: '1rem' }
+  [Theme.breakpoints.down('md')]: { fontSize: '1rem' }
 };
 
-export const timePickerSxProps: SxProps = { fontSize: '1.25rem' };
+export const timePickerSxProps: SxProps = { fontSize: '1.25rem', color: Theme.palette.primary.main };
 
 //--------EMAIL ME---------//
 
 export const subSx: SxProps = {
   fontSize: '1.25rem',
   color: Theme.palette.text.primary,
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     fontSize: '0.875rem'
   }
 };
 export const mainSx: SxProps = {
   fontSize: '2.2rem',
   color: Theme.palette.primary.dark,
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     fontSize: '0.875rem'
   }
 };
@@ -240,7 +239,7 @@ export const emailDialogPaperProps = {
     ' .MuiInputBase-input': {
       fontSize: '1.25rem'
     },
-    [Theme.breakpoints.down('lg')]: {
+    [Theme.breakpoints.down('md')]: {
       height: '70%',
       ' .MuiInputBase-input': {
         fontSize: '0.75rem'
@@ -254,21 +253,21 @@ export const emailStackSxProps: SxProps = {
   justifyContent: 'space-evenly',
   gap: 4,
   paddingTop: 4,
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     paddingTop: 2,
     gap: 1.5
   }
 };
 
 export const emailButtonSxProps: SxProps = {
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     fontSize: '1rem'
   }
 };
 
 export const dateTimePickerLabelTextSxProps: SxProps = {
   fontSize: '1.25rem',
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     fontSize: '0.75rem'
   }
 };
@@ -284,7 +283,7 @@ export const textFieldSlotProps = {
     sx: {
       fontSize: '1.5rem',
       color: Theme.palette.primary.dark,
-      [Theme.breakpoints.down('lg')]: {
+      [Theme.breakpoints.down('md')]: {
         fontSize: '1rem'
       }
     } as SxProps
@@ -322,7 +321,7 @@ export const dateTimePickerSlotProps: DateTimePickerSlotProps<Dayjs, false> = {
     sx: {
       scale: 1.5,
       color: Theme.palette.primary.dark,
-      [Theme.breakpoints.down('lg')]: {
+      [Theme.breakpoints.down('md')]: {
         scale: 1
       }
     }
@@ -331,7 +330,7 @@ export const dateTimePickerSlotProps: DateTimePickerSlotProps<Dayjs, false> = {
     sx: {
       scale: 1.5,
       color: Theme.palette.primary.dark,
-      [Theme.breakpoints.down('lg')]: {
+      [Theme.breakpoints.down('md')]: {
         scale: 1
       }
     }
@@ -340,7 +339,7 @@ export const dateTimePickerSlotProps: DateTimePickerSlotProps<Dayjs, false> = {
     sx: {
       scale: 1.5,
       color: Theme.palette.primary.dark,
-      [Theme.breakpoints.down('lg')]: {
+      [Theme.breakpoints.down('md')]: {
         scale: 1
       }
     }
@@ -348,7 +347,7 @@ export const dateTimePickerSlotProps: DateTimePickerSlotProps<Dayjs, false> = {
   openPickerIcon: {
     sx: {
       scale: 1.5,
-      [Theme.breakpoints.down('lg')]: {
+      [Theme.breakpoints.down('md')]: {
         scale: 1
       }
     }
@@ -364,7 +363,7 @@ export const dateTimePickerSlotProps: DateTimePickerSlotProps<Dayjs, false> = {
     sx: {
       fontSize: '1.5rem',
       borderRadius: 1,
-      [Theme.breakpoints.down('lg')]: {
+      [Theme.breakpoints.down('md')]: {
         fontSize: '1rem'
       }
     }
@@ -372,7 +371,7 @@ export const dateTimePickerSlotProps: DateTimePickerSlotProps<Dayjs, false> = {
   calendarHeader: {
     sx: {
       scale: 1.1,
-      [Theme.breakpoints.down('lg')]: {
+      [Theme.breakpoints.down('md')]: {
         scale: 1
       }
     }

@@ -21,7 +21,7 @@ import {
   pagesToolbarStyles,
   pagesWrapperStyles
 } from '../../styles/pages-styles.jsx';
-import type { LoadingOutletContext } from '../../types/types';
+import type { OutletContextProps } from '../../types/types.tsx';
 import { body, title } from '../static/crud-text.jsx';
 
 const Search = lazy(() => import('../../components/crud/search.jsx'));
@@ -46,7 +46,7 @@ export type QueryOptions = {
 
 const Crud = (): JSX.Element => {
   const [open, setOpen] = useState<boolean>(false);
-  const { loading, setLoading } = useOutletContext<LoadingOutletContext>();
+  const { loading, setLoading } = useOutletContext<OutletContextProps>();
   const divRef = useRef<HTMLElement>(null);
   const { pathname } = useLocation();
   const nav = useNavigate();
@@ -212,7 +212,7 @@ const Crud = (): JSX.Element => {
       <Suspense fallback={<Waiting src={waiting} />}>{open && <Search setOpen={setOpen} />}</Suspense>
 
       <Box component={'div'} key={`crud-app-wrapper`} id={`crud-app-wrapper`} sx={crudAppWrapperStyles}>
-        <Outlet />
+        <Outlet context={{ loading, setLoading }} />
       </Box>
     </Box>
   );
@@ -227,8 +227,6 @@ async function handleNavigate(path: string, nav: NavigateFunction, setLoading: D
   } catch (error) {
     console.error(error);
     await nav('/crud');
-    setLoading(false);
-  } finally {
     setLoading(false);
   }
 }

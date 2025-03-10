@@ -42,14 +42,6 @@ import { gamesButtonLabelsSxProps, gamesLabelWrapperSxProps } from '../../styles
 
 const PromptBuilder = lazy(() => import('../../components/gen-ai/prompt-builder/prompt-builder.jsx'));
 
-export type OutletContextProps = {
-  prompt: PromptRequest;
-  promptResponse: string[];
-  setPromptResponse: Dispatch<SetStateAction<string[]>>;
-  loading: boolean;
-  setLoading: Dispatch<SetStateAction<boolean>>;
-};
-
 export type LayoutOutletContextProps = {
   loading: boolean;
   setLoading: Dispatch<SetStateAction<boolean>>;

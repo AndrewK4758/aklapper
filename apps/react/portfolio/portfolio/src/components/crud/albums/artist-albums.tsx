@@ -42,20 +42,23 @@ const AlbumsOnArtist = (): JSX.Element => {
       field: 'album_id',
       headerName: 'Album ID',
       type: 'number',
-      flex: 0.75
+      flex: 0.75,
+      cellClassName: 'album-id'
     },
     {
       field: 'title',
       headerName: 'Title',
       type: 'string',
       flex: 4,
-      editable: true
+      editable: true,
+      cellClassName: 'album-title'
     },
     {
       field: 'artist_id',
       headerName: 'Artist ID',
       type: 'number',
-      flex: 1
+      flex: 1,
+      cellClassName: 'artist-id'
     },
     {
       field: 'update-delete',
@@ -66,7 +69,7 @@ const AlbumsOnArtist = (): JSX.Element => {
         return [
           <GridActionsCellItem
             label="Update"
-            icon={<UploadIcon />}
+            icon={<UploadIcon color="success" />}
             title="Update"
             onClick={async x => {
               console.log(x);
@@ -77,7 +80,7 @@ const AlbumsOnArtist = (): JSX.Element => {
           <GridActionsCellItem
             label="Delete"
             title="Delete"
-            icon={<DeleteForeverIcon />}
+            icon={<DeleteForeverIcon color="error" />}
             onClick={async () => {
               await handleDeleteAlbum(params.row, apiRef);
             }}
@@ -95,7 +98,7 @@ const AlbumsOnArtist = (): JSX.Element => {
           <GridActionsCellItem
             label="Details"
             title="Details"
-            icon={<DetailsIcon />}
+            icon={<DetailsIcon color="info" />}
             onClick={() => nav(`${params.row.album_id}/tracks`, { replace: true })}
           />
         ];
@@ -117,7 +120,7 @@ const AlbumsOnArtist = (): JSX.Element => {
       flexWrap={'wrap'}
       gap={0.5}
     >
-      <Paper
+      <Box
         component={'div'}
         key={'albums-box'}
         id={'albums-box'}
@@ -144,7 +147,7 @@ const AlbumsOnArtist = (): JSX.Element => {
         <Container component={'div'} key={'add-album-box'} sx={{ paddingY: 1 }}>
           <AddAlbumOnArtist apiRef={apiRef} />
         </Container>
-        <Box
+        <Paper
           component={'div'}
           key={'artist-album-datagrid-wrapper'}
           id="artist-album-datagrid-wrapper"
@@ -175,8 +178,8 @@ const AlbumsOnArtist = (): JSX.Element => {
               }
             }}
           />
-        </Box>
-      </Paper>
+        </Paper>
+      </Box>
       <Box component={'div'} key={'tracks-outlet-wrapper'} id={'tracks-outlet-wrapper'} width={'100%'}>
         <Outlet />
       </Box>

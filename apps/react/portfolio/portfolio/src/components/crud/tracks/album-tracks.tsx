@@ -41,56 +41,64 @@ const Tracks = (): JSX.Element => {
       field: 'track_id',
       headerName: 'Track ID',
       type: 'number',
-      flex: 1
+      flex: 1,
+      cellClassName: 'track-id'
     },
     {
       field: 'name',
       headerName: 'Name',
       type: 'string',
       editable: true,
-      flex: 3
+      flex: 3,
+      cellClassName: 'track-name'
     },
     {
       field: 'unit_price',
       type: 'number',
       headerName: 'Unit Price',
       editable: true,
-      flex: 1
+      flex: 1,
+      cellClassName: 'unit-price'
     },
     {
       field: 'genre_id',
       type: 'number',
       headerName: 'Genre ID',
       editable: true,
-      flex: 1
+      flex: 1,
+      cellClassName: 'genre-id'
     },
     {
       field: 'media_type_id',
       type: 'number',
       headerName: 'Media Type ID',
       editable: true,
-      flex: 1
+      flex: 1,
+      cellClassName: 'media-type-id'
     },
     {
       field: 'composer',
       type: 'string',
       headerName: 'Composer',
       editable: true,
-      flex: 2
+      flex: 2,
+      cellClassName: 'composer'
     },
     {
       field: 'milliseconds',
       type: 'number',
       headerName: 'Milliseconds',
       editable: true,
-      flex: 1
+      flex: 1,
+      cellClassName: 'milliseconds'
     },
     {
       field: 'bytes',
       type: 'number',
       headerName: 'Bytes',
       editable: true,
-      flex: 1
+      flex: 1,
+      cellClassName: 'bytes'
     },
 
     {
@@ -102,7 +110,7 @@ const Tracks = (): JSX.Element => {
         return [
           <GridActionsCellItem
             label="Update"
-            icon={<UploadIcon />}
+            icon={<UploadIcon color="success" />}
             title="Update"
             onClick={() => {
               handleUpdateTrack(params.row, apiRef);
@@ -112,7 +120,7 @@ const Tracks = (): JSX.Element => {
           <GridActionsCellItem
             label="Delete"
             title="Delete"
-            icon={<DeleteForeverIcon />}
+            icon={<DeleteForeverIcon color="error" />}
             onClick={() => {
               handleDeleteTrack(params.row, apiRef);
             }}
@@ -125,7 +133,7 @@ const Tracks = (): JSX.Element => {
   const getID = (row: track) => row.track_id;
 
   return (
-    <Paper component={'div'} key={'track-box'} id={'track-box'} sx={{ border: '3px solid purple', borderRadius: 1 }}>
+    <Box component={'div'} key={'track-box'} id={'track-box'} sx={{ border: '3px solid purple', borderRadius: 1 }}>
       <Container key={'artist-title'} component={'div'} sx={{ paddingY: 2 }}>
         <Paper key={'title-bar'} component={'div'}>
           <Text component={'h3'} titleVariant="h3" titleText="Album Tracks" sx={{ textAlign: 'center' }} />
@@ -134,7 +142,7 @@ const Tracks = (): JSX.Element => {
       <Container component={'div'} key={'add-track-box'} sx={{ paddingY: 1 }}>
         <AddTrack albumID={albumID} apiRef={apiRef} />
       </Container>
-      <Box component={'div'} key={'tracks-data-grid-wrapper'} id="tracks-data-grid-wrapper" sx={{ borderRadius: 1 }}>
+      <Paper component={'div'} key={'tracks-data-grid-wrapper'} id="tracks-data-grid-wrapper" sx={{ borderRadius: 1 }}>
         <DataGrid
           apiRef={apiRef}
           columns={columns}
@@ -158,8 +166,8 @@ const Tracks = (): JSX.Element => {
             }
           }}
         />
-      </Box>
-    </Paper>
+      </Paper>
+    </Box>
   );
 };
 

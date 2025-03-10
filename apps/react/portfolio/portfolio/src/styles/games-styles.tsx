@@ -258,7 +258,7 @@ export const avatarTTTSize: CSSProperties = {
 
 export const rowSizeTTT: SxProps = { height: '33.4 ', flex: '1 0 100%' };
 
-export const nonSelectedSpaceStyle: SxProps = { backgroundColor: Theme.palette.background.default };
+export const nonSelectedSpaceStyle: SxProps = {};
 
 export const selectedSpaceStyle: SxProps = { backgroundColor: '#FFD300', color: '#58278b' };
 

@@ -67,20 +67,23 @@ const Album = (): JSX.Element => {
       field: 'album_id',
       headerName: 'Album ID',
       type: 'number',
-      flex: 1
+      flex: 1,
+      cellClassName: 'album-id'
     },
     {
       field: 'title',
       headerName: 'Title',
       type: 'string',
       flex: 3,
-      editable: true
+      editable: true,
+      cellClassName: 'album-title'
     },
     {
       field: 'artist_id',
       headerName: 'Artist ID',
       type: 'number',
-      flex: 1
+      flex: 1,
+      cellClassName: 'artist-id'
     },
     {
       field: 'update-delete',
@@ -91,7 +94,7 @@ const Album = (): JSX.Element => {
         return [
           <GridActionsCellItem
             label="Update"
-            icon={<UploadIcon />}
+            icon={<UploadIcon color="success" />}
             title="Update"
             onClick={() => {
               handleUpdateAlbumTitle(params.row, apiRef);
@@ -101,7 +104,7 @@ const Album = (): JSX.Element => {
           <GridActionsCellItem
             label="Delete"
             title="Delete"
-            icon={<DeleteForeverIcon />}
+            icon={<DeleteForeverIcon color="error" />}
             onClick={() => {
               handleDeleteAlbum(params.row, apiRef);
             }}
@@ -119,7 +122,7 @@ const Album = (): JSX.Element => {
           <GridActionsCellItem
             label="Tracks"
             title="Tracks"
-            icon={<DetailsIcon />}
+            icon={<DetailsIcon color="info" />}
             onClick={() => nav(`${params.row.album_id}/tracks`, { replace: true })}
           />
         ];
@@ -139,7 +142,7 @@ const Album = (): JSX.Element => {
       flexDirection={matchesSize ? 'column' : 'row'}
       gap={0.5}
     >
-      <Paper
+      <Box
         component={'div'}
         key={'album-box'}
         id="album-box"
@@ -166,7 +169,7 @@ const Album = (): JSX.Element => {
         <Container component={'div'} key={'add-album-box'} id={'add-album-box'} sx={{ paddingY: 1 }}>
           <AddAlbum apiRef={apiRef} />
         </Container>
-        <Box component={'div'} key={'all-albums-datagrid'} id="all-albums-datagrid" sx={{ borderRadius: 1 }}>
+        <Paper component={'div'} key={'all-albums-datagrid'} id="all-albums-datagrid" sx={{ borderRadius: 1 }}>
           <DataGrid
             logLevel="info"
             key={'album-data-grid'}
@@ -197,8 +200,8 @@ const Album = (): JSX.Element => {
               }
             }}
           />
-        </Box>
-      </Paper>
+        </Paper>
+      </Box>
       <Box
         key={'tracks-on-album-box'}
         component={'div'}

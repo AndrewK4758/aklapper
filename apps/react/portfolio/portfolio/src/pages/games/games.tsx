@@ -9,22 +9,19 @@ import Paper from '@mui/material/Paper';
 import Toolbar from '@mui/material/Toolbar';
 import { useRef, useState, type Dispatch, type JSX, type SetStateAction } from 'react';
 import { Outlet, useNavigation, useOutletContext, useSubmit, type SubmitFunction } from 'react-router';
-import ChutesAndLaddersIcon from '../../components/icons/chutes-and-ladders.jsx';
-import TicTacToeIcon from '../../components/icons/tic-tac-toe-icon.jsx';
 import GameLoading from '../../components/loading/loading.jsx';
 import { crudPaperSxProps } from '../../styles/crud-styles.jsx';
 import { gamesButtonLabelsSxProps, gamesButtonSxProps, gamesLabelWrapperSxProps } from '../../styles/games-styles.jsx';
 import {
   gamesOutletGameWrapperSxProps,
   gamesOutletWrapperSxProps,
-  iconStateStyle,
   pagesOutletStyles,
   pagesTitlesBoxStyles,
   pagesTitleSx,
   pagesToolbarStyles,
   pagesWrapperStyles
 } from '../../styles/pages-styles.jsx';
-import type { LoadingOutletContext } from '../../types/types.jsx';
+import type { OutletContextProps } from '../../types/types.jsx';
 import { body, title } from '../static/games-text';
 
 /**
@@ -34,9 +31,8 @@ import { body, title } from '../static/games-text';
  */
 
 const Games = (): JSX.Element => {
-  // const params = useParams();
   const { state } = useNavigation();
-  const { loading, setLoading } = useOutletContext<LoadingOutletContext>();
+  const { loading, setLoading } = useOutletContext<OutletContextProps>();
   const divRef = useRef<HTMLElement>(null);
   const [textView, setTextView] = useState<boolean>(true);
   const submit = useSubmit();
@@ -78,7 +74,6 @@ const Games = (): JSX.Element => {
                   id="Chutes-&-Ladders"
                   variant="text"
                   disabled={state !== 'idle'}
-                  endIcon={<ChutesAndLaddersIcon sx={iconStateStyle(state)} />}
                   onClick={async e => loadAndStartGame(e.currentTarget.id, submit, setLoading, setTextView)}
                   sx={gamesButtonSxProps}
                 >
@@ -105,7 +100,6 @@ const Games = (): JSX.Element => {
                   id="Tic-Tac-Toe"
                   variant="text"
                   disabled={state !== 'idle'}
-                  endIcon={<TicTacToeIcon sx={iconStateStyle(state)} />}
                   onClick={async e => loadAndStartGame(e.currentTarget.id, submit, setLoading, setTextView)}
                   sx={gamesButtonSxProps}
                 >

@@ -74,16 +74,12 @@ export const crudAddButtonStyles: SxProps = { m: 1, flex: '1 0 30%', fontSize: '
 export const crudAddErrorTextStyles: SxProps = { fontSize: '1.25rem' };
 
 export const dataGridStyleUpdate: SxProps = {
-  color: '#1f1f1f',
   fontSize: '.875rem',
   fontFamily: 'monospace',
   '& .MuiDataGrid-columnHeader': {
-    backgroundColor: '#FFFFFF'
+    color: Theme.palette.primary.main
   },
-  '& .MuiDataGrid-scrollbarFiller--header': {
-    backgroundColor: 'white'
-  },
-  '& .MuiToolbar-root': {
+  '& .MuiToolbar-main': {
     color: Theme.palette.info.light
   },
   '& .MuiTablePagination-selectLabel': {
@@ -95,16 +91,19 @@ export const dataGridStyleUpdate: SxProps = {
     fontFamily: 'Mono'
   },
   '& .MuiDataGrid-columnHeaderTitle': {
-    fontSize: '.7rem'
+    fontSize: '1rem'
   },
-  '& .MuiDataGrid-cell': {
+  '& .MuiTablePagination-root': {
     color: Theme.palette.info.light
   },
-  '& .MuiDataGrid-row': {
-    color: Theme.palette.info.light
+  '& .artist-id, .album-id, .track-id': {
+    color: Theme.palette.info.main
   },
-  '& .MuiTabePagination-root': {
-    color: Theme.palette.info.light
+  '& .artist-name, .album-title': {
+    color: Theme.palette.grey[100]
+  },
+  '& .unit-price, .genre-id, .media-type-id, .milliseconds, .bytes': {
+    color: Theme.palette.warning.main
   }
 };
 //-----------Add Entry-----------//
