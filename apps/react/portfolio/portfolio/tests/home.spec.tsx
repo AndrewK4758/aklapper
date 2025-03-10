@@ -31,7 +31,7 @@ describe('Test Home Component', async () => {
     const introTextData = await baseComponent.findByTestId('about-me-text');
     const introTextLink = await baseComponent.findByTestId('link-to-woodstock.dev');
 
-    expect(introTextData).toHaveRole('paragraph');
+    expect(introTextData).toHaveRole('generic');
     expect(introTextLink).toHaveRole('link');
     expect(introTextLink).toHaveTextContent('Woodstock Developers Group');
   });
