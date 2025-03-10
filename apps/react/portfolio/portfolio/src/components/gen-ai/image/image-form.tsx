@@ -17,7 +17,6 @@ import { type ChangeEvent, type JSX } from 'react';
 import { Form, useActionData, useNavigation, useOutletContext, useSubmit } from 'react-router';
 import * as Yup from 'yup';
 import waiting from '../../../assets/swirly-dots-to-chrome.webp';
-import type { OutletContextProps } from '../../../pages/gen-ai/gen-ai.jsx';
 import { crudHeaderTextSxProps } from '../../../styles/crud-styles.jsx';
 import {
   forrmControlLabelStyles,
@@ -35,8 +34,8 @@ import {
   textInputSx,
   tooltipSx
 } from '../../../styles/gen-ai-styles.jsx';
-import { buttonSXProps } from '../../../styles/pages-styles.jsx';
-import { centerFlex, pagesTitleSx } from '../../../styles/pages-styles.jsx';
+import { buttonSXProps, centerFlex, pagesTitleSx } from '../../../styles/pages-styles.jsx';
+import type { OutletContextProps } from '../../../types/types.tsx';
 import {
   imageGenDescription,
   promptTooltipText,

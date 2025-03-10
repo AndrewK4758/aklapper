@@ -13,11 +13,11 @@ import { useContext, useEffect, useRef, useState, type JSX, type RefObject } fro
 import { useOutletContext } from 'react-router';
 import { MediaRecorderClientContext } from '../../../contexts/audio-context.jsx';
 import { WebSocketContext } from '../../../contexts/websocket-context.jsx';
-import type { OutletContextProps } from '../../../pages/gen-ai/gen-ai.jsx';
 import { crudHeaderTextSxProps } from '../../../styles/crud-styles.jsx';
 import { genAiAudioIconButtonSxProps, topLevelModeStyle } from '../../../styles/gen-ai-styles.jsx';
 import { buttonSXProps } from '../../../styles/pages-styles.js';
 import { pagesTitleSx } from '../../../styles/pages-styles.jsx';
+import type { OutletContextProps } from '../../../types/types.tsx';
 import { audioText } from '../static/audio-text.jsx';
 import AudioVisualizer from './audio-visualizer.jsx';
 

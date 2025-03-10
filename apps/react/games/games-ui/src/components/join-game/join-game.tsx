@@ -1,4 +1,3 @@
-// import styles from './join-game.module.css';
 import { GamePlayerValidation } from '@aklapper/types';
 import { SxProps } from '@mui/material';
 import Button from '@mui/material/Button';
@@ -52,14 +51,16 @@ export const JoinGame = ({
     nav(`/games/${gameName}/register`);
   };
 
+  const initialValues: JoinGamePath = { gamePath: '' };
+
   const formik = useFormik({
-    initialValues: { gamePath: '' },
+    initialValues: initialValues,
     validationSchema: validationSchema,
     onSubmit: values => handleSubmit(values)
   });
   return (
     <Form method={method} onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
-      <FormikTextInput
+      <FormikTextInput<JoinGamePath>
         formik={formik}
         autoComplete="off"
         labelComponent={'h2'}
@@ -67,7 +68,7 @@ export const JoinGame = ({
         id="gamePath"
         type={type}
         placeholder="Enter GameID to join"
-        name={names[0]}
+        name={names[0] as 'gamePath'}
         Theme={GamesTheme}
         textSx={breakpointsJoinGameText}
         labelSx={breakpointsJoinGameLabel}
