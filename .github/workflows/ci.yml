@@ -271,7 +271,7 @@ jobs:
 
       # Configure Docker with GCP
       - name: Configure Docker
-        run: gcloud auth configure-docker gcr.io/${{ secrets.GCP_REGION }}
+        run: gcloud auth configure-docker us-docker.pkg.dev
 
       # Deploy to Portfolio to App Engine
       - name: Deploy Portfolio to App Engine
