@@ -22,8 +22,8 @@ const render = async (fullUrl: string, resp: Response) => {
   const { pipe, abort } = ReactDomServer.renderToPipeableStream(
     <html lang="en">
       <head>
-        <meta char-set="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>
           Developer Portfolio for Andrew Klapper. This shows multiple projects that showcase distinct programming
           styles. Each project uses React as the front-end / ui, jest/vitest for testing, github actions and GCP for
@@ -45,12 +45,10 @@ const render = async (fullUrl: string, resp: Response) => {
         <link rel="stylesheet" type="text/css" href={`/client/${css}`} />
         <link rel="icon" type="image/x-icon" href="/client/favicon.ico" />
       </head>
-      <body>
-        <div id="root">
-          <StrictMode>
-            <App Router={<StaticRouterProvider router={router} context={context} hydrate={true} />} />
-          </StrictMode>
-        </div>
+      <body id="root">
+        <StrictMode>
+          <App Router={<StaticRouterProvider router={router} context={context} hydrate={true} />} />
+        </StrictMode>
       </body>
     </html>,
     {
@@ -71,8 +69,8 @@ const render = async (fullUrl: string, resp: Response) => {
         const html = `
           <html lang="en">
             <head>
-              <meta char-set="utf-8" />
-              <meta name="viewport" content="width=device-width, initial-scale=1" />
+              <meta charset="utf-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
               <title>
                 Developer Portfolio for Andrew Klapper. This shows multiple projects that showcase distinct programming
                 styles. Each project uses React as the front-end / ui, jest/vitest for testing, github actions and GCP
@@ -91,10 +89,8 @@ const render = async (fullUrl: string, resp: Response) => {
               <link rel="stylesheet" type="text/css" href="/client/${css}" />
               <link rel="icon" type="image/x-icon" href="/client/favicon.ico" />
             </head>
-            <body>
-              <div id="root">
+            <body id="root">
                 ${baseError}
-              </div>
               <script type="module" src="/client/${js}"></script>
             </body>    
           </html>`;

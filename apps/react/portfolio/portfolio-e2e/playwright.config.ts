@@ -54,7 +54,7 @@ export default defineConfig({
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] }
-    },
+    }
 
     // Uncomment for mobile browsers support
     /*
@@ -68,6 +68,7 @@ export default defineConfig({
     },
     */
     // Uncomment for branded browsers
+    /*
     {
       name: 'Microsoft Edge',
       use: { ...devices['Desktop Edge'], channel: 'msedge' }
@@ -76,5 +77,6 @@ export default defineConfig({
       name: 'Google Chrome',
       use: { ...devices['Desktop Chrome'], channel: 'chrome' }
     }
+      */
   ]
 });

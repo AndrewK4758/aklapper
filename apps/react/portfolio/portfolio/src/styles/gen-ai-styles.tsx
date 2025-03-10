@@ -152,8 +152,9 @@ export const promptBuillderFormBoxSxProps: SxProps = {
   }
 };
 
+export const radioButtonLabelWrapperSxProps: SxProps = { display: 'flex', alignItems: 'center', gap: 2 };
+
 export const promptBuilderResponseFormatBoxSxProps: SxProps = {
-  backgroundColor: Theme.palette.background.default,
   borderRadius: 1
 };
 

@@ -25,12 +25,11 @@ html {
 }
 
 #root {
-  width: 99.25%;
+  width: 100vw;
   height: auto;
   min-height: fit-content;
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
 }
 
 input:-webkit-autofill,
@@ -61,6 +60,6 @@ pre {
   word-wrap: break-word;
 }
 
-strong.bold-text {
+.bold-text {
   font-family: 'Lucida Bold';
 }

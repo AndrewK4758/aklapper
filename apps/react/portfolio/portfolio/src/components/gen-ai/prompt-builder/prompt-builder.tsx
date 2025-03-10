@@ -28,11 +28,11 @@ import {
   promptBuilderUploadFileTextSxProps,
   promptBuillderFormBoxSxProps,
   radioButtonLabelSxProps,
+  radioButtonLabelWrapperSxProps,
   textInputSx,
   tooltipSx
 } from '../../../styles/gen-ai-styles.jsx';
-import { buttonSXProps } from '../../../styles/pages-styles.jsx';
-import { flexColumnStyles, fullSizeBlock, pagesTitleSx } from '../../../styles/pages-styles.jsx';
+import { buttonSXProps, flexColumnStyles, fullSizeBlock, pagesTitleSx } from '../../../styles/pages-styles.jsx';
 import ImageIcon from '../../icons/image-icon.jsx';
 import JsonIcon from '../../icons/json-icon.jsx';
 import TextIcon from '../../icons/text-icon.jsx';
@@ -416,11 +416,12 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                       label={
                         <Label
                           htmlFor="response-format-text"
-                          tooltipTitle={undefined}
+                          tooltipTitle={'Tells the LLM to respond with plain text'}
                           labelVariant={'h4'}
                           labelText={'Text'}
-                          placement={undefined}
+                          placement={'top'}
                           Icon={<TextIcon sx={promptBuilderResponseFormatIconsSxProps} />}
+                          labelWrapperDivSxProps={radioButtonLabelWrapperSxProps}
                           labelTextSx={radioButtonLabelSxProps}
                         />
                       }
@@ -434,11 +435,12 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                       label={
                         <Label
                           htmlFor="response-format-json"
-                          tooltipTitle={undefined}
+                          tooltipTitle={'Tells the LLM to respond with JSON'}
                           labelVariant={'h4'}
                           labelText={'JSON'}
-                          placement={undefined}
+                          placement={'top'}
                           labelTextSx={radioButtonLabelSxProps}
+                          labelWrapperDivSxProps={radioButtonLabelWrapperSxProps}
                           Icon={<JsonIcon sx={promptBuilderResponseFormatIconsSxProps} />}
                         />
                       }
@@ -452,11 +454,14 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                       label={
                         <Label
                           htmlFor="response-format-image"
-                          tooltipTitle={'WILL NOT WORK WITH TEXT OR AUDIO'}
+                          tooltipTitle={
+                            'Tells the LLM to respond with a text to Image format.\n**WILL NOT WORK WITH TEXT OR AUDIO**'
+                          }
                           labelVariant={'h4'}
                           labelText={'Image'}
                           placement={'top'}
                           Icon={<ImageIcon sx={promptBuilderResponseFormatIconsSxProps} />}
+                          labelWrapperDivSxProps={radioButtonLabelWrapperSxProps}
                           labelTextSx={radioButtonLabelSxProps}
                           tooltipSx={{ fontSize: '1rem' }}
                         />
