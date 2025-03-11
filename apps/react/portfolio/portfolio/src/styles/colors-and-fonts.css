@@ -1,16 +1,19 @@
 @font-face {
   font-family: League Gothic;
   src: url('../../fonts/LeagueGothic-Regular-VariableFont_wdth.ttf'), format('truetype');
+  font-display: swap;
 }
 
 @font-face {
   font-family: Lucida;
   src: url('../../fonts/LTYPE.TTF'), format('truetype');
+  font-display: swap;
 }
 
 @font-face {
   font-family: Lucida Bold;
   src: url('../../fonts/LTYPEB.TTF'), format('truetype');
+  font-display: swap;
 }
 
 :root {

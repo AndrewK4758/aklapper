@@ -6,7 +6,7 @@ import Toolbar from '@mui/material/Toolbar';
 import { useState, type JSX } from 'react';
 import { useNavigate } from 'react-router';
 import { headerLabelSxProps } from '../../styles/header-styles.jsx';
-import Connect from './contact/contact.jsx';
+import Contact from './contact/contact.jsx';
 import { buttonSXProps } from '../../styles/pages-styles.js';
 
 /**
@@ -113,7 +113,7 @@ const Header = (): JSX.Element => {
           </Button>
         </ButtonGroup>
       </Toolbar>
-      <Connect openMenu={openMenu} setOpenMenu={setOpenMenu} />
+      <Contact openMenu={openMenu} setOpenMenu={setOpenMenu} />
     </AppBar>
   );
 };

@@ -53,6 +53,8 @@ const Crud = (): JSX.Element => {
 
   useScrollIntoView(divRef);
 
+  console.log(`CRUD LOADING STATE: ${loading}`);
+
   return (
     <Box ref={divRef} component={'div'} key={'crud-wrapper'} id="crud-wrapper" sx={pagesWrapperStyles}>
       <Paper elevation={2} component={'div'} key={'crud-header-wrapper'} id="crud-header-wrapper" sx={crudPaperSxProps}>
@@ -212,6 +214,7 @@ const Crud = (): JSX.Element => {
       <Suspense fallback={<Waiting src={waiting} />}>{open && <Search setOpen={setOpen} />}</Suspense>
 
       <Box component={'div'} key={`crud-app-wrapper`} id={`crud-app-wrapper`} sx={crudAppWrapperStyles}>
+        {loading && <Waiting src={waiting} />}
         <Outlet context={{ loading, setLoading }} />
       </Box>
     </Box>

@@ -57,6 +57,7 @@ const render = async (fullUrl: string, resp: Response) => {
         console.log('START RENDERING COMPONENTS');
         resp.statusCode = context.statusCode || 200;
         resp.setHeader('Content-Type', 'text/html');
+        resp.setHeader('Accept-Encoding', 'gzip, deflate, br');
         resp.setHeader('Access-Control-Allow-Origin', fullUrl);
         pipe(resp);
       },
@@ -69,7 +70,7 @@ const render = async (fullUrl: string, resp: Response) => {
         const html = `
           <html lang="en">
             <head>
-              <meta charset="utf-8" />
+              <meta charSet="utf-8" />
               <meta name="viewport" content="width=device-width, initial-scale=1.0" />
               <title>
                 Developer Portfolio for Andrew Klapper. This shows multiple projects that showcase distinct programming
@@ -97,6 +98,7 @@ const render = async (fullUrl: string, resp: Response) => {
 
         resp.statusCode = 500;
         resp.setHeader('Content-Type', 'text/html');
+        resp.setHeader('Accept-Encoding', 'gzip, deflate, br');
         resp.setHeader('Access-Control-Allow-Origin', fullUrl);
         resp.write(html);
         resp.send();

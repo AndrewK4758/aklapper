@@ -16,13 +16,16 @@ const corsOptions: CorsOptions = {
 app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
 
-app.use(express.static('dist'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use(express.static('dist'));
 
 app.get('*', async (req: Request, resp: Response) => {
   try {
     const fullUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
+
+    console.log(`FULL URL: ${fullUrl}`);
 
     await render(fullUrl, resp);
   } catch (error) {

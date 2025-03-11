@@ -9,13 +9,15 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import { DataGrid, GridActionsCellItem, GridColDef, GridRowParams, GridToolbar, useGridApiRef } from '@mui/x-data-grid';
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { album } from '@prisma/client';
-import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
-import { Outlet, useLoaderData, useNavigate } from 'react-router';
+import { useEffect, useRef, useState, type JSX } from 'react';
+import { Outlet, useLoaderData, useNavigate, useOutletContext } from 'react-router';
 import handleDeleteAlbum from '../../../services/events/crud-events/handle-delete-album.jsx';
 import handleUpdateAlbumTitle from '../../../services/events/crud-events/handle-update-album-title.jsx';
 import loadAlbums from '../../../services/loaders/crud-loaders/load-albums.jsx';
 import { dataGridStyleUpdate } from '../../../styles/crud-styles.jsx';
 import AddAlbum from './add-album.jsx';
+import { OutletContextProps } from '../../../types/types.jsx';
+import useFetchDataGridData from '../../../hooks/useFetchDataGridData.jsx';
 
 const paginationModelInit = {
   pageSize: 25,
@@ -33,6 +35,7 @@ const Album = (): JSX.Element => {
   const COUNT = useLoaderData() as number;
   const [albums, setAlbums] = useState<album[]>();
   const [rowCountState, setRowCountState] = useState(COUNT);
+  const { setLoading } = useOutletContext<OutletContextProps>();
   const [paginationModel, setPaginationModel] = useState(paginationModelInit);
   const matchesSize = useMediaQuery('(max-width:1200px)');
   const divRef = useRef<HTMLDivElement>(null);
@@ -40,28 +43,15 @@ const Album = (): JSX.Element => {
 
   const apiRef = useGridApiRef<GridApiCommunity>();
 
-  const queryOptions = useMemo(
-    () => ({
-      cursor: paginationModel.page === 0 ? 1 : paginationModel.pageSize * paginationModel.page,
-      pageSize: paginationModel.pageSize,
-      skip: paginationModel.page === 0 ? 0 : 1
-    }),
-    [paginationModel]
-  );
-
-  const fetchAlbums = useCallback(
-    async (pageSize: number, skip: number, cursor: number) => await loadAlbums(pageSize, skip, cursor),
-    []
-  );
+  useFetchDataGridData<album[] | undefined>(paginationModel, setAlbums, loadAlbums);
 
   useScrollIntoView(divRef);
 
   useEffect(() => {
-    fetchAlbums(queryOptions.pageSize, queryOptions.skip, queryOptions.cursor)
-      .then(({ albums }) => setAlbums(albums))
-      .catch(err => console.error(err));
-  }, [fetchAlbums, queryOptions]);
+    if (apiRef.current) setLoading(false);
+  }, [apiRef.current]);
 
+  console.log(albums);
   const columns: GridColDef[] = [
     {
       field: 'album_id',

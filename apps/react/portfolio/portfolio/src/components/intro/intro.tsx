@@ -28,7 +28,7 @@ const Intro = (): JSX.Element => (
         key={'about-me-text'}
         id="about-me-text"
         data-testid="about-me-text"
-        component={'div'}
+        component={'section'}
         titleVariant="body1"
         titleText={<IntroText />}
         sx={introTextSxProps}
