@@ -1,0 +1,31 @@
+{
+  "name": "go-file-parser",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/go/file-parser",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx-go/nx-go:build",
+      "options": {
+        "outputPath": "apps/go/dist",
+        "main": "{projectRoot}/main.go"
+      }
+    },
+    "serve": {
+      "executor": "@nx-go/nx-go:serve",
+      "options": {
+        "main": "{projectRoot}/main.go"
+      }
+    },
+    "test": {
+      "executor": "@nx-go/nx-go:test"
+    },
+    "lint": {
+      "executor": "@nx-go/nx-go:lint"
+    },
+    "tidy": {
+      "executor": "@nx-go/nx-go:tidy"
+    }
+  }
+}

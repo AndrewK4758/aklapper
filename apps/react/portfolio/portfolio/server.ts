@@ -16,10 +16,10 @@ const corsOptions: CorsOptions = {
 app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
 
+app.use(express.static('dist'));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-app.use(express.static('dist'));
 
 app.get('*', async (req: Request, resp: Response) => {
   try {

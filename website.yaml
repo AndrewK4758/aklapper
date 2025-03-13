@@ -21,3 +21,16 @@ automatic_scaling:
     target_utilization: 0.5
 
 service_account: aklapper@games-424800.iam.gserviceaccount.com
+
+liveness_check:
+  initial_delay_sec: '600'
+  check_interval_sec: '60'
+  timeout_sec: '60'
+  failure_threshold: 1
+  success_threshold: 1
+readiness_check:
+  check_interval_sec: '30'
+  timeout_sec: '30'
+  failure_threshold: 1
+  success_threshold: 1
+  app_start_timeout_sec: '600'

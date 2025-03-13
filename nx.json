@@ -4,7 +4,9 @@
     "appsDir": "apps",
     "libsDir": "packages"
   },
-  "cli": { "packageManager": "pnpm" },
+  "cli": {
+    "packageManager": "pnpm"
+  },
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "production": [
@@ -17,7 +19,7 @@
       "!{projectRoot}/src/test-setup.[jt]s",
       "!{projectRoot}/test-setup.[jt]s"
     ],
-    "sharedGlobals": []
+    "sharedGlobals": ["{workspaceRoot}/go.work"]
   },
   "plugins": [
     {
@@ -84,6 +86,10 @@
         "apps/react/portfolio/portfolio-e2e/**",
         "apps/react/local-model/local-model-e2e/**"
       ]
+    },
+    {
+      "plugin": "@nx-go/nx-go",
+      "include": ["apps/go/file-parser/**"]
     }
   ],
   "targetDefaults": {

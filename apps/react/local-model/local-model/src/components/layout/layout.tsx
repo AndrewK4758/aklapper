@@ -12,12 +12,42 @@ import {
 import { Label, Text } from '@aklapper/react-shared';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Button from '@mui/material/Button';
-import { useState } from 'react';
+import { useRef, useState, type ChangeEvent } from 'react';
 import ModelResponse from '../query-model/query-model-response';
+import axios from 'axios';
 
 export default function Layout() {
   const [promptResponse, setPromptResponse] = useState<string>('');
+  const inputRef = useRef<HTMLInputElement>(null);
   const nav = useNavigate();
+
+  function handleUploadClick() {
+    if (inputRef.current) {
+      inputRef.current.click();
+    }
+  }
+
+  async function handleFileUpload(e: ChangeEvent<HTMLInputElement>) {
+    if (e.currentTarget.files) {
+      const baseUrl = import.meta.env.VITE_LOCAL_SERVER_URL;
+      const formData = new FormData();
+      const fileList = e.currentTarget.files;
+
+      for (let i = 0; i < fileList.length; i++) {
+        formData.append('files', fileList[i]);
+      }
+
+      console.log(formData.get('files'));
+
+      const resp = await axios.postForm(baseUrl, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      console.log(resp.data);
+    }
+  }
 
   return (
     <Box component={'div'} id="app-wrapper" data-testid="app-wrapper" key={'app-wrapper'} sx={baseStyleForLayoutItems}>
@@ -58,6 +88,10 @@ export default function Layout() {
           component={'h1'}
           sx={{ fontSize: '3rem' }}
         />
+        <input type="file" multiple={true} ref={inputRef} hidden={true} id="upload-files" onChange={handleFileUpload} />
+        <Button type="button" onClick={handleUploadClick}>
+          <Label tooltipTitle="" labelText="Upload" placement="top" htmlFor="upload-files" labelVariant={'button'} />
+        </Button>
         <Box
           component={'div'}
           id="outlet-wrapper"
