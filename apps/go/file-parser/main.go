@@ -10,7 +10,7 @@ import (
 func main() {
 	fmt.Println("In main function")
 
-	http.HandleFunc("/", routes.HomeHandler)
+	http.HandleFunc("/", routes.UploadHandler)
 
 	log.Fatal(http.ListenAndServe(":6900", nil))
 }

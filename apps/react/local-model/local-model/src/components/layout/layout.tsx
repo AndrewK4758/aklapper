@@ -1,6 +1,11 @@
+import { Label, Text } from '@aklapper/react-shared';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import ButtonGroup from '@mui/material/ButtonGroup';
 import Toolbar from '@mui/material/Toolbar';
+import axios from 'axios';
+import { useRef, useState, type ChangeEvent, type MouseEvent } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 import {
   baseStyleForLayoutItems,
@@ -9,19 +14,15 @@ import {
   mainWrapperSxProps,
   outletWrapperSxProps
 } from '../../styles/layout-styles';
-import { Label, Text } from '@aklapper/react-shared';
-import ButtonGroup from '@mui/material/ButtonGroup';
-import Button from '@mui/material/Button';
-import { useRef, useState, type ChangeEvent } from 'react';
 import ModelResponse from '../query-model/query-model-response';
-import axios from 'axios';
 
 export default function Layout() {
   const [promptResponse, setPromptResponse] = useState<string>('');
   const inputRef = useRef<HTMLInputElement>(null);
   const nav = useNavigate();
 
-  function handleUploadClick() {
+  function handleUploadClick(e: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>) {
+    e.stopPropagation();
     if (inputRef.current) {
       inputRef.current.click();
     }
@@ -33,11 +34,13 @@ export default function Layout() {
       const formData = new FormData();
       const fileList = e.currentTarget.files;
 
+      console.log(fileList);
+
       for (let i = 0; i < fileList.length; i++) {
         formData.append('files', fileList[i]);
       }
 
-      console.log(formData.get('files'));
+      console.log(formData.getAll('files'));
 
       const resp = await axios.postForm(baseUrl, formData, {
         headers: {

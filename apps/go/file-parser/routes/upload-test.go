@@ -16,7 +16,7 @@ func TestHttpHandler(t *testing.T) {
 
 	respRecorder := httptest.NewRecorder()
 
-	HomeHandler(respRecorder, req)
+	UploadHandler(respRecorder, req)
 
 	respSendValue := respRecorder.Result()
 
