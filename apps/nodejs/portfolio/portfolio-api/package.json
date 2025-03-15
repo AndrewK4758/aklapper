@@ -1,0 +1,98 @@
+{
+  "name": "portfolio-api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "nx": {
+    "name": "portfolio-api",
+    "projectType": "application",
+    "sourceRoot": "apps/nodejs/portfolio/portfolio-api/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/esbuild:esbuild",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "defaultConfiguration": "production",
+        "options": {
+          "platform": "node",
+          "target": "node23",
+          "metafile": true,
+          "outputPath": "apps/nodejs/portfolio/portfolio-api/dist",
+          "format": [
+            "esm"
+          ],
+          "bundle": true,
+          "main": "apps/nodejs/portfolio/portfolio-api/src/main.ts",
+          "tsConfig": "apps/nodejs/portfolio/portfolio-api/tsconfig.app.json",
+          "assets": [
+            "apps/nodejs/portfolio/portfolio-api/src/assets"
+          ],
+          "esbuildOptions": {
+            "sourcemap": true,
+            "outExtension": {
+              ".js": ".js"
+            }
+          }
+        },
+        "configurations": {
+          "development": {},
+          "production": {
+            "esbuildOptions": {
+              "sourcemap": false,
+              "outExtension": {
+                ".js": ".js"
+              }
+            }
+          }
+        }
+      },
+      "serve": {
+        "executor": "@nx/js:node",
+        "defaultConfiguration": "development",
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "buildTarget": "portfolio-api:build",
+          "runBuildTargetDependencies": false
+        },
+        "configurations": {
+          "development": {
+            "buildTarget": "portfolio-api:build:development"
+          },
+          "production": {
+            "buildTarget": "portfolio-api:build:production"
+          }
+        }
+      },
+      "test": {
+        "options": {
+          "passWithNoTests": true
+        }
+      },
+      "docker-build": {
+        "dependsOn": [
+          "build"
+        ],
+        "command": "docker build -f apps/nodejs/portfolio/portfolio-api/Dockerfile . -t us-central1-docker.pkg.dev/games-424800/portfolio/portfolio-api:latest"
+      },
+      "docker-push": {
+        "dependsOn": [
+          "docker-build"
+        ],
+        "command": "docker push us-central1-docker.pkg.dev/games-424800/portfolio/portfolio-api:latest"
+      },
+      "deploy-cloud-run": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "docker-push"
+        ],
+        "options": {
+          "color": true,
+          "command": "gcloud run deploy portfolio-api --image=us-central1-docker.pkg.dev/games-424800/portfolio/portfolio-api:latest --region=us-central1 --platform=managed --max-instances=1 --port=4758 --allow-unauthenticated"
+        }
+      }
+    }
+  }
+}

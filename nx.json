@@ -77,10 +77,10 @@
         "targetName": "jest:test"
       },
       "exclude": [
-        "apps/apis/crud/crud-api-e2e/**",
-        "apps/apis/games/games-api-e2e/**",
-        "apps/apis/portfolio/portfolio-api-e2e/**",
-        "apps/apis/vertex/vertex-api-e2e/**",
+        "apps/nodejs/crud/crud-api-e2e/**",
+        "apps/nodejs/games/games-api-e2e/**",
+        "apps/nodejs/portfolio/portfolio-api-e2e/**",
+        "apps/nodejs/vertex/vertex-api-e2e/**",
         "apps/react/crud/crud-ui-e2e/**",
         "apps/react/games/games-ui-e2e/**",
         "apps/react/portfolio/portfolio-e2e/**",

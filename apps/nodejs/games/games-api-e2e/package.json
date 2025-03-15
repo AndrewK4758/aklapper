@@ -1,0 +1,31 @@
+{
+  "name": "games-api-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@aklapper/types": "workspace:^"
+  },
+  "nx": {
+    "name": "games-api-e2e",
+    "projectType": "application",
+    "implicitDependencies": [
+      "games-api"
+    ],
+    "targets": {
+      "e2e": {
+        "executor": "@nx/jest:jest",
+        "outputs": [
+          "{workspaceRoot}/coverage/{e2eProjectRoot}"
+        ],
+        "options": {
+          "jestConfig": "apps/nodejs/games/games-api-e2e/jest.config.ts",
+          "passWithNoTests": true
+        },
+        "dependsOn": [
+          "games-api:build"
+        ]
+      }
+    }
+  }
+}

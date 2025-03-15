@@ -1,18 +1,1 @@
-github.com/adrg/strutil v0.3.1/go.mod h1:8h90y18QLrs11IBffcGX3NW/GFBXCMcNg4M7H6MspPA=
-github.com/adrg/sysfont v0.1.2/go.mod h1:6d3l7/BSjX9VaeXWJt9fcrftFaD/t7l11xgSywCPZGk=
-github.com/adrg/xdg v0.5.3/go.mod h1:nlTsY+NNiCBGCK2tpm09vRqfVzrc2fLmXGpBLF0zlTQ=
-github.com/boombuler/barcode v1.0.2/go.mod h1:paBWMcWSl3LHKBqUq+rly7CNSldXjb2rDl3JlRe0mD8=
-github.com/gorilla/i18n v0.0.0-20150820051429-8b358169da46/go.mod h1:2Yoiy15Cf7Q3NFwfaJquh7Mk1uGI09ytcD7CUhn8j7s=
-github.com/konsorten/go-windows-terminal-sequences v1.0.2/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
-github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
-github.com/kr/text v0.2.0/go.mod h1:eLer722TekiGuMkidMxC/pM04lWEeraHUUmBw8l2grE=
-github.com/stretchr/objx v0.5.2/go.mod h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA=
-github.com/trimmer-io/go-xmp v1.0.0/go.mod h1:Aaptr9sp1lLv7UnCAdQ+gSHZyY2miYaKmcNVj7HRBwA=
-github.com/unidoc/garabic v0.0.0-20220702200334-8c7cb25baa11/go.mod h1:SX63w9Ww4+Z7E96B01OuG59SleQUb+m+dmapZ8o1Jac=
-github.com/unidoc/unichart v0.3.0/go.mod h1:8JnLNKSOl8yQt1jXewNgYFHhFm5M6/ZiaydncFDpakA=
-golang.org/x/mod v0.17.0/go.mod h1:hTbmBsO62+eylJbnUtE2MGJUyE7QWk4xUqPFrRgJ+7c=
-golang.org/x/sync v0.8.0/go.mod h1:Czt+wKu1gCyEFDUtn0jG5QVvpJ6rzVqr5aXyt9drQfk=
-golang.org/x/sync v0.11.0/go.mod h1:Czt+wKu1gCyEFDUtn0jG5QVvpJ6rzVqr5aXyt9drQfk=
-golang.org/x/term v0.28.0/go.mod h1:Sw/lC2IAUZ92udQNf3WodGtn4k/XoLyZoh8v/8uiwek=
-golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d/go.mod h1:aiJjzUbINMkxbQROHiO6hDPo2LHcIPhhQsa9DLh0yGk=
-gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
+

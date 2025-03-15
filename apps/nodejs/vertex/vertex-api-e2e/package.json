@@ -1,0 +1,28 @@
+{
+  "name": "vertex-api-e2e",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "nx": {
+    "name": "vertex-api-e2e",
+    "projectType": "application",
+    "implicitDependencies": [
+      "vertex-api"
+    ],
+    "targets": {
+      "e2e": {
+        "executor": "@nx/jest:jest",
+        "outputs": [
+          "{workspaceRoot}/coverage/{e2eProjectRoot}"
+        ],
+        "options": {
+          "jestConfig": "apps/nodejs/vertex/vertex-api-e2e/jest.config.ts",
+          "passWithNoTests": true
+        },
+        "dependsOn": [
+          "vertex-api:build"
+        ]
+      }
+    }
+  }
+}
