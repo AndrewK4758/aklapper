@@ -1,7 +1,7 @@
 package main
 
 import (
-	routes "apps/go/file-uploader/upload"
+	"apps/go/file-uploader/upload"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,7 +10,7 @@ import (
 func main() {
 	fmt.Println("In main function")
 
-	http.HandleFunc("/", routes.UploadHandler)
+	http.HandleFunc("/", upload.UploadHandler)
 
 	log.Fatal(http.ListenAndServe(":6900", nil))
 }

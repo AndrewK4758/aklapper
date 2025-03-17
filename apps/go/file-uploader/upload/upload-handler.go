@@ -1,4 +1,4 @@
-package routes
+package upload
 
 import (
 	"bytes"
@@ -26,16 +26,24 @@ func UploadHandler(resp http.ResponseWriter, req *http.Request) {
 
 	filePath := curDir + "/files"
 
+	tmpDir, err := os.MkdirTemp(filePath, "")
+	if err != nil {
+		fmt.Printf("error creating tmp directory: %v", err.Error())
+	}
+
+	defer os.RemoveAll(tmpDir)
+
 	currentPath := req.URL.Path
 	fmt.Printf("Current Path: %s\n", currentPath)
 
-	err = req.ParseMultipartForm(10000)
+	err = req.ParseMultipartForm(int64(25000))
 	if err != nil {
 		fmt.Printf("err: %v\n", err)
 		http.Error(resp, err.Error(), http.StatusBadRequest)
 	}
 
 	formData := req.MultipartForm
+	defer formData.RemoveAll()
 
 	if formData != nil {
 		var wg sync.WaitGroup
@@ -47,14 +55,7 @@ func UploadHandler(resp http.ResponseWriter, req *http.Request) {
 
 			wg.Add(1)
 
-			go func() {
-				defer wg.Done()
-				err = UploadFile(filePath, fileHeader, fileBuffer)
-				if err != nil {
-					errChan <- err
-				}
-
-			}()
+			Worker(fileNum, &wg, fileHeader, fileBuffer, tmpDir, errChan)
 
 		}
 
