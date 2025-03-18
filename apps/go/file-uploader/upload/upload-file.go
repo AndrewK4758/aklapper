@@ -18,7 +18,7 @@ func checkOrCreateDirectory(filePath string, perm os.FileMode) error {
 			return fmt.Errorf("error creating file path: %v", err.Error())
 		}
 	}
-	return err
+	return nil
 
 }
 
@@ -36,7 +36,6 @@ func UploadFile(filePath string, file *multipart.FileHeader, dest *bytes.Buffer)
 
 	if err != nil {
 		return fmt.Errorf("error checking or creating filepath: %v", err.Error())
-
 	}
 
 	_, err = io.Copy(dest, fileSrc)

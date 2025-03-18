@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"mime/multipart"
-	"sync"
 )
 
-func Worker(workerNumber int, wg *sync.WaitGroup, fileHeader *multipart.FileHeader, fileBuffer *bytes.Buffer, filePath string, errChan chan error) {
+func Worker(workerNumber int, fileHeader *multipart.FileHeader, fileBuffer *bytes.Buffer, filePath string, errChan chan error) {
 	fmt.Printf("Worker %d started\n", workerNumber)
 	var err error
 
@@ -19,14 +18,10 @@ func Worker(workerNumber int, wg *sync.WaitGroup, fileHeader *multipart.FileHead
 	default:
 		fmt.Printf("File number: %d started upload\n", workerNumber)
 
-		go func() {
-			defer wg.Done()
-
-			err = UploadFile(filePath, fileHeader, fileBuffer)
-			if err != nil {
-				errChan <- err
-			}
-		}()
+		err = UploadFile(filePath, fileHeader, fileBuffer)
+		if err != nil {
+			errChan <- err
+		}
 
 	}
 }

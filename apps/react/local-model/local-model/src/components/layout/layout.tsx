@@ -34,13 +34,9 @@ export default function Layout() {
       const formData = new FormData();
       const fileList = e.currentTarget.files;
 
-      console.log(fileList);
-
       for (let i = 0; i < fileList.length; i++) {
         formData.append('files', fileList[i]);
       }
-
-      console.log(formData.getAll('files'));
 
       const resp = await axios.postForm(baseUrl, formData, {
         headers: {
@@ -48,7 +44,7 @@ export default function Layout() {
         }
       });
 
-      console.log(resp.data);
+      console.log(resp);
     }
   }
 

@@ -15,9 +15,10 @@ func enableCORS(w *http.ResponseWriter) {
 }
 
 func UploadHandler(resp http.ResponseWriter, req *http.Request) {
+	enableCORS(&resp)
+
 	var err error
 	errChan := make(chan error)
-	enableCORS(&resp)
 
 	curDir, err := os.Getwd()
 	if err != nil {
@@ -27,11 +28,20 @@ func UploadHandler(resp http.ResponseWriter, req *http.Request) {
 	filePath := curDir + "/files"
 
 	tmpDir, err := os.MkdirTemp(filePath, "")
+
+	println("\n" + tmpDir + "\n")
 	if err != nil {
 		fmt.Printf("error creating tmp directory: %v", err.Error())
 	}
 
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		err := os.RemoveAll(tmpDir)
+		if err != nil {
+			fmt.Println("Error removing temporary directory:", err)
+		} else {
+			fmt.Println("Temporary directory removed successfully")
+		}
+	}()
 
 	currentPath := req.URL.Path
 	fmt.Printf("Current Path: %s\n", currentPath)
@@ -45,17 +55,19 @@ func UploadHandler(resp http.ResponseWriter, req *http.Request) {
 	formData := req.MultipartForm
 	defer formData.RemoveAll()
 
+	var wg sync.WaitGroup
 	if formData != nil {
-		var wg sync.WaitGroup
 		files := formData.File["files"]
 
 		for fileNum, fileHeader := range files {
 			fileBuffer := new(bytes.Buffer)
-			fmt.Printf("File number: %d started upload\n", fileNum)
 
 			wg.Add(1)
 
-			Worker(fileNum, &wg, fileHeader, fileBuffer, tmpDir, errChan)
+			go func() {
+				defer wg.Done()
+				Worker(fileNum, fileHeader, fileBuffer, tmpDir, errChan)
+			}()
 
 		}
 
@@ -64,12 +76,19 @@ func UploadHandler(resp http.ResponseWriter, req *http.Request) {
 			close(errChan)
 		}()
 
-		for err = range errChan {
-			if err = <-errChan; err != nil {
+		print("errChan length: ", len(errChan), "\n")
+
+		for err := range errChan {
+			print("Error: ", err, "\n")
+			if err != nil {
 				fmt.Printf("error uploading file: %v\n", err.Error())
 
 			}
 		}
+
 	}
 	print("\nALL FILES UPLOADED\n")
+	resp.Header().Add("Content-Type", "text/plain")
+	resp.Write([]byte("All Files Uploaded"))
+
 }
