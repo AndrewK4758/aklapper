@@ -1,43 +1,76 @@
 import type { AvatarTotem } from '@aklapper/types';
-import { SxProps } from '@mui/material';
-import InputLabel from '@mui/material/InputLabel';
+import { FormControl, SxProps } from '@mui/material';
 import Select from '@mui/material/Select';
-import type { Theme } from '@mui/material/styles';
-import { useField } from 'formik';
+import type { Variant } from '@mui/material/styles/createTypography.js';
+import type { FormikProps } from 'formik';
 import type { JSX } from 'react';
-import Text from '../text/text.jsx';
+import Label from '../label/label.jsx';
+import FormikValidationError from './formik-validation-error.js';
 
-interface IAvatarColorSelectValues {
-  name: string;
+interface IAvatarColorSelectValues<T extends object> {
+  name: keyof T;
   label: string;
-  id?: string;
   data: string[] | AvatarTotem[];
   mapCallback(v: unknown, i: number, arr: unknown[]): JSX.Element;
   labelSx?: SxProps;
   selectSx: SxProps;
-  Theme: Theme;
+  formik: FormikProps<T>;
+  tooltipTitle: string;
+  labelVariant: Variant;
+  labelWrapperSx: SxProps;
+  tooltipSx: SxProps;
+  id: string;
+  errorTextSx: SxProps;
+  selectSlotProps: SxProps;
 }
 
-export function SelectMenu({ label, mapCallback, labelSx, selectSx, data, Theme, ...props }: IAvatarColorSelectValues) {
-  const [field, meta] = useField(props);
+export function SelectMenu<T extends object>({
+  label,
+  mapCallback,
+  labelSx,
+  selectSx,
+  data,
+  formik,
+  name,
+  tooltipTitle,
+  labelVariant,
+  labelWrapperSx,
+  tooltipSx,
+  id,
+  errorTextSx,
+  selectSlotProps
+}: IAvatarColorSelectValues<T>) {
+  console.log(formik.values);
 
   return (
     <>
-      <InputLabel component={'h2'} variant="filled" sx={labelSx}>
-        {label}
-      </InputLabel>
-
-      <Select {...field} {...props} autoWidth variant="filled" sx={selectSx}>
-        {data.map(mapCallback)}
-      </Select>
-      {meta.touched && meta.error ? (
-        <Text
-          component={'p'}
-          titleVariant="body1"
-          titleText={meta.error}
-          sx={{ color: Theme.palette.primary.contrastText, ...labelSx }}
+      <FormControl id={`${id}-form-control`}>
+        <Label
+          tooltipTitle={tooltipTitle}
+          labelVariant={labelVariant}
+          id={id}
+          labelText={label}
+          placement={'right'}
+          htmlFor={id}
+          tooltipSx={tooltipSx}
+          labelWrapperDivSxProps={labelWrapperSx}
+          labelTextSx={labelSx}
         />
-      ) : null}
+
+        <Select
+          label={label}
+          name={name as string}
+          autoWidth
+          variant="outlined"
+          sx={selectSx}
+          onChange={async e => await formik.setFieldValue(name as string, e.target.value)}
+          value={formik.values[name]}
+          slotProps={{ input: { id: id, sx: selectSlotProps } }}
+        >
+          {data.map(mapCallback)}
+        </Select>
+      </FormControl>
+      <FormikValidationError<T> formik={formik} elementName={name} helperTextSx={errorTextSx} />
     </>
   );
 }

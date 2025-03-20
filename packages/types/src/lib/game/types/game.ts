@@ -4,6 +4,7 @@ import type { IInstanceOfGame } from '../interfaces/instance-of-game.js';
 import type { ILiteSpace } from '../interfaces/lite-space.js';
 
 export enum Color {
+  UNDEFINED = '',
   RED = 'Red',
   WHITE = 'White',
   BLUE = 'Blue',
@@ -17,11 +18,11 @@ export enum Color {
 }
 
 export enum SpaceType {
-  START = 0,
-  NORMAL = 1,
-  CHUTE = 2,
-  LADDER = 3,
-  FINISH = 4
+  START,
+  NORMAL,
+  CHUTE,
+  LADDER,
+  FINISH
 }
 
 export type ContextData = {

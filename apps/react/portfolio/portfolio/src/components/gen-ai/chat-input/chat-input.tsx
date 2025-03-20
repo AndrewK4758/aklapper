@@ -8,7 +8,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { Form } from 'react-router';
 import type { Socket } from 'socket.io-client';
 import * as Yup from 'yup';
-import Theme from '../../../styles/theme.jsx';
+import { errorTextSx, tooltipSx } from '../../../styles/pages-styles.js';
 
 interface ChatInputProps<T extends Yup.Maybe<Yup.AnyObject>> extends FormActionProps {
   breakpointsChatInputButton: SxProps;
@@ -73,8 +73,10 @@ export const ChatInput = <T extends FormikValues>({
             label={labelText}
             labelComponent={'h2'}
             labelSx={breakpointsChatInputLabel}
-            Theme={Theme}
             valueField={'text'}
+            errorTextSx={errorTextSx}
+            tooltipTitle={'Enter prompt query here'}
+            tooltipSx={tooltipSx}
           />
         </Box>
         <Box

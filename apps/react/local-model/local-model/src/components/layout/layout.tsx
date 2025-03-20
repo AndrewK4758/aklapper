@@ -44,7 +44,7 @@ export default function Layout() {
         }
       });
 
-      console.log(resp);
+      setPromptResponse(resp.data);
     }
   }
 
@@ -88,8 +88,14 @@ export default function Layout() {
           sx={{ fontSize: '3rem' }}
         />
         <input type="file" multiple={true} ref={inputRef} hidden={true} id="upload-files" onChange={handleFileUpload} />
-        <Button type="button" onClick={handleUploadClick}>
-          <Label tooltipTitle="" labelText="Upload" placement="top" htmlFor="upload-files" labelVariant={'button'} />
+        <Button type="button" id="upload-files-button" onClick={handleUploadClick}>
+          <Label
+            tooltipTitle=""
+            labelText="Upload"
+            placement="top"
+            htmlFor="upload-files-button"
+            labelVariant={'button'}
+          />
         </Button>
         <Box
           component={'div'}

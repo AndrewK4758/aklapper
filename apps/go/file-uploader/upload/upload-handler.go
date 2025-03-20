@@ -34,14 +34,14 @@ func UploadHandler(resp http.ResponseWriter, req *http.Request) {
 		fmt.Printf("error creating tmp directory: %v", err.Error())
 	}
 
-	defer func() {
-		err := os.RemoveAll(tmpDir)
-		if err != nil {
-			fmt.Println("Error removing temporary directory:", err)
-		} else {
-			fmt.Println("Temporary directory removed successfully")
-		}
-	}()
+	// defer func() {
+	// 	err := os.RemoveAll(tmpDir)
+	// 	if err != nil {
+	// 		fmt.Println("Error removing temporary directory:", err)
+	// 	} else {
+	// 		fmt.Println("Temporary directory removed successfully")
+	// 	}
+	// }()
 
 	currentPath := req.URL.Path
 	fmt.Printf("Current Path: %s\n", currentPath)

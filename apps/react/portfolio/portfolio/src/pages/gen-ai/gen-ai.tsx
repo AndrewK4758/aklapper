@@ -26,6 +26,7 @@ import PromptResponse from '../../components/gen-ai/chat-response/chat-response'
 import { MediaRecorderClientContextProvider } from '../../contexts/audio-context';
 import loadContextPath from '../../services/loaders/gen-ai/load-context-path';
 import { crudHeaderTextSxProps, crudPaperSxProps } from '../../styles/crud-styles';
+import { gamesButtonLabelsSxProps, gamesLabelWrapperSxProps } from '../../styles/games-styles';
 import { renderPreTagInsideParentDiv } from '../../styles/gen-ai-styles';
 import {
   buttonSXProps,
@@ -38,7 +39,6 @@ import {
   pagesWrapperStyles
 } from '../../styles/pages-styles';
 import { body, title } from '../static/gen-ai-text';
-import { gamesButtonLabelsSxProps, gamesLabelWrapperSxProps } from '../../styles/games-styles';
 
 const PromptBuilder = lazy(() => import('../../components/gen-ai/prompt-builder/prompt-builder.jsx'));
 
@@ -110,6 +110,7 @@ const GenAiHome = (): JSX.Element => {
                   sx={buttonSXProps}
                 >
                   <Label
+                    id="gen-ai-text-button-label"
                     htmlFor="gen-ai-text-button"
                     tooltipTitle={'Generate a Google Gemini LLM Text Response'}
                     labelVariant="button"
@@ -128,6 +129,7 @@ const GenAiHome = (): JSX.Element => {
                   sx={buttonSXProps}
                 >
                   <Label
+                    id="gen-ai-image-button-label"
                     htmlFor="gen-ai-image"
                     tooltipTitle={'Generate an Google Gemini LLM Image Response'}
                     labelVariant="button"
@@ -146,6 +148,7 @@ const GenAiHome = (): JSX.Element => {
                   sx={buttonSXProps}
                 >
                   <Label
+                    id="gen-ai-audio-button-label"
                     htmlFor="gen-ai-audio"
                     tooltipTitle={'Generate a Google Gemini LLM Text Response with Audio as Input'}
                     labelVariant="button"

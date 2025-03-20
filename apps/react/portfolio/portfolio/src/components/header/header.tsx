@@ -6,8 +6,8 @@ import Toolbar from '@mui/material/Toolbar';
 import { useState, type JSX } from 'react';
 import { useNavigate } from 'react-router';
 import { headerLabelSxProps } from '../../styles/header-styles.jsx';
-import Contact from './contact/contact.jsx';
 import { buttonSXProps } from '../../styles/pages-styles.js';
+import Contact from './contact/contact.jsx';
 
 /**
  * This component renders the header section of the application, which includes social media links and an email contact form.
@@ -53,6 +53,7 @@ const Header = (): JSX.Element => {
             }}
           >
             <Label
+              id="home-button-label"
               htmlFor="home-button"
               tooltipTitle={'HOME DESCRIPTION'}
               labelVariant={'h2'}
@@ -64,6 +65,7 @@ const Header = (): JSX.Element => {
 
           <Button id="games-button" data-testid="games-button" onClick={() => nav('games')} sx={buttonSXProps}>
             <Label
+              id="games-button-label"
               htmlFor="games-button"
               tooltipTitle={'GAME DESCRIPTION'}
               labelVariant={'h2'}
@@ -75,6 +77,7 @@ const Header = (): JSX.Element => {
 
           <Button id="crud-button" data-testid="crud-button" onClick={() => nav('crud')} sx={buttonSXProps}>
             <Label
+              id="crud-button-label"
               htmlFor="crud-button"
               tooltipTitle={'CRUD DESCRIPTION'}
               labelVariant={'h2'}
@@ -86,6 +89,7 @@ const Header = (): JSX.Element => {
 
           <Button id="gen-ai-button" data-testid="gen-ai-button" onClick={() => nav('gen-ai')} sx={buttonSXProps}>
             <Label
+              id="gen-ai-button-label"
               htmlFor="gen-ai-button"
               tooltipTitle={'GEN-AI DESCRIPTION'}
               labelVariant={'h2'}
@@ -97,13 +101,14 @@ const Header = (): JSX.Element => {
 
           <Button
             autoFocus={true}
-            id="x-button"
+            id="contact-button"
             data-testid="contact-menu-button"
             onClick={() => setOpenMenu(true)}
             sx={buttonSXProps}
           >
             <Label
-              htmlFor="x-button"
+              id="contact-button-label"
+              htmlFor="contact-button"
               tooltipTitle={'CONTACT DESCRIPTION'}
               labelVariant={'h2'}
               labelText={'Contact'}

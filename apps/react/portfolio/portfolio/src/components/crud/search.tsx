@@ -98,6 +98,7 @@ const Search = ({ setOpen }: SearchProps): JSX.Element => {
               component={'search'}
               label={
                 <Label
+                  id="artist-search-label"
                   htmlFor="artist-search"
                   tooltipTitle={
                     'Search for artist or album. Search is automatic and debounced after .56 second of no typing'

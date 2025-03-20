@@ -98,7 +98,8 @@ const ImageForm = (): JSX.Element => {
         >
           <Box component={'section'} key={'i'} id="image-form-prompt-box">
             <Label
-              htmlFor="image-form-prompt-box"
+              id="image-form-prompt-label"
+              htmlFor="image-prompt-input"
               placement="top"
               labelText="Prompt"
               labelVariant="h5"
@@ -137,6 +138,7 @@ const ImageForm = (): JSX.Element => {
           >
             <Box component={'section'} key={'image-form-sample-count-box'} id="image-form-sample-count-box">
               <Label
+                id="image-form-sample-count-label"
                 htmlFor="image-form-sample-count-box"
                 placement="top"
                 labelText="Sample Count"
@@ -203,7 +205,8 @@ const ImageForm = (): JSX.Element => {
             </Box>
             <Box component={'section'} key={'image-form-aspect-ratio-box'} id="image-form-aspect-ratio-box">
               <Label
-                htmlFor=""
+                id="image-aspect-ratio-input-label"
+                htmlFor="image-aspect-ratio-input"
                 placement="top"
                 labelText="Aspect Ratio"
                 labelVariant="h5"
@@ -233,7 +236,8 @@ const ImageForm = (): JSX.Element => {
           </Box>
           <Box component={'section'} key={'image-form-seed-box'} id="image-form-seed-box">
             <Label
-              htmlFor=""
+              id="seed-input-label"
+              htmlFor="seed"
               placement="top"
               labelText="Seed"
               labelVariant="h5"
@@ -250,13 +254,16 @@ const ImageForm = (): JSX.Element => {
               alignItems={'center'}
             >
               <Slider
+                component={'div'}
+                id="seed-slider"
                 name="seed"
                 value={formik.values.seed}
                 onChange={(_, newValue) => handleFormikValueChange('seed', newValue, formik)}
-                aria-labelledby="seed-slider"
+                aria-labelledby="seed-input"
                 sx={{ flex: '0 1 80%' }}
               />
               <Input
+                id="seed-input"
                 value={formik.values.seed}
                 onChange={e => handleSliderInputChange(e, formik)}
                 sx={{ flex: '0 1 20%' }}

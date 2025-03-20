@@ -141,7 +141,7 @@ export const dateCalendarSlotProps: DateCalendarSlotProps<Dayjs> = {
   }
 };
 
-export const timePickerSlotProps: TimePickerSlotProps<Dayjs, false> = {
+export const startTimePickerSlotProps: TimePickerSlotProps<Dayjs, false> = {
   digitalClockSectionItem: {
     sx: {
       border: `2px solid ${Theme.palette.primary.dark}`,
@@ -156,6 +156,64 @@ export const timePickerSlotProps: TimePickerSlotProps<Dayjs, false> = {
   },
   textField: {
     variant: 'filled',
+    id: 'start-time-picker',
+    sx: {
+      p: 1,
+      width: '80%',
+      borderRadius: 1
+    }
+  },
+  rightArrowIcon: {
+    sx: {
+      scale: 1.5,
+      color: Theme.palette.primary.dark,
+      [Theme.breakpoints.down('md')]: {
+        scale: 1
+      }
+    }
+  },
+  leftArrowIcon: {
+    sx: {
+      scale: 1.5,
+      color: Theme.palette.primary.dark,
+      [Theme.breakpoints.down('md')]: {
+        scale: 1
+      }
+    }
+  },
+  openPickerIcon: {
+    sx: {
+      scale: 1.5,
+      color: Theme.palette.primary.dark,
+      [Theme.breakpoints.down('md')]: {
+        scale: 1
+      }
+    }
+  },
+  desktopPaper: {
+    elevation: 2,
+    sx: {
+      border: `3px solid ${Theme.palette.primary.dark}`
+    }
+  }
+};
+
+export const endTimePickerSlotProps: TimePickerSlotProps<Dayjs, false> = {
+  digitalClockSectionItem: {
+    sx: {
+      border: `2px solid ${Theme.palette.primary.dark}`,
+      borderRadius: 1,
+      backgroundColor: Theme.palette.background.default
+    }
+  },
+  actionBar: {
+    sx: {
+      borderTop: `2px solid ${Theme.palette.primary.dark}`
+    }
+  },
+  textField: {
+    variant: 'filled',
+    id: 'end-time-picker',
     sx: {
       p: 1,
       width: '80%',
@@ -265,13 +323,6 @@ export const emailButtonSxProps: SxProps = {
   }
 };
 
-export const dateTimePickerLabelTextSxProps: SxProps = {
-  fontSize: '1.25rem',
-  [Theme.breakpoints.down('md')]: {
-    fontSize: '0.75rem'
-  }
-};
-
 export const dialogActionsStyles: SxProps = {
   flex: '0 1 45%',
   display: 'flex',
@@ -310,6 +361,7 @@ export const textFieldSlotProps = {
 export const dateTimePickerSlotProps: DateTimePickerSlotProps<Dayjs, false> = {
   textField: {
     color: 'primary',
+    id: 'appointment-maker',
     variant: 'outlined',
     sx: {
       p: 1,

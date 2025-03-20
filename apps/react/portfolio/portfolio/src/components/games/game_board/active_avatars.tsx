@@ -72,6 +72,7 @@ export default function ActiveAvatars({ avatarsInGame, winner }: ActiveAvatarsPr
           </Box>
           <Box component={'section'} sx={breakpointsPlayersInGameBox}>
             <RenderList
+              component={'span'}
               data={avatarsInGame}
               listMapCallback={playersInGameMap}
               sx={activeAvatarsActivePlayersInGameListSxProps}

@@ -101,3 +101,22 @@ export const gamesOutletGameWrapperSxProps: SxProps = {
     flex: '0 1 90%'
   }
 };
+
+export const tooltipSx: SxProps = {
+  color: Theme.palette.primary.main,
+  backgroundColor: Theme.palette.background.paper,
+  fontFamily: 'monospace'
+};
+
+export const errorTextSx: SxProps = {
+  color: Theme.palette.error.main,
+  backgroundColor: Theme.palette.background.paper,
+  borderRadius: 1,
+  paddingX: 1,
+  fontSize: '1rem',
+  fontFamily: 'monospace',
+  textAlign: 'center',
+  [Theme.breakpoints.down('md')]: {
+    fontSize: '0.875rem'
+  }
+};

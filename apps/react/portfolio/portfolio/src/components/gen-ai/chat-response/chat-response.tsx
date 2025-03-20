@@ -42,6 +42,7 @@ export function PromptResponse({
     >
       <Box key={'chat-response-label-box'} id="chat-response-label-box">
         <Label
+          id="chat-response-label"
           htmlFor="chat-response"
           placement="top"
           tooltipTitle={tooltipTitle}

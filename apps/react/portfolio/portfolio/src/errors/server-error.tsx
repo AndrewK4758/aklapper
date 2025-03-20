@@ -1,10 +1,10 @@
-import Box from '@mui/material/Box';
-import Container from '@mui/material/Container';
 import { Label, Text } from '@aklapper/react-shared';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Container from '@mui/material/Container';
+import CssBaseline from '@mui/material/CssBaseline';
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import Theme from '../styles/theme';
-import CssBaseline from '@mui/material/CssBaseline';
 
 interface ServerErrorProps {
   error: Error;
@@ -103,6 +103,7 @@ export default function ServerError({ error }: ServerErrorProps) {
             sx={{}}
           >
             <Label
+              id="error-home-button-label"
               tooltipTitle={'Click to return to the homepage'}
               labelVariant={'button'}
               labelText={'Home'}

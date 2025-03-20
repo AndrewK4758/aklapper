@@ -1,4 +1,5 @@
 import { Label, Waiting } from '@aklapper/react-shared';
+import GoogleIcon from '@mui/icons-material/Google';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
@@ -19,13 +20,13 @@ import {
   connectGoogleCalendarButtonSxProps,
   dateCalendarSlotProps,
   dateCalendarSxProps,
+  endTimePickerSlotProps,
+  startTimePickerSlotProps,
   timePickerLabelSxProps,
-  timePickerSlotProps,
   timePickerSxProps,
   timePickerWrapperSxProps
 } from '../../../styles/header-styles.jsx';
 import { flexColumnStyles } from '../../../styles/pages-styles.jsx';
-import GoogleIcon from '@mui/icons-material/Google';
 
 const tomorrow = dayjs().add(1, 'day');
 const nextYear = dayjs().add(1, 'year');
@@ -85,6 +86,7 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
           onClick={() => login()}
         >
           <Label
+            id="google-auth-button-label"
             tooltipTitle={'Connect your Google Calendar to sync appointment request with your Google Calendar'}
             labelVariant={'button'}
             labelText={'Connect Google Calendar'}
@@ -149,7 +151,8 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
             sx={timePickerWrapperSxProps}
           >
             <Label
-              htmlFor="time-pickers-wrapper"
+              id="time-pickers-label"
+              htmlFor=""
               tooltipTitle={
                 'Time must be between 8:30am and 8:00pm EST. Start & End time must be minimun of 1 hour range'
               }
@@ -164,6 +167,7 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
               data-testid={'start-time-picker'}
               label={
                 <Label
+                  id="start-time-picker-label"
                   htmlFor="start-time-picker"
                   placement="top"
                   tooltipTitle="Enter requested appointment start time"
@@ -178,13 +182,14 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
               closeOnSelect={false}
               value={values.startTime}
               onAccept={data => setValues({ ...values, startTime: data as Dayjs })}
-              slotProps={timePickerSlotProps}
+              slotProps={startTimePickerSlotProps}
             />
             <TimePicker
               key={'end-time-picker'}
               data-testid={'end-time-picker'}
               label={
                 <Label
+                  id="end-time-picker-label"
                   htmlFor="end-time-picker"
                   placement="top"
                   tooltipTitle="Enter requested appointment end time"
@@ -198,7 +203,7 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
               closeOnSelect={false}
               value={values.endTime}
               onAccept={data => setValues({ ...values, endTime: data as Dayjs })}
-              slotProps={timePickerSlotProps}
+              slotProps={endTimePickerSlotProps}
             />
           </Box>
           <Box

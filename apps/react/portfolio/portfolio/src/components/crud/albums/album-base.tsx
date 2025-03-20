@@ -8,16 +8,16 @@ import Paper from '@mui/material/Paper';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { DataGrid, GridActionsCellItem, GridColDef, GridRowParams, GridToolbar, useGridApiRef } from '@mui/x-data-grid';
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
-import { album } from '@prisma/client';
+import type { album } from '@prisma/client';
 import { useEffect, useRef, useState, type JSX } from 'react';
 import { Outlet, useLoaderData, useNavigate, useOutletContext } from 'react-router';
+import useFetchDataGridData from '../../../hooks/useFetchDataGridData.jsx';
 import handleDeleteAlbum from '../../../services/events/crud-events/handle-delete-album.jsx';
 import handleUpdateAlbumTitle from '../../../services/events/crud-events/handle-update-album-title.jsx';
 import loadAlbums from '../../../services/loaders/crud-loaders/load-albums.jsx';
 import { dataGridStyleUpdate } from '../../../styles/crud-styles.jsx';
-import AddAlbum from './add-album.jsx';
 import { OutletContextProps } from '../../../types/types.jsx';
-import useFetchDataGridData from '../../../hooks/useFetchDataGridData.jsx';
+import AddAlbum from './add-album.jsx';
 
 const paginationModelInit = {
   pageSize: 25,
@@ -51,7 +51,6 @@ const Album = (): JSX.Element => {
     if (apiRef.current) setLoading(false);
   }, [apiRef.current]);
 
-  console.log(albums);
   const columns: GridColDef[] = [
     {
       field: 'album_id',

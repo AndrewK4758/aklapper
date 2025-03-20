@@ -53,8 +53,6 @@ const Crud = (): JSX.Element => {
 
   useScrollIntoView(divRef);
 
-  console.log(`CRUD LOADING STATE: ${loading}`);
-
   return (
     <Box ref={divRef} component={'div'} key={'crud-wrapper'} id="crud-wrapper" sx={pagesWrapperStyles}>
       <Paper elevation={2} component={'div'} key={'crud-header-wrapper'} id="crud-header-wrapper" sx={crudPaperSxProps}>
@@ -104,6 +102,7 @@ const Crud = (): JSX.Element => {
                     labelText={'Home'}
                     placement={'top'}
                     labelTextSx={gamesButtonLabelsSxProps}
+                    id={'crud-home-label'}
                   />
                 </Button>
                 <Button
@@ -129,6 +128,7 @@ const Crud = (): JSX.Element => {
                     labelText={'All Artists'}
                     placement={'top'}
                     labelTextSx={gamesButtonLabelsSxProps}
+                    id={'crud-artists-label'}
                   />
                 </Button>
                 <Button
@@ -154,6 +154,7 @@ const Crud = (): JSX.Element => {
                     labelText={'All Albums'}
                     placement={'top'}
                     labelTextSx={gamesButtonLabelsSxProps}
+                    id={'crud-albums-label'}
                   />
                 </Button>
                 <Button
@@ -179,6 +180,7 @@ const Crud = (): JSX.Element => {
                     labelText={'Add Entry'}
                     placement={'top'}
                     labelTextSx={gamesButtonLabelsSxProps}
+                    id={'crud-add-entry-label'}
                   />
                 </Button>
               </ButtonGroup>

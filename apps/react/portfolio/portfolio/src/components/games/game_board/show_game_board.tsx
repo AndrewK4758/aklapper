@@ -35,7 +35,7 @@ interface ShowGameBoardProps {
  */
 const ShowGameBoard = ({ board }: ShowGameBoardProps) => (
   <Box key={`game-board-length-${board.length}`} component={'section'} sx={breakpointsGameBoardBox}>
-    <RenderList data={board} listMapCallback={gameBoardMap} sx={{ flex: '1 0 100%' }} />
+    <RenderList component={'span'} data={board} listMapCallback={gameBoardMap} sx={{ flex: '1 0 100%' }} />
   </Box>
 );
 

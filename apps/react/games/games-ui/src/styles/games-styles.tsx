@@ -158,3 +158,32 @@ export const breakpointsBottomMenuButtonsBox: SxProps = {
     flexDirection: 'column'
   }
 };
+
+export const tooltipSx: SxProps = {
+  color: Theme.palette.primary.main,
+  backgroundColor: Theme.palette.background.paper,
+  fontFamily: 'monospace'
+};
+
+export const errorTextSx: SxProps = {
+  color: Theme.palette.error.main,
+  backgroundColor: Theme.palette.background.paper,
+  borderRadius: 1,
+  paddingX: 1,
+  fontSize: '1rem',
+  fontFamily: 'monospace',
+  textAlign: 'center',
+  [Theme.breakpoints.down('md')]: {
+    fontSize: '0.875rem'
+  }
+};
+
+//--------Select Slot Props---------//
+
+export const selectSlotProps: SxProps = {
+  sx: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-evenly'
+  }
+};

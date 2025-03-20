@@ -1,18 +1,9 @@
 import axios from 'axios';
 import { LoaderFunction } from 'react-router';
-import getGameInstanceInfo from '../../../utils/utils';
 
+const baseURL = import.meta.env.VITE_REST_API_SERVER_URL;
 const loadGameList: LoaderFunction = async () => {
-  const baseURL = import.meta.env.VITE_REST_API_SERVER_URL;
-
-  const reqHeaders = {
-    headers: {
-      'current-game': JSON.stringify(getGameInstanceInfo()),
-      Authorization: sessionStorage.getItem('token')
-    }
-  };
-
-  const resp = await axios.get(`${baseURL}/games`, reqHeaders);
+  const resp = await axios.get(`${baseURL}/games`);
 
   return resp.data;
 };

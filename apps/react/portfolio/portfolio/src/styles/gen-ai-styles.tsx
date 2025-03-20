@@ -8,7 +8,7 @@ import Theme from './theme.jsx';
 export const helperTextSx: SxProps = {
   color: Theme.palette.error.main,
   fontSize: '1.25rem',
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     fontSize: '1rem'
   }
 };
@@ -18,7 +18,7 @@ export const labelSx: SxProps = {
   color: Theme.palette.primary.main,
   width: 'fit-content',
   '&:hover': { cursor: 'pointer' },
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     fontSize: '1.5rem'
   }
 };
@@ -26,7 +26,7 @@ export const labelSx: SxProps = {
 export const tooltipSx: SxProps = {
   maxWidth: '80vw',
   fontSize: '1rem',
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     fontSize: '0.75rem'
   }
 };
@@ -34,7 +34,7 @@ export const tooltipSx: SxProps = {
 export const textInputSx: SxProps = {
   width: '100%',
   borderRadius: 1,
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     fontSize: '0.875rem'
   }
 };
@@ -42,7 +42,7 @@ export const textInputSx: SxProps = {
 export const genAiImageDetailsBoxSxProps: SxProps = {
   ...centerFlex,
   justifyContent: 'space-around',
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     justifyContent: 'space-between'
   }
 };
@@ -60,7 +60,7 @@ export const sampleCountRadioTextStyles: SxProps = {
 export const forrmControlLabelStyles: SxProps = {
   alignContent: 'center',
   fontSize: '1.5rem',
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     width: 'fit-content',
     justifyContent: 'center'
   }
@@ -72,7 +72,7 @@ export const radioGroupStyles: SxProps = {
   flexDirection: 'row',
   gap: 4,
   paddingLeft: 2,
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     p: 0,
     flexWrap: 'wrap',
     flex: '0 1 70%'
@@ -80,7 +80,7 @@ export const radioGroupStyles: SxProps = {
 };
 
 export const genAiSampleCountTextSxProps: SxProps = {
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     fontSize: '1rem'
   }
 };
@@ -97,14 +97,14 @@ export const topLevelModeStyle: SxProps = {
   justifyContent: 'space-between',
   borderRadius: 1,
   width: '60vw',
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     width: '90vw'
   }
 };
 
 export const genAiTextInputButtonSxProps: SxProps = {
   fontSize: '2rem',
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     fontSize: '1rem'
   }
 };
@@ -121,7 +121,7 @@ export const promptBuilderPaperSxProps: SxProps = { height: 'fit-content', minHe
 
 export const promptBuilderResponseFormatLabelSxProps: SxProps = {
   color: Theme.palette.primary.main,
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     fontSize: '1.5rem'
   }
 };
@@ -131,14 +131,14 @@ export const radioButtonLabelSxProps: SxProps = {
   flexDirection: 'row',
   gap: 2,
   alignItems: 'center',
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     fontSize: '1rem'
   }
 };
 export const formLabelSxProps: SxProps = {
   alignContent: 'center',
   fontSize: '1.5rem',
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     fontSize: '1rem'
   }
 };
@@ -147,7 +147,7 @@ export const coloredTitleStyles: SxProps = { textAlign: 'center' };
 export const promptBuillderFormBoxSxProps: SxProps = {
   ...flexColumnStyles,
   gap: 2,
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     gap: 1
   }
 };
@@ -163,7 +163,7 @@ export const promptBuilderRadioGroupSxProps: SxProps = {
   flexDirection: 'row',
   justifyContent: 'space-around',
   paddingLeft: 2,
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     paddingLeft: 0
   }
 };
@@ -171,13 +171,13 @@ export const promptBuilderRadioGroupSxProps: SxProps = {
 export const promptBuilderResponseFormatIconsSxProps: SxProps = {
   scale: 1.5,
   color: Theme.palette.primary.main,
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     scale: 1
   }
 };
 
 export const promptBuilderUploadFileTextSxProps: SxProps = {
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     fontSize: '1rem'
   }
 };
@@ -185,7 +185,7 @@ export const promptBuilderUploadFileTextSxProps: SxProps = {
 export const genAiImageHeaderBoxSxProps: SxProps = {
   ...flexColumnStyles,
   gap: 4,
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     gap: 1
   }
 };
@@ -200,12 +200,12 @@ export const genAiGenerateImageButtonBoxSxProps: SxProps = {
   ...centerFlex,
   flex: '0 1 50%',
   height: 'fit-content',
-  [Theme.breakpoints.down('lg')]: { flex: '1 0 100%' }
+  [Theme.breakpoints.down('md')]: { flex: '1 0 100%' }
 };
 
 export const genAiAudioIconButtonSxProps: SxProps = {
   scale: 2,
-  [Theme.breakpoints.down('lg')]: {
+  [Theme.breakpoints.down('md')]: {
     scale: 1
   }
 };

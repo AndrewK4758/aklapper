@@ -8,7 +8,8 @@ import { cwd } from 'process';
 import { ServerOptions } from 'socket.io';
 import socketBoardAction from './events/socket-board-action.js';
 import addGameToSocketInstance from './middleware/socket-add-game-middleware.js';
-import router, { GameRoutes } from './routes/routes.js';
+import routerV1 from './routes/v1/routes.js';
+import routerV2 from './routes/v2/routes.js';
 
 const __dirname = join(cwd(), 'apps/apis/games/games-api');
 
@@ -44,11 +45,10 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.enable('trust proxy');
 app.use('/assets', express.static(join(__dirname, 'assets')));
-app.use('/api/v1', router);
+app.use('/api/v1', routerV1);
+app.use('/api/v2', routerV2);
 
 export const socketServer = new SocketServer(httpServer, serverOptions, [socketBoardAction], [addGameToSocketInstance]);
-
-new GameRoutes();
 
 const port = parseInt(process.env.PORT as string) || 3000;
 const host = process.env.HOST || 'localhost';

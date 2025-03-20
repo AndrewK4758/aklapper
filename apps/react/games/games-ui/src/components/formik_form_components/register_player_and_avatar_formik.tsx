@@ -1,5 +1,5 @@
 import { FormikTextInput, SelectMenu } from '@aklapper/react-shared';
-import { AvatarTotem, Color, ILoadRegisterData } from '@aklapper/types';
+import { AvatarTotem, Color, ILoadRegisterData, type IRegisterFormValues } from '@aklapper/types';
 import { SxProps } from '@mui/material';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
@@ -8,9 +8,8 @@ import { useFormik } from 'formik';
 import { CSSProperties } from 'react';
 import { Form, useParams, useRouteLoaderData, useSubmit } from 'react-router';
 import * as Yup from 'yup';
+import { errorTextSx, selectSlotProps, tooltipSx } from '../../styles/games-styles';
 import { GamesTheme as Theme } from '../../styles/games-theme';
-
-//AFTER API WORK ON AUTO SELECTING THE PLAYER NAME TO BE THE NAME OF THE REGISTERED USER
 
 const breakpointsSelectMenuSxProps: SxProps = {
   color: Theme.palette.primary.main,
@@ -42,7 +41,8 @@ const breakpointsRegisterPlayerLabel: SxProps = {
 };
 
 const breakpointsRegisterPlayerTextInput: SxProps = {
-  width: '35vw',
+  width: '100%',
+
   backgroundColor: Theme.palette.info.main,
   [Theme.breakpoints.down('md')]: {
     fontSize: '20px',
@@ -52,9 +52,9 @@ const breakpointsRegisterPlayerTextInput: SxProps = {
 };
 
 const breakpointsRegisterPlayerSelectInput: SxProps = {
-  width: '25%',
   textAlign: 'center',
   backgroundColor: Theme.palette.info.main,
+  display: 'flex',
   [Theme.breakpoints.down('md')]: {
     fontSize: '19px',
     height: 45,
@@ -65,7 +65,10 @@ const breakpointsRegisterPlayerSelectInput: SxProps = {
 const breakpointsFormContianer: SxProps = {
   textAlign: 'start',
   flexDirection: 'column',
-  paddingX: '1rem',
+  gap: 2,
+  padding: '1rem',
+  width: 'fit-content',
+  border: 5,
   [Theme.breakpoints.down('md')]: {
     alignContent: 'center'
   }
@@ -76,20 +79,28 @@ const breakpointsAvatarPicture: CSSProperties = {
   height: '64px'
 };
 
-const initialValues = {
+const initialValues: IRegisterFormValues = {
   playerName: '',
   avatarName: '',
-  avatarColor: ''
+  avatarColor: Color.UNDEFINED,
+  avatarImage: undefined
 };
 
 const avatarColorMap = (e: Color, _i: number, _arr: string[]) => (
-  <MenuItem key={e} value={e} divider={true} sx={breakpointsSelectMenuSxProps}>
+  <MenuItem key={e} LinkComponent={'option'} id={e} value={e} divider={true} sx={breakpointsSelectMenuSxProps}>
     {e}
   </MenuItem>
 );
 
 const avatarListMap = (e: AvatarTotem, _i: number, _arr: AvatarTotem[]) => (
-  <MenuItem key={e.name} value={e.name} divider={true} sx={breakpointsSelectMenuSxProps}>
+  <MenuItem
+    key={e.name}
+    id={e.name}
+    LinkComponent={'option'}
+    value={e.name}
+    divider={true}
+    sx={breakpointsSelectMenuSxProps}
+  >
     {e.name}
     <img src={`./game-avatars/${e.image}`} alt={`${e.name} avatar`} style={breakpointsAvatarPicture} />
   </MenuItem>
@@ -100,13 +111,14 @@ export default function RegisterPlayerAndAvatarForm() {
   const submit = useSubmit();
   const data = useRouteLoaderData('registerData') as ILoadRegisterData;
 
-  const validationSchema = Yup.object().shape({
+  const validationSchema: Yup.ObjectSchema<IRegisterFormValues> = Yup.object().shape({
     playerName: Yup.string()
       .min(2, 'Must be min of 2 characters')
       .max(20, 'Must be 20 characters or less')
       .required('Required, please enter player name'),
     avatarName: Yup.string().required('Required, please select avatar name'),
-    avatarColor: Yup.string().required('Required, please select avatar color')
+    avatarColor: Yup.string().oneOf(Object.values(Color)).required('Required, please select avatar color'),
+    avatarImage: Yup.string()
   });
 
   const colors = Object.values(data.avatarColorList) as Color[];
@@ -123,36 +135,52 @@ export default function RegisterPlayerAndAvatarForm() {
   return (
     <Form>
       <Container component={'section'} sx={breakpointsFormContianer}>
-        <FormikTextInput
+        <FormikTextInput<IRegisterFormValues>
           id="player-name"
           autoComplete="off"
-          labelComponent={'h2'}
+          labelComponent={'body1'}
           type="text"
           name="playerName"
           label="Player Name"
           textSx={breakpointsRegisterPlayerTextInput}
           labelSx={breakpointsRegisterPlayerLabel}
-          Theme={Theme}
           formik={formik}
           valueField={'playerName'}
+          errorTextSx={errorTextSx}
+          tooltipTitle={'Enter Player Name'}
+          tooltipSx={tooltipSx}
         />
-        <SelectMenu
+        <SelectMenu<IRegisterFormValues>
+          formik={formik}
+          id="avatar-name"
           name="avatarName"
           label="Avatar Name"
           data={avatars}
           mapCallback={avatarListMap}
           labelSx={breakpointsRegisterPlayerLabel}
           selectSx={breakpointsRegisterPlayerSelectInput}
-          Theme={Theme}
+          tooltipTitle={'Select Avatar'}
+          labelVariant={'body1'}
+          labelWrapperSx={null}
+          tooltipSx={tooltipSx}
+          errorTextSx={errorTextSx}
+          selectSlotProps={selectSlotProps}
         />
-        <SelectMenu
+        <SelectMenu<IRegisterFormValues>
+          formik={formik}
+          id="avatar-color"
           name="avatarColor"
           label="Avatar Color"
           data={colors}
           mapCallback={avatarColorMap}
           labelSx={breakpointsRegisterPlayerLabel}
           selectSx={breakpointsRegisterPlayerSelectInput}
-          Theme={Theme}
+          tooltipTitle={'Select Avatar Color'}
+          labelVariant={'body1'}
+          labelWrapperSx={null}
+          tooltipSx={tooltipSx}
+          errorTextSx={errorTextSx}
+          selectSlotProps={selectSlotProps}
         />
       </Container>
       <Button type="submit" variant="outlined" sx={breakpointsRegisterPlayerButton}>

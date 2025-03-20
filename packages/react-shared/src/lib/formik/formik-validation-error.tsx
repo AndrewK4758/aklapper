@@ -1,4 +1,3 @@
-import Box from '@mui/material/Box';
 import FormHelperText from '@mui/material/FormHelperText';
 import type { SxProps } from '@mui/material/styles';
 import type { FormikProps } from 'formik';
@@ -14,13 +13,13 @@ export const FormikValidationError = <T extends object>({
   elementName,
   helperTextSx
 }: FormikValidationErrorProps<T>) => (
-  <Box component={'div'} key={`form-error-${elementName.toString()}`} id={`form-error-${elementName.toString()}`}>
+  <>
     {formik.touched[elementName] && formik.errors[elementName] ? (
-      <FormHelperText variant="outlined" sx={helperTextSx}>
-        {formik.errors[elementName] as string}
-      </FormHelperText>
+      <pre style={{ margin: 0 }}>
+        <FormHelperText sx={helperTextSx}>{formik.errors[elementName] as string}</FormHelperText>
+      </pre>
     ) : null}
-  </Box>
+  </>
 );
 
 export default FormikValidationError;

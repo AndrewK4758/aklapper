@@ -82,6 +82,7 @@ export default function BaseError() {
               sx={{}}
             >
               <Label
+                id="error-stacktrace-label"
                 tooltipTitle={`Click to view stacktrace for ${error.name}`}
                 labelVariant={'button'}
                 labelText={viewErrorStack ? 'Close' : 'View Error Stack-Trace'}
@@ -133,6 +134,7 @@ export default function BaseError() {
           sx={{}}
         >
           <Label
+            id={`${pathname}-error-label`}
             tooltipTitle={'Click to return to the homepage'}
             labelVariant={'button'}
             labelText={'Home'}

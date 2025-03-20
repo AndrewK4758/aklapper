@@ -1,6 +1,7 @@
+import CssBaseline from '@mui/material/CssBaseline';
+import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import { createBrowserRouter, RouterProvider } from 'react-router';
 import Layout from '../components/layout/Layout';
-import ActiveUserProvider from '../context/active-user-context-provider';
 import { NoGameError, NotEnoughPlayersError } from '../errors/error';
 import ActiveGameSession from '../pages/active_game_session';
 import GameDetails from '../pages/game_details';
@@ -11,11 +12,13 @@ import registerGameInstanceOnServerAction from '../services/games/action_functio
 import registerPlayerAndAvatarAction from '../services/games/action_functions/register_player_avatar_action';
 import loadGameList from '../services/games/loader_functions/load_game_list';
 import loadPlayerAvatarRegisterFilterData from '../services/games/loader_functions/load_register_player_avatar_data_and_filter';
+import { GamesTheme as Theme } from '../styles/games-theme';
 
 const router = createBrowserRouter([
   {
     path: '/',
     Component: Layout,
+    hydrateFallbackElement: <h1>Loading</h1>,
     children: [
       {
         index: true,
@@ -62,9 +65,10 @@ const router = createBrowserRouter([
 ]);
 
 const App = () => (
-  <ActiveUserProvider>
+  <ThemeProvider theme={Theme}>
+    <CssBaseline enableColorScheme />
     <RouterProvider router={router} />
-  </ActiveUserProvider>
+  </ThemeProvider>
 );
 
 export default App;

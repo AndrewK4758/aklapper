@@ -78,6 +78,7 @@ const Games = (): JSX.Element => {
                   sx={gamesButtonSxProps}
                 >
                   <Label
+                    id="chutes-and-ladders-button-label"
                     htmlFor="Chutes-&-Ladders"
                     tooltipTitle={
                       <pre>
@@ -104,6 +105,7 @@ const Games = (): JSX.Element => {
                   sx={gamesButtonSxProps}
                 >
                   <Label
+                    id="tic-tac-toe-button-label"
                     htmlFor='Tic-Tac-Toe"'
                     tooltipTitle={
                       <pre>

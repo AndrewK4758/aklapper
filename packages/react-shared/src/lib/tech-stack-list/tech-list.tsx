@@ -34,6 +34,7 @@ export const TechList = ({
     sx={techListContainerSxProps}
   >
     <Label
+      id={id}
       htmlFor={`${id}-list`}
       tooltipTitle={tooltipTitle}
       labelVariant={variant}
@@ -42,7 +43,7 @@ export const TechList = ({
       labelTextSx={techListTextSxProps}
     />
     <List key={`${id}-list`} id={`${id}-list`}>
-      <RenderList data={data} listMapCallback={renderTechLists} />
+      <RenderList component={'section'} data={data} listMapCallback={renderTechLists} />
     </List>
   </Container>
 );

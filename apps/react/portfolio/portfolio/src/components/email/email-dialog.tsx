@@ -74,6 +74,7 @@ const EmailDialog = ({ open, setOpen }: EmailDialogProps) => {
                       placement={'bottom'}
                       labelTextSx={mainSx}
                       tooltipSx={subSx}
+                      id="appointment-request-tab-label"
                     />
                   }
                 />
@@ -90,6 +91,7 @@ const EmailDialog = ({ open, setOpen }: EmailDialogProps) => {
                       placement={'bottom'}
                       labelTextSx={mainSx}
                       tooltipSx={subSx}
+                      id="email-me-tab-label"
                     />
                   }
                 />

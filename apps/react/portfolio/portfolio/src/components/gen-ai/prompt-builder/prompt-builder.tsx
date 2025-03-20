@@ -143,6 +143,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
             >
               <Box component={'section'} key={'prompt-builder-objective-box'} id="prompt-builder-objective-box">
                 <Label
+                  id="objective-label"
                   htmlFor="prompt-builder-objective"
                   placement="top"
                   tooltipTitle={objective}
@@ -177,6 +178,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
               </Box>
               <Box component={'section'} key={'prompt-builder-instructions-box'} id="prompt-builder-instructions-box">
                 <Label
+                  id="instructions-label"
                   htmlFor="prompt-builder-instructions"
                   placement="top"
                   tooltipTitle={instructions}
@@ -210,6 +212,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
               </Box>
               <Box component={'section'} key={'prompt-builder-text-data-box'} id="prompt-builder-text-data-box">
                 <Label
+                  id="text-data-label"
                   htmlFor="prompt-builder-text-data"
                   placement="top"
                   tooltipTitle={textData}
@@ -243,6 +246,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
               </Box>
               <Box component={'section'} key={'prompt-builder-examples-box'} id="prompt-builder-examples-box">
                 <Label
+                  id="examples-label"
                   htmlFor="prompt-builder-examples"
                   placement="top"
                   tooltipTitle={examples}
@@ -276,6 +280,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
               </Box>
               <Box component={'section'} key={'prompt-builder-constraints-box'} id="prompt-builder-constraints-box">
                 <Label
+                  id="constraints-label"
                   htmlFor="prompt-builder-constraints"
                   placement="top"
                   tooltipTitle={constraints}
@@ -309,6 +314,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
               </Box>
               <Box component={'section'} key={'prompt-builder-tone-box'} id="prompt-builder-tone-box">
                 <Label
+                  id="tone-label"
                   htmlFor="prompt-builder-tone"
                   placement="top"
                   tooltipTitle={tone}
@@ -346,6 +352,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                 id="prompt-builder-response-instructions-box"
               >
                 <Label
+                  id="response-instructions-label"
                   htmlFor="prompt-builder-response-instructions"
                   placement="top"
                   tooltipTitle={responseInstructions}
@@ -384,7 +391,8 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                 sx={{}}
               >
                 <Label
-                  htmlFor=""
+                  id="response-format-label"
+                  htmlFor="prompt-builder-response-format"
                   tooltipTitle=""
                   tooltipSx={{}}
                   labelVariant="h4"
@@ -415,6 +423,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                       control={<Radio />}
                       label={
                         <Label
+                          id="response-format-text-label"
                           htmlFor="response-format-text"
                           tooltipTitle={'Tells the LLM to respond with plain text'}
                           labelVariant={'h4'}
@@ -434,6 +443,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                       control={<Radio />}
                       label={
                         <Label
+                          id="response-format-json-label"
                           htmlFor="response-format-json"
                           tooltipTitle={'Tells the LLM to respond with JSON'}
                           labelVariant={'h4'}
@@ -453,6 +463,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                       control={<Radio />}
                       label={
                         <Label
+                          id="response-format-image-label"
                           htmlFor="response-format-image"
                           tooltipTitle={
                             'Tells the LLM to respond with a text to Image format.\n**WILL NOT WORK WITH TEXT OR AUDIO**'

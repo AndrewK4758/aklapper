@@ -1,9 +1,9 @@
 /// <reference types='vitest' />
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import { cwd } from 'process';
-import { resolve } from 'path';
 import { workspaceRoot } from '@nx/devkit';
+import react from '@vitejs/plugin-react';
+import { resolve } from 'path';
+import { cwd } from 'process';
+import { defineConfig } from 'vite';
 
 export default defineConfig({
   root: cwd(),
@@ -42,6 +42,7 @@ export default defineConfig({
       transformMixedEsModules: true
     }
   },
+  envDir: 'env',
   test: {
     watch: false,
     globals: true,

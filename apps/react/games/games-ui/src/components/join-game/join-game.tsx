@@ -1,37 +1,49 @@
+import { FormActionProps, FormikTextInput } from '@aklapper/react-shared';
 import { GamePlayerValidation } from '@aklapper/types';
 import { SxProps } from '@mui/material';
 import Button from '@mui/material/Button';
 import { useFormik } from 'formik';
 import { Form, useNavigate } from 'react-router';
 import * as Yup from 'yup';
-import { FormActionProps, FormikTextInput } from '@aklapper/react-shared';
-import GamesTheme from '../../styles/games-theme';
 
 export interface JoinGameProps extends FormActionProps {
-  breakpointsJoinGameButton?: SxProps;
-  breakpointsJoinGameText?: SxProps;
-  breakpointsJoinGameLabel?: SxProps;
+  homePageJoinGameButton?: SxProps;
+  homePageJoinGameLabel?: SxProps;
+  homePageJoinGameTextfield?: SxProps;
+  textfieldLabelWrapper?: SxProps;
+  tooltipSx: SxProps;
+  errorTextSx: SxProps;
 }
 
 type JoinGamePath = { gamePath: string };
 
-const validationSchema = Yup.object({
+const validationSchema: Yup.ObjectSchema<JoinGamePath> = Yup.object({
   gamePath: Yup.string()
-    .min(6, 'Must be at least the full game ID')
-    .max(60, 'Must be at most the full link to the game')
+    .test('Validate path string', "Incorrect format.\nGame Path must begin with '/'", (value: string | undefined) => {
+      if (typeof value === 'string') return value.startsWith('/');
+      else return false;
+    })
+    .min(
+      17,
+      "Must be the full path to locate game.\nStructure: /games <- Path for games, /{game name} <- name of game, /{game id} <- unique id to the selected game.\nExmaple '/games/Chutes-&-Ladders/abc123'"
+    )
+    .max(60, 'Cannot be more than the path with game id')
     .required()
 });
 
 export const JoinGame = ({
-  breakpointsJoinGameText,
-  breakpointsJoinGameButton,
-  breakpointsJoinGameLabel,
+  homePageJoinGameButton,
+  homePageJoinGameLabel,
+  homePageJoinGameTextfield,
+  textfieldLabelWrapper,
+  errorTextSx,
   method,
   type,
   names,
   variant,
   buttonType,
-  buttonText
+  buttonText,
+  tooltipSx
 }: JoinGameProps) => {
   const nav = useNavigate();
 
@@ -63,19 +75,21 @@ export const JoinGame = ({
       <FormikTextInput<JoinGamePath>
         formik={formik}
         autoComplete="off"
-        labelComponent={'h2'}
+        labelComponent={'body2'}
         label={'Game Path'}
         id="gamePath"
         type={type}
-        placeholder="Enter GameID to join"
         name={names[0] as 'gamePath'}
-        Theme={GamesTheme}
-        textSx={breakpointsJoinGameText}
-        labelSx={breakpointsJoinGameLabel}
+        errorTextSx={errorTextSx}
+        labelSx={homePageJoinGameLabel}
+        labelWrapperSx={textfieldLabelWrapper}
         valueField={'gamePath'}
+        textSx={homePageJoinGameTextfield}
+        tooltipTitle={'This is where you enter the game path to join the game instance.'}
+        tooltipSx={tooltipSx}
       />
       <br />
-      <Button type={buttonType} variant={variant} sx={breakpointsJoinGameButton}>
+      <Button type={buttonType} variant={variant} sx={homePageJoinGameButton}>
         {buttonText}
       </Button>
     </Form>

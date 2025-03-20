@@ -1,3 +1,6 @@
 go 1.24
 
-use ./apps/go/file-uploader
+use (
+	./apps/go/file-uploader
+	./apps/go/game-lobby
+)
