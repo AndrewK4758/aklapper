@@ -68,6 +68,7 @@ export default function Layout() {
               sx={{ flex: '0 1 33%' }}
             >
               <Label
+                id="navbar-button-label"
                 htmlFor="navbar-button-chat"
                 tooltipTitle={'Navigate to Chat with LLM'}
                 labelVariant={'body1'}
@@ -90,6 +91,7 @@ export default function Layout() {
         <input type="file" multiple={true} ref={inputRef} hidden={true} id="upload-files" onChange={handleFileUpload} />
         <Button type="button" id="upload-files-button" onClick={handleUploadClick}>
           <Label
+            id="upload-files-label"
             tooltipTitle=""
             labelText="Upload"
             placement="top"

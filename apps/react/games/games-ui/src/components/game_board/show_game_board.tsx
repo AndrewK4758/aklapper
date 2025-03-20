@@ -26,7 +26,7 @@ interface ShowGameBoardProps {
  */
 const ShowGameBoard = ({ board }: ShowGameBoardProps) => (
   <Box component={'section'} sx={breakpointsGameBoardBox}>
-    {board && <RenderList data={board} listMapCallback={gameBoardMap} />}
+    {board && <RenderList component={'section'} data={board} listMapCallback={gameBoardMap} />}
   </Box>
 );
 

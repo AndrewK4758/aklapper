@@ -1,11 +1,11 @@
 import { Label } from '@aklapper/react-shared';
-import TextField from '@mui/material/TextField';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Container from '@mui/material/Container';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
+import TextField from '@mui/material/TextField';
 import axios from 'axios';
 import { useFormik } from 'formik';
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
@@ -90,6 +90,7 @@ export default function QueryModel() {
             key={'query-model-select-model-box'}
           >
             <Label
+              id="query-model-model-select-label"
               htmlFor="query-model-model-select-input"
               tooltipTitle={'List of Available Models on your System'}
               labelVariant={'body1'}
@@ -128,6 +129,7 @@ export default function QueryModel() {
             key={'query-model-text-input-box'}
           >
             <Label
+              id="query-model-text-input-label"
               htmlFor="query-model-text-input-textfield"
               tooltipTitle={'Query & Chat with local LLM Model'}
               labelVariant={'body1'}
@@ -181,6 +183,7 @@ export default function QueryModel() {
               sx={{ fontSize: '1.5rem' }}
             >
               <Label
+                id="query-model-reset-label"
                 htmlFor="query-model-reset"
                 tooltipTitle={'Clears the form of all user entered data'}
                 labelVariant={'button'}
@@ -199,6 +202,7 @@ export default function QueryModel() {
               sx={{ fontSize: '1.5rem' }}
             >
               <Label
+                id="query-model-button-label"
                 htmlFor={'query-model-button'}
                 tooltipTitle={'Query the model for response'}
                 labelVariant={'button'}
@@ -216,6 +220,7 @@ export default function QueryModel() {
               sx={{ fontSize: '1.5rem' }}
             >
               <Label
+                id="upload-pdfs-button-label"
                 htmlFor={'upload-pdfs-button'}
                 tooltipTitle={'Upload documents you wish to add to database as context for all future queries'}
                 labelVariant={'button'}

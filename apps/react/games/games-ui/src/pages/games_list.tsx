@@ -1,12 +1,12 @@
 import { RenderList, Text } from '@aklapper/react-shared';
-import { GamesTheme as Theme } from '../styles/games-theme';
 import { IBuiltGame } from '@aklapper/types';
 import { SxProps, useMediaQuery } from '@mui/material';
+import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import ImageList from '@mui/material/ImageList';
 import { useRouteLoaderData } from 'react-router';
 import ImageLink from '../components/image-link/image-link';
-import Box from '@mui/material/Box';
+import { GamesTheme as Theme } from '../styles/games-theme';
 
 const breakpointsGameListText: SxProps = {
   [Theme.breakpoints.down('md')]: {
@@ -63,7 +63,7 @@ const GamesList = () => {
           gap={12}
           sx={{ m: 0, display: 'flex' }}
         >
-          <RenderList data={games} listMapCallback={listGamesMap} />
+          <RenderList component={'section'} data={games} listMapCallback={listGamesMap} />
         </ImageList>
       </Container>
     </Box>

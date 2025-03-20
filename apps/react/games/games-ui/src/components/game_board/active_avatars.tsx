@@ -4,8 +4,8 @@ import { IRegisterFormValues } from '@aklapper/types';
 import { Box, SxProps } from '@mui/material';
 import Container from '@mui/material/Container';
 import { Fragment } from 'react/jsx-runtime';
-import { PlayersInGame } from '../players-in-game/players-in-game';
 import { GamesTheme as Theme } from '../../styles/games-theme';
+import { PlayersInGame } from '../players-in-game/players-in-game';
 
 const breakpointsActiveGameTitleContainer: SxProps = {
   flex: '0 1 80%',
@@ -72,7 +72,7 @@ export default function ActiveAvatars({ avatarsInGame, winner }: ActiveAvatarsPr
       <Text component={'h2'} titleVariant="h2" titleText="Active Players in Game" sx={breakpointsActiveGameTitleText} />
       {!winner ? (
         <Box sx={breakpointsPlayersInGameBox}>
-          <RenderList data={avatarsInGame} listMapCallback={playersInGameMap} />
+          <RenderList component={'section'} data={avatarsInGame} listMapCallback={playersInGameMap} />
         </Box>
       ) : (
         <Text component={'h2'} titleVariant="h2" titleText={winner} sx={breakpointsActiveGameTitleText} />

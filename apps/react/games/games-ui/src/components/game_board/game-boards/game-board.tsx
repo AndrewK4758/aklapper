@@ -50,7 +50,7 @@ const gameBoardRowMap = (e: ILiteSpace, i: number, _arr: string[]) => (
 
 export const GameBoardMap = ({ row, columns, container, direction, wrap, id, rowSx }: GameBoardProps) => (
   <Grid2 columns={columns} container={container} direction={direction} wrap={wrap} id={id} sx={rowSx}>
-    <RenderList data={row} listMapCallback={gameBoardRowMap} sx={spaceStyle} />
+    <RenderList component={'section'} data={row} listMapCallback={gameBoardRowMap} sx={spaceStyle} />
   </Grid2>
 );
 

@@ -1,5 +1,4 @@
 import { RenderList, Text } from '@aklapper/react-shared';
-import GamesTheme from '../styles/games-theme';
 import { IBuiltGame, IRule } from '@aklapper/types';
 import { SxProps } from '@mui/material';
 import Container from '@mui/material/Container';
@@ -7,6 +6,7 @@ import List from '@mui/material/List';
 import { useParams, useRouteLoaderData } from 'react-router';
 import HeadingWithDetails from '../components/header/heading-with-details';
 import RegisterGame from '../components/register-game/register_game';
+import GamesTheme from '../styles/games-theme';
 
 const breakpointsGameDetailsTitle: SxProps = {
   [GamesTheme.breakpoints.down('md')]: {
@@ -69,7 +69,7 @@ const GameDetails = () => {
       <Container component={'div'} sx={{ flexDirection: 'column', marginTop: '1.5rem' }}>
         <Text component={'h1'} titleVariant="h1" titleText={selectedName} sx={breakpointsGameDetailsTitle} />
         <List component={'ul'}>
-          <RenderList data={gameDetails} listMapCallback={listRulesCallback} />
+          <RenderList component={'section'} data={gameDetails} listMapCallback={listRulesCallback} />
         </List>
         <RegisterGame registerGameButtonSx={breakpointsGameDetailsRegisterButton} />
       </Container>
