@@ -1,8 +1,11 @@
 package sub
 
 import (
+	lobbydata "apps/go/game-lobby/lobby-data"
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -11,16 +14,17 @@ import (
 func Sub() {
 	ctx := context.Background()
 
-	redisDB := redis.NewClient(&redis.Options{
+	redisPubSub := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "",
 		DB:       0,
 	})
 
-	subscriber := redisDB.Subscribe(ctx, "new-player")
+	subscriber := redisPubSub.Subscribe(ctx, "lobby:new-player", "lobby:remove-player")
 	defer subscriber.Close()
+	ch := subscriber.Channel()
 
-	fmt.Println("Listening for messages...")
+	fmt.Println("Listening for 'new-player' messages")
 
 	est, err := time.LoadLocation("America/New_York")
 	if err != nil {
@@ -30,30 +34,56 @@ func Sub() {
 
 	currentTime := time.Now().In(est).Format("January 2, 2006 03:04:05 PM")
 
-	for {
-		msg, err := subscriber.ReceiveMessage(ctx)
-		if err != nil {
-			fmt.Printf("[%s] - Error receiving message: %s\n", currentTime, err.Error())
-			continue
-		}
+	for msg := range ch {
 
-		switch msg.Channel {
-		case "new-player":
-			var player Player
+		// if err != nil {
+		// 	fmt.Printf("[%s] - Error receiving message: %s\n", currentTime, err.Error())
+		// 	continue
+		// }
 
-			player.name = msg.Payload
-			handlePlayerRegistered(player)
+		switch strings.HasPrefix(msg.Channel, "lobby:") {
+		case strings.Contains(msg.Channel, "new-player"):
+
+			var newPlayer *lobbydata.ActivePlayer
+			err := json.Unmarshal([]byte(msg.Payload), &newPlayer)
+			if err != nil {
+				fmt.Println(err, "UNMARSHALL ERROR")
+				continue
+			}
+
+			err = lobbydata.AddPlayerToLobby(newPlayer)
+
+			if err != nil {
+				fmt.Println("error adding player to lobby")
+				err := redisPubSub.Publish(ctx, "error", "error adding player to lobby").Err()
+				if err != nil {
+					fmt.Println("error sending error message to nodejs")
+				}
+			}
+
+			newPlayer.InLobby = true
+
+			jsonResp, err := json.Marshal(*newPlayer)
+
+			fmt.Println(string(jsonResp))
+			if err != nil {
+				fmt.Printf("json error: %v\n", err)
+			}
+
+			redisPubSub.Publish(ctx, "lobby:player-added", jsonResp).Err()
+
+			if err != nil {
+				fmt.Printf("lobby:player-added error: %v\n", err)
+			}
+
+		case strings.Contains(msg.Channel, "remove-player"):
+			fmt.Println("PLAYER REMOVED")
 		}
 
 		fmt.Printf("[%s] - Received message: %s\n", currentTime, msg.Payload)
+
+		// for key, value := range lobbydata.LobbyMap {
+		// 	fmt.Printf("KEY: %s\nVALUE: %v\n", key, value)
+		// }
 	}
-}
-
-type Player struct {
-	name string
-}
-
-func handlePlayerRegistered(player Player) {
-
-	fmt.Printf("\nPlayer Registered: %v\n\n", player.name)
 }

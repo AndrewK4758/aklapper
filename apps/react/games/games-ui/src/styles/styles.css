@@ -8,10 +8,6 @@
   src: url('../../fonts/Jersey25Charted-Regular.ttf') format('truetype');
 }
 
-html {
-  scrollbar-color: #101010 !important;
-}
-
 * {
   -webkit-font-smoothing: antialiased;
   font-synthesis: none;

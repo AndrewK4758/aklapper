@@ -1,15 +1,15 @@
 import { FormikTextInput, Label, type httpMethod } from '@aklapper/react-shared';
-import type { IClientPlayerInfo } from '@aklapper/types';
+import type { IPlayer } from '@aklapper/types';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import axios from 'axios';
 import { useFormik } from 'formik';
 import { useContext, type Dispatch, type SetStateAction } from 'react';
-import { Form } from 'react-router';
+import { Form, useNavigate, type NavigateFunction } from 'react-router';
 import * as Yup from 'yup';
 import { ActivePlayerContext, type ActivePlayerContextProps } from '../../context/active-user-context';
 import { errorTextSx, tooltipSx } from '../../styles/games-styles';
-import { type IActivePlayerContext, type RegisterPlayerValue } from '../../types/types';
+import { type RegisterPlayerValue } from '../../types/types';
 
 function initialValues<T>(defaults: T, key: keyof T, value: unknown): T {
   return {
@@ -38,11 +38,11 @@ export default function RegisterPlayer<T extends object>({
   inputName
 }: RegisterPlayerProps<T>) {
   const { setActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
-
+  const nav = useNavigate();
   const formik = useFormik<T>({
     initialValues: initialValues<T>(formPropsObject, inputName, ''),
     validationSchema: validationSchema,
-    onSubmit: values => handleNewPlayerSubmit(values as RegisterPlayerValue, setActivePlayer)
+    onSubmit: values => handleNewPlayerSubmit(values as RegisterPlayerValue, setActivePlayer, nav)
   });
 
   return (
@@ -84,7 +84,8 @@ const baseUrl = import.meta.env.VITE_REST_API_SERVER_URL_V2;
 
 async function handleNewPlayerSubmit(
   values: RegisterPlayerValue,
-  setActivePlayer: Dispatch<SetStateAction<IActivePlayerContext>>
+  setActivePlayer: Dispatch<SetStateAction<Partial<IPlayer>>>,
+  nav: NavigateFunction
 ) {
   try {
     const { name } = values;
@@ -95,13 +96,15 @@ async function handleNewPlayerSubmit(
       { headers: { 'Content-Type': 'application/json' } }
     );
 
-    const newPlayer = resp.data as IClientPlayerInfo;
+    const newPlayer = resp.data as Partial<IPlayer>;
 
     setActivePlayer(prev => ({
       ...prev,
       name: newPlayer.name,
       id: newPlayer.id
     }));
+
+    nav('lobby');
   } catch (error) {
     console.error(error);
   }

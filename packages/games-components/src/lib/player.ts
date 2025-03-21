@@ -2,63 +2,63 @@ import { IPlayer } from '@aklapper/types';
 import { Avatar } from './avatar.js';
 
 export class Player implements IPlayer {
-  #Id: string;
-  #Name: string;
-  #Order!: number;
-  #Avatar!: Avatar;
-  #ActiveGameID: string | null;
-  #InLobby: boolean;
-  #CurrentTimeEntered: string;
+  readonly id: string;
+  readonly name: string;
+  readonly currentTimeEntered: string;
+  order!: number;
+  avatar!: Avatar;
+  activeGameID: string | null;
+  inLobby: boolean;
   constructor(name: string, id: string) {
-    this.#Name = name;
-    this.#Id = id;
-    this.#ActiveGameID = null;
-    this.#InLobby = false;
-    this.#CurrentTimeEntered = new Date().toUTCString();
+    this.name = name;
+    this.id = id;
+    this.activeGameID = null;
+    this.inLobby = false;
+    this.currentTimeEntered = new Date().toUTCString();
   }
 
-  get id(): string {
-    return this.#Id;
+  public get Id(): string {
+    return this.id;
   }
 
-  get name(): string {
-    return this.#Name;
+  public get Name(): string {
+    return this.name;
   }
 
-  get order(): number {
-    return this.#Order;
+  public get Order(): number {
+    return this.order;
   }
 
-  set order(order: number) {
-    this.#Order = order;
+  public set Order(order: number) {
+    this.order = order;
   }
 
-  get avatar(): Avatar {
-    return this.#Avatar;
+  public get Avatar(): Avatar {
+    return this.avatar;
   }
 
-  set avatar(avatar: Avatar) {
-    this.#Avatar = avatar;
+  public set Avatar(avatar: Avatar) {
+    this.avatar = avatar;
   }
 
-  public get activeGameID(): string | null {
-    return this.#ActiveGameID;
+  public get ActiveGameID(): string | null {
+    return this.activeGameID;
   }
 
-  public set activeGameID(activeGame: string) {
-    this.#ActiveGameID = activeGame;
+  public set ActiveGameID(activeGame: string) {
+    this.activeGameID = activeGame;
   }
 
-  public get inLobby(): boolean {
-    return this.#InLobby;
+  public get InLobby(): boolean {
+    return this.inLobby;
   }
 
-  public set inLobby(inLobby: boolean) {
-    this.#InLobby = inLobby;
+  public set InLobby(inLobby: boolean) {
+    this.inLobby = inLobby;
   }
 
-  public get currentTimeEntered(): string {
-    return this.#CurrentTimeEntered;
+  public get CurrentTimeEntered(): string {
+    return this.currentTimeEntered;
   }
 }
 

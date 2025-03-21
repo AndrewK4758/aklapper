@@ -26,6 +26,5 @@ export * from './lib/game/interfaces/space.js';
 export * from './lib/game/interfaces/summed-roll.js';
 export * from './lib/game/interfaces/tic-tac-toe.js';
 
-export * from './lib/game/interfaces/client-player-info.js';
 export * from './lib/game/types/all-games-types.js';
 export * from './lib/game/types/game.js';

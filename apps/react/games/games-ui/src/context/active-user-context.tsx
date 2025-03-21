@@ -1,12 +1,12 @@
+import { IPlayer } from '@aklapper/types';
 import { createContext, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
-import type { IActivePlayerContext } from '../types/types';
 
 export interface ActivePlayerContextProps {
-  activePlayer: IActivePlayerContext;
-  setActivePlayer: Dispatch<SetStateAction<IActivePlayerContext>>;
+  activePlayer: Partial<IPlayer>;
+  setActivePlayer: Dispatch<SetStateAction<Partial<IPlayer>>>;
 }
 
-const activePlayerInit: IActivePlayerContext = {
+const activePlayerInit: Partial<IPlayer> = {
   id: '',
   name: '',
   inLobby: false,
@@ -23,7 +23,7 @@ interface ActivePlayerContextProviderProps {
 }
 
 export default function ActivePlayerContextProvider({ children }: ActivePlayerContextProviderProps) {
-  const [activePlayer, setActivePlayer] = useState<IActivePlayerContext>(activePlayerInit);
+  const [activePlayer, setActivePlayer] = useState<Partial<IPlayer>>(activePlayerInit);
 
   return (
     <ActivePlayerContext.Provider value={{ activePlayer, setActivePlayer }}>{children}</ActivePlayerContext.Provider>

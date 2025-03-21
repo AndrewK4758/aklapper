@@ -58,7 +58,7 @@ export function FormikTextInput<T extends object>({
       alignItems={'center'}
     >
       <Box width={'100%'}>
-        <FormControl variant={'outlined'} fullWidth>
+        <FormControl variant={'outlined'}>
           <Label
             id={id}
             htmlFor={id}

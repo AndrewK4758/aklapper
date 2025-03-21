@@ -1,7 +1,7 @@
 import { FormActionProps, FormikTextInput } from '@aklapper/react-shared';
 import { GamePlayerValidation } from '@aklapper/types';
-import { SxProps } from '@mui/material';
 import Button from '@mui/material/Button';
+import { SxProps } from '@mui/material/styles';
 import { useFormik } from 'formik';
 import { Form, useNavigate } from 'react-router';
 import * as Yup from 'yup';

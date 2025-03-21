@@ -4,6 +4,7 @@ import JoinGame from '../components/join-game/join-game';
 import { errorTextSx, tooltipSx } from '../styles/games-styles';
 import { GamesTheme as Theme } from '../styles/games-theme';
 
+import Box from '@mui/material/Box';
 import { useContext } from 'react';
 import RegisterPlayer from '../components/register-player/register-player';
 import { ActivePlayerContext, ActivePlayerContextProps } from '../context/active-user-context';
@@ -45,9 +46,8 @@ const registerPlayerPropsObject: RegisterPlayerValue = {
 const Home = () => {
   const { activePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
 
-  console.log(activePlayer);
   return (
-    <>
+    <Box component={'div'} id="home-page-wrapper" sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <Text component={'h1'} titleVariant="h1" titleText="Welcome To My Game" sx={homePageTitleText} />
       <Text
         component={'p'}
@@ -61,7 +61,7 @@ const Home = () => {
         sx={homePageInfoText}
       />
 
-      {!activePlayer.name && (
+      {!activePlayer.Name && (
         <RegisterPlayer<RegisterPlayerValue>
           method={'POST'}
           inputName={'name'}
@@ -70,21 +70,23 @@ const Home = () => {
           formPropsObject={registerPlayerPropsObject}
         />
       )}
-      <JoinGame
-        method="patch"
-        type="text"
-        buttonText="Join Game"
-        buttonType="submit"
-        variant="outlined"
-        homePageJoinGameButton={homePageJoinGameButton}
-        homePageJoinGameLabel={homePageJoinGameLabel}
-        homePageJoinGameTextfield={homePageJoinGameTextfield}
-        textfieldLabelWrapper={textfieldLabelWrapper}
-        tooltipSx={tooltipSx}
-        errorTextSx={errorTextSx}
-        names={['gamePath']}
-      />
-    </>
+      {!activePlayer.Name && (
+        <JoinGame
+          method="patch"
+          type="text"
+          buttonText="Join Game"
+          buttonType="submit"
+          variant="outlined"
+          homePageJoinGameButton={homePageJoinGameButton}
+          homePageJoinGameLabel={homePageJoinGameLabel}
+          homePageJoinGameTextfield={homePageJoinGameTextfield}
+          textfieldLabelWrapper={textfieldLabelWrapper}
+          tooltipSx={tooltipSx}
+          errorTextSx={errorTextSx}
+          names={['gamePath']}
+        />
+      )}
+    </Box>
   );
 };
 

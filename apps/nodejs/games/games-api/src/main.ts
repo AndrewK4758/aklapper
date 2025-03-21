@@ -57,7 +57,7 @@ const port = parseInt(process.env.PORT as string) || 3000;
 const host = process.env.HOST || 'localhost';
 
 const server = httpServer.listen(port, () => {
-  console.log(`Listening on http://${host}:${port}/api/v1`);
+  console.log(`Listening on http://${host}:${port}/api/{version}`);
 });
 
 server.on('error', console.error);

@@ -1,15 +1,24 @@
-import type { IClientPlayerInfo } from '@aklapper/types';
 import redis, { type RedisClientType } from 'redis';
 
-const redisClient: RedisClientType = redis.createClient({
+const redisPubClient: RedisClientType = redis.createClient({
   socket: {
     host: 'localhost',
     port: 6379
   }
 });
 
-const activeClient: RedisClientType = await redisClient.connect();
+export const activePubClient: RedisClientType = await redisPubClient.connect();
 
-await activeClient.publish('new-player', JSON.stringify({ name: 'name', id: 'ididid' } as IClientPlayerInfo));
+const redisSubClient: RedisClientType = redis.createClient({
+  socket: {
+    host: 'localhost',
+    port: 6379
+  }
+});
 
-export default activeClient;
+export const activeSubClient: RedisClientType = await redisSubClient.connect();
+
+activeSubClient.subscribe('error', err => {
+  console.error(err);
+  throw err;
+});

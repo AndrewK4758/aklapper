@@ -1,5 +1,7 @@
 package lobbydata
 
+import "fmt"
+
 type ActivePlayer struct {
 	Name               string
 	Id                 string
@@ -21,6 +23,31 @@ func CreateActivePlayer(name string, id string, activeGameID *string, inLobby bo
 
 }
 
-func AddPlayerToLobby(newPlayer *ActivePlayer) {
-	LobbyMap[newPlayer.Id] = newPlayer
+func AddPlayerToLobby(newPlayer *ActivePlayer) error {
+	var err error
+
+	_, ok := LobbyMap[newPlayer.Id]
+
+	if ok {
+		err = fmt.Errorf("player already exists in game lobby")
+		return err
+	} else {
+		LobbyMap[newPlayer.Id] = newPlayer
+	}
+	return nil
+}
+
+func RemovePlayerFromLobby(playerToRemove *ActivePlayer) error {
+	var err error
+
+	_, ok := LobbyMap[playerToRemove.Id]
+
+	if ok {
+		LobbyMap[playerToRemove.Id] = nil
+
+	} else {
+		err = fmt.Errorf("player does not exist in lobby map")
+		return err
+	}
+	return nil
 }
