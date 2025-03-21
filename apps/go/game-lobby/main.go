@@ -1,8 +1,10 @@
 package main
 
 import (
-	"apps/go/game-lobby/pub"
-	"apps/go/game-lobby/sub"
+	lobbydata "apps/go/game-lobby/lobby-data"
+	pub "apps/go/game-lobby/pub"
+	sub "apps/go/game-lobby/sub"
+	"fmt"
 	"sync"
 )
 
@@ -18,6 +20,14 @@ import (
 // WHEN GAME IS STARTED, REMOVE THE GAME ID AND ALL PLAYER NAMES FROM THE LOBBY
 
 func main() {
+
+	p1 := lobbydata.CreateActivePlayer("Player 1 Name", "player-1-id", nil, true, "12:00:00am")
+
+	lobbydata.AddPlayerToLobby(p1)
+
+	for key, values := range lobbydata.LobbyMap {
+		fmt.Printf("KEY: %s\nVALUES: %v", key, values)
+	}
 
 	var wg sync.WaitGroup
 

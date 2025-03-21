@@ -17,7 +17,7 @@ func Sub() {
 		DB:       0,
 	})
 
-	subscriber := redisDB.Subscribe(ctx, "test")
+	subscriber := redisDB.Subscribe(ctx, "new-player")
 	defer subscriber.Close()
 
 	fmt.Println("Listening for messages...")
@@ -38,7 +38,7 @@ func Sub() {
 		}
 
 		switch msg.Channel {
-		case "test":
+		case "new-player":
 			var player Player
 
 			player.name = msg.Payload

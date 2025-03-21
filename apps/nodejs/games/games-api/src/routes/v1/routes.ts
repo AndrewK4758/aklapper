@@ -1,14 +1,12 @@
-import express, { Request, Response, Router } from 'express';
+import { type Request, type Response, Router } from 'express';
 import performAction from '../../controllers/perform_action_context_object.js';
-import populateInstanceMaps from '../../controllers/populate_instance_map.js';
 import sendGameList from '../../controllers/send_game_list.js';
+import populateInstanceMaps from '../../controllers/v1/populate_instance_map.js';
 import middlewareRouter from '../../middleware/request-filter.js';
 
 const routerV1: Router = Router();
 
 // ROUTER MIDDLEWARE
-routerV1.use(express.json());
-routerV1.use(express.urlencoded({ extended: true }));
 routerV1.use('/games', middlewareRouter);
 // ENDPOINTS
 routerV1.get('/games', sendGameList);

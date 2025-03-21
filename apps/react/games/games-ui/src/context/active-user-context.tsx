@@ -1,27 +1,31 @@
-import { createContext, Dispatch, SetStateAction } from 'react';
+import { createContext, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
+import type { IActivePlayerContext } from '../types/types';
 
-export interface ActiveUserData {
-  id: string | undefined;
-  playerName: string | undefined;
-  friends: string[] | undefined;
-  activeGames: string[] | undefined;
-  thumbnail: string | undefined;
+export interface ActivePlayerContextProps {
+  activePlayer: IActivePlayerContext;
+  setActivePlayer: Dispatch<SetStateAction<IActivePlayerContext>>;
 }
 
-export interface IActiveUserContext {
-  activeUser: ActiveUserData;
-  setActiveUser: Dispatch<SetStateAction<ActiveUserData>>;
-}
-
-const activeUserInit: ActiveUserData = {
+const activePlayerInit: IActivePlayerContext = {
   id: '',
-  playerName: '',
-  activeGames: [],
-  friends: [],
-  thumbnail: ''
+  name: '',
+  inLobby: false,
+  activeGameID: null
 };
 
-export const ActiveUserContext = createContext<IActiveUserContext>({
-  activeUser: activeUserInit,
-  setActiveUser: user => user
+export const ActivePlayerContext = createContext<ActivePlayerContextProps>({
+  activePlayer: activePlayerInit,
+  setActivePlayer: () => ({})
 });
+
+interface ActivePlayerContextProviderProps {
+  children?: ReactNode;
+}
+
+export default function ActivePlayerContextProvider({ children }: ActivePlayerContextProviderProps) {
+  const [activePlayer, setActivePlayer] = useState<IActivePlayerContext>(activePlayerInit);
+
+  return (
+    <ActivePlayerContext.Provider value={{ activePlayer, setActivePlayer }}>{children}</ActivePlayerContext.Provider>
+  );
+}

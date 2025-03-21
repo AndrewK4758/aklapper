@@ -10,6 +10,7 @@ import socketBoardAction from './events/socket-board-action.js';
 import addGameToSocketInstance from './middleware/socket-add-game-middleware.js';
 import routerV1 from './routes/v1/routes.js';
 import routerV2 from './routes/v2/routes.js';
+import './services/redis/redis-client.js';
 
 const __dirname = join(cwd(), 'apps/apis/games/games-api');
 
@@ -45,6 +46,8 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.enable('trust proxy');
 app.use('/assets', express.static(join(__dirname, 'assets')));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use('/api/v1', routerV1);
 app.use('/api/v2', routerV2);
 

@@ -2,6 +2,7 @@ import Container from '@mui/material/Container';
 import type { SxProps } from '@mui/material/styles';
 import { Fragment } from 'react';
 import { Outlet } from 'react-router';
+import ActivePlayerContextProvider from '../../context/active-user-context';
 import { GamesTheme as Theme } from '../../styles/games-theme';
 import Footer from '../footer/footer';
 import Header from '../header/header';
@@ -11,6 +12,8 @@ const breakpointsAppBar: SxProps = {
   display: 'flex',
   flexDirection: 'row',
   position: 'fixed',
+  justifyContent: 'space-between',
+  alignItems: 'center',
   zIndex: 10,
   backgroundColor: Theme.palette.background.paper,
   boxShadow: `0px 7px 8px -4px ${Theme.palette.success.main}, 0px 12px 17px 2px ${Theme.palette.primary.light}, 0px 5px 22px 4px ${Theme.palette.primary.dark}`,
@@ -63,15 +66,18 @@ const breakpointsMain: SxProps = {
 
 const Layout = () => (
   <Fragment key={'Layout'}>
-    <Header
-      componentAppBar={'header'}
-      sxAppBar={breakpointsAppBar}
-    />
-    <Container component={'main'} id="main-wrapper" maxWidth={false} sx={breakpointsMain}>
-      <Outlet />
-    </Container>
+    <ActivePlayerContextProvider>
+      <Header componentAppBar={'header'} sxAppBar={breakpointsAppBar} />
+      <Container component={'main'} id="main-wrapper" maxWidth={false} sx={breakpointsMain}>
+        <Outlet />
+      </Container>
 
-    <Footer component={'footer'} breakpointsFooter={breakpointsFooter} breakpointsFooterText={breakpointsFooterText} />
+      <Footer
+        component={'footer'}
+        breakpointsFooter={breakpointsFooter}
+        breakpointsFooterText={breakpointsFooterText}
+      />
+    </ActivePlayerContextProvider>
   </Fragment>
 );
 

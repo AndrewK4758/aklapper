@@ -1,8 +1,11 @@
-import { SxProps } from '@mui/material';
+import { Text } from '@aklapper/react-shared';
 import AppBar from '@mui/material/AppBar';
-import { ElementType } from 'react';
-import HeaderMenu from './header-menu/header-menu';
+import Box from '@mui/material/Box';
+import { SxProps } from '@mui/material/styles';
+import { ElementType, useContext } from 'react';
+import { ActivePlayerContext, ActivePlayerContextProps } from '../../context/active-user-context';
 import GamesTheme from '../../styles/games-theme';
+import HeaderMenu from './header-menu/header-menu';
 
 const breakpointsMenuItem: SxProps = {
   color: GamesTheme.palette.primary.main,
@@ -22,15 +25,31 @@ const breakpointsMenu: SxProps = {
 export interface HeaderProps {
   componentAppBar: ElementType;
   sxAppBar?: SxProps;
-  
 }
 
 export const Header = ({ componentAppBar, sxAppBar }: HeaderProps) => {
+  const { activePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
+
+  const activePlayerName = activePlayer.name;
 
   return (
     <AppBar component={componentAppBar} sx={sxAppBar}>
       <HeaderMenu breakpointsMenuItem={breakpointsMenuItem} breakpointsMenu={breakpointsMenu} />
-
+      {activePlayer.name && (
+        <Box
+          component={'div'}
+          id="active-player-wrapper"
+          sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}
+        >
+          <Text titleVariant="h4" titleText="Active Player: " component={'h4'} />
+          <Text
+            titleVariant={'body1'}
+            titleText={activePlayerName}
+            component={'p'}
+            sx={{ color: GamesTheme.palette.primary.main, fontSize: '2.5rem' }}
+          />
+        </Box>
+      )}
     </AppBar>
   );
 };
