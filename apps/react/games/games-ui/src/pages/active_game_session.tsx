@@ -51,13 +51,16 @@ const socketInit = () => {
   return { gameBoard: [[]], activePlayersInGame: [], avatarInTurn: '', winner: '' } as IActiveGameInfo;
 };
 
+const wsUrl = import.meta.env.VITE_WS_SERVER_URL;
+
 const ActiveGameSession = () => {
+  console.log('active game session');
   const managerOptions: Partial<ManagerOptions> = {
     autoConnect: false,
     extraHeaders: { 'current-game': JSON.stringify(getGameInstanceInfo()) }
   };
 
-  const clientSocket = new ClientSocket(managerOptions);
+  const clientSocket = new ClientSocket(wsUrl, managerOptions);
   const [state, dispatch] = useReducer(socketReducer, {}, socketInit);
   const [space, setSpace] = useState<string | undefined>(undefined);
   const socketRef = useRef<Socket>(clientSocket.Socket);
@@ -121,13 +124,24 @@ const ActiveGameSession = () => {
         <ActiveAvatars avatarsInGame={state.activePlayersInGame} winner={state.winner} />
         <ReadyToStart dispatch={dispatch} socket={socket} />
       </Container>
-      <Box component={'section'} sx={{ height: '55vh' }}>
+      <Box
+        component={'section'}
+        id="game-board-display-wrapper"
+        sx={{
+          minHeight: '55vh',
+          height: 'fit-content',
+          border: `5px solid ${Theme.palette.success.main}`,
+          [Theme.breakpoints.up('md')]: {
+            boxShadow: `0px 7px 8px -4px ${Theme.palette.success.main}, 0px 12px 17px 2px ${Theme.palette.primary.light}, 0px 5px 22px 4px ${Theme.palette.primary.dark}, 0px -7px 8px -4px ${Theme.palette.success.main}, 0px -12px 17px 2px ${Theme.palette.primary.light}, 0px -5px 22px 4px ${Theme.palette.primary.dark}`
+          }
+        }}
+      >
         {id === 'Chutes-&-Ladders' && <ShowGameBoard board={state.gameBoard} />}
         {id === 'Tic-Tac-Toe' && (
           <ShowGameBoardTicTacToe board={state.gameBoard} setStateAction={setSpace} state={space} />
         )}
       </Box>
-      <Container component={'section'} sx={breakpointsBottomMenuGameBoard}>
+      <Container id="Bottom of Game" component={'section'} sx={breakpointsBottomMenuGameBoard}>
         <Box component={'div'} sx={{ flex: '1 0 50%' }}>
           <Text component={'h2'} titleVariant="h2" titleText={state.avatarInTurn} sx={breakpointsPlayerInTurnText} />
         </Box>

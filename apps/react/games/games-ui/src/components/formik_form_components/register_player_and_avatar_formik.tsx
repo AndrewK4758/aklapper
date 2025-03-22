@@ -133,7 +133,7 @@ export default function RegisterPlayerAndAvatarForm() {
   });
 
   return (
-    <Form>
+    <Form method="POST" action={`play`} onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
       <Container component={'section'} sx={breakpointsFormContianer}>
         <FormikTextInput<IRegisterFormValues>
           id="player-name"

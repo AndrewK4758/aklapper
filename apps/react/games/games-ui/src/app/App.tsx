@@ -1,7 +1,6 @@
 import CssBaseline from '@mui/material/CssBaseline';
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import { createBrowserRouter, RouterProvider } from 'react-router';
-
 import routes from '../routes/routes';
 import { GamesTheme as Theme } from '../styles/games-theme';
 

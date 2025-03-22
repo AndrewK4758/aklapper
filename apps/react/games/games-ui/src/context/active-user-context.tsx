@@ -6,12 +6,16 @@ export interface ActivePlayerContextProps {
   setActivePlayer: Dispatch<SetStateAction<Partial<IPlayer>>>;
 }
 
-const activePlayerInit: Partial<IPlayer> = {
-  id: '',
-  name: '',
-  inLobby: false,
-  activeGameID: null
-};
+const storedPlayerData = sessionStorage.getItem('activePlayer');
+
+const activePlayerInit: Partial<IPlayer> = storedPlayerData
+  ? JSON.parse(storedPlayerData)
+  : {
+      id: '',
+      name: '',
+      inLobby: false,
+      activeGameID: null
+    };
 
 export const ActivePlayerContext = createContext<ActivePlayerContextProps>({
   activePlayer: activePlayerInit,

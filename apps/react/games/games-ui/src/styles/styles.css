@@ -1,18 +1,29 @@
 @font-face {
   font-family: 'Jersey25';
   src: url('../../fonts/Jersey25-Regular.ttf') format('truetype');
+  font-display: swap;
 }
 
 @font-face {
   font-family: 'Jersey25-Charted';
   src: url('../../fonts/Jersey25Charted-Regular.ttf') format('truetype');
+  font-display: swap;
 }
 
 * {
   -webkit-font-smoothing: antialiased;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  scrollbar-color: #101010;
+  &::-webkit-scrollbar {
+    width: 1rem;
+  }
+  &::-webkit-scrollbar-track {
+    background-color: #1f1f1f;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: #3a3c41;
+    border-radius: 4px;
+  }
 }
 input:-webkit-autofill,
 input:-webkit-autofill:hover,

@@ -9,7 +9,6 @@ import { Form, useNavigate, type NavigateFunction } from 'react-router';
 import * as Yup from 'yup';
 import { ActivePlayerContext, type ActivePlayerContextProps } from '../../context/active-user-context';
 import { errorTextSx, tooltipSx } from '../../styles/games-styles';
-import { type RegisterPlayerValue } from '../../types/types';
 
 function initialValues<T>(defaults: T, key: keyof T, value: unknown): T {
   return {
@@ -18,7 +17,7 @@ function initialValues<T>(defaults: T, key: keyof T, value: unknown): T {
   };
 }
 
-const validationSchema: Yup.ObjectSchema<RegisterPlayerValue> = Yup.object({
+const validationSchema: Yup.ObjectSchema<Partial<IPlayer>> = Yup.object<Partial<IPlayer>>({
   name: Yup.string().required('Must enter player name').max(30, 'Player name must be less than 31 characters')
 });
 
@@ -42,7 +41,7 @@ export default function RegisterPlayer<T extends object>({
   const formik = useFormik<T>({
     initialValues: initialValues<T>(formPropsObject, inputName, ''),
     validationSchema: validationSchema,
-    onSubmit: values => handleNewPlayerSubmit(values as RegisterPlayerValue, setActivePlayer, nav)
+    onSubmit: values => handleNewPlayerSubmit(values as Partial<IPlayer>, setActivePlayer, nav)
   });
 
   return (
@@ -83,7 +82,7 @@ export default function RegisterPlayer<T extends object>({
 const baseUrl = import.meta.env.VITE_REST_API_SERVER_URL_V2;
 
 async function handleNewPlayerSubmit(
-  values: RegisterPlayerValue,
+  values: Partial<IPlayer>,
   setActivePlayer: Dispatch<SetStateAction<Partial<IPlayer>>>,
   nav: NavigateFunction
 ) {
@@ -98,6 +97,8 @@ async function handleNewPlayerSubmit(
 
     const newPlayer = resp.data as Partial<IPlayer>;
 
+    console.log(newPlayer);
+    sessionStorage.setItem('activePlayer', JSON.stringify(newPlayer));
     setActivePlayer(prev => ({
       ...prev,
       name: newPlayer.name,

@@ -1,14 +1,14 @@
-import { Text } from '@aklapper/react-shared';
-import type { SxProps } from '@mui/material/styles';
-import JoinGame from '../components/join-game/join-game';
-import { errorTextSx, tooltipSx } from '../styles/games-styles';
-import { GamesTheme as Theme } from '../styles/games-theme';
-
+import { Label, Text } from '@aklapper/react-shared';
+import type { IPlayer } from '@aklapper/types';
 import Box from '@mui/material/Box';
-import { useContext } from 'react';
+import Button from '@mui/material/Button';
+import type { SxProps } from '@mui/material/styles';
+import { useContext, type Dispatch, type SetStateAction } from 'react';
+import JoinGame from '../components/join-game/join-game';
 import RegisterPlayer from '../components/register-player/register-player';
 import { ActivePlayerContext, ActivePlayerContextProps } from '../context/active-user-context';
-import type { RegisterPlayerValue } from '../types/types';
+import { errorTextSx, tooltipSx } from '../styles/games-styles';
+import { GamesTheme as Theme } from '../styles/games-theme';
 
 const homePageTitleText: SxProps = {
   [Theme.breakpoints.down('md')]: {
@@ -39,12 +39,20 @@ const homePageJoinGameTextfield: SxProps = {
 
 const textfieldLabelWrapper: SxProps = {};
 
-const registerPlayerPropsObject: RegisterPlayerValue = {
+const registerPlayerPropsObject: Partial<IPlayer> = {
   name: ''
 };
 
 const Home = () => {
-  const { activePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
+  const { activePlayer, setActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
+
+  // useEffect(() => {
+  //   const savedPlayer = sessionStorage.getItem('activePlayer');
+  //   if (savedPlayer) {
+  //     const playerInfo: Partial<IPlayer> = JSON.parse(savedPlayer);
+  //     setActivePlayer({ name: playerInfo.name, id: playerInfo.id });
+  //   }
+  // }, []);
 
   return (
     <Box component={'div'} id="home-page-wrapper" sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -61,8 +69,8 @@ const Home = () => {
         sx={homePageInfoText}
       />
 
-      {!activePlayer.Name && (
-        <RegisterPlayer<RegisterPlayerValue>
+      {!activePlayer.name && (
+        <RegisterPlayer<Partial<IPlayer>>
           method={'POST'}
           inputName={'name'}
           label={'Player Name'}
@@ -70,7 +78,7 @@ const Home = () => {
           formPropsObject={registerPlayerPropsObject}
         />
       )}
-      {!activePlayer.Name && (
+      {!activePlayer.name && (
         <JoinGame
           method="patch"
           type="text"
@@ -86,8 +94,31 @@ const Home = () => {
           names={['gamePath']}
         />
       )}
+      {activePlayer.name && (
+        <Button id="logout-player" variant="outlined" onClick={() => handleLogoutPlayer(setActivePlayer)}>
+          <Label
+            id="logout-player-label"
+            htmlFor="logout-player"
+            tooltipTitle={'Press to log out player'}
+            labelText="Logout"
+            labelVariant={'button'}
+            placement={'top'}
+            labelTextSx={{ fontSize: '2rem' }}
+          />
+        </Button>
+      )}
     </Box>
   );
 };
 
 export default Home;
+
+function handleLogoutPlayer(setActivePlayer: Dispatch<SetStateAction<Partial<IPlayer>>>) {
+  const currentPlayer = sessionStorage.getItem('activePlayer');
+
+  if (currentPlayer) {
+    sessionStorage.removeItem('activePlayer');
+  }
+
+  setActivePlayer(prev => ({ ...prev, id: '', name: '' }));
+}

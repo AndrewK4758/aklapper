@@ -1,8 +1,11 @@
 package main
 
 import (
+	handler "apps/go/game-lobby/handler"
 	pub "apps/go/game-lobby/pub"
 	sub "apps/go/game-lobby/sub"
+	"log"
+	"net/http"
 	"sync"
 )
 
@@ -31,6 +34,16 @@ func main() {
 
 	go func() {
 		sub.Sub()
+	}()
+
+	wg.Add(1)
+
+	go func() {
+		println("Listening on port 6900")
+
+		http.HandleFunc("/lobby", handler.HandleGetLobbyData)
+		log.Fatal(http.ListenAndServe(":6900", nil))
+
 	}()
 
 	wg.Wait()

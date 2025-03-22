@@ -40,8 +40,6 @@ export function SelectMenu<T extends object>({
   errorTextSx,
   selectSlotProps
 }: IAvatarColorSelectValues<T>) {
-  console.log(formik.values);
-
   return (
     <>
       <FormControl id={`${id}-form-control`}>

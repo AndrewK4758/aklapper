@@ -1,4 +1,3 @@
-import darkScrollbar from '@mui/material/darkScrollbar';
 import { createTheme } from '@mui/material/styles';
 import './styles.css';
 
@@ -109,7 +108,12 @@ export const GamesTheme = createTheme({
   components: {
     MuiCssBaseline: {
       styleOverrides: {
-        main: darkScrollbar()
+        '&::-webkit-scrollbar': {
+          width: '1rem'
+        },
+        '&::-webkit-scrollbar-button': {
+          background: '#101010'
+        }
       }
     },
     MuiContainer: {

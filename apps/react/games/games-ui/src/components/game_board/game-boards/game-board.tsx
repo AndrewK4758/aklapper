@@ -25,7 +25,7 @@ export interface GameBoardProps {
 
 const gameBoardRowMap = (e: ILiteSpace, i: number, _arr: string[]) => (
   <Grid2 key={`space-${i}-${e.display}`} sx={breakpointsRowSx}>
-    {e.display.indexOf('g') === e.display.length - 1 ? (
+    {e.display.endsWith('.svg') ? (
       <img
         key={`${e.display}-avatar-c&l`}
         id={`${e.display}-avatar-c&l`}
@@ -49,7 +49,15 @@ const gameBoardRowMap = (e: ILiteSpace, i: number, _arr: string[]) => (
 );
 
 export const GameBoardMap = ({ row, columns, container, direction, wrap, id, rowSx }: GameBoardProps) => (
-  <Grid2 columns={columns} container={container} direction={direction} wrap={wrap} id={id} sx={rowSx}>
+  <Grid2
+    key={`row-${row}-${columns}`}
+    columns={columns}
+    container={container}
+    direction={direction}
+    wrap={wrap}
+    id={id}
+    sx={rowSx}
+  >
     <RenderList component={'section'} data={row} listMapCallback={gameBoardRowMap} sx={spaceStyle} />
   </Grid2>
 );

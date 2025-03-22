@@ -1,6 +1,7 @@
 package upload
 
 import (
+	"apps/go/utils"
 	"bytes"
 	"fmt"
 	"net/http"
@@ -8,14 +9,8 @@ import (
 	"sync"
 )
 
-func enableCORS(w *http.ResponseWriter) {
-	(*w).Header().Set("Access-Control-Allow-Origin", "*")
-	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, PATCH, HEAD, DELETE")
-	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-}
-
-func UploadHandler(resp http.ResponseWriter, req *http.Request) {
-	enableCORS(&resp)
+func UploadHandler(responseWriter http.ResponseWriter, req *http.Request) {
+	utils.EnableCORS(&responseWriter)
 
 	var err error
 	errChan := make(chan error)
@@ -34,6 +29,7 @@ func UploadHandler(resp http.ResponseWriter, req *http.Request) {
 		fmt.Printf("error creating tmp directory: %v", err.Error())
 	}
 
+	/* Remove temporary directory for file upload */
 	// defer func() {
 	// 	err := os.RemoveAll(tmpDir)
 	// 	if err != nil {
@@ -49,9 +45,8 @@ func UploadHandler(resp http.ResponseWriter, req *http.Request) {
 	err = req.ParseMultipartForm(int64(25000))
 	if err != nil {
 		fmt.Printf("err: %v\n", err)
-		http.Error(resp, err.Error(), http.StatusBadRequest)
+		http.Error(responseWriter, err.Error(), http.StatusBadRequest)
 	}
-
 	formData := req.MultipartForm
 	defer formData.RemoveAll()
 
@@ -88,7 +83,7 @@ func UploadHandler(resp http.ResponseWriter, req *http.Request) {
 
 	}
 	print("\nALL FILES UPLOADED\n")
-	resp.Header().Add("Content-Type", "text/plain")
-	resp.Write([]byte("All Files Uploaded"))
+	responseWriter.Header().Add("Content-Type", "text/plain")
+	responseWriter.Write([]byte("All Files Uploaded"))
 
 }
