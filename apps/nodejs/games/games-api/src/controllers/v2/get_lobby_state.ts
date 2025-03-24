@@ -7,6 +7,8 @@ export default async function getLobbyState(req: Request, resp: Response) {
   try {
     const goResp = await axios.get('http://localhost:6900/lobby');
 
+    console.log(goResp.data);
+
     resp.status(200).json(goResp.data as Partial<IPlayer>[]);
   } catch (err) {
     console.error(err);

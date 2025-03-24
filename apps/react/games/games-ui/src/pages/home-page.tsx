@@ -6,7 +6,7 @@ import type { SxProps } from '@mui/material/styles';
 import { useContext, type Dispatch, type SetStateAction } from 'react';
 import JoinGame from '../components/join-game/join-game';
 import RegisterPlayer from '../components/register-player/register-player';
-import { ActivePlayerContext, ActivePlayerContextProps } from '../context/active-user-context';
+import { ActivePlayerContext, ActivePlayerContextProps } from '../context/active-player-context';
 import { errorTextSx, tooltipSx } from '../styles/games-styles';
 import { GamesTheme as Theme } from '../styles/games-theme';
 
@@ -69,7 +69,7 @@ const Home = () => {
         sx={homePageInfoText}
       />
 
-      {!activePlayer.name && (
+      {!activePlayer.Name && (
         <RegisterPlayer<Partial<IPlayer>>
           method={'POST'}
           inputName={'name'}
@@ -78,7 +78,7 @@ const Home = () => {
           formPropsObject={registerPlayerPropsObject}
         />
       )}
-      {!activePlayer.name && (
+      {!activePlayer.Name && (
         <JoinGame
           method="patch"
           type="text"
@@ -94,7 +94,7 @@ const Home = () => {
           names={['gamePath']}
         />
       )}
-      {activePlayer.name && (
+      {activePlayer.Name && (
         <Button id="logout-player" variant="outlined" onClick={() => handleLogoutPlayer(setActivePlayer)}>
           <Label
             id="logout-player-label"
@@ -120,5 +120,5 @@ function handleLogoutPlayer(setActivePlayer: Dispatch<SetStateAction<Partial<IPl
     sessionStorage.removeItem('activePlayer');
   }
 
-  setActivePlayer(prev => ({ ...prev, id: '', name: '' }));
+  setActivePlayer(prev => ({ ...prev, Id: '', Name: '' }));
 }

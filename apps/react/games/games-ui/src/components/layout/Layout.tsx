@@ -2,7 +2,7 @@ import Container from '@mui/material/Container';
 import type { SxProps } from '@mui/material/styles';
 import { Fragment } from 'react';
 import { Outlet } from 'react-router';
-import ActivePlayerContextProvider from '../../context/active-user-context';
+import ActivePlayerContextProvider from '../../context/active-player-context';
 import { GamesTheme as Theme } from '../../styles/games-theme';
 import Footer from '../footer/footer';
 import Header from '../header/header';

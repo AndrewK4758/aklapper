@@ -1,10 +1,10 @@
 import { Text } from '@aklapper/react-shared';
 import type { IPlayer } from '@aklapper/types';
 import Box from '@mui/material/Box';
-import { useContext, useEffect, useRef, type ReactElement } from 'react';
+import { useContext, useEffect, useRef, useState, type ReactElement } from 'react';
 import { useRouteLoaderData } from 'react-router';
 import type { ManagerOptions, Socket } from 'socket.io-client';
-import { ActivePlayerContext, ActivePlayerContextProps } from '../../context/active-user-context';
+import { ActivePlayerContext, ActivePlayerContextProps } from '../../context/active-player-context';
 import ClientSocket from '../../utils/web-socket/socket-instance';
 
 // Components of lobby
@@ -31,11 +31,13 @@ export default function Lobby() {
   const { activePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
 
   const lobbyData = useRouteLoaderData('lobby') as Partial<IPlayer>[];
+  const [activeLobby, setActiveLobby] = useState(lobbyData);
   const clientSocket = new ClientSocket(wsUrl, managerOptions);
   const socketRef = useRef<Socket>(clientSocket.Socket);
 
   const socket = socketRef.current;
   useEffect(() => {
+    setActiveLobby(lobbyData);
     if (!socket.connected) {
       socket.connect();
 
@@ -43,9 +45,12 @@ export default function Lobby() {
         console.log(`Websocket Connected to path: "/lobby" with id: ${socket.id}`);
       });
 
-      socket.emit('player-enter', `Player: ${activePlayer.name} entered lobby`);
+      socket.emit('player-enter', activePlayer);
+
+      socket.on('new-player', data => {
+        setActiveLobby(prev => [...prev, data]);
+      });
     }
-    console.log(socket);
     return () => {
       if (socket.connected) {
         socket.disconnect();
@@ -60,7 +65,7 @@ export default function Lobby() {
         <Text titleText="Game Lobby" titleVariant="h1" component={'h1'} />
       </Box>
       <Box component={'section'} id="players-in-lobby-wrapper">
-        {lobbyData.map(playersMapCallback)}
+        {activeLobby.map(playersMapCallback)}
       </Box>
       <Box component={'section'} id="active-games-not-started-wrapper"></Box>
       <Box component={'section'} id="lobby-messages-wrapper"></Box>

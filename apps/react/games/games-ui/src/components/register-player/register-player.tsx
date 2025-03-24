@@ -7,7 +7,7 @@ import { useFormik } from 'formik';
 import { useContext, type Dispatch, type SetStateAction } from 'react';
 import { Form, useNavigate, type NavigateFunction } from 'react-router';
 import * as Yup from 'yup';
-import { ActivePlayerContext, type ActivePlayerContextProps } from '../../context/active-user-context';
+import { ActivePlayerContext, type ActivePlayerContextProps } from '../../context/active-player-context';
 import { errorTextSx, tooltipSx } from '../../styles/games-styles';
 
 function initialValues<T>(defaults: T, key: keyof T, value: unknown): T {
@@ -97,12 +97,11 @@ async function handleNewPlayerSubmit(
 
     const newPlayer = resp.data as Partial<IPlayer>;
 
-    console.log(newPlayer);
     sessionStorage.setItem('activePlayer', JSON.stringify(newPlayer));
     setActivePlayer(prev => ({
       ...prev,
-      name: newPlayer.name,
-      id: newPlayer.id
+      Name: newPlayer.Name,
+      Id: newPlayer.Id
     }));
 
     nav('lobby');

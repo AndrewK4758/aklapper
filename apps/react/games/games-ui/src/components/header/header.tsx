@@ -3,7 +3,7 @@ import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import { SxProps } from '@mui/material/styles';
 import { ElementType, useContext } from 'react';
-import { ActivePlayerContext, ActivePlayerContextProps } from '../../context/active-user-context';
+import { ActivePlayerContext, ActivePlayerContextProps } from '../../context/active-player-context';
 import GamesTheme from '../../styles/games-theme';
 import HeaderMenu from './header-menu/header-menu';
 
@@ -30,12 +30,12 @@ export interface HeaderProps {
 export const Header = ({ componentAppBar, sxAppBar }: HeaderProps) => {
   const { activePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
 
-  const activePlayerName = activePlayer.name;
+  const activePlayerName = activePlayer.Name;
 
   return (
     <AppBar component={componentAppBar} sx={sxAppBar}>
       <HeaderMenu breakpointsMenuItem={breakpointsMenuItem} breakpointsMenu={breakpointsMenu} />
-      {activePlayer.name && (
+      {activePlayer.Name && (
         <Box
           component={'div'}
           id="active-player-wrapper"

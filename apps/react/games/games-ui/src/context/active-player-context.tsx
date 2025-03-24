@@ -11,10 +11,10 @@ const storedPlayerData = sessionStorage.getItem('activePlayer');
 const activePlayerInit: Partial<IPlayer> = storedPlayerData
   ? JSON.parse(storedPlayerData)
   : {
-      id: '',
-      name: '',
-      inLobby: false,
-      activeGameID: null
+      Id: '',
+      Name: '',
+      InLobby: false,
+      ActiveGameID: null
     };
 
 export const ActivePlayerContext = createContext<ActivePlayerContextProps>({

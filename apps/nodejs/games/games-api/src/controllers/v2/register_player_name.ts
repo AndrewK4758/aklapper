@@ -21,9 +21,9 @@ export default async function registerPlayerName(req: Request, resp: Response): 
     const playerInLobby = await addPlayerToLobbyGoService('lobby:new-player', newActivePlayer);
 
     const clientPlayerInfo: Partial<IPlayer> = {
-      name: playerInLobby.Name,
-      id: playerInLobby.Id,
-      inLobby: playerInLobby.InLobby
+      Name: playerInLobby.Name,
+      Id: playerInLobby.Id,
+      InLobby: playerInLobby.InLobby
     };
 
     resp.status(201).json(clientPlayerInfo);

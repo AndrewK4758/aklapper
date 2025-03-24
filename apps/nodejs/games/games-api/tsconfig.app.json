@@ -2,10 +2,8 @@
   "extends": "../../../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "out-tsc/games-api",
-    "module": "nodenext",
     "types": ["node"],
     "rootDir": "src",
-    "moduleResolution": "nodenext",
     "tsBuildInfoFile": "out-tsc/games-api/tsconfig.app.tsbuildinfo"
   },
 
