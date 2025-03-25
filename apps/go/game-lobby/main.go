@@ -2,10 +2,11 @@ package main
 
 import (
 	handler "apps/go/game-lobby/handler"
-	pub "apps/go/game-lobby/pub"
-	sub "apps/go/game-lobby/sub"
 	"log"
 	"net/http"
+
+	// pub "apps/go/game-lobby/pub"
+	sub "apps/go/game-lobby/sub"
 	"sync"
 )
 
@@ -24,11 +25,11 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	wg.Add(1)
+	// wg.Add(1)
 
-	go func() {
-		pub.Pub()
-	}()
+	// go func() {
+	// 	pub.Pub()
+	// }()
 
 	wg.Add(1)
 

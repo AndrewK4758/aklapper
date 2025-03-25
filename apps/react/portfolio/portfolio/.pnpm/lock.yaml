@@ -1,0 +1,34 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      '@aklapper/games-components':
+        specifier: workspace:*
+        version: link:../../../../packages/games-components
+      '@aklapper/media-recorder':
+        specifier: workspace:*
+        version: link:../../../../packages/media-recorder
+      '@aklapper/prompt-builder':
+        specifier: workspace:*
+        version: link:../../../../packages/gen-ai/prompt-builder
+      '@aklapper/react-shared':
+        specifier: workspace:*
+        version: link:../../../../packages/react-shared
+      '@aklapper/socket-io-client':
+        specifier: workspace:*
+        version: link:../../../../packages/socket-io/client
+      '@aklapper/types':
+        specifier: workspace:*
+        version: link:../../../../packages/types
+      '@aklapper/utils':
+        specifier: workspace:*
+        version: link:../../../../packages/utils
+      '@aklapper/vertex-ai':
+        specifier: workspace:*
+        version: link:../../../../packages/gen-ai/vertex-ai

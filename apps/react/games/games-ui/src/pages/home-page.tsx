@@ -120,5 +120,5 @@ function handleLogoutPlayer(setActivePlayer: Dispatch<SetStateAction<Partial<IPl
     sessionStorage.removeItem('activePlayer');
   }
 
-  setActivePlayer(prev => ({ ...prev, Id: '', Name: '' }));
+  setActivePlayer(prev => ({ ...prev, Id: '', Name: '', InLobby: false }));
 }

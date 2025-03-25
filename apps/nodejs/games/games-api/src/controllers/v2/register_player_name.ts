@@ -18,15 +18,25 @@ export default async function registerPlayerName(req: Request, resp: Response): 
 
     const newActivePlayer = new Player(name, playerId);
 
+    // Returns LobbyMap
     const playerInLobby = await addPlayerToLobbyGoService('lobby:new-player', newActivePlayer);
 
     const clientPlayerInfo: Partial<IPlayer> = {
-      Name: playerInLobby.Name,
-      Id: playerInLobby.Id,
-      InLobby: playerInLobby.InLobby
+      Name: newActivePlayer.Name,
+      Id: newActivePlayer.Id,
+      InLobby: newActivePlayer.InLobby
     };
 
-    resp.status(201).json(clientPlayerInfo);
+    const LobbyMap: Partial<IPlayer[]> = JSON.parse(playerInLobby);
+
+    const response = {
+      player: clientPlayerInfo,
+      lobby: LobbyMap
+    };
+
+    console.log(response);
+
+    resp.status(201).json(response);
 
     // Add Service call to DB to store player info if I decide to maintain state past current session
   } catch (error) {

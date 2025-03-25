@@ -1,0 +1,22 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    devDependencies:
+      '@aklapper/prompt-builder':
+        specifier: workspace:*
+        version: link:../../../../packages/gen-ai/prompt-builder
+      '@aklapper/socket-io-server':
+        specifier: workspace:*
+        version: link:../../../../packages/socket-io/server
+      '@aklapper/types':
+        specifier: workspace:*
+        version: link:../../../../packages/types
+      '@aklapper/vertex-ai':
+        specifier: workspace:*
+        version: link:../../../../packages/gen-ai/vertex-ai

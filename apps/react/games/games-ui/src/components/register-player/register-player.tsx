@@ -7,7 +7,7 @@ import { useFormik } from 'formik';
 import { useContext, type Dispatch, type SetStateAction } from 'react';
 import { Form, useNavigate, type NavigateFunction } from 'react-router';
 import * as Yup from 'yup';
-import { ActivePlayerContext, type ActivePlayerContextProps } from '../../context/active-player-context';
+import { ActivePlayerContext, ActivePlayerContextProps } from '../../context/active-player-context';
 import { errorTextSx, tooltipSx } from '../../styles/games-styles';
 
 function initialValues<T>(defaults: T, key: keyof T, value: unknown): T {
@@ -41,7 +41,8 @@ export default function RegisterPlayer<T extends object>({
   const formik = useFormik<T>({
     initialValues: initialValues<T>(formPropsObject, inputName, ''),
     validationSchema: validationSchema,
-    onSubmit: values => handleNewPlayerSubmit(values as Partial<IPlayer>, setActivePlayer, nav)
+
+    onSubmit: async values => handleNewPlayerSubmit(values, setActivePlayer, nav)
   });
 
   return (
@@ -87,6 +88,7 @@ async function handleNewPlayerSubmit(
   nav: NavigateFunction
 ) {
   try {
+    console.log(values);
     const { name } = values;
 
     const resp = await axios.post(
@@ -95,14 +97,13 @@ async function handleNewPlayerSubmit(
       { headers: { 'Content-Type': 'application/json' } }
     );
 
-    const newPlayer = resp.data as Partial<IPlayer>;
+    console.log('RESP DATA ', resp.data);
 
-    sessionStorage.setItem('activePlayer', JSON.stringify(newPlayer));
-    setActivePlayer(prev => ({
-      ...prev,
-      Name: newPlayer.Name,
-      Id: newPlayer.Id
-    }));
+    const { player } = resp.data as { player: Partial<IPlayer>; lobby: Partial<IPlayer[]> };
+
+    sessionStorage.setItem('activePlayer', JSON.stringify(player));
+
+    setActivePlayer(player);
 
     nav('lobby');
   } catch (error) {

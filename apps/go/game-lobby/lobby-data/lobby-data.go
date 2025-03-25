@@ -32,6 +32,7 @@ func AddPlayerToLobby(newPlayer *ActivePlayer) error {
 		err = fmt.Errorf("player already exists in game lobby")
 		return err
 	} else {
+		newPlayer.InLobby = true
 		LobbyMap[newPlayer.Id] = newPlayer
 	}
 	return nil

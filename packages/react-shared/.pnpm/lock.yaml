@@ -1,0 +1,16 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    devDependencies:
+      '@aklapper/types':
+        specifier: workspace:*
+        version: link:../types
+      '@aklapper/utils':
+        specifier: workspace:*
+        version: link:../utils

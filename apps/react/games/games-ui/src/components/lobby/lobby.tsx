@@ -29,14 +29,16 @@ export default function Lobby() {
   };
 
   const { activePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
+  const lobbyData = useRouteLoaderData('lobby') as IPlayer[];
 
-  const lobbyData = useRouteLoaderData('lobby') as Partial<IPlayer>[];
-  const [activeLobby, setActiveLobby] = useState(lobbyData);
+  const [activeLobby, setActiveLobby] = useState<IPlayer[]>(lobbyData);
   const clientSocket = new ClientSocket(wsUrl, managerOptions);
   const socketRef = useRef<Socket>(clientSocket.Socket);
 
   const socket = socketRef.current;
+
   useEffect(() => {
+    // if (lobby) setActiveLobby(lobby);
     setActiveLobby(lobbyData);
     if (!socket.connected) {
       socket.connect();
@@ -44,11 +46,13 @@ export default function Lobby() {
       socket.on('connect', () => {
         console.log(`Websocket Connected to path: "/lobby" with id: ${socket.id}`);
       });
-
+      // add conditional to only emit one time to prevent map key issue if screen is refreshed
       socket.emit('player-enter', activePlayer);
 
-      socket.on('new-player', data => {
+      socket.on('new-player', (data: IPlayer) => {
+        console.log('NEW PLAYER EVENT ', data, '\n');
         setActiveLobby(prev => [...prev, data]);
+        // revalidate();
       });
     }
     return () => {
@@ -64,7 +68,7 @@ export default function Lobby() {
       <Box component={'section'} id="lobby-title" textAlign={'center'}>
         <Text titleText="Game Lobby" titleVariant="h1" component={'h1'} />
       </Box>
-      <Box component={'section'} id="players-in-lobby-wrapper">
+      <Box component={'section'} id="players-in-lobby-wrapper" sx={{ border: 2 }}>
         {activeLobby.map(playersMapCallback)}
       </Box>
       <Box component={'section'} id="active-games-not-started-wrapper"></Box>
@@ -75,6 +79,7 @@ export default function Lobby() {
 
 function playersMapCallback(e: unknown, _i: number, _arr: unknown): ReactElement {
   const { Name, Id } = e as Partial<IPlayer>;
+
   return (
     <Box component={'section'} id={`active-player-${Name}-${Id}-wrapper`} key={`active-player-${Name}-${Id}-wrapper`}>
       <Text key={`${Name}-${Id}`} titleText={Name} titleVariant="body1" component={'p'} sx={{}} />

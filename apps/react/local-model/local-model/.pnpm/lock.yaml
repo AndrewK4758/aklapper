@@ -1,0 +1,16 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      '@aklapper/react-shared':
+        specifier: workspace:*
+        version: link:../../../../packages/react-shared
+      '@aklapper/socket-io-client':
+        specifier: workspace:*
+        version: link:../../../../packages/socket-io/client
