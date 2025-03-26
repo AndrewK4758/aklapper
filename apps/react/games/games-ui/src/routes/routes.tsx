@@ -3,7 +3,7 @@ import { RouteObject } from 'react-router';
 import Layout from '../components/layout/Layout';
 import { NoGameError, NotEnoughPlayersError } from '../errors/error';
 import Home from '../pages/home-page';
-// import handleNewPlayerSubmit from '../services/games/action_functions/handle_new_player_submit';
+import handleNewPlayerSubmit from '../services/games/action_functions/handle_new_player_submit';
 import registerGameInstanceOnServerAction from '../services/games/action_functions/register_game_on_server_action';
 import registerPlayerAndAvatarAction from '../services/games/action_functions/register_player_avatar_action';
 import loadGameList from '../services/games/loader_functions/load_game_list';
@@ -28,6 +28,7 @@ const routes: RouteObject[] = [
       },
       {
         path: 'lobby',
+        action: handleNewPlayerSubmit,
         id: 'lobby',
         element: <Lobby />,
         loader: loadLobbyData

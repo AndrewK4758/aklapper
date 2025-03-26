@@ -1,7 +1,7 @@
 package sub
 
 import (
-	lobbydata "apps/go/game-lobby/lobby-data"
+	lobbydata "apps/go/games-lobby/lobby-data"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -62,14 +62,8 @@ func Sub() {
 				}
 			}
 
-			var lobbyMapObjects []lobbydata.ActivePlayer
+			jsonResp, err := json.Marshal(lobbydata.LobbyMap[newPlayer.Id])
 
-			for _, Player := range lobbydata.LobbyMap {
-				lobbyMapObjects = append(lobbyMapObjects, *Player)
-			}
-
-			jsonResp, err := json.Marshal(lobbyMapObjects)
-			fmt.Println("LOBBY MAP: ", string(jsonResp))
 			println("\n")
 
 			if err != nil {

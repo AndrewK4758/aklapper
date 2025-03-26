@@ -1,7 +1,7 @@
 package handler
 
 import (
-	lobbydata "apps/go/game-lobby/lobby-data"
+	lobbydata "apps/go/games-lobby/lobby-data"
 	"apps/go/utils"
 	"encoding/json"
 	"fmt"
@@ -9,8 +9,9 @@ import (
 )
 
 type ActivePlayerInLobby struct {
-	Id   string
-	Name string
+	Id      string
+	Name    string
+	InLobby bool
 }
 
 func HandleGetLobbyData(resp http.ResponseWriter, req *http.Request) {
@@ -20,14 +21,15 @@ func HandleGetLobbyData(resp http.ResponseWriter, req *http.Request) {
 
 	for playerID, playerData := range lobbydata.LobbyMap {
 
-		fmt.Printf("\n%s\n", playerID)
+		// fmt.Printf("\n%s\n", playerID)
 
 		playerInLobby := ActivePlayerInLobby{
-			Id:   playerID,
-			Name: playerData.Name,
+			Id:      playerID,
+			Name:    playerData.Name,
+			InLobby: playerData.InLobby,
 		}
 
-		fmt.Printf("\n%v\n", playerInLobby)
+		// fmt.Printf("\n%v\n", playerInLobby)
 		activePlayersInLobby = append(activePlayersInLobby, playerInLobby)
 	}
 

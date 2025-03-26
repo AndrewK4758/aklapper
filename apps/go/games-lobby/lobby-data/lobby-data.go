@@ -1,6 +1,8 @@
 package lobbydata
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type ActivePlayer struct {
 	Name               string

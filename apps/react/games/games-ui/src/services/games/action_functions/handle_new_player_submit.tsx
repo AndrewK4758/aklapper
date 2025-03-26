@@ -1,35 +1,32 @@
-// import type { IPlayer } from '@aklapper/types';
-// import axios from 'axios';
-// import { ActionFunctionArgs } from 'react-router';
+import type { IPlayer } from '@aklapper/types';
+import axios from 'axios';
+import { ActionFunctionArgs } from 'react-router';
 
-// const baseUrl = import.meta.env.VITE_REST_API_SERVER_URL_V2;
+const baseUrl = import.meta.env.VITE_REST_API_SERVER_URL_V2;
 
-// export default async function handleNewPlayerSubmit({ request, context }: ActionFunctionArgs) {
-//   try {
-//     console.log(context);
-//     const values = await request.json();
+export default async function handleNewPlayerSubmit({ request }: ActionFunctionArgs): Promise<Partial<IPlayer> | void> {
+  try {
+    console.log(request);
+    const { name } = await request.json();
+    console.log(name);
 
-//     console.log(values);
-//     const { name } = values;
+    // const { name } = values;
 
-//     const resp = await axios.post(
-//       `${baseUrl}/register`,
-//       { name: name },
-//       { headers: { 'Content-Type': 'application/json' } }
-//     );
+    const resp = await axios.post(
+      `${baseUrl}/register`,
+      { name: name },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
 
-//     console.log('RESP DATA ', resp.data);
+    console.log('RESP DATA ', resp.data);
 
-//     const { player, lobby } = resp.data as { player: Partial<IPlayer>; lobby: Partial<IPlayer[]> };
+    const { Name, Id, ActiveGameID, InLobby } = resp.data as Partial<IPlayer>;
 
-//     sessionStorage.setItem('activePlayer', JSON.stringify(player));
+    const currentPlayer = { Name: Name, Id: Id, ActiveGameID: ActiveGameID, InLobby: InLobby };
+    sessionStorage.setItem('activePlayer', JSON.stringify(currentPlayer));
 
-//     console.log(player);
-//     console.log(lobby);
-
-//     return { player, lobby };
-//   } catch (error) {
-//     console.error(error);
-//     return [];
-//   }
-// }
+    return currentPlayer;
+  } catch (error) {
+    console.error(error);
+  }
+}

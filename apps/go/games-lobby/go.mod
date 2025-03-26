@@ -1,4 +1,4 @@
-module apps/go/game-lobby
+module apps/go/games-lobby
 
 go 1.24
 

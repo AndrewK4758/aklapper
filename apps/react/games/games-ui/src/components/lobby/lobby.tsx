@@ -2,9 +2,9 @@ import { Text } from '@aklapper/react-shared';
 import type { IPlayer } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import { useContext, useEffect, useRef, useState, type ReactElement } from 'react';
-import { useRouteLoaderData } from 'react-router';
+import { useActionData, useRouteLoaderData } from 'react-router';
 import type { ManagerOptions, Socket } from 'socket.io-client';
-import { ActivePlayerContext, ActivePlayerContextProps } from '../../context/active-player-context';
+import { ActivePlayerContext, type ActivePlayerContextProps } from '../../context/active-player-context';
 import ClientSocket from '../../utils/web-socket/socket-instance';
 
 // Components of lobby
@@ -28,9 +28,9 @@ export default function Lobby() {
     autoConnect: false
   };
 
-  const { activePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
+  const { setActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
   const lobbyData = useRouteLoaderData('lobby') as IPlayer[];
-
+  const action = useActionData<IPlayer>() as IPlayer;
   const [activeLobby, setActiveLobby] = useState<IPlayer[]>(lobbyData);
   const clientSocket = new ClientSocket(wsUrl, managerOptions);
   const socketRef = useRef<Socket>(clientSocket.Socket);
@@ -47,7 +47,11 @@ export default function Lobby() {
         console.log(`Websocket Connected to path: "/lobby" with id: ${socket.id}`);
       });
       // add conditional to only emit one time to prevent map key issue if screen is refreshed
-      socket.emit('player-enter', activePlayer);
+      if (action) {
+        const currentPlayer = { Name: action.Name, Id: action.Id };
+        setActivePlayer(currentPlayer);
+        socket.emit('player-enter', currentPlayer);
+      }
 
       socket.on('new-player', (data: IPlayer) => {
         console.log('NEW PLAYER EVENT ', data, '\n');

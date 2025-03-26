@@ -1,12 +1,12 @@
 package main
 
 import (
-	handler "apps/go/game-lobby/handler"
+	handler "apps/go/games-lobby/handler"
 	"log"
 	"net/http"
 
 	// pub "apps/go/game-lobby/pub"
-	sub "apps/go/game-lobby/sub"
+	sub "apps/go/games-lobby/sub"
 	"sync"
 )
 

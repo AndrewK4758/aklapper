@@ -2,12 +2,12 @@ import { FormikTextInput, Label, type httpMethod } from '@aklapper/react-shared'
 import type { IPlayer } from '@aklapper/types';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
-import axios from 'axios';
+// import axios from 'axios';
 import { useFormik } from 'formik';
-import { useContext, type Dispatch, type SetStateAction } from 'react';
-import { Form, useNavigate, type NavigateFunction } from 'react-router';
+// import { useContext,  } from 'react';
+import { Form, useSubmit, type SubmitFunction } from 'react-router';
 import * as Yup from 'yup';
-import { ActivePlayerContext, ActivePlayerContextProps } from '../../context/active-player-context';
+// import { ActivePlayerContext, ActivePlayerContextProps } from '../../context/active-player-context';
 import { errorTextSx, tooltipSx } from '../../styles/games-styles';
 
 function initialValues<T>(defaults: T, key: keyof T, value: unknown): T {
@@ -36,13 +36,11 @@ export default function RegisterPlayer<T extends object>({
   method,
   inputName
 }: RegisterPlayerProps<T>) {
-  const { setActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
-  const nav = useNavigate();
+  const submit = useSubmit();
   const formik = useFormik<T>({
     initialValues: initialValues<T>(formPropsObject, inputName, ''),
     validationSchema: validationSchema,
-
-    onSubmit: async values => handleNewPlayerSubmit(values, setActivePlayer, nav)
+    onSubmit: async values => handleNewPlayerSubmit(JSON.stringify(values), submit)
   });
 
   return (
@@ -80,32 +78,9 @@ export default function RegisterPlayer<T extends object>({
   );
 }
 
-const baseUrl = import.meta.env.VITE_REST_API_SERVER_URL_V2;
-
-async function handleNewPlayerSubmit(
-  values: Partial<IPlayer>,
-  setActivePlayer: Dispatch<SetStateAction<Partial<IPlayer>>>,
-  nav: NavigateFunction
-) {
+async function handleNewPlayerSubmit(values: string, submit: SubmitFunction) {
   try {
-    console.log(values);
-    const { name } = values;
-
-    const resp = await axios.post(
-      `${baseUrl}/register`,
-      { name: name },
-      { headers: { 'Content-Type': 'application/json' } }
-    );
-
-    console.log('RESP DATA ', resp.data);
-
-    const { player } = resp.data as { player: Partial<IPlayer>; lobby: Partial<IPlayer[]> };
-
-    sessionStorage.setItem('activePlayer', JSON.stringify(player));
-
-    setActivePlayer(player);
-
-    nav('lobby');
+    await submit(values, { action: 'lobby', encType: 'application/json', method: 'POST' });
   } catch (error) {
     console.error(error);
   }

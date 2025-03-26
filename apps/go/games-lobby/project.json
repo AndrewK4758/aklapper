@@ -1,8 +1,8 @@
 {
-  "name": "game-lobby",
+  "name": "games-lobby",
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
-  "sourceRoot": "apps/go/game-lobby",
+  "sourceRoot": "apps/go/games-lobby",
   "tags": [],
   "targets": {
     "build": {
