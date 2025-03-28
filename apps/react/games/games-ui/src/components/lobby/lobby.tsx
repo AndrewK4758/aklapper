@@ -1,66 +1,71 @@
-import { Text } from '@aklapper/react-shared';
+import { Label, Text } from '@aklapper/react-shared';
 import type { IPlayer } from '@aklapper/types';
 import Box from '@mui/material/Box';
-import { useContext, useEffect, useRef, useState, type ReactElement } from 'react';
+import Button from '@mui/material/Button';
+import { useContext, useEffect, useState, type ReactElement } from 'react';
 import { useActionData, useRouteLoaderData } from 'react-router';
-import type { ManagerOptions, Socket } from 'socket.io-client';
-import { ActivePlayerContext, type ActivePlayerContextProps } from '../../context/active-player-context';
-import ClientSocket from '../../utils/web-socket/socket-instance';
+import type { Socket } from 'socket.io-client';
+import { ActivePlayerContext, ActivePlayerContextProps } from '../../context/active-player-context';
+import WebsocketContextProvider, {
+  WebsocketContext,
+  type WebsocketContextProps
+} from '../../context/websocket_context';
+import GamesList from '../../pages/games_list';
 
 // Components of lobby
-// - Active players in lobby
+// X Active players in lobby
 // - Active games looking for players
 // - Join game functionality (mouse or keyboard)
 // - pub/sub & websocket event handling and emitting
-// -- Emit event when player enters lobby
+// X- Emit event when player enters lobby
 // -- Emit event when game is created to inLobby players not in game
-// -- Emit event when player leaves lobby
+// X- Emit event when player leaves lobby
 // -- Mesaging between players
 // -- Remove players from lobby if in active game
-// --- Create closed messaging group for players in active game
+// X-- Create closed messaging group for players in active game
 // --- Connect to game instance websocket when player selects game instance
 
-const wsUrl = import.meta.env.VITE_WS_SERVER_URL;
-
 export default function Lobby() {
-  const managerOptions: Partial<ManagerOptions> = {
-    path: '/lobby',
-    autoConnect: false
-  };
-
+  const storedPlayer = JSON.parse(sessionStorage.getItem('activePlayer') as string) as Partial<IPlayer>;
   const { setActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
   const lobbyData = useRouteLoaderData('lobby') as IPlayer[];
   const action = useActionData<IPlayer>() as IPlayer;
   const [activeLobby, setActiveLobby] = useState<IPlayer[]>(lobbyData);
-  const clientSocket = new ClientSocket(wsUrl, managerOptions);
-  const socketRef = useRef<Socket>(clientSocket.Socket);
+  const [currentPlayer] = useState<Partial<IPlayer>>(storedPlayer);
+  const [messages, setMessages] = useState<string[]>([]);
 
-  const socket = socketRef.current;
+  const { socket } = useContext<WebsocketContextProps>(WebsocketContext);
 
   useEffect(() => {
-    // if (lobby) setActiveLobby(lobby);
-    setActiveLobby(lobbyData);
+    setActivePlayer(currentPlayer);
     if (!socket.connected) {
       socket.connect();
 
       socket.on('connect', () => {
         console.log(`Websocket Connected to path: "/lobby" with id: ${socket.id}`);
       });
-      // add conditional to only emit one time to prevent map key issue if screen is refreshed
+
       if (action) {
-        const currentPlayer = { Name: action.Name, Id: action.Id };
-        setActivePlayer(currentPlayer);
-        socket.emit('player-enter', currentPlayer);
+        socket.emit('enter-lobby', currentPlayer);
       }
 
       socket.on('new-player', (data: IPlayer) => {
         console.log('NEW PLAYER EVENT ', data, '\n');
         setActiveLobby(prev => [...prev, data]);
-        // revalidate();
+      });
+
+      socket.on('privateMessage', message => {
+        console.log(message);
+        setMessages(prev => [...prev, message]);
+      });
+
+      socket.on('removePlayer', id => {
+        setActiveLobby(activeLobby.filter(player => player.Id !== id));
       });
     }
     return () => {
       if (socket.connected) {
+        socket.emit('removePlayer', currentPlayer.Id);
         socket.disconnect();
         socket.removeAllListeners();
       }
@@ -68,25 +73,100 @@ export default function Lobby() {
   }, []);
 
   return (
-    <Box component={'div'} id="lobby-wrapper">
-      <Box component={'section'} id="lobby-title" textAlign={'center'}>
-        <Text titleText="Game Lobby" titleVariant="h1" component={'h1'} />
+    <WebsocketContextProvider>
+      <Box component={'div'} id="lobby-wrapper">
+        <Box component={'section'} id="lobby-title" textAlign={'center'}>
+          <Text titleText="Game Lobby" titleVariant="h1" component={'h1'} />
+        </Box>
+        <Box component={'section'} id="lobby-data-wrapper" sx={{ display: 'flex', border: 2 }}>
+          <Box component={'section'} id="players-in-lobby-wrapper" sx={{ border: 2 }}>
+            <Text titleText={'Active Players'} titleVariant="h2" component={'h2'} sx={{ borderBottom: 2 }} />
+            {activeLobby.map((e, i, arr) => playersMapCallback(e, i, arr, currentPlayer, socket))}
+          </Box>
+          <Box component={'section'} id="active-games-not-started-wrapper">
+            <GamesList />
+          </Box>
+          <Box component={'section'} id="lobby-messages-wrapper">
+            <Text titleText="Messages" titleVariant="h2" component={'h2'} sx={{ borderBottom: 2 }} />
+            <Box component={'section'} id="lobby-messages">
+              {messages.map(message => (
+                <pre key={message}>{message}</pre>
+              ))}
+            </Box>
+          </Box>
+        </Box>
       </Box>
-      <Box component={'section'} id="players-in-lobby-wrapper" sx={{ border: 2 }}>
-        {activeLobby.map(playersMapCallback)}
-      </Box>
-      <Box component={'section'} id="active-games-not-started-wrapper"></Box>
-      <Box component={'section'} id="lobby-messages-wrapper"></Box>
+    </WebsocketContextProvider>
+  );
+}
+
+function playersMapCallback(
+  e: unknown,
+  _i: number,
+  _arr: unknown,
+  currentPlayer: Partial<IPlayer>,
+  socket: Socket
+): ReactElement {
+  const { Name, Id } = e as Partial<IPlayer>;
+  return (
+    <Box
+      component={'section'}
+      id={`active-player-${Name}-${Id}-wrapper`}
+      key={`active-player-${Name}-${Id}-wrapper`}
+      sx={{ border: 2, display: 'flex', justifyContent: 'space-around' }}
+    >
+      <Text key={`${Name}-${Id}`} titleText={Name} titleVariant="body1" component={'p'} sx={{}} />
+      {Id !== currentPlayer.Id && (
+        <Button
+          LinkComponent={'button'}
+          name={Name}
+          id={`message-player-${Id}-button`}
+          size="small"
+          onClick={() =>
+            handleMessageClick(
+              {
+                senderName: currentPlayer.Name as string,
+                senderId: currentPlayer.Id as string,
+                targetName: Name as string,
+                targetId: Id as string
+              },
+              socket
+            )
+          }
+        >
+          <Label
+            labelText="Message"
+            tooltipTitle={'Click to send message to player'}
+            labelVariant={'button'}
+            id={`message-player-${Id}-button-label`}
+            placement={'right'}
+            htmlFor={'`message-player-${Id}-button`'}
+            labelTextSx={{ fontSize: '2rem' }}
+          />
+        </Button>
+      )}
     </Box>
   );
 }
 
-function playersMapCallback(e: unknown, _i: number, _arr: unknown): ReactElement {
-  const { Name, Id } = e as Partial<IPlayer>;
+type PrivateMessage = {
+  senderName: string;
+  senderId: string;
+  targetName: string;
+  targetId: string;
+};
 
-  return (
-    <Box component={'section'} id={`active-player-${Name}-${Id}-wrapper`} key={`active-player-${Name}-${Id}-wrapper`}>
-      <Text key={`${Name}-${Id}`} titleText={Name} titleVariant="body1" component={'p'} sx={{}} />
-    </Box>
-  );
+async function handleMessageClick(messageDetails: PrivateMessage, socket: Socket) {
+  const { senderName, senderId, targetId, targetName } = messageDetails;
+  socket.emit('privateMessagePlayer', {
+    target: {
+      targetId,
+      targetName
+    },
+    message: `This is a message from ${senderName} to ${targetName}`,
+    sender: {
+      senderName,
+      senderId
+    }
+  });
 }

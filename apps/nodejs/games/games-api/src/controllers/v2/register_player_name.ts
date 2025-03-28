@@ -6,7 +6,7 @@ import genericError from '../../errors/genenric_error.js';
 import { addPlayerToLobbyGoService } from '../../services/redis/send-message-to-go-service.js';
 
 // 2 Data structures
-// 1 SET for active players in lobby for emit event when new player arrives, new game created, player leaves
+// X 1 SET for active players in lobby for emit event when new player arrives, new game created, player leaves
 // 1 Adapt the Game class to handle more data for players in game and removing players from lobby when game starts
 // and emitting game id with player name whom created game when instanciated
 

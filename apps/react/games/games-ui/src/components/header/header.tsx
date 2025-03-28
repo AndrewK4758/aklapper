@@ -2,7 +2,7 @@ import { Text } from '@aklapper/react-shared';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import { SxProps } from '@mui/material/styles';
-import { ElementType, useContext } from 'react';
+import { useContext, type ElementType } from 'react';
 import { ActivePlayerContext, ActivePlayerContextProps } from '../../context/active-player-context';
 import GamesTheme from '../../styles/games-theme';
 import HeaderMenu from './header-menu/header-menu';
@@ -29,9 +29,6 @@ export interface HeaderProps {
 
 export const Header = ({ componentAppBar, sxAppBar }: HeaderProps) => {
   const { activePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
-
-  const activePlayerName = activePlayer.Name;
-
   return (
     <AppBar component={componentAppBar} sx={sxAppBar}>
       <HeaderMenu breakpointsMenuItem={breakpointsMenuItem} breakpointsMenu={breakpointsMenu} />
@@ -44,7 +41,7 @@ export const Header = ({ componentAppBar, sxAppBar }: HeaderProps) => {
           <Text titleVariant="h4" titleText="Active Player: " component={'h4'} />
           <Text
             titleVariant={'body1'}
-            titleText={activePlayerName}
+            titleText={activePlayer.Name}
             component={'p'}
             sx={{ color: GamesTheme.palette.primary.main, fontSize: '2.5rem' }}
           />

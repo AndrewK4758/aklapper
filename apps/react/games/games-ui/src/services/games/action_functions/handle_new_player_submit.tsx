@@ -6,11 +6,7 @@ const baseUrl = import.meta.env.VITE_REST_API_SERVER_URL_V2;
 
 export default async function handleNewPlayerSubmit({ request }: ActionFunctionArgs): Promise<Partial<IPlayer> | void> {
   try {
-    console.log(request);
     const { name } = await request.json();
-    console.log(name);
-
-    // const { name } = values;
 
     const resp = await axios.post(
       `${baseUrl}/register`,
@@ -23,6 +19,7 @@ export default async function handleNewPlayerSubmit({ request }: ActionFunctionA
     const { Name, Id, ActiveGameID, InLobby } = resp.data as Partial<IPlayer>;
 
     const currentPlayer = { Name: Name, Id: Id, ActiveGameID: ActiveGameID, InLobby: InLobby };
+
     sessionStorage.setItem('activePlayer', JSON.stringify(currentPlayer));
 
     return currentPlayer;

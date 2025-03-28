@@ -1,5 +1,7 @@
+import { Waiting } from '@aklapper/react-shared';
 import { lazy } from 'react';
 import { RouteObject } from 'react-router';
+import waiting from '../assets/swirly-dots-to-chrome.webp';
 import Layout from '../components/layout/Layout';
 import { NoGameError, NotEnoughPlayersError } from '../errors/error';
 import Home from '../pages/home-page';
@@ -20,7 +22,9 @@ const routes: RouteObject[] = [
   {
     path: '/',
     element: <Layout />,
-    hydrateFallbackElement: <h1>Loading</h1>,
+    hydrateFallbackElement: <Waiting src={waiting} />,
+    id: 'gameList',
+    loader: loadGameList,
     children: [
       {
         index: true,
@@ -35,8 +39,6 @@ const routes: RouteObject[] = [
       },
       {
         path: 'games',
-        id: 'gameList',
-        loader: loadGameList,
         children: [
           {
             index: true,

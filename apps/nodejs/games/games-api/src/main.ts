@@ -6,7 +6,9 @@ import { createServer } from 'http';
 import { join } from 'path';
 import { cwd } from 'process';
 import { ServerOptions } from 'socket.io';
-import enterLobby from './events/lobby.js';
+import disconnectingEvent from './events/disconnect_event.js';
+import enterLobby from './events/enter-lobby.js';
+import privateMessagePlayer from './events/private_message.js';
 import socketBoardAction from './events/socket-board-action.js';
 import addGameToSocketInstance from './middleware/socket-add-game-middleware.js';
 import routerV1 from './routes/v1/routes.js';
@@ -56,7 +58,9 @@ gameSocketServer.addServerListener('action', socketBoardAction);
 
 export const lobbySocketServer = new SocketServer(httpServer, lobbyServerOptions);
 
-lobbySocketServer.addServerListener('player-enter', enterLobby);
+lobbySocketServer.addServerListener('enter-lobby', enterLobby);
+lobbySocketServer.addServerListener('privateMessagePlayer', privateMessagePlayer);
+lobbySocketServer.addServerListener('removePlayer', disconnectingEvent);
 
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));

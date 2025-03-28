@@ -28,8 +28,11 @@ func CreateActivePlayer(name string, id string, activeGameID *string, inLobby bo
 func AddPlayerToLobby(newPlayer *ActivePlayer) error {
 	var err error
 
+	fmt.Printf("%s\n", newPlayer.Id)
+
 	_, ok := LobbyMap[newPlayer.Id]
 
+	print(ok)
 	if ok {
 		err = fmt.Errorf("player already exists in game lobby")
 		return err

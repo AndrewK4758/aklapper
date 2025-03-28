@@ -2,12 +2,9 @@ import { FormikTextInput, Label, type httpMethod } from '@aklapper/react-shared'
 import type { IPlayer } from '@aklapper/types';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
-// import axios from 'axios';
 import { useFormik } from 'formik';
-// import { useContext,  } from 'react';
 import { Form, useSubmit, type SubmitFunction } from 'react-router';
 import * as Yup from 'yup';
-// import { ActivePlayerContext, ActivePlayerContextProps } from '../../context/active-player-context';
 import { errorTextSx, tooltipSx } from '../../styles/games-styles';
 
 function initialValues<T>(defaults: T, key: keyof T, value: unknown): T {
@@ -40,7 +37,7 @@ export default function RegisterPlayer<T extends object>({
   const formik = useFormik<T>({
     initialValues: initialValues<T>(formPropsObject, inputName, ''),
     validationSchema: validationSchema,
-    onSubmit: async values => handleNewPlayerSubmit(JSON.stringify(values), submit)
+    onSubmit: async values => handleNewPlayerSubmit(values, submit)
   });
 
   return (
@@ -78,9 +75,9 @@ export default function RegisterPlayer<T extends object>({
   );
 }
 
-async function handleNewPlayerSubmit(values: string, submit: SubmitFunction) {
+async function handleNewPlayerSubmit(values: Partial<IPlayer>, submit: SubmitFunction) {
   try {
-    await submit(values, { action: 'lobby', encType: 'application/json', method: 'POST' });
+    await submit(JSON.stringify(values), { action: 'lobby', encType: 'application/json', method: 'POST' });
   } catch (error) {
     console.error(error);
   }

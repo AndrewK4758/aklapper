@@ -21,15 +21,11 @@ func HandleGetLobbyData(resp http.ResponseWriter, req *http.Request) {
 
 	for playerID, playerData := range lobbydata.LobbyMap {
 
-		// fmt.Printf("\n%s\n", playerID)
-
 		playerInLobby := ActivePlayerInLobby{
 			Id:      playerID,
 			Name:    playerData.Name,
 			InLobby: playerData.InLobby,
 		}
-
-		// fmt.Printf("\n%v\n", playerInLobby)
 		activePlayersInLobby = append(activePlayersInLobby, playerInLobby)
 	}
 
@@ -38,5 +34,5 @@ func HandleGetLobbyData(resp http.ResponseWriter, req *http.Request) {
 
 	json.NewEncoder(resp).Encode(activePlayersInLobby)
 
-	fmt.Printf("%v", activePlayersInLobby)
+	fmt.Printf("\nPLAYERS IN LOBBY: %v\n", activePlayersInLobby)
 }
