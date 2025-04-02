@@ -1,16 +1,25 @@
-import type { SocketCallback, SocketMiddleware } from '@aklapper/types';
+import type { PlayerID, SocketCallback, SocketID, SocketMiddleware } from '@aklapper/types';
 import type { Server as httpServer } from 'http';
-import { Server, ServerOptions } from 'socket.io';
+import { Server, ServerOptions, type Socket } from 'socket.io';
 import type ISocketServer from '../interfaces/socket-server.ts';
 
 export class SocketServer implements ISocketServer {
   io: Server;
-  constructor(httpServer: httpServer, serverOptions: Partial<ServerOptions>) {
+  connMap: Map<PlayerID, SocketID>;
+  constructor(
+    httpServer: httpServer,
+    serverOptions: Partial<ServerOptions>,
+    connMap: Map<PlayerID, SocketID> = new Map()
+  ) {
     this.io = new Server(httpServer, serverOptions);
+    this.connMap = connMap;
   }
 
   addServerListener = (event: string, listener: SocketCallback) => {
     this.io.on('connection', socket => {
+      const playerID = socket.handshake.headers['current-player-id'] as string;
+      console.log(playerID);
+      if (playerID) this.addSocketToConnMap(playerID, socket);
       listener(event, socket);
     });
   };
@@ -18,4 +27,8 @@ export class SocketServer implements ISocketServer {
   addMiddleware = (middleware: SocketMiddleware) => {
     this.io.use(middleware);
   };
+
+  addSocketToConnMap(id: string, socket: Socket) {
+    this.connMap.set(id, socket.id);
+  }
 }

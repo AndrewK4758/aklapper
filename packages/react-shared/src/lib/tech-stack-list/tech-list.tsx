@@ -1,7 +1,6 @@
 import Container from '@mui/material/Container';
 import List from '@mui/material/List';
-import type { SxProps } from '@mui/material/styles';
-import type { Variant } from '@mui/material/styles/createTypography.js';
+import type { SxProps, TypographyVariant } from '@mui/material/styles';
 import type { ReactNode } from 'react';
 import Label, { type LabelProps } from '../label/label.jsx';
 import RenderList from '../render-list/render-list';
@@ -13,7 +12,7 @@ interface TechListProps extends LabelProps {
   renderTechLists: (value: unknown, index: number, array: unknown[]) => ReactNode;
   id: string;
   labelText: string;
-  variant: Variant;
+  variant: TypographyVariant;
 }
 
 export const TechList = ({

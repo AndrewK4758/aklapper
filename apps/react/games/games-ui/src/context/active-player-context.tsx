@@ -1,35 +1,14 @@
 import { IPlayer } from '@aklapper/types';
-import { createContext, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
+import { createContext, type Dispatch, type SetStateAction } from 'react';
 
 export interface ActivePlayerContextProps {
   activePlayer: Partial<IPlayer>;
   setActivePlayer: Dispatch<SetStateAction<Partial<IPlayer>>>;
 }
 
-const storedPlayerData = sessionStorage.getItem('activePlayer');
-
-const activePlayerInit: Partial<IPlayer> = storedPlayerData
-  ? JSON.parse(storedPlayerData)
-  : {
-      Id: '',
-      Name: '',
-      InLobby: false,
-      ActiveGameID: null
-    };
-
-export const ActivePlayerContext = createContext<ActivePlayerContextProps>({
-  activePlayer: activePlayerInit,
+const ActivePlayerContext = createContext<ActivePlayerContextProps>({
+  activePlayer: { Name: '', Id: '', InLobby: false, ActiveGameID: null },
   setActivePlayer: () => ({})
 });
 
-interface ActivePlayerContextProviderProps {
-  children?: ReactNode;
-}
-
-export default function ActivePlayerContextProvider({ children }: ActivePlayerContextProviderProps) {
-  const [activePlayer, setActivePlayer] = useState<Partial<IPlayer>>(activePlayerInit);
-
-  return (
-    <ActivePlayerContext.Provider value={{ activePlayer, setActivePlayer }}>{children}</ActivePlayerContext.Provider>
-  );
-}
+export default ActivePlayerContext;

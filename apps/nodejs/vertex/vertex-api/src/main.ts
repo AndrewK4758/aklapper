@@ -37,7 +37,8 @@ const serverOptions: Partial<ServerOptions> = {
   cors: corsOptions
 };
 
-export const socketServer = new SocketServer(httpServer, serverOptions, [handleTextDataChunks]);
+export const socketServer = new SocketServer(httpServer, serverOptions);
+socketServer.addServerListener('prompt', handleTextDataChunks);
 
 new Routes();
 

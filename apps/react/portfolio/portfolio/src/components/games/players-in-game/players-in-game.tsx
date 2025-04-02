@@ -1,7 +1,7 @@
 import { Text } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
 import type { SxProps } from '@mui/material/styles';
-import { Variant } from '@mui/material/styles/createTypography.js';
+import { TypographyVariant } from '@mui/material/styles';
 import type { ElementType } from 'react';
 import { avatarSvgStyle } from '../../../styles/games-styles.jsx';
 
@@ -10,7 +10,7 @@ export interface PlayersInGameProps {
   id: string | number;
   boxSx?: SxProps;
   textSx: SxProps;
-  playerVariant: Variant;
+  playerVariant: TypographyVariant;
   playerName: string;
   avatarName: string;
 }

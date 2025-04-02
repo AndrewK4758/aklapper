@@ -108,3 +108,17 @@ export interface ITestCtxOutput {
 export interface IPlayersAndBoard extends IActivePlayersInGame {
   gameBoard: ILiteSpace[];
 }
+
+export type PrivateMessageDetails = {
+  target: {
+    targetId: string;
+    targetName: string;
+  };
+  message: string;
+  sender: {
+    senderName: string;
+    senderId: string;
+  };
+};
+
+export type SocketID = string;

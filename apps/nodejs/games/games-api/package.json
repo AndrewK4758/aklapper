@@ -4,16 +4,16 @@
   "private": true,
   "type": "module",
   "devDependencies": {
-    "@aklapper/chain": "workspace:^",
-    "@aklapper/game": "workspace:^",
-    "@aklapper/games": "workspace:^",
-    "@aklapper/games-chains": "workspace:^",
-    "@aklapper/games-components": "workspace:^",
-    "@aklapper/mocks": "workspace:^",
-    "@aklapper/models": "workspace:^",
-    "@aklapper/socket-io-server": "workspace:^",
-    "@aklapper/types": "workspace:^",
-    "@aklapper/utils": "workspace:^"
+    "@aklapper/chain": "workspace:*",
+    "@aklapper/game": "workspace:*",
+    "@aklapper/games": "workspace:*",
+    "@aklapper/games-chains": "workspace:*",
+    "@aklapper/games-components": "workspace:*",
+    "@aklapper/mocks": "workspace:*",
+    "@aklapper/models": "workspace:*",
+    "@aklapper/socket-io-server": "workspace:*",
+    "@aklapper/types": "workspace:*",
+    "@aklapper/utils": "workspace:*"
   },
   "nx": {
     "name": "games-api",

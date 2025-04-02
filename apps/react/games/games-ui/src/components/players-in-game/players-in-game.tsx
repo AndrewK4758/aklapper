@@ -1,7 +1,7 @@
-import { Box, SxProps } from '@mui/material';
-import { Variant } from '@mui/material/styles/createTypography';
-import { CSSProperties, ElementType } from 'react';
 import { Text } from '@aklapper/react-shared';
+import { Box, SxProps } from '@mui/material';
+import { TypographyVariant } from '@mui/material/styles';
+import { CSSProperties, ElementType } from 'react';
 
 const avatarSvgStyle: CSSProperties = {
   height: 'auto',
@@ -14,7 +14,7 @@ export interface PlayersInGameProps {
   id: string | number;
   boxSx?: SxProps;
   textSx: SxProps;
-  playerVariant: Variant;
+  playerVariant: TypographyVariant;
   playerName: string;
   avatarName: string;
 }

@@ -1,4 +1,3 @@
-/// <reference types='vitest' />
 import { workspaceRoot } from '@nx/devkit';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
@@ -16,7 +15,11 @@ export default defineConfig({
     port: 4800,
     host: 'localhost'
   },
-  plugins: [react()],
+  plugins: [
+    react({
+      babel: {}
+    })
+  ],
   // Uncomment this if you are using workers.
   // worker: {
   //  plugins: [ nxViteTsPaths() ],

@@ -1,12 +1,13 @@
 import { SocketCallback } from '@aklapper/types';
 import type { Socket } from 'socket.io';
-import socketPlayerMap from '../data/websocket_player_id_map.js';
+import { lobbySocketServer } from '../main.js';
+import { activePubClient } from '../services/redis/redis-client.js';
 
 const disconnectingEvent: SocketCallback = (event: string, socket: Socket) => {
-  socket.on(event, playerID => {
-    console.log(socketPlayerMap);
-    socketPlayerMap.delete(playerID);
-    console.log(socketPlayerMap);
+  socket.on(event, async playerID => {
+    activePubClient.publish('lobby:delete-player', playerID);
+
+    lobbySocketServer.connMap.delete(playerID);
   });
 };
 

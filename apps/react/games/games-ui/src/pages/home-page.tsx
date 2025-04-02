@@ -6,7 +6,7 @@ import type { SxProps } from '@mui/material/styles';
 import { useContext, type Dispatch, type SetStateAction } from 'react';
 import JoinGame from '../components/join-game/join-game';
 import RegisterPlayer from '../components/register-player/register-player';
-import { ActivePlayerContext, ActivePlayerContextProps } from '../context/active-player-context';
+import ActivePlayerContext, { ActivePlayerContextProps } from '../context/active-player-context';
 import { errorTextSx, tooltipSx } from '../styles/games-styles';
 import { GamesTheme as Theme } from '../styles/games-theme';
 

@@ -28,11 +28,8 @@ func CreateActivePlayer(name string, id string, activeGameID *string, inLobby bo
 func AddPlayerToLobby(newPlayer *ActivePlayer) error {
 	var err error
 
-	fmt.Printf("%s\n", newPlayer.Id)
-
 	_, ok := LobbyMap[newPlayer.Id]
 
-	print(ok)
 	if ok {
 		err = fmt.Errorf("player already exists in game lobby")
 		return err
@@ -43,17 +40,17 @@ func AddPlayerToLobby(newPlayer *ActivePlayer) error {
 	return nil
 }
 
-func RemovePlayerFromLobby(playerToRemove *ActivePlayer) error {
-	var err error
+func DeletePlayerFromLobby(id string) string {
+	_, existsBefore := LobbyMap[id]
+	delete(LobbyMap, id)
+	_, existsAfter := LobbyMap[id]
 
-	_, ok := LobbyMap[playerToRemove.Id]
-
-	if ok {
-		LobbyMap[playerToRemove.Id] = nil
-
+	if existsBefore && !existsAfter {
+		return fmt.Sprintf("Player %s deleted", id)
+	} else if !existsBefore {
+		return fmt.Sprintf("Player %s not in map", id)
 	} else {
-		err = fmt.Errorf("player does not exist in lobby map")
-		return err
+		return "Unexpected state error"
 	}
-	return nil
+
 }

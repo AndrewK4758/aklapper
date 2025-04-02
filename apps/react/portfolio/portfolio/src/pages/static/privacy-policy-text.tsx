@@ -1,7 +1,7 @@
 import Box from '@mui/material/Box';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
-import Typography from '@mui/material/Typography/index.js';
+import Typography from '@mui/material/Typography';
 
 const PrivacyPolicyText = () => (
   <Box
@@ -60,7 +60,8 @@ const PrivacyPolicyText = () => (
       </ListItem>
       <ListItem component={'li'} divider={true} alignItems="flex-start">
         <Typography>
-          <strong>Calendar Integration:</strong> To enable features that interact with your Google Calendar, such as:{' '}
+          <strong>Calendar Integration:</strong> To enable features that interact with your Google Calendar, such
+          as:{' '}
         </Typography>
         <List component={'ul'}>
           <ListItem component={'li'} divider={true} alignItems="flex-start">
@@ -137,7 +138,8 @@ const PrivacyPolicyText = () => (
       <strong>7. Changes to this Privacy Policy</strong>
     </Typography>
     <Typography variant={'body1'} component={'p'}>
-      I may update this privacy policy from time to time. Any changes will be posted on this page with the updated date.{' '}
+      I may update this privacy policy from time to time. Any changes will be posted on this page with the updated
+      date.{' '}
     </Typography>
     <Typography variant={'body1'} component={'p'}>
       <br />

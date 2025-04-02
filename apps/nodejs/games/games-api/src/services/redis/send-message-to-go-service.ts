@@ -12,11 +12,9 @@ export async function addPlayerToLobbyGoService(channel: string, data: IPlayer):
   return new Promise((resolve, reject) => {
     pendingRequests.set(data.Id, { reject, resolve });
 
-    console.log('DATA: ', data);
     activePubClient.publish(channel, JSON.stringify(data));
 
     activeSubClient.subscribe('lobby:player-added', addedPlayer => {
-      console.log('ADDED PLAYER: ', addedPlayer, '\n');
       const response: Partial<IPlayer> = JSON.parse(addedPlayer);
 
       if (response) {

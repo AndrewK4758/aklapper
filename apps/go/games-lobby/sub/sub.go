@@ -20,7 +20,7 @@ func Sub() {
 		DB:       0,
 	})
 
-	subscriber := redisPubSub.Subscribe(ctx, "lobby:new-player", "lobby:remove-player")
+	subscriber := redisPubSub.Subscribe(ctx, "lobby:new-player", "lobby:delete-player")
 	defer subscriber.Close()
 	ch := subscriber.Channel()
 
@@ -35,6 +35,7 @@ func Sub() {
 	currentTime := time.Now().In(est).Format("January 2, 2006 03:04:05 PM")
 
 	for msg := range ch {
+		fmt.Println(msg.Channel)
 		fmt.Printf("\n[%s] - Received message: %s\n", currentTime, msg.Payload)
 
 		// if err != nil {
@@ -64,8 +65,6 @@ func Sub() {
 
 			jsonResp, err := json.Marshal(lobbydata.LobbyMap[newPlayer.Id])
 
-			println("\n")
-
 			if err != nil {
 				fmt.Printf("json error: %v\n", err)
 			}
@@ -76,8 +75,18 @@ func Sub() {
 				fmt.Printf("lobby:player-added error: %v\n", err)
 			}
 
-		case strings.Contains(msg.Channel, "remove-player"):
+		case strings.Contains(msg.Channel, "delete-player"):
+			fmt.Println("IN DELETE")
+			fmt.Println(msg.Payload)
+
+			var playerID string = msg.Payload
+			value := lobbydata.DeletePlayerFromLobby(playerID)
+
+			if value != fmt.Sprintf("Player %s deleted", playerID) {
+				fmt.Printf("error deleting player %s", playerID)
+			}
 			fmt.Println("PLAYER REMOVED")
+			fmt.Printf("%v", lobbydata.LobbyMap)
 		}
 
 	}

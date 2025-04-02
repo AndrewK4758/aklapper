@@ -13,7 +13,7 @@ export default function RegisterGame({ registerGameButtonSx }: RegisterGameProps
   return (
     <ButtonFormAction
       method="post"
-      action={`/games/${id}`}
+      action={`/lobby/${id}`}
       variant="outlined"
       name="name"
       value={id}

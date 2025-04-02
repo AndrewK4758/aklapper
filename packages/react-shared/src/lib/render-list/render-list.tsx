@@ -1,4 +1,4 @@
-import Box from '@mui/material/Box';
+import List from '@mui/material/List';
 import type { SxProps } from '@mui/material/styles';
 import type { ElementType, ReactNode } from 'react';
 
@@ -11,9 +11,9 @@ export interface RenderListProps {
 }
 
 export const RenderList = ({ id, data, component, listMapCallback, sx }: RenderListProps) => (
-  <Box key={id} component={component} id={id} sx={sx}>
+  <List key={id} component={component} id={id} sx={sx}>
     {data.map(listMapCallback)}
-  </Box>
+  </List>
 );
 
 export default RenderList;

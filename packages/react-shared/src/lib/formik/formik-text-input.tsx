@@ -1,8 +1,7 @@
 import Box from '@mui/material/Box';
 import FormControl from '@mui/material/FormControl';
 import OutlinedInput from '@mui/material/OutlinedInput';
-import type { SxProps } from '@mui/material/styles';
-import type { Variant } from '@mui/material/styles/createTypography.js';
+import type { SxProps, TypographyVariant } from '@mui/material/styles';
 import type { FormikProps } from 'formik';
 import { FocusEvent } from 'react';
 import { Label } from '../label/label.jsx';
@@ -13,7 +12,7 @@ export interface FormikTextInputProps<T extends object> {
   formik: FormikProps<T>;
   type: string;
   label: string;
-  labelComponent: Variant;
+  labelComponent: TypographyVariant;
   autoComplete: string;
   id: string;
   placeholder?: string;

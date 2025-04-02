@@ -1,5 +1,5 @@
 import type { Theme as ThemeType } from '@mui/material/styles';
-import createTheme from '@mui/material/styles/createTheme.js';
+import { createTheme } from '@mui/material/styles';
 import type {} from '@mui/material/themeCssVarsAugmentation';
 import { enUS } from '@mui/x-date-pickers/locales';
 import './main-styles.css';

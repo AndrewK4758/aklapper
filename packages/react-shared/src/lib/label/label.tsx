@@ -1,7 +1,7 @@
 import Box from '@mui/material/Box';
 import InputLabel from '@mui/material/InputLabel';
+import type { TypographyVariant } from '@mui/material/styles';
 import { type SxProps } from '@mui/material/styles';
-import type { Variant } from '@mui/material/styles/createTypography';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import { forwardRef, type JSX, type ReactNode } from 'react';
@@ -15,7 +15,7 @@ const iconAndChildrenSxProps: SxProps = { display: 'flex', justifyItems: 'center
 
 export interface LabelProps {
   tooltipTitle: ReactNode;
-  labelVariant: Variant;
+  labelVariant: TypographyVariant;
   labelText: string;
   labelTextSx?: SxProps;
   labelWrapperDivSxProps?: SxProps;

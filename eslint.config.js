@@ -12,7 +12,9 @@ export default [
       '**/.dockerignore',
       '**/env/**',
       '**/.env',
-    ],
+      '**/vite.config.*.timestamp*',
+      '**/vitest.config.*.timestamp*'
+    ]
   },
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
@@ -25,12 +27,12 @@ export default [
           depConstraints: [
             {
               sourceTag: '*',
-              onlyDependOnLibsWithTags: ['*'],
-            },
-          ],
-        },
-      ],
-    },
+              onlyDependOnLibsWithTags: ['*']
+            }
+          ]
+        }
+      ]
+    }
   },
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
@@ -41,9 +43,9 @@ export default [
         {
           argsIgnorePattern: '^_',
           ignoreRestSiblings: true,
-          caughtErrorsIgnorePattern: '^_',
-        },
-      ],
-    },
-  },
+          caughtErrorsIgnorePattern: '^_'
+        }
+      ]
+    }
+  }
 ];

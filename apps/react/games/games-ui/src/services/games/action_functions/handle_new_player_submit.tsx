@@ -4,7 +4,7 @@ import { ActionFunctionArgs } from 'react-router';
 
 const baseUrl = import.meta.env.VITE_REST_API_SERVER_URL_V2;
 
-export default async function handleNewPlayerSubmit({ request }: ActionFunctionArgs): Promise<Partial<IPlayer> | void> {
+export default async function handleNewPlayerSubmit({ request }: ActionFunctionArgs): Promise<boolean | void> {
   try {
     const { name } = await request.json();
 
@@ -22,7 +22,7 @@ export default async function handleNewPlayerSubmit({ request }: ActionFunctionA
 
     sessionStorage.setItem('activePlayer', JSON.stringify(currentPlayer));
 
-    return currentPlayer;
+    return true;
   } catch (error) {
     console.error(error);
   }

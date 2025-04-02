@@ -1,5 +1,5 @@
-import createTheme from '@mui/material/styles/createTheme';
 import type { Theme as MuiTheme } from '@mui/material/styles';
+import { createTheme } from '@mui/material/styles';
 
 const Theme: MuiTheme = createTheme({
   palette: {

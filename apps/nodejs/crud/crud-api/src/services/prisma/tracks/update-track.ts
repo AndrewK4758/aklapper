@@ -1,5 +1,5 @@
-import { prisma } from '@aklapper/prisma';
-import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
+import type { ParsedPrismaError, PrismaClientErrors } from '@aklapper/prisma';
+import { prisma, PrismaErrorLogger } from '@aklapper/prisma';
 import { Prisma, track } from '@prisma/client';
 import { DefaultArgs } from '@prisma/client/runtime/library';
 

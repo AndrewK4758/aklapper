@@ -1,5 +1,5 @@
 import CssBaseline from '@mui/material/CssBaseline';
-import ThemeProvider from '@mui/material/styles/ThemeProvider';
+import { ThemeProvider } from '@mui/material/styles';
 import type { FC, ReactElement } from 'react';
 import '../styles/main-styles.css';
 import Theme from '../styles/theme.jsx';

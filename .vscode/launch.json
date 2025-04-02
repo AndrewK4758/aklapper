@@ -9,10 +9,13 @@
       "envFile": "${workspaceFolder}/apps/wdg-agents/apps/wdg_agents/env/.env"
     },
     {
-      "name": "SSR PORTFOLIO",
-      "type": "node",
+      "name": "Games-UI",
+      "type": "chrome",
       "request": "launch",
-      "program": "${file}"
+      "webRoot": "${workspaceFolder}/apps/react/games/games-ui",
+      "url": "http://localhost:4700",
+      "cwd": "${workspaceFolder}/apps/react/games/games-ui",
+      "sourceMaps": true
     }
   ]
 }

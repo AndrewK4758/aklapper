@@ -2,8 +2,8 @@ import type { SocketCallback } from '@aklapper/types';
 import { generateTextContent } from '@aklapper/vertex-ai';
 import { type Socket } from 'socket.io';
 
-const handleTextDataChunks: SocketCallback = (socket: Socket) => {
-  socket.on('prompt', async prompt => {
+const handleTextDataChunks: SocketCallback = (event: string, socket: Socket) => {
+  socket.on(event, async prompt => {
     const { stream } = await generateTextContent(prompt);
 
     for await (const chunk of stream) {

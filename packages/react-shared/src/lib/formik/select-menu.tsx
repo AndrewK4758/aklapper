@@ -1,7 +1,7 @@
 import type { AvatarTotem } from '@aklapper/types';
 import { FormControl, SxProps } from '@mui/material';
 import Select from '@mui/material/Select';
-import type { Variant } from '@mui/material/styles/createTypography.js';
+import type { TypographyVariant } from '@mui/material/styles';
 import type { FormikProps } from 'formik';
 import type { JSX } from 'react';
 import Label from '../label/label.jsx';
@@ -16,7 +16,7 @@ interface IAvatarColorSelectValues<T extends object> {
   selectSx: SxProps;
   formik: FormikProps<T>;
   tooltipTitle: string;
-  labelVariant: Variant;
+  labelVariant: TypographyVariant;
   labelWrapperSx: SxProps;
   tooltipSx: SxProps;
   id: string;

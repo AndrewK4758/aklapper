@@ -1,15 +1,15 @@
-import { Box, ListItem, SxProps } from '@mui/material';
-import { Variant } from '@mui/material/styles/createTypography';
-import { ElementType } from 'react';
 import { Text } from '@aklapper/react-shared';
+import { Box, ListItem, SxProps } from '@mui/material';
+import { TypographyVariant } from '@mui/material/styles';
+import { ElementType } from 'react';
 
 export interface HeadingWithDetailsProps {
   component: ElementType;
   id: string | number;
-  titleVariant: Variant;
+  titleVariant: TypographyVariant;
   titleText: string | undefined;
   titleSx?: SxProps;
-  valueVariant: Variant;
+  valueVariant: TypographyVariant;
   valueText: string;
   valueSx?: SxProps;
 }

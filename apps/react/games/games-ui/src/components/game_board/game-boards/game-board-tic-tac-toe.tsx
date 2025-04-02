@@ -1,9 +1,9 @@
 import { Text } from '@aklapper/react-shared';
 import type { ILiteSpace, Row } from '@aklapper/types';
 import Box from '@mui/material/Box';
-import Grid2 from '@mui/material/Grid2';
+import Grid from '@mui/material/Grid';
 import type { SxProps } from '@mui/material/styles';
-import type { Dispatch, SetStateAction } from 'react';
+import type { Dispatch, MouseEvent, SetStateAction } from 'react';
 import {
   avatarTTTSize,
   breakpointsRowTTTSx,
@@ -53,7 +53,7 @@ export const GameBoardMapTicTacToe = ({
   state,
   setStateAction
 }: GameBoardPropsTicTacToe) => (
-  <Grid2
+  <Grid
     component={'section'}
     columns={columns}
     container={container}
@@ -63,13 +63,12 @@ export const GameBoardMapTicTacToe = ({
     sx={rowSizeTTT}
   >
     {row.map((e: ILiteSpace, i: number, _arr: ILiteSpace[]) => (
-      <Grid2
+      <Grid
         key={`space-${e.display}-${i}`}
         id={`space-${e.display}-${i}`}
         component={'div'}
         sx={setStyleOnState(state, e.display, breakpointsRowTTTSx, selectedSpaceStyle, nonSelectedSpaceStyle)}
-        onClick={e => setStateAction(e.currentTarget.textContent as string)}
-        // style={state === e.display ? selectedSpaceStyle : nonSelectedSpaceStyle}
+        onClick={(e: MouseEvent<HTMLDivElement>) => setStateAction(e.currentTarget.textContent as string)}
       >
         {e.display.indexOf('g') === e.display.length - 1 ? (
           <Box
@@ -98,9 +97,9 @@ export const GameBoardMapTicTacToe = ({
             />
           </Box>
         )}
-      </Grid2>
+      </Grid>
     ))}
-  </Grid2>
+  </Grid>
 );
 
 export default GameBoardMapTicTacToe;

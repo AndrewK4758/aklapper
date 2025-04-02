@@ -1,10 +1,10 @@
 import { SxProps } from '@mui/material';
 import Typography from '@mui/material/Typography';
-import { Variant } from '@mui/material/styles/createTypography';
+import { TypographyVariant } from '@mui/material/styles';
 import { ReactNode, type ElementType } from 'react';
 
 export interface TextProps {
-  titleVariant: Variant | 'inherit';
+  titleVariant: TypographyVariant | 'inherit';
   id?: string;
   titleText: ReactNode;
   sx?: SxProps;

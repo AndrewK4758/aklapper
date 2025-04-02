@@ -1,17 +1,15 @@
 import { Text } from '@aklapper/react-shared';
-import {
-  Card,
-  Container,
-  debounce,
-  FormControlLabel,
-  Grid2,
-  List,
-  ListItem,
-  Radio,
-  RadioGroup,
-  TextField
-} from '@mui/material';
 import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import Container from '@mui/material/Container';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Grid from '@mui/material/Grid';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import Radio from '@mui/material/Radio';
+import RadioGroup from '@mui/material/RadioGroup';
+import TextField from '@mui/material/TextField';
+import { debounce } from '@mui/material/utils';
 import { album, artist } from '@prisma/client';
 import axios from 'axios';
 import { ChangeEvent, Dispatch, SetStateAction, useState } from 'react';
@@ -33,7 +31,7 @@ const HomePage = () => {
   return (
     <>
       <Box component={'div'} key={'grid-wrapper'} id="grid-wrapper" flex={'1 0 75%'}>
-        <Grid2
+        <Grid
           container
           component={'div'}
           id="grid-container"
@@ -43,7 +41,7 @@ const HomePage = () => {
           direction={'column'}
           wrap="nowrap"
         >
-          <Grid2 component={'div'} id="title-grid" size={2}>
+          <Grid component={'div'} id="title-grid" size={2}>
             <Container component={'div'} sx={{ paddingY: 1 }}>
               <Text
                 id="home-page-title"
@@ -66,11 +64,11 @@ const HomePage = () => {
                 }
               />
             </Container>
-          </Grid2>
-          <Grid2 component={'div'} id="data-grid-grids" size={2} width={'50%'}>
+          </Grid>
+          <Grid component={'div'} id="data-grid-grids" size={2} width={'50%'}>
             <Outlet />
-          </Grid2>
-        </Grid2>
+          </Grid>
+        </Grid>
       </Box>
       <Box sx={{ height: 'fit-content', flex: '1 0 25%' }}>
         <Card

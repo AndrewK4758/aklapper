@@ -5,7 +5,7 @@
   "type": "module",
   "module": "./src/main.ts",
   "devDependencies": {
-    "@aklapper/prisma": "workspace:^"
+    "@aklapper/prisma": "workspace:*"
   },
   "nx": {
     "name": "crud-api",

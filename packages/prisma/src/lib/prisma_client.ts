@@ -2,11 +2,10 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import { configDotenv } from 'dotenv';
 import { cwd } from 'process';
-import url from '../get-prisma-db-url.js';
+import url from './get-prisma-db-url.js';
 
 configDotenv({ path: `${cwd()}/packages/prisma/env/.env` });
 
-console.log(process.env.NODE_ENV);
 const prismaClient = new PrismaClient({
   datasourceUrl: url(process.env['NODE_ENV'] as string),
   errorFormat: 'pretty'

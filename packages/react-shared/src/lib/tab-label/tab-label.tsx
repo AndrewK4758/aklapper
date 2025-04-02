@@ -1,11 +1,10 @@
 import Box from '@mui/material/Box';
-import type { SxProps } from '@mui/material/styles';
-import type { Variant } from '@mui/material/styles/createTypography';
+import type { SxProps, TypographyVariant } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 
 export interface TabLabelProps {
-  mainVariant: Variant;
-  subVariant: Variant;
+  mainVariant: TypographyVariant;
+  subVariant: TypographyVariant;
   mainText: string;
   subText: string;
   mainSx?: SxProps;

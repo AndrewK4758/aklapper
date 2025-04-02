@@ -1,33 +1,36 @@
-import { RenderList, Text } from '@aklapper/react-shared';
+import { ImageLink, RenderList, Text } from '@aklapper/react-shared';
 import { IBuiltGame } from '@aklapper/types';
-import { SxProps, useMediaQuery } from '@mui/material';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
-import ImageList from '@mui/material/ImageList';
+import { SxProps } from '@mui/material/styles';
+import { useState, type Dispatch, type SetStateAction } from 'react';
 import { useRouteLoaderData } from 'react-router';
-import ImageLink from '../components/image-link/image-link';
-import { GamesTheme as Theme } from '../styles/games-theme';
+import GamesTheme, { GamesTheme as Theme } from '../styles/games-theme';
+import GameDetails from './game_details';
 
 const breakpointsGameListText: SxProps = {
+  width: '100%',
+  borderBottom: 2,
   [Theme.breakpoints.down('md')]: {
     fontSize: '4rem'
   }
 };
 
-const breakpointsImageListText: SxProps = {
-  fontSize: '12px',
-  [Theme.breakpoints.down('md')]: {
-    '& .MuiImageListItemBar-title': {
-      fontSize: '1.5rem'
-    }
-  }
-};
+// const breakpointsImageListText: SxProps = {
+//   fontSize: '12px',
+//   [Theme.breakpoints.down('md')]: {
+//     '& .MuiImageListItemBar-title': {
+// fontSize: '1.5rem';
+//     }
+//   }
+// };
 
 const GamesList = () => {
   const games = useRouteLoaderData('gameList') as IBuiltGame[];
-  const media = useMediaQuery(Theme.breakpoints.up('md'));
+  const [open, setOpen] = useState<boolean>(false);
+  // const media = useMediaQuery(Theme.breakpoints.up('md'));
 
-  const listGamesMap = (e: IBuiltGame, _i: number, _arr: IBuiltGame[]) => (
+  const listGamesMap = (e: IBuiltGame, _i: number, _arr: IBuiltGame[], setOpen: Dispatch<SetStateAction<boolean>>) => (
     <ImageLink
       key={e.id}
       type="a"
@@ -35,38 +38,54 @@ const GamesList = () => {
       id={e.name}
       srcSet={`./images/${e.imageURL}`}
       loading="lazy"
-      alt={`${e.name} game picture`}
-      style={{ width: media ? '365px' : '200px', height: 'auto' }}
+      alt={`${e.name}-game-picture`}
+      style={{ borderRadius: '4px' }}
       title={e.name}
-      position="bottom"
-      breakpointsImageListText={breakpointsImageListText}
+      setOpen={setOpen}
+      breakpointsImageListText={{
+        backgroundColor: GamesTheme.palette.background.paper,
+        borderRadius: 1,
+        color: GamesTheme.palette.secondary.main
+      }}
     />
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', justifySelf: 'center' }}>
-      <Container
-        component={'div'}
+    <>
+      <Box
         sx={{
+          display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          justifyItems: 'center'
+          justifySelf: 'center',
+          width: '100%'
         }}
       >
-        <Text component={'h1'} titleVariant="h1" titleText={'Games'} sx={breakpointsGameListText} />
-      </Container>
-      <Container component={'div'}>
-        <ImageList
-          variant="standard"
-          cols={media ? 2 : 1}
-          rowHeight={media ? 365 : 200}
-          gap={12}
-          sx={{ m: 0, display: 'flex' }}
+        <Box component={'section'} id="game-list-title-wrapper" sx={{ width: '100%' }}>
+          <Text component={'h2'} titleVariant="h2" titleText={'Games'} sx={breakpointsGameListText} />
+        </Box>
+
+        <Container
+          component={'div'}
+          sx={{
+            paddingY: 2
+          }}
         >
-          <RenderList component={'section'} data={games} listMapCallback={listGamesMap} />
-        </ImageList>
-      </Container>
-    </Box>
+          <RenderList
+            component={'ul'}
+            listMapCallback={(e, i, arr) => listGamesMap(e as IBuiltGame, i, arr as IBuiltGame[], setOpen)}
+            sx={{
+              m: 0,
+              p: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 5
+            }}
+            data={games}
+          />
+        </Container>
+      </Box>
+      <GameDetails open={open} setOpen={setOpen} />
+    </>
   );
 };
 

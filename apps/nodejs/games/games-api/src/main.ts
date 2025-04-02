@@ -1,4 +1,5 @@
 import { SocketServer } from '@aklapper/socket-io-server';
+import type { PlayerID, SocketID } from '@aklapper/types';
 import cors, { CorsOptions } from 'cors';
 import { configDotenv } from 'dotenv';
 import express, { Express } from 'express';
@@ -56,18 +57,19 @@ export const gameSocketServer = new SocketServer(httpServer, gameServerOptions);
 gameSocketServer.addMiddleware(addGameToSocketInstance);
 gameSocketServer.addServerListener('action', socketBoardAction);
 
-export const lobbySocketServer = new SocketServer(httpServer, lobbyServerOptions);
+export const lobbySocketServer = new SocketServer(httpServer, lobbyServerOptions, new Map<PlayerID, SocketID>());
 
 lobbySocketServer.addServerListener('enter-lobby', enterLobby);
 lobbySocketServer.addServerListener('privateMessagePlayer', privateMessagePlayer);
 lobbySocketServer.addServerListener('removePlayer', disconnectingEvent);
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
 app.enable('trust proxy');
+
 app.use('/assets', express.static(join(__dirname, 'assets')));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 app.use('/api/v1', routerV1);
 app.use('/api/v2', routerV2);
 

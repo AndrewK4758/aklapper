@@ -1,7 +1,7 @@
 import { RenderList, Text } from '@aklapper/react-shared';
 import { ILiteSpace } from '@aklapper/types';
 import { SxProps } from '@mui/material';
-import Grid2 from '@mui/material/Grid2';
+import Grid from '@mui/material/Grid';
 import { avatarSize, breakpointsRowSx, breakpointsSpaceSx, spaceStyle } from '../../../styles/game-board-styles';
 
 export interface GameBoardProps {
@@ -24,7 +24,7 @@ export interface GameBoardProps {
  */
 
 const gameBoardRowMap = (e: ILiteSpace, i: number, _arr: string[]) => (
-  <Grid2 key={`space-${i}-${e.display}`} sx={breakpointsRowSx}>
+  <Grid key={`space-${i}-${e.display}`} sx={breakpointsRowSx}>
     {e.display.endsWith('.svg') ? (
       <img
         key={`${e.display}-avatar-c&l`}
@@ -45,11 +45,11 @@ const gameBoardRowMap = (e: ILiteSpace, i: number, _arr: string[]) => (
         sx={breakpointsSpaceSx}
       />
     )}
-  </Grid2>
+  </Grid>
 );
 
 export const GameBoardMap = ({ row, columns, container, direction, wrap, id, rowSx }: GameBoardProps) => (
-  <Grid2
+  <Grid
     key={`row-${row}-${columns}`}
     columns={columns}
     container={container}
@@ -59,7 +59,7 @@ export const GameBoardMap = ({ row, columns, container, direction, wrap, id, row
     sx={rowSx}
   >
     <RenderList component={'section'} data={row} listMapCallback={gameBoardRowMap} sx={spaceStyle} />
-  </Grid2>
+  </Grid>
 );
 
 export default GameBoardMap;
