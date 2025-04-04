@@ -15,9 +15,9 @@ export const FormikValidationError = <T extends object>({
 }: FormikValidationErrorProps<T>) => (
   <>
     {formik.touched[elementName] && formik.errors[elementName] ? (
-      <pre style={{ margin: 0 }}>
-        <FormHelperText sx={helperTextSx}>{formik.errors[elementName] as string}</FormHelperText>
-      </pre>
+      <FormHelperText margin="dense" sx={helperTextSx}>
+        {formik.errors[elementName] as string}
+      </FormHelperText>
     ) : null}
   </>
 );

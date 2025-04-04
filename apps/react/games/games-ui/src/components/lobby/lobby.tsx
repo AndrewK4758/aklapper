@@ -1,8 +1,9 @@
-import { Label, Text } from '@aklapper/react-shared';
+import { Text } from '@aklapper/react-shared';
 import type { IPlayer, PrivateMessageDetails } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
+import Divider from '@mui/material/Divider';
 import { useContext, useEffect, useState, type Dispatch, type ReactElement, type SetStateAction } from 'react';
 import { Outlet, useActionData, useNavigate, useRouteLoaderData } from 'react-router';
 import ActivePlayerContext, { ActivePlayerContextProps } from '../../context/active-player-context';
@@ -92,36 +93,51 @@ export default function Lobby() {
 
   return (
     <WebsocketContextProvider>
-      <Box component={'div'} id="lobby-wrapper">
+      <Box component={'div'} id="lobby-wrapper" height={'100%'}>
         <Box component={'section'} id="lobby-title" textAlign={'center'}>
           <Text titleText="Game Lobby" titleVariant="h1" component={'h1'} />
         </Box>
-        <Box component={'section'} id="lobby-data-wrapper" sx={{ display: 'flex', border: 5, height: '80vh' }}>
-          <Box component={'section'} id="players-in-lobby-wrapper" sx={{ flex: 1 }}>
-            <Text titleText={'Active Players'} titleVariant="h2" component={'h2'} sx={{ borderBottom: 2 }} />
-            <Box component={'section'} id="players-in-lobby-list-wrapper" sx={{ borderRight: 2, height: '100%' }}>
-              {activeLobby.map((e, i, arr) =>
-                playersMapCallback(e, i, arr, currentPlayer, setOpenMessage, setMessageTarget)
-              )}
-            </Box>
+
+        <Box component={'section'} id="lobby-header-wrapper" display={'flex'}>
+          <Box component={'section'} id="players-in-lobby-wrapper" flex={1}>
+            <Text titleText={'Active Players'} titleVariant="h2" component={'h2'} />
+            <Divider />
           </Box>
-          <Box component={'section'} id="active-games-not-started-wrapper" sx={{ flex: 1 }}>
-            <GamesList />
+          <Box component={'section'} id="game-list-title-wrapper" flex={1}>
+            <Text component={'h2'} titleVariant="h2" titleText={'Games'} />
+            <Divider />
           </Box>
-          <Box component={'section'} id="lobby-messages-wrapper" sx={{ flex: 1 }}>
-            <Text titleText="Messages" titleVariant="h2" component={'h2'} sx={{ borderBottom: 2 }} />
-            <Box component={'section'} id="lobby-messages" sx={{ borderLeft: 2, height: '100%' }}>
-              {messages.map(messagesListCallback)}
-            </Box>
+          <Box component={'section'} id="lobby-messages-wrapper" flex={1}>
+            <Text titleText="Messages" titleVariant="h2" component={'h2'} />
+            <Divider />
           </Box>
         </Box>
+
+        <Box component={'section'} id="lobby-data-wrapper" display={'flex'} height={'80vh'} minHeight={'fit-content'}>
+          <Box component={'section'} id="players-in-lobby-list-wrapper" sx={{ flex: 1 }}>
+            {activeLobby.map((e, i, arr) =>
+              playersMapCallback(e, i, arr, currentPlayer, setOpenMessage, setMessageTarget)
+            )}
+          </Box>
+          <Divider orientation="vertical" />
+          <Box component={'section'} id="active-games-not-started-wrapper" flex={1}>
+            <GamesList />
+          </Box>
+          <Divider textAlign="left" orientation="vertical" />
+
+          <Box component={'section'} id="lobby-messages" flex={1}>
+            {messages.map(messagesListCallback)}
+          </Box>
+        </Box>
+
         <Outlet />
+
         <Button
           onClick={() => {
             socket.emit('removePlayer', currentPlayer.Id);
             sessionStorage.removeItem('activePlayer');
             setActivePlayer({ Name: '', Id: '', InLobby: false });
-            nav('/');
+            nav('/', { replace: true });
           }}
         >
           Leave Lobby
@@ -157,6 +173,7 @@ function playersMapCallback(
       {Id !== currentPlayer.Id && (
         <Button
           LinkComponent={'button'}
+          variant="outlined"
           name={Name}
           id={`message-player-${Id}-button`}
           size="small"
@@ -177,16 +194,9 @@ function playersMapCallback(
               setMessageTarget
             )
           }
+          sx={{ fontSize: '1rem' }}
         >
-          <Label
-            labelText="Message"
-            tooltipTitle={'Click to send message to player'}
-            labelVariant={'button'}
-            id={`message-player-${Id}-button-label`}
-            placement={'right'}
-            htmlFor={'`message-player-${Id}-button`'}
-            labelTextSx={{ fontSize: '2rem' }}
-          />
+          Message
         </Button>
       )}
     </Box>

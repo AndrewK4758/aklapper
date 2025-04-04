@@ -1,51 +1,42 @@
-import { ImageLink, RenderList, Text } from '@aklapper/react-shared';
+import { ImageLink, RenderList } from '@aklapper/react-shared';
 import { IBuiltGame } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
-import { SxProps } from '@mui/material/styles';
-import { useState, type Dispatch, type SetStateAction } from 'react';
+import { lazy, useState, type Dispatch, type SetStateAction } from 'react';
 import { useRouteLoaderData } from 'react-router';
-import GamesTheme, { GamesTheme as Theme } from '../styles/games-theme';
-import GameDetails from './game_details';
+import { GamesTheme as Theme } from '../styles/games-theme';
 
-const breakpointsGameListText: SxProps = {
-  width: '100%',
-  borderBottom: 2,
-  [Theme.breakpoints.down('md')]: {
-    fontSize: '4rem'
-  }
-};
-
-// const breakpointsImageListText: SxProps = {
-//   fontSize: '12px',
-//   [Theme.breakpoints.down('md')]: {
-//     '& .MuiImageListItemBar-title': {
-// fontSize: '1.5rem';
-//     }
-//   }
-// };
+const GameDetails = lazy(() => import('./game_details'));
 
 const GamesList = () => {
   const games = useRouteLoaderData('gameList') as IBuiltGame[];
   const [open, setOpen] = useState<boolean>(false);
-  // const media = useMediaQuery(Theme.breakpoints.up('md'));
+  const [selectedGame, setSelectedGame] = useState<IBuiltGame | null>(null);
 
-  const listGamesMap = (e: IBuiltGame, _i: number, _arr: IBuiltGame[], setOpen: Dispatch<SetStateAction<boolean>>) => (
+  const listGamesMap = (
+    e: IBuiltGame,
+    _i: number,
+    _arr: IBuiltGame[],
+    setOpen: Dispatch<SetStateAction<boolean>>,
+    setSelectedGame: Dispatch<SetStateAction<IBuiltGame | null>>
+  ) => (
     <ImageLink
+      game={e}
       key={e.id}
-      type="a"
-      to={`${e.name.replace(/ /g, '-')}`}
       id={e.name}
-      srcSet={`./images/${e.imageURL}`}
+      srcSet={`/images/${e.imageURL}`}
       loading="lazy"
       alt={`${e.name}-game-picture`}
-      style={{ borderRadius: '4px' }}
+      style={{ borderRadius: '4px', width: '200px', height: 'auto' }}
+      icon={`/icons/${e.name.replace(/ /g, '-').toLowerCase()}-icon.svg`}
       title={e.name}
+      subtitle={e.id}
       setOpen={setOpen}
+      setSelectedGame={setSelectedGame}
       breakpointsImageListText={{
-        backgroundColor: GamesTheme.palette.background.paper,
+        backgroundColor: Theme.palette.background.paper,
         borderRadius: 1,
-        color: GamesTheme.palette.secondary.main
+        color: Theme.palette.secondary.main
       }}
     />
   );
@@ -60,10 +51,6 @@ const GamesList = () => {
           width: '100%'
         }}
       >
-        <Box component={'section'} id="game-list-title-wrapper" sx={{ width: '100%' }}>
-          <Text component={'h2'} titleVariant="h2" titleText={'Games'} sx={breakpointsGameListText} />
-        </Box>
-
         <Container
           component={'div'}
           sx={{
@@ -72,23 +59,21 @@ const GamesList = () => {
         >
           <RenderList
             component={'ul'}
-            listMapCallback={(e, i, arr) => listGamesMap(e as IBuiltGame, i, arr as IBuiltGame[], setOpen)}
+            listMapCallback={(e, i, arr) =>
+              listGamesMap(e as IBuiltGame, i, arr as IBuiltGame[], setOpen, setSelectedGame)
+            }
             sx={{
-              m: 0,
-              p: 0,
               display: 'flex',
-              flexDirection: 'column',
-              gap: 5
+              justifyContent: 'space-evenly',
+              gap: 4
             }}
             data={games}
           />
         </Container>
       </Box>
-      <GameDetails open={open} setOpen={setOpen} />
+      <GameDetails open={open} setOpen={setOpen} selectedGame={selectedGame} />
     </>
   );
 };
 
 export default GamesList;
-
-//

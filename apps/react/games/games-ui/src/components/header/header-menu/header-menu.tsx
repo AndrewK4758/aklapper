@@ -1,7 +1,7 @@
 import { Text } from '@aklapper/react-shared';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import { SxProps } from '@mui/material';
-import IconButton from '@mui/material/IconButton';
+import Button from '@mui/material/Button';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import { useState } from 'react';
@@ -9,10 +9,9 @@ import { useNavigate } from 'react-router';
 
 export interface HeaderMenuProps {
   breakpointsMenu?: SxProps;
-  breakpointsMenuItem?: SxProps;
 }
 
-export function HeaderMenu({ breakpointsMenu, breakpointsMenuItem }: HeaderMenuProps) {
+export function HeaderMenu({ breakpointsMenu }: HeaderMenuProps) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
@@ -30,10 +29,18 @@ export function HeaderMenu({ breakpointsMenu, breakpointsMenuItem }: HeaderMenuP
   };
   return (
     <>
-      <IconButton size="large" onClick={handleOpenMenu} edge={false} sx={{ padding: 0 }}>
-        <MenuRoundedIcon color={'success'} fontSize="large" />
-        <Text component={'h2'} titleVariant="h2" titleText={'MENU'} sx={breakpointsMenu} />
-      </IconButton>
+      <Button
+        LinkComponent={'nav'}
+        role="button"
+        color="inherit"
+        size="large"
+        disableRipple
+        onClick={handleOpenMenu}
+        startIcon={<MenuRoundedIcon htmlColor="inherit" sx={{ scale: 1.5 }} />}
+        sx={{ paddingY: 0 }}
+      >
+        <Text component={'span'} titleVariant="button" titleText={'MENU'} sx={breakpointsMenu} />
+      </Button>
 
       <Menu
         component={'ul'}
@@ -43,10 +50,10 @@ export function HeaderMenu({ breakpointsMenu, breakpointsMenuItem }: HeaderMenuP
         variant="menu"
         sx={{ textAlign: 'center' }}
       >
-        <MenuItem divider={true} component="button" onClick={() => handleClick('/')} sx={breakpointsMenuItem}>
+        <MenuItem divider={true} component="li" onClick={() => handleClick('/')}>
           {'HOME'}
         </MenuItem>
-        <MenuItem divider={true} component="button" onClick={() => handleClick('/games')} sx={breakpointsMenuItem}>
+        <MenuItem divider={true} component="li" onClick={() => handleClick('/games')}>
           {'SHOW GAMES'}
         </MenuItem>
       </Menu>

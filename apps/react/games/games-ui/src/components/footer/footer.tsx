@@ -1,6 +1,6 @@
-import { Text } from '@aklapper/react-shared';
-import { SxProps } from '@mui/material';
-import Paper from '@mui/material/Paper';
+import AppBar from '@mui/material/AppBar';
+import type { SxProps } from '@mui/material/styles';
+import Toolbar from '@mui/material/Toolbar';
 import { ElementType } from 'react';
 
 export interface FooterProps {
@@ -9,17 +9,20 @@ export interface FooterProps {
   breakpointsFooterText?: SxProps;
 }
 
-export function Footer({ component, breakpointsFooter, breakpointsFooterText }: FooterProps) {
+export default function Footer({ component, breakpointsFooter, breakpointsFooterText }: FooterProps) {
   return (
-    <Paper component={component} sx={breakpointsFooter}>
-      <Text
-        component={'h3'}
-        titleVariant={'h3'}
-        titleText={`\u00A9 A.Klapper ${new Date().getFullYear()}`}
-        sx={breakpointsFooterText}
-      />
-    </Paper>
+    <AppBar position="static" component={component} sx={breakpointsFooter}>
+      <Toolbar
+        component={'span'}
+        variant="dense"
+        sx={{
+          ...breakpointsFooterText,
+          textAlign: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        {`\u00A9 A.Klapper ${new Date().getFullYear()}`}
+      </Toolbar>
+    </AppBar>
   );
 }
-
-export default Footer;

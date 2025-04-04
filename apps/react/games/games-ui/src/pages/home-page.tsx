@@ -1,13 +1,17 @@
-import { Label, Text } from '@aklapper/react-shared';
+import { Text } from '@aklapper/react-shared';
 import type { IPlayer } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import CardHeader from '@mui/material/CardHeader';
+import Container from '@mui/material/Container';
+import Divider from '@mui/material/Divider';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
 import type { SxProps } from '@mui/material/styles';
 import { useContext, type Dispatch, type SetStateAction } from 'react';
-import JoinGame from '../components/join-game/join-game';
 import RegisterPlayer from '../components/register-player/register-player';
 import ActivePlayerContext, { ActivePlayerContextProps } from '../context/active-player-context';
-import { errorTextSx, tooltipSx } from '../styles/games-styles';
 import { GamesTheme as Theme } from '../styles/games-theme';
 
 const homePageTitleText: SxProps = {
@@ -16,97 +20,63 @@ const homePageTitleText: SxProps = {
   }
 };
 
-const homePageInfoText: SxProps = {
-  paddingY: 2,
-  [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem'
-  }
+const joinGameTextInputSxProps: SxProps = {
+  width: '50vw'
 };
 
-const homePageJoinGameButton: SxProps = {
-  [Theme.breakpoints.down('md')]: {
-    fontSize: '1.5rem'
-  }
-};
-
-const homePageJoinGameLabel: SxProps = {
-  fontSize: '2rem'
-};
-
-const homePageJoinGameTextfield: SxProps = {
-  width: '30vw'
-};
-
-const textfieldLabelWrapper: SxProps = {};
-
-const registerPlayerPropsObject: Partial<IPlayer> = {
+const registerPlayerPropsObject = {
   name: ''
-};
+} as IPlayer;
 
 const Home = () => {
   const { activePlayer, setActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
 
-  // useEffect(() => {
-  //   const savedPlayer = sessionStorage.getItem('activePlayer');
-  //   if (savedPlayer) {
-  //     const playerInfo: Partial<IPlayer> = JSON.parse(savedPlayer);
-  //     setActivePlayer({ name: playerInfo.name, id: playerInfo.id });
-  //   }
-  // }, []);
-
   return (
-    <Box component={'div'} id="home-page-wrapper" sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+    <Box
+      component={'div'}
+      id="home-page-wrapper"
+      sx={{ display: 'flex', flexDirection: 'column', gap: 10, paddingY: 2 }}
+    >
       <Text component={'h1'} titleVariant="h1" titleText="Welcome To My Game" sx={homePageTitleText} />
-      <Text
-        component={'p'}
-        titleVariant="body1"
-        titleText={
-          <>
-            Login or Register to enjoy the best experience. <br /> THEN <br /> Click on MENU &#8658; SHOW GAMES to
-            select your title <br /> OR <br /> Enter your link into the box below to join active game
-          </>
-        }
-        sx={homePageInfoText}
-      />
-
-      {!activePlayer.Name && (
-        <RegisterPlayer<Partial<IPlayer>>
-          method={'POST'}
-          inputName={'name'}
-          label={'Player Name'}
-          inputId={'player-name'}
-          formPropsObject={registerPlayerPropsObject}
-        />
-      )}
-      {!activePlayer.Name && (
-        <JoinGame
-          method="patch"
-          type="text"
-          buttonText="Join Game"
-          buttonType="submit"
-          variant="outlined"
-          homePageJoinGameButton={homePageJoinGameButton}
-          homePageJoinGameLabel={homePageJoinGameLabel}
-          homePageJoinGameTextfield={homePageJoinGameTextfield}
-          textfieldLabelWrapper={textfieldLabelWrapper}
-          tooltipSx={tooltipSx}
-          errorTextSx={errorTextSx}
-          names={['gamePath']}
-        />
-      )}
-      {activePlayer.Name && (
-        <Button id="logout-player" variant="outlined" onClick={() => handleLogoutPlayer(setActivePlayer)}>
-          <Label
-            id="logout-player-label"
-            htmlFor="logout-player"
-            tooltipTitle={'Press to log out player'}
-            labelText="Logout"
-            labelVariant={'button'}
-            placement={'top'}
-            labelTextSx={{ fontSize: '2rem' }}
+      <Box component={'section'} id="home-page-instructions-register-wrapper" sx={{ display: 'flex' }}>
+        <Card component={'section'} id="home-page-instructions-wrapper">
+          <CardHeader
+            component="section"
+            title={<Text titleVariant="h2" component={'h2'} titleText="Instructions" />}
           />
-        </Button>
-      )}
+          <Divider variant="middle" />
+          <List component={'ul'} id="intructions-list" sx={{ paddingY: 4 }}>
+            <ListItem component={'li'} id="instruction 1">
+              Enter player name to enjoy the best experience.
+            </ListItem>
+            <ListItem component={'li'} id="instruction 2">
+              Click on MENU &#8658; SHOW GAMES to select your title
+            </ListItem>
+            <ListItem component={'li'} id="instruction 3">
+              Enter your link into the Container below to join active game
+            </ListItem>
+          </List>
+        </Card>
+        <Container component={'section'} id="home-page-register-player-wrapper">
+          <Text titleVariant="h2" component={'h2'} titleText={'Register'} />
+          {!activePlayer.Name && (
+            <RegisterPlayer<IPlayer>
+              method={'POST'}
+              inputName={'name'}
+              label={'Player Name'}
+              inputId={'player-name'}
+              formPropsObject={registerPlayerPropsObject}
+              inputSx={joinGameTextInputSxProps}
+            />
+          )}
+
+          {activePlayer.Name && (
+            <Button id="logout-player" variant="outlined" onClick={() => handleLogoutPlayer(setActivePlayer)}>
+              Logout
+            </Button>
+          )}
+        </Container>
+      </Box>
     </Box>
   );
 };

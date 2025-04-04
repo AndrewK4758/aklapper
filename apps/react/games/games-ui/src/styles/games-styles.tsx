@@ -167,12 +167,8 @@ export const tooltipSx: SxProps = {
 
 export const errorTextSx: SxProps = {
   color: Theme.palette.error.main,
-  backgroundColor: Theme.palette.background.paper,
-  borderRadius: 1,
   paddingX: 1,
-  fontSize: '1rem',
   fontFamily: 'monospace',
-  textAlign: 'center',
   [Theme.breakpoints.down('md')]: {
     fontSize: '0.875rem'
   }

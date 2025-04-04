@@ -1,191 +1,147 @@
 import { createTheme } from '@mui/material/styles';
+import {
+  __errorDark,
+  __errorLight,
+  __errorMain,
+  __greyDark,
+  __greyLight,
+  __greyPaper,
+  __infoDark,
+  __infoLight,
+  __infoMain,
+  __primaryDark,
+  __primaryLight,
+  __primaryMain,
+  __secondaryDark,
+  __secondaryLight,
+  __secondaryMain,
+  __successDark,
+  __successLight,
+  __successMain,
+  __textSecondary,
+  __warningDark,
+  __warningLight,
+  __warningMain,
+  __white
+} from './colors';
 import './styles.css';
-
-//yellows
-const __primaryMain = '#ffd300';
-const __primaryLight = '#ffdb33';
-const __primaryDark = '#b29300';
-const __primaryContrast = '#800080';
-
-//pinks
-const __secondaryMain = '#ff69b4';
-const __secondaryLight = '#ff87c3';
-const __secondaryDark = '#b2497d';
-const __secondaryContrast = '#404040';
-
-//Greys
-const __greyDark = '#101010';
-const __greyLight = '#707070';
-const __greyDefault = '#404040';
-
-//text main?
-const __rustColor = '#ff3d00';
 
 export const GamesTheme = createTheme({
   palette: {
-    common: {
-      black: __greyDark,
-      white: __greyLight
-    },
-    text: {
-      primary: __primaryMain,
-      secondary: __greyDark,
-      disabled: __primaryDark
-    },
-    divider: __primaryContrast,
-    action: {
-      hover: __primaryContrast,
-      hoverOpacity: 0.75
-    },
+    mode: 'dark',
+
     primary: {
       main: __primaryMain,
       light: __primaryLight,
       dark: __primaryDark,
-      contrastText: __primaryContrast
+      contrastText: __greyDark
     },
+
     secondary: {
       main: __secondaryMain,
       light: __secondaryLight,
       dark: __secondaryDark,
-      contrastText: __secondaryContrast
+      contrastText: __white
     },
+
+    error: {
+      main: __errorMain,
+      light: __errorLight,
+      dark: __errorDark,
+      contrastText: __white
+    },
+
+    warning: {
+      main: __warningMain,
+      light: __warningLight,
+      dark: __warningDark,
+      contrastText: __white
+    },
+
     info: {
-      main: __greyDefault
+      main: __infoMain,
+      light: __infoLight,
+      dark: __infoDark,
+      contrastText: __greyDark
     },
+
     success: {
-      main: __rustColor
+      main: __successMain,
+      light: __successLight,
+      dark: __successDark,
+      contrastText: __white
     },
 
     background: {
-      default: __greyLight,
-      paper: __greyDark
-    }
-  },
+      default: __greyDark,
+      paper: __greyPaper
+    },
 
+    text: {
+      primary: __white,
+      secondary: __textSecondary,
+      disabled: __greyLight
+    },
+
+    divider: __greyLight
+  },
   typography: {
-    fontFamily: 'Jersey25',
+    fontFamily: 'Pixel-Game',
     h1: {
       fontFamily: 'Jersey25-Charted',
-      fontSize: '8rem',
-      color: __rustColor,
-      textShadow: `2px 1px ${__primaryLight}`
+      color: __secondaryMain
     },
     h2: {
-      fontSize: '4rem',
-      fontFamily: 'Jersey25',
-      color: __primaryMain,
-      textShadow: `2px 1px ${__primaryContrast}`
-    },
-    h3: {
-      fontFamily: 'Jersey25',
-      fontSize: '2.5rem',
-      color: __primaryMain,
-      textShadow: `2px 1px ${__primaryContrast}`
-    },
-    h4: {
-      fontFamily: 'Jersey25-Charted',
-      fontSize: '2rem',
-      color: __primaryMain,
-      textShadow: `1px 1px ${__primaryContrast}`
-    },
-    h5: {
-      fontFamily: 'Jersey25-Charted',
-      fontSize: '5rem',
-      color: __rustColor,
-      textShadow: `2px 1px ${__primaryLight}`
+      color: __secondaryLight
     },
     body1: {
-      fontFamily: 'Jersey25',
-      color: __greyDark,
-      fontSize: '2rem'
+      fontFamily: 'Press-Start'
     },
-    body2: {
-      fontFamily: 'Jersey25',
-      fontWeight: 100,
-      fontSize: '1.5rem'
+    button: {
+      fontFamily: 'Jersey25-Charted',
+      fontSize: '2rem'
     }
   },
   components: {
     MuiCssBaseline: {
       styleOverrides: {
+        fontSize: '2rem',
+
         '&::-webkit-scrollbar': {
-          width: '1rem'
+          width: '1rem',
+          borderRadius: 1
+        },
+        '&::-webkit-scrollbar-track': {
+          background: __greyDark,
+          borderRadius: 1
+        },
+        '&::-webkit-scrollbar-thumb': {
+          background: __greyLight,
+          '&:hover': {
+            background: __textSecondary
+          }
         },
         '&::-webkit-scrollbar-button': {
-          background: '#101010'
-        }
-      }
-    },
-    MuiContainer: {
-      variants: [
-        {
-          props: { component: 'div' },
-          style: {
-            gap: 4,
-            display: 'flex',
-            flexWrap: 'wrap',
-            flexDirection: 'row',
-            textAlign: 'center',
-            justifyContent: 'center',
-            alignContent: 'center',
-            margin: 0,
-            padding: 0
+          background: __greyPaper,
+          height: '1rem',
+          '&:hover': {
+            background: __textSecondary
           }
         },
-        {
-          props: { component: 'section' },
-          style: {
-            display: 'flex',
-            flexWrap: 'wrap',
-            margin: 0,
-            padding: 0
-          }
-        }
-      ]
+
+        scrollbarWidth: 'thin',
+        scrollbarColor: `${__greyLight} ${__greyDark}`
+      }
     },
     MuiButton: {
-      variants: [
-        {
-          props: { variant: 'outlined' },
-          style: {
-            type: 'submit',
-            backgroundColor: __greyDefault,
-            width: 230,
-            height: 70,
-            fontSize: 34
-          }
-        }
-      ],
-      defaultProps: {
-        variant: 'outlined'
-      }
-    },
-    MuiInputLabel: {
-      variants: [
-        {
-          props: { component: 'h2' },
-          style: {
-            fontSize: '4rem',
-            fontFamily: 'Jersey25-Charted',
-            color: __primaryMain,
-            textShadow: `2px 1px ${__primaryContrast}`
-          }
-        }
-      ]
-    },
-    MuiImageListItemBar: {
       styleOverrides: {
-        title: {
-          fontSize: 36,
-          color: __rustColor
-        },
-        root: {
-          backgroundColor: __greyDark,
-          borderRadius: 5
+        startIcon: {
+          color: 'inherit'
         }
+      },
+      defaultProps: {
+        sx: { fontSize: '2rem' }
       }
     }
   }
 });
-
-export default GamesTheme;

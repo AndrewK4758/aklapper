@@ -1,5 +1,5 @@
-import type { IRule } from './rule.js';
 import type { Chain } from './chain.js';
+import type { IRule } from './rule.js';
 
 export interface IBuiltGame {
   id: string;
@@ -7,6 +7,10 @@ export interface IBuiltGame {
   description?: string;
   imageURL?: string;
   rules: IRule[];
+  players: {
+    min: number;
+    max: number;
+  };
   chain: Chain | null;
   instance(): unknown;
 }

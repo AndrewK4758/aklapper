@@ -1,10 +1,15 @@
-import { FormikTextInput, Label, type httpMethod } from '@aklapper/react-shared';
+import { FormikValidationError, Label, type httpMethod } from '@aklapper/react-shared';
 import type { IPlayer } from '@aklapper/types';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
-import { useFormik } from 'formik';
+import FormControl from '@mui/material/FormControl';
+import OutlinedInput from '@mui/material/OutlinedInput';
+import type { SxProps } from '@mui/material/styles';
+import { useFormik, type FormikProps } from 'formik';
+import type { ChangeEvent } from 'react';
 import { Form, useSubmit, type SubmitFunction } from 'react-router';
 import * as Yup from 'yup';
+import { __greyPaper } from '../../styles/colors';
 import { errorTextSx, tooltipSx } from '../../styles/games-styles';
 
 function initialValues<T>(defaults: T, key: keyof T, value: unknown): T {
@@ -24,6 +29,7 @@ interface RegisterPlayerProps<T> {
   label: string;
   inputId: string;
   formPropsObject: T;
+  inputSx: SxProps;
 }
 
 export default function RegisterPlayer<T extends object>({
@@ -31,7 +37,8 @@ export default function RegisterPlayer<T extends object>({
   inputId,
   label,
   method,
-  inputName
+  inputName,
+  inputSx
 }: RegisterPlayerProps<T>) {
   const submit = useSubmit();
   const formik = useFormik<T>({
@@ -40,35 +47,42 @@ export default function RegisterPlayer<T extends object>({
     onSubmit: async values => handleNewPlayerSubmit(values, submit)
   });
 
+  const { value } = formik.getFieldProps(inputName as string);
+
   return (
     <Container>
       <Form method={method} onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
-        <FormikTextInput<T>
-          name={inputName}
-          formik={formik}
-          type={'outlined'}
-          label={label}
-          labelComponent={'body1'}
-          autoComplete={'on'}
-          id={inputId}
-          errorTextSx={errorTextSx}
-          valueField={inputName}
-          tooltipTitle={'Enter Player Name Here'}
-          tooltipSx={tooltipSx}
-          textSx={{}}
-          labelSx={{}}
-        />
-        <Button type="submit" variant="outlined" id="player-name-button">
+        <FormControl>
           <Label
-            tooltipTitle={'Enter player name you would like to use in the upcoming games'}
-            labelVariant={'button'}
-            labelText={'Enter Player Name'}
-            id={'player-name-label'}
+            tooltipTitle={`Enter your player name here. Then submit to enter lobby.`}
+            labelVariant={'body2'}
+            labelText={label}
+            id={`${inputId}-label`}
             placement={'top'}
-            htmlFor={'player-name-button'}
-            labelTextSx={{ fontSize: '1.5rem' }}
+            htmlFor={inputId}
             tooltipSx={tooltipSx}
           />
+          <OutlinedInput
+            autoFocus
+            id={inputId}
+            label={label}
+            value={value}
+            fullWidth
+            name={inputName as string}
+            onChange={async e => await handlePlayerNameChange<T>(e, formik)}
+            onBlur={formik.handleBlur}
+            onFocus={async e => await handleNewPlayerInputTouched(e.currentTarget.name, formik)}
+            sx={inputSx}
+            slotProps={{
+              input: { sx: { backgroundColor: __greyPaper } }
+            }}
+          />
+          <FormikValidationError<T> formik={formik} elementName={inputName} helperTextSx={errorTextSx} />
+        </FormControl>
+        <br />
+        <br />
+        <Button type="submit" variant="outlined" id="player-name-button">
+          Enter Player Name
         </Button>
       </Form>
     </Container>
@@ -81,4 +95,15 @@ async function handleNewPlayerSubmit(values: Partial<IPlayer>, submit: SubmitFun
   } catch (error) {
     console.error(error);
   }
+}
+
+async function handlePlayerNameChange<T>(
+  e: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+  formik: FormikProps<T>
+) {
+  await formik.setFieldValue(e.currentTarget.name, e.currentTarget.value);
+}
+
+async function handleNewPlayerInputTouched<T>(target: string, formik: FormikProps<T>) {
+  await formik.setFieldTouched(target, false);
 }

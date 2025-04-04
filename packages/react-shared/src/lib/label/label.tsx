@@ -3,7 +3,6 @@ import InputLabel from '@mui/material/InputLabel';
 import type { TypographyVariant } from '@mui/material/styles';
 import { type SxProps } from '@mui/material/styles';
 import Tooltip from '@mui/material/Tooltip';
-import Typography from '@mui/material/Typography';
 import { forwardRef, type JSX, type ReactNode } from 'react';
 
 const labelWrapperSxProps: SxProps = {
@@ -44,7 +43,7 @@ export const Label = forwardRef<HTMLDivElement, LabelProps>(
   (
     {
       labelText,
-      labelVariant,
+      // labelVariant,
       placement,
       id,
       labelTextSx,
@@ -57,7 +56,7 @@ export const Label = forwardRef<HTMLDivElement, LabelProps>(
     },
     ref
   ) => (
-    <InputLabel component={'div'} key={`${id}-wrapper-box`} id={`${id}-wrapper-box`}>
+    <Box component={'section'} key={`${id}-wrapper-box`} id={`${id}-wrapper-box`}>
       <Box component={'div'} key={`${id}-box`} id={`${id}-box`} sx={labelWrapperDivSxProps}>
         <Tooltip
           id={`${id}-tooltip`}
@@ -68,17 +67,16 @@ export const Label = forwardRef<HTMLDivElement, LabelProps>(
           title={tooltipTitle}
           slotProps={{ tooltip: { sx: tooltipSx } }}
         >
-          <Typography
-            component={'label'}
+          <InputLabel
             is="label"
             htmlFor={htmlFor}
-            variant={labelVariant}
             key={`${id}-label-text`}
             id={`${id}-label-text-id`}
+            variant="outlined"
             sx={labelTextSx}
           >
             {labelText}
-          </Typography>
+          </InputLabel>
         </Tooltip>
         {Icon && (
           <Box component={'div'} key={`${id}-icon`} id={`${id}-icon`} sx={iconAndChildrenSxProps}>
@@ -86,12 +84,8 @@ export const Label = forwardRef<HTMLDivElement, LabelProps>(
           </Box>
         )}
       </Box>
-      {children && (
-        <Box component={'div'} key={`${id}-box-children`} id={`${id}-box-children`} sx={iconAndChildrenSxProps}>
-          {children}
-        </Box>
-      )}
-    </InputLabel>
+      {children}
+    </Box>
   )
 );
 

@@ -20,6 +20,7 @@ export class Rule {
     this.rule.title = title;
     return this;
   }
+
   build(): IRule {
     return this.rule;
   }

@@ -9,10 +9,11 @@ export interface TextProps {
   titleText: ReactNode;
   sx?: SxProps;
   component: ElementType;
+  gutterBottom?: boolean;
 }
 
-export const Text = ({ component, id, titleVariant, titleText, sx }: TextProps) => (
-  <Typography component={component} id={id} variant={titleVariant} sx={sx} data-testid={id}>
+export const Text = ({ component, id, titleVariant, titleText, gutterBottom, sx }: TextProps) => (
+  <Typography component={component} id={id} variant={titleVariant} sx={sx} gutterBottom={gutterBottom} data-testid={id}>
     {titleText}
   </Typography>
 );

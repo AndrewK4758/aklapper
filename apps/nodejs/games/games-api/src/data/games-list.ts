@@ -21,6 +21,7 @@ export const ChutesAndLaddersGame = gb
   .setName('Chutes & Ladders')
   .setDescription('First Game')
   .setImageURL('ChutesAndLaddersT.webp')
+  .setPlayers(2, 4)
   .setRule(
     1,
     'INSTRUCTIONS',
@@ -59,6 +60,7 @@ export const TicTacToeGame = gb
   .setId('1')
   .setName('Tic Tac Toe')
   .setDescription('Second Game Placeholder')
+  .setPlayers(2, 2)
   .setImageURL('TicTacToeT.webp')
   .setRule(1, 'SETUP', `The game is played on a 3x3 grid`)
   .setRule(2, 'TURNS', `Players take turns marking an empty square with their symbol (X or O)`)

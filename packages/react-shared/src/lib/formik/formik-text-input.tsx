@@ -48,46 +48,36 @@ export function FormikTextInput<T extends object>({
   const { value } = formik.getFieldProps(valueField as string);
 
   return (
-    <Box
-      key={`${label}-wrapper`}
-      id={`${label}-wrapper`}
-      display={'flex'}
-      flexDirection={'column'}
-      gap={1}
-      alignItems={'center'}
-    >
-      <Box width={'100%'}>
-        <FormControl variant={'outlined'}>
-          <Label
-            id={id}
-            htmlFor={id}
-            tooltipTitle={tooltipTitle}
-            labelVariant={labelComponent}
-            labelText={label}
-            labelTextSx={labelSx}
-            labelWrapperDivSxProps={labelWrapperSx}
-            placement={'top'}
-            tooltipSx={tooltipSx}
-          />
+    <FormControl>
+      <Label
+        id={id}
+        htmlFor={id}
+        tooltipTitle={tooltipTitle}
+        labelVariant={labelComponent}
+        labelText={label}
+        labelTextSx={labelSx}
+        labelWrapperDivSxProps={labelWrapperSx}
+        placement={'top'}
+        tooltipSx={tooltipSx}
+      />
 
-          <OutlinedInput
-            id={id}
-            autoComplete={autoComplete}
-            type={type}
-            placeholder={placeholder}
-            name={name as string}
-            value={value}
-            onChange={e => formik.setFieldValue(valueField as string, e.currentTarget.value)}
-            sx={textSx}
-            label={label}
-            onBlur={formik.handleBlur}
-          />
-          <Box component={'section'} id={`${value}-error-box`} display={'flex'} justifyContent={'center'}>
-            <FormikValidationError<T> formik={formik} elementName={name} helperTextSx={errorTextSx} />
-          </Box>
-        </FormControl>
+      <OutlinedInput
+        id={id}
+        autoComplete={autoComplete}
+        type={type}
+        placeholder={placeholder}
+        label={label}
+        name={name as string}
+        value={value}
+        onChange={async e => await formik.setFieldValue(valueField as string, e.currentTarget.value)}
+        sx={textSx}
+        onBlur={formik.handleBlur}
+      />
+
+      <Box component={'section'} id={`${value}-error-box`} display={'flex'} justifyContent={'center'}>
+        <FormikValidationError<T> formik={formik} elementName={name} helperTextSx={errorTextSx} />
       </Box>
-    </Box>
+    </FormControl>
   );
 }
 
