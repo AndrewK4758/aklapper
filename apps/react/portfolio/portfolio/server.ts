@@ -5,15 +5,15 @@ import express from 'express';
 import render from './src/main-server.tsx';
 import './src/styles/main-styles.css';
 
-const PORT = process.env.PORT || 4700;
+const PORT = process.env.PORT || 4701;
 
 const app: Express = express();
 
 const corsOptions: CorsOptions = {
-  origin: ['http://localhost:5800', 'http://localhost', 'http://localhost:4800', 'http://localhost:4700']
+  origin: ['http://localhost:5800', 'http://localhost', 'http://localhost:4800', 'http://localhost:4700'],
 };
 
-app.options('*', cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 app.use(cors(corsOptions));
 
 app.use(express.static('dist'));
@@ -21,7 +21,7 @@ app.use(express.static('dist'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.get('*', async (req: Request, resp: Response) => {
+app.get(/.*/, async (req: Request, resp: Response) => {
   try {
     const fullUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
 

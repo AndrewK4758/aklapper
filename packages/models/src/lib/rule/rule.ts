@@ -1,6 +1,6 @@
 import { IRule, IRuleBuilder } from '@aklapper/types';
 
-export class Rule {
+export class Rule implements IRuleBuilder {
   private rule: IRule;
   constructor() {
     this.rule = new Object() as IRule;

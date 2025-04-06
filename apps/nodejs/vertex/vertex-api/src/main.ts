@@ -18,23 +18,23 @@ export const corsOptions: CorsOptions = {
     'https://andrew-k.us',
     'https://www.andrew-k.us',
     'http://localhost',
-    'https://games-424800.uc.r.appspot.com'
+    'https://games-424800.uc.r.appspot.com',
   ],
   exposedHeaders: '*',
-  credentials: false
+  credentials: false,
 };
 
 export const httpServer = createServer(app);
 
+app.options(/.*/, cors(corsOptions));
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
 app.enable('trust proxy');
 app.use('/assets', express.static(join(__dirname, 'assets')));
 app.use('/api/v1', router);
 
 const serverOptions: Partial<ServerOptions> = {
   cleanupEmptyChildNamespaces: true,
-  cors: corsOptions
+  cors: corsOptions,
 };
 
 export const socketServer = new SocketServer(httpServer, serverOptions);

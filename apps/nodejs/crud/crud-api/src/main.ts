@@ -24,18 +24,18 @@ export const corsOptions: CorsOptions = {
     'https://andrew-k.us',
     'https://www.andrew-k.us',
     'http://localhost',
-    'https://games-424800.uc.r.appspot.com'
+    'https://games-424800.uc.r.appspot.com',
   ],
   methods: '*',
   exposedHeaders: '*',
   optionsSuccessStatus: 204,
   allowedHeaders: '*',
-  credentials: true
+  credentials: true,
 };
 
 export const httpServer = createServer(app);
 
-app.options('*', cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 app.use(cors(corsOptions));
 app.enable('trust proxy');
 app.use('/assets', express.static(join(__dirname, 'assets')));

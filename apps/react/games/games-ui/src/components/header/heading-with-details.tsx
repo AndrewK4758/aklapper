@@ -1,39 +1,27 @@
-import { Text } from '@aklapper/react-shared';
-import { Box, ListItem, SxProps } from '@mui/material';
-import { TypographyVariant } from '@mui/material/styles';
-import { ElementType } from 'react';
+import DialogContentText from '@mui/material/DialogContentText';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+import type { SxProps } from '@mui/material/styles';
 
-export interface HeadingWithDetailsProps {
-  component: ElementType;
+export interface GameRulesListProps {
   id: string | number;
-  titleVariant: TypographyVariant;
   titleText: string | undefined;
   titleSx?: SxProps;
-  valueVariant: TypographyVariant;
   valueText: string;
   valueSx?: SxProps;
 }
 
-export function HeadingWithDetails({
-  component,
-  id,
-  titleVariant,
-  titleText,
-  titleSx,
-  valueVariant,
-  valueText,
-  valueSx
-}: HeadingWithDetailsProps) {
+export function GameRulesList({ id, titleText, titleSx, valueText, valueSx }: GameRulesListProps) {
   return (
-    <Box component={'div'} key={id}>
-      <ListItem component={component}>
-        <Text component={'p'} titleVariant={titleVariant} titleText={titleText} sx={titleSx} />
-      </ListItem>
-      <ListItem component={component}>
-        <Text component={'p'} titleVariant={valueVariant} titleText={valueText} sx={valueSx} />
-      </ListItem>
-    </Box>
+    <ListItem
+      component={'li'}
+      id={`${id}-title`}
+      sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}
+    >
+      <ListItemText primary={titleText} sx={titleSx} />
+      <ListItemText inset={true} primary={<DialogContentText sx={valueSx}>{valueText}</DialogContentText>} />
+    </ListItem>
   );
 }
 
-export default HeadingWithDetails;
+export default GameRulesList;

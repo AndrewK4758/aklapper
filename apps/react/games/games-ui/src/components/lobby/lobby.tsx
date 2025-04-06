@@ -1,5 +1,11 @@
-import { Text } from '@aklapper/react-shared';
-import type { IPlayer, PrivateMessageDetails } from '@aklapper/types';
+import { RenderList, Text } from '@aklapper/react-shared';
+import type {
+  ClientLobbyData,
+  GamesInLobbyToSend,
+  IPlayer,
+  NewGameDetails,
+  PrivateMessageDetails,
+} from '@aklapper/types';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
@@ -18,24 +24,24 @@ import PrivateMessageModal from './messages/private_message';
 // - Join game functionality (mouse or keyboard)
 // - pub/sub & websocket event handling and emitting
 // X Emit event when player enters lobby
-// 1- Emit event when game is created to inLobby players not in game
+// X Emit event when game is created to inLobby players not in game
 // X Emit event when player leaves lobby
 // X Mesaging between players
 // -- Remove players from lobby if in active game
 // X- Create closed messaging group for players in active game
-// --- Connect to game instance websocket when player selects game instance
+// --- Create websocket namespace or path for each active game ID and connect players on join
 
-// 1 Emit event when game is created to inLobby players not in game
-// ---- Remove navigation to :id/register route when game is created
-// ---- On succesful response code for registering game, display active game in UI by emit event to all players
+// X Emit event when game is created to inLobby players not in game
+// X Remove navigation to :id/register route when game is created
+// X On succesful response code for registering game, display active game in UI by emit event to all players
 //      with ability to join game
 // ---- All active games will have ability for player to join with button
 // ---- Game will automatically emit event once max players reached and remove ability to connect with game from ui
 // ---- Redirect game with players to avatar registration page according to game
 
 export default function Lobby() {
-  const lobbyData = useRouteLoaderData('lobby') as IPlayer[];
-  const action = useActionData<boolean>() as boolean;
+  const { activeGamesInLobby, activePlayersInLobby } = useRouteLoaderData('lobby') as ClientLobbyData;
+  const action = useActionData<boolean | undefined>();
   const { activePlayer, setActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
 
   let activeStoredPlayer: Partial<IPlayer>;
@@ -47,11 +53,12 @@ export default function Lobby() {
 
   const { socket } = useContext<WebsocketContextProps>(WebsocketContext);
 
-  const [activeLobby, setActiveLobby] = useState<IPlayer[]>(lobbyData);
-  const [currentPlayer] = useState<Partial<IPlayer>>(activeStoredPlayer);
+  const [activeLobby, setActiveLobby] = useState<IPlayer[]>(activePlayersInLobby);
+  const [currentPlayer, setCurrentPlayer] = useState<Partial<IPlayer>>(activeStoredPlayer);
   const [messages, setMessages] = useState<PrivateMessageDetails[]>([]);
   const [openMessage, setOpenMessage] = useState<boolean>(false);
   const [messageTarget, setMessageTarget] = useState<PrivateMessageDetails | null>(null);
+  const [activeGames, setActiveGames] = useState<GamesInLobbyToSend[]>(activeGamesInLobby);
 
   const nav = useNavigate();
 
@@ -82,9 +89,31 @@ export default function Lobby() {
       socket.on('removePlayer', id => {
         setActiveLobby(activeLobby.filter(player => player.Id !== id));
       });
+
+      socket.on('new-game', ({ gameName, gameInstanceId }: NewGameDetails) => {
+        console.log(`NEW ${gameName} WITH INSTANCE ID: ${gameInstanceId}`);
+
+        setCurrentPlayer(prev => ({ ...prev, ActiveGameID: gameInstanceId }));
+        setActiveGames(prev => {
+          console.log(prev);
+          const newGameIdArr: string[] = [];
+          const newGameObj: GamesInLobbyToSend = {};
+          const newState: GamesInLobbyToSend[] = [];
+
+          for (let i = 0; i < prev.length; i++) {
+            if (Object.hasOwn(prev[i], gameName)) {
+              newGameIdArr.push(...prev[i][gameName], gameInstanceId);
+              newGameObj[gameName] = newGameIdArr;
+              newState.push(newGameObj);
+            } else newState.push(prev[i]);
+          }
+          return newState;
+        });
+      });
     }
     return () => {
       if (socket.connected) {
+        setActiveLobby(activePlayersInLobby.filter(player => player.Id === currentPlayer.Id));
         socket.disconnect();
         socket.removeAllListeners();
       }
@@ -93,39 +122,42 @@ export default function Lobby() {
 
   return (
     <WebsocketContextProvider>
-      <Box component={'div'} id="lobby-wrapper" height={'100%'}>
-        <Box component={'section'} id="lobby-title" textAlign={'center'}>
-          <Text titleText="Game Lobby" titleVariant="h1" component={'h1'} />
+      <Box component={'div'} id='lobby-wrapper' height={'100%'}>
+        <Box component={'section'} id='lobby-title' textAlign={'center'}>
+          <Text titleText='Game Lobby' titleVariant='h1' component={'h1'} />
         </Box>
 
-        <Box component={'section'} id="lobby-header-wrapper" display={'flex'}>
-          <Box component={'section'} id="players-in-lobby-wrapper" flex={1}>
-            <Text titleText={'Active Players'} titleVariant="h2" component={'h2'} />
+        <Box component={'section'} id='lobby-header-wrapper' display={'flex'} alignItems={'flex-end'}>
+          <Box component={'section'} id='players-in-lobby-wrapper' flex={1}>
+            <Text titleText={'Active Players'} titleVariant='h2' component={'h2'} />
             <Divider />
           </Box>
-          <Box component={'section'} id="game-list-title-wrapper" flex={1}>
-            <Text component={'h2'} titleVariant="h2" titleText={'Games'} />
+          <Box component={'section'} id='game-list-title-wrapper' flex={2.5}>
+            <Text component={'h2'} titleVariant='h2' titleText={'Games'} />
             <Divider />
           </Box>
-          <Box component={'section'} id="lobby-messages-wrapper" flex={1}>
-            <Text titleText="Messages" titleVariant="h2" component={'h2'} />
+          <Box component={'section'} id='lobby-messages-wrapper' flex={1.5}>
+            <Text titleText='Messages' titleVariant='h2' component={'h2'} />
             <Divider />
           </Box>
         </Box>
 
-        <Box component={'section'} id="lobby-data-wrapper" display={'flex'} height={'80vh'} minHeight={'fit-content'}>
-          <Box component={'section'} id="players-in-lobby-list-wrapper" sx={{ flex: 1 }}>
-            {activeLobby.map((e, i, arr) =>
-              playersMapCallback(e, i, arr, currentPlayer, setOpenMessage, setMessageTarget)
-            )}
+        <Box component={'section'} id='lobby-data-wrapper' display={'flex'} height={'80vh'} minHeight={'fit-content'}>
+          <Box component={'section'} id='players-in-lobby-list-wrapper' sx={{ flex: 1 }}>
+            <RenderList<IPlayer>
+              data={activeLobby}
+              listMapCallback={(e, i, arr) =>
+                playersMapCallback(e, i, arr, currentPlayer, setOpenMessage, setMessageTarget)
+              }
+            />
           </Box>
-          <Divider orientation="vertical" />
-          <Box component={'section'} id="active-games-not-started-wrapper" flex={1}>
-            <GamesList />
+          <Divider orientation='vertical' />
+          <Box component={'section'} id='active-games-not-starte  d-wrapper' flex={2.5}>
+            <GamesList activeGames={activeGames} />
           </Box>
-          <Divider textAlign="left" orientation="vertical" />
+          <Divider textAlign='left' orientation='vertical' />
 
-          <Box component={'section'} id="lobby-messages" flex={1}>
+          <Box component={'section'} id='lobby-messages' flex={1.5}>
             {messages.map(messagesListCallback)}
           </Box>
         </Box>
@@ -159,7 +191,7 @@ function playersMapCallback(
   _arr: unknown,
   currentPlayer: Partial<IPlayer>,
   setOpenMessage: Dispatch<SetStateAction<boolean>>,
-  setMessageTarget: Dispatch<SetStateAction<PrivateMessageDetails | null>>
+  setMessageTarget: Dispatch<SetStateAction<PrivateMessageDetails | null>>,
 ): ReactElement {
   const { Name, Id } = e as Partial<IPlayer>;
   return (
@@ -169,29 +201,29 @@ function playersMapCallback(
       key={`active-player-${Name}-${Id}-wrapper`}
       sx={{ borderBottom: 2, display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}
     >
-      <Text key={`${Name}-${Id}`} titleText={Name} titleVariant="body1" component={'p'} sx={{}} />
+      <Text key={`${Name}-${Id}`} titleText={Name} titleVariant='body1' component={'p'} sx={{}} />
       {Id !== currentPlayer.Id && (
         <Button
           LinkComponent={'button'}
-          variant="outlined"
+          variant='outlined'
           name={Name}
           id={`message-player-${Id}-button`}
-          size="small"
+          size='small'
           onClick={() =>
             handleMessageClick(
               {
                 sender: {
                   senderName: currentPlayer.Name as string,
-                  senderId: currentPlayer.Id as string
+                  senderId: currentPlayer.Id as string,
                 },
                 target: {
                   targetName: Name as string,
-                  targetId: Id as string
+                  targetId: Id as string,
                 },
-                message: ''
+                message: '',
               },
               setOpenMessage,
-              setMessageTarget
+              setMessageTarget,
             )
           }
           sx={{ fontSize: '1rem' }}
@@ -206,7 +238,7 @@ function playersMapCallback(
 async function handleMessageClick(
   messageDetails: PrivateMessageDetails,
   setOpenMessage: Dispatch<SetStateAction<boolean>>,
-  setMessageTarget: Dispatch<SetStateAction<PrivateMessageDetails | null>>
+  setMessageTarget: Dispatch<SetStateAction<PrivateMessageDetails | null>>,
 ) {
   setOpenMessage(true);
   setMessageTarget(messageDetails);

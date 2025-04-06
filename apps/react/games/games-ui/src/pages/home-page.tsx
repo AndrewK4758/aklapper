@@ -16,16 +16,16 @@ import { GamesTheme as Theme } from '../styles/games-theme';
 
 const homePageTitleText: SxProps = {
   [Theme.breakpoints.down('md')]: {
-    fontSize: '4rem'
-  }
+    fontSize: '4rem',
+  },
 };
 
 const joinGameTextInputSxProps: SxProps = {
-  width: '50vw'
+  width: '50vw',
 };
 
 const registerPlayerPropsObject = {
-  name: ''
+  name: '',
 } as IPlayer;
 
 const Home = () => {
@@ -34,31 +34,34 @@ const Home = () => {
   return (
     <Box
       component={'div'}
-      id="home-page-wrapper"
+      id='home-page-wrapper'
       sx={{ display: 'flex', flexDirection: 'column', gap: 10, paddingY: 2 }}
     >
-      <Text component={'h1'} titleVariant="h1" titleText="Welcome To My Game" sx={homePageTitleText} />
-      <Box component={'section'} id="home-page-instructions-register-wrapper" sx={{ display: 'flex' }}>
-        <Card component={'section'} id="home-page-instructions-wrapper">
+      <Text component={'h1'} titleVariant='h1' titleText='Welcome To My Game' sx={homePageTitleText} />
+      <Box component={'section'} id='home-page-instructions-register-wrapper' sx={{ display: 'flex' }}>
+        <Card component={'section'} id='home-page-instructions-wrapper'>
           <CardHeader
-            component="section"
-            title={<Text titleVariant="h2" component={'h2'} titleText="Instructions" />}
+            component='section'
+            title={<Text titleVariant='h2' component={'h2'} titleText='Instructions' />}
           />
-          <Divider variant="middle" />
-          <List component={'ul'} id="intructions-list" sx={{ paddingY: 4 }}>
-            <ListItem component={'li'} id="instruction 1">
-              Enter player name to enjoy the best experience.
+          <Divider variant='middle' />
+          <List component={'ul'} id='intructions-list' sx={{ paddingY: 4 }}>
+            <ListItem component={'li'} id='instruction-1'>
+              Submit your player name to enter the Game Lobby
             </ListItem>
-            <ListItem component={'li'} id="instruction 2">
-              Click on MENU &#8658; SHOW GAMES to select your title
+            <ListItem component={'li'} id='instruction-2'>
+              You can join a game looking for players or create a game for others to join
             </ListItem>
-            <ListItem component={'li'} id="instruction 3">
-              Enter your link into the Container below to join active game
+            <ListItem component={'li'} id='instruction-3'>
+              The Game Lobby has private messaging to communicate with other active players
+            </ListItem>
+            <ListItem component={'li'} id='instruction-4'>
+              Player is data is erased once when you leave the lobby using the button
             </ListItem>
           </List>
         </Card>
-        <Container component={'section'} id="home-page-register-player-wrapper">
-          <Text titleVariant="h2" component={'h2'} titleText={'Register'} />
+        <Container component={'section'} id='home-page-register-player-wrapper'>
+          <Text titleVariant='h2' component={'h2'} titleText={'Register'} />
           {!activePlayer.Name && (
             <RegisterPlayer<IPlayer>
               method={'POST'}
@@ -71,7 +74,7 @@ const Home = () => {
           )}
 
           {activePlayer.Name && (
-            <Button id="logout-player" variant="outlined" onClick={() => handleLogoutPlayer(setActivePlayer)}>
+            <Button id='logout-player' variant='outlined' onClick={() => handleLogoutPlayer(setActivePlayer)}>
               Logout
             </Button>
           )}

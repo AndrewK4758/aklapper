@@ -22,7 +22,7 @@ import {
   __warningDark,
   __warningLight,
   __warningMain,
-  __white
+  __white,
 } from './colors';
 import './styles.css';
 
@@ -34,73 +34,73 @@ export const GamesTheme = createTheme({
       main: __primaryMain,
       light: __primaryLight,
       dark: __primaryDark,
-      contrastText: __greyDark
+      contrastText: __greyDark,
     },
 
     secondary: {
       main: __secondaryMain,
       light: __secondaryLight,
       dark: __secondaryDark,
-      contrastText: __white
+      contrastText: __white,
     },
 
     error: {
       main: __errorMain,
       light: __errorLight,
       dark: __errorDark,
-      contrastText: __white
+      contrastText: __white,
     },
 
     warning: {
       main: __warningMain,
       light: __warningLight,
       dark: __warningDark,
-      contrastText: __white
+      contrastText: __white,
     },
 
     info: {
       main: __infoMain,
       light: __infoLight,
       dark: __infoDark,
-      contrastText: __greyDark
+      contrastText: __greyDark,
     },
 
     success: {
       main: __successMain,
       light: __successLight,
       dark: __successDark,
-      contrastText: __white
+      contrastText: __white,
     },
 
     background: {
       default: __greyDark,
-      paper: __greyPaper
+      paper: __greyPaper,
     },
 
     text: {
       primary: __white,
       secondary: __textSecondary,
-      disabled: __greyLight
+      disabled: __greyLight,
     },
 
-    divider: __greyLight
+    divider: __greyLight,
   },
   typography: {
     fontFamily: 'Pixel-Game',
     h1: {
       fontFamily: 'Jersey25-Charted',
-      color: __secondaryMain
+      color: __secondaryMain,
     },
     h2: {
-      color: __secondaryLight
+      color: __secondaryLight,
     },
     body1: {
-      fontFamily: 'Press-Start'
+      fontFamily: 'Press-Start',
     },
     button: {
       fontFamily: 'Jersey25-Charted',
-      fontSize: '2rem'
-    }
+      fontSize: '2rem',
+    },
   },
   components: {
     MuiCssBaseline: {
@@ -109,39 +109,53 @@ export const GamesTheme = createTheme({
 
         '&::-webkit-scrollbar': {
           width: '1rem',
-          borderRadius: 1
+          borderRadius: 1,
         },
         '&::-webkit-scrollbar-track': {
           background: __greyDark,
-          borderRadius: 1
+          borderRadius: 1,
         },
         '&::-webkit-scrollbar-thumb': {
           background: __greyLight,
           '&:hover': {
-            background: __textSecondary
-          }
+            background: __textSecondary,
+          },
         },
         '&::-webkit-scrollbar-button': {
           background: __greyPaper,
           height: '1rem',
           '&:hover': {
-            background: __textSecondary
-          }
+            background: __textSecondary,
+          },
         },
 
         scrollbarWidth: 'thin',
-        scrollbarColor: `${__greyLight} ${__greyDark}`
-      }
+        scrollbarColor: `${__greyLight} ${__greyDark}`,
+      },
     },
     MuiButton: {
       styleOverrides: {
         startIcon: {
-          color: 'inherit'
-        }
+          color: 'inherit',
+        },
       },
       defaultProps: {
-        sx: { fontSize: '2rem' }
-      }
-    }
-  }
+        sx: { fontSize: '2rem' },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          backgroundColor: __greyPaper,
+        },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          backgroundColor: __greyPaper,
+        },
+      },
+    },
+  },
 });

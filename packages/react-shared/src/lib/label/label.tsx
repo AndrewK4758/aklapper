@@ -1,16 +1,18 @@
 import Box from '@mui/material/Box';
-import InputLabel from '@mui/material/InputLabel';
+import InputLabel, { type InputLabelProps } from '@mui/material/InputLabel';
 import type { TypographyVariant } from '@mui/material/styles';
 import { type SxProps } from '@mui/material/styles';
 import Tooltip from '@mui/material/Tooltip';
 import { forwardRef, type JSX, type ReactNode } from 'react';
 
 const labelWrapperSxProps: SxProps = {
-  gap: 2,
-  flex: '0 1 100%'
+  display: 'flex',
+  alignItems: 'center',
+  gap: 1,
+  flex: '0 1 100%',
 };
 
-const iconAndChildrenSxProps: SxProps = { display: 'flex', justifyItems: 'center', alignContent: 'center' };
+const iconSxProps: SxProps = { display: 'inline-flex', justifyContent: 'center', alignItems: 'center' };
 
 export interface LabelProps {
   tooltipTitle: ReactNode;
@@ -34,59 +36,73 @@ export interface LabelProps {
     | 'top-end'
     | 'top-start'
     | undefined;
-  Icon?: JSX.Element | undefined;
-  children?: ReactNode | ReactNode[];
+  Icon?: JSX.Element;
   htmlFor: string;
+  InputLabelProps?: Partial<InputLabelProps>;
 }
 
-export const Label = forwardRef<HTMLDivElement, LabelProps>(
+export const Label = forwardRef<HTMLLabelElement, LabelProps>(
   (
     {
       labelText,
-      // labelVariant,
       placement,
       id,
       labelTextSx,
       tooltipSx,
       tooltipTitle,
       Icon,
-      children,
       htmlFor,
-      labelWrapperDivSxProps = labelWrapperSxProps
+      labelWrapperDivSxProps = labelWrapperSxProps,
+      InputLabelProps,
     },
-    ref
-  ) => (
-    <Box component={'section'} key={`${id}-wrapper-box`} id={`${id}-wrapper-box`}>
-      <Box component={'div'} key={`${id}-box`} id={`${id}-box`} sx={labelWrapperDivSxProps}>
-        <Tooltip
-          id={`${id}-tooltip`}
-          key={`${id}-tooltip`}
+    ref,
+  ) => {
+    const hasTooltip = Boolean(tooltipTitle);
+    const tooltipId = `${id}-tooltip`;
+    const labelId = `${id}-label`;
+    const labelWrapperId = `${id}-wrapper`;
+    const iconId = Icon ? `${id}-icon` : undefined;
+
+    const labelContent = (
+      <Box component={'div'} id={labelWrapperId} sx={labelWrapperDivSxProps}>
+        <InputLabel
+          {...InputLabelProps}
           ref={ref}
-          describeChild={true}
-          placement={placement}
-          title={tooltipTitle}
-          slotProps={{ tooltip: { sx: tooltipSx } }}
+          component={'label'}
+          is='label'
+          htmlFor={htmlFor}
+          id={labelId}
+          sx={labelTextSx}
         >
-          <InputLabel
-            is="label"
-            htmlFor={htmlFor}
-            key={`${id}-label-text`}
-            id={`${id}-label-text-id`}
-            variant="outlined"
-            sx={labelTextSx}
-          >
-            {labelText}
-          </InputLabel>
-        </Tooltip>
+          {labelText}
+        </InputLabel>
         {Icon && (
-          <Box component={'div'} key={`${id}-icon`} id={`${id}-icon`} sx={iconAndChildrenSxProps}>
+          <Box component={'div'} id={iconId} sx={iconSxProps}>
             {Icon}
           </Box>
         )}
       </Box>
-      {children}
-    </Box>
-  )
+    );
+
+    return (
+      <>
+        {hasTooltip ? (
+          <Tooltip
+            id={tooltipId}
+            describeChild={true}
+            placement={placement}
+            title={tooltipTitle}
+            slotProps={{ tooltip: { sx: tooltipSx } }}
+          >
+            {labelContent}
+          </Tooltip>
+        ) : (
+          labelContent
+        )}
+      </>
+    );
+  },
 );
 
+Label.displayName = 'Label';
 export default Label;

@@ -1,25 +1,30 @@
-import { ButtonFormAction } from '@aklapper/react-shared';
-import { SxProps } from '@mui/material';
-import { useParams } from 'react-router';
+import Button from '@mui/material/Button';
+import { SxProps } from '@mui/material/styles';
+import { useContext, type Dispatch, type SetStateAction } from 'react';
+import ActivePlayerContext, { ActivePlayerContextProps } from '../../context/active-player-context';
+import { WebsocketContext, WebsocketContextProps } from '../../context/websocket_context';
 
 export interface RegisterGameProps {
   registerGameButtonSx: SxProps;
+  gameName: string;
+  setOpen: Dispatch<SetStateAction<boolean>>;
 }
 
-export default function RegisterGame({ registerGameButtonSx }: RegisterGameProps) {
-  const params = useParams();
-  const id = params.id;
+export default function RegisterGame({ gameName, registerGameButtonSx, setOpen }: RegisterGameProps) {
+  const { socket } = useContext<WebsocketContextProps>(WebsocketContext);
+  const { activePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
+
+  const { Id } = activePlayer;
 
   return (
-    <ButtonFormAction
-      method="post"
-      action={`/lobby/${id}`}
-      variant="outlined"
-      name="name"
-      value={id}
-      type="submit"
+    <Button
+      onClick={() => {
+        socket.emit('create-new-game', { gameName: gameName, playerId: Id });
+        setOpen(false);
+      }}
       sx={registerGameButtonSx}
-      buttonText="REGISTER"
-    />
+    >
+      Register Game
+    </Button>
   );
 }

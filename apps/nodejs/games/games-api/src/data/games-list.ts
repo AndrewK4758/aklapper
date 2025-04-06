@@ -8,7 +8,7 @@ import {
   resetGameChain,
   startGameChain,
   turnChain,
-  turnChainTicTacToe
+  turnChainTicTacToe,
 } from '@aklapper/games-chains';
 import { GameBuilder } from '@aklapper/models';
 import { IBuiltGame } from '@aklapper/types';
@@ -30,15 +30,9 @@ export const ChutesAndLaddersGame = gb
   for children who can’t read. Fun pictures help kids
   understand the rewards of doing good deeds as
   they climb up the ladders and the consequences of
-  naughty ones as they slide down the chutes.`
+  naughty ones as they slide down the chutes.`,
   )
-  .setRule(
-    2,
-    'SETUP',
-    `Everyone
-    chooses a pawn to play. Any extra pawns are out of
-    #1. Now get ready for the fun! `
-  )
+  .setRule(2, 'SETUP', `Everyone chooses a pawn to play. Now get ready for the fun! `)
   .setGameFunctionality(
     [
       logActionChain,
@@ -48,9 +42,9 @@ export const ChutesAndLaddersGame = gb
       resetGameChain,
       startGameChain,
       activeGameDisplayChain,
-      outputContextResponseChain
+      outputContextResponseChain,
     ],
-    true
+    true,
   )
   .setInstance<ChutesAndLadders>(() => new ChutesAndLadders(5, 5))
   .build();
@@ -74,9 +68,9 @@ export const TicTacToeGame = gb
       resetGameChain,
       startGameChain,
       activeGameDisplayChain,
-      outputContextResponseChain
+      outputContextResponseChain,
     ],
-    true
+    true,
   )
   .setInstance<TicTacToe>(() => new TicTacToe())
   .build();

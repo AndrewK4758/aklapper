@@ -6,7 +6,8 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
-import TextField from '@mui/material/TextField';
+import FormControl from '@mui/material/FormControl';
+import OutlinedInput from '@mui/material/OutlinedInput';
 import { useContext, useState, type Dispatch, type SetStateAction } from 'react';
 import { WebsocketContext, WebsocketContextProps } from '../../../context/websocket_context';
 
@@ -24,48 +25,39 @@ export default function PrivateMessageModal({ open, messageTarget, setOpen, setM
   return (
     <Dialog open={open} slotProps={{ paper: { component: 'form' } }}>
       <DialogTitle sx={{ textAlign: 'center' }}>Private Message</DialogTitle>
-      <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <DialogContentText color="primary">{`To: ${messageTarget?.target.targetName}`}</DialogContentText>
-        <Label
-          tooltipTitle={`Enter message for ${messageTarget?.target.targetName} in the input box.`}
-          labelVariant={'body1'}
-          labelText={'Message'}
-          id={`${messageTarget?.target.targetId}-message-label`}
-          placement={'top'}
-          htmlFor={`${messageTarget?.target.targetName}-message`}
-          tooltipSx={{ color: 'ButtonText', backgroundColor: 'GrayText', fontSize: '1rem' }}
-          labelTextSx={{ color: '#ffd300' }}
-        >
-          <TextField
+      <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <DialogContentText color='primary'>{`To: ${messageTarget?.target.targetName}`}</DialogContentText>
+        <FormControl>
+          <Label
+            tooltipTitle={`Enter message for ${messageTarget?.target.targetName} in the input box.`}
+            labelVariant={'body1'}
+            labelText={'Message'}
+            id={`${messageTarget?.target.targetId}-message-label`}
+            placement={'top'}
+            htmlFor={`${messageTarget?.target.targetName}-message`}
+            tooltipSx={{ color: 'ButtonText', backgroundColor: 'GrayText', fontSize: '1rem' }}
+            labelTextSx={{ color: '#ffd300' }}
+          />
+          <OutlinedInput
             autoFocus
-            required
-            margin="dense"
-            name="message"
-            type="text"
+            margin='dense'
+            name='message'
+            type='text'
+            label='Message'
             fullWidth
             multiline
             id={`${messageTarget?.target.targetName}-message`}
-            variant="outlined"
             onChange={e => setMessage(e.target.value)}
-            sx={{ backgroundColor: 'gray', borderRadius: 1 }}
+            sx={{ borderRadius: 1 }}
           />
-        </Label>
+        </FormControl>
       </DialogContent>
       <DialogActions>
-        <Button id="close-message-button" onClick={() => setOpen(false)}>
-          <Label
-            tooltipTitle={'Close the message dialog box'}
-            labelVariant={'button'}
-            labelText={'Close'}
-            id={'close-message-button-label'}
-            placement={'top'}
-            htmlFor={'close-message-button'}
-            labelTextSx={{ fontSize: '2rem', color: '#ffd300' }}
-            tooltipSx={{ color: 'ButtonText', backgroundColor: 'GrayText', fontSize: '1rem' }}
-          />
+        <Button id='close-message-button' onClick={() => setOpen(false)}>
+          Close
         </Button>
         <Button
-          id="send-message-button"
+          id='send-message-button'
           onClick={() => {
             const { sender, target } = messageTarget as PrivateMessageDetails;
             (messageTarget as PrivateMessageDetails).message = message;
@@ -73,21 +65,12 @@ export default function PrivateMessageModal({ open, messageTarget, setOpen, setM
             socket.emit('privateMessagePlayer', {
               target: target,
               message: message,
-              sender: sender
+              sender: sender,
             });
             setOpen(false);
           }}
         >
-          <Label
-            tooltipTitle={`Send message to ${messageTarget?.target.targetName}`}
-            labelVariant={'button'}
-            labelText={'Send Message'}
-            id={'send-message-button-label'}
-            placement={'top'}
-            htmlFor={'send-message-button'}
-            labelTextSx={{ fontSize: '2rem', color: '#ffd300' }}
-            tooltipSx={{ color: 'ButtonText', backgroundColor: 'GrayText', fontSize: '1rem' }}
-          />
+          Send
         </Button>
       </DialogActions>
     </Dialog>

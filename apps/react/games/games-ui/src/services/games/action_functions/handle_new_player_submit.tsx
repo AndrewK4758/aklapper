@@ -11,10 +11,8 @@ export default async function handleNewPlayerSubmit({ request }: ActionFunctionA
     const resp = await axios.post(
       `${baseUrl}/register`,
       { name: name },
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { 'Content-Type': 'application/json' } },
     );
-
-    console.log('RESP DATA ', resp.data);
 
     const { Name, Id, ActiveGameID, InLobby } = resp.data as Partial<IPlayer>;
 
@@ -25,5 +23,6 @@ export default async function handleNewPlayerSubmit({ request }: ActionFunctionA
     return true;
   } catch (error) {
     console.error(error);
+    return false;
   }
 }

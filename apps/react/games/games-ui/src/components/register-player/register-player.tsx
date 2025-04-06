@@ -9,18 +9,17 @@ import { useFormik, type FormikProps } from 'formik';
 import type { ChangeEvent } from 'react';
 import { Form, useSubmit, type SubmitFunction } from 'react-router';
 import * as Yup from 'yup';
-import { __greyPaper } from '../../styles/colors';
 import { errorTextSx, tooltipSx } from '../../styles/games-styles';
 
 function initialValues<T>(defaults: T, key: keyof T, value: unknown): T {
   return {
     ...defaults,
-    [key]: value
+    [key]: value,
   };
 }
 
 const validationSchema: Yup.ObjectSchema<Partial<IPlayer>> = Yup.object<Partial<IPlayer>>({
-  name: Yup.string().required('Must enter player name').max(30, 'Player name must be less than 31 characters')
+  name: Yup.string().required('Must enter player name').max(30, 'Player name must be less than 31 characters'),
 });
 
 interface RegisterPlayerProps<T> {
@@ -38,13 +37,13 @@ export default function RegisterPlayer<T extends object>({
   label,
   method,
   inputName,
-  inputSx
+  inputSx,
 }: RegisterPlayerProps<T>) {
   const submit = useSubmit();
   const formik = useFormik<T>({
     initialValues: initialValues<T>(formPropsObject, inputName, ''),
     validationSchema: validationSchema,
-    onSubmit: async values => handleNewPlayerSubmit(values, submit)
+    onSubmit: async values => handleNewPlayerSubmit(values, submit),
   });
 
   const { value } = formik.getFieldProps(inputName as string);
@@ -65,23 +64,19 @@ export default function RegisterPlayer<T extends object>({
           <OutlinedInput
             autoFocus
             id={inputId}
-            label={label}
             value={value}
             fullWidth
             name={inputName as string}
-            onChange={async e => await handlePlayerNameChange<T>(e, formik)}
             onBlur={formik.handleBlur}
+            onChange={async e => await handlePlayerNameChange<T>(e, formik)}
             onFocus={async e => await handleNewPlayerInputTouched(e.currentTarget.name, formik)}
             sx={inputSx}
-            slotProps={{
-              input: { sx: { backgroundColor: __greyPaper } }
-            }}
           />
           <FormikValidationError<T> formik={formik} elementName={inputName} helperTextSx={errorTextSx} />
         </FormControl>
         <br />
         <br />
-        <Button type="submit" variant="outlined" id="player-name-button">
+        <Button type='submit' variant='outlined' id='player-name-button'>
           Enter Player Name
         </Button>
       </Form>
@@ -99,7 +94,7 @@ async function handleNewPlayerSubmit(values: Partial<IPlayer>, submit: SubmitFun
 
 async function handlePlayerNameChange<T>(
   e: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
-  formik: FormikProps<T>
+  formik: FormikProps<T>,
 ) {
   await formik.setFieldValue(e.currentTarget.name, e.currentTarget.value);
 }

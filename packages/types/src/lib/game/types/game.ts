@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import type { Server } from 'socket.io';
 import type { IInstanceOfGame } from '../interfaces/instance-of-game.js';
 import type { ILiteSpace } from '../interfaces/lite-space.js';
+import type { IPlayer } from '../interfaces/player.js';
 
 export enum Color {
   UNDEFINED = '',
@@ -14,7 +15,7 @@ export enum Color {
   ORANGE = 'Orange',
   PINK = 'Pink',
   BLACK = 'Black',
-  BROWN = 'Brown'
+  BROWN = 'Brown',
 }
 
 export enum SpaceType {
@@ -22,7 +23,7 @@ export enum SpaceType {
   NORMAL,
   CHUTE,
   LADDER,
-  FINISH
+  FINISH,
 }
 
 export type ContextData = {
@@ -42,7 +43,7 @@ export enum GameContextKeys {
   ACTION = 'ACTION',
   NEXT = 'NEXT-HANDLER',
   OUTPUT = 'OUT',
-  IO = 'IO'
+  IO = 'IO',
 }
 
 export enum TurnStatus {
@@ -50,7 +51,7 @@ export enum TurnStatus {
   INVALID = 'INVALID PLAYER',
   NOT_READY = 'GAME NOT READY',
   GAME_WON = 'GAME WON',
-  NULL_SELECT = 'NOTHING SELECTED'
+  NULL_SELECT = 'NOTHING SELECTED',
 }
 
 export type AvatarTotem = {
@@ -122,3 +123,17 @@ export type PrivateMessageDetails = {
 };
 
 export type SocketID = string;
+
+export type NewGameDetails = {
+  gameName: string;
+  gameInstanceId: string;
+};
+
+export type GamesInLobbyToSend = {
+  [gameName: string]: GameInstanceID[];
+};
+
+export type ClientLobbyData = {
+  activeGamesInLobby: GamesInLobbyToSend[];
+  activePlayersInLobby: IPlayer[];
+};

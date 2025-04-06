@@ -13,13 +13,13 @@ export const corsOptions: CorsOptions = {
     'https://www.andrew-k.us',
     'https://andrew-k.us',
     'http://localhost:4700',
-    'https://games-424800.uc.r.appspot.com'
+    'https://games-424800.uc.r.appspot.com',
   ],
-  credentials: true
+  credentials: true,
 };
 
-app.use('*', cors(corsOptions));
-app.options('*', cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
+app.use(cors(corsOptions));
 app.enable('trust proxy');
 app.use('/assets', express.static(join(__dirname, 'assets')));
 app.use('/api/v1', router);

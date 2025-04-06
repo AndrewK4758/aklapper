@@ -11,7 +11,7 @@ import { useRef, useState, type Dispatch, type JSX, type SetStateAction } from '
 import { Outlet, useNavigation, useOutletContext, useSubmit, type SubmitFunction } from 'react-router';
 import GameLoading from '../../components/loading/loading.jsx';
 import { crudPaperSxProps } from '../../styles/crud-styles.jsx';
-import { gamesButtonLabelsSxProps, gamesButtonSxProps, gamesLabelWrapperSxProps } from '../../styles/games-styles.jsx';
+import { gamesButtonLabelsSxProps, gamesButtonSxProps } from '../../styles/games-styles.jsx';
 import {
   gamesOutletGameWrapperSxProps,
   gamesOutletWrapperSxProps,
@@ -19,7 +19,7 @@ import {
   pagesTitlesBoxStyles,
   pagesTitleSx,
   pagesToolbarStyles,
-  pagesWrapperStyles
+  pagesWrapperStyles,
 } from '../../styles/pages-styles.jsx';
 import type { OutletContextProps } from '../../types/types.jsx';
 import { body, title } from '../static/games-text';
@@ -40,46 +40,32 @@ const Games = (): JSX.Element => {
   useScrollIntoView(divRef);
 
   return (
-    <Box ref={divRef} component={'div'} key={'games-wrapper'} id="games-wrapper" sx={pagesWrapperStyles}>
+    <Box ref={divRef} component={'div'} key={'games-wrapper'} id='games-wrapper' sx={pagesWrapperStyles}>
       <Paper
         elevation={2}
         component={'div'}
         key={'games-header-wrapper'}
-        id="games-header-wrapper"
+        id='games-header-wrapper'
         sx={crudPaperSxProps}
       >
-        <Box component={'section'} key={'games-title-wrapper'} id="games-title-wrapper" sx={pagesTitlesBoxStyles}>
-          <Text component={'h2'} titleVariant="h2" titleText={title} sx={pagesTitleSx} />
+        <Box component={'section'} id='games-title-wrapper' sx={pagesTitlesBoxStyles}>
+          <Text component={'h2'} titleVariant='h2' titleText={title} sx={pagesTitleSx} />
         </Box>
-        <Container
-          component={'div'}
-          id="games-navbar-container"
-          key={'games-navbar-container'}
-          maxWidth={false}
-          sx={{ paddingBottom: 2 }}
-        >
-          <AppBar
-            component={'div'}
-            id="games-navbar-wrapper"
-            key={'games-navbar-wrapper'}
-            elevation={0}
-            position="static"
-            sx={{ borderRadius: 1 }}
-          >
-            <Toolbar component={'nav'} id="games-navbar" key={'games-navbar'} sx={pagesToolbarStyles}>
-              <ButtonGroup id="games-button-group" key={'games-button-group'} color="primary" fullWidth={true}>
+        <Container component={'div'} id='games-navbar-container' maxWidth={false} sx={{ paddingBottom: 2 }}>
+          <AppBar component={'div'} id='games-navbar-wrapper' elevation={0} position='static' sx={{ borderRadius: 1 }}>
+            <Toolbar component={'nav'} id='games-navbar' key={'games-navbar'} sx={pagesToolbarStyles}>
+              <ButtonGroup id='games-button-group' key={'games-button-group'} color='primary' fullWidth={true}>
                 <Button
                   LinkComponent={'button'}
-                  key={'chutes-and-ladders-button'}
-                  id="Chutes-&-Ladders"
-                  variant="text"
+                  id='Chutes-&-Ladders'
+                  variant='text'
                   disabled={state !== 'idle'}
                   onClick={async e => loadAndStartGame(e.currentTarget.id, submit, setLoading, setTextView)}
                   sx={gamesButtonSxProps}
                 >
                   <Label
-                    id="chutes-and-ladders-button-label"
-                    htmlFor="Chutes-&-Ladders"
+                    id='chutes-and-ladders-button-label'
+                    htmlFor='Chutes-&-Ladders'
                     tooltipTitle={
                       <pre>
                         {
@@ -90,22 +76,21 @@ const Games = (): JSX.Element => {
                     labelVariant={'button'}
                     labelText={'Chutes & Ladders'}
                     placement={'top'}
-                    labelWrapperDivSxProps={gamesLabelWrapperSxProps}
+                    // labelWrapperDivSxProps={gamesLabelWrapperSxProps}
                     labelTextSx={gamesButtonLabelsSxProps}
                   />
                 </Button>
 
                 <Button
                   LinkComponent={'button'}
-                  key={'tic-tac-toe-button'}
-                  id="Tic-Tac-Toe"
-                  variant="text"
+                  id='Tic-Tac-Toe'
+                  variant='text'
                   disabled={state !== 'idle'}
                   onClick={async e => loadAndStartGame(e.currentTarget.id, submit, setLoading, setTextView)}
                   sx={gamesButtonSxProps}
                 >
                   <Label
-                    id="tic-tac-toe-button-label"
+                    id='tic-tac-toe-button-label'
                     htmlFor='Tic-Tac-Toe"'
                     tooltipTitle={
                       <pre>
@@ -117,7 +102,7 @@ const Games = (): JSX.Element => {
                     labelVariant={'button'}
                     labelText={'Tic Tac Toe'}
                     placement={'top'}
-                    labelWrapperDivSxProps={gamesLabelWrapperSxProps}
+                    // labelWrapperDivSxProps={gamesLabelWrapperSxProps}
                     labelTextSx={gamesButtonLabelsSxProps}
                   />
                 </Button>
@@ -129,15 +114,15 @@ const Games = (): JSX.Element => {
           <Container
             component={'div'}
             key={'games-header-text-wrapper'}
-            id="games-header-text-wrapper"
+            id='games-header-text-wrapper'
             maxWidth={false}
             sx={{ paddingY: 2 }}
           >
             <Text
               component={'p'}
               key={'game-header-text'}
-              id="game-header-text"
-              titleVariant="body1"
+              id='game-header-text'
+              titleVariant='body1'
               titleText={body}
             />
           </Container>
@@ -176,7 +161,7 @@ const loadAndStartGame = async (
   gameName: string,
   submit: SubmitFunction,
   setLoading: Dispatch<SetStateAction<boolean>>,
-  setTextView: Dispatch<SetStateAction<boolean>>
+  setTextView: Dispatch<SetStateAction<boolean>>,
 ) => {
   try {
     setTextView(false);
@@ -185,7 +170,7 @@ const loadAndStartGame = async (
       method: 'post',
       encType: 'text/plain',
       relative: 'path',
-      replace: true
+      replace: true,
     });
   } catch (error) {
     console.error(error);

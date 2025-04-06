@@ -7,6 +7,7 @@ import { createServer } from 'http';
 import { join } from 'path';
 import { cwd } from 'process';
 import { ServerOptions } from 'socket.io';
+import createNewGame from './events/create_new_game.js';
 import disconnectingEvent from './events/disconnect_event.js';
 import enterLobby from './events/enter-lobby.js';
 import privateMessagePlayer from './events/private_message.js';
@@ -31,26 +32,31 @@ export const corsOptions: CorsOptions = {
     'ws://localhost:3200',
     'http://localhost',
     'https://games-424800.uc.r.appspot.com',
-    'http://localhost:6900'
+    'http://localhost:6900',
   ],
   methods: '*',
   exposedHeaders: '*',
   optionsSuccessStatus: 204,
   allowedHeaders: '*',
-  credentials: false
+  credentials: false,
 };
 
 const gameServerOptions: Partial<ServerOptions> = {
   cleanupEmptyChildNamespaces: true,
-  cors: corsOptions
+  cors: corsOptions,
 };
 
 const lobbyServerOptions: Partial<ServerOptions> = {
   ...gameServerOptions,
-  path: '/lobby'
+  path: '/lobby',
 };
 
 const httpServer = createServer(app);
+
+httpServer.on('listening', () => {
+  const address = httpServer.address();
+  console.log(address);
+});
 
 export const gameSocketServer = new SocketServer(httpServer, gameServerOptions);
 
@@ -62,7 +68,9 @@ export const lobbySocketServer = new SocketServer(httpServer, lobbyServerOptions
 lobbySocketServer.addServerListener('enter-lobby', enterLobby);
 lobbySocketServer.addServerListener('privateMessagePlayer', privateMessagePlayer);
 lobbySocketServer.addServerListener('removePlayer', disconnectingEvent);
+lobbySocketServer.addServerListener('create-new-game', createNewGame);
 
+app.options(/.*/, cors(corsOptions));
 app.use(cors(corsOptions));
 app.enable('trust proxy');
 

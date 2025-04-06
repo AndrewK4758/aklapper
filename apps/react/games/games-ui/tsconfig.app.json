@@ -4,7 +4,7 @@
     "outDir": "out-tsc/games-ui",
     "tsBuildInfoFile": "out-tsc/games-ui/tsconfig.app.tsbuildinfo",
     "jsx": "react-jsx",
-    "lib": ["dom"],
+    "lib": ["dom", "ESNext"],
     "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
     "rootDir": "src",
     "module": "esnext",

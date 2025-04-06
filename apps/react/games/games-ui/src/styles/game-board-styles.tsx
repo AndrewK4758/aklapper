@@ -1,6 +1,6 @@
 import type { SxProps } from '@mui/material/styles';
 import type { CSSProperties } from 'react';
-import GamesTheme from './games-theme';
+import { GamesTheme } from './games-theme';
 
 //-------C&L-------//
 
@@ -11,15 +11,15 @@ export const breakpointsRowSx: SxProps = {
   alignContent: 'center',
   justifyContent: 'center',
   [GamesTheme.breakpoints.down('md')]: {
-    border: `1.5px solid ${GamesTheme.palette.success.main}`
-  }
+    border: `1.5px solid ${GamesTheme.palette.success.main}`,
+  },
 };
 
 export const breakpointsSpaceSx: SxProps = {
   fontSize: '1.5rem',
   [GamesTheme.breakpoints.down('md')]: {
-    fontSize: '.75rem'
-  }
+    fontSize: '.75rem',
+  },
 };
 
 export const spaceStyle: SxProps = { display: 'flex', flex: '1 0 100%' };
@@ -27,7 +27,7 @@ export const spaceStyle: SxProps = { display: 'flex', flex: '1 0 100%' };
 export const avatarSize: CSSProperties = {
   alignSelf: 'self-start',
   width: 'auto',
-  height: '108%'
+  height: '108%',
 };
 
 //--------TTT--------//
@@ -42,17 +42,17 @@ export const breakpointsRowTTTSx: SxProps = {
   overflow: 'hidden',
   border: `3px solid ${GamesTheme.palette.success.main}`,
   [GamesTheme.breakpoints.down('md')]: {
-    border: `1.5px solid ${GamesTheme.palette.success.main}`
-  }
+    border: `1.5px solid ${GamesTheme.palette.success.main}`,
+  },
 };
 
 export const breakpointsSpaceTTTSx: SxProps = {
-  display: 'none'
+  display: 'none',
 };
 
 export const avatarTTTSize: CSSProperties = {
   width: 'auto',
-  height: '150px'
+  height: '150px',
 };
 
 export const rowSizeTTT: SxProps = { height: '33.4 ', flex: '1 0 100%' };
@@ -66,5 +66,5 @@ export const svgSpaceTTTStyles: SxProps = {
   display: 'flex',
   justifyContent: 'center',
   flex: 1,
-  border: 5
+  border: 5,
 };
