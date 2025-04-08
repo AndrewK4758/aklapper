@@ -5,12 +5,12 @@ Welcome to my personal Portfolio for browser based web applications. Inside you 
 ## Language and Technologies
 
 - Typescript
-- Plain CSS
-- Axios for all HTTP requests
-- Vite for all testing
-- Webpack for api bundler
-- Vite for Apps and Libraries
-- PostgreSQL for DB
+- Python  
+- NodeJs
+- Go
+- PostgreSQL
+- Docker
+- Nx Monorepo
 
 ## Structure of my portfolio
 
