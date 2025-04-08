@@ -9,7 +9,7 @@ export class SocketServer implements ISocketServer {
   constructor(
     httpServer: httpServer,
     serverOptions: Partial<ServerOptions>,
-    connMap: Map<PlayerID, SocketID> = new Map()
+    connMap: Map<PlayerID, SocketID> = new Map(),
   ) {
     this.io = new Server(httpServer, serverOptions);
     this.connMap = connMap;
@@ -18,7 +18,6 @@ export class SocketServer implements ISocketServer {
   addServerListener = (event: string, listener: SocketCallback) => {
     this.io.on('connection', socket => {
       const playerID = socket.handshake.headers['current-player-id'] as string;
-      console.log(playerID);
       if (playerID) this.addSocketToConnMap(playerID, socket);
       listener(event, socket);
     });

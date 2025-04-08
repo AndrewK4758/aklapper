@@ -53,11 +53,6 @@ const lobbyServerOptions: Partial<ServerOptions> = {
 
 const httpServer = createServer(app);
 
-httpServer.on('listening', () => {
-  const address = httpServer.address();
-  console.log(address);
-});
-
 export const gameSocketServer = new SocketServer(httpServer, gameServerOptions);
 
 gameSocketServer.addMiddleware(addGameToSocketInstance);

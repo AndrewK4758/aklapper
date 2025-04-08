@@ -1,9 +1,5 @@
-import type { GameInstanceID, GameNameString, GamesInLobbyToSend } from '@aklapper/types';
+import type { GameInstanceID, GameNameString, GamesInLobbyToSend, IGamesInLobby } from '@aklapper/types';
 import games from '../games-list.js';
-
-interface IGamesInLobby {
-  games: Map<GameNameString, GameInstanceID[]>;
-}
 
 class GamesInLobby implements IGamesInLobby {
   games: Map<string, GameInstanceID[]>;

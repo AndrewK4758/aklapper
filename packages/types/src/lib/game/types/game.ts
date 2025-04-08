@@ -126,7 +126,8 @@ export type SocketID = string;
 
 export type NewGameDetails = {
   gameName: string;
-  gameInstanceId: string;
+  gameId: string;
+  gamesInLobby: GamesInLobbyToSend[];
 };
 
 export type GamesInLobbyToSend = {
@@ -137,3 +138,7 @@ export type ClientLobbyData = {
   activeGamesInLobby: GamesInLobbyToSend[];
   activePlayersInLobby: IPlayer[];
 };
+
+export interface IGamesInLobby {
+  games: Map<GameNameString, GameInstanceID[]>;
+}

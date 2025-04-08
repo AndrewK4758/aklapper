@@ -90,7 +90,7 @@
           "env": {
             "NODE_ENV": "production"
           },
-          "command": "docker build -f Dockerfile . -t gcr.io/games-424800/default"
+          "command": "docker build -f Dockerfile . -t gcr.io/games-424800/default:latest"
         }
       },
       "docker-push": {

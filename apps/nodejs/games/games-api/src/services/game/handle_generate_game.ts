@@ -1,13 +1,16 @@
 import { Game } from '@aklapper/game';
 import { InstanceOfGame } from '@aklapper/models';
-import { AllGameTypes, GameInstanceID, GamePlayerValidation, IBuiltGame, Minute } from '@aklapper/types';
+import { AllGameTypes, GameInstanceID, IBuiltGame, Minute, type GamesInLobbyToSend } from '@aklapper/types';
 import { getCurrentMinute } from '@aklapper/utils';
 import ShortUniqueId from 'short-unique-id';
 import gamesInLobby from '../../data/games_in_lobby/games_in_lobby.js';
 import useAllGamesMap from '../../middleware/all-games-map.js';
 import useInstanceTimeMap from '../../middleware/instance-map.js';
 
-export default function handleNewGameCall(selectedGame: IBuiltGame, playerID: string): GamePlayerValidation {
+export default function handleNewGameCall(selectedGame: IBuiltGame): {
+  gamesInLobby: GamesInLobbyToSend[];
+  gameInstanceId: string;
+} {
   const minute: Minute = getCurrentMinute();
 
   const gamesMap = useAllGamesMap();
@@ -23,7 +26,5 @@ export default function handleNewGameCall(selectedGame: IBuiltGame, playerID: st
   instanceMap.addGameInstance(minute, gameID);
   gamesInLobby.addGame(selectedGame.name, gameID);
 
-  const __current_game__: GamePlayerValidation = { gameInstanceID: gameID, playerID: playerID };
-
-  return __current_game__;
+  return { gamesInLobby: gamesInLobby.prepDataToSend(), gameInstanceId: gameID };
 }

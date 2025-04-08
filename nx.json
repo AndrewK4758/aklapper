@@ -89,7 +89,7 @@
     },
     {
       "plugin": "@nx-go/nx-go",
-      "include": ["apps/go/file-parser/**"]
+      "include": ["apps/go/**"]
     }
   ],
   "targetDefaults": {
@@ -104,6 +104,7 @@
       "inputs": ["production", "^production"]
     }
   },
+
   "generators": {
     "@nx/react": {
       "library": {
@@ -111,5 +112,6 @@
       }
     }
   },
+
   "nxCloudId": "6793e339a43d353bb1fbd676"
 }

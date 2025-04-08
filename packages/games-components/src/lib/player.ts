@@ -9,6 +9,7 @@ export class Player implements IPlayer {
   avatar!: Avatar;
   activeGameID: string | null;
   inLobby: boolean;
+  websocketId!: string;
   constructor(name: string, id: string) {
     this.name = name;
     this.id = id;
@@ -59,6 +60,14 @@ export class Player implements IPlayer {
 
   public get CurrentTimeEntered(): string {
     return this.currentTimeEntered;
+  }
+
+  public get WebsocketId(): string {
+    return this.websocketId;
+  }
+
+  public set WebsocketId(socketId: string) {
+    this.websocketId = socketId;
   }
 }
 

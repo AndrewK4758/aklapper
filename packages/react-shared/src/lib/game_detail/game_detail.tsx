@@ -1,5 +1,6 @@
 import type { GamesInLobbyToSend, IBuiltGame } from '@aklapper/types';
 import Avatar from '@mui/material/Avatar';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActionArea from '@mui/material/CardActionArea';
@@ -25,13 +26,17 @@ export function GameDetail({ game, setOpen, setSelectedGame, activeGames }: Game
   const icon = `/icons/${game.name.replace(/ /g, '-').toLowerCase()}-icon.svg`;
 
   return (
-    <Grid component={'div'} key={`${title}-wrapper`} flex={1} height={'50%'}>
+    <Grid component={'div'} key={`${title}-wrapper`} flex={1} height={'fit-content'}>
       <Card
         component={'div'}
         key={title}
-        sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}
+        sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', height: '100%' }}
       >
-        <CardActionArea id={`${title}-clickable-header`} onClick={() => handleOpenGame(game, setOpen, setSelectedGame)}>
+        <CardActionArea
+          id={`${title}-clickable-header`}
+          onClick={() => handleOpenGame(game, setOpen, setSelectedGame)}
+          sx={{}}
+        >
           <CardHeader
             avatar={<Avatar src={icon} />}
             title={title}
@@ -41,20 +46,20 @@ export function GameDetail({ game, setOpen, setSelectedGame, activeGames }: Game
                 : `Players: ${game.players.min}-${game.players.max}`
             }
             slotProps={{
-              title: { fontSize: '2.2rem', color: 'primary' },
-              subheader: { color: 'textPrimary' },
+              title: { variant: 'h3', color: 'primary' },
+              subheader: { variant: 'body1', color: 'textPrimary' },
               avatar: { sx: { m: 0.2 } },
             }}
-            sx={{ p: 1, alignItems: 'flex-start', flex: 2 }}
+            sx={{ p: 1, alignItems: 'flex-start' }}
           />
         </CardActionArea>
-        <CardContent sx={{ padding: 1, flex: 1, maxHeight: 'fit-content' }}>
+        <CardContent sx={{ padding: 1, maxHeight: 'fit-content' }}>
           <Text
-            titleVariant='subtitle1'
+            titleVariant='h6'
             titleText='Active Games'
             component={'p'}
             TypogrpahyProps={{ color: 'info' }}
-            sx={{ textAlign: 'left' }}
+            sx={{ textAlign: 'left', fontFamily: 'monospace' }}
           />
           <RenderList<GamesInLobbyToSend>
             data={activeGames}
@@ -62,11 +67,20 @@ export function GameDetail({ game, setOpen, setSelectedGame, activeGames }: Game
           />
         </CardContent>
 
-        <CardActions sx={{ alignSelf: 'flex-end', textAlign: 'right', padding: 2 }}>
+        <CardActions
+          sx={{
+            padding: 2,
+            justifySelf: 'flex-end',
+
+            width: '100%',
+            display: 'inline-flex',
+            justifyContent: 'flex-end',
+          }}
+        >
           <Button
             size='small'
             variant='outlined'
-            sx={{ fontSize: '.5rem' }}
+            sx={{ fontSize: '1rem' }}
             onClick={() => handleOpenGame(game, setOpen, setSelectedGame)}
           >
             Game Details
@@ -77,18 +91,45 @@ export function GameDetail({ game, setOpen, setSelectedGame, activeGames }: Game
   );
 }
 
-const activeGamesCallback = (e: GamesInLobbyToSend, _i: number, _arr: GamesInLobbyToSend[], game: IBuiltGame) => {
+const activeGamesCallback = (e: GamesInLobbyToSend, i: number, _arr: GamesInLobbyToSend[], game: IBuiltGame) => {
   return Object.hasOwn(e, game.name) ? (
     <ListItem
-      key={`${game.name}-list-item`}
+      key={`${game.name}-${i}-list-item`}
       sx={{ display: 'flex', flexDirection: 'column', fontSize: '0.5rem', flex: 1 }}
     >
       {e[game.name].map(id => (
-        <ListItemText
-          key={`${game.name}-${id}-text`}
-          primary={id}
-          // secondary={<CardActions>{'Join'}</CardActions>}
-        />
+        <Box
+          key={`${game.name}-${id}-wrapper`}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+            fontSize: '0.90rem',
+            p: 0,
+            m: 0,
+          }}
+        >
+          <ListItemText
+            key={`${game.name}-${id}-text`}
+            primary={id}
+            slotProps={{ primary: { variant: 'h6', sx: { fontFamily: 'monospace', fontSize: 'inherit' } } }}
+          />
+          <input readOnly type='text' id={`hidden-${id}`} hidden value={id} />
+          <Button
+            key={`${game.name}-${id}-button`}
+            variant='outlined'
+            name={game.name}
+            type='submit'
+            onClick={e => {
+              const idToJoin = document.getElementById(`hidden-${id}`) as HTMLInputElement;
+              console.log(e.currentTarget.name, ' : ', idToJoin.value);
+            }}
+            sx={{ p: 0, fontSize: 'inherit' }}
+          >
+            Join
+          </Button>
+        </Box>
       ))}
     </ListItem>
   ) : null;

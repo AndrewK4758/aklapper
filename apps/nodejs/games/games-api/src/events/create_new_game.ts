@@ -5,14 +5,15 @@ import { lobbySocketServer } from '../main.js';
 import handleNewGameCall from '../services/game/handle_generate_game.js';
 
 const createNewGame: SocketCallback = (event: string, socket: Socket) => {
-  socket.on(event, ({ gameName, playerId }: { gameName: string; playerId: string }) => {
+  socket.on(event, (gameName: string) => {
     const selectedGame = games.find(({ name }) => name === gameName) as IBuiltGame;
 
-    const newGameDetails = handleNewGameCall(selectedGame, playerId);
+    const newGameAndLobby = handleNewGameCall(selectedGame);
 
     const dataToSend: NewGameDetails = {
       gameName: selectedGame.name,
-      gameInstanceId: newGameDetails.gameInstanceID as string,
+      gamesInLobby: newGameAndLobby.gamesInLobby,
+      gameId: newGameAndLobby.gameInstanceId,
     };
 
     lobbySocketServer.io.emit('new-game', dataToSend);

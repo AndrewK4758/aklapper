@@ -63,13 +63,13 @@ export default function Lobby() {
   const nav = useNavigate();
 
   useEffect(() => {
-    setActivePlayer(currentPlayer);
-
     if (!socket.connected) {
       socket.connect();
 
       socket.on('connect', () => {
         console.log(`Websocket Connected to path: "/lobby" with id: ${socket.id}`);
+        setCurrentPlayer(prev => ({ ...prev, WebsocketId: socket.id }));
+        setActivePlayer(currentPlayer);
       });
 
       if (action === true) {
@@ -90,25 +90,11 @@ export default function Lobby() {
         setActiveLobby(activeLobby.filter(player => player.Id !== id));
       });
 
-      socket.on('new-game', ({ gameName, gameInstanceId }: NewGameDetails) => {
-        console.log(`NEW ${gameName} WITH INSTANCE ID: ${gameInstanceId}`);
+      socket.on('new-game', ({ gameName, gameId, gamesInLobby }: NewGameDetails) => {
+        console.log(`NEW ${gameName}`);
 
-        setCurrentPlayer(prev => ({ ...prev, ActiveGameID: gameInstanceId }));
-        setActiveGames(prev => {
-          console.log(prev);
-          const newGameIdArr: string[] = [];
-          const newGameObj: GamesInLobbyToSend = {};
-          const newState: GamesInLobbyToSend[] = [];
-
-          for (let i = 0; i < prev.length; i++) {
-            if (Object.hasOwn(prev[i], gameName)) {
-              newGameIdArr.push(...prev[i][gameName], gameInstanceId);
-              newGameObj[gameName] = newGameIdArr;
-              newState.push(newGameObj);
-            } else newState.push(prev[i]);
-          }
-          return newState;
-        });
+        setCurrentPlayer(prev => ({ ...prev, ActiveGameID: gameId }));
+        setActiveGames(gamesInLobby);
       });
     }
     return () => {

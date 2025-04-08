@@ -8,6 +8,7 @@ export interface IPlayer {
   avatar: IAvatar;
   activeGameID: string | null;
   inLobby: boolean;
+  websocketId: string;
 
   get Name(): string;
   get Id(): string;
@@ -24,4 +25,7 @@ export interface IPlayer {
 
   get InLobby(): boolean;
   set InLobby(inLobby: boolean);
+
+  get WebsocketId(): string;
+  set WebsocketId(socketId: string);
 }
