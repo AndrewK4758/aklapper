@@ -1,0 +1,19 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DB_URL_DEV")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model players {
+  id                   Int      @default(autoincrement())
+  player_id            String   @id @db.VarChar(6)
+  player_name          String   @db.VarChar
+  current_time_entered DateTime @db.Timestamptz(6)
+  active_game_id       String?  @db.VarChar(6)
+  in_lobby             Boolean
+}

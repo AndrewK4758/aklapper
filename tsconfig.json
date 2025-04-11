@@ -90,6 +90,9 @@
     },
     {
       "path": "./packages/prisma/chinook"
+    },
+    {
+      "path": "./packages/prisma/games"
     }
   ]
 }

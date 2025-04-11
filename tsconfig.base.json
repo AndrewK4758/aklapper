@@ -29,7 +29,10 @@
     "sourceMap": false,
     "strict": true,
     "target": "ESNext",
-    "verbatimModuleSyntax": false
+    "verbatimModuleSyntax": false,
+    "paths": {
+      "@aklapper/games-client": ["packages/prisma/games/src/index.ts"]
+    }
   },
   "ts-node": {
     "esm": true,

@@ -333,6 +333,12 @@ importers:
 
   apps/nodejs/crud/crud-api-e2e: {}
 
+  apps/nodejs/crud/crud-api/dist:
+    devDependencies:
+      '@aklapper/chinook-client':
+        specifier: workspace:*
+        version: link:../../../../../packages/prisma/chinook
+
   apps/nodejs/games/games-api:
     devDependencies:
       '@aklapper/chain':
@@ -645,6 +651,12 @@ importers:
       '@aklapper/types':
         specifier: workspace:*
         version: link:../../types
+
+  packages/prisma/games:
+    dependencies:
+      tslib:
+        specifier: ^2.8.1
+        version: 2.8.1
 
   packages/react-shared:
     devDependencies:

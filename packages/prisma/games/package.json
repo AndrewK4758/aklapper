@@ -1,0 +1,38 @@
+{
+  "name": "@aklapper/games-client",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "tslib": "^2.8.1"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "module": "./dist/index.js",
+  "nx": {
+    "sourceRoot": "packages/prisma/games/src",
+    "root": "packages/prisma/games",
+    "projectType": "library",
+    "name": "games-client",
+    "targets": {
+      "generate": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "packages/prisma/games",
+          "command": "pnpx prisma generate && node scripts/fix-prisma-types.cjs"
+        }
+      }
+    }
+  },
+  "prisma": {
+    "schema": "prisma/schema.prisma"
+  }
+}

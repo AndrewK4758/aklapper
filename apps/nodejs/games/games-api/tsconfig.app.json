@@ -1,6 +1,7 @@
 {
   "extends": "../../../../tsconfig.base.json",
   "compilerOptions": {
+    "baseUrl": ".",
     "outDir": "out-tsc/games-api",
     "types": ["node"],
     "rootDir": "src",
