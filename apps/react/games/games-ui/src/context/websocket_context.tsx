@@ -20,12 +20,12 @@ const managerOptions: Partial<ManagerOptions> = {
   path: '/lobby',
   autoConnect: false,
   extraHeaders: {
-    'current-player-id': activePlayerDetails.Id as string
-  }
+    'current-player-id': activePlayerDetails.Id as string,
+  },
 };
 
 export const clientSocket = new ClientSocket(wsUrl, managerOptions);
 
 export const WebsocketContext = createContext<WebsocketContextProps>({
-  socket: clientSocket.Socket
+  socket: clientSocket.Socket,
 });

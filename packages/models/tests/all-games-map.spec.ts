@@ -1,5 +1,5 @@
 import { Game } from '@aklapper/game';
-import { GameInstanceID, Minute, type AllGameTypes } from '@aklapper/types';
+import type { AllGameTypes, GameInstanceID, Minute } from '@aklapper/types';
 import { AllGamesMap } from '../src/lib/all-games-map/all-games-map.js';
 import { InstanceOfGame } from '../src/lib/game-instance/instance-of-game.js';
 

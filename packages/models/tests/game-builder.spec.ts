@@ -1,4 +1,4 @@
-import { AllGameTypes } from '@aklapper/types';
+import type { AllGameTypes } from '@aklapper/types';
 import { GameBuilder } from '../src/lib/game-builder/game-builder.js';
 
 let gb: GameBuilder;

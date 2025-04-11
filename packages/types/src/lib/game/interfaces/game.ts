@@ -1,6 +1,6 @@
+import type { AllGameTypes } from '../types/all-games-types.js';
 import type { Color, SpaceType } from '../types/game.js';
 import type { IPlayer } from './player.js';
-import type { AllGameTypes } from '../types/all-games-types.js';
 
 export interface IGame {
   instance: AllGameTypes;

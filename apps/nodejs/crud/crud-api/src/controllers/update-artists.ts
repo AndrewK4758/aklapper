@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import updateArtist from '../services/prisma/artist/update-artists.js';
 
 /**
@@ -17,7 +17,7 @@ const updateArtists = async (req: Request, resp: Response): Promise<void> => {
     const updatedArtist = await updateArtist(artist_id, name);
 
     const output = {
-      updatedArtist: updatedArtist
+      updatedArtist: updatedArtist,
     };
 
     console.log(output);

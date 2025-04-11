@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import deleteArtistAlbums from '../services/prisma/album/delete-albums.js';
 
 /**

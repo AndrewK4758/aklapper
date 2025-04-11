@@ -1,6 +1,5 @@
-import { prisma } from '@aklapper/prisma';
-import { PrismaErrorLogger, type PrismaClientErrors, type ParsedPrismaError } from '@aklapper/prisma';
-import type { album } from '@prisma/client';
+import { prisma, PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/chinook-client';
+import type { album } from 'node_modules/@aklapper/chinook-client/generated/client.js';
 /**
  * Creates a new album in the database.
  *

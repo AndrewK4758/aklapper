@@ -1,6 +1,6 @@
-import { prisma, PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
-import { Prisma, type artist } from '@prisma/client';
-import { DefaultArgs } from '@prisma/client/runtime/library';
+import { prisma, PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/chinook-client';
+import type { DefaultArgs } from '@prisma/client/runtime/library';
+import { Prisma, type artist } from 'node_modules/@aklapper/chinook-client/generated/client.js';
 /**
  * Searches for artists in the database based on the provided query.
  *
@@ -10,7 +10,7 @@ import { DefaultArgs } from '@prisma/client/runtime/library';
  */
 
 const searchArtist = async (
-  query: Prisma.artistFindManyArgs<DefaultArgs>
+  query: Prisma.artistFindManyArgs<DefaultArgs>,
 ): Promise<(artist[] | null) | ParsedPrismaError> => {
   try {
     return await prisma.artist.findMany(query);

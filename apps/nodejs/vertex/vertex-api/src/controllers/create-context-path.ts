@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import ShortUniqueId from 'short-unique-id';
 
 const createContextPath = (_req: Request, resp: Response) => {

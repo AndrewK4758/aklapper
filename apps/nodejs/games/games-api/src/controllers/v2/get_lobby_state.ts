@@ -1,6 +1,6 @@
-import { IPlayer } from '@aklapper/types';
+import type { IPlayer } from '@aklapper/types';
 import axios from 'axios';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import gamesInLobby from '../../data/games_in_lobby/games_in_lobby.js';
 import error from '../../errors/genenric_error.js';
 

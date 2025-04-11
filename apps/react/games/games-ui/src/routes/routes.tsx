@@ -40,10 +40,6 @@ export default [
             action: registerGameInstanceOnServerAction,
             errorElement: <NoGameError />,
             children: [
-              // {
-              //   index: true,
-              //   element: <GameDetails />
-              // },
               {
                 path: 'register',
                 loader: loadPlayerAvatarRegisterFilterData,

@@ -1,4 +1,4 @@
-import { ExtendedError, Socket } from 'socket.io';
+import type { ExtendedError, Socket } from 'socket.io';
 
 export type SocketCallback = (event: string, socket: Socket) => void;
 export type SocketMiddlewareNext = (err?: ExtendedError | undefined) => void;

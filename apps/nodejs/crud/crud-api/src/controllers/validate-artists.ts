@@ -1,5 +1,5 @@
-import type { Prisma } from '@prisma/client';
-import { Request, Response } from 'express';
+import type { Prisma } from 'node_modules/@aklapper/chinook-client/generated/client.js';
+import type { Request, Response } from 'express';
 import validateArtist from '../services/prisma/artist/validate-artist-in-db.js';
 
 /**
@@ -17,7 +17,7 @@ const validateArtists = async (req: Request, resp: Response) => {
     const { name } = req.query;
 
     const query = {
-      where: { name: { equals: name as string, mode: 'insensitive' } }
+      where: { name: { equals: name as string, mode: 'insensitive' } },
     } as Prisma.artistWhereInput;
 
     const artist = await validateArtist(query);

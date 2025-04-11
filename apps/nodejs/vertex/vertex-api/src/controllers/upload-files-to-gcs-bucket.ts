@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import memoryUpload from '../services/upload-to-gcs-bucket.js';
 
 const uploadToGcsBucket = async (req: Request, resp: Response) => {

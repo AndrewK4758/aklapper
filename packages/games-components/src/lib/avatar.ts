@@ -1,4 +1,4 @@
-import { Color, IAvatar } from '@aklapper/types';
+import { Color, type IAvatar } from '@aklapper/types';
 import { Space } from './space.js';
 
 export class Avatar implements IAvatar {

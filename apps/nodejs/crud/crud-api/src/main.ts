@@ -8,7 +8,7 @@ import { join } from 'path';
 import { cwd } from 'process';
 import Routes, { router } from './routes/routes.js';
 
-const __dirname = join(cwd(), 'apps/apis/crud/crud-api');
+const __dirname = join(cwd(), 'apps/nodejs/crud/crud-api');
 
 configDotenv({ path: join(__dirname, 'env/.env') });
 

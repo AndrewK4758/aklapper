@@ -69,7 +69,7 @@ export default function RegisterPlayer<T extends object>({
             name={inputName as string}
             onBlur={formik.handleBlur}
             onChange={async e => await handlePlayerNameChange<T>(e, formik)}
-            onFocus={async e => await handleNewPlayerInputTouched(e.currentTarget.name, formik)}
+            onFocus={async e => await handleNewPlayerInputTouched<T>(e.currentTarget.name, formik)}
             sx={inputSx}
           />
           <FormikValidationError<T> formik={formik} elementName={inputName} helperTextSx={errorTextSx} />

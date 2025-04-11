@@ -30,9 +30,7 @@ const GamesList = ({ activeGames }: GamesListProps) => {
       >
         <RenderList<IBuiltGame>
           data={games}
-          listMapCallback={(e, i, arr) =>
-            listGamesMap(e as IBuiltGame, i, arr as IBuiltGame[], setOpen, setSelectedGame, activeGames)
-          }
+          listMapCallback={(e, i, arr) => listGamesMap(e, i, arr, setOpen, setSelectedGame, activeGames)}
         />
       </Grid>
       <GameDetails open={open} setOpen={setOpen} selectedGame={selectedGame} />
@@ -49,12 +47,14 @@ const listGamesMap = (
   setOpen: Dispatch<SetStateAction<boolean>>,
   setSelectedGame: Dispatch<SetStateAction<IBuiltGame | null>>,
   activeGames: GamesInLobbyToSend[],
-) => (
-  <GameDetail
-    key={`${e.id}-${e.name}`}
-    game={e}
-    setOpen={setOpen}
-    setSelectedGame={setSelectedGame}
-    activeGames={activeGames}
-  />
-);
+) => {
+  return (
+    <GameDetail
+      key={`${e.id}-${e.name}`}
+      game={e}
+      setOpen={setOpen}
+      setSelectedGame={setSelectedGame}
+      activeGames={activeGames}
+    />
+  );
+};

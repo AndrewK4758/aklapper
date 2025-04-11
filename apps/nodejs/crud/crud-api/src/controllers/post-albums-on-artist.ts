@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import createAlbum from '../services/prisma/album/create-albums.js';
 
 /**

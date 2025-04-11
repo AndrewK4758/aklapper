@@ -1,5 +1,5 @@
-import type { Prisma } from '@prisma/client';
-import { Request, Response } from 'express';
+import type { Prisma } from 'node_modules/@aklapper/chinook-client/generated/client.js';
+import type { Request, Response } from 'express';
 import validateTrack from '../services/prisma/tracks/validate-track.js';
 
 /**
@@ -19,8 +19,8 @@ const validateTracks = async (req: Request, resp: Response) => {
     const query = {
       where: {
         album_id: { equals: parseInt(albumID as string, 10) },
-        name: { equals: `${name}` as string }
-      }
+        name: { equals: `${name}` as string },
+      },
     } as Prisma.trackWhereInput;
 
     const validatedTrack = await validateTrack(query);

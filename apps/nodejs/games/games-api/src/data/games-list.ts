@@ -11,7 +11,7 @@ import {
   turnChainTicTacToe,
 } from '@aklapper/games-chains';
 import { GameBuilder } from '@aklapper/models';
-import { IBuiltGame } from '@aklapper/types';
+import type { IBuiltGame } from '@aklapper/types';
 
 const gb = new GameBuilder();
 const games: IBuiltGame[] = [];

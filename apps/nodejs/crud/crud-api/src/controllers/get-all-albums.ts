@@ -1,6 +1,6 @@
-import { Prisma } from '@prisma/client';
-import { DefaultArgs } from '@prisma/client/runtime/library';
-import { Request, Response } from 'express';
+import type { DefaultArgs } from '@prisma/client/runtime/library';
+import type { Request, Response } from 'express';
+import { Prisma } from 'node_modules/@aklapper/chinook-client/generated/client.js';
 import findAllAlbums from '../services/prisma/album/find-albums.js';
 
 /**
@@ -21,7 +21,7 @@ const getAlbums = async (req: Request, resp: Response) => {
       const query = {
         take: parseInt(take as string, 10),
         skip: parseInt(skip as string, 10),
-        cursor: { album_id: parseInt(cursor as string, 10) }
+        cursor: { album_id: parseInt(cursor as string, 10) },
       } as Prisma.albumFindManyArgs<DefaultArgs>;
       const albums = await findAllAlbums(query);
 

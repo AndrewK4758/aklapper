@@ -1,5 +1,4 @@
-import type { SocketMiddleware, SocketMiddlewareNext } from '@aklapper/types';
-import { GameInstanceID, GamePlayerValidation } from '@aklapper/types';
+import type { GameInstanceID, GamePlayerValidation, SocketMiddleware, SocketMiddlewareNext } from '@aklapper/types';
 import { Socket } from 'socket.io';
 import { allGamesMap } from './all-games-map.js';
 
@@ -15,7 +14,7 @@ const addGameToSocketInstance: SocketMiddleware = (socket: Socket, next: SocketM
     next();
   } else
     socket.emit('no-game-error', {
-      errorMessage: 'No Game Found. Please Register a New Game To Play'
+      errorMessage: 'No Game Found. Please Register a New Game To Play',
     });
 };
 

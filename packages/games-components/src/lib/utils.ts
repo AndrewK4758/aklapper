@@ -1,4 +1,4 @@
-import { IDie, ISummedRoll } from '@aklapper/types';
+import type { IDie, ISummedRoll } from '@aklapper/types';
 
 export const generateRandomNumber = (upperBound: number): number => {
   return Math.floor(Math.random() * upperBound) + 1;
@@ -31,7 +31,7 @@ export const rollSingleDiceMultipleTimesAndSum = (count: number, dice: IDie, rol
   }
   return {
     rollValues: rolls,
-    sum: rolls.reduce((a, b) => a + b, 0)
+    sum: rolls.reduce((a, b) => a + b, 0),
   } as ISummedRoll;
 };
 
@@ -39,7 +39,7 @@ export const rollMultipleDiceAndSum = (dice: IDie[]): ISummedRoll => {
   const rolls = dice.map(shake => shake.roll());
   return {
     rollValues: rolls,
-    sum: rolls.reduce((a, b) => a + b, 0)
+    sum: rolls.reduce((a, b) => a + b, 0),
   } as ISummedRoll;
 };
 

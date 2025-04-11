@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import createArtists from '../services/prisma/artist/create-artists.js';
 
 /**

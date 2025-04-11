@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import type { SendMailOptions } from 'nodemailer';
 import createTransporter from '../services/nodemailer.js';
 
@@ -15,8 +15,7 @@ type ContactMessageAttachment = Express.Multer.File;
 
 const postEmail = async (req: Request, resp: Response) => {
   try {
-    const { name, email, phone, subject, body, date } =
-      req.body as ContactMessage;
+    const { name, email, phone, subject, body, date } = req.body as ContactMessage;
     const attachment = req.file as ContactMessageAttachment;
 
     const mailOptionsToMe: SendMailOptions = {
@@ -50,18 +49,13 @@ const postEmail = async (req: Request, resp: Response) => {
 
     await transporter.sendMail(mailOptionsFromMe);
 
-    resp
-      .status(201)
-      .json({
-        message:
-          'Message Sent. Responses are usually given within 1 business day.',
-      });
+    resp.status(201).json({
+      message: 'Message Sent. Responses are usually given within 1 business day.',
+    });
   } catch (error) {
     console.error(error);
     setTimeout(() => {
-      resp
-        .status(500)
-        .json({ message: 'Error sending message, please resend' });
+      resp.status(500).json({ message: 'Error sending message, please resend' });
     }, 5000);
   }
 };

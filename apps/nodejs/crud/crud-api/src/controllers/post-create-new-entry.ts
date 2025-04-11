@@ -1,6 +1,6 @@
-import { album, artist, Prisma, track } from '@prisma/client';
-import { DefaultArgs } from '@prisma/client/runtime/library';
-import { Request, Response } from 'express';
+import type { DefaultArgs } from '@prisma/client/runtime/library';
+import type { Request, Response } from 'express';
+import { type album, type artist, Prisma, type track } from 'node_modules/@aklapper/chinook-client/generated/client.js';
 import createNewEntry from '../services/post/create-new-entry.js';
 
 interface NewEntryData {
@@ -37,13 +37,13 @@ const createNewEntrys = async (req: Request, resp: Response) => {
                   composer: track.composer,
                   milliseconds: track.milliseconds,
                   bytes: track.bytes,
-                  unit_price: track.unit_price
-                }
-              }
-            }
-          ]
-        }
-      }
+                  unit_price: track.unit_price,
+                },
+              },
+            },
+          ],
+        },
+      },
     } as Prisma.artistCreateArgs<DefaultArgs>;
 
     const newEntry = await createNewEntry(query);

@@ -1,6 +1,6 @@
 import { CommandBuilder } from '@aklapper/chain';
+import { GameContextKeys, type Context } from '@aklapper/types';
 import { deRefContextObject } from '@aklapper/utils';
-import { Context, GameContextKeys } from '@aklapper/types';
 
 export const rollDice = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.NEXT) && context.getString(GameContextKeys.NEXT) === 'roll-dice') {

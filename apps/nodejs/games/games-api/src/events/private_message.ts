@@ -7,7 +7,7 @@ const privateMessagePlayer: SocketCallback = (event: string, socket: Socket) => 
     console.log(`Message from ${messageDetails.sender.senderName} to ${messageDetails.target.targetName}`);
     const targetSocketId = lobbySocketServer.connMap.get(messageDetails.target.targetId);
     if (targetSocketId) {
-      socket.to(targetSocketId).emit('privateMessage', messageDetails);
+      socket.to(targetSocketId).emit('private-message', messageDetails);
     } else {
       messageDetails.message = `Error sending message to ${messageDetails.target.targetName}`;
       socket.emit('privateMessage', messageDetails);

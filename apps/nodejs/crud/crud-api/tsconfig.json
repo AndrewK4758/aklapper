@@ -4,7 +4,7 @@
   "include": [],
   "references": [
     {
-      "path": "../../../../packages/prisma"
+      "path": "../../../../packages/prisma/chinook"
     },
     {
       "path": "./tsconfig.app.json"

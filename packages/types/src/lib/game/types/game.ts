@@ -110,35 +110,41 @@ export interface IPlayersAndBoard extends IActivePlayersInGame {
   gameBoard: ILiteSpace[];
 }
 
+type PrivateMessageTargetDetails = {
+  targetId: string;
+  targetName: string;
+};
+
+type PrivateMessageSenderDetails = {
+  senderName: string;
+  senderId: string;
+};
+
 export type PrivateMessageDetails = {
-  target: {
-    targetId: string;
-    targetName: string;
-  };
+  target: PrivateMessageTargetDetails;
   message: string;
-  sender: {
-    senderName: string;
-    senderId: string;
-  };
+  sender: PrivateMessageSenderDetails;
 };
 
 export type SocketID = string;
 
-export type NewGameDetails = {
-  gameName: string;
-  gameId: string;
-  gamesInLobby: GamesInLobbyToSend[];
+export type GamesInLobbyPending = {
+  [gameName: string]: Partial<IInstanceOfGame>[];
 };
 
-export type GamesInLobbyToSend = {
-  [gameName: string]: GameInstanceID[];
+export type NewGameDetails = {
+  gameName: GameNameString; // Name of new game being created
+  gameId: GameInstanceID; // Id of new game being created
+  gamesInLobby: GamesInLobbyPending[]; // All games in the lobby that are created and waiting for players or start
 };
 
 export type ClientLobbyData = {
-  activeGamesInLobby: GamesInLobbyToSend[];
+  activeGamesInLobby: GamesInLobbyPending[];
   activePlayersInLobby: IPlayer[];
 };
 
 export interface IGamesInLobby {
-  games: Map<GameNameString, GameInstanceID[]>;
+  games: Map<GameNameString, IInstanceOfGame[]>;
 }
+
+export type NewGameCall = { gamesInLobby: GamesInLobbyPending[]; gameInstanceId: GameInstanceID };

@@ -1,6 +1,6 @@
 import { CommandBuilder } from '@aklapper/chain';
+import { type Context, GameContextKeys, type ISpace } from '@aklapper/types';
 import { deRefContextObject } from '@aklapper/utils';
-import { Context, GameContextKeys, ISpace } from '@aklapper/types';
 
 export const clearAvatarsFromSpaces = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.NEXT) && context.getString(GameContextKeys.NEXT) === 'clear-spaces') {

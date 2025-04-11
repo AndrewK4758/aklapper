@@ -10,7 +10,8 @@ const activePlayerInit: Partial<IPlayer> = storedPlayerData
       Id: '',
       Name: '',
       InLobby: false,
-      ActiveGameID: null
+      ActiveGameID: null,
+      WebsocketId: null,
     };
 
 interface ActivePlayerContextProviderProps {
@@ -20,7 +21,14 @@ interface ActivePlayerContextProviderProps {
 export default function ActivePlayerContextProvider({ children }: ActivePlayerContextProviderProps) {
   const [activePlayer, setActivePlayer] = useState<Partial<IPlayer>>(activePlayerInit);
 
+  const deleteActivePlayer = () => {
+    sessionStorage.removeItem('activePlayer');
+    setActivePlayer(activePlayerInit);
+  };
+
   return (
-    <ActivePlayerContext.Provider value={{ activePlayer, setActivePlayer }}>{children}</ActivePlayerContext.Provider>
+    <ActivePlayerContext.Provider value={{ activePlayer, setActivePlayer, deleteActivePlayer }}>
+      {children}
+    </ActivePlayerContext.Provider>
   );
 }

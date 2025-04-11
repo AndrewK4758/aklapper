@@ -1,5 +1,5 @@
 import { Color, type GamePlayerValidation, type IRegisterFormValues } from '@aklapper/types';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { vitest } from 'vitest';
 
 export const mockReqObj = (): Partial<Request> => {
@@ -8,13 +8,13 @@ export const mockReqObj = (): Partial<Request> => {
     body: {
       playerName: 'Player Name',
       avatarName: 'XENOMORPH',
-      avatarColor: Color.BLACK
+      avatarColor: Color.BLACK,
     } as IRegisterFormValues,
     header: vitest.fn().mockImplementation((name: string) => {
       const headers = new Map<string, string>();
       const __current_game__ = {
         gameInstanceID: 'gameID',
-        playerID: 'p-2-id'
+        playerID: 'p-2-id',
       } as GamePlayerValidation;
 
       headers.set('current-game', JSON.stringify(__current_game__));
@@ -22,8 +22,8 @@ export const mockReqObj = (): Partial<Request> => {
       return headers.get(name);
     }),
     headers: {
-      origin: 'http://localhost:3000'
-    }
+      origin: 'http://localhost:3000',
+    },
   };
   return req;
 };
@@ -45,7 +45,7 @@ export const mockRespObj = (): Partial<Response> => {
     json: vitest.fn().mockImplementation(result => {
       resp.json = result;
       return resp;
-    })
+    }),
   };
   return resp;
 };

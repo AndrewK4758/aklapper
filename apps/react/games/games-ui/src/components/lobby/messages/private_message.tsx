@@ -62,7 +62,7 @@ export default function PrivateMessageModal({ open, messageTarget, setOpen, setM
             const { sender, target } = messageTarget as PrivateMessageDetails;
             (messageTarget as PrivateMessageDetails).message = message;
             setMessages(prev => [...prev, messageTarget as PrivateMessageDetails]);
-            socket.emit('privateMessagePlayer', {
+            socket.emit('private-message-player', {
               target: target,
               message: message,
               sender: sender,

@@ -6,7 +6,8 @@
     "types": ["node"],
     "rootDir": "src",
     "moduleResolution": "nodenext",
-    "tsBuildInfoFile": "out-tsc/portfolio-api/tsconfig.app.tsbuildinfo"
+    "tsBuildInfoFile": "out-tsc/portfolio-api/tsconfig.app.tsbuildinfo",
+    "verbatimModuleSyntax": false
   },
   "include": ["src/**/*.ts"],
   "exclude": ["out-tsc", "dist", "vitest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts", "eslint.config.js"]

@@ -1,6 +1,6 @@
 import { CommandBuilder } from '@aklapper/chain';
+import { type Context, GameContextKeys } from '@aklapper/types';
 import { deRefContextObject, getCurrentMinute } from '@aklapper/utils';
-import { Context, GameContextKeys } from '@aklapper/types';
 
 export const resetGame = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.ACTION) && context.getString(GameContextKeys.ACTION) === 'reset') {

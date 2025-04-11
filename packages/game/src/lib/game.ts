@@ -1,5 +1,5 @@
 import { Avatar, generateRandomNumber, Player } from '@aklapper/games-components';
-import { AllGameTypes, Color, IGame, SpaceType } from '@aklapper/types';
+import { type AllGameTypes, Color, type IGame, SpaceType } from '@aklapper/types';
 
 export class Game implements IGame {
   game: AllGameTypes;

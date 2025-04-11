@@ -1,6 +1,6 @@
 import { CommandBuilder } from '@aklapper/chain';
+import { type Context, GameContextKeys, type IRegisterFormValues, type PlayerID } from '@aklapper/types';
 import { deRefContextObject } from '@aklapper/utils';
-import { Context, GameContextKeys, IRegisterFormValues, PlayerID } from '@aklapper/types';
 
 export const registerOnGameInstance = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.NEXT) && context.getString(GameContextKeys.NEXT) === 'register-on-game') {

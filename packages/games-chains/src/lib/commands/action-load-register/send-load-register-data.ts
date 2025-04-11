@@ -1,6 +1,6 @@
 import { CommandBuilder } from '@aklapper/chain';
+import { type Context, GameContextKeys, type GameInstanceID } from '@aklapper/types';
 import { deRefContextObject } from '@aklapper/utils';
-import { Context, GameContextKeys, GameInstanceID } from '@aklapper/types';
 
 export const sendLoadRegister = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.NEXT) && context.getString(GameContextKeys.NEXT) === 'send-load-register-data') {

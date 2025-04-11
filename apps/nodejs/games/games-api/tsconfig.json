@@ -4,12 +4,6 @@
   "include": [],
   "references": [
     {
-      "path": "../../../../packages/mocks"
-    },
-    {
-      "path": "../../../../packages/models"
-    },
-    {
       "path": "../../../../packages/utils"
     },
     {
@@ -17,6 +11,12 @@
     },
     {
       "path": "../../../../packages/socket-io/server"
+    },
+    {
+      "path": "../../../../packages/models"
+    },
+    {
+      "path": "../../../../packages/mocks"
     },
     {
       "path": "../../../../packages/games-components"

@@ -1,6 +1,6 @@
 import { CommandBuilder } from '@aklapper/chain';
+import { type Context, GameContextKeys, type IPlayer, type IRegisterFormValues } from '@aklapper/types';
 import { deRefContextObject } from '@aklapper/utils';
-import { Context, GameContextKeys, IPlayer, IRegisterFormValues } from '@aklapper/types';
 
 export const boardStart = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (
@@ -14,7 +14,7 @@ export const boardStart = CommandBuilder.build((context: Context<GameContextKeys
       return {
         playerName: p.name,
         avatarName: p.avatar.name,
-        avatarColor: p.avatar.color
+        avatarColor: p.avatar.color,
       };
     });
     context.put('active-players-in-game', activePlayersArray);

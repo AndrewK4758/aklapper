@@ -1,5 +1,5 @@
-import { Prisma } from '@prisma/client';
-import { NextFunction, Request, Response } from 'express';
+import { Prisma } from 'node_modules/@aklapper/chinook-client/generated/client.js';
+import type { NextFunction, Request, Response } from 'express';
 import validateAlbum from '../services/prisma/album/validate-album.js';
 
 /**
@@ -21,8 +21,8 @@ const validateAlbums = async (req: Request, resp: Response, next: NextFunction) 
       const query = {
         where: {
           title: { equals: title as string, mode: 'insensitive' },
-          artist_id: { equals: parseInt(artistID as string, 10) }
-        }
+          artist_id: { equals: parseInt(artistID as string, 10) },
+        },
       } as Prisma.albumWhereInput;
 
       const album = await validateAlbum(query);

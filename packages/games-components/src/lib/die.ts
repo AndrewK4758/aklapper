@@ -1,4 +1,4 @@
-import { IDie } from '@aklapper/types';
+import type { IDie } from '@aklapper/types';
 import { generateRandomNumber } from './utils.js';
 
 export class Die implements IDie {

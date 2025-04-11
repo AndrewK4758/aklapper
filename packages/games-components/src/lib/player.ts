@@ -1,5 +1,5 @@
-import { IPlayer } from '@aklapper/types';
-import { Avatar } from './avatar.js';
+import type { IPlayer } from '@aklapper/types';
+import type { Avatar } from './avatar.js';
 
 export class Player implements IPlayer {
   readonly id: string;

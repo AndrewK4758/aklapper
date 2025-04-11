@@ -1,4 +1,4 @@
-import { Configuration, LogLevel, ConfidentialClientApplication } from '@azure/msal-node';
+import { ConfidentialClientApplication, type Configuration, LogLevel } from '@azure/msal-node';
 import { configDotenv } from 'dotenv';
 import { cwd } from 'process';
 
@@ -8,7 +8,7 @@ const config: Configuration = {
   auth: {
     clientId: process.env.MAIL_SECRET_ID as string,
     clientSecret: process.env.MAIL_SECRET_VALUE,
-    authority: (process.env.MAIL_CLOUD_INSTANCE as string) + process.env.MAIL_TENANT_ID
+    authority: (process.env.MAIL_CLOUD_INSTANCE as string) + process.env.MAIL_TENANT_ID,
   },
   system: {
     loggerOptions: {
@@ -16,9 +16,9 @@ const config: Configuration = {
         console.log(message);
       },
       piiLoggingEnabled: true,
-      logLevel: LogLevel.Trace
-    }
-  }
+      logLevel: LogLevel.Trace,
+    },
+  },
 };
 
 const cca = new ConfidentialClientApplication(config);

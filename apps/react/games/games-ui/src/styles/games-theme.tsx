@@ -18,11 +18,11 @@ import {
   __successDark,
   __successLight,
   __successMain,
+  __textPrimary,
   __textSecondary,
   __warningDark,
   __warningLight,
   __warningMain,
-  __white,
 } from './colors';
 import './styles.css';
 
@@ -41,21 +41,21 @@ export const GamesTheme = createTheme({
       main: __secondaryMain,
       light: __secondaryLight,
       dark: __secondaryDark,
-      contrastText: __white,
+      contrastText: __textPrimary,
     },
 
     error: {
       main: __errorMain,
       light: __errorLight,
       dark: __errorDark,
-      contrastText: __white,
+      contrastText: __textPrimary,
     },
 
     warning: {
       main: __warningMain,
       light: __warningLight,
       dark: __warningDark,
-      contrastText: __white,
+      contrastText: __textPrimary,
     },
 
     info: {
@@ -69,7 +69,7 @@ export const GamesTheme = createTheme({
       main: __successMain,
       light: __successLight,
       dark: __successDark,
-      contrastText: __white,
+      contrastText: __textPrimary,
     },
 
     background: {
@@ -78,7 +78,7 @@ export const GamesTheme = createTheme({
     },
 
     text: {
-      primary: __white,
+      primary: __textPrimary,
       secondary: __textSecondary,
       disabled: __greyLight,
     },
@@ -86,16 +86,22 @@ export const GamesTheme = createTheme({
     divider: __greyLight,
   },
   typography: {
-    fontFamily: 'Pixel-Game',
+    fontFamily: 'monospace',
     h1: {
       fontFamily: 'Jersey25-Charted',
       color: __secondaryMain,
     },
     h2: {
+      fontFamily: 'Pixel-Game',
       color: __secondaryLight,
+    },
+    h3: {
+      fontFamily: 'Pixel-Game',
+      color: __primaryMain,
     },
     body1: {
       fontFamily: 'Press-Start',
+      color: __textPrimary,
     },
     button: {
       fontFamily: 'Jersey25-Charted',

@@ -1,4 +1,4 @@
-import { GameInstanceID, IInstanceOfGame, IAllGamesMap } from '@aklapper/types';
+import type { GameInstanceID, IAllGamesMap, IInstanceOfGame } from '@aklapper/types';
 
 export class AllGamesMap implements IAllGamesMap {
   AllGames: Map<GameInstanceID, IInstanceOfGame>;

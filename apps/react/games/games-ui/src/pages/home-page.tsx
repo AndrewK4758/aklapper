@@ -9,7 +9,7 @@ import Divider from '@mui/material/Divider';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import type { SxProps } from '@mui/material/styles';
-import { useContext, type Dispatch, type SetStateAction } from 'react';
+import { useContext } from 'react';
 import RegisterPlayer from '../components/register-player/register-player';
 import ActivePlayerContext, { ActivePlayerContextProps } from '../context/active-player-context';
 import { GamesTheme as Theme } from '../styles/games-theme';
@@ -29,7 +29,7 @@ const registerPlayerPropsObject = {
 } as IPlayer;
 
 const Home = () => {
-  const { activePlayer, setActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
+  const { activePlayer, deleteActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
 
   return (
     <Box
@@ -74,7 +74,7 @@ const Home = () => {
           )}
 
           {activePlayer.Name && (
-            <Button id='logout-player' variant='outlined' onClick={() => handleLogoutPlayer(setActivePlayer)}>
+            <Button id='logout-player' variant='outlined' onClick={() => handleLogoutPlayer(deleteActivePlayer)}>
               Logout
             </Button>
           )}
@@ -86,12 +86,6 @@ const Home = () => {
 
 export default Home;
 
-function handleLogoutPlayer(setActivePlayer: Dispatch<SetStateAction<Partial<IPlayer>>>) {
-  const currentPlayer = sessionStorage.getItem('activePlayer');
-
-  if (currentPlayer) {
-    sessionStorage.removeItem('activePlayer');
-  }
-
-  setActivePlayer({ Id: '', Name: '', InLobby: false, ActiveGameID: null });
+function handleLogoutPlayer(deleteActivePlayer: () => void) {
+  deleteActivePlayer();
 }

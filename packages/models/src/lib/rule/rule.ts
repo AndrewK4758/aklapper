@@ -1,4 +1,4 @@
-import { IRule, IRuleBuilder } from '@aklapper/types';
+import type { IRule, IRuleBuilder } from '@aklapper/types';
 
 export class Rule implements IRuleBuilder {
   private rule: IRule;

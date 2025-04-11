@@ -1,4 +1,4 @@
-import { Minute } from '@aklapper/types';
+import type { Minute } from '@aklapper/types';
 
 export const getCurrentMinute = (): Minute => {
   const currentTime = new Date();

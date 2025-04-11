@@ -1,12 +1,12 @@
 import { SocketServer } from '@aklapper/socket-io-server';
 import type { PlayerID, SocketID } from '@aklapper/types';
-import cors, { CorsOptions } from 'cors';
+import cors, { type CorsOptions } from 'cors';
 import { configDotenv } from 'dotenv';
-import express, { Express } from 'express';
+import express, { type Express } from 'express';
 import { createServer } from 'http';
 import { join } from 'path';
 import { cwd } from 'process';
-import { ServerOptions } from 'socket.io';
+import type { ServerOptions } from 'socket.io';
 import createNewGame from './events/create_new_game.js';
 import disconnectingEvent from './events/disconnect_event.js';
 import enterLobby from './events/enter-lobby.js';
@@ -61,8 +61,8 @@ gameSocketServer.addServerListener('action', socketBoardAction);
 export const lobbySocketServer = new SocketServer(httpServer, lobbyServerOptions, new Map<PlayerID, SocketID>());
 
 lobbySocketServer.addServerListener('enter-lobby', enterLobby);
-lobbySocketServer.addServerListener('privateMessagePlayer', privateMessagePlayer);
-lobbySocketServer.addServerListener('removePlayer', disconnectingEvent);
+lobbySocketServer.addServerListener('private-message-player', privateMessagePlayer);
+lobbySocketServer.addServerListener('remove-player', disconnectingEvent);
 lobbySocketServer.addServerListener('create-new-game', createNewGame);
 
 app.options(/.*/, cors(corsOptions));

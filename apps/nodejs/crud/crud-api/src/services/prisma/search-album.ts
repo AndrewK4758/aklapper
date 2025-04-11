@@ -1,6 +1,6 @@
-import { prisma, PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
-import { Prisma, type album } from '@prisma/client';
-import { DefaultArgs } from '@prisma/client/runtime/library.js';
+import { prisma, PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/chinook-client';
+import type { DefaultArgs } from '@prisma/client/runtime/library';
+import { Prisma, type album } from 'node_modules/@aklapper/chinook-client/generated/client.js';
 
 /**
  * Searches for albums in the database based on the provided query.
@@ -10,7 +10,7 @@ import { DefaultArgs } from '@prisma/client/runtime/library.js';
  */
 
 const searchAlbum = async (
-  query: Prisma.albumFindManyArgs<DefaultArgs>
+  query: Prisma.albumFindManyArgs<DefaultArgs>,
 ): Promise<(album[] | null) | ParsedPrismaError> => {
   try {
     return await prisma.album.findMany(query);

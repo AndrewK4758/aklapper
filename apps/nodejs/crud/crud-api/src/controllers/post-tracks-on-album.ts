@@ -1,6 +1,6 @@
-import { Prisma } from '@prisma/client';
-import { DefaultArgs } from '@prisma/client/runtime/library';
-import { Request, Response } from 'express';
+import type { DefaultArgs } from '@prisma/client/runtime/library';
+import type { Request, Response } from 'express';
+import { Prisma } from 'node_modules/@aklapper/chinook-client/generated/client.js';
 import createTracks from '../services/prisma/tracks/create-tracks.js';
 
 /**
@@ -16,7 +16,7 @@ const createTracksOnAlbum = async (req: Request, resp: Response) => {
     const { name, albumID } = req.body;
 
     const query = {
-      data: { name: name, album_id: albumID }
+      data: { name: name, album_id: albumID },
     } as Prisma.trackCreateArgs<DefaultArgs>;
 
     const newTrack = await createTracks(query);

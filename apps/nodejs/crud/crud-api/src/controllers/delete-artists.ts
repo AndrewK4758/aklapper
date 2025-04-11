@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import deleteArtists from '../services/prisma/artist/delete-artist.js';
 
 /**
@@ -16,7 +16,7 @@ const deleteArtist = async (req: Request, resp: Response): Promise<void> => {
     const deletedArtist = await deleteArtists(parseInt(id, 10));
 
     const output = {
-      deletedArtist: deletedArtist
+      deletedArtist: deletedArtist,
     };
 
     resp.status(202).json(output);

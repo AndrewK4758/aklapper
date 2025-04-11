@@ -1,8 +1,8 @@
 import { Player } from '@aklapper/games-components';
-import type { IPlayer } from '@aklapper/types';
 import type { Request, Response } from 'express';
 import ShortUniqueId from 'short-unique-id';
 import genericError from '../../errors/genenric_error.js';
+import useActivePlayersMap from '../../middleware/use_active_players_map.js';
 import { addPlayerToLobbyGoService } from '../../services/redis/send-message-to-go-service.js';
 
 // 2 Data structures
@@ -15,26 +15,30 @@ export default async function registerPlayerName(req: Request, resp: Response): 
     const { name } = req.body;
 
     const playerId = new ShortUniqueId().rnd(6);
-
+    const activePlayers = useActivePlayersMap();
     const newActivePlayer = new Player(name, playerId);
 
     const playerInLobby = await addPlayerToLobbyGoService('lobby:new-player', newActivePlayer);
+    newActivePlayer.InLobby = true;
 
-    const currentPlayerInLobby = JSON.parse(playerInLobby) as IPlayer;
+    activePlayers.addPlayer(playerId, newActivePlayer);
 
-    const clientPlayerInfo: Partial<IPlayer> = {
+    const currentPlayerInLobby = JSON.parse(playerInLobby) as Player;
+
+    const clientPlayerInfo: Partial<Player> = {
       Name: currentPlayerInLobby.Name,
       Id: currentPlayerInLobby.Id,
-      InLobby: currentPlayerInLobby.InLobby
+      InLobby: currentPlayerInLobby.InLobby,
+      WebsocketId: undefined,
     };
 
     resp.status(201).json(clientPlayerInfo);
-
     // Add Service call to DB to store player info if I decide to maintain state past current session
   } catch (error) {
     console.error(error);
-    resp.status(500).json(genericError('Error creating Player. Please refresh page and try again', error as Error));
+    const err = error as Error;
+    resp
+      .status(500)
+      .json(genericError(err.message ? err.message : 'Error creating Player. Please refresh page and try again', err));
   }
-
-  return;
 }

@@ -57,3 +57,4 @@ data_store
 dist
 .coverage
 .pyc
+generated_client_games

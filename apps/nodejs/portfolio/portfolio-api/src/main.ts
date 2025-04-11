@@ -1,5 +1,5 @@
-import cors, { CorsOptions } from 'cors';
-import express, { Express } from 'express';
+import cors, { type CorsOptions } from 'cors';
+import express, { type Express } from 'express';
 import { join } from 'path';
 import { cwd } from 'process';
 import router, { PortfolioRoutes } from './routes/routes.js';

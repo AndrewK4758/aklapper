@@ -1,6 +1,6 @@
-import { Prisma } from '@prisma/client';
-import { DefaultArgs } from '@prisma/client/runtime/library';
-import { NextFunction, Request, Response } from 'express';
+import type { DefaultArgs } from '@prisma/client/runtime/library';
+import type { NextFunction, Request, Response } from 'express';
+import { Prisma } from 'node_modules/@aklapper/chinook-client/generated/client.js';
 import albumTracksCount from '../services/prisma/tracks/album-tracks-count.js';
 import getAlbumTracks from '../services/prisma/tracks/get-album-tracks.js';
 
@@ -22,7 +22,7 @@ const getAlbumsTracks = async (req: Request, resp: Response, next: NextFunction)
       const albumID = parseInt(req.query.albumID as string, 10);
 
       const query = {
-        where: { album_id: { equals: albumID } }
+        where: { album_id: { equals: albumID } },
       } as Prisma.trackFindManyArgs<DefaultArgs>;
 
       const tracks = await getAlbumTracks(query);

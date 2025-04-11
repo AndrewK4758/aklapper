@@ -1,4 +1,4 @@
-import { ILiteSpace } from '@aklapper/types';
+import type { ILiteSpace } from '@aklapper/types';
 
 export class LiteSpace implements ILiteSpace {
   display: string;

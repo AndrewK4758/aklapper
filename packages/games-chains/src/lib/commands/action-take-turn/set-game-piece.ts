@@ -1,7 +1,7 @@
 import { CommandBuilder } from '@aklapper/chain';
-import { deRefContextObject } from '@aklapper/utils';
 import { Player } from '@aklapper/games-components';
-import { Context, GameContextKeys, TurnStatus } from '@aklapper/types';
+import { type Context, GameContextKeys, TurnStatus } from '@aklapper/types';
+import { deRefContextObject } from '@aklapper/utils';
 
 export const setGamePiece = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.NEXT) && context.getString(GameContextKeys.NEXT) === 'set-game-piece') {
@@ -25,7 +25,7 @@ export const setGamePiece = CommandBuilder.build((context: Context<GameContextKe
       return true;
     } else {
       context.put(GameContextKeys.OUTPUT, {
-        turnStatus: TurnStatus.NULL_SELECT
+        turnStatus: TurnStatus.NULL_SELECT,
       });
       return false;
     }

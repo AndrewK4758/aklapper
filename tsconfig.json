@@ -2,7 +2,7 @@
   "extends": "./tsconfig.base.json",
   "compileOnSave": false,
   "files": [],
-  "exclude": ["node_modules", "dist", "apps/go", "apps/python"],
+  "exclude": ["node_modules", "dist", "apps/go", "apps/python", "generated/**/*"],
   "references": [
     {
       "path": "./packages/chain"
@@ -36,9 +36,6 @@
     },
     {
       "path": "./packages/password"
-    },
-    {
-      "path": "./packages/prisma"
     },
     {
       "path": "./packages/socket-io/server"
@@ -90,6 +87,9 @@
     },
     {
       "path": "./apps/react/crud/crud-ui"
+    },
+    {
+      "path": "./packages/prisma/chinook"
     }
   ]
 }

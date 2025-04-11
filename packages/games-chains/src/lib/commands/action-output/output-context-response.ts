@@ -1,6 +1,6 @@
 import { CommandBuilder } from '@aklapper/chain';
+import { type Context, GameContextKeys } from '@aklapper/types';
 import { deRefContextObject } from '@aklapper/utils';
-import { Context, GameContextKeys } from '@aklapper/types';
 
 export const outputContextResponse = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   const { req, resp } = deRefContextObject(context);

@@ -1,6 +1,6 @@
-import { Prisma } from '@prisma/client';
-import { DefaultArgs } from '@prisma/client/runtime/library';
-import { Request, Response } from 'express';
+import type { DefaultArgs } from '@prisma/client/runtime/library';
+import type { Request, Response } from 'express';
+import { Prisma } from 'node_modules/@aklapper/chinook-client/generated/client.js';
 import deleteTrack from '../services/prisma/tracks/delete-track.js';
 
 /**
@@ -16,7 +16,7 @@ const deleteTracks = async (req: Request, resp: Response) => {
     const { id } = req.params;
 
     const query: Prisma.trackDeleteArgs<DefaultArgs> = {
-      where: { track_id: parseInt(id, 10) }
+      where: { track_id: parseInt(id, 10) },
     };
     const deletedTrack = await deleteTrack(query);
 

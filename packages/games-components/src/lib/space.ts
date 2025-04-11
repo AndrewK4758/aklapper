@@ -1,4 +1,4 @@
-import { SpaceType, ISpace, IAvatar } from '@aklapper/types';
+import { SpaceType, type IAvatar, type ISpace } from '@aklapper/types';
 import { Avatar } from './avatar.js';
 
 export class Space implements ISpace {

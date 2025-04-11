@@ -1,6 +1,6 @@
 import { CommandBuilder } from '@aklapper/chain';
+import { type Context, GameContextKeys, TurnStatus } from '@aklapper/types';
 import { deRefContextObject } from '@aklapper/utils';
-import { Context, GameContextKeys, TurnStatus } from '@aklapper/types';
 import { gameCommandMap, type NextCommandMap } from '../../utils/context-next-map.js';
 
 export const verifyReadyToPlay = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
@@ -9,7 +9,7 @@ export const verifyReadyToPlay = CommandBuilder.build((context: Context<GameCont
 
     const readyToPlay = game.instance.verifyReadyToPlay(
       game.instance.instance.MIN_PLAYERS,
-      game.instance.instance.MAX_PLAYERS
+      game.instance.instance.MAX_PLAYERS,
     );
 
     if (readyToPlay) {
@@ -26,7 +26,7 @@ export const verifyReadyToPlay = CommandBuilder.build((context: Context<GameCont
       return true;
     } else {
       context.put(GameContextKeys.OUTPUT, {
-        gameStatus: TurnStatus.NOT_READY
+        gameStatus: TurnStatus.NOT_READY,
       });
 
       return false;

@@ -1,5 +1,5 @@
-import { GameNameString, IBuiltGame, PlayerID } from '@aklapper/types';
-import { NextFunction, Request, Response, Router } from 'express';
+import type { GameNameString, IBuiltGame, PlayerID } from '@aklapper/types';
+import { type NextFunction, type Request, type Response, Router } from 'express';
 import useAllGamesMap from './all-games-map.js';
 import useInstanceTimeMap from './instance-map.js';
 import useSetSelectedGameName from './set-selected-game-name.js';

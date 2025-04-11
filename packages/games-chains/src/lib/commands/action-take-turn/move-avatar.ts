@@ -1,6 +1,6 @@
 import { CommandBuilder } from '@aklapper/chain';
 import { Player } from '@aklapper/games-components';
-import { Context, GameContextKeys, TurnStatus } from '@aklapper/types';
+import { type Context, GameContextKeys, TurnStatus } from '@aklapper/types';
 
 export const moveAvatar = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.NEXT) && context.getString(GameContextKeys.NEXT) === 'move-avatar') {

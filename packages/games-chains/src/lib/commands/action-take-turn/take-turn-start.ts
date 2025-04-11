@@ -1,6 +1,6 @@
 import { CommandBuilder } from '@aklapper/chain';
+import { type Context, GameContextKeys, TurnStatus } from '@aklapper/types';
 import { deRefContextObject, getCurrentMinute } from '@aklapper/utils';
-import { Context, GameContextKeys, TurnStatus } from '@aklapper/types';
 
 export const takeTurnStart = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.ACTION) && context.getString(GameContextKeys.ACTION) === 'take-turn') {
@@ -8,14 +8,14 @@ export const takeTurnStart = CommandBuilder.build((context: Context<GameContextK
 
     if (!game.instance.readyToPlay) {
       context.put(GameContextKeys.OUTPUT, {
-        turnStatus: TurnStatus.NOT_READY
+        turnStatus: TurnStatus.NOT_READY,
       });
       resp.setHeader('current-game', req.header('current-game') as string);
       return false;
     }
     if (game.instance.readyToPlay && game.instance.haveWinner) {
       context.put(GameContextKeys.OUTPUT, {
-        turnStatus: TurnStatus.GAME_WON
+        turnStatus: TurnStatus.GAME_WON,
       });
       resp.setHeader('current-game', req.header('current-game') as string);
       return false;

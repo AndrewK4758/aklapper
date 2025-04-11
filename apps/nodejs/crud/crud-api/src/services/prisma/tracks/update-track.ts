@@ -1,7 +1,8 @@
-import type { ParsedPrismaError, PrismaClientErrors } from '@aklapper/prisma';
-import { prisma, PrismaErrorLogger } from '@aklapper/prisma';
-import { Prisma, track } from '@prisma/client';
-import { DefaultArgs } from '@prisma/client/runtime/library';
+import type { ParsedPrismaError, PrismaClientErrors } from '@aklapper/chinook-client';
+import { prisma, PrismaErrorLogger } from '@aklapper/chinook-client';
+import type { track } from 'node_modules/@aklapper/chinook-client/generated/client.js';
+// import { type track } from 'node_modules/@aklapper/chinook-client/generated/client.js';
+// import type { DefaultArgs } from 'node_modules/@aklapper/chinook-client/generated/client.js/runtime/library';
 
 /**
  * Updates an existing track in the database.
@@ -24,9 +25,9 @@ const updateTrack = async (trackData: track): Promise<track | ParsedPrismaError>
         media_type_id: media_type_id,
         composer: composer,
         milliseconds: milliseconds,
-        bytes: bytes
-      }
-    } as Prisma.trackUpdateArgs<DefaultArgs>;
+        bytes: bytes,
+      },
+    };
     return await prisma.track.update(query);
   } catch (error) {
     const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);

@@ -2,14 +2,14 @@ import { ContextBuilder } from '@aklapper/chain';
 import { activeGameDisplayChain } from '@aklapper/games-chains';
 import { InstanceOfGame } from '@aklapper/models';
 import { GameContextKeys } from '@aklapper/types';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { gameSocketServer } from '../main.js';
 
 const performAction = async (
   req: Request | null,
   resp: Response | null,
   gameWS: InstanceOfGame | null,
-  actionWS: string | null
+  actionWS: string | null,
 ) => {
   console.log('Perform Action Called');
   //check for no rest-api objects

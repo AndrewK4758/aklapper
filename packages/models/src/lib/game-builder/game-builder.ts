@@ -1,5 +1,5 @@
 import { ChainBuilder } from '@aklapper/chain';
-import { Command, IBuiltGame, IGameBuilder } from '@aklapper/types';
+import type { Command, IBuiltGame, IGameBuilder } from '@aklapper/types';
 import { Rule } from '../rule/rule.js';
 
 export class GameBuilder implements IGameBuilder {
@@ -27,7 +27,7 @@ export class GameBuilder implements IGameBuilder {
   setPlayers(min: number, max: number): IGameBuilder {
     const players = {
       min: min,
-      max: max
+      max: max,
     };
     this.Game.players = players;
 

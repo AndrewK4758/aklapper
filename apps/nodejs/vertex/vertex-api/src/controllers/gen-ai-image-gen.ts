@@ -1,11 +1,10 @@
 import type { ImagenConfig } from '@aklapper/vertex-ai';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import generateImage from '../services/vertex-ai-endpoint.js';
 
 const generateImages = async (req: Request, resp: Response) => {
   try {
-    const { prompt, sampleCount, seed, aspectRatio } =
-      req.body as Partial<ImagenConfig>;
+    const { prompt, sampleCount, seed, aspectRatio } = req.body as Partial<ImagenConfig>;
 
     const rawImageDataArray = await generateImage({
       prompt,

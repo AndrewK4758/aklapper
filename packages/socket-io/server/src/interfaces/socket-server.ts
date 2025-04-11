@@ -5,5 +5,3 @@ export interface ISocketServer {
   io: Server;
   connMap: Map<PlayerID, SocketID>;
 }
-
-export default ISocketServer;

@@ -8,7 +8,7 @@ export const __greyDark = '#101010';
 export const __greyPaper = '#404040';
 export const __greyLight = '#707070';
 
-export const __white = '#E1E5DC';
+export const __textPrimary = '#E1E5DC';
 export const __textSecondary = '#A0A0A0';
 
 export const __secondaryMain = '#FF3D00';

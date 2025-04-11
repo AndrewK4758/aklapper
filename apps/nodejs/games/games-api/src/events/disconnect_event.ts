@@ -1,4 +1,4 @@
-import { SocketCallback } from '@aklapper/types';
+import type { SocketCallback } from '@aklapper/types';
 import type { Socket } from 'socket.io';
 import { lobbySocketServer } from '../main.js';
 import { activePubClient } from '../services/redis/redis-client.js';

@@ -1,8 +1,8 @@
 import { ContextBuilder } from '@aklapper/chain';
 import { Game } from '@aklapper/game';
-import { InstanceOfGame } from '@aklapper/models';
 import { mockReqObj, mockRespObj } from '@aklapper/mocks';
-import { Context, GameContextKeys, type AllGameTypes } from '@aklapper/types';
+import { InstanceOfGame } from '@aklapper/models';
+import { GameContextKeys, type AllGameTypes, type Context } from '@aklapper/types';
 import type { Request, Response } from 'express';
 import { Server } from 'socket.io';
 import { deRefContextObject } from '../src/lib/de-ref-context-object.js';

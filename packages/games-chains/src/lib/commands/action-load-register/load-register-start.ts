@@ -1,6 +1,6 @@
 import { CommandBuilder } from '@aklapper/chain';
+import { type Context, GameContextKeys, type ILoadRegisterData } from '@aklapper/types';
 import { deRefContextObject } from '@aklapper/utils';
-import { Context, GameContextKeys, ILoadRegisterData } from '@aklapper/types';
 
 export const loadRegister = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.ACTION) && context.getString(GameContextKeys.ACTION) === 'load-register') {
@@ -8,7 +8,7 @@ export const loadRegister = CommandBuilder.build((context: Context<GameContextKe
 
     const avatarNameAndColorLoaderData: ILoadRegisterData = {
       avatarList: game.instance.instance.avatarList,
-      avatarColorList: game.instance.instance.colorList
+      avatarColorList: game.instance.instance.colorList,
     };
     context.put(GameContextKeys.OUTPUT, avatarNameAndColorLoaderData);
     context.put(GameContextKeys.NEXT, 'send-load-register-data');

@@ -1,7 +1,6 @@
-import { prisma } from '@aklapper/prisma';
-import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/prisma';
-import { Prisma, type track } from '@prisma/client';
-import { DefaultArgs } from '@prisma/client/runtime/library';
+import { prisma, PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/chinook-client';
+import type { DefaultArgs } from '@prisma/client/runtime/library';
+import { Prisma, type track } from 'node_modules/@aklapper/chinook-client/generated/client.js';
 /**
  *
  * @param {Prisma.trackFindManyArgs<DefaultArgs>} query - The Prisma query object to get all tracks on a specific album

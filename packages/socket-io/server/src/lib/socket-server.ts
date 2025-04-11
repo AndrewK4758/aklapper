@@ -1,7 +1,7 @@
 import type { PlayerID, SocketCallback, SocketID, SocketMiddleware } from '@aklapper/types';
 import type { Server as httpServer } from 'http';
-import { Server, ServerOptions, type Socket } from 'socket.io';
-import type ISocketServer from '../interfaces/socket-server.ts';
+import { Server, type ServerOptions, type Socket } from 'socket.io';
+import type { ISocketServer } from '../interfaces/socket-server.ts';
 
 export class SocketServer implements ISocketServer {
   io: Server;
@@ -9,7 +9,7 @@ export class SocketServer implements ISocketServer {
   constructor(
     httpServer: httpServer,
     serverOptions: Partial<ServerOptions>,
-    connMap: Map<PlayerID, SocketID> = new Map(),
+    connMap: Map<PlayerID, SocketID> = new Map<PlayerID, SocketID>(),
   ) {
     this.io = new Server(httpServer, serverOptions);
     this.connMap = connMap;

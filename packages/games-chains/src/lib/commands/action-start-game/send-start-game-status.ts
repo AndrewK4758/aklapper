@@ -1,6 +1,6 @@
 import { CommandBuilder } from '@aklapper/chain';
+import { type Context, GameContextKeys, type GameInstanceID, type IPlayer } from '@aklapper/types';
 import { deRefContextObject } from '@aklapper/utils';
-import { Context, GameContextKeys, GameInstanceID, type IPlayer } from '@aklapper/types';
 
 export const sendStartGameStatus = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.NEXT) && context.getString(GameContextKeys.NEXT) === 'send-start-game-status') {
@@ -11,7 +11,7 @@ export const sendStartGameStatus = CommandBuilder.build((context: Context<GameCo
     resp.setHeader('current-game', req.header('current-game') as GameInstanceID);
     context.put(GameContextKeys.OUTPUT, {
       message: 'Game Started',
-      playersInOrder
+      playersInOrder,
     });
     return true;
   } else return false;

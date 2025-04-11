@@ -1,4 +1,4 @@
-import { IBoard } from '@aklapper/types';
+import type { IBoard } from '@aklapper/types';
 import { Space } from './space.js';
 
 export class Board implements IBoard {

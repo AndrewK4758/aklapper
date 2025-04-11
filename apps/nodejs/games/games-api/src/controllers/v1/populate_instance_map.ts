@@ -1,8 +1,8 @@
 import { Game } from '@aklapper/game';
 import { InstanceOfGame } from '@aklapper/models';
-import { AllGameTypes, GameInstanceID, GamePlayerValidation, IBuiltGame, Minute } from '@aklapper/types';
+import type { AllGameTypes, GameInstanceID, GamePlayerValidation, IBuiltGame, Minute } from '@aklapper/types';
 import { getCurrentMinute } from '@aklapper/utils';
-import { Response, type Request } from 'express';
+import type { Request, Response } from 'express';
 import ShortUniqueId from 'short-unique-id';
 
 //Make a filter to parse the current game header and add to the request object

@@ -1,15 +1,8 @@
-import {
-  Context,
-  ContextData,
-  GameContextKeys,
-  IInstanceOfGame,
-} from '@aklapper/types';
-import { Request, Response } from 'express';
+import { type Context, type ContextData, GameContextKeys, type IInstanceOfGame } from '@aklapper/types';
+import type { Request, Response } from 'express';
 import { Server } from 'socket.io';
 
-export const deRefContextObject = (
-  context: Context<GameContextKeys | string>,
-): ContextData => {
+export const deRefContextObject = (context: Context<GameContextKeys | string>): ContextData => {
   const action = context.get(GameContextKeys.ACTION) as string;
   const game = context.get(GameContextKeys.GAME) as IInstanceOfGame;
   const req = context.get(GameContextKeys.REQUEST) as Request;

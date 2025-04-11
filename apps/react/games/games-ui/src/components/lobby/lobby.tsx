@@ -11,7 +11,7 @@ import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import Divider from '@mui/material/Divider';
 import { useContext, useEffect, useState, type Dispatch, type ReactElement, type SetStateAction } from 'react';
-import { Outlet, useActionData, useNavigate, useRouteLoaderData } from 'react-router';
+import { useActionData, useNavigate, useRouteLoaderData } from 'react-router';
 import ActivePlayerContext, { ActivePlayerContextProps } from '../../context/active-player-context';
 import { WebsocketContext, type WebsocketContextProps } from '../../context/websocket_context';
 import WebsocketContextProvider from '../../context/websocket_context_provider';
@@ -77,22 +77,18 @@ export default function Lobby() {
       }
 
       socket.on('new-player', (data: IPlayer) => {
-        console.log('NEW PLAYER EVENT ', data, '\n');
         setActiveLobby(prev => [...prev, data]);
       });
 
-      socket.on('privateMessage', (message: PrivateMessageDetails) => {
-        console.log(message);
+      socket.on('private-message', (message: PrivateMessageDetails) => {
         setMessages(prev => [...prev, message]);
       });
 
-      socket.on('removePlayer', id => {
+      socket.on('remove-player', id => {
         setActiveLobby(activeLobby.filter(player => player.Id !== id));
       });
 
-      socket.on('new-game', ({ gameName, gameId, gamesInLobby }: NewGameDetails) => {
-        console.log(`NEW ${gameName}`);
-
+      socket.on('new-game', ({ gameId, gamesInLobby }: NewGameDetails) => {
         setCurrentPlayer(prev => ({ ...prev, ActiveGameID: gameId }));
         setActiveGames(gamesInLobby);
       });
@@ -100,6 +96,7 @@ export default function Lobby() {
     return () => {
       if (socket.connected) {
         setActiveLobby(activePlayersInLobby.filter(player => player.Id === currentPlayer.Id));
+        socket.emit('remove-player', currentPlayer.Id);
         socket.disconnect();
         socket.removeAllListeners();
       }
@@ -148,11 +145,9 @@ export default function Lobby() {
           </Box>
         </Box>
 
-        <Outlet />
-
         <Button
           onClick={() => {
-            socket.emit('removePlayer', currentPlayer.Id);
+            socket.emit('remove-player', currentPlayer.Id);
             sessionStorage.removeItem('activePlayer');
             setActivePlayer({ Name: '', Id: '', InLobby: false });
             nav('/', { replace: true });

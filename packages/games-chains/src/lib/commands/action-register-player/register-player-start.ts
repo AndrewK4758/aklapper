@@ -1,5 +1,5 @@
 import { CommandBuilder } from '@aklapper/chain';
-import { Context, GameContextKeys } from '@aklapper/types';
+import { type Context, GameContextKeys } from '@aklapper/types';
 
 export const registerAction = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.ACTION) && context.getString(GameContextKeys.ACTION) === 'register') {

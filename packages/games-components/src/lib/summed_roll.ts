@@ -1,4 +1,4 @@
-import { ISummedRoll } from '@aklapper/types';
+import type { ISummedRoll } from '@aklapper/types';
 
 export class SummedRoll implements ISummedRoll {
   RollValues: number[];

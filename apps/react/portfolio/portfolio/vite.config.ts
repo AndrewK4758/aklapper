@@ -1,7 +1,7 @@
 import { workspaceRoot } from '@nx/devkit';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
-import { defineConfig, UserConfig } from 'vite';
+import { defineConfig, type UserConfig } from 'vite';
 
 const modules: { [key: string]: string } = {
   '@aklapper/games-components': resolve(workspaceRoot, 'packages/games-components/src/index.ts'),
@@ -18,7 +18,7 @@ const modules: { [key: string]: string } = {
 
   '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src/index.ts'),
 
-  '.prisma/client/index-browser': resolve(workspaceRoot, 'node_modules/@prisma/client/runtime/index-browser.js')
+  '.prisma/client/index-browser': resolve(workspaceRoot, 'node_modules/@prisma/client/runtime/index-browser.js'),
 };
 
 const config: UserConfig = defineConfig({
@@ -26,11 +26,11 @@ const config: UserConfig = defineConfig({
   cacheDir: resolve(workspaceRoot, 'node_modules/.vite/apps/react/portfolio/portfolio'),
   server: {
     port: 4700,
-    host: 'localhost'
+    host: 'localhost',
   },
   preview: {
     port: 4800,
-    host: 'localhost'
+    host: 'localhost',
   },
   plugins: [react()],
 
@@ -40,7 +40,7 @@ const config: UserConfig = defineConfig({
   // },
 
   resolve: {
-    alias: modules
+    alias: modules,
   },
 
   base: '/client',
@@ -52,11 +52,11 @@ const config: UserConfig = defineConfig({
     sourcemap: true,
     reportCompressedSize: true,
     commonjsOptions: {
-      transformMixedEsModules: true
+      transformMixedEsModules: true,
     },
     rollupOptions: {
       input: {
-        browser: '/src/main.tsx'
+        browser: '/src/main.tsx',
       },
       perf: true,
       output: {
@@ -68,11 +68,11 @@ const config: UserConfig = defineConfig({
           constBindings: true,
           symbols: true,
           objectShorthand: true,
-          reservedNamesAsProps: true
-        }
-      }
+          reservedNamesAsProps: true,
+        },
+      },
     },
-    target: 'esnext'
+    target: 'esnext',
   },
 
   esbuild: {
@@ -81,7 +81,7 @@ const config: UserConfig = defineConfig({
     color: true,
     platform: 'browser',
     sourcemap: true,
-    target: 'esnext'
+    target: 'esnext',
   },
 
   logLevel: 'info',
@@ -97,9 +97,9 @@ const config: UserConfig = defineConfig({
     reporters: ['default'],
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',
-      provider: 'v8'
-    }
-  }
+      provider: 'v8',
+    },
+  },
 });
 
 export default config;
