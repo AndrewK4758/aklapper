@@ -1,6 +1,7 @@
 import { Player } from '@aklapper/games-components';
 import type { Request, Response } from 'express';
 import ShortUniqueId from 'short-unique-id';
+import addPlayerToDb from 'src/services/prisma/add_player.js';
 import genericError from '../../errors/genenric_error.js';
 import useActivePlayersMap from '../../middleware/use_active_players_map.js';
 import { addPlayerToLobbyGoService } from '../../services/redis/send-message-to-go-service.js';
@@ -20,6 +21,8 @@ export default async function registerPlayerName(req: Request, resp: Response): 
 
     const playerInLobby = await addPlayerToLobbyGoService('lobby:new-player', newActivePlayer);
     newActivePlayer.InLobby = true;
+
+    await addPlayerToDb(newActivePlayer);
 
     activePlayers.addPlayer(playerId, newActivePlayer);
 

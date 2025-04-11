@@ -2,21 +2,15 @@
   "extends": "../../../../tsconfig.base.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "outDir": "out-tsc/games-api",
-    "types": ["node"],
     "rootDir": "src",
-    "tsBuildInfoFile": "out-tsc/games-api/tsconfig.app.tsbuildinfo"
+    "outDir": "out-tsc/games-api",
+    "tsBuildInfoFile": "out-tsc/games-api/tsconfig.app.tsbuildinfo",
+    "types": ["node"]
   },
 
   "include": ["src/**/*.ts"],
   "exclude": ["out-tsc", "dist", "vitest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts", "eslint.config.js"],
   "references": [
-    {
-      "path": "../../../../packages/mocks/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../../packages/models/tsconfig.lib.json"
-    },
     {
       "path": "../../../../packages/utils/tsconfig.lib.json"
     },
@@ -27,7 +21,16 @@
       "path": "../../../../packages/socket-io/server/tsconfig.lib.json"
     },
     {
+      "path": "../../../../packages/models/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../../packages/mocks/tsconfig.lib.json"
+    },
+    {
       "path": "../../../../packages/games-components/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../../packages/prisma/games/tsconfig.lib.json"
     },
     {
       "path": "../../../../packages/games-chains/tsconfig.lib.json"

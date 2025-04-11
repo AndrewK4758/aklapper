@@ -7,6 +7,9 @@
     "projectType": "library",
     "sourceRoot": "packages/react-shared/src"
   },
+  "dependencies": {
+    "tslib": "^2.8.1"
+  },
   "devDependencies": {
     "@aklapper/types": "workspace:*",
     "@aklapper/utils": "workspace:*"

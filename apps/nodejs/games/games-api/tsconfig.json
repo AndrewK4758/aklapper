@@ -22,6 +22,9 @@
       "path": "../../../../packages/games-components"
     },
     {
+      "path": "../../../../packages/prisma/games"
+    },
+    {
       "path": "../../../../packages/games-chains"
     },
     {

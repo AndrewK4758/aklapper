@@ -8,6 +8,7 @@
     "@aklapper/game": "workspace:*",
     "@aklapper/games": "workspace:*",
     "@aklapper/games-chains": "workspace:*",
+    "@aklapper/games-client": "workspace:*",
     "@aklapper/games-components": "workspace:*",
     "@aklapper/mocks": "workspace:*",
     "@aklapper/models": "workspace:*",

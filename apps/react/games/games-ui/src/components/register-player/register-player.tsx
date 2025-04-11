@@ -66,6 +66,7 @@ export default function RegisterPlayer<T extends object>({
             id={inputId}
             value={value}
             fullWidth
+            label={label}
             name={inputName as string}
             onBlur={formik.handleBlur}
             onChange={async e => await handlePlayerNameChange<T>(e, formik)}

@@ -5,8 +5,8 @@
     "rootDir": "src",
     "outDir": "out-tsc/crud-api",
     "noUnusedLocals": false,
-    "types": ["node"],
-    "tsBuildInfoFile": "out-tsc/crud-api/tsconfig.app.tsbuildinfo"
+    "tsBuildInfoFile": "out-tsc/crud-api/tsconfig.app.tsbuildinfo",
+    "types": ["node"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["out-tsc", "dist", "vitest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts", "eslint.config.js"],

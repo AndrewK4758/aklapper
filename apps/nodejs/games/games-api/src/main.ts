@@ -17,7 +17,7 @@ import routerV1 from './routes/v1/routes.js';
 import routerV2 from './routes/v2/routes.js';
 import './services/redis/redis-client.js';
 
-const __dirname = join(cwd(), 'apps/apis/games/games-api');
+const __dirname = join(cwd(), 'apps/nodejs/games/games-api');
 
 configDotenv({ path: join(__dirname, '.env') });
 

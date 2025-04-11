@@ -1,7 +1,3 @@
-# games-client
+# games-client2
 
 This library was generated with [Nx](https://nx.dev).
-
-## Building
-
-Run `nx build games-client` to build the library.

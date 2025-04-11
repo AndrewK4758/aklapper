@@ -1,4 +1,4 @@
-const url = (NODE_ENV: string) => {
+export const url = (NODE_ENV: string) => {
   switch (NODE_ENV) {
     case 'production':
       return process.env['DB_URL_PROD'];

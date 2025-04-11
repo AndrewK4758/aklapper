@@ -40,7 +40,8 @@
           "buildDepsName": "build-deps",
           "watchDepsName": "watch-deps"
         }
-      }
+      },
+      "exclude": ["packages/prisma/games2/*"]
     },
     {
       "plugin": "@nx/eslint/plugin",
@@ -90,6 +91,15 @@
     {
       "plugin": "@nx-go/nx-go",
       "include": ["apps/go/**"]
+    },
+    {
+      "plugin": "@nx/js/typescript",
+      "include": ["packages/prisma/games2/*"],
+      "options": {
+        "typecheck": {
+          "targetName": "typecheck"
+        }
+      }
     }
   ],
   "targetDefaults": {

@@ -1,5 +1,5 @@
 {
-  "name": "@aklapper/crud-api",
+  "name": "crud-api",
   "version": "0.0.1",
   "private": true,
   "type": "module",

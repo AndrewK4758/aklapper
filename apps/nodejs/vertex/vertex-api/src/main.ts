@@ -8,7 +8,7 @@ import type { ServerOptions } from 'socket.io';
 import handleTextDataChunks from './controllers/gen-ai-text-handler.js';
 import router, { Routes } from './routes/routes.js';
 
-const __dirname = join(cwd(), 'apps/apis/vertex/vertex-api');
+const __dirname = join(cwd(), 'apps/nodejs/vertex/vertex-api');
 
 const app: Express = express();
 

@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "dependencies": {
+  "devDependencies": {
     "@aklapper/react-shared": "workspace:*",
     "@aklapper/socket-io-client": "workspace:*"
   },
