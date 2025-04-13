@@ -12,6 +12,7 @@ type ActivePlayerInLobby struct {
 	Id      string
 	Name    string
 	InLobby bool
+	Email   string
 }
 
 func HandleGetLobbyData(resp http.ResponseWriter, req *http.Request) {
@@ -25,6 +26,7 @@ func HandleGetLobbyData(resp http.ResponseWriter, req *http.Request) {
 			Id:      playerID,
 			Name:    playerData.Name,
 			InLobby: playerData.InLobby,
+			Email:   playerData.Email,
 		}
 		activePlayersInLobby = append(activePlayersInLobby, playerInLobby)
 	}

@@ -8,7 +8,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import type { SxProps } from '@mui/material/styles';
 import axios from 'axios';
 import { useFormik, type FormikProps } from 'formik';
-import { SetStateAction, useContext, type ChangeEvent, type Dispatch, type FocusEvent } from 'react';
+import { SetStateAction, useContext, type ChangeEvent, type Dispatch } from 'react';
 import { Form, useNavigate, type NavigateFunction } from 'react-router';
 import * as Yup from 'yup';
 import ActivePlayerContext, { ActivePlayerContextProps } from '../../context/active-player-context';
@@ -18,12 +18,10 @@ const emailRegex =
   /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 
 const initialValues: Partial<IPlayer> = {
-  name: '',
   email: '',
 };
 
 const validationSchema: Yup.ObjectSchema<Partial<IPlayer>> = Yup.object<Partial<IPlayer>>({
-  name: Yup.string().required('Must enter player name').max(30, 'Player name must be less than 31 characters'),
   email: Yup.string()
     .required('Must enter valid email address')
     .test({
@@ -42,13 +40,14 @@ interface RegisterPlayerProps {
   ContainerProps?: ContainerProps;
 }
 
-export default function RegisterPlayer({ method, index, tab, inputSx, ContainerProps }: RegisterPlayerProps) {
+export default function LoginPlayer({ method, index, tab, inputSx, ContainerProps }: RegisterPlayerProps) {
   const { setActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
   const nav = useNavigate();
-  const formik = useFormik({
+
+  const formik: FormikProps<Partial<IPlayer>> = useFormik<Partial<IPlayer>>({
     initialValues: initialValues,
     validationSchema: validationSchema,
-    onSubmit: async values => handleNewPlayerSubmit(values, setActivePlayer, nav),
+    onSubmit: async values => handleNewPlayerSubmit(values, setActivePlayer, nav, formik),
   });
 
   return (
@@ -82,7 +81,7 @@ export default function RegisterPlayer({ method, index, tab, inputSx, ContainerP
             fullWidth
             label={'Email'}
             name={'email'}
-            onBlur={e => handleCheckEmailOnBlur(e, formik)}
+            onBlur={formik.handleBlur}
             onChange={async e => await handlePlayerNameChange(e, formik)}
             onFocus={async e => await handleNewPlayerInputTouched(e.currentTarget.name, formik)}
             sx={inputSx}
@@ -93,36 +92,10 @@ export default function RegisterPlayer({ method, index, tab, inputSx, ContainerP
             helperTextSx={errorTextSx(formik.errors.email as string)}
           />
         </FormControl>
-        <FormControl>
-          <Label
-            tooltipTitle={`Enter your player name here. Then submit to enter lobby.`}
-            labelVariant={'body2'}
-            labelText={'Player Name'}
-            id={`player-name-label`}
-            placement={'top'}
-            htmlFor={'name'}
-            tooltipSx={tooltipSx}
-          />
-          <OutlinedInput
-            id={'name'}
-            value={formik.values.name}
-            fullWidth
-            label={'Player Name'}
-            name={'name' as string}
-            onBlur={formik.handleBlur}
-            onChange={async e => await handlePlayerNameChange(e, formik)}
-            onFocus={async e => await handleNewPlayerInputTouched(e.currentTarget.name, formik)}
-            sx={inputSx}
-          />
-          <FormikValidationError<Partial<IPlayer>>
-            formik={formik}
-            elementName={'name'}
-            helperTextSx={errorTextSx(formik.errors.name as string)}
-          />
-        </FormControl>
+
         <ButtonGroup sx={{ justifyContent: 'space-between' }}>
           <Button type='submit' variant='outlined' id='register-player-button' fullWidth>
-            Register
+            Login
           </Button>
           <Button type='reset' variant='outlined' id='clear-register-player-button' fullWidth>
             Clear
@@ -139,13 +112,14 @@ async function handleNewPlayerSubmit(
   values: Partial<IPlayer>,
   setActivePlayer: Dispatch<SetStateAction<Partial<IPlayer>>>,
   nav: NavigateFunction,
+  formik: FormikProps<Partial<IPlayer>>,
 ): Promise<void> {
   try {
-    const { name, email } = values as Partial<IPlayer>;
+    const { email } = values as Partial<IPlayer>;
 
     const resp = await axios.post(
-      `${baseUrl}/register`,
-      { name: name, email: email },
+      `${baseUrl}/login`,
+      { login: email },
       { headers: { 'Content-Type': 'application/json' } },
     );
 
@@ -160,6 +134,9 @@ async function handleNewPlayerSubmit(
     nav('lobby');
   } catch (error) {
     console.error(error);
+
+    await formik.setFieldTouched('email', true);
+    formik.setFieldError('email', 'Email not registered. Please register player to continue');
   }
 }
 
@@ -172,31 +149,4 @@ async function handlePlayerNameChange(
 
 async function handleNewPlayerInputTouched(target: string, formik: FormikProps<Partial<IPlayer>>) {
   await formik.setFieldTouched(target, false);
-}
-
-async function handleCheckEmailOnBlur(
-  event: FocusEvent<HTMLInputElement | HTMLTextAreaElement>,
-  formik: FormikProps<Partial<IPlayer>>,
-) {
-  if ((formik.values.email as string).length && emailRegex.test(formik.values.email as string)) {
-    const { setTouched, setError } = formik.getFieldHelpers('email');
-    try {
-      const resp = await axios.get(`${baseUrl}/player-exists?email=${formik.values.email}`);
-
-      const { exists } = resp.data;
-
-      if (exists === true) {
-        await setTouched(true);
-        setError('Email exists, please login to continue');
-      }
-      if (exists === false) {
-        await setTouched(true);
-        setError('Email available! Please register to continue');
-      }
-    } catch (error) {
-      console.error(error);
-      await setTouched(true);
-      setError('Error validating email. Please re-enter email and change cursor focus away from email input');
-    }
-  } else formik.handleBlur(event);
 }

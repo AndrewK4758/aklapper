@@ -3,17 +3,22 @@ import type { Player } from '@aklapper/games-components';
 
 export default async function addPlayerToDb(player: Player): Promise<players | void> {
   try {
-    const { Name, Id, InLobby, CurrentTimeEntered } = player;
+    const { Name, Id, CurrentTimeEntered, Email } = player;
 
-    return await gamesClient.players.create({
+    const newPlayer = await gamesClient.players.create({
       data: {
         player_name: Name,
         player_id: Id,
-        in_lobby: InLobby,
         current_time_entered: CurrentTimeEntered,
+        email: Email,
       },
     });
+
+    return newPlayer;
   } catch (error) {
+    console.log('IN ADD PLAYER \n\n\n');
     console.error(error);
+    console.log('IN ADD PLAYER \n\n\n');
+    throw error;
   }
 }

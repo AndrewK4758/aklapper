@@ -1,5 +1,4 @@
 import { Text } from '@aklapper/react-shared';
-import type { IPlayer } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -9,7 +8,10 @@ import Divider from '@mui/material/Divider';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import type { SxProps } from '@mui/material/styles';
-import { useContext } from 'react';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
+import { useContext, useState } from 'react';
+import LoginPlayer from '../components/login/login';
 import RegisterPlayer from '../components/register-player/register-player';
 import ActivePlayerContext, { ActivePlayerContextProps } from '../context/active-player-context';
 import { GamesTheme as Theme } from '../styles/games-theme';
@@ -20,16 +22,13 @@ const homePageTitleText: SxProps = {
   },
 };
 
-const joinGameTextInputSxProps: SxProps = {
-  width: '50vw',
+const registerPlayerFormSxProps: SxProps = {
+  width: '100%',
 };
-
-const registerPlayerPropsObject = {
-  name: '',
-} as IPlayer;
 
 const Home = () => {
   const { activePlayer, deleteActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
+  const [tab, setTab] = useState<number>(0);
 
   return (
     <Box
@@ -60,21 +59,24 @@ const Home = () => {
             </ListItem>
           </List>
         </Card>
-        <Container component={'section'} id='home-page-register-player-wrapper'>
-          <Text titleVariant='h2' component={'h2'} titleText={'Register'} />
-          {!activePlayer.Name && (
-            <RegisterPlayer<IPlayer>
-              method={'POST'}
-              inputName={'name'}
-              label={'Player Name'}
-              inputId={'player-name'}
-              formPropsObject={registerPlayerPropsObject}
-              inputSx={joinGameTextInputSxProps}
-            />
-          )}
-
+        <Container
+          component={'section'}
+          id='home-page-register-player-wrapper'
+          sx={{ display: 'flex', flexDirection: 'column', gap: 6 }}
+        >
+          <Tabs centered variant='fullWidth' value={tab} onChange={(_, newVal) => setTab(newVal)} sx={{}}>
+            <Tab label={'Register'} {...tabProps(0)} />
+            <Tab label={'Login'} {...tabProps(1)} />
+          </Tabs>
+          <RegisterPlayer method={'POST'} index={0} tab={tab} inputSx={registerPlayerFormSxProps} />
+          <LoginPlayer method='POST' index={1} tab={tab} inputSx={registerPlayerFormSxProps} />
           {activePlayer.Name && (
-            <Button id='logout-player' variant='outlined' onClick={() => handleLogoutPlayer(deleteActivePlayer)}>
+            <Button
+              id='logout-player'
+              variant='outlined'
+              onClick={() => handleLogoutPlayer(deleteActivePlayer)}
+              sx={registerPlayerFormSxProps}
+            >
               Logout
             </Button>
           )}
@@ -89,3 +91,5 @@ export default Home;
 function handleLogoutPlayer(deleteActivePlayer: () => void) {
   deleteActivePlayer();
 }
+
+const tabProps = (index: number) => ({ id: `simple-tab-${index}`, 'aria-controls': `simple-tabpanel-${index}` });

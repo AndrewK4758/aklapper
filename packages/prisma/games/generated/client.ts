@@ -66,8 +66,8 @@ const config: runtime.GetPrismaClientConfig = {
       }
     }
   },
-  "inlineSchema": "generator client {\n  provider = \"prisma-client\"\n  output   = \"../generated\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DB_URL_DEV\")\n}\n\n/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments\nmodel players {\n  id                   Int      @default(autoincrement())\n  player_id            String   @id @db.VarChar(6)\n  player_name          String   @db.VarChar\n  current_time_entered DateTime @db.Timestamptz(6)\n  active_game_id       String?  @db.VarChar(6)\n  in_lobby             Boolean\n}\n",
-  "inlineSchemaHash": "754f05f15eb11f27fb7dd9469dbb4c74a8d59bde51dad3558663e63a60ef43ac",
+  "inlineSchema": "generator client {\n  provider = \"prisma-client\"\n  output   = \"../generated\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DB_URL_DEV\")\n}\n\n/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments\nmodel players {\n  player_id            String   @id @db.VarChar(6)\n  player_name          String   @db.VarChar\n  current_time_entered DateTime @db.Timestamptz(6)\n  active_game_id       String?  @db.VarChar(6)\n  email                String   @unique(map: \"unique_email\") @db.VarChar\n\n  @@index([email], map: \"email_index\")\n}\n",
+  "inlineSchemaHash": "afc4f2f1bea79d86a1dd46a2d10b970c2a91b61a6c2aba7bd916bbb9be263902",
   "copyEngine": true,
   "runtimeDataModel": {
     "models": {},
@@ -78,7 +78,7 @@ const config: runtime.GetPrismaClientConfig = {
 }
 config.dirname = __dirname
 
-config.runtimeDataModel = JSON.parse("{\"models\":{\"players\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"Int\",\"nativeType\":null,\"default\":{\"name\":\"autoincrement\",\"args\":[]},\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"player_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"6\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"player_name\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"current_time_entered\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"DateTime\",\"nativeType\":[\"Timestamptz\",[\"6\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"active_game_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"6\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"in_lobby\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Boolean\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false,\"documentation\":\"This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments\"}},\"enums\":{},\"types\":{}}")
+config.runtimeDataModel = JSON.parse("{\"models\":{\"players\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"player_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"6\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"player_name\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"current_time_entered\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"DateTime\",\"nativeType\":[\"Timestamptz\",[\"6\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"active_game_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"6\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"email\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":true,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[]],\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false,\"documentation\":\"This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments\"}},\"enums\":{},\"types\":{}}")
 config.engineWasm = undefined
 config.compilerWasm = undefined
 
@@ -889,82 +889,58 @@ export namespace Prisma {
 
   export type AggregatePlayers = {
     _count: PlayersCountAggregateOutputType | null
-    _avg: PlayersAvgAggregateOutputType | null
-    _sum: PlayersSumAggregateOutputType | null
     _min: PlayersMinAggregateOutputType | null
     _max: PlayersMaxAggregateOutputType | null
   }
 
-  export type PlayersAvgAggregateOutputType = {
-    id: number | null
-  }
-
-  export type PlayersSumAggregateOutputType = {
-    id: number | null
-  }
-
   export type PlayersMinAggregateOutputType = {
-    id: number | null
     player_id: string | null
     player_name: string | null
     current_time_entered: Date | null
     active_game_id: string | null
-    in_lobby: boolean | null
+    email: string | null
   }
 
   export type PlayersMaxAggregateOutputType = {
-    id: number | null
     player_id: string | null
     player_name: string | null
     current_time_entered: Date | null
     active_game_id: string | null
-    in_lobby: boolean | null
+    email: string | null
   }
 
   export type PlayersCountAggregateOutputType = {
-    id: number
     player_id: number
     player_name: number
     current_time_entered: number
     active_game_id: number
-    in_lobby: number
+    email: number
     _all: number
   }
 
 
-  export type PlayersAvgAggregateInputType = {
-    id?: true
-  }
-
-  export type PlayersSumAggregateInputType = {
-    id?: true
-  }
-
   export type PlayersMinAggregateInputType = {
-    id?: true
     player_id?: true
     player_name?: true
     current_time_entered?: true
     active_game_id?: true
-    in_lobby?: true
+    email?: true
   }
 
   export type PlayersMaxAggregateInputType = {
-    id?: true
     player_id?: true
     player_name?: true
     current_time_entered?: true
     active_game_id?: true
-    in_lobby?: true
+    email?: true
   }
 
   export type PlayersCountAggregateInputType = {
-    id?: true
     player_id?: true
     player_name?: true
     current_time_entered?: true
     active_game_id?: true
-    in_lobby?: true
+    email?: true
     _all?: true
   }
 
@@ -1006,18 +982,6 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
-     * Select which fields to average
-    **/
-    _avg?: PlayersAvgAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to sum
-    **/
-    _sum?: PlayersSumAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
      * Select which fields to find the minimum value
     **/
     _min?: PlayersMinAggregateInputType
@@ -1048,22 +1012,17 @@ export namespace Prisma {
     take?: number
     skip?: number
     _count?: PlayersCountAggregateInputType | true
-    _avg?: PlayersAvgAggregateInputType
-    _sum?: PlayersSumAggregateInputType
     _min?: PlayersMinAggregateInputType
     _max?: PlayersMaxAggregateInputType
   }
 
   export type PlayersGroupByOutputType = {
-    id: number
     player_id: string
     player_name: string
     current_time_entered: Date
     active_game_id: string | null
-    in_lobby: boolean
+    email: string
     _count: PlayersCountAggregateOutputType | null
-    _avg: PlayersAvgAggregateOutputType | null
-    _sum: PlayersSumAggregateOutputType | null
     _min: PlayersMinAggregateOutputType | null
     _max: PlayersMaxAggregateOutputType | null
   }
@@ -1083,53 +1042,48 @@ export namespace Prisma {
 
 
   export type playersSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-    id?: boolean
     player_id?: boolean
     player_name?: boolean
     current_time_entered?: boolean
     active_game_id?: boolean
-    in_lobby?: boolean
+    email?: boolean
   }, ExtArgs["result"]["players"]>
 
   export type playersSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-    id?: boolean
     player_id?: boolean
     player_name?: boolean
     current_time_entered?: boolean
     active_game_id?: boolean
-    in_lobby?: boolean
+    email?: boolean
   }, ExtArgs["result"]["players"]>
 
   export type playersSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-    id?: boolean
     player_id?: boolean
     player_name?: boolean
     current_time_entered?: boolean
     active_game_id?: boolean
-    in_lobby?: boolean
+    email?: boolean
   }, ExtArgs["result"]["players"]>
 
   export type playersSelectScalar = {
-    id?: boolean
     player_id?: boolean
     player_name?: boolean
     current_time_entered?: boolean
     active_game_id?: boolean
-    in_lobby?: boolean
+    email?: boolean
   }
 
-  export type playersOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "player_id" | "player_name" | "current_time_entered" | "active_game_id" | "in_lobby", ExtArgs["result"]["players"]>
+  export type playersOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"player_id" | "player_name" | "current_time_entered" | "active_game_id" | "email", ExtArgs["result"]["players"]>
 
   export type $playersPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     name: "players"
     objects: {}
     scalars: runtime.Types.Extensions.GetPayloadResult<{
-      id: number
       player_id: string
       player_name: string
       current_time_entered: Date
       active_game_id: string | null
-      in_lobby: boolean
+      email: string
     }, ExtArgs["result"]["players"]>
     composites: {}
   }
@@ -1213,8 +1167,8 @@ export namespace Prisma {
      * // Get first 10 Players
      * const players = await prisma.players.findMany({ take: 10 })
      * 
-     * // Only select the `id`
-     * const playersWithIdOnly = await prisma.players.findMany({ select: { id: true } })
+     * // Only select the `player_id`
+     * const playersWithPlayer_idOnly = await prisma.players.findMany({ select: { player_id: true } })
      * 
      */
     findMany<T extends playersFindManyArgs>(args?: SelectSubset<T, playersFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$playersPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
@@ -1258,9 +1212,9 @@ export namespace Prisma {
      *   ]
      * })
      * 
-     * // Create many Players and only return the `id`
-     * const playersWithIdOnly = await prisma.players.createManyAndReturn({
-     *   select: { id: true },
+     * // Create many Players and only return the `player_id`
+     * const playersWithPlayer_idOnly = await prisma.players.createManyAndReturn({
+     *   select: { player_id: true },
      *   data: [
      *     // ... provide data here
      *   ]
@@ -1349,9 +1303,9 @@ export namespace Prisma {
      *   ]
      * })
      * 
-     * // Update zero or more Players and only return the `id`
-     * const playersWithIdOnly = await prisma.players.updateManyAndReturn({
-     *   select: { id: true },
+     * // Update zero or more Players and only return the `player_id`
+     * const playersWithPlayer_idOnly = await prisma.players.updateManyAndReturn({
+     *   select: { player_id: true },
      *   where: {
      *     // ... provide filter here
      *   },
@@ -1553,12 +1507,11 @@ export namespace Prisma {
    * Fields of the players model
    */
   export interface playersFieldRefs {
-    readonly id: FieldRef<"players", 'Int'>
     readonly player_id: FieldRef<"players", 'String'>
     readonly player_name: FieldRef<"players", 'String'>
     readonly current_time_entered: FieldRef<"players", 'DateTime'>
     readonly active_game_id: FieldRef<"players", 'String'>
-    readonly in_lobby: FieldRef<"players", 'Boolean'>
+    readonly email: FieldRef<"players", 'String'>
   }
     
 
@@ -1940,12 +1893,11 @@ export namespace Prisma {
 
 
   export const PlayersScalarFieldEnum = {
-    id: 'id',
     player_id: 'player_id',
     player_name: 'player_name',
     current_time_entered: 'current_time_entered',
     active_game_id: 'active_game_id',
-    in_lobby: 'in_lobby'
+    email: 'email'
   } as const
 
   export type PlayersScalarFieldEnum = (typeof PlayersScalarFieldEnum)[keyof typeof PlayersScalarFieldEnum]
@@ -1981,20 +1933,6 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'Int'
-   */
-  export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-  /**
-   * Reference to a field of type 'Int[]'
-   */
-  export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
-    
-
-
-  /**
    * Reference to a field of type 'String'
    */
   export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String'>
@@ -2023,23 +1961,16 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'Boolean'
+   * Reference to a field of type 'Int'
    */
-  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+  export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
     
 
 
   /**
-   * Reference to a field of type 'Float'
+   * Reference to a field of type 'Int[]'
    */
-  export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
-    
-
-
-  /**
-   * Reference to a field of type 'Float[]'
-   */
-  export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
+  export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
   /**
    * Deep Input Types
@@ -2050,133 +1981,108 @@ export namespace Prisma {
     AND?: playersWhereInput | playersWhereInput[]
     OR?: playersWhereInput[]
     NOT?: playersWhereInput | playersWhereInput[]
-    id?: IntFilter<"players"> | number
     player_id?: StringFilter<"players"> | string
     player_name?: StringFilter<"players"> | string
     current_time_entered?: DateTimeFilter<"players"> | Date | string
     active_game_id?: StringNullableFilter<"players"> | string | null
-    in_lobby?: BoolFilter<"players"> | boolean
+    email?: StringFilter<"players"> | string
   }
 
   export type playersOrderByWithRelationInput = {
-    id?: SortOrder
     player_id?: SortOrder
     player_name?: SortOrder
     current_time_entered?: SortOrder
     active_game_id?: SortOrderInput | SortOrder
-    in_lobby?: SortOrder
+    email?: SortOrder
   }
 
   export type playersWhereUniqueInput = Prisma.AtLeast<{
     player_id?: string
+    email?: string
     AND?: playersWhereInput | playersWhereInput[]
     OR?: playersWhereInput[]
     NOT?: playersWhereInput | playersWhereInput[]
-    id?: IntFilter<"players"> | number
     player_name?: StringFilter<"players"> | string
     current_time_entered?: DateTimeFilter<"players"> | Date | string
     active_game_id?: StringNullableFilter<"players"> | string | null
-    in_lobby?: BoolFilter<"players"> | boolean
-  }, "player_id">
+  }, "player_id" | "email">
 
   export type playersOrderByWithAggregationInput = {
-    id?: SortOrder
     player_id?: SortOrder
     player_name?: SortOrder
     current_time_entered?: SortOrder
     active_game_id?: SortOrderInput | SortOrder
-    in_lobby?: SortOrder
+    email?: SortOrder
     _count?: playersCountOrderByAggregateInput
-    _avg?: playersAvgOrderByAggregateInput
     _max?: playersMaxOrderByAggregateInput
     _min?: playersMinOrderByAggregateInput
-    _sum?: playersSumOrderByAggregateInput
   }
 
   export type playersScalarWhereWithAggregatesInput = {
     AND?: playersScalarWhereWithAggregatesInput | playersScalarWhereWithAggregatesInput[]
     OR?: playersScalarWhereWithAggregatesInput[]
     NOT?: playersScalarWhereWithAggregatesInput | playersScalarWhereWithAggregatesInput[]
-    id?: IntWithAggregatesFilter<"players"> | number
     player_id?: StringWithAggregatesFilter<"players"> | string
     player_name?: StringWithAggregatesFilter<"players"> | string
     current_time_entered?: DateTimeWithAggregatesFilter<"players"> | Date | string
     active_game_id?: StringNullableWithAggregatesFilter<"players"> | string | null
-    in_lobby?: BoolWithAggregatesFilter<"players"> | boolean
+    email?: StringWithAggregatesFilter<"players"> | string
   }
 
   export type playersCreateInput = {
-    id?: number
     player_id: string
     player_name: string
     current_time_entered: Date | string
     active_game_id?: string | null
-    in_lobby: boolean
+    email: string
   }
 
   export type playersUncheckedCreateInput = {
-    id?: number
     player_id: string
     player_name: string
     current_time_entered: Date | string
     active_game_id?: string | null
-    in_lobby: boolean
+    email: string
   }
 
   export type playersUpdateInput = {
-    id?: IntFieldUpdateOperationsInput | number
     player_id?: StringFieldUpdateOperationsInput | string
     player_name?: StringFieldUpdateOperationsInput | string
     current_time_entered?: DateTimeFieldUpdateOperationsInput | Date | string
     active_game_id?: NullableStringFieldUpdateOperationsInput | string | null
-    in_lobby?: BoolFieldUpdateOperationsInput | boolean
+    email?: StringFieldUpdateOperationsInput | string
   }
 
   export type playersUncheckedUpdateInput = {
-    id?: IntFieldUpdateOperationsInput | number
     player_id?: StringFieldUpdateOperationsInput | string
     player_name?: StringFieldUpdateOperationsInput | string
     current_time_entered?: DateTimeFieldUpdateOperationsInput | Date | string
     active_game_id?: NullableStringFieldUpdateOperationsInput | string | null
-    in_lobby?: BoolFieldUpdateOperationsInput | boolean
+    email?: StringFieldUpdateOperationsInput | string
   }
 
   export type playersCreateManyInput = {
-    id?: number
     player_id: string
     player_name: string
     current_time_entered: Date | string
     active_game_id?: string | null
-    in_lobby: boolean
+    email: string
   }
 
   export type playersUpdateManyMutationInput = {
-    id?: IntFieldUpdateOperationsInput | number
     player_id?: StringFieldUpdateOperationsInput | string
     player_name?: StringFieldUpdateOperationsInput | string
     current_time_entered?: DateTimeFieldUpdateOperationsInput | Date | string
     active_game_id?: NullableStringFieldUpdateOperationsInput | string | null
-    in_lobby?: BoolFieldUpdateOperationsInput | boolean
+    email?: StringFieldUpdateOperationsInput | string
   }
 
   export type playersUncheckedUpdateManyInput = {
-    id?: IntFieldUpdateOperationsInput | number
     player_id?: StringFieldUpdateOperationsInput | string
     player_name?: StringFieldUpdateOperationsInput | string
     current_time_entered?: DateTimeFieldUpdateOperationsInput | Date | string
     active_game_id?: NullableStringFieldUpdateOperationsInput | string | null
-    in_lobby?: BoolFieldUpdateOperationsInput | boolean
-  }
-
-  export type IntFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntFilter<$PrismaModel> | number
+    email?: StringFieldUpdateOperationsInput | string
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -2220,65 +2126,33 @@ export namespace Prisma {
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
 
-  export type BoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
-  }
-
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
   }
 
   export type playersCountOrderByAggregateInput = {
-    id?: SortOrder
     player_id?: SortOrder
     player_name?: SortOrder
     current_time_entered?: SortOrder
     active_game_id?: SortOrder
-    in_lobby?: SortOrder
-  }
-
-  export type playersAvgOrderByAggregateInput = {
-    id?: SortOrder
+    email?: SortOrder
   }
 
   export type playersMaxOrderByAggregateInput = {
-    id?: SortOrder
     player_id?: SortOrder
     player_name?: SortOrder
     current_time_entered?: SortOrder
     active_game_id?: SortOrder
-    in_lobby?: SortOrder
+    email?: SortOrder
   }
 
   export type playersMinOrderByAggregateInput = {
-    id?: SortOrder
     player_id?: SortOrder
     player_name?: SortOrder
     current_time_entered?: SortOrder
     active_game_id?: SortOrder
-    in_lobby?: SortOrder
-  }
-
-  export type playersSumOrderByAggregateInput = {
-    id?: SortOrder
-  }
-
-  export type IntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
+    email?: SortOrder
   }
 
   export type StringWithAggregatesFilter<$PrismaModel = never> = {
@@ -2331,22 +2205,6 @@ export namespace Prisma {
     _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
-  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
-  }
-
-  export type IntFieldUpdateOperationsInput = {
-    set?: number
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
-  }
-
   export type StringFieldUpdateOperationsInput = {
     set?: string
   }
@@ -2357,21 +2215,6 @@ export namespace Prisma {
 
   export type NullableStringFieldUpdateOperationsInput = {
     set?: string | null
-  }
-
-  export type BoolFieldUpdateOperationsInput = {
-    set?: boolean
-  }
-
-  export type NestedIntFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntFilter<$PrismaModel> | number
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -2413,38 +2256,6 @@ export namespace Prisma {
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
 
-  export type NestedBoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
-  }
-
-  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
-  }
-
-  export type NestedFloatFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
-  }
-
   export type NestedStringWithAggregatesFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -2460,6 +2271,17 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedStringFilter<$PrismaModel>
     _max?: NestedStringFilter<$PrismaModel>
+  }
+
+  export type NestedIntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
   }
 
   export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -2502,14 +2324,6 @@ export namespace Prisma {
     gt?: number | IntFieldRefInput<$PrismaModel>
     gte?: number | IntFieldRefInput<$PrismaModel>
     not?: NestedIntNullableFilter<$PrismaModel> | number | null
-  }
-
-  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
   }
 
 

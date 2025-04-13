@@ -1,9 +1,11 @@
 import type { IAvatar } from './avatar.js';
 
+export type Email = `${string}@${string}.${string}` | '';
 export interface IPlayer {
   readonly name: string;
   readonly id: string;
   readonly currentTimeEntered: string;
+  readonly email: Email;
   order: number;
   avatar: IAvatar;
   activeGameID: string | null;
@@ -28,4 +30,6 @@ export interface IPlayer {
 
   get WebsocketId(): string;
   set WebsocketId(socketId: string);
+
+  get Email(): Email;
 }

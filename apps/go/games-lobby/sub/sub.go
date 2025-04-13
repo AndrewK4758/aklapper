@@ -35,13 +35,8 @@ func Sub() {
 	currentTime := time.Now().In(est).Format("January 2, 2006 03:04:05 PM")
 
 	for msg := range ch {
-		fmt.Println(msg.Channel)
-		fmt.Printf("\n[%s] - Received message: %s\n", currentTime, msg.Payload)
 
-		// if err != nil {
-		// 	fmt.Printf("[%s] - Error receiving message: %s\n", currentTime, err.Error())
-		// 	continue
-		// }
+		fmt.Printf("\n[%s] - Received message: %s\n", currentTime, msg.Payload)
 
 		switch strings.HasPrefix(msg.Channel, "lobby:") {
 		case strings.Contains(msg.Channel, "new-player"):

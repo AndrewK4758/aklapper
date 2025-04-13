@@ -4,6 +4,7 @@
     "baseUrl": ".",
     "rootDir": "src",
     "outDir": "out-tsc/games-api",
+    "noUnusedLocals": false,
     "tsBuildInfoFile": "out-tsc/games-api/tsconfig.app.tsbuildinfo",
     "types": ["node"]
   },

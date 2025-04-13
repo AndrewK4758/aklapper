@@ -19,7 +19,7 @@ import './services/redis/redis-client.js';
 
 const __dirname = join(cwd(), 'apps/nodejs/games/games-api');
 
-configDotenv({ path: join(__dirname, '.env') });
+configDotenv({ path: join(__dirname, 'env/.env') });
 
 const app: Express = express();
 

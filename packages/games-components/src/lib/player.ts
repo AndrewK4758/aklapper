@@ -1,21 +1,23 @@
-import type { IPlayer } from '@aklapper/types';
+import type { Email, IPlayer } from '@aklapper/types';
 import type { Avatar } from './avatar.js';
 
 export class Player implements IPlayer {
   readonly id: string;
   readonly name: string;
   readonly currentTimeEntered: string;
+  readonly email: Email;
   order!: number;
   avatar!: Avatar;
   activeGameID: string | null;
   inLobby: boolean;
   websocketId!: string;
-  constructor(name: string, id: string) {
+  constructor(name: string, id: string, email: Email) {
     this.name = name;
     this.id = id;
     this.activeGameID = null;
     this.inLobby = false;
-    this.currentTimeEntered = new Date().toUTCString();
+    this.currentTimeEntered = new Date().toISOString();
+    this.email = email;
   }
 
   public get Id(): string {
@@ -68,6 +70,10 @@ export class Player implements IPlayer {
 
   public set WebsocketId(socketId: string) {
     this.websocketId = socketId;
+  }
+
+  public get Email() {
+    return this.email;
   }
 }
 

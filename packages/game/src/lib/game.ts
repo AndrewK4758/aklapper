@@ -21,7 +21,7 @@ export class Game implements IGame {
   }
 
   register(playerName: string, id: string, avatarName: string, color: Color) {
-    const player = new Player(playerName, id);
+    const player = new Player(playerName, id, '@.');
     const avatar = new Avatar(avatarName, color);
     player.avatar = avatar;
     this.generatePlayerOrder(player);

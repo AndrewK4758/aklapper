@@ -1,8 +1,8 @@
 import { Player } from '@aklapper/games-components';
+import { PrismaErrorLogger, type PrismaClientErrors } from '@aklapper/utils';
 import type { Request, Response } from 'express';
 import ShortUniqueId from 'short-unique-id';
 import addPlayerToDb from 'src/services/prisma/add_player.js';
-import genericError from '../../errors/genenric_error.js';
 import useActivePlayersMap from '../../middleware/use_active_players_map.js';
 import { addPlayerToLobbyGoService } from '../../services/redis/send-message-to-go-service.js';
 
@@ -13,35 +13,34 @@ import { addPlayerToLobbyGoService } from '../../services/redis/send-message-to-
 
 export default async function registerPlayerName(req: Request, resp: Response): Promise<void> {
   try {
-    const { name } = req.body;
+    const { name, email } = req.body;
 
     const playerId = new ShortUniqueId().rnd(6);
     const activePlayers = useActivePlayersMap();
-    const newActivePlayer = new Player(name, playerId);
+    const newActivePlayer = new Player(name, playerId, email);
 
-    const playerInLobby = await addPlayerToLobbyGoService('lobby:new-player', newActivePlayer);
+    await addPlayerToLobbyGoService('lobby:new-player', newActivePlayer);
     newActivePlayer.InLobby = true;
 
-    await addPlayerToDb(newActivePlayer);
+    const playerInDB = await addPlayerToDb(newActivePlayer);
 
-    activePlayers.addPlayer(playerId, newActivePlayer);
+    if (playerInDB) {
+      activePlayers.addPlayer(playerId, newActivePlayer);
 
-    const currentPlayerInLobby = JSON.parse(playerInLobby) as Player;
+      const clientPlayerInfo: Partial<Player> = {
+        Name: newActivePlayer.Name,
+        Id: newActivePlayer.Id,
+        InLobby: newActivePlayer.InLobby,
+        Email: newActivePlayer.email,
+        WebsocketId: undefined,
+      };
 
-    const clientPlayerInfo: Partial<Player> = {
-      Name: currentPlayerInLobby.Name,
-      Id: currentPlayerInLobby.Id,
-      InLobby: currentPlayerInLobby.InLobby,
-      WebsocketId: undefined,
-    };
-
-    resp.status(201).json(clientPlayerInfo);
+      resp.status(201).json(clientPlayerInfo);
+    }
     // Add Service call to DB to store player info if I decide to maintain state past current session
   } catch (error) {
-    console.error(error);
-    const err = error as Error;
-    resp
-      .status(500)
-      .json(genericError(err.message ? err.message : 'Error creating Player. Please refresh page and try again', err));
+    const prismaError = new PrismaErrorLogger(error as PrismaClientErrors).parseErrors();
+    console.error(prismaError);
+    resp.status(500).json(prismaError);
   }
 }

@@ -10,17 +10,19 @@ type ActivePlayer struct {
 	ActiveGameID       *string
 	InLobby            bool
 	CurrentTimeEntered string
+	Email              string
 }
 
 var LobbyMap = map[string]*ActivePlayer{}
 
-func CreateActivePlayer(name string, id string, activeGameID *string, inLobby bool, currentTimeEntered string) *ActivePlayer {
+func CreateActivePlayer(name string, id string, email string, activeGameID *string, inLobby bool, currentTimeEntered string) *ActivePlayer {
 	return &ActivePlayer{
 		Name:               name,
 		Id:                 id,
 		ActiveGameID:       activeGameID,
 		InLobby:            inLobby,
 		CurrentTimeEntered: currentTimeEntered,
+		Email:              email,
 	}
 
 }

@@ -1,7 +1,7 @@
 import { RenderList, Text } from '@aklapper/react-shared';
 import type {
   ClientLobbyData,
-  GamesInLobbyToSend,
+  GamesInLobbyPending,
   IPlayer,
   NewGameDetails,
   PrivateMessageDetails,
@@ -11,7 +11,7 @@ import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import Divider from '@mui/material/Divider';
 import { useContext, useEffect, useState, type Dispatch, type ReactElement, type SetStateAction } from 'react';
-import { useActionData, useNavigate, useRouteLoaderData } from 'react-router';
+import { useNavigate, useRouteLoaderData } from 'react-router';
 import ActivePlayerContext, { ActivePlayerContextProps } from '../../context/active-player-context';
 import { WebsocketContext, type WebsocketContextProps } from '../../context/websocket_context';
 import WebsocketContextProvider from '../../context/websocket_context_provider';
@@ -22,7 +22,7 @@ import PrivateMessageModal from './messages/private_message';
 // X Active players in lobby
 // - Active games looking for players
 // - Join game functionality (mouse or keyboard)
-// - pub/sub & websocket event handling and emitting
+// - pub/sub & we bsocket event handling and emitting
 // X Emit event when player enters lobby
 // X Emit event when game is created to inLobby players not in game
 // X Emit event when player leaves lobby
@@ -41,24 +41,15 @@ import PrivateMessageModal from './messages/private_message';
 
 export default function Lobby() {
   const { activeGamesInLobby, activePlayersInLobby } = useRouteLoaderData('lobby') as ClientLobbyData;
-  const action = useActionData<boolean | undefined>();
-  const { activePlayer, setActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
-
-  let activeStoredPlayer: Partial<IPlayer>;
-
-  const storedPlayer = sessionStorage.getItem('activePlayer');
-
-  if (storedPlayer) activeStoredPlayer = JSON.parse(storedPlayer);
-  else activeStoredPlayer = activePlayer;
+  const { activePlayer, setActivePlayer, removeFromLobby } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
 
   const { socket } = useContext<WebsocketContextProps>(WebsocketContext);
 
   const [activeLobby, setActiveLobby] = useState<IPlayer[]>(activePlayersInLobby);
-  const [currentPlayer, setCurrentPlayer] = useState<Partial<IPlayer>>(activeStoredPlayer);
   const [messages, setMessages] = useState<PrivateMessageDetails[]>([]);
   const [openMessage, setOpenMessage] = useState<boolean>(false);
   const [messageTarget, setMessageTarget] = useState<PrivateMessageDetails | null>(null);
-  const [activeGames, setActiveGames] = useState<GamesInLobbyToSend[]>(activeGamesInLobby);
+  const [activeGames, setActiveGames] = useState<GamesInLobbyPending[]>(activeGamesInLobby);
 
   const nav = useNavigate();
 
@@ -68,13 +59,10 @@ export default function Lobby() {
 
       socket.on('connect', () => {
         console.log(`Websocket Connected to path: "/lobby" with id: ${socket.id}`);
-        setCurrentPlayer(prev => ({ ...prev, WebsocketId: socket.id }));
-        setActivePlayer(currentPlayer);
+        setActivePlayer(prev => ({ ...prev, WebsocketId: socket.id }));
       });
 
-      if (action === true) {
-        socket.emit('enter-lobby', currentPlayer);
-      }
+      socket.emit('enter-lobby', activePlayer);
 
       socket.on('new-player', (data: IPlayer) => {
         setActiveLobby(prev => [...prev, data]);
@@ -89,14 +77,15 @@ export default function Lobby() {
       });
 
       socket.on('new-game', ({ gameId, gamesInLobby }: NewGameDetails) => {
-        setCurrentPlayer(prev => ({ ...prev, ActiveGameID: gameId }));
+        setActivePlayer(prev => ({ ...prev, ActiveGameID: gameId }));
         setActiveGames(gamesInLobby);
       });
     }
     return () => {
       if (socket.connected) {
-        setActiveLobby(activePlayersInLobby.filter(player => player.Id === currentPlayer.Id));
-        socket.emit('remove-player', currentPlayer.Id);
+        removeFromLobby();
+        setActiveLobby(activePlayersInLobby.filter(player => player.Id === activePlayer.Id));
+        socket.emit('remove-player', activePlayer.Id);
         socket.disconnect();
         socket.removeAllListeners();
       }
@@ -130,7 +119,7 @@ export default function Lobby() {
             <RenderList<IPlayer>
               data={activeLobby}
               listMapCallback={(e, i, arr) =>
-                playersMapCallback(e, i, arr, currentPlayer, setOpenMessage, setMessageTarget)
+                playersMapCallback(e, i, arr, activePlayer, setOpenMessage, setMessageTarget)
               }
             />
           </Box>
@@ -147,7 +136,7 @@ export default function Lobby() {
 
         <Button
           onClick={() => {
-            socket.emit('remove-player', currentPlayer.Id);
+            socket.emit('remove-player', activePlayer.Id);
             sessionStorage.removeItem('activePlayer');
             setActivePlayer({ Name: '', Id: '', InLobby: false });
             nav('/', { replace: true });
@@ -175,6 +164,7 @@ function playersMapCallback(
   setMessageTarget: Dispatch<SetStateAction<PrivateMessageDetails | null>>,
 ): ReactElement {
   const { Name, Id } = e as Partial<IPlayer>;
+
   return (
     <Box
       component={'section'}
