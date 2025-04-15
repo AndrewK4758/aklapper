@@ -1,11 +1,11 @@
 import type { GamePlayerValidation } from '@aklapper/types';
 import Button from '@mui/material/Button';
 import axios from 'axios';
-import { Dispatch, type JSX } from 'react';
+import type { Dispatch, JSX } from 'react';
 import { Socket } from 'socket.io-client';
 import { breakpointsTakeTurnButton } from '../../../styles/games-styles.jsx';
 import getGameInstanceInfo from '../../../utils/utils.jsx';
-import { Action, ActionType } from './socket-reducer.jsx';
+import { type Action, ActionType } from './socket-reducer.jsx';
 
 const baseURL = import.meta.env.VITE_GAMES_API_URL;
 
@@ -28,8 +28,8 @@ interface TakeTurnProps {
 export default function TakeTurn({ dispatch, socket, avatarInTurn }: TakeTurnProps): JSX.Element {
   return (
     <Button
-      variant="contained"
-      type="button"
+      variant='contained'
+      type='button'
       onClick={() => handleTakeTurn(dispatch, socket, avatarInTurn)}
       sx={breakpointsTakeTurnButton}
     >
@@ -55,8 +55,8 @@ const handleTakeTurn = async (dispatch: Dispatch<Action>, socket: Socket, avatar
     gameInfo.playerID = playerId;
     const reqHeaders = {
       headers: {
-        'current-game': JSON.stringify(gameInfo)
-      }
+        'current-game': JSON.stringify(gameInfo),
+      },
     };
 
     const resp = await axios.patch(`${baseURL}/games/Chutes-&-Ladders/take-turn`, {}, reqHeaders);

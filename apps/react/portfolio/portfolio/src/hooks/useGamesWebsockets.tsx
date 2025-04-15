@@ -52,7 +52,7 @@ const useGamesWebsockets = (socket: Socket, id: string, dispatch: (value: Action
 
       dispatch({
         type: ActionType.BOARD,
-        payload: { gameBoard: gameBoardClient, activePlayersInGame, avatarInTurn, winner } as IActiveGameInfo
+        payload: { gameBoard: gameBoardClient, activePlayersInGame, avatarInTurn, winner } as IActiveGameInfo,
       });
     });
     socket.on('no-game-error', ({ errorMessage }) => {

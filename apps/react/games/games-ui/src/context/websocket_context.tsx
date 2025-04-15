@@ -1,6 +1,6 @@
 import type { IPlayer } from '@aklapper/types';
 import { createContext } from 'react';
-import { ManagerOptions, Socket } from 'socket.io-client';
+import type { ManagerOptions, Socket } from 'socket.io-client';
 import ClientSocket from '../utils/web-socket/socket-instance';
 
 export interface WebsocketContextProps {
@@ -17,8 +17,8 @@ else activePlayerDetails = { Id: '', Name: '' };
 const wsUrl = import.meta.env.VITE_WS_SERVER_URL;
 
 const managerOptions: Partial<ManagerOptions> = {
-  path: '/lobby',
   autoConnect: false,
+  path: '/lobby',
   extraHeaders: {
     'current-player-id': activePlayerDetails.Id as string,
   },

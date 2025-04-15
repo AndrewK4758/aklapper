@@ -1,6 +1,6 @@
 import { prisma, PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/chinook-client';
 import type { DefaultArgs } from '@prisma/client/runtime/library';
-import { artist, Prisma } from 'node_modules/@aklapper/chinook-client/generated/client.js';
+import { Prisma, type artist } from 'node_modules/@aklapper/chinook-client/generated/client.js';
 
 /**
  * This function retrieves a list of artists from the database based on the provided query.

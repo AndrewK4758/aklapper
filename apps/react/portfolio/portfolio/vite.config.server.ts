@@ -13,13 +13,11 @@ const modules: { [key: string]: string } = {
 
   '@aklapper/react-shared': resolve(workspaceRoot, 'packages/react-shared/src/index.ts'),
 
-  '@aklapper/socket-io-client': resolve(workspaceRoot, 'packages/socket-io/client/src/index.ts'),
-
   '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
 
   '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src/index.ts'),
 
-  '.prisma/client/index-browser': resolve(workspaceRoot, 'node_modules/@prisma/client/runtime/index-browser.js')
+  '@aklapper/chinook-client': resolve(workspaceRoot, 'packages/prisma/chinook/src/index.ts'),
 };
 
 const config: UserConfig = defineConfig({
@@ -34,11 +32,11 @@ const config: UserConfig = defineConfig({
   // },
 
   resolve: {
-    alias: modules
+    alias: modules,
   },
 
   ssr: {
-    noExternal: ['@mui/material', '@mui/icons-material', '@mui/x-date-pickers']
+    noExternal: ['@mui/material', '@mui/icons-material', '@mui/x-date-pickers'],
   },
 
   base: '/server',
@@ -52,11 +50,11 @@ const config: UserConfig = defineConfig({
     sourcemap: true,
     reportCompressedSize: true,
     commonjsOptions: {
-      transformMixedEsModules: true
+      transformMixedEsModules: true,
     },
     rollupOptions: {
       input: {
-        server: './server.ts'
+        server: './server.ts',
       },
       perf: true,
       output: {
@@ -69,17 +67,17 @@ const config: UserConfig = defineConfig({
           constBindings: true,
           symbols: true,
           objectShorthand: true,
-          reservedNamesAsProps: true
-        }
-      }
+          reservedNamesAsProps: true,
+        },
+      },
     },
-    target: 'node23'
+    target: 'node23',
   },
 
   logLevel: 'info',
   appType: 'custom',
   publicDir: false,
-  envDir: './env'
+  envDir: './env',
 });
 
 export default config;

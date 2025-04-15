@@ -30,11 +30,11 @@ const router = createBrowserRouter([
               {
                 path: ':albumID/tracks',
                 loader: loadAlbumTracks,
-                Component: Tracks
-              }
-            ]
-          }
-        ]
+                Component: Tracks,
+              },
+            ],
+          },
+        ],
       },
       {
         path: 'albums',
@@ -45,22 +45,20 @@ const router = createBrowserRouter([
           {
             path: ':albumID/tracks',
             Component: Tracks,
-            loader: loadAlbumTracks
-          }
-        ]
-      }
-    ]
+            loader: loadAlbumTracks,
+          },
+        ],
+      },
+    ],
   },
 
   {
     index: true,
     path: 'add-entry',
-    Component: AddEntry
-  }
+    Component: AddEntry,
+  },
 ]);
 
-export function App() {
+export default function App() {
   return <RouterProvider router={router} />;
 }
-
-export default App;

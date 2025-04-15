@@ -11,8 +11,8 @@ import Paper from '@mui/material/Paper';
 import axios from 'axios';
 import { useContext, useEffect, useRef, useState, type JSX, type RefObject } from 'react';
 import { useOutletContext } from 'react-router';
+import { io, type ManagerOptions, type Socket } from 'socket.io-client';
 import { MediaRecorderClientContext } from '../../../contexts/audio-context.jsx';
-import { WebSocketContext } from '../../../contexts/websocket-context.jsx';
 import { crudHeaderTextSxProps } from '../../../styles/crud-styles.jsx';
 import { genAiAudioIconButtonSxProps, topLevelModeStyle } from '../../../styles/gen-ai-styles.jsx';
 import { buttonSXProps } from '../../../styles/pages-styles.js';
@@ -22,7 +22,7 @@ import { audioText } from '../static/audio-text.jsx';
 import AudioVisualizer from './audio-visualizer.jsx';
 
 const options: MediaRecorderOptions = {
-  mimeType: 'audio/webm'
+  mimeType: 'audio/webm',
 };
 
 /**
@@ -32,15 +32,28 @@ const options: MediaRecorderOptions = {
  * @returns {JSX.Element} The rendered GenAiAudio component.
  */
 
+const vertexWsURL = import.meta.env.VITE_VERTEX_WS_URL;
+
 const GenAiAudio = (): JSX.Element => {
-  const { socket } = useContext(WebSocketContext);
+  const managerOptions: Partial<ManagerOptions> = {
+    autoConnect: false,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 2500,
+    withCredentials: false,
+    secure: true,
+  };
+
+  const clientSocket = io(vertexWsURL, managerOptions);
   const { MRC, createStream, stream, setStream } = useContext(MediaRecorderClientContext);
   const { setPromptResponse } = useOutletContext<OutletContextProps>();
   const [blob, setBlob] = useState<Blob | null>(null);
   const [recording, setRecording] = useState<boolean>(false);
+  const socketRef = useRef<Socket>(clientSocket);
   const audRef = useRef<HTMLAudioElement>(null);
   const mrcRef = useRef<MRC | null>(null);
   const divRef = useRef<HTMLDivElement>(null);
+
+  const socket = socketRef.current;
 
   useScrollIntoView(divRef);
 
@@ -80,10 +93,10 @@ const GenAiAudio = (): JSX.Element => {
       const promptData: PromptRequest = {
         fileData: {
           fileUri: path,
-          mimeType: blob.type
+          mimeType: blob.type,
         },
 
-        text: null
+        text: null,
       };
 
       socket.emit('prompt', promptData);
@@ -91,23 +104,23 @@ const GenAiAudio = (): JSX.Element => {
   };
 
   return (
-    <Box component={'div'} key={'gen-audio-wrapper'} id="gen-audio-wrapper" ref={divRef} sx={topLevelModeStyle}>
-      <Paper component={'div'} key={'gen-audio-paper'} id="gen-audio-paper">
-        <Container component={'section'} key={'gen-audio-container'} id="gen-audio-container">
+    <Box component={'div'} key={'gen-audio-wrapper'} id='gen-audio-wrapper' ref={divRef} sx={topLevelModeStyle}>
+      <Paper component={'div'} key={'gen-audio-paper'} id='gen-audio-paper'>
+        <Container component={'section'} key={'gen-audio-container'} id='gen-audio-container'>
           <Box component={'section'} key={'gen-audio-header-wrapper'} id={'gen-audio-header-wrapper'}>
-            <Text component={'h3'} titleVariant="h3" titleText={'Audio'} sx={pagesTitleSx} />
+            <Text component={'h3'} titleVariant='h3' titleText={'Audio'} sx={pagesTitleSx} />
 
-            <Text component={'p'} titleVariant="body1" titleText={audioText} sx={crudHeaderTextSxProps} />
+            <Text component={'p'} titleVariant='body1' titleText={audioText} sx={crudHeaderTextSxProps} />
           </Box>
-          <Box component={'section'} key={'gen-audio-recorder-wrapper'} id="gen-audio-recorder-wrapper">
+          <Box component={'section'} key={'gen-audio-recorder-wrapper'} id='gen-audio-recorder-wrapper'>
             {recording && <AudioVisualizer stream={stream as MediaStream} />}
-            <audio title="audio-track.webm" ref={audRef} />
+            <audio title='audio-track.webm' ref={audRef} />
           </Box>
 
           <Box
             component={'section'}
             key={'gen-audio-recorder-buttons-wrapper'}
-            id="gen-audio-recorder-buttons-wrapper"
+            id='gen-audio-recorder-buttons-wrapper'
             display={'flex'}
             justifyContent={'space-evenly'}
           >
@@ -173,7 +186,7 @@ const handleFileUpload = async (fileInputRef: RefObject<HTMLAudioElement | null>
       const resp = await axios.post(
         `${baseUrl}/upload`,
         { file: file, contextPath: contextPath },
-        { headers: { 'Content-Type': 'multipart/form-data' } }
+        { headers: { 'Content-Type': 'multipart/form-data' } },
       );
 
       const { path } = resp.data;

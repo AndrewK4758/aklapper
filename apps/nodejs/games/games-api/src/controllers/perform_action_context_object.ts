@@ -3,7 +3,7 @@ import { activeGameDisplayChain } from '@aklapper/games-chains';
 import { InstanceOfGame } from '@aklapper/models';
 import { GameContextKeys } from '@aklapper/types';
 import type { Request, Response } from 'express';
-import { gameSocketServer } from '../main.js';
+import { gameplaySocketServer } from '../main.js';
 
 const performAction = async (
   req: Request | null,
@@ -15,9 +15,9 @@ const performAction = async (
   //check for no rest-api objects
   if (!req && !resp) {
     if (actionWS && gameWS) {
-      const ctx = ContextBuilder.build();
+      const ctx = ContextBuilder.build<GameContextKeys>();
       ctx.put(GameContextKeys.ACTION, actionWS);
-      ctx.put(GameContextKeys.IO, gameSocketServer.io);
+      ctx.put(GameContextKeys.IO, gameplaySocketServer);
       ctx.put(GameContextKeys.GAME, gameWS);
 
       activeGameDisplayChain.execute(ctx);

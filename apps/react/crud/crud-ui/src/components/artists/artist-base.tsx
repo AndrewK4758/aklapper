@@ -1,30 +1,30 @@
+import type { artist } from '@aklapper/chinook-client';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import DetailsIcon from '@mui/icons-material/Details';
 import UploadIcon from '@mui/icons-material/Upload';
+import { Container, Paper } from '@mui/material';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import {
   DataGrid,
   GridActionsCellItem,
-  GridColDef,
-  GridPaginationModel,
-  GridRowParams,
-  useGridApiRef
+  type GridColDef,
+  type GridPaginationModel,
+  type GridRowParams,
+  useGridApiRef,
 } from '@mui/x-data-grid';
-import { GridApiCommunity } from '@mui/x-data-grid/internals';
-import { artist } from '@prisma/client';
+import type { GridApiCommunity } from '@mui/x-data-grid/internals';
 import axios from 'axios';
-import { RefObject, useCallback, useEffect, useMemo, useState } from 'react';
+import { type RefObject, useCallback, useEffect, useMemo, useState } from 'react';
 import { Outlet, useNavigate, useRouteLoaderData } from 'react-router';
 import loadArtists from '../../services/loaders/load-artists';
 import AddArtist from './add-artist';
-import { Container, Paper } from '@mui/material';
 
 const baseURL = import.meta.env.VITE_DATA_API_URL;
 
 const paginationModelInit = {
   pageSize: 25,
-  page: 0
+  page: 0,
 };
 
 const Artist = () => {
@@ -40,9 +40,9 @@ const Artist = () => {
     () => ({
       cursor: paginationModel.page === 0 ? 1 : paginationModel.pageSize * paginationModel.page,
       pageSize: paginationModel.pageSize,
-      skip: paginationModel.page === 0 ? 0 : 1
+      skip: paginationModel.page === 0 ? 0 : 1,
     }),
-    [paginationModel]
+    [paginationModel],
   );
 
   const handlePaginationModelChange = (newPaginationModel: GridPaginationModel) => {
@@ -51,7 +51,7 @@ const Artist = () => {
 
   const fetchArtists = useCallback(
     (pageSize: number, skip: number, cursor: number) => loadArtists(pageSize, skip, cursor),
-    []
+    [],
   );
 
   useEffect(() => {
@@ -65,7 +65,7 @@ const Artist = () => {
       field: 'artist_id',
       headerName: 'Artist ID',
       type: 'number',
-      flex: 1
+      flex: 1,
     },
     {
       field: 'name',
@@ -74,7 +74,7 @@ const Artist = () => {
       type: 'string',
       editable: true,
       filterable: true,
-      headerClassName: 'artist-name'
+      headerClassName: 'artist-name',
     },
     {
       field: 'update-delete',
@@ -84,21 +84,21 @@ const Artist = () => {
       getActions: (params: GridRowParams) => {
         return [
           <GridActionsCellItem
-            label="Update"
+            label='Update'
             icon={<UploadIcon />}
-            title="Update"
+            title='Update'
             onClick={() => handleUpdateArtistName(params.row, apiRef)}
           />,
           <GridActionsCellItem
-            label="Delete"
-            title="Delete"
+            label='Delete'
+            title='Delete'
             icon={<DeleteForeverIcon />}
             onClick={() => {
               handleDeleteArtist(params.row, apiRef);
             }}
-          />
+          />,
         ];
-      }
+      },
     },
     {
       field: 'details',
@@ -108,14 +108,14 @@ const Artist = () => {
       getActions: (params: GridRowParams) => {
         return [
           <GridActionsCellItem
-            label="Details"
-            title="Details"
+            label='Details'
+            title='Details'
             icon={<DetailsIcon />}
             onClick={() => nav(`${params.row.artist_id}/album`)}
-          />
+          />,
         ];
-      }
-    }
+      },
+    },
   ];
 
   const getID = (row: artist) => row.artist_id;
@@ -124,45 +124,45 @@ const Artist = () => {
     <Box
       component={'div'}
       key={'artist-album-wrapper'}
-      id="artist-album-wrapper"
+      id='artist-album-wrapper'
       sx={{ display: 'flex', flexWrap: 'wrap', width: '73vw' }}
     >
       <Box
         component={'div'}
-        key="artists"
-        id="artists"
+        key='artists'
+        id='artists'
         sx={{
           flex: '1 0 50%',
           borderTop: '3px solid purple',
-          borderRight: '3px solid purple'
+          borderRight: '3px solid purple',
         }}
       >
-        <Container component={'div'} id="artists-title-box" sx={{}}>
+        <Container component={'div'} id='artists-title-box' sx={{}}>
           <Paper elevation={6} key={'artist-list-box'} sx={{ height: '2rem' }}>
             <Typography
-              aria-label="artists"
+              aria-label='artists'
               component={'h2'}
-              variant="h2"
-              id="artists-label"
-              data-testid="artists-label"
+              variant='h2'
+              id='artists-label'
+              data-testid='artists-label'
               sx={{
                 textAlign: 'center',
                 fontSize: '22px',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
               }}
             >
               {'Artist List'}
             </Typography>
           </Paper>
         </Container>
-        <Box component={'div'} key={'artist-datagrid-box'} id="artist-datagrid-box">
+        <Box component={'div'} key={'artist-datagrid-box'} id='artist-datagrid-box'>
           <Box component={'div'} key={'add-artist-box'} sx={{ borderBottom: '2px solid purple', paddingTop: 1 }}>
             <AddArtist rowCountState={rowCountState} setRowCountState={setRowCountState} COUNT={COUNT} />
           </Box>
 
           <Box component={'div'} key={'artist-data-grid-wrapper'}>
             <DataGrid
-              aria-label="artist-data-grid"
+              aria-label='artist-data-grid'
               apiRef={apiRef}
               columns={columns}
               rows={artists}
@@ -170,7 +170,7 @@ const Artist = () => {
               rowCount={rowCountState}
               getRowHeight={() => 'auto'}
               pageSizeOptions={[10, 25, 50, 100]}
-              paginationMode="server"
+              paginationMode='server'
               onRowCountChange={newRowCount => setRowCountState(newRowCount)}
               onPaginationModelChange={handlePaginationModelChange}
               paginationModel={paginationModel}
@@ -178,7 +178,7 @@ const Artist = () => {
           </Box>
         </Box>
       </Box>
-      <Box key={'albums-for-artist-box'} component={'div'} id="albums-for-artist-box" sx={{ flex: '0 1 100%' }}>
+      <Box key={'albums-for-artist-box'} component={'div'} id='albums-for-artist-box' sx={{ flex: '0 1 100%' }}>
         <Outlet />
       </Box>
     </Box>
@@ -193,8 +193,8 @@ const handleUpdateArtistName = async (values: artist, apiRef: RefObject<GridApiC
       `${baseURL}/artists`,
       { artistID: artist_id, name: name },
       {
-        headers: { 'Content-Type': 'application/json' }
-      }
+        headers: { 'Content-Type': 'application/json' },
+      },
     );
 
     if (resp.data && apiRef.current) {
@@ -211,7 +211,7 @@ const handleDeleteArtist = async (values: artist, apiRef: RefObject<GridApiCommu
   try {
     const { artist_id } = values;
     const resp = await axios.delete(`${baseURL}/artists/${artist_id}`, {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
 
     console.log(resp.data);

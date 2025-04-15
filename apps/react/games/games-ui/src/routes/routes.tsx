@@ -1,6 +1,6 @@
 import { Waiting } from '@aklapper/react-shared';
 import { lazy } from 'react';
-import { RouteObject } from 'react-router';
+import type { RouteObject } from 'react-router';
 import waiting from '../assets/swirly-dots-to-chrome.webp';
 import Layout from '../components/layout/Layout';
 import { NoGameError, NotEnoughPlayersError } from '../errors/error';

@@ -1,6 +1,6 @@
 import type { IPlayer } from '@aklapper/types';
 import axios from 'axios';
-import { ActionFunctionArgs } from 'react-router';
+import type { ActionFunctionArgs } from 'react-router';
 
 const baseUrl = import.meta.env.VITE_REST_API_SERVER_URL_V2;
 

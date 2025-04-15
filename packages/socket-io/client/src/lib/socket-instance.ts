@@ -1,4 +1,5 @@
-import { io, type ManagerOptions, type Socket } from 'socket.io-client';
+import type { ManagerOptions, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
 import type IClientSocket from '../interfaces/client-socket.ts';
 
 export class ClientSocket implements IClientSocket {

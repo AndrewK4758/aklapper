@@ -11,7 +11,7 @@ const createNewGame: SocketCallback = (event: string, socket: Socket) => {
     const newGameWithPendingLobby = handleNewGameCall(selectedGame, playerId) as NewGameDetails;
 
     console.log(`Final DATA TO SEND `, newGameWithPendingLobby);
-    lobbySocketServer.io.emit('new-game', newGameWithPendingLobby);
+    lobbySocketServer.emit('new-game', newGameWithPendingLobby);
   });
 };
 

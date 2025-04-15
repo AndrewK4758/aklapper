@@ -4,12 +4,13 @@
     "outDir": "out-tsc/portfolio",
     "tsBuildInfoFile": "out-tsc/portfolio/tsconfig.app.tsbuildinfo",
     "jsx": "react-jsx",
-    "lib": ["dom"],
+    "lib": ["dom", "DOM.AsyncIterable", "ESNext"],
     "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
     "rootDir": "src",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "verbatimModuleSyntax": false
   },
   "exclude": [
     "out-tsc",
@@ -39,9 +40,6 @@
       "path": "../../../../packages/types/tsconfig.lib.json"
     },
     {
-      "path": "../../../../packages/socket-io/client/tsconfig.lib.json"
-    },
-    {
       "path": "../../../../packages/react-shared/tsconfig.lib.json"
     },
     {
@@ -52,6 +50,9 @@
     },
     {
       "path": "../../../../packages/games-components/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../../packages/prisma/chinook/tsconfig.lib.json"
     }
   ]
 }

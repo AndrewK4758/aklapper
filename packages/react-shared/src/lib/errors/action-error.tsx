@@ -1,4 +1,4 @@
-import { IActionError } from '../../interfaces/action-error.js';
+import type { IActionError } from '../../interfaces/action-error';
 
 export const ActionError = ({ errorMessage }: IActionError) => errorMessage;
 

@@ -1,4 +1,4 @@
-import { gamesClient, players } from '@aklapper/games-client';
+import { gamesClient, type players } from '@aklapper/games-client';
 import type { Email } from '@aklapper/types';
 
 export default async function findPlayer(email: Email): Promise<players | null> {

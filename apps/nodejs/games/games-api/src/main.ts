@@ -53,17 +53,21 @@ const lobbyServerOptions: Partial<ServerOptions> = {
 
 const httpServer = createServer(app);
 
-export const gameSocketServer = new SocketServer(httpServer, gameServerOptions);
+const socketServer = new SocketServer(httpServer, lobbyServerOptions, new Map<PlayerID, SocketID>());
 
-gameSocketServer.addMiddleware(addGameToSocketInstance);
-gameSocketServer.addServerListener('action', socketBoardAction);
+export const lobbySocketServer = socketServer.createNamespace('lobby');
+export const gameplaySocketServer = socketServer.createNamespace('gameplay');
+export const socketConnectionMap = socketServer.connMap;
+// export const gameSocketServer = new SocketServer(httpServer, gameServerOptions);
+// export const lobbySocketServer = new SocketServer(httpServer, lobbyServerOptions, new Map<PlayerID, SocketID>());
 
-export const lobbySocketServer = new SocketServer(httpServer, lobbyServerOptions, new Map<PlayerID, SocketID>());
+socketServer.addMiddleware('gameplay', addGameToSocketInstance);
+socketServer.addServerListener('gameplay', 'action', socketBoardAction);
 
-lobbySocketServer.addServerListener('enter-lobby', enterLobby);
-lobbySocketServer.addServerListener('private-message-player', privateMessagePlayer);
-lobbySocketServer.addServerListener('remove-player', disconnectingEvent);
-lobbySocketServer.addServerListener('create-new-game', createNewGame);
+socketServer.addServerListener('lobby', 'enter-lobby', enterLobby);
+socketServer.addServerListener('lobby', 'private-message-player', privateMessagePlayer);
+socketServer.addServerListener('lobby', 'remove-player', disconnectingEvent);
+socketServer.addServerListener('lobby', 'create-new-game', createNewGame);
 
 app.options(/.*/, cors(corsOptions));
 app.use(cors(corsOptions));

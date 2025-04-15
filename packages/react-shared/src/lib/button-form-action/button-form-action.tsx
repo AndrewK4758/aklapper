@@ -1,6 +1,6 @@
-import { SxProps } from '@mui/material';
 import Button from '@mui/material/Button';
-import { FormEventHandler } from 'react';
+import type { SxProps } from '@mui/material/styles';
+import type { FormEventHandler } from 'react';
 import { Form } from 'react-router';
 
 export interface ButtonFormActionProps {
@@ -24,7 +24,7 @@ export function ButtonFormAction({
   value,
   type,
   sx,
-  buttonText
+  buttonText,
 }: ButtonFormActionProps) {
   return (
     <Form method={method} action={action} onSubmit={handleSubmit}>

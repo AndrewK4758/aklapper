@@ -1,16 +1,14 @@
-import { Player } from '@aklapper/games-components';
 import { RenderList, Text } from '@aklapper/react-shared';
-import { IRegisterFormValues } from '@aklapper/types';
+import type { IRegisterFormValues } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import {
   activeAvatarsActiveGameHeaderBoxSxProps,
-  activeAvatarsActivePlayersInGameListSxProps,
   breakpointsActiveGameTitleContainer,
   breakpointsActiveGameTitleText,
   breakpointsPlayersBox,
   breakpointsPlayersInGameBox,
-  breakpointsPlayersInGameText
+  breakpointsPlayersInGameText,
 } from '../../../styles/games-styles.jsx';
 import PlayersInGame from '../players-in-game/players-in-game.jsx';
 
@@ -22,14 +20,14 @@ import PlayersInGame from '../players-in-game/players-in-game.jsx';
  * @returns an active player/avatar in in the active avatar list
  */
 
-const playersInGameMap = (e: IRegisterFormValues, _i: number, _arr: Player[]) => (
+const playersInGameMap = (e: IRegisterFormValues, _i: number, _arr: IRegisterFormValues[]) => (
   <PlayersInGame
     key={e.avatarName}
     component={'span'}
     id={e.playerName}
     boxSx={breakpointsPlayersBox}
     textSx={breakpointsPlayersInGameText}
-    playerVariant="h4"
+    playerVariant='h4'
     playerName={`${e.playerName}: `}
     avatarName={e.avatarName}
   />
@@ -65,23 +63,18 @@ export default function ActiveAvatars({ avatarsInGame, winner }: ActiveAvatarsPr
           >
             <Text
               component={'h2'}
-              titleVariant="h2"
-              titleText="Active Players in Game"
+              titleVariant='h2'
+              titleText='Active Players in Game'
               sx={breakpointsActiveGameTitleText}
             />
           </Box>
           <Box component={'section'} sx={breakpointsPlayersInGameBox}>
-            <RenderList
-              component={'span'}
-              data={avatarsInGame}
-              listMapCallback={playersInGameMap}
-              sx={activeAvatarsActivePlayersInGameListSxProps}
-            />
+            <RenderList data={avatarsInGame} listMapCallback={playersInGameMap} />
           </Box>
         </Box>
       ) : (
         <Box component={'section'} sx={{ flex: '1 0 70%' }}>
-          <Text component={'h2'} titleVariant="h2" titleText={winner} sx={breakpointsActiveGameTitleText} />
+          <Text component={'h2'} titleVariant='h2' titleText={winner} sx={breakpointsActiveGameTitleText} />
         </Box>
       )}
     </Container>

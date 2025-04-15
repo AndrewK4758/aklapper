@@ -1,20 +1,20 @@
-import { GamesTheme as Theme } from '../../styles/games-theme';
-import { SxProps } from '@mui/material';
 import Button from '@mui/material/Button';
+import type { SxProps } from '@mui/material/styles';
 import axios from 'axios';
-import { Dispatch } from 'react';
+import type { Dispatch } from 'react';
 import { useParams } from 'react-router';
 import { Socket } from 'socket.io-client';
-import { Action, ActionType } from './socket-reducer';
+import { GamesTheme as Theme } from '../../styles/games-theme';
 import getGameInstanceInfo from '../../utils/utils';
+import { type Action, ActionType } from './socket-reducer';
 
 const breakpointsTakeTurnButton: SxProps = {
   backgroundColor: Theme.palette.info.main,
   [Theme.breakpoints.down('md')]: {
     fontSize: '17px',
     width: 130,
-    height: 35
-  }
+    height: 35,
+  },
 };
 
 interface TakeTurnProps {
@@ -36,7 +36,7 @@ export default function TakeTurnTicTacToe({ dispatch, socket, position }: TakeTu
       const resp = await axios.patch(
         `${baseURL}/games/${id}/take-turn`,
         { position: position },
-        { headers: { 'current-game': __current_game__ } }
+        { headers: { 'current-game': __current_game__ } },
       );
       console.log(resp.data.turnStatus);
       dispatch({ type: ActionType.TAKE_TURN, socket: socket });
@@ -48,7 +48,7 @@ export default function TakeTurnTicTacToe({ dispatch, socket, position }: TakeTu
   };
 
   return (
-    <Button variant="outlined" type="button" onClick={handleTakeTurn} sx={breakpointsTakeTurnButton}>
+    <Button variant='outlined' type='button' onClick={handleTakeTurn} sx={breakpointsTakeTurnButton}>
       Take Turn
     </Button>
   );

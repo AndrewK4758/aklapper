@@ -1,11 +1,11 @@
 import { Socket } from 'socket.io-client';
-import { IActiveGameInfo } from '../../games/active_game_session.jsx';
+import type { IActiveGameInfo } from '../../games/active_game_session.jsx';
 
 export enum ActionType {
   BOARD = 'board',
   TAKE_TURN = 'take-turn',
   START = 'start',
-  RESET = 'reset'
+  RESET = 'reset',
 }
 
 export interface Action {

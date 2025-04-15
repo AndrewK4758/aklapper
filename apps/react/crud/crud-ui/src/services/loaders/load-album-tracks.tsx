@@ -1,6 +1,6 @@
-import { track } from '@prisma/client';
+import type { track } from '@aklapper/chinook-client';
 import axios from 'axios';
-import { LoaderFunctionArgs, LoaderFunction } from 'react-router';
+import type { LoaderFunction, LoaderFunctionArgs } from 'react-router';
 
 const baseURL = import.meta.env.VITE_DATA_API_URL;
 

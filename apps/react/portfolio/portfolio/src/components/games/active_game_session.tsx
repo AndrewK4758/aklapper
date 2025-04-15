@@ -1,18 +1,18 @@
 import { Text, useScrollIntoView } from '@aklapper/react-shared';
-import { ClientSocket } from '@aklapper/socket-io-client';
-import { GameBoard, IActivePlayersInGame } from '@aklapper/types';
+import type { GameBoard, IActivePlayersInGame } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import { useReducer, useRef, useState, type JSX } from 'react';
 import { useParams } from 'react-router';
 import type { ManagerOptions, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
 import useGamesWebsockets from '../../hooks/useGamesWebsockets.jsx';
 import {
   breakpointsBottomMenuButtonsBox,
   breakpointsBottomMenuGameBoard,
   breakpointsPlayerInTurnText,
-  gamesPaperSxProps
+  gamesPaperSxProps,
 } from '../../styles/games-styles.jsx';
 import getGameInstanceInfo from '../../utils/utils.jsx';
 import ActiveAvatars from './game_board/active_avatars.jsx';
@@ -43,14 +43,17 @@ const socketInit = () => {
  * @returns {JSX.Element} The rendered active game session component.
  */
 
+const wsURL = import.meta.env.VITE_GAMES_WS_URL;
+
 const ActiveGameSession = (): JSX.Element => {
   const socketManagerOptions: Partial<ManagerOptions> = {
     autoConnect: false,
-    extraHeaders: { 'current-game': JSON.stringify(getGameInstanceInfo()) }
+    path: '/gameplay',
+    extraHeaders: { 'current-game': JSON.stringify(getGameInstanceInfo()) },
   };
 
-  const clientSocket = new ClientSocket(import.meta.env.VITE_GAMES_WS_URL, socketManagerOptions);
-  const socketRef = useRef<Socket>(clientSocket.clientIo);
+  const clientSocket = io(wsURL, socketManagerOptions);
+  const socketRef = useRef<Socket>(clientSocket);
   const [state, dispatch] = useReducer(socketReducer, {}, socketInit);
   const [space, setSpace] = useState<string | undefined>();
   const divRef = useRef<HTMLDivElement>(null);
@@ -58,17 +61,16 @@ const ActiveGameSession = (): JSX.Element => {
 
   const socket = socketRef.current;
 
-  useScrollIntoView(divRef);
-
   useGamesWebsockets(socket, id, dispatch);
 
+  useScrollIntoView(divRef);
   return (
     <Paper key={`active-${id}-game`} id={`active-${id}-game`} sx={gamesPaperSxProps}>
       <Box
         ref={divRef}
         component={'section'}
         key={`${id}-active-avatar-wrapper`}
-        id="active-avatar-wrapper"
+        id='active-avatar-wrapper'
         display={'flex'}
         justifyContent={'center'}
       >
@@ -78,7 +80,7 @@ const ActiveGameSession = (): JSX.Element => {
       <Box
         component={'section'}
         key={`${id}-game-board-wrapper`}
-        id="game-board-wrapper"
+        id='game-board-wrapper'
         sx={{ height: 'fit-content', textAlign: 'center', paddingX: 4 }}
       >
         {id === 'Chutes-&-Ladders' ? (
@@ -96,10 +98,10 @@ const ActiveGameSession = (): JSX.Element => {
       <Container
         component={'section'}
         key={`${id}-active-game-buttons-wrapper`}
-        id="active-game-buttons-wrapper"
+        id='active-game-buttons-wrapper'
         sx={breakpointsBottomMenuGameBoard}
       >
-        <Text component={'h2'} titleVariant="h2" titleText={state.avatarInTurn} sx={breakpointsPlayerInTurnText} />
+        <Text component={'h2'} titleVariant='h2' titleText={state.avatarInTurn} sx={breakpointsPlayerInTurnText} />
         <Box component={'section'} sx={breakpointsBottomMenuButtonsBox}>
           {id === 'Chutes-&-Ladders' ? (
             <TakeTurn avatarInTurn={state.avatarInTurn as string} dispatch={dispatch} socket={socket} />

@@ -1,19 +1,19 @@
-import { GamesTheme as Theme } from '../../styles/games-theme';
-import { SxProps } from '@mui/material';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
+import type { SxProps } from '@mui/material/styles';
 import axios from 'axios';
+import type { Dispatch } from 'react';
 import { useParams } from 'react-router';
-import getGameInstanceInfo from '../../utils/utils';
-import { Dispatch } from 'react';
 import { Socket } from 'socket.io-client';
-import { Action, ActionType } from './socket-reducer';
+import { GamesTheme as Theme } from '../../styles/games-theme';
+import getGameInstanceInfo from '../../utils/utils';
+import { type Action, ActionType } from './socket-reducer';
 
 const breakpointsStartGameButtonBox: SxProps = {
   flex: '0 1 20%',
   justifyItems: 'center',
   alignContent: 'center',
-  [Theme.breakpoints.down('md')]: {}
+  [Theme.breakpoints.down('md')]: {},
 };
 
 const breakpointsStartGameButtonFormButton: SxProps = {
@@ -21,8 +21,8 @@ const breakpointsStartGameButtonFormButton: SxProps = {
   [Theme.breakpoints.down('md')]: {
     fontSize: '17px',
     width: 130,
-    height: 35
-  }
+    height: 35,
+  },
 };
 
 interface ReadyToStartProps {
@@ -37,8 +37,8 @@ export default function ReadyToStart({ dispatch, socket }: ReadyToStartProps) {
   const id = params.id;
   const reqHeaders = {
     headers: {
-      'current-game': JSON.stringify(getGameInstanceInfo())
-    }
+      'current-game': JSON.stringify(getGameInstanceInfo()),
+    },
   };
 
   const handleStartGame = async () => {
@@ -49,7 +49,7 @@ export default function ReadyToStart({ dispatch, socket }: ReadyToStartProps) {
 
   return (
     <Container component={'section'} sx={breakpointsStartGameButtonBox}>
-      <Button onClick={handleStartGame} variant="outlined" type="button" sx={breakpointsStartGameButtonFormButton}>
+      <Button onClick={handleStartGame} variant='outlined' type='button' sx={breakpointsStartGameButtonFormButton}>
         Start Game
       </Button>
     </Container>

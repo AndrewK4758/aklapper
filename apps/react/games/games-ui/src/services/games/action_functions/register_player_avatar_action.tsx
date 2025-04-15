@@ -1,6 +1,6 @@
-import { IRegisterFormValues } from '@aklapper/types';
+import type { IRegisterFormValues } from '@aklapper/types';
 import axios from 'axios';
-import { ActionFunction, ActionFunctionArgs } from 'react-router';
+import type { ActionFunction, ActionFunctionArgs } from 'react-router';
 
 const registerPlayerAndAvatarAction: ActionFunction = async ({ request, params }: ActionFunctionArgs) => {
   const baseURL = import.meta.env.VITE_REST_API_SERVER_URL;
@@ -9,7 +9,7 @@ const registerPlayerAndAvatarAction: ActionFunction = async ({ request, params }
   const data: IRegisterFormValues = await request.json();
 
   const avatarName = data.avatarName;
-  const playerName =data.playerName;
+  const playerName = data.playerName;
   const avatarColor = data.avatarColor;
 
   const registerFormValues = {

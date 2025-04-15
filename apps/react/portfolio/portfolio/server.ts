@@ -5,7 +5,7 @@ import express from 'express';
 import render from './src/main-server.tsx';
 import './src/styles/main-styles.css';
 
-const PORT = process.env.PORT || 4701;
+const PORT = process.env.PORT || 4700;
 
 const app: Express = express();
 

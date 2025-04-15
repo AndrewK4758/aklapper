@@ -10,15 +10,15 @@ import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import TextField from '@mui/material/TextField';
 import { debounce } from '@mui/material/utils';
-import { album, artist } from '@prisma/client';
 import axios from 'axios';
 import { useState, type ChangeEvent, type Dispatch, type JSX, type SetStateAction } from 'react';
 import {
   crudSearchCloseButtonBoxSxProps,
   searchBoxCardSxProps,
-  searchBoxResultsWrapperSxProps
+  searchBoxResultsWrapperSxProps,
 } from '../../styles/crud-styles.jsx';
 import { flexColumnStyles, pagesTitlesBoxStyles } from '../../styles/pages-styles.jsx';
+import type { album, artist } from '../../types/prisma_types.js';
 
 type SearchValues = {
   artist: Partial<artist>[];
@@ -27,7 +27,7 @@ type SearchValues = {
 
 const initVals: SearchValues = {
   artist: [],
-  album: []
+  album: [],
 };
 
 interface SearchProps {
@@ -52,13 +52,13 @@ const Search = ({ setOpen }: SearchProps): JSX.Element => {
     <Box
       component={'div'}
       key={'search-box-wrapper'}
-      id="search-box-wrapper"
+      id='search-box-wrapper'
       sx={{ ...flexColumnStyles, alignItems: 'center', width: '95%', gap: 1 }}
     >
       <Card elevation={2} component={'section'} key={'search-box-container'} sx={searchBoxCardSxProps}>
         <Container
           key={'search-box-container'}
-          id="search-box-container"
+          id='search-box-container'
           maxWidth={false}
           sx={{
             flex: '1 0 100%',
@@ -66,27 +66,27 @@ const Search = ({ setOpen }: SearchProps): JSX.Element => {
             justifyContent: 'space-evenly',
             alignItems: 'center',
             padding: 0,
-            gap: 1
+            gap: 1,
           }}
         >
           <Box component={'div'} key={'search-radio-group-box'} flex={1}>
             <RadioGroup
               defaultValue={'artist'}
-              name="artist-album-select"
+              name='artist-album-select'
               sx={{
                 ...pagesTitlesBoxStyles,
                 height: '100%',
-                flexDirection: 'column'
+                flexDirection: 'column',
               }}
             >
               <FormControlLabel
                 value={'artist'}
-                label="Artist"
+                label='Artist'
                 control={<Radio value={'artist'} onChange={e => setSearchParam(e.target.value)} />}
               />
               <FormControlLabel
                 value={'album'}
-                label="Album"
+                label='Album'
                 control={<Radio value={'album'} onChange={e => setSearchParam(e.target.value)} />}
               />
             </RadioGroup>
@@ -94,12 +94,12 @@ const Search = ({ setOpen }: SearchProps): JSX.Element => {
 
           <Box component={'div'} key={'search-input-box'} sx={{ flex: 5 }}>
             <TextField
-              id="artist-search"
+              id='artist-search'
               component={'search'}
               label={
                 <Label
-                  id="artist-search-label"
-                  htmlFor="artist-search"
+                  id='artist-search-label'
+                  htmlFor='artist-search'
                   tooltipTitle={
                     'Search for artist or album. Search is automatic and debounced after .56 second of no typing'
                   }
@@ -108,9 +108,9 @@ const Search = ({ setOpen }: SearchProps): JSX.Element => {
                   placement={'top'}
                 />
               }
-              variant="standard"
-              type="text"
-              name="artist-search"
+              variant='standard'
+              type='text'
+              name='artist-search'
               onChange={debounce(e => handleSearchParams(e, setArtVals, searchParam), 560)}
               sx={{ width: '100%' }}
             />
@@ -123,7 +123,7 @@ const Search = ({ setOpen }: SearchProps): JSX.Element => {
             <Button
               key={'crud-search-close-button'}
               id={'crud-search-close-button'}
-              color="primary"
+              color='primary'
               onClick={() => setOpen(false)}
               sx={{ fontSize: '1rem' }}
             >
@@ -132,7 +132,7 @@ const Search = ({ setOpen }: SearchProps): JSX.Element => {
           </Box>
         </Container>
       </Card>
-      <List component={'ul'} key={'search-results'} id="search-results" sx={{ width: '100%' }}>
+      <List component={'ul'} key={'search-results'} id='search-results' sx={{ width: '100%' }}>
         <Card key={'search-reults-card'} id={'search-reults-card'}>
           {artAlbVals.artist.length > 0 ? (
             <Box
@@ -140,7 +140,7 @@ const Search = ({ setOpen }: SearchProps): JSX.Element => {
               id={'artist-search-results-wrapper'}
               sx={searchBoxResultsWrapperSxProps}
             >
-              {artAlbVals.artist.map(e => (
+              {artAlbVals.artist.map((e: artist) => (
                 <Box component={'div'} key={`${e.artist_id}-box`} id={`${e.artist_id}-box`} width={'fit-content'}>
                   <ListItem component={'li'} key={e.name} sx={{ fontWeight: 'bold' }}>
                     {e.name}
@@ -155,7 +155,7 @@ const Search = ({ setOpen }: SearchProps): JSX.Element => {
               id={'album-search-results-wrapper'}
               sx={searchBoxResultsWrapperSxProps}
             >
-              {artAlbVals.album.map(e => (
+              {artAlbVals.album.map((e: album) => (
                 <Box
                   component={'div'}
                   key={`${(e as album).album_id}-box`}
@@ -194,7 +194,7 @@ type SearchReturnType = {
 const handleSearchParams = async (
   e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   setArtVals: Dispatch<SetStateAction<SearchValues>>,
-  searchParam: string
+  searchParam: string,
 ) => {
   const searchParams = e.target.value;
 
@@ -221,7 +221,7 @@ const baseURL = import.meta.env.VITE_CRUD_API_URL;
 const searchArtistsAndAlbums = async (search: string, type: string): Promise<SearchReturnType> => {
   try {
     const resp = await axios.get(`${baseURL}/search?search=${search}&type=${type}`, {
-      headers: { 'Content-Type': 'text/plain' }
+      headers: { 'Content-Type': 'text/plain' },
     });
 
     return resp.data as SearchReturnType;

@@ -36,5 +36,5 @@ func HandleGetLobbyData(resp http.ResponseWriter, req *http.Request) {
 
 	json.NewEncoder(resp).Encode(activePlayersInLobby)
 
-	fmt.Printf("\nPLAYERS IN LOBBY: %v\n", activePlayersInLobby)
+	fmt.Printf("\nPLAYERS IN LOBBY: %v\n\n", activePlayersInLobby)
 }

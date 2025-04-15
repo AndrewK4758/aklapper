@@ -13,45 +13,46 @@ export const pagesWrapperStyles: SxProps = {
   minHeight: '80vh',
   width: '100vw',
   [Theme.breakpoints.down('lg')]: {
-    gap: '2vh'
-  }
+    gap: '2vh',
+  },
 };
 
 export const centerFlex: SxProps = {
   display: 'flex',
   alignContent: 'center',
-  justifyContent: 'center'
+  justifyContent: 'center',
 };
 
 export const pagesTitlesBoxStyles: SxProps = {
   ...centerFlex,
-  paddingY: 2
+  paddingY: 2,
 };
 
 export const iconStateStyle = (state: 'loading' | 'idle' | 'submitting'): SxProps => ({
   opacity: state !== 'idle' ? 0.38 : 1,
   scale: 1.75,
   [Theme.breakpoints.down('lg')]: {
-    scale: 1.25
-  }
+    scale: 1.25,
+  },
 });
 
 export const buttonSXProps: SxProps = {
+  display: 'flex',
   [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem'
-  }
+    fontSize: '1rem',
+  },
 };
 
 export const pagesToolbarStyles: SxProps = {
   display: 'flex',
-  flex: '0 1 100%'
+  flex: '0 1 100%',
 };
 
 export const modalButtonBoxStyles: SxProps = {
   display: 'flex',
   flex: '0 1 100%',
   justifyContent: 'flex-end',
-  alignItems: 'center'
+  alignItems: 'center',
 };
 
 export const pagesOutletStyles: SxProps = {
@@ -59,7 +60,7 @@ export const pagesOutletStyles: SxProps = {
   justifyContent: 'center',
   width: '100%',
   minHeight: '100%',
-  height: 'fit-content'
+  height: 'fit-content',
 };
 
 export const fullSizeBlock: SxProps = { height: '100%', width: '100%' };
@@ -67,15 +68,15 @@ export const fullSizeBlock: SxProps = { height: '100%', width: '100%' };
 export const headerModalButtonStyles: SxProps = {
   textAlign: 'right',
   color: Theme.palette.secondary.light,
-  fontSize: '1.25rem'
+  fontSize: '1.25rem',
 };
 
 export const pagesTitleSx: SxProps = {
   textAlign: 'center',
   flex: '1 0 100%',
   [Theme.breakpoints.down('lg')]: {
-    fontSize: '2rem'
-  }
+    fontSize: '2rem',
+  },
 };
 
 export const gamesOutletWrapperSxProps = (state: 'loading' | 'idle' | 'submitting') =>
@@ -84,11 +85,11 @@ export const gamesOutletWrapperSxProps = (state: 'loading' | 'idle' | 'submittin
         width: '100%',
         flex: '0 1 20%',
         [Theme.breakpoints.down('md')]: {
-          flex: '0 1 10%'
-        }
+          flex: '0 1 10%',
+        },
       }
     : ({
-        display: 'none'
+        display: 'none',
       } as SxProps);
 
 export const gamesOutletGameWrapperSxProps: SxProps = {
@@ -98,14 +99,14 @@ export const gamesOutletGameWrapperSxProps: SxProps = {
   alignContent: 'center',
   justifyContent: 'center',
   [Theme.breakpoints.down('md')]: {
-    flex: '0 1 90%'
-  }
+    flex: '0 1 90%',
+  },
 };
 
 export const tooltipSx: SxProps = {
   color: Theme.palette.primary.main,
   backgroundColor: Theme.palette.background.paper,
-  fontFamily: 'monospace'
+  fontFamily: 'monospace',
 };
 
 export const errorTextSx: SxProps = {
@@ -117,6 +118,6 @@ export const errorTextSx: SxProps = {
   fontFamily: 'monospace',
   textAlign: 'center',
   [Theme.breakpoints.down('md')]: {
-    fontSize: '0.875rem'
-  }
+    fontSize: '0.875rem',
+  },
 };

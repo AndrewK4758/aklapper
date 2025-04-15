@@ -7,7 +7,10 @@ import type { Dayjs } from 'dayjs';
 import { flexColumnStyles } from './pages-styles.js';
 import Theme from './theme.js';
 
-export const headerLabelSxProps: SxProps = { fontSize: '2.5rem', [Theme.breakpoints.down('md')]: { fontSize: '1rem' } };
+export const headerLabelSxProps: SxProps = {
+  fontSize: '2.5rem',
+  [Theme.breakpoints.down('md')]: { fontSize: '1rem' },
+};
 
 //--------CONNECT---------//
 
@@ -15,7 +18,7 @@ export const contactIconWrapperSxProps: SxProps = {
   ...flexColumnStyles,
   flex: 1,
   alignItems: 'center',
-  justifyContent: 'center'
+  justifyContent: 'center',
 };
 
 export const iconWrapperSxProps: SxProps = {
@@ -29,8 +32,8 @@ export const iconWrapperSxProps: SxProps = {
     width: '100%',
     maxWidth: '70px',
     p: 0,
-    m: 0
-  }
+    m: 0,
+  },
 };
 
 export const iconSxProps: SxProps = {
@@ -41,15 +44,15 @@ export const iconSxProps: SxProps = {
   height: 'fit-content',
   '&:hover': {
     cursor: 'auto',
-    background: 'none'
+    background: 'none',
   },
   [Theme.breakpoints.down('md')]: {
-    p: 1
-  }
+    p: 1,
+  },
 };
 
 export const drawerPaperProps: PaperProps = {
-  sx: { height: '94.5vh', top: '5.5vh', width: 'fit-content' }
+  sx: { height: '94.5vh', top: '5.5vh', width: 'fit-content' },
 };
 
 export const contactButtonSxProps: SxProps = {
@@ -57,21 +60,21 @@ export const contactButtonSxProps: SxProps = {
   width: '100%',
   p: 0,
   '&:hover': {
-    background: 'none'
-  }
+    background: 'none',
+  },
 };
 
 export const contactTooltipSxProps: SxProps = { fontSize: '1rem' };
 
 export const iconSize: SxProps = {
   width: '100%',
-  height: 'auto'
+  height: 'auto',
 };
 
 export const contactDialogCloseButtonSxProps: SxProps = {
   [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem'
-  }
+    fontSize: '1rem',
+  },
 };
 
 //-------GOOGLE CALENDAR--------//
@@ -79,15 +82,15 @@ export const contactDialogCloseButtonSxProps: SxProps = {
 export const connectGoogleCalendarButtonSxProps: SxProps = {
   fontSize: '2rem',
   [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem'
-  }
+    fontSize: '1rem',
+  },
 };
 
 export const dateCalendarSxProps: SxProps = {
   scale: 1.4,
   [Theme.breakpoints.down('md')]: {
-    scale: 1
-  }
+    scale: 1,
+  },
 };
 
 export const dateCalendarSlotProps: DateCalendarSlotProps<Dayjs> = {
@@ -96,49 +99,49 @@ export const dateCalendarSlotProps: DateCalendarSlotProps<Dayjs> = {
       scale: 1.5,
       color: Theme.palette.primary.dark,
       [Theme.breakpoints.down('md')]: {
-        scale: 1
-      }
-    }
+        scale: 1,
+      },
+    },
   },
   rightArrowIcon: {
     sx: {
       scale: 1.5,
       color: Theme.palette.primary.dark,
       [Theme.breakpoints.down('md')]: {
-        scale: 1
-      }
-    }
+        scale: 1,
+      },
+    },
   },
   leftArrowIcon: {
     sx: {
       scale: 1.5,
       color: Theme.palette.primary.dark,
       [Theme.breakpoints.down('md')]: {
-        scale: 1
-      }
-    }
+        scale: 1,
+      },
+    },
   },
   day: {
     sx: {
       fontSize: '1.5rem',
       backgroundColor: Theme.palette.background.default,
       color: Theme.palette.primary.dark,
-      borderRadius: 1
-    }
+      borderRadius: 1,
+    },
   },
   calendarHeader: {
     sx: {
       scale: 1.1,
       [Theme.breakpoints.down('md')]: {
-        scale: 1
+        scale: 1,
       },
       '& .MuiPickersCalendarHeader-label': {
         [Theme.breakpoints.down('md')]: {
-          fontSize: '1rem'
-        }
-      }
-    }
-  }
+          fontSize: '1rem',
+        },
+      },
+    },
+  },
 };
 
 export const startTimePickerSlotProps: TimePickerSlotProps<Dayjs, false> = {
@@ -146,13 +149,13 @@ export const startTimePickerSlotProps: TimePickerSlotProps<Dayjs, false> = {
     sx: {
       border: `2px solid ${Theme.palette.primary.dark}`,
       borderRadius: 1,
-      backgroundColor: Theme.palette.background.default
-    }
+      backgroundColor: Theme.palette.background.default,
+    },
   },
   actionBar: {
     sx: {
-      borderTop: `2px solid ${Theme.palette.primary.dark}`
-    }
+      borderTop: `2px solid ${Theme.palette.primary.dark}`,
+    },
   },
   textField: {
     variant: 'filled',
@@ -160,42 +163,42 @@ export const startTimePickerSlotProps: TimePickerSlotProps<Dayjs, false> = {
     sx: {
       p: 1,
       width: '80%',
-      borderRadius: 1
-    }
+      borderRadius: 1,
+    },
   },
   rightArrowIcon: {
     sx: {
       scale: 1.5,
       color: Theme.palette.primary.dark,
       [Theme.breakpoints.down('md')]: {
-        scale: 1
-      }
-    }
+        scale: 1,
+      },
+    },
   },
   leftArrowIcon: {
     sx: {
       scale: 1.5,
       color: Theme.palette.primary.dark,
       [Theme.breakpoints.down('md')]: {
-        scale: 1
-      }
-    }
+        scale: 1,
+      },
+    },
   },
   openPickerIcon: {
     sx: {
       scale: 1.5,
       color: Theme.palette.primary.dark,
       [Theme.breakpoints.down('md')]: {
-        scale: 1
-      }
-    }
+        scale: 1,
+      },
+    },
   },
   desktopPaper: {
     elevation: 2,
     sx: {
-      border: `3px solid ${Theme.palette.primary.dark}`
-    }
-  }
+      border: `3px solid ${Theme.palette.primary.dark}`,
+    },
+  },
 };
 
 export const endTimePickerSlotProps: TimePickerSlotProps<Dayjs, false> = {
@@ -203,13 +206,13 @@ export const endTimePickerSlotProps: TimePickerSlotProps<Dayjs, false> = {
     sx: {
       border: `2px solid ${Theme.palette.primary.dark}`,
       borderRadius: 1,
-      backgroundColor: Theme.palette.background.default
-    }
+      backgroundColor: Theme.palette.background.default,
+    },
   },
   actionBar: {
     sx: {
-      borderTop: `2px solid ${Theme.palette.primary.dark}`
-    }
+      borderTop: `2px solid ${Theme.palette.primary.dark}`,
+    },
   },
   textField: {
     variant: 'filled',
@@ -217,54 +220,54 @@ export const endTimePickerSlotProps: TimePickerSlotProps<Dayjs, false> = {
     sx: {
       p: 1,
       width: '80%',
-      borderRadius: 1
-    }
+      borderRadius: 1,
+    },
   },
   rightArrowIcon: {
     sx: {
       scale: 1.5,
       color: Theme.palette.primary.dark,
       [Theme.breakpoints.down('md')]: {
-        scale: 1
-      }
-    }
+        scale: 1,
+      },
+    },
   },
   leftArrowIcon: {
     sx: {
       scale: 1.5,
       color: Theme.palette.primary.dark,
       [Theme.breakpoints.down('md')]: {
-        scale: 1
-      }
-    }
+        scale: 1,
+      },
+    },
   },
   openPickerIcon: {
     sx: {
       scale: 1.5,
       color: Theme.palette.primary.dark,
       [Theme.breakpoints.down('md')]: {
-        scale: 1
-      }
-    }
+        scale: 1,
+      },
+    },
   },
   desktopPaper: {
     elevation: 2,
     sx: {
-      border: `3px solid ${Theme.palette.primary.dark}`
-    }
-  }
+      border: `3px solid ${Theme.palette.primary.dark}`,
+    },
+  },
 };
 
 export const timePickerWrapperSxProps: SxProps = {
   ...flexColumnStyles,
   flex: '1 0 auto',
   justifyContent: 'space-evenly',
-  alignItems: 'center'
+  alignItems: 'center',
 };
 
 export const timePickerLabelSxProps: SxProps = {
   color: Theme.palette.primary.main,
-  [Theme.breakpoints.down('md')]: { fontSize: '1rem' }
+  [Theme.breakpoints.down('md')]: { fontSize: '1rem' },
 };
 
 export const timePickerSxProps: SxProps = { fontSize: '1.25rem', color: Theme.palette.primary.main };
@@ -275,15 +278,15 @@ export const subSx: SxProps = {
   fontSize: '1.25rem',
   color: Theme.palette.text.primary,
   [Theme.breakpoints.down('md')]: {
-    fontSize: '0.875rem'
-  }
+    fontSize: '0.875rem',
+  },
 };
 export const mainSx: SxProps = {
   fontSize: '2.2rem',
   color: Theme.palette.primary.dark,
   [Theme.breakpoints.down('md')]: {
-    fontSize: '0.875rem'
-  }
+    fontSize: '0.875rem',
+  },
 };
 
 export const emailDialogPaperProps = {
@@ -295,15 +298,15 @@ export const emailDialogPaperProps = {
     width: 'fit-content',
     height: '90%',
     ' .MuiInputBase-input': {
-      fontSize: '1.25rem'
+      fontSize: '1.25rem',
     },
     [Theme.breakpoints.down('md')]: {
       height: '70%',
       ' .MuiInputBase-input': {
-        fontSize: '0.75rem'
-      }
-    }
-  }
+        fontSize: '0.75rem',
+      },
+    },
+  },
 };
 
 export const emailStackSxProps: SxProps = {
@@ -313,20 +316,20 @@ export const emailStackSxProps: SxProps = {
   paddingTop: 4,
   [Theme.breakpoints.down('md')]: {
     paddingTop: 2,
-    gap: 1.5
-  }
+    gap: 1.5,
+  },
 };
 
 export const emailButtonSxProps: SxProps = {
   [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem'
-  }
+    fontSize: '1rem',
+  },
 };
 
 export const dialogActionsStyles: SxProps = {
   flex: '0 1 45%',
   display: 'flex',
-  alignItems: 'flex-end'
+  alignItems: 'flex-end',
 };
 
 export const textFieldSlotProps = {
@@ -335,27 +338,27 @@ export const textFieldSlotProps = {
       fontSize: '1.5rem',
       color: Theme.palette.primary.dark,
       [Theme.breakpoints.down('md')]: {
-        fontSize: '1rem'
-      }
-    } as SxProps
+        fontSize: '1rem',
+      },
+    } as SxProps,
   },
   htmlInput: {
     sx: {
       fontSize: '1.5rem',
       paddingTop: 2,
       backgroundColor: Theme.palette.background.default,
-      color: Theme.palette.background.paper
-    } as SxProps
+      color: Theme.palette.background.paper,
+    } as SxProps,
   },
   input: {
     inputProps: {
       sx: {
         borderRadius: 1,
         color: Theme.palette.text.primary,
-        backgroundColor: Theme.palette.background.default
-      }
-    }
-  }
+        backgroundColor: Theme.palette.background.default,
+      },
+    },
+  },
 };
 
 export const dateTimePickerSlotProps: DateTimePickerSlotProps<Dayjs, false> = {
@@ -366,69 +369,69 @@ export const dateTimePickerSlotProps: DateTimePickerSlotProps<Dayjs, false> = {
     sx: {
       p: 1,
       width: '100%',
-      borderRadius: 1
-    }
+      borderRadius: 1,
+    },
   },
   switchViewIcon: {
     sx: {
       scale: 1.5,
       color: Theme.palette.primary.dark,
       [Theme.breakpoints.down('md')]: {
-        scale: 1
-      }
-    }
+        scale: 1,
+      },
+    },
   },
   rightArrowIcon: {
     sx: {
       scale: 1.5,
       color: Theme.palette.primary.dark,
       [Theme.breakpoints.down('md')]: {
-        scale: 1
-      }
-    }
+        scale: 1,
+      },
+    },
   },
   leftArrowIcon: {
     sx: {
       scale: 1.5,
       color: Theme.palette.primary.dark,
       [Theme.breakpoints.down('md')]: {
-        scale: 1
-      }
-    }
+        scale: 1,
+      },
+    },
   },
   openPickerIcon: {
     sx: {
       scale: 1.5,
       [Theme.breakpoints.down('md')]: {
-        scale: 1
-      }
-    }
+        scale: 1,
+      },
+    },
   },
   desktopPaper: {
     elevation: 2,
     sx: {
       backgroundColor: Theme.palette.background.default,
-      border: `3px solid ${Theme.palette.primary.dark}`
-    }
+      border: `3px solid ${Theme.palette.primary.dark}`,
+    },
   },
   day: {
     sx: {
       fontSize: '1.5rem',
       borderRadius: 1,
       [Theme.breakpoints.down('md')]: {
-        fontSize: '1rem'
-      }
-    }
+        fontSize: '1rem',
+      },
+    },
   },
   calendarHeader: {
     sx: {
       scale: 1.1,
       [Theme.breakpoints.down('md')]: {
-        scale: 1
-      }
-    }
+        scale: 1,
+      },
+    },
   },
   actionBar: {
-    actions: ['accept', 'clear']
-  }
+    actions: ['accept', 'clear'],
+  },
 };

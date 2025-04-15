@@ -1,3 +1,4 @@
+import type { album } from '@aklapper/chinook-client';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import DetailsIcon from '@mui/icons-material/Details';
 import UploadIcon from '@mui/icons-material/Upload';
@@ -7,13 +8,12 @@ import Paper from '@mui/material/Paper';
 import {
   DataGrid,
   GridActionsCellItem,
-  GridColDef,
-  GridPaginationModel,
-  GridRowParams,
-  useGridApiRef
+  type GridColDef,
+  type GridPaginationModel,
+  type GridRowParams,
+  useGridApiRef,
 } from '@mui/x-data-grid';
-import { GridApiCommunity } from '@mui/x-data-grid/internals';
-import { album } from '@prisma/client';
+import type { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Outlet, useNavigate, useRouteLoaderData } from 'react-router';
 import handleDeleteAlbum from '../../services/events/handle-delete-album';
@@ -28,7 +28,7 @@ const Album = () => {
   const [rowCountState, setRowCountState] = useState(COUNT);
   const [paginationModel, setPaginationModel] = useState({
     pageSize: 25,
-    page: 0
+    page: 0,
   });
 
   const apiRef = useGridApiRef<GridApiCommunity>();
@@ -37,9 +37,9 @@ const Album = () => {
     () => ({
       cursor: paginationModel.page === 0 ? 1 : paginationModel.pageSize * paginationModel.page,
       pageSize: paginationModel.pageSize,
-      skip: paginationModel.page === 0 ? 0 : 1
+      skip: paginationModel.page === 0 ? 0 : 1,
     }),
-    [paginationModel]
+    [paginationModel],
   );
 
   const handlePaginationModelChange = (newPaginationModel: GridPaginationModel) => {
@@ -48,7 +48,7 @@ const Album = () => {
 
   const fetchAlbums = useCallback(
     async (pageSize: number, skip: number, cursor: number) => await loadAlbums(pageSize, skip, cursor),
-    []
+    [],
   );
 
   useEffect(() => {
@@ -62,20 +62,20 @@ const Album = () => {
       field: 'album_id',
       headerName: 'Album ID',
       type: 'number',
-      flex: 0.5
+      flex: 0.5,
     },
     {
       field: 'title',
       headerName: 'Title',
       type: 'string',
       flex: 3,
-      editable: true
+      editable: true,
     },
     {
       field: 'artist_id',
       headerName: 'Artist ID',
       type: 'number',
-      flex: 0.5
+      flex: 0.5,
     },
     {
       field: 'update-delete',
@@ -85,24 +85,24 @@ const Album = () => {
       getActions: (params: GridRowParams<album>) => {
         return [
           <GridActionsCellItem
-            label="Update"
+            label='Update'
             icon={<UploadIcon />}
-            title="Update"
+            title='Update'
             onClick={() => {
               handleUpdateAlbumTitle(params.row, apiRef);
             }}
           />,
 
           <GridActionsCellItem
-            label="Delete"
-            title="Delete"
+            label='Delete'
+            title='Delete'
             icon={<DeleteForeverIcon />}
             onClick={() => {
               handleDeleteAlbum(params.row, apiRef);
             }}
-          />
+          />,
         ];
-      }
+      },
     },
     {
       field: 'details',
@@ -112,14 +112,14 @@ const Album = () => {
       getActions: (params: GridRowParams) => {
         return [
           <GridActionsCellItem
-            label="Details"
-            title="Details"
+            label='Details'
+            title='Details'
             icon={<DetailsIcon />}
             onClick={() => nav(`${params.row.album_id}/tracks`)}
-          />
+          />,
         ];
-      }
-    }
+      },
+    },
   ];
 
   const getID = (row: album) => {
@@ -136,12 +136,12 @@ const Album = () => {
         <Container key={'albums-title'} component={'header'}>
           <Paper elevation={6} key={'title-bar'} component={'div'} sx={{ height: '2rem', display: 'flex' }}>
             <Typography
-              variant="h1"
+              variant='h1'
               sx={{
                 flex: '1 0 100%',
                 textAlign: 'center',
                 fontSize: '22px',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
               }}
             >
               {'All Albums'}
@@ -161,7 +161,7 @@ const Album = () => {
               rowCount={rowCountState}
               getRowHeight={() => 'auto'}
               pageSizeOptions={[10, 25, 50, 100]}
-              paginationMode="server"
+              paginationMode='server'
               onRowCountChange={newRowCount => setRowCountState(newRowCount)}
               onPaginationModelChange={handlePaginationModelChange}
               paginationModel={paginationModel}

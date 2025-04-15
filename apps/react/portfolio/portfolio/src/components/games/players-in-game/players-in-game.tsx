@@ -1,7 +1,6 @@
 import { Text } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
-import type { SxProps } from '@mui/material/styles';
-import { TypographyVariant } from '@mui/material/styles';
+import type { SxProps, TypographyVariant } from '@mui/material/styles';
 import type { ElementType } from 'react';
 import { avatarSvgStyle } from '../../../styles/games-styles.jsx';
 
@@ -28,7 +27,7 @@ export const PlayersInGame = ({
   textSx,
   playerVariant,
   playerName,
-  avatarName
+  avatarName,
 }: PlayersInGameProps) => (
   <Box component={component} key={id} width={'fit-content'} whiteSpace={'preserve'} sx={boxSx}>
     <Text component={'p'} titleVariant={playerVariant} titleText={playerName} sx={textSx} />

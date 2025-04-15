@@ -1,9 +1,9 @@
 import AppBar from '@mui/material/AppBar';
 import Avatar from '@mui/material/Avatar';
-import { SxProps } from '@mui/material/styles';
+import type { SxProps } from '@mui/material/styles';
 import Toolbar from '@mui/material/Toolbar';
 import { type ElementType, useContext } from 'react';
-import ActivePlayerContext, { ActivePlayerContextProps } from '../../context/active-player-context';
+import ActivePlayerContext, { type ActivePlayerContextProps } from '../../context/active-player-context';
 import HeaderMenu from './header-menu/header-menu';
 
 export interface HeaderProps {

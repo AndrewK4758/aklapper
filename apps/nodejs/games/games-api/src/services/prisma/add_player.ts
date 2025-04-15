@@ -1,4 +1,4 @@
-import { gamesClient, players } from '@aklapper/games-client';
+import { gamesClient, type players } from '@aklapper/games-client';
 import type { Player } from '@aklapper/games-components';
 
 export default async function addPlayerToDb(player: Player): Promise<players | void> {

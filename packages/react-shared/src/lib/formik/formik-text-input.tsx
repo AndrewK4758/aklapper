@@ -3,7 +3,7 @@ import FormControl from '@mui/material/FormControl';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import type { SxProps, TypographyVariant } from '@mui/material/styles';
 import type { FormikProps } from 'formik';
-import { FocusEvent } from 'react';
+import type { FocusEvent } from 'react';
 import { Label } from '../label/label.jsx';
 import FormikValidationError from './formik-validation-error.js';
 
@@ -42,7 +42,7 @@ export function FormikTextInput<T extends object>({
   errorTextSx,
   labelWrapperSx,
   tooltipTitle,
-  tooltipSx
+  tooltipSx,
 }: FormikTextInputProps<T>) {
   if (onBlurCB) formik.handleBlur = onBlurCB;
   const { value } = formik.getFieldProps(valueField as string);

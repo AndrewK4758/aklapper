@@ -1,12 +1,12 @@
 import { rowFinder } from '@aklapper/games-components';
 import { Text } from '@aklapper/react-shared';
 import type { GameBoard, IActivePlayersInGame, ILiteSpace, IPlayersAndBoard, Row } from '@aklapper/types';
-import { SxProps } from '@mui/material';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
+import type { SxProps } from '@mui/material/styles';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { useParams } from 'react-router';
-import { ManagerOptions, Socket } from 'socket.io-client';
+import type { ManagerOptions, Socket } from 'socket.io-client';
 import ActiveAvatars from '../components/game_board/active_avatars';
 import ReadyToStart from '../components/game_board/ready_to_start_button';
 import ResetGame from '../components/game_board/reset_game';
@@ -23,22 +23,22 @@ const breakpointsBottomMenuGameBoard: SxProps = {
   marginTop: '2rem',
   flexDirection: 'row',
   [Theme.breakpoints.down('md')]: {
-    marginTop: '1rem'
-  }
+    marginTop: '1rem',
+  },
 };
 
 const breakpointsPlayerInTurnText: SxProps = {
   [Theme.breakpoints.down('md')]: {
-    fontSize: '1em'
-  }
+    fontSize: '1em',
+  },
 };
 
 const breakpointsBottomMenuButtonsBox: SxProps = {
   flex: '1 0 50%',
   flexDirection: 'row',
   [Theme.breakpoints.down('md')]: {
-    flexDirection: 'column'
-  }
+    flexDirection: 'column',
+  },
 };
 
 export type Built_GameBoard = GameBoard[];
@@ -57,7 +57,7 @@ const ActiveGameSession = () => {
   console.log('active game session');
   const managerOptions: Partial<ManagerOptions> = {
     autoConnect: false,
-    extraHeaders: { 'current-game': JSON.stringify(getGameInstanceInfo()) }
+    extraHeaders: { 'current-game': JSON.stringify(getGameInstanceInfo()) },
   };
 
   const clientSocket = new ClientSocket(wsUrl, managerOptions);
@@ -103,7 +103,7 @@ const ActiveGameSession = () => {
 
       dispatch({
         type: ActionType.BOARD,
-        payload: { gameBoard: gameBoardClient, activePlayersInGame, avatarInTurn, winner } as IActiveGameInfo
+        payload: { gameBoard: gameBoardClient, activePlayersInGame, avatarInTurn, winner } as IActiveGameInfo,
       });
     });
     socket.on('no-game-error', ({ errorMessage }) => {
@@ -126,14 +126,14 @@ const ActiveGameSession = () => {
       </Container>
       <Box
         component={'section'}
-        id="game-board-display-wrapper"
+        id='game-board-display-wrapper'
         sx={{
           minHeight: '55vh',
           height: 'fit-content',
           border: `5px solid ${Theme.palette.success.main}`,
           [Theme.breakpoints.up('md')]: {
-            boxShadow: `0px 7px 8px -4px ${Theme.palette.success.main}, 0px 12px 17px 2px ${Theme.palette.primary.light}, 0px 5px 22px 4px ${Theme.palette.primary.dark}, 0px -7px 8px -4px ${Theme.palette.success.main}, 0px -12px 17px 2px ${Theme.palette.primary.light}, 0px -5px 22px 4px ${Theme.palette.primary.dark}`
-          }
+            boxShadow: `0px 7px 8px -4px ${Theme.palette.success.main}, 0px 12px 17px 2px ${Theme.palette.primary.light}, 0px 5px 22px 4px ${Theme.palette.primary.dark}, 0px -7px 8px -4px ${Theme.palette.success.main}, 0px -12px 17px 2px ${Theme.palette.primary.light}, 0px -5px 22px 4px ${Theme.palette.primary.dark}`,
+          },
         }}
       >
         {id === 'Chutes-&-Ladders' && <ShowGameBoard board={state.gameBoard} />}
@@ -141,9 +141,9 @@ const ActiveGameSession = () => {
           <ShowGameBoardTicTacToe board={state.gameBoard} setStateAction={setSpace} state={space} />
         )}
       </Box>
-      <Container id="Bottom of Game" component={'section'} sx={breakpointsBottomMenuGameBoard}>
+      <Container id='Bottom of Game' component={'section'} sx={breakpointsBottomMenuGameBoard}>
         <Box component={'div'} sx={{ flex: '1 0 50%' }}>
-          <Text component={'h2'} titleVariant="h2" titleText={state.avatarInTurn} sx={breakpointsPlayerInTurnText} />
+          <Text component={'h2'} titleVariant='h2' titleText={state.avatarInTurn} sx={breakpointsPlayerInTurnText} />
         </Box>
         <Container component={'section'} sx={breakpointsBottomMenuButtonsBox}>
           {id === 'Chutes-&-Ladders' && <TakeTurn dispatch={dispatch} socket={socket} />}

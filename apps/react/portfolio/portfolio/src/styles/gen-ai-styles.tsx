@@ -1,4 +1,4 @@
-import { SxProps } from '@mui/material/styles';
+import type { SxProps } from '@mui/material/styles';
 import type { CSSProperties } from 'react';
 import { centerFlex, flexColumnStyles } from './pages-styles.jsx';
 import Theme from './theme.jsx';
@@ -9,8 +9,8 @@ export const helperTextSx: SxProps = {
   color: Theme.palette.error.main,
   fontSize: '1.25rem',
   [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem'
-  }
+    fontSize: '1rem',
+  },
 };
 
 export const labelSx: SxProps = {
@@ -19,42 +19,42 @@ export const labelSx: SxProps = {
   width: 'fit-content',
   '&:hover': { cursor: 'pointer' },
   [Theme.breakpoints.down('md')]: {
-    fontSize: '1.5rem'
-  }
+    fontSize: '1.5rem',
+  },
 };
 
 export const tooltipSx: SxProps = {
   maxWidth: '80vw',
   fontSize: '1rem',
   [Theme.breakpoints.down('md')]: {
-    fontSize: '0.75rem'
-  }
+    fontSize: '0.75rem',
+  },
 };
 
 export const textInputSx: SxProps = {
   width: '100%',
   borderRadius: 1,
   [Theme.breakpoints.down('md')]: {
-    fontSize: '0.875rem'
-  }
+    fontSize: '0.875rem',
+  },
 };
 
 export const genAiImageDetailsBoxSxProps: SxProps = {
   ...centerFlex,
   justifyContent: 'space-around',
   [Theme.breakpoints.down('md')]: {
-    justifyContent: 'space-between'
-  }
+    justifyContent: 'space-between',
+  },
 };
 
 export const promptBuilderTextFieldSlotProps = {
-  htmlInput: { sx: { fontSize: '0.75rem' } }
+  htmlInput: { sx: { fontSize: '0.75rem' } },
 };
 
 export const sampleCountRadioTextStyles: SxProps = {
   display: 'flex',
   flexDirection: 'row',
-  alignItems: 'center'
+  alignItems: 'center',
 };
 
 export const forrmControlLabelStyles: SxProps = {
@@ -62,8 +62,8 @@ export const forrmControlLabelStyles: SxProps = {
   fontSize: '1.5rem',
   [Theme.breakpoints.down('md')]: {
     width: 'fit-content',
-    justifyContent: 'center'
-  }
+    justifyContent: 'center',
+  },
 };
 
 export const radioGroupStyles: SxProps = {
@@ -75,18 +75,18 @@ export const radioGroupStyles: SxProps = {
   [Theme.breakpoints.down('md')]: {
     p: 0,
     flexWrap: 'wrap',
-    flex: '0 1 70%'
-  }
+    flex: '0 1 70%',
+  },
 };
 
 export const genAiSampleCountTextSxProps: SxProps = {
   [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem'
-  }
+    fontSize: '1rem',
+  },
 };
 
 export const genAiImageSampleCountRadioSxProps: SxProps = {
-  fontSize: '1rem'
+  fontSize: '1rem',
 };
 
 export const topLevelModeStyle: SxProps = {
@@ -98,15 +98,15 @@ export const topLevelModeStyle: SxProps = {
   borderRadius: 1,
   width: '60vw',
   [Theme.breakpoints.down('md')]: {
-    width: '90vw'
-  }
+    width: '90vw',
+  },
 };
 
 export const genAiTextInputButtonSxProps: SxProps = {
   fontSize: '2rem',
   [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem'
-  }
+    fontSize: '1rem',
+  },
 };
 
 export const renderPreTagInsideParentDiv: SxProps | CSSProperties = {
@@ -114,7 +114,7 @@ export const renderPreTagInsideParentDiv: SxProps | CSSProperties = {
   height: 'fit-content',
   minHeight: '10vh',
   overflow: 'hidden',
-  whiteSpace: 'pre-wrap'
+  whiteSpace: 'pre-wrap',
 };
 
 export const promptBuilderPaperSxProps: SxProps = { height: 'fit-content', minHeight: '30vh', width: '100%' };
@@ -122,8 +122,8 @@ export const promptBuilderPaperSxProps: SxProps = { height: 'fit-content', minHe
 export const promptBuilderResponseFormatLabelSxProps: SxProps = {
   color: Theme.palette.primary.main,
   [Theme.breakpoints.down('md')]: {
-    fontSize: '1.5rem'
-  }
+    fontSize: '1.5rem',
+  },
 };
 
 export const radioButtonLabelSxProps: SxProps = {
@@ -132,15 +132,15 @@ export const radioButtonLabelSxProps: SxProps = {
   gap: 2,
   alignItems: 'center',
   [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem'
-  }
+    fontSize: '1rem',
+  },
 };
 export const formLabelSxProps: SxProps = {
   alignContent: 'center',
   fontSize: '1.5rem',
   [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem'
-  }
+    fontSize: '1rem',
+  },
 };
 export const coloredTitleStyles: SxProps = { textAlign: 'center' };
 
@@ -148,14 +148,14 @@ export const promptBuillderFormBoxSxProps: SxProps = {
   ...flexColumnStyles,
   gap: 2,
   [Theme.breakpoints.down('md')]: {
-    gap: 1
-  }
+    gap: 1,
+  },
 };
 
 export const radioButtonLabelWrapperSxProps: SxProps = { display: 'flex', alignItems: 'center', gap: 2 };
 
 export const promptBuilderResponseFormatBoxSxProps: SxProps = {
-  borderRadius: 1
+  borderRadius: 1,
 };
 
 export const promptBuilderRadioGroupSxProps: SxProps = {
@@ -164,48 +164,48 @@ export const promptBuilderRadioGroupSxProps: SxProps = {
   justifyContent: 'space-around',
   paddingLeft: 2,
   [Theme.breakpoints.down('md')]: {
-    paddingLeft: 0
-  }
+    paddingLeft: 0,
+  },
 };
 
 export const promptBuilderResponseFormatIconsSxProps: SxProps = {
   scale: 1.5,
   color: Theme.palette.primary.main,
   [Theme.breakpoints.down('md')]: {
-    scale: 1
-  }
+    scale: 1,
+  },
 };
 
 export const promptBuilderUploadFileTextSxProps: SxProps = {
   [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem'
-  }
+    fontSize: '1rem',
+  },
 };
 
 export const genAiImageHeaderBoxSxProps: SxProps = {
   ...flexColumnStyles,
   gap: 4,
   [Theme.breakpoints.down('md')]: {
-    gap: 1
-  }
+    gap: 1,
+  },
 };
 export const genAiSliderInputSlotProps = {
   input: {
     'aria-labelledby': 'seed-slider',
-    sx: { textAlign: 'center', fontSize: '1.5rem', color: Theme.palette.primary.main }
-  }
+    sx: { textAlign: 'center', fontSize: '1.5rem', color: Theme.palette.primary.main },
+  },
 };
 
 export const genAiGenerateImageButtonBoxSxProps: SxProps = {
   ...centerFlex,
   flex: '0 1 50%',
   height: 'fit-content',
-  [Theme.breakpoints.down('md')]: { flex: '1 0 100%' }
+  [Theme.breakpoints.down('md')]: { flex: '1 0 100%' },
 };
 
 export const genAiAudioIconButtonSxProps: SxProps = {
   scale: 2,
   [Theme.breakpoints.down('md')]: {
-    scale: 1
-  }
+    scale: 1,
+  },
 };

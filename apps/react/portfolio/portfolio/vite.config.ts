@@ -1,6 +1,6 @@
 import { workspaceRoot } from '@nx/devkit';
 import react from '@vitejs/plugin-react';
-import { resolve } from 'path';
+import { resolve } from 'node:path';
 import { defineConfig, type UserConfig } from 'vite';
 
 const modules: { [key: string]: string } = {
@@ -12,13 +12,9 @@ const modules: { [key: string]: string } = {
 
   '@aklapper/react-shared': resolve(workspaceRoot, 'packages/react-shared/src/index.ts'),
 
-  '@aklapper/socket-io-client': resolve(workspaceRoot, 'packages/socket-io/client/src/index.ts'),
-
   '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
 
   '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src/index.ts'),
-
-  '.prisma/client/index-browser': resolve(workspaceRoot, 'node_modules/@prisma/client/runtime/index-browser.js'),
 };
 
 const config: UserConfig = defineConfig({

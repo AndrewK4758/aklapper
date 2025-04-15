@@ -1,14 +1,14 @@
+import type { album } from '@aklapper/chinook-client';
 import { Text } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import FormLabel from '@mui/material/FormLabel';
 import TextField from '@mui/material/TextField';
-import { GridApiCommunity } from '@mui/x-data-grid/internals';
-import { album } from '@prisma/client';
+import type { GridApiCommunity } from '@mui/x-data-grid/internals';
 import axios from 'axios';
-import { FormikProps, useFormik } from 'formik';
-import { ChangeEvent, RefObject } from 'react';
+import { type FormikProps, useFormik } from 'formik';
+import type { ChangeEvent, RefObject } from 'react';
 import { Form } from 'react-router';
 import handleSubmitNewAlbum from '../../services/actions/submit-album-to-artist-id-action';
 
@@ -44,7 +44,7 @@ const AddAlbum = ({ apiRef }: AddAlbumProps) => {
 
   return (
     <Container>
-      <Form method="post" onSubmit={formik.handleSubmit}>
+      <Form method='post' onSubmit={formik.handleSubmit}>
         <Box component={'div'}>
           <Box
             key={'add-album-input-divs-box'}
@@ -52,43 +52,43 @@ const AddAlbum = ({ apiRef }: AddAlbumProps) => {
             onBlur={formik.handleBlur}
             sx={{ display: 'flex', flexDirection: 'column' }}
           >
-            <FormLabel htmlFor="name">Album Name</FormLabel>
+            <FormLabel htmlFor='name'>Album Name</FormLabel>
             <TextField
-              autoComplete="off"
-              name="name"
-              id="name"
-              variant="outlined"
-              color="primary"
-              placeholder="Enter Album Name"
+              autoComplete='off'
+              name='name'
+              id='name'
+              variant='outlined'
+              color='primary'
+              placeholder='Enter Album Name'
               onChange={e => formik.handleChange(e)}
             />
-            <FormLabel htmlFor="artist_id">Artist ID</FormLabel>
+            <FormLabel htmlFor='artist_id'>Artist ID</FormLabel>
             <TextField
-              type="number"
-              autoComplete="off"
-              name="artist_id"
-              id="artist_id"
-              variant="outlined"
-              color="primary"
-              placeholder="Enter Artist ID"
+              type='number'
+              autoComplete='off'
+              name='artist_id'
+              id='artist_id'
+              variant='outlined'
+              color='primary'
+              placeholder='Enter Artist ID'
               onChange={e => formik.handleChange(e)}
             />
             <>
               {typeof formik.touched.title === 'string' && formik.touched.artist_id ? (
-                <Text component={'p'} titleVariant="body1" titleText={formik.touched.title} />
+                <Text component={'p'} titleVariant='body1' titleText={formik.touched.title} />
               ) : null}
               {typeof formik.errors.title === 'string' && formik.touched.title === true ? (
-                <Text component={'p'} titleVariant="body1" titleText={formik.errors.title} />
+                <Text component={'p'} titleVariant='body1' titleText={formik.errors.title} />
               ) : null}
             </>
           </Box>
         </Box>
 
         <Box sx={{ display: 'flex', justifyItems: 'center' }}>
-          <Button type="submit" variant="contained" color="primary" sx={{ m: 1, flex: '1 0 30%' }}>
+          <Button type='submit' variant='contained' color='primary' sx={{ m: 1, flex: '1 0 30%' }}>
             Submit
           </Button>
-          <Button type="reset" variant="contained" color="secondary" sx={{ m: 1, flex: '1 0 30%' }}>
+          <Button type='reset' variant='contained' color='secondary' sx={{ m: 1, flex: '1 0 30%' }}>
             Clear
           </Button>
         </Box>

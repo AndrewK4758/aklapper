@@ -1,15 +1,15 @@
+import type { track } from '@aklapper/chinook-client';
 import { Text } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import FormLabel from '@mui/material/FormLabel';
 import TextField from '@mui/material/TextField';
-import { GridApiCommunity } from '@mui/x-data-grid/internals';
-import { track } from '@prisma/client';
+import type { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { Decimal } from '@prisma/client/runtime/index-browser.js';
-import axios, { AxiosError, AxiosResponse } from 'axios';
-import { FormikProps, useFormik } from 'formik';
-import { ChangeEvent, FocusEvent, RefObject } from 'react';
+import axios, { type AxiosError, type AxiosResponse } from 'axios';
+import { type FormikProps, useFormik } from 'formik';
+import type { ChangeEvent, FocusEvent, RefObject } from 'react';
 import { Form } from 'react-router';
 
 const baseURL = import.meta.env.VITE_DATA_API_URL;
@@ -28,7 +28,7 @@ const initialValues: track = {
   milliseconds: 0,
   bytes: 0,
   unit_price: new Decimal(0.0),
-  composer: ''
+  composer: '',
 };
 
 const AddTrack = ({ albumID, apiRef }: AddTrackProps) => {
@@ -37,7 +37,7 @@ const AddTrack = ({ albumID, apiRef }: AddTrackProps) => {
     onSubmit: values => {
       handleSubmitNewTrack(values, formik, albumID, apiRef);
     },
-    validateOnBlur: true
+    validateOnBlur: true,
   });
 
   formik.handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -51,36 +51,36 @@ const AddTrack = ({ albumID, apiRef }: AddTrackProps) => {
 
   return (
     <Container sx={{ borderBottom: '3px solid purple' }}>
-      <Form method="post" onSubmit={formik.handleSubmit}>
+      <Form method='post' onSubmit={formik.handleSubmit}>
         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-          <FormLabel htmlFor="track-name" hidden>
+          <FormLabel htmlFor='track-name' hidden>
             Enter Track Name
           </FormLabel>
           <TextField
-            autoComplete="off"
-            name="track-name"
-            id="track-name"
-            variant="outlined"
-            color="primary"
-            placeholder="Enter Track Name"
+            autoComplete='off'
+            name='track-name'
+            id='track-name'
+            variant='outlined'
+            color='primary'
+            placeholder='Enter Track Name'
             sx={{ flex: '1 0 50%' }}
             onChange={e => formik.handleChange(e)}
             onBlur={e => formik.handleBlur(e)}
           />
 
           {typeof formik.touched.name === 'string' && formik.values.name ? (
-            <Text component={'p'} titleVariant="body1" titleText={formik.touched.name} />
+            <Text component={'p'} titleVariant='body1' titleText={formik.touched.name} />
           ) : null}
           {formik.errors.name && formik.touched.name === true ? (
-            <Text component={'p'} titleVariant="body1" titleText={formik.errors.name} />
+            <Text component={'p'} titleVariant='body1' titleText={formik.errors.name} />
           ) : null}
         </Box>
 
         <Box sx={{ display: 'flex', justifyItems: 'center' }}>
-          <Button type="submit" variant="contained" color="primary" sx={{ m: 1, flex: '1 0 30%' }}>
+          <Button type='submit' variant='contained' color='primary' sx={{ m: 1, flex: '1 0 30%' }}>
             Submit
           </Button>
-          <Button type="reset" variant="contained" color="secondary" sx={{ m: 1, flex: '1 0 30%' }}>
+          <Button type='reset' variant='contained' color='secondary' sx={{ m: 1, flex: '1 0 30%' }}>
             Clear
           </Button>
         </Box>
@@ -93,7 +93,7 @@ const handleSubmitNewTrack = async (
   values: track,
   formik: FormikProps<track>,
   albumID: number,
-  apiRef: RefObject<GridApiCommunity>
+  apiRef: RefObject<GridApiCommunity>,
 ) => {
   try {
     const trackName = values.name;
@@ -101,8 +101,8 @@ const handleSubmitNewTrack = async (
       `${baseURL}/tracks`,
       { name: trackName, albumID: albumID },
       {
-        headers: { 'Content-Type': 'application/json' }
-      }
+        headers: { 'Content-Type': 'application/json' },
+      },
     );
 
     if (resp.data.newTrack && apiRef.current) {
@@ -118,8 +118,8 @@ const handleSubmitNewTrack = async (
           genre_id: genre_id,
           bytes: bytes,
           composer: composer,
-          unit_price: unit_price
-        }
+          unit_price: unit_price,
+        },
       ]);
     }
   } catch (error) {
@@ -133,11 +133,11 @@ const handleSubmitNewTrack = async (
 const handleNewTrackBlur = async (
   e: FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>,
   formik: FormikProps<track>,
-  albumID: number
+  albumID: number,
 ) => {
   try {
     const resp = await axios.get(`${baseURL}/tracks?albumID=${albumID}&name=${e.target.value}`, {
-      headers: { 'Content-Type': 'text/plain' }
+      headers: { 'Content-Type': 'text/plain' },
     });
 
     formik.setTouched({ name: resp.data.message }, true);

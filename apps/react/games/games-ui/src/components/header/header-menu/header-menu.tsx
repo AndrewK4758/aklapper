@@ -1,9 +1,9 @@
 import { Text } from '@aklapper/react-shared';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
-import { SxProps } from '@mui/material';
 import Button from '@mui/material/Button';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import type { SxProps } from '@mui/material/styles';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -31,15 +31,15 @@ export function HeaderMenu({ breakpointsMenu }: HeaderMenuProps) {
     <>
       <Button
         LinkComponent={'nav'}
-        role="button"
-        color="inherit"
-        size="large"
+        role='button'
+        color='inherit'
+        size='large'
         disableRipple
         onClick={handleOpenMenu}
-        startIcon={<MenuRoundedIcon htmlColor="inherit" sx={{ scale: 1.5 }} />}
+        startIcon={<MenuRoundedIcon htmlColor='inherit' sx={{ scale: 1.5 }} />}
         sx={{ paddingY: 0 }}
       >
-        <Text component={'span'} titleVariant="button" titleText={'MENU'} sx={breakpointsMenu} />
+        <Text component={'span'} titleVariant='button' titleText={'MENU'} sx={breakpointsMenu} />
       </Button>
 
       <Menu
@@ -47,13 +47,13 @@ export function HeaderMenu({ breakpointsMenu }: HeaderMenuProps) {
         open={open}
         anchorEl={anchorEl}
         onClose={handleCloseMenu}
-        variant="menu"
+        variant='menu'
         sx={{ textAlign: 'center' }}
       >
-        <MenuItem divider={true} component="li" onClick={() => handleClick('/')}>
+        <MenuItem divider={true} component='li' onClick={() => handleClick('/')}>
           {'HOME'}
         </MenuItem>
-        <MenuItem divider={true} component="li" onClick={() => handleClick('/games')}>
+        <MenuItem divider={true} component='li' onClick={() => handleClick('/games')}>
           {'SHOW GAMES'}
         </MenuItem>
       </Menu>

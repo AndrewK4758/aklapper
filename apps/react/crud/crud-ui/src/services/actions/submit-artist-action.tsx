@@ -1,6 +1,6 @@
-import { artist } from '@prisma/client';
-import axios, { AxiosError, AxiosResponse } from 'axios';
-import { FormikProps } from 'formik';
+import type { artist } from '@aklapper/chinook-client';
+import axios, { type AxiosError, type AxiosResponse } from 'axios';
+import type { FormikProps } from 'formik';
 
 const baseURL = import.meta.env.VITE_DATA_API_URL;
 

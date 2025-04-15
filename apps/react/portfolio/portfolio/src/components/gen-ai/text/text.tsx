@@ -1,26 +1,28 @@
 import { useScrollIntoView } from '@aklapper/react-shared';
 import type { PromptRequest } from '@aklapper/vertex-ai';
-import { FileData } from '@google-cloud/vertexai';
+import type { FileData } from '@google-cloud/vertexai';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
-import { useContext, useRef, type JSX } from 'react';
+import { useRef, type JSX } from 'react';
 import { useOutletContext } from 'react-router';
+import { io, type Socket } from 'socket.io-client';
 import * as Yup from 'yup';
-import { WebSocketContext, WebSocketContextType } from '../../../contexts/websocket-context.jsx';
 import useGenAiWebsockets from '../../../hooks/useGenAiWebsockets.jsx';
 import {
   genAiTextInputButtonSxProps,
   labelSx,
   textInputSx,
-  topLevelModeStyle
+  topLevelModeStyle,
 } from '../../../styles/gen-ai-styles.jsx';
 import type { OutletContextProps } from '../../../types/types.tsx';
 import ChatInput from '../chat-input/chat-input.jsx';
 
 const validationSchema = Yup.object<PromptRequest>().shape({
   text: Yup.string().required('Must be a valid question or statement').min(2, 'Must be a valid question or statement'),
-  fileData: Yup.mixed<FileData>().nullable().notRequired()
+  fileData: Yup.mixed<FileData>().nullable().notRequired(),
 });
+
+const wsURL = import.meta.env.VITE_VERTEX_WS_URL;
 
 /**
  * This component renders the text generation section of the generative AI page.
@@ -30,7 +32,15 @@ const validationSchema = Yup.object<PromptRequest>().shape({
  */
 
 const TextGenerator = (): JSX.Element => {
-  const { socket } = useContext<WebSocketContextType>(WebSocketContext);
+  const clientIo = io(wsURL, {
+    autoConnect: false,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 2500,
+    withCredentials: false,
+    secure: true,
+  });
+  const socketRef = useRef<Socket>(clientIo);
+  const socket = socketRef.current;
   const { prompt, setLoading, setPromptResponse } = useOutletContext<OutletContextProps>();
   const divRef = useRef<HTMLDivElement>(null);
 
@@ -39,16 +49,16 @@ const TextGenerator = (): JSX.Element => {
   useGenAiWebsockets(socket, setLoading, setPromptResponse);
 
   return (
-    <Paper component={'div'} key={'gen-ai-text-input-paper'} id="gen-ai-text-input-paper" sx={topLevelModeStyle}>
-      <Container component={'section'} key={'gen-ai-text-input-wrapper'} id="gen-ai-text-input-wrapper">
+    <Paper component={'div'} key={'gen-ai-text-input-paper'} id='gen-ai-text-input-paper' sx={topLevelModeStyle}>
+      <Container component={'section'} key={'gen-ai-text-input-wrapper'} id='gen-ai-text-input-wrapper'>
         <ChatInput<PromptRequest>
-          method="get"
-          type="text"
-          buttonText="Submit Prompt"
-          buttonType="submit"
+          method='get'
+          type='text'
+          buttonText='Submit Prompt'
+          buttonType='submit'
           names={Object.keys(prompt)}
           labelText={'Prompt Input'}
-          variant="text"
+          variant='text'
           socket={socket}
           setLoading={setLoading}
           initialValues={prompt}

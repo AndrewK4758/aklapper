@@ -1,7 +1,7 @@
-import type { artist } from 'node_modules/@aklapper/chinook-client/generated/client.js';
+import type { artist } from '@aklapper/chinook-client';
 import createArtists from '../src/services/prisma/artist/create-artists.js';
-import updateArtist from '../src/services/prisma/artist/update-artists.js';
 import deleteArtists from '../src/services/prisma/artist/delete-artist.js';
+import updateArtist from '../src/services/prisma/artist/update-artists.js';
 
 let id: number, name: string, newName: string;
 describe('Test updateArtist service', () => {

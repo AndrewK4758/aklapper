@@ -8,10 +8,10 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import type { SxProps } from '@mui/material/styles';
 import axios from 'axios';
 import { useFormik, type FormikProps } from 'formik';
-import { SetStateAction, useContext, type ChangeEvent, type Dispatch } from 'react';
+import { useContext, useEffect, useRef, type ChangeEvent, type Dispatch, type SetStateAction } from 'react';
 import { Form, useNavigate, type NavigateFunction } from 'react-router';
 import * as Yup from 'yup';
-import ActivePlayerContext, { ActivePlayerContextProps } from '../../context/active-player-context';
+import ActivePlayerContext, { type ActivePlayerContextProps } from '../../context/active-player-context';
 import { errorTextSx, tooltipSx } from '../../styles/games-styles';
 
 const emailRegex =
@@ -44,11 +44,17 @@ export default function LoginPlayer({ method, index, tab, inputSx, ContainerProp
   const { setActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
   const nav = useNavigate();
 
+  const ref = useRef<HTMLInputElement>(null);
+
   const formik: FormikProps<Partial<IPlayer>> = useFormik<Partial<IPlayer>>({
     initialValues: initialValues,
     validationSchema: validationSchema,
     onSubmit: async values => handleNewPlayerSubmit(values, setActivePlayer, nav, formik),
   });
+
+  useEffect(() => {
+    if (ref.current) ref.current.focus();
+  }, [tab]);
 
   return (
     <Container
@@ -71,19 +77,19 @@ export default function LoginPlayer({ method, index, tab, inputSx, ContainerProp
             labelText={'Email'}
             id={'email-label'}
             placement={'top'}
-            htmlFor={'email'}
+            htmlFor={'login-email'}
             tooltipSx={tooltipSx}
           />
           <OutlinedInput
-            autoFocus
-            id={'email'}
+            inputRef={ref}
+            id={'login-email'}
             value={formik.values.email}
             fullWidth
             label={'Email'}
             name={'email'}
             onBlur={formik.handleBlur}
             onChange={async e => await handlePlayerNameChange(e, formik)}
-            onFocus={async e => await handleNewPlayerInputTouched(e.currentTarget.name, formik)}
+            onFocus={async e => await handleNewPlayerInputTouched(e, formik)}
             sx={inputSx}
           />
           <FormikValidationError<Partial<IPlayer>>
@@ -147,6 +153,9 @@ async function handlePlayerNameChange(
   await formik.setFieldValue(e.currentTarget.name, e.currentTarget.value);
 }
 
-async function handleNewPlayerInputTouched(target: string, formik: FormikProps<Partial<IPlayer>>) {
-  await formik.setFieldTouched(target, false);
+async function handleNewPlayerInputTouched(
+  e: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+  formik: FormikProps<Partial<IPlayer>>,
+) {
+  await formik.setFieldTouched(e.currentTarget.name, false);
 }

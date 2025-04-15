@@ -1,7 +1,6 @@
-import { SxProps } from '@mui/material';
+import type { SxProps, TypographyVariant } from '@mui/material/styles';
 import Typography, { type TypographyProps } from '@mui/material/Typography';
-import { TypographyVariant } from '@mui/material/styles';
-import { ReactNode, type ElementType } from 'react';
+import type { ElementType, ReactNode } from 'react';
 
 export interface TextProps {
   titleVariant: TypographyVariant | 'inherit';

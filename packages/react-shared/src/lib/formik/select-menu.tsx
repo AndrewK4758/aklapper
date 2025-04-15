@@ -1,7 +1,7 @@
 import type { AvatarTotem } from '@aklapper/types';
-import { FormControl, SxProps } from '@mui/material';
+import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
-import type { TypographyVariant } from '@mui/material/styles';
+import type { SxProps, TypographyVariant } from '@mui/material/styles';
 import type { FormikProps } from 'formik';
 import type { JSX } from 'react';
 import Label from '../label/label.jsx';
@@ -38,7 +38,7 @@ export function SelectMenu<T extends object>({
   tooltipSx,
   id,
   errorTextSx,
-  selectSlotProps
+  selectSlotProps,
 }: IAvatarColorSelectValues<T>) {
   return (
     <>
@@ -59,7 +59,7 @@ export function SelectMenu<T extends object>({
           label={label}
           name={name as string}
           autoWidth
-          variant="outlined"
+          variant='outlined'
           sx={selectSx}
           onChange={async e => await formik.setFieldValue(name as string, e.target.value)}
           value={formik.values[name]}

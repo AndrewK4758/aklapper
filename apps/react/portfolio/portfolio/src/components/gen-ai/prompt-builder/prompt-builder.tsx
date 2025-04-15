@@ -1,4 +1,4 @@
-import { IPromptInputData, ResponseType } from '@aklapper/prompt-builder';
+import { ResponseType, type IPromptInputData } from '@aklapper/prompt-builder';
 import { FormikValidationError, Label, Text, useScrollIntoView } from '@aklapper/react-shared';
 import { getContextPath } from '@aklapper/utils';
 import type { PromptRequest } from '@aklapper/vertex-ai';
@@ -30,7 +30,7 @@ import {
   radioButtonLabelSxProps,
   radioButtonLabelWrapperSxProps,
   textInputSx,
-  tooltipSx
+  tooltipSx,
 } from '../../../styles/gen-ai-styles.jsx';
 import { buttonSXProps, flexColumnStyles, fullSizeBlock, pagesTitleSx } from '../../../styles/pages-styles.jsx';
 import ImageIcon from '../../icons/image-icon.jsx';
@@ -44,7 +44,7 @@ import {
   responseInstructions,
   SUPPORTED_FORMATS,
   textData,
-  tone
+  tone,
 } from '../static/definitions.jsx';
 import { promptBuilderHeaderText } from '../static/prompt-builder-text.jsx';
 import PromptBuilderResponse from './prompt-builder-response.jsx';
@@ -57,7 +57,7 @@ const initialValues: IPromptInputData = {
   constraints: '',
   tone: '',
   responseFormat: ResponseType.TEXT,
-  responseInstructions: ''
+  responseInstructions: '',
 };
 
 const validationSchema = Yup.object({
@@ -68,7 +68,7 @@ const validationSchema = Yup.object({
   constraints: Yup.string(),
   tone: Yup.string(),
   resposeFormat: Yup.string().oneOf(Object.values(ResponseType)),
-  responseInstructions: Yup.string()
+  responseInstructions: Yup.string(),
 });
 
 interface PromptBuilderProps {
@@ -106,7 +106,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
     onSubmit: values => submit(values as SubmitTarget, { method: 'POST', encType: 'application/json' }),
     onReset: () => setFileName(''),
     validateOnBlur: true,
-    validateOnChange: true
+    validateOnChange: true,
   });
 
   /**
@@ -121,47 +121,47 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
   };
 
   return (
-    <Box component={'div'} key={'prompt-builder-wrapper'} id="prompt-builder-wrapper" ref={divRef} width={'100%'}>
-      <Paper key={'prompt-builder-paper'} id="prompt-builder-paper">
+    <Box component={'div'} key={'prompt-builder-wrapper'} id='prompt-builder-wrapper' ref={divRef} width={'100%'}>
+      <Paper key={'prompt-builder-paper'} id='prompt-builder-paper'>
         <Container
           component={'section'}
           key={'prompt-builder'}
-          id="prompt-builder"
+          id='prompt-builder'
           maxWidth={false}
           sx={{ ...flexColumnStyles, gap: 4 }}
         >
-          <Box component={'section'} key={'prompt-builder-header-box'} id="prompt-builder-header-box">
-            <Text component={'h2'} titleVariant="h2" titleText={'Prompt Builder'} sx={pagesTitleSx} />
-            <Text component={'p'} titleVariant="body1" titleText={promptBuilderHeaderText} sx={crudHeaderTextSxProps} />
+          <Box component={'section'} key={'prompt-builder-header-box'} id='prompt-builder-header-box'>
+            <Text component={'h2'} titleVariant='h2' titleText={'Prompt Builder'} sx={pagesTitleSx} />
+            <Text component={'p'} titleVariant='body1' titleText={promptBuilderHeaderText} sx={crudHeaderTextSxProps} />
           </Box>
-          <Form key={'prompt-builder-form'} method="POST" onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
+          <Form key={'prompt-builder-form'} method='POST' onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
             <Box
               component={'section'}
               key={'prompt-builder-input-elements-box'}
-              id="prompt-builder-input-elements-box"
+              id='prompt-builder-input-elements-box'
               sx={promptBuillderFormBoxSxProps}
             >
-              <Box component={'section'} key={'prompt-builder-objective-box'} id="prompt-builder-objective-box">
+              <Box component={'section'} key={'prompt-builder-objective-box'} id='prompt-builder-objective-box'>
                 <Label
-                  id="objective-label"
-                  htmlFor="prompt-builder-objective"
-                  placement="top"
+                  id='objective-label'
+                  htmlFor='prompt-builder-objective'
+                  placement='top'
                   tooltipTitle={objective}
-                  labelText="Objective"
-                  labelVariant="h3"
+                  labelText='Objective'
+                  labelVariant='h3'
                   labelTextSx={labelSx}
                   tooltipSx={tooltipSx}
                 />
                 <TextField
                   component={'span'}
                   key={'prompt-builder-objective'}
-                  id="prompt-builder-objective"
+                  id='prompt-builder-objective'
                   multiline={true}
                   focused={true}
                   fullWidth={true}
                   rows={2}
-                  placeholder="What you want the AI todo"
-                  variant="outlined"
+                  placeholder='What you want the AI todo'
+                  variant='outlined'
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
                   onReset={formik.handleReset}
@@ -171,31 +171,31 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   slotProps={promptBuilderTextFieldSlotProps}
                 />
                 <FormikValidationError<IPromptInputData>
-                  elementName="objective"
+                  elementName='objective'
                   formik={formik}
                   helperTextSx={helperTextSx}
                 />
               </Box>
-              <Box component={'section'} key={'prompt-builder-instructions-box'} id="prompt-builder-instructions-box">
+              <Box component={'section'} key={'prompt-builder-instructions-box'} id='prompt-builder-instructions-box'>
                 <Label
-                  id="instructions-label"
-                  htmlFor="prompt-builder-instructions"
-                  placement="top"
+                  id='instructions-label'
+                  htmlFor='prompt-builder-instructions'
+                  placement='top'
                   tooltipTitle={instructions}
-                  labelText="Instructions"
-                  labelVariant="h3"
+                  labelText='Instructions'
+                  labelVariant='h3'
                   labelTextSx={labelSx}
                   tooltipSx={tooltipSx}
                 />
                 <TextField
                   component={'span'}
                   key={'prompt-builder-instructions'}
-                  id="prompt-builder-instructions"
+                  id='prompt-builder-instructions'
                   multiline={true}
                   fullWidth={true}
                   rows={2}
-                  placeholder="How you want the AI to execute the objective"
-                  variant="outlined"
+                  placeholder='How you want the AI to execute the objective'
+                  variant='outlined'
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
                   onReset={formik.handleReset}
@@ -205,31 +205,31 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   slotProps={promptBuilderTextFieldSlotProps}
                 />
                 <FormikValidationError<IPromptInputData>
-                  elementName="instructions"
+                  elementName='instructions'
                   formik={formik}
                   helperTextSx={helperTextSx}
                 />
               </Box>
-              <Box component={'section'} key={'prompt-builder-text-data-box'} id="prompt-builder-text-data-box">
+              <Box component={'section'} key={'prompt-builder-text-data-box'} id='prompt-builder-text-data-box'>
                 <Label
-                  id="text-data-label"
-                  htmlFor="prompt-builder-text-data"
-                  placement="top"
+                  id='text-data-label'
+                  htmlFor='prompt-builder-text-data'
+                  placement='top'
                   tooltipTitle={textData}
-                  labelText="Text Data"
-                  labelVariant="h3"
+                  labelText='Text Data'
+                  labelVariant='h3'
                   labelTextSx={labelSx}
                   tooltipSx={tooltipSx}
                 />
                 <TextField
                   component={'span'}
                   key={'prompt-builder-text-data'}
-                  id="prompt-builder-text-data"
+                  id='prompt-builder-text-data'
                   multiline={true}
                   fullWidth={true}
                   rows={2}
-                  placeholder="Copy & Paste any simple text for context or processing"
-                  variant="outlined"
+                  placeholder='Copy & Paste any simple text for context or processing'
+                  variant='outlined'
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
                   onReset={formik.handleReset}
@@ -239,31 +239,31 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   slotProps={promptBuilderTextFieldSlotProps}
                 />
                 <FormikValidationError<IPromptInputData>
-                  elementName="textData"
+                  elementName='textData'
                   formik={formik}
                   helperTextSx={helperTextSx}
                 />
               </Box>
-              <Box component={'section'} key={'prompt-builder-examples-box'} id="prompt-builder-examples-box">
+              <Box component={'section'} key={'prompt-builder-examples-box'} id='prompt-builder-examples-box'>
                 <Label
-                  id="examples-label"
-                  htmlFor="prompt-builder-examples"
-                  placement="top"
+                  id='examples-label'
+                  htmlFor='prompt-builder-examples'
+                  placement='top'
                   tooltipTitle={examples}
-                  labelText="Examples"
-                  labelVariant="h3"
+                  labelText='Examples'
+                  labelVariant='h3'
                   labelTextSx={labelSx}
                   tooltipSx={tooltipSx}
                 />
                 <TextField
                   component={'span'}
                   key={'prompt-builder-examples'}
-                  id="prompt-builder-examples"
+                  id='prompt-builder-examples'
                   multiline={true}
                   fullWidth={true}
                   rows={2}
-                  placeholder="Show AI Example of your desired outcome"
-                  variant="outlined"
+                  placeholder='Show AI Example of your desired outcome'
+                  variant='outlined'
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
                   onReset={formik.handleReset}
@@ -273,31 +273,31 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   slotProps={promptBuilderTextFieldSlotProps}
                 />
                 <FormikValidationError<IPromptInputData>
-                  elementName="examples"
+                  elementName='examples'
                   formik={formik}
                   helperTextSx={helperTextSx}
                 />
               </Box>
-              <Box component={'section'} key={'prompt-builder-constraints-box'} id="prompt-builder-constraints-box">
+              <Box component={'section'} key={'prompt-builder-constraints-box'} id='prompt-builder-constraints-box'>
                 <Label
-                  id="constraints-label"
-                  htmlFor="prompt-builder-constraints"
-                  placement="top"
+                  id='constraints-label'
+                  htmlFor='prompt-builder-constraints'
+                  placement='top'
                   tooltipTitle={constraints}
-                  labelText="Constraints"
-                  labelVariant="h3"
+                  labelText='Constraints'
+                  labelVariant='h3'
                   labelTextSx={labelSx}
                   tooltipSx={tooltipSx}
                 />
                 <TextField
                   component={'span'}
                   key={'prompt-builder-constraints'}
-                  id="prompt-builder-constraints"
+                  id='prompt-builder-constraints'
                   multiline={true}
                   fullWidth={true}
                   rows={2}
-                  placeholder="Limits you want AI to adhere to"
-                  variant="outlined"
+                  placeholder='Limits you want AI to adhere to'
+                  variant='outlined'
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
                   onReset={formik.handleReset}
@@ -307,31 +307,31 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   slotProps={promptBuilderTextFieldSlotProps}
                 />
                 <FormikValidationError<IPromptInputData>
-                  elementName="constraints"
+                  elementName='constraints'
                   formik={formik}
                   helperTextSx={helperTextSx}
                 />
               </Box>
-              <Box component={'section'} key={'prompt-builder-tone-box'} id="prompt-builder-tone-box">
+              <Box component={'section'} key={'prompt-builder-tone-box'} id='prompt-builder-tone-box'>
                 <Label
-                  id="tone-label"
-                  htmlFor="prompt-builder-tone"
-                  placement="top"
+                  id='tone-label'
+                  htmlFor='prompt-builder-tone'
+                  placement='top'
                   tooltipTitle={tone}
-                  labelText="Tone"
-                  labelVariant="h3"
+                  labelText='Tone'
+                  labelVariant='h3'
                   labelTextSx={labelSx}
                   tooltipSx={tooltipSx}
                 />
                 <TextField
                   component={'span'}
                   key={'prompt-builder-tone'}
-                  id="prompt-builder-tone"
+                  id='prompt-builder-tone'
                   multiline={true}
                   fullWidth={true}
                   rows={2}
-                  placeholder="The style, voice, mood, feeling you want the AI to convey"
-                  variant="outlined"
+                  placeholder='The style, voice, mood, feeling you want the AI to convey'
+                  variant='outlined'
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
                   onReset={formik.handleReset}
@@ -341,7 +341,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   slotProps={promptBuilderTextFieldSlotProps}
                 />
                 <FormikValidationError<IPromptInputData>
-                  elementName="tone"
+                  elementName='tone'
                   formik={formik}
                   helperTextSx={helperTextSx}
                 />
@@ -349,27 +349,27 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
               <Box
                 component={'section'}
                 key={'prompt-builder-response-instructions-box'}
-                id="prompt-builder-response-instructions-box"
+                id='prompt-builder-response-instructions-box'
               >
                 <Label
-                  id="response-instructions-label"
-                  htmlFor="prompt-builder-response-instructions"
-                  placement="top"
+                  id='response-instructions-label'
+                  htmlFor='prompt-builder-response-instructions'
+                  placement='top'
                   tooltipTitle={responseInstructions}
-                  labelText="Response Instructions"
-                  labelVariant="h3"
+                  labelText='Response Instructions'
+                  labelVariant='h3'
                   labelTextSx={labelSx}
                   tooltipSx={tooltipSx}
                 />
                 <TextField
                   component={'span'}
                   key={'prompt-builder-response-instructions'}
-                  id="prompt-builder-response-instructions"
+                  id='prompt-builder-response-instructions'
                   multiline={true}
                   fullWidth={true}
                   rows={2}
-                  placeholder="The how AI will respond"
-                  variant="outlined"
+                  placeholder='The how AI will respond'
+                  variant='outlined'
                   onBlur={formik.handleBlur}
                   onChange={formik.handleChange}
                   onReset={formik.handleReset}
@@ -379,7 +379,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   slotProps={promptBuilderTextFieldSlotProps}
                 />
                 <FormikValidationError<IPromptInputData>
-                  elementName="responseIsnstructions"
+                  elementName='responseIsnstructions'
                   formik={formik}
                   helperTextSx={helperTextSx}
                 />
@@ -387,44 +387,44 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
               <Box
                 component={'section'}
                 key={'prompt-builder-response-format-box'}
-                id="prompt-builder-response-format-box"
+                id='prompt-builder-response-format-box'
                 sx={{}}
               >
                 <Label
-                  id="response-format-label"
-                  htmlFor="prompt-builder-response-format"
-                  tooltipTitle=""
+                  id='response-format-label'
+                  htmlFor='prompt-builder-response-format'
+                  tooltipTitle=''
                   tooltipSx={{}}
-                  labelVariant="h4"
+                  labelVariant='h4'
                   labelTextSx={promptBuilderResponseFormatLabelSxProps}
-                  labelText="Response Format"
-                  placement="top"
+                  labelText='Response Format'
+                  placement='top'
                 />
                 <Box
                   component={'section'}
                   key={'prompt-builder-response-format-radio-box'}
-                  id="prompt-builder-response-format-radio-box"
+                  id='prompt-builder-response-format-radio-box'
                   sx={promptBuilderResponseFormatBoxSxProps}
                 >
                   <RadioGroup
                     key={'prompt-builder-response-format'}
-                    id="prompt-builder-response-format"
+                    id='prompt-builder-response-format'
                     onBlur={formik.handleBlur}
                     onChange={formik.handleChange}
                     onReset={formik.handleReset}
                     value={formik.values.responseFormat}
                     name={'responseFormat'}
-                    color="primary"
+                    color='primary'
                     sx={promptBuilderRadioGroupSxProps}
                   >
                     <FormControlLabel
-                      id="response-format-text"
+                      id='response-format-text'
                       value={ResponseType.TEXT}
                       control={<Radio />}
                       label={
                         <Label
-                          id="response-format-text-label"
-                          htmlFor="response-format-text"
+                          id='response-format-text-label'
+                          htmlFor='response-format-text'
                           tooltipTitle={'Tells the LLM to respond with plain text'}
                           labelVariant={'h4'}
                           labelText={'Text'}
@@ -438,13 +438,13 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                     />
 
                     <FormControlLabel
-                      id="response-format-json"
+                      id='response-format-json'
                       value={ResponseType.JSON}
                       control={<Radio />}
                       label={
                         <Label
-                          id="response-format-json-label"
-                          htmlFor="response-format-json"
+                          id='response-format-json-label'
+                          htmlFor='response-format-json'
                           tooltipTitle={'Tells the LLM to respond with JSON'}
                           labelVariant={'h4'}
                           labelText={'JSON'}
@@ -458,13 +458,13 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                     />
 
                     <FormControlLabel
-                      id="response-format-image"
+                      id='response-format-image'
                       value={ResponseType.IMAGE}
                       control={<Radio />}
                       label={
                         <Label
-                          id="response-format-image-label"
-                          htmlFor="response-format-image"
+                          id='response-format-image-label'
+                          htmlFor='response-format-image'
                           tooltipTitle={
                             'Tells the LLM to respond with a text to Image format.\n**WILL NOT WORK WITH TEXT OR AUDIO**'
                           }
@@ -481,7 +481,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                     />
                   </RadioGroup>
                   <FormikValidationError<IPromptInputData>
-                    elementName="responseFormat"
+                    elementName='responseFormat'
                     formik={formik}
                     helperTextSx={helperTextSx}
                   />
@@ -490,15 +490,15 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
               <Box
                 component={'span'}
                 key={'prompt-builder-document-wrapper'}
-                id="prompt-builder-document-wrapper"
+                id='prompt-builder-document-wrapper'
                 sx={flexColumnStyles}
               >
                 <input
                   ref={fileInputRef}
                   accept={SUPPORTED_FORMATS.join(', ')}
-                  id="document"
-                  name="document"
-                  type="file"
+                  id='document'
+                  name='document'
+                  type='file'
                   style={{ display: 'none' }}
                   onChange={() => handleFileUpload(fileInputRef, setPrompt, setFileName, setLoading)}
                   onBlur={formik.handleBlur}
@@ -514,7 +514,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   <Text
                     key={'current-document-text-value-title'}
                     component={'h4'}
-                    titleVariant="h4"
+                    titleVariant='h4'
                     titleText={`Uploaded File: `}
                     sx={promptBuilderUploadFileTextSxProps}
                   />
@@ -522,7 +522,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                     <Text
                       component={'p'}
                       key={'current-document-text-value-text'}
-                      titleVariant="body1"
+                      titleVariant='body1'
                       titleText={`${fileName}`}
                       sx={{ fontSize: '1.4rem' }}
                     />
@@ -530,7 +530,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                 </Box>
 
                 <FormikValidationError<IPromptInputData>
-                  elementName="document"
+                  elementName='document'
                   formik={formik}
                   helperTextSx={helperTextSx}
                 />
@@ -539,16 +539,16 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
               <Box
                 component={'section'}
                 key={'prompt-builder-submit-box'}
-                id="prompt-builder-submit-box"
+                id='prompt-builder-submit-box'
                 display={'flex'}
                 justifyContent={'space-evenly'}
               >
                 {!action && (
                   <Button
-                    variant="text"
-                    type="button"
+                    variant='text'
+                    type='button'
                     key={'prompt-builder-upload-file-button'}
-                    id="prompt-builder-upload-file-button"
+                    id='prompt-builder-upload-file-button'
                     onClick={handleFileUploadButtonClick}
                     sx={buttonSXProps}
                   >
@@ -556,19 +556,19 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   </Button>
                 )}
                 <Button
-                  variant="text"
-                  type="submit"
+                  variant='text'
+                  type='submit'
                   key={'prompt-builder-submit-button'}
-                  id="prompt-builder-submit-button"
+                  id='prompt-builder-submit-button'
                   sx={buttonSXProps}
                 >
                   Build Prompt
                 </Button>
                 <Button
-                  variant="text"
-                  type="reset"
+                  variant='text'
+                  type='reset'
                   key={'prompt-builder-reset-button'}
-                  id="prompt-builder-reset-button"
+                  id='prompt-builder-reset-button'
                   onReset={formik.handleReset}
                   sx={buttonSXProps}
                 >
@@ -576,10 +576,10 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                 </Button>
                 {action && (
                   <Button
-                    variant="text"
-                    type="button"
+                    variant='text'
+                    type='button'
                     key={'copy-and-add-to-input'}
-                    id="copy-and-add-to-input"
+                    id='copy-and-add-to-input'
                     onClick={() =>
                       handleCopyPromptToClipboardAndAddToInput(action, setPrompt, setOpenPromptResponse, nav)
                     }
@@ -590,10 +590,10 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                 )}
                 {action && (
                   <Button
-                    variant="text"
+                    variant='text'
                     key={'open-prompt'}
-                    id="open-prompt"
-                    type="button"
+                    id='open-prompt'
+                    type='button'
                     onClick={() => setOpenPromptResponse(!openPromptResponse)}
                     sx={buttonSXProps}
                   >
@@ -629,7 +629,7 @@ const handleCopyPromptToClipboardAndAddToInput = async (
   buildPrompt: string,
   setPrompt: Dispatch<SetStateAction<PromptRequest>>,
   setOpenPromptResponse: Dispatch<SetStateAction<boolean>>,
-  nav: NavigateFunction
+  nav: NavigateFunction,
 ) => {
   setPrompt(prev => ({ ...prev, text: buildPrompt }));
   await navigator.clipboard.writeText(buildPrompt);
@@ -653,7 +653,7 @@ export const handleFileUpload = async (
   fileInputRef: RefObject<HTMLInputElement | null>,
   setPrompt: Dispatch<SetStateAction<PromptRequest>>,
   setFileName: Dispatch<SetStateAction<string>>,
-  setLoading: Dispatch<SetStateAction<boolean>>
+  setLoading: Dispatch<SetStateAction<boolean>>,
 ) => {
   try {
     if (fileInputRef.current) {
@@ -666,7 +666,7 @@ export const handleFileUpload = async (
         const resp = await axios.post(
           `${baseUrl}/upload`,
           { file: file, contextPath: contextPath },
-          { headers: { 'Content-Type': 'multipart/form-data' } }
+          { headers: { 'Content-Type': 'multipart/form-data' } },
         );
 
         const { path } = resp.data as { path: string };

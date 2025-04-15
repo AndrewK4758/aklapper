@@ -1,3 +1,4 @@
+import type { album, artist } from '@aklapper/chinook-client';
 import { Text } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -10,9 +11,8 @@ import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import TextField from '@mui/material/TextField';
 import { debounce } from '@mui/material/utils';
-import { album, artist } from '@prisma/client';
 import axios from 'axios';
-import { ChangeEvent, Dispatch, SetStateAction, useState } from 'react';
+import { type ChangeEvent, type Dispatch, type SetStateAction, useState } from 'react';
 import { Outlet } from 'react-router';
 
 type InitVals = {
@@ -21,7 +21,7 @@ type InitVals = {
 };
 const initVals: InitVals = {
   artist: [],
-  album: []
+  album: [],
 };
 
 const HomePage = () => {
@@ -30,42 +30,42 @@ const HomePage = () => {
 
   return (
     <>
-      <Box component={'div'} key={'grid-wrapper'} id="grid-wrapper" flex={'1 0 75%'}>
+      <Box component={'div'} key={'grid-wrapper'} id='grid-wrapper' flex={'1 0 75%'}>
         <Grid
           container
           component={'div'}
-          id="grid-container"
+          id='grid-container'
           columns={2}
           rowGap={1}
           rowSpacing={0}
           direction={'column'}
-          wrap="nowrap"
+          wrap='nowrap'
         >
-          <Grid component={'div'} id="title-grid" size={2}>
+          <Grid component={'div'} id='title-grid' size={2}>
             <Container component={'div'} sx={{ paddingY: 1 }}>
               <Text
-                id="home-page-title"
+                id='home-page-title'
                 component={'h1'}
-                titleVariant="h1"
+                titleVariant='h1'
                 titleText={'Media Data Manager'}
                 sx={{ textAlign: 'center', fontSize: '4rem' }}
               />
               <Text
                 component={'h3'}
-                titleVariant="h5"
-                titleText="Example of MUI-X DataGrid"
+                titleVariant='h5'
+                titleText='Example of MUI-X DataGrid'
                 sx={{ textAlign: 'center' }}
               />
               <Text
                 component={'p'}
-                titleVariant="body1"
+                titleVariant='body1'
                 titleText={
                   'Columns have sorting & filtering, cells can be updated and changes can be sent to the back end, rows can be deleted, each catagory has the ability to create an entry, ADD ENTRY provides the opportunity to add all fields at once'
                 }
               />
             </Container>
           </Grid>
-          <Grid component={'div'} id="data-grid-grids" size={2} width={'50%'}>
+          <Grid component={'div'} id='data-grid-grids' size={2} width={'50%'}>
             <Outlet />
           </Grid>
         </Grid>
@@ -80,26 +80,26 @@ const HomePage = () => {
           <Box component={'div'} key={'search-radio-group-box'}>
             <RadioGroup
               defaultValue={'artist'}
-              name="artist-album-select"
+              name='artist-album-select'
               sx={{
                 height: '100%',
                 width: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center',
-                alignItems: 'center'
+                alignItems: 'center',
               }}
             >
               <FormControlLabel
                 value={'artist'}
-                label="Artist"
+                label='Artist'
                 control={<Radio value={'artist'} onChange={e => setSearchParam(e.target.value)} />}
                 slotProps={{ typography: { sx: { fontSize: '1rem' } } }}
                 sx={{ width: '100%', paddingLeft: 1 }}
               />
               <FormControlLabel
                 value={'album'}
-                label="Album"
+                label='Album'
                 control={
                   <Radio
                     onChange={e => {
@@ -116,11 +116,11 @@ const HomePage = () => {
           <Box component={'div'} key={'search-input-box'} sx={{ paddingY: 1 }}>
             <TextField
               component={'search'}
-              label="Search"
-              variant="outlined"
-              type="text"
-              name="artist-search"
-              helperText="Search is performed automatically. Case is insensitive"
+              label='Search'
+              variant='outlined'
+              type='text'
+              name='artist-search'
+              helperText='Search is performed automatically. Case is insensitive'
               onChange={debounce(e => handleSearchParams(e, setArtVals, searchParam), 500)}
             />
           </Box>
@@ -151,7 +151,7 @@ export default HomePage;
 const handleSearchParams = async (
   e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   setArtVals: Dispatch<SetStateAction<InitVals>>,
-  searchParam: string
+  searchParam: string,
 ) => {
   const searchParams = e.target.value;
 
@@ -170,7 +170,7 @@ const baseURL = import.meta.env.VITE_DATA_API_URL;
 const searchArtistsAndAlbums = async (search: string, type: string) => {
   try {
     const resp = await axios.get(`${baseURL}/search?search=${search}&type=${type}`, {
-      headers: { 'Content-Type': 'text/plain' }
+      headers: { 'Content-Type': 'text/plain' },
     });
 
     console.log(resp.data);

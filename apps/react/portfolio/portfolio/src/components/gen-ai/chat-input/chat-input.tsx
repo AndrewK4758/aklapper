@@ -1,4 +1,4 @@
-import { FormActionProps, FormikTextInput } from '@aklapper/react-shared';
+import { FormikTextInput, type FormActionProps } from '@aklapper/react-shared';
 import type { PromptRequest } from '@aklapper/vertex-ai';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -37,13 +37,13 @@ export const ChatInput = <T extends FormikValues>({
   breakpointsChatInputText,
   breakpointsChatInputLabel,
   breakpointsChatInputButton,
-  breakpointsWrapperBoxSx
+  breakpointsWrapperBoxSx,
 }: ChatInputProps<T>) => {
   const formik = useFormik({
     initialValues: initialValues,
     validationSchema: validationSchema,
     onSubmit: ({ text, fileData }, { resetForm }) => submitPrompt<T>({ text, fileData }, resetForm, socket, setLoading),
-    onReset: () => null
+    onReset: () => null,
   });
 
   return (
@@ -55,17 +55,17 @@ export const ChatInput = <T extends FormikValues>({
     >
       <Form
         key={'chat-input-form'}
-        id="chat-input-form"
+        id='chat-input-form'
         method={method}
         onSubmit={formik.handleSubmit}
         onReset={formik.handleReset}
         style={{ display: 'flex', flexWrap: 'wrap' }}
       >
-        <Box key={'chat-input-form-text-box'} id="chat-input-form-text-box" sx={{ flex: '0 1 100%', paddingY: 4 }}>
+        <Box key={'chat-input-form-text-box'} id='chat-input-form-text-box' sx={{ flex: '0 1 100%', paddingY: 4 }}>
           <FormikTextInput<T>
             key={'chat-input-form-text-input'}
-            id="chat-input-form-text-input"
-            autoComplete="off"
+            id='chat-input-form-text-input'
+            autoComplete='off'
             formik={formik}
             type={type}
             name={names[0]}
@@ -89,7 +89,7 @@ export const ChatInput = <T extends FormikValues>({
         >
           <Button
             key={'chat-input-form-button'}
-            id="chat-input-form-button"
+            id='chat-input-form-button'
             variant={variant}
             type={buttonType}
             sx={breakpointsChatInputButton}
@@ -109,13 +109,13 @@ const submitPrompt = <T,>(
   { text, fileData }: PromptRequest,
   resetForm: (nextState?: Partial<FormikState<T>> | undefined) => void,
   socket: Socket,
-  setLoading: Dispatch<SetStateAction<boolean>>
+  setLoading: Dispatch<SetStateAction<boolean>>,
 ) => {
   try {
     setLoading(true);
     const promptRequest: PromptRequest = {
       text: text,
-      fileData: fileData
+      fileData: fileData,
     };
 
     socket.emit('prompt', promptRequest);

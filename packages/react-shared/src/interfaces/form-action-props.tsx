@@ -1,5 +1,5 @@
-import { SxProps } from '@mui/material';
-import { FormMethod } from 'react-router';
+import type { SxProps } from '@mui/material/styles';
+import type { FormMethod } from 'react-router';
 
 export type httpMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
 

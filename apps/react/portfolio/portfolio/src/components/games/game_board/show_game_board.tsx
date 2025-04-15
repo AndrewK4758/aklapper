@@ -1,5 +1,5 @@
 import { RenderList } from '@aklapper/react-shared';
-import { GameBoard, ILiteSpace } from '@aklapper/types';
+import type { GameBoard, ILiteSpace } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import { breakpointsGameBoardBox } from '../../../styles/games-styles.jsx';
 import GameBoardMap from '../game-boards/game-board.jsx';
@@ -18,8 +18,8 @@ const gameBoardMap = (e: ILiteSpace[], i: number, _arr: GameBoard) => (
     row={e}
     columns={10}
     container={true}
-    direction="row"
-    wrap="wrap"
+    direction='row'
+    wrap='wrap'
     id={`Row ${i}`}
     rowSx={{ flex: '1 0 100%' }}
   />
@@ -35,7 +35,7 @@ interface ShowGameBoardProps {
  */
 const ShowGameBoard = ({ board }: ShowGameBoardProps) => (
   <Box key={`game-board-length-${board.length}`} component={'section'} sx={breakpointsGameBoardBox}>
-    <RenderList component={'span'} data={board} listMapCallback={gameBoardMap} sx={{ flex: '1 0 100%' }} />
+    <RenderList data={board} listMapCallback={gameBoardMap} />
   </Box>
 );
 

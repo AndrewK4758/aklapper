@@ -1,4 +1,4 @@
-import { prisma, PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/chinook-client';
+import { prisma, PrismaErrorLogger, type PrismaClientErrors } from '@aklapper/chinook-client';
 import type { artist } from 'node_modules/@aklapper/chinook-client/generated/client.js';
 
 /**
@@ -9,12 +9,12 @@ import type { artist } from 'node_modules/@aklapper/chinook-client/generated/cli
  * @returns A Promise that resolves to the updated artist object, or null if an error occurs.
  */
 
-const updateArtist = async (artist_id: number, name: string): Promise<artist | ParsedPrismaError> => {
+const updateArtist = async (artist_id: number, name: string): Promise<artist> => {
   try {
     return await prisma.artist.update({ where: { artist_id: artist_id }, data: { name: name } });
   } catch (error) {
     const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
-    return prismaError.parseErrors();
+    throw prismaError.parseErrors();
   }
 };
 

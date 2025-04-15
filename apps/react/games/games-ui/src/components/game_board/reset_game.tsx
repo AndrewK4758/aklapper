@@ -1,12 +1,12 @@
-import { GamesTheme as Theme } from '../../styles/games-theme';
-import { SxProps } from '@mui/material';
 import Button from '@mui/material/Button';
+import type { SxProps } from '@mui/material/styles';
 import axios from 'axios';
-import { Dispatch } from 'react';
+import type { Dispatch } from 'react';
 import { useParams } from 'react-router';
 import { Socket } from 'socket.io-client';
-import { Action, ActionType } from './socket-reducer';
+import { GamesTheme as Theme } from '../../styles/games-theme';
 import getGameInstanceInfo from '../../utils/utils';
+import { type Action, ActionType } from './socket-reducer';
 
 const breakpointsResetGameButton: SxProps = {
   marginLeft: '.5rem',
@@ -14,8 +14,8 @@ const breakpointsResetGameButton: SxProps = {
   [Theme.breakpoints.down('md')]: {
     fontSize: '17px',
     width: 130,
-    height: 35
-  }
+    height: 35,
+  },
 };
 
 interface ResetGameProps {
@@ -32,8 +32,8 @@ export default function ResetGame({ dispatch, socket }: ResetGameProps) {
     const reqHeaders = {
       headers: {
         'current-game': JSON.stringify(getGameInstanceInfo()),
-        Authorization: sessionStorage.getItem('token')
-      }
+        Authorization: sessionStorage.getItem('token'),
+      },
     };
     try {
       await axios.patch(`${__baseURL__}/games/${id}/reset`, {}, reqHeaders);
@@ -46,7 +46,7 @@ export default function ResetGame({ dispatch, socket }: ResetGameProps) {
   };
 
   return (
-    <Button onClick={handleResetGame} variant="outlined" type="button" sx={breakpointsResetGameButton}>
+    <Button onClick={handleResetGame} variant='outlined' type='button' sx={breakpointsResetGameButton}>
       Reset
     </Button>
   );

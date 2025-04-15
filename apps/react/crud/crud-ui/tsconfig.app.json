@@ -29,6 +29,9 @@
   "references": [
     {
       "path": "../../../../packages/react-shared/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../../packages/prisma/chinook/tsconfig.lib.json"
     }
   ]
 }

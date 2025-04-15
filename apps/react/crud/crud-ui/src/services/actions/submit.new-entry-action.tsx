@@ -1,6 +1,6 @@
+import type { track } from '@aklapper/chinook-client';
 import axios from 'axios';
-import { NewEntry } from '../../components/add-entry/add-entry';
-import { track } from '@prisma/client';
+import type { NewEntry } from '../../components/add-entry/add-entry';
 
 export type NewEntryReturn = {
   artist_id: number;

@@ -1,7 +1,7 @@
-import { GridApiCommunity } from '@mui/x-data-grid/internals';
-import { track } from '@prisma/client';
+import type { track } from '@aklapper/chinook-client';
+import type { GridApiCommunity } from '@mui/x-data-grid/internals';
 import axios from 'axios';
-import { RefObject } from 'react';
+import type { RefObject } from 'react';
 
 const baseURL = import.meta.env.VITE_DATA_API_URL;
 

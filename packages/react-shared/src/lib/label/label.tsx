@@ -8,6 +8,7 @@ import { forwardRef, type JSX, type ReactNode } from 'react';
 const labelWrapperSxProps: SxProps = {
   display: 'flex',
   alignItems: 'center',
+  justifyContent: 'center',
   gap: 1,
   flex: '0 1 100%',
 };

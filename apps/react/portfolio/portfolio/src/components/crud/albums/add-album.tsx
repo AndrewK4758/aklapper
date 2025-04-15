@@ -4,25 +4,25 @@ import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import FormLabel from '@mui/material/FormLabel';
 import TextField from '@mui/material/TextField';
-import { GridApiCommunity } from '@mui/x-data-grid/internals';
-import { album } from '@prisma/client';
+import type { GridApiCommunity } from '@mui/x-data-grid/internals';
 import axios from 'axios';
-import { FormikProps, useFormik } from 'formik';
+import { type FormikProps, useFormik } from 'formik';
 import type { JSX, RefObject } from 'react';
 import { Form } from 'react-router';
 import * as Yup from 'yup';
 import handleSubmitNewAlbum from '../../../services/actions/crud-actions//submit-album-to-artist-id-action.jsx';
 import { crudAddButtonStyles, crudAddErrorTextStyles } from '../../../styles/crud-styles.jsx';
 import { flexColumnStyles } from '../../../styles/pages-styles.jsx';
+import type { album } from '../../../types/prisma_types.js';
 import type { ArtistAndAlbum } from './add-album-on-artist.jsx';
 
 interface AddAlbumProps {
   apiRef: RefObject<GridApiCommunity>;
 }
 
-const validationSchema = Yup.object({
+const validationSchema = Yup.object<album>({
   title: Yup.string().required('Must have title to album'),
-  artist_id: Yup.number().positive('Must be greater than 0').required('Need artist ID to add the album on')
+  artist_id: Yup.number().positive('Must be greater than 0').required('Need artist ID to add the album on'),
 });
 
 /**
@@ -35,13 +35,13 @@ const validationSchema = Yup.object({
  */
 
 const AddAlbum = ({ apiRef }: AddAlbumProps): JSX.Element => {
-  const formik = useFormik({
-    initialValues: { title: '', album_id: 0, artist_id: 1 } as ArtistAndAlbum,
+  const formik = useFormik<album>({
+    initialValues: { title: '', album_id: 0, artist_id: 1 },
     validationSchema: validationSchema,
     onSubmit: values => {
       handleSubmitNewAlbum(values, formik, apiRef);
     },
-    validateOnBlur: true
+    validateOnBlur: true,
   });
 
   formik.handleBlur = () => {
@@ -51,22 +51,22 @@ const AddAlbum = ({ apiRef }: AddAlbumProps): JSX.Element => {
   return (
     <Container
       component={'div'}
-      id="add-album-container"
+      id='add-album-container'
       key={'add-album-container'}
       sx={{ borderRadius: 1, paddingY: 2 }}
     >
-      <Form method="post" onSubmit={formik.handleSubmit}>
+      <Form method='post' onSubmit={formik.handleSubmit}>
         <Box component={'div'} sx={flexColumnStyles}>
           <Box key={'add-album-input-divs-box'} component={'div'} onBlur={formik.handleBlur} sx={flexColumnStyles}>
-            <FormLabel htmlFor="title">Album Name</FormLabel>
+            <FormLabel htmlFor='title'>Album Name</FormLabel>
             <TextField
-              autoComplete="off"
-              name="title"
-              id="title"
-              variant="outlined"
-              color="primary"
+              autoComplete='off'
+              name='title'
+              id='title'
+              variant='outlined'
+              color='primary'
               value={formik.values.title}
-              placeholder="Enter Album Name"
+              placeholder='Enter Album Name'
               onChange={e => formik.setFieldValue('title', e.target.value)}
             />
             <FormikValidationError<ArtistAndAlbum>
@@ -74,15 +74,15 @@ const AddAlbum = ({ apiRef }: AddAlbumProps): JSX.Element => {
               elementName={'title'}
               helperTextSx={crudAddErrorTextStyles}
             />
-            <FormLabel htmlFor="artist_id">Artist ID</FormLabel>
+            <FormLabel htmlFor='artist_id'>Artist ID</FormLabel>
             <TextField
-              type="number"
-              autoComplete="off"
-              name="artist_id"
-              id="artist_id"
-              variant="outlined"
-              color="primary"
-              placeholder="Enter Artist ID"
+              type='number'
+              autoComplete='off'
+              name='artist_id'
+              id='artist_id'
+              variant='outlined'
+              color='primary'
+              placeholder='Enter Artist ID'
               value={formik.values.artist_id}
               onChange={e => formik.setFieldValue('artist_id', e.target.value)}
             />
@@ -96,10 +96,10 @@ const AddAlbum = ({ apiRef }: AddAlbumProps): JSX.Element => {
         </Box>
 
         <Box display={'flex'} justifyItems={'center'}>
-          <Button type="submit" variant="contained" color="primary" sx={crudAddButtonStyles}>
+          <Button type='submit' variant='contained' color='primary' sx={crudAddButtonStyles}>
             Submit
           </Button>
-          <Button type="reset" variant="contained" color="secondary" sx={crudAddButtonStyles}>
+          <Button type='reset' variant='contained' color='secondary' sx={crudAddButtonStyles}>
             Clear
           </Button>
         </Box>
@@ -112,11 +112,11 @@ export default AddAlbum;
 
 const baseURL = import.meta.env.VITE_DATA_API_URL;
 
-const handleNewAlbumBlur = async (formik: FormikProps<album>) => {
+const handleNewAlbumBlur = async (formik: FormikProps<ArtistAndAlbum>) => {
   try {
     const { title, artist_id } = formik.values;
     const resp = await axios.get(`${baseURL}/albums?title=${title}&artistID=${artist_id}`, {
-      headers: { 'Content-Type': 'text/plain' }
+      headers: { 'Content-Type': 'text/plain' },
     });
 
     formik.setTouched({ title: resp.data.message, artist_id: true }, true);

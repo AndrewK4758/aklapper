@@ -6,6 +6,10 @@ export const generateTextContent = async ({ text, fileData }: PromptRequest) => 
   const request: GenerateContentRequest = {
     contents: [
       {
+        role: 'system',
+        parts: [{ text: 'You are a helpful ai chatbot agent. You want to deliver the best results to any queries.' }],
+      },
+      {
         role: 'user',
         parts: [{ text: 'Respond without any unnecessary text or format characters' }],
       },

@@ -24,28 +24,28 @@ const Header = (): JSX.Element => {
       elevation={4}
       component={'nav'}
       key={'navbar-appbar'}
-      id="navbar-appbar"
-      data-testid="navbar-appbar"
+      id='navbar-appbar'
+      data-testid='navbar-appbar'
       enableColorOnDark={true}
-      position="fixed"
+      position='fixed'
     >
-      <Toolbar disableGutters component={'div'} id="navbar-toolbar" data-testid="navbar-toolbar">
+      <Toolbar disableGutters component={'div'} id='navbar-toolbar' data-testid='navbar-toolbar'>
         <ButtonGroup
-          id="navbar-button-group"
+          id='navbar-button-group'
           component={'section'}
           fullWidth={true}
-          variant="text"
-          color="inherit"
-          size="medium"
+          variant='text'
+          color='inherit'
+          size='medium'
           sx={{
             '& .MuiButtonGroup-grouped': {
-              borderColor: 'inherit'
-            }
+              borderColor: 'inherit',
+            },
           }}
         >
           <Button
-            id="home-button"
-            data-testid="home-button"
+            id='home-button'
+            data-testid='home-button'
             sx={buttonSXProps}
             onClick={() => {
               nav('/');
@@ -53,8 +53,8 @@ const Header = (): JSX.Element => {
             }}
           >
             <Label
-              id="home-button-label"
-              htmlFor="home-button"
+              id='home-button-label'
+              htmlFor='home-button'
               tooltipTitle={'HOME DESCRIPTION'}
               labelVariant={'h2'}
               labelText={'Home'}
@@ -63,10 +63,10 @@ const Header = (): JSX.Element => {
             />
           </Button>
 
-          <Button id="games-button" data-testid="games-button" onClick={() => nav('games')} sx={buttonSXProps}>
+          <Button id='games-button' data-testid='games-button' onClick={() => nav('games')} sx={buttonSXProps}>
             <Label
-              id="games-button-label"
-              htmlFor="games-button"
+              id='games-button-label'
+              htmlFor='games-button'
               tooltipTitle={'GAME DESCRIPTION'}
               labelVariant={'h2'}
               labelText={'Games'}
@@ -75,10 +75,10 @@ const Header = (): JSX.Element => {
             />
           </Button>
 
-          <Button id="crud-button" data-testid="crud-button" onClick={() => nav('crud')} sx={buttonSXProps}>
+          <Button id='crud-button' data-testid='crud-button' onClick={() => nav('crud')} sx={buttonSXProps}>
             <Label
-              id="crud-button-label"
-              htmlFor="crud-button"
+              id='crud-button-label'
+              htmlFor='crud-button'
               tooltipTitle={'CRUD DESCRIPTION'}
               labelVariant={'h2'}
               labelText={'CRUD'}
@@ -87,10 +87,10 @@ const Header = (): JSX.Element => {
             />
           </Button>
 
-          <Button id="gen-ai-button" data-testid="gen-ai-button" onClick={() => nav('gen-ai')} sx={buttonSXProps}>
+          <Button id='gen-ai-button' data-testid='gen-ai-button' onClick={() => nav('gen-ai')} sx={buttonSXProps}>
             <Label
-              id="gen-ai-button-label"
-              htmlFor="gen-ai-button"
+              id='gen-ai-button-label'
+              htmlFor='gen-ai-button'
               tooltipTitle={'GEN-AI DESCRIPTION'}
               labelVariant={'h2'}
               labelText={'Gen-AI'}
@@ -101,14 +101,14 @@ const Header = (): JSX.Element => {
 
           <Button
             autoFocus={true}
-            id="contact-button"
-            data-testid="contact-menu-button"
+            id='contact-button'
+            data-testid='contact-menu-button'
             onClick={() => setOpenMenu(true)}
             sx={buttonSXProps}
           >
             <Label
-              id="contact-button-label"
-              htmlFor="contact-button"
+              id='contact-button-label'
+              htmlFor='contact-button'
               tooltipTitle={'CONTACT DESCRIPTION'}
               labelVariant={'h2'}
               labelText={'Contact'}

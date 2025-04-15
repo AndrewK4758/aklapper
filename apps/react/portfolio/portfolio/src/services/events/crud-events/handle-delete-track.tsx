@@ -1,7 +1,7 @@
-import { GridApiCommunity } from '@mui/x-data-grid/internals/index.js';
-import { track } from '@prisma/client';
+import type { GridApiCommunity } from '@mui/x-data-grid/internals/index.js';
 import axios from 'axios';
-import { RefObject } from 'react';
+import type { RefObject } from 'react';
+import type { track } from '../../../types/prisma_types';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
@@ -10,7 +10,7 @@ const handleDeleteTrack = async (values: track, apiRef: RefObject<GridApiCommuni
     const { track_id } = values;
 
     const resp = await axios.delete(`${baseURL}/tracks/${track_id}`, {
-      headers: { 'Content-Type': 'text/plain' }
+      headers: { 'Content-Type': 'text/plain' },
     });
 
     console.log(resp.data);

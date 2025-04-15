@@ -1,5 +1,5 @@
-import { ActionFunction, ActionFunctionArgs } from 'react-router';
 import axios from 'axios';
+import type { ActionFunction, ActionFunctionArgs } from 'react-router';
 
 const baseUrl = import.meta.env.VITE_PORTFOLIO_API_URL;
 

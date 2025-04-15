@@ -1,5 +1,5 @@
+import { PrismaErrorLogger, type PrismaClientErrors } from '@aklapper/games-client';
 import { Player } from '@aklapper/games-components';
-import { PrismaErrorLogger, type PrismaClientErrors } from '@aklapper/utils';
 import type { Request, Response } from 'express';
 import ShortUniqueId from 'short-unique-id';
 import addPlayerToDb from 'src/services/prisma/add_player.js';

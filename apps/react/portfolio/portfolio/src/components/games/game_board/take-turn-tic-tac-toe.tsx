@@ -1,11 +1,11 @@
 import type { GamePlayerValidation } from '@aklapper/types';
 import Button from '@mui/material/Button';
 import axios from 'axios';
-import { Dispatch, type JSX } from 'react';
+import type { Dispatch, JSX } from 'react';
 import { Socket } from 'socket.io-client';
 import { breakpointsTakeTurnButtonTTT } from '../../../styles/games-styles.jsx';
 import getGameInstanceInfo from '../../../utils/utils.jsx';
-import { Action, ActionType } from './socket-reducer.jsx';
+import { type Action, ActionType } from './socket-reducer.jsx';
 
 interface TakeTurnProps {
   dispatch: Dispatch<Action>;
@@ -27,8 +27,8 @@ interface TakeTurnProps {
 
 const TakeTurnTicTacToe = ({ dispatch, socket, position, avatarInTurn }: TakeTurnProps): JSX.Element => (
   <Button
-    variant="contained"
-    type="button"
+    variant='contained'
+    type='button'
     onClick={() => handleTakeTurn({ dispatch, socket, position, avatarInTurn })}
     sx={breakpointsTakeTurnButtonTTT}
   >
@@ -60,8 +60,8 @@ const handleTakeTurn = async ({ dispatch, socket, position, avatarInTurn }: Take
 
     const reqHeaders = {
       headers: {
-        'current-game': JSON.stringify(gameInfo)
-      }
+        'current-game': JSON.stringify(gameInfo),
+      },
     };
 
     const resp = await axios.patch(`${baseURL}/games/Tic-Tac-Toe/take-turn`, { position: position }, reqHeaders);

@@ -4,9 +4,9 @@ import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import FormLabel from '@mui/material/FormLabel';
 import TextField from '@mui/material/TextField';
-import { GridApiCommunity } from '@mui/x-data-grid/internals';
+import type { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { useFormik } from 'formik';
-import { FocusEvent, RefObject, type JSX } from 'react';
+import type { FocusEvent, JSX, RefObject } from 'react';
 import { Form, useParams } from 'react-router';
 import handleSubmitNewAlbum from '../../../services/actions/crud-actions/submit-album-on-artist-action.jsx';
 import handleNewAlbumBlur from '../../../services/events/crud-events/handle-validate-artist-albums-on-blur.jsx';
@@ -36,7 +36,7 @@ const AddAlbumOnArtist = ({ apiRef }: AddAlbumOnArtistProps): JSX.Element => {
     onSubmit: values => {
       handleSubmitNewAlbum(values, formik, artistID, apiRef);
     },
-    validateOnBlur: true
+    validateOnBlur: true,
   });
 
   formik.handleBlur = (e: FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>) => {
@@ -46,23 +46,23 @@ const AddAlbumOnArtist = ({ apiRef }: AddAlbumOnArtistProps): JSX.Element => {
   return (
     <Container
       component={'div'}
-      id="add-album-on-artist-container"
+      id='add-album-on-artist-container'
       key={'add-album-on-artist-container'}
       sx={{ borderRadius: 1, paddingY: 2 }}
     >
-      <Form method="post" onSubmit={formik.handleSubmit}>
+      <Form method='post' onSubmit={formik.handleSubmit}>
         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-          <FormLabel htmlFor="name" hidden>
+          <FormLabel htmlFor='name' hidden>
             Enter Album Name
           </FormLabel>
           <TextField
-            autoComplete="off"
-            name="title"
-            id="title"
-            variant="outlined"
-            color="primary"
+            autoComplete='off'
+            name='title'
+            id='title'
+            variant='outlined'
+            color='primary'
             value={formik.values.title}
-            placeholder="Enter Album Title"
+            placeholder='Enter Album Title'
             onChange={formik.handleChange}
             onBlur={e => formik.handleBlur(e)}
           />
@@ -75,10 +75,10 @@ const AddAlbumOnArtist = ({ apiRef }: AddAlbumOnArtistProps): JSX.Element => {
         </Box>
 
         <Container sx={{ display: 'flex', justifyItems: 'center' }}>
-          <Button type="submit" variant="contained" color="primary" sx={crudAddButtonStyles}>
+          <Button type='submit' variant='contained' color='primary' sx={crudAddButtonStyles}>
             Submit
           </Button>
-          <Button type="reset" variant="contained" color="secondary" sx={crudAddButtonStyles}>
+          <Button type='reset' variant='contained' color='secondary' sx={crudAddButtonStyles}>
             Clear
           </Button>
         </Container>

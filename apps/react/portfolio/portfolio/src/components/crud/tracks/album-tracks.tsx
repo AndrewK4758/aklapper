@@ -4,20 +4,27 @@ import UploadIcon from '@mui/icons-material/Upload';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
-import { DataGrid, GridActionsCellItem, GridColDef, GridRowParams, GridToolbar, useGridApiRef } from '@mui/x-data-grid';
-import { track } from '@prisma/client';
+import {
+  DataGrid,
+  GridActionsCellItem,
+  GridToolbar,
+  useGridApiRef,
+  type GridColDef,
+  type GridRowParams,
+} from '@mui/x-data-grid';
 import { useState, type JSX } from 'react';
 import { useLoaderData, useParams } from 'react-router';
-import { PaginationModel } from '../../../pages/crud/crud.jsx';
+import type { PaginationModel } from '../../../pages/crud/crud.jsx';
 import handleDeleteTrack from '../../../services/events/crud-events/handle-delete-track.jsx';
 import handleUpdateTrack from '../../../services/events/crud-events/handle-update-track.jsx';
-import { AlbumTracks } from '../../../services/loaders/crud-loaders/load-album-tracks.jsx';
+import type { AlbumTracks } from '../../../services/loaders/crud-loaders/load-album-tracks.jsx';
 import { dataGridStyleUpdate } from '../../../styles/crud-styles.jsx';
+import type { track } from '../../../types/prisma_types.js';
 import AddTrack from './add-track.jsx';
 
 const paginationModelInit: PaginationModel = {
   pageSize: 5,
-  page: 0
+  page: 0,
 };
 
 /**
@@ -42,7 +49,7 @@ const Tracks = (): JSX.Element => {
       headerName: 'Track ID',
       type: 'number',
       flex: 1,
-      cellClassName: 'track-id'
+      cellClassName: 'track-id',
     },
     {
       field: 'name',
@@ -50,7 +57,7 @@ const Tracks = (): JSX.Element => {
       type: 'string',
       editable: true,
       flex: 3,
-      cellClassName: 'track-name'
+      cellClassName: 'track-name',
     },
     {
       field: 'unit_price',
@@ -58,7 +65,7 @@ const Tracks = (): JSX.Element => {
       headerName: 'Unit Price',
       editable: true,
       flex: 1,
-      cellClassName: 'unit-price'
+      cellClassName: 'unit-price',
     },
     {
       field: 'genre_id',
@@ -66,7 +73,7 @@ const Tracks = (): JSX.Element => {
       headerName: 'Genre ID',
       editable: true,
       flex: 1,
-      cellClassName: 'genre-id'
+      cellClassName: 'genre-id',
     },
     {
       field: 'media_type_id',
@@ -74,7 +81,7 @@ const Tracks = (): JSX.Element => {
       headerName: 'Media Type ID',
       editable: true,
       flex: 1,
-      cellClassName: 'media-type-id'
+      cellClassName: 'media-type-id',
     },
     {
       field: 'composer',
@@ -82,7 +89,7 @@ const Tracks = (): JSX.Element => {
       headerName: 'Composer',
       editable: true,
       flex: 2,
-      cellClassName: 'composer'
+      cellClassName: 'composer',
     },
     {
       field: 'milliseconds',
@@ -90,7 +97,7 @@ const Tracks = (): JSX.Element => {
       headerName: 'Milliseconds',
       editable: true,
       flex: 1,
-      cellClassName: 'milliseconds'
+      cellClassName: 'milliseconds',
     },
     {
       field: 'bytes',
@@ -98,7 +105,7 @@ const Tracks = (): JSX.Element => {
       headerName: 'Bytes',
       editable: true,
       flex: 1,
-      cellClassName: 'bytes'
+      cellClassName: 'bytes',
     },
 
     {
@@ -109,25 +116,25 @@ const Tracks = (): JSX.Element => {
       getActions: (params: GridRowParams<track>) => {
         return [
           <GridActionsCellItem
-            label="Update"
-            icon={<UploadIcon color="success" />}
-            title="Update"
+            label='Update'
+            icon={<UploadIcon color='success' />}
+            title='Update'
             onClick={() => {
               handleUpdateTrack(params.row, apiRef);
             }}
           />,
 
           <GridActionsCellItem
-            label="Delete"
-            title="Delete"
-            icon={<DeleteForeverIcon color="error" />}
+            label='Delete'
+            title='Delete'
+            icon={<DeleteForeverIcon color='error' />}
             onClick={() => {
               handleDeleteTrack(params.row, apiRef);
             }}
-          />
+          />,
         ];
-      }
-    }
+      },
+    },
   ];
 
   const getID = (row: track) => row.track_id;
@@ -136,13 +143,13 @@ const Tracks = (): JSX.Element => {
     <Box component={'div'} key={'track-box'} id={'track-box'} sx={{ border: '3px solid purple', borderRadius: 1 }}>
       <Container key={'artist-title'} component={'div'} sx={{ paddingY: 2 }}>
         <Paper key={'title-bar'} component={'div'}>
-          <Text component={'h3'} titleVariant="h3" titleText="Album Tracks" sx={{ textAlign: 'center' }} />
+          <Text component={'h3'} titleVariant='h3' titleText='Album Tracks' sx={{ textAlign: 'center' }} />
         </Paper>
       </Container>
       <Container component={'div'} key={'add-track-box'} sx={{ paddingY: 1 }}>
         <AddTrack albumID={albumID} apiRef={apiRef} />
       </Container>
-      <Paper component={'div'} key={'tracks-data-grid-wrapper'} id="tracks-data-grid-wrapper" sx={{ borderRadius: 1 }}>
+      <Paper component={'div'} key={'tracks-data-grid-wrapper'} id='tracks-data-grid-wrapper' sx={{ borderRadius: 1 }}>
         <DataGrid
           apiRef={apiRef}
           columns={columns}
@@ -159,11 +166,11 @@ const Tracks = (): JSX.Element => {
               slotProps: {
                 select: {
                   slotProps: {
-                    input: { id: 'tracks-pagination-page-numbers' }
-                  }
-                }
-              }
-            }
+                    input: { id: 'tracks-pagination-page-numbers' },
+                  },
+                },
+              },
+            },
           }}
         />
       </Paper>

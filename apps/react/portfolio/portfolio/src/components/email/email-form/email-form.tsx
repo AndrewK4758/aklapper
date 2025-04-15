@@ -11,7 +11,7 @@ import { useContext, useRef, type Dispatch, type SetStateAction } from 'react';
 import { Form, useSubmit, type SubmitFunction } from 'react-router';
 import * as Yup from 'yup';
 import 'yup-phone-lite';
-import { GoogleUserContext, GoogleUserContextProps } from '../../../contexts/contact-context.jsx';
+import { GoogleUserContext, type GoogleUserContextProps } from '../../../contexts/contact-context.jsx';
 import { helperTextSx } from '../../../styles/gen-ai-styles.jsx';
 import { dialogActionsStyles, emailButtonSxProps, emailStackSxProps } from '../../../styles/header-styles.jsx';
 import { flexColumnStyles } from '../../../styles/pages-styles.jsx';
@@ -34,7 +34,7 @@ const initialValues = {
   subject: 'I saw your website and wanted to reach out...',
   body: '',
   date: dayjs().add(1, 'day').format('MM-DD-YYYY/HH:mm'),
-  attachment: null
+  attachment: null,
 };
 
 const validationSchema = Yup.object({
@@ -43,7 +43,7 @@ const validationSchema = Yup.object({
   phone: Yup.string().notRequired().phone('US', 'Please enter a valid US phone number'),
   subject: Yup.string().max(160, 'Must me less than 160 characters').required('Subject is required'),
   body: Yup.string().max(2000, 'Must be less than 2000 characters').required('Please enter your message'),
-  attachment: Yup.mixed().notRequired()
+  attachment: Yup.mixed().notRequired(),
 });
 
 interface EmaiFormProps {
@@ -62,61 +62,61 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
   const formik = useFormik({
     initialValues: initialValues,
     validationSchema: validationSchema,
-    onSubmit: values => handleSubmitMessage(values, submit, setOpen)
+    onSubmit: values => handleSubmitMessage(values, submit, setOpen),
   });
 
   return (
     <Form
-      id="email-me-form"
-      data-testid="email-me-form"
-      action="/"
-      method="post"
-      encType="multipart/form-data"
+      id='email-me-form'
+      data-testid='email-me-form'
+      action='/'
+      method='post'
+      encType='multipart/form-data'
       onSubmit={formik.handleSubmit}
     >
       <Container
         component={'section'}
         key={'inputs-container'}
-        id="inputs-container"
-        data-testid="inputs-container"
+        id='inputs-container'
+        data-testid='inputs-container'
         sx={flexColumnStyles}
       >
         <Stack
           component={'section'}
-          id="email-me-inputs-stack"
-          data-testid="email-me-inputs-stack"
+          id='email-me-inputs-stack'
+          data-testid='email-me-inputs-stack'
           sx={emailStackSxProps}
         >
-          <Box component={'span'} key={'name-wrapper'} id="name-wrapper" data-testid="name-wrapper">
+          <Box component={'span'} key={'name-wrapper'} id='name-wrapper' data-testid='name-wrapper'>
             <TextField
               fullWidth
-              autoComplete="on"
+              autoComplete='on'
               focused
               defaultValue={GoogleUserContextValues ? GoogleUserContextValues.name : ''}
-              type="text"
-              id="name"
-              data-testid="name"
-              name="name"
-              label="Name"
+              type='text'
+              id='name'
+              data-testid='name'
+              name='name'
+              label='Name'
               onBlur={formik.handleBlur}
               onChange={formik.handleChange}
             />
 
             <FormikValidationError<MessageMeFormValues>
               formik={formik}
-              elementName="name"
+              elementName='name'
               helperTextSx={helperTextSx}
             />
           </Box>
-          <Box component={'span'} key={'email-wrapper'} id="email-wrapper" data-testid="email-wrapper">
+          <Box component={'span'} key={'email-wrapper'} id='email-wrapper' data-testid='email-wrapper'>
             <TextField
               fullWidth
-              autoComplete="on"
-              type="text"
-              id="email"
-              data-testid="email"
-              name="email"
-              label="Email"
+              autoComplete='on'
+              type='text'
+              id='email'
+              data-testid='email'
+              name='email'
+              label='Email'
               defaultValue={GoogleUserContextValues ? GoogleUserContextValues.email : ''}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
@@ -124,100 +124,100 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
 
             <FormikValidationError<MessageMeFormValues>
               formik={formik}
-              elementName="email"
+              elementName='email'
               helperTextSx={helperTextSx}
             />
           </Box>
-          <Box component={'span'} key={'phone-wrapper'} id="phone-wrapper" data-testid="phone-wrapper">
+          <Box component={'span'} key={'phone-wrapper'} id='phone-wrapper' data-testid='phone-wrapper'>
             <TextField
               fullWidth
-              autoComplete="on"
-              type="number"
-              id="phone"
-              data-testid="phone"
-              name="phone"
-              label="Phone"
+              autoComplete='on'
+              type='number'
+              id='phone'
+              data-testid='phone'
+              name='phone'
+              label='Phone'
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
             />
             <FormikValidationError<MessageMeFormValues>
               formik={formik}
-              elementName="phone"
+              elementName='phone'
               helperTextSx={helperTextSx}
             />
           </Box>
-          <Box component={'span'} key={'subject-wrapper'} id="subject-wrapper" data-testid="subject-wrapper">
+          <Box component={'span'} key={'subject-wrapper'} id='subject-wrapper' data-testid='subject-wrapper'>
             <TextField
               fullWidth
-              type="text"
-              id="subject"
-              data-testid="subject"
-              name="subject"
-              label="Subject"
+              type='text'
+              id='subject'
+              data-testid='subject'
+              name='subject'
+              label='Subject'
               defaultValue={'I saw your website and wanted to reach out...'}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
               sx={{
                 '& .MuiInputBase-input': {
-                  fontSize: '0.75rem'
-                }
+                  fontSize: '0.75rem',
+                },
               }}
             />
 
             <FormikValidationError<MessageMeFormValues>
               formik={formik}
-              elementName="subject"
+              elementName='subject'
               helperTextSx={helperTextSx}
             />
           </Box>
-          <Box component={'span'} key={'body-wrapper'} id="body-wrapper" data-testid="body-wrapper" p={0}>
+          <Box component={'span'} key={'body-wrapper'} id='body-wrapper' data-testid='body-wrapper' p={0}>
             <TextField
               fullWidth
               multiline
-              type="text"
-              id="body"
-              data-testid="body"
-              name="body"
+              type='text'
+              id='body'
+              data-testid='body'
+              name='body'
               maxRows={4}
               minRows={4}
-              label="Body"
+              label='Body'
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
             />
 
             <FormikValidationError<MessageMeFormValues>
               formik={formik}
-              elementName="body"
+              elementName='body'
               helperTextSx={helperTextSx}
             />
           </Box>
           <Box
             component={'span'}
             key={'appointment-maker-wrapper'}
-            id="appointment-maker-wrapper"
-            data-testid="appointment-maker-wrapper"
+            id='appointment-maker-wrapper'
+            data-testid='appointment-maker-wrapper'
           >
             <AppointmentMaker formik={formik} />
             <FormikValidationError<MessageMeFormValues>
               formik={formik}
-              elementName="date"
+              elementName='date'
               helperTextSx={helperTextSx}
             />
           </Box>
           <Box
             component={'span'}
             key={'attachment-wrapper'}
-            id="attachment-wrapper"
-            data-testid="attachment-wrapper"
+            id='attachment-wrapper'
+            data-testid='attachment-wrapper'
             sx={flexColumnStyles}
           >
             <input
               ref={fileInputRef}
-              accept="*/*"
-              id="attchment"
-              data-testid="attchment"
-              name="attchment"
-              type="file"
+              accept='*/*'
+              id='attchment'
+              data-testid='attchment'
+              name='attchment'
+              type='file'
               style={{ display: 'none' }}
               onBlur={formik.handleBlur}
               onChange={async e => {
@@ -233,25 +233,25 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
 
           <DialogActions sx={dialogActionsStyles}>
             <Button
-              id="upload-file-button"
-              data-testid="upload-file-button"
+              id='upload-file-button'
+              data-testid='upload-file-button'
               onClick={handleFileSubmit}
               sx={emailButtonSxProps}
             >
               Upload File
             </Button>
             <Button
-              type="submit"
-              id="submit-email-me-button"
-              data-testid="submit-email-me-button"
+              type='submit'
+              id='submit-email-me-button'
+              data-testid='submit-email-me-button'
               sx={emailButtonSxProps}
             >
               Submit
             </Button>
             <Button
-              type="reset"
-              id="reset-email-me-button"
-              data-testid="reset-email-me-button"
+              type='reset'
+              id='reset-email-me-button'
+              data-testid='reset-email-me-button'
               onReset={formik.handleReset}
               sx={emailButtonSxProps}
             >
@@ -269,7 +269,7 @@ export default EmaiForm;
 const handleSubmitMessage = async (
   values: MessageMeFormValues,
   submit: SubmitFunction,
-  setOpen: Dispatch<SetStateAction<boolean>>
+  setOpen: Dispatch<SetStateAction<boolean>>,
 ) => {
   try {
     const { name, email, phone, subject, body, date, attachment } = values;

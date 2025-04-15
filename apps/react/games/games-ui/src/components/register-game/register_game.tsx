@@ -1,8 +1,8 @@
 import Button from '@mui/material/Button';
-import { SxProps } from '@mui/material/styles';
+import type { SxProps } from '@mui/material/styles';
 import { useContext, type Dispatch, type SetStateAction } from 'react';
-import ActivePlayerContext, { ActivePlayerContextProps } from '../../context/active-player-context';
-import { WebsocketContext, WebsocketContextProps } from '../../context/websocket_context';
+import ActivePlayerContext, { type ActivePlayerContextProps } from '../../context/active-player-context';
+import { WebsocketContext, type WebsocketContextProps } from '../../context/websocket_context';
 
 export interface RegisterGameProps {
   registerGameButtonSx: SxProps;

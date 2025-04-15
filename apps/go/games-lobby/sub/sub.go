@@ -36,7 +36,7 @@ func Sub() {
 
 	for msg := range ch {
 
-		fmt.Printf("\n[%s] - Received message: %s\n", currentTime, msg.Payload)
+		fmt.Printf("\n[%s] - Received message: %s\n\n", currentTime, msg.Payload)
 
 		switch strings.HasPrefix(msg.Channel, "lobby:") {
 		case strings.Contains(msg.Channel, "new-player"):
@@ -48,11 +48,15 @@ func Sub() {
 				continue
 			}
 
+			fmt.Printf("NEW PLAYER FROM REDIS: %v\n\n", newPlayer)
+
 			err = lobbydata.AddPlayerToLobby(newPlayer)
 
+			fmt.Printf("AFTER ADDING PLAYER TO LOBBY CALL: %s\n\n", err)
+
 			if err != nil {
-				fmt.Println("error adding player to lobby")
-				err := redisPubSub.Publish(ctx, "error", "error adding player to lobby").Err()
+				fmt.Printf("error adding player: %s to lobby\n", newPlayer.Name)
+				err := redisPubSub.Publish(ctx, "error", func() string { errMsg := fmt.Sprintf("error adding player %s to lobby", newPlayer.Name); return errMsg }()).Err()
 				if err != nil {
 					fmt.Println("error sending error message to nodejs")
 				}
@@ -77,8 +81,10 @@ func Sub() {
 			var playerID string = msg.Payload
 			value := lobbydata.DeletePlayerFromLobby(playerID)
 
+			fmt.Printf("VALUE AFTER DELETE FROM LOBBY CALL: %v\n\n", value)
+
 			if value != fmt.Sprintf("Player %s deleted", playerID) {
-				fmt.Printf("error deleting player %s", playerID)
+				fmt.Printf("error deleting player %s\n", playerID)
 			}
 			fmt.Println("PLAYER REMOVED")
 			fmt.Printf("%v", lobbydata.LobbyMap)

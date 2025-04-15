@@ -1,12 +1,12 @@
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import axios, { type AxiosRequestConfig } from 'axios';
-import { Dispatch, type JSX } from 'react';
+import type { Dispatch, JSX } from 'react';
 import { useParams } from 'react-router';
 import { Socket } from 'socket.io-client';
 import { breakpointsStartGameButtonBox, breakpointsStartGameButtonFormButton } from '../../../styles/games-styles.js';
 import getGameInstanceInfo from '../../../utils/utils.jsx';
-import { Action, ActionType } from './socket-reducer.jsx';
+import { type Action, ActionType } from './socket-reducer.jsx';
 
 interface ReadyToStartProps {
   dispatch: Dispatch<Action>;
@@ -27,16 +27,16 @@ export default function ReadyToStart({ dispatch, socket }: ReadyToStartProps): J
 
   const reqHeaders = {
     headers: {
-      'current-game': JSON.stringify(getGameInstanceInfo())
-    }
+      'current-game': JSON.stringify(getGameInstanceInfo()),
+    },
   };
 
   return (
     <Container component={'section'} sx={breakpointsStartGameButtonBox}>
       <Button
         onClick={() => handleStartGame(dispatch, socket, id, reqHeaders)}
-        variant="outlined"
-        type="button"
+        variant='outlined'
+        type='button'
         sx={breakpointsStartGameButtonFormButton}
       >
         Start Game
@@ -63,7 +63,7 @@ const handleStartGame = async (
   dispatch: Dispatch<Action>,
   socket: Socket,
   id: string,
-  reqHeaders: AxiosRequestConfig
+  reqHeaders: AxiosRequestConfig,
 ) => {
   const resp = await axios.patch(`${__baseURL__}/games/${id}/start`, {}, reqHeaders);
   dispatch({ type: ActionType.START, socket: socket });

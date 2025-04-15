@@ -1,6 +1,6 @@
-import { IRegisterLoaderAndFilter } from '@aklapper/types';
+import type { IRegisterLoaderAndFilter } from '@aklapper/types';
 import axios from 'axios';
-import { LoaderFunction, LoaderFunctionArgs } from 'react-router';
+import type { LoaderFunction, LoaderFunctionArgs } from 'react-router';
 import getGameInstanceInfo from '../../../utils/utils';
 
 const loadPlayerAvatarRegisterFilterData: LoaderFunction = async ({ params }: LoaderFunctionArgs) => {
@@ -11,8 +11,8 @@ const loadPlayerAvatarRegisterFilterData: LoaderFunction = async ({ params }: Lo
 
   const reqHeaders = {
     headers: {
-      'current-game': __current_game__
-    }
+      'current-game': __current_game__,
+    },
   };
 
   try {
@@ -20,14 +20,14 @@ const loadPlayerAvatarRegisterFilterData: LoaderFunction = async ({ params }: Lo
 
     if (resp.data.errorMessage) {
       const errorMessage = {
-        errorMessage: resp.data.errorMessage
+        errorMessage: resp.data.errorMessage,
       };
       return errorMessage;
     } else {
       const returnGameFunctionalityLoaderData: IRegisterLoaderAndFilter = {
         gamePlayerIDs: JSON.parse(resp.headers['current-game']),
         avatarList: resp.data.avatarList,
-        avatarColorList: resp.data.avatarColorList
+        avatarColorList: resp.data.avatarColorList,
       };
 
       return returnGameFunctionalityLoaderData;

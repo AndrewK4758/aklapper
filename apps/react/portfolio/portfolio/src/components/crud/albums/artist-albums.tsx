@@ -5,15 +5,22 @@ import UploadIcon from '@mui/icons-material/Upload';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
-import { DataGrid, GridActionsCellItem, GridColDef, GridRowParams, GridToolbar, useGridApiRef } from '@mui/x-data-grid';
-import { album } from '@prisma/client';
+import {
+  DataGrid,
+  GridActionsCellItem,
+  GridToolbar,
+  useGridApiRef,
+  type GridColDef,
+  type GridRowParams,
+} from '@mui/x-data-grid';
 import { useState, type JSX } from 'react';
 import { Outlet, useLoaderData, useNavigate } from 'react-router';
-import { PaginationModel } from '../../../pages/crud/crud.jsx';
+import type { PaginationModel } from '../../../pages/crud/crud.jsx';
 import handleDeleteAlbum from '../../../services/events/crud-events/handle-delete-album.jsx';
 import handleUpdateAlbumTitle from '../../../services/events/crud-events/handle-update-album-title.jsx';
-import { ArtistAlbums } from '../../../services/loaders/crud-loaders/load-artist-albums.jsx';
+import type { ArtistAlbums } from '../../../services/loaders/crud-loaders/load-artist-albums.jsx';
 import { dataGridStyleUpdate } from '../../../styles/crud-styles.jsx';
+import type { album } from '../../../types/prisma_types.js';
 import AddAlbumOnArtist from './add-album-on-artist.jsx';
 
 export interface AlbumState {
@@ -43,7 +50,7 @@ const AlbumsOnArtist = (): JSX.Element => {
       headerName: 'Album ID',
       type: 'number',
       flex: 0.75,
-      cellClassName: 'album-id'
+      cellClassName: 'album-id',
     },
     {
       field: 'title',
@@ -51,14 +58,14 @@ const AlbumsOnArtist = (): JSX.Element => {
       type: 'string',
       flex: 4,
       editable: true,
-      cellClassName: 'album-title'
+      cellClassName: 'album-title',
     },
     {
       field: 'artist_id',
       headerName: 'Artist ID',
       type: 'number',
       flex: 1,
-      cellClassName: 'artist-id'
+      cellClassName: 'artist-id',
     },
     {
       field: 'update-delete',
@@ -68,9 +75,9 @@ const AlbumsOnArtist = (): JSX.Element => {
       getActions: (params: GridRowParams<album>) => {
         return [
           <GridActionsCellItem
-            label="Update"
-            icon={<UploadIcon color="success" />}
-            title="Update"
+            label='Update'
+            icon={<UploadIcon color='success' />}
+            title='Update'
             onClick={async x => {
               console.log(x);
               await handleUpdateAlbumTitle(params.row, apiRef);
@@ -78,15 +85,15 @@ const AlbumsOnArtist = (): JSX.Element => {
           />,
 
           <GridActionsCellItem
-            label="Delete"
-            title="Delete"
-            icon={<DeleteForeverIcon color="error" />}
+            label='Delete'
+            title='Delete'
+            icon={<DeleteForeverIcon color='error' />}
             onClick={async () => {
               await handleDeleteAlbum(params.row, apiRef);
             }}
-          />
+          />,
         ];
-      }
+      },
     },
     {
       field: 'details',
@@ -96,14 +103,14 @@ const AlbumsOnArtist = (): JSX.Element => {
       getActions: (params: GridRowParams) => {
         return [
           <GridActionsCellItem
-            label="Details"
-            title="Details"
-            icon={<DetailsIcon color="info" />}
+            label='Details'
+            title='Details'
+            icon={<DetailsIcon color='info' />}
             onClick={() => nav(`${params.row.album_id}/tracks`, { replace: true })}
-          />
+          />,
         ];
-      }
-    }
+      },
+    },
   ];
 
   const getID = (row: album) => {
@@ -128,10 +135,10 @@ const AlbumsOnArtist = (): JSX.Element => {
       >
         <Container
           component={'div'}
-          key="album-title"
-          id="album-title"
+          key='album-title'
+          id='album-title'
           sx={{
-            paddingY: 2
+            paddingY: 2,
           }}
         >
           <Paper elevation={1} key={'title-bar'} sx={{ height: 'fit-content' }}>
@@ -150,12 +157,12 @@ const AlbumsOnArtist = (): JSX.Element => {
         <Paper
           component={'div'}
           key={'artist-album-datagrid-wrapper'}
-          id="artist-album-datagrid-wrapper"
+          id='artist-album-datagrid-wrapper'
           sx={{ borderRadius: 1, flex: 1 }}
         >
           <DataGrid
             key={'artist-albums-data-grid'}
-            aria-label="artist-albums-data-grid"
+            aria-label='artist-albums-data-grid'
             apiRef={apiRef}
             columns={columns}
             rows={albums}
@@ -171,11 +178,11 @@ const AlbumsOnArtist = (): JSX.Element => {
                 slotProps: {
                   select: {
                     slotProps: {
-                      input: { id: 'albums-pagination-page-numbers' }
-                    }
-                  }
-                }
-              }
+                      input: { id: 'albums-pagination-page-numbers' },
+                    },
+                  },
+                },
+              },
             }}
           />
         </Paper>

@@ -1,7 +1,7 @@
-import type { Server } from 'socket.io';
+import type { Request, Response } from 'express';
+import type { Namespace } from 'socket.io';
 import { GameContextKeys } from '../types/game.js';
 import type { IInstanceOfGame } from './instance-of-game.js';
-import type { Request, Response } from 'express';
 
 export type Context<K extends GameContextKeys | string> = {
   state: Map<K, GameContextState[K] | unknown>;
@@ -22,7 +22,7 @@ export interface Chain extends Command {
 export interface GameContextState {
   [GameContextKeys.ACTION]: string;
   [GameContextKeys.GAME]: IInstanceOfGame;
-  [GameContextKeys.IO]: Server;
+  [GameContextKeys.IO]: Namespace;
   [GameContextKeys.NEXT]: string;
   [GameContextKeys.OUTPUT]: unknown;
   [GameContextKeys.REQUEST]: Request;

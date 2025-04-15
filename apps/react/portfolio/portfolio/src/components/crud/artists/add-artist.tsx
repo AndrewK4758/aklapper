@@ -4,14 +4,14 @@ import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import FormLabel from '@mui/material/FormLabel';
 import TextField from '@mui/material/TextField';
-import { artist } from '@prisma/client';
 import { useFormik } from 'formik';
-import { Dispatch, FocusEvent, SetStateAction, type JSX } from 'react';
+import type { Dispatch, FocusEvent, JSX, SetStateAction } from 'react';
 import { Form } from 'react-router';
 import handleSubmitNewArtist from '../../../services/actions/crud-actions/submit-artist-action.jsx';
 import handleNewArtistBlur from '../../../services/events/crud-events/handle-validate-artist-on-blur.jsx';
 import { crudAddButtonStyles, crudAddErrorTextStyles } from '../../../styles/crud-styles.jsx';
 import { flexColumnStyles } from '../../../styles/pages-styles.jsx';
+import type { artist } from '../../../types/prisma_types.js';
 
 interface AddArtistProps {
   rowCountState: number;
@@ -38,7 +38,7 @@ const AddArtist = ({ rowCountState, setRowCountState, COUNT }: AddArtistProps): 
       handleSubmitNewArtist(values, formik);
     },
     validateOnBlur: true,
-    validateOnMount: false
+    validateOnMount: false,
   });
 
   formik.handleBlur = (e: FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>) => {
@@ -48,23 +48,23 @@ const AddArtist = ({ rowCountState, setRowCountState, COUNT }: AddArtistProps): 
   return (
     <Container
       component={'div'}
-      id="add-artist-container"
+      id='add-artist-container'
       key={'add-artist-container'}
       sx={{ borderRadius: 1, paddingY: 2 }}
     >
-      <Form method="post" onSubmit={formik.handleSubmit}>
+      <Form method='post' onSubmit={formik.handleSubmit}>
         <Box key={'add-artist-box'} id={'add-artist-box'} sx={flexColumnStyles}>
-          <FormLabel htmlFor="name" hidden>
+          <FormLabel htmlFor='name' hidden>
             Enter Artist Name
           </FormLabel>
           <TextField
-            autoComplete="off"
-            name="name"
-            id="name"
-            variant="outlined"
-            color="primary"
+            autoComplete='off'
+            name='name'
+            id='name'
+            variant='outlined'
+            color='primary'
             value={formik.values.name}
-            placeholder="Enter Artist Name"
+            placeholder='Enter Artist Name'
             onChange={formik.handleChange}
             onBlur={e => formik.handleBlur(e)}
           />
@@ -72,10 +72,10 @@ const AddArtist = ({ rowCountState, setRowCountState, COUNT }: AddArtistProps): 
         </Box>
 
         <Container sx={{ display: 'flex', justifyItems: 'center' }}>
-          <Button type="submit" variant="contained" color="primary" sx={crudAddButtonStyles}>
+          <Button type='submit' variant='contained' color='primary' sx={crudAddButtonStyles}>
             {formik.isSubmitting ? 'Submitting' : 'Submit'}
           </Button>
-          <Button type="reset" variant="contained" color="secondary" sx={crudAddButtonStyles}>
+          <Button type='reset' variant='contained' color='secondary' sx={crudAddButtonStyles}>
             Clear
           </Button>
         </Container>

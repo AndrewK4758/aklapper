@@ -6,15 +6,15 @@ import './main-styles.css';
 
 const darkScrollbarGlobal = {
   '&::-webkit-scrollbar': {
-    width: '16px'
+    width: '16px',
   },
   '&::-webkit-scrollbar-track': {
-    backgroundColor: '#1f1f1f'
+    backgroundColor: '#1f1f1f',
   },
   '&::-webkit-scrollbar-thumb': {
     backgroundColor: '#3a3c41',
-    borderRadius: '4px'
-  }
+    borderRadius: '4px',
+  },
 };
 
 const Theme: ThemeType = createTheme(
@@ -25,66 +25,66 @@ const Theme: ThemeType = createTheme(
           AppBar: {
             darkBg: '#212121',
             defaultBg: '#121212',
-            darkColor: '#121212'
+            darkColor: '#121212',
           },
           background: {
             default: '#121212',
-            paper: '#212121'
+            paper: '#212121',
           },
           text: {
             primary: '#ffffff',
-            secondary: '#eeeeee'
-          }
-        }
+            secondary: '#eeeeee',
+          },
+        },
       },
       light: {
         palette: {
           background: {
             paper: '#fefbf9',
-            default: '#efedea'
-          }
-        }
-      }
+            default: '#efedea',
+          },
+        },
+      },
     },
     cssVariables: true,
     palette: {
       secondary: {
         main: '#d500f9',
-        contrastText: '#ffd300'
-      }
+        contrastText: '#ffd300',
+      },
     },
     shape: {
-      borderRadius: 10
+      borderRadius: 10,
     },
     typography: {
       fontFamily: 'League Gothic',
       allVariants: {
         letterSpacing: 2,
-        wordSpacing: 3.5
+        wordSpacing: 3.5,
       },
       body1: {
         fontFamily: 'Lucida',
         letterSpacing: 2.0,
-        wordSpacing: 1.5
-      }
+        wordSpacing: 1.5,
+      },
     },
     components: {
       MuiCssBaseline: {
         styleOverrides: {
-          ...darkScrollbarGlobal
-        }
+          ...darkScrollbarGlobal,
+        },
       },
       MuiButton: {
         defaultProps: {
           sx: {
-            fontSize: '2rem'
-          }
-        }
+            fontSize: '2rem',
+          },
+        },
       },
-      MuiTooltip: { styleOverrides: { tooltip: { fontSize: '1rem' } }, defaultProps: { sx: { fontSize: '2rem' } } }
-    }
+      MuiTooltip: { styleOverrides: { tooltip: { fontSize: '1rem' } }, defaultProps: { sx: { fontSize: '2rem' } } },
+    },
   },
-  enUS
+  enUS,
 );
 
 export default Theme;

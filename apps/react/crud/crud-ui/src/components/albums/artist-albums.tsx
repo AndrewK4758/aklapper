@@ -1,16 +1,16 @@
+import type { album } from '@aklapper/chinook-client';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import DetailsIcon from '@mui/icons-material/Details';
 import UploadIcon from '@mui/icons-material/Upload';
 import { Container, Typography } from '@mui/material';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
-import { DataGrid, GridActionsCellItem, GridColDef, GridRowParams, useGridApiRef } from '@mui/x-data-grid';
-import { album } from '@prisma/client';
+import { DataGrid, GridActionsCellItem, type GridColDef, type GridRowParams, useGridApiRef } from '@mui/x-data-grid';
 import { useState } from 'react';
 import { Outlet, useNavigate, useRouteLoaderData } from 'react-router';
 import handleDeleteAlbum from '../../services/events/handle-delete-album';
 import handleUpdateAlbumTitle from '../../services/events/handle-update-album-title';
-import { ArtistAlbums } from '../../services/loaders/load-artist-albums';
+import type { ArtistAlbums } from '../../services/loaders/load-artist-albums';
 import AddAlbumOnArtist from './add-album-on-artist';
 
 export interface AlbumState {
@@ -53,17 +53,17 @@ const AlbumsOnArtist = () => {
       getActions: (params: GridRowParams<album>) => {
         return [
           <GridActionsCellItem
-            label="Update"
+            label='Update'
             icon={<UploadIcon />}
-            title="Update"
+            title='Update'
             onClick={() => {
               handleUpdateAlbumTitle(params.row, apiRef);
             }}
           />,
 
           <GridActionsCellItem
-            label="Delete"
-            title="Delete"
+            label='Delete'
+            title='Delete'
             icon={<DeleteForeverIcon />}
             onClick={() => {
               handleDeleteAlbum(params.row, apiRef);
@@ -80,8 +80,8 @@ const AlbumsOnArtist = () => {
       getActions: (params: GridRowParams) => {
         return [
           <GridActionsCellItem
-            label="Details"
-            title="Details"
+            label='Details'
+            title='Details'
             icon={<DetailsIcon />}
             onClick={() => nav(`${params.row.album_id}/tracks`)}
           />,
@@ -100,19 +100,19 @@ const AlbumsOnArtist = () => {
       key={'album-with-tracks-box'}
       sx={{ borderTop: '3px solid purple', borderRight: '3px solid purple' }}
     >
-      <Container component={'div'} id="album-title" sx={{ width: '100%' }}>
+      <Container component={'div'} id='album-title' sx={{ width: '100%' }}>
         <Paper elevation={6} key={'title-bar'} sx={{ height: '2rem' }}>
           <Typography
-            aria-label="albums"
+            aria-label='albums'
             component={'h2'}
-            variant="h2"
+            variant='h2'
             sx={{ textAlign: 'center', fontSize: '22px', fontWeight: 'bold' }}
           >
             {'Artist Albums'}
           </Typography>
         </Paper>
       </Container>
-      <Box component={'div'} key={'album-data-grid'} id="album-data-grid">
+      <Box component={'div'} key={'album-data-grid'} id='album-data-grid'>
         <Box component={'div'} key={'add-album-box'} sx={{ paddingY: 1, flex: '0 1 100%' }}>
           <AddAlbumOnArtist apiRef={apiRef} />
         </Box>

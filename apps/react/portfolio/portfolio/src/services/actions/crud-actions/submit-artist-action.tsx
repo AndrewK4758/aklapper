@@ -1,6 +1,6 @@
-import { artist } from '@prisma/client';
-import axios, { AxiosError, AxiosResponse } from 'axios';
-import { FormikProps } from 'formik';
+import axios, { type AxiosError, type AxiosResponse } from 'axios';
+import type { FormikProps } from 'formik';
+import type { artist } from '../../../types/prisma_types';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
@@ -10,7 +10,7 @@ const handleSubmitNewArtist = async (values: artist, formik: FormikProps<artist>
     const resp = await axios.post(
       `${baseURL}/artists`,
       { name: name },
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { 'Content-Type': 'application/json' } },
     );
     console.log(resp.data);
   } catch (error) {

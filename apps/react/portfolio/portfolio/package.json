@@ -4,11 +4,11 @@
   "type": "module",
   "private": true,
   "devDependencies": {
+    "@aklapper/chinook-client": "workspace:*",
     "@aklapper/games-components": "workspace:*",
     "@aklapper/media-recorder": "workspace:*",
     "@aklapper/prompt-builder": "workspace:*",
     "@aklapper/react-shared": "workspace:*",
-    "@aklapper/socket-io-client": "workspace:*",
     "@aklapper/types": "workspace:*",
     "@aklapper/utils": "workspace:*",
     "@aklapper/vertex-ai": "workspace:*"

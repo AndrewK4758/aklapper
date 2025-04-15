@@ -1,4 +1,4 @@
-import { GamePlayerValidation } from '@aklapper/types';
+import type { GamePlayerValidation } from '@aklapper/types';
 
 /**
  * This function retrieves game instance information from session storage.

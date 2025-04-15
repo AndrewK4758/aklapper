@@ -5,7 +5,7 @@ import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import { SxProps } from '@mui/material/styles';
+import type { SxProps } from '@mui/material/styles';
 import type { Dispatch, SetStateAction } from 'react';
 import GameRulesList from '../components/header/heading-with-details';
 import RegisterGame from '../components/register-game/register_game';

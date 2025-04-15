@@ -1,5 +1,5 @@
-import { IActiveGameInfo } from '../../pages/active_game_session';
-import { Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
+import type { IActiveGameInfo } from '../../pages/active_game_session';
 
 export enum ActionType {
   BOARD = 'board',

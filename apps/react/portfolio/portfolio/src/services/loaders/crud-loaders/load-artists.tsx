@@ -1,6 +1,6 @@
-import type { artist } from '@prisma/client';
 import axios from 'axios';
 import type { QueryOptions } from '../../../pages/crud/crud.jsx';
+import type { artist } from '../../../types/prisma_types.js';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
@@ -8,7 +8,7 @@ const loadArtists = async (queryOptions: QueryOptions) => {
   try {
     const { pageSize, skip, cursor } = queryOptions;
     const resp = await axios.get(`${baseURL}/artists?take=${pageSize}&skip=${skip}&cursor=${cursor}`, {
-      headers: { 'Content-Type': 'text/plain' }
+      headers: { 'Content-Type': 'text/plain' },
     });
 
     const { allArtists } = resp.data;

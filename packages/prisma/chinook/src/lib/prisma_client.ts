@@ -10,7 +10,7 @@ const prismaClient = new PrismaClient({
   errorFormat: 'pretty',
 });
 
-export const prisma = prismaClient.$extends({
+const prisma = prismaClient.$extends({
   model: {
     $allModels: {
       async exists<T>(this: T, where: Prisma.Args<T, 'findFirst'>['where']): Promise<boolean> {
@@ -22,3 +22,5 @@ export const prisma = prismaClient.$extends({
     },
   },
 });
+
+export { prisma };

@@ -1,12 +1,12 @@
 import { Text } from '@aklapper/react-shared';
-import { Box, SxProps } from '@mui/material';
-import { TypographyVariant } from '@mui/material/styles';
-import { CSSProperties, ElementType } from 'react';
+import Box from '@mui/material/Box';
+import type { SxProps, TypographyVariant } from '@mui/material/styles';
+import type { CSSProperties, ElementType } from 'react';
 
 const avatarSvgStyle: CSSProperties = {
   height: 'auto',
   width: '30%',
-  maxWidth: '100px'
+  maxWidth: '100px',
 };
 
 export interface PlayersInGameProps {
@@ -32,7 +32,7 @@ export const PlayersInGame = ({
   textSx,
   playerVariant,
   playerName,
-  avatarName
+  avatarName,
 }: PlayersInGameProps) => (
   <Box component={component} key={id} width={'fit-content'} whiteSpace={'preserve'} sx={boxSx}>
     <Text component={'p'} titleVariant={playerVariant} titleText={playerName} sx={textSx} />

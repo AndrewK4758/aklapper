@@ -1,4 +1,4 @@
-import type { artist } from 'node_modules/@aklapper/chinook-client/generated/client.js';
+import type { artist } from '@aklapper/chinook-client';
 import findArtists from '../src/services/prisma/artist/find-artists.js';
 
 describe('Test Prisma findArtist service', () => {

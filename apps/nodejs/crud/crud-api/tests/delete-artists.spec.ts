@@ -1,4 +1,4 @@
-import type { artist } from 'node_modules/@aklapper/chinook-client/generated/client.js';
+import type { artist } from '@aklapper/chinook-client';
 import createArtists from '../src/services/prisma/artist/create-artists.js';
 import deleteArtists from '../src/services/prisma/artist/delete-artist.js';
 

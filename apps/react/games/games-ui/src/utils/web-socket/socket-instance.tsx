@@ -1,4 +1,4 @@
-import { io, ManagerOptions, Socket } from 'socket.io-client';
+import { io, type ManagerOptions, type Socket } from 'socket.io-client';
 
 export default class ClientSocket {
   Socket: Socket;

@@ -1,8 +1,8 @@
-import { GridApiCommunity } from '@mui/x-data-grid/internals';
-import { album } from '@prisma/client';
-import axios, { AxiosError, AxiosResponse } from 'axios';
-import { FormikProps } from 'formik';
-import { RefObject } from 'react';
+import type { album } from '@aklapper/chinook-client';
+import type { GridApiCommunity } from '@mui/x-data-grid/internals';
+import axios, { type AxiosError, type AxiosResponse } from 'axios';
+import type { FormikProps } from 'formik';
+import type { RefObject } from 'react';
 
 const baseURL = import.meta.env.VITE_DATA_API_URL;
 

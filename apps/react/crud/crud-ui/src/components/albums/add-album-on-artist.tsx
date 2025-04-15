@@ -4,9 +4,9 @@ import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import FormLabel from '@mui/material/FormLabel';
 import TextField from '@mui/material/TextField';
-import { GridApiCommunity } from '@mui/x-data-grid/internals';
+import type { GridApiCommunity } from '@mui/x-data-grid/internals';
 import { useFormik } from 'formik';
-import { FocusEvent, RefObject } from 'react';
+import type { FocusEvent, RefObject } from 'react';
 import { Form, useParams } from 'react-router';
 import handleSubmitNewAlbum from '../../services/actions/submit-album-on-artist-action';
 import handleNewAlbumBlur from '../../services/events/handle-validate-artist-albums-on-blur';
@@ -32,46 +32,46 @@ const AddAlbumOnArtist = ({ apiRef }: AddAlbumOnArtistProps) => {
   };
 
   return (
-    <Container component={'div'} id="add-album-on-artist-container" key={'add-album-on-artist-container'}>
-      <Form method="post" onSubmit={formik.handleSubmit}>
+    <Container component={'div'} id='add-album-on-artist-container' key={'add-album-on-artist-container'}>
+      <Form method='post' onSubmit={formik.handleSubmit}>
         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-          <FormLabel htmlFor="name" hidden>
+          <FormLabel htmlFor='name' hidden>
             Enter Album Name
           </FormLabel>
           <TextField
-            autoComplete="off"
-            name="title"
-            id="title"
-            variant="outlined"
-            color="primary"
+            autoComplete='off'
+            name='title'
+            id='title'
+            variant='outlined'
+            color='primary'
             value={formik.values.title}
-            placeholder="Enter Album Title"
+            placeholder='Enter Album Title'
             sx={{ flex: '1 0 50%' }}
             onChange={formik.handleChange}
             onBlur={e => formik.handleBlur(e)}
           />
 
           {typeof formik.touched.title === 'string' && formik.values.title ? (
-            <Text component={'p'} titleVariant="body1" titleText={formik.touched.title} />
+            <Text component={'p'} titleVariant='body1' titleText={formik.touched.title} />
           ) : null}
           {formik.errors.title && formik.touched.title === true ? (
-            <Text component={'p'} titleVariant="body1" titleText={formik.errors.title} />
+            <Text component={'p'} titleVariant='body1' titleText={formik.errors.title} />
           ) : null}
         </Box>
 
         <Container sx={{ display: 'flex', justifyItems: 'center' }}>
           <Button
-            type="submit"
-            variant="contained"
-            color="primary"
+            type='submit'
+            variant='contained'
+            color='primary'
             sx={{ marginTop: 1, marginRight: 1, flex: '1 0 30%' }}
           >
             Submit
           </Button>
           <Button
-            type="reset"
-            variant="contained"
-            color="secondary"
+            type='reset'
+            variant='contained'
+            color='secondary'
             sx={{ marginTop: 1, marginLeft: 1, flex: '1 0 30%' }}
           >
             Clear

@@ -1,8 +1,8 @@
 import { RenderList, Text } from '@aklapper/react-shared';
-import { ILiteSpace } from '@aklapper/types';
+import type { ILiteSpace } from '@aklapper/types';
 import Grid from '@mui/material/Grid';
 import type { SxProps } from '@mui/material/styles';
-import { avatarSize, breakpointsRowSx, breakpointsSpaceSx, spaceStyle } from '../../../styles/games-styles.jsx';
+import { avatarSize, breakpointsRowSx, breakpointsSpaceSx } from '../../../styles/games-styles.jsx';
 
 export interface GameBoardProps {
   row: ILiteSpace[];
@@ -23,7 +23,7 @@ export interface GameBoardProps {
  * @returns each space for provided row
  */
 
-const gameBoardRowMap = (e: ILiteSpace, i: number, _arr: string[]) => (
+const gameBoardRowMap = (e: ILiteSpace, i: number, _arr: ILiteSpace[]) => (
   <Grid key={`space-${i}-${e.display}`} sx={breakpointsRowSx}>
     {e.display.indexOf('g') === e.display.length - 1 ? (
       <img
@@ -40,7 +40,7 @@ const gameBoardRowMap = (e: ILiteSpace, i: number, _arr: string[]) => (
         key={`${e.display}-space-text-c&l`}
         id={`${e.display}-space-text-c&l`}
         data-testid={`${e.display}-space-text-c&l`}
-        titleVariant="body2"
+        titleVariant='body2'
         titleText={e.display}
         sx={breakpointsSpaceSx}
       />
@@ -50,7 +50,7 @@ const gameBoardRowMap = (e: ILiteSpace, i: number, _arr: string[]) => (
 
 export const GameBoardMap = ({ row, columns, container, direction, wrap, id, rowSx }: GameBoardProps) => (
   <Grid columns={columns} container={container} direction={direction} wrap={wrap} id={id} sx={rowSx}>
-    <RenderList data={row} listMapCallback={gameBoardRowMap} sx={spaceStyle} component={'span'} />
+    <RenderList data={row} listMapCallback={gameBoardRowMap} />
   </Grid>
 );
 

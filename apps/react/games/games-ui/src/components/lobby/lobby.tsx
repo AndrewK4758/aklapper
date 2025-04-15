@@ -12,7 +12,7 @@ import Container from '@mui/material/Container';
 import Divider from '@mui/material/Divider';
 import { useContext, useEffect, useState, type Dispatch, type ReactElement, type SetStateAction } from 'react';
 import { useNavigate, useRouteLoaderData } from 'react-router';
-import ActivePlayerContext, { ActivePlayerContextProps } from '../../context/active-player-context';
+import ActivePlayerContext, { type ActivePlayerContextProps } from '../../context/active-player-context';
 import { WebsocketContext, type WebsocketContextProps } from '../../context/websocket_context';
 import WebsocketContextProvider from '../../context/websocket_context_provider';
 import GamesList from '../../pages/games_list';
@@ -58,13 +58,15 @@ export default function Lobby() {
       socket.connect();
 
       socket.on('connect', () => {
-        console.log(`Websocket Connected to path: "/lobby" with id: ${socket.id}`);
+        console.log(socket);
+        console.log(`Websocket Connected to path: /lobby with id: ${socket.id}`);
         setActivePlayer(prev => ({ ...prev, WebsocketId: socket.id }));
       });
 
       socket.emit('enter-lobby', activePlayer);
 
       socket.on('new-player', (data: IPlayer) => {
+        console.log(socket.io);
         setActiveLobby(prev => [...prev, data]);
       });
 
@@ -136,9 +138,7 @@ export default function Lobby() {
 
         <Button
           onClick={() => {
-            socket.emit('remove-player', activePlayer.Id);
-            sessionStorage.removeItem('activePlayer');
-            setActivePlayer({ Name: '', Id: '', InLobby: false });
+            // socket.emit('remove-player', activePlayer.Id);
             nav('/', { replace: true });
           }}
         >

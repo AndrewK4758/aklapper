@@ -1,5 +1,5 @@
 import { GameDetail, RenderList } from '@aklapper/react-shared';
-import { IBuiltGame, type GamesInLobbyToSend } from '@aklapper/types';
+import type { GamesInLobbyPending, IBuiltGame } from '@aklapper/types';
 import Grid from '@mui/material/Grid';
 import type { Dispatch, SetStateAction } from 'react';
 import { lazy, useState } from 'react';
@@ -8,7 +8,7 @@ import { useRouteLoaderData } from 'react-router';
 const GameDetails = lazy(() => import('./game_details'));
 
 interface GamesListProps {
-  activeGames: GamesInLobbyToSend[];
+  activeGames: GamesInLobbyPending[];
 }
 
 const GamesList = ({ activeGames }: GamesListProps) => {
@@ -46,7 +46,7 @@ const listGamesMap = (
   _arr: IBuiltGame[],
   setOpen: Dispatch<SetStateAction<boolean>>,
   setSelectedGame: Dispatch<SetStateAction<IBuiltGame | null>>,
-  activeGames: GamesInLobbyToSend[],
+  activeGames: GamesInLobbyPending[],
 ) => {
   return (
     <GameDetail

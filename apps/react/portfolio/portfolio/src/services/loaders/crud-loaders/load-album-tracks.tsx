@@ -1,6 +1,6 @@
-import { track } from '@prisma/client';
 import axios from 'axios';
-import { LoaderFunctionArgs, LoaderFunction } from 'react-router';
+import type { LoaderFunction, LoaderFunctionArgs } from 'react-router';
+import type { track } from '../../../types/prisma_types';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
@@ -13,7 +13,7 @@ const loadAlbumTracks: LoaderFunction = async ({ params }: LoaderFunctionArgs) =
   try {
     const { albumID } = params;
     const resp = await axios.get(`${baseURL}/tracks?albumID=${albumID}`, {
-      headers: { 'Content-Type': 'text/plain' }
+      headers: { 'Content-Type': 'text/plain' },
     });
 
     const { tracks } = resp.data as AlbumTracks;

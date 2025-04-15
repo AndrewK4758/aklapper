@@ -1,7 +1,7 @@
-import { GridApiCommunity } from '@mui/x-data-grid/internals/index.js';
-import { track } from '@prisma/client';
+import type { GridApiCommunity } from '@mui/x-data-grid/internals/index.js';
 import axios from 'axios';
-import { RefObject } from 'react';
+import type { RefObject } from 'react';
+import type { track } from '../../../types/prisma_types';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
@@ -18,13 +18,13 @@ const handleUpdateTrack = async (values: track, apiRef: RefObject<GridApiCommuni
       media_type_id: media_type_id,
       composer: composer,
       milliseconds: milliseconds,
-      bytes: bytes
+      bytes: bytes,
     };
 
     const resp = await axios.patch(
       `${baseURL}/tracks`,
       { trackData: trackData },
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { 'Content-Type': 'application/json' } },
     );
 
     console.log(resp.data);
@@ -43,8 +43,8 @@ const handleUpdateTrack = async (values: track, apiRef: RefObject<GridApiCommuni
           media_type_id: media_type_id,
           composer: composer,
           milliseconds: milliseconds,
-          bytes: bytes
-        }
+          bytes: bytes,
+        },
       ]);
     }
   } catch (error) {

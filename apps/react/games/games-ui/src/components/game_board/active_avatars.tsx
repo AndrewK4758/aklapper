@@ -1,8 +1,8 @@
-import { Player } from '@aklapper/games-components';
 import { RenderList, Text } from '@aklapper/react-shared';
-import { IRegisterFormValues } from '@aklapper/types';
-import { Box, SxProps } from '@mui/material';
+import type { IRegisterFormValues } from '@aklapper/types';
+import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
+import type { SxProps } from '@mui/material/styles';
 import { Fragment } from 'react/jsx-runtime';
 import { GamesTheme as Theme } from '../../styles/games-theme';
 import { PlayersInGame } from '../players-in-game/players-in-game';
@@ -10,8 +10,8 @@ import { PlayersInGame } from '../players-in-game/players-in-game';
 const breakpointsActiveGameTitleContainer: SxProps = {
   flex: '0 1 80%',
   [Theme.breakpoints.down('md')]: {
-    flex: '1 0 60%'
-  }
+    flex: '1 0 60%',
+  },
 };
 
 const breakpointsActiveGameTitleText: SxProps = {
@@ -20,8 +20,8 @@ const breakpointsActiveGameTitleText: SxProps = {
   [Theme.breakpoints.down('md')]: {
     flex: '1 0 100%',
     fontSize: '1.5rem',
-    textAlign: 'center'
-  }
+    textAlign: 'center',
+  },
 };
 
 const breakpointsPlayersInGameBox: SxProps = {
@@ -30,31 +30,31 @@ const breakpointsPlayersInGameBox: SxProps = {
   flexWrap: 'wrap',
   flexDirection: 'row',
   height: '100%',
-  [Theme.breakpoints.down('md')]: {}
+  [Theme.breakpoints.down('md')]: {},
 };
 
 const breakpointsPlayersBox: SxProps = {
   flex: '1 0 50%',
   display: 'flex',
   flexDirection: 'row',
-  [Theme.breakpoints.down('md')]: {}
+  [Theme.breakpoints.down('md')]: {},
 };
 
 const breakpointsPlayersInGameText: SxProps = {
   flex: '0 1 auto',
   [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem'
-  }
+    fontSize: '1rem',
+  },
 };
 
-const playersInGameMap = (e: IRegisterFormValues, _i: number, _arr: Player[]) => (
+const playersInGameMap = (e: IRegisterFormValues, _i: number, _arr: IRegisterFormValues[]) => (
   <Fragment key={e.avatarName}>
     <PlayersInGame
       component={'span'}
       id={e.playerName}
       boxSx={breakpointsPlayersBox}
       textSx={{ color: e.avatarColor, ...breakpointsPlayersInGameText }}
-      playerVariant="body1"
+      playerVariant='body1'
       playerName={`${e.playerName}: `}
       avatarName={e.avatarName}
     />
@@ -69,13 +69,13 @@ interface ActiveAvatarsProps {
 export default function ActiveAvatars({ avatarsInGame, winner }: ActiveAvatarsProps) {
   return (
     <Container component={'section'} sx={breakpointsActiveGameTitleContainer}>
-      <Text component={'h2'} titleVariant="h2" titleText="Active Players in Game" sx={breakpointsActiveGameTitleText} />
+      <Text component={'h2'} titleVariant='h2' titleText='Active Players in Game' sx={breakpointsActiveGameTitleText} />
       {!winner ? (
         <Box sx={breakpointsPlayersInGameBox}>
-          <RenderList component={'section'} data={avatarsInGame} listMapCallback={playersInGameMap} />
+          <RenderList data={avatarsInGame} listMapCallback={playersInGameMap} />
         </Box>
       ) : (
-        <Text component={'h2'} titleVariant="h2" titleText={winner} sx={breakpointsActiveGameTitleText} />
+        <Text component={'h2'} titleVariant='h2' titleText={winner} sx={breakpointsActiveGameTitleText} />
       )}
     </Container>
   );

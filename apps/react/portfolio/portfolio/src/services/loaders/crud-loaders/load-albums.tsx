@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { QueryOptions } from '../../../pages/crud/crud.jsx';
-import type { album } from '@prisma/client';
+import type { album } from '../../../types/prisma_types.js';
 
 export type AllAlbums = { albums: album[] };
 
@@ -11,7 +11,7 @@ const loadAlbums = async (queryOptions: QueryOptions) => {
     const { pageSize, skip, cursor } = queryOptions;
 
     const resp = await axios.get(`${baseURL}/albums?take=${pageSize}&skip=${skip}&cursor=${cursor}`, {
-      headers: { 'Content-Type': 'text/plain' }
+      headers: { 'Content-Type': 'text/plain' },
     });
 
     console.log(resp.data);

@@ -13,7 +13,7 @@ import Tabs from '@mui/material/Tabs';
 import { useContext, useState } from 'react';
 import LoginPlayer from '../components/login/login';
 import RegisterPlayer from '../components/register-player/register-player';
-import ActivePlayerContext, { ActivePlayerContextProps } from '../context/active-player-context';
+import ActivePlayerContext, { type ActivePlayerContextProps } from '../context/active-player-context';
 import { GamesTheme as Theme } from '../styles/games-theme';
 
 const homePageTitleText: SxProps = {
@@ -29,6 +29,8 @@ const registerPlayerFormSxProps: SxProps = {
 const Home = () => {
   const { activePlayer, deleteActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
   const [tab, setTab] = useState<number>(0);
+
+  console.log(activePlayer);
 
   return (
     <Box
@@ -64,7 +66,15 @@ const Home = () => {
           id='home-page-register-player-wrapper'
           sx={{ display: 'flex', flexDirection: 'column', gap: 6 }}
         >
-          <Tabs centered variant='fullWidth' value={tab} onChange={(_, newVal) => setTab(newVal)} sx={{}}>
+          <Tabs
+            centered
+            variant='fullWidth'
+            value={tab}
+            onChange={(_, newVal) => {
+              setTab(newVal);
+            }}
+            sx={{}}
+          >
             <Tab label={'Register'} {...tabProps(0)} />
             <Tab label={'Login'} {...tabProps(1)} />
           </Tabs>

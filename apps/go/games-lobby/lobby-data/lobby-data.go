@@ -36,16 +36,32 @@ func AddPlayerToLobby(newPlayer *ActivePlayer) error {
 		err = fmt.Errorf("player already exists in game lobby")
 		return err
 	} else {
+		println("player doesnt exist")
 		newPlayer.InLobby = true
 		LobbyMap[newPlayer.Id] = newPlayer
+
+		for key, value := range LobbyMap {
+			fmt.Printf("Key: %s\nValue: %v\n\n", key, value)
+		}
 	}
 	return nil
 }
 
 func DeletePlayerFromLobby(id string) string {
-	_, existsBefore := LobbyMap[id]
+
+	player, existsBefore := LobbyMap[id]
+	fmt.Printf("\n%v\n\n", player)
+	if !existsBefore {
+		errMsg := fmt.Sprintf("player %s doesn't exist in lobby map", id)
+		return errMsg
+	}
 	delete(LobbyMap, id)
-	_, existsAfter := LobbyMap[id]
+	player, existsAfter := LobbyMap[id]
+	fmt.Printf("\n%v\n\n", player)
+	if existsAfter {
+		errMsg := fmt.Sprintf("player %s exists after delete in lobby map", id)
+		return errMsg
+	}
 
 	if existsBefore && !existsAfter {
 		return fmt.Sprintf("Player %s deleted", id)

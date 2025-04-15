@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { ActionFunction, ActionFunctionArgs, redirect } from 'react-router';
+import { type ActionFunction, type ActionFunctionArgs, redirect } from 'react-router';
 import getGameInstanceInfo from '../../../utils/utils';
 
 const registerGameInstanceOnServerAction: ActionFunction = async ({ params }: ActionFunctionArgs) => {
@@ -14,9 +14,9 @@ const registerGameInstanceOnServerAction: ActionFunction = async ({ params }: Ac
       {},
       {
         headers: {
-          'current-game': __current_game__
-        }
-      }
+          'current-game': __current_game__,
+        },
+      },
     );
 
     sessionStorage.setItem('__current_game__', resp.headers['current-game']);

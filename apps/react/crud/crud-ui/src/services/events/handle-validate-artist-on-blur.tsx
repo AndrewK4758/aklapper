@@ -1,12 +1,12 @@
-import { FormikProps } from 'formik';
-import { FocusEvent } from 'react';
 import axios from 'axios';
+import type { FormikProps } from 'formik';
+import type { FocusEvent } from 'react';
 
 const baseURL = import.meta.env.VITE_DATA_API_URL;
 
 const handleNewArtistBlur = async <T,>(
   e: FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>,
-  formik: FormikProps<T>
+  formik: FormikProps<T>,
 ) => {
   try {
     const name = e.target.value;

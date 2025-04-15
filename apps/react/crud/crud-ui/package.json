@@ -4,7 +4,8 @@
   "type": "module",
   "private": true,
   "devDependencies": {
-    "@aklapper/react-shared": "workspace:*"
+    "@aklapper/react-shared": "workspace:*",
+    "@aklapper/chinook-client": "workspace:*"
   },
   "nx": {
     "name": "crud-ui",

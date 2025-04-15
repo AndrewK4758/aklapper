@@ -13,9 +13,6 @@
       "path": "../../../../packages/types"
     },
     {
-      "path": "../../../../packages/socket-io/client"
-    },
-    {
       "path": "../../../../packages/react-shared"
     },
     {
@@ -26,6 +23,9 @@
     },
     {
       "path": "../../../../packages/games-components"
+    },
+    {
+      "path": "../../../../packages/prisma/chinook"
     },
     {
       "path": "./tsconfig.app.json"

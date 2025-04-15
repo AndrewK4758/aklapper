@@ -1,5 +1,4 @@
-import { type artist } from 'node_modules/@aklapper/chinook-client/generated/client.js';
-import { PrismaErrorLogger } from '@aklapper/chinook-client';
+import { PrismaErrorLogger, type artist } from '@aklapper/chinook-client';
 import createArtists from '../src/services/prisma/artist/create-artists.js';
 
 let name: string;

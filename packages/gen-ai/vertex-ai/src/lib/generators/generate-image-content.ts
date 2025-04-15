@@ -1,12 +1,12 @@
-import { helpers } from '@google-cloud/aiplatform';
 import {
   type AspectRatios,
   type PersonGenerations,
   type SafetyFilterLevels,
   AspectRatio,
-  SafetyFilterLevel,
   PersonGeneration,
+  SafetyFilterLevel,
 } from '@aklapper/types';
+import { helpers } from '@google-cloud/aiplatform';
 
 const projectId = 'games-424800';
 const location = 'us-central1';

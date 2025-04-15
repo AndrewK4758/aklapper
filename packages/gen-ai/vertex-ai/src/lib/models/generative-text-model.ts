@@ -1,7 +1,7 @@
 import { HarmBlockThreshold, HarmCategory } from '@google-cloud/vertexai';
 import vertexAI, { MODEL } from '../auth/connection-text-model.js';
 
-const generativeTextModel = vertexAI.getGenerativeModel({
+export const generativeTextModel = vertexAI.getGenerativeModel({
   model: MODEL,
   safetySettings: [
     {

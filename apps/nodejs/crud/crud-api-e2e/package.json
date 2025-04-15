@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
+  "devDependencies": {
+    "@aklapper/chinook-client": "workspace:*"
+  },
   "nx": {
     "name": "crud-api-e2e",
     "projectType": "application",
