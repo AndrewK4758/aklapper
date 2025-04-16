@@ -25,12 +25,6 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	// wg.Add(1)
-
-	// go func() {
-	// 	pub.Pub()
-	// }()
-
 	wg.Add(1)
 
 	go func() {
@@ -43,6 +37,9 @@ func main() {
 		println("Listening on port 6900")
 
 		http.HandleFunc("/lobby", handler.HandleGetLobbyData)
+
+		http.HandleFunc("/ws/lobby", handler.HandleWebsocketConnections)
+
 		log.Fatal(http.ListenAndServe(":6900", nil))
 
 	}()

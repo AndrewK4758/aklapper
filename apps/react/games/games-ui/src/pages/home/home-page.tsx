@@ -11,10 +11,10 @@ import type { SxProps } from '@mui/material/styles';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import { useContext, useState } from 'react';
-import LoginPlayer from '../components/login/login';
-import RegisterPlayer from '../components/register-player/register-player';
-import ActivePlayerContext, { type ActivePlayerContextProps } from '../context/active-player-context';
-import { GamesTheme as Theme } from '../styles/games-theme';
+import LoginPlayer from '../../components/login/login';
+import RegisterPlayer from '../../components/register-player/register-player';
+import ActivePlayerContext, { type ActivePlayerContextProps } from '../../context/active-player-context';
+import { GamesTheme as Theme } from '../../styles/games-theme';
 
 const homePageTitleText: SxProps = {
   [Theme.breakpoints.down('md')]: {
@@ -29,8 +29,6 @@ const registerPlayerFormSxProps: SxProps = {
 const Home = () => {
   const { activePlayer, deleteActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
   const [tab, setTab] = useState<number>(0);
-
-  console.log(activePlayer);
 
   return (
     <Box

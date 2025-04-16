@@ -4,7 +4,7 @@ import type { RouteObject } from 'react-router';
 import waiting from '../assets/swirly-dots-to-chrome.webp';
 import Layout from '../components/layout/Layout';
 import { NoGameError, NotEnoughPlayersError } from '../errors/error';
-import Home from '../pages/home-page';
+import Home from '../pages/home/home-page';
 import registerGameInstanceOnServerAction from '../services/games/action_functions/register_game_on_server_action';
 import registerPlayerAndAvatarAction from '../services/games/action_functions/register_player_avatar_action';
 import loadGameList from '../services/games/loader_functions/load_game_list';
@@ -13,7 +13,7 @@ import loadPlayerAvatarRegisterFilterData from '../services/games/loader_functio
 
 const RegisterPlayerAndAvatarOnGame = lazy(() => import('../pages/register_player_and_avatar_on_game'));
 const ActiveGameSession = lazy(() => import('../pages/active_game_session'));
-const Lobby = lazy(() => import('../components/lobby/lobby'));
+const Lobby = lazy(() => import('../pages/lobby/lobby'));
 
 export default [
   {

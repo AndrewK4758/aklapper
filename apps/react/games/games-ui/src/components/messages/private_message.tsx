@@ -9,7 +9,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import FormControl from '@mui/material/FormControl';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import { useContext, useState, type Dispatch, type SetStateAction } from 'react';
-import { WebsocketContext, type WebsocketContextProps } from '../../../context/websocket_context';
+import { WebsocketContext, type WebsocketContextProps } from '../../context/websocket_context';
 
 interface PrivateMessageModalProps {
   open: boolean;

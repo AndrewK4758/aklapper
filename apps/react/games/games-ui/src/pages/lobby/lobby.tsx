@@ -12,11 +12,11 @@ import Container from '@mui/material/Container';
 import Divider from '@mui/material/Divider';
 import { useContext, useEffect, useState, type Dispatch, type ReactElement, type SetStateAction } from 'react';
 import { useNavigate, useRouteLoaderData } from 'react-router';
+import PrivateMessageModal from '../../components/messages/private_message';
 import ActivePlayerContext, { type ActivePlayerContextProps } from '../../context/active-player-context';
 import { WebsocketContext, type WebsocketContextProps } from '../../context/websocket_context';
 import WebsocketContextProvider from '../../context/websocket_context_provider';
-import GamesList from '../../pages/games_list';
-import PrivateMessageModal from './messages/private_message';
+import GamesList from '../games_list';
 
 // Components of lobby
 // X Active players in lobby
@@ -66,7 +66,6 @@ export default function Lobby() {
       socket.emit('enter-lobby', activePlayer);
 
       socket.on('new-player', (data: IPlayer) => {
-        console.log(socket.io);
         setActiveLobby(prev => [...prev, data]);
       });
 

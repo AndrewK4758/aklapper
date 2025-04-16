@@ -9,11 +9,11 @@ importers:
   .:
     dependencies:
       '@azure/msal-node':
-        specifier: 3.5.0
-        version: 3.5.0
+        specifier: 3.5.1
+        version: 3.5.1
       '@azure/msal-node-extensions':
-        specifier: 1.5.10
-        version: 1.5.10
+        specifier: 1.5.11
+        version: 1.5.11
       '@emotion/react':
         specifier: ^11.14.0
         version: 11.14.0(@types/react@19.1.2)(react@19.1.0)
@@ -234,6 +234,9 @@ importers:
       '@types/react-dom':
         specifier: 19.1.2
         version: 19.1.2(@types/react@19.1.2)
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
       '@vitejs/plugin-react':
         specifier: 4.4.0
         version: 4.4.0(vite@6.2.6(@types/node@22.14.1)(jiti@2.4.2)(terser@5.39.0)(yaml@2.7.1))
@@ -327,6 +330,9 @@ importers:
       vitest:
         specifier: 3.1.1
         version: 3.1.1(@types/node@22.14.1)(@vitest/ui@3.1.1)(jiti@2.4.2)(jsdom@26.1.0)(terser@5.39.0)(yaml@2.7.1)
+      ws:
+        specifier: ^8.18.1
+        version: 8.18.1
 
   apps/nodejs/crud/crud-api:
     devDependencies:
@@ -747,19 +753,19 @@ packages:
   '@asamuzakjp/css-color@3.1.2':
     resolution: {integrity: sha512-nwgc7jPn3LpZ4JWsoHtuwBsad1qSSLDDX634DdG0PBJofIuIEtSWk4KkRmuXyu178tjuHAbwiMNNzwqIyLYxZw==}
 
-  '@azure/msal-common@15.5.0':
-    resolution: {integrity: sha512-u97AJ6m4PB24/Plms9e9iydRcOaxxrHWkan1px5GeWGJfakY1D/r1DmY1+Typ8zWC/5JbNzH1GYpXrorPymz5g==}
+  '@azure/msal-common@15.5.1':
+    resolution: {integrity: sha512-oxK0khbc4Bg1bKQnqDr7ikULhVL2OHgSrIq0Vlh4b6+hm4r0lr6zPMQE8ZvmacJuh+ZZGKBM5iIObhF1q1QimQ==}
     engines: {node: '>=0.8.0'}
 
-  '@azure/msal-node-extensions@1.5.10':
-    resolution: {integrity: sha512-YyNQRSJphNKm8Gg1lYSI8d7Q36CSjeiAZLt/6R1VGLCpwO4rUcftLtzirm+jlyY1D0xJ3U25BDKQeaOqxAlTvw==}
+  '@azure/msal-node-extensions@1.5.11':
+    resolution: {integrity: sha512-OAtyZIOTwZ6QmtjMpXZRVxQSkrZNOvDzU0UrCUmL1i1jAFGqflE6i2wFYAJ2qjZlahJ5Mk0l9piA06t+paP/Eg==}
     engines: {node: '>=16'}
 
   '@azure/msal-node-runtime@0.18.1':
     resolution: {integrity: sha512-vaUkpSiXD33/iDyZt1VZDEyOxvlNMT5o9D4ruIqkUmULyKgUik0y86DK2dsqZql/LU04T5siuq1AMTus+15SvA==}
 
-  '@azure/msal-node@3.5.0':
-    resolution: {integrity: sha512-9cLUmcOZ5FODz3uAhS2C9A1U7xDUTCHVcaNQBYpOd5qCKdKM6ft/ydAfw27vEntuaDgnh5jytOAKsEzEbtoQ1Q==}
+  '@azure/msal-node@3.5.1':
+    resolution: {integrity: sha512-dkgMYM5B6tI88r/oqf5bYd93WkenQpaWwiszJDk7avVjso8cmuKRTW97dA1RMi6RhihZFLtY1VtWxU9+sW2T5g==}
     engines: {node: '>=16'}
 
   '@babel/code-frame@7.26.2':
@@ -3513,6 +3519,9 @@ packages:
 
   '@types/tough-cookie@4.0.5':
     resolution: {integrity: sha512-/Ad8+nIOV7Rl++6f1BdKxFSMgmoqEoYbHRpPcx3JEfv8VRsQe9Z4mCXeJBzxs7mbHY/XOZZuXlRNfhpVPbs6ZA==}
+
+  '@types/ws@8.18.1':
+    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
   '@types/yargs-parser@21.0.3':
     resolution: {integrity: sha512-I4q9QU9MQv4oEOz4tAHJtNz1cwuLxn2F3xcc2iV5WdqLPpUnj30aUuxt1mAxYTG+oe8CZMV/+6rU4S4gRDzqtQ==}
@@ -8293,19 +8302,19 @@ snapshots:
       '@csstools/css-tokenizer': 3.0.3
       lru-cache: 10.4.3
 
-  '@azure/msal-common@15.5.0': {}
+  '@azure/msal-common@15.5.1': {}
 
-  '@azure/msal-node-extensions@1.5.10':
+  '@azure/msal-node-extensions@1.5.11':
     dependencies:
-      '@azure/msal-common': 15.5.0
+      '@azure/msal-common': 15.5.1
       '@azure/msal-node-runtime': 0.18.1
       keytar: 7.9.0
 
   '@azure/msal-node-runtime@0.18.1': {}
 
-  '@azure/msal-node@3.5.0':
+  '@azure/msal-node@3.5.1':
     dependencies:
-      '@azure/msal-common': 15.5.0
+      '@azure/msal-common': 15.5.1
       jsonwebtoken: 9.0.2
       uuid: 8.3.2
 
@@ -11606,6 +11615,10 @@ snapshots:
   '@types/stylis@4.2.5': {}
 
   '@types/tough-cookie@4.0.5': {}
+
+  '@types/ws@8.18.1':
+    dependencies:
+      '@types/node': 22.14.1
 
   '@types/yargs-parser@21.0.3': {}
 
