@@ -1,21 +1,21 @@
 import type { PlayerID, SocketCallback } from '@aklapper/types';
 import type { Socket } from 'socket.io';
 import useActivePlayersMap from 'src/middleware/use_active_players_map.js';
+import go_leaveLobby from 'src/services/lobby/handle_leave_lobby.js';
 import { socketConnectionMap } from '../main.js';
-import { activePubClient } from '../services/redis/redis-client.js';
 
-const disconnectingEvent: SocketCallback = (event: string, socket: Socket) => {
+const handleLeaveLobby: SocketCallback = (event: string, socket: Socket) => {
   socket.on(event, async (playerID: PlayerID) => {
-    activePubClient.publish('lobby:delete-player', playerID);
-
     const activePlayers = useActivePlayersMap();
 
-    activePlayers.deletePlayerFromLobby(playerID);
+    const deletedPlayer = await go_leaveLobby('remove-player', playerID);
+
+    if (deletedPlayer) activePlayers.deletePlayerFromLobby(playerID);
 
     console.log('DISCONNECT LOBBY EVENT', activePlayers.map);
 
-    socketConnectionMap.delete(playerID);
+    socketConnectionMap.delete(deletedPlayer);
   });
 };
 
-export default disconnectingEvent;
+export default handleLeaveLobby;

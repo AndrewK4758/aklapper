@@ -1,5 +1,5 @@
 import { SocketServer } from '@aklapper/socket-io-server';
-import type { PlayerID, SocketID } from '@aklapper/types';
+import type { PlayerID, SocketID, WsEvent } from '@aklapper/types';
 import cors, { type CorsOptions } from 'cors';
 import { configDotenv } from 'dotenv';
 import express, { type Express } from 'express';
@@ -7,10 +7,9 @@ import { createServer } from 'node:http';
 import { join } from 'path';
 import { cwd } from 'process';
 import type { ServerOptions } from 'socket.io';
-import Websocket from 'ws';
 import createNewGame from './events/create_new_game.js';
-import disconnectingEvent from './events/disconnect_event.js';
 import enterLobby from './events/enter-lobby.js';
+import handleLeaveLobby from './events/leave_lobby.js';
 import privateMessagePlayer from './events/private_message.js';
 import socketBoardAction from './events/socket-board-action.js';
 import addGameToSocketInstance from './middleware/socket-add-game-middleware.js';
@@ -60,92 +59,48 @@ export const lobbySocketServer = socketServer.createNamespace('lobby');
 export const gameplaySocketServer = socketServer.createNamespace('gameplay');
 
 export const socketConnectionMap = socketServer.connMap;
-// export const gameSocketServer = new SocketServer(httpServer, gameServerOptions);
-// export const lobbySocketServer = new SocketServer(httpServer, lobbyServerOptions, new Map<PlayerID, SocketID>());
 
 socketServer.addMiddleware('gameplay', addGameToSocketInstance);
 socketServer.addServerListener('gameplay', 'action', socketBoardAction);
 
 socketServer.addServerListener('lobby', 'enter-lobby', enterLobby);
 socketServer.addServerListener('lobby', 'private-message-player', privateMessagePlayer);
-socketServer.addServerListener('lobby', 'remove-player', disconnectingEvent);
+socketServer.addServerListener('lobby', 'remove-player', handleLeaveLobby);
 socketServer.addServerListener('lobby', 'create-new-game', createNewGame);
-/**
- *  WHEN DECLARING GOLANG STRUCTS FOR LOBBY DATA !!! MAKE SURE YOU ADD THE 'json:"key"'
- *  FIELD WITH LOWER CASE KEY IN ORDER TO MATCH THE GOLANG KEY STRINGS TO TS/JS KEY STRINGS
- *  CREATED WITH camelCase !!!
- */
-export type WsEvent = {
-  event: string;
-  data: string | object | Array<unknown>;
-};
 
-const socketClient = new Websocket('ws://localhost:6900/ws/lobby');
+export const socketClient = new WebSocket('ws://localhost:6900/ws/lobby');
 
-socketClient.on('error', console.error);
-
-socketClient.on('open', () => {
-  const connectionData: WsEvent = { event: 'custom-event', data: 'Hello from NodeJS' };
-  socketClient.send(JSON.stringify(connectionData), err => {
-    if (err) console.error(err);
-  });
-});
+socketClient.onerror = err => console.error('ERROR:\n\n\t', err);
 
 socketClient.onopen = () => {
-  const connectionData2: WsEvent = { event: 'event2', data: 'event2 data' };
-  socketClient.send(JSON.stringify(connectionData2), err => console.error(err));
+  // const connectionData: WsEvent = { event: 'custom-event', data: 'Hello from NodeJS' };
+  // socketClient.send(JSON.stringify(connectionData));
+  console.log('CONNECTED TO GO LOBBY');
 };
 
-socketClient.onmessage = event => {
-  const messageStringData = event.data.toString();
-  const parsedMessageData: WsEvent = JSON.parse(messageStringData);
+socketClient.onmessage = (event: MessageEvent) => {
+  console.log(event.target);
+  const messageStringData = event.data;
 
-  switch (parsedMessageData.event) {
-    case 'custom-event':
-      console.log(`Event Type: ${event.type}`);
-      console.log(`Event Type: ${parsedMessageData.event}`);
-      // console.log(`Event Target: ${(JSON.stringify(event.target), null, 2)}`);
-      console.log(`Event Data: ${parsedMessageData.data}`);
-      break;
-    case 'server-custom-event':
-      console.log(`Event Type: ${event.type}`);
-      console.log(`Event Type: ${parsedMessageData.event}`);
-      // console.log(`Event Target: ${JSON.stringify(event.target, null, 2)}`);
-      console.log(`Event Data: ${parsedMessageData.data}`);
-      break;
-    default:
-      console.log('default case');
-      console.log(parsedMessageData.event);
+  let parsedMessageData: WsEvent | string;
+
+  try {
+    parsedMessageData = JSON.parse(messageStringData) as WsEvent;
+    switch (parsedMessageData.event) {
+      case 'custom-event':
+        console.log(`Custom Event Type: ${event.type}`);
+        console.log(`Custom Event Name: ${parsedMessageData.event}`);
+        console.log(`Custom Event Data: ${parsedMessageData.data}`);
+        break;
+      default:
+        console.log('default case');
+        console.log(parsedMessageData);
+    }
+  } catch (_e) {
+    parsedMessageData = messageStringData as string;
+    console.log('IN CATCH: ', parsedMessageData);
   }
-  // if (parsedMessageData.Event === 'custom-event') {
-  //   console.log(`Event Type: ${event.type}`);
-  //   console.log(`Event Type: ${parsedMessageData.Event}`);
-  //   // console.log(`Event Target: ${(JSON.stringify(event.target), null, 2)}`);
-  //   console.log(`Event Data: ${parsedMessageData.Data}`);
-  // }
-
-  // if (parsedMessageData.Event === 'server-custom-event') {
-  //   console.log(`Event Type: ${event.type}`);
-  //   console.log(`Event Type: ${parsedMessageData.Event}`);
-  //   // console.log(`Event Target: ${JSON.stringify(event.target, null, 2)}`);
-  //   console.log(`Event Data: ${parsedMessageData.Data}`);
-  // }
 };
-
-// socketClient.on('message', message => console.log(`Message Event Data: ${message}`));
-
-// socketClient.onAny(event => console.log('req', event));
-
-// socketClient.on('connect', () => {
-//   console.log(`Connected to Go Lobby service with socket id: ${socketClient.id}`);
-
-//   socketClient.emit('message', 'Hello from NODEJS');
-// });
-
-// socketClient.on('connect_error', err => {
-//   console.error(`Connection Error: ${err.message}`);
-//   // console.error(err); // Log the full error object for more details if needed
-// });
 
 app.options(/.*/, cors(corsOptions));
 app.use(cors(corsOptions));

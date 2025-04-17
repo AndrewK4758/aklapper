@@ -16,6 +16,13 @@
       "url": "http://localhost:4700",
       "cwd": "${workspaceFolder}/apps/react/games/games-ui",
       "sourceMaps": true
+    },
+    {
+      "name": "Games-Lobby",
+      "type": "go",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/apps/go/games-lobby",
+      "program": "${workspaceFolder}/apps/go/games-lobby/main.go"
     }
   ]
 }

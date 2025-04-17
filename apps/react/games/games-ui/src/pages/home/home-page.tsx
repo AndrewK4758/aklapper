@@ -78,7 +78,7 @@ const Home = () => {
           </Tabs>
           <RegisterPlayer method={'POST'} index={0} tab={tab} inputSx={registerPlayerFormSxProps} />
           <LoginPlayer method='POST' index={1} tab={tab} inputSx={registerPlayerFormSxProps} />
-          {activePlayer.Name && (
+          {activePlayer.name && (
             <Button
               id='logout-player'
               variant='outlined'

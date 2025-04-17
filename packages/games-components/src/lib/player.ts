@@ -1,80 +1,133 @@
-import type { Email, IPlayer } from '@aklapper/types';
+import type { Email, IActivePlayers, IPlayer } from '@aklapper/types';
 import type { Avatar } from './avatar.js';
 
 export class Player implements IPlayer {
-  readonly id: string;
-  readonly name: string;
-  readonly currentTimeEntered: string;
-  readonly email: Email;
-  order!: number;
-  avatar!: Avatar;
-  activeGameID: string | null;
-  inLobby: boolean;
-  websocketId!: string;
+  readonly _Name: string;
+  readonly _Id: string;
+  readonly _CurrentTimeEntered: string;
+  readonly _Email: Email;
+  _Order!: number;
+  _Avatar!: Avatar;
+  _ActiveGameID: string | null;
+  _InLobby: boolean;
+  _SocketIoId: string | undefined;
+
+  static PrepareJsonPlayerToSend = function (player: Partial<IPlayer>) {
+    const partialPlayer: Partial<IPlayer> = {
+      name: player.name,
+      id: player.id,
+      email: player.email,
+      activeGameID: player.activeGameID,
+      inLobby: player.inLobby,
+      currentTimeEntered: player.currentTimeEntered,
+    };
+
+    return partialPlayer;
+  };
+
+  static UpdateActivePlayer = function (player: IPlayer, activePlayerMap: IActivePlayers): IPlayer {
+    const playerInstance: IPlayer = activePlayerMap.getPlayer(player.id);
+
+    if (player.activeGameID && player.activeGameID !== playerInstance.activeGameID)
+      playerInstance.activeGameID = player.activeGameID;
+    if (player.socketIoId && playerInstance.socketIoId !== player.socketIoId)
+      playerInstance.socketIoId = player.socketIoId;
+    if (player.inLobby !== playerInstance.inLobby) playerInstance.inLobby = player.inLobby;
+
+    return playerInstance;
+  };
+
   constructor(name: string, id: string, email: Email) {
-    this.name = name;
-    this.id = id;
-    this.activeGameID = null;
-    this.inLobby = false;
-    this.currentTimeEntered = new Date().toISOString();
-    this.email = email;
+    this._Name = name;
+    this._Id = id;
+    this._ActiveGameID = null;
+    this._InLobby = false;
+    this._CurrentTimeEntered = new Date().toISOString();
+    this._Email = email;
+    this._SocketIoId = undefined;
   }
 
-  public get Id(): string {
-    return this.id;
+  public get id(): string {
+    return this._Id;
   }
 
-  public get Name(): string {
-    return this.name;
+  public get name(): string {
+    return this._Name;
   }
 
-  public get Order(): number {
-    return this.order;
+  public get order(): number {
+    return this._Order;
   }
 
-  public set Order(order: number) {
-    this.order = order;
+  public set order(order: number) {
+    this._Order = order;
   }
 
-  public get Avatar(): Avatar {
-    return this.avatar;
+  public get avatar(): Avatar {
+    return this._Avatar;
   }
 
-  public set Avatar(avatar: Avatar) {
-    this.avatar = avatar;
+  public set avatar(avatar: Avatar) {
+    this._Avatar = avatar;
   }
 
-  public get ActiveGameID(): string | null {
-    return this.activeGameID;
+  public get activeGameID(): string | null {
+    return this._ActiveGameID;
   }
 
-  public set ActiveGameID(activeGame: string) {
-    this.activeGameID = activeGame;
+  public set activeGameID(activeGame: string) {
+    this._ActiveGameID = activeGame;
   }
 
-  public get InLobby(): boolean {
-    return this.inLobby;
+  public get inLobby(): boolean {
+    return this._InLobby;
   }
 
-  public set InLobby(inLobby: boolean) {
-    this.inLobby = inLobby;
+  public set inLobby(inLobby: boolean) {
+    this._InLobby = inLobby;
   }
 
-  public get CurrentTimeEntered(): string {
-    return this.currentTimeEntered;
+  public get currentTimeEntered(): string {
+    return this._CurrentTimeEntered;
   }
 
-  public get WebsocketId(): string {
-    return this.websocketId;
+  public get socketIoId(): string | undefined {
+    return this._SocketIoId;
   }
 
-  public set WebsocketId(socketId: string) {
-    this.websocketId = socketId;
+  public set socketIoId(socketId: string) {
+    this._SocketIoId = socketId;
   }
 
-  public get Email() {
-    return this.email;
+  public get email() {
+    return this._Email;
   }
+
+  // prepareJsonPlayerToSend(): Partial<IPlayer> {
+  //   const partialPlayer: Partial<IPlayer> = {
+  //     name: this.name,
+  //     id: this.id,
+  //     email: this.email,
+  //     activeGameID: this.activeGameID,
+  //     inLobby: this.inLobby,
+  //     currentTimeEntered: this.currentTimeEntered,
+  //   };
+
+  //   return partialPlayer;
+  // }
+
+  // parseJsonPlayerReceived(jsonPlayer: string): void {
+  //   try {
+  //     const parsedPlayer: IPlayer = JSON.parse(jsonPlayer);
+
+  //     this.inLobby = parsedPlayer.inLobby;
+  //     if (parsedPlayer.socketIoId) this.socketIoId = parsedPlayer.socketIoId;
+  //     if (parsedPlayer.activeGameID) this.activeGameID = parsedPlayer.activeGameID;
+  //   } catch (error) {
+  //     console.error(error);
+  //     throw error;
+  //   }
+  // }
 }
 
 export default Player;

@@ -4,10 +4,8 @@ import (
 	handler "apps/go/games-lobby/handler"
 	"log"
 	"net/http"
-
 	// pub "apps/go/game-lobby/pub"
-	sub "apps/go/games-lobby/sub"
-	"sync"
+	// "sync"
 )
 
 // WHEN PLAYER IS REGISTERED IN EXPRESS API, SEND A WEBSOCKET EVENT TO GO GAME LOBBY WITH PLAYER NAME
@@ -23,26 +21,26 @@ import (
 
 func main() {
 
-	var wg sync.WaitGroup
+	// var wg sync.WaitGroup
 
-	wg.Add(1)
+	// wg.Add(1)
 
-	go func() {
-		sub.Sub()
-	}()
+	// go func() {
+	// 	sub.Sub()
+	// }()
 
-	wg.Add(1)
+	// wg.Add(1)
 
-	go func() {
-		println("Listening on port 6900")
+	// go func() {
+	println("Listening on port 6900")
 
-		http.HandleFunc("/lobby", handler.HandleGetLobbyData)
+	http.HandleFunc("/lobby", handler.HandleGetLobbyData)
 
-		http.HandleFunc("/ws/lobby", handler.HandleWebsocketConnections)
+	http.HandleFunc("/ws/lobby", handler.HandleWebsocketConnections)
 
-		log.Fatal(http.ListenAndServe(":6900", nil))
+	log.Fatal(http.ListenAndServe(":6900", nil))
 
-	}()
+	// }()
 
-	wg.Wait()
+	// wg.Wait()
 }

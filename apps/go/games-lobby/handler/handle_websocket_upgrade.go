@@ -1,11 +1,13 @@
 package handler
 
 import (
-	"encoding/json"
-	"fmt"
-	"net/http"
+	events "apps/go/games-lobby/events"
+	lobbydata "apps/go/games-lobby/lobby-data"
+	json "encoding/json"
+	fmt "fmt"
+	http "net/http"
 
-	"github.com/gorilla/websocket"
+	websocket "github.com/gorilla/websocket"
 )
 
 var upgrader = websocket.Upgrader{
@@ -17,6 +19,7 @@ var upgrader = websocket.Upgrader{
 }
 
 func HandleWebsocketConnections(resp http.ResponseWriter, req *http.Request) {
+	// Uncomment to view connection information
 	// fmt.Printf("Handler invoked: Path=%s, Method=%s, Headers=%v\n", req.URL.Path, req.Method, req.Header)
 
 	var err error
@@ -30,19 +33,17 @@ func HandleWebsocketConnections(resp http.ResponseWriter, req *http.Request) {
 
 	defer ws.Close()
 
-	// implement enter lobby and leave lobby logic
-	// print data as string for now
-
 	for {
 		messageType, message, err := ws.ReadMessage()
 
 		if err != nil {
+			fmt.Println("Error reading websocket message. Error: ", err)
 			break
 		}
 
+		fmt.Printf("Received:\n\tMessage Type: %d\n\tMessage Data: 	%s\n\n", messageType, string(message))
 		switch messageType {
 		case websocket.TextMessage:
-			fmt.Printf("Received: %s\n\n", string(message))
 			handleTextListenEvent(ws, message)
 		case websocket.BinaryMessage:
 			// handle binary message
@@ -51,59 +52,29 @@ func HandleWebsocketConnections(resp http.ResponseWriter, req *http.Request) {
 		case websocket.CloseMessage:
 			fmt.Println("connection closed")
 			return
+
 		}
-
-		// ws.WriteMessage(websocket.TextMessage, []byte("Response to client	"))
-		// err = ws.WriteMessage(messageType, fmt.Appendf(nil, "This was the message received: %s", message))
-
-		// if err != nil {
-		// 	break
-		// }
 	}
 
-}
-
-type WsTextEvent struct {
-	Event string `json:"event"`
-	Data  any    `json:"data"`
 }
 
 func handleTextListenEvent(ws *websocket.Conn, message []byte) {
 	var err error
-	var msgData WsTextEvent
+	var msgData lobbydata.IncomingWsEvent
 
 	err = json.Unmarshal(message, &msgData)
 
 	if err != nil {
-		fmt.Printf("error unmarshalling ws text event message: %s", err.Error())
+		fmt.Printf("error unmarshalling ws text event message: %s\n\n", err.Error())
 	}
 
-	if msgData.Event == "custom-event" {
-		printJsonString(msgData)
+	switch msgData.Event {
+	case "enter-player":
+		events.HandleEnterLobby(ws, msgData)
+		return
 
-		// a := msgData.Event
-		// b := msgData.Data
-
-		// d := WsTextEvent{Event: a, Data: b}
-
-		ws.WriteJSON(msgData)
-
-	} else if msgData.Event == "event2" {
-
-		x := "server-custom-event"
-		z := "Data for custom event"
-
-		y := WsTextEvent{Event: x, Data: z}
-		ws.WriteJSON(y)
-		fmt.Printf("Other event recieved: %v\n\n", msgData.Data)
+	case "remove-player":
+		events.HandleLeaveLobby(ws, msgData)
+		return
 	}
-
-}
-
-func printJsonString(data WsTextEvent) {
-	printVar, err := json.MarshalIndent(data, "", " ")
-	if err != nil {
-		fmt.Printf("error marshalling JSON: %v\n\n", err)
-	}
-	fmt.Printf("PRINT VALUE: %v\n\n", string(printVar))
 }

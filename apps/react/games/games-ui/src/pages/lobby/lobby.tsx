@@ -74,7 +74,7 @@ export default function Lobby() {
       });
 
       socket.on('remove-player', id => {
-        setActiveLobby(activeLobby.filter(player => player.Id !== id));
+        setActiveLobby(activeLobby.filter(player => player.id !== id));
       });
 
       socket.on('new-game', ({ gameId, gamesInLobby }: NewGameDetails) => {
@@ -85,13 +85,15 @@ export default function Lobby() {
     return () => {
       if (socket.connected) {
         removeFromLobby();
-        setActiveLobby(activePlayersInLobby.filter(player => player.Id === activePlayer.Id));
-        socket.emit('remove-player', activePlayer.Id);
+        setActiveLobby(activePlayersInLobby.filter(player => player.id === activePlayer.id));
+        socket.emit('remove-player', activePlayer.id);
         socket.disconnect();
         socket.removeAllListeners();
       }
     };
   }, []);
+
+  console.log(activePlayer);
 
   return (
     <WebsocketContextProvider>
@@ -137,7 +139,7 @@ export default function Lobby() {
 
         <Button
           onClick={() => {
-            // socket.emit('remove-player', activePlayer.Id);
+            // socket.emit('remove-player', activePlayer.id);
             nav('/', { replace: true });
           }}
         >
@@ -155,40 +157,40 @@ export default function Lobby() {
 }
 
 function playersMapCallback(
-  e: unknown,
+  e: IPlayer,
   _i: number,
-  _arr: unknown,
+  _arr: IPlayer[],
   currentPlayer: Partial<IPlayer>,
   setOpenMessage: Dispatch<SetStateAction<boolean>>,
   setMessageTarget: Dispatch<SetStateAction<PrivateMessageDetails | null>>,
 ): ReactElement {
-  const { Name, Id } = e as Partial<IPlayer>;
+  const { name, id } = e;
 
   return (
     <Box
       component={'section'}
-      id={`active-player-${Name}-${Id}-wrapper`}
-      key={`active-player-${Name}-${Id}-wrapper`}
+      id={`active-player-${name}-${id}-wrapper`}
+      key={`active-player-${name}-${id}-wrapper`}
       sx={{ borderBottom: 2, display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}
     >
-      <Text key={`${Name}-${Id}`} titleText={Name} titleVariant='body1' component={'p'} sx={{}} />
-      {Id !== currentPlayer.Id && (
+      <Text key={`${name}-${id}`} titleText={name} titleVariant='body1' component={'p'} sx={{}} />
+      {id !== currentPlayer.id && (
         <Button
           LinkComponent={'button'}
           variant='outlined'
-          name={Name}
-          id={`message-player-${Id}-button`}
+          name={name}
+          id={`message-player-${id}-button`}
           size='small'
           onClick={() =>
             handleMessageClick(
               {
                 sender: {
-                  senderName: currentPlayer.Name as string,
-                  senderId: currentPlayer.Id as string,
+                  senderName: currentPlayer.name as string,
+                  senderId: currentPlayer.id as string,
                 },
                 target: {
-                  targetName: Name as string,
-                  targetId: Id as string,
+                  targetName: name as string,
+                  targetId: id as string,
                 },
                 message: '',
               },

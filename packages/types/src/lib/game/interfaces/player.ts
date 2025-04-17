@@ -1,35 +1,36 @@
 import type { IAvatar } from './avatar.js';
 
 export type Email = `${string}@${string}.${string}` | '';
+
 export interface IPlayer {
-  readonly name: string;
-  readonly id: string;
-  readonly currentTimeEntered: string;
-  readonly email: Email;
-  order: number;
-  avatar: IAvatar;
-  activeGameID: string | null;
-  inLobby: boolean;
-  websocketId: string;
+  readonly _Name: string;
+  readonly _Id: string;
+  readonly _CurrentTimeEntered: string;
+  readonly _Email: Email;
+  _Order: number;
+  _Avatar: IAvatar;
+  _ActiveGameID: string | null;
+  _InLobby: boolean;
+  _SocketIoId: string | undefined;
 
-  get Name(): string;
-  get Id(): string;
-  get CurrentTimeEntered(): string;
+  get name(): string;
+  get id(): string;
+  get currentTimeEntered(): string;
 
-  get Order(): number;
-  set Order(order: number);
+  get order(): number;
+  set order(order: number);
 
-  get Avatar(): IAvatar;
-  set Avatar(avatar: IAvatar);
+  get avatar(): IAvatar;
+  set avatar(avatar: IAvatar);
 
-  get ActiveGameID(): string | null;
-  set ActiveGameID(activeGameID: string);
+  get activeGameID(): string | null;
+  set activeGameID(activeGameID: string);
 
-  get InLobby(): boolean;
-  set InLobby(inLobby: boolean);
+  get inLobby(): boolean;
+  set inLobby(inLobby: boolean);
 
-  get WebsocketId(): string;
-  set WebsocketId(socketId: string);
+  get socketIoId(): string | undefined;
+  set socketIoId(socketId: string);
 
-  get Email(): Email;
+  get email(): Email;
 }

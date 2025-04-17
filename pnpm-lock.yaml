@@ -330,9 +330,6 @@ importers:
       vitest:
         specifier: 3.1.1
         version: 3.1.1(@types/node@22.14.1)(@vitest/ui@3.1.1)(jiti@2.4.2)(jsdom@26.1.0)(terser@5.39.0)(yaml@2.7.1)
-      ws:
-        specifier: ^8.18.1
-        version: 8.18.1
 
   apps/nodejs/crud/crud-api:
     devDependencies:

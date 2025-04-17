@@ -129,9 +129,9 @@ async function handleNewPlayerSubmit(
       { headers: { 'Content-Type': 'application/json' } },
     );
 
-    const { Name, Id, ActiveGameID, InLobby } = resp.data as Partial<IPlayer>;
+    const { name, id, activeGameID, inLobby } = resp.data as Partial<IPlayer>;
 
-    const currentPlayer = { Name: Name, Id: Id, ActiveGameID: ActiveGameID, InLobby: InLobby };
+    const currentPlayer = { name: name, id: id, ActiveGameID: activeGameID, inLobby: inLobby };
 
     localStorage.setItem('activePlayer', JSON.stringify(currentPlayer));
 

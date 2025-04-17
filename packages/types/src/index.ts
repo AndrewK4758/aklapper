@@ -4,6 +4,7 @@ export * from './lib/ai/types/types-for-imagen-config.js';
 
 //----------API---------//
 export * from './lib/api/socket-server.js';
+export * from './lib/api/websocket_event_types.js';
 
 //---------GAME---------//
 

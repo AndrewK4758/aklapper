@@ -5,15 +5,41 @@ import (
 )
 
 type ActivePlayer struct {
-	Name               string
-	Id                 string
-	ActiveGameID       *string
-	InLobby            bool
-	CurrentTimeEntered string
-	Email              string
+	Name               string  `json:"name"`
+	Id                 string  `json:"id"`
+	ActiveGameID       *string `json:"activeGameId"`
+	InLobby            bool    `json:"inLobby"`
+	CurrentTimeEntered string  `json:"currentTimeEntered"`
+	Email              string  `json:"email"`
 }
 
 var LobbyMap = map[string]*ActivePlayer{}
+
+type IncomingWsEvent struct {
+	Event string `json:"event"`
+	Data  any    `json:"data"`
+}
+
+type WsError struct {
+	Reason string
+	Name   string
+}
+
+type WsAck struct {
+	Status   string `json:"status"`
+	Response any    `json:"response"`
+}
+
+type WsEvent struct {
+	Event string `json:"event"`
+	Data  string `json:"data"`
+}
+
+type WsEventJSON struct {
+	Event string `json:"event"`
+	Data  any    `json:"data,omitempty"`
+	Error any    `json:"error,omitempty"`
+}
 
 func CreateActivePlayer(name string, id string, email string, activeGameID *string, inLobby bool, currentTimeEntered string) *ActivePlayer {
 	return &ActivePlayer{
@@ -30,13 +56,13 @@ func CreateActivePlayer(name string, id string, email string, activeGameID *stri
 func AddPlayerToLobby(newPlayer *ActivePlayer) error {
 	var err error
 
-	_, ok := LobbyMap[newPlayer.Id]
+	_, exists := LobbyMap[newPlayer.Id]
 
-	if ok {
+	if exists {
 		err = fmt.Errorf("player already exists in game lobby")
 		return err
 	} else {
-		println("player doesnt exist")
+
 		newPlayer.InLobby = true
 		LobbyMap[newPlayer.Id] = newPlayer
 
@@ -47,28 +73,26 @@ func AddPlayerToLobby(newPlayer *ActivePlayer) error {
 	return nil
 }
 
-func DeletePlayerFromLobby(id string) string {
+func DeletePlayerFromLobby(id string) (bool, error) {
 
-	player, existsBefore := LobbyMap[id]
-	fmt.Printf("\n%v\n\n", player)
+	_, existsBefore := LobbyMap[id]
+
 	if !existsBefore {
-		errMsg := fmt.Sprintf("player %s doesn't exist in lobby map", id)
-		return errMsg
+		return false, fmt.Errorf("player %s doesn't exist in lobby map", id)
 	}
+
 	delete(LobbyMap, id)
-	player, existsAfter := LobbyMap[id]
-	fmt.Printf("\n%v\n\n", player)
+	_, existsAfter := LobbyMap[id]
+
 	if existsAfter {
-		errMsg := fmt.Sprintf("player %s exists after delete in lobby map", id)
-		return errMsg
+		return false, fmt.Errorf("player %s exists after delete in lobby map", id)
 	}
 
 	if existsBefore && !existsAfter {
-		return fmt.Sprintf("Player %s deleted", id)
+		return true, nil
 	} else if !existsBefore {
-		return fmt.Sprintf("Player %s not in map", id)
+		return false, fmt.Errorf("player %s not in map", id)
 	} else {
-		return "Unexpected state error"
+		return false, fmt.Errorf("unexpected state error")
 	}
-
 }

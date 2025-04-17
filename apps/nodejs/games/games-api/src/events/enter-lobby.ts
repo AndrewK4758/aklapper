@@ -1,3 +1,4 @@
+import { Player } from '@aklapper/games-components';
 import type { IPlayer, SocketCallback } from '@aklapper/types';
 import type { Socket } from 'socket.io';
 import useActivePlayersMap from '../middleware/use_active_players_map.js';
@@ -6,12 +7,15 @@ const enterLobby: SocketCallback = (event: string, socket: Socket) => {
   socket.on(event, (data: IPlayer) => {
     try {
       const activePlayers = useActivePlayersMap();
-      const player = activePlayers.getPlayer(data.Id);
-      player.WebsocketId = socket.id;
+      const player = activePlayers.getPlayer(data.id);
+      player.socketIoId = socket.id;
 
-      const { Name, Id, ActiveGameID, WebsocketId, InLobby } = player;
+      const playerInstance = Player.UpdateActivePlayer(data, activePlayers);
 
-      socket.broadcast.emit('new-player', { Name, Id, ActiveGameID, WebsocketId, InLobby });
+      const playerJson = Player.PrepareJsonPlayerToSend(playerInstance);
+      // const { name, id, activeGameID, websocketId, inLobby } = player;
+
+      socket.broadcast.emit('new-player', playerJson);
     } catch (error) {
       console.error(error);
     }

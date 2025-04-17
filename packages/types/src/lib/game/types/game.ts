@@ -148,3 +148,17 @@ export interface IGamesInLobby {
 }
 
 export type NewGameCall = { gamesInLobby: GamesInLobbyPending[]; gameInstanceId: GameInstanceID };
+
+export type ActivePlayerMap = Map<string, IPlayer>;
+
+export interface IActivePlayers {
+  _Map: ActivePlayerMap;
+
+  get map(): ActivePlayerMap;
+
+  addPlayer(id: string, player: IPlayer): void;
+
+  getPlayer(id: string): IPlayer;
+
+  deletePlayerFromLobby(id: string): void;
+}
