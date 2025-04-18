@@ -12,7 +12,15 @@ const sessionStoredPlayer = sessionStorage.getItem('activePlayer');
 let activePlayerDetails: Partial<IPlayer>;
 
 if (sessionStoredPlayer) activePlayerDetails = JSON.parse(sessionStoredPlayer);
-else activePlayerDetails = { Id: '', Name: '' };
+else
+  activePlayerDetails = {
+    id: '',
+    name: '',
+    email: '',
+    currentTimeEntered: undefined,
+    inLobby: false,
+    socketIoId: undefined,
+  };
 
 const wsUrl = import.meta.env.VITE_WS_SERVER_URL;
 
@@ -20,7 +28,7 @@ const managerOptions: Partial<ManagerOptions> = {
   autoConnect: false,
   path: '/lobby',
   extraHeaders: {
-    'current-player-id': activePlayerDetails.Id as string,
+    'current-player-id': activePlayerDetails.id as string,
   },
 };
 

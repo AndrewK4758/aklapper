@@ -13,8 +13,8 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --prod
 RUN pnpm approve-builds
 
-COPY packages/prisma/prisma ./libs/prisma/prisma
-COPY packages/prisma/src ./libs/prisma/source
+COPY packages/prisma/chinook/prisma ./libs/prisma/prisma
+COPY packages/prisma/chinook/src ./libs/prisma/source
 
 RUN pnpx prisma generate
 

@@ -2,7 +2,7 @@ import { ConfidentialClientApplication, type Configuration, LogLevel } from '@az
 import { configDotenv } from 'dotenv';
 import { cwd } from 'process';
 
-configDotenv({ path: `${cwd()}/apps/apis/portfolio/portfolio-api/env/.env` });
+configDotenv({ path: `${cwd()}/apps/nodejs/portfolio/portfolio-api/env/.env` });
 
 const config: Configuration = {
   auth: {

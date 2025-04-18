@@ -21,6 +21,8 @@ const __dirname = join(cwd(), 'apps/nodejs/games/games-api');
 
 configDotenv({ path: join(__dirname, 'env/.env') });
 
+const WS_URL = process.env.GO_WS_URL;
+
 const app: Express = express();
 
 export const corsOptions: CorsOptions = {
@@ -68,7 +70,7 @@ socketServer.addServerListener('lobby', 'private-message-player', privateMessage
 socketServer.addServerListener('lobby', 'remove-player', handleLeaveLobby);
 socketServer.addServerListener('lobby', 'create-new-game', createNewGame);
 
-export const socketClient = new WebSocket('ws://localhost:6900/ws/lobby');
+export const socketClient = new WebSocket(WS_URL as string);
 
 socketClient.onerror = err => console.error('ERROR:\n\n\t', err);
 

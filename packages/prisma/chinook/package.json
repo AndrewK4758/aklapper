@@ -16,7 +16,7 @@
     ".": {
       "types": "./dist/src/index.d.ts",
       "import": "./dist/src/index.js",
-      "default": "./dist/src/index.js"
+      "default": "./dist/src/generated.js"
     }
   },
   "module": "./dist/src/index.js",

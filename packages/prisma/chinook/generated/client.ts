@@ -83,7 +83,7 @@ const config: runtime.GetPrismaClientConfig = {
       "value": "prisma-client"
     },
     "output": {
-      "value": "/home/ak475826/projects/aklapper/packages/prisma/chinook/generated",
+      "value": "/home/ak/projects/aklapper/packages/prisma/chinook/generated",
       "fromEnvVar": null
     },
     "config": {
@@ -97,7 +97,7 @@ const config: runtime.GetPrismaClientConfig = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/home/ak475826/projects/aklapper/packages/prisma/chinook/prisma/schema.prisma",
+    "sourceFilePath": "/home/ak/projects/aklapper/packages/prisma/chinook/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativePath": "../prisma",

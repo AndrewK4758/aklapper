@@ -40,6 +40,8 @@ const config: UserConfig = defineConfig({
   },
 
   base: '/client',
+
+  mode: 'development',
   build: {
     outDir: './dist/client',
     minify: true,

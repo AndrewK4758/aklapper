@@ -39,6 +39,8 @@ const config: UserConfig = defineConfig({
     noExternal: ['@mui/material', '@mui/icons-material', '@mui/x-date-pickers'],
   },
 
+  mode: 'development',
+
   base: '/server',
   build: {
     ssr: true,
