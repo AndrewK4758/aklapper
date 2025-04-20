@@ -1,8 +1,9 @@
 import { RenderList, Text } from '@aklapper/react-shared';
 import type {
   ClientLobbyData,
-  GamesInLobbyPending,
-  IPlayer,
+  GameInsanceLobbyData,
+  // GamesInLobbyPending,
+  IPlayerClientData,
   NewGameDetails,
   PrivateMessageDetails,
 } from '@aklapper/types';
@@ -45,11 +46,11 @@ export default function Lobby() {
 
   const { socket } = useContext<WebsocketContextProps>(WebsocketContext);
 
-  const [activeLobby, setActiveLobby] = useState<IPlayer[]>(activePlayersInLobby);
+  const [activeLobby, setActiveLobby] = useState<IPlayerClientData[]>(activePlayersInLobby);
   const [messages, setMessages] = useState<PrivateMessageDetails[]>([]);
   const [openMessage, setOpenMessage] = useState<boolean>(false);
   const [messageTarget, setMessageTarget] = useState<PrivateMessageDetails | null>(null);
-  const [activeGames, setActiveGames] = useState<GamesInLobbyPending[]>(activeGamesInLobby);
+  const [activeGames, setActiveGames] = useState<GameInsanceLobbyData[]>(activeGamesInLobby);
 
   const nav = useNavigate();
 
@@ -58,15 +59,19 @@ export default function Lobby() {
       socket.connect();
 
       socket.on('connect', () => {
-        console.log(socket);
         console.log(`Websocket Connected to path: /lobby with id: ${socket.id}`);
-        setActivePlayer(prev => ({ ...prev, WebsocketId: socket.id }));
+        setActivePlayer(() => ({ ...activePlayer, websocketId: socket.id }));
       });
 
       socket.emit('enter-lobby', activePlayer);
 
-      socket.on('new-player', (data: IPlayer) => {
-        setActiveLobby(prev => [...prev, data]);
+      socket.on('new-player', (data: IPlayerClientData) => {
+        setActiveLobby(prev => {
+          const exists = prev.find(p => p.id === data.id);
+
+          if (exists) return [...prev];
+          else return [...prev, data];
+        });
       });
 
       socket.on('private-message', (message: PrivateMessageDetails) => {
@@ -74,26 +79,23 @@ export default function Lobby() {
       });
 
       socket.on('remove-player', id => {
-        setActiveLobby(activeLobby.filter(player => player.id !== id));
+        setActiveLobby(activeLobby.filter(player => player.id === id));
       });
 
-      socket.on('new-game', ({ gameId, gamesInLobby }: NewGameDetails) => {
-        setActivePlayer(prev => ({ ...prev, ActiveGameID: gameId }));
+      socket.on('new-game', ({ newGameId, gamesInLobby }: NewGameDetails) => {
+        setActivePlayer(() => ({ ...activePlayer, activenewGameId: newGameId }));
         setActiveGames(gamesInLobby);
       });
     }
     return () => {
       if (socket.connected) {
         removeFromLobby();
-        setActiveLobby(activePlayersInLobby.filter(player => player.id === activePlayer.id));
         socket.emit('remove-player', activePlayer.id);
         socket.disconnect();
         socket.removeAllListeners();
       }
     };
   }, []);
-
-  console.log(activePlayer);
 
   return (
     <WebsocketContextProvider>
@@ -119,7 +121,7 @@ export default function Lobby() {
 
         <Box component={'section'} id='lobby-data-wrapper' display={'flex'} height={'80vh'} minHeight={'fit-content'}>
           <Box component={'section'} id='players-in-lobby-list-wrapper' sx={{ flex: 1 }}>
-            <RenderList<IPlayer>
+            <RenderList<IPlayerClientData>
               data={activeLobby}
               listMapCallback={(e, i, arr) =>
                 playersMapCallback(e, i, arr, activePlayer, setOpenMessage, setMessageTarget)
@@ -139,7 +141,6 @@ export default function Lobby() {
 
         <Button
           onClick={() => {
-            // socket.emit('remove-player', activePlayer.id);
             nav('/', { replace: true });
           }}
         >
@@ -157,15 +158,14 @@ export default function Lobby() {
 }
 
 function playersMapCallback(
-  e: IPlayer,
+  e: IPlayerClientData,
   _i: number,
-  _arr: IPlayer[],
-  currentPlayer: Partial<IPlayer>,
+  _arr: IPlayerClientData[],
+  currentPlayer: Partial<IPlayerClientData>,
   setOpenMessage: Dispatch<SetStateAction<boolean>>,
   setMessageTarget: Dispatch<SetStateAction<PrivateMessageDetails | null>>,
 ): ReactElement {
   const { name, id } = e;
-
   return (
     <Box
       component={'section'}

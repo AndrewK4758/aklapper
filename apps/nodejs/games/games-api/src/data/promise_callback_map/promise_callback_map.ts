@@ -1,5 +1,7 @@
+import type { WsResponse } from '@aklapper/types';
+
 export type PromiseCallbackMap = {
-  resolve: (value: string | PromiseLike<string>) => void;
+  resolve: (value: WsResponse | PromiseLike<WsResponse>) => void;
   reject: (reason: unknown) => void;
 };
 

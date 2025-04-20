@@ -5,6 +5,7 @@ import type { ISpace } from './space.js';
 import type { ILiteSpace } from './lite-space.js';
 
 export interface IChutesAndLadders {
+  NAME: string;
   MAX_PLAYERS: number;
   MIN_PLAYERS: number;
   CHUTES: number;

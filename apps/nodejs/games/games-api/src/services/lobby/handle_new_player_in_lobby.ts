@@ -1,8 +1,9 @@
-import type { IPlayer, WsEvent, WsResponse } from '@aklapper/types';
-import { pendingRequests, type PromiseCallbackMap } from 'src/data/promise_callback_map/promise_callback_map.js';
+import type { IPlayerClientData, WsEvent, WsResponse } from '@aklapper/types';
+import { pendingRequests } from 'src/data/promise_callback_map/promise_callback_map.js';
 import { socketClient } from 'src/main.js';
+import go_websocketEvent from 'src/models/go-websocket_event.js';
 
-export default async function go_AddPlayerToLobby(event: string, eventData: Partial<IPlayer>): Promise<string> {
+export default async function go_AddPlayerToLobby(event: string, eventData: IPlayerClientData): Promise<WsResponse> {
   return new Promise((resolve, reject) => {
     const playerId = eventData.id as string;
 
@@ -13,20 +14,7 @@ export default async function go_AddPlayerToLobby(event: string, eventData: Part
       data: eventData,
     };
 
-    socketClient.onmessage = (event: MessageEvent) => {
-      const parsedMessageData: WsEvent = JSON.parse(event.data);
-      if (parsedMessageData) {
-        const { event, data } = parsedMessageData;
-
-        if (event === 'player-added') {
-          const { status, response } = data as WsResponse;
-
-          const { resolve, reject } = pendingRequests.get(response as string) as PromiseCallbackMap;
-
-          return status === 'success' ? resolve(response as string) : reject('Error adding player to lobby');
-        }
-      }
-    };
+    socketClient.onmessage = async (event: MessageEvent) => await go_websocketEvent(event, 'player-added');
 
     socketClient.send(JSON.stringify(newPlayerEvent));
   });

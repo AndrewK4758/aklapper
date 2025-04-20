@@ -4,7 +4,7 @@ import (
 	lobbydata "apps/go/games-lobby/lobby-data"
 	"apps/go/utils"
 	"encoding/json"
-	"fmt"
+
 	"net/http"
 )
 
@@ -13,7 +13,7 @@ func HandleGetLobbyData(resp http.ResponseWriter, req *http.Request) {
 
 	var activePlayersInLobby []lobbydata.ActivePlayer
 
-	for _, playerData := range lobbydata.LobbyMap {
+	for _, playerData := range lobbydata.ActivePlayers {
 
 		playerInLobby := lobbydata.ActivePlayer{
 			Id:                 playerData.Id,
@@ -31,5 +31,4 @@ func HandleGetLobbyData(resp http.ResponseWriter, req *http.Request) {
 
 	json.NewEncoder(resp).Encode(activePlayersInLobby)
 
-	fmt.Printf("\nPLAYERS IN LOBBY: %v\n\n", activePlayersInLobby)
 }

@@ -1,56 +1,47 @@
-import type { GameNameString, GamesInLobbyPending, IGamesInLobby, IInstanceOfGame } from '@aklapper/types';
-import games from '../games-list.js';
+import type { GameInsanceLobbyData, GameNameString, IGamesInLobby, IInstanceOfGame } from '@aklapper/types';
 
 class GamesInLobby implements IGamesInLobby {
-  games: Map<string, IInstanceOfGame[]>;
+  games: Map<string, IInstanceOfGame>;
   constructor() {
-    this.games = new Map<GameNameString, IInstanceOfGame[]>();
-    games.forEach(game => this.games.set(game.name, []));
+    this.games = new Map<GameNameString, IInstanceOfGame>();
   }
 
-  get Map(): Map<string, IInstanceOfGame[]> {
+  get map(): Map<string, IInstanceOfGame> {
     return this.games;
   }
 
-  hasGame(gameName: string): boolean {
-    return this.games.has(gameName);
+  hasGame(gameId: string): boolean {
+    return this.games.has(gameId);
   }
 
-  getGameActiveGames(gameName: string): IInstanceOfGame[] {
-    if (this.hasGame(gameName) && this.hasGame(gameName) !== undefined)
-      return this.games.get(gameName) as IInstanceOfGame[];
+  getGameActiveGame(gameId: string): IInstanceOfGame {
+    if (this.hasGame(gameId) && this.hasGame(gameId) !== undefined) return this.games.get(gameId) as IInstanceOfGame;
     else throw new Error('No Instance Of Game exists');
   }
 
-  addGame(gameName: string, gameInstance: IInstanceOfGame): string | void {
-    const errorString = `${gameName} does not exist in game library`;
-    const game = this.getGameActiveGames(gameName);
-    if (game) game.push(gameInstance);
-    else throw new ReferenceError(errorString);
+  addGame(gameId: string, gameInstance: IInstanceOfGame): void {
+    this.map.set(gameId, gameInstance);
   }
 
-  deleteGame(gameName: string, gameId: string): void | string {
-    const errorString = `Game ID: ${gameId} for ${gameName} does not exist`;
+  deleteGame(gameId: string): void | string {
+    const errorString = `Game ID: ${gameId} does not exist`;
 
-    const gameInstancesArray = this.getGameActiveGames(gameName);
-    if (gameInstancesArray) {
-      const gameIdIdx = gameInstancesArray.findIndex(({ gameInstanceID }) => gameInstanceID === gameId);
-
-      if (gameIdIdx < 0) throw ReferenceError(errorString);
-      else gameInstancesArray.slice(gameIdIdx, gameIdIdx);
-    }
+    if (!this.map.has(gameId)) throw ReferenceError(errorString);
+    else this.map.delete(gameId);
   }
 
-  prepDataToSend(): GamesInLobbyPending[] {
-    const dataToSend: GamesInLobbyPending[] = [];
+  prepDataToSend(): GameInsanceLobbyData[] {
+    const dataToSend: GameInsanceLobbyData[] = [];
 
-    for (const [gameName, instances] of this.Map) {
-      const instancesToSend = instances.map(instance => ({
-        gameInstanceID: instance.gameInstanceID,
+    for (const [gameId, instance] of this.map) {
+      const gameInLobby: GameInsanceLobbyData = {
+        gameName: instance.instance.instance.NAME,
+        gameInstanceID: gameId,
         inLobby: instance.inLobby,
-        instance: { playersArray: instance.instance.playersArray },
-      })) as Partial<IInstanceOfGame>[];
-      dataToSend.push({ [gameName]: instancesToSend });
+        playersArray: instance.instance.playersArray,
+      };
+
+      dataToSend.push(gameInLobby);
     }
     return dataToSend;
   }

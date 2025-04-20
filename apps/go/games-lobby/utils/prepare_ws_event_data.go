@@ -6,25 +6,18 @@ import (
 	"fmt"
 )
 
-func PrepareWsJsonEvent(event string, data any, wsError *lobbydata.WsError) (lobbydata.WsEventJSON, error) {
+func PrepareWsJsonEvent(event string, data any, wsError *lobbydata.WsError) (lobbydata.WsMessage, error) {
 	var err error
-	var wsEventJSON lobbydata.WsEventJSON
+	var wsEventJSON lobbydata.WsMessage
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		fmt.Println("Error: ", err)
-		return lobbydata.WsEventJSON{}, err
+		return lobbydata.WsMessage{}, err
 	}
 
 	if wsError != nil {
-		errorData, err := json.Marshal(wsError)
-		if err != nil {
-			fmt.Println("Error: ", err)
-			return lobbydata.WsEventJSON{}, err
-		}
-
-		wsEventJSON.Error = errorData
-
+		wsEventJSON.Error = wsError
 	}
 
 	wsEventJSON.Event = event

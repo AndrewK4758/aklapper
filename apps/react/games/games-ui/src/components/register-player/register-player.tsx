@@ -1,5 +1,5 @@
 import { FormikValidationError, Label, type httpMethod } from '@aklapper/react-shared';
-import type { IPlayer } from '@aklapper/types';
+import type { IPlayerClientData } from '@aklapper/types';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Container, { type ContainerProps } from '@mui/material/Container';
@@ -12,7 +12,6 @@ import {
   useContext,
   useEffect,
   useRef,
-  // useEffect,
   type ChangeEvent,
   type Dispatch,
   type FocusEvent,
@@ -26,12 +25,14 @@ import { errorTextSx, tooltipSx } from '../../styles/games-styles';
 const emailRegex =
   /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 
-const initialValues: Partial<IPlayer> = {
+const initialValues: Partial<Partial<IPlayerClientData>> = {
   name: '',
   email: '',
 };
 
-const validationSchema: Yup.ObjectSchema<Partial<IPlayer>> = Yup.object<Partial<IPlayer>>({
+const validationSchema: Yup.ObjectSchema<Partial<Partial<IPlayerClientData>>> = Yup.object<
+  Partial<Partial<IPlayerClientData>>
+>({
   name: Yup.string().required('Must enter player name').max(30, 'Player name must be less than 31 characters'),
   email: Yup.string()
     .required('Must enter valid email address')
@@ -57,7 +58,7 @@ export default function RegisterPlayer({ method, index, tab, inputSx, ContainerP
 
   const ref = useRef<HTMLInputElement>(null);
 
-  const formik: FormikProps<Partial<IPlayer>> = useFormik<Partial<IPlayer>>({
+  const formik: FormikProps<Partial<Partial<IPlayerClientData>>> = useFormik<Partial<Partial<IPlayerClientData>>>({
     initialValues: initialValues,
     validationSchema: validationSchema,
     validateOnChange: false,
@@ -104,7 +105,7 @@ export default function RegisterPlayer({ method, index, tab, inputSx, ContainerP
             onFocus={async e => await handleNewPlayerInputTouched(e, formik)}
             sx={inputSx}
           />
-          <FormikValidationError<Partial<IPlayer>>
+          <FormikValidationError<Partial<IPlayerClientData>>
             formik={formik}
             elementName={'email'}
             helperTextSx={errorTextSx(formik.errors.email as string)}
@@ -131,7 +132,7 @@ export default function RegisterPlayer({ method, index, tab, inputSx, ContainerP
             onFocus={async e => await handleNewPlayerInputTouched(e, formik)}
             sx={inputSx}
           />
-          <FormikValidationError<Partial<IPlayer>>
+          <FormikValidationError<Partial<IPlayerClientData>>
             formik={formik}
             elementName={'name'}
             helperTextSx={errorTextSx(formik.errors.name as string)}
@@ -153,12 +154,12 @@ export default function RegisterPlayer({ method, index, tab, inputSx, ContainerP
 const baseUrl = import.meta.env.VITE_REST_API_SERVER_URL_V2;
 
 async function handleNewPlayerSubmit(
-  values: Partial<IPlayer>,
-  setActivePlayer: Dispatch<SetStateAction<Partial<IPlayer>>>,
+  values: Partial<IPlayerClientData>,
+  setActivePlayer: Dispatch<SetStateAction<IPlayerClientData>>,
   nav: NavigateFunction,
 ): Promise<void> {
   try {
-    const { name, email } = values as Partial<IPlayer>;
+    const { name, email } = values as IPlayerClientData;
 
     const resp = await axios.post(
       `${baseUrl}/register`,
@@ -166,17 +167,16 @@ async function handleNewPlayerSubmit(
       { headers: { 'Content-Type': 'application/json' } },
     );
 
-    console.log(resp.data);
+    const { id, activeGameID, inLobby, currentTimeEntered, socketIoId } = resp.data as IPlayerClientData;
 
-    const { id, activeGameID, inLobby, currentTimeEntered, socketIoId } = resp.data as Partial<IPlayer>;
-
-    const currentPlayer = {
+    const currentPlayer: IPlayerClientData = {
       name: name,
       id: id,
       activeGameID: activeGameID,
       inLobby: inLobby,
       currentTimeEntered: currentTimeEntered,
       socketIoId: socketIoId,
+      email: email,
     };
 
     localStorage.setItem('activePlayer', JSON.stringify(currentPlayer));
@@ -191,21 +191,21 @@ async function handleNewPlayerSubmit(
 
 async function handlePlayerNameChange(
   e: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
-  formik: FormikProps<Partial<IPlayer>>,
+  formik: FormikProps<Partial<IPlayerClientData>>,
 ) {
   await formik.setFieldValue(e.currentTarget.name, e.currentTarget.value);
 }
 
 async function handleNewPlayerInputTouched(
   e: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
-  formik: FormikProps<Partial<IPlayer>>,
+  formik: FormikProps<Partial<IPlayerClientData>>,
 ) {
   await formik.setFieldTouched(e.currentTarget.name, false);
 }
 
 async function handleCheckEmailOnBlur(
   event: FocusEvent<HTMLInputElement | HTMLTextAreaElement>,
-  formik: FormikProps<Partial<IPlayer>>,
+  formik: FormikProps<Partial<IPlayerClientData>>,
 ) {
   if ((formik.values.email as string).length && emailRegex.test(formik.values.email as string)) {
     const { setTouched, setError } = formik.getFieldHelpers('email');

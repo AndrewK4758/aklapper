@@ -17,7 +17,7 @@ export default function RegisterGame({ gameName, registerGameButtonSx, setOpen }
   return (
     <Button
       onClick={() => {
-        socket.emit('create-new-game', { gameName, playerId: activePlayer.Id });
+        socket.emit('create-new-game', { gameName, playerId: activePlayer.id });
         setOpen(false);
       }}
       sx={registerGameButtonSx}

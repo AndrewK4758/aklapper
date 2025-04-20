@@ -1,10 +1,12 @@
-import type { IPlayer } from '@aklapper/types';
+import type { IPlayerClientData } from '@aklapper/types';
 import axios from 'axios';
 import type { ActionFunctionArgs } from 'react-router';
 
 const baseUrl = import.meta.env.VITE_REST_API_SERVER_URL_V2;
 
-export default async function handleNewPlayerSubmit({ request }: ActionFunctionArgs): Promise<Partial<IPlayer> | void> {
+export default async function handleNewPlayerSubmit({
+  request,
+}: ActionFunctionArgs): Promise<Partial<IPlayerClientData> | void> {
   try {
     const { name } = await request.json();
 
@@ -14,11 +16,18 @@ export default async function handleNewPlayerSubmit({ request }: ActionFunctionA
       { headers: { 'Content-Type': 'application/json' } },
     );
 
-    const { Name, Id, ActiveGameID, InLobby } = resp.data as Partial<IPlayer>;
+    const { id, inLobby, email, activeGameID, currentTimeEntered } = resp.data as Partial<IPlayerClientData>;
 
-    const currentPlayer = { Name: Name, Id: Id, ActiveGameID: ActiveGameID, InLobby: InLobby };
+    const currentPlayer = {
+      name: name,
+      id: id,
+      activeGameID: activeGameID,
+      inLobby: inLobby,
+      email: email,
+      currentTimeEntered: currentTimeEntered,
+    };
 
-    localStorage.setItem('playerID', Id as string);
+    localStorage.setItem('playerID', id as string);
 
     return currentPlayer;
   } catch (error) {

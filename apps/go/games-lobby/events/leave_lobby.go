@@ -7,21 +7,22 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func HandleLeaveLobby(ws *websocket.Conn, eventData lobbydata.IncomingWsEvent) {
+func HandleLeaveLobby(ws *websocket.Conn, eventData lobbydata.WsMessage) {
 	var err error
 	var eventError lobbydata.WsError
+
 	playerID := eventData.Data.(string)
 
-	deleted, err := lobbydata.DeletePlayerFromLobby(playerID)
+	_, err = lobbydata.DeletePlayerFromLobby(playerID)
 	if err != nil {
 
 		eventError.Name = "DeletePlayerFromLobby"
 		eventError.Reason = err.Error()
 
-		errorToSend := lobbydata.WsEventJSON{
+		errorToSend := lobbydata.WsMessage{
 			Event: "error",
 			Data:  nil,
-			Error: eventError,
+			Error: &eventError,
 		}
 
 		ws.WriteJSON(errorToSend)
@@ -30,9 +31,9 @@ func HandleLeaveLobby(ws *websocket.Conn, eventData lobbydata.IncomingWsEvent) {
 		return
 	}
 
-	eventAck := lobbydata.WsAck{Status: "success", Response: deleted}
+	eventAck := lobbydata.WsAck{Status: "success", Response: playerID}
 
-	event := lobbydata.WsEventJSON{
+	event := lobbydata.WsMessage{
 		Event: "deleted-player",
 		Data:  eventAck,
 	}

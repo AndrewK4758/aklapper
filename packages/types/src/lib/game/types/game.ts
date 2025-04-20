@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import type { Namespace } from 'socket.io';
 import type { IInstanceOfGame } from '../interfaces/instance-of-game.js';
 import type { ILiteSpace } from '../interfaces/lite-space.js';
-import type { IPlayer } from '../interfaces/player.js';
+import type { IPlayer, IPlayerClientData } from '../interfaces/player.js';
 
 export enum Color {
   UNDEFINED = '',
@@ -62,7 +62,7 @@ export type AvatarTotem = {
 
 export type Minute = number;
 
-export type GameInstanceID = string;
+export type GameInstanceID = `${string}${string}${string}${string}${string}${string}`;
 
 export type PlayerID = string;
 
@@ -128,37 +128,30 @@ export type PrivateMessageDetails = {
 
 export type SocketID = string;
 
-export type GamesInLobbyPending = {
-  [gameName: string]: Partial<IInstanceOfGame>[];
+export type GameInsanceLobbyData = {
+  gameName: string;
+  gameInstanceID: string;
+  inLobby: boolean;
+  playersArray: IPlayer[] | IPlayerClientData[];
 };
 
+// export type GamesInLobbyPending = {
+//   [gameName: string]: GameInsanceLobbyData[];
+// };
+
 export type NewGameDetails = {
-  gameName: GameNameString; // Name of new game being created
-  gameId: GameInstanceID; // Id of new game being created
-  gamesInLobby: GamesInLobbyPending[]; // All games in the lobby that are created and waiting for players or start
+  // newGameName: GameNameString; // Name of new game being created
+  newGameId: GameInstanceID; // Id of new game being created
+  gamesInLobby: GameInsanceLobbyData[]; // All games in the lobby that are created and waiting for players or start
 };
 
 export type ClientLobbyData = {
-  activeGamesInLobby: GamesInLobbyPending[];
-  activePlayersInLobby: IPlayer[];
+  activeGamesInLobby: GameInsanceLobbyData[];
+  activePlayersInLobby: IPlayerClientData[];
 };
 
 export interface IGamesInLobby {
-  games: Map<GameNameString, IInstanceOfGame[]>;
+  games: Map<GameNameString, IInstanceOfGame>;
 }
 
-export type NewGameCall = { gamesInLobby: GamesInLobbyPending[]; gameInstanceId: GameInstanceID };
-
-export type ActivePlayerMap = Map<string, IPlayer>;
-
-export interface IActivePlayers {
-  _Map: ActivePlayerMap;
-
-  get map(): ActivePlayerMap;
-
-  addPlayer(id: string, player: IPlayer): void;
-
-  getPlayer(id: string): IPlayer;
-
-  deletePlayerFromLobby(id: string): void;
-}
+export type NewGameCall = { gamesInLobby: GameInsanceLobbyData[]; gameInstanceId: GameInstanceID };

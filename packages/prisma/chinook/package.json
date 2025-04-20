@@ -32,6 +32,18 @@
           "cwd": "packages/prisma/chinook",
           "command": "pnpx prisma generate && node scripts/fix-prisma-types.cjs"
         }
+      },
+      "pull-db": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "packages/prisma/chinook",
+          "command": "pnpx prisma db pull"
+        }
+      },
+      "build": {
+        "dependsOn": [
+          "generate"
+        ]
       }
     }
   },

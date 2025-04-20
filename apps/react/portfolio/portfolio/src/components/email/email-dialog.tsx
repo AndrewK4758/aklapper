@@ -7,7 +7,7 @@ import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { enUS } from '@mui/x-date-pickers/locales';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider/LocalizationProvider';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { type Dispatch, lazy, type SetStateAction, Suspense, useState } from 'react';
 import waiting from '../../assets/swirly-dots-to-chrome.webp';
@@ -34,28 +34,28 @@ const EmailDialog = ({ open, setOpen }: EmailDialogProps) => {
         <GoogleUserContextProvider>
           <Dialog
             open={open}
-            id="email-dialog"
-            data-testid="email-dialog"
+            id='email-dialog'
+            data-testid='email-dialog'
             fullWidth
-            scroll="body"
+            scroll='body'
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             slotProps={{ paper: emailDialogPaperProps as any }}
           >
             <Box
               component={'section'}
-              id="email-me-title-box"
-              data-testid="email-me-title-box"
+              id='email-me-title-box'
+              data-testid='email-me-title-box'
               sx={{
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 ...(fullSizeBlock as any),
-                ...flexColumnStyles
+                ...flexColumnStyles,
               }}
             >
               <Tabs
-                variant="fullWidth"
-                aria-label="contact-tabs"
-                id="contact-tabs"
-                data-testid="contact-tabs"
+                variant='fullWidth'
+                aria-label='contact-tabs'
+                id='contact-tabs'
+                data-testid='contact-tabs'
                 component={'nav'}
                 key={'contact-tabs'}
                 value={tab}
@@ -63,35 +63,35 @@ const EmailDialog = ({ open, setOpen }: EmailDialogProps) => {
               >
                 <Tab
                   key={'appointment-request-tab'}
-                  id="appointment-request-tab"
-                  data-testid="appointment-request-tab"
+                  id='appointment-request-tab'
+                  data-testid='appointment-request-tab'
                   label={
                     <Label
-                      htmlFor="appointment-request-tab"
+                      htmlFor='appointment-request-tab'
                       tooltipTitle={'Add to Google Calendar'}
                       labelVariant={'h3'}
                       labelText={'Appt. Request'}
                       placement={'bottom'}
                       labelTextSx={mainSx}
                       tooltipSx={subSx}
-                      id="appointment-request-tab-label"
+                      id='appointment-request-tab-label'
                     />
                   }
                 />
                 <Tab
                   key={'email-me-tab'}
-                  id="email-me-tab"
-                  data-testid="email-me-tab"
+                  id='email-me-tab'
+                  data-testid='email-me-tab'
                   label={
                     <Label
-                      htmlFor="email-me-tab"
+                      htmlFor='email-me-tab'
                       tooltipTitle={'Send Email / Upload Appointment Details'}
                       labelVariant={'h3'}
                       labelText={'Email Me'}
                       placement={'bottom'}
                       labelTextSx={mainSx}
                       tooltipSx={subSx}
-                      id="email-me-tab-label"
+                      id='email-me-tab-label'
                     />
                   }
                 />
@@ -99,8 +99,8 @@ const EmailDialog = ({ open, setOpen }: EmailDialogProps) => {
               <Box
                 component={'section'}
                 key={'calendar-and-email-section'}
-                id="calendar-and-email-section"
-                data-testid="calendar-and-email-section"
+                id='calendar-and-email-section'
+                data-testid='calendar-and-email-section'
                 sx={{ ...flexColumnStyles, flex: 4 }}
               >
                 <Suspense fallback={<Waiting src={waiting} />}>
@@ -110,14 +110,14 @@ const EmailDialog = ({ open, setOpen }: EmailDialogProps) => {
               </Box>
               <DialogActions
                 key={'email-me-button-box'}
-                id="email-me-button-box"
-                data-testid="email-me-button-box"
+                id='email-me-button-box'
+                data-testid='email-me-button-box'
                 sx={{ paddingX: 4, height: 'fit-content' }}
               >
                 <Button
-                  type="button"
-                  id="close-email-me-button"
-                  data-testid="close-email-me-button"
+                  type='button'
+                  id='close-email-me-button'
+                  data-testid='close-email-me-button'
                   onClick={() => setOpen(false)}
                   sx={contactDialogCloseButtonSxProps}
                 >

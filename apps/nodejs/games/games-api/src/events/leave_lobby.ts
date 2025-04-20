@@ -1,4 +1,4 @@
-import type { PlayerID, SocketCallback } from '@aklapper/types';
+import type { PlayerID, SocketCallback, WsResponse } from '@aklapper/types';
 import type { Socket } from 'socket.io';
 import useActivePlayersMap from 'src/middleware/use_active_players_map.js';
 import go_leaveLobby from 'src/services/lobby/handle_leave_lobby.js';
@@ -8,13 +8,14 @@ const handleLeaveLobby: SocketCallback = (event: string, socket: Socket) => {
   socket.on(event, async (playerID: PlayerID) => {
     const activePlayers = useActivePlayersMap();
 
-    const deletedPlayer = await go_leaveLobby('remove-player', playerID);
+    const leaveLobbyResponse: WsResponse = await go_leaveLobby('remove-player', playerID);
 
-    if (deletedPlayer) activePlayers.deletePlayerFromLobby(playerID);
+    const { status, response } = leaveLobbyResponse;
 
-    console.log('DISCONNECT LOBBY EVENT', activePlayers.map);
-
-    socketConnectionMap.delete(deletedPlayer);
+    if (status === 'success') {
+      activePlayers.deletePlayerFromLobby(playerID);
+      socketConnectionMap.delete(response as string);
+    }
   });
 };
 

@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func HandleEnterLobby(ws *websocket.Conn, eventData lobbydata.IncomingWsEvent) {
+func HandleEnterLobby(ws *websocket.Conn, eventData lobbydata.WsMessage) {
 	var err error
 	var activePlayer lobbydata.ActivePlayer
 	var eventError lobbydata.WsError
@@ -31,10 +31,10 @@ func HandleEnterLobby(ws *websocket.Conn, eventData lobbydata.IncomingWsEvent) {
 		eventError.Name = "AddPlayerToLobby"
 		eventError.Reason = err.Error()
 
-		event := lobbydata.WsEventJSON{
+		event := lobbydata.WsMessage{
 			Event: "error",
 			Data:  nil,
-			Error: eventError,
+			Error: &eventError,
 		}
 
 		ws.WriteJSON(event)
@@ -43,7 +43,7 @@ func HandleEnterLobby(ws *websocket.Conn, eventData lobbydata.IncomingWsEvent) {
 
 	eventAck := lobbydata.WsAck{Status: "success", Response: activePlayer.Id}
 
-	event := lobbydata.WsEventJSON{
+	event := lobbydata.WsMessage{
 		Event: "player-added",
 		Data:  eventAck,
 	}

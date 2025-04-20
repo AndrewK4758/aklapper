@@ -7,11 +7,11 @@ export interface WebsocketContextProps {
   socket: Socket;
 }
 
-const sessionStoredPlayer = sessionStorage.getItem('activePlayer');
+const activePlayer = localStorage.getItem('activePlayer');
 
 let activePlayerDetails: Partial<IPlayer>;
 
-if (sessionStoredPlayer) activePlayerDetails = JSON.parse(sessionStoredPlayer);
+if (activePlayer) activePlayerDetails = JSON.parse(activePlayer);
 else
   activePlayerDetails = {
     id: '',

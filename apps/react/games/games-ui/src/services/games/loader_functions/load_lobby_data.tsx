@@ -9,7 +9,6 @@ export default async function loadLobbyData(): Promise<ClientLobbyData | void> {
 
     const lobbyData = resp.data as ClientLobbyData;
 
-    console.log(lobbyData);
     return lobbyData;
   } catch (error) {
     console.error(error);

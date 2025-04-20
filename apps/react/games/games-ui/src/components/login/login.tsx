@@ -1,5 +1,5 @@
 import { FormikValidationError, Label, type httpMethod } from '@aklapper/react-shared';
-import type { IPlayer } from '@aklapper/types';
+import type { Email, IPlayerClientData } from '@aklapper/types';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Container, { type ContainerProps } from '@mui/material/Container';
@@ -17,11 +17,11 @@ import { errorTextSx, tooltipSx } from '../../styles/games-styles';
 const emailRegex =
   /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 
-const initialValues: Partial<IPlayer> = {
+const initialValues: Partial<IPlayerClientData> = {
   email: '',
 };
 
-const validationSchema: Yup.ObjectSchema<Partial<IPlayer>> = Yup.object<Partial<IPlayer>>({
+const validationSchema: Yup.ObjectSchema<Partial<IPlayerClientData>> = Yup.object<Partial<IPlayerClientData>>({
   email: Yup.string()
     .required('Must enter valid email address')
     .test({
@@ -46,7 +46,7 @@ export default function LoginPlayer({ method, index, tab, inputSx, ContainerProp
 
   const ref = useRef<HTMLInputElement>(null);
 
-  const formik: FormikProps<Partial<IPlayer>> = useFormik<Partial<IPlayer>>({
+  const formik: FormikProps<Partial<IPlayerClientData>> = useFormik<Partial<IPlayerClientData>>({
     initialValues: initialValues,
     validationSchema: validationSchema,
     onSubmit: async values => handleNewPlayerSubmit(values, setActivePlayer, nav, formik),
@@ -92,7 +92,7 @@ export default function LoginPlayer({ method, index, tab, inputSx, ContainerProp
             onFocus={async e => await handleNewPlayerInputTouched(e, formik)}
             sx={inputSx}
           />
-          <FormikValidationError<Partial<IPlayer>>
+          <FormikValidationError<Partial<IPlayerClientData>>
             formik={formik}
             elementName={'email'}
             helperTextSx={errorTextSx(formik.errors.email as string)}
@@ -115,13 +115,13 @@ export default function LoginPlayer({ method, index, tab, inputSx, ContainerProp
 const baseUrl = import.meta.env.VITE_REST_API_SERVER_URL_V2;
 
 async function handleNewPlayerSubmit(
-  values: Partial<IPlayer>,
-  setActivePlayer: Dispatch<SetStateAction<Partial<IPlayer>>>,
+  values: Partial<IPlayerClientData>,
+  setActivePlayer: Dispatch<SetStateAction<IPlayerClientData>>,
   nav: NavigateFunction,
-  formik: FormikProps<Partial<IPlayer>>,
+  formik: FormikProps<Partial<IPlayerClientData>>,
 ): Promise<void> {
   try {
-    const { email } = values as Partial<IPlayer>;
+    const { email } = values as Partial<IPlayerClientData>;
 
     const resp = await axios.post(
       `${baseUrl}/login`,
@@ -129,9 +129,17 @@ async function handleNewPlayerSubmit(
       { headers: { 'Content-Type': 'application/json' } },
     );
 
-    const { name, id, activeGameID, inLobby } = resp.data as Partial<IPlayer>;
+    const { name, id, activeGameID, inLobby, currentTimeEntered } = resp.data as IPlayerClientData;
 
-    const currentPlayer = { name: name, id: id, ActiveGameID: activeGameID, inLobby: inLobby };
+    const currentPlayer: IPlayerClientData = {
+      name: name,
+      id: id,
+      activeGameID: activeGameID,
+      inLobby: inLobby,
+      currentTimeEntered: currentTimeEntered,
+      email: email as Email,
+      socketIoId: undefined,
+    };
 
     localStorage.setItem('activePlayer', JSON.stringify(currentPlayer));
 
@@ -148,14 +156,14 @@ async function handleNewPlayerSubmit(
 
 async function handlePlayerNameChange(
   e: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
-  formik: FormikProps<Partial<IPlayer>>,
+  formik: FormikProps<Partial<IPlayerClientData>>,
 ) {
   await formik.setFieldValue(e.currentTarget.name, e.currentTarget.value);
 }
 
 async function handleNewPlayerInputTouched(
   e: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
-  formik: FormikProps<Partial<IPlayer>>,
+  formik: FormikProps<Partial<IPlayerClientData>>,
 ) {
   await formik.setFieldTouched(e.currentTarget.name, false);
 }

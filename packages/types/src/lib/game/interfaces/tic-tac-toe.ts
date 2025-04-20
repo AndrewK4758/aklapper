@@ -3,6 +3,7 @@ import type { ILiteSpace } from './lite-space.js';
 import type { ISpace } from './space.js';
 
 export interface ITicTacToe {
+  NAME: string;
   MIN_PLAYERS: number;
   MAX_PLAYERS: number;
   startSpace: ISpace;

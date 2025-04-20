@@ -16,6 +16,7 @@ export const SPACES = 9;
 export const GAME_ROWS = Math.sqrt(SPACES);
 
 export class TicTacToe implements ITicTacToe {
+  NAME: 'Tic Tac Toe';
   MIN_PLAYERS: number;
   MAX_PLAYERS: number;
   startSpace: Space;
@@ -23,6 +24,7 @@ export class TicTacToe implements ITicTacToe {
   colorList: typeof Color;
 
   constructor() {
+    this.NAME = 'Tic Tac Toe';
     this.MIN_PLAYERS = 2;
     this.MAX_PLAYERS = 2;
     this.startSpace = new Space(SpaceType.NORMAL, 1);

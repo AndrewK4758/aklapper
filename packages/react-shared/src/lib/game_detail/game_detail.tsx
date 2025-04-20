@@ -1,4 +1,4 @@
-import type { GamesInLobbyPending, IBuiltGame } from '@aklapper/types';
+import type { GameInsanceLobbyData, IBuiltGame } from '@aklapper/types';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -18,13 +18,12 @@ export interface GameDetailProps {
   game: IBuiltGame;
   setOpen: Dispatch<SetStateAction<boolean>>;
   setSelectedGame: Dispatch<SetStateAction<IBuiltGame | null>>;
-  activeGames: GamesInLobbyPending[];
+  activeGames: GameInsanceLobbyData[];
 }
 
 export function GameDetail({ game, setOpen, setSelectedGame, activeGames }: GameDetailProps) {
   const title = game.name;
   const icon = `/icons/${game.name.replace(/ /g, '-').toLowerCase()}-icon.svg`;
-
   return (
     <Grid component={'div'} key={`${title}-wrapper`} flex={1} height={'fit-content'}>
       <Card
@@ -61,7 +60,7 @@ export function GameDetail({ game, setOpen, setSelectedGame, activeGames }: Game
             TypogrpahyProps={{ color: 'info' }}
             sx={{ textAlign: 'left', fontFamily: 'monospace' }}
           />
-          <RenderList<GamesInLobbyPending>
+          <RenderList<GameInsanceLobbyData>
             data={activeGames}
             listMapCallback={(e, i, arr) => {
               return activeGamesCallback(e, i, arr, game);
@@ -93,60 +92,63 @@ export function GameDetail({ game, setOpen, setSelectedGame, activeGames }: Game
   );
 }
 
-const activeGamesCallback = (e: GamesInLobbyPending, i: number, _arr: GamesInLobbyPending[], game: IBuiltGame) => {
-  return Object.hasOwn(e, game.name) ? (
+const activeGamesCallback = (
+  instance: GameInsanceLobbyData,
+  i: number,
+  _arr: GameInsanceLobbyData[],
+  game: IBuiltGame,
+) => {
+  return instance.gameName === game.name ? (
     <ListItem
       key={`${game.name}-${i}-list-item`}
       sx={{ display: 'flex', flexDirection: 'column', fontSize: '0.5rem', flex: 1 }}
     >
-      {e[game.name].map((instance, i) => (
-        <Box
-          key={`${game.name}-${instance.gameInstanceID}-wrapper`}
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            width: '100%',
-            fontSize: '0.90rem',
-            p: 0,
-            m: 0,
+      <Box
+        key={`${game.name}-${instance.gameInstanceID}-wrapper`}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          width: '100%',
+          fontSize: '0.90rem',
+          p: 0,
+          m: 0,
+        }}
+      >
+        <ListItemText
+          key={`${game.name}-text`}
+          primary={
+            <Text
+              key={`${instance.gameInstanceID}-players-${game.name}`}
+              titleText={instance.gameInstanceID}
+              component={'span'}
+              titleVariant='body2'
+            />
+          }
+          secondary={
+            <>
+              {instance.playersArray.map(p => (
+                <Text key={`${p.id}-player-in-array`} titleText={p.name} titleVariant='caption' component={'span'} />
+              ))}
+            </>
+          }
+          slotProps={{ primary: { variant: 'h6', sx: { fontFamily: 'monospace', fontSize: 'inherit' } } }}
+        />
+        <input readOnly type='text' id={`hidden-${instance.gameInstanceID}`} hidden value={instance.gameInstanceID} />
+        <Button
+          key={`${game.name}-${instance.gameInstanceID}-button`}
+          variant='outlined'
+          name={game.name}
+          type='submit'
+          onClick={e => {
+            const idToJoin = document.getElementById(`hidden-${instance.gameInstanceID}`) as HTMLInputElement;
+            console.log('JOIN GAME NAME: ', e.currentTarget.name, ' ID: ', idToJoin.value);
           }}
+          sx={{ p: 0, fontSize: 'inherit' }}
         >
-          <ListItemText
-            key={`${game.name}-${instance}-text`}
-            primary={
-              <Text
-                key={`${instance.gameInstanceID}-player=${instance.instance?.playersArray[i].name}`}
-                titleText={instance.gameInstanceID}
-                component={'span'}
-                titleVariant='body2'
-              />
-            }
-            secondary={
-              <>
-                {instance.instance?.playersArray.map(p => (
-                  <Text key={`${p.id}-player-in-array`} titleText={p.name} titleVariant='caption' component={'span'} />
-                ))}
-              </>
-            }
-            slotProps={{ primary: { variant: 'h6', sx: { fontFamily: 'monospace', fontSize: 'inherit' } } }}
-          />
-          <input readOnly type='text' id={`hidden-${instance.gameInstanceID}`} hidden value={instance.gameInstanceID} />
-          <Button
-            key={`${game.name}-${instance.gameInstanceID}-button`}
-            variant='outlined'
-            name={game.name}
-            type='submit'
-            onClick={e => {
-              const idToJoin = document.getElementById(`hidden-${instance.gameInstanceID}`) as HTMLInputElement;
-              console.log(e.currentTarget.name, ' : ', idToJoin.value);
-            }}
-            sx={{ p: 0, fontSize: 'inherit' }}
-          >
-            Join
-          </Button>
-        </Box>
-      ))}
+          Join
+        </Button>
+      </Box>
     </ListItem>
   ) : null;
 };

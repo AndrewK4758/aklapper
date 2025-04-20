@@ -1,6 +1,6 @@
 import { PrismaErrorLogger, type PrismaClientErrors } from '@aklapper/games-client';
 import { Player } from '@aklapper/games-components';
-import type { Email, IPlayer } from '@aklapper/types';
+import type { Email, IPlayerClientData, WsResponse } from '@aklapper/types';
 import type { Request, Response } from 'express';
 import useActivePlayersMap from 'src/middleware/use_active_players_map.js';
 import go_AddPlayerToLobby from 'src/services/lobby/handle_new_player_in_lobby.js';
@@ -16,16 +16,20 @@ export default async function getPlayer(req: Request, resp: Response) {
 
     if (savedPlayer) {
       const { player_name, player_id, email } = savedPlayer;
+
       const newActivePlayer = new Player(player_name, player_id, email as Email);
-      const clientPlayerInfo: Partial<IPlayer> = Player.PrepareJsonPlayerToSend(newActivePlayer);
+      const clientPlayerInfo: IPlayerClientData = newActivePlayer.prepareJsonPlayerToSend();
 
-      await go_AddPlayerToLobby('enter-player', clientPlayerInfo);
+      const enterLobbyResponse: WsResponse = await go_AddPlayerToLobby('enter-player', clientPlayerInfo);
 
-      newActivePlayer.inLobby = true;
+      const { status, response } = enterLobbyResponse;
+      if (status === 'success') {
+        newActivePlayer.inLobby = true;
 
-      activePlayers.addPlayer(player_id, newActivePlayer);
+        activePlayers.addPlayer(player_id, newActivePlayer);
 
-      resp.status(200).json(clientPlayerInfo);
+        resp.status(200).json(newActivePlayer.prepareJsonPlayerToSend());
+      } else throw new Error(response as string);
     }
   } catch (error) {
     const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);

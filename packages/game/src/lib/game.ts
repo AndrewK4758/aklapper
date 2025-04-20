@@ -1,10 +1,10 @@
 import { Avatar, generateRandomNumber, Player } from '@aklapper/games-components';
-import { type AllGameTypes, Color, type IGame, type IPlayer, SpaceType } from '@aklapper/types';
+import { type AllGameTypes, Color, type IGame, SpaceType } from '@aklapper/types';
 
 export class Game implements IGame {
   game: AllGameTypes;
-  playersArray: IPlayer[];
-  playerInTurn!: IPlayer;
+  playersArray: Player[];
+  playerInTurn!: Player;
   readyToPlay: boolean;
   haveWinner: boolean;
   currentPlayer: number;

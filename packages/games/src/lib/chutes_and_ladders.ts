@@ -121,6 +121,7 @@ const createDumpValueLadder = (indexOfSpace: number): Space => {
 };
 
 export class ChutesAndLadders implements IChutesAndLadders {
+  NAME: 'Chutes & Ladders';
   MAX_PLAYERS: number;
   MIN_PLAYERS: number;
   CHUTES: number;
@@ -136,6 +137,7 @@ export class ChutesAndLadders implements IChutesAndLadders {
    * @returns Active instance of Chutes And Ladders Game
    */
   constructor(chutes: number, ladders: number) {
+    this.NAME = 'Chutes & Ladders';
     this.MIN_PLAYERS = 2;
     this.MAX_PLAYERS = 4;
     this.CHUTES = chutes;

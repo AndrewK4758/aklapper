@@ -38,6 +38,11 @@
           "cwd": "packages/prisma/games",
           "command": "pnpx prisma db pull"
         }
+      },
+      "build": {
+        "dependsOn": [
+          "generate"
+        ]
       }
     }
   },

@@ -1,9 +1,11 @@
 packages:
   - apps/**
   - packages/**
+
 onlyBuiltDependencies:
   - '@azure/msal-node-extensions'
   - '@azure/msal-node-runtime'
+  - '@mui/x-telemetry'
   - '@prisma/client'
   - '@prisma/engines'
   - '@swc/core'

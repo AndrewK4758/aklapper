@@ -34,3 +34,8 @@ export interface IPlayer {
 
   get email(): Email;
 }
+
+export type IPlayerClientData = Pick<
+  IPlayer,
+  'name' | 'id' | 'email' | 'activeGameID' | 'inLobby' | 'currentTimeEntered' | 'socketIoId'
+>;

@@ -60,7 +60,7 @@ func HandleWebsocketConnections(resp http.ResponseWriter, req *http.Request) {
 
 func handleTextListenEvent(ws *websocket.Conn, message []byte) {
 	var err error
-	var msgData lobbydata.IncomingWsEvent
+	var msgData lobbydata.WsMessage
 
 	err = json.Unmarshal(message, &msgData)
 
@@ -75,6 +75,10 @@ func handleTextListenEvent(ws *websocket.Conn, message []byte) {
 
 	case "remove-player":
 		events.HandleLeaveLobby(ws, msgData)
+		return
+
+	case "new-game":
+		events.HandeNewGame(ws, msgData)
 		return
 	}
 }

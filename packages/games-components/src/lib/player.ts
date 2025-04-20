@@ -1,4 +1,4 @@
-import type { Email, IActivePlayers, IPlayer } from '@aklapper/types';
+import type { Email, IPlayer, IPlayerClientData } from '@aklapper/types';
 import type { Avatar } from './avatar.js';
 
 export class Player implements IPlayer {
@@ -11,31 +11,6 @@ export class Player implements IPlayer {
   _ActiveGameID: string | null;
   _InLobby: boolean;
   _SocketIoId: string | undefined;
-
-  static PrepareJsonPlayerToSend = function (player: Partial<IPlayer>) {
-    const partialPlayer: Partial<IPlayer> = {
-      name: player.name,
-      id: player.id,
-      email: player.email,
-      activeGameID: player.activeGameID,
-      inLobby: player.inLobby,
-      currentTimeEntered: player.currentTimeEntered,
-    };
-
-    return partialPlayer;
-  };
-
-  static UpdateActivePlayer = function (player: IPlayer, activePlayerMap: IActivePlayers): IPlayer {
-    const playerInstance: IPlayer = activePlayerMap.getPlayer(player.id);
-
-    if (player.activeGameID && player.activeGameID !== playerInstance.activeGameID)
-      playerInstance.activeGameID = player.activeGameID;
-    if (player.socketIoId && playerInstance.socketIoId !== player.socketIoId)
-      playerInstance.socketIoId = player.socketIoId;
-    if (player.inLobby !== playerInstance.inLobby) playerInstance.inLobby = player.inLobby;
-
-    return playerInstance;
-  };
 
   constructor(name: string, id: string, email: Email) {
     this._Name = name;
@@ -75,7 +50,7 @@ export class Player implements IPlayer {
     return this._ActiveGameID;
   }
 
-  public set activeGameID(activeGame: string) {
+  public set activeGameID(activeGame: string | null) {
     this._ActiveGameID = activeGame;
   }
 
@@ -95,7 +70,7 @@ export class Player implements IPlayer {
     return this._SocketIoId;
   }
 
-  public set socketIoId(socketId: string) {
+  public set socketIoId(socketId: string | undefined) {
     this._SocketIoId = socketId;
   }
 
@@ -103,31 +78,25 @@ export class Player implements IPlayer {
     return this._Email;
   }
 
-  // prepareJsonPlayerToSend(): Partial<IPlayer> {
-  //   const partialPlayer: Partial<IPlayer> = {
-  //     name: this.name,
-  //     id: this.id,
-  //     email: this.email,
-  //     activeGameID: this.activeGameID,
-  //     inLobby: this.inLobby,
-  //     currentTimeEntered: this.currentTimeEntered,
-  //   };
+  prepareJsonPlayerToSend(): IPlayerClientData {
+    const partialPlayer: IPlayerClientData = {
+      name: this.name,
+      id: this.id,
+      email: this.email,
+      activeGameID: this.activeGameID,
+      inLobby: this.inLobby,
+      currentTimeEntered: this.currentTimeEntered,
+      socketIoId: this.socketIoId,
+    };
 
-  //   return partialPlayer;
-  // }
+    return partialPlayer;
+  }
 
-  // parseJsonPlayerReceived(jsonPlayer: string): void {
-  //   try {
-  //     const parsedPlayer: IPlayer = JSON.parse(jsonPlayer);
-
-  //     this.inLobby = parsedPlayer.inLobby;
-  //     if (parsedPlayer.socketIoId) this.socketIoId = parsedPlayer.socketIoId;
-  //     if (parsedPlayer.activeGameID) this.activeGameID = parsedPlayer.activeGameID;
-  //   } catch (error) {
-  //     console.error(error);
-  //     throw error;
-  //   }
-  // }
+  updateActivePlayerDetails(player: IPlayerClientData): void {
+    if (this.inLobby !== player.inLobby) this.inLobby = player.inLobby;
+    if (this.socketIoId !== player.socketIoId) this.socketIoId = player.socketIoId;
+    if (this.activeGameID !== player.activeGameID) this.activeGameID = player.activeGameID;
+  }
 }
 
 export default Player;
