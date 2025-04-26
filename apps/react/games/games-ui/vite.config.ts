@@ -9,17 +9,13 @@ export default defineConfig({
   cacheDir: resolve(workspaceRoot, 'node_modules/.vite/apps/games/games-ui'),
   server: {
     port: 4700,
-    host: 'localhost'
+    host: 'localhost',
   },
   preview: {
     port: 4800,
-    host: 'localhost'
+    host: 'localhost',
   },
-  plugins: [
-    react({
-      babel: {}
-    })
-  ],
+  plugins: [react()],
   // Uncomment this if you are using workers.
   // worker: {
   //  plugins: [ nxViteTsPaths() ],
@@ -30,20 +26,20 @@ export default defineConfig({
       '@aklapper/react-shared': resolve(workspaceRoot, 'packages/react-shared/src/index.ts'),
       '@aklapper/games-components': resolve(workspaceRoot, 'packages/games-components/src/index.ts'),
       '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src/index.ts'),
-      '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts')
-    }
+      '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
+    },
   },
 
   build: {
     outDir: './dist',
-    minify: false,
+    minify: process.env.NODE_ENV === 'production',
     emptyOutDir: true,
     manifest: true,
     sourcemap: true,
     reportCompressedSize: true,
     commonjsOptions: {
-      transformMixedEsModules: true
-    }
+      transformMixedEsModules: true,
+    },
   },
   envDir: 'env',
   test: {
@@ -54,7 +50,7 @@ export default defineConfig({
     reporters: ['default'],
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',
-      provider: 'v8'
-    }
-  }
+      provider: 'v8',
+    },
+  },
 });

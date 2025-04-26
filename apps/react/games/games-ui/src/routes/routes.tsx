@@ -18,25 +18,25 @@ const Lobby = lazy(() => import('../pages/lobby/lobby'));
 export default [
   {
     path: '/',
-    element: <Layout />,
-    hydrateFallbackElement: <Waiting src={waiting} />,
+    element: <Layout key={'layout'} />,
+    hydrateFallbackElement: <Waiting key={'waiting'} src={waiting} />,
     id: 'gameList',
     loader: loadGameList,
     children: [
       {
         index: true,
-        element: <Home />,
+        element: <Home key={'home'} />,
       },
       {
         path: 'lobby',
         id: 'lobby',
-        element: <Lobby />,
+        element: <Lobby key={'lobby'} />,
         loader: loadLobbyData,
         children: [
           {
             path: ':id',
             action: registerGameInstanceOnServerAction,
-            errorElement: <NoGameError />,
+            errorElement: <NoGameError key={'no-game-error'} />,
             children: [
               {
                 path: 'register',

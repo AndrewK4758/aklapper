@@ -86,21 +86,25 @@ export const GamesTheme = createTheme({
     divider: __greyLight,
   },
   typography: {
-    fontFamily: 'monospace',
+    fontFamily: 'Fira Mono',
     h1: {
-      fontFamily: 'Jersey25-Charted',
-      color: __secondaryMain,
+      fontFamily: 'Enter Command',
+      color: __greyDark,
+      fontSize: '6rem',
     },
     h2: {
-      fontFamily: 'Pixel-Game',
+      fontFamily: 'Enter Command',
       color: __secondaryLight,
     },
     h3: {
       fontFamily: 'Pixel-Game',
       color: __primaryMain,
     },
+    h4: {
+      fontFamily: 'Enter Command',
+      color: __infoMain,
+    },
     body1: {
-      fontFamily: 'Press-Start',
       color: __textPrimary,
     },
     button: {
@@ -111,8 +115,6 @@ export const GamesTheme = createTheme({
   components: {
     MuiCssBaseline: {
       styleOverrides: {
-        fontSize: '2rem',
-
         '&::-webkit-scrollbar': {
           width: '1rem',
           borderRadius: 1,

@@ -80,6 +80,7 @@ type WsError struct {
 }
 
 type WsAck struct {
+	Event    string `json:"event"`
 	Status   string `json:"status"`
 	Response any    `json:"response"`
 }
@@ -88,6 +89,11 @@ type WsMessage struct {
 	Event string   `json:"event"`
 	Data  any      `json:"data,omitempty"`
 	Error *WsError `json:"error,omitzero"`
+}
+
+type ClientLobbyData struct {
+	ActiveGamesInLobby   []ActiveGame   `json:"activeGamesInLobby"`
+	ActivePlayersInlobby []ActivePlayer `json:"activePlayersInLobby"`
 }
 
 /*

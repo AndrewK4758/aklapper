@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import type { Namespace } from 'socket.io';
 import type { IInstanceOfGame } from '../interfaces/instance-of-game.js';
 import type { ILiteSpace } from '../interfaces/lite-space.js';
-import type { IPlayer, IPlayerClientData } from '../interfaces/player.js';
+import type { IPlayerClientData } from '../interfaces/player.js';
 
 export enum Color {
   UNDEFINED = '',
@@ -132,17 +132,12 @@ export type GameInsanceLobbyData = {
   gameName: string;
   gameInstanceID: string;
   inLobby: boolean;
-  playersArray: IPlayer[] | IPlayerClientData[];
+  playersArray: IPlayerClientData[];
 };
 
-// export type GamesInLobbyPending = {
-//   [gameName: string]: GameInsanceLobbyData[];
-// };
-
-export type NewGameDetails = {
-  // newGameName: GameNameString; // Name of new game being created
-  newGameId: GameInstanceID; // Id of new game being created
-  gamesInLobby: GameInsanceLobbyData[]; // All games in the lobby that are created and waiting for players or start
+export type WsLobbyEventData = {
+  newGameId: GameInstanceID;
+  gamesInLobby: GameInsanceLobbyData[];
 };
 
 export type ClientLobbyData = {
@@ -154,4 +149,4 @@ export interface IGamesInLobby {
   games: Map<GameNameString, IInstanceOfGame>;
 }
 
-export type NewGameCall = { gamesInLobby: GameInsanceLobbyData[]; gameInstanceId: GameInstanceID };
+// export type NewGameCall = { gamesInLobby: GameInsanceLobbyData[]; gameInstanceId: GameInstanceID };

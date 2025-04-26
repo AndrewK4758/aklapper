@@ -6,7 +6,6 @@ export * from './lib/formik/formik-text-input.jsx';
 export * from './lib/formik/select-menu.jsx';
 
 export * from './lib/formik/formik-validation-error.jsx';
-export * from './lib/game_detail/game_detail.jsx';
 export * from './lib/label/label.jsx';
 export * from './lib/render-list/render-list.jsx';
 export * from './lib/tab-label/tab-label.jsx';

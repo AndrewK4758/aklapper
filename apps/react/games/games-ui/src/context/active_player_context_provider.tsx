@@ -4,17 +4,19 @@ import ActivePlayerContext from './active-player-context';
 
 const savedPlayer = localStorage.getItem('activePlayer');
 
+const activePlayerDefault: IPlayerClientData = {
+  name: '',
+  id: '',
+  inLobby: false,
+  activeGameID: null,
+  email: '',
+  currentTimeEntered: '',
+  socketIoId: undefined,
+};
+
 const activePlayerInit: IPlayerClientData = savedPlayer
   ? (JSON.parse(savedPlayer) as IPlayerClientData)
-  : {
-      name: '',
-      id: '',
-      inLobby: false,
-      activeGameID: null,
-      email: '',
-      currentTimeEntered: '',
-      socketIoId: undefined,
-    };
+  : activePlayerDefault;
 
 interface ActivePlayerContextProviderProps {
   children?: ReactNode;
@@ -25,15 +27,7 @@ export default function ActivePlayerContextProvider({ children }: ActivePlayerCo
 
   const deleteActivePlayer = () => {
     localStorage.removeItem('activePlayer');
-    setActivePlayer({
-      name: '',
-      id: '',
-      inLobby: false,
-      activeGameID: null,
-      email: '',
-      currentTimeEntered: '',
-      socketIoId: undefined,
-    });
+    setActivePlayer(activePlayerDefault);
   };
 
   const removeFromLobby = () => {

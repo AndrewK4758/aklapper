@@ -1,21 +1,25 @@
-import type { PlayerID, SocketCallback, WsResponse } from '@aklapper/types';
+import type { IPlayerClientData, PlayerID, SocketCallback } from '@aklapper/types';
 import type { Socket } from 'socket.io';
 import useActivePlayersMap from 'src/middleware/use_active_players_map.js';
-import go_leaveLobby from 'src/services/lobby/handle_leave_lobby.js';
-import { socketConnectionMap } from '../main.js';
+import Go_WsEventManager from 'src/models/go_websocket_manager.js';
+import { lobbySocketServer, socketConnectionMap } from '../main.js';
 
 const handleLeaveLobby: SocketCallback = (event: string, socket: Socket) => {
   socket.on(event, async (playerID: PlayerID) => {
     const activePlayers = useActivePlayersMap();
 
-    const leaveLobbyResponse: WsResponse = await go_leaveLobby('remove-player', playerID);
+    const leaveLobbyResponse = await new Go_WsEventManager<IPlayerClientData[], PlayerID>()
+      .setEventName('remove-player')
+      .setEventHandlerName('deleted-player')
+      .setEventData(playerID)
+      .setPendingRequestKey(playerID)
+      .build();
 
-    const { status, response } = leaveLobbyResponse;
+    activePlayers.deletePlayerFromLobby(playerID);
+    socketConnectionMap.delete(playerID);
 
-    if (status === 'success') {
-      activePlayers.deletePlayerFromLobby(playerID);
-      socketConnectionMap.delete(response as string);
-    }
+    console.log(leaveLobbyResponse);
+    lobbySocketServer.emit('deleted-player', leaveLobbyResponse);
   });
 };
 

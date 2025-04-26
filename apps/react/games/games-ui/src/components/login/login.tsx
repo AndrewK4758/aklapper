@@ -8,7 +8,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import type { SxProps } from '@mui/material/styles';
 import axios from 'axios';
 import { useFormik, type FormikProps } from 'formik';
-import { useContext, useEffect, useRef, type ChangeEvent, type Dispatch, type SetStateAction } from 'react';
+import { useContext, useEffect, useRef, useState, type ChangeEvent, type Dispatch, type SetStateAction } from 'react';
 import { Form, useNavigate, type NavigateFunction } from 'react-router';
 import * as Yup from 'yup';
 import ActivePlayerContext, { type ActivePlayerContextProps } from '../../context/active-player-context';
@@ -42,15 +42,23 @@ interface RegisterPlayerProps {
 
 export default function LoginPlayer({ method, index, tab, inputSx, ContainerProps }: RegisterPlayerProps) {
   const { setActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
+  const [submitPressed, setSubmitPressed] = useState<boolean>(false);
   const nav = useNavigate();
 
   const ref = useRef<HTMLInputElement>(null);
 
+  const { signal, abort } = new AbortController();
   const formik: FormikProps<Partial<IPlayerClientData>> = useFormik<Partial<IPlayerClientData>>({
     initialValues: initialValues,
     validationSchema: validationSchema,
-    onSubmit: async values => handleNewPlayerSubmit(values, setActivePlayer, nav, formik),
+    onSubmit: async values => handleNewPlayerSubmit(values, setActivePlayer, setSubmitPressed, nav, formik, signal),
   });
+
+  useEffect(() => {
+    return () => {
+      if (submitPressed) abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (ref.current) ref.current.focus();
@@ -81,6 +89,7 @@ export default function LoginPlayer({ method, index, tab, inputSx, ContainerProp
             tooltipSx={tooltipSx}
           />
           <OutlinedInput
+            autoComplete='on'
             inputRef={ref}
             id={'login-email'}
             value={formik.values.email}
@@ -117,16 +126,20 @@ const baseUrl = import.meta.env.VITE_REST_API_SERVER_URL_V2;
 async function handleNewPlayerSubmit(
   values: Partial<IPlayerClientData>,
   setActivePlayer: Dispatch<SetStateAction<IPlayerClientData>>,
+  setSubmitPressed: Dispatch<SetStateAction<boolean>>,
   nav: NavigateFunction,
   formik: FormikProps<Partial<IPlayerClientData>>,
+  signal: AbortSignal,
 ): Promise<void> {
   try {
+    setSubmitPressed(true);
+
     const { email } = values as Partial<IPlayerClientData>;
 
     const resp = await axios.post(
       `${baseUrl}/login`,
       { login: email },
-      { headers: { 'Content-Type': 'application/json' } },
+      { headers: { 'Content-Type': 'application/json' }, signal: signal },
     );
 
     const { name, id, activeGameID, inLobby, currentTimeEntered } = resp.data as IPlayerClientData;
@@ -151,6 +164,8 @@ async function handleNewPlayerSubmit(
 
     await formik.setFieldTouched('email', true);
     formik.setFieldError('email', 'Email not registered. Please register player to continue');
+  } finally {
+    setSubmitPressed(false);
   }
 }
 

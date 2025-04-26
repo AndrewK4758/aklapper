@@ -3,15 +3,15 @@ import type { IAvatar } from './avatar.js';
 export type Email = `${string}@${string}.${string}` | '';
 
 export interface IPlayer {
-  readonly _Name: string;
-  readonly _Id: string;
-  readonly _CurrentTimeEntered: string;
-  readonly _Email: Email;
-  _Order: number;
-  _Avatar: IAvatar;
-  _ActiveGameID: string | null;
-  _InLobby: boolean;
-  _SocketIoId: string | undefined;
+  // readonly _Name: string;
+  // readonly _Id: string;
+  // readonly _CurrentTimeEntered: string;
+  // readonly _Email: Email;
+  // _Order: number;
+  // _Avatar: IAvatar;
+  // _ActiveGameID: string | null;
+  // _InLobby: boolean;
+  // _SocketIoId: string | undefined;
 
   get name(): string;
   get id(): string;

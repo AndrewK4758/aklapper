@@ -3,7 +3,9 @@ import { configDotenv } from 'dotenv';
 import { Prisma, PrismaClient } from '../../generated/client.js';
 import url from './get-prisma-db-url.js';
 
-configDotenv();
+const g = configDotenv();
+
+console.log(g);
 
 const prismaClient = new PrismaClient({
   datasourceUrl: url(process.env['NODE_ENV'] as string),

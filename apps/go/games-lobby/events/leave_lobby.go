@@ -31,7 +31,13 @@ func HandleLeaveLobby(ws *websocket.Conn, eventData lobbydata.WsMessage) {
 		return
 	}
 
-	eventAck := lobbydata.WsAck{Status: "success", Response: playerID}
+	activePlayers := []lobbydata.ActivePlayer{}
+
+	for _, activePlayer := range lobbydata.ActivePlayers {
+		activePlayers = append(activePlayers, *activePlayer)
+	}
+
+	eventAck := lobbydata.WsAck{Status: "success", Event: playerID, Response: activePlayers}
 
 	event := lobbydata.WsMessage{
 		Event: "deleted-player",

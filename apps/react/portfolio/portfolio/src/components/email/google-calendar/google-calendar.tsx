@@ -4,6 +4,7 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
+// import type { PickerValue } from '@mui/x-date-pickers/internals';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { useGoogleLogin, type CodeResponse } from '@react-oauth/google';
 import axios from 'axios';
@@ -14,7 +15,7 @@ import { Form, useNavigation } from 'react-router';
 import {
   GoogleUserContext,
   type GoogleUserContextInfo,
-  type GoogleUserContextProps
+  type GoogleUserContextProps,
 } from '../../../contexts/contact-context.jsx';
 import {
   connectGoogleCalendarButtonSxProps,
@@ -24,7 +25,7 @@ import {
   startTimePickerSlotProps,
   timePickerLabelSxProps,
   timePickerSxProps,
-  timePickerWrapperSxProps
+  timePickerWrapperSxProps,
 } from '../../../styles/header-styles.jsx';
 import { flexColumnStyles } from '../../../styles/pages-styles.jsx';
 
@@ -42,7 +43,7 @@ type TimesAndDates = {
 const initState: TimesAndDates = {
   startTime: minTime,
   endTime: minTime.add(1, 'hour'),
-  date: tomorrow
+  date: tomorrow,
 };
 
 interface GoogleCalendarProps {
@@ -58,22 +59,22 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
     onSuccess: code => onGoogleSuccess(code, setUser),
     onError: err => console.error(err),
     flow: 'auth-code',
-    scope: 'https://www.googleapis.com/auth/calendar.events'
+    scope: 'https://www.googleapis.com/auth/calendar.events',
   });
 
   return (
     <Container
       component={'div'}
       key={'google-calendar-wrapper'}
-      id="google-calendar-wrapper"
-      data-testid="google-calendar-wrapper"
+      id='google-calendar-wrapper'
+      data-testid='google-calendar-wrapper'
       sx={{ ...flexColumnStyles, flex: 1 }}
     >
       <Box
         component={'section'}
         key={'google-calendar-auth-box'}
-        id="google-calendar-auth-box"
-        data-testid="google-calendar-auth-box"
+        id='google-calendar-auth-box'
+        data-testid='google-calendar-auth-box'
         display={'flex'}
         justifyContent={'center'}
         alignContent={'center'}
@@ -81,12 +82,12 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
         <Button
           LinkComponent={'button'}
           key={'google-auth-button'}
-          id="google-auth-button"
-          data-testid="google-auth-button"
+          id='google-auth-button'
+          data-testid='google-auth-button'
           onClick={() => login()}
         >
           <Label
-            id="google-auth-button-label"
+            id='google-auth-button-label'
             tooltipTitle={'Connect your Google Calendar to sync appointment request with your Google Calendar'}
             labelVariant={'button'}
             labelText={'Connect Google Calendar'}
@@ -94,19 +95,19 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
             htmlFor={'google-auth-button'}
             labelWrapperDivSxProps={{ display: 'flex', alignItems: 'center', gap: 2 }}
             labelTextSx={connectGoogleCalendarButtonSxProps}
-            Icon={<GoogleIcon color="inherit" fontSize="inherit" />}
+            Icon={<GoogleIcon color='inherit' fontSize='inherit' />}
           />
         </Button>
       </Box>
       <Box
         component={'section'}
         key={'google-calendar-components-box'}
-        id="google-calendar-components-box"
-        data-testid="google-calendar-components-box"
+        id='google-calendar-components-box'
+        data-testid='google-calendar-components-box'
         sx={{
           ...flexColumnStyles,
           alignItems: 'center',
-          flex: 1
+          flex: 1,
         }}
       >
         <Form
@@ -114,20 +115,20 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
           style={{
             ...(flexColumnStyles as CSSProperties),
             width: '100%',
-            flex: 1
+            flex: 1,
           }}
         >
           <Box
             component={'section'}
             key={'date-picker-wrapper'}
-            id="date-picker-wrapper"
-            data-testid="date-picker-wrapper"
+            id='date-picker-wrapper'
+            data-testid='date-picker-wrapper'
             sx={{
               ...flexColumnStyles,
               width: '100%',
               flex: '3 1 auto',
               alignContent: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
             }}
           >
             <DateCalendar
@@ -138,7 +139,7 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
               disablePast={true}
               defaultValue={tomorrow}
               value={values.date}
-              onChange={data => setValues({ ...values, date: data })}
+              onChange={data => setValues({ ...values, date: data as Dayjs })}
               slotProps={dateCalendarSlotProps}
               sx={dateCalendarSxProps}
             />
@@ -146,13 +147,13 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
           <Box
             component={'section'}
             key={'time-pickers-wrapper'}
-            id="time-pickers-wrapper"
-            data-testid="time-pickers-wrapper"
+            id='time-pickers-wrapper'
+            data-testid='time-pickers-wrapper'
             sx={timePickerWrapperSxProps}
           >
             <Label
-              id="time-pickers-label"
-              htmlFor=""
+              id='time-pickers-label'
+              htmlFor=''
               tooltipTitle={
                 'Time must be between 8:30am and 8:00pm EST. Start & End time must be minimun of 1 hour range'
               }
@@ -167,12 +168,12 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
               data-testid={'start-time-picker'}
               label={
                 <Label
-                  id="start-time-picker-label"
-                  htmlFor="start-time-picker"
-                  placement="top"
-                  tooltipTitle="Enter requested appointment start time"
-                  labelVariant="body1"
-                  labelText="Start Time"
+                  id='start-time-picker-label'
+                  htmlFor='start-time-picker'
+                  placement='top'
+                  tooltipTitle='Enter requested appointment start time'
+                  labelVariant='body1'
+                  labelText='Start Time'
                   labelTextSx={timePickerSxProps}
                 />
               }
@@ -189,12 +190,12 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
               data-testid={'end-time-picker'}
               label={
                 <Label
-                  id="end-time-picker-label"
-                  htmlFor="end-time-picker"
-                  placement="top"
-                  tooltipTitle="Enter requested appointment end time"
-                  labelVariant="body1"
-                  labelText="End Time"
+                  id='end-time-picker-label'
+                  htmlFor='end-time-picker'
+                  placement='top'
+                  tooltipTitle='Enter requested appointment end time'
+                  labelVariant='body1'
+                  labelText='End Time'
                   labelTextSx={timePickerSxProps}
                 />
               }
@@ -209,8 +210,8 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
           <Box
             component={'section'}
             key={'google-calendar-submit-box'}
-            id="google-calendar-submit-box"
-            data-testid="google-calendar-submit-box"
+            id='google-calendar-submit-box'
+            data-testid='google-calendar-submit-box'
             height={'fit-content'}
             display={'flex'}
             justifyContent={'flex-end'}
@@ -218,11 +219,11 @@ const GoogleCalendar = ({ setOpen }: GoogleCalendarProps) => {
           >
             {state !== 'submitting' && GoogleUserContextValues.name.length ? (
               <Button
-                type="submit"
+                type='submit'
                 LinkComponent={'button'}
                 key={'calendar-submit-button'}
-                id="calendar-submit-buttom"
-                data-testid="calendar-submit-buttom"
+                id='calendar-submit-buttom'
+                data-testid='calendar-submit-buttom'
               >
                 Submit Event
               </Button>
@@ -262,37 +263,38 @@ const onGoogleSuccess = async (code: CodeResponse, setUser: Dispatch<SetStateAct
 
 const handleSubmitEvent = async (
   { date, startTime, endTime }: TimesAndDates,
-  setOpen: Dispatch<SetStateAction<boolean>>
+  setOpen: Dispatch<SetStateAction<boolean>>,
 ) => {
   try {
-    const tempStartDateTime = date.toDate();
-    const tempEndDateTime = date.toDate();
+    if (date && startTime && endTime) {
+      const tempStartDateTime = date.toDate();
+      const tempEndDateTime = date.toDate();
 
-    const startHours = startTime.get('hours');
-    const startMinutes = startTime.get('minutes');
+      const startHours = startTime.get('hours');
+      const startMinutes = startTime.get('minutes');
 
-    const endHours = endTime.get('hours');
-    const endMinutes = endTime.get('minutes');
+      const endHours = endTime.get('hours');
+      const endMinutes = endTime.get('minutes');
 
-    tempStartDateTime.setHours(startHours);
-    tempStartDateTime.setMinutes(startMinutes);
+      tempStartDateTime.setHours(startHours);
+      tempStartDateTime.setMinutes(startMinutes);
 
-    tempEndDateTime.setHours(endHours);
-    tempEndDateTime.setMinutes(endMinutes);
+      tempEndDateTime.setHours(endHours);
+      tempEndDateTime.setMinutes(endMinutes);
 
-    const startDateTime = tempStartDateTime.toISOString();
-    const endDateTime = tempEndDateTime.toISOString();
+      const startDateTime = tempStartDateTime.toISOString();
+      const endDateTime = tempEndDateTime.toISOString();
 
-    const result = await axios.post(
-      `${baseURL}/create-events`,
-      { start: startDateTime, end: endDateTime },
-      {
-        withCredentials: true
-      }
-    );
+      const result = await axios.post(
+        `${baseURL}/create-events`,
+        { start: startDateTime, end: endDateTime },
+        {
+          withCredentials: true,
+        },
+      );
 
-    if (result) setOpen(false);
-
+      if (result) setOpen(false);
+    }
     return null;
   } catch (error) {
     console.error(error);

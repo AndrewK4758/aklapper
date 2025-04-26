@@ -1,6 +1,5 @@
 import { Text } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardHeader from '@mui/material/CardHeader';
 import Container from '@mui/material/Container';
@@ -10,41 +9,27 @@ import ListItem from '@mui/material/ListItem';
 import type { SxProps } from '@mui/material/styles';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import { useContext, useState } from 'react';
+import { useState } from 'react';
 import LoginPlayer from '../../components/login/login';
 import RegisterPlayer from '../../components/register-player/register-player';
-import ActivePlayerContext, { type ActivePlayerContextProps } from '../../context/active-player-context';
-import { GamesTheme as Theme } from '../../styles/games-theme';
-
-const homePageTitleText: SxProps = {
-  [Theme.breakpoints.down('md')]: {
-    fontSize: '4rem',
-  },
-};
-
-const registerPlayerFormSxProps: SxProps = {
-  width: '100%',
-};
 
 const Home = () => {
-  const { activePlayer, deleteActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
   const [tab, setTab] = useState<number>(0);
 
   return (
     <Box
       component={'div'}
       id='home-page-wrapper'
-      sx={{ display: 'flex', flexDirection: 'column', gap: 10, paddingY: 2 }}
+      sx={{ display: 'flex', flexDirection: 'column', gap: 10, paddingY: 4 }}
     >
-      <Text component={'h1'} titleVariant='h1' titleText='Welcome To My Game' sx={homePageTitleText} />
       <Box component={'section'} id='home-page-instructions-register-wrapper' sx={{ display: 'flex' }}>
         <Card component={'section'} id='home-page-instructions-wrapper'>
           <CardHeader
             component='section'
-            title={<Text titleVariant='h2' component={'h2'} titleText='Instructions' />}
+            title={<Text titleVariant='h2' component={'h2'} titleText='Instructions' sx={{ textAlign: 'center' }} />}
           />
           <Divider variant='middle' />
-          <List component={'ul'} id='intructions-list' sx={{ paddingY: 4 }}>
+          <List component={'ul'} id='intructions-list' sx={{ paddingY: 4, fontSize: '1.25rem' }}>
             <ListItem component={'li'} id='instruction-1'>
               Submit your player name to enter the Game Lobby
             </ListItem>
@@ -71,23 +56,12 @@ const Home = () => {
             onChange={(_, newVal) => {
               setTab(newVal);
             }}
-            sx={{}}
           >
-            <Tab label={'Register'} {...tabProps(0)} />
-            <Tab label={'Login'} {...tabProps(1)} />
+            <Tab label={'Register'} tabIndex={1} {...tabProps(0)} />
+            <Tab label={'Login'} tabIndex={2} {...tabProps(1)} />
           </Tabs>
           <RegisterPlayer method={'POST'} index={0} tab={tab} inputSx={registerPlayerFormSxProps} />
           <LoginPlayer method='POST' index={1} tab={tab} inputSx={registerPlayerFormSxProps} />
-          {activePlayer.name && (
-            <Button
-              id='logout-player'
-              variant='outlined'
-              onClick={() => handleLogoutPlayer(deleteActivePlayer)}
-              sx={registerPlayerFormSxProps}
-            >
-              Logout
-            </Button>
-          )}
         </Container>
       </Box>
     </Box>
@@ -96,8 +70,8 @@ const Home = () => {
 
 export default Home;
 
-function handleLogoutPlayer(deleteActivePlayer: () => void) {
-  deleteActivePlayer();
-}
+const registerPlayerFormSxProps: SxProps = {
+  width: '100%',
+};
 
 const tabProps = (index: number) => ({ id: `simple-tab-${index}`, 'aria-controls': `simple-tabpanel-${index}` });

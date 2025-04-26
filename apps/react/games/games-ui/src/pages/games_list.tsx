@@ -1,9 +1,10 @@
-import { GameDetail, RenderList } from '@aklapper/react-shared';
+import { RenderList } from '@aklapper/react-shared';
 import type { GameInsanceLobbyData, IBuiltGame } from '@aklapper/types';
 import Grid from '@mui/material/Grid';
 import type { Dispatch, SetStateAction } from 'react';
 import { lazy, useState } from 'react';
 import { useRouteLoaderData } from 'react-router';
+import GameDetail from '../components/game_detail/game_detail';
 
 const GameDetails = lazy(() => import('./game_details'));
 
@@ -24,7 +25,7 @@ const GamesList = ({ activeGames }: GamesListProps) => {
         columnSpacing={2}
         sx={{
           p: 2,
-          border: 5,
+
           height: '100%',
         }}
       >

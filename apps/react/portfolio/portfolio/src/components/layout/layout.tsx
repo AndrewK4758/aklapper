@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Link, Outlet } from 'react-router';
 import Home from '../../pages/home/home.jsx';
 import {
-  baseStyleForLayoutItems,
+  // baseStyleForLayoutItems,
   footerWrapperSxProps,
   homeWrapperSxProps,
   mainWrapperSxProps,
@@ -23,7 +23,8 @@ const Layout = (): JSX.Element => {
   const [loading, setLoading] = useState<boolean>(false);
 
   return (
-    <Box key={'app-wrapper'} id='app-wrapper' data-testid='app-wrapper' sx={baseStyleForLayoutItems}>
+    // <Box key={'app-wrapper'} id='app-wrapper' data-testid='app-wrapper' sx={baseStyleForLayoutItems}>
+    <>
       <Header />
       <Box component={'main'} key={'main-wrapper'} id='main-wrapper' data-testid='main-wrapper' sx={mainWrapperSxProps}>
         <Box
@@ -56,7 +57,8 @@ const Layout = (): JSX.Element => {
           Privacy Policy
         </Link>
       </Box>
-    </Box>
+    </>
+    // </Box>
   );
 };
 

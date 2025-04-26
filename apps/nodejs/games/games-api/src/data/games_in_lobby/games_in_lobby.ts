@@ -1,12 +1,13 @@
-import type { GameInsanceLobbyData, GameNameString, IGamesInLobby, IInstanceOfGame } from '@aklapper/types';
+import type { InstanceOfGame } from '@aklapper/models';
+import type { GameInsanceLobbyData, GameNameString, IGamesInLobby } from '@aklapper/types';
 
 class GamesInLobby implements IGamesInLobby {
-  games: Map<string, IInstanceOfGame>;
+  games: Map<string, InstanceOfGame>;
   constructor() {
-    this.games = new Map<GameNameString, IInstanceOfGame>();
+    this.games = new Map<GameNameString, InstanceOfGame>();
   }
 
-  get map(): Map<string, IInstanceOfGame> {
+  get map(): Map<string, InstanceOfGame> {
     return this.games;
   }
 
@@ -14,12 +15,12 @@ class GamesInLobby implements IGamesInLobby {
     return this.games.has(gameId);
   }
 
-  getGameActiveGame(gameId: string): IInstanceOfGame {
-    if (this.hasGame(gameId) && this.hasGame(gameId) !== undefined) return this.games.get(gameId) as IInstanceOfGame;
+  getGameActiveGame(gameId: string): InstanceOfGame {
+    if (this.hasGame(gameId) && this.hasGame(gameId) !== undefined) return this.games.get(gameId) as InstanceOfGame;
     else throw new Error('No Instance Of Game exists');
   }
 
-  addGame(gameId: string, gameInstance: IInstanceOfGame): void {
+  addGame(gameId: string, gameInstance: InstanceOfGame): void {
     this.map.set(gameId, gameInstance);
   }
 
@@ -38,7 +39,7 @@ class GamesInLobby implements IGamesInLobby {
         gameName: instance.instance.instance.NAME,
         gameInstanceID: gameId,
         inLobby: instance.inLobby,
-        playersArray: instance.instance.playersArray,
+        playersArray: instance.instance.playersArray.map(p => p.prepareJsonPlayerToSend()),
       };
 
       dataToSend.push(gameInLobby);

@@ -11,15 +11,9 @@ describe('Test Layout Component', () => {
       baseComponent = render(
         <BrowserRouter>
           <Layout />
-        </BrowserRouter>
+        </BrowserRouter>,
       );
     });
-  });
-
-  it('Should render the app-wrapper div', async () => {
-    const appWrapper = await baseComponent.findByTestId('app-wrapper');
-
-    expect(appWrapper).toHaveAttribute('id', 'app-wrapper');
   });
 
   it('Should render the main component', async () => {

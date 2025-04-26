@@ -2,15 +2,15 @@ import type { Email, IPlayer, IPlayerClientData } from '@aklapper/types';
 import type { Avatar } from './avatar.js';
 
 export class Player implements IPlayer {
-  readonly _Name: string;
-  readonly _Id: string;
-  readonly _CurrentTimeEntered: string;
-  readonly _Email: Email;
-  _Order!: number;
-  _Avatar!: Avatar;
-  _ActiveGameID: string | null;
-  _InLobby: boolean;
-  _SocketIoId: string | undefined;
+  private readonly _Name: string;
+  private readonly _Id: string;
+  private readonly _CurrentTimeEntered: string;
+  private readonly _Email: Email;
+  private _Order!: number;
+  private _Avatar!: Avatar;
+  private _ActiveGameID: string | null;
+  private _InLobby: boolean;
+  private _SocketIoId: string | undefined;
 
   constructor(name: string, id: string, email: Email) {
     this._Name = name;
@@ -93,7 +93,7 @@ export class Player implements IPlayer {
   }
 
   updateActivePlayerDetails(player: IPlayerClientData): void {
-    if (this.inLobby !== player.inLobby) this.inLobby = player.inLobby;
+    if (this.inLobby === false) this.inLobby = player.inLobby;
     if (this.socketIoId !== player.socketIoId) this.socketIoId = player.socketIoId;
     if (this.activeGameID !== player.activeGameID) this.activeGameID = player.activeGameID;
   }

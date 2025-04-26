@@ -4,7 +4,7 @@ import { cwd } from 'node:process';
 import { defineConfig } from 'vitest/config';
 
 const modules = {
-  '@aklapper/chinook-client': resolve(workspaceRoot, 'packages/prisma/src/index.ts')
+  '@aklapper/chinook-client': resolve(workspaceRoot, 'packages/prisma/chinook/src/index.ts'),
 };
 
 const config = defineConfig({
@@ -22,9 +22,9 @@ const config = defineConfig({
     reporters: ['default'],
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',
-      provider: 'v8'
-    }
-  }
+      provider: 'v8',
+    },
+  },
 });
 
 export default config;

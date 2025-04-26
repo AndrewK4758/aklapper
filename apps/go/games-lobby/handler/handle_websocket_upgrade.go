@@ -80,5 +80,8 @@ func handleTextListenEvent(ws *websocket.Conn, message []byte) {
 	case "new-game":
 		events.HandeNewGame(ws, msgData)
 		return
+	case "data-sync-request":
+		events.HandleSyncLobbyData(ws, msgData)
 	}
+
 }

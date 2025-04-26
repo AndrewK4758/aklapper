@@ -1,18 +1,20 @@
 import { Text } from '@aklapper/react-shared';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
-import Button from '@mui/material/Button';
+import type { SxProps } from '@mui/material';
+import ButtonBase from '@mui/material/ButtonBase';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import type { SxProps } from '@mui/material/styles';
-import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useContext, useRef, useState } from 'react';
+import { useLocation, useNavigate, type NavigateFunction } from 'react-router';
+import ActivePlayerContext, { type ActivePlayerContextProps } from '../../../context/active-player-context';
+import { __errorLight, __errorMain, __greyDark, __infoDark, __infoLight } from '../../../styles/colors';
+import { GamesTheme } from '../../../styles/games-theme';
 
-export interface HeaderMenuProps {
-  breakpointsMenu?: SxProps;
-}
-
-export function HeaderMenu({ breakpointsMenu }: HeaderMenuProps) {
+export function HeaderMenu() {
+  const { activePlayer, deleteActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
+  const { pathname } = useLocation();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const menuItemTextRef = useRef<HTMLSpanElement[]>([]);
   const open = Boolean(anchorEl);
 
   const nav = useNavigate();
@@ -29,18 +31,24 @@ export function HeaderMenu({ breakpointsMenu }: HeaderMenuProps) {
   };
   return (
     <>
-      <Button
-        LinkComponent={'nav'}
+      <ButtonBase
+        LinkComponent={'button'}
+        component={'button'}
+        aria-label='open nav menu'
         role='button'
         color='inherit'
-        size='large'
         disableRipple
         onClick={handleOpenMenu}
-        startIcon={<MenuRoundedIcon htmlColor='inherit' sx={{ scale: 1.5 }} />}
-        sx={{ paddingY: 0 }}
+        sx={{ flex: '0 1 86px' }}
+        onFocus={e => {
+          e.currentTarget.style.color = GamesTheme.palette.warning.main;
+        }}
+        onBlur={e => {
+          e.currentTarget.style.color = 'inherit';
+        }}
       >
-        <Text component={'span'} titleVariant='button' titleText={'MENU'} sx={breakpointsMenu} />
-      </Button>
+        <MenuRoundedIcon component={'svg'} color='inherit' sx={{ scale: 2.5 }} />
+      </ButtonBase>
 
       <Menu
         component={'ul'}
@@ -48,17 +56,103 @@ export function HeaderMenu({ breakpointsMenu }: HeaderMenuProps) {
         anchorEl={anchorEl}
         onClose={handleCloseMenu}
         variant='menu'
+        slotProps={{
+          paper: {
+            sx: {
+              backgroundColor: __greyDark,
+            },
+          },
+        }}
         sx={{ textAlign: 'center' }}
       >
-        <MenuItem divider={true} component='li' onClick={() => handleClick('/')}>
-          {'HOME'}
+        {pathname !== '/lobby' && (
+          <MenuItem
+            divider={true}
+            component='li'
+            onClick={() => handleClick('/')}
+            sx={{ fontSize: '3rem' }}
+            onMouseEnter={() => {
+              if (menuItemTextRef.current) menuItemTextRef.current[0].style.color = __infoLight;
+            }}
+            onMouseLeave={() => {
+              if (menuItemTextRef.current) menuItemTextRef.current[0].style.color = __infoDark;
+            }}
+          >
+            <Text
+              titleVariant='h4'
+              component={'h4'}
+              titleText={'HOME'}
+              TypogrpahyProps={{
+                ref: e => {
+                  if (e) menuItemTextRef.current[0] = e;
+                },
+              }}
+            />
+          </MenuItem>
+        )}
+        <MenuItem
+          divider={true}
+          component='li'
+          onClick={() => handleClick('/lobby')}
+          sx={{ fontSize: '3rem' }}
+          onMouseEnter={() => {
+            if (menuItemTextRef.current) menuItemTextRef.current[1].style.color = __infoLight;
+          }}
+          onMouseLeave={() => {
+            if (menuItemTextRef.current) menuItemTextRef.current[1].style.color = __infoDark;
+          }}
+        >
+          <Text
+            titleVariant='h4'
+            component={'h4'}
+            titleText={'LOBBY'}
+            TypogrpahyProps={{
+              ref: e => {
+                if (e) menuItemTextRef.current[1] = e;
+              },
+            }}
+          />
         </MenuItem>
-        <MenuItem divider={true} component='li' onClick={() => handleClick('/games')}>
-          {'SHOW GAMES'}
-        </MenuItem>
+        {activePlayer.name && (
+          <MenuItem
+            divider={true}
+            component={'li'}
+            onMouseEnter={() => {
+              if (menuItemTextRef.current) menuItemTextRef.current[2].style.color = __errorLight;
+            }}
+            onMouseLeave={() => {
+              if (menuItemTextRef.current) menuItemTextRef.current[2].style.color = __errorMain;
+            }}
+          >
+            <Text
+              id='logout-player'
+              titleVariant='h4'
+              component={'h4'}
+              titleText={'Logout'}
+              TypogrpahyProps={{
+                ref: e => {
+                  if (e) menuItemTextRef.current[2] = e;
+                },
+                color: 'error',
+                onClick: () => handleLogoutPlayer(deleteActivePlayer, nav),
+              }}
+              sx={registerPlayerFormSxProps}
+            />
+          </MenuItem>
+        )}
       </Menu>
     </>
   );
 }
 
 export default HeaderMenu;
+
+const registerPlayerFormSxProps: SxProps = {
+  width: '100%',
+  background: 'transparant',
+};
+
+function handleLogoutPlayer(deleteActivePlayer: () => void, nav: NavigateFunction) {
+  deleteActivePlayer();
+  nav('/');
+}

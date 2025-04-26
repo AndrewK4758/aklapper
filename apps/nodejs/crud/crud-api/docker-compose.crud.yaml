@@ -6,7 +6,7 @@ services:
     volumes:
       - ./src/assets/crud-init.sql:/docker-entrypoint-initb.d/init.sql
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d aklapper']
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d postgres']
       interval: 10s
       timeout: 5s
       retries: 5

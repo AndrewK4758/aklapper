@@ -1,9 +1,9 @@
 import { PrismaErrorLogger, type PrismaClientErrors } from '@aklapper/games-client';
 import { Player } from '@aklapper/games-components';
-import type { IPlayerClientData, WsResponse } from '@aklapper/types';
+import type { IPlayerClientData, PlayerID /*WsResponse*/ } from '@aklapper/types';
 import type { Request, Response } from 'express';
 import ShortUniqueId from 'short-unique-id';
-import go_AddPlayerToLobby from 'src/services/lobby/handle_new_player_in_lobby.js';
+import Go_WsEventManager from 'src/models/go_websocket_manager.js';
 import addPlayerToDb from 'src/services/prisma/add_player.js';
 import useActivePlayersMap from '../../middleware/use_active_players_map.js';
 
@@ -28,13 +28,20 @@ export default async function registerPlayerName(req: Request, resp: Response): 
     const playerInDB = await addPlayerToDb(newActivePlayer);
 
     if (playerInDB) {
-      const enterLobbyResponse: WsResponse = await go_AddPlayerToLobby('new-player', clientPlayerInfo);
+      const addedPlayerId = await new Go_WsEventManager<PlayerID, IPlayerClientData>()
+        .setEventName('new-player')
+        .setEventHandlerName('player-added')
+        .setEventData(clientPlayerInfo)
+        .setPendingRequestKey(playerId)
+        .build();
+      // await go_wsEventHandler<IPlayerClientData, PlayerID>(
+      // 'new-player',
+      // 'player-added',
+      // clientPlayerInfo,
+      // );
 
-      const { status, response } = enterLobbyResponse;
-      if (status === 'success') {
-        activePlayers.addPlayer(playerId, newActivePlayer);
-        resp.status(201).json(clientPlayerInfo);
-      } else throw new Error(response as string);
+      activePlayers.addPlayer(addedPlayerId, newActivePlayer);
+      resp.status(201).json(clientPlayerInfo);
     }
     // Add Service call to DB to store player info if I decide to maintain state past current session
   } catch (error) {

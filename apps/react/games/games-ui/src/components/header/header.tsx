@@ -1,24 +1,23 @@
 import AppBar from '@mui/material/AppBar';
-import Avatar from '@mui/material/Avatar';
-import type { SxProps } from '@mui/material/styles';
 import Toolbar from '@mui/material/Toolbar';
-import { type ElementType, useContext } from 'react';
+import { useContext } from 'react';
+import { type Location, useLocation } from 'react-router';
 import ActivePlayerContext, { type ActivePlayerContextProps } from '../../context/active-player-context';
+import { headerToolbarSx } from '../../styles/header-styles';
+import HeaderAvatar from './avatar/avatar';
 import HeaderMenu from './header-menu/header-menu';
+import SelectTitle from './title/select-title';
 
-export interface HeaderProps {
-  componentAppBar: ElementType;
-  sxAppBar?: SxProps;
-}
-
-export const Header = ({ componentAppBar, sxAppBar }: HeaderProps) => {
+const Header = () => {
   const { activePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
+  const { pathname }: Location = useLocation();
 
   return (
-    <AppBar elevation={0} component={componentAppBar} color='primary' enableColorOnDark sx={sxAppBar}>
-      <Toolbar variant='dense' sx={{ justifyContent: 'space-between' }}>
+    <AppBar position='sticky' component={'header'} enableColorOnDark>
+      <Toolbar variant='dense' sx={headerToolbarSx}>
         <HeaderMenu />
-        {activePlayer.name && <Avatar sx={{ fontSize: '2rem' }}>{activePlayer.name[0]}</Avatar>}
+        <SelectTitle pathname={pathname} />
+        {activePlayer.name && <HeaderAvatar activePlayer={activePlayer} />}
       </Toolbar>
     </AppBar>
   );

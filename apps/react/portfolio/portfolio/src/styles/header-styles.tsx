@@ -1,9 +1,8 @@
 import type { PaperProps } from '@mui/material/Paper';
 import type { SxProps } from '@mui/material/styles';
-import type { DateCalendarSlotProps } from '@mui/x-date-pickers/DateCalendar/index.js';
-import type { DateTimePickerSlotProps } from '@mui/x-date-pickers/DateTimePicker/index.js';
-import type { TimePickerSlotProps } from '@mui/x-date-pickers/TimePicker/index.js';
-import type { Dayjs } from 'dayjs';
+import type { DateCalendarSlotProps } from '@mui/x-date-pickers/DateCalendar';
+import type { DateTimePickerSlotProps } from '@mui/x-date-pickers/DateTimePicker';
+import type { TimePickerSlotProps } from '@mui/x-date-pickers/TimePicker';
 import { flexColumnStyles } from './pages-styles.js';
 import Theme from './theme.js';
 
@@ -93,7 +92,7 @@ export const dateCalendarSxProps: SxProps = {
   },
 };
 
-export const dateCalendarSlotProps: DateCalendarSlotProps<Dayjs> = {
+export const dateCalendarSlotProps: DateCalendarSlotProps = {
   switchViewIcon: {
     sx: {
       scale: 1.5,
@@ -144,8 +143,9 @@ export const dateCalendarSlotProps: DateCalendarSlotProps<Dayjs> = {
   },
 };
 
-export const startTimePickerSlotProps: TimePickerSlotProps<Dayjs, false> = {
+export const startTimePickerSlotProps: TimePickerSlotProps<false> = {
   digitalClockSectionItem: {
+    id: 'start-clock',
     sx: {
       border: `2px solid ${Theme.palette.primary.dark}`,
       borderRadius: 1,
@@ -201,7 +201,7 @@ export const startTimePickerSlotProps: TimePickerSlotProps<Dayjs, false> = {
   },
 };
 
-export const endTimePickerSlotProps: TimePickerSlotProps<Dayjs, false> = {
+export const endTimePickerSlotProps: TimePickerSlotProps<false> = {
   digitalClockSectionItem: {
     sx: {
       border: `2px solid ${Theme.palette.primary.dark}`,
@@ -361,7 +361,7 @@ export const textFieldSlotProps = {
   },
 };
 
-export const dateTimePickerSlotProps: DateTimePickerSlotProps<Dayjs, false> = {
+export const dateTimePickerSlotProps: DateTimePickerSlotProps<false> = {
   textField: {
     color: 'primary',
     id: 'appointment-maker',

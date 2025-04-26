@@ -13,10 +13,13 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --prod
 RUN pnpm approve-builds
 
-COPY packages/prisma/chinook/prisma ./libs/prisma/prisma
-COPY packages/prisma/chinook/src ./libs/prisma/source
 
-RUN pnpx prisma generate
+COPY packages/prisma/chinook/src ./libs/prisma/src
+COPY packages/prisma/chinook/dist ./libs/prisma/dist
+COPY packages/prisma/chinook/prisma ./libs/prisma/prisma
+COPY packages/prisma/chinook/scripts ./libs/prisma/scripts
+COPY packages/prisma/chinook/generated ./libs/prisma/generated
+
 
 # Copy the entire project to the container
 COPY apps/nodejs/crud/crud-api/dist .
