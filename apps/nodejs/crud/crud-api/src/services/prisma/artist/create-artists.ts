@@ -1,6 +1,6 @@
-import { prisma, PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/chinook-client';
-import type { artist } from 'node_modules/@aklapper/chinook-client/generated/client.js';
+import { PrismaErrorLogger, type artist, type PrismaClientErrors } from '@aklapper/chinook-client';
 
+import prisma from '../client/prisma_client.js';
 /**
  * This function creates a new artist in the database.
  *
@@ -8,12 +8,12 @@ import type { artist } from 'node_modules/@aklapper/chinook-client/generated/cli
  * @returns A Promise that resolves to the newly created artist object, or BuiltErrorMessage if an error occurs.
  */
 
-const createArtists = async (name: string): Promise<artist | ParsedPrismaError> => {
+const createArtists = async (name: string): Promise<artist> => {
   try {
     return await prisma.artist.create({ data: { name: name } });
   } catch (error) {
     const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
-    return prismaError.parseErrors();
+    throw prismaError;
   }
 };
 

@@ -25,7 +25,7 @@ interface IPrismaErrorLogger {
   error: PrismaClientErrors;
   parsedError: ParsedPrismaError;
 }
-export class PrismaErrorLogger implements IPrismaErrorLogger {
+export class PrismaErrorLogger extends Error implements IPrismaErrorLogger {
   error: PrismaClientErrors;
   parsedError: {
     header: string;
@@ -37,6 +37,7 @@ export class PrismaErrorLogger implements IPrismaErrorLogger {
     rawError: PrismaClientErrors;
   };
   constructor(error: PrismaClientErrors) {
+    super(error.message);
     this.error = error;
     this.parsedError = {
       header:

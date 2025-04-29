@@ -7,41 +7,34 @@ import useActivePlayersMap from '../middleware/use_active_players_map.js';
 
 const enterLobby: SocketCallback = (event: string, socket: Socket) => {
   socket.on(event, async (data: IPlayerClientData) => {
+    const activePlayers = useActivePlayersMap();
     try {
       data.socketIoId = socket.id;
 
       let player: Player | null;
-      let newLobby: IPlayerClientData[];
 
-      const activePlayers = useActivePlayersMap();
       player = activePlayers.getPlayer(data.id);
 
       if (player) {
-        player.updateActivePlayerDetails(data);
-        newLobby = await new Go_WsEventManager<IPlayerClientData[], IPlayerClientData>()
-          .setEventName('enter-player')
-          .setEventHandlerName('player-added')
-          .setEventData(player.prepareJsonPlayerToSend())
-          .setPendingRequestKey(player.id)
-          .build();
-
-        player.inLobby = true;
+        player.socketIoId = data.socketIoId;
       } else {
         player = new Player(data.name, data.id, data.email);
         player.socketIoId = data.socketIoId;
-
-        newLobby = await new Go_WsEventManager<IPlayerClientData[], IPlayerClientData>()
-          .setEventName('enter-player')
-          .setEventHandlerName('player-added')
-          .setEventData(player.prepareJsonPlayerToSend())
-          .setPendingRequestKey(player.id)
-          .build();
-
         player.inLobby = true;
+        activePlayers.addPlayer(player.id, player);
       }
+      const newLobby = await new Go_WsEventManager<IPlayerClientData[], IPlayerClientData>()
+        .setEventName('enter-player')
+        .setEventHandlerName('player-added')
+        .setEventData(player.prepareJsonPlayerToSend())
+        .setPendingRequestKey(player.id)
+        .build();
+
       lobbySocketServer.emit('new-player', newLobby);
     } catch (error) {
       console.error(error);
+      activePlayers.deletePlayerFromLobby(data.id);
+      throw error;
     }
   });
 };

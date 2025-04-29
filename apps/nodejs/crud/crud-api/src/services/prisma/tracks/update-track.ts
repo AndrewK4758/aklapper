@@ -1,9 +1,6 @@
-import type { ParsedPrismaError, PrismaClientErrors } from '@aklapper/chinook-client';
-import { prisma, PrismaErrorLogger } from '@aklapper/chinook-client';
-import type { track } from 'node_modules/@aklapper/chinook-client/generated/client.js';
-// import { type track } from 'node_modules/@aklapper/chinook-client/generated/client.js';
-// import type { DefaultArgs } from 'node_modules/@aklapper/chinook-client/generated/client.js/runtime/library';
-
+import type { ParsedPrismaError, PrismaClientErrors, track } from '@aklapper/chinook-client';
+import { PrismaErrorLogger } from '@aklapper/chinook-client';
+import prisma from '../client/prisma_client.js';
 /**
  * Updates an existing track in the database.
  *

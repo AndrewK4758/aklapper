@@ -62,9 +62,8 @@ export default function Lobby() {
         activePlayer.socketIoId = socket.id;
 
         setActivePlayer({ ...activePlayer });
+        socket.emit('enter-lobby', activePlayer);
       });
-
-      socket.emit('enter-lobby', activePlayer);
 
       socket.on('new-player', (newLobby: IPlayerClientData[]) => {
         setActiveLobby(newLobby);
@@ -85,8 +84,18 @@ export default function Lobby() {
 
       socket.on('player-added', ({ newGameId, gamesInLobby }: WsLobbyEventData) => {
         activePlayer.activeGameID = newGameId;
-        setActivePlayer(() => ({ ...activePlayer }));
+        setActivePlayer({ ...activePlayer });
         setActiveGames(gamesInLobby);
+      });
+
+      socket.on('player-joined', ({ gameId, newLobby, newPlayer }) => {
+        console.log('joined event');
+        console.log(newLobby);
+        const gameToUpdate = activeGames.find(game => game.gameInstanceID === gameId);
+        if (gameToUpdate) {
+          gameToUpdate.playersArray.push(newPlayer);
+          setActiveGames(prev => [...prev]);
+        } else setActiveGames(activeGames);
       });
     }
     return () => {

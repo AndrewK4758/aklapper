@@ -1,7 +1,7 @@
-import { FormActionProps, FormikTextInput } from '@aklapper/react-shared';
-import { GamePlayerValidation } from '@aklapper/types';
+import { type FormActionProps, FormikTextInput } from '@aklapper/react-shared';
+import type { GamePlayerValidation } from '@aklapper/types';
 import Button from '@mui/material/Button';
-import { SxProps } from '@mui/material/styles';
+import type { SxProps } from '@mui/material/styles';
 import { useFormik } from 'formik';
 import { Form, useNavigate } from 'react-router';
 import * as Yup from 'yup';
@@ -25,10 +25,10 @@ const validationSchema: Yup.ObjectSchema<JoinGamePath> = Yup.object({
     })
     .min(
       17,
-      "Must be the full path to locate game.\nStructure: /games <- Path for games, /{game name} <- name of game, /{game id} <- unique id to the selected game.\nExmaple '/games/Chutes-&-Ladders/abc123'"
+      "Must be the full path to locate game.\nStructure: /games <- Path for games, /{game name} <- name of game, /{game id} <- unique id to the selected game.\nExmaple '/games/Chutes-&-Ladders/abc123'",
     )
     .max(60, 'Cannot be more than the path with game id')
-    .required()
+    .required(),
 });
 
 export const JoinGame = ({
@@ -43,7 +43,7 @@ export const JoinGame = ({
   variant,
   buttonType,
   buttonText,
-  tooltipSx
+  tooltipSx,
 }: JoinGameProps) => {
   const nav = useNavigate();
 
@@ -68,16 +68,16 @@ export const JoinGame = ({
   const formik = useFormik({
     initialValues: initialValues,
     validationSchema: validationSchema,
-    onSubmit: values => handleSubmit(values)
+    onSubmit: values => handleSubmit(values),
   });
   return (
     <Form method={method} onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
       <FormikTextInput<JoinGamePath>
         formik={formik}
-        autoComplete="off"
+        autoComplete='off'
         labelComponent={'body2'}
         label={'Game Path'}
-        id="gamePath"
+        id='gamePath'
         type={type}
         name={names[0] as 'gamePath'}
         errorTextSx={errorTextSx}

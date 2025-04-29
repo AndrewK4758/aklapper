@@ -1,7 +1,5 @@
 # Use the official PostgreSQL image with the desired version
-FROM postgres:latest
-
-ARG POSTGRES_PASSWORD
+FROM postgres:17
 
 # Set environment variables for database configuration
 ENV POSTGRES_USER=postgres

@@ -1,6 +1,5 @@
-import { prisma, PrismaErrorLogger, type PrismaClientErrors } from '@aklapper/chinook-client';
-import type { artist } from 'node_modules/@aklapper/chinook-client/generated/client.js';
-
+import { PrismaErrorLogger, type artist, type PrismaClientErrors } from '@aklapper/chinook-client';
+import prisma from '../client/prisma_client.js';
 /**
  * Updates an existing artist in the database.
  *

@@ -4,13 +4,21 @@ import { configDotenv } from 'dotenv';
 import type { Express } from 'express';
 import express from 'express';
 import { createServer } from 'http';
-import { join } from 'path';
-import { cwd } from 'process';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import Routes, { router } from './routes/routes.js';
 
-const __dirname = join(cwd(), 'apps/nodejs/crud/crud-api');
+const __filename = fileURLToPath(import.meta.url);
 
-configDotenv({ path: join(__dirname, 'env/.env') });
+const __dirname = dirname(__filename);
+
+// const envPath = join(__dirname, '../env/.env');
+
+console.log(__dirname);
+
+const x = configDotenv();
+console.log(x);
+console.log(process.env);
 
 const app: Express = express();
 
@@ -38,7 +46,7 @@ export const httpServer = createServer(app);
 app.options(/.*/, cors(corsOptions));
 app.use(cors(corsOptions));
 app.enable('trust proxy');
-app.use('/assets', express.static(join(__dirname, 'assets')));
+app.use('/assets', express.static(join(__dirname, '../src', 'assets')));
 app.use('/api/v1', router);
 
 new Routes();

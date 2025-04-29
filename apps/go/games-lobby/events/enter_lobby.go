@@ -41,6 +41,8 @@ func HandleEnterLobby(ws *websocket.Conn, eventData lobbydata.WsMessage) {
 		return
 	}
 
+	activePlayer.InLobby = true
+
 	activePlayers := []lobbydata.ActivePlayer{}
 
 	for _, player := range lobbydata.ActivePlayers {

@@ -131,11 +131,13 @@ const activeGamesCallback = (
           secondary={
             <>
               {instance.playersArray.map(p => (
-                <Text key={`${p.id}-player-in-array`} titleText={p.name} titleVariant='caption' component={'span'} />
+                <Box key={`${p.id}-player-in-array-box`} sx={{ paddingY: 0.1 }}>
+                  <Text key={`${p.id}-player-in-array`} titleText={p.name} titleVariant='caption' component={'span'} />
+                </Box>
               ))}
             </>
           }
-          slotProps={{ primary: { variant: 'h6', sx: { fontSize: 'inherit' } } }}
+          slotProps={{ primary: { variant: 'h6', sx: { fontSize: 'inherit' } }, secondary: { component: 'span' } }}
         />
         <input readOnly type='text' id={`hidden-${instance.gameInstanceID}`} hidden value={instance.gameInstanceID} />
         <Button

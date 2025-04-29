@@ -1,6 +1,7 @@
+import prisma from '../prisma/client/prisma_client.js';
+
 import {
   Prisma,
-  prisma,
   PrismaErrorLogger,
   type artist,
   type ParsedPrismaError,

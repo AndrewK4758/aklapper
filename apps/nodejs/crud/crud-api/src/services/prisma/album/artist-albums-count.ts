@@ -1,6 +1,6 @@
-import { prisma } from '@aklapper/chinook-client';
-import type { PrismaClientErrors, ParsedPrismaError } from '@aklapper/chinook-client';
+import type { ParsedPrismaError, PrismaClientErrors } from '@aklapper/chinook-client';
 import { PrismaErrorLogger } from '@aklapper/chinook-client';
+import prisma from '../client/prisma_client.js';
 /**
  * Counts the number of albums associated with a specific artist.
  *

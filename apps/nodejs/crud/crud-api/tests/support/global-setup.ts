@@ -1,12 +1,20 @@
 import { execSync } from 'child_process';
+import { configDotenv } from 'dotenv';
+import { resolve } from 'node:path';
+import { cwd } from 'node:process';
 
 const __STARTUP_MESSAGE__ = '\nStarting Postgres Docker container for Crud-Api Test\n';
 
 const BUILD_TEST_DB = 'nx docker-build-ci-database crud-api-e2e';
 const START_TEST_DB = 'nx docker-compose-up-db crud-api-e2e';
 const POST_SLEEP = 'sleep 3.5';
+process.env['NODE_ENV'] = 'test';
 
 export const setup = async () => {
+  const envPath = resolve(cwd(), 'env/.env');
+
+  configDotenv({ path: envPath });
+
   try {
     console.log(__STARTUP_MESSAGE__);
 
@@ -33,5 +41,6 @@ export const teardown = async () => {
     execSync(STOP_TEST_DB);
   } catch (error) {
     console.error(error);
+    process.exit(1);
   }
 };

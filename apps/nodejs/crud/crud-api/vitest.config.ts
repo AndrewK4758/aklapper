@@ -1,18 +1,10 @@
-import { workspaceRoot } from '@nx/devkit';
-import { resolve } from 'node:path';
 import { cwd } from 'node:process';
 import { defineConfig } from 'vitest/config';
 
-const modules = {
-  '@aklapper/chinook-client': resolve(workspaceRoot, 'packages/prisma/chinook/src/index.ts'),
-};
-
 const config = defineConfig({
   root: cwd(),
-
   test: {
     name: 'crud-api',
-    alias: modules,
     watch: false,
     globals: true,
     environment: 'node',
@@ -25,6 +17,7 @@ const config = defineConfig({
       provider: 'v8',
     },
   },
+  envDir: './env/.env',
 });
 
 export default config;

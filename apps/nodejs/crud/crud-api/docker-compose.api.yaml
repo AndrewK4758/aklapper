@@ -1,0 +1,7 @@
+services:
+  crud-api:
+    image: us-central1-docker.pkg.dev/games-424800/portfolio/crud-api:latest
+    ports:
+      - 4000:4000
+    env_file:
+      - env/.env

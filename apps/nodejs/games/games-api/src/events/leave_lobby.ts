@@ -18,7 +18,6 @@ const handleLeaveLobby: SocketCallback = (event: string, socket: Socket) => {
     activePlayers.deletePlayerFromLobby(playerID);
     socketConnectionMap.delete(playerID);
 
-    console.log(leaveLobbyResponse);
     lobbySocketServer.emit('deleted-player', leaveLobbyResponse);
   });
 };

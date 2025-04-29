@@ -33,7 +33,7 @@
           "commands": [
             {
               "description": "Build Docker Database for e2e Test",
-              "command": "docker build -f ./Dockerfile.crud-api-db . -t crud-api"
+              "command": "docker build -f ./Dockerfile.crud-api-db . -t crud-api-db"
             }
           ]
         }
@@ -45,7 +45,7 @@
           "commands": [
             {
               "description": "Start Docker Database container",
-              "command": "docker compose -f docker-compose.crud.yaml up crud-api -d"
+              "command": "docker compose -f docker-compose.crud.yaml up -d"
             }
           ]
         }

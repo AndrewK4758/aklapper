@@ -16,7 +16,8 @@ import privateMessagePlayer from './events/private_message.js';
 import socketBoardAction from './events/socket-board-action.js';
 import addGameToSocketInstance from './middleware/socket-add-game-middleware.js';
 
-import go_websocketEvent from './models/go_websocket_event.js';
+// import go_websocketEvent from './models/go_websocket_event.js';
+import joinGame from './events/join-game.js';
 import routerV1 from './routes/v1/routes.js';
 import routerV2 from './routes/v2/routes.js';
 import syncWithGoLobby from './services/game/sync_lobby_data.js';
@@ -73,6 +74,7 @@ socketServer.addServerListener('lobby', 'enter-lobby', enterLobby);
 socketServer.addServerListener('lobby', 'private-message-player', privateMessagePlayer);
 socketServer.addServerListener('lobby', 'remove-player', handleLeaveLobby);
 socketServer.addServerListener('lobby', 'create-new-game', createNewGame);
+socketServer.addServerListener('lobby', 'join-game', joinGame);
 
 export const socketClient = new WebSocket(WS_URL as string);
 
@@ -84,9 +86,9 @@ socketClient.onopen = async () => {
   await syncWithGoLobby();
 };
 
-socketClient.onmessage = async (event: MessageEvent) => {
-  await go_websocketEvent(event, 'data-sync');
-};
+// socketClient.onmessage = async (event: MessageEvent) => {
+//   await go_websocketEvent(event, 'data-sync');
+// };
 
 app.options(/.*/, cors(corsOptions));
 app.use(cors(corsOptions));

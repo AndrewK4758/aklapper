@@ -5,6 +5,7 @@ import (
 	lobbydata "apps/go/games-lobby/lobby-data"
 	json "encoding/json"
 	fmt "fmt"
+	log "log"
 	http "net/http"
 
 	websocket "github.com/gorilla/websocket"
@@ -41,7 +42,7 @@ func HandleWebsocketConnections(resp http.ResponseWriter, req *http.Request) {
 			break
 		}
 
-		fmt.Printf("Received:\n\tMessage Type: %d\n\tMessage Data: 	%s\n\n", messageType, string(message))
+		log.Printf("Received:\n\tMessage Type: %d\n\tMessage Data: 	%s\n\n", messageType, string(message))
 		switch messageType {
 		case websocket.TextMessage:
 			handleTextListenEvent(ws, message)

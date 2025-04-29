@@ -69,6 +69,16 @@ export type playlist_track = runtime.Types.Result.DefaultSelection<Prisma.$playl
  * 
  */
 export type track = runtime.Types.Result.DefaultSelection<Prisma.$trackPayload>
+/**
+ * Model customer_review
+ * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+ */
+export type customer_review = runtime.Types.Result.DefaultSelection<Prisma.$customer_reviewPayload>
+/**
+ * Model track_discount
+ * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+ */
+export type track_discount = runtime.Types.Result.DefaultSelection<Prisma.$track_discountPayload>
 
 
 
@@ -87,6 +97,9 @@ const config: runtime.GetPrismaClientConfig = {
       "fromEnvVar": null
     },
     "config": {
+      "generatedFileExtension": "ts",
+      "moduleFormat": "esm",
+      "runtime": "nodejs",
       "engineType": "library"
     },
     "binaryTargets": [
@@ -116,8 +129,8 @@ const config: runtime.GetPrismaClientConfig = {
       }
     }
   },
-  "inlineSchema": "generator client {\n  provider = \"prisma-client\"\n  output   = \"../generated\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DB_URL_DEV\")\n}\n\nmodel album {\n  title     String  @db.VarChar(160)\n  artist_id Int\n  album_id  Int     @id @default(autoincrement())\n  artist    artist  @relation(fields: [artist_id], references: [artist_id], onDelete: NoAction, onUpdate: NoAction, map: \"album_artist_fkey\")\n  track     track[]\n\n  @@index([artist_id])\n}\n\nmodel artist {\n  name      String? @db.VarChar(120)\n  artist_id Int     @id @default(autoincrement())\n  album     album[]\n}\n\nmodel customer {\n  customer_id    Int       @id\n  first_name     String    @db.VarChar(40)\n  last_name      String    @db.VarChar(20)\n  company        String?   @db.VarChar(80)\n  address        String?   @db.VarChar(70)\n  city           String?   @db.VarChar(40)\n  state          String?   @db.VarChar(40)\n  country        String?   @db.VarChar(40)\n  postal_code    String?   @db.VarChar(10)\n  phone          String?   @db.VarChar(24)\n  fax            String?   @db.VarChar(24)\n  email          String    @db.VarChar(60)\n  support_rep_id Int?\n  employee       employee? @relation(fields: [support_rep_id], references: [employee_id], onDelete: NoAction, onUpdate: NoAction)\n  invoice        invoice[]\n\n  @@index([support_rep_id])\n}\n\n/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.\nmodel employee {\n  employee_id    Int        @id\n  last_name      String     @db.VarChar(20)\n  first_name     String     @db.VarChar(20)\n  title          String?    @db.VarChar(30)\n  reports_to     Int?\n  birth_date     DateTime?  @db.Timestamp(6)\n  hire_date      DateTime?  @db.Timestamp(6)\n  address        String?    @db.VarChar(70)\n  city           String?    @db.VarChar(40)\n  state          String?    @db.VarChar(40)\n  country        String?    @db.VarChar(40)\n  postal_code    String?    @db.VarChar(10)\n  phone          String?    @db.VarChar(24)\n  fax            String?    @db.VarChar(24)\n  email          String?    @db.VarChar(60)\n  customer       customer[]\n  employee       employee?  @relation(\"employeeToemployee\", fields: [reports_to], references: [employee_id], onDelete: NoAction, onUpdate: NoAction)\n  other_employee employee[] @relation(\"employeeToemployee\")\n\n  @@index([reports_to])\n}\n\nmodel genre {\n  genre_id Int     @id\n  name     String? @db.VarChar(120)\n  track    track[]\n}\n\nmodel invoice {\n  invoice_id          Int            @id\n  customer_id         Int\n  invoice_date        DateTime       @db.Timestamp(6)\n  billing_address     String?        @db.VarChar(70)\n  billing_city        String?        @db.VarChar(40)\n  billing_state       String?        @db.VarChar(40)\n  billing_country     String?        @db.VarChar(40)\n  billing_postal_code String?        @db.VarChar(10)\n  total               Decimal        @db.Decimal(10, 2)\n  customer            customer       @relation(fields: [customer_id], references: [customer_id], onDelete: NoAction, onUpdate: NoAction)\n  invoice_line        invoice_line[]\n\n  @@index([customer_id])\n}\n\nmodel invoice_line {\n  invoice_line_id Int     @id\n  invoice_id      Int\n  track_id        Int\n  unit_price      Decimal @db.Decimal(10, 2)\n  quantity        Int\n  invoice         invoice @relation(fields: [invoice_id], references: [invoice_id], onDelete: NoAction, onUpdate: NoAction)\n  track           track   @relation(fields: [track_id], references: [track_id], onDelete: NoAction, onUpdate: NoAction, map: \"invoice_line_track_fkey\")\n\n  @@index([invoice_id])\n  @@index([track_id])\n}\n\nmodel media_type {\n  media_type_id Int     @id\n  name          String? @db.VarChar(120)\n  track         track[]\n}\n\nmodel playlist {\n  playlist_id    Int              @id\n  name           String?          @db.VarChar(120)\n  playlist_track playlist_track[]\n}\n\nmodel playlist_track {\n  playlist_id Int\n  track_id    Int\n  playlist    playlist @relation(fields: [playlist_id], references: [playlist_id], onDelete: NoAction, onUpdate: NoAction)\n  track       track    @relation(fields: [track_id], references: [track_id], onDelete: NoAction, onUpdate: NoAction, map: \"playlist_track_id_fkey\")\n\n  @@id([playlist_id, track_id])\n  @@index([playlist_id])\n  @@index([track_id])\n}\n\nmodel track {\n  track_id       Int              @id\n  name           String           @db.VarChar(200)\n  album_id       Int?\n  media_type_id  Int\n  genre_id       Int?\n  composer       String?          @db.VarChar(220)\n  milliseconds   Int\n  bytes          Int?\n  unit_price     Decimal          @db.Decimal(10, 2)\n  invoice_line   invoice_line[]\n  playlist_track playlist_track[]\n  album          album?           @relation(fields: [album_id], references: [album_id], onDelete: NoAction, onUpdate: NoAction, map: \"album_id_album_fkey\")\n  genre          genre?           @relation(fields: [genre_id], references: [genre_id], onDelete: NoAction, onUpdate: NoAction)\n  media_type     media_type       @relation(fields: [media_type_id], references: [media_type_id], onDelete: NoAction, onUpdate: NoAction)\n\n  @@index([album_id])\n  @@index([genre_id])\n  @@index([media_type_id])\n}\n",
-  "inlineSchemaHash": "220401b6038a8cb61505cbb787ffc1687224a6ccc07a2641d6eb2fbf09855763",
+  "inlineSchema": "generator client {\n  provider               = \"prisma-client\"\n  output                 = env(\"PRISMA_CLIENT_OUTPUT_PATH\")\n  generatedFileExtension = \"ts\"\n  moduleFormat           = \"esm\"\n  runtime                = \"nodejs\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DB_URL_DEV\")\n}\n\nmodel album {\n  title     String  @unique(map: \"title\") @db.VarChar(160)\n  artist_id Int\n  album_id  Int     @id @default(autoincrement())\n  artist    artist  @relation(fields: [artist_id], references: [artist_id], onDelete: Cascade, map: \"album_artist_fkey\")\n  track     track[]\n\n  @@index([artist_id])\n  @@index([artist_id], map: \"fki_album_artist_fkey\")\n  @@index([artist_id], map: \"fki_album_artist_id_fkey\")\n  @@index([artist_id], map: \"fki_artist_album_fkey\")\n}\n\nmodel artist {\n  name      String  @unique(map: \"name\") @db.VarChar(120)\n  artist_id Int     @id @default(autoincrement())\n  album     album[]\n}\n\nmodel customer {\n  customer_id     Int               @id\n  first_name      String            @db.VarChar(40)\n  last_name       String            @db.VarChar(20)\n  company         String?           @db.VarChar(80)\n  address         String?           @db.VarChar(70)\n  city            String?           @db.VarChar(40)\n  state           String?           @db.VarChar(40)\n  country         String?           @db.VarChar(40)\n  postal_code     String?           @db.VarChar(10)\n  phone           String?           @db.VarChar(24)\n  fax             String?           @db.VarChar(24)\n  email           String            @unique(map: \"uq_customer_email\") @db.VarChar(60)\n  support_rep_id  Int?\n  employee        employee?         @relation(fields: [support_rep_id], references: [employee_id], onDelete: NoAction, onUpdate: NoAction)\n  customer_review customer_review[]\n  invoice         invoice[]\n\n  @@unique([first_name, last_name, email], map: \"uq_customer_id\")\n  @@index([support_rep_id])\n}\n\n/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.\nmodel employee {\n  employee_id      Int              @id\n  last_name        String           @db.VarChar(20)\n  first_name       String           @db.VarChar(20)\n  title            String?          @db.VarChar(30)\n  reports_to       Int?\n  birth_date       DateTime?        @db.Timestamp(6)\n  hire_date        DateTime         @db.Timestamp(6)\n  address          String?          @db.VarChar(70)\n  city             String?          @db.VarChar(40)\n  state            String?          @db.VarChar(40)\n  country          String?          @db.VarChar(40)\n  postal_code      String?          @db.VarChar(10)\n  phone            String?          @db.VarChar(24)\n  fax              String?          @db.VarChar(24)\n  email            String?          @db.VarChar(60)\n  termination_date DateTime?        @db.Timestamp(6)\n  customer         customer[]\n  employee         employee?        @relation(\"employeeToemployee\", fields: [reports_to], references: [employee_id], onDelete: NoAction, onUpdate: NoAction)\n  other_employee   employee[]       @relation(\"employeeToemployee\")\n  track_discount   track_discount[]\n\n  @@index([reports_to])\n}\n\nmodel genre {\n  genre_id Int     @id\n  name     String? @db.VarChar(120)\n}\n\nmodel invoice {\n  invoice_id          Int               @id\n  customer_id         Int\n  invoice_date        DateTime          @db.Timestamp(6)\n  billing_address     String?           @db.VarChar(70)\n  billing_city        String?           @db.VarChar(40)\n  billing_state       String?           @db.VarChar(40)\n  billing_country     String?           @db.VarChar(40)\n  billing_postal_code String?           @db.VarChar(10)\n  total               Decimal           @db.Decimal(10, 2)\n  customer_review     customer_review[]\n  customer            customer          @relation(fields: [customer_id], references: [customer_id], onDelete: NoAction, onUpdate: NoAction)\n  invoice_line        invoice_line[]\n\n  @@unique([customer_id, invoice_date], map: \"uq_invoice_submit\")\n  @@index([customer_id])\n}\n\nmodel invoice_line {\n  invoice_line_id Int     @id\n  invoice_id      Int\n  track_id        Int\n  unit_price      Decimal @db.Decimal(10, 2)\n  quantity        Int\n  invoice         invoice @relation(fields: [invoice_id], references: [invoice_id], onDelete: NoAction, onUpdate: NoAction)\n  track           track   @relation(fields: [track_id], references: [track_id], onDelete: NoAction, onUpdate: NoAction, map: \"invoice_line_track_fkey\")\n\n  @@index([invoice_id])\n  @@index([track_id])\n  @@index([track_id], map: \"fki_invoice_line_track_fkey\")\n}\n\nmodel media_type {\n  media_type_id Int     @id\n  name          String? @db.VarChar(120)\n}\n\nmodel playlist {\n  playlist_id    Int              @id\n  name           String?          @db.VarChar(120)\n  playlist_track playlist_track[]\n}\n\nmodel playlist_track {\n  playlist_id Int\n  track_id    Int\n  playlist    playlist @relation(fields: [playlist_id], references: [playlist_id], onDelete: Cascade)\n  track       track    @relation(fields: [track_id], references: [track_id], onDelete: Cascade, map: \"playlist_track_id_fkey\")\n\n  @@id([playlist_id, track_id])\n  @@index([playlist_id])\n  @@index([track_id])\n  @@index([track_id], map: \"fki_playlist_track_id_fkey\")\n  @@index([playlist_id], map: \"fki_playlist_track_playlist_id_fkey\")\n  @@index([track_id], map: \"fki_playlist_track_track_id_fkey\")\n}\n\nmodel track {\n  name           String           @db.VarChar(200)\n  album_id       Int\n  media_type_id  Int              @default(0)\n  genre_id       Int?             @default(0)\n  composer       String?          @db.VarChar(220)\n  milliseconds   Int              @default(0)\n  bytes          Int?             @default(0)\n  unit_price     Decimal          @default(0.00) @db.Decimal(10, 2)\n  track_id       Int              @id @default(autoincrement())\n  invoice_line   invoice_line[]\n  playlist_track playlist_track[]\n  album          album            @relation(fields: [album_id], references: [album_id], onDelete: Cascade, map: \"album_id_album_fkey\")\n  track_discount track_discount[]\n\n  @@index([album_id])\n  @@index([genre_id])\n  @@index([media_type_id])\n  @@index([album_id], map: \"fki_album_album_id_fkey\")\n  @@index([album_id], map: \"fki_album_id_album_fkey\")\n  @@index([media_type_id], map: \"fki_track_media_type_fkey\")\n}\n\n/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.\nmodel customer_review {\n  review_id      Int      @id @default(autoincrement())\n  customer_id    Int\n  invoice_id     Int\n  track_id       Int\n  rating         Int?\n  review_comment String?  @db.VarChar(140)\n  customer       customer @relation(fields: [customer_id], references: [customer_id], onDelete: NoAction, onUpdate: NoAction, map: \"customer_id_invoice_id_fkey\")\n  invoice        invoice  @relation(fields: [invoice_id], references: [invoice_id], onDelete: NoAction, onUpdate: NoAction, map: \"invoice_id_track_id_fkey\")\n}\n\n/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.\nmodel track_discount {\n  track_discount_id Int      @id @default(autoincrement())\n  track_id          Int\n  discount          Decimal  @db.Decimal(10, 2)\n  offer_date        DateTime @db.Timestamp(6)\n  close_date        DateTime @db.Timestamp(6)\n  employee_id       Int\n  employee          employee @relation(fields: [employee_id], references: [employee_id], onDelete: NoAction, onUpdate: NoAction, map: \"track_discound_employee_fk\")\n  track             track    @relation(fields: [track_id], references: [track_id], onDelete: NoAction, onUpdate: NoAction, map: \"track_discount_track_fkey\")\n\n  @@index([track_id], map: \"fki_track_discount_track_fkey\")\n}\n",
+  "inlineSchemaHash": "9429c601545f1133d8d208c0103c02b9f1e68b3c22acc68a01050d9040f4e33a",
   "copyEngine": true,
   "runtimeDataModel": {
     "models": {},
@@ -128,7 +141,7 @@ const config: runtime.GetPrismaClientConfig = {
 }
 config.dirname = __dirname
 
-config.runtimeDataModel = JSON.parse("{\"models\":{\"album\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"title\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"160\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"artist_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"album_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"Int\",\"nativeType\":null,\"default\":{\"name\":\"autoincrement\",\"args\":[]},\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"artist\",\"kind\":\"object\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"artist\",\"nativeType\":null,\"relationName\":\"albumToartist\",\"relationFromFields\":[\"artist_id\"],\"relationToFields\":[\"artist_id\"],\"relationOnDelete\":\"NoAction\",\"relationOnUpdate\":\"NoAction\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"track\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"track\",\"nativeType\":null,\"relationName\":\"albumTotrack\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false},\"artist\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"name\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"120\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"artist_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"Int\",\"nativeType\":null,\"default\":{\"name\":\"autoincrement\",\"args\":[]},\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"album\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"album\",\"nativeType\":null,\"relationName\":\"albumToartist\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false},\"customer\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"customer_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"first_name\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"40\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"last_name\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"20\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"company\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"80\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"address\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"70\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"city\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"40\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"state\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"40\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"country\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"40\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"postal_code\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"10\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"phone\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"24\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"fax\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"24\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"email\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"60\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"support_rep_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"employee\",\"kind\":\"object\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"employee\",\"nativeType\":null,\"relationName\":\"customerToemployee\",\"relationFromFields\":[\"support_rep_id\"],\"relationToFields\":[\"employee_id\"],\"relationOnDelete\":\"NoAction\",\"relationOnUpdate\":\"NoAction\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"invoice\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"invoice\",\"nativeType\":null,\"relationName\":\"customerToinvoice\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false},\"employee\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"employee_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"last_name\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"20\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"first_name\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"20\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"title\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"30\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"reports_to\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"birth_date\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"DateTime\",\"nativeType\":[\"Timestamp\",[\"6\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"hire_date\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"DateTime\",\"nativeType\":[\"Timestamp\",[\"6\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"address\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"70\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"city\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"40\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"state\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"40\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"country\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"40\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"postal_code\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"10\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"phone\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"24\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"fax\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"24\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"email\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"60\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"customer\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"customer\",\"nativeType\":null,\"relationName\":\"customerToemployee\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"employee\",\"kind\":\"object\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"employee\",\"nativeType\":null,\"relationName\":\"employeeToemployee\",\"relationFromFields\":[\"reports_to\"],\"relationToFields\":[\"employee_id\"],\"relationOnDelete\":\"NoAction\",\"relationOnUpdate\":\"NoAction\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"other_employee\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"employee\",\"nativeType\":null,\"relationName\":\"employeeToemployee\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false,\"documentation\":\"This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.\"},\"genre\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"genre_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"name\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"120\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"track\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"track\",\"nativeType\":null,\"relationName\":\"genreTotrack\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false},\"invoice\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"invoice_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"customer_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"invoice_date\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"DateTime\",\"nativeType\":[\"Timestamp\",[\"6\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"billing_address\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"70\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"billing_city\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"40\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"billing_state\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"40\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"billing_country\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"40\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"billing_postal_code\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"10\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"total\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Decimal\",\"nativeType\":[\"Decimal\",[\"10\",\"2\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"customer\",\"kind\":\"object\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"customer\",\"nativeType\":null,\"relationName\":\"customerToinvoice\",\"relationFromFields\":[\"customer_id\"],\"relationToFields\":[\"customer_id\"],\"relationOnDelete\":\"NoAction\",\"relationOnUpdate\":\"NoAction\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"invoice_line\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"invoice_line\",\"nativeType\":null,\"relationName\":\"invoiceToinvoice_line\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false},\"invoice_line\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"invoice_line_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"invoice_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"track_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"unit_price\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Decimal\",\"nativeType\":[\"Decimal\",[\"10\",\"2\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"quantity\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"invoice\",\"kind\":\"object\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"invoice\",\"nativeType\":null,\"relationName\":\"invoiceToinvoice_line\",\"relationFromFields\":[\"invoice_id\"],\"relationToFields\":[\"invoice_id\"],\"relationOnDelete\":\"NoAction\",\"relationOnUpdate\":\"NoAction\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"track\",\"kind\":\"object\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"track\",\"nativeType\":null,\"relationName\":\"invoice_lineTotrack\",\"relationFromFields\":[\"track_id\"],\"relationToFields\":[\"track_id\"],\"relationOnDelete\":\"NoAction\",\"relationOnUpdate\":\"NoAction\",\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false},\"media_type\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"media_type_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"name\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"120\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"track\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"track\",\"nativeType\":null,\"relationName\":\"media_typeTotrack\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false},\"playlist\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"playlist_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"name\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"120\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"playlist_track\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"playlist_track\",\"nativeType\":null,\"relationName\":\"playlistToplaylist_track\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false},\"playlist_track\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"playlist_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"track_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"playlist\",\"kind\":\"object\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"playlist\",\"nativeType\":null,\"relationName\":\"playlistToplaylist_track\",\"relationFromFields\":[\"playlist_id\"],\"relationToFields\":[\"playlist_id\"],\"relationOnDelete\":\"NoAction\",\"relationOnUpdate\":\"NoAction\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"track\",\"kind\":\"object\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"track\",\"nativeType\":null,\"relationName\":\"playlist_trackTotrack\",\"relationFromFields\":[\"track_id\"],\"relationToFields\":[\"track_id\"],\"relationOnDelete\":\"NoAction\",\"relationOnUpdate\":\"NoAction\",\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":{\"name\":null,\"fields\":[\"playlist_id\",\"track_id\"]},\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false},\"track\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"track_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"name\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"200\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"album_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"media_type_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"genre_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"composer\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"220\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"milliseconds\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"bytes\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"unit_price\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Decimal\",\"nativeType\":[\"Decimal\",[\"10\",\"2\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"invoice_line\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"invoice_line\",\"nativeType\":null,\"relationName\":\"invoice_lineTotrack\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"playlist_track\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"playlist_track\",\"nativeType\":null,\"relationName\":\"playlist_trackTotrack\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"album\",\"kind\":\"object\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"album\",\"nativeType\":null,\"relationName\":\"albumTotrack\",\"relationFromFields\":[\"album_id\"],\"relationToFields\":[\"album_id\"],\"relationOnDelete\":\"NoAction\",\"relationOnUpdate\":\"NoAction\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"genre\",\"kind\":\"object\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"genre\",\"nativeType\":null,\"relationName\":\"genreTotrack\",\"relationFromFields\":[\"genre_id\"],\"relationToFields\":[\"genre_id\"],\"relationOnDelete\":\"NoAction\",\"relationOnUpdate\":\"NoAction\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"media_type\",\"kind\":\"object\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"media_type\",\"nativeType\":null,\"relationName\":\"media_typeTotrack\",\"relationFromFields\":[\"media_type_id\"],\"relationToFields\":[\"media_type_id\"],\"relationOnDelete\":\"NoAction\",\"relationOnUpdate\":\"NoAction\",\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false}},\"enums\":{},\"types\":{}}")
+config.runtimeDataModel = JSON.parse("{\"models\":{\"album\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"title\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":true,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"160\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"artist_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"album_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"Int\",\"nativeType\":null,\"default\":{\"name\":\"autoincrement\",\"args\":[]},\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"artist\",\"kind\":\"object\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"artist\",\"nativeType\":null,\"relationName\":\"albumToartist\",\"relationFromFields\":[\"artist_id\"],\"relationToFields\":[\"artist_id\"],\"relationOnDelete\":\"Cascade\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"track\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"track\",\"nativeType\":null,\"relationName\":\"albumTotrack\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false},\"artist\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"name\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":true,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"120\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"artist_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"Int\",\"nativeType\":null,\"default\":{\"name\":\"autoincrement\",\"args\":[]},\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"album\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"album\",\"nativeType\":null,\"relationName\":\"albumToartist\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false},\"customer\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"customer_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"first_name\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"40\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"last_name\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"20\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"company\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"80\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"address\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"70\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"city\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"40\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"state\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"40\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"country\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"40\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"postal_code\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"10\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"phone\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"24\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"fax\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"24\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"email\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":true,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"60\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"support_rep_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"employee\",\"kind\":\"object\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"employee\",\"nativeType\":null,\"relationName\":\"customerToemployee\",\"relationFromFields\":[\"support_rep_id\"],\"relationToFields\":[\"employee_id\"],\"relationOnDelete\":\"NoAction\",\"relationOnUpdate\":\"NoAction\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"customer_review\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"customer_review\",\"nativeType\":null,\"relationName\":\"customerTocustomer_review\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"invoice\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"invoice\",\"nativeType\":null,\"relationName\":\"customerToinvoice\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[[\"first_name\",\"last_name\",\"email\"]],\"uniqueIndexes\":[{\"name\":null,\"fields\":[\"first_name\",\"last_name\",\"email\"]}],\"isGenerated\":false},\"employee\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"employee_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"last_name\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"20\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"first_name\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"20\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"title\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"30\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"reports_to\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"birth_date\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"DateTime\",\"nativeType\":[\"Timestamp\",[\"6\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"hire_date\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"DateTime\",\"nativeType\":[\"Timestamp\",[\"6\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"address\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"70\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"city\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"40\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"state\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"40\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"country\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"40\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"postal_code\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"10\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"phone\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"24\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"fax\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"24\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"email\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"60\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"termination_date\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"DateTime\",\"nativeType\":[\"Timestamp\",[\"6\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"customer\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"customer\",\"nativeType\":null,\"relationName\":\"customerToemployee\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"employee\",\"kind\":\"object\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"employee\",\"nativeType\":null,\"relationName\":\"employeeToemployee\",\"relationFromFields\":[\"reports_to\"],\"relationToFields\":[\"employee_id\"],\"relationOnDelete\":\"NoAction\",\"relationOnUpdate\":\"NoAction\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"other_employee\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"employee\",\"nativeType\":null,\"relationName\":\"employeeToemployee\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"track_discount\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"track_discount\",\"nativeType\":null,\"relationName\":\"employeeTotrack_discount\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false,\"documentation\":\"This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.\"},\"genre\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"genre_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"name\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"120\"]],\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false},\"invoice\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"invoice_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"customer_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"invoice_date\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"DateTime\",\"nativeType\":[\"Timestamp\",[\"6\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"billing_address\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"70\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"billing_city\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"40\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"billing_state\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"40\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"billing_country\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"40\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"billing_postal_code\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"10\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"total\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Decimal\",\"nativeType\":[\"Decimal\",[\"10\",\"2\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"customer_review\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"customer_review\",\"nativeType\":null,\"relationName\":\"customer_reviewToinvoice\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"customer\",\"kind\":\"object\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"customer\",\"nativeType\":null,\"relationName\":\"customerToinvoice\",\"relationFromFields\":[\"customer_id\"],\"relationToFields\":[\"customer_id\"],\"relationOnDelete\":\"NoAction\",\"relationOnUpdate\":\"NoAction\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"invoice_line\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"invoice_line\",\"nativeType\":null,\"relationName\":\"invoiceToinvoice_line\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[[\"customer_id\",\"invoice_date\"]],\"uniqueIndexes\":[{\"name\":null,\"fields\":[\"customer_id\",\"invoice_date\"]}],\"isGenerated\":false},\"invoice_line\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"invoice_line_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"invoice_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"track_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"unit_price\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Decimal\",\"nativeType\":[\"Decimal\",[\"10\",\"2\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"quantity\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"invoice\",\"kind\":\"object\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"invoice\",\"nativeType\":null,\"relationName\":\"invoiceToinvoice_line\",\"relationFromFields\":[\"invoice_id\"],\"relationToFields\":[\"invoice_id\"],\"relationOnDelete\":\"NoAction\",\"relationOnUpdate\":\"NoAction\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"track\",\"kind\":\"object\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"track\",\"nativeType\":null,\"relationName\":\"invoice_lineTotrack\",\"relationFromFields\":[\"track_id\"],\"relationToFields\":[\"track_id\"],\"relationOnDelete\":\"NoAction\",\"relationOnUpdate\":\"NoAction\",\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false},\"media_type\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"media_type_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"name\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"120\"]],\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false},\"playlist\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"playlist_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"name\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"120\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"playlist_track\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"playlist_track\",\"nativeType\":null,\"relationName\":\"playlistToplaylist_track\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false},\"playlist_track\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"playlist_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"track_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"playlist\",\"kind\":\"object\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"playlist\",\"nativeType\":null,\"relationName\":\"playlistToplaylist_track\",\"relationFromFields\":[\"playlist_id\"],\"relationToFields\":[\"playlist_id\"],\"relationOnDelete\":\"Cascade\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"track\",\"kind\":\"object\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"track\",\"nativeType\":null,\"relationName\":\"playlist_trackTotrack\",\"relationFromFields\":[\"track_id\"],\"relationToFields\":[\"track_id\"],\"relationOnDelete\":\"Cascade\",\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":{\"name\":null,\"fields\":[\"playlist_id\",\"track_id\"]},\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false},\"track\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"name\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"200\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"album_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"media_type_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"Int\",\"nativeType\":null,\"default\":0,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"genre_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"Int\",\"nativeType\":null,\"default\":0,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"composer\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"220\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"milliseconds\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"Int\",\"nativeType\":null,\"default\":0,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"bytes\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"Int\",\"nativeType\":null,\"default\":0,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"unit_price\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"Decimal\",\"nativeType\":[\"Decimal\",[\"10\",\"2\"]],\"default\":0,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"track_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"Int\",\"nativeType\":null,\"default\":{\"name\":\"autoincrement\",\"args\":[]},\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"invoice_line\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"invoice_line\",\"nativeType\":null,\"relationName\":\"invoice_lineTotrack\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"playlist_track\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"playlist_track\",\"nativeType\":null,\"relationName\":\"playlist_trackTotrack\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"album\",\"kind\":\"object\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"album\",\"nativeType\":null,\"relationName\":\"albumTotrack\",\"relationFromFields\":[\"album_id\"],\"relationToFields\":[\"album_id\"],\"relationOnDelete\":\"Cascade\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"track_discount\",\"kind\":\"object\",\"isList\":true,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"track_discount\",\"nativeType\":null,\"relationName\":\"trackTotrack_discount\",\"relationFromFields\":[],\"relationToFields\":[],\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false},\"customer_review\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"review_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"Int\",\"nativeType\":null,\"default\":{\"name\":\"autoincrement\",\"args\":[]},\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"customer_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"invoice_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"track_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"rating\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"review_comment\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":[\"VarChar\",[\"140\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"customer\",\"kind\":\"object\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"customer\",\"nativeType\":null,\"relationName\":\"customerTocustomer_review\",\"relationFromFields\":[\"customer_id\"],\"relationToFields\":[\"customer_id\"],\"relationOnDelete\":\"NoAction\",\"relationOnUpdate\":\"NoAction\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"invoice\",\"kind\":\"object\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"invoice\",\"nativeType\":null,\"relationName\":\"customer_reviewToinvoice\",\"relationFromFields\":[\"invoice_id\"],\"relationToFields\":[\"invoice_id\"],\"relationOnDelete\":\"NoAction\",\"relationOnUpdate\":\"NoAction\",\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false,\"documentation\":\"This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.\"},\"track_discount\":{\"dbName\":null,\"schema\":null,\"fields\":[{\"name\":\"track_discount_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"Int\",\"nativeType\":null,\"default\":{\"name\":\"autoincrement\",\"args\":[]},\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"track_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"discount\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Decimal\",\"nativeType\":[\"Decimal\",[\"10\",\"2\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"offer_date\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"DateTime\",\"nativeType\":[\"Timestamp\",[\"6\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"close_date\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"DateTime\",\"nativeType\":[\"Timestamp\",[\"6\"]],\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"employee_id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":true,\"hasDefaultValue\":false,\"type\":\"Int\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"employee\",\"kind\":\"object\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"employee\",\"nativeType\":null,\"relationName\":\"employeeTotrack_discount\",\"relationFromFields\":[\"employee_id\"],\"relationToFields\":[\"employee_id\"],\"relationOnDelete\":\"NoAction\",\"relationOnUpdate\":\"NoAction\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"track\",\"kind\":\"object\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"track\",\"nativeType\":null,\"relationName\":\"trackTotrack_discount\",\"relationFromFields\":[\"track_id\"],\"relationToFields\":[\"track_id\"],\"relationOnDelete\":\"NoAction\",\"relationOnUpdate\":\"NoAction\",\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false,\"documentation\":\"This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.\"}},\"enums\":{},\"types\":{}}")
 config.engineWasm = undefined
 config.compilerWasm = undefined
 
@@ -380,6 +393,26 @@ export interface PrismaClient<
     * ```
     */
   get track(): Prisma.trackDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.customer_review`: Exposes CRUD operations for the **customer_review** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Customer_reviews
+    * const customer_reviews = await prisma.customer_review.findMany()
+    * ```
+    */
+  get customer_review(): Prisma.customer_reviewDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.track_discount`: Exposes CRUD operations for the **track_discount** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Track_discounts
+    * const track_discounts = await prisma.track_discount.findMany()
+    * ```
+    */
+  get track_discount(): Prisma.track_discountDelegate<ExtArgs, ClientOptions>;
 }
 
 export const PrismaClient = runtime.getPrismaClient(config) as unknown as PrismaClientConstructor
@@ -770,7 +803,9 @@ export namespace Prisma {
     media_type: 'media_type',
     playlist: 'playlist',
     playlist_track: 'playlist_track',
-    track: 'track'
+    track: 'track',
+    customer_review: 'customer_review',
+    track_discount: 'track_discount'
   } as const
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -789,7 +824,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "album" | "artist" | "customer" | "employee" | "genre" | "invoice" | "invoice_line" | "media_type" | "playlist" | "playlist_track" | "track"
+      modelProps: "album" | "artist" | "customer" | "employee" | "genre" | "invoice" | "invoice_line" | "media_type" | "playlist" | "playlist_track" | "track" | "customer_review" | "track_discount"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1607,6 +1642,154 @@ export namespace Prisma {
           }
         }
       }
+      customer_review: {
+        payload: Prisma.$customer_reviewPayload<ExtArgs>
+        fields: Prisma.customer_reviewFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.customer_reviewFindUniqueArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$customer_reviewPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.customer_reviewFindUniqueOrThrowArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$customer_reviewPayload>
+          }
+          findFirst: {
+            args: Prisma.customer_reviewFindFirstArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$customer_reviewPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.customer_reviewFindFirstOrThrowArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$customer_reviewPayload>
+          }
+          findMany: {
+            args: Prisma.customer_reviewFindManyArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$customer_reviewPayload>[]
+          }
+          create: {
+            args: Prisma.customer_reviewCreateArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$customer_reviewPayload>
+          }
+          createMany: {
+            args: Prisma.customer_reviewCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.customer_reviewCreateManyAndReturnArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$customer_reviewPayload>[]
+          }
+          delete: {
+            args: Prisma.customer_reviewDeleteArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$customer_reviewPayload>
+          }
+          update: {
+            args: Prisma.customer_reviewUpdateArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$customer_reviewPayload>
+          }
+          deleteMany: {
+            args: Prisma.customer_reviewDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.customer_reviewUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.customer_reviewUpdateManyAndReturnArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$customer_reviewPayload>[]
+          }
+          upsert: {
+            args: Prisma.customer_reviewUpsertArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$customer_reviewPayload>
+          }
+          aggregate: {
+            args: Prisma.Customer_reviewAggregateArgs<ExtArgs>
+            result: runtime.Types.Utils.Optional<AggregateCustomer_review>
+          }
+          groupBy: {
+            args: Prisma.customer_reviewGroupByArgs<ExtArgs>
+            result: runtime.Types.Utils.Optional<Customer_reviewGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.customer_reviewCountArgs<ExtArgs>
+            result: runtime.Types.Utils.Optional<Customer_reviewCountAggregateOutputType> | number
+          }
+        }
+      }
+      track_discount: {
+        payload: Prisma.$track_discountPayload<ExtArgs>
+        fields: Prisma.track_discountFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.track_discountFindUniqueArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$track_discountPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.track_discountFindUniqueOrThrowArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$track_discountPayload>
+          }
+          findFirst: {
+            args: Prisma.track_discountFindFirstArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$track_discountPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.track_discountFindFirstOrThrowArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$track_discountPayload>
+          }
+          findMany: {
+            args: Prisma.track_discountFindManyArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$track_discountPayload>[]
+          }
+          create: {
+            args: Prisma.track_discountCreateArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$track_discountPayload>
+          }
+          createMany: {
+            args: Prisma.track_discountCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.track_discountCreateManyAndReturnArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$track_discountPayload>[]
+          }
+          delete: {
+            args: Prisma.track_discountDeleteArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$track_discountPayload>
+          }
+          update: {
+            args: Prisma.track_discountUpdateArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$track_discountPayload>
+          }
+          deleteMany: {
+            args: Prisma.track_discountDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.track_discountUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.track_discountUpdateManyAndReturnArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$track_discountPayload>[]
+          }
+          upsert: {
+            args: Prisma.track_discountUpsertArgs<ExtArgs>
+            result: runtime.Types.Utils.PayloadToResult<Prisma.$track_discountPayload>
+          }
+          aggregate: {
+            args: Prisma.Track_discountAggregateArgs<ExtArgs>
+            result: runtime.Types.Utils.Optional<AggregateTrack_discount>
+          }
+          groupBy: {
+            args: Prisma.track_discountGroupByArgs<ExtArgs>
+            result: runtime.Types.Utils.Optional<Track_discountGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.track_discountCountArgs<ExtArgs>
+            result: runtime.Types.Utils.Optional<Track_discountCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1702,6 +1885,8 @@ export namespace Prisma {
     playlist?: playlistOmit
     playlist_track?: playlist_trackOmit
     track?: trackOmit
+    customer_review?: customer_reviewOmit
+    track_discount?: track_discountOmit
   }
 
   /* Types for Logging */
@@ -1855,10 +2040,12 @@ export namespace Prisma {
    */
 
   export type CustomerCountOutputType = {
+    customer_review: number
     invoice: number
   }
 
   export type CustomerCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    customer_review?: boolean | CustomerCountOutputTypeCountCustomer_reviewArgs
     invoice?: boolean | CustomerCountOutputTypeCountInvoiceArgs
   }
 
@@ -1876,6 +2063,13 @@ export namespace Prisma {
   /**
    * CustomerCountOutputType without action
    */
+  export type CustomerCountOutputTypeCountCustomer_reviewArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    where?: customer_reviewWhereInput
+  }
+
+  /**
+   * CustomerCountOutputType without action
+   */
   export type CustomerCountOutputTypeCountInvoiceArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     where?: invoiceWhereInput
   }
@@ -1888,11 +2082,13 @@ export namespace Prisma {
   export type EmployeeCountOutputType = {
     customer: number
     other_employee: number
+    track_discount: number
   }
 
   export type EmployeeCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     customer?: boolean | EmployeeCountOutputTypeCountCustomerArgs
     other_employee?: boolean | EmployeeCountOutputTypeCountOther_employeeArgs
+    track_discount?: boolean | EmployeeCountOutputTypeCountTrack_discountArgs
   }
 
   // Custom InputTypes
@@ -1920,35 +2116,11 @@ export namespace Prisma {
     where?: employeeWhereInput
   }
 
-
   /**
-   * Count Type GenreCountOutputType
+   * EmployeeCountOutputType without action
    */
-
-  export type GenreCountOutputType = {
-    track: number
-  }
-
-  export type GenreCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-    track?: boolean | GenreCountOutputTypeCountTrackArgs
-  }
-
-  // Custom InputTypes
-  /**
-   * GenreCountOutputType without action
-   */
-  export type GenreCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the GenreCountOutputType
-     */
-    select?: GenreCountOutputTypeSelect<ExtArgs> | null
-  }
-
-  /**
-   * GenreCountOutputType without action
-   */
-  export type GenreCountOutputTypeCountTrackArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-    where?: trackWhereInput
+  export type EmployeeCountOutputTypeCountTrack_discountArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    where?: track_discountWhereInput
   }
 
 
@@ -1957,10 +2129,12 @@ export namespace Prisma {
    */
 
   export type InvoiceCountOutputType = {
+    customer_review: number
     invoice_line: number
   }
 
   export type InvoiceCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    customer_review?: boolean | InvoiceCountOutputTypeCountCustomer_reviewArgs
     invoice_line?: boolean | InvoiceCountOutputTypeCountInvoice_lineArgs
   }
 
@@ -1978,39 +2152,15 @@ export namespace Prisma {
   /**
    * InvoiceCountOutputType without action
    */
+  export type InvoiceCountOutputTypeCountCustomer_reviewArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    where?: customer_reviewWhereInput
+  }
+
+  /**
+   * InvoiceCountOutputType without action
+   */
   export type InvoiceCountOutputTypeCountInvoice_lineArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     where?: invoice_lineWhereInput
-  }
-
-
-  /**
-   * Count Type Media_typeCountOutputType
-   */
-
-  export type Media_typeCountOutputType = {
-    track: number
-  }
-
-  export type Media_typeCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-    track?: boolean | Media_typeCountOutputTypeCountTrackArgs
-  }
-
-  // Custom InputTypes
-  /**
-   * Media_typeCountOutputType without action
-   */
-  export type Media_typeCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the Media_typeCountOutputType
-     */
-    select?: Media_typeCountOutputTypeSelect<ExtArgs> | null
-  }
-
-  /**
-   * Media_typeCountOutputType without action
-   */
-  export type Media_typeCountOutputTypeCountTrackArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-    where?: trackWhereInput
   }
 
 
@@ -2052,11 +2202,13 @@ export namespace Prisma {
   export type TrackCountOutputType = {
     invoice_line: number
     playlist_track: number
+    track_discount: number
   }
 
   export type TrackCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     invoice_line?: boolean | TrackCountOutputTypeCountInvoice_lineArgs
     playlist_track?: boolean | TrackCountOutputTypeCountPlaylist_trackArgs
+    track_discount?: boolean | TrackCountOutputTypeCountTrack_discountArgs
   }
 
   // Custom InputTypes
@@ -2082,6 +2234,13 @@ export namespace Prisma {
    */
   export type TrackCountOutputTypeCountPlaylist_trackArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     where?: playlist_trackWhereInput
+  }
+
+  /**
+   * TrackCountOutputType without action
+   */
+  export type TrackCountOutputTypeCountTrack_discountArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    where?: track_discountWhereInput
   }
 
 
@@ -3337,7 +3496,7 @@ export namespace Prisma {
   }
 
   export type ArtistGroupByOutputType = {
-    name: string | null
+    name: string
     artist_id: number
     _count: ArtistCountAggregateOutputType | null
     _avg: ArtistAvgAggregateOutputType | null
@@ -3396,7 +3555,7 @@ export namespace Prisma {
       album: Prisma.$albumPayload<ExtArgs>[]
     }
     scalars: runtime.Types.Extensions.GetPayloadResult<{
-      name: string | null
+      name: string
       artist_id: number
     }, ExtArgs["result"]["artist"]>
     composites: {}
@@ -4042,7 +4201,7 @@ export namespace Prisma {
     /**
      * The data needed to create a artist.
      */
-    data?: XOR<artistCreateInput, artistUncheckedCreateInput>
+    data: XOR<artistCreateInput, artistUncheckedCreateInput>
   }
 
   /**
@@ -4521,6 +4680,7 @@ export namespace Prisma {
     email?: boolean
     support_rep_id?: boolean
     employee?: boolean | customer$employeeArgs<ExtArgs>
+    customer_review?: boolean | customer$customer_reviewArgs<ExtArgs>
     invoice?: boolean | customer$invoiceArgs<ExtArgs>
     _count?: boolean | CustomerCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["customer"]>
@@ -4578,6 +4738,7 @@ export namespace Prisma {
   export type customerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"customer_id" | "first_name" | "last_name" | "company" | "address" | "city" | "state" | "country" | "postal_code" | "phone" | "fax" | "email" | "support_rep_id", ExtArgs["result"]["customer"]>
   export type customerInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     employee?: boolean | customer$employeeArgs<ExtArgs>
+    customer_review?: boolean | customer$customer_reviewArgs<ExtArgs>
     invoice?: boolean | customer$invoiceArgs<ExtArgs>
     _count?: boolean | CustomerCountOutputTypeDefaultArgs<ExtArgs>
   }
@@ -4592,6 +4753,7 @@ export namespace Prisma {
     name: "customer"
     objects: {
       employee: Prisma.$employeePayload<ExtArgs> | null
+      customer_review: Prisma.$customer_reviewPayload<ExtArgs>[]
       invoice: Prisma.$invoicePayload<ExtArgs>[]
     }
     scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -5003,6 +5165,7 @@ export namespace Prisma {
   export interface Prisma__customerClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     employee<T extends customer$employeeArgs<ExtArgs> = {}>(args?: Subset<T, customer$employeeArgs<ExtArgs>>): Prisma__employeeClient<runtime.Types.Result.GetResult<Prisma.$employeePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    customer_review<T extends customer$customer_reviewArgs<ExtArgs> = {}>(args?: Subset<T, customer$customer_reviewArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$customer_reviewPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     invoice<T extends customer$invoiceArgs<ExtArgs> = {}>(args?: Subset<T, customer$invoiceArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$invoicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -5461,6 +5624,30 @@ export namespace Prisma {
   }
 
   /**
+   * customer.customer_review
+   */
+  export type customer$customer_reviewArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the customer_review
+     */
+    select?: customer_reviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the customer_review
+     */
+    omit?: customer_reviewOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: customer_reviewInclude<ExtArgs> | null
+    where?: customer_reviewWhereInput
+    orderBy?: customer_reviewOrderByWithRelationInput | customer_reviewOrderByWithRelationInput[]
+    cursor?: customer_reviewWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Customer_reviewScalarFieldEnum | Customer_reviewScalarFieldEnum[]
+  }
+
+  /**
    * customer.invoice
    */
   export type customer$invoiceArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -5541,6 +5728,7 @@ export namespace Prisma {
     phone: string | null
     fax: string | null
     email: string | null
+    termination_date: Date | null
   }
 
   export type EmployeeMaxAggregateOutputType = {
@@ -5559,6 +5747,7 @@ export namespace Prisma {
     phone: string | null
     fax: string | null
     email: string | null
+    termination_date: Date | null
   }
 
   export type EmployeeCountAggregateOutputType = {
@@ -5577,6 +5766,7 @@ export namespace Prisma {
     phone: number
     fax: number
     email: number
+    termination_date: number
     _all: number
   }
 
@@ -5607,6 +5797,7 @@ export namespace Prisma {
     phone?: true
     fax?: true
     email?: true
+    termination_date?: true
   }
 
   export type EmployeeMaxAggregateInputType = {
@@ -5625,6 +5816,7 @@ export namespace Prisma {
     phone?: true
     fax?: true
     email?: true
+    termination_date?: true
   }
 
   export type EmployeeCountAggregateInputType = {
@@ -5643,6 +5835,7 @@ export namespace Prisma {
     phone?: true
     fax?: true
     email?: true
+    termination_date?: true
     _all?: true
   }
 
@@ -5739,7 +5932,7 @@ export namespace Prisma {
     title: string | null
     reports_to: number | null
     birth_date: Date | null
-    hire_date: Date | null
+    hire_date: Date
     address: string | null
     city: string | null
     state: string | null
@@ -5748,6 +5941,7 @@ export namespace Prisma {
     phone: string | null
     fax: string | null
     email: string | null
+    termination_date: Date | null
     _count: EmployeeCountAggregateOutputType | null
     _avg: EmployeeAvgAggregateOutputType | null
     _sum: EmployeeSumAggregateOutputType | null
@@ -5785,9 +5979,11 @@ export namespace Prisma {
     phone?: boolean
     fax?: boolean
     email?: boolean
+    termination_date?: boolean
     customer?: boolean | employee$customerArgs<ExtArgs>
     employee?: boolean | employee$employeeArgs<ExtArgs>
     other_employee?: boolean | employee$other_employeeArgs<ExtArgs>
+    track_discount?: boolean | employee$track_discountArgs<ExtArgs>
     _count?: boolean | EmployeeCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["employee"]>
 
@@ -5807,6 +6003,7 @@ export namespace Prisma {
     phone?: boolean
     fax?: boolean
     email?: boolean
+    termination_date?: boolean
     employee?: boolean | employee$employeeArgs<ExtArgs>
   }, ExtArgs["result"]["employee"]>
 
@@ -5826,6 +6023,7 @@ export namespace Prisma {
     phone?: boolean
     fax?: boolean
     email?: boolean
+    termination_date?: boolean
     employee?: boolean | employee$employeeArgs<ExtArgs>
   }, ExtArgs["result"]["employee"]>
 
@@ -5845,13 +6043,15 @@ export namespace Prisma {
     phone?: boolean
     fax?: boolean
     email?: boolean
+    termination_date?: boolean
   }
 
-  export type employeeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"employee_id" | "last_name" | "first_name" | "title" | "reports_to" | "birth_date" | "hire_date" | "address" | "city" | "state" | "country" | "postal_code" | "phone" | "fax" | "email", ExtArgs["result"]["employee"]>
+  export type employeeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"employee_id" | "last_name" | "first_name" | "title" | "reports_to" | "birth_date" | "hire_date" | "address" | "city" | "state" | "country" | "postal_code" | "phone" | "fax" | "email" | "termination_date", ExtArgs["result"]["employee"]>
   export type employeeInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     customer?: boolean | employee$customerArgs<ExtArgs>
     employee?: boolean | employee$employeeArgs<ExtArgs>
     other_employee?: boolean | employee$other_employeeArgs<ExtArgs>
+    track_discount?: boolean | employee$track_discountArgs<ExtArgs>
     _count?: boolean | EmployeeCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type employeeIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -5867,6 +6067,7 @@ export namespace Prisma {
       customer: Prisma.$customerPayload<ExtArgs>[]
       employee: Prisma.$employeePayload<ExtArgs> | null
       other_employee: Prisma.$employeePayload<ExtArgs>[]
+      track_discount: Prisma.$track_discountPayload<ExtArgs>[]
     }
     scalars: runtime.Types.Extensions.GetPayloadResult<{
       employee_id: number
@@ -5875,7 +6076,7 @@ export namespace Prisma {
       title: string | null
       reports_to: number | null
       birth_date: Date | null
-      hire_date: Date | null
+      hire_date: Date
       address: string | null
       city: string | null
       state: string | null
@@ -5884,6 +6085,7 @@ export namespace Prisma {
       phone: string | null
       fax: string | null
       email: string | null
+      termination_date: Date | null
     }, ExtArgs["result"]["employee"]>
     composites: {}
   }
@@ -6281,6 +6483,7 @@ export namespace Prisma {
     customer<T extends employee$customerArgs<ExtArgs> = {}>(args?: Subset<T, employee$customerArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$customerPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     employee<T extends employee$employeeArgs<ExtArgs> = {}>(args?: Subset<T, employee$employeeArgs<ExtArgs>>): Prisma__employeeClient<runtime.Types.Result.GetResult<Prisma.$employeePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     other_employee<T extends employee$other_employeeArgs<ExtArgs> = {}>(args?: Subset<T, employee$other_employeeArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$employeePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    track_discount<T extends employee$track_discountArgs<ExtArgs> = {}>(args?: Subset<T, employee$track_discountArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$track_discountPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -6325,6 +6528,7 @@ export namespace Prisma {
     readonly phone: FieldRef<"employee", 'String'>
     readonly fax: FieldRef<"employee", 'String'>
     readonly email: FieldRef<"employee", 'String'>
+    readonly termination_date: FieldRef<"employee", 'DateTime'>
   }
     
 
@@ -6788,6 +6992,30 @@ export namespace Prisma {
   }
 
   /**
+   * employee.track_discount
+   */
+  export type employee$track_discountArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the track_discount
+     */
+    select?: track_discountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the track_discount
+     */
+    omit?: track_discountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: track_discountInclude<ExtArgs> | null
+    where?: track_discountWhereInput
+    orderBy?: track_discountOrderByWithRelationInput | track_discountOrderByWithRelationInput[]
+    cursor?: track_discountWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Track_discountScalarFieldEnum | Track_discountScalarFieldEnum[]
+  }
+
+  /**
    * employee without action
    */
   export type employeeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -6980,8 +7208,6 @@ export namespace Prisma {
   export type genreSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
     genre_id?: boolean
     name?: boolean
-    track?: boolean | genre$trackArgs<ExtArgs>
-    _count?: boolean | GenreCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["genre"]>
 
   export type genreSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -7000,18 +7226,10 @@ export namespace Prisma {
   }
 
   export type genreOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"genre_id" | "name", ExtArgs["result"]["genre"]>
-  export type genreInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-    track?: boolean | genre$trackArgs<ExtArgs>
-    _count?: boolean | GenreCountOutputTypeDefaultArgs<ExtArgs>
-  }
-  export type genreIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
-  export type genreIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
 
   export type $genrePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     name: "genre"
-    objects: {
-      track: Prisma.$trackPayload<ExtArgs>[]
-    }
+    objects: {}
     scalars: runtime.Types.Extensions.GetPayloadResult<{
       genre_id: number
       name: string | null
@@ -7409,7 +7627,6 @@ export namespace Prisma {
    */
   export interface Prisma__genreClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
-    track<T extends genre$trackArgs<ExtArgs> = {}>(args?: Subset<T, genre$trackArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$trackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -7458,10 +7675,6 @@ export namespace Prisma {
      */
     omit?: genreOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: genreInclude<ExtArgs> | null
-    /**
      * Filter, which genre to fetch.
      */
     where: genreWhereUniqueInput
@@ -7480,10 +7693,6 @@ export namespace Prisma {
      */
     omit?: genreOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: genreInclude<ExtArgs> | null
-    /**
      * Filter, which genre to fetch.
      */
     where: genreWhereUniqueInput
@@ -7501,10 +7710,6 @@ export namespace Prisma {
      * Omit specific fields from the genre
      */
     omit?: genreOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: genreInclude<ExtArgs> | null
     /**
      * Filter, which genre to fetch.
      */
@@ -7554,10 +7759,6 @@ export namespace Prisma {
      */
     omit?: genreOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: genreInclude<ExtArgs> | null
-    /**
      * Filter, which genre to fetch.
      */
     where?: genreWhereInput
@@ -7606,10 +7807,6 @@ export namespace Prisma {
      */
     omit?: genreOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: genreInclude<ExtArgs> | null
-    /**
      * Filter, which genres to fetch.
      */
     where?: genreWhereInput
@@ -7652,10 +7849,6 @@ export namespace Prisma {
      * Omit specific fields from the genre
      */
     omit?: genreOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: genreInclude<ExtArgs> | null
     /**
      * The data needed to create a genre.
      */
@@ -7704,10 +7897,6 @@ export namespace Prisma {
      * Omit specific fields from the genre
      */
     omit?: genreOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: genreInclude<ExtArgs> | null
     /**
      * The data needed to update a genre.
      */
@@ -7775,10 +7964,6 @@ export namespace Prisma {
      */
     omit?: genreOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: genreInclude<ExtArgs> | null
-    /**
      * The filter to search for the genre to update in case it exists.
      */
     where: genreWhereUniqueInput
@@ -7805,10 +7990,6 @@ export namespace Prisma {
      */
     omit?: genreOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: genreInclude<ExtArgs> | null
-    /**
      * Filter which genre to delete.
      */
     where: genreWhereUniqueInput
@@ -7829,30 +8010,6 @@ export namespace Prisma {
   }
 
   /**
-   * genre.track
-   */
-  export type genre$trackArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the track
-     */
-    select?: trackSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the track
-     */
-    omit?: trackOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: trackInclude<ExtArgs> | null
-    where?: trackWhereInput
-    orderBy?: trackOrderByWithRelationInput | trackOrderByWithRelationInput[]
-    cursor?: trackWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: TrackScalarFieldEnum | TrackScalarFieldEnum[]
-  }
-
-  /**
    * genre without action
    */
   export type genreDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -7864,10 +8021,6 @@ export namespace Prisma {
      * Omit specific fields from the genre
      */
     omit?: genreOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: genreInclude<ExtArgs> | null
   }
 
 
@@ -8109,6 +8262,7 @@ export namespace Prisma {
     billing_country?: boolean
     billing_postal_code?: boolean
     total?: boolean
+    customer_review?: boolean | invoice$customer_reviewArgs<ExtArgs>
     customer?: boolean | customerDefaultArgs<ExtArgs>
     invoice_line?: boolean | invoice$invoice_lineArgs<ExtArgs>
     _count?: boolean | InvoiceCountOutputTypeDefaultArgs<ExtArgs>
@@ -8154,6 +8308,7 @@ export namespace Prisma {
 
   export type invoiceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"invoice_id" | "customer_id" | "invoice_date" | "billing_address" | "billing_city" | "billing_state" | "billing_country" | "billing_postal_code" | "total", ExtArgs["result"]["invoice"]>
   export type invoiceInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    customer_review?: boolean | invoice$customer_reviewArgs<ExtArgs>
     customer?: boolean | customerDefaultArgs<ExtArgs>
     invoice_line?: boolean | invoice$invoice_lineArgs<ExtArgs>
     _count?: boolean | InvoiceCountOutputTypeDefaultArgs<ExtArgs>
@@ -8168,6 +8323,7 @@ export namespace Prisma {
   export type $invoicePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     name: "invoice"
     objects: {
+      customer_review: Prisma.$customer_reviewPayload<ExtArgs>[]
       customer: Prisma.$customerPayload<ExtArgs>
       invoice_line: Prisma.$invoice_linePayload<ExtArgs>[]
     }
@@ -8575,6 +8731,7 @@ export namespace Prisma {
    */
   export interface Prisma__invoiceClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    customer_review<T extends invoice$customer_reviewArgs<ExtArgs> = {}>(args?: Subset<T, invoice$customer_reviewArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$customer_reviewPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     customer<T extends customerDefaultArgs<ExtArgs> = {}>(args?: Subset<T, customerDefaultArgs<ExtArgs>>): Prisma__customerClient<runtime.Types.Result.GetResult<Prisma.$customerPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     invoice_line<T extends invoice$invoice_lineArgs<ExtArgs> = {}>(args?: Subset<T, invoice$invoice_lineArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$invoice_linePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
@@ -9008,6 +9165,30 @@ export namespace Prisma {
      * Limit how many invoices to delete.
      */
     limit?: number
+  }
+
+  /**
+   * invoice.customer_review
+   */
+  export type invoice$customer_reviewArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the customer_review
+     */
+    select?: customer_reviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the customer_review
+     */
+    omit?: customer_reviewOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: customer_reviewInclude<ExtArgs> | null
+    where?: customer_reviewWhereInput
+    orderBy?: customer_reviewOrderByWithRelationInput | customer_reviewOrderByWithRelationInput[]
+    cursor?: customer_reviewWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Customer_reviewScalarFieldEnum | Customer_reviewScalarFieldEnum[]
   }
 
   /**
@@ -10343,8 +10524,6 @@ export namespace Prisma {
   export type media_typeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
     media_type_id?: boolean
     name?: boolean
-    track?: boolean | media_type$trackArgs<ExtArgs>
-    _count?: boolean | Media_typeCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["media_type"]>
 
   export type media_typeSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -10363,18 +10542,10 @@ export namespace Prisma {
   }
 
   export type media_typeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"media_type_id" | "name", ExtArgs["result"]["media_type"]>
-  export type media_typeInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-    track?: boolean | media_type$trackArgs<ExtArgs>
-    _count?: boolean | Media_typeCountOutputTypeDefaultArgs<ExtArgs>
-  }
-  export type media_typeIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
-  export type media_typeIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
 
   export type $media_typePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     name: "media_type"
-    objects: {
-      track: Prisma.$trackPayload<ExtArgs>[]
-    }
+    objects: {}
     scalars: runtime.Types.Extensions.GetPayloadResult<{
       media_type_id: number
       name: string | null
@@ -10772,7 +10943,6 @@ export namespace Prisma {
    */
   export interface Prisma__media_typeClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
-    track<T extends media_type$trackArgs<ExtArgs> = {}>(args?: Subset<T, media_type$trackArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$trackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -10821,10 +10991,6 @@ export namespace Prisma {
      */
     omit?: media_typeOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: media_typeInclude<ExtArgs> | null
-    /**
      * Filter, which media_type to fetch.
      */
     where: media_typeWhereUniqueInput
@@ -10843,10 +11009,6 @@ export namespace Prisma {
      */
     omit?: media_typeOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: media_typeInclude<ExtArgs> | null
-    /**
      * Filter, which media_type to fetch.
      */
     where: media_typeWhereUniqueInput
@@ -10864,10 +11026,6 @@ export namespace Prisma {
      * Omit specific fields from the media_type
      */
     omit?: media_typeOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: media_typeInclude<ExtArgs> | null
     /**
      * Filter, which media_type to fetch.
      */
@@ -10917,10 +11075,6 @@ export namespace Prisma {
      */
     omit?: media_typeOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: media_typeInclude<ExtArgs> | null
-    /**
      * Filter, which media_type to fetch.
      */
     where?: media_typeWhereInput
@@ -10969,10 +11123,6 @@ export namespace Prisma {
      */
     omit?: media_typeOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: media_typeInclude<ExtArgs> | null
-    /**
      * Filter, which media_types to fetch.
      */
     where?: media_typeWhereInput
@@ -11015,10 +11165,6 @@ export namespace Prisma {
      * Omit specific fields from the media_type
      */
     omit?: media_typeOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: media_typeInclude<ExtArgs> | null
     /**
      * The data needed to create a media_type.
      */
@@ -11067,10 +11213,6 @@ export namespace Prisma {
      * Omit specific fields from the media_type
      */
     omit?: media_typeOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: media_typeInclude<ExtArgs> | null
     /**
      * The data needed to update a media_type.
      */
@@ -11138,10 +11280,6 @@ export namespace Prisma {
      */
     omit?: media_typeOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: media_typeInclude<ExtArgs> | null
-    /**
      * The filter to search for the media_type to update in case it exists.
      */
     where: media_typeWhereUniqueInput
@@ -11168,10 +11306,6 @@ export namespace Prisma {
      */
     omit?: media_typeOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: media_typeInclude<ExtArgs> | null
-    /**
      * Filter which media_type to delete.
      */
     where: media_typeWhereUniqueInput
@@ -11192,30 +11326,6 @@ export namespace Prisma {
   }
 
   /**
-   * media_type.track
-   */
-  export type media_type$trackArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the track
-     */
-    select?: trackSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the track
-     */
-    omit?: trackOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: trackInclude<ExtArgs> | null
-    where?: trackWhereInput
-    orderBy?: trackOrderByWithRelationInput | trackOrderByWithRelationInput[]
-    cursor?: trackWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: TrackScalarFieldEnum | TrackScalarFieldEnum[]
-  }
-
-  /**
    * media_type without action
    */
   export type media_typeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -11227,10 +11337,6 @@ export namespace Prisma {
      * Omit specific fields from the media_type
      */
     omit?: media_typeOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: media_typeInclude<ExtArgs> | null
   }
 
 
@@ -13377,27 +13483,26 @@ export namespace Prisma {
   }
 
   export type TrackAvgAggregateOutputType = {
-    track_id: number | null
     album_id: number | null
     media_type_id: number | null
     genre_id: number | null
     milliseconds: number | null
     bytes: number | null
     unit_price: Decimal | null
+    track_id: number | null
   }
 
   export type TrackSumAggregateOutputType = {
-    track_id: number | null
     album_id: number | null
     media_type_id: number | null
     genre_id: number | null
     milliseconds: number | null
     bytes: number | null
     unit_price: Decimal | null
+    track_id: number | null
   }
 
   export type TrackMinAggregateOutputType = {
-    track_id: number | null
     name: string | null
     album_id: number | null
     media_type_id: number | null
@@ -13406,10 +13511,10 @@ export namespace Prisma {
     milliseconds: number | null
     bytes: number | null
     unit_price: Decimal | null
+    track_id: number | null
   }
 
   export type TrackMaxAggregateOutputType = {
-    track_id: number | null
     name: string | null
     album_id: number | null
     media_type_id: number | null
@@ -13418,10 +13523,10 @@ export namespace Prisma {
     milliseconds: number | null
     bytes: number | null
     unit_price: Decimal | null
+    track_id: number | null
   }
 
   export type TrackCountAggregateOutputType = {
-    track_id: number
     name: number
     album_id: number
     media_type_id: number
@@ -13430,32 +13535,32 @@ export namespace Prisma {
     milliseconds: number
     bytes: number
     unit_price: number
+    track_id: number
     _all: number
   }
 
 
   export type TrackAvgAggregateInputType = {
-    track_id?: true
     album_id?: true
     media_type_id?: true
     genre_id?: true
     milliseconds?: true
     bytes?: true
     unit_price?: true
+    track_id?: true
   }
 
   export type TrackSumAggregateInputType = {
-    track_id?: true
     album_id?: true
     media_type_id?: true
     genre_id?: true
     milliseconds?: true
     bytes?: true
     unit_price?: true
+    track_id?: true
   }
 
   export type TrackMinAggregateInputType = {
-    track_id?: true
     name?: true
     album_id?: true
     media_type_id?: true
@@ -13464,10 +13569,10 @@ export namespace Prisma {
     milliseconds?: true
     bytes?: true
     unit_price?: true
+    track_id?: true
   }
 
   export type TrackMaxAggregateInputType = {
-    track_id?: true
     name?: true
     album_id?: true
     media_type_id?: true
@@ -13476,10 +13581,10 @@ export namespace Prisma {
     milliseconds?: true
     bytes?: true
     unit_price?: true
+    track_id?: true
   }
 
   export type TrackCountAggregateInputType = {
-    track_id?: true
     name?: true
     album_id?: true
     media_type_id?: true
@@ -13488,6 +13593,7 @@ export namespace Prisma {
     milliseconds?: true
     bytes?: true
     unit_price?: true
+    track_id?: true
     _all?: true
   }
 
@@ -13578,15 +13684,15 @@ export namespace Prisma {
   }
 
   export type TrackGroupByOutputType = {
-    track_id: number
     name: string
-    album_id: number | null
+    album_id: number
     media_type_id: number
     genre_id: number | null
     composer: string | null
     milliseconds: number
     bytes: number | null
     unit_price: Decimal
+    track_id: number
     _count: TrackCountAggregateOutputType | null
     _avg: TrackAvgAggregateOutputType | null
     _sum: TrackSumAggregateOutputType | null
@@ -13609,7 +13715,6 @@ export namespace Prisma {
 
 
   export type trackSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-    track_id?: boolean
     name?: boolean
     album_id?: boolean
     media_type_id?: boolean
@@ -13618,16 +13723,15 @@ export namespace Prisma {
     milliseconds?: boolean
     bytes?: boolean
     unit_price?: boolean
+    track_id?: boolean
     invoice_line?: boolean | track$invoice_lineArgs<ExtArgs>
     playlist_track?: boolean | track$playlist_trackArgs<ExtArgs>
-    album?: boolean | track$albumArgs<ExtArgs>
-    genre?: boolean | track$genreArgs<ExtArgs>
-    media_type?: boolean | media_typeDefaultArgs<ExtArgs>
+    album?: boolean | albumDefaultArgs<ExtArgs>
+    track_discount?: boolean | track$track_discountArgs<ExtArgs>
     _count?: boolean | TrackCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["track"]>
 
   export type trackSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-    track_id?: boolean
     name?: boolean
     album_id?: boolean
     media_type_id?: boolean
@@ -13636,13 +13740,11 @@ export namespace Prisma {
     milliseconds?: boolean
     bytes?: boolean
     unit_price?: boolean
-    album?: boolean | track$albumArgs<ExtArgs>
-    genre?: boolean | track$genreArgs<ExtArgs>
-    media_type?: boolean | media_typeDefaultArgs<ExtArgs>
+    track_id?: boolean
+    album?: boolean | albumDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["track"]>
 
   export type trackSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-    track_id?: boolean
     name?: boolean
     album_id?: boolean
     media_type_id?: boolean
@@ -13651,13 +13753,11 @@ export namespace Prisma {
     milliseconds?: boolean
     bytes?: boolean
     unit_price?: boolean
-    album?: boolean | track$albumArgs<ExtArgs>
-    genre?: boolean | track$genreArgs<ExtArgs>
-    media_type?: boolean | media_typeDefaultArgs<ExtArgs>
+    track_id?: boolean
+    album?: boolean | albumDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["track"]>
 
   export type trackSelectScalar = {
-    track_id?: boolean
     name?: boolean
     album_id?: boolean
     media_type_id?: boolean
@@ -13666,26 +13766,22 @@ export namespace Prisma {
     milliseconds?: boolean
     bytes?: boolean
     unit_price?: boolean
+    track_id?: boolean
   }
 
-  export type trackOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"track_id" | "name" | "album_id" | "media_type_id" | "genre_id" | "composer" | "milliseconds" | "bytes" | "unit_price", ExtArgs["result"]["track"]>
+  export type trackOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"name" | "album_id" | "media_type_id" | "genre_id" | "composer" | "milliseconds" | "bytes" | "unit_price" | "track_id", ExtArgs["result"]["track"]>
   export type trackInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     invoice_line?: boolean | track$invoice_lineArgs<ExtArgs>
     playlist_track?: boolean | track$playlist_trackArgs<ExtArgs>
-    album?: boolean | track$albumArgs<ExtArgs>
-    genre?: boolean | track$genreArgs<ExtArgs>
-    media_type?: boolean | media_typeDefaultArgs<ExtArgs>
+    album?: boolean | albumDefaultArgs<ExtArgs>
+    track_discount?: boolean | track$track_discountArgs<ExtArgs>
     _count?: boolean | TrackCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type trackIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-    album?: boolean | track$albumArgs<ExtArgs>
-    genre?: boolean | track$genreArgs<ExtArgs>
-    media_type?: boolean | media_typeDefaultArgs<ExtArgs>
+    album?: boolean | albumDefaultArgs<ExtArgs>
   }
   export type trackIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-    album?: boolean | track$albumArgs<ExtArgs>
-    genre?: boolean | track$genreArgs<ExtArgs>
-    media_type?: boolean | media_typeDefaultArgs<ExtArgs>
+    album?: boolean | albumDefaultArgs<ExtArgs>
   }
 
   export type $trackPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -13693,20 +13789,19 @@ export namespace Prisma {
     objects: {
       invoice_line: Prisma.$invoice_linePayload<ExtArgs>[]
       playlist_track: Prisma.$playlist_trackPayload<ExtArgs>[]
-      album: Prisma.$albumPayload<ExtArgs> | null
-      genre: Prisma.$genrePayload<ExtArgs> | null
-      media_type: Prisma.$media_typePayload<ExtArgs>
+      album: Prisma.$albumPayload<ExtArgs>
+      track_discount: Prisma.$track_discountPayload<ExtArgs>[]
     }
     scalars: runtime.Types.Extensions.GetPayloadResult<{
-      track_id: number
       name: string
-      album_id: number | null
+      album_id: number
       media_type_id: number
       genre_id: number | null
       composer: string | null
       milliseconds: number
       bytes: number | null
       unit_price: Prisma.Decimal
+      track_id: number
     }, ExtArgs["result"]["track"]>
     composites: {}
   }
@@ -13790,8 +13885,8 @@ export namespace Prisma {
      * // Get first 10 Tracks
      * const tracks = await prisma.track.findMany({ take: 10 })
      * 
-     * // Only select the `track_id`
-     * const trackWithTrack_idOnly = await prisma.track.findMany({ select: { track_id: true } })
+     * // Only select the `name`
+     * const trackWithNameOnly = await prisma.track.findMany({ select: { name: true } })
      * 
      */
     findMany<T extends trackFindManyArgs>(args?: SelectSubset<T, trackFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$trackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
@@ -13835,9 +13930,9 @@ export namespace Prisma {
      *   ]
      * })
      * 
-     * // Create many Tracks and only return the `track_id`
-     * const trackWithTrack_idOnly = await prisma.track.createManyAndReturn({
-     *   select: { track_id: true },
+     * // Create many Tracks and only return the `name`
+     * const trackWithNameOnly = await prisma.track.createManyAndReturn({
+     *   select: { name: true },
      *   data: [
      *     // ... provide data here
      *   ]
@@ -13926,9 +14021,9 @@ export namespace Prisma {
      *   ]
      * })
      * 
-     * // Update zero or more Tracks and only return the `track_id`
-     * const trackWithTrack_idOnly = await prisma.track.updateManyAndReturn({
-     *   select: { track_id: true },
+     * // Update zero or more Tracks and only return the `name`
+     * const trackWithNameOnly = await prisma.track.updateManyAndReturn({
+     *   select: { name: true },
      *   where: {
      *     // ... provide filter here
      *   },
@@ -14103,9 +14198,8 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     invoice_line<T extends track$invoice_lineArgs<ExtArgs> = {}>(args?: Subset<T, track$invoice_lineArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$invoice_linePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     playlist_track<T extends track$playlist_trackArgs<ExtArgs> = {}>(args?: Subset<T, track$playlist_trackArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$playlist_trackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-    album<T extends track$albumArgs<ExtArgs> = {}>(args?: Subset<T, track$albumArgs<ExtArgs>>): Prisma__albumClient<runtime.Types.Result.GetResult<Prisma.$albumPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-    genre<T extends track$genreArgs<ExtArgs> = {}>(args?: Subset<T, track$genreArgs<ExtArgs>>): Prisma__genreClient<runtime.Types.Result.GetResult<Prisma.$genrePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-    media_type<T extends media_typeDefaultArgs<ExtArgs> = {}>(args?: Subset<T, media_typeDefaultArgs<ExtArgs>>): Prisma__media_typeClient<runtime.Types.Result.GetResult<Prisma.$media_typePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    album<T extends albumDefaultArgs<ExtArgs> = {}>(args?: Subset<T, albumDefaultArgs<ExtArgs>>): Prisma__albumClient<runtime.Types.Result.GetResult<Prisma.$albumPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    track_discount<T extends track$track_discountArgs<ExtArgs> = {}>(args?: Subset<T, track$track_discountArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$track_discountPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -14135,7 +14229,6 @@ export namespace Prisma {
    * Fields of the track model
    */
   export interface trackFieldRefs {
-    readonly track_id: FieldRef<"track", 'Int'>
     readonly name: FieldRef<"track", 'String'>
     readonly album_id: FieldRef<"track", 'Int'>
     readonly media_type_id: FieldRef<"track", 'Int'>
@@ -14144,6 +14237,7 @@ export namespace Prisma {
     readonly milliseconds: FieldRef<"track", 'Int'>
     readonly bytes: FieldRef<"track", 'Int'>
     readonly unit_price: FieldRef<"track", 'Decimal'>
+    readonly track_id: FieldRef<"track", 'Int'>
   }
     
 
@@ -14588,41 +14682,27 @@ export namespace Prisma {
   }
 
   /**
-   * track.album
+   * track.track_discount
    */
-  export type track$albumArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  export type track$track_discountArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the album
+     * Select specific fields to fetch from the track_discount
      */
-    select?: albumSelect<ExtArgs> | null
+    select?: track_discountSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the album
+     * Omit specific fields from the track_discount
      */
-    omit?: albumOmit<ExtArgs> | null
+    omit?: track_discountOmit<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: albumInclude<ExtArgs> | null
-    where?: albumWhereInput
-  }
-
-  /**
-   * track.genre
-   */
-  export type track$genreArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the genre
-     */
-    select?: genreSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the genre
-     */
-    omit?: genreOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: genreInclude<ExtArgs> | null
-    where?: genreWhereInput
+    include?: track_discountInclude<ExtArgs> | null
+    where?: track_discountWhereInput
+    orderBy?: track_discountOrderByWithRelationInput | track_discountOrderByWithRelationInput[]
+    cursor?: track_discountWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Track_discountScalarFieldEnum | Track_discountScalarFieldEnum[]
   }
 
   /**
@@ -14641,6 +14721,2260 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: trackInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model customer_review
+   */
+
+  export type AggregateCustomer_review = {
+    _count: Customer_reviewCountAggregateOutputType | null
+    _avg: Customer_reviewAvgAggregateOutputType | null
+    _sum: Customer_reviewSumAggregateOutputType | null
+    _min: Customer_reviewMinAggregateOutputType | null
+    _max: Customer_reviewMaxAggregateOutputType | null
+  }
+
+  export type Customer_reviewAvgAggregateOutputType = {
+    review_id: number | null
+    customer_id: number | null
+    invoice_id: number | null
+    track_id: number | null
+    rating: number | null
+  }
+
+  export type Customer_reviewSumAggregateOutputType = {
+    review_id: number | null
+    customer_id: number | null
+    invoice_id: number | null
+    track_id: number | null
+    rating: number | null
+  }
+
+  export type Customer_reviewMinAggregateOutputType = {
+    review_id: number | null
+    customer_id: number | null
+    invoice_id: number | null
+    track_id: number | null
+    rating: number | null
+    review_comment: string | null
+  }
+
+  export type Customer_reviewMaxAggregateOutputType = {
+    review_id: number | null
+    customer_id: number | null
+    invoice_id: number | null
+    track_id: number | null
+    rating: number | null
+    review_comment: string | null
+  }
+
+  export type Customer_reviewCountAggregateOutputType = {
+    review_id: number
+    customer_id: number
+    invoice_id: number
+    track_id: number
+    rating: number
+    review_comment: number
+    _all: number
+  }
+
+
+  export type Customer_reviewAvgAggregateInputType = {
+    review_id?: true
+    customer_id?: true
+    invoice_id?: true
+    track_id?: true
+    rating?: true
+  }
+
+  export type Customer_reviewSumAggregateInputType = {
+    review_id?: true
+    customer_id?: true
+    invoice_id?: true
+    track_id?: true
+    rating?: true
+  }
+
+  export type Customer_reviewMinAggregateInputType = {
+    review_id?: true
+    customer_id?: true
+    invoice_id?: true
+    track_id?: true
+    rating?: true
+    review_comment?: true
+  }
+
+  export type Customer_reviewMaxAggregateInputType = {
+    review_id?: true
+    customer_id?: true
+    invoice_id?: true
+    track_id?: true
+    rating?: true
+    review_comment?: true
+  }
+
+  export type Customer_reviewCountAggregateInputType = {
+    review_id?: true
+    customer_id?: true
+    invoice_id?: true
+    track_id?: true
+    rating?: true
+    review_comment?: true
+    _all?: true
+  }
+
+  export type Customer_reviewAggregateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Filter which customer_review to aggregate.
+     */
+    where?: customer_reviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of customer_reviews to fetch.
+     */
+    orderBy?: customer_reviewOrderByWithRelationInput | customer_reviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: customer_reviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` customer_reviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` customer_reviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned customer_reviews
+    **/
+    _count?: true | Customer_reviewCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: Customer_reviewAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: Customer_reviewSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Customer_reviewMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Customer_reviewMaxAggregateInputType
+  }
+
+  export type GetCustomer_reviewAggregateType<T extends Customer_reviewAggregateArgs> = {
+        [P in keyof T & keyof AggregateCustomer_review]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCustomer_review[P]>
+      : GetScalarType<T[P], AggregateCustomer_review[P]>
+  }
+
+
+
+
+  export type customer_reviewGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    where?: customer_reviewWhereInput
+    orderBy?: customer_reviewOrderByWithAggregationInput | customer_reviewOrderByWithAggregationInput[]
+    by: Customer_reviewScalarFieldEnum[] | Customer_reviewScalarFieldEnum
+    having?: customer_reviewScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Customer_reviewCountAggregateInputType | true
+    _avg?: Customer_reviewAvgAggregateInputType
+    _sum?: Customer_reviewSumAggregateInputType
+    _min?: Customer_reviewMinAggregateInputType
+    _max?: Customer_reviewMaxAggregateInputType
+  }
+
+  export type Customer_reviewGroupByOutputType = {
+    review_id: number
+    customer_id: number
+    invoice_id: number
+    track_id: number
+    rating: number | null
+    review_comment: string | null
+    _count: Customer_reviewCountAggregateOutputType | null
+    _avg: Customer_reviewAvgAggregateOutputType | null
+    _sum: Customer_reviewSumAggregateOutputType | null
+    _min: Customer_reviewMinAggregateOutputType | null
+    _max: Customer_reviewMaxAggregateOutputType | null
+  }
+
+  type GetCustomer_reviewGroupByPayload<T extends customer_reviewGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Customer_reviewGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Customer_reviewGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Customer_reviewGroupByOutputType[P]>
+            : GetScalarType<T[P], Customer_reviewGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type customer_reviewSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+    review_id?: boolean
+    customer_id?: boolean
+    invoice_id?: boolean
+    track_id?: boolean
+    rating?: boolean
+    review_comment?: boolean
+    customer?: boolean | customerDefaultArgs<ExtArgs>
+    invoice?: boolean | invoiceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["customer_review"]>
+
+  export type customer_reviewSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+    review_id?: boolean
+    customer_id?: boolean
+    invoice_id?: boolean
+    track_id?: boolean
+    rating?: boolean
+    review_comment?: boolean
+    customer?: boolean | customerDefaultArgs<ExtArgs>
+    invoice?: boolean | invoiceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["customer_review"]>
+
+  export type customer_reviewSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+    review_id?: boolean
+    customer_id?: boolean
+    invoice_id?: boolean
+    track_id?: boolean
+    rating?: boolean
+    review_comment?: boolean
+    customer?: boolean | customerDefaultArgs<ExtArgs>
+    invoice?: boolean | invoiceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["customer_review"]>
+
+  export type customer_reviewSelectScalar = {
+    review_id?: boolean
+    customer_id?: boolean
+    invoice_id?: boolean
+    track_id?: boolean
+    rating?: boolean
+    review_comment?: boolean
+  }
+
+  export type customer_reviewOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"review_id" | "customer_id" | "invoice_id" | "track_id" | "rating" | "review_comment", ExtArgs["result"]["customer_review"]>
+  export type customer_reviewInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    customer?: boolean | customerDefaultArgs<ExtArgs>
+    invoice?: boolean | invoiceDefaultArgs<ExtArgs>
+  }
+  export type customer_reviewIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    customer?: boolean | customerDefaultArgs<ExtArgs>
+    invoice?: boolean | invoiceDefaultArgs<ExtArgs>
+  }
+  export type customer_reviewIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    customer?: boolean | customerDefaultArgs<ExtArgs>
+    invoice?: boolean | invoiceDefaultArgs<ExtArgs>
+  }
+
+  export type $customer_reviewPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    name: "customer_review"
+    objects: {
+      customer: Prisma.$customerPayload<ExtArgs>
+      invoice: Prisma.$invoicePayload<ExtArgs>
+    }
+    scalars: runtime.Types.Extensions.GetPayloadResult<{
+      review_id: number
+      customer_id: number
+      invoice_id: number
+      track_id: number
+      rating: number | null
+      review_comment: string | null
+    }, ExtArgs["result"]["customer_review"]>
+    composites: {}
+  }
+
+  export type customer_reviewGetPayload<S extends boolean | null | undefined | customer_reviewDefaultArgs> = runtime.Types.Result.GetResult<Prisma.$customer_reviewPayload, S>
+
+  export type customer_reviewCountArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> =
+    Omit<customer_reviewFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Customer_reviewCountAggregateInputType | true
+    }
+
+  export interface customer_reviewDelegate<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['customer_review'], meta: { name: 'customer_review' } }
+    /**
+     * Find zero or one Customer_review that matches the filter.
+     * @param {customer_reviewFindUniqueArgs} args - Arguments to find a Customer_review
+     * @example
+     * // Get one Customer_review
+     * const customer_review = await prisma.customer_review.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends customer_reviewFindUniqueArgs>(args: SelectSubset<T, customer_reviewFindUniqueArgs<ExtArgs>>): Prisma__customer_reviewClient<runtime.Types.Result.GetResult<Prisma.$customer_reviewPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Customer_review that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {customer_reviewFindUniqueOrThrowArgs} args - Arguments to find a Customer_review
+     * @example
+     * // Get one Customer_review
+     * const customer_review = await prisma.customer_review.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends customer_reviewFindUniqueOrThrowArgs>(args: SelectSubset<T, customer_reviewFindUniqueOrThrowArgs<ExtArgs>>): Prisma__customer_reviewClient<runtime.Types.Result.GetResult<Prisma.$customer_reviewPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Customer_review that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {customer_reviewFindFirstArgs} args - Arguments to find a Customer_review
+     * @example
+     * // Get one Customer_review
+     * const customer_review = await prisma.customer_review.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends customer_reviewFindFirstArgs>(args?: SelectSubset<T, customer_reviewFindFirstArgs<ExtArgs>>): Prisma__customer_reviewClient<runtime.Types.Result.GetResult<Prisma.$customer_reviewPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Customer_review that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {customer_reviewFindFirstOrThrowArgs} args - Arguments to find a Customer_review
+     * @example
+     * // Get one Customer_review
+     * const customer_review = await prisma.customer_review.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends customer_reviewFindFirstOrThrowArgs>(args?: SelectSubset<T, customer_reviewFindFirstOrThrowArgs<ExtArgs>>): Prisma__customer_reviewClient<runtime.Types.Result.GetResult<Prisma.$customer_reviewPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Customer_reviews that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {customer_reviewFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Customer_reviews
+     * const customer_reviews = await prisma.customer_review.findMany()
+     * 
+     * // Get first 10 Customer_reviews
+     * const customer_reviews = await prisma.customer_review.findMany({ take: 10 })
+     * 
+     * // Only select the `review_id`
+     * const customer_reviewWithReview_idOnly = await prisma.customer_review.findMany({ select: { review_id: true } })
+     * 
+     */
+    findMany<T extends customer_reviewFindManyArgs>(args?: SelectSubset<T, customer_reviewFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$customer_reviewPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Customer_review.
+     * @param {customer_reviewCreateArgs} args - Arguments to create a Customer_review.
+     * @example
+     * // Create one Customer_review
+     * const Customer_review = await prisma.customer_review.create({
+     *   data: {
+     *     // ... data to create a Customer_review
+     *   }
+     * })
+     * 
+     */
+    create<T extends customer_reviewCreateArgs>(args: SelectSubset<T, customer_reviewCreateArgs<ExtArgs>>): Prisma__customer_reviewClient<runtime.Types.Result.GetResult<Prisma.$customer_reviewPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Customer_reviews.
+     * @param {customer_reviewCreateManyArgs} args - Arguments to create many Customer_reviews.
+     * @example
+     * // Create many Customer_reviews
+     * const customer_review = await prisma.customer_review.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends customer_reviewCreateManyArgs>(args?: SelectSubset<T, customer_reviewCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Customer_reviews and returns the data saved in the database.
+     * @param {customer_reviewCreateManyAndReturnArgs} args - Arguments to create many Customer_reviews.
+     * @example
+     * // Create many Customer_reviews
+     * const customer_review = await prisma.customer_review.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Customer_reviews and only return the `review_id`
+     * const customer_reviewWithReview_idOnly = await prisma.customer_review.createManyAndReturn({
+     *   select: { review_id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends customer_reviewCreateManyAndReturnArgs>(args?: SelectSubset<T, customer_reviewCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$customer_reviewPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Customer_review.
+     * @param {customer_reviewDeleteArgs} args - Arguments to delete one Customer_review.
+     * @example
+     * // Delete one Customer_review
+     * const Customer_review = await prisma.customer_review.delete({
+     *   where: {
+     *     // ... filter to delete one Customer_review
+     *   }
+     * })
+     * 
+     */
+    delete<T extends customer_reviewDeleteArgs>(args: SelectSubset<T, customer_reviewDeleteArgs<ExtArgs>>): Prisma__customer_reviewClient<runtime.Types.Result.GetResult<Prisma.$customer_reviewPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Customer_review.
+     * @param {customer_reviewUpdateArgs} args - Arguments to update one Customer_review.
+     * @example
+     * // Update one Customer_review
+     * const customer_review = await prisma.customer_review.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends customer_reviewUpdateArgs>(args: SelectSubset<T, customer_reviewUpdateArgs<ExtArgs>>): Prisma__customer_reviewClient<runtime.Types.Result.GetResult<Prisma.$customer_reviewPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Customer_reviews.
+     * @param {customer_reviewDeleteManyArgs} args - Arguments to filter Customer_reviews to delete.
+     * @example
+     * // Delete a few Customer_reviews
+     * const { count } = await prisma.customer_review.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends customer_reviewDeleteManyArgs>(args?: SelectSubset<T, customer_reviewDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Customer_reviews.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {customer_reviewUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Customer_reviews
+     * const customer_review = await prisma.customer_review.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends customer_reviewUpdateManyArgs>(args: SelectSubset<T, customer_reviewUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Customer_reviews and returns the data updated in the database.
+     * @param {customer_reviewUpdateManyAndReturnArgs} args - Arguments to update many Customer_reviews.
+     * @example
+     * // Update many Customer_reviews
+     * const customer_review = await prisma.customer_review.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Customer_reviews and only return the `review_id`
+     * const customer_reviewWithReview_idOnly = await prisma.customer_review.updateManyAndReturn({
+     *   select: { review_id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends customer_reviewUpdateManyAndReturnArgs>(args: SelectSubset<T, customer_reviewUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$customer_reviewPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Customer_review.
+     * @param {customer_reviewUpsertArgs} args - Arguments to update or create a Customer_review.
+     * @example
+     * // Update or create a Customer_review
+     * const customer_review = await prisma.customer_review.upsert({
+     *   create: {
+     *     // ... data to create a Customer_review
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Customer_review we want to update
+     *   }
+     * })
+     */
+    upsert<T extends customer_reviewUpsertArgs>(args: SelectSubset<T, customer_reviewUpsertArgs<ExtArgs>>): Prisma__customer_reviewClient<runtime.Types.Result.GetResult<Prisma.$customer_reviewPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Customer_reviews.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {customer_reviewCountArgs} args - Arguments to filter Customer_reviews to count.
+     * @example
+     * // Count the number of Customer_reviews
+     * const count = await prisma.customer_review.count({
+     *   where: {
+     *     // ... the filter for the Customer_reviews we want to count
+     *   }
+     * })
+    **/
+    count<T extends customer_reviewCountArgs>(
+      args?: Subset<T, customer_reviewCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends runtime.Types.Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Customer_reviewCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Customer_review.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Customer_reviewAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Customer_reviewAggregateArgs>(args: Subset<T, Customer_reviewAggregateArgs>): Prisma.PrismaPromise<GetCustomer_reviewAggregateType<T>>
+
+    /**
+     * Group by Customer_review.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {customer_reviewGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends customer_reviewGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: customer_reviewGroupByArgs['orderBy'] }
+        : { orderBy?: customer_reviewGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, customer_reviewGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCustomer_reviewGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the customer_review model
+   */
+  readonly fields: customer_reviewFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for customer_review.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__customer_reviewClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    customer<T extends customerDefaultArgs<ExtArgs> = {}>(args?: Subset<T, customerDefaultArgs<ExtArgs>>): Prisma__customerClient<runtime.Types.Result.GetResult<Prisma.$customerPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    invoice<T extends invoiceDefaultArgs<ExtArgs> = {}>(args?: Subset<T, invoiceDefaultArgs<ExtArgs>>): Prisma__invoiceClient<runtime.Types.Result.GetResult<Prisma.$invoicePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): runtime.Types.Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): runtime.Types.Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): runtime.Types.Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the customer_review model
+   */
+  export interface customer_reviewFieldRefs {
+    readonly review_id: FieldRef<"customer_review", 'Int'>
+    readonly customer_id: FieldRef<"customer_review", 'Int'>
+    readonly invoice_id: FieldRef<"customer_review", 'Int'>
+    readonly track_id: FieldRef<"customer_review", 'Int'>
+    readonly rating: FieldRef<"customer_review", 'Int'>
+    readonly review_comment: FieldRef<"customer_review", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * customer_review findUnique
+   */
+  export type customer_reviewFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the customer_review
+     */
+    select?: customer_reviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the customer_review
+     */
+    omit?: customer_reviewOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: customer_reviewInclude<ExtArgs> | null
+    /**
+     * Filter, which customer_review to fetch.
+     */
+    where: customer_reviewWhereUniqueInput
+  }
+
+  /**
+   * customer_review findUniqueOrThrow
+   */
+  export type customer_reviewFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the customer_review
+     */
+    select?: customer_reviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the customer_review
+     */
+    omit?: customer_reviewOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: customer_reviewInclude<ExtArgs> | null
+    /**
+     * Filter, which customer_review to fetch.
+     */
+    where: customer_reviewWhereUniqueInput
+  }
+
+  /**
+   * customer_review findFirst
+   */
+  export type customer_reviewFindFirstArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the customer_review
+     */
+    select?: customer_reviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the customer_review
+     */
+    omit?: customer_reviewOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: customer_reviewInclude<ExtArgs> | null
+    /**
+     * Filter, which customer_review to fetch.
+     */
+    where?: customer_reviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of customer_reviews to fetch.
+     */
+    orderBy?: customer_reviewOrderByWithRelationInput | customer_reviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for customer_reviews.
+     */
+    cursor?: customer_reviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` customer_reviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` customer_reviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of customer_reviews.
+     */
+    distinct?: Customer_reviewScalarFieldEnum | Customer_reviewScalarFieldEnum[]
+  }
+
+  /**
+   * customer_review findFirstOrThrow
+   */
+  export type customer_reviewFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the customer_review
+     */
+    select?: customer_reviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the customer_review
+     */
+    omit?: customer_reviewOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: customer_reviewInclude<ExtArgs> | null
+    /**
+     * Filter, which customer_review to fetch.
+     */
+    where?: customer_reviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of customer_reviews to fetch.
+     */
+    orderBy?: customer_reviewOrderByWithRelationInput | customer_reviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for customer_reviews.
+     */
+    cursor?: customer_reviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` customer_reviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` customer_reviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of customer_reviews.
+     */
+    distinct?: Customer_reviewScalarFieldEnum | Customer_reviewScalarFieldEnum[]
+  }
+
+  /**
+   * customer_review findMany
+   */
+  export type customer_reviewFindManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the customer_review
+     */
+    select?: customer_reviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the customer_review
+     */
+    omit?: customer_reviewOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: customer_reviewInclude<ExtArgs> | null
+    /**
+     * Filter, which customer_reviews to fetch.
+     */
+    where?: customer_reviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of customer_reviews to fetch.
+     */
+    orderBy?: customer_reviewOrderByWithRelationInput | customer_reviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing customer_reviews.
+     */
+    cursor?: customer_reviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` customer_reviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` customer_reviews.
+     */
+    skip?: number
+    distinct?: Customer_reviewScalarFieldEnum | Customer_reviewScalarFieldEnum[]
+  }
+
+  /**
+   * customer_review create
+   */
+  export type customer_reviewCreateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the customer_review
+     */
+    select?: customer_reviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the customer_review
+     */
+    omit?: customer_reviewOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: customer_reviewInclude<ExtArgs> | null
+    /**
+     * The data needed to create a customer_review.
+     */
+    data: XOR<customer_reviewCreateInput, customer_reviewUncheckedCreateInput>
+  }
+
+  /**
+   * customer_review createMany
+   */
+  export type customer_reviewCreateManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many customer_reviews.
+     */
+    data: customer_reviewCreateManyInput | customer_reviewCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * customer_review createManyAndReturn
+   */
+  export type customer_reviewCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the customer_review
+     */
+    select?: customer_reviewSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the customer_review
+     */
+    omit?: customer_reviewOmit<ExtArgs> | null
+    /**
+     * The data used to create many customer_reviews.
+     */
+    data: customer_reviewCreateManyInput | customer_reviewCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: customer_reviewIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * customer_review update
+   */
+  export type customer_reviewUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the customer_review
+     */
+    select?: customer_reviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the customer_review
+     */
+    omit?: customer_reviewOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: customer_reviewInclude<ExtArgs> | null
+    /**
+     * The data needed to update a customer_review.
+     */
+    data: XOR<customer_reviewUpdateInput, customer_reviewUncheckedUpdateInput>
+    /**
+     * Choose, which customer_review to update.
+     */
+    where: customer_reviewWhereUniqueInput
+  }
+
+  /**
+   * customer_review updateMany
+   */
+  export type customer_reviewUpdateManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * The data used to update customer_reviews.
+     */
+    data: XOR<customer_reviewUpdateManyMutationInput, customer_reviewUncheckedUpdateManyInput>
+    /**
+     * Filter which customer_reviews to update
+     */
+    where?: customer_reviewWhereInput
+    /**
+     * Limit how many customer_reviews to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * customer_review updateManyAndReturn
+   */
+  export type customer_reviewUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the customer_review
+     */
+    select?: customer_reviewSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the customer_review
+     */
+    omit?: customer_reviewOmit<ExtArgs> | null
+    /**
+     * The data used to update customer_reviews.
+     */
+    data: XOR<customer_reviewUpdateManyMutationInput, customer_reviewUncheckedUpdateManyInput>
+    /**
+     * Filter which customer_reviews to update
+     */
+    where?: customer_reviewWhereInput
+    /**
+     * Limit how many customer_reviews to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: customer_reviewIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * customer_review upsert
+   */
+  export type customer_reviewUpsertArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the customer_review
+     */
+    select?: customer_reviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the customer_review
+     */
+    omit?: customer_reviewOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: customer_reviewInclude<ExtArgs> | null
+    /**
+     * The filter to search for the customer_review to update in case it exists.
+     */
+    where: customer_reviewWhereUniqueInput
+    /**
+     * In case the customer_review found by the `where` argument doesn't exist, create a new customer_review with this data.
+     */
+    create: XOR<customer_reviewCreateInput, customer_reviewUncheckedCreateInput>
+    /**
+     * In case the customer_review was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<customer_reviewUpdateInput, customer_reviewUncheckedUpdateInput>
+  }
+
+  /**
+   * customer_review delete
+   */
+  export type customer_reviewDeleteArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the customer_review
+     */
+    select?: customer_reviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the customer_review
+     */
+    omit?: customer_reviewOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: customer_reviewInclude<ExtArgs> | null
+    /**
+     * Filter which customer_review to delete.
+     */
+    where: customer_reviewWhereUniqueInput
+  }
+
+  /**
+   * customer_review deleteMany
+   */
+  export type customer_reviewDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Filter which customer_reviews to delete
+     */
+    where?: customer_reviewWhereInput
+    /**
+     * Limit how many customer_reviews to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * customer_review without action
+   */
+  export type customer_reviewDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the customer_review
+     */
+    select?: customer_reviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the customer_review
+     */
+    omit?: customer_reviewOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: customer_reviewInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model track_discount
+   */
+
+  export type AggregateTrack_discount = {
+    _count: Track_discountCountAggregateOutputType | null
+    _avg: Track_discountAvgAggregateOutputType | null
+    _sum: Track_discountSumAggregateOutputType | null
+    _min: Track_discountMinAggregateOutputType | null
+    _max: Track_discountMaxAggregateOutputType | null
+  }
+
+  export type Track_discountAvgAggregateOutputType = {
+    track_discount_id: number | null
+    track_id: number | null
+    discount: Decimal | null
+    employee_id: number | null
+  }
+
+  export type Track_discountSumAggregateOutputType = {
+    track_discount_id: number | null
+    track_id: number | null
+    discount: Decimal | null
+    employee_id: number | null
+  }
+
+  export type Track_discountMinAggregateOutputType = {
+    track_discount_id: number | null
+    track_id: number | null
+    discount: Decimal | null
+    offer_date: Date | null
+    close_date: Date | null
+    employee_id: number | null
+  }
+
+  export type Track_discountMaxAggregateOutputType = {
+    track_discount_id: number | null
+    track_id: number | null
+    discount: Decimal | null
+    offer_date: Date | null
+    close_date: Date | null
+    employee_id: number | null
+  }
+
+  export type Track_discountCountAggregateOutputType = {
+    track_discount_id: number
+    track_id: number
+    discount: number
+    offer_date: number
+    close_date: number
+    employee_id: number
+    _all: number
+  }
+
+
+  export type Track_discountAvgAggregateInputType = {
+    track_discount_id?: true
+    track_id?: true
+    discount?: true
+    employee_id?: true
+  }
+
+  export type Track_discountSumAggregateInputType = {
+    track_discount_id?: true
+    track_id?: true
+    discount?: true
+    employee_id?: true
+  }
+
+  export type Track_discountMinAggregateInputType = {
+    track_discount_id?: true
+    track_id?: true
+    discount?: true
+    offer_date?: true
+    close_date?: true
+    employee_id?: true
+  }
+
+  export type Track_discountMaxAggregateInputType = {
+    track_discount_id?: true
+    track_id?: true
+    discount?: true
+    offer_date?: true
+    close_date?: true
+    employee_id?: true
+  }
+
+  export type Track_discountCountAggregateInputType = {
+    track_discount_id?: true
+    track_id?: true
+    discount?: true
+    offer_date?: true
+    close_date?: true
+    employee_id?: true
+    _all?: true
+  }
+
+  export type Track_discountAggregateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Filter which track_discount to aggregate.
+     */
+    where?: track_discountWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of track_discounts to fetch.
+     */
+    orderBy?: track_discountOrderByWithRelationInput | track_discountOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: track_discountWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` track_discounts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` track_discounts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned track_discounts
+    **/
+    _count?: true | Track_discountCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: Track_discountAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: Track_discountSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Track_discountMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Track_discountMaxAggregateInputType
+  }
+
+  export type GetTrack_discountAggregateType<T extends Track_discountAggregateArgs> = {
+        [P in keyof T & keyof AggregateTrack_discount]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateTrack_discount[P]>
+      : GetScalarType<T[P], AggregateTrack_discount[P]>
+  }
+
+
+
+
+  export type track_discountGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    where?: track_discountWhereInput
+    orderBy?: track_discountOrderByWithAggregationInput | track_discountOrderByWithAggregationInput[]
+    by: Track_discountScalarFieldEnum[] | Track_discountScalarFieldEnum
+    having?: track_discountScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Track_discountCountAggregateInputType | true
+    _avg?: Track_discountAvgAggregateInputType
+    _sum?: Track_discountSumAggregateInputType
+    _min?: Track_discountMinAggregateInputType
+    _max?: Track_discountMaxAggregateInputType
+  }
+
+  export type Track_discountGroupByOutputType = {
+    track_discount_id: number
+    track_id: number
+    discount: Decimal
+    offer_date: Date
+    close_date: Date
+    employee_id: number
+    _count: Track_discountCountAggregateOutputType | null
+    _avg: Track_discountAvgAggregateOutputType | null
+    _sum: Track_discountSumAggregateOutputType | null
+    _min: Track_discountMinAggregateOutputType | null
+    _max: Track_discountMaxAggregateOutputType | null
+  }
+
+  type GetTrack_discountGroupByPayload<T extends track_discountGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Track_discountGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Track_discountGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Track_discountGroupByOutputType[P]>
+            : GetScalarType<T[P], Track_discountGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type track_discountSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+    track_discount_id?: boolean
+    track_id?: boolean
+    discount?: boolean
+    offer_date?: boolean
+    close_date?: boolean
+    employee_id?: boolean
+    employee?: boolean | employeeDefaultArgs<ExtArgs>
+    track?: boolean | trackDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["track_discount"]>
+
+  export type track_discountSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+    track_discount_id?: boolean
+    track_id?: boolean
+    discount?: boolean
+    offer_date?: boolean
+    close_date?: boolean
+    employee_id?: boolean
+    employee?: boolean | employeeDefaultArgs<ExtArgs>
+    track?: boolean | trackDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["track_discount"]>
+
+  export type track_discountSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+    track_discount_id?: boolean
+    track_id?: boolean
+    discount?: boolean
+    offer_date?: boolean
+    close_date?: boolean
+    employee_id?: boolean
+    employee?: boolean | employeeDefaultArgs<ExtArgs>
+    track?: boolean | trackDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["track_discount"]>
+
+  export type track_discountSelectScalar = {
+    track_discount_id?: boolean
+    track_id?: boolean
+    discount?: boolean
+    offer_date?: boolean
+    close_date?: boolean
+    employee_id?: boolean
+  }
+
+  export type track_discountOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"track_discount_id" | "track_id" | "discount" | "offer_date" | "close_date" | "employee_id", ExtArgs["result"]["track_discount"]>
+  export type track_discountInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    employee?: boolean | employeeDefaultArgs<ExtArgs>
+    track?: boolean | trackDefaultArgs<ExtArgs>
+  }
+  export type track_discountIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    employee?: boolean | employeeDefaultArgs<ExtArgs>
+    track?: boolean | trackDefaultArgs<ExtArgs>
+  }
+  export type track_discountIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    employee?: boolean | employeeDefaultArgs<ExtArgs>
+    track?: boolean | trackDefaultArgs<ExtArgs>
+  }
+
+  export type $track_discountPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    name: "track_discount"
+    objects: {
+      employee: Prisma.$employeePayload<ExtArgs>
+      track: Prisma.$trackPayload<ExtArgs>
+    }
+    scalars: runtime.Types.Extensions.GetPayloadResult<{
+      track_discount_id: number
+      track_id: number
+      discount: Prisma.Decimal
+      offer_date: Date
+      close_date: Date
+      employee_id: number
+    }, ExtArgs["result"]["track_discount"]>
+    composites: {}
+  }
+
+  export type track_discountGetPayload<S extends boolean | null | undefined | track_discountDefaultArgs> = runtime.Types.Result.GetResult<Prisma.$track_discountPayload, S>
+
+  export type track_discountCountArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> =
+    Omit<track_discountFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Track_discountCountAggregateInputType | true
+    }
+
+  export interface track_discountDelegate<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['track_discount'], meta: { name: 'track_discount' } }
+    /**
+     * Find zero or one Track_discount that matches the filter.
+     * @param {track_discountFindUniqueArgs} args - Arguments to find a Track_discount
+     * @example
+     * // Get one Track_discount
+     * const track_discount = await prisma.track_discount.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends track_discountFindUniqueArgs>(args: SelectSubset<T, track_discountFindUniqueArgs<ExtArgs>>): Prisma__track_discountClient<runtime.Types.Result.GetResult<Prisma.$track_discountPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Track_discount that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {track_discountFindUniqueOrThrowArgs} args - Arguments to find a Track_discount
+     * @example
+     * // Get one Track_discount
+     * const track_discount = await prisma.track_discount.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends track_discountFindUniqueOrThrowArgs>(args: SelectSubset<T, track_discountFindUniqueOrThrowArgs<ExtArgs>>): Prisma__track_discountClient<runtime.Types.Result.GetResult<Prisma.$track_discountPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Track_discount that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {track_discountFindFirstArgs} args - Arguments to find a Track_discount
+     * @example
+     * // Get one Track_discount
+     * const track_discount = await prisma.track_discount.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends track_discountFindFirstArgs>(args?: SelectSubset<T, track_discountFindFirstArgs<ExtArgs>>): Prisma__track_discountClient<runtime.Types.Result.GetResult<Prisma.$track_discountPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Track_discount that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {track_discountFindFirstOrThrowArgs} args - Arguments to find a Track_discount
+     * @example
+     * // Get one Track_discount
+     * const track_discount = await prisma.track_discount.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends track_discountFindFirstOrThrowArgs>(args?: SelectSubset<T, track_discountFindFirstOrThrowArgs<ExtArgs>>): Prisma__track_discountClient<runtime.Types.Result.GetResult<Prisma.$track_discountPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Track_discounts that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {track_discountFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Track_discounts
+     * const track_discounts = await prisma.track_discount.findMany()
+     * 
+     * // Get first 10 Track_discounts
+     * const track_discounts = await prisma.track_discount.findMany({ take: 10 })
+     * 
+     * // Only select the `track_discount_id`
+     * const track_discountWithTrack_discount_idOnly = await prisma.track_discount.findMany({ select: { track_discount_id: true } })
+     * 
+     */
+    findMany<T extends track_discountFindManyArgs>(args?: SelectSubset<T, track_discountFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$track_discountPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Track_discount.
+     * @param {track_discountCreateArgs} args - Arguments to create a Track_discount.
+     * @example
+     * // Create one Track_discount
+     * const Track_discount = await prisma.track_discount.create({
+     *   data: {
+     *     // ... data to create a Track_discount
+     *   }
+     * })
+     * 
+     */
+    create<T extends track_discountCreateArgs>(args: SelectSubset<T, track_discountCreateArgs<ExtArgs>>): Prisma__track_discountClient<runtime.Types.Result.GetResult<Prisma.$track_discountPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Track_discounts.
+     * @param {track_discountCreateManyArgs} args - Arguments to create many Track_discounts.
+     * @example
+     * // Create many Track_discounts
+     * const track_discount = await prisma.track_discount.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends track_discountCreateManyArgs>(args?: SelectSubset<T, track_discountCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Track_discounts and returns the data saved in the database.
+     * @param {track_discountCreateManyAndReturnArgs} args - Arguments to create many Track_discounts.
+     * @example
+     * // Create many Track_discounts
+     * const track_discount = await prisma.track_discount.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Track_discounts and only return the `track_discount_id`
+     * const track_discountWithTrack_discount_idOnly = await prisma.track_discount.createManyAndReturn({
+     *   select: { track_discount_id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends track_discountCreateManyAndReturnArgs>(args?: SelectSubset<T, track_discountCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$track_discountPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Track_discount.
+     * @param {track_discountDeleteArgs} args - Arguments to delete one Track_discount.
+     * @example
+     * // Delete one Track_discount
+     * const Track_discount = await prisma.track_discount.delete({
+     *   where: {
+     *     // ... filter to delete one Track_discount
+     *   }
+     * })
+     * 
+     */
+    delete<T extends track_discountDeleteArgs>(args: SelectSubset<T, track_discountDeleteArgs<ExtArgs>>): Prisma__track_discountClient<runtime.Types.Result.GetResult<Prisma.$track_discountPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Track_discount.
+     * @param {track_discountUpdateArgs} args - Arguments to update one Track_discount.
+     * @example
+     * // Update one Track_discount
+     * const track_discount = await prisma.track_discount.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends track_discountUpdateArgs>(args: SelectSubset<T, track_discountUpdateArgs<ExtArgs>>): Prisma__track_discountClient<runtime.Types.Result.GetResult<Prisma.$track_discountPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Track_discounts.
+     * @param {track_discountDeleteManyArgs} args - Arguments to filter Track_discounts to delete.
+     * @example
+     * // Delete a few Track_discounts
+     * const { count } = await prisma.track_discount.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends track_discountDeleteManyArgs>(args?: SelectSubset<T, track_discountDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Track_discounts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {track_discountUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Track_discounts
+     * const track_discount = await prisma.track_discount.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends track_discountUpdateManyArgs>(args: SelectSubset<T, track_discountUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Track_discounts and returns the data updated in the database.
+     * @param {track_discountUpdateManyAndReturnArgs} args - Arguments to update many Track_discounts.
+     * @example
+     * // Update many Track_discounts
+     * const track_discount = await prisma.track_discount.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Track_discounts and only return the `track_discount_id`
+     * const track_discountWithTrack_discount_idOnly = await prisma.track_discount.updateManyAndReturn({
+     *   select: { track_discount_id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends track_discountUpdateManyAndReturnArgs>(args: SelectSubset<T, track_discountUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$track_discountPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Track_discount.
+     * @param {track_discountUpsertArgs} args - Arguments to update or create a Track_discount.
+     * @example
+     * // Update or create a Track_discount
+     * const track_discount = await prisma.track_discount.upsert({
+     *   create: {
+     *     // ... data to create a Track_discount
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Track_discount we want to update
+     *   }
+     * })
+     */
+    upsert<T extends track_discountUpsertArgs>(args: SelectSubset<T, track_discountUpsertArgs<ExtArgs>>): Prisma__track_discountClient<runtime.Types.Result.GetResult<Prisma.$track_discountPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Track_discounts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {track_discountCountArgs} args - Arguments to filter Track_discounts to count.
+     * @example
+     * // Count the number of Track_discounts
+     * const count = await prisma.track_discount.count({
+     *   where: {
+     *     // ... the filter for the Track_discounts we want to count
+     *   }
+     * })
+    **/
+    count<T extends track_discountCountArgs>(
+      args?: Subset<T, track_discountCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends runtime.Types.Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Track_discountCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Track_discount.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Track_discountAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Track_discountAggregateArgs>(args: Subset<T, Track_discountAggregateArgs>): Prisma.PrismaPromise<GetTrack_discountAggregateType<T>>
+
+    /**
+     * Group by Track_discount.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {track_discountGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends track_discountGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: track_discountGroupByArgs['orderBy'] }
+        : { orderBy?: track_discountGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, track_discountGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetTrack_discountGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the track_discount model
+   */
+  readonly fields: track_discountFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for track_discount.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__track_discountClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    employee<T extends employeeDefaultArgs<ExtArgs> = {}>(args?: Subset<T, employeeDefaultArgs<ExtArgs>>): Prisma__employeeClient<runtime.Types.Result.GetResult<Prisma.$employeePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    track<T extends trackDefaultArgs<ExtArgs> = {}>(args?: Subset<T, trackDefaultArgs<ExtArgs>>): Prisma__trackClient<runtime.Types.Result.GetResult<Prisma.$trackPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): runtime.Types.Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): runtime.Types.Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): runtime.Types.Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the track_discount model
+   */
+  export interface track_discountFieldRefs {
+    readonly track_discount_id: FieldRef<"track_discount", 'Int'>
+    readonly track_id: FieldRef<"track_discount", 'Int'>
+    readonly discount: FieldRef<"track_discount", 'Decimal'>
+    readonly offer_date: FieldRef<"track_discount", 'DateTime'>
+    readonly close_date: FieldRef<"track_discount", 'DateTime'>
+    readonly employee_id: FieldRef<"track_discount", 'Int'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * track_discount findUnique
+   */
+  export type track_discountFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the track_discount
+     */
+    select?: track_discountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the track_discount
+     */
+    omit?: track_discountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: track_discountInclude<ExtArgs> | null
+    /**
+     * Filter, which track_discount to fetch.
+     */
+    where: track_discountWhereUniqueInput
+  }
+
+  /**
+   * track_discount findUniqueOrThrow
+   */
+  export type track_discountFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the track_discount
+     */
+    select?: track_discountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the track_discount
+     */
+    omit?: track_discountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: track_discountInclude<ExtArgs> | null
+    /**
+     * Filter, which track_discount to fetch.
+     */
+    where: track_discountWhereUniqueInput
+  }
+
+  /**
+   * track_discount findFirst
+   */
+  export type track_discountFindFirstArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the track_discount
+     */
+    select?: track_discountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the track_discount
+     */
+    omit?: track_discountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: track_discountInclude<ExtArgs> | null
+    /**
+     * Filter, which track_discount to fetch.
+     */
+    where?: track_discountWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of track_discounts to fetch.
+     */
+    orderBy?: track_discountOrderByWithRelationInput | track_discountOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for track_discounts.
+     */
+    cursor?: track_discountWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` track_discounts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` track_discounts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of track_discounts.
+     */
+    distinct?: Track_discountScalarFieldEnum | Track_discountScalarFieldEnum[]
+  }
+
+  /**
+   * track_discount findFirstOrThrow
+   */
+  export type track_discountFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the track_discount
+     */
+    select?: track_discountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the track_discount
+     */
+    omit?: track_discountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: track_discountInclude<ExtArgs> | null
+    /**
+     * Filter, which track_discount to fetch.
+     */
+    where?: track_discountWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of track_discounts to fetch.
+     */
+    orderBy?: track_discountOrderByWithRelationInput | track_discountOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for track_discounts.
+     */
+    cursor?: track_discountWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` track_discounts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` track_discounts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of track_discounts.
+     */
+    distinct?: Track_discountScalarFieldEnum | Track_discountScalarFieldEnum[]
+  }
+
+  /**
+   * track_discount findMany
+   */
+  export type track_discountFindManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the track_discount
+     */
+    select?: track_discountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the track_discount
+     */
+    omit?: track_discountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: track_discountInclude<ExtArgs> | null
+    /**
+     * Filter, which track_discounts to fetch.
+     */
+    where?: track_discountWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of track_discounts to fetch.
+     */
+    orderBy?: track_discountOrderByWithRelationInput | track_discountOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing track_discounts.
+     */
+    cursor?: track_discountWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` track_discounts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` track_discounts.
+     */
+    skip?: number
+    distinct?: Track_discountScalarFieldEnum | Track_discountScalarFieldEnum[]
+  }
+
+  /**
+   * track_discount create
+   */
+  export type track_discountCreateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the track_discount
+     */
+    select?: track_discountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the track_discount
+     */
+    omit?: track_discountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: track_discountInclude<ExtArgs> | null
+    /**
+     * The data needed to create a track_discount.
+     */
+    data: XOR<track_discountCreateInput, track_discountUncheckedCreateInput>
+  }
+
+  /**
+   * track_discount createMany
+   */
+  export type track_discountCreateManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many track_discounts.
+     */
+    data: track_discountCreateManyInput | track_discountCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * track_discount createManyAndReturn
+   */
+  export type track_discountCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the track_discount
+     */
+    select?: track_discountSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the track_discount
+     */
+    omit?: track_discountOmit<ExtArgs> | null
+    /**
+     * The data used to create many track_discounts.
+     */
+    data: track_discountCreateManyInput | track_discountCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: track_discountIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * track_discount update
+   */
+  export type track_discountUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the track_discount
+     */
+    select?: track_discountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the track_discount
+     */
+    omit?: track_discountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: track_discountInclude<ExtArgs> | null
+    /**
+     * The data needed to update a track_discount.
+     */
+    data: XOR<track_discountUpdateInput, track_discountUncheckedUpdateInput>
+    /**
+     * Choose, which track_discount to update.
+     */
+    where: track_discountWhereUniqueInput
+  }
+
+  /**
+   * track_discount updateMany
+   */
+  export type track_discountUpdateManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * The data used to update track_discounts.
+     */
+    data: XOR<track_discountUpdateManyMutationInput, track_discountUncheckedUpdateManyInput>
+    /**
+     * Filter which track_discounts to update
+     */
+    where?: track_discountWhereInput
+    /**
+     * Limit how many track_discounts to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * track_discount updateManyAndReturn
+   */
+  export type track_discountUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the track_discount
+     */
+    select?: track_discountSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the track_discount
+     */
+    omit?: track_discountOmit<ExtArgs> | null
+    /**
+     * The data used to update track_discounts.
+     */
+    data: XOR<track_discountUpdateManyMutationInput, track_discountUncheckedUpdateManyInput>
+    /**
+     * Filter which track_discounts to update
+     */
+    where?: track_discountWhereInput
+    /**
+     * Limit how many track_discounts to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: track_discountIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * track_discount upsert
+   */
+  export type track_discountUpsertArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the track_discount
+     */
+    select?: track_discountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the track_discount
+     */
+    omit?: track_discountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: track_discountInclude<ExtArgs> | null
+    /**
+     * The filter to search for the track_discount to update in case it exists.
+     */
+    where: track_discountWhereUniqueInput
+    /**
+     * In case the track_discount found by the `where` argument doesn't exist, create a new track_discount with this data.
+     */
+    create: XOR<track_discountCreateInput, track_discountUncheckedCreateInput>
+    /**
+     * In case the track_discount was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<track_discountUpdateInput, track_discountUncheckedUpdateInput>
+  }
+
+  /**
+   * track_discount delete
+   */
+  export type track_discountDeleteArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the track_discount
+     */
+    select?: track_discountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the track_discount
+     */
+    omit?: track_discountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: track_discountInclude<ExtArgs> | null
+    /**
+     * Filter which track_discount to delete.
+     */
+    where: track_discountWhereUniqueInput
+  }
+
+  /**
+   * track_discount deleteMany
+   */
+  export type track_discountDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Filter which track_discounts to delete
+     */
+    where?: track_discountWhereInput
+    /**
+     * Limit how many track_discounts to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * track_discount without action
+   */
+  export type track_discountDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the track_discount
+     */
+    select?: track_discountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the track_discount
+     */
+    omit?: track_discountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: track_discountInclude<ExtArgs> | null
   }
 
 
@@ -14709,7 +17043,8 @@ export namespace Prisma {
     postal_code: 'postal_code',
     phone: 'phone',
     fax: 'fax',
-    email: 'email'
+    email: 'email',
+    termination_date: 'termination_date'
   } as const
 
   export type EmployeeScalarFieldEnum = (typeof EmployeeScalarFieldEnum)[keyof typeof EmployeeScalarFieldEnum]
@@ -14774,7 +17109,6 @@ export namespace Prisma {
 
 
   export const TrackScalarFieldEnum = {
-    track_id: 'track_id',
     name: 'name',
     album_id: 'album_id',
     media_type_id: 'media_type_id',
@@ -14782,10 +17116,35 @@ export namespace Prisma {
     composer: 'composer',
     milliseconds: 'milliseconds',
     bytes: 'bytes',
-    unit_price: 'unit_price'
+    unit_price: 'unit_price',
+    track_id: 'track_id'
   } as const
 
   export type TrackScalarFieldEnum = (typeof TrackScalarFieldEnum)[keyof typeof TrackScalarFieldEnum]
+
+
+  export const Customer_reviewScalarFieldEnum = {
+    review_id: 'review_id',
+    customer_id: 'customer_id',
+    invoice_id: 'invoice_id',
+    track_id: 'track_id',
+    rating: 'rating',
+    review_comment: 'review_comment'
+  } as const
+
+  export type Customer_reviewScalarFieldEnum = (typeof Customer_reviewScalarFieldEnum)[keyof typeof Customer_reviewScalarFieldEnum]
+
+
+  export const Track_discountScalarFieldEnum = {
+    track_discount_id: 'track_discount_id',
+    track_id: 'track_id',
+    discount: 'discount',
+    offer_date: 'offer_date',
+    close_date: 'close_date',
+    employee_id: 'employee_id'
+  } as const
+
+  export type Track_discountScalarFieldEnum = (typeof Track_discountScalarFieldEnum)[keyof typeof Track_discountScalarFieldEnum]
 
 
   export const SortOrder = {
@@ -14910,15 +17269,15 @@ export namespace Prisma {
   }
 
   export type albumWhereUniqueInput = Prisma.AtLeast<{
+    title?: string
     album_id?: number
     AND?: albumWhereInput | albumWhereInput[]
     OR?: albumWhereInput[]
     NOT?: albumWhereInput | albumWhereInput[]
-    title?: StringFilter<"album"> | string
     artist_id?: IntFilter<"album"> | number
     artist?: XOR<ArtistScalarRelationFilter, artistWhereInput>
     track?: TrackListRelationFilter
-  }, "album_id">
+  }, "album_id" | "title">
 
   export type albumOrderByWithAggregationInput = {
     title?: SortOrder
@@ -14944,28 +17303,28 @@ export namespace Prisma {
     AND?: artistWhereInput | artistWhereInput[]
     OR?: artistWhereInput[]
     NOT?: artistWhereInput | artistWhereInput[]
-    name?: StringNullableFilter<"artist"> | string | null
+    name?: StringFilter<"artist"> | string
     artist_id?: IntFilter<"artist"> | number
     album?: AlbumListRelationFilter
   }
 
   export type artistOrderByWithRelationInput = {
-    name?: SortOrderInput | SortOrder
+    name?: SortOrder
     artist_id?: SortOrder
     album?: albumOrderByRelationAggregateInput
   }
 
   export type artistWhereUniqueInput = Prisma.AtLeast<{
+    name?: string
     artist_id?: number
     AND?: artistWhereInput | artistWhereInput[]
     OR?: artistWhereInput[]
     NOT?: artistWhereInput | artistWhereInput[]
-    name?: StringNullableFilter<"artist"> | string | null
     album?: AlbumListRelationFilter
-  }, "artist_id">
+  }, "artist_id" | "name">
 
   export type artistOrderByWithAggregationInput = {
-    name?: SortOrderInput | SortOrder
+    name?: SortOrder
     artist_id?: SortOrder
     _count?: artistCountOrderByAggregateInput
     _avg?: artistAvgOrderByAggregateInput
@@ -14978,7 +17337,7 @@ export namespace Prisma {
     AND?: artistScalarWhereWithAggregatesInput | artistScalarWhereWithAggregatesInput[]
     OR?: artistScalarWhereWithAggregatesInput[]
     NOT?: artistScalarWhereWithAggregatesInput | artistScalarWhereWithAggregatesInput[]
-    name?: StringNullableWithAggregatesFilter<"artist"> | string | null
+    name?: StringWithAggregatesFilter<"artist"> | string
     artist_id?: IntWithAggregatesFilter<"artist"> | number
   }
 
@@ -15000,6 +17359,7 @@ export namespace Prisma {
     email?: StringFilter<"customer"> | string
     support_rep_id?: IntNullableFilter<"customer"> | number | null
     employee?: XOR<EmployeeNullableScalarRelationFilter, employeeWhereInput> | null
+    customer_review?: Customer_reviewListRelationFilter
     invoice?: InvoiceListRelationFilter
   }
 
@@ -15018,11 +17378,14 @@ export namespace Prisma {
     email?: SortOrder
     support_rep_id?: SortOrderInput | SortOrder
     employee?: employeeOrderByWithRelationInput
+    customer_review?: customer_reviewOrderByRelationAggregateInput
     invoice?: invoiceOrderByRelationAggregateInput
   }
 
   export type customerWhereUniqueInput = Prisma.AtLeast<{
     customer_id?: number
+    email?: string
+    first_name_last_name_email?: customerFirst_nameLast_nameEmailCompoundUniqueInput
     AND?: customerWhereInput | customerWhereInput[]
     OR?: customerWhereInput[]
     NOT?: customerWhereInput | customerWhereInput[]
@@ -15036,11 +17399,11 @@ export namespace Prisma {
     postal_code?: StringNullableFilter<"customer"> | string | null
     phone?: StringNullableFilter<"customer"> | string | null
     fax?: StringNullableFilter<"customer"> | string | null
-    email?: StringFilter<"customer"> | string
     support_rep_id?: IntNullableFilter<"customer"> | number | null
     employee?: XOR<EmployeeNullableScalarRelationFilter, employeeWhereInput> | null
+    customer_review?: Customer_reviewListRelationFilter
     invoice?: InvoiceListRelationFilter
-  }, "customer_id">
+  }, "customer_id" | "email" | "first_name_last_name_email">
 
   export type customerOrderByWithAggregationInput = {
     customer_id?: SortOrder
@@ -15092,7 +17455,7 @@ export namespace Prisma {
     title?: StringNullableFilter<"employee"> | string | null
     reports_to?: IntNullableFilter<"employee"> | number | null
     birth_date?: DateTimeNullableFilter<"employee"> | Date | string | null
-    hire_date?: DateTimeNullableFilter<"employee"> | Date | string | null
+    hire_date?: DateTimeFilter<"employee"> | Date | string
     address?: StringNullableFilter<"employee"> | string | null
     city?: StringNullableFilter<"employee"> | string | null
     state?: StringNullableFilter<"employee"> | string | null
@@ -15101,9 +17464,11 @@ export namespace Prisma {
     phone?: StringNullableFilter<"employee"> | string | null
     fax?: StringNullableFilter<"employee"> | string | null
     email?: StringNullableFilter<"employee"> | string | null
+    termination_date?: DateTimeNullableFilter<"employee"> | Date | string | null
     customer?: CustomerListRelationFilter
     employee?: XOR<EmployeeNullableScalarRelationFilter, employeeWhereInput> | null
     other_employee?: EmployeeListRelationFilter
+    track_discount?: Track_discountListRelationFilter
   }
 
   export type employeeOrderByWithRelationInput = {
@@ -15113,7 +17478,7 @@ export namespace Prisma {
     title?: SortOrderInput | SortOrder
     reports_to?: SortOrderInput | SortOrder
     birth_date?: SortOrderInput | SortOrder
-    hire_date?: SortOrderInput | SortOrder
+    hire_date?: SortOrder
     address?: SortOrderInput | SortOrder
     city?: SortOrderInput | SortOrder
     state?: SortOrderInput | SortOrder
@@ -15122,9 +17487,11 @@ export namespace Prisma {
     phone?: SortOrderInput | SortOrder
     fax?: SortOrderInput | SortOrder
     email?: SortOrderInput | SortOrder
+    termination_date?: SortOrderInput | SortOrder
     customer?: customerOrderByRelationAggregateInput
     employee?: employeeOrderByWithRelationInput
     other_employee?: employeeOrderByRelationAggregateInput
+    track_discount?: track_discountOrderByRelationAggregateInput
   }
 
   export type employeeWhereUniqueInput = Prisma.AtLeast<{
@@ -15137,7 +17504,7 @@ export namespace Prisma {
     title?: StringNullableFilter<"employee"> | string | null
     reports_to?: IntNullableFilter<"employee"> | number | null
     birth_date?: DateTimeNullableFilter<"employee"> | Date | string | null
-    hire_date?: DateTimeNullableFilter<"employee"> | Date | string | null
+    hire_date?: DateTimeFilter<"employee"> | Date | string
     address?: StringNullableFilter<"employee"> | string | null
     city?: StringNullableFilter<"employee"> | string | null
     state?: StringNullableFilter<"employee"> | string | null
@@ -15146,9 +17513,11 @@ export namespace Prisma {
     phone?: StringNullableFilter<"employee"> | string | null
     fax?: StringNullableFilter<"employee"> | string | null
     email?: StringNullableFilter<"employee"> | string | null
+    termination_date?: DateTimeNullableFilter<"employee"> | Date | string | null
     customer?: CustomerListRelationFilter
     employee?: XOR<EmployeeNullableScalarRelationFilter, employeeWhereInput> | null
     other_employee?: EmployeeListRelationFilter
+    track_discount?: Track_discountListRelationFilter
   }, "employee_id">
 
   export type employeeOrderByWithAggregationInput = {
@@ -15158,7 +17527,7 @@ export namespace Prisma {
     title?: SortOrderInput | SortOrder
     reports_to?: SortOrderInput | SortOrder
     birth_date?: SortOrderInput | SortOrder
-    hire_date?: SortOrderInput | SortOrder
+    hire_date?: SortOrder
     address?: SortOrderInput | SortOrder
     city?: SortOrderInput | SortOrder
     state?: SortOrderInput | SortOrder
@@ -15167,6 +17536,7 @@ export namespace Prisma {
     phone?: SortOrderInput | SortOrder
     fax?: SortOrderInput | SortOrder
     email?: SortOrderInput | SortOrder
+    termination_date?: SortOrderInput | SortOrder
     _count?: employeeCountOrderByAggregateInput
     _avg?: employeeAvgOrderByAggregateInput
     _max?: employeeMaxOrderByAggregateInput
@@ -15184,7 +17554,7 @@ export namespace Prisma {
     title?: StringNullableWithAggregatesFilter<"employee"> | string | null
     reports_to?: IntNullableWithAggregatesFilter<"employee"> | number | null
     birth_date?: DateTimeNullableWithAggregatesFilter<"employee"> | Date | string | null
-    hire_date?: DateTimeNullableWithAggregatesFilter<"employee"> | Date | string | null
+    hire_date?: DateTimeWithAggregatesFilter<"employee"> | Date | string
     address?: StringNullableWithAggregatesFilter<"employee"> | string | null
     city?: StringNullableWithAggregatesFilter<"employee"> | string | null
     state?: StringNullableWithAggregatesFilter<"employee"> | string | null
@@ -15193,6 +17563,7 @@ export namespace Prisma {
     phone?: StringNullableWithAggregatesFilter<"employee"> | string | null
     fax?: StringNullableWithAggregatesFilter<"employee"> | string | null
     email?: StringNullableWithAggregatesFilter<"employee"> | string | null
+    termination_date?: DateTimeNullableWithAggregatesFilter<"employee"> | Date | string | null
   }
 
   export type genreWhereInput = {
@@ -15201,13 +17572,11 @@ export namespace Prisma {
     NOT?: genreWhereInput | genreWhereInput[]
     genre_id?: IntFilter<"genre"> | number
     name?: StringNullableFilter<"genre"> | string | null
-    track?: TrackListRelationFilter
   }
 
   export type genreOrderByWithRelationInput = {
     genre_id?: SortOrder
     name?: SortOrderInput | SortOrder
-    track?: trackOrderByRelationAggregateInput
   }
 
   export type genreWhereUniqueInput = Prisma.AtLeast<{
@@ -15216,7 +17585,6 @@ export namespace Prisma {
     OR?: genreWhereInput[]
     NOT?: genreWhereInput | genreWhereInput[]
     name?: StringNullableFilter<"genre"> | string | null
-    track?: TrackListRelationFilter
   }, "genre_id">
 
   export type genreOrderByWithAggregationInput = {
@@ -15250,6 +17618,7 @@ export namespace Prisma {
     billing_country?: StringNullableFilter<"invoice"> | string | null
     billing_postal_code?: StringNullableFilter<"invoice"> | string | null
     total?: DecimalFilter<"invoice"> | Decimal | DecimalJsLike | number | string
+    customer_review?: Customer_reviewListRelationFilter
     customer?: XOR<CustomerScalarRelationFilter, customerWhereInput>
     invoice_line?: Invoice_lineListRelationFilter
   }
@@ -15264,12 +17633,14 @@ export namespace Prisma {
     billing_country?: SortOrderInput | SortOrder
     billing_postal_code?: SortOrderInput | SortOrder
     total?: SortOrder
+    customer_review?: customer_reviewOrderByRelationAggregateInput
     customer?: customerOrderByWithRelationInput
     invoice_line?: invoice_lineOrderByRelationAggregateInput
   }
 
   export type invoiceWhereUniqueInput = Prisma.AtLeast<{
     invoice_id?: number
+    customer_id_invoice_date?: invoiceCustomer_idInvoice_dateCompoundUniqueInput
     AND?: invoiceWhereInput | invoiceWhereInput[]
     OR?: invoiceWhereInput[]
     NOT?: invoiceWhereInput | invoiceWhereInput[]
@@ -15281,9 +17652,10 @@ export namespace Prisma {
     billing_country?: StringNullableFilter<"invoice"> | string | null
     billing_postal_code?: StringNullableFilter<"invoice"> | string | null
     total?: DecimalFilter<"invoice"> | Decimal | DecimalJsLike | number | string
+    customer_review?: Customer_reviewListRelationFilter
     customer?: XOR<CustomerScalarRelationFilter, customerWhereInput>
     invoice_line?: Invoice_lineListRelationFilter
-  }, "invoice_id">
+  }, "invoice_id" | "customer_id_invoice_date">
 
   export type invoiceOrderByWithAggregationInput = {
     invoice_id?: SortOrder
@@ -15383,13 +17755,11 @@ export namespace Prisma {
     NOT?: media_typeWhereInput | media_typeWhereInput[]
     media_type_id?: IntFilter<"media_type"> | number
     name?: StringNullableFilter<"media_type"> | string | null
-    track?: TrackListRelationFilter
   }
 
   export type media_typeOrderByWithRelationInput = {
     media_type_id?: SortOrder
     name?: SortOrderInput | SortOrder
-    track?: trackOrderByRelationAggregateInput
   }
 
   export type media_typeWhereUniqueInput = Prisma.AtLeast<{
@@ -15398,7 +17768,6 @@ export namespace Prisma {
     OR?: media_typeWhereInput[]
     NOT?: media_typeWhereInput | media_typeWhereInput[]
     name?: StringNullableFilter<"media_type"> | string | null
-    track?: TrackListRelationFilter
   }, "media_type_id">
 
   export type media_typeOrderByWithAggregationInput = {
@@ -15511,37 +17880,35 @@ export namespace Prisma {
     AND?: trackWhereInput | trackWhereInput[]
     OR?: trackWhereInput[]
     NOT?: trackWhereInput | trackWhereInput[]
-    track_id?: IntFilter<"track"> | number
     name?: StringFilter<"track"> | string
-    album_id?: IntNullableFilter<"track"> | number | null
+    album_id?: IntFilter<"track"> | number
     media_type_id?: IntFilter<"track"> | number
     genre_id?: IntNullableFilter<"track"> | number | null
     composer?: StringNullableFilter<"track"> | string | null
     milliseconds?: IntFilter<"track"> | number
     bytes?: IntNullableFilter<"track"> | number | null
     unit_price?: DecimalFilter<"track"> | Decimal | DecimalJsLike | number | string
+    track_id?: IntFilter<"track"> | number
     invoice_line?: Invoice_lineListRelationFilter
     playlist_track?: Playlist_trackListRelationFilter
-    album?: XOR<AlbumNullableScalarRelationFilter, albumWhereInput> | null
-    genre?: XOR<GenreNullableScalarRelationFilter, genreWhereInput> | null
-    media_type?: XOR<Media_typeScalarRelationFilter, media_typeWhereInput>
+    album?: XOR<AlbumScalarRelationFilter, albumWhereInput>
+    track_discount?: Track_discountListRelationFilter
   }
 
   export type trackOrderByWithRelationInput = {
-    track_id?: SortOrder
     name?: SortOrder
-    album_id?: SortOrderInput | SortOrder
+    album_id?: SortOrder
     media_type_id?: SortOrder
     genre_id?: SortOrderInput | SortOrder
     composer?: SortOrderInput | SortOrder
     milliseconds?: SortOrder
     bytes?: SortOrderInput | SortOrder
     unit_price?: SortOrder
+    track_id?: SortOrder
     invoice_line?: invoice_lineOrderByRelationAggregateInput
     playlist_track?: playlist_trackOrderByRelationAggregateInput
     album?: albumOrderByWithRelationInput
-    genre?: genreOrderByWithRelationInput
-    media_type?: media_typeOrderByWithRelationInput
+    track_discount?: track_discountOrderByRelationAggregateInput
   }
 
   export type trackWhereUniqueInput = Prisma.AtLeast<{
@@ -15550,7 +17917,7 @@ export namespace Prisma {
     OR?: trackWhereInput[]
     NOT?: trackWhereInput | trackWhereInput[]
     name?: StringFilter<"track"> | string
-    album_id?: IntNullableFilter<"track"> | number | null
+    album_id?: IntFilter<"track"> | number
     media_type_id?: IntFilter<"track"> | number
     genre_id?: IntNullableFilter<"track"> | number | null
     composer?: StringNullableFilter<"track"> | string | null
@@ -15559,21 +17926,20 @@ export namespace Prisma {
     unit_price?: DecimalFilter<"track"> | Decimal | DecimalJsLike | number | string
     invoice_line?: Invoice_lineListRelationFilter
     playlist_track?: Playlist_trackListRelationFilter
-    album?: XOR<AlbumNullableScalarRelationFilter, albumWhereInput> | null
-    genre?: XOR<GenreNullableScalarRelationFilter, genreWhereInput> | null
-    media_type?: XOR<Media_typeScalarRelationFilter, media_typeWhereInput>
+    album?: XOR<AlbumScalarRelationFilter, albumWhereInput>
+    track_discount?: Track_discountListRelationFilter
   }, "track_id">
 
   export type trackOrderByWithAggregationInput = {
-    track_id?: SortOrder
     name?: SortOrder
-    album_id?: SortOrderInput | SortOrder
+    album_id?: SortOrder
     media_type_id?: SortOrder
     genre_id?: SortOrderInput | SortOrder
     composer?: SortOrderInput | SortOrder
     milliseconds?: SortOrder
     bytes?: SortOrderInput | SortOrder
     unit_price?: SortOrder
+    track_id?: SortOrder
     _count?: trackCountOrderByAggregateInput
     _avg?: trackAvgOrderByAggregateInput
     _max?: trackMaxOrderByAggregateInput
@@ -15585,15 +17951,145 @@ export namespace Prisma {
     AND?: trackScalarWhereWithAggregatesInput | trackScalarWhereWithAggregatesInput[]
     OR?: trackScalarWhereWithAggregatesInput[]
     NOT?: trackScalarWhereWithAggregatesInput | trackScalarWhereWithAggregatesInput[]
-    track_id?: IntWithAggregatesFilter<"track"> | number
     name?: StringWithAggregatesFilter<"track"> | string
-    album_id?: IntNullableWithAggregatesFilter<"track"> | number | null
+    album_id?: IntWithAggregatesFilter<"track"> | number
     media_type_id?: IntWithAggregatesFilter<"track"> | number
     genre_id?: IntNullableWithAggregatesFilter<"track"> | number | null
     composer?: StringNullableWithAggregatesFilter<"track"> | string | null
     milliseconds?: IntWithAggregatesFilter<"track"> | number
     bytes?: IntNullableWithAggregatesFilter<"track"> | number | null
     unit_price?: DecimalWithAggregatesFilter<"track"> | Decimal | DecimalJsLike | number | string
+    track_id?: IntWithAggregatesFilter<"track"> | number
+  }
+
+  export type customer_reviewWhereInput = {
+    AND?: customer_reviewWhereInput | customer_reviewWhereInput[]
+    OR?: customer_reviewWhereInput[]
+    NOT?: customer_reviewWhereInput | customer_reviewWhereInput[]
+    review_id?: IntFilter<"customer_review"> | number
+    customer_id?: IntFilter<"customer_review"> | number
+    invoice_id?: IntFilter<"customer_review"> | number
+    track_id?: IntFilter<"customer_review"> | number
+    rating?: IntNullableFilter<"customer_review"> | number | null
+    review_comment?: StringNullableFilter<"customer_review"> | string | null
+    customer?: XOR<CustomerScalarRelationFilter, customerWhereInput>
+    invoice?: XOR<InvoiceScalarRelationFilter, invoiceWhereInput>
+  }
+
+  export type customer_reviewOrderByWithRelationInput = {
+    review_id?: SortOrder
+    customer_id?: SortOrder
+    invoice_id?: SortOrder
+    track_id?: SortOrder
+    rating?: SortOrderInput | SortOrder
+    review_comment?: SortOrderInput | SortOrder
+    customer?: customerOrderByWithRelationInput
+    invoice?: invoiceOrderByWithRelationInput
+  }
+
+  export type customer_reviewWhereUniqueInput = Prisma.AtLeast<{
+    review_id?: number
+    AND?: customer_reviewWhereInput | customer_reviewWhereInput[]
+    OR?: customer_reviewWhereInput[]
+    NOT?: customer_reviewWhereInput | customer_reviewWhereInput[]
+    customer_id?: IntFilter<"customer_review"> | number
+    invoice_id?: IntFilter<"customer_review"> | number
+    track_id?: IntFilter<"customer_review"> | number
+    rating?: IntNullableFilter<"customer_review"> | number | null
+    review_comment?: StringNullableFilter<"customer_review"> | string | null
+    customer?: XOR<CustomerScalarRelationFilter, customerWhereInput>
+    invoice?: XOR<InvoiceScalarRelationFilter, invoiceWhereInput>
+  }, "review_id">
+
+  export type customer_reviewOrderByWithAggregationInput = {
+    review_id?: SortOrder
+    customer_id?: SortOrder
+    invoice_id?: SortOrder
+    track_id?: SortOrder
+    rating?: SortOrderInput | SortOrder
+    review_comment?: SortOrderInput | SortOrder
+    _count?: customer_reviewCountOrderByAggregateInput
+    _avg?: customer_reviewAvgOrderByAggregateInput
+    _max?: customer_reviewMaxOrderByAggregateInput
+    _min?: customer_reviewMinOrderByAggregateInput
+    _sum?: customer_reviewSumOrderByAggregateInput
+  }
+
+  export type customer_reviewScalarWhereWithAggregatesInput = {
+    AND?: customer_reviewScalarWhereWithAggregatesInput | customer_reviewScalarWhereWithAggregatesInput[]
+    OR?: customer_reviewScalarWhereWithAggregatesInput[]
+    NOT?: customer_reviewScalarWhereWithAggregatesInput | customer_reviewScalarWhereWithAggregatesInput[]
+    review_id?: IntWithAggregatesFilter<"customer_review"> | number
+    customer_id?: IntWithAggregatesFilter<"customer_review"> | number
+    invoice_id?: IntWithAggregatesFilter<"customer_review"> | number
+    track_id?: IntWithAggregatesFilter<"customer_review"> | number
+    rating?: IntNullableWithAggregatesFilter<"customer_review"> | number | null
+    review_comment?: StringNullableWithAggregatesFilter<"customer_review"> | string | null
+  }
+
+  export type track_discountWhereInput = {
+    AND?: track_discountWhereInput | track_discountWhereInput[]
+    OR?: track_discountWhereInput[]
+    NOT?: track_discountWhereInput | track_discountWhereInput[]
+    track_discount_id?: IntFilter<"track_discount"> | number
+    track_id?: IntFilter<"track_discount"> | number
+    discount?: DecimalFilter<"track_discount"> | Decimal | DecimalJsLike | number | string
+    offer_date?: DateTimeFilter<"track_discount"> | Date | string
+    close_date?: DateTimeFilter<"track_discount"> | Date | string
+    employee_id?: IntFilter<"track_discount"> | number
+    employee?: XOR<EmployeeScalarRelationFilter, employeeWhereInput>
+    track?: XOR<TrackScalarRelationFilter, trackWhereInput>
+  }
+
+  export type track_discountOrderByWithRelationInput = {
+    track_discount_id?: SortOrder
+    track_id?: SortOrder
+    discount?: SortOrder
+    offer_date?: SortOrder
+    close_date?: SortOrder
+    employee_id?: SortOrder
+    employee?: employeeOrderByWithRelationInput
+    track?: trackOrderByWithRelationInput
+  }
+
+  export type track_discountWhereUniqueInput = Prisma.AtLeast<{
+    track_discount_id?: number
+    AND?: track_discountWhereInput | track_discountWhereInput[]
+    OR?: track_discountWhereInput[]
+    NOT?: track_discountWhereInput | track_discountWhereInput[]
+    track_id?: IntFilter<"track_discount"> | number
+    discount?: DecimalFilter<"track_discount"> | Decimal | DecimalJsLike | number | string
+    offer_date?: DateTimeFilter<"track_discount"> | Date | string
+    close_date?: DateTimeFilter<"track_discount"> | Date | string
+    employee_id?: IntFilter<"track_discount"> | number
+    employee?: XOR<EmployeeScalarRelationFilter, employeeWhereInput>
+    track?: XOR<TrackScalarRelationFilter, trackWhereInput>
+  }, "track_discount_id">
+
+  export type track_discountOrderByWithAggregationInput = {
+    track_discount_id?: SortOrder
+    track_id?: SortOrder
+    discount?: SortOrder
+    offer_date?: SortOrder
+    close_date?: SortOrder
+    employee_id?: SortOrder
+    _count?: track_discountCountOrderByAggregateInput
+    _avg?: track_discountAvgOrderByAggregateInput
+    _max?: track_discountMaxOrderByAggregateInput
+    _min?: track_discountMinOrderByAggregateInput
+    _sum?: track_discountSumOrderByAggregateInput
+  }
+
+  export type track_discountScalarWhereWithAggregatesInput = {
+    AND?: track_discountScalarWhereWithAggregatesInput | track_discountScalarWhereWithAggregatesInput[]
+    OR?: track_discountScalarWhereWithAggregatesInput[]
+    NOT?: track_discountScalarWhereWithAggregatesInput | track_discountScalarWhereWithAggregatesInput[]
+    track_discount_id?: IntWithAggregatesFilter<"track_discount"> | number
+    track_id?: IntWithAggregatesFilter<"track_discount"> | number
+    discount?: DecimalWithAggregatesFilter<"track_discount"> | Decimal | DecimalJsLike | number | string
+    offer_date?: DateTimeWithAggregatesFilter<"track_discount"> | Date | string
+    close_date?: DateTimeWithAggregatesFilter<"track_discount"> | Date | string
+    employee_id?: IntWithAggregatesFilter<"track_discount"> | number
   }
 
   export type albumCreateInput = {
@@ -15639,38 +18135,38 @@ export namespace Prisma {
   }
 
   export type artistCreateInput = {
-    name?: string | null
+    name: string
     album?: albumCreateNestedManyWithoutArtistInput
   }
 
   export type artistUncheckedCreateInput = {
-    name?: string | null
+    name: string
     artist_id?: number
     album?: albumUncheckedCreateNestedManyWithoutArtistInput
   }
 
   export type artistUpdateInput = {
-    name?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: StringFieldUpdateOperationsInput | string
     album?: albumUpdateManyWithoutArtistNestedInput
   }
 
   export type artistUncheckedUpdateInput = {
-    name?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: StringFieldUpdateOperationsInput | string
     artist_id?: IntFieldUpdateOperationsInput | number
     album?: albumUncheckedUpdateManyWithoutArtistNestedInput
   }
 
   export type artistCreateManyInput = {
-    name?: string | null
+    name: string
     artist_id?: number
   }
 
   export type artistUpdateManyMutationInput = {
-    name?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: StringFieldUpdateOperationsInput | string
   }
 
   export type artistUncheckedUpdateManyInput = {
-    name?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: StringFieldUpdateOperationsInput | string
     artist_id?: IntFieldUpdateOperationsInput | number
   }
 
@@ -15688,6 +18184,7 @@ export namespace Prisma {
     fax?: string | null
     email: string
     employee?: employeeCreateNestedOneWithoutCustomerInput
+    customer_review?: customer_reviewCreateNestedManyWithoutCustomerInput
     invoice?: invoiceCreateNestedManyWithoutCustomerInput
   }
 
@@ -15705,6 +18202,7 @@ export namespace Prisma {
     fax?: string | null
     email: string
     support_rep_id?: number | null
+    customer_review?: customer_reviewUncheckedCreateNestedManyWithoutCustomerInput
     invoice?: invoiceUncheckedCreateNestedManyWithoutCustomerInput
   }
 
@@ -15722,6 +18220,7 @@ export namespace Prisma {
     fax?: NullableStringFieldUpdateOperationsInput | string | null
     email?: StringFieldUpdateOperationsInput | string
     employee?: employeeUpdateOneWithoutCustomerNestedInput
+    customer_review?: customer_reviewUpdateManyWithoutCustomerNestedInput
     invoice?: invoiceUpdateManyWithoutCustomerNestedInput
   }
 
@@ -15739,6 +18238,7 @@ export namespace Prisma {
     fax?: NullableStringFieldUpdateOperationsInput | string | null
     email?: StringFieldUpdateOperationsInput | string
     support_rep_id?: NullableIntFieldUpdateOperationsInput | number | null
+    customer_review?: customer_reviewUncheckedUpdateManyWithoutCustomerNestedInput
     invoice?: invoiceUncheckedUpdateManyWithoutCustomerNestedInput
   }
 
@@ -15795,7 +18295,7 @@ export namespace Prisma {
     first_name: string
     title?: string | null
     birth_date?: Date | string | null
-    hire_date?: Date | string | null
+    hire_date: Date | string
     address?: string | null
     city?: string | null
     state?: string | null
@@ -15804,9 +18304,11 @@ export namespace Prisma {
     phone?: string | null
     fax?: string | null
     email?: string | null
+    termination_date?: Date | string | null
     customer?: customerCreateNestedManyWithoutEmployeeInput
     employee?: employeeCreateNestedOneWithoutOther_employeeInput
     other_employee?: employeeCreateNestedManyWithoutEmployeeInput
+    track_discount?: track_discountCreateNestedManyWithoutEmployeeInput
   }
 
   export type employeeUncheckedCreateInput = {
@@ -15816,7 +18318,7 @@ export namespace Prisma {
     title?: string | null
     reports_to?: number | null
     birth_date?: Date | string | null
-    hire_date?: Date | string | null
+    hire_date: Date | string
     address?: string | null
     city?: string | null
     state?: string | null
@@ -15825,8 +18327,10 @@ export namespace Prisma {
     phone?: string | null
     fax?: string | null
     email?: string | null
+    termination_date?: Date | string | null
     customer?: customerUncheckedCreateNestedManyWithoutEmployeeInput
     other_employee?: employeeUncheckedCreateNestedManyWithoutEmployeeInput
+    track_discount?: track_discountUncheckedCreateNestedManyWithoutEmployeeInput
   }
 
   export type employeeUpdateInput = {
@@ -15835,7 +18339,7 @@ export namespace Prisma {
     first_name?: StringFieldUpdateOperationsInput | string
     title?: NullableStringFieldUpdateOperationsInput | string | null
     birth_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    hire_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    hire_date?: DateTimeFieldUpdateOperationsInput | Date | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15844,9 +18348,11 @@ export namespace Prisma {
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     fax?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    termination_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customer?: customerUpdateManyWithoutEmployeeNestedInput
     employee?: employeeUpdateOneWithoutOther_employeeNestedInput
     other_employee?: employeeUpdateManyWithoutEmployeeNestedInput
+    track_discount?: track_discountUpdateManyWithoutEmployeeNestedInput
   }
 
   export type employeeUncheckedUpdateInput = {
@@ -15856,7 +18362,7 @@ export namespace Prisma {
     title?: NullableStringFieldUpdateOperationsInput | string | null
     reports_to?: NullableIntFieldUpdateOperationsInput | number | null
     birth_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    hire_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    hire_date?: DateTimeFieldUpdateOperationsInput | Date | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15865,8 +18371,10 @@ export namespace Prisma {
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     fax?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    termination_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customer?: customerUncheckedUpdateManyWithoutEmployeeNestedInput
     other_employee?: employeeUncheckedUpdateManyWithoutEmployeeNestedInput
+    track_discount?: track_discountUncheckedUpdateManyWithoutEmployeeNestedInput
   }
 
   export type employeeCreateManyInput = {
@@ -15876,7 +18384,7 @@ export namespace Prisma {
     title?: string | null
     reports_to?: number | null
     birth_date?: Date | string | null
-    hire_date?: Date | string | null
+    hire_date: Date | string
     address?: string | null
     city?: string | null
     state?: string | null
@@ -15885,6 +18393,7 @@ export namespace Prisma {
     phone?: string | null
     fax?: string | null
     email?: string | null
+    termination_date?: Date | string | null
   }
 
   export type employeeUpdateManyMutationInput = {
@@ -15893,7 +18402,7 @@ export namespace Prisma {
     first_name?: StringFieldUpdateOperationsInput | string
     title?: NullableStringFieldUpdateOperationsInput | string | null
     birth_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    hire_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    hire_date?: DateTimeFieldUpdateOperationsInput | Date | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15902,6 +18411,7 @@ export namespace Prisma {
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     fax?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    termination_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type employeeUncheckedUpdateManyInput = {
@@ -15911,7 +18421,7 @@ export namespace Prisma {
     title?: NullableStringFieldUpdateOperationsInput | string | null
     reports_to?: NullableIntFieldUpdateOperationsInput | number | null
     birth_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    hire_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    hire_date?: DateTimeFieldUpdateOperationsInput | Date | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15920,30 +18430,27 @@ export namespace Prisma {
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     fax?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    termination_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type genreCreateInput = {
     genre_id: number
     name?: string | null
-    track?: trackCreateNestedManyWithoutGenreInput
   }
 
   export type genreUncheckedCreateInput = {
     genre_id: number
     name?: string | null
-    track?: trackUncheckedCreateNestedManyWithoutGenreInput
   }
 
   export type genreUpdateInput = {
     genre_id?: IntFieldUpdateOperationsInput | number
     name?: NullableStringFieldUpdateOperationsInput | string | null
-    track?: trackUpdateManyWithoutGenreNestedInput
   }
 
   export type genreUncheckedUpdateInput = {
     genre_id?: IntFieldUpdateOperationsInput | number
     name?: NullableStringFieldUpdateOperationsInput | string | null
-    track?: trackUncheckedUpdateManyWithoutGenreNestedInput
   }
 
   export type genreCreateManyInput = {
@@ -15970,6 +18477,7 @@ export namespace Prisma {
     billing_country?: string | null
     billing_postal_code?: string | null
     total: Decimal | DecimalJsLike | number | string
+    customer_review?: customer_reviewCreateNestedManyWithoutInvoiceInput
     customer: customerCreateNestedOneWithoutInvoiceInput
     invoice_line?: invoice_lineCreateNestedManyWithoutInvoiceInput
   }
@@ -15984,6 +18492,7 @@ export namespace Prisma {
     billing_country?: string | null
     billing_postal_code?: string | null
     total: Decimal | DecimalJsLike | number | string
+    customer_review?: customer_reviewUncheckedCreateNestedManyWithoutInvoiceInput
     invoice_line?: invoice_lineUncheckedCreateNestedManyWithoutInvoiceInput
   }
 
@@ -15996,6 +18505,7 @@ export namespace Prisma {
     billing_country?: NullableStringFieldUpdateOperationsInput | string | null
     billing_postal_code?: NullableStringFieldUpdateOperationsInput | string | null
     total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    customer_review?: customer_reviewUpdateManyWithoutInvoiceNestedInput
     customer?: customerUpdateOneRequiredWithoutInvoiceNestedInput
     invoice_line?: invoice_lineUpdateManyWithoutInvoiceNestedInput
   }
@@ -16010,6 +18520,7 @@ export namespace Prisma {
     billing_country?: NullableStringFieldUpdateOperationsInput | string | null
     billing_postal_code?: NullableStringFieldUpdateOperationsInput | string | null
     total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    customer_review?: customer_reviewUncheckedUpdateManyWithoutInvoiceNestedInput
     invoice_line?: invoice_lineUncheckedUpdateManyWithoutInvoiceNestedInput
   }
 
@@ -16105,25 +18616,21 @@ export namespace Prisma {
   export type media_typeCreateInput = {
     media_type_id: number
     name?: string | null
-    track?: trackCreateNestedManyWithoutMedia_typeInput
   }
 
   export type media_typeUncheckedCreateInput = {
     media_type_id: number
     name?: string | null
-    track?: trackUncheckedCreateNestedManyWithoutMedia_typeInput
   }
 
   export type media_typeUpdateInput = {
     media_type_id?: IntFieldUpdateOperationsInput | number
     name?: NullableStringFieldUpdateOperationsInput | string | null
-    track?: trackUpdateManyWithoutMedia_typeNestedInput
   }
 
   export type media_typeUncheckedUpdateInput = {
     media_type_id?: IntFieldUpdateOperationsInput | number
     name?: NullableStringFieldUpdateOperationsInput | string | null
-    track?: trackUncheckedUpdateManyWithoutMedia_typeNestedInput
   }
 
   export type media_typeCreateManyInput = {
@@ -16215,76 +18722,79 @@ export namespace Prisma {
   }
 
   export type trackCreateInput = {
-    track_id: number
     name: string
+    media_type_id?: number
+    genre_id?: number | null
     composer?: string | null
-    milliseconds: number
+    milliseconds?: number
     bytes?: number | null
-    unit_price: Decimal | DecimalJsLike | number | string
+    unit_price?: Decimal | DecimalJsLike | number | string
     invoice_line?: invoice_lineCreateNestedManyWithoutTrackInput
     playlist_track?: playlist_trackCreateNestedManyWithoutTrackInput
-    album?: albumCreateNestedOneWithoutTrackInput
-    genre?: genreCreateNestedOneWithoutTrackInput
-    media_type: media_typeCreateNestedOneWithoutTrackInput
+    album: albumCreateNestedOneWithoutTrackInput
+    track_discount?: track_discountCreateNestedManyWithoutTrackInput
   }
 
   export type trackUncheckedCreateInput = {
-    track_id: number
     name: string
-    album_id?: number | null
-    media_type_id: number
+    album_id: number
+    media_type_id?: number
     genre_id?: number | null
     composer?: string | null
-    milliseconds: number
+    milliseconds?: number
     bytes?: number | null
-    unit_price: Decimal | DecimalJsLike | number | string
+    unit_price?: Decimal | DecimalJsLike | number | string
+    track_id?: number
     invoice_line?: invoice_lineUncheckedCreateNestedManyWithoutTrackInput
     playlist_track?: playlist_trackUncheckedCreateNestedManyWithoutTrackInput
+    track_discount?: track_discountUncheckedCreateNestedManyWithoutTrackInput
   }
 
   export type trackUpdateInput = {
-    track_id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
-    composer?: NullableStringFieldUpdateOperationsInput | string | null
-    milliseconds?: IntFieldUpdateOperationsInput | number
-    bytes?: NullableIntFieldUpdateOperationsInput | number | null
-    unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    invoice_line?: invoice_lineUpdateManyWithoutTrackNestedInput
-    playlist_track?: playlist_trackUpdateManyWithoutTrackNestedInput
-    album?: albumUpdateOneWithoutTrackNestedInput
-    genre?: genreUpdateOneWithoutTrackNestedInput
-    media_type?: media_typeUpdateOneRequiredWithoutTrackNestedInput
-  }
-
-  export type trackUncheckedUpdateInput = {
-    track_id?: IntFieldUpdateOperationsInput | number
-    name?: StringFieldUpdateOperationsInput | string
-    album_id?: NullableIntFieldUpdateOperationsInput | number | null
     media_type_id?: IntFieldUpdateOperationsInput | number
     genre_id?: NullableIntFieldUpdateOperationsInput | number | null
     composer?: NullableStringFieldUpdateOperationsInput | string | null
     milliseconds?: IntFieldUpdateOperationsInput | number
     bytes?: NullableIntFieldUpdateOperationsInput | number | null
     unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    invoice_line?: invoice_lineUpdateManyWithoutTrackNestedInput
+    playlist_track?: playlist_trackUpdateManyWithoutTrackNestedInput
+    album?: albumUpdateOneRequiredWithoutTrackNestedInput
+    track_discount?: track_discountUpdateManyWithoutTrackNestedInput
+  }
+
+  export type trackUncheckedUpdateInput = {
+    name?: StringFieldUpdateOperationsInput | string
+    album_id?: IntFieldUpdateOperationsInput | number
+    media_type_id?: IntFieldUpdateOperationsInput | number
+    genre_id?: NullableIntFieldUpdateOperationsInput | number | null
+    composer?: NullableStringFieldUpdateOperationsInput | string | null
+    milliseconds?: IntFieldUpdateOperationsInput | number
+    bytes?: NullableIntFieldUpdateOperationsInput | number | null
+    unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    track_id?: IntFieldUpdateOperationsInput | number
     invoice_line?: invoice_lineUncheckedUpdateManyWithoutTrackNestedInput
     playlist_track?: playlist_trackUncheckedUpdateManyWithoutTrackNestedInput
+    track_discount?: track_discountUncheckedUpdateManyWithoutTrackNestedInput
   }
 
   export type trackCreateManyInput = {
-    track_id: number
     name: string
-    album_id?: number | null
-    media_type_id: number
+    album_id: number
+    media_type_id?: number
     genre_id?: number | null
     composer?: string | null
-    milliseconds: number
+    milliseconds?: number
     bytes?: number | null
-    unit_price: Decimal | DecimalJsLike | number | string
+    unit_price?: Decimal | DecimalJsLike | number | string
+    track_id?: number
   }
 
   export type trackUpdateManyMutationInput = {
-    track_id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    media_type_id?: IntFieldUpdateOperationsInput | number
+    genre_id?: NullableIntFieldUpdateOperationsInput | number | null
     composer?: NullableStringFieldUpdateOperationsInput | string | null
     milliseconds?: IntFieldUpdateOperationsInput | number
     bytes?: NullableIntFieldUpdateOperationsInput | number | null
@@ -16292,15 +18802,131 @@ export namespace Prisma {
   }
 
   export type trackUncheckedUpdateManyInput = {
-    track_id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
-    album_id?: NullableIntFieldUpdateOperationsInput | number | null
+    album_id?: IntFieldUpdateOperationsInput | number
     media_type_id?: IntFieldUpdateOperationsInput | number
     genre_id?: NullableIntFieldUpdateOperationsInput | number | null
     composer?: NullableStringFieldUpdateOperationsInput | string | null
     milliseconds?: IntFieldUpdateOperationsInput | number
     bytes?: NullableIntFieldUpdateOperationsInput | number | null
     unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    track_id?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type customer_reviewCreateInput = {
+    track_id: number
+    rating?: number | null
+    review_comment?: string | null
+    customer: customerCreateNestedOneWithoutCustomer_reviewInput
+    invoice: invoiceCreateNestedOneWithoutCustomer_reviewInput
+  }
+
+  export type customer_reviewUncheckedCreateInput = {
+    review_id?: number
+    customer_id: number
+    invoice_id: number
+    track_id: number
+    rating?: number | null
+    review_comment?: string | null
+  }
+
+  export type customer_reviewUpdateInput = {
+    track_id?: IntFieldUpdateOperationsInput | number
+    rating?: NullableIntFieldUpdateOperationsInput | number | null
+    review_comment?: NullableStringFieldUpdateOperationsInput | string | null
+    customer?: customerUpdateOneRequiredWithoutCustomer_reviewNestedInput
+    invoice?: invoiceUpdateOneRequiredWithoutCustomer_reviewNestedInput
+  }
+
+  export type customer_reviewUncheckedUpdateInput = {
+    review_id?: IntFieldUpdateOperationsInput | number
+    customer_id?: IntFieldUpdateOperationsInput | number
+    invoice_id?: IntFieldUpdateOperationsInput | number
+    track_id?: IntFieldUpdateOperationsInput | number
+    rating?: NullableIntFieldUpdateOperationsInput | number | null
+    review_comment?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type customer_reviewCreateManyInput = {
+    review_id?: number
+    customer_id: number
+    invoice_id: number
+    track_id: number
+    rating?: number | null
+    review_comment?: string | null
+  }
+
+  export type customer_reviewUpdateManyMutationInput = {
+    track_id?: IntFieldUpdateOperationsInput | number
+    rating?: NullableIntFieldUpdateOperationsInput | number | null
+    review_comment?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type customer_reviewUncheckedUpdateManyInput = {
+    review_id?: IntFieldUpdateOperationsInput | number
+    customer_id?: IntFieldUpdateOperationsInput | number
+    invoice_id?: IntFieldUpdateOperationsInput | number
+    track_id?: IntFieldUpdateOperationsInput | number
+    rating?: NullableIntFieldUpdateOperationsInput | number | null
+    review_comment?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type track_discountCreateInput = {
+    discount: Decimal | DecimalJsLike | number | string
+    offer_date: Date | string
+    close_date: Date | string
+    employee: employeeCreateNestedOneWithoutTrack_discountInput
+    track: trackCreateNestedOneWithoutTrack_discountInput
+  }
+
+  export type track_discountUncheckedCreateInput = {
+    track_discount_id?: number
+    track_id: number
+    discount: Decimal | DecimalJsLike | number | string
+    offer_date: Date | string
+    close_date: Date | string
+    employee_id: number
+  }
+
+  export type track_discountUpdateInput = {
+    discount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    offer_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    close_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    employee?: employeeUpdateOneRequiredWithoutTrack_discountNestedInput
+    track?: trackUpdateOneRequiredWithoutTrack_discountNestedInput
+  }
+
+  export type track_discountUncheckedUpdateInput = {
+    track_discount_id?: IntFieldUpdateOperationsInput | number
+    track_id?: IntFieldUpdateOperationsInput | number
+    discount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    offer_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    close_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    employee_id?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type track_discountCreateManyInput = {
+    track_discount_id?: number
+    track_id: number
+    discount: Decimal | DecimalJsLike | number | string
+    offer_date: Date | string
+    close_date: Date | string
+    employee_id: number
+  }
+
+  export type track_discountUpdateManyMutationInput = {
+    discount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    offer_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    close_date?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type track_discountUncheckedUpdateManyInput = {
+    track_discount_id?: IntFieldUpdateOperationsInput | number
+    track_id?: IntFieldUpdateOperationsInput | number
+    discount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    offer_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    close_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    employee_id?: IntFieldUpdateOperationsInput | number
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -16406,30 +19032,10 @@ export namespace Prisma {
     _max?: NestedIntFilter<$PrismaModel>
   }
 
-  export type StringNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringNullableFilter<$PrismaModel> | string | null
-  }
-
   export type AlbumListRelationFilter = {
     every?: albumWhereInput
     some?: albumWhereInput
     none?: albumWhereInput
-  }
-
-  export type SortOrderInput = {
-    sort: SortOrder
-    nulls?: NullsOrder
   }
 
   export type albumOrderByRelationAggregateInput = {
@@ -16459,7 +19065,7 @@ export namespace Prisma {
     artist_id?: SortOrder
   }
 
-  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
+  export type StringNullableFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel> | null
     in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
     notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
@@ -16471,10 +19077,7 @@ export namespace Prisma {
     startsWith?: string | StringFieldRefInput<$PrismaModel>
     endsWith?: string | StringFieldRefInput<$PrismaModel>
     mode?: QueryMode
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
 
   export type IntNullableFilter<$PrismaModel = never> = {
@@ -16493,14 +19096,35 @@ export namespace Prisma {
     isNot?: employeeWhereInput | null
   }
 
+  export type Customer_reviewListRelationFilter = {
+    every?: customer_reviewWhereInput
+    some?: customer_reviewWhereInput
+    none?: customer_reviewWhereInput
+  }
+
   export type InvoiceListRelationFilter = {
     every?: invoiceWhereInput
     some?: invoiceWhereInput
     none?: invoiceWhereInput
   }
 
+  export type SortOrderInput = {
+    sort: SortOrder
+    nulls?: NullsOrder
+  }
+
+  export type customer_reviewOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type invoiceOrderByRelationAggregateInput = {
     _count?: SortOrder
+  }
+
+  export type customerFirst_nameLast_nameEmailCompoundUniqueInput = {
+    first_name: string
+    last_name: string
+    email: string
   }
 
   export type customerCountOrderByAggregateInput = {
@@ -16561,6 +19185,24 @@ export namespace Prisma {
     support_rep_id?: SortOrder
   }
 
+  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
   export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel> | null
     in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
@@ -16588,6 +19230,17 @@ export namespace Prisma {
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
+  export type DateTimeFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeFilter<$PrismaModel> | Date | string
+  }
+
   export type CustomerListRelationFilter = {
     every?: customerWhereInput
     some?: customerWhereInput
@@ -16600,11 +19253,21 @@ export namespace Prisma {
     none?: employeeWhereInput
   }
 
+  export type Track_discountListRelationFilter = {
+    every?: track_discountWhereInput
+    some?: track_discountWhereInput
+    none?: track_discountWhereInput
+  }
+
   export type customerOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
   export type employeeOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type track_discountOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -16624,6 +19287,7 @@ export namespace Prisma {
     phone?: SortOrder
     fax?: SortOrder
     email?: SortOrder
+    termination_date?: SortOrder
   }
 
   export type employeeAvgOrderByAggregateInput = {
@@ -16647,6 +19311,7 @@ export namespace Prisma {
     phone?: SortOrder
     fax?: SortOrder
     email?: SortOrder
+    termination_date?: SortOrder
   }
 
   export type employeeMinOrderByAggregateInput = {
@@ -16665,6 +19330,7 @@ export namespace Prisma {
     phone?: SortOrder
     fax?: SortOrder
     email?: SortOrder
+    termination_date?: SortOrder
   }
 
   export type employeeSumOrderByAggregateInput = {
@@ -16684,6 +19350,20 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeWithAggregatesFilter<$PrismaModel> | Date | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedDateTimeFilter<$PrismaModel>
+    _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
   export type genreCountOrderByAggregateInput = {
@@ -16707,17 +19387,6 @@ export namespace Prisma {
 
   export type genreSumOrderByAggregateInput = {
     genre_id?: SortOrder
-  }
-
-  export type DateTimeFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeFilter<$PrismaModel> | Date | string
   }
 
   export type DecimalFilter<$PrismaModel = never> = {
@@ -16744,6 +19413,11 @@ export namespace Prisma {
 
   export type invoice_lineOrderByRelationAggregateInput = {
     _count?: SortOrder
+  }
+
+  export type invoiceCustomer_idInvoice_dateCompoundUniqueInput = {
+    customer_id: number
+    invoice_date: Date | string
   }
 
   export type invoiceCountOrderByAggregateInput = {
@@ -16792,20 +19466,6 @@ export namespace Prisma {
     invoice_id?: SortOrder
     customer_id?: SortOrder
     total?: SortOrder
-  }
-
-  export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeWithAggregatesFilter<$PrismaModel> | Date | string
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedDateTimeFilter<$PrismaModel>
-    _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
   export type DecimalWithAggregatesFilter<$PrismaModel = never> = {
@@ -16965,23 +19625,12 @@ export namespace Prisma {
     track_id?: SortOrder
   }
 
-  export type AlbumNullableScalarRelationFilter = {
-    is?: albumWhereInput | null
-    isNot?: albumWhereInput | null
-  }
-
-  export type GenreNullableScalarRelationFilter = {
-    is?: genreWhereInput | null
-    isNot?: genreWhereInput | null
-  }
-
-  export type Media_typeScalarRelationFilter = {
-    is?: media_typeWhereInput
-    isNot?: media_typeWhereInput
+  export type AlbumScalarRelationFilter = {
+    is?: albumWhereInput
+    isNot?: albumWhereInput
   }
 
   export type trackCountOrderByAggregateInput = {
-    track_id?: SortOrder
     name?: SortOrder
     album_id?: SortOrder
     media_type_id?: SortOrder
@@ -16990,20 +19639,20 @@ export namespace Prisma {
     milliseconds?: SortOrder
     bytes?: SortOrder
     unit_price?: SortOrder
+    track_id?: SortOrder
   }
 
   export type trackAvgOrderByAggregateInput = {
-    track_id?: SortOrder
     album_id?: SortOrder
     media_type_id?: SortOrder
     genre_id?: SortOrder
     milliseconds?: SortOrder
     bytes?: SortOrder
     unit_price?: SortOrder
+    track_id?: SortOrder
   }
 
   export type trackMaxOrderByAggregateInput = {
-    track_id?: SortOrder
     name?: SortOrder
     album_id?: SortOrder
     media_type_id?: SortOrder
@@ -17012,10 +19661,10 @@ export namespace Prisma {
     milliseconds?: SortOrder
     bytes?: SortOrder
     unit_price?: SortOrder
+    track_id?: SortOrder
   }
 
   export type trackMinOrderByAggregateInput = {
-    track_id?: SortOrder
     name?: SortOrder
     album_id?: SortOrder
     media_type_id?: SortOrder
@@ -17024,16 +19673,106 @@ export namespace Prisma {
     milliseconds?: SortOrder
     bytes?: SortOrder
     unit_price?: SortOrder
+    track_id?: SortOrder
   }
 
   export type trackSumOrderByAggregateInput = {
-    track_id?: SortOrder
     album_id?: SortOrder
     media_type_id?: SortOrder
     genre_id?: SortOrder
     milliseconds?: SortOrder
     bytes?: SortOrder
     unit_price?: SortOrder
+    track_id?: SortOrder
+  }
+
+  export type customer_reviewCountOrderByAggregateInput = {
+    review_id?: SortOrder
+    customer_id?: SortOrder
+    invoice_id?: SortOrder
+    track_id?: SortOrder
+    rating?: SortOrder
+    review_comment?: SortOrder
+  }
+
+  export type customer_reviewAvgOrderByAggregateInput = {
+    review_id?: SortOrder
+    customer_id?: SortOrder
+    invoice_id?: SortOrder
+    track_id?: SortOrder
+    rating?: SortOrder
+  }
+
+  export type customer_reviewMaxOrderByAggregateInput = {
+    review_id?: SortOrder
+    customer_id?: SortOrder
+    invoice_id?: SortOrder
+    track_id?: SortOrder
+    rating?: SortOrder
+    review_comment?: SortOrder
+  }
+
+  export type customer_reviewMinOrderByAggregateInput = {
+    review_id?: SortOrder
+    customer_id?: SortOrder
+    invoice_id?: SortOrder
+    track_id?: SortOrder
+    rating?: SortOrder
+    review_comment?: SortOrder
+  }
+
+  export type customer_reviewSumOrderByAggregateInput = {
+    review_id?: SortOrder
+    customer_id?: SortOrder
+    invoice_id?: SortOrder
+    track_id?: SortOrder
+    rating?: SortOrder
+  }
+
+  export type EmployeeScalarRelationFilter = {
+    is?: employeeWhereInput
+    isNot?: employeeWhereInput
+  }
+
+  export type track_discountCountOrderByAggregateInput = {
+    track_discount_id?: SortOrder
+    track_id?: SortOrder
+    discount?: SortOrder
+    offer_date?: SortOrder
+    close_date?: SortOrder
+    employee_id?: SortOrder
+  }
+
+  export type track_discountAvgOrderByAggregateInput = {
+    track_discount_id?: SortOrder
+    track_id?: SortOrder
+    discount?: SortOrder
+    employee_id?: SortOrder
+  }
+
+  export type track_discountMaxOrderByAggregateInput = {
+    track_discount_id?: SortOrder
+    track_id?: SortOrder
+    discount?: SortOrder
+    offer_date?: SortOrder
+    close_date?: SortOrder
+    employee_id?: SortOrder
+  }
+
+  export type track_discountMinOrderByAggregateInput = {
+    track_discount_id?: SortOrder
+    track_id?: SortOrder
+    discount?: SortOrder
+    offer_date?: SortOrder
+    close_date?: SortOrder
+    employee_id?: SortOrder
+  }
+
+  export type track_discountSumOrderByAggregateInput = {
+    track_discount_id?: SortOrder
+    track_id?: SortOrder
+    discount?: SortOrder
+    employee_id?: SortOrder
   }
 
   export type artistCreateNestedOneWithoutAlbumInput = {
@@ -17118,10 +19857,6 @@ export namespace Prisma {
     connect?: albumWhereUniqueInput | albumWhereUniqueInput[]
   }
 
-  export type NullableStringFieldUpdateOperationsInput = {
-    set?: string | null
-  }
-
   export type albumUpdateManyWithoutArtistNestedInput = {
     create?: XOR<albumCreateWithoutArtistInput, albumUncheckedCreateWithoutArtistInput> | albumCreateWithoutArtistInput[] | albumUncheckedCreateWithoutArtistInput[]
     connectOrCreate?: albumCreateOrConnectWithoutArtistInput | albumCreateOrConnectWithoutArtistInput[]
@@ -17156,6 +19891,13 @@ export namespace Prisma {
     connect?: employeeWhereUniqueInput
   }
 
+  export type customer_reviewCreateNestedManyWithoutCustomerInput = {
+    create?: XOR<customer_reviewCreateWithoutCustomerInput, customer_reviewUncheckedCreateWithoutCustomerInput> | customer_reviewCreateWithoutCustomerInput[] | customer_reviewUncheckedCreateWithoutCustomerInput[]
+    connectOrCreate?: customer_reviewCreateOrConnectWithoutCustomerInput | customer_reviewCreateOrConnectWithoutCustomerInput[]
+    createMany?: customer_reviewCreateManyCustomerInputEnvelope
+    connect?: customer_reviewWhereUniqueInput | customer_reviewWhereUniqueInput[]
+  }
+
   export type invoiceCreateNestedManyWithoutCustomerInput = {
     create?: XOR<invoiceCreateWithoutCustomerInput, invoiceUncheckedCreateWithoutCustomerInput> | invoiceCreateWithoutCustomerInput[] | invoiceUncheckedCreateWithoutCustomerInput[]
     connectOrCreate?: invoiceCreateOrConnectWithoutCustomerInput | invoiceCreateOrConnectWithoutCustomerInput[]
@@ -17163,11 +19905,22 @@ export namespace Prisma {
     connect?: invoiceWhereUniqueInput | invoiceWhereUniqueInput[]
   }
 
+  export type customer_reviewUncheckedCreateNestedManyWithoutCustomerInput = {
+    create?: XOR<customer_reviewCreateWithoutCustomerInput, customer_reviewUncheckedCreateWithoutCustomerInput> | customer_reviewCreateWithoutCustomerInput[] | customer_reviewUncheckedCreateWithoutCustomerInput[]
+    connectOrCreate?: customer_reviewCreateOrConnectWithoutCustomerInput | customer_reviewCreateOrConnectWithoutCustomerInput[]
+    createMany?: customer_reviewCreateManyCustomerInputEnvelope
+    connect?: customer_reviewWhereUniqueInput | customer_reviewWhereUniqueInput[]
+  }
+
   export type invoiceUncheckedCreateNestedManyWithoutCustomerInput = {
     create?: XOR<invoiceCreateWithoutCustomerInput, invoiceUncheckedCreateWithoutCustomerInput> | invoiceCreateWithoutCustomerInput[] | invoiceUncheckedCreateWithoutCustomerInput[]
     connectOrCreate?: invoiceCreateOrConnectWithoutCustomerInput | invoiceCreateOrConnectWithoutCustomerInput[]
     createMany?: invoiceCreateManyCustomerInputEnvelope
     connect?: invoiceWhereUniqueInput | invoiceWhereUniqueInput[]
+  }
+
+  export type NullableStringFieldUpdateOperationsInput = {
+    set?: string | null
   }
 
   export type employeeUpdateOneWithoutCustomerNestedInput = {
@@ -17178,6 +19931,20 @@ export namespace Prisma {
     delete?: employeeWhereInput | boolean
     connect?: employeeWhereUniqueInput
     update?: XOR<XOR<employeeUpdateToOneWithWhereWithoutCustomerInput, employeeUpdateWithoutCustomerInput>, employeeUncheckedUpdateWithoutCustomerInput>
+  }
+
+  export type customer_reviewUpdateManyWithoutCustomerNestedInput = {
+    create?: XOR<customer_reviewCreateWithoutCustomerInput, customer_reviewUncheckedCreateWithoutCustomerInput> | customer_reviewCreateWithoutCustomerInput[] | customer_reviewUncheckedCreateWithoutCustomerInput[]
+    connectOrCreate?: customer_reviewCreateOrConnectWithoutCustomerInput | customer_reviewCreateOrConnectWithoutCustomerInput[]
+    upsert?: customer_reviewUpsertWithWhereUniqueWithoutCustomerInput | customer_reviewUpsertWithWhereUniqueWithoutCustomerInput[]
+    createMany?: customer_reviewCreateManyCustomerInputEnvelope
+    set?: customer_reviewWhereUniqueInput | customer_reviewWhereUniqueInput[]
+    disconnect?: customer_reviewWhereUniqueInput | customer_reviewWhereUniqueInput[]
+    delete?: customer_reviewWhereUniqueInput | customer_reviewWhereUniqueInput[]
+    connect?: customer_reviewWhereUniqueInput | customer_reviewWhereUniqueInput[]
+    update?: customer_reviewUpdateWithWhereUniqueWithoutCustomerInput | customer_reviewUpdateWithWhereUniqueWithoutCustomerInput[]
+    updateMany?: customer_reviewUpdateManyWithWhereWithoutCustomerInput | customer_reviewUpdateManyWithWhereWithoutCustomerInput[]
+    deleteMany?: customer_reviewScalarWhereInput | customer_reviewScalarWhereInput[]
   }
 
   export type invoiceUpdateManyWithoutCustomerNestedInput = {
@@ -17200,6 +19967,20 @@ export namespace Prisma {
     decrement?: number
     multiply?: number
     divide?: number
+  }
+
+  export type customer_reviewUncheckedUpdateManyWithoutCustomerNestedInput = {
+    create?: XOR<customer_reviewCreateWithoutCustomerInput, customer_reviewUncheckedCreateWithoutCustomerInput> | customer_reviewCreateWithoutCustomerInput[] | customer_reviewUncheckedCreateWithoutCustomerInput[]
+    connectOrCreate?: customer_reviewCreateOrConnectWithoutCustomerInput | customer_reviewCreateOrConnectWithoutCustomerInput[]
+    upsert?: customer_reviewUpsertWithWhereUniqueWithoutCustomerInput | customer_reviewUpsertWithWhereUniqueWithoutCustomerInput[]
+    createMany?: customer_reviewCreateManyCustomerInputEnvelope
+    set?: customer_reviewWhereUniqueInput | customer_reviewWhereUniqueInput[]
+    disconnect?: customer_reviewWhereUniqueInput | customer_reviewWhereUniqueInput[]
+    delete?: customer_reviewWhereUniqueInput | customer_reviewWhereUniqueInput[]
+    connect?: customer_reviewWhereUniqueInput | customer_reviewWhereUniqueInput[]
+    update?: customer_reviewUpdateWithWhereUniqueWithoutCustomerInput | customer_reviewUpdateWithWhereUniqueWithoutCustomerInput[]
+    updateMany?: customer_reviewUpdateManyWithWhereWithoutCustomerInput | customer_reviewUpdateManyWithWhereWithoutCustomerInput[]
+    deleteMany?: customer_reviewScalarWhereInput | customer_reviewScalarWhereInput[]
   }
 
   export type invoiceUncheckedUpdateManyWithoutCustomerNestedInput = {
@@ -17236,6 +20017,13 @@ export namespace Prisma {
     connect?: employeeWhereUniqueInput | employeeWhereUniqueInput[]
   }
 
+  export type track_discountCreateNestedManyWithoutEmployeeInput = {
+    create?: XOR<track_discountCreateWithoutEmployeeInput, track_discountUncheckedCreateWithoutEmployeeInput> | track_discountCreateWithoutEmployeeInput[] | track_discountUncheckedCreateWithoutEmployeeInput[]
+    connectOrCreate?: track_discountCreateOrConnectWithoutEmployeeInput | track_discountCreateOrConnectWithoutEmployeeInput[]
+    createMany?: track_discountCreateManyEmployeeInputEnvelope
+    connect?: track_discountWhereUniqueInput | track_discountWhereUniqueInput[]
+  }
+
   export type customerUncheckedCreateNestedManyWithoutEmployeeInput = {
     create?: XOR<customerCreateWithoutEmployeeInput, customerUncheckedCreateWithoutEmployeeInput> | customerCreateWithoutEmployeeInput[] | customerUncheckedCreateWithoutEmployeeInput[]
     connectOrCreate?: customerCreateOrConnectWithoutEmployeeInput | customerCreateOrConnectWithoutEmployeeInput[]
@@ -17250,8 +20038,19 @@ export namespace Prisma {
     connect?: employeeWhereUniqueInput | employeeWhereUniqueInput[]
   }
 
+  export type track_discountUncheckedCreateNestedManyWithoutEmployeeInput = {
+    create?: XOR<track_discountCreateWithoutEmployeeInput, track_discountUncheckedCreateWithoutEmployeeInput> | track_discountCreateWithoutEmployeeInput[] | track_discountUncheckedCreateWithoutEmployeeInput[]
+    connectOrCreate?: track_discountCreateOrConnectWithoutEmployeeInput | track_discountCreateOrConnectWithoutEmployeeInput[]
+    createMany?: track_discountCreateManyEmployeeInputEnvelope
+    connect?: track_discountWhereUniqueInput | track_discountWhereUniqueInput[]
+  }
+
   export type NullableDateTimeFieldUpdateOperationsInput = {
     set?: Date | string | null
+  }
+
+  export type DateTimeFieldUpdateOperationsInput = {
+    set?: Date | string
   }
 
   export type customerUpdateManyWithoutEmployeeNestedInput = {
@@ -17292,6 +20091,20 @@ export namespace Prisma {
     deleteMany?: employeeScalarWhereInput | employeeScalarWhereInput[]
   }
 
+  export type track_discountUpdateManyWithoutEmployeeNestedInput = {
+    create?: XOR<track_discountCreateWithoutEmployeeInput, track_discountUncheckedCreateWithoutEmployeeInput> | track_discountCreateWithoutEmployeeInput[] | track_discountUncheckedCreateWithoutEmployeeInput[]
+    connectOrCreate?: track_discountCreateOrConnectWithoutEmployeeInput | track_discountCreateOrConnectWithoutEmployeeInput[]
+    upsert?: track_discountUpsertWithWhereUniqueWithoutEmployeeInput | track_discountUpsertWithWhereUniqueWithoutEmployeeInput[]
+    createMany?: track_discountCreateManyEmployeeInputEnvelope
+    set?: track_discountWhereUniqueInput | track_discountWhereUniqueInput[]
+    disconnect?: track_discountWhereUniqueInput | track_discountWhereUniqueInput[]
+    delete?: track_discountWhereUniqueInput | track_discountWhereUniqueInput[]
+    connect?: track_discountWhereUniqueInput | track_discountWhereUniqueInput[]
+    update?: track_discountUpdateWithWhereUniqueWithoutEmployeeInput | track_discountUpdateWithWhereUniqueWithoutEmployeeInput[]
+    updateMany?: track_discountUpdateManyWithWhereWithoutEmployeeInput | track_discountUpdateManyWithWhereWithoutEmployeeInput[]
+    deleteMany?: track_discountScalarWhereInput | track_discountScalarWhereInput[]
+  }
+
   export type customerUncheckedUpdateManyWithoutEmployeeNestedInput = {
     create?: XOR<customerCreateWithoutEmployeeInput, customerUncheckedCreateWithoutEmployeeInput> | customerCreateWithoutEmployeeInput[] | customerUncheckedCreateWithoutEmployeeInput[]
     connectOrCreate?: customerCreateOrConnectWithoutEmployeeInput | customerCreateOrConnectWithoutEmployeeInput[]
@@ -17320,46 +20133,25 @@ export namespace Prisma {
     deleteMany?: employeeScalarWhereInput | employeeScalarWhereInput[]
   }
 
-  export type trackCreateNestedManyWithoutGenreInput = {
-    create?: XOR<trackCreateWithoutGenreInput, trackUncheckedCreateWithoutGenreInput> | trackCreateWithoutGenreInput[] | trackUncheckedCreateWithoutGenreInput[]
-    connectOrCreate?: trackCreateOrConnectWithoutGenreInput | trackCreateOrConnectWithoutGenreInput[]
-    createMany?: trackCreateManyGenreInputEnvelope
-    connect?: trackWhereUniqueInput | trackWhereUniqueInput[]
+  export type track_discountUncheckedUpdateManyWithoutEmployeeNestedInput = {
+    create?: XOR<track_discountCreateWithoutEmployeeInput, track_discountUncheckedCreateWithoutEmployeeInput> | track_discountCreateWithoutEmployeeInput[] | track_discountUncheckedCreateWithoutEmployeeInput[]
+    connectOrCreate?: track_discountCreateOrConnectWithoutEmployeeInput | track_discountCreateOrConnectWithoutEmployeeInput[]
+    upsert?: track_discountUpsertWithWhereUniqueWithoutEmployeeInput | track_discountUpsertWithWhereUniqueWithoutEmployeeInput[]
+    createMany?: track_discountCreateManyEmployeeInputEnvelope
+    set?: track_discountWhereUniqueInput | track_discountWhereUniqueInput[]
+    disconnect?: track_discountWhereUniqueInput | track_discountWhereUniqueInput[]
+    delete?: track_discountWhereUniqueInput | track_discountWhereUniqueInput[]
+    connect?: track_discountWhereUniqueInput | track_discountWhereUniqueInput[]
+    update?: track_discountUpdateWithWhereUniqueWithoutEmployeeInput | track_discountUpdateWithWhereUniqueWithoutEmployeeInput[]
+    updateMany?: track_discountUpdateManyWithWhereWithoutEmployeeInput | track_discountUpdateManyWithWhereWithoutEmployeeInput[]
+    deleteMany?: track_discountScalarWhereInput | track_discountScalarWhereInput[]
   }
 
-  export type trackUncheckedCreateNestedManyWithoutGenreInput = {
-    create?: XOR<trackCreateWithoutGenreInput, trackUncheckedCreateWithoutGenreInput> | trackCreateWithoutGenreInput[] | trackUncheckedCreateWithoutGenreInput[]
-    connectOrCreate?: trackCreateOrConnectWithoutGenreInput | trackCreateOrConnectWithoutGenreInput[]
-    createMany?: trackCreateManyGenreInputEnvelope
-    connect?: trackWhereUniqueInput | trackWhereUniqueInput[]
-  }
-
-  export type trackUpdateManyWithoutGenreNestedInput = {
-    create?: XOR<trackCreateWithoutGenreInput, trackUncheckedCreateWithoutGenreInput> | trackCreateWithoutGenreInput[] | trackUncheckedCreateWithoutGenreInput[]
-    connectOrCreate?: trackCreateOrConnectWithoutGenreInput | trackCreateOrConnectWithoutGenreInput[]
-    upsert?: trackUpsertWithWhereUniqueWithoutGenreInput | trackUpsertWithWhereUniqueWithoutGenreInput[]
-    createMany?: trackCreateManyGenreInputEnvelope
-    set?: trackWhereUniqueInput | trackWhereUniqueInput[]
-    disconnect?: trackWhereUniqueInput | trackWhereUniqueInput[]
-    delete?: trackWhereUniqueInput | trackWhereUniqueInput[]
-    connect?: trackWhereUniqueInput | trackWhereUniqueInput[]
-    update?: trackUpdateWithWhereUniqueWithoutGenreInput | trackUpdateWithWhereUniqueWithoutGenreInput[]
-    updateMany?: trackUpdateManyWithWhereWithoutGenreInput | trackUpdateManyWithWhereWithoutGenreInput[]
-    deleteMany?: trackScalarWhereInput | trackScalarWhereInput[]
-  }
-
-  export type trackUncheckedUpdateManyWithoutGenreNestedInput = {
-    create?: XOR<trackCreateWithoutGenreInput, trackUncheckedCreateWithoutGenreInput> | trackCreateWithoutGenreInput[] | trackUncheckedCreateWithoutGenreInput[]
-    connectOrCreate?: trackCreateOrConnectWithoutGenreInput | trackCreateOrConnectWithoutGenreInput[]
-    upsert?: trackUpsertWithWhereUniqueWithoutGenreInput | trackUpsertWithWhereUniqueWithoutGenreInput[]
-    createMany?: trackCreateManyGenreInputEnvelope
-    set?: trackWhereUniqueInput | trackWhereUniqueInput[]
-    disconnect?: trackWhereUniqueInput | trackWhereUniqueInput[]
-    delete?: trackWhereUniqueInput | trackWhereUniqueInput[]
-    connect?: trackWhereUniqueInput | trackWhereUniqueInput[]
-    update?: trackUpdateWithWhereUniqueWithoutGenreInput | trackUpdateWithWhereUniqueWithoutGenreInput[]
-    updateMany?: trackUpdateManyWithWhereWithoutGenreInput | trackUpdateManyWithWhereWithoutGenreInput[]
-    deleteMany?: trackScalarWhereInput | trackScalarWhereInput[]
+  export type customer_reviewCreateNestedManyWithoutInvoiceInput = {
+    create?: XOR<customer_reviewCreateWithoutInvoiceInput, customer_reviewUncheckedCreateWithoutInvoiceInput> | customer_reviewCreateWithoutInvoiceInput[] | customer_reviewUncheckedCreateWithoutInvoiceInput[]
+    connectOrCreate?: customer_reviewCreateOrConnectWithoutInvoiceInput | customer_reviewCreateOrConnectWithoutInvoiceInput[]
+    createMany?: customer_reviewCreateManyInvoiceInputEnvelope
+    connect?: customer_reviewWhereUniqueInput | customer_reviewWhereUniqueInput[]
   }
 
   export type customerCreateNestedOneWithoutInvoiceInput = {
@@ -17375,15 +20167,18 @@ export namespace Prisma {
     connect?: invoice_lineWhereUniqueInput | invoice_lineWhereUniqueInput[]
   }
 
+  export type customer_reviewUncheckedCreateNestedManyWithoutInvoiceInput = {
+    create?: XOR<customer_reviewCreateWithoutInvoiceInput, customer_reviewUncheckedCreateWithoutInvoiceInput> | customer_reviewCreateWithoutInvoiceInput[] | customer_reviewUncheckedCreateWithoutInvoiceInput[]
+    connectOrCreate?: customer_reviewCreateOrConnectWithoutInvoiceInput | customer_reviewCreateOrConnectWithoutInvoiceInput[]
+    createMany?: customer_reviewCreateManyInvoiceInputEnvelope
+    connect?: customer_reviewWhereUniqueInput | customer_reviewWhereUniqueInput[]
+  }
+
   export type invoice_lineUncheckedCreateNestedManyWithoutInvoiceInput = {
     create?: XOR<invoice_lineCreateWithoutInvoiceInput, invoice_lineUncheckedCreateWithoutInvoiceInput> | invoice_lineCreateWithoutInvoiceInput[] | invoice_lineUncheckedCreateWithoutInvoiceInput[]
     connectOrCreate?: invoice_lineCreateOrConnectWithoutInvoiceInput | invoice_lineCreateOrConnectWithoutInvoiceInput[]
     createMany?: invoice_lineCreateManyInvoiceInputEnvelope
     connect?: invoice_lineWhereUniqueInput | invoice_lineWhereUniqueInput[]
-  }
-
-  export type DateTimeFieldUpdateOperationsInput = {
-    set?: Date | string
   }
 
   export type DecimalFieldUpdateOperationsInput = {
@@ -17392,6 +20187,20 @@ export namespace Prisma {
     decrement?: Decimal | DecimalJsLike | number | string
     multiply?: Decimal | DecimalJsLike | number | string
     divide?: Decimal | DecimalJsLike | number | string
+  }
+
+  export type customer_reviewUpdateManyWithoutInvoiceNestedInput = {
+    create?: XOR<customer_reviewCreateWithoutInvoiceInput, customer_reviewUncheckedCreateWithoutInvoiceInput> | customer_reviewCreateWithoutInvoiceInput[] | customer_reviewUncheckedCreateWithoutInvoiceInput[]
+    connectOrCreate?: customer_reviewCreateOrConnectWithoutInvoiceInput | customer_reviewCreateOrConnectWithoutInvoiceInput[]
+    upsert?: customer_reviewUpsertWithWhereUniqueWithoutInvoiceInput | customer_reviewUpsertWithWhereUniqueWithoutInvoiceInput[]
+    createMany?: customer_reviewCreateManyInvoiceInputEnvelope
+    set?: customer_reviewWhereUniqueInput | customer_reviewWhereUniqueInput[]
+    disconnect?: customer_reviewWhereUniqueInput | customer_reviewWhereUniqueInput[]
+    delete?: customer_reviewWhereUniqueInput | customer_reviewWhereUniqueInput[]
+    connect?: customer_reviewWhereUniqueInput | customer_reviewWhereUniqueInput[]
+    update?: customer_reviewUpdateWithWhereUniqueWithoutInvoiceInput | customer_reviewUpdateWithWhereUniqueWithoutInvoiceInput[]
+    updateMany?: customer_reviewUpdateManyWithWhereWithoutInvoiceInput | customer_reviewUpdateManyWithWhereWithoutInvoiceInput[]
+    deleteMany?: customer_reviewScalarWhereInput | customer_reviewScalarWhereInput[]
   }
 
   export type customerUpdateOneRequiredWithoutInvoiceNestedInput = {
@@ -17414,6 +20223,20 @@ export namespace Prisma {
     update?: invoice_lineUpdateWithWhereUniqueWithoutInvoiceInput | invoice_lineUpdateWithWhereUniqueWithoutInvoiceInput[]
     updateMany?: invoice_lineUpdateManyWithWhereWithoutInvoiceInput | invoice_lineUpdateManyWithWhereWithoutInvoiceInput[]
     deleteMany?: invoice_lineScalarWhereInput | invoice_lineScalarWhereInput[]
+  }
+
+  export type customer_reviewUncheckedUpdateManyWithoutInvoiceNestedInput = {
+    create?: XOR<customer_reviewCreateWithoutInvoiceInput, customer_reviewUncheckedCreateWithoutInvoiceInput> | customer_reviewCreateWithoutInvoiceInput[] | customer_reviewUncheckedCreateWithoutInvoiceInput[]
+    connectOrCreate?: customer_reviewCreateOrConnectWithoutInvoiceInput | customer_reviewCreateOrConnectWithoutInvoiceInput[]
+    upsert?: customer_reviewUpsertWithWhereUniqueWithoutInvoiceInput | customer_reviewUpsertWithWhereUniqueWithoutInvoiceInput[]
+    createMany?: customer_reviewCreateManyInvoiceInputEnvelope
+    set?: customer_reviewWhereUniqueInput | customer_reviewWhereUniqueInput[]
+    disconnect?: customer_reviewWhereUniqueInput | customer_reviewWhereUniqueInput[]
+    delete?: customer_reviewWhereUniqueInput | customer_reviewWhereUniqueInput[]
+    connect?: customer_reviewWhereUniqueInput | customer_reviewWhereUniqueInput[]
+    update?: customer_reviewUpdateWithWhereUniqueWithoutInvoiceInput | customer_reviewUpdateWithWhereUniqueWithoutInvoiceInput[]
+    updateMany?: customer_reviewUpdateManyWithWhereWithoutInvoiceInput | customer_reviewUpdateManyWithWhereWithoutInvoiceInput[]
+    deleteMany?: customer_reviewScalarWhereInput | customer_reviewScalarWhereInput[]
   }
 
   export type invoice_lineUncheckedUpdateManyWithoutInvoiceNestedInput = {
@@ -17456,48 +20279,6 @@ export namespace Prisma {
     upsert?: trackUpsertWithoutInvoice_lineInput
     connect?: trackWhereUniqueInput
     update?: XOR<XOR<trackUpdateToOneWithWhereWithoutInvoice_lineInput, trackUpdateWithoutInvoice_lineInput>, trackUncheckedUpdateWithoutInvoice_lineInput>
-  }
-
-  export type trackCreateNestedManyWithoutMedia_typeInput = {
-    create?: XOR<trackCreateWithoutMedia_typeInput, trackUncheckedCreateWithoutMedia_typeInput> | trackCreateWithoutMedia_typeInput[] | trackUncheckedCreateWithoutMedia_typeInput[]
-    connectOrCreate?: trackCreateOrConnectWithoutMedia_typeInput | trackCreateOrConnectWithoutMedia_typeInput[]
-    createMany?: trackCreateManyMedia_typeInputEnvelope
-    connect?: trackWhereUniqueInput | trackWhereUniqueInput[]
-  }
-
-  export type trackUncheckedCreateNestedManyWithoutMedia_typeInput = {
-    create?: XOR<trackCreateWithoutMedia_typeInput, trackUncheckedCreateWithoutMedia_typeInput> | trackCreateWithoutMedia_typeInput[] | trackUncheckedCreateWithoutMedia_typeInput[]
-    connectOrCreate?: trackCreateOrConnectWithoutMedia_typeInput | trackCreateOrConnectWithoutMedia_typeInput[]
-    createMany?: trackCreateManyMedia_typeInputEnvelope
-    connect?: trackWhereUniqueInput | trackWhereUniqueInput[]
-  }
-
-  export type trackUpdateManyWithoutMedia_typeNestedInput = {
-    create?: XOR<trackCreateWithoutMedia_typeInput, trackUncheckedCreateWithoutMedia_typeInput> | trackCreateWithoutMedia_typeInput[] | trackUncheckedCreateWithoutMedia_typeInput[]
-    connectOrCreate?: trackCreateOrConnectWithoutMedia_typeInput | trackCreateOrConnectWithoutMedia_typeInput[]
-    upsert?: trackUpsertWithWhereUniqueWithoutMedia_typeInput | trackUpsertWithWhereUniqueWithoutMedia_typeInput[]
-    createMany?: trackCreateManyMedia_typeInputEnvelope
-    set?: trackWhereUniqueInput | trackWhereUniqueInput[]
-    disconnect?: trackWhereUniqueInput | trackWhereUniqueInput[]
-    delete?: trackWhereUniqueInput | trackWhereUniqueInput[]
-    connect?: trackWhereUniqueInput | trackWhereUniqueInput[]
-    update?: trackUpdateWithWhereUniqueWithoutMedia_typeInput | trackUpdateWithWhereUniqueWithoutMedia_typeInput[]
-    updateMany?: trackUpdateManyWithWhereWithoutMedia_typeInput | trackUpdateManyWithWhereWithoutMedia_typeInput[]
-    deleteMany?: trackScalarWhereInput | trackScalarWhereInput[]
-  }
-
-  export type trackUncheckedUpdateManyWithoutMedia_typeNestedInput = {
-    create?: XOR<trackCreateWithoutMedia_typeInput, trackUncheckedCreateWithoutMedia_typeInput> | trackCreateWithoutMedia_typeInput[] | trackUncheckedCreateWithoutMedia_typeInput[]
-    connectOrCreate?: trackCreateOrConnectWithoutMedia_typeInput | trackCreateOrConnectWithoutMedia_typeInput[]
-    upsert?: trackUpsertWithWhereUniqueWithoutMedia_typeInput | trackUpsertWithWhereUniqueWithoutMedia_typeInput[]
-    createMany?: trackCreateManyMedia_typeInputEnvelope
-    set?: trackWhereUniqueInput | trackWhereUniqueInput[]
-    disconnect?: trackWhereUniqueInput | trackWhereUniqueInput[]
-    delete?: trackWhereUniqueInput | trackWhereUniqueInput[]
-    connect?: trackWhereUniqueInput | trackWhereUniqueInput[]
-    update?: trackUpdateWithWhereUniqueWithoutMedia_typeInput | trackUpdateWithWhereUniqueWithoutMedia_typeInput[]
-    updateMany?: trackUpdateManyWithWhereWithoutMedia_typeInput | trackUpdateManyWithWhereWithoutMedia_typeInput[]
-    deleteMany?: trackScalarWhereInput | trackScalarWhereInput[]
   }
 
   export type playlist_trackCreateNestedManyWithoutPlaylistInput = {
@@ -17590,16 +20371,11 @@ export namespace Prisma {
     connect?: albumWhereUniqueInput
   }
 
-  export type genreCreateNestedOneWithoutTrackInput = {
-    create?: XOR<genreCreateWithoutTrackInput, genreUncheckedCreateWithoutTrackInput>
-    connectOrCreate?: genreCreateOrConnectWithoutTrackInput
-    connect?: genreWhereUniqueInput
-  }
-
-  export type media_typeCreateNestedOneWithoutTrackInput = {
-    create?: XOR<media_typeCreateWithoutTrackInput, media_typeUncheckedCreateWithoutTrackInput>
-    connectOrCreate?: media_typeCreateOrConnectWithoutTrackInput
-    connect?: media_typeWhereUniqueInput
+  export type track_discountCreateNestedManyWithoutTrackInput = {
+    create?: XOR<track_discountCreateWithoutTrackInput, track_discountUncheckedCreateWithoutTrackInput> | track_discountCreateWithoutTrackInput[] | track_discountUncheckedCreateWithoutTrackInput[]
+    connectOrCreate?: track_discountCreateOrConnectWithoutTrackInput | track_discountCreateOrConnectWithoutTrackInput[]
+    createMany?: track_discountCreateManyTrackInputEnvelope
+    connect?: track_discountWhereUniqueInput | track_discountWhereUniqueInput[]
   }
 
   export type invoice_lineUncheckedCreateNestedManyWithoutTrackInput = {
@@ -17614,6 +20390,13 @@ export namespace Prisma {
     connectOrCreate?: playlist_trackCreateOrConnectWithoutTrackInput | playlist_trackCreateOrConnectWithoutTrackInput[]
     createMany?: playlist_trackCreateManyTrackInputEnvelope
     connect?: playlist_trackWhereUniqueInput | playlist_trackWhereUniqueInput[]
+  }
+
+  export type track_discountUncheckedCreateNestedManyWithoutTrackInput = {
+    create?: XOR<track_discountCreateWithoutTrackInput, track_discountUncheckedCreateWithoutTrackInput> | track_discountCreateWithoutTrackInput[] | track_discountUncheckedCreateWithoutTrackInput[]
+    connectOrCreate?: track_discountCreateOrConnectWithoutTrackInput | track_discountCreateOrConnectWithoutTrackInput[]
+    createMany?: track_discountCreateManyTrackInputEnvelope
+    connect?: track_discountWhereUniqueInput | track_discountWhereUniqueInput[]
   }
 
   export type invoice_lineUpdateManyWithoutTrackNestedInput = {
@@ -17644,32 +20427,26 @@ export namespace Prisma {
     deleteMany?: playlist_trackScalarWhereInput | playlist_trackScalarWhereInput[]
   }
 
-  export type albumUpdateOneWithoutTrackNestedInput = {
+  export type albumUpdateOneRequiredWithoutTrackNestedInput = {
     create?: XOR<albumCreateWithoutTrackInput, albumUncheckedCreateWithoutTrackInput>
     connectOrCreate?: albumCreateOrConnectWithoutTrackInput
     upsert?: albumUpsertWithoutTrackInput
-    disconnect?: albumWhereInput | boolean
-    delete?: albumWhereInput | boolean
     connect?: albumWhereUniqueInput
     update?: XOR<XOR<albumUpdateToOneWithWhereWithoutTrackInput, albumUpdateWithoutTrackInput>, albumUncheckedUpdateWithoutTrackInput>
   }
 
-  export type genreUpdateOneWithoutTrackNestedInput = {
-    create?: XOR<genreCreateWithoutTrackInput, genreUncheckedCreateWithoutTrackInput>
-    connectOrCreate?: genreCreateOrConnectWithoutTrackInput
-    upsert?: genreUpsertWithoutTrackInput
-    disconnect?: genreWhereInput | boolean
-    delete?: genreWhereInput | boolean
-    connect?: genreWhereUniqueInput
-    update?: XOR<XOR<genreUpdateToOneWithWhereWithoutTrackInput, genreUpdateWithoutTrackInput>, genreUncheckedUpdateWithoutTrackInput>
-  }
-
-  export type media_typeUpdateOneRequiredWithoutTrackNestedInput = {
-    create?: XOR<media_typeCreateWithoutTrackInput, media_typeUncheckedCreateWithoutTrackInput>
-    connectOrCreate?: media_typeCreateOrConnectWithoutTrackInput
-    upsert?: media_typeUpsertWithoutTrackInput
-    connect?: media_typeWhereUniqueInput
-    update?: XOR<XOR<media_typeUpdateToOneWithWhereWithoutTrackInput, media_typeUpdateWithoutTrackInput>, media_typeUncheckedUpdateWithoutTrackInput>
+  export type track_discountUpdateManyWithoutTrackNestedInput = {
+    create?: XOR<track_discountCreateWithoutTrackInput, track_discountUncheckedCreateWithoutTrackInput> | track_discountCreateWithoutTrackInput[] | track_discountUncheckedCreateWithoutTrackInput[]
+    connectOrCreate?: track_discountCreateOrConnectWithoutTrackInput | track_discountCreateOrConnectWithoutTrackInput[]
+    upsert?: track_discountUpsertWithWhereUniqueWithoutTrackInput | track_discountUpsertWithWhereUniqueWithoutTrackInput[]
+    createMany?: track_discountCreateManyTrackInputEnvelope
+    set?: track_discountWhereUniqueInput | track_discountWhereUniqueInput[]
+    disconnect?: track_discountWhereUniqueInput | track_discountWhereUniqueInput[]
+    delete?: track_discountWhereUniqueInput | track_discountWhereUniqueInput[]
+    connect?: track_discountWhereUniqueInput | track_discountWhereUniqueInput[]
+    update?: track_discountUpdateWithWhereUniqueWithoutTrackInput | track_discountUpdateWithWhereUniqueWithoutTrackInput[]
+    updateMany?: track_discountUpdateManyWithWhereWithoutTrackInput | track_discountUpdateManyWithWhereWithoutTrackInput[]
+    deleteMany?: track_discountScalarWhereInput | track_discountScalarWhereInput[]
   }
 
   export type invoice_lineUncheckedUpdateManyWithoutTrackNestedInput = {
@@ -17698,6 +20475,76 @@ export namespace Prisma {
     update?: playlist_trackUpdateWithWhereUniqueWithoutTrackInput | playlist_trackUpdateWithWhereUniqueWithoutTrackInput[]
     updateMany?: playlist_trackUpdateManyWithWhereWithoutTrackInput | playlist_trackUpdateManyWithWhereWithoutTrackInput[]
     deleteMany?: playlist_trackScalarWhereInput | playlist_trackScalarWhereInput[]
+  }
+
+  export type track_discountUncheckedUpdateManyWithoutTrackNestedInput = {
+    create?: XOR<track_discountCreateWithoutTrackInput, track_discountUncheckedCreateWithoutTrackInput> | track_discountCreateWithoutTrackInput[] | track_discountUncheckedCreateWithoutTrackInput[]
+    connectOrCreate?: track_discountCreateOrConnectWithoutTrackInput | track_discountCreateOrConnectWithoutTrackInput[]
+    upsert?: track_discountUpsertWithWhereUniqueWithoutTrackInput | track_discountUpsertWithWhereUniqueWithoutTrackInput[]
+    createMany?: track_discountCreateManyTrackInputEnvelope
+    set?: track_discountWhereUniqueInput | track_discountWhereUniqueInput[]
+    disconnect?: track_discountWhereUniqueInput | track_discountWhereUniqueInput[]
+    delete?: track_discountWhereUniqueInput | track_discountWhereUniqueInput[]
+    connect?: track_discountWhereUniqueInput | track_discountWhereUniqueInput[]
+    update?: track_discountUpdateWithWhereUniqueWithoutTrackInput | track_discountUpdateWithWhereUniqueWithoutTrackInput[]
+    updateMany?: track_discountUpdateManyWithWhereWithoutTrackInput | track_discountUpdateManyWithWhereWithoutTrackInput[]
+    deleteMany?: track_discountScalarWhereInput | track_discountScalarWhereInput[]
+  }
+
+  export type customerCreateNestedOneWithoutCustomer_reviewInput = {
+    create?: XOR<customerCreateWithoutCustomer_reviewInput, customerUncheckedCreateWithoutCustomer_reviewInput>
+    connectOrCreate?: customerCreateOrConnectWithoutCustomer_reviewInput
+    connect?: customerWhereUniqueInput
+  }
+
+  export type invoiceCreateNestedOneWithoutCustomer_reviewInput = {
+    create?: XOR<invoiceCreateWithoutCustomer_reviewInput, invoiceUncheckedCreateWithoutCustomer_reviewInput>
+    connectOrCreate?: invoiceCreateOrConnectWithoutCustomer_reviewInput
+    connect?: invoiceWhereUniqueInput
+  }
+
+  export type customerUpdateOneRequiredWithoutCustomer_reviewNestedInput = {
+    create?: XOR<customerCreateWithoutCustomer_reviewInput, customerUncheckedCreateWithoutCustomer_reviewInput>
+    connectOrCreate?: customerCreateOrConnectWithoutCustomer_reviewInput
+    upsert?: customerUpsertWithoutCustomer_reviewInput
+    connect?: customerWhereUniqueInput
+    update?: XOR<XOR<customerUpdateToOneWithWhereWithoutCustomer_reviewInput, customerUpdateWithoutCustomer_reviewInput>, customerUncheckedUpdateWithoutCustomer_reviewInput>
+  }
+
+  export type invoiceUpdateOneRequiredWithoutCustomer_reviewNestedInput = {
+    create?: XOR<invoiceCreateWithoutCustomer_reviewInput, invoiceUncheckedCreateWithoutCustomer_reviewInput>
+    connectOrCreate?: invoiceCreateOrConnectWithoutCustomer_reviewInput
+    upsert?: invoiceUpsertWithoutCustomer_reviewInput
+    connect?: invoiceWhereUniqueInput
+    update?: XOR<XOR<invoiceUpdateToOneWithWhereWithoutCustomer_reviewInput, invoiceUpdateWithoutCustomer_reviewInput>, invoiceUncheckedUpdateWithoutCustomer_reviewInput>
+  }
+
+  export type employeeCreateNestedOneWithoutTrack_discountInput = {
+    create?: XOR<employeeCreateWithoutTrack_discountInput, employeeUncheckedCreateWithoutTrack_discountInput>
+    connectOrCreate?: employeeCreateOrConnectWithoutTrack_discountInput
+    connect?: employeeWhereUniqueInput
+  }
+
+  export type trackCreateNestedOneWithoutTrack_discountInput = {
+    create?: XOR<trackCreateWithoutTrack_discountInput, trackUncheckedCreateWithoutTrack_discountInput>
+    connectOrCreate?: trackCreateOrConnectWithoutTrack_discountInput
+    connect?: trackWhereUniqueInput
+  }
+
+  export type employeeUpdateOneRequiredWithoutTrack_discountNestedInput = {
+    create?: XOR<employeeCreateWithoutTrack_discountInput, employeeUncheckedCreateWithoutTrack_discountInput>
+    connectOrCreate?: employeeCreateOrConnectWithoutTrack_discountInput
+    upsert?: employeeUpsertWithoutTrack_discountInput
+    connect?: employeeWhereUniqueInput
+    update?: XOR<XOR<employeeUpdateToOneWithWhereWithoutTrack_discountInput, employeeUpdateWithoutTrack_discountInput>, employeeUncheckedUpdateWithoutTrack_discountInput>
+  }
+
+  export type trackUpdateOneRequiredWithoutTrack_discountNestedInput = {
+    create?: XOR<trackCreateWithoutTrack_discountInput, trackUncheckedCreateWithoutTrack_discountInput>
+    connectOrCreate?: trackCreateOrConnectWithoutTrack_discountInput
+    upsert?: trackUpsertWithoutTrack_discountInput
+    connect?: trackWhereUniqueInput
+    update?: XOR<XOR<trackUpdateToOneWithWhereWithoutTrack_discountInput, trackUpdateWithoutTrack_discountInput>, trackUncheckedUpdateWithoutTrack_discountInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -17783,6 +20630,17 @@ export namespace Prisma {
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
 
+  export type NestedIntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
+  }
+
   export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel> | null
     in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
@@ -17798,17 +20656,6 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedStringNullableFilter<$PrismaModel>
     _max?: NestedStringNullableFilter<$PrismaModel>
-  }
-
-  export type NestedIntNullableFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -17849,6 +20696,17 @@ export namespace Prisma {
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
+  export type NestedDateTimeFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeFilter<$PrismaModel> | Date | string
+  }
+
   export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
@@ -17863,28 +20721,6 @@ export namespace Prisma {
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
-  export type NestedDateTimeFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeFilter<$PrismaModel> | Date | string
-  }
-
-  export type NestedDecimalFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
-  }
-
   export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -17897,6 +20733,17 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedDateTimeFilter<$PrismaModel>
     _max?: NestedDateTimeFilter<$PrismaModel>
+  }
+
+  export type NestedDecimalFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
   }
 
   export type NestedDecimalWithAggregatesFilter<$PrismaModel = never> = {
@@ -17916,11 +20763,11 @@ export namespace Prisma {
   }
 
   export type artistCreateWithoutAlbumInput = {
-    name?: string | null
+    name: string
   }
 
   export type artistUncheckedCreateWithoutAlbumInput = {
-    name?: string | null
+    name: string
     artist_id?: number
   }
 
@@ -17930,29 +20777,30 @@ export namespace Prisma {
   }
 
   export type trackCreateWithoutAlbumInput = {
-    track_id: number
     name: string
+    media_type_id?: number
+    genre_id?: number | null
     composer?: string | null
-    milliseconds: number
+    milliseconds?: number
     bytes?: number | null
-    unit_price: Decimal | DecimalJsLike | number | string
+    unit_price?: Decimal | DecimalJsLike | number | string
     invoice_line?: invoice_lineCreateNestedManyWithoutTrackInput
     playlist_track?: playlist_trackCreateNestedManyWithoutTrackInput
-    genre?: genreCreateNestedOneWithoutTrackInput
-    media_type: media_typeCreateNestedOneWithoutTrackInput
+    track_discount?: track_discountCreateNestedManyWithoutTrackInput
   }
 
   export type trackUncheckedCreateWithoutAlbumInput = {
-    track_id: number
     name: string
-    media_type_id: number
+    media_type_id?: number
     genre_id?: number | null
     composer?: string | null
-    milliseconds: number
+    milliseconds?: number
     bytes?: number | null
-    unit_price: Decimal | DecimalJsLike | number | string
+    unit_price?: Decimal | DecimalJsLike | number | string
+    track_id?: number
     invoice_line?: invoice_lineUncheckedCreateNestedManyWithoutTrackInput
     playlist_track?: playlist_trackUncheckedCreateNestedManyWithoutTrackInput
+    track_discount?: track_discountUncheckedCreateNestedManyWithoutTrackInput
   }
 
   export type trackCreateOrConnectWithoutAlbumInput = {
@@ -17977,11 +20825,11 @@ export namespace Prisma {
   }
 
   export type artistUpdateWithoutAlbumInput = {
-    name?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: StringFieldUpdateOperationsInput | string
   }
 
   export type artistUncheckedUpdateWithoutAlbumInput = {
-    name?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: StringFieldUpdateOperationsInput | string
     artist_id?: IntFieldUpdateOperationsInput | number
   }
 
@@ -18005,15 +20853,15 @@ export namespace Prisma {
     AND?: trackScalarWhereInput | trackScalarWhereInput[]
     OR?: trackScalarWhereInput[]
     NOT?: trackScalarWhereInput | trackScalarWhereInput[]
-    track_id?: IntFilter<"track"> | number
     name?: StringFilter<"track"> | string
-    album_id?: IntNullableFilter<"track"> | number | null
+    album_id?: IntFilter<"track"> | number
     media_type_id?: IntFilter<"track"> | number
     genre_id?: IntNullableFilter<"track"> | number | null
     composer?: StringNullableFilter<"track"> | string | null
     milliseconds?: IntFilter<"track"> | number
     bytes?: IntNullableFilter<"track"> | number | null
     unit_price?: DecimalFilter<"track"> | Decimal | DecimalJsLike | number | string
+    track_id?: IntFilter<"track"> | number
   }
 
   export type albumCreateWithoutArtistInput = {
@@ -18068,7 +20916,7 @@ export namespace Prisma {
     first_name: string
     title?: string | null
     birth_date?: Date | string | null
-    hire_date?: Date | string | null
+    hire_date: Date | string
     address?: string | null
     city?: string | null
     state?: string | null
@@ -18077,8 +20925,10 @@ export namespace Prisma {
     phone?: string | null
     fax?: string | null
     email?: string | null
+    termination_date?: Date | string | null
     employee?: employeeCreateNestedOneWithoutOther_employeeInput
     other_employee?: employeeCreateNestedManyWithoutEmployeeInput
+    track_discount?: track_discountCreateNestedManyWithoutEmployeeInput
   }
 
   export type employeeUncheckedCreateWithoutCustomerInput = {
@@ -18088,7 +20938,7 @@ export namespace Prisma {
     title?: string | null
     reports_to?: number | null
     birth_date?: Date | string | null
-    hire_date?: Date | string | null
+    hire_date: Date | string
     address?: string | null
     city?: string | null
     state?: string | null
@@ -18097,12 +20947,39 @@ export namespace Prisma {
     phone?: string | null
     fax?: string | null
     email?: string | null
+    termination_date?: Date | string | null
     other_employee?: employeeUncheckedCreateNestedManyWithoutEmployeeInput
+    track_discount?: track_discountUncheckedCreateNestedManyWithoutEmployeeInput
   }
 
   export type employeeCreateOrConnectWithoutCustomerInput = {
     where: employeeWhereUniqueInput
     create: XOR<employeeCreateWithoutCustomerInput, employeeUncheckedCreateWithoutCustomerInput>
+  }
+
+  export type customer_reviewCreateWithoutCustomerInput = {
+    track_id: number
+    rating?: number | null
+    review_comment?: string | null
+    invoice: invoiceCreateNestedOneWithoutCustomer_reviewInput
+  }
+
+  export type customer_reviewUncheckedCreateWithoutCustomerInput = {
+    review_id?: number
+    invoice_id: number
+    track_id: number
+    rating?: number | null
+    review_comment?: string | null
+  }
+
+  export type customer_reviewCreateOrConnectWithoutCustomerInput = {
+    where: customer_reviewWhereUniqueInput
+    create: XOR<customer_reviewCreateWithoutCustomerInput, customer_reviewUncheckedCreateWithoutCustomerInput>
+  }
+
+  export type customer_reviewCreateManyCustomerInputEnvelope = {
+    data: customer_reviewCreateManyCustomerInput | customer_reviewCreateManyCustomerInput[]
+    skipDuplicates?: boolean
   }
 
   export type invoiceCreateWithoutCustomerInput = {
@@ -18114,6 +20991,7 @@ export namespace Prisma {
     billing_country?: string | null
     billing_postal_code?: string | null
     total: Decimal | DecimalJsLike | number | string
+    customer_review?: customer_reviewCreateNestedManyWithoutInvoiceInput
     invoice_line?: invoice_lineCreateNestedManyWithoutInvoiceInput
   }
 
@@ -18126,6 +21004,7 @@ export namespace Prisma {
     billing_country?: string | null
     billing_postal_code?: string | null
     total: Decimal | DecimalJsLike | number | string
+    customer_review?: customer_reviewUncheckedCreateNestedManyWithoutInvoiceInput
     invoice_line?: invoice_lineUncheckedCreateNestedManyWithoutInvoiceInput
   }
 
@@ -18156,7 +21035,7 @@ export namespace Prisma {
     first_name?: StringFieldUpdateOperationsInput | string
     title?: NullableStringFieldUpdateOperationsInput | string | null
     birth_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    hire_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    hire_date?: DateTimeFieldUpdateOperationsInput | Date | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
@@ -18165,8 +21044,10 @@ export namespace Prisma {
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     fax?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    termination_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     employee?: employeeUpdateOneWithoutOther_employeeNestedInput
     other_employee?: employeeUpdateManyWithoutEmployeeNestedInput
+    track_discount?: track_discountUpdateManyWithoutEmployeeNestedInput
   }
 
   export type employeeUncheckedUpdateWithoutCustomerInput = {
@@ -18176,7 +21057,7 @@ export namespace Prisma {
     title?: NullableStringFieldUpdateOperationsInput | string | null
     reports_to?: NullableIntFieldUpdateOperationsInput | number | null
     birth_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    hire_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    hire_date?: DateTimeFieldUpdateOperationsInput | Date | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
@@ -18185,7 +21066,37 @@ export namespace Prisma {
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     fax?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    termination_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     other_employee?: employeeUncheckedUpdateManyWithoutEmployeeNestedInput
+    track_discount?: track_discountUncheckedUpdateManyWithoutEmployeeNestedInput
+  }
+
+  export type customer_reviewUpsertWithWhereUniqueWithoutCustomerInput = {
+    where: customer_reviewWhereUniqueInput
+    update: XOR<customer_reviewUpdateWithoutCustomerInput, customer_reviewUncheckedUpdateWithoutCustomerInput>
+    create: XOR<customer_reviewCreateWithoutCustomerInput, customer_reviewUncheckedCreateWithoutCustomerInput>
+  }
+
+  export type customer_reviewUpdateWithWhereUniqueWithoutCustomerInput = {
+    where: customer_reviewWhereUniqueInput
+    data: XOR<customer_reviewUpdateWithoutCustomerInput, customer_reviewUncheckedUpdateWithoutCustomerInput>
+  }
+
+  export type customer_reviewUpdateManyWithWhereWithoutCustomerInput = {
+    where: customer_reviewScalarWhereInput
+    data: XOR<customer_reviewUpdateManyMutationInput, customer_reviewUncheckedUpdateManyWithoutCustomerInput>
+  }
+
+  export type customer_reviewScalarWhereInput = {
+    AND?: customer_reviewScalarWhereInput | customer_reviewScalarWhereInput[]
+    OR?: customer_reviewScalarWhereInput[]
+    NOT?: customer_reviewScalarWhereInput | customer_reviewScalarWhereInput[]
+    review_id?: IntFilter<"customer_review"> | number
+    customer_id?: IntFilter<"customer_review"> | number
+    invoice_id?: IntFilter<"customer_review"> | number
+    track_id?: IntFilter<"customer_review"> | number
+    rating?: IntNullableFilter<"customer_review"> | number | null
+    review_comment?: StringNullableFilter<"customer_review"> | string | null
   }
 
   export type invoiceUpsertWithWhereUniqueWithoutCustomerInput = {
@@ -18232,6 +21143,7 @@ export namespace Prisma {
     phone?: string | null
     fax?: string | null
     email: string
+    customer_review?: customer_reviewCreateNestedManyWithoutCustomerInput
     invoice?: invoiceCreateNestedManyWithoutCustomerInput
   }
 
@@ -18248,6 +21160,7 @@ export namespace Prisma {
     phone?: string | null
     fax?: string | null
     email: string
+    customer_review?: customer_reviewUncheckedCreateNestedManyWithoutCustomerInput
     invoice?: invoiceUncheckedCreateNestedManyWithoutCustomerInput
   }
 
@@ -18267,7 +21180,7 @@ export namespace Prisma {
     first_name: string
     title?: string | null
     birth_date?: Date | string | null
-    hire_date?: Date | string | null
+    hire_date: Date | string
     address?: string | null
     city?: string | null
     state?: string | null
@@ -18276,8 +21189,10 @@ export namespace Prisma {
     phone?: string | null
     fax?: string | null
     email?: string | null
+    termination_date?: Date | string | null
     customer?: customerCreateNestedManyWithoutEmployeeInput
     employee?: employeeCreateNestedOneWithoutOther_employeeInput
+    track_discount?: track_discountCreateNestedManyWithoutEmployeeInput
   }
 
   export type employeeUncheckedCreateWithoutOther_employeeInput = {
@@ -18287,7 +21202,7 @@ export namespace Prisma {
     title?: string | null
     reports_to?: number | null
     birth_date?: Date | string | null
-    hire_date?: Date | string | null
+    hire_date: Date | string
     address?: string | null
     city?: string | null
     state?: string | null
@@ -18296,7 +21211,9 @@ export namespace Prisma {
     phone?: string | null
     fax?: string | null
     email?: string | null
+    termination_date?: Date | string | null
     customer?: customerUncheckedCreateNestedManyWithoutEmployeeInput
+    track_discount?: track_discountUncheckedCreateNestedManyWithoutEmployeeInput
   }
 
   export type employeeCreateOrConnectWithoutOther_employeeInput = {
@@ -18310,7 +21227,7 @@ export namespace Prisma {
     first_name: string
     title?: string | null
     birth_date?: Date | string | null
-    hire_date?: Date | string | null
+    hire_date: Date | string
     address?: string | null
     city?: string | null
     state?: string | null
@@ -18319,8 +21236,10 @@ export namespace Prisma {
     phone?: string | null
     fax?: string | null
     email?: string | null
+    termination_date?: Date | string | null
     customer?: customerCreateNestedManyWithoutEmployeeInput
     other_employee?: employeeCreateNestedManyWithoutEmployeeInput
+    track_discount?: track_discountCreateNestedManyWithoutEmployeeInput
   }
 
   export type employeeUncheckedCreateWithoutEmployeeInput = {
@@ -18329,7 +21248,7 @@ export namespace Prisma {
     first_name: string
     title?: string | null
     birth_date?: Date | string | null
-    hire_date?: Date | string | null
+    hire_date: Date | string
     address?: string | null
     city?: string | null
     state?: string | null
@@ -18338,8 +21257,10 @@ export namespace Prisma {
     phone?: string | null
     fax?: string | null
     email?: string | null
+    termination_date?: Date | string | null
     customer?: customerUncheckedCreateNestedManyWithoutEmployeeInput
     other_employee?: employeeUncheckedCreateNestedManyWithoutEmployeeInput
+    track_discount?: track_discountUncheckedCreateNestedManyWithoutEmployeeInput
   }
 
   export type employeeCreateOrConnectWithoutEmployeeInput = {
@@ -18349,6 +21270,31 @@ export namespace Prisma {
 
   export type employeeCreateManyEmployeeInputEnvelope = {
     data: employeeCreateManyEmployeeInput | employeeCreateManyEmployeeInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type track_discountCreateWithoutEmployeeInput = {
+    discount: Decimal | DecimalJsLike | number | string
+    offer_date: Date | string
+    close_date: Date | string
+    track: trackCreateNestedOneWithoutTrack_discountInput
+  }
+
+  export type track_discountUncheckedCreateWithoutEmployeeInput = {
+    track_discount_id?: number
+    track_id: number
+    discount: Decimal | DecimalJsLike | number | string
+    offer_date: Date | string
+    close_date: Date | string
+  }
+
+  export type track_discountCreateOrConnectWithoutEmployeeInput = {
+    where: track_discountWhereUniqueInput
+    create: XOR<track_discountCreateWithoutEmployeeInput, track_discountUncheckedCreateWithoutEmployeeInput>
+  }
+
+  export type track_discountCreateManyEmployeeInputEnvelope = {
+    data: track_discountCreateManyEmployeeInput | track_discountCreateManyEmployeeInput[]
     skipDuplicates?: boolean
   }
 
@@ -18404,7 +21350,7 @@ export namespace Prisma {
     first_name?: StringFieldUpdateOperationsInput | string
     title?: NullableStringFieldUpdateOperationsInput | string | null
     birth_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    hire_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    hire_date?: DateTimeFieldUpdateOperationsInput | Date | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
@@ -18413,8 +21359,10 @@ export namespace Prisma {
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     fax?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    termination_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customer?: customerUpdateManyWithoutEmployeeNestedInput
     employee?: employeeUpdateOneWithoutOther_employeeNestedInput
+    track_discount?: track_discountUpdateManyWithoutEmployeeNestedInput
   }
 
   export type employeeUncheckedUpdateWithoutOther_employeeInput = {
@@ -18424,7 +21372,7 @@ export namespace Prisma {
     title?: NullableStringFieldUpdateOperationsInput | string | null
     reports_to?: NullableIntFieldUpdateOperationsInput | number | null
     birth_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    hire_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    hire_date?: DateTimeFieldUpdateOperationsInput | Date | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
@@ -18433,7 +21381,9 @@ export namespace Prisma {
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     fax?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    termination_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customer?: customerUncheckedUpdateManyWithoutEmployeeNestedInput
+    track_discount?: track_discountUncheckedUpdateManyWithoutEmployeeNestedInput
   }
 
   export type employeeUpsertWithWhereUniqueWithoutEmployeeInput = {
@@ -18462,7 +21412,7 @@ export namespace Prisma {
     title?: StringNullableFilter<"employee"> | string | null
     reports_to?: IntNullableFilter<"employee"> | number | null
     birth_date?: DateTimeNullableFilter<"employee"> | Date | string | null
-    hire_date?: DateTimeNullableFilter<"employee"> | Date | string | null
+    hire_date?: DateTimeFilter<"employee"> | Date | string
     address?: StringNullableFilter<"employee"> | string | null
     city?: StringNullableFilter<"employee"> | string | null
     state?: StringNullableFilter<"employee"> | string | null
@@ -18471,58 +21421,60 @@ export namespace Prisma {
     phone?: StringNullableFilter<"employee"> | string | null
     fax?: StringNullableFilter<"employee"> | string | null
     email?: StringNullableFilter<"employee"> | string | null
+    termination_date?: DateTimeNullableFilter<"employee"> | Date | string | null
   }
 
-  export type trackCreateWithoutGenreInput = {
+  export type track_discountUpsertWithWhereUniqueWithoutEmployeeInput = {
+    where: track_discountWhereUniqueInput
+    update: XOR<track_discountUpdateWithoutEmployeeInput, track_discountUncheckedUpdateWithoutEmployeeInput>
+    create: XOR<track_discountCreateWithoutEmployeeInput, track_discountUncheckedCreateWithoutEmployeeInput>
+  }
+
+  export type track_discountUpdateWithWhereUniqueWithoutEmployeeInput = {
+    where: track_discountWhereUniqueInput
+    data: XOR<track_discountUpdateWithoutEmployeeInput, track_discountUncheckedUpdateWithoutEmployeeInput>
+  }
+
+  export type track_discountUpdateManyWithWhereWithoutEmployeeInput = {
+    where: track_discountScalarWhereInput
+    data: XOR<track_discountUpdateManyMutationInput, track_discountUncheckedUpdateManyWithoutEmployeeInput>
+  }
+
+  export type track_discountScalarWhereInput = {
+    AND?: track_discountScalarWhereInput | track_discountScalarWhereInput[]
+    OR?: track_discountScalarWhereInput[]
+    NOT?: track_discountScalarWhereInput | track_discountScalarWhereInput[]
+    track_discount_id?: IntFilter<"track_discount"> | number
+    track_id?: IntFilter<"track_discount"> | number
+    discount?: DecimalFilter<"track_discount"> | Decimal | DecimalJsLike | number | string
+    offer_date?: DateTimeFilter<"track_discount"> | Date | string
+    close_date?: DateTimeFilter<"track_discount"> | Date | string
+    employee_id?: IntFilter<"track_discount"> | number
+  }
+
+  export type customer_reviewCreateWithoutInvoiceInput = {
     track_id: number
-    name: string
-    composer?: string | null
-    milliseconds: number
-    bytes?: number | null
-    unit_price: Decimal | DecimalJsLike | number | string
-    invoice_line?: invoice_lineCreateNestedManyWithoutTrackInput
-    playlist_track?: playlist_trackCreateNestedManyWithoutTrackInput
-    album?: albumCreateNestedOneWithoutTrackInput
-    media_type: media_typeCreateNestedOneWithoutTrackInput
+    rating?: number | null
+    review_comment?: string | null
+    customer: customerCreateNestedOneWithoutCustomer_reviewInput
   }
 
-  export type trackUncheckedCreateWithoutGenreInput = {
+  export type customer_reviewUncheckedCreateWithoutInvoiceInput = {
+    review_id?: number
+    customer_id: number
     track_id: number
-    name: string
-    album_id?: number | null
-    media_type_id: number
-    composer?: string | null
-    milliseconds: number
-    bytes?: number | null
-    unit_price: Decimal | DecimalJsLike | number | string
-    invoice_line?: invoice_lineUncheckedCreateNestedManyWithoutTrackInput
-    playlist_track?: playlist_trackUncheckedCreateNestedManyWithoutTrackInput
+    rating?: number | null
+    review_comment?: string | null
   }
 
-  export type trackCreateOrConnectWithoutGenreInput = {
-    where: trackWhereUniqueInput
-    create: XOR<trackCreateWithoutGenreInput, trackUncheckedCreateWithoutGenreInput>
+  export type customer_reviewCreateOrConnectWithoutInvoiceInput = {
+    where: customer_reviewWhereUniqueInput
+    create: XOR<customer_reviewCreateWithoutInvoiceInput, customer_reviewUncheckedCreateWithoutInvoiceInput>
   }
 
-  export type trackCreateManyGenreInputEnvelope = {
-    data: trackCreateManyGenreInput | trackCreateManyGenreInput[]
+  export type customer_reviewCreateManyInvoiceInputEnvelope = {
+    data: customer_reviewCreateManyInvoiceInput | customer_reviewCreateManyInvoiceInput[]
     skipDuplicates?: boolean
-  }
-
-  export type trackUpsertWithWhereUniqueWithoutGenreInput = {
-    where: trackWhereUniqueInput
-    update: XOR<trackUpdateWithoutGenreInput, trackUncheckedUpdateWithoutGenreInput>
-    create: XOR<trackCreateWithoutGenreInput, trackUncheckedCreateWithoutGenreInput>
-  }
-
-  export type trackUpdateWithWhereUniqueWithoutGenreInput = {
-    where: trackWhereUniqueInput
-    data: XOR<trackUpdateWithoutGenreInput, trackUncheckedUpdateWithoutGenreInput>
-  }
-
-  export type trackUpdateManyWithWhereWithoutGenreInput = {
-    where: trackScalarWhereInput
-    data: XOR<trackUpdateManyMutationInput, trackUncheckedUpdateManyWithoutGenreInput>
   }
 
   export type customerCreateWithoutInvoiceInput = {
@@ -18539,6 +21491,7 @@ export namespace Prisma {
     fax?: string | null
     email: string
     employee?: employeeCreateNestedOneWithoutCustomerInput
+    customer_review?: customer_reviewCreateNestedManyWithoutCustomerInput
   }
 
   export type customerUncheckedCreateWithoutInvoiceInput = {
@@ -18555,6 +21508,7 @@ export namespace Prisma {
     fax?: string | null
     email: string
     support_rep_id?: number | null
+    customer_review?: customer_reviewUncheckedCreateNestedManyWithoutCustomerInput
   }
 
   export type customerCreateOrConnectWithoutInvoiceInput = {
@@ -18586,6 +21540,22 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type customer_reviewUpsertWithWhereUniqueWithoutInvoiceInput = {
+    where: customer_reviewWhereUniqueInput
+    update: XOR<customer_reviewUpdateWithoutInvoiceInput, customer_reviewUncheckedUpdateWithoutInvoiceInput>
+    create: XOR<customer_reviewCreateWithoutInvoiceInput, customer_reviewUncheckedCreateWithoutInvoiceInput>
+  }
+
+  export type customer_reviewUpdateWithWhereUniqueWithoutInvoiceInput = {
+    where: customer_reviewWhereUniqueInput
+    data: XOR<customer_reviewUpdateWithoutInvoiceInput, customer_reviewUncheckedUpdateWithoutInvoiceInput>
+  }
+
+  export type customer_reviewUpdateManyWithWhereWithoutInvoiceInput = {
+    where: customer_reviewScalarWhereInput
+    data: XOR<customer_reviewUpdateManyMutationInput, customer_reviewUncheckedUpdateManyWithoutInvoiceInput>
+  }
+
   export type customerUpsertWithoutInvoiceInput = {
     update: XOR<customerUpdateWithoutInvoiceInput, customerUncheckedUpdateWithoutInvoiceInput>
     create: XOR<customerCreateWithoutInvoiceInput, customerUncheckedCreateWithoutInvoiceInput>
@@ -18611,6 +21581,7 @@ export namespace Prisma {
     fax?: NullableStringFieldUpdateOperationsInput | string | null
     email?: StringFieldUpdateOperationsInput | string
     employee?: employeeUpdateOneWithoutCustomerNestedInput
+    customer_review?: customer_reviewUpdateManyWithoutCustomerNestedInput
   }
 
   export type customerUncheckedUpdateWithoutInvoiceInput = {
@@ -18627,6 +21598,7 @@ export namespace Prisma {
     fax?: NullableStringFieldUpdateOperationsInput | string | null
     email?: StringFieldUpdateOperationsInput | string
     support_rep_id?: NullableIntFieldUpdateOperationsInput | number | null
+    customer_review?: customer_reviewUncheckedUpdateManyWithoutCustomerNestedInput
   }
 
   export type invoice_lineUpsertWithWhereUniqueWithoutInvoiceInput = {
@@ -18665,6 +21637,7 @@ export namespace Prisma {
     billing_country?: string | null
     billing_postal_code?: string | null
     total: Decimal | DecimalJsLike | number | string
+    customer_review?: customer_reviewCreateNestedManyWithoutInvoiceInput
     customer: customerCreateNestedOneWithoutInvoiceInput
   }
 
@@ -18678,6 +21651,7 @@ export namespace Prisma {
     billing_country?: string | null
     billing_postal_code?: string | null
     total: Decimal | DecimalJsLike | number | string
+    customer_review?: customer_reviewUncheckedCreateNestedManyWithoutInvoiceInput
   }
 
   export type invoiceCreateOrConnectWithoutInvoice_lineInput = {
@@ -18686,29 +21660,30 @@ export namespace Prisma {
   }
 
   export type trackCreateWithoutInvoice_lineInput = {
-    track_id: number
     name: string
+    media_type_id?: number
+    genre_id?: number | null
     composer?: string | null
-    milliseconds: number
+    milliseconds?: number
     bytes?: number | null
-    unit_price: Decimal | DecimalJsLike | number | string
+    unit_price?: Decimal | DecimalJsLike | number | string
     playlist_track?: playlist_trackCreateNestedManyWithoutTrackInput
-    album?: albumCreateNestedOneWithoutTrackInput
-    genre?: genreCreateNestedOneWithoutTrackInput
-    media_type: media_typeCreateNestedOneWithoutTrackInput
+    album: albumCreateNestedOneWithoutTrackInput
+    track_discount?: track_discountCreateNestedManyWithoutTrackInput
   }
 
   export type trackUncheckedCreateWithoutInvoice_lineInput = {
-    track_id: number
     name: string
-    album_id?: number | null
-    media_type_id: number
+    album_id: number
+    media_type_id?: number
     genre_id?: number | null
     composer?: string | null
-    milliseconds: number
+    milliseconds?: number
     bytes?: number | null
-    unit_price: Decimal | DecimalJsLike | number | string
+    unit_price?: Decimal | DecimalJsLike | number | string
+    track_id?: number
     playlist_track?: playlist_trackUncheckedCreateNestedManyWithoutTrackInput
+    track_discount?: track_discountUncheckedCreateNestedManyWithoutTrackInput
   }
 
   export type trackCreateOrConnectWithoutInvoice_lineInput = {
@@ -18736,6 +21711,7 @@ export namespace Prisma {
     billing_country?: NullableStringFieldUpdateOperationsInput | string | null
     billing_postal_code?: NullableStringFieldUpdateOperationsInput | string | null
     total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    customer_review?: customer_reviewUpdateManyWithoutInvoiceNestedInput
     customer?: customerUpdateOneRequiredWithoutInvoiceNestedInput
   }
 
@@ -18749,6 +21725,7 @@ export namespace Prisma {
     billing_country?: NullableStringFieldUpdateOperationsInput | string | null
     billing_postal_code?: NullableStringFieldUpdateOperationsInput | string | null
     total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    customer_review?: customer_reviewUncheckedUpdateManyWithoutInvoiceNestedInput
   }
 
   export type trackUpsertWithoutInvoice_lineInput = {
@@ -18763,81 +21740,30 @@ export namespace Prisma {
   }
 
   export type trackUpdateWithoutInvoice_lineInput = {
-    track_id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
-    composer?: NullableStringFieldUpdateOperationsInput | string | null
-    milliseconds?: IntFieldUpdateOperationsInput | number
-    bytes?: NullableIntFieldUpdateOperationsInput | number | null
-    unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    playlist_track?: playlist_trackUpdateManyWithoutTrackNestedInput
-    album?: albumUpdateOneWithoutTrackNestedInput
-    genre?: genreUpdateOneWithoutTrackNestedInput
-    media_type?: media_typeUpdateOneRequiredWithoutTrackNestedInput
-  }
-
-  export type trackUncheckedUpdateWithoutInvoice_lineInput = {
-    track_id?: IntFieldUpdateOperationsInput | number
-    name?: StringFieldUpdateOperationsInput | string
-    album_id?: NullableIntFieldUpdateOperationsInput | number | null
     media_type_id?: IntFieldUpdateOperationsInput | number
     genre_id?: NullableIntFieldUpdateOperationsInput | number | null
     composer?: NullableStringFieldUpdateOperationsInput | string | null
     milliseconds?: IntFieldUpdateOperationsInput | number
     bytes?: NullableIntFieldUpdateOperationsInput | number | null
     unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    playlist_track?: playlist_trackUpdateManyWithoutTrackNestedInput
+    album?: albumUpdateOneRequiredWithoutTrackNestedInput
+    track_discount?: track_discountUpdateManyWithoutTrackNestedInput
+  }
+
+  export type trackUncheckedUpdateWithoutInvoice_lineInput = {
+    name?: StringFieldUpdateOperationsInput | string
+    album_id?: IntFieldUpdateOperationsInput | number
+    media_type_id?: IntFieldUpdateOperationsInput | number
+    genre_id?: NullableIntFieldUpdateOperationsInput | number | null
+    composer?: NullableStringFieldUpdateOperationsInput | string | null
+    milliseconds?: IntFieldUpdateOperationsInput | number
+    bytes?: NullableIntFieldUpdateOperationsInput | number | null
+    unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    track_id?: IntFieldUpdateOperationsInput | number
     playlist_track?: playlist_trackUncheckedUpdateManyWithoutTrackNestedInput
-  }
-
-  export type trackCreateWithoutMedia_typeInput = {
-    track_id: number
-    name: string
-    composer?: string | null
-    milliseconds: number
-    bytes?: number | null
-    unit_price: Decimal | DecimalJsLike | number | string
-    invoice_line?: invoice_lineCreateNestedManyWithoutTrackInput
-    playlist_track?: playlist_trackCreateNestedManyWithoutTrackInput
-    album?: albumCreateNestedOneWithoutTrackInput
-    genre?: genreCreateNestedOneWithoutTrackInput
-  }
-
-  export type trackUncheckedCreateWithoutMedia_typeInput = {
-    track_id: number
-    name: string
-    album_id?: number | null
-    genre_id?: number | null
-    composer?: string | null
-    milliseconds: number
-    bytes?: number | null
-    unit_price: Decimal | DecimalJsLike | number | string
-    invoice_line?: invoice_lineUncheckedCreateNestedManyWithoutTrackInput
-    playlist_track?: playlist_trackUncheckedCreateNestedManyWithoutTrackInput
-  }
-
-  export type trackCreateOrConnectWithoutMedia_typeInput = {
-    where: trackWhereUniqueInput
-    create: XOR<trackCreateWithoutMedia_typeInput, trackUncheckedCreateWithoutMedia_typeInput>
-  }
-
-  export type trackCreateManyMedia_typeInputEnvelope = {
-    data: trackCreateManyMedia_typeInput | trackCreateManyMedia_typeInput[]
-    skipDuplicates?: boolean
-  }
-
-  export type trackUpsertWithWhereUniqueWithoutMedia_typeInput = {
-    where: trackWhereUniqueInput
-    update: XOR<trackUpdateWithoutMedia_typeInput, trackUncheckedUpdateWithoutMedia_typeInput>
-    create: XOR<trackCreateWithoutMedia_typeInput, trackUncheckedCreateWithoutMedia_typeInput>
-  }
-
-  export type trackUpdateWithWhereUniqueWithoutMedia_typeInput = {
-    where: trackWhereUniqueInput
-    data: XOR<trackUpdateWithoutMedia_typeInput, trackUncheckedUpdateWithoutMedia_typeInput>
-  }
-
-  export type trackUpdateManyWithWhereWithoutMedia_typeInput = {
-    where: trackScalarWhereInput
-    data: XOR<trackUpdateManyMutationInput, trackUncheckedUpdateManyWithoutMedia_typeInput>
+    track_discount?: track_discountUncheckedUpdateManyWithoutTrackNestedInput
   }
 
   export type playlist_trackCreateWithoutPlaylistInput = {
@@ -18898,29 +21824,30 @@ export namespace Prisma {
   }
 
   export type trackCreateWithoutPlaylist_trackInput = {
-    track_id: number
     name: string
+    media_type_id?: number
+    genre_id?: number | null
     composer?: string | null
-    milliseconds: number
+    milliseconds?: number
     bytes?: number | null
-    unit_price: Decimal | DecimalJsLike | number | string
+    unit_price?: Decimal | DecimalJsLike | number | string
     invoice_line?: invoice_lineCreateNestedManyWithoutTrackInput
-    album?: albumCreateNestedOneWithoutTrackInput
-    genre?: genreCreateNestedOneWithoutTrackInput
-    media_type: media_typeCreateNestedOneWithoutTrackInput
+    album: albumCreateNestedOneWithoutTrackInput
+    track_discount?: track_discountCreateNestedManyWithoutTrackInput
   }
 
   export type trackUncheckedCreateWithoutPlaylist_trackInput = {
-    track_id: number
     name: string
-    album_id?: number | null
-    media_type_id: number
+    album_id: number
+    media_type_id?: number
     genre_id?: number | null
     composer?: string | null
-    milliseconds: number
+    milliseconds?: number
     bytes?: number | null
-    unit_price: Decimal | DecimalJsLike | number | string
+    unit_price?: Decimal | DecimalJsLike | number | string
+    track_id?: number
     invoice_line?: invoice_lineUncheckedCreateNestedManyWithoutTrackInput
+    track_discount?: track_discountUncheckedCreateNestedManyWithoutTrackInput
   }
 
   export type trackCreateOrConnectWithoutPlaylist_trackInput = {
@@ -18961,29 +21888,30 @@ export namespace Prisma {
   }
 
   export type trackUpdateWithoutPlaylist_trackInput = {
-    track_id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
-    composer?: NullableStringFieldUpdateOperationsInput | string | null
-    milliseconds?: IntFieldUpdateOperationsInput | number
-    bytes?: NullableIntFieldUpdateOperationsInput | number | null
-    unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    invoice_line?: invoice_lineUpdateManyWithoutTrackNestedInput
-    album?: albumUpdateOneWithoutTrackNestedInput
-    genre?: genreUpdateOneWithoutTrackNestedInput
-    media_type?: media_typeUpdateOneRequiredWithoutTrackNestedInput
-  }
-
-  export type trackUncheckedUpdateWithoutPlaylist_trackInput = {
-    track_id?: IntFieldUpdateOperationsInput | number
-    name?: StringFieldUpdateOperationsInput | string
-    album_id?: NullableIntFieldUpdateOperationsInput | number | null
     media_type_id?: IntFieldUpdateOperationsInput | number
     genre_id?: NullableIntFieldUpdateOperationsInput | number | null
     composer?: NullableStringFieldUpdateOperationsInput | string | null
     milliseconds?: IntFieldUpdateOperationsInput | number
     bytes?: NullableIntFieldUpdateOperationsInput | number | null
     unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    invoice_line?: invoice_lineUpdateManyWithoutTrackNestedInput
+    album?: albumUpdateOneRequiredWithoutTrackNestedInput
+    track_discount?: track_discountUpdateManyWithoutTrackNestedInput
+  }
+
+  export type trackUncheckedUpdateWithoutPlaylist_trackInput = {
+    name?: StringFieldUpdateOperationsInput | string
+    album_id?: IntFieldUpdateOperationsInput | number
+    media_type_id?: IntFieldUpdateOperationsInput | number
+    genre_id?: NullableIntFieldUpdateOperationsInput | number | null
+    composer?: NullableStringFieldUpdateOperationsInput | string | null
+    milliseconds?: IntFieldUpdateOperationsInput | number
+    bytes?: NullableIntFieldUpdateOperationsInput | number | null
+    unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    track_id?: IntFieldUpdateOperationsInput | number
     invoice_line?: invoice_lineUncheckedUpdateManyWithoutTrackNestedInput
+    track_discount?: track_discountUncheckedUpdateManyWithoutTrackNestedInput
   }
 
   export type invoice_lineCreateWithoutTrackInput = {
@@ -19044,34 +21972,29 @@ export namespace Prisma {
     create: XOR<albumCreateWithoutTrackInput, albumUncheckedCreateWithoutTrackInput>
   }
 
-  export type genreCreateWithoutTrackInput = {
-    genre_id: number
-    name?: string | null
+  export type track_discountCreateWithoutTrackInput = {
+    discount: Decimal | DecimalJsLike | number | string
+    offer_date: Date | string
+    close_date: Date | string
+    employee: employeeCreateNestedOneWithoutTrack_discountInput
   }
 
-  export type genreUncheckedCreateWithoutTrackInput = {
-    genre_id: number
-    name?: string | null
+  export type track_discountUncheckedCreateWithoutTrackInput = {
+    track_discount_id?: number
+    discount: Decimal | DecimalJsLike | number | string
+    offer_date: Date | string
+    close_date: Date | string
+    employee_id: number
   }
 
-  export type genreCreateOrConnectWithoutTrackInput = {
-    where: genreWhereUniqueInput
-    create: XOR<genreCreateWithoutTrackInput, genreUncheckedCreateWithoutTrackInput>
+  export type track_discountCreateOrConnectWithoutTrackInput = {
+    where: track_discountWhereUniqueInput
+    create: XOR<track_discountCreateWithoutTrackInput, track_discountUncheckedCreateWithoutTrackInput>
   }
 
-  export type media_typeCreateWithoutTrackInput = {
-    media_type_id: number
-    name?: string | null
-  }
-
-  export type media_typeUncheckedCreateWithoutTrackInput = {
-    media_type_id: number
-    name?: string | null
-  }
-
-  export type media_typeCreateOrConnectWithoutTrackInput = {
-    where: media_typeWhereUniqueInput
-    create: XOR<media_typeCreateWithoutTrackInput, media_typeUncheckedCreateWithoutTrackInput>
+  export type track_discountCreateManyTrackInputEnvelope = {
+    data: track_discountCreateManyTrackInput | track_discountCreateManyTrackInput[]
+    skipDuplicates?: boolean
   }
 
   export type invoice_lineUpsertWithWhereUniqueWithoutTrackInput = {
@@ -19128,87 +22051,356 @@ export namespace Prisma {
     album_id?: IntFieldUpdateOperationsInput | number
   }
 
-  export type genreUpsertWithoutTrackInput = {
-    update: XOR<genreUpdateWithoutTrackInput, genreUncheckedUpdateWithoutTrackInput>
-    create: XOR<genreCreateWithoutTrackInput, genreUncheckedCreateWithoutTrackInput>
-    where?: genreWhereInput
+  export type track_discountUpsertWithWhereUniqueWithoutTrackInput = {
+    where: track_discountWhereUniqueInput
+    update: XOR<track_discountUpdateWithoutTrackInput, track_discountUncheckedUpdateWithoutTrackInput>
+    create: XOR<track_discountCreateWithoutTrackInput, track_discountUncheckedCreateWithoutTrackInput>
   }
 
-  export type genreUpdateToOneWithWhereWithoutTrackInput = {
-    where?: genreWhereInput
-    data: XOR<genreUpdateWithoutTrackInput, genreUncheckedUpdateWithoutTrackInput>
+  export type track_discountUpdateWithWhereUniqueWithoutTrackInput = {
+    where: track_discountWhereUniqueInput
+    data: XOR<track_discountUpdateWithoutTrackInput, track_discountUncheckedUpdateWithoutTrackInput>
   }
 
-  export type genreUpdateWithoutTrackInput = {
-    genre_id?: IntFieldUpdateOperationsInput | number
-    name?: NullableStringFieldUpdateOperationsInput | string | null
+  export type track_discountUpdateManyWithWhereWithoutTrackInput = {
+    where: track_discountScalarWhereInput
+    data: XOR<track_discountUpdateManyMutationInput, track_discountUncheckedUpdateManyWithoutTrackInput>
   }
 
-  export type genreUncheckedUpdateWithoutTrackInput = {
-    genre_id?: IntFieldUpdateOperationsInput | number
-    name?: NullableStringFieldUpdateOperationsInput | string | null
+  export type customerCreateWithoutCustomer_reviewInput = {
+    customer_id: number
+    first_name: string
+    last_name: string
+    company?: string | null
+    address?: string | null
+    city?: string | null
+    state?: string | null
+    country?: string | null
+    postal_code?: string | null
+    phone?: string | null
+    fax?: string | null
+    email: string
+    employee?: employeeCreateNestedOneWithoutCustomerInput
+    invoice?: invoiceCreateNestedManyWithoutCustomerInput
   }
 
-  export type media_typeUpsertWithoutTrackInput = {
-    update: XOR<media_typeUpdateWithoutTrackInput, media_typeUncheckedUpdateWithoutTrackInput>
-    create: XOR<media_typeCreateWithoutTrackInput, media_typeUncheckedCreateWithoutTrackInput>
-    where?: media_typeWhereInput
+  export type customerUncheckedCreateWithoutCustomer_reviewInput = {
+    customer_id: number
+    first_name: string
+    last_name: string
+    company?: string | null
+    address?: string | null
+    city?: string | null
+    state?: string | null
+    country?: string | null
+    postal_code?: string | null
+    phone?: string | null
+    fax?: string | null
+    email: string
+    support_rep_id?: number | null
+    invoice?: invoiceUncheckedCreateNestedManyWithoutCustomerInput
   }
 
-  export type media_typeUpdateToOneWithWhereWithoutTrackInput = {
-    where?: media_typeWhereInput
-    data: XOR<media_typeUpdateWithoutTrackInput, media_typeUncheckedUpdateWithoutTrackInput>
+  export type customerCreateOrConnectWithoutCustomer_reviewInput = {
+    where: customerWhereUniqueInput
+    create: XOR<customerCreateWithoutCustomer_reviewInput, customerUncheckedCreateWithoutCustomer_reviewInput>
   }
 
-  export type media_typeUpdateWithoutTrackInput = {
-    media_type_id?: IntFieldUpdateOperationsInput | number
-    name?: NullableStringFieldUpdateOperationsInput | string | null
+  export type invoiceCreateWithoutCustomer_reviewInput = {
+    invoice_id: number
+    invoice_date: Date | string
+    billing_address?: string | null
+    billing_city?: string | null
+    billing_state?: string | null
+    billing_country?: string | null
+    billing_postal_code?: string | null
+    total: Decimal | DecimalJsLike | number | string
+    customer: customerCreateNestedOneWithoutInvoiceInput
+    invoice_line?: invoice_lineCreateNestedManyWithoutInvoiceInput
   }
 
-  export type media_typeUncheckedUpdateWithoutTrackInput = {
-    media_type_id?: IntFieldUpdateOperationsInput | number
-    name?: NullableStringFieldUpdateOperationsInput | string | null
+  export type invoiceUncheckedCreateWithoutCustomer_reviewInput = {
+    invoice_id: number
+    customer_id: number
+    invoice_date: Date | string
+    billing_address?: string | null
+    billing_city?: string | null
+    billing_state?: string | null
+    billing_country?: string | null
+    billing_postal_code?: string | null
+    total: Decimal | DecimalJsLike | number | string
+    invoice_line?: invoice_lineUncheckedCreateNestedManyWithoutInvoiceInput
   }
 
-  export type trackCreateManyAlbumInput = {
-    track_id: number
+  export type invoiceCreateOrConnectWithoutCustomer_reviewInput = {
+    where: invoiceWhereUniqueInput
+    create: XOR<invoiceCreateWithoutCustomer_reviewInput, invoiceUncheckedCreateWithoutCustomer_reviewInput>
+  }
+
+  export type customerUpsertWithoutCustomer_reviewInput = {
+    update: XOR<customerUpdateWithoutCustomer_reviewInput, customerUncheckedUpdateWithoutCustomer_reviewInput>
+    create: XOR<customerCreateWithoutCustomer_reviewInput, customerUncheckedCreateWithoutCustomer_reviewInput>
+    where?: customerWhereInput
+  }
+
+  export type customerUpdateToOneWithWhereWithoutCustomer_reviewInput = {
+    where?: customerWhereInput
+    data: XOR<customerUpdateWithoutCustomer_reviewInput, customerUncheckedUpdateWithoutCustomer_reviewInput>
+  }
+
+  export type customerUpdateWithoutCustomer_reviewInput = {
+    customer_id?: IntFieldUpdateOperationsInput | number
+    first_name?: StringFieldUpdateOperationsInput | string
+    last_name?: StringFieldUpdateOperationsInput | string
+    company?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    postal_code?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    fax?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: StringFieldUpdateOperationsInput | string
+    employee?: employeeUpdateOneWithoutCustomerNestedInput
+    invoice?: invoiceUpdateManyWithoutCustomerNestedInput
+  }
+
+  export type customerUncheckedUpdateWithoutCustomer_reviewInput = {
+    customer_id?: IntFieldUpdateOperationsInput | number
+    first_name?: StringFieldUpdateOperationsInput | string
+    last_name?: StringFieldUpdateOperationsInput | string
+    company?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    postal_code?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    fax?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: StringFieldUpdateOperationsInput | string
+    support_rep_id?: NullableIntFieldUpdateOperationsInput | number | null
+    invoice?: invoiceUncheckedUpdateManyWithoutCustomerNestedInput
+  }
+
+  export type invoiceUpsertWithoutCustomer_reviewInput = {
+    update: XOR<invoiceUpdateWithoutCustomer_reviewInput, invoiceUncheckedUpdateWithoutCustomer_reviewInput>
+    create: XOR<invoiceCreateWithoutCustomer_reviewInput, invoiceUncheckedCreateWithoutCustomer_reviewInput>
+    where?: invoiceWhereInput
+  }
+
+  export type invoiceUpdateToOneWithWhereWithoutCustomer_reviewInput = {
+    where?: invoiceWhereInput
+    data: XOR<invoiceUpdateWithoutCustomer_reviewInput, invoiceUncheckedUpdateWithoutCustomer_reviewInput>
+  }
+
+  export type invoiceUpdateWithoutCustomer_reviewInput = {
+    invoice_id?: IntFieldUpdateOperationsInput | number
+    invoice_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    billing_address?: NullableStringFieldUpdateOperationsInput | string | null
+    billing_city?: NullableStringFieldUpdateOperationsInput | string | null
+    billing_state?: NullableStringFieldUpdateOperationsInput | string | null
+    billing_country?: NullableStringFieldUpdateOperationsInput | string | null
+    billing_postal_code?: NullableStringFieldUpdateOperationsInput | string | null
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    customer?: customerUpdateOneRequiredWithoutInvoiceNestedInput
+    invoice_line?: invoice_lineUpdateManyWithoutInvoiceNestedInput
+  }
+
+  export type invoiceUncheckedUpdateWithoutCustomer_reviewInput = {
+    invoice_id?: IntFieldUpdateOperationsInput | number
+    customer_id?: IntFieldUpdateOperationsInput | number
+    invoice_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    billing_address?: NullableStringFieldUpdateOperationsInput | string | null
+    billing_city?: NullableStringFieldUpdateOperationsInput | string | null
+    billing_state?: NullableStringFieldUpdateOperationsInput | string | null
+    billing_country?: NullableStringFieldUpdateOperationsInput | string | null
+    billing_postal_code?: NullableStringFieldUpdateOperationsInput | string | null
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    invoice_line?: invoice_lineUncheckedUpdateManyWithoutInvoiceNestedInput
+  }
+
+  export type employeeCreateWithoutTrack_discountInput = {
+    employee_id: number
+    last_name: string
+    first_name: string
+    title?: string | null
+    birth_date?: Date | string | null
+    hire_date: Date | string
+    address?: string | null
+    city?: string | null
+    state?: string | null
+    country?: string | null
+    postal_code?: string | null
+    phone?: string | null
+    fax?: string | null
+    email?: string | null
+    termination_date?: Date | string | null
+    customer?: customerCreateNestedManyWithoutEmployeeInput
+    employee?: employeeCreateNestedOneWithoutOther_employeeInput
+    other_employee?: employeeCreateNestedManyWithoutEmployeeInput
+  }
+
+  export type employeeUncheckedCreateWithoutTrack_discountInput = {
+    employee_id: number
+    last_name: string
+    first_name: string
+    title?: string | null
+    reports_to?: number | null
+    birth_date?: Date | string | null
+    hire_date: Date | string
+    address?: string | null
+    city?: string | null
+    state?: string | null
+    country?: string | null
+    postal_code?: string | null
+    phone?: string | null
+    fax?: string | null
+    email?: string | null
+    termination_date?: Date | string | null
+    customer?: customerUncheckedCreateNestedManyWithoutEmployeeInput
+    other_employee?: employeeUncheckedCreateNestedManyWithoutEmployeeInput
+  }
+
+  export type employeeCreateOrConnectWithoutTrack_discountInput = {
+    where: employeeWhereUniqueInput
+    create: XOR<employeeCreateWithoutTrack_discountInput, employeeUncheckedCreateWithoutTrack_discountInput>
+  }
+
+  export type trackCreateWithoutTrack_discountInput = {
     name: string
-    media_type_id: number
+    media_type_id?: number
     genre_id?: number | null
     composer?: string | null
-    milliseconds: number
+    milliseconds?: number
     bytes?: number | null
-    unit_price: Decimal | DecimalJsLike | number | string
+    unit_price?: Decimal | DecimalJsLike | number | string
+    invoice_line?: invoice_lineCreateNestedManyWithoutTrackInput
+    playlist_track?: playlist_trackCreateNestedManyWithoutTrackInput
+    album: albumCreateNestedOneWithoutTrackInput
   }
 
-  export type trackUpdateWithoutAlbumInput = {
-    track_id?: IntFieldUpdateOperationsInput | number
+  export type trackUncheckedCreateWithoutTrack_discountInput = {
+    name: string
+    album_id: number
+    media_type_id?: number
+    genre_id?: number | null
+    composer?: string | null
+    milliseconds?: number
+    bytes?: number | null
+    unit_price?: Decimal | DecimalJsLike | number | string
+    track_id?: number
+    invoice_line?: invoice_lineUncheckedCreateNestedManyWithoutTrackInput
+    playlist_track?: playlist_trackUncheckedCreateNestedManyWithoutTrackInput
+  }
+
+  export type trackCreateOrConnectWithoutTrack_discountInput = {
+    where: trackWhereUniqueInput
+    create: XOR<trackCreateWithoutTrack_discountInput, trackUncheckedCreateWithoutTrack_discountInput>
+  }
+
+  export type employeeUpsertWithoutTrack_discountInput = {
+    update: XOR<employeeUpdateWithoutTrack_discountInput, employeeUncheckedUpdateWithoutTrack_discountInput>
+    create: XOR<employeeCreateWithoutTrack_discountInput, employeeUncheckedCreateWithoutTrack_discountInput>
+    where?: employeeWhereInput
+  }
+
+  export type employeeUpdateToOneWithWhereWithoutTrack_discountInput = {
+    where?: employeeWhereInput
+    data: XOR<employeeUpdateWithoutTrack_discountInput, employeeUncheckedUpdateWithoutTrack_discountInput>
+  }
+
+  export type employeeUpdateWithoutTrack_discountInput = {
+    employee_id?: IntFieldUpdateOperationsInput | number
+    last_name?: StringFieldUpdateOperationsInput | string
+    first_name?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    birth_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    hire_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    postal_code?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    fax?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    termination_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    customer?: customerUpdateManyWithoutEmployeeNestedInput
+    employee?: employeeUpdateOneWithoutOther_employeeNestedInput
+    other_employee?: employeeUpdateManyWithoutEmployeeNestedInput
+  }
+
+  export type employeeUncheckedUpdateWithoutTrack_discountInput = {
+    employee_id?: IntFieldUpdateOperationsInput | number
+    last_name?: StringFieldUpdateOperationsInput | string
+    first_name?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    reports_to?: NullableIntFieldUpdateOperationsInput | number | null
+    birth_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    hire_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    postal_code?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    fax?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    termination_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    customer?: customerUncheckedUpdateManyWithoutEmployeeNestedInput
+    other_employee?: employeeUncheckedUpdateManyWithoutEmployeeNestedInput
+  }
+
+  export type trackUpsertWithoutTrack_discountInput = {
+    update: XOR<trackUpdateWithoutTrack_discountInput, trackUncheckedUpdateWithoutTrack_discountInput>
+    create: XOR<trackCreateWithoutTrack_discountInput, trackUncheckedCreateWithoutTrack_discountInput>
+    where?: trackWhereInput
+  }
+
+  export type trackUpdateToOneWithWhereWithoutTrack_discountInput = {
+    where?: trackWhereInput
+    data: XOR<trackUpdateWithoutTrack_discountInput, trackUncheckedUpdateWithoutTrack_discountInput>
+  }
+
+  export type trackUpdateWithoutTrack_discountInput = {
     name?: StringFieldUpdateOperationsInput | string
+    media_type_id?: IntFieldUpdateOperationsInput | number
+    genre_id?: NullableIntFieldUpdateOperationsInput | number | null
     composer?: NullableStringFieldUpdateOperationsInput | string | null
     milliseconds?: IntFieldUpdateOperationsInput | number
     bytes?: NullableIntFieldUpdateOperationsInput | number | null
     unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     invoice_line?: invoice_lineUpdateManyWithoutTrackNestedInput
     playlist_track?: playlist_trackUpdateManyWithoutTrackNestedInput
-    genre?: genreUpdateOneWithoutTrackNestedInput
-    media_type?: media_typeUpdateOneRequiredWithoutTrackNestedInput
+    album?: albumUpdateOneRequiredWithoutTrackNestedInput
   }
 
-  export type trackUncheckedUpdateWithoutAlbumInput = {
-    track_id?: IntFieldUpdateOperationsInput | number
+  export type trackUncheckedUpdateWithoutTrack_discountInput = {
     name?: StringFieldUpdateOperationsInput | string
+    album_id?: IntFieldUpdateOperationsInput | number
     media_type_id?: IntFieldUpdateOperationsInput | number
     genre_id?: NullableIntFieldUpdateOperationsInput | number | null
     composer?: NullableStringFieldUpdateOperationsInput | string | null
     milliseconds?: IntFieldUpdateOperationsInput | number
     bytes?: NullableIntFieldUpdateOperationsInput | number | null
     unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    track_id?: IntFieldUpdateOperationsInput | number
     invoice_line?: invoice_lineUncheckedUpdateManyWithoutTrackNestedInput
     playlist_track?: playlist_trackUncheckedUpdateManyWithoutTrackNestedInput
   }
 
-  export type trackUncheckedUpdateManyWithoutAlbumInput = {
-    track_id?: IntFieldUpdateOperationsInput | number
+  export type trackCreateManyAlbumInput = {
+    name: string
+    media_type_id?: number
+    genre_id?: number | null
+    composer?: string | null
+    milliseconds?: number
+    bytes?: number | null
+    unit_price?: Decimal | DecimalJsLike | number | string
+    track_id?: number
+  }
+
+  export type trackUpdateWithoutAlbumInput = {
     name?: StringFieldUpdateOperationsInput | string
     media_type_id?: IntFieldUpdateOperationsInput | number
     genre_id?: NullableIntFieldUpdateOperationsInput | number | null
@@ -19216,6 +22408,34 @@ export namespace Prisma {
     milliseconds?: IntFieldUpdateOperationsInput | number
     bytes?: NullableIntFieldUpdateOperationsInput | number | null
     unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    invoice_line?: invoice_lineUpdateManyWithoutTrackNestedInput
+    playlist_track?: playlist_trackUpdateManyWithoutTrackNestedInput
+    track_discount?: track_discountUpdateManyWithoutTrackNestedInput
+  }
+
+  export type trackUncheckedUpdateWithoutAlbumInput = {
+    name?: StringFieldUpdateOperationsInput | string
+    media_type_id?: IntFieldUpdateOperationsInput | number
+    genre_id?: NullableIntFieldUpdateOperationsInput | number | null
+    composer?: NullableStringFieldUpdateOperationsInput | string | null
+    milliseconds?: IntFieldUpdateOperationsInput | number
+    bytes?: NullableIntFieldUpdateOperationsInput | number | null
+    unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    track_id?: IntFieldUpdateOperationsInput | number
+    invoice_line?: invoice_lineUncheckedUpdateManyWithoutTrackNestedInput
+    playlist_track?: playlist_trackUncheckedUpdateManyWithoutTrackNestedInput
+    track_discount?: track_discountUncheckedUpdateManyWithoutTrackNestedInput
+  }
+
+  export type trackUncheckedUpdateManyWithoutAlbumInput = {
+    name?: StringFieldUpdateOperationsInput | string
+    media_type_id?: IntFieldUpdateOperationsInput | number
+    genre_id?: NullableIntFieldUpdateOperationsInput | number | null
+    composer?: NullableStringFieldUpdateOperationsInput | string | null
+    milliseconds?: IntFieldUpdateOperationsInput | number
+    bytes?: NullableIntFieldUpdateOperationsInput | number | null
+    unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    track_id?: IntFieldUpdateOperationsInput | number
   }
 
   export type albumCreateManyArtistInput = {
@@ -19239,6 +22459,14 @@ export namespace Prisma {
     album_id?: IntFieldUpdateOperationsInput | number
   }
 
+  export type customer_reviewCreateManyCustomerInput = {
+    review_id?: number
+    invoice_id: number
+    track_id: number
+    rating?: number | null
+    review_comment?: string | null
+  }
+
   export type invoiceCreateManyCustomerInput = {
     invoice_id: number
     invoice_date: Date | string
@@ -19250,6 +22478,29 @@ export namespace Prisma {
     total: Decimal | DecimalJsLike | number | string
   }
 
+  export type customer_reviewUpdateWithoutCustomerInput = {
+    track_id?: IntFieldUpdateOperationsInput | number
+    rating?: NullableIntFieldUpdateOperationsInput | number | null
+    review_comment?: NullableStringFieldUpdateOperationsInput | string | null
+    invoice?: invoiceUpdateOneRequiredWithoutCustomer_reviewNestedInput
+  }
+
+  export type customer_reviewUncheckedUpdateWithoutCustomerInput = {
+    review_id?: IntFieldUpdateOperationsInput | number
+    invoice_id?: IntFieldUpdateOperationsInput | number
+    track_id?: IntFieldUpdateOperationsInput | number
+    rating?: NullableIntFieldUpdateOperationsInput | number | null
+    review_comment?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type customer_reviewUncheckedUpdateManyWithoutCustomerInput = {
+    review_id?: IntFieldUpdateOperationsInput | number
+    invoice_id?: IntFieldUpdateOperationsInput | number
+    track_id?: IntFieldUpdateOperationsInput | number
+    rating?: NullableIntFieldUpdateOperationsInput | number | null
+    review_comment?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
   export type invoiceUpdateWithoutCustomerInput = {
     invoice_id?: IntFieldUpdateOperationsInput | number
     invoice_date?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19259,6 +22510,7 @@ export namespace Prisma {
     billing_country?: NullableStringFieldUpdateOperationsInput | string | null
     billing_postal_code?: NullableStringFieldUpdateOperationsInput | string | null
     total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    customer_review?: customer_reviewUpdateManyWithoutInvoiceNestedInput
     invoice_line?: invoice_lineUpdateManyWithoutInvoiceNestedInput
   }
 
@@ -19271,6 +22523,7 @@ export namespace Prisma {
     billing_country?: NullableStringFieldUpdateOperationsInput | string | null
     billing_postal_code?: NullableStringFieldUpdateOperationsInput | string | null
     total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    customer_review?: customer_reviewUncheckedUpdateManyWithoutInvoiceNestedInput
     invoice_line?: invoice_lineUncheckedUpdateManyWithoutInvoiceNestedInput
   }
 
@@ -19306,7 +22559,7 @@ export namespace Prisma {
     first_name: string
     title?: string | null
     birth_date?: Date | string | null
-    hire_date?: Date | string | null
+    hire_date: Date | string
     address?: string | null
     city?: string | null
     state?: string | null
@@ -19315,6 +22568,15 @@ export namespace Prisma {
     phone?: string | null
     fax?: string | null
     email?: string | null
+    termination_date?: Date | string | null
+  }
+
+  export type track_discountCreateManyEmployeeInput = {
+    track_discount_id?: number
+    track_id: number
+    discount: Decimal | DecimalJsLike | number | string
+    offer_date: Date | string
+    close_date: Date | string
   }
 
   export type customerUpdateWithoutEmployeeInput = {
@@ -19330,6 +22592,7 @@ export namespace Prisma {
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     fax?: NullableStringFieldUpdateOperationsInput | string | null
     email?: StringFieldUpdateOperationsInput | string
+    customer_review?: customer_reviewUpdateManyWithoutCustomerNestedInput
     invoice?: invoiceUpdateManyWithoutCustomerNestedInput
   }
 
@@ -19346,6 +22609,7 @@ export namespace Prisma {
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     fax?: NullableStringFieldUpdateOperationsInput | string | null
     email?: StringFieldUpdateOperationsInput | string
+    customer_review?: customer_reviewUncheckedUpdateManyWithoutCustomerNestedInput
     invoice?: invoiceUncheckedUpdateManyWithoutCustomerNestedInput
   }
 
@@ -19370,7 +22634,7 @@ export namespace Prisma {
     first_name?: StringFieldUpdateOperationsInput | string
     title?: NullableStringFieldUpdateOperationsInput | string | null
     birth_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    hire_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    hire_date?: DateTimeFieldUpdateOperationsInput | Date | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19379,8 +22643,10 @@ export namespace Prisma {
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     fax?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    termination_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customer?: customerUpdateManyWithoutEmployeeNestedInput
     other_employee?: employeeUpdateManyWithoutEmployeeNestedInput
+    track_discount?: track_discountUpdateManyWithoutEmployeeNestedInput
   }
 
   export type employeeUncheckedUpdateWithoutEmployeeInput = {
@@ -19389,7 +22655,7 @@ export namespace Prisma {
     first_name?: StringFieldUpdateOperationsInput | string
     title?: NullableStringFieldUpdateOperationsInput | string | null
     birth_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    hire_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    hire_date?: DateTimeFieldUpdateOperationsInput | Date | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19398,8 +22664,10 @@ export namespace Prisma {
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     fax?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    termination_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customer?: customerUncheckedUpdateManyWithoutEmployeeNestedInput
     other_employee?: employeeUncheckedUpdateManyWithoutEmployeeNestedInput
+    track_discount?: track_discountUncheckedUpdateManyWithoutEmployeeNestedInput
   }
 
   export type employeeUncheckedUpdateManyWithoutEmployeeInput = {
@@ -19408,7 +22676,7 @@ export namespace Prisma {
     first_name?: StringFieldUpdateOperationsInput | string
     title?: NullableStringFieldUpdateOperationsInput | string | null
     birth_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    hire_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    hire_date?: DateTimeFieldUpdateOperationsInput | Date | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19417,54 +22685,38 @@ export namespace Prisma {
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     fax?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    termination_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
-  export type trackCreateManyGenreInput = {
+  export type track_discountUpdateWithoutEmployeeInput = {
+    discount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    offer_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    close_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    track?: trackUpdateOneRequiredWithoutTrack_discountNestedInput
+  }
+
+  export type track_discountUncheckedUpdateWithoutEmployeeInput = {
+    track_discount_id?: IntFieldUpdateOperationsInput | number
+    track_id?: IntFieldUpdateOperationsInput | number
+    discount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    offer_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    close_date?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type track_discountUncheckedUpdateManyWithoutEmployeeInput = {
+    track_discount_id?: IntFieldUpdateOperationsInput | number
+    track_id?: IntFieldUpdateOperationsInput | number
+    discount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    offer_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    close_date?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type customer_reviewCreateManyInvoiceInput = {
+    review_id?: number
+    customer_id: number
     track_id: number
-    name: string
-    album_id?: number | null
-    media_type_id: number
-    composer?: string | null
-    milliseconds: number
-    bytes?: number | null
-    unit_price: Decimal | DecimalJsLike | number | string
-  }
-
-  export type trackUpdateWithoutGenreInput = {
-    track_id?: IntFieldUpdateOperationsInput | number
-    name?: StringFieldUpdateOperationsInput | string
-    composer?: NullableStringFieldUpdateOperationsInput | string | null
-    milliseconds?: IntFieldUpdateOperationsInput | number
-    bytes?: NullableIntFieldUpdateOperationsInput | number | null
-    unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    invoice_line?: invoice_lineUpdateManyWithoutTrackNestedInput
-    playlist_track?: playlist_trackUpdateManyWithoutTrackNestedInput
-    album?: albumUpdateOneWithoutTrackNestedInput
-    media_type?: media_typeUpdateOneRequiredWithoutTrackNestedInput
-  }
-
-  export type trackUncheckedUpdateWithoutGenreInput = {
-    track_id?: IntFieldUpdateOperationsInput | number
-    name?: StringFieldUpdateOperationsInput | string
-    album_id?: NullableIntFieldUpdateOperationsInput | number | null
-    media_type_id?: IntFieldUpdateOperationsInput | number
-    composer?: NullableStringFieldUpdateOperationsInput | string | null
-    milliseconds?: IntFieldUpdateOperationsInput | number
-    bytes?: NullableIntFieldUpdateOperationsInput | number | null
-    unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    invoice_line?: invoice_lineUncheckedUpdateManyWithoutTrackNestedInput
-    playlist_track?: playlist_trackUncheckedUpdateManyWithoutTrackNestedInput
-  }
-
-  export type trackUncheckedUpdateManyWithoutGenreInput = {
-    track_id?: IntFieldUpdateOperationsInput | number
-    name?: StringFieldUpdateOperationsInput | string
-    album_id?: NullableIntFieldUpdateOperationsInput | number | null
-    media_type_id?: IntFieldUpdateOperationsInput | number
-    composer?: NullableStringFieldUpdateOperationsInput | string | null
-    milliseconds?: IntFieldUpdateOperationsInput | number
-    bytes?: NullableIntFieldUpdateOperationsInput | number | null
-    unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    rating?: number | null
+    review_comment?: string | null
   }
 
   export type invoice_lineCreateManyInvoiceInput = {
@@ -19472,6 +22724,29 @@ export namespace Prisma {
     track_id: number
     unit_price: Decimal | DecimalJsLike | number | string
     quantity: number
+  }
+
+  export type customer_reviewUpdateWithoutInvoiceInput = {
+    track_id?: IntFieldUpdateOperationsInput | number
+    rating?: NullableIntFieldUpdateOperationsInput | number | null
+    review_comment?: NullableStringFieldUpdateOperationsInput | string | null
+    customer?: customerUpdateOneRequiredWithoutCustomer_reviewNestedInput
+  }
+
+  export type customer_reviewUncheckedUpdateWithoutInvoiceInput = {
+    review_id?: IntFieldUpdateOperationsInput | number
+    customer_id?: IntFieldUpdateOperationsInput | number
+    track_id?: IntFieldUpdateOperationsInput | number
+    rating?: NullableIntFieldUpdateOperationsInput | number | null
+    review_comment?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type customer_reviewUncheckedUpdateManyWithoutInvoiceInput = {
+    review_id?: IntFieldUpdateOperationsInput | number
+    customer_id?: IntFieldUpdateOperationsInput | number
+    track_id?: IntFieldUpdateOperationsInput | number
+    rating?: NullableIntFieldUpdateOperationsInput | number | null
+    review_comment?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type invoice_lineUpdateWithoutInvoiceInput = {
@@ -19493,54 +22768,6 @@ export namespace Prisma {
     track_id?: IntFieldUpdateOperationsInput | number
     unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     quantity?: IntFieldUpdateOperationsInput | number
-  }
-
-  export type trackCreateManyMedia_typeInput = {
-    track_id: number
-    name: string
-    album_id?: number | null
-    genre_id?: number | null
-    composer?: string | null
-    milliseconds: number
-    bytes?: number | null
-    unit_price: Decimal | DecimalJsLike | number | string
-  }
-
-  export type trackUpdateWithoutMedia_typeInput = {
-    track_id?: IntFieldUpdateOperationsInput | number
-    name?: StringFieldUpdateOperationsInput | string
-    composer?: NullableStringFieldUpdateOperationsInput | string | null
-    milliseconds?: IntFieldUpdateOperationsInput | number
-    bytes?: NullableIntFieldUpdateOperationsInput | number | null
-    unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    invoice_line?: invoice_lineUpdateManyWithoutTrackNestedInput
-    playlist_track?: playlist_trackUpdateManyWithoutTrackNestedInput
-    album?: albumUpdateOneWithoutTrackNestedInput
-    genre?: genreUpdateOneWithoutTrackNestedInput
-  }
-
-  export type trackUncheckedUpdateWithoutMedia_typeInput = {
-    track_id?: IntFieldUpdateOperationsInput | number
-    name?: StringFieldUpdateOperationsInput | string
-    album_id?: NullableIntFieldUpdateOperationsInput | number | null
-    genre_id?: NullableIntFieldUpdateOperationsInput | number | null
-    composer?: NullableStringFieldUpdateOperationsInput | string | null
-    milliseconds?: IntFieldUpdateOperationsInput | number
-    bytes?: NullableIntFieldUpdateOperationsInput | number | null
-    unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    invoice_line?: invoice_lineUncheckedUpdateManyWithoutTrackNestedInput
-    playlist_track?: playlist_trackUncheckedUpdateManyWithoutTrackNestedInput
-  }
-
-  export type trackUncheckedUpdateManyWithoutMedia_typeInput = {
-    track_id?: IntFieldUpdateOperationsInput | number
-    name?: StringFieldUpdateOperationsInput | string
-    album_id?: NullableIntFieldUpdateOperationsInput | number | null
-    genre_id?: NullableIntFieldUpdateOperationsInput | number | null
-    composer?: NullableStringFieldUpdateOperationsInput | string | null
-    milliseconds?: IntFieldUpdateOperationsInput | number
-    bytes?: NullableIntFieldUpdateOperationsInput | number | null
-    unit_price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
   }
 
   export type playlist_trackCreateManyPlaylistInput = {
@@ -19568,6 +22795,14 @@ export namespace Prisma {
 
   export type playlist_trackCreateManyTrackInput = {
     playlist_id: number
+  }
+
+  export type track_discountCreateManyTrackInput = {
+    track_discount_id?: number
+    discount: Decimal | DecimalJsLike | number | string
+    offer_date: Date | string
+    close_date: Date | string
+    employee_id: number
   }
 
   export type invoice_lineUpdateWithoutTrackInput = {
@@ -19601,6 +22836,29 @@ export namespace Prisma {
 
   export type playlist_trackUncheckedUpdateManyWithoutTrackInput = {
     playlist_id?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type track_discountUpdateWithoutTrackInput = {
+    discount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    offer_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    close_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    employee?: employeeUpdateOneRequiredWithoutTrack_discountNestedInput
+  }
+
+  export type track_discountUncheckedUpdateWithoutTrackInput = {
+    track_discount_id?: IntFieldUpdateOperationsInput | number
+    discount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    offer_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    close_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    employee_id?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type track_discountUncheckedUpdateManyWithoutTrackInput = {
+    track_discount_id?: IntFieldUpdateOperationsInput | number
+    discount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    offer_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    close_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    employee_id?: IntFieldUpdateOperationsInput | number
   }
 
 

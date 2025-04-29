@@ -1,6 +1,10 @@
-import { prisma } from '@aklapper/chinook-client';
-import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/chinook-client';
-import type { album } from 'node_modules/@aklapper/chinook-client/generated/client.js';
+import {
+  PrismaErrorLogger,
+  type ParsedPrismaError,
+  type PrismaClientErrors,
+  type album,
+} from '@aklapper/chinook-client';
+import prisma from '../client/prisma_client.js';
 
 /**
  * Deletes an album from the database by its ID.

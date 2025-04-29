@@ -31,9 +31,12 @@ export default function ActivePlayerContextProvider({ children }: ActivePlayerCo
   };
 
   const removeFromLobby = () => {
-    const activePlayer = JSON.parse(localStorage.getItem('activePlayer') as string) as IPlayerClientData;
-    activePlayer.inLobby = false;
-    localStorage.setItem('activePlayer', JSON.stringify(activePlayer));
+    const storedPlayer = localStorage.getItem('activePlayer');
+    if (storedPlayer) {
+      const activePlayer = JSON.parse(storedPlayer);
+      activePlayer.inLobby = false;
+      localStorage.setItem('activePlayer', JSON.stringify(activePlayer));
+    } else return;
   };
 
   return (

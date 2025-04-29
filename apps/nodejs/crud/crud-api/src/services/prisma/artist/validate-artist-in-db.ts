@@ -1,7 +1,10 @@
-import { prisma } from '@aklapper/chinook-client';
-import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/chinook-client';
-import type { Prisma } from 'node_modules/@aklapper/chinook-client/generated/client.js';
-
+import {
+  PrismaErrorLogger,
+  type ParsedPrismaError,
+  type Prisma,
+  type PrismaClientErrors,
+} from '@aklapper/chinook-client';
+import prisma from '../client/prisma_client.js';
 /**
  * This function checks if an artist exists in the database based on the provided query.
  *

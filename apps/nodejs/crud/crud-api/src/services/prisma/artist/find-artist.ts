@@ -1,6 +1,11 @@
-import { prisma, PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/chinook-client';
-import type { artist } from 'node_modules/@aklapper/chinook-client/generated/client.js';
+import {
+  PrismaErrorLogger,
+  type artist,
+  type ParsedPrismaError,
+  type PrismaClientErrors,
+} from '@aklapper/chinook-client';
 
+import prisma from '../client/prisma_client.js';
 /**
  * Finds an artist in the database by their ID.
  *
