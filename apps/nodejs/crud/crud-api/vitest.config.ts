@@ -8,6 +8,10 @@ const config = defineConfig({
     watch: false,
     globals: true,
     environment: 'node',
+    env: {
+      NODE_ENV: 'test',
+      DB_URL_TEST: 'postgresql://postgres:postgres@localhost:5432/chinook',
+    },
     include: ['tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     globalSetup: './tests/support/global-setup.ts',
     teardownTimeout: 1000,
@@ -17,7 +21,6 @@ const config = defineConfig({
       provider: 'v8',
     },
   },
-  envDir: './env/.env',
 });
 
 export default config;

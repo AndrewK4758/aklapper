@@ -6,7 +6,11 @@ import type { RefObject } from 'react';
 
 const baseURL = import.meta.env.VITE_DATA_API_URL;
 
-const handleSubmitNewAlbum = async (values: album, formik: FormikProps<album>, apiRef: RefObject<GridApiCommunity>) => {
+const handleSubmitNewAlbum = async (
+  values: album,
+  formik: FormikProps<album>,
+  apiRef: RefObject<GridApiCommunity | null>,
+) => {
   try {
     const albumTitle = values.title;
     const artistID = values.artist_id;

@@ -1,0 +1,23 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/ak/.asdf/installs/python/3.13.3/lib/python3.13/ensurepip/__main__.py", line 5, in <module>
+    sys.exit(ensurepip._main())
+             ~~~~~~~~~~~~~~~^^
+  File "/home/ak/.asdf/installs/python/3.13.3/lib/python3.13/ensurepip/__init__.py", line 212, in _main
+    version="pip {}".format(version()),
+                            ~~~~~~~^^
+  File "/home/ak/.asdf/installs/python/3.13.3/lib/python3.13/ensurepip/__init__.py", line 94, in version
+    return _get_pip_version()
+  File "/home/ak/.asdf/installs/python/3.13.3/lib/python3.13/ensurepip/__init__.py", line 54, in _get_pip_version
+    with _get_pip_whl_path_ctx() as bundled_wheel_path:
+         ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/ak/.asdf/installs/python/3.13.3/lib/python3.13/ensurepip/__init__.py", line 46, in _get_pip_whl_path_ctx
+    return resources.as_file(
+           ^^^^^^^^^^^^^^^^^
+AttributeError: module 'importlib.resources' has no attribute 'as_file'
+
+Traceback:
+
+  File "<stdin>", line 937, in main
+  File "<stdin>", line 576, in run

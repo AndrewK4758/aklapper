@@ -10,7 +10,7 @@ const handleSubmitNewAlbum = async (
   values: album,
   formik: FormikProps<album>,
   artistID: number,
-  apiRef: RefObject<GridApiCommunity>,
+  apiRef: RefObject<GridApiCommunity | null>,
 ) => {
   try {
     const albumTitle = values.title;

@@ -17,7 +17,7 @@ import type { album } from '../../../types/prisma_types.js';
 import type { ArtistAndAlbum } from './add-album-on-artist.jsx';
 
 interface AddAlbumProps {
-  apiRef: RefObject<GridApiCommunity>;
+  apiRef: RefObject<GridApiCommunity | null>;
 }
 
 const validationSchema = Yup.object<album>({

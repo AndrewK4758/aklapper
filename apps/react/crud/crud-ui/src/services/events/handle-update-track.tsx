@@ -5,7 +5,7 @@ import type { RefObject } from 'react';
 
 const baseURL = import.meta.env.VITE_DATA_API_URL;
 
-const handleUpdateTrack = async (values: track, apiRef: RefObject<GridApiCommunity>) => {
+const handleUpdateTrack = async (values: track, apiRef: RefObject<GridApiCommunity | null>) => {
   try {
     const { track_id, album_id, name, unit_price, genre_id, media_type_id, composer, milliseconds, bytes } = values;
 

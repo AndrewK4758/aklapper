@@ -12,7 +12,7 @@ import handleSubmitNewAlbum from '../../services/actions/submit-album-on-artist-
 import handleNewAlbumBlur from '../../services/events/handle-validate-artist-albums-on-blur';
 
 interface AddAlbumOnArtistProps {
-  apiRef: RefObject<GridApiCommunity>;
+  apiRef: RefObject<GridApiCommunity | null>;
 }
 
 const AddAlbumOnArtist = ({ apiRef }: AddAlbumOnArtistProps) => {

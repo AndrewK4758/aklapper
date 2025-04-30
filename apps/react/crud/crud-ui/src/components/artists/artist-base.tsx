@@ -186,7 +186,7 @@ const Artist = () => {
 };
 
 export default Artist;
-const handleUpdateArtistName = async (values: artist, apiRef: RefObject<GridApiCommunity>) => {
+const handleUpdateArtistName = async (values: artist, apiRef: RefObject<GridApiCommunity | null>) => {
   try {
     const { artist_id, name } = values;
     const resp = await axios.patch(
@@ -207,7 +207,7 @@ const handleUpdateArtistName = async (values: artist, apiRef: RefObject<GridApiC
   }
 };
 
-const handleDeleteArtist = async (values: artist, apiRef: RefObject<GridApiCommunity>) => {
+const handleDeleteArtist = async (values: artist, apiRef: RefObject<GridApiCommunity | null>) => {
   try {
     const { artist_id } = values;
     const resp = await axios.delete(`${baseURL}/artists/${artist_id}`, {

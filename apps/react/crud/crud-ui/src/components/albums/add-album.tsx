@@ -15,7 +15,7 @@ import handleSubmitNewAlbum from '../../services/actions/submit-album-to-artist-
 const baseURL = import.meta.env.VITE_DATA_API_URL;
 
 interface AddAlbumProps {
-  apiRef: RefObject<GridApiCommunity>;
+  apiRef: RefObject<GridApiCommunity | null>;
 }
 
 const AddAlbum = ({ apiRef }: AddAlbumProps) => {

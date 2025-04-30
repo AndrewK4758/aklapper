@@ -2,7 +2,7 @@
 FROM node:latest
 
 RUN apt-get update -y && apt-get install -y openssl
-
+ENV PRISMA_QUERY_ENGINE_LIBRARY="/api/packages/generated/libquery_engine-debian-openssl-3.0.x.so.node"
 # Set the working directory in the container
 WORKDIR /api
 

@@ -5,7 +5,7 @@ import type { RefObject } from 'react';
 
 const baseURL = import.meta.env.VITE_DATA_API_URL;
 
-const handleDeleteAlbum = async (values: album, apiRef: RefObject<GridApiCommunity>) => {
+const handleDeleteAlbum = async (values: album, apiRef: RefObject<GridApiCommunity | null>) => {
   try {
     const { album_id } = values;
 

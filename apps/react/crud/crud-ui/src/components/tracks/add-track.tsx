@@ -16,7 +16,7 @@ const baseURL = import.meta.env.VITE_DATA_API_URL;
 
 interface AddTrackProps {
   albumID: number;
-  apiRef: RefObject<GridApiCommunity>;
+  apiRef: RefObject<GridApiCommunity | null>;
 }
 
 const initialValues: track = {
@@ -93,7 +93,7 @@ const handleSubmitNewTrack = async (
   values: track,
   formik: FormikProps<track>,
   albumID: number,
-  apiRef: RefObject<GridApiCommunity>,
+  apiRef: RefObject<GridApiCommunity | null>,
 ) => {
   try {
     const trackName = values.name;

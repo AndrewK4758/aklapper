@@ -1,4 +1,4 @@
-import type { GridApiCommunity } from '@mui/x-data-grid/internals/index.js';
+import type { GridApiCommunity } from '@mui/x-data-grid/internals';
 import axios, { type AxiosError, type AxiosResponse } from 'axios';
 import type { FormikProps } from 'formik';
 import type { RefObject } from 'react';
@@ -10,7 +10,7 @@ const handleSubmitNewAlbum = async (
   values: album,
   formik: FormikProps<album>,
   artistID: number,
-  apiRef: RefObject<GridApiCommunity>,
+  apiRef: RefObject<GridApiCommunity | null>,
 ) => {
   try {
     const albumTitle = values.title;

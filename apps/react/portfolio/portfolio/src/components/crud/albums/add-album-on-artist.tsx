@@ -13,7 +13,7 @@ import handleNewAlbumBlur from '../../../services/events/crud-events/handle-vali
 import { crudAddButtonStyles } from '../../../styles/crud-styles.jsx';
 
 interface AddAlbumOnArtistProps {
-  apiRef: RefObject<GridApiCommunity>;
+  apiRef: RefObject<GridApiCommunity | null>;
 }
 
 export type ArtistAndAlbum = { title: string; album_id: number; artist_id: number };
