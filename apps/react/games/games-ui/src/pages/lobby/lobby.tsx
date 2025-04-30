@@ -3,6 +3,7 @@ import type {
   ClientLobbyData,
   GameInsanceLobbyData,
   IPlayerClientData,
+  PlayerID,
   PrivateMessageDetails,
   WsLobbyEventData,
 } from '@aklapper/types';
@@ -62,19 +63,27 @@ export default function Lobby() {
         activePlayer.socketIoId = socket.id;
 
         setActivePlayer({ ...activePlayer });
-        socket.emit('enter-lobby', activePlayer);
       });
 
-      socket.on('new-player', (newLobby: IPlayerClientData[]) => {
-        setActiveLobby(newLobby);
+      socket.emit('enter-lobby', activePlayer);
+
+      socket.on('new-player', (newPlayer: IPlayerClientData) => {
+        setActiveLobby(prevLobby => {
+          const playerExists = prevLobby.find(p => p.id === newPlayer.id);
+
+          if (playerExists) return [...prevLobby];
+          else return [...prevLobby, newPlayer];
+        });
       });
 
       socket.on('private-message', (message: PrivateMessageDetails) => {
         setMessages(prev => [...prev, message]);
       });
 
-      socket.on('deleted-player', newLobby => {
-        setActiveLobby(newLobby);
+      socket.on('deleted-player', (playerId: PlayerID) => {
+        setActiveLobby(prevLobby => {
+          return [...prevLobby.filter(p => p.id !== playerId)];
+        });
       });
 
       socket.on('new-game', ({ newGameId, gamesInLobby }: WsLobbyEventData) => {

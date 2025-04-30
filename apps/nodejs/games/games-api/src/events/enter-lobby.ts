@@ -17,20 +17,23 @@ const enterLobby: SocketCallback = (event: string, socket: Socket) => {
 
       if (player) {
         player.socketIoId = data.socketIoId;
+        player.inLobby = true;
       } else {
         player = new Player(data.name, data.id, data.email);
         player.socketIoId = data.socketIoId;
-        player.inLobby = true;
-        activePlayers.addPlayer(player.id, player);
-      }
-      const newLobby = await new Go_WsEventManager<IPlayerClientData[], IPlayerClientData>()
-        .setEventName('enter-player')
-        .setEventHandlerName('player-added')
-        .setEventData(player.prepareJsonPlayerToSend())
-        .setPendingRequestKey(player.id)
-        .build();
+        const inLobby = await new Go_WsEventManager<boolean, IPlayerClientData>()
+          .setEventName('enter-player')
+          .setEventHandlerName('player-added')
+          .setEventData(player.prepareJsonPlayerToSend())
+          .setPendingRequestKey(player.id)
+          .build();
 
-      lobbySocketServer.emit('new-player', newLobby);
+        if (inLobby) {
+          player.inLobby = true;
+          activePlayers.addPlayer(player.id, player);
+        }
+      }
+      lobbySocketServer.emit('new-player', player);
     } catch (error) {
       console.error(error);
       activePlayers.deletePlayerFromLobby(data.id);

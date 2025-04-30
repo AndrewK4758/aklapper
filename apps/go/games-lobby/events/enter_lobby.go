@@ -43,13 +43,7 @@ func HandleEnterLobby(ws *websocket.Conn, eventData lobbydata.WsMessage) {
 
 	activePlayer.InLobby = true
 
-	activePlayers := []lobbydata.ActivePlayer{}
-
-	for _, player := range lobbydata.ActivePlayers {
-		activePlayers = append(activePlayers, *player)
-	}
-
-	eventAck := lobbydata.WsAck{Status: "success", Event: activePlayer.Id, Response: activePlayers}
+	eventAck := lobbydata.WsAck{Status: "success", Event: activePlayer.Id, Response: true}
 
 	event := lobbydata.WsMessage{
 		Event: "player-added",
