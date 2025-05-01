@@ -1,11 +1,11 @@
 import { RenderList, Text } from '@aklapper/react-shared';
 import type {
   ClientLobbyData,
-  GameInsanceLobbyData,
+  GameInstanceLobbyData,
   IPlayerClientData,
+  JoinGameData,
   PlayerID,
   PrivateMessageDetails,
-  WsLobbyEventData,
 } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -50,7 +50,7 @@ export default function Lobby() {
   const [messages, setMessages] = useState<PrivateMessageDetails[]>([]);
   const [openMessage, setOpenMessage] = useState<boolean>(false);
   const [messageTarget, setMessageTarget] = useState<PrivateMessageDetails | null>(null);
-  const [activeGames, setActiveGames] = useState<GameInsanceLobbyData[]>(activeGamesInLobby);
+  const [activeGames, setActiveGames] = useState<GameInstanceLobbyData[]>(activeGamesInLobby);
 
   const nav = useNavigate();
 
@@ -86,25 +86,28 @@ export default function Lobby() {
         });
       });
 
-      socket.on('new-game', ({ newGameId, gamesInLobby }: WsLobbyEventData) => {
-        setActivePlayer(() => ({ ...activePlayer, activenewGameId: newGameId }));
-        setActiveGames(gamesInLobby);
-      });
-
-      socket.on('player-added', ({ newGameId, gamesInLobby }: WsLobbyEventData) => {
-        activePlayer.activeGameID = newGameId;
+      socket.on('new-game', ({ gameInstanceID, gameName, playersArray, inLobby }: GameInstanceLobbyData) => {
+        activePlayer.activeGameID = gameInstanceID;
         setActivePlayer({ ...activePlayer });
-        setActiveGames(gamesInLobby);
+        setActiveGames(prevGamesLobby => {
+          const exists = prevGamesLobby.some(p => p.gameInstanceID === gameInstanceID);
+
+          if (!exists) return [...prevGamesLobby, { gameInstanceID, gameName, inLobby, playersArray }];
+          else return [...prevGamesLobby];
+        });
       });
 
-      socket.on('player-joined', ({ gameId, newLobby, newPlayer }) => {
-        console.log('joined event');
-        console.log(newLobby);
-        const gameToUpdate = activeGames.find(game => game.gameInstanceID === gameId);
-        if (gameToUpdate) {
-          gameToUpdate.playersArray.push(newPlayer);
-          setActiveGames(prev => [...prev]);
-        } else setActiveGames(activeGames);
+      socket.on('player-joined', ({ gameId, playerData }: JoinGameData) => {
+        console.log(gameId, playerData);
+        setActiveGames(() => {
+          const gameToUpdate = activeGames.find(g => g.gameInstanceID === gameId);
+
+          console.log(gameToUpdate);
+
+          if (gameToUpdate) gameToUpdate.playersArray.push(playerData);
+
+          return [...activeGames];
+        });
       });
     }
     return () => {

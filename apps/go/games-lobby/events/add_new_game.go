@@ -39,7 +39,7 @@ func HandeNewGame(ws *websocket.Conn, eventData lobbydata.WsMessage) {
 		ws.WriteJSON(event)
 	}
 
-	eventAck := lobbydata.WsAck{Status: "success", Event: newGame.GameInstanceID, Response: newGame.GameInstanceID}
+	eventAck := lobbydata.WsAck{Status: "success", Event: newGame.GameInstanceID, Response: true}
 
 	event := lobbydata.WsMessage{
 		Event: "game-added",

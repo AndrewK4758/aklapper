@@ -23,7 +23,7 @@ export default async function getPlayer(req: Request, resp: Response) {
       };
 
       resp.status(200).json(newActivePlayer);
-    }
+    } else resp.sendStatus(404);
   } catch (error) {
     const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
     console.error(prismaError.parseErrors());

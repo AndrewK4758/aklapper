@@ -128,25 +128,27 @@ export type PrivateMessageDetails = {
 
 export type SocketID = string;
 
-export type GameInsanceLobbyData = {
+export type GameInstanceLobbyData = {
   gameName: string;
   gameInstanceID: string;
   inLobby: boolean;
   playersArray: IPlayerClientData[];
 };
 
-export type WsLobbyEventData = {
+export type NewGameInLobby = {
   newGameId: GameInstanceID;
-  gamesInLobby: GameInsanceLobbyData[];
+  newGameInLobby: GameInstanceLobbyData;
 };
 
 export type ClientLobbyData = {
-  activeGamesInLobby: GameInsanceLobbyData[];
+  activeGamesInLobby: GameInstanceLobbyData[];
   activePlayersInLobby: IPlayerClientData[];
 };
 
 export interface IGamesInLobby {
   games: Map<GameNameString, IInstanceOfGame>;
 }
+
+export type JoinGameData = { gameId: string; playerData: IPlayerClientData };
 
 // export type NewGameCall = { gamesInLobby: GameInsanceLobbyData[]; gameInstanceId: GameInstanceID };

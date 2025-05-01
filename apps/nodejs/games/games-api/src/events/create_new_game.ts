@@ -1,4 +1,4 @@
-import type { IBuiltGame, SocketCallback, WsLobbyEventData } from '@aklapper/types';
+import type { GameInstanceLobbyData, IBuiltGame, SocketCallback } from '@aklapper/types';
 import type { Socket } from 'socket.io';
 import games from '../data/games-list.js';
 import { lobbySocketServer } from '../main.js';
@@ -9,9 +9,11 @@ const createNewGame: SocketCallback = (event: string, socket: Socket) => {
     try {
       const selectedGame = games.find(({ name }) => name === gameName) as IBuiltGame;
 
-      const newGameWithPendingLobby: WsLobbyEventData = await generateNewGame(selectedGame, playerId);
+      const newGameInLobby: GameInstanceLobbyData | boolean = await generateNewGame(selectedGame, playerId);
 
-      lobbySocketServer.emit('new-game', newGameWithPendingLobby);
+      if (newGameInLobby) {
+        lobbySocketServer.emit('new-game', newGameInLobby);
+      }
     } catch (err) {
       console.error(err);
       socket.emit((err as Error).message);

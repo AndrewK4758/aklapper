@@ -1,5 +1,5 @@
 import type { InstanceOfGame } from '@aklapper/models';
-import type { GameInsanceLobbyData, GameNameString, IGamesInLobby } from '@aklapper/types';
+import type { GameInstanceLobbyData, GameNameString, IGamesInLobby } from '@aklapper/types';
 
 class GamesInLobby implements IGamesInLobby {
   games: Map<string, InstanceOfGame>;
@@ -31,11 +31,11 @@ class GamesInLobby implements IGamesInLobby {
     else this.map.delete(gameId);
   }
 
-  prepDataToSend(): GameInsanceLobbyData[] {
-    const dataToSend: GameInsanceLobbyData[] = [];
+  prepDataToSend(): GameInstanceLobbyData[] {
+    const dataToSend: GameInstanceLobbyData[] = [];
 
     for (const [gameId, instance] of this.map) {
-      const gameInLobby: GameInsanceLobbyData = {
+      const gameInLobby: GameInstanceLobbyData = {
         gameName: instance.instance.instance.NAME,
         gameInstanceID: gameId,
         inLobby: instance.inLobby,

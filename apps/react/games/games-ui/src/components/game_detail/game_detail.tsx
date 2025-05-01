@@ -1,5 +1,5 @@
 import { RenderList, Text } from '@aklapper/react-shared';
-import type { GameInsanceLobbyData, IBuiltGame, IPlayerClientData } from '@aklapper/types';
+import type { GameInstanceLobbyData, IBuiltGame, IPlayerClientData } from '@aklapper/types';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -20,7 +20,7 @@ export interface GameDetailProps {
   game: IBuiltGame;
   setOpen: Dispatch<SetStateAction<boolean>>;
   setSelectedGame: Dispatch<SetStateAction<IBuiltGame | null>>;
-  activeGames: GameInsanceLobbyData[];
+  activeGames: GameInstanceLobbyData[];
 }
 
 export default function GameDetail({ game, setOpen, setSelectedGame, activeGames }: GameDetailProps) {
@@ -64,7 +64,7 @@ export default function GameDetail({ game, setOpen, setSelectedGame, activeGames
             TypogrpahyProps={{ color: 'info' }}
             sx={{ textAlign: 'left', fontFamily: 'monospace' }}
           />
-          <RenderList<GameInsanceLobbyData>
+          <RenderList<GameInstanceLobbyData>
             data={activeGames}
             listMapCallback={(e, i, arr) => activeGamesCallback(e, i, arr, game, socket, activePlayer)}
           />
@@ -94,9 +94,9 @@ export default function GameDetail({ game, setOpen, setSelectedGame, activeGames
 }
 
 const activeGamesCallback = (
-  instance: GameInsanceLobbyData,
+  instance: GameInstanceLobbyData,
   i: number,
-  _arr: GameInsanceLobbyData[],
+  _arr: GameInstanceLobbyData[],
   game: IBuiltGame,
   socket: Socket,
   activePlayer: IPlayerClientData,
@@ -145,9 +145,8 @@ const activeGamesCallback = (
           variant='outlined'
           name={game.name}
           type='submit'
-          onClick={e => {
+          onClick={() => {
             const idToJoin = document.getElementById(`hidden-${instance.gameInstanceID}`) as HTMLInputElement;
-            console.log('JOIN GAME NAME: ', e.currentTarget.name, ' ID: ', idToJoin.value);
             socket.emit('join-game', { gameId: idToJoin.value, playerData: activePlayer });
           }}
           sx={{ p: 0, fontSize: 'inherit' }}

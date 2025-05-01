@@ -70,6 +70,7 @@ func handleTextListenEvent(ws *websocket.Conn, message []byte) {
 	}
 
 	switch msgData.Event {
+
 	case "enter-player":
 		events.HandleEnterLobby(ws, msgData)
 		return
@@ -81,8 +82,14 @@ func handleTextListenEvent(ws *websocket.Conn, message []byte) {
 	case "new-game":
 		events.HandeNewGame(ws, msgData)
 		return
+
 	case "data-sync-request":
 		events.HandleSyncLobbyData(ws, msgData)
+		return
+
+	case "join-game":
+		events.HandleJoinGame(ws, msgData)
+		return
 	}
 
 }

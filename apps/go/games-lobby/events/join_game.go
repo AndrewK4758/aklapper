@@ -27,6 +27,16 @@ func HandleJoinGame(ws *websocket.Conn, eventData lobbydata.WsMessage) {
 		fmt.Println("error UnMarshalling GameInstanceLobbyData: ", err.Error())
 	}
 
-	fmt.Println(updateInfo)
-	ws.WriteJSON("true")
+	eventAck := lobbydata.WsAck{
+		Event:    updateInfo.GameId,
+		Status:   "success",
+		Response: true,
+	}
+
+	event := lobbydata.WsMessage{
+		Event: "player-joined",
+		Data:  eventAck,
+	}
+
+	ws.WriteJSON(event)
 }
