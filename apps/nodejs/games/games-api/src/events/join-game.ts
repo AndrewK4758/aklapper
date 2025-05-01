@@ -19,20 +19,21 @@ const joinGame: SocketCallback = (event: string, socket: Socket) => {
           gameId: gameId,
           joiningPlayer: activePlayer.prepareJsonPlayerToSend(),
         };
+        if (socketClient && socketClient.readyState === WebSocket.OPEN) {
+          const playerJoined = await new Go_WsEventManager<boolean, JoinGameData>(socketClient)
+            .setEventName('join-game')
+            .setEventHandlerName('player-joined')
+            .setEventData(eventData)
+            .setPendingRequestKey(gameId)
+            .build();
 
-        const playerJoined = await new Go_WsEventManager<boolean, JoinGameData>(socketClient as WebSocket)
-          .setEventName('join-game')
-          .setEventHandlerName('player-joined')
-          .setEventData(eventData)
-          .setPendingRequestKey(gameId)
-          .build();
-
-        if (playerJoined) {
-          activeGame.instance.playersArray.push(activePlayer);
-          lobbySocketServer.emit('player-joined', eventData);
+          if (playerJoined) {
+            activeGame.instance.playersArray.push(activePlayer);
+            lobbySocketServer.emit('player-joined', eventData);
+          }
+        } else {
+          throw activePlayers.NoPlayer(joiningPlayer.id);
         }
-      } else {
-        throw activePlayers.NoPlayer(joiningPlayer.id);
       }
     } catch (error) {
       console.error(error);

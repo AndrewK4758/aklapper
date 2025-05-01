@@ -15,37 +15,38 @@ export default async function syncWithGoLobby() {
   const activePlayers = useActivePlayersMap();
 
   const lobbySyncWsId = new ShortUniqueId().rnd(6);
+  if (socketClient && socketClient.readyState === WebSocket.OPEN) {
+    const lobbySyncData = await new Go_WsEventManager<ClientLobbyData>(socketClient)
+      .setEventName('data-sync-request')
+      .setEventHandlerName('data-sync-response')
+      .setPendingRequestKey(lobbySyncWsId)
+      .build();
 
-  const lobbySyncData = await new Go_WsEventManager<ClientLobbyData>(socketClient as WebSocket)
-    .setEventName('data-sync-request')
-    .setEventHandlerName('data-sync-response')
-    .setPendingRequestKey(lobbySyncWsId)
-    .build();
+    const { activeGamesInLobby, activePlayersInLobby } = lobbySyncData;
 
-  const { activeGamesInLobby, activePlayersInLobby } = lobbySyncData;
+    activeGamesInLobby.forEach(game => {
+      const gameInstance = games.find(g => g.name === game.gameName) as IBuiltGame;
 
-  activeGamesInLobby.forEach(game => {
-    const gameInstance = games.find(g => g.name === game.gameName) as IBuiltGame;
+      const newGame = new Game(gameInstance.instance() as AllGameTypes);
 
-    const newGame = new Game(gameInstance.instance() as AllGameTypes);
+      game.playersArray = game.playersArray.map(p => {
+        const newPlayer = new Player(p.name, p.id, p.email);
+        newPlayer.updateActivePlayerDetails(p);
+        activePlayers.addPlayer(p.id, newPlayer);
+        return newPlayer;
+      });
 
-    game.playersArray = game.playersArray.map(p => {
-      const newPlayer = new Player(p.name, p.id, p.email);
-      newPlayer.updateActivePlayerDetails(p);
-      activePlayers.addPlayer(p.id, newPlayer);
-      return newPlayer;
+      const instanceOfGame = new InstanceOfGame(getCurrentMinute(), game.gameInstanceID, newGame);
+
+      activeGames.set(game.gameInstanceID, instanceOfGame);
     });
 
-    const instanceOfGame = new InstanceOfGame(getCurrentMinute(), game.gameInstanceID, newGame);
-
-    activeGames.set(game.gameInstanceID, instanceOfGame);
-  });
-
-  activePlayersInLobby.forEach(player => {
-    if (!activePlayers.map.has(player.id)) {
-      const newPlayer = new Player(player.name, player.id, player.email);
-      newPlayer.updateActivePlayerDetails(player);
-      activePlayers.addPlayer(player.id, newPlayer);
-    }
-  });
+    activePlayersInLobby.forEach(player => {
+      if (!activePlayers.map.has(player.id)) {
+        const newPlayer = new Player(player.name, player.id, player.email);
+        newPlayer.updateActivePlayerDetails(player);
+        activePlayers.addPlayer(player.id, newPlayer);
+      }
+    });
+  }
 }

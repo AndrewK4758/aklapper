@@ -49,23 +49,24 @@ export default async function generateNewGame(
           playersArray: instanceOfGame.instance.playersArray.map(p => p.prepareJsonPlayerToSend()),
         },
       };
+      if (socketClient && socketClient.readyState === WebSocket.OPEN) {
+        const gameInLobby = await new Go_WsEventManager<boolean, Go_NewGameData>(socketClient)
+          .setEventName('new-game')
+          .setEventHandlerName('game-added')
+          .setEventData(eventData)
+          .setPendingRequestKey(gameID)
+          .build();
 
-      const gameInLobby = await new Go_WsEventManager<boolean, Go_NewGameData>(socketClient as WebSocket)
-        .setEventName('new-game')
-        .setEventHandlerName('game-added')
-        .setEventData(eventData)
-        .setPendingRequestKey(gameID)
-        .build();
-
-      if (gameInLobby) {
-        gamesMap.addGame(gameID, instanceOfGame);
-        instanceMap.addGameInstance(minute, gameID);
-        gamesInLobby.addGame(gameID, instanceOfGame);
-        return eventData.newGame;
-      } else {
-        return false;
-      }
-    } else throw playersMap.NoPlayer(playerId);
+        if (gameInLobby) {
+          gamesMap.addGame(gameID, instanceOfGame);
+          instanceMap.addGameInstance(minute, gameID);
+          gamesInLobby.addGame(gameID, instanceOfGame);
+          return eventData.newGame;
+        } else {
+          return false;
+        }
+      } else throw playersMap.NoPlayer(playerId);
+    } else return false;
   } catch (error) {
     const err = error as Error;
     console.error(err);

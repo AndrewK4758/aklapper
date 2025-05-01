@@ -1,6 +1,5 @@
 import type { WsEvent } from '@aklapper/types';
 import { pendingRequests, type PromiseCallbackMap } from 'src/data/promise_callback_map/promise_callback_map.js';
-// import { socketClient } from 'src/main.js';
 import { fileURLToPath } from 'url';
 import buildWsEvent from './build_go_event.js';
 import go_websocketEvent from './go_websocket_event.js';

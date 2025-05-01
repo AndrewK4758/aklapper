@@ -8,16 +8,18 @@ const handleLeaveLobby: SocketCallback = (event: string, socket: Socket) => {
   socket.on(event, async (playerID: PlayerID) => {
     const activePlayers = useActivePlayersMap();
 
-    const leaveLobbyResponse = await new Go_WsEventManager<boolean, PlayerID>(socketClient as WebSocket)
-      .setEventName('remove-player')
-      .setEventHandlerName('deleted-player')
-      .setEventData(playerID)
-      .setPendingRequestKey(playerID)
-      .build();
+    if (socketClient && socketClient.readyState === WebSocket.OPEN) {
+      const leaveLobbyResponse = await new Go_WsEventManager<boolean, PlayerID>(socketClient as WebSocket)
+        .setEventName('remove-player')
+        .setEventHandlerName('deleted-player')
+        .setEventData(playerID)
+        .setPendingRequestKey(playerID)
+        .build();
 
-    if (leaveLobbyResponse) {
-      activePlayers.deletePlayerFromLobby(playerID);
-      socketConnectionMap.delete(playerID);
+      if (leaveLobbyResponse) {
+        activePlayers.deletePlayerFromLobby(playerID);
+        socketConnectionMap.delete(playerID);
+      }
     }
 
     lobbySocketServer.emit('deleted-player', playerID);

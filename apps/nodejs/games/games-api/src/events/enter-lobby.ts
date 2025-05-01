@@ -22,16 +22,19 @@ const enterLobby: SocketCallback = (event: string, socket: Socket) => {
       } else {
         player = new Player(data.name, data.id, data.email);
         player.socketIoId = data.socketIoId;
-        const inLobby = await new Go_WsEventManager<boolean, IPlayerClientData>(socketClient as WebSocket)
-          .setEventName('enter-player')
-          .setEventHandlerName('player-added')
-          .setEventData(player.prepareJsonPlayerToSend())
-          .setPendingRequestKey(player.id)
-          .build();
 
-        if (inLobby) {
-          player.inLobby = true;
-          activePlayers.addPlayer(player.id, player);
+        if (socketClient && socketClient.readyState === WebSocket.OPEN) {
+          const inLobby = await new Go_WsEventManager<boolean, IPlayerClientData>(socketClient)
+            .setEventName('enter-player')
+            .setEventHandlerName('player-added')
+            .setEventData(player.prepareJsonPlayerToSend())
+            .setPendingRequestKey(player.id)
+            .build();
+
+          if (inLobby) {
+            player.inLobby = true;
+            activePlayers.addPlayer(player.id, player);
+          }
         }
       }
 
