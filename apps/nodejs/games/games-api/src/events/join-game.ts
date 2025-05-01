@@ -11,11 +11,8 @@ const joinGame: SocketCallback = (event: string, socket: Socket) => {
       const activePlayers = useActivePlayersMap();
       const activeGame = gamesInLobby.getGameActiveGame(gameId);
       const activePlayer = activePlayers.getPlayer(playerData.id);
-      console.log(playerData);
-      console.log(activePlayer);
-      console.log(activeGame);
+
       if (activePlayer && activeGame) {
-        console.log('here');
         activeGame.instance.playersArray.push(activePlayer);
 
         const eventData: JoinGameData = {
