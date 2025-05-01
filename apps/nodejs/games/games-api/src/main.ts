@@ -76,19 +76,35 @@ socketServer.addServerListener('lobby', 'remove-player', handleLeaveLobby);
 socketServer.addServerListener('lobby', 'create-new-game', createNewGame);
 socketServer.addServerListener('lobby', 'join-game', joinGame);
 
-export const socketClient = new WebSocket(WS_URL as string);
+let reconnecting: null | NodeJS.Timeout = null;
+let socketClient: WebSocket | null = null;
 
-socketClient.onerror = err => console.error('ERROR:\n\t', err);
+const connectWebsocket = function () {
+  socketClient = new WebSocket(WS_URL as string);
 
-socketClient.onopen = async () => {
-  console.log('CONNECTED TO GO LOBBY');
+  socketClient.onclose = () => {
+    console.log('close');
+    reconnecting = setTimeout(() => {
+      connectWebsocket();
+    }, 2500);
+  };
 
-  await syncWithGoLobby();
+  socketClient.onerror = err => {
+    console.error('ERROR:\n\t', err);
+    reconnecting = setTimeout(() => {
+      connectWebsocket();
+    }, 2500);
+  };
+
+  socketClient.onopen = async () => {
+    console.log('CONNECTED TO GO LOBBY');
+    reconnecting = null;
+    if (reconnecting) clearTimeout(reconnecting);
+    await syncWithGoLobby();
+  };
 };
 
-// socketClient.onmessage = async (event: MessageEvent) => {
-//   await go_websocketEvent(event, 'data-sync');
-// };
+connectWebsocket();
 
 app.options(/.*/, cors(corsOptions));
 app.use(cors(corsOptions));
@@ -111,3 +127,4 @@ const server = httpServer.listen(port, () => {
 server.on('error', console.error);
 
 export default app;
+export { socketClient };

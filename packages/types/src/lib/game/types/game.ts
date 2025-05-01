@@ -149,6 +149,9 @@ export interface IGamesInLobby {
   games: Map<GameNameString, IInstanceOfGame>;
 }
 
-export type JoinGameData = { gameId: string; playerData: IPlayerClientData };
+export type JoinGameData = { gameId: string; joiningPlayer: IPlayerClientData };
 
-// export type NewGameCall = { gamesInLobby: GameInsanceLobbyData[]; gameInstanceId: GameInstanceID };
+export interface Go_NewGameData {
+  playerId: string;
+  newGame: GameInstanceLobbyData;
+}

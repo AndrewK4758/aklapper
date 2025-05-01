@@ -12,6 +12,7 @@ func HandleGetLobbyData(resp http.ResponseWriter, req *http.Request) {
 	utils.EnableCORS(&resp)
 
 	var activePlayersInLobby []lobbydata.ActivePlayer
+	var activeGamesInLobby []lobbydata.ActiveGame
 
 	for _, playerData := range lobbydata.ActivePlayers {
 
@@ -26,9 +27,26 @@ func HandleGetLobbyData(resp http.ResponseWriter, req *http.Request) {
 		activePlayersInLobby = append(activePlayersInLobby, playerInLobby)
 	}
 
+	for _, gameData := range lobbydata.GamesMap {
+
+		gameInLobby := lobbydata.ActiveGame{
+			GameName:       gameData.GameName,
+			GameInstanceID: gameData.GameInstanceID,
+			InLobby:        gameData.InLobby,
+			PlayersArray:   gameData.PlayersArray,
+		}
+
+		activeGamesInLobby = append(activeGamesInLobby, gameInLobby)
+	}
+
+	ActiveLobbyData := lobbydata.ActiveLobbyData{
+		ActivePlayersInLobby: activePlayersInLobby,
+		ActiveGamesInLobby:   activeGamesInLobby,
+	}
+
 	resp.Header().Set("Content-Type", "application/json")
 	resp.WriteHeader(http.StatusOK)
 
-	json.NewEncoder(resp).Encode(activePlayersInLobby)
+	json.NewEncoder(resp).Encode(ActiveLobbyData)
 
 }

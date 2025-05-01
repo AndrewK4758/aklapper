@@ -1,38 +1,38 @@
 import type { JoinGameData, SocketCallback } from '@aklapper/types';
 import type { Socket } from 'socket.io';
 import gamesInLobby from 'src/data/games_in_lobby/games_in_lobby.js';
-import { lobbySocketServer } from 'src/main.js';
+import { lobbySocketServer, socketClient } from 'src/main.js';
 import useActivePlayersMap from 'src/middleware/use_active_players_map.js';
 import Go_WsEventManager from 'src/models/go_websocket_manager.js';
 
 const joinGame: SocketCallback = (event: string, socket: Socket) => {
-  socket.on(event, async ({ gameId, playerData }: JoinGameData) => {
+  socket.on(event, async ({ gameId, joiningPlayer }: JoinGameData) => {
     try {
       const activePlayers = useActivePlayersMap();
       const activeGame = gamesInLobby.getGameActiveGame(gameId);
-      const activePlayer = activePlayers.getPlayer(playerData.id);
+      const activePlayer = activePlayers.getPlayer(joiningPlayer.id);
 
       if (activePlayer && activeGame) {
-        activeGame.instance.playersArray.push(activePlayer);
+        activePlayer.activeGameID = gameId;
 
         const eventData: JoinGameData = {
           gameId: gameId,
-          playerData: activePlayer.prepareJsonPlayerToSend(),
+          joiningPlayer: activePlayer.prepareJsonPlayerToSend(),
         };
 
-        const playerJoined = await new Go_WsEventManager<boolean, JoinGameData>()
+        const playerJoined = await new Go_WsEventManager<boolean, JoinGameData>(socketClient as WebSocket)
           .setEventName('join-game')
           .setEventHandlerName('player-joined')
           .setEventData(eventData)
           .setPendingRequestKey(gameId)
           .build();
 
-        console.log(playerJoined);
         if (playerJoined) {
+          activeGame.instance.playersArray.push(activePlayer);
           lobbySocketServer.emit('player-joined', eventData);
         }
       } else {
-        throw activePlayers.NoPlayer(playerData.id);
+        throw activePlayers.NoPlayer(joiningPlayer.id);
       }
     } catch (error) {
       console.error(error);

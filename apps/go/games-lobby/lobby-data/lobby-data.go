@@ -123,3 +123,10 @@ func AddGameToMap(newGame *ActiveGame) error {
 		return nil
 	}
 }
+
+//------------Active Lobby-------------//
+
+type ActiveLobbyData struct {
+	ActiveGamesInLobby   []ActiveGame   `json:"activeGamesInLobby,omitempty"`
+	ActivePlayersInLobby []ActivePlayer `json:"activePlayersInLobby,omitempty"`
+}

@@ -1,8 +1,16 @@
 import { Game } from '@aklapper/game';
 import { InstanceOfGame } from '@aklapper/models';
-import type { AllGameTypes, GameInstanceID, GameInstanceLobbyData, IBuiltGame, Minute } from '@aklapper/types';
+import type {
+  AllGameTypes,
+  GameInstanceID,
+  GameInstanceLobbyData,
+  Go_NewGameData,
+  IBuiltGame,
+  Minute,
+} from '@aklapper/types';
 import { getCurrentMinute } from '@aklapper/utils';
 import ShortUniqueId from 'short-unique-id';
+import { socketClient } from 'src/main.js';
 import Go_WsEventManager from 'src/models/go_websocket_manager.js';
 import gamesInLobby from '../../data/games_in_lobby/games_in_lobby.js';
 import useAllGamesMap from '../../middleware/all-games-map.js';
@@ -24,21 +32,25 @@ export default async function generateNewGame(
 
     if (playerToAdd) {
       const gameID: GameInstanceID = new ShortUniqueId().rnd();
+      playerToAdd.activeGameID = gameID;
 
-      const game = new Game((selectedGame as IBuiltGame).instance() as AllGameTypes);
+      const game = new Game(selectedGame.instance() as AllGameTypes);
 
       game.playersArray.push(playerToAdd);
 
-      const activeGame = new InstanceOfGame(minute, gameID, game);
+      const instanceOfGame = new InstanceOfGame(minute, gameID, game);
 
-      const eventData: GameInstanceLobbyData = {
-        gameInstanceID: activeGame.gameInstanceID,
-        gameName: activeGame.instance.instance.NAME,
-        inLobby: true,
-        playersArray: activeGame.instance.playersArray.map(player => player.prepareJsonPlayerToSend()),
+      const eventData: Go_NewGameData = {
+        playerId: playerId,
+        newGame: {
+          gameInstanceID: gameID,
+          gameName: selectedGame.name,
+          inLobby: true,
+          playersArray: instanceOfGame.instance.playersArray.map(p => p.prepareJsonPlayerToSend()),
+        },
       };
 
-      const gameInLobby = await new Go_WsEventManager<boolean, GameInstanceLobbyData>()
+      const gameInLobby = await new Go_WsEventManager<boolean, Go_NewGameData>(socketClient as WebSocket)
         .setEventName('new-game')
         .setEventHandlerName('game-added')
         .setEventData(eventData)
@@ -46,10 +58,10 @@ export default async function generateNewGame(
         .build();
 
       if (gameInLobby) {
-        gamesMap.addGame(gameID, activeGame);
+        gamesMap.addGame(gameID, instanceOfGame);
         instanceMap.addGameInstance(minute, gameID);
-        gamesInLobby.addGame(gameID, activeGame);
-        return eventData;
+        gamesInLobby.addGame(gameID, instanceOfGame);
+        return eventData.newGame;
       } else {
         return false;
       }

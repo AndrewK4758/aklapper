@@ -1,5 +1,5 @@
 import { RenderList, Text } from '@aklapper/react-shared';
-import type { GameInstanceLobbyData, IBuiltGame, IPlayerClientData } from '@aklapper/types';
+import type { GameInstanceLobbyData, IBuiltGame, IPlayerClientData, JoinGameData } from '@aklapper/types';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -11,7 +11,7 @@ import CardHeader from '@mui/material/CardHeader';
 import Grid from '@mui/material/Grid';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
-import { useContext, type Dispatch, type SetStateAction } from 'react';
+import { useContext, useState, type Dispatch, type SetStateAction } from 'react';
 import type { Socket } from 'socket.io-client';
 import ActivePlayerContext, { type ActivePlayerContextProps } from '../../context/active-player-context';
 import { WebsocketContext, type WebsocketContextProps } from '../../context/websocket_context';
@@ -26,6 +26,7 @@ export interface GameDetailProps {
 export default function GameDetail({ game, setOpen, setSelectedGame, activeGames }: GameDetailProps) {
   const { socket } = useContext<WebsocketContextProps>(WebsocketContext);
   const { activePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
+  const [joinedGame, setJoinedGame] = useState<string | null>(null);
   const title = game.name;
   const icon = `/icons/${game.name.replace(/ /g, '-').toLowerCase()}-icon.svg`;
   return (
@@ -66,7 +67,9 @@ export default function GameDetail({ game, setOpen, setSelectedGame, activeGames
           />
           <RenderList<GameInstanceLobbyData>
             data={activeGames}
-            listMapCallback={(e, i, arr) => activeGamesCallback(e, i, arr, game, socket, activePlayer)}
+            listMapCallback={(e, i, arr) =>
+              activeGamesCallback(e, i, arr, game, socket, activePlayer, joinedGame, setJoinedGame)
+            }
           />
         </CardContent>
 
@@ -100,6 +103,8 @@ const activeGamesCallback = (
   game: IBuiltGame,
   socket: Socket,
   activePlayer: IPlayerClientData,
+  joinedGame: string | null,
+  setJoinedGame: Dispatch<SetStateAction<string | null>>,
 ) => {
   return instance.gameName === game.name ? (
     <ListItem
@@ -139,15 +144,22 @@ const activeGamesCallback = (
           }
           slotProps={{ primary: { variant: 'h6', sx: { fontSize: 'inherit' } }, secondary: { component: 'span' } }}
         />
-        <input readOnly type='text' id={`hidden-${instance.gameInstanceID}`} hidden value={instance.gameInstanceID} />
+
         <Button
           key={`${game.name}-${instance.gameInstanceID}-button`}
           variant='outlined'
           name={game.name}
           type='submit'
-          onClick={() => {
-            const idToJoin = document.getElementById(`hidden-${instance.gameInstanceID}`) as HTMLInputElement;
-            socket.emit('join-game', { gameId: idToJoin.value, playerData: activePlayer });
+          onMouseDown={() => {
+            setJoinedGame(instance.gameInstanceID);
+            const exists = instance.playersArray.find(p => p.id === activePlayer.id);
+
+            if (!exists && !joinedGame)
+              socket.emit('join-game', {
+                gameId: instance.gameInstanceID,
+                joiningPlayer: activePlayer,
+              } as JoinGameData);
+            else alert('You already joined the game');
           }}
           sx={{ p: 0, fontSize: 'inherit' }}
         >

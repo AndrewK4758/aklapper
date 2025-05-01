@@ -1,7 +1,7 @@
 import { Player } from '@aklapper/games-components';
 import type { IPlayerClientData, SocketCallback } from '@aklapper/types';
 import type { Socket } from 'socket.io';
-import { lobbySocketServer } from 'src/main.js';
+import { lobbySocketServer, socketClient } from 'src/main.js';
 import Go_WsEventManager from 'src/models/go_websocket_manager.js';
 import useActivePlayersMap from '../middleware/use_active_players_map.js';
 
@@ -22,7 +22,7 @@ const enterLobby: SocketCallback = (event: string, socket: Socket) => {
       } else {
         player = new Player(data.name, data.id, data.email);
         player.socketIoId = data.socketIoId;
-        const inLobby = await new Go_WsEventManager<boolean, IPlayerClientData>()
+        const inLobby = await new Go_WsEventManager<boolean, IPlayerClientData>(socketClient as WebSocket)
           .setEventName('enter-player')
           .setEventHandlerName('player-added')
           .setEventData(player.prepareJsonPlayerToSend())

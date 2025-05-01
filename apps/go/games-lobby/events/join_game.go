@@ -9,8 +9,8 @@ import (
 )
 
 type UpdateInfo struct {
-	GameId    string                 `json:"gameId"`
-	NewPlayer lobbydata.ActivePlayer `json:"newPlayer"`
+	GameId        string                 `json:"gameId"`
+	JoiningPlayer lobbydata.ActivePlayer `json:"joiningPlayer"`
 }
 
 func HandleJoinGame(ws *websocket.Conn, eventData lobbydata.WsMessage) {
@@ -26,6 +26,14 @@ func HandleJoinGame(ws *websocket.Conn, eventData lobbydata.WsMessage) {
 	if err != nil {
 		fmt.Println("error UnMarshalling GameInstanceLobbyData: ", err.Error())
 	}
+
+	activeGame := lobbydata.GamesMap[updateInfo.GameId]
+
+	activePlayer := lobbydata.ActivePlayers[updateInfo.JoiningPlayer.Id]
+
+	activePlayer.ActiveGameID = &updateInfo.GameId
+
+	activeGame.PlayersArray = append(activeGame.PlayersArray, *activePlayer)
 
 	eventAck := lobbydata.WsAck{
 		Event:    updateInfo.GameId,

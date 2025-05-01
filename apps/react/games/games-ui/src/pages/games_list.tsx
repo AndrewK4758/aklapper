@@ -1,5 +1,5 @@
 import { RenderList } from '@aklapper/react-shared';
-import type { GameInsanceLobbyData, IBuiltGame } from '@aklapper/types';
+import type { GameInstanceLobbyData, IBuiltGame } from '@aklapper/types';
 import Grid from '@mui/material/Grid';
 import type { Dispatch, SetStateAction } from 'react';
 import { lazy, useState } from 'react';
@@ -9,7 +9,7 @@ import GameDetail from '../components/game_detail/game_detail';
 const GameDetails = lazy(() => import('./game_details'));
 
 interface GamesListProps {
-  activeGames: GameInsanceLobbyData[];
+  activeGames: GameInstanceLobbyData[];
 }
 
 const GamesList = ({ activeGames }: GamesListProps) => {
@@ -47,7 +47,7 @@ const listGamesMap = (
   _arr: IBuiltGame[],
   setOpen: Dispatch<SetStateAction<boolean>>,
   setSelectedGame: Dispatch<SetStateAction<IBuiltGame | null>>,
-  activeGames: GameInsanceLobbyData[],
+  activeGames: GameInstanceLobbyData[],
 ) => {
   return (
     <GameDetail

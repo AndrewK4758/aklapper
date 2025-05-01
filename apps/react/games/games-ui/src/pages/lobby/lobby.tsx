@@ -97,16 +97,11 @@ export default function Lobby() {
         });
       });
 
-      socket.on('player-joined', ({ gameId, playerData }: JoinGameData) => {
-        console.log(gameId, playerData);
-        setActiveGames(() => {
-          const gameToUpdate = activeGames.find(g => g.gameInstanceID === gameId);
-
-          console.log(gameToUpdate);
-
-          if (gameToUpdate) gameToUpdate.playersArray.push(playerData);
-
-          return [...activeGames];
+      socket.on('player-joined', ({ gameId, joiningPlayer }: JoinGameData) => {
+        setActiveGames(prevGamesLobby => {
+          const gameToUpdate = prevGamesLobby.find(g => g.gameInstanceID === gameId);
+          if (gameToUpdate) gameToUpdate.playersArray.push(joiningPlayer);
+          return [...prevGamesLobby];
         });
       });
     }

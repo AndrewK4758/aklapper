@@ -2,13 +2,13 @@ import type { PlayerID, SocketCallback } from '@aklapper/types';
 import type { Socket } from 'socket.io';
 import useActivePlayersMap from 'src/middleware/use_active_players_map.js';
 import Go_WsEventManager from 'src/models/go_websocket_manager.js';
-import { lobbySocketServer, socketConnectionMap } from '../main.js';
+import { lobbySocketServer, socketClient, socketConnectionMap } from '../main.js';
 
 const handleLeaveLobby: SocketCallback = (event: string, socket: Socket) => {
   socket.on(event, async (playerID: PlayerID) => {
     const activePlayers = useActivePlayersMap();
 
-    const leaveLobbyResponse = await new Go_WsEventManager<boolean, PlayerID>()
+    const leaveLobbyResponse = await new Go_WsEventManager<boolean, PlayerID>(socketClient as WebSocket)
       .setEventName('remove-player')
       .setEventHandlerName('deleted-player')
       .setEventData(playerID)

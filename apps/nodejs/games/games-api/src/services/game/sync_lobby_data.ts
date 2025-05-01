@@ -4,6 +4,7 @@ import { InstanceOfGame } from '@aklapper/models';
 import type { AllGameTypes, ClientLobbyData, IBuiltGame } from '@aklapper/types';
 import { getCurrentMinute } from '@aklapper/utils';
 import ShortUniqueId from 'short-unique-id';
+import { socketClient } from 'src/main.js';
 import Go_WsEventManager from 'src/models/go_websocket_manager.js';
 import games from '../../data/games-list.js';
 import gamesInLobby from '../../data/games_in_lobby/games_in_lobby.js';
@@ -15,7 +16,7 @@ export default async function syncWithGoLobby() {
 
   const lobbySyncWsId = new ShortUniqueId().rnd(6);
 
-  const lobbySyncData = await new Go_WsEventManager<ClientLobbyData>()
+  const lobbySyncData = await new Go_WsEventManager<ClientLobbyData>(socketClient as WebSocket)
     .setEventName('data-sync-request')
     .setEventHandlerName('data-sync-response')
     .setPendingRequestKey(lobbySyncWsId)

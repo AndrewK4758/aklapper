@@ -1,6 +1,6 @@
 import type { WsEvent } from '@aklapper/types';
 import { pendingRequests, type PromiseCallbackMap } from 'src/data/promise_callback_map/promise_callback_map.js';
-import { socketClient } from 'src/main.js';
+// import { socketClient } from 'src/main.js';
 import { fileURLToPath } from 'url';
 import buildWsEvent from './build_go_event.js';
 import go_websocketEvent from './go_websocket_event.js';
@@ -22,7 +22,7 @@ export default class Go_WsEventManager<RT, DT = RT> implements IGo_WsEventManage
   #EventHandlerName!: string;
   #EventData!: DT;
   #Key!: string;
-  constructor() {
+  constructor(socketClient: WebSocket) {
     this.#PendingRequests = pendingRequests;
     this.#SocketClient = socketClient;
     this.#ResolveRejectObj = { resolve: () => ({}), reject: () => ({}) };
