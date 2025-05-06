@@ -18,7 +18,6 @@ const enterLobby: SocketCallback = (event: string, socket: Socket) => {
       if (player) {
         player.socketIoId = data.socketIoId;
         player.inLobby = true;
-        activePlayers.addPlayer(player.id, player);
       } else {
         player = new Player(data.name, data.id, data.email);
         player.socketIoId = data.socketIoId;

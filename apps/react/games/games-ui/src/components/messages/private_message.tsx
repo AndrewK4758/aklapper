@@ -9,23 +9,23 @@ import DialogTitle from '@mui/material/DialogTitle';
 import FormControl from '@mui/material/FormControl';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import { useContext, useState, type Dispatch, type SetStateAction } from 'react';
+import { MessageContext, type MessagesContextProps } from '../../context/messages_context';
 import { WebsocketContext, type WebsocketContextProps } from '../../context/websocket_context';
 
 interface PrivateMessageModalProps {
   open: boolean;
   messageTarget: PrivateMessageDetails | null;
   setOpen: Dispatch<SetStateAction<boolean>>;
-  setMessages: Dispatch<SetStateAction<PrivateMessageDetails[]>>;
 }
 
-export default function PrivateMessageModal({ open, messageTarget, setOpen, setMessages }: PrivateMessageModalProps) {
+export default function PrivateMessageModal({ open, messageTarget, setOpen }: PrivateMessageModalProps) {
   const { socket } = useContext<WebsocketContextProps>(WebsocketContext);
+  const { addMessage } = useContext<MessagesContextProps>(MessageContext);
   const [message, setMessage] = useState<string>('');
-
   return (
     <Dialog open={open} slotProps={{ paper: { component: 'form' } }}>
       <DialogTitle sx={{ textAlign: 'center' }}>Private Message</DialogTitle>
-      <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         <DialogContentText color='primary'>{`To: ${messageTarget?.target.targetName}`}</DialogContentText>
         <FormControl>
           <Label
@@ -36,11 +36,9 @@ export default function PrivateMessageModal({ open, messageTarget, setOpen, setM
             placement={'top'}
             htmlFor={`${messageTarget?.target.targetName}-message`}
             tooltipSx={{ color: 'ButtonText', backgroundColor: 'GrayText', fontSize: '1rem' }}
-            labelTextSx={{ color: '#ffd300' }}
           />
           <OutlinedInput
             autoFocus
-            margin='dense'
             name='message'
             type='text'
             label='Message'
@@ -48,7 +46,6 @@ export default function PrivateMessageModal({ open, messageTarget, setOpen, setM
             multiline
             id={`${messageTarget?.target.targetName}-message`}
             onChange={e => setMessage(e.target.value)}
-            sx={{ borderRadius: 1 }}
           />
         </FormControl>
       </DialogContent>
@@ -59,14 +56,11 @@ export default function PrivateMessageModal({ open, messageTarget, setOpen, setM
         <Button
           id='send-message-button'
           onClick={() => {
-            const { sender, target } = messageTarget as PrivateMessageDetails;
-            (messageTarget as PrivateMessageDetails).message = message;
-            setMessages(prev => [...prev, messageTarget as PrivateMessageDetails]);
-            socket.emit('private-message-player', {
-              target: target,
-              message: message,
-              sender: sender,
-            });
+            if (messageTarget) {
+              messageTarget.message = message;
+              addMessage(messageTarget);
+              socket.emit('private-message-player', messageTarget);
+            }
             setOpen(false);
           }}
         >

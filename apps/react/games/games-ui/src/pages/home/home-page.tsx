@@ -6,7 +6,6 @@ import Container from '@mui/material/Container';
 import Divider from '@mui/material/Divider';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
-import type { SxProps } from '@mui/material/styles';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import { useState } from 'react';
@@ -60,8 +59,8 @@ const Home = () => {
             <Tab label={'Register'} tabIndex={1} {...tabProps(0)} />
             <Tab label={'Login'} tabIndex={2} {...tabProps(1)} />
           </Tabs>
-          <RegisterPlayer method={'POST'} index={0} tab={tab} inputSx={registerPlayerFormSxProps} />
-          <LoginPlayer method='POST' index={1} tab={tab} inputSx={registerPlayerFormSxProps} />
+          <RegisterPlayer method={'POST'} index={0} tab={tab} />
+          <LoginPlayer method='POST' index={1} tab={tab} />
         </Container>
       </Box>
     </Box>
@@ -70,8 +69,8 @@ const Home = () => {
 
 export default Home;
 
-const registerPlayerFormSxProps: SxProps = {
-  width: '100%',
-};
+// const registerPlayerFormSxProps: SxProps = {
+//   width: '100%',
+// };
 
 const tabProps = (index: number) => ({ id: `simple-tab-${index}`, 'aria-controls': `simple-tabpanel-${index}` });

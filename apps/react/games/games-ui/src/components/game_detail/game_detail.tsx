@@ -8,10 +8,11 @@ import CardActionArea from '@mui/material/CardActionArea';
 import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
+import Container from '@mui/material/Container';
 import Grid from '@mui/material/Grid';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
-import { useContext, useState, type Dispatch, type SetStateAction } from 'react';
+import { useContext, type Dispatch, type SetStateAction } from 'react';
 import type { Socket } from 'socket.io-client';
 import ActivePlayerContext, { type ActivePlayerContextProps } from '../../context/active-player-context';
 import { WebsocketContext, type WebsocketContextProps } from '../../context/websocket_context';
@@ -21,49 +22,59 @@ export interface GameDetailProps {
   setOpen: Dispatch<SetStateAction<boolean>>;
   setSelectedGame: Dispatch<SetStateAction<IBuiltGame | null>>;
   activeGames: GameInstanceLobbyData[];
+  joinedGame: string | null;
+  setJoinedGame: Dispatch<SetStateAction<string | null>>;
 }
 
-export default function GameDetail({ game, setOpen, setSelectedGame, activeGames }: GameDetailProps) {
+export default function GameDetail({
+  game,
+  setOpen,
+  setSelectedGame,
+  activeGames,
+  joinedGame,
+  setJoinedGame,
+}: GameDetailProps) {
   const { socket } = useContext<WebsocketContextProps>(WebsocketContext);
   const { activePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
-  const [joinedGame, setJoinedGame] = useState<string | null>(null);
+
   const title = game.name;
   const icon = `/icons/${game.name.replace(/ /g, '-').toLowerCase()}-icon.svg`;
   return (
-    <Grid component={'div'} key={`${title}-wrapper`} flex={1} height={'fit-content'}>
+    <Grid component={'div'} key={`${title}-wrapper`} flex={1} height={'100%'}>
       <Card
         component={'div'}
         key={title}
         sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', height: '100%' }}
       >
-        <CardActionArea
-          id={`${title}-clickable-header`}
-          onClick={() => handleOpenGame(game, setOpen, setSelectedGame)}
-          sx={{}}
-        >
-          <CardHeader
-            avatar={<Avatar src={icon} />}
-            title={title}
-            subheader={
-              game.players.min === game.players.max
-                ? `Players: ${game.players.min}`
-                : `Players: ${game.players.min}-${game.players.max}`
-            }
-            slotProps={{
-              title: { variant: 'h3' },
-              subheader: { variant: 'body1' },
-              avatar: {},
-            }}
-            sx={{ alignItems: 'flex-start' }}
-          />
-        </CardActionArea>
+        <Container>
+          <CardActionArea
+            id={`${title}-clickable-header`}
+            onClick={() => handleOpenGame(game, setOpen, setSelectedGame)}
+          >
+            <CardHeader
+              avatar={<Avatar src={icon} />}
+              title={title}
+              subheader={
+                game.players.min === game.players.max
+                  ? `Players: ${game.players.min}`
+                  : `Players: ${game.players.min}-${game.players.max}`
+              }
+              slotProps={{
+                title: { variant: 'h3' },
+                subheader: { variant: 'body1' },
+                avatar: {},
+              }}
+              sx={{ alignItems: 'flex-start' }}
+            />
+          </CardActionArea>
+        </Container>
         <CardContent sx={{ padding: 1, maxHeight: 'fit-content' }}>
           <Text
-            titleVariant='h6'
+            titleVariant='body1'
             titleText='Active Games'
             component={'p'}
             TypogrpahyProps={{ color: 'info' }}
-            sx={{ textAlign: 'left', fontFamily: 'monospace' }}
+            sx={{ textAlign: 'left' }}
           />
           <RenderList<GameInstanceLobbyData>
             data={activeGames}
@@ -144,27 +155,41 @@ const activeGamesCallback = (
           }
           slotProps={{ primary: { variant: 'h6', sx: { fontSize: 'inherit' } }, secondary: { component: 'span' } }}
         />
+        {!joinedGame && (
+          <Button
+            key={`${game.name}-${instance.gameInstanceID}-button`}
+            variant='outlined'
+            name={game.name}
+            type='submit'
+            onMouseDown={() => {
+              setJoinedGame(instance.gameInstanceID);
+              const exists = instance.playersArray.find(p => p.id === activePlayer.id);
 
-        <Button
-          key={`${game.name}-${instance.gameInstanceID}-button`}
-          variant='outlined'
-          name={game.name}
-          type='submit'
-          onMouseDown={() => {
-            setJoinedGame(instance.gameInstanceID);
-            const exists = instance.playersArray.find(p => p.id === activePlayer.id);
-
-            if (!exists && !joinedGame)
-              socket.emit('join-game', {
-                gameId: instance.gameInstanceID,
-                joiningPlayer: activePlayer,
-              } as JoinGameData);
-            else alert('You already joined the game');
-          }}
-          sx={{ p: 0, fontSize: 'inherit' }}
-        >
-          Join
-        </Button>
+              if (!exists && !joinedGame)
+                socket.emit('join-game', {
+                  gameId: instance.gameInstanceID,
+                  joiningPlayer: activePlayer,
+                } as JoinGameData);
+              else alert('You already joined the game');
+            }}
+            sx={{ p: 0, fontSize: 'inherit' }}
+          >
+            Join
+          </Button>
+        )}
+        {joinedGame && (
+          <Button
+            key={`${game.name}-${instance.gameInstanceID}-ready-to-play-button`}
+            variant='outlined'
+            type='submit'
+            onClick={() => {
+              console.log('ready clicked');
+            }}
+            sx={{ p: 0, fontSize: 'inherit' }}
+          >
+            Ready
+          </Button>
+        )}
       </Box>
     </ListItem>
   ) : null;

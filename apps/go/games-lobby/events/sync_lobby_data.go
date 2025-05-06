@@ -42,4 +42,5 @@ func HandleSyncLobbyData(ws *websocket.Conn, msgData lobbydata.WsMessage) {
 	if err != nil {
 		fmt.Printf("\nError sending data-sync-response: %v\n", err)
 	}
+
 }

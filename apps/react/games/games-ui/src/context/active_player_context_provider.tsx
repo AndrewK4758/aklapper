@@ -2,8 +2,6 @@ import type { IPlayerClientData } from '@aklapper/types';
 import { useState, type ReactNode } from 'react';
 import ActivePlayerContext from './active-player-context';
 
-const savedPlayer = localStorage.getItem('activePlayer');
-
 const activePlayerDefault: IPlayerClientData = {
   name: '',
   id: '',
@@ -14,16 +12,20 @@ const activePlayerDefault: IPlayerClientData = {
   socketIoId: undefined,
 };
 
-const activePlayerInit: IPlayerClientData = savedPlayer
-  ? (JSON.parse(savedPlayer) as IPlayerClientData)
-  : activePlayerDefault;
-
 interface ActivePlayerContextProviderProps {
   children?: ReactNode;
 }
 
 export default function ActivePlayerContextProvider({ children }: ActivePlayerContextProviderProps) {
-  const [activePlayer, setActivePlayer] = useState<IPlayerClientData>(activePlayerInit);
+  const [activePlayer, setActivePlayer] = useState<IPlayerClientData>(() => {
+    const savedPlayer = localStorage.getItem('activePlayer');
+
+    const activePlayerInit: IPlayerClientData = savedPlayer
+      ? (JSON.parse(savedPlayer) as IPlayerClientData)
+      : activePlayerDefault;
+
+    return activePlayerInit;
+  });
 
   const deleteActivePlayer = () => {
     localStorage.removeItem('activePlayer');

@@ -9,14 +9,13 @@ import type {
 } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Container from '@mui/material/Container';
 import Divider from '@mui/material/Divider';
 import { useContext, useEffect, useState, type Dispatch, type ReactElement, type SetStateAction } from 'react';
-import { useNavigate, useRouteLoaderData } from 'react-router';
+import { useRouteLoaderData } from 'react-router';
 import PrivateMessageModal from '../../components/messages/private_message';
 import ActivePlayerContext, { type ActivePlayerContextProps } from '../../context/active-player-context';
+import { MessageContext, type MessagesContextProps } from '../../context/messages_context';
 import { WebsocketContext, type WebsocketContextProps } from '../../context/websocket_context';
-import WebsocketContextProvider from '../../context/websocket_context_provider';
 import GamesList from '../games_list';
 
 // Components of lobby
@@ -43,16 +42,13 @@ import GamesList from '../games_list';
 export default function Lobby() {
   const { activeGamesInLobby, activePlayersInLobby } = useRouteLoaderData('lobby') as ClientLobbyData;
   const { activePlayer, setActivePlayer, removeFromLobby } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
-
+  const { addMessage, messages } = useContext<MessagesContextProps>(MessageContext);
   const { socket } = useContext<WebsocketContextProps>(WebsocketContext);
 
   const [activeLobby, setActiveLobby] = useState<IPlayerClientData[]>(activePlayersInLobby);
-  const [messages, setMessages] = useState<PrivateMessageDetails[]>([]);
   const [openMessage, setOpenMessage] = useState<boolean>(false);
   const [messageTarget, setMessageTarget] = useState<PrivateMessageDetails | null>(null);
   const [activeGames, setActiveGames] = useState<GameInstanceLobbyData[]>(activeGamesInLobby);
-
-  const nav = useNavigate();
 
   useEffect(() => {
     if (!socket.connected && activePlayer.name) {
@@ -71,13 +67,13 @@ export default function Lobby() {
         setActiveLobby(prevLobby => {
           const playerExists = prevLobby.find(p => p.id === newPlayer.id);
 
-          if (playerExists) return [...prevLobby];
-          else return [...prevLobby, newPlayer];
+          if (!playerExists) return [...prevLobby, newPlayer];
+          else return prevLobby;
         });
       });
 
       socket.on('private-message', (message: PrivateMessageDetails) => {
-        setMessages(prev => [...prev, message]);
+        addMessage(message);
       });
 
       socket.on('deleted-player', (playerId: PlayerID) => {
@@ -116,64 +112,57 @@ export default function Lobby() {
   }, []);
 
   return (
-    <WebsocketContextProvider key={'lobby-websocket-provider'}>
+    <>
       <Box component={'div'} key={'lobby'} id='lobby-wrapper' flex={1} display={'flex'} flexDirection={'column'}>
-        <Box component={'section'} id='lobby-header-wrapper' display={'flex'} flexGrow={0} alignItems={'flex-end'}>
-          <Box component={'section'} id='players-in-lobby-wrapper' flex={1} textAlign={'center'}>
-            <Text titleText={'Active Players'} titleVariant='h2' component={'h2'} />
-            <Divider />
+        <Box component={'section'} id='lobby-header-wrapper' display={'flex'} alignItems={'flex-end'}>
+          <Box component={'section'} id='players-in-lobby-wrapper' flex={'0 1 27%'} textAlign={'left'}>
+            <Text titleText={'Players'} titleVariant='h2' component={'h2'} sx={{ paddingLeft: 4 }} />
           </Box>
-          <Box component={'section'} id='game-list-title-wrapper' flex={2.5} textAlign={'center'}>
-            <Text component={'h2'} titleVariant='h2' titleText={'Games'} />
-            <Divider />
-          </Box>
-          <Box component={'section'} id='lobby-messages-wrapper' flex={1.5} textAlign={'center'}>
-            <Text titleText='Messages' titleVariant='h2' component={'h2'} />
-            <Divider />
+          <Box component={'section'} id='game-list-title-wrapper' flex={'0 1 73%'}>
+            <Text component={'h2'} titleVariant='h2' titleText={'Games'} sx={{ textAlign: 'center' }} />
           </Box>
         </Box>
+        <Divider />
 
-        <Box component={'section'} id='lobby-data-wrapper' display={'flex'} flex={1} minHeight={'fit-content'}>
-          <Box component={'section'} id='players-in-lobby-list-wrapper' sx={{ flex: 1 }}>
-            <RenderList<IPlayerClientData>
-              data={activeLobby}
-              listMapCallback={(e, i, arr) =>
-                playersMapCallback(e, i, arr, activePlayer, setOpenMessage, setMessageTarget)
-              }
-            />
-          </Box>
-          <Divider orientation='vertical' flexItem />
-          <Box
-            component={'section'}
-            id='active-games-not-started-wrapper'
-            flex={2.5}
-            sx={{ display: 'flex', flexDirection: 'column' }}
-          >
-            <GamesList activeGames={activeGames} />
-            <Box sx={{ alignSelf: 'flex-end', display: 'flex', paddingRight: 2 }}>
-              <Button
-                onClick={() => {
-                  nav('/', { replace: true });
-                }}
-              >
-                Leave Lobby
-              </Button>
+        <Box component={'section'} id='lobby-data-wrapper' display={'flex'} flexDirection={'column'} flex={1}>
+          <Divider textAlign='left' flexItem orientation='vertical' />
+          <Box display={'flex'} flex={1}>
+            <Box component={'section'} id='players-wrapper' flex={'0 1 27%'} display={'flex'} flexDirection={'column'}>
+              <RenderList<IPlayerClientData>
+                data={activeLobby}
+                listMapCallback={(e, i, arr) =>
+                  playersMapCallback(e, i, arr, activePlayer, setOpenMessage, setMessageTarget)
+                }
+              />
+            </Box>
+
+            <Box
+              component={'section'}
+              id='active-games-not-started-wrapper'
+              flex={1}
+              sx={{ display: 'flex', flexDirection: 'column' }}
+            >
+              <GamesList activeGames={activeGames} />
             </Box>
           </Box>
-          <Divider textAlign='left' orientation='vertical' flexItem />
 
-          <Box component={'section'} id='lobby-messages' flex={1.5}>
-            {messages.map(messagesListCallback)}
+          <Box component={'section'} id='lobby-messages-wrapper' flex={4} display={'flex'} flexDirection={'column'}>
+            <Text titleText='Messages' titleVariant='h2' component={'h2'} sx={{ textAlign: 'left', paddingLeft: 4 }} />
+            <RenderList<PrivateMessageDetails>
+              data={messages}
+              listMapCallback={e => messagesListCallback(e, activePlayer)}
+            />
           </Box>
         </Box>
       </Box>
+
       <PrivateMessageModal
         open={openMessage}
         setOpen={setOpenMessage}
         messageTarget={messageTarget}
-        setMessages={setMessages}
+        // setMessages={setMessages}
       />
-    </WebsocketContextProvider>
+    </>
   );
 }
 
@@ -192,9 +181,21 @@ function playersMapCallback(
       component={'section'}
       id={`active-player-${name}-${id}-wrapper`}
       key={`active-player-${name}-${id}-wrapper`}
-      sx={{ borderBottom: 2, display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}
+      sx={{
+        borderBottom: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 1.5,
+      }}
     >
-      <Text key={`${name}-${id}`} titleText={name} titleVariant='body1' component={'p'} sx={{}} />
+      <Text
+        key={`${name}-${id}`}
+        titleText={name}
+        titleVariant='body1'
+        component={'p'}
+        sx={{ textAlign: 'left', fontSize: '1.5rem' }}
+      />
       {id !== currentPlayer.id && (
         <Button
           LinkComponent={'button'}
@@ -237,32 +238,43 @@ async function handleMessageClick(
   setMessageTarget(messageDetails);
 }
 
-function messagesListCallback({ message, target, sender }: PrivateMessageDetails) {
+function messagesListCallback({ message, target, sender }: PrivateMessageDetails, activePlayer: IPlayerClientData) {
   return (
-    <Container
+    <Box
       component={'section'}
-      id={`${target.targetId}-${message}-wrapper`}
-      key={`${message}-wrapper`}
-      sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', borderBottom: 2 }}
+      key={`${activePlayer.id}-${message}`}
+      id='lobby-messages'
+      sx={{
+        display: 'flex',
+        justifyContent: activePlayer.id === sender.senderId ? 'flex-start' : 'flex-end',
+        alignContent: 'center',
+      }}
     >
-      <Box component={'section'} flex={1} textAlign={'right'}>
-        <Text
-          component={'span'}
-          titleText={sender.senderName}
-          titleVariant={'body2'}
-          key={`${sender.senderName}-${message}`}
-          sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}
-        />
+      <Box
+        component={'section'}
+        id={`${target.targetId}-${message}-wrapper`}
+        key={`${message}-wrapper`}
+        sx={{
+          flex: '0 1 95%',
+          padding: 1.5,
+          display: 'flex',
+        }}
+      >
+        <Divider orientation='vertical' textAlign='left' />
+        <Box component={'section'} flex={1} textAlign={'left'} sx={{ paddingLeft: 1 }}>
+          <Text
+            component={'span'}
+            titleText={sender.senderName}
+            titleVariant={'body1'}
+            key={`${sender.senderName}-${message}`}
+          />
+        </Box>
+
+        <Box component={'section'} flex={5} textAlign={'right'} sx={{ paddingRight: 1 }}>
+          <Text component={'span'} titleVariant={'body1'} key={`${message}`} titleText={message} />
+        </Box>
+        <Divider orientation='vertical' textAlign='right' />
       </Box>
-      <Box component={'section'} flex={5} textAlign={'right'}>
-        <Text
-          component={'span'}
-          titleVariant={'subtitle1'}
-          key={`${message}`}
-          titleText={message}
-          sx={{ fontFamily: 'monospace' }}
-        />
-      </Box>
-    </Container>
+    </Box>
   );
 }

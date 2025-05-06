@@ -49,7 +49,7 @@ interface RegisterPlayerProps {
   method: 'GET' | 'POST' | 'DELETE' | 'PUT' | 'PATCH' | httpMethod;
   index: number;
   tab: number;
-  inputSx: SxProps;
+  inputSx?: SxProps;
   ContainerProps?: ContainerProps;
 }
 
@@ -85,14 +85,20 @@ export default function RegisterPlayer({ method, index, tab, inputSx, ContainerP
       id={`simple-tabpanel-${index}`}
       aria-labelledby={`simple-tab-${index}`}
       hidden={tab !== index}
+      sx={{ height: '100%' }}
     >
       <Form
         method={method}
         onSubmit={formik.handleSubmit}
         onReset={formik.handleReset}
-        style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+        }}
       >
-        <FormControl>
+        <FormControl sx={{ flex: '1 0 33%' }}>
           <Label
             tooltipTitle={'Enter email here. This will be used for future logins and resuming games'}
             labelVariant={'body2'}
@@ -101,6 +107,7 @@ export default function RegisterPlayer({ method, index, tab, inputSx, ContainerP
             placement={'top'}
             htmlFor={'register-email'}
             tooltipSx={tooltipSx}
+            labelWrapperDivSxProps={{}}
           />
           <OutlinedInput
             autoComplete='on'
@@ -121,7 +128,7 @@ export default function RegisterPlayer({ method, index, tab, inputSx, ContainerP
             helperTextSx={errorTextSx(formik.errors.email as string)}
           />
         </FormControl>
-        <FormControl>
+        <FormControl sx={{ flex: '1 0 33%' }}>
           <Label
             tooltipTitle={`Enter your player name here. Then submit to enter lobby.`}
             labelVariant={'body2'}
@@ -130,7 +137,9 @@ export default function RegisterPlayer({ method, index, tab, inputSx, ContainerP
             placement={'top'}
             htmlFor={'register-name'}
             tooltipSx={tooltipSx}
+            labelWrapperDivSxProps={{}}
           />
+
           <OutlinedInput
             autoComplete='on'
             id={'register-name'}
@@ -149,7 +158,7 @@ export default function RegisterPlayer({ method, index, tab, inputSx, ContainerP
             helperTextSx={errorTextSx(formik.errors.name as string)}
           />
         </FormControl>
-        <ButtonGroup sx={{ justifyContent: 'space-between' }}>
+        <ButtonGroup sx={{ flex: '0 1 20%', justifyContent: 'space-between' }}>
           <Button type='submit' variant='outlined' id='register-player-button' fullWidth>
             Register
           </Button>

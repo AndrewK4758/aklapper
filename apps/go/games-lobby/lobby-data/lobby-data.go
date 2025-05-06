@@ -2,6 +2,7 @@ package lobbydata
 
 import (
 	"fmt"
+	"log"
 )
 
 /*
@@ -129,4 +130,25 @@ func AddGameToMap(newGame *ActiveGame) error {
 type ActiveLobbyData struct {
 	ActiveGamesInLobby   []ActiveGame   `json:"activeGamesInLobby,omitempty"`
 	ActivePlayersInLobby []ActivePlayer `json:"activePlayersInLobby,omitempty"`
+}
+
+func RemoveGameWithNoPlayersFromLobby(playerID string) {
+	for gameId, game := range GamesMap {
+		var idx int = 0
+		for _, player := range game.PlayersArray {
+			if playerID == player.Id {
+				if len(game.PlayersArray) == 1 {
+					game.PlayersArray = game.PlayersArray[:idx]
+				} else {
+					game.PlayersArray = append(game.PlayersArray[:idx], game.PlayersArray[:idx+1]...)
+				}
+			}
+			idx++
+		}
+		if len(game.PlayersArray) == 0 {
+			gameInstanceId := gameId
+			delete(GamesMap, gameInstanceId)
+		}
+	}
+	log.Println("Finished cleaning up players and games")
 }

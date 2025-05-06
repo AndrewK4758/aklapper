@@ -8,9 +8,10 @@ export interface RegisterGameProps {
   registerGameButtonSx: SxProps;
   gameName: string;
   setOpen: Dispatch<SetStateAction<boolean>>;
+  setJoinedGame: Dispatch<SetStateAction<string | null>>;
 }
 
-export default function RegisterGame({ gameName, registerGameButtonSx, setOpen }: RegisterGameProps) {
+export default function RegisterGame({ gameName, registerGameButtonSx, setOpen, setJoinedGame }: RegisterGameProps) {
   const { socket } = useContext<WebsocketContextProps>(WebsocketContext);
   const { activePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
 
@@ -18,6 +19,7 @@ export default function RegisterGame({ gameName, registerGameButtonSx, setOpen }
     <Button
       onClick={() => {
         socket.emit('create-new-game', { gameName, playerId: activePlayer.id });
+        setJoinedGame(gameName);
         setOpen(false);
       }}
       sx={registerGameButtonSx}

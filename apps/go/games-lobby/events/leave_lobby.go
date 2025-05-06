@@ -2,9 +2,9 @@ package events
 
 import (
 	lobbydata "apps/go/games-lobby/lobby-data"
-	"fmt"
+	fmt "fmt"
 
-	"github.com/gorilla/websocket"
+	websocket "github.com/gorilla/websocket"
 )
 
 func HandleLeaveLobby(ws *websocket.Conn, eventData lobbydata.WsMessage) {
@@ -39,4 +39,7 @@ func HandleLeaveLobby(ws *websocket.Conn, eventData lobbydata.WsMessage) {
 	}
 
 	ws.WriteJSON(event)
+
+	lobbydata.RemoveGameWithNoPlayersFromLobby(playerID)
+
 }

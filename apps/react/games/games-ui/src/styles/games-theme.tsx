@@ -88,16 +88,16 @@ export const GamesTheme = createTheme({
   typography: {
     fontFamily: 'Fira Mono',
     h1: {
-      fontFamily: 'Enter Command',
+      fontFamily: 'Enter Command Bold',
       color: __greyDark,
       fontSize: '6rem',
     },
     h2: {
-      fontFamily: 'Enter Command',
+      fontFamily: 'Jersey25',
       color: __secondaryLight,
     },
     h3: {
-      fontFamily: 'Pixel-Game',
+      fontFamily: 'Enter Command',
       color: __primaryMain,
     },
     h4: {

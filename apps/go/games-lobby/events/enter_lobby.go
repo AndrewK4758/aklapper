@@ -16,7 +16,6 @@ func HandleEnterLobby(ws *websocket.Conn, eventData lobbydata.WsMessage) {
 	jsonPlayer, err := json.Marshal(eventData.Data)
 	if err != nil {
 		fmt.Println("error marshalling ActivePlayer data: ", err)
-
 	}
 
 	err = json.Unmarshal(jsonPlayer, &activePlayer)
@@ -25,6 +24,7 @@ func HandleEnterLobby(ws *websocket.Conn, eventData lobbydata.WsMessage) {
 	}
 
 	err = lobbydata.AddPlayerToLobby(&activePlayer)
+
 	if err != nil {
 		fmt.Println("Error adding ActivePlayer to lobby. Error: ", err.Error())
 

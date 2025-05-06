@@ -5,14 +5,13 @@ import ButtonBase from '@mui/material/ButtonBase';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import { useContext, useRef, useState } from 'react';
-import { useLocation, useNavigate, type NavigateFunction } from 'react-router';
+import { useNavigate, type NavigateFunction } from 'react-router';
 import ActivePlayerContext, { type ActivePlayerContextProps } from '../../../context/active-player-context';
 import { __errorLight, __errorMain, __greyDark, __infoDark, __infoLight } from '../../../styles/colors';
 import { GamesTheme } from '../../../styles/games-theme';
 
 export function HeaderMenu() {
   const { activePlayer, deleteActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
-  const { pathname } = useLocation();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const menuItemTextRef = useRef<HTMLSpanElement[]>([]);
   const open = Boolean(anchorEl);
@@ -65,31 +64,30 @@ export function HeaderMenu() {
         }}
         sx={{ textAlign: 'center' }}
       >
-        {pathname !== '/lobby' && (
-          <MenuItem
-            divider={true}
-            component='li'
-            onClick={() => handleClick('/')}
-            sx={{ fontSize: '3rem' }}
-            onMouseEnter={() => {
-              if (menuItemTextRef.current) menuItemTextRef.current[0].style.color = __infoLight;
+        <MenuItem
+          divider={true}
+          component='li'
+          onClick={() => handleClick('/')}
+          sx={{ fontSize: '3rem' }}
+          onMouseEnter={() => {
+            if (menuItemTextRef.current) menuItemTextRef.current[0].style.color = __infoLight;
+          }}
+          onMouseLeave={() => {
+            if (menuItemTextRef.current) menuItemTextRef.current[0].style.color = __infoDark;
+          }}
+        >
+          <Text
+            titleVariant='h4'
+            component={'h4'}
+            titleText={'HOME'}
+            TypogrpahyProps={{
+              ref: e => {
+                if (e) menuItemTextRef.current[0] = e;
+              },
             }}
-            onMouseLeave={() => {
-              if (menuItemTextRef.current) menuItemTextRef.current[0].style.color = __infoDark;
-            }}
-          >
-            <Text
-              titleVariant='h4'
-              component={'h4'}
-              titleText={'HOME'}
-              TypogrpahyProps={{
-                ref: e => {
-                  if (e) menuItemTextRef.current[0] = e;
-                },
-              }}
-            />
-          </MenuItem>
-        )}
+          />
+        </MenuItem>
+
         <MenuItem
           divider={true}
           component='li'

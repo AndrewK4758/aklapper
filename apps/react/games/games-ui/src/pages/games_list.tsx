@@ -16,7 +16,8 @@ const GamesList = ({ activeGames }: GamesListProps) => {
   const games = useRouteLoaderData('gameList') as IBuiltGame[];
   const [open, setOpen] = useState<boolean>(false);
   const [selectedGame, setSelectedGame] = useState<IBuiltGame | null>(null);
-
+  const [joinedGame, setJoinedGame] = useState<string | null>(null);
+  console.log(joinedGame);
   return (
     <>
       <Grid
@@ -25,16 +26,17 @@ const GamesList = ({ activeGames }: GamesListProps) => {
         columnSpacing={2}
         sx={{
           p: 2,
-
           height: '100%',
         }}
       >
         <RenderList<IBuiltGame>
           data={games}
-          listMapCallback={(e, i, arr) => listGamesMap(e, i, arr, setOpen, setSelectedGame, activeGames)}
+          listMapCallback={(e, i, arr) =>
+            listGamesMap(e, i, arr, setOpen, setSelectedGame, activeGames, joinedGame, setJoinedGame)
+          }
         />
       </Grid>
-      <GameDetails open={open} setOpen={setOpen} selectedGame={selectedGame} />
+      <GameDetails open={open} setOpen={setOpen} selectedGame={selectedGame} setJoinedGame={setJoinedGame} />
     </>
   );
 };
@@ -48,6 +50,8 @@ const listGamesMap = (
   setOpen: Dispatch<SetStateAction<boolean>>,
   setSelectedGame: Dispatch<SetStateAction<IBuiltGame | null>>,
   activeGames: GameInstanceLobbyData[],
+  joinedGame: string | null,
+  setJoinedGame: Dispatch<SetStateAction<string | null>>,
 ) => {
   return (
     <GameDetail
@@ -56,6 +60,8 @@ const listGamesMap = (
       setOpen={setOpen}
       setSelectedGame={setSelectedGame}
       activeGames={activeGames}
+      joinedGame={joinedGame}
+      setJoinedGame={setJoinedGame}
     />
   );
 };

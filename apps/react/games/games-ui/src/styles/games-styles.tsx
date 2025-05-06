@@ -162,7 +162,6 @@ export const breakpointsBottomMenuButtonsBox: SxProps = {
 export const tooltipSx: SxProps = {
   color: Theme.palette.primary.main,
   backgroundColor: Theme.palette.background.paper,
-  fontFamily: 'monospace',
 };
 
 export const errorTextSx = (error: string): SxProps => {

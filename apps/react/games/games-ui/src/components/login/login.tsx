@@ -36,7 +36,7 @@ interface RegisterPlayerProps {
   method: 'GET' | 'POST' | 'DELETE' | 'PUT' | 'PATCH' | httpMethod;
   index: number;
   tab: number;
-  inputSx: SxProps;
+  inputSx?: SxProps;
   ContainerProps?: ContainerProps;
 }
 
@@ -71,14 +71,20 @@ export default function LoginPlayer({ method, index, tab, inputSx, ContainerProp
       id={`simple-tabpanel-${index}`}
       aria-labelledby={`simple-tab-${index}`}
       hidden={tab !== index}
+      sx={{ height: '100%' }}
     >
       <Form
         method={method}
         onSubmit={formik.handleSubmit}
         onReset={formik.handleReset}
-        style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+        }}
       >
-        <FormControl>
+        <FormControl sx={{ flex: '0 1 33%' }}>
           <Label
             tooltipTitle={'Enter email here. This will be used for future logins and resuming games'}
             labelVariant={'body2'}
@@ -87,6 +93,7 @@ export default function LoginPlayer({ method, index, tab, inputSx, ContainerProp
             placement={'top'}
             htmlFor={'login-email'}
             tooltipSx={tooltipSx}
+            labelWrapperDivSxProps={{}}
           />
           <OutlinedInput
             autoComplete='on'
@@ -108,7 +115,7 @@ export default function LoginPlayer({ method, index, tab, inputSx, ContainerProp
           />
         </FormControl>
 
-        <ButtonGroup sx={{ justifyContent: 'space-between' }}>
+        <ButtonGroup sx={{ flex: '0 1 20%', justifyContent: 'space-between' }}>
           <Button type='submit' variant='outlined' id='register-player-button' fullWidth>
             Login
           </Button>
