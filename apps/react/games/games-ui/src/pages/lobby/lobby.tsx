@@ -41,9 +41,9 @@ import GamesList from '../games_list';
 
 export default function Lobby() {
   const { activeGamesInLobby, activePlayersInLobby } = useRouteLoaderData('lobby') as ClientLobbyData;
-  const { activePlayer, setActivePlayer, removeFromLobby } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
+  const { activePlayer, addActivePlayer, removeFromLobby } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
   const { addMessage, messages } = useContext<MessagesContextProps>(MessageContext);
-  const { socket } = useContext<WebsocketContextProps>(WebsocketContext);
+  const { addExtraHeaders, socket } = useContext<WebsocketContextProps>(WebsocketContext);
 
   const [activeLobby, setActiveLobby] = useState<IPlayerClientData[]>(activePlayersInLobby);
   const [openMessage, setOpenMessage] = useState<boolean>(false);
@@ -51,62 +51,77 @@ export default function Lobby() {
   const [activeGames, setActiveGames] = useState<GameInstanceLobbyData[]>(activeGamesInLobby);
 
   useEffect(() => {
-    if (!socket.connected && activePlayer.name) {
+    if (!socket.connected && activePlayer.id) {
+      addExtraHeaders(activePlayer.id);
       socket.connect();
 
       socket.on('connect', () => {
         console.log(`Websocket Connected to path: /lobby with id: ${socket.id}`);
-        activePlayer.socketIoId = socket.id;
-
-        setActivePlayer({ ...activePlayer });
+        activePlayer.inLobby = true;
+        activePlayer.socketIoId = socket.id as string;
+        addActivePlayer({ ...activePlayer });
       });
 
       socket.emit('enter-lobby', activePlayer);
 
       socket.on('new-player', (newPlayer: IPlayerClientData) => {
-        setActiveLobby(prevLobby => {
-          const playerExists = prevLobby.find(p => p.id === newPlayer.id);
-
-          if (!playerExists) return [...prevLobby, newPlayer];
-          else return prevLobby;
-        });
+        addActivePlayer(newPlayer);
+        setActiveLobby(prevLobby =>
+          !prevLobby.some(p => p.id === newPlayer.id) ? [...prevLobby, newPlayer] : [...prevLobby],
+        );
       });
 
       socket.on('private-message', (message: PrivateMessageDetails) => {
+        console.log(message);
         addMessage(message);
       });
 
       socket.on('deleted-player', (playerId: PlayerID) => {
-        setActiveLobby(prevLobby => {
-          return [...prevLobby.filter(p => p.id !== playerId)];
-        });
+        setActiveLobby(prevLobby => [...prevLobby.filter(p => p.id !== playerId)]);
       });
 
       socket.on('new-game', ({ gameInstanceID, gameName, playersArray, inLobby }: GameInstanceLobbyData) => {
-        activePlayer.activeGameID = gameInstanceID;
-        setActivePlayer({ ...activePlayer });
-        setActiveGames(prevGamesLobby => {
-          const exists = prevGamesLobby.some(p => p.gameInstanceID === gameInstanceID);
-
-          if (!exists) return [...prevGamesLobby, { gameInstanceID, gameName, inLobby, playersArray }];
-          else return [...prevGamesLobby];
-        });
+        sessionStorage.setItem('joined-game', JSON.stringify({ joinedGameId: gameInstanceID }));
+        addActivePlayer({ ...activePlayer, activeGameID: gameInstanceID });
+        setActiveGames(prevGamesLobby =>
+          !prevGamesLobby.some(g => g.gameInstanceID === gameInstanceID)
+            ? [...prevGamesLobby, { gameInstanceID, gameName, playersArray, inLobby }]
+            : [...prevGamesLobby],
+        );
       });
 
       socket.on('player-joined', ({ gameId, joiningPlayer }: JoinGameData) => {
         setActiveGames(prevGamesLobby => {
+          //find the game instance players array in the prev state
           const gameToUpdate = prevGamesLobby.find(g => g.gameInstanceID === gameId);
-          if (gameToUpdate) gameToUpdate.playersArray.push(joiningPlayer);
-          return [...prevGamesLobby];
+          if (gameToUpdate) {
+            //add the player to the players array for game instance
+            gameToUpdate.playersArray = [...gameToUpdate.playersArray, joiningPlayer];
+
+            //filter the game out of the prev lobby state in order to re add it with the updated players array
+            //this is done in order to keep the entire game instance as state objects. if i broke up the players
+            // array from the instance, i would need to manage a sync between player array state and game instance state
+            const newGameLobby = prevGamesLobby.filter(g => g.gameInstanceID !== gameId);
+
+            //add the updated game back to the active games state
+            return [...newGameLobby, gameToUpdate];
+            //if no game instance found in the prev state, do nothing
+          } else return [...prevGamesLobby];
         });
+      });
+
+      socket.on('disconnect', () => {
+        console.log('disconnecting');
       });
     }
     return () => {
+      console.log('cleanup called');
       if (socket.connected) {
         socket.emit('remove-player', activePlayer.id);
         removeFromLobby();
         socket.disconnect();
         socket.removeAllListeners();
+        sessionStorage.removeItem('joined-game');
       }
     };
   }, []);
@@ -156,12 +171,7 @@ export default function Lobby() {
         </Box>
       </Box>
 
-      <PrivateMessageModal
-        open={openMessage}
-        setOpen={setOpenMessage}
-        messageTarget={messageTarget}
-        // setMessages={setMessages}
-      />
+      <PrivateMessageModal open={openMessage} setOpen={setOpenMessage} messageTarget={messageTarget} />
     </>
   );
 }

@@ -1,9 +1,9 @@
 import type { IPlayerClientData } from '@aklapper/types';
-import { createContext, type Dispatch, type SetStateAction } from 'react';
+import { createContext } from 'react';
 
 export interface ActivePlayerContextProps {
   activePlayer: IPlayerClientData;
-  setActivePlayer: Dispatch<SetStateAction<IPlayerClientData>>;
+  addActivePlayer: (activePlayer: IPlayerClientData) => void;
   deleteActivePlayer: () => void;
   removeFromLobby: () => void;
 }

@@ -9,15 +9,19 @@ import Header from '../header/header';
 
 const Layout = () => (
   <ActivePlayerContextProvider>
-    <Header />
-    <WebsocketContextProvider key={'lobby-websocket-provider'}>
-      <MessageContextProvider key={'messages-provider'}>
+    <MessageContextProvider key={'messages-provider'}>
+      <Header />
+      <WebsocketContextProvider key={'lobby-websocket-provider'}>
         <Container component={'main'} key={'main-container'} id='main-wrapper' maxWidth={false} sx={breakpointsMain}>
           <Outlet />
         </Container>
-      </MessageContextProvider>
-    </WebsocketContextProvider>
-    <Footer component={'footer'} breakpointsFooter={breakpointsFooter} breakpointsFooterText={breakpointsFooterText} />
+      </WebsocketContextProvider>
+      <Footer
+        component={'footer'}
+        breakpointsFooter={breakpointsFooter}
+        breakpointsFooterText={breakpointsFooterText}
+      />
+    </MessageContextProvider>
   </ActivePlayerContextProvider>
 );
 

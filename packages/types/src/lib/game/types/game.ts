@@ -155,3 +155,5 @@ export interface Go_NewGameData {
   playerId: string;
   newGame: GameInstanceLobbyData;
 }
+
+export type CreateNewGameData = { gameName: GameInstanceID; playerId: PlayerID };

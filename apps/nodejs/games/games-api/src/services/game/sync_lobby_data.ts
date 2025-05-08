@@ -26,12 +26,13 @@ export default async function syncWithGoLobby() {
 
     activeGamesInLobby.forEach(game => {
       const gameInstance = games.find(g => g.name === game.gameName) as IBuiltGame;
-
+      console.log('active games in lobby', game);
       const newGame = new Game(gameInstance.instance() as AllGameTypes);
 
       game.playersArray = game.playersArray.map(p => {
         const newPlayer = new Player(p.name, p.id, p.email);
-        newPlayer.updateActivePlayerDetails(p);
+        newPlayer.activeGameID = game.gameInstanceID;
+        console.log('active games in lobby', newPlayer);
         activePlayers.addPlayer(p.id, newPlayer);
         return newPlayer;
       });
@@ -44,7 +45,7 @@ export default async function syncWithGoLobby() {
     activePlayersInLobby.forEach(player => {
       if (!activePlayers.map.has(player.id)) {
         const newPlayer = new Player(player.name, player.id, player.email);
-        newPlayer.updateActivePlayerDetails(player);
+        console.log('active players in lobby', newPlayer);
         activePlayers.addPlayer(player.id, newPlayer);
       }
     });

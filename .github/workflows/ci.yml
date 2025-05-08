@@ -65,8 +65,8 @@ jobs:
           poetry self add poetry-plugin-export ;
           poetry self add poetry-plugin-shell
 
-      # Install WDG-AGENTS for test execution
-      - name: Install WDG-AGENTS for test execution
+      # Install WDG-AGENTS for lint execution
+      - name: Install WDG-AGENTS for lint execution
         run: pnpx nx install wdg-agents
 
       # Lint all projects
@@ -121,7 +121,7 @@ jobs:
 
       # Generate Prisma Client For CRUD-Api
       - name: Generate Prisma Client for CRUD-Api
-        run: pnpm generate
+        run: pnpm generate-chinook-client
         env:
           NODE_ENV: test
           DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
@@ -161,7 +161,7 @@ jobs:
 
       # Generate Prisma Client For CRUD-Api
       - name: Generate Prisma Client for CRUD-Api
-        run: pnpm generate
+        run: pnpm generate-chinook-client
         env:
           NODE_ENV: production
           DB_URL_PROD: ${{ secrets.DB_URL_PROD }}

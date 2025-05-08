@@ -62,7 +62,7 @@
       },
       "serve": {
         "executor": "@nx/js:node",
-        "defaultConfiguration": "development",
+        "defaultConfiguration": "production",
         "dependsOn": [
           "build"
         ],

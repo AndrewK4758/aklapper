@@ -41,11 +41,7 @@ const breakpointsGameDetailsRegisterButton: SxProps = {
     },
   },
 
-  [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem',
-    width: '130px',
-    height: '35px',
-  },
+  [Theme.breakpoints.down('md')]: {},
 };
 
 const listRulesCallback = (e: IRule, _i: number, _arr: IRule[]) => (
@@ -63,10 +59,10 @@ interface GameDetailsProps {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   selectedGame: IBuiltGame | null;
-  setJoinedGame: Dispatch<SetStateAction<string | null>>;
+  // setJoinedGame: Dispatch<SetStateAction<string | null>>;
 }
 
-const GameDetails = ({ open, setOpen, selectedGame, setJoinedGame }: GameDetailsProps) => {
+const GameDetails = ({ open, setOpen, selectedGame }: GameDetailsProps) => {
   const gameDetails: IRule[] = selectedGame ? selectedGame.rules : [];
   const gameName = selectedGame?.name as string;
   return (
@@ -91,7 +87,7 @@ const GameDetails = ({ open, setOpen, selectedGame, setJoinedGame }: GameDetails
           gameName={gameName}
           setOpen={setOpen}
           registerGameButtonSx={breakpointsGameDetailsRegisterButton}
-          setJoinedGame={setJoinedGame}
+          // setJoinedGame={setJoinedGame}
         />
       </DialogActions>
     </Dialog>

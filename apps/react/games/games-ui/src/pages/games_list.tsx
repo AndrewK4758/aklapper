@@ -16,8 +16,12 @@ const GamesList = ({ activeGames }: GamesListProps) => {
   const games = useRouteLoaderData('gameList') as IBuiltGame[];
   const [open, setOpen] = useState<boolean>(false);
   const [selectedGame, setSelectedGame] = useState<IBuiltGame | null>(null);
-  const [joinedGame, setJoinedGame] = useState<string | null>(null);
-  console.log(joinedGame);
+  const [joinedGame, setJoinedGame] = useState<string | null>(() => {
+    const savedGameId = sessionStorage.getItem('joined-game');
+
+    return savedGameId ? (JSON.parse(savedGameId) as { joinedGameId: string }).joinedGameId : '';
+  });
+
   return (
     <>
       <Grid
@@ -36,7 +40,7 @@ const GamesList = ({ activeGames }: GamesListProps) => {
           }
         />
       </Grid>
-      <GameDetails open={open} setOpen={setOpen} selectedGame={selectedGame} setJoinedGame={setJoinedGame} />
+      <GameDetails open={open} setOpen={setOpen} selectedGame={selectedGame} />
     </>
   );
 };

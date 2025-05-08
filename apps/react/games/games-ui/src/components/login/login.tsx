@@ -41,7 +41,7 @@ interface RegisterPlayerProps {
 }
 
 export default function LoginPlayer({ method, index, tab, inputSx, ContainerProps }: RegisterPlayerProps) {
-  const { setActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
+  const { addActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
   const [submitPressed, setSubmitPressed] = useState<boolean>(false);
   const nav = useNavigate();
 
@@ -51,7 +51,7 @@ export default function LoginPlayer({ method, index, tab, inputSx, ContainerProp
   const formik: FormikProps<Partial<IPlayerClientData>> = useFormik<Partial<IPlayerClientData>>({
     initialValues: initialValues,
     validationSchema: validationSchema,
-    onSubmit: async values => handleNewPlayerSubmit(values, setActivePlayer, setSubmitPressed, nav, formik, signal),
+    onSubmit: async values => handleNewPlayerSubmit(values, addActivePlayer, setSubmitPressed, nav, formik, signal),
   });
 
   useEffect(() => {
@@ -132,7 +132,7 @@ const baseUrl = import.meta.env.VITE_REST_API_SERVER_URL_V2;
 
 async function handleNewPlayerSubmit(
   values: Partial<IPlayerClientData>,
-  setActivePlayer: Dispatch<SetStateAction<IPlayerClientData>>,
+  addActivePlayer: (activePlayer: IPlayerClientData) => void,
   setSubmitPressed: Dispatch<SetStateAction<boolean>>,
   nav: NavigateFunction,
   formik: FormikProps<Partial<IPlayerClientData>>,
@@ -151,6 +151,7 @@ async function handleNewPlayerSubmit(
 
     const { name, id, activeGameID, inLobby, currentTimeEntered } = resp.data as IPlayerClientData;
 
+    console.log('resp.data: ', resp.data);
     const currentPlayer: IPlayerClientData = {
       name: name,
       id: id,
@@ -158,12 +159,10 @@ async function handleNewPlayerSubmit(
       inLobby: inLobby,
       currentTimeEntered: currentTimeEntered,
       email: email as Email,
-      socketIoId: undefined,
+      socketIoId: null,
     };
 
-    localStorage.setItem('activePlayer', JSON.stringify(currentPlayer));
-
-    setActivePlayer(currentPlayer);
+    addActivePlayer(currentPlayer);
 
     nav('lobby');
   } catch (error) {

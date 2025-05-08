@@ -1,10 +1,11 @@
-import type { IPlayerClientData } from '@aklapper/types';
+import type { IPlayerClientData, PlayerID } from '@aklapper/types';
 import { createContext } from 'react';
 import type { ManagerOptions, Socket } from 'socket.io-client';
 import ClientSocket from '../utils/web-socket/socket-instance';
 
 export interface WebsocketContextProps {
   socket: Socket;
+  addExtraHeaders: (playerId: PlayerID) => void;
 }
 
 const activePlayer = localStorage.getItem('activePlayer');
@@ -34,4 +35,7 @@ export const clientSocket = new ClientSocket(wsUrl, managerOptions);
 
 export const WebsocketContext = createContext<WebsocketContextProps>({
   socket: clientSocket.Socket,
+  addExtraHeaders: (playerId: PlayerID) => {
+    if (managerOptions.extraHeaders) managerOptions.extraHeaders['current-player-id'] = playerId;
+  },
 });

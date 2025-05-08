@@ -10,7 +10,7 @@ export class Player implements IPlayer {
   private _Avatar!: Avatar;
   private _ActiveGameID: string | null;
   private _InLobby: boolean;
-  private _SocketIoId: string | undefined;
+  private _SocketIoId: string | null;
 
   constructor(name: string, id: string, email: Email) {
     this._Name = name;
@@ -19,7 +19,7 @@ export class Player implements IPlayer {
     this._InLobby = false;
     this._CurrentTimeEntered = new Date().toISOString();
     this._Email = email;
-    this._SocketIoId = undefined;
+    this._SocketIoId = null;
   }
 
   public get id(): string {
@@ -66,11 +66,11 @@ export class Player implements IPlayer {
     return this._CurrentTimeEntered;
   }
 
-  public get socketIoId(): string | undefined {
+  public get socketIoId(): string | null {
     return this._SocketIoId;
   }
 
-  public set socketIoId(socketId: string | undefined) {
+  public set socketIoId(socketId: string | null) {
     this._SocketIoId = socketId;
   }
 
@@ -90,12 +90,6 @@ export class Player implements IPlayer {
     };
 
     return partialPlayer;
-  }
-
-  updateActivePlayerDetails(player: IPlayerClientData): void {
-    if (this.inLobby === false) this.inLobby = player.inLobby;
-    if (this.socketIoId !== player.socketIoId) this.socketIoId = player.socketIoId;
-    if (this.activeGameID !== player.activeGameID) this.activeGameID = player.activeGameID;
   }
 }
 

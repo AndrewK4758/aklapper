@@ -5,15 +5,20 @@ import ButtonBase from '@mui/material/ButtonBase';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import { useContext, useRef, useState } from 'react';
-import { useNavigate, type NavigateFunction } from 'react-router';
+import { useLocation, useNavigate, type NavigateFunction } from 'react-router';
 import ActivePlayerContext, { type ActivePlayerContextProps } from '../../../context/active-player-context';
+import { MessageContext, type MessagesContextProps } from '../../../context/messages_context';
 import { __errorLight, __errorMain, __greyDark, __infoDark, __infoLight } from '../../../styles/colors';
 import { GamesTheme } from '../../../styles/games-theme';
 
 export function HeaderMenu() {
-  const { activePlayer, deleteActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
+  const { activePlayer, deleteActivePlayer, addActivePlayer } =
+    useContext<ActivePlayerContextProps>(ActivePlayerContext);
+  const { clearSavedMessages } = useContext<MessagesContextProps>(MessageContext);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const menuItemTextRef = useRef<HTMLSpanElement[]>([]);
+  const { pathname } = useLocation();
+
   const open = Boolean(anchorEl);
 
   const nav = useNavigate();
@@ -25,8 +30,18 @@ export function HeaderMenu() {
   const handleCloseMenu = () => setAnchorEl(null);
 
   const handleClick = (path: string) => {
-    nav(path);
-    handleCloseMenu();
+    switch (path) {
+      case '/':
+        addActivePlayer({ ...activePlayer, activeGameID: null, socketIoId: null, inLobby: false });
+        nav(path);
+        handleCloseMenu();
+        break;
+      case '/lobby':
+        addActivePlayer({ ...activePlayer, inLobby: true });
+        nav(path);
+        handleCloseMenu();
+        break;
+    }
   };
   return (
     <>
@@ -68,7 +83,6 @@ export function HeaderMenu() {
           divider={true}
           component='li'
           onClick={() => handleClick('/')}
-          sx={{ fontSize: '3rem' }}
           onMouseEnter={() => {
             if (menuItemTextRef.current) menuItemTextRef.current[0].style.color = __infoLight;
           }}
@@ -88,29 +102,30 @@ export function HeaderMenu() {
           />
         </MenuItem>
 
-        <MenuItem
-          divider={true}
-          component='li'
-          onClick={() => handleClick('/lobby')}
-          sx={{ fontSize: '3rem' }}
-          onMouseEnter={() => {
-            if (menuItemTextRef.current) menuItemTextRef.current[1].style.color = __infoLight;
-          }}
-          onMouseLeave={() => {
-            if (menuItemTextRef.current) menuItemTextRef.current[1].style.color = __infoDark;
-          }}
-        >
-          <Text
-            titleVariant='h4'
-            component={'h4'}
-            titleText={'LOBBY'}
-            TypogrpahyProps={{
-              ref: e => {
-                if (e) menuItemTextRef.current[1] = e;
-              },
+        {pathname !== '/lobby' && (
+          <MenuItem
+            divider={true}
+            component='li'
+            onClick={() => handleClick('/lobby')}
+            onMouseEnter={() => {
+              if (menuItemTextRef.current) menuItemTextRef.current[1].style.color = __infoLight;
             }}
-          />
-        </MenuItem>
+            onMouseLeave={() => {
+              if (menuItemTextRef.current) menuItemTextRef.current[1].style.color = __infoDark;
+            }}
+          >
+            <Text
+              titleVariant='h4'
+              component={'h4'}
+              titleText={'LOBBY'}
+              TypogrpahyProps={{
+                ref: e => {
+                  if (e) menuItemTextRef.current[1] = e;
+                },
+              }}
+            />
+          </MenuItem>
+        )}
         {activePlayer.name && (
           <MenuItem
             divider={true}
@@ -132,7 +147,7 @@ export function HeaderMenu() {
                   if (e) menuItemTextRef.current[2] = e;
                 },
                 color: 'error',
-                onClick: () => handleLogoutPlayer(deleteActivePlayer, nav),
+                onClick: () => handleLogoutPlayer(deleteActivePlayer, nav, clearSavedMessages),
               }}
               sx={registerPlayerFormSxProps}
             />
@@ -150,7 +165,9 @@ const registerPlayerFormSxProps: SxProps = {
   background: 'transparant',
 };
 
-function handleLogoutPlayer(deleteActivePlayer: () => void, nav: NavigateFunction) {
+function handleLogoutPlayer(deleteActivePlayer: () => void, nav: NavigateFunction, clearSavedMessages: () => void) {
   deleteActivePlayer();
+  clearSavedMessages();
+  sessionStorage.removeItem('joined-game');
   nav('/');
 }

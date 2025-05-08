@@ -40,8 +40,7 @@
           "buildDepsName": "build-deps",
           "watchDepsName": "watch-deps"
         }
-      },
-      "exclude": ["packages/prisma/games2/*"]
+      }
     },
     {
       "plugin": "@nx/eslint/plugin",

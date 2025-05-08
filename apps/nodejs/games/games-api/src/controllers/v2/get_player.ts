@@ -18,7 +18,7 @@ export default async function getPlayer(req: Request, resp: Response) {
         email: email as Email,
         currentTimeEntered: new Date().toISOString(),
         inLobby: false,
-        socketIoId: undefined,
+        socketIoId: null,
         activeGameID: null,
       };
 

@@ -3,16 +3,6 @@ import type { IAvatar } from './avatar.js';
 export type Email = `${string}@${string}.${string}` | '';
 
 export interface IPlayer {
-  // readonly _Name: string;
-  // readonly _Id: string;
-  // readonly _CurrentTimeEntered: string;
-  // readonly _Email: Email;
-  // _Order: number;
-  // _Avatar: IAvatar;
-  // _ActiveGameID: string | null;
-  // _InLobby: boolean;
-  // _SocketIoId: string | undefined;
-
   get name(): string;
   get id(): string;
   get currentTimeEntered(): string;
@@ -29,7 +19,7 @@ export interface IPlayer {
   get inLobby(): boolean;
   set inLobby(inLobby: boolean);
 
-  get socketIoId(): string | undefined;
+  get socketIoId(): string | null;
   set socketIoId(socketId: string);
 
   get email(): Email;

@@ -72,7 +72,8 @@
   "tags": [],
   "release": {
     "version": {
-      "generator": "@nxlv/python:release-version"
+      "generator": "@nxlv/python:release-version",
+      "useLegacyVersioning": true
     }
   }
 }

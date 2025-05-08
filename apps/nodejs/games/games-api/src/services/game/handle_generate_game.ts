@@ -45,6 +45,7 @@ export default async function generateNewGame(
         newGame: {
           gameInstanceID: gameID,
           gameName: selectedGame.name,
+          // change to false and only set true when response from go websocket is success
           inLobby: true,
           playersArray: instanceOfGame.instance.playersArray.map(p => p.prepareJsonPlayerToSend()),
         },

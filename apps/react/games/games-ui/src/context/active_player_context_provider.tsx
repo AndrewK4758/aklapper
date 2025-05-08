@@ -9,40 +9,41 @@ const activePlayerDefault: IPlayerClientData = {
   activeGameID: null,
   email: '',
   currentTimeEntered: '',
-  socketIoId: undefined,
+  socketIoId: null,
 };
 
+function activePlayerInit() {
+  const savedPlayer = localStorage.getItem('active-player');
+  return savedPlayer ? (JSON.parse(savedPlayer) as IPlayerClientData) : activePlayerDefault;
+}
 interface ActivePlayerContextProviderProps {
   children?: ReactNode;
 }
 
 export default function ActivePlayerContextProvider({ children }: ActivePlayerContextProviderProps) {
-  const [activePlayer, setActivePlayer] = useState<IPlayerClientData>(() => {
-    const savedPlayer = localStorage.getItem('activePlayer');
+  const [activePlayer, setActivePlayer] = useState<IPlayerClientData>(activePlayerInit());
 
-    const activePlayerInit: IPlayerClientData = savedPlayer
-      ? (JSON.parse(savedPlayer) as IPlayerClientData)
-      : activePlayerDefault;
-
-    return activePlayerInit;
-  });
+  const addActivePlayer = (activePlayer: IPlayerClientData) => {
+    setActivePlayer(prev => ({ ...prev, ...activePlayer }));
+    localStorage.setItem('active-player', JSON.stringify(activePlayer));
+  };
 
   const deleteActivePlayer = () => {
-    localStorage.removeItem('activePlayer');
+    localStorage.removeItem('active-player');
     setActivePlayer(activePlayerDefault);
   };
 
   const removeFromLobby = () => {
-    const storedPlayer = localStorage.getItem('activePlayer');
+    const storedPlayer = localStorage.getItem('active-player');
     if (storedPlayer) {
-      const activePlayer = JSON.parse(storedPlayer);
+      const activePlayer: IPlayerClientData = JSON.parse(storedPlayer);
       activePlayer.inLobby = false;
-      localStorage.setItem('activePlayer', JSON.stringify(activePlayer));
-    } else return;
+      localStorage.setItem('active-player', JSON.stringify(activePlayer));
+    }
   };
 
   return (
-    <ActivePlayerContext.Provider value={{ activePlayer, setActivePlayer, deleteActivePlayer, removeFromLobby }}>
+    <ActivePlayerContext.Provider value={{ activePlayer, addActivePlayer, deleteActivePlayer, removeFromLobby }}>
       {children}
     </ActivePlayerContext.Provider>
   );

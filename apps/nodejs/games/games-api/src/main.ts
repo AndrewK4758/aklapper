@@ -17,7 +17,10 @@ import socketBoardAction from './events/socket-board-action.js';
 import addGameToSocketInstance from './middleware/socket-add-game-middleware.js';
 
 // import go_websocketEvent from './models/go_websocket_event.js';
+import gamesInLobby from './data/games_in_lobby/games_in_lobby.js';
 import joinGame from './events/join-game.js';
+import useAllGamesMap from './middleware/all-games-map.js';
+import useActivePlayersMap from './middleware/use_active_players_map.js';
 import routerV1 from './routes/v1/routes.js';
 import routerV2 from './routes/v2/routes.js';
 import syncWithGoLobby from './services/game/sync_lobby_data.js';
@@ -84,6 +87,16 @@ const connectWebsocket = function () {
 
   socketClient.onclose = () => {
     console.log('close');
+    console.log('Clearing active players and games');
+    const activePlayers = useActivePlayersMap();
+    const gamesMap = useAllGamesMap();
+
+    activePlayers.map.clear();
+    gamesInLobby.map.clear();
+    gamesMap.AllGames.clear();
+
+    console.log(activePlayers, gamesInLobby);
+
     reconnecting = setTimeout(() => {
       connectWebsocket();
     }, 2500);

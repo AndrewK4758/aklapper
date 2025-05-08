@@ -117,6 +117,7 @@ const activeGamesCallback = (
   joinedGame: string | null,
   setJoinedGame: Dispatch<SetStateAction<string | null>>,
 ) => {
+  console.log(joinedGame);
   return instance.gameName === game.name ? (
     <ListItem
       key={`${game.name}-${i}-list-item`}
@@ -145,13 +146,13 @@ const activeGamesCallback = (
             />
           }
           secondary={
-            <>
+            <Box sx={{ display: 'flex', flexDirection: 'column', flexWrap: 'wrap' }}>
               {instance.playersArray.map(p => (
                 <Box key={`${p.id}-player-in-array-box`} sx={{ paddingY: 0.1 }}>
                   <Text key={`${p.id}-player-in-array`} titleText={p.name} titleVariant='caption' component={'span'} />
                 </Box>
               ))}
-            </>
+            </Box>
           }
           slotProps={{ primary: { variant: 'h6', sx: { fontSize: 'inherit' } }, secondary: { component: 'span' } }}
         />
@@ -171,6 +172,7 @@ const activeGamesCallback = (
                   joiningPlayer: activePlayer,
                 } as JoinGameData);
               else alert('You already joined the game');
+              sessionStorage.setItem('joined-game', JSON.stringify({ joinedGameId: instance.gameInstanceID }));
             }}
             sx={{ p: 0, fontSize: 'inherit' }}
           >
