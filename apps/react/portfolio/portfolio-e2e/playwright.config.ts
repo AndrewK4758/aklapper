@@ -17,44 +17,39 @@ const baseURL = process.env['BASE_URL'] || 'http://localhost:4700';
  * See https://playwright.dev/docs/test-configuration.
  */
 const __filename = fileURLToPath(import.meta.url);
+
 export default defineConfig({
   ...nxE2EPreset(__filename, { testDir: './src' }),
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     baseURL,
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on-first-retry'
+    trace: 'on-first-retry',
   },
   /* Run your local dev server before starting the tests */
-  webServer: [
-    // {
-    //   command: 'pnpm exec nx run portfolio:preview',
-    //   url: 'http://localhost:4300',
-    //   reuseExistingServer: !process.env.CI,
-    //   cwd: workspaceRoot
-    // },
-    {
-      command: 'nx serve-server portfolio --verbose',
-      url: 'http://localhost:4700',
-      reuseExistingServer: !process.env.CI,
-      cwd: workspaceRoot
-    }
-  ],
+  webServer: {
+    command: 'nx serve-server portfolio --verbose',
+    name: 'React App',
+    url: 'http://localhost:4700',
+    reuseExistingServer: !process.env.CI,
+    cwd: workspaceRoot,
+  },
+  quiet: false,
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] }
+      use: { ...devices['Desktop Chrome'] },
     },
 
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] }
+      use: { ...devices['Desktop Firefox'] },
     },
 
     {
       name: 'webkit',
-      use: { ...devices['Desktop Safari'] }
-    }
+      use: { ...devices['Desktop Safari'] },
+    },
 
     // Uncomment for mobile browsers support
     /*
@@ -78,5 +73,5 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], channel: 'chrome' }
     }
       */
-  ]
+  ],
 });

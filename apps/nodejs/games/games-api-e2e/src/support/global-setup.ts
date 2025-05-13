@@ -1,7 +1,7 @@
 import { exec, execSync } from 'child_process';
 
 const __STARTUP_MESSAGE__ = '\n STARTING GAMES-API-E2E TEST \n';
-const __API_SLEEP__ = 'sleep 10';
+const __API_SLEEP__ = 'sleep 5';
 
 export default async function () {
   console.log(__STARTUP_MESSAGE__);

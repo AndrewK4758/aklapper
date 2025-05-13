@@ -1,4 +1,4 @@
-import { Config } from 'jest';
+import type { Config } from 'jest';
 
 const config: Config = {
   displayName: 'games-api-e2e',
@@ -6,7 +6,7 @@ const config: Config = {
   globalSetup: '<rootDir>/src/support/global-setup.ts',
   globalTeardown: '<rootDir>/src/support/global-teardown.ts',
   testEnvironment: 'node',
-  coverageDirectory: '../../../../coverage/apps/apis/games-api-e2e'
+  coverageDirectory: '../../../../coverage/apps/apis/games-api-e2e',
 };
 
 export default config;

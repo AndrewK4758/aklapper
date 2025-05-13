@@ -93,6 +93,18 @@
     },
     {
       "path": "./packages/prisma/games"
+    },
+    {
+      "path": "./apps/nodejs/games/games-api-e2e"
+    },
+    {
+      "path": "./apps/nodejs/portfolio/portfolio-api-e2e"
+    },
+    {
+      "path": "./apps/nodejs/vertex/vertex-api-e2e"
+    },
+    {
+      "path": "./apps/nodejs/crud/crud-api-e2e"
     }
   ]
 }

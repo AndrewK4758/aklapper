@@ -9,10 +9,10 @@ export interface RegisterGameProps {
   registerGameButtonSx: SxProps;
   gameName: string;
   setOpen: Dispatch<SetStateAction<boolean>>;
-  // setJoinedGame: Dispatch<SetStateAction<string | null>>;
+  setJoinedGame: Dispatch<SetStateAction<string | boolean>>;
 }
 
-export default function RegisterGame({ gameName, registerGameButtonSx, setOpen }: RegisterGameProps) {
+export default function RegisterGame({ gameName, registerGameButtonSx, setOpen, setJoinedGame }: RegisterGameProps) {
   const { socket } = useContext<WebsocketContextProps>(WebsocketContext);
   const { activePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
   const nav = useNavigate();
@@ -22,9 +22,10 @@ export default function RegisterGame({ gameName, registerGameButtonSx, setOpen }
       onMouseDown={() => {
         if (activePlayer.id) {
           socket.emit('create-new-game', { gameName, playerId: activePlayer.id });
+          setJoinedGame(true);
           setOpen(false);
         } else {
-          alert('Please login create or join a game');
+          alert('Please login to create or join a game');
           nav('/');
         }
       }}

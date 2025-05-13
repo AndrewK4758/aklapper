@@ -8,7 +8,7 @@ import {
   drawerPaperProps,
   iconSize,
   iconSxProps,
-  iconWrapperSxProps
+  iconWrapperSxProps,
 } from '../../../styles/header-styles.jsx';
 
 const EmailDialog = lazy(() => import('../../email/email-dialog.jsx'));
@@ -51,11 +51,11 @@ export function Contact({ openMenu, setOpenMenu }: ContactProps) {
   return (
     <>
       <Drawer
-        key={`Contact-menu-draw-${openEmail}`}
-        id="Contact-menu-draw"
-        data-testid="Contact-menu-draw"
+        key={`contact-menu-draw-${openEmail}`}
+        id='contact-menu-draw'
+        data-testid='contact-menu-draw'
         open={openMenu}
-        anchor="right"
+        anchor='right'
         elevation={6}
         slotProps={{ paper: drawerPaperProps }}
       >
@@ -63,65 +63,65 @@ export function Contact({ openMenu, setOpenMenu }: ContactProps) {
           ref={contactMenuRef}
           component={'div'}
           key={'social-media-icon-wrapper'}
-          id="social-media-icon-wrapper"
-          data-testid="social-media-icon-wrapper"
+          id='social-media-icon-wrapper'
+          data-testid='social-media-icon-wrapper'
           sx={iconWrapperSxProps}
         >
           <ContactIcon
-            id="github"
-            tooltipText="GitHub"
-            iconHref="https://github.com/AndrewK4758/aklapper"
+            id='github'
+            tooltipText='GitHub'
+            iconHref='https://github.com/AndrewK4758/aklapper'
             Icon={<GitHibIcon sx={iconSize} />}
             itemSx={iconSxProps}
             buttonSx={contactButtonSxProps}
           />
           <ContactIcon
-            id="facebook"
-            tooltipText="Facebook"
-            iconHref="https://www.facebook.com/AKlapper47"
+            id='facebook'
+            tooltipText='Facebook'
+            iconHref='https://www.facebook.com/AKlapper47'
             Icon={<FacebookIcon sx={iconSize} />}
             itemSx={iconSxProps}
             buttonSx={contactButtonSxProps}
           />
           <ContactIcon
-            id="linkedin"
-            tooltipText="Linkedin"
-            iconHref="https://www.linkedin.com/in/andrew-klapper-a9204b23b/"
+            id='linkedin'
+            tooltipText='Linkedin'
+            iconHref='https://www.linkedin.com/in/andrew-klapper-a9204b23b/'
             Icon={<LinkedinIcon sx={iconSize} />}
             itemSx={iconSxProps}
             buttonSx={contactButtonSxProps}
           />
 
           <ContactIcon
-            id="hugging-face"
-            tooltipText="Hugging Face"
-            iconHref="https://huggingface.co/ak475826"
+            id='hugging-face'
+            tooltipText='Hugging Face'
+            iconHref='https://huggingface.co/ak475826'
             Icon={<HuggingFaceIcon sx={iconSize} />}
             itemSx={iconSxProps}
             buttonSx={contactButtonSxProps}
           />
 
           <ContactIcon
-            id="x"
-            tooltipText="X"
-            iconHref="https://x.com/ak475826"
+            id='x'
+            tooltipText='X'
+            iconHref='https://x.com/ak475826'
             Icon={<XIcon sx={iconSize} />}
             itemSx={iconSxProps}
             buttonSx={contactButtonSxProps}
           />
 
           <ContactIcon
-            id="discord"
-            tooltipText="Discord"
-            iconHref="https://discord.com/users/989564035542446190"
+            id='discord'
+            tooltipText='Discord'
+            iconHref='https://discord.com/users/989564035542446190'
             Icon={<DiscordIcon sx={iconSize} />}
             itemSx={iconSxProps}
             buttonSx={contactButtonSxProps}
           />
 
           <ContactIcon
-            id="email"
-            tooltipText="Email & Google Calendar Event link"
+            id='email'
+            tooltipText='Email & Google Calendar Event link'
             iconHref={''}
             Icon={<EmailIcon sx={iconSize} />}
             onClick={setOpenEmail}
@@ -130,10 +130,10 @@ export function Contact({ openMenu, setOpenMenu }: ContactProps) {
             buttonSx={contactButtonSxProps}
           />
           <ContactIcon
-            id="close"
-            tooltipText="Close Contact Menu"
+            id='close'
+            tooltipText='Close Contact Menu'
             iconHref={''}
-            Icon={<ArrowForwardIosIcon color="action" sx={iconSize} />}
+            Icon={<ArrowForwardIosIcon color='action' sx={iconSize} />}
             onClick={setOpenMenu}
             stateVariable={false}
             itemSx={iconSxProps}
@@ -144,8 +144,8 @@ export function Contact({ openMenu, setOpenMenu }: ContactProps) {
       <Box
         component={'div'}
         key={'email-form-wrapper'}
-        id="email-form-wrapper"
-        data-testid="email-form-wrapper"
+        id='email-form-wrapper'
+        data-testid='email-form-wrapper'
         width={'100%'}
       >
         <EmailDialog open={openEmail} setOpen={setOpenEmail} />

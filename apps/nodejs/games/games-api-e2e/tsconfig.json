@@ -1,15 +1,18 @@
 {
   "extends": "../../../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "out-tsc/crud-api-e2e",
+    "outDir": "out-tsc/",
     "esModuleInterop": true,
+    "isolatedModules": true,
     "noUnusedLocals": false,
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    "verbatimModuleSyntax": false
   },
   "include": ["jest.config.ts", "src/**/*.ts"],
+  "exclude": ["eslint.config.js"],
   "references": [
     {
-      "path": "../../../../packages/prisma/chinook/tsconfig.lib.json"
+      "path": "../../../../packages/types"
     }
   ]
 }

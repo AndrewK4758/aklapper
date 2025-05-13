@@ -23,6 +23,7 @@
           "vertex-api:build"
         ]
       }
-    }
+    },
+    "// targets": "to see all targets run: nx show project vertex-api-e2e --web"
   }
 }

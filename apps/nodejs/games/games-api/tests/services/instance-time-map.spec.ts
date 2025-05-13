@@ -1,4 +1,4 @@
-import { GameInstanceID, Minute } from '@aklapper/types';
+import type { GameInstanceID, Minute } from '@aklapper/types';
 import { getCurrentMinute } from '@aklapper/utils';
 import { InstanceTimeMap } from '../../src/data/instance-time-map/instance-time-map.js';
 

@@ -1,9 +1,9 @@
-import express, { Router } from 'express';
 import cookieParser from 'cookie-parser';
+import express, { Router } from 'express';
 import multer from 'multer';
-import postEmail from '../controllers/post-email.js';
-import createTokens from '../controllers/create-google-tokens.js';
 import createEvents from '../controllers/calendar/create-event.js';
+import createTokens from '../controllers/create-google-tokens.js';
+import postEmail from '../controllers/post-email.js';
 
 const router: Router = Router();
 
@@ -18,6 +18,9 @@ export class PortfolioRoutes {
 
     //-------------------------------------------------//
 
+    router.get('/', (_, resp) => {
+      resp.sendStatus(201);
+    });
     router.post('/email', upload.single('attachment'), postEmail);
     router.post('/create-tokens', createTokens);
     router.post('/create-events', createEvents);

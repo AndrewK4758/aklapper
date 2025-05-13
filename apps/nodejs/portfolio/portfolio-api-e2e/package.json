@@ -23,6 +23,7 @@
           "portfolio-api:build"
         ]
       }
-    }
+    },
+    "// targets": "to see all targets run: nx show project portfolio-api-e2e --web"
   }
 }

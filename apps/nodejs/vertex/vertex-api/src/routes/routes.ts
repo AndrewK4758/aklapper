@@ -15,6 +15,9 @@ export class Routes {
     router.use(json({ limit: '10mb' }));
     router.use(urlencoded({ extended: true, limit: '10mb' }));
 
+    router.get('/', (_, resp) => {
+      resp.sendStatus(201);
+    });
     router.get('/context-path', createContextPath);
     router.post('/upload', upload.single('file'), uploadToGcsBucket);
     router.post('/build-prompt', promptBuilder);

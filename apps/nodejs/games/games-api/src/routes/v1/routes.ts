@@ -9,6 +9,9 @@ const routerV1: Router = Router();
 // ROUTER MIDDLEWARE
 routerV1.use('/games', middlewareRouter);
 // ENDPOINTS
+routerV1.get('/', (_, resp) => {
+  resp.sendStatus(201);
+});
 routerV1.get('/games', sendGameList);
 routerV1.post('/games/:id', populateInstanceMaps);
 routerV1.patch('/games/:id/:action', (req: Request, resp: Response) => performAction(req, resp, null, null));

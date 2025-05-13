@@ -1,12 +1,11 @@
 import { workspaceRoot } from '@nx/devkit';
-import { nxPreset } from '@nx/jest/preset.js';
+// import { nxPreset } from '@nx/jest/preset.js';
 import type { Config } from 'jest';
 import { resolve } from 'path';
-import { type DefaultEsmTransformOptions } from 'ts-jest';
+import type { DefaultEsmTransformOptions } from 'ts-jest';
 
 const tsJestOptions: DefaultEsmTransformOptions = {
-  tsconfig: '<rootDir>/tsconfig.spec.json',
-  isolatedModules: true,
+  tsconfig: '<rootDir>/tsconfig.json',
   babelConfig: {
     sourceType: 'module',
     targets: { esmodules: true, node: 'current' },
@@ -33,22 +32,25 @@ const modules = {
   '@aklapper/react-shared': [resolve(workspaceRoot, 'packages/react-shared/src/$1')],
   '@aklapper/socket-io-client': [resolve(workspaceRoot, 'packages/socket-io/client/src/$1')],
   '@aklapper/socket-io-server': [resolve(workspaceRoot, 'packages/socket-io/server/src/$1')],
-  '@aklapper/types': [resolve(workspaceRoot, 'packages/types/src/$1')],
+  '@aklapper/types': [resolve(workspaceRoot, 'packages/types/dist/$1')],
   '@aklapper/utils': [resolve(workspaceRoot, 'packages/utils/src/$1')],
   '@aklapper/vertex-ai': [resolve(workspaceRoot, 'packages/gen-ai/vertex-ai/src/$1')],
 };
 
 const config: Config = {
-  ...nxPreset,
+  // ...nxPreset,
+  forceExit: true,
+  coverageProvider: 'v8',
   collectCoverage: true,
   coverageReporters: ['text', 'html'],
-  transform: {
-    '^.+\\.(ts|js|html)$': ['ts-jest', tsJestOptions],
-  },
   moduleNameMapper: modules,
   extensionsToTreatAsEsm: ['.ts', '.mts'],
   passWithNoTests: true,
   verbose: true,
+  silent: false,
+  transform: {
+    '^.+\\.(ts|js)$': ['ts-jest', { ...tsJestOptions, useESM: true }],
+  },
 };
 
 export default config;

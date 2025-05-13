@@ -1,7 +1,6 @@
 packages:
   - apps/**
   - packages/**
-
 onlyBuiltDependencies:
   - '@azure/msal-node-extensions'
   - '@azure/msal-node-runtime'
@@ -15,3 +14,5 @@ onlyBuiltDependencies:
   - nx
   - prisma
   - protobufjs
+overrides:
+  dist: link:../nx-go/dist

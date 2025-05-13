@@ -59,10 +59,10 @@ interface GameDetailsProps {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   selectedGame: IBuiltGame | null;
-  // setJoinedGame: Dispatch<SetStateAction<string | null>>;
+  setJoinedGame: Dispatch<SetStateAction<string | boolean>>;
 }
 
-const GameDetails = ({ open, setOpen, selectedGame }: GameDetailsProps) => {
+const GameDetails = ({ open, setOpen, selectedGame, setJoinedGame }: GameDetailsProps) => {
   const gameDetails: IRule[] = selectedGame ? selectedGame.rules : [];
   const gameName = selectedGame?.name as string;
   return (
@@ -87,7 +87,7 @@ const GameDetails = ({ open, setOpen, selectedGame }: GameDetailsProps) => {
           gameName={gameName}
           setOpen={setOpen}
           registerGameButtonSx={breakpointsGameDetailsRegisterButton}
-          // setJoinedGame={setJoinedGame}
+          setJoinedGame={setJoinedGame}
         />
       </DialogActions>
     </Dialog>

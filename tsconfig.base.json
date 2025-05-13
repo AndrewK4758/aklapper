@@ -32,11 +32,6 @@
     "verbatimModuleSyntax": true
   },
   "ts-node": {
-    "compilerOptions": {
-      "module": "NodeNext",
-      "moduleResolution": "nodenext",
-      "target": "ESNext"
-    },
     "esm": true,
     "logError": true,
     "pretty": true

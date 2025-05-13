@@ -26,18 +26,15 @@ export default class Routes {
   constructor() {
     router.use(express.json());
 
+    router.get('/', (_, resp) => {
+      resp.sendStatus(201);
+    });
     router.get('/artists', getArtistCount, getArtists, validateArtists);
     router.post('/artists', addArtists);
     router.patch('/artists', updateArtists);
     router.delete('/artists/:id', deleteArtist);
 
-    router.get(
-      '/albums',
-      getAlbumsCount,
-      getArtistsAlbums,
-      validateAlbums,
-      getAlbums,
-    );
+    router.get('/albums', getAlbumsCount, getArtistsAlbums, validateAlbums, getAlbums);
     router.post('/albums', createAlbumsOnArtists);
     router.patch('/albums', updateAlbums);
     router.delete('/albums/:id', deleteArtistsAlbums);

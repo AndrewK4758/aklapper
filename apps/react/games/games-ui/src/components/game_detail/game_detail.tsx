@@ -22,8 +22,8 @@ export interface GameDetailProps {
   setOpen: Dispatch<SetStateAction<boolean>>;
   setSelectedGame: Dispatch<SetStateAction<IBuiltGame | null>>;
   activeGames: GameInstanceLobbyData[];
-  joinedGame: string | null;
-  setJoinedGame: Dispatch<SetStateAction<string | null>>;
+  joinedGame: string | boolean;
+  setJoinedGame: Dispatch<SetStateAction<string | boolean>>;
 }
 
 export default function GameDetail({
@@ -114,10 +114,10 @@ const activeGamesCallback = (
   game: IBuiltGame,
   socket: Socket,
   activePlayer: IPlayerClientData,
-  joinedGame: string | null,
-  setJoinedGame: Dispatch<SetStateAction<string | null>>,
+  joinedGame: string | boolean,
+  setJoinedGame: Dispatch<SetStateAction<string | boolean>>,
 ) => {
-  console.log(joinedGame);
+  console.log('Joined Game', joinedGame);
   return instance.gameName === game.name ? (
     <ListItem
       key={`${game.name}-${i}-list-item`}

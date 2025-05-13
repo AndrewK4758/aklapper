@@ -1,16 +1,20 @@
 {
   "extends": "../../../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "out-tsc/games-api-e2e",
+    "outDir": "out-tsc/",
     "esModuleInterop": true,
+    "isolatedModules": true,
     "noUnusedLocals": false,
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    "verbatimModuleSyntax": false,
+    "module": "ESNext",
+    "moduleResolution": "node10"
   },
   "include": ["jest.config.ts", "src/**/*.ts"],
   "exclude": ["eslint.config.js"],
   "references": [
     {
-      "path": "../../../../packages/types"
+      "path": "../../../../packages/prisma/chinook"
     }
   ]
 }

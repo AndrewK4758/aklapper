@@ -1,6 +1,6 @@
 import { mockReqObj } from '@aklapper/mocks';
 import type { IBuiltGame } from '@aklapper/types';
-import { Request } from 'express';
+import type { Request } from 'express';
 import games from '../../src/data/games-list.js';
 import useSelectedGame from '../../src/middleware/use-selected-game.js';
 

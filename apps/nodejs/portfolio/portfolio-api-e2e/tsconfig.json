@@ -1,10 +1,14 @@
 {
   "extends": "../../../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "out-tsc/portfolio-api-e2e",
+    "outDir": "out-tsc/",
     "esModuleInterop": true,
+    "isolatedModules": true,
     "noUnusedLocals": false,
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    "verbatimModuleSyntax": false,
+    "module": "ESNext",
+    "moduleResolution": "node10"
   },
   "include": ["jest.config.ts", "src/**/*.ts"],
   "exclude": ["eslint.config.js"],

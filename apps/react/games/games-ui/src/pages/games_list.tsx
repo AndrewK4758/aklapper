@@ -16,10 +16,10 @@ const GamesList = ({ activeGames }: GamesListProps) => {
   const games = useRouteLoaderData('gameList') as IBuiltGame[];
   const [open, setOpen] = useState<boolean>(false);
   const [selectedGame, setSelectedGame] = useState<IBuiltGame | null>(null);
-  const [joinedGame, setJoinedGame] = useState<string | null>(() => {
+  const [joinedGame, setJoinedGame] = useState<string | boolean>(() => {
     const savedGameId = sessionStorage.getItem('joined-game');
 
-    return savedGameId ? (JSON.parse(savedGameId) as { joinedGameId: string }).joinedGameId : '';
+    return savedGameId ? (JSON.parse(savedGameId) as { joinedGameId: string }).joinedGameId : false;
   });
 
   return (
@@ -40,7 +40,7 @@ const GamesList = ({ activeGames }: GamesListProps) => {
           }
         />
       </Grid>
-      <GameDetails open={open} setOpen={setOpen} selectedGame={selectedGame} />
+      <GameDetails open={open} setOpen={setOpen} selectedGame={selectedGame} setJoinedGame={setJoinedGame} />
     </>
   );
 };
@@ -54,8 +54,8 @@ const listGamesMap = (
   setOpen: Dispatch<SetStateAction<boolean>>,
   setSelectedGame: Dispatch<SetStateAction<IBuiltGame | null>>,
   activeGames: GameInstanceLobbyData[],
-  joinedGame: string | null,
-  setJoinedGame: Dispatch<SetStateAction<string | null>>,
+  joinedGame: string | boolean,
+  setJoinedGame: Dispatch<SetStateAction<string | boolean>>,
 ) => {
   return (
     <GameDetail

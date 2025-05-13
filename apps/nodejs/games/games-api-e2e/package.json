@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "devDependencies": {
-    "@aklapper/types": "workspace:^"
+    "@aklapper/types": "workspace:*"
   },
   "nx": {
     "name": "games-api-e2e",
@@ -22,9 +22,7 @@
           "jestConfig": "apps/nodejs/games/games-api-e2e/jest.config.ts",
           "passWithNoTests": true
         },
-        "dependsOn": [
-          "games-api:build"
-        ]
+        "dependsOn": []
       }
     }
   }

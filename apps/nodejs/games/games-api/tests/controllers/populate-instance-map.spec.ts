@@ -1,6 +1,6 @@
 import { mockReqObj, mockRespObj } from '@aklapper/mocks';
 import { AllGamesMap } from '@aklapper/models';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import populateInstanceMaps from '../../src/controllers/v1/populate_instance_map.js';
 import games from '../../src/data/games-list.js';
 import { InstanceTimeMap } from '../../src/data/instance-time-map/instance-time-map.js';
