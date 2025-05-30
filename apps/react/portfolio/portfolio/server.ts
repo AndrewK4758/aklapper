@@ -5,7 +5,8 @@ import express from 'express';
 import render from './src/main-server.tsx';
 import './src/styles/main-styles.css';
 
-const PORT = process.env.PORT || 4700;
+const envPort = process.env.PORT;
+const PORT = envPort ? parseInt(envPort) : 4700;
 
 const app: Express = express();
 

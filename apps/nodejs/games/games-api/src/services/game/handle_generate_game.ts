@@ -36,9 +36,9 @@ export default async function generateNewGame(
 
       const game = new Game(selectedGame.instance() as AllGameTypes);
 
-      game.playersArray.push(playerToAdd);
-
       const instanceOfGame = new InstanceOfGame(minute, gameID, game);
+
+      instanceOfGame.instance.playersArray.push(playerToAdd);
 
       const eventData: Go_NewGameData = {
         playerId: playerId,
@@ -58,10 +58,13 @@ export default async function generateNewGame(
           .setPendingRequestKey(gameID)
           .build();
 
+        console.log('game in lobby: ', gameInLobby);
         if (gameInLobby) {
           gamesMap.addGame(gameID, instanceOfGame);
           instanceMap.addGameInstance(minute, gameID);
           gamesInLobby.addGame(gameID, instanceOfGame);
+          console.log('games map: ', gamesMap);
+          console.log('games in lobby', gamesInLobby);
           return eventData.newGame;
         } else {
           return false;

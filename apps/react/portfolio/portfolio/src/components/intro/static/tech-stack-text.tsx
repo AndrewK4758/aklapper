@@ -1,4 +1,4 @@
-export const languages = ['Typescript', 'NodeJs', 'Python'];
+export const languages = ['Typescript', 'NodeJs', 'Python', 'Go'];
 export const libraries = ['React', 'React Router', 'Express', 'Prisma', 'PyTorch'];
 export const styles = ['Mui Material', 'Mui X', 'Tailwind CSS'];
 export const data = ['PostgreSQL', 'MongoDB', 'ChromaDB'];

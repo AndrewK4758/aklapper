@@ -34,7 +34,6 @@ export function FormikTextInput<T extends object>({
   labelComponent,
   autoComplete,
   id,
-  placeholder,
   textSx,
   labelSx,
   onBlurCB,
@@ -48,7 +47,7 @@ export function FormikTextInput<T extends object>({
   const { value } = formik.getFieldProps(valueField as string);
 
   return (
-    <FormControl>
+    <FormControl sx={{ width: '100%' }}>
       <Label
         id={id}
         htmlFor={id}
@@ -65,7 +64,6 @@ export function FormikTextInput<T extends object>({
         id={id}
         autoComplete={autoComplete}
         type={type}
-        placeholder={placeholder}
         label={label}
         name={name as string}
         value={value}

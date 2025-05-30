@@ -7,7 +7,7 @@ configDotenv({ path: `./env/.env` });
 export const PROJECT = 'games-424800';
 export const LOCATION = 'us-central1';
 
-export const MODEL = 'gemini-2.5-pro-preview-03-25'; //'gemini-2.0-flash'; //'gemini-1.5-pro-001';
+export const MODEL = 'gemini-2.5-pro-preview-05-06'; //'gemini-2.0-flash'; //'gemini-1.5-pro-001';
 
 const vertexAI = new VertexAI({
   project: PROJECT,

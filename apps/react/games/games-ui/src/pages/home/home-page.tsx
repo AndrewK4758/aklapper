@@ -16,12 +16,8 @@ const Home = () => {
   const [tab, setTab] = useState<number>(0);
 
   return (
-    <Box
-      component={'div'}
-      id='home-page-wrapper'
-      sx={{ display: 'flex', flexDirection: 'column', gap: 10, paddingY: 4 }}
-    >
-      <Box component={'section'} id='home-page-instructions-register-wrapper' sx={{ display: 'flex' }}>
+    <Box component={'div'} id='home-page-wrapper' sx={{ display: 'flex', gap: 2, paddingY: 4 }}>
+      <Box component={'section'} id='home-page-instructions-register-wrapper' sx={{ display: 'flex', flex: '0 1 50%' }}>
         <Card component={'section'} id='home-page-instructions-wrapper'>
           <CardHeader
             component='section'
@@ -38,15 +34,14 @@ const Home = () => {
             <ListItem component={'li'} id='instruction-3'>
               The Game Lobby has private messaging to communicate with other active players
             </ListItem>
-            <ListItem component={'li'} id='instruction-4'>
-              Player is data is erased once when you leave the lobby using the button
-            </ListItem>
           </List>
         </Card>
+      </Box>
+      <Box sx={{ flex: '0 1 50%' }}>
         <Container
           component={'section'}
           id='home-page-register-player-wrapper'
-          sx={{ display: 'flex', flexDirection: 'column', gap: 6 }}
+          sx={{ display: 'flex', flexDirection: 'column', gap: 4, height: '100%' }}
         >
           <Tabs
             centered
@@ -60,7 +55,7 @@ const Home = () => {
             <Tab label={'Login'} tabIndex={2} {...tabProps(1)} />
           </Tabs>
           <RegisterPlayer method={'POST'} index={0} tab={tab} />
-          <LoginPlayer method='POST' index={1} tab={tab} />
+          <LoginPlayer method={'POST'} index={1} tab={tab} />
         </Container>
       </Box>
     </Box>
@@ -68,9 +63,5 @@ const Home = () => {
 };
 
 export default Home;
-
-// const registerPlayerFormSxProps: SxProps = {
-//   width: '100%',
-// };
 
 const tabProps = (index: number) => ({ id: `simple-tab-${index}`, 'aria-controls': `simple-tabpanel-${index}` });

@@ -19,6 +19,7 @@ const darkScrollbarGlobal = {
 
 const Theme: ThemeType = createTheme(
   {
+    defaultColorScheme: 'dark',
     colorSchemes: {
       dark: {
         palette: {

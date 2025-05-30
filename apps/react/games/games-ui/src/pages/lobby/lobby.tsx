@@ -65,14 +65,12 @@ export default function Lobby() {
       socket.emit('enter-lobby', activePlayer);
 
       socket.on('new-player', (newPlayer: IPlayerClientData) => {
-        addActivePlayer(newPlayer);
         setActiveLobby(prevLobby =>
           !prevLobby.some(p => p.id === newPlayer.id) ? [...prevLobby, newPlayer] : [...prevLobby],
         );
       });
 
       socket.on('private-message', (message: PrivateMessageDetails) => {
-        console.log(message);
         addMessage(message);
       });
 
@@ -110,6 +108,9 @@ export default function Lobby() {
         });
       });
 
+      socket.on('no-game', () => {
+        console.log('game not found');
+      });
       socket.on('disconnect', () => {
         console.log('disconnecting');
       });
@@ -165,7 +166,7 @@ export default function Lobby() {
             <Text titleText='Messages' titleVariant='h2' component={'h2'} sx={{ textAlign: 'left', paddingLeft: 4 }} />
             <RenderList<PrivateMessageDetails>
               data={messages}
-              listMapCallback={e => messagesListCallback(e, activePlayer)}
+              listMapCallback={(e, i) => messagesListCallback(e, i, activePlayer)}
             />
           </Box>
         </Box>
@@ -248,11 +249,15 @@ async function handleMessageClick(
   setMessageTarget(messageDetails);
 }
 
-function messagesListCallback({ message, target, sender }: PrivateMessageDetails, activePlayer: IPlayerClientData) {
+function messagesListCallback(
+  { message, target, sender }: PrivateMessageDetails,
+  i: number,
+  activePlayer: IPlayerClientData,
+) {
   return (
     <Box
       component={'section'}
-      key={`${activePlayer.id}-${message}`}
+      key={`${i}-${activePlayer.id}-${message}`}
       id='lobby-messages'
       sx={{
         display: 'flex',
@@ -281,7 +286,7 @@ function messagesListCallback({ message, target, sender }: PrivateMessageDetails
         </Box>
 
         <Box component={'section'} flex={5} textAlign={'right'} sx={{ paddingRight: 1 }}>
-          <Text component={'span'} titleVariant={'body1'} key={`${message}`} titleText={message} />
+          <Text component={'span'} titleVariant={'body1'} titleText={message} />
         </Box>
         <Divider orientation='vertical' textAlign='right' />
       </Box>

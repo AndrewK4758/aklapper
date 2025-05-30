@@ -16,17 +16,20 @@ export default function MessageContextProvider({ children }: MessageContextProvi
   const [messages, setMessages] = useState<PrivateMessageDetails[]>(() => initMessageState());
 
   const addMessage = (newMessage: PrivateMessageDetails) => {
-    const updatedMessages = [...messages, newMessage];
+    setMessages(prev => {
+      const updatedMessages = [...prev, newMessage];
 
-    setMessages(updatedMessages);
+      sessionStorage.setItem('messages', JSON.stringify(updatedMessages));
+
+      return updatedMessages;
+    });
   };
 
   const clearSavedMessages = () => {
+    console.log('cleared messages');
     sessionStorage.removeItem('messages');
     setMessages(() => initMessageState());
   };
-
-  sessionStorage.setItem('messages', JSON.stringify(messages));
 
   return (
     <MessageContext.Provider value={{ messages, addMessage, clearSavedMessages }}>{children}</MessageContext.Provider>

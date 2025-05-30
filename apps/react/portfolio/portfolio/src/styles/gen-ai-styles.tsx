@@ -14,7 +14,6 @@ export const helperTextSx: SxProps = {
 };
 
 export const labelSx: SxProps = {
-  fontSize: '2rem',
   color: Theme.palette.primary.main,
   width: 'fit-content',
   '&:hover': { cursor: 'pointer' },

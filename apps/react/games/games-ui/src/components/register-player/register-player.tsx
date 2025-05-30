@@ -54,7 +54,7 @@ interface RegisterPlayerProps {
 }
 
 export default function RegisterPlayer({ method, index, tab, inputSx, ContainerProps }: RegisterPlayerProps) {
-  const { setActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
+  const { addActivePlayer } = useContext<ActivePlayerContextProps>(ActivePlayerContext);
   const [submitPressed, setSubmitPressed] = useState<boolean>(false);
   const nav = useNavigate();
 
@@ -65,7 +65,7 @@ export default function RegisterPlayer({ method, index, tab, inputSx, ContainerP
     initialValues: initialValues,
     validationSchema: validationSchema,
     validateOnChange: false,
-    onSubmit: async values => handleNewPlayerSubmit(values, setActivePlayer, setSubmitPressed, nav, signal),
+    onSubmit: async values => handleNewPlayerSubmit(values, addActivePlayer, setSubmitPressed, nav, signal),
   });
 
   useEffect(() => {
@@ -85,7 +85,7 @@ export default function RegisterPlayer({ method, index, tab, inputSx, ContainerP
       id={`simple-tabpanel-${index}`}
       aria-labelledby={`simple-tab-${index}`}
       hidden={tab !== index}
-      sx={{ height: '100%' }}
+      sx={{ height: '100%', paddingBottom: 3 }}
     >
       <Form
         method={method}
@@ -175,7 +175,7 @@ const baseUrl = import.meta.env.VITE_REST_API_SERVER_URL_V2;
 
 async function handleNewPlayerSubmit(
   values: Partial<IPlayerClientData>,
-  setActivePlayer: Dispatch<SetStateAction<IPlayerClientData>>,
+  addActivePlayer: (activePlayer: IPlayerClientData) => void,
   setSubmitPressed: Dispatch<SetStateAction<boolean>>,
   nav: NavigateFunction,
   signal: AbortSignal,
@@ -204,7 +204,7 @@ async function handleNewPlayerSubmit(
 
     localStorage.setItem('activePlayer', JSON.stringify(currentPlayer));
 
-    setActivePlayer(currentPlayer);
+    addActivePlayer(currentPlayer);
 
     nav('lobby');
   } catch (error) {

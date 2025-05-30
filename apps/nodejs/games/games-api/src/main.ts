@@ -1,6 +1,5 @@
 import { SocketServer } from '@aklapper/socket-io-server';
 import type { PlayerID, SocketID } from '@aklapper/types';
-
 import cors, { type CorsOptions } from 'cors';
 import { configDotenv } from 'dotenv';
 import express, { type Express } from 'express';
@@ -8,7 +7,6 @@ import { createServer } from 'node:http';
 import { join } from 'path';
 import { cwd } from 'process';
 import type { ServerOptions } from 'socket.io';
-
 import createNewGame from './events/create_new_game.js';
 import enterLobby from './events/enter-lobby.js';
 import handleLeaveLobby from './events/leave_lobby.js';
@@ -18,6 +16,7 @@ import addGameToSocketInstance from './middleware/socket-add-game-middleware.js'
 
 // import go_websocketEvent from './models/go_websocket_event.js';
 import gamesInLobby from './data/games_in_lobby/games_in_lobby.js';
+import checkStartGame from './events/check_start-game.js';
 import joinGame from './events/join-game.js';
 import useAllGamesMap from './middleware/all-games-map.js';
 import useActivePlayersMap from './middleware/use_active_players_map.js';
@@ -74,10 +73,11 @@ socketServer.addMiddleware('gameplay', addGameToSocketInstance);
 socketServer.addServerListener('gameplay', 'action', socketBoardAction);
 
 socketServer.addServerListener('lobby', 'enter-lobby', enterLobby);
-socketServer.addServerListener('lobby', 'private-message-player', privateMessagePlayer);
+socketServer.addServerListener('lobby', 'send-private-message', privateMessagePlayer);
 socketServer.addServerListener('lobby', 'remove-player', handleLeaveLobby);
 socketServer.addServerListener('lobby', 'create-new-game', createNewGame);
 socketServer.addServerListener('lobby', 'join-game', joinGame);
+socketServer.addServerListener('lobby', 'check-start-game', checkStartGame);
 
 let reconnecting: null | NodeJS.Timeout = null;
 let socketClient: WebSocket | null = null;

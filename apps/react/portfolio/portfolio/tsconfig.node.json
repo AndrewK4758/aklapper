@@ -8,13 +8,11 @@
     "lib": ["ESNext"],
     "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
     "rootDir": "./",
-    "baseUrl": ".",
-    "noUncheckedSideEffectImports": true,
-    "module": "NodeNext",
-    "moduleResolution": "nodenext",
-    "resolveJsonModule": true,
-    "esModuleInterop": true,
-    "moduleDetection": "force"
+    "baseUrl": "."
+    // "resolveJsonModule": true,
+    // "esModuleInterop": true,
+    // "moduleDetection": "force",
+    // "verbatimModuleSyntax": false
   },
   "exclude": [
     "out-tsc",
@@ -29,7 +27,7 @@
     "tests/**/*.test.jsx",
     "vite.config.ts",
     "vite.config.server.ts",
-    "eslint.config.js"
+    "eslint.config.ts"
   ],
   "include": ["server.ts", "src/main-server.tsx"],
   "references": [

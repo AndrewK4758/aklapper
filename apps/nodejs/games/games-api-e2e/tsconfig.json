@@ -6,7 +6,9 @@
     "isolatedModules": true,
     "noUnusedLocals": false,
     "noImplicitAny": false,
-    "verbatimModuleSyntax": false
+    "verbatimModuleSyntax": false,
+    "module": "ESNext",
+    "moduleResolution": "node10"
   },
   "include": ["jest.config.ts", "src/**/*.ts"],
   "exclude": ["eslint.config.js"],

@@ -1,5 +1,5 @@
 import { workspaceRoot } from '@nx/devkit';
-// import { nxPreset } from '@nx/jest/preset.js';
+import { nxPreset } from '@nx/jest/preset.js';
 import type { Config } from 'jest';
 import { resolve } from 'path';
 import type { DefaultEsmTransformOptions } from 'ts-jest';
@@ -38,7 +38,7 @@ const modules = {
 };
 
 const config: Config = {
-  // ...nxPreset,
+  ...nxPreset,
   forceExit: true,
   coverageProvider: 'v8',
   collectCoverage: true,

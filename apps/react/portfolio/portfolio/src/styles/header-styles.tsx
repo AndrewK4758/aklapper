@@ -8,6 +8,7 @@ import Theme from './theme.js';
 
 export const headerLabelSxProps: SxProps = {
   fontSize: '2.5rem',
+  color: '#121212',
   [Theme.breakpoints.down('md')]: { fontSize: '1rem' },
 };
 

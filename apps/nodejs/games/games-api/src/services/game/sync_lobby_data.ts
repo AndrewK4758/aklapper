@@ -12,7 +12,7 @@ import useActivePlayersMap from '../../middleware/use_active_players_map.js';
 
 export default async function syncWithGoLobby() {
   const activeGames = gamesInLobby.map;
-  const activePlayers = useActivePlayersMap();
+  const activePlayersMap = useActivePlayersMap();
 
   const lobbySyncWsId = new ShortUniqueId().rnd(6);
   if (socketClient && socketClient.readyState === WebSocket.OPEN) {
@@ -29,25 +29,26 @@ export default async function syncWithGoLobby() {
       console.log('active games in lobby', game);
       const newGame = new Game(gameInstance.instance() as AllGameTypes);
 
-      game.playersArray = game.playersArray.map(p => {
+      const activePlayers = (game.playersArray = game.playersArray.map(p => {
         const newPlayer = new Player(p.name, p.id, p.email);
         newPlayer.activeGameID = game.gameInstanceID;
-        console.log('active games in lobby', newPlayer);
-        activePlayers.addPlayer(p.id, newPlayer);
+        activePlayersMap.addPlayer(p.id, newPlayer);
         return newPlayer;
-      });
+      }));
 
+      console.log('sync active players: ', activePlayers);
+      newGame.playersArray = [...activePlayers];
       const instanceOfGame = new InstanceOfGame(getCurrentMinute(), game.gameInstanceID, newGame);
 
       activeGames.set(game.gameInstanceID, instanceOfGame);
     });
 
     activePlayersInLobby.forEach(player => {
-      if (!activePlayers.map.has(player.id)) {
+      if (!activePlayersMap.map.has(player.id)) {
         const newPlayer = new Player(player.name, player.id, player.email);
-        console.log('active players in lobby', newPlayer);
-        activePlayers.addPlayer(player.id, newPlayer);
+        activePlayersMap.addPlayer(player.id, newPlayer);
       }
     });
   }
+  console.log('sync: ', activeGames, activePlayersMap.map);
 }

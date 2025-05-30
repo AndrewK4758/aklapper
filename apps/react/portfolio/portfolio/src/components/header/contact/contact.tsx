@@ -2,7 +2,7 @@ import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 import MenuList from '@mui/material/MenuList';
-import { lazy, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import {
   contactButtonSxProps,
   drawerPaperProps,
@@ -10,16 +10,15 @@ import {
   iconSxProps,
   iconWrapperSxProps,
 } from '../../../styles/header-styles.jsx';
-
-const EmailDialog = lazy(() => import('../../email/email-dialog.jsx'));
-const DiscordIcon = lazy(() => import('../../icons/discord-icon.jsx'));
-const EmailIcon = lazy(() => import('../../icons/email-icon.jsx'));
-const FacebookIcon = lazy(() => import('../../icons/facebook-icon.jsx'));
-const GitHibIcon = lazy(() => import('../../icons/github-icon.jsx'));
-const HuggingFaceIcon = lazy(() => import('../../icons/huggingface-icon.jsx'));
-const LinkedinIcon = lazy(() => import('../../icons/linkedin-logo.jsx'));
-const XIcon = lazy(() => import('../../icons/x-icon.jsx'));
-const ContactIcon = lazy(() => import('../contact-icon/contact-icon.jsx'));
+import EmailDialog from '../../email/email-dialog.js';
+import DiscordIcon from '../../icons/discord-icon.js';
+import EmailIcon from '../../icons/email-icon.js';
+import FacebookIcon from '../../icons/facebook-icon.js';
+import GitHibIcon from '../../icons/github-icon.js';
+import HuggingFaceIcon from '../../icons/huggingface-icon.js';
+import LinkedinIcon from '../../icons/linkedin-logo.js';
+import XIcon from '../../icons/x-icon.js';
+import ContactIcon from '../contact-icon/contact-icon.js';
 
 interface ContactProps {
   openMenu: boolean;

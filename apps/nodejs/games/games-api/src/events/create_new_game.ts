@@ -12,6 +12,7 @@ const createNewGame: SocketCallback = (event: string, socket: Socket) => {
       if (selectedGame) {
         const newGameData: GameInstanceLobbyData | boolean = await generateNewGame(selectedGame, playerId);
 
+        console.log('new game: ', newGameData);
         if (newGameData) {
           lobbySocketServer.emit('new-game', newGameData);
         } else throw new Error('Error adding new game to lobby');

@@ -22,6 +22,7 @@ export default function PrivateMessageModal({ open, messageTarget, setOpen }: Pr
   const { socket } = useContext<WebsocketContextProps>(WebsocketContext);
   const { addMessage } = useContext<MessagesContextProps>(MessageContext);
   const [message, setMessage] = useState<string>('');
+
   return (
     <Dialog open={open} slotProps={{ paper: { component: 'form' } }}>
       <DialogTitle sx={{ textAlign: 'center' }}>Private Message</DialogTitle>
@@ -58,8 +59,8 @@ export default function PrivateMessageModal({ open, messageTarget, setOpen }: Pr
           onClick={() => {
             if (messageTarget) {
               messageTarget.message = message;
+              socket.emit('send-private-message', messageTarget);
               addMessage(messageTarget);
-              socket.emit('private-message-player', messageTarget);
             }
             setOpen(false);
           }}

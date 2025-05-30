@@ -162,16 +162,18 @@ const activeGamesCallback = (
             variant='outlined'
             name={game.name}
             type='submit'
-            onMouseDown={() => {
+            onClick={() => {
               setJoinedGame(instance.gameInstanceID);
               const exists = instance.playersArray.find(p => p.id === activePlayer.id);
-
-              if (!exists && !joinedGame)
+              console.log('exists: ', exists);
+              console.log('joined game: ', joinedGame);
+              if (!exists && !joinedGame) {
+                console.log('emit-joined-game');
                 socket.emit('join-game', {
                   gameId: instance.gameInstanceID,
                   joiningPlayer: activePlayer,
                 } as JoinGameData);
-              else alert('You already joined the game');
+              } else alert('You already joined the game');
               sessionStorage.setItem('joined-game', JSON.stringify({ joinedGameId: instance.gameInstanceID }));
             }}
             sx={{ p: 0, fontSize: 'inherit' }}
@@ -185,7 +187,13 @@ const activeGamesCallback = (
             variant='outlined'
             type='submit'
             onClick={() => {
-              console.log('ready clicked');
+              // send event to check if the count of players.readyToPlay in the game.playersArray === count of players in game.playersArray
+              // if so start the game and redirect to active game board else wait for all players to hit ready button and provide some kind of ui "alert" to the players not in ready staate
+
+              console.log(instance.gameInstanceID);
+              socket.emit('check-start-game', instance.gameInstanceID);
+
+              console.log('READY CLICKED');
             }}
             sx={{ p: 0, fontSize: 'inherit' }}
           >

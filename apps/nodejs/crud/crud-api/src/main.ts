@@ -4,7 +4,7 @@ import { configDotenv } from 'dotenv';
 import type { Express } from 'express';
 import express from 'express';
 import { createServer } from 'http';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Routes, { router } from './routes/routes.js';
 
@@ -12,11 +12,7 @@ const __filename = fileURLToPath(import.meta.url);
 
 const __dirname = dirname(__filename);
 
-console.log(__dirname);
-
-const x = configDotenv();
-console.log(x);
-console.log(process.env);
+configDotenv({ path: resolve(__dirname, '../env/.env') });
 
 const app: Express = express();
 
@@ -27,6 +23,7 @@ export const corsOptions: CorsOptions = {
     'http://localhost:4800',
     'http://localhost:4200',
     'http://localhost:4300',
+    'http://localhost:3000',
     'https://andrew-k.us',
     'https://www.andrew-k.us',
     'http://localhost',

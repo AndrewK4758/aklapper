@@ -58,6 +58,11 @@ const useGamesWebsockets = (socket: Socket, id: string, dispatch: (value: Action
     socket.on('no-game-error', ({ errorMessage }) => {
       console.error(errorMessage);
     });
+
+    socket.on('disconnect', () => {
+      console.log('disconnecting');
+    });
+
     return () => {
       socket.disconnect();
       socket.removeAllListeners();

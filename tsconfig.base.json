@@ -29,7 +29,7 @@
     "sourceMap": false,
     "strict": true,
     "target": "ESNext",
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": false
   },
   "ts-node": {
     "esm": true,

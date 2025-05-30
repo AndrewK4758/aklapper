@@ -7,10 +7,12 @@ import Go_WsEventManager from 'src/models/go_websocket_manager.js';
 
 const joinGame: SocketCallback = (event: string, socket: Socket) => {
   socket.on(event, async ({ gameId, joiningPlayer }: JoinGameData) => {
+    console.log(gameId, joiningPlayer);
     try {
       const activePlayers = useActivePlayersMap();
       const activeGame = gamesInLobby.getGameActiveGame(gameId);
       const activePlayer = activePlayers.getPlayer(joiningPlayer.id);
+      console.log('joined game active: ', activeGame);
 
       if (activePlayer && activeGame) {
         activePlayer.activeGameID = gameId;
@@ -29,6 +31,7 @@ const joinGame: SocketCallback = (event: string, socket: Socket) => {
 
           if (playerJoined) {
             activeGame.instance.playersArray.push(activePlayer);
+            console.log(`${activeGame.gameInstanceID}: `, activeGame.instance.playersArray);
             lobbySocketServer.emit('player-joined', eventData);
           }
         } else {

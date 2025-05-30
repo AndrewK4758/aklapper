@@ -12,7 +12,7 @@ import axios from 'axios';
 import { useContext, useEffect, useRef, useState, type JSX, type RefObject } from 'react';
 import { useOutletContext } from 'react-router';
 import { io, type ManagerOptions, type Socket } from 'socket.io-client';
-import { MediaRecorderClientContext } from '../../../contexts/audio-context.jsx';
+import { MediaRecorderClientContext, MediaRecorderClientContextProps } from '../../../contexts/audio-context.jsx';
 import { crudHeaderTextSxProps } from '../../../styles/crud-styles.jsx';
 import { genAiAudioIconButtonSxProps, topLevelModeStyle } from '../../../styles/gen-ai-styles.jsx';
 import { buttonSXProps } from '../../../styles/pages-styles.js';
@@ -44,7 +44,8 @@ const GenAiAudio = (): JSX.Element => {
   };
 
   const clientSocket = io(vertexWsURL, managerOptions);
-  const { MRC, createStream, stream, setStream } = useContext(MediaRecorderClientContext);
+  const { MRC, createStream, stream, setStream } =
+    useContext<MediaRecorderClientContextProps>(MediaRecorderClientContext);
   const { setPromptResponse } = useOutletContext<OutletContextProps>();
   const [blob, setBlob] = useState<Blob | null>(null);
   const [recording, setRecording] = useState<boolean>(false);
