@@ -108,20 +108,27 @@ export default function Lobby() {
         });
       });
 
+      socket.on('ready-game', (data: boolean) => {
+        // send to register avatar page with array of client players objects
+        console.log(data);
+      });
+
       socket.on('no-game', () => {
         console.log('game not found');
       });
       socket.on('disconnect', () => {
         console.log('disconnecting');
+        socket.close();
       });
     }
     return () => {
       console.log('cleanup called');
       if (socket.connected) {
         socket.emit('remove-player', activePlayer.id);
-        removeFromLobby();
+        socket.close();
         socket.disconnect();
         socket.removeAllListeners();
+        removeFromLobby();
         sessionStorage.removeItem('joined-game');
       }
     };

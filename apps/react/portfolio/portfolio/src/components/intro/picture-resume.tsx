@@ -2,12 +2,12 @@ import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
 import CardMedia from '@mui/material/CardMedia';
-import Tooltip from '@mui/material/Tooltip';
+// import Tooltip from '@mui/material/Tooltip';
 import { lazy, type JSX } from 'react';
-import ResumeIcon from '../../components/icons/resume-icon.jsx';
+// import ResumeIcon from '../../components/icons/resume-icon.jsx';
 import {
   introButtonSxProps,
-  introIconSxProps,
+  // introIconSxProps,
   introPicStyles,
   picAndResumeCardStyles,
 } from '../../styles/intro-styles.jsx';
@@ -42,22 +42,20 @@ const PicutreAndResume = (): JSX.Element => (
       sx={introPicStyles}
     />
     <CardActions key={'card-actions-wrapper'} id={'card-actions-wrapper'} data-testid={'card-actions-wrapper'}>
-      <Tooltip title='Download my resume in PDF'>
-        <Button
-          rel='preload'
-          key={'card-media-resume-button'}
-          id={'card-media-resume-button'}
-          data-testid={'card-media-resume-button'}
-          variant='contained'
-          LinkComponent={'a'}
-          href={'/client/Resume.pdf'}
-          download={`andrew-klapper-resume`}
-          endIcon={<ResumeIcon sx={introIconSxProps} />}
-          sx={introButtonSxProps}
-        >
-          Resume
-        </Button>
-      </Tooltip>
+      {/* <Tooltip title='Download my resume in PDF'> */}
+      <Button
+        rel='preload'
+        key={'card-media-resume-button'}
+        id={'card-media-resume-button'}
+        data-testid={'card-media-resume-button'}
+        variant='contained'
+        href={'/client/Resume.pdf'}
+        download={`andrew-klapper-resume`}
+        sx={introButtonSxProps}
+      >
+        Resume
+      </Button>
+      {/* </Tooltip> */}
     </CardActions>
     <TechStackList />
   </Card>

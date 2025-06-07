@@ -4,7 +4,7 @@ import Theme from './theme.jsx';
 
 export const baseStyleForHomeItems: SxProps = {
   width: '100vw',
-  display: 'flex'
+  display: 'flex',
 };
 
 export const introWrapperSxProps: SxProps = {
@@ -14,37 +14,42 @@ export const introWrapperSxProps: SxProps = {
   gap: '2.5vw',
   width: '90vw',
   [Theme.breakpoints.down('lg')]: {
-    flexDirection: 'column-reverse'
-  }
+    flexDirection: 'column-reverse',
+  },
 };
 
 export const introCardSxProps: SxProps = {
   flex: '0 1 70%',
-  height: 'fit-content'
+  height: 'fit-content',
+};
+
+export const introTitleWrapperSxProps: SxProps = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  paddingRight: '2rem',
 };
 
 export const introTitleTextSxProps: SxProps = {
-  borderBottom: `3px solid ${Theme.palette.divider}`,
-  width: 'fit-content',
-  alignSelf: 'center',
+  backgroundColor: Theme.palette.background.defaultChannel,
+  width: '100%',
+  textAlign: 'center',
   [Theme.breakpoints.down('lg')]: {
-    justifySelf: 'center',
-    fontSize: '2.5rem'
-  }
+    fontSize: '2.5rem',
+  },
 };
 
 export const introTextSxProps: SxProps = {
   flex: '0 1 75%',
   fontSize: '1.25rem',
-  fontFamily: 'Lucida',
-  paddingTop: 4,
+  paddingTop: 2,
   [Theme.breakpoints.down('lg')]: {
     fontSize: '1rem',
-    paddingTop: 1.5
+    paddingTop: 1.5,
   },
   '& .bold-text': {
-    fontWeight: 'bolder'
-  }
+    fontWeight: 'bolder',
+  },
 };
 
 export const picAndResumeCardStyles: SxProps = {
@@ -52,35 +57,36 @@ export const picAndResumeCardStyles: SxProps = {
   flex: '0 1 30%',
   height: '100%',
   alignItems: 'center',
-  justifyItems: 'space-evenly'
+  justifyItems: 'space-evenly',
 };
 
 export const introPicStyles: SxProps = {
   width: '90%',
-  paddingTop: 3,
-  height: 'auto'
+  marginTop: 2,
+  height: 'auto',
+  borderRadius: 1,
 };
 
 export const introIconSxProps: SxProps = {
   scale: 1.5,
   [Theme.breakpoints.down('lg')]: {
-    scale: 1
-  }
+    scale: 1,
+  },
 };
 
 export const introButtonSxProps: SxProps = {
   [Theme.breakpoints.down('lg')]: {
-    fontSize: '1rem'
-  }
+    fontSize: '1rem',
+  },
 };
 
 export const techListSectionContainer: SxProps = {
   flex: '1 0 25%',
   paddingY: 2,
-  borderTop: `2px solid ${Theme.palette.primary.dark}`
+  borderTop: `2px solid ${Theme.palette.primary.dark}`,
 };
 
 export const techlistTextStyle: SxProps = {
   borderBottom: `2px solid ${Theme.palette.primary.dark}`,
-  width: 'fit-content'
+  width: 'fit-content',
 };

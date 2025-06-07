@@ -4,6 +4,7 @@
     "appsDir": "apps",
     "libsDir": "packages"
   },
+  "useDaemonProcess": false,
   "cli": {
     "packageManager": "pnpm"
   },
@@ -99,6 +100,17 @@
           "targetName": "typecheck"
         }
       }
+    },
+    {
+      "plugin": "@nx/react/router-plugin",
+      "options": {
+        "buildTargetName": "build",
+        "devTargetName": "dev",
+        "startTargetName": "start",
+        "watchDepsTargetName": "watch-deps",
+        "buildDepsTargetName": "build-deps",
+        "typecheckTargetName": "typecheck"
+      }
     }
   ],
   "targetDefaults": {
@@ -116,7 +128,18 @@
   "generators": {
     "@nx/react": {
       "library": {
+        "style": "css",
+        "linter": "eslint",
         "unitTestRunner": "vitest"
+      },
+      "application": {
+        "babel": true,
+        "style": "css",
+        "linter": "eslint",
+        "bundler": "vite"
+      },
+      "component": {
+        "style": "css"
       }
     }
   },

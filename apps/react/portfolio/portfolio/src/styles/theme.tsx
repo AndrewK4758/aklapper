@@ -6,54 +6,61 @@ import './main-styles.css';
 
 const darkScrollbarGlobal = {
   '&::-webkit-scrollbar': {
-    width: '16px',
+    width: '0.75rem',
   },
   '&::-webkit-scrollbar-track': {
-    backgroundColor: '#1f1f1f',
+    background: `linear-gradient(to bottom, #ffd300, #ff3d00)`,
   },
   '&::-webkit-scrollbar-thumb': {
     backgroundColor: '#3a3c41',
-    borderRadius: '4px',
+    borderRadius: '2px',
   },
 };
 
 const Theme: ThemeType = createTheme(
   {
-    defaultColorScheme: 'dark',
-    colorSchemes: {
-      dark: {
-        palette: {
-          AppBar: {
-            darkBg: '#212121',
-            defaultBg: '#121212',
-            darkColor: '#121212',
-          },
-          background: {
-            default: '#121212',
-            paper: '#212121',
-          },
-          text: {
-            primary: '#ffffff',
-            secondary: '#eeeeee',
-          },
-        },
-      },
-      light: {
-        palette: {
-          background: {
-            paper: '#fefbf9',
-            default: '#efedea',
-          },
-        },
-      },
-    },
-    cssVariables: true,
     palette: {
+      background: {
+        default: '#333333',
+        paper: '#111321',
+      },
       secondary: {
         main: '#d500f9',
         contrastText: '#ffd300',
       },
+      text: {
+        primary: '#eef0ff',
+      },
     },
+    // defaultColorScheme: 'dark',
+    // colorSchemes: {
+    //   dark: {
+    //     palette: {
+    //       AppBar: {
+    //         darkBg: '#212121',
+    //         defaultBg: '#121212',
+    //         darkColor: '#121212',
+    //       },
+    //       background: {
+    //         default: '#121212',
+    //         paper: '#707070',
+    //       },
+    //       text: {
+    //         primary: '#eef0ff',
+    //         secondary: '#cfd0dd',
+    //       },
+    //     },
+    //   },
+    //   light: {
+    //     palette: {
+    //       background: {
+    //         paper: '#fefbf9',
+    //         default: '#efedea',
+    //       },
+    //     },
+    //   },
+    // },
+    cssVariables: true,
     shape: {
       borderRadius: 10,
     },
@@ -65,23 +72,28 @@ const Theme: ThemeType = createTheme(
       },
       body1: {
         fontFamily: 'Lucida',
-        letterSpacing: 2.0,
-        wordSpacing: 1.5,
+        letterSpacing: 1.5,
+        wordSpacing: 1,
       },
     },
     components: {
       MuiCssBaseline: {
         styleOverrides: {
           ...darkScrollbarGlobal,
+          width: '100vw',
+          height: 'auto',
+          minHeight: 'fit-content',
+          display: 'flex',
+          flexDirection: 'column',
         },
       },
-      MuiButton: {
-        defaultProps: {
-          sx: {
-            fontSize: '2rem',
-          },
-        },
-      },
+      // MuiButton: {
+      //   defaultProps: {
+      //     sx: {
+      //       fontSize: '2rem',
+      //     },
+      //   },
+      // },
       MuiTooltip: { styleOverrides: { tooltip: { fontSize: '1rem' } }, defaultProps: { sx: { fontSize: '2rem' } } },
     },
   },

@@ -1,8 +1,10 @@
 import { lazy } from 'react';
 import type { RouteObject } from 'react-router';
 import Layout from '../components/layout/layout.jsx';
-import emailFormAction from '../services/actions/email-form-action.jsx';
 import PrivacyPolicy from '../components/privacy-policy/privacy-policy.jsx';
+import BaseError from '../errors/redirect-to-home.js';
+
+import emailFormAction from '../services/actions/email-form-action.jsx';
 import generateImageAction from '../services/actions/generate-image-action.jsx';
 import handlePromptBuilder from '../services/actions/prompt-builder-action.jsx';
 import loadAlbumTracks from '../services/loaders/crud-loaders/load-album-tracks.jsx';
@@ -10,7 +12,6 @@ import loadAlbumsCount from '../services/loaders/crud-loaders/load-albums-count.
 import loadArtistAlbums from '../services/loaders/crud-loaders/load-artist-albums.jsx';
 import loadArtistsCount from '../services/loaders/crud-loaders/load-artists-count.jsx';
 import registerPlayersAndStartGame from '../services/loaders/register-players-and-start-game.jsx';
-import BaseError from '../errors/redirect-to-home.js';
 
 const Games = lazy(() => import('../pages/games/games.jsx'));
 const ActiveGameSession = lazy(() => import('../components/games/active_game_session.jsx'));
@@ -58,9 +59,9 @@ const routes: RouteObject[] = [
             path: ':id',
             id: 'active-game',
             element: <ActiveGameSession />,
-            errorElement: <BaseError />
-          }
-        ]
+            errorElement: <BaseError />,
+          },
+        ],
       },
       {
         path: 'crud',
@@ -73,7 +74,7 @@ const routes: RouteObject[] = [
             path: 'add-entry',
             id: 'add-entry',
             element: <AddEntry />,
-            errorElement: <BaseError />
+            errorElement: <BaseError />,
           },
           {
             path: 'artists',
@@ -94,11 +95,11 @@ const routes: RouteObject[] = [
                     id: 'album-tracks',
                     loader: loadAlbumTracks,
                     element: <Tracks />,
-                    errorElement: <BaseError />
-                  }
-                ]
-              }
-            ]
+                    errorElement: <BaseError />,
+                  },
+                ],
+              },
+            ],
           },
           {
             path: 'albums',
@@ -112,11 +113,11 @@ const routes: RouteObject[] = [
                 id: 'tracks',
                 element: <Tracks />,
                 loader: loadAlbumTracks,
-                errorElement: <BaseError />
-              }
-            ]
-          }
-        ]
+                errorElement: <BaseError />,
+              },
+            ],
+          },
+        ],
       },
       {
         path: 'gen-ai',
@@ -129,31 +130,31 @@ const routes: RouteObject[] = [
             path: 'text',
             id: 'text',
             element: <TextGenerator />,
-            errorElement: <BaseError />
+            errorElement: <BaseError />,
           },
           {
             path: 'image',
             element: <Image />,
             id: 'image',
             action: generateImageAction,
-            errorElement: <BaseError />
+            errorElement: <BaseError />,
           },
           {
             path: 'audio',
             id: 'audio',
             element: <Audio />,
-            errorElement: <BaseError />
-          }
-        ]
+            errorElement: <BaseError />,
+          },
+        ],
       },
       {
         path: 'privacy-policy',
         id: 'privacy-policy',
         element: <PrivacyPolicy />,
-        errorElement: <BaseError />
-      }
-    ]
-  }
+        errorElement: <BaseError />,
+      },
+    ],
+  },
 ];
 
 export default routes;

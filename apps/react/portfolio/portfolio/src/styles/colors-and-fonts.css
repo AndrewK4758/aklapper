@@ -16,6 +16,7 @@
   font-display: swap;
 }
 
-:root {
-  --primary: #2196f3;
+@font-face {
+  font-family: Landing;
+  src: url('../../fonts/orange_gummy.ttf'), format('truetype');
 }

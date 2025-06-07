@@ -20,10 +20,10 @@ const render = async (fullUrl: string, resp: Response) => {
   const router = createStaticRouter(routes, context);
 
   const { pipe, abort } = ReactDomServer.renderToPipeableStream(
-    <html lang="en">
+    <html lang='en'>
       <head>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta charSet='utf-8' />
+        <meta name='viewport' content='width=device-width, initial-scale=1.0' />
         <title>
           Developer Portfolio for Andrew Klapper. This shows multiple projects that showcase distinct programming
           styles. Each project uses React as the front-end / ui, jest/vitest for testing, github actions and GCP for
@@ -31,24 +31,26 @@ const render = async (fullUrl: string, resp: Response) => {
           monorepo
         </title>
         <meta
-          name="title"
-          content="Developer Portfolio for Andrew Klapper. This shows multiple projects that showcase distinct programming styles. Each project uses React as the front-end / ui, jest/vitest for testing, github actions and GCP for simple ci/cd. Please feel free to click the github icon in the contact section for a full review of the monorepo"
+          name='title'
+          content='Developer Portfolio for Andrew Klapper. This shows multiple projects that showcase distinct programming styles. Each project uses React as the front-end / ui, jest/vitest for testing, github actions and GCP for simple ci/cd. Please feel free to click the github icon in the contact section for a full review of the monorepo'
         />
-        <meta name="description" content="Personal developer portfolio for Andrew Klapper" />
-        <meta name="keywords" content="Typescript, react, portfolio, developer" />
-        <meta name="robots" content="index, follow" />
-        <meta name="language" content="English" />
-        <meta name="author" content="Andrew Klapper" />
+        <meta name='description' content='Personal developer portfolio for Andrew Klapper' />
+        <meta name='keywords' content='Typescript, react, portfolio, developer' />
+        <meta name='robots' content='index, follow' />
+        <meta name='language' content='English' />
+        <meta name='author' content='Andrew Klapper' />
         {fonts.map(font => (
-          <link rel="preload" key={font} as="font" type="font/ttf" crossOrigin="" href={`/client/${font}`} />
+          <link rel='preload' key={font} as='font' type='font/ttf' crossOrigin='' href={`/client/${font}`} />
         ))}
-        <link rel="stylesheet" type="text/css" href={`/client/${css}`} />
-        <link rel="icon" type="image/x-icon" href="/client/favicon.ico" />
+        <link rel='stylesheet' type='text/css' href={`/client/${css}`} />
+        <link rel='icon' type='image/x-icon' href='/client/favicon.ico' />
       </head>
-      <body id="root">
-        <StrictMode>
-          <App Router={<StaticRouterProvider router={router} context={context} hydrate={true} />} />
-        </StrictMode>
+      <body>
+        <div id='root'>
+          <StrictMode>
+            <App Router={<StaticRouterProvider router={router} context={context} hydrate={true} />} />
+          </StrictMode>
+        </div>
       </body>
     </html>,
     {
@@ -110,8 +112,8 @@ const render = async (fullUrl: string, resp: Response) => {
       onAllReady() {
         resp.end();
         console.log('ALL COMPONENTS RENDERED');
-      }
-    }
+      },
+    },
   );
 
   const timeoutId = setTimeout(() => {

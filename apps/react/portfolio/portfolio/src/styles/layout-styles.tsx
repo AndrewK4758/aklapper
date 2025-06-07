@@ -21,10 +21,12 @@ export const homeWrapperSxProps: SxProps = {
 
 export const mainWrapperSxProps: SxProps = {
   ...baseStyleForLayoutItems,
-  marginTop: '12vh',
+  paddingTop: '4rem',
+  // marginTop: '12vh',
   gap: '15vh',
   [Theme.breakpoints.down('lg')]: {
-    marginTop: '8vh',
+    // marginTop: '8vh',
+    paddingTop: '4rem',
     gap: '5vh',
   },
 };

@@ -8,28 +8,23 @@
 }
 
 html {
-  width: 100vw;
-  height: fit-content;
   overflow-x: hidden;
-  scrollbar-color: #1f1f1f;
-  &::-webkit-scrollbar {
-    width: '16px';
-  }
-  &::-webkit-scrollbar-track {
-    background-color: #1f1f1f;
-  }
-  &::-webkit-scrollbar-thumb {
-    background-color: #3a3c41;
-    border-radius: 4px;
-  }
+}
+
+:root {
+  --primary: #2196f3;
+  --background: #333333;
+  --accent-one: #ffd300;
+  --accent-two: #ff3d00;
+  --accent-dark: #000000;
+  --accent-grey: #212121;
+  --dark-grey: #242424;
 }
 
 #root {
   width: 100vw;
   height: auto;
   min-height: fit-content;
-  display: flex;
-  flex-direction: column;
 }
 
 input:-webkit-autofill,
@@ -62,4 +57,83 @@ pre {
 
 .bold-text {
   font-family: 'Lucida Bold';
+}
+
+@property --clr-1 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ffd300;
+}
+
+@property --clr-2 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ff3d00;
+}
+
+@property --glow-deg {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: -180deg;
+}
+
+@keyframes spin {
+  50% {
+    --clr-1: var(--accent-two);
+    --clr-2: var(--accent-one);
+    --clr-1: var(--accent-two);
+  }
+}
+
+@keyframes typewriter {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.header-background,
+#home-button-label,
+#games-button-label,
+#crud-button-label,
+#gen-ai-button-label,
+#contact-button-label,
+#card-media-resume-button,
+#tech-list-title-text-button {
+  background:
+    conic-gradient(var(--accent-dark) 0 0) padding-box,
+    linear-gradient(to right, var(--clr-1), var(--clr-2), var(--clr-1)) border-box;
+  border: 3px solid transparent;
+  border-radius: 10px;
+  position: relative;
+  isolation: isolate;
+  animation: spin 3s linear infinite;
+}
+
+@keyframes shake {
+  1.25%,
+  11.25% {
+    transform: rotateZ(-0.75deg);
+  }
+  2.5%,
+  10% {
+    transform: rotateZ(1.5deg);
+  }
+  3.75%,
+  6.75%,
+  8.75% {
+    transform: rotateZ(-3deg);
+  }
+  5%,
+  7.5% {
+    transform: rotateZ(3deg);
+  }
+  11.5% {
+    transform: rotateZ(0deg);
+  }
+  100% {
+    transition: rotateZ(0deg);
+  }
 }

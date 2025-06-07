@@ -21,23 +21,23 @@ import XIcon from '../../icons/x-icon.js';
 import ContactIcon from '../contact-icon/contact-icon.js';
 
 interface ContactProps {
-  openMenu: boolean;
-  setOpenMenu: Dispatch<SetStateAction<boolean>>;
+  openContact: boolean;
+  setOpenContact: Dispatch<SetStateAction<boolean>>;
 }
 
-export function Contact({ openMenu, setOpenMenu }: ContactProps) {
+export function Contact({ openContact, setOpenContact }: ContactProps) {
   const [openEmail, setOpenEmail] = useState<boolean>(false);
   const contactMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutsideDrawer = (event: MouseEvent) => {
       if (contactMenuRef.current && !contactMenuRef.current.contains(event.target as Node)) {
-        setOpenMenu(false);
+        setOpenContact(false);
       }
     };
 
     // Add the event listener when the drawer is open
-    if (openMenu) {
+    if (openContact) {
       document.addEventListener('mousedown', handleClickOutsideDrawer);
     }
 
@@ -45,7 +45,7 @@ export function Contact({ openMenu, setOpenMenu }: ContactProps) {
     return () => {
       document.removeEventListener('mousedown', handleClickOutsideDrawer);
     };
-  }, [openMenu, setOpenMenu]);
+  }, [openContact, setOpenContact]);
 
   return (
     <>
@@ -53,7 +53,7 @@ export function Contact({ openMenu, setOpenMenu }: ContactProps) {
         key={`contact-menu-draw-${openEmail}`}
         id='contact-menu-draw'
         data-testid='contact-menu-draw'
-        open={openMenu}
+        open={openContact}
         anchor='right'
         elevation={6}
         slotProps={{ paper: drawerPaperProps }}
@@ -133,7 +133,7 @@ export function Contact({ openMenu, setOpenMenu }: ContactProps) {
             tooltipText='Close Contact Menu'
             iconHref={''}
             Icon={<ArrowForwardIosIcon color='action' sx={iconSize} />}
-            onClick={setOpenMenu}
+            onClick={setOpenContact}
             stateVariable={false}
             itemSx={iconSxProps}
             buttonSx={contactButtonSxProps}
