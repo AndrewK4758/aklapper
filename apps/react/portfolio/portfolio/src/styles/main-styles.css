@@ -1,16 +1,5 @@
 @import url(./colors-and-fonts.css);
 
-* {
-  -webkit-font-smoothing: antialiased;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  box-sizing: border-box;
-}
-
-html {
-  overflow-x: hidden;
-}
-
 :root {
   --primary: #2196f3;
   --background: #333333;
@@ -19,44 +8,6 @@ html {
   --accent-dark: #000000;
   --accent-grey: #212121;
   --dark-grey: #242424;
-}
-
-#root {
-  width: 100vw;
-  height: auto;
-  min-height: fit-content;
-}
-
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 100px #121212 inset !important;
-  -webkit-text-fill-color: var(#ffffff) !important;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: var(#ffffff);
-}
-
-input::-webkit-inner-spin-button,
-& input::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.floater::after {
-  content: '';
-  display: table;
-  clear: both;
-}
-
-pre {
-  max-width: 100%;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.bold-text {
-  font-family: 'Lucida Bold';
 }
 
 @property --clr-1 {
@@ -85,15 +36,6 @@ pre {
   }
 }
 
-@keyframes typewriter {
-  from {
-    width: 0;
-  }
-  to {
-    width: 100%;
-  }
-}
-
 .header-background,
 #home-button-label,
 #games-button-label,
@@ -110,30 +52,4 @@ pre {
   position: relative;
   isolation: isolate;
   animation: spin 3s linear infinite;
-}
-
-@keyframes shake {
-  1.25%,
-  11.25% {
-    transform: rotateZ(-0.75deg);
-  }
-  2.5%,
-  10% {
-    transform: rotateZ(1.5deg);
-  }
-  3.75%,
-  6.75%,
-  8.75% {
-    transform: rotateZ(-3deg);
-  }
-  5%,
-  7.5% {
-    transform: rotateZ(3deg);
-  }
-  11.5% {
-    transform: rotateZ(0deg);
-  }
-  100% {
-    transition: rotateZ(0deg);
-  }
 }

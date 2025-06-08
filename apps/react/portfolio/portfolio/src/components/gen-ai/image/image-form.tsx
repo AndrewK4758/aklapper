@@ -16,7 +16,7 @@ import { useFormik, type FormikProps } from 'formik';
 import { type ChangeEvent, type JSX } from 'react';
 import { Form, useActionData, useNavigation, useOutletContext, useSubmit } from 'react-router';
 import * as Yup from 'yup';
-import waiting from '../../../assets/swirly-dots-to-chrome.webp';
+import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
 import { crudHeaderTextSxProps } from '../../../styles/crud-styles.jsx';
 import {
   forrmControlLabelStyles,
@@ -85,8 +85,8 @@ const ImageForm = (): JSX.Element => {
           id='image-gen-header-wrapper'
           sx={genAiImageHeaderBoxSxProps}
         >
-          <Text component={'h2'} titleVariant='h2' titleText='Image Generator' sx={pagesTitleSx} />
-          <Text component={'p'} titleVariant='body1' titleText={imageGenDescription} sx={crudHeaderTextSxProps} />
+          <Text component={'h2'} variant='h2' children='Image Generator' sx={pagesTitleSx} />
+          <Text component={'p'} variant='body1' children={imageGenDescription} sx={crudHeaderTextSxProps} />
         </Box>
 
         <Form
@@ -164,7 +164,7 @@ const ImageForm = (): JSX.Element => {
                   control={<Radio sx={genAiImageSampleCountRadioSxProps} />}
                   label={
                     <Box sx={sampleCountRadioTextStyles}>
-                      <Text component={'h4'} titleVariant='h4' titleText={1} sx={genAiSampleCountTextSxProps} />
+                      <Text component={'h4'} variant='h4' children={1} sx={genAiSampleCountTextSxProps} />
                     </Box>
                   }
                   sx={forrmControlLabelStyles}
@@ -175,7 +175,7 @@ const ImageForm = (): JSX.Element => {
                   control={<Radio sx={genAiImageSampleCountRadioSxProps} />}
                   label={
                     <Box sx={sampleCountRadioTextStyles}>
-                      <Text component={'h4'} titleVariant='h4' titleText={2} sx={genAiSampleCountTextSxProps} />
+                      <Text component={'h4'} variant='h4' children={2} sx={genAiSampleCountTextSxProps} />
                     </Box>
                   }
                   sx={forrmControlLabelStyles}
@@ -186,7 +186,7 @@ const ImageForm = (): JSX.Element => {
                   control={<Radio sx={genAiImageSampleCountRadioSxProps} />}
                   label={
                     <Box sx={sampleCountRadioTextStyles}>
-                      <Text component={'h4'} titleVariant='h4' titleText={3} sx={genAiSampleCountTextSxProps} />
+                      <Text component={'h4'} variant='h4' children={3} sx={genAiSampleCountTextSxProps} />
                     </Box>
                   }
                   sx={forrmControlLabelStyles}
@@ -196,7 +196,7 @@ const ImageForm = (): JSX.Element => {
                   control={<Radio sx={genAiImageSampleCountRadioSxProps} />}
                   label={
                     <Box sx={sampleCountRadioTextStyles}>
-                      <Text component={'h4'} titleVariant='h4' titleText={4} sx={genAiSampleCountTextSxProps} />
+                      <Text component={'h4'} variant='h4' children={4} sx={genAiSampleCountTextSxProps} />
                     </Box>
                   }
                   sx={forrmControlLabelStyles}
@@ -300,7 +300,7 @@ const ImageForm = (): JSX.Element => {
                   height: 'fit-content',
                 }}
               >
-                <Text component={'h4'} titleVariant='h4' titleText={'Generating'} sx={{ textAlign: 'center' }} />
+                <Text component={'h4'} variant='h4' children={'Generating'} sx={{ textAlign: 'center' }} />
                 <Waiting src={waiting} />
               </Box>
             )}

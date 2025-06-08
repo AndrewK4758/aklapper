@@ -16,7 +16,7 @@ const labelWrapperSxProps: SxProps = {
 const iconSxProps: SxProps = { display: 'inline-flex', justifyContent: 'center', alignItems: 'center' };
 
 export interface LabelProps extends InputLabelProps {
-  tooltipTitle: ReactNode;
+  tooltipTitle?: ReactNode;
   labelVariant: TypographyVariant;
   labelText: string;
   labelTextSx?: SxProps;
@@ -38,7 +38,7 @@ export interface LabelProps extends InputLabelProps {
     | 'top-start'
     | undefined;
   Icon?: JSX.Element;
-  htmlFor: string;
+  htmlFor?: string;
 }
 
 export const Label = forwardRef<HTMLLabelElement, LabelProps>(

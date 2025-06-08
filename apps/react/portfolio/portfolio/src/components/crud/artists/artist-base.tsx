@@ -18,7 +18,7 @@ import type { GridApiCommunity } from '@mui/x-data-grid/internals';
 import axios from 'axios';
 import { type JSX, type RefObject, useEffect, useRef, useState } from 'react';
 import { Outlet, useLoaderData, useNavigate, useOutletContext } from 'react-router';
-import waiting from '../../../assets/swirly-dots-to-chrome.webp';
+import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
 import useFetchDataGridData from '../../../hooks/useFetchDataGridData.jsx';
 import type { PaginationModel } from '../../../pages/crud/crud.jsx';
 import loadArtists from '../../../services/loaders/crud-loaders/load-artists.jsx';
@@ -153,8 +153,8 @@ const Artist = (): JSX.Element => {
           >
             <Text
               component={'h3'}
-              titleText={'Artist List'}
-              titleVariant={'h3'}
+              children={'Artist List'}
+              variant={'h3'}
               id='artists-title'
               sx={{
                 textAlign: 'center',

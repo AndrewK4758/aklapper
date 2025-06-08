@@ -21,7 +21,7 @@ import {
   type SetStateAction,
 } from 'react';
 import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router';
-import waiting from '../../assets/swirly-dots-to-chrome.webp';
+import waiting from '../../assets/images/swirly-dots-to-chrome.webp';
 import PromptResponse from '../../components/gen-ai/chat-response/chat-response';
 import { MediaRecorderClientContextProvider } from '../../contexts/audio-context';
 import loadContextPath from '../../services/loaders/gen-ai/load-context-path';
@@ -88,7 +88,7 @@ const GenAiHome = (): JSX.Element => {
         sx={crudPaperSxProps}
       >
         <Box component={'section'} key={'gen-ai-title-wrapper'} id='gen-ai-title-wrapper' sx={pagesTitlesBoxStyles}>
-          <Text component={'h3'} titleVariant='h3' titleText={title} sx={pagesTitleSx} />
+          <Text component={'h3'} variant='h3' children={title} sx={pagesTitleSx} />
         </Box>
         <Container key={'gen-ai-header-container'} id={'gen-ai-header-container'} maxWidth={false}>
           <AppBar
@@ -175,8 +175,8 @@ const GenAiHome = (): JSX.Element => {
                 component={'p'}
                 key={'gen-ai-header-text'}
                 id='gen-ai-header-text'
-                titleVariant='body1'
-                titleText={body}
+                variant='body1'
+                children={body}
                 sx={crudHeaderTextSxProps}
               />
             </Box>

@@ -1,11 +1,12 @@
 import type { SVGProps } from 'react';
 
-interface MenuIconProps extends SVGProps<SVGSVGElement> {
-  isOpen: boolean;
+interface MenuIconProps extends Omit<SVGProps<SVGSVGElement>, 'onClick'> {
+  landingNavIsOpen: boolean;
   props?: SVGSVGElement;
+  onHandleOpenMenu: () => void;
 }
 
-export default function MenuIcon({ isOpen, ...props }: MenuIconProps) {
+export default function MenuIcon({ landingNavIsOpen, onHandleOpenMenu, ...props }: MenuIconProps) {
   return (
     <svg
       {...props}
@@ -70,7 +71,7 @@ export default function MenuIcon({ isOpen, ...props }: MenuIconProps) {
           gradientUnits='userSpaceOnUse'
         />
       </defs>
-      <g id='layer1'>
+      <g id='layer1' className='layer1' onClick={onHandleOpenMenu} style={{ cursor: 'grabbing' }}>
         <g transform='matrix(2.9981832,0,0,2.9981832,256,243.82335)' id='g3397'>
           <path
             style={{
@@ -99,10 +100,11 @@ export default function MenuIcon({ isOpen, ...props }: MenuIconProps) {
             id='path3393'
           />
 
-          {isOpen && (
+          {landingNavIsOpen && (
             <path
               style={{
-                display: '',
+                position: 'absolute',
+                display: 'inline',
                 fill: '#333333',
                 fillOpacity: 1,
                 stroke: '#000000',

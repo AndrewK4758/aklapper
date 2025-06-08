@@ -1,70 +1,49 @@
 import Box, { type BoxProps } from '@mui/material/Box';
-import type { CSSProperties } from '@mui/material/styles';
-import MenuIcon from '../../components/icons/menu_icon';
-import Theme from '../../styles/theme';
+import { useRef, useState } from 'react';
+import LandingHeader from '../../components/landing/landing_header';
+import LandingSvgAnimation from '../../components/landing/landing_svg_animation';
+import LayoutRootWrapper from '../../components/styled/layout_root_wrapper';
 
-const typewriterStyle: CSSProperties = {
-  overflow: 'hidden',
-  fontFamily: 'Landing',
-  textAlign: 'center',
-  whiteSpace: 'nowrap',
-  // alignSelf: 'center',
-  width: 0,
-};
+const ANIMATION_FADE_OUT_TIME = 1100;
 
-const typewriterAnimation: CSSProperties = {
-  animation: 'typewriter 4s steps(55) forwards',
-};
+export default function LandingPage({ ...props }: BoxProps) {
+  const elementRef = useRef<HTMLDivElement>(null);
+  const [landingNavIsOpen, setLandingNavIsOpen] = useState(false);
 
-const shakeIconAnimation: CSSProperties = {
-  animation: 'shake 2.25s 5',
-  animationDelay: '3.5s',
-};
+  const fadeOut = () => {
+    const explosion = elementRef.current;
+    if (explosion) explosion.classList.add('hide');
+  };
 
-const typewriterTextStyle: CSSProperties = {
-  fontSize: Theme.containerQueries.down('lg') ? '3rem' : '5rem',
-  m: 0,
-};
+  const onHandleNavbarClick = () => {
+    console.log('clicked', landingNavIsOpen);
+    if (!landingNavIsOpen) {
+      setTimeout(() => {
+        fadeOut();
+      }, ANIMATION_FADE_OUT_TIME);
+    }
 
-interface LandingPageProps extends BoxProps {
-  isOpen: boolean;
-  onHandleNavbarClick: () => void;
-}
-
-export default function LandingPage({ isOpen, onHandleNavbarClick, ...props }: LandingPageProps) {
+    setLandingNavIsOpen(!landingNavIsOpen);
+  };
   return (
-    <Box {...props}>
-      <Box
-        component={'div'}
-        className='typewriter'
-        sx={!isOpen ? { ...typewriterStyle, ...typewriterAnimation } : { ...typewriterStyle, width: '100%' }}
-      >
-        <Box
-          component={'p'}
-          className='typewriter-text'
-          sx={
-            !isOpen
-              ? {
-                  ...typewriterTextStyle,
-                  ...typewriterStyle,
-                  ...typewriterAnimation,
-                }
-              : { ...typewriterStyle, ...typewriterTextStyle, width: '100%' }
-          }
-        >
-          SOMETHING IS TRYING TO ESCAPE!
-        </Box>
-      </Box>
+    <LayoutRootWrapper {...props} component={'div'} id='landing-root'>
+      <LandingHeader landingNavIsOpen={landingNavIsOpen} />
 
-      <Box sx={{ display: 'flex', border: '3px solid red' }}>
-        <MenuIcon
-          id='open-menu'
-          isOpen={isOpen}
-          onClick={() => onHandleNavbarClick()}
-          style={!isOpen ? { ...shakeIconAnimation } : {}}
+      <Box sx={{ flex: '1 0 100%', display: 'flex' }}>
+        <LandingSvgAnimation
+          landingNavIsOpen={landingNavIsOpen}
+          elementRef={elementRef}
+          onHandleNavbarClick={onHandleNavbarClick}
         />
-        {isOpen && <div>NEXT ITEM</div>}
+        {landingNavIsOpen && (
+          <Box component={'section'} sx={{ flex: '1 1 auto' }}>
+            <div>NEXT ITEM 1</div>
+            <div>NEXT ITEM 2</div>
+            <div>NEXT ITEM 3</div>
+            <div>NEXT ITEM 4</div>
+          </Box>
+        )}
       </Box>
-    </Box>
+    </LayoutRootWrapper>
   );
 }

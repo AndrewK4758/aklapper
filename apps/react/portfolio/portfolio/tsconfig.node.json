@@ -8,8 +8,8 @@
     "lib": ["ESNext"],
     "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
     "rootDir": "./",
-    "baseUrl": "."
-    // "resolveJsonModule": true,
+    "baseUrl": ".",
+    "resolveJsonModule": true
     // "esModuleInterop": true,
     // "moduleDetection": "force",
     // "verbatimModuleSyntax": false

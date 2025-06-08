@@ -3,25 +3,16 @@ import Typography, { type TypographyProps } from '@mui/material/Typography';
 import type { ElementType, ReactNode } from 'react';
 
 export interface TextProps extends TypographyProps {
-  titleVariant: TypographyVariant | 'inherit';
+  variant: TypographyVariant | 'inherit';
   id?: string;
-  titleText: ReactNode;
+  children: ReactNode;
   sx?: SxProps;
-  component: ElementType;
-  gutterBottom?: boolean;
+  component?: ElementType;
 }
 
-export const Text = ({ component, id, titleVariant, titleText, gutterBottom, sx, ...props }: TextProps) => (
-  <Typography
-    {...props}
-    component={component}
-    id={id}
-    variant={titleVariant}
-    sx={sx}
-    gutterBottom={gutterBottom}
-    data-testid={id}
-  >
-    {titleText}
+export const Text = ({ children, id, sx, ...props }: TextProps) => (
+  <Typography {...props} sx={sx} data-testid={id}>
+    {children}
   </Typography>
 );
 

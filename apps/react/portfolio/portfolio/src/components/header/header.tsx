@@ -3,7 +3,7 @@ import { Label } from '@aklapper/react-shared';
 import Button from '@mui/material/Button';
 import ButtonGroup, { type ButtonGroupProps } from '@mui/material/ButtonGroup';
 // import Toolbar from '@mui/material/Toolbar';
-import { useState, type JSX } from 'react';
+import { useState, type FC, type JSX } from 'react';
 import { useNavigate } from 'react-router';
 import { headerLabelSxProps } from '../../styles/header-styles.jsx';
 import { buttonSXProps } from '../../styles/pages-styles.js';
@@ -13,9 +13,10 @@ import Contact from './contact/contact.jsx';
  * This component renders the header section of the application, which includes social media links and an email contact form.
  *
  * @returns {JSX.Element} The rendered Header component.
+ *
  */
 
-const Header = ({ ...props }: ButtonGroupProps): JSX.Element => {
+const Header: FC<ButtonGroupProps> = ({ ...props }: ButtonGroupProps): JSX.Element => {
   const [openContact, setOpenContact] = useState<boolean>(false);
   const nav = useNavigate();
 
