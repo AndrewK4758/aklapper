@@ -4,7 +4,7 @@ import type { RefObject } from 'react';
 import MenuIcon from '../icons/menu_icon';
 import Explosion from '../lottie/explosion';
 
-keyframes(`
+const shake = keyframes`
   1.25%,
   11.25% {
     transform: rotateZ(-0.75deg);
@@ -28,10 +28,10 @@ keyframes(`
   100% {
     transition: rotateZ(0deg);
   }
-`);
+`;
 
 const shakeIconAnimation: CSSProperties = {
-  animation: 'shake 2.25s 5',
+  animation: `${shake} 2.25s 5`,
   animationDelay: '3s',
 };
 

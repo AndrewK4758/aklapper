@@ -1,8 +1,8 @@
 import Box from '@mui/material/Box';
-import { type CSSProperties, keyframes } from '@mui/material/styles';
+import { keyframes, type SxProps, type Theme as ThemeType } from '@mui/material/styles';
 import Theme from '../../styles/theme';
 
-const typewriterStyle: CSSProperties = {
+const typewriterBase: SxProps<ThemeType> = {
   overflow: 'hidden',
   fontFamily: 'Landing',
   textAlign: 'center',
@@ -11,25 +11,24 @@ const typewriterStyle: CSSProperties = {
   width: 0,
 };
 
-keyframes(`
+const typewriter = keyframes`
   from {
     width: 0;
   }
   to {
     width: 100%;
   }
-`);
+`;
 
-const typewriterAnimation: CSSProperties = {
-  '@keyframes typewriter': {
-    from: { width: 0 },
-    to: { width: '100%' },
-  },
-  animation: `typewriter 4s steps(55) forwards`,
+const typewriterAnimation: SxProps<ThemeType> = {
+  animation: `${typewriter} 4s steps(55) forwards`,
 };
 
-const typewriterTextStyle: CSSProperties = {
-  fontSize: Theme.containerQueries('lg') ? '6rem' : '3rem',
+const typewriterTextStyle: SxProps<ThemeType> = {
+  fontSize: '6rem',
+  [Theme.breakpoints.down('lg')]: {
+    fontSize: '3rem',
+  },
 };
 
 interface LandingHeaderProps {
@@ -37,29 +36,23 @@ interface LandingHeaderProps {
 }
 
 export default function LandingHeader({ landingNavIsOpen }: LandingHeaderProps) {
+  //This is because typescript complains about adding the seperate width as an object literal if i use
+  //array of objects
+  const finalTypewriterStyle: SxProps<ThemeType> = !landingNavIsOpen
+    ? {
+        ...typewriterBase,
+        ...typewriterTextStyle,
+        ...typewriterAnimation,
+      }
+    : {
+        ...typewriterBase,
+        ...typewriterTextStyle,
+        width: '100%',
+      };
+
   return (
-    <Box
-      component={'div'}
-      className='typewriter'
-      sx={!landingNavIsOpen ? { ...typewriterStyle, ...typewriterAnimation } : { ...typewriterStyle, width: '100%' }}
-    >
-      <Box
-        component={'p'}
-        className='typewriter-text'
-        sx={
-          !landingNavIsOpen
-            ? {
-                ...typewriterStyle,
-                ...typewriterTextStyle,
-                ...typewriterAnimation,
-              }
-            : {
-                ...typewriterStyle,
-                ...typewriterTextStyle,
-                width: '100%',
-              }
-        }
-      >
+    <Box component={'div'} className='typewriter' sx={{ display: 'flex', justifyContent: 'center' }}>
+      <Box component={'p'} className='typewriter-text' sx={finalTypewriterStyle}>
         SOMETHING IS TRYING TO ESCAPE!
       </Box>
     </Box>
