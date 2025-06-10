@@ -4,7 +4,7 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import { useRef, type JSX } from 'react';
 import { introCardSxProps, introTextSxProps, introTitleWrapperSxProps } from '../../styles/intro-styles.jsx';
-import MenuIcon from '../icons/menu_icon.js';
+import MenuIcon from '../icons/landing_box_icon.js';
 import { ABOUT_ME_TITLE, IntroText } from './static/intro-text.jsx';
 
 interface IntroProps {

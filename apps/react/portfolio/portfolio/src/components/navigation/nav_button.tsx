@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import type { ButtonProps } from '@mui/material/Button';
 import type { SxProps } from '@mui/material/styles';
 import Tooltip from '@mui/material/Tooltip';
-import MenuButton from '../button';
+import MenuButton from '../styled/button';
 
 interface NavButtonProps extends Omit<ButtonProps, 'onClick'> {
   buttonText: string;

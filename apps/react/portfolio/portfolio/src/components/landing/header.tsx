@@ -9,6 +9,7 @@ const typewriterBase: SxProps<ThemeType> = {
   whiteSpace: 'nowrap',
   justifyItems: 'center',
   width: 0,
+  m: 0,
 };
 
 const typewriter = keyframes`
@@ -32,13 +33,13 @@ const typewriterTextStyle: SxProps<ThemeType> = {
 };
 
 interface LandingHeaderProps {
-  landingNavIsOpen: boolean;
+  isLandingNavOpen: boolean;
 }
 
-export default function LandingHeader({ landingNavIsOpen }: LandingHeaderProps) {
+export default function Header({ isLandingNavOpen }: LandingHeaderProps) {
   //This is because typescript complains about adding the seperate width as an object literal if i use
   //array of objects
-  const finalTypewriterStyle: SxProps<ThemeType> = !landingNavIsOpen
+  const finalTypewriterStyle: SxProps<ThemeType> = !isLandingNavOpen
     ? {
         ...typewriterBase,
         ...typewriterTextStyle,

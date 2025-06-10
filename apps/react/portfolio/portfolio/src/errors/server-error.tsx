@@ -14,13 +14,13 @@ export default function ServerError({ error }: ServerErrorProps) {
   return (
     <ThemeProvider theme={Theme}>
       <CssBaseline />
-      <Container component={'div'} id="server-error-container">
+      <Container component={'div'} id='server-error-container'>
         <Box component={'section'} id={`error-title-box`} key={`error-title-box`} flex={'1 0 100%'}>
           <Text
             id={`error-message-title`}
             component={'h1'}
-            titleVariant="h1"
-            titleText={'Sorry, We Experienced an Error'}
+            variant='h1'
+            children={'Sorry, We Experienced an Error'}
             sx={{ textAlign: 'center' }}
           />
         </Box>
@@ -33,8 +33,8 @@ export default function ServerError({ error }: ServerErrorProps) {
           <Text
             id={`error-message-header`}
             component={'h3'}
-            titleVariant="h3"
-            titleText={`Click the button below if you would like to see the details of the error`}
+            variant='h3'
+            children={`Click the button below if you would like to see the details of the error`}
             sx={{}}
           />
           <Box component={'section'} id={`error-details-box`} key={`error-details-box`}>
@@ -42,8 +42,8 @@ export default function ServerError({ error }: ServerErrorProps) {
               id={`error-message-name`}
               key={`error-message-name`}
               component={'span'}
-              titleVariant="body1"
-              titleText={
+              variant='body1'
+              children={
                 <pre>
                   <strong>{`Error Name:\n`}</strong>
                   {`${error.name}`}
@@ -55,8 +55,8 @@ export default function ServerError({ error }: ServerErrorProps) {
               id={`error-message-message`}
               key={`error-message-message`}
               component={'span'}
-              titleVariant="body1"
-              titleText={
+              variant='body1'
+              children={
                 <pre>
                   <strong>{`Error Message:\n`}</strong>
                   {`${error.message}`}
@@ -68,8 +68,8 @@ export default function ServerError({ error }: ServerErrorProps) {
               id={`error-stacktrace`}
               key={`error-stacktrace`}
               component={'span'}
-              titleVariant="body1"
-              titleText={
+              variant='body1'
+              children={
                 <pre>
                   <strong>{`Error Stacktrace:\n`}</strong>
                   {error.stack}
@@ -88,22 +88,22 @@ export default function ServerError({ error }: ServerErrorProps) {
         >
           <Text
             id={`error-home-button-text`}
-            titleVariant={'h3'}
-            titleText={'Return to Home Screen'}
+            variant={'h3'}
+            children={'Return to Home Screen'}
             component={'h3'}
             sx={{ textAlign: 'center' }}
           />
           <Button
             LinkComponent={'button'}
-            variant="contained"
-            color="primary"
+            variant='contained'
+            color='primary'
             id={`error-home-button`}
             key={`error-home-button`}
             onClick={() => window.location.replace('http://localhost:4700')}
             sx={{}}
           >
             <Label
-              id="error-home-button-label"
+              id='error-home-button-label'
               tooltipTitle={'Click to return to the homepage'}
               labelVariant={'button'}
               labelText={'Home'}

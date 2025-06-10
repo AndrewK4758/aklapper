@@ -2,8 +2,8 @@
 import type { RouteObject } from 'react-router';
 
 // import PrivacyPolicy from '../components/privacy-policy/privacy-policy.jsx';
-import BaseError from '../errors/redirect-to-home.js';
-import LandingPage from '../pages/landing/landing.js';
+import BaseError from '../errors/base_error';
+import LandingPage from '../pages/landing/landing';
 
 // import emailFormAction from '../services/actions/email-form-action.jsx';
 // import generateImageAction from '../services/actions/generate-image-action.jsx';
@@ -45,7 +45,7 @@ const routes: RouteObject[] = [
     path: '/',
     element: <LandingPage />,
     errorElement: <BaseError />,
-    id: 'layout',
+    id: 'landing',
     children: [],
   },
 ];

@@ -27,8 +27,8 @@ export default function BaseError() {
         <Text
           id={`${pathname}-error-message-title`}
           component={'h1'}
-          titleVariant="h1"
-          titleText={'Sorry, We Experienced an Error'}
+          variant='h1'
+          children={'Sorry, We Experienced an Error'}
           sx={{ textAlign: 'center' }}
         />
       </Box>
@@ -41,8 +41,8 @@ export default function BaseError() {
         <Text
           id={`${pathname}-error-message-header`}
           component={'h3'}
-          titleVariant="h3"
-          titleText={`Click the button below if you would like to see the details of the error`}
+          variant='h3'
+          children={`Click the button below if you would like to see the details of the error`}
           sx={{}}
         />
         <Box component={'section'} id={`${pathname}-error-details-box`} key={`${pathname}-error-details-box`}>
@@ -50,8 +50,8 @@ export default function BaseError() {
             id={`${pathname}-error-message-name`}
             key={`${pathname}-error-message-name`}
             component={'p'}
-            titleVariant="body1"
-            titleText={
+            variant='body1'
+            children={
               <pre>
                 <strong>{`Error Name:\n`}</strong>
                 {`${error.name}`}
@@ -63,8 +63,8 @@ export default function BaseError() {
             id={`${pathname}-error-message-message`}
             key={`${pathname}-error-message-message`}
             component={'p'}
-            titleVariant="body1"
-            titleText={
+            variant='body1'
+            children={
               <pre>
                 <strong>{`Error Message:\n`}</strong>
                 {`${error.message}`}
@@ -76,13 +76,13 @@ export default function BaseError() {
               LinkComponent={'button'}
               id={`${pathname}-error-view-stacktrace-button`}
               key={`${pathname}-error-view-stacktrace-button`}
-              variant="contained"
-              color="error"
+              variant='contained'
+              color='error'
               onClick={() => setViewErrorStack(!viewErrorStack)}
               sx={{}}
             >
               <Label
-                id="error-stacktrace-label"
+                id='error-stacktrace-label'
                 tooltipTitle={`Click to view stacktrace for ${error.name}`}
                 labelVariant={'button'}
                 labelText={viewErrorStack ? 'Close' : 'View Error Stack-Trace'}
@@ -99,8 +99,8 @@ export default function BaseError() {
               id={`${pathname}-error-stacktrace`}
               key={`${pathname}-error-stacktrace`}
               component={'p'}
-              titleVariant="body1"
-              titleText={
+              variant='body1'
+              children={
                 <pre>
                   <strong>{`Error Stacktrace:\n`}</strong>
                   {error.stack}
@@ -119,15 +119,15 @@ export default function BaseError() {
       >
         <Text
           id={`${pathname}-error-home-button-text`}
-          titleVariant={'h3'}
-          titleText={'Return to Home Screen'}
+          variant={'h3'}
+          children={'Return to Home Screen'}
           component={'h3'}
           sx={{ textAlign: 'center' }}
         />
         <Button
           LinkComponent={'button'}
-          variant="contained"
-          color="primary"
+          variant='contained'
+          color='primary'
           id={`${pathname}-error-home-button`}
           key={`${pathname}-error-home-button`}
           onClick={() => nav('/')}
