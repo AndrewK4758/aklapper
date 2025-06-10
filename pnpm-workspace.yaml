@@ -14,5 +14,6 @@ onlyBuiltDependencies:
   - nx
   - prisma
   - protobufjs
+  - unrs-resolver
 overrides:
   dist: link:../nx-go/dist

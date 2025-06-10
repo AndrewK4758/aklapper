@@ -59,7 +59,7 @@ const cssBaselineStyles: CSSObject = {
   '.bold-text': {
     fontFamily: 'Lucida Bold',
   },
-  // '*': { border: '3px solid #ff8800' },
+  // '*': { border: '3px solid #9090c0' },
 };
 
 export default cssBaselineStyles;
