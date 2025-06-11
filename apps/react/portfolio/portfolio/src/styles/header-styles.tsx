@@ -13,17 +13,18 @@ export const headerLabelSxProps: SxProps = {
 //--------CONNECT---------//
 
 export const contactIconWrapperSxProps: SxProps = {
-  ...flexColumnStyles,
-  flex: 1,
-  alignItems: 'center',
-  justifyContent: 'center',
+  // ...flexColumnStyles,
+  // flex: 1,
+  // alignItems: 'center',
+  // justifyContent: 'center',
+  height: 'fit-content',
 };
 
 export const iconWrapperSxProps: SxProps = {
-  ...flexColumnStyles,
+  flex: '1 0 100%',
+  display: 'flex',
   height: '100%',
-  width: '8vw',
-  maxWidth: '100px',
+  width: '100%',
   overflow: 'hidden',
   backgroundColor: '#9e9e9e',
   [Theme.breakpoints.down('md')]: {

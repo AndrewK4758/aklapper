@@ -34,7 +34,7 @@ const PicutreAndResume = (): JSX.Element => (
       key={'card-media-resume-image'}
       id={'card-media-resume-image'}
       data-testid={'card-media-resume-image'}
-      src={'/client/self.webp'}
+      src={'/client/images/self.webp'}
       loading='eager'
       alt='andrew'
       width={'100%'}
@@ -49,7 +49,7 @@ const PicutreAndResume = (): JSX.Element => (
         id={'card-media-resume-button'}
         data-testid={'card-media-resume-button'}
         variant='contained'
-        href={'/client/Resume.pdf'}
+        href={'/client/pdf/Resume.pdf'}
         download={`andrew-klapper-resume`}
         sx={introButtonSxProps}
       >

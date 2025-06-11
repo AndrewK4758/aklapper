@@ -2,9 +2,9 @@ import { rowFinder } from '@aklapper/games-components';
 import type { GameBoard, GamePlayerValidation, ILiteSpace, IPlayersAndBoard, Row } from '@aklapper/types';
 import { useEffect } from 'react';
 import type { Socket } from 'socket.io-client';
-import type { IActiveGameInfo } from '../components/games/active_game_session.jsx';
-import { ActionType, type Action } from '../components/games/game_board/socket-reducer.jsx';
-import getGameInstanceInfo from '../utils/utils.jsx';
+import type { IActiveGameInfo } from '../components/games/active_game_session.js';
+import { ActionType, type Action } from '../components/games/game_board/socket-reducer.js';
+import getGameInstanceInfo from '../utils/utils.js';
 
 /**
  * Connects to a Socket.IO server and handles game-related events to update the game state.

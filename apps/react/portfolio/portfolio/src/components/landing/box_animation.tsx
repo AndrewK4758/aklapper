@@ -1,5 +1,6 @@
 import Box from '@mui/material/Box';
 import { keyframes, type SxProps, type Theme as ThemeType } from '@mui/material/styles';
+import Theme from '../../styles/theme';
 import LandingBox from '../icons/landing_box_icon';
 
 const shake = keyframes`
@@ -28,6 +29,12 @@ const shake = keyframes`
   }
 `;
 
+const landingBoxBaseStyle: SxProps<ThemeType> = {
+  [Theme.breakpoints.down('lg')]: {
+    scale: 0.75,
+  },
+};
+
 const shakeIconAnimation: SxProps<ThemeType> = {
   animation: `${shake} 2.25s 5`,
   animationDelay: '3s',
@@ -41,13 +48,13 @@ interface LandingBoxProps {
 
 export default function BoxAnimation({ isLandingNavOpen, onHandleNavbarClick }: LandingBoxProps) {
   return (
-    <Box component={'div'} flex={'0 1 auto'}>
+    <Box component={'div'} flex={'1 1 auto'}>
       <LandingBox
         id='open-menu'
         isLandingNavOpen={isLandingNavOpen}
         onHandleOpenMenu={onHandleNavbarClick}
         inheritViewBox={true}
-        sx={!isLandingNavOpen ? shakeIconAnimation : null}
+        sx={[landingBoxBaseStyle, !isLandingNavOpen ? shakeIconAnimation : {}] as SxProps<ThemeType>}
       />
     </Box>
   );

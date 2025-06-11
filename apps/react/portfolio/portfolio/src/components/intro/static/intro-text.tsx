@@ -1,11 +1,13 @@
-import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 import { Link } from 'react-router';
 import Theme from '../../../styles/theme.jsx';
 
 export const ABOUT_ME_TITLE = "Hi, I'm Andrew Klapper";
 
+const ID = 'intro-text';
+
 export const IntroText = () => (
-  <Box component={'p'} id='intro-text' data-testid='intro-text' textAlign={'justify'}>
+  <Typography variant='body1' id={ID} data-testid={ID} textAlign={'justify'}>
     A am a full-stack web developer with 3 years of personal experience developing & deploying web based applications &
     projects. I specialize in <span className='bold-text'>Monorepo Architectures</span>,{' '}
     <span className='bold-text'>Cloud Deployments</span>, custom <span className='bold-text'>React Components</span>, &{' '}
@@ -48,5 +50,5 @@ export const IntroText = () => (
     interests like generative AI & outdoor activities, such as: camping, fishing, & working on my project truck; which
     help me maintain a balanced lifestyle & foster a creative approach to problem-solving. I'm excited to bring my
     passion & skills to a team where I can contribute to meaningful projects & continue to grow as a developer.
-  </Box>
+  </Typography>
 );

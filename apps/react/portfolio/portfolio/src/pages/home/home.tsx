@@ -1,28 +1,21 @@
-import Box from '@mui/material/Box';
-import { type JSX } from 'react';
+import { type BoxProps } from '@mui/material/Box';
+import { type ReactElement } from 'react';
 import Intro from '../../components/intro/intro.jsx';
 import PicutreAndResume from '../../components/intro/picture-resume.jsx';
-import { introWrapperSxProps } from '../../styles/intro-styles.jsx';
-import { flexColumnStyles } from '../../styles/pages-styles.jsx';
-
-interface HomeProps {
-  onHandleNavbarClick: () => void;
-}
+import StyledRootComponentWrapper from '../../components/styled/layout_root_wrapper.js';
 
 /**
  * This is the main home component that renders the introduction section of the portfolio website.
  * It includes a brief introduction, a picture with a resume download button, and a list of technologies I am familiar with.
  *
- * @returns {JSX.Element} The rendered home component.
+ * @returns {ReactElement} The rendered home component.
  */
 
-const Home = ({ onHandleNavbarClick }: HomeProps): JSX.Element => (
-  <Box component={'div'} key={'home'} id='home' data-testid='home' sx={{ ...flexColumnStyles, width: '100vw' }}>
-    <Box component={'div'} key={'intro-wrapper'} id='intro-wrapper' sx={introWrapperSxProps}>
-      <Intro onHandleNavbarClick={onHandleNavbarClick} />
-      <PicutreAndResume />
-    </Box>
-  </Box>
+const Home = ({ ...props }: BoxProps): ReactElement => (
+  <StyledRootComponentWrapper {...props}>
+    <Intro />
+    <PicutreAndResume />
+  </StyledRootComponentWrapper>
 );
 
 export default Home;

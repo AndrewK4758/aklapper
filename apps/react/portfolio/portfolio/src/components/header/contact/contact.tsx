@@ -1,76 +1,42 @@
-import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import Box from '@mui/material/Box';
-import Drawer from '@mui/material/Drawer';
-import MenuList from '@mui/material/MenuList';
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
-import {
-  contactButtonSxProps,
-  drawerPaperProps,
-  iconSize,
-  iconSxProps,
-  iconWrapperSxProps,
-} from '../../../styles/header-styles.jsx';
-import EmailDialog from '../../email/email-dialog.js';
-import DiscordIcon from '../../icons/discord-icon.js';
-import EmailIcon from '../../icons/email-icon.js';
-import FacebookIcon from '../../icons/facebook-icon.js';
-import GitHibIcon from '../../icons/github-icon.js';
-import HuggingFaceIcon from '../../icons/huggingface-icon.js';
-import LinkedinIcon from '../../icons/linkedin-logo.js';
-import XIcon from '../../icons/x-icon.js';
-import ContactIcon from '../contact-icon/contact-icon.js';
+import Collapse, { type CollapseProps } from '@mui/material/Collapse';
+import { useState } from 'react';
+import { contactButtonSxProps, iconSxProps } from '../../../styles/header-styles';
+import EmailDialog from '../../email/email-dialog';
+import DiscordIcon from '../../icons/discord-icon';
+import EmailIcon from '../../icons/email-icon';
+import FacebookIcon from '../../icons/facebook-icon';
+import GitHibIcon from '../../icons/github-icon';
+import HuggingFaceIcon from '../../icons/huggingface-icon';
+import LinkedinIcon from '../../icons/linkedin-logo';
+import XIcon from '../../icons/x-icon';
+import ContactIcon from '../contact-icon/contact-icon';
 
-interface ContactProps {
-  openContact: boolean;
-  setOpenContact: Dispatch<SetStateAction<boolean>>;
+interface ContactProps extends CollapseProps {
+  isVisible: boolean;
+  setIsVisible: () => void;
 }
 
-export function Contact({ openContact, setOpenContact }: ContactProps) {
+export function Contact({ isVisible, setIsVisible, ...props }: ContactProps) {
   const [openEmail, setOpenEmail] = useState<boolean>(false);
-  const contactMenuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutsideDrawer = (event: MouseEvent) => {
-      if (contactMenuRef.current && !contactMenuRef.current.contains(event.target as Node)) {
-        setOpenContact(false);
-      }
-    };
-
-    // Add the event listener when the drawer is open
-    if (openContact) {
-      document.addEventListener('mousedown', handleClickOutsideDrawer);
-    }
-
-    // Clean up the event listener when the drawer closes or the component unmounts
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutsideDrawer);
-    };
-  }, [openContact, setOpenContact]);
+  const handleOpenEmail = () => {
+    setOpenEmail(!openEmail);
+  };
 
   return (
     <>
-      <Drawer
-        key={`contact-menu-draw-${openEmail}`}
-        id='contact-menu-draw'
-        data-testid='contact-menu-draw'
-        open={openContact}
-        anchor='right'
-        elevation={6}
-        slotProps={{ paper: drawerPaperProps }}
-      >
-        <MenuList
-          ref={contactMenuRef}
-          component={'div'}
-          key={'social-media-icon-wrapper'}
+      <Collapse {...props} in={isVisible} id='contact-menu-collapse' data-testid='contact-menu-collapse'>
+        <Box
           id='social-media-icon-wrapper'
           data-testid='social-media-icon-wrapper'
-          sx={iconWrapperSxProps}
+          sx={{ display: 'flex', border: '3px solid orange', justifyContent: 'space-evenly' }}
         >
           <ContactIcon
             id='github'
             tooltipText='GitHub'
             iconHref='https://github.com/AndrewK4758/aklapper'
-            Icon={<GitHibIcon sx={iconSize} />}
+            Icon={<GitHibIcon />}
             itemSx={iconSxProps}
             buttonSx={contactButtonSxProps}
           />
@@ -78,7 +44,7 @@ export function Contact({ openContact, setOpenContact }: ContactProps) {
             id='facebook'
             tooltipText='Facebook'
             iconHref='https://www.facebook.com/AKlapper47'
-            Icon={<FacebookIcon sx={iconSize} />}
+            Icon={<FacebookIcon />}
             itemSx={iconSxProps}
             buttonSx={contactButtonSxProps}
           />
@@ -86,7 +52,7 @@ export function Contact({ openContact, setOpenContact }: ContactProps) {
             id='linkedin'
             tooltipText='Linkedin'
             iconHref='https://www.linkedin.com/in/andrew-klapper-a9204b23b/'
-            Icon={<LinkedinIcon sx={iconSize} />}
+            Icon={<LinkedinIcon />}
             itemSx={iconSxProps}
             buttonSx={contactButtonSxProps}
           />
@@ -95,7 +61,7 @@ export function Contact({ openContact, setOpenContact }: ContactProps) {
             id='hugging-face'
             tooltipText='Hugging Face'
             iconHref='https://huggingface.co/ak475826'
-            Icon={<HuggingFaceIcon sx={iconSize} />}
+            Icon={<HuggingFaceIcon />}
             itemSx={iconSxProps}
             buttonSx={contactButtonSxProps}
           />
@@ -104,7 +70,7 @@ export function Contact({ openContact, setOpenContact }: ContactProps) {
             id='x'
             tooltipText='X'
             iconHref='https://x.com/ak475826'
-            Icon={<XIcon sx={iconSize} />}
+            Icon={<XIcon />}
             itemSx={iconSxProps}
             buttonSx={contactButtonSxProps}
           />
@@ -113,7 +79,7 @@ export function Contact({ openContact, setOpenContact }: ContactProps) {
             id='discord'
             tooltipText='Discord'
             iconHref='https://discord.com/users/989564035542446190'
-            Icon={<DiscordIcon sx={iconSize} />}
+            Icon={<DiscordIcon />}
             itemSx={iconSxProps}
             buttonSx={contactButtonSxProps}
           />
@@ -122,33 +88,25 @@ export function Contact({ openContact, setOpenContact }: ContactProps) {
             id='email'
             tooltipText='Email & Google Calendar Event link'
             iconHref={''}
-            Icon={<EmailIcon sx={iconSize} />}
-            onClick={setOpenEmail}
-            stateVariable={true}
+            Icon={<EmailIcon />}
+            onClick={handleOpenEmail}
             itemSx={iconSxProps}
             buttonSx={contactButtonSxProps}
           />
-          <ContactIcon
+          {/* <ContactIcon
             id='close'
             tooltipText='Close Contact Menu'
             iconHref={''}
-            Icon={<ArrowForwardIosIcon color='action' sx={iconSize} />}
-            onClick={setOpenContact}
-            stateVariable={false}
+            Icon={<ArrowForwardIosIcon color='action' sx={{ height: 64, width: 64 }} />}
+            onClick={setIsVisible}
             itemSx={iconSxProps}
             buttonSx={contactButtonSxProps}
-          />
-        </MenuList>
-      </Drawer>
-      <Box
-        component={'div'}
-        key={'email-form-wrapper'}
-        id='email-form-wrapper'
-        data-testid='email-form-wrapper'
-        width={'100%'}
-      >
-        <EmailDialog open={openEmail} setOpen={setOpenEmail} />
-      </Box>
+          /> */}
+        </Box>
+        <Box component={'div'} id='email-form-wrapper' data-testid='email-form-wrapper' width={'100%'}>
+          <EmailDialog open={openEmail} setOpen={setOpenEmail} />
+        </Box>
+      </Collapse>
     </>
   );
 }

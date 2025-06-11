@@ -1,5 +1,6 @@
 import Box, { type BoxProps } from '@mui/material/Box';
 import { useReducer } from 'react';
+import { useNavigate } from 'react-router';
 import BoxAnimation from '../../components/landing/box_animation';
 import LandingHeader from '../../components/landing/header';
 import Explosion from '../../components/landing/lottie/explosion';
@@ -19,6 +20,7 @@ const landingPageInitState: LandingPageState = {
 
 export default function LandingPage({ ...props }: BoxProps) {
   const [state, dispatch] = useReducer(landingPageReducer, landingPageInitState);
+  const nav = useNavigate();
 
   const onBoxAnimationClick = () => {
     dispatch({ type: LandingActions.ENTER_VISIBLE, payload: { ...state, isEnterVisible: false } });
@@ -57,7 +59,7 @@ export default function LandingPage({ ...props }: BoxProps) {
   };
 
   const handleEnterClick = () => {
-    console.log('clicked enter');
+    nav('home');
   };
 
   return (

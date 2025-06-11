@@ -1,13 +1,8 @@
 @import url(./colors-and-fonts.css);
 
 :root {
-  --primary: #2196f3;
-  --background: #333333;
-  --accent-one: #ffd300;
-  --accent-two: #ff3d00;
-  --accent-dark: #000000;
-  --accent-grey: #212121;
-  --dark-grey: #242424;
+  --main-color: #ffd300;
+  --secondary-color: #ff3d00;
 }
 
 @property --clr-1 {
@@ -28,15 +23,15 @@
   initial-value: -180deg;
 }
 
-@keyframes spin {
+/* @keyframes spin {
   50% {
-    --clr-1: var(--accent-two);
-    --clr-2: var(--accent-one);
-    --clr-1: var(--accent-two);
+    --clr-1: var(--secondary-color);
+    --clr-2: var(--main-color);
+    --clr-1: var(--secondary-color);
   }
 }
 
-.header-background,
+.border-bottom,
 #home-button-label,
 #games-button-label,
 #crud-button-label,
@@ -52,4 +47,4 @@
   position: relative;
   isolation: isolate;
   animation: spin 3s linear infinite;
-}
+} */

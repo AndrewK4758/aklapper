@@ -10,7 +10,7 @@ import { enUS } from '@mui/x-date-pickers/locales';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { type Dispatch, lazy, type SetStateAction, Suspense, useState } from 'react';
-import waiting from '../../assets/swirly-dots-to-chrome.webp';
+import waiting from '../../assets/images/swirly-dots-to-chrome.webp';
 import GoogleUserContextProvider from '../../contexts/contact-context.jsx';
 import { contactDialogCloseButtonSxProps, emailDialogPaperProps, mainSx, subSx } from '../../styles/header-styles.jsx';
 import { flexColumnStyles, fullSizeBlock } from '../../styles/pages-styles.jsx';

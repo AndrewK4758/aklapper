@@ -1,53 +1,26 @@
 import { Text } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
+import Card, { type CardProps } from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
-import { useRef, type JSX } from 'react';
-import { introCardSxProps, introTextSxProps, introTitleWrapperSxProps } from '../../styles/intro-styles.jsx';
-import MenuIcon from '../icons/landing_box_icon.js';
+import { type ReactElement } from 'react';
 import { ABOUT_ME_TITLE, IntroText } from './static/intro-text.jsx';
-
-interface IntroProps {
-  onHandleNavbarClick: () => void;
-}
 
 /**
  * This component renders a card containing a brief introduction of me.
  *
- * @returns {JSX.Element} The rendered intro component.
+ * @returns {ReactElement} The rendered intro component.
  */
 
-const Intro = ({ onHandleNavbarClick }: IntroProps): JSX.Element => {
-  const svgRef = useRef<HTMLDivElement>(null);
+export default function Intro({ ...props }: CardProps): ReactElement {
   return (
-    <Card key={'intro-card'} id={'intro-card'} elevation={2} sx={introCardSxProps}>
-      <CardContent component={'div'} id='about-me-header-box'>
-        <Box sx={introTitleWrapperSxProps}>
-          <Text
-            id='about-me-title-text'
-            data-testid='about-me-title-text'
-            component={'h1'}
-            titleVariant='h1'
-            titleText={ABOUT_ME_TITLE}
-          />
-
-          <Box component={'div'} ref={svgRef} onClick={onHandleNavbarClick}>
-            <MenuIcon id='open-menu' width={'96px'} height={'96px'} />
-          </Box>
+    <Card {...props} id={'intro-card'}>
+      <CardContent id='about-me-header-box'>
+        <Box>
+          <Text id='about-me-title-text' data-testid='about-me-title-text' variant='h1' children={ABOUT_ME_TITLE} />
         </Box>
-        <Box component={'div'} className='header-background' />
-
-        <Text
-          id='about-me-text'
-          data-testid='about-me-text'
-          component={'section'}
-          titleVariant='body1'
-          titleText={<IntroText />}
-          sx={introTextSxProps}
-        />
+        <Box className='animated-border' />
+        <IntroText />
       </CardContent>
     </Card>
   );
-};
-
-export default Intro;
+}

@@ -1,4 +1,4 @@
-import type { CSSObject } from '@mui/material/styles';
+import { keyframes, type CSSObject } from '@mui/material/styles';
 
 // Backgrounds
 export const BACKGROUND_DEFAULT = '#323232';
@@ -26,6 +26,13 @@ const darkScrollbarGlobal = {
     borderRadius: '2px',
   },
 };
+
+export const spin = keyframes`
+  50% {
+    --clr-1: ${SECONDARY_COLOR};
+    --clr-2: ${MAIN_COLOR};
+    --clr-1: ${SECONDARY_COLOR};
+  }`;
 
 const cssBaselineStyles: CSSObject = {
   ...darkScrollbarGlobal,
@@ -59,10 +66,17 @@ const cssBaselineStyles: CSSObject = {
   '.bold-text': {
     fontFamily: 'Lucida Bold',
   },
-  // '*': { border: '3px solid #9090c0' },
+
+  '.animated-border': {
+    background: `conic-gradient(${BACKGROUND_PAPER} 0 0) padding-box,
+    linear-gradient(to right, var(--clr-1), var(--clr-2), var(--clr-1)) border-box`,
+    border: '3px solid transparent',
+    borderRadius: '10px',
+    position: 'relative',
+    isolation: 'isolate',
+    animation: `${spin} 3s linear infinite`,
+  },
+  '*': { border: '3px solid #9090c0' },
 };
 
 export default cssBaselineStyles;
-/**
-  
- */
