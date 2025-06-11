@@ -76,7 +76,7 @@ const cssBaselineStyles: CSSObject = {
     isolation: 'isolate',
     animation: `${spin} 3s linear infinite`,
   },
-  '*': { border: '3px solid #9090c0' },
+  // '*': { border: '3px solid #9090c0' },
 };
 
 export default cssBaselineStyles;

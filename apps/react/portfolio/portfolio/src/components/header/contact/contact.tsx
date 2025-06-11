@@ -30,7 +30,7 @@ export function Contact({ isVisible, setIsVisible, ...props }: ContactProps) {
         <Box
           id='social-media-icon-wrapper'
           data-testid='social-media-icon-wrapper'
-          sx={{ display: 'flex', border: '3px solid orange', justifyContent: 'space-evenly' }}
+          sx={{ display: 'flex', justifyContent: 'space-evenly' }}
         >
           <ContactIcon
             id='github'

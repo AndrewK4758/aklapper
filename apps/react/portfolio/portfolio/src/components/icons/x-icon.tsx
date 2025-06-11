@@ -1,4 +1,5 @@
 import type { SVGProps } from 'react';
+import { TEXT_SECONDARY } from '../../styles/base/base_styles';
 
 const XIcon = ({ ...props }: SVGProps<SVGSVGElement>) => (
   <svg
@@ -12,6 +13,7 @@ const XIcon = ({ ...props }: SVGProps<SVGSVGElement>) => (
     viewBox='0 0 512 462.799'
     height={64}
     width={64}
+    fill={TEXT_SECONDARY}
   >
     <path
       fillRule='nonzero'
