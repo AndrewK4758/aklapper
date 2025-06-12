@@ -1,0 +1,47 @@
+import type { DialogProps } from '@mui/material/Dialog';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { enUS } from '@mui/x-date-pickers/locales';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+import GoogleUserContextProvider from '../../../contexts/contact-context';
+import LargeStyledDialog from '../../styled/large_dialog_window';
+
+interface DialogLayoutProps extends Omit<DialogProps, 'id' | 'data-testid' | 'scroll' | 'open'> {
+  isOpen: boolean;
+  tab: number;
+  handleSetTab: (tab: number) => void;
+}
+
+export default function DialogLayout({ tab, isOpen, handleSetTab, ...props }: DialogLayoutProps) {
+  return (
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_OAUTH_CLIENT_ID}>
+      <LocalizationProvider
+        dateAdapter={AdapterDayjs}
+        localeText={enUS.components.MuiLocalizationProvider.defaultProps.localeText}
+      >
+        <GoogleUserContextProvider>
+          <LargeStyledDialog
+            {...props}
+            open={isOpen}
+            id='email-dialog'
+            data-testid='email-dialog'
+            scroll='body'
+            slotProps={{
+              paper: {
+                sx: {
+                  height: '90%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-evenly',
+                  border: '3px solid orange',
+                },
+              },
+            }}
+          >
+            {props.children}
+          </LargeStyledDialog>
+        </GoogleUserContextProvider>
+      </LocalizationProvider>
+    </GoogleOAuthProvider>
+  );
+}

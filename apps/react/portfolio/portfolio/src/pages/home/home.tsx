@@ -1,8 +1,9 @@
-import { type BoxProps } from '@mui/material/Box';
+import Box, { type BoxProps } from '@mui/material/Box';
 import { type ReactElement } from 'react';
 import Intro from '../../components/intro/intro.jsx';
 import PicutreAndResume from '../../components/intro/picture-resume.jsx';
-import StyledRootComponentWrapper from '../../components/styled/layout_root_wrapper.js';
+import StyledRootComponentWrapper from '../../components/styled/styled_root_wrapper.js';
+import Theme from '../../styles/theme.js';
 
 /**
  * This is the main home component that renders the introduction section of the portfolio website.
@@ -13,8 +14,18 @@ import StyledRootComponentWrapper from '../../components/styled/layout_root_wrap
 
 const Home = ({ ...props }: BoxProps): ReactElement => (
   <StyledRootComponentWrapper {...props}>
-    <Intro />
-    <PicutreAndResume />
+    <Box
+      sx={{
+        display: 'flex',
+        gap: Theme.spacing(2),
+        [Theme.breakpoints.down('lg')]: {
+          flexDirection: 'column',
+        },
+      }}
+    >
+      <Intro sx={{ flex: '0 1 70%' }} />
+      <PicutreAndResume />
+    </Box>
   </StyledRootComponentWrapper>
 );
 

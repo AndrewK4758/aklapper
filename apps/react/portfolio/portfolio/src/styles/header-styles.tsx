@@ -10,72 +10,6 @@ export const headerLabelSxProps: SxProps = {
   [Theme.breakpoints.down('md')]: { fontSize: '1rem' },
 };
 
-//--------CONNECT---------//
-
-export const contactIconWrapperSxProps: SxProps = {
-  // ...flexColumnStyles,
-  // flex: 1,
-  // alignItems: 'center',
-  // justifyContent: 'center',
-  height: 'fit-content',
-};
-
-export const iconWrapperSxProps: SxProps = {
-  flex: '1 0 100%',
-  display: 'flex',
-  height: '100%',
-  width: '100%',
-  overflow: 'hidden',
-  backgroundColor: '#9e9e9e',
-  [Theme.breakpoints.down('md')]: {
-    width: '100%',
-    maxWidth: '70px',
-    p: 0,
-    m: 0,
-  },
-};
-
-export const iconSxProps: SxProps = {
-  display: 'flex',
-  justifyContent: 'center',
-  alignContent: 'center',
-  width: '100%',
-  height: 'fit-content',
-  '&:hover': {
-    cursor: 'auto',
-    background: 'none',
-  },
-  [Theme.breakpoints.down('md')]: {
-    p: 1,
-  },
-};
-
-export const drawerPaperProps: PaperProps = {
-  sx: { height: '94.5vh', top: '5.5vh', width: 'fit-content' },
-};
-
-export const contactButtonSxProps: SxProps = {
-  height: '100%',
-  width: '100%',
-  p: 0,
-  '&:hover': {
-    background: 'none',
-  },
-};
-
-export const contactTooltipSxProps: SxProps = { fontSize: '1rem' };
-
-export const iconSize: SxProps = {
-  width: '100%',
-  height: 'auto',
-};
-
-export const contactDialogCloseButtonSxProps: SxProps = {
-  [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem',
-  },
-};
-
 //-------GOOGLE CALENDAR--------//
 
 export const connectGoogleCalendarButtonSxProps: SxProps = {
@@ -258,7 +192,7 @@ export const endTimePickerSlotProps: TimePickerSlotProps<false> = {
   },
 };
 
-export const timePickerWrapperSxProps: SxProps = {
+export const timePickerWrapperSxProps: SxProps<typeof Theme> = {
   ...flexColumnStyles,
   flex: '1 0 auto',
   justifyContent: 'space-evenly',
@@ -289,9 +223,8 @@ export const mainSx: SxProps = {
   },
 };
 
-export const emailDialogPaperProps = {
+export const emailDialogPaperProps: PaperProps = {
   elevation: 2,
-  component: 'div',
   sx: {
     m: 0,
     minWidth: '40vw',
@@ -300,7 +233,7 @@ export const emailDialogPaperProps = {
     ' .MuiInputBase-input': {
       fontSize: '1.25rem',
     },
-    [Theme.breakpoints.down('md')]: {
+    [Theme.breakpoints.down('lg')]: {
       height: '70%',
       ' .MuiInputBase-input': {
         fontSize: '0.75rem',

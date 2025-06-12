@@ -3,6 +3,7 @@ import type { RouteObject } from 'react-router';
 
 // import PrivacyPolicy from '../components/privacy-policy/privacy-policy.jsx';
 import Layout from '../components/layout/layout';
+import PrivacyPolicy from '../components/privacy-policy/privacy-policy';
 import BaseError from '../errors/base_error';
 import Home from '../pages/home/home';
 import LandingPage from '../pages/landing/landing';
@@ -56,6 +57,10 @@ const routes: RouteObject[] = [
       {
         index: true,
         element: <Home id='home' />,
+      },
+      {
+        path: 'privacy-policy',
+        element: <PrivacyPolicy />,
       },
     ],
   },

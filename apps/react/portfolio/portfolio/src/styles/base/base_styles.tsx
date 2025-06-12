@@ -1,14 +1,21 @@
-import { keyframes, type CSSObject } from '@mui/material/styles';
+import { type CSSObject } from '@mui/material/styles';
 
 // Backgrounds
 export const BACKGROUND_DEFAULT = '#323232';
-export const BACKGROUND_PAPER = '#111321';
+export const BACKGROUND_PAPER = '#0C130E';
 
-// Colors
+/* Colors */
+// Main
 export const MAIN_COLOR = '#FFD300';
+export const MAIN_COLOR_DARK = '#FFAA00';
+export const MAIN_COLOR_LIGHT = '#FFFF00';
 export const MAIN_CONTRAST = '#7109AA';
+
+//Secondary
 export const SECONDARY_COLOR = '#FF3D00';
-export const SECONDARY_CONTRAST = '#0969A2';
+export const SECONDARY_COLOR_DARK = '#AF320B';
+export const SECONDARY_COLOR_LIGHT = '#D36947';
+export const SECONDARY_CONTRAST = '#00B358';
 
 // Text
 export const TEXT_PRIMARY = '#EEF0FF';
@@ -26,13 +33,6 @@ const darkScrollbarGlobal = {
     borderRadius: '2px',
   },
 };
-
-export const spin = keyframes`
-  50% {
-    --clr-1: ${SECONDARY_COLOR};
-    --clr-2: ${MAIN_COLOR};
-    --clr-1: ${SECONDARY_COLOR};
-  }`;
 
 const cssBaselineStyles: CSSObject = {
   ...darkScrollbarGlobal,
@@ -67,15 +67,15 @@ const cssBaselineStyles: CSSObject = {
     fontFamily: 'Lucida Bold',
   },
 
-  '.animated-border': {
-    background: `conic-gradient(${BACKGROUND_PAPER} 0 0) padding-box,
-    linear-gradient(to right, var(--clr-1), var(--clr-2), var(--clr-1)) border-box`,
-    border: '3px solid transparent',
-    borderRadius: '10px',
-    position: 'relative',
-    isolation: 'isolate',
-    animation: `${spin} 3s linear infinite`,
-  },
+  // '.animated-border': {
+  //   background: `conic-gradient(${BACKGROUND_PAPER} 0 0) padding-box,
+  //   linear-gradient(to right, var(--clr-1), var(--clr-2), var(--clr-1)) border-box`,
+  //   border: '3px solid transparent',
+  //   borderRadius: '10px',
+  //   position: 'relative',
+  //   isolation: 'isolate',
+  //   animation: `${spin} 3s linear infinite`,
+  // },
   // '*': { border: '3px solid #9090c0' },
 };
 

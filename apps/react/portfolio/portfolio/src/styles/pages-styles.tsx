@@ -1,7 +1,7 @@
 import type { SxProps } from '@mui/material/styles';
 import Theme from './theme.jsx';
 
-export const flexColumnStyles: SxProps = { display: 'flex', flexDirection: 'column' };
+export const flexColumnStyles: SxProps<typeof Theme> = { display: 'flex', flexDirection: 'column' };
 
 export const pagesWrapperStyles: SxProps = {
   flex: '1 0 100%',

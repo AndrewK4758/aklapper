@@ -1,134 +1,56 @@
-import { Label, Waiting } from '@aklapper/react-shared';
+import { Waiting } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
-import Tab from '@mui/material/Tab';
-import Tabs from '@mui/material/Tabs';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { enUS } from '@mui/x-date-pickers/locales';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { GoogleOAuthProvider } from '@react-oauth/google';
-import { type Dispatch, lazy, type SetStateAction, Suspense, useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import waiting from '../../assets/images/swirly-dots-to-chrome.webp';
-import GoogleUserContextProvider from '../../contexts/contact-context.jsx';
-import { contactDialogCloseButtonSxProps, emailDialogPaperProps, mainSx, subSx } from '../../styles/header-styles.jsx';
-import { flexColumnStyles, fullSizeBlock } from '../../styles/pages-styles.jsx';
+import { flexColumnStyles } from '../../styles/pages-styles.jsx';
+import DialogLayout from './dialog/dialog';
+import TabsSelector from './dialog/tabs_selector';
+
+//TODO - Add multi language selector for the localization provider and my text content
 
 const GoogleCalendar = lazy(() => import('./google-calendar/google-calendar.jsx'));
 const EmailForm = lazy(() => import('./email-form/email-form.jsx'));
 
 interface EmailDialogProps {
-  open: boolean;
-  setOpen: Dispatch<SetStateAction<boolean>>;
+  isOpen: boolean;
+  handleIsOpen: () => void;
 }
 
-const EmailDialog = ({ open, setOpen }: EmailDialogProps) => {
-  const [tab, setTab] = useState<number>(0);
+const EmailDialog = ({ isOpen, handleIsOpen }: EmailDialogProps) => {
+  const [tab, setTab] = useState(0);
+
+  const handleSetTab = (idx: number) => {
+    setTab(idx);
+  };
+
   return (
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_OAUTH_CLIENT_ID}>
-      <LocalizationProvider
-        dateAdapter={AdapterDayjs}
-        localeText={enUS.components.MuiLocalizationProvider.defaultProps.localeText}
+    <DialogLayout isOpen={isOpen} tab={tab} handleSetTab={handleSetTab}>
+      <TabsSelector tab={tab} handleSetTab={handleSetTab} />
+      <Box
+        component={'section'}
+        key={'calendar-and-email-section'}
+        id='calendar-and-email-section'
+        data-testid='calendar-and-email-section'
+        sx={{ ...flexColumnStyles, flex: 4 }}
       >
-        <GoogleUserContextProvider>
-          <Dialog
-            open={open}
-            id='email-dialog'
-            data-testid='email-dialog'
-            fullWidth
-            scroll='body'
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            slotProps={{ paper: emailDialogPaperProps as any }}
-          >
-            <Box
-              component={'section'}
-              id='email-me-title-box'
-              data-testid='email-me-title-box'
-              sx={{
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                ...(fullSizeBlock as any),
-                ...flexColumnStyles,
-              }}
-            >
-              <Tabs
-                variant='fullWidth'
-                aria-label='contact-tabs'
-                id='contact-tabs'
-                data-testid='contact-tabs'
-                component={'nav'}
-                key={'contact-tabs'}
-                value={tab}
-                onChange={(_e, tab) => setTab(tab)}
-              >
-                <Tab
-                  key={'appointment-request-tab'}
-                  id='appointment-request-tab'
-                  data-testid='appointment-request-tab'
-                  label={
-                    <Label
-                      htmlFor='appointment-request-tab'
-                      tooltipTitle={'Add to Google Calendar'}
-                      labelVariant={'h3'}
-                      labelText={'Appt. Request'}
-                      placement={'bottom'}
-                      labelTextSx={mainSx}
-                      tooltipSx={subSx}
-                      id='appointment-request-tab-label'
-                    />
-                  }
-                />
-                <Tab
-                  key={'email-me-tab'}
-                  id='email-me-tab'
-                  data-testid='email-me-tab'
-                  label={
-                    <Label
-                      htmlFor='email-me-tab'
-                      tooltipTitle={'Send Email / Upload Appointment Details'}
-                      labelVariant={'h3'}
-                      labelText={'Email Me'}
-                      placement={'bottom'}
-                      labelTextSx={mainSx}
-                      tooltipSx={subSx}
-                      id='email-me-tab-label'
-                    />
-                  }
-                />
-              </Tabs>
-              <Box
-                component={'section'}
-                key={'calendar-and-email-section'}
-                id='calendar-and-email-section'
-                data-testid='calendar-and-email-section'
-                sx={{ ...flexColumnStyles, flex: 4 }}
-              >
-                <Suspense fallback={<Waiting src={waiting} />}>
-                  {tab === 0 && <GoogleCalendar setOpen={setOpen} />}
-                  {tab === 1 && <EmailForm setOpen={setOpen} />}
-                </Suspense>
-              </Box>
-              <DialogActions
-                key={'email-me-button-box'}
-                id='email-me-button-box'
-                data-testid='email-me-button-box'
-                sx={{ paddingX: 4, height: 'fit-content' }}
-              >
-                <Button
-                  type='button'
-                  id='close-email-me-button'
-                  data-testid='close-email-me-button'
-                  onClick={() => setOpen(false)}
-                  sx={contactDialogCloseButtonSxProps}
-                >
-                  Close
-                </Button>
-              </DialogActions>
-            </Box>
-          </Dialog>
-        </GoogleUserContextProvider>
-      </LocalizationProvider>
-    </GoogleOAuthProvider>
+        <Suspense fallback={<Waiting src={waiting} />}>
+          {tab === 0 && <GoogleCalendar setOpen={handleIsOpen} />}
+          {tab === 1 && <EmailForm setOpen={handleIsOpen} />}
+        </Suspense>
+      </Box>
+      <DialogActions
+        key={'email-me-button-box'}
+        id='email-me-button-box'
+        data-testid='email-me-button-box'
+        sx={{ paddingX: 4, height: 'fit-content' }}
+      >
+        <Button type='button' id='close-email-me-button' data-testid='close-email-me-button' onClick={handleIsOpen}>
+          Close
+        </Button>
+      </DialogActions>
+    </DialogLayout>
   );
 };
 

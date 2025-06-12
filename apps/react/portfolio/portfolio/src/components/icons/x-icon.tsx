@@ -11,8 +11,8 @@ const XIcon = ({ ...props }: SVGProps<SVGSVGElement>) => (
     fillRule='evenodd'
     clipRule='evenodd'
     viewBox='0 0 512 462.799'
-    height={64}
-    width={64}
+    height='4rem'
+    width='4rem'
     fill={TEXT_SECONDARY}
   >
     <path

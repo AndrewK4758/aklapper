@@ -6,8 +6,12 @@ import cssBaselineStyles, {
   BACKGROUND_DEFAULT,
   BACKGROUND_PAPER,
   MAIN_COLOR,
+  MAIN_COLOR_DARK,
+  MAIN_COLOR_LIGHT,
   MAIN_CONTRAST,
   SECONDARY_COLOR,
+  SECONDARY_COLOR_DARK,
+  SECONDARY_COLOR_LIGHT,
   SECONDARY_CONTRAST,
   TEXT_PRIMARY,
   TEXT_SECONDARY,
@@ -23,10 +27,14 @@ const Theme: ThemeType = createTheme(
       },
       primary: {
         main: MAIN_COLOR,
+        light: MAIN_COLOR_LIGHT,
+        dark: MAIN_COLOR_DARK,
         contrastText: MAIN_CONTRAST,
       },
       secondary: {
         main: SECONDARY_COLOR,
+        light: SECONDARY_COLOR_LIGHT,
+        dark: SECONDARY_COLOR_DARK,
         contrastText: SECONDARY_CONTRAST,
       },
       text: {

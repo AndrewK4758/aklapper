@@ -1,7 +1,7 @@
-import { act, fireEvent, render, screen, type RenderResult } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { act, fireEvent, render, screen, type RenderResult } from '@testing-library/react';
 import { BrowserRouter } from 'react-router';
-import Header from '../src/components/header/header';
+import Header from '../src/components/header/header.old.js';
 
 let baseComponent: RenderResult;
 
@@ -11,7 +11,7 @@ describe('Test Header component', () => {
       baseComponent = render(
         <BrowserRouter>
           <Header />
-        </BrowserRouter>
+        </BrowserRouter>,
       );
     });
     const contactMenuButton = await baseComponent.findByTestId('contact-menu-button');

@@ -5,8 +5,8 @@ const LinkedinIcon = ({ ...props }: SVGProps<SVGSVGElement>) => (
     {...props}
     version='1.1'
     id='svg450'
-    width='64'
-    height='64'
+    width='4rem'
+    height='4rem'
     viewBox='0 0 203.2 172.8'
     xmlns-xlink='http://www.w3.org/1999/xlink'
     xmlns='http://www.w3.org/2000/svg'

@@ -10,9 +10,6 @@
     "rootDir": "./",
     "baseUrl": ".",
     "resolveJsonModule": true
-    // "esModuleInterop": true,
-    // "moduleDetection": "force",
-    // "verbatimModuleSyntax": false
   },
   "exclude": [
     "out-tsc",
@@ -29,7 +26,7 @@
     "vite.config.server.ts",
     "eslint.config.ts"
   ],
-  "include": ["server.ts", "src/main-server.tsx"],
+  "include": ["server.ts", "src/main-server.tsx", "src/types/**/*.d.ts"],
   "references": [
     {
       "path": "./tsconfig.app.json"
