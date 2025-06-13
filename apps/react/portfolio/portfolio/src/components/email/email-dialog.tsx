@@ -1,10 +1,11 @@
 import { Waiting } from '@aklapper/react-shared';
-import Box from '@mui/material/Box';
+// import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import { lazy, Suspense, useState } from 'react';
 import waiting from '../../assets/images/swirly-dots-to-chrome.webp';
-import { flexColumnStyles } from '../../styles/pages-styles.jsx';
+// import { flexColumnStyles } from '../../styles/pages-styles.jsx';
+// import StyledRootComponentWrapper from '../styled/styled_root_wrapper';
 import DialogLayout from './dialog/dialog';
 import TabsSelector from './dialog/tabs_selector';
 
@@ -28,18 +29,17 @@ const EmailDialog = ({ isOpen, handleIsOpen }: EmailDialogProps) => {
   return (
     <DialogLayout isOpen={isOpen} tab={tab} handleSetTab={handleSetTab}>
       <TabsSelector tab={tab} handleSetTab={handleSetTab} />
-      <Box
+      {/* <StyledRootComponentWrapper
         component={'section'}
-        key={'calendar-and-email-section'}
         id='calendar-and-email-section'
         data-testid='calendar-and-email-section'
-        sx={{ ...flexColumnStyles, flex: 4 }}
-      >
-        <Suspense fallback={<Waiting src={waiting} />}>
-          {tab === 0 && <GoogleCalendar setOpen={handleIsOpen} />}
-          {tab === 1 && <EmailForm setOpen={handleIsOpen} />}
-        </Suspense>
-      </Box>
+        sx={{ flex: 4 }}
+      > */}
+      <Suspense fallback={<Waiting src={waiting} />}>
+        {tab === 0 && <GoogleCalendar setOpen={handleIsOpen} />}
+        {tab === 1 && <EmailForm setOpen={handleIsOpen} />}
+      </Suspense>
+      {/* </StyledRootComponentWrapper> */}
       <DialogActions
         key={'email-me-button-box'}
         id='email-me-button-box'

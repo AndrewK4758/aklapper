@@ -18,7 +18,6 @@ export default function TabsSelector({ tab, handleSetTab, ...props }: TabsSelect
       id='email-me-title-box'
       data-testid='email-me-title-box'
       sx={{
-        border: 4,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-evenly',

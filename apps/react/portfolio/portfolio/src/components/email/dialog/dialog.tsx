@@ -6,13 +6,14 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import GoogleUserContextProvider from '../../../contexts/contact-context';
 import LargeStyledDialog from '../../styled/large_dialog_window';
 
-interface DialogLayoutProps extends Omit<DialogProps, 'id' | 'data-testid' | 'scroll' | 'open'> {
+interface DialogLayoutProps extends Omit<DialogProps, 'id' | 'data-testid' | 'scroll' | 'open' | 'maxWidth'> {
   isOpen: boolean;
   tab: number;
   handleSetTab: (tab: number) => void;
 }
 
 export default function DialogLayout({ tab, isOpen, handleSetTab, ...props }: DialogLayoutProps) {
+  const { children } = props;
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_OAUTH_CLIENT_ID}>
       <LocalizationProvider
@@ -22,23 +23,13 @@ export default function DialogLayout({ tab, isOpen, handleSetTab, ...props }: Di
         <GoogleUserContextProvider>
           <LargeStyledDialog
             {...props}
+            maxWidth='lg'
             open={isOpen}
             id='email-dialog'
             data-testid='email-dialog'
             scroll='body'
-            slotProps={{
-              paper: {
-                sx: {
-                  height: '90%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-evenly',
-                  border: '3px solid orange',
-                },
-              },
-            }}
           >
-            {props.children}
+            {children}
           </LargeStyledDialog>
         </GoogleUserContextProvider>
       </LocalizationProvider>

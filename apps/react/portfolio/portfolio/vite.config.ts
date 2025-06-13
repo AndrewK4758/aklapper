@@ -18,7 +18,7 @@ const modules: { [key: string]: string } = {
 };
 
 const config: UserConfig = defineConfig({
-  root: resolve(workspaceRoot, 'apps/react/portfolio/portfolio'),
+  root: './',
   cacheDir: resolve(workspaceRoot, 'node_modules/.vite/apps/react/portfolio/portfolio'),
   server: {
     port: 4700,

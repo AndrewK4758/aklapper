@@ -60,6 +60,82 @@ const Theme: ThemeType = createTheme(
       MuiCssBaseline: {
         styleOverrides: cssBaselineStyles,
       },
+      MuiDialog: {
+        styleOverrides: {
+          paper: {
+            boxShadow: `0 0 0 0.5rem ${MAIN_COLOR_DARK}3A`,
+            height: '90%',
+          },
+        },
+      },
+      MuiContainer: {
+        defaultProps: {
+          sx: {
+            padding: 4,
+          },
+        },
+      },
+      MuiDateCalendar: {
+        defaultProps: {
+          slotProps: {
+            switchViewIcon: {
+              sx: {
+                color: MAIN_COLOR_DARK,
+              },
+            },
+            rightArrowIcon: {
+              sx: {
+                color: MAIN_COLOR_DARK,
+              },
+            },
+            leftArrowIcon: {
+              sx: {
+                color: MAIN_COLOR_DARK,
+              },
+            },
+            day: {
+              sx: {
+                fontSize: '1.5rem',
+                backgroundColor: BACKGROUND_DEFAULT,
+                color: MAIN_COLOR_DARK,
+                borderRadius: 1,
+              },
+            },
+          },
+        },
+      },
+      MuiTimePicker: {
+        defaultProps: {
+          formatDensity: 'spacious',
+          slotProps: {
+            digitalClockSectionItem: {
+              sx: {
+                border: `2px solid ${MAIN_COLOR_DARK}`,
+                borderRadius: 1,
+                backgroundColor: BACKGROUND_DEFAULT,
+              },
+            },
+            actionBar: {
+              sx: {
+                borderTop: `2px solid ${MAIN_COLOR_DARK}`,
+              },
+            },
+            textField: {
+              sx: {
+                width: '80%',
+                backgroundColor: BACKGROUND_DEFAULT,
+                borderRadius: 1,
+              },
+            },
+            openPickerIcon: {
+              sx: {
+                color: MAIN_COLOR_DARK,
+                fontSize: '2rem',
+              },
+            },
+          },
+        },
+      },
     },
   },
   enUS,

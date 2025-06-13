@@ -1,6 +1,5 @@
 import type { PaperProps } from '@mui/material/Paper';
 import type { SxProps } from '@mui/material/styles';
-import type { DateCalendarSlotProps } from '@mui/x-date-pickers/DateCalendar';
 import type { DateTimePickerSlotProps } from '@mui/x-date-pickers/DateTimePicker';
 import type { TimePickerSlotProps } from '@mui/x-date-pickers/TimePicker';
 import { flexColumnStyles } from './pages-styles.js';
@@ -11,71 +10,6 @@ export const headerLabelSxProps: SxProps = {
 };
 
 //-------GOOGLE CALENDAR--------//
-
-export const connectGoogleCalendarButtonSxProps: SxProps = {
-  fontSize: '2rem',
-  [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem',
-  },
-};
-
-export const dateCalendarSxProps: SxProps = {
-  scale: 1.4,
-  [Theme.breakpoints.down('md')]: {
-    scale: 1,
-  },
-};
-
-export const dateCalendarSlotProps: DateCalendarSlotProps = {
-  switchViewIcon: {
-    sx: {
-      scale: 1.5,
-      color: Theme.palette.primary.dark,
-      [Theme.breakpoints.down('md')]: {
-        scale: 1,
-      },
-    },
-  },
-  rightArrowIcon: {
-    sx: {
-      scale: 1.5,
-      color: Theme.palette.primary.dark,
-      [Theme.breakpoints.down('md')]: {
-        scale: 1,
-      },
-    },
-  },
-  leftArrowIcon: {
-    sx: {
-      scale: 1.5,
-      color: Theme.palette.primary.dark,
-      [Theme.breakpoints.down('md')]: {
-        scale: 1,
-      },
-    },
-  },
-  day: {
-    sx: {
-      fontSize: '1.5rem',
-      backgroundColor: Theme.palette.background.default,
-      color: Theme.palette.primary.dark,
-      borderRadius: 1,
-    },
-  },
-  calendarHeader: {
-    sx: {
-      scale: 1.1,
-      [Theme.breakpoints.down('md')]: {
-        scale: 1,
-      },
-      '& .MuiPickersCalendarHeader-label': {
-        [Theme.breakpoints.down('md')]: {
-          fontSize: '1rem',
-        },
-      },
-    },
-  },
-};
 
 export const startTimePickerSlotProps: TimePickerSlotProps<false> = {
   digitalClockSectionItem: {
@@ -195,8 +129,8 @@ export const endTimePickerSlotProps: TimePickerSlotProps<false> = {
 export const timePickerWrapperSxProps: SxProps<typeof Theme> = {
   ...flexColumnStyles,
   flex: '1 0 auto',
-  justifyContent: 'space-evenly',
   alignItems: 'center',
+  gap: Theme.spacing(4),
 };
 
 export const timePickerLabelSxProps: SxProps = {

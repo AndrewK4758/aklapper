@@ -4,7 +4,7 @@ import { join } from 'path';
 import { cwd } from 'process';
 import router, { PortfolioRoutes } from './routes/routes.js';
 
-const __dirname = join(cwd(), 'apps/nodejs/portfolio/portfolio-api');
+export const __dirname = join(cwd(), 'apps/nodejs/portfolio/portfolio-api');
 
 const app: Express = express();
 
@@ -13,6 +13,8 @@ export const corsOptions: CorsOptions = {
     'https://www.andrew-k.us',
     'https://andrew-k.us',
     'http://localhost:4700',
+    'https://andrew-k.us/home',
+    'http://localhost:4700/home',
     'https://games-424800.uc.r.appspot.com',
   ],
   credentials: true,

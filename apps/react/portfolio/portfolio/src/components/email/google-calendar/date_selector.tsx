@@ -1,0 +1,30 @@
+import Box from '@mui/material/Box';
+import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
+import type { PickerValue } from '@mui/x-date-pickers/internals';
+import type { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
+import type { TimesAndDates } from './google-calendar';
+
+interface AppointmentDateSelectorProps {
+  tomorrow: Dayjs;
+  dateValue: TimesAndDates['date'];
+  setDate: (pickerValues: PickerValue, key: keyof TimesAndDates) => void;
+}
+
+export default function AppointmentDateSelector({ tomorrow, dateValue, setDate }: AppointmentDateSelectorProps) {
+  const nextYear = dayjs().add(1, 'year');
+
+  return (
+    <Box component={'section'} id='date-picker-wrapper' data-testid='date-picker-wrapper'>
+      <DateCalendar
+        data-testid={'date-calendar'}
+        minDate={tomorrow}
+        maxDate={nextYear}
+        disablePast={true}
+        defaultValue={tomorrow}
+        value={dateValue}
+        onChange={data => setDate(data, 'date')}
+      />
+    </Box>
+  );
+}

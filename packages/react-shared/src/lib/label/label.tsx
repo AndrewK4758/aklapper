@@ -57,7 +57,7 @@ export const Label = forwardRef<HTMLLabelElement, LabelProps>(
     },
     ref,
   ) => {
-    const hasTooltip = Boolean(tooltipTitle);
+    const hasTooltip = !!tooltipTitle;
     const tooltipId = `${id}-tooltip`;
     const labelId = `${id}`;
     const labelWrapperId = `${id}-wrapper`;

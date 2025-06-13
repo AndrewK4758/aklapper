@@ -67,15 +67,6 @@ const cssBaselineStyles: CSSObject = {
     fontFamily: 'Lucida Bold',
   },
 
-  // '.animated-border': {
-  //   background: `conic-gradient(${BACKGROUND_PAPER} 0 0) padding-box,
-  //   linear-gradient(to right, var(--clr-1), var(--clr-2), var(--clr-1)) border-box`,
-  //   border: '3px solid transparent',
-  //   borderRadius: '10px',
-  //   position: 'relative',
-  //   isolation: 'isolate',
-  //   animation: `${spin} 3s linear infinite`,
-  // },
   // '*': { border: '3px solid #9090c0' },
 };
 

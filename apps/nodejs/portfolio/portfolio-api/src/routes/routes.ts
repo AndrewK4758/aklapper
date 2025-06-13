@@ -19,7 +19,7 @@ export class PortfolioRoutes {
     //-------------------------------------------------//
 
     router.get('/', (_, resp) => {
-      resp.sendStatus(201);
+      resp.status(201).send('healthy');
     });
     router.post('/email', upload.single('attachment'), postEmail);
     router.post('/create-tokens', createTokens);
