@@ -7,26 +7,28 @@ import OpenMenuIcon from '../../icons/open_menu';
 
 interface ToggleMenuButtonProps extends Omit<IconButtonProps, 'id' | 'sx'> {
   isToggledOpen: boolean;
-  handleOpenContact: () => void;
+  handleToggleContactMenu: () => void;
 }
 
-export default function ToggleMenuButton({ isToggledOpen, handleOpenContact, ...props }: ToggleMenuButtonProps) {
+export default function ToggleMenuButton({ isToggledOpen, handleToggleContactMenu, ...props }: ToggleMenuButtonProps) {
   const toggleMenuButtonStyle: SxProps<Theme> = {
     opacity: 0.2,
-    '&:hover': {
+    '&:hover, &:focus': {
       opacity: 1,
     },
   };
 
-  const icon = isToggledOpen ? (
-    <OpenMenuIcon handleOpenContact={handleOpenContact} />
-  ) : (
-    <CloseMenuIcon handleOpenContact={handleOpenContact} />
-  );
+  const icon = isToggledOpen ? <OpenMenuIcon /> : <CloseMenuIcon />;
 
   return (
-    <Box>
-      <IconButton {...props} id='toggle-contact-menu' sx={toggleMenuButtonStyle}>
+    <Box height={'100%'}>
+      <IconButton
+        {...props}
+        id='toggle-contact-menu'
+        tabIndex={0}
+        onClick={handleToggleContactMenu}
+        sx={toggleMenuButtonStyle}
+      >
         {icon}
       </IconButton>
     </Box>

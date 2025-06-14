@@ -17,5 +17,19 @@ declare module '@mui/material/styles' {
       defaultProps?: import('@mui/x-data-grid').DataGridProps;
       styleOverrides?: import('@mui/material/styles').ComponentsOverrides<Theme>['MuiDataGrid'];
     };
+
+    MuiDateTimePicker?: {
+      defaultProps?: import('@mui/x-date-pickers').DateTimePickerProps;
+      styleOverrides?: import('@mui/material/styles').ComponentsOverrides<Theme>['MuiDateTimePicker'];
+    };
+
+    MuiTimeClock?: {
+      defaultProps?: import('@mui/x-date-pickers').TimeClockProps;
+      styleOverrides?: import('@mui/material/styles').ComponentsOverrides<Theme>['MuiTimeClock'];
+    };
   }
+}
+
+export interface ContactMenuIconProps {
+  handleToggleContactMenu: () => void;
 }

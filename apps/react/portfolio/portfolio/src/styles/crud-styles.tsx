@@ -7,25 +7,25 @@ export const baseCrudDisplayStyleSxProps: SxProps = {
   display: 'flex',
   flexWrap: 'wrap',
   alignItems: 'center',
-  justifyContent: 'center'
+  justifyContent: 'center',
 };
 
 export const crudPaperSxProps: SxProps = {
   width: '70vw',
   [Theme.breakpoints.down('md')]: {
-    width: '90vw'
-  }
+    width: '90vw',
+  },
 };
 
 export const crudHomeContainerSxProps: SxProps = {
   flex: '0 1 60%',
-  borderRadius: 1
+  borderRadius: 1,
 };
 
 export const crudHeaderTextSxProps: SxProps = {
   [Theme.breakpoints.down('md')]: {
-    fontSize: '0.875rem'
-  }
+    fontSize: '0.875rem',
+  },
 };
 
 export const searchBoxCardSxProps: SxProps = {
@@ -34,8 +34,8 @@ export const searchBoxCardSxProps: SxProps = {
   width: '60vw',
   [Theme.breakpoints.down('md')]: {
     width: '90vw',
-    paddingLeft: 1
-  }
+    paddingLeft: 1,
+  },
 };
 
 export const crudSearchCloseButtonBoxSxProps: SxProps = {
@@ -43,14 +43,14 @@ export const crudSearchCloseButtonBoxSxProps: SxProps = {
   display: 'flex',
   alignItems: 'flex-end',
   justifyContent: 'flex-end',
-  height: '100%'
+  height: '100%',
 };
 
 export const searchBoxResultsWrapperSxProps: SxProps = {
   display: 'flex',
   flexDirection: 'column',
   flexWrap: 'wrap',
-  maxHeight: '70vh'
+  maxHeight: '70vh',
 };
 
 export const AddEntryModalStyle: SxProps = {
@@ -58,15 +58,15 @@ export const AddEntryModalStyle: SxProps = {
   borderRadius: 1,
   [Theme.breakpoints.down('md')]: {
     border: '3.75px solid purple',
-    p: 1
-  }
+    p: 1,
+  },
 };
 
 export const crudAppWrapperStyles: SxProps = {
   width: '90vw',
   minHeight: '30vh',
   height: 'fit-content',
-  borderRadius: 1
+  borderRadius: 1,
 };
 
 export const crudAddButtonStyles: SxProps = { m: 1, flex: '1 0 30%', fontSize: '1rem' };
@@ -77,54 +77,54 @@ export const dataGridStyleUpdate: SxProps = {
   fontSize: '.875rem',
   fontFamily: 'monospace',
   '& .MuiDataGrid-columnHeader': {
-    color: Theme.palette.primary.main
+    color: Theme.palette.primary.main,
   },
   '& .MuiToolbar-main': {
-    color: Theme.palette.info.light
+    color: Theme.palette.info.light,
   },
   '& .MuiTablePagination-selectLabel': {
     fontSize: '1rem',
-    fontFamily: 'Mono'
+    fontFamily: 'Mono',
   },
   '& .MuiTablePagination-displayedRows': {
     fontSize: '1rem',
-    fontFamily: 'Mono'
+    fontFamily: 'Mono',
   },
   '& .MuiDataGrid-columnHeaderTitle': {
-    fontSize: '1rem'
+    fontSize: '1rem',
   },
   '& .MuiTablePagination-root': {
-    color: Theme.palette.info.light
+    color: Theme.palette.info.light,
   },
   '& .artist-id, .album-id, .track-id': {
-    color: Theme.palette.info.main
+    color: Theme.palette.info.main,
   },
   '& .artist-name, .album-title': {
-    color: Theme.palette.grey[100]
+    color: Theme.palette.grey[100],
   },
   '& .unit-price, .genre-id, .media-type-id, .milliseconds, .bytes': {
-    color: Theme.palette.warning.main
-  }
+    color: Theme.palette.warning.main,
+  },
 };
 //-----------Add Entry-----------//
 
 export const addEntryFormCssProps: CSSProperties = {
   ...(flexColumnStyles as CSSProperties),
   overflowY: 'auto',
-  overflowX: 'hidden'
+  overflowX: 'hidden',
 };
 
 export const addEntryDialogTitleSxProps: SxProps = {
   textAlign: 'center',
   [Theme.breakpoints.down('md')]: {
-    p: 0
-  }
+    p: 0,
+  },
 };
 
 export const addEntryTitleTextSxProps: SxProps = {
   [Theme.breakpoints.down('md')]: {
-    fontSize: '2rem'
-  }
+    fontSize: '2rem',
+  },
 };
 
 export const addEntryDescriptionSxProps: SxProps = {
@@ -132,27 +132,27 @@ export const addEntryDescriptionSxProps: SxProps = {
   fontSize: '.875rem',
   [Theme.breakpoints.down('md')]: {
     fontSize: '0.65rem',
-    p: 0.75
-  }
+    p: 0.75,
+  },
 };
 
 export const addEntryInputSlotProps = {
   input: {
-    sx: { fontSize: '0.875rem' } as SxProps
-  }
+    sx: { fontSize: '0.875rem' } as SxProps,
+  },
 };
 
 export const addEntryErrorTextSxProps: SxProps = {
   color: Theme.palette.error.main,
   [Theme.breakpoints.down('md')]: {
-    fontSize: '0.75rem'
-  }
+    fontSize: '0.75rem',
+  },
 };
 
 export const addEntryButtonSxProps: SxProps = {
   [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem'
-  }
+    fontSize: '1rem',
+  },
 };
 
 export const addEntryStepperButtonBoxSxProps: SxProps = {
@@ -160,8 +160,8 @@ export const addEntryStepperButtonBoxSxProps: SxProps = {
   flexDirection: 'row',
   pt: 2,
   [Theme.breakpoints.down('md')]: {
-    m: 0
-  }
+    m: 0,
+  },
 };
 
 export const addEntryStepperTextSxProps: SxProps = {
@@ -172,8 +172,8 @@ export const addEntryStepperTextSxProps: SxProps = {
     m: 0,
     fontSize: '0.875rem',
     p: 0,
-    pt: 1
-  }
+    pt: 1,
+  },
 };
 
 export const addEntryStepperNextCompleteButtonSxProps: SxProps = {
@@ -183,6 +183,6 @@ export const addEntryStepperNextCompleteButtonSxProps: SxProps = {
   [Theme.breakpoints.down('md')]: {
     m: 0,
     p: 0,
-    fontSize: '0.875rem'
-  }
+    fontSize: '0.875rem',
+  },
 };

@@ -5,7 +5,7 @@ import ButtonGroup, { type ButtonGroupProps } from '@mui/material/ButtonGroup';
 // import Toolbar from '@mui/material/Toolbar';
 import { type FC, type JSX } from 'react';
 import { useNavigate } from 'react-router';
-import { headerLabelSxProps } from '../../styles/header-styles.js';
+// import { headerLabelSxProps } from '../../styles/header-styles.js';
 import { buttonSXProps } from '../../styles/pages-styles.js';
 import Contact from './header.js';
 
@@ -61,7 +61,7 @@ const Header: FC<ButtonGroupProps> = ({ ...props }: ButtonGroupProps): JSX.Eleme
             labelVariant={'h2'}
             labelText={'Home'}
             placement={'bottom'}
-            labelTextSx={headerLabelSxProps}
+            // labelTextSx={headerLabelSxProps}
           />
         </Button>
 
@@ -73,7 +73,7 @@ const Header: FC<ButtonGroupProps> = ({ ...props }: ButtonGroupProps): JSX.Eleme
             labelVariant={'h2'}
             labelText={'Games'}
             placement={'bottom'}
-            labelTextSx={headerLabelSxProps}
+            // labelTextSx={headerLabelSxProps}
           />
         </Button>
 
@@ -85,7 +85,7 @@ const Header: FC<ButtonGroupProps> = ({ ...props }: ButtonGroupProps): JSX.Eleme
             labelVariant={'h2'}
             labelText={'CRUD'}
             placement={'bottom'}
-            labelTextSx={headerLabelSxProps}
+            // labelTextSx={headerLabelSxProps}
           />
         </Button>
 
@@ -97,7 +97,7 @@ const Header: FC<ButtonGroupProps> = ({ ...props }: ButtonGroupProps): JSX.Eleme
             labelVariant={'h2'}
             labelText={'Gen-AI'}
             placement={'bottom'}
-            labelTextSx={headerLabelSxProps}
+            // labelTextSx={headerLabelSxProps}
           />
         </Button>
 
@@ -109,7 +109,7 @@ const Header: FC<ButtonGroupProps> = ({ ...props }: ButtonGroupProps): JSX.Eleme
             labelVariant={'h2'}
             labelText={'Contact'}
             placement={'bottom'}
-            labelTextSx={headerLabelSxProps}
+            // labelTextSx={headerLabelSxProps}
           />
         </Button>
       </ButtonGroup>

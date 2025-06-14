@@ -3,7 +3,7 @@ import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import type { PickerValue } from '@mui/x-date-pickers/internals';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
-import type { TimesAndDates } from './google-calendar';
+import type { TimesAndDates } from './google_calendar_form.js';
 
 interface AppointmentDateSelectorProps {
   tomorrow: Dayjs;

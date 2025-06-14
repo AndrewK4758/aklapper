@@ -4,13 +4,14 @@ import CardActions from '@mui/material/CardActions';
 import CardMedia from '@mui/material/CardMedia';
 // import Tooltip from '@mui/material/Tooltip';
 import { lazy, type JSX } from 'react';
-// import ResumeIcon from '../../components/icons/resume-icon.jsx';
+import ResumeIcon from '../../components/icons/resume-icon.jsx';
 import {
   introButtonSxProps,
-  // introIconSxProps,
+  introIconSxProps,
   introPicStyles,
   picAndResumeCardStyles,
 } from '../../styles/intro-styles.jsx';
+import Theme from '../../styles/theme.js';
 
 const TechStackList = lazy(() => import('./tech-list/tech-list.jsx'));
 
@@ -51,6 +52,7 @@ const PicutreAndResume = (): JSX.Element => (
         variant='contained'
         href={'/client/pdf/Resume.pdf'}
         download={`andrew-klapper-resume`}
+        endIcon={<ResumeIcon sx={{ ...introIconSxProps, fill: Theme.palette.primary.contrastText }} />}
         sx={introButtonSxProps}
       >
         Resume

@@ -1,10 +1,5 @@
 @import url(./colors-and-fonts.css);
 
-:root {
-  --main-color: #ffd300;
-  --secondary-color: #ff3d00;
-}
-
 @property --clr-1 {
   syntax: '<color>';
   inherits: true;
@@ -22,29 +17,3 @@
   inherits: true;
   initial-value: -180deg;
 }
-
-/* @keyframes spin {
-  50% {
-    --clr-1: var(--secondary-color);
-    --clr-2: var(--main-color);
-    --clr-1: var(--secondary-color);
-  }
-}
-
-.border-bottom,
-#home-button-label,
-#games-button-label,
-#crud-button-label,
-#gen-ai-button-label,
-#contact-button-label,
-#card-media-resume-button,
-#tech-list-title-text-button {
-  background:
-    conic-gradient(var(--accent-dark) 0 0) padding-box,
-    linear-gradient(to right, var(--clr-1), var(--clr-2), var(--clr-1)) border-box;
-  border: 3px solid transparent;
-  border-radius: 10px;
-  position: relative;
-  isolation: isolate;
-  animation: spin 3s linear infinite;
-} */

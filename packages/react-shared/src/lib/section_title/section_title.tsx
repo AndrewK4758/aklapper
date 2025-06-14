@@ -14,7 +14,7 @@ interface SectionTitleProps extends BoxProps {
   title: string;
   variant?: TypographyVariant;
   tooltipTitle?: ReactNode;
-  placement:
+  placement?:
     | 'bottom'
     | 'left'
     | 'right'

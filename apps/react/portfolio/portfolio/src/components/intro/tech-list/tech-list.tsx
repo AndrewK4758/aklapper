@@ -11,13 +11,13 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Zoom from '@mui/material/Zoom';
 import { useState, type JSX } from 'react';
-import {
-  introButtonSxProps,
-  introIconSxProps,
-  techListSectionContainer,
-  techlistTextStyle,
-} from '../../../styles/intro-styles.jsx';
-import { flexColumnStyles } from '../../../styles/pages-styles.jsx';
+// import {
+//   introButtonSxProps,
+//   introIconSxProps,
+//   techListSectionContainer,
+//   techlistTextStyle,
+// } from '../../../styles/intro-styles.jsx';
+// import { flexColumnStyles } from '../../../styles/pages-styles.jsx';
 import { analytics, build, cloud, data, languages, libraries, styles, testing } from '../static/tech-stack-text.jsx';
 
 /**
@@ -75,8 +75,8 @@ const TechStackList = (): JSX.Element => {
           LinkComponent={'button'}
           variant='contained'
           onClick={() => setOpen(true)}
-          endIcon={<MenuOpen sx={introIconSxProps} />}
-          sx={introButtonSxProps}
+          endIcon={<MenuOpen sx={{}} />}
+          // sx={introButtonSxProps}
         >
           My Core Tech Stack
         </Button>
@@ -94,7 +94,7 @@ const TechStackList = (): JSX.Element => {
         <DialogContent
           id='tech-list-dialog-content-wrapper'
           data-testid='tech-list-dialog-content-wrapper'
-          sx={flexColumnStyles}
+          // sx={flexColumnStyles}
         >
           <DialogActions>
             <Button
@@ -109,106 +109,98 @@ const TechStackList = (): JSX.Element => {
           </DialogActions>
           <Box sx={{ display: 'flex', flexWrap: 'wrap' }}>
             <TechList
-              htmlFor=''
               id='languages'
               labelText='Languages'
-              tooltipTitle={'My strongest languages'}
-              labelVariant={'body1'}
-              variant='h5'
-              techListContainerSxProps={techListSectionContainer}
-              techListTextSxProps={techlistTextStyle}
+              // tooltipTitle={'My strongest languages'}
+              variant={'body1'}
+              techListContainerSxProps={{}}
+              techListTextSxProps={{}}
               data={languages}
               renderTechLists={renderTechLists}
+              title={'Languages'}
               placement='top'
             />
             <TechList
-              htmlFor=''
               id='libraries'
               labelText='Libraries'
+              title='Libraries'
               tooltipTitle={'My most used libraries'}
-              labelVariant='body1'
-              variant='h5'
-              techListContainerSxProps={techListSectionContainer}
-              techListTextSxProps={techlistTextStyle}
+              variant='body1'
+              techListContainerSxProps={{}}
+              techListTextSxProps={{}}
               data={libraries}
               renderTechLists={renderTechLists}
               placement='top'
             />
             <TechList
-              htmlFor=''
               id='build-list'
               labelText='Build'
+              title='Build'
               tooltipTitle='The build tools I use for building anything web'
-              labelVariant='body1'
-              variant='h5'
-              techListContainerSxProps={techListSectionContainer}
-              techListTextSxProps={techlistTextStyle}
+              variant='body1'
+              techListContainerSxProps={{}}
+              techListTextSxProps={{}}
               data={build}
               renderTechLists={renderTechLists}
               placement='top'
             />
 
             <TechList
-              htmlFor=''
               id='databases'
               labelText='Databases'
+              title='Databases'
               tooltipTitle='My most used databases'
-              labelVariant='body1'
-              variant='h5'
-              techListContainerSxProps={techListSectionContainer}
-              techListTextSxProps={techlistTextStyle}
+              variant='body1'
+              techListContainerSxProps={{}}
+              techListTextSxProps={{}}
               data={data}
               renderTechLists={renderTechLists}
               placement='top'
             />
             <TechList
-              htmlFor=''
               id='cloud'
               labelText='Cloud'
+              title='Cloud'
               tooltipTitle='The cloud tools I am most comfortable with'
-              labelVariant='body1'
-              variant='h5'
-              techListContainerSxProps={techListSectionContainer}
-              techListTextSxProps={techlistTextStyle}
+              variant='body1'
+              techListContainerSxProps={{}}
+              techListTextSxProps={{}}
               data={cloud}
               renderTechLists={renderTechLists}
               placement='top'
             />
             <TechList
-              htmlFor=''
               id='styles'
               labelText='Styles'
+              title='Styles'
               tooltipTitle='The style tools I use for building anything web'
-              labelVariant='body1'
-              variant='h5'
-              techListContainerSxProps={techListSectionContainer}
-              techListTextSxProps={techlistTextStyle}
+              variant='body1'
+              techListContainerSxProps={{}}
+              techListTextSxProps={{}}
               data={styles}
               renderTechLists={renderTechLists}
               placement='top'
             />
             <TechList
-              htmlFor=''
               id='analytics'
               labelText='Analytics'
+              title='Analytics'
               tooltipTitle='The analytics tools I use'
-              labelVariant='body1'
-              variant='h5'
-              techListContainerSxProps={techListSectionContainer}
-              techListTextSxProps={techlistTextStyle}
+              variant='body1'
+              techListContainerSxProps={{}}
+              techListTextSxProps={{}}
               data={analytics}
               renderTechLists={renderTechLists}
               placement='top'
             />
             <TechList
-              htmlFor=''
               id='testing'
               labelText='Testing'
+              title='Testing'
               tooltipTitle='The tools I use for unit & e2e testing'
-              labelVariant='body1'
-              variant='h5'
-              techListContainerSxProps={techListSectionContainer}
-              techListTextSxProps={techlistTextStyle}
+              variant='body1'
+              techListContainerSxProps={{}}
+              techListTextSxProps={{}}
               data={testing}
               renderTechLists={renderTechLists}
               placement='top'

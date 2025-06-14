@@ -52,7 +52,7 @@ export const introTextSxProps: SxProps = {
   },
 };
 
-export const picAndResumeCardStyles: SxProps = {
+export const picAndResumeCardStyles: SxProps<typeof Theme> = {
   ...flexColumnStyles,
   flex: '0 1 30%',
   height: '100%',

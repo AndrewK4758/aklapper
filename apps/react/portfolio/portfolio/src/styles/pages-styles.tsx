@@ -1,5 +1,5 @@
 import type { SxProps } from '@mui/material/styles';
-import Theme from './theme.jsx';
+import Theme from './theme';
 
 export const flexColumnStyles: SxProps<typeof Theme> = { display: 'flex', flexDirection: 'column' };
 

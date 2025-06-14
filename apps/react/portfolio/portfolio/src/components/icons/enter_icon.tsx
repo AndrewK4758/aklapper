@@ -15,7 +15,7 @@ export default function EnterIcon({ isVisible, onHandleClickEnter, ...props }: E
         version='1.1'
         viewBox='0 0 2267.7 1511.8'
         xmlns='http://www.w3.org/2000/svg'
-        xmlns-xlink='http://www.w3.org/1999/xlink'
+        xmlnsXlink='http://www.w3.org/1999/xlink'
       >
         <defs>
           <radialGradient
@@ -26,20 +26,20 @@ export default function EnterIcon({ isVisible, onHandleClickEnter, ...props }: E
             gradientTransform='matrix(1.4761 1.2178e-8 0 .36207 -813.1 320.18)'
             gradientUnits='userSpaceOnUse'
           >
-            <stop stop-color='#ffd300' offset='.38887' />
-            <stop stop-color='#ff3d00' offset='1' />
+            <stop stopColor='#ffd300' offset='.38887' />
+            <stop stopColor='#ff3d00' offset='1' />
           </radialGradient>
         </defs>
         <g id='enter'>
           <g
             transform='scale(.66397 1.5061)'
             fill='url(#a)'
-            fill-rule='evenodd'
+            fillRule='evenodd'
             stroke='#eef0ff'
-            stroke-linecap='round'
-            stroke-linejoin='round'
-            stroke-opacity='.85'
-            stroke-width='3.057'
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            strokeOpacity='.85'
+            strokeWidth='3.057'
             aria-label='ENTER'
             cursor={'pointer'}
             onClick={onHandleClickEnter}

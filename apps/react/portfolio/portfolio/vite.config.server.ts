@@ -39,7 +39,7 @@ const config: UserConfig = defineConfig({
     noExternal: ['@mui/material', '@mui/icons-material', '@mui/x-date-pickers', '@mui/x-data-grid'],
   },
 
-  mode: process.env['NODE_ENV'],
+  mode: 'development',
 
   base: '/server',
   build: {

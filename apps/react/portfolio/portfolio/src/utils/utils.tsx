@@ -6,9 +6,11 @@ import type { GamePlayerValidation } from '@aklapper/types';
  * @returns {GamePlayerValidation | undefined} The game instance information if found in session storage, otherwise undefined.
  */
 
-const getGameInstanceInfo = (): GamePlayerValidation | undefined => {
+export const getGameInstanceInfo = (): GamePlayerValidation | undefined => {
   const fromSession = sessionStorage.getItem('__current_game__') as string;
   return fromSession ? (JSON.parse(fromSession) as GamePlayerValidation) : undefined;
 };
 
-export default getGameInstanceInfo;
+export function addToToolipString(baseString: string, socialSite: string): string {
+  return baseString.concat(socialSite);
+}

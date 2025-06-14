@@ -6,7 +6,7 @@ import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import dayjs from 'dayjs';
 import { createBrowserRouter, RouterProvider } from 'react-router';
-import GoogleCalendar from '../src/components/email/google-calendar/google-calendar';
+import GoogleCalendar from '../src/components/contact/google-calendar/google-calendar.js';
 import GoogleUserContextProvider from '../src/contexts/contact-context';
 
 let tomorrowsDate: string;

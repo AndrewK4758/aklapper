@@ -3,8 +3,10 @@ import { createTheme } from '@mui/material/styles';
 import type {} from '@mui/material/themeCssVarsAugmentation';
 import { enUS } from '@mui/x-date-pickers/locales';
 import cssBaselineStyles, {
+  BACKGROUND_ALT,
   BACKGROUND_DEFAULT,
   BACKGROUND_PAPER,
+  BOX_SHADOW_SECONDARY_DARK,
   MAIN_COLOR,
   MAIN_COLOR_DARK,
   MAIN_COLOR_LIGHT,
@@ -64,7 +66,8 @@ const Theme: ThemeType = createTheme(
         styleOverrides: {
           paper: {
             boxShadow: `0 0 0 0.5rem ${MAIN_COLOR_DARK}3A`,
-            height: '90%',
+            height: 'fit-content',
+            minHeight: '75vh',
           },
         },
       },
@@ -72,6 +75,39 @@ const Theme: ThemeType = createTheme(
         defaultProps: {
           sx: {
             padding: 4,
+          },
+        },
+      },
+      MuiSelect: {
+        styleOverrides: {
+          icon: {
+            color: MAIN_COLOR_DARK,
+          },
+          outlined: {
+            color: MAIN_COLOR_DARK,
+          },
+          select: {
+            color: MAIN_COLOR_DARK,
+            backgroundColor: BACKGROUND_DEFAULT,
+          },
+        },
+      },
+      MuiMenuItem: {
+        styleOverrides: {
+          root: {
+            backgroundColor: '#242424',
+          },
+        },
+      },
+      MuiTextField: {
+        defaultProps: {
+          slotProps: {
+            input: {
+              sx: {
+                backgroundColor: BACKGROUND_DEFAULT,
+                width: '100%',
+              },
+            },
           },
         },
       },
@@ -108,21 +144,29 @@ const Theme: ThemeType = createTheme(
         defaultProps: {
           formatDensity: 'spacious',
           slotProps: {
+            desktopPaper: {
+              sx: {
+                backgroundColor: BACKGROUND_DEFAULT,
+                boxShadow: BOX_SHADOW_SECONDARY_DARK,
+              },
+            },
             digitalClockSectionItem: {
               sx: {
-                border: `2px solid ${MAIN_COLOR_DARK}`,
                 borderRadius: 1,
-                backgroundColor: BACKGROUND_DEFAULT,
+                backgroundColor: BACKGROUND_PAPER,
               },
             },
             actionBar: {
               sx: {
                 borderTop: `2px solid ${MAIN_COLOR_DARK}`,
+                background: BACKGROUND_ALT,
+                borderBottomLeftRadius: 10,
+                borderBottomRightRadius: 10,
               },
             },
             textField: {
               sx: {
-                width: '80%',
+                width: '100%',
                 backgroundColor: BACKGROUND_DEFAULT,
                 borderRadius: 1,
               },
@@ -132,6 +176,89 @@ const Theme: ThemeType = createTheme(
                 color: MAIN_COLOR_DARK,
                 fontSize: '2rem',
               },
+            },
+          },
+        },
+      },
+      MuiDateTimePicker: {
+        defaultProps: {
+          ampm: true,
+          slotProps: {
+            actionBar: {
+              actions: ['accept', 'cancel'],
+              sx: {
+                borderTop: `2px solid ${MAIN_COLOR_DARK}`,
+                backgroundColor: BACKGROUND_ALT,
+                borderBottomLeftRadius: 10,
+                borderBottomRightRadius: 10,
+              },
+            },
+            day: {
+              sx: {
+                borderRadius: 1,
+                backgroundColor: BACKGROUND_PAPER,
+              },
+            },
+            desktopPaper: {
+              sx: {
+                boxShadow: BOX_SHADOW_SECONDARY_DARK,
+                backgroundColor: BACKGROUND_DEFAULT,
+              },
+            },
+            digitalClockSectionItem: {
+              sx: {
+                // borderRadius: 1,
+              },
+            },
+            digitalClockItem: {
+              sx: {
+                backgroundColor: BACKGROUND_PAPER,
+              },
+            },
+            openPickerIcon: {
+              sx: {
+                color: MAIN_COLOR_DARK,
+                fontSize: '2rem',
+              },
+            },
+            leftArrowIcon: {
+              sx: {
+                color: MAIN_COLOR_DARK,
+              },
+            },
+            rightArrowIcon: {
+              sx: {
+                color: MAIN_COLOR_DARK,
+              },
+            },
+            textField: {
+              sx: {
+                width: '100%',
+                backgroundColor: BACKGROUND_DEFAULT,
+                borderRadius: 1,
+              },
+            },
+          },
+        },
+      },
+      MuiTimeClock: {
+        defaultProps: {
+          ampm: true,
+          sx: {
+            '& .MuiClock-squareMask': {
+              backgroundColor: BACKGROUND_PAPER,
+            },
+
+            '& .MuiClockNumber-root': {
+              backgroundColor: BACKGROUND_PAPER,
+            },
+
+            '& .MuiClock-meridiemText': {
+              backgroundColor: TEXT_PRIMARY,
+            },
+
+            '& .MuiClock-amButton, & .MuiClock-pmButton': {
+              color: TEXT_PRIMARY,
             },
           },
         },

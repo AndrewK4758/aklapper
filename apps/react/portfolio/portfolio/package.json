@@ -61,7 +61,10 @@
           "cwd": "apps/react/portfolio/portfolio",
           "buildTarget": "portfolio:build-server",
           "runBuildTargetDependencies": false,
-          "command": "node dist/server/server.js"
+          "command": "node dist/server/server.js",
+          "env": {
+            "NODE_ENV": "development"
+          }
         }
       },
       "deploy-app-engine": {

@@ -1,10 +1,12 @@
 import { type CSSObject } from '@mui/material/styles';
 
+/* Colors */
+
 // Backgrounds
 export const BACKGROUND_DEFAULT = '#323232';
 export const BACKGROUND_PAPER = '#0C130E';
+export const BACKGROUND_ALT = '#242424';
 
-/* Colors */
 // Main
 export const MAIN_COLOR = '#FFD300';
 export const MAIN_COLOR_DARK = '#FFAA00';
@@ -20,6 +22,10 @@ export const SECONDARY_CONTRAST = '#00B358';
 // Text
 export const TEXT_PRIMARY = '#EEF0FF';
 export const TEXT_SECONDARY = '#E9E9EB';
+
+// Transparent Box Shadow
+export const BOX_SHADOW_MAIN_DARK = `0 0 0 0.5rem ${MAIN_COLOR_DARK}3A`;
+export const BOX_SHADOW_SECONDARY_DARK = `0 0 0 0.5rem ${SECONDARY_COLOR_DARK}4A`;
 
 const darkScrollbarGlobal = {
   '&::-webkit-scrollbar': {
@@ -41,14 +47,14 @@ const cssBaselineStyles: CSSObject = {
   textRendering: 'optimizeLegibility',
   boxSizing: 'border-box',
   overflowX: 'hidden',
-  '-webkit-font-smoothing': 'antialiased',
+  WebkitFontSmoothing: 'antialiased',
   '&:-webkit-autofill, &:-webkit-autofill:hover, &:-webkit-autofill:focus, &:-webkit-autofill:active': {
-    '-webkit-text-fill-color': `var(${TEXT_PRIMARY}) !important`,
-    '-webkit-box-shadow': `0 0 0 100px ${BACKGROUND_PAPER} inset !important`,
-    '-webkit-background-clip': 'text',
+    WebkitTextFillColor: `var(${TEXT_PRIMARY}) !important`,
+    WebkitBoxShadow: `0 0 0 100px ${BACKGROUND_PAPER} inset !important`,
+    WebkitBackgroundClip: 'text',
   },
   'input::-webkit-inner-spin-button, & input::-webkit-outer-spin-button': {
-    '-webkit-appearance': 'none',
+    WebkitAppearance: 'none',
     margin: 0,
   },
   pre: {
@@ -58,13 +64,22 @@ const cssBaselineStyles: CSSObject = {
   },
 
   '.floater::after': {
-    content: '',
+    content: '""',
     display: 'table',
     clear: 'both',
   },
 
   '.bold-text': {
     fontFamily: 'Lucida Bold',
+  },
+
+  '.contact-form': {
+    width: '100%',
+  },
+
+  //Find better solution
+  '& .MuiClock-meridiemText': {
+    // color: MAIN_CONTRAST,
   },
 
   // '*': { border: '3px solid #9090c0' },

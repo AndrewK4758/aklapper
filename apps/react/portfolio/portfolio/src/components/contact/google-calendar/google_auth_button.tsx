@@ -12,6 +12,8 @@ import {
 } from '../../../contexts/contact-context.js';
 import AnimatedBorderBox from '../../styled/animated_border_box.js';
 
+console.log(process.env['NODE_ENV']);
+
 export default function GoogleAuthButton() {
   const { handleSetGoogleUser } = useContext<GoogleUserContextProps>(GoogleUserContext);
   const login = useGoogleLogin({

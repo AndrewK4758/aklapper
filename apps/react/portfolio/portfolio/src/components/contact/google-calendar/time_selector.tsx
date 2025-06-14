@@ -1,10 +1,10 @@
 import { SectionTitle } from '@aklapper/react-shared';
-import Box from '@mui/material/Box';
 import { TimePicker } from '@mui/x-date-pickers';
 import type { PickerValue } from '@mui/x-date-pickers/internals';
 import type { Dayjs } from 'dayjs';
-import { timePickerWrapperSxProps } from '../../../styles/header-styles';
-import type { TimesAndDates } from './google-calendar';
+import CenteredFlexDiv from '../../styled/centered_flexbox.js';
+import EndTimeSelect from './end_time_select.js';
+import type { TimesAndDates } from './google_calendar_form.js';
 
 interface AppointmenTimesSelectorsProps {
   minTime: Dayjs;
@@ -20,18 +20,13 @@ export default function AppointmenTimesSelectors({
   handleSetTimeAndDateValues,
 }: AppointmenTimesSelectorsProps) {
   return (
-    <Box
-      component={'section'}
-      id='time-pickers-wrapper'
-      data-testid='time-pickers-wrapper'
-      sx={timePickerWrapperSxProps}
-    >
+    <CenteredFlexDiv component={'section'} id='time-pickers-wrapper' data-testid='time-pickers-wrapper'>
       <SectionTitle
         title='Suggested Meeting Time'
         tooltipTitle='Time must be between 8:30am and 8:00pm EST. Start & End time must be minimun of 1 hour range'
         placement='top-start'
         id='time-pickers-label'
-        variant='h4'
+        variant='h5'
       />
       <TimePicker
         data-testid={'start-time-picker'}
@@ -42,14 +37,7 @@ export default function AppointmenTimesSelectors({
         closeOnSelect={false}
         onAccept={data => handleSetTimeAndDateValues(data, 'startTime')}
       />
-      <TimePicker
-        data-testid={'end-time-picker'}
-        label={'End'}
-        minTime={values.startTime.add(1, 'hour')}
-        maxTime={values.startTime.add(3, 'hours')}
-        closeOnSelect={false}
-        onAccept={data => handleSetTimeAndDateValues(data, 'endTime')}
-      />
-    </Box>
+      <EndTimeSelect startTime={values.startTime} setEndTime={handleSetTimeAndDateValues} />
+    </CenteredFlexDiv>
   );
 }

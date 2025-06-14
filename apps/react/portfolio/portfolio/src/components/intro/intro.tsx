@@ -1,4 +1,4 @@
-import { Text } from '@aklapper/react-shared';
+import { SectionTitle } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
 import Card, { type CardProps } from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -15,9 +15,7 @@ export default function Intro({ ...props }: CardProps): ReactElement {
   return (
     <Card {...props} id={'intro-card'}>
       <CardContent id='about-me-header-box'>
-        <Box>
-          <Text id='about-me-title-text' data-testid='about-me-title-text' variant='h1' children={ABOUT_ME_TITLE} />
-        </Box>
+        <SectionTitle id='about-me-title-text' data-testid='about-me-title-text' variant='h1' title={ABOUT_ME_TITLE} />
         <Box className='animated-border' />
         <IntroText />
       </CardContent>

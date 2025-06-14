@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router';
 import App from './app/app.jsx';
 import routes from './routes/routes.jsx';
-// import ServerError from './errors/server-error.js';
 
 const router = createBrowserRouter(routes);
 /**
@@ -21,16 +20,16 @@ ReactDOM.hydrateRoot(
   </StrictMode>,
   {
     onRecoverableError: (error, errorInfo) => {
-      console.log(`Recoverable Error: ${error}`);
-      console.log(`Recoverable Error: ${errorInfo}`);
+      console.log(`Uncaught Error: ${error}`);
+      console.log(`Uncaught Error: ${errorInfo}`);
     },
     onCaughtError: (error, errorInfo) => {
-      console.log(`Caught Error: ${error}`);
-      console.log(`Caught Error: ${errorInfo}`);
+      console.log(`Uncaught Error: ${error}`);
+      console.log(`Uncaught Error: ${errorInfo}`);
     },
     onUncaughtError: (error, errorInfo) => {
       console.log(`Uncaught Error: ${error}`);
       console.log(`Uncaught Error: ${errorInfo}`);
-    }
-  }
+    },
+  },
 );

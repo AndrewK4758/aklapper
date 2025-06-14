@@ -143,7 +143,7 @@ export const formLabelSxProps: SxProps = {
 };
 export const coloredTitleStyles: SxProps = { textAlign: 'center' };
 
-export const promptBuillderFormBoxSxProps: SxProps = {
+export const promptBuillderFormBoxSxProps: SxProps<typeof Theme> = {
   ...flexColumnStyles,
   gap: 2,
   [Theme.breakpoints.down('md')]: {
@@ -181,7 +181,7 @@ export const promptBuilderUploadFileTextSxProps: SxProps = {
   },
 };
 
-export const genAiImageHeaderBoxSxProps: SxProps = {
+export const genAiImageHeaderBoxSxProps: SxProps<typeof Theme> = {
   ...flexColumnStyles,
   gap: 4,
   [Theme.breakpoints.down('md')]: {

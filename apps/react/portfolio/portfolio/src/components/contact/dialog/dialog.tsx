@@ -3,8 +3,8 @@ import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { enUS } from '@mui/x-date-pickers/locales';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import GoogleUserContextProvider from '../../../contexts/contact-context';
-import LargeStyledDialog from '../../styled/large_dialog_window';
+import GoogleUserContextProvider from '../../../contexts/contact-context.js';
+import LargeStyledDialog from '../../styled/large_dialog_window.js';
 
 interface DialogLayoutProps extends Omit<DialogProps, 'id' | 'data-testid' | 'scroll' | 'open' | 'maxWidth'> {
   isOpen: boolean;
@@ -23,10 +23,10 @@ export default function DialogLayout({ tab, isOpen, handleSetTab, ...props }: Di
         <GoogleUserContextProvider>
           <LargeStyledDialog
             {...props}
-            maxWidth='lg'
+            maxWidth='xl'
             open={isOpen}
-            id='email-dialog'
-            data-testid='email-dialog'
+            id='contact-dialog'
+            data-testid='contact-dialog'
             scroll='body'
           >
             {children}

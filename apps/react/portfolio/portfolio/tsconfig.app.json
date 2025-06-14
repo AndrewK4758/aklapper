@@ -26,7 +26,7 @@
     "server.ts",
     "vite.config.ts",
     "vite.config.server.ts",
-    "eslint.config.ts"
+    "eslint.config.js"
   ],
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "src/**/*.json"],
   "references": [

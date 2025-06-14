@@ -40,7 +40,9 @@ const config: UserConfig = defineConfig({
   },
 
   base: '/client',
-  mode: process.env['NODE_ENV'],
+
+  mode: 'development',
+
   build: {
     outDir: './dist/client',
     minify: true,
@@ -57,7 +59,7 @@ const config: UserConfig = defineConfig({
       },
       perf: true,
       output: {
-        assetFileNames: '[name].[ext]',
+        assetFileNames: '[name]-[hash].[ext]',
         strict: true,
         esModule: true,
         format: 'esm',
