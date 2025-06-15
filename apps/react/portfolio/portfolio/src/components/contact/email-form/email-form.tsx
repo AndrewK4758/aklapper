@@ -9,13 +9,14 @@ import { useContext, useRef, type Dispatch, type SetStateAction } from 'react';
 import { Form, useSubmit, type SubmitFunction } from 'react-router';
 import * as Yup from 'yup';
 import 'yup-phone-lite';
-import { GoogleUserContext, type GoogleUserContextProps } from '../../../contexts/contact-context.js';
-import { helperTextSx } from '../../../styles/gen-ai-styles.js';
-import { emailButtonSxProps, emailStackSxProps } from '../../../styles/header-styles.js';
-import { flexColumnStyles } from '../../../styles/pages-styles.js';
-import CenteredFlexDiv from '../../styled/centered_flexbox.js';
-import AppointmentMaker from '../appointment-maker/appointment-maker.js';
-import TextInput from './text_input.js';
+import { GoogleUserContext, type GoogleUserContextProps } from '../../../contexts/contact-context';
+import { helperTextSx } from '../../../styles/gen-ai-styles';
+import { emailButtonSxProps } from '../../../styles/header-styles';
+import { flexColumnStyles } from '../../../styles/pages-styles';
+import AnimatedBorderBox from '../../styled/animated_border_box';
+import CenteredFlexDiv from '../../styled/centered_flexbox';
+import AppointmentMaker from '../appointment-maker/appointment-maker';
+import TextInput from './text_input';
 
 export type MessageMeFormValues = {
   name: string;
@@ -67,22 +68,16 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
   });
 
   return (
-    <CenteredFlexDiv id='email-form-wrapper' data-testid='email-form-wrapper' p={4}>
+    <CenteredFlexDiv component={'section'} id='email-form-wrapper' data-testid='email-form-wrapper' p={4}>
       <Form
         id='email-me-form'
         className='contact-form'
         data-testid='email-me-form'
-        action='/'
         method='post'
         encType='multipart/form-data'
         onSubmit={formik.handleSubmit}
       >
-        <Stack
-          component={'section'}
-          id='email-me-inputs-stack'
-          data-testid='email-me-inputs-stack'
-          sx={emailStackSxProps}
-        >
+        <Stack id='email-me-inputs-stack' data-testid='email-me-inputs-stack'>
           <TextInput<MessageMeFormValues> name={'name'} label={'Name'} formik={formik} />
 
           <TextInput<MessageMeFormValues> name={'email'} label={'Email'} formik={formik} />
@@ -142,14 +137,16 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
             >
               Upload File
             </Button>
-            <Button
-              type='submit'
-              id='submit-email-me-button'
-              data-testid='submit-email-me-button'
-              sx={emailButtonSxProps}
-            >
-              Submit
-            </Button>
+            <AnimatedBorderBox>
+              <Button
+                type='submit'
+                id='submit-email-me-button'
+                data-testid='submit-email-me-button'
+                sx={emailButtonSxProps}
+              >
+                Submit
+              </Button>
+            </AnimatedBorderBox>
             <Button
               type='reset'
               id='reset-email-me-button'

@@ -54,6 +54,7 @@
       },
       "serve-server": {
         "executor": "nx:run-commands",
+        "defaultConfiguration": "development",
         "dependsOn": [
           "build-both"
         ],
@@ -61,9 +62,18 @@
           "cwd": "apps/react/portfolio/portfolio",
           "buildTarget": "portfolio:build-server",
           "runBuildTargetDependencies": false,
-          "command": "node dist/server/server.js",
-          "env": {
-            "NODE_ENV": "development"
+          "command": "node dist/server/server.js"
+        },
+        "configurations": {
+          "development": {
+            "env": {
+              "NODE_ENV": "development"
+            }
+          },
+          "production": {
+            "env": {
+              "NODE_ENV": "production"
+            }
           }
         }
       },

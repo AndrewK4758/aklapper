@@ -1,12 +1,15 @@
 import type { PromptRequest } from '@aklapper/vertex-ai';
-import type { Dispatch, SetStateAction } from 'react';
 
-export type HashFiles = { js: string; css: string; fonts: string[] };
+export type HashFiles = { js: string | undefined; css: string | undefined };
+
+export type ManifestType = {
+  [key: string]: string[];
+};
 
 export type OutletContextProps = {
   prompt: PromptRequest;
   promptResponse: string[];
-  setPromptResponse: Dispatch<SetStateAction<string[]>>;
+  setPromptResponse: () => void;
   loading: boolean;
-  setLoading: Dispatch<SetStateAction<boolean>>;
+  setLoading: () => void;
 };

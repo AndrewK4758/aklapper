@@ -5,13 +5,15 @@ import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
 
 interface ContactContentProps {
   element: ReactNode;
-  width: string | number;
 }
 
-export default function ContactContent({ width, element }: ContactContentProps) {
+export default function ContactContent({ element }: ContactContentProps) {
+  console.log(element);
   return (
-    <Box width={width}>
-      <Suspense fallback={<Waiting src={waiting} />}>{element}</Suspense>
-    </Box>
+    <Suspense fallback={<Waiting src={waiting} />}>
+      <Box component={'section'} width={'100%'}>
+        {element}
+      </Box>
+    </Suspense>
   );
 }

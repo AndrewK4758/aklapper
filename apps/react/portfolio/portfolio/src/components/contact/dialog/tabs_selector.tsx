@@ -1,9 +1,7 @@
-import { Label } from '@aklapper/react-shared';
+import { SectionTitle } from '@aklapper/react-shared';
 import Box, { type BoxProps } from '@mui/material/Box';
-// import type { SxProps, Theme } from '@mui/material/styles';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-// import { flexColumnStyles } from '../../../styles/pages-styles';
 
 interface TabsSelectorProps extends Omit<BoxProps, 'id' | 'data-testid'> {
   tab: number;
@@ -38,13 +36,12 @@ export default function TabsSelector({ tab, handleSetTab, ...props }: TabsSelect
           id='appointment-request-tab'
           data-testid='appointment-request-tab'
           label={
-            <Label
-              htmlFor='appointment-request-tab'
-              tooltipTitle={'Add to Google Calendar'}
-              labelVariant={'h3'}
-              labelText={'Appt. Request'}
-              placement={'bottom'}
+            <SectionTitle
               id='appointment-request-tab-label'
+              variant={'h4'}
+              title={'Appt. Request'}
+              tooltipTitle={'Add to Google Calendar'}
+              placement={'bottom'}
             />
           }
         />
@@ -53,13 +50,12 @@ export default function TabsSelector({ tab, handleSetTab, ...props }: TabsSelect
           id='email-me-tab'
           data-testid='email-me-tab'
           label={
-            <Label
-              htmlFor='email-me-tab'
-              tooltipTitle={'Send Email / Upload Appointment Details'}
-              labelVariant={'h3'}
-              labelText={'Email Me'}
-              placement={'bottom'}
+            <SectionTitle
               id='email-me-tab-label'
+              title={'Email Me'}
+              tooltipTitle={'Send Email / Upload Appointment Details'}
+              variant={'h4'}
+              placement={'bottom'}
             />
           }
         />

@@ -21,14 +21,7 @@ export default function DialogLayout({ tab, isOpen, handleSetTab, ...props }: Di
         localeText={enUS.components.MuiLocalizationProvider.defaultProps.localeText}
       >
         <GoogleUserContextProvider>
-          <LargeStyledDialog
-            {...props}
-            maxWidth='xl'
-            open={isOpen}
-            id='contact-dialog'
-            data-testid='contact-dialog'
-            scroll='body'
-          >
+          <LargeStyledDialog {...props} open={isOpen} id='contact-dialog' data-testid='contact-dialog' scroll='body'>
             {children}
           </LargeStyledDialog>
         </GoogleUserContextProvider>

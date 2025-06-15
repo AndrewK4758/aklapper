@@ -63,11 +63,15 @@ const Theme: ThemeType = createTheme(
         styleOverrides: cssBaselineStyles,
       },
       MuiDialog: {
-        styleOverrides: {
-          paper: {
-            boxShadow: `0 0 0 0.5rem ${MAIN_COLOR_DARK}3A`,
-            height: 'fit-content',
-            minHeight: '75vh',
+        defaultProps: {
+          slotProps: {
+            paper: {
+              sx: {
+                boxShadow: `0 0 0 0.5rem ${MAIN_COLOR_DARK}3A`,
+                height: 'fit-content',
+                minHeight: '75vh',
+              },
+            },
           },
         },
       },
@@ -79,24 +83,39 @@ const Theme: ThemeType = createTheme(
         },
       },
       MuiSelect: {
-        styleOverrides: {
-          icon: {
-            color: MAIN_COLOR_DARK,
-          },
-          outlined: {
-            color: MAIN_COLOR_DARK,
-          },
-          select: {
-            color: MAIN_COLOR_DARK,
-            backgroundColor: BACKGROUND_DEFAULT,
+        defaultProps: {
+          slotProps: {
+            input: {
+              sx: {
+                color: MAIN_COLOR_DARK,
+                backgroundColor: BACKGROUND_ALT,
+              },
+            },
+            notchedOutline: {
+              sx: {
+                color: MAIN_COLOR_DARK,
+              },
+            },
+            root: {
+              sx: {
+                color: MAIN_COLOR_DARK,
+                backgroundColor: BACKGROUND_ALT,
+              },
+            },
           },
         },
       },
       MuiMenuItem: {
         styleOverrides: {
           root: {
-            backgroundColor: '#242424',
+            backgroundColor: BACKGROUND_ALT,
           },
+        },
+      },
+      MuiStack: {
+        defaultProps: {
+          useFlexGap: true,
+          gap: 4,
         },
       },
       MuiTextField: {
@@ -104,7 +123,7 @@ const Theme: ThemeType = createTheme(
           slotProps: {
             input: {
               sx: {
-                backgroundColor: BACKGROUND_DEFAULT,
+                backgroundColor: BACKGROUND_ALT,
                 width: '100%',
               },
             },
@@ -159,7 +178,7 @@ const Theme: ThemeType = createTheme(
             actionBar: {
               sx: {
                 borderTop: `2px solid ${MAIN_COLOR_DARK}`,
-                background: BACKGROUND_ALT,
+                background: BACKGROUND_DEFAULT,
                 borderBottomLeftRadius: 10,
                 borderBottomRightRadius: 10,
               },
@@ -167,7 +186,7 @@ const Theme: ThemeType = createTheme(
             textField: {
               sx: {
                 width: '100%',
-                backgroundColor: BACKGROUND_DEFAULT,
+                backgroundColor: BACKGROUND_ALT,
                 borderRadius: 1,
               },
             },
@@ -188,7 +207,7 @@ const Theme: ThemeType = createTheme(
               actions: ['accept', 'cancel'],
               sx: {
                 borderTop: `2px solid ${MAIN_COLOR_DARK}`,
-                backgroundColor: BACKGROUND_ALT,
+                backgroundColor: BACKGROUND_DEFAULT,
                 borderBottomLeftRadius: 10,
                 borderBottomRightRadius: 10,
               },
@@ -205,14 +224,15 @@ const Theme: ThemeType = createTheme(
                 backgroundColor: BACKGROUND_DEFAULT,
               },
             },
-            digitalClockSectionItem: {
-              sx: {
-                // borderRadius: 1,
-              },
-            },
             digitalClockItem: {
               sx: {
                 backgroundColor: BACKGROUND_PAPER,
+              },
+            },
+
+            leftArrowIcon: {
+              sx: {
+                color: MAIN_COLOR_DARK,
               },
             },
             openPickerIcon: {
@@ -221,9 +241,9 @@ const Theme: ThemeType = createTheme(
                 fontSize: '2rem',
               },
             },
-            leftArrowIcon: {
-              sx: {
-                color: MAIN_COLOR_DARK,
+            popper: {
+              popperOptions: {
+                placement: 'auto-end',
               },
             },
             rightArrowIcon: {
@@ -234,31 +254,9 @@ const Theme: ThemeType = createTheme(
             textField: {
               sx: {
                 width: '100%',
-                backgroundColor: BACKGROUND_DEFAULT,
+                backgroundColor: BACKGROUND_ALT,
                 borderRadius: 1,
               },
-            },
-          },
-        },
-      },
-      MuiTimeClock: {
-        defaultProps: {
-          ampm: true,
-          sx: {
-            '& .MuiClock-squareMask': {
-              backgroundColor: BACKGROUND_PAPER,
-            },
-
-            '& .MuiClockNumber-root': {
-              backgroundColor: BACKGROUND_PAPER,
-            },
-
-            '& .MuiClock-meridiemText': {
-              backgroundColor: TEXT_PRIMARY,
-            },
-
-            '& .MuiClock-amButton, & .MuiClock-pmButton': {
-              color: TEXT_PRIMARY,
             },
           },
         },

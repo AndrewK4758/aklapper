@@ -41,11 +41,11 @@ const config: UserConfig = defineConfig({
 
   base: '/client',
 
-  mode: 'development',
+  mode: process.env['NODE_ENV'],
 
   build: {
     outDir: './dist/client',
-    minify: true,
+    minify: false,
     emptyOutDir: true,
     manifest: true,
     sourcemap: true,
@@ -57,6 +57,7 @@ const config: UserConfig = defineConfig({
       input: {
         browser: '/src/main.tsx',
       },
+
       perf: true,
       output: {
         assetFileNames: '[name]-[hash].[ext]',

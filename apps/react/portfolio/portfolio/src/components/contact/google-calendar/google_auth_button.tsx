@@ -12,8 +12,6 @@ import {
 } from '../../../contexts/contact-context.js';
 import AnimatedBorderBox from '../../styled/animated_border_box.js';
 
-console.log(process.env['NODE_ENV']);
-
 export default function GoogleAuthButton() {
   const { handleSetGoogleUser } = useContext<GoogleUserContextProps>(GoogleUserContext);
   const login = useGoogleLogin({
@@ -48,7 +46,6 @@ export default function GoogleAuthButton() {
 
 const baseURL = import.meta.env.VITE_PORTFOLIO_API_URL;
 
-console.log(baseURL);
 const onGoogleSuccess = async (code: CodeResponse, setUser: (user: GoogleUserContextInfo) => void) => {
   try {
     const resp = await axios.post(`${baseURL}/create-tokens`, { code }, { withCredentials: true });

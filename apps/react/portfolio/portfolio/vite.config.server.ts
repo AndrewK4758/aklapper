@@ -39,15 +39,15 @@ const config: UserConfig = defineConfig({
     noExternal: ['@mui/material', '@mui/icons-material', '@mui/x-date-pickers', '@mui/x-data-grid'],
   },
 
-  mode: 'development',
+  mode: process.env['NODE_ENV'],
 
   base: '/server',
   build: {
     ssr: true,
-    ssrEmitAssets: false,
+    ssrEmitAssets: true,
     ssrManifest: true,
     outDir: './dist/server',
-    minify: true,
+    minify: false,
     emptyOutDir: true,
     sourcemap: true,
     reportCompressedSize: true,

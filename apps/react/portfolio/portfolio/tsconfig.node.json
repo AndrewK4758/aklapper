@@ -26,7 +26,7 @@
     "vite.config.server.ts",
     "eslint.config.js"
   ],
-  "include": ["server.ts", "src/main-server.tsx", "src/types/**/*.d.ts"],
+  "include": ["server.ts", "src/main.server.tsx", "src/types/**/*.d.ts"],
   "references": [
     {
       "path": "./tsconfig.app.json"

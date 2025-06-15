@@ -1,4 +1,4 @@
-import { Label, Text } from '@aklapper/react-shared';
+import { SectionTitle, Text } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { useLocation, useNavigate, useRouteError } from 'react-router';
 
 export default function BaseError() {
-  const [viewErrorStack, setViewErrorStack] = useState<boolean>(false);
+  const [viewErrorStack, setViewErrorStack] = useState(false);
   const nav = useNavigate();
   const error = useRouteError() as Error;
   const { pathname } = useLocation();
@@ -81,16 +81,12 @@ export default function BaseError() {
               onClick={() => setViewErrorStack(!viewErrorStack)}
               sx={{}}
             >
-              <Label
+              <SectionTitle
                 id='error-stacktrace-label'
+                title={viewErrorStack ? 'Close' : 'View Error Stack-Trace'}
+                variant={'button'}
                 tooltipTitle={`Click to view stacktrace for ${error.name}`}
-                labelVariant={'button'}
-                labelText={viewErrorStack ? 'Close' : 'View Error Stack-Trace'}
                 placement={'top'}
-                htmlFor={`${pathname}-error-view-stacktrace-button`}
-                tooltipSx={{}}
-                labelTextSx={{}}
-                labelWrapperDivSxProps={{}}
               />
             </Button>
           )}
@@ -133,16 +129,12 @@ export default function BaseError() {
           onClick={() => nav('/')}
           sx={{}}
         >
-          <Label
+          <SectionTitle
             id={`${pathname}-error-label`}
+            title={'Home'}
+            variant={'body1'}
             tooltipTitle={'Click to return to the homepage'}
-            labelVariant={'button'}
-            labelText={'Home'}
             placement={'top'}
-            htmlFor={`${pathname}-error-home-button`}
-            tooltipSx={{}}
-            labelTextSx={{ fontSize: '2rem' }}
-            labelWrapperDivSxProps={{}}
           />
         </Button>
       </Box>

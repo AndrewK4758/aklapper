@@ -1,20 +1,11 @@
-import * as fs from 'node:fs/promises';
-import * as path from 'node:path';
 import type { HashFiles } from '../types/types';
 
-const DEPLOY = process.env.DOCKER;
-const workspacePath = DEPLOY ? '/portfolio/dist/client/.vite' : './dist/client/.vite';
-const fileName = 'manifest.json';
-
-export default async function getFilenamesFromManifest(): Promise<HashFiles> {
-  const manifest = JSON.parse(await fs.readFile(path.resolve(workspacePath, fileName), 'utf-8'));
-
+export default async function getFilenamesFromManifest(manifest: any): Promise<HashFiles> {
   let reactJsFile: string;
   let reactCssFile: string;
   const files: HashFiles = {
-    js: '',
-    css: '',
-    fonts: []
+    js: undefined,
+    css: undefined,
   };
   for (const key in manifest) {
     if (key === 'src/main.tsx') {
@@ -23,11 +14,6 @@ export default async function getFilenamesFromManifest(): Promise<HashFiles> {
 
       files.js = reactJsFile;
       files.css = reactCssFile;
-    }
-
-    if (key.includes('fonts')) {
-      const font: string = manifest[key].file;
-      files.fonts.push(font);
     }
   }
   return files;

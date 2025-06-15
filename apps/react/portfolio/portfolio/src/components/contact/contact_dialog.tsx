@@ -26,7 +26,7 @@ export default function ContactDialog({ isOpen, handleIsOpen }: EmailDialogProps
     <DialogLayout isOpen={isOpen} tab={tab} handleSetTab={handleSetTab}>
       <TabsSelector tab={tab} handleSetTab={handleSetTab} />
 
-      <ContactContent element={renderedElement(tab, handleIsOpen)} width={'35vw'} />
+      <ContactContent element={renderedElement(tab, handleIsOpen)} />
 
       <DialogActions>
         <Button type='button' id='close-email-me-button' data-testid='close-email-me-button' onClick={handleIsOpen}>

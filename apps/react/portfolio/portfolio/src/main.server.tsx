@@ -2,19 +2,22 @@ import type { Response } from 'express';
 import { StrictMode } from 'react';
 import ReactDomServer from 'react-dom/server';
 import { createStaticHandler, createStaticRouter, StaticRouterProvider, type StaticHandlerContext } from 'react-router';
-import App from './app/app.jsx';
-import routes from './routes/routes.jsx';
-import type { HashFiles } from './types/types.jsx';
-import getFilenamesFromManifest from './utils/get-files-from-manifest.js';
-
+import App from './app/app.js';
 import ServerError from './errors/server-error.js';
-
-const { js, css, fonts } = (await getFilenamesFromManifest()) as HashFiles;
+import routes from './routes/routes.js';
+import type { HashFiles, ManifestType } from './types/types.js';
+import getFilenamesFromManifest from './utils/get-files-from-manifest.js';
+import parseSsrManifestFile from './utils/parse_ssr_manifest.js';
+import { viteRefreshModule } from './utils/utils.js';
 
 const handler = createStaticHandler(routes);
 
-const render = async (fullUrl: string, resp: Response) => {
+const render = async (fullUrl: string, resp: Response, clientManifest: ManifestType, ssrManifest: ManifestType) => {
   console.info(`PATH: ${fullUrl}`);
+
+  const { js, css } = (await getFilenamesFromManifest(clientManifest)) as HashFiles;
+
+  const preloadLinks = parseSsrManifestFile(ssrManifest);
 
   const context = (await handler.query(new Request(fullUrl))) as StaticHandlerContext;
   const router = createStaticRouter(routes, context);
@@ -24,6 +27,9 @@ const render = async (fullUrl: string, resp: Response) => {
       <head>
         <meta charSet='utf-8' />
         <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+
+        {!clientManifest && viteRefreshModule}
+
         <title>
           Developer Portfolio for Andrew Klapper. This shows multiple projects that showcase distinct programming
           styles. Each project uses React as the front-end / ui, jest/vitest for testing, github actions and GCP for
@@ -39,10 +45,13 @@ const render = async (fullUrl: string, resp: Response) => {
         <meta name='robots' content='index, follow' />
         <meta name='language' content='English' />
         <meta name='author' content='Andrew Klapper' />
-        {fonts.map(font => (
-          <link rel='preload' key={font} as='font' type='font/ttf' crossOrigin='' href={`/client/${font}`} />
-        ))}
-        <link rel='stylesheet' type='text/css' href={`/client/${css}`} />
+
+        <link
+          rel='stylesheet'
+          type='text/css'
+          href={`/client/${css !== undefined ? css : 'src/styles/main-styles.css'}`}
+        />
+        {ssrManifest && preloadLinks}
         <link rel='icon' type='image/x-icon' href='/client/favicon.ico' />
       </head>
       <body>
@@ -54,7 +63,7 @@ const render = async (fullUrl: string, resp: Response) => {
       </body>
     </html>,
     {
-      bootstrapModules: [`/client/${js}`],
+      bootstrapModules: [`/client/${js !== undefined ? js : 'src/main.tsx'}`],
       onShellReady() {
         console.log('START RENDERING COMPONENTS');
         resp.statusCode = context.statusCode || 200;
