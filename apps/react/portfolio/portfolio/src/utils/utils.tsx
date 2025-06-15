@@ -17,7 +17,6 @@ export function addToToolipString(baseString: string, socialSite: string): strin
 
 export const viteRefreshModule = (
   <>
-    <script type='module' src='/@vite/client'></script>
     <script
       type='module'
       dangerouslySetInnerHTML={{

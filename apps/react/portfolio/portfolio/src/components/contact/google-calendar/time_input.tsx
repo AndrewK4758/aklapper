@@ -13,7 +13,7 @@ interface AppointmenTimesSelectorsProps {
   handleSetTimeAndDateValues: (data: PickerValue, key: keyof TimesAndDates) => void;
 }
 
-export default function AppointmenTimesSelectors({
+export default function TimeInput({
   minTime,
   maxTime,
   values,

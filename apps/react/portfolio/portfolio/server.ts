@@ -1,6 +1,6 @@
 import type { CorsOptions } from 'cors';
 import cors from 'cors';
-import type { Express, Request, Response } from 'express';
+import type { Express, NextFunction, Request, Response } from 'express';
 import express from 'express';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
@@ -55,6 +55,10 @@ const rootDir = cwd();
     });
     app.use(vite.middlewares);
   }
+
+  app.use(/.*/, (req: Request, resp: Response, next: NextFunction) => {
+    req.baseUrl.includes('/.well-known') ? resp.status(204).end() : next();
+  });
 
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));

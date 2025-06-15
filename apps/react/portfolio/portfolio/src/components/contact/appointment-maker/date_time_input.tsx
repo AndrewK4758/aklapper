@@ -11,7 +11,7 @@ interface AppointmentMakerProps<T> {
   name: Extract<keyof T, string>;
 }
 
-export default function AppointmentMaker<T>({ formik, name }: AppointmentMakerProps<T>) {
+export default function DateAndTimeInput<T>({ formik, name }: AppointmentMakerProps<T>) {
   return (
     <DateTimePicker
       ampm={true}

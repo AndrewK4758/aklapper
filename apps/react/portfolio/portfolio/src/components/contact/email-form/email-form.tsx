@@ -1,7 +1,5 @@
 import { FormikValidationError } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
 import Stack from '@mui/material/Stack';
 import dayjs from 'dayjs';
 import { useFormik } from 'formik';
@@ -11,11 +9,10 @@ import * as Yup from 'yup';
 import 'yup-phone-lite';
 import { GoogleUserContext, type GoogleUserContextProps } from '../../../contexts/contact-context';
 import { helperTextSx } from '../../../styles/gen-ai-styles';
-import { emailButtonSxProps } from '../../../styles/header-styles';
 import { flexColumnStyles } from '../../../styles/pages-styles';
-import AnimatedBorderBox from '../../styled/animated_border_box';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
-import AppointmentMaker from '../appointment-maker/appointment-maker';
+import DateTimeInput from '../appointment-maker/date_time_input.js';
+import EmailFormActions from './email-form-actions';
 import TextInput from './text_input';
 
 export type MessageMeFormValues = {
@@ -94,7 +91,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
             id='appointment-maker-wrapper'
             data-testid='appointment-maker-wrapper'
           >
-            <AppointmentMaker formik={formik} name={'date'} />
+            <DateTimeInput formik={formik} name={'date'} />
             <FormikValidationError<MessageMeFormValues>
               formik={formik}
               elementName='date'
@@ -128,35 +125,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
             ) : null}
           </Box>
 
-          <DialogActions>
-            <Button
-              id='upload-file-button'
-              data-testid='upload-file-button'
-              onClick={handleFileSubmit}
-              sx={emailButtonSxProps}
-            >
-              Upload File
-            </Button>
-            <AnimatedBorderBox>
-              <Button
-                type='submit'
-                id='submit-email-me-button'
-                data-testid='submit-email-me-button'
-                sx={emailButtonSxProps}
-              >
-                Submit
-              </Button>
-            </AnimatedBorderBox>
-            <Button
-              type='reset'
-              id='reset-email-me-button'
-              data-testid='reset-email-me-button'
-              onReset={formik.handleReset}
-              sx={emailButtonSxProps}
-            >
-              Reset
-            </Button>
-          </DialogActions>
+          <EmailFormActions<MessageMeFormValues> formik={formik} handleFileSubmit={handleFileSubmit} />
         </Stack>
       </Form>
     </CenteredFlexDiv>

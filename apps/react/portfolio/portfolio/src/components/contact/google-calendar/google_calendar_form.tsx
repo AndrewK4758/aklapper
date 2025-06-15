@@ -5,9 +5,9 @@ import dayjs from 'dayjs';
 import { useState } from 'react';
 import { Form } from 'react-router';
 import CenteredFlexDiv from '../../styled/centered_flexbox.js';
-import AppointmentDateSelector from './date_selector.js';
-import SubmitCalendarEventButton from './submit_calendar_event_button.js';
-import AppointmenTimesSelectors from './time_selector.js';
+import DateInput from './date_input.js';
+import SubmitCalendarEventAction from './submit_calendar_event_action.js';
+import TimeInput from './time_input.js';
 
 const tomorrow = dayjs().add(1, 'day');
 
@@ -50,14 +50,14 @@ export default function GoogleCalendarForm({ setOpen }: GoogleAppointmentFormPro
         data-testid='google-calendar-form-box'
         gap={2}
       >
-        <AppointmentDateSelector tomorrow={tomorrow} dateValue={values.date} setDate={handleSetTimeAndDateValues} />
-        <AppointmenTimesSelectors
+        <DateInput tomorrow={tomorrow} dateValue={values.date} setDate={handleSetTimeAndDateValues} />
+        <TimeInput
           minTime={minTime}
           maxTime={maxTime}
           values={values}
           handleSetTimeAndDateValues={handleSetTimeAndDateValues}
         />
-        <SubmitCalendarEventButton />
+        <SubmitCalendarEventAction />
       </CenteredFlexDiv>
     </Form>
   );

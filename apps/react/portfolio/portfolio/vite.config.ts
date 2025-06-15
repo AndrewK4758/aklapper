@@ -1,5 +1,5 @@
 import { workspaceRoot } from '@nx/devkit';
-import react from '@vitejs/plugin-react';
+import react from '@vitejs/plugin-react-swc';
 import { resolve } from 'node:path';
 import { defineConfig, type UserConfig } from 'vite';
 
@@ -37,6 +37,7 @@ const config: UserConfig = defineConfig({
 
   resolve: {
     alias: modules,
+    dedupe: ['react', 'react-dom', 'react-router', '@mui/material'],
   },
 
   base: '/client',

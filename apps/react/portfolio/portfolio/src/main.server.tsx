@@ -1,11 +1,13 @@
+import CssBaseline from '@mui/material/CssBaseline';
+import { ThemeProvider } from '@mui/material/styles';
 import type { Response } from 'express';
 import { StrictMode } from 'react';
 import ReactDomServer from 'react-dom/server';
 import { createStaticHandler, createStaticRouter, StaticRouterProvider, type StaticHandlerContext } from 'react-router';
-import App from './app/app.js';
 import ServerError from './errors/server-error.js';
 import routes from './routes/routes.js';
-import type { HashFiles, ManifestType } from './types/types.js';
+import Theme from './styles/theme.js';
+import type { ManifestType } from './types/types.js';
 import getFilenamesFromManifest from './utils/get-files-from-manifest.js';
 import parseSsrManifestFile from './utils/parse_ssr_manifest.js';
 import { viteRefreshModule } from './utils/utils.js';
@@ -15,7 +17,7 @@ const handler = createStaticHandler(routes);
 const render = async (fullUrl: string, resp: Response, clientManifest: ManifestType, ssrManifest: ManifestType) => {
   console.info(`PATH: ${fullUrl}`);
 
-  const { js, css } = (await getFilenamesFromManifest(clientManifest)) as HashFiles;
+  const { js, css } = await getFilenamesFromManifest(clientManifest);
 
   const preloadLinks = parseSsrManifestFile(ssrManifest);
 
@@ -25,10 +27,9 @@ const render = async (fullUrl: string, resp: Response, clientManifest: ManifestT
   const { pipe, abort } = ReactDomServer.renderToPipeableStream(
     <html lang='en'>
       <head>
+        {!clientManifest && viteRefreshModule}
         <meta charSet='utf-8' />
         <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-
-        {!clientManifest && viteRefreshModule}
 
         <title>
           Developer Portfolio for Andrew Klapper. This shows multiple projects that showcase distinct programming
@@ -57,7 +58,10 @@ const render = async (fullUrl: string, resp: Response, clientManifest: ManifestT
       <body>
         <div id='root'>
           <StrictMode>
-            <App Router={<StaticRouterProvider router={router} context={context} hydrate={true} />} />
+            <ThemeProvider theme={Theme}>
+              <CssBaseline />
+              <StaticRouterProvider router={router} context={context} />
+            </ThemeProvider>
           </StrictMode>
         </div>
       </body>

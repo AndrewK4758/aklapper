@@ -1,10 +1,7 @@
 import { StrictMode } from 'react';
-import ReactDOM from 'react-dom/client';
-import { createBrowserRouter, RouterProvider } from 'react-router';
-import App from './app/app.jsx';
-import routes from './routes/routes.jsx';
+import { hydrateRoot } from 'react-dom/client';
+import App from './app/app';
 
-const router = createBrowserRouter(routes);
 /**
  * This is the main entry point for the React application.
  * It creates the root element, renders the application using StrictMode and RouterProvider,
@@ -13,10 +10,10 @@ const router = createBrowserRouter(routes);
 
 const rootDomNode = document.querySelector('#root') as HTMLDivElement;
 
-ReactDOM.hydrateRoot(
+hydrateRoot(
   rootDomNode,
   <StrictMode>
-    <App Router={<RouterProvider router={router} />} />
+    <App />,
   </StrictMode>,
   {
     onRecoverableError: (error, errorInfo) => {

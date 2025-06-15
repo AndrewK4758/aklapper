@@ -16,6 +16,7 @@ export default function Layout(): ReactElement {
     <StyledRootComponentWrapper>
       <HeaderContactMenu />
 
+      <div>HELLO</div>
       <Outlet />
 
       <Footer />

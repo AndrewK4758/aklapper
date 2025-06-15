@@ -1,12 +1,12 @@
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider } from '@mui/material/styles';
-import type { FC, ReactElement } from 'react';
+import type { ReactElement } from 'react';
+import { createBrowserRouter, RouterProvider } from 'react-router';
+import routes from '../routes/routes';
 import '../styles/main-styles.css';
-import Theme from '../styles/theme.jsx';
+import Theme from '../styles/theme';
 
-export interface AppProps {
-  Router: ReactElement;
-}
+const router = createBrowserRouter(routes);
 
 /**
  * This is the root component of the application.
@@ -15,11 +15,11 @@ export interface AppProps {
  * @returns {ReactElement} The rendered App component with the Layout component and context providers.
  */
 
-const App: FC<AppProps> = ({ Router }: AppProps): ReactElement => (
-  <ThemeProvider theme={Theme} noSsr={false} defaultMode='dark'>
-    <CssBaseline />
-    {Router}
-  </ThemeProvider>
-);
-
-export default App;
+export default function App(): ReactElement {
+  return (
+    <ThemeProvider theme={Theme} noSsr={false} defaultMode='dark'>
+      <CssBaseline />
+      <RouterProvider router={router} />
+    </ThemeProvider>
+  );
+}

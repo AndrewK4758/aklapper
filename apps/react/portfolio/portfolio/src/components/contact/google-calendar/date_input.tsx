@@ -11,7 +11,7 @@ interface AppointmentDateSelectorProps {
   setDate: (pickerValues: PickerValue, key: keyof TimesAndDates) => void;
 }
 
-export default function AppointmentDateSelector({ tomorrow, dateValue, setDate }: AppointmentDateSelectorProps) {
+export default function DateInput({ tomorrow, dateValue, setDate }: AppointmentDateSelectorProps) {
   const nextYear = dayjs().add(1, 'year');
 
   return (

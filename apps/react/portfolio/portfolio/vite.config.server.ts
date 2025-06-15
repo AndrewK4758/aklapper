@@ -1,5 +1,5 @@
 import { workspaceRoot } from '@nx/devkit';
-import react from '@vitejs/plugin-react';
+import react from '@vitejs/plugin-react-swc';
 import { resolve } from 'path';
 import type { UserConfig } from 'vite';
 import { defineConfig } from 'vite';
@@ -26,6 +26,12 @@ const config: UserConfig = defineConfig({
 
   plugins: [react()],
 
+  server: {
+    watch: {
+      usePolling: true,
+    },
+  },
+
   // Uncomment this if you are using workers.
   // worker: {
   //  plugins: [ nxViteTsPaths() ],
@@ -33,10 +39,12 @@ const config: UserConfig = defineConfig({
 
   resolve: {
     alias: modules,
+
+    dedupe: ['react', 'react-dom', 'react-router', '@mui/material'],
   },
 
   ssr: {
-    noExternal: ['@mui/material', '@mui/icons-material', '@mui/x-date-pickers', '@mui/x-data-grid'],
+    noExternal: ['react-router', '@mui/material', '@mui/icons-material', '@mui/x-date-pickers', '@mui/x-data-grid'],
   },
 
   mode: process.env['NODE_ENV'],
@@ -78,7 +86,7 @@ const config: UserConfig = defineConfig({
 
   logLevel: 'info',
   appType: 'custom',
-  publicDir: false,
+  publicDir: 'public',
   envDir: './env',
 });
 

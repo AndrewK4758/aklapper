@@ -12,7 +12,7 @@ export default function parseSsrManifestFile(ssrManifest: ManifestType) {
   const preloadLinkElements: ReactElement[] = [];
   if (ssrManifest) {
     console.log(Object.values(ssrManifest));
-    // Use a Set to avoid duplicate links
+
     const allAssets = new Set<string>(Object.values(ssrManifest).flatMap(assets => assets));
 
     allAssets.forEach(asset => {

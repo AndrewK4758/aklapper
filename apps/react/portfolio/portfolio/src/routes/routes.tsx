@@ -2,6 +2,7 @@
 import type { RouteObject } from 'react-router';
 
 // import PrivacyPolicy from '../components/privacy-policy/privacy-policy.jsx';
+// import Layout from '../components/layout/layout';
 import Layout from '../components/layout/layout';
 import PrivacyPolicy from '../components/privacy-policy/privacy-policy';
 import BaseError from '../errors/base_error';
@@ -46,7 +47,7 @@ import LandingPage from '../pages/landing/landing';
 const routes: RouteObject[] = [
   {
     path: '/',
-    element: <LandingPage id='landing' />,
+    element: <LandingPage id='landing-page' />,
     errorElement: <BaseError />,
     id: 'landing',
   },

@@ -21,7 +21,7 @@ export default function AnimatedContactMenu({ isOpen, handleOpenEmail, ...props 
   }, []);
 
   return (
-    <ContactRevealWrapper contactRef={contactRef} dynamicWidth={contactWidth} isOpen={isOpen}>
+    <ContactRevealWrapper {...props} contactRef={contactRef} dynamicWidth={contactWidth} isOpen={isOpen}>
       <ContactMenu isOpen={isOpen} handleOpenEmail={handleOpenEmail} />
     </ContactRevealWrapper>
   );
