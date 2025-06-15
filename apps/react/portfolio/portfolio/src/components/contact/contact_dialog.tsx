@@ -1,6 +1,5 @@
-import Button from '@mui/material/Button';
-import DialogActions from '@mui/material/DialogActions';
 import { lazy, useState, type ReactNode } from 'react';
+import CloseDialog from './dialog/close_contact_dialog';
 import ContactContent from './dialog/contact_content';
 import DialogLayout from './dialog/dialog';
 import TabsSelector from './dialog/tabs_selector';
@@ -28,11 +27,7 @@ export default function ContactDialog({ isOpen, handleIsOpen }: EmailDialogProps
 
       <ContactContent element={renderedElement(tab, handleIsOpen)} />
 
-      <DialogActions>
-        <Button type='button' id='close-email-me-button' data-testid='close-email-me-button' onClick={handleIsOpen}>
-          Close
-        </Button>
-      </DialogActions>
+      <CloseDialog handleIsOpen={handleIsOpen} />
     </DialogLayout>
   );
 }

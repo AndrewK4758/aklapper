@@ -16,13 +16,13 @@ const maxTime = tomorrow.set('hour', 19).set('minutes', 30);
 
 export type TimesAndDates = {
   startTime: Dayjs;
-  endTime: Dayjs;
+  endTime: number;
   date: Dayjs;
 };
 
 export const initState: TimesAndDates = {
   startTime: minTime,
-  endTime: minTime,
+  endTime: 0,
   date: tomorrow,
 };
 
@@ -33,7 +33,7 @@ interface GoogleAppointmentFormProps {
 export default function GoogleCalendarForm({ setOpen }: GoogleAppointmentFormProps) {
   const [values, setValues] = useState<TimesAndDates>(initState);
 
-  const handleSetTimeAndDateValues = (pickerValue: PickerValue, key: keyof TimesAndDates) => {
+  const handleSetTimeAndDateValues = (pickerValue: PickerValue | number, key: keyof TimesAndDates) => {
     setValues(prev => ({ ...prev, [key]: pickerValue }));
   };
 
@@ -66,26 +66,16 @@ export default function GoogleCalendarForm({ setOpen }: GoogleAppointmentFormPro
 //TODO - move to services directory
 const baseURL = import.meta.env.VITE_PORTFOLIO_API_URL;
 
-const handleSubmitEvent = async ({ date, startTime, endTime }: TimesAndDates, setOpen: (isOpen: boolean) => void) => {
+const handleSubmitEvent = async (
+  { date, startTime, endTime }: TimesAndDates,
+  setOpen: (isOpen: boolean) => void,
+): Promise<void> => {
   try {
     if (date && startTime && endTime) {
-      const tempStartDateTime = date.toDate();
-      const tempEndDateTime = date.toDate();
+      const endTimeFormatted = startTime.add(endTime, 'minutes');
 
-      const startHours = startTime.get('hours');
-      const startMinutes = startTime.get('minutes');
-
-      const endHours = endTime.get('hours');
-      const endMinutes = endTime.get('minutes');
-
-      tempStartDateTime.setHours(startHours);
-      tempStartDateTime.setMinutes(startMinutes);
-
-      tempEndDateTime.setHours(endHours);
-      tempEndDateTime.setMinutes(endMinutes);
-
-      const startDateTime = tempStartDateTime.toISOString();
-      const endDateTime = tempEndDateTime.toISOString();
+      const startDateTime = startTime.toISOString();
+      const endDateTime = endTimeFormatted.toISOString();
 
       const result = await axios.post(
         `${baseURL}/create-events`,
@@ -97,9 +87,8 @@ const handleSubmitEvent = async ({ date, startTime, endTime }: TimesAndDates, se
 
       if (result) setOpen(false);
     }
-    return null;
   } catch (error) {
     console.error(error);
-    return null;
+    alert('Error submitting event, Please try again');
   }
 };

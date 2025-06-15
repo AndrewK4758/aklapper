@@ -1,6 +1,5 @@
 import { SectionTitle } from '@aklapper/react-shared';
 import GoogleIcon from '@mui/icons-material/Google';
-import Button from '@mui/material/Button';
 import { useGoogleLogin, type CodeResponse } from '@react-oauth/google';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
@@ -11,6 +10,7 @@ import {
   type GoogleUserContextProps,
 } from '../../../contexts/contact-context.js';
 import AnimatedBorderBox from '../../styled/animated_border_box.js';
+import ContactDialogButton from '../../styled/contact_dialgo_button.js';
 
 export default function GoogleAuthButton() {
   const { handleSetGoogleUser } = useContext<GoogleUserContextProps>(GoogleUserContext);
@@ -23,12 +23,11 @@ export default function GoogleAuthButton() {
   });
   return (
     <AnimatedBorderBox component={'section'} id='google-calendar-auth-box' data-testid='google-calendar-auth-box'>
-      <Button
+      <ContactDialogButton
         id='google-auth-button'
         data-testid='google-auth-button'
         onClick={login}
         endIcon={<GoogleIcon color='inherit' fontSize='inherit' />}
-        sx={{ width: '100%' }}
       >
         <SectionTitle
           id='google-auth-button-label'
@@ -37,7 +36,7 @@ export default function GoogleAuthButton() {
           title='Connect Google Calendar'
           placement='bottom-start'
         />
-      </Button>
+      </ContactDialogButton>
     </AnimatedBorderBox>
   );
 }
@@ -46,7 +45,7 @@ export default function GoogleAuthButton() {
 
 const baseURL = import.meta.env.VITE_PORTFOLIO_API_URL;
 
-const onGoogleSuccess = async (code: CodeResponse, setUser: (user: GoogleUserContextInfo) => void) => {
+const onGoogleSuccess = async (code: CodeResponse, setUser: (user: GoogleUserContextInfo) => void): Promise<void> => {
   try {
     const resp = await axios.post(`${baseURL}/create-tokens`, { code }, { withCredentials: true });
 
@@ -59,10 +58,7 @@ const onGoogleSuccess = async (code: CodeResponse, setUser: (user: GoogleUserCon
     idToken = null;
     email = '';
     name = '';
-
-    return null;
   } catch (error) {
     console.error(error);
-    return null;
   }
 };

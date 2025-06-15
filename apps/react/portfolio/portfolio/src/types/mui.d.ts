@@ -1,4 +1,6 @@
 import '@mui/material/styles';
+import '@mui/x-data-grid';
+import '@mui/x-date-pickers';
 import type { Dayjs } from 'dayjs';
 
 declare module '@mui/material/styles' {

@@ -10,7 +10,7 @@ interface AppointmenTimesSelectorsProps {
   minTime: Dayjs;
   maxTime: Dayjs;
   values: TimesAndDates;
-  handleSetTimeAndDateValues: (data: PickerValue, key: keyof TimesAndDates) => void;
+  handleSetTimeAndDateValues: (data: PickerValue | number, key: keyof TimesAndDates) => void;
 }
 
 export default function TimeInput({
@@ -37,7 +37,7 @@ export default function TimeInput({
         closeOnSelect={false}
         onAccept={data => handleSetTimeAndDateValues(data, 'startTime')}
       />
-      <EndTimeSelect startTime={values.startTime} setEndTime={handleSetTimeAndDateValues} />
+      <EndTimeSelect values={values} setEndTime={handleSetTimeAndDateValues} />
     </CenteredFlexDiv>
   );
 }

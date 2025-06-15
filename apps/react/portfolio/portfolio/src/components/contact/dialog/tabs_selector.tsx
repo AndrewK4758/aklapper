@@ -2,6 +2,7 @@ import { SectionTitle } from '@aklapper/react-shared';
 import Box, { type BoxProps } from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
+import Theme from '../../../styles/theme';
 
 interface TabsSelectorProps extends Omit<BoxProps, 'id' | 'data-testid'> {
   tab: number;
@@ -30,6 +31,13 @@ export default function TabsSelector({ tab, handleSetTab, ...props }: TabsSelect
         key={'contact-tabs'}
         value={tab}
         onChange={(_e, tab) => handleSetTab(tab)}
+        slotProps={{
+          indicator: {
+            sx: {
+              backgroundColor: Theme.palette.primary.dark,
+            },
+          },
+        }}
       >
         <Tab
           key={'appointment-request-tab'}
@@ -42,6 +50,7 @@ export default function TabsSelector({ tab, handleSetTab, ...props }: TabsSelect
               title={'Appt. Request'}
               tooltipTitle={'Add to Google Calendar'}
               placement={'bottom'}
+              sx={{ color: Theme.palette.primary.dark }}
             />
           }
         />
@@ -56,6 +65,7 @@ export default function TabsSelector({ tab, handleSetTab, ...props }: TabsSelect
               tooltipTitle={'Send Email / Upload Appointment Details'}
               variant={'h4'}
               placement={'bottom'}
+              sx={{ color: Theme.palette.primary.dark }}
             />
           }
         />

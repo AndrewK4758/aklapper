@@ -2,17 +2,20 @@ import FormControl, { type FormControlProps } from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Select, { type SelectChangeEvent } from '@mui/material/Select';
-import type { Dayjs } from 'dayjs';
+import { useState } from 'react';
+import type { TimesAndDates } from './google_calendar_form';
 
 interface EndTimeProps extends FormControlProps {
-  startTime: Dayjs;
-  setEndTime: (values: Dayjs, key: 'endTime') => void;
+  values: TimesAndDates;
+  setEndTime: (values: number, key: 'endTime') => void;
 }
 
-export default function EndTimeSelect({ startTime, setEndTime, ...props }: EndTimeProps) {
-  const hanndleSelectMeetingLength = (e: SelectChangeEvent) => {
-    const endTime = startTime.add(parseInt(e.target.value), 'minutes');
-    setEndTime(endTime, 'endTime');
+export default function EndTimeSelect({ values, setEndTime, ...props }: EndTimeProps) {
+  const [error, setError] = useState(false);
+  const hanndleSelectMeetingLength = (e: SelectChangeEvent<number>) => {
+    setEndTime(e.target.value, 'endTime');
+    if (e.target.value < 15) setError(true);
+    else setError(false);
   };
 
   // See if there is a better way to size this component without extr divs
@@ -21,13 +24,15 @@ export default function EndTimeSelect({ startTime, setEndTime, ...props }: EndTi
       <InputLabel id='length-of-meeting-label'>Length of meeting</InputLabel>
       <Select
         autoWidth
-        defaultValue=''
-        label='Length of meeting'
+        label='Meeting Length'
         labelId='select-minutes-label'
         id='select-minutes'
         onChange={hanndleSelectMeetingLength}
-        required
+        value={values.endTime}
+        error={error}
       >
+        <MenuItem value={0} />
+
         <MenuItem divider value={15}>
           15 Minutes
         </MenuItem>
