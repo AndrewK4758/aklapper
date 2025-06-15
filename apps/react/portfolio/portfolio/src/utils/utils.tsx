@@ -15,19 +15,19 @@ export function addToToolipString(baseString: string, socialSite: string): strin
   return baseString.concat(socialSite);
 }
 
-export const viteRefreshModule = (
-  <>
-    <script
-      type='module'
-      dangerouslySetInnerHTML={{
-        __html: `
-                  import RefreshRuntime from "/@react-refresh"
-                  RefreshRuntime.injectIntoGlobalHook(window)
-                  window.$RefreshReg$ = () => {}
-                  window.$RefreshSig$ = () => (type) => type
-                  window.__vite_plugin_react_preamble_installed__ = true
-                `,
-      }}
-    />
-  </>
-);
+// export const viteRefreshModule = (
+//   <>
+//     <script
+//       type='module'
+//       dangerouslySetInnerHTML={{
+//         __html: `
+//                   import RefreshRuntime from "/@react-refresh"
+//                   RefreshRuntime.injectIntoGlobalHook(window)
+//                   window.$RefreshReg$ = () => {}
+//                   window.$RefreshSig$ = () => (type) => type
+//                   window.__vite_plugin_react_preamble_installed__ = true
+//                 `,
+//       }}
+//     />
+//   </>
+// );

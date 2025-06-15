@@ -51,7 +51,7 @@ const Header: FC<ButtonGroupProps> = ({ ...props }: ButtonGroupProps): JSX.Eleme
           sx={buttonSXProps}
           onClick={() => {
             nav('/');
-            window.scrollTo({ behavior: 'smooth', top: 0 });
+            if (typeof window !== 'undefined') window.scrollTo({ behavior: 'smooth', top: 0 });
           }}
         >
           <Label

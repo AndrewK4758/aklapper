@@ -13,20 +13,20 @@ const rootDomNode = document.querySelector('#root') as HTMLDivElement;
 hydrateRoot(
   rootDomNode,
   <StrictMode>
-    <App />,
+    <App />
   </StrictMode>,
   {
     onRecoverableError: (error, errorInfo) => {
-      console.log(`Uncaught Error: ${error}`);
-      console.log(`Uncaught Error: ${errorInfo}`);
+      console.log(`Uncaught Error: ${JSON.stringify(error)}`);
+      console.log(`Uncaught Error: ${JSON.stringify(errorInfo)}`);
     },
     onCaughtError: (error, errorInfo) => {
-      console.log(`Uncaught Error: ${error}`);
-      console.log(`Uncaught Error: ${errorInfo}`);
+      console.log(`Uncaught Error: ${JSON.stringify(error)}`);
+      console.log(`Uncaught Error: ${JSON.stringify(errorInfo)}`);
     },
     onUncaughtError: (error, errorInfo) => {
-      console.log(`Uncaught Error: ${error}`);
-      console.log(`Uncaught Error: ${errorInfo}`);
+      console.log(`Uncaught Error: ${JSON.stringify(error)}`);
+      console.log(`Uncaught Error: ${JSON.stringify(errorInfo)}`);
     },
   },
 );

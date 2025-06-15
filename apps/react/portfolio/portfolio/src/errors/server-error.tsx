@@ -99,8 +99,9 @@ export default function ServerError({ error }: ServerErrorProps) {
             color='primary'
             id={`error-home-button`}
             key={`error-home-button`}
-            onClick={() => window.location.replace('http://localhost:4700')}
-            sx={{}}
+            onClick={() => {
+              if (typeof window !== 'undefined') window.location.replace('http://localhost:4700');
+            }}
           >
             <Label
               id='error-home-button-label'

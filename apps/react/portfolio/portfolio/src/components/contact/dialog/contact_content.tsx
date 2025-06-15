@@ -8,7 +8,6 @@ interface ContactContentProps {
 }
 
 export default function ContactContent({ element }: ContactContentProps) {
-  console.log(element);
   return (
     <Suspense fallback={<Waiting src={waiting} />}>
       <Box component={'section'} width={'100%'}>

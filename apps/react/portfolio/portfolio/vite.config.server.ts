@@ -1,36 +1,36 @@
 import { workspaceRoot } from '@nx/devkit';
 import react from '@vitejs/plugin-react-swc';
 import { resolve } from 'path';
+import { cwd } from 'process';
 import type { UserConfig } from 'vite';
 import { defineConfig } from 'vite';
+import MODULES from './vite_modules.js';
 
-const modules: { [key: string]: string } = {
-  '@aklapper/games-components': resolve(workspaceRoot, 'packages/games-components/src/index.ts'),
+//Server
+const HOST = 'localhost';
+const PORT_DEV = 8080;
 
-  '@aklapper/media-recorder': resolve(workspaceRoot, 'packages/media-recorder/src/index.ts'),
-
-  '@aklapper/prompt-builder': resolve(workspaceRoot, 'packages/gen-ai/prompt-builder/src/index.ts'),
-
-  '@aklapper/react-shared': resolve(workspaceRoot, 'packages/react-shared/src/index.ts'),
-
-  '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
-
-  '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src/index.ts'),
-
-  '@aklapper/chinook-client': resolve(workspaceRoot, 'packages/prisma/chinook/src/index.ts'),
-};
+//Build
+const BASE = '/server';
+const NODE_ENV = process.env.NODE_ENV;
+const OUT_DIR = './dist/server';
+const ROOT = cwd();
 
 const config: UserConfig = defineConfig({
-  root: './',
+  root: ROOT,
   cacheDir: resolve(workspaceRoot, 'node_modules/.vite/apps/react/portfolio/portfolio'),
 
-  plugins: [react()],
-
   server: {
-    watch: {
-      usePolling: true,
-    },
+    port: PORT_DEV,
+    host: HOST,
   },
+
+  plugins: [
+    react({
+      devTarget: 'esnext',
+      tsDecorators: true,
+    }),
+  ],
 
   // Uncomment this if you are using workers.
   // worker: {
@@ -38,26 +38,31 @@ const config: UserConfig = defineConfig({
   // },
 
   resolve: {
-    alias: modules,
-
-    dedupe: ['react', 'react-dom', 'react-router', '@mui/material'],
+    alias: MODULES,
   },
 
   ssr: {
-    noExternal: ['react-router', '@mui/material', '@mui/icons-material', '@mui/x-date-pickers', '@mui/x-data-grid'],
+    noExternal: ['@mui/material', '@mui/icons-material', '@mui/x-date-pickers', '@mui/x-data-grid'],
   },
 
-  mode: process.env['NODE_ENV'],
+  base: BASE,
 
-  base: '/server',
+  mode: NODE_ENV,
+
+  logLevel: 'info',
+  appType: 'custom',
+  publicDir: 'public',
+  envDir: './env',
+
   build: {
+    outDir: OUT_DIR,
+    minify: NODE_ENV === 'production',
+    target: 'node24',
     ssr: true,
     ssrEmitAssets: true,
     ssrManifest: true,
-    outDir: './dist/server',
-    minify: false,
-    emptyOutDir: true,
     sourcemap: true,
+    emptyOutDir: true,
     reportCompressedSize: true,
     commonjsOptions: {
       transformMixedEsModules: true,
@@ -66,10 +71,8 @@ const config: UserConfig = defineConfig({
       input: {
         server: './server.ts',
       },
-      perf: true,
       output: {
-        entryFileNames: 'server.js',
-        strict: true,
+        entryFileNames: '[name].js',
         esModule: true,
         format: 'esm',
         generatedCode: {
@@ -79,15 +82,22 @@ const config: UserConfig = defineConfig({
           objectShorthand: true,
           reservedNamesAsProps: true,
         },
+        sourcemap: true,
+        strict: true,
       },
+      strictDeprecations: true,
+      perf: true,
     },
-    target: 'node24',
   },
 
-  logLevel: 'info',
-  appType: 'custom',
-  publicDir: 'public',
-  envDir: './env',
+  esbuild: {
+    color: true,
+    format: 'esm',
+    jsx: 'automatic',
+    platform: 'browser',
+    sourcemap: true,
+    target: 'esnext',
+  },
 });
 
 export default config;

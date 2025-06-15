@@ -4,7 +4,10 @@ import dayjs from 'dayjs';
 import type { FormikProps } from 'formik';
 
 const tomorrow = dayjs().add(1, 'day');
-const nextYear = dayjs().year(new Date().getFullYear() + 1);
+const nextYear = dayjs().set(
+  'year',
+  2026,
+); /**typeof window !== 'undefined' ? dayjs().year(new Date().getFullYear() + 1) :  */
 
 interface AppointmentMakerProps<T> {
   formik: FormikProps<T>;

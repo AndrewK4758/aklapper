@@ -1,34 +1,39 @@
 import { workspaceRoot } from '@nx/devkit';
 import react from '@vitejs/plugin-react-swc';
 import { resolve } from 'node:path';
+import { cwd } from 'node:process';
 import { defineConfig, type UserConfig } from 'vite';
+import MODULES from './vite_modules.js';
 
-const modules: { [key: string]: string } = {
-  '@aklapper/games-components': resolve(workspaceRoot, 'packages/games-components/src/index.ts'),
+//Server
+const HOST = 'localhost';
+const PORT_DEV = 4700;
+const PORT_PREVIEW = 4800;
 
-  '@aklapper/media-recorder': resolve(workspaceRoot, 'packages/media-recorder/src/index.ts'),
-
-  '@aklapper/prompt-builder': resolve(workspaceRoot, 'packages/gen-ai/prompt-builder/src/index.ts'),
-
-  '@aklapper/react-shared': resolve(workspaceRoot, 'packages/react-shared/src/index.ts'),
-
-  '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
-
-  '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src/index.ts'),
-};
+//Build
+const BASE = '/client';
+const NODE_ENV = process.env.NODE_ENV;
+const OUT_DIR = './dist/client';
+const ROOT = cwd();
 
 const config: UserConfig = defineConfig({
-  root: './',
+  root: ROOT,
   cacheDir: resolve(workspaceRoot, 'node_modules/.vite/apps/react/portfolio/portfolio'),
   server: {
-    port: 4700,
-    host: 'localhost',
+    port: PORT_DEV,
+    host: HOST,
   },
   preview: {
-    port: 4800,
-    host: 'localhost',
+    port: PORT_PREVIEW,
+    host: HOST,
   },
-  plugins: [react()],
+  plugins: [
+    react({
+      devTarget: 'esnext',
+      reactRefreshHost: `http://${HOST}:${PORT_DEV}`,
+      tsDecorators: true,
+    }),
+  ],
 
   // Uncomment this if you are using workers.
   // worker: {
@@ -36,30 +41,34 @@ const config: UserConfig = defineConfig({
   // },
 
   resolve: {
-    alias: modules,
-    dedupe: ['react', 'react-dom', 'react-router', '@mui/material'],
+    alias: MODULES,
   },
 
-  base: '/client',
+  base: BASE,
 
-  mode: process.env['NODE_ENV'],
+  mode: NODE_ENV,
+
+  logLevel: 'info',
+  appType: 'custom',
+  publicDir: 'public',
+  envDir: './env',
 
   build: {
-    outDir: './dist/client',
-    minify: false,
-    emptyOutDir: true,
+    outDir: OUT_DIR,
+    minify: NODE_ENV === 'production',
+    target: 'esnext',
     manifest: true,
     sourcemap: true,
+    emptyOutDir: true,
     reportCompressedSize: true,
     commonjsOptions: {
       transformMixedEsModules: true,
     },
+
     rollupOptions: {
       input: {
         browser: '/src/main.tsx',
       },
-
-      perf: true,
       output: {
         assetFileNames: '[name]-[hash].[ext]',
         strict: true,
@@ -73,23 +82,19 @@ const config: UserConfig = defineConfig({
           reservedNamesAsProps: true,
         },
       },
+      strictDeprecations: true,
+      perf: true,
     },
-    target: 'esnext',
   },
 
   esbuild: {
-    jsx: 'automatic',
-    format: 'esm',
     color: true,
+    format: 'esm',
+    jsx: 'automatic',
     platform: 'browser',
     sourcemap: true,
     target: 'esnext',
   },
-
-  logLevel: 'info',
-  appType: 'custom',
-  publicDir: 'public',
-  envDir: './env',
 
   test: {
     watch: false,

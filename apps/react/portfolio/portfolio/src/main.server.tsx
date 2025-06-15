@@ -10,7 +10,7 @@ import Theme from './styles/theme.js';
 import type { ManifestType } from './types/types.js';
 import getFilenamesFromManifest from './utils/get-files-from-manifest.js';
 import parseSsrManifestFile from './utils/parse_ssr_manifest.js';
-import { viteRefreshModule } from './utils/utils.js';
+// import { viteRefreshModule } from './utils/utils.js';
 
 const handler = createStaticHandler(routes);
 
@@ -27,9 +27,22 @@ const render = async (fullUrl: string, resp: Response, clientManifest: ManifestT
   const { pipe, abort } = ReactDomServer.renderToPipeableStream(
     <html lang='en'>
       <head>
-        {!clientManifest && viteRefreshModule}
         <meta charSet='utf-8' />
         <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+        {!clientManifest && (
+          <script
+            type='module'
+            dangerouslySetInnerHTML={{
+              __html: `
+                  import RefreshRuntime from "/@react-refresh"
+                  RefreshRuntime.injectIntoGlobalHook(window)
+                  window.$RefreshReg$ = () => {}
+                  window.$RefreshSig$ = () => (type) => type
+                  window.__vite_plugin_react_preamble_installed__ = true
+                  `,
+            }}
+          />
+        )}
 
         <title>
           Developer Portfolio for Andrew Klapper. This shows multiple projects that showcase distinct programming
@@ -60,7 +73,7 @@ const render = async (fullUrl: string, resp: Response, clientManifest: ManifestT
           <StrictMode>
             <ThemeProvider theme={Theme}>
               <CssBaseline />
-              <StaticRouterProvider router={router} context={context} />
+              <StaticRouterProvider router={router} context={context} hydrate={true} />
             </ThemeProvider>
           </StrictMode>
         </div>
