@@ -61,10 +61,10 @@ export const picAndResumeCardStyles: SxProps<typeof Theme> = {
 };
 
 export const introPicStyles: SxProps = {
-  width: '90%',
-  marginTop: 2,
-  height: 'auto',
-  borderRadius: 1,
+  // width: '90%',
+  // marginTop: 2,
+  // height: 'auto',
+  // borderRadius: 1,
 };
 
 export const introIconSxProps: SxProps = {

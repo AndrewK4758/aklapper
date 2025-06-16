@@ -1,4 +1,4 @@
-import Box, { type BoxProps } from '@mui/material/Box';
+import { type BoxProps } from '@mui/material/Box';
 import { type ReactElement } from 'react';
 import Intro from '../../components/intro/intro.jsx';
 import PicutreAndResume from '../../components/intro/picture-resume.jsx';
@@ -13,19 +13,16 @@ import Theme from '../../styles/theme.js';
  */
 
 const Home = ({ ...props }: BoxProps): ReactElement => (
-  <StyledRootComponentWrapper {...props}>
-    <Box
-      sx={{
-        display: 'flex',
-        gap: Theme.spacing(2),
-        [Theme.breakpoints.down('lg')]: {
-          flexDirection: 'column',
-        },
-      }}
-    >
-      <Intro sx={{ flex: '0 1 70%' }} />
-      <PicutreAndResume />
-    </Box>
+  <StyledRootComponentWrapper
+    {...props}
+    sx={{
+      [Theme.breakpoints.up('lg')]: {
+        flexDirection: 'row',
+      },
+    }}
+  >
+    <Intro />
+    {/* <PicutreAndResume /> */}
   </StyledRootComponentWrapper>
 );
 

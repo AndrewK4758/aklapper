@@ -68,15 +68,13 @@ const render = async (fullUrl: string, resp: Response, clientManifest: ManifestT
         {ssrManifest && preloadLinks}
         <link rel='icon' type='image/x-icon' href='/client/favicon.ico' />
       </head>
-      <body>
-        <div id='root'>
-          <StrictMode>
-            <ThemeProvider theme={Theme}>
-              <CssBaseline />
-              <StaticRouterProvider router={router} context={context} hydrate={true} />
-            </ThemeProvider>
-          </StrictMode>
-        </div>
+      <body id='root'>
+        <StrictMode>
+          <ThemeProvider theme={Theme}>
+            <CssBaseline />
+            <StaticRouterProvider router={router} context={context} hydrate={true} />
+          </ThemeProvider>
+        </StrictMode>
       </body>
     </html>,
     {

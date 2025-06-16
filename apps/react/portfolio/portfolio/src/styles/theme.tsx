@@ -6,11 +6,13 @@ import cssBaselineStyles, {
   BACKGROUND_ALT,
   BACKGROUND_DEFAULT,
   BACKGROUND_PAPER,
+  BASE_BORDER_RADIUS,
   BOX_SHADOW_SECONDARY_DARK,
   MAIN_COLOR,
   MAIN_COLOR_DARK,
   MAIN_COLOR_LIGHT,
   MAIN_CONTRAST,
+  MULT_BORDER_RADIUS,
   SECONDARY_COLOR,
   SECONDARY_COLOR_DARK,
   SECONDARY_COLOR_LIGHT,
@@ -46,7 +48,7 @@ const Theme: ThemeType = createTheme(
     },
     cssVariables: true,
     shape: {
-      borderRadius: 10,
+      borderRadius: BASE_BORDER_RADIUS,
     },
     typography: {
       allVariants: {
@@ -115,7 +117,7 @@ const Theme: ThemeType = createTheme(
       MuiStack: {
         defaultProps: {
           useFlexGap: true,
-          gap: 4,
+          gap: 1,
         },
       },
       MuiTextField: {
@@ -150,10 +152,9 @@ const Theme: ThemeType = createTheme(
             },
             day: {
               sx: {
-                fontSize: '1.5rem',
+                fontSize: '1.25rem',
                 backgroundColor: BACKGROUND_DEFAULT,
                 color: MAIN_COLOR_DARK,
-                borderRadius: 1,
               },
             },
           },
@@ -170,8 +171,9 @@ const Theme: ThemeType = createTheme(
               },
             },
             digitalClockSectionItem: {
+              divider: true,
               sx: {
-                borderRadius: 1,
+                borderRadius: MULT_BORDER_RADIUS - 0.35,
                 backgroundColor: BACKGROUND_PAPER,
               },
             },
@@ -179,15 +181,15 @@ const Theme: ThemeType = createTheme(
               sx: {
                 borderTop: `2px solid ${MAIN_COLOR_DARK}`,
                 background: BACKGROUND_DEFAULT,
-                borderBottomLeftRadius: 10,
-                borderBottomRightRadius: 10,
+                borderBottomLeftRadius: BASE_BORDER_RADIUS,
+                borderBottomRightRadius: BASE_BORDER_RADIUS,
               },
             },
             textField: {
               sx: {
                 width: '100%',
                 backgroundColor: BACKGROUND_ALT,
-                borderRadius: 1,
+                borderRadius: MULT_BORDER_RADIUS,
               },
             },
             openPickerIcon: {
@@ -208,13 +210,13 @@ const Theme: ThemeType = createTheme(
               sx: {
                 borderTop: `2px solid ${MAIN_COLOR_DARK}`,
                 backgroundColor: BACKGROUND_DEFAULT,
-                borderBottomLeftRadius: 10,
-                borderBottomRightRadius: 10,
+                borderBottomLeftRadius: BASE_BORDER_RADIUS,
+                borderBottomRightRadius: BASE_BORDER_RADIUS,
               },
             },
             day: {
               sx: {
-                borderRadius: 1,
+                borderRadius: MULT_BORDER_RADIUS - 0.35,
                 backgroundColor: BACKGROUND_PAPER,
               },
             },
@@ -255,7 +257,7 @@ const Theme: ThemeType = createTheme(
               sx: {
                 width: '100%',
                 backgroundColor: BACKGROUND_ALT,
-                borderRadius: 1,
+                borderRadius: MULT_BORDER_RADIUS,
               },
             },
           },

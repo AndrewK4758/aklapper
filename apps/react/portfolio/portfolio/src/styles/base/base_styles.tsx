@@ -7,6 +7,9 @@ export const BACKGROUND_DEFAULT = '#323232';
 export const BACKGROUND_PAPER = '#0C130E';
 export const BACKGROUND_ALT = '#242424';
 
+export const BOTTOM_LEFT_GRADIENT = `linear-gradient(45deg, #00000050 0%, transparent 80%)`;
+export const TOP_RIGHT_GRADIENT = `linear-gradient(225deg, #e9e9eb48 0%, transparent 80%)`;
+export const BASE_ROOT_BACKGROUND_COLOR = '#404040';
 // Main
 export const MAIN_COLOR = '#FFD300';
 export const MAIN_COLOR_DARK = '#FFAA00';
@@ -26,6 +29,10 @@ export const TEXT_SECONDARY = '#E9E9EB';
 // Transparent Box Shadow
 export const BOX_SHADOW_MAIN_DARK = `0 0 0 0.5rem ${MAIN_COLOR_DARK}3A`;
 export const BOX_SHADOW_SECONDARY_DARK = `0 0 0 0.5rem ${SECONDARY_COLOR_DARK}4A`;
+
+//Base Border Radius
+export const BASE_BORDER_RADIUS = '16px';
+export const MULT_BORDER_RADIUS = 1;
 
 const darkScrollbarGlobal = {
   '&::-webkit-scrollbar': {
@@ -57,6 +64,15 @@ const cssBaselineStyles: CSSObject = {
     WebkitAppearance: 'none',
     margin: 0,
   },
+
+  '#root': {
+    minHeight: '100vh',
+    height: 'fit-content',
+    background: `${TOP_RIGHT_GRADIENT}, ${BOTTOM_LEFT_GRADIENT} ${BASE_ROOT_BACKGROUND_COLOR}`,
+    backgroundAttachment: 'fixed',
+    backgroundRepeat: 'no-repeat',
+  },
+
   pre: {
     maxWidth: '100%',
     whiteSpace: 'pre-wrap',
@@ -75,14 +91,10 @@ const cssBaselineStyles: CSSObject = {
 
   '.contact-form': {
     width: '100%',
+    background: `linear-gradient(-45deg, ${TEXT_PRIMARY} 50%, transparent 50%), linear-gradient(135deg, transparent 50%, ${TEXT_PRIMARY} 50%)`,
+    backgroundRepeat: 'no-repeat',
+    backgroundAttachment: 'fixed',
   },
-
-  //Find better solution
-  '& .MuiClock-meridiemText': {
-    // color: MAIN_CONTRAST,
-  },
-
-  // '*': { border: '3px solid #9090c0' },
 };
 
 export default cssBaselineStyles;

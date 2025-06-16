@@ -1,7 +1,7 @@
 import { lazy, useState, type ReactNode } from 'react';
 import CloseDialog from './dialog/close_contact_dialog';
 import ContactContent from './dialog/contact_content';
-import DialogLayout from './dialog/dialog';
+import DialogLayout from './dialog/dialog_layout.js';
 import TabsSelector from './dialog/tabs_selector';
 
 const GoogleCalendar = lazy(() => import('./google-calendar/google-calendar'));

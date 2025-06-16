@@ -2,6 +2,7 @@ import { type ReactElement } from 'react';
 import { Outlet } from 'react-router';
 import Footer from '../footer/footer';
 import HeaderContactMenu from '../header/header.js';
+import CenteredFlexDiv from '../styled/centered_flexbox';
 import StyledRootComponentWrapper from '../styled/styled_root_wrapper';
 
 /**
@@ -13,10 +14,12 @@ import StyledRootComponentWrapper from '../styled/styled_root_wrapper';
 
 export default function Layout(): ReactElement {
   return (
-    <StyledRootComponentWrapper>
+    <StyledRootComponentWrapper id='app-wrapper' sx={{ borderRadius: 0, minHeight: '100vh', height: 'fit-content' }}>
       <HeaderContactMenu />
 
-      <Outlet />
+      <CenteredFlexDiv component={'main'}>
+        <Outlet />
+      </CenteredFlexDiv>
 
       <Footer />
     </StyledRootComponentWrapper>

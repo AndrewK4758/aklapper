@@ -47,7 +47,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
     phone: '',
     subject: 'I saw your website and wanted to reach out...',
     body: '',
-    date: dayjs().add(1, 'day'),
+    date: dayjs().add(1, 'day').set('hour', 8).set('minutes', 30),
     attachment: null,
   };
 

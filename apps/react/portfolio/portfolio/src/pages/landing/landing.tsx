@@ -59,11 +59,11 @@ export default function LandingPage({ ...props }: BoxProps) {
   };
 
   const handleEnterClick = () => {
-    nav('home');
+    nav('home', { viewTransition: true });
   };
 
   return (
-    <StyledRootComponentWrapper {...props} component={'div'} id='landing-root'>
+    <StyledRootComponentWrapper {...props} component={'div'} id='landing-root' sx={{ minHeight: '100vh' }}>
       <LandingHeader isLandingNavOpen={state.isLandingNavOpen} />
 
       <Box

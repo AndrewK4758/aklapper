@@ -4,10 +4,10 @@ import type { ComponentType } from 'react';
 
 const ContactDialogButton: ComponentType<ButtonProps> = styled(Button)(({ theme }) => ({
   padding: theme.spacing(1, 2),
-  fontWeight: 600,
   textTransform: 'none',
   color: theme.palette.primary.dark,
   borderColor: theme.palette.primary.dark,
+  borderRadius: theme.shape.borderRadius,
 }));
 
 export default ContactDialogButton;

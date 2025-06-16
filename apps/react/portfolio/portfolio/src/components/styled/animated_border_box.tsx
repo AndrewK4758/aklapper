@@ -14,10 +14,10 @@ const AnimatedBorderBox: ComponentType<BoxProps> = styled(Box)(({ theme }) => ({
   background: `conic-gradient(${theme.palette.background.paper} 0 0) padding-box,
       linear-gradient(to right, var(--clr-1), var(--clr-2), var(--clr-1)) border-box`,
   border: '3px solid transparent',
-  borderRadius: '10px',
+  borderRadius: theme.shape.borderRadius,
   position: 'relative',
   isolation: 'isolate',
-  animation: `${spin} 3s linear infinite`,
+  animation: `${spin} 2s linear infinite`,
 }));
 
 export default AnimatedBorderBox;

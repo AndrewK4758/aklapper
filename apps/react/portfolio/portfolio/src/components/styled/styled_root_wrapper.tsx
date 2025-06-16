@@ -5,7 +5,6 @@ import type { ComponentType } from 'react';
 const StyledRootComponentWrapper: ComponentType<BoxProps> = styled(Box)(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
-  minHeight: '100vh',
   gap: theme.spacing(2),
   borderRadius: theme.shape.borderRadius,
   padding: theme.spacing(2),

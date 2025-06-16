@@ -1,4 +1,3 @@
-// import Box, { type BoxProps } from '@mui/material/Box';
 import type { SxProps, Theme as ThemeType } from '@mui/material/styles';
 import Theme from '../../styles/theme';
 import EnterIcon from '../icons/enter_icon';

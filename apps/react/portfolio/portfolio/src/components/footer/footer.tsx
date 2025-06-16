@@ -2,7 +2,7 @@ import Box, { type BoxProps } from '@mui/material/Box';
 import Link from '@mui/material/Link';
 import { useNavigate } from 'react-router';
 
-export default function Footer({ ...props }: Omit<BoxProps, 'sx | id | data-testid'>) {
+export default function Footer({ ...props }: Omit<BoxProps, 'id | data-testid | component'>) {
   const nav = useNavigate();
 
   const handleOpenPrivacyPolicy = () => {
@@ -10,7 +10,7 @@ export default function Footer({ ...props }: Omit<BoxProps, 'sx | id | data-test
   };
 
   return (
-    <Box {...props} component={'footer'} id='footer' data-testid='footer' sx={{ marginX: 'auto' }}>
+    <Box {...props} component={'footer'} id='footer' data-testid='footer' textAlign={'center'} marginTop={'auto'}>
       <Link component={'a'} underline='hover' onClick={handleOpenPrivacyPolicy} sx={{ cursor: 'pointer' }}>
         Privacy Policy
       </Link>
