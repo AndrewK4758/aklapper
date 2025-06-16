@@ -1,5 +1,5 @@
 import DialogActions, { type DialogActionsProps } from '@mui/material/DialogActions';
-import ContactDialogButton from '../../styled/contact_dialgo_button';
+import ContactDialogButton from '../../styled/contact_dialog_button.js';
 
 interface CloseDialogProps extends DialogActionsProps {
   handleIsOpen: () => void;
