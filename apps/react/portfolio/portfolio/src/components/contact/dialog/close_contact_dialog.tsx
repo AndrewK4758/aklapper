@@ -1,11 +1,12 @@
 import DialogActions, { type DialogActionsProps } from '@mui/material/DialogActions';
+import type { ReactElement } from 'react';
 import ContactDialogButton from '../../styled/contact_dialog_button.js';
 
 interface CloseDialogProps extends DialogActionsProps {
   handleIsOpen: () => void;
 }
 
-export default function CloseDialog({ handleIsOpen, ...props }: CloseDialogProps) {
+export default function CloseDialog({ handleIsOpen, ...props }: CloseDialogProps): ReactElement<CloseDialogProps> {
   return (
     <DialogActions {...props}>
       <ContactDialogButton

@@ -2,6 +2,7 @@ import { SectionTitle } from '@aklapper/react-shared';
 import Box, { type BoxProps } from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
+import type { ReactElement } from 'react';
 import Theme from '../../../styles/theme';
 
 interface TabsSelectorProps extends Omit<BoxProps, 'id' | 'data-testid'> {
@@ -9,7 +10,7 @@ interface TabsSelectorProps extends Omit<BoxProps, 'id' | 'data-testid'> {
   handleSetTab: (tab: number) => void;
 }
 
-export default function TabsSelector({ tab, handleSetTab, ...props }: TabsSelectorProps) {
+export default function TabsSelector({ tab, handleSetTab, ...props }: TabsSelectorProps): ReactElement<BoxProps> {
   return (
     <Box
       {...props}

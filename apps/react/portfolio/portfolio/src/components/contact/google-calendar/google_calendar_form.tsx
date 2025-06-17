@@ -2,7 +2,7 @@ import type { PickerValue } from '@mui/x-date-pickers/internals';
 import axios from 'axios';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
-import { useState } from 'react';
+import { useState, type ReactElement } from 'react';
 import { Form } from 'react-router';
 import CenteredFlexDiv from '../../styled/centered_flexbox.js';
 import DateInput from './date_input.js';
@@ -30,7 +30,9 @@ interface GoogleAppointmentFormProps {
   setOpen: () => void;
 }
 
-export default function GoogleCalendarForm({ setOpen }: GoogleAppointmentFormProps) {
+export default function GoogleCalendarForm({
+  setOpen,
+}: GoogleAppointmentFormProps): ReactElement<GoogleAppointmentFormProps> {
   const [values, setValues] = useState<TimesAndDates>(initState);
 
   const handleSetTimeAndDateValues = (pickerValue: PickerValue | number, key: keyof TimesAndDates) => {

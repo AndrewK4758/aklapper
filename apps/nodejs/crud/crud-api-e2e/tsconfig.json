@@ -7,10 +7,10 @@
     "noUnusedLocals": false,
     "noImplicitAny": false,
     "verbatimModuleSyntax": false,
-    "module": "ESNext",
+    "module": "esnext",
     "moduleResolution": "node10"
   },
-  "include": ["jest.config.ts", "src/**/*.ts"],
+  "include": ["jest.config.ts", "src/**/*.ts", "src/crud-api/crud-api.spec.ts"],
   "exclude": ["eslint.config.js"],
   "references": [
     {

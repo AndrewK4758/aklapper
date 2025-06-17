@@ -1,9 +1,10 @@
 import { SectionTitle } from '@aklapper/react-shared';
 import GoogleIcon from '@mui/icons-material/Google';
+import type { ButtonProps } from '@mui/material/Button';
 import { useGoogleLogin, type CodeResponse } from '@react-oauth/google';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
-import { useContext } from 'react';
+import { useContext, type ReactElement } from 'react';
 import {
   GoogleUserContext,
   type GoogleUserContextInfo,
@@ -12,7 +13,7 @@ import {
 import AnimatedBorderBox from '../../styled/animated_border_box.js';
 import ContactDialogButton from '../../styled/contact_dialog_button.js';
 
-export default function GoogleAuthButton() {
+export default function GoogleAuthButton(): ReactElement<ButtonProps> {
   const { handleSetGoogleUser } = useContext<GoogleUserContextProps>(GoogleUserContext);
   const login = useGoogleLogin({
     onSuccess: code => onGoogleSuccess(code, handleSetGoogleUser),

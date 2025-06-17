@@ -1,20 +1,22 @@
-import { lazy, useState, type ReactNode } from 'react';
+import type { BoxProps } from '@mui/material/Box';
+import { lazy, useState, type ReactElement } from 'react';
 import CloseDialog from './dialog/close_contact_dialog';
 import ContactContent from './dialog/contact_content';
 import DialogLayout from './dialog/dialog_layout.js';
 import TabsSelector from './dialog/tabs_selector';
+import type { GoogleCalendarProps } from './google-calendar/google-calendar';
 
 const GoogleCalendar = lazy(() => import('./google-calendar/google-calendar'));
 const EmailForm = lazy(() => import('./email-form/email-form'));
 
 //TODO - Add multi language selector for the localization provider and my text content
 
-interface EmailDialogProps {
+interface ContactDialogProps {
   isOpen: boolean;
   handleIsOpen: () => void;
 }
 
-export default function ContactDialog({ isOpen, handleIsOpen }: EmailDialogProps) {
+export default function ContactDialog({ isOpen, handleIsOpen }: ContactDialogProps): ReactElement<ContactDialogProps> {
   const [tab, setTab] = useState(0);
 
   const handleSetTab = (idx: number) => {
@@ -22,7 +24,7 @@ export default function ContactDialog({ isOpen, handleIsOpen }: EmailDialogProps
   };
 
   return (
-    <DialogLayout isOpen={isOpen} tab={tab} handleSetTab={handleSetTab}>
+    <DialogLayout isOpen={isOpen}>
       <TabsSelector tab={tab} handleSetTab={handleSetTab} />
 
       <ContactContent element={renderedElement(tab, handleIsOpen)} />
@@ -32,7 +34,7 @@ export default function ContactDialog({ isOpen, handleIsOpen }: EmailDialogProps
   );
 }
 
-function renderedElement(tab: number, handleIsOpen: () => void): ReactNode {
+function renderedElement(tab: number, handleIsOpen: () => void): ReactElement<GoogleCalendarProps | BoxProps> | null {
   switch (tab) {
     case 0:
       return <GoogleCalendar setOpen={handleIsOpen} />;

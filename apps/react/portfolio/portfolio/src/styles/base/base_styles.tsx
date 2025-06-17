@@ -4,12 +4,13 @@ import { type CSSObject } from '@mui/material/styles';
 
 // Backgrounds
 export const BACKGROUND_DEFAULT = '#323232';
-export const BACKGROUND_PAPER = '#0C130E';
+export const BACKGROUND_PAPER = '#0F1A0F';
 export const BACKGROUND_ALT = '#242424';
 
-export const BOTTOM_LEFT_GRADIENT = `linear-gradient(45deg, #00000050 0%, transparent 80%)`;
-export const TOP_RIGHT_GRADIENT = `linear-gradient(225deg, #e9e9eb48 0%, transparent 80%)`;
+export const BOTTOM_LEFT_GRADIENT = `linear-gradient(45deg, #10101038 0%, transparent 80%)`;
+export const TOP_RIGHT_GRADIENT = `linear-gradient(225deg, #e9e9eb24 0%, transparent 80%)`;
 export const BASE_ROOT_BACKGROUND_COLOR = '#404040';
+
 // Main
 export const MAIN_COLOR = '#FFD300';
 export const MAIN_COLOR_DARK = '#FFAA00';
@@ -65,7 +66,7 @@ const cssBaselineStyles: CSSObject = {
     margin: 0,
   },
 
-  '#root': {
+  body: {
     minHeight: '100vh',
     height: 'fit-content',
     background: `${TOP_RIGHT_GRADIENT}, ${BOTTOM_LEFT_GRADIENT} ${BASE_ROOT_BACKGROUND_COLOR}`,
@@ -91,9 +92,6 @@ const cssBaselineStyles: CSSObject = {
 
   '.contact-form': {
     width: '100%',
-    background: `linear-gradient(-45deg, ${TEXT_PRIMARY} 50%, transparent 50%), linear-gradient(135deg, transparent 50%, ${TEXT_PRIMARY} 50%)`,
-    backgroundRepeat: 'no-repeat',
-    backgroundAttachment: 'fixed',
   },
 };
 

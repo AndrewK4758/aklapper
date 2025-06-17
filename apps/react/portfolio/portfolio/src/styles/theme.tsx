@@ -74,6 +74,11 @@ const Theme: ThemeType = createTheme(
                 minHeight: '75vh',
               },
             },
+            transition: {
+              timeout: {
+                appear: 2000,
+              },
+            },
           },
         },
       },

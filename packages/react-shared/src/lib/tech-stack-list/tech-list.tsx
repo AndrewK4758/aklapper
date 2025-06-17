@@ -1,21 +1,23 @@
+import Box from '@mui/material/Box';
+// import Container from '@mui/material/Container';
 import Container from '@mui/material/Container';
 import List from '@mui/material/List';
 import type { SxProps, TypographyVariant } from '@mui/material/styles';
-import type { ReactNode } from 'react';
+import type { ReactElement } from 'react';
 import RenderList from '../render-list/render-list.jsx';
 import SectionTitle, { type SectionTitleProps } from '../section_title/section_title.jsx';
 
-interface TechListProps extends SectionTitleProps {
+interface TechListProps<T> extends SectionTitleProps {
   techListContainerSxProps: SxProps;
   techListTextSxProps: SxProps;
-  data: string[];
-  renderTechLists: (value: unknown, index: number, array: unknown[]) => ReactNode;
+  data: T[];
+  renderTechLists: (value: T, index: number, array: T[]) => ReactElement<T>;
   id: string;
   labelText: string;
   variant: TypographyVariant;
 }
 
-export const TechList = ({
+export const TechList = <T,>({
   techListContainerSxProps,
   techListTextSxProps,
   data,
@@ -25,7 +27,7 @@ export const TechList = ({
   variant,
   tooltipTitle,
   placement,
-}: TechListProps) => (
+}: TechListProps<T>) => (
   <Container
     component={'div'}
     id={`${id}-wrapper`}
@@ -41,8 +43,8 @@ export const TechList = ({
       sx={techListTextSxProps}
     />
 
-    <List key={`${id}-list`} id={`${id}-list`}>
-      <RenderList<string> data={data} listMapCallback={renderTechLists} />
+    <List id={`${id}-list`} sx={{ display: 'flex', flexDirection: 'column' }}>
+      <RenderList<T> data={data} listMapCallback={renderTechLists} />
     </List>
   </Container>
 );

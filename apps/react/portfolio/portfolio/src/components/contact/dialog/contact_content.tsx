@@ -1,13 +1,14 @@
 import { Waiting } from '@aklapper/react-shared';
-import Box from '@mui/material/Box';
-import { Suspense, type ReactNode } from 'react';
+import Box, { type BoxProps } from '@mui/material/Box';
+import { Suspense, type ReactElement } from 'react';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
+import type { GoogleCalendarProps } from '../google-calendar/google-calendar';
 
 interface ContactContentProps {
-  element: ReactNode;
+  element: ReactElement<GoogleCalendarProps | BoxProps> | null;
 }
 
-export default function ContactContent({ element }: ContactContentProps) {
+export default function ContactContent({ element }: ContactContentProps): ReactElement<ContactContentProps> {
   return (
     <Suspense fallback={<Waiting src={waiting} />}>
       <Box component={'section'} width={'100%'}>

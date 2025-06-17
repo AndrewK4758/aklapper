@@ -2,12 +2,14 @@ import { workspaceRoot } from '@nx/devkit';
 import { nxPreset } from '@nx/jest/preset.js';
 import type { Config } from 'jest';
 import { resolve } from 'path';
-import type { DefaultEsmTransformOptions } from 'ts-jest';
+import type { TsJestTransformerOptions } from 'ts-jest';
 
-const tsJestOptions: DefaultEsmTransformOptions = {
+const tsJestOptions: TsJestTransformerOptions = {
+  useESM: true,
   tsconfig: '<rootDir>/tsconfig.json',
   babelConfig: {
     sourceType: 'module',
+    sourceMaps: true,
     targets: { esmodules: true, node: 'current' },
   },
   diagnostics: {
@@ -16,7 +18,7 @@ const tsJestOptions: DefaultEsmTransformOptions = {
   },
 };
 
-const modules = {
+const MODULES = {
   '@aklapper/chain': [resolve(workspaceRoot, 'packages/chain/src/$1')],
   '@aklapper/games': [resolve(workspaceRoot, 'packages/games/src/$1')],
   '@aklapper/game': [resolve(workspaceRoot, 'packages/game/src/$1')],
@@ -43,14 +45,18 @@ const config: Config = {
   coverageProvider: 'v8',
   collectCoverage: true,
   coverageReporters: ['text', 'html'],
-  moduleNameMapper: modules,
-  extensionsToTreatAsEsm: ['.ts', '.mts'],
+  moduleNameMapper: MODULES,
+  moduleFileExtensions: ['js', 'json', 'ts', 'mts', 'html'],
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
   passWithNoTests: true,
   verbose: true,
   silent: false,
   transform: {
-    '^.+\\.(ts|js)$': ['ts-jest', { ...tsJestOptions, useESM: true }],
+    '^.+\\.(ts|js|mts|cts|mjs|cjs)$': ['ts-jest', tsJestOptions],
   },
+  testEnvironment: 'node',
+  testEnvironmentOptions: {},
 };
 
+console.log(config);
 export default config;

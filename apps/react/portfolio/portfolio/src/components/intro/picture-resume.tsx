@@ -26,7 +26,8 @@ const PicutreAndResume = (): JSX.Element => (
     key={'picture-and-resume-paper'}
     id={'picture-and-resume-paper'}
     data-testid={'picture-and-resume-paper'}
-    sx={picAndResumeCardStyles}
+    elevation={4}
+    // sx={picAndResumeCardStyles}
   >
     <CardMedia
       rel='preload'
@@ -38,9 +39,9 @@ const PicutreAndResume = (): JSX.Element => (
       src={'/client/images/self.webp'}
       loading='eager'
       alt='andrew'
-      width={'100%'}
-      height={'100%'}
-      sx={introPicStyles}
+      // width={'100%'}
+      // height={'100%'}
+      // sx={introPicStyles}
     />
     <CardActions key={'card-actions-wrapper'} id={'card-actions-wrapper'} data-testid={'card-actions-wrapper'}>
       {/* <Tooltip title='Download my resume in PDF'> */}

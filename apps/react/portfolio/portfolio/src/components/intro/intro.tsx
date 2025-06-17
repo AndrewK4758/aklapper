@@ -1,5 +1,4 @@
 import { SectionTitle } from '@aklapper/react-shared';
-// import Box from '@mui/material/Box';
 import { type CardProps } from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
@@ -18,40 +17,40 @@ import { ABOUT_ME_TITLE, IntroText } from './static/intro-text.jsx';
 
 export default function Intro({ ...props }: CardProps): ReactElement {
   return (
-    <StyledCard
-      {...props}
-      id={'intro-card'}
-      sx={{ width: '60%', [Theme.breakpoints.down('lg')]: { width: 'fit-content' } }}
-    >
-      <CardHeader
-        title={
-          <SectionTitle
-            id='about-me-title-text'
-            data-testid='about-me-title-text'
-            variant='h1'
-            title={ABOUT_ME_TITLE.slice(0, 3)}
-          />
-        }
-        subheader={<SectionTitle variant='h2' title={ABOUT_ME_TITLE.slice(3)} />}
-        avatar={
-          <CardMedia
-            rel='preload'
-            crossOrigin=''
-            component={'img'}
-            id={'card-media-resume-image'}
-            data-testid={'card-media-resume-image'}
-            src={'/client/images/self.webp'}
-            loading='eager'
-            alt='andrew'
-            sx={{ width: '100%', borderRadius: Theme.shape.borderRadius }}
-          />
-        }
-      />
+    // <StyledCard
+    //   {...props}
+    //   id={'intro-card'}
+    //   sx={{ width: '60%', [Theme.breakpoints.down('lg')]: { width: 'fit-content' } }}
+    // >
+    //   <CardHeader
+    //     title={
+    //       // ABOUT_ME_TITLE
+    //       <SectionTitle
+    //         id='about-me-title-text'
+    //         data-testid='about-me-title-text'
+    //         variant='h1'
+    //         title={ABOUT_ME_TITLE}
+    //       />
+    //     }
+    //     avatar={
+    //       <CardMedia
+    //         rel='preload'
+    //         crossOrigin=''
+    //         component={'img'}
+    //         id={'card-media-resume-image'}
+    //         data-testid={'card-media-resume-image'}
+    //         src={'/client/images/self.webp'}
+    //         loading='eager'
+    //         alt='andrew'
+    //         sx={{ width: '100%', height: 'auto', borderRadius: Theme.shape.borderRadius }}
+    //       />
+    //     }
+    //   />
 
-      <CardContent id='about-me-header-box'>
-        <AnimatedBorderBox />
-        <IntroText />
-      </CardContent>
-    </StyledCard>
+    //   <AnimatedBorderBox />
+    <CardContent id='about-me-header-box' sx={{ textAlign: 'justify' }}>
+      <IntroText />
+    </CardContent>
+    // </StyledCard>
   );
 }

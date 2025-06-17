@@ -42,7 +42,7 @@ export default function SectionTitle({
   TooltipProps,
   Icon,
   ...props
-}: SectionTitleProps) {
+}: SectionTitleProps): ReactElement<SectionTitleProps> {
   const hasTooltip = !!tooltipTitle;
   const hasIcon = !!Icon;
 

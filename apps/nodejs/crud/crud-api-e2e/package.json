@@ -20,7 +20,8 @@
         ],
         "options": {
           "jestConfig": "apps/nodejs/crud/crud-api-e2e/jest.config.ts",
-          "passWithNoTests": true
+          "passWithNoTests": true,
+          "useStderr": true
         },
         "dependsOn": [
           "crud-api:build"

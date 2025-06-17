@@ -1,19 +1,21 @@
-import type { DialogProps } from '@mui/material/Dialog';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { enUS } from '@mui/x-date-pickers/locales';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import type { ReactElement } from 'react';
 import GoogleUserContextProvider from '../../../contexts/contact-context.js';
 import LargeStyledDialog from '../../styled/large_dialog_window.js';
 
-interface DialogLayoutProps extends Omit<DialogProps, 'id' | 'data-testid' | 'scroll' | 'open' | 'maxWidth'> {
+interface DialogLayoutProps {
   isOpen: boolean;
-  tab: number;
-  handleSetTab: (tab: number) => void;
+  children: ReactElement<unknown, any>[];
 }
 
-export default function DialogLayout({ tab, isOpen, handleSetTab, ...props }: DialogLayoutProps) {
-  const { children } = props;
+export default function DialogLayout({
+  isOpen,
+  children,
+  ...props
+}: DialogLayoutProps): ReactElement<DialogLayoutProps> {
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_OAUTH_CLIENT_ID}>
       <LocalizationProvider
