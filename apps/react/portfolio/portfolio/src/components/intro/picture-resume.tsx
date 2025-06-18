@@ -13,7 +13,7 @@ import {
 } from '../../styles/intro-styles.jsx';
 import Theme from '../../styles/theme.js';
 
-const TechStackList = lazy(() => import('./tech-list/tech-list.jsx'));
+const TechStackList = lazy(() => import('./tech-list/tech-stack-lists.js'));
 
 /**
  * This component renders a card containing a picture of me and a button to download my resume.

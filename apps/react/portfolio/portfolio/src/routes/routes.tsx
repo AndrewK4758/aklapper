@@ -1,32 +1,34 @@
-// import { lazy } from 'react';
+import { lazy } from 'react';
 import type { RouteObject } from 'react-router';
 
-// import PrivacyPolicy from '../components/privacy-policy/privacy-policy.jsx';
-// import Layout from '../components/layout/layout';
 import Layout from '../components/layout/layout';
 import PrivacyPolicy from '../components/privacy-policy/privacy-policy';
 import BaseError from '../errors/base_error';
 import Home from '../pages/home/home';
 import LandingPage from '../pages/landing/landing';
 
+import waiting from '../assets/images/swirly-dots-to-chrome.webp';
+
 // import emailFormAction from '../services/actions/email-form-action.jsx';
 // import generateImageAction from '../services/actions/generate-image-action.jsx';
 // import handlePromptBuilder from '../services/actions/prompt-builder-action.jsx';
-// import loadAlbumTracks from '../services/loaders/crud-loaders/load-album-tracks.jsx';
-// import loadAlbumsCount from '../services/loaders/crud-loaders/load-albums-count.jsx';
-// import loadArtistAlbums from '../services/loaders/crud-loaders/load-artist-albums.jsx';
-// import loadArtistsCount from '../services/loaders/crud-loaders/load-artists-count.jsx';
+// import AlbumsOnArtist from '../components/crud/albums/artist-albums';
+import { Waiting } from '@aklapper/react-shared';
+import loadAlbumTracks from '../services/loaders/crud-loaders/load-album-tracks.jsx';
+import loadAlbumsCount from '../services/loaders/crud-loaders/load-albums-count.jsx';
+import loadArtistAlbums from '../services/loaders/crud-loaders/load-artist-albums.jsx';
+import loadArtistsCount from '../services/loaders/crud-loaders/load-artists-count.jsx';
 // import registerPlayersAndStartGame from '../services/loaders/register-players-and-start-game.jsx';
 
 // const Games = lazy(() => import('../pages/games/games.jsx'));
 // const ActiveGameSession = lazy(() => import('../components/games/active_game_session.jsx'));
 
-// const Crud = lazy(() => import('../pages/crud/crud.jsx'));
-// const AddEntry = lazy(() => import('../components/crud/add-entry/add-entry.jsx'));
-// const Album = lazy(() => import('../components/crud/albums/album-base.jsx'));
-// const Artist = lazy(() => import('../components/crud/artists/artist-base.jsx'));
-// const AlbumsOnArtist = lazy(() => import('../components/crud/albums/artist-albums.jsx'));
-// const Tracks = lazy(() => import('../components/crud/tracks/album-tracks.jsx'));
+const Crud = lazy(() => import('../pages/crud/crud.jsx'));
+const AddEntry = lazy(() => import('../components/crud/add-entry/add-entry.jsx'));
+const Album = lazy(() => import('../components/crud/albums/album-base.jsx'));
+const Artist = lazy(() => import('../components/crud/artists/artist-base.jsx'));
+const AlbumsOnArtist = lazy(() => import('../components/crud/albums/artist-albums.jsx'));
+const Tracks = lazy(() => import('../components/crud/tracks/album-tracks.jsx'));
 
 // const GenAI = lazy(() => import('../pages/gen-ai/gen-ai.jsx'));
 // const TextGenerator = lazy(() => import('../components/gen-ai/text/text.jsx'));
@@ -47,12 +49,13 @@ import LandingPage from '../pages/landing/landing';
 const routes: RouteObject[] = [
   {
     path: '/',
-    element: <LandingPage id='landing-page' />,
+    element: <LandingPage />,
+    hydrateFallbackElement: <Waiting src={waiting} />,
     errorElement: <BaseError />,
     id: 'landing',
   },
   {
-    path: 'home',
+    path: 'portfolio',
     element: <Layout />,
     children: [
       {
@@ -62,6 +65,47 @@ const routes: RouteObject[] = [
       {
         path: 'privacy-policy',
         element: <PrivacyPolicy />,
+      },
+      {
+        path: 'crud',
+        element: <Crud />,
+        children: [
+          {
+            path: 'artists',
+            element: <Artist />,
+            loader: loadArtistsCount,
+            children: [
+              {
+                path: ':artistID/albums',
+                element: <AlbumsOnArtist />,
+                loader: loadArtistAlbums,
+                children: [
+                  {
+                    path: ':albumID/tracks',
+                    element: <Tracks />,
+                    loader: loadAlbumTracks,
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            path: 'album',
+            element: <Album />,
+            loader: loadAlbumsCount,
+            children: [
+              {
+                path: ':albumID/tracks',
+                element: <Tracks />,
+                loader: loadAlbumTracks,
+              },
+            ],
+          },
+          {
+            path: 'add-entry',
+            element: <AddEntry />,
+          },
+        ],
       },
     ],
   },

@@ -4,28 +4,22 @@ import DetailsIcon from '@mui/icons-material/Details';
 import UploadIcon from '@mui/icons-material/Upload';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
+import NoSssr from '@mui/material/NoSsr';
 import Paper from '@mui/material/Paper';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import {
-  DataGrid,
-  GridActionsCellItem,
-  type GridColDef,
-  type GridRowParams,
-  GridToolbar,
-  useGridApiRef,
-} from '@mui/x-data-grid';
-import type { GridApiCommunity } from '@mui/x-data-grid/internals';
+import { GridActionsCellItem, type GridColDef, type GridRowParams, useGridApiRef } from '@mui/x-data-grid';
+import { DataGrid } from '@mui/x-data-grid/DataGrid';
+import { type GridApiCommunity, GridToolbar } from '@mui/x-data-grid/internals';
 import axios from 'axios';
-import { type JSX, type RefObject, useEffect, useRef, useState } from 'react';
-import { Outlet, useLoaderData, useNavigate, useOutletContext } from 'react-router';
+import { type JSX, type RefObject, Suspense, useRef, useState } from 'react';
+import { Outlet, useLoaderData, useNavigate } from 'react-router';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
-import useFetchDataGridData from '../../../hooks/useFetchDataGridData.jsx';
-import type { PaginationModel } from '../../../pages/crud/crud.jsx';
-import loadArtists from '../../../services/loaders/crud-loaders/load-artists.jsx';
-import { dataGridStyleUpdate } from '../../../styles/crud-styles.jsx';
+import useFetchDataGridData from '../../../hooks/useFetchDataGridData';
+import type { PaginationModel } from '../../../pages/crud/crud';
+import loadArtists from '../../../services/loaders/crud-loaders/load-artists';
+import { dataGridStyleUpdate } from '../../../styles/crud-styles';
 import type { artist } from '../../../types/prisma_types';
-import type { OutletContextProps } from '../../../types/types.js';
-import AddArtist from './add-artist.jsx';
+import AddArtist from './add-artist';
 
 const paginationModelInit: PaginationModel = {
   pageSize: 25,
@@ -44,7 +38,6 @@ const Artist = (): JSX.Element => {
   const [artists, setArtists] = useState<artist[] | undefined>(undefined);
   const [rowCountState, setRowCountState] = useState(COUNT);
   const [paginationModel, setPaginationModel] = useState<PaginationModel>(paginationModelInit);
-  const { loading, setLoading } = useOutletContext<OutletContextProps>();
   const matchesSize = useMediaQuery('(max-width:1200px)');
   const divRef = useRef<HTMLDivElement>(null);
   const nav = useNavigate();
@@ -52,10 +45,6 @@ const Artist = (): JSX.Element => {
   const apiRef = useGridApiRef<GridApiCommunity>();
 
   useScrollIntoView(divRef);
-
-  useEffect(() => {
-    if (apiRef.current) setLoading(false);
-  }, [apiRef.current]);
 
   useFetchDataGridData<artist[] | undefined>(paginationModel, setArtists, loadArtists);
 
@@ -171,46 +160,49 @@ const Artist = (): JSX.Element => {
           id='artist-data-grid-wrapper'
           sx={{ borderRadius: 1 }}
         >
-          {loading && <Waiting src={waiting} />}
-          <DataGrid
-            logLevel='debug'
-            key={'artist-data-grid'}
-            aria-label='artist-data-grid'
-            apiRef={apiRef}
-            columns={columns}
-            rows={artists}
-            getRowId={getID}
-            rowCount={rowCountState}
-            getRowHeight={() => 'auto'}
-            pageSizeOptions={[10, 25, 50, 100]}
-            paginationMode='server'
-            onRowCountChange={newRowCount => setRowCountState(newRowCount)}
-            onPaginationModelChange={setPaginationModel}
-            paginationModel={paginationModel}
-            sx={dataGridStyleUpdate}
-            slots={{ toolbar: GridToolbar }}
-            slotProps={{
-              pagination: {
-                slotProps: {
-                  select: {
-                    slotProps: {
-                      input: { id: 'artist-pagination-page-numbers' },
+          <NoSssr>
+            <DataGrid
+              logLevel='debug'
+              key={'artist-data-grid'}
+              aria-label='artist-data-grid'
+              apiRef={apiRef}
+              columns={columns}
+              rows={artists}
+              getRowId={getID}
+              rowCount={rowCountState}
+              getRowHeight={() => 'auto'}
+              pageSizeOptions={[10, 25, 50, 100]}
+              paginationMode='server'
+              onRowCountChange={newRowCount => setRowCountState(newRowCount)}
+              onPaginationModelChange={setPaginationModel}
+              paginationModel={paginationModel}
+              sx={dataGridStyleUpdate}
+              slots={{ toolbar: GridToolbar }}
+              slotProps={{
+                pagination: {
+                  slotProps: {
+                    select: {
+                      slotProps: {
+                        input: { id: 'artist-pagination-page-numbers' },
+                      },
                     },
                   },
                 },
-              },
-            }}
-          />
+              }}
+            />
+          </NoSssr>
         </Paper>
       </Box>
-      <Box
-        key={'albums-for-artist-box'}
-        component={'div'}
-        id='albums-for-artist-box'
-        flex={matchesSize ? '0 1 100%' : '0 1 50%'}
-      >
-        <Outlet />
-      </Box>
+      <Suspense fallback={<Waiting src={waiting} />}>
+        <Box
+          key={'albums-for-artist-box'}
+          component={'div'}
+          id='albums-for-artist-box'
+          flex={matchesSize ? '0 1 100%' : '0 1 50%'}
+        >
+          <Outlet />
+        </Box>
+      </Suspense>
     </Box>
   );
 };

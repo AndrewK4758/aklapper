@@ -10,7 +10,6 @@ export * from './lib/label/label.jsx';
 export * from './lib/render-list/render-list.jsx';
 export * from './lib/section_title/section_title.jsx';
 export * from './lib/tab-label/tab-label.jsx';
-export * from './lib/tech-stack-list/tech-list.jsx';
 export * from './lib/text/text.jsx';
 export * from './lib/waiting/waiting.jsx';
 

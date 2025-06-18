@@ -25,6 +25,7 @@ export default function DateAndTimeInput({ formik, name }: AppointmentMakerProps
       data-testid='appointment-maker-wrapper'
     >
       <DateTimePicker
+        label={'Date & Time'}
         name={name}
         formatDensity='spacious'
         viewRenderers={{
@@ -32,7 +33,7 @@ export default function DateAndTimeInput({ formik, name }: AppointmentMakerProps
           minutes: renderTimeViewClock,
           meridiem: renderTimeViewClock,
         }}
-        label={'Date & Time'}
+        disableIgnoringDatePartForTimeValidation
         value={formik.values.date}
         minDate={tomorrow}
         maxDate={nextYear}

@@ -8,7 +8,7 @@ import { Label } from '../label/label.jsx';
 import FormikValidationError from './formik-validation-error.js';
 
 export interface FormikTextInputProps<T extends object> {
-  name: keyof T;
+  name: Extract<keyof T, string>;
   formik: FormikProps<T>;
   type: string;
   label: string;

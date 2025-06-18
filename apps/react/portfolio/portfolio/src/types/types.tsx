@@ -11,5 +11,5 @@ export type OutletContextProps = {
   promptResponse: string[];
   setPromptResponse: () => void;
   loading: boolean;
-  setLoading: () => void;
+  setLoading: (loadding: boolean) => void;
 };

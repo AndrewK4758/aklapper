@@ -18,6 +18,10 @@ const landingPageInitState: LandingPageState = {
   motionOffset: 0,
 };
 
+// interface LandingPageProps extends BoxProps {
+//   handleEnterClicked: () => void;
+// }
+
 export default function LandingPage({ ...props }: BoxProps) {
   const [state, dispatch] = useReducer(landingPageReducer, landingPageInitState);
   const nav = useNavigate();
@@ -58,8 +62,8 @@ export default function LandingPage({ ...props }: BoxProps) {
     requestAnimationFrame(step);
   };
 
-  const handleEnterClick = () => {
-    nav('home', { viewTransition: true });
+  const handleEnterClicked = () => {
+    nav('portfolio', { relative: 'route' });
   };
 
   return (
@@ -81,7 +85,7 @@ export default function LandingPage({ ...props }: BoxProps) {
           <NavToHome
             isVisable={state.isEnterVisible}
             motionOffset={state.motionOffset}
-            onHandleClickEnter={handleEnterClick}
+            onHandleClickEnter={handleEnterClicked}
           />
         )}
       </Box>

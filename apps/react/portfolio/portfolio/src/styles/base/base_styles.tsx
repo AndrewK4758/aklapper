@@ -25,7 +25,7 @@ export const SECONDARY_CONTRAST = '#00B358';
 
 // Text
 export const TEXT_PRIMARY = '#EEF0FF';
-export const TEXT_SECONDARY = '#E9E9EB';
+export const TEXT_SECONDARY = '#BBC0CC';
 
 // Transparent Box Shadow
 export const BOX_SHADOW_MAIN_DARK = `0 0 0 0.5rem ${MAIN_COLOR_DARK}3A`;

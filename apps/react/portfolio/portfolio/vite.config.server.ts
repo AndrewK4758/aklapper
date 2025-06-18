@@ -42,7 +42,16 @@ const config: UserConfig = defineConfig({
   },
 
   ssr: {
-    noExternal: ['@mui/material', '@mui/icons-material', '@mui/x-date-pickers', '@mui/x-data-grid'],
+    noExternal: [
+      '@mui/material',
+      '@mui/icons-material',
+      '@mui/x-date-pickers',
+      '@mui/x-data-grid',
+      '@emotion/styled',
+      '@emotion/react',
+      '@mui/styled-engine-sc',
+      /\.css$/,
+    ],
   },
 
   base: BASE,

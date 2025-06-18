@@ -6,9 +6,16 @@ interface TextInputProps<T extends object> {
   name: Extract<keyof T, string>;
   label: string;
   multiline?: boolean;
+  inputHeight: `${string}px`;
 }
 
-export default function TextInput<T extends object>({ name, label, formik, multiline = false }: TextInputProps<T>) {
+export default function TextInput<T extends object>({
+  name,
+  label,
+  formik,
+  multiline = false,
+  inputHeight,
+}: TextInputProps<T>) {
   return (
     <TextField
       fullWidth
@@ -25,6 +32,13 @@ export default function TextInput<T extends object>({ name, label, formik, multi
       onFocus={() => formik.setFieldTouched(name, false)}
       error={formik.touched[name] && !!formik.errors[name]}
       helperText={formik.touched[name] && (formik.errors[name] as string)}
+      slotProps={{
+        root: {
+          sx: {
+            height: inputHeight,
+          },
+        },
+      }}
     />
   );
 }

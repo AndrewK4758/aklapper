@@ -1,30 +1,24 @@
-import { Text, useScrollIntoView } from '@aklapper/react-shared';
+import { Text, useScrollIntoView, Waiting } from '@aklapper/react-shared';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import DetailsIcon from '@mui/icons-material/Details';
 import UploadIcon from '@mui/icons-material/Upload';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
+import NoSssr from '@mui/material/NoSsr';
 import Paper from '@mui/material/Paper';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import {
-  DataGrid,
-  GridActionsCellItem,
-  GridToolbar,
-  useGridApiRef,
-  type GridColDef,
-  type GridRowParams,
-} from '@mui/x-data-grid';
-import type { GridApiCommunity } from '@mui/x-data-grid/internals';
-import { useEffect, useRef, useState, type JSX } from 'react';
-import { Outlet, useLoaderData, useNavigate, useOutletContext } from 'react-router';
-import useFetchDataGridData from '../../../hooks/useFetchDataGridData.jsx';
-import handleDeleteAlbum from '../../../services/events/crud-events/handle-delete-album.jsx';
-import handleUpdateAlbumTitle from '../../../services/events/crud-events/handle-update-album-title.jsx';
-import loadAlbums from '../../../services/loaders/crud-loaders/load-albums.jsx';
-import { dataGridStyleUpdate } from '../../../styles/crud-styles.jsx';
-import type { album } from '../../../types/prisma_types.js';
-import type { OutletContextProps } from '../../../types/types.jsx';
-import AddAlbum from './add-album.jsx';
+import { DataGrid, GridActionsCellItem, useGridApiRef, type GridColDef, type GridRowParams } from '@mui/x-data-grid';
+import { GridToolbar, type GridApiCommunity } from '@mui/x-data-grid/internals';
+import { Suspense, useRef, useState, type JSX } from 'react';
+import { Outlet, useLoaderData, useNavigate } from 'react-router';
+import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
+import useFetchDataGridData from '../../../hooks/useFetchDataGridData';
+import handleDeleteAlbum from '../../../services/events/crud-events/handle-delete-album';
+import handleUpdateAlbumTitle from '../../../services/events/crud-events/handle-update-album-title';
+import loadAlbums from '../../../services/loaders/crud-loaders/load-albums';
+import { dataGridStyleUpdate } from '../../../styles/crud-styles';
+import type { album } from '../../../types/prisma_types';
+import AddAlbum from './add-album';
 
 const paginationModelInit = {
   pageSize: 25,
@@ -42,7 +36,6 @@ const Album = (): JSX.Element => {
   const COUNT = useLoaderData() as number;
   const [albums, setAlbums] = useState<album[]>();
   const [rowCountState, setRowCountState] = useState(COUNT);
-  const { setLoading } = useOutletContext<OutletContextProps>();
   const [paginationModel, setPaginationModel] = useState(paginationModelInit);
   const matchesSize = useMediaQuery('(max-width:1200px)');
   const divRef = useRef<HTMLDivElement>(null);
@@ -53,10 +46,6 @@ const Album = (): JSX.Element => {
   useFetchDataGridData<album[] | undefined>(paginationModel, setAlbums, loadAlbums);
 
   useScrollIntoView(divRef);
-
-  useEffect(() => {
-    if (apiRef.current) setLoading(false);
-  }, [apiRef.current]);
 
   const columns: GridColDef[] = [
     {
@@ -153,8 +142,8 @@ const Album = (): JSX.Element => {
           <Paper key={'album-title-bar'} id='album-title-bar' component={'div'} sx={{ height: 'fit-content' }}>
             <Text
               component={'h3'}
-              titleText={'Album List'}
-              titleVariant={'h3'}
+              children={'Album List'}
+              variant={'h3'}
               id='albums-title'
               sx={{
                 textAlign: 'center',
@@ -166,46 +155,50 @@ const Album = (): JSX.Element => {
           <AddAlbum apiRef={apiRef} />
         </Container>
         <Paper component={'div'} key={'all-albums-datagrid'} id='all-albums-datagrid' sx={{ borderRadius: 1 }}>
-          <DataGrid
-            logLevel='info'
-            key={'album-data-grid'}
-            aria-label='album-data-grid'
-            autosizeOnMount={true}
-            apiRef={apiRef}
-            columns={columns}
-            rows={albums}
-            getRowId={getID}
-            rowCount={rowCountState}
-            getRowHeight={() => 'auto'}
-            pageSizeOptions={[10, 25, 50, 100]}
-            paginationMode='server'
-            onRowCountChange={newRowCount => setRowCountState(newRowCount)}
-            onPaginationModelChange={setPaginationModel}
-            paginationModel={paginationModel}
-            sx={dataGridStyleUpdate}
-            slots={{ toolbar: GridToolbar }}
-            slotProps={{
-              pagination: {
-                slotProps: {
-                  select: {
-                    slotProps: {
-                      input: { id: 'album-pagination-page-numbers' },
+          <NoSssr>
+            <DataGrid
+              logLevel='info'
+              key={'album-data-grid'}
+              aria-label='album-data-grid'
+              autosizeOnMount={true}
+              apiRef={apiRef}
+              columns={columns}
+              rows={albums}
+              getRowId={getID}
+              rowCount={rowCountState}
+              getRowHeight={() => 'auto'}
+              pageSizeOptions={[10, 25, 50, 100]}
+              paginationMode='server'
+              onRowCountChange={newRowCount => setRowCountState(newRowCount)}
+              onPaginationModelChange={setPaginationModel}
+              paginationModel={paginationModel}
+              sx={dataGridStyleUpdate}
+              slots={{ toolbar: GridToolbar }}
+              slotProps={{
+                pagination: {
+                  slotProps: {
+                    select: {
+                      slotProps: {
+                        input: { id: 'album-pagination-page-numbers' },
+                      },
                     },
                   },
                 },
-              },
-            }}
-          />
+              }}
+            />
+          </NoSssr>
         </Paper>
       </Box>
-      <Box
-        key={'tracks-on-album-box'}
-        component={'div'}
-        id='tracks-on-album-box'
-        flex={matchesSize ? '0 1 100%' : '0 1 50%'}
-      >
-        <Outlet />
-      </Box>
+      <Suspense fallback={<Waiting src={waiting} />}>
+        <Box
+          key={'tracks-on-album-box'}
+          component={'div'}
+          id='tracks-on-album-box'
+          flex={matchesSize ? '0 1 100%' : '0 1 50%'}
+        >
+          <Outlet />
+        </Box>
+      </Suspense>
     </Box>
   );
 };

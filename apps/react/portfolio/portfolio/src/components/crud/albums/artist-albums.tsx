@@ -1,19 +1,13 @@
-import { Text } from '@aklapper/react-shared';
+import { Text, Waiting } from '@aklapper/react-shared';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import DetailsIcon from '@mui/icons-material/Details';
 import UploadIcon from '@mui/icons-material/Upload';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
-import {
-  DataGrid,
-  GridActionsCellItem,
-  GridToolbar,
-  useGridApiRef,
-  type GridColDef,
-  type GridRowParams,
-} from '@mui/x-data-grid';
-import { useState, type JSX } from 'react';
+import { DataGrid, GridActionsCellItem, useGridApiRef, type GridColDef, type GridRowParams } from '@mui/x-data-grid';
+import { GridToolbar } from '@mui/x-data-grid/internals';
+import { Suspense, useState, type JSX } from 'react';
 import { Outlet, useLoaderData, useNavigate } from 'react-router';
 import type { PaginationModel } from '../../../pages/crud/crud.jsx';
 import handleDeleteAlbum from '../../../services/events/crud-events/handle-delete-album.jsx';
@@ -22,6 +16,11 @@ import type { ArtistAlbums } from '../../../services/loaders/crud-loaders/load-a
 import { dataGridStyleUpdate } from '../../../styles/crud-styles.jsx';
 import type { album } from '../../../types/prisma_types.js';
 import AddAlbumOnArtist from './add-album-on-artist.jsx';
+
+import NoSsr from '@mui/material/NoSsr';
+import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
+// import loadArtistAlbums from '../../../services/loaders/crud-loaders/load-artist-albums';
+// export const loader = loadArtistAlbums;
 
 export interface AlbumState {
   albumTitle: string;
@@ -37,7 +36,7 @@ const paginationModelInit: PaginationModel = { page: 0, pageSize: 5 };
  * @returns {JSX.Element} The rendered AlbumsOnArtist component.
  */
 
-const AlbumsOnArtist = (): JSX.Element => {
+export const AlbumsOnArtist = (): JSX.Element => {
   const { albums } = useLoaderData() as ArtistAlbums;
   const [paginationModel, setPaginationModel] = useState<PaginationModel>(paginationModelInit);
   const nav = useNavigate();
@@ -144,8 +143,8 @@ const AlbumsOnArtist = (): JSX.Element => {
           <Paper elevation={1} key={'title-bar'} sx={{ height: 'fit-content' }}>
             <Text
               component={'h3'}
-              titleText={'Artist Albums'}
-              titleVariant={'h3'}
+              children={'Artist Albums'}
+              variant={'h3'}
               id={'artist-albums'}
               sx={{ textAlign: 'center' }}
             />
@@ -160,36 +159,40 @@ const AlbumsOnArtist = (): JSX.Element => {
           id='artist-album-datagrid-wrapper'
           sx={{ borderRadius: 1, flex: 1 }}
         >
-          <DataGrid
-            key={'artist-albums-data-grid'}
-            aria-label='artist-albums-data-grid'
-            apiRef={apiRef}
-            columns={columns}
-            rows={albums}
-            getRowId={getID}
-            getRowHeight={() => 'auto'}
-            pageSizeOptions={[1, 5, 10, 20]}
-            paginationModel={paginationModel}
-            onPaginationModelChange={newPageModel => setPaginationModel(newPageModel)}
-            sx={dataGridStyleUpdate}
-            slots={{ toolbar: GridToolbar }}
-            slotProps={{
-              pagination: {
-                slotProps: {
-                  select: {
-                    slotProps: {
-                      input: { id: 'albums-pagination-page-numbers' },
+          <NoSsr>
+            <DataGrid
+              key={'artist-albums-data-grid'}
+              aria-label='artist-albums-data-grid'
+              apiRef={apiRef}
+              columns={columns}
+              rows={albums}
+              getRowId={getID}
+              getRowHeight={() => 'auto'}
+              pageSizeOptions={[1, 5, 10, 20]}
+              paginationModel={paginationModel}
+              onPaginationModelChange={newPageModel => setPaginationModel(newPageModel)}
+              sx={dataGridStyleUpdate}
+              slots={{ toolbar: GridToolbar }}
+              slotProps={{
+                pagination: {
+                  slotProps: {
+                    select: {
+                      slotProps: {
+                        input: { id: 'albums-pagination-page-numbers' },
+                      },
                     },
                   },
                 },
-              },
-            }}
-          />
+              }}
+            />
+          </NoSsr>
         </Paper>
       </Box>
-      <Box component={'div'} key={'tracks-outlet-wrapper'} id={'tracks-outlet-wrapper'} width={'100%'}>
-        <Outlet />
-      </Box>
+      <Suspense fallback={<Waiting src={waiting} />}>
+        <Box component={'div'} key={'tracks-outlet-wrapper'} id={'tracks-outlet-wrapper'} width={'100%'}>
+          <Outlet />
+        </Box>
+      </Suspense>
     </Box>
   );
 };
