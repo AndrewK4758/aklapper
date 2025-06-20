@@ -7,8 +7,10 @@ import type { GamePlayerValidation } from '@aklapper/types';
  */
 
 export const getGameInstanceInfo = (): GamePlayerValidation | undefined => {
-  const fromSession = sessionStorage.getItem('__current_game__') as string;
-  return fromSession ? (JSON.parse(fromSession) as GamePlayerValidation) : undefined;
+  if (typeof window !== 'undefined') {
+    const fromSession = sessionStorage.getItem('__current_game__') as string;
+    return fromSession ? (JSON.parse(fromSession) as GamePlayerValidation) : undefined;
+  } else return {};
 };
 
 export function addToToolipString(baseString: string, socialSite: string): string {

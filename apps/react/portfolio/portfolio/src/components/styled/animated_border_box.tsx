@@ -10,14 +10,16 @@ export const spin = keyframes`
     --clr-1: ${SECONDARY_COLOR};
   }`;
 
-const AnimatedBorderBox: ComponentType<BoxProps> = styled(Box)(({ theme }) => ({
-  background: `conic-gradient(${theme.palette.background.paper} 0 0) padding-box,
+const AnimatedBorderBox: ComponentType<BoxProps> = styled(Box, { shouldForwardProp: prop => prop !== 'bgColor' })(
+  ({ theme, bgcolor }) => ({
+    background: `conic-gradient(${bgcolor ?? theme.palette.background.paper} 0 0) padding-box,
       linear-gradient(to right, var(--clr-1), var(--clr-2), var(--clr-1)) border-box`,
-  border: '3px solid transparent',
-  borderRadius: theme.shape.borderRadius,
-  position: 'relative',
-  isolation: 'isolate',
-  animation: `${spin} 2s linear infinite`,
-}));
+    border: '3px solid transparent',
+    borderRadius: theme.shape.borderRadius,
+    position: 'relative',
+    isolation: 'isolate',
+    animation: `${spin} 2s linear infinite`,
+  }),
+);
 
 export default AnimatedBorderBox;

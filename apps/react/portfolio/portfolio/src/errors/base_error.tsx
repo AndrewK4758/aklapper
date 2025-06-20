@@ -126,7 +126,7 @@ export default function BaseError() {
           color='primary'
           id={`${pathname}-error-home-button`}
           key={`${pathname}-error-home-button`}
-          onClick={() => nav('/')}
+          onClick={() => nav('/portfolio', { relative: 'route', replace: true })}
           sx={{}}
         >
           <SectionTitle

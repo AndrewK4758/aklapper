@@ -7,8 +7,7 @@ const StyledRootComponentWrapper: ComponentType<BoxProps> = styled(Box)(({ theme
   flexDirection: 'column',
   flex: 1,
   gap: theme.spacing(2),
-  borderRadius: theme.shape.borderRadius,
-  padding: theme.spacing(2),
+  padding: theme.spacing(4),
 }));
 
 export default StyledRootComponentWrapper;

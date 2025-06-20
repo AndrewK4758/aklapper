@@ -7,7 +7,7 @@ import { useRef, type JSX } from 'react';
 import { useOutletContext } from 'react-router';
 import { io, type Socket } from 'socket.io-client';
 import * as Yup from 'yup';
-import useGenAiWebsockets from '../../../hooks/useGenAiWebsockets.jsx';
+import useGenAiWebsockets from '../../../hooks/useGenAiWebsockets';
 import {
   genAiTextInputButtonSxProps,
   labelSx,
@@ -41,12 +41,12 @@ const TextGenerator = (): JSX.Element => {
   });
   const socketRef = useRef<Socket>(clientIo);
   const socket = socketRef.current;
-  const { prompt, setLoading, setPromptResponse } = useOutletContext<OutletContextProps>();
+  const { prompt, setPromptResponse } = useOutletContext<OutletContextProps>();
   const divRef = useRef<HTMLDivElement>(null);
 
   useScrollIntoView(divRef);
 
-  useGenAiWebsockets(socket, setLoading, setPromptResponse);
+  useGenAiWebsockets(socket, setPromptResponse);
 
   return (
     <Paper component={'div'} key={'gen-ai-text-input-paper'} id='gen-ai-text-input-paper' sx={topLevelModeStyle}>

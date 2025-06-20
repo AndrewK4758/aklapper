@@ -1,7 +1,7 @@
 import type { SxProps } from '@mui/material/styles';
 import type { CSSProperties } from 'react';
 import { flexColumnStyles } from './pages-styles.jsx';
-import Theme from './theme.jsx';
+import Theme from './themes/theme.js';
 
 export const baseCrudDisplayStyleSxProps: SxProps = {
   display: 'flex',
@@ -50,6 +50,7 @@ export const searchBoxResultsWrapperSxProps: SxProps = {
   display: 'flex',
   flexDirection: 'column',
   flexWrap: 'wrap',
+
   maxHeight: '70vh',
 };
 

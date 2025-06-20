@@ -3,25 +3,25 @@ import type { GameBoard, IActivePlayersInGame } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
-import { useReducer, useRef, useState, type JSX } from 'react';
+import { ReactElement, useReducer, useRef, useState } from 'react';
 import { useParams } from 'react-router';
 import type { ManagerOptions, Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
-import useGamesWebsockets from '../../hooks/useGamesWebsockets.jsx';
+import useGamesWebsockets from '../../hooks/useGamesWebsockets';
 import {
   breakpointsBottomMenuButtonsBox,
   breakpointsBottomMenuGameBoard,
   breakpointsPlayerInTurnText,
   gamesPaperSxProps,
-} from '../../styles/games-styles.jsx';
-import getGameInstanceInfo from '../../utils/utils.jsx';
-import ActiveAvatars from './game_board/active_avatars.jsx';
-import ResetGame from './game_board/reset_game.jsx';
-import ShowGameBoardTicTacToe from './game_board/show-game-board-tic-tac-toe.jsx';
-import ShowGameBoard from './game_board/show_game_board.jsx';
-import socketReducer from './game_board/socket-reducer.jsx';
-import TakeTurnTicTacToe from './game_board/take-turn-tic-tac-toe.jsx';
-import TakeTurn from './game_board/take_turn.jsx';
+} from '../../styles/games-styles';
+import { getGameInstanceInfo } from '../../utils/utils';
+import ActiveAvatars from './game_board/active_avatars';
+import ResetGame from './game_board/reset_game';
+import ShowGameBoardTicTacToe from './game_board/show-game-board-tic-tac-toe';
+import ShowGameBoard from './game_board/show_game_board';
+import socketReducer from './game_board/socket-reducer';
+import TakeTurnTicTacToe from './game_board/take-turn-tic-tac-toe';
+import TakeTurn from './game_board/take_turn';
 
 export interface IActiveGameInfo extends IActivePlayersInGame {
   gameBoard: GameBoard;
@@ -40,16 +40,16 @@ const socketInit = () => {
  *   - Updating the game board and player state based on server events.
  *   - Rendering the game board, active players, turn information, and move controls.
  *
- * @returns {JSX.Element} The rendered active game session component.
+ * @returns {ReactElement} The rendered active game session component.
  */
 
-const wsURL = import.meta.env.VITE_GAMES_WS_URL;
+const wsURL = import.meta.env.VITE_GAMES_WS_URL + '/gameplay';
 
-const ActiveGameSession = (): JSX.Element => {
+const ActiveGameSession = (): ReactElement => {
   const socketManagerOptions: Partial<ManagerOptions> = {
     autoConnect: false,
-    path: '/gameplay',
     extraHeaders: { 'current-game': JSON.stringify(getGameInstanceInfo()) },
+    path: import.meta.env.VITE_GAMES_WS_PATH,
   };
 
   const clientSocket = io(wsURL, socketManagerOptions);
@@ -101,7 +101,7 @@ const ActiveGameSession = (): JSX.Element => {
         id='active-game-buttons-wrapper'
         sx={breakpointsBottomMenuGameBoard}
       >
-        <Text component={'h2'} titleVariant='h2' titleText={state.avatarInTurn} sx={breakpointsPlayerInTurnText} />
+        <Text variant='h2' children={state.avatarInTurn} sx={breakpointsPlayerInTurnText} />
         <Box component={'section'} sx={breakpointsBottomMenuButtonsBox}>
           {id === 'Chutes-&-Ladders' ? (
             <TakeTurn avatarInTurn={state.avatarInTurn as string} dispatch={dispatch} socket={socket} />

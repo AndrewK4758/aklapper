@@ -8,6 +8,7 @@ const CenteredFlexDiv: ComponentType<BoxProps> = styled(Box)(({ theme }) => ({
   alignItems: 'center',
   justifyContent: 'center',
   gap: theme.spacing(4),
+  padding: theme.spacing(4),
 }));
 
 export default CenteredFlexDiv;

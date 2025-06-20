@@ -2,7 +2,7 @@ import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import type { SxProps } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
-import Theme from '../../../styles/theme';
+import Theme from '../../../styles/themes/theme.js';
 
 export const FILE_SIZE = 1024 * 1024 * 5;
 
@@ -37,17 +37,17 @@ export const SUPPORTED_FORMATS = [
   '.avi',
   '.wmv',
   '.mpegps',
-  '.flv'
+  '.flv',
 ];
 
 const listHeader: SxProps = {
   fontSize: '1.1rem',
   fontWeight: 'bold',
-  borderBottom: `1px solid ${Theme.palette.primary.contrastText}`
+  borderBottom: `1px solid ${Theme.palette.primary.contrastText}`,
 };
 
 export const objective = (
-  <List key={'objective-list'} id="objective-list">
+  <List key={'objective-list'} id='objective-list'>
     <Typography sx={listHeader}>
       Objective is the overall goal/purpose or main task you want executed. Some objective categories include:
     </Typography>
@@ -90,7 +90,7 @@ export const objective = (
 );
 
 export const instructions = (
-  <List key={'instructions-list'} id="instructions-list">
+  <List key={'instructions-list'} id='instructions-list'>
     <Typography sx={listHeader}>
       Instructions are specific directions/constraints on how the model should carry out the objective. You can provide
       detailed guidelines or rules to follow while completing the objective task.
@@ -118,7 +118,7 @@ export const instructions = (
 );
 
 export const textData = (
-  <List key={'text-data-list'} id="text-data-list">
+  <List key={'text-data-list'} id='text-data-list'>
     <Typography sx={listHeader}>
       The text data is actual text content that you want to process. This is the core input / raw data that the model
       will analyze, understand, and use to generate a response.It can be anything from a single sentence to a whole
@@ -128,7 +128,7 @@ export const textData = (
 );
 
 export const examples = (
-  <List key={'examples-list'} id="examples-list">
+  <List key={'examples-list'} id='examples-list'>
     <Typography sx={listHeader}>
       You provide concrete illustrations of the desired input and output.It's like showing the AI a few samples of what
       you expect, so it can better understand the task and generate more accurate and relevant responses.
@@ -155,7 +155,7 @@ export const examples = (
 );
 
 export const constraints = (
-  <List key={'constraints-list'} id="constraints-list">
+  <List key={'constraints-list'} id='constraints-list'>
     <Typography sx={listHeader}>
       You define any limitations or restrictions that you want to impose on the output. It's like setting boundaries or
       rules to adhere to when generating responses.
@@ -182,7 +182,7 @@ export const constraints = (
 );
 
 export const tone = (
-  <List key={'tone-list'} id="tone-list">
+  <List key={'tone-list'} id='tone-list'>
     <Typography sx={listHeader}>
       You define the overall mood or style of communication you want to adopt in the response.It's like providing
       personality instructions, influencing how it expresses information.
@@ -210,7 +210,7 @@ export const tone = (
 );
 
 export const responseInstructions = (
-  <List key={'response-instructions-list'} id="response-instructions-list">
+  <List key={'response-instructions-list'} id='response-instructions-list'>
     <Typography sx={listHeader}>
       You define how to deliver the information or fulfill the objective.It's like providing formatting or presentation
       guidelines for the output.

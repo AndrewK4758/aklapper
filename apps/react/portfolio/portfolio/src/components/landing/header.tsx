@@ -1,6 +1,6 @@
 import Box from '@mui/material/Box';
 import { keyframes, type SxProps, type Theme as ThemeType } from '@mui/material/styles';
-import Theme from '../../styles/theme';
+import Theme from '../../styles/themes/theme.js';
 
 const typewriterBase: SxProps<ThemeType> = {
   overflow: 'hidden',

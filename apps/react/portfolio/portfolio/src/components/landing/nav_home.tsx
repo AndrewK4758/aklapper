@@ -1,5 +1,5 @@
 import type { SxProps, Theme as ThemeType } from '@mui/material/styles';
-import Theme from '../../styles/theme';
+import Theme from '../../styles/themes/theme.js';
 import EnterIcon from '../icons/enter_icon';
 
 const MOTION_PATH =

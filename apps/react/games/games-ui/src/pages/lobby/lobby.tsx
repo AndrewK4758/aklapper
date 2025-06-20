@@ -139,10 +139,10 @@ export default function Lobby() {
       <Box component={'div'} key={'lobby'} id='lobby-wrapper' flex={1} display={'flex'} flexDirection={'column'}>
         <Box component={'section'} id='lobby-header-wrapper' display={'flex'} alignItems={'flex-end'}>
           <Box component={'section'} id='players-in-lobby-wrapper' flex={'0 1 27%'} textAlign={'left'}>
-            <Text titleText={'Players'} titleVariant='h2' component={'h2'} sx={{ paddingLeft: 4 }} />
+            <Text children={'Players'} variant='h2' component={'h2'} sx={{ paddingLeft: 4 }} />
           </Box>
           <Box component={'section'} id='game-list-title-wrapper' flex={'0 1 73%'}>
-            <Text component={'h2'} titleVariant='h2' titleText={'Games'} sx={{ textAlign: 'center' }} />
+            <Text component={'h2'} variant='h2' children={'Games'} sx={{ textAlign: 'center' }} />
           </Box>
         </Box>
         <Divider />
@@ -170,7 +170,7 @@ export default function Lobby() {
           </Box>
 
           <Box component={'section'} id='lobby-messages-wrapper' flex={4} display={'flex'} flexDirection={'column'}>
-            <Text titleText='Messages' titleVariant='h2' component={'h2'} sx={{ textAlign: 'left', paddingLeft: 4 }} />
+            <Text children='Messages' variant='h2' component={'h2'} sx={{ textAlign: 'left', paddingLeft: 4 }} />
             <RenderList<PrivateMessageDetails>
               data={messages}
               listMapCallback={(e, i) => messagesListCallback(e, i, activePlayer)}
@@ -209,8 +209,8 @@ function playersMapCallback(
     >
       <Text
         key={`${name}-${id}`}
-        titleText={name}
-        titleVariant='body1'
+        children={name}
+        variant='body1'
         component={'p'}
         sx={{ textAlign: 'left', fontSize: '1.5rem' }}
       />
@@ -286,14 +286,14 @@ function messagesListCallback(
         <Box component={'section'} flex={1} textAlign={'left'} sx={{ paddingLeft: 1 }}>
           <Text
             component={'span'}
-            titleText={sender.senderName}
-            titleVariant={'body1'}
+            children={sender.senderName}
+            variant={'body1'}
             key={`${sender.senderName}-${message}`}
           />
         </Box>
 
         <Box component={'section'} flex={5} textAlign={'right'} sx={{ paddingRight: 1 }}>
-          <Text component={'span'} titleVariant={'body1'} titleText={message} />
+          <Text component={'span'} variant={'body1'} children={message} />
         </Box>
         <Divider orientation='vertical' textAlign='right' />
       </Box>

@@ -11,7 +11,7 @@ import {
   type GoogleUserContextProps,
 } from '../../../contexts/contact-context.js';
 import AnimatedBorderBox from '../../styled/animated_border_box.js';
-import ContactDialogButton from '../../styled/contact_dialog_button.js';
+import ContactDialogButton from '../../styled/base_button.js';
 
 export default function GoogleAuthButton(): ReactElement<ButtonProps> {
   const { handleSetGoogleUser } = useContext<GoogleUserContextProps>(GoogleUserContext);

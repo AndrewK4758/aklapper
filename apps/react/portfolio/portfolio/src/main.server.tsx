@@ -6,7 +6,7 @@ import ReactDomServer from 'react-dom/server';
 import { createStaticHandler, createStaticRouter, StaticRouterProvider, type StaticHandlerContext } from 'react-router';
 import ServerError from './errors/server-error.js';
 import routes from './routes/routes.js';
-import Theme from './styles/theme.js';
+import Theme from './styles/themes/theme.js';
 import type { ManifestType } from './types/types.js';
 import getFilenamesFromManifest from './utils/get-files-from-manifest.js';
 import parseSsrManifestFile from './utils/parse_ssr_manifest.js';

@@ -3,9 +3,10 @@ import { styled } from '@mui/material/styles';
 import type { ComponentType } from 'react';
 
 const StyledCard: ComponentType<CardProps> = styled(Card)(({ theme }) => ({
-  padding: theme.spacing(1, 2),
+  padding: theme.spacing(4, 8),
   textAlign: 'center',
   borderRadius: theme.shape.borderRadius,
+  width: '100%',
 }));
 
 export default StyledCard;

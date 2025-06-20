@@ -50,19 +50,15 @@ export const corsOptions: CorsOptions = {
   credentials: false,
 };
 
-const gameServerOptions: Partial<ServerOptions> = {
+const baseWsServerOptions: Partial<ServerOptions> = {
   cleanupEmptyChildNamespaces: true,
   cors: corsOptions,
-};
-
-const lobbyServerOptions: Partial<ServerOptions> = {
-  ...gameServerOptions,
-  path: '/lobby',
+  path: '/games-api',
 };
 
 const httpServer = createServer(app);
 
-const socketServer = new SocketServer(httpServer, lobbyServerOptions, new Map<PlayerID, SocketID>());
+const socketServer = new SocketServer(httpServer, baseWsServerOptions, new Map<PlayerID, SocketID>());
 
 export const lobbySocketServer = socketServer.createNamespace('lobby');
 export const gameplaySocketServer = socketServer.createNamespace('gameplay');

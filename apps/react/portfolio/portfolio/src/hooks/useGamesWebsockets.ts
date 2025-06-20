@@ -32,6 +32,7 @@ const useGamesWebsockets = (socket: Socket, id: string, dispatch: (value: Action
     socket.emit('action', { action: ActionType.BOARD });
 
     socket.on('game-data', async ({ gameBoard, activePlayersInGame, winner, avatarInTurn }: IPlayersAndBoard) => {
+      console.log(gameBoard);
       const gameBoardClient: GameBoard = [];
       const maxRowLength = Math.sqrt(gameBoard.length);
       let indexOfSpace = 1;
@@ -67,7 +68,7 @@ const useGamesWebsockets = (socket: Socket, id: string, dispatch: (value: Action
       socket.disconnect();
       socket.removeAllListeners();
     };
-  }, [id]);
+  }, []);
 };
 
 export default useGamesWebsockets;

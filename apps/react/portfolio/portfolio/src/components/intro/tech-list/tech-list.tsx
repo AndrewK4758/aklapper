@@ -2,6 +2,7 @@ import { SectionTitle, type SectionTitleProps } from '@aklapper/react-shared';
 import Grid from '@mui/material/Grid';
 import List from '@mui/material/List';
 import type { TypographyVariant } from '@mui/material/styles';
+import Theme from '../../../styles/themes/theme.js';
 import TechListItem from './tech_list_item';
 
 interface TechListProps extends SectionTitleProps {
@@ -19,7 +20,7 @@ export const TechList = ({ data, id, labelText, variant, tooltipTitle, placement
       placement={placement}
       variant={variant}
       tooltipTitle={tooltipTitle}
-      titleSx={{ borderBottom: 1 }}
+      titleSx={{ borderBottom: 1, borderColor: Theme.palette.primary.dark }}
     />
 
     <List id={`${id}-list`} sx={{ display: 'flex', flexDirection: 'column' }}>

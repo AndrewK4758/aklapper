@@ -1,6 +1,6 @@
 import DialogActions, { type DialogActionsProps } from '@mui/material/DialogActions';
 import type { ReactElement } from 'react';
-import ContactDialogButton from '../../styled/contact_dialog_button.js';
+import ContactDialogButton from '../../styled/base_button.js';
 
 interface CloseDialogProps extends DialogActionsProps {
   handleIsOpen: () => void;

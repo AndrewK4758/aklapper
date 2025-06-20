@@ -1,10 +1,9 @@
 import { SectionTitle } from '@aklapper/react-shared';
 import CardHeader, { type CardHeaderSlotsAndSlotProps } from '@mui/material/CardHeader';
-import { useNavigate } from 'react-router';
-import Theme from '../../styles/theme';
+import Theme from '../../styles/themes/theme.js';
 import { ABOUT_ME_TITLE } from '../intro/static/intro-text';
-import NavButton from '../navigation/nav_button';
-import AnimatedBorderBox from '../styled/animated_border_box';
+
+import NavBar from '../navigation/nav_bar.js';
 
 const slotProps: CardHeaderSlotsAndSlotProps = {
   slotProps: {
@@ -18,39 +17,22 @@ const slotProps: CardHeaderSlotsAndSlotProps = {
 
 const myName = <SectionTitle title={ABOUT_ME_TITLE} variant='h1' />;
 
-export default function PicNameAndNav() {
-  const nav = useNavigate();
+const avatarImg = (
+  <img
+    rel='preload'
+    crossOrigin=''
+    id={'card-media-resume-image'}
+    data-testid={'card-media-resume-image'}
+    src={'/client/images/self.webp'}
+    loading='eager'
+    alt='andrew'
+    style={{
+      width: '100%',
+      borderRadius: Theme.shape.borderRadius,
+    }}
+  />
+);
 
-  return (
-    <CardHeader
-      title={myName}
-      subheader={
-        <AnimatedBorderBox>
-          <NavButton
-            buttonText={'CRUD'}
-            tooltipTitle={'Navigate to CRUD app'}
-            onHandleNavButtonClick={() => {
-              nav('/crud');
-            }}
-          />
-        </AnimatedBorderBox>
-      }
-      avatar={
-        <img
-          rel='preload'
-          crossOrigin=''
-          id={'card-media-resume-image'}
-          data-testid={'card-media-resume-image'}
-          src={'/client/images/self.webp'}
-          loading='eager'
-          alt='andrew'
-          style={{
-            width: '100%',
-            borderRadius: Theme.shape.borderRadius,
-          }}
-        />
-      }
-      {...slotProps}
-    />
-  );
+export default function PicNameAndNav() {
+  return <CardHeader title={myName} subheader={<NavBar />} avatar={avatarImg} {...slotProps} />;
 }

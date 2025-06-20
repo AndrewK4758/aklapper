@@ -5,7 +5,7 @@ import type { Dispatch, JSX } from 'react';
 import { useParams } from 'react-router';
 import { Socket } from 'socket.io-client';
 import { breakpointsStartGameButtonBox, breakpointsStartGameButtonFormButton } from '../../../styles/games-styles.js';
-import getGameInstanceInfo from '../../../utils/utils.jsx';
+import { getGameInstanceInfo } from '../../../utils/utils.jsx';
 import { type Action, ActionType } from './socket-reducer.jsx';
 
 interface ReadyToStartProps {

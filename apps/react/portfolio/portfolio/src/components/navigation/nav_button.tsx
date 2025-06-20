@@ -1,46 +1,28 @@
-import { Text } from '@aklapper/react-shared';
-import Box from '@mui/material/Box';
 import type { ButtonProps } from '@mui/material/Button';
 import type { SxProps } from '@mui/material/styles';
 import Tooltip from '@mui/material/Tooltip';
-import MenuButton from '../styled/contact_dialog_button.js';
+import type { ReactNode } from 'react';
+import { useNavigate } from 'react-router';
+import BaseStyledButton from '../styled/base_button.js';
 
-interface NavButtonProps extends Omit<ButtonProps, 'onClick'> {
+interface NavButtonProps extends ButtonProps {
   buttonText: string;
-  testId?: string;
-  tooltipTitle: string;
-  sx?: SxProps;
-  onHandleNavButtonClick: () => void;
+  path: string;
+  tooltipTitle: string | ReactNode;
+  buttonSx?: SxProps;
+  tooltipSx?: SxProps;
 }
 
-export default function NavButton({
-  buttonText,
-  testId,
-  tooltipTitle,
-  sx,
-  disabled,
-  onHandleNavButtonClick,
-  ...props
-}: NavButtonProps) {
-  const button = (
-    <MenuButton
-      {...props}
-      disabled={disabled}
-      data-testid={testId ?? props.id}
-      onClick={onHandleNavButtonClick}
-      sx={sx}
-    >
-      <Text variant={'button'} component={'span'}>
-        {buttonText}
-      </Text>
-    </MenuButton>
-  );
-
+export default function NavButton({ buttonText, path, tooltipTitle, buttonSx, tooltipSx, ...props }: NavButtonProps) {
+  const nav = useNavigate();
+  const handleOnClick = () => {
+    nav(path);
+  };
   return (
-    <Tooltip title={tooltipTitle}>
-      <Box component={'span'} display={'inline-block'}>
-        {button}
-      </Box>
+    <Tooltip title={tooltipTitle} sx={tooltipSx}>
+      <BaseStyledButton {...props} data-testid={props.id} sx={buttonSx} onClick={handleOnClick}>
+        {buttonText}
+      </BaseStyledButton>
     </Tooltip>
   );
 }

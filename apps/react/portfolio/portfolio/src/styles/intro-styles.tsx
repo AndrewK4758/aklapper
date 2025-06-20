@@ -1,6 +1,6 @@
 import type { SxProps } from '@mui/material/styles';
 import { flexColumnStyles } from './pages-styles.jsx';
-import Theme from './theme.jsx';
+import Theme from './themes/theme.js';
 
 export const baseStyleForHomeItems: SxProps = {
   width: '100vw',

@@ -176,7 +176,7 @@ const Artist = (): JSX.Element => {
               onRowCountChange={newRowCount => setRowCountState(newRowCount)}
               onPaginationModelChange={setPaginationModel}
               paginationModel={paginationModel}
-              sx={dataGridStyleUpdate}
+              sx={{ background: '#323232' }}
               slots={{ toolbar: GridToolbar }}
               slotProps={{
                 pagination: {

@@ -4,7 +4,7 @@ import type { Dispatch, JSX, SetStateAction } from 'react';
 import { useParams } from 'react-router';
 import { Socket } from 'socket.io-client';
 import { breakpointsResetGameButton } from '../../../styles/games-styles.jsx';
-import getGameInstanceInfo from '../../../utils/utils.jsx';
+import { getGameInstanceInfo } from '../../../utils/utils.jsx';
 import { type Action, ActionType } from './socket-reducer.jsx';
 
 interface ResetGameProps {

@@ -1,6 +1,6 @@
 import type { SxProps } from '@mui/material/styles';
 import type { CSSProperties } from 'react';
-import Theme from './theme.jsx';
+import Theme from './themes/theme.js';
 
 export const gamesPaperSxProps: SxProps = {
   width: '70vw',

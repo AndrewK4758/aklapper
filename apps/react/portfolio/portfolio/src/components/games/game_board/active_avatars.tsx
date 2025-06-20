@@ -61,12 +61,7 @@ export default function ActiveAvatars({ avatarsInGame, winner }: ActiveAvatarsPr
             id={'active-game-header-text-box'}
             alignContent={'center'}
           >
-            <Text
-              component={'h2'}
-              titleVariant='h2'
-              titleText='Active Players in Game'
-              sx={breakpointsActiveGameTitleText}
-            />
+            <Text variant='h2' children='Active Players in Game' sx={breakpointsActiveGameTitleText} />
           </Box>
           <Box component={'section'} sx={breakpointsPlayersInGameBox}>
             <RenderList data={avatarsInGame} listMapCallback={playersInGameMap} />
@@ -74,7 +69,7 @@ export default function ActiveAvatars({ avatarsInGame, winner }: ActiveAvatarsPr
         </Box>
       ) : (
         <Box component={'section'} sx={{ flex: '1 0 70%' }}>
-          <Text component={'h2'} titleVariant='h2' titleText={winner} sx={breakpointsActiveGameTitleText} />
+          <Text variant='h2' children={winner} sx={breakpointsActiveGameTitleText} />
         </Box>
       )}
     </Container>

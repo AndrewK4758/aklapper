@@ -5,11 +5,7 @@ type PromptResponse = {
   response: string;
 };
 
-const useGenAiWebsockets = (
-  socket: Socket,
-  setLoading: Dispatch<SetStateAction<boolean>>,
-  setPromptResponse: Dispatch<SetStateAction<string[]>>,
-) => {
+const useGenAiWebsockets = (socket: Socket, setPromptResponse: Dispatch<SetStateAction<string[]>>) => {
   useEffect(() => {
     if (!socket.connected) socket.connect();
 
@@ -18,7 +14,6 @@ const useGenAiWebsockets = (
       socket.on('chunk', chunk => {
         const { response } = chunk as PromptResponse;
         setPromptResponse(prev => [...prev, response]);
-        setLoading(false);
       });
     });
 

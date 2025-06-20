@@ -1,0 +1,6 @@
+import CardHeader from '@mui/material/CardHeader';
+import { CRUD_BODY, CRUD_TITLE } from '../../pages/static/crud-text';
+
+export default function CrudHeader() {
+  return <CardHeader id='crud-header' title={CRUD_TITLE} subheader={CRUD_BODY} sx={{}} />;
+}

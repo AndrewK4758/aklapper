@@ -1,27 +1,28 @@
-import { Label, Text, useScrollIntoView } from '@aklapper/react-shared';
-import AppBar from '@mui/material/AppBar';
+import { Text, useScrollIntoView } from '@aklapper/react-shared';
+// import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
+// import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Collapse from '@mui/material/Collapse';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
-import Toolbar from '@mui/material/Toolbar';
+// import Toolbar from '@mui/material/Toolbar';
 import { useRef, useState, type Dispatch, type JSX, type SetStateAction } from 'react';
-import { Outlet, useNavigation, useOutletContext, useSubmit, type SubmitFunction } from 'react-router';
+import { Outlet, useNavigation, useSubmit, type SubmitFunction } from 'react-router';
 import GameLoading from '../../components/loading/loading.jsx';
 import { crudPaperSxProps } from '../../styles/crud-styles.jsx';
-import { gamesButtonLabelsSxProps, gamesButtonSxProps } from '../../styles/games-styles.jsx';
+import { gamesButtonSxProps } from '../../styles/games-styles.jsx';
 import {
   gamesOutletGameWrapperSxProps,
   gamesOutletWrapperSxProps,
   pagesOutletStyles,
   pagesTitlesBoxStyles,
   pagesTitleSx,
-  pagesToolbarStyles,
+  // pagesToolbarStyles,
   pagesWrapperStyles,
 } from '../../styles/pages-styles.jsx';
-import type { OutletContextProps } from '../../types/types.jsx';
+// import type { OutletContextProps } from '../../types/types.jsx';
+import NavButton from '../../components/navigation/nav_button.js';
 import { body, title } from '../static/games-text';
 
 /**
@@ -32,7 +33,8 @@ import { body, title } from '../static/games-text';
 
 const Games = (): JSX.Element => {
   const { state } = useNavigation();
-  const { loading, setLoading } = useOutletContext<OutletContextProps>();
+  // const { loading, setLoading } = useOutletContext<OutletContextProps>();
+  const [loading, setLoading] = useState(false);
   const divRef = useRef<HTMLElement>(null);
   const [textView, setTextView] = useState<boolean>(true);
   const submit = useSubmit();
@@ -49,21 +51,23 @@ const Games = (): JSX.Element => {
         sx={crudPaperSxProps}
       >
         <Box component={'section'} id='games-title-wrapper' sx={pagesTitlesBoxStyles}>
-          <Text component={'h2'} titleVariant='h2' titleText={title} sx={pagesTitleSx} />
+          <Text variant='h2' children={title} sx={pagesTitleSx} />
         </Box>
         <Container component={'div'} id='games-navbar-container' maxWidth={false} sx={{ paddingBottom: 2 }}>
-          <AppBar component={'div'} id='games-navbar-wrapper' elevation={0} position='static' sx={{ borderRadius: 1 }}>
-            <Toolbar component={'nav'} id='games-navbar' key={'games-navbar'} sx={pagesToolbarStyles}>
-              <ButtonGroup id='games-button-group' key={'games-button-group'} color='primary' fullWidth={true}>
-                <Button
-                  LinkComponent={'button'}
-                  id='Chutes-&-Ladders'
-                  variant='text'
-                  disabled={state !== 'idle'}
-                  onClick={async e => loadAndStartGame(e.currentTarget.id, submit, setLoading, setTextView)}
-                  sx={gamesButtonSxProps}
-                >
-                  <Label
+          {/* <AppBar component={'div'} id='games-navbar-wrapper' elevation={0} position='static' sx={{ borderRadius: 1 }}> */}
+          {/* <Toolbar component={'nav'} id='games-navbar' key={'games-navbar'} sx={pagesToolbarStyles}> */}
+          <ButtonGroup id='games-button-group' key={'games-button-group'} color='primary' fullWidth={true}>
+            <NavButton
+              id='Chutes-&-Ladders'
+              variant='outlined'
+              disabled={state !== 'idle'}
+              onClick={async e => loadAndStartGame(e.currentTarget.id, submit, setLoading, setTextView)}
+              sx={gamesButtonSxProps}
+              buttonText={'Chutes & Ladders'}
+              tooltipTitle={`Clicking the button executes the following actions: \n- Starts the Chutes & Ladders instance\n- Registers 2 "Guest" Players\n- Automatically starts the game`}
+            />
+
+            {/* <Label
                     id='chutes-and-ladders-button-label'
                     htmlFor='Chutes-&-Ladders'
                     tooltipTitle={
@@ -78,18 +82,18 @@ const Games = (): JSX.Element => {
                     placement={'top'}
                     // labelWrapperDivSxProps={gamesLabelWrapperSxProps}
                     labelTextSx={gamesButtonLabelsSxProps}
-                  />
-                </Button>
+                  /> */}
 
-                <Button
-                  LinkComponent={'button'}
-                  id='Tic-Tac-Toe'
-                  variant='text'
-                  disabled={state !== 'idle'}
-                  onClick={async e => loadAndStartGame(e.currentTarget.id, submit, setLoading, setTextView)}
-                  sx={gamesButtonSxProps}
-                >
-                  <Label
+            <NavButton
+              id='Tic-Tac-Toe'
+              variant='outlined'
+              disabled={state !== 'idle'}
+              onClick={async e => loadAndStartGame(e.currentTarget.id, submit, setLoading, setTextView)}
+              sx={gamesButtonSxProps}
+              buttonText='Tic Tac Toe'
+              tooltipTitle={`Clicking the button executes the following actions: \n- Starts the Tic Tac Toe instance\n- Registers "X" & "O" Players\n- Automatically starts the game`}
+            />
+            {/* <Label
                     id='tic-tac-toe-button-label'
                     htmlFor='Tic-Tac-Toe"'
                     tooltipTitle={
@@ -104,11 +108,10 @@ const Games = (): JSX.Element => {
                     placement={'top'}
                     // labelWrapperDivSxProps={gamesLabelWrapperSxProps}
                     labelTextSx={gamesButtonLabelsSxProps}
-                  />
-                </Button>
-              </ButtonGroup>
-            </Toolbar>
-          </AppBar>
+                  /> */}
+          </ButtonGroup>
+          {/* </Toolbar> */}
+          {/* </AppBar> */}
         </Container>
         <Collapse in={textView}>
           <Container
@@ -118,13 +121,7 @@ const Games = (): JSX.Element => {
             maxWidth={false}
             sx={{ paddingY: 2 }}
           >
-            <Text
-              component={'p'}
-              key={'game-header-text'}
-              id='game-header-text'
-              titleVariant='body1'
-              titleText={body}
-            />
+            <Text component={'p'} key={'game-header-text'} id='game-header-text' variant='body1' children={body} />
           </Container>
         </Collapse>
       </Paper>

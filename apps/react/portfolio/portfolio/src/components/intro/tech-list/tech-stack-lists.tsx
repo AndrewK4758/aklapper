@@ -12,7 +12,7 @@ import TechList from './tech-list';
 
 const TechStackLists = (): ReactElement => {
   return (
-    <Box flex={'70%'} height={'fit-content'}>
+    <Box sx={{ flex: '70%', height: 'fit-content' }}>
       <Grid container wrap='wrap' rowGap={4} columnGap={1}>
         {techStackData.map(entry => (
           <TechList

@@ -11,7 +11,7 @@ import {
   nonSelectedSpaceStyle,
   rowSizeTTT,
   selectedSpaceStyle,
-  svgSpaceTTTStyles
+  svgSpaceTTTStyles,
 } from '../../../styles/games-styles.jsx';
 
 export interface GameBoardPropsTicTacToe {
@@ -51,7 +51,7 @@ export const GameBoardMapTicTacToe = ({
   id,
   wrap,
   state,
-  setStateAction
+  setStateAction,
 }: GameBoardPropsTicTacToe) => (
   <Grid
     component={'section'}
@@ -87,12 +87,11 @@ export const GameBoardMapTicTacToe = ({
         ) : (
           <Box>
             <Text
-              component={'p'}
               key={`${e.display}-space`}
               id={`${e.display}-space`}
               data-testid={`${e.display}-space`}
-              titleVariant="body2"
-              titleText={e.display}
+              variant='body2'
+              children={e.display}
               sx={breakpointsSpaceTTTSx}
             />
           </Box>
@@ -109,6 +108,5 @@ const setStyleOnState = (
   name: string,
   base: SxProps,
   cond1: SxProps,
-  cond2: SxProps
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): SxProps => (state === name ? { ...(base as any), ...cond1 } : { ...(base as any), ...cond2 });
+  cond2: SxProps,
+): SxProps => (state === name ? ([base, cond1] as SxProps) : ([base, cond2] as SxProps));

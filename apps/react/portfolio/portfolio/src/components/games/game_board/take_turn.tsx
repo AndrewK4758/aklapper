@@ -4,7 +4,7 @@ import axios from 'axios';
 import type { Dispatch, JSX } from 'react';
 import { Socket } from 'socket.io-client';
 import { breakpointsTakeTurnButton } from '../../../styles/games-styles.jsx';
-import getGameInstanceInfo from '../../../utils/utils.jsx';
+import { getGameInstanceInfo } from '../../../utils/utils.jsx';
 import { type Action, ActionType } from './socket-reducer.jsx';
 
 const baseURL = import.meta.env.VITE_GAMES_API_URL;

@@ -51,6 +51,7 @@ const config: UserConfig = defineConfig({
       '@emotion/react',
       '@mui/styled-engine-sc',
       /\.css$/,
+      /@mui\/.*/,
     ],
   },
 

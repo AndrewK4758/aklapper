@@ -1,7 +1,7 @@
 import type { SxProps } from '@mui/material/styles';
 import type { CSSProperties } from 'react';
 import { centerFlex, flexColumnStyles } from './pages-styles.jsx';
-import Theme from './theme.jsx';
+import Theme from './themes/theme.js';
 
 //-------IMAGE FORM--------//
 

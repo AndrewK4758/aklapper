@@ -23,6 +23,9 @@ export const SECONDARY_COLOR_DARK = '#AF320B';
 export const SECONDARY_COLOR_LIGHT = '#D36947';
 export const SECONDARY_CONTRAST = '#00B358';
 
+//Success
+export const BUTTON_GROUP_BG = '#1E4620';
+
 // Text
 export const TEXT_PRIMARY = '#EEF0FF';
 export const TEXT_SECONDARY = '#BBC0CC';
@@ -34,6 +37,9 @@ export const BOX_SHADOW_SECONDARY_DARK = `0 0 0 0.5rem ${SECONDARY_COLOR_DARK}4A
 //Base Border Radius
 export const BASE_BORDER_RADIUS = '16px';
 export const MULT_BORDER_RADIUS = 1;
+
+//Base Spacing
+export const BASE_SPACING = 4;
 
 const darkScrollbarGlobal = {
   '&::-webkit-scrollbar': {

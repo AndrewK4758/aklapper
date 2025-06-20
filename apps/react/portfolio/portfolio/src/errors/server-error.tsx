@@ -4,7 +4,7 @@ import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider } from '@mui/material/styles';
-import Theme from '../styles/theme';
+import Theme from '../styles/themes/theme.js';
 
 interface ServerErrorProps {
   error: Error;

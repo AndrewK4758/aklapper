@@ -11,7 +11,7 @@ import {
   introPicStyles,
   picAndResumeCardStyles,
 } from '../../styles/intro-styles.jsx';
-import Theme from '../../styles/theme.js';
+import Theme from '../../styles/themes/theme.js';
 
 const TechStackList = lazy(() => import('./tech-list/tech-stack-lists.js'));
 

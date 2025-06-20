@@ -1,6 +1,6 @@
 import type { SxProps } from '@mui/material/styles';
 import { centerFlex, flexColumnStyles } from './pages-styles.jsx';
-import Theme from './theme.jsx';
+import Theme from './themes/theme.js';
 
 export const loadingPaperStyles: SxProps<typeof Theme> = {
   ...flexColumnStyles,

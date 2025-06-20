@@ -4,7 +4,7 @@ import type { ReactElement } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router';
 import routes from '../routes/routes';
 import '../styles/main-styles.css';
-import Theme from '../styles/theme';
+import Theme from '../styles/themes/theme.js';
 
 const router = createBrowserRouter(routes);
 

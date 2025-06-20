@@ -3,7 +3,7 @@ import Box, { type BoxProps } from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import type { ReactElement } from 'react';
-import Theme from '../../../styles/theme';
+import Theme from '../../../styles/themes/theme.js';
 
 interface TabsSelectorProps extends Omit<BoxProps, 'id' | 'data-testid'> {
   tab: number;
