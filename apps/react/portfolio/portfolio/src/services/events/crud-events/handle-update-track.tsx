@@ -1,11 +1,11 @@
-import type { GridApiCommunity } from '@mui/x-data-grid/internals';
+import type { track } from '@aklapper/chinook-client';
+import type { CRUD_ApiResponse } from '@aklapper/types';
 import axios from 'axios';
-import type { RefObject } from 'react';
-import type { track } from '../../../types/prisma_types';
+import type { Dispatch, SetStateAction } from 'react';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
-const handleUpdateTrack = async (values: track, apiRef: RefObject<GridApiCommunity | null>) => {
+const handleUpdateTrack = async (values: track, setRows: Dispatch<SetStateAction<track[] | null>>) => {
   try {
     const { track_id, album_id, name, unit_price, genre_id, media_type_id, composer, milliseconds, bytes } = values;
 
@@ -27,26 +27,11 @@ const handleUpdateTrack = async (values: track, apiRef: RefObject<GridApiCommuni
       { headers: { 'Content-Type': 'application/json' } },
     );
 
-    console.log(resp.data);
+    const { message, value } = resp.data as CRUD_ApiResponse<track>;
 
-    if (resp.data.updatedTracks && apiRef.current) {
-      const { track_id, album_id, name, unit_price, genre_id, media_type_id, composer, milliseconds, bytes } =
-        resp.data.UpdatedTracks;
+    console.log(message);
 
-      apiRef.current.updateRows([
-        {
-          track_id: track_id,
-          album_id: album_id,
-          name: name,
-          unit_price: unit_price,
-          genre_id: genre_id,
-          media_type_id: media_type_id,
-          composer: composer,
-          milliseconds: milliseconds,
-          bytes: bytes,
-        },
-      ]);
-    }
+    setRows(prev => prev && prev.map(track => (track.track_id === value.track_id ? value : track)));
   } catch (error) {
     console.error(error);
   }

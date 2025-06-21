@@ -2,19 +2,20 @@ import type { artist } from '@aklapper/chinook-client';
 import { Text } from '@aklapper/react-shared';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
-import TextField from '@mui/material/TextField';
 import { useFormik } from 'formik';
-import { useState, type FocusEvent, type ReactElement } from 'react';
+import { useState, type Dispatch, type FocusEvent, type ReactElement, type SetStateAction } from 'react';
 import { Form } from 'react-router';
 import handleSubmitNewArtist from '../../../services/actions/crud-actions/submit-artist-action';
-import { handleBlur, handlelFocus } from '../../../utils/utils';
+import { handleBlur } from '../../../utils/utils';
 import CenteredFlexDiv from '../../styled/centered_flexbox.js';
 import HelperTextBox from '../../styled/helper_text_box.js';
+import TextInput from '../../styled/text_input';
 
 interface AddArtistProps {
   rowCountState: number;
   setRowCountState: (rowCount: number) => void;
   COUNT: number;
+  setRows: Dispatch<SetStateAction<artist[] | null>>;
 }
 
 /**
@@ -28,14 +29,14 @@ interface AddArtistProps {
  * @returns {ReactElement} The rendered AddArtist component.
  */
 
-const AddArtist = ({ rowCountState, setRowCountState, COUNT }: AddArtistProps): ReactElement => {
+const AddArtist = ({ rowCountState, setRowCountState, COUNT, setRows }: AddArtistProps): ReactElement => {
   const [helperText, setHelperText] = useState<string | null>(null);
 
   const formik = useFormik({
     initialValues: { name: '', artist_id: COUNT + 1 } as artist,
     onSubmit: async values => {
+      await handleSubmitNewArtist(values, formik, setRows);
       setRowCountState(rowCountState + 1);
-      await handleSubmitNewArtist(values, formik);
     },
   });
 
@@ -47,21 +48,8 @@ const AddArtist = ({ rowCountState, setRowCountState, COUNT }: AddArtistProps): 
     <Form method='post' onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
       <CenteredFlexDiv id='add-artist-container'>
         <HelperTextBox>
-          <TextField
-            autoComplete='off'
-            name='name'
-            id='name'
-            fullWidth={true}
-            label={'Artist Name'}
-            variant='outlined'
-            value={formik.values.name}
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
-            onFocus={e => handlelFocus(e, formik)}
-            error={formik.touched.name && !!formik.errors.name}
-            helperText={formik.touched.name && formik.errors.name}
-          />
-          {helperText && <Text variant='caption' children={helperText} />}
+          <TextInput<artist> name='name' label='Artist Name' formik={formik} variant='outlined' />
+          {helperText && <Text variant='caption' color='textSecondary' children={helperText} tabIndex={-1} />}
         </HelperTextBox>
 
         <ButtonGroup fullWidth>

@@ -1,33 +1,49 @@
-import TextField from '@mui/material/TextField';
+import TextField, { type OutlinedTextFieldProps } from '@mui/material/TextField';
 import type { FormikProps } from 'formik';
-import type { HTMLInputTypeAttribute } from 'react';
+import type { HTMLInputTypeAttribute, ReactElement } from 'react';
 
-interface TextInputProps<T extends object> {
+interface TextInputProps<T extends object>
+  extends Omit<
+    OutlinedTextFieldProps,
+    | 'name'
+    | 'label'
+    | 'type'
+    | 'fullWidth'
+    | 'value'
+    | 'type'
+    | 'data-testid'
+    | 'rows'
+    | 'onBlur'
+    | 'onChange'
+    | 'onFocus'
+    | 'error'
+    | 'helperText'
+  > {
   formik: FormikProps<T>;
   name: Extract<keyof T, string>;
   label: string;
   multiline?: boolean;
   type?: HTMLInputTypeAttribute;
-  autocomplete?: 'on' | 'off';
 }
 
 export default function TextInput<T extends object>({
-  autocomplete = 'off',
   name,
   label,
   formik,
   type = 'text',
   multiline = false,
-}: TextInputProps<T>) {
+  ...props
+}: TextInputProps<T>): ReactElement {
   return (
     <TextField
+      {...props}
       fullWidth
-      autoComplete={autocomplete}
       value={formik.values[name]}
       type={type}
       data-testid={name}
       name={name}
       label={label}
+      variant='outlined'
       multiline={multiline}
       rows={multiline ? 4 : 1}
       onBlur={formik.handleBlur}

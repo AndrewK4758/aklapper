@@ -1,9 +1,9 @@
 import { SectionTitle } from '@aklapper/react-shared';
 import CardHeader, { type CardHeaderSlotsAndSlotProps } from '@mui/material/CardHeader';
-import Theme from '../../styles/themes/theme.js';
+import self from '../../assets/images/self.webp';
+import Theme from '../../styles/themes/theme';
 import { ABOUT_ME_TITLE } from '../intro/static/intro-text';
-
-import NavBar from '../navigation/nav_bar.js';
+import NavBar from '../navigation/nav_bar';
 
 const slotProps: CardHeaderSlotsAndSlotProps = {
   slotProps: {
@@ -16,16 +16,16 @@ const slotProps: CardHeaderSlotsAndSlotProps = {
 };
 
 const myName = <SectionTitle title={ABOUT_ME_TITLE} variant='h1' />;
-
+console.log(self);
 const avatarImg = (
   <img
     rel='preload'
     crossOrigin=''
     id={'card-media-resume-image'}
     data-testid={'card-media-resume-image'}
-    src={'/client/images/self.webp'}
+    src={self}
     loading='eager'
-    alt='andrew'
+    alt='Andrew'
     style={{
       width: '100%',
       borderRadius: Theme.shape.borderRadius,

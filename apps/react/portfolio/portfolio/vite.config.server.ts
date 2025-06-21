@@ -16,6 +16,8 @@ const NODE_ENV = process.env.NODE_ENV;
 const OUT_DIR = './dist/server';
 const ROOT = cwd();
 
+console.log(NODE_ENV);
+
 const config: UserConfig = defineConfig({
   root: ROOT,
   cacheDir: resolve(workspaceRoot, 'node_modules/.vite/apps/react/portfolio/portfolio'),
@@ -25,7 +27,11 @@ const config: UserConfig = defineConfig({
     host: HOST,
   },
 
-  plugins: [react()],
+  plugins: [
+    react({
+      reactRefreshHost: `http://${HOST}:${PORT_DEV}`,
+    }),
+  ],
 
   // Uncomment this if you are using workers.
   // worker: {
@@ -35,15 +41,7 @@ const config: UserConfig = defineConfig({
   resolve: {
     alias: MODULES,
     conditions: ['mui-modern', 'module', 'browser', 'development|production'],
-    noExternal: [
-      // '@mui/material',
-      // '@mui/icons-material',
-      // '@emotion/styled',
-      // '@emotion/react',
-      // '@mui/x-date-pickers',
-      // '@mui/x-data-grid',
-      // '@mui/styled-engine-sc',
-    ],
+    noExternal: [],
   },
 
   css: {
@@ -61,10 +59,10 @@ const config: UserConfig = defineConfig({
 
   build: {
     outDir: OUT_DIR,
-    minify: NODE_ENV === 'production',
+    minify: NODE_ENV === 'production' ? 'esbuild' : false,
     target: 'node24',
     ssr: true,
-    ssrEmitAssets: true,
+    ssrEmitAssets: false,
     ssrManifest: true,
     sourcemap: true,
     emptyOutDir: true,
@@ -89,6 +87,9 @@ const config: UserConfig = defineConfig({
           reservedNamesAsProps: true,
         },
         strict: true,
+      },
+      treeshake: {
+        moduleSideEffects: false,
       },
       strictDeprecations: true,
       perf: true,

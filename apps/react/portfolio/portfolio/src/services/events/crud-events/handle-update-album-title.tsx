@@ -1,11 +1,12 @@
-import type { GridApiCommunity } from '@mui/x-data-grid/internals';
+import type { album } from '@aklapper/chinook-client';
+
 import axios from 'axios';
-import type { RefObject } from 'react';
-import type { album } from '../../../types/prisma_types';
+import type { Dispatch, SetStateAction } from 'react';
+import type { CRUD_ApiResponse } from '../../../types/types';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
-const handleUpdateAlbumTitle = async (values: album, apiRef: RefObject<GridApiCommunity | null>) => {
+const handleUpdateAlbumTitle = async (values: album, setRows: Dispatch<SetStateAction<album[] | null>>) => {
   try {
     const { album_id, title } = values;
     const resp = await axios.patch(
@@ -16,10 +17,11 @@ const handleUpdateAlbumTitle = async (values: album, apiRef: RefObject<GridApiCo
       },
     );
 
-    if (resp.data.updatedAlbum && apiRef.current) {
-      const { album_id, title } = resp.data.updatedAlbum;
-      apiRef.current.updateRows([{ album_id: album_id, title: title }]);
-    }
+    const { value, message } = resp.data as CRUD_ApiResponse<album>;
+
+    console.log(message);
+
+    setRows(prev => prev && prev.map(album => (album.album_id === album_id ? value : album)));
   } catch (error) {
     console.error(error);
   }

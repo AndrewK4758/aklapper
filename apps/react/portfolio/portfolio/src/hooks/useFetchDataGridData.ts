@@ -1,18 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import type { PaginationModel } from '../components/crud/artists/data_grid';
 import type { QueryOptions } from '../types/types';
 
 type FetchDataResult<T> = {
-  state: T | null;
   isLoading: boolean;
   refetchData: () => void;
 };
 
 const useFetchDataGridData = <T>(
   paginationModel: PaginationModel,
-  loadData: (queryOptions: QueryOptions, signal: AbortSignal) => Promise<T | null>,
+  loadData: (queryOptions: QueryOptions, signal: AbortSignal, ...args: any) => Promise<T | null>,
+  setRows: Dispatch<SetStateAction<T | null>>,
+  ...args: any
 ): FetchDataResult<T> => {
-  const [state, setState] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const { signal } = new AbortController();
@@ -23,11 +23,10 @@ const useFetchDataGridData = <T>(
     skip: paginationModel.page === 0 ? 0 : 1,
   };
 
-  console.log(paginationModel);
   const fetchData = async () => {
     try {
-      const data = await loadData(queryOptions, signal);
-      setState(data);
+      const data = await loadData(queryOptions, signal, ...args);
+      setRows(data);
     } catch (error) {
       console.error(error);
     } finally {
@@ -37,9 +36,9 @@ const useFetchDataGridData = <T>(
 
   useEffect(() => {
     fetchData();
-  }, [paginationModel]);
+  }, [paginationModel, setRows, ...args]);
 
-  return { state, isLoading, refetchData: fetchData };
+  return { isLoading, refetchData: fetchData };
 };
 
 export default useFetchDataGridData;

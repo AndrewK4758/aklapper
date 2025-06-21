@@ -9,12 +9,12 @@ import prisma from '../client/prisma_client.js';
  * @returns A Promise that resolves to an array of album objects for the specified artist, or null if an error occurs.
  */
 
-const getArtistAlbums = async (query: Prisma.albumFindManyArgs<DefaultArgs>): Promise<album[] | ParsedPrismaError> => {
+const getArtistAlbums = async (query: Prisma.albumFindManyArgs<DefaultArgs>): Promise<album[]> => {
   try {
     return await prisma.album.findMany(query);
   } catch (error) {
     const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
-    return prismaError.parseErrors();
+    throw prismaError.parseErrors();
   }
 };
 

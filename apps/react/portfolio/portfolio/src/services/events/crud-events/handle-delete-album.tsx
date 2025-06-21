@@ -1,11 +1,11 @@
-import type { GridApiCommunity } from '@mui/x-data-grid/internals';
+import type { album } from '@aklapper/chinook-client';
 import axios from 'axios';
-import type { RefObject } from 'react';
-import type { album } from '../../../types/prisma_types';
+import type { Dispatch, SetStateAction } from 'react';
+import type { CRUD_ApiResponse } from '../../../types/types';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
-const handleDeleteAlbum = async (values: album, apiRef: RefObject<GridApiCommunity | null>) => {
+const handleDeleteAlbum = async (values: album, setRows: Dispatch<SetStateAction<album[] | null>>) => {
   try {
     const { album_id } = values;
 
@@ -13,11 +13,10 @@ const handleDeleteAlbum = async (values: album, apiRef: RefObject<GridApiCommuni
       headers: { 'Content-Type': 'text/plain' },
     });
 
-    console.log(resp.data);
-    if (resp.data.deletedAlbum && apiRef.current) {
-      const { album_id } = resp.data.deletedAlbum;
-      apiRef.current.updateRows([{ album_id: album_id, _action: 'delete' }]);
-    }
+    const { message, value } = resp.data as CRUD_ApiResponse<album>;
+
+    console.log(message);
+    setRows(prev => prev && prev.filter(album => album.album_id !== value.album_id));
   } catch (err) {
     console.error(err);
   }

@@ -1,22 +1,19 @@
+import { Waiting } from '@aklapper/react-shared';
 import { lazy } from 'react';
 import type { RouteObject } from 'react-router';
-
+import waiting from '../assets/images/swirly-dots-to-chrome.webp';
 import Layout from '../components/layout/layout';
 import PrivacyPolicy from '../components/privacy-policy/privacy-policy';
 import BaseError from '../errors/base_error';
 import Home from '../pages/home/home';
 import LandingPage from '../pages/landing/landing';
 
-import waiting from '../assets/images/swirly-dots-to-chrome.webp';
-
-import { Waiting } from '@aklapper/react-shared';
-import loadAlbumTracks from '../services/loaders/crud-loaders/load-album-tracks';
 import loadAlbumsCount from '../services/loaders/crud-loaders/load-albums-count';
-import loadArtistAlbums from '../services/loaders/crud-loaders/load-artist-albums';
 import loadArtistsCount from '../services/loaders/crud-loaders/load-artists-count';
 
 import generateImageAction from '../services/actions/generate-image-action';
 import handlePromptBuilder from '../services/actions/prompt-builder-action';
+import loadTracksCount from '../services/loaders/crud-loaders/load_tracks_count';
 import registerPlayersAndStartGame from '../services/loaders/register-players-and-start-game';
 
 const Games = lazy(() => import('../pages/games/games'));
@@ -73,12 +70,11 @@ const routes: RouteObject[] = [
               {
                 path: ':artistID/albums',
                 element: <AlbumsOnArtist />,
-                loader: loadArtistAlbums,
                 children: [
                   {
                     path: ':albumID/tracks',
                     element: <Tracks />,
-                    loader: loadAlbumTracks,
+                    loader: loadTracksCount,
                   },
                 ],
               },
@@ -92,7 +88,6 @@ const routes: RouteObject[] = [
               {
                 path: ':albumID/tracks',
                 element: <Tracks />,
-                loader: loadAlbumTracks,
               },
             ],
           },

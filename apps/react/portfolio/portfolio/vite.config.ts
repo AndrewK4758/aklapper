@@ -5,6 +5,8 @@ import { cwd } from 'node:process';
 import { defineConfig, type UserConfig } from 'vite';
 import MODULES from './vite_modules.js';
 
+process.env.NODE_ENV = 'development';
+
 //Server
 const HOST = 'localhost';
 const PORT_DEV = 4700;
@@ -33,6 +35,10 @@ const config: UserConfig = defineConfig({
     }),
   ],
 
+  css: {
+    devSourcemap: true,
+  },
+
   // Uncomment this if you are using workers.
   // worker: {
   //   plugins: [ nxViteTsPaths() ],
@@ -54,7 +60,7 @@ const config: UserConfig = defineConfig({
 
   build: {
     outDir: OUT_DIR,
-    minify: NODE_ENV === 'production',
+    minify: NODE_ENV === 'production' ? 'esbuild' : false,
     target: 'esnext',
     manifest: true,
     sourcemap: true,

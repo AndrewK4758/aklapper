@@ -35,3 +35,8 @@ export type QueryOptions = {
   pageSize: number;
   skip: number;
 };
+
+export type CRUD_ApiResponse<T> = {
+  message: string;
+  value: T;
+};

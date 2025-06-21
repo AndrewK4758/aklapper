@@ -2,7 +2,7 @@ import Box, { type BoxProps } from '@mui/material/Box';
 import type { SxProps, Theme } from '@mui/material/styles';
 import lottie from 'lottie-web';
 import { useEffect, useRef } from 'react';
-import explosionJson from '../../../assets/videos/explosion.json';
+import explosionJson from '../../../assets/animations/explosion.json';
 
 const explosionBaseStyle: SxProps<Theme> = {
   position: 'absolute',

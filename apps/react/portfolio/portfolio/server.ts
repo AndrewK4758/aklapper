@@ -23,7 +23,7 @@ const rootDir = cwd();
   const app: Express = express();
 
   const corsOptions: CorsOptions = {
-    origin: ['http://localhost:5800', 'http://localhost', 'http://localhost:4800', 'http://localhost:4700'],
+    origin: ['http://localhost:4700'],
   };
 
   JSON.parse(await fs.readFile(path.resolve(workspacePath, fileName), 'utf-8'));

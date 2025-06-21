@@ -14,12 +14,12 @@ import prisma from '../client/prisma_client.js';
  * @returns {Promsie<track[]>} - A Promise that resolves to an array of tracks or null if none exist
  */
 
-const getAlbumTracks = async (query: Prisma.trackFindManyArgs<DefaultArgs>): Promise<track[] | ParsedPrismaError> => {
+const getAlbumTracks = async (query: Prisma.trackFindManyArgs<DefaultArgs>): Promise<track[]> => {
   try {
     return await prisma.track.findMany(query);
   } catch (error) {
     const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
-    return prismaError.parseErrors();
+    throw prismaError.parseErrors();
   }
 };
 

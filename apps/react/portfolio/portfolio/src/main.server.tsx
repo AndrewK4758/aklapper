@@ -4,12 +4,12 @@ import type { Response } from 'express';
 import { StrictMode } from 'react';
 import ReactDomServer from 'react-dom/server';
 import { createStaticHandler, createStaticRouter, StaticRouterProvider, type StaticHandlerContext } from 'react-router';
-import ServerError from './errors/server-error.js';
-import routes from './routes/routes.js';
-import Theme from './styles/themes/theme.js';
-import type { ManifestType } from './types/types.js';
-import getFilenamesFromManifest from './utils/get-files-from-manifest.js';
-import parseSsrManifestFile from './utils/parse_ssr_manifest.js';
+import ServerError from './errors/server-error';
+import routes from './routes/routes';
+import Theme from './styles/themes/theme';
+import type { ManifestType } from './types/types';
+import getFilenamesFromManifest from './utils/get-files-from-manifest';
+import parseSsrManifestFile from './utils/parse_ssr_manifest';
 
 const handler = createStaticHandler(routes);
 

@@ -1,6 +1,7 @@
+import type { album } from '@aklapper/chinook-client';
+import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { Request, Response } from 'express';
 import deleteArtistAlbums from '../services/prisma/album/delete-albums.js';
-
 /**
  * This function handles DELETE requests to delete an album associated with a specific artist.
  *
@@ -15,7 +16,11 @@ const deleteArtistsAlbums = async (req: Request, resp: Response) => {
 
     const deletedAlbum = await deleteArtistAlbums(parseInt(id, 10));
 
-    resp.status(200).json({ deletedAlbum: deletedAlbum });
+    const data: CRUD_ApiResponse<album> = {
+      message: `Album ID: ${deletedAlbum.album_id} deleted sucessfully`,
+      value: deletedAlbum,
+    };
+    resp.status(200).json(data);
   } catch (error) {
     console.error(error);
     resp.status(500).json(error);

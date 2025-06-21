@@ -1,6 +1,6 @@
+import type { artist } from '@aklapper/chinook-client';
 import axios from 'axios';
-import type { QueryOptions } from '../../../hooks/useFetchDataGridData.js';
-import type { artist } from '../../../types/prisma_types.js';
+import type { QueryOptions } from '../../../types/types.js';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 

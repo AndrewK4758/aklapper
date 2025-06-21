@@ -14,7 +14,7 @@ import {
   textInputSx,
   topLevelModeStyle,
 } from '../../../styles/gen-ai-styles.jsx';
-import type { OutletContextProps } from '../../../types/types.tsx';
+import type { OutletContextProps } from '../../../types/types.js';
 import ChatInput from '../chat-input/chat-input.jsx';
 
 const validationSchema = Yup.object<PromptRequest>().shape({

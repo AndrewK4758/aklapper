@@ -5,11 +5,11 @@ import UploadIcon from '@mui/icons-material/Upload';
 import { useGridApiRef } from '@mui/x-data-grid';
 import { GridActionsCellItem } from '@mui/x-data-grid/components/cell';
 import { DataGrid } from '@mui/x-data-grid/DataGrid';
-import type { GridApiCommunity } from '@mui/x-data-grid/internals';
+import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import type { GridColDef } from '@mui/x-data-grid/models/colDef';
 import type { GridRowParams } from '@mui/x-data-grid/models/params';
 import axios from 'axios';
-import { useState, type RefObject } from 'react';
+import { useCallback, useState, type Dispatch, type SetStateAction } from 'react';
 import { useNavigate } from 'react-router';
 import useFetchDataGridData from '../../../hooks/useFetchDataGridData';
 import loadArtists from '../../../services/loaders/crud-loaders/load-artists';
@@ -27,14 +27,23 @@ const paginationModelInit: PaginationModel = {
 interface ArtistDataGridProps {
   COUNT: number;
   setRowCountState: (rowCount: number) => void;
+  rows: artist[] | null;
+  setRows: Dispatch<SetStateAction<artist[] | null>>;
 }
 
-export default function ArtistDataGrid({ COUNT, setRowCountState }: ArtistDataGridProps) {
+export default function ArtistDataGrid({ rows, setRows, COUNT, setRowCountState }: ArtistDataGridProps) {
   const [paginationModel, setPaginationModel] = useState<PaginationModel>(paginationModelInit);
-  const { state } = useFetchDataGridData<artist[]>(paginationModel, loadArtists);
+  const [dirtyRows, setDirtyRows] = useState<Set<number>>(new Set());
+  const dgApiRef = useGridApiRef<GridApiCommunity>();
   const nav = useNavigate();
 
-  const apiRef = useGridApiRef<GridApiCommunity>();
+  useFetchDataGridData<artist[]>(paginationModel, loadArtists, setRows);
+
+  const processRowUpdate = useCallback((newRow: artist) => {
+    setDirtyRows(prev => new Set(prev).add(newRow.artist_id));
+
+    return newRow;
+  }, []);
 
   const columns: GridColDef[] = [
     {
@@ -59,14 +68,17 @@ export default function ArtistDataGrid({ COUNT, setRowCountState }: ArtistDataGr
       type: 'actions',
       headerName: 'Update / Delete',
       flex: 1.5,
-      getActions: (params: GridRowParams) => {
+
+      getActions: ({ row }: GridRowParams) => {
+        const isDirty = dirtyRows.has(row.artist_id);
         return [
           <GridActionsCellItem
             label='Update'
-            icon={<UploadIcon color='success' />}
+            icon={<UploadIcon color={!isDirty ? 'disabled' : 'success'} />}
             title='Update'
             id='update-button'
-            onClick={() => handleUpdateArtistName(params.row, apiRef)}
+            disabled={!isDirty}
+            onClick={() => handleUpdateArtistName(row, setRows)}
           />,
           <GridActionsCellItem
             label='Delete'
@@ -74,7 +86,7 @@ export default function ArtistDataGrid({ COUNT, setRowCountState }: ArtistDataGr
             id='delete-button'
             icon={<DeleteForeverIcon color='error' />}
             onClick={() => {
-              handleDeleteArtist(params.row, apiRef);
+              handleDeleteArtist(row, setRows);
             }}
           />,
         ];
@@ -102,11 +114,11 @@ export default function ArtistDataGrid({ COUNT, setRowCountState }: ArtistDataGr
 
   return (
     <DataGrid
+      apiRef={dgApiRef}
       logLevel='info'
       aria-label='artist-data-grid'
-      apiRef={apiRef}
       columns={columns}
-      rows={state ?? []}
+      rows={rows ?? []}
       getRowId={getID}
       rowCount={COUNT}
       getRowHeight={() => 'auto'}
@@ -117,31 +129,40 @@ export default function ArtistDataGrid({ COUNT, setRowCountState }: ArtistDataGr
       onRowCountChange={newRowCount => setRowCountState(newRowCount)}
       onPaginationModelChange={setPaginationModel}
       paginationModel={paginationModel}
+      processRowUpdate={processRowUpdate}
+      onProcessRowUpdateError={error => console.error(error)}
     />
   );
 }
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
-const handleUpdateArtistName = async (values: artist, apiRef: RefObject<GridApiCommunity | null>) => {
+const handleUpdateArtistName = async (values: artist, setRows: Dispatch<SetStateAction<artist[] | null>>) => {
   try {
     const { artist_id, name } = values;
     const resp = await axios.patch(
       `${baseURL}/artists`,
-      { artistID: artist_id, name: name },
+      { artist_id, name },
       { headers: { 'Content-Type': 'application/json' } },
     );
 
-    if (resp.data && apiRef.current) {
-      const { artist_id, name } = resp.data.updatedArtist;
-      apiRef.current.updateRows([{ artist_id: artist_id, name: name }]);
-    }
+    const newArtist = resp.data.updatedArtist as artist;
+
+    setRows(
+      prev =>
+        prev &&
+        prev.map(artist => {
+          if (artist.artist_id === newArtist.artist_id) {
+            return newArtist;
+          } else return artist;
+        }),
+    );
   } catch (error) {
     console.error(error);
   }
 };
 
-const handleDeleteArtist = async (values: artist, apiRef: RefObject<GridApiCommunity | null>) => {
+const handleDeleteArtist = async (values: artist, setRows: Dispatch<SetStateAction<artist[] | null>>) => {
   try {
     const { artist_id } = values;
     const resp = await axios.delete(`${baseURL}/artists/${artist_id}`, {
@@ -149,9 +170,8 @@ const handleDeleteArtist = async (values: artist, apiRef: RefObject<GridApiCommu
     });
 
     console.log(resp.data);
-    if (resp.data.deletedArtist && apiRef.current) {
-      const { artist_id } = resp.data.deletedArtist;
-      apiRef.current.updateRows([{ artist_id: artist_id, _action: 'delete' }]);
+    if (resp.data.deletedArtist) {
+      setRows(prev => prev && prev.filter(({ artist_id }) => artist_id !== resp.data.deletedArtist.artist_id));
     }
   } catch (err) {
     console.error(err);

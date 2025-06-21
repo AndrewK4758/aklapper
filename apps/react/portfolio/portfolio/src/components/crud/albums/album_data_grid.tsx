@@ -2,22 +2,35 @@ import type { album } from '@aklapper/chinook-client';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import DetailsIcon from '@mui/icons-material/Details';
 import UploadIcon from '@mui/icons-material/Upload';
-import { type GridColDef, type GridRowParams, DataGrid, GridActionsCellItem, useGridApiRef } from '@mui/x-data-grid';
-import { useState } from 'react';
-import { useLoaderData, useNavigate } from 'react-router';
+import { DataGrid, GridActionsCellItem, type GridColDef, type GridRowParams } from '@mui/x-data-grid';
+import { useCallback, useState, type Dispatch, type SetStateAction } from 'react';
+import { useNavigate, useParams } from 'react-router';
+import useFetchDataGridData from '../../../hooks/useFetchDataGridData';
 import handleDeleteAlbum from '../../../services/events/crud-events/handle-delete-album';
 import handleUpdateAlbumTitle from '../../../services/events/crud-events/handle-update-album-title';
-import type { ArtistAlbums } from '../../../services/loaders/crud-loaders/load-artist-albums';
+import loadArtistAlbums from '../../../services/loaders/crud-loaders/load-artist-albums';
 import type { PaginationModel } from '../artists/data_grid';
 
 const paginationModelInit: PaginationModel = { page: 0, pageSize: 5 };
 
-export default function AlbumDataGrid() {
-  const { albums } = useLoaderData() as ArtistAlbums;
+interface AlbumDataGrid {
+  rows: album[] | null;
+  setRows: Dispatch<SetStateAction<album[] | null>>;
+}
+
+export default function AlbumDataGrid({ rows, setRows }: AlbumDataGrid) {
+  const { artistID } = useParams();
+  const [dirtyRows, setDirtyRows] = useState<Set<number>>(new Set());
   const [paginationModel, setPaginationModel] = useState<PaginationModel>(paginationModelInit);
   const nav = useNavigate();
 
-  const apiRef = useGridApiRef();
+  useFetchDataGridData<album[]>(paginationModel, loadArtistAlbums, setRows, artistID);
+
+  const processRowUpdate = useCallback((newRow: album) => {
+    setDirtyRows(prev => new Set(prev).add(newRow.album_id));
+
+    return newRow;
+  }, []);
 
   const columns: GridColDef[] = [
     {
@@ -47,15 +60,16 @@ export default function AlbumDataGrid() {
       type: 'actions',
       headerName: 'Update / Delete',
       flex: 1.5,
-      getActions: (params: GridRowParams<album>) => {
+      getActions: ({ row }: GridRowParams<album>) => {
+        const isDirty = dirtyRows.has(row.album_id);
         return [
           <GridActionsCellItem
             label='Update'
-            icon={<UploadIcon color='success' />}
+            icon={<UploadIcon color={!isDirty ? 'disabled' : 'success'} />}
             title='Update'
-            onClick={async x => {
-              console.log(x);
-              await handleUpdateAlbumTitle(params.row, apiRef);
+            disabled={!isDirty}
+            onClick={async () => {
+              await handleUpdateAlbumTitle(row, setRows);
             }}
           />,
 
@@ -64,7 +78,7 @@ export default function AlbumDataGrid() {
             title='Delete'
             icon={<DeleteForeverIcon color='error' />}
             onClick={async () => {
-              await handleDeleteAlbum(params.row, apiRef);
+              await handleDeleteAlbum(row, setRows);
             }}
           />,
         ];
@@ -91,17 +105,21 @@ export default function AlbumDataGrid() {
   const getID = (row: album) => {
     return row.album_id;
   };
+
   return (
     <DataGrid
       aria-label='artist-albums-data-grid'
-      apiRef={apiRef}
       columns={columns}
-      rows={albums}
+      rows={rows ?? []}
+      rowCount={rows ? rows.length : 0}
       getRowId={getID}
       getRowHeight={() => 'auto'}
       pageSizeOptions={[1, 5, 10, 20]}
+      paginationMode='server'
       paginationModel={paginationModel}
       onPaginationModelChange={newPageModel => setPaginationModel(newPageModel)}
+      processRowUpdate={processRowUpdate}
+      onProcessRowUpdateError={error => console.error(error)}
     />
   );
 }

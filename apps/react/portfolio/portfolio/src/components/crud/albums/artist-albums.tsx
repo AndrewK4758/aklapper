@@ -1,11 +1,12 @@
+import type { album } from '@aklapper/chinook-client';
 import { Waiting } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
-import { Suspense, type ReactElement } from 'react';
+import { Suspense, useState, type ReactElement } from 'react';
 import { Outlet } from 'react-router';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
-import CenteredFlexDiv from '../../styled/centered_flexbox.js';
-import { artistsSxProps } from '../artists/artist-base.js';
+import { artistsSxProps } from '../../../styles/crud/data_grid';
+import CenteredFlexDiv from '../../styled/centered_flexbox';
 import DataGridHeader from '../data_grid_header.js';
 import AddAlbumOnArtist from './add-album-on-artist.jsx';
 import AlbumDataGrid from './album_data_grid';
@@ -23,6 +24,8 @@ export interface AlbumState {
  */
 
 export const AlbumsOnArtist = (): ReactElement => {
+  const [rows, setRows] = useState<album[] | null>(null);
+
   return (
     <CenteredFlexDiv id='albums-on-artist' sx={{ ...artistsSxProps, p: 0 }}>
       <Box id={'albums'} sx={{ height: '100%', width: '100%' }}>
@@ -30,7 +33,7 @@ export const AlbumsOnArtist = (): ReactElement => {
         <Container id={'add-album-box'} sx={{ paddingY: 1 }}>
           <AddAlbumOnArtist />
         </Container>
-        <AlbumDataGrid />
+        <AlbumDataGrid rows={rows} setRows={setRows} />
       </Box>
 
       <Suspense fallback={<Waiting src={waiting} />}>

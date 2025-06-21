@@ -1,29 +1,28 @@
+import type { track } from '@aklapper/chinook-client';
+import type { CRUD_ApiResponse } from '@aklapper/types';
 import axios from 'axios';
-import type { LoaderFunction, LoaderFunctionArgs } from 'react-router';
-import type { track } from '../../../types/prisma_types';
+import type { QueryOptions } from '../../../types/types';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
-export type AlbumTracks = {
-  tracks: track[];
-};
-
-const loadAlbumTracks: LoaderFunction = async ({ params }: LoaderFunctionArgs) => {
-  // if (params.album_id) {
+const loadAlbumTracks = async (queryOptions: QueryOptions, signal: AbortSignal, albumID: string) => {
   try {
-    const { albumID } = params;
-    const resp = await axios.get(`${baseURL}/tracks?albumID=${albumID}`, {
-      headers: { 'Content-Type': 'text/plain' },
-    });
+    const { cursor, skip, pageSize } = queryOptions;
+    const resp = await axios.get(
+      `${baseURL}/tracks?albumID=${albumID}&cursor=${cursor}&skip=${skip}&take=${pageSize}`,
+      {
+        headers: { 'Content-Type': 'text/plain' },
+        signal: signal,
+      },
+    );
+    const { message, value } = resp.data as CRUD_ApiResponse<track[]>;
 
-    const { tracks } = resp.data as AlbumTracks;
-
-    return { tracks };
+    console.log(message);
+    return value;
   } catch (error) {
     console.error(error);
     return null;
   }
-  // } else return null;
 };
 
 export default loadAlbumTracks;

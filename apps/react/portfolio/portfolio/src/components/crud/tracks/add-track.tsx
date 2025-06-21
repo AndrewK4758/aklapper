@@ -1,11 +1,12 @@
 import type { track } from '@aklapper/chinook-client';
 import { Text } from '@aklapper/react-shared';
+import type { CRUD_ApiResponse } from '@aklapper/types';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import axios, { type AxiosError, type AxiosResponse } from 'axios';
 import { Decimal } from 'decimal.js';
 import { useFormik, type FormikProps } from 'formik';
-import { useState, type FocusEvent, type ReactElement } from 'react';
+import { useState, type Dispatch, type FocusEvent, type ReactElement, type SetStateAction } from 'react';
 import { Form } from 'react-router';
 import { handleBlur } from '../../../utils/utils.js';
 import CenteredFlexDiv from '../../styled/centered_flexbox.js';
@@ -15,7 +16,8 @@ import TextInput from '../../styled/text_input.js';
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
 interface AddTrackProps {
-  albumID: number;
+  albumID: string;
+  setRows: Dispatch<SetStateAction<track[] | null>>;
 }
 
 const initialValues: track = {
@@ -39,13 +41,13 @@ const initialValues: track = {
  * @returns {ReactElement} The rendered AddTrack component.
  */
 
-const AddTrack = ({ albumID }: AddTrackProps): ReactElement => {
+const AddTrack = ({ albumID, setRows }: AddTrackProps): ReactElement => {
   const [helperText, setHelperText] = useState<string | null>(null);
 
   const formik = useFormik({
     initialValues: initialValues,
     onSubmit: values => {
-      handleSubmitNewTrack(values, formik, albumID);
+      handleSubmitNewTrack(values, formik, albumID, setRows);
     },
     validateOnBlur: true,
   });
@@ -58,7 +60,7 @@ const AddTrack = ({ albumID }: AddTrackProps): ReactElement => {
     <Form method='post' onSubmit={formik.handleSubmit}>
       <CenteredFlexDiv>
         <HelperTextBox>
-          <TextInput<track> formik={formik} name={'name'} label={'Track Name'} />
+          <TextInput<track> formik={formik} name={'name'} label={'Track Name'} variant='outlined' />
           {helperText && <Text variant='caption' color='textSecondary' children={helperText} />}
         </HelperTextBox>
       </CenteredFlexDiv>
@@ -81,10 +83,15 @@ const AddTrack = ({ albumID }: AddTrackProps): ReactElement => {
  *
  * @param {track} values - The track data from the form.
  * @param {FormikProps<track>} formik - The Formik props object.
- * @param {number} albumID - The ID of the album to add the track to.
+ * @param {string} albumID - The ID of the album to add the track to.
  */
 
-const handleSubmitNewTrack = async (values: track, formik: FormikProps<track>, albumID: number) => {
+const handleSubmitNewTrack = async (
+  values: track,
+  formik: FormikProps<track>,
+  albumID: string,
+  setRows: Dispatch<SetStateAction<track[] | null>>,
+) => {
   try {
     const trackName = values.name;
     console.log(trackName);
@@ -96,24 +103,11 @@ const handleSubmitNewTrack = async (values: track, formik: FormikProps<track>, a
       },
     );
 
-    console.log(resp.data);
-    // if (resp.data.newTrack && apiRef.current) {
-    //   const { name, track_id, milliseconds, media_type_id, genre_id, bytes, composer, unit_price } = resp.data
-    //     .newTrack as track;
+    const { message, value } = resp.data as CRUD_ApiResponse<track>;
 
-    //   apiRef.current.updateRows([
-    //     {
-    //       track_id: track_id,
-    //       name: name,
-    //       milliseconds: milliseconds,
-    //       media_type_id: media_type_id,
-    //       genre_id: genre_id,
-    //       bytes: bytes,
-    //       composer: composer,
-    //       unit_price: unit_price,
-    //     },
-    //   ]);
-    // }
+    console.log(message);
+
+    setRows(prev => prev && [...prev, value]);
   } catch (error) {
     console.error(error);
     const errorMessage = await ((error as AxiosError).response as AxiosResponse).data.errorMessage;
@@ -121,6 +115,7 @@ const handleSubmitNewTrack = async (values: track, formik: FormikProps<track>, a
     formik.setErrors({ name: errorMessage });
   } finally {
     formik.setSubmitting(false);
+    formik.resetForm();
   }
 };
 

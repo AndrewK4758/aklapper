@@ -1,6 +1,7 @@
+import { Prisma, type track } from '@aklapper/chinook-client';
+import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { DefaultArgs } from '@prisma/client/runtime/library';
 import type { Request, Response } from 'express';
-import { Prisma } from 'node_modules/@aklapper/chinook-client/generated/client.js';
 import createTracks from '../services/prisma/tracks/create-tracks.js';
 
 /**
@@ -21,7 +22,11 @@ const createTracksOnAlbum = async (req: Request, resp: Response) => {
 
     const newTrack = await createTracks(query);
 
-    resp.status(200).json({ newTrack: newTrack });
+    const data: CRUD_ApiResponse<track> = {
+      message: 'Track Added',
+      value: newTrack,
+    };
+    resp.status(200).json(data);
   } catch (error) {
     console.error(error);
     resp.status(500).json(error);

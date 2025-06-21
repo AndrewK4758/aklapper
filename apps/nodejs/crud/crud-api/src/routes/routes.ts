@@ -1,4 +1,5 @@
 import express, { Router } from 'express';
+import getTracksCount from 'src/controllers/get_tracks_count.js';
 import deleteArtistsAlbums from '../controllers/delete-artist-albums.js';
 import deleteArtist from '../controllers/delete-artists.js';
 import deleteTracks from '../controllers/delete-tracks.js';
@@ -39,7 +40,7 @@ export default class Routes {
     router.patch('/albums', updateAlbums);
     router.delete('/albums/:id', deleteArtistsAlbums);
 
-    router.get('/tracks', getAlbumsTracks, validateTracks);
+    router.get('/tracks', getTracksCount, getAlbumsTracks, validateTracks);
     router.post('/tracks', createTracksOnAlbum);
     router.patch('/tracks', updateTracks);
     router.delete('/tracks/:id', deleteTracks);

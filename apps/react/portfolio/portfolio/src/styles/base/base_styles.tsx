@@ -92,10 +92,6 @@ const cssBaselineStyles: CSSObject = {
     clear: 'both',
   },
 
-  '.bold-text': {
-    fontFamily: 'Lucida Bold',
-  },
-
   '.contact-form': {
     width: '100%',
   },

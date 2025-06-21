@@ -17,7 +17,7 @@ import { crudHeaderTextSxProps } from '../../../styles/crud-styles.jsx';
 import { genAiAudioIconButtonSxProps, topLevelModeStyle } from '../../../styles/gen-ai-styles.jsx';
 import { buttonSXProps } from '../../../styles/pages-styles.js';
 import { pagesTitleSx } from '../../../styles/pages-styles.jsx';
-import type { OutletContextProps } from '../../../types/types.tsx';
+import type { OutletContextProps } from '../../../types/types.js';
 import { audioText } from '../static/audio-text.jsx';
 import AudioVisualizer from './audio-visualizer.jsx';
 

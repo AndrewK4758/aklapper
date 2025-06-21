@@ -1,11 +1,11 @@
-import type { GridApiCommunity } from '@mui/x-data-grid/internals';
+import type { track } from '@aklapper/chinook-client';
+import type { CRUD_ApiResponse } from '@aklapper/types';
 import axios from 'axios';
-import type { RefObject } from 'react';
-import type { track } from '../../../types/prisma_types';
+import type { Dispatch, SetStateAction } from 'react';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
-const handleDeleteTrack = async (values: track, apiRef: RefObject<GridApiCommunity | null>) => {
+const handleDeleteTrack = async (values: track, setRows: Dispatch<SetStateAction<track[] | null>>) => {
   try {
     const { track_id } = values;
 
@@ -13,11 +13,10 @@ const handleDeleteTrack = async (values: track, apiRef: RefObject<GridApiCommuni
       headers: { 'Content-Type': 'text/plain' },
     });
 
-    console.log(resp.data);
-    if (resp.data.deletedTrack && apiRef.current) {
-      const { track_id } = resp.data.deletedTrack;
-      apiRef.current.updateRows([{ track_id: track_id, _action: 'delete' }]);
-    }
+    const { message, value } = resp.data as CRUD_ApiResponse<track>;
+    console.log(message);
+
+    setRows(prev => prev && prev.filter(track => track.track_id !== value.track_id));
   } catch (error) {
     console.error(error);
   }

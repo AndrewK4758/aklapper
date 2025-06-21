@@ -5,7 +5,8 @@
   "type": "module",
   "module": "./src/main.ts",
   "devDependencies": {
-    "@aklapper/chinook-client": "workspace:*"
+    "@aklapper/chinook-client": "workspace:*",
+    "@aklapper/types": "workspace:*"
   },
   "nx": {
     "name": "crud-api",

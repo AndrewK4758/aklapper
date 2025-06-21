@@ -1,6 +1,7 @@
+import { track } from '@aklapper/chinook-client';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
-import { type ReactElement } from 'react';
+import { useState, type ReactElement } from 'react';
 import { useParams } from 'react-router';
 import CRUD_THEME from '../../../styles/themes/crud_theme.js';
 import CenteredFlexDiv from '../../styled/centered_flexbox.js';
@@ -16,8 +17,8 @@ import TracksDataGrid from './track_data_grid.js';
  */
 
 const Tracks = (): ReactElement => {
-  const params = useParams();
-  const albumID = parseInt(params.albumID as string, 10);
+  const { albumID } = useParams() as { albumID: string };
+  const [rows, setRows] = useState<track[] | null>(null);
 
   return (
     <CenteredFlexDiv
@@ -28,9 +29,9 @@ const Tracks = (): ReactElement => {
         <DataGridHeader title='Album Tracks' />
 
         <Container component={'div'} key={'add-track-box'} sx={{ paddingY: 1 }}>
-          <AddTrack albumID={albumID} />
+          <AddTrack albumID={albumID} setRows={setRows} />
         </Container>
-        <TracksDataGrid />
+        <TracksDataGrid rows={rows} setRows={setRows} />
       </Box>
     </CenteredFlexDiv>
   );
