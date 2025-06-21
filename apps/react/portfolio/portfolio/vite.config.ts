@@ -1,5 +1,5 @@
 import { workspaceRoot } from '@nx/devkit';
-import react from '@vitejs/plugin-react-swc';
+import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
 import { cwd } from 'node:process';
 import { defineConfig, type UserConfig } from 'vite';
@@ -29,9 +29,7 @@ const config: UserConfig = defineConfig({
   },
   plugins: [
     react({
-      devTarget: 'esnext',
       reactRefreshHost: `http://${HOST}:${PORT_DEV}`,
-      tsDecorators: true,
     }),
   ],
 
@@ -42,6 +40,7 @@ const config: UserConfig = defineConfig({
 
   resolve: {
     alias: MODULES,
+    conditions: ['mui-modern', 'module', 'browser', 'development|production'],
   },
 
   base: BASE,

@@ -1,23 +1,22 @@
-import { Text, useScrollIntoView, Waiting } from '@aklapper/react-shared';
+import { Waiting } from '@aklapper/react-shared';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import DetailsIcon from '@mui/icons-material/Details';
 import UploadIcon from '@mui/icons-material/Upload';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
-import NoSssr from '@mui/material/NoSsr';
-import Paper from '@mui/material/Paper';
-import useMediaQuery from '@mui/material/useMediaQuery';
 import { DataGrid, GridActionsCellItem, useGridApiRef, type GridColDef, type GridRowParams } from '@mui/x-data-grid';
-import { GridToolbar, type GridApiCommunity } from '@mui/x-data-grid/internals';
-import { Suspense, useRef, useState, type JSX } from 'react';
+import { type GridApiCommunity } from '@mui/x-data-grid/internals';
+import { Suspense, useState, type ReactElement } from 'react';
 import { Outlet, useLoaderData, useNavigate } from 'react-router';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
 import useFetchDataGridData from '../../../hooks/useFetchDataGridData';
 import handleDeleteAlbum from '../../../services/events/crud-events/handle-delete-album';
 import handleUpdateAlbumTitle from '../../../services/events/crud-events/handle-update-album-title';
 import loadAlbums from '../../../services/loaders/crud-loaders/load-albums';
-import { dataGridStyleUpdate } from '../../../styles/crud-styles';
 import type { album } from '../../../types/prisma_types';
+import CenteredFlexDiv from '../../styled/centered_flexbox';
+import { allDataGridsWrapperSxProps, artistOutletWrapperSxProps, artistsSxProps } from '../artists/artist-base';
+import DataGridHeader from '../data_grid_header';
 import AddAlbum from './add-album';
 
 const paginationModelInit = {
@@ -29,23 +28,18 @@ const paginationModelInit = {
  * This component renders a page displaying a list of albums.
  * It includes functionality for adding, updating, deleting, and viewing the tracks of each album.
  *
- * @returns {JSX.Element} The rendered Album component.
+ * @returns {ReactElement} The rendered Album component.
  */
 
-const Album = (): JSX.Element => {
+const Album = (): ReactElement => {
   const COUNT = useLoaderData() as number;
-  const [albums, setAlbums] = useState<album[]>();
   const [rowCountState, setRowCountState] = useState(COUNT);
   const [paginationModel, setPaginationModel] = useState(paginationModelInit);
-  const matchesSize = useMediaQuery('(max-width:1200px)');
-  const divRef = useRef<HTMLDivElement>(null);
   const nav = useNavigate();
 
   const apiRef = useGridApiRef<GridApiCommunity>();
 
-  useFetchDataGridData<album[] | undefined>(paginationModel, setAlbums, loadAlbums);
-
-  useScrollIntoView(divRef);
+  const { state } = useFetchDataGridData<album[] | null>(paginationModel, loadAlbums);
 
   const columns: GridColDef[] = [
     {
@@ -118,88 +112,34 @@ const Album = (): JSX.Element => {
   const getID = (row: album) => row.album_id;
 
   return (
-    <Box
-      component={'div'}
-      ref={divRef}
-      key={'all-albums-box'}
-      id='all-albums-box'
-      display={'flex'}
-      flexDirection={matchesSize ? 'column' : 'row'}
-      gap={0.5}
-    >
-      <Box
-        component={'div'}
-        key={'album-box'}
-        id='album-box'
-        sx={{
-          flexWrap: 'wrap',
-          flex: matchesSize ? '1 0 100%' : '1 0 50%',
-          border: '3px solid purple',
-          borderRadius: 1,
-        }}
-      >
-        <Container key={'albums-title-wrapper'} component={'section'} id='album-title-wrapper' sx={{ paddingY: 2 }}>
-          <Paper key={'album-title-bar'} id='album-title-bar' component={'div'} sx={{ height: 'fit-content' }}>
-            <Text
-              component={'h3'}
-              children={'Album List'}
-              variant={'h3'}
-              id='albums-title'
-              sx={{
-                textAlign: 'center',
-              }}
-            />
-          </Paper>
+    <CenteredFlexDiv id='albums' sx={allDataGridsWrapperSxProps}>
+      <Box id='album-box' sx={artistsSxProps}>
+        <DataGridHeader title='Album List' />
+        <Container id={'add-album-box'} sx={{ paddingY: 1 }}>
+          <AddAlbum />
         </Container>
-        <Container component={'div'} key={'add-album-box'} id={'add-album-box'} sx={{ paddingY: 1 }}>
-          <AddAlbum apiRef={apiRef} />
-        </Container>
-        <Paper component={'div'} key={'all-albums-datagrid'} id='all-albums-datagrid' sx={{ borderRadius: 1 }}>
-          <NoSssr>
-            <DataGrid
-              logLevel='info'
-              key={'album-data-grid'}
-              aria-label='album-data-grid'
-              autosizeOnMount={true}
-              apiRef={apiRef}
-              columns={columns}
-              rows={albums}
-              getRowId={getID}
-              rowCount={rowCountState}
-              getRowHeight={() => 'auto'}
-              pageSizeOptions={[10, 25, 50, 100]}
-              paginationMode='server'
-              onRowCountChange={newRowCount => setRowCountState(newRowCount)}
-              onPaginationModelChange={setPaginationModel}
-              paginationModel={paginationModel}
-              sx={dataGridStyleUpdate}
-              slots={{ toolbar: GridToolbar }}
-              slotProps={{
-                pagination: {
-                  slotProps: {
-                    select: {
-                      slotProps: {
-                        input: { id: 'album-pagination-page-numbers' },
-                      },
-                    },
-                  },
-                },
-              }}
-            />
-          </NoSssr>
-        </Paper>
+        <DataGrid
+          logLevel='info'
+          aria-label='album-data-grid'
+          apiRef={apiRef}
+          columns={columns}
+          rows={state ?? []}
+          getRowId={getID}
+          rowCount={COUNT}
+          getRowHeight={() => 'auto'}
+          pageSizeOptions={[10, 25, 50, 100]}
+          paginationMode='server'
+          onRowCountChange={newRowCount => setRowCountState(newRowCount)}
+          onPaginationModelChange={setPaginationModel}
+          paginationModel={paginationModel}
+        />
       </Box>
-      <Suspense fallback={<Waiting src={waiting} />}>
-        <Box
-          key={'tracks-on-album-box'}
-          component={'div'}
-          id='tracks-on-album-box'
-          flex={matchesSize ? '0 1 100%' : '0 1 50%'}
-        >
+      <Box id='tracks-on-album-box' sx={artistOutletWrapperSxProps}>
+        <Suspense fallback={<Waiting src={waiting} />}>
           <Outlet />
-        </Box>
-      </Suspense>
-    </Box>
+        </Suspense>
+      </Box>
+    </CenteredFlexDiv>
   );
 };
 

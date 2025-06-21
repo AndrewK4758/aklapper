@@ -13,14 +13,12 @@ const updateArtists = async (req: Request, resp: Response): Promise<void> => {
   try {
     const { artist_id, name } = req.body;
 
-    console.log(artist_id, name);
     const updatedArtist = await updateArtist(artist_id, name);
 
     const output = {
       updatedArtist: updatedArtist,
     };
 
-    console.log(output);
     resp.status(202).json(output);
   } catch (error) {
     console.error(error);

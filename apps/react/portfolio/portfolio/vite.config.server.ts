@@ -1,5 +1,5 @@
 import { workspaceRoot } from '@nx/devkit';
-import react from '@vitejs/plugin-react-swc';
+import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { cwd } from 'process';
 import type { UserConfig } from 'vite';
@@ -25,12 +25,7 @@ const config: UserConfig = defineConfig({
     host: HOST,
   },
 
-  plugins: [
-    react({
-      devTarget: 'esnext',
-      tsDecorators: true,
-    }),
-  ],
+  plugins: [react()],
 
   // Uncomment this if you are using workers.
   // worker: {
@@ -39,20 +34,20 @@ const config: UserConfig = defineConfig({
 
   resolve: {
     alias: MODULES,
+    conditions: ['mui-modern', 'module', 'browser', 'development|production'],
+    noExternal: [
+      // '@mui/material',
+      // '@mui/icons-material',
+      // '@emotion/styled',
+      // '@emotion/react',
+      // '@mui/x-date-pickers',
+      // '@mui/x-data-grid',
+      // '@mui/styled-engine-sc',
+    ],
   },
 
-  ssr: {
-    noExternal: [
-      '@mui/material',
-      '@mui/icons-material',
-      '@mui/x-date-pickers',
-      '@mui/x-data-grid',
-      '@emotion/styled',
-      '@emotion/react',
-      '@mui/styled-engine-sc',
-      /\.css$/,
-      /@mui\/.*/,
-    ],
+  css: {
+    devSourcemap: true,
   },
 
   base: BASE,
@@ -77,6 +72,7 @@ const config: UserConfig = defineConfig({
     commonjsOptions: {
       transformMixedEsModules: true,
     },
+
     rollupOptions: {
       input: {
         server: './server.ts',
@@ -92,7 +88,6 @@ const config: UserConfig = defineConfig({
           objectShorthand: true,
           reservedNamesAsProps: true,
         },
-        sourcemap: true,
         strict: true,
       },
       strictDeprecations: true,

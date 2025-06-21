@@ -23,11 +23,7 @@ const getArtistsAlbums = async (req: Request, resp: Response, next: NextFunction
         where: { artist_id: artistID },
       } as Prisma.albumFindManyArgs<DefaultArgs>;
 
-      console.log(query);
-
       const albums = await getArtistAlbums(query);
-
-      console.log(albums);
 
       resp.status(200).json({ albums: albums });
     } catch (error) {

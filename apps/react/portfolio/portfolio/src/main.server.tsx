@@ -10,7 +10,6 @@ import Theme from './styles/themes/theme.js';
 import type { ManifestType } from './types/types.js';
 import getFilenamesFromManifest from './utils/get-files-from-manifest.js';
 import parseSsrManifestFile from './utils/parse_ssr_manifest.js';
-// import { viteRefreshModule } from './utils/utils.js';
 
 const handler = createStaticHandler(routes);
 
@@ -72,7 +71,7 @@ const render = async (fullUrl: string, resp: Response, clientManifest: ManifestT
         <StrictMode>
           <ThemeProvider theme={Theme}>
             <CssBaseline />
-            <StaticRouterProvider router={router} context={context} hydrate={true} />
+            <StaticRouterProvider router={router} context={context} />
           </ThemeProvider>
         </StrictMode>
       </body>

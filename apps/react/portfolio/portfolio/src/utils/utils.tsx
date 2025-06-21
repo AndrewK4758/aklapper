@@ -1,4 +1,7 @@
 import type { GamePlayerValidation } from '@aklapper/types';
+import type { FormikProps } from 'formik';
+import type { FocusEvent } from 'react';
+import handleNewArtistBlur from '../services/events/crud-events/handle-validate-artist-on-blur';
 
 /**
  * This function retrieves game instance information from session storage.
@@ -20,3 +23,19 @@ export function addToToolipString(baseString: string, socialSite: string): strin
 export function clientCheck() {
   return typeof window !== 'undefined';
 }
+
+export function handleBlur<T1>(
+  e: FocusEvent<HTMLInputElement | HTMLTextAreaElement>,
+  formik: FormikProps<T1>,
+  stateSetter: (value: string) => void,
+  params: string,
+) {
+  handleNewArtistBlur(e, formik, stateSetter, params);
+}
+
+export const handlelFocus = async <T,>(
+  e: FocusEvent<HTMLInputElement | HTMLTextAreaElement>,
+  formik: FormikProps<T>,
+) => {
+  await formik.setFieldTouched(e.target.name, false);
+};

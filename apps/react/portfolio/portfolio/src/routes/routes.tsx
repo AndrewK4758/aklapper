@@ -10,29 +10,29 @@ import LandingPage from '../pages/landing/landing';
 import waiting from '../assets/images/swirly-dots-to-chrome.webp';
 
 import { Waiting } from '@aklapper/react-shared';
-import loadAlbumTracks from '../services/loaders/crud-loaders/load-album-tracks.jsx';
-import loadAlbumsCount from '../services/loaders/crud-loaders/load-albums-count.jsx';
-import loadArtistAlbums from '../services/loaders/crud-loaders/load-artist-albums.jsx';
-import loadArtistsCount from '../services/loaders/crud-loaders/load-artists-count.jsx';
+import loadAlbumTracks from '../services/loaders/crud-loaders/load-album-tracks';
+import loadAlbumsCount from '../services/loaders/crud-loaders/load-albums-count';
+import loadArtistAlbums from '../services/loaders/crud-loaders/load-artist-albums';
+import loadArtistsCount from '../services/loaders/crud-loaders/load-artists-count';
 
 import generateImageAction from '../services/actions/generate-image-action';
 import handlePromptBuilder from '../services/actions/prompt-builder-action';
 import registerPlayersAndStartGame from '../services/loaders/register-players-and-start-game';
 
-const Games = lazy(() => import('../pages/games/games.jsx'));
-const ActiveGameSession = lazy(() => import('../components/games/active_game_session.jsx'));
+const Games = lazy(() => import('../pages/games/games'));
+const ActiveGameSession = lazy(() => import('../components/games/active_game_session'));
 
-const Crud = lazy(() => import('../pages/crud/crud.jsx'));
-const AddEntry = lazy(() => import('../components/crud/add-entry/add-entry.jsx'));
-const Album = lazy(() => import('../components/crud/albums/album-base.jsx'));
-const Artist = lazy(() => import('../components/crud/artists/artist-base.jsx'));
-const AlbumsOnArtist = lazy(() => import('../components/crud/albums/artist-albums.jsx'));
-const Tracks = lazy(() => import('../components/crud/tracks/album-tracks.jsx'));
+const Crud = lazy(() => import('../pages/crud/crud'));
+const AddEntry = lazy(() => import('../components/crud/add-entry/add-entry'));
+const Album = lazy(() => import('../components/crud/albums/album-base'));
+const Artist = lazy(() => import('../components/crud/artists/artist-base'));
+const AlbumsOnArtist = lazy(() => import('../components/crud/albums/artist-albums'));
+const Tracks = lazy(() => import('../components/crud/tracks/album-tracks'));
 
-const GenAI = lazy(() => import('../pages/gen-ai/gen-ai.jsx'));
-const TextGenerator = lazy(() => import('../components/gen-ai/text/text.jsx'));
-const Image = lazy(() => import('../components/gen-ai/image/image.jsx'));
-const Audio = lazy(() => import('../components/gen-ai/audio/audio.jsx'));
+const GenAI = lazy(() => import('../pages/gen-ai/gen-ai'));
+const TextGenerator = lazy(() => import('../components/gen-ai/text/text'));
+const Image = lazy(() => import('../components/gen-ai/image/image'));
+const Audio = lazy(() => import('../components/gen-ai/audio/audio'));
 
 /**
  * React Router DOM Route Object array.

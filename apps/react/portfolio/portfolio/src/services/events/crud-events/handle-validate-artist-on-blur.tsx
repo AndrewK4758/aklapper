@@ -7,17 +7,32 @@ const baseURL = import.meta.env.VITE_CRUD_API_URL;
 const handleNewArtistBlur = async <T,>(
   e: FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>,
   formik: FormikProps<T>,
+  handleUpdateArtistHelperText: (inDbRessponse: string) => void,
+  params: string,
 ) => {
   try {
     const name = e.target.value;
     const field = e.target.name;
 
+    if (!name.length) {
+      await formik.setFieldTouched(field, true, true);
+      return;
+    }
+
     formik.setSubmitting(true);
 
-    const resp = await axios.get(`${baseURL}/artists?name=${name}`);
+    const resp = await axios.get(`${baseURL}/${params}`);
 
-    await formik.setFieldTouched(field, true, true);
-    formik.setFieldError(field, resp.data.message);
+    const dbMessage = resp.data.message;
+
+    console.log(dbMessage);
+
+    if (dbMessage === 'Artist Already Exists') {
+      handleArtistExists<T>(field, dbMessage, formik);
+    } else {
+      formik.setFieldTouched(field, true, true);
+      handleUpdateArtistHelperText(resp.data.message);
+    }
   } catch (error) {
     console.error(error);
   } finally {
@@ -26,3 +41,8 @@ const handleNewArtistBlur = async <T,>(
 };
 
 export default handleNewArtistBlur;
+
+async function handleArtistExists<T>(field: string, dbMessage: string, formik: FormikProps<T>) {
+  await formik.setFieldTouched(field, true, true);
+  formik.setFieldError(field, dbMessage);
+}

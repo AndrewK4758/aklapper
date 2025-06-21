@@ -72,7 +72,6 @@ const rootDir = cwd();
       let ssrManifest;
 
       if (isProduction) {
-        // @ts-ignore
         clientManifest = JSON.parse(await fs.readFile(path.resolve(workspacePath, fileName), 'utf-8'));
         ssrManifest = JSON.parse(await fs.readFile(path.resolve(ssrWorkspacePath, ssrFilename), 'utf-8'));
       } else {
@@ -90,7 +89,7 @@ const rootDir = cwd();
   });
 
   const server = app.listen(PORT, HOST, () => {
-    console.log(`Serving Portfolio on PORT: ${PORT}`);
+    console.log(`Serving Portfolio on HOST: ${HOST} : PORT: ${PORT}`);
     console.log(`Mode: ${process.env.NODE_ENV}`);
   });
 

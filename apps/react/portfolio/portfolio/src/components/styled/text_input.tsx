@@ -1,27 +1,30 @@
 import TextField from '@mui/material/TextField';
 import type { FormikProps } from 'formik';
+import type { HTMLInputTypeAttribute } from 'react';
 
 interface TextInputProps<T extends object> {
   formik: FormikProps<T>;
   name: Extract<keyof T, string>;
   label: string;
   multiline?: boolean;
-  inputHeight?: `${string}px`;
+  type?: HTMLInputTypeAttribute;
+  autocomplete?: 'on' | 'off';
 }
 
 export default function TextInput<T extends object>({
+  autocomplete = 'off',
   name,
   label,
   formik,
+  type = 'text',
   multiline = false,
-  inputHeight = '82px',
 }: TextInputProps<T>) {
   return (
     <TextField
       fullWidth
-      autoComplete='on'
+      autoComplete={autocomplete}
       value={formik.values[name]}
-      type='text'
+      type={type}
       data-testid={name}
       name={name}
       label={label}
@@ -32,13 +35,6 @@ export default function TextInput<T extends object>({
       onFocus={() => formik.setFieldTouched(name, false)}
       error={formik.touched[name] && !!formik.errors[name]}
       helperText={formik.touched[name] && (formik.errors[name] as string)}
-      slotProps={{
-        root: {
-          sx: {
-            height: inputHeight,
-          },
-        },
-      }}
     />
   );
 }

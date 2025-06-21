@@ -18,6 +18,7 @@ const handleSubmitNewArtist = async (values: artist, formik: FormikProps<artist>
     const errorMessage = ((error as AxiosError).response as AxiosResponse).data.errorMessage;
     console.log(errorMessage);
     formik.setErrors({ name: errorMessage });
+    formik.setSubmitting(false);
   }
 };
 
