@@ -23,7 +23,7 @@ export default function TimeInput({
     <CenteredFlexDiv component={'section'} id='time-pickers-wrapper' data-testid='time-pickers-wrapper'>
       <SectionTitle
         title='Suggested Meeting Time'
-        tooltipTitle='Time must be between 8:30am and 8:00pm EST. Start & End time must be minimun of 1 hour range'
+        // tooltipTitle='Time must be between 8:30am and 8:00pm EST. Start & End time must be minimun of 1 hour range'
         placement='top-start'
         id='time-pickers-label'
         variant='h5'

@@ -1,4 +1,4 @@
-import type { Prisma } from 'node_modules/@aklapper/chinook-client/generated/client.js';
+import type { Prisma } from '@aklapper/chinook-client';
 import type { Request, Response } from 'express';
 import validateArtist from '../services/prisma/artist/validate-artist-in-db.js';
 

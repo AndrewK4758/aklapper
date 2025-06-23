@@ -5,8 +5,8 @@ import { useState, type FocusEvent } from 'react';
 import { Form, useNavigate } from 'react-router';
 import * as Yup from 'yup';
 import { addEntrySteps } from '../../../pages/static/crud-text';
+import handleNewArtistBlur from '../../../services/actions/crud-actions/handle-validate-artist-on-blur.js';
 import handleSubmitNewEntry from '../../../services/actions/crud-actions/submit-new-entry-action.jsx';
-import handleNewArtistBlur from '../../../services/events/crud-events/handle-validate-artist-on-blur.jsx';
 import type { CompletedState, NewEntry } from '../../../types/types';
 import AddEntryFormActions from './form_actions';
 import AddEntryFormInputs from './inputs';
@@ -85,7 +85,7 @@ export default function AddEntryForm() {
 
     switch (field) {
       case 'artist.name':
-        handleNewArtistBlur<NewEntry>(e, formik, handleUpdateArtistHelperText);
+        handleNewArtistBlur<NewEntry>(e, formik, handleUpdateArtistHelperText, `/artists?name=${field}`);
         break;
       default:
         formik.setFieldTouched(field, true, true);

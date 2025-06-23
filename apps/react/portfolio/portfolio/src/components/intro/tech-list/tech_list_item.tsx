@@ -2,7 +2,7 @@ import ListItem, { type ListItemProps } from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import type { SxProps } from '@mui/material/styles';
-import type { CSSProperties } from 'react';
+import { type CSSProperties } from 'react';
 import Theme from '../../../styles/themes/theme.js';
 
 const techListItemSxProps: SxProps = { display: 'flex', flexDirection: 'row', justifyItems: 'space-between' };
@@ -25,9 +25,10 @@ export default function TechListItem({ listItem, ...props }: TechListItemProps) 
         <img
           data-testid={`${listItem}-svg-icon`}
           id={`${listItem}-svg-icon`}
-          src={`/client/icons/${listItem.toLowerCase()}-icon.svg`}
+          src={`/client/icons/intro/${listItem.toLowerCase()}-icon.svg`}
           alt={`${listItem}-icon`}
           role='img'
+          loading='lazy'
           style={svgCssStyle}
         />
       </ListItemIcon>

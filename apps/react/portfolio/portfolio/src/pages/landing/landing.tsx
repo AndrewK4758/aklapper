@@ -18,10 +18,6 @@ const landingPageInitState: LandingPageState = {
   motionOffset: 0,
 };
 
-// interface LandingPageProps extends BoxProps {
-//   handleEnterClicked: () => void;
-// }
-
 export default function LandingPage({ ...props }: BoxProps) {
   const [state, dispatch] = useReducer(landingPageReducer, landingPageInitState);
   const nav = useNavigate();

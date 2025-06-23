@@ -16,7 +16,7 @@ const handleDeleteTrack = async (values: track, setRows: Dispatch<SetStateAction
     const { message, value } = resp.data as CRUD_ApiResponse<track>;
     console.log(message);
 
-    setRows(prev => prev && prev.filter(track => track.track_id !== value.track_id));
+    if (value) setRows(prev => prev && prev.filter(track => track.track_id !== value.track_id));
   } catch (error) {
     console.error(error);
   }

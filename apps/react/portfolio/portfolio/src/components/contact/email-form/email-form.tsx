@@ -73,20 +73,20 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
         onReset={formik.handleReset}
       >
         <Stack id='email-me-inputs-stack' data-testid='email-me-inputs-stack' gap={2}>
-          <TextInput<MessageMeFormValues> name={'name'} label={'Name'} formik={formik} inputHeight='80px' />
+          <TextInput<MessageMeFormValues> name={'name'} label={'Name'} formik={formik} variant='outlined' />
 
-          <TextInput<MessageMeFormValues> name={'email'} label={'Email'} formik={formik} inputHeight='80px' />
+          <TextInput<MessageMeFormValues> name={'email'} label={'Email'} formik={formik} variant='outlined' />
 
-          <TextInput<MessageMeFormValues> name={'phone'} label={'Phone'} formik={formik} inputHeight='80px' />
+          <TextInput<MessageMeFormValues> name={'phone'} label={'Phone'} formik={formik} variant='outlined' />
 
-          <TextInput<MessageMeFormValues> name={'subject'} label={'Subject'} formik={formik} inputHeight='80px' />
+          <TextInput<MessageMeFormValues> name={'subject'} label={'Subject'} formik={formik} variant='outlined' />
 
           <TextInput<MessageMeFormValues>
             name={'body'}
             label={'Body'}
             formik={formik}
             multiline={true}
-            inputHeight='148px'
+            variant='outlined'
           />
 
           <DateTimeInput formik={formik} name={'date'} />

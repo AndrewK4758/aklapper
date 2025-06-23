@@ -7,15 +7,7 @@ interface MenuIconProps extends Omit<SvgIconProps, 'onClick'> {
 
 export default function LandingBox({ isLandingNavOpen, onHandleOpenMenu, ...props }: MenuIconProps) {
   return (
-    <svg
-      version='1.1'
-      viewBox='0 0 512 512'
-      height='512'
-      width='512'
-      xmlns-xlink='http://www.w3.org/1999/xlink'
-      xmlns='http://www.w3.org/2000/svg'
-      xmlns-svg='http://www.w3.org/2000/svg'
-    >
+    <svg version='1.1' viewBox='0 0 512 512' height='512' width='512'>
       <SvgIcon {...props}>
         <defs id='defs2'>
           <linearGradient id='linearGradient5051'>

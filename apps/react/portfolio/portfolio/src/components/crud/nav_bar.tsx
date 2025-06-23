@@ -11,8 +11,6 @@ export default function CrudNavBar() {
           id='crud-home-button'
           path='/portfolio/crud'
           buttonText={'CRUD Home'}
-          tooltipTitle={'Return to the main page of CRUD App'}
-          placement='top-start'
         />
       </Grid>
       <Grid size={6}>
@@ -22,8 +20,6 @@ export default function CrudNavBar() {
           id='crud-artists-button'
           path='artists'
           buttonText='Artists'
-          tooltipTitle={'This displays all artists in the database with server side pagination'}
-          placement='top-end'
         />
       </Grid>
       <Grid size={6}>
@@ -33,8 +29,6 @@ export default function CrudNavBar() {
           id='crud-albums-button'
           path='albums'
           buttonText='Albums'
-          tooltipTitle={'This displays all albums in the database with server side pagination'}
-          placement='bottom-start'
         />
       </Grid>
       <Grid size={6}>
@@ -44,8 +38,6 @@ export default function CrudNavBar() {
           id='crud-add-entry-button'
           path='add-entry'
           buttonText='Add Entry'
-          tooltipTitle={'This displays the dialog to add an artist / album / track entry in the database'}
-          placement='bottom-end'
         />
       </Grid>
     </Grid>

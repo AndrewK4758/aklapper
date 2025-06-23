@@ -4,27 +4,30 @@ import DetailsIcon from '@mui/icons-material/Details';
 import UploadIcon from '@mui/icons-material/Upload';
 import { DataGrid, GridActionsCellItem, type GridColDef, type GridRowParams } from '@mui/x-data-grid';
 import { useCallback, useState, type Dispatch, type SetStateAction } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useLoaderData, useNavigate } from 'react-router';
+
 import useFetchDataGridData from '../../../hooks/useFetchDataGridData';
 import handleDeleteAlbum from '../../../services/actions/crud-actions/handle-delete-album.js';
 import handleUpdateAlbumTitle from '../../../services/actions/crud-actions/handle-update-album-title.js';
-import loadArtistAlbums from '../../../services/loaders/crud-loaders/load-artist-albums';
-import type { PaginationModel } from '../artists/data_grid';
+import loadAlbums from '../../../services/loaders/crud-loaders/load-albums';
 
-const paginationModelInit: PaginationModel = { page: 0, pageSize: 5 };
+const paginationModelInit = {
+  pageSize: 25,
+  page: 0,
+};
 
-interface AlbumDataGrid {
+interface AlbumBaseDataGridProps {
   rows: album[] | null;
   setRows: Dispatch<SetStateAction<album[] | null>>;
 }
 
-export default function AlbumDataGrid({ rows, setRows }: AlbumDataGrid) {
-  const { artistID } = useParams();
+export default function AlbumBaseDataGrid({ rows, setRows }: AlbumBaseDataGridProps) {
+  const COUNT = useLoaderData() as number;
   const [dirtyRows, setDirtyRows] = useState<Set<number>>(new Set());
-  const [paginationModel, setPaginationModel] = useState<PaginationModel>(paginationModelInit);
+  const [rowCountState, setRowCountState] = useState(COUNT);
+  const [paginationModel, setPaginationModel] = useState(paginationModelInit);
   const nav = useNavigate();
-
-  useFetchDataGridData<album[]>(paginationModel, loadArtistAlbums, setRows, artistID);
+  useFetchDataGridData<album[]>(paginationModel, loadAlbums, setRows);
 
   const processRowUpdate = useCallback((newRow: album) => {
     setDirtyRows(prev => new Set(prev).add(newRow.album_id));
@@ -37,14 +40,14 @@ export default function AlbumDataGrid({ rows, setRows }: AlbumDataGrid) {
       field: 'album_id',
       headerName: 'Album ID',
       type: 'number',
-      flex: 0.75,
+      flex: 1,
       cellClassName: 'album-id',
     },
     {
       field: 'title',
       headerName: 'Title',
       type: 'string',
-      flex: 4,
+      flex: 3,
       editable: true,
       cellClassName: 'album-title',
     },
@@ -59,7 +62,7 @@ export default function AlbumDataGrid({ rows, setRows }: AlbumDataGrid) {
       field: 'update-delete',
       type: 'actions',
       headerName: 'Update / Delete',
-      flex: 1.5,
+      flex: 2,
       getActions: ({ row }: GridRowParams<album>) => {
         const isDirty = dirtyRows.has(row.album_id);
         return [
@@ -68,8 +71,8 @@ export default function AlbumDataGrid({ rows, setRows }: AlbumDataGrid) {
             icon={<UploadIcon color={!isDirty ? 'disabled' : 'success'} />}
             title='Update'
             disabled={!isDirty}
-            onClick={async () => {
-              await handleUpdateAlbumTitle(row, setRows);
+            onClick={() => {
+              handleUpdateAlbumTitle(row, setRows);
             }}
           />,
 
@@ -77,8 +80,8 @@ export default function AlbumDataGrid({ rows, setRows }: AlbumDataGrid) {
             label='Delete'
             title='Delete'
             icon={<DeleteForeverIcon color='error' />}
-            onClick={async () => {
-              await handleDeleteAlbum(row, setRows);
+            onClick={() => {
+              handleDeleteAlbum(row, setRows);
             }}
           />,
         ];
@@ -92,8 +95,8 @@ export default function AlbumDataGrid({ rows, setRows }: AlbumDataGrid) {
       getActions: (params: GridRowParams) => {
         return [
           <GridActionsCellItem
-            label='Details'
-            title='Details'
+            label='Tracks'
+            title='Tracks'
             icon={<DetailsIcon color='info' />}
             onClick={() => nav(`${params.row.album_id}/tracks`, { replace: true })}
           />,
@@ -102,22 +105,22 @@ export default function AlbumDataGrid({ rows, setRows }: AlbumDataGrid) {
     },
   ];
 
-  const getID = (row: album) => {
-    return row.album_id;
-  };
+  const getID = (row: album) => row.album_id;
 
   return (
     <DataGrid
-      aria-label='artist-albums-data-grid'
+      logLevel='info'
+      aria-label='album-data-grid'
       columns={columns}
       rows={rows ?? []}
-      rowCount={rows ? rows.length : 0}
       getRowId={getID}
+      rowCount={rowCountState}
       getRowHeight={() => 'auto'}
-      pageSizeOptions={[1, 5, 10, 20]}
+      pageSizeOptions={[10, 25, 50, 100]}
       paginationMode='server'
+      onRowCountChange={newRowCount => setRowCountState(newRowCount)}
+      onPaginationModelChange={setPaginationModel}
       paginationModel={paginationModel}
-      onPaginationModelChange={newPageModel => setPaginationModel(newPageModel)}
       processRowUpdate={processRowUpdate}
       onProcessRowUpdateError={error => console.error(error)}
     />

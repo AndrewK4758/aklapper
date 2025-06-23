@@ -12,7 +12,7 @@ const LIBRARIES: TechStackData = [
   'My most used libraries and packages',
 ];
 
-const STYLES: TechStackData = ['Styles', ['Mui Material', 'Mui X', 'Tailwind CSS'], 'My favorite styling tools'];
+const STYLES: TechStackData = ['Styles', ['Mui Material', 'Mui X', 'Tailwind'], 'My favorite styling tools'];
 
 const DATA: TechStackData = ['Data', ['PostgreSQL', 'MongoDB', 'ChromaDB'], 'My most used SQL/NoSQL/Vector Databases'];
 

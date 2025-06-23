@@ -49,7 +49,7 @@ export default function TabsSelector({ tab, handleSetTab, ...props }: TabsSelect
               id='appointment-request-tab-label'
               variant={'h4'}
               title={'Appt. Request'}
-              tooltipTitle={'Add to Google Calendar'}
+              // tooltipTitle={'Add to Google Calendar'}
               placement={'bottom'}
               sx={{ color: Theme.palette.primary.dark }}
             />
@@ -63,7 +63,7 @@ export default function TabsSelector({ tab, handleSetTab, ...props }: TabsSelect
             <SectionTitle
               id='email-me-tab-label'
               title={'Email Me'}
-              tooltipTitle={'Send Email / Upload Appointment Details'}
+              // tooltipTitle={'Send Email / Upload Appointment Details'}
               variant={'h4'}
               placement={'bottom'}
               sx={{ color: Theme.palette.primary.dark }}

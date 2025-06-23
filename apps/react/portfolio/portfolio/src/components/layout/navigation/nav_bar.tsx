@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router';
-import AnimatedBorderBox from '../styled/animated_border_box.js';
-import NavButton from './nav_button.js';
+import AnimatedBorderBox from '../../styled/animated_border_box';
+import NavButton from './nav_button';
 
 export default function NavBar() {
   const nav = useNavigate();

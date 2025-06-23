@@ -17,7 +17,7 @@ const createTracksOnAlbum = async (req: Request, resp: Response) => {
     const { name, albumID } = req.body;
 
     const query = {
-      data: { name: name, album_id: albumID },
+      data: { name: name, album_id: parseInt(albumID, 10) },
     } as Prisma.trackCreateArgs<DefaultArgs>;
 
     const newTrack = await createTracks(query);

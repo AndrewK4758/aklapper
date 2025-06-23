@@ -24,6 +24,7 @@ interface TextInputProps<T extends object>
   label: string;
   multiline?: boolean;
   type?: HTMLInputTypeAttribute;
+  setHelperText: (text: string | null) => void;
 }
 
 export default function TextInput<T extends object>({
@@ -32,6 +33,7 @@ export default function TextInput<T extends object>({
   formik,
   type = 'text',
   multiline = false,
+  setHelperText,
   ...props
 }: TextInputProps<T>): ReactElement {
   return (
@@ -48,7 +50,9 @@ export default function TextInput<T extends object>({
       rows={multiline ? 4 : 1}
       onBlur={formik.handleBlur}
       onChange={formik.handleChange}
-      onFocus={() => formik.setFieldTouched(name, false)}
+      onFocus={async () => {
+        await formik.setFieldTouched(name, false), setHelperText(null);
+      }}
       error={formik.touched[name] && !!formik.errors[name]}
       helperText={formik.touched[name] && (formik.errors[name] as string)}
     />

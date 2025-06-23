@@ -23,7 +23,13 @@ const Tracks = (): ReactElement => {
   return (
     <CenteredFlexDiv
       id={'track-box'}
-      sx={{ width: '100%', height: '100%', p: 0, borderTop: `3px solid ${CRUD_THEME.palette.secondary.main}` }}
+      sx={{
+        width: '100%',
+        height: '100%',
+        p: 0,
+        border: `3px solid ${CRUD_THEME.palette.secondary.main}`,
+        borderRadius: 1,
+      }}
     >
       <Box key={'artist-title'} sx={{ height: '100%', width: '100%' }}>
         <DataGridHeader title='Album Tracks' />

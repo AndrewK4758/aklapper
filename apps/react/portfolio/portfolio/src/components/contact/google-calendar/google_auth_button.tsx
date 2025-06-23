@@ -32,7 +32,7 @@ export default function GoogleAuthButton(): ReactElement<ButtonProps> {
       >
         <SectionTitle
           id='google-auth-button-label'
-          tooltipTitle={'Connect your Google Calendar to sync appointment request with your Google Calendar'}
+          // tooltipTitle={'Connect your Google Calendar to sync appointment request with your Google Calendar'}
           variant='body1'
           title='Connect Google Calendar'
           placement='bottom-start'

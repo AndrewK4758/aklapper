@@ -1,9 +1,8 @@
 import { SectionTitle } from '@aklapper/react-shared';
 import CardHeader, { type CardHeaderSlotsAndSlotProps } from '@mui/material/CardHeader';
-import self from '../../assets/images/self.webp';
+import type { ReactElement } from 'react';
 import Theme from '../../styles/themes/theme';
 import { ABOUT_ME_TITLE } from '../intro/static/intro-text';
-import NavBar from '../navigation/nav_bar';
 
 const slotProps: CardHeaderSlotsAndSlotProps = {
   slotProps: {
@@ -16,15 +15,15 @@ const slotProps: CardHeaderSlotsAndSlotProps = {
 };
 
 const myName = <SectionTitle title={ABOUT_ME_TITLE} variant='h1' />;
-console.log(self);
+
 const avatarImg = (
   <img
     rel='preload'
     crossOrigin=''
     id={'card-media-resume-image'}
     data-testid={'card-media-resume-image'}
-    src={self}
-    loading='eager'
+    src={'/client/images/self.webp'}
+    loading='lazy'
     alt='Andrew'
     style={{
       width: '100%',
@@ -33,6 +32,10 @@ const avatarImg = (
   />
 );
 
-export default function PicNameAndNav() {
-  return <CardHeader title={myName} subheader={<NavBar />} avatar={avatarImg} {...slotProps} />;
+interface PicNameAndNavProps {
+  subheader: ReactElement;
+}
+
+export default function PicNameAndNav({ subheader }: PicNameAndNavProps) {
+  return <CardHeader suppressHydrationWarning title={myName} subheader={subheader} avatar={avatarImg} {...slotProps} />;
 }

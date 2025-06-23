@@ -1,11 +1,14 @@
-import { type ReactElement } from 'react';
-import { Outlet } from 'react-router';
-import Footer from '../footer/footer';
-import HeaderContactMenu from '../header/header.js';
+import { type ReactElement, type ReactNode } from 'react';
 import CenteredFlexDiv from '../styled/centered_flexbox';
 import StyledCard from '../styled/styled_card';
 import StyledRootComponentWrapper from '../styled/styled_root_wrapper';
-import PicNameAndNav from './pic_name_nav';
+
+interface LayoutProps {
+  header: ReactElement;
+  footer: ReactElement;
+  navBar: ReactElement;
+  children: ReactNode;
+}
 
 /**
  * This component renders the main layout of the application.
@@ -14,19 +17,19 @@ import PicNameAndNav from './pic_name_nav';
  * @returns {ReactElement} The rendered Layout component.
  */
 
-export default function Layout(): ReactElement {
+export default function Layout({ header, footer, navBar, children }: LayoutProps): ReactElement {
   return (
     <StyledRootComponentWrapper id='app-wrapper' sx={{ minHeight: '100vh', height: 'fit-content' }}>
-      <HeaderContactMenu />
+      {header}
 
       <CenteredFlexDiv component={'main'} marginX={'5%'}>
         <StyledCard raised elevation={4}>
-          <PicNameAndNav />
-          <Outlet />
+          {navBar}
+          {children}
         </StyledCard>
       </CenteredFlexDiv>
 
-      <Footer />
+      {footer}
     </StyledRootComponentWrapper>
   );
 }

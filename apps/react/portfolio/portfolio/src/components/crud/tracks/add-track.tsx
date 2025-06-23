@@ -60,13 +60,19 @@ const AddTrack = ({ albumID, setRows }: AddTrackProps): ReactElement => {
     <Form method='post' onSubmit={formik.handleSubmit}>
       <CenteredFlexDiv>
         <HelperTextBox>
-          <TextInput<track> formik={formik} name={'name'} label={'Track Name'} variant='outlined' />
+          <TextInput<track>
+            formik={formik}
+            name={'name'}
+            label={'Track Name'}
+            variant='outlined'
+            setHelperText={setHelperText}
+          />
           {helperText && <Text variant='caption' color='textSecondary' children={helperText} />}
         </HelperTextBox>
       </CenteredFlexDiv>
 
       <ButtonGroup fullWidth>
-        <Button type='submit' variant='contained' color='primary'>
+        <Button type='submit' disabled={formik.isSubmitting} variant='contained' color='primary'>
           Submit
         </Button>
         <Button type='reset' variant='contained' color='secondary'>

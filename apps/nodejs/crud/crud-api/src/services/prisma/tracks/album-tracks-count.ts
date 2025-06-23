@@ -10,7 +10,6 @@ import prisma from '../client/prisma_client.js';
 
 const albumTracksCount = async (albumID: number): Promise<number> => {
   try {
-    console.log(albumID);
     return await prisma.track.count({ where: { album_id: { equals: albumID } } });
   } catch (error) {
     const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);

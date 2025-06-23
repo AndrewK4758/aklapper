@@ -12,14 +12,13 @@ interface TechListProps extends SectionTitleProps {
   variant: TypographyVariant;
 }
 
-export const TechList = ({ data, id, labelText, variant, tooltipTitle, placement }: TechListProps) => (
+export const TechList = ({ data, id, labelText, variant, placement }: TechListProps) => (
   <Grid id={`${id}-wrapper`} data-testid={`tech-list-${id}-title-text`} flexBasis={'24%'}>
     <SectionTitle
       id={id}
       title={labelText}
       placement={placement}
       variant={variant}
-      tooltipTitle={tooltipTitle}
       titleSx={{ borderBottom: 1, borderColor: Theme.palette.primary.dark }}
     />
 

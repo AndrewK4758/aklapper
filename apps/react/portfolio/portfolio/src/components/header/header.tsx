@@ -1,21 +1,21 @@
 import Box from '@mui/material/Box';
-import { useState } from 'react';
-import ContactDialog from '../contact/contact_dialog.js';
-import AnimatedContactMenu from './contact/animated_contact_menu.js';
-import ToggleMenuButton from './contact/toggle_contact_button.js';
+import ContactDialog from '../contact/contact_dialog';
+import AnimatedContactMenu from './contact/animated_contact_menu';
+import ToggleMenuButton from './contact/toggle_menu_button';
 
-export function HeaderContactMenu() {
-  const [openEmail, setOpenEmail] = useState<boolean>(false);
-  const [isContactMenuOpen, setIsContactMenuOpen] = useState(false);
+interface HeaderContactMenuProps {
+  isContactMenuOpen: boolean;
+  openEmail: boolean;
+  handleToggleContactMenu: () => void;
+  handleOpenEmail: () => void;
+}
 
-  const handleToggleContactMenu = () => {
-    setIsContactMenuOpen(!isContactMenuOpen);
-  };
-
-  const handleOpenEmail = () => {
-    setOpenEmail(!openEmail);
-  };
-
+export function HeaderContactMenu({
+  isContactMenuOpen,
+  openEmail,
+  handleOpenEmail,
+  handleToggleContactMenu,
+}: HeaderContactMenuProps) {
   return (
     <>
       <Box component={'header'} display={'flex'}>

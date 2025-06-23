@@ -8,8 +8,8 @@ import type { GridRowParams } from '@mui/x-data-grid/models/params';
 import { useCallback, useState, type Dispatch, type SetStateAction } from 'react';
 import { useLoaderData, useParams } from 'react-router';
 import useFetchDataGridData from '../../../hooks/useFetchDataGridData';
-import handleDeleteTrack from '../../../services/events/crud-events/handle-delete-track';
-import handleUpdateTrack from '../../../services/events/crud-events/handle-update-track';
+import handleDeleteTrack from '../../../services/actions/crud-actions/handle-delete-track.js';
+import handleUpdateTrack from '../../../services/actions/crud-actions/handle-update-track.js';
 import loadAlbumTracks from '../../../services/loaders/crud-loaders/load-album-tracks';
 import type { PaginationModel } from '../artists/data_grid';
 

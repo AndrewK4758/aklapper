@@ -60,7 +60,7 @@ const config: UserConfig = defineConfig({
 
   build: {
     outDir: OUT_DIR,
-    minify: NODE_ENV === 'production' ? 'esbuild' : false,
+    minify: NODE_ENV === 'production',
     target: 'esnext',
     manifest: true,
     sourcemap: true,
@@ -71,6 +71,8 @@ const config: UserConfig = defineConfig({
     },
 
     rollupOptions: {
+      logLevel: 'info',
+      experimentalLogSideEffects: true,
       input: {
         browser: '/src/main.tsx',
       },

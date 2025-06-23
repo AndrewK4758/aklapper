@@ -10,14 +10,10 @@ export const allDataGridsWrapperSxProps: SxProps = {
     alignContent: 'flex-start',
   },
   gap: 0.5,
-  border: 5,
 };
 
 export const artistsSxProps: SxProps = {
   flex: '0 1 50%',
-  [CRUD_THEME.breakpoints.down('lg')]: {
-    flex: '0 1 100%',
-  },
   justifyContent: 'flex-start',
   alignItems: 'flex-start',
   border: '3px solid purple',
@@ -27,5 +23,6 @@ export const artistsSxProps: SxProps = {
 
 export const artistOutletWrapperSxProps: SxProps = {
   flex: '0 1 100%',
-  [CRUD_THEME.breakpoints.down('lg')]: { flex: '0 1 50%' },
+  width: '100%',
+  [CRUD_THEME.breakpoints.down('lg')]: { flex: '0 1 100%' },
 };

@@ -10,10 +10,8 @@ interface ContactContentProps {
 
 export default function ContactContent({ element }: ContactContentProps): ReactElement<ContactContentProps> {
   return (
-    <Suspense fallback={<Waiting src={waiting} />}>
-      <Box component={'section'} width={'100%'}>
-        {element}
-      </Box>
-    </Suspense>
+    <Box component={'section'} width={'100%'}>
+      <Suspense fallback={<Waiting src={waiting} />}>{element}</Suspense>
+    </Box>
   );
 }

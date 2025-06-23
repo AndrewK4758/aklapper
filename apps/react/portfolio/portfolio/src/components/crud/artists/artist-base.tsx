@@ -4,7 +4,6 @@ import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import { type ReactElement, Suspense, useState } from 'react';
 import { Outlet, useLoaderData } from 'react-router';
-import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
 import { allDataGridsWrapperSxProps, artistsSxProps } from '../../../styles/crud/data_grid';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
 import DataGridHeader from '../data_grid_header';
@@ -37,9 +36,11 @@ const Artist = (): ReactElement => {
         </Container>
         <ArtistDataGrid rows={rows} setRows={setRows} COUNT={rowCountState} setRowCountState={setRowCountState} />
       </Box>
-      <Suspense fallback={<Waiting src={waiting} />}>
-        <Outlet />
-      </Suspense>
+      <Box flex={'0 1 50%'}>
+        <Suspense fallback={<Waiting src={'/client/images/swirly-dots-to-chrome.webp'} />}>
+          <Outlet />
+        </Suspense>
+      </Box>
     </CenteredFlexDiv>
   );
 };

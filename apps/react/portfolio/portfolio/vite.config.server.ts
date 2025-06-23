@@ -41,7 +41,6 @@ const config: UserConfig = defineConfig({
   resolve: {
     alias: MODULES,
     conditions: ['mui-modern', 'module', 'browser', 'development|production'],
-    noExternal: [],
   },
 
   css: {
@@ -59,7 +58,7 @@ const config: UserConfig = defineConfig({
 
   build: {
     outDir: OUT_DIR,
-    minify: NODE_ENV === 'production' ? 'esbuild' : false,
+    minify: NODE_ENV === 'production',
     target: 'node24',
     ssr: true,
     ssrEmitAssets: false,
@@ -68,15 +67,19 @@ const config: UserConfig = defineConfig({
     emptyOutDir: true,
     reportCompressedSize: true,
     commonjsOptions: {
-      transformMixedEsModules: true,
+      transformMixedEsModules: false,
     },
 
     rollupOptions: {
+      logLevel: 'info',
+      experimentalLogSideEffects: true,
       input: {
         server: './server.ts',
       },
       output: {
         entryFileNames: '[name].js',
+        validate: true,
+        strict: true,
         esModule: true,
         format: 'esm',
         generatedCode: {
@@ -86,10 +89,6 @@ const config: UserConfig = defineConfig({
           objectShorthand: true,
           reservedNamesAsProps: true,
         },
-        strict: true,
-      },
-      treeshake: {
-        moduleSideEffects: false,
       },
       strictDeprecations: true,
       perf: true,

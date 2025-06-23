@@ -1,6 +1,6 @@
+import type { track } from '@aklapper/chinook-client';
 import axios from 'axios';
 import type { NavigateFunction } from 'react-router';
-import type { track } from '../../../types/prisma_types.js';
 import type { NewEntry } from '../../../types/types.js';
 
 export type NewEntryReturn = {

@@ -2,7 +2,7 @@ import type { album } from '@aklapper/chinook-client';
 
 import axios from 'axios';
 import type { Dispatch, SetStateAction } from 'react';
-import type { CRUD_ApiResponse } from '../../../types/types';
+import type { CRUD_ApiResponse } from '../../../types/types.js';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 

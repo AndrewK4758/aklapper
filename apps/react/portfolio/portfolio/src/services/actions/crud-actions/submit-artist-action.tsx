@@ -19,9 +19,7 @@ const handleSubmitNewArtist = async (
       { headers: { 'Content-Type': 'application/json' } },
     );
 
-    const { message, value } = resp.data as CRUD_ApiResponse<artist>;
-
-    console.log(message);
+    const { value } = resp.data as CRUD_ApiResponse<artist>;
 
     setRows(prev => prev && [...prev, value]);
   } catch (error) {

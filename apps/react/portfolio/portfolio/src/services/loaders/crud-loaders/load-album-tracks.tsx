@@ -5,7 +5,7 @@ import type { QueryOptions } from '../../../types/types';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
-const loadAlbumTracks = async (queryOptions: QueryOptions, signal: AbortSignal, albumID: string) => {
+export default async function loadAlbumTracks(queryOptions: QueryOptions, signal: AbortSignal, albumID: string) {
   try {
     const { cursor, skip, pageSize } = queryOptions;
     const resp = await axios.get(
@@ -15,14 +15,11 @@ const loadAlbumTracks = async (queryOptions: QueryOptions, signal: AbortSignal, 
         signal: signal,
       },
     );
-    const { message, value } = resp.data as CRUD_ApiResponse<track[]>;
+    const { value } = resp.data as CRUD_ApiResponse<track[]>;
 
-    console.log(message);
     return value;
   } catch (error) {
     console.error(error);
     return null;
   }
-};
-
-export default loadAlbumTracks;
+}

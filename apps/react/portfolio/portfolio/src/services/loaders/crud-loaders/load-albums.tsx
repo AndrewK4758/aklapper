@@ -1,5 +1,6 @@
 import axios from 'axios';
-import type { album } from '../../../types/prisma_types.js';
+
+import type { album } from '@aklapper/chinook-client';
 import type { QueryOptions } from '../../../types/types.js';
 
 export type AllAlbums = { albums: album[] };
@@ -14,7 +15,6 @@ const loadAlbums = async (queryOptions: QueryOptions): Promise<album[] | null> =
       headers: { 'Content-Type': 'text/plain' },
     });
 
-    console.log(resp.data);
     const { albums } = resp.data as AllAlbums;
     return albums;
   } catch (error) {

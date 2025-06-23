@@ -1,14 +1,11 @@
 import Box, { type BoxProps } from '@mui/material/Box';
 import Link from '@mui/material/Link';
-import { useNavigate } from 'react-router';
 
-export default function Footer({ ...props }: Omit<BoxProps, 'id | data-testid | component'>) {
-  const nav = useNavigate();
+interface FooterProps extends Omit<BoxProps, 'id | data-testid | component'> {
+  handleOpenPrivacyPolicy: () => void;
+}
 
-  const handleOpenPrivacyPolicy = () => {
-    nav('privacy-policy', { relative: 'route' });
-  };
-
+export default function Footer({ handleOpenPrivacyPolicy, ...props }: FooterProps) {
   return (
     <Box {...props} component={'footer'} id='footer' data-testid='footer' textAlign={'center'} marginTop={'auto'}>
       <Link component={'a'} underline='hover' onClick={handleOpenPrivacyPolicy} sx={{ cursor: 'pointer' }}>

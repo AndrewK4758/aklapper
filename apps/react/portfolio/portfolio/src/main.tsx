@@ -1,6 +1,13 @@
+import CssBaseline from '@mui/material/CssBaseline';
+import { ThemeProvider } from '@mui/material/styles';
 import { StrictMode } from 'react';
 import { hydrateRoot } from 'react-dom/client';
-import App from './app/app';
+import { createBrowserRouter, RouterProvider } from 'react-router';
+import routes from './routes/routes';
+import './styles/main-styles.css';
+import Theme from './styles/themes/theme';
+
+const router = createBrowserRouter(routes);
 
 /**
  * This is the main entry point for the React application.
@@ -13,7 +20,10 @@ const rootDomNode = document.querySelector('#root') as HTMLDivElement;
 hydrateRoot(
   rootDomNode,
   <StrictMode>
-    <App />
+    <ThemeProvider theme={Theme} defaultMode='dark'>
+      <CssBaseline enableColorScheme />
+      <RouterProvider router={router} />
+    </ThemeProvider>
   </StrictMode>,
   {
     onRecoverableError: (error, errorInfo) => {
