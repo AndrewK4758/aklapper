@@ -11,6 +11,7 @@ import { handleBlur } from '../../../utils/utils';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
 import HelperTextBox from '../../styled/helper_text_box';
 import TextInput from '../../styled/text_input';
+import ValidatedInput from '../validated_input';
 
 const validationSchema = Yup.object<album>({
   title: Yup.string().required('Must have title to album'),
@@ -51,13 +52,22 @@ const AddAlbum = ({ setRows }: AddAlbumProps): ReactElement => {
   return (
     <Form method='post' onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
       <CenteredFlexDiv>
-        <HelperTextBox>
-          <TextInput<album> label='Album Name' formik={formik} name={'title'} variant='outlined' />
-          {albumHelperText && <Text variant='caption' children={albumHelperText} />}
-        </HelperTextBox>
+        <ValidatedInput<album>
+          formik={formik}
+          helperText={albumHelperText}
+          label='Album Title'
+          name={'title'}
+          setHelperText={setAlbumHelperText}
+        />
 
         <HelperTextBox>
-          <TextInput<album> label='Artist ID' formik={formik} name='artist_id' variant='outlined' />
+          <TextInput<album>
+            label='Artist ID'
+            formik={formik}
+            name='artist_id'
+            setHelperText={setAlbumHelperText}
+            variant='outlined'
+          />
           {albumHelperText && <Text variant='caption' children={albumHelperText} />}
         </HelperTextBox>
       </CenteredFlexDiv>

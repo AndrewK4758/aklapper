@@ -79,7 +79,6 @@ export default function ServerError({ error }: ServerErrorProps) {
             />
           </Box>
         </Box>
-
         <Box
           component={'section'}
           id={`error-home-button-box`}

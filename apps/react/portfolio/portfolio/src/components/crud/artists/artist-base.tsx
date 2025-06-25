@@ -1,5 +1,6 @@
 import type { artist } from '@aklapper/chinook-client';
 import { Waiting } from '@aklapper/react-shared';
+
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import { type ReactElement, Suspense, useState } from 'react';
@@ -23,7 +24,7 @@ const Artist = (): ReactElement => {
   const [rowCountState, setRowCountState] = useState(COUNT);
 
   return (
-    <CenteredFlexDiv id='all-data-grids-wrapper' sx={allDataGridsWrapperSxProps}>
+    <CenteredFlexDiv sx={allDataGridsWrapperSxProps}>
       <Box id='artists' sx={artistsSxProps}>
         <DataGridHeader title='Artist List' />
         <Container id={'add-artist-box'} sx={{ paddingY: 1 }}>
@@ -44,5 +45,4 @@ const Artist = (): ReactElement => {
     </CenteredFlexDiv>
   );
 };
-
 export default Artist;

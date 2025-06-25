@@ -1,4 +1,5 @@
-import { type CSSObject } from '@mui/material/styles';
+// import { type CSSObject } from '@mui/material/styles';
+// import { globalCss } from '@pigment-css/react';
 
 /* Colors */
 
@@ -41,60 +42,58 @@ export const MULT_BORDER_RADIUS = 1;
 //Base Spacing
 export const BASE_SPACING = 4;
 
-const darkScrollbarGlobal = {
-  '&::-webkit-scrollbar': {
-    width: '0.75rem',
-  },
-  '&::-webkit-scrollbar-track': {
-    background: `linear-gradient(to bottom, #ffd300, #ff3d00)`,
-  },
-  '&::-webkit-scrollbar-thumb': {
-    backgroundColor: '#3a3c41',
-    borderRadius: '2px',
-  },
-};
+// const darkScrollbarGlobal = {
+//   '&::-webkit-scrollbar': {
+//     width: '0.75rem',
+//   },
+//   '&::-webkit-scrollbar-track': {
+//     background: `linear-gradient(to bottom, #ffd300, #ff3d00)`,
+//   },
+//   '&::-webkit-scrollbar-thumb': {
+//     backgroundColor: '#3a3c41',
+//     borderRadius: '2px',
+//   },
+// };
 
-const cssBaselineStyles: CSSObject = {
-  ...darkScrollbarGlobal,
+// export const CSS_GLOBAL_STYLES = {
+//   ...darkScrollbarGlobal,
 
-  fontSynthesis: 'none',
-  textRendering: 'optimizeLegibility',
-  boxSizing: 'border-box',
-  overflowX: 'hidden',
-  WebkitFontSmoothing: 'antialiased',
-  '&:-webkit-autofill, &:-webkit-autofill:hover, &:-webkit-autofill:focus, &:-webkit-autofill:active': {
-    WebkitTextFillColor: `var(${TEXT_PRIMARY}) !important`,
-    WebkitBoxShadow: `0 0 0 100px ${BACKGROUND_PAPER} inset !important`,
-    WebkitBackgroundClip: 'text',
-  },
-  'input::-webkit-inner-spin-button, & input::-webkit-outer-spin-button': {
-    WebkitAppearance: 'none',
-    margin: 0,
-  },
+//   fontSynthesis: 'none',
+//   textRendering: 'optimizeLegibility',
+//   boxSizing: 'border-box',
+//   overflowX: 'hidden',
+//   WebkitFontSmoothing: 'antialiased',
+//   '&:-webkit-autofill, &:-webkit-autofill:hover, &:-webkit-autofill:focus, &:-webkit-autofill:active': {
+//     WebkitTextFillColor: `var(${TEXT_PRIMARY}) !important`,
+//     WebkitBoxShadow: `0 0 0 100px ${BACKGROUND_PAPER} inset !important`,
+//     WebkitBackgroundClip: 'text',
+//   },
+//   'input::-webkit-inner-spin-button, & input::-webkit-outer-spin-button': {
+//     WebkitAppearance: 'none',
+//     margin: 0,
+//   },
 
-  body: {
-    minHeight: '100vh',
-    height: 'fit-content',
-    background: `${TOP_RIGHT_GRADIENT}, ${BOTTOM_LEFT_GRADIENT} ${BASE_ROOT_BACKGROUND_COLOR}`,
-    backgroundAttachment: 'fixed',
-    backgroundRepeat: 'no-repeat',
-  },
+//   body: {
+//     minHeight: '100vh',
+//     height: 'fit-content',
+//     background: `${TOP_RIGHT_GRADIENT}, ${BOTTOM_LEFT_GRADIENT} ${BASE_ROOT_BACKGROUND_COLOR}`,
+//     backgroundAttachment: 'fixed',
+//     backgroundRepeat: 'no-repeat',
+//   },
 
-  pre: {
-    maxWidth: '100%',
-    whiteSpace: 'pre-wrap',
-    wordWrap: 'break-word',
-  },
+//   pre: {
+//     maxWidth: '100%',
+//     whiteSpace: 'pre-wrap',
+//     wordWrap: 'break-word',
+//   },
 
-  '.floater::after': {
-    content: '""',
-    display: 'table',
-    clear: 'both',
-  },
+//   '.floater::after': {
+//     content: '""',
+//     display: 'table',
+//     clear: 'both',
+//   },
 
-  '.contact-form': {
-    width: '100%',
-  },
-};
-
-export default cssBaselineStyles;
+//   '.contact-form': {
+//     width: '100%',
+//   },
+// };

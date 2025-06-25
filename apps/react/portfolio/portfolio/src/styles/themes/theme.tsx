@@ -2,7 +2,7 @@ import type { Theme as ThemeType } from '@mui/material/styles';
 import { createTheme } from '@mui/material/styles';
 import type {} from '@mui/material/themeCssVarsAugmentation';
 import { enUS } from '@mui/x-date-pickers/locales';
-import cssBaselineStyles, {
+import {
   BACKGROUND_ALT,
   BACKGROUND_DEFAULT,
   BACKGROUND_PAPER,
@@ -22,7 +22,6 @@ import cssBaselineStyles, {
   TEXT_PRIMARY,
   TEXT_SECONDARY,
 } from '../base/base_styles.js';
-import '../main-styles.css';
 
 const Theme: ThemeType = createTheme(
   {
@@ -65,7 +64,7 @@ const Theme: ThemeType = createTheme(
     },
     components: {
       MuiCssBaseline: {
-        styleOverrides: cssBaselineStyles,
+        // styleOverrides: cssBaselineStyles,
       },
       MuiCardContent: {
         styleOverrides: {

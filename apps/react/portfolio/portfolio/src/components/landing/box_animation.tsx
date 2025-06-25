@@ -1,33 +1,33 @@
 import Box from '@mui/material/Box';
-import { keyframes, type SxProps, type Theme as ThemeType } from '@mui/material/styles';
+import { type SxProps, type Theme as ThemeType } from '@mui/material/styles';
 import Theme from '../../styles/themes/theme.js';
 import LandingBox from '../icons/landing_box_icon';
 
-const shake = keyframes`
-  1.25%,
-  11.25% {
-    transform: rotateZ(-0.75deg);
-  }
-  2.5%,
-  10% {
-    transform: rotateZ(1.5deg);
-  }
-  3.75%,
-  6.75%,
-  8.75% {
-    transform: rotateZ(-3deg);
-  }
-  5%,
-  7.5% {
-    transform: rotateZ(3deg);
-  }
-  11.5% {
-    transform: rotateZ(0deg);
-  }
-  100% {
-    transition: rotateZ(0deg);
-  }
-`;
+// const shake = keyframes`
+//   1.25%,
+//   11.25% {
+//     transform: rotateZ(-0.75deg);
+//   }
+//   2.5%,
+//   10% {
+//     transform: rotateZ(1.5deg);
+//   }
+//   3.75%,
+//   6.75%,
+//   8.75% {
+//     transform: rotateZ(-3deg);
+//   }
+//   5%,
+//   7.5% {
+//     transform: rotateZ(3deg);
+//   }
+//   11.5% {
+//     transform: rotateZ(0deg);
+//   }
+//   100% {
+//     transition: rotateZ(0deg);
+//   }
+// `;
 
 const landingBoxBaseStyle: SxProps<ThemeType> = {
   [Theme.breakpoints.down('lg')]: {
@@ -36,7 +36,7 @@ const landingBoxBaseStyle: SxProps<ThemeType> = {
 };
 
 const shakeIconAnimation: SxProps<ThemeType> = {
-  animation: `${shake} 2.25s 5`,
+  animation: `shake 2.25s 5`,
   animationDelay: '3s',
   transformOrigin: 'center',
 };

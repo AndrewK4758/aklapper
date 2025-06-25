@@ -41,7 +41,13 @@ const AddAlbumOnArtist = ({ setRows }: AddAlbumOnArtistProps): ReactElement => {
     <Form method='post' onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
       <CenteredFlexDiv>
         <HelperTextBox>
-          <TextInput<album> formik={formik} name={'title'} label={'Album Title'} variant='outlined' />
+          <TextInput<album>
+            formik={formik}
+            name={'title'}
+            label={'Album Title'}
+            setHelperText={setHelperText}
+            variant='outlined'
+          />
           {helperText && <Text variant='caption' children={helperText} />}
         </HelperTextBox>
       </CenteredFlexDiv>

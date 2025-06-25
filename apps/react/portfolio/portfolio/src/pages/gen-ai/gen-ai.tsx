@@ -209,13 +209,11 @@ const GenAiHome = (): JSX.Element => {
           </Suspense>
         </Box>
       )}
-
       <MediaRecorderClientContextProvider>
         <Box component={'div'} key={'gen-ai-outlet-wrapper'} id='gen-ai-outlet-wrapper' sx={pagesOutletStyles}>
           <Outlet context={{ prompt, promptResponse, loading, setPromptResponse, setLoading }} />
         </Box>
       </MediaRecorderClientContextProvider>
-
       <Dialog
         open={loading}
         component={'div'}
@@ -262,5 +260,4 @@ const GenAiHome = (): JSX.Element => {
     </Box>
   );
 };
-
 export default GenAiHome;

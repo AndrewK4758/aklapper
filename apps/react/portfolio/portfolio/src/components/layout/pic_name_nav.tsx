@@ -23,7 +23,7 @@ const avatarImg = (
     id={'card-media-resume-image'}
     data-testid={'card-media-resume-image'}
     src={'/client/images/self.webp'}
-    loading='lazy'
+    loading='eager'
     alt='Andrew'
     style={{
       width: '100%',

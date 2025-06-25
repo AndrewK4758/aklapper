@@ -5,7 +5,6 @@ import Container from '@mui/material/Container';
 import { ThemeProvider, type SxProps } from '@mui/material/styles';
 import { lazy, ReactElement, Suspense, useState } from 'react';
 import { Outlet } from 'react-router';
-// import waiting from '../../assets/images/swirly-dots-to-chrome.webp';
 import CrudNavBar from '../../components/crud/nav_bar';
 import CrudHeader from '../../components/crud/page_header.js';
 import CenteredFlexDiv from '../../components/styled/centered_flexbox';
@@ -31,8 +30,8 @@ export default function Crud(): ReactElement {
 
   return (
     <ThemeProvider theme={CRUD_THEME}>
-      <Box id='crud-wrapper' borderRadius={1} bgcolor={CRUD_THEME.palette.background.default} width={'100%'}>
-        <CenteredFlexDiv id='crud-header-wrapper' sx={crudHeaderWrapperSxProps}>
+      <Box id='crud-wrapper' borderRadius={1} width={'100%'} bgcolor={CRUD_THEME.palette.background.default}>
+        <CenteredFlexDiv sx={crudHeaderWrapperSxProps}>
           <Container disableGutters sx={{ display: 'flex', flexDirection: 'row' }}>
             <CenteredFlexDiv>
               <CrudHeader />
@@ -45,11 +44,9 @@ export default function Crud(): ReactElement {
             </CenteredFlexDiv>
           </Container>
         </CenteredFlexDiv>
-
         <Suspense fallback={<Waiting src={'/client/images/swirly-dots-to-chrome.webp'} />}>
           {searchIsOpen && <Search setOpen={handleSetSearchClick} />}
         </Suspense>
-
         <Box id={`crud-app-wrapper`} paddingX={2}>
           <Suspense fallback={<Waiting src={'/client/images/swirly-dots-to-chrome.webp'} />}>
             <Outlet />

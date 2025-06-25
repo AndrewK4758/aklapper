@@ -71,5 +71,4 @@ export function PromptResponse({
     </Box>
   );
 }
-
 export default PromptResponse;

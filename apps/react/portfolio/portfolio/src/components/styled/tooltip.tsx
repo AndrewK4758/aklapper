@@ -1,5 +1,5 @@
-import Tooltip, { type TooltipProps } from '@mui/material/Tooltip';
 import { styled } from '@mui/material/styles';
+import Tooltip, { type TooltipProps } from '@mui/material/Tooltip';
 import type { ComponentType } from 'react';
 
 const StyledIconTooltip: ComponentType<TooltipProps> = styled(Tooltip)(({ theme }) => ({

@@ -31,7 +31,3 @@ declare module '@mui/material/styles' {
     };
   }
 }
-
-export interface ContactMenuIconProps {
-  handleToggleContactMenu: () => void;
-}

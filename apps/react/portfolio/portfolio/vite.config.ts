@@ -1,9 +1,11 @@
 import { workspaceRoot } from '@nx/devkit';
+// import { pigment, type PigmentOptions } from '@pigment-css/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
 import { cwd } from 'node:process';
 import { defineConfig, type UserConfig } from 'vite';
-import MODULES from './vite_modules.js';
+// import Theme from './src/styles/themes/theme';
+import MODULES from './vite_modules';
 
 process.env.NODE_ENV = 'development';
 
@@ -18,6 +20,12 @@ const NODE_ENV = process.env.NODE_ENV;
 const OUT_DIR = './dist/client';
 const ROOT = cwd();
 
+// const pigmentConfig: PigmentOptions = {
+//   transformLibraries: ['@mui/material', '@mui/icons-material'],
+//   theme: Theme,
+//   sourceMap: true,
+// };
+
 const config: UserConfig = defineConfig({
   root: ROOT,
   cacheDir: resolve(workspaceRoot, 'node_modules/.vite/apps/react/portfolio/portfolio'),
@@ -30,14 +38,11 @@ const config: UserConfig = defineConfig({
     host: HOST,
   },
   plugins: [
+    // pigment(pigmentConfig),
     react({
       reactRefreshHost: `http://${HOST}:${PORT_DEV}`,
     }),
   ],
-
-  css: {
-    devSourcemap: true,
-  },
 
   // Uncomment this if you are using workers.
   // worker: {
@@ -104,6 +109,7 @@ const config: UserConfig = defineConfig({
   },
 
   test: {
+    name: 'portfolio',
     watch: false,
     globals: true,
     environment: 'jsdom',

@@ -1,9 +1,11 @@
 import { workspaceRoot } from '@nx/devkit';
+// import { pigment, type PigmentOptions } from '@pigment-css/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { cwd } from 'process';
 import type { UserConfig } from 'vite';
 import { defineConfig } from 'vite';
+// import Theme from './src/styles/themes/theme.jsx';
 import MODULES from './vite_modules.js';
 
 //Server
@@ -16,8 +18,15 @@ const NODE_ENV = process.env.NODE_ENV;
 const OUT_DIR = './dist/server';
 const ROOT = cwd();
 
-console.log(NODE_ENV);
+// const pigmentConfig: PigmentOptions = {
+//   transformLibraries: ['@mui/material', '@mui/icons-material'],
+//   theme: Theme,
+//   sourceMap: true,
+// };
 
+// console.log(pigmentConfig);
+
+// console.log(pigment(pigmentConfig));
 const config: UserConfig = defineConfig({
   root: ROOT,
   cacheDir: resolve(workspaceRoot, 'node_modules/.vite/apps/react/portfolio/portfolio'),
@@ -28,7 +37,14 @@ const config: UserConfig = defineConfig({
   },
 
   plugins: [
+    // pigment(pigmentConfig),
     react({
+      babel: {
+        targets: {
+          esmodules: true,
+          node: 'current',
+        },
+      },
       reactRefreshHost: `http://${HOST}:${PORT_DEV}`,
     }),
   ],
@@ -41,10 +57,7 @@ const config: UserConfig = defineConfig({
   resolve: {
     alias: MODULES,
     conditions: ['mui-modern', 'module', 'browser', 'development|production'],
-  },
-
-  css: {
-    devSourcemap: true,
+    // noExternal: ['@mui/*'],
   },
 
   base: BASE,

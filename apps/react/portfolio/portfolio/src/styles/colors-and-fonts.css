@@ -1,22 +1,22 @@
 @font-face {
   font-family: League Gothic;
-  src: url('../../public/fonts/LeagueGothic-Regular-VariableFont_wdth.ttf'), format('truetype');
+  src: url('/fonts/LeagueGothic-Regular-VariableFont_wdth.ttf'), format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: Lucida;
-  src: url('../../public/fonts/LTYPE.ttf'), format('truetype');
+  src: url('/fonts/LTYPE.ttf'), format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: Lucida Bold;
-  src: url('../../public/fonts/LTYPEB.ttf'), format('truetype');
+  src: url('/fonts/LTYPEB.ttf'), format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: Landing;
-  src: url('../../public/fonts/orange_gummy.ttf'), format('truetype');
+  src: url('/fonts/orange_gummy.ttf'), format('truetype');
 }

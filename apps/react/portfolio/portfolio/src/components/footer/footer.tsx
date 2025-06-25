@@ -1,5 +1,6 @@
 import Box, { type BoxProps } from '@mui/material/Box';
-import Link from '@mui/material/Link';
+import Button from '@mui/material/Button';
+import NoSsr from '@mui/material/NoSsr';
 
 interface FooterProps extends Omit<BoxProps, 'id | data-testid | component'> {
   handleOpenPrivacyPolicy: () => void;
@@ -8,9 +9,11 @@ interface FooterProps extends Omit<BoxProps, 'id | data-testid | component'> {
 export default function Footer({ handleOpenPrivacyPolicy, ...props }: FooterProps) {
   return (
     <Box {...props} component={'footer'} id='footer' data-testid='footer' textAlign={'center'} marginTop={'auto'}>
-      <Link component={'a'} underline='hover' onClick={handleOpenPrivacyPolicy} sx={{ cursor: 'pointer' }}>
-        Privacy Policy
-      </Link>
+      <NoSsr>
+        <Button variant='text' onClick={handleOpenPrivacyPolicy} style={{ cursor: 'pointer' }}>
+          Privacy Policy
+        </Button>
+      </NoSsr>
     </Box>
   );
 }

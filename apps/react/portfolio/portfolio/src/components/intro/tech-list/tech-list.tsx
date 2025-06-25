@@ -13,7 +13,7 @@ interface TechListProps extends SectionTitleProps {
 }
 
 export const TechList = ({ data, id, labelText, variant, placement }: TechListProps) => (
-  <Grid id={`${id}-wrapper`} data-testid={`tech-list-${id}-title-text`} flexBasis={'24%'}>
+  <Grid id={`${id}-wrapper`} data-testid={`tech-list-${id}-title-text`} sx={{ flexBasis: '24%' }}>
     <SectionTitle
       id={id}
       title={labelText}

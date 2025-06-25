@@ -22,7 +22,7 @@ export default function Layout({ header, footer, navBar, children }: LayoutProps
     <StyledRootComponentWrapper id='app-wrapper' sx={{ minHeight: '100vh', height: 'fit-content' }}>
       {header}
 
-      <CenteredFlexDiv component={'main'} marginX={'5%'}>
+      <CenteredFlexDiv component={'main'} sx={{ margin: '0 5%' }}>
         <StyledCard raised elevation={4}>
           {navBar}
           {children}

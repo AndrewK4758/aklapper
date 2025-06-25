@@ -13,13 +13,12 @@ const modules = {
   '@aklapper/models': resolve(workspaceRoot, './packages/models/src/index.ts'),
   '@aklapper/socket-io-server': resolve(workspaceRoot, './packages/socket-io/server/src/index.ts'),
   '@aklapper/types': resolve(workspaceRoot, './packages/types/src/index.ts'),
-  '@aklapper/utils': resolve(workspaceRoot, './packages/utils/src/index.ts')
+  '@aklapper/utils': resolve(workspaceRoot, './packages/utils/src/index.ts'),
 };
 
 const config = defineConfig({
-  root: cwd(),
-
   test: {
+    root: cwd(),
     name: 'games-api',
     alias: modules,
     watch: false,
@@ -29,9 +28,9 @@ const config = defineConfig({
     reporters: ['default'],
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',
-      provider: 'v8'
-    }
-  }
+      provider: 'v8',
+    },
+  },
 });
 
 export default config;

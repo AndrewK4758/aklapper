@@ -23,10 +23,16 @@
     "tests/**/*.spec.jsx",
     "tests/**/*.test.jsx",
     "vite.config.ts",
-    "vite.config.server.ts",
     "eslint.config.js"
   ],
-  "include": ["server.ts", "src/main.server.tsx", "src/types/**/*.d.ts"],
+  "include": [
+    "server.ts",
+    "src/main.server.tsx",
+    "src/styles/themes/**/*.tsx",
+    "vite.config.server.ts",
+    "src/types/**/*.d.ts",
+    "vite_modules.ts"
+  ],
   "references": [
     {
       "path": "./tsconfig.app.json"

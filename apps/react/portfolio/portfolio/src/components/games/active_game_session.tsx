@@ -76,7 +76,6 @@ const ActiveGameSession = (): ReactElement => {
       >
         <ActiveAvatars avatarsInGame={state.activePlayersInGame} winner={state.winner} />
       </Box>
-
       <Box
         component={'section'}
         key={`${id}-game-board-wrapper`}
@@ -94,7 +93,6 @@ const ActiveGameSession = (): ReactElement => {
           />
         )}
       </Box>
-
       <Container
         component={'section'}
         key={`${id}-active-game-buttons-wrapper`}
@@ -113,12 +111,10 @@ const ActiveGameSession = (): ReactElement => {
               position={space}
             />
           )}
-
           <ResetGame dispatch={dispatch} socket={socket} setSpace={setSpace} />
         </Box>
       </Container>
     </Paper>
   );
 };
-
 export default ActiveGameSession;

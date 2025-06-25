@@ -1,14 +1,12 @@
-import CssBaseline from '@mui/material/CssBaseline';
-import { ThemeProvider } from '@mui/material/styles';
 import type { Response } from 'express';
 // import * as fs from 'node:fs/promises';
 // import { join } from 'node:path';
 import { StrictMode } from 'react';
 import ReactDomServer from 'react-dom/server';
 import { createStaticHandler, createStaticRouter, StaticRouterProvider, type StaticHandlerContext } from 'react-router';
+import App from './app/app';
 import ServerError from './errors/server-error';
 import routes from './routes/routes';
-import Theme from './styles/themes/theme';
 import type { ManifestType } from './types/types';
 import getFilenamesFromManifest from './utils/get-files-from-manifest';
 import parseSsrManifestFile from './utils/parse_ssr_manifest';
@@ -22,11 +20,11 @@ import parseSsrManifestFile from './utils/parse_ssr_manifest';
 
 // const icons = await getIconsForLinks('./public/icons/intro');
 const handler = createStaticHandler(routes);
-
 const render = async (fullUrl: string, resp: Response, clientManifest: ManifestType, ssrManifest: ManifestType) => {
   console.info(`PATH: ${fullUrl}`);
 
   const { js, css } = await getFilenamesFromManifest(clientManifest);
+  console.log(js);
 
   const preloadLinks = parseSsrManifestFile(ssrManifest);
   const context = (await handler.query(new Request(fullUrl))) as StaticHandlerContext;
@@ -34,15 +32,13 @@ const render = async (fullUrl: string, resp: Response, clientManifest: ManifestT
 
   const { pipe, abort } = ReactDomServer.renderToPipeableStream(
     <StrictMode>
-      <ThemeProvider theme={Theme}>
-        <CssBaseline />
+      <App>
         <StaticRouterProvider router={router} context={context} hydrate={true} />
-      </ThemeProvider>
+      </App>
     </StrictMode>,
     {
       bootstrapModules: [`${js !== undefined ? `/client/${js}` : '/src/main.tsx'}`],
-      progressiveChunkSize: 500,
-
+      // bootstrapScriptContent: `window.assetMap = ${js};`,
       onShellReady() {
         console.log('START RENDERING COMPONENTS');
 
@@ -50,56 +46,54 @@ const render = async (fullUrl: string, resp: Response, clientManifest: ManifestT
         resp.setHeader('Content-Type', 'text/html');
         resp.setHeader('Accept-Encoding', 'gzip, deflate, br');
         resp.setHeader('Access-Control-Allow-Origin', fullUrl);
-
+        //
         resp.write(`<html lang="en">
-      <head>
+        <head>
         <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />`);
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <meta name="emotion-insertion-point" content="emotion-insertion-point"/>
+          `);
 
         !clientManifest &&
           resp.write(`
-          <script
+            <script
             type="module">
-                  import RefreshRuntime from "/@react-refresh"
-                  RefreshRuntime.injectIntoGlobalHook(window)
-                  window.$RefreshReg$ = () => {}
-                  window.$RefreshSig$ = () => (type) => type
-                  window.__vite_plugin_react_preamble_installed__ = true
-          </script>`);
+            import RefreshRuntime from "/@react-refresh"
+            window.$RefreshReg$ = () => {}
+            RefreshRuntime.injectIntoGlobalHook(window)
+            window.$RefreshSig$ = () => (type) => type
+            window.__vite_plugin_react_preamble_installed__ = true
+            </script>`);
 
         resp.write(`<title>
-          Developer Portfolio for Andrew Klapper. This shows multiple projects that showcase distinct programming
-          styles. Each project uses React as the front-end / ui, jest/vitest for testing, github actions and GCP for
-          simple ci/cd. Please feel free to click the github icon in the contact section for a full review of the
-          monorepo
-        </title>
-        <meta
-          name="title"
-          content="Developer Portfolio for Andrew Klapper. This shows multiple projects that showcase distinct programming styles. Each project uses React as the front-end / ui, jest/vitest for testing, github actions and GCP for simple ci/cd. Please feel free to click the github icon in the contact section for a full review of the monorepo"
-        />
-        <meta name="description" content="Personal developer portfolio for Andrew Klapper" />
-        <meta name="keywords" content="Typescript, react, portfolio, developer" />
-        <meta name="robots" content="index, follow" />
-        <meta name="language" content="English" />
-        <meta name="author" content="Andrew Klapper" />
+              Developer Portfolio for Andrew Klapper. This shows multiple projects that showcase distinct programming
+              styles. Each project uses React as the front-end / ui, jest/vitest for testing, github actions and GCP for
+              simple ci/cd. Please feel free to click the github icon in the contact section for a full review of the
+              monorepo
+              </title>
+              <meta
+              name="title"
+              content="Developer Portfolio for Andrew Klapper. This shows multiple projects that showcase distinct programming styles. Each project uses React as the front-end / ui, jest/vitest for testing, github actions and GCP for simple ci/cd. Please feel free to click the github icon in the contact section for a full review of the monorepo"
+              />
+              <meta name="description" content="Personal developer portfolio for Andrew Klapper" />
+              <meta name="keywords" content="Typescript, react, portfolio, developer" />
+              <meta name="robots" content="index, follow" />
+              <meta name="language" content="English" />
+              <meta name="author" content="Andrew Klapper" />
 
-        <link
-          rel="stylesheet"
-          type="text/css"
-          href="${css !== undefined ? `/client/${css}` : '/src/styles/main-styles.css'}"
-        />
-        
-        <link rel="icon" type="image/x-icon" href="/client/favicon.ico" />
-        `);
-        // <link rel="preload" as="image" href="/client/images/swirly-dots-to-chrome.webp">
-
-        // icons.forEach(link => resp.write(`<link rel="preload" as="image" type="image/svg+xml" href="${link}" />`));
+              <link
+              rel="stylesheet"
+              type="text/css"
+              href="${css !== undefined ? `/client/${css}` : '/src/styles/main-styles.css'}"
+              />
+ 
+              <link rel="icon" type="image/x-icon" href="/client/favicon.ico" />
+              `);
 
         ssrManifest && resp.write(ReactDomServer.renderToString(preloadLinks));
 
         resp.write('</head/>');
         resp.write('<body><div id="root">');
-        pipe(resp);
       },
       onShellError(error) {
         interface ServerError extends Error {
@@ -119,8 +113,10 @@ const render = async (fullUrl: string, resp: Response, clientManifest: ManifestT
         console.error(`Suspense error: ${error}`);
       },
       onAllReady() {
-        console.log('ALL COMPONENTS RENDERED');
+        pipe(resp);
         resp.write('</div></body></html>');
+        console.log('ALL COMPONENTS RENDERED');
+        resp.end();
       },
     },
   );

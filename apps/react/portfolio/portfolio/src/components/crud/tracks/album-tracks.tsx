@@ -27,10 +27,12 @@ const Tracks = (): ReactElement => {
         width: '100%',
         height: '100%',
         p: 0,
-        border: `3px solid ${CRUD_THEME.palette.secondary.main}`,
+        border: `3px solid ${"var(--main-secondary-CRUD_THEME-palette)"}`,
         borderRadius: 1,
       }}
-    >
+      style={{
+        "--main-secondary-CRUD_THEME-palette": CRUD_THEME.palette.secondary.main
+      }}>
       <Box key={'artist-title'} sx={{ height: '100%', width: '100%' }}>
         <DataGridHeader title='Album Tracks' />
 

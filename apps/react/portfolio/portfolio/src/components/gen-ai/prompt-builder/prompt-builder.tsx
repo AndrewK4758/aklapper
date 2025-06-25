@@ -436,7 +436,6 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                       }
                       sx={formLabelSxProps}
                     />
-
                     <FormControlLabel
                       id='response-format-json'
                       value={ResponseType.JSON}
@@ -456,7 +455,6 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                       }
                       sx={formLabelSxProps}
                     />
-
                     <FormControlLabel
                       id='response-format-image'
                       value={ResponseType.IMAGE}
@@ -504,7 +502,6 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   onBlur={formik.handleBlur}
                   onReset={formik.handleReset}
                 />
-
                 <Box
                   component={'section'}
                   key={'current-document-text-value'}
@@ -528,14 +525,12 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                     />
                   )}
                 </Box>
-
                 <FormikValidationError<IPromptInputData>
                   elementName='document'
                   formik={formik}
                   helperTextSx={helperTextSx}
                 />
               </Box>
-
               <Box
                 component={'section'}
                 key={'prompt-builder-submit-box'}
@@ -613,9 +608,7 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
     </Box>
   );
 };
-
 export default PromptBuilder;
-
 /**
  * This function handles copying the generated prompt to the clipboard and adding it to the prompt state.
  *
@@ -624,7 +617,6 @@ export default PromptBuilder;
  * @param {Dispatch<SetStateAction<boolean>>} setOpenPromptResponse - A function to close the prompt response modal.
  * @param {NavigateFunction} nav - A function to navigate to the text section.
  */
-
 const handleCopyPromptToClipboardAndAddToInput = async (
   buildPrompt: string,
   setPrompt: Dispatch<SetStateAction<PromptRequest>>,
@@ -636,9 +628,7 @@ const handleCopyPromptToClipboardAndAddToInput = async (
   setOpenPromptResponse(false);
   nav('text');
 };
-
 const baseUrl = import.meta.env.VITE_VERTEX_API_URL;
-
 /**
  * This function handles the file upload event.
  * It uploads the file to the server and updates the prompt state with the file data.
@@ -648,7 +638,6 @@ const baseUrl = import.meta.env.VITE_VERTEX_API_URL;
  * @param {Dispatch<SetStateAction<string>>} setFileName - A function to update the file name state.
  * @param {Dispatch<SetStateAction<boolean>>} setLoading - A function to update the loading state.
  */
-
 export const handleFileUpload = async (
   fileInputRef: RefObject<HTMLInputElement | null>,
   setPrompt: Dispatch<SetStateAction<PromptRequest>>,
@@ -659,21 +648,16 @@ export const handleFileUpload = async (
     if (fileInputRef.current) {
       if (fileInputRef.current.files) {
         const file = fileInputRef.current.files[0];
-
         const contextPath = getContextPath('context-path');
-
         setLoading(true);
         const resp = await axios.post(
           `${baseUrl}/upload`,
           { file: file, contextPath: contextPath },
           { headers: { 'Content-Type': 'multipart/form-data' } },
         );
-
         const { path } = resp.data as { path: string };
-
         setPrompt(prev => ({ ...prev, fileData: { fileUri: path, mimeType: file.type } }));
         setFileName(file.name);
-
         return null;
       } else return null;
     } else return null;

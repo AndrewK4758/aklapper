@@ -1,5 +1,5 @@
 import Box from '@mui/material/Box';
-import { keyframes, type SxProps, type Theme as ThemeType } from '@mui/material/styles';
+import { type SxProps, type Theme as ThemeType } from '@mui/material/styles';
 import Theme from '../../styles/themes/theme.js';
 
 const typewriterBase: SxProps<ThemeType> = {
@@ -12,17 +12,17 @@ const typewriterBase: SxProps<ThemeType> = {
   m: 0,
 };
 
-const typewriter = keyframes`
-  from {
-    width: 0;
-  }
-  to {
-    width: 100%;
-  }
-`;
+// const typewriter = keyframes`
+// from {
+// width: 0;
+// }
+// to {
+// width: 100%;
+// }
+// `;
 
 const typewriterAnimation: SxProps<ThemeType> = {
-  animation: `${typewriter} 4s steps(55) forwards`,
+  animation: `typewriter 4s steps(55) forwards`,
 };
 
 const typewriterTextStyle: SxProps<ThemeType> = {

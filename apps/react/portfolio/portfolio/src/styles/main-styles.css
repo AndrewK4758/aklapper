@@ -17,3 +17,123 @@
   inherits: true;
   initial-value: -180deg;
 }
+
+@property --text-primary {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #eef0ff;
+}
+
+@property --text-secondary {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #bbc0cc;
+}
+
+@keyframes typewriter {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes shake {
+  1.25%,
+  11.25% {
+    transform: rotateZ(-0.75deg);
+  }
+  2.5%,
+  10% {
+    transform: rotateZ(1.5deg);
+  }
+  3.75%,
+  6.75%,
+  8.75% {
+    transform: rotateZ(-3deg);
+  }
+  5%,
+  7.5% {
+    transform: rotateZ(3deg);
+  }
+  11.5% {
+    transform: rotateZ(0deg);
+  }
+  100% {
+    transition: rotateZ(0deg);
+  }
+}
+
+@keyframes spin {
+  50% {
+    --clr-1: --clr-2;
+    --clr-2: --clr-1;
+    --clr-1: --clr-2;
+  }
+  100% {
+    --clr-1: --clr-1;
+    --clr-2: --clr-2;
+    --clr-1: --clr-1;
+  }
+}
+
+&::-webkit-scrollbar {
+  width: 0.75rem;
+}
+
+&::-webkit-scrollbar-track {
+  background: linear-gradient(to bottom, --clr-1, --clr-2);
+}
+
+&::-webkit-scrollbar-thumb {
+  background-color: #3a3c41;
+  border-radius: 2px;
+}
+
+html {
+  font-synthesis: none;
+  text-rendering: 'optimizeLegibility';
+  box-sizing: 'border-box';
+  overflow-x: 'hidden';
+  font-smooth: 'antialiased';
+}
+&:-webkit-autofill,
+&:-webkit-autofill:hover,
+&:-webkit-autofill:focus,
+&:-webkit-autofill:active {
+  -webkit-text-fill-color: #101010 !important;
+  --webkit-box-shadow: 0 0 0 100px var(--text-secondary) inset !important;
+  -webkit-background-clip: text;
+}
+input::-webkit-inner-spin-button,
+& input::-webkit-outer-spin-button {
+  -webkit-appearance: 'none';
+  margin: 0;
+}
+
+body {
+  min-height: '100vh';
+  height: 'fit-content';
+  background:
+    linear-gradient(225deg, #e9e9eb24 0%, transparent 80%),
+    linear-gradient(45deg, #10101038 0%, transparent 80%) #404040;
+  background-attachment: 'fixed';
+  background-repeat: 'no-repeat';
+}
+
+pre {
+  max-width: '100%';
+  white-space: 'pre-wrap';
+  word-wrap: 'break-word';
+}
+
+.floater::after {
+  content: '""';
+  display: 'table';
+  clear: 'both';
+}
+
+.contact-form {
+  width: '100%';
+}

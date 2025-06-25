@@ -36,5 +36,4 @@ const Album = (): ReactElement => {
     </CenteredFlexDiv>
   );
 };
-
 export default Album;

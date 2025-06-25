@@ -51,7 +51,8 @@ export default function TextInput<T extends object>({
       onBlur={formik.handleBlur}
       onChange={formik.handleChange}
       onFocus={async () => {
-        await formik.setFieldTouched(name, false), setHelperText(null);
+        await formik.setFieldTouched(name, false);
+        setHelperText(null);
       }}
       error={formik.touched[name] && !!formik.errors[name]}
       helperText={formik.touched[name] && (formik.errors[name] as string)}

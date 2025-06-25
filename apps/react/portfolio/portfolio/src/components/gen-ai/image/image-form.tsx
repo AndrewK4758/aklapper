@@ -88,7 +88,6 @@ const ImageForm = (): JSX.Element => {
           <Text component={'h2'} variant='h2' children='Image Generator' sx={pagesTitleSx} />
           <Text component={'p'} variant='body1' children={imageGenDescription} sx={crudHeaderTextSxProps} />
         </Box>
-
         <Form
           method='post'
           key={'image-form'}
@@ -147,7 +146,6 @@ const ImageForm = (): JSX.Element => {
                 tooltipSx={tooltipSx}
                 labelTextSx={labelSx}
               />
-
               <RadioGroup
                 key={'image-form-sample-count'}
                 id='image-form-sample-count'
@@ -169,7 +167,6 @@ const ImageForm = (): JSX.Element => {
                   }
                   sx={forrmControlLabelStyles}
                 />
-
                 <FormControlLabel
                   value={2}
                   control={<Radio sx={genAiImageSampleCountRadioSxProps} />}
@@ -180,7 +177,6 @@ const ImageForm = (): JSX.Element => {
                   }
                   sx={forrmControlLabelStyles}
                 />
-
                 <FormControlLabel
                   value={3}
                   control={<Radio sx={genAiImageSampleCountRadioSxProps} />}

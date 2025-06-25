@@ -34,17 +34,18 @@ export const AlbumsOnArtist = (): ReactElement => {
         sx={{
           height: '100%',
           width: '100%',
-          border: `3px solid ${CRUD_THEME.palette.secondary.main}`,
+          border: `3px solid ${"var(--main-secondary-CRUD_THEME-palette)"}`,
           borderRadius: Theme.shape.borderRadius,
         }}
-      >
+        style={{
+          "--main-secondary-CRUD_THEME-palette": CRUD_THEME.palette.secondary.main
+        }}>
         <DataGridHeader title='Artist Albums' />
         <Container id={'add-album-box'} sx={{ paddingY: 1 }}>
           <AddAlbumOnArtist setRows={setRows} />
         </Container>
         <AlbumDataGrid rows={rows} setRows={setRows} />
       </Box>
-
       <Box sx={artistOutletWrapperSxProps}>
         <Suspense fallback={<Waiting src={'/client/images/swirly-dots-to-chrome.webp'} />}>
           <Outlet />
@@ -53,5 +54,4 @@ export const AlbumsOnArtist = (): ReactElement => {
     </CenteredFlexDiv>
   );
 };
-
 export default AlbumsOnArtist;

@@ -6,14 +6,14 @@ import { defineConfig } from 'vitest/config';
 const modules = {
   '@aklapper/games-components': resolve(workspaceRoot, 'packages/games-components/src/index.ts'),
   '@aklapper/game': resolve(workspaceRoot, 'packages/game/src/index.ts'),
-  '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts')
+  '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
 };
 
 const config = defineConfig({
   root: cwd(),
 
   test: {
-    name: 'games',
+    name: 'games-lib',
     alias: modules,
     watch: false,
     globals: true,
@@ -22,9 +22,9 @@ const config = defineConfig({
     reporters: ['default'],
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',
-      provider: 'v8'
-    }
-  }
+      provider: 'v8',
+    },
+  },
 });
 
 export default config;

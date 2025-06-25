@@ -18,12 +18,12 @@ export function HeaderContactMenu({
 }: HeaderContactMenuProps) {
   return (
     <>
-      <Box component={'header'} display={'flex'}>
+      <Box component={'header'} sx={{ display: 'flex' }}>
         <ToggleMenuButton isToggledOpen={isContactMenuOpen} handleToggleContactMenu={handleToggleContactMenu} />
         <AnimatedContactMenu id='contact-menu-box' isOpen={isContactMenuOpen} handleOpenEmail={handleOpenEmail} />
       </Box>
       {openEmail && (
-        <Box component={'div'} id='email-form-wrapper' data-testid='email-form-wrapper' width={'100%'}>
+        <Box id='email-form-wrapper' data-testid='email-form-wrapper' sx={{ width: '100%' }}>
           <ContactDialog isOpen={openEmail} handleIsOpen={handleOpenEmail} />
         </Box>
       )}

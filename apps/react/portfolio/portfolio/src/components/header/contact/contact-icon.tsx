@@ -18,13 +18,11 @@ export function ContactIcon({ Icon, generalId, iconHref, onClick }: ContactIconP
 
   const conditionalIconButtonProps = isLink
     ? {
-        component: 'a',
         href: iconHref,
         target: '_blank',
         rel: 'noopener noreferrer',
       }
     : {
-        component: 'button',
         onClick: onClick,
       };
 
@@ -32,10 +30,12 @@ export function ContactIcon({ Icon, generalId, iconHref, onClick }: ContactIconP
     <AnimatedBorderBox component={`div`} id={`${generalId}-wrapper`} data-testid={`${generalId}-icon-wrapper`}>
       {/* <Tooltip title={tooltipTitle} placement='bottom' data-testid={`${generalId}-icon-tooltip`}> */}
       <IconButton
+        LinkComponent={'a'}
         disableFocusRipple
         id={`${generalId}-icon`}
         data-testid={`${generalId}-icon`}
         {...conditionalIconButtonProps}
+        sx={{ pointerEvents: 'none' }}
       >
         {Icon}
       </IconButton>

@@ -1,7 +1,7 @@
-import type { SxProps } from '@mui/material/styles';
+import { SxProp } from '@mui/material-pigment-css';
 import CRUD_THEME from '../themes/crud_theme';
 
-export const allDataGridsWrapperSxProps: SxProps = {
+export const allDataGridsWrapperSxProps: SxProp = {
   flexDirection: 'row',
   justifyContent: 'flex-start',
   alignItems: 'flex-start',
@@ -12,7 +12,7 @@ export const allDataGridsWrapperSxProps: SxProps = {
   gap: 0.5,
 };
 
-export const artistsSxProps: SxProps = {
+export const artistsSxProps: SxProp = {
   flex: '0 1 50%',
   justifyContent: 'flex-start',
   alignItems: 'flex-start',
@@ -21,7 +21,7 @@ export const artistsSxProps: SxProps = {
   maxWidth: '100%',
 };
 
-export const artistOutletWrapperSxProps: SxProps = {
+export const artistOutletWrapperSxProps: SxProp = {
   flex: '0 1 100%',
   width: '100%',
   [CRUD_THEME.breakpoints.down('lg')]: { flex: '0 1 100%' },
