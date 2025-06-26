@@ -1,10 +1,26 @@
-import Box, { type BoxProps } from '@mui/material/Box';
-import { styled } from '@mui/material/styles';
-import type { ComponentType } from 'react';
+import { styled } from '@mui/material-pigment-css';
+import Box from '@mui/material-pigment-css/Box';
+import type { ComponentType, ReactNode } from 'react';
 
-const HelperTextBox: ComponentType<BoxProps> = styled(Box)(() => ({
-  height: '78px',
+interface HelperTextBoxProps {
+  multiline: boolean;
+  children: ReactNode;
+}
+
+const HelperTextBox: ComponentType<HelperTextBoxProps> = styled(Box, {
+  shouldForwardProp: prop => prop !== 'multiline',
+})<HelperTextBoxProps>(() => ({
   width: '100%',
+  variants: [
+    {
+      props: { multiline: true },
+      style: { height: '158px' },
+    },
+    {
+      props: { multiline: false },
+      style: { height: '78px' },
+    },
+  ],
 }));
 
 export default HelperTextBox;

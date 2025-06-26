@@ -1,5 +1,4 @@
-import type { SxProps, Theme as ThemeType } from '@mui/material/styles';
-import Theme from '../../styles/themes/theme.js';
+import type { CSSProperties } from 'react';
 import EnterIcon from '../icons/enter_icon';
 
 const MOTION_PATH =
@@ -12,25 +11,24 @@ interface NavToHomeProps {
 }
 
 export default function NavToHome({ isVisable, motionOffset, onHandleClickEnter }: NavToHomeProps) {
-  const enterIconStyle: SxProps<ThemeType> = {
-    position: 'absolute',
+  const enterIconStyle = {
+    position: 'absolute' as CSSProperties['position'],
     top: 165,
     left: 232,
     zIndex: 2,
     height: 'auto',
     width: '20em',
-    [Theme.breakpoints.down('lg')]: {
-      width: '10em',
-      left: -70,
-    },
     opacity: isVisable ? 1 : 0,
     offsetPath: `path('${MOTION_PATH}')`,
     offsetRotate: '0deg',
     offsetDistance: isVisable ? '100%' : '0%',
     offsetPosition: motionOffset,
     transform: `${isVisable ? 'scale(2.25)' : 'scale(0.3)'}`,
-
     transition: 'offset-distance 1s ease-out, opacity 0.7s ease-in, transform 1.2s ease-out',
+    '@media (maxWidth: 1199.95px)': {
+      width: '10em',
+      left: -70,
+    },
   };
-  return <EnterIcon isVisible={isVisable} onHandleClickEnter={onHandleClickEnter} sx={enterIconStyle} />;
+  return <EnterIcon onHandleClickEnter={onHandleClickEnter} style={enterIconStyle} />;
 }

@@ -1,8 +1,8 @@
-import Card, { type CardProps } from '@mui/material/Card';
-import { styled } from '@mui/material/styles';
-import type { ComponentType } from 'react';
+import { styled } from '@mui/material-pigment-css';
+import Box from '@mui/material-pigment-css/Box';
 
-const StyledCard: ComponentType<CardProps> = styled(Card)(({ theme }) => ({
+const StyledCard = styled(Box)(({ theme }) => ({
+  backgroundColor: theme.palette.background.paper,
   padding: theme.spacing(4, 8),
   textAlign: 'center',
   borderRadius: theme.shape.borderRadius,

@@ -1,11 +1,11 @@
 import { workspaceRoot } from '@nx/devkit';
-// import { pigment, type PigmentOptions } from '@pigment-css/vite-plugin';
+import { pigment, type PigmentOptions } from '@pigment-css/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { cwd } from 'process';
 import type { UserConfig } from 'vite';
 import { defineConfig } from 'vite';
-// import Theme from './src/styles/themes/theme.jsx';
+import Theme from './src/styles/themes/theme.jsx';
 import MODULES from './vite_modules.js';
 
 //Server
@@ -18,11 +18,11 @@ const NODE_ENV = process.env.NODE_ENV;
 const OUT_DIR = './dist/server';
 const ROOT = cwd();
 
-// const pigmentConfig: PigmentOptions = {
-//   transformLibraries: ['@mui/material', '@mui/icons-material'],
-//   theme: Theme,
-//   sourceMap: true,
-// };
+const pigmentConfig: PigmentOptions = {
+  transformLibraries: ['@mui/material', '@mui/icons-material'],
+  theme: Theme,
+  sourceMap: true,
+};
 
 // console.log(pigmentConfig);
 
@@ -37,7 +37,7 @@ const config: UserConfig = defineConfig({
   },
 
   plugins: [
-    // pigment(pigmentConfig),
+    pigment(pigmentConfig),
     react({
       babel: {
         targets: {
@@ -71,7 +71,7 @@ const config: UserConfig = defineConfig({
 
   build: {
     outDir: OUT_DIR,
-    minify: NODE_ENV === 'production',
+    minify: false, //NODE_ENV === 'production',
     target: 'node24',
     ssr: true,
     ssrEmitAssets: false,
@@ -91,20 +91,20 @@ const config: UserConfig = defineConfig({
       },
       output: {
         entryFileNames: '[name].js',
-        validate: true,
-        strict: true,
+        // validate: true,
+        // strict: true,
         esModule: true,
         format: 'esm',
-        generatedCode: {
-          arrowFunctions: true,
-          constBindings: true,
-          symbols: true,
-          objectShorthand: true,
-          reservedNamesAsProps: true,
-        },
+        // generatedCode: {
+        //   arrowFunctions: true,
+        //   constBindings: true,
+        //   symbols: true,
+        //   objectShorthand: true,
+        //   reservedNamesAsProps: true,
+        // },
       },
-      strictDeprecations: true,
-      perf: true,
+      // strictDeprecations: true,
+      // perf: true,
     },
   },
 

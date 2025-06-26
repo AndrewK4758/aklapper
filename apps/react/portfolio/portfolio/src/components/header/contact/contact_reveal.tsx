@@ -13,10 +13,9 @@ export default function ContactRevealWrapper({
   contactRef,
   children,
   dynamicWidth,
-  ...props
 }: ContactRevealWrapperProps) {
   return (
-    <Box {...props} ref={contactRef} flex={1}>
+    <Box ref={contactRef} flex={1}>
       <RevealWrapper isOpen={isOpen}>
         <Box minWidth={dynamicWidth} width={'100%'} height={'100%'}>
           {children}

@@ -2,29 +2,41 @@ import { Text } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import type { FormikProps } from 'formik';
+import { useState, type FocusEvent } from 'react';
+import handleBlur from '../../../services/actions/crud-actions/handle-validate-artist-on-blur';
 import type { CompletedState, NewEntry } from '../../../types/types';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
 import HelperTextBox from '../../styled/helper_text_box';
 
 interface AddEntryFormInputsProps {
   activeStep: number;
-  artistHelperText: string | null;
   formik: FormikProps<NewEntry>;
   completed: CompletedState;
-  handleArtistFocus: () => void;
 }
 
-export default function AddEntryFormInputs({
-  activeStep,
-  artistHelperText,
-  completed,
-  formik,
-  handleArtistFocus,
-}: AddEntryFormInputsProps) {
+export default function AddEntryFormInputs({ activeStep, completed, formik }: AddEntryFormInputsProps) {
+  const [helperText, setHelperText] = useState<string | null>(null);
+  formik.handleBlur = (e: FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const field = e.currentTarget.name;
+
+    switch (field) {
+      case 'artist.name':
+        handleBlur<NewEntry>(e, formik, setHelperText, `/artists?name=${field}`);
+        break;
+      default:
+        formik.setFieldTouched(field, true, true);
+        break;
+    }
+  };
+
+  const handleArtistFocus = async () => {
+    await formik.setFieldTouched('artist.name', false);
+    setHelperText(null);
+  };
   return (
     <Box>
       {activeStep === 0 && (
-        <HelperTextBox>
+        <HelperTextBox multiline={false}>
           <TextField
             autoComplete='off'
             autoFocus
@@ -42,7 +54,7 @@ export default function AddEntryFormInputs({
             helperText={formik.touched['artist']?.name && (formik.errors['artist']?.name as string)}
             fullWidth={true}
           />
-          {artistHelperText && <Text variant='caption' children={artistHelperText} marginLeft={1.5} />}
+          {helperText && <Text variant='caption' children={helperText} marginLeft={1.5} />}
         </HelperTextBox>
       )}
       {activeStep === 1 && (
@@ -67,7 +79,7 @@ export default function AddEntryFormInputs({
       )}
 
       {activeStep === 2 && (
-        <CenteredFlexDiv alignItems={'flex-start'} gap={0.5}>
+        <CenteredFlexDiv sx={{ alignItems: 'flex-start', gap: 0.5 }}>
           <TextField
             fullWidth={true}
             autoComplete='off'

@@ -1,4 +1,4 @@
-import Stack from '@mui/material/Stack';
+import Stack from '@mui/material-pigment-css/Stack';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useFormik } from 'formik';
 import { useContext, useRef } from 'react';
@@ -63,7 +63,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
   });
 
   return (
-    <CenteredFlexDiv component={'section'} id='email-form-wrapper' data-testid='email-form-wrapper' p={4}>
+    <CenteredFlexDiv id='email-form-wrapper' data-testid='email-form-wrapper' sx={{ padding: 4 }}>
       <Form
         id='email-me-form'
         className='contact-form'
@@ -72,7 +72,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
         onSubmit={formik.handleSubmit}
         onReset={formik.handleReset}
       >
-        <Stack id='email-me-inputs-stack' data-testid='email-me-inputs-stack' gap={2}>
+        <Stack id='email-me-inputs-stack' data-testid='email-me-inputs-stack' sx={{ gap: 2 }}>
           <TextInput<MessageMeFormValues> name={'name'} label={'Name'} formik={formik} variant='outlined' />
 
           <TextInput<MessageMeFormValues> name={'email'} label={'Email'} formik={formik} variant='outlined' />

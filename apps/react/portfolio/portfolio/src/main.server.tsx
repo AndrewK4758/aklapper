@@ -1,6 +1,8 @@
 import type { Response } from 'express';
 // import * as fs from 'node:fs/promises';
 // import { join } from 'node:path';
+import { CacheProvider } from '@emotion/react';
+import createEmotionServer from '@emotion/server/create-instance';
 import { StrictMode } from 'react';
 import ReactDomServer from 'react-dom/server';
 import { createStaticHandler, createStaticRouter, StaticRouterProvider, type StaticHandlerContext } from 'react-router';
@@ -10,6 +12,7 @@ import routes from './routes/routes';
 import type { ManifestType } from './types/types';
 import getFilenamesFromManifest from './utils/get-files-from-manifest';
 import parseSsrManifestFile from './utils/parse_ssr_manifest';
+import { createEmotionCache } from './utils/utils';
 
 // async function getIconsForLinks(dirPath: string) {
 //   const icons = await fs.readdir(dirPath, { withFileTypes: true, encoding: 'utf8' });
@@ -18,29 +21,47 @@ import parseSsrManifestFile from './utils/parse_ssr_manifest';
 //   return icons.map(icon => join(hrefPath, icon.name));
 // }
 
-// const icons = await getIconsForLinks('./public/icons/intro');
+// const icons = await getIconsForLinks('./public/icons/intro');\
+
 const handler = createStaticHandler(routes);
+
 const render = async (fullUrl: string, resp: Response, clientManifest: ManifestType, ssrManifest: ManifestType) => {
   console.info(`PATH: ${fullUrl}`);
 
   const { js, css } = await getFilenamesFromManifest(clientManifest);
-  console.log(js);
 
   const preloadLinks = parseSsrManifestFile(ssrManifest);
   const context = (await handler.query(new Request(fullUrl))) as StaticHandlerContext;
   const router = createStaticRouter(routes, context);
 
+  const cache = createEmotionCache();
+  const { extractCriticalToChunks, constructStyleTagsFromChunks } = createEmotionServer(cache);
+
+  const reactString = ReactDomServer.renderToString(
+    <StrictMode>
+      <CacheProvider value={cache}>
+        <App>
+          <StaticRouterProvider router={router} context={context} />
+        </App>
+      </CacheProvider>
+    </StrictMode>,
+  );
+
   const { pipe, abort } = ReactDomServer.renderToPipeableStream(
     <StrictMode>
-      <App>
-        <StaticRouterProvider router={router} context={context} hydrate={true} />
-      </App>
+      <CacheProvider value={cache}>
+        <App>
+          <StaticRouterProvider router={router} context={context} />
+        </App>
+      </CacheProvider>
     </StrictMode>,
     {
       bootstrapModules: [`${js !== undefined ? `/client/${js}` : '/src/main.tsx'}`],
-      // bootstrapScriptContent: `window.assetMap = ${js};`,
       onShellReady() {
         console.log('START RENDERING COMPONENTS');
+
+        const emotionChunks = extractCriticalToChunks(reactString);
+        const emotionCss = constructStyleTagsFromChunks(emotionChunks);
 
         resp.statusCode = context.statusCode || 200;
         resp.setHeader('Content-Type', 'text/html');
@@ -51,7 +72,6 @@ const render = async (fullUrl: string, resp: Response, clientManifest: ManifestT
         <head>
         <meta charset="utf-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <meta name="emotion-insertion-point" content="emotion-insertion-point"/>
           `);
 
         !clientManifest &&
@@ -80,13 +100,14 @@ const render = async (fullUrl: string, resp: Response, clientManifest: ManifestT
               <meta name="robots" content="index, follow" />
               <meta name="language" content="English" />
               <meta name="author" content="Andrew Klapper" />
-
+              <meta name="emotion-insertion-point" content="emotion-insertion-point"/>
+              ${emotionCss}
               <link
               rel="stylesheet"
               type="text/css"
               href="${css !== undefined ? `/client/${css}` : '/src/styles/main-styles.css'}"
               />
- 
+
               <link rel="icon" type="image/x-icon" href="/client/favicon.ico" />
               `);
 
@@ -94,6 +115,8 @@ const render = async (fullUrl: string, resp: Response, clientManifest: ManifestT
 
         resp.write('</head/>');
         resp.write('<body><div id="root">');
+        pipe(resp);
+        resp.write('</div></body></html>');
       },
       onShellError(error) {
         interface ServerError extends Error {
@@ -113,8 +136,6 @@ const render = async (fullUrl: string, resp: Response, clientManifest: ManifestT
         console.error(`Suspense error: ${error}`);
       },
       onAllReady() {
-        pipe(resp);
-        resp.write('</div></body></html>');
         console.log('ALL COMPONENTS RENDERED');
         resp.end();
       },

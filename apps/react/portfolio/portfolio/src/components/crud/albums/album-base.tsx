@@ -4,6 +4,7 @@ import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import { Suspense, useState, type ReactElement } from 'react';
 import { Outlet } from 'react-router';
+import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
 import { allDataGridsWrapperSxProps, artistOutletWrapperSxProps, artistsSxProps } from '../../../styles/crud/data_grid';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
 import DataGridHeader from '../data_grid_header';
@@ -29,7 +30,7 @@ const Album = (): ReactElement => {
         <AlbumBaseDataGrid rows={rows} setRows={setRows} />
       </Box>
       <Box id='tracks-on-album-box' sx={artistOutletWrapperSxProps}>
-        <Suspense fallback={<Waiting src={'/client/images/swirly-dots-to-chrome.webp'} />}>
+        <Suspense fallback={<Waiting src={waiting} />}>
           <Outlet />
         </Suspense>
       </Box>

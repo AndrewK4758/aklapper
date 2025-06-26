@@ -1,6 +1,5 @@
 import Box from '@mui/material/Box';
 // import { addToToolipString } from '../../../utils/utils';
-
 import DiscordIcon from '../../icons/discord-icon';
 import EmailIcon from '../../icons/email-icon';
 import FacebookIcon from '../../icons/facebook-icon';
@@ -21,22 +20,31 @@ interface ContactMenuProps {
 export default function ContactMenu({ isOpen, handleOpenEmail }: ContactMenuProps) {
   return (
     <Box width={'100%'} display={'flex'} alignItems={'center'} justifyContent={'space-around'} inert={!isOpen}>
-      <ContactIcon generalId='github' iconHref='https://github.com/AndrewK4758/aklapper' Icon={<GitHibIcon />} />
+      <ContactIcon generalId='github' iconHref='https://github.com/AndrewK4758/aklapper'>
+        {GitHibIcon}
+      </ContactIcon>
 
-      <ContactIcon generalId='facebook' iconHref='https://www.facebook.com/AKlapper47' Icon={<FacebookIcon />} />
-      <ContactIcon
-        generalId='linkedin'
-        iconHref='https://www.linkedin.com/in/andrew-klapper-a9204b23b/'
-        Icon={<LinkedinIcon />}
-      />
+      <ContactIcon generalId='facebook' iconHref='https://www.facebook.com/AKlapper47'>
+        {<FacebookIcon />}
+      </ContactIcon>
+      <ContactIcon generalId='linkedin' iconHref='https://www.linkedin.com/in/andrew-klapper-a9204b23b/'>
+        {<LinkedinIcon />}
+      </ContactIcon>
 
-      <ContactIcon generalId='hugging-face' iconHref='https://huggingface.co/ak475826' Icon={<HuggingFaceIcon />} />
+      <ContactIcon generalId='hugging-face' iconHref='https://huggingface.co/ak475826'>
+        {<HuggingFaceIcon />}
+      </ContactIcon>
 
-      <ContactIcon generalId='x' iconHref='https://x.com/ak475826' Icon={<XIcon />} />
+      <ContactIcon generalId='x' iconHref='https://x.com/ak475826'>
+        {<XIcon />}
+      </ContactIcon>
 
-      <ContactIcon generalId='discord' iconHref='https://discord.com/users/989564035542446190' Icon={<DiscordIcon />} />
-
-      <ContactIcon generalId='email' Icon={<EmailIcon />} onClick={handleOpenEmail} />
+      <ContactIcon generalId='discord' iconHref='https://discord.com/users/989564035542446190'>
+        {<DiscordIcon />}
+      </ContactIcon>
+      <ContactIcon generalId='email' onClick={handleOpenEmail}>
+        {<EmailIcon />}
+      </ContactIcon>
     </Box>
   );
 }

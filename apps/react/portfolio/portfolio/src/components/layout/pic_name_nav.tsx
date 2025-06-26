@@ -1,6 +1,7 @@
 import { SectionTitle } from '@aklapper/react-shared';
 import CardHeader, { type CardHeaderSlotsAndSlotProps } from '@mui/material/CardHeader';
 import type { ReactElement } from 'react';
+import self from '../../assets/images/self.webp';
 import Theme from '../../styles/themes/theme';
 import { ABOUT_ME_TITLE } from '../intro/static/intro-text';
 
@@ -10,6 +11,10 @@ const slotProps: CardHeaderSlotsAndSlotProps = {
       sx: {
         flex: '0 1 15%',
       },
+    },
+    title: {
+      color: 'textPrimary',
+      fontFamily: 'League Gothic',
     },
   },
 };
@@ -22,7 +27,7 @@ const avatarImg = (
     crossOrigin=''
     id={'card-media-resume-image'}
     data-testid={'card-media-resume-image'}
-    src={'/client/images/self.webp'}
+    src={self}
     loading='eager'
     alt='Andrew'
     style={{

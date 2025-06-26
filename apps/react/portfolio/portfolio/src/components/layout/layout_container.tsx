@@ -40,8 +40,3 @@ export default function LayoutContainer() {
     </Layout>
   );
 }
-
-if (process.env.NODE_ENV === 'never') {
-  // A condition that will never be true
-  console.log(LayoutContainer);
-}

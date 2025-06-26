@@ -1,6 +1,9 @@
+import { Text } from '@aklapper/react-shared';
 import TextField, { type OutlinedTextFieldProps } from '@mui/material/TextField';
 import type { FormikProps } from 'formik';
-import type { HTMLInputTypeAttribute, ReactElement } from 'react';
+import { useState, type HTMLInputTypeAttribute, type ReactElement } from 'react';
+import { BACKGROUND_ALT } from '../../styles/base/base_styles';
+import HelperTextBox from './helper_text_box';
 
 interface TextInputProps<T extends object>
   extends Omit<
@@ -24,7 +27,6 @@ interface TextInputProps<T extends object>
   label: string;
   multiline?: boolean;
   type?: HTMLInputTypeAttribute;
-  setHelperText: (text: string | null) => void;
 }
 
 export default function TextInput<T extends object>({
@@ -33,29 +35,40 @@ export default function TextInput<T extends object>({
   formik,
   type = 'text',
   multiline = false,
-  setHelperText,
   ...props
 }: TextInputProps<T>): ReactElement {
+  const [helperText, setHelperText] = useState<string | null>(null);
   return (
-    <TextField
-      {...props}
-      fullWidth
-      value={formik.values[name]}
-      type={type}
-      data-testid={name}
-      name={name}
-      label={label}
-      variant='outlined'
-      multiline={multiline}
-      rows={multiline ? 4 : 1}
-      onBlur={formik.handleBlur}
-      onChange={formik.handleChange}
-      onFocus={async () => {
-        await formik.setFieldTouched(name, false);
-        setHelperText(null);
-      }}
-      error={formik.touched[name] && !!formik.errors[name]}
-      helperText={formik.touched[name] && (formik.errors[name] as string)}
-    />
+    <HelperTextBox multiline={multiline}>
+      <TextField
+        {...props}
+        fullWidth
+        value={formik.values[name]}
+        type={type}
+        data-testid={name}
+        name={name}
+        label={label}
+        variant='outlined'
+        multiline={multiline}
+        rows={multiline ? 4 : 1}
+        onBlur={formik.handleBlur}
+        onChange={formik.handleChange}
+        onFocus={async () => {
+          await formik.setFieldTouched(name, false);
+          setHelperText(null);
+        }}
+        error={formik.touched[name] && !!formik.errors[name]}
+        helperText={formik.touched[name] && (formik.errors[name] as string)}
+        slotProps={{
+          input: {
+            sx: {
+              backgroundColor: BACKGROUND_ALT,
+              width: '100%',
+            },
+          },
+        }}
+      />
+      {helperText && <Text variant='caption' children={helperText} />}
+    </HelperTextBox>
   );
 }

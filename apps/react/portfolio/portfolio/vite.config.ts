@@ -1,12 +1,11 @@
 import { workspaceRoot } from '@nx/devkit';
-// import { pigment, type PigmentOptions } from '@pigment-css/vite-plugin';
+import { pigment } from '@pigment-css/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
 import { cwd } from 'node:process';
 import { defineConfig, type UserConfig } from 'vite';
-// import Theme from './src/styles/themes/theme';
+import Theme from './src/styles/themes/theme';
 import MODULES from './vite_modules';
-
 process.env.NODE_ENV = 'development';
 
 //Server
@@ -15,16 +14,10 @@ const PORT_DEV = 4700;
 const PORT_PREVIEW = 4800;
 
 //Build
-const BASE = '/client';
+const BASE = '/';
 const NODE_ENV = process.env.NODE_ENV;
-const OUT_DIR = './dist/client';
+const OUT_DIR = './dist';
 const ROOT = cwd();
-
-// const pigmentConfig: PigmentOptions = {
-//   transformLibraries: ['@mui/material', '@mui/icons-material'],
-//   theme: Theme,
-//   sourceMap: true,
-// };
 
 const config: UserConfig = defineConfig({
   root: ROOT,
@@ -37,12 +30,23 @@ const config: UserConfig = defineConfig({
     port: PORT_PREVIEW,
     host: HOST,
   },
+
   plugins: [
-    // pigment(pigmentConfig),
+    pigment({
+      theme: Theme,
+      transformLibraries: ['@mui/material'],
+      transformSx: true,
+    }),
     react({
-      reactRefreshHost: `http://${HOST}:${PORT_DEV}`,
+      babel: {
+        compact: false,
+      },
     }),
   ],
+
+  optimizeDeps: {
+    include: ['react-is', 'prop-types'],
+  },
 
   // Uncomment this if you are using workers.
   // worker: {
@@ -59,13 +63,13 @@ const config: UserConfig = defineConfig({
   mode: NODE_ENV,
 
   logLevel: 'info',
-  appType: 'custom',
+  appType: 'spa',
   publicDir: 'public',
   envDir: './env',
 
   build: {
     outDir: OUT_DIR,
-    minify: NODE_ENV === 'production',
+    minify: false, //NODE_ENV === 'production',
     target: 'esnext',
     manifest: true,
     sourcemap: true,

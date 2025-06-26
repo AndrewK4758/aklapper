@@ -1,5 +1,5 @@
 import { SectionTitle, type SectionTitleProps } from '@aklapper/react-shared';
-import Grid from '@mui/material/Grid';
+import Grid from '@mui/material-pigment-css/Grid';
 import List from '@mui/material/List';
 import type { TypographyVariant } from '@mui/material/styles';
 import Theme from '../../../styles/themes/theme.js';
@@ -13,14 +13,15 @@ interface TechListProps extends SectionTitleProps {
 }
 
 export const TechList = ({ data, id, labelText, variant, placement }: TechListProps) => (
-  <Grid id={`${id}-wrapper`} data-testid={`tech-list-${id}-title-text`} sx={{ flexBasis: '24%' }}>
-    <SectionTitle
-      id={id}
-      title={labelText}
-      placement={placement}
-      variant={variant}
-      titleSx={{ borderBottom: 1, borderColor: Theme.palette.primary.dark }}
-    />
+  <Grid
+    id={`${id}-wrapper`}
+    data-testid={`tech-list-${id}-title-text`}
+    sx={{
+      flexBasis: '24%',
+      color: Theme.palette.primary.dark,
+    }}
+  >
+    <SectionTitle id={id} title={labelText} placement={placement} variant={variant} />
 
     <List id={`${id}-list`} sx={{ display: 'flex', flexDirection: 'column' }}>
       {data.map(entry => (

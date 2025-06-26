@@ -1,7 +1,7 @@
+import Button from '@mui/material/Button';
 import DialogActions, { type DialogActionsProps } from '@mui/material/DialogActions';
 import type { FormikProps } from 'formik';
 import AnimatedBorderBox from '../../styled/animated_border_box';
-import ContactDialogButton from '../../styled/base_button.js';
 import type { MessageMeFormValues } from './email-form';
 
 interface EmailFormActionsProps extends DialogActionsProps {
@@ -12,20 +12,15 @@ interface EmailFormActionsProps extends DialogActionsProps {
 export default function EmailFormActions({ formik, handleFileSubmit, ...props }: EmailFormActionsProps) {
   return (
     <DialogActions {...props}>
-      <ContactDialogButton
-        variant='outlined'
-        id='upload-file-button'
-        data-testid='upload-file-button'
-        onClick={handleFileSubmit}
-      >
+      <Button variant='outlined' id='upload-file-button' data-testid='upload-file-button' onClick={handleFileSubmit}>
         Upload File
-      </ContactDialogButton>
+      </Button>
       <AnimatedBorderBox>
-        <ContactDialogButton type='submit' id='submit-email-me-button' data-testid='submit-email-me-button'>
+        <Button type='submit' id='submit-email-me-button' data-testid='submit-email-me-button'>
           Submit
-        </ContactDialogButton>
+        </Button>
       </AnimatedBorderBox>
-      <ContactDialogButton
+      <Button
         variant='outlined'
         type='reset'
         id='reset-email-me-button'
@@ -33,7 +28,7 @@ export default function EmailFormActions({ formik, handleFileSubmit, ...props }:
         onReset={formik.handleReset}
       >
         Reset
-      </ContactDialogButton>
+      </Button>
     </DialogActions>
   );
 }

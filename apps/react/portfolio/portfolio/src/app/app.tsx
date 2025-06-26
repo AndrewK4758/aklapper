@@ -1,14 +1,14 @@
-import CssBaseline from '@mui/material/CssBaseline';
-import { ThemeProvider } from '@mui/material/styles';
+import DefaultPropsProvider from '@mui/material/DefaultPropsProvider';
 import type { ReactNode } from 'react';
 import '../styles/main-styles.css';
-import Theme from '../styles/themes/theme';
+import { DEFAULT_PROPS } from '../styles/themes/default_props';
 
-export default function App({ children }: { children: ReactNode | ReactNode[] }) {
-  return (
-    <ThemeProvider theme={Theme}>
-      <CssBaseline enableColorScheme />
-      {children}
-    </ThemeProvider>
-  );
+export default function App({ children }: { children: ReactNode }) {
+  return <DefaultPropsProvider value={DEFAULT_PROPS}>{children}</DefaultPropsProvider>;
+  // <ThemeProvider theme={Theme}>
+  {
+    /* <CssBaseline enableColorScheme /> */
+  }
+
+  // </ThemeProvider>
 }

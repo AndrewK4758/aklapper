@@ -20,7 +20,7 @@ export function HeaderContactMenu({
     <>
       <Box component={'header'} sx={{ display: 'flex' }}>
         <ToggleMenuButton isToggledOpen={isContactMenuOpen} handleToggleContactMenu={handleToggleContactMenu} />
-        <AnimatedContactMenu id='contact-menu-box' isOpen={isContactMenuOpen} handleOpenEmail={handleOpenEmail} />
+        <AnimatedContactMenu isOpen={isContactMenuOpen} handleOpenEmail={handleOpenEmail} />
       </Box>
       {openEmail && (
         <Box id='email-form-wrapper' data-testid='email-form-wrapper' sx={{ width: '100%' }}>

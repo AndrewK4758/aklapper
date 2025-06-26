@@ -4,6 +4,7 @@ import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import { Suspense, useState, type ReactElement } from 'react';
 import { Outlet } from 'react-router';
+import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
 import { artistOutletWrapperSxProps, artistsSxProps } from '../../../styles/crud/data_grid';
 import CRUD_THEME from '../../../styles/themes/crud_theme';
 import Theme from '../../../styles/themes/theme';
@@ -34,12 +35,10 @@ export const AlbumsOnArtist = (): ReactElement => {
         sx={{
           height: '100%',
           width: '100%',
-          border: `3px solid ${"var(--main-secondary-CRUD_THEME-palette)"}`,
+          border: `3px solid ${CRUD_THEME.palette.secondary.main}`,
           borderRadius: Theme.shape.borderRadius,
         }}
-        style={{
-          "--main-secondary-CRUD_THEME-palette": CRUD_THEME.palette.secondary.main
-        }}>
+      >
         <DataGridHeader title='Artist Albums' />
         <Container id={'add-album-box'} sx={{ paddingY: 1 }}>
           <AddAlbumOnArtist setRows={setRows} />
@@ -47,7 +46,7 @@ export const AlbumsOnArtist = (): ReactElement => {
         <AlbumDataGrid rows={rows} setRows={setRows} />
       </Box>
       <Box sx={artistOutletWrapperSxProps}>
-        <Suspense fallback={<Waiting src={'/client/images/swirly-dots-to-chrome.webp'} />}>
+        <Suspense fallback={<Waiting src={waiting} />}>
           <Outlet />
         </Suspense>
       </Box>

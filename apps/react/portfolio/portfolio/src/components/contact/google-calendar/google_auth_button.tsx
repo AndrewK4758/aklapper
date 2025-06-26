@@ -1,6 +1,7 @@
 import { SectionTitle } from '@aklapper/react-shared';
 import GoogleIcon from '@mui/icons-material/Google';
 import type { ButtonProps } from '@mui/material/Button';
+import Button from '@mui/material/Button';
 import { useGoogleLogin, type CodeResponse } from '@react-oauth/google';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
@@ -11,7 +12,6 @@ import {
   type GoogleUserContextProps,
 } from '../../../contexts/contact-context.js';
 import AnimatedBorderBox from '../../styled/animated_border_box.js';
-import ContactDialogButton from '../../styled/base_button.js';
 
 export default function GoogleAuthButton(): ReactElement<ButtonProps> {
   const { handleSetGoogleUser } = useContext<GoogleUserContextProps>(GoogleUserContext);
@@ -24,7 +24,7 @@ export default function GoogleAuthButton(): ReactElement<ButtonProps> {
   });
   return (
     <AnimatedBorderBox component={'section'} id='google-calendar-auth-box' data-testid='google-calendar-auth-box'>
-      <ContactDialogButton
+      <Button
         id='google-auth-button'
         data-testid='google-auth-button'
         onClick={login}
@@ -37,7 +37,7 @@ export default function GoogleAuthButton(): ReactElement<ButtonProps> {
           title='Connect Google Calendar'
           placement='bottom-start'
         />
-      </ContactDialogButton>
+      </Button>
     </AnimatedBorderBox>
   );
 }

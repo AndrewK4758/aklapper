@@ -3,6 +3,7 @@ import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Select, { type SelectChangeEvent } from '@mui/material/Select';
 import { useState } from 'react';
+import { BACKGROUND_ALT, MAIN_COLOR_DARK } from '../../../styles/base/base_styles';
 import type { TimesAndDates } from './google_calendar_form';
 
 interface EndTimeProps extends FormControlProps {
@@ -30,6 +31,25 @@ export default function EndTimeSelect({ values, setEndTime, ...props }: EndTimeP
         onChange={hanndleSelectMeetingLength}
         value={values.endTime}
         error={error}
+        slotProps={{
+          input: {
+            sx: {
+              color: MAIN_COLOR_DARK,
+              backgroundColor: BACKGROUND_ALT,
+            },
+          },
+          notchedOutline: {
+            sx: {
+              color: MAIN_COLOR_DARK,
+            },
+          },
+          root: {
+            sx: {
+              color: MAIN_COLOR_DARK,
+              backgroundColor: BACKGROUND_ALT,
+            },
+          },
+        }}
       >
         <MenuItem value={0} />
 

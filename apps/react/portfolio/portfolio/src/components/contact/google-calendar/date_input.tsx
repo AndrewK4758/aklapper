@@ -3,6 +3,7 @@ import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import type { PickerValue } from '@mui/x-date-pickers/internals';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
+import { BACKGROUND_DEFAULT, MAIN_COLOR_DARK } from '../../../styles/base/base_styles';
 import type { TimesAndDates } from './google_calendar_form.js';
 
 interface AppointmentDateSelectorProps {
@@ -24,6 +25,33 @@ export default function DateInput({ tomorrow, dateValue, setDate }: AppointmentD
         defaultValue={tomorrow}
         value={dateValue}
         onChange={data => setDate(data, 'date')}
+        slotProps={{
+          switchViewIcon: {
+            sx: {
+              color: MAIN_COLOR_DARK,
+            },
+          },
+          rightArrowIcon: {
+            sx: {
+              color: MAIN_COLOR_DARK,
+            },
+          },
+          leftArrowIcon: {
+            sx: {
+              color: MAIN_COLOR_DARK,
+            },
+          },
+          day: {
+            sx: {
+              '& .t193e277': {
+                background: MAIN_COLOR_DARK,
+              },
+              fontSize: '1.25rem',
+              backgroundColor: BACKGROUND_DEFAULT,
+              color: MAIN_COLOR_DARK,
+            },
+          },
+        }}
       />
     </Box>
   );

@@ -30,54 +30,6 @@
   initial-value: #bbc0cc;
 }
 
-@keyframes typewriter {
-  from {
-    width: 0;
-  }
-  to {
-    width: 100%;
-  }
-}
-
-@keyframes shake {
-  1.25%,
-  11.25% {
-    transform: rotateZ(-0.75deg);
-  }
-  2.5%,
-  10% {
-    transform: rotateZ(1.5deg);
-  }
-  3.75%,
-  6.75%,
-  8.75% {
-    transform: rotateZ(-3deg);
-  }
-  5%,
-  7.5% {
-    transform: rotateZ(3deg);
-  }
-  11.5% {
-    transform: rotateZ(0deg);
-  }
-  100% {
-    transition: rotateZ(0deg);
-  }
-}
-
-@keyframes spin {
-  50% {
-    --clr-1: --clr-2;
-    --clr-2: --clr-1;
-    --clr-1: --clr-2;
-  }
-  100% {
-    --clr-1: --clr-1;
-    --clr-2: --clr-2;
-    --clr-1: --clr-1;
-  }
-}
-
 &::-webkit-scrollbar {
   width: 0.75rem;
 }
@@ -97,6 +49,9 @@ html {
   box-sizing: 'border-box';
   overflow-x: 'hidden';
   font-smooth: 'antialiased';
+  letter-spacing: 2;
+  word-spacing: 3.5;
+  line-height: 1.5;
 }
 &:-webkit-autofill,
 &:-webkit-autofill:hover,

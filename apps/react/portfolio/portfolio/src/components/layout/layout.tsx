@@ -23,7 +23,7 @@ export default function Layout({ header, footer, navBar, children }: LayoutProps
       {header}
 
       <CenteredFlexDiv component={'main'} sx={{ margin: '0 5%' }}>
-        <StyledCard raised elevation={4}>
+        <StyledCard>
           {navBar}
           {children}
         </StyledCard>

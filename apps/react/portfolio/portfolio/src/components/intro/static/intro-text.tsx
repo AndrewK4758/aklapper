@@ -1,13 +1,13 @@
 import Link from '@mui/material/Link';
-import Typography, { type TypographyProps } from '@mui/material/Typography';
-import Theme from '../../../styles/themes/theme.js';
+import Typography from '@mui/material/Typography';
+import Theme from '../../../styles/themes/theme';
 
 export const ABOUT_ME_TITLE = "Hi, I'm Andrew Klapper";
 
 const ID = 'intro-text';
 
-export const IntroText = ({ ...props }: Omit<TypographyProps, 'sx'>) => (
-  <Typography {...props} variant='h5' id={ID} data-testid={ID} flex={'30%'} textAlign={'start'}>
+export const IntroText = () => (
+  <Typography variant='h5' color='textPrimary' id={ID} data-testid={ID} sx={{ flex: '30%', textAlign: 'start' }}>
     I'm a full-stack web developer with 3 years experience developing & deploying web based applications & interactive
     websites. I specialize in <b>Monorepo Architectures</b>, <b>Cloud Deployments</b>, custom <b>React Components</b>,{' '}
     <b>Dynamic API Design</b>, & thorough <b>Testing</b>. I have a work ethic & focused determination which thrives in

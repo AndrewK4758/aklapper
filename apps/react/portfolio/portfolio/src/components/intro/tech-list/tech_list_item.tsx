@@ -25,7 +25,7 @@ export default function TechListItem({ listItem, ...props }: TechListItemProps) 
         <img
           data-testid={`${listItem}-svg-icon`}
           id={`${listItem}-svg-icon`}
-          src={`/client/icons/intro/${listItem.toLowerCase()}-icon.svg`}
+          src={`/icons/intro/${listItem.toLowerCase()}-icon.svg`}
           alt={`${listItem}-icon`}
           role='img'
           loading='lazy'

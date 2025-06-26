@@ -1,4 +1,4 @@
-import Box, { type BoxProps } from '@mui/material/Box';
+import Box from '@mui/material-pigment-css/Box';
 import { useReducer } from 'react';
 import { useNavigate } from 'react-router';
 import BoxAnimation from '../../components/landing/box_animation';
@@ -18,7 +18,7 @@ const landingPageInitState: LandingPageState = {
   motionOffset: 0,
 };
 
-export default function LandingPage({ ...props }: BoxProps) {
+export default function LandingPage({ ...props }) {
   const [state, dispatch] = useReducer(landingPageReducer, landingPageInitState);
   const nav = useNavigate();
 
@@ -63,17 +63,13 @@ export default function LandingPage({ ...props }: BoxProps) {
   };
 
   return (
-    <StyledRootComponentWrapper {...props} component={'div'} id='landing-root' sx={{ minHeight: '100vh' }}>
+    <StyledRootComponentWrapper {...props} id='landing-root' sx={{ minHeight: '100vh' }}>
       <LandingHeader isLandingNavOpen={state.isLandingNavOpen} />
 
       <Box
-        component={'section'}
+        as={'section'}
         id={'landing-svg-animations-wrapper'}
-        flex={1}
-        display={'flex'}
-        position={'relative'}
-        overflow={'hidden'}
-        sx={{ perspective: '800px' }}
+        sx={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden', perspective: '800px' }}
       >
         <BoxAnimation isLandingNavOpen={state.isLandingNavOpen} onHandleNavbarClick={onBoxAnimationClick} />
         {state.isLandingNavOpen && <Explosion isVisible={state.isExplosionVisible} onClick={onBoxAnimationClick} />}

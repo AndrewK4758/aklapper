@@ -1,11 +1,10 @@
 import DialogContent from '@mui/material/DialogContent';
 import { Decimal } from 'decimal.js';
 import { useFormik } from 'formik';
-import { useState, type FocusEvent } from 'react';
+import { useState } from 'react';
 import { Form, useNavigate } from 'react-router';
 import * as Yup from 'yup';
 import { addEntrySteps } from '../../../pages/static/crud-text';
-import handleNewArtistBlur from '../../../services/actions/crud-actions/handle-validate-artist-on-blur.js';
 import handleSubmitNewEntry from '../../../services/actions/crud-actions/submit-new-entry-action.jsx';
 import type { CompletedState, NewEntry } from '../../../types/types';
 import AddEntryFormActions from './form_actions';
@@ -64,7 +63,6 @@ const validationSchema = Yup.object({
 
 export default function AddEntryForm() {
   const [activeStep, setActiveStep] = useState(0);
-  const [artistHelperText, setArtistHelperText] = useState<string | null>(null);
   const [completed, setCompleted] = useState<CompletedState>({});
   const nav = useNavigate();
 
@@ -75,23 +73,6 @@ export default function AddEntryForm() {
     onReset: () => handleReset(),
     validateOnMount: false,
   });
-
-  const handleUpdateArtistHelperText = (inDbResponse: string) => {
-    setArtistHelperText(inDbResponse);
-  };
-
-  formik.handleBlur = (e: FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const field = e.currentTarget.name;
-
-    switch (field) {
-      case 'artist.name':
-        handleNewArtistBlur<NewEntry>(e, formik, handleUpdateArtistHelperText, `/artists?name=${field}`);
-        break;
-      default:
-        formik.setFieldTouched(field, true, true);
-        break;
-    }
-  };
 
   const totalSteps = () => {
     return addEntrySteps.length;
@@ -136,21 +117,10 @@ export default function AddEntryForm() {
     setCompleted({});
   };
 
-  const handleArtistFocus = async () => {
-    await formik.setFieldTouched('artist.name', false);
-    setArtistHelperText(null);
-  };
-
   return (
     <Form method='post' encType='text/plain' onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
       <DialogContent id={'add-entry-dialog-content'}>
-        <AddEntryFormInputs
-          activeStep={activeStep}
-          artistHelperText={artistHelperText}
-          formik={formik}
-          completed={completed}
-          handleArtistFocus={handleArtistFocus}
-        />
+        <AddEntryFormInputs activeStep={activeStep} formik={formik} completed={completed} />
         <AddEntryStepper
           activeStep={activeStep}
           addEntrySteps={addEntrySteps}

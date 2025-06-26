@@ -28,7 +28,7 @@ export default function ToggleMenuButton({ isToggledOpen, handleToggleContactMen
         onClick={handleToggleContactMenu}
         sx={toggleMenuButtonStyle}
       >
-        {icon ?? ''}
+        {icon}
       </IconButton>
     </Box>
   );

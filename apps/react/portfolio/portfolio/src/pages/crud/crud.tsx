@@ -1,10 +1,11 @@
 import { Waiting } from '@aklapper/react-shared';
-import Box from '@mui/material/Box';
+import Box from '@mui/material-pigment-css/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
-import { ThemeProvider, type SxProps } from '@mui/material/styles';
+import { type SxProps } from '@mui/material/styles';
 import { lazy, ReactElement, Suspense, useState } from 'react';
 import { Outlet } from 'react-router';
+import waiting from '../../assets/images/swirly-dots-to-chrome.webp';
 import CrudNavBar from '../../components/crud/nav_bar';
 import CrudHeader from '../../components/crud/page_header.js';
 import CenteredFlexDiv from '../../components/styled/centered_flexbox';
@@ -29,30 +30,35 @@ export default function Crud(): ReactElement {
   };
 
   return (
-    <ThemeProvider theme={CRUD_THEME}>
-      <Box id='crud-wrapper' borderRadius={1} width={'100%'} bgcolor={CRUD_THEME.palette.background.default}>
-        <CenteredFlexDiv sx={crudHeaderWrapperSxProps}>
-          <Container disableGutters sx={{ display: 'flex', flexDirection: 'row' }}>
-            <CenteredFlexDiv>
-              <CrudHeader />
-            </CenteredFlexDiv>
-            <CenteredFlexDiv sx={{ p: 0, width: '100%' }}>
-              <CrudNavBar />
-              <Button color='secondary' variant='text' onClick={handleSetSearchClick}>
-                {'Search'}
-              </Button>
-            </CenteredFlexDiv>
-          </Container>
-        </CenteredFlexDiv>
-        <Suspense fallback={<Waiting src={'/client/images/swirly-dots-to-chrome.webp'} />}>
-          {searchIsOpen && <Search setOpen={handleSetSearchClick} />}
+    <Box
+      id='crud-wrapper'
+      sx={{
+        borderRadius: CRUD_THEME.shape.borderRadius,
+        width: '100%',
+        bgcolor: CRUD_THEME.palette.background.default,
+      }}
+    >
+      <CenteredFlexDiv sx={crudHeaderWrapperSxProps}>
+        <Container disableGutters sx={{ display: 'flex', flexDirection: 'row' }}>
+          <CenteredFlexDiv>
+            <CrudHeader />
+          </CenteredFlexDiv>
+          <CenteredFlexDiv sx={{ p: 0, width: '100%' }}>
+            <CrudNavBar />
+            <Button onClick={handleSetSearchClick} sx={{ color: CRUD_THEME.palette.secondary.main }}>
+              {'Search'}
+            </Button>
+          </CenteredFlexDiv>
+        </Container>
+      </CenteredFlexDiv>
+      <Suspense fallback={<Waiting src={waiting} />}>
+        {searchIsOpen && <Search setOpen={handleSetSearchClick} />}
+      </Suspense>
+      <Box id={`crud-app-wrapper`} sx={{ paddingX: 2 }}>
+        <Suspense fallback={<Waiting src={waiting} />}>
+          <Outlet />
         </Suspense>
-        <Box id={`crud-app-wrapper`} paddingX={2}>
-          <Suspense fallback={<Waiting src={'/client/images/swirly-dots-to-chrome.webp'} />}>
-            <Outlet />
-          </Suspense>
-        </Box>
       </Box>
-    </ThemeProvider>
+    </Box>
   );
 }

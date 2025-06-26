@@ -1,8 +1,7 @@
-import Box, { type BoxProps } from '@mui/material/Box';
-import { styled } from '@mui/material/styles';
-import type { ComponentType } from 'react';
+import { styled } from '@mui/material-pigment-css';
+import Box from '@mui/material-pigment-css/Box';
 
-const CenteredFlexDiv: ComponentType<BoxProps> = styled(Box)(({ theme }) => ({
+const CenteredFlexDiv = styled(Box)(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',

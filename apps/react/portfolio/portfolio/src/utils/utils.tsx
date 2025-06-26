@@ -1,4 +1,5 @@
 import type { GamePlayerValidation } from '@aklapper/types';
+import createCache from '@emotion/cache';
 import type { FormikProps } from 'formik';
 import type { FocusEvent } from 'react';
 import handleNewArtistBlur from '../services/actions/crud-actions/handle-validate-artist-on-blur.js';
@@ -39,3 +40,14 @@ export const handlelFocus = async <T,>(
 ) => {
   await formik.setFieldTouched(e.target.name, false);
 };
+
+const isBrowser = clientCheck();
+
+export function createEmotionCache() {
+  let mount;
+  if (isBrowser) {
+    mount = document.querySelector('meta[name="emotion-mount-point"]') as HTMLElement;
+  }
+
+  return createCache({ key: 'css', insertionPoint: mount ?? undefined });
+}

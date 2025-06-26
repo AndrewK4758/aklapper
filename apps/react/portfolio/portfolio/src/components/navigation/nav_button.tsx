@@ -5,14 +5,14 @@ import { useNavigate } from 'react-router';
 
 interface NavButtonProps extends ButtonProps {
   buttonText: string;
-  path: string;
+  path?: string;
   buttonSx?: SxProps;
 }
 
 export default function NavButton({ buttonText, path, buttonSx, ...props }: NavButtonProps) {
   const nav = useNavigate();
   const handleOnClick = () => {
-    nav(path);
+    if (path) nav(path);
   };
   return (
     <Button {...props} data-testid={props.id} sx={buttonSx} onClick={handleOnClick}>

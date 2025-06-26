@@ -1,177 +1,45 @@
-import { Text, useScrollIntoView } from '@aklapper/react-shared';
-// import AppBar from '@mui/material/AppBar';
+import { Text } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
-// import Button from '@mui/material/Button';
-import ButtonGroup from '@mui/material/ButtonGroup';
 import Collapse from '@mui/material/Collapse';
 import Container from '@mui/material/Container';
-import Paper from '@mui/material/Paper';
-// import Toolbar from '@mui/material/Toolbar';
-import { useRef, useState, type Dispatch, type JSX, type SetStateAction } from 'react';
-import { Outlet, useNavigation, useSubmit, type SubmitFunction } from 'react-router';
-import GameLoading from '../../components/loading/loading.jsx';
-import { crudPaperSxProps } from '../../styles/crud-styles.jsx';
-import { gamesButtonSxProps } from '../../styles/games-styles.jsx';
-import {
-  gamesOutletGameWrapperSxProps,
-  gamesOutletWrapperSxProps,
-  pagesOutletStyles,
-  pagesTitlesBoxStyles,
-  pagesTitleSx,
-  // pagesToolbarStyles,
-  pagesWrapperStyles,
-} from '../../styles/pages-styles.jsx';
-// import type { OutletContextProps } from '../../types/types.jsx';
-import NavButton from '../../components/navigation/nav_button.js';
-import { body, title } from '../static/games-text';
+import { ReactElement, useState } from 'react';
+import { Outlet, useNavigation } from 'react-router';
+import GamesHeader from '../../components/games/header';
+import GameLoading from '../../components/loading/loading';
+import CenteredFlexDiv from '../../components/styled/centered_flexbox';
+import { gamesOutletGameWrapperSxProps, gamesOutletWrapperSxProps, pagesOutletStyles } from '../../styles/pages-styles';
+import { body } from '../static/games-text';
 
 /**
  * This component renders the main games page, providing an interface for users to select and play different games.
  *
- * @returns {JSX.Element} The rendered Games component.
+ * @returns {ReactElement} The rendered Games component.
  */
 
-const Games = (): JSX.Element => {
+const Games = (): ReactElement => {
   const { state } = useNavigation();
-  // const { loading, setLoading } = useOutletContext<OutletContextProps>();
   const [loading, setLoading] = useState(false);
-  const divRef = useRef<HTMLElement>(null);
-  const [textView, setTextView] = useState<boolean>(true);
-  const submit = useSubmit();
-
-  useScrollIntoView(divRef);
+  const [textView, setTextView] = useState(true);
 
   return (
-    <Box ref={divRef} component={'div'} key={'games-wrapper'} id='games-wrapper' sx={pagesWrapperStyles}>
-      <Paper
-        elevation={2}
-        component={'div'}
-        key={'games-header-wrapper'}
-        id='games-header-wrapper'
-        sx={crudPaperSxProps}
-      >
-        <Box component={'section'} id='games-title-wrapper' sx={pagesTitlesBoxStyles}>
-          <Text variant='h2' children={title} sx={pagesTitleSx} />
-        </Box>
-        <Container component={'div'} id='games-navbar-container' maxWidth={false} sx={{ paddingBottom: 2 }}>
-          {/* <AppBar component={'div'} id='games-navbar-wrapper' elevation={0} position='static' sx={{ borderRadius: 1 }}> */}
-          {/* <Toolbar component={'nav'} id='games-navbar' key={'games-navbar'} sx={pagesToolbarStyles}> */}
-          <ButtonGroup id='games-button-group' key={'games-button-group'} color='primary' fullWidth={true}>
-            <NavButton
-              id='Chutes-&-Ladders'
-              variant='outlined'
-              disabled={state !== 'idle'}
-              onClick={async e => loadAndStartGame(e.currentTarget.id, submit, setLoading, setTextView)}
-              sx={gamesButtonSxProps}
-              buttonText={'Chutes & Ladders'}
-              tooltipTitle={`Clicking the button executes the following actions: \n- Starts the Chutes & Ladders instance\n- Registers 2 "Guest" Players\n- Automatically starts the game`}
-            />
-
-            {/* <Label
-                    id='chutes-and-ladders-button-label'
-                    htmlFor='Chutes-&-Ladders'
-                    tooltipTitle={
-                      <pre>
-                        {
-                          'Clicking the button executes the following actions: \n- Starts the Chutes & Ladders instance\n- Registers 2 "Guest" Players\n- Automatically starts the game'
-                        }
-                      </pre>
-                    }
-                    labelVariant={'button'}
-                    labelText={'Chutes & Ladders'}
-                    placement={'top'}
-                    // labelWrapperDivSxProps={gamesLabelWrapperSxProps}
-                    labelTextSx={gamesButtonLabelsSxProps}
-                  /> */}
-
-            <NavButton
-              id='Tic-Tac-Toe'
-              variant='outlined'
-              disabled={state !== 'idle'}
-              onClick={async e => loadAndStartGame(e.currentTarget.id, submit, setLoading, setTextView)}
-              sx={gamesButtonSxProps}
-              buttonText='Tic Tac Toe'
-              tooltipTitle={`Clicking the button executes the following actions: \n- Starts the Tic Tac Toe instance\n- Registers "X" & "O" Players\n- Automatically starts the game`}
-            />
-            {/* <Label
-                    id='tic-tac-toe-button-label'
-                    htmlFor='Tic-Tac-Toe"'
-                    tooltipTitle={
-                      <pre>
-                        {
-                          'Clicking the button executes the following actions: \n- Starts the Tic Tac Toe instance\n- Registers "X" & "O" Players\n- Automatically starts the game'
-                        }
-                      </pre>
-                    }
-                    labelVariant={'button'}
-                    labelText={'Tic Tac Toe'}
-                    placement={'top'}
-                    // labelWrapperDivSxProps={gamesLabelWrapperSxProps}
-                    labelTextSx={gamesButtonLabelsSxProps}
-                  /> */}
-          </ButtonGroup>
-          {/* </Toolbar> */}
-          {/* </AppBar> */}
+    <CenteredFlexDiv id='games-wrapper'>
+      <GamesHeader state={state} setLoading={setLoading} setTextView={setTextView} />
+      <Collapse in={textView}>
+        <Container id='games-header-text-wrapper'>
+          {/*Edit the text*/}
+          <Text id='game-header-text' variant='body1' children={body} />
         </Container>
-        <Collapse in={textView}>
-          <Container
-            component={'div'}
-            key={'games-header-text-wrapper'}
-            id='games-header-text-wrapper'
-            maxWidth={false}
-            sx={{ paddingY: 2 }}
-          >
-            <Text component={'p'} key={'game-header-text'} id='game-header-text' variant='body1' children={body} />
-          </Container>
-        </Collapse>
-      </Paper>
-      <Box
-        component={'div'}
-        key={`games-outlet-wrapper`}
-        id={`games-outlet-wrapper`}
-        sx={{ ...pagesOutletStyles, flexDirection: 'column', height: '100vh' }}
-      >
-        <Box
-          component={'div'}
-          key={'games-outlet-loading-wrapper'}
-          id={'games-outlet-loading-wrapper'}
-          sx={gamesOutletWrapperSxProps(state)}
-        >
-          {state !== 'idle' && <GameLoading />}
-        </Box>
-        <Box
-          component={'div'}
-          key={'games-outlet-game-wrapper'}
-          id={'games-outlet-game-wrapper'}
-          sx={gamesOutletGameWrapperSxProps}
-        >
-          {!loading && <Outlet />}
-        </Box>
+      </Collapse>
+
+      <Box component={'div'} id={`games-outlet-wrapper`}>
+        {state !== 'idle' && <GameLoading />}
+
+        {/* <Box component={'div'} id={'games-outlet-game-wrapper'} sx={gamesOutletGameWrapperSxProps}> */}
+        {!loading && <Outlet />}
+        {/* </Box> */}
       </Box>
-    </Box>
+    </CenteredFlexDiv>
   );
 };
 
 export default Games;
-
-const loadAndStartGame = async (
-  gameName: string,
-  submit: SubmitFunction,
-  setLoading: Dispatch<SetStateAction<boolean>>,
-  setTextView: Dispatch<SetStateAction<boolean>>,
-) => {
-  try {
-    setTextView(false);
-    setLoading(true);
-    await submit(gameName, {
-      method: 'post',
-      encType: 'text/plain',
-      relative: 'path',
-      replace: true,
-    });
-  } catch (error) {
-    console.error(error);
-  } finally {
-    setLoading(false);
-  }
-};

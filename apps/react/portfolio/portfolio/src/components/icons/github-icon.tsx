@@ -1,8 +1,7 @@
-import type { SVGProps } from 'react';
 import { TEXT_SECONDARY } from '../../styles/base/base_styles';
 
-const GitHibIcon = ({ ...props }: Omit<SVGProps<SVGSVGElement>, 'viewBox' | 'height' | 'width'>) => (
-  <svg {...props} viewBox='0 0 98 96' width='4rem' height='4rem' xmlns='http://www.w3.org/2000/svg'>
+const GitHibIcon = (
+  <svg viewBox='0 0 98 96' width='4rem' height='4rem' xmlns='http://www.w3.org/2000/svg'>
     <path
       fillRule='evenodd'
       clipRule='evenodd'
