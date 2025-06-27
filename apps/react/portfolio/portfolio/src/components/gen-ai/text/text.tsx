@@ -24,6 +24,11 @@ const validationSchema = Yup.object<PromptRequest>().shape({
 
 const wsURL = import.meta.env.VITE_VERTEX_WS_URL;
 
+interface TextGeneratorProps {
+  isLoading: boolean;
+  setIsLoading: (loading: boolean) => void;
+}
+
 /**
  * This component renders the text generation section of the generative AI page.
  * It allows users to input a prompt and send it to the AI model for processing.
@@ -31,7 +36,7 @@ const wsURL = import.meta.env.VITE_VERTEX_WS_URL;
  * @returns {JSX.Element} The rendered TextGenerator component.
  */
 
-const TextGenerator = (): JSX.Element => {
+const TextGenerator = ({ isLoading, setIsLoading }: TextGeneratorProps): JSX.Element => {
   const clientIo = io(wsURL, {
     autoConnect: false,
     reconnectionAttempts: 10,
@@ -60,7 +65,7 @@ const TextGenerator = (): JSX.Element => {
           labelText={'Prompt Input'}
           variant='text'
           socket={socket}
-          setLoading={setLoading}
+          setLoading={setIsLoading}
           initialValues={prompt}
           validationSchema={validationSchema}
           breakpointsChatInputButton={genAiTextInputButtonSxProps}

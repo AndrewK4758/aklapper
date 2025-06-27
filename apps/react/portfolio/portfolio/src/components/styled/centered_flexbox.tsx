@@ -6,7 +6,7 @@ const CenteredFlexDiv = styled(Box)(({ theme }) => ({
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  gap: theme.spacing(8),
+  gap: theme.spacing(12),
   padding: theme.spacing(4),
 }));
 

@@ -35,7 +35,11 @@ export default function GamesHeader({ state, setLoading }: GamesHeaderProps) {
         paddingY: Theme.spacing(4),
       }}
     >
-      <Box as={'section'} id='games-title-wrapper' sx={{ p: Theme.spacing(4), flex: '0 1 30%', alignSelf: 'center' }}>
+      <Box
+        as={'section'}
+        id='games-title-wrapper'
+        sx={{ p: Theme.spacing(4), flex: '0 1 30%', alignSelf: 'flex-start' }}
+      >
         <Text variant='h3' children={TITLE} />
       </Box>
 

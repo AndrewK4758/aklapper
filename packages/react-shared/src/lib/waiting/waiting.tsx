@@ -21,7 +21,7 @@ export const Waiting = ({ src, width = '200px' }: WaitingProps) => (
       test-dataid={'waiting-image'}
       alt='waiting symbol'
       src={src}
-      style={{ width: width, height: 'auto' }}
+      style={{ width: width, height: 'auto', borderRadius: '16px' }}
     />
   </Box>
 );

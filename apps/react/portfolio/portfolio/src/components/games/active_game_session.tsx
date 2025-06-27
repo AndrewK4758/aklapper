@@ -97,13 +97,19 @@ const ActiveGameSession = (): ReactElement => {
             // sx={{ display: 'flex', flexDirection: 'column', justifySelf: 'flex-end', height: '100%' }}
           >
             {id === 'Chutes-&-Ladders' ? (
-              <TakeTurn avatarInTurn={state.avatarInTurn as string} dispatch={dispatch} socket={socket} />
+              <TakeTurn
+                avatarInTurn={state.avatarInTurn as string}
+                dispatch={dispatch}
+                socket={socket}
+                winner={state.winner}
+              />
             ) : (
               <TakeTurnTicTacToe
                 avatarInTurn={state.avatarInTurn as string}
                 dispatch={dispatch}
                 socket={socket}
                 position={space}
+                winner={state.winner}
               />
             )}
             <ResetGame dispatch={dispatch} socket={socket} setSpace={setSpace} />

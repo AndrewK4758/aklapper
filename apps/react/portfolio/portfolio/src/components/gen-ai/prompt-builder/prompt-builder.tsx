@@ -5,8 +5,8 @@ import type { PromptRequest } from '@aklapper/vertex-ai';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
+import Divider from '@mui/material/Divider';
 import FormControlLabel from '@mui/material/FormControlLabel';
-import Paper from '@mui/material/Paper';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import TextField from '@mui/material/TextField';
@@ -15,37 +15,27 @@ import { useFormik } from 'formik';
 import { useRef, useState, type Dispatch, type JSX, type RefObject, type SetStateAction } from 'react';
 import { Form, useActionData, useNavigate, useSubmit, type NavigateFunction, type SubmitTarget } from 'react-router';
 import * as Yup from 'yup';
-import { crudHeaderTextSxProps } from '../../../styles/crud-styles.jsx';
 import {
   formLabelSxProps,
   helperTextSx,
-  labelSx,
   promptBuilderRadioGroupSxProps,
   promptBuilderResponseFormatBoxSxProps,
   promptBuilderResponseFormatIconsSxProps,
   promptBuilderResponseFormatLabelSxProps,
   promptBuilderTextFieldSlotProps,
   promptBuilderUploadFileTextSxProps,
-  promptBuillderFormBoxSxProps,
   radioButtonLabelSxProps,
   radioButtonLabelWrapperSxProps,
-  textInputSx,
-  tooltipSx,
 } from '../../../styles/gen-ai-styles.jsx';
-import { buttonSXProps, flexColumnStyles, fullSizeBlock, pagesTitleSx } from '../../../styles/pages-styles.jsx';
+import { buttonSXProps, flexColumnStyles, fullSizeBlock } from '../../../styles/pages-styles.jsx';
+import Theme from '../../../styles/themes/theme';
 import ImageIcon from '../../icons/image-icon.jsx';
 import JsonIcon from '../../icons/json-icon.jsx';
 import TextIcon from '../../icons/text-icon.jsx';
-import {
-  constraints,
-  examples,
-  instructions,
-  objective,
-  responseInstructions,
-  SUPPORTED_FORMATS,
-  textData,
-  tone,
-} from '../static/definitions.jsx';
+import CenteredFlexDiv from '../../styled/centered_flexbox';
+import HelperTextBox from '../../styled/helper_text_box';
+import StyledCard from '../../styled/styled_card';
+import { SUPPORTED_FORMATS } from '../static/definitions.jsx';
 import { promptBuilderHeaderText } from '../static/prompt-builder-text.jsx';
 import PromptBuilderResponse from './prompt-builder-response.jsx';
 
@@ -121,41 +111,30 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
   };
 
   return (
-    <Box component={'div'} key={'prompt-builder-wrapper'} id='prompt-builder-wrapper' ref={divRef} width={'100%'}>
-      <Paper key={'prompt-builder-paper'} id='prompt-builder-paper'>
-        <Container
-          component={'section'}
-          key={'prompt-builder'}
-          id='prompt-builder'
-          maxWidth={false}
-          sx={{ ...flexColumnStyles, gap: 4 }}
-        >
-          <Box component={'section'} key={'prompt-builder-header-box'} id='prompt-builder-header-box'>
-            <Text component={'h2'} titleVariant='h2' titleText={'Prompt Builder'} sx={pagesTitleSx} />
-            <Text component={'p'} titleVariant='body1' titleText={promptBuilderHeaderText} sx={crudHeaderTextSxProps} />
+    <Box component={'div'} key={'prompt-builder-wrapper'} id='prompt-builder-wrapper' ref={divRef}>
+      <StyledCard key={'prompt-builder-paper'} id='prompt-builder-paper'>
+        <CenteredFlexDiv id='prompt-builder'>
+          <Box component={'section'} id='prompt-builder-header-box' sx={{ display: 'flex' }}>
+            <Text variant='h4' children={'Prompt Builder'} sx={{ flex: '0 1 25%' }} />
+            <Divider orientation='vertical' flexItem />
+            <Text
+              variant='body1'
+              children={promptBuilderHeaderText}
+              sx={{ flex: '0 1 75%', padding: Theme.spacing(4) }}
+            />
           </Box>
-          <Form key={'prompt-builder-form'} method='POST' onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
-            <Box
-              component={'section'}
-              key={'prompt-builder-input-elements-box'}
-              id='prompt-builder-input-elements-box'
-              sx={promptBuillderFormBoxSxProps}
-            >
-              <Box component={'section'} key={'prompt-builder-objective-box'} id='prompt-builder-objective-box'>
-                <Label
-                  id='objective-label'
-                  htmlFor='prompt-builder-objective'
-                  placement='top'
-                  tooltipTitle={objective}
-                  labelText='Objective'
-                  labelVariant='h3'
-                  labelTextSx={labelSx}
-                  tooltipSx={tooltipSx}
-                />
+          <Form
+            key={'prompt-builder-form'}
+            method='POST'
+            onSubmit={formik.handleSubmit}
+            onReset={formik.handleReset}
+            style={{ width: '80%' }}
+          >
+            <Box component={'section'} key={'prompt-builder-input-elements-box'} id='prompt-builder-input-elements-box'>
+              <HelperTextBox multiline>
                 <TextField
-                  component={'span'}
-                  key={'prompt-builder-objective'}
                   id='prompt-builder-objective'
+                  label='Objective'
                   multiline={true}
                   focused={true}
                   fullWidth={true}
@@ -163,10 +142,11 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   placeholder='What you want the AI todo'
                   variant='outlined'
                   onBlur={formik.handleBlur}
+                  onFocus={async e => await formik.setFieldTouched(e.currentTarget.name as string, false)}
                   onChange={formik.handleChange}
                   onReset={formik.handleReset}
                   name={'objective'}
-                  sx={textInputSx}
+                  sx={{ backgroundColor: Theme.palette.background.default, borderRadius: Theme.shape.borderRadius }}
                   value={formik.values.objective}
                   slotProps={promptBuilderTextFieldSlotProps}
                 />
@@ -175,21 +155,11 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   formik={formik}
                   helperTextSx={helperTextSx}
                 />
-              </Box>
-              <Box component={'section'} key={'prompt-builder-instructions-box'} id='prompt-builder-instructions-box'>
-                <Label
-                  id='instructions-label'
-                  htmlFor='prompt-builder-instructions'
-                  placement='top'
-                  tooltipTitle={instructions}
-                  labelText='Instructions'
-                  labelVariant='h3'
-                  labelTextSx={labelSx}
-                  tooltipSx={tooltipSx}
-                />
+              </HelperTextBox>
+
+              <HelperTextBox multiline>
                 <TextField
-                  component={'span'}
-                  key={'prompt-builder-instructions'}
+                  label='Instructions'
                   id='prompt-builder-instructions'
                   multiline={true}
                   fullWidth={true}
@@ -197,10 +167,11 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   placeholder='How you want the AI to execute the objective'
                   variant='outlined'
                   onBlur={formik.handleBlur}
+                  onFocus={async e => formik.setFieldTouched(e.currentTarget.name as string, false)}
                   onChange={formik.handleChange}
                   onReset={formik.handleReset}
                   name={'instructions'}
-                  sx={textInputSx}
+                  sx={{ backgroundColor: Theme.palette.background.default, borderRadius: Theme.shape.borderRadius }}
                   value={formik.values.instructions}
                   slotProps={promptBuilderTextFieldSlotProps}
                 />
@@ -209,21 +180,11 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   formik={formik}
                   helperTextSx={helperTextSx}
                 />
-              </Box>
-              <Box component={'section'} key={'prompt-builder-text-data-box'} id='prompt-builder-text-data-box'>
-                <Label
-                  id='text-data-label'
-                  htmlFor='prompt-builder-text-data'
-                  placement='top'
-                  tooltipTitle={textData}
-                  labelText='Text Data'
-                  labelVariant='h3'
-                  labelTextSx={labelSx}
-                  tooltipSx={tooltipSx}
-                />
+              </HelperTextBox>
+
+              <HelperTextBox multiline>
                 <TextField
-                  component={'span'}
-                  key={'prompt-builder-text-data'}
+                  label='Text Data'
                   id='prompt-builder-text-data'
                   multiline={true}
                   fullWidth={true}
@@ -231,10 +192,11 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   placeholder='Copy & Paste any simple text for context or processing'
                   variant='outlined'
                   onBlur={formik.handleBlur}
+                  onFocus={async e => formik.setFieldTouched(e.currentTarget.name as string, false)}
                   onChange={formik.handleChange}
                   onReset={formik.handleReset}
                   name={'textData'}
-                  sx={textInputSx}
+                  sx={{ backgroundColor: Theme.palette.background.default, borderRadius: Theme.shape.borderRadius }}
                   value={formik.values.textData}
                   slotProps={promptBuilderTextFieldSlotProps}
                 />
@@ -243,21 +205,10 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   formik={formik}
                   helperTextSx={helperTextSx}
                 />
-              </Box>
-              <Box component={'section'} key={'prompt-builder-examples-box'} id='prompt-builder-examples-box'>
-                <Label
-                  id='examples-label'
-                  htmlFor='prompt-builder-examples'
-                  placement='top'
-                  tooltipTitle={examples}
-                  labelText='Examples'
-                  labelVariant='h3'
-                  labelTextSx={labelSx}
-                  tooltipSx={tooltipSx}
-                />
+              </HelperTextBox>
+              <HelperTextBox multiline>
                 <TextField
-                  component={'span'}
-                  key={'prompt-builder-examples'}
+                  label='Examples'
                   id='prompt-builder-examples'
                   multiline={true}
                   fullWidth={true}
@@ -265,10 +216,11 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   placeholder='Show AI Example of your desired outcome'
                   variant='outlined'
                   onBlur={formik.handleBlur}
+                  onFocus={async e => formik.setFieldTouched(e.currentTarget.name as string, false)}
                   onChange={formik.handleChange}
                   onReset={formik.handleReset}
                   name={'examples'}
-                  sx={textInputSx}
+                  sx={{ backgroundColor: Theme.palette.background.default, borderRadius: Theme.shape.borderRadius }}
                   value={formik.values.examples}
                   slotProps={promptBuilderTextFieldSlotProps}
                 />
@@ -277,21 +229,11 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   formik={formik}
                   helperTextSx={helperTextSx}
                 />
-              </Box>
-              <Box component={'section'} key={'prompt-builder-constraints-box'} id='prompt-builder-constraints-box'>
-                <Label
-                  id='constraints-label'
-                  htmlFor='prompt-builder-constraints'
-                  placement='top'
-                  tooltipTitle={constraints}
-                  labelText='Constraints'
-                  labelVariant='h3'
-                  labelTextSx={labelSx}
-                  tooltipSx={tooltipSx}
-                />
+              </HelperTextBox>
+
+              <HelperTextBox multiline>
                 <TextField
-                  component={'span'}
-                  key={'prompt-builder-constraints'}
+                  label='Constraints'
                   id='prompt-builder-constraints'
                   multiline={true}
                   fullWidth={true}
@@ -299,10 +241,11 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   placeholder='Limits you want AI to adhere to'
                   variant='outlined'
                   onBlur={formik.handleBlur}
+                  onFocus={async e => formik.setFieldTouched(e.currentTarget.name as string, false)}
                   onChange={formik.handleChange}
                   onReset={formik.handleReset}
                   name={'constraints'}
-                  sx={textInputSx}
+                  sx={{ backgroundColor: Theme.palette.background.default, borderRadius: Theme.shape.borderRadius }}
                   value={formik.values.constraints}
                   slotProps={promptBuilderTextFieldSlotProps}
                 />
@@ -311,21 +254,10 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   formik={formik}
                   helperTextSx={helperTextSx}
                 />
-              </Box>
-              <Box component={'section'} key={'prompt-builder-tone-box'} id='prompt-builder-tone-box'>
-                <Label
-                  id='tone-label'
-                  htmlFor='prompt-builder-tone'
-                  placement='top'
-                  tooltipTitle={tone}
-                  labelText='Tone'
-                  labelVariant='h3'
-                  labelTextSx={labelSx}
-                  tooltipSx={tooltipSx}
-                />
+              </HelperTextBox>
+              <HelperTextBox multiline>
                 <TextField
-                  component={'span'}
-                  key={'prompt-builder-tone'}
+                  label='Tone'
                   id='prompt-builder-tone'
                   multiline={true}
                   fullWidth={true}
@@ -333,10 +265,11 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   placeholder='The style, voice, mood, feeling you want the AI to convey'
                   variant='outlined'
                   onBlur={formik.handleBlur}
+                  onFocus={async e => formik.setFieldTouched(e.currentTarget.name as string, false)}
                   onChange={formik.handleChange}
                   onReset={formik.handleReset}
                   name={'tone'}
-                  sx={textInputSx}
+                  sx={{ backgroundColor: Theme.palette.background.default, borderRadius: Theme.shape.borderRadius }}
                   value={formik.values.tone}
                   slotProps={promptBuilderTextFieldSlotProps}
                 />
@@ -345,25 +278,11 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   formik={formik}
                   helperTextSx={helperTextSx}
                 />
-              </Box>
-              <Box
-                component={'section'}
-                key={'prompt-builder-response-instructions-box'}
-                id='prompt-builder-response-instructions-box'
-              >
-                <Label
-                  id='response-instructions-label'
-                  htmlFor='prompt-builder-response-instructions'
-                  placement='top'
-                  tooltipTitle={responseInstructions}
-                  labelText='Response Instructions'
-                  labelVariant='h3'
-                  labelTextSx={labelSx}
-                  tooltipSx={tooltipSx}
-                />
+              </HelperTextBox>
+
+              <HelperTextBox multiline>
                 <TextField
-                  component={'span'}
-                  key={'prompt-builder-response-instructions'}
+                  label='Response Instructions'
                   id='prompt-builder-response-instructions'
                   multiline={true}
                   fullWidth={true}
@@ -371,10 +290,11 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   placeholder='The how AI will respond'
                   variant='outlined'
                   onBlur={formik.handleBlur}
+                  onFocus={async e => formik.setFieldTouched(e.currentTarget.name as string, false)}
                   onChange={formik.handleChange}
                   onReset={formik.handleReset}
                   name={'responseInstructions'}
-                  sx={textInputSx}
+                  sx={{ backgroundColor: Theme.palette.background.default, borderRadius: Theme.shape.borderRadius }}
                   value={formik.values.responseInstructions}
                   slotProps={promptBuilderTextFieldSlotProps}
                 />
@@ -383,7 +303,8 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   formik={formik}
                   helperTextSx={helperTextSx}
                 />
-              </Box>
+              </HelperTextBox>
+
               <Box
                 component={'section'}
                 key={'prompt-builder-response-format-box'}
@@ -511,16 +432,16 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
                   <Text
                     key={'current-document-text-value-title'}
                     component={'h4'}
-                    titleVariant='h4'
-                    titleText={`Uploaded File: `}
+                    variant='h4'
+                    children={`Uploaded File: `}
                     sx={promptBuilderUploadFileTextSxProps}
                   />
                   {loading ? null : (
                     <Text
                       component={'p'}
                       key={'current-document-text-value-text'}
-                      titleVariant='body1'
-                      titleText={`${fileName}`}
+                      variant='body1'
+                      children={`${fileName}`}
                       sx={{ fontSize: '1.4rem' }}
                     />
                   )}
@@ -598,13 +519,13 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
               </Box>
             </Box>
           </Form>
-        </Container>
+        </CenteredFlexDiv>
         {openPromptResponse && (
           <Container key={'prompt-response-container'} id={'prompt-response-container'} sx={fullSizeBlock}>
             <PromptBuilderResponse prompt={action} />
           </Container>
         )}
-      </Paper>
+      </StyledCard>
     </Box>
   );
 };

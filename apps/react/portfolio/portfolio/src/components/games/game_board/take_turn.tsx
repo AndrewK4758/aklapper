@@ -4,6 +4,7 @@ import axios from 'axios';
 import type { Dispatch, JSX } from 'react';
 import { Socket } from 'socket.io-client';
 import { getGameInstanceInfo } from '../../../utils/utils.jsx';
+import AnimatedBorderBox from '../../styled/animated_border_box';
 import { Action } from './socket-reducer.jsx';
 
 const baseURL = import.meta.env.VITE_GAMES_API_URL;
@@ -12,6 +13,7 @@ interface TakeTurnProps {
   dispatch: Dispatch<Action>;
   socket: Socket;
   avatarInTurn: string;
+  winner: string | undefined;
 }
 
 /**
@@ -24,11 +26,18 @@ interface TakeTurnProps {
  * @returns {JSX.Element} The rendered TakeTurn component.
  */
 
-export default function TakeTurn({ dispatch, socket, avatarInTurn }: TakeTurnProps): JSX.Element {
+export default function TakeTurn({ dispatch, socket, avatarInTurn, winner }: TakeTurnProps): JSX.Element {
   return (
-    <Button variant='outlined' type='button' onClick={() => handleTakeTurn(dispatch, socket, avatarInTurn)}>
-      Take Turn
-    </Button>
+    <AnimatedBorderBox>
+      <Button
+        variant='outlined'
+        disabled={!!winner}
+        onClick={() => handleTakeTurn(dispatch, socket, avatarInTurn)}
+        sx={{ height: '100%' }}
+      >
+        Take Turn
+      </Button>
+    </AnimatedBorderBox>
   );
 }
 
