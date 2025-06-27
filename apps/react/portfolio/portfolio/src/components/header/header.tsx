@@ -1,4 +1,5 @@
 import Box from '@mui/material-pigment-css/Box';
+import { memo } from 'react';
 import ContactDialog from '../contact/contact_dialog';
 import AnimatedContactMenu from './contact/animated_contact_menu';
 import ToggleMenuButton from './contact/toggle_menu_button';
@@ -31,4 +32,4 @@ export function HeaderContactMenu({
   );
 }
 
-export default HeaderContactMenu;
+export default memo(HeaderContactMenu);

@@ -36,7 +36,6 @@ export default async function syncWithGoLobby() {
         return newPlayer;
       }));
 
-      console.log('sync active players: ', activePlayers);
       newGame.playersArray = [...activePlayers];
       const instanceOfGame = new InstanceOfGame(getCurrentMinute(), game.gameInstanceID, newGame);
 
@@ -50,5 +49,4 @@ export default async function syncWithGoLobby() {
       }
     });
   }
-  console.log('sync: ', activeGames, activePlayersMap.map);
 }

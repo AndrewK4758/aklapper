@@ -1,9 +1,10 @@
+import { type SxProp } from '@mui/material-pigment-css';
 import type { SxProps } from '@mui/material/styles';
 import type { CSSProperties } from 'react';
 import Theme from './themes/theme.js';
 
 export const gamesPaperSxProps: SxProps = {
-  width: '70vw',
+  width: '100%',
   [Theme.breakpoints.down('lg')]: {
     width: '90vw',
     paddingY: 1,
@@ -19,78 +20,11 @@ export const gamesButtonSxProps: SxProps = {
   },
 };
 
-export const breakpointsBottomMenuGameBoard: SxProps = {
-  display: 'flex',
-  marginTop: '2rem',
-  flexDirection: 'row',
-  alignItems: 'center',
-  gap: 4,
-  [Theme.breakpoints.down('lg')]: {
-    marginTop: '1rem',
-    fontSize: '2rem',
-  },
-};
-
-export const breakpointsPlayerInTurnText: SxProps = {
-  [Theme.breakpoints.down('lg')]: {
-    fontSize: '1em',
-  },
-};
-
-export const breakpointsBottomMenuButtonsBox: SxProps = {
-  flex: '0 1 30%',
-  display: 'flex',
-  justifyContent: 'space-evenly',
-  [Theme.breakpoints.down('lg')]: {
-    flexDirection: 'column',
-    flex: 1,
-    width: '100%',
-    gap: 1,
-  },
-};
-
 //-----ACTIVE AVATARS------//
 
 export const activeGameHeaderBoxStyles: SxProps = { display: 'flex', flex: '1 0 100%', justifyContent: 'space-evenly' };
 
-export const breakpointsActiveGameTitleContainer: SxProps = {
-  display: 'flex',
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  paddingBottom: 4,
-  [Theme.breakpoints.down('lg')]: {
-    flex: '1 0 60%',
-    paddingBottom: 1,
-  },
-};
-
-export const breakpointsActiveGameTitleText: SxProps = {
-  textAlign: 'left',
-  flex: '0 1 35%',
-  [Theme.breakpoints.down('lg')]: {
-    flex: '1 0 100%',
-    fontSize: '1.5rem',
-    textAlign: 'center',
-  },
-};
-
 export const activeAvatarsActivePlayersInGameListSxProps: SxProps = { display: 'flex', justifyContent: 'center' };
-
-export const activeAvatarsActiveGameHeaderBoxSxProps: SxProps = {
-  ...activeAvatarsActivePlayersInGameListSxProps,
-  [Theme.breakpoints.down('lg')]: {
-    gap: 2,
-  },
-};
-export const breakpointsPlayersInGameBox: SxProps = {
-  flex: '0 1 65%',
-  display: 'flex',
-  flexWrap: 'wrap',
-  flexDirection: 'row',
-  height: '100%',
-  [Theme.breakpoints.down('lg')]: {},
-};
 
 export const breakpointsPlayersBox: SxProps = {
   flex: '0 1 auto',
@@ -99,13 +33,6 @@ export const breakpointsPlayersBox: SxProps = {
 
   [Theme.breakpoints.down('lg')]: {
     flexDirection: 'column',
-  },
-};
-
-export const breakpointsPlayersInGameText: SxProps = {
-  flex: '0 1 auto',
-  [Theme.breakpoints.down('lg')]: {
-    fontSize: '1rem',
   },
 };
 
@@ -148,18 +75,6 @@ export const breakpointsResetGameButton: SxProps = {
   },
 };
 
-//-------SHOW GAME BOARD-------//
-
-export const breakpointsGameBoardBox: SxProps = {
-  display: 'flex',
-  flexWrap: 'wrap',
-  flexDirection: 'row',
-  border: `5px solid ${Theme.palette.primary.main}`,
-  [Theme.breakpoints.up('lg')]: {
-    boxShadow: `0px 7px 8px -4px ${Theme.palette.primary.main}, 0px 12px 17px 2px ${Theme.palette.primary.light}, 0px 5px 22px 4px ${Theme.palette.primary.dark}, 0px -7px 8px -4px ${Theme.palette.primary.main}, 0px -12px 17px 2px ${Theme.palette.primary.light}, 0px -5px 22px 4px ${Theme.palette.primary.dark}`,
-  },
-};
-
 //-------SHOW GAME BOARD TIC TAC TOE-------//
 
 export const breakpointsGameBoardBoxTicTacToe: SxProps = {
@@ -176,17 +91,6 @@ export const breakpointsGameBoardBoxTicTacToe: SxProps = {
   },
 };
 
-//--------TAKE TURN--------//
-
-export const breakpointsTakeTurnButton: SxProps = {
-  backgroundColor: Theme.palette.primary.main,
-  fontSize: '1.75rem',
-
-  [Theme.breakpoints.down('lg')]: {
-    fontSize: '1rem',
-  },
-};
-
 //-------TAKE TURN TIC TAC TOE-------//
 
 export const breakpointsTakeTurnButtonTTT: SxProps = {
@@ -198,34 +102,25 @@ export const breakpointsTakeTurnButtonTTT: SxProps = {
   },
 };
 
-//-------ACTIVE GAME SESSION--------//
-
 //-------C&L-------//
 
-export const breakpointsRowSx: SxProps = {
-  flex: '1 0 10%',
-  height: '7vh',
-  border: `3px solid ${Theme.palette.primary.main}`,
-  alignContent: 'center',
+export const breakpointsRowSx: SxProp = {
+  display: 'flex',
+  backgroundColor: Theme.palette.background.paper,
+  border: `1px solid ${Theme.palette.primary.main}`,
+  borderRadius: '16px',
+  flex: 1,
+  minHeight: '90px',
   justifyContent: 'center',
-  [Theme.breakpoints.down('md')]: {
-    border: `1.5px solid ${Theme.palette.primary.main}`,
-  },
-};
-
-export const breakpointsSpaceSx: SxProps = {
-  fontSize: '1.5rem',
-  [Theme.breakpoints.down('md')]: {
-    fontSize: '.75rem',
-  },
+  alignItems: 'center',
 };
 
 export const spaceStyle: SxProps = { display: 'flex', flex: '1 0 100%' };
 
 export const avatarSize: CSSProperties = {
   alignSelf: 'self-start',
-  width: '100%',
-  height: '100%',
+  width: '55%',
+  height: 'auto',
 };
 
 //--------TTT--------//
@@ -268,6 +163,6 @@ export const svgSpaceTTTStyles: SxProps = {
 
 export const avatarSvgStyle: CSSProperties = {
   height: 'auto',
-  width: '30%',
-  maxWidth: '100px',
+  width: '25%',
+  maxWidth: '90px',
 };

@@ -1,7 +1,9 @@
-import { type BoxProps } from '@mui/material/Box';
+import CardContent from '@mui/material/CardContent';
+import Divider from '@mui/material/Divider';
 import { type ReactElement } from 'react';
-import Intro from '../../components/intro/intro';
-import StyledRootComponentWrapper from '../../components/styled/styled_root_wrapper.js';
+import { IntroText } from '../../components/home/static/intro-text';
+import TechStackLists from '../../components/home/tech-list/tech-stack-lists';
+import ColoredBackground from '../../components/styled/colored_background';
 
 /**
  * This is the main home component that renders the introduction section of the portfolio website.
@@ -10,10 +12,14 @@ import StyledRootComponentWrapper from '../../components/styled/styled_root_wrap
  * @returns {ReactElement} The rendered home component.
  */
 
-const Home = ({ ...props }: BoxProps): ReactElement => (
-  <StyledRootComponentWrapper {...props}>
-    <Intro />
-  </StyledRootComponentWrapper>
+const Home = (): ReactElement => (
+  <ColoredBackground>
+    <CardContent id='about-me-header-box' sx={{ display: 'flex' }}>
+      <IntroText />
+      <Divider orientation='vertical' flexItem={true} textAlign='center' />
+      <TechStackLists />
+    </CardContent>
+  </ColoredBackground>
 );
 
 export default Home;

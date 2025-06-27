@@ -46,13 +46,13 @@ const config: UserConfig = defineConfig({
     react(),
   ],
 
-  optimizeDeps: {
-    include: ['react-is', 'prop-types', 'hoist-non-react-statics'],
-    esbuildOptions: {
-      sourcemap: true,
-      target: 'esnext',
-    },
-  },
+  // optimizeDeps: {
+  //   include: ['react-is', 'prop-types', 'hoist-non-react-statics'],
+  //   esbuildOptions: {
+  //     sourcemap: true,
+  //     target: 'esnext',
+  //   },
+  // },
 
   // Uncomment this if you are using workers.
   // worker: {

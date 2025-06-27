@@ -3,7 +3,7 @@ import CardHeader, { type CardHeaderSlotsAndSlotProps } from '@mui/material/Card
 import type { ReactElement } from 'react';
 import self from '../../assets/images/self.webp';
 import Theme from '../../styles/themes/theme';
-import { ABOUT_ME_TITLE } from '../intro/static/intro-text';
+import { ABOUT_ME_TITLE } from '../home/static/intro-text';
 
 const slotProps: CardHeaderSlotsAndSlotProps = {
   slotProps: {

@@ -7,18 +7,16 @@ import { createServer } from 'node:http';
 import { join } from 'path';
 import { cwd } from 'process';
 import type { ServerOptions } from 'socket.io';
+import gamesInLobby from './data/games_in_lobby/games_in_lobby.js';
+import checkStartGame from './events/check_start-game.js';
 import createNewGame from './events/create_new_game.js';
 import enterLobby from './events/enter-lobby.js';
+import joinGame from './events/join-game.js';
 import handleLeaveLobby from './events/leave_lobby.js';
 import privateMessagePlayer from './events/private_message.js';
 import socketBoardAction from './events/socket-board-action.js';
-import addGameToSocketInstance from './middleware/socket-add-game-middleware.js';
-
-// import go_websocketEvent from './models/go_websocket_event.js';
-import gamesInLobby from './data/games_in_lobby/games_in_lobby.js';
-import checkStartGame from './events/check_start-game.js';
-import joinGame from './events/join-game.js';
 import useAllGamesMap from './middleware/all-games-map.js';
+import addGameToSocketInstance from './middleware/socket-add-game-middleware.js';
 import useActivePlayersMap from './middleware/use_active_players_map.js';
 import routerV1 from './routes/v1/routes.js';
 import routerV2 from './routes/v2/routes.js';
@@ -76,7 +74,7 @@ socketServer.addServerListener('lobby', 'join-game', joinGame);
 socketServer.addServerListener('lobby', 'check-start-game', checkStartGame);
 
 let reconnecting: null | NodeJS.Timeout = null;
-let socketClient: WebSocket | null = null;
+export let socketClient: WebSocket | null = null;
 
 const connectWebsocket = function () {
   socketClient = new WebSocket(WS_URL as string);
@@ -90,8 +88,6 @@ const connectWebsocket = function () {
     activePlayers.map.clear();
     gamesInLobby.map.clear();
     gamesMap.AllGames.clear();
-
-    console.log(activePlayers, gamesInLobby);
 
     reconnecting = setTimeout(() => {
       connectWebsocket();
@@ -129,11 +125,10 @@ app.use('/api/v2', routerV2);
 const port = parseInt(process.env.PORT as string) || 3000;
 const host = process.env.HOST || 'localhost';
 
-const server = httpServer.listen(port, () => {
+const server = httpServer.listen(port, host, () => {
   console.log(`Listening on http://${host}:${port}/api/{version}`);
 });
 
 server.on('error', console.error);
 
 export default app;
-export { socketClient };

@@ -1,9 +1,9 @@
 import { rowFinder } from '@aklapper/games-components';
-import type { GameBoard, GamePlayerValidation, ILiteSpace, IPlayersAndBoard, Row } from '@aklapper/types';
-import { useEffect } from 'react';
+import type { GameBoards, GamePlayerValidation, ILiteSpace, IPlayersAndBoard, Row } from '@aklapper/types';
+import { useCallback, useEffect } from 'react';
 import type { Socket } from 'socket.io-client';
 import type { IActiveGameInfo } from '../components/games/active_game_session.js';
-import { ActionType, type Action } from '../components/games/game_board/socket-reducer.js';
+import { Action } from '../components/games/game_board/socket-reducer.js';
 import { getGameInstanceInfo } from '../utils/utils.js';
 
 /**
@@ -18,6 +18,15 @@ import { getGameInstanceInfo } from '../utils/utils.js';
  */
 
 const useGamesWebsockets = (socket: Socket, id: string, dispatch: (value: Action) => void): void => {
+  const processGame = useCallback(
+    (
+      { gameBoard, activePlayersInGame, winner, avatarInTurn }: IPlayersAndBoard,
+      id: string,
+      dispatch: (value: Action) => void,
+    ) => processGameData({ gameBoard, activePlayersInGame, winner, avatarInTurn }, id, dispatch),
+    [],
+  );
+
   useEffect(() => {
     if (!socket.connected) socket.connect();
 
@@ -26,36 +35,13 @@ const useGamesWebsockets = (socket: Socket, id: string, dispatch: (value: Action
     });
 
     socket.emit('create-room', (getGameInstanceInfo() as GamePlayerValidation).gameInstanceID);
-  });
 
-  useEffect(() => {
-    socket.emit('action', { action: ActionType.BOARD });
+    socket.emit('action', { action: Action.BOARD });
 
     socket.on('game-data', async ({ gameBoard, activePlayersInGame, winner, avatarInTurn }: IPlayersAndBoard) => {
-      console.log(gameBoard);
-      const gameBoardClient: GameBoard = [];
-      const maxRowLength = Math.sqrt(gameBoard.length);
-      let indexOfSpace = 1;
-      let row: Row = [];
-      gameBoard.forEach((s: ILiteSpace) => {
-        const rowCount = rowFinder(indexOfSpace, gameBoard.length);
-        row.push(s);
-
-        if (row.length === maxRowLength) {
-          if (id === 'Chutes-&-Ladders') {
-            row = rowCount % 2 !== 0 ? row : row.reverse();
-          }
-          gameBoardClient.push(row);
-          row = [];
-        }
-        indexOfSpace++;
-      });
-
-      dispatch({
-        type: ActionType.BOARD,
-        payload: { gameBoard: gameBoardClient, activePlayersInGame, avatarInTurn, winner } as IActiveGameInfo,
-      });
+      processGame({ gameBoard, activePlayersInGame, winner, avatarInTurn }, id, dispatch);
     });
+
     socket.on('no-game-error', ({ errorMessage }) => {
       console.error(errorMessage);
     });
@@ -72,3 +58,34 @@ const useGamesWebsockets = (socket: Socket, id: string, dispatch: (value: Action
 };
 
 export default useGamesWebsockets;
+
+const processGameData = (
+  { gameBoard, activePlayersInGame, winner, avatarInTurn }: IPlayersAndBoard,
+  id: string,
+  dispatch: (value: Action) => void,
+) => {
+  const gameBoardClient: GameBoards = [];
+  const maxRowLength = Math.sqrt(gameBoard.length);
+
+  let indexOfSpace = 1;
+  let row: Row = [];
+
+  gameBoard.forEach((s: ILiteSpace) => {
+    const rowCount = rowFinder(indexOfSpace, gameBoard.length);
+    row.push(s);
+
+    if (row.length === maxRowLength) {
+      if (id === 'Chutes-&-Ladders') {
+        row = rowCount % 2 !== 0 ? row : row.reverse();
+      }
+      gameBoardClient.push(row);
+      row = [];
+    }
+    indexOfSpace++;
+  });
+
+  dispatch({
+    type: Action.BOARD,
+    payload: { gameBoard: gameBoardClient, activePlayersInGame, avatarInTurn, winner } as IActiveGameInfo,
+  });
+};

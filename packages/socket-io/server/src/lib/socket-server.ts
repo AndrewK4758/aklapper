@@ -22,7 +22,6 @@ export class SocketServer implements ISocketServer {
       if (playerID) this.addSocketToConnMap(playerID, socket);
       listener(event, socket);
     });
-    console.log(this.connMap);
   };
 
   addMiddleware = (namespace: string, middleware: SocketMiddleware): void => {

@@ -3,9 +3,8 @@ import axios from 'axios';
 import type { Dispatch, JSX, SetStateAction } from 'react';
 import { useParams } from 'react-router';
 import { Socket } from 'socket.io-client';
-import { breakpointsResetGameButton } from '../../../styles/games-styles.jsx';
 import { getGameInstanceInfo } from '../../../utils/utils.jsx';
-import { type Action, ActionType } from './socket-reducer.jsx';
+import { Action } from './socket-reducer.jsx';
 
 interface ResetGameProps {
   dispatch: Dispatch<Action>;
@@ -27,12 +26,7 @@ export default function ResetGame({ dispatch, socket, setSpace }: ResetGameProps
   const { id } = useParams();
 
   return (
-    <Button
-      onClick={() => handleResetGame({ dispatch, socket, setSpace, id })}
-      variant='contained'
-      type='button'
-      sx={breakpointsResetGameButton}
-    >
+    <Button onClick={() => handleResetGame({ dispatch, socket, setSpace, id })} variant='outlined' type='button'>
       Reset
     </Button>
   );
@@ -55,7 +49,7 @@ const handleResetGame = async ({ dispatch, socket, setSpace, id }: ResetGameProp
   };
   try {
     await axios.patch(`${baseURL}/games/${id}/reset`, {}, reqHeaders);
-    dispatch({ type: ActionType.RESET, socket: socket });
+    dispatch({ type: Action.RESET, socket: socket });
     return null;
   } catch (error) {
     console.log(error);

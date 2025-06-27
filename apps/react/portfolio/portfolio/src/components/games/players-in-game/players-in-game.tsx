@@ -1,12 +1,8 @@
 import { Text } from '@aklapper/react-shared';
-import Box, { type BoxProps } from '@mui/material/Box';
-import type { SxProps, TypographyVariant } from '@mui/material/styles';
+import Box from '@mui/material-pigment-css/Box';
 import { avatarSvgStyle } from '../../../styles/games-styles.jsx';
 
-export interface PlayersInGameProps extends BoxProps {
-  boxSx?: SxProps;
-  textSx: SxProps;
-  playerVariant: TypographyVariant;
+export interface PlayersInGameProps {
   playerName: string;
   avatarName: string;
 }
@@ -16,11 +12,11 @@ export interface PlayersInGameProps extends BoxProps {
  * @returns list of players in game with avatars
  */
 
-export const PlayersInGame = ({ textSx, playerVariant, playerName, avatarName, ...props }: PlayersInGameProps) => (
-  <Box {...props} key={props.id} width={'fit-content'} whiteSpace={'preserve'}>
-    <Text variant={playerVariant} children={playerName} sx={textSx} />
+export const PlayersInGame = ({ playerName, avatarName }: PlayersInGameProps) => (
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+    <Text variant={'h5'} children={playerName} />
     <img
-      src={`/client/game-avatars/${avatarName.toLowerCase()}.svg`}
+      src={`/game-avatars/${avatarName.toLowerCase()}.svg`}
       alt={`${avatarName} active in game`}
       style={avatarSvgStyle}
     />

@@ -3,9 +3,8 @@ import Button from '@mui/material/Button';
 import axios from 'axios';
 import type { Dispatch, JSX } from 'react';
 import { Socket } from 'socket.io-client';
-import { breakpointsTakeTurnButton } from '../../../styles/games-styles.jsx';
 import { getGameInstanceInfo } from '../../../utils/utils.jsx';
-import { type Action, ActionType } from './socket-reducer.jsx';
+import { Action } from './socket-reducer.jsx';
 
 const baseURL = import.meta.env.VITE_GAMES_API_URL;
 
@@ -27,12 +26,7 @@ interface TakeTurnProps {
 
 export default function TakeTurn({ dispatch, socket, avatarInTurn }: TakeTurnProps): JSX.Element {
   return (
-    <Button
-      variant='contained'
-      type='button'
-      onClick={() => handleTakeTurn(dispatch, socket, avatarInTurn)}
-      sx={breakpointsTakeTurnButton}
-    >
+    <Button variant='outlined' type='button' onClick={() => handleTakeTurn(dispatch, socket, avatarInTurn)}>
       Take Turn
     </Button>
   );
@@ -66,6 +60,6 @@ const handleTakeTurn = async (dispatch: Dispatch<Action>, socket: Socket, avatar
     console.log(err);
     return null;
   } finally {
-    dispatch({ type: ActionType.TAKE_TURN, socket: socket });
+    dispatch({ type: Action.TAKE_TURN, socket: socket });
   }
 };

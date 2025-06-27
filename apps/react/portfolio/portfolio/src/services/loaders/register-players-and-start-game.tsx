@@ -17,10 +17,12 @@ import startGame from '../register-games/start-game.jsx';
  *  5. Redirects the user to the game page if successful, or to the games list page if an error occurs.
  *
  * @param {ActionFunctionArgs}  { request } - The request object containing the game name.
- * @returns {Promise<Response>} A redirect response to the game page or the games list page.
+ * @returns {Promise<Response | string>} A redirect response to the game page or the games list page.
  */
 
-const registerPlayersAndStartGame: ActionFunction = async ({ request }: ActionFunctionArgs) => {
+const registerPlayersAndStartGame: ActionFunction = async ({
+  request,
+}: ActionFunctionArgs): Promise<Response | string> => {
   const gameName = await request.text();
   try {
     const gameInstanceID: string = await registerGame(gameName);
@@ -36,7 +38,7 @@ const registerPlayersAndStartGame: ActionFunction = async ({ request }: ActionFu
       sessionStorage.setItem('playersIds', JSON.stringify(resp.playersInOrder));
       return redirect(gameName);
     } else {
-      return redirect('/games');
+      return redirect('/portfolio/games');
     }
   } catch (error) {
     console.error(error);

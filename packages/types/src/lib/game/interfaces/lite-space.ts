@@ -1,6 +1,6 @@
 export type Row = ILiteSpace[];
 
-export type GameBoard = Row[];
+export type GameBoards = Row[];
 
 export interface ILiteSpace {
   display: string;

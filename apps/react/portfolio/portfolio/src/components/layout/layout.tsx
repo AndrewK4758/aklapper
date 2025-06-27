@@ -40,11 +40,11 @@ export default function Layout(): ReactElement {
         handleToggleContactMenu={handleToggleContactMenu}
       />
 
-      <CenteredFlexDiv component={'main'} sx={{ margin: '0 5%' }}>
+      <CenteredFlexDiv component={'main'} sx={{ margin: '0 2.5%', padding: 0 }}>
         <StyledCard>
           <PicNameAndNav subheader={<NavBar />} />
         </StyledCard>
-        <StyledCard sx={{ backgroundColor: 'transparent', width: '100%' }}>
+        <StyledCard sx={{ backgroundColor: 'transparent', width: '100%', padding: 0 }}>
           <Outlet />
         </StyledCard>
       </CenteredFlexDiv>

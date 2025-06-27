@@ -1,8 +1,7 @@
 import type { GamePlayerValidation } from '@aklapper/types';
-import createCache from '@emotion/cache';
 import type { FormikProps } from 'formik';
 import type { FocusEvent } from 'react';
-import handleNewArtistBlur from '../services/actions/crud-actions/handle-validate-artist-on-blur.js';
+import handleFormikBlur from '../services/actions/crud-actions/handle_formik_blur.js';
 
 /**
  * This function retrieves game instance information from session storage.
@@ -11,7 +10,7 @@ import handleNewArtistBlur from '../services/actions/crud-actions/handle-validat
  */
 
 export const getGameInstanceInfo = (): GamePlayerValidation | undefined => {
-  if (typeof window !== 'undefined') {
+  if (clientCheck()) {
     const fromSession = sessionStorage.getItem('__current_game__') as string;
     return fromSession ? (JSON.parse(fromSession) as GamePlayerValidation) : undefined;
   } else return {};
@@ -31,7 +30,7 @@ export function handleBlur<T1>(
   stateSetter: (value: string) => void,
   params: string,
 ) {
-  handleNewArtistBlur(e, formik, stateSetter, params);
+  handleFormikBlur(e, formik, stateSetter, params);
 }
 
 export const handlelFocus = async <T,>(
@@ -40,14 +39,3 @@ export const handlelFocus = async <T,>(
 ) => {
   await formik.setFieldTouched(e.target.name, false);
 };
-
-const isBrowser = clientCheck();
-
-export function createEmotionCache() {
-  let mount;
-  if (isBrowser) {
-    mount = document.querySelector('meta[name="emotion-mount-point"]') as HTMLElement;
-  }
-
-  return createCache({ key: 'css', insertionPoint: mount ?? undefined });
-}

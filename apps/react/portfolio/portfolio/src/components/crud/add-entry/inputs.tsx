@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import type { FormikProps } from 'formik';
 import { useState, type FocusEvent } from 'react';
-import handleBlur from '../../../services/actions/crud-actions/handle-validate-artist-on-blur';
+import handleBlur from '../../../services/actions/crud-actions/handle_formik_blur.js';
 import type { CompletedState, NewEntry } from '../../../types/types';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
 import HelperTextBox from '../../styled/helper_text_box';

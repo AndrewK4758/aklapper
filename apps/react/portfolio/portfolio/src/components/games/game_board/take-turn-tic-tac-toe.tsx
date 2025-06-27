@@ -3,9 +3,8 @@ import Button from '@mui/material/Button';
 import axios from 'axios';
 import type { Dispatch, JSX } from 'react';
 import { Socket } from 'socket.io-client';
-import { breakpointsTakeTurnButtonTTT } from '../../../styles/games-styles.jsx';
 import { getGameInstanceInfo } from '../../../utils/utils.jsx';
-import { type Action, ActionType } from './socket-reducer.jsx';
+import { Action } from './socket-reducer.jsx';
 
 interface TakeTurnProps {
   dispatch: Dispatch<Action>;
@@ -26,12 +25,7 @@ interface TakeTurnProps {
  */
 
 const TakeTurnTicTacToe = ({ dispatch, socket, position, avatarInTurn }: TakeTurnProps): JSX.Element => (
-  <Button
-    variant='contained'
-    type='button'
-    onClick={() => handleTakeTurn({ dispatch, socket, position, avatarInTurn })}
-    sx={breakpointsTakeTurnButtonTTT}
-  >
+  <Button variant='outlined' type='button' onClick={() => handleTakeTurn({ dispatch, socket, position, avatarInTurn })}>
     Take Turn
   </Button>
 );
@@ -73,6 +67,6 @@ const handleTakeTurn = async ({ dispatch, socket, position, avatarInTurn }: Take
     console.log(err);
     return null;
   } finally {
-    dispatch({ type: ActionType.TAKE_TURN, socket: socket });
+    dispatch({ type: Action.TAKE_TURN, socket: socket });
   }
 };

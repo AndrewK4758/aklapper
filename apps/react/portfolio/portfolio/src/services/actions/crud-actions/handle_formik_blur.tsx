@@ -4,7 +4,7 @@ import type { FocusEvent } from 'react';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
-const handleBlur = async <T,>(
+const handleFormikBlur = async <T,>(
   e: FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>,
   formik: FormikProps<T>,
   handleUpdateHelperText: (inDbRessponse: string) => void,
@@ -40,7 +40,7 @@ const handleBlur = async <T,>(
   }
 };
 
-export default handleBlur;
+export default handleFormikBlur;
 
 async function handleExists<T>(field: string, dbMessage: string, formik: FormikProps<T>) {
   await formik.setFieldTouched(field, true, true);
