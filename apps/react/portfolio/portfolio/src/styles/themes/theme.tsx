@@ -18,36 +18,40 @@ import {
   SECONDARY_COLOR,
   SECONDARY_COLOR_DARK,
   SECONDARY_COLOR_LIGHT,
-  SECONDARY_CONTRAST,
+  // SECONDARY_CONTRAST,
   TEXT_PRIMARY,
   TEXT_SECONDARY,
 } from '../base/base_styles.js';
 
 const Theme: ThemeType = createTheme(
   {
-    palette: {
-      background: {
-        default: BACKGROUND_DEFAULT,
-        paper: BACKGROUND_PAPER,
-      },
-      primary: {
-        main: MAIN_COLOR,
-        light: MAIN_COLOR_LIGHT,
-        dark: MAIN_COLOR_DARK,
-        contrastText: MAIN_CONTRAST,
-      },
-      secondary: {
-        main: SECONDARY_COLOR,
-        light: SECONDARY_COLOR_LIGHT,
-        dark: SECONDARY_COLOR_DARK,
-        contrastText: SECONDARY_CONTRAST,
-      },
-      text: {
-        primary: TEXT_PRIMARY,
-        secondary: TEXT_SECONDARY,
+    colorSchemes: {
+      light: true,
+      dark: {
+        palette: {
+          background: {
+            default: BACKGROUND_DEFAULT,
+            paper: BACKGROUND_PAPER,
+          },
+          primary: {
+            main: MAIN_COLOR,
+            light: MAIN_COLOR_LIGHT,
+            dark: MAIN_COLOR_DARK,
+            contrastText: MAIN_CONTRAST,
+          },
+          secondary: {
+            main: SECONDARY_COLOR,
+            light: SECONDARY_COLOR_LIGHT,
+            dark: SECONDARY_COLOR_DARK,
+            contrastText: TEXT_PRIMARY,
+          },
+          text: {
+            primary: TEXT_PRIMARY,
+            secondary: TEXT_SECONDARY,
+          },
+        },
       },
     },
-    cssVariables: true,
     shape: {
       borderRadius: BASE_BORDER_RADIUS,
     },
@@ -115,29 +119,29 @@ const Theme: ThemeType = createTheme(
           },
         },
       },
-      MuiSelect: {
-        defaultProps: {
-          slotProps: {
-            input: {
-              sx: {
-                color: MAIN_COLOR_DARK,
-                backgroundColor: BACKGROUND_ALT,
-              },
-            },
-            notchedOutline: {
-              sx: {
-                color: MAIN_COLOR_DARK,
-              },
-            },
-            root: {
-              sx: {
-                color: MAIN_COLOR_DARK,
-                backgroundColor: BACKGROUND_ALT,
-              },
-            },
-          },
-        },
-      },
+      // MuiSelect: {
+      //   defaultProps: {
+      //     slotProps: {
+      //       input: {
+      //         sx: {
+      //           color: MAIN_COLOR_DARK,
+      //           backgroundColor: BACKGROUND_ALT,
+      //         },
+      //       },
+      //       notchedOutline: {
+      //         sx: {
+      //           color: MAIN_COLOR_DARK,
+      //         },
+      //       },
+      //       root: {
+      //         sx: {
+      //           color: MAIN_COLOR_DARK,
+      //           backgroundColor: BACKGROUND_ALT,
+      //         },
+      //       },
+      //     },
+      //   },
+      // },
       MuiMenuItem: {
         styleOverrides: {
           root: {
@@ -152,6 +156,8 @@ const Theme: ThemeType = createTheme(
         },
       },
     },
+    defaultColorScheme: 'dark',
+    cssVariables: true,
   },
   enUS,
 );

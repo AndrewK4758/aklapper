@@ -2,7 +2,6 @@ import { Waiting } from '@aklapper/react-shared';
 import { lazy } from 'react';
 import type { RouteObject } from 'react-router';
 import waiting from '../assets/images/swirly-dots-to-chrome.webp';
-// import Layout from '../components/layout/layout';
 import PrivacyPolicy from '../components/privacy-policy/privacy-policy';
 import BaseError from '../errors/base_error';
 import Home from '../pages/home/home';
@@ -11,7 +10,7 @@ import LandingPage from '../pages/landing/landing';
 import loadAlbumsCount from '../services/loaders/crud-loaders/load-albums-count';
 import loadArtistsCount from '../services/loaders/crud-loaders/load-artists-count';
 
-import LayoutContainer from '../components/layout/layout_container';
+import Layout from '../components/layout/layout';
 import Crud from '../pages/crud/crud';
 import Games from '../pages/games/games';
 import GenAiHome from '../pages/gen-ai/gen-ai';
@@ -53,7 +52,7 @@ const routes: RouteObject[] = [
   },
   {
     path: 'portfolio',
-    element: <LayoutContainer />,
+    element: <Layout />,
     children: [
       {
         index: true,
@@ -62,6 +61,7 @@ const routes: RouteObject[] = [
       {
         path: 'crud',
         element: <Crud />,
+        hydrateFallbackElement: <Waiting src={waiting} />,
         children: [
           {
             path: 'artists',

@@ -1,12 +1,12 @@
-import FormControl, { type FormControlProps } from '@mui/material/FormControl';
+import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Select, { type SelectChangeEvent } from '@mui/material/Select';
 import { useState } from 'react';
-import { BACKGROUND_ALT, MAIN_COLOR_DARK } from '../../../styles/base/base_styles';
+import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
 import type { TimesAndDates } from './google_calendar_form';
 
-interface EndTimeProps extends FormControlProps {
+interface EndTimeProps {
   values: TimesAndDates;
   setEndTime: (values: number, key: 'endTime') => void;
 }
@@ -24,9 +24,8 @@ export default function EndTimeSelect({ values, setEndTime, ...props }: EndTimeP
     <FormControl {...props} sx={{ width: '13rem' }}>
       <InputLabel id='length-of-meeting-label'>Length of meeting</InputLabel>
       <Select
-        autoWidth
         label='Meeting Length'
-        labelId='select-minutes-label'
+        labelId='length-of-meeting-label'
         id='select-minutes'
         onChange={hanndleSelectMeetingLength}
         value={values.endTime}
@@ -34,19 +33,7 @@ export default function EndTimeSelect({ values, setEndTime, ...props }: EndTimeP
         slotProps={{
           input: {
             sx: {
-              color: MAIN_COLOR_DARK,
-              backgroundColor: BACKGROUND_ALT,
-            },
-          },
-          notchedOutline: {
-            sx: {
-              color: MAIN_COLOR_DARK,
-            },
-          },
-          root: {
-            sx: {
-              color: MAIN_COLOR_DARK,
-              backgroundColor: BACKGROUND_ALT,
+              backgroundColor: BACKGROUND_DEFAULT,
             },
           },
         }}

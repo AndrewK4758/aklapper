@@ -46,12 +46,7 @@ export default function GoogleCalendarForm({
       data-testid='google-calendar-event-form'
       onSubmit={() => handleSubmitEvent(values, setOpen)}
     >
-      <CenteredFlexDiv
-        component={'section'}
-        id='google-calendar-form-box'
-        data-testid='google-calendar-form-box'
-        gap={2}
-      >
+      <CenteredFlexDiv id='google-calendar-form-box' data-testid='google-calendar-form-box' sx={{ gap: 2 }}>
         <DateInput tomorrow={tomorrow} dateValue={values.date} setDate={handleSetTimeAndDateValues} />
         <TimeInput
           minTime={minTime}

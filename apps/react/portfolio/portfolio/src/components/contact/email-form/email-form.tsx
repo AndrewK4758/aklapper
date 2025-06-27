@@ -6,6 +6,7 @@ import { Form, useSubmit, type SubmitFunction } from 'react-router';
 import * as Yup from 'yup';
 import 'yup-phone-lite';
 import { GoogleUserContext, type GoogleUserContextProps } from '../../../contexts/contact-context';
+import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
 import { clientCheck } from '../../../utils/utils';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
 import TextInput from '../../styled/text_input.js';
@@ -73,13 +74,37 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
         onReset={formik.handleReset}
       >
         <Stack id='email-me-inputs-stack' data-testid='email-me-inputs-stack' sx={{ gap: 2 }}>
-          <TextInput<MessageMeFormValues> name={'name'} label={'Name'} formik={formik} variant='outlined' />
+          <TextInput<MessageMeFormValues>
+            name={'name'}
+            label={'Name'}
+            formik={formik}
+            variant='outlined'
+            slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
+          />
 
-          <TextInput<MessageMeFormValues> name={'email'} label={'Email'} formik={formik} variant='outlined' />
+          <TextInput<MessageMeFormValues>
+            name={'email'}
+            label={'Email'}
+            formik={formik}
+            variant='outlined'
+            slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
+          />
 
-          <TextInput<MessageMeFormValues> name={'phone'} label={'Phone'} formik={formik} variant='outlined' />
+          <TextInput<MessageMeFormValues>
+            name={'phone'}
+            label={'Phone'}
+            formik={formik}
+            variant='outlined'
+            slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
+          />
 
-          <TextInput<MessageMeFormValues> name={'subject'} label={'Subject'} formik={formik} variant='outlined' />
+          <TextInput<MessageMeFormValues>
+            name={'subject'}
+            label={'Subject'}
+            formik={formik}
+            variant='outlined'
+            slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
+          />
 
           <TextInput<MessageMeFormValues>
             name={'body'}
@@ -87,6 +112,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
             formik={formik}
             multiline={true}
             variant='outlined'
+            slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
           />
 
           <DateTimeInput formik={formik} name={'date'} />

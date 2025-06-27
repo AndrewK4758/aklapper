@@ -1,16 +1,14 @@
 import type { track } from '@aklapper/chinook-client';
-import { Text } from '@aklapper/react-shared';
 import type { CRUD_ApiResponse } from '@aklapper/types';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import axios, { type AxiosError, type AxiosResponse } from 'axios';
 import { Decimal } from 'decimal.js';
 import { useFormik, type FormikProps } from 'formik';
-import { useState, type Dispatch, type FocusEvent, type ReactElement, type SetStateAction } from 'react';
+import { type Dispatch, type ReactElement, type SetStateAction } from 'react';
 import { Form } from 'react-router';
-import { handleBlur } from '../../../utils/utils.js';
+import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
 import CenteredFlexDiv from '../../styled/centered_flexbox.js';
-import HelperTextBox from '../../styled/helper_text_box.js';
 import TextInput from '../../styled/text_input.js';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
@@ -42,8 +40,6 @@ const initialValues: track = {
  */
 
 const AddTrack = ({ albumID, setRows }: AddTrackProps): ReactElement => {
-  const [helperText, setHelperText] = useState<string | null>(null);
-
   const formik = useFormik({
     initialValues: initialValues,
     onSubmit: values => {
@@ -52,33 +48,39 @@ const AddTrack = ({ albumID, setRows }: AddTrackProps): ReactElement => {
     validateOnBlur: true,
   });
 
-  formik.handleBlur = (e: FocusEvent<HTMLInputElement>) => {
-    handleBlur<track>(e, formik, setHelperText, `tracks?albumID=${albumID}&name=${e.target.value}`);
-  };
-
   return (
     <Form method='post' onSubmit={formik.handleSubmit}>
       <CenteredFlexDiv>
-        <HelperTextBox>
-          <TextInput<track>
-            formik={formik}
-            name={'name'}
-            label={'Track Name'}
-            variant='outlined'
-            setHelperText={setHelperText}
-          />
-          {helperText && <Text variant='caption' color='textSecondary' children={helperText} />}
-        </HelperTextBox>
-      </CenteredFlexDiv>
+        <TextInput<track>
+          formik={formik}
+          name={'name'}
+          label={'Track Name'}
+          variant='outlined'
+          searchParams={`tracks?albumID=${albumID}&name=${formik.values.name}`}
+          slotProps={{
+            input: {
+              sx: {
+                backgroundColor: BACKGROUND_DEFAULT,
+              },
+            },
+          }}
+        />
 
-      <ButtonGroup fullWidth>
-        <Button type='submit' disabled={formik.isSubmitting} variant='contained' color='primary'>
-          Submit
-        </Button>
-        <Button type='reset' variant='contained' color='secondary'>
-          Clear
-        </Button>
-      </ButtonGroup>
+        <ButtonGroup fullWidth>
+          <Button
+            type='submit'
+            disabled={formik.isSubmitting}
+            variant='contained'
+            color='primary'
+            sx={{ fontWeight: 'bold' }}
+          >
+            {formik.isSubmitting ? 'Submitting' : 'Submit'}
+          </Button>
+          <Button type='reset' variant='contained' color='secondary' sx={{ fontWeight: 'bold' }}>
+            Clear
+          </Button>
+        </ButtonGroup>
+      </CenteredFlexDiv>
     </Form>
   );
 };

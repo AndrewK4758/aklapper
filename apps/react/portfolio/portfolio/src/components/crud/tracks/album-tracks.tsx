@@ -1,9 +1,9 @@
 import { track } from '@aklapper/chinook-client';
-import Box from '@mui/material/Box';
-import Container from '@mui/material/Container';
+import Box from '@mui/material-pigment-css/Box';
+import Container from '@mui/material-pigment-css/Container';
 import { useState, type ReactElement } from 'react';
 import { useParams } from 'react-router';
-import CRUD_THEME from '../../../styles/themes/crud_theme.js';
+import Theme from '../../../styles/themes/theme';
 import CenteredFlexDiv from '../../styled/centered_flexbox.js';
 import DataGridHeader from '../data_grid_header.js';
 import AddTrack from './add-track.jsx';
@@ -24,20 +24,26 @@ const Tracks = (): ReactElement => {
     <CenteredFlexDiv
       id={'track-box'}
       sx={{
-        width: '100%',
-        height: '100%',
-        p: 0,
-        border: `3px solid ${CRUD_THEME.palette.secondary.main}`,
-        borderRadius: 1,
+        padding: 0,
       }}
     >
-      <Box key={'artist-title'} sx={{ height: '100%', width: '100%' }}>
+      <Box
+        sx={{
+          gap: Theme.spacing(4),
+          borderRadius: Theme.shape.borderRadius,
+          background: Theme.palette.background.paper,
+          width: '100%',
+        }}
+      >
         <DataGridHeader title='Album Tracks' />
-
         <Container component={'div'} key={'add-track-box'} sx={{ paddingY: 1 }}>
           <AddTrack albumID={albumID} setRows={setRows} />
         </Container>
-        <TracksDataGrid rows={rows} setRows={setRows} />
+      </Box>
+      <Box sx={{ width: '100%' }}>
+        <Box>
+          <TracksDataGrid rows={rows} setRows={setRows} />
+        </Box>
       </Box>
     </CenteredFlexDiv>
   );

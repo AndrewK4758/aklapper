@@ -1,7 +1,7 @@
 import Button from '@mui/material/Button';
-import Card from '@mui/material/Card';
 import { useState, type ReactElement } from 'react';
 import CenteredFlexDiv from '../../styled/centered_flexbox.js';
+import StyledCard from '../../styled/styled_card';
 import type { SearchValues } from './input';
 import SearchInput from './input';
 import SearchRadioButtons from './radio_buttons.js';
@@ -39,21 +39,24 @@ const Search = ({ setOpen }: SearchProps): ReactElement => {
   };
 
   return (
-    <CenteredFlexDiv id='search-box-wrapper'>
-      <Card
-        elevation={2}
-        component={'section'}
-        sx={{ width: '85%', display: 'flex', alignItems: 'center', padding: 0, gap: 1 }}
-      >
-        <SearchRadioButtons searchTarget={searchTarget} handleRadioButtonSelect={handleRadioButtonSelect} />
-        <SearchInput searchTarget={searchTarget} setSearchValues={handleSetSearchValues} />
+    <>
+      <CenteredFlexDiv id='search-box-wrapper' sx={{ width: '100%' }}>
+        <StyledCard
+          component={'section'}
+          sx={{ width: '85%', display: 'flex', alignItems: 'center', padding: 0, gap: 1 }}
+        >
+          <SearchRadioButtons searchTarget={searchTarget} handleRadioButtonSelect={handleRadioButtonSelect} />
+          <SearchInput searchTarget={searchTarget} setSearchValues={handleSetSearchValues} />
 
-        <Button id={'crud-search-close-button'} onClick={() => setOpen(false)} sx={{ marginRight: 1.5 }}>
-          Close
-        </Button>
-      </Card>
-      <SearchResults searchResults={searchValues} searchTarget={searchTarget} />
-    </CenteredFlexDiv>
+          <Button id={'crud-search-close-button'} onClick={() => setOpen(false)} sx={{ marginRight: 1.5 }}>
+            Close
+          </Button>
+        </StyledCard>
+      </CenteredFlexDiv>
+      {searchValues[searchTarget].length ? (
+        <SearchResults searchResults={searchValues} searchTarget={searchTarget} />
+      ) : null}
+    </>
   );
 };
 

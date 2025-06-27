@@ -1,12 +1,11 @@
 import type { album } from '@aklapper/chinook-client';
 import { Waiting } from '@aklapper/react-shared';
-import Box from '@mui/material/Box';
-import Container from '@mui/material/Container';
+import Box from '@mui/material-pigment-css/Box';
+import Container from '@mui/material-pigment-css/Container';
 import { Suspense, useState, type ReactElement } from 'react';
 import { Outlet } from 'react-router';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
-import { artistOutletWrapperSxProps, artistsSxProps } from '../../../styles/crud/data_grid';
-import CRUD_THEME from '../../../styles/themes/crud_theme';
+import { artistsSxProps } from '../../../styles/crud/data_grid';
 import Theme from '../../../styles/themes/theme';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
 import DataGridHeader from '../data_grid_header.js';
@@ -29,23 +28,27 @@ export const AlbumsOnArtist = (): ReactElement => {
   const [rows, setRows] = useState<album[] | null>(null);
 
   return (
-    <CenteredFlexDiv id='albums-on-artist' sx={{ ...artistsSxProps, p: 0, border: 0, gap: 0.5 }}>
+    <CenteredFlexDiv id='albums-on-artist' sx={{ padding: 0, width: '100%' }}>
       <Box
-        id={'albums'}
         sx={{
-          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: Theme.spacing(4),
+          backgroundColor: 'transparent',
           width: '100%',
-          border: `3px solid ${CRUD_THEME.palette.secondary.main}`,
-          borderRadius: Theme.shape.borderRadius,
         }}
       >
-        <DataGridHeader title='Artist Albums' />
-        <Container id={'add-album-box'} sx={{ paddingY: 1 }}>
-          <AddAlbumOnArtist setRows={setRows} />
-        </Container>
-        <AlbumDataGrid rows={rows} setRows={setRows} />
+        <Box id={'albums'} sx={artistsSxProps}>
+          <DataGridHeader title='Artist Albums' />
+          <Container id={'add-album-box'}>
+            <AddAlbumOnArtist setRows={setRows} />
+          </Container>
+        </Box>
+        <Box sx={{ width: '100%' }}>
+          <AlbumDataGrid rows={rows} setRows={setRows} />
+        </Box>
       </Box>
-      <Box sx={artistOutletWrapperSxProps}>
+      <Box sx={{ width: '100%' }}>
         <Suspense fallback={<Waiting src={waiting} />}>
           <Outlet />
         </Suspense>

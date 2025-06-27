@@ -1,4 +1,4 @@
-import Box from '@mui/material/Box';
+import Box from '@mui/material-pigment-css/Box';
 import ContactDialog from '../contact/contact_dialog';
 import AnimatedContactMenu from './contact/animated_contact_menu';
 import ToggleMenuButton from './contact/toggle_menu_button';
@@ -18,7 +18,7 @@ export function HeaderContactMenu({
 }: HeaderContactMenuProps) {
   return (
     <>
-      <Box component={'header'} sx={{ display: 'flex' }}>
+      <Box as={'header'} sx={{ display: 'flex' }}>
         <ToggleMenuButton isToggledOpen={isContactMenuOpen} handleToggleContactMenu={handleToggleContactMenu} />
         <AnimatedContactMenu isOpen={isContactMenuOpen} handleOpenEmail={handleOpenEmail} />
       </Box>

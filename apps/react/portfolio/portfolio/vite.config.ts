@@ -36,16 +36,22 @@ const config: UserConfig = defineConfig({
       theme: Theme,
       transformLibraries: ['@mui/material'],
       transformSx: true,
-    }),
-    react({
-      babel: {
+      debug: {
+        print: true,
+      },
+      babelOptions: {
         compact: false,
       },
     }),
+    react(),
   ],
 
   optimizeDeps: {
-    include: ['react-is', 'prop-types'],
+    include: ['react-is', 'prop-types', 'hoist-non-react-statics'],
+    esbuildOptions: {
+      sourcemap: true,
+      target: 'esnext',
+    },
   },
 
   // Uncomment this if you are using workers.
@@ -69,7 +75,7 @@ const config: UserConfig = defineConfig({
 
   build: {
     outDir: OUT_DIR,
-    minify: false, //NODE_ENV === 'production',
+    minify: NODE_ENV === 'production',
     target: 'esnext',
     manifest: true,
     sourcemap: true,

@@ -1,27 +1,28 @@
-import type { SxProps } from '@mui/material/styles';
+import type { SxProp } from '@pigment-css/react';
+import { BACKGROUND_PAPER, BASE_BORDER_RADIUS } from '../base/base_styles';
 import CRUD_THEME from '../themes/crud_theme';
+import Theme from '../themes/theme';
 
-export const allDataGridsWrapperSxProps: SxProps = {
+export const allDataGridsWrapperSxProps: SxProp = {
   flexDirection: 'row',
   justifyContent: 'flex-start',
   alignItems: 'flex-start',
-  [CRUD_THEME.breakpoints.down('lg')]: {
-    flexDirection: 'column',
-    alignContent: 'flex-start',
-  },
-  gap: 0.5,
+  padding: 0,
+  gap: Theme.spacing(4),
+  // [CRUD_THEME.breakpoints.down('lg')]: {
+  //   flexDirection: 'column',
+  // },
 };
 
-export const artistsSxProps: SxProps = {
-  flex: '0 1 50%',
-  justifyContent: 'flex-start',
-  alignItems: 'flex-start',
-  border: '3px solid purple',
-  borderRadius: 1,
+export const artistsSxProps: SxProp = {
+  flex: 1,
+  gap: Theme.spacing(4),
+  borderRadius: BASE_BORDER_RADIUS,
   maxWidth: '100%',
+  backgroundColor: BACKGROUND_PAPER,
 };
 
-export const artistOutletWrapperSxProps: SxProps = {
+export const artistOutletWrapperSxProps: SxProp = {
   flex: '0 1 100%',
   width: '100%',
   [CRUD_THEME.breakpoints.down('lg')]: { flex: '0 1 100%' },

@@ -1,8 +1,8 @@
 import { Text } from '@aklapper/react-shared';
 import TextField, { type OutlinedTextFieldProps } from '@mui/material/TextField';
 import type { FormikProps } from 'formik';
-import { useState, type HTMLInputTypeAttribute, type ReactElement } from 'react';
-import { BACKGROUND_ALT } from '../../styles/base/base_styles';
+import { useState, type FocusEvent, type HTMLInputTypeAttribute, type ReactElement } from 'react';
+import { handleBlur } from '../../utils/utils';
 import HelperTextBox from './helper_text_box';
 
 interface TextInputProps<T extends object>
@@ -26,6 +26,7 @@ interface TextInputProps<T extends object>
   name: Extract<keyof T, string>;
   label: string;
   multiline?: boolean;
+  searchParams?: string;
   type?: HTMLInputTypeAttribute;
 }
 
@@ -35,9 +36,15 @@ export default function TextInput<T extends object>({
   formik,
   type = 'text',
   multiline = false,
+  searchParams,
   ...props
 }: TextInputProps<T>): ReactElement {
   const [helperText, setHelperText] = useState<string | null>(null);
+  if (searchParams)
+    formik.handleBlur = (e: FocusEvent<HTMLInputElement>) =>
+      //TODO crate param type to help validate correct string for url endpoint
+      handleBlur<T>(e, formik, setHelperText, searchParams);
+
   return (
     <HelperTextBox multiline={multiline}>
       <TextField
@@ -59,16 +66,8 @@ export default function TextInput<T extends object>({
         }}
         error={formik.touched[name] && !!formik.errors[name]}
         helperText={formik.touched[name] && (formik.errors[name] as string)}
-        slotProps={{
-          input: {
-            sx: {
-              backgroundColor: BACKGROUND_ALT,
-              width: '100%',
-            },
-          },
-        }}
       />
-      {helperText && <Text variant='caption' children={helperText} />}
+      {helperText && <Text variant='caption' color='inherit' children={helperText} tabIndex={-1} />}
     </HelperTextBox>
   );
 }

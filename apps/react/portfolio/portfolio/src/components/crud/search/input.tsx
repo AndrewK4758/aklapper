@@ -1,5 +1,4 @@
 import type { album, artist } from '@aklapper/chinook-client';
-import { Label } from '@aklapper/react-shared';
 import TextField from '@mui/material/TextField';
 import { debounce } from '@mui/material/utils';
 import axios from 'axios';
@@ -16,23 +15,13 @@ interface SearchInputProps {
 }
 
 export default function SearchInput({ searchTarget, setSearchValues }: SearchInputProps) {
-  const label = (
-    <Label
-      id='artist-search-label'
-      htmlFor='artist-search'
-      tooltipTitle={'Search for artist or album. Search is automatic and debounced after .56 second of no typing'}
-      labelVariant={'body1'}
-      labelText={'Search'}
-      placement={'top'}
-    />
-  );
   return (
     <TextField
       id='search'
       autoFocus
       component={'search'}
-      label={label}
-      variant='standard'
+      label={'Search'}
+      variant='outlined'
       type='text'
       name='artist-search'
       onChange={debounce(e => handleSearchParams(e, setSearchValues, searchTarget), 560)}

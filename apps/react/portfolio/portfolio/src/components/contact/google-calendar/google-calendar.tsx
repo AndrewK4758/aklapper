@@ -9,7 +9,7 @@ export interface GoogleCalendarProps {
 
 const GoogleCalendar = ({ setOpen }: GoogleCalendarProps): ReactElement<GoogleCalendarProps> => {
   return (
-    <CenteredFlexDiv id='google-calendar-wrapper' data-testid='google-calendar-wrapper' p={4}>
+    <CenteredFlexDiv id='google-calendar-wrapper' data-testid='google-calendar-wrapper' sx={{ padding: 4 }}>
       <GoogleAuthButton />
       <GoogleCalendarForm setOpen={setOpen} />
     </CenteredFlexDiv>

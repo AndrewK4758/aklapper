@@ -78,140 +78,140 @@ export const DEFAULT_PROPS = {
       gap: 1,
     },
   },
-  MuiTextField: {
-    slotProps: {
-      input: {
-        sx: {
-          backgroundColor: BACKGROUND_ALT,
-          width: '100%',
-        },
-      },
-    },
-  },
-  MuiDateCalendar: {
-    slotProps: {
-      switchViewIcon: {
-        sx: {
-          color: MAIN_COLOR_DARK,
-        },
-      },
-      rightArrowIcon: {
-        sx: {
-          color: MAIN_COLOR_DARK,
-        },
-      },
-      leftArrowIcon: {
-        sx: {
-          color: MAIN_COLOR_DARK,
-        },
-      },
-      day: {
-        sx: {
-          fontSize: '1.25rem',
-          backgroundColor: BACKGROUND_DEFAULT,
-          color: MAIN_COLOR_DARK,
-        },
-      },
-    },
-  },
-  MuiTimePicker: {
-    formatDensity: 'spacious',
-    slotProps: {
-      desktopPaper: {
-        sx: {
-          backgroundColor: BACKGROUND_DEFAULT,
-          boxShadow: BOX_SHADOW_SECONDARY_DARK,
-        },
-      },
-      digitalClockSectionItem: {
-        divider: true,
-        sx: {
-          borderRadius: MULT_BORDER_RADIUS - 0.35,
-          backgroundColor: BACKGROUND_PAPER,
-        },
-      },
-      actionBar: {
-        sx: {
-          borderTop: `2px solid ${MAIN_COLOR_DARK}`,
-          background: BACKGROUND_DEFAULT,
-          borderBottomLeftRadius: BASE_BORDER_RADIUS,
-          borderBottomRightRadius: BASE_BORDER_RADIUS,
-        },
-      },
-      textField: {
-        sx: {
-          width: '100%',
-          backgroundColor: BACKGROUND_ALT,
-          borderRadius: MULT_BORDER_RADIUS,
-        },
-      },
-      openPickerIcon: {
-        sx: {
-          color: MAIN_COLOR_DARK,
-          fontSize: '2rem',
-        },
-      },
-    },
-  },
-  MuiDateTimePicker: {
-    ampm: true,
-    slotProps: {
-      actionBar: {
-        actions: ['accept', 'cancel'],
-        sx: {
-          borderTop: `2px solid ${MAIN_COLOR_DARK}`,
-          backgroundColor: BACKGROUND_DEFAULT,
-          borderBottomLeftRadius: BASE_BORDER_RADIUS,
-          borderBottomRightRadius: BASE_BORDER_RADIUS,
-        },
-      },
-      day: {
-        sx: {
-          borderRadius: MULT_BORDER_RADIUS - 0.35,
-          backgroundColor: BACKGROUND_PAPER,
-        },
-      },
-      desktopPaper: {
-        sx: {
-          boxShadow: BOX_SHADOW_SECONDARY_DARK,
-          backgroundColor: BACKGROUND_DEFAULT,
-        },
-      },
-      digitalClockItem: {
-        sx: {
-          backgroundColor: BACKGROUND_PAPER,
-        },
-      },
+  // MuiTextField: {
+  //   slotProps: {
+  //     input: {
+  //       sx: {
+  //         backgroundColor: BACKGROUND_ALT,
+  //         width: '100%',
+  //       },
+  //     },
+  //   },
+  // },
+  // MuiDateCalendar: {
+  //   slotProps: {
+  //     switchViewIcon: {
+  //       sx: {
+  //         color: MAIN_COLOR_DARK,
+  //       },
+  //     },
+  //     rightArrowIcon: {
+  //       sx: {
+  //         color: MAIN_COLOR_DARK,
+  //       },
+  //     },
+  //     leftArrowIcon: {
+  //       sx: {
+  //         color: MAIN_COLOR_DARK,
+  //       },
+  //     },
+  //     day: {
+  //       sx: {
+  //         fontSize: '1.25rem',
+  //         backgroundColor: BACKGROUND_DEFAULT,
+  //         color: MAIN_COLOR_DARK,
+  //       },
+  //     },
+  //   },
+  // },
+  // MuiTimePicker: {
+  //   formatDensity: 'spacious',
+  //   slotProps: {
+  //     desktopPaper: {
+  //       sx: {
+  //         backgroundColor: BACKGROUND_DEFAULT,
+  //         boxShadow: BOX_SHADOW_SECONDARY_DARK,
+  //       },
+  //     },
+  //     digitalClockSectionItem: {
+  //       divider: true,
+  //       sx: {
+  //         borderRadius: MULT_BORDER_RADIUS - 0.35,
+  //         backgroundColor: BACKGROUND_PAPER,
+  //       },
+  //     },
+  //     actionBar: {
+  //       sx: {
+  //         borderTop: `2px solid ${MAIN_COLOR_DARK}`,
+  //         background: BACKGROUND_DEFAULT,
+  //         borderBottomLeftRadius: BASE_BORDER_RADIUS,
+  //         borderBottomRightRadius: BASE_BORDER_RADIUS,
+  //       },
+  //     },
+  //     textField: {
+  //       sx: {
+  //         width: '100%',
+  //         backgroundColor: BACKGROUND_ALT,
+  //         borderRadius: MULT_BORDER_RADIUS,
+  //       },
+  //     },
+  //     openPickerIcon: {
+  //       sx: {
+  //         color: MAIN_COLOR_DARK,
+  //         fontSize: '2rem',
+  //       },
+  //     },
+  //   },
+  // },
+  // MuiDateTimePicker: {
+  //   ampm: true,
+  //   slotProps: {
+  //     actionBar: {
+  //       actions: ['accept', 'cancel'],
+  //       sx: {
+  //         borderTop: `2px solid ${MAIN_COLOR_DARK}`,
+  //         backgroundColor: BACKGROUND_DEFAULT,
+  //         borderBottomLeftRadius: BASE_BORDER_RADIUS,
+  //         borderBottomRightRadius: BASE_BORDER_RADIUS,
+  //       },
+  //     },
+  //     day: {
+  //       sx: {
+  //         borderRadius: MULT_BORDER_RADIUS - 0.35,
+  //         backgroundColor: BACKGROUND_PAPER,
+  //       },
+  //     },
+  //     desktopPaper: {
+  //       sx: {
+  //         boxShadow: BOX_SHADOW_SECONDARY_DARK,
+  //         backgroundColor: BACKGROUND_DEFAULT,
+  //       },
+  //     },
+  //     digitalClockItem: {
+  //       sx: {
+  //         backgroundColor: BACKGROUND_PAPER,
+  //       },
+  //     },
 
-      leftArrowIcon: {
-        sx: {
-          color: MAIN_COLOR_DARK,
-        },
-      },
-      openPickerIcon: {
-        sx: {
-          color: MAIN_COLOR_DARK,
-          fontSize: '2rem',
-        },
-      },
-      popper: {
-        popperOptions: {
-          placement: 'auto-end',
-        },
-      },
-      rightArrowIcon: {
-        sx: {
-          color: MAIN_COLOR_DARK,
-        },
-      },
-      textField: {
-        sx: {
-          width: '100%',
-          backgroundColor: BACKGROUND_ALT,
-          borderRadius: MULT_BORDER_RADIUS,
-        },
-      },
-    },
-  },
+  //     leftArrowIcon: {
+  //       sx: {
+  //         color: MAIN_COLOR_DARK,
+  //       },
+  //     },
+  //     openPickerIcon: {
+  //       sx: {
+  //         color: MAIN_COLOR_DARK,
+  //         fontSize: '2rem',
+  //       },
+  //     },
+  //     popper: {
+  //       popperOptions: {
+  //         placement: 'auto-end',
+  //       },
+  //     },
+  //     rightArrowIcon: {
+  //       sx: {
+  //         color: MAIN_COLOR_DARK,
+  //       },
+  //     },
+  //     textField: {
+  //       sx: {
+  //         width: '100%',
+  //         backgroundColor: BACKGROUND_ALT,
+  //         borderRadius: MULT_BORDER_RADIUS,
+  //       },
+  //     },
+  //   },
+  // },
   enUS,
 };

@@ -9,6 +9,8 @@ import useFetchDataGridData from '../../../hooks/useFetchDataGridData';
 import handleDeleteAlbum from '../../../services/actions/crud-actions/handle-delete-album.js';
 import handleUpdateAlbumTitle from '../../../services/actions/crud-actions/handle-update-album-title.js';
 import loadArtistAlbums from '../../../services/loaders/crud-loaders/load-artist-albums';
+import CRUD_THEME from '../../../styles/themes/crud_theme';
+import Theme from '../../../styles/themes/theme';
 import type { PaginationModel } from '../artists/data_grid';
 
 const paginationModelInit: PaginationModel = { page: 0, pageSize: 5 };
@@ -120,6 +122,22 @@ export default function AlbumDataGrid({ rows, setRows }: AlbumDataGrid) {
       onPaginationModelChange={newPageModel => setPaginationModel(newPageModel)}
       processRowUpdate={processRowUpdate}
       onProcessRowUpdateError={error => console.error(error)}
+      sx={{
+        '&.MuiDataGrid-root': {
+          backgroundColor: CRUD_THEME.palette.background.default,
+        },
+        '& .MuiDataGrid-footerContainer': {
+          backgroundColor: Theme.palette.background.paper,
+          color: Theme.palette.text.secondary,
+        },
+        '& .MuiDataGrid-columnHeader': {
+          backgroundColor: Theme.palette.background.paper,
+          color: Theme.palette.text.secondary,
+        },
+        '.MuiDataGrid-columnSeparator': {
+          color: Theme.palette.primary.dark,
+        },
+      }}
     />
   );
 }

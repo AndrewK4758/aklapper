@@ -17,10 +17,9 @@ export const Waiting = ({ src, width = '200px' }: WaitingProps) => (
     height={'100%'}
   >
     <img
-      key={'waiting-image'}
       id={'waiting-image'}
       test-dataid={'waiting-image'}
-      alt='waiting'
+      alt='waiting symbol'
       src={src}
       style={{ width: width, height: 'auto' }}
     />

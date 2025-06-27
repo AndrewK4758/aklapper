@@ -1,5 +1,4 @@
 import { Text } from '@aklapper/react-shared';
-import { type BoxProps } from '@mui/material/Box';
 import type { FormikProps } from 'formik';
 import { type ChangeEvent, type RefObject } from 'react';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
@@ -8,7 +7,7 @@ import type { MessageMeFormValues } from './email-form';
 const FILE_ACCEPTS =
   '.jpg, .jpeg, .png, .gif, .webp, .avif, .ico, .pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx, .txt, .md, .markdown, .json, .csv, .mp4, .mov, .avi, .webm, .mkv, .mp3, .wav, .ogg, .flac, .ttf, .otf, .woff, .woff2, .zip, .rar, .7z';
 
-interface UploadFileButtonProps extends Omit<BoxProps, 'component'> {
+interface UploadFileButtonProps {
   fileInputRef: RefObject<HTMLInputElement | null>;
   formik: FormikProps<MessageMeFormValues>;
   name: keyof MessageMeFormValues;
@@ -20,7 +19,7 @@ export default function UploadFileButton({ fileInputRef, formik, name, ...props 
   };
 
   return (
-    <CenteredFlexDiv {...props} component={'section'} id='attachment-wrapper' data-testid='attachment-wrapper'>
+    <CenteredFlexDiv {...props} id='attachment-wrapper' data-testid='attachment-wrapper'>
       <input
         ref={fileInputRef}
         accept={FILE_ACCEPTS}

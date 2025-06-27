@@ -13,6 +13,8 @@ import { useCallback, useState, type Dispatch, type SetStateAction } from 'react
 import { useNavigate } from 'react-router';
 import useFetchDataGridData from '../../../hooks/useFetchDataGridData';
 import loadArtists from '../../../services/loaders/crud-loaders/load-artists';
+import CRUD_THEME from '../../../styles/themes/crud_theme';
+import Theme from '../../../styles/themes/theme';
 
 export type PaginationModel = {
   pageSize: number;
@@ -53,6 +55,7 @@ export default function ArtistDataGrid({ rows, setRows, COUNT, setRowCountState 
       flex: 0.75,
       editable: false,
       cellClassName: 'artist-id',
+      headerClassName: 'aritst-id--header',
     },
     {
       field: 'name',
@@ -131,6 +134,22 @@ export default function ArtistDataGrid({ rows, setRows, COUNT, setRowCountState 
       paginationModel={paginationModel}
       processRowUpdate={processRowUpdate}
       onProcessRowUpdateError={error => console.error(error)}
+      sx={{
+        '&.MuiDataGrid-root': {
+          backgroundColor: CRUD_THEME.palette.background.default,
+        },
+        '& .MuiDataGrid-footerContainer': {
+          backgroundColor: Theme.palette.background.paper,
+          color: Theme.palette.text.secondary,
+        },
+        '& .MuiDataGrid-columnHeader': {
+          backgroundColor: Theme.palette.background.paper,
+          color: Theme.palette.text.secondary,
+        },
+        '.MuiDataGrid-columnSeparator': {
+          color: Theme.palette.primary.dark,
+        },
+      }}
     />
   );
 }
