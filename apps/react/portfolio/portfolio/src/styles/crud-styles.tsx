@@ -22,12 +22,6 @@ export const crudHomeContainerSxProps: SxProps = {
   borderRadius: 1,
 };
 
-export const crudHeaderTextSxProps: SxProps = {
-  [Theme.breakpoints.down('md')]: {
-    fontSize: '0.875rem',
-  },
-};
-
 export const searchBoxCardSxProps: SxProps = {
   display: 'flex',
   borderRadius: 1,

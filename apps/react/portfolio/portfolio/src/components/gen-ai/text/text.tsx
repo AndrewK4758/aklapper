@@ -1,21 +1,20 @@
 import { useScrollIntoView } from '@aklapper/react-shared';
 import type { PromptRequest } from '@aklapper/vertex-ai';
 import type { FileData } from '@google-cloud/vertexai';
-import Container from '@mui/material/Container';
-import Paper from '@mui/material/Paper';
-import { useRef, type JSX } from 'react';
-import { useOutletContext } from 'react-router';
+import Button from '@mui/material/Button';
+import type { FormikState } from 'formik';
+import { useFormik } from 'formik';
+import { useRef, type ReactElement } from 'react';
+import { Form, useOutletContext } from 'react-router';
 import { io, type Socket } from 'socket.io-client';
 import * as Yup from 'yup';
 import useGenAiWebsockets from '../../../hooks/useGenAiWebsockets';
-import {
-  genAiTextInputButtonSxProps,
-  labelSx,
-  textInputSx,
-  topLevelModeStyle,
-} from '../../../styles/gen-ai-styles.jsx';
+import Theme from '../../../styles/themes/theme';
 import type { OutletContextProps } from '../../../types/types.js';
-import ChatInput from '../chat-input/chat-input.jsx';
+import StyledCard from '../../styled/styled_card';
+import TextInput from '../../styled/text_input';
+
+const promptInit: PromptRequest = { text: '', fileData: null };
 
 const validationSchema = Yup.object<PromptRequest>().shape({
   text: Yup.string().required('Must be a valid question or statement').min(2, 'Must be a valid question or statement'),
@@ -24,19 +23,14 @@ const validationSchema = Yup.object<PromptRequest>().shape({
 
 const wsURL = import.meta.env.VITE_VERTEX_WS_URL;
 
-interface TextGeneratorProps {
-  isLoading: boolean;
-  setIsLoading: (loading: boolean) => void;
-}
-
 /**
  * This component renders the text generation section of the generative AI page.
  * It allows users to input a prompt and send it to the AI model for processing.
  *
- * @returns {JSX.Element} The rendered TextGenerator component.
+ * @returns {ReactElement} The rendered TextGenerator wwcomponent.
  */
 
-const TextGenerator = ({ isLoading, setIsLoading }: TextGeneratorProps): JSX.Element => {
+const TextGenerator = (): ReactElement => {
   const clientIo = io(wsURL, {
     autoConnect: false,
     reconnectionAttempts: 10,
@@ -46,36 +40,55 @@ const TextGenerator = ({ isLoading, setIsLoading }: TextGeneratorProps): JSX.Ele
   });
   const socketRef = useRef<Socket>(clientIo);
   const socket = socketRef.current;
-  const { prompt, setPromptResponse } = useOutletContext<OutletContextProps>();
+  const { setLoading, setPromptResponse } = useOutletContext<OutletContextProps>();
   const divRef = useRef<HTMLDivElement>(null);
 
   useScrollIntoView(divRef);
 
   useGenAiWebsockets(socket, setPromptResponse);
-
+  const formik = useFormik<PromptRequest>({
+    initialValues: promptInit,
+    validationSchema: validationSchema,
+    onSubmit: (values, { resetForm }) => submitPrompt(values, resetForm, socket, setLoading),
+  });
   return (
-    <Paper component={'div'} key={'gen-ai-text-input-paper'} id='gen-ai-text-input-paper' sx={topLevelModeStyle}>
-      <Container component={'section'} key={'gen-ai-text-input-wrapper'} id='gen-ai-text-input-wrapper'>
-        <ChatInput<PromptRequest>
-          method='get'
+    <StyledCard sx={{ padding: Theme.spacing(4), width: '100%' }}>
+      <Form id='chat-input-form' method='post' onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
+        <TextInput<PromptRequest>
+          name={'text'}
+          formik={formik}
+          label='Enter Prompt'
           type='text'
-          buttonText='Submit Prompt'
-          buttonType='submit'
-          names={Object.keys(prompt)}
-          labelText={'Prompt Input'}
-          variant='text'
-          socket={socket}
-          setLoading={setIsLoading}
-          initialValues={prompt}
-          validationSchema={validationSchema}
-          breakpointsChatInputButton={genAiTextInputButtonSxProps}
-          breakpointsChatInputText={textInputSx}
-          breakpointsChatInputLabel={labelSx}
-          breakpointsWrapperBoxSx={{ width: '100%' }}
+          variant={'outlined'}
+          slotProps={{ input: { sx: { backgroundColor: Theme.palette.background.default } } }}
         />
-      </Container>
-    </Paper>
+
+        <Button id='chat-input-form-submit' type='submit' sx={{ marginRight: Theme.spacing(4) }}>
+          Submit Prompt
+        </Button>
+        <Button id='chat-input-form-reset' type='reset' sx={{ marginLeft: Theme.spacing(4) }}>
+          Reset
+        </Button>
+      </Form>
+    </StyledCard>
   );
 };
 
 export default TextGenerator;
+
+function submitPrompt<PromptRequest>(
+  values: PromptRequest,
+  resetForm: (nextState?: FormikState<PromptRequest>) => void,
+  socket: Socket,
+  setLoading: (loading: boolean) => void,
+) {
+  try {
+    setLoading(true);
+
+    socket.emit('prompt', values);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    resetForm();
+  }
+}

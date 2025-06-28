@@ -5,14 +5,6 @@ import Theme from './themes/theme.js';
 
 //-------IMAGE FORM--------//
 
-export const helperTextSx: SxProps = {
-  color: Theme.palette.error.main,
-  fontSize: '1.25rem',
-  [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem',
-  },
-};
-
 export const labelSx: SxProps = {
   color: Theme.palette.primary.main,
   width: 'fit-content',
@@ -118,29 +110,6 @@ export const renderPreTagInsideParentDiv: SxProps | CSSProperties = {
 
 export const promptBuilderPaperSxProps: SxProps = { height: 'fit-content', minHeight: '30vh', width: '100%' };
 
-export const promptBuilderResponseFormatLabelSxProps: SxProps = {
-  color: Theme.palette.primary.main,
-  [Theme.breakpoints.down('md')]: {
-    fontSize: '1.5rem',
-  },
-};
-
-export const radioButtonLabelSxProps: SxProps = {
-  display: 'flex',
-  flexDirection: 'row',
-  gap: 2,
-  alignItems: 'center',
-  [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem',
-  },
-};
-export const formLabelSxProps: SxProps = {
-  alignContent: 'center',
-  fontSize: '1.5rem',
-  [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem',
-  },
-};
 export const coloredTitleStyles: SxProps = { textAlign: 'center' };
 
 export const promptBuillderFormBoxSxProps: SxProps<typeof Theme> = {
@@ -148,36 +117,6 @@ export const promptBuillderFormBoxSxProps: SxProps<typeof Theme> = {
   gap: 2,
   [Theme.breakpoints.down('md')]: {
     gap: 1,
-  },
-};
-
-export const radioButtonLabelWrapperSxProps: SxProps = { display: 'flex', alignItems: 'center', gap: 2 };
-
-export const promptBuilderResponseFormatBoxSxProps: SxProps = {
-  borderRadius: 1,
-};
-
-export const promptBuilderRadioGroupSxProps: SxProps = {
-  display: 'flex',
-  flexDirection: 'row',
-  justifyContent: 'space-around',
-  paddingLeft: 2,
-  [Theme.breakpoints.down('md')]: {
-    paddingLeft: 0,
-  },
-};
-
-export const promptBuilderResponseFormatIconsSxProps: SxProps = {
-  scale: 1.5,
-  color: Theme.palette.primary.main,
-  [Theme.breakpoints.down('md')]: {
-    scale: 1,
-  },
-};
-
-export const promptBuilderUploadFileTextSxProps: SxProps = {
-  [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem',
   },
 };
 

@@ -56,7 +56,7 @@ const routes: RouteObject[] = [
     children: [
       {
         index: true,
-        element: <Home id='home' />,
+        element: <Home />,
       },
       {
         path: 'crud',

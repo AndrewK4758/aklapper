@@ -1,9 +1,7 @@
 import { Text } from '@aklapper/react-shared';
-import Box from '@mui/material/Box';
+import Box from '@mui/material-pigment-css/Box';
 import type { CSSProperties } from 'react';
-import { crudHeaderTextSxProps } from '../../../styles/crud-styles.jsx';
 import { renderPreTagInsideParentDiv } from '../../../styles/gen-ai-styles.jsx';
-import { fullSizeBlock } from '../../../styles/pages-styles.jsx';
 
 interface PromptBuilderResponseProps {
   prompt: string;
@@ -18,14 +16,11 @@ interface PromptBuilderResponseProps {
  */
 
 export const PromptBuilderResponse = ({ prompt }: PromptBuilderResponseProps) => (
-  <Box sx={fullSizeBlock}>
+  <Box>
     <Text
-      key={'prompt-response-text'}
-      id="prompt-response-text"
-      component={'p'}
-      titleVariant="body1"
-      titleText={<pre style={renderPreTagInsideParentDiv as CSSProperties}>{prompt}</pre>}
-      sx={crudHeaderTextSxProps}
+      id='prompt-response-text'
+      variant='body1'
+      children={<pre style={renderPreTagInsideParentDiv as CSSProperties}>{prompt}</pre>}
     />
   </Box>
 );
