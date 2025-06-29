@@ -1,6 +1,7 @@
 import type { MRC } from '@aklapper/media-recorder';
 import { Text, useScrollIntoView } from '@aklapper/react-shared';
-import type { PromptRequest } from '@aklapper/vertex-ai';
+import type { ChatEntry } from '@aklapper/types';
+import type { FileData } from '@google-cloud/vertexai';
 import HearingIcon from '@mui/icons-material/Hearing';
 import MicNoneIcon from '@mui/icons-material/MicNone';
 import MicOffIcon from '@mui/icons-material/MicOff';
@@ -9,11 +10,11 @@ import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import axios from 'axios';
-import { useContext, useEffect, useRef, useState, type JSX, type RefObject } from 'react';
+import { useContext, useEffect, useRef, useState, type ReactElement, type RefObject } from 'react';
 import { useOutletContext } from 'react-router';
+import ShortUniqueId from 'short-unique-id';
 import { io, type ManagerOptions, type Socket } from 'socket.io-client';
 import { MediaRecorderClientContext, MediaRecorderClientContextProps } from '../../../contexts/audio-context.jsx';
-import { crudHeaderTextSxProps } from '../../../styles/crud-styles.jsx';
 import { genAiAudioIconButtonSxProps, topLevelModeStyle } from '../../../styles/gen-ai-styles.jsx';
 import { buttonSXProps } from '../../../styles/pages-styles.js';
 import { pagesTitleSx } from '../../../styles/pages-styles.jsx';
@@ -29,12 +30,12 @@ const options: MediaRecorderOptions = {
  * This component renders the audio section of the generative AI page.
  * It allows users to record audio, visualize it, and send it to the AI model for processing.
  *
- * @returns {JSX.Element} The rendered GenAiAudio component.
+ * @returns {ReactElement} The rendered GenAiAudio component.
  */
 
 const vertexWsURL = import.meta.env.VITE_VERTEX_WS_URL;
 
-const GenAiAudio = (): JSX.Element => {
+const GenAiAudio = (): ReactElement => {
   const managerOptions: Partial<ManagerOptions> = {
     autoConnect: false,
     reconnectionAttempts: 10,
@@ -46,7 +47,7 @@ const GenAiAudio = (): JSX.Element => {
   const clientSocket = io(vertexWsURL, managerOptions);
   const { MRC, createStream, stream, setStream } =
     useContext<MediaRecorderClientContextProps>(MediaRecorderClientContext);
-  const { setPromptResponse } = useOutletContext<OutletContextProps>();
+  const { setChatHistory } = useOutletContext<OutletContextProps>();
   const [blob, setBlob] = useState<Blob | null>(null);
   const [recording, setRecording] = useState<boolean>(false);
   const socketRef = useRef<Socket>(clientSocket);
@@ -62,7 +63,7 @@ const GenAiAudio = (): JSX.Element => {
     if (!socket.connected) socket.connect();
 
     socket.on('chunk', ({ response }) => {
-      setPromptResponse(prev => [...prev, response]);
+      setChatHistory(prev => [...prev, response]);
     });
 
     return () => {
@@ -91,27 +92,33 @@ const GenAiAudio = (): JSX.Element => {
     if (blob) {
       const path = await handleFileUpload(audRef, blob);
 
-      const promptData: PromptRequest = {
-        fileData: {
-          fileUri: path,
-          mimeType: blob.type,
-        },
-
-        text: null,
+      const id = new ShortUniqueId().rnd(6);
+      const fileData: FileData = {
+        fileUri: path,
+        mimeType: blob.type,
       };
 
-      socket.emit('prompt', promptData);
+      const chatEntry: ChatEntry = {
+        id: id,
+        fileData: fileData,
+        prompt: '',
+        response: '',
+      };
+
+      console.log(chatEntry);
+
+      socket.emit('prompt', chatEntry);
     }
   };
 
   return (
-    <Box component={'div'} key={'gen-audio-wrapper'} id='gen-audio-wrapper' ref={divRef} sx={topLevelModeStyle}>
-      <Paper component={'div'} key={'gen-audio-paper'} id='gen-audio-paper'>
+    <Box id='gen-audio-wrapper' ref={divRef} sx={topLevelModeStyle}>
+      <Paper key={'gen-audio-paper'} id='gen-audio-paper'>
         <Container component={'section'} key={'gen-audio-container'} id='gen-audio-container'>
           <Box component={'section'} key={'gen-audio-header-wrapper'} id={'gen-audio-header-wrapper'}>
-            <Text component={'h3'} titleVariant='h3' titleText={'Audio'} sx={pagesTitleSx} />
+            <Text component={'h3'} variant='h3' children={'Audio'} sx={pagesTitleSx} />
 
-            <Text component={'p'} titleVariant='body1' titleText={audioText} sx={crudHeaderTextSxProps} />
+            <Text component={'p'} variant='body1' children={audioText} />
           </Box>
           <Box component={'section'} key={'gen-audio-recorder-wrapper'} id='gen-audio-recorder-wrapper'>
             {recording && <AudioVisualizer stream={stream as MediaStream} />}
@@ -120,7 +127,6 @@ const GenAiAudio = (): JSX.Element => {
 
           <Box
             component={'section'}
-            key={'gen-audio-recorder-buttons-wrapper'}
             id='gen-audio-recorder-buttons-wrapper'
             display={'flex'}
             justifyContent={'space-evenly'}
@@ -169,7 +175,7 @@ const GenAiAudio = (): JSX.Element => {
 
 export default GenAiAudio;
 
-const baseUrl = import.meta.env.VITE_SERVER_URL_VERTEX;
+const baseUrl = import.meta.env.VITE_VERTEX_API_URL;
 
 /**
  * This function handles uploading the recorded audio to the server.

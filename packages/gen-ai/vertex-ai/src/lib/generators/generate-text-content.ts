@@ -1,13 +1,13 @@
+import type { ChatEntry } from '@aklapper/types';
 import type { GenerateContentRequest } from '@google-cloud/vertexai';
-import type { PromptRequest } from '../../types/prompt-request-types.ts';
 import generativeTextModel from '../models/generative-text-model.js';
 
-export const generateTextContent = async ({ text, fileData }: PromptRequest) => {
+export const generateTextContent = async ({ prompt, fileData }: ChatEntry) => {
   const request: GenerateContentRequest = {
     contents: [
       {
         role: 'user',
-        parts: [{ text: text as string }],
+        parts: [{ text: prompt as string }],
       },
     ],
   };

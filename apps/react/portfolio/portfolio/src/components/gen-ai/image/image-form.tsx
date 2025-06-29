@@ -17,7 +17,6 @@ import { type ChangeEvent, type JSX } from 'react';
 import { Form, useActionData, useNavigation, useOutletContext, useSubmit } from 'react-router';
 import * as Yup from 'yup';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
-import { crudHeaderTextSxProps } from '../../../styles/crud-styles.jsx';
 import {
   forrmControlLabelStyles,
   genAiGenerateImageButtonBoxSxProps,
@@ -26,7 +25,6 @@ import {
   genAiImageSampleCountRadioSxProps,
   genAiSampleCountTextSxProps,
   genAiSliderInputSlotProps,
-  helperTextSx,
   labelSx,
   promptBuillderFormBoxSxProps,
   radioGroupStyles,
@@ -86,7 +84,7 @@ const ImageForm = (): JSX.Element => {
           sx={genAiImageHeaderBoxSxProps}
         >
           <Text component={'h2'} variant='h2' children='Image Generator' sx={pagesTitleSx} />
-          <Text component={'p'} variant='body1' children={imageGenDescription} sx={crudHeaderTextSxProps} />
+          <Text component={'p'} variant='body1' children={imageGenDescription} />
         </Box>
         <Form
           method='post'
@@ -122,11 +120,7 @@ const ImageForm = (): JSX.Element => {
               sx={textInputSx}
               value={formik.values.prompt}
             />
-            <FormikValidationError<Partial<ImagenConfig>>
-              formik={formik}
-              elementName={'prompt'}
-              helperTextSx={helperTextSx}
-            />
+            <FormikValidationError<Partial<ImagenConfig>> formik={formik} elementName={'prompt'} />
           </Box>
 
           <Box

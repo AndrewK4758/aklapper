@@ -15,7 +15,7 @@ import Crud from '../pages/crud/crud';
 import Games from '../pages/games/games';
 import GenAiHome from '../pages/gen-ai/gen-ai';
 import generateImageAction from '../services/actions/generate-image-action';
-import handlePromptBuilder from '../services/actions/prompt-builder-action';
+// import handlePromptBuilder from '../services/actions/prompt-builder-action';
 import loadTracksCount from '../services/loaders/crud-loaders/load_tracks_count';
 import registerPlayersAndStartGame from '../services/loaders/register-players-and-start-game';
 
@@ -117,7 +117,7 @@ const routes: RouteObject[] = [
         path: 'gen-ai',
         element: <GenAiHome />,
         id: 'gen-ai',
-        action: handlePromptBuilder,
+        // action: handlePromptBuilder,
         errorElement: <BaseError />,
         children: [
           {

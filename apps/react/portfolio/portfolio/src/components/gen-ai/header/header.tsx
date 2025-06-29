@@ -43,7 +43,7 @@ export default function GenAiHeader({ isPromptBuilderOpen, setIsPromptBuilderOpe
           <Button variant='text' id='gen-ai-text-button' onClick={() => handleNavToGenAiSection('text')}>
             Text
           </Button>
-          <Button variant='text' id='gen-ai-image' onClick={() => handleNavToGenAiSection('text')}>
+          <Button variant='text' id='gen-ai-image' onClick={() => handleNavToGenAiSection('image')}>
             Image
           </Button>
           <Button variant='text' id='gen-ai-audio' onClick={() => handleNavToGenAiSection('audio')}>

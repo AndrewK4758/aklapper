@@ -1,5 +1,6 @@
 import type { album, artist, track } from '@aklapper/chinook-client';
-import type { PromptRequest } from '@aklapper/vertex-ai';
+import type { ChatEntry } from '@aklapper/types';
+// import type { PromptRequest } from '@aklapper/vertex-ai';
 
 export type HashFiles = { js: string | undefined; css: string | undefined };
 
@@ -8,9 +9,8 @@ export type ManifestType = {
 };
 
 export type OutletContextProps = {
-  prompt: PromptRequest;
-  promptResponse: string[];
-  setPromptResponse: () => void;
+  chatHistory: ChatEntry[];
+  setChatHistory: (response: ChatEntry[] | ((prevResp: ChatEntry[]) => ChatEntry[])) => void;
   loading: boolean;
   setLoading: (loadding: boolean) => void;
 };

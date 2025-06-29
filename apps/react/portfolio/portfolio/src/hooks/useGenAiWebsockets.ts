@@ -1,19 +1,21 @@
+import type { ChatEntry } from '@aklapper/types';
 import { useEffect, type Dispatch, type SetStateAction } from 'react';
 import type { Socket } from 'socket.io-client';
 
-type PromptResponse = {
-  response: string;
-};
-
-const useGenAiWebsockets = (socket: Socket, setPromptResponse: Dispatch<SetStateAction<string[]>>) => {
+const useGenAiWebsockets = (socket: Socket, setChatHistory: Dispatch<SetStateAction<ChatEntry[]>>) => {
   useEffect(() => {
     if (!socket.connected) socket.connect();
 
     socket.on('connect', () => {
       console.log(`Connected as ${socket.id}`);
-      socket.on('chunk', chunk => {
-        const { response } = chunk as PromptResponse;
-        setPromptResponse(prev => [...prev, response]);
+      socket.on('chunk', (chunk: ChatEntry) => {
+        const chatResponse = chunk;
+
+        setChatHistory(prev =>
+          prev.map(chat =>
+            chat.id === chatResponse.id ? { ...chat, response: (chat.response += chatResponse.response) } : chat,
+          ),
+        );
       });
     });
 
