@@ -387,9 +387,9 @@ const PromptBuilder = ({ loading, setUserChatEntry, setLoading }: PromptBuilderP
                 variant='text'
                 type='button'
                 id='copy-and-add-to-input'
-                onClick={() => handleCopyPromptToClipboardAndAddToInput(builtPrompt, setOpenPromptResponse, nav)}
+                onClick={() => handleCopyPromptToClipboard(builtPrompt, setOpenPromptResponse, nav)}
               >
-                Copy & Add to Input
+                Copy Prompt
               </Button>
             )}
             {builtPrompt && (
@@ -422,7 +422,7 @@ export default PromptBuilder;
  * @param {Dispatch<SetStateAction<boolean>>} setOpenPromptResponse - A function to close the prompt response modal.
  * @param {NavigateFunction} nav - A function to navigate to the text section.
  */
-const handleCopyPromptToClipboardAndAddToInput = async (
+const handleCopyPromptToClipboard = async (
   builtPrompt: string | null,
   setOpenPromptResponse: Dispatch<SetStateAction<boolean>>,
   nav: NavigateFunction,
