@@ -1,14 +1,20 @@
 import { SocketServer } from '@aklapper/socket-io-server';
 import cors, { type CorsOptions } from 'cors';
+import { configDotenv } from 'dotenv';
 import express, { type Express } from 'express';
 import { createServer } from 'http';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { join } from 'path';
-import { cwd } from 'process';
 import type { ServerOptions } from 'socket.io';
 import handleTextDataChunks from './controllers/gen-ai-text-handler.js';
 import router, { Routes } from './routes/routes.js';
 
-const __dirname = join(cwd(), 'apps/nodejs/vertex/vertex-api');
+const __filename = fileURLToPath(import.meta.url);
+
+const __dirname = dirname(__filename);
+
+configDotenv({ path: resolve(__dirname, '../../../../..', 'packages/gen-ai/vertex-ai/env/.env') });
 
 const app: Express = express();
 

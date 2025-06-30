@@ -8,4 +8,5 @@ const StyledCard = styled(Box)(({ theme }) => ({
   width: '100%',
 }));
 
+// StyledCard.displayName = 'Styled Card';
 export default StyledCard;

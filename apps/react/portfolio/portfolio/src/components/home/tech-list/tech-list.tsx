@@ -18,10 +18,15 @@ export const TechList = ({ data, id, labelText, variant, placement }: TechListPr
     data-testid={`tech-list-${id}-title-text`}
     sx={{
       flexBasis: '24%',
-      color: Theme.palette.primary.dark,
     }}
   >
-    <SectionTitle id={id} title={labelText} placement={placement} variant={variant} />
+    <SectionTitle
+      id={id}
+      title={labelText}
+      placement={placement}
+      variant={variant}
+      style={{ borderBottom: `1px solid ${Theme.palette.primary.dark}` }}
+    />
 
     <List id={`${id}-list`} sx={{ display: 'flex', flexDirection: 'column' }}>
       {data.map(entry => (

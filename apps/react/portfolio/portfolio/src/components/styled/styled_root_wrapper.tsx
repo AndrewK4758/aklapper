@@ -9,4 +9,5 @@ const StyledRootComponentWrapper = styled(Box)(({ theme }) => ({
   padding: theme.spacing(4),
 }));
 
+// StyledRootComponentWrapper.displayName = 'Styled Root Component Wrapper';
 export default StyledRootComponentWrapper;

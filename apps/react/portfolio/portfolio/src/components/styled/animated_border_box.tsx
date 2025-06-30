@@ -19,4 +19,5 @@ const AnimatedBorderBox = styled(Box)(({ theme }) => ({
   animation: `${spin} 2s linear infinite`,
 }));
 
+// AnimatedBorderBox.displayName = 'Animated Border';
 export default AnimatedBorderBox;

@@ -1,4 +1,3 @@
-import Button from '@mui/material/Button';
 import { useState, type ReactElement } from 'react';
 import CenteredFlexDiv from '../../styled/centered_flexbox.js';
 import StyledCard from '../../styled/styled_card';
@@ -12,21 +11,15 @@ const initVals: SearchValues = {
   album: [],
 };
 
-interface SearchProps {
-  setOpen: (isOpen: boolean) => void;
-}
-
 /**
  * This component renders a search modal for the CRUD section.
  * It allows users to search for artists or albums in the database.
  * The search is automatic when user pauses typing for .6 secords.
  *
- * @param {SearchProps} props - The props for the Search component.
- * @param {boolean} props.open - Whether the search modal is open.
  * @returns {ReactElement} The rendered search modal component.
  */
 
-const Search = ({ setOpen }: SearchProps): ReactElement => {
+const Search = (): ReactElement => {
   const [searchValues, setSearchValues] = useState<SearchValues>(initVals);
   const [searchTarget, setSearchTarget] = useState<keyof SearchValues>('artist');
 
@@ -47,10 +40,6 @@ const Search = ({ setOpen }: SearchProps): ReactElement => {
         >
           <SearchRadioButtons searchTarget={searchTarget} handleRadioButtonSelect={handleRadioButtonSelect} />
           <SearchInput searchTarget={searchTarget} setSearchValues={handleSetSearchValues} />
-
-          <Button id={'crud-search-close-button'} onClick={() => setOpen(false)} sx={{ marginRight: 1.5 }}>
-            Close
-          </Button>
         </StyledCard>
       </CenteredFlexDiv>
       {searchValues[searchTarget].length ? (

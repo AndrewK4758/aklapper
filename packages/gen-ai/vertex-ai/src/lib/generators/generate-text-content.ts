@@ -2,7 +2,7 @@ import type { ChatEntry } from '@aklapper/types';
 import type { GenerateContentRequest } from '@google-cloud/vertexai';
 import generativeTextModel from '../models/generative-text-model.js';
 
-export const generateTextContent = async ({ prompt, fileData }: ChatEntry) => {
+export async function generateTextContent({ prompt, fileData }: ChatEntry) {
   const request: GenerateContentRequest = {
     contents: [
       {
@@ -20,6 +20,6 @@ export const generateTextContent = async ({ prompt, fileData }: ChatEntry) => {
   }
 
   return await generativeTextModel.generateContentStream(request);
-};
+}
 
 export default generateTextContent;

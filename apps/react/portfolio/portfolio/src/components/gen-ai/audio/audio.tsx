@@ -1,26 +1,15 @@
 import type { MRC } from '@aklapper/media-recorder';
-import { Text, useScrollIntoView } from '@aklapper/react-shared';
+import { useScrollIntoView } from '@aklapper/react-shared';
 import type { ChatEntry } from '@aklapper/types';
-import type { FileData } from '@google-cloud/vertexai';
-import HearingIcon from '@mui/icons-material/Hearing';
-import MicNoneIcon from '@mui/icons-material/MicNone';
-import MicOffIcon from '@mui/icons-material/MicOff';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Container from '@mui/material/Container';
-import Paper from '@mui/material/Paper';
-import axios from 'axios';
-import { useContext, useEffect, useRef, useState, type ReactElement, type RefObject } from 'react';
+import { useContext, useEffect, useRef, useState, type ReactElement } from 'react';
 import { useOutletContext } from 'react-router';
-import ShortUniqueId from 'short-unique-id';
 import { io, type ManagerOptions, type Socket } from 'socket.io-client';
-import { MediaRecorderClientContext, MediaRecorderClientContextProps } from '../../../contexts/audio-context.jsx';
-import { genAiAudioIconButtonSxProps, topLevelModeStyle } from '../../../styles/gen-ai-styles.jsx';
-import { buttonSXProps } from '../../../styles/pages-styles.js';
-import { pagesTitleSx } from '../../../styles/pages-styles.jsx';
+import { MediaRecorderClientContext, MediaRecorderClientContextProps } from '../../../contexts/audio-context';
+import Theme from '../../../styles/themes/theme';
 import type { OutletContextProps } from '../../../types/types.js';
-import { audioText } from '../static/audio-text.jsx';
-import AudioVisualizer from './audio-visualizer.jsx';
+import AudioHeader from './header';
+import Visualizer from './visualizer';
 
 const options: MediaRecorderOptions = {
   mimeType: 'audio/webm',
@@ -62,8 +51,12 @@ const GenAiAudio = (): ReactElement => {
   useEffect(() => {
     if (!socket.connected) socket.connect();
 
-    socket.on('chunk', ({ response }) => {
-      setChatHistory(prev => [...prev, response]);
+    socket.on('chunk', (chatResponse: ChatEntry) => {
+      setChatHistory(prev =>
+        prev.map(chat =>
+          chat.id === chatResponse.id ? { ...chat, response: (chat.response += chatResponse.response) } : chat,
+        ),
+      );
     });
 
     return () => {
@@ -71,137 +64,49 @@ const GenAiAudio = (): ReactElement => {
         socket.disconnect();
         socket.removeAllListeners();
       }
+      if (mrcRef.current) {
+        mrcRef.current?.mediaRecorder.stream.getAudioTracks().forEach(track => track.stop());
+        mrcRef.current?.mediaRecorder.stop();
+      }
     };
-  });
+  }, []);
 
   useEffect(() => {
     if (!stream) createStream(setStream, { audio: true, video: false });
-    if (stream) {
+    if (stream && !mrcRef.current) {
       mrcRef.current = new MRC(stream, options);
     }
-  }, [MRC, createStream, setStream, stream]);
+  }, [stream]);
 
   useEffect(() => {
     if (audRef.current && blob) {
-      const url = URL.createObjectURL(blob as Blob);
+      const url = URL.createObjectURL(blob);
       audRef.current.src = url;
     }
   }, [blob]);
 
-  const uploadFile = async () => {
-    if (blob) {
-      const path = await handleFileUpload(audRef, blob);
-
-      const id = new ShortUniqueId().rnd(6);
-      const fileData: FileData = {
-        fileUri: path,
-        mimeType: blob.type,
-      };
-
-      const chatEntry: ChatEntry = {
-        id: id,
-        fileData: fileData,
-        prompt: '',
-        response: '',
-      };
-
-      console.log(chatEntry);
-
-      socket.emit('prompt', chatEntry);
-    }
-  };
-
   return (
-    <Box id='gen-audio-wrapper' ref={divRef} sx={topLevelModeStyle}>
-      <Paper key={'gen-audio-paper'} id='gen-audio-paper'>
-        <Container component={'section'} key={'gen-audio-container'} id='gen-audio-container'>
-          <Box component={'section'} key={'gen-audio-header-wrapper'} id={'gen-audio-header-wrapper'}>
-            <Text component={'h3'} variant='h3' children={'Audio'} sx={pagesTitleSx} />
+    <Box
+      id='gen-audio-wrapper'
+      ref={divRef}
+      sx={{
+        backgroundColor: Theme.palette.background.paper,
+        borderRadius: Theme.shape.borderRadius,
+        padding: Theme.spacing(4),
+      }}
+    >
+      <AudioHeader
+        audRef={audRef}
+        blob={blob}
+        mrcRef={mrcRef}
+        socket={socket}
+        setBlob={setBlob}
+        setRecording={setRecording}
+      />
 
-            <Text component={'p'} variant='body1' children={audioText} />
-          </Box>
-          <Box component={'section'} key={'gen-audio-recorder-wrapper'} id='gen-audio-recorder-wrapper'>
-            {recording && <AudioVisualizer stream={stream as MediaStream} />}
-            <audio title='audio-track.webm' ref={audRef} />
-          </Box>
-
-          <Box
-            component={'section'}
-            id='gen-audio-recorder-buttons-wrapper'
-            display={'flex'}
-            justifyContent={'space-evenly'}
-          >
-            {blob && (
-              <Button onClick={() => uploadFile()} sx={buttonSXProps}>
-                Query Gemini
-              </Button>
-            )}
-
-            <Button
-              endIcon={<MicNoneIcon sx={genAiAudioIconButtonSxProps} />}
-              onClick={() => {
-                mrcRef.current?.startRecording(setBlob);
-                setRecording(true);
-              }}
-              sx={buttonSXProps}
-            >
-              Start
-            </Button>
-
-            <Button
-              endIcon={<MicOffIcon sx={genAiAudioIconButtonSxProps} />}
-              onClick={() => {
-                mrcRef.current?.stopRecording();
-                setRecording(false);
-              }}
-              sx={buttonSXProps}
-            >
-              Stop
-            </Button>
-
-            <Button
-              endIcon={<HearingIcon sx={genAiAudioIconButtonSxProps} />}
-              onClick={() => audRef.current?.play()}
-              sx={buttonSXProps}
-            >
-              Listen
-            </Button>
-          </Box>
-        </Container>
-      </Paper>
+      <Visualizer recording={recording} ref={audRef} stream={stream} />
     </Box>
   );
 };
 
 export default GenAiAudio;
-
-const baseUrl = import.meta.env.VITE_VERTEX_API_URL;
-
-/**
- * This function handles uploading the recorded audio to the server.
- *
- * @param {RefObject<HTMLAudioElement | null>} fileInputRef - A ref to the audio element.
- * @param {Blob} blob - The recorded audio blob.
- * @returns {Promise<string | undefined>} A promise that resolves with the path to the uploaded audio file.
- */
-
-const handleFileUpload = async (fileInputRef: RefObject<HTMLAudioElement | null>, blob: Blob) => {
-  try {
-    if (fileInputRef.current) {
-      const file = new File([blob], fileInputRef.current.title);
-      const contextPath = sessionStorage.getItem('context-path');
-      const resp = await axios.post(
-        `${baseUrl}/upload`,
-        { file: file, contextPath: contextPath },
-        { headers: { 'Content-Type': 'multipart/form-data' } },
-      );
-
-      const { path } = resp.data;
-
-      return path;
-    }
-  } catch (error) {
-    console.error(error);
-    return null;
-  }
-};

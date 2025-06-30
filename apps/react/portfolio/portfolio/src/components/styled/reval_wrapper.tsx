@@ -24,4 +24,6 @@ const RevealWrapper: ComponentType<RevealWrapperProps> = styled(Box, {
   ],
 }));
 
+// RevealWrapper.displayName = 'Reveal Wrapper';
+
 export default RevealWrapper;

@@ -40,7 +40,7 @@ const GenAiHome = (): ReactElement => {
   };
 
   return (
-    <CenteredFlexDiv ref={divRef} as={'div'} id='gen-ai-wrapper'>
+    <CenteredFlexDiv ref={divRef} as={'div'} id='gen-ai-wrapper' sx={{ padding: 0 }}>
       <GenAiHeader isPromptBuilderOpen={isPromptBulderOpen} setIsPromptBuilderOpen={handleSetPromptBulderOpen} />
 
       {isPromptBulderOpen && (
@@ -53,11 +53,11 @@ const GenAiHome = (): ReactElement => {
 
       {chatHistory.length ? <Chat chatHistory={chatHistory} loading={loading} /> : null}
 
-      <MediaRecorderClientContextProvider>
-        <Box as={'div'} id='gen-ai-outlet-wrapper' sx={{ width: '65%' }}>
+      <Box as={'div'} id='gen-ai-outlet-wrapper' sx={{ width: '65%' }}>
+        <MediaRecorderClientContextProvider>
           <Outlet context={{ chatHistory, loading, setChatHistory, setLoading } as OutletContextProps} />
-        </Box>
-      </MediaRecorderClientContextProvider>
+        </MediaRecorderClientContextProvider>
+      </Box>
     </CenteredFlexDiv>
   );
 };

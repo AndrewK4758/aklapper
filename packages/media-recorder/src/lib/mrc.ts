@@ -1,5 +1,3 @@
-import type { Dispatch, SetStateAction } from 'react';
-
 export interface IMediaRecorderClient {
   mediaRecorder: MediaRecorder;
   recordedChunks: Blob[];
@@ -24,8 +22,8 @@ export class MRC implements IMediaRecorderClient {
           channelCount: 2,
           echoCancellation: true,
           facingMode: { exact: 'front', ideal: 'front' },
-          noiseSuppression: true
-        }
+          noiseSuppression: true,
+        },
       });
     } else return await navigator.mediaDevices.getUserMedia(constraints);
   };
@@ -35,7 +33,7 @@ export class MRC implements IMediaRecorderClient {
       this.recordedChunks.push(event.data);
     };
   }
-  private _setOnStop(setStateFunction: Dispatch<SetStateAction<Blob | null>>) {
+  private _setOnStop(setStateFunction: (blob: Blob) => void) {
     this.mediaRecorder.onstop = () => {
       const blobData = new Blob(this.recordedChunks, { type: this.options.mimeType });
       setStateFunction(blobData);
@@ -43,7 +41,7 @@ export class MRC implements IMediaRecorderClient {
     };
   }
 
-  startRecording(setStateFunction: Dispatch<SetStateAction<Blob | null>>) {
+  startRecording(setStateFunction: (blob: Blob) => void) {
     this._setOnDataAvailable();
     this._setOnStop(setStateFunction);
 

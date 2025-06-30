@@ -23,4 +23,6 @@ const HelperTextBox: ComponentType<HelperTextBoxProps> = styled(Box, {
   ],
 }));
 
+// HelperTextBox.displayName = 'Helper Text Box';
+
 export default HelperTextBox;

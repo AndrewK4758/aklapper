@@ -9,4 +9,5 @@ const StyledIconTooltip: ComponentType<TooltipProps> = styled(Tooltip)(({ theme 
   },
 }));
 
+StyledIconTooltip.displayName = 'Styled Icon Tooltip';
 export default StyledIconTooltip;

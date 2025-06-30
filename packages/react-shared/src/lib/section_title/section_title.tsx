@@ -58,7 +58,7 @@ export default function SectionTitle({
       <Box>{Icon}</Box>
     </Box>
   ) : (
-    <Typography id={id} variant={variant} sx={titleSx}>
+    <Typography id={id} variant={variant} sx={titleSx} style={style}>
       {title}
     </Typography>
   );

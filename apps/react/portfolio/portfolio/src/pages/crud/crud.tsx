@@ -1,7 +1,7 @@
 import { Waiting } from '@aklapper/react-shared';
 import Box from '@mui/material-pigment-css/Box';
-import Container from '@mui/material-pigment-css/Container';
 import Button from '@mui/material/Button';
+import Divider from '@mui/material/Divider';
 import type { SxProp } from '@pigment-css/react';
 import { lazy, ReactElement, Suspense, useState } from 'react';
 import { Outlet } from 'react-router';
@@ -15,9 +15,8 @@ import Theme from '../../styles/themes/theme';
 const Search = lazy(() => import('../../components/crud/search/search'));
 
 const crudHeaderWrapperSxProps: SxProp = {
-  flex: '0 1 auto',
-  paddingTop: 0,
-  paddingBottom: 0,
+  display: 'flex',
+  padding: `${Theme.spacing(4)} ${Theme.spacing(8)}`,
   backgroundColor: Theme.palette.background.paper,
   borderRadius: Theme.shape.borderRadius,
 };
@@ -44,32 +43,33 @@ export default function Crud(): ReactElement {
         flexDirection: 'column',
         gap: Theme.spacing(4),
         borderRadius: CRUD_THEME.shape.borderRadius,
-        width: '100%',
-        backgroundColor: 'transparent',
       }}
     >
-      <CenteredFlexDiv sx={crudHeaderWrapperSxProps}>
-        <Container disableGutters sx={{ display: 'flex', flexDirection: 'row' }}>
+      <Box sx={crudHeaderWrapperSxProps}>
+        <Divider flexItem orientation='vertical' />
+        <Box sx={{ display: 'flex', flexDirection: 'row' }}>
           <CenteredFlexDiv>
             <CrudHeader />
           </CenteredFlexDiv>
-
-          <CenteredFlexDiv sx={{ padding: 0, width: '100%' }}>
+          <CenteredFlexDiv sx={{ padding: 0, width: '100%', justifyContent: 'center' }}>
             <CrudNavBar />
             <Button onClick={handleSetSearchClick} sx={{ color: CRUD_THEME.palette.secondary.main }}>
-              {'Search'}
+              {!searchIsOpen ? 'Search' : 'Close'}
             </Button>
           </CenteredFlexDiv>
-        </Container>
-      </CenteredFlexDiv>
+          <Divider flexItem orientation='vertical' />
+        </Box>
+      </Box>
 
       <Suspense fallback={<Waiting src={waiting} />}>
-        <CenteredFlexDiv sx={crudHeaderWrapperSxProps}>
-          {searchIsOpen && <Search setOpen={handleSetSearchClick} />}
+        <CenteredFlexDiv
+          sx={{ backgroundColor: Theme.palette.background.paper, borderRadius: Theme.shape.borderRadius, padding: 0 }}
+        >
+          {searchIsOpen && <Search />}
         </CenteredFlexDiv>
       </Suspense>
 
-      <Box id={`crud-app-wrapper`} sx={{ width: '100%' }}>
+      <Box id={`crud-app-wrapper`}>
         <Suspense fallback={<Waiting src={waiting} />}>
           <Outlet />
         </Suspense>

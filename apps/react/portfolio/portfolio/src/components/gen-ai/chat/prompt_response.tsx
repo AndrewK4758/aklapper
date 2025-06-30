@@ -30,6 +30,7 @@ export default function PromptResponse({
   chatHistory,
   spanRef,
 }: PromptResponseProps) {
+  console.log(expandedResponses);
   return (
     <Box
       sx={{
@@ -45,7 +46,7 @@ export default function PromptResponse({
       {loading && idx === chatHistory.length - 1 ? (
         <Waiting src={waiting} />
       ) : (
-        <Collapse in={expandedResponses[chat.id]} collapsedSize={'3ch'}>
+        <Collapse in={expandedResponses[chat.id] ?? true} collapsedSize={'3ch'}>
           <Box id={chat.id} sx={{ overflowY: expandedResponses[chat.id] ? 'auto' : 'hidden', maxHeight: '17.5vh' }}>
             <Text variant='body2' children={chat.response} sx={{ lineHeight: 1.5, textAlign: 'start' }} />
           </Box>

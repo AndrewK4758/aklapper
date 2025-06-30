@@ -5,9 +5,10 @@ const CenteredFlexDiv = styled(Box)(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  justifyContent: 'center',
-  gap: theme.spacing(12),
+  justifyContent: 'flex-start',
+  gap: theme.spacing(8),
   padding: theme.spacing(4),
 }));
 
+// CenteredFlexDiv.displayName = 'Centered Div';
 export default CenteredFlexDiv;

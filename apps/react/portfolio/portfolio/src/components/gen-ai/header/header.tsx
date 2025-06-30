@@ -4,10 +4,10 @@ import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Divider from '@mui/material/Divider';
 import { useNavigate } from 'react-router';
-import { body, title } from '../../../pages/static/gen-ai-text';
+import { BODY_TEXT, TITLE } from '../../../pages/static/gen-ai-text';
 import Theme from '../../../styles/themes/theme';
 import AnimatedBorderBox from '../../styled/animated_border_box';
-import StyledCard from '../../styled/styled_card';
+import CenteredFlexDiv from '../../styled/centered_flexbox';
 
 interface GenAiHeaderProps {
   isPromptBuilderOpen: boolean;
@@ -22,31 +22,34 @@ export default function GenAiHeader({ isPromptBuilderOpen, setIsPromptBuilderOpe
   };
 
   return (
-    <StyledCard sx={{ display: 'flex', flexDirection: 'column', paddingX: Theme.spacing(4) }}>
-      <Box
-        as={'section'}
-        id='gen-ai-title-wrapper'
-        sx={{ display: 'flex', alignItems: 'center', padding: Theme.spacing(4) }}
-      >
-        <Text variant='h4' children={title} sx={{ flex: '0 1 25%' }} />
+    <CenteredFlexDiv
+      sx={{
+        backgroundColor: Theme.palette.background.paper,
+        borderRadius: Theme.shape.borderRadius,
+        justifyContent: 'flex-start',
+        gap: Theme.spacing(2),
+      }}
+    >
+      <Box as={'section'} id='gen-ai-title-wrapper' sx={{ display: 'flex', alignItems: 'center' }}>
+        <Text variant='h4' children={TITLE} sx={{ flex: '0 1 25%' }} />
         <Divider orientation='vertical' flexItem />
         <Text
           id='gen-ai-header-text'
           variant='body1'
-          children={body}
-          sx={{ flex: '0 1 75%', padding: Theme.spacing(4) }}
+          children={BODY_TEXT}
+          sx={{ flex: '0 1 75%', padding: Theme.spacing(4), textAlign: 'start' }}
         />
       </Box>
 
-      <AnimatedBorderBox>
+      <AnimatedBorderBox sx={{ width: '100%' }}>
         <ButtonGroup id={'gen-ai-button-group'} color='primary' fullWidth={true}>
-          <Button variant='text' id='gen-ai-text-button' onClick={() => handleNavToGenAiSection('text')}>
+          <Button id='gen-ai-text-button' onClick={() => handleNavToGenAiSection('text')}>
             Text
           </Button>
-          <Button variant='text' id='gen-ai-image' onClick={() => handleNavToGenAiSection('image')}>
+          <Button id='gen-ai-image' onClick={() => handleNavToGenAiSection('image')}>
             Image
           </Button>
-          <Button variant='text' id='gen-ai-audio' onClick={() => handleNavToGenAiSection('audio')}>
+          <Button id='gen-ai-audio' onClick={() => handleNavToGenAiSection('audio')}>
             Audio
           </Button>
         </ButtonGroup>
@@ -61,6 +64,6 @@ export default function GenAiHeader({ isPromptBuilderOpen, setIsPromptBuilderOpe
       >
         {isPromptBuilderOpen ? 'Close' : 'Prompt Builder'}
       </Button>
-    </StyledCard>
+    </CenteredFlexDiv>
   );
 }

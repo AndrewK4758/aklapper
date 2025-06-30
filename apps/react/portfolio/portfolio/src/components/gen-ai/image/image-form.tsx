@@ -34,12 +34,7 @@ import {
 } from '../../../styles/gen-ai-styles.jsx';
 import { buttonSXProps, centerFlex, pagesTitleSx } from '../../../styles/pages-styles.jsx';
 import type { OutletContextProps } from '../../../types/types.js';
-import {
-  imageGenDescription,
-  promptTooltipText,
-  sampleCountTooltipText,
-  seedTooltipText,
-} from '../static/image-text.jsx';
+import { imageGenDescription, promptTooltipText } from '../static/image-text.jsx';
 
 const validationSchema = Yup.object({
   prompt: Yup.string().required('The prompt is required'),
@@ -56,13 +51,15 @@ const validationSchema = Yup.object({
  */
 
 const ImageForm = (): JSX.Element => {
-  const { prompt } = useOutletContext<OutletContextProps>();
+  const { chatHistory, setChatHistory } = useOutletContext<OutletContextProps>();
   const submit = useSubmit();
   const { state } = useNavigation();
   const pics = useActionData() as string[];
 
+  const lastPrompt = chatHistory[chatHistory.length - 1] ?? {};
+
   const initialValues: Partial<ImagenConfig> = {
-    prompt: prompt.text === null ? '' : prompt.text,
+    prompt: lastPrompt.prompt === null ? '' : lastPrompt.prompt,
     sampleCount: 1,
     seed: 100,
     aspectRatio: AspectRatio['1:1'],
@@ -100,9 +97,6 @@ const ImageForm = (): JSX.Element => {
               placement='top'
               labelText='Prompt'
               labelVariant='h5'
-              tooltipTitle={promptTooltipText}
-              tooltipSx={tooltipSx}
-              labelTextSx={labelSx}
             />
             <TextField
               key={'image-prompt-input'}
@@ -136,9 +130,6 @@ const ImageForm = (): JSX.Element => {
                 placement='top'
                 labelText='Sample Count'
                 labelVariant='h5'
-                tooltipTitle={sampleCountTooltipText}
-                tooltipSx={tooltipSx}
-                labelTextSx={labelSx}
               />
               <RadioGroup
                 key={'image-form-sample-count'}
@@ -200,9 +191,6 @@ const ImageForm = (): JSX.Element => {
                 placement='top'
                 labelText='Aspect Ratio'
                 labelVariant='h5'
-                tooltipTitle={'Select the Aspect Ratio of the output image.'}
-                tooltipSx={tooltipSx}
-                labelTextSx={labelSx}
               />
               <Select
                 key={'image-aspect-ratio-input'}
@@ -225,16 +213,7 @@ const ImageForm = (): JSX.Element => {
             </Box>
           </Box>
           <Box component={'section'} key={'image-form-seed-box'} id='image-form-seed-box'>
-            <Label
-              id='seed-input-label'
-              htmlFor='seed'
-              placement='top'
-              labelText='Seed'
-              labelVariant='h5'
-              tooltipTitle={seedTooltipText}
-              tooltipSx={tooltipSx}
-              labelTextSx={labelSx}
-            />
+            <Label id='seed-input-label' htmlFor='seed' placement='top' labelText='Seed' labelVariant='h5' />
             <Box
               component={'section'}
               key={'slider-and-input-box'}

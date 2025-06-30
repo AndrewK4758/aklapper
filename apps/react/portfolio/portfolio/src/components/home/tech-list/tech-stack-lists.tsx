@@ -19,7 +19,6 @@ const TechStackLists = (): ReactElement => {
             key={entry[0]}
             id={entry[0]}
             labelText={entry[0]}
-            // tooltipTitle={entry[2]}
             variant={'h5'}
             data={entry[1]}
             title={entry[0]}

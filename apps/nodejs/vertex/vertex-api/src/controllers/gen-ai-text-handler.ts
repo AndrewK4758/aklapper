@@ -4,7 +4,7 @@ import { type Socket } from 'socket.io';
 
 const handleTextDataChunks: SocketCallback = (event: string, socket: Socket) => {
   socket.on(event, async (chatData: ChatEntry, callback: ({ status }: { status: number }) => void) => {
-    console.log('CHAT  DATA:', chatData);
+    console.log(`[${new Date().toLocaleDateString()} - RECEIVED]: `, chatData);
 
     const { stream } = await generateTextContent(chatData);
 
@@ -12,15 +12,16 @@ const handleTextDataChunks: SocketCallback = (event: string, socket: Socket) => 
       if (chunk.candidates) {
         if (chunk.candidates[0].content.parts[0].text) {
           const textData = chunk.candidates[0].content.parts[0].text;
+          console.log(textData);
           chatData.response += textData;
           socket.emit('chunk', chatData);
         }
       }
     }
-    console.log('all items processed');
     callback({
       status: 200,
     });
+    console.log(`[${new Date().toLocaleDateString()} - SUCCESFUL]: `, chatData);
   });
 };
 

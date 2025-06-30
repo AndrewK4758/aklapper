@@ -7,4 +7,5 @@ const ColoredBackground = styled(Box)(({ theme }) => ({
   borderRadius: theme.shape.borderRadius,
 }));
 
+// ColoredBackground.displayName = 'Colored Background';
 export default ColoredBackground;
