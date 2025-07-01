@@ -21,6 +21,7 @@ const app: Express = express();
 export const corsOptions: CorsOptions = {
   origin: [
     'http://localhost:4700',
+    'http://localhost:4800',
     'https://andrew-k.us',
     'https://www.andrew-k.us',
     'http://localhost',
