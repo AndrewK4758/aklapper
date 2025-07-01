@@ -43,10 +43,9 @@ export default function TextInput<T extends object>({
   if (searchParams)
     formik.handleBlur = (e: FocusEvent<HTMLInputElement>) => {
       //TODO crate param type to help validate correct string for url endpoint
-      console.log(e);
       handleFormikBlur<T>(e, formik, setHelperText, searchParams);
     };
-  console.log(helperText);
+
   return (
     <HelperTextBox multiline={multiline}>
       <TextField

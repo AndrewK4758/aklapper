@@ -88,6 +88,7 @@ const config: UserConfig = defineConfig({
     rollupOptions: {
       logLevel: 'info',
       experimentalLogSideEffects: true,
+
       output: {
         strict: true,
         esModule: true,
