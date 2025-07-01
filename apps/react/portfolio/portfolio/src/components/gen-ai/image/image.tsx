@@ -5,6 +5,7 @@ import Theme from '../../../styles/themes/theme';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
 import StyledCard from '../../styled/styled_card';
 import { IMAGE_TEXT } from '../static/image-text';
+import ImageResponse from './image_response';
 
 const ImageForm = lazy(() => import('./image-form.jsx'));
 
@@ -30,6 +31,7 @@ export default function Image(): ReactElement {
       </StyledCard>
       <ImageForm />
 
+      <ImageResponse />
       <span ref={scrollRef} />
     </CenteredFlexDiv>
   );

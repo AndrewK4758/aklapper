@@ -36,13 +36,6 @@ export const iconStateStyle = (state: 'loading' | 'idle' | 'submitting'): SxProp
   },
 });
 
-export const buttonSXProps: SxProps = {
-  // display: 'flex',
-  [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem',
-  },
-};
-
 export const pagesToolbarStyles: SxProps = {
   display: 'flex',
   flex: '0 1 100%',

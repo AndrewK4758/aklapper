@@ -77,7 +77,7 @@ export const Label = forwardRef<HTMLLabelElement, LabelProps>(
     );
 
     return (
-      <>
+      <Box sx={props.sx}>
         {hasTooltip ? (
           <Tooltip
             id={tooltipId}
@@ -91,7 +91,7 @@ export const Label = forwardRef<HTMLLabelElement, LabelProps>(
         ) : (
           labelContent
         )}
-      </>
+      </Box>
     );
   },
 );

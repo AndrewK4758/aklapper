@@ -60,14 +60,16 @@ export default function TextInput<T extends object>({
         rows={multiline ? 4 : 1}
         onBlur={formik.handleBlur}
         onChange={formik.handleChange}
-        onFocus={async () => {
-          await formik.setFieldTouched(name, false);
-          setHelperText(null);
-        }}
+        onFocus={async () => handleFocus<T>(formik, name, setHelperText)}
         error={formik.touched[name] && !!formik.errors[name]}
         helperText={formik.touched[name] && (formik.errors[name] as string)}
       />
       {helperText && <Text variant='caption' color='inherit' children={helperText} tabIndex={-1} />}
     </HelperTextBox>
   );
+}
+
+async function handleFocus<T>(formik: FormikProps<T>, name: string, setHelperText: (helperText: null) => void) {
+  await formik.setFieldTouched(name, false);
+  setHelperText(null);
 }

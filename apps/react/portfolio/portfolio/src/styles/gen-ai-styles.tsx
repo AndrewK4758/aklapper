@@ -22,62 +22,8 @@ export const tooltipSx: SxProps = {
   },
 };
 
-export const textInputSx: SxProps = {
-  width: '100%',
-  borderRadius: 1,
-  [Theme.breakpoints.down('md')]: {
-    fontSize: '0.875rem',
-  },
-};
-
-export const genAiImageDetailsBoxSxProps: SxProps = {
-  ...centerFlex,
-  justifyContent: 'space-around',
-  [Theme.breakpoints.down('md')]: {
-    justifyContent: 'space-between',
-  },
-};
-
 export const promptBuilderTextFieldSlotProps = {
   htmlInput: { sx: { fontSize: '0.75rem' } },
-};
-
-export const sampleCountRadioTextStyles: SxProps = {
-  display: 'flex',
-  flexDirection: 'row',
-  alignItems: 'center',
-};
-
-export const forrmControlLabelStyles: SxProps = {
-  alignContent: 'center',
-  fontSize: '1.5rem',
-  [Theme.breakpoints.down('md')]: {
-    width: 'fit-content',
-    justifyContent: 'center',
-  },
-};
-
-export const radioGroupStyles: SxProps = {
-  fontSize: '1.5rem',
-  display: 'flex',
-  flexDirection: 'row',
-  gap: 4,
-  paddingLeft: 2,
-  [Theme.breakpoints.down('md')]: {
-    p: 0,
-    flexWrap: 'wrap',
-    flex: '0 1 70%',
-  },
-};
-
-export const genAiSampleCountTextSxProps: SxProps = {
-  [Theme.breakpoints.down('md')]: {
-    fontSize: '1rem',
-  },
-};
-
-export const genAiImageSampleCountRadioSxProps: SxProps = {
-  fontSize: '1rem',
 };
 
 export const topLevelModeStyle: SxProps = {
@@ -112,33 +58,12 @@ export const promptBuilderPaperSxProps: SxProps = { height: 'fit-content', minHe
 
 export const coloredTitleStyles: SxProps = { textAlign: 'center' };
 
-export const promptBuillderFormBoxSxProps: SxProps<typeof Theme> = {
-  ...flexColumnStyles,
-  gap: 2,
-  [Theme.breakpoints.down('md')]: {
-    gap: 1,
-  },
-};
-
 export const genAiImageHeaderBoxSxProps: SxProps<typeof Theme> = {
   ...flexColumnStyles,
   gap: 4,
   [Theme.breakpoints.down('md')]: {
     gap: 1,
   },
-};
-export const genAiSliderInputSlotProps = {
-  input: {
-    'aria-labelledby': 'seed-slider',
-    sx: { textAlign: 'center', fontSize: '1.5rem', color: Theme.palette.primary.main },
-  },
-};
-
-export const genAiGenerateImageButtonBoxSxProps: SxProps = {
-  ...centerFlex,
-  flex: '0 1 50%',
-  height: 'fit-content',
-  [Theme.breakpoints.down('md')]: { flex: '1 0 100%' },
 };
 
 export const genAiAudioIconButtonSxProps: SxProps = {
