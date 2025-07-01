@@ -20,13 +20,7 @@ export default function AnimatedContactMenu({ isOpen, handleOpenEmail }: Animate
   }, []);
 
   return (
-    <ContactRevealWrapper
-      suppressHydrationWarning
-      id='contact-menu-box'
-      contactRef={contactRef}
-      dynamicWidth={contactWidth}
-      isOpen={isOpen}
-    >
+    <ContactRevealWrapper contactRef={contactRef} dynamicWidth={contactWidth} isOpen={isOpen}>
       <ContactMenu isOpen={isOpen} handleOpenEmail={handleOpenEmail} />
     </ContactRevealWrapper>
   );

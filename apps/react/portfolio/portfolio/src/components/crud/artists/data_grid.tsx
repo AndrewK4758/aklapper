@@ -13,7 +13,7 @@ import { useCallback, useState, type Dispatch, type SetStateAction } from 'react
 import { useNavigate } from 'react-router';
 import useFetchDataGridData from '../../../hooks/useFetchDataGridData';
 import loadArtists from '../../../services/loaders/crud-loaders/load-artists';
-import CRUD_THEME from '../../../styles/themes/crud_theme';
+import { DATA_GRID_BG } from '../../../styles/base/base_styles';
 import Theme from '../../../styles/themes/theme';
 
 export type PaginationModel = {
@@ -136,7 +136,7 @@ export default function ArtistDataGrid({ rows, setRows, COUNT, setRowCountState 
       onProcessRowUpdateError={error => console.error(error)}
       sx={{
         '&.MuiDataGrid-root': {
-          backgroundColor: CRUD_THEME.palette.background.default,
+          backgroundColor: DATA_GRID_BG,
         },
         '& .MuiDataGrid-footerContainer': {
           backgroundColor: Theme.palette.background.paper,

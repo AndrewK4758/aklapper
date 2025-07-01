@@ -1,21 +1,21 @@
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Modal from '@mui/material/Modal';
-import type { JSX } from 'react';
+import type { ReactElement } from 'react';
 import { useNavigate } from 'react-router';
 import PrivacyPolicyText from '../../pages/static/privacy-policy-text.jsx';
-import { baseStyleForLayoutItems } from '../../styles/layout-styles.jsx';
+import CenteredFlexDiv from '../styled/centered_flexbox';
 
 /**
  * This component renders the privacy policy page as a modal dialog.
  *
- * @returns {JSX.Element} The rendered PrivacyPolicy component.
+ * @returns {ReactElement} The rendered PrivacyPolicy component.
  */
 
-export const PrivacyPolicy = (): JSX.Element => {
+export const PrivacyPolicy = (): ReactElement => {
   const nav = useNavigate();
   return (
-    <Box component={'div'} id='privacy-policy-wrapper' sx={{ ...baseStyleForLayoutItems, justifyContent: 'center' }}>
+    <CenteredFlexDiv id='privacy-policy-wrapper' sx={{ justifyContent: 'center' }}>
       <Modal
         id={'privacy-policy-modal'}
         open={true}
@@ -44,7 +44,7 @@ export const PrivacyPolicy = (): JSX.Element => {
           </Box>
         </Box>
       </Modal>
-    </Box>
+    </CenteredFlexDiv>
   );
 };
 export default PrivacyPolicy;

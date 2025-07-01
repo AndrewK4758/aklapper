@@ -3,7 +3,9 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import { addEntrySteps } from '../../../pages/static/crud-text';
+import Theme from '../../../styles/themes/theme';
 import type { CompletedState } from '../../../types/types';
+import CenteredFlexDiv from '../../styled/centered_flexbox';
 
 interface AddEntryStepperButtonsProps {
   activeStep: number;
@@ -27,7 +29,7 @@ export default function AddEntryStepperButtons({
   totalSteps,
 }: AddEntryStepperButtonsProps) {
   return (
-    <Box>
+    <CenteredFlexDiv sx={{ p: 0, alignItems: 'flex-start', gap: Theme.spacing(2) }}>
       {allStepsCompleted() ? (
         <Text variant='body1' children={'All steps completed - Please Submit Entry to save'} />
       ) : (
@@ -52,6 +54,6 @@ export default function AddEntryStepperButtons({
           </Box>
         </>
       )}
-    </Box>
+    </CenteredFlexDiv>
   );
 }

@@ -9,7 +9,6 @@ import waiting from '../../assets/images/swirly-dots-to-chrome.webp';
 import CrudNavBar from '../../components/crud/nav_bar';
 import CrudHeader from '../../components/crud/page_header.js';
 import CenteredFlexDiv from '../../components/styled/centered_flexbox';
-import CRUD_THEME from '../../styles/themes/crud_theme';
 import Theme from '../../styles/themes/theme';
 
 const Search = lazy(() => import('../../components/crud/search/search'));
@@ -42,7 +41,7 @@ export default function Crud(): ReactElement {
         display: 'flex',
         flexDirection: 'column',
         gap: Theme.spacing(4),
-        borderRadius: CRUD_THEME.shape.borderRadius,
+        borderRadius: Theme.shape.borderRadius,
       }}
     >
       <Box sx={crudHeaderWrapperSxProps}>
@@ -53,7 +52,7 @@ export default function Crud(): ReactElement {
           </CenteredFlexDiv>
           <CenteredFlexDiv sx={{ padding: 0, width: '100%', justifyContent: 'center' }}>
             <CrudNavBar />
-            <Button onClick={handleSetSearchClick} sx={{ color: CRUD_THEME.palette.secondary.main }}>
+            <Button onClick={handleSetSearchClick} sx={{ color: Theme.palette.primary.contrastText }}>
               {!searchIsOpen ? 'Search' : 'Close'}
             </Button>
           </CenteredFlexDiv>

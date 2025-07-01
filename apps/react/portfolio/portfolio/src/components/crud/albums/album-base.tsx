@@ -5,7 +5,7 @@ import Container from '@mui/material/Container';
 import { Suspense, useState, type ReactElement } from 'react';
 import { Outlet } from 'react-router';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
-import { allDataGridsWrapperSxProps, artistOutletWrapperSxProps, artistsSxProps } from '../../../styles/crud/data_grid';
+import { allDataGridsWrapperSxProps, artistsSxProps } from '../../../styles/crud/data_grid';
 import Theme from '../../../styles/themes/theme';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
 import DataGridHeader from '../data_grid_header';
@@ -23,16 +23,26 @@ const Album = (): ReactElement => {
   const [rows, setRows] = useState<album[] | null>(null);
   return (
     <CenteredFlexDiv id='albums' sx={allDataGridsWrapperSxProps}>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: Theme.spacing(4), flex: '0 1 50%' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: Theme.spacing(4),
+          flex: '0 1 50%',
+          backgroundColor: 'transparent',
+        }}
+      >
         <Box id='album-box' sx={artistsSxProps}>
           <DataGridHeader title='Album List' />
-          <Container id={'add-album-box'} sx={{ paddingY: 0 }}>
+          <Container id={'add-album-box'}>
             <AddAlbum setRows={setRows} />
           </Container>
+        </Box>
+        <Box>
           <AlbumBaseDataGrid rows={rows} setRows={setRows} />
         </Box>
       </Box>
-      <Box id='tracks-on-album-box' sx={artistOutletWrapperSxProps}>
+      <Box id='tracks-on-album-box' sx={{ flex: '0 1 50%' }}>
         <Suspense fallback={<Waiting src={waiting} />}>
           <Outlet />
         </Suspense>

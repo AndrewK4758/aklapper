@@ -11,7 +11,7 @@ import useFetchDataGridData from '../../../hooks/useFetchDataGridData';
 import handleDeleteTrack from '../../../services/actions/crud-actions/handle-delete-track.js';
 import handleUpdateTrack from '../../../services/actions/crud-actions/handle-update-track.js';
 import loadAlbumTracks from '../../../services/loaders/crud-loaders/load-album-tracks';
-import CRUD_THEME from '../../../styles/themes/crud_theme';
+import { DATA_GRID_BG } from '../../../styles/base/base_styles';
 import Theme from '../../../styles/themes/theme';
 import type { PaginationModel } from '../artists/data_grid';
 
@@ -154,7 +154,7 @@ export default function TracksDataGrid({ rows, setRows }: TracksDataGridProps) {
       onProcessRowUpdateError={error => console.error(error)}
       sx={{
         '&.MuiDataGrid-root': {
-          backgroundColor: CRUD_THEME.palette.background.default,
+          backgroundColor: DATA_GRID_BG,
         },
         '& .MuiDataGrid-footerContainer': {
           backgroundColor: Theme.palette.background.paper,

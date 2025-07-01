@@ -1,6 +1,6 @@
 import { Text } from '@aklapper/react-shared';
 import Container from '@mui/material-pigment-css/Container';
-import CRUD_THEME from '../../styles/themes/crud_theme.js';
+import Theme from '../../styles/themes/theme';
 
 interface DataGridHeaderProps {
   title: string;
@@ -8,7 +8,7 @@ interface DataGridHeaderProps {
 
 export default function DataGridHeader({ title }: DataGridHeaderProps) {
   return (
-    <Container id={`${title}-title-box`} sx={{ paddingTop: CRUD_THEME.spacing(2) }}>
+    <Container id={`${title}-title-box`} sx={{ paddingTop: Theme.spacing(2) }}>
       <Text
         children={title}
         variant={'h5'}

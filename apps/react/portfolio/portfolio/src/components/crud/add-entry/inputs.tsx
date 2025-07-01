@@ -1,9 +1,9 @@
 import { Text } from '@aklapper/react-shared';
-import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import type { FormikProps } from 'formik';
 import { useState, type FocusEvent } from 'react';
-import handleBlur from '../../../services/actions/crud-actions/handle_formik_blur.js';
+import handleFormikBlur from '../../../services/actions/crud-actions/handle_formik_blur.js';
+import Theme from '../../../styles/themes/theme';
 import type { CompletedState, NewEntry } from '../../../types/types';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
 import HelperTextBox from '../../styled/helper_text_box';
@@ -16,12 +16,14 @@ interface AddEntryFormInputsProps {
 
 export default function AddEntryFormInputs({ activeStep, completed, formik }: AddEntryFormInputsProps) {
   const [helperText, setHelperText] = useState<string | null>(null);
+
   formik.handleBlur = (e: FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const field = e.currentTarget.name;
+    const searchParam = e.currentTarget.value;
 
     switch (field) {
       case 'artist.name':
-        handleBlur<NewEntry>(e, formik, setHelperText, `/artists?name=${field}`);
+        handleFormikBlur<NewEntry>(e, formik, setHelperText, `/artists?name=${searchParam}`);
         break;
       default:
         formik.setFieldTouched(field, true, true);
@@ -34,7 +36,7 @@ export default function AddEntryFormInputs({ activeStep, completed, formik }: Ad
     setHelperText(null);
   };
   return (
-    <Box>
+    <CenteredFlexDiv sx={{ gap: Theme.spacing(2) }}>
       {activeStep === 0 && (
         <HelperTextBox multiline={false}>
           <TextField
@@ -79,7 +81,7 @@ export default function AddEntryFormInputs({ activeStep, completed, formik }: Ad
       )}
 
       {activeStep === 2 && (
-        <CenteredFlexDiv sx={{ alignItems: 'flex-start', gap: 0.5 }}>
+        <CenteredFlexDiv sx={{ alignItems: 'flex-start', gap: 0.5, width: '100%' }}>
           <TextField
             fullWidth={true}
             autoComplete='off'
@@ -96,7 +98,7 @@ export default function AddEntryFormInputs({ activeStep, completed, formik }: Ad
             onFocus={e => formik.setFieldTouched(e.currentTarget.name, false)}
             error={formik.touched['track']?.name && !!formik.errors['track']?.name}
             helperText={formik.touched['track']?.name && (formik.errors['track']?.name as string)}
-            sx={{ height: '78px' }}
+            sx={{ height: '78px', width: '100%' }}
           />
 
           <TextField
@@ -114,7 +116,7 @@ export default function AddEntryFormInputs({ activeStep, completed, formik }: Ad
             onFocus={e => formik.setFieldTouched(e.currentTarget.name, false)}
             error={formik.touched['track']?.media_type_id && !!formik.errors['track']?.media_type_id}
             helperText={formik.touched['track']?.media_type_id && (formik.errors['track']?.media_type_id as string)}
-            sx={{ height: '78px' }}
+            sx={{ height: '78px', width: '100%' }}
           />
 
           <TextField
@@ -132,7 +134,7 @@ export default function AddEntryFormInputs({ activeStep, completed, formik }: Ad
             onFocus={e => formik.setFieldTouched(e.currentTarget.name, false)}
             error={formik.touched['track']?.genre_id && !!formik.errors['track']?.genre_id}
             helperText={formik.touched['track']?.genre_id && (formik.errors['track']?.genre_id as string)}
-            sx={{ height: '78px' }}
+            sx={{ height: '78px', width: '100%' }}
           />
 
           <TextField
@@ -148,9 +150,9 @@ export default function AddEntryFormInputs({ activeStep, completed, formik }: Ad
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
             onFocus={e => formik.setFieldTouched(e.currentTarget.name, false)}
-            error={formik.touched['track']?.media_type_id && !!formik.errors['track']?.media_type_id}
-            helperText={formik.touched['track']?.media_type_id && (formik.errors['track']?.media_type_id as string)}
-            sx={{ height: '78px' }}
+            error={formik.touched['track']?.composer && !!formik.errors['track']?.composer}
+            helperText={formik.touched['track']?.composer && (formik.errors['track']?.composer as string)}
+            sx={{ height: '78px', width: '100%' }}
           />
 
           <TextField
@@ -168,7 +170,7 @@ export default function AddEntryFormInputs({ activeStep, completed, formik }: Ad
             onFocus={e => formik.setFieldTouched(e.currentTarget.name, false)}
             error={formik.touched['track']?.milliseconds && !!formik.errors['track']?.milliseconds}
             helperText={formik.touched['track']?.milliseconds && (formik.errors['track']?.milliseconds as string)}
-            sx={{ height: '78px' }}
+            sx={{ height: '78px', width: '100%' }}
           />
 
           <TextField
@@ -186,7 +188,7 @@ export default function AddEntryFormInputs({ activeStep, completed, formik }: Ad
             onFocus={e => formik.setFieldTouched(e.currentTarget.name, false)}
             error={formik.touched['track']?.bytes && !!formik.errors['track']?.bytes}
             helperText={formik.touched['track']?.bytes && (formik.errors['track']?.bytes as string)}
-            sx={{ height: '78px' }}
+            sx={{ height: '78px', width: '100%' }}
           />
 
           <TextField
@@ -207,10 +209,10 @@ export default function AddEntryFormInputs({ activeStep, completed, formik }: Ad
             onFocus={e => formik.setFieldTouched(e.currentTarget.name, false)}
             error={formik.touched['track']?.unit_price && !!formik.errors['track']?.unit_price}
             helperText={formik.touched['track']?.unit_price && (formik.errors['track']?.unit_price as string)}
-            sx={{ height: '78px' }}
+            sx={{ height: '78px', width: '100%' }}
           />
         </CenteredFlexDiv>
       )}
-    </Box>
+    </CenteredFlexDiv>
   );
 }

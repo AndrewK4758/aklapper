@@ -16,38 +16,6 @@ export default function parseSsrManifestFile(ssrManifest: ManifestType) {
     allAssets.forEach(asset => {
       const asType = getPreloadType(asset);
 
-      // if (asType === 'font') {
-      //   const props: HtmlLinkProps = {
-      //     rel: 'preload',
-      //     href: asset,
-      //     as: asType,
-      //     type: `${asType}/${getFileExt(asset)}`,
-      //   };
-
-      //   preloadLinkElements.push(<link {...props} crossOrigin='anonymous' />);
-      // }
-
-      // if (asType === 'style') {
-      //   const props: HtmlLinkProps = {
-      //     rel: 'preload',
-      //     href: asset,
-      //     as: asType,
-      //     type: `${asType}/${getFileExt(asset)}`,
-      //   };
-      //   props.rel = 'stylesheet';
-      //   preloadLinkElements.push(<link {...props} />);
-      // }
-
-      // if (asType === 'image') {
-      //   const props: HtmlLinkProps = {
-      //     rel: 'preload',
-      //     href: asset,
-      //     as: asType,
-      //   };
-      //   props.rel = 'preload';
-      //   preloadLinkElements.push(<link {...props} crossOrigin='anonymous' />);
-      // }
-
       if (asType === 'script') {
         const props: HtmlLinkProps = {
           rel: 'modulepreload',
@@ -75,5 +43,3 @@ function getPreloadType(file: string) {
       return 'fetch';
   }
 }
-
-// 1const getFileExt = (file: string) => file.split('.').pop();

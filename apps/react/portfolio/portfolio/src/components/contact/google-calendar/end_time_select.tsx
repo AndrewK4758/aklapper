@@ -38,8 +38,6 @@ export default function EndTimeSelect({ values, setEndTime, ...props }: EndTimeP
           },
         }}
       >
-        <MenuItem value={0} />
-
         <MenuItem divider value={15}>
           15 Minutes
         </MenuItem>

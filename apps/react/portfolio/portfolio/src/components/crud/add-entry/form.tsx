@@ -6,7 +6,8 @@ import { Form, useNavigate } from 'react-router';
 import * as Yup from 'yup';
 import { addEntrySteps } from '../../../pages/static/crud-text';
 import handleSubmitNewEntry from '../../../services/actions/crud-actions/submit-new-entry-action.jsx';
-import type { CompletedState, NewEntry } from '../../../types/types';
+import Theme from '../../../styles/themes/theme';
+import { NewEntryAlbum, NewEntryArtist, NewEntryTrack, type CompletedState, type NewEntry } from '../../../types/types';
 import AddEntryFormActions from './form_actions';
 import AddEntryFormInputs from './inputs';
 import AddEntryStepper from './stepper';
@@ -28,17 +29,17 @@ const initialValues: NewEntry = {
     genre_id: 0,
     unit_price: new Decimal(0.0),
   },
-};
+} as const;
 
-const artistVal = Yup.object({
+const artistVal = Yup.object<NewEntryArtist>({
   name: Yup.string().max(200, 'Must be less than 200 characters').required('Required'),
 });
 
-const albumVal = Yup.object({
+const albumVal = Yup.object<NewEntryAlbum>({
   title: Yup.string().max(160, 'Must be less than 160 characters').required('Required'),
 });
 
-const trackVal = Yup.object({
+const trackVal = Yup.object<NewEntryTrack>({
   name: Yup.string().max(160, 'Must be less than 160 characters').required('Required'),
   composer: Yup.string().max(220, 'Must be less than 160 characters').required('Required'),
   bytes: Yup.number()
@@ -55,7 +56,7 @@ const trackVal = Yup.object({
   unit_price: Yup.number().required('Enter unit price in form 0.00').positive('Enter unit price in form 0.00'),
 });
 
-const validationSchema = Yup.object({
+const validationSchema = Yup.object<NewEntry>({
   artist: artistVal,
   album: albumVal,
   track: trackVal,
@@ -66,12 +67,11 @@ export default function AddEntryForm() {
   const [completed, setCompleted] = useState<CompletedState>({});
   const nav = useNavigate();
 
-  const formik = useFormik({
+  const formik = useFormik<NewEntry>({
     initialValues: initialValues,
     validationSchema: validationSchema,
     onSubmit: async (values, { setSubmitting }) => await handleSubmitNewEntry(values, setSubmitting, nav),
     onReset: () => handleReset(),
-    validateOnMount: false,
   });
 
   const totalSteps = () => {
@@ -119,7 +119,7 @@ export default function AddEntryForm() {
 
   return (
     <Form method='post' encType='text/plain' onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
-      <DialogContent id={'add-entry-dialog-content'}>
+      <DialogContent id={'add-entry-dialog-content'} sx={{ padding: `0 ${Theme.spacing(4)}` }}>
         <AddEntryFormInputs activeStep={activeStep} formik={formik} completed={completed} />
         <AddEntryStepper
           activeStep={activeStep}

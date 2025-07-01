@@ -4,6 +4,7 @@ import DialogActions from '@mui/material/DialogActions';
 import type { FormikProps } from 'formik';
 import { useNavigate } from 'react-router';
 import type { NewEntry } from '../../../types/types';
+import AnimatedBorderBox from '../../styled/animated_border_box';
 
 interface AddEntryFormActionsProps {
   allStepsCompleted: () => boolean;
@@ -19,17 +20,19 @@ export default function AddEntryFormActions({ formik, allStepsCompleted }: AddEn
 
   return (
     <DialogActions sx={{ marginTop: 2 }}>
-      <ButtonGroup variant='contained' fullWidth>
-        {allStepsCompleted() ? (
-          <Button type='submit' disabled={formik.isSubmitting}>
-            Submit Entry
+      <AnimatedBorderBox sx={{ width: '100%' }}>
+        <ButtonGroup fullWidth>
+          {allStepsCompleted() ? (
+            <Button type='submit' disabled={formik.isSubmitting}>
+              Submit Entry
+            </Button>
+          ) : null}
+          <Button type='reset'>Reset</Button>
+          <Button type='button' onClick={handleClose}>
+            Close
           </Button>
-        ) : null}
-        <Button type='reset'>Reset</Button>
-        <Button type='button' onClick={handleClose}>
-          Close
-        </Button>
-      </ButtonGroup>
+        </ButtonGroup>
+      </AnimatedBorderBox>
     </DialogActions>
   );
 }

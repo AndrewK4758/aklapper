@@ -91,11 +91,7 @@ const ActiveGameSession = (): ReactElement => {
             children={state.avatarInTurn}
             sx={{ textOrientation: 'upright', writingMode: 'vertical-rl', justifySelf: 'center', height: '70%' }}
           />
-          <Box
-            as={'section'}
-            sx={{ display: 'flex', flexWrap: 'wrap', flex: '0 1 30%', gap: Theme.spacing(8) }}
-            // sx={{ display: 'flex', flexDirection: 'column', justifySelf: 'flex-end', height: '100%' }}
-          >
+          <Box as={'section'} sx={{ display: 'flex', flexWrap: 'wrap', flex: '0 1 30%', gap: Theme.spacing(8) }}>
             {id === 'Chutes-&-Ladders' ? (
               <TakeTurn
                 avatarInTurn={state.avatarInTurn as string}

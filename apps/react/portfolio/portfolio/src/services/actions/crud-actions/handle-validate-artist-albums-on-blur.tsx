@@ -1,7 +1,7 @@
+import type { album } from '@aklapper/chinook-client';
 import axios from 'axios';
 import type { FormikProps } from 'formik';
 import type { FocusEvent } from 'react';
-import type { album } from '../../../types/prisma_types';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 

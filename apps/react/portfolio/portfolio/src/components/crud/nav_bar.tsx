@@ -1,6 +1,5 @@
 import Grid from '@mui/material-pigment-css/Grid';
-import CRUD_THEME from '../../styles/themes/crud_theme';
-import NavButton from '../navigation/nav_button';
+import NavButton from '../layout/navigation/nav_button.js';
 
 export default function CrudNavBar() {
   return (
@@ -9,27 +8,27 @@ export default function CrudNavBar() {
         <NavButton
           variant='outlined'
           id='crud-home-button'
-          path='/portfolio/crud'
+          name='/portfolio/crud'
           buttonText={'CRUD Home'}
-          sx={{ color: CRUD_THEME.palette.primary.main, borderColor: CRUD_THEME.palette.primary.main, width: '100%' }}
+          sx={{ color: 'var(--mui-palette-info-main)', borderColor: 'var(--mui-palette-info-main)', width: '100%' }}
         />
       </Grid>
       <Grid size={6}>
         <NavButton
           variant='outlined'
           id='crud-artists-button'
-          path='artists'
+          name='artists'
           buttonText='Artists'
-          sx={{ color: CRUD_THEME.palette.primary.main, borderColor: CRUD_THEME.palette.primary.main, width: '100%' }}
+          sx={{ color: 'var(--mui-palette-info-main)', borderColor: 'var(--mui-palette-info-main)', width: '100%' }}
         />
       </Grid>
       <Grid size={6}>
         <NavButton
           variant='outlined'
           id='crud-albums-button'
-          path='albums'
+          name='albums'
           buttonText='Albums'
-          sx={{ color: CRUD_THEME.palette.primary.main, borderColor: CRUD_THEME.palette.primary.main, width: '100%' }}
+          sx={{ color: 'var(--mui-palette-info-main)', borderColor: 'var(--mui-palette-info-main)', width: '100%' }}
         />
       </Grid>
       <Grid size={6}>
@@ -37,9 +36,9 @@ export default function CrudNavBar() {
           buttonSx={{ width: '100%' }}
           variant='outlined'
           id='crud-add-entry-button'
-          path='add-entry'
+          name='add-entry'
           buttonText='Add Entry'
-          sx={{ color: CRUD_THEME.palette.primary.main, borderColor: CRUD_THEME.palette.primary.main, width: '100%' }}
+          sx={{ color: 'var(--mui-palette-info-main)', borderColor: 'var(--mui-palette-info-main)', width: '100%' }}
         />
       </Grid>
     </Grid>

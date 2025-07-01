@@ -16,7 +16,7 @@ const Games = (): ReactElement => {
   const [loading, setLoading] = useState(false);
 
   return (
-    <CenteredFlexDiv id='games-wrapper' sx={{ padding: 0, border: 0 }}>
+    <CenteredFlexDiv id='games-wrapper' sx={{}}>
       <Box sx={{ display: 'flex', width: '100%' }}>
         <GamesHeader state={state} setLoading={setLoading} />
       </Box>

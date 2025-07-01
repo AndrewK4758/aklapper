@@ -88,11 +88,7 @@ const config: UserConfig = defineConfig({
     rollupOptions: {
       logLevel: 'info',
       experimentalLogSideEffects: true,
-      input: {
-        browser: '/src/main.tsx',
-      },
       output: {
-        assetFileNames: '[name]-[hash].[ext]',
         strict: true,
         esModule: true,
         format: 'esm',

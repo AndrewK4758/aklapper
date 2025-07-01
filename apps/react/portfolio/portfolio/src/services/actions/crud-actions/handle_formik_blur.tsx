@@ -21,7 +21,7 @@ const handleFormikBlur = async <T,>(
 
     formik.setSubmitting(true);
 
-    const resp = await axios.get(`${baseURL}/${params}`);
+    const resp = await axios.get(`${baseURL}${params}`);
 
     const dbMessage = resp.data.message;
 

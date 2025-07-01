@@ -1,4 +1,4 @@
-import Box from '@mui/material/Box';
+import Box from '@mui/material-pigment-css/Box';
 import IconButton from '@mui/material/IconButton';
 import type { SxProps, Theme } from '@mui/material/styles';
 import CloseMenuIcon from '../../icons/close_menu_icon.js';
@@ -20,7 +20,7 @@ export default function ToggleMenuButton({ isToggledOpen, handleToggleContactMen
   const icon = isToggledOpen ? <OpenMenuIcon /> : <CloseMenuIcon />;
 
   return (
-    <Box height={'100%'}>
+    <Box sx={{ height: '100%' }}>
       <IconButton
         suppressHydrationWarning
         id='toggle-contact-menu'

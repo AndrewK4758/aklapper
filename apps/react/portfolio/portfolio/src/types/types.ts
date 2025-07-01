@@ -19,10 +19,17 @@ export type CompletedState = {
   [k: number]: boolean;
 };
 
+export type NewEntryArtist = Pick<artist, 'name'>;
+export type NewEntryAlbum = Pick<album, 'title'>;
+export type NewEntryTrack = Pick<
+  track,
+  'name' | 'composer' | 'bytes' | 'milliseconds' | 'media_type_id' | 'genre_id' | 'unit_price'
+>;
+
 export type NewEntry = {
-  artist: Partial<artist>;
-  album: Partial<album>;
-  track: Partial<track>;
+  artist: NewEntryArtist;
+  album: NewEntryAlbum;
+  track: NewEntryTrack;
 };
 
 export type NewEntryIDs = {

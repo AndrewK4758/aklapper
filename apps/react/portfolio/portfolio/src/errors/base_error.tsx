@@ -49,7 +49,6 @@ export default function BaseError() {
           <Text
             id={`${pathname}-error-message-name`}
             key={`${pathname}-error-message-name`}
-            component={'p'}
             variant='body1'
             children={
               <pre>
@@ -62,7 +61,6 @@ export default function BaseError() {
           <Text
             id={`${pathname}-error-message-message`}
             key={`${pathname}-error-message-message`}
-            component={'p'}
             variant='body1'
             children={
               <pre>
@@ -94,7 +92,6 @@ export default function BaseError() {
             <Text
               id={`${pathname}-error-stacktrace`}
               key={`${pathname}-error-stacktrace`}
-              component={'p'}
               variant='body1'
               children={
                 <pre>
@@ -127,7 +124,6 @@ export default function BaseError() {
           id={`${pathname}-error-home-button`}
           key={`${pathname}-error-home-button`}
           onClick={() => nav('/portfolio', { relative: 'route', replace: true })}
-          sx={{}}
         >
           <SectionTitle
             id={`${pathname}-error-label`}

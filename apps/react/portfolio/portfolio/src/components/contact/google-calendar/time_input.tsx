@@ -2,7 +2,7 @@ import { SectionTitle } from '@aklapper/react-shared';
 import { TimePicker } from '@mui/x-date-pickers';
 import type { PickerValue } from '@mui/x-date-pickers/internals';
 import type { Dayjs } from 'dayjs';
-import { BACKGROUND_DEFAULT, BASE_BORDER_RADIUS } from '../../../styles/base/base_styles';
+import Theme from '../../../styles/themes/theme';
 import CenteredFlexDiv from '../../styled/centered_flexbox.js';
 import EndTimeSelect from './end_time_select.js';
 import type { TimesAndDates } from './google_calendar_form.js';
@@ -32,7 +32,17 @@ export default function TimeInput({
         defaultValue={minTime}
         closeOnSelect={false}
         onAccept={data => handleSetTimeAndDateValues(data, 'startTime')}
-        sx={{ backgroundColor: BACKGROUND_DEFAULT, borderRadius: BASE_BORDER_RADIUS }}
+        sx={{
+          backgroundColor: Theme.palette.background.default,
+          borderRadius: Theme.shape.borderRadius,
+        }}
+        slotProps={{
+          desktopPaper: {
+            sx: {
+              padding: Theme.spacing(1),
+            },
+          },
+        }}
       />
       <EndTimeSelect values={values} setEndTime={handleSetTimeAndDateValues} />
     </CenteredFlexDiv>

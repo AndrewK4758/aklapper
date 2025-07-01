@@ -1,6 +1,5 @@
 import { Text } from '@aklapper/react-shared';
 import Box from '@mui/material-pigment-css/Box';
-import { avatarSvgStyle } from '../../../styles/games-styles.jsx';
 
 export interface PlayersInGameProps {
   playerName: string;
@@ -18,7 +17,11 @@ export const PlayersInGame = ({ playerName, avatarName }: PlayersInGameProps) =>
     <img
       src={`/game-avatars/${avatarName.toLowerCase()}.svg`}
       alt={`${avatarName} active in game`}
-      style={avatarSvgStyle}
+      style={{
+        height: 'auto',
+        width: '25%',
+        maxWidth: '90px',
+      }}
     />
   </Box>
 );

@@ -1,6 +1,6 @@
 import { Text } from '@aklapper/react-shared';
 import Link from '@mui/material/Link';
-import CRUD_THEME from '../../styles/themes/crud_theme';
+import Theme from '../../styles/themes/theme';
 
 export const CRUD_TITLE = <Text variant='h3' children='C.R.U.D. Data Manager' />;
 
@@ -15,9 +15,9 @@ export const CRUD_BODY = (
       rel='noopener'
       href='https://github.com/lerocha/chinook-database'
       sx={{
-        color: CRUD_THEME.palette.secondary.main,
+        color: Theme.palette.primary.contrastText,
         '&:hover': {
-          color: CRUD_THEME.palette.primary.dark,
+          color: 'var(--mui-palette-info-dark)',
         },
       }}
     >

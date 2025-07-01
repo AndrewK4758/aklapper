@@ -25,6 +25,8 @@ import {
 
 const Theme: ThemeType = createTheme(
   {
+    cssVariables: true,
+    defaultColorScheme: 'dark',
     colorSchemes: {
       light: true,
       dark: {
@@ -119,29 +121,6 @@ const Theme: ThemeType = createTheme(
           },
         },
       },
-      // MuiSelect: {
-      //   defaultProps: {
-      //     slotProps: {
-      //       input: {
-      //         sx: {
-      //           color: MAIN_COLOR_DARK,
-      //           backgroundColor: BACKGROUND_ALT,
-      //         },
-      //       },
-      //       notchedOutline: {
-      //         sx: {
-      //           color: MAIN_COLOR_DARK,
-      //         },
-      //       },
-      //       root: {
-      //         sx: {
-      //           color: MAIN_COLOR_DARK,
-      //           backgroundColor: BACKGROUND_ALT,
-      //         },
-      //       },
-      //     },
-      //   },
-      // },
       MuiMenuItem: {
         styleOverrides: {
           root: {
@@ -156,8 +135,6 @@ const Theme: ThemeType = createTheme(
         },
       },
     },
-    defaultColorScheme: 'dark',
-    cssVariables: true,
   },
   enUS,
 );

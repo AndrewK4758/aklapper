@@ -1,9 +1,10 @@
 import { styled } from '@mui/material-pigment-css';
 import Box from '@mui/material-pigment-css/Box';
-import type { ComponentType } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 
 export interface RevealWrapperProps {
   isOpen: boolean;
+  children: ReactNode;
 }
 
 const RevealWrapper: ComponentType<RevealWrapperProps> = styled(Box, {

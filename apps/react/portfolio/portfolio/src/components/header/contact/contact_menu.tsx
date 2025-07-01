@@ -1,5 +1,4 @@
 import Box from '@mui/material/Box';
-// import { addToToolipString } from '../../../utils/utils';
 import DiscordIcon from '../../icons/discord-icon';
 import EmailIcon from '../../icons/email-icon';
 import FacebookIcon from '../../icons/facebook-icon';
@@ -9,9 +8,6 @@ import LinkedinIcon from '../../icons/linkedin-logo';
 import XIcon from '../../icons/x-icon';
 import ContactIcon from './contact-icon';
 
-//space at end is intentional
-// const TOOLTIP_STRING = 'Connect with me on ';
-
 interface ContactMenuProps {
   isOpen: boolean;
   handleOpenEmail: () => void;
@@ -19,7 +15,14 @@ interface ContactMenuProps {
 
 export default function ContactMenu({ isOpen, handleOpenEmail }: ContactMenuProps) {
   return (
-    <Box width={'100%'} display={'flex'} alignItems={'center'} justifyContent={'space-around'} inert={!isOpen}>
+    <Box
+      width={'100%'}
+      display={'flex'}
+      alignItems={'center'}
+      justifyContent={'space-around'}
+      id='contact-menu'
+      inert={!isOpen}
+    >
       <ContactIcon generalId='github' iconHref='https://github.com/AndrewK4758/aklapper'>
         {GitHibIcon}
       </ContactIcon>

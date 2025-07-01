@@ -3,7 +3,7 @@ import type { PickerValue } from '@mui/x-date-pickers/internals';
 import { renderTimeViewClock } from '@mui/x-date-pickers/timeViewRenderers';
 import dayjs from 'dayjs/esm';
 import type { FormikProps } from 'formik';
-import { BACKGROUND_DEFAULT, BASE_BORDER_RADIUS } from '../../../styles/base/base_styles';
+import Theme from '../../../styles/themes/theme';
 import type { MessageMeFormValues } from './email-form';
 
 const tomorrow = dayjs().add(1, 'day');
@@ -37,7 +37,22 @@ export default function DateAndTimeInput({ formik, name }: AppointmentMakerProps
       maxTime={maxTime}
       orientation={'landscape'}
       onChange={async dateAndTime => await handleAppointmentAccept(dateAndTime, formik, name)}
-      sx={{ backgroundColor: BACKGROUND_DEFAULT, borderRadius: BASE_BORDER_RADIUS }}
+      sx={{
+        backgroundColor: Theme.palette.background.default,
+        borderRadius: Theme.shape.borderRadius,
+      }}
+      slotProps={{
+        day: {
+          sx: {
+            color: Theme.palette.primary.dark,
+          },
+        },
+        calendarHeader: {
+          sx: {
+            color: Theme.palette.primary.dark,
+          },
+        },
+      }}
     />
   );
 }

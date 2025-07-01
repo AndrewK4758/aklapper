@@ -1,17 +1,14 @@
 import type { album } from '@aklapper/chinook-client';
-import { Text } from '@aklapper/react-shared';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import { useFormik } from 'formik';
-import { useState, type Dispatch, type FocusEvent, type ReactElement, type SetStateAction } from 'react';
+import { type Dispatch, type ReactElement, type SetStateAction } from 'react';
 import { Form } from 'react-router';
 import * as Yup from 'yup';
 import handleSubmitAlbumOnArtist from '../../../services/actions/crud-actions/submit-album-on-artist-action';
-import { handleBlur } from '../../../utils/utils';
+import Theme from '../../../styles/themes/theme';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
-import HelperTextBox from '../../styled/helper_text_box';
 import TextInput from '../../styled/text_input';
-import ValidatedInput from '../validated_input';
 
 const validationSchema = Yup.object<album>({
   title: Yup.string().required('Must have title to album'),
@@ -30,56 +27,48 @@ interface AddAlbumProps {
  */
 
 const AddAlbum = ({ setRows }: AddAlbumProps): ReactElement => {
-  const [albumHelperText, setAlbumHelperText] = useState<string | null>(null);
-
   const formik = useFormik<album>({
     initialValues: { title: '', album_id: 0, artist_id: 1 },
     validationSchema: validationSchema,
     onSubmit: async values => {
       await handleSubmitAlbumOnArtist(values.title, formik, values.artist_id, setRows);
     },
-    validateOnBlur: true,
   });
-
-  formik.handleBlur = (e: FocusEvent<HTMLInputElement>) =>
-    handleBlur<album>(
-      e,
-      formik,
-      setAlbumHelperText,
-      `albums?title=${formik.values.title}&artistID=${formik.values.artist_id}`,
-    );
 
   return (
     <Form method='post' onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
       <CenteredFlexDiv>
-        <ValidatedInput<album>
+        <TextInput<album>
           formik={formik}
-          helperText={albumHelperText}
-          label='Album Title'
           name={'title'}
-          setHelperText={setAlbumHelperText}
+          label={'Album Title'}
+          variant={'outlined'}
+          slotProps={{ input: { sx: { backgroundColor: Theme.palette.background.default } } }}
         />
 
-        <HelperTextBox>
-          <TextInput<album>
-            label='Artist ID'
-            formik={formik}
-            name='artist_id'
-            setHelperText={setAlbumHelperText}
-            variant='outlined'
-          />
-          {albumHelperText && <Text variant='caption' children={albumHelperText} />}
-        </HelperTextBox>
-      </CenteredFlexDiv>
+        <TextInput<album>
+          formik={formik}
+          name={'album_id'}
+          label={'Album Id'}
+          variant={'outlined'}
+          slotProps={{ input: { sx: { backgroundColor: Theme.palette.background.default } } }}
+        />
 
-      <ButtonGroup fullWidth>
-        <Button type='submit' variant='contained' color='primary'>
-          Submit
-        </Button>
-        <Button type='reset' variant='contained' color='secondary'>
-          Clear
-        </Button>
-      </ButtonGroup>
+        <ButtonGroup fullWidth>
+          <Button
+            type='submit'
+            disabled={formik.isSubmitting}
+            variant='contained'
+            color='primary'
+            sx={{ fontWeight: 'bold' }}
+          >
+            Submit
+          </Button>
+          <Button type='reset' variant='contained' color='secondary' sx={{ fontWeight: 'bold' }}>
+            Clear
+          </Button>
+        </ButtonGroup>
+      </CenteredFlexDiv>
     </Form>
   );
 };

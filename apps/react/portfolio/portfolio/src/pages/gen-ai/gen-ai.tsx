@@ -54,9 +54,11 @@ const GenAiHome = (): ReactElement => {
       {chatHistory.length ? <Chat chatHistory={chatHistory} loading={loading} /> : null}
 
       <Box as={'div'} id='gen-ai-outlet-wrapper' sx={{ width: '65%' }}>
-        <MediaRecorderClientContextProvider>
-          <Outlet context={{ chatHistory, loading, setChatHistory, setLoading } as OutletContextProps} />
-        </MediaRecorderClientContextProvider>
+        <Suspense fallback={<Waiting src={waiting} />}>
+          <MediaRecorderClientContextProvider>
+            <Outlet context={{ chatHistory, loading, setChatHistory, setLoading } as OutletContextProps} />
+          </MediaRecorderClientContextProvider>
+        </Suspense>
       </Box>
     </CenteredFlexDiv>
   );

@@ -7,6 +7,7 @@
 export const BACKGROUND_DEFAULT = '#323232';
 export const BACKGROUND_PAPER = '#0F1A0F';
 export const BACKGROUND_ALT = '#242424';
+export const DATA_GRID_BG = '#D2D2D2';
 
 export const BOTTOM_LEFT_GRADIENT = `linear-gradient(45deg, #10101038 0%, transparent 80%)`;
 export const TOP_RIGHT_GRADIENT = `linear-gradient(225deg, #e9e9eb24 0%, transparent 80%)`;

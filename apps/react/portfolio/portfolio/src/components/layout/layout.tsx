@@ -2,10 +2,10 @@ import { useState, type ReactElement } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 import Footer from '../footer/footer';
 import HeaderContactMenu from '../header/header';
-import NavBar from '../navigation/nav_bar';
 import CenteredFlexDiv from '../styled/centered_flexbox';
 import StyledCard from '../styled/styled_card';
 import StyledRootComponentWrapper from '../styled/styled_root_wrapper';
+import AppNavBar from './navigation/app_nav_bar';
 import PicNameAndNav from './pic_name_nav';
 
 /**
@@ -42,7 +42,7 @@ export default function Layout(): ReactElement {
 
       <CenteredFlexDiv component={'main'} sx={{ margin: '0 2.5%', padding: 0, minHeight: '100vh' }}>
         <StyledCard>
-          <PicNameAndNav subheader={<NavBar />} />
+          <PicNameAndNav subheader={<AppNavBar />} />
         </StyledCard>
         <StyledCard sx={{ backgroundColor: 'transparent', width: '100%', padding: 0 }}>
           <Outlet />

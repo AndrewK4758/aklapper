@@ -10,7 +10,7 @@ import useFetchDataGridData from '../../../hooks/useFetchDataGridData';
 import handleDeleteAlbum from '../../../services/actions/crud-actions/handle-delete-album.js';
 import handleUpdateAlbumTitle from '../../../services/actions/crud-actions/handle-update-album-title.js';
 import loadAlbums from '../../../services/loaders/crud-loaders/load-albums';
-import CRUD_THEME from '../../../styles/themes/crud_theme';
+import { DATA_GRID_BG } from '../../../styles/base/base_styles';
 import Theme from '../../../styles/themes/theme';
 
 const paginationModelInit = {
@@ -127,7 +127,7 @@ export default function AlbumBaseDataGrid({ rows, setRows }: AlbumBaseDataGridPr
       onProcessRowUpdateError={error => console.error(error)}
       sx={{
         '&.MuiDataGrid-root': {
-          backgroundColor: CRUD_THEME.palette.background.default,
+          backgroundColor: DATA_GRID_BG,
         },
         '& .MuiDataGrid-footerContainer': {
           backgroundColor: Theme.palette.background.paper,

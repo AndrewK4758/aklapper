@@ -3,7 +3,6 @@ import type { ILiteSpace } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import type { SxProps } from '@mui/material/styles';
 import type { MouseEvent } from 'react';
-import { avatarTTTSize, selectedSpaceStyle } from '../../../styles/games-styles';
 import Theme from '../../../styles/themes/theme';
 
 interface SpaceTicTacToeProps {
@@ -34,13 +33,17 @@ export default function SpaceTicTacToe({ state, space, setStateAction, id }: Spa
             cursor: 'pointer',
           },
         },
-        selectedSpaceStyle,
+        { backgroundColor: Theme.palette.primary.main, color: Theme.palette.primary.contrastText, fontWeight: 'bold' },
         {},
       )}
       onClick={(e: MouseEvent<HTMLDivElement>) => setStateAction(e.currentTarget.textContent as string)}
     >
       {space.display.endsWith('.svg') ? (
-        <img src={`/game-avatars/${space.display}`} alt={`${space.display} game piece`} style={avatarTTTSize} />
+        <img
+          src={`/game-avatars/${space.display}`}
+          alt={`${space.display} game piece`}
+          style={{ width: '150px', height: 'auto' }}
+        />
       ) : (
         <Text
           id={`${space.display}-space`}

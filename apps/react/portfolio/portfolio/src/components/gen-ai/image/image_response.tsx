@@ -1,7 +1,6 @@
 import { Text, Waiting } from '@aklapper/react-shared';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import Box from '@mui/material-pigment-css/Box';
-import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import { useActionData, useNavigation } from 'react-router';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
@@ -13,6 +12,7 @@ import StyledCard from '../../styled/styled_card';
 export default function ImageResponse() {
   const { state } = useNavigation();
   const pics = useActionData() as string[];
+  console.log(pics);
   return (
     <>
       {state === 'submitting' && (
@@ -29,14 +29,17 @@ export default function ImageResponse() {
               key={`generated-image-${i}`}
               sx={{
                 padding: Theme.spacing(10),
-                // backgroundColor: Theme.palette.background.paper,
                 boxShadow: BOX_SHADOW_MAIN,
               }}
             >
-              <CenteredFlexDiv sx={{ justifyContent: 'center' }}>
-                <Button endIcon={<SaveAltIcon sx={{ scale: 2 }} />} sx={{ alignSelf: 'flex-end', fontSize: '2rem' }}>
-                  Save
-                </Button>
+              <CenteredFlexDiv sx={{ justifyContent: 'center', p: 0, gap: Theme.spacing(2) }}>
+                <IconButton
+                  color='secondary'
+                  onClick={() => handleDownloadImage(pic, i)}
+                  sx={{ alignSelf: 'flex-end', fontSize: '2rem' }}
+                >
+                  <SaveAltIcon fontSize='inherit' />
+                </IconButton>
                 <img src={`data:image/png;base64, ${pic}`} alt={`generated from prompt entered ${i}`} />
               </CenteredFlexDiv>
             </StyledCard>
@@ -45,4 +48,29 @@ export default function ImageResponse() {
       )}
     </>
   );
+}
+
+type Base64ImageString = string;
+
+function handleDownloadImage(imgStr: Base64ImageString, imageNumber: number) {
+  const dataStr = atob(imgStr);
+  const byteData = new Uint8Array(dataStr.length);
+
+  for (let i = 0; i < byteData.length; i++) {
+    byteData[i] = dataStr.charCodeAt(i);
+  }
+
+  const blob = new Blob([byteData], { type: 'image/png' });
+
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `image_1.png`;
+
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  URL.revokeObjectURL(url);
 }

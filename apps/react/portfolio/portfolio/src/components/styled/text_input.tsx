@@ -2,7 +2,7 @@ import { Text } from '@aklapper/react-shared';
 import TextField, { type OutlinedTextFieldProps } from '@mui/material/TextField';
 import type { FormikProps } from 'formik';
 import { useState, type FocusEvent, type HTMLInputTypeAttribute, type ReactElement } from 'react';
-import { handleBlur } from '../../utils/utils';
+import handleFormikBlur from '../../services/actions/crud-actions/handle_formik_blur';
 import HelperTextBox from './helper_text_box';
 
 interface TextInputProps<T extends object>
@@ -41,10 +41,12 @@ export default function TextInput<T extends object>({
 }: TextInputProps<T>): ReactElement {
   const [helperText, setHelperText] = useState<string | null>(null);
   if (searchParams)
-    formik.handleBlur = (e: FocusEvent<HTMLInputElement>) =>
+    formik.handleBlur = (e: FocusEvent<HTMLInputElement>) => {
       //TODO crate param type to help validate correct string for url endpoint
-      handleBlur<T>(e, formik, setHelperText, searchParams);
-
+      console.log(e);
+      handleFormikBlur<T>(e, formik, setHelperText, searchParams);
+    };
+  console.log(helperText);
   return (
     <HelperTextBox multiline={multiline}>
       <TextField
