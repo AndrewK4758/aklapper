@@ -10,7 +10,7 @@ import {
   GoogleUserContext,
   type GoogleUserContextInfo,
   type GoogleUserContextProps,
-} from '../../../contexts/contact-context.js';
+} from '../../../contexts/contact_context_constants';
 import AnimatedBorderBox from '../../styled/animated_border_box.js';
 
 export default function GoogleAuthButton(): ReactElement<ButtonProps> {

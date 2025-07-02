@@ -1,20 +1,20 @@
 /// <reference types='vitest' />
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import { cwd } from 'process';
-import { resolve } from 'path';
 import { workspaceRoot } from '@nx/devkit';
+import react from '@vitejs/plugin-react';
+import { resolve } from 'path';
+import { cwd } from 'process';
+import { defineConfig } from 'vite';
 
 export default defineConfig({
   root: cwd(),
   cacheDir: resolve(workspaceRoot, 'node_modules/.vite/apps/react/local-model/local-model'),
   server: {
     port: 5800,
-    host: 'localhost'
+    host: 'localhost',
   },
   preview: {
     port: 5900,
-    host: 'localhost'
+    host: 'localhost',
   },
   plugins: [react()],
   // Uncomment this if you are using workers.
@@ -26,8 +26,8 @@ export default defineConfig({
     alias: {
       '@aklapper/react-shared': resolve(workspaceRoot, 'packages/react-shared/src/index.ts'),
       '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src/index.ts'),
-      '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts')
-    }
+      '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
+    },
   },
 
   build: {
@@ -37,7 +37,7 @@ export default defineConfig({
     sourcemap: true,
     reportCompressedSize: true,
     commonjsOptions: {
-      transformMixedEsModules: true
+      transformMixedEsModules: true,
     },
     rollupOptions: {
       perf: true,
@@ -47,11 +47,11 @@ export default defineConfig({
         generatedCode: {
           arrowFunctions: true,
           constBindings: true,
-          symbols: true
-        }
-      }
+          symbols: true,
+        },
+      },
     },
-    target: 'esnext'
+    target: 'esnext',
   },
 
   esbuild: {
@@ -60,7 +60,7 @@ export default defineConfig({
     color: true,
     platform: 'browser',
     sourcemap: true,
-    target: 'esnext'
+    target: 'esnext',
   },
 
   logLevel: 'info',
@@ -74,9 +74,10 @@ export default defineConfig({
     environment: 'jsdom',
     include: ['tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],
+    passWithNoTests: true,
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',
-      provider: 'v8'
-    }
-  }
+      provider: 'v8',
+    },
+  },
 });

@@ -12,6 +12,7 @@ permissions:
 
 env:
   PYTHON_VERSION: '3.13.3'
+  PNPM_VERSION: '10'
   NODE_VERSION: '24.x'
   # GCP Region
   REGION: ${{ secrets.GCP_REGION }}
@@ -25,27 +26,56 @@ env:
   PROJECT_ID: ${{ secrets.PROJECT_ID }}
 
 jobs:
-  lint:
+  cache-and-install:
     runs-on: ubuntu-latest
 
     steps:
-      #Use last git commit
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      # Install PNPM
+      - name: Checkout
+        uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        name: Install pnpm
         with:
-          version: 10
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
 
-      # Setup Node Js
-      - uses: actions/setup-node@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - name: Install Node.js Dependencies
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Setup Python and cache Poetry dependencies
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
+  lint:
+    needs: ['cache-and-install']
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       # Setup Python and cache Poetry dependencies
@@ -73,30 +103,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      #Use last git commit
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      # Install PNPM
+      - name: Checkout
+        uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        name: Install pnpm
         with:
-          version: 10
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
 
-      # Setup Node Js
-      - uses: actions/setup-node@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
+          cache: 'pnpm'
 
-      - name: Install Node.js Dependencies
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Setup Python and cache Poetry dependencies
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'poetry'
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
@@ -123,36 +151,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      #Use last git commit
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      # Install PNPM
+      - name: Checkout
+        uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        name: Install pnpm
         with:
-          version: 10
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
 
-      # Setup Node Js
-      - uses: actions/setup-node@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
+          cache: 'pnpm'
 
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Setup Python and cache Poetry dependencies
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'poetry'
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
-
-      - name: Install Python Dependencies
-        run: pnpx nx install wdg-agents
-
-      - name: Install Node.js Dependencies
-        run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma Client for CRUD-Api
         run: pnpm generate-chinook-client
@@ -177,23 +200,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
         with:
-          fetch-depth: 0
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
-      - name: Set up Node.js
+      - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - name: Install Nodejs Dependencies
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # Setup Python and cache Poetry dependencies
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
 
       - uses: nrwl/nx-set-shas@v4
 
@@ -217,23 +248,31 @@ jobs:
         node-version: ['24.x']
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
         with:
-          fetch-depth: 0
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
-      - name: Set up Node.js
+      - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # Setup Python and cache Poetry dependencies
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
 
       - uses: nrwl/nx-set-shas@v4
 
