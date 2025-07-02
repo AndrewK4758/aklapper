@@ -1,6 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import albumTracksCount from 'src/services/prisma/tracks/album-tracks-count.js';
-import prisma from '../services/prisma/client/prisma_client.js';
+import albumTracksCount from '../services/prisma/tracks/album-tracks-count.js';
 
 /**
  * Middleware function that retrieves the total count of albums in the database.

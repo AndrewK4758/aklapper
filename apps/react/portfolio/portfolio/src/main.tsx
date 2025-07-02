@@ -1,10 +1,11 @@
 import '@mui/material-pigment-css/styles.css';
-import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router';
 import App from './app/app';
 import routes from './routes/routes';
+
 const router = createBrowserRouter(routes);
+
 /**
  * This is the main entry point for the React application.
  * It creates the root element, renders the application using StrictMode and RouterProvider,
@@ -14,9 +15,7 @@ const router = createBrowserRouter(routes);
 const rootDomNode = document.querySelector('#root') as HTMLDivElement;
 
 createRoot(rootDomNode).render(
-  <StrictMode>
-    <App>
-      <RouterProvider router={router} />
-    </App>
-  </StrictMode>,
+  <App>
+    <RouterProvider router={router} />
+  </App>,
 );

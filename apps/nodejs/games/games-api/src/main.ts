@@ -4,8 +4,9 @@ import cors, { type CorsOptions } from 'cors';
 import { configDotenv } from 'dotenv';
 import express, { type Express } from 'express';
 import { createServer } from 'node:http';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { join } from 'path';
-import { cwd } from 'process';
 import type { ServerOptions } from 'socket.io';
 import gamesInLobby from './data/games_in_lobby/games_in_lobby.js';
 import checkStartGame from './events/check_start-game.js';
@@ -22,7 +23,9 @@ import routerV1 from './routes/v1/routes.js';
 import routerV2 from './routes/v2/routes.js';
 import syncWithGoLobby from './services/game/sync_lobby_data.js';
 
-const __dirname = join(cwd(), 'apps/nodejs/games/games-api');
+const __filename = fileURLToPath(import.meta.url);
+
+const __dirname = dirname(__filename);
 
 configDotenv({ path: join(__dirname, 'env/.env') });
 
@@ -109,7 +112,7 @@ const connectWebsocket = function () {
   };
 };
 
-connectWebsocket();
+if (WS_URL) connectWebsocket();
 
 app.options(/.*/, cors(corsOptions));
 app.use(cors(corsOptions));
@@ -122,11 +125,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/v1', routerV1);
 app.use('/api/v2', routerV2);
 
-const port = parseInt(process.env.PORT as string) || 3000;
-const host = process.env.HOST || 'localhost';
+const port = process.env.PORT || 3000;
 
-const server = httpServer.listen(port, host, () => {
-  console.log(`Listening on http://${host}:${port}/api/{version}`);
+const server = httpServer.listen(port, () => {
+  console.log(`Listening on PORT: ${port}`);
 });
 
 server.on('error', console.error);

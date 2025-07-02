@@ -36,7 +36,7 @@ const socketInit = () => {
  * @returns {ReactElement} The rendered active game session component.
  */
 
-const wsURL = import.meta.env.VITE_GAMES_WS_URL + '/gameplay';
+const wsURL = import.meta.env.VITE_GAMES_WS_URL + import.meta.env.VITE_GAMES_WS_GAMEPLAY_NAMESPACE;
 
 const ActiveGameSession = (): ReactElement => {
   const socketManagerOptions: Partial<ManagerOptions> = {

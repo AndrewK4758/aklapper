@@ -17,7 +17,6 @@ import { useFormik, type FormikProps } from 'formik';
 import { type ChangeEvent, type ReactElement } from 'react';
 import { Form, useOutletContext, useSubmit } from 'react-router';
 import * as Yup from 'yup';
-import {} from '../../../styles/pages-styles.jsx';
 import Theme from '../../../styles/themes/theme';
 import type { OutletContextProps } from '../../../types/types.js';
 import AnimatedBorderBox from '../../styled/animated_border_box';

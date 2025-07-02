@@ -1,5 +1,5 @@
+import { prisma } from '@aklapper/chinook-client';
 import type { NextFunction, Request, Response } from 'express';
-import prisma from '../services/prisma/client/prisma_client.js';
 
 /**
  * Middleware function that retrieves the total count of artists in the database.

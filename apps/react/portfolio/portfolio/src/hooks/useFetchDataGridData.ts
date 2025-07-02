@@ -26,6 +26,7 @@ const useFetchDataGridData = <T>(
   const fetchData = async () => {
     try {
       const data = await loadData(queryOptions, signal, ...args);
+
       setRows(data);
     } catch (error) {
       console.error(error);

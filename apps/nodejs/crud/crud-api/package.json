@@ -46,7 +46,7 @@
       },
       "serve": {
         "executor": "@nx/js:node",
-        "defaultConfiguration": "test",
+        "defaultConfiguration": "production",
         "dependsOn": [
           "build"
         ],

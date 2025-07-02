@@ -14,7 +14,7 @@ const __filename = fileURLToPath(import.meta.url);
 
 const __dirname = dirname(__filename);
 
-configDotenv({ path: resolve(__dirname, '../../../../..', 'packages/gen-ai/vertex-ai/env/.env') });
+configDotenv({ path: resolve(__dirname, '/env/.env') });
 
 const app: Express = express();
 

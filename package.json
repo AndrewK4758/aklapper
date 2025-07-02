@@ -33,7 +33,7 @@
     "@playwright/test": "1.53.2",
     "@swc-node/register": "^1.10.10",
     "@swc/cli": "0.7.7",
-    "@swc/core": "1.12.7",
+    "@swc/core": "1.12.9",
     "@swc/helpers": "^0.5.17",
     "@testing-library/dom": "10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
@@ -45,8 +45,8 @@
     "@types/express": "5.0.3",
     "@types/http-server": "^0.12.4",
     "@types/jest": "30.0.0",
-    "@types/multer": "1.4.13",
-    "@types/node": "24.0.8",
+    "@types/multer": "2.0.0",
+    "@types/node": "24.0.10",
     "@types/nodemailer": "^6.4.17",
     "@types/react": "19.1.8",
     "@types/react-dom": "19.1.6",
@@ -85,8 +85,8 @@
     "vitest": "3.2.4"
   },
   "dependencies": {
-    "@azure/msal-node": "3.6.1",
-    "@azure/msal-node-extensions": "1.5.15",
+    "@azure/msal-node": "3.6.2",
+    "@azure/msal-node-extensions": "1.5.16",
     "@google-cloud/access-approval": "^4.1.0",
     "@google-cloud/aiplatform": "4.2.0",
     "@google-cloud/storage": "^7.16.0",
@@ -96,7 +96,7 @@
     "@mui/material-pigment-css": "7.2.0",
     "@mui/x-data-grid": "8.6.0",
     "@mui/x-date-pickers": "8.6.0",
-    "@prisma/client": "6.10.1",
+    "@prisma/client": "6.11.0",
     "@react-oauth/google": "0.12.2",
     "axios": "1.10.0",
     "bcrypt": "6.0.0",
@@ -112,7 +112,7 @@
     "jwt-decode": "^4.0.0",
     "multer": "2.0.1",
     "nodemailer": "7.0.4",
-    "prisma": "6.10.1",
+    "prisma": "6.11.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router": "7.6.3",
@@ -123,5 +123,8 @@
     "yup": "^1.6.1",
     "yup-password": "^0.4.0",
     "yup-phone-lite": "^2.0.1"
+  },
+  "engines": {
+    "node": "24.3.0"
   }
 }

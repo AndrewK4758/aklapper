@@ -15,7 +15,7 @@ const PORT_PREVIEW = 4800;
 
 //Build
 const BASE = '/';
-const NODE_ENV = process.env.NODE_ENV;
+// const NODE_ENV = process.env.NODE_ENV;
 const OUT_DIR = './dist';
 const ROOT = cwd();
 
@@ -46,14 +46,6 @@ const config: UserConfig = defineConfig({
     react(),
   ],
 
-  // optimizeDeps: {
-  //   include: ['react-is', 'prop-types', 'hoist-non-react-statics'],
-  //   esbuildOptions: {
-  //     sourcemap: true,
-  //     target: 'esnext',
-  //   },
-  // },
-
   // Uncomment this if you are using workers.
   // worker: {
   //   plugins: [ nxViteTsPaths() ],
@@ -66,7 +58,7 @@ const config: UserConfig = defineConfig({
 
   base: BASE,
 
-  mode: NODE_ENV,
+  mode: 'development',
 
   logLevel: 'info',
   appType: 'spa',
@@ -75,7 +67,7 @@ const config: UserConfig = defineConfig({
 
   build: {
     outDir: OUT_DIR,
-    minify: NODE_ENV === 'production',
+    minify: true,
     target: 'esnext',
     manifest: true,
     sourcemap: true,

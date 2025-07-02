@@ -1,11 +1,16 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated"
+  provider               = "prisma-client"
+  output                 = env("PRISMA_CLIENT_OUTPUT_PATH")
+  generatedFileExtension = "ts"
+  moduleFormat           = "esm"
+  runtime                = "nodejs"
+  previewFeatures        = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DB_URL_DEV")
+  schemas  = ["games"]
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -17,4 +22,5 @@ model players {
   email                String   @unique(map: "unique_email") @db.VarChar
 
   @@index([email], map: "email_index")
+  @@schema("games")
 }

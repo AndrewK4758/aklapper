@@ -1,10 +1,14 @@
 import { VertexAI } from '@google-cloud/vertexai';
-import { workspaceRoot } from '@nx/devkit';
 import { configDotenv } from 'dotenv';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import getEnvVariable from '../../utils/get_env_var.js';
 
-configDotenv({ path: resolve(workspaceRoot, 'packages/gen-ai/vertex-ai', `env/.env`) });
+const __filename = fileURLToPath(import.meta.url);
+
+const __dirname = dirname(__filename);
+
+configDotenv({ path: resolve(__dirname, `env/.env`) });
 
 // MY STUFF
 export const ID = getEnvVariable('PROJECT_ID');

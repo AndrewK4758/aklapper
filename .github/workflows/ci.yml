@@ -11,8 +11,8 @@ permissions:
   contents: read
 
 env:
-  # GCP Project Id
-  # GCP Project Region
+  PYTHON_VERSION: '3.13.3'
+  NODE_VERSION: '24.x'
   REGION: ${{ secrets.GCP_REGION }}
   # GCP Artifact Registry Repo name
   GAR_REPO: ${{ secrets.GAR_REPO_NAME }}
@@ -26,6 +26,7 @@ env:
 jobs:
   lint:
     runs-on: ubuntu-latest
+
     steps:
       #Use last git commit
       - uses: actions/checkout@v4
@@ -35,47 +36,42 @@ jobs:
       # Install PNPM
       - uses: pnpm/action-setup@v4
         with:
-          version: '10'
+          version: 10
 
       # Setup Node Js
       - uses: actions/setup-node@v4
         with:
-          node-version: '23'
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
+      # Setup Python and cache Poetry dependencies
+      - name: Set up Python and Poetry Cache
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          # This line enables caching for Poetry's package cache.
+          cache: 'poetry'
 
-      # Install Node / Js dependencies
-      - name: Install Nodejs Dependencies
-        run: |
-          pnpm install -r --frozen-lockfile
-          pnpm approve-builds
-
-      # Add Nx Cloud Build Cache
-      - uses: nrwl/nx-set-shas@v4
-
-      # Install Poetry for Python venv managment
-      # Add Poetry Export Plugin
-      # Add Poetry Shell Plugin
       - name: Install Poetry
         uses: snok/install-poetry@v1
-        with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
-      - run: |
-          poetry self add poetry-plugin-export ;
-          poetry self add poetry-plugin-shell
 
-      # Install WDG-AGENTS for lint execution
+      - name: Install Python Dependencies
+        run: poetry install --no-interaction
+
+      - name: Install Node.js Dependencies
+        run: pnpm install -r --frozen-lockfile
+
+      - uses: nrwl/nx-set-shas@v4
+
       - name: Install WDG-AGENTS for lint execution
         run: pnpx nx install wdg-agents
 
-      # Lint all projects
       - name: Lint all projects
         run: pnpx nx affected -t=lint --verbose
 
   test:
     # needs: ['setup']
     runs-on: ubuntu-latest
+
     steps:
       #Use last git commit
       - uses: actions/checkout@v4
@@ -85,48 +81,40 @@ jobs:
       # Install PNPM
       - uses: pnpm/action-setup@v4
         with:
-          version: '10'
+          version: 10
 
       # Setup Node Js
       - uses: actions/setup-node@v4
         with:
-          node-version: '23'
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
-      # Add Nx Cloud Build Cache
-      - uses: nrwl/nx-set-shas@v4
+      - name: Set up Python and Poetry Cache
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'poetry'
 
-      # Install Node / Js dependencies
-      - name: Install Nodejs Dependencies
-        run: |
-          pnpm install -r --frozen-lockfile
-          pnpm approve-builds
-
-      # Install Poetry for Python venv managment
-      # Add Poetry Export Plugin
-      # Add Poetry Shell Plugin
       - name: Install Poetry
         uses: snok/install-poetry@v1
-        with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
-      - run: |
-          poetry self add poetry-plugin-export ;
-          poetry self add poetry-plugin-shell
 
-      # Install WDG-AGENTS for test execution
+      - name: Install Python Dependencies
+        run: poetry install --no-interaction
+
+      - name: Install Node.js Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - uses: nrwl/nx-set-shas@v4
+
       - name: Install WDG-AGENTS for test execution
         run: pnpx nx install wdg-agents
 
-      # Generate Prisma Client For CRUD-Api
       - name: Generate Prisma Client for CRUD-Api
         run: pnpm generate-chinook-client
         env:
           NODE_ENV: test
           DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
 
-      # Test all projects
       - name: Test all projects
         env:
           NODE_ENV: test
@@ -136,6 +124,7 @@ jobs:
   build_and_typecheck:
     needs: ['lint', 'test']
     runs-on: ubuntu-latest
+
     steps:
       #Use last git commit
       - uses: actions/checkout@v4
@@ -145,50 +134,42 @@ jobs:
       # Install PNPM
       - uses: pnpm/action-setup@v4
         with:
-          version: '10'
+          version: 10
 
       # Setup Node Js
       - uses: actions/setup-node@v4
         with:
-          node-version: '23'
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
-      # Install Node / Js dependencies
-      - name: Install Nodejs Dependencies
-        run: |
-          pnpm install -r --frozen-lockfile
-          pnpm approve-builds
+      - name: Set up Python and Poetry Cache
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'poetry'
 
-      # Generate Prisma Client For CRUD-Api
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
+      - name: Install Python Dependencies
+        run: poetry install --no-interaction
+
+      - name: Install Node.js Dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Generate Prisma Client for CRUD-Api
         run: pnpm generate-chinook-client
         env:
           NODE_ENV: production
           DB_URL_PROD: ${{ secrets.DB_URL_PROD }}
 
-      # Add Nx Cloud Build Cache
       - uses: nrwl/nx-set-shas@v4
 
-      # Install Poetry for Python venv managment
-      # Add Poetry Export Plugin
-      # Add Poetry Shell Plugin
-      - name: Install Poetry w/ Exports/Shell Plugins
-        uses: snok/install-poetry@v1
-        with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
-      - run: |
-          poetry self add poetry-plugin-export ;
-          poetry self add poetry-plugin-shell
-
-      # Build all projects
       - name: Build all Affected Projects
         env:
           NODE_ENV: production
-        run: pnpx nx affected -t=build,build-server --verbose
+        run: pnpx nx affected -t=build --verbose
 
-      # Typecheck all projects
       - name: Typecheck all Affected Projects
         env:
           NODE_ENV: production
@@ -197,83 +178,73 @@ jobs:
   deploy-apis:
     needs: ['build_and_typecheck']
     runs-on: ubuntu-latest
+
     steps:
-      #Use last git commit
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # Install PNPM
-      - uses: pnpm/action-setup@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
         with:
-          version: '10'
+          version: 10
 
-      # Setup Node Js
-      - uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '23'
-          cache: pnpm
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
-      # Install Node / Js dependencies
       - name: Install Nodejs Dependencies
-        run: |
-          pnpm install -r --frozen-lockfile
-          pnpm approve-builds
+        run: pnpm install --frozen-lockfile
 
-      # Add Nx Cloud Build Cache
       - uses: nrwl/nx-set-shas@v4
 
-      # Authenticate With GCP
-      - uses: 'google-github-actions/auth@v2'
-        name: Authenticate with GCP
+      - name: Authenticate with GCP
+        uses: 'google-github-actions/auth@v2'
         with:
           credentials_json: ${{ secrets.GCP_SA_CREDENTIALS_JSON }}
 
-      # Configure Docker with GCP
       - name: Configure Docker
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
 
-      # Deploy all APIs to Cloud Run
       - name: Deploy APIs to Cloud Run
         run: pnpx nx affected -t deploy-cloud-run --verbose --exclude=portfolio
 
   deploy-portfolio:
     needs: ['build_and_typecheck']
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: ['24.x']
+
     steps:
-      # Use last git commit
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10
 
-      # Setup Node Js
-      - uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '23'
-          cache: pnpm
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
-      # Install Dependencies
-      - name: Install Portfolio Dependencies for Deploy to GCP Cloud Run
-        run: pnpm install -r --frozen-lockfile
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
 
-      # Add Nx Cloud Build Cache
       - uses: nrwl/nx-set-shas@v4
 
-      # Authenticate With GCP
-      - uses: 'google-github-actions/auth@v2'
-        name: Authenticate with GCP
+      - name: Authenticate with GCP
+        uses: 'google-github-actions/auth@v2'
         with:
           credentials_json: ${{ secrets.GCP_SA_CREDENTIALS_JSON }}
 
-      # Configure Docker with GCP
-      - name: Configure Docker
-        run: gcloud auth configure-docker us-docker.pkg.dev
-
-      # Deploy to Portfolio to App Engine
       - name: Deploy Portfolio to App Engine
         env:
           NODE_ENV: production
@@ -283,18 +254,5 @@ jobs:
           VITE_PORTFOLIO_API_URL: ${{ secrets.VITE_PORTFOLIO_API_URL }}
           VITE_VERTEX_API_URL: ${{ secrets.VITE_VERTEX_API_URL }}
           VITE_GAMES_WS_URL: ${{ secrets.VITE_GAMES_WS_URL }}
-          VITE_VERTEX_WS_URL: ${{ secrets.VITE_VERTEX_WS_URL }}1
+          VITE_VERTEX_WS_URL: ${{ secrets.VITE_VERTEX_WS_URL }}
         run: pnpx nx affected -t deploy-app-engine --verbose
-
-      # Cache Dependencies implementation
-      # Use cached dependencies
-      # - name: Cache dependencies - pnpm-store, node_modules, poetry, pip, .venv
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: |
-      #       ~/.cache/pip
-      #       ~/.cache/poetry
-      #       ~/.pnpm-store
-      #       node_modules
-      #       .venv
-      #     key: ${{ runner.os }}-deps-${{ hashFiles('**/poetry.lock') }}-${{ hashFiles('**/pnpm-lock.yaml') }}

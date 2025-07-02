@@ -1,12 +1,5 @@
-import {
-  PrismaErrorLogger,
-  type ParsedPrismaError,
-  type Prisma,
-  type PrismaClientErrors,
-  type track,
-} from '@aklapper/chinook-client';
+import { PrismaErrorLogger, prisma, type Prisma, type PrismaClientErrors, type track } from '@aklapper/chinook-client';
 import type { DefaultArgs } from '@prisma/client/runtime/library';
-import prisma from '../client/prisma_client.js';
 
 /**
  *

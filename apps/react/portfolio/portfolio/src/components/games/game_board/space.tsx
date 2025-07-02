@@ -17,7 +17,7 @@ export default function Space({ space }: SpaceProps) {
         border: `1px solid ${Theme.palette.primary.main}`,
         borderRadius: '16px',
         flex: 1,
-        minHeight: '90px',
+        minHeight: '120px',
         justifyContent: 'center',
         alignItems: 'center',
       }}

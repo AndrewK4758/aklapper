@@ -27,6 +27,8 @@ export interface AlbumState {
 export const AlbumsOnArtist = (): ReactElement => {
   const [rows, setRows] = useState<album[] | null>(null);
 
+  console.log(rows);
+
   return (
     <CenteredFlexDiv id='albums-on-artist' sx={{ padding: 0, width: '100%' }}>
       <Box

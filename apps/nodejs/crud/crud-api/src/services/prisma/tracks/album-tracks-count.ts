@@ -1,5 +1,4 @@
-import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/chinook-client';
-import prisma from '../client/prisma_client.js';
+import { prisma, PrismaErrorLogger, type PrismaClientErrors } from '@aklapper/chinook-client';
 
 /**
  * Counts the number of tracks in a given album.

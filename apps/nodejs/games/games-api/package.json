@@ -29,8 +29,9 @@
         "defaultConfiguration": "production",
         "options": {
           "platform": "node",
-          "target": "node23",
+          "target": "node24",
           "metafile": true,
+          "minify": true,
           "outputPath": "apps/nodejs/games/games-api/dist",
           "format": [
             "esm"
@@ -53,6 +54,7 @@
           "production": {
             "esbuildOptions": {
               "sourcemap": false,
+              "minify": true,
               "outExtension": {
                 ".js": ".js"
               }
