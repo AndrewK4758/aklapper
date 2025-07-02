@@ -54,10 +54,10 @@ jobs:
         uses: snok/install-poetry@v1
 
       - name: Install Python Dependencies
-        run: poetry install --no-interaction
+        run: nx install wdg-agents
 
       - name: Install Node.js Dependencies
-        run: pnpm install -r --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - uses: nrwl/nx-set-shas@v4
 
@@ -98,15 +98,12 @@ jobs:
         uses: snok/install-poetry@v1
 
       - name: Install Python Dependencies
-        run: poetry install --no-interaction
+        run: pnpx nx install wdg-agents
 
       - name: Install Node.js Dependencies
         run: pnpm install --frozen-lockfile
 
       - uses: nrwl/nx-set-shas@v4
-
-      - name: Install WDG-AGENTS for test execution
-        run: pnpx nx install wdg-agents
 
       - name: Generate Prisma Client for CRUD-Api
         run: pnpm generate-chinook-client
@@ -151,7 +148,7 @@ jobs:
         uses: snok/install-poetry@v1
 
       - name: Install Python Dependencies
-        run: poetry install --no-interaction
+        run: pnpx nx install wdg-agents
 
       - name: Install Node.js Dependencies
         run: pnpm install --frozen-lockfile
