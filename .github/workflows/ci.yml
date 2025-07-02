@@ -13,6 +13,7 @@ permissions:
 env:
   PYTHON_VERSION: '3.13.3'
   NODE_VERSION: '24.x'
+  # GCP Region
   REGION: ${{ secrets.GCP_REGION }}
   # GCP Artifact Registry Repo name
   GAR_REPO: ${{ secrets.GAR_REPO_NAME }}
@@ -42,7 +43,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
+          cache: 'pnpm'
+
+      - name: Install Node.js Dependencies
+        run: pnpm install --frozen-lockfile
 
       # Setup Python and cache Poetry dependencies
       - name: Set up Python
@@ -55,9 +59,6 @@ jobs:
 
       - name: Install Python Dependencies
         run: pnpx nx install wdg-agents
-
-      - name: Install Node.js Dependencies
-        run: pnpm install --frozen-lockfile
 
       - uses: nrwl/nx-set-shas@v4
 
@@ -88,6 +89,9 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
+      - name: Install Node.js Dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -99,9 +103,6 @@ jobs:
 
       - name: Install Python Dependencies
         run: pnpx nx install wdg-agents
-
-      - name: Install Node.js Dependencies
-        run: pnpm install --frozen-lockfile
 
       - uses: nrwl/nx-set-shas@v4
 
