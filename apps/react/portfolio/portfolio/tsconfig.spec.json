@@ -26,7 +26,8 @@
     "tests/**/*.spec.js",
     "tests/**/*.test.jsx",
     "tests/**/*.spec.jsx",
-    "src/**/*.d.ts"
+    "src/**/*.d.ts",
+    "vite_modules.ts"
   ],
   "references": [
     {

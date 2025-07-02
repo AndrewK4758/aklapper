@@ -1,12 +1,13 @@
 import axios from 'axios';
-import type { QueryOptions } from '../../../pages/crud/crud.jsx';
-import type { album } from '../../../types/prisma_types.js';
+
+import type { album } from '@aklapper/chinook-client';
+import type { QueryOptions } from '../../../types/types.js';
 
 export type AllAlbums = { albums: album[] };
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
-const loadAlbums = async (queryOptions: QueryOptions) => {
+const loadAlbums = async (queryOptions: QueryOptions): Promise<album[] | null> => {
   try {
     const { pageSize, skip, cursor } = queryOptions;
 
@@ -14,12 +15,11 @@ const loadAlbums = async (queryOptions: QueryOptions) => {
       headers: { 'Content-Type': 'text/plain' },
     });
 
-    console.log(resp.data);
     const { albums } = resp.data as AllAlbums;
     return albums;
   } catch (error) {
     console.error(error);
-    return undefined;
+    return null;
   }
 };
 export default loadAlbums;

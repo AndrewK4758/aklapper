@@ -13,7 +13,7 @@ const postArtists = async (req: Request, resp: Response): Promise<void> => {
   const { name } = req.body;
   try {
     const newArtist = await createArtists(name);
-    resp.status(201).json({ message: 'Artist Created Sucessful', newArtist: newArtist });
+    resp.status(201).json({ message: 'Artist Created Sucessful', value: newArtist });
   } catch (error) {
     console.error(error);
     resp.status(500).json(error);

@@ -1,12 +1,5 @@
-import {
-  PrismaErrorLogger,
-  type ParsedPrismaError,
-  type Prisma,
-  type PrismaClientErrors,
-  type track,
-} from '@aklapper/chinook-client';
+import { PrismaErrorLogger, prisma, type Prisma, type PrismaClientErrors, type track } from '@aklapper/chinook-client';
 import type { DefaultArgs } from '@prisma/client/runtime/library';
-import prisma from '../client/prisma_client.js';
 
 /**
  * Deletes a track from the database.
@@ -15,12 +8,12 @@ import prisma from '../client/prisma_client.js';
  * @returns A Promise that resolves to the deleted track, or null if an error occurs.
  */
 
-const deleteTrack = async (query: Prisma.trackDeleteArgs<DefaultArgs>): Promise<track | ParsedPrismaError> => {
+const deleteTrack = async (query: Prisma.trackDeleteArgs<DefaultArgs>): Promise<track> => {
   try {
     return await prisma.track.delete(query);
   } catch (error) {
     const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
-    return prismaError.parseErrors();
+    throw prismaError.parseErrors();
   }
 };
 

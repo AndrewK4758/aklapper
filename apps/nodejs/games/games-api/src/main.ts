@@ -4,27 +4,28 @@ import cors, { type CorsOptions } from 'cors';
 import { configDotenv } from 'dotenv';
 import express, { type Express } from 'express';
 import { createServer } from 'node:http';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { join } from 'path';
-import { cwd } from 'process';
 import type { ServerOptions } from 'socket.io';
+import gamesInLobby from './data/games_in_lobby/games_in_lobby.js';
+import checkStartGame from './events/check_start-game.js';
 import createNewGame from './events/create_new_game.js';
 import enterLobby from './events/enter-lobby.js';
+import joinGame from './events/join-game.js';
 import handleLeaveLobby from './events/leave_lobby.js';
 import privateMessagePlayer from './events/private_message.js';
 import socketBoardAction from './events/socket-board-action.js';
-import addGameToSocketInstance from './middleware/socket-add-game-middleware.js';
-
-// import go_websocketEvent from './models/go_websocket_event.js';
-import gamesInLobby from './data/games_in_lobby/games_in_lobby.js';
-import checkStartGame from './events/check_start-game.js';
-import joinGame from './events/join-game.js';
 import useAllGamesMap from './middleware/all-games-map.js';
+import addGameToSocketInstance from './middleware/socket-add-game-middleware.js';
 import useActivePlayersMap from './middleware/use_active_players_map.js';
 import routerV1 from './routes/v1/routes.js';
 import routerV2 from './routes/v2/routes.js';
 import syncWithGoLobby from './services/game/sync_lobby_data.js';
 
-const __dirname = join(cwd(), 'apps/nodejs/games/games-api');
+const __filename = fileURLToPath(import.meta.url);
+
+const __dirname = dirname(__filename);
 
 configDotenv({ path: join(__dirname, 'env/.env') });
 
@@ -37,9 +38,9 @@ export const corsOptions: CorsOptions = {
     'https://andrew-k.us',
     'https://www.andrew-k.us',
     'http://localhost:4700',
+    'http://localhost:4800',
     'http://localhost:3200',
     'ws://localhost:3200',
-    'http://localhost',
     'https://games-424800.uc.r.appspot.com',
     'http://localhost:6900',
   ],
@@ -50,19 +51,15 @@ export const corsOptions: CorsOptions = {
   credentials: false,
 };
 
-const gameServerOptions: Partial<ServerOptions> = {
+const baseWsServerOptions: Partial<ServerOptions> = {
   cleanupEmptyChildNamespaces: true,
   cors: corsOptions,
-};
-
-const lobbyServerOptions: Partial<ServerOptions> = {
-  ...gameServerOptions,
-  path: '/lobby',
+  path: '/games-api',
 };
 
 const httpServer = createServer(app);
 
-const socketServer = new SocketServer(httpServer, lobbyServerOptions, new Map<PlayerID, SocketID>());
+const socketServer = new SocketServer(httpServer, baseWsServerOptions, new Map<PlayerID, SocketID>());
 
 export const lobbySocketServer = socketServer.createNamespace('lobby');
 export const gameplaySocketServer = socketServer.createNamespace('gameplay');
@@ -80,7 +77,7 @@ socketServer.addServerListener('lobby', 'join-game', joinGame);
 socketServer.addServerListener('lobby', 'check-start-game', checkStartGame);
 
 let reconnecting: null | NodeJS.Timeout = null;
-let socketClient: WebSocket | null = null;
+export let socketClient: WebSocket | null = null;
 
 const connectWebsocket = function () {
   socketClient = new WebSocket(WS_URL as string);
@@ -94,8 +91,6 @@ const connectWebsocket = function () {
     activePlayers.map.clear();
     gamesInLobby.map.clear();
     gamesMap.AllGames.clear();
-
-    console.log(activePlayers, gamesInLobby);
 
     reconnecting = setTimeout(() => {
       connectWebsocket();
@@ -117,7 +112,7 @@ const connectWebsocket = function () {
   };
 };
 
-connectWebsocket();
+if (WS_URL) connectWebsocket();
 
 app.options(/.*/, cors(corsOptions));
 app.use(cors(corsOptions));
@@ -130,14 +125,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/v1', routerV1);
 app.use('/api/v2', routerV2);
 
-const port = parseInt(process.env.PORT as string) || 3000;
-const host = process.env.HOST || 'localhost';
+const port = process.env.PORT || 3000;
 
 const server = httpServer.listen(port, () => {
-  console.log(`Listening on http://${host}:${port}/api/{version}`);
+  console.log(`Listening on PORT: ${port}`);
 });
 
 server.on('error', console.error);
 
 export default app;
-export { socketClient };

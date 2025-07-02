@@ -1,89 +1,69 @@
-import { FormikValidationError } from '@aklapper/react-shared';
-import Box from '@mui/material/Box';
+import type { album } from '@aklapper/chinook-client';
 import Button from '@mui/material/Button';
-import Container from '@mui/material/Container';
-import FormLabel from '@mui/material/FormLabel';
-import TextField from '@mui/material/TextField';
-import type { GridApiCommunity } from '@mui/x-data-grid/internals';
+import ButtonGroup from '@mui/material/ButtonGroup';
 import { useFormik } from 'formik';
-import type { FocusEvent, JSX, RefObject } from 'react';
+import { type Dispatch, type ReactElement, type SetStateAction } from 'react';
 import { Form, useParams } from 'react-router';
-import handleSubmitNewAlbum from '../../../services/actions/crud-actions/submit-album-on-artist-action.jsx';
-import handleNewAlbumBlur from '../../../services/events/crud-events/handle-validate-artist-albums-on-blur.jsx';
-import { crudAddButtonStyles } from '../../../styles/crud-styles.jsx';
+import handleSubmitAlbumOnArtist from '../../../services/actions/crud-actions/submit-album-on-artist-action.jsx';
+import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
+import CenteredFlexDiv from '../../styled/centered_flexbox.js';
+import TextInput from '../../styled/text_input.js';
 
 interface AddAlbumOnArtistProps {
-  apiRef: RefObject<GridApiCommunity | null>;
+  setRows: Dispatch<SetStateAction<album[] | null>>;
 }
-
-export type ArtistAndAlbum = { title: string; album_id: number; artist_id: number };
 
 /**
  * This component renders a form for adding a new album to a specific artist.
  * It allows users to input the album title and then submits the data to the server.
  *
- * @param {AddAlbumOnArtistProps} props - The props for the AddAlbumOnArtist component.
- * @param {RefObject<GridApiCommunity>} props.apiRef - A ref to the DataGrid API object.
- * @returns {JSX.Element} The rendered AddAlbumOnArtist component.
+ * @returns {ReactElement} The rendered AddAlbumOnArtist component.
  */
 
-const AddAlbumOnArtist = ({ apiRef }: AddAlbumOnArtistProps): JSX.Element => {
-  const params = useParams();
-  const artistID = parseInt(params.artistID as string, 10);
-
+const AddAlbumOnArtist = ({ setRows }: AddAlbumOnArtistProps): ReactElement => {
+  const { artistID } = useParams() as { artistID: string };
   const formik = useFormik({
-    initialValues: { title: '', album_id: 0, artist_id: 0 } as ArtistAndAlbum,
-    onSubmit: values => {
-      handleSubmitNewAlbum(values, formik, artistID, apiRef);
+    initialValues: { title: '', album_id: 0, artist_id: 0 },
+    onSubmit: async values => {
+      await handleSubmitAlbumOnArtist(values.title, formik, parseInt(artistID, 10), setRows);
     },
     validateOnBlur: true,
   });
 
-  formik.handleBlur = (e: FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>) => {
-    handleNewAlbumBlur(e, formik, artistID);
-  };
-
   return (
-    <Container
-      component={'div'}
-      id='add-album-on-artist-container'
-      key={'add-album-on-artist-container'}
-      sx={{ borderRadius: 1, paddingY: 2 }}
-    >
-      <Form method='post' onSubmit={formik.handleSubmit}>
-        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-          <FormLabel htmlFor='name' hidden>
-            Enter Album Name
-          </FormLabel>
-          <TextField
-            autoComplete='off'
-            name='title'
-            id='title'
-            variant='outlined'
+    <Form method='post' onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
+      <CenteredFlexDiv id='add-albums-on-artist-container'>
+        <TextInput<album>
+          formik={formik}
+          name={'title'}
+          label={'Album Title'}
+          variant='outlined'
+          searchParams={`/albums/${formik.values.title}`}
+          slotProps={{
+            input: {
+              sx: {
+                backgroundColor: BACKGROUND_DEFAULT,
+              },
+            },
+          }}
+        />
+
+        <ButtonGroup fullWidth>
+          <Button
+            type='submit'
+            disabled={formik.isSubmitting}
+            variant='contained'
             color='primary'
-            value={formik.values.title}
-            placeholder='Enter Album Title'
-            onChange={formik.handleChange}
-            onBlur={e => formik.handleBlur(e)}
-          />
-
-          <FormikValidationError<ArtistAndAlbum>
-            formik={formik}
-            elementName={'title'}
-            helperTextSx={{ fontSize: '1.25rem' }}
-          />
-        </Box>
-
-        <Container sx={{ display: 'flex', justifyItems: 'center' }}>
-          <Button type='submit' variant='contained' color='primary' sx={crudAddButtonStyles}>
-            Submit
+            sx={{ fontWeight: 'bold' }}
+          >
+            {formik.isSubmitting ? 'Submitting' : 'Submit'}
           </Button>
-          <Button type='reset' variant='contained' color='secondary' sx={crudAddButtonStyles}>
+          <Button type='reset' variant='contained' color='secondary' sx={{ fontWeight: 'bold' }}>
             Clear
           </Button>
-        </Container>
-      </Form>
-    </Container>
+        </ButtonGroup>
+      </CenteredFlexDiv>
+    </Form>
   );
 };
 

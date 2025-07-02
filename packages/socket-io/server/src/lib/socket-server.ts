@@ -20,9 +20,9 @@ export class SocketServer implements ISocketServer {
     this.io.of(`/${namespace}`).on('connection', socket => {
       const playerID = socket.handshake.headers['current-player-id'] as string;
       if (playerID) this.addSocketToConnMap(playerID, socket);
+
       listener(event, socket);
     });
-    console.log(this.connMap);
   };
 
   addMiddleware = (namespace: string, middleware: SocketMiddleware): void => {

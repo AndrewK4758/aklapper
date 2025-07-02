@@ -5,7 +5,7 @@ import {
   type GameInstanceID,
   type ILiteSpace,
   type IPlayersAndBoard,
-  type IRegisterFormValues
+  type IRegisterFormValues,
 } from '@aklapper/types';
 import { deRefContextObject } from '@aklapper/utils';
 
@@ -17,11 +17,10 @@ export const activeDataToSend = CommandBuilder.build((context: Context<GameConte
       avatarInTurn: context.get('player-in-turn') as string,
       gameBoard: game.instance.instance.displayGameBoard() as ILiteSpace[],
       activePlayersInGame: context.get('active-players-in-game') as IRegisterFormValues[],
-      winner: context.get('winner-message') as string
+      winner: context.get('winner-message') as string,
     };
 
     if (!req && !resp) {
-      console.log('In io.emit event handler');
       io.to(game.gameInstanceID).emit('game-data', activeDataToSend);
       return false;
     } else {

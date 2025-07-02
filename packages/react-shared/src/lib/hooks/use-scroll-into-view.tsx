@@ -1,5 +1,5 @@
-import { handleScrollIntoView } from '../utils/handle-scroll-into-view';
 import { useLayoutEffect, type RefObject } from 'react';
+import { handleScrollIntoView } from '../utils/handle-scroll-into-view';
 
 /**
  * This custom hook scrolls an element into view when the component mounts or when the dependencies change.

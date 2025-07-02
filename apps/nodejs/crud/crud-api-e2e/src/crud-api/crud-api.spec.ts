@@ -18,7 +18,7 @@ describe('Test all endpoints for artist CRUD', () => {
       const CURSOR = 1;
 
       const resp = await axios.get(`/artists?take=${TAKE}&skip=${SKIP}&cursor=${CURSOR}`);
-      console.log(axios);
+
       const { allArtists } = resp.data;
       expect(allArtists.length).toEqual(TAKE);
     });

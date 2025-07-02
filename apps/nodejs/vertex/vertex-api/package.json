@@ -57,7 +57,10 @@
         "executor": "@nx/js:node",
         "defaultConfiguration": "development",
         "dependsOn": [
-          "build"
+          {
+            "target": "build",
+            "dependencies": true
+          }
         ],
         "options": {
           "buildTarget": "vertex-api:build",

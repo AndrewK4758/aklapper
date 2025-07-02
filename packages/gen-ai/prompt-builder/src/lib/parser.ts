@@ -6,7 +6,7 @@ export const parseInput = (promptInput: IPromptInputData) => {
     for (const key in promptInput) {
       const indent = ' '.repeat(level * 2);
 
-      xmlOutput += `\n${openXML(key, indent)}${input[key]}${closeXML(key)}`;
+      if (input[key]) xmlOutput += `\n${openXML(key, indent)}${input[key]}${closeXML(key)}`;
     }
   };
   xmlOutput += '\n<root>';

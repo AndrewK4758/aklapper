@@ -1,5 +1,5 @@
 # Use the official Node.js image as the base image
-FROM  node:latest 
+FROM  node24 
 
 # Set the working directory in the container
 WORKDIR /api
@@ -10,10 +10,16 @@ RUN npm install -g pnpm
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Install dependencies using pnpm
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --prod --frozen-lockfile
 RUN pnpm approve-builds
 
+ENV INSTANCE_CONNECTION_NAME=games-424800:us-central1:aklapper
+
+ENV DB_URL_PROD=postgresql://postgres:11560000@localhost/aklapper?host=/cloudsql/games-424800:us-central1:aklapper/
+
 ENV NODE_ENV='production'
+
+COPY packages/prisma/games ./packages
 
 # Copy the entire project to the container
 COPY apps/nodejs/games/games-api/dist .

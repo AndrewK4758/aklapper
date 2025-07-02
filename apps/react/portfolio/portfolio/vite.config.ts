@@ -1,34 +1,50 @@
 import { workspaceRoot } from '@nx/devkit';
+import { pigment } from '@pigment-css/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
+import { cwd } from 'node:process';
 import { defineConfig, type UserConfig } from 'vite';
+import Theme from './src/styles/themes/theme';
+import MODULES from './vite_modules';
+process.env.NODE_ENV = 'development';
 
-const modules: { [key: string]: string } = {
-  '@aklapper/games-components': resolve(workspaceRoot, 'packages/games-components/src/index.ts'),
+//Server
+const HOST = 'localhost';
+const PORT_DEV = 4700;
+const PORT_PREVIEW = 4800;
 
-  '@aklapper/media-recorder': resolve(workspaceRoot, 'packages/media-recorder/src/index.ts'),
-
-  '@aklapper/prompt-builder': resolve(workspaceRoot, 'packages/gen-ai/prompt-builder/src/index.ts'),
-
-  '@aklapper/react-shared': resolve(workspaceRoot, 'packages/react-shared/src/index.ts'),
-
-  '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
-
-  '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src/index.ts'),
-};
+//Build
+const BASE = '/';
+// const NODE_ENV = process.env.NODE_ENV;
+const OUT_DIR = './dist';
+const ROOT = cwd();
 
 const config: UserConfig = defineConfig({
-  root: resolve(workspaceRoot, 'apps/react/portfolio/portfolio'),
+  root: ROOT,
   cacheDir: resolve(workspaceRoot, 'node_modules/.vite/apps/react/portfolio/portfolio'),
   server: {
-    port: 4700,
-    host: 'localhost',
+    port: PORT_DEV,
+    host: HOST,
   },
   preview: {
-    port: 4800,
-    host: 'localhost',
+    port: PORT_PREVIEW,
+    host: HOST,
   },
-  plugins: [react()],
+
+  plugins: [
+    pigment({
+      theme: Theme,
+      transformLibraries: ['@mui/material'],
+      transformSx: true,
+      debug: {
+        print: true,
+      },
+      babelOptions: {
+        compact: false,
+      },
+    }),
+    react(),
+  ],
 
   // Uncomment this if you are using workers.
   // worker: {
@@ -36,28 +52,36 @@ const config: UserConfig = defineConfig({
   // },
 
   resolve: {
-    alias: modules,
+    alias: MODULES,
+    conditions: ['mui-modern', 'module', 'browser', 'development|production'],
   },
 
-  base: '/client',
-  mode: process.env['NODE_ENV'],
+  base: BASE,
+
+  mode: 'development',
+
+  logLevel: 'info',
+  appType: 'spa',
+  publicDir: 'public',
+  envDir: './env',
+
   build: {
-    outDir: './dist/client',
+    outDir: OUT_DIR,
     minify: true,
-    emptyOutDir: true,
+    target: 'esnext',
     manifest: true,
     sourcemap: true,
+    emptyOutDir: true,
     reportCompressedSize: true,
     commonjsOptions: {
       transformMixedEsModules: true,
     },
+
     rollupOptions: {
-      input: {
-        browser: '/src/main.tsx',
-      },
-      perf: true,
+      logLevel: 'info',
+      experimentalLogSideEffects: true,
+
       output: {
-        assetFileNames: '[name].[ext]',
         strict: true,
         esModule: true,
         format: 'esm',
@@ -69,25 +93,22 @@ const config: UserConfig = defineConfig({
           reservedNamesAsProps: true,
         },
       },
+      strictDeprecations: true,
+      perf: true,
     },
-    target: 'esnext',
   },
 
   esbuild: {
-    jsx: 'automatic',
-    format: 'esm',
     color: true,
+    format: 'esm',
+    jsx: 'automatic',
     platform: 'browser',
     sourcemap: true,
     target: 'esnext',
   },
 
-  logLevel: 'info',
-  appType: 'custom',
-  publicDir: 'public',
-  envDir: './env',
-
   test: {
+    name: 'portfolio',
     watch: false,
     globals: true,
     environment: 'jsdom',

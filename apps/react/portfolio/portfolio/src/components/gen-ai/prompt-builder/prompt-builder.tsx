@@ -1,53 +1,33 @@
 import { ResponseType, type IPromptInputData } from '@aklapper/prompt-builder';
-import { FormikValidationError, Label, Text, useScrollIntoView } from '@aklapper/react-shared';
+import { FormikValidationError, SectionTitle, Text, useScrollIntoView } from '@aklapper/react-shared';
+import type { ChatEntry } from '@aklapper/types';
 import { getContextPath } from '@aklapper/utils';
 import type { PromptRequest } from '@aklapper/vertex-ai';
-import Box from '@mui/material/Box';
+import InsertPhotoOutlinedIcon from '@mui/icons-material/InsertPhotoOutlined';
+import Box from '@mui/material-pigment-css/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
+import Divider from '@mui/material/Divider';
 import FormControlLabel from '@mui/material/FormControlLabel';
-import Paper from '@mui/material/Paper';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import TextField from '@mui/material/TextField';
 import axios from 'axios';
 import { useFormik } from 'formik';
 import { useRef, useState, type Dispatch, type JSX, type RefObject, type SetStateAction } from 'react';
-import { Form, useActionData, useNavigate, useSubmit, type NavigateFunction, type SubmitTarget } from 'react-router';
+import { Form, useNavigate, type NavigateFunction } from 'react-router';
 import * as Yup from 'yup';
-import { crudHeaderTextSxProps } from '../../../styles/crud-styles.jsx';
-import {
-  formLabelSxProps,
-  helperTextSx,
-  labelSx,
-  promptBuilderRadioGroupSxProps,
-  promptBuilderResponseFormatBoxSxProps,
-  promptBuilderResponseFormatIconsSxProps,
-  promptBuilderResponseFormatLabelSxProps,
-  promptBuilderTextFieldSlotProps,
-  promptBuilderUploadFileTextSxProps,
-  promptBuillderFormBoxSxProps,
-  radioButtonLabelSxProps,
-  radioButtonLabelWrapperSxProps,
-  textInputSx,
-  tooltipSx,
-} from '../../../styles/gen-ai-styles.jsx';
-import { buttonSXProps, flexColumnStyles, fullSizeBlock, pagesTitleSx } from '../../../styles/pages-styles.jsx';
-import ImageIcon from '../../icons/image-icon.jsx';
+import Theme from '../../../styles/themes/theme';
 import JsonIcon from '../../icons/json-icon.jsx';
 import TextIcon from '../../icons/text-icon.jsx';
-import {
-  constraints,
-  examples,
-  instructions,
-  objective,
-  responseInstructions,
-  SUPPORTED_FORMATS,
-  textData,
-  tone,
-} from '../static/definitions.jsx';
+import CenteredFlexDiv from '../../styled/centered_flexbox';
+import HelperTextBox from '../../styled/helper_text_box';
+import StyledCard from '../../styled/styled_card';
+import { SUPPORTED_FORMATS } from '../static/definitions.jsx';
 import { promptBuilderHeaderText } from '../static/prompt-builder-text.jsx';
 import PromptBuilderResponse from './prompt-builder-response.jsx';
+
+const promptInit: PromptRequest = { text: null, fileData: null };
 
 const initialValues: IPromptInputData = {
   objective: '',
@@ -73,8 +53,8 @@ const validationSchema = Yup.object({
 
 interface PromptBuilderProps {
   loading: boolean;
-  setPrompt: Dispatch<SetStateAction<PromptRequest>>;
-  setLoading: Dispatch<SetStateAction<boolean>>;
+  setUserChatEntry: Dispatch<SetStateAction<ChatEntry[]>>;
+  setLoading: (loading: boolean) => void;
 }
 
 /**
@@ -88,25 +68,25 @@ interface PromptBuilderProps {
  * @returns {JSX.Element} The rendered PromptBuilder component.
  */
 
-const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): JSX.Element => {
+const PromptBuilder = ({ loading, setUserChatEntry, setLoading }: PromptBuilderProps): JSX.Element => {
   const [openPromptResponse, setOpenPromptResponse] = useState<boolean>(false);
+  const [prompt, setPrompt] = useState<PromptRequest>(promptInit);
+  const [builtPrompt, setBuiltPrompt] = useState<null | string>(null);
   const [fileName, setFileName] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const divRef = useRef<HTMLDivElement>(null);
-  const submit = useSubmit();
   const nav = useNavigate();
 
-  const action = useActionData() as string;
+  console.log(builtPrompt);
+  // const action = useActionData() as string;
 
   useScrollIntoView(divRef);
 
   const formik = useFormik({
     initialValues: initialValues,
     validationSchema: validationSchema,
-    onSubmit: values => submit(values as SubmitTarget, { method: 'POST', encType: 'application/json' }),
+    onSubmit: async values => await handlePromptBuilder(values, setBuiltPrompt, setOpenPromptResponse, setLoading),
     onReset: () => setFileName(''),
-    validateOnBlur: true,
-    validateOnChange: true,
   });
 
   /**
@@ -121,524 +101,339 @@ const PromptBuilder = ({ loading, setPrompt, setLoading }: PromptBuilderProps): 
   };
 
   return (
-    <Box component={'div'} key={'prompt-builder-wrapper'} id='prompt-builder-wrapper' ref={divRef} width={'100%'}>
-      <Paper key={'prompt-builder-paper'} id='prompt-builder-paper'>
-        <Container
+    <StyledCard id='prompt-builder-paper' sx={{ padding: Theme.spacing(4), width: '70%', margin: 'auto' }}>
+      <CenteredFlexDiv id='prompt-builder'>
+        <Box
+          ref={divRef}
           component={'section'}
-          key={'prompt-builder'}
-          id='prompt-builder'
-          maxWidth={false}
-          sx={{ ...flexColumnStyles, gap: 4 }}
+          id='prompt-builder-header-box'
+          sx={{ display: 'flex', alignItems: 'center' }}
         >
-          <Box component={'section'} key={'prompt-builder-header-box'} id='prompt-builder-header-box'>
-            <Text component={'h2'} titleVariant='h2' titleText={'Prompt Builder'} sx={pagesTitleSx} />
-            <Text component={'p'} titleVariant='body1' titleText={promptBuilderHeaderText} sx={crudHeaderTextSxProps} />
-          </Box>
-          <Form key={'prompt-builder-form'} method='POST' onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
-            <Box
-              component={'section'}
-              key={'prompt-builder-input-elements-box'}
-              id='prompt-builder-input-elements-box'
-              sx={promptBuillderFormBoxSxProps}
-            >
-              <Box component={'section'} key={'prompt-builder-objective-box'} id='prompt-builder-objective-box'>
-                <Label
-                  id='objective-label'
-                  htmlFor='prompt-builder-objective'
-                  placement='top'
-                  tooltipTitle={objective}
-                  labelText='Objective'
-                  labelVariant='h3'
-                  labelTextSx={labelSx}
-                  tooltipSx={tooltipSx}
-                />
-                <TextField
-                  component={'span'}
-                  key={'prompt-builder-objective'}
-                  id='prompt-builder-objective'
-                  multiline={true}
-                  focused={true}
-                  fullWidth={true}
-                  rows={2}
-                  placeholder='What you want the AI todo'
-                  variant='outlined'
-                  onBlur={formik.handleBlur}
-                  onChange={formik.handleChange}
-                  onReset={formik.handleReset}
-                  name={'objective'}
-                  sx={textInputSx}
-                  value={formik.values.objective}
-                  slotProps={promptBuilderTextFieldSlotProps}
-                />
-                <FormikValidationError<IPromptInputData>
-                  elementName='objective'
-                  formik={formik}
-                  helperTextSx={helperTextSx}
-                />
-              </Box>
-              <Box component={'section'} key={'prompt-builder-instructions-box'} id='prompt-builder-instructions-box'>
-                <Label
-                  id='instructions-label'
-                  htmlFor='prompt-builder-instructions'
-                  placement='top'
-                  tooltipTitle={instructions}
-                  labelText='Instructions'
-                  labelVariant='h3'
-                  labelTextSx={labelSx}
-                  tooltipSx={tooltipSx}
-                />
-                <TextField
-                  component={'span'}
-                  key={'prompt-builder-instructions'}
-                  id='prompt-builder-instructions'
-                  multiline={true}
-                  fullWidth={true}
-                  rows={2}
-                  placeholder='How you want the AI to execute the objective'
-                  variant='outlined'
-                  onBlur={formik.handleBlur}
-                  onChange={formik.handleChange}
-                  onReset={formik.handleReset}
-                  name={'instructions'}
-                  sx={textInputSx}
-                  value={formik.values.instructions}
-                  slotProps={promptBuilderTextFieldSlotProps}
-                />
-                <FormikValidationError<IPromptInputData>
-                  elementName='instructions'
-                  formik={formik}
-                  helperTextSx={helperTextSx}
-                />
-              </Box>
-              <Box component={'section'} key={'prompt-builder-text-data-box'} id='prompt-builder-text-data-box'>
-                <Label
-                  id='text-data-label'
-                  htmlFor='prompt-builder-text-data'
-                  placement='top'
-                  tooltipTitle={textData}
-                  labelText='Text Data'
-                  labelVariant='h3'
-                  labelTextSx={labelSx}
-                  tooltipSx={tooltipSx}
-                />
-                <TextField
-                  component={'span'}
-                  key={'prompt-builder-text-data'}
-                  id='prompt-builder-text-data'
-                  multiline={true}
-                  fullWidth={true}
-                  rows={2}
-                  placeholder='Copy & Paste any simple text for context or processing'
-                  variant='outlined'
-                  onBlur={formik.handleBlur}
-                  onChange={formik.handleChange}
-                  onReset={formik.handleReset}
-                  name={'textData'}
-                  sx={textInputSx}
-                  value={formik.values.textData}
-                  slotProps={promptBuilderTextFieldSlotProps}
-                />
-                <FormikValidationError<IPromptInputData>
-                  elementName='textData'
-                  formik={formik}
-                  helperTextSx={helperTextSx}
-                />
-              </Box>
-              <Box component={'section'} key={'prompt-builder-examples-box'} id='prompt-builder-examples-box'>
-                <Label
-                  id='examples-label'
-                  htmlFor='prompt-builder-examples'
-                  placement='top'
-                  tooltipTitle={examples}
-                  labelText='Examples'
-                  labelVariant='h3'
-                  labelTextSx={labelSx}
-                  tooltipSx={tooltipSx}
-                />
-                <TextField
-                  component={'span'}
-                  key={'prompt-builder-examples'}
-                  id='prompt-builder-examples'
-                  multiline={true}
-                  fullWidth={true}
-                  rows={2}
-                  placeholder='Show AI Example of your desired outcome'
-                  variant='outlined'
-                  onBlur={formik.handleBlur}
-                  onChange={formik.handleChange}
-                  onReset={formik.handleReset}
-                  name={'examples'}
-                  sx={textInputSx}
-                  value={formik.values.examples}
-                  slotProps={promptBuilderTextFieldSlotProps}
-                />
-                <FormikValidationError<IPromptInputData>
-                  elementName='examples'
-                  formik={formik}
-                  helperTextSx={helperTextSx}
-                />
-              </Box>
-              <Box component={'section'} key={'prompt-builder-constraints-box'} id='prompt-builder-constraints-box'>
-                <Label
-                  id='constraints-label'
-                  htmlFor='prompt-builder-constraints'
-                  placement='top'
-                  tooltipTitle={constraints}
-                  labelText='Constraints'
-                  labelVariant='h3'
-                  labelTextSx={labelSx}
-                  tooltipSx={tooltipSx}
-                />
-                <TextField
-                  component={'span'}
-                  key={'prompt-builder-constraints'}
-                  id='prompt-builder-constraints'
-                  multiline={true}
-                  fullWidth={true}
-                  rows={2}
-                  placeholder='Limits you want AI to adhere to'
-                  variant='outlined'
-                  onBlur={formik.handleBlur}
-                  onChange={formik.handleChange}
-                  onReset={formik.handleReset}
-                  name={'constraints'}
-                  sx={textInputSx}
-                  value={formik.values.constraints}
-                  slotProps={promptBuilderTextFieldSlotProps}
-                />
-                <FormikValidationError<IPromptInputData>
-                  elementName='constraints'
-                  formik={formik}
-                  helperTextSx={helperTextSx}
-                />
-              </Box>
-              <Box component={'section'} key={'prompt-builder-tone-box'} id='prompt-builder-tone-box'>
-                <Label
-                  id='tone-label'
-                  htmlFor='prompt-builder-tone'
-                  placement='top'
-                  tooltipTitle={tone}
-                  labelText='Tone'
-                  labelVariant='h3'
-                  labelTextSx={labelSx}
-                  tooltipSx={tooltipSx}
-                />
-                <TextField
-                  component={'span'}
-                  key={'prompt-builder-tone'}
-                  id='prompt-builder-tone'
-                  multiline={true}
-                  fullWidth={true}
-                  rows={2}
-                  placeholder='The style, voice, mood, feeling you want the AI to convey'
-                  variant='outlined'
-                  onBlur={formik.handleBlur}
-                  onChange={formik.handleChange}
-                  onReset={formik.handleReset}
-                  name={'tone'}
-                  sx={textInputSx}
-                  value={formik.values.tone}
-                  slotProps={promptBuilderTextFieldSlotProps}
-                />
-                <FormikValidationError<IPromptInputData>
-                  elementName='tone'
-                  formik={formik}
-                  helperTextSx={helperTextSx}
-                />
-              </Box>
-              <Box
-                component={'section'}
-                key={'prompt-builder-response-instructions-box'}
-                id='prompt-builder-response-instructions-box'
+          <Text variant='h4' children={'Prompt Builder'} sx={{ flex: '0 1 25%' }} />
+          <Divider orientation='vertical' flexItem />
+          <Text
+            variant='body1'
+            children={promptBuilderHeaderText}
+            sx={{ flex: '0 1 75%', padding: Theme.spacing(4) }}
+          />
+        </Box>
+        <Form
+          key={'prompt-builder-form'}
+          method='POST'
+          onSubmit={formik.handleSubmit}
+          onReset={formik.handleReset}
+          style={{ width: '70%' }}
+        >
+          <HelperTextBox multiline>
+            <TextField
+              id='objective-input'
+              label='Objective'
+              multiline={true}
+              focused={true}
+              fullWidth={true}
+              rows={2}
+              placeholder='What you want the AI todo'
+              variant='outlined'
+              onBlur={formik.handleBlur}
+              onFocus={async e => await formik.setFieldTouched(e.currentTarget.name as string, false)}
+              onChange={formik.handleChange}
+              onReset={formik.handleReset}
+              name={'objective'}
+              value={formik.values.objective}
+              error={!!formik.errors.objective}
+              slotProps={{
+                input: {
+                  sx: {
+                    backgroundColor: Theme.palette.background.default,
+                  },
+                },
+              }}
+              helperText={formik.touched.objective && formik.errors.objective}
+            />
+          </HelperTextBox>
+          <HelperTextBox multiline>
+            <TextField
+              label='Instructions'
+              id='prompt-builder-instructions'
+              multiline={true}
+              fullWidth={true}
+              rows={2}
+              placeholder='How you want the AI to execute the objective'
+              variant='outlined'
+              onBlur={formik.handleBlur}
+              onFocus={async e => formik.setFieldTouched(e.currentTarget.name as string, false)}
+              onChange={formik.handleChange}
+              onReset={formik.handleReset}
+              name={'instructions'}
+              value={formik.values.instructions}
+              error={!!formik.errors['instructions']}
+              slotProps={{
+                input: {
+                  sx: {
+                    backgroundColor: Theme.palette.background.default,
+                  },
+                },
+              }}
+              helperText={formik.touched.instructions && formik.errors.instructions}
+            />
+          </HelperTextBox>
+          <HelperTextBox multiline>
+            <TextField
+              label='Text Data'
+              id='prompt-builder-text-data'
+              multiline={true}
+              fullWidth={true}
+              rows={2}
+              placeholder='Copy & Paste any simple text for context or processing'
+              variant='outlined'
+              onBlur={formik.handleBlur}
+              onFocus={async e => formik.setFieldTouched(e.currentTarget.name as string, false)}
+              onChange={formik.handleChange}
+              onReset={formik.handleReset}
+              name={'textData'}
+              value={formik.values.textData}
+              error={!!formik.errors['textData']}
+              slotProps={{
+                input: {
+                  sx: {
+                    backgroundColor: Theme.palette.background.default,
+                  },
+                },
+              }}
+              helperText={formik.touched['textData'] && formik.errors['textData']}
+            />
+          </HelperTextBox>
+          <HelperTextBox multiline>
+            <TextField
+              label='Examples'
+              id='prompt-builder-examples'
+              multiline={true}
+              fullWidth={true}
+              rows={2}
+              placeholder='Show AI Example of your desired outcome'
+              variant='outlined'
+              onBlur={formik.handleBlur}
+              onFocus={async e => formik.setFieldTouched(e.currentTarget.name as string, false)}
+              onChange={formik.handleChange}
+              onReset={formik.handleReset}
+              name={'examples'}
+              value={formik.values.examples}
+              error={!!formik.errors['examples']}
+              slotProps={{
+                input: {
+                  sx: {
+                    backgroundColor: Theme.palette.background.default,
+                  },
+                },
+              }}
+              helperText={formik.touched['examples'] && formik.errors['examples']}
+            />
+          </HelperTextBox>
+          <HelperTextBox multiline>
+            <TextField
+              label='Constraints'
+              id='prompt-builder-constraints'
+              multiline={true}
+              fullWidth={true}
+              rows={2}
+              placeholder='Limits you want AI to adhere to'
+              variant='outlined'
+              onBlur={formik.handleBlur}
+              onFocus={async e => formik.setFieldTouched(e.currentTarget.name as string, false)}
+              onChange={formik.handleChange}
+              onReset={formik.handleReset}
+              name={'constraints'}
+              value={formik.values.constraints}
+              error={!!formik.errors['constraints']}
+              slotProps={{
+                input: {
+                  sx: {
+                    backgroundColor: Theme.palette.background.default,
+                  },
+                },
+              }}
+              helperText={formik.touched['constraints'] && formik.errors['constraints']}
+            />
+          </HelperTextBox>
+          <HelperTextBox multiline>
+            <TextField
+              label='Tone'
+              id='prompt-builder-tone'
+              multiline={true}
+              fullWidth={true}
+              rows={2}
+              placeholder='The style, voice, mood, feeling you want the AI to convey'
+              variant='outlined'
+              onBlur={formik.handleBlur}
+              onFocus={async e => formik.setFieldTouched(e.currentTarget.name as string, false)}
+              onChange={formik.handleChange}
+              onReset={formik.handleReset}
+              name={'tone'}
+              value={formik.values.tone}
+              error={!!formik.errors['tone']}
+              slotProps={{
+                input: {
+                  sx: {
+                    backgroundColor: Theme.palette.background.default,
+                  },
+                },
+              }}
+              helperText={formik.touched['tone'] && formik.errors['tone']}
+            />
+          </HelperTextBox>
+          <HelperTextBox multiline>
+            <TextField
+              label='Response Instructions'
+              id='prompt-builder-response-instructions'
+              multiline={true}
+              fullWidth={true}
+              rows={2}
+              placeholder='The how AI will respond'
+              variant='outlined'
+              onBlur={formik.handleBlur}
+              onFocus={async e => formik.setFieldTouched(e.currentTarget.name as string, false)}
+              onChange={formik.handleChange}
+              onReset={formik.handleReset}
+              name={'responseInstructions'}
+              value={formik.values.responseInstructions}
+              error={!!formik.errors['responseInstructions']}
+              slotProps={{
+                input: {
+                  sx: {
+                    backgroundColor: Theme.palette.background.default,
+                  },
+                },
+              }}
+              helperText={formik.touched['responseInstructions'] && formik.errors['responseInstructions']}
+            />
+          </HelperTextBox>
+          <Box as={'section'} id='prompt-builder-response-format-box'>
+            <SectionTitle title={'Response Format'} variant='h6' />
+            <Box as={'section'} id='prompt-builder-response-format-radio-box'>
+              <RadioGroup
+                id='prompt-builder-response-format'
+                onBlur={formik.handleBlur}
+                onChange={formik.handleChange}
+                onReset={formik.handleReset}
+                value={formik.values.responseFormat}
+                name={'responseFormat'}
+                sx={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-around' }}
               >
-                <Label
-                  id='response-instructions-label'
-                  htmlFor='prompt-builder-response-instructions'
-                  placement='top'
-                  tooltipTitle={responseInstructions}
-                  labelText='Response Instructions'
-                  labelVariant='h3'
-                  labelTextSx={labelSx}
-                  tooltipSx={tooltipSx}
-                />
-                <TextField
-                  component={'span'}
-                  key={'prompt-builder-response-instructions'}
-                  id='prompt-builder-response-instructions'
-                  multiline={true}
-                  fullWidth={true}
-                  rows={2}
-                  placeholder='The how AI will respond'
-                  variant='outlined'
-                  onBlur={formik.handleBlur}
-                  onChange={formik.handleChange}
-                  onReset={formik.handleReset}
-                  name={'responseInstructions'}
-                  sx={textInputSx}
-                  value={formik.values.responseInstructions}
-                  slotProps={promptBuilderTextFieldSlotProps}
-                />
-                <FormikValidationError<IPromptInputData>
-                  elementName='responseIsnstructions'
-                  formik={formik}
-                  helperTextSx={helperTextSx}
-                />
-              </Box>
-              <Box
-                component={'section'}
-                key={'prompt-builder-response-format-box'}
-                id='prompt-builder-response-format-box'
-                sx={{}}
-              >
-                <Label
-                  id='response-format-label'
-                  htmlFor='prompt-builder-response-format'
-                  tooltipTitle=''
-                  tooltipSx={{}}
-                  labelVariant='h4'
-                  labelTextSx={promptBuilderResponseFormatLabelSxProps}
-                  labelText='Response Format'
-                  placement='top'
-                />
-                <Box
-                  component={'section'}
-                  key={'prompt-builder-response-format-radio-box'}
-                  id='prompt-builder-response-format-radio-box'
-                  sx={promptBuilderResponseFormatBoxSxProps}
-                >
-                  <RadioGroup
-                    key={'prompt-builder-response-format'}
-                    id='prompt-builder-response-format'
-                    onBlur={formik.handleBlur}
-                    onChange={formik.handleChange}
-                    onReset={formik.handleReset}
-                    value={formik.values.responseFormat}
-                    name={'responseFormat'}
-                    color='primary'
-                    sx={promptBuilderRadioGroupSxProps}
-                  >
-                    <FormControlLabel
-                      id='response-format-text'
-                      value={ResponseType.TEXT}
-                      control={<Radio />}
-                      label={
-                        <Label
-                          id='response-format-text-label'
-                          htmlFor='response-format-text'
-                          tooltipTitle={'Tells the LLM to respond with plain text'}
-                          labelVariant={'h4'}
-                          labelText={'Text'}
-                          placement={'top'}
-                          Icon={<TextIcon sx={promptBuilderResponseFormatIconsSxProps} />}
-                          labelWrapperDivSxProps={radioButtonLabelWrapperSxProps}
-                          labelTextSx={radioButtonLabelSxProps}
-                        />
-                      }
-                      sx={formLabelSxProps}
-                    />
-
-                    <FormControlLabel
-                      id='response-format-json'
-                      value={ResponseType.JSON}
-                      control={<Radio />}
-                      label={
-                        <Label
-                          id='response-format-json-label'
-                          htmlFor='response-format-json'
-                          tooltipTitle={'Tells the LLM to respond with JSON'}
-                          labelVariant={'h4'}
-                          labelText={'JSON'}
-                          placement={'top'}
-                          labelTextSx={radioButtonLabelSxProps}
-                          labelWrapperDivSxProps={radioButtonLabelWrapperSxProps}
-                          Icon={<JsonIcon sx={promptBuilderResponseFormatIconsSxProps} />}
-                        />
-                      }
-                      sx={formLabelSxProps}
-                    />
-
-                    <FormControlLabel
-                      id='response-format-image'
-                      value={ResponseType.IMAGE}
-                      control={<Radio />}
-                      label={
-                        <Label
-                          id='response-format-image-label'
-                          htmlFor='response-format-image'
-                          tooltipTitle={
-                            'Tells the LLM to respond with a text to Image format.\n**WILL NOT WORK WITH TEXT OR AUDIO**'
-                          }
-                          labelVariant={'h4'}
-                          labelText={'Image'}
-                          placement={'top'}
-                          Icon={<ImageIcon sx={promptBuilderResponseFormatIconsSxProps} />}
-                          labelWrapperDivSxProps={radioButtonLabelWrapperSxProps}
-                          labelTextSx={radioButtonLabelSxProps}
-                          tooltipSx={{ fontSize: '1rem' }}
-                        />
-                      }
-                      sx={formLabelSxProps}
-                    />
-                  </RadioGroup>
-                  <FormikValidationError<IPromptInputData>
-                    elementName='responseFormat'
-                    formik={formik}
-                    helperTextSx={helperTextSx}
-                  />
-                </Box>
-              </Box>
-              <Box
-                component={'span'}
-                key={'prompt-builder-document-wrapper'}
-                id='prompt-builder-document-wrapper'
-                sx={flexColumnStyles}
-              >
-                <input
-                  ref={fileInputRef}
-                  accept={SUPPORTED_FORMATS.join(', ')}
-                  id='document'
-                  name='document'
-                  type='file'
-                  style={{ display: 'none' }}
-                  onChange={() => handleFileUpload(fileInputRef, setPrompt, setFileName, setLoading)}
-                  onBlur={formik.handleBlur}
-                  onReset={formik.handleReset}
+                <FormControlLabel
+                  id='response-format-text'
+                  value={ResponseType.TEXT}
+                  control={<Radio icon={<TextIcon />} />}
+                  label={'Text'}
                 />
 
-                <Box
-                  component={'section'}
-                  key={'current-document-text-value'}
-                  id={'current-document-text-value'}
-                  sx={{ ...radioButtonLabelSxProps, alignItems: 'baseline', flex: '1 0 100%' }}
-                >
-                  <Text
-                    key={'current-document-text-value-title'}
-                    component={'h4'}
-                    titleVariant='h4'
-                    titleText={`Uploaded File: `}
-                    sx={promptBuilderUploadFileTextSxProps}
-                  />
-                  {loading ? null : (
-                    <Text
-                      component={'p'}
-                      key={'current-document-text-value-text'}
-                      titleVariant='body1'
-                      titleText={`${fileName}`}
-                      sx={{ fontSize: '1.4rem' }}
-                    />
-                  )}
-                </Box>
-
-                <FormikValidationError<IPromptInputData>
-                  elementName='document'
-                  formik={formik}
-                  helperTextSx={helperTextSx}
+                <FormControlLabel
+                  id='response-format-json'
+                  value={ResponseType.JSON}
+                  control={<Radio icon={<JsonIcon />} />}
+                  label={'JSON'}
                 />
-              </Box>
-
-              <Box
-                component={'section'}
-                key={'prompt-builder-submit-box'}
-                id='prompt-builder-submit-box'
-                display={'flex'}
-                justifyContent={'space-evenly'}
-              >
-                {!action && (
-                  <Button
-                    variant='text'
-                    type='button'
-                    key={'prompt-builder-upload-file-button'}
-                    id='prompt-builder-upload-file-button'
-                    onClick={handleFileUploadButtonClick}
-                    sx={buttonSXProps}
-                  >
-                    Upload File
-                  </Button>
-                )}
-                <Button
-                  variant='text'
-                  type='submit'
-                  key={'prompt-builder-submit-button'}
-                  id='prompt-builder-submit-button'
-                  sx={buttonSXProps}
-                >
-                  Build Prompt
-                </Button>
-                <Button
-                  variant='text'
-                  type='reset'
-                  key={'prompt-builder-reset-button'}
-                  id='prompt-builder-reset-button'
-                  onReset={formik.handleReset}
-                  sx={buttonSXProps}
-                >
-                  Clear Values
-                </Button>
-                {action && (
-                  <Button
-                    variant='text'
-                    type='button'
-                    key={'copy-and-add-to-input'}
-                    id='copy-and-add-to-input'
-                    onClick={() =>
-                      handleCopyPromptToClipboardAndAddToInput(action, setPrompt, setOpenPromptResponse, nav)
-                    }
-                    sx={buttonSXProps}
-                  >
-                    Copy & Add to Input
-                  </Button>
-                )}
-                {action && (
-                  <Button
-                    variant='text'
-                    key={'open-prompt'}
-                    id='open-prompt'
-                    type='button'
-                    onClick={() => setOpenPromptResponse(!openPromptResponse)}
-                    sx={buttonSXProps}
-                  >
-                    {!openPromptResponse ? 'Open Prompt' : 'Close Prompt'}
-                  </Button>
-                )}
-              </Box>
+                <FormControlLabel
+                  id='response-format-image'
+                  value={ResponseType.IMAGE}
+                  control={
+                    <Radio icon={<InsertPhotoOutlinedIcon color='inherit' sx={{ height: '32px', width: '32px' }} />} />
+                  }
+                  label={'Image'}
+                />
+              </RadioGroup>
             </Box>
-          </Form>
+          </Box>
+          <CenteredFlexDiv
+            as={'span'}
+            id='prompt-builder-document-wrapper'
+            sx={{ flexDirection: 'row', justifyContent: 'space-between' }}
+          >
+            <Text variant='h6' children={`Uploaded File: `} />
+            {loading ? null : <Text variant='h6' children={`${fileName}`} />}
+
+            <input
+              ref={fileInputRef}
+              accept={SUPPORTED_FORMATS.join(', ')}
+              id='document'
+              name='document'
+              type='file'
+              style={{ display: 'none' }}
+              onChange={() => handleFileUpload(prompt, fileInputRef, setPrompt, setFileName, setLoading)}
+              onBlur={formik.handleBlur}
+              onReset={formik.handleReset}
+            />
+            <FormikValidationError<IPromptInputData> elementName='document' formik={formik} />
+          </CenteredFlexDiv>
+
+          <Box as={'section'} id='prompt-builder-submit-box' sx={{ display: 'flex', justifyContent: 'space-evenly' }}>
+            {!prompt.fileData && (
+              <Button
+                variant='text'
+                type='button'
+                id='prompt-builder-upload-file-button'
+                onClick={handleFileUploadButtonClick}
+              >
+                Upload File
+              </Button>
+            )}
+            <Button variant='text' type='submit' id='prompt-builder-submit-button'>
+              Build Prompt
+            </Button>
+            <Button variant='text' type='reset' id='prompt-builder-reset-button' onReset={formik.handleReset}>
+              Clear Values
+            </Button>
+            {builtPrompt && (
+              <Button
+                variant='text'
+                type='button'
+                id='copy-and-add-to-input'
+                onClick={() => handleCopyPromptToClipboard(builtPrompt, setOpenPromptResponse, nav)}
+              >
+                Copy Prompt
+              </Button>
+            )}
+            {builtPrompt && (
+              <Button
+                variant='text'
+                id='open-prompt'
+                type='button'
+                onClick={() => setOpenPromptResponse(!openPromptResponse)}
+              >
+                {!openPromptResponse ? 'Open Prompt' : 'Close Prompt'}
+              </Button>
+            )}
+          </Box>
+        </Form>
+      </CenteredFlexDiv>
+      {openPromptResponse && (
+        <Container id={'prompt-response-container'}>
+          <PromptBuilderResponse prompt={builtPrompt} />
         </Container>
-        {openPromptResponse && (
-          <Container key={'prompt-response-container'} id={'prompt-response-container'} sx={fullSizeBlock}>
-            <PromptBuilderResponse prompt={action} />
-          </Container>
-        )}
-      </Paper>
-    </Box>
+      )}
+    </StyledCard>
   );
 };
-
 export default PromptBuilder;
-
 /**
  * This function handles copying the generated prompt to the clipboard and adding it to the prompt state.
  *
- * @param {string} buildPrompt - The generated prompt.
- * @param {Dispatch<SetStateAction<PromptRequest>>} setPrompt - A function to update the prompt state.
+ * @param {string | null} builtPrompt - The generated prompt.
+ * @param {Dispatch<SetStateAction<PromptRequest>>} setUserChatEntry - A function to update the prompt state.
  * @param {Dispatch<SetStateAction<boolean>>} setOpenPromptResponse - A function to close the prompt response modal.
  * @param {NavigateFunction} nav - A function to navigate to the text section.
  */
-
-const handleCopyPromptToClipboardAndAddToInput = async (
-  buildPrompt: string,
-  setPrompt: Dispatch<SetStateAction<PromptRequest>>,
+const handleCopyPromptToClipboard = async (
+  builtPrompt: string | null,
   setOpenPromptResponse: Dispatch<SetStateAction<boolean>>,
   nav: NavigateFunction,
 ) => {
-  setPrompt(prev => ({ ...prev, text: buildPrompt }));
-  await navigator.clipboard.writeText(buildPrompt);
-  setOpenPromptResponse(false);
-  nav('text');
+  if (builtPrompt) {
+    await navigator.clipboard.writeText(builtPrompt);
+    setOpenPromptResponse(false);
+    nav('text');
+  }
 };
-
 const baseUrl = import.meta.env.VITE_VERTEX_API_URL;
-
 /**
  * This function handles the file upload event.
  * It uploads the file to the server and updates the prompt state with the file data.
@@ -648,38 +443,60 @@ const baseUrl = import.meta.env.VITE_VERTEX_API_URL;
  * @param {Dispatch<SetStateAction<string>>} setFileName - A function to update the file name state.
  * @param {Dispatch<SetStateAction<boolean>>} setLoading - A function to update the loading state.
  */
-
 export const handleFileUpload = async (
+  prompt: PromptRequest,
   fileInputRef: RefObject<HTMLInputElement | null>,
   setPrompt: Dispatch<SetStateAction<PromptRequest>>,
   setFileName: Dispatch<SetStateAction<string>>,
-  setLoading: Dispatch<SetStateAction<boolean>>,
+  setLoading: (loading: boolean) => void,
 ) => {
   try {
-    if (fileInputRef.current) {
-      if (fileInputRef.current.files) {
-        const file = fileInputRef.current.files[0];
+    if (fileInputRef.current && fileInputRef.current.files) {
+      const file = fileInputRef.current.files[0];
+      const contextPath = getContextPath('context-path');
+      setLoading(true);
+      const resp = await axios.post(
+        `${baseUrl}/upload`,
+        { file: file, contextPath: contextPath },
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      );
+      const { path } = resp.data as { path: string };
 
-        const contextPath = getContextPath('context-path');
-
-        setLoading(true);
-        const resp = await axios.post(
-          `${baseUrl}/upload`,
-          { file: file, contextPath: contextPath },
-          { headers: { 'Content-Type': 'multipart/form-data' } },
-        );
-
-        const { path } = resp.data as { path: string };
-
-        setPrompt(prev => ({ ...prev, fileData: { fileUri: path, mimeType: file.type } }));
-        setFileName(file.name);
-
-        return null;
-      } else return null;
-    } else return null;
+      const newPrompt: PromptRequest = {
+        ...prompt,
+        fileData: { fileUri: path, mimeType: file.type },
+      };
+      setPrompt(newPrompt);
+      setFileName(file.name);
+    } else throw new Error('No file ref');
   } catch (error) {
     console.error(error);
-    return null;
+  } finally {
+    setLoading(false);
+  }
+};
+
+const baseURL = import.meta.env.VITE_VERTEX_API_URL;
+
+const handlePromptBuilder = async (
+  values: IPromptInputData,
+  setBuiltPrompt: Dispatch<SetStateAction<null | string>>,
+  setOpenPromptResponse: Dispatch<SetStateAction<boolean>>,
+  setLoading: (loading: boolean) => void,
+) => {
+  try {
+    setLoading(true);
+    const resp = await axios.post(`${baseURL}/build-prompt`, values, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const { finalPrompt } = resp.data;
+
+    console.log(finalPrompt);
+    setBuiltPrompt(finalPrompt);
+    setOpenPromptResponse(true);
+  } catch (error) {
+    console.log(error);
   } finally {
     setLoading(false);
   }

@@ -1,7 +1,7 @@
+import type { track } from '@aklapper/chinook-client';
 import axios from 'axios';
 import type { NavigateFunction } from 'react-router';
-import type { NewEntry } from '../../../components/crud/add-entry/add-entry.jsx';
-import type { track } from '../../../types/prisma_types.js';
+import type { NewEntry } from '../../../types/types.js';
 
 export type NewEntryReturn = {
   artist_id: number;
@@ -20,6 +20,7 @@ const handleSubmitNewEntry = async (
   setSubmitting: (isSubmitting: boolean) => void,
   nav: NavigateFunction,
 ) => {
+  console.log('here');
   try {
     setSubmitting(true);
 
@@ -38,7 +39,7 @@ const handleSubmitNewEntry = async (
     return null;
   } finally {
     setSubmitting(false);
-    nav('/crud', { replace: true });
+    nav('/portfolio/crud', { replace: true });
   }
 };
 

@@ -1,6 +1,10 @@
-import { PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/chinook-client';
-import type { Prisma } from 'node_modules/@aklapper/chinook-client/generated/client.js';
-import prisma from '../client/prisma_client.js';
+import {
+  Prisma,
+  prisma,
+  PrismaErrorLogger,
+  type ParsedPrismaError,
+  type PrismaClientErrors,
+} from '@aklapper/chinook-client';
 
 /**
  * Checks if an album exists in the database.

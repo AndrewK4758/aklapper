@@ -1,6 +1,7 @@
+import { Prisma, type album } from '@aklapper/chinook-client';
+import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { DefaultArgs } from '@prisma/client/runtime/library';
 import type { NextFunction, Request, Response } from 'express';
-import { Prisma } from 'node_modules/@aklapper/chinook-client/generated/client.js';
 import getArtistAlbums from '../services/prisma/album/get-artist-albums.js';
 
 /**
@@ -17,15 +18,24 @@ import getArtistAlbums from '../services/prisma/album/get-artist-albums.js';
 const getArtistsAlbums = async (req: Request, resp: Response, next: NextFunction): Promise<void> => {
   if (!req.query.title && req.query.artistID) {
     try {
+      const { cursor, skip, take } = req.query;
+
       const artistID = parseInt(req.query.artistID as string, 10);
 
       const query = {
+        take: parseInt(take as string, 10),
+        skip: parseInt(skip as string, 10),
+        cursor: { album_id: parseInt(cursor as string, 10) },
         where: { artist_id: artistID },
       } as Prisma.albumFindManyArgs<DefaultArgs>;
 
       const albums = await getArtistAlbums(query);
 
-      resp.status(200).json({ albums: albums });
+      const data: CRUD_ApiResponse<album[]> = {
+        message: 'Arist Albums found',
+        value: albums,
+      };
+      resp.status(200).json(data);
     } catch (error) {
       console.error(error);
       resp.status(500).json(error);

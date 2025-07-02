@@ -1,7 +1,7 @@
+import { Prisma, type track } from '@aklapper/chinook-client';
+import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { DefaultArgs } from '@prisma/client/runtime/library';
 import type { NextFunction, Request, Response } from 'express';
-import { Prisma } from 'node_modules/@aklapper/chinook-client/generated/client.js';
-import albumTracksCount from '../services/prisma/tracks/album-tracks-count.js';
 import getAlbumTracks from '../services/prisma/tracks/get-album-tracks.js';
 
 /**
@@ -16,19 +16,25 @@ import getAlbumTracks from '../services/prisma/tracks/get-album-tracks.js';
  */
 
 const getAlbumsTracks = async (req: Request, resp: Response, next: NextFunction) => {
-  if (req.query.name) next();
+  if (req.query.name || req.query.count) next();
   else {
     try {
+      const { cursor, skip, take } = req.query;
+
       const albumID = parseInt(req.query.albumID as string, 10);
 
       const query = {
+        take: parseInt(take as string, 10),
+        skip: parseInt(skip as string, 10),
+        cursor: { track_id: parseInt(cursor as string, 10) },
         where: { album_id: { equals: albumID } },
       } as Prisma.trackFindManyArgs<DefaultArgs>;
 
       const tracks = await getAlbumTracks(query);
-      const tracksCount = await albumTracksCount(albumID);
 
-      resp.status(200).json({ tracks: tracks, count: tracksCount });
+      const data: CRUD_ApiResponse<track[]> = { message: 'Albums Tracks sucessful', value: tracks };
+
+      resp.status(200).json(data);
     } catch (error) {
       console.error(error);
       resp.status(500).json(error);

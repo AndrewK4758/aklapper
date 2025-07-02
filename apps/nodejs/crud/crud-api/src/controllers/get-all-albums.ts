@@ -1,6 +1,6 @@
+import { Prisma } from '@aklapper/chinook-client';
 import type { DefaultArgs } from '@prisma/client/runtime/library';
 import type { Request, Response } from 'express';
-import { Prisma } from 'node_modules/@aklapper/chinook-client/generated/client.js';
 import findAllAlbums from '../services/prisma/album/find-albums.js';
 
 /**

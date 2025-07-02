@@ -43,6 +43,7 @@ export default defineConfig({
   },
   envDir: 'env',
   test: {
+    name: 'games-ui',
     watch: false,
     globals: true,
     environment: 'jsdom',

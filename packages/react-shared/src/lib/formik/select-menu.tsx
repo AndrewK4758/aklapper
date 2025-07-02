@@ -8,7 +8,7 @@ import Label from '../label/label.jsx';
 import FormikValidationError from './formik-validation-error.js';
 
 interface IAvatarColorSelectValues<T extends object> {
-  name: keyof T;
+  name: Extract<keyof T, string>;
   label: string;
   data: string[] | AvatarTotem[];
   mapCallback(v: unknown, i: number, arr: unknown[]): JSX.Element;

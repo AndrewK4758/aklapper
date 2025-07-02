@@ -1,40 +1,27 @@
 import { Text } from '@aklapper/react-shared';
-import Box from '@mui/material/Box';
-import type { SxProps, TypographyVariant } from '@mui/material/styles';
-import type { ElementType } from 'react';
-import { avatarSvgStyle } from '../../../styles/games-styles.jsx';
+import Box from '@mui/material-pigment-css/Box';
 
 export interface PlayersInGameProps {
-  component: ElementType;
-  id: string | number;
-  boxSx?: SxProps;
-  textSx: SxProps;
-  playerVariant: TypographyVariant;
   playerName: string;
   avatarName: string;
 }
 
 /**
  *
- * @param param0 Params needed to populate the list of players in game with avatars
  * @returns list of players in game with avatars
  */
 
-export const PlayersInGame = ({
-  component,
-  id,
-  boxSx,
-  textSx,
-  playerVariant,
-  playerName,
-  avatarName,
-}: PlayersInGameProps) => (
-  <Box component={component} key={id} width={'fit-content'} whiteSpace={'preserve'} sx={boxSx}>
-    <Text component={'p'} titleVariant={playerVariant} titleText={playerName} sx={textSx} />
+export const PlayersInGame = ({ playerName, avatarName }: PlayersInGameProps) => (
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+    <Text variant={'h5'} children={playerName} />
     <img
-      src={`/client/game-avatars/${avatarName.toLowerCase()}.svg`}
+      src={`/game-avatars/${avatarName.toLowerCase()}.svg`}
       alt={`${avatarName} active in game`}
-      style={avatarSvgStyle}
+      style={{
+        height: 'auto',
+        width: '25%',
+        maxWidth: '90px',
+      }}
     />
   </Box>
 );

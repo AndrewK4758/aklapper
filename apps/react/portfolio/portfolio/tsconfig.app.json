@@ -28,7 +28,7 @@
     "vite.config.server.ts",
     "eslint.config.js"
   ],
-  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
+  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "src/**/*.json"],
   "references": [
     {
       "path": "../../../../packages/gen-ai/vertex-ai/tsconfig.lib.json"

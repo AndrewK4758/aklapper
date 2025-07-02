@@ -1,16 +1,22 @@
 import { VertexAI } from '@google-cloud/vertexai';
 import { configDotenv } from 'dotenv';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import getEnvVariable from '../../utils/get_env_var.js';
 
-configDotenv({ path: `./env/.env` });
+const __filename = fileURLToPath(import.meta.url);
+
+const __dirname = dirname(__filename);
+
+configDotenv({ path: resolve(__dirname, `env/.env`) });
 
 // MY STUFF
-export const PROJECT = 'games-424800';
-export const LOCATION = 'us-central1';
-
-export const MODEL = 'gemini-2.5-pro-preview-05-06'; //'gemini-2.0-flash'; //'gemini-1.5-pro-001';
+export const ID = getEnvVariable('PROJECT_ID');
+export const LOCATION = getEnvVariable('PROJECT_LOCATION');
+export const MODEL = getEnvVariable('GEMINI_MODEL');
 
 const vertexAI = new VertexAI({
-  project: PROJECT,
+  project: ID,
   location: LOCATION,
 });
 

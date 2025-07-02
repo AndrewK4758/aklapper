@@ -2,8 +2,8 @@ import { cwd } from 'node:process';
 import { defineConfig } from 'vitest/config';
 
 const config = defineConfig({
-  root: cwd(),
   test: {
+    root: cwd(),
     name: 'crud-api',
     watch: false,
     globals: true,

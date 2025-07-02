@@ -11,14 +11,17 @@ import { helpers } from '@google-cloud/aiplatform';
 const projectId = 'games-424800';
 const location = 'us-central1';
 
-export interface ImagenConfig {
+export interface ClientImagenConfig {
+  prompt: string;
+  sampleCount?: number;
+  seed: number | 100;
+  aspectRatio?: AspectRatios;
+}
+
+export interface ImagenConfig extends ClientImagenConfig {
   projectId: string;
   location: string;
   endpoint: string;
-  prompt: string;
-  sampleCount?: number;
-  seed?: number;
-  aspectRatio?: AspectRatios;
   safetyFilterLevel?: SafetyFilterLevels;
   personGeneration?: PersonGenerations;
 }
@@ -29,6 +32,7 @@ export const imagenConfig: ImagenConfig = {
   endpoint: `projects/${projectId}/locations/${location}/publishers/google/models/imagen-3.0-generate-001`,
   prompt: '',
   sampleCount: 0,
+  seed: 100,
   aspectRatio: AspectRatio['1:1'],
   safetyFilterLevel: SafetyFilterLevel.block_some,
   personGeneration: PersonGeneration.allow_adult,

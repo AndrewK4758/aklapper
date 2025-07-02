@@ -1,30 +1,53 @@
 import { workspaceRoot } from '@nx/devkit';
+import { pigment, type PigmentOptions } from '@pigment-css/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
+import { cwd } from 'process';
 import type { UserConfig } from 'vite';
 import { defineConfig } from 'vite';
+import Theme from './src/styles/themes/theme.jsx';
+import MODULES from './vite_modules.js';
 
-const modules: { [key: string]: string } = {
-  '@aklapper/games-components': resolve(workspaceRoot, 'packages/games-components/src/index.ts'),
+//Server
+const HOST = 'localhost';
+const PORT_DEV = 8080;
 
-  '@aklapper/media-recorder': resolve(workspaceRoot, 'packages/media-recorder/src/index.ts'),
+//Build
+const BASE = '/server';
+const NODE_ENV = process.env.NODE_ENV;
+const OUT_DIR = './dist/server';
+const ROOT = cwd();
 
-  '@aklapper/prompt-builder': resolve(workspaceRoot, 'packages/gen-ai/prompt-builder/src/index.ts'),
-
-  '@aklapper/react-shared': resolve(workspaceRoot, 'packages/react-shared/src/index.ts'),
-
-  '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
-
-  '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src/index.ts'),
-
-  '@aklapper/chinook-client': resolve(workspaceRoot, 'packages/prisma/chinook/src/index.ts'),
+const pigmentConfig: PigmentOptions = {
+  transformLibraries: ['@mui/material', '@mui/icons-material'],
+  theme: Theme,
+  sourceMap: true,
 };
 
+// console.log(pigmentConfig);
+
+// console.log(pigment(pigmentConfig));
 const config: UserConfig = defineConfig({
-  root: resolve(workspaceRoot, 'apps/react/portfolio/portfolio'),
+  root: ROOT,
   cacheDir: resolve(workspaceRoot, 'node_modules/.vite/apps/react/portfolio/portfolio'),
 
-  plugins: [react()],
+  server: {
+    port: PORT_DEV,
+    host: HOST,
+  },
+
+  plugins: [
+    pigment(pigmentConfig),
+    react({
+      babel: {
+        targets: {
+          esmodules: true,
+          node: 'current',
+        },
+      },
+      reactRefreshHost: `http://${HOST}:${PORT_DEV}`,
+    }),
+  ],
 
   // Uncomment this if you are using workers.
   // worker: {
@@ -32,54 +55,67 @@ const config: UserConfig = defineConfig({
   // },
 
   resolve: {
-    alias: modules,
+    alias: MODULES,
+    conditions: ['mui-modern', 'module', 'browser', 'development|production'],
+    // noExternal: ['@mui/*'],
   },
 
-  ssr: {
-    noExternal: ['@mui/material', '@mui/icons-material', '@mui/x-date-pickers', '@mui/x-data-grid'],
-  },
+  base: BASE,
 
-  mode: process.env['NODE_ENV'],
-
-  base: '/server',
-  build: {
-    ssr: true,
-    ssrEmitAssets: false,
-    ssrManifest: true,
-    outDir: './dist/server',
-    minify: true,
-    emptyOutDir: true,
-    sourcemap: true,
-    reportCompressedSize: true,
-    commonjsOptions: {
-      transformMixedEsModules: true,
-    },
-    rollupOptions: {
-      input: {
-        server: './server.ts',
-      },
-      perf: true,
-      output: {
-        entryFileNames: 'server.js',
-        strict: true,
-        esModule: true,
-        format: 'esm',
-        generatedCode: {
-          arrowFunctions: true,
-          constBindings: true,
-          symbols: true,
-          objectShorthand: true,
-          reservedNamesAsProps: true,
-        },
-      },
-    },
-    target: 'node23',
-  },
+  mode: NODE_ENV,
 
   logLevel: 'info',
   appType: 'custom',
-  publicDir: false,
+  publicDir: 'public',
   envDir: './env',
+
+  build: {
+    outDir: OUT_DIR,
+    minify: false, //NODE_ENV === 'production',
+    target: 'node24',
+    ssr: true,
+    ssrEmitAssets: false,
+    ssrManifest: true,
+    sourcemap: true,
+    emptyOutDir: true,
+    reportCompressedSize: true,
+    commonjsOptions: {
+      transformMixedEsModules: false,
+    },
+
+    rollupOptions: {
+      logLevel: 'info',
+      experimentalLogSideEffects: true,
+      input: {
+        server: './server.ts',
+      },
+      output: {
+        entryFileNames: '[name].js',
+        // validate: true,
+        // strict: true,
+        esModule: true,
+        format: 'esm',
+        // generatedCode: {
+        //   arrowFunctions: true,
+        //   constBindings: true,
+        //   symbols: true,
+        //   objectShorthand: true,
+        //   reservedNamesAsProps: true,
+        // },
+      },
+      // strictDeprecations: true,
+      // perf: true,
+    },
+  },
+
+  esbuild: {
+    color: true,
+    format: 'esm',
+    jsx: 'automatic',
+    platform: 'browser',
+    sourcemap: true,
+    target: 'esnext',
+  },
 });
 
 export default config;

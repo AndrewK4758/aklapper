@@ -1,12 +1,14 @@
 import { Socket } from 'socket.io-client';
 import type { IActiveGameInfo } from '../../games/active_game_session.jsx';
 
-export enum ActionType {
-  BOARD = 'board',
-  TAKE_TURN = 'take-turn',
-  START = 'start',
-  RESET = 'reset',
-}
+export type ActionType = (typeof Action)[keyof typeof Action];
+
+export const Action = Object.freeze({
+  BOARD: 'board',
+  TAKE_TURN: 'take-turn',
+  START: 'start',
+  RESET: 'reset',
+});
 
 export interface Action {
   type: ActionType;
@@ -25,18 +27,18 @@ export interface Action {
 const socketReducer = (state: IActiveGameInfo, action: Action) => {
   const { type, socket } = action;
   switch (type) {
-    case ActionType.BOARD: {
+    case Action.BOARD: {
       const { gameBoard, activePlayersInGame, avatarInTurn, winner } = action.payload as IActiveGameInfo;
       return { ...state, gameBoard, activePlayersInGame, avatarInTurn, winner };
     }
-    case ActionType.TAKE_TURN:
-      if (socket) socket.emit('action', { action: ActionType.BOARD });
+    case Action.TAKE_TURN:
+      if (socket) socket.emit('action', { action: Action.BOARD });
       return { ...state };
-    case ActionType.START:
-      if (socket) socket.emit('action', { action: ActionType.BOARD });
+    case Action.START:
+      if (socket) socket.emit('action', { action: Action.BOARD });
       return { ...state };
-    case ActionType.RESET:
-      if (socket) socket.emit('action', { action: ActionType.BOARD });
+    case Action.RESET:
+      if (socket) socket.emit('action', { action: Action.BOARD });
       return { ...state };
     default:
       throw new Error('Error in reducer');

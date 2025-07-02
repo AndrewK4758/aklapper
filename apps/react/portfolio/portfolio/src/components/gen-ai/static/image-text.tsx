@@ -1,4 +1,4 @@
-export const imageGenDescription =
+export const IMAGE_TEXT =
   "Imagen 3 is Google's latest text-to-image AI model, generating high-quality images from detailed text descriptions. Trained on an extensive dataset of text-image pairs, Imagen 3 excels at creating photorealistic images with accurate details and composition. This model can be used for various applications, including creative visualization, design prototyping, and generating visual content for marketing and advertising. Access Imagen 3 through Google's Vertex AI platform or the Gemini API to explore its capabilities.";
 
 export const seedTooltipText =

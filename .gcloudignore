@@ -51,3 +51,8 @@ README.md
 chroma_db_ollama
 .python
 __pycache__
+coverage
+reports
+.nx
+
+!apps/react/portfolio/portfolio/dist/**

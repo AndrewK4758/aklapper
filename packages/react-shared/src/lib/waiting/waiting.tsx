@@ -2,14 +2,14 @@ import Box from '@mui/material/Box';
 
 interface WaitingProps {
   src: string;
+  width?: string;
 }
 
-export const Waiting = ({ src }: WaitingProps) => (
+export const Waiting = ({ src, width = '200px' }: WaitingProps) => (
   <Box
     component={'div'}
-    id="waiting-wrapper"
-    test-dataid="waiting-wrapper"
-    key="waiting-wrapper"
+    id='waiting-wrapper'
+    test-dataid='waiting-wrapper'
     display={'flex'}
     justifyContent={'center'}
     alignItems={'center'}
@@ -17,12 +17,11 @@ export const Waiting = ({ src }: WaitingProps) => (
     height={'100%'}
   >
     <img
-      key={'waiting-image'}
       id={'waiting-image'}
       test-dataid={'waiting-image'}
-      alt="waiting"
+      alt='waiting symbol'
       src={src}
-      style={{ flex: '0 1 50%', height: 'auto' }}
+      style={{ width: width, height: 'auto', borderRadius: '16px' }}
     />
   </Box>
 );

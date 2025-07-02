@@ -1,4 +1,4 @@
-import { Prisma } from 'node_modules/@aklapper/chinook-client/generated/client.js';
+import { Prisma } from '@aklapper/chinook-client';
 import type { NextFunction, Request, Response } from 'express';
 import validateAlbum from '../services/prisma/album/validate-album.js';
 

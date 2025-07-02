@@ -15,8 +15,8 @@ const labelWrapperSxProps: SxProps = {
 
 const iconSxProps: SxProps = { display: 'inline-flex', justifyContent: 'center', alignItems: 'center' };
 
-export interface LabelProps {
-  tooltipTitle: ReactNode;
+export interface LabelProps extends InputLabelProps {
+  tooltipTitle?: ReactNode;
   labelVariant: TypographyVariant;
   labelText: string;
   labelTextSx?: SxProps;
@@ -38,8 +38,7 @@ export interface LabelProps {
     | 'top-start'
     | undefined;
   Icon?: JSX.Element;
-  htmlFor: string;
-  InputLabelProps?: Partial<InputLabelProps>;
+  htmlFor?: string;
 }
 
 export const Label = forwardRef<HTMLLabelElement, LabelProps>(
@@ -54,27 +53,19 @@ export const Label = forwardRef<HTMLLabelElement, LabelProps>(
       Icon,
       htmlFor,
       labelWrapperDivSxProps = labelWrapperSxProps,
-      InputLabelProps,
+      ...props
     },
     ref,
   ) => {
-    const hasTooltip = Boolean(tooltipTitle);
+    const hasTooltip = !!tooltipTitle;
     const tooltipId = `${id}-tooltip`;
-    const labelId = `${id}-label`;
+    const labelId = `${id}`;
     const labelWrapperId = `${id}-wrapper`;
     const iconId = Icon ? `${id}-icon` : undefined;
 
     const labelContent = (
       <Box component={'div'} id={labelWrapperId} sx={labelWrapperDivSxProps}>
-        <InputLabel
-          {...InputLabelProps}
-          ref={ref}
-          component={'label'}
-          is='label'
-          htmlFor={htmlFor}
-          id={labelId}
-          sx={labelTextSx}
-        >
+        <InputLabel {...props} ref={ref} component={'label'} is='label' htmlFor={htmlFor} id={labelId} sx={labelTextSx}>
           {labelText}
         </InputLabel>
         {Icon && (
@@ -86,7 +77,7 @@ export const Label = forwardRef<HTMLLabelElement, LabelProps>(
     );
 
     return (
-      <>
+      <Box sx={props.sx}>
         {hasTooltip ? (
           <Tooltip
             id={tooltipId}
@@ -100,7 +91,7 @@ export const Label = forwardRef<HTMLLabelElement, LabelProps>(
         ) : (
           labelContent
         )}
-      </>
+      </Box>
     );
   },
 );

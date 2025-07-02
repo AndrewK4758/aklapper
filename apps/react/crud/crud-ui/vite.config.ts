@@ -1,20 +1,20 @@
+import { workspaceRoot } from '@nx/devkit';
 import react from '@vitejs/plugin-react';
+import { resolve } from 'path';
 import { cwd } from 'process';
 import { defineConfig } from 'vite';
-import { resolve } from 'path';
-import { workspaceRoot } from '@nx/devkit';
 
 export default defineConfig({
   root: cwd(),
   cacheDir: `${workspaceRoot}/node_modules/.vite/apps/crud/crud-ui`,
   server: {
     port: 4200,
-    host: 'localhost'
+    host: 'localhost',
   },
   preview: {
     port: 4300,
     host: 'localhost',
-    strictPort: true
+    strictPort: true,
   },
   plugins: [react()],
   // Uncomment this if you are using workers.
@@ -28,8 +28,8 @@ export default defineConfig({
       '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src/index.ts'),
       '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
 
-      '.prisma/client/index-browser': '@prisma/client/index-browser.js'
-    }
+      '.prisma/client/index-browser': '@prisma/client/index-browser.js',
+    },
   },
 
   build: {
@@ -39,7 +39,7 @@ export default defineConfig({
     sourcemap: true,
     reportCompressedSize: true,
     commonjsOptions: {
-      transformMixedEsModules: true
+      transformMixedEsModules: true,
     },
     rollupOptions: {
       perf: true,
@@ -49,23 +49,24 @@ export default defineConfig({
         generatedCode: {
           arrowFunctions: true,
           constBindings: true,
-          symbols: true
-        }
-      }
+          symbols: true,
+        },
+      },
     },
-    target: 'esnext'
+    target: 'esnext',
   },
   esbuild: {
     jsx: 'automatic',
     format: 'esm',
     color: true,
-    platform: 'browser'
+    platform: 'browser',
   },
   logLevel: 'info',
   appType: 'spa',
   publicDir: 'public',
   envDir: './env',
   test: {
+    name: 'crud-ui',
     watch: false,
     globals: true,
     environment: 'jsdom',
@@ -73,7 +74,7 @@ export default defineConfig({
     reporters: ['default'],
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',
-      provider: 'v8'
-    }
-  }
+      provider: 'v8',
+    },
+  },
 });

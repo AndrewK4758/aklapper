@@ -1,6 +1,5 @@
 import '@testing-library/jest-dom';
 import { act, render, type RenderResult } from '@testing-library/react';
-import TechStackList from '../src/components/intro/tech-list/tech-list';
 import {
   analytics,
   build,
@@ -9,8 +8,9 @@ import {
   languages,
   libraries,
   styles,
-  testing
+  testing,
 } from '../src/components/intro/static/tech-stack-text';
+import TechStackList from '../src/components/intro/tech-list/tech-stack-lists.js';
 
 let baseComponent: RenderResult;
 

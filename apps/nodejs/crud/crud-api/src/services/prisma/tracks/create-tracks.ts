@@ -1,12 +1,5 @@
-import {
-  Prisma,
-  PrismaErrorLogger,
-  type ParsedPrismaError,
-  type PrismaClientErrors,
-  type track,
-} from '@aklapper/chinook-client';
+import { Prisma, PrismaErrorLogger, prisma, type PrismaClientErrors, type track } from '@aklapper/chinook-client';
 import type { DefaultArgs } from '@prisma/client/runtime/library';
-import prisma from '../client/prisma_client.js';
 
 /**
  * Creates a new track in the database.
@@ -15,12 +8,12 @@ import prisma from '../client/prisma_client.js';
  * @returns A Promise that resolves to the newly created track, or null if an error occurs.
  */
 
-const createTracks = async (query: Prisma.trackCreateArgs<DefaultArgs>): Promise<track | ParsedPrismaError> => {
+const createTracks = async (query: Prisma.trackCreateArgs<DefaultArgs>): Promise<track> => {
   try {
     return await prisma.track.create(query);
   } catch (error) {
     const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
-    return prismaError.parseErrors();
+    throw console.error(prismaError.parseErrors());
   }
 };
 

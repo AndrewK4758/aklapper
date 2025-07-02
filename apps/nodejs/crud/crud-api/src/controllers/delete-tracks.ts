@@ -1,6 +1,7 @@
+import { Prisma, type track } from '@aklapper/chinook-client';
+import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { DefaultArgs } from '@prisma/client/runtime/library';
 import type { Request, Response } from 'express';
-import { Prisma } from 'node_modules/@aklapper/chinook-client/generated/client.js';
 import deleteTrack from '../services/prisma/tracks/delete-track.js';
 
 /**
@@ -20,7 +21,8 @@ const deleteTracks = async (req: Request, resp: Response) => {
     };
     const deletedTrack = await deleteTrack(query);
 
-    resp.status(200).json({ deletedTrack: deletedTrack });
+    const data: CRUD_ApiResponse<track> = { message: `Track ID: ${id} deleted`, value: deletedTrack };
+    resp.status(200).json(data);
   } catch (error) {
     console.error(error);
     resp.status(500).json(error);

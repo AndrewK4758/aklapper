@@ -1,11 +1,11 @@
-import { StrictMode } from 'react';
-import ReactDOM from 'react-dom/client';
+import '@mui/material-pigment-css/styles.css';
+import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router';
-import App from './app/app.jsx';
-import routes from './routes/routes.jsx';
-// import ServerError from './errors/server-error.js';
+import App from './app/app';
+import routes from './routes/routes';
 
 const router = createBrowserRouter(routes);
+
 /**
  * This is the main entry point for the React application.
  * It creates the root element, renders the application using StrictMode and RouterProvider,
@@ -14,23 +14,8 @@ const router = createBrowserRouter(routes);
 
 const rootDomNode = document.querySelector('#root') as HTMLDivElement;
 
-ReactDOM.hydrateRoot(
-  rootDomNode,
-  <StrictMode>
-    <App Router={<RouterProvider router={router} />} />
-  </StrictMode>,
-  {
-    onRecoverableError: (error, errorInfo) => {
-      console.log(`Recoverable Error: ${error}`);
-      console.log(`Recoverable Error: ${errorInfo}`);
-    },
-    onCaughtError: (error, errorInfo) => {
-      console.log(`Caught Error: ${error}`);
-      console.log(`Caught Error: ${errorInfo}`);
-    },
-    onUncaughtError: (error, errorInfo) => {
-      console.log(`Uncaught Error: ${error}`);
-      console.log(`Uncaught Error: ${errorInfo}`);
-    }
-  }
+createRoot(rootDomNode).render(
+  <App>
+    <RouterProvider router={router} />
+  </App>,
 );

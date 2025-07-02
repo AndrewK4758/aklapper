@@ -1,6 +1,6 @@
 import Link from '@mui/material/Link';
 import Typography from '@mui/material/Typography';
-import Theme from '../../../styles/theme.jsx';
+import Theme from '../../../styles/themes/theme';
 
 export const ABOUT_ME_TITLE = "Hi, I'm Andrew Klapper";
 

@@ -1,22 +1,19 @@
-import { FormikValidationError } from '@aklapper/react-shared';
-import Box from '@mui/material/Box';
+import type { artist } from '@aklapper/chinook-client';
 import Button from '@mui/material/Button';
-import Container from '@mui/material/Container';
-import FormLabel from '@mui/material/FormLabel';
-import TextField from '@mui/material/TextField';
+import ButtonGroup from '@mui/material/ButtonGroup';
 import { useFormik } from 'formik';
-import type { Dispatch, FocusEvent, JSX, SetStateAction } from 'react';
+import { type Dispatch, type ReactElement, type SetStateAction } from 'react';
 import { Form } from 'react-router';
-import handleSubmitNewArtist from '../../../services/actions/crud-actions/submit-artist-action.jsx';
-import handleNewArtistBlur from '../../../services/events/crud-events/handle-validate-artist-on-blur.jsx';
-import { crudAddButtonStyles, crudAddErrorTextStyles } from '../../../styles/crud-styles.jsx';
-import { flexColumnStyles } from '../../../styles/pages-styles.jsx';
-import type { artist } from '../../../types/prisma_types.js';
+import handleSubmitNewArtist from '../../../services/actions/crud-actions/submit-artist-action';
+import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
+import CenteredFlexDiv from '../../styled/centered_flexbox.js';
+import TextInput from '../../styled/text_input';
 
 interface AddArtistProps {
   rowCountState: number;
-  setRowCountState: Dispatch<SetStateAction<number>>;
+  setRowCountState: (rowCount: number) => void;
   COUNT: number;
+  setRows: Dispatch<SetStateAction<artist[] | null>>;
 }
 
 /**
@@ -27,60 +24,59 @@ interface AddArtistProps {
  * @param {number} props.rowCountState - The current number of artists in the database.
  * @param {Dispatch<SetStateAction<number>>} props.setRowCountState - A function to update the number of artists in the database.
  * @param {number} props.COUNT - The initial number of artists in the database.
- * @returns {JSX.Element} The rendered AddArtist component.
+ * @returns {ReactElement} The rendered AddArtist component.
  */
 
-const AddArtist = ({ rowCountState, setRowCountState, COUNT }: AddArtistProps): JSX.Element => {
+const AddArtist = ({ rowCountState, setRowCountState, COUNT, setRows }: AddArtistProps): ReactElement => {
   const formik = useFormik({
     initialValues: { name: '', artist_id: COUNT + 1 } as artist,
-    onSubmit: values => {
+    onSubmit: async values => {
+      await handleSubmitNewArtist(values, formik, setRows);
       setRowCountState(rowCountState + 1);
-      handleSubmitNewArtist(values, formik);
     },
-    validateOnBlur: true,
-    validateOnMount: false,
   });
 
-  formik.handleBlur = (e: FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>) => {
-    handleNewArtistBlur<artist>(e, formik);
-  };
-
   return (
-    <Container
-      component={'div'}
-      id='add-artist-container'
-      key={'add-artist-container'}
-      sx={{ borderRadius: 1, paddingY: 2 }}
-    >
-      <Form method='post' onSubmit={formik.handleSubmit}>
-        <Box key={'add-artist-box'} id={'add-artist-box'} sx={flexColumnStyles}>
-          <FormLabel htmlFor='name' hidden>
-            Enter Artist Name
-          </FormLabel>
-          <TextField
-            autoComplete='off'
-            name='name'
-            id='name'
-            variant='outlined'
-            color='primary'
-            value={formik.values.name}
-            placeholder='Enter Artist Name'
-            onChange={formik.handleChange}
-            onBlur={e => formik.handleBlur(e)}
-          />
-          <FormikValidationError<artist> formik={formik} elementName={'name'} helperTextSx={crudAddErrorTextStyles} />
-        </Box>
+    <Form method='post' onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
+      <CenteredFlexDiv id='add-artist-container'>
+        <TextInput<artist>
+          name='name'
+          label='Artist Name'
+          formik={formik}
+          variant='outlined'
+          searchParams={`artists?name=${formik.values.name}`}
+          slotProps={{
+            input: {
+              sx: {
+                backgroundColor: BACKGROUND_DEFAULT,
+              },
+            },
+          }}
+        />
 
-        <Container sx={{ display: 'flex', justifyItems: 'center' }}>
-          <Button type='submit' variant='contained' color='primary' sx={crudAddButtonStyles}>
+        <ButtonGroup fullWidth>
+          <Button
+            disabled={formik.isSubmitting}
+            type='submit'
+            color='primary'
+            variant='contained'
+            sx={{ fontWeight: 'bold' }}
+          >
             {formik.isSubmitting ? 'Submitting' : 'Submit'}
           </Button>
-          <Button type='reset' variant='contained' color='secondary' sx={crudAddButtonStyles}>
+          <Button
+            type='reset'
+            color='secondary'
+            variant='contained'
+            sx={{
+              fontWeight: 'bold',
+            }}
+          >
             Clear
           </Button>
-        </Container>
-      </Form>
-    </Container>
+        </ButtonGroup>
+      </CenteredFlexDiv>
+    </Form>
   );
 };
 

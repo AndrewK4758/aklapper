@@ -1,21 +1,22 @@
 @font-face {
   font-family: League Gothic;
-  src: url('../../fonts/LeagueGothic-Regular-VariableFont_wdth.ttf'), format('truetype');
+  src: url('/fonts/LeagueGothic-Regular-VariableFont_wdth.ttf'), format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: Lucida;
-  src: url('../../fonts/LTYPE.TTF'), format('truetype');
+  src: url('/fonts/LTYPE.ttf'), format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: Lucida Bold;
-  src: url('../../fonts/LTYPEB.TTF'), format('truetype');
+  src: url('/fonts/LTYPEB.ttf'), format('truetype');
   font-display: swap;
 }
 
-:root {
-  --primary: #2196f3;
+@font-face {
+  font-family: Orange Gummy;
+  src: url('/fonts/orange_gummy.ttf'), format('truetype');
 }

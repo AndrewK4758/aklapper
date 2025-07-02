@@ -12,6 +12,9 @@
   "exclude": ["out-tsc", "dist", "vitest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts", "eslint.config.js"],
   "references": [
     {
+      "path": "../../../../packages/types/tsconfig.lib.json"
+    },
+    {
       "path": "../../../../packages/prisma/chinook/tsconfig.lib.json"
     }
   ]

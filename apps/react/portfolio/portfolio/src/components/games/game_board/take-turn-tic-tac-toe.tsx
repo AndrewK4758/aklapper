@@ -1,17 +1,18 @@
 import type { GamePlayerValidation } from '@aklapper/types';
 import Button from '@mui/material/Button';
 import axios from 'axios';
-import type { Dispatch, JSX } from 'react';
+import type { Dispatch, ReactElement } from 'react';
 import { Socket } from 'socket.io-client';
-import { breakpointsTakeTurnButtonTTT } from '../../../styles/games-styles.jsx';
-import getGameInstanceInfo from '../../../utils/utils.jsx';
-import { type Action, ActionType } from './socket-reducer.jsx';
+import { getGameInstanceInfo } from '../../../utils/utils.jsx';
+import AnimatedBorderBox from '../../styled/animated_border_box';
+import { Action } from './socket-reducer.jsx';
 
 interface TakeTurnProps {
   dispatch: Dispatch<Action>;
   socket: Socket;
   position: string | undefined;
   avatarInTurn: string;
+  winner?: string | undefined;
 }
 
 /**
@@ -22,18 +23,20 @@ interface TakeTurnProps {
  * @param {Socket} props.socket - The socket.io socket object.
  * @param {string | undefined} props.position - The position on the board where the player wants to place their mark.
  * @param {string} props.avatarInTurn - The avatar of the player whose turn it is.
- * @returns {JSX.Element} The rendered TakeTurnTicTacToe component.
+ * @returns {ReactElement} The rendered TakeTurnTicTacToe component.
  */
 
-const TakeTurnTicTacToe = ({ dispatch, socket, position, avatarInTurn }: TakeTurnProps): JSX.Element => (
-  <Button
-    variant='contained'
-    type='button'
-    onClick={() => handleTakeTurn({ dispatch, socket, position, avatarInTurn })}
-    sx={breakpointsTakeTurnButtonTTT}
-  >
-    Take Turn
-  </Button>
+const TakeTurnTicTacToe = ({ dispatch, socket, position, avatarInTurn, winner }: TakeTurnProps): ReactElement => (
+  <AnimatedBorderBox>
+    <Button
+      variant='outlined'
+      disabled={!!winner}
+      onClick={() => handleTakeTurn({ dispatch, socket, position, avatarInTurn })}
+      sx={{ height: '100%' }}
+    >
+      Take Turn
+    </Button>
+  </AnimatedBorderBox>
 );
 
 export default TakeTurnTicTacToe;
@@ -73,6 +76,6 @@ const handleTakeTurn = async ({ dispatch, socket, position, avatarInTurn }: Take
     console.log(err);
     return null;
   } finally {
-    dispatch({ type: ActionType.TAKE_TURN, socket: socket });
+    dispatch({ type: Action.TAKE_TURN, socket: socket });
   }
 };

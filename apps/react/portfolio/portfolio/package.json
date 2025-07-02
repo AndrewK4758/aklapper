@@ -13,11 +13,27 @@
     "@aklapper/utils": "workspace:*",
     "@aklapper/vertex-ai": "workspace:*"
   },
+  "packageManager": "pnpm@10.12.3",
   "nx": {
     "name": "portfolio",
     "projectType": "application",
     "sourceRoot": "apps/react/portfolio/portfolio/src",
+    "root": "apps/react/portfolio/portfolio",
     "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "apps/react/portfolio/portfolio",
+          "command": "vite build --mode production"
+        },
+        "configurations": {
+          "production": {
+            "env": {
+              "NODE_ENV": "production"
+            }
+          }
+        }
+      },
       "build-both": {
         "executor": "nx:run-commands",
         "outputs": [
@@ -54,6 +70,7 @@
       },
       "serve-server": {
         "executor": "nx:run-commands",
+        "defaultConfiguration": "development",
         "dependsOn": [
           "build-both"
         ],
@@ -62,23 +79,32 @@
           "buildTarget": "portfolio:build-server",
           "runBuildTargetDependencies": false,
           "command": "node dist/server/server.js"
+        },
+        "configurations": {
+          "development": {
+            "env": {
+              "NODE_ENV": "development"
+            }
+          },
+          "production": {
+            "env": {
+              "NODE_ENV": "production"
+            }
+          }
         }
       },
       "deploy-app-engine": {
         "executor": "nx:run-commands",
         "defaultConfiguration": "production",
         "dependsOn": [
-          "docker-push"
+          "build"
         ],
         "options": {
           "commands": [
             {
-              "command": "gcloud app deploy website.yaml --image-url=gcr.io/games-424800/default:latest --quiet --verbosity=debug"
+              "command": "gcloud app deploy website.yaml --quiet --verbosity=debug"
             }
-          ],
-          "env": {
-            "NODE_ENV": "production"
-          }
+          ]
         }
       },
       "docker-build": {

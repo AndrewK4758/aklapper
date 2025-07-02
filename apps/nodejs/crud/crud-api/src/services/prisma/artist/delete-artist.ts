@@ -1,11 +1,10 @@
 import {
+  prisma,
   PrismaErrorLogger,
   type artist,
   type ParsedPrismaError,
   type PrismaClientErrors,
 } from '@aklapper/chinook-client';
-
-import prisma from '../client/prisma_client.js';
 
 /**
  * This function deletes an artist from the database by their ID.

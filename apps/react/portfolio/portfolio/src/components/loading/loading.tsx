@@ -1,15 +1,8 @@
 import { Text } from '@aklapper/react-shared';
-import Box from '@mui/material/Box';
+import Box from '@mui/material-pigment-css/Box';
 import Container from '@mui/material/Container';
 import LinearProgress from '@mui/material/LinearProgress';
 import { useEffect, useState, type JSX } from 'react';
-import {
-  loadingBarBox,
-  loadingBarStyles,
-  loadingBarTextStyles,
-  loadingBarTextSxProps,
-  loadingPaperStyles
-} from '../../styles/loading-styles.jsx';
 
 const loadingValues = [
   'Creating Instance',
@@ -17,7 +10,7 @@ const loadingValues = [
   'Creating Players',
   'Registering on Game Instance',
   'Verify Ready to Play Status',
-  'Set Players on Start'
+  'Set Players on Start',
 ];
 
 /**
@@ -27,7 +20,7 @@ const loadingValues = [
  */
 
 const GameLoading = (): JSX.Element => {
-  const [loadingValueIdx, setLoadingValueIdx] = useState<number>(0);
+  const [loadingValueIdx, setLoadingValueIdx] = useState(0);
 
   const loadingValue = loadingValues[loadingValueIdx];
 
@@ -40,12 +33,12 @@ const GameLoading = (): JSX.Element => {
   });
 
   return (
-    <Container fixed={false} maxWidth={false} sx={loadingPaperStyles}>
-      <Box component={'div'} id="game-loading" sx={loadingBarBox}>
-        <LinearProgress variant="determinate" value={(loadingValueIdx + 1) * 16.67} sx={loadingBarStyles} />
+    <Container fixed={false} maxWidth={false}>
+      <Box as={'div'} id='game-loading'>
+        <LinearProgress variant='determinate' value={(loadingValueIdx + 1) * 16.67} />
       </Box>
-      <Box sx={loadingBarTextStyles}>
-        <Text component={'p'} titleVariant="body1" titleText={loadingValue} sx={loadingBarTextSxProps} />
+      <Box>
+        <Text variant='h5' children={loadingValue} />
       </Box>
     </Container>
   );

@@ -1,34 +1,27 @@
 import { Text, useScrollIntoView } from '@aklapper/react-shared';
-import type { GameBoard, IActivePlayersInGame } from '@aklapper/types';
-import Box from '@mui/material/Box';
-import Container from '@mui/material/Container';
-import Paper from '@mui/material/Paper';
-import { useReducer, useRef, useState, type JSX } from 'react';
+import type { GameBoards, IActivePlayersInGame } from '@aklapper/types';
+import Box from '@mui/material-pigment-css/Box';
+import { ReactElement, useReducer, useRef, useState } from 'react';
 import { useParams } from 'react-router';
 import type { ManagerOptions, Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
-import useGamesWebsockets from '../../hooks/useGamesWebsockets.jsx';
-import {
-  breakpointsBottomMenuButtonsBox,
-  breakpointsBottomMenuGameBoard,
-  breakpointsPlayerInTurnText,
-  gamesPaperSxProps,
-} from '../../styles/games-styles.jsx';
-import getGameInstanceInfo from '../../utils/utils.jsx';
-import ActiveAvatars from './game_board/active_avatars.jsx';
-import ResetGame from './game_board/reset_game.jsx';
-import ShowGameBoardTicTacToe from './game_board/show-game-board-tic-tac-toe.jsx';
-import ShowGameBoard from './game_board/show_game_board.jsx';
-import socketReducer from './game_board/socket-reducer.jsx';
-import TakeTurnTicTacToe from './game_board/take-turn-tic-tac-toe.jsx';
-import TakeTurn from './game_board/take_turn.jsx';
+import useGamesWebsockets from '../../hooks/useGamesWebsockets';
+import Theme from '../../styles/themes/theme';
+import { getGameInstanceInfo } from '../../utils/utils';
+import ActiveAvatars from './game_board/active_avatars';
+import GameBoard from './game_board/game_board.js';
+import GameBoardTicTacToe from './game_board/game_board_tic_tac_toe';
+import ResetGame from './game_board/reset_game';
+import socketReducer from './game_board/socket-reducer';
+import TakeTurnTicTacToe from './game_board/take-turn-tic-tac-toe';
+import TakeTurn from './game_board/take_turn';
 
 export interface IActiveGameInfo extends IActivePlayersInGame {
-  gameBoard: GameBoard;
+  gameBoard: GameBoards;
 }
 
 const socketInit = () => {
-  return { gameBoard: [[]], activePlayersInGame: [], avatarInTurn: '', winner: '' } as IActiveGameInfo;
+  return { gameBoard: [], activePlayersInGame: [], avatarInTurn: '', winner: '' } as IActiveGameInfo;
 };
 
 /**
@@ -40,85 +33,86 @@ const socketInit = () => {
  *   - Updating the game board and player state based on server events.
  *   - Rendering the game board, active players, turn information, and move controls.
  *
- * @returns {JSX.Element} The rendered active game session component.
+ * @returns {ReactElement} The rendered active game session component.
  */
 
-const wsURL = import.meta.env.VITE_GAMES_WS_URL;
+const wsURL = import.meta.env.VITE_GAMES_WS_URL + import.meta.env.VITE_GAMES_WS_GAMEPLAY_NAMESPACE;
 
-const ActiveGameSession = (): JSX.Element => {
+const ActiveGameSession = (): ReactElement => {
   const socketManagerOptions: Partial<ManagerOptions> = {
     autoConnect: false,
-    path: '/gameplay',
     extraHeaders: { 'current-game': JSON.stringify(getGameInstanceInfo()) },
+    path: import.meta.env.VITE_GAMES_WS_PATH,
   };
 
   const clientSocket = io(wsURL, socketManagerOptions);
   const socketRef = useRef<Socket>(clientSocket);
   const [state, dispatch] = useReducer(socketReducer, {}, socketInit);
   const [space, setSpace] = useState<string | undefined>();
-  const divRef = useRef<HTMLDivElement>(null);
+  const devRef = useRef<HTMLDivElement>(null);
   const { id } = useParams() as { id: string };
 
   const socket = socketRef.current;
 
+  useScrollIntoView(devRef);
+
   useGamesWebsockets(socket, id, dispatch);
 
-  useScrollIntoView(divRef);
   return (
-    <Paper key={`active-${id}-game`} id={`active-${id}-game`} sx={gamesPaperSxProps}>
+    <Box id={`active-${id}-game`}>
       <Box
-        ref={divRef}
-        component={'section'}
-        key={`${id}-active-avatar-wrapper`}
+        as={'section'}
         id='active-avatar-wrapper'
-        display={'flex'}
-        justifyContent={'center'}
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+        }}
       >
         <ActiveAvatars avatarsInGame={state.activePlayersInGame} winner={state.winner} />
       </Box>
-
-      <Box
-        component={'section'}
-        key={`${id}-game-board-wrapper`}
-        id='game-board-wrapper'
-        sx={{ height: 'fit-content', textAlign: 'center', paddingX: 4 }}
-      >
+      <Box ref={devRef} as={'section'} id='game-board-wrapper' sx={{ display: 'flex', height: '100%' }}>
         {id === 'Chutes-&-Ladders' ? (
-          <ShowGameBoard key={`chutes-and-ladders-full-game-board-wrapper`} board={state.gameBoard} />
+          <GameBoard board={state.gameBoard} />
         ) : (
-          <ShowGameBoardTicTacToe
-            key={'tic-tac-toe-full-game-board-wrapper'}
-            board={state.gameBoard}
-            setStateAction={setSpace}
-            state={space}
-          />
+          <GameBoardTicTacToe board={state.gameBoard} setStateAction={setSpace} state={space} />
         )}
-      </Box>
-
-      <Container
-        component={'section'}
-        key={`${id}-active-game-buttons-wrapper`}
-        id='active-game-buttons-wrapper'
-        sx={breakpointsBottomMenuGameBoard}
-      >
-        <Text component={'h2'} titleVariant='h2' titleText={state.avatarInTurn} sx={breakpointsPlayerInTurnText} />
-        <Box component={'section'} sx={breakpointsBottomMenuButtonsBox}>
-          {id === 'Chutes-&-Ladders' ? (
-            <TakeTurn avatarInTurn={state.avatarInTurn as string} dispatch={dispatch} socket={socket} />
-          ) : (
-            <TakeTurnTicTacToe
-              avatarInTurn={state.avatarInTurn as string}
-              dispatch={dispatch}
-              socket={socket}
-              position={space}
-            />
-          )}
-
-          <ResetGame dispatch={dispatch} socket={socket} setSpace={setSpace} />
+        <Box
+          id='active-game-buttons-wrapper'
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            flex: '0 1 5%',
+            padding: Theme.spacing(4),
+            justifyContent: 'center',
+          }}
+        >
+          <Text
+            variant='h2'
+            children={state.avatarInTurn}
+            sx={{ textOrientation: 'upright', writingMode: 'vertical-rl', justifySelf: 'center', height: '70%' }}
+          />
+          <Box as={'section'} sx={{ display: 'flex', flexWrap: 'wrap', flex: '0 1 30%', gap: Theme.spacing(8) }}>
+            {id === 'Chutes-&-Ladders' ? (
+              <TakeTurn
+                avatarInTurn={state.avatarInTurn as string}
+                dispatch={dispatch}
+                socket={socket}
+                winner={state.winner}
+              />
+            ) : (
+              <TakeTurnTicTacToe
+                avatarInTurn={state.avatarInTurn as string}
+                dispatch={dispatch}
+                socket={socket}
+                position={space}
+                winner={state.winner}
+              />
+            )}
+            <ResetGame dispatch={dispatch} socket={socket} setSpace={setSpace} />
+          </Box>
         </Box>
-      </Container>
-    </Paper>
+      </Box>
+    </Box>
   );
 };
-
 export default ActiveGameSession;

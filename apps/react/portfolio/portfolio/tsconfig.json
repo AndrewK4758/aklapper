@@ -1,7 +1,5 @@
 {
   "extends": "../../../../tsconfig.base.json",
-  "files": [],
-  "include": [],
   "references": [
     {
       "path": "../../../../packages/gen-ai/vertex-ai"
@@ -32,9 +30,6 @@
     },
     {
       "path": "./tsconfig.spec.json"
-    },
-    {
-      "path": "./tsconfig.node.json"
     }
   ]
 }

@@ -4,9 +4,8 @@ import axios, { type AxiosRequestConfig } from 'axios';
 import type { Dispatch, JSX } from 'react';
 import { useParams } from 'react-router';
 import { Socket } from 'socket.io-client';
-import { breakpointsStartGameButtonBox, breakpointsStartGameButtonFormButton } from '../../../styles/games-styles.js';
-import getGameInstanceInfo from '../../../utils/utils.jsx';
-import { type Action, ActionType } from './socket-reducer.jsx';
+import { getGameInstanceInfo } from '../../../utils/utils.jsx';
+import { Action } from './socket-reducer.jsx';
 
 interface ReadyToStartProps {
   dispatch: Dispatch<Action>;
@@ -32,13 +31,8 @@ export default function ReadyToStart({ dispatch, socket }: ReadyToStartProps): J
   };
 
   return (
-    <Container component={'section'} sx={breakpointsStartGameButtonBox}>
-      <Button
-        onClick={() => handleStartGame(dispatch, socket, id, reqHeaders)}
-        variant='outlined'
-        type='button'
-        sx={breakpointsStartGameButtonFormButton}
-      >
+    <Container component={'section'}>
+      <Button onClick={() => handleStartGame(dispatch, socket, id, reqHeaders)} variant='outlined' type='button'>
         Start Game
       </Button>
     </Container>
@@ -66,6 +60,6 @@ const handleStartGame = async (
   reqHeaders: AxiosRequestConfig,
 ) => {
   const resp = await axios.patch(`${__baseURL__}/games/${id}/start`, {}, reqHeaders);
-  dispatch({ type: ActionType.START, socket: socket });
+  dispatch({ type: Action.START, socket: socket });
   console.log(resp.data.message);
 };

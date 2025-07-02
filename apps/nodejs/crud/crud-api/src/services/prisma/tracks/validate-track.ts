@@ -1,5 +1,10 @@
-import { Prisma, PrismaErrorLogger, type ParsedPrismaError, type PrismaClientErrors } from '@aklapper/chinook-client';
-import prisma from '../client/prisma_client.js';
+import {
+  prisma,
+  Prisma,
+  PrismaErrorLogger,
+  type ParsedPrismaError,
+  type PrismaClientErrors,
+} from '@aklapper/chinook-client';
 
 /**
  * Checks if a track exists in the database.
