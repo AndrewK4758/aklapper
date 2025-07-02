@@ -66,7 +66,7 @@ function handleDownloadImage(imgStr: Base64ImageString, imageNumber: number) {
 
   const a = document.createElement('a');
   a.href = url;
-  a.download = `image_1.png`;
+  a.download = `image_${imageNumber}.png`;
 
   document.body.appendChild(a);
   a.click();

@@ -21,7 +21,7 @@ interface AlbumDataGrid {
 }
 
 export default function AlbumDataGrid({ rows, setRows }: AlbumDataGrid) {
-  const { artistID } = useParams();
+  const { artistID } = useParams() as { artistID: string };
   const [dirtyRows, setDirtyRows] = useState<Set<number>>(new Set());
   const [paginationModel, setPaginationModel] = useState<PaginationModel>(paginationModelInit);
   const nav = useNavigate();

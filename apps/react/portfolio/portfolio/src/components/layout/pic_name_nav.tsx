@@ -3,7 +3,6 @@ import CardHeader, { type CardHeaderSlotsAndSlotProps } from '@mui/material/Card
 import type { ReactElement } from 'react';
 import self from '../../assets/images/self.webp';
 import Theme from '../../styles/themes/theme';
-import { ABOUT_ME_TITLE } from '../home/static/intro-text';
 
 const slotProps: CardHeaderSlotsAndSlotProps = {
   slotProps: {
@@ -19,7 +18,7 @@ const slotProps: CardHeaderSlotsAndSlotProps = {
   },
 };
 
-const myName = <SectionTitle title={ABOUT_ME_TITLE} variant='h1' />;
+const myName = <SectionTitle title={"Hi, I'm Andrew Klapper"} variant='h1' />;
 
 const avatarImg = (
   <img

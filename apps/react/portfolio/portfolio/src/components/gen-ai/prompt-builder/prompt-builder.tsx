@@ -1,7 +1,6 @@
 import { ResponseType, type IPromptInputData } from '@aklapper/prompt-builder';
 import { FormikValidationError, SectionTitle, Text, useScrollIntoView } from '@aklapper/react-shared';
 import type { ChatEntry } from '@aklapper/types';
-import { getContextPath } from '@aklapper/utils';
 import type { PromptRequest } from '@aklapper/vertex-ai';
 import InsertPhotoOutlinedIcon from '@mui/icons-material/InsertPhotoOutlined';
 import Box from '@mui/material-pigment-css/Box';
@@ -14,7 +13,7 @@ import RadioGroup from '@mui/material/RadioGroup';
 import TextField from '@mui/material/TextField';
 import axios from 'axios';
 import { useFormik } from 'formik';
-import { useRef, useState, type Dispatch, type JSX, type RefObject, type SetStateAction } from 'react';
+import { useRef, useState, type Dispatch, type JSX, type SetStateAction } from 'react';
 import { Form, useNavigate, type NavigateFunction } from 'react-router';
 import * as Yup from 'yup';
 import Theme from '../../../styles/themes/theme';
@@ -23,8 +22,10 @@ import TextIcon from '../../icons/text-icon.jsx';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
 import HelperTextBox from '../../styled/helper_text_box';
 import StyledCard from '../../styled/styled_card';
+import TextInput from '../../styled/text_input';
 import { SUPPORTED_FORMATS } from '../static/definitions.jsx';
 import { promptBuilderHeaderText } from '../static/prompt-builder-text.jsx';
+import handleFileUpload from './file_upload';
 import PromptBuilderResponse from './prompt-builder-response.jsx';
 
 const promptInit: PromptRequest = { text: null, fileData: null };
@@ -68,7 +69,7 @@ interface PromptBuilderProps {
  * @returns {JSX.Element} The rendered PromptBuilder component.
  */
 
-const PromptBuilder = ({ loading, setUserChatEntry, setLoading }: PromptBuilderProps): JSX.Element => {
+const PromptBuilder = ({ loading, setLoading }: PromptBuilderProps): JSX.Element => {
   const [openPromptResponse, setOpenPromptResponse] = useState<boolean>(false);
   const [prompt, setPrompt] = useState<PromptRequest>(promptInit);
   const [builtPrompt, setBuiltPrompt] = useState<null | string>(null);
@@ -77,12 +78,9 @@ const PromptBuilder = ({ loading, setUserChatEntry, setLoading }: PromptBuilderP
   const divRef = useRef<HTMLDivElement>(null);
   const nav = useNavigate();
 
-  console.log(builtPrompt);
-  // const action = useActionData() as string;
-
   useScrollIntoView(divRef);
 
-  const formik = useFormik({
+  const formik = useFormik<IPromptInputData>({
     initialValues: initialValues,
     validationSchema: validationSchema,
     onSubmit: async values => await handlePromptBuilder(values, setBuiltPrompt, setOpenPromptResponse, setLoading),
@@ -124,6 +122,15 @@ const PromptBuilder = ({ loading, setUserChatEntry, setLoading }: PromptBuilderP
           onReset={formik.handleReset}
           style={{ width: '70%' }}
         >
+          <TextInput<IPromptInputData>
+            id='objective-input'
+            label='Objective'
+            multiline={true}
+            placeholder='What you want the AI todo'
+            formik={formik}
+            name={'objective'}
+            variant={'outlined'}
+          />
           <HelperTextBox multiline>
             <TextField
               id='objective-input'
@@ -132,7 +139,6 @@ const PromptBuilder = ({ loading, setUserChatEntry, setLoading }: PromptBuilderP
               focused={true}
               fullWidth={true}
               rows={2}
-              placeholder='What you want the AI todo'
               variant='outlined'
               onBlur={formik.handleBlur}
               onFocus={async e => await formik.setFieldTouched(e.currentTarget.name as string, false)}
@@ -431,48 +437,6 @@ const handleCopyPromptToClipboard = async (
     await navigator.clipboard.writeText(builtPrompt);
     setOpenPromptResponse(false);
     nav('text');
-  }
-};
-const baseUrl = import.meta.env.VITE_VERTEX_API_URL;
-/**
- * This function handles the file upload event.
- * It uploads the file to the server and updates the prompt state with the file data.
- *
- * @param {RefObject<HTMLInputElement | null>} fileInputRef - A ref to the file input element.
- * @param {Dispatch<SetStateAction<PromptRequest>>} setPrompt - A function to update the prompt state.
- * @param {Dispatch<SetStateAction<string>>} setFileName - A function to update the file name state.
- * @param {Dispatch<SetStateAction<boolean>>} setLoading - A function to update the loading state.
- */
-export const handleFileUpload = async (
-  prompt: PromptRequest,
-  fileInputRef: RefObject<HTMLInputElement | null>,
-  setPrompt: Dispatch<SetStateAction<PromptRequest>>,
-  setFileName: Dispatch<SetStateAction<string>>,
-  setLoading: (loading: boolean) => void,
-) => {
-  try {
-    if (fileInputRef.current && fileInputRef.current.files) {
-      const file = fileInputRef.current.files[0];
-      const contextPath = getContextPath('context-path');
-      setLoading(true);
-      const resp = await axios.post(
-        `${baseUrl}/upload`,
-        { file: file, contextPath: contextPath },
-        { headers: { 'Content-Type': 'multipart/form-data' } },
-      );
-      const { path } = resp.data as { path: string };
-
-      const newPrompt: PromptRequest = {
-        ...prompt,
-        fileData: { fileUri: path, mimeType: file.type },
-      };
-      setPrompt(newPrompt);
-      setFileName(file.name);
-    } else throw new Error('No file ref');
-  } catch (error) {
-    console.error(error);
-  } finally {
-    setLoading(false);
   }
 };
 

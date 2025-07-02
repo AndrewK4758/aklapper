@@ -1,5 +1,4 @@
 import {
-  Prisma,
   prisma,
   PrismaErrorLogger,
   type album,

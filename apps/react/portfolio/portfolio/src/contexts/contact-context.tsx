@@ -1,22 +1,5 @@
-import { createContext, type ReactElement, type ReactNode, useMemo, useState } from 'react';
-
-export type GoogleUserContextInfo = {
-  email: string;
-  name: string;
-};
-
-export interface GoogleUserContextProps {
-  handleSetGoogleUser: (user: GoogleUserContextInfo) => void;
-  GoogleUserContextValues: GoogleUserContextInfo;
-}
-
-const googleUserInit: GoogleUserContextInfo = {
-  email: '',
-  name: '',
-};
-
-// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-export const GoogleUserContext = createContext<GoogleUserContextProps>(null!);
+import { type ReactElement, type ReactNode, useMemo, useState } from 'react';
+import { GoogleUserContext, type GoogleUserContextInfo } from './contact_context_constants';
 
 interface GoogleContextProviderProps {
   children: ReactElement | ReactElement[] | ReactNode | ReactNode[];
@@ -32,7 +15,7 @@ interface GoogleContextProviderProps {
  */
 
 const GoogleUserContextProvider = ({ children }: GoogleContextProviderProps): ReactElement => {
-  const [user, setUser] = useState<GoogleUserContextInfo>(googleUserInit);
+  const [user, setUser] = useState<GoogleUserContextInfo>({ email: '', name: '' });
 
   const handleSetGoogleUser = (user: GoogleUserContextInfo) => {
     setUser(user);

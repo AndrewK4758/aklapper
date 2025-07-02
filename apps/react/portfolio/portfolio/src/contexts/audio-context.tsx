@@ -1,19 +1,7 @@
 import { MRC } from '@aklapper/media-recorder';
 import type { Dispatch, JSX, ReactElement, ReactNode, SetStateAction } from 'react';
-import { createContext, useState } from 'react';
-
-export interface MediaRecorderClientContextProps {
-  MRC: typeof MRC;
-  stream: MediaStream | null;
-  setStream: Dispatch<SetStateAction<MediaStream | null>>;
-  createStream: (
-    setStream: Dispatch<SetStateAction<MediaStream | null>>,
-    constraints: MediaStreamConstraints,
-  ) => Promise<void>;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-export const MediaRecorderClientContext = createContext<MediaRecorderClientContextProps>(null!);
+import { useState } from 'react';
+import { MediaRecorderClientContext } from './audio_context_constants';
 
 interface MediaRecorderClientContextProviderProps {
   children: ReactElement | ReactElement[] | ReactNode | ReactNode[];

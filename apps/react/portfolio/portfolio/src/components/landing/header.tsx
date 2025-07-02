@@ -15,7 +15,7 @@ interface TypewriterTextProps {
 }
 
 const TypewriterText = styled(Box, { shouldForwardProp: prop => prop !== 'isLandingNavOpen' })<TypewriterTextProps>(
-  theme => ({
+  () => ({
     overflow: 'hidden',
     fontFamily: 'Orange Gummy',
     textAlign: 'center',

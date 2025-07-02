@@ -2,11 +2,11 @@ import Link from '@mui/material/Link';
 import Typography from '@mui/material/Typography';
 import Theme from '../../../styles/themes/theme';
 
-export const ABOUT_ME_TITLE = "Hi, I'm Andrew Klapper";
+// export const ABOUT_ME_TITLE = "Hi, I'm Andrew Klapper";
 
 const ID = 'intro-text';
 
-export const IntroText = () => (
+export const IntroText = (
   <Typography variant='h5' color='textPrimary' id={ID} data-testid={ID} sx={{ flex: '30%', textAlign: 'start' }}>
     I'm a full-stack web developer with 3 years experience developing & deploying web based applications & interactive
     websites. I specialize in <b>Monorepo Architectures</b>, <b>Cloud Deployments</b>, custom <b>React Components</b>,{' '}

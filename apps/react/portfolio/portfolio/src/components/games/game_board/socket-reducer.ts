@@ -1,5 +1,5 @@
 import { Socket } from 'socket.io-client';
-import type { IActiveGameInfo } from '../../games/active_game_session.jsx';
+import type { IActiveGameInfo } from '../active_game_session.js';
 
 export type ActionType = (typeof Action)[keyof typeof Action];
 
@@ -24,7 +24,7 @@ export interface Action {
  * @returns {IActiveGameInfo} The updated state.
  */
 
-const socketReducer = (state: IActiveGameInfo, action: Action) => {
+export default function socketReducer(state: IActiveGameInfo, action: Action): IActiveGameInfo {
   const { type, socket } = action;
   switch (type) {
     case Action.BOARD: {
@@ -43,6 +43,4 @@ const socketReducer = (state: IActiveGameInfo, action: Action) => {
     default:
       throw new Error('Error in reducer');
   }
-};
-
-export default socketReducer;
+}

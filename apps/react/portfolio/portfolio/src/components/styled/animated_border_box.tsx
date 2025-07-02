@@ -1,13 +1,6 @@
-import { keyframes, styled } from '@mui/material-pigment-css';
+import { styled } from '@mui/material-pigment-css';
 import Box from '@mui/material-pigment-css/Box';
-import Theme from '../../styles/themes/theme';
-
-export const spin = keyframes`
-  50% {
-    --clr-1: ${Theme.palette.secondary.main};
-    --clr-2: ${Theme.palette.primary.main};
-    --clr-1: ${Theme.palette.secondary.main};
-  }`;
+import { spin } from '../../styles/base/animations';
 
 const AnimatedBorderBox = styled(Box)(({ theme }) => ({
   background: `conic-gradient(${theme.palette.background.paper} 0 0) padding-box,

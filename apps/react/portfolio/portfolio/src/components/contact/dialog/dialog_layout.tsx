@@ -10,7 +10,7 @@ import LargeStyledDialog from '../../styled/large_dialog_window.js';
 
 interface DialogLayoutProps {
   isOpen: boolean;
-  children: ReactElement<unknown, any>[];
+  children: ReactElement<unknown>[];
 }
 
 export default function DialogLayout({

@@ -2,17 +2,17 @@ import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import type { PaginationModel } from '../components/crud/artists/data_grid';
 import type { QueryOptions } from '../types/types';
 
-type FetchDataResult<T> = {
+type FetchDataResult = {
   isLoading: boolean;
   refetchData: () => void;
 };
 
 const useFetchDataGridData = <T>(
   paginationModel: PaginationModel,
-  loadData: (queryOptions: QueryOptions, signal: AbortSignal, ...args: any) => Promise<T | null>,
+  loadData: (queryOptions: QueryOptions, signal: AbortSignal, ...args: string[]) => Promise<T | null>,
   setRows: Dispatch<SetStateAction<T | null>>,
-  ...args: any
-): FetchDataResult<T> => {
+  ...args: string[]
+): FetchDataResult => {
   const [isLoading, setIsLoading] = useState(true);
 
   const { signal } = new AbortController();

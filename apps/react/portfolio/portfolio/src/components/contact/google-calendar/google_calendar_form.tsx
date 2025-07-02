@@ -20,12 +20,6 @@ export type TimesAndDates = {
   date: Dayjs;
 };
 
-export const initState: TimesAndDates = {
-  startTime: minTime,
-  endTime: 0,
-  date: tomorrow,
-};
-
 interface GoogleAppointmentFormProps {
   setOpen: () => void;
 }
@@ -33,7 +27,11 @@ interface GoogleAppointmentFormProps {
 export default function GoogleCalendarForm({
   setOpen,
 }: GoogleAppointmentFormProps): ReactElement<GoogleAppointmentFormProps> {
-  const [values, setValues] = useState<TimesAndDates>(initState);
+  const [values, setValues] = useState<TimesAndDates>({
+    startTime: minTime,
+    endTime: 0,
+    date: tomorrow,
+  });
 
   const handleSetTimeAndDateValues = (pickerValue: PickerValue | number, key: keyof TimesAndDates) => {
     setValues(prev => ({ ...prev, [key]: pickerValue }));

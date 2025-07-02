@@ -1,10 +1,4 @@
-import {
-  prisma,
-  PrismaErrorLogger,
-  type album,
-  type ParsedPrismaError,
-  type PrismaClientErrors,
-} from '@aklapper/chinook-client';
+import { prisma, PrismaErrorLogger, type album, type PrismaClientErrors } from '@aklapper/chinook-client';
 
 /**
  * Deletes an album from the database by its ID.

@@ -15,7 +15,7 @@ import ColoredBackground from '../../components/styled/colored_background';
 const Home = (): ReactElement => (
   <ColoredBackground>
     <CardContent id='about-me-header-box' sx={{ display: 'flex' }}>
-      <IntroText />
+      {IntroText}
       <Divider orientation='vertical' flexItem={true} textAlign='center' />
       <TechStackLists />
     </CardContent>
