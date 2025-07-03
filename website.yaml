@@ -5,7 +5,7 @@ handlers:
   - url: /assets/(.*)
     static_files: apps/react/portfolio/portfolio/dist/assets/\1
     upload: apps/react/portfolio/portfolio/dist/assets/.*
-    secure: always
+
 
   - url: /(.*\..+)
     static_files: dist/\1
@@ -14,7 +14,7 @@ handlers:
   - url: /.*
     static_files: apps/react/portfolio/portfolio/dist/index.html
     upload: apps/react/portfolio/portfolio/dist/index.html
-    secure: always
+
 
 env_variables:
   GCLOUD_STORAGE_BUCKET: 'gs://portfolio-gen-ai'

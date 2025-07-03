@@ -18,6 +18,7 @@
   },
   "include": [
     "vite.config.ts",
+    "tests/mocks/**/*.tsx",
     "tests/**/*.test.ts",
     "tests/**/*.spec.ts",
     "tests/**/*.test.tsx",
