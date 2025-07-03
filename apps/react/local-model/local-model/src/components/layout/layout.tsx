@@ -12,7 +12,7 @@ import {
   footerWrapperSxProps,
   headerWrapperSxProps,
   mainWrapperSxProps,
-  outletWrapperSxProps
+  outletWrapperSxProps,
 } from '../../styles/layout-styles';
 import ModelResponse from '../query-model/query-model-response';
 
@@ -40,8 +40,8 @@ export default function Layout() {
 
       const resp = await axios.postForm(baseUrl, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
       setPromptResponse(resp.data);
@@ -49,27 +49,27 @@ export default function Layout() {
   }
 
   return (
-    <Box component={'div'} id="app-wrapper" data-testid="app-wrapper" key={'app-wrapper'} sx={baseStyleForLayoutItems}>
+    <Box component={'div'} id='app-wrapper' data-testid='app-wrapper' key={'app-wrapper'} sx={baseStyleForLayoutItems}>
       <AppBar
         component={'div'}
-        id="header-wrapper"
-        data-testid="header-wrapper"
+        id='header-wrapper'
+        data-testid='header-wrapper'
         key={'header-wrapper'}
         sx={headerWrapperSxProps}
       >
-        <Toolbar component={'div'} id="header-navbar" data-testid="header-navbar" key={'header-navbar'}>
+        <Toolbar component={'div'} id='header-navbar' data-testid='header-navbar' key={'header-navbar'}>
           <ButtonGroup fullWidth={true}>
             <Button
-              color="inherit"
-              id="navbar-button-chat"
-              data-testid="navbar-button-chat"
+              color='inherit'
+              id='navbar-button-chat'
+              data-testid='navbar-button-chat'
               key={'navbar-button-chat'}
               onClick={() => nav('query-model')}
               sx={{ flex: '0 1 33%' }}
             >
               <Label
-                id="navbar-button-label"
-                htmlFor="navbar-button-chat"
+                id='navbar-button-label'
+                htmlFor='navbar-button-chat'
                 tooltipTitle={'Navigate to Chat with LLM'}
                 labelVariant={'body1'}
                 labelText={'Query Model'}
@@ -81,28 +81,28 @@ export default function Layout() {
         </Toolbar>
       </AppBar>
 
-      <Box component={'div'} id="main-wrapper" data-testid="main-wrapper" key={'main-wrapper'} sx={mainWrapperSxProps}>
+      <Box component={'div'} id='main-wrapper' data-testid='main-wrapper' key={'main-wrapper'} sx={mainWrapperSxProps}>
         <Text
-          titleText="AI Chatbot w/ RAG, Web Search, and History"
-          titleVariant="h1"
+          children='AI Chatbot w/ RAG, Web Search, and History'
+          variant='h1'
           component={'h1'}
           sx={{ fontSize: '3rem' }}
         />
-        <input type="file" multiple={true} ref={inputRef} hidden={true} id="upload-files" onChange={handleFileUpload} />
-        <Button type="button" id="upload-files-button" onClick={handleUploadClick}>
+        <input type='file' multiple={true} ref={inputRef} hidden={true} id='upload-files' onChange={handleFileUpload} />
+        <Button type='button' id='upload-files-button' onClick={handleUploadClick}>
           <Label
-            id="upload-files-label"
-            tooltipTitle=""
-            labelText="Upload"
-            placement="top"
-            htmlFor="upload-files-button"
+            id='upload-files-label'
+            tooltipTitle=''
+            labelText='Upload'
+            placement='top'
+            htmlFor='upload-files-button'
             labelVariant={'button'}
           />
         </Button>
         <Box
           component={'div'}
-          id="outlet-wrapper"
-          data-testid="outlet-wrapper"
+          id='outlet-wrapper'
+          data-testid='outlet-wrapper'
           key={'outlet-wrapper'}
           sx={outletWrapperSxProps}
         >
@@ -110,8 +110,8 @@ export default function Layout() {
         </Box>
         <Box
           component={'div'}
-          id="prompt-response-wrapper"
-          data-testid="prompt-response-wrapper"
+          id='prompt-response-wrapper'
+          data-testid='prompt-response-wrapper'
           key={'prompt-response-wrapper'}
           sx={outletWrapperSxProps}
         >
@@ -120,8 +120,8 @@ export default function Layout() {
       </Box>
       <Box
         component={'div'}
-        id="footer-wrapper"
-        data-testid="footer-wrapper"
+        id='footer-wrapper'
+        data-testid='footer-wrapper'
         key={'footer-wrapper'}
         sx={footerWrapperSxProps}
       >

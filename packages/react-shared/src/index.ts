@@ -1,6 +1,5 @@
 export * from './interfaces/action-error.jsx';
 export * from './interfaces/form-action-props.jsx';
-// export * from './lib/button-form-action/button-form-action.jsx';
 export * from './lib/errors/action-error.jsx';
 export * from './lib/formik/formik-text-input.jsx';
 export * from './lib/formik/select-menu.jsx';

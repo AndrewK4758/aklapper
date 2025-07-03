@@ -12,7 +12,7 @@ import Container from '@mui/material/Container';
 import Grid from '@mui/material/Grid';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
-import { useContext, type Dispatch, type SetStateAction } from 'react';
+import { useContext, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import type { Socket } from 'socket.io-client';
 import ActivePlayerContext, { type ActivePlayerContextProps } from '../../context/active-player-context';
 import { WebsocketContext, type WebsocketContextProps } from '../../context/websocket_context';
@@ -69,18 +69,10 @@ export default function GameDetail({
           </CardActionArea>
         </Container>
         <CardContent sx={{ padding: 1, maxHeight: 'fit-content' }}>
-          <Text
-            titleVariant='body1'
-            titleText='Active Games'
-            component={'p'}
-            TypogrpahyProps={{ color: 'info' }}
-            sx={{ textAlign: 'left' }}
-          />
+          <Text variant='body1' children='Active Games' sx={{ textAlign: 'left', color: 'InfoText' }} />
           <RenderList<GameInstanceLobbyData>
             data={activeGames}
-            listMapCallback={(e, i, arr) =>
-              activeGamesCallback(e, i, arr, game, socket, activePlayer, joinedGame, setJoinedGame)
-            }
+            listMapCallback={(e, i) => activeGamesCallback(e, i, game, socket, activePlayer, joinedGame, setJoinedGame)}
           />
         </CardContent>
 
@@ -110,13 +102,12 @@ export default function GameDetail({
 const activeGamesCallback = (
   instance: GameInstanceLobbyData,
   i: number,
-  _arr: GameInstanceLobbyData[],
   game: IBuiltGame,
   socket: Socket,
   activePlayer: IPlayerClientData,
   joinedGame: string | boolean,
   setJoinedGame: Dispatch<SetStateAction<string | boolean>>,
-) => {
+): ReactNode => {
   console.log('Joined Game', joinedGame);
   return instance.gameName === game.name ? (
     <ListItem
@@ -137,19 +128,12 @@ const activeGamesCallback = (
       >
         <ListItemText
           key={`${game.name}-text`}
-          primary={
-            <Text
-              key={`${instance.gameInstanceID}-players-${game.name}`}
-              titleText={instance.gameInstanceID}
-              component={'span'}
-              titleVariant='body2'
-            />
-          }
+          primary={<Text children={instance.gameInstanceID} component={'span'} variant='body2' />}
           secondary={
             <Box sx={{ display: 'flex', flexDirection: 'column', flexWrap: 'wrap' }}>
               {instance.playersArray.map(p => (
                 <Box key={`${p.id}-player-in-array-box`} sx={{ paddingY: 0.1 }}>
-                  <Text key={`${p.id}-player-in-array`} titleText={p.name} titleVariant='caption' component={'span'} />
+                  <Text key={`${p.id}-player-in-array`} children={p.name} variant='caption' component={'span'} />
                 </Box>
               ))}
             </Box>

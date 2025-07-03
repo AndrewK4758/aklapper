@@ -1,4 +1,4 @@
-import type { GameBoard } from '@aklapper/types';
+import type { GameBoards, Row } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import type { SxProps } from '@mui/material/styles';
 import { Fragment, type Dispatch, type JSX, type SetStateAction } from 'react';
@@ -13,7 +13,7 @@ const breakpointsGameBoardBox: SxProps = {
 };
 
 interface ShowGameBoardProps {
-  board: GameBoard;
+  board: GameBoards;
   state: string | undefined;
   setStateAction: Dispatch<SetStateAction<string | undefined>>;
 }
@@ -26,7 +26,7 @@ interface ShowGameBoardProps {
 const ShowGameBoardTicTacToe = ({ board, state, setStateAction }: ShowGameBoardProps) => {
   return (
     <Box component={'section'} sx={breakpointsGameBoardBox}>
-      {board.map((e, i, _arr): JSX.Element => {
+      {board.map((e: Row, i: number): JSX.Element => {
         return (
           <Fragment key={Math.random().toFixed(4)}>
             <GameBoardMapTicTacToe

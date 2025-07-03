@@ -36,7 +36,6 @@ export const JoinGame = ({
   homePageJoinGameLabel,
   homePageJoinGameTextfield,
   textfieldLabelWrapper,
-  errorTextSx,
   method,
   type,
   names,
@@ -80,7 +79,6 @@ export const JoinGame = ({
         id='gamePath'
         type={type}
         name={names[0] as 'gamePath'}
-        errorTextSx={errorTextSx}
         labelSx={homePageJoinGameLabel}
         labelWrapperSx={textfieldLabelWrapper}
         valueField={'gamePath'}

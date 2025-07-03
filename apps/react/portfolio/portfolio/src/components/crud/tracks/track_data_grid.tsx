@@ -26,7 +26,7 @@ interface TracksDataGridProps {
 }
 
 export default function TracksDataGrid({ rows, setRows }: TracksDataGridProps) {
-  const { albumID } = useParams();
+  const { albumID } = useParams() as { albumID: string };
   const count = useLoaderData() as number;
 
   const [dirtyRows, setDirtyRows] = useState<Set<number>>(new Set());

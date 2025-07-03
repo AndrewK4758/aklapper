@@ -36,12 +36,11 @@ const gameBoardRowMap = (e: ILiteSpace, i: number, _arr: ILiteSpace[]) => (
       />
     ) : (
       <Text
-        component={'p'}
         key={`${e.display}-space-text-c&l`}
         id={`${e.display}-space-text-c&l`}
         data-testid={`${e.display}-space-text-c&l`}
-        titleVariant='body2'
-        titleText={e.display}
+        variant='body2'
+        children={e.display}
         sx={breakpointsSpaceSx}
       />
     )}

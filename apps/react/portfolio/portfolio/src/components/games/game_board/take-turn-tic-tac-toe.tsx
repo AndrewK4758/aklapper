@@ -5,7 +5,7 @@ import type { Dispatch, ReactElement } from 'react';
 import { Socket } from 'socket.io-client';
 import { getGameInstanceInfo } from '../../../utils/utils.jsx';
 import AnimatedBorderBox from '../../styled/animated_border_box';
-import { Action } from './socket-reducer.jsx';
+import { Action } from './socket-reducer';
 
 interface TakeTurnProps {
   dispatch: Dispatch<Action>;

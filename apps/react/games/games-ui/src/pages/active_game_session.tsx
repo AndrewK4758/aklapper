@@ -1,6 +1,6 @@
 import { rowFinder } from '@aklapper/games-components';
 import { Text } from '@aklapper/react-shared';
-import type { GameBoard, IActivePlayersInGame, ILiteSpace, IPlayersAndBoard, Row } from '@aklapper/types';
+import type { GameBoards, IActivePlayersInGame, ILiteSpace, IPlayersAndBoard, Row } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import type { SxProps } from '@mui/material/styles';
@@ -41,10 +41,10 @@ const breakpointsBottomMenuButtonsBox: SxProps = {
   },
 };
 
-export type Built_GameBoard = GameBoard[];
+export type Built_GameBoard = GameBoards[];
 
 export interface IActiveGameInfo extends IActivePlayersInGame {
-  gameBoard: GameBoard;
+  gameBoard: GameBoards;
 }
 
 const socketInit = () => {
@@ -83,7 +83,7 @@ const ActiveGameSession = () => {
   useEffect(() => {
     socket.emit('action', { action: ActionType.BOARD });
     socket.on('game-data', ({ gameBoard, activePlayersInGame, winner, avatarInTurn }: IPlayersAndBoard) => {
-      const gameBoardClient: GameBoard = [];
+      const gameBoardClient: GameBoards = [];
       const maxRowLength = Math.sqrt(gameBoard.length);
       let indexOfSpace = 1;
       let row: Row = [];
@@ -143,7 +143,7 @@ const ActiveGameSession = () => {
       </Box>
       <Container id='Bottom of Game' component={'section'} sx={breakpointsBottomMenuGameBoard}>
         <Box component={'div'} sx={{ flex: '1 0 50%' }}>
-          <Text component={'h2'} titleVariant='h2' titleText={state.avatarInTurn} sx={breakpointsPlayerInTurnText} />
+          <Text variant='h2' children={state.avatarInTurn} sx={breakpointsPlayerInTurnText} />
         </Box>
         <Container component={'section'} sx={breakpointsBottomMenuButtonsBox}>
           {id === 'Chutes-&-Ladders' && <TakeTurn dispatch={dispatch} socket={socket} />}

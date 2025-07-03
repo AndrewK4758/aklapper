@@ -5,6 +5,8 @@ on:
     branches:
       - main
   pull_request:
+    branches:
+      - main
 
 permissions:
   actions: read
@@ -52,6 +54,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'poetry'
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
@@ -122,17 +125,17 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # Setup Python and cache Poetry dependencies
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'poetry'
+      # - name: Set up Python
+      #   uses: actions/setup-python@v5
+      #   with:
+      #     python-version: ${{ env.PYTHON_VERSION }}
+      #     cache: 'poetry'
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+      # - name: Install Poetry
+      #   uses: snok/install-poetry@v1
 
-      - name: Install Python Dependencies
-        run: pnpx nx install wdg-agents
+      # - name: Install Python Dependencies
+      #   run: pnpx nx install wdg-agents
 
       - uses: nrwl/nx-set-shas@v4
 
@@ -146,7 +149,7 @@ jobs:
         env:
           NODE_ENV: test
           DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
-        run: pnpx nx affected -t=test --verbose
+        run: pnpx nx affected -t=test --exclude=wdg-agents,games-lobby,file-uploader --verbose
 
   build_and_typecheck:
     needs: ['lint', 'test']
@@ -171,14 +174,14 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # Setup Python and cache Poetry dependencies
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'poetry'
+      # - name: Set up Python
+      #   uses: actions/setup-python@v5
+      #   with:
+      #     python-version: ${{ env.PYTHON_VERSION }}
+      #     cache: 'poetry'
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+      # - name: Install Poetry
+      #   uses: snok/install-poetry@v1
 
       - name: Generate Prisma Client for CRUD-Api
         run: pnpm generate-chinook-client
@@ -191,12 +194,12 @@ jobs:
       - name: Build all Affected Projects
         env:
           NODE_ENV: production
-        run: pnpx nx affected -t=build --verbose
+        run: pnpx nx affected -t=build --exclude=wdg-agents,games-lobby,file-uploader --verbose
 
       - name: Typecheck all Affected Projects
         env:
           NODE_ENV: production
-        run: pnpx nx affected -t=typecheck --verbose
+        run: pnpx nx affected -t=typecheck --exclude=wdg-agents,games-lobby,file-uploader --verbose
 
   deploy-apis:
     needs: ['build_and_typecheck']

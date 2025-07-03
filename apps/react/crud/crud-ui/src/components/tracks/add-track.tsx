@@ -69,10 +69,10 @@ const AddTrack = ({ albumID, apiRef }: AddTrackProps) => {
           />
 
           {typeof formik.touched.name === 'string' && formik.values.name ? (
-            <Text component={'p'} titleVariant='body1' titleText={formik.touched.name} />
+            <Text variant='body1' children={formik.touched.name} />
           ) : null}
           {formik.errors.name && formik.touched.name === true ? (
-            <Text component={'p'} titleVariant='body1' titleText={formik.errors.name} />
+            <Text variant='body1' children={formik.errors.name} />
           ) : null}
         </Box>
 

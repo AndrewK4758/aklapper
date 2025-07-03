@@ -15,15 +15,12 @@ export default function Footer({ component, breakpointsFooter, breakpointsFooter
     <AppBar position='static' component={component} sx={breakpointsFooter}>
       <Toolbar component={'span'} variant='dense'>
         <Text
-          titleVariant='h4'
-          component={'h4'}
-          titleText={`\u00A9 A.Klapper ${new Date().getFullYear()}`}
+          variant='h4'
+          children={`\u00A9 A.Klapper ${new Date().getFullYear()}`}
           sx={{
             ...breakpointsFooterText,
             textAlign: 'center',
             justifyContent: 'center',
-          }}
-          TypogrpahyProps={{
             color: 'textPrimary',
           }}
         />

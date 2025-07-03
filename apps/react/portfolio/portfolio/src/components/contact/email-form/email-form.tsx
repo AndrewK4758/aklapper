@@ -5,7 +5,7 @@ import { useContext, useRef } from 'react';
 import { Form, useSubmit, type SubmitFunction } from 'react-router';
 import * as Yup from 'yup';
 import 'yup-phone-lite';
-import { GoogleUserContext, type GoogleUserContextProps } from '../../../contexts/contact-context';
+import { GoogleUserContext, type GoogleUserContextProps } from '../../../contexts/contact_context_constants';
 import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
 import { clientCheck } from '../../../utils/utils';
 import CenteredFlexDiv from '../../styled/centered_flexbox';

@@ -45,21 +45,14 @@ const HomePage = () => {
             <Container component={'div'} sx={{ paddingY: 1 }}>
               <Text
                 id='home-page-title'
-                component={'h1'}
-                titleVariant='h1'
-                titleText={'Media Data Manager'}
+                variant='h1'
+                children={'Media Data Manager'}
                 sx={{ textAlign: 'center', fontSize: '4rem' }}
               />
+              <Text variant='h5' children='Example of MUI-X DataGrid' sx={{ textAlign: 'center' }} />
               <Text
-                component={'h3'}
-                titleVariant='h5'
-                titleText='Example of MUI-X DataGrid'
-                sx={{ textAlign: 'center' }}
-              />
-              <Text
-                component={'p'}
-                titleVariant='body1'
-                titleText={
+                variant='body1'
+                children={
                   'Columns have sorting & filtering, cells can be updated and changes can be sent to the back end, rows can be deleted, each catagory has the ability to create an entry, ADD ENTRY provides the opportunity to add all fields at once'
                 }
               />

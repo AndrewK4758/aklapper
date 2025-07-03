@@ -5,7 +5,6 @@ import type { SxProps, TypographyVariant } from '@mui/material/styles';
 import type { FormikProps } from 'formik';
 import type { JSX } from 'react';
 import Label from '../label/label.jsx';
-import FormikValidationError from './formik-validation-error.js';
 
 interface IAvatarColorSelectValues<T extends object> {
   name: Extract<keyof T, string>;
@@ -20,7 +19,6 @@ interface IAvatarColorSelectValues<T extends object> {
   labelWrapperSx: SxProps;
   tooltipSx: SxProps;
   id: string;
-  errorTextSx: SxProps;
   selectSlotProps: SxProps;
 }
 
@@ -37,7 +35,6 @@ export function SelectMenu<T extends object>({
   labelWrapperSx,
   tooltipSx,
   id,
-  errorTextSx,
   selectSlotProps,
 }: IAvatarColorSelectValues<T>) {
   return (
@@ -64,11 +61,11 @@ export function SelectMenu<T extends object>({
           onChange={async e => await formik.setFieldValue(name as string, e.target.value)}
           value={formik.values[name]}
           slotProps={{ input: { id: id, sx: selectSlotProps } }}
+          error={formik.touched[name] && !!formik.errors[name]}
         >
           {data.map(mapCallback)}
         </Select>
       </FormControl>
-      <FormikValidationError<T> formik={formik} elementName={name} helperTextSx={errorTextSx} />
     </>
   );
 }
