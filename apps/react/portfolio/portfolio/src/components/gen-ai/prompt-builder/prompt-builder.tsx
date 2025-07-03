@@ -25,8 +25,8 @@ import StyledCard from '../../styled/styled_card';
 import TextInput from '../../styled/text_input';
 import { SUPPORTED_FORMATS } from '../static/definitions.jsx';
 import { promptBuilderHeaderText } from '../static/prompt-builder-text.jsx';
-import handleFileUpload from './file_upload';
-import PromptBuilderResponse from './prompt-builder-response.jsx';
+import handleFileUpload from './file_upload.js';
+import PromptBuilderResponse from './prompt-builder-response.js';
 
 const promptInit: PromptRequest = { text: null, fileData: null };
 
