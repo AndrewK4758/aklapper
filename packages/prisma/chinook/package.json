@@ -40,6 +40,13 @@
           "command": "pnpx prisma db pull"
         }
       }
+    },
+    "push-db": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/prisma/chinook",
+        "command": "pnpx prisma db push"
+      }
     }
   },
   "prisma": {

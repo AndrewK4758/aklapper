@@ -1,8 +1,17 @@
+import { createNodeDirname } from '@aklapper/utils';
+import { resolve } from 'node:path';
 import { cwd } from 'node:process';
 import { defineConfig } from 'vitest/config';
 
 const config = defineConfig({
   test: {
+    alias: {
+      '@aklapper/chinook-client': resolve(
+        createNodeDirname(import.meta.url),
+        '../../../../',
+        'packages/prisma/chinook',
+      ),
+    },
     root: cwd(),
     name: 'crud-api',
     watch: false,
