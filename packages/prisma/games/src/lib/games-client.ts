@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from '../../generated/client.js';
+import { Prisma, PrismaClient } from '../generated/client.js';
 import url from './get-prisma-db-url.js';
 
 export const prismaClient = new PrismaClient({
