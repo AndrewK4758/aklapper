@@ -11,7 +11,7 @@ on:
 permissions:
   actions: read
   contents: read
-
+ 
 env:
   PYTHON_VERSION: '3.13.3'
   PNPM_VERSION: '10'
