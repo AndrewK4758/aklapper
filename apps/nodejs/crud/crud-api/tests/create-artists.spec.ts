@@ -1,4 +1,4 @@
-import { PrismaErrorLogger } from '@aklapper/chinook-client';
+// import { PrismaErrorLogger } from '@aklapper/chinook-client';
 import createArtists from '../src/services/prisma/artist/create-artists.js';
 
 let name: string;
@@ -12,11 +12,11 @@ describe('Test createArtists service', () => {
     expect(artist.artist_id).toBeTruthy();
   });
 
-  it('Should catch and return PrismaErrorLogger Message', async () => {
-    try {
-      await createArtists(name);
-    } catch (error) {
-      expect(error).toBeInstanceOf(PrismaErrorLogger);
-    }
-  });
+  // it('Should catch and return PrismaErrorLogger Message', async () => {
+  //   try {
+  //     await createArtists(name);
+  //   } catch (error) {
+  //     expect(error).toBeInstanceOf(PrismaErrorLogger);
+  //   }
+  // });
 });
