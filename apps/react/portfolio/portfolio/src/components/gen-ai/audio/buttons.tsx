@@ -11,7 +11,10 @@ import { useContext, type RefObject } from 'react';
 import { useOutletContext } from 'react-router';
 import ShortUniqueId from 'short-unique-id';
 import type { Socket } from 'socket.io-client';
-import { MediaRecorderClientContext, type MediaRecorderClientContextProps } from '../../../contexts/audio-context';
+import {
+  MediaRecorderClientContext,
+  type MediaRecorderClientContextProps,
+} from '../../../contexts/audio_context_constants';
 import { OutletContextProps } from '../../../types/types';
 
 interface AudioButtonsProps {

@@ -1,13 +1,13 @@
 import { RenderList } from '@aklapper/react-shared';
-import type { GameBoard, ILiteSpace } from '@aklapper/types';
+import type { GameBoards, ILiteSpace } from '@aklapper/types';
 import GameBoardMap from './game-boards/game-board';
 
-const gameBoardMap = (e: ILiteSpace[], i: number, _arr: GameBoard) => (
+const gameBoardMap = (e: ILiteSpace[], i: number, _arr: GameBoards) => (
   <GameBoardMap key={`row-${i}`} row={e} columns={10} container={true} direction='row' wrap='wrap' id={`Row ${i}`} />
 );
 
 interface ShowGameBoardProps {
-  board: GameBoard;
+  board: GameBoards;
 }
 
 /**

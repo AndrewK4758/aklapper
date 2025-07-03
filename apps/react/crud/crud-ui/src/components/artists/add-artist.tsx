@@ -51,7 +51,7 @@ const AddArtist = ({ rowCountState, setRowCountState, COUNT }: AddArtistProps) =
             slotProps={{ htmlInput: { id: 'add-artist-input' } }}
           />
           {formik.touched.name && formik.errors.name ? (
-            <Text component={'p'} id='add-artist-blur-value' titleVariant='body1' titleText={formik.errors.name} />
+            <Text id='add-artist-blur-value' variant='body1' children={formik.errors.name} />
           ) : null}
         </Box>
 

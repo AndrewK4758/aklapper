@@ -1,4 +1,4 @@
-import { FormikValidationError, Label, type httpMethod } from '@aklapper/react-shared';
+import { Label, type httpMethod } from '@aklapper/react-shared';
 import type { IPlayerClientData } from '@aklapper/types';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
@@ -21,7 +21,7 @@ import {
 import { Form, useNavigate, type NavigateFunction } from 'react-router';
 import * as Yup from 'yup';
 import ActivePlayerContext, { type ActivePlayerContextProps } from '../../context/active-player-context';
-import { errorTextSx, tooltipSx } from '../../styles/games-styles';
+import { tooltipSx } from '../../styles/games-styles';
 
 const emailRegex =
   /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
@@ -121,11 +121,7 @@ export default function RegisterPlayer({ method, index, tab, inputSx, ContainerP
             onChange={async e => await handlePlayerNameChange(e, formik)}
             onFocus={async e => await handleNewPlayerInputTouched(e, formik)}
             sx={inputSx}
-          />
-          <FormikValidationError<Partial<IPlayerClientData>>
-            formik={formik}
-            elementName={'email'}
-            helperTextSx={errorTextSx(formik.errors.email as string)}
+            error={formik.touched.email && !!formik.errors.email}
           />
         </FormControl>
         <FormControl sx={{ flex: '1 0 33%' }}>
@@ -151,11 +147,7 @@ export default function RegisterPlayer({ method, index, tab, inputSx, ContainerP
             onChange={async e => await handlePlayerNameChange(e, formik)}
             onFocus={async e => await handleNewPlayerInputTouched(e, formik)}
             sx={inputSx}
-          />
-          <FormikValidationError<Partial<IPlayerClientData>>
-            formik={formik}
-            elementName={'name'}
-            helperTextSx={errorTextSx(formik.errors.name as string)}
+            error={formik.touched.name && !!formik.errors.name}
           />
         </FormControl>
         <ButtonGroup sx={{ flex: '0 1 20%', justifyContent: 'space-between' }}>

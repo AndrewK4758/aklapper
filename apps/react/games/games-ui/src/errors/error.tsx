@@ -20,7 +20,7 @@ export const NoGameError = () => {
   }, 4000);
   return (
     <Container component={'div'}>
-      <Text component={'h1'} titleVariant="h1" titleText={error.noGameInstance} />
+      <Text variant='h1' children={error.noGameInstance} />
     </Container>
   );
 };
@@ -32,7 +32,7 @@ export const NotEnoughPlayersError = () => {
 
   return (
     <Container component={'div'}>
-      <Text component={'h1'} titleVariant="h1" titleText={error.notEnoughPlayers} />
+      <Text variant='h1' children={error.notEnoughPlayers} />
     </Container>
   );
 };

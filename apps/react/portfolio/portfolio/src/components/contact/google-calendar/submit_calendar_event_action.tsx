@@ -1,7 +1,7 @@
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import { useContext } from 'react';
-import { type GoogleUserContextProps, GoogleUserContext } from '../../../contexts/contact-context.js';
+import { type GoogleUserContextProps, GoogleUserContext } from '../../../contexts/contact_context_constants';
 import AnimatedBorderBox from '../../styled/animated_border_box.js';
 
 export default function SubmitCalendarEventAction() {

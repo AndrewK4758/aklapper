@@ -21,6 +21,6 @@ export default function SelectTitle({ pathname }: SelectTitleProps) {
 
 const Title = (title: string) => (
   <Box component={'section'} id='home-title-section' flex={1}>
-    <Text component={'h1'} titleVariant='h1' titleText={title} sx={titleText} />
+    <Text variant='h1' children={title} sx={titleText} />
   </Box>
 );

@@ -8,7 +8,7 @@ import { useFormik } from 'formik';
 import type { CSSProperties } from 'react';
 import { Form, useParams, useRouteLoaderData, useSubmit } from 'react-router';
 import * as Yup from 'yup';
-import { errorTextSx, selectSlotProps, tooltipSx } from '../../styles/games-styles';
+import { selectSlotProps, tooltipSx } from '../../styles/games-styles';
 import { GamesTheme as Theme } from '../../styles/games-theme';
 
 const breakpointsSelectMenuSxProps: SxProps = {
@@ -146,7 +146,6 @@ export default function RegisterPlayerAndAvatarForm() {
           labelSx={breakpointsRegisterPlayerLabel}
           formik={formik}
           valueField={'playerName'}
-          errorTextSx={errorTextSx('')}
           tooltipTitle={'Enter Player Name'}
           tooltipSx={tooltipSx}
         />
@@ -163,7 +162,6 @@ export default function RegisterPlayerAndAvatarForm() {
           labelVariant={'body1'}
           labelWrapperSx={null}
           tooltipSx={tooltipSx}
-          errorTextSx={errorTextSx('')}
           selectSlotProps={selectSlotProps}
         />
         <SelectMenu<IRegisterFormValues>
@@ -179,7 +177,6 @@ export default function RegisterPlayerAndAvatarForm() {
           labelVariant={'body1'}
           labelWrapperSx={null}
           tooltipSx={tooltipSx}
-          errorTextSx={errorTextSx('')}
           selectSlotProps={selectSlotProps}
         />
       </Container>

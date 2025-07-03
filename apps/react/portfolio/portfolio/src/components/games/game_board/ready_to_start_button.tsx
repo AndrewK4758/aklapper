@@ -5,7 +5,7 @@ import type { Dispatch, JSX } from 'react';
 import { useParams } from 'react-router';
 import { Socket } from 'socket.io-client';
 import { getGameInstanceInfo } from '../../../utils/utils.jsx';
-import { Action } from './socket-reducer.jsx';
+import { Action } from './socket-reducer';
 
 interface ReadyToStartProps {
   dispatch: Dispatch<Action>;

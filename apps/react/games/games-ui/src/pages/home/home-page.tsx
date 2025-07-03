@@ -21,7 +21,7 @@ const Home = () => {
         <Card component={'section'} id='home-page-instructions-wrapper'>
           <CardHeader
             component='section'
-            title={<Text titleVariant='h2' component={'h2'} titleText='Instructions' sx={{ textAlign: 'center' }} />}
+            title={<Text variant='h2' children='Instructions' sx={{ textAlign: 'center' }} />}
           />
           <Divider variant='middle' />
           <List component={'ul'} id='intructions-list' sx={{ paddingY: 4, fontSize: '1.25rem' }}>

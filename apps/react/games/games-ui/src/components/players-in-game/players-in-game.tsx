@@ -35,7 +35,7 @@ export const PlayersInGame = ({
   avatarName,
 }: PlayersInGameProps) => (
   <Box component={component} key={id} width={'fit-content'} whiteSpace={'preserve'} sx={boxSx}>
-    <Text component={'p'} titleVariant={playerVariant} titleText={playerName} sx={textSx} />
+    <Text variant={playerVariant} children={playerName} sx={textSx} />
     <img
       src={`/game-avatars/${avatarName.toLowerCase()}.svg`}
       alt={`${avatarName} active in game`}

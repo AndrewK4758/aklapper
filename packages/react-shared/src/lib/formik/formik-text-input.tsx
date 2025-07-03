@@ -1,11 +1,9 @@
-import Box from '@mui/material/Box';
 import FormControl from '@mui/material/FormControl';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import type { SxProps, TypographyVariant } from '@mui/material/styles';
 import type { FormikProps } from 'formik';
 import type { FocusEvent } from 'react';
 import { Label } from '../label/label.jsx';
-import FormikValidationError from './formik-validation-error.js';
 
 export interface FormikTextInputProps<T extends object> {
   name: Extract<keyof T, string>;
@@ -19,7 +17,6 @@ export interface FormikTextInputProps<T extends object> {
   textSx?: SxProps;
   labelSx?: SxProps;
   onBlurCB?: (event: FocusEvent<unknown>) => void;
-  errorTextSx: SxProps;
   valueField: keyof T;
   labelWrapperSx?: SxProps;
   tooltipTitle: string;
@@ -38,7 +35,6 @@ export function FormikTextInput<T extends object>({
   labelSx,
   onBlurCB,
   valueField,
-  errorTextSx,
   labelWrapperSx,
   tooltipTitle,
   tooltipSx,
@@ -70,11 +66,8 @@ export function FormikTextInput<T extends object>({
         onChange={async e => await formik.setFieldValue(valueField as string, e.currentTarget.value)}
         sx={textSx}
         onBlur={formik.handleBlur}
+        error={formik.touched[name] && !!formik.errors[name]}
       />
-
-      <Box component={'section'} id={`${value}-error-box`} display={'flex'} justifyContent={'center'}>
-        <FormikValidationError<T> formik={formik} elementName={name} helperTextSx={errorTextSx} />
-      </Box>
     </FormControl>
   );
 }

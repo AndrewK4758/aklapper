@@ -91,14 +91,11 @@ export function HeaderMenu() {
           }}
         >
           <Text
-            titleVariant='h4'
-            component={'h4'}
-            titleText={'HOME'}
-            TypogrpahyProps={{
-              ref: e => {
-                if (e) menuItemTextRef.current[0] = e;
-              },
+            ref={e => {
+              if (e) menuItemTextRef.current[0] = e;
             }}
+            variant='h4'
+            children={'HOME'}
           />
         </MenuItem>
 
@@ -115,14 +112,12 @@ export function HeaderMenu() {
             }}
           >
             <Text
-              titleVariant='h4'
-              component={'h4'}
-              titleText={'LOBBY'}
-              TypogrpahyProps={{
-                ref: e => {
-                  if (e) menuItemTextRef.current[1] = e;
-                },
+              ref={e => {
+                if (e) menuItemTextRef.current[1] = e;
               }}
+              variant='h4'
+              component={'h4'}
+              children={'LOBBY'}
             />
           </MenuItem>
         )}
@@ -138,17 +133,15 @@ export function HeaderMenu() {
             }}
           >
             <Text
-              id='logout-player'
-              titleVariant='h4'
-              component={'h4'}
-              titleText={'Logout'}
-              TypogrpahyProps={{
-                ref: e => {
-                  if (e) menuItemTextRef.current[2] = e;
-                },
-                color: 'error',
-                onClick: () => handleLogoutPlayer(deleteActivePlayer, nav, clearSavedMessages),
+              ref={e => {
+                if (e) menuItemTextRef.current[1] = e;
               }}
+              id='logout-player'
+              variant='h4'
+              component={'h4'}
+              children={'Logout'}
+              color='error'
+              onClick={() => handleLogoutPlayer(deleteActivePlayer, nav, clearSavedMessages)}
               sx={registerPlayerFormSxProps}
             />
           </MenuItem>

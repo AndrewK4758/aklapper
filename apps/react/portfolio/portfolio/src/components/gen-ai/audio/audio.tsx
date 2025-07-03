@@ -5,7 +5,7 @@ import Box from '@mui/material/Box';
 import { useContext, useEffect, useRef, useState, type ReactElement } from 'react';
 import { useOutletContext } from 'react-router';
 import { io, type ManagerOptions, type Socket } from 'socket.io-client';
-import { MediaRecorderClientContext, MediaRecorderClientContextProps } from '../../../contexts/audio-context';
+import { MediaRecorderClientContext, MediaRecorderClientContextProps } from '../../../contexts/audio_context_constants';
 import Theme from '../../../styles/themes/theme';
 import type { OutletContextProps } from '../../../types/types.js';
 import AudioHeader from './header';

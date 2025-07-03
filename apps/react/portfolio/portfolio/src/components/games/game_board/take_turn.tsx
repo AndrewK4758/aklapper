@@ -5,7 +5,7 @@ import type { Dispatch, JSX } from 'react';
 import { Socket } from 'socket.io-client';
 import { getGameInstanceInfo } from '../../../utils/utils.jsx';
 import AnimatedBorderBox from '../../styled/animated_border_box';
-import { Action } from './socket-reducer.jsx';
+import { Action } from './socket-reducer';
 
 const baseURL = import.meta.env.VITE_GAMES_API_URL;
 

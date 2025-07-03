@@ -12,7 +12,7 @@ import { useContext, useEffect, useRef, useState, type ChangeEvent, type Dispatc
 import { Form, useNavigate, type NavigateFunction } from 'react-router';
 import * as Yup from 'yup';
 import ActivePlayerContext, { type ActivePlayerContextProps } from '../../context/active-player-context';
-import { errorTextSx, tooltipSx } from '../../styles/games-styles';
+import { tooltipSx } from '../../styles/games-styles';
 
 const emailRegex =
   /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
@@ -107,12 +107,9 @@ export default function LoginPlayer({ method, index, tab, inputSx, ContainerProp
             onChange={async e => await handlePlayerNameChange(e, formik)}
             onFocus={async e => await handleNewPlayerInputTouched(e, formik)}
             sx={inputSx}
+            error={formik.touched.email && !!formik.errors.email}
           />
-          <FormikValidationError<Partial<IPlayerClientData>>
-            formik={formik}
-            elementName={'email'}
-            helperTextSx={errorTextSx(formik.errors.email as string)}
-          />
+          <FormikValidationError<Partial<IPlayerClientData>> formik={formik} elementName={'email'} />
         </FormControl>
 
         <ButtonGroup sx={{ flex: '0 1 20%', justifyContent: 'space-between' }}>
