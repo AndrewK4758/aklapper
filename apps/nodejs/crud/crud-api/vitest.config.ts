@@ -1,19 +1,17 @@
-import { createNodeDirname } from '@aklapper/utils';
+import { workspaceRoot } from '@nx/devkit';
 import { resolve } from 'node:path';
 import { cwd } from 'node:process';
 import { defineConfig } from 'vitest/config';
 
-const config = defineConfig({
+const modules = {
+  '@aklapper/chinook-client': resolve(workspaceRoot, 'packages/prisma/chinook/src/index.ts'),
+};
+
+export default defineConfig({
   test: {
-    alias: {
-      '@aklapper/chinook-client': resolve(
-        createNodeDirname(import.meta.url),
-        '../../../../',
-        'packages/prisma/chinook',
-      ),
-    },
-    root: cwd(),
     name: 'crud-api',
+    root: cwd(),
+    alias: modules,
     watch: false,
     globals: true,
     environment: 'node',
@@ -31,5 +29,3 @@ const config = defineConfig({
     },
   },
 });
-
-export default config;

@@ -21,7 +21,7 @@
         ],
         "defaultConfiguration": "production",
         "options": {
-          "target": "node23",
+          "target": "node24",
           "metafile": true,
           "bundle": true,
           "main": "{workspaceRoot}/apps/nodejs/crud/crud-api/src/main.ts",

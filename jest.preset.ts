@@ -6,7 +6,7 @@ import type { TsJestTransformerOptions } from 'ts-jest';
 
 const tsJestOptions: TsJestTransformerOptions = {
   useESM: true,
-  tsconfig: '<rootDir>/tsconfig.json',
+  tsconfig: '<rootDir>/tsconfig.spec.json',
   babelConfig: {
     sourceType: 'module',
     sourceMaps: true,
@@ -58,5 +58,4 @@ const config: Config = {
   testEnvironmentOptions: {},
 };
 
-console.log(config);
 export default config;

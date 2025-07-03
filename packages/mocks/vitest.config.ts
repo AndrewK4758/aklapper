@@ -4,14 +4,13 @@ import { cwd } from 'node:process';
 import { defineConfig } from 'vitest/config';
 
 const modules = {
-  '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts')
+  '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
 };
 
 const config = defineConfig({
-  root: cwd(),
-
   test: {
     name: 'mocks',
+    root: cwd(),
     alias: modules,
     watch: false,
     globals: true,
@@ -20,9 +19,9 @@ const config = defineConfig({
     reporters: ['default'],
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',
-      provider: 'v8'
-    }
-  }
+      provider: 'v8',
+    },
+  },
 });
 
 export default config;
