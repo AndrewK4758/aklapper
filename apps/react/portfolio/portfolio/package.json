@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "gcp-build": ""
+    "gcp-build": " "
   },
   "devDependencies": {
     "@aklapper/chinook-client": "workspace:*",
@@ -102,7 +102,6 @@
           "build"
         ],
         "options": {
-          "cwd": "apps/react/portfolio/portfolio",
           "command": "gcloud app deploy website.yaml --quiet --verbosity=debug"
         }
       },
