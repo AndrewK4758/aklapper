@@ -17,17 +17,7 @@ env:
   PNPM_VERSION: 10
   NODE_VERSION: 24.x
 
-  PRISMA_CLIENT_OUTPUT_PATH: ${{ secrets.PRISMA_CLIENT_OUTPUT_PATH }}
-
   REGION: ${{ secrets.GCP_REGION }}
-
-  GAR_REPO: ${{ secrets.GAR_REPO_NAME }}
-
-  NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
-
-  DB_URL_PROD: ${{ secrets.DB_URL_PROD }}
-
-  PROJECT_ID: ${{ secrets.PROJECT_ID }}
 
 jobs:
   cache-and-install:
@@ -107,6 +97,7 @@ jobs:
         env:
           NODE_ENV: test
           DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
+          PRISMA_CLIENT_OUTPUT_PATH: ${{ secrets.PRISMA_CLIENT_OUTPUT_PATH }}
 
       - name: Test all projects
         env:
