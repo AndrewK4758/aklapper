@@ -1,16 +1,14 @@
+import { createNodeDirname } from '@aklapper/utils';
 import type { CorsOptions } from 'cors';
 import cors from 'cors';
 import { configDotenv } from 'dotenv';
 import type { Express } from 'express';
 import express from 'express';
 import { createServer } from 'http';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join, resolve } from 'node:path';
 import Routes, { router } from './routes/routes.js';
 
-const __filename = fileURLToPath(import.meta.url);
-
-const __dirname = dirname(__filename);
+const __dirname = createNodeDirname(import.meta.url);
 
 configDotenv({ path: resolve(__dirname, '../env/.env') });
 
