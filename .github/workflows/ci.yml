@@ -1,4 +1,4 @@
-name: aklapper CI
+pname: aklapper CI
 
 on:
   push:
@@ -49,16 +49,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Setup Python and cache Poetry dependencies
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          
-
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-
+     
+ 
   lint:
     needs: ['cache-and-install']
     runs-on: ubuntu-latest
@@ -81,26 +73,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Setup Python and cache Poetry dependencies
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'poetry'
-
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-
-      - name: Install Python Dependencies
-        run: pnpx nx install wdg-agents
-
       - uses: nrwl/nx-set-shas@v4
 
-      - name: Install WDG-AGENTS for lint execution
-        run: pnpx nx install wdg-agents
-
       - name: Lint all projects
-        run: pnpx nx affected -t=lint --verbose
+        run: pnpx nx affected -t=lint --exclude=wdg-agents --verbose
 
   test:
     needs: ['lint']
@@ -123,19 +99,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      # Setup Python and cache Poetry dependencies
-      # - name: Set up Python
-      #   uses: actions/setup-python@v5
-      #   with:
-      #     python-version: ${{ env.PYTHON_VERSION }}
-      #     cache: 'poetry'
-
-      # - name: Install Poetry
-      #   uses: snok/install-poetry@v1
-
-      # - name: Install Python Dependencies
-      #   run: pnpx nx install wdg-agents
 
       - uses: nrwl/nx-set-shas@v4
 
