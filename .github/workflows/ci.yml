@@ -1,4 +1,4 @@
-pname: aklapper CI
+name: aklapper CI
 
 on:
   push:
@@ -11,7 +11,7 @@ on:
 permissions:
   actions: read
   contents: read
- 
+
 env:
   PYTHON_VERSION: '3.13.3'
   PNPM_VERSION: '10'
@@ -49,8 +49,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-     
- 
   lint:
     needs: ['cache-and-install']
     runs-on: ubuntu-latest
