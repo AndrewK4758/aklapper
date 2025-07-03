@@ -1,5 +1,4 @@
-import { prisma, PrismaErrorLogger, type PrismaClientErrors } from '@aklapper/chinook-client';
-import { type artist } from '@aklapper/chinook-client/prisma';
+import { prisma, PrismaErrorLogger, type artist, type PrismaClientErrors } from '@aklapper/chinook-client';
 
 /**
  * This function creates a new artist in the database.

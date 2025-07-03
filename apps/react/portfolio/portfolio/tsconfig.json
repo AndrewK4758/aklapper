@@ -5,9 +5,6 @@
       "path": "../../../../packages/gen-ai/vertex-ai"
     },
     {
-      "path": "../../../../packages/utils"
-    },
-    {
       "path": "../../../../packages/types"
     },
     {

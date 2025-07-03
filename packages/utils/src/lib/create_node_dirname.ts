@@ -1,5 +1,5 @@
 import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath } from 'url';
 
 export function createNodeDirname(importMetaUrl: string): string {
   const __filename = fileURLToPath(importMetaUrl);

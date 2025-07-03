@@ -1,14 +1,11 @@
 import { cwd } from 'node:process';
 import { defineConfig } from 'vitest/config';
 
-const modules = {};
-
 const config = defineConfig({
   root: cwd(),
 
   test: {
     name: 'password',
-    alias: modules,
     watch: false,
     globals: true,
     environment: 'node',
@@ -16,10 +13,10 @@ const config = defineConfig({
     reporters: ['default'],
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',
-      provider: 'v8'
+      provider: 'v8',
     },
-    passWithNoTests: true
-  }
+    passWithNoTests: true,
+  },
 });
 
 export default config;

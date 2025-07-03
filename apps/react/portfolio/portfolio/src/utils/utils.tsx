@@ -8,6 +8,8 @@ import type { FocusEvent } from 'react';
  * @returns {GamePlayerValidation | undefined} The game instance information if found in session storage, otherwise undefined.
  */
 
+export const getContextPath = (name: string): string | null => sessionStorage.getItem(name);
+
 export const getGameInstanceInfo = (): GamePlayerValidation | undefined => {
   if (clientCheck()) {
     const fromSession = sessionStorage.getItem('__current_game__') as string;

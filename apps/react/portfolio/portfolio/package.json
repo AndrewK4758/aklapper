@@ -10,7 +10,6 @@
     "@aklapper/prompt-builder": "workspace:*",
     "@aklapper/react-shared": "workspace:*",
     "@aklapper/types": "workspace:*",
-    "@aklapper/utils": "workspace:*",
     "@aklapper/vertex-ai": "workspace:*"
   },
   "packageManager": "pnpm@10.12.3",

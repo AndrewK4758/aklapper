@@ -1,5 +1,5 @@
-import { getContextPath } from '@aklapper/utils';
 import axios from 'axios';
+import { getContextPath } from '../../../utils/utils';
 
 const baseUrl = import.meta.env.VITE_VERTEX_API_URL;
 

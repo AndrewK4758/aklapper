@@ -1,7 +1,7 @@
-import { getContextPath } from '@aklapper/utils';
 import type { PromptRequest } from '@aklapper/vertex-ai';
 import axios from 'axios';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
+import { getContextPath } from '../../../utils/utils';
 
 const baseUrl = import.meta.env.VITE_VERTEX_API_URL;
 /**

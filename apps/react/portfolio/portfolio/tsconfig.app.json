@@ -34,9 +34,6 @@
       "path": "../../../../packages/gen-ai/vertex-ai/tsconfig.lib.json"
     },
     {
-      "path": "../../../../packages/utils/tsconfig.lib.json"
-    },
-    {
       "path": "../../../../packages/types/tsconfig.lib.json"
     },
     {
