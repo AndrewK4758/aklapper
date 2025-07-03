@@ -13,6 +13,7 @@ export default defineConfig({
     root: cwd(),
     alias: modules,
     watch: false,
+    globals: true,
     environment: 'node',
     env: {
       NODE_ENV: 'test',

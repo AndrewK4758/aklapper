@@ -20,6 +20,9 @@ env:
   PRISMA_CLIENT_OUTPUT_PATH: ${{ secrets.PRISMA_CLIENT_OUTPUT_PATH }}
 
   REGION: ${{ secrets.GCP_REGION }}
+  PROJECT_LOCATION: ${{ secrets.GCP_REGION }}
+  PROJECT_ID: ${{ secrets.PROJECT_ID }}
+  GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
 
 jobs:
   cache-and-install:

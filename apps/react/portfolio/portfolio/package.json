@@ -99,11 +99,8 @@
           "build"
         ],
         "options": {
-          "commands": [
-            {
-              "command": "gcloud app deploy website.yaml --quiet --verbosity=debug"
-            }
-          ]
+          "cwd": "apps/react/portfolio/portfolio",
+          "command": "gcloud app deploy website.yaml --quiet --verbosity=debug"
         }
       },
       "docker-build": {

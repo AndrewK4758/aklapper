@@ -3,21 +3,24 @@ env: standard
 instance_class: F2
 handlers:
   - url: /assets/(.*)
-    static_files: apps/react/portfolio/portfolio/dist/assets/\1
-    upload: apps/react/portfolio/portfolio/dist/assets/.*
+    static_files: dist/assets/\1
+    upload: dist/assets/.*
 
   - url: /(.*\..+)
-    static_files: apps/react/portfolio/portfolio/dist/\1
-    upload: apps/react/portfolio/portfolio/dist/(.*)
+    static_files: dist/\1
+    upload: dist/(.*)
 
   - url: /.*
-    static_files: apps/react/portfolio/portfolio/dist/index.html
-    upload: apps/react/portfolio/portfolio/dist/index.html
+    static_files: dist/index.html
+    upload: dist/index.html
   
 env_variables:
   GCLOUD_STORAGE_BUCKET: 'gs://portfolio-gen-ai'
   NODE_ENV: production  
 service_account: aklapper@games-424800.iam.gserviceaccount.com
+
+build_env_variables:
+  CUSTOM_BUILD_STEP: ''
 
 liveness_check:
   initial_delay_sec: '300'
