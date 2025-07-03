@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from '../../generated/client.js';
+import { Prisma, PrismaClient } from '../generated/client.js';
 import url from './get-prisma-db-url.js';
 
 const prismaClient = new PrismaClient({
@@ -6,7 +6,7 @@ const prismaClient = new PrismaClient({
   errorFormat: 'pretty',
 });
 
-const prisma = prismaClient.$extends({
+export const prisma = prismaClient.$extends({
   model: {
     $allModels: {
       async exists<T>(this: T, where: Prisma.Args<T, 'findFirst'>['where']): Promise<boolean> {
@@ -19,5 +19,3 @@ const prisma = prismaClient.$extends({
     },
   },
 });
-
-export { prisma };
