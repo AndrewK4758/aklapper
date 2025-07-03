@@ -4,16 +4,17 @@ import { cwd } from 'node:process';
 import { defineConfig } from 'vitest/config';
 
 const modules = {
-  '@aklapper/chain': resolve(workspaceRoot, './packages/chain/src/index.ts'),
-  '@aklapper/game': resolve(workspaceRoot, './packages/game/src/index.ts'),
-  '@aklapper/games': resolve(workspaceRoot, './packages/games/src/index.ts'),
-  '@aklapper/games-chains': resolve(workspaceRoot, './packages/games-chains/src/index.ts'),
-  '@aklapper/games-components': resolve(workspaceRoot, './packages/games-components/src/index.ts'),
-  '@aklapper/mocks': resolve(workspaceRoot, './packages/mocks/src/index.ts'),
-  '@aklapper/models': resolve(workspaceRoot, './packages/models/src/index.ts'),
-  '@aklapper/socket-io-server': resolve(workspaceRoot, './packages/socket-io/server/src/index.ts'),
-  '@aklapper/types': resolve(workspaceRoot, './packages/types/src/index.ts'),
-  '@aklapper/utils': resolve(workspaceRoot, './packages/utils/src/index.ts'),
+  '@aklapper/chain': resolve(workspaceRoot, './packages/chain/src'),
+  '@aklapper/game': resolve(workspaceRoot, './packages/game/src'),
+  '@aklapper/games': resolve(workspaceRoot, './packages/games/src'),
+  '@aklapper/games-chains': resolve(workspaceRoot, './packages/games-chains/src'),
+  '@aklapper/games-client': resolve(workspaceRoot, './packages/prisma/games/src'),
+  '@aklapper/games-components': resolve(workspaceRoot, './packages/games-components/src'),
+  '@aklapper/mocks': resolve(workspaceRoot, './packages/mocks/src'),
+  '@aklapper/models': resolve(workspaceRoot, './packages/models/src'),
+  '@aklapper/socket-io-server': resolve(workspaceRoot, './packages/socket-io/server/src'),
+  '@aklapper/types': resolve(workspaceRoot, './packages/types/src'),
+  '@aklapper/utils': resolve(workspaceRoot, './packages/utils/src'),
 };
 
 const config = defineConfig({
