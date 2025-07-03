@@ -30,7 +30,6 @@ export default function PromptResponse({
   chatHistory,
   spanRef,
 }: PromptResponseProps) {
-  console.log(expandedResponses);
   return (
     <Box
       sx={{

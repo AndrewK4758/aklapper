@@ -1,5 +1,5 @@
 # Use the official Node.js image as the base image
-FROM node24
+FROM node:latest
 
 ENV INSTANCE_CONNECTION_NAME=games-424800:us-central1:aklapper
 
