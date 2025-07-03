@@ -63,7 +63,6 @@
           ]
         }
       }
-    },
-    "// targets": "to see all targets run: nx show project crud-api-e2e --web"
+    }
   }
 }

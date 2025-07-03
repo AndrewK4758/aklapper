@@ -1,12 +1,13 @@
 # Use the official PostgreSQL image with the desired version
-FROM postgres:17
+FROM postgres:latest
 
 # Set environment variables for database configuration
 ENV POSTGRES_USER=postgres
 ENV POSTGRES_PASSWORD=postgres
 ENV POSTGRES_DB=chinook
 
+
 EXPOSE 5432:5432
 
 # Copy any initialization SQL scripts to the container
-COPY src/assets/crud-init.sql /docker-entrypoint-initdb.d/
+COPY src/assets/chinook.sql /docker-entrypoint-initdb.d/
