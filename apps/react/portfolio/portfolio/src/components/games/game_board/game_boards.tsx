@@ -38,7 +38,12 @@ const GameBoardAndActions = memo(function ({ state, dispatch }: GameBoardAndActi
   useScrollIntoView(devRef);
   useGamesWebsockets(socket, id, dispatch);
   return (
-    <Box ref={devRef} component={'section'} id='game-board-wrapper' sx={{ display: 'flex', height: '100%' }}>
+    <Box
+      ref={devRef}
+      component={'section'}
+      id='game-board-wrapper'
+      sx={{ display: 'flex', height: '100%', maxHeight: '100%' }}
+    >
       {id === 'Chutes-&-Ladders' ? (
         <GameBoard board={state.gameBoard} />
       ) : (

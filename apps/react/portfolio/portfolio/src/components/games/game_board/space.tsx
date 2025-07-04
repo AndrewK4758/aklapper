@@ -29,7 +29,7 @@ const Space = memo(function ({ space }: SpaceProps) {
           data-testid={`${space.display}-avatar-c&l`}
           src={`/game-avatars/${space.display}`}
           alt={`${space.display} game piece`}
-          sx={css({ alignSelf: 'center', width: '55%', height: 'auto' })}
+          style={{ alignSelf: 'center', width: '55%', height: 'auto' }}
         />
       ) : (
         <Text

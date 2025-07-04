@@ -2,6 +2,7 @@ import type { GameBoards, IActivePlayersInGame } from '@aklapper/types';
 import Box from '@mui/material-pigment-css/Box';
 import { ReactElement, useReducer } from 'react';
 
+import { css } from '@pigment-css/react';
 import ActiveAvatars from './game_board/active_avatars';
 import GameBoardAndActions from './game_board/game_boards';
 import socketReducer from './game_board/socket-reducer';
@@ -35,10 +36,10 @@ const ActiveGameSession = (): ReactElement => {
       <Box
         as={'section'}
         id='active-avatar-wrapper'
-        sx={{
+        className={css({
           display: 'flex',
           justifyContent: 'center',
-        }}
+        })}
       >
         <ActiveAvatars avatarsInGame={state.activePlayersInGame} winner={state.winner} />
       </Box>
