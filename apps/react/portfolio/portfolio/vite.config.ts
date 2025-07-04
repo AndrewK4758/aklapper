@@ -51,7 +51,7 @@ const config: UserConfig = defineConfig({
   // },
 
   resolve: {
-    alias: MODULES,
+    // alias: MODULES,
     conditions: ['mui-modern', 'module', 'browser', 'development|production'],
   },
 
