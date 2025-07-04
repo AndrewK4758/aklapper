@@ -4,7 +4,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "gcp-build": " ",
+    "gcp-build": "",
     "generate-chinook-client": "pnpx nx run chinook-client:generate --verbose",
     "generate-games-client": "pnpx nx run games-client:generate --verbose"
   },

@@ -19,6 +19,7 @@
   "module": "./dist/index.js",
   "nx": {
     "sourceRoot": "packages/media-recorder/src",
+    "root": "packages/media-recorder",
     "projectType": "library",
     "name": "media-recorder"
   }

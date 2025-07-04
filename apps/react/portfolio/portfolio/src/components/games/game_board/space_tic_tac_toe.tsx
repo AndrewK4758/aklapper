@@ -1,25 +1,24 @@
 import { Text } from '@aklapper/react-shared';
 import type { ILiteSpace } from '@aklapper/types';
 import Box from '@mui/material/Box';
-import type { SxProps } from '@mui/material/styles';
-import type { MouseEvent } from 'react';
+import { memo, type ActionDispatch, type MouseEvent } from 'react';
 import Theme from '../../../styles/themes/theme';
+import type { IActiveGameInfo } from '../../../types/types';
+import { Action } from './socket-reducer';
 
 interface SpaceTicTacToeProps {
   space: ILiteSpace;
   id: string;
-  state: string | undefined;
-  setStateAction: (space: string) => void;
+  state: IActiveGameInfo;
+  dispatch: ActionDispatch<[action: Action]>;
 }
 
-export default function SpaceTicTacToe({ state, space, setStateAction, id }: SpaceTicTacToeProps) {
+const SpaceTicTacToe = memo(function ({ state, space, dispatch, id }: SpaceTicTacToeProps) {
   return (
     <Box
       id={id}
       title={!space.display.endsWith('.svg') ? space.display : ''}
-      sx={setStyleOnState(
-        state,
-        space.display,
+      sx={[
         {
           flex: 1,
           backgroundColor: Theme.palette.background.paper,
@@ -33,10 +32,15 @@ export default function SpaceTicTacToe({ state, space, setStateAction, id }: Spa
             cursor: 'pointer',
           },
         },
-        { backgroundColor: Theme.palette.primary.main, color: Theme.palette.primary.contrastText, fontWeight: 'bold' },
-        {},
-      )}
-      onClick={(e: MouseEvent<HTMLDivElement>) => setStateAction(e.currentTarget.textContent as string)}
+        state.space === space.display && {
+          backgroundColor: Theme.palette.primary.main,
+          color: Theme.palette.primary.contrastText,
+          fontWeight: 'bold',
+        },
+      ]}
+      onClick={(e: MouseEvent<HTMLDivElement>) =>
+        dispatch({ type: Action.SPACE, payload: { ...state, space: e.currentTarget.textContent as string } })
+      }
     >
       {space.display.endsWith('.svg') ? (
         <img
@@ -54,12 +58,6 @@ export default function SpaceTicTacToe({ state, space, setStateAction, id }: Spa
       )}
     </Box>
   );
-}
+});
 
-const setStyleOnState = (
-  state: string | undefined,
-  name: string,
-  base: SxProps,
-  cond1: SxProps,
-  cond2: SxProps,
-): SxProps => (state === name ? ([base, cond1] as SxProps) : ([base, cond2] as SxProps));
+export default SpaceTicTacToe;

@@ -1,5 +1,5 @@
 import { Socket } from 'socket.io-client';
-import type { IActiveGameInfo } from '../active_game_session.js';
+import type { IActiveGameInfo } from '../../../types/types';
 
 export type ActionType = (typeof Action)[keyof typeof Action];
 
@@ -8,11 +8,12 @@ export const Action = Object.freeze({
   TAKE_TURN: 'take-turn',
   START: 'start',
   RESET: 'reset',
+  SPACE: 'space',
 });
 
 export interface Action {
   type: ActionType;
-  payload?: IActiveGameInfo;
+  payload: IActiveGameInfo;
   socket?: Socket;
 }
 /**
@@ -28,7 +29,7 @@ export default function socketReducer(state: IActiveGameInfo, action: Action): I
   const { type, socket } = action;
   switch (type) {
     case Action.BOARD: {
-      const { gameBoard, activePlayersInGame, avatarInTurn, winner } = action.payload as IActiveGameInfo;
+      const { gameBoard, activePlayersInGame, avatarInTurn, winner } = action.payload;
       return { ...state, gameBoard, activePlayersInGame, avatarInTurn, winner };
     }
     case Action.TAKE_TURN:
@@ -40,6 +41,10 @@ export default function socketReducer(state: IActiveGameInfo, action: Action): I
     case Action.RESET:
       if (socket) socket.emit('action', { action: Action.BOARD });
       return { ...state };
+    case Action.SPACE: {
+      const { space } = action.payload;
+      return { ...state, space };
+    }
     default:
       throw new Error('Error in reducer');
   }

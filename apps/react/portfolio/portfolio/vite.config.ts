@@ -6,7 +6,6 @@ import { cwd } from 'node:process';
 import { defineConfig, type UserConfig } from 'vite';
 import Theme from './src/styles/themes/theme';
 import MODULES from './vite_modules';
-process.env.NODE_ENV = 'development';
 
 //Server
 const HOST = 'localhost';
