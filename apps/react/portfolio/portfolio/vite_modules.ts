@@ -17,7 +17,9 @@ const MODULES: ViteModules = {
 
   '@aklapper/react-shared': resolve(workspaceRoot, 'packages/react-shared'),
 
-  '@aklapper/types': resolve(workspaceRoot, 'packages/types/src'),
+  '@aklapper/types': resolve(workspaceRoot, 'packages/types'),
+
+  '@aklapper/vertex-ai': resolve(workspaceRoot, 'packages/gen-ai/vertex-ai'),
 };
 
 export default MODULES;
