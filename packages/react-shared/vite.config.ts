@@ -1,19 +1,18 @@
-/// <reference types='vitest' />
-import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import dts from 'vite-plugin-dts';
 import * as path from 'path';
 import { cwd } from 'process';
+import { defineConfig } from 'vite';
+import dts from 'vite-plugin-dts';
 
 export default defineConfig({
   root: cwd(),
   cacheDir: '../../node_modules/.vite/packages/react-shared',
   plugins: [
-    react({ babel: { targets: { esmodules: true } } }),
+    react(),
     dts({
       entryRoot: 'src',
-      tsconfigPath: path.join(cwd(), 'tsconfig.lib.json')
-    })
+      tsconfigPath: path.join(cwd(), 'tsconfig.lib.json'),
+    }),
   ],
   // Uncomment this if you are using workers.
   // worker: {
@@ -27,7 +26,7 @@ export default defineConfig({
     emptyOutDir: true,
     reportCompressedSize: true,
     commonjsOptions: {
-      transformMixedEsModules: true
+      transformMixedEsModules: true,
     },
     lib: {
       // Could also be a dictionary or array of multiple entry points.
@@ -36,7 +35,7 @@ export default defineConfig({
       fileName: 'index',
       // Change this to the formats you want to support.
       // Don't forget to update your package.json as well.
-      formats: ['es']
+      formats: ['es'],
     },
     rollupOptions: {
       // External packages that should not be bundled into your library.
@@ -48,17 +47,17 @@ export default defineConfig({
         generatedCode: {
           arrowFunctions: true,
           constBindings: true,
-          symbols: true
-        }
-      }
+          symbols: true,
+        },
+      },
     },
-    target: 'esnext'
+    target: 'esnext',
   },
   esbuild: {
     jsx: 'automatic',
     format: 'esm',
     color: true,
-    platform: 'browser'
+    platform: 'browser',
   },
 
   logLevel: 'info',
@@ -74,7 +73,7 @@ export default defineConfig({
     reporters: ['default'],
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',
-      provider: 'v8'
-    }
-  }
+      provider: 'v8',
+    },
+  },
 });
