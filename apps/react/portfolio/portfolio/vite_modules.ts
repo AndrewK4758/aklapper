@@ -7,10 +7,8 @@ type ViteModules = {
 
 const MODULES: ViteModules = {
   '@aklapper/chinook-client': resolve(workspaceRoot, 'packages/prisma/chinook/src/index.ts'),
-  '@aklapper/chinook-client': resolve(workspaceRoot, 'packages/prisma/chinook/src/index.ts'),
 
   '@aklapper/games-components': resolve(workspaceRoot, 'packages/games-components/src/index.ts'),
-  '@aklapper/games-components': resolve(workspaceRoot, 'packages/games-components/src'),
 
   '@aklapper/media-recorder': resolve(workspaceRoot, 'packages/media-recorder/src/index.ts'),
 
