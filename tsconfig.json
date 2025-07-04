@@ -2,7 +2,7 @@
   "extends": "./tsconfig.base.json",
   "compileOnSave": false,
   "files": [],
-  "exclude": ["node_modules", "dist", "apps/go", "apps/python", "generated/**/*"],
+  "exclude": ["node_modules", "dist"],
   "references": [
     {
       "path": "./packages/chain"

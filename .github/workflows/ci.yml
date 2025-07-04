@@ -18,6 +18,7 @@ env:
   NODE_VERSION: 24.x
 
   PRISMA_CLIENT_OUTPUT_PATH: ${{ secrets.PRISMA_CLIENT_OUTPUT_PATH }}
+  DB_URL_PROD: ${{ secrets.DB_URL_PROD }}
 
   REGION: ${{ secrets.GCP_REGION }}
   PROJECT_LOCATION: ${{ secrets.GCP_REGION }}
@@ -149,7 +150,6 @@ jobs:
           pnpm generate-games-client
         env:
           NODE_ENV: production
-          DB_URL_PROD: ${{ secrets.DB_URL_PROD }}
 
       - uses: nrwl/nx-set-shas@v4
 

@@ -5,8 +5,7 @@ import { resolve } from 'node:path';
 import { cwd } from 'node:process';
 import { defineConfig, type UserConfig } from 'vite';
 import Theme from './src/styles/themes/theme';
-import MODULES from './vite_modules';
-process.env.NODE_ENV = 'development';
+// import MODULES from './vite_modules';
 
 //Server
 const HOST = 'localhost';
@@ -52,7 +51,7 @@ const config: UserConfig = defineConfig({
   // },
 
   resolve: {
-    alias: MODULES,
+    // alias: MODULES,
     conditions: ['mui-modern', 'module', 'browser', 'development|production'],
   },
 
