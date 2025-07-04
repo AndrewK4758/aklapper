@@ -8,7 +8,7 @@ handlers:
 
 
   - url: /(.*\..+)
-    static_files: dist/\1
+    static_files: apps/react/portfolio/portfolio/dist/\1
     upload: apps/react/portfolio/portfolio/dist/(.*)
 
   - url: /.*

@@ -1,15 +1,16 @@
 import Button from '@mui/material/Button';
 import axios from 'axios';
-import type { Dispatch, JSX, SetStateAction } from 'react';
+import type { ActionDispatch, JSX } from 'react';
 import { useParams } from 'react-router';
 import { Socket } from 'socket.io-client';
 import { getGameInstanceInfo } from '../../../utils/utils';
+import type { IActiveGameInfo } from '../active_game_session';
 import { Action } from './socket-reducer';
 
 interface ResetGameProps {
-  dispatch: Dispatch<Action>;
+  dispatch: ActionDispatch<[action: Action]>;
   socket: Socket;
-  setSpace: Dispatch<SetStateAction<string | undefined>>;
+  state: IActiveGameInfo;
 }
 
 /**
@@ -22,11 +23,11 @@ interface ResetGameProps {
  * @returns {JSX.Element} The rendered ResetGame component.
  */
 
-export default function ResetGame({ dispatch, socket, setSpace }: ResetGameProps): JSX.Element {
-  const { id } = useParams();
+export default function ResetGame({ dispatch, socket, state }: ResetGameProps): JSX.Element {
+  const { id } = useParams() as { id: string };
 
   return (
-    <Button onClick={() => handleResetGame({ dispatch, socket, setSpace, id })} variant='outlined' type='button'>
+    <Button onClick={() => handleResetGame({ dispatch, socket, id, state })} variant='outlined' type='button'>
       Reset
     </Button>
   );
@@ -41,7 +42,7 @@ const baseURL = import.meta.env.VITE_GAMES_API_URL;
  * @param {ResetGameProps & { id: string | undefined }} props - The props for the handleResetGame function.
  */
 
-const handleResetGame = async ({ dispatch, socket, setSpace, id }: ResetGameProps & { id: string | undefined }) => {
+const handleResetGame = async ({ dispatch, socket, id, state }: ResetGameProps & { id: string | undefined }) => {
   const reqHeaders = {
     headers: {
       'current-game': JSON.stringify(getGameInstanceInfo()),
@@ -49,12 +50,12 @@ const handleResetGame = async ({ dispatch, socket, setSpace, id }: ResetGameProp
   };
   try {
     await axios.patch(`${baseURL}/games/${id}/reset`, {}, reqHeaders);
-    dispatch({ type: Action.RESET, socket: socket });
+    dispatch({ type: Action.RESET, socket: socket, payload: state });
     return null;
   } catch (error) {
     console.log(error);
     return null;
   } finally {
-    setSpace(undefined);
+    dispatch({ type: Action.SPACE, payload: { ...state, space: undefined } });
   }
 };

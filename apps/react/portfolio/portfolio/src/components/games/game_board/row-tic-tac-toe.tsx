@@ -1,28 +1,33 @@
 import type { ILiteSpace, Row } from '@aklapper/types';
 import Box from '@mui/material-pigment-css/Box';
-
+import { css } from '@pigment-css/react';
+import { memo, type ActionDispatch } from 'react';
 import Theme from '../../../styles/themes/theme';
+import type { IActiveGameInfo } from '../active_game_session';
+import type { Action } from './socket-reducer';
 import SpaceTicTacToe from './space_tic_tac_toe.js';
 
 export interface GameBoardPropsTicTacToe {
   row: Row;
   id?: string | number;
-  state: string | undefined;
-  setStateAction: (space: string) => void;
+  state: IActiveGameInfo;
+  dispatch: ActionDispatch<[action: Action]>;
 }
 
-export default function RowTicTacToe({ row, id, state, setStateAction }: GameBoardPropsTicTacToe) {
+const RowTicTacToe = memo(function ({ row, id, state, dispatch }: GameBoardPropsTicTacToe) {
   return (
-    <Box as={'section'} id={`row-${id}`} sx={{ display: 'flex', flex: 1, gap: Theme.spacing(2) }}>
+    <Box as={'section'} id={`row-${id}`} className={css({ display: 'flex', flex: 1, gap: Theme.spacing(2) })}>
       {row.map((space: ILiteSpace, i: number) => (
         <SpaceTicTacToe
           key={`${space.display}-${i}`}
           id={`${space.display}-${i}`}
           space={space}
           state={state}
-          setStateAction={setStateAction}
+          dispatch={dispatch}
         />
       ))}
     </Box>
   );
-}
+});
+
+export default RowTicTacToe;

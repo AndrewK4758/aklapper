@@ -15,8 +15,6 @@ const MODULES: ViteModules = {
   '@aklapper/react-shared': resolve(workspaceRoot, 'packages/react-shared/src'),
 
   '@aklapper/types': resolve(workspaceRoot, 'packages/types/src'),
-
-  '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src'),
 };
 
 export default MODULES;
