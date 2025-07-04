@@ -81,7 +81,7 @@ jobs:
         run: pnpx nx affected -t=lint --exclude=wdg-agents,games-lobby,go-file-uploader,go_utils --verbose
 
   test:
-    needs: ['lint']
+    needs: ['cache-and-install']
     runs-on: ubuntu-latest
 
     steps:
@@ -119,8 +119,8 @@ jobs:
           DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
         run: pnpx nx affected -t=test --exclude=wdg-agents,games-lobby,go-file-uploader,go_utils --verbose
 
-  build_and_typecheck:
-    needs: ['lint', 'test']
+  build:
+    needs: ['cache-and-install']
     runs-on: ubuntu-latest
 
     steps:
@@ -158,13 +158,38 @@ jobs:
           NODE_ENV: production
         run: pnpx nx affected -t=build --exclude=wdg-agents,games-lobby,go-file-uploader,go_utils --verbose
 
+  typecheck:
+    needs: ['cache-and-install']
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Typecheck all Affected Projects
         env:
           NODE_ENV: production
         run: pnpx nx affected -t=typecheck --exclude=wdg-agents,games-lobby,file-uploader,go_utils --verbose
 
   deploy-apis:
-    needs: ['build_and_typecheck']
+    needs: ['lint', 'test', 'build', 'typecheck']
     runs-on: ubuntu-latest
 
     steps:
@@ -202,7 +227,7 @@ jobs:
         run: pnpx nx affected -t deploy-cloud-run --verbose
 
   deploy-portfolio:
-    needs: ['build_and_typecheck']
+    needs: ['lint', 'test', 'build', 'typecheck']
     runs-on: ubuntu-latest
 
     steps:
