@@ -3,6 +3,7 @@ import Button from '@mui/material/Button';
 import axios from 'axios';
 import type { Dispatch, ReactElement } from 'react';
 import { Socket } from 'socket.io-client';
+import type { IActiveGameInfo } from '../../../types/types';
 import { getGameInstanceInfo } from '../../../utils/utils.jsx';
 import AnimatedBorderBox from '../../styled/animated_border_box';
 import { Action } from './socket-reducer';
@@ -10,9 +11,7 @@ import { Action } from './socket-reducer';
 interface TakeTurnProps {
   dispatch: Dispatch<Action>;
   socket: Socket;
-  position: string | undefined;
-  avatarInTurn: string;
-  winner?: string | undefined;
+  state: IActiveGameInfo;
 }
 
 /**
@@ -26,12 +25,12 @@ interface TakeTurnProps {
  * @returns {ReactElement} The rendered TakeTurnTicTacToe component.
  */
 
-const TakeTurnTicTacToe = ({ dispatch, socket, position, avatarInTurn, winner }: TakeTurnProps): ReactElement => (
+const TakeTurnTicTacToe = ({ dispatch, socket, state }: TakeTurnProps): ReactElement => (
   <AnimatedBorderBox>
     <Button
       variant='outlined'
-      disabled={!!winner}
-      onClick={() => handleTakeTurn({ dispatch, socket, position, avatarInTurn })}
+      disabled={!!state.winner}
+      onClick={() => handleTakeTurn({ dispatch, socket, state })}
       sx={{ height: '100%' }}
     >
       Take Turn
@@ -54,8 +53,9 @@ const baseURL = import.meta.env.VITE_GAMES_API_URL;
  * @param {string} props.avatarInTurn - The avatar of the player whose turn it is.
  */
 
-const handleTakeTurn = async ({ dispatch, socket, position, avatarInTurn }: TakeTurnProps) => {
+const handleTakeTurn = async ({ dispatch, socket, state }: TakeTurnProps) => {
   try {
+    const { avatarInTurn, space } = state;
     const gameInfo = getGameInstanceInfo() as GamePlayerValidation;
     const playersIds = JSON.parse(sessionStorage.getItem('playersIds') as string);
     const playerId = playersIds[avatarInTurn];
@@ -67,7 +67,7 @@ const handleTakeTurn = async ({ dispatch, socket, position, avatarInTurn }: Take
       },
     };
 
-    const resp = await axios.patch(`${baseURL}/games/Tic-Tac-Toe/take-turn`, { position: position }, reqHeaders);
+    const resp = await axios.patch(`${baseURL}/games/Tic-Tac-Toe/take-turn`, { position: space }, reqHeaders);
 
     console.log(resp.data.turnStatus);
 
@@ -76,6 +76,6 @@ const handleTakeTurn = async ({ dispatch, socket, position, avatarInTurn }: Take
     console.log(err);
     return null;
   } finally {
-    dispatch({ type: Action.TAKE_TURN, socket: socket });
+    dispatch({ type: Action.TAKE_TURN, socket: socket, payload: state });
   }
 };

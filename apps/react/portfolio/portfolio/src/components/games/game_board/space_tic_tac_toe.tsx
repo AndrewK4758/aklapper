@@ -3,7 +3,7 @@ import type { ILiteSpace } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import { memo, type ActionDispatch, type MouseEvent } from 'react';
 import Theme from '../../../styles/themes/theme';
-import type { IActiveGameInfo } from '../active_game_session';
+import type { IActiveGameInfo } from '../../../types/types';
 import { Action } from './socket-reducer';
 
 interface SpaceTicTacToeProps {

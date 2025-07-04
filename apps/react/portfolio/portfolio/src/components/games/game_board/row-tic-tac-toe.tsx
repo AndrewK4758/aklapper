@@ -3,7 +3,7 @@ import Box from '@mui/material-pigment-css/Box';
 import { css } from '@pigment-css/react';
 import { memo, type ActionDispatch } from 'react';
 import Theme from '../../../styles/themes/theme';
-import type { IActiveGameInfo } from '../active_game_session';
+import type { IActiveGameInfo } from '../../../types/types';
 import type { Action } from './socket-reducer';
 import SpaceTicTacToe from './space_tic_tac_toe.js';
 

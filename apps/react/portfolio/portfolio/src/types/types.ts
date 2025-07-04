@@ -1,5 +1,5 @@
 import type { album, artist, track } from '@aklapper/chinook-client';
-import type { ChatEntry } from '@aklapper/types';
+import type { ChatEntry, GameBoards, IActivePlayersInGame } from '@aklapper/types';
 // import type { PromptRequest } from '@aklapper/vertex-ai';
 
 export type HashFiles = { js: string | undefined; css: string | undefined };
@@ -7,6 +7,11 @@ export type HashFiles = { js: string | undefined; css: string | undefined };
 export type ManifestType = {
   [key: string]: string[];
 };
+
+export interface IActiveGameInfo extends IActivePlayersInGame {
+  gameBoard: GameBoards;
+  space: string | undefined;
+}
 
 export type OutletContextProps = {
   chatHistory: ChatEntry[];

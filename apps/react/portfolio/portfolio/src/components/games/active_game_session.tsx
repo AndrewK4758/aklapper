@@ -1,16 +1,10 @@
-import type { GameBoards, IActivePlayersInGame } from '@aklapper/types';
 import Box from '@mui/material-pigment-css/Box';
-import { ReactElement, useReducer } from 'react';
-
 import { css } from '@pigment-css/react';
+import { ReactElement, useReducer } from 'react';
+import type { IActiveGameInfo } from '../../types/types';
 import ActiveAvatars from './game_board/active_avatars';
 import GameBoardAndActions from './game_board/game_boards';
 import socketReducer from './game_board/socket-reducer';
-
-export interface IActiveGameInfo extends IActivePlayersInGame {
-  gameBoard: GameBoards;
-  space: string | undefined;
-}
 
 const socketInit = (): IActiveGameInfo => {
   return { gameBoard: [], activePlayersInGame: [], avatarInTurn: '', winner: '', space: undefined };

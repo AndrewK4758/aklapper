@@ -7,8 +7,8 @@ import type { ManagerOptions, Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
 import useGamesWebsockets from '../../../hooks/useGamesWebsockets';
 import Theme from '../../../styles/themes/theme';
+import type { IActiveGameInfo } from '../../../types/types';
 import { getGameInstanceInfo } from '../../../utils/utils';
-import type { IActiveGameInfo } from '../active_game_session';
 import GameBoard from './game_board.js';
 import GameBoardTicTacToe from './game_board_tic_tac_toe';
 import ResetGame from './reset_game';
@@ -74,20 +74,9 @@ const GameBoardAndActions = memo(function ({ state, dispatch }: GameBoardAndActi
           className={css({ display: 'flex', flexWrap: 'wrap', flex: '0 1 30%', gap: Theme.spacing(8) })}
         >
           {id === 'Chutes-&-Ladders' ? (
-            <TakeTurn
-              avatarInTurn={state.avatarInTurn as string}
-              dispatch={dispatch}
-              socket={socket}
-              winner={state.winner}
-            />
+            <TakeTurn state={state} dispatch={dispatch} socket={socket} />
           ) : (
-            <TakeTurnTicTacToe
-              avatarInTurn={state.avatarInTurn as string}
-              dispatch={dispatch}
-              socket={socket}
-              position={state.space}
-              winner={state.winner}
-            />
+            <TakeTurnTicTacToe state={state} dispatch={dispatch} socket={socket} />
           )}
           <ResetGame dispatch={dispatch} socket={socket} state={state} />
         </Box>

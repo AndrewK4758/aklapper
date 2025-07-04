@@ -2,9 +2,8 @@ import { rowFinder } from '@aklapper/games-components';
 import type { GameBoards, GamePlayerValidation, ILiteSpace, IPlayersAndBoard, Row } from '@aklapper/types';
 import { useCallback, useEffect } from 'react';
 import type { Socket } from 'socket.io-client';
-import type { IActiveGameInfo } from '../components/games/active_game_session.js';
-import { Action } from '../components/games/game_board/socket-reducer.js';
-import { getGameInstanceInfo } from '../utils/utils.js';
+import { Action } from '../components/games/game_board/socket-reducer';
+import { getGameInstanceInfo } from '../utils/utils';
 
 /**
  * Connects to a Socket.IO server and handles game-related events to update the game state.
@@ -17,12 +16,12 @@ import { getGameInstanceInfo } from '../utils/utils.js';
  * @returns {void}
  */
 
-const useGamesWebsockets = (socket: Socket, id: string, dispatch: (value: Action) => void): void => {
+const useGamesWebsockets = (socket: Socket, id: string, dispatch: (action: Action) => void): void => {
   const processGame = useCallback(
     (
       { gameBoard, activePlayersInGame, winner, avatarInTurn }: IPlayersAndBoard,
       id: string,
-      dispatch: (value: Action) => void,
+      dispatch: (action: Action) => void,
     ) => processGameData({ gameBoard, activePlayersInGame, winner, avatarInTurn }, id, dispatch),
     [],
   );
@@ -86,6 +85,6 @@ const processGameData = (
 
   dispatch({
     type: Action.BOARD,
-    payload: { gameBoard: gameBoardClient, activePlayersInGame, avatarInTurn, winner } as IActiveGameInfo,
+    payload: { gameBoard: gameBoardClient, activePlayersInGame, avatarInTurn, winner, space: undefined },
   });
 };

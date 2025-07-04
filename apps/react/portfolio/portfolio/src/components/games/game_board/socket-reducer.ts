@@ -1,5 +1,5 @@
 import { Socket } from 'socket.io-client';
-import type { IActiveGameInfo } from '../active_game_session.js';
+import type { IActiveGameInfo } from '../../../types/types';
 
 export type ActionType = (typeof Action)[keyof typeof Action];
 

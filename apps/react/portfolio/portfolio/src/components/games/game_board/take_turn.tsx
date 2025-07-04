@@ -3,6 +3,7 @@ import Button from '@mui/material/Button';
 import axios from 'axios';
 import type { Dispatch, JSX } from 'react';
 import { Socket } from 'socket.io-client';
+import type { IActiveGameInfo } from '../../../types/types';
 import { getGameInstanceInfo } from '../../../utils/utils.jsx';
 import AnimatedBorderBox from '../../styled/animated_border_box';
 import { Action } from './socket-reducer';
@@ -12,8 +13,7 @@ const baseURL = import.meta.env.VITE_GAMES_API_URL;
 interface TakeTurnProps {
   dispatch: Dispatch<Action>;
   socket: Socket;
-  avatarInTurn: string;
-  winner: string | undefined;
+  state: IActiveGameInfo;
 }
 
 /**
@@ -26,13 +26,13 @@ interface TakeTurnProps {
  * @returns {JSX.Element} The rendered TakeTurn component.
  */
 
-export default function TakeTurn({ dispatch, socket, avatarInTurn, winner }: TakeTurnProps): JSX.Element {
+export default function TakeTurn({ dispatch, socket, state }: TakeTurnProps): JSX.Element {
   return (
     <AnimatedBorderBox>
       <Button
         variant='outlined'
-        disabled={!!winner}
-        onClick={() => handleTakeTurn(dispatch, socket, avatarInTurn)}
+        disabled={!!state.winner}
+        onClick={() => handleTakeTurn(dispatch, socket, state)}
         sx={{ height: '100%' }}
       >
         Take Turn
@@ -50,8 +50,9 @@ export default function TakeTurn({ dispatch, socket, avatarInTurn, winner }: Tak
  * @param {string} avatarInTurn - The avatar of the player whose turn it is.
  * @returns null
  */
-const handleTakeTurn = async (dispatch: Dispatch<Action>, socket: Socket, avatarInTurn: string) => {
+const handleTakeTurn = async (dispatch: Dispatch<Action>, socket: Socket, state: IActiveGameInfo) => {
   try {
+    const { avatarInTurn } = state;
     const gameInfo = getGameInstanceInfo() as GamePlayerValidation;
     const playersIds = JSON.parse(sessionStorage.getItem('playersIds') as string);
     const playerId = playersIds[avatarInTurn];
@@ -64,11 +65,9 @@ const handleTakeTurn = async (dispatch: Dispatch<Action>, socket: Socket, avatar
 
     const resp = await axios.patch(`${baseURL}/games/Chutes-&-Ladders/take-turn`, {}, reqHeaders);
     console.log(resp.data.turnStatus);
-    return null;
   } catch (err) {
     console.log(err);
-    return null;
   } finally {
-    dispatch({ type: Action.TAKE_TURN, socket: socket });
+    dispatch({ type: Action.TAKE_TURN, socket: socket, payload: state });
   }
 };

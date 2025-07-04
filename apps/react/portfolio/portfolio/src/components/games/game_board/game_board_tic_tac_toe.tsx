@@ -1,7 +1,7 @@
 import Box from '@mui/material-pigment-css/Box';
 import { css } from '@pigment-css/react';
 import { memo, type ActionDispatch } from 'react';
-import type { IActiveGameInfo } from '../active_game_session';
+import type { IActiveGameInfo } from '../../../types/types';
 import RowTicTacToe from './row-tic-tac-toe';
 import type { Action } from './socket-reducer';
 

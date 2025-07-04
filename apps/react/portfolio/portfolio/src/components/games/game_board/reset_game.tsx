@@ -3,8 +3,8 @@ import axios from 'axios';
 import type { ActionDispatch, JSX } from 'react';
 import { useParams } from 'react-router';
 import { Socket } from 'socket.io-client';
+import type { IActiveGameInfo } from '../../../types/types';
 import { getGameInstanceInfo } from '../../../utils/utils';
-import type { IActiveGameInfo } from '../active_game_session';
 import { Action } from './socket-reducer';
 
 interface ResetGameProps {
