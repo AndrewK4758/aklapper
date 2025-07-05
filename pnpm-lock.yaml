@@ -526,11 +526,7 @@ importers:
         specifier: workspace:*
         version: link:../../../../packages/socket-io/client
 
-  apps/react/local-model/local-model-e2e:
-    devDependencies:
-      '@aklapper/utils':
-        specifier: workspace:*
-        version: link:../../../../packages/utils
+  apps/react/local-model/local-model-e2e: {}
 
   apps/react/portfolio/portfolio:
     devDependencies:
