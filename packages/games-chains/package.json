@@ -30,8 +30,15 @@
     "sourceRoot": "packages/games-chains/src",
     "projectType": "library",
     "name": "games-chains",
-
-    "implicitDependencies": []
-
+    "implicitDependencies": [
+      "mocks",
+      "models",
+      "game",
+      "games",
+      "games-components",
+      "utils",
+      "types",
+      "chain"
+    ]
   }
 }
