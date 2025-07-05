@@ -160,7 +160,7 @@ jobs:
       - name: Typecheck all Projects
         env:
           NODE_ENV: production
-        run: pnpx nx run-many -t typecheck --exclude=wdg-agents,games-lobby,file-uploader,go_utils --verbose
+        run: pnpx nx run-many -t=typecheck --exclude=wdg-agents,games-lobby,file-uploader,go_utils --verbose
 
   deploy-apis:
     needs: ['lint', 'test', 'build-and-typecheck']
