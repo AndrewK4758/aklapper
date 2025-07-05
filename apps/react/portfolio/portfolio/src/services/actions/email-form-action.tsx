@@ -1,32 +1,16 @@
 import axios from 'axios';
-import type { ActionFunction, ActionFunctionArgs } from 'react-router';
 
 const baseUrl = import.meta.env.VITE_PORTFOLIO_API_URL;
 
-const emailFormAction: ActionFunction = async ({ request }: ActionFunctionArgs) => {
+const emailFormAction = async function (formData: FormData, setOpen: (open: boolean) => void) {
   try {
-    const formData = await request.formData();
-
-    const file = formData.get('attachment');
-
-    const formDataToSend = {
-      name: formData.get('name'),
-      email: formData.get('email'),
-      phone: formData.get('phone'),
-      subject: formData.get('subject'),
-      date: formData.get('date'),
-      body: formData.get('body'),
-      attachment: file instanceof File ? file : null,
-    };
-
-    await axios.postForm(`${baseUrl}/email`, formDataToSend, {
+    const resp = await axios.postForm(`${baseUrl}/email`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
 
-    return null;
+    if (resp.status === 201) setOpen(false);
   } catch (error) {
     console.error(error);
-    return null;
   }
 };
 

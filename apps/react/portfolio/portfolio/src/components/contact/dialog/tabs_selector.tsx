@@ -1,27 +1,27 @@
 import { SectionTitle } from '@aklapper/react-shared';
-import Box, { type BoxProps } from '@mui/material/Box';
+import Box from '@mui/material-pigment-css/Box';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
+import { css } from '@pigment-css/react';
 import type { ReactElement } from 'react';
 import Theme from '../../../styles/themes/theme.js';
 
-interface TabsSelectorProps extends Omit<BoxProps, 'id' | 'data-testid'> {
+interface TabsSelectorProps {
   tab: number;
   handleSetTab: (tab: number) => void;
 }
 
-export default function TabsSelector({ tab, handleSetTab, ...props }: TabsSelectorProps): ReactElement<BoxProps> {
+export default function TabsSelector({ tab, handleSetTab }: TabsSelectorProps): ReactElement {
   return (
     <Box
-      {...props}
-      component={'section'}
+      as={'section'}
       id='email-me-title-box'
       data-testid='email-me-title-box'
-      sx={{
+      className={css({
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-evenly',
-      }}
+      })}
     >
       <Tabs
         variant='fullWidth'

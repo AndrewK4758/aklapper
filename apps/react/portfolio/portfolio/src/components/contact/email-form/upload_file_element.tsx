@@ -1,8 +1,8 @@
 import { Text } from '@aklapper/react-shared';
 import type { FormikProps } from 'formik';
 import { type ChangeEvent, type RefObject } from 'react';
-import CenteredFlexDiv from '../../styled/centered_flexbox';
-import type { MessageMeFormValues } from './email-form';
+import CenteredFlexDiv from '../../styled/centered_flexbox.js';
+import type { MessageMeFormValues } from './email-form.js';
 
 const FILE_ACCEPTS =
   '.jpg, .jpeg, .png, .gif, .webp, .avif, .ico, .pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx, .txt, .md, .markdown, .json, .csv, .mp4, .mov, .avi, .webm, .mkv, .mp3, .wav, .ogg, .flac, .ttf, .otf, .woff, .woff2, .zip, .rar, .7z';

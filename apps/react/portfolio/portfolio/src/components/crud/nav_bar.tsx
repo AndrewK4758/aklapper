@@ -1,16 +1,22 @@
 import Grid from '@mui/material-pigment-css/Grid';
+import { css } from '@pigment-css/react';
 import NavButton from '../layout/navigation/nav_button.js';
 
 export default function CrudNavBar() {
   return (
     <Grid id='grid' container spacing={1} rowSpacing={1} wrap='wrap'>
-      <Grid size={6}>
+      <Grid size={6} sx={{ height: '50%' }}>
         <NavButton
           variant='outlined'
           id='crud-home-button'
           name='/portfolio/crud'
           buttonText={'CRUD Home'}
-          sx={{ color: 'var(--mui-palette-info-main)', borderColor: 'var(--mui-palette-info-main)', width: '100%' }}
+          className={css({
+            color: 'var(--mui-palette-info-main)',
+            borderColor: 'var(--mui-palette-info-main)',
+            width: '100%',
+            height: '100%',
+          })}
         />
       </Grid>
       <Grid size={6}>
@@ -19,7 +25,12 @@ export default function CrudNavBar() {
           id='crud-artists-button'
           name='artists'
           buttonText='Artists'
-          sx={{ color: 'var(--mui-palette-info-main)', borderColor: 'var(--mui-palette-info-main)', width: '100%' }}
+          className={css({
+            color: 'var(--mui-palette-info-main)',
+            borderColor: 'var(--mui-palette-info-main)',
+            width: '100%',
+            height: '100%',
+          })}
         />
       </Grid>
       <Grid size={6}>
@@ -28,7 +39,12 @@ export default function CrudNavBar() {
           id='crud-albums-button'
           name='albums'
           buttonText='Albums'
-          sx={{ color: 'var(--mui-palette-info-main)', borderColor: 'var(--mui-palette-info-main)', width: '100%' }}
+          className={css({
+            color: 'var(--mui-palette-info-main)',
+            borderColor: 'var(--mui-palette-info-main)',
+            width: '100%',
+            height: '100%',
+          })}
         />
       </Grid>
       <Grid size={6}>
@@ -38,7 +54,12 @@ export default function CrudNavBar() {
           id='crud-add-entry-button'
           name='add-entry'
           buttonText='Add Entry'
-          sx={{ color: 'var(--mui-palette-info-main)', borderColor: 'var(--mui-palette-info-main)', width: '100%' }}
+          className={css({
+            color: 'var(--mui-palette-info-main)',
+            borderColor: 'var(--mui-palette-info-main)',
+            width: '100%',
+            height: '100%',
+          })}
         />
       </Grid>
     </Grid>
