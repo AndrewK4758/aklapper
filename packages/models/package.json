@@ -29,8 +29,7 @@
     "implicitDependencies": [
       "chain",
       "game",
-      "types",
-      "games-components"
+      "types"
     ]
   }
 }
