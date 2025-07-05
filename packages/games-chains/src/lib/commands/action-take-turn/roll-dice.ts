@@ -7,7 +7,7 @@ export const rollDice = CommandBuilder.build((context: Context<GameContextKeys |
     const { game } = deRefContextObject(context);
 
     const moveDist = game.instance.instance.DIE.roll();
-    context.put('move-dist', moveDist as number);
+    context.put('move-dist', moveDist);
     context.put(GameContextKeys.NEXT, 'move-avatar');
     return true;
   } else return false;

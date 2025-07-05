@@ -1,6 +1,7 @@
 {
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
+    "baseUrl": ".",
     "outDir": "./out-tsc/jest",
     "types": ["vitest/globals", "vitest/importMeta", "vite/client", "node", "vitest", "jest"]
   },

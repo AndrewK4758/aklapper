@@ -1,14 +1,13 @@
 import { CommandBuilder } from '@aklapper/chain';
 import { WINNING_POSITIONS } from '@aklapper/games';
-import { Player } from '@aklapper/games-components';
-import { type Context, GameContextKeys } from '@aklapper/types';
+import { type Context, GameContextKeys, IPlayer } from '@aklapper/types';
 import { deRefContextObject } from '@aklapper/utils';
 
 export const wonGameCheckTicTacToe = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
   if (context.get(GameContextKeys.NEXT) && context.getString(GameContextKeys.NEXT) === 'won-game') {
     const { game } = deRefContextObject(context);
 
-    const playerTakingTurn = context.get('player-taking-turn') as Player;
+    const playerTakingTurn = context.get('player-taking-turn') as IPlayer;
     const occupiedSpaces: string[] = [];
     let space = game.instance.instance.startSpace;
 

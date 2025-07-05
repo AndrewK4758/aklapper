@@ -22,5 +22,3 @@ export class Board implements IBoard {
     return space;
   }
 }
-
-// export default Board;
