@@ -156,7 +156,7 @@ jobs:
       - name: Build all Affected Projects
         env:
           NODE_ENV: production
-        run: pnpx nx affected -t=build --exclude=wdg-agents,games-lobby,go-file-uploader,go_utils --verbose
+        run: pnpx nx run-many -t=build --exclude=wdg-agents,games-lobby,go-file-uploader,go_utils --verbose
 
   typecheck:
     needs: ['cache-and-install']
@@ -186,7 +186,7 @@ jobs:
       - name: Typecheck all Affected Projects
         env:
           NODE_ENV: production
-        run: pnpx nx affected -t=typecheck --exclude=wdg-agents,games-lobby,file-uploader,go_utils --verbose
+        run: pnpx nx run-many -t=typecheck --exclude=wdg-agents,games-lobby,file-uploader,go_utils --verbose
 
   deploy-apis:
     needs: ['lint', 'test', 'build', 'typecheck']
