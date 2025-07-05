@@ -30,7 +30,8 @@
     "strict": true,
     "target": "ESNext",
     "useDefineForClassFields": true,
-    "verbatimModuleSyntax": false
+    "verbatimModuleSyntax": false,
+    "paths": {}
   },
   "ts-node": {
     "esm": true,
