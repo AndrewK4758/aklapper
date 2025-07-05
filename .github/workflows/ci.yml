@@ -62,13 +62,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-<<<<<<< HEAD
         with:
           fetch-depth: 0
-=======
-        # with:
-        #   fetch-depth: 0
->>>>>>> d589996 (resolved conflicts (#19))
         #   filter: tree:0
 
       - uses: pnpm/action-setup@v4
