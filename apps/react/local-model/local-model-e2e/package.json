@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
+  "devDependencies": {
+    "@aklapper/utils": "workspace:*"
+  },
   "nx": {
     "projectType": "application",
     "sourceRoot": "apps/react/local-model/local-model-e2e/src",
