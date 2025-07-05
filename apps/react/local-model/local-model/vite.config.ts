@@ -25,8 +25,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@aklapper/react-shared': resolve(workspaceRoot, 'packages/react-shared/src/index.ts'),
-      '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src/index.ts'),
-      '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
+      '@aklapper/socket-io-client': resolve(workspaceRoot, 'packages/socket-io/client/src/index.ts'),
     },
   },
 

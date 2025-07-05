@@ -23,6 +23,9 @@
   "nx": {
     "sourceRoot": "packages/socket-io/client/src",
     "projectType": "library",
-    "name": "socket-io-client"
+    "name": "socket-io-client",
+    "implicitDependencies": [
+      "types"
+    ]
   }
 }

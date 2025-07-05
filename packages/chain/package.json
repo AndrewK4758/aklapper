@@ -24,6 +24,8 @@
     "sourceRoot": "packages/chain/src",
     "projectType": "library",
     "name": "chain",
-    "targets": {}
+    "implicitDependencies": [
+      "types"
+    ]
   }
 }

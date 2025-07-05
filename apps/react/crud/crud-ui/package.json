@@ -10,6 +10,10 @@
   "nx": {
     "name": "crud-ui",
     "projectType": "application",
-    "sourceRoot": "apps/react/crud/crud-ui/src"
+    "sourceRoot": "apps/react/crud/crud-ui/src",
+    "implicitDependencies": [
+      "react-shared",
+      "chinook-client"
+    ]
   }
 }

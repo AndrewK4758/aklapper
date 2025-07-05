@@ -25,7 +25,6 @@ export default defineConfig({
     alias: {
       '@aklapper/react-shared': resolve(workspaceRoot, 'packages/react-shared/src/index.ts'),
       '@aklapper/games-components': resolve(workspaceRoot, 'packages/games-components/src/index.ts'),
-      '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src/index.ts'),
       '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
     },
   },

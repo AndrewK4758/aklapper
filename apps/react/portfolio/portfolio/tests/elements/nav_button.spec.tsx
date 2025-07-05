@@ -1,7 +1,7 @@
 import userEvent from '@testing-library/user-event';
-import NavButton from '../../src/components/layout/navigation/nav_button';
-import { mockNavigate } from '../__mocks__/react_router';
-import { render, ROUTES, screen } from '../utils/render_react_rotuter';
+import NavButton from '../../src/components/layout/navigation/nav_button.js';
+import { mockNavigate } from '../__mocks__/react_router.js';
+import { render, ROUTES, screen } from '../utils/render_react_rotuter.js';
 
 describe('Test NavButton', () => {
   afterAll(() => {

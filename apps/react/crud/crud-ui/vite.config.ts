@@ -25,10 +25,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@aklapper/react-shared': resolve(workspaceRoot, 'packages/react-shared/src/index.ts'),
-      '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src/index.ts'),
-      '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
-
-      '.prisma/client/index-browser': '@prisma/client/index-browser.js',
+      '@aklapper/chinook-client': resolve(workspaceRoot, 'packages/prisma/chinook/src/index.ts'),
     },
   },
 

@@ -4,9 +4,9 @@ import { cwd } from 'node:process';
 import { defineConfig } from 'vitest/config';
 
 const modules = {
-  '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
+  '@aklapper/games': resolve(workspaceRoot, 'packages/games/src/index.ts'),
   '@aklapper/games-components': resolve(workspaceRoot, 'packages/games-components/src/index.ts'),
-  '@aklapper/games': resolve(workspaceRoot, 'packages/games/src/index.ts')
+  '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
 };
 
 const config = defineConfig({
@@ -22,9 +22,9 @@ const config = defineConfig({
     reporters: ['default'],
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',
-      provider: 'v8'
-    }
-  }
+      provider: 'v8',
+    },
+  },
 });
 
 export default config;

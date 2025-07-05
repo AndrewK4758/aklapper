@@ -4,6 +4,7 @@
   "projectType": "application",
   "sourceRoot": "apps/go/games-lobby",
   "tags": [],
+  "implicitDependencies": ["go_utils"],
   "targets": {
     "build": {
       "executor": "@nx-go/nx-go:build",

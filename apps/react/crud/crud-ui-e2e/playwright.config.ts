@@ -1,7 +1,6 @@
+import { workspaceRoot } from '@nx/devkit';
 import { nxE2EPreset } from '@nx/playwright/preset';
 import { defineConfig, devices } from '@playwright/test';
-
-import { workspaceRoot } from '@nx/devkit';
 import { fileURLToPath } from 'url';
 
 // For CI, you may want to set BASE_URL to the deployed application.
@@ -24,7 +23,7 @@ export default defineConfig({
   use: {
     baseURL,
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on-first-retry'
+    trace: 'on-first-retry',
   },
   /* Run your local dev server before starting the tests */
   webServer: [
@@ -33,45 +32,45 @@ export default defineConfig({
       url: 'http://localhost:4300',
       reuseExistingServer: !process.env.CI,
       cwd: workspaceRoot,
-      timeout: 120 * 1000
-    }
+      timeout: 120 * 1000,
+    },
   ],
   globalSetup: './src/support/global-setup.ts',
   globalTeardown: './src/support/global-teardown.ts',
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] }
+      use: { ...devices['Desktop Chrome'] },
     },
 
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] }
+      use: { ...devices['Desktop Firefox'] },
     },
 
     {
       name: 'webkit',
-      use: { ...devices['Desktop Safari'] }
+      use: { ...devices['Desktop Safari'] },
     },
 
     // Uncomment for mobile browsers support
     {
       name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] }
+      use: { ...devices['Pixel 5'] },
     },
     {
       name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] }
+      use: { ...devices['iPhone 12'] },
     },
 
     // Uncomment for branded browsers
-    {
-      name: 'Microsoft Edge',
-      use: { ...devices['Desktop Edge'], channel: 'msedge' }
-    },
-    {
-      name: 'Google Chrome',
-      use: { ...devices['Desktop Chrome'], channel: 'chrome' }
-    }
-  ]
+    // {
+    //   name: 'Microsoft Edge',
+    //   use: { ...devices['Desktop Edge'], channel: 'msedge' }
+    // },
+    // {
+    //   name: 'Google Chrome',
+    //   use: { ...devices['Desktop Chrome'], channel: 'chrome' }
+    // }
+  ],
 });

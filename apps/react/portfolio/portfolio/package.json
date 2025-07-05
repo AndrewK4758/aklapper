@@ -18,6 +18,15 @@
     "projectType": "application",
     "sourceRoot": "apps/react/portfolio/portfolio/src",
     "root": "apps/react/portfolio/portfolio",
+    "implicitDependencies": [
+      "chinook-client",
+      "games-components",
+      "media-recorder",
+      "prompt-builder",
+      "react-shared",
+      "types",
+      "vertex-ai"
+    ],
     "targets": {
       "build": {
         "executor": "nx:run-commands",

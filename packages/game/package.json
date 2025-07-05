@@ -26,6 +26,10 @@
     "sourceRoot": "packages/game/src",
     "projectType": "library",
     "name": "game",
-    "targets": {}
+    "implicitDependencies": [
+      "games",
+      "types",
+      "games-components"
+    ]
   }
 }

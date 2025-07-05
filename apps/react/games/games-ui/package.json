@@ -11,6 +11,11 @@
   "nx": {
     "name": "games-ui",
     "projectType": "application",
-    "sourceRoot": "apps/react/games/games-ui/src"
+    "sourceRoot": "apps/react/games/games-ui/src",
+    "implicitDependencies": [
+      "games-components",
+      "react-shared",
+      "types"
+    ]
   }
 }

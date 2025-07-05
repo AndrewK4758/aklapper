@@ -23,6 +23,9 @@
   "nx": {
     "sourceRoot": "packages/mocks/src",
     "projectType": "library",
-    "name": "mocks"
+    "name": "mocks",
+    "implicitDependencies": [
+      "types"
+    ]
   }
 }

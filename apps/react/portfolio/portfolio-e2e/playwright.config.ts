@@ -1,11 +1,12 @@
+import { workspaceRoot } from '@nx/devkit';
 import { nxE2EPreset } from '@nx/playwright/preset';
 import { defineConfig, devices } from '@playwright/test';
 import { fileURLToPath } from 'url';
 
-import { workspaceRoot } from '@nx/devkit';
+// import { workspaceRoot } from '@nx/devkit';
 
 // For CI, you may want to set BASE_URL to the deployed application.
-const baseURL = process.env['BASE_URL'] || 'http://localhost:4700';
+const baseURL = process.env['BASE_URL'] || 'http://localhost:4800';
 
 /**
  * Read environment variables from file.
@@ -28,11 +29,12 @@ export default defineConfig({
   },
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'nx serve-server portfolio --verbose',
-    name: 'React App',
-    url: 'http://localhost:4700',
+    command: 'nx preview portfolio --verbose',
+    name: 'Portfolio',
+    url: 'http://localhost:4800',
     reuseExistingServer: !process.env.CI,
     cwd: workspaceRoot,
+    timeout: 1000 * 360,
   },
   quiet: false,
   projects: [

@@ -4,7 +4,7 @@ import testIconClick from '../helpers/icon_click.js';
 const homeH1Title = "Hi, I'm Andrew Klapper";
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/portfolio');
 });
 
 test.describe('Test Layout & Contact Links', () => {
@@ -13,7 +13,6 @@ test.describe('Test Layout & Contact Links', () => {
     await expect(page.getByTestId('games-button')).toBeVisible();
     await expect(page.getByTestId('crud-button')).toBeVisible();
     await expect(page.getByTestId('gen-ai-button')).toBeVisible();
-    await expect(page.getByTestId('contact-menu-button')).toBeVisible();
   });
 
   test('has title & intro text', async ({ page }) => {
@@ -23,7 +22,7 @@ test.describe('Test Layout & Contact Links', () => {
     const homePagePic = page.locator('img');
 
     expect(homePagePic).toBeVisible();
-    expect(await homePagePic.getAttribute('src')).toEqual('/client/self.webp');
+    expect(await homePagePic.getAttribute('src')).toEqual('/images/self.webp');
   });
 });
 

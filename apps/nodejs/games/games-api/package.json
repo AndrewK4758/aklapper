@@ -20,6 +20,19 @@
     "name": "games-api",
     "projectType": "application",
     "sourceRoot": "apps/nodejs/games/games-api/src",
+    "implicitDependencies": [
+      "chain",
+      "game",
+      "games",
+      "games-chains",
+      "games-components",
+      "games-client",
+      "mocks",
+      "models",
+      "socket-io-server",
+      "types",
+      "utils"
+    ],
     "targets": {
       "build": {
         "executor": "@nx/esbuild:esbuild",

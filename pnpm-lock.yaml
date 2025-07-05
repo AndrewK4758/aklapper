@@ -523,7 +523,11 @@ importers:
         specifier: workspace:*
         version: link:../../../../packages/socket-io/client
 
-  apps/react/local-model/local-model-e2e: {}
+  apps/react/local-model/local-model-e2e:
+    devDependencies:
+      '@aklapper/utils':
+        specifier: workspace:*
+        version: link:../../../../packages/utils
 
   apps/react/portfolio/portfolio:
     devDependencies:
@@ -597,25 +601,25 @@ importers:
         version: 2.8.1
     devDependencies:
       '@aklapper/chain':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../chain
       '@aklapper/game':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../game
       '@aklapper/games':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../games
       '@aklapper/games-components':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../games-components
       '@aklapper/models':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../models
       '@aklapper/types':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../types
       '@aklapper/utils':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../utils
 
   packages/games-components:
