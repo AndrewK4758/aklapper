@@ -1,15 +1,16 @@
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
-// import type { MockInstance } from 'vitest';
+import type { MockInstance } from 'vitest';
 import '../../src/components/header/contact/toggle_menu_button.js';
 import Layout from '../../src/components/layout/layout.js';
 import { render, ROUTES, screen } from '../utils/render_react_rotuter.js';
 
-// let openSpy: MockInstance;
+let openSpy: MockInstance;
 
-const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
 describe('test layout header and contact links', () => {
   beforeEach(() => {
+    openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
     render(<Layout />, { initialRoute: ROUTES.PORTFOLIO, path: ROUTES.PORTFOLIO });
   });
 
