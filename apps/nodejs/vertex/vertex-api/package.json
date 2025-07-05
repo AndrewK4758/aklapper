@@ -13,6 +13,12 @@
     "name": "vertex-api",
     "projectType": "application",
     "sourceRoot": "apps/nodejs/vertex/vertex-api/src",
+    "implicitDependencies": [
+      "prompt-builder",
+      "socket-io-server",
+      "types",
+      "vertex-ai"
+    ],
     "targets": {
       "build": {
         "executor": "@nx/esbuild:esbuild",

@@ -24,6 +24,9 @@
     "sourceRoot": "packages/gen-ai/vertex-ai/src",
     "projectType": "library",
     "root": "packages/gen-ai/vertex-ai",
-    "name": "vertex-ai"
+    "name": "vertex-ai",
+    "implicitDependencies": [
+      "types"
+    ]
   }
 }

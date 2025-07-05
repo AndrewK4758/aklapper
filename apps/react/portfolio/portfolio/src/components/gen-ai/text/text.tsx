@@ -13,7 +13,7 @@ import type { ChatEntry } from '@aklapper/types';
 import Theme from '../../../styles/themes/theme';
 import type { OutletContextProps } from '../../../types/types.js';
 import StyledCard from '../../styled/styled_card';
-import TextInput from '../../styled/text_input';
+import TextInput from '../../text_input/text_input.js';
 
 /**
  * DECIDE WHETHER TO PUT FILE UPLOAD IN THE MAIN PROMPT SUBMISSION AREA

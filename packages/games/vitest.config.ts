@@ -5,7 +5,6 @@ import { defineConfig } from 'vitest/config';
 
 const modules = {
   '@aklapper/games-components': resolve(workspaceRoot, 'packages/games-components/src/index.ts'),
-  '@aklapper/game': resolve(workspaceRoot, 'packages/game/src/index.ts'),
   '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
 };
 

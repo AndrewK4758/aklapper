@@ -27,6 +27,13 @@
   "nx": {
     "sourceRoot": "packages/utils/src",
     "projectType": "library",
-    "name": "utils"
+    "name": "utils",
+    "implicitDependencies": [
+      "chain",
+      "game",
+      "mocks",
+      "models",
+      "types"
+    ]
   }
 }

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 const homeTitleText = 'Media Data Manager';
 const addArtistTextInputValue = 'New Test Artist';
@@ -25,13 +25,9 @@ test.describe('Crud-UI e2e Test', () => {
       await artistsButton.click();
     });
     test('Navigates to All Artists', async ({ page }) => {
-      // await page.waitForURL('**/artists');
-
       expect(await page.locator('#artists-label').textContent()).toEqual('Artist List');
     });
     test('Test Add Artist input element', async ({ page }) => {
-      // await page.waitForURL('**/artists');
-
       const addArtistInput = page.locator('#add-artist-input');
 
       await addArtistInput.fill(addArtistTextInputValue);

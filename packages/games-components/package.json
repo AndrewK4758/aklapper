@@ -23,6 +23,9 @@
   "nx": {
     "sourceRoot": "packages/games-components/src",
     "projectType": "library",
-    "name": "games-components"
+    "name": "games-components",
+    "implicitDependencies": [
+      "types"
+    ]
   }
 }

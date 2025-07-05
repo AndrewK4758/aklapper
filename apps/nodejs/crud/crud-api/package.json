@@ -13,6 +13,11 @@
     "name": "crud-api",
     "projectType": "application",
     "sourceRoot": "apps/nodejs/crud/crud-api/src",
+    "implicitDependencies": [
+      "chinook-client",
+      "types",
+      "utils"
+    ],
     "targets": {
       "build": {
         "executor": "@nx/esbuild:esbuild",

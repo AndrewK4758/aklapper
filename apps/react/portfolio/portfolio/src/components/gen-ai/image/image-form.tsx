@@ -22,7 +22,7 @@ import type { OutletContextProps } from '../../../types/types.js';
 import AnimatedBorderBox from '../../styled/animated_border_box';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
 import StyledCard from '../../styled/styled_card';
-import TextInput from '../../styled/text_input';
+import TextInput from '../../text_input/text_input.js';
 
 const validationSchema = Yup.object({
   prompt: Yup.string().required('The prompt is required'),

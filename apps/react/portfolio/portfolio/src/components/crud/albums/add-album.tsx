@@ -8,7 +8,7 @@ import * as Yup from 'yup';
 import handleSubmitAlbumOnArtist from '../../../services/actions/crud-actions/submit-album-on-artist-action';
 import Theme from '../../../styles/themes/theme';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
-import TextInput from '../../styled/text_input';
+import TextInput from '../../text_input/text_input.js';
 
 const validationSchema = Yup.object<album>({
   title: Yup.string().required('Must have title to album'),

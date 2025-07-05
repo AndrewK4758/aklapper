@@ -6,7 +6,11 @@
   "nx": {
     "name": "react-shared",
     "projectType": "library",
-    "sourceRoot": "packages/react-shared/src"
+    "sourceRoot": "packages/react-shared/src",
+    "implicitDependencies": [
+      "types",
+      "utils"
+    ]
   },
   "dependencies": {
     "tslib": "^2.8.1"

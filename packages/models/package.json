@@ -25,6 +25,11 @@
   "nx": {
     "sourceRoot": "packages/models/src",
     "projectType": "library",
-    "name": "models"
+    "name": "models",
+    "implicitDependencies": [
+      "chain",
+      "game",
+      "types"
+    ]
   }
 }

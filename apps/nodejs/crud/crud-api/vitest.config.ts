@@ -4,7 +4,9 @@ import { cwd } from 'node:process';
 import { defineConfig } from 'vitest/config';
 
 const modules = {
-  '@aklapper/chinook-client': resolve(workspaceRoot, 'packages/prisma/chinook/src'),
+  '@aklapper/chinook-client': resolve(workspaceRoot, 'packages/prisma/chinook/src/index.ts'),
+  '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
+  '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src/index.ts'),
 };
 
 export default defineConfig({

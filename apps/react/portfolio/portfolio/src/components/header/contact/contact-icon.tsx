@@ -17,14 +17,15 @@ export default function ContactIcon({ generalId, iconHref, onClick, children }: 
         href: iconHref,
         target: '_blank',
         rel: 'noopener noreferrer',
+        role: 'link',
       }
     : {
         onClick: onClick,
+        role: 'button',
       };
 
   const buttonElement = (
     <IconButton
-      LinkComponent={isLink ? 'a' : 'button'}
       disableRipple
       id={`${generalId}-icon`}
       data-testid={`${generalId}-icon`}

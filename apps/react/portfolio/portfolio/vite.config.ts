@@ -117,6 +117,7 @@ const config: UserConfig = defineConfig({
       reportsDirectory: './test-output/vitest/coverage',
       provider: 'v8',
     },
+    setupFiles: ['tests/__mocks__/react_router.tsx', 'tests/__mocks__/__mocks__.tsx'],
   },
 });
 
