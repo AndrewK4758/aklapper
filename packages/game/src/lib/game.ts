@@ -1,5 +1,5 @@
 import { Avatar, generateRandomNumber, Player } from '@aklapper/games-components';
-import { type AllGameTypes, Color, type IGame, SpaceType } from '@aklapper/types';
+import { type AllGameTypes, Color, type Email, type IGame, SpaceType } from '@aklapper/types';
 
 export class Game implements IGame {
   game: AllGameTypes;
@@ -20,8 +20,8 @@ export class Game implements IGame {
     return this.game;
   }
 
-  register(playerName: string, id: string, avatarName: string, color: Color) {
-    const player = new Player(playerName, id, '@.');
+  register(playerName: string, id: string, avatarName: string, color: Color, email: Email = 'test@test.com') {
+    const player = new Player(playerName, id, email);
     const avatar = new Avatar(avatarName, color);
     player.avatar = avatar;
     this.generatePlayerOrder(player);

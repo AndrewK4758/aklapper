@@ -12,7 +12,7 @@ export class Player implements IPlayer {
   private _InLobby: boolean;
   private _SocketIoId: string | null;
 
-  constructor(name: string, id: string, email: Email) {
+  constructor(name: string, id: string, email: Email = '') {
     this._Name = name;
     this._Id = id;
     this._ActiveGameID = null;

@@ -1,6 +1,5 @@
 import { CommandBuilder } from '@aklapper/chain';
-import { Player } from '@aklapper/games-components';
-import { type Context, GameContextKeys, TurnStatus } from '@aklapper/types';
+import { type Context, GameContextKeys, IPlayer, TurnStatus } from '@aklapper/types';
 import { deRefContextObject } from '@aklapper/utils';
 
 export const setGamePiece = CommandBuilder.build((context: Context<GameContextKeys | string>) => {
@@ -17,7 +16,7 @@ export const setGamePiece = CommandBuilder.build((context: Context<GameContextKe
         distToTraverse--;
       }
 
-      const playerInTurn = context.get('player-taking-turn') as Player;
+      const playerInTurn = context.get('player-taking-turn') as IPlayer;
 
       space.land(playerInTurn.avatar);
       context.put(GameContextKeys.OUTPUT, { turnStatus: TurnStatus.VALID });

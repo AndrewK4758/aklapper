@@ -1,14 +1,61 @@
-import { ChutesAndLadders } from '@aklapper/games';
-import { Player, Space } from '@aklapper/games-components';
-import { Color, SpaceType } from '@aklapper/types';
+import { Die, Player, Space } from '@aklapper/games-components';
+import {
+  Color,
+  SpaceType,
+  type AllGameTypes,
+  type AvatarTotem,
+  type IDie,
+  type ILiteSpace,
+  type ISpace,
+} from '@aklapper/types';
 
 import Game from '../src/lib/game.js';
 
-let game: Game, instance: ChutesAndLadders, playerInTurn: Player;
+let game: Game, instance: TestGame, playerInTurn: Player;
+
+class TestGame implements AllGameTypes {
+  NAME: 'TEST GAME';
+  MAX_PLAYERS: number;
+  MIN_PLAYERS: number;
+  CHUTES: number;
+  LADDERS: number;
+  DIE: IDie;
+  startSpace: ISpace;
+  colorList: typeof Color;
+  avatarList: AvatarTotem[];
+  constructor() {
+    this.MIN_PLAYERS = 2;
+    this.MAX_PLAYERS = 4;
+    this.NAME = 'TEST GAME';
+    this.CHUTES = 5;
+    this.LADDERS = 5;
+    this.DIE = new Die(6);
+    this.startSpace = new Space(SpaceType.START, 'START');
+    this.colorList = Color;
+    this.avatarList = [
+      {
+        id: 0,
+        image: 'image0',
+        name: 'NAME 0',
+      },
+      {
+        id: 1,
+        image: 'image1',
+        name: 'NAME 1',
+      },
+    ];
+  }
+  makeGameBoard(): void {
+    return;
+  }
+  displayGameBoard(): ILiteSpace[] {
+    return [];
+  }
+}
 
 describe('Test the game class', () => {
   beforeAll(() => {
-    instance = new ChutesAndLadders(5, 5);
+    instance = new TestGame();
     game = new Game(instance);
   });
   afterAll(() => {
