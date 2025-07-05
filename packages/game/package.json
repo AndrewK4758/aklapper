@@ -26,6 +26,7 @@
     "projectType": "library",
     "name": "game",
     "implicitDependencies": [
+      "games",
       "types",
       "games-components"
     ]
