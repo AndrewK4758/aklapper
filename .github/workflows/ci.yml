@@ -29,8 +29,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        # with:
+        #   fetch-depth: 0
         #   filter: tree:0
 
       - uses: pnpm/action-setup@v4
@@ -57,8 +57,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        # with:
+        #   fetch-depth: 0
         #   filter: tree:0
 
       - uses: pnpm/action-setup@v4
@@ -88,8 +88,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        # with:
+        #   fetch-depth: 0
         #   filter: tree:0
 
       - uses: pnpm/action-setup@v4
@@ -128,8 +128,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        # with:
+        #   fetch-depth: 0
         #   filter: tree:0
 
       - uses: pnpm/action-setup@v4
@@ -161,7 +161,7 @@ jobs:
           NODE_ENV: production
         run: pnpx nx run-many -t=build --exclude=wdg-agents,games-lobby,go-file-uploader,go_utils --verbose
 
-      - name: Typecheck all Affected Projects
+      - name: Typecheck all Projects
         env:
           NODE_ENV: production
         run: pnpx nx run-many -t=typecheck --exclude=wdg-agents,games-lobby,file-uploader,go_utils --verbose
@@ -173,8 +173,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        # with:
+        #   fetch-depth: 0
         #   filter: tree:0
 
       - uses: pnpm/action-setup@v4
@@ -212,8 +212,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        # with:
+        #   fetch-depth: 0
         #   filter: tree:0
 
       - uses: pnpm/action-setup@v4
