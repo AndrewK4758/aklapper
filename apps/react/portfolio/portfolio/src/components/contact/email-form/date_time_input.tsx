@@ -23,6 +23,7 @@ export default function DateAndTimeInput({ formik, name }: AppointmentMakerProps
       enableAccessibleFieldDOMStructure={false}
       label={'Date & Time'}
       name={name}
+      disabled={formik.isSubmitting}
       formatDensity='spacious'
       viewRenderers={{
         hours: renderTimeViewClock,

@@ -130,33 +130,8 @@ const PromptBuilder = ({ loading, setLoading }: PromptBuilderProps): JSX.Element
             formik={formik}
             name={'objective'}
             variant={'outlined'}
+            slotProps={{ input: { sx: { backgroundColor: Theme.palette.background.default } } }}
           />
-          <HelperTextBox multiline>
-            <TextField
-              id='objective-input'
-              label='Objective'
-              multiline={true}
-              focused={true}
-              fullWidth={true}
-              rows={2}
-              variant='outlined'
-              onBlur={formik.handleBlur}
-              onFocus={async e => await formik.setFieldTouched(e.currentTarget.name as string, false)}
-              onChange={formik.handleChange}
-              onReset={formik.handleReset}
-              name={'objective'}
-              value={formik.values.objective}
-              error={!!formik.errors.objective}
-              slotProps={{
-                input: {
-                  sx: {
-                    backgroundColor: Theme.palette.background.default,
-                  },
-                },
-              }}
-              helperText={formik.touched.objective && formik.errors.objective}
-            />
-          </HelperTextBox>
           <HelperTextBox multiline>
             <TextField
               label='Instructions'

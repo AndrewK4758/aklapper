@@ -2,17 +2,18 @@ import Stack from '@mui/material-pigment-css/Stack';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useFormik } from 'formik';
 import { useContext, useRef } from 'react';
-import { Form, useSubmit, type SubmitFunction } from 'react-router';
+import { Form } from 'react-router';
 import * as Yup from 'yup';
 import 'yup-phone-lite';
 import { GoogleUserContext, type GoogleUserContextProps } from '../../../contexts/contact_context_constants';
+import emailFormAction from '../../../services/actions/email-form-action';
 import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
 import { clientCheck } from '../../../utils/utils';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
 import TextInput from '../../text_input/text_input.js';
 import DateTimeInput from './date_time_input.js';
 import EmailFormActions from './email-form-actions';
-import UploadFileButton from './upload_file_button';
+import UploadFileElement from './upload_file_element.js';
 
 export type MessageMeFormValues = {
   name: string;
@@ -40,7 +41,6 @@ interface EmaiFormProps {
 const EmaiForm = ({ setOpen }: EmaiFormProps) => {
   const { GoogleUserContextValues } = useContext<GoogleUserContextProps>(GoogleUserContext);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const submit = useSubmit();
 
   const initialValues = {
     name: GoogleUserContextValues.name ?? '',
@@ -60,7 +60,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
     initialValues: initialValues,
     validationSchema: validationSchema,
     validateOnChange: false,
-    onSubmit: values => handleSubmitMessage(values, submit, setOpen),
+    onSubmit: async values => await handleSubmitMessage(values, setOpen),
   });
 
   return (
@@ -79,6 +79,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
             label={'Name'}
             formik={formik}
             variant='outlined'
+            disabled={formik.isSubmitting}
             slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
           />
 
@@ -87,6 +88,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
             label={'Email'}
             formik={formik}
             variant='outlined'
+            disabled={formik.isSubmitting}
             slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
           />
 
@@ -95,6 +97,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
             label={'Phone'}
             formik={formik}
             variant='outlined'
+            disabled={formik.isSubmitting}
             slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
           />
 
@@ -103,6 +106,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
             label={'Subject'}
             formik={formik}
             variant='outlined'
+            disabled={formik.isSubmitting}
             slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
           />
 
@@ -112,12 +116,13 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
             formik={formik}
             multiline={true}
             variant='outlined'
+            disabled={formik.isSubmitting}
             slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
           />
 
           <DateTimeInput formik={formik} name={'date'} />
 
-          <UploadFileButton fileInputRef={fileInputRef} formik={formik} name={'attachment'} />
+          <UploadFileElement fileInputRef={fileInputRef} formik={formik} name={'attachment'} />
 
           <EmailFormActions formik={formik} handleFileSubmit={handleFileSubmit} />
         </Stack>
@@ -130,11 +135,7 @@ export default EmaiForm;
 
 //TODO - move to services or actions directory
 
-const handleSubmitMessage = async (
-  values: MessageMeFormValues,
-  submit: SubmitFunction,
-  setOpen: (open: boolean) => void,
-) => {
+const handleSubmitMessage = async (values: MessageMeFormValues, setOpen: (open: boolean) => void) => {
   try {
     const { name, email, phone, subject, body, date, attachment } = values;
 
@@ -148,7 +149,7 @@ const handleSubmitMessage = async (
     form.append('date', date.format('MM-DD-YYYY/HH:mm'));
     if (attachment) form.append('attachment', attachment);
 
-    await submit(form, { method: 'post', encType: 'multipart/form-data' });
+    await emailFormAction(form, setOpen);
   } catch (error) {
     console.error(error);
     if (clientCheck()) alert('Error submitting event, Please submit again.');

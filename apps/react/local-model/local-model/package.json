@@ -10,11 +10,6 @@
   "nx": {
     "name": "local-model",
     "projectType": "application",
-    "sourceRoot": "apps/react/local-model/local-model/src",
-    "implicitDependencies": [
-      "react-shared",
-      "socket-io-client",
-      "wdg-agents"
-    ]
+    "sourceRoot": "apps/react/local-model/local-model/src"
   }
 }

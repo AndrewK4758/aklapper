@@ -12,11 +12,22 @@ interface EmailFormActionsProps extends DialogActionsProps {
 export default function EmailFormActions({ formik, handleFileSubmit, ...props }: EmailFormActionsProps) {
   return (
     <DialogActions {...props}>
-      <Button variant='outlined' id='upload-file-button' data-testid='upload-file-button' onClick={handleFileSubmit}>
+      <Button
+        variant='outlined'
+        disabled={formik.isSubmitting}
+        id='upload-file-button'
+        data-testid='upload-file-button'
+        onClick={handleFileSubmit}
+      >
         Upload File
       </Button>
       <AnimatedBorderBox>
-        <Button type='submit' id='submit-email-me-button' data-testid='submit-email-me-button'>
+        <Button
+          type='submit'
+          disabled={formik.isSubmitting}
+          id='submit-email-me-button'
+          data-testid='submit-email-me-button'
+        >
           Submit
         </Button>
       </AnimatedBorderBox>
