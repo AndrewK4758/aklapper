@@ -341,7 +341,7 @@ importers:
         version: 7.0.2(@types/node@24.0.10)(jiti@2.4.2)(terser@5.43.1)(yaml@2.8.0)
       vite-plugin-dts:
         specifier: 4.5.4
-        version: 4.5.4(@types/node@24.0.10)(rollup@4.44.1)(typescript@5.8.3)(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(terser@5.43.1)(yaml@2.8.0))
+        version: 4.5.4(@types/node@24.0.10)(rollup@4.44.2)(typescript@5.8.3)(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(terser@5.43.1)(yaml@2.8.0))
       vitest:
         specifier: 3.2.4
         version: 3.2.4(@types/node@24.0.10)(@vitest/ui@3.2.4)(happy-dom@15.11.7)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.0)
@@ -7376,52 +7376,8 @@ packages:
   rfdc@1.4.1:
     resolution: {integrity: sha512-q1b3N5QkRUWUl7iyylaaj3kOpIT0N2i9MqIEQXP73GVsN9cw3fdx8X63cEmWhJGi2PPCF23Ijp7ktmd39rawIA==}
 
-  rolldown-vite@7.0.5:
-    resolution: {integrity: sha512-z239GrVtwr+DVgFw6s64Wa+OLjE4aG1Ux+MeVdQKXes0XaIDja5ouacPDLExgpSlplbe0zxSb1JbYtFvOr+pIw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    hasBin: true
-    peerDependencies:
-      '@types/node': ^20.19.0 || >=22.12.0
-      esbuild: ^0.25.0
-      jiti: '>=1.21.0'
-      less: ^4.0.0
-      sass: ^1.70.0
-      sass-embedded: ^1.70.0
-      stylus: '>=0.54.8'
-      sugarss: ^5.0.0
-      terser: ^5.16.0
-      tsx: ^4.8.1
-      yaml: ^2.4.2
-    peerDependenciesMeta:
-      '@types/node':
-        optional: true
-      esbuild:
-        optional: true
-      jiti:
-        optional: true
-      less:
-        optional: true
-      sass:
-        optional: true
-      sass-embedded:
-        optional: true
-      stylus:
-        optional: true
-      sugarss:
-        optional: true
-      terser:
-        optional: true
-      tsx:
-        optional: true
-      yaml:
-        optional: true
-
-  rolldown@1.0.0-beta.24:
-    resolution: {integrity: sha512-eDyipoOnoHQ5p6INkJ8g31eKGlqPSCAN9PapyOTw5HET4FYIWALZnSgpMZ67mdn+xT3jAsqGidNnBcIM6EAUhA==}
-    hasBin: true
-
-  rollup@4.44.2:
-    resolution: {integrity: sha512-PVoapzTwSEcelaWGth3uR66u7ZRo6qhPHc0f2uRO9fX6XDVNrIiGYS0Pj9+R8yIIYSD/mCx2b16Ws9itljKSPg==}
+  rollup@4.44.1:
+    resolution: {integrity: sha512-x8H8aPvD+xbl0Do8oez5f5o8eMS3trfCghc4HhLAnCkj7Vl0d1JWGs0UF/D886zLW2rOj2QymV/JcSSsw+XDNg==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
 
@@ -11419,9 +11375,7 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.0-beta.19': {}
 
-  '@rolldown/pluginutils@1.0.0-beta.24': {}
-
-  '@rollup/pluginutils@5.2.0(rollup@4.44.2)':
+  '@rollup/pluginutils@5.2.0(rollup@4.44.1)':
     dependencies:
       '@types/estree': 1.0.8
       estree-walker: 2.0.2
@@ -16737,44 +16691,7 @@ snapshots:
 
   rfdc@1.4.1: {}
 
-  rolldown-vite@7.0.5(@types/node@24.0.10)(esbuild@0.25.5)(jiti@2.4.2)(terser@5.43.1)(yaml@2.8.0):
-    dependencies:
-      '@oxc-project/runtime': 0.75.0
-      fdir: 6.4.6(picomatch@4.0.2)
-      lightningcss: 1.30.1
-      picomatch: 4.0.2
-      postcss: 8.5.6
-      rolldown: 1.0.0-beta.24
-      tinyglobby: 0.2.14
-    optionalDependencies:
-      '@types/node': 24.0.10
-      esbuild: 0.25.5
-      fsevents: 2.3.3
-      jiti: 2.4.2
-      terser: 5.43.1
-      yaml: 2.8.0
-
-  rolldown@1.0.0-beta.24:
-    dependencies:
-      '@oxc-project/runtime': 0.75.1
-      '@oxc-project/types': 0.75.1
-      '@rolldown/pluginutils': 1.0.0-beta.24
-      ansis: 4.1.0
-    optionalDependencies:
-      '@rolldown/binding-darwin-arm64': 1.0.0-beta.24
-      '@rolldown/binding-darwin-x64': 1.0.0-beta.24
-      '@rolldown/binding-freebsd-x64': 1.0.0-beta.24
-      '@rolldown/binding-linux-arm-gnueabihf': 1.0.0-beta.24
-      '@rolldown/binding-linux-arm64-gnu': 1.0.0-beta.24
-      '@rolldown/binding-linux-arm64-musl': 1.0.0-beta.24
-      '@rolldown/binding-linux-x64-gnu': 1.0.0-beta.24
-      '@rolldown/binding-linux-x64-musl': 1.0.0-beta.24
-      '@rolldown/binding-wasm32-wasi': 1.0.0-beta.24
-      '@rolldown/binding-win32-arm64-msvc': 1.0.0-beta.24
-      '@rolldown/binding-win32-ia32-msvc': 1.0.0-beta.24
-      '@rolldown/binding-win32-x64-msvc': 1.0.0-beta.24
-
-  rollup@4.44.2:
+  rollup@4.44.1:
     dependencies:
       '@types/estree': 1.0.8
     optionalDependencies:
@@ -17701,7 +17618,7 @@ snapshots:
       - tsx
       - yaml
 
-  vite-plugin-dts@4.5.4(@types/node@24.0.10)(rollup@4.44.1)(typescript@5.8.3)(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(terser@5.43.1)(yaml@2.8.0)):
+  vite-plugin-dts@4.5.4(@types/node@24.0.10)(rollup@4.44.2)(typescript@5.8.3)(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(terser@5.43.1)(yaml@2.8.0)):
     dependencies:
       '@microsoft/api-extractor': 7.52.8(@types/node@24.0.10)
       '@rollup/pluginutils': 5.2.0(rollup@4.44.2)
