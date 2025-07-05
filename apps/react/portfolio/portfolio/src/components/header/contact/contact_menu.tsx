@@ -1,4 +1,5 @@
-import Box from '@mui/material/Box';
+import Box from '@mui/material-pigment-css/Box';
+import { css } from '@pigment-css/react';
 import DiscordIcon from '../../icons/discord-icon';
 import EmailIcon from '../../icons/email-icon';
 import FacebookIcon from '../../icons/facebook-icon';
@@ -16,11 +17,13 @@ interface ContactMenuProps {
 export default function ContactMenu({ isOpen, handleOpenEmail }: ContactMenuProps) {
   return (
     <Box
-      width={'100%'}
-      display={'flex'}
-      alignItems={'center'}
-      justifyContent={'space-around'}
-      id='contact-menu'
+      className={css({
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-around',
+      })}
+      data-testid={'contact-menu'}
       inert={!isOpen}
     >
       <ContactIcon generalId='github' iconHref='https://github.com/AndrewK4758/aklapper'>

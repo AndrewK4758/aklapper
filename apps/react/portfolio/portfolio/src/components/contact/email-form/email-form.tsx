@@ -9,7 +9,7 @@ import { GoogleUserContext, type GoogleUserContextProps } from '../../../context
 import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
 import { clientCheck } from '../../../utils/utils';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
-import TextInput from '../../styled/text_input.js';
+import TextInput from '../../text_input/text_input.js';
 import DateTimeInput from './date_time_input.js';
 import EmailFormActions from './email-form-actions';
 import UploadFileButton from './upload_file_button';

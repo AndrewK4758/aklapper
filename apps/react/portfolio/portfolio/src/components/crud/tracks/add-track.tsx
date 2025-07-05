@@ -9,7 +9,7 @@ import { type Dispatch, type ReactElement, type SetStateAction } from 'react';
 import { Form } from 'react-router';
 import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
 import CenteredFlexDiv from '../../styled/centered_flexbox.js';
-import TextInput from '../../styled/text_input.js';
+import TextInput from '../../text_input/text_input.js';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 

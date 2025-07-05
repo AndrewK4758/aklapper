@@ -1,8 +1,8 @@
 import { Waiting } from '@aklapper/react-shared';
+import { css } from '@mui/material-pigment-css';
 import Box from '@mui/material-pigment-css/Box';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
-import type { SxProp } from '@pigment-css/react';
 import { lazy, ReactElement, Suspense, useState } from 'react';
 import { Outlet } from 'react-router';
 import waiting from '../../assets/images/swirly-dots-to-chrome.webp';
@@ -12,13 +12,6 @@ import CenteredFlexDiv from '../../components/styled/centered_flexbox';
 import Theme from '../../styles/themes/theme';
 
 const Search = lazy(() => import('../../components/crud/search/search'));
-
-const crudHeaderWrapperSxProps: SxProp = {
-  display: 'flex',
-  padding: `${Theme.spacing(4)} ${Theme.spacing(8)}`,
-  backgroundColor: Theme.palette.background.paper,
-  borderRadius: Theme.shape.borderRadius,
-};
 
 /**
  * This component renders the CRUD (Create, Read, Update, Delete) section of the application.
@@ -35,18 +28,17 @@ export default function Crud(): ReactElement {
   };
 
   return (
-    <Box
-      id='crud-wrapper'
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: Theme.spacing(4),
-        borderRadius: Theme.shape.borderRadius,
-      }}
-    >
-      <Box sx={crudHeaderWrapperSxProps}>
+    <CenteredFlexDiv id='crud-wrapper'>
+      <Box
+        className={css({
+          display: 'flex',
+          padding: `${Theme.spacing(4)} ${Theme.spacing(8)}`,
+          backgroundColor: Theme.palette.background.paper,
+          borderRadius: Theme.shape.borderRadius,
+        })}
+      >
         <Divider flexItem orientation='vertical' />
-        <Box sx={{ display: 'flex', flexDirection: 'row' }}>
+        <Box className={css({ display: 'flex', flexDirection: 'row' })}>
           <CenteredFlexDiv>
             <CrudHeader />
           </CenteredFlexDiv>
@@ -73,6 +65,6 @@ export default function Crud(): ReactElement {
           <Outlet />
         </Suspense>
       </Box>
-    </Box>
+    </CenteredFlexDiv>
   );
 }

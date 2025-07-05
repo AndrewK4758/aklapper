@@ -9,7 +9,8 @@
       "node",
       "vitest",
       "@nx/react/typings/cssmodule.d.ts",
-      "@nx/react/typings/image.d.ts"
+      "@nx/react/typings/image.d.ts",
+      "@testing-library/jest-dom"
     ],
     "jsx": "react-jsx",
     "lib": ["DOM"],
@@ -18,7 +19,8 @@
   },
   "include": [
     "vite.config.ts",
-    "tests/mocks/**/*.tsx",
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
     "tests/**/*.test.ts",
     "tests/**/*.spec.ts",
     "tests/**/*.test.tsx",

@@ -1,4 +1,5 @@
-import Box from '@mui/material/Box';
+import { css } from '@mui/material-pigment-css';
+import Box from '@mui/material-pigment-css/Box';
 import Grid from '@mui/material/Grid';
 import { type ReactElement } from 'react';
 import techStackData from '../static/tech-stack-text';
@@ -12,8 +13,8 @@ import TechList from './tech-list';
 
 const TechStackLists = (): ReactElement => {
   return (
-    <Box sx={{ flex: '70%', height: 'fit-content' }}>
-      <Grid container wrap='wrap' rowGap={4} columnGap={1}>
+    <Box className={css({ flex: '70%', height: 'fit-content' })} id='tech-stack-wrapper'>
+      <Grid container wrap='wrap' rowGap={4} columnGap={1} data-testid='tech-stack-lists-grid'>
         {techStackData.map(entry => (
           <TechList
             key={entry[0]}

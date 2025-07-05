@@ -3,7 +3,7 @@ import TextField, { type OutlinedTextFieldProps } from '@mui/material/TextField'
 import type { FormikProps } from 'formik';
 import { useState, type FocusEvent, type HTMLInputTypeAttribute, type ReactElement } from 'react';
 import handleFormikBlur from '../../services/actions/crud-actions/handle_formik_blur';
-import HelperTextBox from './helper_text_box';
+import HelperTextBox from '../styled/helper_text_box';
 
 interface TextInputProps<T extends object>
   extends Omit<
@@ -53,7 +53,7 @@ export default function TextInput<T extends object>({
         fullWidth
         value={formik.values[name]}
         type={type}
-        data-testid={name}
+        data-testid={`${name}-input`}
         name={name}
         label={label}
         variant='outlined'

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import ContactMenu from './contact_menu.js';
-import ContactRevealWrapper from './contact_reveal.js';
+import Box from '@mui/material-pigment-css/Box';
+import { css } from '@pigment-css/react';
+import RevealWrapper from '../../styled/reval_wrapper';
+import ContactMenu from './contact_menu';
 
 interface AnimatedContactMenuProps {
   isOpen: boolean;
@@ -8,20 +9,19 @@ interface AnimatedContactMenuProps {
 }
 
 export default function AnimatedContactMenu({ isOpen, handleOpenEmail }: AnimatedContactMenuProps) {
-  const [contactWidth, setContactWidth] = useState(0);
-  const contactRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const element = contactRef.current;
-    if (element) {
-      const width = element.getBoundingClientRect().width;
-      setContactWidth(width);
-    }
-  }, []);
-
   return (
-    <ContactRevealWrapper contactRef={contactRef} dynamicWidth={contactWidth} isOpen={isOpen}>
-      <ContactMenu isOpen={isOpen} handleOpenEmail={handleOpenEmail} />
-    </ContactRevealWrapper>
+    <RevealWrapper isOpen={isOpen} data-testid={'contact-reveal-wrapper'}>
+      {isOpen && (
+        <Box
+          className={css({
+            minWidth: '90vw',
+            width: '100%',
+            height: '100%',
+          })}
+        >
+          <ContactMenu isOpen={isOpen} handleOpenEmail={handleOpenEmail} />
+        </Box>
+      )}
+    </RevealWrapper>
   );
 }

@@ -22,7 +22,7 @@ import TextIcon from '../../icons/text-icon.jsx';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
 import HelperTextBox from '../../styled/helper_text_box';
 import StyledCard from '../../styled/styled_card';
-import TextInput from '../../styled/text_input';
+import TextInput from '../../text_input/text_input.js';
 import { SUPPORTED_FORMATS } from '../static/definitions.jsx';
 import { promptBuilderHeaderText } from '../static/prompt-builder-text.jsx';
 import handleFileUpload from './file_upload.js';

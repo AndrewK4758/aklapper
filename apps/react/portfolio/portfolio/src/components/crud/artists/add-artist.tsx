@@ -7,7 +7,7 @@ import { Form } from 'react-router';
 import handleSubmitNewArtist from '../../../services/actions/crud-actions/submit-artist-action';
 import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
 import CenteredFlexDiv from '../../styled/centered_flexbox.js';
-import TextInput from '../../styled/text_input';
+import TextInput from '../../text_input/text_input.js';
 
 interface AddArtistProps {
   rowCountState: number;

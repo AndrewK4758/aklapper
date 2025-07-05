@@ -16,7 +16,7 @@ export default function NavButton({ buttonText, name, buttonSx, ...props }: NavB
     nav(e.currentTarget.name);
   };
   return (
-    <Button {...props} name={name} data-testid={props.id} sx={buttonSx} onClick={handleOnClick}>
+    <Button {...props} name={name} sx={buttonSx} role='button' onClick={handleOnClick}>
       {buttonText}
     </Button>
   );

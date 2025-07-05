@@ -7,7 +7,7 @@ import { Form, useParams } from 'react-router';
 import handleSubmitAlbumOnArtist from '../../../services/actions/crud-actions/submit-album-on-artist-action.jsx';
 import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
 import CenteredFlexDiv from '../../styled/centered_flexbox.js';
-import TextInput from '../../styled/text_input.js';
+import TextInput from '../../text_input/text_input.js';
 
 interface AddAlbumOnArtistProps {
   setRows: Dispatch<SetStateAction<album[] | null>>;
