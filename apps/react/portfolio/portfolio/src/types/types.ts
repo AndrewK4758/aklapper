@@ -87,17 +87,3 @@ export declare class MediaRecorderClient extends EventTarget {
   onpause: (event: Event) => void;
   onresume: (event: Event) => void;
 }
-
-/***********************************************************************************/
-
-type CRUD_SubmitAction = {
-  intent: 'create' | 'update' | 'delete';
-};
-
-export type TrackWithStringDecimal = { [K in keyof track]: track[K] extends Prisma.Decimal ? string : track[K] };
-
-export type ArtistSubmitAction = CRUD_SubmitAction & { artist: Partial<artist> };
-
-export type AlbumSubmitAction = CRUD_SubmitAction & { album: Partial<album> };
-
-export type TrackSubmitAction = CRUD_SubmitAction & { track: Partial<TrackWithStringDecimal> };
