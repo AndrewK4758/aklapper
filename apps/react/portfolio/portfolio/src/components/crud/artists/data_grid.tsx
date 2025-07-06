@@ -39,19 +39,13 @@ export default function ArtistDataGrid({ rows, COUNT, fetcher }: ArtistDataGridP
     page: parseInt(cursor, 10) === 1 ? 0 : Math.floor(parseInt(cursor, 10) / parseInt(take, 10)),
   };
 
-  const queryOptions: QueryOptions = {
-    take: model.pageSize.toString(),
-    skip: model.page === 0 ? '0' : '1',
-    cursor: model.page === 0 ? '1' : (model.pageSize * model.page).toString(),
-  };
-
   const handleChangePagination = (model: GridPaginationModel) => {
-    const newQueryOptions: QueryOptions = {
+    const queryOptions: QueryOptions = {
+      cursor: model.page === 0 ? '1' : (model.pageSize * model.page).toString(),
       take: model.pageSize.toString(),
       skip: model.page === 0 ? '0' : '1',
-      cursor: model.page === 0 ? '1' : (model.pageSize * model.page).toString(),
     };
-    setSearchParams(newQueryOptions);
+    setSearchParams(queryOptions);
   };
 
   const processRowUpdate = useCallback((newRow: artist) => {
