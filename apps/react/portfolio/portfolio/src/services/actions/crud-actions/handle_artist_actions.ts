@@ -2,19 +2,16 @@ import type { artist } from '@aklapper/chinook-client';
 import type { CRUD_ApiResponse } from '@aklapper/types';
 import axios from 'axios';
 import type { ActionFunction, ActionFunctionArgs } from 'react-router';
-import type { ArtistSubmitAction } from '../../../types/types';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
 const handleArtistActions: ActionFunction = async ({ request }: ActionFunctionArgs): Promise<artist | void> => {
   try {
-    const submit = (await request.json()) as ArtistSubmitAction;
+    const data = await request.json();
 
-    switch (submit.intent) {
+    switch (data.intent) {
       case 'create': {
-        const {
-          artist: { name },
-        } = submit;
+        const name = data.name;
 
         const resp = await axios.post(
           `${baseURL}/artists`,
@@ -22,26 +19,22 @@ const handleArtistActions: ActionFunction = async ({ request }: ActionFunctionAr
           { headers: { 'Content-Type': 'application/json' } },
         );
 
-        const { message, data } = resp.data as CRUD_ApiResponse<artist>;
+        const { value } = resp.data as CRUD_ApiResponse<artist>;
 
-        console.log(message);
-        return data;
+        console.log(value);
+        return value;
       }
       case 'update': {
-        const {
-          artist: { artist_id, name },
-        } = submit;
+        const { artist_id, name } = data;
         const resp = await axios.patch(
           `${baseURL}/artists`,
           { artist_id, name },
           { headers: { 'Content-Type': 'application/json' } },
         );
 
-        const { message, data } = resp.data as CRUD_ApiResponse<artist>;
+        console.log(resp.data);
 
-        console.info(message);
-
-        return data;
+        return resp.data;
       }
 
       case 'delete': {
@@ -53,11 +46,8 @@ const handleArtistActions: ActionFunction = async ({ request }: ActionFunctionAr
           headers: { 'Content-Type': 'application/json' },
         });
 
-        const { message, data } = resp.data as CRUD_ApiResponse<artist>;
-
-        console.info(message);
-
-        return data;
+        console.log(resp.data);
+        return resp.data;
       }
       default:
         break;

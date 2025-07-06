@@ -5,18 +5,20 @@ import type { LoaderFunction, LoaderFunctionArgs } from 'react-router';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
-const loadArtistsCount: LoaderFunction = async ({
-  request,
-}: LoaderFunctionArgs): Promise<DataGridLoaderWithCount<artist[]> | void> => {
+const loadArtists = async (queryOptions: QueryOptions, signal: AbortSignal): Promise<artist[]> => {
   try {
     const { search } = new URL(request.url);
 
     const resp = await axios.get(`${baseURL}/artists${search}`);
-    const { count, data } = resp.data;
 
-    return { count, data };
+    const { message, data } = resp.data as CRUD_ApiResponse<{ count: number; data: artist[] }>;
+
+    console.info(message);
+
+    return data;
   } catch (error) {
     console.error(error);
+    throw error;
   }
 };
 
