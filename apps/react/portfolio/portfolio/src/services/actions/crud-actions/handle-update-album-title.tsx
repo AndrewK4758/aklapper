@@ -1,11 +1,11 @@
 import type { album } from '@aklapper/chinook-client';
-import type { FetcherSubmitFunction } from 'react-router';
+import type { FetcherWithComponents } from 'react-router';
 
-const handleUpdateAlbumTitle = async (values: album, submit: FetcherSubmitFunction) => {
+const handleUpdateAlbumTitle = async (values: album, fetcher: FetcherWithComponents<album>) => {
   try {
     const { album_id, title } = values;
 
-    await submit(
+    await fetcher.submit(
       { album_id, title, intent: 'update' },
       { method: 'PATCH', encType: 'application/json', action: 'portfolio/crud/artists/:artistID/albums' },
     );
