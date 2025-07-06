@@ -87,3 +87,7 @@ export declare class MediaRecorderClient extends EventTarget {
   onpause: (event: Event) => void;
   onresume: (event: Event) => void;
 }
+
+/***********************************************************************************/
+
+export type ArtistLoader = { count: number; data: artist[] };
