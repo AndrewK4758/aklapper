@@ -91,3 +91,5 @@ export declare class MediaRecorderClient extends EventTarget {
 /***********************************************************************************/
 
 export type ArtistLoader = { count: number; data: artist[] };
+
+export type AlbumLoader = { count: number; data: album[] };
