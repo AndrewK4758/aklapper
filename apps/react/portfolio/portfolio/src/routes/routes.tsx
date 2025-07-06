@@ -19,13 +19,9 @@ import Crud from '../pages/crud/crud';
 import Games from '../pages/games/games';
 import GenAiHome from '../pages/gen-ai/gen-ai';
 
-import handleArtistAlbumsActions from '../services/actions/crud-actions/handle_album_actions.js';
 import handleArtistActions from '../services/actions/crud-actions/handle_artist_actions.js';
-import handleTrackActions from '../services/actions/crud-actions/handle_track_actions';
-import generateImageAction from '../services/actions/generate-image-action';
-
+import loadTracksCount from '../services/loaders/crud-loaders/load_tracks_count';
 import registerPlayersAndStartGame from '../services/loaders/register-players-and-start-game';
-
 const ActiveGameSession = lazy(() => import('../components/games/active_game_session'));
 
 const AddEntry = lazy(() => import('../components/crud/add-entry/add-entry'));
@@ -73,22 +69,17 @@ export const routes: RouteObject[] = [
           {
             path: 'artists',
             Component: Artist,
-            loader: loadArtistsAndCount,
-            id: 'artists',
+            loader: loadArtistsCount,
             action: handleArtistActions,
             children: [
               {
                 path: ':artistID/albums',
                 Component: AlbumsOnArtist,
-                id: 'artist_albums',
-                action: handleArtistAlbumsActions,
-                loader: loadAlbumsForArtist,
                 children: [
                   {
                     path: ':albumID/tracks',
                     Component: Tracks,
-                    action: handleTrackActions,
-                    loader: loadAlbumTracks,
+                    loader: loadTracksCount,
                   },
                 ],
               },
@@ -97,12 +88,12 @@ export const routes: RouteObject[] = [
           {
             path: 'albums',
             Component: Album,
-            loader: loadAlbums,
+            loader: loadAlbumsCount,
             children: [
               {
                 path: ':albumID/tracks',
                 Component: Tracks,
-                loader: loadAlbumTracks,
+                loader: loadTracksCount,
               },
             ],
           },
