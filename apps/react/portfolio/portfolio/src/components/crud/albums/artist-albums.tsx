@@ -26,7 +26,7 @@ export interface AlbumState {
  */
 
 export const AlbumsOnArtist = (): ReactElement => {
-  const { data } = useLoaderData<DataGridLoader<album[]>>();
+  const { count, data } = useLoaderData<AlbumLoader>();
   const fetcher = useFetcher();
 
   return (
@@ -47,7 +47,7 @@ export const AlbumsOnArtist = (): ReactElement => {
           </Container>
         </Box>
         <Box sx={{ width: '100%' }}>
-          <AlbumDataGrid rows={data} fetcher={fetcher} />
+          <AlbumDataGrid count={count} rows={data} fetcher={fetcher} />
         </Box>
       </Box>
       <Box sx={{ width: '100%' }}>
