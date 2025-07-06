@@ -18,16 +18,20 @@ import getArtistAlbums from '../services/prisma/album/get-artist-albums.js';
 const getArtistsAlbums = async (req: Request, resp: Response): Promise<void> => {
   try {
     const artistID = req.params.id;
+    const { cursor, skip, take } = req.query;
+
+    console.log('ARTIST ID: ', artistID);
+    console.log(cursor, skip, take);
 
     const query = {
       where: { artist_id: parseInt(artistID, 10) },
     } as Prisma.albumFindManyArgs<DefaultArgs>;
 
-    const data = await getArtistAlbums(query);
+    const { count, data } = await getArtistAlbums(query);
 
-    const respData: CRUD_ApiResponse<album[]> = {
+    const respData: CRUD_ApiResponse<{ count: number; data: album[] }> = {
       message: 'Arist Albums found',
-      data: data,
+      value: { count, data },
     };
     resp.status(200).json(respData);
   } catch (error) {
