@@ -4,19 +4,19 @@ import type { QueryOptions } from '../../../types/types.js';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
-const loadArtists = async (queryOptions: QueryOptions, signal: AbortSignal): Promise<artist[] | null> => {
+const loadArtists = async (queryOptions: QueryOptions, signal: AbortSignal): Promise<artist[]> => {
   try {
-    const { pageSize, skip, cursor } = queryOptions;
-    const resp = await axios.get(`${baseURL}/artists?take=${pageSize}&skip=${skip}&cursor=${cursor}`, {
+    const { take, skip, cursor } = queryOptions;
+    const resp = await axios.get(`${baseURL}/artists?take=${take}&skip=${skip}&cursor=${cursor}`, {
       headers: { 'Content-Type': 'text/plain' },
       signal,
     });
 
-    const { allArtists } = resp.data;
-    return allArtists as artist[];
+    const { data } = resp.data;
+    return data as artist[];
   } catch (error) {
     console.error(error);
-    return null;
+    throw error;
   }
 };
 

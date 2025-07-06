@@ -1,4 +1,4 @@
-import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import type { PaginationModel } from '../components/crud/artists/data_grid';
 import type { QueryOptions } from '../types/types';
 
@@ -9,17 +9,18 @@ type FetchDataResult = {
 
 const useFetchDataGridData = <T>(
   paginationModel: PaginationModel,
-  loadData: (queryOptions: QueryOptions, signal: AbortSignal, ...args: string[]) => Promise<T | null>,
-  setRows: Dispatch<SetStateAction<T | null>>,
+  loadData: (queryOptions: QueryOptions, signal: AbortSignal, ...args: string[]) => Promise<T>,
+  setRows: Dispatch<SetStateAction<T>>,
   ...args: string[]
 ): FetchDataResult => {
   const [isLoading, setIsLoading] = useState(true);
+  const firstRenderRef = useRef(true);
 
   const { signal } = new AbortController();
 
   const queryOptions: QueryOptions = {
     cursor: paginationModel.page === 0 ? 1 : paginationModel.pageSize * paginationModel.page,
-    pageSize: paginationModel.pageSize,
+    take: paginationModel.pageSize,
     skip: paginationModel.page === 0 ? 0 : 1,
   };
 
@@ -27,6 +28,7 @@ const useFetchDataGridData = <T>(
     try {
       const data = await loadData(queryOptions, signal, ...args);
 
+      console.log(data);
       setRows(data);
     } catch (error) {
       console.error(error);
@@ -36,8 +38,12 @@ const useFetchDataGridData = <T>(
   };
 
   useEffect(() => {
+    if (firstRenderRef.current) {
+      firstRenderRef.current = false;
+      return;
+    }
     fetchData();
-  }, [paginationModel, setRows, ...args]);
+  }, [paginationModel, setRows]);
 
   return { isLoading, refetchData: fetchData };
 };

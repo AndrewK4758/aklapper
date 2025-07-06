@@ -15,10 +15,10 @@ import Crud from '../pages/crud/crud';
 import Games from '../pages/games/games';
 import GenAiHome from '../pages/gen-ai/gen-ai';
 import generateImageAction from '../services/actions/generate-image-action';
-// import handlePromptBuilder from '../services/actions/prompt-builder-action';
+
+import handleArtistActions from '../services/actions/crud-actions/handle_artist_actions.js';
 import loadTracksCount from '../services/loaders/crud-loaders/load_tracks_count';
 import registerPlayersAndStartGame from '../services/loaders/register-players-and-start-game';
-
 const ActiveGameSession = lazy(() => import('../components/games/active_game_session'));
 
 const AddEntry = lazy(() => import('../components/crud/add-entry/add-entry'));
@@ -45,36 +45,37 @@ const Audio = lazy(() => import('../components/gen-ai/audio/audio'));
 const routes: RouteObject[] = [
   {
     path: '/',
-    element: <LandingPage />,
+    Component: LandingPage,
     hydrateFallbackElement: <Waiting src={waiting} />,
     errorElement: <BaseError />,
     id: 'landing',
   },
   {
     path: 'portfolio',
-    element: <Layout />,
+    Component: Layout,
     children: [
       {
         index: true,
-        element: <Home />,
+        Component: Home,
       },
       {
         path: 'crud',
-        element: <Crud />,
+        Component: Crud,
         hydrateFallbackElement: <Waiting src={waiting} />,
         children: [
           {
             path: 'artists',
-            element: <Artist />,
+            Component: Artist,
             loader: loadArtistsCount,
+            action: handleArtistActions,
             children: [
               {
                 path: ':artistID/albums',
-                element: <AlbumsOnArtist />,
+                Component: AlbumsOnArtist,
                 children: [
                   {
                     path: ':albumID/tracks',
-                    element: <Tracks />,
+                    Component: Tracks,
                     loader: loadTracksCount,
                   },
                 ],
@@ -83,52 +84,51 @@ const routes: RouteObject[] = [
           },
           {
             path: 'albums',
-            element: <Album />,
+            Component: Album,
             loader: loadAlbumsCount,
             children: [
               {
                 path: ':albumID/tracks',
-                element: <Tracks />,
+                Component: Tracks,
                 loader: loadTracksCount,
               },
             ],
           },
           {
             path: 'add-entry',
-            element: <AddEntry />,
+            Component: AddEntry,
           },
         ],
       },
       {
         path: 'games',
         action: registerPlayersAndStartGame,
-        element: <Games />,
+        Component: Games,
         id: 'games',
         children: [
           {
             index: true,
             path: ':id',
             id: 'active-game',
-            element: <ActiveGameSession />,
+            Component: ActiveGameSession,
           },
         ],
       },
       {
         path: 'gen-ai',
-        element: <GenAiHome />,
+        Component: GenAiHome,
         id: 'gen-ai',
-        // action: handlePromptBuilder,
         errorElement: <BaseError />,
         children: [
           {
             path: 'text',
             id: 'text',
-            element: <TextGenerator />,
+            Component: TextGenerator,
             errorElement: <BaseError />,
           },
           {
             path: 'image',
-            element: <Image />,
+            Component: Image,
             id: 'image',
             action: generateImageAction,
             errorElement: <BaseError />,
@@ -136,14 +136,14 @@ const routes: RouteObject[] = [
           {
             path: 'audio',
             id: 'audio',
-            element: <Audio />,
+            Component: Audio,
             errorElement: <BaseError />,
           },
         ],
       },
       {
         path: 'privacy-policy',
-        element: <PrivacyPolicy />,
+        Component: PrivacyPolicy,
       },
     ],
   },

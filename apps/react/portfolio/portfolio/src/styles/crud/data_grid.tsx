@@ -8,6 +8,8 @@ export const allDataGridsWrapperSxProps: SxProp = {
   alignItems: 'flex-start',
   padding: 0,
   gap: Theme.spacing(4),
+  border: 2,
+  width: '100%',
 };
 
 export const artistsSxProps: SxProp = {

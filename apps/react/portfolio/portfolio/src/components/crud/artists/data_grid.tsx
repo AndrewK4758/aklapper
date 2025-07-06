@@ -2,44 +2,51 @@ import type { artist } from '@aklapper/chinook-client';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import DetailsIcon from '@mui/icons-material/Details';
 import UploadIcon from '@mui/icons-material/Upload';
-import { useGridApiRef } from '@mui/x-data-grid';
+import { useGridApiRef, type GridPaginationModel } from '@mui/x-data-grid';
 import { GridActionsCellItem } from '@mui/x-data-grid/components/cell';
 import { DataGrid } from '@mui/x-data-grid/DataGrid';
 import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import type { GridColDef } from '@mui/x-data-grid/models/colDef';
 import type { GridRowParams } from '@mui/x-data-grid/models/params';
-import axios from 'axios';
-import { useCallback, useState, type Dispatch, type SetStateAction } from 'react';
-import { useNavigate } from 'react-router';
-import useFetchDataGridData from '../../../hooks/useFetchDataGridData';
-import loadArtists from '../../../services/loaders/crud-loaders/load-artists';
+import { useCallback, useState } from 'react';
+import { useNavigate, useSearchParams, type FetcherWithComponents } from 'react-router';
 import { DATA_GRID_BG } from '../../../styles/base/base_styles';
 import Theme from '../../../styles/themes/theme';
+import type { QueryOptions } from '../../../types/types';
 
 export type PaginationModel = {
   pageSize: number;
   page: number;
 };
 
-const paginationModelInit: PaginationModel = {
-  pageSize: 25,
-  page: 0,
-};
-
 interface ArtistDataGridProps {
   COUNT: number;
-  setRowCountState: (rowCount: number) => void;
-  rows: artist[] | null;
-  setRows: Dispatch<SetStateAction<artist[] | null>>;
+  rows: artist[];
+  fetcher: FetcherWithComponents<artist>;
 }
 
-export default function ArtistDataGrid({ rows, setRows, COUNT, setRowCountState }: ArtistDataGridProps) {
-  const [paginationModel, setPaginationModel] = useState<PaginationModel>(paginationModelInit);
+export default function ArtistDataGrid({ rows, COUNT, fetcher }: ArtistDataGridProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [dirtyRows, setDirtyRows] = useState<Set<number>>(new Set());
   const dgApiRef = useGridApiRef<GridApiCommunity>();
   const nav = useNavigate();
 
-  useFetchDataGridData<artist[]>(paginationModel, loadArtists, setRows);
+  const take = searchParams.get('take') as string;
+  const cursor = searchParams.get('cursor') as string;
+
+  const model: PaginationModel = {
+    pageSize: parseInt(take, 10),
+    page: parseInt(cursor, 10) === 1 ? 0 : Math.floor(parseInt(cursor, 10) / parseInt(take, 10)),
+  };
+
+  const handleChangePagination = (model: GridPaginationModel) => {
+    const queryOptions: QueryOptions = {
+      cursor: model.page === 0 ? '1' : (model.pageSize * model.page).toString(),
+      take: model.pageSize.toString(),
+      skip: model.page === 0 ? '0' : '1',
+    };
+    setSearchParams(queryOptions);
+  };
 
   const processRowUpdate = useCallback((newRow: artist) => {
     setDirtyRows(prev => new Set(prev).add(newRow.artist_id));
@@ -81,16 +88,14 @@ export default function ArtistDataGrid({ rows, setRows, COUNT, setRowCountState 
             title='Update'
             id='update-button'
             disabled={!isDirty}
-            onClick={() => handleUpdateArtistName(row, setRows)}
+            onClick={() => handleUpdateArtistName(row, fetcher)}
           />,
           <GridActionsCellItem
             label='Delete'
             title='Delete'
             id='delete-button'
             icon={<DeleteForeverIcon color='error' />}
-            onClick={() => {
-              handleDeleteArtist(row, setRows);
-            }}
+            onClick={() => handleDeleteArtist(row, fetcher)}
           />,
         ];
       },
@@ -129,9 +134,8 @@ export default function ArtistDataGrid({ rows, setRows, COUNT, setRowCountState 
       paginationMode='server'
       filterMode='server'
       sortingMode='server'
-      onRowCountChange={newRowCount => setRowCountState(newRowCount)}
-      onPaginationModelChange={setPaginationModel}
-      paginationModel={paginationModel}
+      onPaginationModelChange={handleChangePagination}
+      paginationModel={model}
       processRowUpdate={processRowUpdate}
       onProcessRowUpdateError={error => console.error(error)}
       sx={{
@@ -154,44 +158,26 @@ export default function ArtistDataGrid({ rows, setRows, COUNT, setRowCountState 
   );
 }
 
-const baseURL = import.meta.env.VITE_CRUD_API_URL;
-
-const handleUpdateArtistName = async (values: artist, setRows: Dispatch<SetStateAction<artist[] | null>>) => {
+const handleUpdateArtistName = async (values: artist, fetcher: FetcherWithComponents<artist>) => {
   try {
     const { artist_id, name } = values;
-    const resp = await axios.patch(
-      `${baseURL}/artists`,
-      { artist_id, name },
-      { headers: { 'Content-Type': 'application/json' } },
-    );
 
-    const newArtist = resp.data.updatedArtist as artist;
-
-    setRows(
-      prev =>
-        prev &&
-        prev.map(artist => {
-          if (artist.artist_id === newArtist.artist_id) {
-            return newArtist;
-          } else return artist;
-        }),
+    fetcher.submit(
+      { artist_id, name, intent: 'update' },
+      { method: 'PATCH', encType: 'application/json', action: '/portfolio/crud/artists' },
     );
   } catch (error) {
     console.error(error);
   }
 };
 
-const handleDeleteArtist = async (values: artist, setRows: Dispatch<SetStateAction<artist[] | null>>) => {
+const handleDeleteArtist = async (values: artist, fetcher: FetcherWithComponents<artist>) => {
   try {
     const { artist_id } = values;
-    const resp = await axios.delete(`${baseURL}/artists/${artist_id}`, {
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    console.log(resp.data);
-    if (resp.data.deletedArtist) {
-      setRows(prev => prev && prev.filter(({ artist_id }) => artist_id !== resp.data.deletedArtist.artist_id));
-    }
+    fetcher.submit(
+      { artist_id, intent: 'delete' },
+      { method: 'PATCH', encType: 'application/json', action: '/portfolio/crud/artists' },
+    );
   } catch (err) {
     console.error(err);
   }

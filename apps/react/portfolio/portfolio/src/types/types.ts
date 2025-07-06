@@ -42,9 +42,9 @@ export type NewEntryIDs = {
 };
 
 export type QueryOptions = {
-  cursor: number;
-  pageSize: number;
-  skip: number;
+  cursor: string;
+  take: string;
+  skip: string;
 };
 
 export type CRUD_ApiResponse<T> = {
@@ -87,3 +87,7 @@ export declare class MediaRecorderClient extends EventTarget {
   onpause: (event: Event) => void;
   onresume: (event: Event) => void;
 }
+
+/***********************************************************************************/
+
+export type ArtistLoader = { count: number; data: artist[] };

@@ -1,14 +1,17 @@
 import axios from 'axios';
-import type { LoaderFunction } from 'react-router';
+import type { LoaderFunction, LoaderFunctionArgs } from 'react-router';
+import type { ArtistLoader } from '../../../types/types';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
-const loadArtistsCount: LoaderFunction = async () => {
+const loadArtistsCount: LoaderFunction = async ({ request }: LoaderFunctionArgs): Promise<ArtistLoader | void> => {
   try {
-    const resp = await axios.get(`${baseURL}/artists?count=true`);
-    const { count } = resp.data;
+    const { search } = new URL(request.url);
 
-    return count;
+    const resp = await axios.get(`${baseURL}/artists${search}`);
+    const { count, data } = resp.data;
+
+    return { count, data };
   } catch (error) {
     console.error(error);
   }
