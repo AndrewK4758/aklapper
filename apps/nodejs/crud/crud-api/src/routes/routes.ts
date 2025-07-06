@@ -36,6 +36,8 @@ export default class Routes {
     router.patch('/artists', updateArtists);
     router.delete('/artists/:id', deleteArtist);
 
+    router.get('/artist/:id', getArtistsAlbums);
+
     router.get('/albums', getAlbumsCount, getArtistsAlbums, validateAlbums, getAlbums);
     router.post('/albums', createAlbumsOnArtists);
     router.patch('/albums', updateAlbums);

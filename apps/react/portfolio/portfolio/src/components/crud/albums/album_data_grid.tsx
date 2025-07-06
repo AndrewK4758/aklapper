@@ -2,31 +2,50 @@ import type { album } from '@aklapper/chinook-client';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import DetailsIcon from '@mui/icons-material/Details';
 import UploadIcon from '@mui/icons-material/Upload';
-import { DataGrid, GridActionsCellItem, type GridColDef, type GridRowParams } from '@mui/x-data-grid';
-import { useCallback, useState, type Dispatch, type SetStateAction } from 'react';
-import { useNavigate, useParams } from 'react-router';
-import useFetchDataGridData from '../../../hooks/useFetchDataGridData';
+import {
+  DataGrid,
+  GridActionsCellItem,
+  type GridColDef,
+  type GridPaginationModel,
+  type GridRowParams,
+} from '@mui/x-data-grid';
+import { useCallback, useState } from 'react';
+import { useNavigate, useSearchParams, type FetcherWithComponents } from 'react-router';
 import handleDeleteAlbum from '../../../services/actions/crud-actions/handle-delete-album.js';
 import handleUpdateAlbumTitle from '../../../services/actions/crud-actions/handle-update-album-title.js';
-import loadArtistAlbums from '../../../services/loaders/crud-loaders/load-artist-albums';
 import { DATA_GRID_BG } from '../../../styles/base/base_styles';
 import Theme from '../../../styles/themes/theme';
+import type { QueryOptions } from '../../../types/types';
 import type { PaginationModel } from '../artists/data_grid';
 
-const paginationModelInit: PaginationModel = { page: 0, pageSize: 5 };
-
 interface AlbumDataGrid {
-  rows: album[] | null;
-  setRows: Dispatch<SetStateAction<album[] | null>>;
+  rows: album[];
+  count: number;
+  fetcher: FetcherWithComponents<album>;
 }
 
-export default function AlbumDataGrid({ rows, setRows }: AlbumDataGrid) {
-  const { artistID } = useParams() as { artistID: string };
+export default function AlbumDataGrid({ rows, count, fetcher }: AlbumDataGrid) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  // const { artistID } = useParams() as { artistID: string };
   const [dirtyRows, setDirtyRows] = useState<Set<number>>(new Set());
-  const [paginationModel, setPaginationModel] = useState<PaginationModel>(paginationModelInit);
   const nav = useNavigate();
 
-  useFetchDataGridData<album[]>(paginationModel, loadArtistAlbums, setRows, artistID);
+  const take = searchParams.get('take') as string;
+  const cursor = searchParams.get('cursor') as string;
+
+  const model: PaginationModel = {
+    pageSize: parseInt(take, 10),
+    page: parseInt(cursor, 10) === 1 ? 0 : Math.floor(parseInt(cursor, 10) / parseInt(take, 10)),
+  };
+
+  const handleChangePagination = (model: GridPaginationModel) => {
+    const queryOptions: QueryOptions = {
+      cursor: model.page === 0 ? '1' : (model.pageSize * model.page).toString(),
+      take: model.pageSize.toString(),
+      skip: model.page === 0 ? '0' : '1',
+    };
+    setSearchParams(queryOptions);
+  };
 
   const processRowUpdate = useCallback((newRow: album) => {
     setDirtyRows(prev => new Set(prev).add(newRow.album_id));
@@ -71,7 +90,7 @@ export default function AlbumDataGrid({ rows, setRows }: AlbumDataGrid) {
             title='Update'
             disabled={!isDirty}
             onClick={async () => {
-              await handleUpdateAlbumTitle(row, setRows);
+              await handleUpdateAlbumTitle(row, fetcher);
             }}
           />,
 
@@ -80,7 +99,7 @@ export default function AlbumDataGrid({ rows, setRows }: AlbumDataGrid) {
             title='Delete'
             icon={<DeleteForeverIcon color='error' />}
             onClick={async () => {
-              await handleDeleteAlbum(row, setRows);
+              await handleDeleteAlbum(row, fetcher);
             }}
           />,
         ];
@@ -112,14 +131,14 @@ export default function AlbumDataGrid({ rows, setRows }: AlbumDataGrid) {
     <DataGrid
       aria-label='artist-albums-data-grid'
       columns={columns}
-      rows={rows ?? []}
-      rowCount={rows ? rows.length : 0}
+      rows={rows}
+      rowCount={count}
       getRowId={getID}
       getRowHeight={() => 'auto'}
       pageSizeOptions={[1, 5, 10, 20]}
       paginationMode='server'
-      paginationModel={paginationModel}
-      onPaginationModelChange={newPageModel => setPaginationModel(newPageModel)}
+      paginationModel={model}
+      onPaginationModelChange={handleChangePagination}
       processRowUpdate={processRowUpdate}
       onProcessRowUpdateError={error => console.error(error)}
       sx={{

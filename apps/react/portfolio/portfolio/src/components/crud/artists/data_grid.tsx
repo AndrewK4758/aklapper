@@ -39,12 +39,18 @@ export default function ArtistDataGrid({ rows, COUNT, fetcher }: ArtistDataGridP
     page: parseInt(cursor, 10) === 1 ? 0 : Math.floor(parseInt(cursor, 10) / parseInt(take, 10)),
   };
 
+  const queryOptions: QueryOptions = {
+    cursor: model.page === 0 ? '1' : (model.pageSize * model.page).toString(),
+    take: model.pageSize.toString(),
+    skip: model.page === 0 ? '0' : '1',
+  };
+
   const handleChangePagination = (model: GridPaginationModel) => {
-    const queryOptions: QueryOptions = {
-      cursor: model.page === 0 ? '1' : (model.pageSize * model.page).toString(),
-      take: model.pageSize.toString(),
-      skip: model.page === 0 ? '0' : '1',
-    };
+    // queryOptions = {
+    queryOptions.cursor = model.page === 0 ? '1' : (model.pageSize * model.page).toString();
+    queryOptions.take = model.pageSize.toString();
+    queryOptions.skip = model.page === 0 ? '0' : '1';
+    // };
     setSearchParams(queryOptions);
   };
 
@@ -111,7 +117,12 @@ export default function ArtistDataGrid({ rows, COUNT, fetcher }: ArtistDataGridP
             label='Albums'
             title='Albums'
             icon={<DetailsIcon color='info' />}
-            onClick={() => nav(`${params.row.artist_id}/albums`, { replace: true })}
+            onClick={() =>
+              nav(
+                `${params.row.artist_id}/albums?take=${queryOptions.take}&skip=${queryOptions.skip}&cursor=${queryOptions.cursor}`,
+                { replace: true },
+              )
+            }
           />,
         ];
       },
