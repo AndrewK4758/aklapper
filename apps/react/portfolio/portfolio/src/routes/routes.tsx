@@ -28,7 +28,6 @@ import handleTrackActions from '../services/actions/crud-actions/handle_track_ac
 import generateImageAction from '../services/actions/generate-image-action';
 
 import registerPlayersAndStartGame from '../services/loaders/register-players-and-start-game';
-
 const ActiveGameSession = lazy(() => import('../components/games/active_game_session'));
 
 const AddEntry = lazy(() => import('../components/crud/add-entry/add-entry'));
