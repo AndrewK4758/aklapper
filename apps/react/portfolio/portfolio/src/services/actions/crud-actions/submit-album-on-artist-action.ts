@@ -7,19 +7,13 @@ import type { AlbumSubmitAction } from '../../../types/types.js';
 export default async function handleSubmitAlbumOnArtist(
   values: album,
   formik: FormikProps<album>,
-  submit: FetcherSubmitFunction,
+  fetcher: FetcherWithComponents<album>,
 ) {
   try {
-    const data: AlbumSubmitAction = {
-      intent: 'create',
-      album: values,
-    };
-
-    await submit(data, {
-      method: 'POST',
-      encType: 'application/json',
-      action: '/portfolio/crud/artists/:artistID/albums',
-    });
+    await fetcher.submit(
+      { title, intent: 'create' },
+      { method: 'POST', encType: 'application/json', action: '/portfolio/crud/artists/:artistID/albums' },
+    );
   } catch (error) {
     console.error(error);
     const errorMessage = await ((error as AxiosError).response as AxiosResponse).data.errorMessage;
