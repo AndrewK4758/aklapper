@@ -2,7 +2,7 @@ import type { album } from '@aklapper/chinook-client';
 import type { FetcherSubmitFunction } from 'react-router';
 import type { AlbumSubmitAction } from '../../../types/types.js';
 
-const handleUpdateAlbumTitle = async (values: album, submit: FetcherSubmitFunction) => {
+const handleUpdateAlbumTitle = async (values: album, fetcher: FetcherWithComponents<album>) => {
   try {
     const { album_id, title } = values;
 
