@@ -23,9 +23,8 @@ import ArtistDataGrid from './data_grid';
  */
 
 const Artist = (): ReactElement => {
-  const COUNT = useLoaderData() as number;
-  const [rows, setRows] = useState<artist[] | null>(null);
-  const [rowCountState, setRowCountState] = useState(COUNT);
+  const { count, data } = useLoaderData<DataGridLoaderWithCount<artist[]>>();
+  const fetcher = useFetcher();
 
   return (
     <CenteredFlexDiv
