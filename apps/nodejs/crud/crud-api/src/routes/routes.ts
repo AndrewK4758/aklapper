@@ -1,14 +1,11 @@
 import express, { Router } from 'express';
-import artistsAndCount from 'src/controllers/get_artists_and_count.js';
-import getTracksCount from 'src/controllers/get_tracks_count.js';
 import deleteArtistsAlbums from '../controllers/delete-artist-albums.js';
 import deleteArtist from '../controllers/delete-artists.js';
 import deleteTracks from '../controllers/delete-tracks.js';
 import getAlbumsTracks from '../controllers/get-albums-tracks.js';
 import getAlbums from '../controllers/get-all-albums.js';
 import getArtistsAlbums from '../controllers/get-artist-albums.js';
-// import getArtistCount from '../controllers/get-artist-count.js';
-// import getArtists from '../controllers/get-artists.js';
+import artistsAndCount from '../controllers/get_artists_and_count.js';
 import updateAlbums from '../controllers/patch-update-albums.js';
 import updateTracks from '../controllers/patch-update-tracks.js';
 import createAlbumsOnArtists from '../controllers/post-albums-on-artist.js';
