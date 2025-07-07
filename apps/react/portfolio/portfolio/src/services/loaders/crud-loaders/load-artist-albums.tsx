@@ -17,9 +17,7 @@ export default async function loadArtistAlbums(
       signal: signal,
     });
 
-    const { data, message } = resp.data as CRUD_ApiResponse<album[]>;
-
-    console.info(message);
+    const { data } = resp.data as CRUD_ApiResponse<album[]>;
 
     return data;
   } catch (error) {
