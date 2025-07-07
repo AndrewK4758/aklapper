@@ -24,7 +24,7 @@ const AddAlbumOnArtist = ({ fetcher }: AddAlbumOnArtistProps): ReactElement => {
   const formik = useFormik({
     initialValues: { title: '', album_id: 0, artist_id: 0 },
     onSubmit: async values => {
-      await handleSubmitAlbumOnArtist(values.title, formik, fetcher);
+      await handleSubmitAlbumOnArtist(values, formik, fetcher.submit);
     },
   });
 

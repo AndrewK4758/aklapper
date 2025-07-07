@@ -2,7 +2,7 @@ import type { artist } from '@aklapper/chinook-client';
 import { type AxiosError, type AxiosResponse } from 'axios';
 import type { FormikProps } from 'formik';
 import type { FetcherSubmitFunction } from 'react-router';
-import type { ArtistSubmitAction } from '../../../types/types.js';
+import type { ArtistSubmitAction } from '../../../types/types';
 
 const handleSubmitNewArtist = async (values: artist, formik: FormikProps<artist>, submit: FetcherSubmitFunction) => {
   const { name } = values;
