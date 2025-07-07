@@ -1,13 +1,14 @@
 import { track } from '@aklapper/chinook-client';
+import type { DataGridLoader } from '@aklapper/types';
 import Box from '@mui/material-pigment-css/Box';
 import Container from '@mui/material-pigment-css/Container';
-import { useState, type ReactElement } from 'react';
-import { useParams } from 'react-router';
+import { type ReactElement } from 'react';
+import { useFetcher, useLoaderData, useParams } from 'react-router';
 import Theme from '../../../styles/themes/theme';
 import CenteredFlexDiv from '../../styled/centered_flexbox.js';
 import DataGridHeader from '../data_grid_header.js';
 import AddTrack from './add-track.jsx';
-import TracksDataGrid from './track_data_grid.js';
+import TracksDataGrid from './data_grid.js';
 
 /**
  * This component renders a page displaying a list of tracks for a specific album.
@@ -17,8 +18,9 @@ import TracksDataGrid from './track_data_grid.js';
  */
 
 const Tracks = (): ReactElement => {
+  const { data } = useLoaderData<DataGridLoader<track[]>>();
   const { albumID } = useParams() as { albumID: string };
-  const [rows, setRows] = useState<track[] | null>(null);
+  const fetcher = useFetcher<track>();
 
   return (
     <CenteredFlexDiv
@@ -37,12 +39,12 @@ const Tracks = (): ReactElement => {
       >
         <DataGridHeader title='Album Tracks' />
         <Container component={'div'} key={'add-track-box'} sx={{ paddingY: 1 }}>
-          <AddTrack albumID={albumID} setRows={setRows} />
+          <AddTrack albumID={albumID} fetcher={fetcher} />
         </Container>
       </Box>
       <Box sx={{ width: '100%' }}>
         <Box>
-          <TracksDataGrid rows={rows} setRows={setRows} />
+          <TracksDataGrid rows={data} fetcher={fetcher} />
         </Box>
       </Box>
     </CenteredFlexDiv>

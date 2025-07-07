@@ -1,22 +1,22 @@
 import axios from 'axios';
 
 import type { album } from '@aklapper/chinook-client';
-import type { QueryOptions } from '../../../types/types.js';
-
-export type AllAlbums = { albums: album[] };
+import type { CRUD_ApiResponse } from '@aklapper/types';
+import type { LoaderFunction, LoaderFunctionArgs } from 'react-router';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
-const loadAlbums = async (queryOptions: QueryOptions): Promise<album[] | null> => {
+const loadAlbums: LoaderFunction = async ({ request }: LoaderFunctionArgs) => {
   try {
-    const { pageSize, skip, cursor } = queryOptions;
+    const { search } = new URL(request.url);
 
-    const resp = await axios.get(`${baseURL}/albums?take=${pageSize}&skip=${skip}&cursor=${cursor}`, {
-      headers: { 'Content-Type': 'text/plain' },
-    });
+    const resp = await axios.get(`${baseURL}/albums${search}`);
 
-    const { albums } = resp.data as AllAlbums;
-    return albums;
+    const { message, data } = resp.data as CRUD_ApiResponse<{ count: number; data: album[] }>;
+
+    console.info(message);
+
+    return data;
   } catch (error) {
     console.error(error);
     return null;

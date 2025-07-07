@@ -2,34 +2,55 @@ import type { album } from '@aklapper/chinook-client';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import DetailsIcon from '@mui/icons-material/Details';
 import UploadIcon from '@mui/icons-material/Upload';
-import { DataGrid, GridActionsCellItem, type GridColDef, type GridRowParams } from '@mui/x-data-grid';
-import { useCallback, useState, type Dispatch, type SetStateAction } from 'react';
-import { useLoaderData, useNavigate } from 'react-router';
-
-import useFetchDataGridData from '../../../hooks/useFetchDataGridData';
+import {
+  DataGrid,
+  GridActionsCellItem,
+  type GridColDef,
+  type GridPaginationModel,
+  type GridRowParams,
+} from '@mui/x-data-grid';
+import { useCallback, useState } from 'react';
+import { useNavigate, useSearchParams, type FetcherSubmitFunction } from 'react-router';
 import handleDeleteAlbum from '../../../services/actions/crud-actions/handle-delete-album.js';
 import handleUpdateAlbumTitle from '../../../services/actions/crud-actions/handle-update-album-title.js';
-import loadAlbums from '../../../services/loaders/crud-loaders/load-albums';
 import { DATA_GRID_BG } from '../../../styles/base/base_styles';
 import Theme from '../../../styles/themes/theme';
-
-const paginationModelInit = {
-  pageSize: 25,
-  page: 0,
-};
+import type { QueryOptions } from '../../../types/types';
+import type { PaginationModel } from '../artists/data_grid';
 
 interface AlbumBaseDataGridProps {
-  rows: album[] | null;
-  setRows: Dispatch<SetStateAction<album[] | null>>;
+  rows: album[];
+  count: number;
+  submit: FetcherSubmitFunction;
 }
 
-export default function AlbumBaseDataGrid({ rows, setRows }: AlbumBaseDataGridProps) {
-  const COUNT = useLoaderData() as number;
+export default function AlbumBaseDataGrid({ rows, count, submit }: AlbumBaseDataGridProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [dirtyRows, setDirtyRows] = useState<Set<number>>(new Set());
-  const [rowCountState, setRowCountState] = useState(COUNT);
-  const [paginationModel, setPaginationModel] = useState(paginationModelInit);
   const nav = useNavigate();
-  useFetchDataGridData<album[]>(paginationModel, loadAlbums, setRows);
+
+  const take = searchParams.get('take') as string;
+  const cursor = searchParams.get('cursor') as string;
+
+  const model: PaginationModel = {
+    pageSize: parseInt(take, 10),
+    page: parseInt(cursor, 10) === 1 ? 0 : Math.floor(parseInt(cursor, 10) / parseInt(take, 10)),
+  };
+
+  const queryOptions: QueryOptions = {
+    take: model.pageSize.toString(),
+    skip: model.page === 0 ? '0' : '1',
+    cursor: model.page === 0 ? '1' : (model.pageSize * model.page).toString(),
+  };
+
+  const handleChangePagination = (model: GridPaginationModel) => {
+    const newQueryOptions: QueryOptions = {
+      take: model.pageSize.toString(),
+      skip: model.page === 0 ? '0' : '1',
+      cursor: model.page === 0 ? '1' : (model.pageSize * model.page).toString(),
+    };
+    setSearchParams(newQueryOptions);
+  };
 
   const processRowUpdate = useCallback((newRow: album) => {
     setDirtyRows(prev => new Set(prev).add(newRow.album_id));
@@ -74,7 +95,7 @@ export default function AlbumBaseDataGrid({ rows, setRows }: AlbumBaseDataGridPr
             title='Update'
             disabled={!isDirty}
             onClick={() => {
-              handleUpdateAlbumTitle(row, setRows);
+              handleUpdateAlbumTitle(row, submit);
             }}
           />,
 
@@ -83,7 +104,7 @@ export default function AlbumBaseDataGrid({ rows, setRows }: AlbumBaseDataGridPr
             title='Delete'
             icon={<DeleteForeverIcon color='error' />}
             onClick={() => {
-              handleDeleteAlbum(row, setRows);
+              handleDeleteAlbum(row, submit);
             }}
           />,
         ];
@@ -100,7 +121,12 @@ export default function AlbumBaseDataGrid({ rows, setRows }: AlbumBaseDataGridPr
             label='Tracks'
             title='Tracks'
             icon={<DetailsIcon color='info' />}
-            onClick={() => nav(`${params.row.album_id}/tracks`, { replace: true })}
+            onClick={() =>
+              nav(
+                `${params.row.album_id}/tracks?take=${queryOptions.take}&skip=${queryOptions.skip}&cursor=${queryOptions.cursor}`,
+                { replace: true },
+              )
+            }
           />,
         ];
       },
@@ -113,16 +139,16 @@ export default function AlbumBaseDataGrid({ rows, setRows }: AlbumBaseDataGridPr
     <DataGrid
       logLevel='info'
       aria-label='album-data-grid'
+      label='Albums'
       columns={columns}
-      rows={rows ?? []}
+      rows={rows}
       getRowId={getID}
-      rowCount={rowCountState}
+      rowCount={count}
       getRowHeight={() => 'auto'}
       pageSizeOptions={[10, 25, 50, 100]}
       paginationMode='server'
-      onRowCountChange={newRowCount => setRowCountState(newRowCount)}
-      onPaginationModelChange={setPaginationModel}
-      paginationModel={paginationModel}
+      onPaginationModelChange={handleChangePagination}
+      paginationModel={model}
       processRowUpdate={processRowUpdate}
       onProcessRowUpdateError={error => console.error(error)}
       sx={{

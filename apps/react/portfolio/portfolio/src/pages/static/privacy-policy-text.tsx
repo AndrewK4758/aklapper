@@ -1,31 +1,45 @@
-import Box from '@mui/material/Box';
+import Box from '@mui/material-pigment-css/Box';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import Typography from '@mui/material/Typography';
+import { css } from '@pigment-css/react';
+import Theme from '../../styles/themes/theme';
 
-const PrivacyPolicyText = () => (
+const PrivacyPolicyText = (
   <Box
-    component={'section'}
-    key={'privacy-policy-text-wrapper'}
-    id={'privacy-policy-text-wrapper'}
-    sx={{ paddingX: 2, fontSize: '1rem', color: '#1f1f1f' }}
+    as={'section'}
+    id={'privacy-policy-text'}
+    className={css({
+      padding: Theme.spacing(2),
+      fontSize: '1rem',
+      color: '#1f1f1f',
+      textAlign: 'start',
+      borderRadius: Theme.shape.borderRadius,
+    })}
   >
-    <Typography variant='h1' component={'h1'} sx={{ textAlign: 'center' }}>
+    <Typography variant='h3' sx={{ textAlign: 'center' }}>
       Privacy Policy
     </Typography>
     <br />
     <Typography variant={'body1'}>
       This privacy policy explains how Andrew Klapper (owner of portfolio) collects, uses, and shares information when
-      you authorize my developer website (<a href='https://andrew-k.us'>https://andrew-k.us</a>) to access to your
-      Google Calendar data.
+      you authorize my developer website (
+      <a href='https://andrew-k.us' style={{ color: Theme.palette.secondary.main }}>
+        https://andrew-k.us
+      </a>
+      ) to access to your Google Calendar data.
     </Typography>
     <br />
     <Typography variant={'body1'}>
       <strong>1. Information I Collect</strong>
     </Typography>
     <Typography variant={'body1'}>
-      When you sign in to <a href='https://andrew-k.us'>https://andrew-k.us</a> using Google OAuth2 and grant permission
-      to view and manage your calendars, I collect the following information from your Google account:
+      When you sign in to{' '}
+      <a href='https://andrew-k.us' style={{ color: Theme.palette.secondary.main }}>
+        https://andrew-k.us
+      </a>{' '}
+      using Google OAuth2 and grant permission to view and manage your calendars, I collect the following information
+      from your Google account:
     </Typography>
     <List>
       <ListItem divider={true} alignItems='flex-start'>
@@ -121,7 +135,11 @@ const PrivacyPolicyText = () => (
     </Typography>
     <Typography variant={'body1'}>
       You can revoke access to your Google Calendar data at any time by visiting your Google account settings and
-      removing access for Andrew's Portfolio - Appointment Maker <a href='https://andrew-k.us'>https://andrew-k.us</a>.
+      removing access for Andrew's Portfolio - Appointment Maker{' '}
+      <a href='https://andrew-k.us' style={{ color: Theme.palette.secondary.main }}>
+        https://andrew-k.us
+      </a>
+      .
     </Typography>
     <br />
     <Typography variant={'body1'}>
@@ -145,7 +163,9 @@ const PrivacyPolicyText = () => (
     </Typography>
     <Typography variant={'body1'}>
       If you have any questions about this privacy policy, please contact me at{' '}
-      <a href={'mailto:andrew@andrew-k.us'}>andrew@andrew-k.us</a>
+      <a href={'mailto:andrew@andrew-k.us'} style={{ color: Theme.palette.secondary.main }}>
+        andrew@andrew-k.us
+      </a>
     </Typography>
     <Typography variant={'body1'}>
       <strong>Effective Date:</strong> December 1st, 2024

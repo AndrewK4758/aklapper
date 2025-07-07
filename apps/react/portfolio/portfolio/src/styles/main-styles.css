@@ -83,7 +83,7 @@ pre {
   word-wrap: 'break-word';
 }
 
-.floater::after {
+/* .floater::after {
   content: '""';
   display: 'table';
   clear: 'both';
@@ -91,4 +91,4 @@ pre {
 
 .contact-form {
   width: '100%';
-}
+} */

@@ -24,7 +24,7 @@ const createTracksOnAlbum = async (req: Request, resp: Response) => {
 
     const data: CRUD_ApiResponse<track> = {
       message: 'Track Added',
-      value: newTrack,
+      data: newTrack,
     };
     resp.status(200).json(data);
   } catch (error) {

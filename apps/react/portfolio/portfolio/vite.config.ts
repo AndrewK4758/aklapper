@@ -34,6 +34,8 @@ const config: UserConfig = defineConfig({
     pigment({
       theme: Theme,
       transformLibraries: ['@mui/material'],
+      evaluate: true,
+
       transformSx: true,
       debug: {
         print: true,

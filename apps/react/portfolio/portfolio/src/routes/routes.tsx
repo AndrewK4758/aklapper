@@ -2,13 +2,15 @@ import { Waiting } from '@aklapper/react-shared';
 import { lazy } from 'react';
 import type { RouteObject } from 'react-router';
 import waiting from '../assets/images/swirly-dots-to-chrome.webp';
+
 import PrivacyPolicy from '../components/privacy-policy/privacy-policy';
+
 import BaseError from '../errors/base_error';
 import Home from '../pages/home/home';
 import LandingPage from '../pages/landing/landing';
 
-import loadArtistsAndCount from '../services/loaders/crud-loaders/load-artists-count';
-import loadAlbumsForArtistAndCount from '../services/loaders/crud-loaders/load_albums_for_artist_and_count.js';
+import loadArtistsAndCount from '../services/loaders/crud-loaders/load-artists.js';
+import loadAlbumsForArtist from '../services/loaders/crud-loaders/load_albums_for_artist.js';
 
 import Layout from '../components/layout/layout';
 import Crud from '../pages/crud/crud';
@@ -16,9 +18,11 @@ import Games from '../pages/games/games';
 import GenAiHome from '../pages/gen-ai/gen-ai';
 import generateImageAction from '../services/actions/generate-image-action';
 
-import handleArtistAlbumsActions from '../services/actions/crud-actions/handle_album_on_artist_actions';
+import handleArtistAlbumsActions from '../services/actions/crud-actions/handle_album_actions.js';
 import handleArtistActions from '../services/actions/crud-actions/handle_artist_actions.js';
-import loadTracksCount from '../services/loaders/crud-loaders/load_tracks_count';
+import handleTrackActions from '../services/actions/crud-actions/handle_track_actions';
+import loadAlbumTracks from '../services/loaders/crud-loaders/load-album-tracks';
+import loadAlbums from '../services/loaders/crud-loaders/load-albums';
 import registerPlayersAndStartGame from '../services/loaders/register-players-and-start-game';
 
 const ActiveGameSession = lazy(() => import('../components/games/active_game_session'));
@@ -77,12 +81,13 @@ const routes: RouteObject[] = [
                 Component: AlbumsOnArtist,
                 id: 'artist_albums',
                 action: handleArtistAlbumsActions,
-                loader: loadAlbumsForArtistAndCount,
+                loader: loadAlbumsForArtist,
                 children: [
                   {
                     path: ':albumID/tracks',
                     Component: Tracks,
-                    loader: loadTracksCount,
+                    action: handleTrackActions,
+                    loader: loadAlbumTracks,
                   },
                 ],
               },
@@ -91,12 +96,12 @@ const routes: RouteObject[] = [
           {
             path: 'albums',
             Component: Album,
-            // loader: loadAlbumsCount,
+            loader: loadAlbums,
             children: [
               {
                 path: ':albumID/tracks',
                 Component: Tracks,
-                loader: loadTracksCount,
+                loader: loadAlbumTracks,
               },
             ],
           },

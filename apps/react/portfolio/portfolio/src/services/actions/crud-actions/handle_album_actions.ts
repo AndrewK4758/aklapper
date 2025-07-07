@@ -2,6 +2,7 @@ import type { album } from '@aklapper/chinook-client';
 import type { CRUD_ApiResponse } from '@aklapper/types';
 import axios from 'axios';
 import type { ActionFunction, ActionFunctionArgs } from 'react-router';
+import type { AlbumSubmitAction } from '../../../types/types.js';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
@@ -10,12 +11,14 @@ const handleArtistAlbumsActions: ActionFunction = async ({
   params,
 }: ActionFunctionArgs): Promise<album | void> => {
   try {
-    const data = await request.json();
+    const submit = (await request.json()) as AlbumSubmitAction;
     const { artistID } = params;
 
-    switch (data.intent) {
+    switch (submit.intent) {
       case 'create': {
-        const { title } = data;
+        const {
+          album: { title },
+        } = submit;
 
         const resp = await axios.post(
           `${baseURL}/albums`,
@@ -24,13 +27,17 @@ const handleArtistAlbumsActions: ActionFunction = async ({
             headers: { 'Content-Type': 'application/json' },
           },
         );
-        const { value } = resp.data as CRUD_ApiResponse<album>;
+        const { data, message } = resp.data as CRUD_ApiResponse<album>;
 
-        return value;
+        console.info(message);
+
+        return data;
       }
 
       case 'update': {
-        const { album_id, title } = data;
+        const {
+          album: { album_id, title },
+        } = submit;
         const resp = await axios.patch(
           `${baseURL}/albums`,
           { albumID: album_id, title: title },
@@ -39,22 +46,26 @@ const handleArtistAlbumsActions: ActionFunction = async ({
           },
         );
 
-        const { value, message } = resp.data as CRUD_ApiResponse<album>;
+        const { data, message } = resp.data as CRUD_ApiResponse<album>;
 
         console.log(message);
 
-        return value;
+        return data;
       }
 
       case 'delete': {
-        const { album_id } = data;
+        const {
+          album: { album_id },
+        } = submit;
 
         const resp = await axios.delete(`${baseURL}/albums/${album_id}`, {
           headers: { 'Content-Type': 'text/plain' },
         });
-        const { value } = resp.data as CRUD_ApiResponse<album>;
+        const { data, message } = resp.data as CRUD_ApiResponse<album>;
 
-        return value;
+        console.info(message);
+
+        return data;
       }
       default:
         break;

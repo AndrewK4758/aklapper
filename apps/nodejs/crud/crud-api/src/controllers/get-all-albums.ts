@@ -1,4 +1,5 @@
-import { Prisma } from '@aklapper/chinook-client';
+import { Prisma, type album } from '@aklapper/chinook-client';
+import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { DefaultArgs } from '@prisma/client/runtime/library';
 import type { Request, Response } from 'express';
 import findAllAlbums from '../services/prisma/album/find-albums.js';
@@ -16,16 +17,22 @@ import findAllAlbums from '../services/prisma/album/find-albums.js';
 const getAlbums = async (req: Request, resp: Response) => {
   if (req.query.take) {
     try {
-      const { take, skip, cursor } = req.query;
+      const { take, skip } = req.query;
 
       const query = {
         take: parseInt(take as string, 10),
         skip: parseInt(skip as string, 10),
-        cursor: { album_id: parseInt(cursor as string, 10) },
       } as Prisma.albumFindManyArgs<DefaultArgs>;
       const albums = await findAllAlbums(query);
 
-      resp.status(200).json({ albums: albums });
+      const values: CRUD_ApiResponse<{ count: number; data: album[] }> = {
+        message: 'All Albums Loaded',
+        data: {
+          count: albums.length,
+          data: albums,
+        },
+      };
+      resp.status(200).json(values);
     } catch (error) {
       console.error(error);
       resp.status(500).json(error);

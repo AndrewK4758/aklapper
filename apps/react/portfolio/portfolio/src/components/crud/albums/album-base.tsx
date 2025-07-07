@@ -1,11 +1,13 @@
 import type { album } from '@aklapper/chinook-client';
 import { Waiting } from '@aklapper/react-shared';
+import type { DataGridLoaderWithCount } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
-import { Suspense, useState, type ReactElement } from 'react';
-import { Outlet } from 'react-router';
+import { css } from '@pigment-css/react';
+import { Suspense, type ReactElement } from 'react';
+import { Outlet, useFetcher, useLoaderData } from 'react-router';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
-import { allDataGridsWrapperSxProps, artistsSxProps } from '../../../styles/crud/data_grid';
+import { artistsSxProps } from '../../../styles/crud/data_grid';
 import Theme from '../../../styles/themes/theme';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
 import DataGridHeader from '../data_grid_header';
@@ -20,9 +22,21 @@ import AlbumBaseDataGrid from './album_base_data_grid';
  */
 
 const Album = (): ReactElement => {
-  const [rows, setRows] = useState<album[] | null>(null);
+  const { count, data } = useLoaderData<DataGridLoaderWithCount<album[]>>();
+  const fetcher = useFetcher();
+
   return (
-    <CenteredFlexDiv id='albums' sx={allDataGridsWrapperSxProps}>
+    <CenteredFlexDiv
+      id='albums'
+      className={css({
+        flexDirection: 'row',
+        justifyContent: 'flex-start',
+        alignItems: 'flex-start',
+        padding: 0,
+        gap: Theme.spacing(4),
+        width: '100%',
+      })}
+    >
       <Box
         sx={{
           display: 'flex',
@@ -35,11 +49,11 @@ const Album = (): ReactElement => {
         <Box id='album-box' sx={artistsSxProps}>
           <DataGridHeader title='Album List' />
           <Container id={'add-album-box'}>
-            <AddAlbum setRows={setRows} />
+            <AddAlbum fetcher={fetcher} />
           </Container>
         </Box>
         <Box>
-          <AlbumBaseDataGrid rows={rows} setRows={setRows} />
+          <AlbumBaseDataGrid rows={data} count={count} submit={fetcher.submit} />
         </Box>
       </Box>
       <Box id='tracks-on-album-box' sx={{ flex: '0 1 50%' }}>

@@ -11,18 +11,15 @@ export default async function loadArtistAlbums(
   artistID: string,
 ): Promise<album[] | null> {
   try {
-    const { pageSize, cursor, skip } = queryOptions;
-    const resp = await axios.get(
-      `${baseURL}/albums?artistID=${artistID}&take=${pageSize}&skip=${skip}&cursor=${cursor}`,
-      {
-        headers: { 'Content-Type': 'text/plain' },
-        signal: signal,
-      },
-    );
+    const { take, cursor, skip } = queryOptions;
+    const resp = await axios.get(`${baseURL}/albums?artistID=${artistID}&take=${take}&skip=${skip}&cursor=${cursor}`, {
+      headers: { 'Content-Type': 'text/plain' },
+      signal: signal,
+    });
 
-    const { value } = resp.data as CRUD_ApiResponse<album[]>;
+    const { data } = resp.data as CRUD_ApiResponse<album[]>;
 
-    return value;
+    return data;
   } catch (error) {
     console.error(error);
     return null;
