@@ -2,15 +2,15 @@ import type { album } from '@aklapper/chinook-client';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import { useFormik } from 'formik';
-import { type Dispatch, type ReactElement, type SetStateAction } from 'react';
-import { Form, useParams } from 'react-router';
+import { type ReactElement } from 'react';
+import { type FetcherWithComponents } from 'react-router';
 import handleSubmitAlbumOnArtist from '../../../services/actions/crud-actions/submit-album-on-artist-action.jsx';
 import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
 import CenteredFlexDiv from '../../styled/centered_flexbox.js';
 import TextInput from '../../text_input/text_input.js';
 
 interface AddAlbumOnArtistProps {
-  setRows: Dispatch<SetStateAction<album[] | null>>;
+  fetcher: FetcherWithComponents<album>;
 }
 
 /**
@@ -20,18 +20,16 @@ interface AddAlbumOnArtistProps {
  * @returns {ReactElement} The rendered AddAlbumOnArtist component.
  */
 
-const AddAlbumOnArtist = ({ setRows }: AddAlbumOnArtistProps): ReactElement => {
-  const { artistID } = useParams() as { artistID: string };
+const AddAlbumOnArtist = ({ fetcher }: AddAlbumOnArtistProps): ReactElement => {
   const formik = useFormik({
     initialValues: { title: '', album_id: 0, artist_id: 0 },
     onSubmit: async values => {
-      await handleSubmitAlbumOnArtist(values.title, formik, parseInt(artistID, 10), setRows);
+      await handleSubmitAlbumOnArtist(values, formik, fetcher.submit);
     },
-    validateOnBlur: true,
   });
 
   return (
-    <Form method='post' onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
+    <fetcher.Form method='post' onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
       <CenteredFlexDiv id='add-albums-on-artist-container'>
         <TextInput<album>
           formik={formik}
@@ -63,7 +61,7 @@ const AddAlbumOnArtist = ({ setRows }: AddAlbumOnArtistProps): ReactElement => {
           </Button>
         </ButtonGroup>
       </CenteredFlexDiv>
-    </Form>
+    </fetcher.Form>
   );
 };
 

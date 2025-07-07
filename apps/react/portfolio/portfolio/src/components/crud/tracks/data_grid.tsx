@@ -5,15 +5,13 @@ import { GridActionsCellItem } from '@mui/x-data-grid/components/cell';
 import { DataGrid } from '@mui/x-data-grid/DataGrid';
 import type { GridColDef } from '@mui/x-data-grid/models/colDef';
 import type { GridRowParams } from '@mui/x-data-grid/models/params';
-import { useCallback, useState, type Dispatch, type SetStateAction } from 'react';
-import { useLoaderData, useParams } from 'react-router';
-import useFetchDataGridData from '../../../hooks/useFetchDataGridData';
+import { useCallback, useState } from 'react';
+import { type FetcherWithComponents } from 'react-router';
 import handleDeleteTrack from '../../../services/actions/crud-actions/handle-delete-track.js';
 import handleUpdateTrack from '../../../services/actions/crud-actions/handle-update-track.js';
-import loadAlbumTracks from '../../../services/loaders/crud-loaders/load-album-tracks';
-import { DATA_GRID_BG } from '../../../styles/base/base_styles';
-import Theme from '../../../styles/themes/theme';
-import type { PaginationModel } from '../artists/data_grid';
+import { DATA_GRID_BG } from '../../../styles/base/base_styles.js';
+import Theme from '../../../styles/themes/theme.js';
+import type { PaginationModel } from '../artists/data_grid.js';
 
 const paginationModelInit: PaginationModel = {
   pageSize: 5,
@@ -21,18 +19,13 @@ const paginationModelInit: PaginationModel = {
 };
 
 interface TracksDataGridProps {
-  rows: track[] | null;
-  setRows: Dispatch<SetStateAction<track[] | null>>;
+  rows: track[];
+  fetcher: FetcherWithComponents<track>;
 }
 
-export default function TracksDataGrid({ rows, setRows }: TracksDataGridProps) {
-  const { albumID } = useParams() as { albumID: string };
-  const count = useLoaderData() as number;
-
+export default function TracksDataGrid({ rows, fetcher }: TracksDataGridProps) {
   const [dirtyRows, setDirtyRows] = useState<Set<number>>(new Set());
   const [paginationModel, setPaginationModel] = useState<PaginationModel>(paginationModelInit);
-
-  useFetchDataGridData<track[]>(paginationModel, loadAlbumTracks, setRows, albumID);
 
   const processRowUpdate = useCallback((newRow: track) => {
     setDirtyRows(prev => new Set(prev).add(newRow.track_id));
@@ -119,7 +112,7 @@ export default function TracksDataGrid({ rows, setRows }: TracksDataGridProps) {
             title='Update'
             disabled={!isDirty}
             onClick={() => {
-              handleUpdateTrack(row, setRows);
+              handleUpdateTrack(row, fetcher.submit);
             }}
           />,
 
@@ -128,7 +121,7 @@ export default function TracksDataGrid({ rows, setRows }: TracksDataGridProps) {
             title='Delete'
             icon={<DeleteForeverIcon color='error' />}
             onClick={() => {
-              handleDeleteTrack(row, setRows);
+              handleDeleteTrack(row, fetcher.submit);
             }}
           />,
         ];
@@ -142,12 +135,10 @@ export default function TracksDataGrid({ rows, setRows }: TracksDataGridProps) {
     <DataGrid
       aria-label='track-data-grid'
       columns={columns}
-      rows={rows ?? []}
-      rowCount={count}
+      rows={rows}
       getRowId={getID}
       getRowHeight={() => 'auto'}
       pageSizeOptions={[1, 5, 10, 25]}
-      paginationMode='server'
       paginationModel={paginationModel}
       onPaginationModelChange={newPageModel => setPaginationModel(newPageModel)}
       processRowUpdate={processRowUpdate}

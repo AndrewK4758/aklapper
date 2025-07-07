@@ -2,8 +2,8 @@ import type { album } from '@aklapper/chinook-client';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import { useFormik } from 'formik';
-import { type Dispatch, type ReactElement, type SetStateAction } from 'react';
-import { Form } from 'react-router';
+import { type ReactElement } from 'react';
+import { type FetcherWithComponents } from 'react-router';
 import * as Yup from 'yup';
 import handleSubmitAlbumOnArtist from '../../../services/actions/crud-actions/submit-album-on-artist-action';
 import Theme from '../../../styles/themes/theme';
@@ -16,7 +16,7 @@ const validationSchema = Yup.object<album>({
 });
 
 interface AddAlbumProps {
-  setRows: Dispatch<SetStateAction<album[] | null>>;
+  fetcher: FetcherWithComponents<album>;
 }
 
 /**
@@ -26,17 +26,17 @@ interface AddAlbumProps {
  * @returns {ReactElement} The rendered AddAlbum component.
  */
 
-const AddAlbum = ({ setRows }: AddAlbumProps): ReactElement => {
+const AddAlbum = ({ fetcher }: AddAlbumProps): ReactElement => {
   const formik = useFormik<album>({
     initialValues: { title: '', album_id: 0, artist_id: 1 },
     validationSchema: validationSchema,
     onSubmit: async values => {
-      await handleSubmitAlbumOnArtist(values.title, formik, values.artist_id, setRows);
+      await handleSubmitAlbumOnArtist(values, formik, fetcher.submit);
     },
   });
 
   return (
-    <Form method='post' onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
+    <fetcher.Form method='post' onSubmit={formik.handleSubmit} onReset={formik.handleReset}>
       <CenteredFlexDiv>
         <TextInput<album>
           formik={formik}
@@ -69,7 +69,7 @@ const AddAlbum = ({ setRows }: AddAlbumProps): ReactElement => {
           </Button>
         </ButtonGroup>
       </CenteredFlexDiv>
-    </Form>
+    </fetcher.Form>
   );
 };
 

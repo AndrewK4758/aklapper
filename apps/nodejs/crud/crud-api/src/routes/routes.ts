@@ -1,14 +1,11 @@
 import express, { Router } from 'express';
-import getTracksCount from 'src/controllers/get_tracks_count.js';
 import deleteArtistsAlbums from '../controllers/delete-artist-albums.js';
 import deleteArtist from '../controllers/delete-artists.js';
 import deleteTracks from '../controllers/delete-tracks.js';
-import getAlbumsCount from '../controllers/get-albums-count.js';
 import getAlbumsTracks from '../controllers/get-albums-tracks.js';
 import getAlbums from '../controllers/get-all-albums.js';
 import getArtistsAlbums from '../controllers/get-artist-albums.js';
-import getArtistCount from '../controllers/get-artist-count.js';
-import getArtists from '../controllers/get-artists.js';
+import artistsAndCount from '../controllers/get_artists_and_count.js';
 import updateAlbums from '../controllers/patch-update-albums.js';
 import updateTracks from '../controllers/patch-update-tracks.js';
 import createAlbumsOnArtists from '../controllers/post-albums-on-artist.js';
@@ -30,17 +27,19 @@ export default class Routes {
     router.get('/', (_, resp) => {
       resp.sendStatus(201);
     });
-    router.get('/artists', getArtistCount, getArtists, validateArtists);
+    router.get('/artists', artistsAndCount, validateArtists);
     router.post('/artists', addArtists);
     router.patch('/artists', updateArtists);
     router.delete('/artists/:id', deleteArtist);
 
-    router.get('/albums', getAlbumsCount, getArtistsAlbums, validateAlbums, getAlbums);
+    router.get('/artist/:id', getArtistsAlbums);
+
+    router.get('/albums', getAlbums, getArtistsAlbums, validateAlbums);
     router.post('/albums', createAlbumsOnArtists);
     router.patch('/albums', updateAlbums);
     router.delete('/albums/:id', deleteArtistsAlbums);
 
-    router.get('/tracks', getTracksCount, getAlbumsTracks, validateTracks);
+    router.get('/tracks', getAlbumsTracks, validateTracks);
     router.post('/tracks', createTracksOnAlbum);
     router.patch('/tracks', updateTracks);
     router.delete('/tracks/:id', deleteTracks);

@@ -18,7 +18,7 @@ const deleteArtistsAlbums = async (req: Request, resp: Response) => {
 
     const data: CRUD_ApiResponse<album> = {
       message: `Album ID: ${deletedAlbum.album_id} deleted sucessfully`,
-      value: deletedAlbum,
+      data: deletedAlbum,
     };
     resp.status(200).json(data);
   } catch (error) {

@@ -1,4 +1,4 @@
-import type { album, artist, track } from '@aklapper/chinook-client';
+import type { album, artist, Prisma, track } from '@aklapper/chinook-client';
 import type { ChatEntry, GameBoards, IActivePlayersInGame } from '@aklapper/types';
 
 export type HashFiles = { js: string | undefined; css: string | undefined };
@@ -42,9 +42,9 @@ export type NewEntryIDs = {
 };
 
 export type QueryOptions = {
-  cursor: number;
-  pageSize: number;
-  skip: number;
+  cursor: string;
+  take: string;
+  skip: string;
 };
 
 export type CRUD_ApiResponse<T> = {
@@ -87,3 +87,17 @@ export declare class MediaRecorderClient extends EventTarget {
   onpause: (event: Event) => void;
   onresume: (event: Event) => void;
 }
+
+/***********************************************************************************/
+
+type CRUD_SubmitAction = {
+  intent: 'create' | 'update' | 'delete';
+};
+
+export type TrackWithStringDecimal = { [K in keyof track]: track[K] extends Prisma.Decimal ? string : track[K] };
+
+export type ArtistSubmitAction = CRUD_SubmitAction & { artist: Partial<artist> };
+
+export type AlbumSubmitAction = CRUD_SubmitAction & { album: Partial<album> };
+
+export type TrackSubmitAction = CRUD_SubmitAction & { track: Partial<TrackWithStringDecimal> };

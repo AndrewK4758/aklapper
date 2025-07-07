@@ -1,16 +1,17 @@
 import type { album } from '@aklapper/chinook-client';
 import { Waiting } from '@aklapper/react-shared';
+import type { DataGridLoader } from '@aklapper/types';
 import Box from '@mui/material-pigment-css/Box';
 import Container from '@mui/material-pigment-css/Container';
-import { Suspense, useState, type ReactElement } from 'react';
-import { Outlet } from 'react-router';
+import { Suspense, type ReactElement } from 'react';
+import { Outlet, useFetcher, useLoaderData } from 'react-router';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
 import { artistsSxProps } from '../../../styles/crud/data_grid';
 import Theme from '../../../styles/themes/theme';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
 import DataGridHeader from '../data_grid_header.js';
 import AddAlbumOnArtist from './add-album-on-artist.jsx';
-import AlbumDataGrid from './album_data_grid';
+import AlbumDataGrid from './data_grid.js';
 
 export interface AlbumState {
   albumTitle: string;
@@ -25,9 +26,8 @@ export interface AlbumState {
  */
 
 export const AlbumsOnArtist = (): ReactElement => {
-  const [rows, setRows] = useState<album[] | null>(null);
-
-  console.log(rows);
+  const { data } = useLoaderData<DataGridLoader<album[]>>();
+  const fetcher = useFetcher();
 
   return (
     <CenteredFlexDiv id='albums-on-artist' sx={{ padding: 0, width: '100%' }}>
@@ -43,11 +43,11 @@ export const AlbumsOnArtist = (): ReactElement => {
         <Box id={'albums'} sx={artistsSxProps}>
           <DataGridHeader title='Artist Albums' />
           <Container id={'add-album-box'}>
-            <AddAlbumOnArtist setRows={setRows} />
+            <AddAlbumOnArtist fetcher={fetcher} />
           </Container>
         </Box>
         <Box sx={{ width: '100%' }}>
-          <AlbumDataGrid rows={rows} setRows={setRows} />
+          <AlbumDataGrid rows={data} fetcher={fetcher} />
         </Box>
       </Box>
       <Box sx={{ width: '100%' }}>

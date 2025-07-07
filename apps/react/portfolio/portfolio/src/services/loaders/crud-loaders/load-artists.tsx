@@ -1,23 +1,23 @@
 import type { artist } from '@aklapper/chinook-client';
+import type { DataGridLoaderWithCount } from '@aklapper/types';
 import axios from 'axios';
-import type { QueryOptions } from '../../../types/types.js';
+import type { LoaderFunction, LoaderFunctionArgs } from 'react-router';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
-const loadArtists = async (queryOptions: QueryOptions, signal: AbortSignal): Promise<artist[] | null> => {
+const loadArtistsCount: LoaderFunction = async ({
+  request,
+}: LoaderFunctionArgs): Promise<DataGridLoaderWithCount<artist[]> | void> => {
   try {
-    const { pageSize, skip, cursor } = queryOptions;
-    const resp = await axios.get(`${baseURL}/artists?take=${pageSize}&skip=${skip}&cursor=${cursor}`, {
-      headers: { 'Content-Type': 'text/plain' },
-      signal,
-    });
+    const { search } = new URL(request.url);
 
-    const { allArtists } = resp.data;
-    return allArtists as artist[];
+    const resp = await axios.get(`${baseURL}/artists${search}`);
+    const { count, data } = resp.data;
+
+    return { count, data };
   } catch (error) {
     console.error(error);
-    return null;
   }
 };
 
-export default loadArtists;
+export default loadArtistsCount;

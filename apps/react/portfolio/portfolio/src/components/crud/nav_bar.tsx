@@ -24,6 +24,7 @@ export default function CrudNavBar() {
           variant='outlined'
           id='crud-artists-button'
           name='artists'
+          params={`?take=25&skip=0&cursor=1`}
           buttonText='Artists'
           className={css({
             color: 'var(--mui-palette-info-main)',
@@ -39,6 +40,9 @@ export default function CrudNavBar() {
           id='crud-albums-button'
           name='albums'
           buttonText='Albums'
+
+          params={`?take=25&skip=0&cursor=1`}
+
           className={css({
             color: 'var(--mui-palette-info-main)',
             borderColor: 'var(--mui-palette-info-main)',

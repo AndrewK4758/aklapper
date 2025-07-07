@@ -1,11 +1,14 @@
+// import type { artist } from '@aklapper/chinook-client';
 import type { artist } from '@aklapper/chinook-client';
 import { Waiting } from '@aklapper/react-shared';
+import type { DataGridLoaderWithCount } from '@aklapper/types';
+import { css } from '@mui/material-pigment-css';
 import Box from '@mui/material-pigment-css/Box';
 import Container from '@mui/material-pigment-css/Container';
-import { type ReactElement, Suspense, useState } from 'react';
-import { Outlet, useLoaderData } from 'react-router';
+import { type ReactElement, Suspense } from 'react';
+import { Outlet, useFetcher, useLoaderData } from 'react-router';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
-import { allDataGridsWrapperSxProps, artistsSxProps } from '../../../styles/crud/data_grid';
+import { artistsSxProps } from '../../../styles/crud/data_grid';
 import Theme from '../../../styles/themes/theme';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
 import DataGridHeader from '../data_grid_header';
@@ -20,33 +23,37 @@ import ArtistDataGrid from './data_grid';
  */
 
 const Artist = (): ReactElement => {
-  const COUNT = useLoaderData() as number;
-  const [rows, setRows] = useState<artist[] | null>(null);
-  const [rowCountState, setRowCountState] = useState(COUNT);
+  const { count, data } = useLoaderData<DataGridLoaderWithCount<artist[]>>();
+  const fetcher = useFetcher();
 
   return (
-    <CenteredFlexDiv sx={allDataGridsWrapperSxProps}>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: Theme.spacing(4), flex: '0 1 50%' }}>
+    <CenteredFlexDiv
+      className={css({
+        flexDirection: 'row',
+        justifyContent: 'flex-start',
+        alignItems: 'flex-start',
+        padding: 0,
+        gap: Theme.spacing(4),
+        border: 2,
+        width: '100%',
+      })}
+    >
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: Theme.spacing(4), flex: '0 1 100%' }}>
         <Box id='artists' sx={artistsSxProps}>
           <DataGridHeader title='Artist List' />
           <Container id={'add-artist-box'}>
-            <AddArtist
-              rowCountState={rowCountState}
-              setRowCountState={setRowCountState}
-              COUNT={COUNT}
-              setRows={setRows}
-            />
+            <AddArtist COUNT={count} fetcher={fetcher} />
           </Container>
         </Box>
         <Box>
-          <ArtistDataGrid rows={rows} setRows={setRows} COUNT={rowCountState} setRowCountState={setRowCountState} />
+          <ArtistDataGrid rows={data} COUNT={count} fetcher={fetcher} />
         </Box>
       </Box>
-      <Suspense fallback={<Waiting src={waiting} />}>
-        <Box sx={{ flex: '0 1 50%' }}>
+      <Box sx={{ flex: '0 1 100%' }}>
+        <Suspense fallback={<Waiting src={waiting} />}>
           <Outlet />
-        </Box>
-      </Suspense>
+        </Suspense>
+      </Box>
     </CenteredFlexDiv>
   );
 };

@@ -1,28 +1,25 @@
 import type { album } from '@aklapper/chinook-client';
-import type { CRUD_ApiResponse } from '@aklapper/types';
-import axios, { type AxiosError, type AxiosResponse } from 'axios';
+import { type AxiosError, type AxiosResponse } from 'axios';
 import type { FormikProps } from 'formik';
-import type { Dispatch, SetStateAction } from 'react';
-
-const baseURL = import.meta.env.VITE_CRUD_API_URL;
+import type { FetcherSubmitFunction } from 'react-router';
+import type { AlbumSubmitAction } from '../../../types/types';
 
 export default async function handleSubmitAlbumOnArtist(
-  title: string,
+  values: album,
   formik: FormikProps<album>,
-  artistID: number,
-  setRows: Dispatch<SetStateAction<album[] | null>>,
+  submit: FetcherSubmitFunction,
 ) {
   try {
-    const resp = await axios.post(
-      `${baseURL}/albums`,
-      { title, artistID },
-      {
-        headers: { 'Content-Type': 'application/json' },
-      },
-    );
-    const { value } = resp.data as CRUD_ApiResponse<album>;
+    const data: AlbumSubmitAction = {
+      intent: 'create',
+      album: values,
+    };
 
-    setRows(prev => prev && prev.map(album => (album.artist_id === artistID ? value : album)));
+    await submit(data, {
+      method: 'POST',
+      encType: 'application/json',
+      action: '/portfolio/crud/artists/:artistID/albums',
+    });
   } catch (error) {
     console.error(error);
     const errorMessage = await ((error as AxiosError).response as AxiosResponse).data.errorMessage;

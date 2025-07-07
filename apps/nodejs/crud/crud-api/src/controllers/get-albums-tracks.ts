@@ -16,30 +16,24 @@ import getAlbumTracks from '../services/prisma/tracks/get-album-tracks.js';
  */
 
 const getAlbumsTracks = async (req: Request, resp: Response, next: NextFunction) => {
-  if (req.query.name || req.query.count) next();
-  else {
+  if (req.query.albumID) {
     try {
-      const { cursor, skip, take } = req.query;
-
       const albumID = parseInt(req.query.albumID as string, 10);
 
       const query = {
-        take: parseInt(take as string, 10),
-        skip: parseInt(skip as string, 10),
-        cursor: { track_id: parseInt(cursor as string, 10) },
-        where: { album_id: { equals: albumID } },
+        where: { album_id: albumID },
       } as Prisma.trackFindManyArgs<DefaultArgs>;
 
       const tracks = await getAlbumTracks(query);
 
-      const data: CRUD_ApiResponse<track[]> = { message: 'Albums Tracks sucessful', value: tracks };
+      const data: CRUD_ApiResponse<track[]> = { message: 'Albums Tracks sucessful', data: tracks };
 
       resp.status(200).json(data);
     } catch (error) {
       console.error(error);
       resp.status(500).json(error);
     }
-  }
+  } else next();
 };
 
 export default getAlbumsTracks;

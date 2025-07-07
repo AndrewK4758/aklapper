@@ -3,30 +3,28 @@ import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import DetailsIcon from '@mui/icons-material/Details';
 import UploadIcon from '@mui/icons-material/Upload';
 import { DataGrid, GridActionsCellItem, type GridColDef, type GridRowParams } from '@mui/x-data-grid';
-import { useCallback, useState, type Dispatch, type SetStateAction } from 'react';
-import { useNavigate, useParams } from 'react-router';
-import useFetchDataGridData from '../../../hooks/useFetchDataGridData';
+import { useCallback, useState } from 'react';
+import { useNavigate, useSearchParams, type FetcherWithComponents } from 'react-router';
 import handleDeleteAlbum from '../../../services/actions/crud-actions/handle-delete-album.js';
 import handleUpdateAlbumTitle from '../../../services/actions/crud-actions/handle-update-album-title.js';
-import loadArtistAlbums from '../../../services/loaders/crud-loaders/load-artist-albums';
-import { DATA_GRID_BG } from '../../../styles/base/base_styles';
-import Theme from '../../../styles/themes/theme';
-import type { PaginationModel } from '../artists/data_grid';
-
-const paginationModelInit: PaginationModel = { page: 0, pageSize: 5 };
+import { DATA_GRID_BG } from '../../../styles/base/base_styles.js';
+import Theme from '../../../styles/themes/theme.js';
+import type { PaginationModel } from '../artists/data_grid.js';
 
 interface AlbumDataGrid {
-  rows: album[] | null;
-  setRows: Dispatch<SetStateAction<album[] | null>>;
+  rows: album[];
+  fetcher: FetcherWithComponents<album>;
 }
 
-export default function AlbumDataGrid({ rows, setRows }: AlbumDataGrid) {
-  const { artistID } = useParams() as { artistID: string };
+export default function AlbumDataGrid({ rows, fetcher }: AlbumDataGrid) {
+  const [paginationModel, setPaginationModel] = useState<PaginationModel>({ page: 0, pageSize: 5 });
+  const [searchParams] = useSearchParams();
   const [dirtyRows, setDirtyRows] = useState<Set<number>>(new Set());
-  const [paginationModel, setPaginationModel] = useState<PaginationModel>(paginationModelInit);
   const nav = useNavigate();
 
-  useFetchDataGridData<album[]>(paginationModel, loadArtistAlbums, setRows, artistID);
+  const handleChangePagination = (model: PaginationModel) => {
+    setPaginationModel(model);
+  };
 
   const processRowUpdate = useCallback((newRow: album) => {
     setDirtyRows(prev => new Set(prev).add(newRow.album_id));
@@ -71,7 +69,7 @@ export default function AlbumDataGrid({ rows, setRows }: AlbumDataGrid) {
             title='Update'
             disabled={!isDirty}
             onClick={async () => {
-              await handleUpdateAlbumTitle(row, setRows);
+              await handleUpdateAlbumTitle(row, fetcher.submit);
             }}
           />,
 
@@ -80,7 +78,7 @@ export default function AlbumDataGrid({ rows, setRows }: AlbumDataGrid) {
             title='Delete'
             icon={<DeleteForeverIcon color='error' />}
             onClick={async () => {
-              await handleDeleteAlbum(row, setRows);
+              await handleDeleteAlbum(row, fetcher.submit);
             }}
           />,
         ];
@@ -97,7 +95,7 @@ export default function AlbumDataGrid({ rows, setRows }: AlbumDataGrid) {
             label='Details'
             title='Details'
             icon={<DetailsIcon color='info' />}
-            onClick={() => nav(`${params.row.album_id}/tracks`, { replace: true })}
+            onClick={() => nav(`${params.row.album_id}/tracks?${searchParams}`, { replace: true })}
           />,
         ];
       },
@@ -111,17 +109,20 @@ export default function AlbumDataGrid({ rows, setRows }: AlbumDataGrid) {
   return (
     <DataGrid
       aria-label='artist-albums-data-grid'
+      logLevel='debug'
+      label='Albums'
       columns={columns}
-      rows={rows ?? []}
-      rowCount={rows ? rows.length : 0}
+      rows={rows}
       getRowId={getID}
       getRowHeight={() => 'auto'}
       pageSizeOptions={[1, 5, 10, 20]}
-      paginationMode='server'
       paginationModel={paginationModel}
-      onPaginationModelChange={newPageModel => setPaginationModel(newPageModel)}
+      onPaginationModelChange={handleChangePagination}
       processRowUpdate={processRowUpdate}
       onProcessRowUpdateError={error => console.error(error)}
+      experimentalFeatures={{
+        warnIfFocusStateIsNotSynced: true,
+      }}
       sx={{
         '&.MuiDataGrid-root': {
           backgroundColor: DATA_GRID_BG,

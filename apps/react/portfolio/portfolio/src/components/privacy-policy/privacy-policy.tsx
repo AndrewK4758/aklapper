@@ -1,9 +1,11 @@
-import Box from '@mui/material/Box';
+import { css } from '@mui/material-pigment-css';
+import Box from '@mui/material-pigment-css/Box';
 import Button from '@mui/material/Button';
-import Modal from '@mui/material/Modal';
+// import Modal from '@mui/material/Modal';
 import type { ReactElement } from 'react';
 import { useNavigate } from 'react-router';
 import PrivacyPolicyText from '../../pages/static/privacy-policy-text.jsx';
+import Theme from '../../styles/themes/theme';
 import CenteredFlexDiv from '../styled/centered_flexbox';
 
 /**
@@ -12,38 +14,53 @@ import CenteredFlexDiv from '../styled/centered_flexbox';
  * @returns {ReactElement} The rendered PrivacyPolicy component.
  */
 
-export const PrivacyPolicy = (): ReactElement => {
+const PrivacyPolicy = (): ReactElement => {
   const nav = useNavigate();
   return (
-    <CenteredFlexDiv id='privacy-policy-wrapper' sx={{ justifyContent: 'center' }}>
-      <Modal
-        id={'privacy-policy-modal'}
-        open={true}
-        sx={{
-          height: '90vh',
-          width: '90vw',
-          top: '5%',
-          left: '5%',
-          overflowY: 'scroll',
-        }}
+    <CenteredFlexDiv
+      id='privacy-policy-wrapper'
+      className={css({ justifyContent: 'center', borderRadius: Theme.shape.borderRadius })}
+    >
+      <Box
+        id={'privacy-policy'}
+        className={css({
+          height: '60vh',
+          width: '100%',
+          overflowY: 'auto',
+          borderRadius: Theme.shape.borderRadius,
+          '&::-webkit-scrollbar': {
+            background: Theme.palette.background.default,
+            borderRadius: Theme.shape.borderRadius,
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: Theme.palette.background.paper,
+            borderRadius: Theme.shape.borderRadius,
+          },
+        })}
       >
-        <Box component={'section'} id={'privacy-policy-modal-wrapper'} sx={{ backgroundColor: '#d1d1d1' }}>
-          <PrivacyPolicyText />
+        <Box
+          as={'section'}
+          id={'privacy-policy-text-wrapper'}
+          sx={{ backgroundColor: '#d1d1d1', borderRadius: Theme.shape.borderRadius }}
+        >
+          {PrivacyPolicyText}
           <Box
-            component={'section'}
+            as={'section'}
             id={'privacy-policy-button-wrapper'}
-            display={'flex'}
-            justifyContent={'flex-end'}
-            paddingX={6}
+            className={css({
+              display: 'flex',
+              justifyContent: 'flex-end',
+              padding: '0 6',
+            })}
           >
-            <Box className='animated-border'>
-              <Button id={'privacy-policy-button'} onClick={() => nav(-1)}>
+            <Box>
+              <Button id={'privacy-policy-button'} color='secondary' onClick={() => nav(-1)}>
                 Close
               </Button>
             </Box>
           </Box>
         </Box>
-      </Modal>
+      </Box>
     </CenteredFlexDiv>
   );
 };
