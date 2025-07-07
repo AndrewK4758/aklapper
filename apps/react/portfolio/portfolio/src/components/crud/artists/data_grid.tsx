@@ -40,18 +40,18 @@ export default function ArtistDataGrid({ rows, COUNT, fetcher }: ArtistDataGridP
   };
 
   const queryOptions: QueryOptions = {
-    cursor: model.page === 0 ? '1' : (model.pageSize * model.page).toString(),
     take: model.pageSize.toString(),
     skip: model.page === 0 ? '0' : '1',
+    cursor: model.page === 0 ? '1' : (model.pageSize * model.page).toString(),
   };
 
   const handleChangePagination = (model: GridPaginationModel) => {
-    // queryOptions = {
-    queryOptions.cursor = model.page === 0 ? '1' : (model.pageSize * model.page).toString();
-    queryOptions.take = model.pageSize.toString();
-    queryOptions.skip = model.page === 0 ? '0' : '1';
-    // };
-    setSearchParams(queryOptions);
+    const newQueryOptions: QueryOptions = {
+      take: model.pageSize.toString(),
+      skip: model.page === 0 ? '0' : '1',
+      cursor: model.page === 0 ? '1' : (model.pageSize * model.page).toString(),
+    };
+    setSearchParams(newQueryOptions);
   };
 
   const processRowUpdate = useCallback((newRow: artist) => {
