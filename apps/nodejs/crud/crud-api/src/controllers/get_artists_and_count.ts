@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import getArtistsAndCount, { type ArtistPagination } from 'src/services/prisma/artist/get_artists_and_count.js';
+import getArtistsAndCount, { type ArtistPagination } from '../services/prisma/artist/get_artists_and_count.js';
 
 export default async function artistsAndCount(req: Request, resp: Response, next: NextFunction) {
   if (!req.query.take && !req.query.skip && !req.query.cursor) next();

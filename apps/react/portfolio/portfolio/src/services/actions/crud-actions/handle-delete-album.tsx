@@ -1,11 +1,11 @@
 import type { album } from '@aklapper/chinook-client';
-import type { FetcherWithComponents } from 'react-router';
+import type { FetcherSubmitFunction } from 'react-router';
 
-const handleDeleteAlbum = async (values: album, fetcher: FetcherWithComponents<album>) => {
+const handleDeleteAlbum = async (values: album, submit: FetcherSubmitFunction) => {
   try {
     const { album_id } = values;
 
-    await fetcher.submit(
+    await submit(
       { album_id, intent: 'delete' },
       { method: 'DELETE', encType: 'application/json', action: '/portfolio/crud/artists/:artistID/albums' },
     );
