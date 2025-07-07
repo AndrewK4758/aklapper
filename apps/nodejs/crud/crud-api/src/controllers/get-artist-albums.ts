@@ -15,28 +15,27 @@ import getArtistAlbums from '../services/prisma/album/get-artist-albums.js';
  * @returns No explicit return value. It either sends a JSON response with the artist's albums or calls the `next()` middleware function.
  */
 
-const getArtistsAlbums = async (req: Request, resp: Response): Promise<void> => {
-  try {
-    const artistID = req.params.id;
-    const { cursor, skip, take } = req.query;
+const getArtistsAlbums = async (req: Request, resp: Response, next: NextFunction): Promise<void> => {
+  if (!req.query.take) next();
+  else {
+    try {
+      const artistID = req.params.id;
 
-    console.log('ARTIST ID: ', artistID);
-    console.log(cursor, skip, take);
+      const query = {
+        where: { artist_id: parseInt(artistID, 10) },
+      } as Prisma.albumFindManyArgs<DefaultArgs>;
 
-    const query = {
-      where: { artist_id: parseInt(artistID, 10) },
-    } as Prisma.albumFindManyArgs<DefaultArgs>;
+      const data = await getArtistAlbums(query);
 
-    const { count, data } = await getArtistAlbums(query);
-
-    const respData: CRUD_ApiResponse<{ count: number; data: album[] }> = {
-      message: 'Arist Albums found',
-      value: { count, data },
-    };
-    resp.status(200).json(respData);
-  } catch (error) {
-    console.error(error);
-    resp.status(500).json(error);
+      const respData: CRUD_ApiResponse<album[]> = {
+        message: 'Arist Albums found',
+        data: data,
+      };
+      resp.status(200).json(respData);
+    } catch (error) {
+      console.error(error);
+      resp.status(500).json(error);
+    }
   }
 };
 
