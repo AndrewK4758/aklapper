@@ -20,7 +20,7 @@ import Games from '../pages/games/games';
 import GenAiHome from '../pages/gen-ai/gen-ai';
 import generateImageAction from '../services/actions/generate-image-action';
 
-import handleArtistAlbumsActions from '../services/actions/crud-actions/handle_album_on_artist_actions';
+import handleArtistAlbumsActions from '../services/actions/crud-actions/handle_album_actions.js';
 import handleArtistActions from '../services/actions/crud-actions/handle_artist_actions.js';
 import handleTrackActions from '../services/actions/crud-actions/handle_track_actions';
 import generateImageAction from '../services/actions/generate-image-action';
@@ -83,12 +83,13 @@ export const routes: RouteObject[] = [
                 Component: AlbumsOnArtist,
                 id: 'artist_albums',
                 action: handleArtistAlbumsActions,
-                loader: loadAlbumsForArtistAndCount,
+                loader: loadAlbumsForArtist,
                 children: [
                   {
                     path: ':albumID/tracks',
                     Component: Tracks,
-                    loader: loadTracksCount,
+                    action: handleTrackActions,
+                    loader: loadAlbumTracks,
                   },
                 ],
               },
@@ -97,12 +98,12 @@ export const routes: RouteObject[] = [
           {
             path: 'albums',
             Component: Album,
-            // loader: loadAlbumsCount,
+            loader: loadAlbums,
             children: [
               {
                 path: ':albumID/tracks',
                 Component: Tracks,
-                loader: loadTracksCount,
+                loader: loadAlbumTracks,
               },
             ],
           },
