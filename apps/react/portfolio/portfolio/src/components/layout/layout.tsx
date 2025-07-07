@@ -45,7 +45,15 @@ export default function Layout(): ReactElement {
         <StyledCard>
           <PicNameAndNav subheader={<AppNavBar />} />
         </StyledCard>
-        <StyledCard className={css({ backgroundColor: 'transparent', width: '100%', padding: 0 })}>
+        <StyledCard
+          id='hello'
+          className={css({
+            backgroundColor: 'transparent',
+            width: '100%',
+            padding: 0,
+            border: 2,
+          })}
+        >
           <Outlet />
         </StyledCard>
       </CenteredFlexDiv>
