@@ -82,12 +82,13 @@ export const routes: RouteObject[] = [
                 Component: AlbumsOnArtist,
                 id: 'artist_albums',
                 action: handleArtistAlbumsActions,
-                loader: loadAlbumsForArtistAndCount,
+                loader: loadAlbumsForArtist,
                 children: [
                   {
                     path: ':albumID/tracks',
                     Component: Tracks,
-                    loader: loadTracksCount,
+                    action: handleTrackActions,
+                    loader: loadAlbumTracks,
                   },
                 ],
               },
@@ -96,12 +97,12 @@ export const routes: RouteObject[] = [
           {
             path: 'albums',
             Component: Album,
-            // loader: loadAlbumsCount,
+            loader: loadAlbums,
             children: [
               {
                 path: ':albumID/tracks',
                 Component: Tracks,
-                loader: loadTracksCount,
+                loader: loadAlbumTracks,
               },
             ],
           },
