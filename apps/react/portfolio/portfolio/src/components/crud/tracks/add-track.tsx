@@ -10,8 +10,6 @@ import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
 import CenteredFlexDiv from '../../styled/centered_flexbox.js';
 import TextInput from '../../text_input/text_input.js';
 
-const baseURL = import.meta.env.VITE_CRUD_API_URL;
-
 interface AddTrackProps {
   albumID: string;
   fetcher: FetcherWithComponents<track>;
