@@ -1,10 +1,13 @@
+import type { artist } from '@aklapper/chinook-client';
+import type { DataGridLoaderWithCount } from '@aklapper/types';
 import axios from 'axios';
 import type { LoaderFunction, LoaderFunctionArgs } from 'react-router';
-import type { ArtistLoader } from '../../../types/types';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
-const loadArtistsCount: LoaderFunction = async ({ request }: LoaderFunctionArgs): Promise<ArtistLoader | void> => {
+const loadArtistsCount: LoaderFunction = async ({
+  request,
+}: LoaderFunctionArgs): Promise<DataGridLoaderWithCount<artist[]> | void> => {
   try {
     const { search } = new URL(request.url);
 
