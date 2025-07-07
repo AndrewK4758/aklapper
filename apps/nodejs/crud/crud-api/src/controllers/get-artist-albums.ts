@@ -1,7 +1,7 @@
 import { Prisma, type album } from '@aklapper/chinook-client';
 import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { DefaultArgs } from '@prisma/client/runtime/library';
-import type { Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import getArtistAlbums from '../services/prisma/album/get-artist-albums.js';
 
 /**
@@ -20,13 +20,6 @@ const getArtistsAlbums = async (req: Request, resp: Response, next: NextFunction
   else {
     try {
       const artistID = req.params.id;
-const getArtistsAlbums = async (req: Request, resp: Response): Promise<void> => {
-  try {
-    const artistID = req.params.id;
-    const { cursor, skip, take } = req.query;
-
-    console.log('ARTIST ID: ', artistID);
-    console.log(cursor, skip, take);
 
       const query = {
         where: { artist_id: parseInt(artistID, 10) },
