@@ -9,8 +9,8 @@ import BaseError from '../errors/base_error';
 import Home from '../pages/home/home';
 import LandingPage from '../pages/landing/landing';
 
-import loadArtistsAndCount from '../services/loaders/crud-loaders/load-artists-count';
-import loadAlbumsForArtistAndCount from '../services/loaders/crud-loaders/load_albums_for_artist_and_count.js';
+import loadArtistsAndCount from '../services/loaders/crud-loaders/load-artists.js';
+import loadAlbumsForArtist from '../services/loaders/crud-loaders/load_albums_for_artist.js';
 
 import Layout from '../components/layout/layout';
 import Crud from '../pages/crud/crud';
@@ -22,7 +22,7 @@ import handleArtistActions from '../services/actions/crud-actions/handle_artist_
 import handleTrackActions from '../services/actions/crud-actions/handle_track_actions';
 import generateImageAction from '../services/actions/generate-image-action';
 
-import handleArtistAlbumsActions from '../services/actions/crud-actions/handle_album_on_artist_actions';
+import handleArtistAlbumsActions from '../services/actions/crud-actions/handle_album_actions.js';
 import handleArtistActions from '../services/actions/crud-actions/handle_artist_actions.js';
 import handleTrackActions from '../services/actions/crud-actions/handle_track_actions';
 import generateImageAction from '../services/actions/generate-image-action';
@@ -85,12 +85,13 @@ export const routes: RouteObject[] = [
                 Component: AlbumsOnArtist,
                 id: 'artist_albums',
                 action: handleArtistAlbumsActions,
-                loader: loadAlbumsForArtistAndCount,
+                loader: loadAlbumsForArtist,
                 children: [
                   {
                     path: ':albumID/tracks',
                     Component: Tracks,
-                    loader: loadTracksCount,
+                    action: handleTrackActions,
+                    loader: loadAlbumTracks,
                   },
                 ],
               },
@@ -99,12 +100,12 @@ export const routes: RouteObject[] = [
           {
             path: 'albums',
             Component: Album,
-            // loader: loadAlbumsCount,
+            loader: loadAlbums,
             children: [
               {
                 path: ':albumID/tracks',
                 Component: Tracks,
-                loader: loadTracksCount,
+                loader: loadAlbumTracks,
               },
             ],
           },

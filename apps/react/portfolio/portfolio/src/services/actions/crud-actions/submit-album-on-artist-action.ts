@@ -1,19 +1,24 @@
 import type { album } from '@aklapper/chinook-client';
 import { type AxiosError, type AxiosResponse } from 'axios';
 import type { FormikProps } from 'formik';
-import type { FetcherSubmitFunction } from 'react-router';
-import type { AlbumSubmitAction } from '../../../types/types.js';
+import type { FetcherWithComponents } from 'react-router';
 
 export default async function handleSubmitAlbumOnArtist(
   values: album,
   formik: FormikProps<album>,
-  fetcher: FetcherWithComponents<album>,
+  submit: FetcherSubmitFunction,
 ) {
   try {
-    await fetcher.submit(
-      { title, intent: 'create' },
-      { method: 'POST', encType: 'application/json', action: '/portfolio/crud/artists/:artistID/albums' },
-    );
+    const data: AlbumSubmitAction = {
+      intent: 'create',
+      album: values,
+    };
+
+    await submit(data, {
+      method: 'POST',
+      encType: 'application/json',
+      action: '/portfolio/crud/artists/:artistID/albums',
+    });
   } catch (error) {
     console.error(error);
     const errorMessage = await ((error as AxiosError).response as AxiosResponse).data.errorMessage;
