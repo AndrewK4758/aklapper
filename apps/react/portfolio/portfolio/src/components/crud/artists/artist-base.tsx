@@ -1,5 +1,7 @@
 // import type { artist } from '@aklapper/chinook-client';
+import type { artist } from '@aklapper/chinook-client';
 import { Waiting } from '@aklapper/react-shared';
+import type { DataGridLoaderWithCount } from '@aklapper/types';
 import { css } from '@mui/material-pigment-css';
 import Box from '@mui/material-pigment-css/Box';
 import Container from '@mui/material-pigment-css/Container';
@@ -8,7 +10,6 @@ import { Outlet, useFetcher, useLoaderData } from 'react-router';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
 import { artistsSxProps } from '../../../styles/crud/data_grid';
 import Theme from '../../../styles/themes/theme';
-import { ArtistLoader } from '../../../types/types';
 import CenteredFlexDiv from '../../styled/centered_flexbox';
 import DataGridHeader from '../data_grid_header';
 import AddArtist from './add-artist';
@@ -22,7 +23,7 @@ import ArtistDataGrid from './data_grid';
  */
 
 const Artist = (): ReactElement => {
-  const { count, data } = useLoaderData<ArtistLoader>();
+  const { count, data } = useLoaderData<DataGridLoaderWithCount<artist[]>>();
   const fetcher = useFetcher();
 
   return (
@@ -48,8 +49,8 @@ const Artist = (): ReactElement => {
           <ArtistDataGrid rows={data} COUNT={count} fetcher={fetcher} />
         </Box>
       </Box>
-      <Suspense fallback={<Waiting src={waiting} />}>
-        <Box sx={{ flex: '0 1 100%' }}>
+      <Box sx={{ flex: '0 1 100%' }}>
+        <Suspense fallback={<Waiting src={waiting} />}>
           <Outlet />
         </Suspense>
       </Box>
