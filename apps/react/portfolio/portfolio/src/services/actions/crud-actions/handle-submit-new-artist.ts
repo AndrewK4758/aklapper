@@ -1,15 +1,13 @@
 import type { artist } from '@aklapper/chinook-client';
 import { type AxiosError, type AxiosResponse } from 'axios';
 import type { FormikProps } from 'formik';
-// import type { Dispatch, SetStateAction } from 'react';
-// import type { CRUD_ApiResponse } from '../../../types/types.js';
 import type { FetcherSubmitFunction } from 'react-router';
 import type { ArtistSubmitAction } from '../../../types/types.js';
 
 const handleSubmitNewArtist = async (values: artist, formik: FormikProps<artist>, submit: FetcherSubmitFunction) => {
   const { name } = values;
   try {
-    const newArtistdata = { name, intent: 'create' };
+    const newArtistdata: ArtistSubmitAction = { artist: { name }, intent: 'create' };
     await submit(newArtistdata, { action: '/portfolio/crud/artists', method: 'POST', encType: 'application/json' });
   } catch (error) {
     console.error(error);
