@@ -48,7 +48,7 @@ const Audio = lazy(() => import('../components/gen-ai/audio/audio'));
  * @type {RouteObject[]}
  */
 
-const routes: RouteObject[] = [
+export const routes: RouteObject[] = [
   {
     path: '/',
     Component: LandingPage,
