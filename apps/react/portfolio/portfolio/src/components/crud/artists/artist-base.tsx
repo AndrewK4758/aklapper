@@ -23,7 +23,7 @@ import ArtistDataGrid from './data_grid';
  */
 
 const Artist = (): ReactElement => {
-  const { count, data } = useLoaderData<DataGridLoaderWithCount<artist[]>>();
+  const { data, count } = useLoaderData<DataGridLoaderWithCount<artist[]>>();
   const fetcher = useFetcher();
 
   return (
