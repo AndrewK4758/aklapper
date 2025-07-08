@@ -19,7 +19,7 @@ export default function DialogLayout({
   ...props
 }: DialogLayoutProps): ReactElement<DialogLayoutProps> {
   return (
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_OAUTH_CLIENT_ID}>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_OAUTH_CLIENT_ID} data-testid='google-oath'>
       <LocalizationProvider
         dateAdapter={AdapterDayjs}
         localeText={enUS.components.MuiLocalizationProvider.defaultProps.localeText}
