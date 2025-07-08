@@ -248,20 +248,10 @@ importers:
         version: 19.1.6(@types/react@19.1.8)
       '@vitejs/plugin-react':
         specifier: 4.6.0
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> b63a43e (refactor: changed all crud data grid to react router loaders)
         version: 4.6.0(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.0))
       '@vitejs/plugin-react-oxc':
         specifier: ^0.2.3
         version: 0.2.3(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.0))
-<<<<<<< HEAD
-=======
-        version: 4.6.0(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(terser@5.43.1)(yaml@2.8.0))
->>>>>>> 2c8fe1b (update: added tests to portfolio)
-=======
->>>>>>> b63a43e (refactor: changed all crud data grid to react router loaders)
       '@vitest/coverage-v8':
         specifier: 3.2.4
         version: 3.2.4(vitest@3.2.4)
@@ -354,7 +344,7 @@ importers:
         version: 7.0.2(@types/node@24.0.10)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.0)
       vite-plugin-dts:
         specifier: 4.5.4
-        version: 4.5.4(@types/node@24.0.10)(rollup@4.44.2)(typescript@5.8.3)(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(terser@5.43.1)(yaml@2.8.0))
+        version: 4.5.4(@types/node@24.0.10)(rollup@4.44.2)(typescript@5.8.3)(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.0))
       vitest:
         specifier: 3.2.4
         version: 3.2.4(@types/node@24.0.10)(@vitest/ui@3.2.4)(happy-dom@15.11.7)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.0)
@@ -431,9 +421,47 @@ importers:
         specifier: workspace:*
         version: link:../../../../packages/types
 
+  apps/nodejs/games/games-api/dist:
+    devDependencies:
+      '@aklapper/chain':
+        specifier: workspace:*
+        version: link:../../../../../packages/chain
+      '@aklapper/game':
+        specifier: workspace:*
+        version: link:../../../../../packages/game
+      '@aklapper/games':
+        specifier: workspace:*
+        version: link:../../../../../packages/games
+      '@aklapper/games-chains':
+        specifier: workspace:*
+        version: link:../../../../../packages/games-chains
+      '@aklapper/games-client':
+        specifier: workspace:*
+        version: link:../../../../../packages/prisma/games
+      '@aklapper/games-components':
+        specifier: workspace:*
+        version: link:../../../../../packages/games-components
+      '@aklapper/mocks':
+        specifier: workspace:*
+        version: link:../../../../../packages/mocks
+      '@aklapper/models':
+        specifier: workspace:*
+        version: link:../../../../../packages/models
+      '@aklapper/socket-io-server':
+        specifier: workspace:*
+        version: link:../../../../../packages/socket-io/server
+      '@aklapper/types':
+        specifier: workspace:*
+        version: link:../../../../../packages/types
+      '@aklapper/utils':
+        specifier: workspace:*
+        version: link:../../../../../packages/utils
+
   apps/nodejs/portfolio/portfolio-api: {}
 
   apps/nodejs/portfolio/portfolio-api-e2e: {}
+
+  apps/nodejs/portfolio/portfolio-api/dist: {}
 
   apps/nodejs/vertex/vertex-api:
     devDependencies:
@@ -451,6 +479,21 @@ importers:
         version: link:../../../../packages/gen-ai/vertex-ai
 
   apps/nodejs/vertex/vertex-api-e2e: {}
+
+  apps/nodejs/vertex/vertex-api/dist:
+    devDependencies:
+      '@aklapper/prompt-builder':
+        specifier: workspace:*
+        version: link:../../../../../packages/gen-ai/prompt-builder
+      '@aklapper/socket-io-server':
+        specifier: workspace:*
+        version: link:../../../../../packages/socket-io/server
+      '@aklapper/types':
+        specifier: workspace:*
+        version: link:../../../../../packages/types
+      '@aklapper/vertex-ai':
+        specifier: workspace:*
+        version: link:../../../../../packages/gen-ai/vertex-ai
 
   apps/react/crud/crud-ui:
     devDependencies:
@@ -11434,9 +11477,7 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.0-beta.24': {}
 
-  '@rolldown/pluginutils@1.0.0-beta.24': {}
-
-  '@rollup/pluginutils@5.2.0(rollup@4.44.1)':
+  '@rollup/pluginutils@5.2.0(rollup@4.44.2)':
     dependencies:
       '@types/estree': 1.0.8
       estree-walker: 2.0.2
@@ -12267,22 +12308,12 @@ snapshots:
   '@unrs/resolver-binding-win32-x64-msvc@1.11.0':
     optional: true
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> b63a43e (refactor: changed all crud data grid to react router loaders)
   '@vitejs/plugin-react-oxc@0.2.3(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.0))':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-beta.11
       vite: 7.0.2(@types/node@24.0.10)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.0)
 
   '@vitejs/plugin-react@4.6.0(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.0))':
-<<<<<<< HEAD
-=======
-  '@vitejs/plugin-react@4.6.0(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(terser@5.43.1)(yaml@2.8.0))':
->>>>>>> 2c8fe1b (update: added tests to portfolio)
-=======
->>>>>>> b63a43e (refactor: changed all crud data grid to react router loaders)
     dependencies:
       '@babel/core': 7.28.0
       '@babel/plugin-transform-react-jsx-self': 7.27.1(@babel/core@7.28.0)
@@ -17731,7 +17762,7 @@ snapshots:
       - tsx
       - yaml
 
-  vite-plugin-dts@4.5.4(@types/node@24.0.10)(rollup@4.44.2)(typescript@5.8.3)(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(terser@5.43.1)(yaml@2.8.0)):
+  vite-plugin-dts@4.5.4(@types/node@24.0.10)(rollup@4.44.2)(typescript@5.8.3)(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.0)):
     dependencies:
       '@microsoft/api-extractor': 7.52.8(@types/node@24.0.10)
       '@rollup/pluginutils': 5.2.0(rollup@4.44.2)
