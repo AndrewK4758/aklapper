@@ -30,19 +30,6 @@
     "sourceRoot": "packages/games-chains/src",
     "projectType": "library",
     "name": "games-chains",
-<<<<<<< HEAD
     "implicitDependencies": []
-=======
-    "implicitDependencies": [
-      "mocks",
-      "models",
-      "game",
-      "games",
-      "games-components",
-      "utils",
-      "types",
-      "chain"
-    ]
->>>>>>> 6c510a7 (fix: updated ci to include typecheck with build step)
   }
 }

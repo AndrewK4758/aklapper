@@ -9,8 +9,10 @@ import BaseError from '../errors/base_error';
 import Home from '../pages/home/home';
 import LandingPage from '../pages/landing/landing';
 
-import loadArtistsAndCount from '../services/loaders/crud-loaders/load-artists-count';
-import loadAlbumsForArtistAndCount from '../services/loaders/crud-loaders/load_albums_for_artist_and_count.js';
+import loadAlbumTracks from '../services/loaders/crud-loaders/load-album-tracks';
+import loadAlbums from '../services/loaders/crud-loaders/load-albums';
+import loadArtistsAndCount from '../services/loaders/crud-loaders/load-artists.js';
+import loadAlbumsForArtist from '../services/loaders/crud-loaders/load_albums_for_artist.js';
 
 import Layout from '../components/layout/layout';
 import Crud from '../pages/crud/crud';
