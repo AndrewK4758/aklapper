@@ -12,7 +12,7 @@ import { useCallback, useState } from 'react';
 import { useNavigate, useSearchParams, type FetcherWithComponents } from 'react-router';
 import { DATA_GRID_BG } from '../../../styles/base/base_styles';
 import Theme from '../../../styles/themes/theme';
-import type { QueryOptions } from '../../../types/types';
+import type { ArtistSubmitAction, QueryOptions } from '../../../types/types';
 
 export type PaginationModel = {
   pageSize: number;
@@ -174,10 +174,8 @@ const handleUpdateArtistName = async (values: artist, fetcher: FetcherWithCompon
   try {
     const { artist_id, name } = values;
 
-    fetcher.submit(
-      { artist_id, name, intent: 'update' },
-      { method: 'PATCH', encType: 'application/json', action: '/portfolio/crud/artists' },
-    );
+    const data: ArtistSubmitAction = { artist: { artist_id, name }, intent: 'update' };
+    fetcher.submit(data, { method: 'PATCH', encType: 'application/json', action: '/portfolio/crud/artists' });
   } catch (error) {
     console.error(error);
   }
@@ -186,10 +184,10 @@ const handleUpdateArtistName = async (values: artist, fetcher: FetcherWithCompon
 const handleDeleteArtist = async (values: artist, fetcher: FetcherWithComponents<artist>) => {
   try {
     const { artist_id } = values;
-    fetcher.submit(
-      { artist_id, intent: 'delete' },
-      { method: 'PATCH', encType: 'application/json', action: '/portfolio/crud/artists' },
-    );
+
+    const data: ArtistSubmitAction = { artist: { artist_id }, intent: 'delete' };
+
+    fetcher.submit(data, { method: 'PATCH', encType: 'application/json', action: '/portfolio/crud/artists' });
   } catch (err) {
     console.error(err);
   }

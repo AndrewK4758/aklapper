@@ -17,19 +17,21 @@ import findAllAlbums from '../services/prisma/album/find-albums.js';
 const getAlbums = async (req: Request, resp: Response) => {
   if (req.query.take) {
     try {
-      const { take, skip } = req.query;
+      const { take, skip, cursor } = req.query;
 
       const query = {
         take: parseInt(take as string, 10),
         skip: parseInt(skip as string, 10),
+        cursor: { album_id: parseInt(cursor as string, 10) },
       } as Prisma.albumFindManyArgs<DefaultArgs>;
-      const albums = await findAllAlbums(query);
+
+      const { count, data } = await findAllAlbums(query);
 
       const values: CRUD_ApiResponse<{ count: number; data: album[] }> = {
         message: 'All Albums Loaded',
         data: {
-          count: albums.length,
-          data: albums,
+          count: count,
+          data: data,
         },
       };
       resp.status(200).json(values);

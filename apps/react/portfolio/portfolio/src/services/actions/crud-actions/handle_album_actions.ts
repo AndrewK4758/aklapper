@@ -14,6 +14,8 @@ const handleArtistAlbumsActions: ActionFunction = async ({
     const submit = (await request.json()) as AlbumSubmitAction;
     const { artistID } = params;
 
+    console.log(submit);
+
     switch (submit.intent) {
       case 'create': {
         const {
@@ -57,6 +59,8 @@ const handleArtistAlbumsActions: ActionFunction = async ({
         const {
           album: { album_id },
         } = submit;
+
+        console.log(album_id);
 
         const resp = await axios.delete(`${baseURL}/albums/${album_id}`, {
           headers: { 'Content-Type': 'text/plain' },

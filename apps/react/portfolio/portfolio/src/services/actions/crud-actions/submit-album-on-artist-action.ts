@@ -2,7 +2,7 @@ import type { album } from '@aklapper/chinook-client';
 import { type AxiosError, type AxiosResponse } from 'axios';
 import type { FormikProps } from 'formik';
 import type { FetcherSubmitFunction } from 'react-router';
-import type { AlbumSubmitAction } from '../../../types/types';
+import type { AlbumSubmitAction } from '../../../types/types.js';
 
 export default async function handleSubmitAlbumOnArtist(
   values: album,

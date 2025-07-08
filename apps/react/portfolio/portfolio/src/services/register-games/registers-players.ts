@@ -1,6 +1,6 @@
 import { Color, type GamePlayerValidation, type IRegisterFormValues } from '@aklapper/types';
 import axios from 'axios';
-import gamesAutoStartError from '../../errors/games-auto-start-error.jsx';
+import gamesAutoStartError from '../../errors/games-auto-start-error.js';
 
 const baseUrl = import.meta.env.VITE_GAMES_API_URL;
 
@@ -13,14 +13,14 @@ const registerPlayers = async (gameName: string, __current_game__: GamePlayerVal
       {
         playerName: 'Guest Player 1',
         avatarName: avatar1Name,
-        avatarColor: Color.BLACK
+        avatarColor: Color.BLACK,
       },
 
       {
         playerName: 'Guest Player 2',
         avatarName: avatar2Name,
-        avatarColor: Color.GREEN
-      }
+        avatarColor: Color.GREEN,
+      },
     ];
 
     let registeredPlayerCount = 0;
@@ -28,7 +28,7 @@ const registerPlayers = async (gameName: string, __current_game__: GamePlayerVal
       const player = guestPlayers[i];
 
       const resp = await axios.patch(`${baseUrl}/games/${gameName}/register`, player, {
-        headers: { 'current-game': JSON.stringify(__current_game__) }
+        headers: { 'current-game': JSON.stringify(__current_game__) },
       });
 
       if (resp) registeredPlayerCount += 1;
