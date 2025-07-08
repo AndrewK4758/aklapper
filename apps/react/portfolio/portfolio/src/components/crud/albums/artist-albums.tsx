@@ -1,6 +1,6 @@
 import type { album } from '@aklapper/chinook-client';
 import { Waiting } from '@aklapper/react-shared';
-import type { DataGridLoaderWithCount } from '@aklapper/types';
+import type { DataGridLoader } from '@aklapper/types';
 import Box from '@mui/material-pigment-css/Box';
 import Container from '@mui/material-pigment-css/Container';
 import { Suspense, type ReactElement } from 'react';
@@ -26,7 +26,7 @@ export interface AlbumState {
  */
 
 export const AlbumsOnArtist = (): ReactElement => {
-  const { count, data } = useLoaderData<DataGridLoaderWithCount<album[]>>();
+  const { count, data } = useLoaderData<DataGridLoader<album[]>>();
   const fetcher = useFetcher();
 
   return (
@@ -47,7 +47,7 @@ export const AlbumsOnArtist = (): ReactElement => {
           </Container>
         </Box>
         <Box sx={{ width: '100%' }}>
-          <AlbumDataGrid count={count} rows={data} fetcher={fetcher} />
+          <AlbumDataGrid count={count as number} rows={data} fetcher={fetcher} />
         </Box>
       </Box>
       <Box sx={{ width: '100%' }}>
