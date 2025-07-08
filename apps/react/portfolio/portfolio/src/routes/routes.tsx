@@ -18,7 +18,6 @@ import Layout from '../components/layout/layout';
 import Crud from '../pages/crud/crud';
 import Games from '../pages/games/games';
 import GenAiHome from '../pages/gen-ai/gen-ai';
-import generateImageAction from '../services/actions/generate-image-action';
 
 import handleArtistAlbumsActions from '../services/actions/crud-actions/handle_album_actions.js';
 import handleArtistActions from '../services/actions/crud-actions/handle_artist_actions.js';
