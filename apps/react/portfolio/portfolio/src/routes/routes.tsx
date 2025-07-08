@@ -19,11 +19,6 @@ import Crud from '../pages/crud/crud';
 import Games from '../pages/games/games';
 import GenAiHome from '../pages/gen-ai/gen-ai';
 
-import handleArtistAlbumsActions from '../services/actions/crud-actions/handle_album_on_artist_actions';
-import handleArtistActions from '../services/actions/crud-actions/handle_artist_actions.js';
-import handleTrackActions from '../services/actions/crud-actions/handle_track_actions';
-import generateImageAction from '../services/actions/generate-image-action';
-
 import handleArtistAlbumsActions from '../services/actions/crud-actions/handle_album_actions.js';
 import handleArtistActions from '../services/actions/crud-actions/handle_artist_actions.js';
 import handleTrackActions from '../services/actions/crud-actions/handle_track_actions';
