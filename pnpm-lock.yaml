@@ -421,9 +421,47 @@ importers:
         specifier: workspace:*
         version: link:../../../../packages/types
 
+  apps/nodejs/games/games-api/dist:
+    devDependencies:
+      '@aklapper/chain':
+        specifier: workspace:*
+        version: link:../../../../../packages/chain
+      '@aklapper/game':
+        specifier: workspace:*
+        version: link:../../../../../packages/game
+      '@aklapper/games':
+        specifier: workspace:*
+        version: link:../../../../../packages/games
+      '@aklapper/games-chains':
+        specifier: workspace:*
+        version: link:../../../../../packages/games-chains
+      '@aklapper/games-client':
+        specifier: workspace:*
+        version: link:../../../../../packages/prisma/games
+      '@aklapper/games-components':
+        specifier: workspace:*
+        version: link:../../../../../packages/games-components
+      '@aklapper/mocks':
+        specifier: workspace:*
+        version: link:../../../../../packages/mocks
+      '@aklapper/models':
+        specifier: workspace:*
+        version: link:../../../../../packages/models
+      '@aklapper/socket-io-server':
+        specifier: workspace:*
+        version: link:../../../../../packages/socket-io/server
+      '@aklapper/types':
+        specifier: workspace:*
+        version: link:../../../../../packages/types
+      '@aklapper/utils':
+        specifier: workspace:*
+        version: link:../../../../../packages/utils
+
   apps/nodejs/portfolio/portfolio-api: {}
 
   apps/nodejs/portfolio/portfolio-api-e2e: {}
+
+  apps/nodejs/portfolio/portfolio-api/dist: {}
 
   apps/nodejs/vertex/vertex-api:
     devDependencies:
@@ -441,6 +479,21 @@ importers:
         version: link:../../../../packages/gen-ai/vertex-ai
 
   apps/nodejs/vertex/vertex-api-e2e: {}
+
+  apps/nodejs/vertex/vertex-api/dist:
+    devDependencies:
+      '@aklapper/prompt-builder':
+        specifier: workspace:*
+        version: link:../../../../../packages/gen-ai/prompt-builder
+      '@aklapper/socket-io-server':
+        specifier: workspace:*
+        version: link:../../../../../packages/socket-io/server
+      '@aklapper/types':
+        specifier: workspace:*
+        version: link:../../../../../packages/types
+      '@aklapper/vertex-ai':
+        specifier: workspace:*
+        version: link:../../../../../packages/gen-ai/vertex-ai
 
   apps/react/crud/crud-ui:
     devDependencies:
@@ -476,7 +529,11 @@ importers:
         specifier: workspace:*
         version: link:../../../../packages/socket-io/client
 
-  apps/react/local-model/local-model-e2e: {}
+  apps/react/local-model/local-model-e2e:
+    devDependencies:
+      '@aklapper/utils':
+        specifier: workspace:*
+        version: link:../../../../packages/utils
 
   apps/react/portfolio/portfolio:
     devDependencies:

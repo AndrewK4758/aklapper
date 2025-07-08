@@ -6,10 +6,8 @@ import type { TrackSubmitAction } from '../../../types/types';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
-const handleTrackActions: ActionFunction = async function ({ params, request }: ActionFunctionArgs) {
+const handleTrackActions: ActionFunction = async function ({ request }: ActionFunctionArgs) {
   const submit = (await request.json()) as TrackSubmitAction;
-
-  const { albumID } = params as { albumID: string };
 
   switch (submit.intent) {
     case 'update': {
@@ -30,12 +28,12 @@ const handleTrackActions: ActionFunction = async function ({ params, request }: 
 
     case 'create': {
       const {
-        track: { name },
+        track: { name, album_id },
       } = submit;
 
       const resp = await axios.post(
         `${baseURL}/tracks`,
-        { name: name, albumID: albumID },
+        { name: name, albumID: album_id },
         {
           headers: { 'Content-Type': 'application/json' },
         },

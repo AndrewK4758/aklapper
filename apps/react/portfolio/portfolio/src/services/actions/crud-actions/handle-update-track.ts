@@ -1,6 +1,6 @@
 import type { track } from '@aklapper/chinook-client';
 import type { FetcherSubmitFunction } from 'react-router';
-import type { TrackSubmitAction } from '../../../types/types';
+import type { TrackSubmitAction } from '../../../types/types.js';
 
 const handleUpdateTrack = async (values: track, submit: FetcherSubmitFunction) => {
   try {

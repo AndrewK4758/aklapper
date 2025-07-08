@@ -20,7 +20,6 @@ const handleSubmitNewEntry = async (
   setSubmitting: (isSubmitting: boolean) => void,
   nav: NavigateFunction,
 ) => {
-  console.log('here');
   try {
     setSubmitting(true);
 

@@ -7,9 +7,13 @@ import type { DefaultArgs } from '@prisma/client/runtime/library';
  * @returns A Promise that resolves to an array of album objects, or null if an error occurs.
  */
 
-const findAllAlbums = async (query: Prisma.albumFindManyArgs<DefaultArgs>): Promise<album[]> => {
+const findAllAlbums = async (
+  query: Prisma.albumFindManyArgs<DefaultArgs>,
+): Promise<{ count: number; data: album[] }> => {
   try {
-    return await prisma.album.findMany(query);
+    const [count, data] = await prisma.$transaction([prisma.album.count(), prisma.album.findMany(query)]);
+
+    return { count, data };
   } catch (error) {
     const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
     throw prismaError.parseErrors();

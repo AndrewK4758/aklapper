@@ -4,10 +4,10 @@ import ButtonGroup from '@mui/material/ButtonGroup';
 import { useFormik } from 'formik';
 import { type ReactElement } from 'react';
 import { type FetcherWithComponents } from 'react-router';
-import handleSubmitAlbumOnArtist from '../../../services/actions/crud-actions/submit-album-on-artist-action.jsx';
+import handleSubmitAlbumOnArtist from '../../../services/actions/crud-actions/submit-album-on-artist-action';
 import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
-import CenteredFlexDiv from '../../styled/centered_flexbox.js';
-import TextInput from '../../text_input/text_input.js';
+import CenteredFlexDiv from '../../styled/centered_flexbox';
+import TextInput from '../../text_input/text_input';
 
 interface AddAlbumOnArtistProps {
   fetcher: FetcherWithComponents<album>;

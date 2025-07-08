@@ -1,5 +1,5 @@
 import axios from 'axios';
-import gamesAutoStartError from '../../errors/games-auto-start-error';
+import gamesAutoStartError from '../../errors/games-auto-start-error.js';
 
 const baseUrl = import.meta.env.VITE_GAMES_API_URL;
 
