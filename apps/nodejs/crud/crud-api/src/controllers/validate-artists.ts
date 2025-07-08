@@ -1,5 +1,6 @@
 import type { Prisma } from '@aklapper/chinook-client';
-import type { Request, Response } from 'express';
+import { BlurResponse, CRUD_ValidationCategory, type CRUD_BlurResponse } from '@aklapper/types';
+import type { NextFunction, Request, Response } from 'express';
 import validateArtist from '../services/prisma/artist/validate-artist-in-db.js';
 
 /**
@@ -12,22 +13,37 @@ import validateArtist from '../services/prisma/artist/validate-artist-in-db.js';
  * @returns No explicit return value. It sends a JSON response indicating artist existence.
  */
 
-const validateArtists = async (req: Request, resp: Response) => {
-  try {
-    const { name } = req.query;
+const validateArtists = async (req: Request, resp: Response, next: NextFunction) => {
+  if (req.params.category === CRUD_ValidationCategory.ARTISTS) {
+    try {
+      const { name } = req.query;
 
-    const query = {
-      where: { name: { equals: name as string, mode: 'insensitive' } },
-    } as Prisma.artistWhereInput;
+      const query = {
+        where: { name: { equals: name as string, mode: 'insensitive' } },
+      } as Prisma.artistWhereInput;
 
-    const artist = await validateArtist(query);
+      const artist = await validateArtist(query);
 
-    if (artist) resp.status(200).json({ message: 'Artist Already Exists' });
-    else resp.status(200).json({ message: 'Artist Not in List' });
-  } catch (error) {
-    console.error(error);
-    resp.status(500).json(error);
-  }
+      if (artist) {
+        const blurResp: CRUD_BlurResponse = {
+          message: 'Artist Already Exists',
+          status: BlurResponse.ERROR,
+        };
+
+        resp.status(200).json(blurResp);
+      } else {
+        const blurResp: CRUD_BlurResponse = {
+          message: 'Artist Not in List',
+          status: BlurResponse.AVAILABLE,
+        };
+
+        resp.status(200).json(blurResp);
+      }
+    } catch (error) {
+      console.error(error);
+      resp.status(500).json(error);
+    }
+  } else next();
 };
 
 export default validateArtists;

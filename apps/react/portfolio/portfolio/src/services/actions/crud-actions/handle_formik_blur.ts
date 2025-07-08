@@ -1,10 +1,8 @@
-import axios from 'axios';
 import type { FormikProps } from 'formik';
 import type { FocusEvent } from 'react';
+import getBlurResponse from './get_blur_response';
 
-const baseURL = import.meta.env.VITE_CRUD_API_URL;
-
-const handleFormikBlur = async <T,>(
+const handleFormikBlur = async <T>(
   e: FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>,
   formik: FormikProps<T>,
   handleUpdateHelperText: (inDbRessponse: string) => void,
@@ -21,17 +19,13 @@ const handleFormikBlur = async <T,>(
 
     formik.setSubmitting(true);
 
-    const resp = await axios.get(`${baseURL}/${params}`);
+    const blurResp = await getBlurResponse(params);
 
-    const dbMessage = resp.data.message;
-
-    console.log(dbMessage);
-
-    if (dbMessage === 'Artist Already Exists') {
-      handleExists<T>(field, dbMessage, formik);
-    } else {
+    if (blurResp.status === 'error') {
+      handleExists<T>(field, blurResp.message, formik);
+    } else if (blurResp.status === 'availavle') {
       formik.setFieldTouched(field, true, true);
-      handleUpdateHelperText(resp.data.message);
+      handleUpdateHelperText(blurResp.message);
     }
   } catch (error) {
     console.error(error);

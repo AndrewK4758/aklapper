@@ -1,4 +1,5 @@
 import { Prisma } from '@aklapper/chinook-client';
+import { type CRUD_BlurResponse, BlurResponse, CRUD_ValidationCategory } from '@aklapper/types';
 import type { NextFunction, Request, Response } from 'express';
 import validateAlbum from '../services/prisma/album/validate-album.js';
 
@@ -14,21 +15,33 @@ import validateAlbum from '../services/prisma/album/validate-album.js';
  */
 
 const validateAlbums = async (req: Request, resp: Response, next: NextFunction) => {
-  if (req.query.title) {
+  if (req.params.category === CRUD_ValidationCategory.ALBUMS) {
     try {
-      const { artistID, title } = req.query;
+      const { title } = req.query;
 
       const query = {
         where: {
           title: { equals: title as string, mode: 'insensitive' },
-          artist_id: { equals: parseInt(artistID as string, 10) },
         },
       } as Prisma.albumWhereInput;
 
       const album = await validateAlbum(query);
 
-      if (album) resp.status(200).json({ message: 'Album Already Exists' });
-      else resp.status(200).json({ message: 'Album Not in List. Please Submit to Continue' });
+      if (album) {
+        const blurResp: CRUD_BlurResponse = {
+          message: 'Album Already Exists',
+          status: BlurResponse.ERROR,
+        };
+
+        resp.status(200).json(blurResp);
+      } else {
+        const blurResp: CRUD_BlurResponse = {
+          message: 'Album Not in List',
+          status: BlurResponse.AVAILABLE,
+        };
+
+        resp.status(200).json(blurResp);
+      }
     } catch (error) {
       console.error(error);
       resp.status(500).json(error);

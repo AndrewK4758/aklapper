@@ -42,14 +42,7 @@ const AddAlbum = ({ fetcher }: AddAlbumProps): ReactElement => {
           formik={formik}
           name={'title'}
           label={'Album Title'}
-          variant={'outlined'}
-          slotProps={{ input: { sx: { backgroundColor: Theme.palette.background.default } } }}
-        />
-
-        <TextInput<album>
-          formik={formik}
-          name={'album_id'}
-          label={'Album Id'}
+          searchParams={`albums?title=${formik.values.title}`}
           variant={'outlined'}
           slotProps={{ input: { sx: { backgroundColor: Theme.palette.background.default } } }}
         />

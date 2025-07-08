@@ -134,7 +134,6 @@ export default function ArtistDataGrid({ rows, COUNT, fetcher }: ArtistDataGridP
   return (
     <DataGrid
       apiRef={dgApiRef}
-      logLevel='info'
       label='Artists'
       aria-label='artist-data-grid'
       columns={columns}
@@ -144,8 +143,6 @@ export default function ArtistDataGrid({ rows, COUNT, fetcher }: ArtistDataGridP
       getRowHeight={() => 'auto'}
       pageSizeOptions={[10, 25, 50, 100]}
       paginationMode='server'
-      filterMode='server'
-      sortingMode='server'
       onPaginationModelChange={handleChangePagination}
       paginationModel={model}
       processRowUpdate={processRowUpdate}

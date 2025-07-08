@@ -27,21 +27,23 @@ export default class Routes {
     router.get('/', (_, resp) => {
       resp.sendStatus(201);
     });
-    router.get('/artists', artistsAndCount, validateArtists);
+    router.get('/artists', artistsAndCount);
     router.post('/artists', addArtists);
     router.patch('/artists', updateArtists);
     router.delete('/artists/:id', deleteArtist);
 
-    router.get('/artist/:id', getArtistsAlbums);
+    router.get('/validate/:category', validateArtists, validateAlbums, validateTracks);
 
     router.get('/artist/:id', getArtistsAlbums);
 
-    router.get('/albums', getAlbums, getArtistsAlbums, validateAlbums);
+    router.get('/artist/:id', getArtistsAlbums);
+
+    router.get('/albums', getAlbums);
     router.post('/albums', createAlbumsOnArtists);
     router.patch('/albums', updateAlbums);
     router.delete('/albums/:id', deleteArtistsAlbums);
 
-    router.get('/tracks', getAlbumsTracks, validateTracks);
+    router.get('/tracks', getAlbumsTracks);
     router.post('/tracks', createTracksOnAlbum);
     router.patch('/tracks', updateTracks);
     router.delete('/tracks/:id', deleteTracks);

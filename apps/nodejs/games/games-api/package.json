@@ -45,15 +45,15 @@
           "target": "node24",
           "metafile": true,
           "minify": true,
-          "outputPath": "apps/nodejs/games/games-api/dist",
+          "outputPath": "{workspaceRoot}/apps/nodejs/games/games-api/dist",
           "format": [
             "esm"
           ],
           "bundle": true,
-          "main": "apps/nodejs/games/games-api/src/main.ts",
-          "tsConfig": "apps/nodejs/games/games-api/tsconfig.app.json",
+          "main": "{workspaceRoot}/apps/nodejs/games/games-api/src/main.ts",
+          "tsConfig": "{workspaceRoot}/apps/nodejs/games/games-api/tsconfig.app.json",
           "assets": [
-            "apps/nodejs/games/games-api/src/assets"
+            "{workspaceRoot}/apps/nodejs/games/games-api/src/assets"
           ],
           "esbuildOptions": {
             "sourcemap": true,

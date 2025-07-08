@@ -6,9 +6,10 @@ import { defineConfig } from 'vitest/config';
 const modules = {
   '@aklapper/chain': resolve(workspaceRoot, 'packages/chain/src/index.ts'),
   '@aklapper/game': resolve(workspaceRoot, 'packages/game/src/index.ts'),
-  '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src/index.ts'),
   '@aklapper/games': resolve(workspaceRoot, 'packages/games/src/index.ts'),
   '@aklapper/games-components': resolve(workspaceRoot, 'packages/games-components/src/index.ts'),
+  '@aklapper/types': resolve(workspaceRoot, 'packages/types/src/index.ts'),
+  '@aklapper/utils': resolve(workspaceRoot, 'packages/utils/src/index.ts'),
 };
 
 const config = defineConfig({

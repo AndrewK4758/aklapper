@@ -4,10 +4,10 @@ import ButtonGroup from '@mui/material/ButtonGroup';
 import { useFormik } from 'formik';
 import { type ReactElement } from 'react';
 import { type FetcherWithComponents } from 'react-router';
-import handleSubmitNewArtist from '../../../services/actions/crud-actions/handle-submit-new-artist.js';
+import handleSubmitNewArtist from '../../../services/actions/crud-actions/handle-create_new_artist';
 import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
-import CenteredFlexDiv from '../../styled/centered_flexbox.js';
-import TextInput from '../../text_input/text_input.js';
+import CenteredFlexDiv from '../../styled/centered_flexbox';
+import TextInput from '../../text_input/text_input';
 
 interface AddArtistProps {
   fetcher: FetcherWithComponents<artist>;

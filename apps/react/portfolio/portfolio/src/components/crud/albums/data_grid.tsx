@@ -90,7 +90,7 @@ export default function AlbumDataGrid({ rows, count, fetcher }: AlbumDataGrid) {
             title='Update'
             disabled={!isDirty}
             onClick={async () => {
-              await handleUpdateAlbumTitle(row, fetcher);
+              await handleUpdateAlbumTitle(row, fetcher.submit);
             }}
           />,
 
@@ -99,7 +99,7 @@ export default function AlbumDataGrid({ rows, count, fetcher }: AlbumDataGrid) {
             title='Delete'
             icon={<DeleteForeverIcon color='error' />}
             onClick={async () => {
-              await handleDeleteAlbum(row, fetcher);
+              await handleDeleteAlbum(row, fetcher.submit);
             }}
           />,
         ];

@@ -1,3 +1,5 @@
+import type { artist } from '@aklapper/chinook-client';
+import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { Request, Response } from 'express';
 import updateArtist from '../services/prisma/artist/update-artists.js';
 
@@ -15,11 +17,12 @@ const updateArtists = async (req: Request, resp: Response): Promise<void> => {
 
     const updatedArtist = await updateArtist(artist_id, name);
 
-    const output = {
-      updatedArtist: updatedArtist,
+    const updateResp: CRUD_ApiResponse<artist> = {
+      message: `Artist ID: ${artist_id} updated`,
+      data: updatedArtist,
     };
 
-    resp.status(202).json(output);
+    resp.status(202).json(updateResp);
   } catch (error) {
     console.error(error);
     resp.status(500).json(error);

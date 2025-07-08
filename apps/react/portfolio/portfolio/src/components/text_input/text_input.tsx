@@ -1,4 +1,3 @@
-import { Text } from '@aklapper/react-shared';
 import TextField, { type OutlinedTextFieldProps } from '@mui/material/TextField';
 import type { FormikProps } from 'formik';
 import { useState, type FocusEvent, type HTMLInputTypeAttribute, type ReactElement } from 'react';
@@ -42,7 +41,6 @@ export default function TextInput<T extends object>({
   const [helperText, setHelperText] = useState<string | null>(null);
   if (searchParams)
     formik.handleBlur = (e: FocusEvent<HTMLInputElement>) => {
-      //TODO crate param type to help validate correct string for url endpoint
       handleFormikBlur<T>(e, formik, setHelperText, searchParams);
     };
 
@@ -63,9 +61,11 @@ export default function TextInput<T extends object>({
         onChange={formik.handleChange}
         onFocus={async () => handleFocus<T>(formik, name, setHelperText)}
         error={formik.touched[name] && !!formik.errors[name]}
-        helperText={formik.touched[name] && (formik.errors[name] as string)}
+        helperText={
+          (formik.touched[name] && (formik.errors[name] as string)) ||
+          (formik.touched[name] && !formik.errors[name] && helperText)
+        }
       />
-      {helperText && <Text variant='caption' color='inherit' children={helperText} tabIndex={-1} />}
     </HelperTextBox>
   );
 }

@@ -1,3 +1,5 @@
+import type { track } from '@aklapper/chinook-client';
+import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { Request, Response } from 'express';
 import updateTrack from '../services/prisma/tracks/update-track.js';
 
@@ -11,11 +13,16 @@ import updateTrack from '../services/prisma/tracks/update-track.js';
 
 const updateTracks = async (req: Request, resp: Response) => {
   try {
-    const { trackData } = req.body;
+    const { trackData } = req.body as { trackData: track };
 
     const updatedTrack = await updateTrack(trackData);
 
-    resp.status(200).json({ updatedTrack: updatedTrack });
+    const updatedResp: CRUD_ApiResponse<track> = {
+      message: `Track ID: ${trackData.track_id} updated`,
+      data: updatedTrack,
+    };
+
+    resp.status(200).json(updatedResp);
   } catch (error) {
     console.error(error);
     resp.status(500).json(error);

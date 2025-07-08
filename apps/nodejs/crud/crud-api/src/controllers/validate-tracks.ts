@@ -1,5 +1,6 @@
 import type { Prisma } from '@aklapper/chinook-client';
-import type { Request, Response } from 'express';
+import { type CRUD_BlurResponse, BlurResponse, CRUD_ValidationCategory } from '@aklapper/types';
+import type { NextFunction, Request, Response } from 'express';
 import validateTrack from '../services/prisma/tracks/validate-track.js';
 
 /**
@@ -12,25 +13,40 @@ import validateTrack from '../services/prisma/tracks/validate-track.js';
  * @returns No explicit return value. It sends a JSON response indicating track existence within the album.
  */
 
-const validateTracks = async (req: Request, resp: Response) => {
-  try {
-    const { albumID, name } = req.query;
+const validateTracks = async (req: Request, resp: Response, next: NextFunction) => {
+  if (req.params.category === CRUD_ValidationCategory.TRACKS) {
+    try {
+      const { albumID, name } = req.query;
 
-    const query = {
-      where: {
-        album_id: { equals: parseInt(albumID as string, 10) },
-        name: { equals: `${name}` as string },
-      },
-    } as Prisma.trackWhereInput;
+      const query = {
+        where: {
+          album_id: { equals: parseInt(albumID as string, 10) },
+          name: { equals: `${name}` as string },
+        },
+      } as Prisma.trackWhereInput;
 
-    const validatedTrack = await validateTrack(query);
+      const track = await validateTrack(query);
 
-    if (validatedTrack) resp.status(200).json({ message: 'Track Already Exists' });
-    else resp.status(200).json({ message: 'Track Not in Album. Please Submit to Continue' });
-  } catch (error) {
-    console.error(error);
-    resp.status(500).json(error);
-  }
+      if (track) {
+        const blurResp: CRUD_BlurResponse = {
+          message: 'Track Already Exists',
+          status: BlurResponse.ERROR,
+        };
+
+        resp.status(200).json(blurResp);
+      } else {
+        const blurResp: CRUD_BlurResponse = {
+          message: 'Track Not in Album',
+          status: BlurResponse.AVAILABLE,
+        };
+
+        resp.status(200).json(blurResp);
+      }
+    } catch (error) {
+      console.error(error);
+      resp.status(500).json(error);
+    }
+  } else next();
 };
 
 export default validateTracks;

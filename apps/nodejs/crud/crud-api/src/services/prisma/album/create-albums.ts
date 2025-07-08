@@ -1,10 +1,4 @@
-import {
-  prisma,
-  PrismaErrorLogger,
-  type album,
-  type ParsedPrismaError,
-  type PrismaClientErrors,
-} from '@aklapper/chinook-client';
+import { prisma, PrismaErrorLogger, type album, type PrismaClientErrors } from '@aklapper/chinook-client';
 
 /**
  * Creates a new album in the database.
@@ -14,12 +8,12 @@ import {
  * @returns A Promise that resolves to the newly created album object, or null if an error occurs.
  */
 
-const createAlbum = async (artistID: number, title: string): Promise<album | ParsedPrismaError> => {
+const createAlbum = async (artistID: number, title: string): Promise<album> => {
   try {
     return await prisma.album.create({ data: { artist_id: artistID, title: title } });
   } catch (error) {
     const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
-    return prismaError.parseErrors();
+    throw prismaError.parseErrors();
   }
 };
 
