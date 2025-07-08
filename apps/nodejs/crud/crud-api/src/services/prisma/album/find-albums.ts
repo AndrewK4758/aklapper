@@ -7,7 +7,7 @@ import type { DefaultArgs } from '@prisma/client/runtime/library';
  * @returns A Promise that resolves to an array of album objects, or null if an error occurs.
  */
 
-const findAllAlbums = async (
+const findAllAlbumsAndCount = async (
   query: Prisma.albumFindManyArgs<DefaultArgs>,
 ): Promise<{ count: number; data: album[] }> => {
   try {
@@ -20,4 +20,4 @@ const findAllAlbums = async (
   }
 };
 
-export default findAllAlbums;
+export default findAllAlbumsAndCount;

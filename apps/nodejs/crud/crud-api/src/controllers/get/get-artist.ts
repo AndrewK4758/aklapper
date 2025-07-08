@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import findArtist from '../services/prisma/artist/find-artist.js';
+import findArtist from '../../services/prisma/artist/find-artist.js';
 
 /**
  * Handles GET requests to retrieve an artist from the database by ID.

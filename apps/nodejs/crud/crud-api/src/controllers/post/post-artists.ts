@@ -1,7 +1,7 @@
 import type { artist } from '@aklapper/chinook-client';
 import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { Request, Response } from 'express';
-import createArtists from '../services/prisma/artist/create-artists.js';
+import createArtists from '../../services/prisma/artist/create-artists.js';
 
 /**
  * Handles POST requests to create a new artist in the database.

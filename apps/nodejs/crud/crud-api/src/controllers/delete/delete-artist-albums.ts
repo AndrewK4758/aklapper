@@ -1,7 +1,7 @@
 import type { album } from '@aklapper/chinook-client';
 import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { Request, Response } from 'express';
-import deleteArtistAlbums from '../services/prisma/album/delete-albums.js';
+import deleteArtistAlbums from '../../services/prisma/album/delete-albums.js';
 /**
  * This function handles DELETE requests to delete an album associated with a specific artist.
  *

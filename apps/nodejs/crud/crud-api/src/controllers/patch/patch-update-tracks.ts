@@ -1,7 +1,7 @@
 import type { track } from '@aklapper/chinook-client';
 import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { Request, Response } from 'express';
-import updateTrack from '../services/prisma/tracks/update-track.js';
+import updateTrack from '../../services/prisma/tracks/update-track.js';
 
 /**
  * Handles PATCH requests to update a track in the database.

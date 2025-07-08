@@ -1,7 +1,7 @@
 import type { album } from '@aklapper/chinook-client';
 import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { Request, Response } from 'express';
-import updateAlbum from '../services/prisma/album/update-albums.js';
+import updateAlbum from '../../services/prisma/album/update-albums.js';
 
 /**
  * This function handles PATCH requests to update the title of an existing album.

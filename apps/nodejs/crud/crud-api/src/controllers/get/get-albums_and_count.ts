@@ -2,7 +2,7 @@ import { Prisma, type album } from '@aklapper/chinook-client';
 import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { DefaultArgs } from '@prisma/client/runtime/library';
 import type { Request, Response } from 'express';
-import findAllAlbums from '../services/prisma/album/find-albums.js';
+import findAllAlbumsAndCount from '../../services/prisma/album/find-albums.js';
 
 /**
  * Retrieves a paginated list of albums from the database.
@@ -24,7 +24,7 @@ const getAlbums = async (req: Request, resp: Response) => {
       cursor: { album_id: parseInt(cursor as string, 10) },
     } as Prisma.albumFindManyArgs<DefaultArgs>;
 
-    const { count, data } = await findAllAlbums(query);
+    const { count, data } = await findAllAlbumsAndCount(query);
 
     const values: CRUD_ApiResponse<{ count: number; data: album[] }> = {
       message: 'All Albums Loaded',

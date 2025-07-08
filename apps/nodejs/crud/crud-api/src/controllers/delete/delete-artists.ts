@@ -1,7 +1,7 @@
 import type { artist } from '@aklapper/chinook-client';
 import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { Request, Response } from 'express';
-import deleteArtists from '../services/prisma/artist/delete-artist.js';
+import deleteArtists from '../../services/prisma/artist/delete-artist.js';
 
 /**
  * Handles DELETE requests to delete an artist from the database.

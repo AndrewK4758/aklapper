@@ -1,7 +1,7 @@
 import type { Prisma } from '@aklapper/chinook-client';
 import { BlurResponse, CRUD_ValidationCategory, type CRUD_BlurResponse } from '@aklapper/types';
 import type { NextFunction, Request, Response } from 'express';
-import validateArtist from '../services/prisma/artist/validate-artist-in-db.js';
+import validateArtist from '../../services/prisma/artist/validate-artist.js';
 
 /**
  * Handles GET requests to validate if an artist exists in the database.

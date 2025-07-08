@@ -2,6 +2,9 @@
 FROM node:latest
 
 ENV NODE_ENV='production'
+ENV INSTANCE_CONNECTION_NAME='games-424800:us-central1:aklapper'
+ENV DB_URL_PROD='postgresql://postgres:11560000@localhost/aklapper?host=/cloudsql/games-424800:us-central1:aklapper/'	
+ENV PRISMA_QUERY_ENGINE_LIBRARY='/api/packages/src/generated/libquery_engine-debian-openssl-3.0.x.so.node'
 
 # Set the working directory in the container
 WORKDIR /api

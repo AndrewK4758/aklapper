@@ -2,7 +2,7 @@ import { Prisma, type track } from '@aklapper/chinook-client';
 import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { DefaultArgs } from '@prisma/client/runtime/library';
 import type { Request, Response } from 'express';
-import deleteTrack from '../services/prisma/tracks/delete-track.js';
+import deleteTrack from '../../services/prisma/tracks/delete-track.js';
 
 /**
  * Handles DELETE requests to delete a track from the database.

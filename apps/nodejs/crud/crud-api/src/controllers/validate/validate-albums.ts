@@ -1,7 +1,7 @@
 import { Prisma } from '@aklapper/chinook-client';
 import { type CRUD_BlurResponse, BlurResponse, CRUD_ValidationCategory } from '@aklapper/types';
 import type { NextFunction, Request, Response } from 'express';
-import validateAlbum from '../services/prisma/album/validate-album.js';
+import validateAlbum from '../../services/prisma/album/validate-album.js';
 
 /**
  * Middleware function that validates if an album exists in the database.

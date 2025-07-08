@@ -1,7 +1,7 @@
 import type { album } from '@aklapper/chinook-client';
 import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { Request, Response } from 'express';
-import createAlbum from '../services/prisma/album/create-albums.js';
+import createAlbumOnArtist from '../../services/prisma/album/create-albums_on_artist.js';
 
 /**
  * This function handles POST requests to add a new album to an existing artist.
@@ -15,7 +15,7 @@ const createAlbumsOnArtists = async (req: Request, resp: Response) => {
   try {
     const { artistID, title } = req.body;
 
-    const newAlbum = await createAlbum(parseInt(artistID, 10), title);
+    const newAlbum = await createAlbumOnArtist(parseInt(artistID, 10), title);
 
     const postResp: CRUD_ApiResponse<album> = {
       message: 'Album Created',

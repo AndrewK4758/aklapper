@@ -1,7 +1,7 @@
 import type { Prisma } from '@aklapper/chinook-client';
 import { type CRUD_BlurResponse, BlurResponse, CRUD_ValidationCategory } from '@aklapper/types';
 import type { NextFunction, Request, Response } from 'express';
-import validateTrack from '../services/prisma/tracks/validate-track.js';
+import validateTrack from '../../services/prisma/tracks/validate-track.js';
 
 /**
  * Handles GET requests to validate if a track exists within a specific album in the database.

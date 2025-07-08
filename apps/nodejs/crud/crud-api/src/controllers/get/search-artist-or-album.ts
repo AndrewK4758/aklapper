@@ -1,8 +1,8 @@
 import { Prisma, type album, type artist } from '@aklapper/chinook-client';
 import type { DefaultArgs } from '@prisma/client/runtime/library';
 import type { Request, Response } from 'express';
-import searchAlbum from '../services/prisma/search-album.js';
-import searchArtist from '../services/prisma/search-artist.js';
+import searchAlbum from '../../services/prisma/search-album.js';
+import searchArtist from '../../services/prisma/search-artist.js';
 
 /**
  * Handles GET requests to search for artists or albums in the database.

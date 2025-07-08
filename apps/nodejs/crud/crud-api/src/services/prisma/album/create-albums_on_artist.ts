@@ -8,7 +8,7 @@ import { prisma, PrismaErrorLogger, type album, type PrismaClientErrors } from '
  * @returns A Promise that resolves to the newly created album object, or null if an error occurs.
  */
 
-const createAlbum = async (artistID: number, title: string): Promise<album> => {
+const createAlbumOnArtist = async (artistID: number, title: string): Promise<album> => {
   try {
     return await prisma.album.create({ data: { artist_id: artistID, title: title } });
   } catch (error) {
@@ -17,4 +17,4 @@ const createAlbum = async (artistID: number, title: string): Promise<album> => {
   }
 };
 
-export default createAlbum;
+export default createAlbumOnArtist;

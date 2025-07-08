@@ -1,7 +1,7 @@
 import { type album, type artist, Prisma, type track } from '@aklapper/chinook-client';
 import type { DefaultArgs } from '@prisma/client/runtime/library';
 import type { Request, Response } from 'express';
-import createNewEntry from '../services/post/create-new-entry.js';
+import createNewEntry from '../../services/prisma/create-new-entry.js';
 
 interface NewEntryData {
   artist: artist;

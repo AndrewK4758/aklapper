@@ -1,7 +1,7 @@
 import type { artist } from '@aklapper/chinook-client';
 import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { Request, Response } from 'express';
-import updateArtist from '../services/prisma/artist/update-artists.js';
+import updateArtist from '../../services/prisma/artist/update-artists.js';
 
 /**
  * Handles PATCH requests to update an artist in the database.
