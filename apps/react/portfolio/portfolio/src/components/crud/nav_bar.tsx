@@ -40,9 +40,7 @@ export default function CrudNavBar() {
           id='crud-albums-button'
           name='albums'
           buttonText='Albums'
-
           params={`?take=25&skip=0&cursor=1`}
-
           className={css({
             color: 'var(--mui-palette-info-main)',
             borderColor: 'var(--mui-palette-info-main)',

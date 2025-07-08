@@ -29,8 +29,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        # with:
+        #   fetch-depth: 0
+        #   filter: tree:0
 
       - uses: pnpm/action-setup@v4
         name: Install pnpm
@@ -56,8 +57,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        # with:
+        #   fetch-depth: 0
+        #   filter: tree:0
 
       - uses: pnpm/action-setup@v4
         name: Install pnpm
@@ -77,7 +79,7 @@ jobs:
       - uses: nrwl/nx-set-shas@v4
 
       - name: Lint all projects
-        run: pnpx nx run-many -t=lint --exclude=wdg-agents,games-lobby,go-file-uploader,go_utils --verbose
+        run: pnpx nx run-many -t lint --all --exclude wdg-agents games-lobby go-file-uploader go_utils --verbose
 
   test:
     needs: ['cache-and-install']
@@ -86,8 +88,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        # with:
+        #   fetch-depth: 0
+        #   filter: tree:0
 
       - uses: pnpm/action-setup@v4
         name: Install pnpm
@@ -116,7 +119,7 @@ jobs:
         env:
           NODE_ENV: test
           DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
-        run: pnpx nx run-many -t=test --exclude=wdg-agents,games-lobby,go-file-uploader,go_utils --verbose
+        run: pnpx nx run-many -t test --all --exclude wdg-agents games-lobby go-file-uploader go_utils --verbose
 
   build-and-typecheck:
     needs: ['cache-and-install']
@@ -125,8 +128,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        # with:
+        #   fetch-depth: 0
+        #   filter: tree:0
 
       - uses: pnpm/action-setup@v4
         name: Install pnpm
@@ -169,8 +173,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        # with:
+        #   fetch-depth: 0
+        #   filter: tree:0
 
       - uses: pnpm/action-setup@v4
         name: Install pnpm
@@ -207,8 +212,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        # with:
+        #   fetch-depth: 0
+        #   filter: tree:0
 
       - uses: pnpm/action-setup@v4
         name: Install pnpm

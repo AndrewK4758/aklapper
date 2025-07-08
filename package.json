@@ -27,7 +27,16 @@
     "@nx/react": "20.8.2",
     "@nx/vite": "20.8.2",
     "@nx/web": "20.8.2",
-    "@nxlv/python": "21.0.3",
+    "@nxlv/python": "21.0.3",<<<<<<< portfolio_v2
+253
+ 
+​
+254
+ 
+=======
+255
+ 
+>>>>>>> main
     "@pigment-css/react": "^0.0.30",
     "@pigment-css/vite-plugin": "^0.0.30",
     "@playwright/test": "1.53.2",
@@ -51,6 +60,7 @@
     "@types/react": "19.1.8",
     "@types/react-dom": "19.1.6",
     "@vitejs/plugin-react": "4.6.0",
+    "@vitejs/plugin-react-oxc": "^0.2.3",
     "@vitest/coverage-v8": "3.2.4",
     "@vitest/ui": "3.2.4",
     "decimal.js": "10.6.0",
@@ -75,6 +85,7 @@
     "prop-types": "^15.8.1",
     "react-is": "^19.1.0",
     "react-refresh": "^0.17.0",
+    "rolldown-vite": "^7.0.5",
     "ts-jest": "29.4.0",
     "ts-node": "^10.9.2",
     "tslib": "^2.3.0",

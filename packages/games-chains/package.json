@@ -30,8 +30,6 @@
     "sourceRoot": "packages/games-chains/src",
     "projectType": "library",
     "name": "games-chains",
-
     "implicitDependencies": []
-
   }
 }

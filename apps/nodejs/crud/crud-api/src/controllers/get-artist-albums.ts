@@ -1,7 +1,7 @@
 import { Prisma, type album } from '@aklapper/chinook-client';
 import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { DefaultArgs } from '@prisma/client/runtime/library';
-import type { Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import getArtistAlbums from '../services/prisma/album/get-artist-albums.js';
 
 /**
@@ -15,24 +15,27 @@ import getArtistAlbums from '../services/prisma/album/get-artist-albums.js';
  * @returns No explicit return value. It either sends a JSON response with the artist's albums or calls the `next()` middleware function.
  */
 
-const getArtistsAlbums = async (req: Request, resp: Response): Promise<void> => {
-  try {
-    const artistID = req.params.id;
+const getArtistsAlbums = async (req: Request, resp: Response, next: NextFunction): Promise<void> => {
+  if (!req.query.take) next();
+  else {
+    try {
+      const artistID = req.params.id;
 
-    const query = {
-      where: { artist_id: parseInt(artistID, 10) },
-    } as Prisma.albumFindManyArgs<DefaultArgs>;
+      const query = {
+        where: { artist_id: parseInt(artistID, 10) },
+      } as Prisma.albumFindManyArgs<DefaultArgs>;
 
-    const data = await getArtistAlbums(query);
+      const data = await getArtistAlbums(query);
 
-    const respData: CRUD_ApiResponse<album[]> = {
-      message: 'Arist Albums found',
-      data: data,
-    };
-    resp.status(200).json(respData);
-  } catch (error) {
-    console.error(error);
-    resp.status(500).json(error);
+      const respData: CRUD_ApiResponse<album[]> = {
+        message: 'Arist Albums found',
+        data: data,
+      };
+      resp.status(200).json(respData);
+    } catch (error) {
+      console.error(error);
+      resp.status(500).json(error);
+    }
   }
 };
 

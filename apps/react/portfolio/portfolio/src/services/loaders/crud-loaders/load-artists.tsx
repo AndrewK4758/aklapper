@@ -1,5 +1,5 @@
 import type { artist } from '@aklapper/chinook-client';
-import type { CRUD_ApiResponse, DataGridLoaderWithCount } from '@aklapper/types';
+import type { DataGridLoaderWithCount } from '@aklapper/types';
 import axios from 'axios';
 import type { LoaderFunction, LoaderFunctionArgs } from 'react-router';
 
@@ -12,12 +12,9 @@ const loadArtistsCount: LoaderFunction = async ({
     const { search } = new URL(request.url);
 
     const resp = await axios.get(`${baseURL}/artists${search}`);
+    const { count, data } = resp.data;
 
-    const { message, data } = resp.data as CRUD_ApiResponse<{ count: number; data: artist[] }>;
-
-    console.info(message);
-
-    return data;
+    return { count, data };
   } catch (error) {
     console.error(error);
   }
