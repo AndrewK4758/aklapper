@@ -2,7 +2,7 @@ import { Prisma, type album } from '@aklapper/chinook-client';
 import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { DefaultArgs } from '@prisma/client/runtime/library';
 import type { Request, Response } from 'express';
-import getArtistAlbums from '../services/prisma/album/get-artist-albums.js';
+import getArtistAlbums from '../../services/prisma/album/get-artist-albums.js';
 
 /**
  * Middleware function that retrieves albums for a specific artist.
@@ -18,10 +18,8 @@ import getArtistAlbums from '../services/prisma/album/get-artist-albums.js';
 const getArtistsAlbums = async (req: Request, resp: Response): Promise<void> => {
   try {
     const artistID = req.params.id;
-    const { cursor, skip, take } = req.query;
 
     console.log('ARTIST ID: ', artistID);
-    console.log(cursor, skip, take);
 
     const query = {
       where: { artist_id: parseInt(artistID, 10) },
@@ -29,10 +27,12 @@ const getArtistsAlbums = async (req: Request, resp: Response): Promise<void> => 
 
     const { count, data } = await getArtistAlbums(query);
 
-    const respData: CRUD_ApiResponse<{ count: number; data: album[] }> = {
+    const respData: CRUD_ApiResponse<album[]> = {
       message: 'Arist Albums found',
-      value: { count, data },
+      count: count,
+      data: data,
     };
+
     resp.status(200).json(respData);
   } catch (error) {
     console.error(error);

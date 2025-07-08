@@ -2,7 +2,7 @@ import { Prisma, type track } from '@aklapper/chinook-client';
 import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { DefaultArgs } from '@prisma/client/runtime/library';
 import type { NextFunction, Request, Response } from 'express';
-import getAlbumTracks from '../services/prisma/tracks/get-album-tracks.js';
+import getAlbumTracks from '../../services/prisma/tracks/get-album-tracks.js';
 
 /**
  * Middleware function that retrieves tracks for an album and their count.

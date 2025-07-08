@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import type { Namespace } from 'socket.io';
+import type { Namespace, Server } from 'socket.io';
 import { GameContextKeys } from '../types/game.js';
 import type { IInstanceOfGame } from './instance-of-game.js';
 
@@ -22,7 +22,7 @@ export interface Chain extends Command {
 export interface GameContextState {
   [GameContextKeys.ACTION]: string;
   [GameContextKeys.GAME]: IInstanceOfGame;
-  [GameContextKeys.IO]: Namespace;
+  [GameContextKeys.IO]: Server | Namespace;
   [GameContextKeys.NEXT]: string;
   [GameContextKeys.OUTPUT]: unknown;
   [GameContextKeys.REQUEST]: Request;

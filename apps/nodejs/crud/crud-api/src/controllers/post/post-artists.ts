@@ -1,5 +1,7 @@
+import type { artist } from '@aklapper/chinook-client';
+import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { Request, Response } from 'express';
-import createArtists from '../services/prisma/artist/create-artists.js';
+import createArtists from '../../services/prisma/artist/create-artists.js';
 
 /**
  * Handles POST requests to create a new artist in the database.
@@ -13,7 +15,12 @@ const postArtists = async (req: Request, resp: Response): Promise<void> => {
   const { name } = req.body;
   try {
     const newArtist = await createArtists(name);
-    resp.status(201).json({ message: 'Artist Created Sucessful', value: newArtist });
+
+    const postResp: CRUD_ApiResponse<artist> = {
+      message: 'Artist Created Sucessful',
+      data: newArtist,
+    };
+    resp.status(201).json(postResp);
   } catch (error) {
     console.error(error);
     resp.status(500).json(error);

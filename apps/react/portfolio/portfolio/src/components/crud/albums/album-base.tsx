@@ -1,6 +1,6 @@
 import type { album } from '@aklapper/chinook-client';
 import { Waiting } from '@aklapper/react-shared';
-import type { DataGridLoaderWithCount } from '@aklapper/types';
+import type { DataGridLoader } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import { css } from '@pigment-css/react';
@@ -22,7 +22,7 @@ import AlbumBaseDataGrid from './album_base_data_grid';
  */
 
 const Album = (): ReactElement => {
-  const { count, data } = useLoaderData<DataGridLoaderWithCount<album[]>>();
+  const { count, data } = useLoaderData<DataGridLoader<album[]>>();
   const fetcher = useFetcher();
 
   return (
@@ -53,7 +53,7 @@ const Album = (): ReactElement => {
           </Container>
         </Box>
         <Box>
-          <AlbumBaseDataGrid rows={data} count={count} submit={fetcher.submit} />
+          <AlbumBaseDataGrid rows={data} count={count as number} submit={fetcher.submit} />
         </Box>
       </Box>
       <Box id='tracks-on-album-box' sx={{ flex: '0 1 50%' }}>

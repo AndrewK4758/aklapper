@@ -1,10 +1,4 @@
-import {
-  type ParsedPrismaError,
-  prisma,
-  type PrismaClientErrors,
-  PrismaErrorLogger,
-  type track,
-} from '@aklapper/chinook-client';
+import { prisma, type PrismaClientErrors, PrismaErrorLogger, type track } from '@aklapper/chinook-client';
 
 /**
  * Updates an existing track in the database.
@@ -13,7 +7,7 @@ import {
  * @returns A Promise that resolves to the updated track object, or null if an error occurs.
  */
 
-const updateTrack = async (trackData: track): Promise<track | ParsedPrismaError> => {
+const updateTrack = async (trackData: track): Promise<track> => {
   try {
     const { track_id, album_id, name, unit_price, genre_id, media_type_id, composer, milliseconds, bytes } = trackData;
 
@@ -33,7 +27,7 @@ const updateTrack = async (trackData: track): Promise<track | ParsedPrismaError>
     return await prisma.track.update(query);
   } catch (error) {
     const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
-    return prismaError.parseErrors();
+    throw prismaError.parseErrors();
   }
 };
 

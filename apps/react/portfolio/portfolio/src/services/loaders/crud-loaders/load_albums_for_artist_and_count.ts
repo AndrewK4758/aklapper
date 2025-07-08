@@ -1,5 +1,5 @@
 import type { album } from '@aklapper/chinook-client';
-import type { CRUD_ApiResponse } from '@aklapper/types';
+import type { CRUD_ApiResponse, DataGridLoader } from '@aklapper/types';
 import axios from 'axios';
 import type { LoaderFunction, LoaderFunctionArgs } from 'react-router';
 
@@ -8,7 +8,7 @@ const baseURL = import.meta.env.VITE_CRUD_API_URL;
 const loadAlbumsForArtistAndCount: LoaderFunction = async ({
   params,
   request,
-}: LoaderFunctionArgs): Promise<{ count: number; data: album[] } | void> => {
+}: LoaderFunctionArgs): Promise<DataGridLoader<album[]> | void> => {
   try {
     const url = new URL(request.url);
 
@@ -18,10 +18,11 @@ const loadAlbumsForArtistAndCount: LoaderFunction = async ({
 
     const resp = await axios.get(`${baseURL}/artist/${artistID}${search}`);
 
-    const { message, value } = resp.data as CRUD_ApiResponse<{ count: number; data: album[] }>;
+    const { message, data, count } = resp.data as CRUD_ApiResponse<album[]>;
+
     console.log(message);
 
-    return value;
+    return { data, count };
   } catch (error) {
     console.error(error);
   }

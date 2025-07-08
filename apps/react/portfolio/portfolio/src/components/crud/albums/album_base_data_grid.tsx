@@ -137,7 +137,6 @@ export default function AlbumBaseDataGrid({ rows, count, submit }: AlbumBaseData
 
   return (
     <DataGrid
-      logLevel='info'
       aria-label='album-data-grid'
       label='Albums'
       columns={columns}

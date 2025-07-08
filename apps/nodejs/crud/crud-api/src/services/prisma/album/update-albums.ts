@@ -1,10 +1,4 @@
-import {
-  prisma,
-  PrismaErrorLogger,
-  type album,
-  type ParsedPrismaError,
-  type PrismaClientErrors,
-} from '@aklapper/chinook-client';
+import { prisma, PrismaErrorLogger, type album, type PrismaClientErrors } from '@aklapper/chinook-client';
 
 /**
  * Updates an existing album in the database.
@@ -14,7 +8,7 @@ import {
  * @returns A Promise that resolves to the updated album object, or null if an error occurs.
  */
 
-const updateAlbum = async (albumID: number, title: string): Promise<album | ParsedPrismaError> => {
+const updateAlbum = async (albumID: number, title: string): Promise<album> => {
   try {
     return await prisma.album.update({
       where: {
@@ -24,7 +18,7 @@ const updateAlbum = async (albumID: number, title: string): Promise<album | Pars
     });
   } catch (error) {
     const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
-    return prismaError.parseErrors();
+    throw prismaError.parseErrors();
   }
 };
 

@@ -1,5 +1,7 @@
+import type { album } from '@aklapper/chinook-client';
+import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { Request, Response } from 'express';
-import updateAlbum from '../services/prisma/album/update-albums.js';
+import updateAlbum from '../../services/prisma/album/update-albums.js';
 
 /**
  * This function handles PATCH requests to update the title of an existing album.
@@ -15,7 +17,11 @@ const updateAlbums = async (req: Request, resp: Response) => {
 
     const updatedAlbum = await updateAlbum(parseInt(albumID, 10), title);
 
-    resp.status(200).json({ message: 'Album Updated', value: updatedAlbum });
+    const updateResp: CRUD_ApiResponse<album> = {
+      message: `Album ID: ${albumID} updated`,
+      data: updatedAlbum,
+    };
+    resp.status(200).json(updateResp);
   } catch (error) {
     console.error(error);
     resp.status(500).json(error);

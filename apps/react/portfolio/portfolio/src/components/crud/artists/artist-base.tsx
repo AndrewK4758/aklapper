@@ -1,7 +1,7 @@
 // import type { artist } from '@aklapper/chinook-client';
 import type { artist } from '@aklapper/chinook-client';
 import { Waiting } from '@aklapper/react-shared';
-import type { DataGridLoaderWithCount } from '@aklapper/types';
+import type { DataGridLoader } from '@aklapper/types';
 import { css } from '@mui/material-pigment-css';
 import Box from '@mui/material-pigment-css/Box';
 import Container from '@mui/material-pigment-css/Container';
@@ -23,7 +23,7 @@ import ArtistDataGrid from './data_grid';
  */
 
 const Artist = (): ReactElement => {
-  const { count, data } = useLoaderData<DataGridLoaderWithCount<artist[]>>();
+  const { count, data } = useLoaderData<DataGridLoader<artist[]>>();
   const fetcher = useFetcher();
 
   return (
@@ -42,11 +42,11 @@ const Artist = (): ReactElement => {
         <Box id='artists' sx={artistsSxProps}>
           <DataGridHeader title='Artist List' />
           <Container id={'add-artist-box'}>
-            <AddArtist COUNT={count} fetcher={fetcher} />
+            <AddArtist COUNT={count as number} fetcher={fetcher} />
           </Container>
         </Box>
         <Box>
-          <ArtistDataGrid rows={data} COUNT={count} fetcher={fetcher} />
+          <ArtistDataGrid rows={data} COUNT={count as number} fetcher={fetcher} />
         </Box>
       </Box>
       <Box sx={{ flex: '0 1 100%' }}>

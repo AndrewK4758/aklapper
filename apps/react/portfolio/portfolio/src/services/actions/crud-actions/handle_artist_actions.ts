@@ -18,7 +18,7 @@ const handleArtistActions: ActionFunction = async ({ request }: ActionFunctionAr
 
         const resp = await axios.post(
           `${baseURL}/artists`,
-          { name: name },
+          { name },
           { headers: { 'Content-Type': 'application/json' } },
         );
 

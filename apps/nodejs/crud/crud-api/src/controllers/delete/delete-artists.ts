@@ -1,5 +1,7 @@
+import type { artist } from '@aklapper/chinook-client';
+import type { CRUD_ApiResponse } from '@aklapper/types';
 import type { Request, Response } from 'express';
-import deleteArtists from '../services/prisma/artist/delete-artist.js';
+import deleteArtists from '../../services/prisma/artist/delete-artist.js';
 
 /**
  * Handles DELETE requests to delete an artist from the database.
@@ -15,11 +17,12 @@ const deleteArtist = async (req: Request, resp: Response): Promise<void> => {
   try {
     const deletedArtist = await deleteArtists(parseInt(id, 10));
 
-    const output = {
-      deletedArtist: deletedArtist,
+    const deleteResp: CRUD_ApiResponse<artist> = {
+      message: `Artist ID: ${id} deleted`,
+      data: deletedArtist,
     };
 
-    resp.status(202).json(output);
+    resp.status(202).json(deleteResp);
   } catch (error) {
     console.error(error);
     resp.status(400).json(error);
