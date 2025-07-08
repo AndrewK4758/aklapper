@@ -249,13 +249,19 @@ importers:
       '@vitejs/plugin-react':
         specifier: 4.6.0
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> b63a43e (refactor: changed all crud data grid to react router loaders)
         version: 4.6.0(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.0))
       '@vitejs/plugin-react-oxc':
         specifier: ^0.2.3
         version: 0.2.3(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.0))
+<<<<<<< HEAD
 =======
         version: 4.6.0(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(terser@5.43.1)(yaml@2.8.0))
 >>>>>>> 2c8fe1b (update: added tests to portfolio)
+=======
+>>>>>>> b63a43e (refactor: changed all crud data grid to react router loaders)
       '@vitest/coverage-v8':
         specifier: 3.2.4
         version: 3.2.4(vitest@3.2.4)
@@ -348,7 +354,7 @@ importers:
         version: 7.0.2(@types/node@24.0.10)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.0)
       vite-plugin-dts:
         specifier: 4.5.4
-        version: 4.5.4(@types/node@24.0.10)(rollup@4.44.1)(typescript@5.8.3)(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(terser@5.43.1)(yaml@2.8.0))
+        version: 4.5.4(@types/node@24.0.10)(rollup@4.44.2)(typescript@5.8.3)(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(terser@5.43.1)(yaml@2.8.0))
       vitest:
         specifier: 3.2.4
         version: 3.2.4(@types/node@24.0.10)(@vitest/ui@3.2.4)(happy-dom@15.11.7)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.0)
@@ -12313,15 +12319,21 @@ snapshots:
     optional: true
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> b63a43e (refactor: changed all crud data grid to react router loaders)
   '@vitejs/plugin-react-oxc@0.2.3(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.0))':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-beta.11
       vite: 7.0.2(@types/node@24.0.10)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.0)
 
   '@vitejs/plugin-react@4.6.0(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.0))':
+<<<<<<< HEAD
 =======
   '@vitejs/plugin-react@4.6.0(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(terser@5.43.1)(yaml@2.8.0))':
 >>>>>>> 2c8fe1b (update: added tests to portfolio)
+=======
+>>>>>>> b63a43e (refactor: changed all crud data grid to react router loaders)
     dependencies:
       '@babel/core': 7.28.0
       '@babel/plugin-transform-react-jsx-self': 7.27.1(@babel/core@7.28.0)
@@ -17770,7 +17782,7 @@ snapshots:
       - tsx
       - yaml
 
-  vite-plugin-dts@4.5.4(@types/node@24.0.10)(rollup@4.44.1)(typescript@5.8.3)(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(terser@5.43.1)(yaml@2.8.0)):
+  vite-plugin-dts@4.5.4(@types/node@24.0.10)(rollup@4.44.2)(typescript@5.8.3)(vite@7.0.2(@types/node@24.0.10)(jiti@2.4.2)(terser@5.43.1)(yaml@2.8.0)):
     dependencies:
       '@microsoft/api-extractor': 7.52.8(@types/node@24.0.10)
       '@rollup/pluginutils': 5.2.0(rollup@4.44.2)
