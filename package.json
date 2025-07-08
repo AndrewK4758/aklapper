@@ -27,7 +27,16 @@
     "@nx/react": "20.8.2",
     "@nx/vite": "20.8.2",
     "@nx/web": "20.8.2",
-    "@nxlv/python": "21.0.3",
+    "@nxlv/python": "21.0.3",<<<<<<< portfolio_v2
+253
+ 
+​
+254
+ 
+=======
+255
+ 
+>>>>>>> main
     "@pigment-css/react": "^0.0.30",
     "@pigment-css/vite-plugin": "^0.0.30",
     "@playwright/test": "1.53.2",
