@@ -48,6 +48,7 @@ const handleArtistActions: ActionFunction = async ({ request }: ActionFunctionAr
         const {
           artist: { artist_id },
         } = submit;
+
         const resp = await axios.delete(`${baseURL}/artists/${artist_id}`, {
           headers: { 'Content-Type': 'application/json' },
         });

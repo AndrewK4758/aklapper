@@ -9,6 +9,8 @@ import BaseError from '../errors/base_error';
 import Home from '../pages/home/home';
 import LandingPage from '../pages/landing/landing';
 
+import loadAlbumTracks from '../services/loaders/crud-loaders/load-album-tracks';
+import loadAlbums from '../services/loaders/crud-loaders/load-albums';
 import loadArtistsAndCount from '../services/loaders/crud-loaders/load-artists.js';
 import loadAlbumsForArtist from '../services/loaders/crud-loaders/load_albums_for_artist.js';
 
@@ -20,8 +22,8 @@ import GenAiHome from '../pages/gen-ai/gen-ai';
 import handleArtistAlbumsActions from '../services/actions/crud-actions/handle_album_actions.js';
 import handleArtistActions from '../services/actions/crud-actions/handle_artist_actions.js';
 import handleTrackActions from '../services/actions/crud-actions/handle_track_actions';
-import loadAlbumTracks from '../services/loaders/crud-loaders/load-album-tracks';
-import loadAlbums from '../services/loaders/crud-loaders/load-albums';
+import generateImageAction from '../services/actions/generate-image-action';
+
 import registerPlayersAndStartGame from '../services/loaders/register-players-and-start-game';
 
 const ActiveGameSession = lazy(() => import('../components/games/active_game_session'));
