@@ -46,7 +46,7 @@
     "@types/http-server": "^0.12.4",
     "@types/jest": "30.0.0",
     "@types/multer": "2.0.0",
-    "@types/node": "24.0.10",
+    "@types/node": "24.0.11",
     "@types/nodemailer": "^6.4.17",
     "@types/react": "19.1.8",
     "@types/react-dom": "19.1.6",
@@ -87,8 +87,8 @@
     "vitest": "3.2.4"
   },
   "dependencies": {
-    "@azure/msal-node": "3.6.2",
-    "@azure/msal-node-extensions": "1.5.16",
+    "@azure/msal-node": "3.6.3",
+    "@azure/msal-node-extensions": "1.5.17",
     "@google-cloud/access-approval": "^4.1.0",
     "@google-cloud/aiplatform": "4.2.0",
     "@google-cloud/storage": "^7.16.0",
