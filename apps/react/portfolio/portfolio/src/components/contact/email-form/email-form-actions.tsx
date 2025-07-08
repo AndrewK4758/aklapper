@@ -1,7 +1,7 @@
 import Button from '@mui/material/Button';
 import DialogActions, { type DialogActionsProps } from '@mui/material/DialogActions';
 import type { FormikProps } from 'formik';
-import AnimatedBorderBox from '../../styled/animated_border_box';
+import AnimatedBorderBox from '../../styled/animated_border_box.js';
 import type { MessageMeFormValues } from './email-form';
 
 interface EmailFormActionsProps extends DialogActionsProps {

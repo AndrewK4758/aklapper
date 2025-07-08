@@ -1,5 +1,5 @@
+import { CenteredFlexDiv } from '@aklapper/react-shared';
 import type { ReactElement } from 'react';
-import CenteredFlexDiv from '../../styled/centered_flexbox.js';
 import GoogleAuthButton from './google_auth_button.js';
 import GoogleCalendarForm from './google_calendar_form.js';
 

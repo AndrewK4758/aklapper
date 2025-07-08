@@ -1,10 +1,10 @@
+import { CenteredFlexDiv } from '@aklapper/react-shared';
 import type { PickerValue } from '@mui/x-date-pickers/internals';
 import axios from 'axios';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import { useState, type ReactElement } from 'react';
 import { Form } from 'react-router';
-import CenteredFlexDiv from '../../styled/centered_flexbox.js';
 import DateInput from './date_input.js';
 import SubmitCalendarEventAction from './submit_calendar_event_action.js';
 import TimeInput from './time_input.js';

@@ -1,13 +1,11 @@
-import { Text, useScrollIntoView } from '@aklapper/react-shared';
+import { CenteredFlexDiv, StyledCard, Text, useScrollIntoView } from '@aklapper/react-shared';
 import Divider from '@mui/material/Divider';
 import { lazy, useRef, type ReactElement } from 'react';
 import Theme from '../../../styles/themes/theme';
-import CenteredFlexDiv from '../../styled/centered_flexbox';
-import StyledCard from '../../styled/styled_card';
 import { IMAGE_TEXT } from '../static/image-text';
 import ImageResponse from './image_response';
 
-const ImageForm = lazy(() => import('./image-form.jsx'));
+const ImageForm = lazy(() => import('./image-form'));
 
 /**
  * This component renders the image generation section of the generative AI page.

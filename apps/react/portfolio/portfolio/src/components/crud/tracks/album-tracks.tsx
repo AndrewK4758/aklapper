@@ -1,14 +1,14 @@
 import { track } from '@aklapper/chinook-client';
+import { CenteredFlexDiv } from '@aklapper/react-shared';
 import type { DataGridLoader } from '@aklapper/types';
 import Box from '@mui/material-pigment-css/Box';
 import Container from '@mui/material-pigment-css/Container';
 import { type ReactElement } from 'react';
 import { useFetcher, useLoaderData, useParams } from 'react-router';
 import Theme from '../../../styles/themes/theme';
-import CenteredFlexDiv from '../../styled/centered_flexbox.js';
-import DataGridHeader from '../data_grid_header.js';
-import AddTrack from './add-track.jsx';
-import TracksDataGrid from './data_grid.js';
+import DataGridHeader from '../data_grid_header';
+import AddTrack from './add-track';
+import TracksDataGrid from './data_grid';
 
 /**
  * This component renders a page displaying a list of tracks for a specific album.

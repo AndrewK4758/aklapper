@@ -1,4 +1,4 @@
-import { Text, Waiting } from '@aklapper/react-shared';
+import { CenteredFlexDiv, StyledCard, Text, Waiting } from '@aklapper/react-shared';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import Box from '@mui/material-pigment-css/Box';
 import IconButton from '@mui/material/IconButton';
@@ -6,8 +6,6 @@ import { useActionData, useNavigation } from 'react-router';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
 import { BOX_SHADOW_MAIN } from '../../../styles/base/base_styles';
 import Theme from '../../../styles/themes/theme';
-import CenteredFlexDiv from '../../styled/centered_flexbox';
-import StyledCard from '../../styled/styled_card';
 
 export default function ImageResponse() {
   const { state } = useNavigation();

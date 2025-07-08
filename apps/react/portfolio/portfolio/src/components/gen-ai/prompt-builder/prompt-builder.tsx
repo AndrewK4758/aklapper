@@ -1,5 +1,14 @@
 import { ResponseType, type IPromptInputData } from '@aklapper/prompt-builder';
-import { FormikValidationError, SectionTitle, Text, useScrollIntoView } from '@aklapper/react-shared';
+import {
+  CenteredFlexDiv,
+  FormikValidationError,
+  HelperTextBox,
+  SectionTitle,
+  StyledCard,
+  Text,
+  TextInput,
+  useScrollIntoView,
+} from '@aklapper/react-shared';
 import type { ChatEntry } from '@aklapper/types';
 import type { PromptRequest } from '@aklapper/vertex-ai';
 import InsertPhotoOutlinedIcon from '@mui/icons-material/InsertPhotoOutlined';
@@ -16,17 +25,14 @@ import { useFormik } from 'formik';
 import { useRef, useState, type Dispatch, type JSX, type SetStateAction } from 'react';
 import { Form, useNavigate, type NavigateFunction } from 'react-router';
 import * as Yup from 'yup';
+import handleFormikBlur from '../../../services/actions/crud-actions/handle_formik_blur';
 import Theme from '../../../styles/themes/theme';
-import JsonIcon from '../../icons/json-icon.jsx';
-import TextIcon from '../../icons/text-icon.jsx';
-import CenteredFlexDiv from '../../styled/centered_flexbox';
-import HelperTextBox from '../../styled/helper_text_box';
-import StyledCard from '../../styled/styled_card';
-import TextInput from '../../text_input/text_input.js';
-import { SUPPORTED_FORMATS } from '../static/definitions.jsx';
-import { promptBuilderHeaderText } from '../static/prompt-builder-text.jsx';
-import handleFileUpload from './file_upload.js';
-import PromptBuilderResponse from './prompt-builder-response.js';
+import JsonIcon from '../../icons/json-icon';
+import TextIcon from '../../icons/text-icon';
+import { SUPPORTED_FORMATS } from '../static/definitions';
+import { promptBuilderHeaderText } from '../static/prompt-builder-text';
+import handleFileUpload from './file_upload';
+import PromptBuilderResponse from './prompt-builder-response';
 
 const promptInit: PromptRequest = { text: null, fileData: null };
 
@@ -130,6 +136,7 @@ const PromptBuilder = ({ loading, setLoading }: PromptBuilderProps): JSX.Element
             formik={formik}
             name={'objective'}
             variant={'outlined'}
+            handleBlur={handleFormikBlur}
             slotProps={{ input: { sx: { backgroundColor: Theme.palette.background.default } } }}
           />
           <HelperTextBox multiline>

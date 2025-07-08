@@ -9,7 +9,7 @@ interface CloseDialogProps extends DialogActionsProps {
 export default function CloseDialog({ handleIsOpen, ...props }: CloseDialogProps): ReactElement<CloseDialogProps> {
   return (
     <DialogActions {...props}>
-      <Button variant='outlined' id='close-email-me-button' data-testid='close-email-me-button' onClick={handleIsOpen}>
+      <Button variant='outlined' id='close-contact' data-testid='close-contact' onClick={handleIsOpen}>
         Close
       </Button>
     </DialogActions>

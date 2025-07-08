@@ -1,8 +1,8 @@
 import Box from '@mui/material-pigment-css/Box';
 import IconButton from '@mui/material/IconButton';
 import { css } from '@pigment-css/react';
-import CloseMenuIcon from '../../icons/close_menu_icon.js';
-import OpenMenuIcon from '../../icons/open_menu.js';
+import CloseMenuIcon from '../../icons/close_menu_icon';
+import OpenMenuIcon from '../../icons/open_menu';
 
 // const toggleMenuButtonStyle: SxProps<Theme> = {
 // opacity: 0.2,

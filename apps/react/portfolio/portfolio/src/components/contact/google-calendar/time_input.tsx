@@ -1,9 +1,8 @@
-import { SectionTitle } from '@aklapper/react-shared';
+import { CenteredFlexDiv, SectionTitle } from '@aklapper/react-shared';
 import { TimePicker } from '@mui/x-date-pickers';
 import type { PickerValue } from '@mui/x-date-pickers/internals';
 import type { Dayjs } from 'dayjs';
 import Theme from '../../../styles/themes/theme';
-import CenteredFlexDiv from '../../styled/centered_flexbox.js';
 import EndTimeSelect from './end_time_select.js';
 import type { TimesAndDates } from './google_calendar_form.js';
 

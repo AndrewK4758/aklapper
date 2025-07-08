@@ -1,9 +1,9 @@
+import { CenteredFlexDiv } from '@aklapper/react-shared';
 import Box from '@mui/material-pigment-css/Box';
 import { ReactElement, useState } from 'react';
 import { Outlet, useNavigation } from 'react-router';
 import GamesHeader from '../../components/games/header';
 import GameLoading from '../../components/loading/loading';
-import CenteredFlexDiv from '../../components/styled/centered_flexbox';
 
 /**
  * This component renders the main games page, providing an interface for users to select and play different games.

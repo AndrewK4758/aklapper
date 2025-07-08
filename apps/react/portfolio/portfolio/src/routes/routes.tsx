@@ -11,8 +11,8 @@ import LandingPage from '../pages/landing/landing';
 
 import loadAlbumTracks from '../services/loaders/crud-loaders/load-album-tracks';
 import loadAlbums from '../services/loaders/crud-loaders/load-albums';
-import loadArtistsAndCount from '../services/loaders/crud-loaders/load-artists.js';
-import loadAlbumsForArtist from '../services/loaders/crud-loaders/load_albums_for_artist.js';
+import loadArtistsAndCount from '../services/loaders/crud-loaders/load-artists';
+import loadAlbumsForArtist from '../services/loaders/crud-loaders/load_albums_for_artist';
 
 import Layout from '../components/layout/layout';
 import Crud from '../pages/crud/crud';
@@ -20,7 +20,7 @@ import Games from '../pages/games/games';
 import GenAiHome from '../pages/gen-ai/gen-ai';
 
 import handleArtistAlbumsActions from '../services/actions/crud-actions/handle_album_on_artist_actions';
-import handleArtistActions from '../services/actions/crud-actions/handle_artist_actions.js';
+import handleArtistActions from '../services/actions/crud-actions/handle_artist_actions';
 import handleTrackActions from '../services/actions/crud-actions/handle_track_actions';
 import generateImageAction from '../services/actions/generate-image-action';
 

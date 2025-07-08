@@ -1,7 +1,6 @@
-import { Text } from '@aklapper/react-shared';
+import { CenteredFlexDiv, Text } from '@aklapper/react-shared';
 import DialogTitle from '@mui/material/DialogTitle';
 import Theme from '../../../styles/themes/theme';
-import CenteredFlexDiv from '../../styled/centered_flexbox';
 
 export default function AddEntryHeader() {
   return (

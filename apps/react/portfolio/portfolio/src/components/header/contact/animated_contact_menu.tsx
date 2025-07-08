@@ -1,6 +1,6 @@
+import { RevealWrapper } from '@aklapper/react-shared';
 import Box from '@mui/material-pigment-css/Box';
 import { css } from '@pigment-css/react';
-import RevealWrapper from '../../styled/reval_wrapper';
 import ContactMenu from './contact_menu';
 
 interface AnimatedContactMenuProps {

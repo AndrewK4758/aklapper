@@ -1,3 +1,4 @@
+import { CenteredFlexDiv, TextInput } from '@aklapper/react-shared';
 import Stack from '@mui/material-pigment-css/Stack';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useFormik } from 'formik';
@@ -6,14 +7,13 @@ import { Form } from 'react-router';
 import * as Yup from 'yup';
 import 'yup-phone-lite';
 import { GoogleUserContext, type GoogleUserContextProps } from '../../../contexts/contact_context_constants';
+import handleFormikBlur from '../../../services/actions/crud-actions/handle_formik_blur';
 import emailFormAction from '../../../services/actions/email-form-action';
 import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
 import { clientCheck } from '../../../utils/utils';
-import CenteredFlexDiv from '../../styled/centered_flexbox';
-import TextInput from '../../text_input/text_input.js';
-import DateTimeInput from './date_time_input.js';
+import DateTimeInput from './date_time_input';
 import EmailFormActions from './email-form-actions';
-import UploadFileElement from './upload_file_element.js';
+import UploadFileElement from './upload_file_element';
 
 export type MessageMeFormValues = {
   name: string;
@@ -80,6 +80,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
             formik={formik}
             variant='outlined'
             disabled={formik.isSubmitting}
+            handleBlur={handleFormikBlur}
             slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
           />
 
@@ -89,6 +90,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
             formik={formik}
             variant='outlined'
             disabled={formik.isSubmitting}
+            handleBlur={handleFormikBlur}
             slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
           />
 
@@ -98,6 +100,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
             formik={formik}
             variant='outlined'
             disabled={formik.isSubmitting}
+            handleBlur={handleFormikBlur}
             slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
           />
 
@@ -107,6 +110,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
             formik={formik}
             variant='outlined'
             disabled={formik.isSubmitting}
+            handleBlur={handleFormikBlur}
             slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
           />
 
@@ -117,6 +121,7 @@ const EmaiForm = ({ setOpen }: EmaiFormProps) => {
             multiline={true}
             variant='outlined'
             disabled={formik.isSubmitting}
+            handleBlur={handleFormikBlur}
             slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
           />
 

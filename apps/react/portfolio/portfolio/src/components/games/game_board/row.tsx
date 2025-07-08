@@ -2,7 +2,7 @@ import type { ILiteSpace } from '@aklapper/types';
 import Box from '@mui/material-pigment-css/Box';
 import { css } from '@pigment-css/react';
 import { memo } from 'react';
-import Space from './space.js';
+import Space from './space';
 
 export interface GameBoardProps {
   row: ILiteSpace[];

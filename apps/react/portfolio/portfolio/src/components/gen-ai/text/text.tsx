@@ -1,4 +1,5 @@
-import { useScrollIntoView } from '@aklapper/react-shared';
+import { StyledCard, TextInput, useScrollIntoView } from '@aklapper/react-shared';
+import type { ChatEntry } from '@aklapper/types';
 import Button from '@mui/material/Button';
 import type { FormikState } from 'formik';
 import { useFormik } from 'formik';
@@ -8,12 +9,9 @@ import ShortUniqueId from 'short-unique-id';
 import { io, type Socket } from 'socket.io-client';
 import * as Yup from 'yup';
 import useGenAiWebsockets from '../../../hooks/useGenAiWebsockets';
-
-import type { ChatEntry } from '@aklapper/types';
+import handleFormikBlur from '../../../services/actions/crud-actions/handle_formik_blur';
 import Theme from '../../../styles/themes/theme';
-import type { OutletContextProps } from '../../../types/types.js';
-import StyledCard from '../../styled/styled_card';
-import TextInput from '../../text_input/text_input.js';
+import type { OutletContextProps } from '../../../types/types';
 
 /**
  * DECIDE WHETHER TO PUT FILE UPLOAD IN THE MAIN PROMPT SUBMISSION AREA
@@ -72,6 +70,7 @@ const TextGenerator = (): ReactElement => {
           label='Enter Prompt'
           type='text'
           variant={'outlined'}
+          handleBlur={handleFormikBlur}
           slotProps={{ input: { sx: { backgroundColor: Theme.palette.background.default } } }}
         />
 

@@ -4,7 +4,7 @@ import axios from 'axios';
 import type { Dispatch, ReactElement } from 'react';
 import { Socket } from 'socket.io-client';
 import type { IActiveGameInfo } from '../../../types/types';
-import { getGameInstanceInfo } from '../../../utils/utils.jsx';
+import { getGameInstanceInfo } from '../../../utils/utils';
 import AnimatedBorderBox from '../../styled/animated_border_box';
 import { Action } from './socket-reducer';
 

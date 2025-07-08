@@ -1,4 +1,4 @@
-import { Waiting } from '@aklapper/react-shared';
+import { CenteredFlexDiv, Waiting } from '@aklapper/react-shared';
 import { css } from '@mui/material-pigment-css';
 import Box from '@mui/material-pigment-css/Box';
 import Button from '@mui/material/Button';
@@ -7,8 +7,7 @@ import { lazy, ReactElement, Suspense, useState } from 'react';
 import { Outlet } from 'react-router';
 import waiting from '../../assets/images/swirly-dots-to-chrome.webp';
 import CrudNavBar from '../../components/crud/nav_bar';
-import CrudHeader from '../../components/crud/page_header.js';
-import CenteredFlexDiv from '../../components/styled/centered_flexbox';
+import CrudHeader from '../../components/crud/page_header';
 import Theme from '../../styles/themes/theme';
 
 const Search = lazy(() => import('../../components/crud/search/search'));

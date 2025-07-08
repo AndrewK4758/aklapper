@@ -1,13 +1,13 @@
 import type { artist } from '@aklapper/chinook-client';
+import { CenteredFlexDiv, TextInput } from '@aklapper/react-shared';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import { useFormik } from 'formik';
 import { type ReactElement } from 'react';
 import { type FetcherWithComponents } from 'react-router';
 import handleSubmitNewArtist from '../../../services/actions/crud-actions/handle-create_new_artist';
+import handleFormikBlur from '../../../services/actions/crud-actions/handle_formik_blur';
 import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
-import CenteredFlexDiv from '../../styled/centered_flexbox';
-import TextInput from '../../text_input/text_input';
 
 interface AddArtistProps {
   fetcher: FetcherWithComponents<artist>;
@@ -43,6 +43,7 @@ const AddArtist = ({ COUNT, fetcher }: AddArtistProps): ReactElement => {
           formik={formik}
           variant='outlined'
           searchParams={`artists?name=${formik.values.name}`}
+          handleBlur={handleFormikBlur}
           slotProps={{
             input: {
               sx: {

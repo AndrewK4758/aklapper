@@ -1,13 +1,12 @@
-import { useScrollIntoView, Waiting } from '@aklapper/react-shared';
+import { CenteredFlexDiv, useScrollIntoView, Waiting } from '@aklapper/react-shared';
 import type { ChatEntry } from '@aklapper/types';
 import Box from '@mui/material-pigment-css/Box';
 import Collapse from '@mui/material/Collapse';
 import { lazy, Suspense, useEffect, useRef, useState, type ReactElement } from 'react';
 import { Outlet } from 'react-router';
 import waiting from '../../assets/images/swirly-dots-to-chrome.webp';
-import Chat from '../../components/gen-ai/chat/chat.js';
+import Chat from '../../components/gen-ai/chat/chat';
 import GenAiHeader from '../../components/gen-ai/header/header';
-import CenteredFlexDiv from '../../components/styled/centered_flexbox';
 import { MediaRecorderClientContextProvider } from '../../contexts/audio-context';
 import loadContextPath from '../../services/loaders/gen-ai/load-context-path';
 import type { OutletContextProps } from '../../types/types';

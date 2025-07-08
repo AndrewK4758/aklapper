@@ -1,13 +1,13 @@
 import type { album } from '@aklapper/chinook-client';
+import { CenteredFlexDiv, TextInput } from '@aklapper/react-shared';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import { useFormik } from 'formik';
 import { type ReactElement } from 'react';
 import { type FetcherWithComponents } from 'react-router';
+import handleFormikBlur from '../../../services/actions/crud-actions/handle_formik_blur';
 import handleSubmitAlbumOnArtist from '../../../services/actions/crud-actions/submit-album-on-artist-action';
 import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
-import CenteredFlexDiv from '../../styled/centered_flexbox';
-import TextInput from '../../text_input/text_input';
 
 interface AddAlbumOnArtistProps {
   fetcher: FetcherWithComponents<album>;
@@ -37,6 +37,7 @@ const AddAlbumOnArtist = ({ fetcher }: AddAlbumOnArtistProps): ReactElement => {
           label={'Album Title'}
           variant='outlined'
           searchParams={`/albums/${formik.values.title}`}
+          handleBlur={handleFormikBlur}
           slotProps={{
             input: {
               sx: {
