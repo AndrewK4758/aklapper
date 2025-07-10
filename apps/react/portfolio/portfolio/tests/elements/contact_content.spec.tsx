@@ -39,10 +39,9 @@ describe('test contact content', () => {
       },
     );
 
-    const googleCalendar = await findByTestId(googleCalendarWrapperId);
+    const googleCalendar = await findByTestId(googleCalendarWrapperId, {}, { timeout: 2500 });
 
     expect(googleCalendar).toBeInTheDocument();
-
-    // expect(screen.queryByTestId(waitingTestId)).not.toBeInTheDocument();
+    expect(screen.queryByTestId(waitingTestId)).not.toBeInTheDocument();
   });
 });

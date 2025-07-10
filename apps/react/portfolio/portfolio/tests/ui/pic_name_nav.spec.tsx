@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ABOUT_ME_TITLE } from '../../src/components/home/static/intro-static';
 import AppNavBar from '../../src/components/layout/navigation/app_nav_bar';
 import PicNameAndNav from '../../src/components/layout/pic_name_nav';
@@ -11,7 +12,9 @@ describe('test pic name and navbar element', () => {
     render(<PicNameAndNav subheader={<AppNavBar />} />, { initialRoute: ROUTES.PORTFOLIO, path: ROUTES.PORTFOLIO });
   });
 
-  afterEach(mockNavigate.mockClear());
+  afterEach(() => {
+    mockNavigate.mockClear();
+  });
   it('should render the introduction title and image', () => {
     const introTitle = screen.getAllByRole('heading', { level: 1 })[0].textContent;
     const introImage = screen.getByTestId('card-media-resume-image');
@@ -23,14 +26,9 @@ describe('test pic name and navbar element', () => {
   it('should render the app navbar and link to portfolio', async () => {
     const home = screen.getByTestId('home-nav-button');
 
-    // const games = screen.getByTestId('games-nav-button');
-    // const genAi = screen.getByTestId('gen-ai-nav-button');
-
     await userEvent.click(home);
 
     expect(mockNavigate).toHaveBeenCalledWith(ROUTES.PORTFOLIO);
-
-    // const crud = screen.getByTestId('crud-nav-button');
   });
 
   it('should render the app navbar and link to crud', async () => {
