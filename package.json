@@ -32,7 +32,7 @@
     "@pigment-css/vite-plugin": "^0.0.30",
     "@playwright/test": "1.53.2",
     "@swc-node/register": "^1.10.10",
-    "@swc/cli": "0.7.7",
+    "@swc/cli": "0.7.8",
     "@swc/core": "1.12.11",
     "@swc/helpers": "^0.5.17",
     "@testing-library/dom": "10.4.0",
@@ -46,7 +46,7 @@
     "@types/http-server": "^0.12.4",
     "@types/jest": "30.0.0",
     "@types/multer": "2.0.0",
-    "@types/node": "24.0.11",
+    "@types/node": "24.0.12",
     "@types/nodemailer": "^6.4.17",
     "@types/react": "19.1.8",
     "@types/react-dom": "19.1.6",
@@ -76,7 +76,7 @@
     "prop-types": "^15.8.1",
     "react-is": "^19.1.0",
     "react-refresh": "^0.17.0",
-    "rolldown-vite": "^7.0.5",
+    "rolldown-vite": "^7.0.6",
     "ts-jest": "29.4.0",
     "ts-node": "^10.9.2",
     "tslib": "^2.3.0",
@@ -105,11 +105,11 @@
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dayjs": "^1.11.13",
-    "dotenv": "17.1.0",
+    "dotenv": "17.2.0",
     "express": "^5.1.0",
     "file": "^0.2.2",
     "formik": "^2.4.6",
-    "googleapis": "150.0.1",
+    "googleapis": "152.0.0",
     "hoist-non-react-statics": "^3.3.2",
     "jwt-decode": "^4.0.0",
     "multer": "2.0.1",
@@ -125,8 +125,5 @@
     "yup": "^1.6.1",
     "yup-password": "^0.4.0",
     "yup-phone-lite": "^2.0.1"
-  },
-  "engines": {
-    "node": "24"
   }
 }
