@@ -1,5 +1,5 @@
 import type { album } from '@aklapper/chinook-client';
-import { Waiting } from '@aklapper/react-shared';
+import { CenteredFlexDiv, Waiting } from '@aklapper/react-shared';
 import type { DataGridLoader } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
@@ -7,9 +7,7 @@ import { css } from '@pigment-css/react';
 import { Suspense, type ReactElement } from 'react';
 import { Outlet, useFetcher, useLoaderData } from 'react-router';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
-import { artistsSxProps } from '../../../styles/crud/data_grid';
 import Theme from '../../../styles/themes/theme';
-import CenteredFlexDiv from '../../styled/centered_flexbox';
 import DataGridHeader from '../data_grid_header';
 import AddAlbum from './add-album';
 import AlbumBaseDataGrid from './album_base_data_grid';
@@ -38,15 +36,24 @@ const Album = (): ReactElement => {
       })}
     >
       <Box
-        sx={{
+        className={css({
           display: 'flex',
           flexDirection: 'column',
           gap: Theme.spacing(4),
           flex: '0 1 50%',
           backgroundColor: 'transparent',
-        }}
+        })}
       >
-        <Box id='album-box' sx={artistsSxProps}>
+        <Box
+          id='album-box'
+          className={css({
+            flex: 1,
+            gap: Theme.spacing(4),
+            borderRadius: Theme.shape.borderRadius,
+            maxWidth: '100%',
+            backgroundColor: Theme.palette.background.paper,
+          })}
+        >
           <DataGridHeader title='Album List' />
           <Container id={'add-album-box'}>
             <AddAlbum fetcher={fetcher} />

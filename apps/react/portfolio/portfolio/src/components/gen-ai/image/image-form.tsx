@@ -1,4 +1,4 @@
-import { Text } from '@aklapper/react-shared';
+import { CenteredFlexDiv, StyledCard, Text, TextInput } from '@aklapper/react-shared';
 import { AspectRatio } from '@aklapper/types';
 import { type ClientImagenConfig } from '@aklapper/vertex-ai';
 import Box from '@mui/material-pigment-css/Box';
@@ -17,12 +17,10 @@ import { useFormik, type FormikProps } from 'formik';
 import { type ChangeEvent, type ReactElement } from 'react';
 import { Form, useOutletContext, useSubmit } from 'react-router';
 import * as Yup from 'yup';
+import handleFormikBlur from '../../../services/actions/crud-actions/handle_formik_blur';
 import Theme from '../../../styles/themes/theme';
-import type { OutletContextProps } from '../../../types/types.js';
+import type { OutletContextProps } from '../../../types/types';
 import AnimatedBorderBox from '../../styled/animated_border_box';
-import CenteredFlexDiv from '../../styled/centered_flexbox';
-import StyledCard from '../../styled/styled_card';
-import TextInput from '../../text_input/text_input.js';
 
 const validationSchema = Yup.object({
   prompt: Yup.string().required('The prompt is required'),
@@ -74,6 +72,7 @@ const ImageForm = (): ReactElement => {
           label={'Prompt'}
           variant={'outlined'}
           multiline={true}
+          handleBlur={handleFormikBlur}
           slotProps={{ input: { sx: { backgroundColor: Theme.palette.background.paper } } }}
         />
 

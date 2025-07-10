@@ -1,10 +1,12 @@
+import { createNodeDirname } from '@aklapper/utils';
 import cors, { type CorsOptions } from 'cors';
 import express, { type Express } from 'express';
 import { join } from 'path';
-import { cwd } from 'process';
-import router, { PortfolioRoutes } from './routes/routes.js';
+import { PortfolioRoutes, router } from './routes/routes.js';
 
-export const __dirname = join(cwd(), 'apps/nodejs/portfolio/portfolio-api');
+console.log(process.env.NODE_ENV);
+
+const __dirname = createNodeDirname(import.meta.url);
 
 const app: Express = express();
 

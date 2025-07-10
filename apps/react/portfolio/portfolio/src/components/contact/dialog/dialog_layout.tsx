@@ -1,16 +1,16 @@
+import { LargeStyledDialog } from '@aklapper/react-shared';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { enUS } from '@mui/x-date-pickers/locales';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import type { ReactElement } from 'react';
-import GoogleUserContextProvider from '../../../contexts/contact-context.js';
+import GoogleUserContextProvider from '../../../contexts/contact-context';
 import { BOX_SHADOW_MAIN_DARK } from '../../../styles/base/base_styles';
 import Theme from '../../../styles/themes/theme';
-import LargeStyledDialog from '../../styled/large_dialog_window.js';
 
 interface DialogLayoutProps {
   isOpen: boolean;
-  children: ReactElement<unknown>[];
+  children: ReactElement<unknown> | ReactElement<unknown>[];
 }
 
 export default function DialogLayout({

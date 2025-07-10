@@ -1,13 +1,28 @@
+import { workspaceRoot } from '@nx/devkit';
+import { pigment } from '@pigment-css/vite-plugin';
 import react from '@vitejs/plugin-react';
-import * as path from 'path';
-import { cwd } from 'process';
+import * as path from 'node:path';
+import { cwd } from 'node:process';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
+import Theme from './src/lib/styles/theme';
 
 export default defineConfig({
   root: cwd(),
-  cacheDir: '../../node_modules/.vite/packages/react-shared',
+  cacheDir: path.resolve(workspaceRoot, 'node_modules/.vite/packages/react-shared'),
   plugins: [
+    pigment({
+      theme: Theme,
+      transformLibraries: ['@mui/material'],
+      evaluate: true,
+      transformSx: true,
+      debug: {
+        print: true,
+      },
+      babelOptions: {
+        compact: false,
+      },
+    }),
     react(),
     dts({
       entryRoot: 'src',
@@ -18,23 +33,24 @@ export default defineConfig({
   // worker: {
   //  plugins: [ nxViteTsPaths() ],
   // },
-  // Configuration for building your library.
-  // See: https://vitejs.dev/guide/build.html#library-mode
+  logLevel: 'info',
+  appType: 'spa',
+  publicDir: 'public',
+  envDir: './env',
+
   build: {
     minify: true,
     outDir: './dist',
+    sourcemap: true,
     emptyOutDir: true,
     reportCompressedSize: true,
     commonjsOptions: {
       transformMixedEsModules: true,
     },
     lib: {
-      // Could also be a dictionary or array of multiple entry points.
       entry: 'src/index.ts',
       name: 'react-shared',
       fileName: 'index',
-      // Change this to the formats you want to support.
-      // Don't forget to update your package.json as well.
       formats: ['es'],
     },
     rollupOptions: {
@@ -44,11 +60,6 @@ export default defineConfig({
       output: {
         esModule: true,
         format: 'esm',
-        generatedCode: {
-          arrowFunctions: true,
-          constBindings: true,
-          symbols: true,
-        },
       },
     },
     target: 'esnext',
@@ -59,11 +70,6 @@ export default defineConfig({
     color: true,
     platform: 'browser',
   },
-
-  logLevel: 'info',
-  appType: 'spa',
-  publicDir: 'public',
-  envDir: './env',
 
   test: {
     watch: false,

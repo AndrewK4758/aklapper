@@ -1,8 +1,11 @@
+import { createNodeDirname } from '@aklapper/utils';
 import { ConfidentialClientApplication, type Configuration, LogLevel } from '@azure/msal-node';
 import { configDotenv } from 'dotenv';
-import { cwd } from 'process';
+import { resolve } from 'node:path';
 
-configDotenv({ path: `${cwd()}/apps/nodejs/portfolio/portfolio-api/env/.env` });
+const __dirname = createNodeDirname(import.meta.url);
+
+configDotenv({ path: resolve(__dirname, '../', 'env/.env.nodemailer') });
 
 const config: Configuration = {
   auth: {

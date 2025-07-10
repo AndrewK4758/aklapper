@@ -1,6 +1,6 @@
+import { LargeStyledDialog } from '@aklapper/react-shared';
 import { type ReactElement } from 'react';
 import { useLocation } from 'react-router';
-import LargeStyledDialog from '../../styled/large_dialog_window';
 import AddEntryForm from './form';
 import AddEntryHeader from './header';
 

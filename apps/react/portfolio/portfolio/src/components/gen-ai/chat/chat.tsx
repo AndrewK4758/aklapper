@@ -1,10 +1,9 @@
-import { Text } from '@aklapper/react-shared';
+import { StyledCard, Text } from '@aklapper/react-shared';
 import type { ChatEntry } from '@aklapper/types';
 import Box from '@mui/material-pigment-css/Box';
 import Divider from '@mui/material/Divider';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import Theme from '../../../styles/themes/theme.js';
-import StyledCard from '../../styled/styled_card';
 import PromptResponse from './prompt_response.js';
 import Query from './query.js';
 

@@ -1,11 +1,10 @@
-import { Text } from '@aklapper/react-shared';
+import { CenteredFlexDiv, Text } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import { addEntrySteps } from '../../../pages/static/crud-text';
 import Theme from '../../../styles/themes/theme';
 import type { CompletedState } from '../../../types/types';
-import CenteredFlexDiv from '../../styled/centered_flexbox';
 
 interface AddEntryStepperButtonsProps {
   activeStep: number;

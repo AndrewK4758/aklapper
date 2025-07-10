@@ -40,5 +40,5 @@ interface PicNameAndNavProps {
 }
 
 export default function PicNameAndNav({ subheader }: PicNameAndNavProps) {
-  return <CardHeader suppressHydrationWarning title={myName} subheader={subheader} avatar={avatarImg} {...slotProps} />;
+  return <CardHeader title={myName} subheader={subheader} avatar={avatarImg} {...slotProps} />;
 }

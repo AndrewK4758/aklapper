@@ -7,7 +7,7 @@ export interface RevealWrapperProps {
   children: ReactNode;
 }
 
-const RevealWrapper: ComponentType<RevealWrapperProps> = styled(Box, {
+export const RevealWrapper: ComponentType<RevealWrapperProps> = styled(Box, {
   shouldForwardProp: prop => prop !== 'isOpen',
 })<RevealWrapperProps>(() => ({
   height: '100%',
@@ -24,7 +24,3 @@ const RevealWrapper: ComponentType<RevealWrapperProps> = styled(Box, {
     },
   ],
 }));
-
-// RevealWrapper.displayName = 'Reveal Wrapper';
-
-export default RevealWrapper;

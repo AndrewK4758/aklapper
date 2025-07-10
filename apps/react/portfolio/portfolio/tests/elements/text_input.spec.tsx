@@ -1,7 +1,8 @@
+import { TextInput } from '@aklapper/react-shared';
 import '@testing-library/jest-dom';
 import { useFormik, type FormikConfig } from 'formik';
 import { Form } from 'react-router';
-import TextInput from '../../src/components/text_input/text_input';
+import handleFormikBlur from '../../src/services/actions/crud-actions/handle_formik_blur';
 import { ROUTES, render, screen } from '../utils/render_react_rotuter';
 
 type TestForm = { name: string };
@@ -22,7 +23,13 @@ const renderForm = function (formikOptions: FormikTest) {
 
     return (
       <Form>
-        <TextInput<TestForm> formik={formik} name={'name'} label={LABEL} variant={'outlined'} />
+        <TextInput<TestForm>
+          formik={formik}
+          name={'name'}
+          label={LABEL}
+          variant={'outlined'}
+          handleBlur={handleFormikBlur}
+        />
       </Form>
     );
   };

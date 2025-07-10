@@ -4,7 +4,7 @@ import type { PickerValue } from '@mui/x-date-pickers/internals';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs/esm';
 import Theme from '../../../styles/themes/theme';
-import type { TimesAndDates } from './google_calendar_form.js';
+import type { TimesAndDates } from '../../../types/types';
 
 interface AppointmentDateSelectorProps {
   tomorrow: Dayjs;

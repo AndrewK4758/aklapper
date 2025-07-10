@@ -1,9 +1,9 @@
+import { ColoredBackground } from '@aklapper/react-shared';
 import CardContent from '@mui/material/CardContent';
 import Divider from '@mui/material/Divider';
 import { type ReactElement } from 'react';
 import { IntroText } from '../../components/home/static/intro-text';
 import TechStackLists from '../../components/home/tech-list/tech-stack-lists';
-import ColoredBackground from '../../components/styled/colored_background';
 
 /**
  * This is the main home component that renders the introduction section of the portfolio website.

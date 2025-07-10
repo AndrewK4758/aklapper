@@ -1,5 +1,6 @@
 import type { album, artist, Prisma, track } from '@aklapper/chinook-client';
 import type { ChatEntry, GameBoards, IActivePlayersInGame } from '@aklapper/types';
+import type { Dayjs } from 'dayjs/esm/index';
 
 export type HashFiles = { js: string | undefined; css: string | undefined };
 
@@ -101,3 +102,11 @@ export type ArtistSubmitAction = CRUD_SubmitAction & { artist: Partial<artist> }
 export type AlbumSubmitAction = CRUD_SubmitAction & { album: Partial<album> };
 
 export type TrackSubmitAction = CRUD_SubmitAction & { track: Partial<TrackWithStringDecimal> };
+
+/************************************************************/
+
+export type TimesAndDates = {
+  startTime: Dayjs;
+  endTime: number;
+  date: Dayjs;
+};

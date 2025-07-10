@@ -14,7 +14,7 @@ const PORT_PREVIEW = 4800;
 
 //Build
 const BASE = '/';
-// const NODE_ENV = process.env.NODE_ENV;
+const NODE_ENV = process.env.NODE_ENV;
 const OUT_DIR = './dist';
 const ROOT = cwd();
 
@@ -59,7 +59,7 @@ const config: UserConfig = defineConfig({
 
   base: BASE,
 
-  mode: 'development',
+  mode: NODE_ENV,
 
   logLevel: 'info',
   appType: 'spa',
@@ -77,10 +77,8 @@ const config: UserConfig = defineConfig({
     commonjsOptions: {
       transformMixedEsModules: true,
     },
-
     rollupOptions: {
-      logLevel: 'info',
-      experimentalLogSideEffects: true,
+      logLevel: 'debug',
 
       output: {
         strict: true,

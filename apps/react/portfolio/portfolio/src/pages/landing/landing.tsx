@@ -1,3 +1,4 @@
+import { StyledRootComponentWrapper } from '@aklapper/react-shared';
 import Box from '@mui/material-pigment-css/Box';
 import { useReducer } from 'react';
 import { useNavigate } from 'react-router';
@@ -5,7 +6,6 @@ import BoxAnimation from '../../components/landing/box_animation';
 import LandingHeader from '../../components/landing/header';
 import Explosion from '../../components/landing/lottie/explosion';
 import NavToHome from '../../components/landing/nav_home';
-import StyledRootComponentWrapper from '../../components/styled/styled_root_wrapper';
 import { LandingActions, type LandingPageState, landingPageReducer } from '../../hooks/landing_page_reducer';
 
 const EXPLOSION_FADE_OUT_TIME = 1100;

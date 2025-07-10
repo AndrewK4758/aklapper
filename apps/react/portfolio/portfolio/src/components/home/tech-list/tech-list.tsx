@@ -2,7 +2,7 @@ import { SectionTitle, type SectionTitleProps } from '@aklapper/react-shared';
 import Grid from '@mui/material/Grid';
 import List from '@mui/material/List';
 import type { TypographyVariant } from '@mui/material/styles';
-import Theme from '../../../styles/themes/theme.js';
+import Theme from '../../../styles/themes/theme';
 import TechListItem from './tech_list_item';
 
 interface TechListProps extends SectionTitleProps {

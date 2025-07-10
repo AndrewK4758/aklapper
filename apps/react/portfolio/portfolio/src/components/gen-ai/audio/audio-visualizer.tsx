@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactElement } from 'react';
-import Theme from '../../../styles/themes/theme.js';
+import Theme from '../../../styles/themes/theme';
 
 interface AudioVisualizerProps {
   stream: MediaStream;

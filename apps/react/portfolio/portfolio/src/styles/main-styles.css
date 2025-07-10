@@ -82,13 +82,3 @@ pre {
   white-space: 'pre-wrap';
   word-wrap: 'break-word';
 }
-
-/* .floater::after {
-  content: '""';
-  display: 'table';
-  clear: 'both';
-}
-
-.contact-form {
-  width: '100%';
-} */

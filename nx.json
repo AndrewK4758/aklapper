@@ -8,6 +8,11 @@
   "cli": {
     "packageManager": "pnpm"
   },
+  "release": {
+    "projectsRelationship": "independent"
+  },
+
+  "useInferencePlugins": true,
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "production": [
@@ -144,6 +149,7 @@
     }
   },
   "nxCloudId": "6793e339a43d353bb1fbd676",
+
   "tui": {
     "enabled": false
   }
