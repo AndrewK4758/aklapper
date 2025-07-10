@@ -44,12 +44,10 @@ export default function Layout(): ReactElement {
           <PicNameAndNav subheader={<AppNavBar />} />
         </StyledCard>
         <StyledCard
-          id='hello'
           className={css({
             backgroundColor: 'transparent',
             width: '100%',
             padding: 0,
-            border: 2,
           })}
         >
           <Outlet />

@@ -1,4 +1,6 @@
+import useMediaQuery from '@mui/material/useMediaQuery';
 import type { CSSProperties } from 'react';
+import Theme from '../../styles/themes/theme';
 import EnterIcon from '../icons/enter_icon';
 
 const MOTION_PATH =
@@ -11,13 +13,23 @@ interface NavToHomeProps {
 }
 
 export default function NavToHome({ isVisable, motionOffset, onHandleClickEnter }: NavToHomeProps) {
-  const enterIconStyle = {
+  const mediaQuery = useMediaQuery(Theme.breakpoints.down('lg'));
+
+  const smallScreenStyle = {
+    width: '10em',
+    left: -70,
+  };
+
+  const largeScreenStyle = {
+    left: 232,
+    width: '20em',
+  };
+
+  const enterIconStyleBase: CSSProperties = {
     position: 'absolute' as CSSProperties['position'],
     top: 165,
-    left: 232,
     zIndex: 2,
     height: 'auto',
-    width: '20em',
     opacity: isVisable ? 1 : 0,
     offsetPath: `path('${MOTION_PATH}')`,
     offsetRotate: '0deg',
@@ -25,10 +37,11 @@ export default function NavToHome({ isVisable, motionOffset, onHandleClickEnter 
     offsetPosition: motionOffset,
     transform: `${isVisable ? 'scale(2.25)' : 'scale(0.3)'}`,
     transition: 'offset-distance 1s ease-out, opacity 0.7s ease-in, transform 1.2s ease-out',
-    '@media (maxWidth: 1199.95px)': {
-      width: '10em',
-      left: -70,
-    },
   };
+
+  const enterIconStyle = mediaQuery
+    ? { ...enterIconStyleBase, ...smallScreenStyle }
+    : { ...enterIconStyleBase, ...largeScreenStyle };
+
   return <EnterIcon onHandleClickEnter={onHandleClickEnter} style={enterIconStyle} />;
 }

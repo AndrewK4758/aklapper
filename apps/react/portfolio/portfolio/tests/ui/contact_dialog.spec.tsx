@@ -1,79 +1,66 @@
 import '@testing-library/jest-dom';
-
 import ContactDialog from '../../src/components/contact/contact_dialog';
-import { render, ROUTES, screen } from '../utils/render_react_rotuter';
+import { fireEvent, render, ROUTES, screen } from '../utils/render_react_rotuter';
 
-let isOpen: boolean, handleIsOpen: () => void;
+let isOpen: boolean, mockOnClose: () => void;
 
 describe('test contact dialog', () => {
-  it('should  not be in document', async () => {
-    isOpen = false;
-
-    handleIsOpen = () => {
-      isOpen = true;
-    };
+  beforeEach(() => {
+    isOpen = true;
+    mockOnClose = vi.fn();
 
     render(
       <body>
-        <ContactDialog isOpen={isOpen} handleIsOpen={handleIsOpen} />
+        <ContactDialog isOpen={isOpen} handleIsOpen={mockOnClose} />
       </body>,
       {
         path: ROUTES.PORTFOLIO,
         initialRoute: ROUTES.PORTFOLIO,
       },
     );
+  });
 
-    const contactClosed = screen.queryByTestId('contact-dialog');
-
-    expect(contactClosed).not.toBeInTheDocument();
+  afterEach(() => {
+    vi.clearAllMocks();
   });
 
   it('should be in document', async () => {
-    isOpen = true;
-
-    handleIsOpen = () => {
-      isOpen = false;
-    };
-
-    render(
-      <body>
-        <ContactDialog isOpen={isOpen} handleIsOpen={handleIsOpen} />
-      </body>,
-      {
-        path: ROUTES.PORTFOLIO,
-        initialRoute: ROUTES.PORTFOLIO,
-      },
-    );
-
     const element = await screen.findByTestId('contact-dialog');
 
     expect(element).toBeInTheDocument();
   });
 
   it('should have appointment tab selected', async () => {
-    const tab1 = 'appointment-request-tab';
-    const tab2 = 'email-me-tab';
+    const tab1TestId = 'appointment-request-tab';
+    const tab2TestId = 'email-me-tab';
 
-    isOpen = true;
+    const tab1 = await screen.findByTestId(tab1TestId);
+    const tab2 = await screen.findByTestId(tab2TestId);
 
-    handleIsOpen = () => {
-      isOpen = false;
-    };
+    expect(tab1).toHaveAttribute('aria-selected', 'true');
+    expect(tab2).toHaveAttribute('aria-selected', 'false');
+  });
 
-    render(
-      <body>
-        <ContactDialog isOpen={isOpen} handleIsOpen={handleIsOpen} />
-      </body>,
-      {
-        path: ROUTES.PORTFOLIO,
-        initialRoute: ROUTES.PORTFOLIO,
-      },
-    );
+  it('should have email-me tab selected', async () => {
+    const tab1TestId = 'appointment-request-tab';
+    const tab2TestId = 'email-me-tab';
 
-    const selectedTab = await screen.findByTestId(tab1);
-    const unselectedTab = await screen.findByTestId(tab2);
+    const tab1 = await screen.findByTestId(tab1TestId);
+    const tab2 = await screen.findByTestId(tab2TestId);
 
-    expect(selectedTab).toHaveAttribute('aria-selected', 'true');
-    expect(unselectedTab).toHaveAttribute('aria-selected', 'false');
+    fireEvent.click(tab2);
+
+    expect(tab2).toHaveAttribute('aria-selected', 'true');
+    expect(tab1).toHaveAttribute('aria-selected', 'false');
+  });
+
+  it('should close the dialog', async () => {
+    const closeDialogTestId = 'close-contact';
+
+    const closeButton = screen.getByTestId(closeDialogTestId);
+
+    fireEvent.click(closeButton);
+
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 });

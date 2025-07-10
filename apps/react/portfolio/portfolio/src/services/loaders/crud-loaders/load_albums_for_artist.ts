@@ -13,10 +13,10 @@ const loadAlbumsForArtist: LoaderFunction = async ({
 
     const resp = await axios.get(`${baseURL}/artist/${artistID}`);
 
-    const { message, data } = resp.data as CRUD_ApiResponse<album[]>;
+    const { message, data, count } = resp.data as CRUD_ApiResponse<album[]>;
     console.log(message);
 
-    return { data };
+    return { data, count };
   } catch (error) {
     console.error(error);
   }

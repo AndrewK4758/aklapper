@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "type": "module",
   "private": true,
+  "scripts": {
+    "gcp-build": ""
+  },
   "devDependencies": {
     "@aklapper/chinook-client": "workspace:*",
     "@aklapper/games-components": "workspace:*",
@@ -12,36 +15,13 @@
     "@aklapper/types": "workspace:*",
     "@aklapper/vertex-ai": "workspace:*"
   },
-  "packageManager": "pnpm@10.12.3",
+  "packageManager": "pnpm@10.13.1",
   "nx": {
     "name": "portfolio",
     "projectType": "application",
     "sourceRoot": "apps/react/portfolio/portfolio/src",
     "root": "apps/react/portfolio/portfolio",
-    "implicitDependencies": [
-      "chinook-client",
-      "games-components",
-      "media-recorder",
-      "prompt-builder",
-      "react-shared",
-      "types",
-      "vertex-ai"
-    ],
     "targets": {
-      "build": {
-        "executor": "nx:run-commands",
-        "options": {
-          "cwd": "apps/react/portfolio/portfolio",
-          "command": "vite build --mode production"
-        },
-        "configurations": {
-          "production": {
-            "env": {
-              "NODE_ENV": "production"
-            }
-          }
-        }
-      },
       "build-both": {
         "executor": "nx:run-commands",
         "outputs": [

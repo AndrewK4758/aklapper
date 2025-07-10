@@ -1,14 +1,6 @@
-import { keyframes, styled } from '@mui/material-pigment-css';
+import { styled } from '@mui/material-pigment-css';
 import Box from '@mui/material-pigment-css/Box';
-
-const typewriter = keyframes`
-from {
-width: 0;
-}
-to {
-width: 100%;
-}
-`;
+import { typewriter } from '../../styles/base/animations';
 
 interface TypewriterTextProps {
   isLandingNavOpen: boolean;

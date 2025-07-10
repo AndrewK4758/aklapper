@@ -41,9 +41,9 @@ export default function Crud(): ReactElement {
           <CenteredFlexDiv>
             <CrudHeader />
           </CenteredFlexDiv>
-          <CenteredFlexDiv sx={{ padding: 0, width: '100%', justifyContent: 'center' }}>
+          <CenteredFlexDiv className={css({ paddingRight: '4', width: '100%', justifyContent: 'center' })}>
             <CrudNavBar />
-            <Button onClick={handleSetSearchClick} sx={{ color: Theme.palette.primary.contrastText }}>
+            <Button onClick={handleSetSearchClick} className={css({ color: Theme.palette.primary.contrastText })}>
               {!searchIsOpen ? 'Search' : 'Close'}
             </Button>
           </CenteredFlexDiv>
@@ -64,9 +64,7 @@ export default function Crud(): ReactElement {
       </Suspense>
 
       <Box id={`crud-app-wrapper`} className={css({ width: '100%' })}>
-        <Suspense fallback={<Waiting src={waiting} />}>
-          <Outlet />
-        </Suspense>
+        <Outlet />
       </Box>
     </CenteredFlexDiv>
   );

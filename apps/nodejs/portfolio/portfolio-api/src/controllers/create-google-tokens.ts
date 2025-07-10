@@ -20,11 +20,12 @@ const createTokens = async (req: Request, resp: Response, next: NextFunction) =>
     });
 
     const origin = process.env.NODE_ENV === 'production' ? 'https://www.andrew-k.us' : 'http://localhost:4700';
-
     resp.setHeader('Access-Control-Allow-Origin', origin);
     resp.setHeader('Access-Control-Allow-Credentials', 'true');
 
-    resp.status(201).json({ idToken: tokens.id_token });
+    const googleOAuthResp = { idToken: tokens.id_token };
+
+    resp.status(201).json(googleOAuthResp);
   } catch (error) {
     console.error(error);
     next(error);

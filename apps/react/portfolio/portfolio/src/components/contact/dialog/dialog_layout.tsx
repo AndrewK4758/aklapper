@@ -10,7 +10,7 @@ import Theme from '../../../styles/themes/theme';
 
 interface DialogLayoutProps {
   isOpen: boolean;
-  children: ReactElement<unknown>[];
+  children: ReactElement<unknown> | ReactElement<unknown>[];
 }
 
 export default function DialogLayout({
@@ -19,7 +19,7 @@ export default function DialogLayout({
   ...props
 }: DialogLayoutProps): ReactElement<DialogLayoutProps> {
   return (
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_OAUTH_CLIENT_ID} data-testid='google-oath'>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_OAUTH_CLIENT_ID}>
       <LocalizationProvider
         dateAdapter={AdapterDayjs}
         localeText={enUS.components.MuiLocalizationProvider.defaultProps.localeText}

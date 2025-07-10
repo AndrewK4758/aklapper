@@ -19,8 +19,6 @@ const getArtistsAlbums = async (req: Request, resp: Response): Promise<void> => 
   try {
     const artistID = req.params.id;
 
-    console.log('ARTIST ID: ', artistID);
-
     const query = {
       where: { artist_id: parseInt(artistID, 10) },
     } as Prisma.albumFindManyArgs<DefaultArgs>;

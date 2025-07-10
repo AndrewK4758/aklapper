@@ -5,7 +5,7 @@ import createEvents from '../controllers/calendar/create-event.js';
 import createTokens from '../controllers/create-google-tokens.js';
 import postEmail from '../controllers/post-email.js';
 
-const router: Router = Router();
+export const router: Router = Router();
 
 export const uploadStorage = multer.memoryStorage();
 export const upload = multer({ storage: uploadStorage });
@@ -26,5 +26,3 @@ export class PortfolioRoutes {
     router.post('/create-events', createEvents);
   }
 }
-
-export default router;

@@ -3,8 +3,8 @@ import { TimePicker } from '@mui/x-date-pickers';
 import type { PickerValue } from '@mui/x-date-pickers/internals';
 import type { Dayjs } from 'dayjs';
 import Theme from '../../../styles/themes/theme';
+import type { TimesAndDates } from '../../../types/types';
 import EndTimeSelect from './end_time_select.js';
-import type { TimesAndDates } from './google_calendar_form.js';
 
 interface AppointmenTimesSelectorsProps {
   minTime: Dayjs;

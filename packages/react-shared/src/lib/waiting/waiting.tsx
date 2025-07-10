@@ -1,27 +1,29 @@
-import Box from '@mui/material/Box';
+import Box from '@mui/material-pigment-css/Box';
+import { css } from '@pigment-css/react';
 
 interface WaitingProps {
   src: string;
-  width?: string;
 }
 
-export const Waiting = ({ src, width = '200px' }: WaitingProps) => (
+export const Waiting = ({ src }: WaitingProps) => (
   <Box
     component={'div'}
     id='waiting-wrapper'
-    test-dataid='waiting-wrapper'
-    display={'flex'}
-    justifyContent={'center'}
-    alignItems={'center'}
-    width={'100%'}
-    height={'100%'}
+    data-testid='waiting-wrapper'
+    className={css({
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      width: '100%',
+      height: '100%',
+    })}
   >
     <img
       id={'waiting-image'}
-      test-dataid={'waiting-image'}
+      data-testid={'waiting-image'}
       alt='waiting symbol'
       src={src}
-      style={{ width: width, height: 'auto', borderRadius: '16px' }}
+      className={css({ width: '200px', height: 'auto', borderRadius: '16px' })}
     />
   </Box>
 );

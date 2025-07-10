@@ -20,7 +20,6 @@ env_variables:
   GCLOUD_STORAGE_BUCKET: 'gs://portfolio-gen-ai'
   NODE_ENV: production  
 
-
 service_account: aklapper@games-424800.iam.gserviceaccount.com
 
 liveness_check:

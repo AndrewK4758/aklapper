@@ -26,7 +26,7 @@ interface TextInputProps<T extends object>
   multiline?: boolean;
   searchParams?: string;
   type?: HTMLInputTypeAttribute;
-  handleBlur: <T>(
+  handleBlur?: <T>(
     e: FocusEvent<HTMLInputElement>,
     formik: FormikProps<T>,
     setHelperText: (text: string) => void,
@@ -45,7 +45,7 @@ export function TextInput<T extends object>({
   ...props
 }: TextInputProps<T>): ReactElement {
   const [helperText, setHelperText] = useState<string | null>(null);
-  if (searchParams)
+  if (searchParams && handleBlur)
     formik.handleBlur = (e: FocusEvent<HTMLInputElement>) => {
       handleBlur<T>(e, formik, setHelperText, searchParams);
     };

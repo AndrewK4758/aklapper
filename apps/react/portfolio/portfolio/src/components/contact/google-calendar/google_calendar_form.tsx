@@ -1,10 +1,10 @@
 import { CenteredFlexDiv } from '@aklapper/react-shared';
 import type { PickerValue } from '@mui/x-date-pickers/internals';
-import axios from 'axios';
-import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import { useState, type ReactElement } from 'react';
 import { Form } from 'react-router';
+import handleSubmitCalendarEvent from '../../../services/contact/submit_calendar_event';
+import type { TimesAndDates } from '../../../types/types';
 import DateInput from './date_input.js';
 import SubmitCalendarEventAction from './submit_calendar_event_action.js';
 import TimeInput from './time_input.js';
@@ -13,12 +13,6 @@ const tomorrow = dayjs().add(1, 'day');
 
 const minTime = tomorrow.set('hour', 8).set('minutes', 30);
 const maxTime = tomorrow.set('hour', 19).set('minutes', 30);
-
-export type TimesAndDates = {
-  startTime: Dayjs;
-  endTime: number;
-  date: Dayjs;
-};
 
 interface GoogleAppointmentFormProps {
   setOpen: () => void;
@@ -42,7 +36,7 @@ export default function GoogleCalendarForm({
       className='contact-form'
       id='google-calendar-event-form'
       data-testid='google-calendar-event-form'
-      onSubmit={() => handleSubmitEvent(values, setOpen)}
+      onSubmit={() => handleSubmitCalendarEvent(values, setOpen)}
     >
       <CenteredFlexDiv id='google-calendar-form-box' data-testid='google-calendar-form-box' sx={{ gap: 2 }}>
         <DateInput tomorrow={tomorrow} dateValue={values.date} setDate={handleSetTimeAndDateValues} />
@@ -57,33 +51,3 @@ export default function GoogleCalendarForm({
     </Form>
   );
 }
-
-//TODO - move to services directory
-const baseURL = import.meta.env.VITE_PORTFOLIO_API_URL;
-
-const handleSubmitEvent = async (
-  { date, startTime, endTime }: TimesAndDates,
-  setOpen: (isOpen: boolean) => void,
-): Promise<void> => {
-  try {
-    if (date && startTime && endTime) {
-      const endTimeFormatted = startTime.add(endTime, 'minutes');
-
-      const startDateTime = startTime.toISOString();
-      const endDateTime = endTimeFormatted.toISOString();
-
-      const result = await axios.post(
-        `${baseURL}/create-events`,
-        { start: startDateTime, end: endDateTime },
-        {
-          withCredentials: true,
-        },
-      );
-
-      if (result) setOpen(false);
-    }
-  } catch (error) {
-    console.error(error);
-    alert('Error submitting event, Please try again');
-  }
-};
