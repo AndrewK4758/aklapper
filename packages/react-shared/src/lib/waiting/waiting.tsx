@@ -7,8 +7,7 @@ interface WaitingProps {
 
 export const Waiting = ({ src }: WaitingProps) => (
   <Box
-    component={'div'}
-    id='waiting-wrapper'
+    as={'div'}
     data-testid='waiting-wrapper'
     className={css({
       display: 'flex',

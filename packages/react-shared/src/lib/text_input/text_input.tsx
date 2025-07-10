@@ -80,3 +80,5 @@ async function handleFocus<T>(formik: FormikProps<T>, name: string, setHelperTex
   await formik.setFieldTouched(name, false);
   setHelperText(null);
 }
+
+export default TextInput;

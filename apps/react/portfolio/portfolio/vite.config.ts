@@ -30,15 +30,9 @@ const config: UserConfig = defineConfig({
     host: HOST,
   },
 
-  // css:{
-  //   'devSourcemap':true,
-
-  //   'modules':{
-  //     'scopeBehaviour': 'local',
-  //     'exportGlobals': true,
-
-  //   }
-  // },
+  css: {
+    devSourcemap: true,
+  },
 
   plugins: [
     pigment({
@@ -48,8 +42,8 @@ const config: UserConfig = defineConfig({
       debug: {
         print: true,
       },
+      exclude: ['tests/*'],
       babelOptions: {
-        // plugins: ['@babel/preset-react'],
         compact: false,
       },
     }),

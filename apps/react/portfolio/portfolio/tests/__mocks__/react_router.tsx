@@ -16,6 +16,9 @@ vi.mock('react-router', async () => {
     useLocation: () => mockLocation,
     useLoaderData: () => mockLoaderData,
     useOutletContext: () => mockOutletContext,
+    useNavigation: () => ({
+      state: 'idle',
+    }),
     Form: ({ children }: ReactChildrenProp) => <form>{children}</form>,
     Outlet: ({ children }: ReactChildrenProp) => <div data-testid='mock-outlet'>{children}</div>,
   };

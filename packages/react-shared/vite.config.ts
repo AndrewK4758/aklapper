@@ -14,11 +14,11 @@ export default defineConfig({
     pigment({
       theme: Theme,
       transformLibraries: ['@mui/material'],
-      evaluate: true,
       transformSx: true,
       debug: {
         print: true,
       },
+      exclude: ['tests/*'],
       babelOptions: {
         compact: false,
       },
