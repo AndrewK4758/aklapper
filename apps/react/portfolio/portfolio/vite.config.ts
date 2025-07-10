@@ -49,7 +49,7 @@ const config: UserConfig = defineConfig({
         print: true,
       },
       babelOptions: {
-        plugins: ['@babel/preset-react'],
+        // plugins: ['@babel/preset-react'],
         compact: false,
       },
     }),
