@@ -1,6 +1,5 @@
-// import type { artist } from '@aklapper/chinook-client';
 import type { artist } from '@aklapper/chinook-client';
-import { Waiting } from '@aklapper/react-shared';
+import { CenteredFlexDiv, Waiting } from '@aklapper/react-shared';
 import type { DataGridLoader } from '@aklapper/types';
 import { css } from '@mui/material-pigment-css';
 import Box from '@mui/material-pigment-css/Box';
@@ -8,9 +7,7 @@ import Container from '@mui/material-pigment-css/Container';
 import { type ReactElement, Suspense } from 'react';
 import { Outlet, useFetcher, useLoaderData } from 'react-router';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
-import { artistsSxProps } from '../../../styles/crud/data_grid';
 import Theme from '../../../styles/themes/theme';
-import CenteredFlexDiv from '../../styled/centered_flexbox';
 import DataGridHeader from '../data_grid_header';
 import AddArtist from './add-artist';
 import ArtistDataGrid from './data_grid';
@@ -39,20 +36,29 @@ const Artist = (): ReactElement => {
       })}
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: Theme.spacing(4), flex: '0 1 100%' }}>
-        <Box id='artists' sx={artistsSxProps}>
+        <Box
+          id='artists'
+          className={css({
+            flex: 1,
+            gap: Theme.spacing(4),
+            borderRadius: Theme.shape.borderRadius,
+            maxWidth: '100%',
+            backgroundColor: Theme.palette.background.paper,
+          })}
+        >
           <DataGridHeader title='Artist List' />
           <Container id={'add-artist-box'}>
             <AddArtist COUNT={count as number} fetcher={fetcher} />
           </Container>
         </Box>
         <Box>
-          <ArtistDataGrid rows={data} COUNT={count as number} fetcher={fetcher} />
+          <Suspense fallback={<Waiting src={waiting} />}>
+            <ArtistDataGrid rows={data} COUNT={count as number} fetcher={fetcher} />
+          </Suspense>
         </Box>
       </Box>
       <Box sx={{ flex: '0 1 100%' }}>
-        <Suspense fallback={<Waiting src={waiting} />}>
-          <Outlet />
-        </Suspense>
+        <Outlet />
       </Box>
     </CenteredFlexDiv>
   );

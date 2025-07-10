@@ -7,7 +7,7 @@ interface HelperTextBoxProps {
   children: ReactNode;
 }
 
-const HelperTextBox: ComponentType<HelperTextBoxProps> = styled(Box, {
+export const HelperTextBox: ComponentType<HelperTextBoxProps> = styled(Box, {
   shouldForwardProp: prop => prop !== 'multiline',
 })<HelperTextBoxProps>(() => ({
   width: '100%',
@@ -22,7 +22,5 @@ const HelperTextBox: ComponentType<HelperTextBoxProps> = styled(Box, {
     },
   ],
 }));
-
-// HelperTextBox.displayName = 'Helper Text Box';
 
 export default HelperTextBox;

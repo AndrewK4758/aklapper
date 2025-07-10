@@ -1,7 +1,6 @@
 import TextField, { type OutlinedTextFieldProps } from '@mui/material/TextField';
 import type { FormikProps } from 'formik';
 import { useState, type FocusEvent, type HTMLInputTypeAttribute, type ReactElement } from 'react';
-import handleFormikBlur from '../../services/actions/crud-actions/handle_formik_blur';
 import HelperTextBox from '../styled/helper_text_box';
 
 interface TextInputProps<T extends object>
@@ -27,21 +26,28 @@ interface TextInputProps<T extends object>
   multiline?: boolean;
   searchParams?: string;
   type?: HTMLInputTypeAttribute;
+  handleBlur?: <T>(
+    e: FocusEvent<HTMLInputElement>,
+    formik: FormikProps<T>,
+    setHelperText: (text: string) => void,
+    searchParams: string,
+  ) => void;
 }
 
-export default function TextInput<T extends object>({
+export function TextInput<T extends object>({
   name,
   label,
   formik,
   type = 'text',
   multiline = false,
   searchParams,
+  handleBlur,
   ...props
 }: TextInputProps<T>): ReactElement {
   const [helperText, setHelperText] = useState<string | null>(null);
-  if (searchParams)
+  if (searchParams && handleBlur)
     formik.handleBlur = (e: FocusEvent<HTMLInputElement>) => {
-      handleFormikBlur<T>(e, formik, setHelperText, searchParams);
+      handleBlur<T>(e, formik, setHelperText, searchParams);
     };
 
   return (

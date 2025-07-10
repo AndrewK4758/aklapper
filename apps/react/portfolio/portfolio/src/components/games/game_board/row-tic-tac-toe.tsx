@@ -5,7 +5,7 @@ import { memo, type ActionDispatch } from 'react';
 import Theme from '../../../styles/themes/theme';
 import type { IActiveGameInfo } from '../../../types/types';
 import type { Action } from './socket-reducer';
-import SpaceTicTacToe from './space_tic_tac_toe.js';
+import SpaceTicTacToe from './space_tic_tac_toe';
 
 export interface GameBoardPropsTicTacToe {
   row: Row;

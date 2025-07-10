@@ -1,7 +1,7 @@
 import { Text } from '@aklapper/react-shared';
 import type { IRegisterFormValues } from '@aklapper/types';
 import Box from '@mui/material-pigment-css/Box';
-import PlayersInGame from '../players-in-game/players-in-game.jsx';
+import PlayersInGame from '../players-in-game/players-in-game';
 
 interface ActiveAvatarsProps {
   avatarsInGame: IRegisterFormValues[];

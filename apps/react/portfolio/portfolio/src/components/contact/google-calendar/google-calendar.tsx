@@ -1,5 +1,6 @@
+import { CenteredFlexDiv } from '@aklapper/react-shared';
+import { css } from '@pigment-css/react';
 import type { ReactElement } from 'react';
-import CenteredFlexDiv from '../../styled/centered_flexbox.js';
 import GoogleAuthButton from './google_auth_button.js';
 import GoogleCalendarForm from './google_calendar_form.js';
 
@@ -9,7 +10,7 @@ export interface GoogleCalendarProps {
 
 const GoogleCalendar = ({ setOpen }: GoogleCalendarProps): ReactElement<GoogleCalendarProps> => {
   return (
-    <CenteredFlexDiv id='google-calendar-wrapper' data-testid='google-calendar-wrapper' sx={{ padding: 4 }}>
+    <CenteredFlexDiv data-testid='google-calendar-wrapper' className={css({ padding: '4 0' })}>
       <GoogleAuthButton />
       <GoogleCalendarForm setOpen={setOpen} />
     </CenteredFlexDiv>

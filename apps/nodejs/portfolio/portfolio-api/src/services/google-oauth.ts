@@ -1,23 +1,19 @@
+import { createNodeDirname } from '@aklapper/utils';
 import { configDotenv } from 'dotenv';
 import { google, type Auth } from 'googleapis';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'url';
+import { resolve } from 'node:path';
 
-const __filename = fileURLToPath(import.meta.url);
+const __dirname = createNodeDirname(import.meta.url);
 
-const __dirname = dirname(__filename);
+configDotenv({ path: resolve(__dirname, '../', 'env/.env.google_oauth') });
 
-configDotenv({ path: resolve(__dirname, '../', 'env/.env') });
+const NODE_ENV = process.env.NODE_ENV;
 
-const env = process.env.NODE_ENV;
+const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
-const clientID = process.env.GOOGLE_CLIENT_ID;
+const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const REDIRECT_URI = NODE_ENV === 'production' ? process.env.GOOGLE_REDIRECT_URI : process.env.GOOGLE_REDIRECT_URI_DEV;
 
-const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-const redirectURI = env === 'production' ? process.env.GOOGLE_REDIRECT_URI : process.env.GOOGLE_REDIRECT_URI_DEV;
-
-console.log(redirectURI);
-
-const oauth2Client: Auth.OAuth2Client = new google.auth.OAuth2(clientID, clientSecret, redirectURI);
+const oauth2Client: Auth.OAuth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
 
 export default oauth2Client;

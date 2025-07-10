@@ -1,14 +1,14 @@
 import type { track } from '@aklapper/chinook-client';
+import { CenteredFlexDiv, TextInput } from '@aklapper/react-shared';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import { Decimal } from 'decimal.js';
 import { useFormik } from 'formik';
 import { type ReactElement } from 'react';
 import { type FetcherWithComponents } from 'react-router';
+import handleFormikBlur from '../../../services/actions/crud-actions/handle_formik_blur';
 import handleSubmitNewTrack from '../../../services/actions/crud-actions/handle_submit_new_track';
 import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
-import CenteredFlexDiv from '../../styled/centered_flexbox.js';
-import TextInput from '../../text_input/text_input.js';
 
 interface AddTrackProps {
   albumID: string;
@@ -53,6 +53,7 @@ const AddTrack = ({ albumID, fetcher }: AddTrackProps): ReactElement => {
           label={'Track Name'}
           variant='outlined'
           searchParams={`tracks?albumID=${albumID}&name=${formik.values.name}`}
+          handleBlur={handleFormikBlur}
           slotProps={{
             input: {
               sx: {

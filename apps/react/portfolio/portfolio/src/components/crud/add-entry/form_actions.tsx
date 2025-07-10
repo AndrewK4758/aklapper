@@ -4,7 +4,7 @@ import DialogActions from '@mui/material/DialogActions';
 import type { FormikProps } from 'formik';
 import { useNavigate } from 'react-router';
 import type { NewEntry } from '../../../types/types';
-import AnimatedBorderBox from '../../styled/animated_border_box';
+import AnimatedBorderBox from '../../styled/animated_border_box.js';
 
 interface AddEntryFormActionsProps {
   allStepsCompleted: () => boolean;

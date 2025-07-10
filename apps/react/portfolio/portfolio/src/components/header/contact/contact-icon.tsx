@@ -1,6 +1,6 @@
 import IconButton, { type IconButtonProps } from '@mui/material/IconButton';
 import { type ReactNode } from 'react';
-import AnimatedBorderBox from '../../styled/animated_border_box.js';
+import AnimatedBorderBox from '../../styled/animated_border_box';
 
 interface ContactIconProps extends IconButtonProps {
   generalId: string;

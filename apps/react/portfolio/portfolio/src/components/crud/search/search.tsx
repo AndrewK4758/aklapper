@@ -1,10 +1,9 @@
+import { CenteredFlexDiv, StyledCard } from '@aklapper/react-shared';
 import { useState, type ReactElement } from 'react';
-import CenteredFlexDiv from '../../styled/centered_flexbox.js';
-import StyledCard from '../../styled/styled_card';
 import type { SearchValues } from './input';
 import SearchInput from './input';
-import SearchRadioButtons from './radio_buttons.js';
-import SearchResults from './results.js';
+import SearchRadioButtons from './radio_buttons';
+import SearchResults from './results';
 
 const initVals: SearchValues = {
   artist: [],

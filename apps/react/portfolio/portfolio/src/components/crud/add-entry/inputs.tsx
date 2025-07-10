@@ -1,12 +1,10 @@
-import { Text } from '@aklapper/react-shared';
+import { CenteredFlexDiv, HelperTextBox, Text } from '@aklapper/react-shared';
 import TextField from '@mui/material/TextField';
 import type { FormikProps } from 'formik';
 import { useState, type FocusEvent } from 'react';
-import handleFormikBlur from '../../../services/actions/crud-actions/handle_formik_blur.js';
+import handleFormikBlur from '../../../services/actions/crud-actions/handle_formik_blur';
 import Theme from '../../../styles/themes/theme';
 import type { CompletedState, NewEntry } from '../../../types/types';
-import CenteredFlexDiv from '../../styled/centered_flexbox';
-import HelperTextBox from '../../styled/helper_text_box';
 
 interface AddEntryFormInputsProps {
   activeStep: number;

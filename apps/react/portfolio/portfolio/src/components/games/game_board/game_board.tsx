@@ -2,7 +2,7 @@ import type { GameBoards } from '@aklapper/types';
 import Box from '@mui/material-pigment-css/Box';
 import { css } from '@pigment-css/react';
 import { memo } from 'react';
-import Row from './row.js';
+import Row from './row';
 
 interface ShowGameBoardProps {
   board: GameBoards;

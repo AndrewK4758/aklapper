@@ -4,7 +4,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Select, { type SelectChangeEvent } from '@mui/material/Select';
 import { useState } from 'react';
 import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
-import type { TimesAndDates } from './google_calendar_form';
+import type { TimesAndDates } from '../../../types/types';
 
 interface EndTimeProps {
   values: TimesAndDates;

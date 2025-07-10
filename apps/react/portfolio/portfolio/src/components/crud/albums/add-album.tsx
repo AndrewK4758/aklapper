@@ -1,14 +1,14 @@
 import type { album } from '@aklapper/chinook-client';
+import { CenteredFlexDiv, TextInput } from '@aklapper/react-shared';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import { useFormik } from 'formik';
 import { type ReactElement } from 'react';
 import { type FetcherWithComponents } from 'react-router';
 import * as Yup from 'yup';
+import handleFormikBlur from '../../../services/actions/crud-actions/handle_formik_blur';
 import handleSubmitAlbumOnArtist from '../../../services/actions/crud-actions/submit-album-on-artist-action';
 import Theme from '../../../styles/themes/theme';
-import CenteredFlexDiv from '../../styled/centered_flexbox';
-import TextInput from '../../text_input/text_input.js';
 
 const validationSchema = Yup.object<album>({
   title: Yup.string().required('Must have title to album'),
@@ -44,6 +44,7 @@ const AddAlbum = ({ fetcher }: AddAlbumProps): ReactElement => {
           label={'Album Title'}
           searchParams={`albums?title=${formik.values.title}`}
           variant={'outlined'}
+          handleBlur={handleFormikBlur}
           slotProps={{ input: { sx: { backgroundColor: Theme.palette.background.default } } }}
         />
 

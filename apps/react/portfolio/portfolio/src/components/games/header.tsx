@@ -1,4 +1,4 @@
-import { Text } from '@aklapper/react-shared';
+import { ColoredBackground, Text } from '@aklapper/react-shared';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
 import Box from '@mui/material-pigment-css/Box';
@@ -10,7 +10,6 @@ import { useState } from 'react';
 import { useSubmit, type SubmitFunction } from 'react-router';
 import { BODY, TITLE } from '../../pages/static/games-text';
 import Theme from '../../styles/themes/theme';
-import ColoredBackground from '../styled/colored_background';
 
 interface GamesHeaderProps {
   state: 'loading' | 'idle' | 'submitting';

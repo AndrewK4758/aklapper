@@ -3,7 +3,7 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import type { SxProps } from '@mui/material/styles';
 import { type CSSProperties } from 'react';
-import Theme from '../../../styles/themes/theme.js';
+import Theme from '../../../styles/themes/theme';
 
 const techListItemSxProps: SxProps = { display: 'flex', flexDirection: 'row', justifyItems: 'space-between' };
 const svgCssStyle: CSSProperties = { width: '2rem', height: 'auto', margin: 'auto' };

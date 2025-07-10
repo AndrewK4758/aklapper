@@ -1,11 +1,9 @@
 import { styled } from '@mui/material-pigment-css';
 import Box from '@mui/material-pigment-css/Box';
 
-const ColoredBackground = styled(Box)(({ theme }) => ({
+export const StyledCard = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.background.paper,
-  padding: 0,
+  textAlign: 'center',
   borderRadius: theme.shape.borderRadius,
+  width: '100%',
 }));
-
-// ColoredBackground.displayName = 'Colored Background';
-export default ColoredBackground;

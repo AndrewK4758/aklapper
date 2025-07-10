@@ -1,12 +1,11 @@
+import { CenteredFlexDiv } from '@aklapper/react-shared';
 import { css } from '@mui/material-pigment-css';
 import Box from '@mui/material-pigment-css/Box';
 import Button from '@mui/material/Button';
-// import Modal from '@mui/material/Modal';
 import type { ReactElement } from 'react';
 import { useNavigate } from 'react-router';
 import PrivacyPolicyText from '../../pages/static/privacy-policy-text.jsx';
 import Theme from '../../styles/themes/theme';
-import CenteredFlexDiv from '../styled/centered_flexbox';
 
 /**
  * This component renders the privacy policy page as a modal dialog.

@@ -1,18 +1,11 @@
-import { createTransport } from 'nodemailer';
-import { configDotenv } from 'dotenv';
-import type SMTPTransport from 'nodemailer/lib/smtp-transport/index.js';
-import { resolve } from 'path';
-import { cwd } from 'process';
-import cca from './masl.js';
 import type { AuthenticationResult } from '@azure/msal-node';
-
-configDotenv({
-  path: resolve(cwd(), './apis/portfolio/portfolio-api/env/.env')
-});
+import { createTransport } from 'nodemailer';
+import type SMTPTransport from 'nodemailer/lib/smtp-transport/index.js';
+import cca from './masl.js';
 
 const getToken = async () => {
   const { accessToken } = (await cca.acquireTokenByClientCredential({
-    scopes: ['api://portfolio/.default']
+    scopes: ['api://portfolio/.default'],
   })) as AuthenticationResult;
   return accessToken;
 };
@@ -28,12 +21,12 @@ const createTransporter = async () => {
     auth: {
       accessToken: accessToken,
       user: process.env.MAIL_USERNAME,
-      pass: process.env.MAIL_PASSWORD
+      pass: process.env.MAIL_PASSWORD,
     },
     tls: {
       ciphers: 'SSLv3',
-      rejectUnauthorized: false
-    }
+      rejectUnauthorized: false,
+    },
   };
   return createTransport(nodemailerConfigOptions);
 };

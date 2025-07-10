@@ -1,11 +1,9 @@
+import { CenteredFlexDiv, StyledCard, StyledRootComponentWrapper } from '@aklapper/react-shared';
 import { css } from '@pigment-css/react';
 import { useState, type ReactElement } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 import Footer from '../footer/footer';
 import HeaderContactMenu from '../header/header';
-import CenteredFlexDiv from '../styled/centered_flexbox';
-import StyledCard from '../styled/styled_card';
-import StyledRootComponentWrapper from '../styled/styled_root_wrapper';
 import AppNavBar from './navigation/app_nav_bar';
 import PicNameAndNav from './pic_name_nav';
 
@@ -46,12 +44,10 @@ export default function Layout(): ReactElement {
           <PicNameAndNav subheader={<AppNavBar />} />
         </StyledCard>
         <StyledCard
-          id='hello'
           className={css({
             backgroundColor: 'transparent',
             width: '100%',
             padding: 0,
-            border: 2,
           })}
         >
           <Outlet />

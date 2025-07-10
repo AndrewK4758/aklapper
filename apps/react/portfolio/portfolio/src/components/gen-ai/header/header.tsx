@@ -1,4 +1,4 @@
-import { Text } from '@aklapper/react-shared';
+import { CenteredFlexDiv, Text } from '@aklapper/react-shared';
 import Box from '@mui/material-pigment-css/Box';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
@@ -7,7 +7,6 @@ import { useNavigate } from 'react-router';
 import { BODY_TEXT, TITLE } from '../../../pages/static/gen-ai-text';
 import Theme from '../../../styles/themes/theme';
 import AnimatedBorderBox from '../../styled/animated_border_box';
-import CenteredFlexDiv from '../../styled/centered_flexbox';
 
 interface GenAiHeaderProps {
   isPromptBuilderOpen: boolean;
