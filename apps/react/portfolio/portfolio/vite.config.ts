@@ -30,17 +30,26 @@ const config: UserConfig = defineConfig({
     host: HOST,
   },
 
+  // css:{
+  //   'devSourcemap':true,
+
+  //   'modules':{
+  //     'scopeBehaviour': 'local',
+  //     'exportGlobals': true,
+
+  //   }
+  // },
+
   plugins: [
     pigment({
       theme: Theme,
       transformLibraries: ['@mui/material'],
-      evaluate: true,
-
       transformSx: true,
       debug: {
         print: true,
       },
       babelOptions: {
+        plugins: ['@babel/preset-react'],
         compact: false,
       },
     }),
