@@ -1,6 +1,7 @@
 import { workspaceRoot } from '@nx/devkit';
 import { pigment } from '@pigment-css/vite-plugin';
 import react from '@vitejs/plugin-react';
+// import { reactRouter } from '@react-router/dev/vite';
 import { resolve } from 'node:path';
 import { cwd } from 'node:process';
 import { defineConfig, type UserConfig } from 'vite';
@@ -42,7 +43,7 @@ const config: UserConfig = defineConfig({
       debug: {
         print: true,
       },
-      exclude: ['tests/*'],
+      // exclude: ['tests/*', ],
       babelOptions: {
         compact: false,
       },

@@ -48,6 +48,7 @@ export default function ContactMenu({ isOpen, handleOpenEmail }: ContactMenuProp
       <ContactIcon generalId='discord' iconHref='https://discord.com/users/989564035542446190'>
         {<DiscordIcon />}
       </ContactIcon>
+
       <ContactIcon generalId='email' onClick={handleOpenEmail}>
         {<EmailIcon />}
       </ContactIcon>

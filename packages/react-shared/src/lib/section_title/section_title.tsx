@@ -1,4 +1,4 @@
-import { styled, type BaseDefaultProps, type PolymorphicComponent, type SxProp } from '@mui/material-pigment-css';
+import { css, styled, type BaseDefaultProps, type PolymorphicComponent, type SxProp } from '@mui/material-pigment-css';
 import Box from '@mui/material-pigment-css/Box';
 import { type SxProps, type TypographyVariant } from '@mui/material/styles';
 import type { TooltipProps } from '@mui/material/Tooltip';
@@ -51,7 +51,7 @@ export default function SectionTitle({
   const hasIcon = !!Icon;
 
   const titleComponent = hasIcon ? (
-    <Box id={id} sx={{ display: 'flex', alignItems: 'center' }}>
+    <Box id={id} className={css({ display: 'flex', alignItems: 'center' })}>
       <Typography variant={variant} style={style}>
         {title}
       </Typography>

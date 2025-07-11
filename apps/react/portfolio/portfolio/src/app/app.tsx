@@ -1,14 +1,16 @@
 import DefaultPropsProvider from '@mui/material/DefaultPropsProvider';
-import type { ReactNode } from 'react';
+import { createBrowserRouter } from 'react-router';
+import { RouterProvider } from 'react-router/dom';
+import routes from '../routes/routes';
 import '../styles/main-styles.css';
 import { DEFAULT_PROPS } from '../styles/themes/default_props';
 
-export default function App({ children }: { children: ReactNode }) {
-  return <DefaultPropsProvider value={DEFAULT_PROPS}>{children}</DefaultPropsProvider>;
-  // <ThemeProvider theme={Theme}>
-  {
-    /* <CssBaseline enableColorScheme /> */
-  }
+const router = createBrowserRouter(routes);
 
-  // </ThemeProvider>
+export default function App() {
+  return (
+    <DefaultPropsProvider value={DEFAULT_PROPS}>
+      <RouterProvider router={router} />
+    </DefaultPropsProvider>
+  );
 }
