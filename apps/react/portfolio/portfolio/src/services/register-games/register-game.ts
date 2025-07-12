@@ -1,5 +1,4 @@
 import axios from 'axios';
-import gamesAutoStartError from '../../errors/games-auto-start-error.js';
 
 const baseUrl = import.meta.env.VITE_GAMES_API_URL;
 
@@ -10,7 +9,6 @@ const registerGame = async (gameName: string) => {
     return resp.headers['current-game'];
   } catch (error) {
     console.error(error);
-    return gamesAutoStartError(`registering ${gameName}`);
   }
 };
 

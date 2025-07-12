@@ -10,12 +10,12 @@ import type {
 } from '@aklapper/types';
 import { getCurrentMinute } from '@aklapper/utils';
 import ShortUniqueId from 'short-unique-id';
-import { socketClient } from 'src/main.js';
-import Go_WsEventManager from 'src/models/go_websocket_manager.js';
 import gamesInLobby from '../../data/games_in_lobby/games_in_lobby.js';
+import { socketClient } from '../../main.js';
 import useAllGamesMap from '../../middleware/all-games-map.js';
 import useInstanceTimeMap from '../../middleware/instance-map.js';
 import useActivePlayersMap from '../../middleware/use_active_players_map.js';
+import Go_WsEventManager from '../../models/go_websocket_manager.js';
 
 export default async function generateNewGame(
   selectedGame: IBuiltGame,

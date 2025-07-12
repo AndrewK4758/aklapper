@@ -1,9 +1,9 @@
 import type { PlayerID, SocketCallback } from '@aklapper/types';
 import type { Socket } from 'socket.io';
-import gamesInLobby from 'src/data/games_in_lobby/games_in_lobby.js';
-import useActivePlayersMap from 'src/middleware/use_active_players_map.js';
-import Go_WsEventManager from 'src/models/go_websocket_manager.js';
+import gamesInLobby from '../data/games_in_lobby/games_in_lobby.js';
 import { lobbySocketServer, socketClient, socketConnectionMap } from '../main.js';
+import useActivePlayersMap from '../middleware/use_active_players_map.js';
+import Go_WsEventManager from '../models/go_websocket_manager.js';
 
 const handleLeaveLobby: SocketCallback = (event: string, socket: Socket) => {
   socket.on(event, async (playerID: PlayerID) => {

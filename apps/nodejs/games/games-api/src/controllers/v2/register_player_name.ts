@@ -3,7 +3,7 @@ import { Player } from '@aklapper/games-components';
 import type { IPlayerClientData } from '@aklapper/types';
 import type { Request, Response } from 'express';
 import ShortUniqueId from 'short-unique-id';
-import addPlayerToDb from 'src/services/prisma/add_player.js';
+import addPlayerToDb from '../../services/prisma/add_player.js';
 
 // 2 Data structures
 // X 1 SET for active players in lobby for emit event when new player arrives, new game created, player leaves

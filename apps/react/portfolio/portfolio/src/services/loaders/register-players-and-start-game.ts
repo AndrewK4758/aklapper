@@ -24,6 +24,7 @@ const registerPlayersAndStartGame: ActionFunction = async ({
   request,
 }: ActionFunctionArgs): Promise<Response | string> => {
   const gameName = await request.text();
+
   try {
     const gameInstanceID: string = await registerGame(gameName);
 

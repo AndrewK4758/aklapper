@@ -1,7 +1,7 @@
 import { Text, useScrollIntoView } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
 import { css } from '@pigment-css/react';
-import { memo, useRef, type ActionDispatch } from 'react';
+import { useRef, type ActionDispatch } from 'react';
 import { useParams } from 'react-router';
 import type { ManagerOptions, Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
@@ -23,7 +23,7 @@ interface GameBoardAndActionsProps {
 
 const wsURL = import.meta.env.VITE_GAMES_WS_URL + import.meta.env.VITE_GAMES_WS_GAMEPLAY_NAMESPACE;
 
-const GameBoardAndActions = memo(function ({ state, dispatch }: GameBoardAndActionsProps) {
+const GameBoardAndActions = function ({ state, dispatch }: GameBoardAndActionsProps) {
   const socketManagerOptions: Partial<ManagerOptions> = {
     autoConnect: false,
     extraHeaders: { 'current-game': JSON.stringify(getGameInstanceInfo()) },
@@ -83,6 +83,6 @@ const GameBoardAndActions = memo(function ({ state, dispatch }: GameBoardAndActi
       </Box>
     </Box>
   );
-});
+};
 
 export default GameBoardAndActions;

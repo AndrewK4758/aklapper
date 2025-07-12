@@ -23,6 +23,24 @@
       "request": "launch",
       "cwd": "${workspaceFolder}/apps/go/games-lobby",
       "program": "${workspaceFolder}/apps/go/games-lobby/main.go"
+    },
+
+    {
+      "name": "Games-API",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeArgs": ["--require=tsconfig-paths/register", "--loader=ts-node/esm"],
+      "args": ["${workspaceFolder}/apps/nodejs/games/games-api/src/main.ts"],
+      "env": {
+        // Explicitly point to the tsconfig for your app
+        "TS_NODE_PROJECT": "${workspaceFolder}/apps/nodejs/games/games-api/tsconfig.app.json"
+      },
+      // "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/ts-node-esm",
+      // "program": "${workspaceFolder}/apps/nodejs/games/games-api/src/main.ts",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "openOnFirstSessionStart",
+      "skipFiles": ["<node_internals>/**", "node_modules/**"]
     }
   ]
 }

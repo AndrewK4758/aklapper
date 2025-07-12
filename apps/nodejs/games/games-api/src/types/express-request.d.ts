@@ -1,11 +1,11 @@
 import type {
-  IAllGamesMap,
-  IInstanceTimeMap,
   Chain,
   GameNameString,
+  IAllGamesMap,
   IBuiltGame,
+  IInstanceOfGame,
+  IInstanceTimeMap,
   PlayerID,
-  IInstanceOfGame
 } from '@aklapper/types';
 
 export declare global {
@@ -21,3 +21,5 @@ export declare global {
     }
   }
 }
+
+export {};
