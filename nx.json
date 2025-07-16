@@ -98,7 +98,7 @@
     },
     {
       "plugin": "@nx/js/typescript",
-      "include": ["packages/prisma/games2/*"],
+      "include": ["**/*.ts", "**/*.tsx"],
       "options": {
         "typecheck": {
           "targetName": "typecheck"

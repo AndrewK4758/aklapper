@@ -110,7 +110,7 @@
     "express": "^5.1.0",
     "file": "^0.2.2",
     "formik": "^2.4.6",
-    "googleapis": "152.0.0",
+    "googleapis": "153.0.0",
     "hoist-non-react-statics": "^3.3.2",
     "jwt-decode": "^4.0.0",
     "multer": "2.0.1",

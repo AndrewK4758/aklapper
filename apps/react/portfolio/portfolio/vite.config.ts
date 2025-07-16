@@ -40,6 +40,9 @@ const config: UserConfig = defineConfig({
       theme: Theme,
       transformLibraries: ['@mui/material'],
       transformSx: true,
+      packageMap: {
+        '@pigment-css/react': '@mui/material-pigment-css',
+      },
       debug: {
         print: true,
       },

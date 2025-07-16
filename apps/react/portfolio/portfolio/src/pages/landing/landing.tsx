@@ -1,5 +1,6 @@
 import { StyledRootComponentWrapper } from '@aklapper/react-shared';
 import Box from '@mui/material-pigment-css/Box';
+import { css } from '@pigment-css/react';
 import { useReducer } from 'react';
 import { useNavigate } from 'react-router';
 import BoxAnimation from '../../components/landing/box_animation';
@@ -7,6 +8,7 @@ import LandingHeader from '../../components/landing/header';
 import Explosion from '../../components/landing/lottie/explosion';
 import NavToHome from '../../components/landing/nav_home';
 import { LandingActions, type LandingPageState, landingPageReducer } from '../../hooks/landing_page_reducer';
+import Theme from '../../styles/themes/theme';
 
 const EXPLOSION_FADE_OUT_TIME = 1100;
 const ENTER_FADE_IN_TIME = EXPLOSION_FADE_OUT_TIME - 900;
@@ -63,13 +65,21 @@ export default function LandingPage({ ...props }) {
   };
 
   return (
-    <StyledRootComponentWrapper {...props} id='landing-root' sx={{ minHeight: '100vh' }}>
+    <StyledRootComponentWrapper {...props} id='landing-root' className={css({ height: '95vh' })}>
       <LandingHeader isLandingNavOpen={state.isLandingNavOpen} />
-
       <Box
         as={'section'}
         id={'landing-svg-animations-wrapper'}
-        sx={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden', perspective: '800px' }}
+        className={css({
+          flex: 1,
+          display: 'flex',
+          position: 'relative',
+          overflow: 'hidden',
+          width: '100%',
+          [Theme.breakpoints.down('md')]: {
+            padding: `${Theme.spacing(4)} 0 0 ${Theme.spacing(4)}`,
+          },
+        })}
       >
         <BoxAnimation isLandingNavOpen={state.isLandingNavOpen} onHandleNavbarClick={onBoxAnimationClick} />
         {state.isLandingNavOpen && <Explosion isVisible={state.isExplosionVisible} onClick={onBoxAnimationClick} />}

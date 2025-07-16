@@ -1,12 +1,9 @@
-import Box from '@mui/material-pigment-css/Box';
+import { css } from '@pigment-css/react';
+import Box from '@pigment-css/react/Box';
+import type { CSSProperties } from 'react';
 import { shake } from '../../styles/base/animations';
+import Theme from '../../styles/themes/theme';
 import LandingBox from '../icons/landing_box_icon';
-
-const landingBoxBaseStyle = {
-  '@media (max-width: 1200px)': {
-    scale: 0.75,
-  },
-};
 
 const shakeIconAnimation = {
   animation: `${shake} 2.25s 5`,
@@ -20,15 +17,33 @@ interface LandingBoxProps {
 }
 
 export default function BoxAnimation({ isLandingNavOpen, onHandleNavbarClick }: LandingBoxProps) {
+  const baseStyle = {
+    position: 'relative' as CSSProperties['position'],
+    flex: '1 0 50%',
+  };
+
+  const openStyle = { ...baseStyle, ...shakeIconAnimation };
+
   return (
-    <Box as={'div'} sx={{ flex: '1 1 auto' }}>
+    <Box
+      className={css({
+        height: '32rem',
+        width: '32rem',
+        [Theme.breakpoints.down('lg')]: {
+          height: '21rem',
+          width: '21rem',
+        },
+        [Theme.breakpoints.down('md')]: {
+          height: '10rem',
+          width: '10rem',
+        },
+      })}
+    >
       <LandingBox
         id='open-menu'
         isLandingNavOpen={isLandingNavOpen}
         onHandleOpenMenu={onHandleNavbarClick}
-        inheritViewBox={true}
-        style={!isLandingNavOpen ? shakeIconAnimation : {}}
-        sx={landingBoxBaseStyle}
+        style={isLandingNavOpen ? baseStyle : openStyle}
       />
     </Box>
   );

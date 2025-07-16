@@ -1,10 +1,11 @@
 import Box, { type BoxProps } from '@mui/material/Box';
-import type { SxProps, Theme } from '@mui/material/styles';
+import type { SxProps, Theme as ThemeType } from '@mui/material/styles';
 import lottie from 'lottie-web';
 import { useEffect, useRef } from 'react';
 import explosionJson from '../../../assets/animations/explosion.json';
+import Theme from '../../../styles/themes/theme';
 
-const explosionBaseStyle: SxProps<Theme> = {
+const explosionBaseStyle: SxProps<ThemeType> = {
   position: 'absolute',
   top: 165,
   left: 232,
@@ -12,6 +13,16 @@ const explosionBaseStyle: SxProps<Theme> = {
   width: 320,
   height: 'auto',
   transition: 'opacity 0.8s ease-in-out',
+  [Theme.breakpoints.down('lg')]: {
+    top: 97,
+    left: 142,
+    width: 240,
+  },
+  [Theme.breakpoints.down('md')]: {
+    top: 42,
+    left: 76,
+    width: 160,
+  },
 };
 
 interface ExplosionProps extends Omit<BoxProps, 'component'> {
@@ -35,6 +46,6 @@ export default function LandingExplosion({ isVisible, ...props }: ExplosionProps
   }, []);
 
   return (
-    <Box {...props} sx={[explosionBaseStyle, { opacity: isVisible ? 1 : 0 }] as SxProps<Theme>} ref={elementRef} />
+    <Box {...props} sx={[explosionBaseStyle, { opacity: isVisible ? 1 : 0 }] as SxProps<ThemeType>} ref={elementRef} />
   );
 }
