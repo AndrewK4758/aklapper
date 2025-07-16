@@ -1,6 +1,7 @@
 import type { GameBoards } from '@aklapper/types';
 import Box from '@mui/material-pigment-css/Box';
 import { css } from '@pigment-css/react';
+import { memo } from 'react';
 import Row from './row';
 
 interface ShowGameBoardProps {
@@ -11,7 +12,7 @@ interface ShowGameBoardProps {
  *
  * @returns a rendered game board
  */
-const GameBoard = function ({ board }: ShowGameBoardProps) {
+const GameBoard = memo(function ({ board }: ShowGameBoardProps) {
   return (
     <Box as={'section'} id='game-board-wrapper' className={css({ width: '100%', flex: '0 1 95%' })}>
       {board.map((row, idx) => (
@@ -19,6 +20,6 @@ const GameBoard = function ({ board }: ShowGameBoardProps) {
       ))}
     </Box>
   );
-};
+});
 
 export default GameBoard;

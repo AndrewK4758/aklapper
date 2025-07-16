@@ -5,12 +5,12 @@ export class AvatarTotemsTTT {
     {
       id: 1,
       name: 'X',
-      image: 'x.svg',
+      image: 'x.webp',
     },
     {
       id: 2,
       name: 'O',
-      image: 'o.svg',
+      image: 'o.webp',
     },
   ];
 }

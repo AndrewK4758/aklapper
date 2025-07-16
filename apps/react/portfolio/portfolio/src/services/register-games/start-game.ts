@@ -1,12 +1,13 @@
 import type { GamePlayerValidation } from '@aklapper/types';
 import axios from 'axios';
-import gamesAutoStartError from '../../errors/games-auto-start-error.js';
+
+type DemoStartGame = { message: string; playersInOrder: { [key: string]: string } };
 
 const baseUrl = import.meta.env.VITE_GAMES_API_URL;
 
-const startGame = async (gameName: string, __current_game__: GamePlayerValidation) => {
+const startGame = async (gameName: string, __current_game__: GamePlayerValidation): Promise<DemoStartGame | void> => {
   try {
-    const resp = await axios.patch(
+    const resp = await axios.patch<DemoStartGame>(
       `${baseUrl}/games/${gameName}/start`,
       {},
       { headers: { 'current-game': JSON.stringify(__current_game__) } },
@@ -15,7 +16,6 @@ const startGame = async (gameName: string, __current_game__: GamePlayerValidatio
     return resp.data;
   } catch (error) {
     console.error(error);
-    return gamesAutoStartError(`starting ${gameName}`);
   }
 };
 

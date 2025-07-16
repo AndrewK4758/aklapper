@@ -5,22 +5,22 @@ export class AvatarTotemsChutesAndLadders {
     {
       id: 1,
       name: 'XENOMORPH',
-      image: 'xenomorph.svg',
+      image: 'xenomorph.webp',
     },
     {
       id: 2,
       name: 'PREDATOR',
-      image: 'predator.svg',
+      image: 'predator.webp',
     },
     {
       id: 3,
       name: 'TERMINATOR',
-      image: 'terminator.svg',
+      image: 'terminator.webp',
     },
     {
       id: 4,
       name: 'ROBOCOP',
-      image: 'robocop.svg',
+      image: 'robocop.webp',
     },
   ];
 }

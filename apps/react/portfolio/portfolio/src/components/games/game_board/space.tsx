@@ -22,7 +22,7 @@ export default function Space({ space }: SpaceProps) {
         alignItems: 'center',
       })}
     >
-      {space.display.endsWith('.svg') ? (
+      {space.display.endsWith('.webp') ? (
         <img
           id={`${space.display}-avatar-c&l`}
           data-testid={`${space.display}-avatar-c&l`}

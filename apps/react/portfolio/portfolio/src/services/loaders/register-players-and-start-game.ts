@@ -1,12 +1,11 @@
 import type { GamePlayerValidation } from '@aklapper/types';
-import { redirect, type ActionFunction, type ActionFunctionArgs } from 'react-router';
-import gamesAutoStartError from '../../errors/games-auto-start-error.js';
+import type { LoaderFunction, LoaderFunctionArgs } from 'react-router';
 import registerGame from '../register-games/register-game.js';
 import registerPlayers from '../register-games/registers-players.js';
 import startGame from '../register-games/start-game.js';
 
 /**
- * An action function for React Router DOM that registers players and starts a game.
+ * A Loader function from React Router DOM that registers players and starts a game.
  *
  * This function handles the process of registering a new game, adding players to it,
  * and initiating the game session. It performs the following steps:
@@ -16,34 +15,36 @@ import startGame from '../register-games/start-game.js';
  *  4. Starts the game session.
  *  5. Redirects the user to the game page if successful, or to the games list page if an error occurs.
  *
- * @param {ActionFunctionArgs}  { request } - The request object containing the game name.
- * @returns {Promise<Response | string>} A redirect response to the game page or the games list page.
+ * @param {LoaderFunction}  { request } - The request object containing the game name.
+ * @returns {Promise<void>} A redirect response to the game page or the games list page.
  */
 
-const registerPlayersAndStartGame: ActionFunction = async ({
-  request,
-}: ActionFunctionArgs): Promise<Response | string> => {
-  const gameName = await request.text();
+const registerPlayersAndStartGame: LoaderFunction = async ({ params }: LoaderFunctionArgs): Promise<void> => {
+  const { id } = params as { id: string };
 
   try {
-    const gameInstanceID: string = await registerGame(gameName);
+    const gameInstanceID = await registerGame(id);
 
-    sessionStorage.setItem('__current_game__', gameInstanceID);
-    const __current_game__: GamePlayerValidation = JSON.parse(gameInstanceID);
+    if (gameInstanceID) {
+      sessionStorage.setItem('__current_game__', gameInstanceID);
+      const __current_game__: GamePlayerValidation = JSON.parse(gameInstanceID);
 
-    await registerPlayers(gameName, __current_game__);
+      const registered = await registerPlayers(id, __current_game__);
 
-    const resp = await startGame(gameName, __current_game__);
+      if (registered) {
+        const startGameResp = await startGame(id, __current_game__);
 
-    if (resp.message === 'Game Started') {
-      sessionStorage.setItem('playersIds', JSON.stringify(resp.playersInOrder));
-      return redirect(gameName);
-    } else {
-      return redirect('/portfolio/games');
+        if (startGameResp) {
+          const { message, playersInOrder } = startGameResp;
+
+          if (message === 'Game Started') {
+            sessionStorage.setItem('playersIds', JSON.stringify(playersInOrder));
+          }
+        }
+      }
     }
   } catch (error) {
     console.error(error);
-    return gamesAutoStartError(`starting ${gameName}`);
   }
 };
 

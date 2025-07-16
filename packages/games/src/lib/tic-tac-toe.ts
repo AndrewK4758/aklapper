@@ -40,14 +40,14 @@ export class TicTacToe implements ITicTacToe {
   spaceMaker = (indexOfSpace: number) =>
     indexOfSpace === 1 ? this.startSpace : new Space(SpaceType.NORMAL, indexOfSpace);
 
-  addAvatarSvgToDisplay = (name: string) => {
+  addAvatarToDisplay = (name: string) => {
     switch (name) {
       case AvatarTotemsTTT.totemsList[0].name:
         return AvatarTotemsTTT.totemsList[0].image;
       case AvatarTotemsTTT.totemsList[1].name:
         return AvatarTotemsTTT.totemsList[1].image;
       default:
-        throw Error('Avatar not in list svg list');
+        throw Error('Avatar not in list');
     }
   };
 
@@ -58,7 +58,7 @@ export class TicTacToe implements ITicTacToe {
 
     while (space) {
       if (space.occupied) {
-        display = this.addAvatarSvgToDisplay(space.avatarsInSpace[0].name);
+        display = this.addAvatarToDisplay(space.avatarsInSpace[0].name);
       } else {
         display = space['display'];
       }

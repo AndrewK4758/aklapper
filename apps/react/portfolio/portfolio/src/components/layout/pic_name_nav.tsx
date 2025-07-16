@@ -1,6 +1,6 @@
 import { SectionTitle } from '@aklapper/react-shared';
 import CardHeader, { type CardHeaderSlotsAndSlotProps } from '@mui/material/CardHeader';
-import type { ReactElement } from 'react';
+import { memo, type ReactElement } from 'react';
 import Theme from '../../styles/themes/theme';
 import { ABOUT_ME_TITLE } from '../home/static/intro-static';
 
@@ -39,6 +39,6 @@ interface PicNameAndNavProps {
   subheader: ReactElement;
 }
 
-export default function PicNameAndNav({ subheader }: PicNameAndNavProps) {
+export default memo(function PicNameAndNav({ subheader }: PicNameAndNavProps) {
   return <CardHeader title={myName} subheader={subheader} avatar={avatarImg} {...slotProps} />;
-}
+});

@@ -17,7 +17,7 @@ const SpaceTicTacToe = memo(function ({ state, space, dispatch, id }: SpaceTicTa
   return (
     <Box
       id={id}
-      title={!space.display.endsWith('.svg') ? space.display : ''}
+      title={!space.display.endsWith('.webp') ? space.display : ''}
       sx={[
         {
           flex: 1,
@@ -42,7 +42,7 @@ const SpaceTicTacToe = memo(function ({ state, space, dispatch, id }: SpaceTicTa
         dispatch({ type: Action.SPACE, payload: { ...state, space: e.currentTarget.textContent as string } })
       }
     >
-      {space.display.endsWith('.svg') ? (
+      {space.display.endsWith('.webp') ? (
         <img
           src={`/game-avatars/${space.display}`}
           alt={`${space.display} game piece`}

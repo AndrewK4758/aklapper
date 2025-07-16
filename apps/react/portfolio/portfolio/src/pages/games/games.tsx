@@ -1,9 +1,9 @@
 import { CenteredFlexDiv } from '@aklapper/react-shared';
+import { css } from '@mui/material-pigment-css';
 import Box from '@mui/material-pigment-css/Box';
-import { ReactElement, useState } from 'react';
-import { Outlet, useNavigation } from 'react-router';
+import { ReactElement } from 'react';
+import { Outlet, useNavigation, useParams } from 'react-router';
 import GamesHeader from '../../components/games/header';
-import GameLoading from '../../components/loading/loading';
 
 /**
  * This component renders the main games page, providing an interface for users to select and play different games.
@@ -12,18 +12,19 @@ import GameLoading from '../../components/loading/loading';
  */
 
 const Games = (): ReactElement => {
+  const params = useParams();
   const { state } = useNavigation();
-  const [loading, setLoading] = useState(false);
+
+  const outletKey = params.id ?? 'game';
 
   return (
-    <CenteredFlexDiv id='games-wrapper' sx={{}}>
-      <Box sx={{ display: 'flex', width: '100%' }}>
-        <GamesHeader state={state} setLoading={setLoading} />
+    <CenteredFlexDiv id='games-wrapper'>
+      <Box className={css({ display: 'flex', width: '100%' })}>
+        <GamesHeader state={state} />
       </Box>
 
-      <Box as={'div'} id={`games-outlet-wrapper`} sx={{ width: '100%' }}>
-        {state !== 'idle' && <GameLoading />}
-        {!loading && <Outlet />}
+      <Box as={'div'} id={`games-outlet-wrapper`} className={css({ width: '100%' })}>
+        <Outlet key={outletKey} />
       </Box>
     </CenteredFlexDiv>
   );

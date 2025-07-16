@@ -24,6 +24,7 @@ import handleArtistActions from '../services/actions/crud-actions/handle_artist_
 import handleTrackActions from '../services/actions/crud-actions/handle_track_actions';
 import generateImageAction from '../services/actions/generate-image-action';
 
+import GameLoading from '../components/loading/loading';
 import registerPlayersAndStartGame from '../services/loaders/register-players-and-start-game';
 
 const ActiveGameSession = lazy(() => import('../components/games/active_game_session'));
@@ -114,14 +115,14 @@ const routes: RouteObject[] = [
       },
       {
         path: 'games',
-        action: registerPlayersAndStartGame,
         Component: Games,
         id: 'games',
         children: [
           {
-            index: true,
             path: ':id',
             id: 'active-game',
+            loader: registerPlayersAndStartGame,
+            hydrateFallbackElement: <GameLoading />,
             Component: ActiveGameSession,
           },
         ],

@@ -8,6 +8,8 @@ import type {
   PlayerID,
 } from '@aklapper/types';
 
+import 'express';
+
 export declare global {
   namespace Express {
     interface Request {

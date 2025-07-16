@@ -26,21 +26,28 @@
     },
 
     {
-      "name": "Games-API",
+      "name": "Debug Games-API",
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}",
-      "runtimeArgs": ["--require=tsconfig-paths/register", "--loader=ts-node/esm"],
+      "runtimeArgs": ["--loader=ts-node/esm"],
       "args": ["${workspaceFolder}/apps/nodejs/games/games-api/src/main.ts"],
       "env": {
-        // Explicitly point to the tsconfig for your app
         "TS_NODE_PROJECT": "${workspaceFolder}/apps/nodejs/games/games-api/tsconfig.app.json"
       },
-      // "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/ts-node-esm",
-      // "program": "${workspaceFolder}/apps/nodejs/games/games-api/src/main.ts",
       "console": "integratedTerminal",
-      "internalConsoleOptions": "openOnFirstSessionStart",
+      "sourceMaps": true,
       "skipFiles": ["<node_internals>/**", "node_modules/**"]
+    },
+
+    {
+      "name": "Portfolio UI",
+      "type": "chrome",
+      "request": "launch",
+      "webRoot": "${workspaceFolder}/apps/react/portfolio/portfolio",
+      "url": "http://localhost:4700",
+      "cwd": "${workspaceFolder}/apps/react/portfolio/portfolio",
+      "sourceMaps": true
     }
   ]
 }

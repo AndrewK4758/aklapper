@@ -9,4 +9,10 @@ export class AllGamesMap implements IAllGamesMap {
   addGame(gameInstanceID: GameInstanceID, game: IInstanceOfGame) {
     this.AllGames.set(gameInstanceID, game);
   }
+
+  getGame(gameInstanceID: GameInstanceID): IInstanceOfGame | null {
+    const activeGame = this.AllGames.get(gameInstanceID);
+    if (activeGame) return activeGame;
+    else return null;
+  }
 }

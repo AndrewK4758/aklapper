@@ -1,6 +1,13 @@
 import { rowFinder } from '@aklapper/games-components';
-import type { GameBoards, GamePlayerValidation, ILiteSpace, IPlayersAndBoard, Row } from '@aklapper/types';
-import { useCallback, useEffect } from 'react';
+import type {
+  GameBoards,
+  GameInstanceID,
+  GamePlayerValidation,
+  ILiteSpace,
+  IPlayersAndBoard,
+  Row,
+} from '@aklapper/types';
+import { useEffect } from 'react';
 import type { Socket } from 'socket.io-client';
 import { Action } from '../components/games/game_board/socket-reducer';
 import { getGameInstanceInfo } from '../utils/utils';
@@ -17,32 +24,35 @@ import { getGameInstanceInfo } from '../utils/utils';
  */
 
 const useGamesWebsockets = (socket: Socket, id: string, dispatch: (action: Action) => void): void => {
-  const processGame = useCallback(
-    (
-      { gameBoard, activePlayersInGame, winner, avatarInTurn }: IPlayersAndBoard,
-      id: string,
-      dispatch: (action: Action) => void,
-    ) => processGameData({ gameBoard, activePlayersInGame, winner, avatarInTurn }, id, dispatch),
-    [],
-  );
+  // const processGame = useCallback((gameData: IPlayersAndBoard, id: string) => processGameData(gameData, id), []);
 
   useEffect(() => {
+    const gameID = (getGameInstanceInfo() as GamePlayerValidation).gameInstanceID as GameInstanceID;
     if (!socket.connected) socket.connect();
 
     socket.on('connect', () => {
       console.log(`Player connected with ID: ${socket.id}`);
     });
 
-    socket.emit('create-room', (getGameInstanceInfo() as GamePlayerValidation).gameInstanceID);
+    socket.emit('create-room', gameID);
 
-    socket.emit('action', { action: Action.BOARD });
+    socket.emit('action', { action: Action.BOARD, gameID: gameID });
 
-    socket.on('game-data', async ({ gameBoard, activePlayersInGame, winner, avatarInTurn }: IPlayersAndBoard) => {
-      processGame({ gameBoard, activePlayersInGame, winner, avatarInTurn }, id, dispatch);
+    socket.on('game-data', async (gameData: IPlayersAndBoard) => {
+      const clientGameBoard = processGameData(gameData, id);
+
+      dispatch({
+        type: Action.BOARD,
+        payload: { ...gameData, gameBoard: clientGameBoard, space: undefined },
+      });
     });
 
     socket.on('no-game-error', ({ errorMessage }) => {
       console.error(errorMessage);
+    });
+
+    socket.on('error', err => {
+      console.error(err);
     });
 
     socket.on('disconnect', () => {
@@ -58,11 +68,7 @@ const useGamesWebsockets = (socket: Socket, id: string, dispatch: (action: Actio
 
 export default useGamesWebsockets;
 
-const processGameData = (
-  { gameBoard, activePlayersInGame, winner, avatarInTurn }: IPlayersAndBoard,
-  id: string,
-  dispatch: (value: Action) => void,
-) => {
+const processGameData = ({ gameBoard }: IPlayersAndBoard, id: string) => {
   const gameBoardClient: GameBoards = [];
   const maxRowLength = Math.sqrt(gameBoard.length);
 
@@ -83,8 +89,5 @@ const processGameData = (
     indexOfSpace++;
   });
 
-  dispatch({
-    type: Action.BOARD,
-    payload: { gameBoard: gameBoardClient, activePlayersInGame, avatarInTurn, winner, space: undefined },
-  });
+  return gameBoardClient;
 };

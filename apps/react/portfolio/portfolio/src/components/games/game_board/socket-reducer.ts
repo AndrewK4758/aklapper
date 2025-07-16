@@ -1,5 +1,6 @@
 import { Socket } from 'socket.io-client';
 import type { IActiveGameInfo } from '../../../types/types';
+import { getGameInstanceInfo } from '../../../utils/utils';
 
 export type ActionType = (typeof Action)[keyof typeof Action];
 
@@ -27,19 +28,20 @@ export interface Action {
 
 export default function socketReducer(state: IActiveGameInfo, action: Action): IActiveGameInfo {
   const { type, socket } = action;
+  const gameID = getGameInstanceInfo()?.gameInstanceID;
   switch (type) {
     case Action.BOARD: {
       const { gameBoard, activePlayersInGame, avatarInTurn, winner } = action.payload;
       return { ...state, gameBoard, activePlayersInGame, avatarInTurn, winner };
     }
     case Action.TAKE_TURN:
-      if (socket) socket.emit('action', { action: Action.BOARD });
+      if (socket) socket.emit('action', { action: Action.BOARD, gameID });
       return { ...state };
     case Action.START:
-      if (socket) socket.emit('action', { action: Action.BOARD });
+      if (socket) socket.emit('action', { action: Action.BOARD, gameID });
       return { ...state };
     case Action.RESET:
-      if (socket) socket.emit('action', { action: Action.BOARD });
+      if (socket) socket.emit('action', { action: Action.BOARD, gameID });
       return { ...state };
     case Action.SPACE: {
       const { space } = action.payload;

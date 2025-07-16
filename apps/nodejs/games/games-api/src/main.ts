@@ -17,7 +17,8 @@ import handleLeaveLobby from './events/leave_lobby.js';
 import privateMessagePlayer from './events/private_message.js';
 import socketBoardAction from './events/socket-board-action.js';
 import useAllGamesMap from './middleware/all-games-map.js';
-import addGameToSocketInstance from './middleware/socket-add-game-middleware.js';
+// import addGameToSocketInstance from './middleware/socket-add-game-middleware.js';
+import createRoom from './events/create_room.js';
 import useActivePlayersMap from './middleware/use_active_players_map.js';
 import routerV1 from './routes/v1/routes.js';
 import routerV2 from './routes/v2/routes.js';
@@ -66,8 +67,9 @@ export const gameplaySocketServer = socketServer.createNamespace('gameplay');
 
 export const socketConnectionMap = socketServer.connMap;
 
-socketServer.addMiddleware('gameplay', addGameToSocketInstance);
+// socketServer.addMiddleware('gameplay', addGameToSocketInstance);
 socketServer.addServerListener('gameplay', 'action', socketBoardAction);
+socketServer.addServerListener('gameplay', 'create-room', createRoom);
 
 socketServer.addServerListener('lobby', 'enter-lobby', enterLobby);
 socketServer.addServerListener('lobby', 'send-private-message', privateMessagePlayer);
