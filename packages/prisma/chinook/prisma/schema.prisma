@@ -5,7 +5,7 @@ generator client {
   generatedFileExtension = "ts"
   moduleFormat           = "esm"
   runtime                = "nodejs"
-  previewFeatures        = ["multiSchema"]
+  previewFeatures        = ["multiSchema", "queryCompiler", "driverAdapters"]
 }
 
 datasource db {

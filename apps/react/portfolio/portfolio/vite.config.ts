@@ -101,9 +101,6 @@ const config: UserConfig = defineConfig({
 
     rollupOptions: {
       logLevel: 'debug',
-      optimization: {
-        inlineConst: true,
-      },
       platform: 'browser',
       output: {
         esModule: true,

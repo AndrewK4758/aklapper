@@ -14,9 +14,6 @@ env:
   PNPM_VERSION: 10
   NODE_VERSION: 24.x
 
-  PRISMA_CLIENT_OUTPUT_PATH: ${{ secrets.PRISMA_CLIENT_OUTPUT_PATH }}
-  DB_URL_PROD: ${{ secrets.DB_URL_PROD }}
-
   REGION: ${{ secrets.GCP_REGION }}
   PROJECT_LOCATION: ${{ secrets.GCP_REGION }}
   PROJECT_ID: ${{ secrets.PROJECT_ID }}
@@ -186,6 +183,13 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Clients
+        run: |
+          pnpm generate-chinook-client
+          pnpm generate-games-client
+        env:
+          NODE_ENV: production
 
       - uses: nrwl/nx-set-shas@v4
 

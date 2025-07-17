@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "gcp-build": "",
-    "generate-chinook-client": "pnpx nx run chinook-client:generate --verbose",
+    "generate-chinook-client": "pnpx nx run chinook-client:generate-client --verbose",
     "generate-games-client": "pnpx nx run games-client:generate --verbose"
   },
   "private": true,
@@ -99,6 +99,7 @@
     "@mui/material-pigment-css": "7.2.0",
     "@mui/x-data-grid": "8.8.0",
     "@mui/x-date-pickers": "8.8.0",
+    "@prisma/adapter-pg": "^6.12.0",
     "@prisma/client": "6.12.0",
     "@react-oauth/google": "0.12.2",
     "axios": "1.10.0",

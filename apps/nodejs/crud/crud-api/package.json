@@ -12,11 +12,6 @@
     "name": "crud-api",
     "projectType": "application",
     "sourceRoot": "apps/nodejs/crud/crud-api/src",
-    "implicitDependencies": [
-      "chinook-client",
-      "types",
-      "utils"
-    ],
     "targets": {
       "build": {
         "executor": "@nx/esbuild:esbuild",
@@ -82,6 +77,13 @@
       "docker-build": {
         "executor": "nx:run-commands",
         "dependsOn": [
+          {
+            "projects": [
+              "chinook-client"
+            ],
+            "target": "generate-client",
+            "params": "forward"
+          },
           "build"
         ],
         "options": {

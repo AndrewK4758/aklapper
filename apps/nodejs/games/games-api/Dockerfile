@@ -13,10 +13,6 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --prod --frozen-lockfile
 RUN pnpm approve-builds
 
-# ENV INSTANCE_CONNECTION_NAME=games-424800:us-central1:aklapper
-
-# ENV DB_URL_PROD=postgresql://postgres:11560000@localhost/aklapper?host=/cloudsql/games-424800:us-central1:aklapper/
-
 ENV NODE_ENV='production'
 
 COPY packages/prisma/games ./packages

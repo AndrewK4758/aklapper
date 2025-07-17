@@ -22,6 +22,7 @@ const loadAlbumsForArtistAndCount: LoaderFunction = async ({
 
     console.log(message);
 
+    console.log(data, count);
     return { data, count };
   } catch (error) {
     console.error(error);

@@ -1,10 +1,21 @@
+import { PrismaPg } from '@prisma/adapter-pg';
+import { configDotenv } from 'dotenv';
+import { resolve } from 'node:path';
+import { cwd } from 'node:process';
 import { Prisma, PrismaClient } from '../generated/client.js';
 import url from './get-prisma-db-url.js';
 
-export const prismaClient = new PrismaClient({
-  datasourceUrl: url(process.env['NODE_ENV'] as string),
-  errorFormat: 'pretty',
+console.log(cwd());
+
+configDotenv({
+  path: resolve(cwd(), 'packages/prisma/chinook/.env'),
 });
+
+console.log(url(process.env['NODE_ENV'] as string));
+console.log(process.env['NODE_ENV']);
+
+const adapter = new PrismaPg({ connectionString: url(process.env['NODE_ENV'] as string) });
+const prismaClient = new PrismaClient({ adapter });
 
 export const gamesClient = prismaClient.$extends({
   model: {

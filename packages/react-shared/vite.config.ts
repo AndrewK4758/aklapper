@@ -75,9 +75,6 @@ export default defineConfig({
     rollupOptions: {
       external: ['react', 'react-dom', 'react/jsx-runtime', 'react/*'],
       logLevel: 'debug',
-      optimization: {
-        inlineConst: true,
-      },
       platform: 'browser',
       output: {
         esModule: true,

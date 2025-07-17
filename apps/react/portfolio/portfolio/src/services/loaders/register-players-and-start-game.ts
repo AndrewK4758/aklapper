@@ -26,8 +26,8 @@ const registerPlayersAndStartGame: LoaderFunction = async ({ params }: LoaderFun
     const gameInstanceID = await registerGame(id);
 
     if (gameInstanceID) {
-      sessionStorage.setItem('__current_game__', gameInstanceID);
-      const __current_game__: GamePlayerValidation = JSON.parse(gameInstanceID);
+      sessionStorage.setItem('__current_game__', JSON.stringify(gameInstanceID));
+      const __current_game__: GamePlayerValidation = gameInstanceID;
 
       const registered = await registerPlayers(id, __current_game__);
 
