@@ -14,6 +14,8 @@ env:
   PNPM_VERSION: 10
   NODE_VERSION: 24.x
 
+  PRISMA_CLIENT_OUTPUT_PATH: ${{ secrets.PRISMA_CLIENT_OUTPUT_PATH }}
+
   REGION: ${{ secrets.GCP_REGION }}
   PROJECT_LOCATION: ${{ secrets.GCP_REGION }}
   PROJECT_ID: ${{ secrets.PROJECT_ID }}
@@ -108,6 +110,7 @@ jobs:
         env:
           NODE_ENV: test
           DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
+          PRISMA_CLIENT_OUTPUT_PATH: ${{ secrets.PRISMA_CLIENT_OUTPUT_PATH }}
 
       - name: Test all projects
         env:
@@ -146,6 +149,7 @@ jobs:
           pnpm generate-games-client
         env:
           NODE_ENV: production
+          PRISMA_CLIENT_OUTPUT_PATH: ${{ secrets.PRISMA_CLIENT_OUTPUT_PATH }}
 
       - uses: nrwl/nx-set-shas@v4
 
@@ -190,6 +194,7 @@ jobs:
           pnpm generate-games-client
         env:
           NODE_ENV: production
+          PRISMA_CLIENT_OUTPUT_PATH: ${{ secrets.PRISMA_CLIENT_OUTPUT_PATH  }}
 
       - uses: nrwl/nx-set-shas@v4
 
