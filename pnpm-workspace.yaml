@@ -16,4 +16,4 @@ onlyBuiltDependencies:
   - protobufjs
   - unrs-resolver
 overrides:
-  dist: link:../nx-go/dist
+  vite: npm:rolldown-vite@latest

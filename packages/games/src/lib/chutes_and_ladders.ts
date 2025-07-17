@@ -128,6 +128,7 @@ export class ChutesAndLadders implements IChutesAndLadders {
   LADDERS: number;
   DIE: Die;
   startSpace: Space;
+  endSpace: Space;
   colorList: typeof Color;
   avatarList: AvatarTotem[];
   /**
@@ -143,6 +144,7 @@ export class ChutesAndLadders implements IChutesAndLadders {
     this.CHUTES = chutes;
     this.LADDERS = ladders;
     this.startSpace = new Space(SpaceType.START, 'START');
+    this.endSpace = new Space(SpaceType.FINISH, 'FINISH');
     this.makeGameBoard();
     this.colorList = Color;
     this.avatarList = AvatarTotemsChutesAndLadders.totemsList;
@@ -163,7 +165,7 @@ export class ChutesAndLadders implements IChutesAndLadders {
         return uniqueSpecialValues.get(indexOfSpace) as Space;
 
       case indexOfSpace === TOTAL_SPACES:
-        return new Space(SpaceType.FINISH, 'Finish');
+        return this.endSpace;
 
       case indexOfSpace === START:
         return this.startSpace;
@@ -189,7 +191,7 @@ export class ChutesAndLadders implements IChutesAndLadders {
    * @param name Avatar name
    * @returns the cooresponding svg image associated with the name of the selected Avatar
    */
-  addAvatarSvgToDisplay = (name: string) => {
+  addAvatarToDisplay = (name: string) => {
     switch (name) {
       case AvatarTotemsChutesAndLadders.totemsList[0].name:
         return AvatarTotemsChutesAndLadders.totemsList[0].image;
@@ -210,20 +212,20 @@ export class ChutesAndLadders implements IChutesAndLadders {
    */
   displayGameBoard(): ILiteSpace[] {
     const gameBoard: ILiteSpace[] = [];
-    let space: Space = this.startSpace;
+    let space: Space = this.endSpace;
     let display;
     while (space) {
       if (space.occupied) {
-        display = this.addAvatarSvgToDisplay(space.avatarsInSpace[0].name);
+        display = this.addAvatarToDisplay(space.avatarsInSpace[0].name);
       } else {
         display = space['display'];
       }
       const liteSpace = LiteSpace.MakeSpace(display);
 
       gameBoard.push(liteSpace);
-      space = space.next;
+      space = space.previous;
     }
-    return gameBoard.reverse();
+    return gameBoard;
   }
 
   /**

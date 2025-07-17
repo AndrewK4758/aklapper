@@ -1,14 +1,14 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "out-tsc/react-shared",
-    "declarationDir": "./dist",
-    "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
-    "rootDir": "src",
+    "baseUrl": ".",
     "jsx": "react-jsx",
     "module": "esnext",
     "moduleResolution": "bundler",
-    "tsBuildInfoFile": "out-tsc/react-shared/tsconfig.lib.tsbuildinfo"
+    "outDir": "out-tsc/react-shared",
+    "rootDir": "src",
+    "tsBuildInfoFile": "out-tsc/react-shared/tsconfig.lib.tsbuildinfo",
+    "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"]
   },
   "exclude": [
     "out-tsc",

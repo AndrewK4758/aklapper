@@ -25,11 +25,8 @@
     "root": "packages/prisma/chinook",
     "projectType": "library",
     "name": "chinook-client",
-    "implicitDependencies": [
-      "types"
-    ],
     "targets": {
-      "generate": {
+      "generate-client": {
         "executor": "nx:run-commands",
         "options": {
           "cwd": "packages/prisma/chinook",

@@ -1,7 +1,7 @@
 import type { ILiteSpace, Row } from '@aklapper/types';
 import Box from '@mui/material-pigment-css/Box';
 import { css } from '@pigment-css/react';
-import { memo, type ActionDispatch } from 'react';
+import { type ActionDispatch } from 'react';
 import Theme from '../../../styles/themes/theme';
 import type { IActiveGameInfo } from '../../../types/types';
 import type { Action } from './socket-reducer';
@@ -14,7 +14,7 @@ export interface GameBoardPropsTicTacToe {
   dispatch: ActionDispatch<[action: Action]>;
 }
 
-const RowTicTacToe = memo(function ({ row, id, state, dispatch }: GameBoardPropsTicTacToe) {
+const RowTicTacToe = function ({ row, id, state, dispatch }: GameBoardPropsTicTacToe) {
   return (
     <Box as={'section'} id={`row-${id}`} className={css({ display: 'flex', flex: 1, gap: Theme.spacing(2) })}>
       {row.map((space: ILiteSpace, i: number) => (
@@ -28,6 +28,6 @@ const RowTicTacToe = memo(function ({ row, id, state, dispatch }: GameBoardProps
       ))}
     </Box>
   );
-});
+};
 
 export default RowTicTacToe;

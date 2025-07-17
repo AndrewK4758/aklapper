@@ -14,10 +14,18 @@ interface NavToHomeProps {
 
 export default function NavToHome({ isVisable, motionOffset, onHandleClickEnter }: NavToHomeProps) {
   const mediaQuery = useMediaQuery(Theme.breakpoints.down('lg'));
+  const mobileMediaQuery = useMediaQuery(Theme.breakpoints.down('md'));
 
   const smallScreenStyle = {
     width: '10em',
-    left: -70,
+    left: -180,
+  };
+
+  //TEMP FIX
+  const mobileScreenStyle = {
+    width: '6rem',
+    left: -700,
+    top: 0,
   };
 
   const largeScreenStyle = {
@@ -39,9 +47,11 @@ export default function NavToHome({ isVisable, motionOffset, onHandleClickEnter 
     transition: 'offset-distance 1s ease-out, opacity 0.7s ease-in, transform 1.2s ease-out',
   };
 
-  const enterIconStyle = mediaQuery
-    ? { ...enterIconStyleBase, ...smallScreenStyle }
-    : { ...enterIconStyleBase, ...largeScreenStyle };
+  const enterIconStyle = mobileMediaQuery
+    ? { ...enterIconStyleBase, ...mobileScreenStyle }
+    : mediaQuery
+      ? { ...enterIconStyleBase, ...smallScreenStyle }
+      : { ...enterIconStyleBase, ...largeScreenStyle };
 
   return <EnterIcon onHandleClickEnter={onHandleClickEnter} style={enterIconStyle} />;
 }

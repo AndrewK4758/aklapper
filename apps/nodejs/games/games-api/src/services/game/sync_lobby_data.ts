@@ -4,11 +4,11 @@ import { InstanceOfGame } from '@aklapper/models';
 import type { AllGameTypes, ClientLobbyData, IBuiltGame } from '@aklapper/types';
 import { getCurrentMinute } from '@aklapper/utils';
 import ShortUniqueId from 'short-unique-id';
-import { socketClient } from 'src/main.js';
-import Go_WsEventManager from 'src/models/go_websocket_manager.js';
 import games from '../../data/games-list.js';
 import gamesInLobby from '../../data/games_in_lobby/games_in_lobby.js';
+import { socketClient } from '../../main.js';
 import useActivePlayersMap from '../../middleware/use_active_players_map.js';
+import Go_WsEventManager from '../../models/go_websocket_manager.js';
 
 export default async function syncWithGoLobby() {
   const activeGames = gamesInLobby.map;

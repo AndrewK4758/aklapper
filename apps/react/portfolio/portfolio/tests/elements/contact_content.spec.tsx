@@ -15,10 +15,15 @@ describe('test contact content', () => {
     vi.clearAllMocks();
   });
   it('should render the fallback element on initial load', () => {
-    render(<ContactContent tab={0} handleIsOpen={mockHandleIsOpen} />, {
-      initialRoute: ROUTES.PORTFOLIO,
-      path: ROUTES.PORTFOLIO,
-    });
+    render(
+      <DialogLayout isOpen={true}>
+        <ContactContent tab={0} handleIsOpen={mockHandleIsOpen} />
+      </DialogLayout>,
+      {
+        initialRoute: ROUTES.PORTFOLIO,
+        path: ROUTES.PORTFOLIO,
+      },
+    );
 
     const waitingImage = screen.getByTestId(waitingTestId);
 
@@ -42,6 +47,25 @@ describe('test contact content', () => {
     const googleCalendar = await findByTestId(googleCalendarWrapperId, {}, { timeout: 2500 });
 
     expect(googleCalendar).toBeInTheDocument();
+    expect(screen.queryByTestId(waitingTestId)).not.toBeInTheDocument();
+  });
+
+  it('should render the email form element', async () => {
+    const emailFormWrapperId = 'email-form-wrapper';
+
+    render(
+      <DialogLayout isOpen={true}>
+        <ContactContent tab={1} handleIsOpen={mockHandleIsOpen} />
+      </DialogLayout>,
+      {
+        initialRoute: ROUTES.PORTFOLIO,
+        path: ROUTES.PORTFOLIO,
+      },
+    );
+
+    const emailForm = await screen.findByTestId(emailFormWrapperId, {}, { timeout: 2500 });
+
+    expect(emailForm).toBeInTheDocument();
     expect(screen.queryByTestId(waitingTestId)).not.toBeInTheDocument();
   });
 });

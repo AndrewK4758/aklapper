@@ -1,4 +1,5 @@
 @import url(./colors-and-fonts.css);
+@import url(./reset.css);
 
 @property --clr-1 {
   syntax: '<color>';
@@ -52,6 +53,13 @@ html {
   letter-spacing: 2;
   word-spacing: 3.5;
   line-height: 1.5;
+  background:
+    linear-gradient(225deg, #e9e9eb24 0%, transparent 80%),
+    linear-gradient(45deg, #10101038 0%, transparent 80%) #404040;
+  background-attachment: fixed;
+  background-repeat: 'no-repeat';
+  height: 100%;
+  /* overflow: hidden; */
 }
 &:-webkit-autofill,
 &:-webkit-autofill:hover,
@@ -65,16 +73,6 @@ input::-webkit-inner-spin-button,
 & input::-webkit-outer-spin-button {
   -webkit-appearance: 'none';
   margin: 0;
-}
-
-body {
-  min-height: '100vh';
-  height: 'fit-content';
-  background:
-    linear-gradient(225deg, #e9e9eb24 0%, transparent 80%),
-    linear-gradient(45deg, #10101038 0%, transparent 80%) #404040;
-  background-attachment: 'fixed';
-  background-repeat: 'no-repeat';
 }
 
 pre {

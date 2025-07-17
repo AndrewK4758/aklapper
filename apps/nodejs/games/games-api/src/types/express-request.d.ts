@@ -1,12 +1,14 @@
 import type {
-  IAllGamesMap,
-  IInstanceTimeMap,
   Chain,
   GameNameString,
+  IAllGamesMap,
   IBuiltGame,
+  IInstanceOfGame,
+  IInstanceTimeMap,
   PlayerID,
-  IInstanceOfGame
 } from '@aklapper/types';
+
+import 'express';
 
 export declare global {
   namespace Express {
@@ -21,3 +23,5 @@ export declare global {
     }
   }
 }
+
+export {};

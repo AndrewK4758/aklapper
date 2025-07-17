@@ -11,13 +11,13 @@ import type { ServerOptions } from 'socket.io';
 import gamesInLobby from './data/games_in_lobby/games_in_lobby.js';
 import checkStartGame from './events/check_start-game.js';
 import createNewGame from './events/create_new_game.js';
+import createRoom from './events/create_room.js';
 import enterLobby from './events/enter-lobby.js';
 import joinGame from './events/join-game.js';
 import handleLeaveLobby from './events/leave_lobby.js';
 import privateMessagePlayer from './events/private_message.js';
 import socketBoardAction from './events/socket-board-action.js';
 import useAllGamesMap from './middleware/all-games-map.js';
-import addGameToSocketInstance from './middleware/socket-add-game-middleware.js';
 import useActivePlayersMap from './middleware/use_active_players_map.js';
 import routerV1 from './routes/v1/routes.js';
 import routerV2 from './routes/v2/routes.js';
@@ -66,8 +66,8 @@ export const gameplaySocketServer = socketServer.createNamespace('gameplay');
 
 export const socketConnectionMap = socketServer.connMap;
 
-socketServer.addMiddleware('gameplay', addGameToSocketInstance);
 socketServer.addServerListener('gameplay', 'action', socketBoardAction);
+socketServer.addServerListener('gameplay', 'create-room', createRoom);
 
 socketServer.addServerListener('lobby', 'enter-lobby', enterLobby);
 socketServer.addServerListener('lobby', 'send-private-message', privateMessagePlayer);

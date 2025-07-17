@@ -1,9 +1,9 @@
 import { workspaceRoot } from '@nx/devkit';
 import { pigment } from '@pigment-css/vite-plugin';
-import react from '@vitejs/plugin-react';
+import react from '@vitejs/plugin-react-oxc';
 import { resolve } from 'node:path';
 import { cwd } from 'node:process';
-import { defineConfig, type UserConfig } from 'vite';
+import { defineConfig, type UserConfig } from 'rolldown-vite';
 import Theme from './src/styles/themes/theme';
 import MODULES from './vite_modules';
 
@@ -39,10 +39,12 @@ const config: UserConfig = defineConfig({
       theme: Theme,
       transformLibraries: ['@mui/material'],
       transformSx: true,
+      packageMap: {
+        '@pigment-css/react': '@mui/material-pigment-css',
+      },
       debug: {
         print: true,
       },
-      exclude: ['tests/*'],
       babelOptions: {
         compact: false,
       },
@@ -69,6 +71,22 @@ const config: UserConfig = defineConfig({
   publicDir: 'public',
   envDir: './env',
 
+  dev: {
+    sourcemap: true,
+  },
+
+  experimental: {
+    enableNativePlugin: true,
+    hmrPartialAccept: true,
+  },
+
+  oxc: {
+    target: 'esnext',
+    typescript: {
+      rewriteImportExtensions: 'rewrite',
+    },
+  },
+
   build: {
     outDir: OUT_DIR,
     minify: true,
@@ -80,33 +98,15 @@ const config: UserConfig = defineConfig({
     commonjsOptions: {
       transformMixedEsModules: true,
     },
+
     rollupOptions: {
       logLevel: 'debug',
-
+      platform: 'browser',
       output: {
-        strict: true,
         esModule: true,
         format: 'esm',
-        generatedCode: {
-          arrowFunctions: true,
-          constBindings: true,
-          symbols: true,
-          objectShorthand: true,
-          reservedNamesAsProps: true,
-        },
       },
-      strictDeprecations: true,
-      perf: true,
     },
-  },
-
-  esbuild: {
-    color: true,
-    format: 'esm',
-    jsx: 'automatic',
-    platform: 'browser',
-    sourcemap: true,
-    target: 'esnext',
   },
 
   test: {

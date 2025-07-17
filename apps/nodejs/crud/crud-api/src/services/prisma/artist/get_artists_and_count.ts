@@ -21,6 +21,7 @@ export default async function getArtistsAndCount({
 
     const [count, data] = await prisma.$transaction([prisma.artist.count(), prisma.artist.findMany(query)]);
 
+    console.log(count, data);
     return { count, data };
   } catch (error) {
     console.error(error);

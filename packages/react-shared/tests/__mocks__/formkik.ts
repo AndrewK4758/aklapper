@@ -1,6 +1,16 @@
-import { vi } from 'vitest';
+import type { FormikProps } from 'formik';
+import { vi, type Mock } from 'vitest';
 
-export const createMockFormikProps = vi.fn((value: string, error = '', touched = false) => ({
+type MockedFormikProps<Values> = Pick<
+  FormikProps<Values>,
+  'values' | 'handleChange' | 'handleSubmit' | 'errors' | 'touched' | 'setFieldValue' | 'setFieldTouched' | 'handleBlur' // Add other properties as needed
+>;
+
+export const createMockFormikProps: Mock<
+  (name: string) => MockedFormikProps<{
+    name: string;
+  }>
+> = vi.fn<(name: string) => MockedFormikProps<{ name: string }>>((value: string, error = '', touched = false) => ({
   values: { name: value },
   errors: { name: error },
   touched: { name: touched },

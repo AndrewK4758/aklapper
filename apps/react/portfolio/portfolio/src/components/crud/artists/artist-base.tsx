@@ -51,11 +51,11 @@ const Artist = (): ReactElement => {
             <AddArtist COUNT={count as number} fetcher={fetcher} />
           </Container>
         </Box>
-        <Box>
-          <Suspense fallback={<Waiting src={waiting} />}>
+        <Suspense fallback={<Waiting src={waiting} />}>
+          <Box>
             <ArtistDataGrid rows={data} COUNT={count as number} fetcher={fetcher} />
-          </Suspense>
-        </Box>
+          </Box>
+        </Suspense>
       </Box>
       <Box sx={{ flex: '0 1 100%' }}>
         <Outlet />

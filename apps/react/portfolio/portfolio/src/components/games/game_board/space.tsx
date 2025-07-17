@@ -2,14 +2,13 @@ import { Text } from '@aklapper/react-shared';
 import type { ILiteSpace } from '@aklapper/types';
 import Box from '@mui/material-pigment-css/Box';
 import { css } from '@pigment-css/react';
-import { memo } from 'react';
 import Theme from '../../../styles/themes/theme';
 
 interface SpaceProps {
   space: ILiteSpace;
 }
 
-const Space = memo(function ({ space }: SpaceProps) {
+export default function Space({ space }: SpaceProps) {
   return (
     <Box
       className={css({
@@ -23,7 +22,7 @@ const Space = memo(function ({ space }: SpaceProps) {
         alignItems: 'center',
       })}
     >
-      {space.display.endsWith('.svg') ? (
+      {space.display.endsWith('.webp') ? (
         <img
           id={`${space.display}-avatar-c&l`}
           data-testid={`${space.display}-avatar-c&l`}
@@ -41,6 +40,4 @@ const Space = memo(function ({ space }: SpaceProps) {
       )}
     </Box>
   );
-});
-
-export default Space;
+}

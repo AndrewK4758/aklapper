@@ -1,5 +1,5 @@
 import { workspaceRoot } from '@nx/devkit';
-import react from '@vitejs/plugin-react';
+import react from '@vitejs/plugin-react-oxc';
 import { resolve } from 'path';
 import { cwd } from 'process';
 import { defineConfig } from 'vite';
@@ -40,6 +40,7 @@ export default defineConfig({
       transformMixedEsModules: true,
     },
   },
+
   envDir: 'env',
   test: {
     name: 'games-ui',

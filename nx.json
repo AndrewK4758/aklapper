@@ -11,7 +11,6 @@
   "release": {
     "projectsRelationship": "independent"
   },
-
   "useInferencePlugins": true,
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
@@ -99,7 +98,7 @@
     },
     {
       "plugin": "@nx/js/typescript",
-      "include": ["packages/prisma/games2/*"],
+      "include": ["**/*.ts", "**/*.tsx"],
       "options": {
         "typecheck": {
           "targetName": "typecheck"
@@ -149,7 +148,6 @@
     }
   },
   "nxCloudId": "6793e339a43d353bb1fbd676",
-
   "tui": {
     "enabled": false
   }

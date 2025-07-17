@@ -1,6 +1,6 @@
 import type { Email } from '@aklapper/types';
 import type { Request, Response } from 'express';
-import existsPlayer from 'src/services/prisma/exists_player.js';
+import existsPlayer from '../../services/prisma/exists_player.js';
 
 export default async function checkPlayer(req: Request, resp: Response) {
   try {

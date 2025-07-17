@@ -1,7 +1,7 @@
 import { PrismaErrorLogger, type PrismaClientErrors } from '@aklapper/games-client';
 import type { Email, IPlayerClientData } from '@aklapper/types';
 import type { Request, Response } from 'express';
-import findPlayer from 'src/services/prisma/find_player.js';
+import findPlayer from '../../services/prisma/find_player.js';
 
 export default async function getPlayer(req: Request, resp: Response) {
   try {

@@ -1,5 +1,5 @@
 import type { WsEvent, WsResponse } from '@aklapper/types';
-import { pendingRequests, type PromiseCallbackMap } from 'src/data/promise_callback_map/promise_callback_map.js';
+import { pendingRequests, type PromiseCallbackMap } from '../data/promise_callback_map/promise_callback_map.js';
 
 /**
  *   FIGURE OUT WHERE I WANT TO HANDLE THE REJECT? HERE OR IN THE FUNCTION CALLING THIS EVENT HANDLER

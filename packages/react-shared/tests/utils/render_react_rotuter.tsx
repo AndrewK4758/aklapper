@@ -11,7 +11,13 @@ export interface RenderInRouterOptions extends Omit<RenderOptions, 'wrapper' | '
   path: RoutesObject;
 }
 
-export const ROUTES = Object.freeze({
+export const ROUTES: Readonly<{
+  LANDING: '/';
+  PORTFOLIO: '/portfolio';
+  CRUD: 'crud';
+  GAMES: 'games';
+  GEN_AI: 'gen-ai';
+}> = Object.freeze({
   LANDING: '/',
   PORTFOLIO: '/portfolio',
   CRUD: 'crud',

@@ -1,10 +1,9 @@
 import { Color, type GamePlayerValidation, type IRegisterFormValues } from '@aklapper/types';
 import axios from 'axios';
-import gamesAutoStartError from '../../errors/games-auto-start-error.js';
 
 const baseUrl = import.meta.env.VITE_GAMES_API_URL;
 
-const registerPlayers = async (gameName: string, __current_game__: GamePlayerValidation) => {
+const registerPlayers = async (gameName: string, __current_game__: GamePlayerValidation): Promise<boolean | void> => {
   const avatar1Name = gameName === 'Chutes-&-Ladders' ? 'XENOMORPH' : 'X';
   const avatar2Name = gameName === 'Chutes-&-Ladders' ? 'PREDATOR' : 'O';
 
@@ -36,7 +35,6 @@ const registerPlayers = async (gameName: string, __current_game__: GamePlayerVal
     return registeredPlayerCount === 2;
   } catch (error) {
     console.error(error);
-    return gamesAutoStartError(`auto registering players for ${gameName}`);
   }
 };
 

@@ -16,7 +16,7 @@ describe('Test NavButton', () => {
       path: ROUTES.PORTFOLIO,
     });
 
-    const button = screen.getByRole('button', { name: BUTTON_TEXT });
+    const button = screen.getByRole('button', { name: routeName });
     await userEvent.click(button);
 
     expect(mockNavigate).toHaveBeenCalledWith(routeName);

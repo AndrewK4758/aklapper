@@ -18,8 +18,8 @@ describe('Test Tic Tac Toe', () => {
     expect(space).toBeInstanceOf(Space);
   });
 
-  it('Should pass and return avatar photo svg file name', () => {
-    expect(game.addAvatarSvgToDisplay('X')).toEqual('x.svg');
-    expect(game.addAvatarSvgToDisplay('O')).toEqual('o.svg');
+  it('Should pass and return avatar photo webp file name', () => {
+    expect(game.addAvatarToDisplay('X')).toEqual('x.webp');
+    expect(game.addAvatarToDisplay('O')).toEqual('o.webp');
   });
 });

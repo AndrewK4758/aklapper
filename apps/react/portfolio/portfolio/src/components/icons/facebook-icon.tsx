@@ -1,8 +1,5 @@
-import type { SVGProps } from 'react';
-
-const FacebookIcon = ({ ...props }: SVGProps<SVGSVGElement>) => (
+const FacebookIcon = (
   <svg
-    {...props}
     version='1.1'
     id='svg562'
     width='4rem'

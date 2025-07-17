@@ -21,6 +21,7 @@ class TestGame implements AllGameTypes {
   LADDERS: number;
   DIE: IDie;
   startSpace: ISpace;
+  endSpace: ISpace;
   colorList: typeof Color;
   avatarList: AvatarTotem[];
   constructor() {
@@ -31,6 +32,7 @@ class TestGame implements AllGameTypes {
     this.LADDERS = 5;
     this.DIE = new Die(6);
     this.startSpace = new Space(SpaceType.START, 'START');
+    this.endSpace = new Space(SpaceType.FINISH, 'FINISH');
     this.colorList = Color;
     this.avatarList = [
       {

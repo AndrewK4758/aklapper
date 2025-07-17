@@ -1,7 +1,6 @@
 import type { ILiteSpace } from '@aklapper/types';
 import Box from '@mui/material-pigment-css/Box';
 import { css } from '@pigment-css/react';
-import { memo } from 'react';
 import Space from './space';
 
 export interface GameBoardProps {
@@ -9,12 +8,14 @@ export interface GameBoardProps {
   id: string | undefined;
 }
 
-const Row = memo(({ row, id }: GameBoardProps) => (
-  <Box id={id} className={css({ display: 'flex' })}>
-    {row.map(space => (
-      <Space key={space.display} space={space} />
-    ))}
-  </Box>
-));
+const Row = function ({ row, id }: GameBoardProps) {
+  return (
+    <Box id={id} className={css({ display: 'flex' })}>
+      {row.map(space => (
+        <Space key={space.display} space={space} />
+      ))}
+    </Box>
+  );
+};
 
 export default Row;

@@ -12,6 +12,7 @@ export interface IChutesAndLadders {
   LADDERS: number;
   DIE: IDie;
   startSpace: ISpace;
+  endSpace: ISpace;
   colorList: typeof Color;
   avatarList: AvatarTotem[];
 

@@ -68,7 +68,7 @@ export default function ArtistDataGrid({ rows, COUNT, fetcher }: ArtistDataGridP
       flex: 0.75,
       editable: false,
       cellClassName: 'artist-id',
-      headerClassName: 'aritst-id--header',
+      headerClassName: 'aritst-id-header',
     },
     {
       field: 'name',
@@ -135,7 +135,6 @@ export default function ArtistDataGrid({ rows, COUNT, fetcher }: ArtistDataGridP
     <DataGrid
       apiRef={dgApiRef}
       label='Artists'
-      aria-label='artist-data-grid'
       columns={columns}
       rows={rows}
       getRowId={getID}

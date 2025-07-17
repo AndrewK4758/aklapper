@@ -1,5 +1,6 @@
 import { CenteredFlexDiv, TextInput } from '@aklapper/react-shared';
-import Stack from '@mui/material-pigment-css/Stack';
+import Stack from '@mui/material/Stack';
+import { css } from '@pigment-css/react';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useFormik } from 'formik';
 import { useContext, useRef } from 'react';
@@ -7,10 +8,8 @@ import { Form } from 'react-router';
 import * as Yup from 'yup';
 import 'yup-phone-lite';
 import { GoogleUserContext, type GoogleUserContextProps } from '../../../contexts/contact_context_constants';
-// import handleFormikBlur from '../../../services/actions/crud-actions/handle_formik_blur';
 import emailFormAction from '../../../services/actions/email-form-action';
 import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
-import { clientCheck } from '../../../utils/utils';
 import DateTimeInput from './date_time_input';
 import EmailFormActions from './email-form-actions';
 import UploadFileElement from './upload_file_element';
@@ -73,14 +72,13 @@ export default function EmailForm({ setOpen }: EmailFormProps) {
         onSubmit={formik.handleSubmit}
         onReset={formik.handleReset}
       >
-        <Stack id='email-me-inputs-stack' data-testid='email-me-inputs-stack' sx={{ gap: 2 }}>
+        <Stack id='email-me-inputs-stack' data-testid='email-me-inputs-stack' className={css({ gap: 2 })}>
           <TextInput<MessageMeFormValues>
             name={'name'}
             label={'Name'}
             formik={formik}
             variant='outlined'
             disabled={formik.isSubmitting}
-            // handleBlur={handleFormikBlur}
             slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
           />
 
@@ -90,7 +88,6 @@ export default function EmailForm({ setOpen }: EmailFormProps) {
             formik={formik}
             variant='outlined'
             disabled={formik.isSubmitting}
-            // handleBlur={handleFormikBlur}
             slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
           />
 
@@ -100,7 +97,6 @@ export default function EmailForm({ setOpen }: EmailFormProps) {
             formik={formik}
             variant='outlined'
             disabled={formik.isSubmitting}
-            // handleBlur={handleFormikBlur}
             slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
           />
 
@@ -110,7 +106,6 @@ export default function EmailForm({ setOpen }: EmailFormProps) {
             formik={formik}
             variant='outlined'
             disabled={formik.isSubmitting}
-            // handleBlur={handleFormikBlur}
             slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
           />
 
@@ -121,7 +116,6 @@ export default function EmailForm({ setOpen }: EmailFormProps) {
             multiline={true}
             variant='outlined'
             disabled={formik.isSubmitting}
-            // handleBlur={handleFormikBlur}
             slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
           />
 
@@ -155,7 +149,6 @@ const handleSubmitMessage = async (values: MessageMeFormValues, setOpen: (open: 
     await emailFormAction(form, setOpen);
   } catch (error) {
     console.error(error);
-    if (clientCheck()) alert('Error submitting event, Please submit again.');
   } finally {
     setOpen(false);
   }

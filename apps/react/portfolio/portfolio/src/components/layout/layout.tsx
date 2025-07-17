@@ -17,7 +17,6 @@ import PicNameAndNav from './pic_name_nav';
 export default function Layout(): ReactElement {
   const [openEmail, setOpenEmail] = useState(false);
   const [isContactMenuOpen, setIsContactMenuOpen] = useState(false);
-
   const handleToggleContactMenu = () => {
     setIsContactMenuOpen(!isContactMenuOpen);
   };
@@ -30,6 +29,7 @@ export default function Layout(): ReactElement {
   const handleOpenPrivacyPolicy = () => {
     nav('privacy-policy', { relative: 'route' });
   };
+
   return (
     <StyledRootComponentWrapper id='app-wrapper' sx={{ minHeight: '100vh', height: 'fit-content' }}>
       <HeaderContactMenu

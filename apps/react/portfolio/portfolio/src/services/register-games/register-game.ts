@@ -1,16 +1,16 @@
+import type { GamePlayerValidation } from '@aklapper/types';
 import axios from 'axios';
-import gamesAutoStartError from '../../errors/games-auto-start-error.js';
 
 const baseUrl = import.meta.env.VITE_GAMES_API_URL;
 
-const registerGame = async (gameName: string) => {
+const registerGame = async (gameName: string): Promise<GamePlayerValidation | void> => {
   try {
     const resp = await axios.post(`${baseUrl}/games/${gameName}`);
 
-    return resp.headers['current-game'];
+    const gameData: GamePlayerValidation = JSON.parse(resp.headers['current-game']);
+    return gameData;
   } catch (error) {
     console.error(error);
-    return gamesAutoStartError(`registering ${gameName}`);
   }
 };
 

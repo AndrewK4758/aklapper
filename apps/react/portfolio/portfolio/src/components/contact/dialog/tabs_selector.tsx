@@ -49,8 +49,7 @@ export default function TabsSelector({ tab, handleSetTab }: TabsSelectorProps): 
               id='appointment-request-tab-label'
               variant={'h4'}
               title={'Appt. Request'}
-              placement={'bottom'}
-              style={{ color: Theme.palette.primary.dark }}
+              overrideThemeStyles={{ color: Theme.palette.primary.dark }}
             />
           }
         />
@@ -63,8 +62,7 @@ export default function TabsSelector({ tab, handleSetTab }: TabsSelectorProps): 
               id='email-me-tab-label'
               title={'Email Me'}
               variant={'h4'}
-              placement={'bottom'}
-              style={{ color: Theme.palette.primary.dark }}
+              overrideThemeStyles={{ color: Theme.palette.primary.dark }}
             />
           }
         />
