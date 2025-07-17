@@ -44,12 +44,7 @@ export default function GoogleAuthButton(): ReactElement<ButtonProps> {
         disabled={authorizing}
         endIcon={<GoogleIcon color='inherit' fontSize='inherit' />}
       >
-        <SectionTitle
-          id='google-auth-button-label'
-          variant='body1'
-          title='Connect Google Calendar'
-          placement='bottom-start'
-        />
+        <SectionTitle id='google-auth-button-label' variant='body1' title='Connect Google Calendar' />
       </Button>
     </AnimatedBorderBox>
   );

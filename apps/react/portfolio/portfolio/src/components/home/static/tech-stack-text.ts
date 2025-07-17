@@ -15,7 +15,7 @@ const CLOUD: TechStackData = ['Cloud', ['GCP', 'AWS', 'Azure']];
 
 const BUILD: TechStackData = ['Build', ['Nx', 'Vite', 'Webpack', 'Docker']];
 
-const ANALYTICS: TechStackData = ['API Structuring', ['Swagger']];
+const ANALYTICS: TechStackData = ["Doc's", ['Swagger']];
 
 const TESTING: TechStackData = ['Testing', ['Jest', 'Vitest', 'Playwright', 'PyTest']];
 

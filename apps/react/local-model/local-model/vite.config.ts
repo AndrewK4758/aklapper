@@ -1,6 +1,6 @@
 /// <reference types='vitest' />
 import { workspaceRoot } from '@nx/devkit';
-import react from '@vitejs/plugin-react';
+import react from '@vitejs/plugin-react-oxc';
 import { resolve } from 'path';
 import { cwd } from 'process';
 import { defineConfig } from 'vite';
@@ -39,26 +39,11 @@ export default defineConfig({
       transformMixedEsModules: true,
     },
     rollupOptions: {
-      perf: true,
       output: {
         esModule: true,
         format: 'esm',
-        generatedCode: {
-          arrowFunctions: true,
-          constBindings: true,
-          symbols: true,
-        },
       },
     },
-    target: 'esnext',
-  },
-
-  esbuild: {
-    jsx: 'automatic',
-    format: 'esm',
-    color: true,
-    platform: 'browser',
-    sourcemap: true,
     target: 'esnext',
   },
 

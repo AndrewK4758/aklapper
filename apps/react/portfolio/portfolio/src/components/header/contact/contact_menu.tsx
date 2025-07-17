@@ -18,9 +18,7 @@ export default function ContactMenu({ isOpen, handleOpenEmail }: ContactMenuProp
   return (
     <Box
       className={css({
-        width: '100%',
         display: 'flex',
-        alignItems: 'center',
         justifyContent: 'space-around',
       })}
       data-testid={'contact-menu'}
@@ -31,26 +29,26 @@ export default function ContactMenu({ isOpen, handleOpenEmail }: ContactMenuProp
       </ContactIcon>
 
       <ContactIcon generalId='facebook' iconHref='https://www.facebook.com/AKlapper47'>
-        {<FacebookIcon />}
+        {FacebookIcon}
       </ContactIcon>
       <ContactIcon generalId='linkedin' iconHref='https://www.linkedin.com/in/andrew-klapper-a9204b23b/'>
-        {<LinkedinIcon />}
+        {LinkedinIcon}
       </ContactIcon>
 
       <ContactIcon generalId='hugging-face' iconHref='https://huggingface.co/ak475826'>
-        {<HuggingFaceIcon />}
+        {HuggingFaceIcon}
       </ContactIcon>
 
       <ContactIcon generalId='x' iconHref='https://x.com/ak475826'>
-        {<XIcon />}
+        {XIcon}
       </ContactIcon>
 
       <ContactIcon generalId='discord' iconHref='https://discord.com/users/989564035542446190'>
-        {<DiscordIcon />}
+        {DiscordIcon}
       </ContactIcon>
 
       <ContactIcon generalId='email' onClick={handleOpenEmail}>
-        {<EmailIcon />}
+        {EmailIcon}
       </ContactIcon>
     </Box>
   );

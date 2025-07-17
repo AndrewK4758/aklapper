@@ -15,3 +15,5 @@ onlyBuiltDependencies:
   - prisma
   - protobufjs
   - unrs-resolver
+overrides:
+  vite: npm:rolldown-vite@latest

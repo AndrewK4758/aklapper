@@ -20,7 +20,15 @@ export default function NavButton({ buttonText, name, buttonSx, params, ...props
   };
 
   return (
-    <Button {...props} disabled={state !== 'idle'} name={name} sx={buttonSx} role='button' onClick={handleOnClick}>
+    <Button
+      {...props}
+      aria-label={name}
+      disabled={state !== 'idle'}
+      name={name}
+      sx={buttonSx}
+      role='button'
+      onClick={handleOnClick}
+    >
       {buttonText}
     </Button>
   );

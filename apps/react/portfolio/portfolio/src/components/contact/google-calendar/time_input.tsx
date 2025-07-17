@@ -21,7 +21,7 @@ export default function TimeInput({
 }: AppointmenTimesSelectorsProps) {
   return (
     <CenteredFlexDiv component={'section'} id='time-pickers-wrapper' data-testid='time-pickers-wrapper'>
-      <SectionTitle title='Suggested Meeting Time' placement='top-start' id='time-pickers-label' variant='h5' />
+      <SectionTitle title='Suggested Meeting Time' id='time-pickers-label' variant='h5' />
       <TimePicker
         enableAccessibleFieldDOMStructure={false}
         data-testid={'start-time-picker'}

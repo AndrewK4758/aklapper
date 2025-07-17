@@ -1,10 +1,8 @@
 import { css, styled, type BaseDefaultProps, type PolymorphicComponent, type SxProp } from '@mui/material-pigment-css';
 import Box from '@mui/material-pigment-css/Box';
 import { type SxProps, type TypographyVariant } from '@mui/material/styles';
-import type { TooltipProps } from '@mui/material/Tooltip';
-import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
-import type { CSSProperties, ReactElement, ReactNode } from 'react';
+import type { CSSProperties, ReactElement } from 'react';
 
 const StyledSectionTitle: PolymorphicComponent<SxProp, BaseDefaultProps> = styled(Box)(() => ({
   display: 'flex',
@@ -15,65 +13,35 @@ interface SectionTitleProps {
   title: string;
   id?: string;
   variant?: TypographyVariant;
-  tooltipTitle?: ReactNode;
-  placement?:
-    | 'bottom'
-    | 'left'
-    | 'right'
-    | 'top'
-    | 'bottom-end'
-    | 'bottom-start'
-    | 'left-end'
-    | 'left-start'
-    | 'right-end'
-    | 'right-start'
-    | 'top-end'
-    | 'top-start'
-    | undefined;
-  TooltipProps?: Omit<TooltipProps, 'title' | 'placement'>;
-  titleSx?: SxProps;
   Icon?: ReactElement;
-  style?: CSSProperties;
+  sx?: SxProps;
+  overrideThemeStyles?: CSSProperties;
 }
 
 export default function SectionTitle({
   title,
-  titleSx,
   id,
   variant = 'body1',
-  tooltipTitle,
-  placement,
-  TooltipProps,
   Icon,
-  style,
+  sx,
+  overrideThemeStyles,
 }: SectionTitleProps): ReactElement<SectionTitleProps> {
-  const hasTooltip = !!tooltipTitle;
   const hasIcon = !!Icon;
 
   const titleComponent = hasIcon ? (
     <Box id={id} className={css({ display: 'flex', alignItems: 'center' })}>
-      <Typography variant={variant} style={style}>
+      <Typography variant={variant} sx={sx} style={overrideThemeStyles}>
         {title}
       </Typography>
       <Box>{Icon}</Box>
     </Box>
   ) : (
-    <Typography id={id} variant={variant} sx={titleSx} style={style}>
+    <Typography id={id} variant={variant} sx={sx} style={overrideThemeStyles}>
       {title}
     </Typography>
   );
 
-  return (
-    <StyledSectionTitle>
-      {hasTooltip ? (
-        <Tooltip {...TooltipProps} title={tooltipTitle} placement={placement}>
-          {titleComponent}
-        </Tooltip>
-      ) : (
-        titleComponent
-      )}
-    </StyledSectionTitle>
-  );
+  return <StyledSectionTitle>{titleComponent}</StyledSectionTitle>;
 }
 
 export { SectionTitle, StyledSectionTitle };

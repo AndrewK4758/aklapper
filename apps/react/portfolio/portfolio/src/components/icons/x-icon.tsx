@@ -1,9 +1,7 @@
-import type { SVGProps } from 'react';
 import { TEXT_SECONDARY } from '../../styles/base/base_styles';
 
-const XIcon = ({ ...props }: SVGProps<SVGSVGElement>) => (
+const XIcon = (
   <svg
-    {...props}
     xmlns='http://www.w3.org/2000/svg'
     shapeRendering='geometricPrecision'
     textRendering='geometricPrecision'

@@ -1,9 +1,7 @@
-import type { SVGProps } from 'react';
 import Theme from '../../styles/themes/theme';
 
-const EmailIcon = ({ ...props }: SVGProps<SVGSVGElement>) => (
+const EmailIcon = (
   <svg
-    {...props}
     version='1.1'
     id='svg21300'
     width='4rem'

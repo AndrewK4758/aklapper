@@ -1,9 +1,9 @@
 import { workspaceRoot } from '@nx/devkit';
 import { pigment } from '@pigment-css/vite-plugin';
-import react from '@vitejs/plugin-react';
+import react from '@vitejs/plugin-react-oxc';
 import * as path from 'node:path';
 import { cwd } from 'node:process';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'rolldown-vite';
 import dts from 'vite-plugin-dts';
 import Theme from './src/lib/styles/theme';
 
@@ -38,9 +38,28 @@ export default defineConfig({
   publicDir: 'public',
   envDir: './env',
 
+  dev: {
+    sourcemap: true,
+  },
+
+  experimental: {
+    enableNativePlugin: true,
+  },
+
+  oxc: {
+    target: 'esnext',
+    typescript: {
+      declaration: {
+        sourcemap: true,
+      },
+      rewriteImportExtensions: 'rewrite',
+    },
+  },
+
   build: {
-    minify: true,
     outDir: './dist',
+    minify: true,
+    target: 'esnext',
     sourcemap: true,
     emptyOutDir: true,
     reportCompressedSize: true,
@@ -54,24 +73,21 @@ export default defineConfig({
       formats: ['es'],
     },
     rollupOptions: {
-      // External packages that should not be bundled into your library.
-      external: ['react', 'react-dom', 'react/jsx-runtime'],
-      perf: true,
+      external: ['react', 'react-dom', 'react/jsx-runtime', 'react/*'],
+      logLevel: 'debug',
+      optimization: {
+        inlineConst: true,
+      },
+      platform: 'browser',
       output: {
         esModule: true,
         format: 'esm',
       },
     },
-    target: 'esnext',
-  },
-  esbuild: {
-    jsx: 'automatic',
-    format: 'esm',
-    color: true,
-    platform: 'browser',
   },
 
   test: {
+    name: 'react-shared',
     watch: false,
     globals: true,
     environment: 'jsdom',

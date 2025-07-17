@@ -2,11 +2,12 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "outDir": "out-tsc/vitest",
-    "types": ["vitest/globals", "vitest/importMeta", "vite/client", "node", "vitest"],
+    "rootDir": "./",
     "jsx": "react-jsx",
     "module": "esnext",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "outDir": "out-tsc/vitest",
+    "types": ["vitest/globals", "vitest/importMeta", "vite/client", "node", "vitest"]
   },
   "include": [
     "./vite.config.ts",
