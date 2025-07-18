@@ -109,7 +109,6 @@ export default function AlbumDataGrid({ rows, fetcher }: AlbumDataGrid) {
 
   return (
     <DataGrid
-      aria-label='artist-albums-data-grid'
       label='Albums'
       columns={columns}
       rows={rows}
@@ -120,9 +119,6 @@ export default function AlbumDataGrid({ rows, fetcher }: AlbumDataGrid) {
       onPaginationModelChange={setPaginationModel}
       processRowUpdate={processRowUpdate}
       onProcessRowUpdateError={error => console.error(error)}
-      experimentalFeatures={{
-        warnIfFocusStateIsNotSynced: true,
-      }}
       sx={{
         '&.MuiDataGrid-root': {
           backgroundColor: DATA_GRID_BG,

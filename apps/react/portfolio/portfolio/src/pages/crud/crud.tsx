@@ -3,7 +3,7 @@ import { css } from '@mui/material-pigment-css';
 import Box from '@mui/material-pigment-css/Box';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
-import { lazy, ReactElement, Suspense, useState } from 'react';
+import { lazy, type ReactElement, Suspense, useState } from 'react';
 import { Outlet } from 'react-router';
 import waiting from '../../assets/images/swirly-dots-to-chrome.webp';
 import CrudNavBar from '../../components/crud/nav_bar';

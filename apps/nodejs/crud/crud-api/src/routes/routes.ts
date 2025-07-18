@@ -25,16 +25,16 @@ export default class Routes {
     router.use(express.json());
 
     router.get('/', (_, resp) => {
-      resp.sendStatus(201);
+      resp.status(201).send('HEALTHY');
     });
+
     router.get('/artists', artistsAndCount);
     router.post('/artists', addArtists);
     router.patch('/artists', updateArtists);
     router.delete('/artists/:id', deleteArtist);
+    router.get('/artist/:id', getArtistsAlbums);
 
     router.get('/validate/:category', validateArtists, validateAlbums, validateTracks);
-
-    router.get('/artist/:id', getArtistsAlbums);
 
     router.get('/albums', getAlbums);
     router.post('/albums', createAlbumsOnArtists);

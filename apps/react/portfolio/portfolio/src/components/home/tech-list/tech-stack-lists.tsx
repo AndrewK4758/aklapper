@@ -1,7 +1,8 @@
 import { css } from '@mui/material-pigment-css';
 import Box from '@mui/material-pigment-css/Box';
-import Grid from '@mui/material/Grid';
-import { memo, type ReactElement } from 'react';
+import Grid from '@mui/material-pigment-css/Grid';
+import { type ReactElement } from 'react';
+import Theme from '../../../styles/themes/theme';
 import techStackData from '../static/tech-stack-text';
 import TechList from './tech-list';
 
@@ -11,16 +12,23 @@ import TechList from './tech-list';
  * @returns {ReactElement} The rendered tech stack list component.
  */
 
-const TechStackLists = memo((): ReactElement => {
+const TechStackLists = (): ReactElement => {
   return (
-    <Box className={css({ flex: '70%', height: 'fit-content' })} id='tech-stack-wrapper'>
+    <Box
+      className={css({
+        flex: '1 0 70%',
+        height: 'fit-content',
+      })}
+      id='tech-stack-wrapper'
+    >
       <Grid
         container
         wrap='wrap'
-        rowGap={4}
-        columnGap={2}
         data-testid='tech-stack-lists-grid'
-        sx={{ justifyContent: 'flex-start' }}
+        sx={{
+          rowGap: Theme.spacing(4),
+          columnGap: Theme.spacing(2),
+        }}
       >
         {techStackData.map(entry => (
           <TechList key={entry[0]} id={entry[0]} labelText={entry[0]} variant={'h5'} data={entry[1]} title={entry[0]} />
@@ -28,5 +36,5 @@ const TechStackLists = memo((): ReactElement => {
       </Grid>
     </Box>
   );
-});
+};
 export default TechStackLists;

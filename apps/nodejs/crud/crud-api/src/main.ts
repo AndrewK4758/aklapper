@@ -10,7 +10,7 @@ import Routes, { router } from './routes/routes.js';
 
 const __dirname = createNodeDirname(import.meta.url);
 
-configDotenv({ path: resolve(__dirname, '../env/.env') });
+configDotenv({ path: resolve(__dirname, '../env/.env'), quiet: process.env['NODE_ENV'] === 'production' });
 
 const app: Express = express();
 

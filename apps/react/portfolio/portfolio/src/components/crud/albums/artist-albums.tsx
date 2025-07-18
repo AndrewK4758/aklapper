@@ -29,7 +29,7 @@ export const AlbumsOnArtist = (): ReactElement => {
   const fetcher = useFetcher();
 
   return (
-    <CenteredFlexDiv id='albums-on-artist' sx={{ padding: 0, width: '100%' }}>
+    <CenteredFlexDiv id='albums-on-artist' className={css({ padding: 0, width: '100%' })}>
       <Box
         className={css({
           display: 'flex',
@@ -54,13 +54,13 @@ export const AlbumsOnArtist = (): ReactElement => {
             <AddAlbumOnArtist fetcher={fetcher} />
           </Container>
         </Box>
-        <Box sx={css({ width: '100%' })}>
-          <Suspense fallback={<Waiting src={waiting} />}>
-            <AlbumDataGrid rows={data} fetcher={fetcher} />
-          </Suspense>
-        </Box>
+        <Suspense fallback={<Waiting src={waiting} />}>
+          <Box className={css({ width: '100%' })}>
+            <AlbumDataGrid rows={data} fetcher={fetcher}></AlbumDataGrid>
+          </Box>
+        </Suspense>
       </Box>
-      <Box sx={css({ width: '100%' })}>
+      <Box className={css({ width: '100%' })}>
         <Outlet />
       </Box>
     </CenteredFlexDiv>

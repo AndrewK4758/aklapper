@@ -2,10 +2,9 @@ import type { artist } from '@aklapper/chinook-client';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import DetailsIcon from '@mui/icons-material/Details';
 import UploadIcon from '@mui/icons-material/Upload';
-import { useGridApiRef, type GridPaginationModel } from '@mui/x-data-grid';
+import { type GridPaginationModel } from '@mui/x-data-grid';
 import { GridActionsCellItem } from '@mui/x-data-grid/components/cell';
 import { DataGrid } from '@mui/x-data-grid/DataGrid';
-import { GridApiCommunity } from '@mui/x-data-grid/internals';
 import type { GridColDef } from '@mui/x-data-grid/models/colDef';
 import type { GridRowParams } from '@mui/x-data-grid/models/params';
 import { useCallback, useState } from 'react';
@@ -28,7 +27,6 @@ interface ArtistDataGridProps {
 export default function ArtistDataGrid({ rows, COUNT, fetcher }: ArtistDataGridProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [dirtyRows, setDirtyRows] = useState<Set<number>>(new Set());
-  const dgApiRef = useGridApiRef<GridApiCommunity>();
   const nav = useNavigate();
 
   const take = searchParams.get('take') as string;
@@ -133,7 +131,6 @@ export default function ArtistDataGrid({ rows, COUNT, fetcher }: ArtistDataGridP
 
   return (
     <DataGrid
-      apiRef={dgApiRef}
       label='Artists'
       columns={columns}
       rows={rows}

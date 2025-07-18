@@ -31,7 +31,6 @@ const Artist = (): ReactElement => {
         alignItems: 'flex-start',
         padding: 0,
         gap: Theme.spacing(4),
-        border: 2,
         width: '100%',
       })}
     >
@@ -51,13 +50,15 @@ const Artist = (): ReactElement => {
             <AddArtist COUNT={count as number} fetcher={fetcher} />
           </Container>
         </Box>
-        <Suspense fallback={<Waiting src={waiting} />}>
-          <Box>
-            <ArtistDataGrid rows={data} COUNT={count as number} fetcher={fetcher} />
-          </Box>
-        </Suspense>
+        <Box>
+          <Suspense fallback={<Waiting src={waiting} />}>
+            <Box>
+              <ArtistDataGrid rows={data} COUNT={count as number} fetcher={fetcher} />
+            </Box>
+          </Suspense>
+        </Box>
       </Box>
-      <Box sx={{ flex: '0 1 100%' }}>
+      <Box className={css({ flex: '0 1 100%' })}>
         <Outlet />
       </Box>
     </CenteredFlexDiv>

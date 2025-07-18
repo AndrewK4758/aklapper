@@ -1,9 +1,9 @@
 import { workspaceRoot } from '@nx/devkit';
 import { pigment } from '@pigment-css/vite-plugin';
-import react from '@vitejs/plugin-react-oxc';
+import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
 import { cwd } from 'node:process';
-import { defineConfig, type UserConfig } from 'rolldown-vite';
+import { defineConfig, type UserConfig } from 'vite';
 import Theme from './src/styles/themes/theme';
 import MODULES from './vite_modules';
 
@@ -28,10 +28,6 @@ const config: UserConfig = defineConfig({
   preview: {
     port: PORT_PREVIEW,
     host: HOST,
-  },
-
-  css: {
-    devSourcemap: true,
   },
 
   plugins: [
@@ -71,20 +67,11 @@ const config: UserConfig = defineConfig({
   publicDir: 'public',
   envDir: './env',
 
-  dev: {
-    sourcemap: true,
-  },
-
-  experimental: {
-    enableNativePlugin: true,
-    hmrPartialAccept: true,
-  },
-
-  oxc: {
+  esbuild: {
+    color: true,
+    format: 'esm',
     target: 'esnext',
-    typescript: {
-      rewriteImportExtensions: 'rewrite',
-    },
+    sourcemap: true,
   },
 
   build: {
@@ -101,7 +88,9 @@ const config: UserConfig = defineConfig({
 
     rollupOptions: {
       logLevel: 'debug',
-      platform: 'browser',
+      experimentalLogSideEffects: true,
+      strictDeprecations: true,
+      perf: true,
       output: {
         esModule: true,
         format: 'esm',

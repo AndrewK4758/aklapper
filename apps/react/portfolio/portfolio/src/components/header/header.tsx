@@ -1,5 +1,6 @@
 import Box from '@mui/material-pigment-css/Box';
 import { css } from '@pigment-css/react';
+import { memo } from 'react';
 import ContactDialog from '../contact/contact_dialog';
 import AnimatedContactMenu from './contact/animated_contact_menu';
 import ToggleMenuButton from './contact/toggle_menu_button';
@@ -11,7 +12,7 @@ interface HeaderContactMenuProps {
   handleOpenEmail: () => void;
 }
 
-export function HeaderContactMenu({
+const HeaderContactMenu = memo(function ({
   isContactMenuOpen,
   openEmail,
   handleOpenEmail,
@@ -30,6 +31,6 @@ export function HeaderContactMenu({
       )}
     </>
   );
-}
+});
 
 export default HeaderContactMenu;

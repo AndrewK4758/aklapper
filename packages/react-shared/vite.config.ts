@@ -1,9 +1,9 @@
 import { workspaceRoot } from '@nx/devkit';
 import { pigment } from '@pigment-css/vite-plugin';
-import react from '@vitejs/plugin-react-oxc';
+import react from '@vitejs/plugin-react';
 import * as path from 'node:path';
 import { cwd } from 'node:process';
-import { defineConfig } from 'rolldown-vite';
+import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 import Theme from './src/lib/styles/theme';
 
@@ -42,20 +42,6 @@ export default defineConfig({
     sourcemap: true,
   },
 
-  experimental: {
-    enableNativePlugin: true,
-  },
-
-  oxc: {
-    target: 'esnext',
-    typescript: {
-      declaration: {
-        sourcemap: true,
-      },
-      rewriteImportExtensions: 'rewrite',
-    },
-  },
-
   build: {
     outDir: './dist',
     minify: true,
@@ -75,7 +61,6 @@ export default defineConfig({
     rollupOptions: {
       external: ['react', 'react-dom', 'react/jsx-runtime', 'react/*'],
       logLevel: 'debug',
-      platform: 'browser',
       output: {
         esModule: true,
         format: 'esm',

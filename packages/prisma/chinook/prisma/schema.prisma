@@ -1,7 +1,6 @@
 generator client {
-  provider = "prisma-client"
-  output   = env("PRISMA_CLIENT_OUTPUT_PATH")
-
+  provider               = "prisma-client"
+  output                 = env("PRISMA_CLIENT_OUTPUT_PATH")
   generatedFileExtension = "ts"
   moduleFormat           = "esm"
   runtime                = "nodejs"

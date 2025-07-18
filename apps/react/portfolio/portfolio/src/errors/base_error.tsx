@@ -39,6 +39,7 @@ export default function BaseError() {
         <Box as={'section'} id={`${pathname}-error-details-box`} key={`${pathname}-error-details-box`}>
           <Text
             id={`${pathname}-error-message-name`}
+            component={'span'}
             variant='body1'
             children={
               <pre>
@@ -50,6 +51,7 @@ export default function BaseError() {
           <Text
             id={`${pathname}-error-message-message`}
             variant='body1'
+            component={'span'}
             children={
               <pre>
                 <strong>{`Error Message:\n`}</strong>
@@ -75,7 +77,7 @@ export default function BaseError() {
           {viewErrorStack && error.stack && (
             <Text
               id={`${pathname}-error-stacktrace`}
-              key={`${pathname}-error-stacktrace`}
+              component={'span'}
               variant='body1'
               children={
                 <pre>

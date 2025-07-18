@@ -1,5 +1,5 @@
 import { workspaceRoot } from '@nx/devkit';
-import react from '@vitejs/plugin-react-oxc';
+import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { cwd } from 'process';
 import { defineConfig } from 'vite';

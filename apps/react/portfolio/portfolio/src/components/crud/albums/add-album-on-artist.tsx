@@ -2,6 +2,7 @@ import type { album } from '@aklapper/chinook-client';
 import { CenteredFlexDiv, TextInput } from '@aklapper/react-shared';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
+import { css } from '@pigment-css/react';
 import { useFormik } from 'formik';
 import { type ReactElement } from 'react';
 import { type FetcherWithComponents } from 'react-router';
@@ -53,11 +54,11 @@ const AddAlbumOnArtist = ({ fetcher }: AddAlbumOnArtistProps): ReactElement => {
             disabled={formik.isSubmitting}
             variant='contained'
             color='primary'
-            sx={{ fontWeight: 'bold' }}
+            className={css({ fontWeight: 'bold' })}
           >
             {formik.isSubmitting ? 'Submitting' : 'Submit'}
           </Button>
-          <Button type='reset' variant='contained' color='secondary' sx={{ fontWeight: 'bold' }}>
+          <Button type='reset' variant='contained' color='secondary' className={css({ fontWeight: 'bold' })}>
             Clear
           </Button>
         </ButtonGroup>

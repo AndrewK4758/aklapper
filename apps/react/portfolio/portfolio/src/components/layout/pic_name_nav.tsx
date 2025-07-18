@@ -34,7 +34,9 @@ export default memo(function PicNameAndNav({ subheader }: PicNameAndNavProps) {
             loading='eager'
             alt='Andrew'
             style={{
-              width: '100%',
+              width: '452px',
+              maxWidth: '100%',
+              height: 'auto',
               borderRadius: Theme.shape.borderRadius,
             }}
           />
