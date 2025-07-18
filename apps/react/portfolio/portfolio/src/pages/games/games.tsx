@@ -1,7 +1,7 @@
 import { CenteredFlexDiv } from '@aklapper/react-shared';
 import { css } from '@mui/material-pigment-css';
 import Box from '@mui/material-pigment-css/Box';
-import { ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import { Outlet, useNavigation, useParams } from 'react-router';
 import GamesHeader from '../../components/games/header';
 

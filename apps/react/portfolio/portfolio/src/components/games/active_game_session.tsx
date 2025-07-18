@@ -1,9 +1,7 @@
-import Box from '@mui/material-pigment-css/Box';
-// import { css } from '@pigment-css/react';
-import { ReactElement, useReducer } from 'react';
-import type { IActiveGameInfo } from '../../types/types';
-// import ActiveAvatars from './game_board/active_avatars';
 import { css } from '@mui/material-pigment-css';
+import Box from '@mui/material-pigment-css/Box';
+import { type ReactElement, useReducer } from 'react';
+import type { IActiveGameInfo } from '../../types/types';
 import ActiveAvatars from './game_board/active_avatars';
 import GameBoardAndActions from './game_board/game_boards';
 import socketReducer from './game_board/socket-reducer';

@@ -1,5 +1,5 @@
 import SvgIcon from '@mui/material/SvgIcon';
-import { SxProps } from '@mui/material/styles';
+import type { SxProps } from '@mui/material/styles';
 import Theme from '../../styles/themes/theme.js';
 
 interface ResumeIconProps {
