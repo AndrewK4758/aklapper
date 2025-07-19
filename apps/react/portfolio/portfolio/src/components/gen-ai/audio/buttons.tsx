@@ -15,7 +15,7 @@ import {
   MediaRecorderClientContext,
   type MediaRecorderClientContextProps,
 } from '../../../contexts/audio_context_constants';
-import { OutletContextProps } from '../../../types/types';
+import type { OutletContextProps } from '../../../types/types';
 
 interface AudioButtonsProps {
   audRef: RefObject<HTMLAudioElement | null>;

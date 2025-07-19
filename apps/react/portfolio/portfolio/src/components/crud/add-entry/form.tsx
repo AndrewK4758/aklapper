@@ -7,7 +7,7 @@ import * as Yup from 'yup';
 import { addEntrySteps } from '../../../pages/static/crud-text';
 import handleSubmitNewEntry from '../../../services/actions/crud-actions/submit-new-entry-action';
 import Theme from '../../../styles/themes/theme';
-import { NewEntryAlbum, NewEntryArtist, NewEntryTrack, type CompletedState, type NewEntry } from '../../../types/types';
+import type { CompletedState, NewEntry, NewEntryAlbum, NewEntryArtist, NewEntryTrack } from '../../../types/types';
 import AddEntryFormActions from './form_actions';
 import AddEntryFormInputs from './inputs';
 import AddEntryStepper from './stepper';

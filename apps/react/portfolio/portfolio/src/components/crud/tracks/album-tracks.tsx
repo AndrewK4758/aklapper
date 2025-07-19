@@ -1,4 +1,4 @@
-import { track } from '@aklapper/chinook-client';
+import type { track } from '@aklapper/chinook-client';
 import { CenteredFlexDiv, Waiting } from '@aklapper/react-shared';
 import type { DataGridLoader } from '@aklapper/types';
 import Box from '@mui/material-pigment-css/Box';
