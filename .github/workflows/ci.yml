@@ -244,20 +244,22 @@ jobs:
       - name: Create .env file
         run: |
           mkdir -p ./apps/react/portfolio/portfolio/env
-          touch ./apps/react/portfolio/portfolio/env/.env
-          echo "NODE_ENV=production" >> ./apps/react/portfolio/portfolio/env/.env
-          echo "VITE_OAUTH_CLIENT_ID=${{ secrets.VITE_OAUTH_CLIENT_ID }}" >> ./apps/react/portfolio/portfolio/env/.env
-          echo "VITE_CRUD_API_URL=${{ secrets.VITE_CRUD_API_URL }}" >> ./apps/react/portfolio/portfolio/env/.env
-          echo "VITE_GAMES_API_URL=${{ secrets.VITE_GAMES_API_URL }}" >> ./apps/react/portfolio/portfolio/env/.env
-          echo "VITE_PORTFOLIO_API_URL=${{ secrets.VITE_PORTFOLIO_API_URL }}" >> ./apps/react/portfolio/portfolio/env/.env
-          echo "VITE_VERTEX_API_URL=${{ secrets.VITE_VERTEX_API_URL }}" >> ./apps/react/portfolio/portfolio/env/.env
-          echo "VITE_GAMES_WS_URL=${{ secrets.VITE_GAMES_WS_URL }}" >> ./apps/react/portfolio/portfolio/env/.env
-          echo "VITE_GAMES_WS_PATH=${{ secrets.VITE_GAMES_WS_PATH }}" >> ./apps/react/portfolio/portfolio/env/.env
-          echo "VITE_GAMES_WS_GAMEPLAY_NAMESPACE=${{ secrets.VITE_GAMES_WS_GAMEPLAY_NAMESPACE }}" >> ./apps/react/portfolio/portfolio/env/.env
-          echo "VITE_VERTEX_WS_URL=${{ secrets.VITE_VERTEX_WS_URL }}" >> ./apps/react/portfolio/portfolio/env/.env
+          touch ./apps/react/portfolio/portfolio/env/.env.production
+          echo "NODE_ENV=production" >> ./apps/react/portfolio/portfolio/env/.env.production
+          echo "VITE_OAUTH_CLIENT_ID=${{ secrets.VITE_OAUTH_CLIENT_ID }}" >> ./apps/react/portfolio/portfolio/env/.env.production
+          echo "VITE_CRUD_API_URL=${{ secrets.VITE_CRUD_API_URL }}" >> ./apps/react/portfolio/portfolio/env/.env.production
+          echo "VITE_GAMES_API_URL=${{ secrets.VITE_GAMES_API_URL }}" >> ./apps/react/portfolio/portfolio/env/.env.production
+          echo "VITE_PORTFOLIO_API_URL=${{ secrets.VITE_PORTFOLIO_API_URL }}" >> ./apps/react/portfolio/portfolio/env/.env.production
+          echo "VITE_VERTEX_API_URL=${{ secrets.VITE_VERTEX_API_URL }}" >> ./apps/react/portfolio/portfolio/env/.env.production
+          echo "VITE_GAMES_WS_URL=${{ secrets.VITE_GAMES_WS_URL }}" >> ./apps/react/portfolio/portfolio/env/.env.production
+          echo "VITE_GAMES_WS_PATH=${{ secrets.VITE_GAMES_WS_PATH }}" >> ./apps/react/portfolio/portfolio/env/.env.production
+          echo "VITE_GAMES_WS_GAMEPLAY_NAMESPACE=${{ secrets.VITE_GAMES_WS_GAMEPLAY_NAMESPACE }}" >> ./apps/react/portfolio/portfolio/env/.env.production
+          echo "VITE_VERTEX_WS_URL=${{ secrets.VITE_VERTEX_WS_URL }}" >> ./apps/react/portfolio/portfolio/env/.env.production
 
       - name: Verify .env file
-        run: ls -la ./apps/react/portfolio/portfolio/env/.env
+        run: |
+          ls -la ./apps/react/portfolio/portfolio/env/.env.production
+          cat ./apps/react/portfolio/portfolio/env/.env.production
 
       - name: Deploy Portfolio to App Engine
-        run: pnpx nx affected -t deploy-app-engine --verbose
+        run: pnpx nx affected -t deploy-app-engine --verbose --no-cache
