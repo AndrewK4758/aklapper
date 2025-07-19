@@ -3,7 +3,6 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import { css } from '@pigment-css/react';
 import Theme from '../../../styles/themes/theme';
-
 interface TechListItemProps extends ListItemProps {
   listItem: string;
 }
