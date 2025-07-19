@@ -236,15 +236,15 @@ jobs:
 
       - name: Create Vite .env file
         run: |
-          echo "VITE_OAUTH_CLIENT_ID: ${{ secrets.VITE_OAUTH_CLIENT_ID }}" >> $GITHUB_ENV
-          echo "VITE_CRUD_API_URL: ${{ secrets.VITE_CRUD_API_URL }}" >> $GITHUB_ENV
-          echo "VITE_GAMES_API_URL: ${{ secrets.VITE_GAMES_API_URL }}" >> $GITHUB_ENV
-          echo "VITE_PORTFOLIO_API_URL: ${{ secrets.VITE_PORTFOLIO_API_URL }}" >> $GITHUB_ENV
-          echo "VITE_VERTEX_API_URL: ${{ secrets.VITE_VERTEX_API_URL }}" >> $GITHUB_ENV
-          echo "VITE_GAMES_WS_URL: ${{ secrets.VITE_GAMES_WS_URL }}" >> $GITHUB_ENV
-          echo "VITE_GAMES_WS_PATH: ${{ secrets.VITE_GAMES_WS_PATH }}" >> $GITHUB_ENV
-          echo "VITE_GAMES_WS_GAMEPLAY_NAMESPACE: ${{ secrets.VITE_GAMES_WS_GAMEPLAY_NAMESPACE }}" >> $GITHUB_ENV
-          echo "VITE_VERTEX_WS_URL: ${{ secrets.VITE_VERTEX_WS_URL }}" >> $GITHUB_ENV
+          echo "VITE_OAUTH_CLIENT_ID=${{ secrets.VITE_OAUTH_CLIENT_ID }}" >> $GITHUB_ENV
+          echo "VITE_CRUD_API_URL=${{ secrets.VITE_CRUD_API_URL }}" >> $GITHUB_ENV
+          echo "VITE_GAMES_API_URL=${{ secrets.VITE_GAMES_API_URL }}" >> $GITHUB_ENV
+          echo "VITE_PORTFOLIO_API_URL=${{ secrets.VITE_PORTFOLIO_API_URL }}" >> $GITHUB_ENV
+          echo "VITE_VERTEX_API_URL=${{ secrets.VITE_VERTEX_API_URL }}" >> $GITHUB_ENV
+          echo "VITE_GAMES_WS_URL=${{ secrets.VITE_GAMES_WS_URL }}" >> $GITHUB_ENV
+          echo "VITE_GAMES_WS_PATH=${{ secrets.VITE_GAMES_WS_PATH }}" >> $GITHUB_ENV
+          echo "VITE_GAMES_WS_GAMEPLAY_NAMESPACE=${{ secrets.VITE_GAMES_WS_GAMEPLAY_NAMESPACE }}" >> $GITHUB_ENV
+          echo "VITE_VERTEX_WS_URL=${{ secrets.VITE_VERTEX_WS_URL }}" >> $GITHUB_ENV
 
       - uses: nrwl/nx-set-shas@v4
 

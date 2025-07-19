@@ -17,3 +17,4 @@ onlyBuiltDependencies:
   - prisma
   - protobufjs
   - unrs-resolver
+  - synckit
