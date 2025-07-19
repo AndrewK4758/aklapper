@@ -234,6 +234,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Create Vite .env file
+        run: |
+          echo "VITE_OAUTH_CLIENT_ID: ${{ secrets.VITE_OAUTH_CLIENT_ID }}" >> $GITHUB_ENV
+          echo "VITE_CRUD_API_URL: ${{ secrets.VITE_CRUD_API_URL }}" >> $GITHUB_ENV
+          echo "VITE_GAMES_API_URL: ${{ secrets.VITE_GAMES_API_URL }}" >> $GITHUB_ENV
+          echo "VITE_PORTFOLIO_API_URL: ${{ secrets.VITE_PORTFOLIO_API_URL }}" >> $GITHUB_ENV
+          echo "VITE_VERTEX_API_URL: ${{ secrets.VITE_VERTEX_API_URL }}" >> $GITHUB_ENV
+          echo "VITE_GAMES_WS_URL: ${{ secrets.VITE_GAMES_WS_URL }}" >> $GITHUB_ENV
+          echo "VITE_GAMES_WS_PATH: ${{ secrets.VITE_GAMES_WS_PATH }}" >> $GITHUB_ENV
+          echo "VITE_GAMES_WS_GAMEPLAY_NAMESPACE: ${{ secrets.VITE_GAMES_WS_GAMEPLAY_NAMESPACE }}" >> $GITHUB_ENV
+          echo "VITE_VERTEX_WS_URL: ${{ secrets.VITE_VERTEX_WS_URL }}" >> $GITHUB_ENV
+
       - uses: nrwl/nx-set-shas@v4
 
       - name: Authenticate with GCP
@@ -242,16 +254,6 @@ jobs:
           credentials_json: ${{ secrets.GCP_SA_CREDENTIALS_JSON }}
 
       - name: Deploy Portfolio to App Engine
+        run: pnpx nx affected -t deploy-app-engine --verbose
         env:
           NODE_ENV: production
-          VITE_OAUTH_CLIENT_ID: ${{ secrets.VITE_OAUTH_CLIENT_ID }}
-          VITE_CRUD_API_URL: ${{ secrets.VITE_CRUD_API_URL }}
-          VITE_GAMES_API_URL: ${{ secrets.VITE_GAMES_API_URL }}
-          VITE_PORTFOLIO_API_URL: ${{ secrets.VITE_PORTFOLIO_API_URL }}
-          VITE_VERTEX_API_URL: ${{ secrets.VITE_VERTEX_API_URL }}
-          VITE_GAMES_WS_URL: ${{ secrets.VITE_GAMES_WS_URL }}
-          VITE_GAMES_WS_PATH: ${{ secrets.VITE_GAMES_WS_PATH }}
-          VITE_GAMES_WS_GAMEPLAY_NAMESPACE: ${{ secrets.VITE_GAMES_WS_GAMEPLAY_NAMESPACE }}
-          VITE_VERTEX_WS_URL: ${{ secrets.VITE_VERTEX_WS_URL }}
-
-        run: pnpx nx affected -t deploy-app-engine --verbose
