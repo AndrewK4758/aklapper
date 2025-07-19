@@ -1,20 +1,12 @@
 import Link from '@mui/material/Link';
 import Typography from '@mui/material/Typography';
-import useMediaQuery from '@mui/material/useMediaQuery';
 import Theme from '../../../styles/themes/theme';
 
 const ID = 'intro-text';
 
 export const IntroText = () => {
-  const mediaQuery = useMediaQuery(Theme.breakpoints.down('md'));
   return (
-    <Typography
-      variant={mediaQuery ? 'body1' : 'h5'}
-      color='textPrimary'
-      id={ID}
-      data-testid={ID}
-      sx={{ flex: '30%', textAlign: 'start' }}
-    >
+    <Typography variant={'body2'} color='textPrimary' id={ID} data-testid={ID} sx={{ flex: '30%', textAlign: 'start' }}>
       I'm a full-stack web developer with 3 years experience developing & deploying web based applications & interactive
       websites. I specialize in <b>Monorepo Architectures</b>, <b>Cloud Deployments</b>, custom <b>React Components</b>,{' '}
       <b>Dynamic API Design</b>, & thorough <b>Testing</b>. I have a work ethic & focused determination which thrives in

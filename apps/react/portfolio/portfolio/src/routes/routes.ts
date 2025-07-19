@@ -1,34 +1,32 @@
-import { Waiting } from '@aklapper/react-shared';
 import { lazy } from 'react';
 import type { RouteObject } from 'react-router';
-import waiting from '../assets/images/swirly-dots-to-chrome.webp';
-import Layout from '../components/layout/layout';
-import GameLoading from '../components/loading/loading';
-import PrivacyPolicy from '../components/privacy-policy/privacy-policy';
-import BaseError from '../errors/base_error';
-import Crud from '../pages/crud/crud';
-import Games from '../pages/games/games';
-import GenAiHome from '../pages/gen-ai/gen-ai';
-import Home from '../pages/home/home';
-import LandingPage from '../pages/landing/landing';
-import handleArtistAlbumsActions from '../services/actions/crud-actions/handle_album_on_artist_actions';
-import handleArtistActions from '../services/actions/crud-actions/handle_artist_actions';
-import handleTrackActions from '../services/actions/crud-actions/handle_track_actions';
-import generateImageAction from '../services/actions/generate-image-action';
-import loadAlbumTracks from '../services/loaders/crud-loaders/load-album-tracks';
-import loadAlbums from '../services/loaders/crud-loaders/load-albums';
-import loadArtistsAndCount from '../services/loaders/crud-loaders/load-artists';
-import loadAlbumsForArtist from '../services/loaders/crud-loaders/load_albums_for_artist';
-import registerPlayersAndStartGame from '../services/loaders/register-players-and-start-game';
-const ActiveGameSession = lazy(() => import('../components/games/active_game_session'));
-const AddEntry = lazy(() => import('../components/crud/add-entry/add-entry'));
-const Album = lazy(() => import('../components/crud/albums/album-base'));
-const Artist = lazy(() => import('../components/crud/artists/artist-base'));
-const AlbumsOnArtist = lazy(() => import('../components/crud/albums/artist-albums'));
-const Tracks = lazy(() => import('../components/crud/tracks/album-tracks'));
-const TextGenerator = lazy(() => import('../components/gen-ai/text/text'));
-const Image = lazy(() => import('../components/gen-ai/image/image'));
-const Audio = lazy(() => import('../components/gen-ai/audio/audio'));
+import Layout from '../components/layout/layout.js';
+import GameLoading from '../components/loading/loading.js';
+import PrivacyPolicy from '../components/privacy-policy/privacy-policy.js';
+import BaseError from '../errors/base_error.js';
+import Crud from '../pages/crud/crud.js';
+import Games from '../pages/games/games.js';
+import GenAiHome from '../pages/gen-ai/gen-ai.js';
+import Home from '../pages/home/home.js';
+import LandingPage from '../pages/landing/landing.js';
+import handleArtistAlbumsActions from '../services/actions/crud-actions/handle_album_on_artist_actions.js';
+import handleArtistActions from '../services/actions/crud-actions/handle_artist_actions.js';
+import handleTrackActions from '../services/actions/crud-actions/handle_track_actions.js';
+import generateImageAction from '../services/actions/generate-image-action.js';
+import loadAlbumTracks from '../services/loaders/crud-loaders/load-album-tracks.js';
+import loadAlbums from '../services/loaders/crud-loaders/load-albums.js';
+import loadArtistsAndCount from '../services/loaders/crud-loaders/load-artists.js';
+import loadAlbumsForArtist from '../services/loaders/crud-loaders/load_albums_for_artist.js';
+import registerPlayersAndStartGame from '../services/loaders/register-players-and-start-game.js';
+const ActiveGameSession = lazy(() => import('../components/games/active_game_session.js'));
+const AddEntry = lazy(() => import('../components/crud/add-entry/add-entry.js'));
+const Album = lazy(() => import('../components/crud/albums/album-base.js'));
+const Artist = lazy(() => import('../components/crud/artists/artist-base.js'));
+const AlbumsOnArtist = lazy(() => import('../components/crud/albums/artist-albums.js'));
+const Tracks = lazy(() => import('../components/crud/tracks/album-tracks.js'));
+const TextGenerator = lazy(() => import('../components/gen-ai/text/text.js'));
+const Image = lazy(() => import('../components/gen-ai/image/image.js'));
+const Audio = lazy(() => import('../components/gen-ai/audio/audio.js'));
 
 /**
  * React Router DOM Route Object array.
@@ -41,13 +39,12 @@ const Audio = lazy(() => import('../components/gen-ai/audio/audio'));
  * @type {RouteObject[]}
  */
 
-export const routes: RouteObject[] = [
+const routes: RouteObject[] = [
   {
     id: 'landing',
     path: '/',
     Component: LandingPage,
-    hydrateFallbackElement: <Waiting src={waiting} />,
-    errorElement: <BaseError />,
+    ErrorBoundary: BaseError,
   },
   {
     path: 'portfolio',
@@ -60,7 +57,6 @@ export const routes: RouteObject[] = [
       {
         path: 'crud',
         Component: Crud,
-        hydrateFallbackElement: <Waiting src={waiting} />,
         children: [
           {
             id: 'artists',
@@ -114,7 +110,7 @@ export const routes: RouteObject[] = [
             path: ':id',
             Component: ActiveGameSession,
             loader: registerPlayersAndStartGame,
-            hydrateFallbackElement: <GameLoading />,
+            HydrateFallback: GameLoading,
           },
         ],
       },
@@ -122,26 +118,26 @@ export const routes: RouteObject[] = [
         id: 'gen-ai',
         path: 'gen-ai',
         Component: GenAiHome,
-        errorElement: <BaseError />,
+        ErrorBoundary: BaseError,
         children: [
           {
             id: 'text',
             path: 'text',
             Component: TextGenerator,
-            errorElement: <BaseError />,
+            ErrorBoundary: BaseError,
           },
           {
             id: 'image',
             path: 'image',
             Component: Image,
             action: generateImageAction,
-            errorElement: <BaseError />,
+            ErrorBoundary: BaseError,
           },
           {
             id: 'audio',
             path: 'audio',
             Component: Audio,
-            errorElement: <BaseError />,
+            ErrorBoundary: BaseError,
           },
         ],
       },
@@ -154,4 +150,4 @@ export const routes: RouteObject[] = [
   },
 ];
 
-// export default routes;
+export default routes;

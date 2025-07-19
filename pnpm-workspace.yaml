@@ -1,6 +1,7 @@
 packages:
   - apps/**
   - packages/**
+
 onlyBuiltDependencies:
   - '@azure/msal-node-extensions'
   - '@azure/msal-node-runtime'
@@ -10,6 +11,7 @@ onlyBuiltDependencies:
   - '@swc/core'
   - bcrypt
   - esbuild
+  - eslint-config-prettier
   - keytar
   - nx
   - prisma

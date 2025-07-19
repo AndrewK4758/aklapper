@@ -5,6 +5,8 @@ import type { LoaderFunction, LoaderFunctionArgs } from 'react-router';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
+console.log(baseURL);
+
 const loadAlbumsForArtistAndCount: LoaderFunction = async ({
   params,
   request,

@@ -1,7 +1,7 @@
 import DefaultPropsProvider from '@mui/material/DefaultPropsProvider';
 import { createBrowserRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
-import { routes } from '../routes/routes';
+import routes from '../routes/routes';
 import '../styles/main-styles.css';
 import { DEFAULT_PROPS } from '../styles/themes/default_props';
 
