@@ -1,11 +1,27 @@
 import type { FileData } from '@google-cloud/vertexai';
 import type ShortUniqueId from 'short-unique-id';
 
-export type DataGridLoader<T> = { data: T; count?: number };
+export type QueryOptions = {
+  cursor: string;
+  take: string;
+};
 
-// export type DataGridLoaderWithCount<T> = DataGridLoader<T> & { count: number };
+export type ClientPagination<T> = {
+  type: 'client';
+  data: T;
+};
 
-export type CRUD_ApiResponse<T> = DataGridLoader<T> & {
+export type ServerPagination<T> = {
+  type: 'server';
+  data: T;
+  count: number;
+};
+
+export type DataGridServerPagination<T> = Omit<ServerPagination<T>, 'type'>;
+
+export type DataGridClientPagination<T> = Omit<ClientPagination<T>, 'type'>;
+
+export type CRUD_ApiResponse<T> = (ClientPagination<T> | ServerPagination<T>) & {
   message: string;
 };
 

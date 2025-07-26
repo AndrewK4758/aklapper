@@ -21,7 +21,7 @@ const deleteTracks = async (req: Request, resp: Response) => {
     };
     const deletedTrack = await deleteTrack(query);
 
-    const data: CRUD_ApiResponse<track> = { message: `Track ID: ${id} deleted`, data: deletedTrack };
+    const data: CRUD_ApiResponse<track> = { type: 'client', message: `Track ID: ${id} deleted`, data: deletedTrack };
     resp.status(200).json(data);
   } catch (error) {
     console.error(error);

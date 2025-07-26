@@ -15,7 +15,7 @@ import handleTrackActions from '../services/actions/crud-actions/handle_track_ac
 import generateImageAction from '../services/actions/generate-image-action.js';
 import loadAlbumTracks from '../services/loaders/crud-loaders/load-album-tracks.js';
 import loadAlbums from '../services/loaders/crud-loaders/load-albums.js';
-import loadArtistsAndCount from '../services/loaders/crud-loaders/load-artists.js';
+import loadArtistsAndCount from '../services/loaders/crud-loaders/load-artists_and_count.js';
 import loadAlbumsForArtist from '../services/loaders/crud-loaders/load_albums_for_artist.js';
 import registerPlayersAndStartGame from '../services/loaders/register-players-and-start-game.js';
 const ActiveGameSession = lazy(() => import('../components/games/active_game_session.js'));

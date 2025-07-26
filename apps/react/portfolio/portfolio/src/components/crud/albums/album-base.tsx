@@ -1,13 +1,14 @@
 import type { album } from '@aklapper/chinook-client';
 import { CenteredFlexDiv, Waiting } from '@aklapper/react-shared';
-import type { DataGridLoader } from '@aklapper/types';
+import type { DataGridServerPagination } from '@aklapper/types';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import { css } from '@pigment-css/react';
 import { Suspense, type ReactElement } from 'react';
-import { Outlet, useFetcher, useLoaderData } from 'react-router';
+import { Await, Outlet, useFetcher, useLoaderData } from 'react-router';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
 import Theme from '../../../styles/themes/theme';
+import type { CRUD_LoaderPromise } from '../../../types/types';
 import DataGridHeader from '../data_grid_header';
 import AddAlbum from './add-album';
 import AlbumBaseDataGrid from './album_base_data_grid';
@@ -20,7 +21,7 @@ import AlbumBaseDataGrid from './album_base_data_grid';
  */
 
 const Album = (): ReactElement => {
-  const { count, data } = useLoaderData<DataGridLoader<album[]>>();
+  const { loader } = useLoaderData<CRUD_LoaderPromise<DataGridServerPagination<album[]>>>();
   const fetcher = useFetcher();
 
   return (
@@ -60,13 +61,15 @@ const Album = (): ReactElement => {
           </Container>
         </Box>
         <Box>
-          <AlbumBaseDataGrid rows={data} count={count as number} submit={fetcher.submit} />
+          <Suspense fallback={<Waiting src={waiting} />}>
+            <Await resolve={loader}>
+              <AlbumBaseDataGrid loader={loader} submit={fetcher.submit} />
+            </Await>
+          </Suspense>
         </Box>
       </Box>
       <Box id='tracks-on-album-box' sx={{ flex: '0 1 50%' }}>
-        <Suspense fallback={<Waiting src={waiting} />}>
-          <Outlet />
-        </Suspense>
+        <Outlet />
       </Box>
     </CenteredFlexDiv>
   );

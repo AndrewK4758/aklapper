@@ -1,4 +1,5 @@
 import type { artist } from '@aklapper/chinook-client';
+import type { DataGridServerPagination, QueryOptions } from '@aklapper/types';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import DetailsIcon from '@mui/icons-material/Details';
 import UploadIcon from '@mui/icons-material/Upload';
@@ -7,11 +8,13 @@ import { GridActionsCellItem } from '@mui/x-data-grid/components/cell';
 import { DataGrid } from '@mui/x-data-grid/DataGrid';
 import type { GridColDef } from '@mui/x-data-grid/models/colDef';
 import type { GridRowParams } from '@mui/x-data-grid/models/params';
-import { useCallback, useState } from 'react';
+import { css } from '@pigment-css/react';
+import Box from '@pigment-css/react/Box';
+import { use, useCallback, useState } from 'react';
 import { useNavigate, useSearchParams, type FetcherWithComponents } from 'react-router';
 import { DATA_GRID_BG } from '../../../styles/base/base_styles';
 import Theme from '../../../styles/themes/theme';
-import type { ArtistSubmitAction, QueryOptions } from '../../../types/types';
+import type { ArtistSubmitAction } from '../../../types/types';
 
 export type PaginationModel = {
   pageSize: number;
@@ -19,12 +22,12 @@ export type PaginationModel = {
 };
 
 interface ArtistDataGridProps {
-  COUNT: number;
-  rows: artist[];
+  promise: Promise<DataGridServerPagination<artist[]>>;
   fetcher: FetcherWithComponents<artist>;
 }
 
-export default function ArtistDataGrid({ rows, COUNT, fetcher }: ArtistDataGridProps) {
+export default function ArtistDataGrid({ promise, fetcher }: ArtistDataGridProps) {
+  const { data, count } = use(promise);
   const [searchParams, setSearchParams] = useSearchParams();
   const [dirtyRows, setDirtyRows] = useState<Set<number>>(new Set());
   const nav = useNavigate();
@@ -39,15 +42,13 @@ export default function ArtistDataGrid({ rows, COUNT, fetcher }: ArtistDataGridP
 
   const queryOptions: QueryOptions = {
     take: model.pageSize.toString(),
-    skip: model.page === 0 ? '0' : '1',
-    cursor: model.page === 0 ? '1' : (model.pageSize * model.page).toString(),
+    cursor: (model.pageSize * model.page).toString(),
   };
 
   const handleChangePagination = (model: GridPaginationModel) => {
     const newQueryOptions: QueryOptions = {
       take: model.pageSize.toString(),
-      skip: model.page === 0 ? '0' : '1',
-      cursor: model.page === 0 ? '1' : (model.pageSize * model.page).toString(),
+      cursor: model.page === 0 ? '0' : (model.pageSize * model.page).toString(),
     };
     setSearchParams(newQueryOptions);
   };
@@ -116,10 +117,9 @@ export default function ArtistDataGrid({ rows, COUNT, fetcher }: ArtistDataGridP
             title='Albums'
             icon={<DetailsIcon color='info' />}
             onClick={() =>
-              nav(
-                `${params.row.artist_id}/albums?take=${queryOptions.take}&skip=${queryOptions.skip}&cursor=${queryOptions.cursor}`,
-                { replace: true },
-              )
+              nav(`${params.row.artist_id}/albums?take=${queryOptions.take}&cursor=${queryOptions.cursor}`, {
+                replace: true,
+              })
             }
           />,
         ];
@@ -130,36 +130,38 @@ export default function ArtistDataGrid({ rows, COUNT, fetcher }: ArtistDataGridP
   const getID = (row: artist) => row.artist_id;
 
   return (
-    <DataGrid
-      label='Artists'
-      columns={columns}
-      rows={rows}
-      getRowId={getID}
-      rowCount={COUNT}
-      getRowHeight={() => 'auto'}
-      pageSizeOptions={[10, 25, 50, 100]}
-      paginationMode='server'
-      onPaginationModelChange={handleChangePagination}
-      paginationModel={model}
-      processRowUpdate={processRowUpdate}
-      onProcessRowUpdateError={error => console.error(error)}
-      sx={{
-        '&.MuiDataGrid-root': {
-          backgroundColor: DATA_GRID_BG,
-        },
-        '& .MuiDataGrid-footerContainer': {
-          backgroundColor: Theme.palette.background.paper,
-          color: Theme.palette.text.secondary,
-        },
-        '& .MuiDataGrid-columnHeader': {
-          backgroundColor: Theme.palette.background.paper,
-          color: Theme.palette.text.secondary,
-        },
-        '.MuiDataGrid-columnSeparator': {
-          color: Theme.palette.primary.dark,
-        },
-      }}
-    />
+    <Box className={css({ width: '100%' })}>
+      <DataGrid
+        label='Artists'
+        columns={columns}
+        rows={data}
+        getRowId={getID}
+        rowCount={count}
+        getRowHeight={() => 'auto'}
+        pageSizeOptions={[10, 25, 50, 100]}
+        paginationMode='server'
+        onPaginationModelChange={handleChangePagination}
+        paginationModel={model}
+        processRowUpdate={processRowUpdate}
+        onProcessRowUpdateError={error => console.error(error)}
+        sx={{
+          '&.MuiDataGrid-root': {
+            backgroundColor: DATA_GRID_BG,
+          },
+          '& .MuiDataGrid-footerContainer': {
+            backgroundColor: Theme.palette.background.paper,
+            color: Theme.palette.text.secondary,
+          },
+          '& .MuiDataGrid-columnHeader': {
+            backgroundColor: Theme.palette.background.paper,
+            color: Theme.palette.text.secondary,
+          },
+          '&.MuiDataGrid-columnSeparator': {
+            color: Theme.palette.primary.dark,
+          },
+        }}
+      />
+    </Box>
   );
 }
 

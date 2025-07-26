@@ -1,13 +1,14 @@
 import type { artist } from '@aklapper/chinook-client';
 import { CenteredFlexDiv, Waiting } from '@aklapper/react-shared';
-import type { DataGridLoader } from '@aklapper/types';
+import type { DataGridServerPagination } from '@aklapper/types';
 import { css } from '@mui/material-pigment-css';
 import Box from '@mui/material-pigment-css/Box';
 import Container from '@mui/material-pigment-css/Container';
 import { type ReactElement, Suspense } from 'react';
-import { Outlet, useFetcher, useLoaderData } from 'react-router';
+import { Await, Outlet, useFetcher, useLoaderData } from 'react-router';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
 import Theme from '../../../styles/themes/theme';
+import type { CRUD_LoaderPromise } from '../../../types/types';
 import DataGridHeader from '../data_grid_header';
 import AddArtist from './add-artist';
 import ArtistDataGrid from './data_grid';
@@ -20,7 +21,7 @@ import ArtistDataGrid from './data_grid';
  */
 
 const Artist = (): ReactElement => {
-  const { count, data } = useLoaderData<DataGridLoader<artist[]>>();
+  const { loader } = useLoaderData<CRUD_LoaderPromise<DataGridServerPagination<artist[]>>>();
   const fetcher = useFetcher();
 
   return (
@@ -47,14 +48,14 @@ const Artist = (): ReactElement => {
         >
           <DataGridHeader title='Artist List' />
           <Container id={'add-artist-box'}>
-            <AddArtist COUNT={count as number} fetcher={fetcher} />
+            <AddArtist promise={loader} fetcher={fetcher} />
           </Container>
         </Box>
-        <Box>
+        <Box className={css({ width: '100%' })}>
           <Suspense fallback={<Waiting src={waiting} />}>
-            <Box>
-              <ArtistDataGrid rows={data} COUNT={count as number} fetcher={fetcher} />
-            </Box>
+            <Await resolve={loader}>
+              <ArtistDataGrid promise={loader} fetcher={fetcher} />
+            </Await>
           </Suspense>
         </Box>
       </Box>

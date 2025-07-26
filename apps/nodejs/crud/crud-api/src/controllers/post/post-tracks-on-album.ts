@@ -23,6 +23,7 @@ const createTracksOnAlbum = async (req: Request, resp: Response) => {
     const newTrack = await createTracks(query);
 
     const data: CRUD_ApiResponse<track> = {
+      type: 'client',
       message: 'Track Added',
       data: newTrack,
     };

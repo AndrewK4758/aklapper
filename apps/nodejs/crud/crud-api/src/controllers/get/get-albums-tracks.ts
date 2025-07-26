@@ -26,7 +26,7 @@ const getAlbumsTracks = async (req: Request, resp: Response, next: NextFunction)
 
       const tracks = await getAlbumTracks(query);
 
-      const data: CRUD_ApiResponse<track[]> = { message: 'Albums Tracks sucessful', data: tracks };
+      const data: CRUD_ApiResponse<track[]> = { type: 'client', message: 'Albums Tracks sucessful', data: tracks };
 
       resp.status(200).json(data);
     } catch (error) {

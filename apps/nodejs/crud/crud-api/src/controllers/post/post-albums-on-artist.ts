@@ -18,6 +18,7 @@ const createAlbumsOnArtists = async (req: Request, resp: Response) => {
     const newAlbum = await createAlbumOnArtist(parseInt(artistID, 10), title);
 
     const postResp: CRUD_ApiResponse<album> = {
+      type: 'client',
       message: 'Album Created',
       data: newAlbum,
     };

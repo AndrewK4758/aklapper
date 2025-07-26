@@ -1,11 +1,12 @@
 import type { track } from '@aklapper/chinook-client';
+import type { DataGridClientPagination } from '@aklapper/types';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import UploadIcon from '@mui/icons-material/Upload';
 import { GridActionsCellItem } from '@mui/x-data-grid/components/cell';
 import { DataGrid } from '@mui/x-data-grid/DataGrid';
 import type { GridColDef } from '@mui/x-data-grid/models/colDef';
 import type { GridRowParams } from '@mui/x-data-grid/models/params';
-import { useCallback, useState } from 'react';
+import { use, useCallback, useState } from 'react';
 import { type FetcherWithComponents } from 'react-router';
 import handleDeleteTrack from '../../../services/actions/crud-actions/handle-delete-track.js';
 import handleUpdateTrack from '../../../services/actions/crud-actions/handle-update-track.js';
@@ -19,11 +20,12 @@ const paginationModelInit: PaginationModel = {
 };
 
 interface TracksDataGridProps {
-  rows: track[];
+  loader: Promise<DataGridClientPagination<track[]>>;
   fetcher: FetcherWithComponents<track>;
 }
 
-export default function TracksDataGrid({ rows, fetcher }: TracksDataGridProps) {
+export default function TracksDataGrid({ loader, fetcher }: TracksDataGridProps) {
+  const { data } = use(loader);
   const [dirtyRows, setDirtyRows] = useState<Set<number>>(new Set());
   const [paginationModel, setPaginationModel] = useState<PaginationModel>(paginationModelInit);
 
@@ -135,7 +137,7 @@ export default function TracksDataGrid({ rows, fetcher }: TracksDataGridProps) {
     <DataGrid
       aria-label='track-data-grid'
       columns={columns}
-      rows={rows}
+      rows={data}
       getRowId={getID}
       getRowHeight={() => 'auto'}
       pageSizeOptions={[1, 5, 10, 25]}

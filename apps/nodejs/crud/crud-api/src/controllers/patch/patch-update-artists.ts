@@ -18,6 +18,7 @@ const updateArtists = async (req: Request, resp: Response): Promise<void> => {
     const updatedArtist = await updateArtist(artist_id, name);
 
     const updateResp: CRUD_ApiResponse<artist> = {
+      type: 'client',
       message: `Artist ID: ${artist_id} updated`,
       data: updatedArtist,
     };

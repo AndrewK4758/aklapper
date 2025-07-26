@@ -9,11 +9,11 @@ import type { DefaultArgs } from '@prisma/client/runtime/library';
 
 const findAllAlbumsAndCount = async (
   query: Prisma.albumFindManyArgs<DefaultArgs>,
-): Promise<{ count: number; data: album[] }> => {
+): Promise<{ count: number; albums: album[] }> => {
   try {
     const [count, data] = await prisma.$transaction([prisma.album.count(), prisma.album.findMany(query)]);
 
-    return { count, data };
+    return { count, albums: data };
   } catch (error) {
     const prismaError = new PrismaErrorLogger(error as PrismaClientErrors);
     throw prismaError.parseErrors();

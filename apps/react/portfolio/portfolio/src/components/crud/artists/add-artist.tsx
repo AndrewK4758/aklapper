@@ -1,9 +1,10 @@
 import type { artist } from '@aklapper/chinook-client';
 import { CenteredFlexDiv, TextInput } from '@aklapper/react-shared';
+import type { DataGridServerPagination } from '@aklapper/types';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import { useFormik } from 'formik';
-import { type ReactElement } from 'react';
+import { use, type ReactElement } from 'react';
 import { type FetcherWithComponents } from 'react-router';
 import handleSubmitNewArtist from '../../../services/actions/crud-actions/handle-create_new_artist';
 import handleFormikBlur from '../../../services/actions/crud-actions/handle_formik_blur';
@@ -11,7 +12,7 @@ import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
 
 interface AddArtistProps {
   fetcher: FetcherWithComponents<artist>;
-  COUNT: number;
+  promise: Promise<DataGridServerPagination<artist[]>>;
   // setRows: Dispatch<SetStateAction<artist[]>>;
 }
 
@@ -26,9 +27,11 @@ interface AddArtistProps {
  * @returns {ReactElement} The rendered AddArtist component.
  */
 
-const AddArtist = ({ COUNT, fetcher }: AddArtistProps): ReactElement => {
+const AddArtist = ({ promise, fetcher }: AddArtistProps): ReactElement => {
+  const { count } = use(promise);
+
   const formik = useFormik({
-    initialValues: { name: '', artist_id: COUNT + 1 } as artist,
+    initialValues: { name: '', artist_id: count + 1 } as artist,
     onSubmit: async values => {
       await handleSubmitNewArtist(values, formik, fetcher.submit);
     },

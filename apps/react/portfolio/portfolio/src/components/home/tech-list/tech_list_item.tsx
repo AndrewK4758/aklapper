@@ -13,7 +13,7 @@ export default function TechListItem({ listItem, ...props }: TechListItemProps) 
       {...props}
       id={`${listItem}-wrapper`}
       data-testid={`${listItem}-wrapper`}
-      className={css({ display: 'flex', justifyItems: 'space-between' })}
+      className={css({ display: 'flex', justifyItems: 'space-between', width: '206px' })}
     >
       <ListItemText
         id={listItem}

@@ -17,6 +17,7 @@ const postArtists = async (req: Request, resp: Response): Promise<void> => {
     const newArtist = await createArtists(name);
 
     const postResp: CRUD_ApiResponse<artist> = {
+      type: 'client',
       message: 'Artist Created Sucessful',
       data: newArtist,
     };

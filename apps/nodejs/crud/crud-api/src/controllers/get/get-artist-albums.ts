@@ -23,11 +23,11 @@ const getArtistsAlbums = async (req: Request, resp: Response): Promise<void> => 
       where: { artist_id: parseInt(artistID, 10) },
     } as Prisma.albumFindManyArgs<DefaultArgs>;
 
-    const { count, data } = await getArtistAlbums(query);
+    const { data } = await getArtistAlbums(query);
 
     const respData: CRUD_ApiResponse<album[]> = {
+      type: 'client',
       message: 'Arist Albums found',
-      count: count,
       data: data,
     };
 

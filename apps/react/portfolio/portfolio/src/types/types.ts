@@ -24,6 +24,10 @@ export type CompletedState = {
   [k: number]: boolean;
 };
 
+export type CRUD_LoaderPromise<T> = {
+  loader: Promise<T>;
+};
+
 export type NewEntryArtist = Pick<artist, 'name'>;
 export type NewEntryAlbum = Pick<album, 'title'>;
 export type NewEntryTrack = Pick<
@@ -40,12 +44,6 @@ export type NewEntry = {
 export type NewEntryIDs = {
   artistID: number;
   albumID: number;
-};
-
-export type QueryOptions = {
-  cursor: string;
-  take: string;
-  skip: string;
 };
 
 export type CRUD_ApiResponse<T> = {

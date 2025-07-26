@@ -21,5 +21,6 @@
 
   "testing.automaticallyOpenTestResults": "neverOpen",
   "python.analysis.typeCheckingMode": "basic",
-  "vitest.disableWorkspaceWarning": true
+  "vitest.disableWorkspaceWarning": true,
+  "deno.enable": false
 }

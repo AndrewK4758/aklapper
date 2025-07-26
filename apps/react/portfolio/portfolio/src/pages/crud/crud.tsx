@@ -21,7 +21,6 @@ const Search = lazy(() => import('../../components/crud/search/search'));
 
 export default function Crud(): ReactElement {
   const [searchIsOpen, setSearchIsOpen] = useState<boolean>(false);
-
   const handleSetSearchClick = () => {
     setSearchIsOpen(!searchIsOpen);
   };

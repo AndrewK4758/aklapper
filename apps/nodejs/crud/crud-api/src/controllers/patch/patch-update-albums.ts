@@ -18,6 +18,7 @@ const updateAlbums = async (req: Request, resp: Response) => {
     const updatedAlbum = await updateAlbum(parseInt(albumID, 10), title);
 
     const updateResp: CRUD_ApiResponse<album> = {
+      type: 'client',
       message: `Album ID: ${albumID} updated`,
       data: updatedAlbum,
     };

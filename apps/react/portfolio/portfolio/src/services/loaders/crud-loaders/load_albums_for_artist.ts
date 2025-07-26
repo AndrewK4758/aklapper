@@ -1,22 +1,20 @@
 import type { album } from '@aklapper/chinook-client';
-import type { CRUD_ApiResponse, DataGridLoader } from '@aklapper/types';
+import type { DataGridClientPagination } from '@aklapper/types';
 import axios from 'axios';
 import type { LoaderFunction, LoaderFunctionArgs } from 'react-router';
+import type { CRUD_LoaderPromise } from '../../../types/types';
 
 const baseURL = import.meta.env.VITE_CRUD_API_URL;
 
-const loadAlbumsForArtist: LoaderFunction = async ({
+const loadAlbumsForArtist: LoaderFunction = ({
   params,
-}: LoaderFunctionArgs): Promise<DataGridLoader<album[]> | void> => {
+}: LoaderFunctionArgs): CRUD_LoaderPromise<DataGridClientPagination<album[]>> | void => {
   try {
     const { artistID } = params;
 
-    const resp = await axios.get(`${baseURL}/artist/${artistID}`);
+    const resp = axios.get<DataGridClientPagination<album[]>>(`${baseURL}/artist/${artistID}`).then(resp => resp.data);
 
-    const { message, data, count } = resp.data as CRUD_ApiResponse<album[]>;
-    console.log(message);
-
-    return { data, count };
+    return { loader: resp };
   } catch (error) {
     console.error(error);
   }

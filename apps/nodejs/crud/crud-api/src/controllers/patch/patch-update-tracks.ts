@@ -18,6 +18,7 @@ const updateTracks = async (req: Request, resp: Response) => {
     const updatedTrack = await updateTrack(trackData);
 
     const updatedResp: CRUD_ApiResponse<track> = {
+      type: 'client',
       message: `Track ID: ${trackData.track_id} updated`,
       data: updatedTrack,
     };

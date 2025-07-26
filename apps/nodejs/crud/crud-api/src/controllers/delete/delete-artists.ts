@@ -18,6 +18,7 @@ const deleteArtist = async (req: Request, resp: Response): Promise<void> => {
     const deletedArtist = await deleteArtists(parseInt(id, 10));
 
     const deleteResp: CRUD_ApiResponse<artist> = {
+      type: 'client',
       message: `Artist ID: ${id} deleted`,
       data: deletedArtist,
     };
