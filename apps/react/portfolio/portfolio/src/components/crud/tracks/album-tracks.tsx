@@ -1,14 +1,9 @@
 import type { track } from '@aklapper/chinook-client';
-import { CenteredFlexDiv, Waiting } from '@aklapper/react-shared';
 import type { DataGridClientPagination } from '@aklapper/types';
-import Box from '@mui/material-pigment-css/Box';
-import Container from '@mui/material-pigment-css/Container';
-import { css } from '@pigment-css/react';
-import { Suspense, type ReactElement } from 'react';
-import { Await, useFetcher, useLoaderData, useParams } from 'react-router';
-import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
-import Theme from '../../../styles/themes/theme';
+import { type ReactElement } from 'react';
+import { useFetcher, useLoaderData, useParams } from 'react-router';
 import type { CRUD_LoaderPromise } from '../../../types/types';
+import CrudElement from '../crud_entry';
 import DataGridHeader from '../data_grid_header';
 import AddTrack from './add-track';
 import TracksDataGrid from './data_grid';
@@ -26,35 +21,13 @@ const Tracks = (): ReactElement => {
   const fetcher = useFetcher<track>();
 
   return (
-    <CenteredFlexDiv
-      id={'track-box'}
-      className={css({
-        padding: 0,
-      })}
-    >
-      <Box
-        className={css({
-          gap: Theme.spacing(4),
-          borderRadius: Theme.shape.borderRadius,
-          background: Theme.palette.background.paper,
-          width: '100%',
-        })}
-      >
-        <DataGridHeader title='Album Tracks' />
-        <Container component={'div'} className={css({ padding: '1 0' })}>
-          <AddTrack albumID={albumID} fetcher={fetcher} />
-        </Container>
-      </Box>
-      <Box className={css({ width: '100%' })}>
-        <Box>
-          <Suspense fallback={<Waiting src={waiting} />}>
-            <Await resolve={loader}>
-              <TracksDataGrid loader={loader} fetcher={fetcher} />
-            </Await>
-          </Suspense>
-        </Box>
-      </Box>
-    </CenteredFlexDiv>
+    <CrudElement<track, DataGridClientPagination<track[]>>
+      crudElement='tracks'
+      loader={loader}
+      Header={<DataGridHeader title='Album Tracks' />}
+      NewEntry={<AddTrack albumID={albumID} fetcher={fetcher} />}
+      DataGrid={<TracksDataGrid loader={loader} fetcher={fetcher} />}
+    />
   );
 };
 

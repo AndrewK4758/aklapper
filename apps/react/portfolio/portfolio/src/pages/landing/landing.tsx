@@ -66,7 +66,9 @@ export default function LandingPage({ ...props }) {
 
   return (
     <StyledRootComponentWrapper {...props} id='landing-root' className={css({ height: '95vh' })}>
-      <LandingHeader isLandingNavOpen={state.isLandingNavOpen} />
+      <Box sx={{ display: 'flex', flexShrink: 1 }}>
+        <LandingHeader isLandingNavOpen={state.isLandingNavOpen} />
+      </Box>
       <Box
         as={'section'}
         id={'landing-svg-animations-wrapper'}

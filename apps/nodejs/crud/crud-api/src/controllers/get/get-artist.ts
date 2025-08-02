@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express';
+import type { Request, Response, RequestHandler } from 'express';
 import findArtist from '../../services/prisma/artist/find-artist.js';
 
 /**
@@ -9,8 +9,7 @@ import findArtist from '../../services/prisma/artist/find-artist.js';
  * @returns No explicit return value. It sends a JSON response with the artist data if found, or an error message if not found or an error occurs.
  */
 
-//?????????????????????????????????????????????????????
-const getArtist = async (req: Request, resp: Response) => {
+const getArtist: RequestHandler = async (req: Request, resp: Response) => {
   try {
     const artistID = req.params.id;
 

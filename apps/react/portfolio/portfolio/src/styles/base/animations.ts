@@ -3,7 +3,7 @@ import { MAIN_COLOR, SECONDARY_COLOR } from './base_styles';
 
 export const typewriter = keyframes`
 from {
-width: 0;
+width: 0%;
 }
 to {
 width: 100%;

@@ -3,7 +3,7 @@ import { pigment } from '@pigment-css/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
 import { cwd } from 'node:process';
-import { defineConfig, type UserConfig } from 'vite';
+import { defineConfig } from 'vite';
 import Theme from './src/styles/themes/theme';
 import MODULES from './vite_modules';
 
@@ -18,7 +18,7 @@ const NODE_ENV = process.env.NODE_ENV;
 const OUT_DIR = './dist';
 const ROOT = cwd();
 
-const config: UserConfig = defineConfig({
+const config = defineConfig({
   root: ROOT,
   cacheDir: resolve(workspaceRoot, 'node_modules/.vite/apps/react/portfolio/portfolio'),
   server: {
@@ -88,9 +88,6 @@ const config: UserConfig = defineConfig({
 
     rollupOptions: {
       logLevel: 'debug',
-      experimentalLogSideEffects: true,
-      strictDeprecations: true,
-      perf: true,
       output: {
         esModule: true,
         format: 'esm',

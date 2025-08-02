@@ -50,19 +50,17 @@ export default function Crud(): ReactElement {
         </Box>
       </Box>
 
-      <Suspense fallback={<Waiting src={waiting} />}>
-        <CenteredFlexDiv
-          className={css({
-            backgroundColor: Theme.palette.background.paper,
-            borderRadius: Theme.shape.borderRadius,
-            padding: 0,
-          })}
-        >
-          {searchIsOpen && <Search />}
-        </CenteredFlexDiv>
-      </Suspense>
+      <CenteredFlexDiv
+        className={css({
+          backgroundColor: Theme.palette.background.paper,
+          borderRadius: Theme.shape.borderRadius,
+          padding: 0,
+        })}
+      >
+        <Suspense fallback={<Waiting src={waiting} />}>{searchIsOpen && <Search />}</Suspense>
+      </CenteredFlexDiv>
 
-      <Box id={`crud-app-wrapper`} className={css({ width: '100%' })}>
+      <Box id={`crud-app-wrapper`} className={css({ height: '100%', width: '100%' })}>
         <Outlet />
       </Box>
     </CenteredFlexDiv>

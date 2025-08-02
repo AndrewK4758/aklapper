@@ -9,8 +9,6 @@
   "devDependencies": {
     "@aklapper/types": "workspace:*"
   },
-  "main": "./dist/src/index.js",
-  "types": "./dist/src/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
@@ -19,7 +17,6 @@
       "default": "./dist/src/index.js"
     }
   },
-  "module": "./dist/src/index.js",
   "nx": {
     "sourceRoot": "packages/prisma/chinook/src",
     "root": "packages/prisma/chinook",

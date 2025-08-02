@@ -15,8 +15,6 @@
     "@aklapper/types": "workspace:*",
     "@aklapper/utils": "workspace:*"
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
@@ -25,7 +23,6 @@
       "default": "./dist/index.js"
     }
   },
-  "module": "./dist/index.js",
   "nx": {
     "sourceRoot": "packages/games-chains/src",
     "projectType": "library",

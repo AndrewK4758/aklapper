@@ -1,14 +1,12 @@
 import type { album } from '@aklapper/chinook-client';
-import { CenteredFlexDiv, Waiting } from '@aklapper/react-shared';
 import type { DataGridServerPagination } from '@aklapper/types';
 import Box from '@mui/material/Box';
-import Container from '@mui/material/Container';
 import { css } from '@pigment-css/react';
-import { Suspense, type ReactElement } from 'react';
-import { Await, Outlet, useFetcher, useLoaderData } from 'react-router';
-import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
+import { type ReactElement } from 'react';
+import { Outlet, useFetcher, useLoaderData } from 'react-router';
 import Theme from '../../../styles/themes/theme';
 import type { CRUD_LoaderPromise } from '../../../types/types';
+import CrudElement from '../crud_entry';
 import DataGridHeader from '../data_grid_header';
 import AddAlbum from './add-album';
 import AlbumBaseDataGrid from './album_base_data_grid';
@@ -25,53 +23,25 @@ const Album = (): ReactElement => {
   const fetcher = useFetcher();
 
   return (
-    <CenteredFlexDiv
-      id='albums'
+    <Box
       className={css({
-        flexDirection: 'row',
-        justifyContent: 'flex-start',
-        alignItems: 'flex-start',
-        padding: 0,
+        display: 'flex',
         gap: Theme.spacing(4),
-        width: '100%',
       })}
     >
-      <Box
-        className={css({
-          display: 'flex',
-          flexDirection: 'column',
-          gap: Theme.spacing(4),
-          flex: '0 1 50%',
-          backgroundColor: 'transparent',
-        })}
-      >
-        <Box
-          id='album-box'
-          className={css({
-            flex: 1,
-            gap: Theme.spacing(4),
-            borderRadius: Theme.shape.borderRadius,
-            maxWidth: '100%',
-            backgroundColor: Theme.palette.background.paper,
-          })}
-        >
-          <DataGridHeader title='Album List' />
-          <Container id={'add-album-box'}>
-            <AddAlbum fetcher={fetcher} />
-          </Container>
-        </Box>
-        <Box>
-          <Suspense fallback={<Waiting src={waiting} />}>
-            <Await resolve={loader}>
-              <AlbumBaseDataGrid loader={loader} submit={fetcher.submit} />
-            </Await>
-          </Suspense>
-        </Box>
+      <Box className={css({ flex: '1 0 50%' })}>
+        <CrudElement<album, DataGridServerPagination<album[]>>
+          crudElement='albums'
+          loader={loader}
+          Header={<DataGridHeader title='Album List' />}
+          NewEntry={<AddAlbum fetcher={fetcher} />}
+          DataGrid={<AlbumBaseDataGrid loader={loader} fetcher={fetcher} />}
+        />
       </Box>
-      <Box id='tracks-on-album-box' sx={{ flex: '0 1 50%' }}>
+      <Box className={css({ flex: '1 0 50%', display: 'flex' })}>
         <Outlet />
       </Box>
-    </CenteredFlexDiv>
+    </Box>
   );
 };
 export default Album;

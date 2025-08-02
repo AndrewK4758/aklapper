@@ -16,11 +16,11 @@ export const RevealWrapper: ComponentType<RevealWrapperProps> = styled(Box, {
   variants: [
     {
       props: { isOpen: true },
-      style: { width: '100%', visibility: 'visible' },
+      style: { width: '100%' },
     },
     {
       props: { isOpen: false },
-      style: { width: '0%', visibility: 'hidden' },
+      style: { width: '0%' },
     },
   ],
 }));

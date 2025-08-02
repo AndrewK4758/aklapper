@@ -8,9 +8,7 @@ import { GridActionsCellItem } from '@mui/x-data-grid/components/cell';
 import { DataGrid } from '@mui/x-data-grid/DataGrid';
 import type { GridColDef } from '@mui/x-data-grid/models/colDef';
 import type { GridRowParams } from '@mui/x-data-grid/models/params';
-import { css } from '@pigment-css/react';
-import Box from '@pigment-css/react/Box';
-import { use, useCallback, useState } from 'react';
+import { use, useCallback, useState, type ReactElement } from 'react';
 import { useNavigate, useSearchParams, type FetcherWithComponents } from 'react-router';
 import { DATA_GRID_BG } from '../../../styles/base/base_styles';
 import Theme from '../../../styles/themes/theme';
@@ -26,7 +24,7 @@ interface ArtistDataGridProps {
   fetcher: FetcherWithComponents<artist>;
 }
 
-export default function ArtistDataGrid({ promise, fetcher }: ArtistDataGridProps) {
+export default function ArtistDataGrid({ promise, fetcher }: ArtistDataGridProps): ReactElement<ArtistDataGridProps> {
   const { data, count } = use(promise);
   const [searchParams, setSearchParams] = useSearchParams();
   const [dirtyRows, setDirtyRows] = useState<Set<number>>(new Set());
@@ -130,38 +128,36 @@ export default function ArtistDataGrid({ promise, fetcher }: ArtistDataGridProps
   const getID = (row: artist) => row.artist_id;
 
   return (
-    <Box className={css({ width: '100%' })}>
-      <DataGrid
-        label='Artists'
-        columns={columns}
-        rows={data}
-        getRowId={getID}
-        rowCount={count}
-        getRowHeight={() => 'auto'}
-        pageSizeOptions={[10, 25, 50, 100]}
-        paginationMode='server'
-        onPaginationModelChange={handleChangePagination}
-        paginationModel={model}
-        processRowUpdate={processRowUpdate}
-        onProcessRowUpdateError={error => console.error(error)}
-        sx={{
-          '&.MuiDataGrid-root': {
-            backgroundColor: DATA_GRID_BG,
-          },
-          '& .MuiDataGrid-footerContainer': {
-            backgroundColor: Theme.palette.background.paper,
-            color: Theme.palette.text.secondary,
-          },
-          '& .MuiDataGrid-columnHeader': {
-            backgroundColor: Theme.palette.background.paper,
-            color: Theme.palette.text.secondary,
-          },
-          '&.MuiDataGrid-columnSeparator': {
-            color: Theme.palette.primary.dark,
-          },
-        }}
-      />
-    </Box>
+    <DataGrid
+      label='Artists'
+      columns={columns}
+      rows={data}
+      getRowId={getID}
+      rowCount={count}
+      getRowHeight={() => 'auto'}
+      pageSizeOptions={[10, 25, 50, 100]}
+      paginationMode='server'
+      onPaginationModelChange={handleChangePagination}
+      paginationModel={model}
+      processRowUpdate={processRowUpdate}
+      onProcessRowUpdateError={error => console.error(error)}
+      sx={{
+        '&.MuiDataGrid-root': {
+          backgroundColor: DATA_GRID_BG,
+        },
+        '& .MuiDataGrid-footerContainer': {
+          backgroundColor: Theme.palette.background.paper,
+          color: Theme.palette.text.secondary,
+        },
+        '& .MuiDataGrid-columnHeader': {
+          backgroundColor: Theme.palette.background.paper,
+          color: Theme.palette.text.secondary,
+        },
+        '&.MuiDataGrid-columnSeparator': {
+          color: Theme.palette.primary.dark,
+        },
+      }}
+    />
   );
 }
 

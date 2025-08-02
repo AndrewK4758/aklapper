@@ -1,4 +1,4 @@
-import { css, styled } from '@mui/material-pigment-css';
+import { styled } from '@mui/material-pigment-css';
 import Box from '@mui/material-pigment-css/Box';
 import { typewriter } from '../../styles/base/animations';
 
@@ -9,14 +9,17 @@ interface TypewriterTextProps {
 const TypewriterText = styled(Box, { shouldForwardProp: prop => prop !== 'isLandingNavOpen' })<TypewriterTextProps>(
   ({ theme }) => ({
     display: 'flex',
-    overflow: 'hidden',
+    overflowX: 'hidden',
     fontFamily: 'Orange Gummy',
     whiteSpace: 'nowrap',
-    justifyItems: 'center',
+    justifyContent: 'flex-start',
     width: 0,
-    margin: 0,
+    marginLeft: '1.5em',
     padding: 0,
     fontSize: '6rem',
+    [theme.breakpoints.up('xl')]: {
+      fontSize: '5rem',
+    },
     [theme.breakpoints.down('lg')]: {
       fontSize: '3rem',
     },
@@ -48,15 +51,5 @@ interface LandingHeaderProps {
 }
 
 export default function Header({ isLandingNavOpen }: LandingHeaderProps) {
-  return (
-    <TypewriterText isLandingNavOpen={isLandingNavOpen}>
-      <Box
-        className={css({
-          marginLeft: '1.5em',
-        })}
-      >
-        SOMETHING IS TRYING TO ESCAPE!
-      </Box>
-    </TypewriterText>
-  );
+  return <TypewriterText isLandingNavOpen={isLandingNavOpen}>SOMETHING IS TRYING TO ESCAPE!</TypewriterText>;
 }

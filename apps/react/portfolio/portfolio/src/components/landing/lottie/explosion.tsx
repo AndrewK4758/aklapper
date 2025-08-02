@@ -25,7 +25,7 @@ const explosionBaseStyle: SxProps<ThemeType> = {
   },
 };
 
-interface ExplosionProps extends Omit<BoxProps, 'component'> {
+interface ExplosionProps extends Omit<BoxProps, 'component' | 'sx'> {
   isVisible: boolean;
 }
 

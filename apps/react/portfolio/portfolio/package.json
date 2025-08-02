@@ -12,7 +12,7 @@
     "@aklapper/types": "workspace:*",
     "@aklapper/vertex-ai": "workspace:*"
   },
-  "packageManager": "pnpm@10.13.1",
+  "packageManager": "pnpm@10.14.0",
   "nx": {
     "name": "portfolio",
     "projectType": "application",

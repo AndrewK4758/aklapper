@@ -4,9 +4,9 @@ import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import DetailsIcon from '@mui/icons-material/Details';
 import UploadIcon from '@mui/icons-material/Upload';
 import { DataGrid, GridActionsCellItem, type GridColDef, type GridRowParams } from '@mui/x-data-grid';
-import { css } from '@pigment-css/react';
-import Box from '@pigment-css/react/Box';
-import { use, useCallback, useState } from 'react';
+// import { css } from '@pigment-css/react';
+// import Box from '@pigment-css/react/Box';
+import { use, useCallback, useState, type ReactElement } from 'react';
 import { useNavigate, useSearchParams, type FetcherWithComponents } from 'react-router';
 import handleDeleteAlbum from '../../../services/actions/crud-actions/handle-delete-album.js';
 import handleUpdateAlbumTitle from '../../../services/actions/crud-actions/handle-update-album-title.js';
@@ -24,7 +24,7 @@ interface AlbumDataGrid {
   fetcher: FetcherWithComponents<album>;
 }
 
-export default function AlbumDataGrid({ promise, fetcher }: AlbumDataGrid) {
+export default function AlbumDataGrid({ promise, fetcher }: AlbumDataGrid): ReactElement<AlbumDataGrid> {
   const { data } = use(promise);
   const [searchParams] = useSearchParams();
   const [paginationModel, setPaginationModel] = useState<PaginationModel>(model);
@@ -112,35 +112,33 @@ export default function AlbumDataGrid({ promise, fetcher }: AlbumDataGrid) {
   };
 
   return (
-    <Box className={css({ width: '100%' })}>
-      <DataGrid
-        label='Albums'
-        columns={columns}
-        rows={data}
-        getRowId={getID}
-        getRowHeight={() => 'auto'}
-        pageSizeOptions={[1, 5, 10, 20]}
-        paginationModel={paginationModel}
-        onPaginationModelChange={setPaginationModel}
-        processRowUpdate={processRowUpdate}
-        onProcessRowUpdateError={error => console.error(error)}
-        sx={{
-          '&.MuiDataGrid-root': {
-            backgroundColor: DATA_GRID_BG,
-          },
-          '& .MuiDataGrid-footerContainer': {
-            backgroundColor: Theme.palette.background.paper,
-            color: Theme.palette.text.secondary,
-          },
-          '& .MuiDataGrid-columnHeader': {
-            backgroundColor: Theme.palette.background.paper,
-            color: Theme.palette.text.secondary,
-          },
-          '.MuiDataGrid-columnSeparator': {
-            color: Theme.palette.primary.dark,
-          },
-        }}
-      />
-    </Box>
+    <DataGrid
+      label='Albums'
+      columns={columns}
+      rows={data}
+      getRowId={getID}
+      getRowHeight={() => 'auto'}
+      pageSizeOptions={[1, 5, 10, 20]}
+      paginationModel={paginationModel}
+      onPaginationModelChange={setPaginationModel}
+      processRowUpdate={processRowUpdate}
+      onProcessRowUpdateError={error => console.error(error)}
+      sx={{
+        '&.MuiDataGrid-root': {
+          backgroundColor: DATA_GRID_BG,
+        },
+        '& .MuiDataGrid-footerContainer': {
+          backgroundColor: Theme.palette.background.paper,
+          color: Theme.palette.text.secondary,
+        },
+        '& .MuiDataGrid-columnHeader': {
+          backgroundColor: Theme.palette.background.paper,
+          color: Theme.palette.text.secondary,
+        },
+        '.MuiDataGrid-columnSeparator': {
+          color: Theme.palette.primary.dark,
+        },
+      }}
+    />
   );
 }

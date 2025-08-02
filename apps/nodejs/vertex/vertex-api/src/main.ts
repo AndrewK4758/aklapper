@@ -1,9 +1,8 @@
 import { SocketServer } from '@aklapper/socket-io-server';
 import cors, { type CorsOptions } from 'cors';
-import { configDotenv } from 'dotenv';
 import express, { type Express } from 'express';
 import { createServer } from 'http';
-import { dirname, resolve } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { join } from 'path';
 import type { ServerOptions } from 'socket.io';
@@ -13,8 +12,6 @@ import router, { Routes } from './routes/routes.js';
 const __filename = fileURLToPath(import.meta.url);
 
 const __dirname = dirname(__filename);
-
-configDotenv({ path: resolve(__dirname, '/env/.env') });
 
 const app: Express = express();
 

@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 
 const __dirname = dirname(__filename);
 
-configDotenv({ path: resolve(__dirname, `env/.env`) });
+configDotenv({ path: resolve(__dirname, '..', 'env/.env') });
 
 // MY STUFF
 export const ID = getEnvVariable('PROJECT_ID');

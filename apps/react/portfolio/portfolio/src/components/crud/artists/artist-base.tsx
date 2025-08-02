@@ -1,14 +1,13 @@
 import type { artist } from '@aklapper/chinook-client';
-import { CenteredFlexDiv, Waiting } from '@aklapper/react-shared';
+// import { CenteredFlexDiv } from '@aklapper/react-shared';
 import type { DataGridServerPagination } from '@aklapper/types';
 import { css } from '@mui/material-pigment-css';
 import Box from '@mui/material-pigment-css/Box';
-import Container from '@mui/material-pigment-css/Container';
-import { type ReactElement, Suspense } from 'react';
-import { Await, Outlet, useFetcher, useLoaderData } from 'react-router';
-import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
+import { type ReactElement } from 'react';
+import { Outlet, useFetcher, useLoaderData } from 'react-router';
 import Theme from '../../../styles/themes/theme';
 import type { CRUD_LoaderPromise } from '../../../types/types';
+import CrudElement from '../crud_entry';
 import DataGridHeader from '../data_grid_header';
 import AddArtist from './add-artist';
 import ArtistDataGrid from './data_grid';
@@ -25,44 +24,25 @@ const Artist = (): ReactElement => {
   const fetcher = useFetcher();
 
   return (
-    <CenteredFlexDiv
+    <Box
       className={css({
-        flexDirection: 'row',
-        justifyContent: 'flex-start',
-        alignItems: 'flex-start',
-        padding: 0,
+        display: 'flex',
         gap: Theme.spacing(4),
-        width: '100%',
       })}
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: Theme.spacing(4), flex: '0 1 100%' }}>
-        <Box
-          id='artists'
-          className={css({
-            flex: 1,
-            gap: Theme.spacing(4),
-            borderRadius: Theme.shape.borderRadius,
-            maxWidth: '100%',
-            backgroundColor: Theme.palette.background.paper,
-          })}
-        >
-          <DataGridHeader title='Artist List' />
-          <Container id={'add-artist-box'}>
-            <AddArtist promise={loader} fetcher={fetcher} />
-          </Container>
-        </Box>
-        <Box className={css({ width: '100%' })}>
-          <Suspense fallback={<Waiting src={waiting} />}>
-            <Await resolve={loader}>
-              <ArtistDataGrid promise={loader} fetcher={fetcher} />
-            </Await>
-          </Suspense>
-        </Box>
+      <Box className={css({ flex: '1 0 50%' })}>
+        <CrudElement<artist, DataGridServerPagination<artist[]>>
+          crudElement='artists'
+          loader={loader}
+          Header={<DataGridHeader title='Artist List' />}
+          NewEntry={<AddArtist promise={loader} fetcher={fetcher} />}
+          DataGrid={<ArtistDataGrid promise={loader} fetcher={fetcher} />}
+        />
       </Box>
-      <Box className={css({ flex: '0 1 100%' })}>
+      <Box className={css({ flex: '1 0 50%', display: 'flex' })}>
         <Outlet />
       </Box>
-    </CenteredFlexDiv>
+    </Box>
   );
 };
 export default Artist;

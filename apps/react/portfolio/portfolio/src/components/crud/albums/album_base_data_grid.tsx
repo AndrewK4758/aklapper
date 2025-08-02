@@ -10,8 +10,8 @@ import {
   type GridPaginationModel,
   type GridRowParams,
 } from '@mui/x-data-grid';
-import { use, useCallback, useState } from 'react';
-import { useNavigate, useSearchParams, type FetcherSubmitFunction } from 'react-router';
+import { use, useCallback, useState, type ReactElement } from 'react';
+import { useNavigate, useSearchParams, type FetcherWithComponents } from 'react-router';
 import handleDeleteAlbum from '../../../services/actions/crud-actions/handle-delete-album.js';
 import handleUpdateAlbumTitle from '../../../services/actions/crud-actions/handle-update-album-title.js';
 import { DATA_GRID_BG } from '../../../styles/base/base_styles';
@@ -20,10 +20,13 @@ import type { PaginationModel } from '../artists/data_grid';
 
 interface AlbumBaseDataGridProps {
   loader: Promise<DataGridServerPagination<album[]>>;
-  submit: FetcherSubmitFunction;
+  fetcher: FetcherWithComponents<album>;
 }
 
-export default function AlbumBaseDataGrid({ loader, submit }: AlbumBaseDataGridProps) {
+export default function AlbumBaseDataGrid({
+  loader,
+  fetcher,
+}: AlbumBaseDataGridProps): ReactElement<AlbumBaseDataGridProps> {
   const { data, count } = use(loader);
   const [searchParams, setSearchParams] = useSearchParams();
   const [dirtyRows, setDirtyRows] = useState<Set<number>>(new Set());
@@ -93,7 +96,7 @@ export default function AlbumBaseDataGrid({ loader, submit }: AlbumBaseDataGridP
             title='Update'
             disabled={!isDirty}
             onClick={() => {
-              handleUpdateAlbumTitle(row, submit);
+              handleUpdateAlbumTitle(row, fetcher.submit);
             }}
           />,
 
@@ -102,7 +105,7 @@ export default function AlbumBaseDataGrid({ loader, submit }: AlbumBaseDataGridP
             title='Delete'
             icon={<DeleteForeverIcon color='error' />}
             onClick={() => {
-              handleDeleteAlbum(row, submit);
+              handleDeleteAlbum(row, fetcher.submit);
             }}
           />,
         ];

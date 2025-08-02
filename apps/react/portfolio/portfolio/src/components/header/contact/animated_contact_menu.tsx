@@ -1,6 +1,4 @@
 import { RevealWrapper } from '@aklapper/react-shared';
-import Box from '@mui/material-pigment-css/Box';
-import { css } from '@pigment-css/react';
 import ContactMenu from './contact_menu';
 
 interface AnimatedContactMenuProps {
@@ -11,17 +9,7 @@ interface AnimatedContactMenuProps {
 export default function AnimatedContactMenu({ isOpen, handleOpenEmail }: AnimatedContactMenuProps) {
   return (
     <RevealWrapper isOpen={isOpen} data-testid={'contact-reveal-wrapper'}>
-      {isOpen && (
-        <Box
-          className={css({
-            minWidth: '90vw',
-            width: '100%',
-            height: '100%',
-          })}
-        >
-          <ContactMenu isOpen={isOpen} handleOpenEmail={handleOpenEmail} />
-        </Box>
-      )}
+      <ContactMenu isOpen={isOpen} handleOpenEmail={handleOpenEmail} />
     </RevealWrapper>
   );
 }

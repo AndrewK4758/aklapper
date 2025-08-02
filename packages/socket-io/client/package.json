@@ -2,15 +2,13 @@
   "name": "@aklapper/socket-io-client",
   "version": "0.0.1",
   "type": "module",
+  "private": true,
   "dependencies": {
     "tslib": "^2.8.1"
   },
   "devDependencies": {
     "@aklapper/types": "workspace:*"
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "private": true,
   "exports": {
     "./package.json": "./package.json",
     ".": {
@@ -19,7 +17,6 @@
       "default": "./dist/index.js"
     }
   },
-  "module": "./dist/index.js",
   "nx": {
     "sourceRoot": "packages/socket-io/client/src",
     "projectType": "library",

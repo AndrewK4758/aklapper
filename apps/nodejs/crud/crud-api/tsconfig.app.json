@@ -4,7 +4,6 @@
     "baseUrl": ".",
     "rootDir": "src",
     "outDir": "out-tsc/crud-api",
-    "noUnusedLocals": false,
     "tsBuildInfoFile": "out-tsc/crud-api/tsconfig.app.tsbuildinfo",
     "types": ["node"]
   },

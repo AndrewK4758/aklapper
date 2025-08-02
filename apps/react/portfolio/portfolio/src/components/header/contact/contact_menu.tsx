@@ -20,6 +20,8 @@ export default function ContactMenu({ isOpen, handleOpenEmail }: ContactMenuProp
       className={css({
         display: 'flex',
         justifyContent: 'space-around',
+        width: '92.5vw',
+        height: '100%',
       })}
       data-testid={'contact-menu'}
       inert={!isOpen}
