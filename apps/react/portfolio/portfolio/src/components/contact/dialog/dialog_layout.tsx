@@ -1,4 +1,5 @@
 import { LargeStyledDialog } from '@aklapper/react-shared';
+import type { DialogProps } from '@mui/material/Dialog';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { enUS } from '@mui/x-date-pickers/locales';
@@ -8,16 +9,12 @@ import GoogleUserContextProvider from '../../../contexts/contact-context';
 import { BOX_SHADOW_MAIN_DARK } from '../../../styles/base/base_styles';
 import Theme from '../../../styles/themes/theme';
 
-interface DialogLayoutProps {
-  isOpen: boolean;
-  children: ReactElement<unknown> | ReactElement<unknown>[];
+interface DialogLayoutProps extends DialogProps {
+  open: boolean;
+  children: ReactElement | ReactElement[];
 }
 
-export default function DialogLayout({
-  isOpen,
-  children,
-  ...props
-}: DialogLayoutProps): ReactElement<DialogLayoutProps> {
+export default function DialogLayout({ open, children, ...props }: DialogLayoutProps): ReactElement<DialogLayoutProps> {
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_OAUTH_CLIENT_ID}>
       <LocalizationProvider
@@ -27,7 +24,7 @@ export default function DialogLayout({
         <GoogleUserContextProvider>
           <LargeStyledDialog
             {...props}
-            open={isOpen}
+            open={open}
             id='contact-dialog'
             data-testid='contact-dialog'
             scroll='body'

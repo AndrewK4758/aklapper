@@ -25,22 +25,43 @@ export default function TimeInput({
       <TimePicker
         enableAccessibleFieldDOMStructure={false}
         data-testid={'start-time-picker'}
-        label={'Start'}
         minTime={minTime}
         maxTime={maxTime}
         defaultValue={minTime}
         closeOnSelect={false}
         onAccept={data => handleSetTimeAndDateValues(data, 'startTime')}
+        slotProps={{
+          openPickerButton: {
+            style: {
+              color: Theme.palette.secondary.dark,
+            },
+          },
+          textField: {
+            InputProps: {
+              slotProps: {
+                notchedOutline: {
+                  style: {
+                    borderColor: Theme.palette.primary.dark,
+                  },
+                },
+              },
+            },
+          },
+          digitalClockSectionItem: {
+            divider: true,
+            sx: {
+              color: Theme.palette.primary.dark,
+              borderRadius: Theme.shape.borderRadius,
+              '&.Mui-selected': {
+                backgroundColor: Theme.palette.secondary.dark,
+                color: Theme.palette.primary.dark,
+              },
+            },
+          },
+        }}
         sx={{
           backgroundColor: Theme.palette.background.default,
           borderRadius: Theme.shape.borderRadius,
-        }}
-        slotProps={{
-          desktopPaper: {
-            sx: {
-              padding: Theme.spacing(1),
-            },
-          },
         }}
       />
       <EndTimeSelect values={values} setEndTime={handleSetTimeAndDateValues} />

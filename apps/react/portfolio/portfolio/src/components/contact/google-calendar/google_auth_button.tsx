@@ -1,4 +1,3 @@
-import { SectionTitle } from '@aklapper/react-shared';
 import GoogleIcon from '@mui/icons-material/Google';
 import type { ButtonProps } from '@mui/material/Button';
 import Button from '@mui/material/Button';
@@ -6,7 +5,7 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { useContext, useState, type ReactElement } from 'react';
 import { GoogleUserContext, type GoogleUserContextProps } from '../../../contexts/contact_context_constants';
 import onGoogleOAuth2Success from '../../../services/auth/google_calendar';
-import AnimatedBorderBox from '../../styled/animated_border_box.js';
+import AnimatedBorderBox from '../../styled/animated_border_box';
 
 export default function GoogleAuthButton(): ReactElement<ButtonProps> {
   const { handleSetGoogleUser } = useContext<GoogleUserContextProps>(GoogleUserContext);
@@ -27,7 +26,7 @@ export default function GoogleAuthButton(): ReactElement<ButtonProps> {
       toggleAuthorizing();
     },
     flow: 'auth-code',
-    scope: 'https://www.googleapis.com/auth/calendar.events',
+    scope: import.meta.env.VITE_OAUTH_SCOPE,
   });
 
   const handleLogin = () => {
@@ -44,7 +43,7 @@ export default function GoogleAuthButton(): ReactElement<ButtonProps> {
         disabled={authorizing}
         endIcon={<GoogleIcon color='inherit' fontSize='inherit' />}
       >
-        <SectionTitle id='google-auth-button-label' variant='body1' title='Connect Google Calendar' />
+        Connect Google Calendar
       </Button>
     </AnimatedBorderBox>
   );

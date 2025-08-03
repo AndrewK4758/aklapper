@@ -14,7 +14,7 @@ describe('test google calendar element and appoitment maker functionality', () =
     const meetingLengthDefault = '0';
 
     render(
-      <DialogLayout isOpen={true}>
+      <DialogLayout open={true}>
         <GoogleCalendar
           setOpen={() => {
             return;

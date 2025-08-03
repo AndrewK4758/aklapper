@@ -16,7 +16,7 @@ describe('test contact content', () => {
   });
   it('should render the fallback element on initial load', () => {
     render(
-      <DialogLayout isOpen={true}>
+      <DialogLayout open={true}>
         <ContactContent tab={0} handleIsOpen={mockHandleIsOpen} />
       </DialogLayout>,
       {
@@ -35,7 +35,7 @@ describe('test contact content', () => {
     const googleCalendarWrapperId = 'google-calendar-wrapper';
 
     const { findByTestId } = render(
-      <DialogLayout isOpen={true}>
+      <DialogLayout open={true}>
         <ContactContent tab={0} handleIsOpen={mockHandleIsOpen} />
       </DialogLayout>,
       {
@@ -54,7 +54,7 @@ describe('test contact content', () => {
     const emailFormWrapperId = 'email-form-wrapper';
 
     render(
-      <DialogLayout isOpen={true}>
+      <DialogLayout open={true}>
         <ContactContent tab={1} handleIsOpen={mockHandleIsOpen} />
       </DialogLayout>,
       {

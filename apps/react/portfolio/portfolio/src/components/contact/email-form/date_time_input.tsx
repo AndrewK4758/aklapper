@@ -3,6 +3,7 @@ import type { PickerValue } from '@mui/x-date-pickers/internals';
 import { renderTimeViewClock } from '@mui/x-date-pickers/timeViewRenderers';
 import dayjs from 'dayjs/esm';
 import type { FormikProps } from 'formik';
+import '../../../styles/mui_data_grid_and_date_picker.css';
 import Theme from '../../../styles/themes/theme';
 import type { MessageMeFormValues } from './email-form';
 
@@ -41,11 +42,53 @@ export default function DateAndTimeInput({ formik, name }: AppointmentMakerProps
       sx={{
         backgroundColor: Theme.palette.background.default,
         borderRadius: Theme.shape.borderRadius,
+        color: Theme.palette.primary.dark,
       }}
       slotProps={{
+        actionBar: {
+          sx: {
+            borderTop: `1px solid ${Theme.palette.primary.dark}`,
+            color: Theme.palette.primary.dark,
+            '& .MuiButton-text': {
+              color: Theme.palette.primary.dark,
+            },
+          },
+        },
+        openPickerButton: {
+          sx: { color: Theme.palette.secondary.dark },
+        },
+        switchViewIcon: {
+          sx: {
+            color: Theme.palette.secondary.dark,
+          },
+        },
+        rightArrowIcon: {
+          sx: {
+            color: Theme.palette.secondary.dark,
+          },
+        },
+        leftArrowIcon: {
+          sx: {
+            color: Theme.palette.secondary.dark,
+          },
+        },
+        textField: {
+          InputProps: {
+            slotProps: {
+              notchedOutline: { sx: { borderColor: Theme.palette.primary.dark } },
+            },
+          },
+        },
         day: {
           sx: {
+            fontSize: '1.1rem',
+            backgroundColor: Theme.palette.background.default,
             color: Theme.palette.primary.dark,
+            borderRadius: Theme.shape.borderRadius,
+            '&.MuiPickersDay-root.Mui-selected': {
+              color: Theme.palette.primary.dark,
+              background: Theme.palette.secondary.dark,
+            },
           },
         },
         calendarHeader: {

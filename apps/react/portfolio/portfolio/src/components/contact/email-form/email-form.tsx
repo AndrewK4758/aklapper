@@ -10,6 +10,7 @@ import 'yup-phone-lite';
 import { GoogleUserContext, type GoogleUserContextProps } from '../../../contexts/contact_context_constants';
 import emailFormAction from '../../../services/actions/email-form-action';
 import { BACKGROUND_DEFAULT } from '../../../styles/base/base_styles';
+import Theme from '../../../styles/themes/theme';
 import DateTimeInput from './date_time_input';
 import EmailFormActions from './email-form-actions';
 import UploadFileElement from './upload_file_element';
@@ -79,7 +80,12 @@ export default function EmailForm({ setOpen }: EmailFormProps) {
             formik={formik}
             variant='outlined'
             disabled={formik.isSubmitting}
-            slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
+            slotProps={{
+              input: {
+                sx: { backgroundColor: BACKGROUND_DEFAULT },
+                slotProps: { notchedOutline: { sx: { borderColor: Theme.palette.primary.dark } } },
+              },
+            }}
           />
 
           <TextInput<MessageMeFormValues>
@@ -88,7 +94,12 @@ export default function EmailForm({ setOpen }: EmailFormProps) {
             formik={formik}
             variant='outlined'
             disabled={formik.isSubmitting}
-            slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
+            slotProps={{
+              input: {
+                sx: { backgroundColor: BACKGROUND_DEFAULT },
+                slotProps: { notchedOutline: { sx: { borderColor: Theme.palette.primary.dark } } },
+              },
+            }}
           />
 
           <TextInput<MessageMeFormValues>
@@ -97,7 +108,12 @@ export default function EmailForm({ setOpen }: EmailFormProps) {
             formik={formik}
             variant='outlined'
             disabled={formik.isSubmitting}
-            slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
+            slotProps={{
+              input: {
+                sx: { backgroundColor: BACKGROUND_DEFAULT },
+                slotProps: { notchedOutline: { sx: { borderColor: Theme.palette.primary.dark } } },
+              },
+            }}
           />
 
           <TextInput<MessageMeFormValues>
@@ -106,7 +122,15 @@ export default function EmailForm({ setOpen }: EmailFormProps) {
             formik={formik}
             variant='outlined'
             disabled={formik.isSubmitting}
-            slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
+            slotProps={{
+              htmlInput: {
+                sx: { fontSize: '12px' },
+              },
+              input: {
+                sx: { backgroundColor: BACKGROUND_DEFAULT },
+                slotProps: { notchedOutline: { sx: { borderColor: Theme.palette.primary.dark } } },
+              },
+            }}
           />
 
           <TextInput<MessageMeFormValues>
@@ -116,7 +140,12 @@ export default function EmailForm({ setOpen }: EmailFormProps) {
             multiline={true}
             variant='outlined'
             disabled={formik.isSubmitting}
-            slotProps={{ input: { sx: { backgroundColor: BACKGROUND_DEFAULT } } }}
+            slotProps={{
+              input: {
+                sx: { backgroundColor: BACKGROUND_DEFAULT },
+                slotProps: { notchedOutline: { sx: { borderColor: Theme.palette.primary.dark } } },
+              },
+            }}
           />
 
           <DateTimeInput formik={formik} name={'date'} />

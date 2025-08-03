@@ -1,4 +1,5 @@
 import { useState, type ReactElement } from 'react';
+import Theme from '../../styles/themes/theme';
 import CloseDialog from './dialog/close_contact_dialog';
 import ContactContent from './dialog/contact_content';
 import DialogLayout from './dialog/dialog_layout.js';
@@ -19,12 +20,12 @@ export default function ContactDialog({ isOpen, handleIsOpen }: ContactDialogPro
   };
 
   return (
-    <DialogLayout isOpen={isOpen}>
+    <DialogLayout open={isOpen}>
       <TabsSelector tab={tab} handleSetTab={handleSetTab} />
 
       <ContactContent tab={tab} handleIsOpen={handleIsOpen} />
 
-      <CloseDialog handleIsOpen={handleIsOpen} />
+      <CloseDialog handleIsOpen={handleIsOpen} sx={{ padding: Theme.spacing(4) }} />
     </DialogLayout>
   );
 }

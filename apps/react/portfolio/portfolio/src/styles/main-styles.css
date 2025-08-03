@@ -31,6 +31,24 @@
   initial-value: #bbc0cc;
 }
 
+@property --clr-1-drk {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ffaa00;
+}
+
+@property --clr-2-drk {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #af320b;
+}
+
+@property --background-default {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #323232;
+}
+
 &::-webkit-scrollbar {
   width: 0.75rem;
 }

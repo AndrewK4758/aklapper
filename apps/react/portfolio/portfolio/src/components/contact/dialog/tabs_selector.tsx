@@ -1,10 +1,8 @@
-import { SectionTitle } from '@aklapper/react-shared';
-import Box from '@mui/material-pigment-css/Box';
+import { CenteredFlexDiv, SectionTitle } from '@aklapper/react-shared';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import { css } from '@pigment-css/react';
 import type { ReactElement } from 'react';
-import Theme from '../../../styles/themes/theme.js';
+import Theme from '../../../styles/themes/theme';
 
 interface TabsSelectorProps {
   tab: number;
@@ -13,25 +11,15 @@ interface TabsSelectorProps {
 
 export default function TabsSelector({ tab, handleSetTab }: TabsSelectorProps): ReactElement {
   return (
-    <Box
-      as={'section'}
-      id='email-me-title-box'
-      data-testid='email-me-title-box'
-      className={css({
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-evenly',
-      })}
-    >
+    <CenteredFlexDiv as={'section'} id='email-me-title-box' data-testid='email-me-title-box'>
       <Tabs
         variant='fullWidth'
         aria-label='contact-tabs'
         id='contact-tabs'
         data-testid='contact-tabs'
         component={'nav'}
-        key={'contact-tabs'}
         value={tab}
-        onChange={(_e, tab) => handleSetTab(tab)}
+        onChange={(_, tab) => handleSetTab(tab)}
         slotProps={{
           indicator: {
             sx: {
@@ -44,29 +32,15 @@ export default function TabsSelector({ tab, handleSetTab }: TabsSelectorProps): 
           key={'appointment-request-tab'}
           id='appointment-request-tab'
           data-testid='appointment-request-tab'
-          label={
-            <SectionTitle
-              id='appointment-request-tab-label'
-              variant={'h4'}
-              title={'Appt. Request'}
-              overrideThemeStyles={{ color: Theme.palette.primary.dark }}
-            />
-          }
+          label={<SectionTitle id='appointment-request-tab-label' variant={'h4'} title={'Calendar'} />}
         />
         <Tab
           key={'email-me-tab'}
           id='email-me-tab'
           data-testid='email-me-tab'
-          label={
-            <SectionTitle
-              id='email-me-tab-label'
-              title={'Email Me'}
-              variant={'h4'}
-              overrideThemeStyles={{ color: Theme.palette.primary.dark }}
-            />
-          }
+          label={<SectionTitle id='email-me-tab-label' title={'Email'} variant={'h4'} />}
         />
       </Tabs>
-    </Box>
+    </CenteredFlexDiv>
   );
 }

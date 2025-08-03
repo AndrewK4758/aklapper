@@ -14,6 +14,7 @@ interface PicNameAndNavProps {
 
 export default memo(function PicNameAndNav({ subheader }: PicNameAndNavProps) {
   const mediaQuery = useMediaQuery(Theme.breakpoints.down('md'));
+  console.log(mediaQuery);
   return (
     <>
       <CardHeader

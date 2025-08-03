@@ -1,4 +1,3 @@
-import Box from '@mui/material-pigment-css/Box';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import type { PickerValue } from '@mui/x-date-pickers/internals';
 import type { Dayjs } from 'dayjs';
@@ -16,49 +15,49 @@ export default function DateInput({ tomorrow, dateValue, setDate }: AppointmentD
   const nextYear = dayjs().add(1, 'year');
 
   return (
-    <Box as={'section'} id='date-picker-wrapper' data-testid='date-picker-wrapper'>
-      <DateCalendar
-        data-testid={'date-calendar'}
-        minDate={tomorrow}
-        maxDate={nextYear}
-        disablePast={true}
-        defaultValue={tomorrow}
-        value={dateValue}
-        onChange={data => setDate(data, 'date')}
-        slotProps={{
-          switchViewIcon: {
-            sx: {
-              color: Theme.palette.primary.dark,
-            },
+    <DateCalendar
+      data-testid={'date-calendar'}
+      minDate={tomorrow}
+      maxDate={nextYear}
+      disablePast={true}
+      defaultValue={tomorrow}
+      value={dateValue}
+      onChange={data => setDate(data, 'date')}
+      slotProps={{
+        switchViewIcon: {
+          sx: {
+            color: Theme.palette.secondary.dark,
           },
-          rightArrowIcon: {
-            sx: {
-              color: Theme.palette.primary.dark,
-            },
+        },
+        rightArrowIcon: {
+          sx: {
+            color: Theme.palette.secondary.dark,
           },
-          leftArrowIcon: {
-            sx: {
-              color: Theme.palette.primary.dark,
-            },
+        },
+        leftArrowIcon: {
+          sx: {
+            color: Theme.palette.secondary.dark,
           },
-          day: {
-            sx: {
-              '& .t193e277': {
-                background: Theme.palette.primary.dark,
-              },
-
-              fontSize: '1.25rem',
-              backgroundColor: Theme.palette.background.default,
-              color: Theme.palette.primary.dark,
-            },
-          },
-        }}
-        sx={{
-          '& .t1h8fw7e-14': {
+        },
+        day: {
+          sx: {
+            fontSize: '1.25rem',
+            backgroundColor: Theme.palette.background.default,
             color: Theme.palette.primary.dark,
+            borderRadius: Theme.shape.borderRadius,
           },
-        }}
-      />
-    </Box>
+        },
+      }}
+      sx={{
+        color: Theme.palette.primary.dark,
+        '.MuiDayCalendar-weekDayLabel': {
+          color: Theme.palette.primary.dark,
+        },
+        '.MuiPickersDay, .Mui-selected': {
+          color: Theme.palette.primary.dark,
+          backgroundColor: Theme.palette.secondary.dark,
+        },
+      }}
+    />
   );
 }

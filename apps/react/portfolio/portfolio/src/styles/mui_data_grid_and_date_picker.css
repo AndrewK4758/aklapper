@@ -1,0 +1,46 @@
+.MuiDayCalendar-weekDayLabel {
+  color: var(--clr-1-drk) !important;
+}
+
+.MuiDivider-fullWidth {
+  visibility: hidden;
+}
+
+.MuiDivider-vertical {
+  visibility: visible;
+}
+
+.MuiClock-amButton,
+.MuiClock-pmButton {
+  color: var(--clr-1-drk);
+}
+
+.MuiClock-amButton.Mui-selected {
+  color: var(--clr-1-drk);
+  background-color: var(--clr-2-drk);
+}
+
+.MuiClock-squareMask {
+  background-color: var(--background-default);
+}
+
+.MuiClock-pin,
+.MuiClockPointer-thumb {
+  background-color: var(--clr-2-drk) !important;
+}
+
+.MuiClockPointer-thumb {
+  border: 16px solid var(--clr-2-drk) !important;
+}
+
+.MuiClockPointer-root {
+  background-color: var(--clr-1-drk) !important;
+}
+
+.MuiClockNumber-root {
+  color: var(--clr-1-drk) !important;
+}
+
+.MuiClockNumber-root.Mui-disabled {
+  opacity: 0.38;
+}

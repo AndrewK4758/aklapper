@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import { useState, type ReactElement } from 'react';
 import { Form } from 'react-router';
 import handleSubmitCalendarEvent from '../../../services/contact/submit_calendar_event';
+import Theme from '../../../styles/themes/theme';
 import type { TimesAndDates } from '../../../types/types';
 import DateInput from './date_input.js';
 import SubmitCalendarEventAction from './submit_calendar_event_action.js';
@@ -38,7 +39,11 @@ export default function GoogleCalendarForm({
       data-testid='google-calendar-event-form'
       onSubmit={() => handleSubmitCalendarEvent(values, setOpen)}
     >
-      <CenteredFlexDiv id='google-calendar-form-box' data-testid='google-calendar-form-box' sx={{ gap: 2 }}>
+      <CenteredFlexDiv
+        id='google-calendar-form-box'
+        data-testid='google-calendar-form-box'
+        sx={{ gap: Theme.spacing(2) }}
+      >
         <DateInput tomorrow={tomorrow} dateValue={values.date} setDate={handleSetTimeAndDateValues} />
         <TimeInput
           minTime={minTime}
