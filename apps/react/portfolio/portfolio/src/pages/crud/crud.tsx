@@ -4,7 +4,7 @@ import Box from '@mui/material-pigment-css/Box';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import { lazy, type ReactElement, Suspense, useState } from 'react';
-import { Outlet } from 'react-router';
+import { Outlet, useNavigation } from 'react-router';
 import waiting from '../../assets/images/swirly-dots-to-chrome.webp';
 import CrudNavBar from '../../components/crud/nav_bar';
 import CrudHeader from '../../components/crud/page_header';
@@ -21,10 +21,11 @@ const Search = lazy(() => import('../../components/crud/search/search'));
 
 export default function Crud(): ReactElement {
   const [searchIsOpen, setSearchIsOpen] = useState<boolean>(false);
+  const { state } = useNavigation();
+  console.log(state);
   const handleSetSearchClick = () => {
     setSearchIsOpen(!searchIsOpen);
   };
-
   return (
     <CenteredFlexDiv id='crud-wrapper'>
       <Box

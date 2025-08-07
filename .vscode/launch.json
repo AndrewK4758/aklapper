@@ -1,6 +1,15 @@
 {
   "configurations": [
     {
+      "name": "Attach to Nx Vite",
+      "type": "node",
+      "request": "attach",
+      "port": 9229, // Default Node.js inspect port
+      "restart": true,
+      "sourceMaps": true,
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
       "name": "Python Debugger: Python File",
       "type": "debugpy",
       "request": "launch",

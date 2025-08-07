@@ -4,4 +4,6 @@ export type GameBoards = Row[];
 
 export interface ILiteSpace {
   display: string;
+  occupied: boolean;
+  defaultDisplayName: string;
 }

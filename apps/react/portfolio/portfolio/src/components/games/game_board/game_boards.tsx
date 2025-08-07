@@ -37,7 +37,7 @@ const GameBoardAndActions = function ({ dispatch, state }: GameBoardAndActionsPr
 
   useScrollIntoView(devRef);
   useGamesWebsockets(socket, id, dispatch);
-
+  console.log(state.gameBoard);
   return (
     <Box ref={devRef} component={'section'} id='game-board-wrapper' className={css({ flex: 1, display: 'flex' })}>
       {id === 'Chutes-&-Ladders' ? (

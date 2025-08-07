@@ -7,7 +7,7 @@ import type {
   IPlayersAndBoard,
   Row,
 } from '@aklapper/types';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 import { Action } from '../components/games/game_board/socket-reducer';
 import { getGameInstanceInfo } from '../utils/utils';
@@ -23,7 +23,25 @@ import { getGameInstanceInfo } from '../utils/utils';
  * @returns {void}
  */
 
-const useGamesWebsockets = (socket: Socket, id: string, dispatch: (action: Action) => void): void => {
+type AvatarLocation = {
+  spaceDisplay: string;
+  location: string | number;
+};
+
+type IAvatarsLocations = {
+  p1: AvatarLocation;
+  p2: AvatarLocation;
+};
+
+const useGamesWebsockets = (socket: Socket, id: string, dispatch: (action: Action) => void): IAvatarsLocations => {
+  const [avatarsLocations, setAvatarsLocations] = useState<IAvatarsLocations>({
+    p1: { spaceDisplay: '', location: '' },
+    p2: { spaceDisplay: '', location: '' },
+  });
+
+  const handleUpdateAvatarsLocations = useCallback((newLocation: IAvatarsLocations) => {
+    setAvatarsLocations(newLocation);
+  }, []);
   // const processGame = useCallback((gameData: IPlayersAndBoard, id: string) => processGameData(gameData, id), []);
 
   useEffect(() => {
@@ -39,7 +57,7 @@ const useGamesWebsockets = (socket: Socket, id: string, dispatch: (action: Actio
     socket.emit('action', { action: Action.BOARD, gameID: gameID });
 
     socket.on('game-data', async (gameData: IPlayersAndBoard) => {
-      const clientGameBoard = processGameData(gameData, id);
+      const clientGameBoard = processGameData(gameData, id, handleUpdateAvatarsLocations);
 
       dispatch({
         type: Action.BOARD,
@@ -64,11 +82,17 @@ const useGamesWebsockets = (socket: Socket, id: string, dispatch: (action: Actio
       socket.removeAllListeners();
     };
   }, []);
+
+  return avatarsLocations;
 };
 
 export default useGamesWebsockets;
 
-const processGameData = ({ gameBoard }: IPlayersAndBoard, id: string) => {
+const processGameData = (
+  { gameBoard, activePlayersInGame }: IPlayersAndBoard,
+  id: string,
+  setAvatarsLocations: (avatarsLocations: IAvatarsLocations) => void,
+) => {
   const gameBoardClient: GameBoards = [];
   const maxRowLength = Math.sqrt(gameBoard.length);
 
@@ -76,6 +100,22 @@ const processGameData = ({ gameBoard }: IPlayersAndBoard, id: string) => {
   let row: Row = [];
 
   gameBoard.forEach((s: ILiteSpace) => {
+    if (s.occupied) {
+      console.log(s);
+      activePlayersInGame.forEach(e => console.log(e));
+      const player = activePlayersInGame.find(player => player.avatarImage === s.display);
+      console.log(player);
+      const p1: AvatarLocation = {
+        location: '',
+        spaceDisplay: s.defaultDisplayName,
+      };
+      const p2: AvatarLocation = {
+        location: '',
+        spaceDisplay: s.defaultDisplayName,
+      };
+
+      setAvatarsLocations({ p1, p2 });
+    }
     const rowCount = rowFinder(indexOfSpace, gameBoard.length);
     row.push(s);
 

@@ -54,15 +54,17 @@ export class TicTacToe implements ITicTacToe {
   displayGameBoard = (): ILiteSpace[] => {
     const board: LiteSpace[] = [];
     let space = this.startSpace;
-    let display;
-
+    let display: string;
+    let defaultDisplayName: string;
     while (space) {
       if (space.occupied) {
         display = this.addAvatarToDisplay(space.avatarsInSpace[0].name);
+        defaultDisplayName = space.display;
       } else {
-        display = space['display'];
+        display = space.display;
+        defaultDisplayName = space.display;
       }
-      const liteSpace = LiteSpace.MakeSpace(display);
+      const liteSpace = LiteSpace.MakeSpace(display, defaultDisplayName);
 
       board.push(liteSpace);
       space = space.next;

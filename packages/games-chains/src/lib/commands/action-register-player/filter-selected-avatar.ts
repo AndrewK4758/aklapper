@@ -10,7 +10,7 @@ export const filterSelectedAvatar = CommandBuilder.build((context: Context<GameC
     game.instance.instance.avatarList = game.instance.instance.avatarList.filter(
       (a: AvatarTotem) => a.name !== avatarName,
     );
-
+    console.log(game.instance.instance.avatarList);
     context.put(GameContextKeys.NEXT, 'player-created');
     return true;
   } else return false;

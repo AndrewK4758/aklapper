@@ -3,7 +3,6 @@ import {
   type Context,
   GameContextKeys,
   type GameInstanceID,
-  type ILiteSpace,
   type IPlayersAndBoard,
   type IRegisterFormValues,
 } from '@aklapper/types';
@@ -15,7 +14,7 @@ export const activeDataToSend = CommandBuilder.build((context: Context<GameConte
 
     const activeDataToSend: IPlayersAndBoard = {
       avatarInTurn: context.get('player-in-turn') as string,
-      gameBoard: game.instance.instance.displayGameBoard() as ILiteSpace[],
+      gameBoard: game.instance.instance.displayGameBoard(),
       activePlayersInGame: context.get('active-players-in-game') as IRegisterFormValues[],
       winner: context.get('winner-message') as string,
     };

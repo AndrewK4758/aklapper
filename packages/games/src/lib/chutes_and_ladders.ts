@@ -213,14 +213,17 @@ export class ChutesAndLadders implements IChutesAndLadders {
   displayGameBoard(): ILiteSpace[] {
     const gameBoard: ILiteSpace[] = [];
     let space: Space = this.endSpace;
-    let display;
+    let display: string;
+    let defaultDisplayName: string;
     while (space) {
       if (space.occupied) {
+        defaultDisplayName = space.display;
         display = this.addAvatarToDisplay(space.avatarsInSpace[0].name);
       } else {
-        display = space['display'];
+        display = space.display;
+        defaultDisplayName = space.Display;
       }
-      const liteSpace = LiteSpace.MakeSpace(display);
+      const liteSpace = LiteSpace.MakeSpace(display, defaultDisplayName);
 
       gameBoard.push(liteSpace);
       space = space.previous;
@@ -241,18 +244,23 @@ export class ChutesAndLadders implements IChutesAndLadders {
 
       if (uniqueSpecialValues.has(specialValue) || specialsDumps.has(specialValue)) this.specialValuesMaker(min, max);
       else {
-        const space = specialSpaceSelector(specialValue) as Space;
+        const space = specialSpaceSelector(specialValue);
 
-        if (space.type === SpaceType.CHUTE) {
-          space.special = createDumpValueChute(specialValue) as Space;
-          space.special.display = `C ${chuteSpecialCount} END`;
-          space.display = `C ${chuteSpecialCount} START`;
-          chuteSpecialCount--;
-        } else {
-          space.special = createDumpValueLadder(specialValue) as Space;
-          space.special.display = `L ${ladderSpecialCount} END`;
-          space.display = `L ${ladderSpecialCount} START`;
-          ladderSpecialCount--;
+        switch (space.type) {
+          case SpaceType.CHUTE:
+            space.special = createDumpValueChute(specialValue);
+            space.special.display = `C ${chuteSpecialCount} END`;
+            space.display = `C ${chuteSpecialCount} START`;
+            chuteSpecialCount--;
+            break;
+          case SpaceType.LADDER:
+            space.special = createDumpValueLadder(specialValue);
+            space.special.display = `L ${ladderSpecialCount} END`;
+            space.display = `L ${ladderSpecialCount} START`;
+            ladderSpecialCount--;
+            break;
+          default:
+            break;
         }
 
         uniqueSpecialValues.set(specialValue, space);

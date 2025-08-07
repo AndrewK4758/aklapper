@@ -1,10 +1,11 @@
 import type { artist } from '@aklapper/chinook-client';
-// import { CenteredFlexDiv } from '@aklapper/react-shared';
+import { Waiting } from '@aklapper/react-shared';
 import type { DataGridServerPagination } from '@aklapper/types';
 import { css } from '@mui/material-pigment-css';
 import Box from '@mui/material-pigment-css/Box';
-import { type ReactElement } from 'react';
+import { Suspense, type ReactElement } from 'react';
 import { Outlet, useFetcher, useLoaderData } from 'react-router';
+import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
 import Theme from '../../../styles/themes/theme';
 import type { CRUD_LoaderPromise } from '../../../types/types';
 import CrudElement from '../crud_entry';
@@ -24,25 +25,27 @@ const Artist = (): ReactElement => {
   const fetcher = useFetcher();
 
   return (
-    <Box
-      className={css({
-        display: 'flex',
-        gap: Theme.spacing(4),
-      })}
-    >
-      <Box className={css({ flex: '1 0 50%' })}>
-        <CrudElement<artist, DataGridServerPagination<artist[]>>
-          crudElement='artists'
-          loader={loader}
-          Header={<DataGridHeader title='Artist List' />}
-          NewEntry={<AddArtist promise={loader} fetcher={fetcher} />}
-          DataGrid={<ArtistDataGrid promise={loader} fetcher={fetcher} />}
-        />
+    <Suspense fallback={<Waiting src={waiting} />}>
+      <Box
+        className={css({
+          display: 'flex',
+          gap: Theme.spacing(4),
+        })}
+      >
+        <Box className={css({ flex: '1 0 50%' })}>
+          <CrudElement<artist, DataGridServerPagination<artist[]>>
+            crudElement='artists'
+            loader={loader}
+            Header={<DataGridHeader title='Artist List' />}
+            NewEntry={<AddArtist promise={loader} fetcher={fetcher} />}
+            DataGrid={<ArtistDataGrid promise={loader} fetcher={fetcher} />}
+          />
+        </Box>
+        <Box className={css({ flex: '1 0 50%', display: 'flex' })}>
+          <Outlet />
+        </Box>
       </Box>
-      <Box className={css({ flex: '1 0 50%', display: 'flex' })}>
-        <Outlet />
-      </Box>
-    </Box>
+    </Suspense>
   );
 };
 export default Artist;

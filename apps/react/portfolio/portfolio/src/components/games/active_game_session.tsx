@@ -23,6 +23,7 @@ const socketInit = (): IActiveGameInfo => {
 
 const ActiveGameSession = (): ReactElement => {
   const [state, dispatch] = useReducer(socketReducer, {}, socketInit);
+
   return (
     <Box id={`active-game-session`} sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Box
