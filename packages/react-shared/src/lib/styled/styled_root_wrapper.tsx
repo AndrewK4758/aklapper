@@ -1,7 +1,8 @@
-import Box from '@mui/material-pigment-css/Box';
-import { styled } from '@pigment-css/react';
+import Box, { type BoxProps } from '@mui/material/Box';
+import { styled } from '@mui/material/styles';
+import type { ComponentType } from 'react';
 
-export const StyledRootComponentWrapper = styled(Box)(({ theme }) => ({
+export const StyledRootComponentWrapper: ComponentType<BoxProps> = styled(Box)(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
   flex: 1,

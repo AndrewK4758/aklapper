@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "devDependencies": {
+    "@aklapper/portfolio-client": "workspace:*",
     "@aklapper/utils": "workspace:*"
   },
   "nx": {
@@ -19,13 +20,13 @@
         "defaultConfiguration": "production",
         "options": {
           "platform": "node",
-          "target": "node23",
+          "target": "node24",
           "metafile": true,
           "outputPath": "apps/nodejs/portfolio/portfolio-api/dist",
           "format": [
             "esm"
           ],
-          "bundle": true,
+          "bundle": false,
           "main": "apps/nodejs/portfolio/portfolio-api/src/main.ts",
           "tsConfig": "apps/nodejs/portfolio/portfolio-api/tsconfig.app.json",
           "assets": [

@@ -1,0 +1,27 @@
+generator client {
+  importFileExtension    = "js"
+  provider               = "prisma-client"
+  output                 = env("PRISMA_CLIENT_OUTPUT_PATH")
+  generatedFileExtension = "ts"
+  moduleFormat           = "esm"
+  runtime                = "nodejs"
+  previewFeatures        = ["queryCompiler", "driverAdapters", "views", "strictUndefinedChecks", "postgresqlExtensions", "relationJoins", "shardKeys", "nativeDistinct"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DB_URL_DEV")
+  schemas  = ["portfolio"]
+}
+
+model user {
+  id            Int     @id @default(autoincrement())
+  user_id       String  @db.Uuid
+  access_token  String? @unique
+  id_token      String?
+  refresh_token String?
+  scope         String?
+  token_type    String?
+
+  @@schema("portfolio")
+}

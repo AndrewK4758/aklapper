@@ -29,8 +29,6 @@ chromadb = "^0.5.5"
 langchain-ollama = "^0.2.0"
 langchain-chroma = "^0.1.4"
 sentence-transformers = "^3.2.1"
-flask = "^3.1.0"
-flask-cors = "^5.0.0"
 python-dotenv = "^1.0.1"
 langchain-google-community = "^2.0.3"
 langchain-google-vertexai = "^2.0.10"
@@ -41,6 +39,10 @@ pytesseract = "^0.3.13"
 pymupdf = "^1.25.3"
 psutil = "^7.0.0"
 pandas = "^2.2.3"
+onnxruntime = "==1.22.1"
+unstructured = "^0.18.15"
+
+
 
 
 [tool.poetry.requires-plugins]

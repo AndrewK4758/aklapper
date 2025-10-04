@@ -1,5 +1,4 @@
-import { css } from '@pigment-css/react';
-import Box from '@pigment-css/react/Box';
+import Box from '@mui/material/Box';
 import type { CSSProperties } from 'react';
 import { shake } from '../../styles/base/animations';
 import Theme from '../../styles/themes/theme';
@@ -26,7 +25,7 @@ export default function BoxAnimation({ isLandingNavOpen, onHandleNavbarClick }: 
 
   return (
     <Box
-      className={css({
+      sx={{
         height: '32rem',
         width: '32rem',
         [Theme.breakpoints.down('lg')]: {
@@ -37,7 +36,7 @@ export default function BoxAnimation({ isLandingNavOpen, onHandleNavbarClick }: 
           height: '10rem',
           width: '10rem',
         },
-      })}
+      }}
     >
       <LandingBox
         id='open-menu'

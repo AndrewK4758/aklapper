@@ -23,32 +23,27 @@ import {
 const Theme: ThemeType = createTheme(
   {
     cssVariables: true,
-    defaultColorScheme: 'dark',
-    colorSchemes: {
-      light: true,
-      dark: {
-        palette: {
-          background: {
-            default: BACKGROUND_DEFAULT,
-            paper: BACKGROUND_PAPER,
-          },
-          primary: {
-            main: MAIN_COLOR,
-            light: MAIN_COLOR_LIGHT,
-            dark: MAIN_COLOR_DARK,
-            contrastText: MAIN_CONTRAST,
-          },
-          secondary: {
-            main: SECONDARY_COLOR,
-            light: SECONDARY_COLOR_LIGHT,
-            dark: SECONDARY_COLOR_DARK,
-            contrastText: TEXT_PRIMARY,
-          },
-          text: {
-            primary: TEXT_PRIMARY,
-            secondary: TEXT_SECONDARY,
-          },
-        },
+    modularCssLayers: true,
+    palette: {
+      background: {
+        default: BACKGROUND_DEFAULT,
+        paper: BACKGROUND_PAPER,
+      },
+      primary: {
+        main: MAIN_COLOR,
+        light: MAIN_COLOR_LIGHT,
+        dark: MAIN_COLOR_DARK,
+        contrastText: MAIN_CONTRAST,
+      },
+      secondary: {
+        main: SECONDARY_COLOR,
+        light: SECONDARY_COLOR_LIGHT,
+        dark: SECONDARY_COLOR_DARK,
+        contrastText: TEXT_PRIMARY,
+      },
+      text: {
+        primary: TEXT_PRIMARY,
+        secondary: TEXT_SECONDARY,
       },
     },
     shape: {
@@ -71,6 +66,22 @@ const Theme: ThemeType = createTheme(
       },
     },
     components: {
+      MuiCssBaseline: {
+        styleOverrides: {
+          fontSynthesis: 'none',
+          textRendering: 'optimizeLegibility',
+          boxSizing: 'border-box',
+          overflowX: 'hidden',
+          fontSmooth: 'antialiased',
+          letterSpacing: 2,
+          wordSpacing: 3.5,
+          lineHeight: 1.5,
+          background: `linearGradient(225deg, #e9e9eb24 0%, transparent 80%),
+    linear-gradient(45deg, #10101038 0%, transparent 80%) #404040`,
+          backgroundAttachment: 'fixed',
+          backgroundRepeat: 'no-repeat',
+        },
+      },
       MuiCardContent: {
         styleOverrides: {
           root: {

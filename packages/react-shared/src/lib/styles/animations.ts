@@ -1,4 +1,4 @@
-import { keyframes } from '@mui/material-pigment-css';
+import { keyframes } from '@mui/material/styles';
 import { MAIN_COLOR, SECONDARY_COLOR } from './base_styles';
 
 export const spin = keyframes`

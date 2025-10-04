@@ -1,25 +1,8 @@
-import TextField, { type OutlinedTextFieldProps } from '@mui/material/TextField';
+import OutlinedTextField, { type OutlinedTextFieldProps } from '@mui/material/TextField';
 import type { FormikProps } from 'formik';
 import { useState, type FocusEvent, type HTMLInputTypeAttribute, type ReactElement } from 'react';
-import HelperTextBox from '../styled/helper_text_box';
 
-interface TextInputProps<T extends object>
-  extends Omit<
-    OutlinedTextFieldProps,
-    | 'name'
-    | 'label'
-    | 'type'
-    | 'fullWidth'
-    | 'value'
-    | 'type'
-    | 'data-testid'
-    | 'rows'
-    | 'onBlur'
-    | 'onChange'
-    | 'onFocus'
-    | 'error'
-    | 'helperText'
-  > {
+interface TextInputProps<T extends object> extends OutlinedTextFieldProps {
   formik: FormikProps<T>;
   name: Extract<keyof T, string>;
   label: string;
@@ -49,30 +32,28 @@ export function TextInput<T extends object>({
     formik.handleBlur = (e: FocusEvent<HTMLInputElement>) => {
       handleBlur<T>(e, formik, setHelperText, searchParams);
     };
-
   return (
-    <HelperTextBox multiline={multiline}>
-      <TextField
-        {...props}
-        fullWidth
-        value={formik.values[name]}
-        type={type}
-        data-testid={`${name}-input`}
-        name={name}
-        label={label}
-        variant='outlined'
-        multiline={multiline}
-        rows={multiline ? 4 : 1}
-        onBlur={formik.handleBlur}
-        onChange={formik.handleChange}
-        onFocus={async () => handleFocus<T>(formik, name, setHelperText)}
-        error={formik.touched[name] && !!formik.errors[name]}
-        helperText={
-          (formik.touched[name] && (formik.errors[name] as string)) ||
-          (formik.touched[name] && !formik.errors[name] && helperText)
-        }
-      />
-    </HelperTextBox>
+    <OutlinedTextField
+      {...props}
+      fullWidth
+      value={formik.values[name]}
+      type={type}
+      data-testid={`${name}-input`}
+      name={name}
+      disabled={formik.isSubmitting}
+      label={label}
+      multiline={multiline}
+      rows={multiline ? 4 : 1}
+      onBlur={formik.handleBlur}
+      onChange={formik.handleChange}
+      onFocus={async () => handleFocus<T>(formik, name, setHelperText)}
+      error={formik.touched[name] && !!formik.errors[name]}
+      helperText={
+        (formik.touched[name] && (formik.errors[name] as string)) ||
+        (formik.touched[name] && !formik.errors[name] && helperText)
+      }
+      sx={{ height: multiline ? '158px' : '81px' }}
+    />
   );
 }
 

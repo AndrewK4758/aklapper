@@ -1,7 +1,8 @@
-import { styled } from '@mui/material-pigment-css';
-import Box from '@mui/material-pigment-css/Box';
+import { styled } from '@mui/material/styles';
+import Box, { type BoxProps } from '@mui/material/Box';
+import type { ComponentType } from 'react';
 
-export const ColoredBackground = styled(Box)(({ theme }) => ({
+export const ColoredBackground: ComponentType<BoxProps> = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.background.paper,
   padding: 0,
   borderRadius: theme.shape.borderRadius,

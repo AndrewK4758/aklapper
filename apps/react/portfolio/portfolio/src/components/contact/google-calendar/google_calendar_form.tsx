@@ -24,7 +24,7 @@ export default function GoogleCalendarForm({
 }: GoogleAppointmentFormProps): ReactElement<GoogleAppointmentFormProps> {
   const [values, setValues] = useState<TimesAndDates>({
     startTime: minTime,
-    endTime: 0,
+    endTime: 30,
     date: tomorrow,
   });
 

@@ -2,11 +2,9 @@
   "extends": "../../../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "out-tsc/portfolio-api",
-    "module": "nodenext",
-    "types": ["node"],
     "rootDir": "src",
-    "moduleResolution": "nodenext",
     "tsBuildInfoFile": "out-tsc/portfolio-api/tsconfig.app.tsbuildinfo",
+    "types": ["node"],
     "verbatimModuleSyntax": false
   },
   "include": ["src/**/*.ts"],
@@ -14,6 +12,9 @@
   "references": [
     {
       "path": "../../../../packages/utils/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../../packages/prisma/portfolio/tsconfig.lib.json"
     }
   ]
 }

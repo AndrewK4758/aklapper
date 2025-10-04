@@ -3,6 +3,7 @@ import json
 
 import chromadb
 import chromadb.api
+from fastapi import UploadFile
 import rich
 from chromadb import Documents, EmbeddingFunction
 from chromadb.api import ClientAPI
@@ -10,9 +11,10 @@ from chromadb.api.models import Collection
 from langchain_chroma import Chroma
 from langchain_ollama import OllamaEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_unstructured.document_loaders import UnstructuredLoader
+from langchain_un
+
 from wdg_agents.utils import print_with_time
-from werkzeug.datastructures import FileStorage
+
 
 CHUNK_SIZE = 1500
 CHUNK_OVERLAP = 400
@@ -21,8 +23,8 @@ DB_PATH = './data_store'
 native_db = chromadb.PersistentClient(path=DB_PATH)
 
 
-def make_bytes_io_object(file: FileStorage) -> io.BytesIO:
-    return io.BytesIO(file.stream.read())
+def make_bytes_io_object(file_in_bytes: bytes) -> io.BytesIO:
+    return io.BytesIO(file_in_bytes)
 
 
 class MyEmbeddingFunction(EmbeddingFunction):
@@ -30,7 +32,7 @@ class MyEmbeddingFunction(EmbeddingFunction):
         return embeddingModel.embed_documents(input)
 
 
-async def read_files(native_db: ClientAPI, collection: str, files: list[FileStorage]) -> bool:
+async def read_files(native_db: ClientAPI, collection: str, files: list[UploadFile]) -> bool:
     """This method takes the uploaded documents and uses the UnstructuredLoader to ensure each PDF is broken
     down into individual pages for citation."""
 
@@ -38,11 +40,11 @@ async def read_files(native_db: ClientAPI, collection: str, files: list[FileStor
 
     try:
         for file in files:
-            file.stream.seek(0)
-            file_stream_buffer = make_bytes_io_object(file)
+            
+            content = await file.read()
+            file_stream_buffer = make_bytes_io_object(content)
 
-            loader = UnstructuredLoader(file=file_stream_buffer, mode='element',
-                                        metadata_filename=file.name, metadata_filetype=file.mimetype)
+            loader = UnstructuredPDFLoader()
 
             pages = await loader.aload()
 
@@ -85,7 +87,7 @@ def format_docs(docs):
     return "\n".join(doc.page_content for doc in docs)
 
 
-async def get_db_client(model: str, collection: str, files: list[FileStorage] | None = None) -> Chroma:
+async def get_db_client(model: str, collection: str, files: list[UploadFile] | None = None) -> Chroma:
     print("rag-chain main")
 
     global embeddingModel

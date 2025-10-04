@@ -1,10 +1,8 @@
 import { SectionTitle } from '@aklapper/react-shared';
-import Box from '@mui/material-pigment-css/Box';
+import Box from '@mui/material/Box';
 import CardHeader from '@mui/material/CardHeader';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { css } from '@pigment-css/react';
 import { memo, type ReactElement } from 'react';
-import '../../styles/colors-and-fonts.css';
 import Theme from '../../styles/themes/theme';
 import { ABOUT_ME_TITLE } from '../home/static/intro-static';
 
@@ -51,9 +49,7 @@ export default memo(function PicNameAndNav({ subheader }: PicNameAndNavProps) {
         sx={{ flexDirection: mediaQuery ? 'column' : 'row', alignItems: 'center', justifyItems: 'center' }}
       />
       {mediaQuery && (
-        <Box className={css({ padding: `0 ${Theme.spacing(4)} ${Theme.spacing(4)} ${Theme.spacing(4)}` })}>
-          {subheader}
-        </Box>
+        <Box sx={{ padding: `0 ${Theme.spacing(4)} ${Theme.spacing(4)} ${Theme.spacing(4)}` }}>{subheader}</Box>
       )}
     </>
   );

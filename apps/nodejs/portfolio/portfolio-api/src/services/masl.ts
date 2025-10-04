@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 
 const __dirname = createNodeDirname(import.meta.url);
 
-configDotenv({ path: resolve(__dirname, '../', 'env/.env.nodemailer') });
+configDotenv({ path: resolve(__dirname, '../../', 'env/.env.nodemailer') });
 
 const config: Configuration = {
   auth: {

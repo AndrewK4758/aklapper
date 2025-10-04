@@ -2,35 +2,42 @@ import GoogleIcon from '@mui/icons-material/Google';
 import type { ButtonProps } from '@mui/material/Button';
 import Button from '@mui/material/Button';
 import { useGoogleLogin } from '@react-oauth/google';
-import { useContext, useState, type ReactElement } from 'react';
+import { useContext, type ReactElement } from 'react';
 import { GoogleUserContext, type GoogleUserContextProps } from '../../../contexts/contact_context_constants';
 import onGoogleOAuth2Success from '../../../services/auth/google_calendar';
 import AnimatedBorderBox from '../../styled/animated_border_box';
 
-export default function GoogleAuthButton(): ReactElement<ButtonProps> {
-  const { handleSetGoogleUser } = useContext<GoogleUserContextProps>(GoogleUserContext);
-  const [authorizing, setAuthorizing] = useState(false);
+interface GoogleAuthButtonProps {
+  isAuthenticating: boolean;
+  handleIsAuthenticating: (isAuth: boolean) => void;
+}
 
-  const toggleAuthorizing = () => {
-    setAuthorizing(!authorizing);
+export default function GoogleAuthButton({
+  isAuthenticating,
+  handleIsAuthenticating,
+}: GoogleAuthButtonProps): ReactElement<ButtonProps> {
+  const { handleSetGoogleUser } = useContext<GoogleUserContextProps>(GoogleUserContext);
+
+  const toggleAuthenticating = (isAuthenticating: boolean) => {
+    handleIsAuthenticating(isAuthenticating);
   };
 
   const login = useGoogleLogin({
-    onSuccess: code => onGoogleOAuth2Success(code, handleSetGoogleUser, toggleAuthorizing),
+    onSuccess: code => onGoogleOAuth2Success(code, handleSetGoogleUser, toggleAuthenticating),
     onError: err => {
       console.error(`Error: ${err.error}`);
-      toggleAuthorizing();
+      toggleAuthenticating(false);
     },
     onNonOAuthError: err => {
       console.error(`NonOAuthError: ${err}`);
-      toggleAuthorizing();
+      toggleAuthenticating(false);
     },
     flow: 'auth-code',
     scope: import.meta.env.VITE_OAUTH_SCOPE,
   });
 
   const handleLogin = () => {
-    setAuthorizing(true);
+    handleIsAuthenticating(true);
     login();
   };
 
@@ -40,7 +47,7 @@ export default function GoogleAuthButton(): ReactElement<ButtonProps> {
         id='google-auth-button'
         data-testid='google-auth-button'
         onClick={handleLogin}
-        disabled={authorizing}
+        disabled={isAuthenticating}
         endIcon={<GoogleIcon color='inherit' fontSize='inherit' />}
       >
         Connect Google Calendar

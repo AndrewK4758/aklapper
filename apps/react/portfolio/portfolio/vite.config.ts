@@ -1,11 +1,9 @@
 import { workspaceRoot } from '@nx/devkit';
-import { pigment } from '@pigment-css/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
 import { cwd } from 'node:process';
-import { defineConfig } from 'vite';
-import Theme from './src/styles/themes/theme';
-import MODULES from './vite_modules';
+import { defineConfig } from 'vitest/config';
+import MODULES from './vite_modules.js';
 
 //Server
 const HOST = 'localhost';
@@ -30,23 +28,7 @@ const config = defineConfig({
     host: HOST,
   },
 
-  plugins: [
-    pigment({
-      theme: Theme,
-      transformLibraries: ['@mui/material'],
-      transformSx: true,
-      packageMap: {
-        '@pigment-css/react': '@mui/material-pigment-css',
-      },
-      debug: {
-        print: true,
-      },
-      babelOptions: {
-        compact: false,
-      },
-    }),
-    react(),
-  ],
+  plugins: [react()],
 
   // Uncomment this if you are using workers.
   // worker: {

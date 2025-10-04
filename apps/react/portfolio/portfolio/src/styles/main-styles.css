@@ -1,5 +1,4 @@
 @import url(./colors-and-fonts.css);
-@import url(./reset.css);
 
 @property --clr-1 {
   syntax: '<color>';
@@ -11,12 +10,6 @@
   syntax: '<color>';
   inherits: true;
   initial-value: #ff3d00;
-}
-
-@property --glow-deg {
-  syntax: '<angle>';
-  inherits: true;
-  initial-value: -180deg;
 }
 
 @property --text-primary {
@@ -49,36 +42,21 @@
   initial-value: #323232;
 }
 
-&::-webkit-scrollbar {
-  width: 0.75rem;
+@property --glow-deg {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: -180deg;
 }
 
-&::-webkit-scrollbar-track {
-  background: linear-gradient(to bottom, --clr-1, --clr-2);
+#root {
+  isolation: isolate;
 }
 
 &::-webkit-scrollbar-thumb {
-  background-color: #3a3c41;
+  background-color: var(--clr-1-drk);
   border-radius: 2px;
 }
 
-html {
-  font-synthesis: none;
-  text-rendering: 'optimizeLegibility';
-  box-sizing: 'border-box';
-  overflow-x: 'hidden';
-  font-smooth: 'antialiased';
-  letter-spacing: 2;
-  word-spacing: 3.5;
-  line-height: 1.5;
-  background:
-    linear-gradient(225deg, #e9e9eb24 0%, transparent 80%),
-    linear-gradient(45deg, #10101038 0%, transparent 80%) #404040;
-  background-attachment: fixed;
-  background-repeat: 'no-repeat';
-  height: 100%;
-  /* overflow: hidden; */
-}
 &:-webkit-autofill,
 &:-webkit-autofill:hover,
 &:-webkit-autofill:focus,
@@ -87,6 +65,7 @@ html {
   --webkit-box-shadow: 0 0 0 100px var(--text-secondary) inset !important;
   -webkit-background-clip: text;
 }
+
 input::-webkit-inner-spin-button,
 & input::-webkit-outer-spin-button {
   -webkit-appearance: 'none';

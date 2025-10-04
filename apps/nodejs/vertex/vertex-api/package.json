@@ -28,7 +28,7 @@
         "defaultConfiguration": "production",
         "options": {
           "platform": "node",
-          "target": "node23",
+          "target": "node24",
           "metafile": true,
           "outputPath": "apps/nodejs/vertex/vertex-api/dist",
           "format": [

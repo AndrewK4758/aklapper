@@ -4,8 +4,6 @@ import express, { type Express } from 'express';
 import { join } from 'path';
 import { PortfolioRoutes, router } from './routes/routes.js';
 
-console.log(process.env.NODE_ENV);
-
 const __dirname = createNodeDirname(import.meta.url);
 
 const app: Express = express();

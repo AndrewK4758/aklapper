@@ -39,13 +39,15 @@ export default function LandingExplosion({ isVisible, ...props }: ExplosionProps
         loop: false,
         autoplay: true,
         container: explosion,
+        renderer: 'svg',
+        rendererSettings: {
+          hideOnTransparent: true,
+        },
       });
       return () => animation.destroy();
     }
     return;
   }, []);
 
-  return (
-    <Box {...props} sx={[explosionBaseStyle, { opacity: isVisible ? 1 : 0 }] as SxProps<ThemeType>} ref={elementRef} />
-  );
+  return <Box {...props} sx={[explosionBaseStyle] as SxProps<ThemeType>} ref={elementRef} />;
 }

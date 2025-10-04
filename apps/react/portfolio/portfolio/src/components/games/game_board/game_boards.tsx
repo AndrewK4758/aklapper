@@ -1,6 +1,5 @@
 import { Text, useScrollIntoView } from '@aklapper/react-shared';
-import Box from '@mui/material-pigment-css/Box';
-import { css } from '@pigment-css/react';
+import Box from '@mui/material/Box';
 import { useRef, type ActionDispatch } from 'react';
 import { useParams } from 'react-router';
 import type { ManagerOptions, Socket } from 'socket.io-client';
@@ -39,7 +38,7 @@ const GameBoardAndActions = function ({ dispatch, state }: GameBoardAndActionsPr
   useGamesWebsockets(socket, id, dispatch);
   console.log(state.gameBoard);
   return (
-    <Box ref={devRef} component={'section'} id='game-board-wrapper' className={css({ flex: 1, display: 'flex' })}>
+    <Box ref={devRef} component={'section'} id='game-board-wrapper' sx={{ flex: 1, display: 'flex' }}>
       {id === 'Chutes-&-Ladders' ? (
         <GameBoard board={state.gameBoard} />
       ) : (
@@ -48,29 +47,26 @@ const GameBoardAndActions = function ({ dispatch, state }: GameBoardAndActionsPr
 
       <Box
         id='active-game-buttons-wrapper'
-        className={css({
+        sx={{
           display: 'flex',
           flexDirection: 'column',
           flex: '0 1 5%',
           padding: Theme.spacing(4),
           justifyContent: 'space-between',
           alignItems: 'center',
-        })}
+        }}
       >
         <Text
           variant='h2'
           children={state.avatarInTurn}
-          className={css({
+          sx={{
             textOrientation: 'upright',
             writingMode: 'vertical-rl',
             justifySelf: 'center',
             height: '70%',
-          })}
+          }}
         />
-        <Box
-          component={'section'}
-          className={css({ display: 'flex', flexWrap: 'wrap', flex: '0 1 30%', gap: Theme.spacing(8) })}
-        >
+        <Box component={'section'} sx={{ display: 'flex', flexWrap: 'wrap', flex: '0 1 30%', gap: Theme.spacing(8) }}>
           {id === 'Chutes-&-Ladders' ? (
             <TakeTurn state={state} dispatch={dispatch} socket={socket} />
           ) : (

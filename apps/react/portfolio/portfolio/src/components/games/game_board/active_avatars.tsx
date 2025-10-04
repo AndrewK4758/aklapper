@@ -1,7 +1,6 @@
 import { Text } from '@aklapper/react-shared';
 import type { IRegisterFormValues } from '@aklapper/types';
-import Box from '@mui/material-pigment-css/Box';
-import { css } from '@pigment-css/react';
+import Box from '@mui/material/Box';
 import PlayersInGame from '../players-in-game/players-in-game';
 
 interface ActiveAvatarsProps {
@@ -19,25 +18,25 @@ interface ActiveAvatarsProps {
 export default function ActiveAvatars({ avatarsInGame, winner }: ActiveAvatarsProps) {
   return (
     <Box
-      as={'section'}
+      component={'section'}
       id={'active-game-header'}
       key={'games-header'}
-      className={css({ display: 'flex', height: '100%', width: '100%' })}
+      sx={{ display: 'flex', height: '100%', width: '100%' }}
     >
       {!winner ? (
         <Box
-          className={css({
+          sx={{
             flex: 1,
             display: 'flex',
             justifyContent: 'space-evenly',
             alignItems: 'center',
             height: '100%',
-          })}
+          }}
         >
-          <Box className={css({ flex: '1 0 35%' })}>
+          <Box sx={{ flex: '1 0 35%' }}>
             <Text variant='h4' children='Active Players in Game' />
           </Box>
-          <Box className={css({ flex: '1 0 65%', display: 'flex' })}>
+          <Box sx={{ flex: '1 0 65%', display: 'flex' }}>
             {avatarsInGame.map(avatar => (
               <PlayersInGame key={avatar.avatarName} avatarName={avatar.avatarName} playerName={avatar.playerName} />
             ))}
@@ -47,12 +46,12 @@ export default function ActiveAvatars({ avatarsInGame, winner }: ActiveAvatarsPr
         <Text
           variant='h4'
           children={winner}
-          className={css({
+          sx={{
             display: 'flex',
             alignItems: 'center',
             height: '71px',
             justifySelf: 'center',
-          })}
+          }}
         />
       )}
     </Box>

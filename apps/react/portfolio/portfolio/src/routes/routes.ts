@@ -8,7 +8,7 @@ import Crud from '../pages/crud/crud.js';
 import Games from '../pages/games/games.js';
 import GenAiHome from '../pages/gen-ai/gen-ai.js';
 import Home from '../pages/home/home.js';
-import LandingPage from '../pages/landing/landing.js';
+// import LandingPage from '../pages/landing/landing.js';
 import handleArtistAlbumsActions from '../services/actions/crud-actions/handle_album_on_artist_actions.js';
 import handleArtistActions from '../services/actions/crud-actions/handle_artist_actions.js';
 import handleTrackActions from '../services/actions/crud-actions/handle_track_actions.js';
@@ -17,7 +17,9 @@ import loadAlbumTracks from '../services/loaders/crud-loaders/load-album-tracks.
 import loadAlbums from '../services/loaders/crud-loaders/load-albums.js';
 import loadArtistsAndCount from '../services/loaders/crud-loaders/load-artists_and_count.js';
 import loadAlbumsForArtist from '../services/loaders/crud-loaders/load_albums_for_artist.js';
+import handleUUID from '../services/loaders/landing/handle_uuid.js';
 import registerPlayersAndStartGame from '../services/loaders/register-players-and-start-game.js';
+import LandingWrapper from '../pages/landing/landing-wraper.js';
 const ActiveGameSession = lazy(() => import('../components/games/active_game_session.js'));
 const AddEntry = lazy(() => import('../components/crud/add-entry/add-entry.js'));
 const Album = lazy(() => import('../components/crud/albums/album-base.js'));
@@ -43,7 +45,8 @@ const routes: RouteObject[] = [
   {
     id: 'landing',
     path: '/',
-    Component: LandingPage,
+    loader: handleUUID,
+    Component: LandingWrapper,
     ErrorBoundary: BaseError,
   },
   {

@@ -1,8 +1,7 @@
 import { CenteredFlexDiv, StyledCard, Text, Waiting } from '@aklapper/react-shared';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
-import Box from '@mui/material-pigment-css/Box';
+import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
-import { css } from '@pigment-css/react';
 import { useActionData, useNavigation } from 'react-router';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
 import { BOX_SHADOW_MAIN } from '../../../styles/base/base_styles';
@@ -15,27 +14,27 @@ export default function ImageResponse() {
   return (
     <>
       {state === 'submitting' && (
-        <Box as={'span'} id='image-gen-generating-box'>
-          <Text component={'h4'} variant='h4' children={'Generating Images'} className={css({ textAlign: 'center' })} />
+        <Box component={'span'} id='image-gen-generating-box'>
+          <Text component={'h4'} variant='h4' children={'Generating Images'} sx={{ textAlign: 'center' }} />
           <Waiting src={waiting} />
         </Box>
       )}
 
       {pics && state !== 'submitting' && (
-        <CenteredFlexDiv id='generated-images' as={'section'}>
+        <CenteredFlexDiv id='generated-images' component={'section'}>
           {pics.map((pic, i) => (
             <StyledCard
               key={`generated-image-${i}`}
-              className={css({
+              sx={{
                 padding: Theme.spacing(10),
                 boxShadow: BOX_SHADOW_MAIN,
-              })}
+              }}
             >
               <CenteredFlexDiv sx={{ justifyContent: 'center', p: 0, gap: Theme.spacing(2) }}>
                 <IconButton
                   color='secondary'
                   onClick={() => handleDownloadImage(pic, i)}
-                  className={css({ alignSelf: 'flex-end', fontSize: '2rem' })}
+                  sx={{ alignSelf: 'flex-end', fontSize: '2rem' }}
                 >
                   <SaveAltIcon fontSize='inherit' />
                 </IconButton>

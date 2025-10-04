@@ -1,6 +1,6 @@
 import { CenteredFlexDiv, useScrollIntoView, Waiting } from '@aklapper/react-shared';
 import type { ChatEntry } from '@aklapper/types';
-import Box from '@mui/material-pigment-css/Box';
+import Box from '@mui/material/Box';
 import Collapse from '@mui/material/Collapse';
 import { lazy, Suspense, useEffect, useRef, useState, type ReactElement } from 'react';
 import { Outlet } from 'react-router';
@@ -39,7 +39,7 @@ const GenAiHome = (): ReactElement => {
   };
 
   return (
-    <CenteredFlexDiv ref={divRef} as={'div'} id='gen-ai-wrapper' sx={{ padding: 0 }}>
+    <CenteredFlexDiv ref={divRef} component={'div'} id='gen-ai-wrapper' sx={{ padding: 0 }}>
       <GenAiHeader isPromptBuilderOpen={isPromptBulderOpen} setIsPromptBuilderOpen={handleSetPromptBulderOpen} />
 
       {isPromptBulderOpen && (
@@ -52,7 +52,7 @@ const GenAiHome = (): ReactElement => {
 
       {chatHistory.length ? <Chat chatHistory={chatHistory} loading={loading} /> : null}
 
-      <Box as={'div'} id='gen-ai-outlet-wrapper' sx={{ width: '65%' }}>
+      <Box component={'div'} id='gen-ai-outlet-wrapper' sx={{ width: '65%' }}>
         <Suspense fallback={<Waiting src={waiting} />}>
           <MediaRecorderClientContextProvider>
             <Outlet context={{ chatHistory, loading, setChatHistory, setLoading } as OutletContextProps} />

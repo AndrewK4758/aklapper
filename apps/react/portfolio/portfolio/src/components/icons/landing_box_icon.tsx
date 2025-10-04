@@ -96,7 +96,7 @@ export default function LandingBox({ isLandingNavOpen, onHandleOpenMenu, ...prop
               style={{
                 position: 'absolute',
                 display: 'inline',
-                fill: '#333333',
+                fill: 'gray',
                 fillOpacity: 1,
                 stroke: TEXT_SECONDARY,
                 strokeWidth: 0.5,

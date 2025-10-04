@@ -1,6 +1,5 @@
 import { CenteredFlexDiv, TextInput } from '@aklapper/react-shared';
 import Stack from '@mui/material/Stack';
-import { css } from '@pigment-css/react';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useFormik } from 'formik';
 import { useContext, useRef } from 'react';
@@ -15,7 +14,7 @@ import DateTimeInput from './date_time_input';
 import EmailFormActions from './email-form-actions';
 import UploadFileElement from './upload_file_element';
 
-export type MessageMeFormValues = {
+export interface MessageMeFormValues {
   name: string;
   email: string;
   phone: string;
@@ -23,7 +22,7 @@ export type MessageMeFormValues = {
   body: string;
   date: Dayjs;
   attachment: null;
-};
+}
 
 const validationSchema = Yup.object({
   name: Yup.string().max(60, 'Name must be less than 60 characters').required('Please enter your name'),
@@ -73,13 +72,12 @@ export default function EmailForm({ setOpen }: EmailFormProps) {
         onSubmit={formik.handleSubmit}
         onReset={formik.handleReset}
       >
-        <Stack id='email-me-inputs-stack' data-testid='email-me-inputs-stack' className={css({ gap: 2 })}>
+        <Stack id='email-me-inputs-stack' data-testid='email-me-inputs-stack' sx={{ gap: 2 }}>
           <TextInput<MessageMeFormValues>
             name={'name'}
             label={'Name'}
             formik={formik}
             variant='outlined'
-            disabled={formik.isSubmitting}
             slotProps={{
               input: {
                 sx: { backgroundColor: BACKGROUND_DEFAULT },

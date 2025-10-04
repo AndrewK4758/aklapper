@@ -3,6 +3,7 @@ import { createContext } from 'react';
 export type GoogleUserContextInfo = {
   email: string;
   name: string;
+  picture: string;
 };
 
 export interface GoogleUserContextProps {
@@ -15,6 +16,7 @@ const googleUserInit: GoogleUserContextProps = {
   GoogleUserContextValues: {
     email: '',
     name: '',
+    picture: '',
   },
 };
 

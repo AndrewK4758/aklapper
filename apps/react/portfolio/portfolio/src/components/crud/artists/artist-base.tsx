@@ -1,8 +1,7 @@
 import type { artist } from '@aklapper/chinook-client';
 import { Waiting } from '@aklapper/react-shared';
 import type { DataGridServerPagination } from '@aklapper/types';
-import { css } from '@mui/material-pigment-css';
-import Box from '@mui/material-pigment-css/Box';
+import Box from '@mui/material/Box';
 import { Suspense, type ReactElement } from 'react';
 import { Outlet, useFetcher, useLoaderData } from 'react-router';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
@@ -27,12 +26,12 @@ const Artist = (): ReactElement => {
   return (
     <Suspense fallback={<Waiting src={waiting} />}>
       <Box
-        className={css({
+        sx={{
           display: 'flex',
           gap: Theme.spacing(4),
-        })}
+        }}
       >
-        <Box className={css({ flex: '1 0 50%' })}>
+        <Box sx={{ flex: '1 0 50%' }}>
           <CrudElement<artist, DataGridServerPagination<artist[]>>
             crudElement='artists'
             loader={loader}
@@ -41,7 +40,7 @@ const Artist = (): ReactElement => {
             DataGrid={<ArtistDataGrid promise={loader} fetcher={fetcher} />}
           />
         </Box>
-        <Box className={css({ flex: '1 0 50%', display: 'flex' })}>
+        <Box sx={{ flex: '1 0 50%', display: 'flex' }}>
           <Outlet />
         </Box>
       </Box>

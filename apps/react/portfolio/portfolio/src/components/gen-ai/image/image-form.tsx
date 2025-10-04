@@ -1,7 +1,7 @@
 import { CenteredFlexDiv, StyledCard, Text, TextInput } from '@aklapper/react-shared';
 import { AspectRatio } from '@aklapper/types';
 import { type ClientImagenConfig } from '@aklapper/vertex-ai';
-import Box from '@mui/material-pigment-css/Box';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Divider from '@mui/material/Divider';
@@ -79,7 +79,7 @@ const ImageForm = (): ReactElement => {
         <StyledCard>
           <CenteredFlexDiv sx={{ padding: Theme.spacing(4), gap: Theme.spacing(3) }}>
             <Box sx={{ display: 'flex', gap: Theme.spacing(4), width: '100%' }}>
-              <CenteredFlexDiv as={'section'} id='image-form-sample-count-box' sx={{ flex: 1, gap: 0, p: 0 }}>
+              <CenteredFlexDiv component={'section'} id='image-form-sample-count-box' sx={{ flex: 1, gap: 0, p: 0 }}>
                 <FormLabel
                   component={'h5'}
                   id='image-form-sample-count-label'
@@ -106,7 +106,7 @@ const ImageForm = (): ReactElement => {
               </CenteredFlexDiv>
               <Divider flexItem orientation='vertical' />
               <CenteredFlexDiv
-                as={'section'}
+                component={'section'}
                 id='image-form-aspect-ratio-box'
                 sx={{ flex: 1, gap: Theme.spacing(4), p: 0 }}
               >

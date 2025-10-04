@@ -1,7 +1,6 @@
 import { Text } from '@aklapper/react-shared';
 import type { ILiteSpace } from '@aklapper/types';
-import Box from '@mui/material-pigment-css/Box';
-import { css } from '@pigment-css/react';
+import Box from '@mui/material/Box';
 import Theme from '../../../styles/themes/theme';
 
 interface SpaceProps {
@@ -11,7 +10,7 @@ interface SpaceProps {
 export default function Space({ space }: SpaceProps) {
   return (
     <Box
-      className={css({
+      sx={{
         display: 'flex',
         backgroundColor: Theme.palette.background.paper,
         border: `1px solid ${Theme.palette.primary.main}`,
@@ -20,7 +19,7 @@ export default function Space({ space }: SpaceProps) {
         minHeight: '92px',
         justifyContent: 'center',
         alignItems: 'center',
-      })}
+      }}
     >
       {space.display.endsWith('.webp') ? (
         <img

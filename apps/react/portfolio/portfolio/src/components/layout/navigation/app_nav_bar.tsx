@@ -4,7 +4,7 @@ import NavButton from './nav_button';
 
 export default function AppNavBar() {
   return (
-    <AnimatedBorderBox as={'nav'} id='app-nav-bar'>
+    <AnimatedBorderBox component={'nav'} id='app-nav-bar'>
       <ButtonGroup>
         <NavButton buttonText={'Home'} name='/portfolio' data-testid='home-nav-button' />
         <NavButton buttonText={'CRUD'} name='crud' data-testid='crud-nav-button' />

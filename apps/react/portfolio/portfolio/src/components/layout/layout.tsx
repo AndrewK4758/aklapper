@@ -1,5 +1,4 @@
 import { CenteredFlexDiv, StyledCard, StyledRootComponentWrapper } from '@aklapper/react-shared';
-import { css } from '@pigment-css/react';
 import { useState, type ReactElement } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 import Footer from '../footer/footer';
@@ -39,16 +38,16 @@ export default function Layout(): ReactElement {
         handleToggleContactMenu={handleToggleContactMenu}
       />
 
-      <CenteredFlexDiv component={'main'} className={css({ margin: '0 2.5%', padding: 0, minHeight: '100vh' })}>
+      <CenteredFlexDiv component={'main'} sx={{ margin: '0 2.5%', padding: 0, minHeight: '100vh' }}>
         <StyledCard>
           <PicNameAndNav subheader={<AppNavBar />} />
         </StyledCard>
         <StyledCard
-          className={css({
+          sx={{
             backgroundColor: 'transparent',
             width: '100%',
             padding: 0,
-          })}
+          }}
         >
           <Outlet />
         </StyledCard>

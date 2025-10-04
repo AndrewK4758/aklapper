@@ -1,6 +1,5 @@
 import type { ILiteSpace, Row } from '@aklapper/types';
-import Box from '@mui/material-pigment-css/Box';
-import { css } from '@pigment-css/react';
+import Box from '@mui/material/Box';
 import { type ActionDispatch } from 'react';
 import Theme from '../../../styles/themes/theme';
 import type { IActiveGameInfo } from '../../../types/types';
@@ -16,7 +15,7 @@ export interface GameBoardPropsTicTacToe {
 
 const RowTicTacToe = function ({ row, id, state, dispatch }: GameBoardPropsTicTacToe) {
   return (
-    <Box as={'section'} id={`row-${id}`} className={css({ display: 'flex', flex: 1, gap: Theme.spacing(2) })}>
+    <Box component={'section'} id={`row-${id}`} sx={{ display: 'flex', flex: 1, gap: Theme.spacing(2) }}>
       {row.map((space: ILiteSpace, i: number) => (
         <SpaceTicTacToe
           key={`${space.display}-${i}`}

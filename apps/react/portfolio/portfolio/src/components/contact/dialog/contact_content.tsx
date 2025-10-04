@@ -1,8 +1,8 @@
 import { Waiting } from '@aklapper/react-shared';
-import Box from '@mui/material-pigment-css/Box';
-import { css } from '@pigment-css/react';
+import Box from '@mui/material/Box';
 import { lazy, Suspense, type ReactElement } from 'react';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
+import Theme from '../../../styles/themes/theme';
 import type { EmailFormProps } from '../email-form/email-form';
 import type { GoogleCalendarProps } from '../google-calendar/google-calendar';
 
@@ -28,7 +28,15 @@ export default function ContactContent({ tab, handleIsOpen }: ContactContentProp
       break;
   }
   return (
-    <Box as={'section'} className={css({ width: '100%' })}>
+    <Box
+      component={'section'}
+      sx={{
+        width: '100%',
+        border: '2px solid blue',
+        height: '87.5%',
+        padding: `${Theme.spacing(4)} 0 0 0`,
+      }}
+    >
       <Suspense fallback={<Waiting src={waiting} />}>{Element}</Suspense>
     </Box>
   );

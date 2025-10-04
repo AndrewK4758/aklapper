@@ -1,6 +1,5 @@
 import { CenteredFlexDiv } from '@aklapper/react-shared';
-import { css } from '@mui/material-pigment-css';
-import Box from '@mui/material-pigment-css/Box';
+import Box from '@mui/material/Box';
 import type { ReactElement } from 'react';
 import { Outlet, useNavigation, useParams } from 'react-router';
 import GamesHeader from '../../components/games/header';
@@ -19,11 +18,11 @@ const Games = (): ReactElement => {
 
   return (
     <CenteredFlexDiv id='games-wrapper'>
-      <Box className={css({ display: 'flex', width: '100%' })}>
+      <Box sx={{ display: 'flex', width: '100%' }}>
         <GamesHeader state={state} />
       </Box>
 
-      <Box as={'div'} id={`games-outlet-wrapper`} className={css({ width: '100%' })}>
+      <Box component={'div'} id={`games-outlet-wrapper`} sx={{ width: '100%' }}>
         <Outlet key={outletKey} />
       </Box>
     </CenteredFlexDiv>

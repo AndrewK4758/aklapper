@@ -1,28 +1,14 @@
 import { workspaceRoot } from '@nx/devkit';
-import { pigment } from '@pigment-css/vite-plugin';
 import react from '@vitejs/plugin-react';
 import * as path from 'node:path';
 import { cwd } from 'node:process';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
-import Theme from './src/lib/styles/theme';
 
 export default defineConfig({
   root: cwd(),
   cacheDir: path.resolve(workspaceRoot, 'node_modules/.vite/packages/react-shared'),
   plugins: [
-    pigment({
-      theme: Theme,
-      transformLibraries: ['@mui/material'],
-      transformSx: true,
-      debug: {
-        print: true,
-      },
-      exclude: ['tests/*'],
-      babelOptions: {
-        compact: false,
-      },
-    }),
     react(),
     dts({
       entryRoot: 'src',

@@ -17,14 +17,13 @@ let mockFormik: ReturnType<typeof createMockFormikProps>;
 
 describe('test text_input component', () => {
   it('should have attribute name: "name', () => {
-    mockFormik = createMockFormikProps(NAME, '', false);
+    mockFormik = createMockFormikProps(NAME);
 
     render(
       <TextInput<TextInputFormikTestType>
         formik={mockFormik as unknown as FormikProps<TextInputFormikTestType>}
         name={NAME}
         label={'Name'}
-        variant={'outlined'}
       />,
       { initialRoute: ROUTES.PORTFOLIO, path: ROUTES.PORTFOLIO },
     );
@@ -35,14 +34,13 @@ describe('test text_input component', () => {
   });
 
   it('should handle change', async () => {
-    mockFormik = createMockFormikProps(NAME, '', false);
+    mockFormik = createMockFormikProps(NAME);
 
     render(
       <TextInput<TextInputFormikTestType>
         formik={mockFormik as unknown as FormikProps<TextInputFormikTestType>}
         name={NAME}
         label={'Name'}
-        variant={'outlined'}
       />,
       { initialRoute: ROUTES.PORTFOLIO, path: ROUTES.PORTFOLIO },
     );
@@ -57,7 +55,7 @@ describe('test text_input component', () => {
 
   it('should show error state', async () => {
     const message = 'name error';
-    mockFormik = createMockFormikProps(NAME, '', false);
+    mockFormik = createMockFormikProps(NAME);
     mockFormik.touched['name'] = true;
     mockFormik.errors['name'] = message;
 
@@ -66,7 +64,6 @@ describe('test text_input component', () => {
         formik={mockFormik as unknown as FormikProps<TextInputFormikTestType>}
         name={NAME}
         label={'Name'}
-        variant={'outlined'}
       />,
       { initialRoute: ROUTES.PORTFOLIO, path: ROUTES.PORTFOLIO },
     );
@@ -77,14 +74,13 @@ describe('test text_input component', () => {
   });
 
   it('should call handleBlur', () => {
-    mockFormik = createMockFormikProps(NAME, '', false);
+    mockFormik = createMockFormikProps(NAME);
 
     render(
       <TextInput<TextInputFormikTestType>
         formik={mockFormik as unknown as FormikProps<TextInputFormikTestType>}
         name={NAME}
         label={'Name'}
-        variant={'outlined'}
       />,
       { initialRoute: ROUTES.PORTFOLIO, path: ROUTES.PORTFOLIO },
     );

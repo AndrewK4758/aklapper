@@ -1,5 +1,4 @@
-import { css } from '@mui/material-pigment-css';
-import Box from '@mui/material-pigment-css/Box';
+import Box from '@mui/material/Box';
 import { type ReactElement, useReducer } from 'react';
 import type { IActiveGameInfo } from '../../types/types';
 import ActiveAvatars from './game_board/active_avatars';
@@ -27,13 +26,13 @@ const ActiveGameSession = (): ReactElement => {
   return (
     <Box id={`active-game-session`} sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Box
-        as={'section'}
+        component={'section'}
         id='active-avatar-wrapper'
-        className={css({
+        sx={{
           display: 'flex',
           justifyContent: 'center',
           height: '100%',
-        })}
+        }}
       >
         <ActiveAvatars avatarsInGame={state.activePlayersInGame} winner={state.winner} />
       </Box>

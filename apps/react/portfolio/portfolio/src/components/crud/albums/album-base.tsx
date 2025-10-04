@@ -1,7 +1,6 @@
 import type { album } from '@aklapper/chinook-client';
 import type { DataGridServerPagination } from '@aklapper/types';
 import Box from '@mui/material/Box';
-import { css } from '@pigment-css/react';
 import { type ReactElement } from 'react';
 import { Outlet, useFetcher, useLoaderData } from 'react-router';
 import Theme from '../../../styles/themes/theme';
@@ -24,12 +23,12 @@ const Album = (): ReactElement => {
 
   return (
     <Box
-      className={css({
+      sx={{
         display: 'flex',
         gap: Theme.spacing(4),
-      })}
+      }}
     >
-      <Box className={css({ flex: '1 0 50%' })}>
+      <Box sx={{ flex: '1 0 50%' }}>
         <CrudElement<album, DataGridServerPagination<album[]>>
           crudElement='albums'
           loader={loader}
@@ -38,7 +37,7 @@ const Album = (): ReactElement => {
           DataGrid={<AlbumBaseDataGrid loader={loader} fetcher={fetcher} />}
         />
       </Box>
-      <Box className={css({ flex: '1 0 50%', display: 'flex' })}>
+      <Box sx={{ flex: '1 0 50%', display: 'flex' }}>
         <Outlet />
       </Box>
     </Box>

@@ -1,6 +1,5 @@
 import { CenteredFlexDiv, Waiting } from '@aklapper/react-shared';
-import Box from '@mui/material-pigment-css/Box';
-import { css } from '@pigment-css/react';
+import Box from '@mui/material/Box';
 import Container from '@pigment-css/react/Container';
 import { Suspense, type ReactElement } from 'react';
 import { Await } from 'react-router';
@@ -24,22 +23,22 @@ export default function CrudElement<T1, T2>({
   DataGrid,
 }: CrudElementProps<T1, T2>): ReactElement<CrudElementProps<T1, T2>> {
   return (
-    <Box className={css({ width: '100%' })}>
-      <CenteredFlexDiv className={css({ padding: 0 })}>
+    <Box sx={{ width: '100%' }}>
+      <CenteredFlexDiv sx={{ padding: 0 }}>
         <Box
           id={crudElement}
-          className={css({
+          sx={{
             flex: 1,
             gap: Theme.spacing(4),
             borderRadius: Theme.shape.borderRadius,
             width: '100%',
             backgroundColor: Theme.palette.background.paper,
-          })}
+          }}
         >
           {Header}
           <Container id={`add-${crudElement}-wrapper`}>{NewEntry}</Container>
         </Box>
-        <Box className={css({ width: '100%' })}>
+        <Box sx={{ width: '100%' }}>
           <Suspense fallback={<Waiting src={waiting} />}>
             <Await resolve={loader}>{DataGrid}</Await>
           </Suspense>

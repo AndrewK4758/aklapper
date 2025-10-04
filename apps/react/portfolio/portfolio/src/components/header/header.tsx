@@ -1,5 +1,4 @@
-import Box from '@mui/material-pigment-css/Box';
-import { css } from '@pigment-css/react';
+import Box from '@mui/material/Box';
 import { memo } from 'react';
 import ContactDialog from '../contact/contact_dialog';
 import AnimatedContactMenu from './contact/animated_contact_menu';
@@ -20,12 +19,12 @@ const HeaderContactMenu = memo(function ({
 }: HeaderContactMenuProps) {
   return (
     <>
-      <Box as={'header'} className={css({ display: 'flex', height: '90px' })}>
+      <Box component={'header'} sx={{ display: 'flex', height: '90px' }}>
         <ToggleMenuButton isToggledOpen={isContactMenuOpen} handleToggleContactMenu={handleToggleContactMenu} />
         <AnimatedContactMenu isOpen={isContactMenuOpen} handleOpenEmail={handleOpenEmail} />
       </Box>
       {openEmail && (
-        <Box id='email-form-wrapper' data-testid='email-form-wrapper' className={css({ width: '100%' })}>
+        <Box id='email-form-wrapper' data-testid='email-form-wrapper' sx={{ width: '100%' }}>
           <ContactDialog isOpen={openEmail} handleIsOpen={handleOpenEmail} />
         </Box>
       )}

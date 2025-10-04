@@ -1,5 +1,4 @@
-import Grid from '@mui/material-pigment-css/Grid';
-import { css } from '@pigment-css/react';
+import Grid from '@mui/material/Grid';
 import NavButton from '../layout/navigation/nav_button.js';
 
 export default function CrudNavBar() {
@@ -11,12 +10,12 @@ export default function CrudNavBar() {
           id='crud-home-button'
           name='/portfolio/crud'
           buttonText={'CRUD Home'}
-          className={css({
+          sx={{
             color: 'var(--mui-palette-info-main)',
             borderColor: 'var(--mui-palette-info-main)',
             width: '100%',
             height: '100%',
-          })}
+          }}
         />
       </Grid>
       <Grid size={6}>
@@ -26,12 +25,12 @@ export default function CrudNavBar() {
           name='artists'
           params={`?take=25&cursor=0`}
           buttonText='Artists'
-          className={css({
+          sx={{
             color: 'var(--mui-palette-info-main)',
             borderColor: 'var(--mui-palette-info-main)',
             width: '100%',
             height: '100%',
-          })}
+          }}
         />
       </Grid>
       <Grid size={6}>
@@ -41,12 +40,12 @@ export default function CrudNavBar() {
           name='albums'
           buttonText='Albums'
           params={`?take=25&cursor=0`}
-          className={css({
+          sx={{
             color: 'var(--mui-palette-info-main)',
             borderColor: 'var(--mui-palette-info-main)',
             width: '100%',
             height: '100%',
-          })}
+          }}
         />
       </Grid>
       <Grid size={6}>
@@ -56,12 +55,12 @@ export default function CrudNavBar() {
           id='crud-add-entry-button'
           name='add-entry'
           buttonText='Add Entry'
-          className={css({
+          sx={{
             color: 'var(--mui-palette-info-main)',
             borderColor: 'var(--mui-palette-info-main)',
             width: '100%',
             height: '100%',
-          })}
+          }}
         />
       </Grid>
     </Grid>

@@ -1,13 +1,12 @@
 import { ColoredBackground, Text } from '@aklapper/react-shared';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
-import Box from '@mui/material-pigment-css/Box';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Collapse from '@mui/material/Collapse';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
-import { css } from '@pigment-css/react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { BODY, TITLE } from '../../pages/static/games-text';
@@ -27,31 +26,31 @@ export default function GamesHeader({ state }: GamesHeaderProps) {
 
   return (
     <ColoredBackground
-      as={'div'}
+      component={'div'}
       id='games-navbar-container'
-      className={css({
+      sx={{
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
         padding: `${Theme.spacing(4)} 0`,
-      })}
+      }}
     >
-      <Box as={'div'} className={css({ display: 'flex' })}>
+      <Box component={'div'} sx={{ display: 'flex' }}>
         <Box
-          as={'section'}
+          component={'section'}
           id='games-title-wrapper'
-          className={css({ padding: Theme.spacing(4), flex: '1 1 auto', alignSelf: 'flex-start' })}
+          sx={{ padding: Theme.spacing(4), flex: '1 1 auto', alignSelf: 'flex-start' }}
         >
           <Text variant='h3' children={TITLE} />
         </Box>
         <Divider flexItem orientation='vertical' />
         <Box
-          className={css({
+          sx={{
             flex: '1 0 auto',
             display: 'flex',
             alignItems: 'flex-start',
             padding: `0 ${Theme.spacing(4)}`,
-          })}
+          }}
         >
           <ButtonGroup id='games-button-group' orientation='vertical' size='large' sx={{ alignSelf: 'center' }}>
             <Button
@@ -74,8 +73,8 @@ export default function GamesHeader({ state }: GamesHeaderProps) {
           </ButtonGroup>
         </Box>
         <Divider flexItem orientation='vertical' />
-        <Box className={css({ flex: '1 1 auto', alignSelf: 'center' })}>
-          <Box className={css({ display: 'flex', justifyContent: 'center', padding: `0 ${Theme.spacing(4)}` })}>
+        <Box sx={{ flex: '1 1 auto', alignSelf: 'center' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', padding: `0 ${Theme.spacing(4)}` }}>
             <Text variant='h3' children='Description' />
             <IconButton onClick={handleClickTextView}>
               {textView ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />}
@@ -88,7 +87,7 @@ export default function GamesHeader({ state }: GamesHeaderProps) {
           id='game-header-text-left'
           variant='body1'
           children={BODY}
-          className={css({ textAlign: 'start', lineHeight: 1.5, padding: `${Theme.spacing(4)}` })}
+          sx={{ textAlign: 'start', lineHeight: 1.5, padding: `${Theme.spacing(4)}` }}
         />
       </Collapse>
     </ColoredBackground>

@@ -8,23 +8,24 @@ const baseURL = import.meta.env.VITE_PORTFOLIO_API_URL;
 export default async function onGoogleOAuth2Success(
   code: CodeResponse,
   setUser: (user: GoogleUserContextInfo) => void,
-  toggleAuthorizing: () => void,
+  toggleAuthorizing: (isAuth: boolean) => void,
 ): Promise<void> {
   try {
-    const resp = await axios.post(`${baseURL}/create-tokens`, { code }, { withCredentials: true });
+    const resp = await axios.post(`${baseURL}/tokens`, { code }, { withCredentials: true });
 
     let { idToken } = resp.data;
 
-    let { email, name }: GoogleUserContextInfo = jwtDecode(idToken);
+    let { email, name, picture } = jwtDecode<GoogleUserContextInfo>(idToken);
 
-    setUser({ email: email, name: name });
+    setUser({ email, name, picture });
 
     idToken = null;
     email = '';
     name = '';
+    picture = '';
   } catch (error) {
     console.error(error);
   } finally {
-    toggleAuthorizing();
+    toggleAuthorizing(false);
   }
 }

@@ -1,5 +1,5 @@
-import { styled } from '@mui/material-pigment-css';
-import Box from '@mui/material-pigment-css/Box';
+import { styled } from '@mui/material/styles';
+import Box from '@mui/material/Box';
 import { typewriter } from '../../styles/base/animations';
 
 interface TypewriterTextProps {

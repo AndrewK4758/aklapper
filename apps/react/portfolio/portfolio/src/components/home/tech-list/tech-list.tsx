@@ -2,7 +2,6 @@ import { SectionTitle, type SectionTitleProps } from '@aklapper/react-shared';
 import Grid from '@mui/material/Grid';
 import List from '@mui/material/List';
 import type { TypographyVariant } from '@mui/material/styles';
-import { css } from '@pigment-css/react';
 import { memo } from 'react';
 import Theme from '../../../styles/themes/theme';
 import TechListItem from './tech_list_item';
@@ -20,7 +19,7 @@ export const TechList = memo(function ({ data, id, labelText, variant }: TechLis
       component={'section'}
       id={`${id}-wrapper`}
       data-testid={`tech-list-${id}-list`}
-      className={css({ flex: '1 1 auto', maxWidth: '206px' })}
+      sx={{ flex: '1 1 auto', maxWidth: '206px' }}
     >
       <SectionTitle
         id={id}
@@ -29,7 +28,7 @@ export const TechList = memo(function ({ data, id, labelText, variant }: TechLis
         overrideThemeStyles={{ borderBottom: `1px solid ${Theme.palette.primary.dark}` }}
       />
 
-      <List id={`${id}-list`} className={css({ display: 'flex', flexDirection: 'column' })}>
+      <List id={`${id}-list`} sx={{ display: 'flex', flexDirection: 'column' }}>
         {data.map(entry => (
           <TechListItem key={entry} listItem={entry} />
         ))}

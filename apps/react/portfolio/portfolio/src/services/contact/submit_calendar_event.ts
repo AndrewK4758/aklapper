@@ -16,7 +16,7 @@ export default async function handleSubmitCalendarEvent(
       const endDateTime = endTimeFormatted.toISOString();
 
       const result = await axios.post(
-        `${baseURL}/create-events`,
+        `${baseURL}/events`,
         { start: startDateTime, end: endDateTime },
         {
           withCredentials: true,

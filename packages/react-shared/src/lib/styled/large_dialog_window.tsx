@@ -1,4 +1,4 @@
-import { styled } from '@mui/material-pigment-css';
+import { styled } from '@mui/material/styles';
 import Dialog, { type DialogProps } from '@mui/material/Dialog';
 import type { ComponentType } from 'react';
 

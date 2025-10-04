@@ -1,8 +1,7 @@
 import { SectionTitle, Text } from '@aklapper/react-shared';
-import Box from '@mui/material-pigment-css/Box';
-import Container from '@mui/material-pigment-css/Container';
+import Box from '@mui/material/Box';
+import Container from '@mui/material/Container';
 import Button from '@mui/material/Button';
-import { css } from '@pigment-css/react';
 import { useState } from 'react';
 import { useLocation, useNavigate, useRouteError } from 'react-router';
 
@@ -13,30 +12,26 @@ export default function BaseError() {
   const { pathname } = useLocation();
 
   return (
-    <Container
-      as={'div'}
-      id={`${pathname}-error-wrapper`}
-      className={css({ display: 'flex', flexFlow: 'wrap', gap: 4 })}
-    >
-      <Box as={'section'} id={`${pathname}-error-title-box`} className={css({ flex: 1 })}>
+    <Container id={`${pathname}-error-wrapper`} sx={{ display: 'flex', flexFlow: 'wrap', gap: 4 }}>
+      <Box component={'section'} id={`${pathname}-error-title-box`} sx={{ flex: 1 }}>
         <Text
           id={`${pathname}-error-message-title`}
           variant='h1'
           children={'Sorry, We Experienced an Error'}
-          className={css({ textAlign: 'center' })}
+          sx={{ textAlign: 'center' }}
         />
       </Box>
       <Box
-        as={'section'}
+        component={'section'}
         id={`${pathname}-error-box`}
-        className={css({ flex: 3, display: 'flex', flexDirection: 'column', gap: 2 })}
+        sx={{ flex: 3, display: 'flex', flexDirection: 'column', gap: 2 }}
       >
         <Text
           id={`${pathname}-error-message-header`}
           variant='h3'
           children={`Click the button below if you would like to see the details of the error`}
         />
-        <Box as={'section'} id={`${pathname}-error-details-box`} key={`${pathname}-error-details-box`}>
+        <Box component={'section'} id={`${pathname}-error-details-box`} key={`${pathname}-error-details-box`}>
           <Text
             id={`${pathname}-error-message-name`}
             component={'span'}
@@ -90,9 +85,9 @@ export default function BaseError() {
         </Box>
       </Box>
       <Box
-        as={'section'}
+        component={'section'}
         id={`${pathname}-error-home-button-box`}
-        className={css({ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 })}
+        sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}
       >
         <Text
           id={`${pathname}-error-home-button-text`}

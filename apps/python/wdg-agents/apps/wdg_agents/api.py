@@ -1,51 +1,50 @@
-from typing import IO
+from typing import IO, List
 
+from fastapi import FastAPI, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from flask import Flask, Response, request, send_from_directory
-from flask_cors import CORS
+from pydantic import BaseModel
 from wdg_agents.agent_1 import query_agent
 from wdg_agents.get_llm_list import get_llm_list
 from wdg_agents.rag_chain import get_db_client
-from werkzeug.datastructures import FileStorage
 
 load_dotenv(dotenv_path="apps/wdg_agents/env/.env")
 
 static_path = "../../../../apps/local-model/local-model/dist"
 
-api = Flask(
-    __name__,
-    static_folder=static_path,
-)
-CORS(api, origins=["http://127.0.0.1:6900", "http://localhost:6900"])
+api = FastAPI()
 
-api.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
+origins=["http://127.0.0.1:6900", "http://localhost:5800"]
 
-
-@api.route("/", defaults={"path": "/"})
-@api.route("/<path:path>")
-def index(path):
-
-    if path != "" and path.find(".") == -1:  # Check for explicit files or the root
-        return send_from_directory(static_path, "index.html")
-    else:
-        return send_from_directory(static_path, path)
+api.add_middleware(
+    CORSMiddleware, 
+    allow_origins=origins,
+    allow_credentials=True,  
+    allow_methods=["*"],     
+    allow_headers=["*"], 
+    )
 
 
-@api.route("/models")
+@api.get("/models")
 def get_available_models():
     return get_llm_list()
 
+class Query(BaseModel):
+    query: str
+    model: str
+    files: list[UploadFile] | None
 
-@api.route("/query-model", methods=["POST"])
-async def chat_with_llm():
-    response = Response()
-    origin = request.origin
-    input_data = request.form
 
-    files: list[FileStorage] = request.files.getlist('files')
+@api.post("/query-model")
+async def chat_with_llm(user_query:Query):
+    
 
-    model: str = input_data['model']
-    query: str = input_data['query']
+    files: list[UploadFile] = user_query.files or []
+
+    model: str = user_query.model
+    query: str = user_query.query
+
+    
 
     history_collection = await get_db_client(model, "HISTORY")
     if len(files):

@@ -1,61 +1,62 @@
-import type { NextFunction, Request, Response } from 'express';
-import { google, type Auth } from 'googleapis';
+import type { Request, Response } from 'express';
 import userTokensMap from '../../models/users-tokens-map.js';
+import getCalendarClient from '../../services/calendar/calendar.js';
 import oauth2Client from '../../services/google-oauth.js';
 
-const createEvents = async (
-  req: Request,
-  resp: Response,
-  next: NextFunction,
-) => {
+type StartAndEndTimes = {
+  start: string;
+  end: string;
+};
+
+const createEvents = async (req: Request, resp: Response) => {
   try {
-    const userID = req.cookies['OAUID'];
+    const userID: string = req.cookies['OAUID'];
 
-    if (!userID) {
-      resp
-        .status(404)
-        .json({ message: 'Please connect Google Calendar to continue.' });
-    }
-    const tokens = userTokensMap.get(userID as string) as Auth.Credentials;
+    if (!userID)
+      throw new ReferenceError('Google authorization not present. Please connect Google Calendar to continue.');
 
-    const REFRESH_TOKEN = tokens.refresh_token;
+    const tokens = userTokensMap.get(userID);
 
-    const { start, end } = req.body;
+    if (!tokens) {
+      throw new Error('No token in user map');
+    } else {
+      const calendarClient = getCalendarClient(userID);
 
-    oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+      const { start, end }: StartAndEndTimes = req.body;
 
-    const calendarClient = google.calendar('v3');
-
-    const result = await calendarClient.events.insert({
-      auth: oauth2Client,
-      calendarId: 'primary',
-      requestBody: {
-        summary: 'Meeting w/ Andrew Klapper',
-        start: {
-          dateTime: start,
-        },
-        end: {
-          dateTime: end,
-        },
-        eventType: 'default',
-        attendees: [
-          {
-            displayName: 'Andrew Klapper',
-            email: 'andrew@andrew-k.us',
-            comment:
-              'Thanks for setting a time to get together. Please feel free to schedule a Google Meet video conference if that is your preference. If you need to reschedule, please update the event and I will respond with a confirmation.',
+      const result = await calendarClient.events.insert({
+        auth: oauth2Client,
+        calendarId: 'primary',
+        requestBody: {
+          summary: 'Meeting w/ Andrew Klapper',
+          start: {
+            dateTime: start,
           },
-        ],
-        colorId: '2',
-      },
+          end: {
+            dateTime: end,
+          },
+          eventType: 'default',
+          attendees: [
+            {
+              displayName: 'Andrew Klapper',
+              email: 'andrew@andrew-k.us',
+              comment:
+                'Thanks for setting a time to get together. Please feel free to schedule a Google Meet video conference if that is your preference. If you need to reschedule, please update the event and I will respond with a confirmation.',
+            },
+          ],
+          colorId: '2',
+        },
 
-      sendNotifications: true,
-    });
+        sendNotifications: true,
+      });
 
-    resp.status(201).json({ result });
-  } catch (error) {
-    console.error(error);
-    next(error);
+      resp.status(201).json({ result });
+    }
+  } catch (e) {
+    console.error(e);
+    if (e instanceof ReferenceError) {
+      resp.status(404).json({ message: e.message, name: e.name });
+    }
   }
 };
 

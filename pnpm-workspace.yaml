@@ -13,7 +13,8 @@ onlyBuiltDependencies:
   - esbuild
   - keytar
   - nx
+  - oxc-resolver
   - prisma
   - protobufjs
-  - unrs-resolver
   - synckit
+  - unrs-resolver

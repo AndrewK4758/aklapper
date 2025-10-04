@@ -12,7 +12,7 @@ import {
 import type { ChatEntry } from '@aklapper/types';
 import type { PromptRequest } from '@aklapper/vertex-ai';
 import InsertPhotoOutlinedIcon from '@mui/icons-material/InsertPhotoOutlined';
-import Box from '@mui/material-pigment-css/Box';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import Divider from '@mui/material/Divider';
@@ -295,9 +295,9 @@ const PromptBuilder = ({ loading, setLoading }: PromptBuilderProps): JSX.Element
               helperText={formik.touched['responseInstructions'] && formik.errors['responseInstructions']}
             />
           </HelperTextBox>
-          <Box as={'section'} id='prompt-builder-response-format-box'>
+          <Box component={'section'} id='prompt-builder-response-format-box'>
             <SectionTitle title={'Response Format'} variant='h6' />
-            <Box as={'section'} id='prompt-builder-response-format-radio-box'>
+            <Box component={'section'} id='prompt-builder-response-format-radio-box'>
               <RadioGroup
                 id='prompt-builder-response-format'
                 onBlur={formik.handleBlur}
@@ -332,7 +332,7 @@ const PromptBuilder = ({ loading, setLoading }: PromptBuilderProps): JSX.Element
             </Box>
           </Box>
           <CenteredFlexDiv
-            as={'span'}
+            component={'span'}
             id='prompt-builder-document-wrapper'
             sx={{ flexDirection: 'row', justifyContent: 'space-between' }}
           >
@@ -353,7 +353,11 @@ const PromptBuilder = ({ loading, setLoading }: PromptBuilderProps): JSX.Element
             <FormikValidationError<IPromptInputData> elementName='document' formik={formik} />
           </CenteredFlexDiv>
 
-          <Box as={'section'} id='prompt-builder-submit-box' sx={{ display: 'flex', justifyContent: 'space-evenly' }}>
+          <Box
+            component={'section'}
+            id='prompt-builder-submit-box'
+            sx={{ display: 'flex', justifyContent: 'space-evenly' }}
+          >
             {!prompt.fileData && (
               <Button
                 variant='text'

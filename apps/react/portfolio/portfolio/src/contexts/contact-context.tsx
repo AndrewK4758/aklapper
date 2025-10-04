@@ -15,7 +15,7 @@ interface GoogleContextProviderProps {
  */
 
 const GoogleUserContextProvider = ({ children }: GoogleContextProviderProps): ReactElement => {
-  const [user, setUser] = useState<GoogleUserContextInfo>({ email: '', name: '' });
+  const [user, setUser] = useState<GoogleUserContextInfo>({ email: '', name: '', picture: '' });
 
   const handleSetGoogleUser = (user: GoogleUserContextInfo) => {
     setUser(user);

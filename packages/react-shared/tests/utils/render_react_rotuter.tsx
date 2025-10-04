@@ -29,7 +29,7 @@ function renderInRouter(
   ui: ReactElement,
   options: RenderInRouterOptions,
 ): RenderResult<
-  typeof import('/home/ak/projects/aklapper/node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/types/queries'),
+  typeof import('/home/ak/projects/aklapper/node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/types/queries'),
   HTMLElement,
   HTMLElement
 > {

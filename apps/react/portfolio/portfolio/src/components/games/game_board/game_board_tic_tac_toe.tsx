@@ -1,5 +1,4 @@
-import Box from '@mui/material-pigment-css/Box';
-import { css } from '@pigment-css/react';
+import Box from '@mui/material/Box';
 import { memo, type ActionDispatch } from 'react';
 import type { IActiveGameInfo } from '../../../types/types';
 import RowTicTacToe from './row-tic-tac-toe';
@@ -14,7 +13,7 @@ export interface GameBoardPropsTicTacToe {
 const GameBoardTicTacToe = memo(function ({ state, dispatch }: GameBoardPropsTicTacToe) {
   const { gameBoard } = state;
   return (
-    <Box as={'section'} id={`rows`} className={css({ flex: '0 1 95%', display: 'flex', flexDirection: 'column' })}>
+    <Box component={'section'} id={`rows`} sx={{ flex: '0 1 95%', display: 'flex', flexDirection: 'column' }}>
       {gameBoard.map((row, idx) => (
         <RowTicTacToe key={`row-${idx}`} row={row} id={idx} state={state} dispatch={dispatch} />
       ))}

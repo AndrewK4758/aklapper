@@ -11,7 +11,7 @@ interface TabsSelectorProps {
 
 export default function TabsSelector({ tab, handleSetTab }: TabsSelectorProps): ReactElement {
   return (
-    <CenteredFlexDiv as={'section'} id='email-me-title-box' data-testid='email-me-title-box'>
+    <CenteredFlexDiv id='email-me-title-box' data-testid='email-me-title-box' sx={{ padding: Theme.spacing(0) }}>
       <Tabs
         variant='fullWidth'
         aria-label='contact-tabs'
@@ -32,13 +32,13 @@ export default function TabsSelector({ tab, handleSetTab }: TabsSelectorProps): 
           key={'appointment-request-tab'}
           id='appointment-request-tab'
           data-testid='appointment-request-tab'
-          label={<SectionTitle id='appointment-request-tab-label' variant={'h4'} title={'Calendar'} />}
+          label={<SectionTitle id='appointment-request-tab-label' variant={'h5'} title={'Calendar'} />}
         />
         <Tab
           key={'email-me-tab'}
           id='email-me-tab'
           data-testid='email-me-tab'
-          label={<SectionTitle id='email-me-tab-label' title={'Email'} variant={'h4'} />}
+          label={<SectionTitle id='email-me-tab-label' title={'Email'} variant={'h5'} />}
         />
       </Tabs>
     </CenteredFlexDiv>

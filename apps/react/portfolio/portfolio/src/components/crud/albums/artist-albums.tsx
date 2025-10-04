@@ -1,8 +1,7 @@
 import type { album } from '@aklapper/chinook-client';
 import { CenteredFlexDiv } from '@aklapper/react-shared';
 import type { DataGridClientPagination } from '@aklapper/types';
-import Box from '@mui/material-pigment-css/Box';
-import { css } from '@pigment-css/react';
+import Box from '@mui/material/Box';
 import { type ReactElement } from 'react';
 import { Outlet, useFetcher, useLoaderData } from 'react-router';
 import Theme from '../../../styles/themes/theme';
@@ -30,13 +29,13 @@ export const AlbumsOnArtist = (): ReactElement => {
 
   return (
     <CenteredFlexDiv
-      className={css({
+      sx={{
         justifyContent: 'flex-start',
         alignItems: 'flex-start',
         padding: 0,
         gap: Theme.spacing(4),
         width: '100%',
-      })}
+      }}
     >
       <CrudElement<album, DataGridClientPagination<album[]>>
         crudElement='artist-albums'
@@ -45,7 +44,7 @@ export const AlbumsOnArtist = (): ReactElement => {
         NewEntry={<AddAlbumOnArtist fetcher={fetcher} />}
         DataGrid={<AlbumDataGrid promise={loader} fetcher={fetcher} />}
       />
-      <Box className={css({ width: '100%' })}>
+      <Box sx={{ width: '100%' }}>
         <Outlet />
       </Box>
     </CenteredFlexDiv>

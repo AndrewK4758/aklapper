@@ -105,6 +105,9 @@
     },
     {
       "path": "./apps/nodejs/crud/crud-api-e2e"
+    },
+    {
+      "path": "./packages/prisma/portfolio"
     }
   ]
 }

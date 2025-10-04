@@ -2,6 +2,7 @@ import cookieParser from 'cookie-parser';
 import express, { Router } from 'express';
 import multer from 'multer';
 import createEvents from '../controllers/calendar/create-event.js';
+import getEvents from '../controllers/calendar/get-events.js';
 import createTokens from '../controllers/create-google-tokens.js';
 import postEmail from '../controllers/post-email.js';
 
@@ -22,7 +23,8 @@ export class PortfolioRoutes {
       resp.status(201).send('healthy');
     });
     router.post('/email', upload.single('attachment'), postEmail);
-    router.post('/create-tokens', createTokens);
-    router.post('/create-events', createEvents);
+    router.post('/tokens', createTokens);
+    router.post('/events', createEvents);
+    router.get('/events', getEvents);
   }
 }

@@ -1,21 +1,20 @@
-import Box from '@mui/material-pigment-css/Box';
+import Box from '@mui/material/Box';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import Typography from '@mui/material/Typography';
-import { css } from '@pigment-css/react';
 import Theme from '../../styles/themes/theme';
 
 const PrivacyPolicyText = (
   <Box
-    as={'section'}
+    component={'section'}
     id={'privacy-policy-text'}
-    className={css({
+    sx={{
       padding: Theme.spacing(2),
       fontSize: '1rem',
       color: '#1f1f1f',
       textAlign: 'start',
       borderRadius: Theme.shape.borderRadius,
-    })}
+    }}
   >
     <Typography variant='h3' sx={{ textAlign: 'center' }}>
       Privacy Policy

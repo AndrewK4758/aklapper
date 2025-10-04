@@ -1,0 +1,46 @@
+{
+  "name": "portfolio-client",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/prisma/portfolio/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "cwd": "packages/prisma/portfolio",
+        "command": "tsc --build tsconfig.lib.json",
+        "assets": ["packages/prisma/portfolio/*.md"]
+      }
+    },
+    "generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/prisma/portfolio",
+        "command": "pnpx prisma generate"
+      }
+    },
+    "pull-db": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/prisma/portfolio",
+        "command": "pnpx prisma db pull"
+      }
+    },
+    "push-db": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/prisma/portfolio",
+        "command": "pnpx prisma db push"
+      }
+    },
+    "migrate-db": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/prisma/games",
+        "command": "pnpx prisma migrate "
+      }
+    }
+  }
+}

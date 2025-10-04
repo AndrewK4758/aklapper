@@ -1,8 +1,9 @@
-import { styled } from '@mui/material-pigment-css';
-import Box from '@mui/material-pigment-css/Box';
+import { styled } from '@mui/material/styles';
+import Box, { type BoxProps } from '@mui/material/Box';
 import { spin } from '../../styles/base/animations';
+import type { ComponentType } from 'react';
 
-const AnimatedBorderBox = styled(Box)(({ theme }) => ({
+const AnimatedBorderBox: ComponentType<BoxProps> = styled(Box)(({ theme }) => ({
   background: `conic-gradient(${theme.palette.background.paper} 0 0) padding-box,
       linear-gradient(to right, var(--clr-1), var(--clr-2), var(--clr-1)) border-box`,
   border: '3px solid transparent',
@@ -12,5 +13,4 @@ const AnimatedBorderBox = styled(Box)(({ theme }) => ({
   animation: `${spin} 2s linear infinite`,
 }));
 
-// AnimatedBorderBox.displayName = 'Animated Border';
 export default AnimatedBorderBox;

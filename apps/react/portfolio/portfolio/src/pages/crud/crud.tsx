@@ -1,6 +1,5 @@
 import { CenteredFlexDiv, Waiting } from '@aklapper/react-shared';
-import { css } from '@mui/material-pigment-css';
-import Box from '@mui/material-pigment-css/Box';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import { lazy, type ReactElement, Suspense, useState } from 'react';
@@ -29,21 +28,21 @@ export default function Crud(): ReactElement {
   return (
     <CenteredFlexDiv id='crud-wrapper'>
       <Box
-        className={css({
+        sx={{
           display: 'flex',
           padding: `${Theme.spacing(4)} ${Theme.spacing(8)}`,
           backgroundColor: Theme.palette.background.paper,
           borderRadius: Theme.shape.borderRadius,
-        })}
+        }}
       >
         <Divider flexItem orientation='vertical' />
-        <Box className={css({ display: 'flex', flexDirection: 'row' })}>
+        <Box sx={{ display: 'flex', flexDirection: 'row' }}>
           <CenteredFlexDiv>
             <CrudHeader />
           </CenteredFlexDiv>
-          <CenteredFlexDiv className={css({ paddingRight: '4', width: '100%', justifyContent: 'center' })}>
+          <CenteredFlexDiv sx={{ paddingRight: '4', width: '100%', justifyContent: 'center' }}>
             <CrudNavBar />
-            <Button onClick={handleSetSearchClick} className={css({ color: Theme.palette.primary.contrastText })}>
+            <Button onClick={handleSetSearchClick} sx={{ color: Theme.palette.primary.contrastText }}>
               {!searchIsOpen ? 'Search' : 'Close'}
             </Button>
           </CenteredFlexDiv>
@@ -52,16 +51,16 @@ export default function Crud(): ReactElement {
       </Box>
 
       <CenteredFlexDiv
-        className={css({
+        sx={{
           backgroundColor: Theme.palette.background.paper,
           borderRadius: Theme.shape.borderRadius,
           padding: 0,
-        })}
+        }}
       >
         <Suspense fallback={<Waiting src={waiting} />}>{searchIsOpen && <Search />}</Suspense>
       </CenteredFlexDiv>
 
-      <Box id={`crud-app-wrapper`} className={css({ height: '100%', width: '100%' })}>
+      <Box id={`crud-app-wrapper`} sx={{ height: '100%', width: '100%' }}>
         <Outlet />
       </Box>
     </CenteredFlexDiv>

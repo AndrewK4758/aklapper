@@ -1,10 +1,9 @@
-import { styled, type BaseDefaultProps, type PolymorphicComponent, type SxProp } from '@mui/material-pigment-css';
-import Box from '@mui/material-pigment-css/Box';
-import { type SxProps, type TypographyVariant } from '@mui/material/styles';
+import Box, { type BoxProps } from '@mui/material/Box';
+import { styled, type SxProps, type TypographyVariant } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
-import type { CSSProperties, ReactElement } from 'react';
+import type { ComponentType, CSSProperties, ReactElement } from 'react';
 
-const StyledSectionTitle: PolymorphicComponent<SxProp, BaseDefaultProps> = styled(Box)(({ theme }) => ({
+const StyledSectionTitle: ComponentType<BoxProps> = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   color: theme.palette.primary.dark,

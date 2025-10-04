@@ -1,5 +1,4 @@
-import Box from '@mui/material-pigment-css/Box';
-import { css } from '@pigment-css/react';
+import Box from '@mui/material/Box';
 import DiscordIcon from '../../icons/discord-icon';
 import EmailIcon from '../../icons/email-icon';
 import FacebookIcon from '../../icons/facebook-icon';
@@ -17,12 +16,12 @@ interface ContactMenuProps {
 export default function ContactMenu({ isOpen, handleOpenEmail }: ContactMenuProps) {
   return (
     <Box
-      className={css({
+      sx={{
         display: 'flex',
         justifyContent: 'space-around',
         width: '92.5vw',
         height: '100%',
-      })}
+      }}
       data-testid={'contact-menu'}
       inert={!isOpen}
     >
@@ -49,7 +48,23 @@ export default function ContactMenu({ isOpen, handleOpenEmail }: ContactMenuProp
         {DiscordIcon}
       </ContactIcon>
 
-      <ContactIcon generalId='email' onClick={handleOpenEmail}>
+      <ContactIcon
+        generalId='email'
+        onClick={handleOpenEmail}
+        tooltip={{
+          title: 'Click to connect with me',
+          placement: 'bottom-end',
+          arrow: true,
+          slotProps: {
+            tooltip: {
+              sx: {
+                fontSize: '1.5rem',
+                maxWidth: '7rem',
+              },
+            },
+          },
+        }}
+      >
         {EmailIcon}
       </ContactIcon>
     </Box>

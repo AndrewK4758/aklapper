@@ -20,7 +20,7 @@ type QueryFormValues = {
 const initialValues: QueryFormValues = {
   model: '',
   query: '',
-  files: null
+  files: null,
 };
 
 type OutletContext = {
@@ -37,7 +37,7 @@ export default function QueryModel() {
 
   const formik = useFormik({
     initialValues: initialValues,
-    onSubmit: async values => await handleQueryModel(values, setPromptResponse, setLoading)
+    onSubmit: async values => await handleQueryModel(values, setPromptResponse, setLoading),
   });
 
   const handleClickUploadFiles = () => {
@@ -53,24 +53,24 @@ export default function QueryModel() {
 
   return (
     <Box
-      id="query-model-wrapper"
-      data-testid="query-model-wrapper"
+      id='query-model-wrapper'
+      data-testid='query-model-wrapper'
       key={'query-model-wrapper'}
       component={'div'}
       sx={{ width: '100%', flex: 1, display: 'flex' }}
     >
       <Form
-        method="POST"
-        encType="multipart/form-data"
-        id="query-model-form"
-        data-testid="query-model-form"
+        method='POST'
+        encType='multipart/form-data'
+        id='query-model-form'
+        data-testid='query-model-form'
         key={'query-model-form'}
         onSubmit={formik.handleSubmit}
         style={{ flex: 1, display: 'flex' }}
       >
         <Container
-          id="query-model-container"
-          data-testid="query-model-container"
+          id='query-model-container'
+          data-testid='query-model-container'
           key={'query-model-container'}
           component={'div'}
           sx={{
@@ -80,18 +80,18 @@ export default function QueryModel() {
             alignContent: 'center',
             justifyContent: 'center',
             width: '100%',
-            gap: 2
+            gap: 2,
           }}
         >
           <Box
             component={'div'}
-            id="query-model-select-model-box"
-            data-testid="query-model-select-model-box"
+            id='query-model-select-model-box'
+            data-testid='query-model-select-model-box'
             key={'query-model-select-model-box'}
           >
             <Label
-              id="query-model-model-select-label"
-              htmlFor="query-model-model-select-input"
+              id='query-model-model-select-label'
+              htmlFor='query-model-model-select-input'
               tooltipTitle={'List of Available Models on your System'}
               labelVariant={'body1'}
               labelText={'Model'}
@@ -101,16 +101,16 @@ export default function QueryModel() {
 
             <Select
               autoFocus={true}
-              id="query-model-model-select"
-              is="select"
-              data-testid="query-model-model-select"
+              id='query-model-model-select'
+              is='select'
+              data-testid='query-model-model-select'
               key={'query-model-model-select'}
-              name="model"
-              variant="outlined"
+              name='model'
+              variant='outlined'
               notched={true}
               onChange={formik.handleChange}
               value={formik.values.model}
-              color="primary"
+              color='primary'
               slotProps={{ input: { id: 'query-model-model-select-input' } }}
               sx={{ width: '50%' }}
               label={'Model'}
@@ -124,13 +124,13 @@ export default function QueryModel() {
           </Box>
 
           <Box
-            id="query-model-text-input-box"
-            data-testid="query-model-text-input-box"
+            id='query-model-text-input-box'
+            data-testid='query-model-text-input-box'
             key={'query-model-text-input-box'}
           >
             <Label
-              id="query-model-text-input-label"
-              htmlFor="query-model-text-input-textfield"
+              id='query-model-text-input-label'
+              htmlFor='query-model-text-input-textfield'
               tooltipTitle={'Query & Chat with local LLM Model'}
               labelVariant={'body1'}
               labelText={'Query'}
@@ -142,49 +142,49 @@ export default function QueryModel() {
               fullWidth={true}
               autoFocus={true}
               required={true}
-              color="primary"
-              id="query-model-text-input"
-              is="input"
-              data-testid="query-model-text-input"
+              color='primary'
+              id='query-model-text-input'
+              is='input'
+              data-testid='query-model-text-input'
               key={'query-model-text-input'}
-              name="query"
+              name='query'
               multiline={true}
               onChange={formik.handleChange}
               slotProps={{
-                htmlInput: { id: 'query-model-text-input-textfield' }
+                htmlInput: { id: 'query-model-text-input-textfield' },
               }}
             />
           </Box>
           <Box
             component={'div'}
-            id="upload-pdfs-box"
-            key="upload-pdfs-box"
-            data-testid="upload-pdfs-box"
+            id='upload-pdfs-box'
+            key='upload-pdfs-box'
+            data-testid='upload-pdfs-box'
             sx={{ display: 'none' }}
           >
             <input
-              type="file"
+              type='file'
               ref={uploadFileRef}
-              id="upload-pdfs-input"
-              key="upload-pdfs-input"
-              name="files"
-              accept=".pdf"
+              id='upload-pdfs-input'
+              key='upload-pdfs-input'
+              name='files'
+              accept='.pdf'
               multiple={true}
               onChange={async e => await formik.setFieldValue(e.currentTarget.name, e.currentTarget.files as FileList)}
             />
           </Box>
-          <ButtonGroup fullWidth={true} variant="contained">
+          <ButtonGroup fullWidth={true} variant='contained'>
             <Button
-              id="query-model-reset"
-              is="button"
-              data-testid="query-model-reset"
+              id='query-model-reset'
+              is='button'
+              data-testid='query-model-reset'
               key={'query-model-reset'}
-              type="reset"
+              type='reset'
               sx={{ fontSize: '1.5rem' }}
             >
               <Label
-                id="query-model-reset-label"
-                htmlFor="query-model-reset"
+                id='query-model-reset-label'
+                htmlFor='query-model-reset'
                 tooltipTitle={'Clears the form of all user entered data'}
                 labelVariant={'button'}
                 labelText={'Clear Form'}
@@ -192,17 +192,17 @@ export default function QueryModel() {
               />
             </Button>
             <Button
-              id="query-model-button"
-              is="button"
-              data-testid="query-model-button"
+              id='query-model-button'
+              is='button'
+              data-testid='query-model-button'
               key={'query-model-button'}
-              type="submit"
-              color="primary"
+              type='submit'
+              color='primary'
               disabled={loading}
               sx={{ fontSize: '1.5rem' }}
             >
               <Label
-                id="query-model-button-label"
+                id='query-model-button-label'
                 htmlFor={'query-model-button'}
                 tooltipTitle={'Query the model for response'}
                 labelVariant={'button'}
@@ -211,16 +211,16 @@ export default function QueryModel() {
               />
             </Button>
             <Button
-              id="upload-pdfs-button"
-              is="button"
-              data-testid="upload-pdfs-button"
-              key="upload-pdfs-button"
-              type="button"
+              id='upload-pdfs-button'
+              is='button'
+              data-testid='upload-pdfs-button'
+              key='upload-pdfs-button'
+              type='button'
               onClick={handleClickUploadFiles}
               sx={{ fontSize: '1.5rem' }}
             >
               <Label
-                id="upload-pdfs-button-label"
+                id='upload-pdfs-button-label'
                 htmlFor={'upload-pdfs-button'}
                 tooltipTitle={'Upload documents you wish to add to database as context for all future queries'}
                 labelVariant={'button'}
@@ -240,7 +240,7 @@ const baseUrl = import.meta.env.VITE_LOCAL_SERVER_URL;
 const handleQueryModel = async (
   values: QueryFormValues,
   setPromptResponse: Dispatch<SetStateAction<string[]>>,
-  setLoading: Dispatch<SetStateAction<boolean>>
+  setLoading: Dispatch<SetStateAction<boolean>>,
 ) => {
   try {
     setLoading(true);
@@ -255,7 +255,7 @@ const handleQueryModel = async (
       }
 
     const resp = await axios.postForm(`${baseUrl}/query-model`, formData, {
-      headers: { 'Content-Type': 'multipart-form/data' }
+      headers: { 'Content-Type': 'multipart-form/data' },
     });
 
     const query_response = resp.data;
