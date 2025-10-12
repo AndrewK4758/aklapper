@@ -2,27 +2,18 @@ import { SectionTitle } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
 import CardHeader from '@mui/material/CardHeader';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { memo, type ReactElement } from 'react';
+import { memo } from 'react';
 import Theme from '../../styles/themes/theme';
 import { ABOUT_ME_TITLE } from '../home/static/intro-static';
+import AppNavBar from './navigation/app_nav_bar';
 
-interface PicNameAndNavProps {
-  subheader: ReactElement;
-}
-
-export default memo(function PicNameAndNav({ subheader }: PicNameAndNavProps) {
+export default memo(function PicNameAndNav() {
   const mediaQuery = useMediaQuery(Theme.breakpoints.down('md'));
   return (
     <>
       <CardHeader
-        title={
-          <SectionTitle
-            title={ABOUT_ME_TITLE}
-            variant={mediaQuery ? 'h4' : 'h1'}
-            overrideThemeStyles={{ fontFamily: 'League Gothic' }}
-          />
-        }
-        subheader={!mediaQuery && subheader}
+        title={<SectionTitle title={ABOUT_ME_TITLE} variant={mediaQuery ? 'h4' : 'h1'} />}
+        subheader={!mediaQuery && <AppNavBar />}
         avatar={
           <img
             crossOrigin='anonymous'
@@ -49,7 +40,9 @@ export default memo(function PicNameAndNav({ subheader }: PicNameAndNavProps) {
         sx={{ flexDirection: mediaQuery ? 'column' : 'row', alignItems: 'center', justifyItems: 'center' }}
       />
       {mediaQuery && (
-        <Box sx={{ padding: `0 ${Theme.spacing(4)} ${Theme.spacing(4)} ${Theme.spacing(4)}` }}>{subheader}</Box>
+        <Box sx={{ padding: `0 ${Theme.spacing(4)} ${Theme.spacing(4)} ${Theme.spacing(4)}` }}>
+          <AppNavBar />
+        </Box>
       )}
     </>
   );

@@ -6,6 +6,6 @@ export const StyledRootComponentWrapper: ComponentType<BoxProps> = styled(Box)((
   display: 'flex',
   flexDirection: 'column',
   flex: 1,
-  gap: theme.spacing(2),
-  padding: theme.spacing(4),
+  paddingInline: theme.spacing(4),
+  paddingBlockStart: theme.spacing(4),
 }));

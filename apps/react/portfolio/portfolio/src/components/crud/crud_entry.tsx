@@ -1,6 +1,6 @@
 import { CenteredFlexDiv, Waiting } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
-import Container from '@pigment-css/react/Container';
+import Container from '@mui/material/Container';
 import { Suspense, type ReactElement } from 'react';
 import { Await } from 'react-router';
 import waiting from '../../assets/images/swirly-dots-to-chrome.webp';

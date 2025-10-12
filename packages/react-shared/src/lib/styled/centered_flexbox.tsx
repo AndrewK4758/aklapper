@@ -8,5 +8,5 @@ export const CenteredFlexDiv: ComponentType<BoxProps> = styled(Box)(({ theme }) 
   alignItems: 'center',
   justifyContent: 'flex-start',
   gap: theme.spacing(8),
-  padding: theme.spacing(4),
+  margin: theme.spacing(4),
 }));

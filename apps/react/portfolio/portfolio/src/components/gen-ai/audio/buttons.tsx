@@ -4,7 +4,7 @@ import type { FileData } from '@google-cloud/vertexai';
 import HearingIcon from '@mui/icons-material/Hearing';
 import MicNoneIcon from '@mui/icons-material/MicNone';
 import MicOffIcon from '@mui/icons-material/MicOff';
-import Box from '@mui/material-pigment-css/Box';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import axios from 'axios';
 import { useContext, type RefObject } from 'react';
@@ -62,7 +62,7 @@ export default function AudioButtons({ audRef, blob, mrcRef, socket, setBlob, se
 
   return (
     <Box
-      as={'section'}
+      component={'section'}
       id='gen-audio-recorder-buttons-wrapper'
       sx={{
         display: 'flex',

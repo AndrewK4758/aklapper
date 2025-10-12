@@ -3,7 +3,7 @@ import Grid from '@mui/material/Grid';
 import List from '@mui/material/List';
 import type { TypographyVariant } from '@mui/material/styles';
 import { memo } from 'react';
-import Theme from '../../../styles/themes/theme';
+
 import TechListItem from './tech_list_item';
 
 interface TechListProps extends SectionTitleProps {
@@ -21,12 +21,7 @@ export const TechList = memo(function ({ data, id, labelText, variant }: TechLis
       data-testid={`tech-list-${id}-list`}
       sx={{ flex: '1 1 auto', maxWidth: '206px' }}
     >
-      <SectionTitle
-        id={id}
-        title={labelText}
-        variant={variant}
-        overrideThemeStyles={{ borderBottom: `1px solid ${Theme.palette.primary.dark}` }}
-      />
+      <SectionTitle id={id} title={labelText} variant={variant} />
 
       <List id={`${id}-list`} sx={{ display: 'flex', flexDirection: 'column' }}>
         {data.map(entry => (

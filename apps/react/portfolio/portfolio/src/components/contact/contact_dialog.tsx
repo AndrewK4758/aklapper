@@ -1,18 +1,21 @@
-import { useState, type ReactElement } from 'react';
-import Theme from '../../styles/themes/theme';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import { useState, type ReactElement, type ReactNode } from 'react';
+import styles from '../../styles/contact_dialog.module.css';
 import CloseDialog from './dialog/close_contact_dialog';
 import ContactContent from './dialog/contact_content';
-import DialogLayout from './dialog/dialog_layout.js';
 import TabsSelector from './dialog/tabs_selector';
 
 //TODO - Add multi language selector for the localization provider and my text content
 
 interface ContactDialogProps {
-  isOpen: boolean;
-  handleIsOpen: () => void;
+  handleClose: () => void;
 }
 
-export default function ContactDialog({ isOpen, handleIsOpen }: ContactDialogProps): ReactElement<ContactDialogProps> {
+export default function ContactDialog({
+  handleClose,
+}: ContactDialogProps): ReactElement<ContactDialogProps> | ReactNode {
   const [tab, setTab] = useState(0);
 
   const handleSetTab = (idx: number) => {
@@ -20,12 +23,16 @@ export default function ContactDialog({ isOpen, handleIsOpen }: ContactDialogPro
   };
 
   return (
-    <DialogLayout open={isOpen}>
-      <TabsSelector tab={tab} handleSetTab={handleSetTab} />
-
-      <ContactContent tab={tab} handleIsOpen={handleIsOpen} />
-
-      <CloseDialog handleIsOpen={handleIsOpen} sx={{ padding: Theme.spacing(4) }} />
-    </DialogLayout>
+    <>
+      <DialogTitle>
+        <TabsSelector tab={tab} handleSetTab={handleSetTab} />
+      </DialogTitle>
+      <DialogContent>
+        <ContactContent tab={tab} handleIsOpen={handleClose} />
+      </DialogContent>
+      <DialogActions>
+        <CloseDialog className={styles.close} handleIsOpen={handleClose} />
+      </DialogActions>
+    </>
   );
 }

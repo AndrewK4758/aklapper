@@ -1,5 +1,5 @@
 import { Text } from '@aklapper/react-shared';
-import Box from '@mui/material-pigment-css/Box';
+import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import LinearProgress from '@mui/material/LinearProgress';
 import { useEffect, useState, type JSX } from 'react';
@@ -34,7 +34,7 @@ const GameLoading = (): JSX.Element => {
 
   return (
     <Container fixed={false} maxWidth={false}>
-      <Box as={'div'} id='game-loading'>
+      <Box component={'div'} id='game-loading'>
         <LinearProgress variant='determinate' value={(loadingValueIdx + 1) * 16.67} />
       </Box>
       <Box>

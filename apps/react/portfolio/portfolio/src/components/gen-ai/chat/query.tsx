@@ -4,7 +4,7 @@ import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ArrowRightIcon from '@mui/icons-material/ArrowRight';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import PersonIcon from '@mui/icons-material/Person';
-import Box from '@mui/material-pigment-css/Box';
+import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Theme from '../../../styles/themes/theme.js';
 

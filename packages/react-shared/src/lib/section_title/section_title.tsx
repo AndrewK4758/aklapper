@@ -1,7 +1,7 @@
 import Box, { type BoxProps } from '@mui/material/Box';
 import { styled, type SxProps, type TypographyVariant } from '@mui/material/styles';
-import Typography from '@mui/material/Typography';
-import type { ComponentType, CSSProperties, ReactElement } from 'react';
+import Typography, { type TypographyProps } from '@mui/material/Typography';
+import type { ComponentType, ReactElement } from 'react';
 
 const StyledSectionTitle: ComponentType<BoxProps> = styled(Box)(({ theme }) => ({
   display: 'flex',
@@ -10,13 +10,12 @@ const StyledSectionTitle: ComponentType<BoxProps> = styled(Box)(({ theme }) => (
   padding: '0 2rem',
 }));
 
-interface SectionTitleProps {
+interface SectionTitleProps extends TypographyProps {
   title: string;
   id?: string;
   variant?: TypographyVariant;
   Icon?: ReactElement;
   sx?: SxProps;
-  overrideThemeStyles?: CSSProperties;
 }
 
 export default function SectionTitle({
@@ -25,19 +24,19 @@ export default function SectionTitle({
   variant = 'body1',
   Icon,
   sx,
-  overrideThemeStyles,
+  ...props
 }: SectionTitleProps): ReactElement<SectionTitleProps> {
-  const hasIcon = !Icon;
+  const hasIcon = !!Icon;
 
   const titleComponent = hasIcon ? (
     <>
-      <Typography variant={variant} sx={sx} style={overrideThemeStyles}>
+      <Typography {...props} variant={variant} sx={sx}>
         {title}
       </Typography>
       <Box>{Icon}</Box>
     </>
   ) : (
-    <Typography id={id} variant={variant} sx={sx} style={overrideThemeStyles}>
+    <Typography {...props} id={id} variant={variant} sx={sx}>
       {title}
     </Typography>
   );

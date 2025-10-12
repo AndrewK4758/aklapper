@@ -1,20 +1,24 @@
 import { Waiting } from '@aklapper/react-shared';
-import Box from '@mui/material/Box';
+import Box, { type BoxProps } from '@mui/material/Box';
 import { lazy, Suspense, type ReactElement } from 'react';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';
-import Theme from '../../../styles/themes/theme';
+import styles from '../../../styles/contact_dialog.module.css';
 import type { EmailFormProps } from '../email-form/email-form';
 import type { GoogleCalendarProps } from '../google-calendar/google-calendar';
 
 const GoogleCalendar = lazy(() => import('../google-calendar/google-calendar'));
 const EmailForm = lazy(() => import('../email-form/email-form'));
 
-interface ContactContentProps {
+interface ContactContentProps extends BoxProps {
   tab: number;
   handleIsOpen: () => void;
 }
 
-export default function ContactContent({ tab, handleIsOpen }: ContactContentProps): ReactElement<ContactContentProps> {
+export default function ContactContent({
+  tab,
+  handleIsOpen,
+  ...props
+}: ContactContentProps): ReactElement<ContactContentProps> {
   let Element: ReactElement<GoogleCalendarProps | EmailFormProps> | null = null;
 
   switch (tab) {
@@ -28,15 +32,7 @@ export default function ContactContent({ tab, handleIsOpen }: ContactContentProp
       break;
   }
   return (
-    <Box
-      component={'section'}
-      sx={{
-        width: '100%',
-        border: '2px solid blue',
-        height: '87.5%',
-        padding: `${Theme.spacing(4)} 0 0 0`,
-      }}
-    >
+    <Box {...props} component={'section'} className={styles.contentArea}>
       <Suspense fallback={<Waiting src={waiting} />}>{Element}</Suspense>
     </Box>
   );

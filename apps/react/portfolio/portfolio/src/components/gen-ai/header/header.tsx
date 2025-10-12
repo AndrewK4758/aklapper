@@ -1,5 +1,5 @@
 import { CenteredFlexDiv, Text } from '@aklapper/react-shared';
-import Box from '@mui/material-pigment-css/Box';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Divider from '@mui/material/Divider';
@@ -29,7 +29,7 @@ export default function GenAiHeader({ isPromptBuilderOpen, setIsPromptBuilderOpe
         gap: Theme.spacing(2),
       }}
     >
-      <Box as={'section'} id='gen-ai-title-wrapper' sx={{ display: 'flex', alignItems: 'center' }}>
+      <Box component={'section'} id='gen-ai-title-wrapper' sx={{ display: 'flex', alignItems: 'center' }}>
         <Text variant='h4' children={TITLE} sx={{ flex: '0 1 25%' }} />
         <Divider orientation='vertical' flexItem />
         <Text

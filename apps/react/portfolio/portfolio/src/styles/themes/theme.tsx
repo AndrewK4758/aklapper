@@ -71,11 +71,11 @@ const Theme: ThemeType = createTheme(
           fontSynthesis: 'none',
           textRendering: 'optimizeLegibility',
           boxSizing: 'border-box',
-          overflowX: 'hidden',
           fontSmooth: 'antialiased',
-          letterSpacing: 2,
-          wordSpacing: 3.5,
-          lineHeight: 1.5,
+          // overflowX: 'hidden',
+          // letterSpacing: 2,
+          // wordSpacing: 3.5,
+          // lineHeight: 1.5,
           background: `linearGradient(225deg, #e9e9eb24 0%, transparent 80%),
     linear-gradient(45deg, #10101038 0%, transparent 80%) #404040`,
           backgroundAttachment: 'fixed',
@@ -90,24 +90,7 @@ const Theme: ThemeType = createTheme(
           },
         },
       },
-      MuiDialog: {
-        defaultProps: {
-          slotProps: {
-            paper: {
-              sx: {
-                boxShadow: `0 0 0 0.5rem ${MAIN_COLOR_DARK}3A`,
-                height: 'fit-content',
-                minHeight: '75vh',
-              },
-            },
-            transition: {
-              timeout: {
-                appear: 2000,
-              },
-            },
-          },
-        },
-      },
+
       MuiDivider: {
         styleOverrides: {
           root: {

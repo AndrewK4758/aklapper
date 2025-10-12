@@ -1,0 +1,66 @@
+.header {
+  display: flex;
+  height: 90px;
+}
+
+.modalOverlay {
+  /* The animation properties */
+  animation: modal-expand 0.5s ease-out forwards;
+
+  /* Required properties for the animation to work */
+  /* position: fixed; */
+  /* Start positioned at the center */
+  transform: translate(-50%, -50%);
+  /* Ensure it has a layer for the animation to run */
+  z-index: 9999;
+  /* Initial visibility setup (will be overridden by 'from' in keyframes) */
+  opacity: 0;
+}
+
+@keyframes modal-expand {
+  /* Initial State (Center of Screen, Small Size, Hidden) */
+  from {
+    opacity: 0;
+    transform: scale(0.1);
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+  }
+  /* Mid-State (Quickly reaches full size before full opacity) */
+  50% {
+    opacity: 0.5;
+    transform: scale(1);
+    /* width: 100%; */
+    /* height: 100%; */
+  }
+  /* Final State (Full Screen, Fully Visible) */
+  to {
+    opacity: 1;
+    transform: scale(1);
+    /* width: 100%; */
+    /* height: 100%; */
+  }
+}
+
+@keyframes modal-disappear {
+  /* Starts at the final opened state */
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%); /* Final opened centered position */
+  }
+  /* Ends by fading out and sliding slightly down */
+  to {
+    opacity: 0;
+    transform: translate(-50%, -40%); /* Slides down slightly */
+  }
+}
+
+@keyframes backdrop-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}

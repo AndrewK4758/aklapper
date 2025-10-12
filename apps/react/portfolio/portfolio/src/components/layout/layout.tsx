@@ -1,9 +1,9 @@
 import { CenteredFlexDiv, StyledCard, StyledRootComponentWrapper } from '@aklapper/react-shared';
-import { useState, type ReactElement } from 'react';
-import { Outlet, useNavigate } from 'react-router';
+import { type ReactElement } from 'react';
+import { Outlet } from 'react-router';
+import styles from '../../styles/layout.module.css';
 import Footer from '../footer/footer';
 import HeaderContactMenu from '../header/header';
-import AppNavBar from './navigation/app_nav_bar';
 import PicNameAndNav from './pic_name_nav';
 
 /**
@@ -14,46 +14,20 @@ import PicNameAndNav from './pic_name_nav';
  */
 
 export default function Layout(): ReactElement {
-  const [openEmail, setOpenEmail] = useState(false);
-  const [isContactMenuOpen, setIsContactMenuOpen] = useState(false);
-  const handleToggleContactMenu = () => {
-    setIsContactMenuOpen(!isContactMenuOpen);
-  };
-
-  const handleOpenEmail = () => {
-    setOpenEmail(!openEmail);
-  };
-  const nav = useNavigate();
-
-  const handleOpenPrivacyPolicy = () => {
-    nav('privacy-policy', { relative: 'route' });
-  };
-
   return (
-    <StyledRootComponentWrapper id='app-wrapper' sx={{ minHeight: '100vh', height: 'fit-content' }}>
-      <HeaderContactMenu
-        isContactMenuOpen={isContactMenuOpen}
-        openEmail={openEmail}
-        handleOpenEmail={handleOpenEmail}
-        handleToggleContactMenu={handleToggleContactMenu}
-      />
+    <StyledRootComponentWrapper id='app-wrapper'>
+      <HeaderContactMenu />
 
-      <CenteredFlexDiv component={'main'} sx={{ margin: '0 2.5%', padding: 0, minHeight: '100vh' }}>
+      <CenteredFlexDiv component={'main'} className={styles.main}>
         <StyledCard>
-          <PicNameAndNav subheader={<AppNavBar />} />
+          <PicNameAndNav />
         </StyledCard>
-        <StyledCard
-          sx={{
-            backgroundColor: 'transparent',
-            width: '100%',
-            padding: 0,
-          }}
-        >
+        <StyledCard className={styles.outletCard}>
           <Outlet />
         </StyledCard>
       </CenteredFlexDiv>
 
-      <Footer handleOpenPrivacyPolicy={handleOpenPrivacyPolicy} />
+      <Footer />
     </StyledRootComponentWrapper>
   );
 }

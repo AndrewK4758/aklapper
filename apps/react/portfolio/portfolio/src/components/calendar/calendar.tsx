@@ -1,6 +1,5 @@
 import Box from '@mui/material/Box';
 import type { ReactElement } from 'react';
-import Theme from '../../styles/themes/theme';
 import CalendarLayout from './layout';
 
 interface CalendarProps {
@@ -12,10 +11,11 @@ interface CalendarProps {
  *
  * Handles all context and/or top level state for this component
  */
-export default function Calendar(): ReactElement<CalendarProps> {
+
+export default function Calendar({ ...props }): ReactElement<CalendarProps> {
   return (
-    <Box sx={{ width: '100%', height: '100%', border: `2px solid ${Theme.vars.palette.info.main}` }}>
-      <CalendarLayout Header={'Calendar'}>Children</CalendarLayout>
+    <Box>
+      <CalendarLayout Header={'Calendar'}>{props.children}</CalendarLayout>
     </Box>
   );
 }

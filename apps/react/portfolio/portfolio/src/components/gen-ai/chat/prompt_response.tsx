@@ -1,7 +1,7 @@
 import { Text, Waiting } from '@aklapper/react-shared';
 import type { ChatEntry } from '@aklapper/types';
 import DeveloperBoardIcon from '@mui/icons-material/DeveloperBoard';
-import Box from '@mui/material-pigment-css/Box';
+import Box from '@mui/material/Box';
 import Collapse from '@mui/material/Collapse';
 import type { RefObject } from 'react';
 import waiting from '../../../assets/images/swirly-dots-to-chrome.webp';

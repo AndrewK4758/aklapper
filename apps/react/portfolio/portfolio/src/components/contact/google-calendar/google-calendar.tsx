@@ -1,5 +1,5 @@
 import { CenteredFlexDiv } from '@aklapper/react-shared';
-import Box from '@mui/material/Box';
+import Grid from '@mui/material/Grid';
 import axios from 'axios';
 import { useEffect, useReducer, type ActionDispatch, type FC, type ReactElement } from 'react';
 import Calendar from '../../calendar/calendar';
@@ -17,7 +17,7 @@ type GoogleCalendarReducerProps = {
 };
 
 const initState: GoogleCalendarReducerProps = {
-  isAuthenticated: true,
+  isAuthenticated: false,
   isAuthenticating: false,
   events: [],
 };
@@ -55,10 +55,6 @@ const GoogleCalendar: FC<GoogleCalendarProps> = ({ setOpen }): ReactElement<Goog
   const [state, dispatch] = useReducer(calendarReducer, initState);
   const { isAuthenticated, isAuthenticating } = state;
 
-  // const handleAuthenticated = (isAuth: boolean) => {
-  //   dispatch({ type: Action.AUTHENTICATED, payload: isAuth });
-  // };
-
   const handleAuthenticating = (isAuth: boolean) => {
     dispatch({ type: Action.AUTHENTICATING, payload: isAuth });
   };
@@ -69,17 +65,17 @@ const GoogleCalendar: FC<GoogleCalendarProps> = ({ setOpen }): ReactElement<Goog
     }
   }, []);
 
-  console.log(state);
   return (
-    <CenteredFlexDiv
-      data-testid='google-calendar-wrapper'
-      sx={{ padding: 0, gap: 0, border: '2px solid brown', height: '100%' }}
-    >
+    <CenteredFlexDiv data-testid='google-calendar-wrapper'>
       <GoogleAuthButton isAuthenticating={isAuthenticating} handleIsAuthenticating={handleAuthenticating} />
-      <Box sx={{ display: 'flex', border: '2px solid', width: '100%', height: '100%' }}>
-        <GoogleCalendarForm setOpen={setOpen} />
-        <Calendar />
-      </Box>
+      <Grid container={true} width={'100%'}>
+        <Grid size={4}>
+          <GoogleCalendarForm setOpen={setOpen} />
+        </Grid>
+        <Grid size={8}>
+          <Calendar />
+        </Grid>
+      </Grid>
     </CenteredFlexDiv>
   );
 };

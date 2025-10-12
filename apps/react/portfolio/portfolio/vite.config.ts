@@ -2,9 +2,8 @@ import { workspaceRoot } from '@nx/devkit';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
 import { cwd } from 'node:process';
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite';
 import MODULES from './vite_modules.js';
-
 //Server
 const HOST = 'localhost';
 const PORT_DEV = 4700;
@@ -37,7 +36,7 @@ const config = defineConfig({
 
   resolve: {
     alias: MODULES,
-    conditions: ['mui-modern', 'module', 'browser', 'development|production'],
+    conditions: ['module', 'browser', 'development', 'production'],
   },
 
   base: BASE,
@@ -49,13 +48,9 @@ const config = defineConfig({
   publicDir: 'public',
   envDir: './env',
 
-  esbuild: {
-    color: true,
-    format: 'esm',
-    target: 'esnext',
-    sourcemap: true,
+  experimental: {
+    enableNativePlugin: true,
   },
-
   build: {
     outDir: OUT_DIR,
     minify: true,
@@ -68,28 +63,13 @@ const config = defineConfig({
       transformMixedEsModules: true,
     },
 
-    rollupOptions: {
-      logLevel: 'debug',
-      output: {
-        esModule: true,
-        format: 'esm',
+    rolldownOptions: {
+      checks: { circularDependency: true },
+      logLevel: 'info',
+      transform: {
+        target: 'esnext',
       },
     },
-  },
-
-  test: {
-    name: 'portfolio',
-    watch: false,
-    globals: true,
-    environment: 'jsdom',
-    css: true,
-    include: ['tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-    reporters: ['default'],
-    coverage: {
-      reportsDirectory: './test-output/vitest/coverage',
-      provider: 'v8',
-    },
-    setupFiles: ['tests/__mocks__/react_router.tsx', 'tests/__mocks__/__mocks__.tsx'],
   },
 });
 

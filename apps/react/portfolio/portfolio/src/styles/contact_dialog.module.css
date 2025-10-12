@@ -1,0 +1,13 @@
+.close {
+  padding: 1rem;
+}
+
+.tabs {
+  padding: 0;
+}
+
+.contentArea {
+  /* width: '100%'; */
+  /* height: '87.5%'; */
+  padding-block-start: calc(var(--mui-spacing) * 4);
+}

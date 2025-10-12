@@ -18,3 +18,5 @@ onlyBuiltDependencies:
   - protobufjs
   - synckit
   - unrs-resolver
+overrides:
+  vite: npm:rolldown-vite@latest

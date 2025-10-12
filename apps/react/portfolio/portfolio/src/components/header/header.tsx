@@ -1,33 +1,35 @@
 import Box from '@mui/material/Box';
-import { memo } from 'react';
-import ContactDialog from '../contact/contact_dialog';
+import { memo, useCallback, useState } from 'react';
+import styles from '../../styles/header.module.css';
+import DialogLayout from '../contact/dialog/dialog_layout';
 import AnimatedContactMenu from './contact/animated_contact_menu';
 import ToggleMenuButton from './contact/toggle_menu_button';
 
-interface HeaderContactMenuProps {
-  isContactMenuOpen: boolean;
-  openEmail: boolean;
-  handleToggleContactMenu: () => void;
-  handleOpenEmail: () => void;
-}
+const HeaderContactMenu = memo(function Header() {
+  const [openEmail, setOpenEmail] = useState(false);
+  const [isContactMenuOpen, setIsContactMenuOpen] = useState(false);
 
-const HeaderContactMenu = memo(function ({
-  isContactMenuOpen,
-  openEmail,
-  handleOpenEmail,
-  handleToggleContactMenu,
-}: HeaderContactMenuProps) {
+  const handleToggleContactMenu = useCallback(() => {
+    setIsContactMenuOpen(!isContactMenuOpen);
+  }, [isContactMenuOpen]);
+
+  const handleOpenEmail = useCallback(() => {
+    setOpenEmail(true);
+  }, []);
+
+  const handleCloseEmail = useCallback(() => {
+    console.log('here');
+    setOpenEmail(false);
+  }, []);
+
   return (
     <>
-      <Box component={'header'} sx={{ display: 'flex', height: '90px' }}>
+      <Box component={'header'} className={styles.header}>
         <ToggleMenuButton isToggledOpen={isContactMenuOpen} handleToggleContactMenu={handleToggleContactMenu} />
         <AnimatedContactMenu isOpen={isContactMenuOpen} handleOpenEmail={handleOpenEmail} />
       </Box>
-      {openEmail && (
-        <Box id='email-form-wrapper' data-testid='email-form-wrapper' sx={{ width: '100%' }}>
-          <ContactDialog isOpen={openEmail} handleIsOpen={handleOpenEmail} />
-        </Box>
-      )}
+
+      <DialogLayout open={openEmail} handleClose={handleCloseEmail} />
     </>
   );
 });

@@ -1,5 +1,5 @@
 import { Text } from '@aklapper/react-shared';
-import Box from '@mui/material-pigment-css/Box';
+import Box from '@mui/material/Box';
 
 export interface PlayersInGameProps {
   playerName: string;

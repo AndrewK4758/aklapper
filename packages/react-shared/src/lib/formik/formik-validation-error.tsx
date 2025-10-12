@@ -1,12 +1,12 @@
-import type { SxProp } from '@mui/material-pigment-css';
-import Box from '@mui/material-pigment-css/Box';
+import Box from '@mui/material/Box';
 import FormHelperText from '@mui/material/FormHelperText';
+import type { SxProps } from '@mui/material/styles';
 import type { FormikProps } from 'formik';
 
 interface FormikValidationErrorProps<T> {
   formik: FormikProps<T>;
   elementName: Extract<keyof T, string>;
-  helperTextSx?: SxProp;
+  helperTextSx?: SxProps;
 }
 
 export const FormikValidationError = <T extends object>({
