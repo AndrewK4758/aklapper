@@ -11,11 +11,7 @@ import {
   BUTTON_GROUP_BG,
   MAIN_COLOR,
   MAIN_COLOR_DARK,
-  MAIN_COLOR_LIGHT,
-  MAIN_CONTRAST,
   SECONDARY_COLOR,
-  SECONDARY_COLOR_DARK,
-  SECONDARY_COLOR_LIGHT,
   TEXT_PRIMARY,
   TEXT_SECONDARY,
 } from '../base/base_styles.js';
@@ -31,15 +27,9 @@ const Theme: ThemeType = createTheme(
       },
       primary: {
         main: MAIN_COLOR,
-        light: MAIN_COLOR_LIGHT,
-        dark: MAIN_COLOR_DARK,
-        contrastText: MAIN_CONTRAST,
       },
       secondary: {
         main: SECONDARY_COLOR,
-        light: SECONDARY_COLOR_LIGHT,
-        dark: SECONDARY_COLOR_DARK,
-        contrastText: TEXT_PRIMARY,
       },
       text: {
         primary: TEXT_PRIMARY,
@@ -52,9 +42,9 @@ const Theme: ThemeType = createTheme(
     spacing: BASE_SPACING,
     typography: {
       allVariants: {
-        letterSpacing: 2,
-        wordSpacing: 3.5,
-        lineHeight: 1.25,
+        letterSpacing: 1,
+        wordSpacing: 1.5,
+        lineHeight: 1.5,
       },
       h1: {
         fontFamily: 'League Gothic',
@@ -68,14 +58,6 @@ const Theme: ThemeType = createTheme(
     components: {
       MuiCssBaseline: {
         styleOverrides: {
-          fontSynthesis: 'none',
-          textRendering: 'optimizeLegibility',
-          boxSizing: 'border-box',
-          fontSmooth: 'antialiased',
-          // overflowX: 'hidden',
-          // letterSpacing: 2,
-          // wordSpacing: 3.5,
-          // lineHeight: 1.5,
           background: `linearGradient(225deg, #e9e9eb24 0%, transparent 80%),
     linear-gradient(45deg, #10101038 0%, transparent 80%) #404040`,
           backgroundAttachment: 'fixed',
@@ -104,9 +86,6 @@ const Theme: ThemeType = createTheme(
           variant: 'text',
         },
         styleOverrides: {
-          text: {
-            borderRadius: '12px',
-          },
           root: {
             backgroundColor: BUTTON_GROUP_BG,
           },
@@ -129,5 +108,12 @@ const Theme: ThemeType = createTheme(
   },
   enUS,
 );
+
+for (const key in Theme.breakpoints.values) {
+  document.documentElement.style.setProperty(
+    `--mui-breakpoint-${key}`,
+    `${Theme.breakpoints.values[key as keyof typeof Theme.breakpoints.values]}px`,
+  );
+}
 
 export default Theme;

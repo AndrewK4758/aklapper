@@ -1,11 +1,11 @@
 import Box from '@mui/material/Box';
 import type { CSSProperties } from 'react';
-import { shake } from '../../styles/base/animations';
+import styles from '../../styles/landing.module.css';
 import Theme from '../../styles/themes/theme';
 import LandingBox from '../icons/landing_box_icon';
 
 const shakeIconAnimation = {
-  animation: `${shake} 2.25s 5`,
+  animation: `${styles.shake} 2.25s 5`,
   animationDelay: '3s',
   transformOrigin: 'center',
 };

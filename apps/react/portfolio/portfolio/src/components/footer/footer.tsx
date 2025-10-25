@@ -11,16 +11,8 @@ export default function Footer({ ...props }: Omit<BoxProps, 'id | data-testid | 
     nav('privacy-policy', { relative: 'route' });
   }, []);
   return (
-    <Box
-      {...props}
-      component={'footer'}
-      id='footer'
-      data-testid='footer'
-      textAlign={'center'}
-      marginTop={'auto'}
-      sx={{ border: 'solid' }}
-    >
-      <Button variant='text' onClick={handleOpenPrivacyPolicy} className={styles.footer}>
+    <Box {...props} className={styles.footer} component={'footer'} id='footer' data-testid='footer'>
+      <Button variant='text' onClick={handleOpenPrivacyPolicy} className={styles.footerButton}>
         Privacy Policy
       </Button>
     </Box>

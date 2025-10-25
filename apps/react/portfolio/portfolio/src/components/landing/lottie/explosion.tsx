@@ -14,8 +14,8 @@ const explosionBaseStyle: SxProps<ThemeType> = {
   height: 'auto',
   transition: 'opacity 0.8s ease-in-out',
   [Theme.breakpoints.down('lg')]: {
-    top: 97,
-    left: 142,
+    top: 177,
+    left: 162,
     width: 240,
   },
   [Theme.breakpoints.down('md')]: {

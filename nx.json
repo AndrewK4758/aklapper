@@ -93,10 +93,6 @@
       ]
     },
     {
-      "plugin": "@nx-go/nx-go",
-      "include": ["apps/go/**"]
-    },
-    {
       "plugin": "@nx/js/typescript",
       "include": ["**/*.ts", "**/*.tsx"],
       "options": {
