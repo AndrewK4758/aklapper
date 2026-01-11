@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
-import '../../src/components/header/contact/toggle_menu_button.js';
+import '../../src/components/layout/header/contact/toggle_menu_button.js';
 import Layout from '../../src/components/layout/layout.js';
 import { render, ROUTES, screen } from '../utils/render_react_rotuter.js';
 

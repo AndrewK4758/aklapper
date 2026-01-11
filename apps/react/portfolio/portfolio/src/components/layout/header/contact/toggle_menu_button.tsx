@@ -1,7 +1,7 @@
 import Box from '@mui/material/Box';
 import IconButton, { type IconButtonProps } from '@mui/material/IconButton';
-import CloseMenuIcon from '../../icons/close_menu_icon';
-import OpenMenuIcon from '../../icons/open_menu';
+import CloseMenuIcon from '../../../icons/close_menu_icon.js';
+import OpenMenuIcon from '../../../icons/open_menu.js';
 
 interface ToggleMenuButtonProps extends IconButtonProps {
   isToggledOpen: boolean;

@@ -4,15 +4,6 @@
   "include": [],
   "references": [
     {
-      "path": "../game"
-    },
-    {
-      "path": "../chain"
-    },
-    {
-      "path": "../types"
-    },
-    {
       "path": "./tsconfig.lib.json"
     },
     {

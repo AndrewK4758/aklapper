@@ -1,21 +1,4 @@
-export type LandingPageState = {
-  isExplosionVisible: boolean;
-  isLandingNavOpen: boolean;
-  isEnterVisible: boolean;
-  motionOffset: number;
-};
-
-export type LandingPageAction = {
-  type: (typeof LandingActions)[keyof typeof LandingActions];
-  payload: Pick<LandingPageState, keyof LandingPageState>;
-};
-
-export const LandingActions = Object.freeze({
-  EXPLOSION_VISIBLE: Symbol('explosion'),
-  NAV_OPEN: Symbol('nav-open'),
-  ENTER_VISIBLE: Symbol('enter-visible'),
-  MOTION_OFFSET: Symbol('motion-offset'),
-});
+import { LandingActions, type LandingPageAction, type LandingPageState } from '../types/landing/landing';
 
 export const landingPageReducer = (state: LandingPageState, action: LandingPageAction): LandingPageState => {
   const { type, payload } = action;

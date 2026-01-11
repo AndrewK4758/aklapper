@@ -23,4 +23,5 @@ export * from './lib/styled/reval_wrapper.jsx';
 export * from './lib/styled/styled_card.jsx';
 export * from './lib/styled/styled_root_wrapper.jsx';
 
+export * from './lib/test/test_input.jsx';
 export * from './lib/text_input/text_input.jsx';

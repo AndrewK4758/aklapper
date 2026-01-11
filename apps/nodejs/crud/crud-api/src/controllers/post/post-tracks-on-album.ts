@@ -1,6 +1,6 @@
 import { Prisma, type track } from '@aklapper/chinook-client';
 import type { CRUD_ApiResponse } from '@aklapper/types';
-import type { DefaultArgs } from '@prisma/client/runtime/library';
+import type { DefaultArgs } from '@prisma/client/runtime/client';
 import type { Request, Response } from 'express';
 import createTracks from '../../services/prisma/tracks/create-tracks.js';
 

@@ -1,9 +1,9 @@
 import Box from '@mui/material/Box';
 import { memo, useCallback, useState } from 'react';
-import styles from '../../styles/header.module.css';
-import DialogLayout from '../contact/dialog/dialog_layout';
-import AnimatedContactMenu from './contact/animated_contact_menu';
-import ToggleMenuButton from './contact/toggle_menu_button';
+import styles from '@styles/header.module.css';
+import DialogLayout from '@components/contact/dialog/dialog_layout';
+import AnimatedContactMenu from '@components/layout/header/contact/animated_contact_menu';
+import ToggleMenuButton from '@components/layout/header/contact/toggle_menu_button';
 
 const HeaderContactMenu = memo(function Header() {
   const [openEmail, setOpenEmail] = useState(false);

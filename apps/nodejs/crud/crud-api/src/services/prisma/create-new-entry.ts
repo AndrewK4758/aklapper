@@ -6,7 +6,7 @@ import {
   type ParsedPrismaError,
   type PrismaClientErrors,
 } from '@aklapper/chinook-client';
-import type { DefaultArgs } from '@prisma/client/runtime/library';
+import type { DefaultArgs } from '@prisma/client/runtime/client';
 
 /**
  * This function creates a new artist entry in the database, including associated albums and tracks.

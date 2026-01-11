@@ -14,7 +14,7 @@ import {
   SECONDARY_COLOR,
   TEXT_PRIMARY,
   TEXT_SECONDARY,
-} from '../base/base_styles.js';
+} from '@styles/base/base_styles.js';
 
 const Theme: ThemeType = createTheme(
   {
@@ -42,7 +42,8 @@ const Theme: ThemeType = createTheme(
     spacing: BASE_SPACING,
     typography: {
       allVariants: {
-        letterSpacing: 1,
+        fontFamily: 'Roboto, sans-serif',
+        letterSpacing: '1px',
         wordSpacing: 1.5,
         lineHeight: 1.5,
       },
@@ -109,11 +110,11 @@ const Theme: ThemeType = createTheme(
   enUS,
 );
 
-for (const key in Theme.breakpoints.values) {
-  document.documentElement.style.setProperty(
-    `--mui-breakpoint-${key}`,
-    `${Theme.breakpoints.values[key as keyof typeof Theme.breakpoints.values]}px`,
-  );
-}
+// for (const key in Theme.breakpoints.values) {
+//   document.documentElement.style.setProperty(
+//     `--mui-breakpoint-${key}`,
+//     `${Theme.breakpoints.values[key as keyof typeof Theme.breakpoints.values]}px`,
+//   );
+// }
 
 export default Theme;

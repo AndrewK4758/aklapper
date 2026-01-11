@@ -4,39 +4,6 @@
   "include": [],
   "references": [
     {
-      "path": "../../../../packages/utils"
-    },
-    {
-      "path": "../../../../packages/types"
-    },
-    {
-      "path": "../../../../packages/socket-io/server"
-    },
-    {
-      "path": "../../../../packages/models"
-    },
-    {
-      "path": "../../../../packages/mocks"
-    },
-    {
-      "path": "../../../../packages/games-components"
-    },
-    {
-      "path": "../../../../packages/prisma/games"
-    },
-    {
-      "path": "../../../../packages/games-chains"
-    },
-    {
-      "path": "../../../../packages/games"
-    },
-    {
-      "path": "../../../../packages/game"
-    },
-    {
-      "path": "../../../../packages/chain"
-    },
-    {
       "path": "./tsconfig.app.json"
     },
     {

@@ -1,9 +1,9 @@
 import { CenteredFlexDiv, StyledCard, StyledRootComponentWrapper } from '@aklapper/react-shared';
 import { type ReactElement } from 'react';
 import { Outlet } from 'react-router';
-import styles from '../../styles/layout.module.css';
-import Footer from '../footer/footer';
-import HeaderContactMenu from '../header/header';
+import styles from '@styles/layout/layout.module.css';
+import Footer from '@components/footer/footer';
+import HeaderContactMenu from '@components/layout/header/header';
 import PicNameAndNav from './pic_name_nav';
 
 /**

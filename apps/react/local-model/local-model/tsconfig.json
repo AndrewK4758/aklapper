@@ -4,12 +4,6 @@
   "include": [],
   "references": [
     {
-      "path": "../../../../packages/socket-io/client"
-    },
-    {
-      "path": "../../../../packages/react-shared"
-    },
-    {
       "path": "./tsconfig.app.json"
     },
     {

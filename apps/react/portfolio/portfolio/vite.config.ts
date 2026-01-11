@@ -2,8 +2,9 @@ import { workspaceRoot } from '@nx/devkit';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
 import { cwd } from 'node:process';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import MODULES from './vite_modules.js';
+
 //Server
 const HOST = 'localhost';
 const PORT_DEV = 4700;
@@ -14,7 +15,7 @@ const BASE = '/';
 const NODE_ENV = process.env.NODE_ENV;
 const OUT_DIR = './dist';
 const ROOT = cwd();
-
+console.log(ROOT);
 const config = defineConfig({
   root: ROOT,
   cacheDir: resolve(workspaceRoot, 'node_modules/.vite/apps/react/portfolio/portfolio'),
@@ -25,6 +26,10 @@ const config = defineConfig({
   preview: {
     port: PORT_PREVIEW,
     host: HOST,
+  },
+
+  css: {
+    devSourcemap: true,
   },
 
   plugins: [react()],
@@ -51,17 +56,16 @@ const config = defineConfig({
   experimental: {
     enableNativePlugin: true,
   },
+
   build: {
     outDir: OUT_DIR,
+    cssMinify: true,
     minify: true,
     target: 'esnext',
     manifest: true,
     sourcemap: true,
     emptyOutDir: true,
     reportCompressedSize: true,
-    commonjsOptions: {
-      transformMixedEsModules: true,
-    },
 
     rolldownOptions: {
       checks: { circularDependency: true },
@@ -69,8 +73,13 @@ const config = defineConfig({
       transform: {
         target: 'esnext',
       },
+      experimental: {
+        attachDebugInfo: 'full',
+        nativeMagicString: true,
+      },
     },
   },
+
   test: {
     name: 'portfolio',
     watch: false,

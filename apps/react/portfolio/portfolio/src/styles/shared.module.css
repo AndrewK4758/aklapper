@@ -1,0 +1,16 @@
+.animatedBorderBox {
+    background: conic-gradient(var(--background-paper) 0 0) padding-box,
+    linear-gradient(to right, var(--clr-1), var(--clr-2), var(--clr-1)) border-box;
+    border: 3px solid transparent;
+    border-radius: 22px;
+    position: relative;
+    isolation: isolate;
+    animation: spin 1550ms linear infinite;
+}
+
+@keyframes spin {
+    50% {
+        --clr-1: var(--mui-palette-secondary-main);
+        --clr-2: var(--mui-palette-primary-main);
+    }
+}

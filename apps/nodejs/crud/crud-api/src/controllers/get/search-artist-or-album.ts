@@ -1,5 +1,5 @@
 import { Prisma, type album, type artist } from '@aklapper/chinook-client';
-import type { DefaultArgs } from '@prisma/client/runtime/library';
+import type { DefaultArgs } from '@prisma/client/runtime/client';
 import type { Request, Response } from 'express';
 import searchAlbum from '../../services/prisma/search-album.js';
 import searchArtist from '../../services/prisma/search-artist.js';

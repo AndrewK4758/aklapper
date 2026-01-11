@@ -4,12 +4,10 @@ generator client {
   generatedFileExtension = "ts"
   moduleFormat           = "esm"
   runtime                = "nodejs"
-  previewFeatures        = ["queryCompiler", "driverAdapters"]
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DB_URL_DEV")
   schemas  = ["chinook"]
 }
 

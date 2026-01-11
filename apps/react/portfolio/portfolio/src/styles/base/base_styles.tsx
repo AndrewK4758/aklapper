@@ -1,5 +1,3 @@
-/* Colors */
-
 // Backgrounds
 export const BACKGROUND_DEFAULT = '#323232';
 export const BACKGROUND_PAPER = '#0F1A0F';
@@ -40,3 +38,5 @@ export const MULT_BORDER_RADIUS = 1;
 
 //Base Spacing
 export const BASE_SPACING = 4;
+
+

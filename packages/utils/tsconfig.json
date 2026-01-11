@@ -4,21 +4,6 @@
   "include": [],
   "references": [
     {
-      "path": "../mocks"
-    },
-    {
-      "path": "../models"
-    },
-    {
-      "path": "../game"
-    },
-    {
-      "path": "../chain"
-    },
-    {
-      "path": "../types"
-    },
-    {
       "path": "./tsconfig.lib.json"
     },
     {

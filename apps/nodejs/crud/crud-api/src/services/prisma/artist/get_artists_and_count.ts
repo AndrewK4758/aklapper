@@ -1,6 +1,6 @@
 import { prisma, Prisma, type artist } from '@aklapper/chinook-client';
 import type { QueryOptions } from '@aklapper/types';
-import type { DefaultArgs } from '@prisma/client/runtime/library';
+import type { DefaultArgs } from '@prisma/client/runtime/client';
 
 export default async function kwgetArtistsAndCount({
   take,

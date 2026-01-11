@@ -1,6 +1,9 @@
 import type { SVGProps } from 'react';
 import { TEXT_SECONDARY } from '../../styles/base/base_styles';
 
+const GRADIENT_COLOR_1 = 'var(--clr-1)';
+const GRADIENT_COLOR_2 = 'var(--clr-2)';
+
 interface MenuIconProps extends SVGProps<SVGSVGElement> {
   isLandingNavOpen: boolean;
   onHandleOpenMenu: () => void;
@@ -11,16 +14,16 @@ export default function LandingBox({ isLandingNavOpen, onHandleOpenMenu, ...prop
     <svg {...props} version='1.1' viewBox='0 0 512 512' width={'100%'} height={'100%'}>
       <defs id='defs2'>
         <linearGradient id='linearGradient5051'>
-          <stop style={{ stopColor: '#ffd300', stopOpacity: 1 }} offset='0.14285472' id='stop5047' />
-          <stop style={{ stopColor: '#ff3d00', stopOpacity: 1 }} offset='1' id='stop5049' />
+          <stop style={{ stopColor: GRADIENT_COLOR_1, stopOpacity: 1 }} offset='0.14285472' id='stop5047' />
+          <stop style={{ stopColor: GRADIENT_COLOR_2, stopOpacity: 1 }} offset='1' id='stop5049' />
         </linearGradient>
         <linearGradient id='linearGradient5029'>
-          <stop style={{ stopColor: '#ffd300', stopOpacity: 1 }} offset='0.54587156' id='stop5023' />
-          <stop style={{ stopColor: '#ff3d00', stopOpacity: 1 }} offset='1' id='stop5027' />
+          <stop style={{ stopColor: GRADIENT_COLOR_1, stopOpacity: 1 }} offset='0.54587156' id='stop5023' />
+          <stop style={{ stopColor: GRADIENT_COLOR_2, stopOpacity: 1 }} offset='1' id='stop5027' />
         </linearGradient>
         <linearGradient id='linearGradient5021'>
-          <stop style={{ stopColor: '#ff3d00', stopOpacity: 1 }} offset='0' id='stop5015' />
-          <stop style={{ stopColor: '#ffd300', stopOpacity: 1 }} offset='0.42393526' id='stop5017' />
+          <stop style={{ stopColor: GRADIENT_COLOR_2, stopOpacity: 1 }} offset='0' id='stop5015' />
+          <stop style={{ stopColor: GRADIENT_COLOR_1, stopOpacity: 1 }} offset='0.42393526' id='stop5017' />
         </linearGradient>
 
         <linearGradient

@@ -1,14 +1,14 @@
 import { RevealWrapper } from '@aklapper/react-shared';
 import Box from '@mui/material/Box';
-import styles from '../../../styles/header.module.css';
-import DiscordIcon from '../../icons/discord-icon';
-import EmailIcon from '../../icons/email-icon';
-import FacebookIcon from '../../icons/facebook-icon';
-import GitHibIcon from '../../icons/github-icon';
-import HuggingFaceIcon from '../../icons/huggingface-icon';
-import LinkedinIcon from '../../icons/linkedin-logo';
-import XIcon from '../../icons/x-icon';
-import ContactIcon from './contact-icon';
+import styles from '../../../../styles/header.module.css';
+import DiscordIcon from '../../../icons/discord-icon.js';
+import EmailIcon from '../../../icons/email-icon.js';
+import FacebookIcon from '../../../icons/facebook-icon.js';
+import GitHibIcon from '../../../icons/github-icon.js';
+import HuggingFaceIcon from '../../../icons/huggingface-icon.js';
+import LinkedinIcon from '../../../icons/linkedin-logo.js';
+import XIcon from '../../../icons/x-icon.js';
+import ContactIcon from './contact-icon.js';
 
 interface AnimatedContactMenuProps {
   isOpen: boolean;

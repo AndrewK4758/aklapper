@@ -2,7 +2,7 @@ import Box, { type BoxProps } from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router';
-import styles from '../../styles/layout.module.css';
+import styles from '@styles/layout/layout.module.css';
 
 export default function Footer({ ...props }: Omit<BoxProps, 'id | data-testid | component'>) {
   const nav = useNavigate();

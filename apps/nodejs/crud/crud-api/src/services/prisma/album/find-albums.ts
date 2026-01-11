@@ -1,5 +1,5 @@
 import { prisma, Prisma, PrismaErrorLogger, type album, type PrismaClientErrors } from '@aklapper/chinook-client';
-import type { DefaultArgs } from '@prisma/client/runtime/library';
+import { DefaultArgs } from '@prisma/client/runtime/client';
 /**
  * This function retrieves all albums from the database based on the provided query.
  *

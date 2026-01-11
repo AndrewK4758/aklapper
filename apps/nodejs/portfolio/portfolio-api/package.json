@@ -20,7 +20,7 @@
         "defaultConfiguration": "production",
         "options": {
           "platform": "node",
-          "target": "node24",
+          "target": "node25",
           "metafile": true,
           "outputPath": "apps/nodejs/portfolio/portfolio-api/dist",
           "format": [

@@ -1,13 +1,14 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, SVGProps } from 'react';
 
-interface EnterIconProps {
+interface EnterIconProps extends SVGProps<SVGSVGElement> {
   onHandleClickEnter: () => void;
   style: CSSProperties;
 }
 
-export default function EnterIcon({ onHandleClickEnter, style }: EnterIconProps) {
+export default function EnterIcon({ onHandleClickEnter, style, ...props }: EnterIconProps) {
   return (
     <svg
+      {...props}
       width='2267.7'
       height='1511.8'
       version='1.1'

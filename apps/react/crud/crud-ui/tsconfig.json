@@ -4,12 +4,6 @@
   "include": [],
   "references": [
     {
-      "path": "../../../../packages/react-shared"
-    },
-    {
-      "path": "../../../../packages/prisma/chinook"
-    },
-    {
       "path": "./tsconfig.app.json"
     },
     {

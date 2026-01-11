@@ -1,13 +1,15 @@
 import Box from '@mui/material/Box';
-import type { CSSProperties } from 'react';
-import styles from '../../styles/landing.module.css';
-import Theme from '../../styles/themes/theme';
-import LandingBox from '../icons/landing_box_icon';
+import styles from '@styles/landing/landing.module.css';
+import LandingBox from '@components/icons/landing_box_icon';
 
 const shakeIconAnimation = {
-  animation: `${styles.shake} 2.25s 5`,
-  animationDelay: '3s',
+  animation: `${styles.shake} 2.25s linear 3s 5`,
   transformOrigin: 'center',
+};
+
+const baseStyle = {
+  position: 'relative' as const,
+  flex: '1 0 50%',
 };
 
 interface LandingBoxProps {
@@ -16,28 +18,11 @@ interface LandingBoxProps {
 }
 
 export default function BoxAnimation({ isLandingNavOpen, onHandleNavbarClick }: LandingBoxProps) {
-  const baseStyle = {
-    position: 'relative' as CSSProperties['position'],
-    flex: '1 0 50%',
-  };
 
   const openStyle = { ...baseStyle, ...shakeIconAnimation };
 
   return (
-    <Box
-      sx={{
-        height: '32rem',
-        width: '32rem',
-        [Theme.breakpoints.down('lg')]: {
-          height: '21rem',
-          width: '21rem',
-        },
-        [Theme.breakpoints.down('md')]: {
-          height: '10rem',
-          width: '10rem',
-        },
-      }}
-    >
+    <Box className={styles.boxWrapper}>
       <LandingBox
         id='open-menu'
         isLandingNavOpen={isLandingNavOpen}

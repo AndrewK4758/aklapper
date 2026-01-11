@@ -1,11 +1,14 @@
 import Box from '@mui/material/Box';
-import { useReducer } from 'react';
+import { useCallback, useReducer } from 'react';
 import { useNavigate } from 'react-router';
-import BoxAnimation from '../../components/landing/box_animation';
-import LandingHeader from '../../components/landing/header';
-import Explosion from '../../components/landing/lottie/explosion';
-import NavToHome from '../../components/landing/nav_home';
-import { LandingActions, type LandingPageState, landingPageReducer } from '../../hooks/landing_page_reducer';
+import BoxAnimation from '@components/landing/box_animation';
+import Text from '@components/landing/text';
+import Explosion from '@components/landing/lottie/explosion';
+import NavToHome from '@components/landing/nav_home';
+import { landingPageReducer } from '@hooks/landing_page_reducer';
+import styles from '@styles/landing/landing.module.css';
+import { StyledRootComponentWrapper } from '@aklapper/react-shared';
+import { LandingActions, type LandingPageState } from '@projectTypes/landing/landing.js';
 
 const EXPLOSION_FADE_OUT_TIME = 1100;
 const ENTER_FADE_IN_TIME = EXPLOSION_FADE_OUT_TIME - 900;
@@ -21,7 +24,7 @@ export default function LandingPage() {
   const [state, dispatch] = useReducer(landingPageReducer, landingPageInitState);
   const nav = useNavigate();
 
-  const onBoxAnimationClick = () => {
+  const onBoxAnimationClick = useCallback(() => {
     dispatch({ type: LandingActions.ENTER_VISIBLE, payload: { ...state, isEnterVisible: false } });
     dispatch({ type: LandingActions.MOTION_OFFSET, payload: { ...state, motionOffset: 0 } });
 
@@ -39,9 +42,9 @@ export default function LandingPage() {
     }
 
     dispatch({ type: LandingActions.NAV_OPEN, payload: { ...state, isLandingNavOpen: !state.isLandingNavOpen } });
-  };
+  }, [state, dispatch]);
 
-  const animateMotionPath = () => {
+  const animateMotionPath = useCallback(() => {
     let startTime: number | null = null;
 
     const duration = 200;
@@ -55,29 +58,29 @@ export default function LandingPage() {
       }
     };
     requestAnimationFrame(step);
-  };
+  }, []);
 
-  const handleEnterClicked = () => {
-    nav('portfolio', { relative: 'route' });
-  };
+  const handleEnterClicked = useCallback(() => {
+    nav('portfolio', { relative: 'route', replace: true });
+  }, []);
 
   return (
-    <Box>
-      <Box style={{ display: 'flex', flexShrink: 1 }}>
-        <LandingHeader isLandingNavOpen={state.isLandingNavOpen} />
-      </Box>
+    <StyledRootComponentWrapper className={styles.container} id='landing-root'>
+      <Text isLandingNavOpen={state.isLandingNavOpen} />
 
-      <Box>
+      <Box className={styles.animationsWrapper}>
         <BoxAnimation isLandingNavOpen={state.isLandingNavOpen} onHandleNavbarClick={onBoxAnimationClick} />
-        {state.isLandingNavOpen && <Explosion isVisible={state.isExplosionVisible} onClick={onBoxAnimationClick} />}
         {state.isLandingNavOpen && (
-          <NavToHome
-            isVisable={state.isEnterVisible}
-            motionOffset={state.motionOffset}
-            onHandleClickEnter={handleEnterClicked}
-          />
+          <>
+            <Explosion isVisible={state.isExplosionVisible} onClick={onBoxAnimationClick} />
+            <NavToHome
+              isVisible={state.isEnterVisible}
+              motionOffset={state.motionOffset}
+              onHandleClickEnter={handleEnterClicked}
+            />
+          </>
         )}
       </Box>
-    </Box>
+    </StyledRootComponentWrapper>
   );
 }

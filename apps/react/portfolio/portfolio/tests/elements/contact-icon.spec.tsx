@@ -1,6 +1,6 @@
 import MenuOpen from '@mui/icons-material/MenuOpen';
 import '@testing-library/jest-dom';
-import ContactIcon from '../../src/components/header/contact/contact-icon.js';
+import ContactIcon from '../../src/components/layout/header/contact/contact-icon.js';
 import { render, screen } from '../utils/render_react_rotuter.js';
 
 describe('test ContactIcon render role states', () => {

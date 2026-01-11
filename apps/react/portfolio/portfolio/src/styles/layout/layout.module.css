@@ -1,0 +1,46 @@
+.main {
+  margin: 0.5rem 1.5rem;
+  padding: 0;
+}
+
+.selfImg {
+  width: 452px;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--mui-shape-borderRadius),
+}
+
+.navBarWrapper {
+  padding: 0 calc(var(--mui-spacing) * 4) calc(var(--mui-spacing) * 4) calc(var(--mui-spacing) * 4);
+}
+
+.outletCard {
+  background-color: transparent;
+  width: 100%;
+  padding: 0;
+}
+
+.footer {
+  text-align: center;
+  margin-block-start: auto;
+}
+
+.footerButton {
+  cursor: pointer;
+}
+
+.cardHeader {
+  flex-direction: row;
+  align-items: center;
+  justify-items: center;
+}
+
+@media (max-width: 900px) {
+  .avatarMargin {
+    margin-inline-end: 16px;
+  }
+
+  .cardHeader {
+    flex-direction: column;
+  }
+}

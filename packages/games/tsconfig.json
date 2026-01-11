@@ -4,12 +4,6 @@
   "include": [],
   "references": [
     {
-      "path": "../games-components"
-    },
-    {
-      "path": "../types"
-    },
-    {
       "path": "./tsconfig.lib.json"
     },
     {

@@ -1,5 +1,5 @@
 import { Prisma, PrismaErrorLogger, prisma, type PrismaClientErrors, type album } from '@aklapper/chinook-client';
-import type { DefaultArgs } from '@prisma/client/runtime/library';
+import type { DefaultArgs } from '@prisma/client/runtime/client';
 
 /**
  * This function retrieves a list of albums for a specific artist from the database.

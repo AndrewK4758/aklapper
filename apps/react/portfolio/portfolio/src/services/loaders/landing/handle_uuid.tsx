@@ -1,5 +1,6 @@
 export default async function handleUUID() {
   try {
+    //TODO add cookie to initial page loading and update for specific settings
     const cookie = 'userID=TEMP_ID';
 
     localStorage.setItem('userID', cookie.split('=')[1]);

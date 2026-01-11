@@ -4,15 +4,6 @@
   "include": [],
   "references": [
     {
-      "path": "../../../../packages/utils"
-    },
-    {
-      "path": "../../../../packages/types"
-    },
-    {
-      "path": "../../../../packages/prisma/chinook"
-    },
-    {
       "path": "./tsconfig.app.json"
     },
     {

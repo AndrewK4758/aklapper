@@ -4,12 +4,6 @@
   "include": [],
   "references": [
     {
-      "path": "../../../../packages/utils"
-    },
-    {
-      "path": "../../../../packages/prisma/portfolio"
-    },
-    {
       "path": "./tsconfig.app.json"
     },
     {

@@ -8,4 +8,5 @@ export const StyledRootComponentWrapper: ComponentType<BoxProps> = styled(Box)((
   flex: 1,
   paddingInline: theme.spacing(4),
   paddingBlockStart: theme.spacing(4),
+  overflowX: 'hidden',
 }));

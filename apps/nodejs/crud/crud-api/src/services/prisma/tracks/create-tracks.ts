@@ -1,5 +1,5 @@
 import { Prisma, PrismaErrorLogger, prisma, type PrismaClientErrors, type track } from '@aklapper/chinook-client';
-import type { DefaultArgs } from '@prisma/client/runtime/library';
+import type { DefaultArgs } from '@prisma/client/runtime/client';
 
 /**
  * Creates a new track in the database.

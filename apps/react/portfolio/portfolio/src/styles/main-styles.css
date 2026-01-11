@@ -1,55 +1,76 @@
 @import url(./colors-and-fonts.css);
 
 @property --clr-1 {
-  syntax: '<color>';
+  syntax: "<color>";
   inherits: true;
   initial-value: #ffd300;
 }
 
 @property --clr-2 {
-  syntax: '<color>';
+  syntax: "<color>";
   inherits: true;
   initial-value: #ff3d00;
 }
 
 @property --text-primary {
-  syntax: '<color>';
+  syntax: "<color>";
   inherits: true;
   initial-value: #eef0ff;
 }
 
 @property --text-secondary {
-  syntax: '<color>';
+  syntax: "<color>";
   inherits: true;
   initial-value: #bbc0cc;
 }
 
 @property --clr-1-drk {
-  syntax: '<color>';
+  syntax: "<color>";
   inherits: true;
   initial-value: #ffaa00;
 }
 
 @property --clr-2-drk {
-  syntax: '<color>';
+  syntax: "<color>";
   inherits: true;
   initial-value: #af320b;
 }
 
 @property --background-default {
-  syntax: '<color>';
+  syntax: "<color>";
   inherits: true;
   initial-value: #323232;
 }
 
+@property --background-paper {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: #0F1A0F;
+}
+
 @property --glow-deg {
-  syntax: '<angle>';
+  syntax: "<angle>";
   inherits: true;
   initial-value: -180deg;
 }
 
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: true;
+}
+
+html, body {
+  overflow-x: hidden
+}
+
 #root {
   isolation: isolate;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  box-sizing: border-box;
+  font-smooth: anitaliased;
+
 }
 
 &::-webkit-scrollbar-thumb {
@@ -68,12 +89,12 @@
 
 input::-webkit-inner-spin-button,
 & input::-webkit-outer-spin-button {
-  -webkit-appearance: 'none';
+  -webkit-appearance: none;
   margin: 0;
 }
 
 pre {
-  max-width: '100%';
-  white-space: 'pre-wrap';
-  word-wrap: 'break-word';
+  max-width: 100%;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
