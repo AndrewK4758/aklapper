@@ -1,0 +1,44 @@
+@layer components {
+
+    :root {
+        --color-hover: var(--text-primary-light);
+        --color: var(--text-secondary-light-button);
+
+        --background-hover: var(--secondary-dark);
+    }
+
+    .appComponentStyles {
+        font-size: 1.25rem;
+        border-radius: calc(var(--radius-sm) * 3);
+        height: fit-content;
+        border-color: var(--color);
+        color: var(--color);
+        background-color: var(--primary-dark-background);
+
+        &:hover {
+            border-color: var(--secondary-dark);
+            color: var(--color-hover);
+            background-color: var(--secondary-dark);
+        }
+    }
+
+    .buttonIcon {
+        height: auto;
+        width: 1.25rem;
+        color: inherit;
+
+        &:hover {
+            color: inherit;
+            background-color: inherit;
+        }
+    }
+
+    .buttonLabel {
+        color: inherit;
+
+        &:hover {
+            color: inherit;
+            background-color: inherit;
+        }
+    }
+}

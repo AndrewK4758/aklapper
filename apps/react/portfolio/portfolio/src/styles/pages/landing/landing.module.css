@@ -1,0 +1,67 @@
+@layer app {
+
+    .landingWrapper {
+        display: grid;
+        grid-template-rows: 3rem auto;
+        min-height: 100dvh;
+        height: 3.5rem;
+    }
+
+    .landingHeader {
+        display: inline-flex;
+        gap: 1rem;
+        align-items: center;
+        padding-inline: var(--padding-inline-sm);
+        border-block-end: 1px dashed var(--secondary-drk);
+        align-content: center;
+    }
+
+    .landingHeaderText {
+        color: var(--primary-dark);
+        font-family: Orange Gummy, NK57 Monospace Rg, Roboto Light, Ubuntu Light, Ubuntu, monospace;
+        align-content: center;
+    }
+
+    .landingHeaderContentWrapper {
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        flex: 1;
+        height: 100%;
+    }
+
+    @keyframes typewriter {
+        from {
+            width: 0;
+        }
+        to {
+            width: 100%;
+        }
+    }
+
+    @keyframes shake {
+        1.25%,
+        11.25% {
+            transform: rotateZ(-0.75deg);
+        }
+        2.5%,
+        10% {
+            transform: rotateZ(1.5deg);
+        }
+        3.75%,
+        6.75%,
+        8.75% {
+            transform: rotateZ(-3deg);
+        }
+        5%,
+        7.5% {
+            transform: rotateZ(3deg);
+        }
+        11.5% {
+            transform: rotateZ(0deg);
+        }
+        100% {
+            transform: rotateZ(0deg);
+        }
+    }
+}

@@ -14,7 +14,7 @@ import deleteTrack from '../../services/prisma/tracks/delete-track.js';
 
 const deleteTracks = async (req: Request, resp: Response) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
 
     const query: Prisma.trackDeleteArgs<DefaultArgs> = {
       where: { track_id: parseInt(id, 10) },

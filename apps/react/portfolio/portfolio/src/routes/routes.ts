@@ -48,108 +48,108 @@ const routes: RouteObject[] = [
     Component: LandingPage,
     ErrorBoundary: BaseError,
   },
-  {
-    path: 'portfolio',
-    Component: Layout,
-    children: [
-      {
-        index: true,
-        Component: Home,
-      },
-      {
-        path: 'crud',
-        Component: Crud,
-        children: [
-          {
-            id: 'artists',
-            path: 'artists',
-            Component: Artist,
-            loader: loadArtistsAndCount,
-            action: handleArtistActions,
-            children: [
-              {
-                id: 'artist_albums',
-                path: ':artistID/albums',
-                Component: AlbumsOnArtist,
-                loader: loadAlbumsForArtist,
-                action: handleArtistAlbumsActions,
-                children: [
-                  {
-                    path: ':albumID/tracks',
-                    Component: Tracks,
-                    loader: loadAlbumTracks,
-                    action: handleTrackActions,
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            path: 'albums',
-            Component: Album,
-            loader: loadAlbums,
-            children: [
-              {
-                path: ':albumID/tracks',
-                Component: Tracks,
-                loader: loadAlbumTracks,
-              },
-            ],
-          },
-          {
-            path: 'add-entry',
-            Component: AddEntry,
-          },
-        ],
-      },
-      {
-        id: 'games',
-        path: 'games',
-        Component: Games,
-        children: [
-          {
-            id: 'active-game',
-            path: ':id',
-            Component: ActiveGameSession,
-            loader: registerPlayersAndStartGame,
-            HydrateFallback: GameLoading,
-          },
-        ],
-      },
-      {
-        id: 'gen-ai',
-        path: 'gen-ai',
-        Component: GenAiHome,
-        ErrorBoundary: BaseError,
-        children: [
-          {
-            id: 'text',
-            path: 'text',
-            Component: TextGenerator,
-            ErrorBoundary: BaseError,
-          },
-          {
-            id: 'image',
-            path: 'image',
-            Component: Image,
-            action: generateImageAction,
-            ErrorBoundary: BaseError,
-          },
-          {
-            id: 'audio',
-            path: 'audio',
-            Component: Audio,
-            ErrorBoundary: BaseError,
-          },
-        ],
-      },
-      {
-        id: 'privacy-policy',
-        path: 'privacy-policy',
-        Component: PrivacyPolicy,
-      },
-    ],
-  },
+  // {
+  //   path: 'portfolio',
+  //   Component: Layout,
+  //   children: [
+  //     {
+  //       index: true,
+  //       Component: Home,
+  //     },
+  //     {
+  //       path: 'crud',
+  //       Component: Crud,
+  //       children: [
+  //         {
+  //           id: 'artists',
+  //           path: 'artists',
+  //           Component: Artist,
+  //           loader: loadArtistsAndCount,
+  //           action: handleArtistActions,
+  //           children: [
+  //             {
+  //               id: 'artist_albums',
+  //               path: ':artistID/albums',
+  //               Component: AlbumsOnArtist,
+  //               loader: loadAlbumsForArtist,
+  //               action: handleArtistAlbumsActions,
+  //               children: [
+  //                 {
+  //                   path: ':albumID/tracks',
+  //                   Component: Tracks,
+  //                   loader: loadAlbumTracks,
+  //                   action: handleTrackActions,
+  //                 },
+  //               ],
+  //             },
+  //           ],
+  //         },
+  //         {
+  //           path: 'albums',
+  //           Component: Album,
+  //           loader: loadAlbums,
+  //           children: [
+  //             {
+  //               path: ':albumID/tracks',
+  //               Component: Tracks,
+  //               loader: loadAlbumTracks,
+  //             },
+  //           ],
+  //         },
+  //         {
+  //           path: 'add-entry',
+  //           Component: AddEntry,
+  //         },
+  //       ],
+  //     },
+  //     {
+  //       id: 'games',
+  //       path: 'games',
+  //       Component: Games,
+  //       children: [
+  //         {
+  //           id: 'active-game',
+  //           path: ':id',
+  //           Component: ActiveGameSession,
+  //           loader: registerPlayersAndStartGame,
+  //           HydrateFallback: GameLoading,
+  //         },
+  //       ],
+  //     },
+  //     {
+  //       id: 'gen-ai',
+  //       path: 'gen-ai',
+  //       Component: GenAiHome,
+  //       ErrorBoundary: BaseError,
+  //       children: [
+  //         {
+  //           id: 'text',
+  //           path: 'text',
+  //           Component: TextGenerator,
+  //           ErrorBoundary: BaseError,
+  //         },
+  //         {
+  //           id: 'image',
+  //           path: 'image',
+  //           Component: Image,
+  //           action: generateImageAction,
+  //           ErrorBoundary: BaseError,
+  //         },
+  //         {
+  //           id: 'audio',
+  //           path: 'audio',
+  //           Component: Audio,
+  //           ErrorBoundary: BaseError,
+  //         },
+  //       ],
+  //     },
+  //     {
+  //       id: 'privacy-policy',
+  //       path: 'privacy-policy',
+  //       Component: PrivacyPolicy,
+  //     },
+  //   ],
+  // },
 ];
 
 export default routes;

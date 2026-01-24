@@ -42,7 +42,7 @@
         "defaultConfiguration": "production",
         "options": {
           "platform": "node",
-          "target": "node24",
+          "target": "node25",
           "metafile": true,
           "minify": true,
           "outputPath": "{workspaceRoot}/apps/nodejs/games/games-api/dist",
@@ -55,10 +55,20 @@
           "assets": [
             "{workspaceRoot}/apps/nodejs/games/games-api/src/assets"
           ],
+          "thirdParty": false,
           "esbuildOptions": {
             "sourcemap": true,
             "outExtension": {
               ".js": ".js"
+            },
+            "external": [
+              "node:*",
+              "@prisma/client",
+              ".prisma/client",
+              "@prisma/internals"
+            ],
+            "banner": {
+              "js": "import { createRequire } from 'module'; const require = createRequire(import.meta.url);"
             }
           }
         },

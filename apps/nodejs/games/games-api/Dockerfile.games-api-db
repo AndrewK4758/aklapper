@@ -1,0 +1,9 @@
+FROM postgres:latest
+
+ENV POSTGRES_USER=postgres
+ENV POSTGRES_PASSWORD=postgres
+ENV POSTGRES_DB=games
+
+COPY src/assets/init-games-db.sql /docker-entrypoint-initdb.d/
+
+EXPOSE 5432

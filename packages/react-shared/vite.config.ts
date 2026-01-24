@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import { cwd } from 'node:process';
 import { defineConfig } from 'vitest/config';
 import dts from 'vite-plugin-dts';
+import { resolve } from 'node:path';
 
 export default defineConfig({
   root: cwd(),
@@ -28,6 +29,16 @@ export default defineConfig({
     sourcemap: true,
   },
 
+  resolve: {
+    alias: {
+      '@styles': resolve(workspaceRoot, 'packages/react-shared/src/lib/styles'),
+    },
+  },
+
+  experimental: {
+    enableNativePlugin: true,
+  },
+
   build: {
     outDir: './dist',
     minify: true,
@@ -35,16 +46,13 @@ export default defineConfig({
     sourcemap: true,
     emptyOutDir: true,
     reportCompressedSize: true,
-    commonjsOptions: {
-      transformMixedEsModules: true,
-    },
     lib: {
       entry: 'src/index.ts',
       name: 'react-shared',
       fileName: 'index',
       formats: ['es'],
     },
-    rollupOptions: {
+    rolldownOptions: {
       external: ['react', 'react-dom', 'react/jsx-runtime', 'react/*'],
       logLevel: 'debug',
       output: {

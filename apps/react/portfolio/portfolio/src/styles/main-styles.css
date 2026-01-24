@@ -1,100 +1,133 @@
+@layer reset, base, components, app;
 @import url(./colors-and-fonts.css);
 
-@property --clr-1 {
-  syntax: "<color>";
-  inherits: true;
-  initial-value: #ffd300;
+@layer reset {
+
+    *, *::before, *::after {
+        box-sizing: border-box;
+    }
+
+
+    html {
+        -moz-text-size-adjust: none;
+        -webkit-text-size-adjust: none;
+        text-size-adjust: none;
+    }
+
+
+    :not(dialog) {
+        margin: 0;
+    }
+
+
+    @media (prefers-reduced-motion: no-preference) {
+        html {
+            scroll-behavior: smooth;
+        }
+    }
+
+
+    body {
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        min-height: 100svh;
+    }
+
+
+    h1, h2, h3, h4, h5, h6,
+    button, input, label, select, textarea {
+        line-height: 1.5;
+    }
+
+
+    h1, h2, h3, h4, h5, h6 {
+        text-wrap: balance;
+    }
+
+    p {
+        text-wrap: pretty;
+    }
+
+
+    img, picture, video, canvas, svg {
+        display: block;
+        max-width: 100%;
+        height: auto;
+    }
+
+    textarea:not([rows]) {
+        min-height: 10em;
+    }
+
+
+    ul[role="list"], ol[role="list"] {
+        list-style: none;
+        padding-inline-start: 0;
+    }
+
+
+    a:not([class]) {
+        text-decoration-skip-ink: auto;
+        color: currentColor;
+    }
+
+
+    :target {
+        scroll-margin-block: 5ex;
+    }
+
+    p, h1, h2, h3, h4, h5, h6 {
+        overflow-wrap: break-word;
+    }
+
 }
 
-@property --clr-2 {
-  syntax: "<color>";
-  inherits: true;
-  initial-value: #ff3d00;
-}
+@layer base {
+    #root {
+        isolation: isolate;
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background-color: var(--background);
+        background-image: var(--background-gradient);
 
-@property --text-primary {
-  syntax: "<color>";
-  inherits: true;
-  initial-value: #eef0ff;
-}
+    }
 
-@property --text-secondary {
-  syntax: "<color>";
-  inherits: true;
-  initial-value: #bbc0cc;
-}
 
-@property --clr-1-drk {
-  syntax: "<color>";
-  inherits: true;
-  initial-value: #ffaa00;
-}
+    &::-webkit-scrollbar-thumb {
+        background-color: var(--secondary-drk);
+        border-radius: 2px;
+    }
 
-@property --clr-2-drk {
-  syntax: "<color>";
-  inherits: true;
-  initial-value: #af320b;
-}
+    &:-webkit-autofill,
+    &:-webkit-autofill:hover,
+    &:-webkit-autofill:focus,
+    &:-webkit-autofill:active {
+        -webkit-text-fill-color: #101010 !important;
+        --webkit-box-shadow: 0 0 0 100px var(--text-secondary) inset !important;
+        -webkit-background-clip: text;
+    }
 
-@property --background-default {
-  syntax: "<color>";
-  inherits: true;
-  initial-value: #323232;
-}
+    input::-webkit-inner-spin-button,
+    & input::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
 
-@property --background-paper {
-  syntax: "<color>";
-  inherits: false;
-  initial-value: #0F1A0F;
-}
 
-@property --glow-deg {
-  syntax: "<angle>";
-  inherits: true;
-  initial-value: -180deg;
-}
+    pre {
+        max-width: 100%;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
 
-@property --angle {
-  syntax: '<angle>';
-  initial-value: 0deg;
-  inherits: true;
-}
-
-html, body {
-  overflow-x: hidden
-}
-
-#root {
-  isolation: isolate;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  box-sizing: border-box;
-  font-smooth: anitaliased;
-
-}
-
-&::-webkit-scrollbar-thumb {
-  background-color: var(--clr-1-drk);
-  border-radius: 2px;
-}
-
-&:-webkit-autofill,
-&:-webkit-autofill:hover,
-&:-webkit-autofill:focus,
-&:-webkit-autofill:active {
-  -webkit-text-fill-color: #101010 !important;
-  --webkit-box-shadow: 0 0 0 100px var(--text-secondary) inset !important;
-  -webkit-background-clip: text;
-}
-
-input::-webkit-inner-spin-button,
-& input::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-pre {
-  max-width: 100%;
-  white-space: pre-wrap;
-  word-wrap: break-word;
+    .material-symbols {
+        height: 100%;
+        width: 100%;
+        font-variation-settings: 'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24; /* Optical size in dp/px (range 20 to 48) */
+    }
 }

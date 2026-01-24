@@ -12,7 +12,7 @@ import deleteArtists from '../../services/prisma/artist/delete-artist.js';
  */
 
 const deleteArtist = async (req: Request, resp: Response): Promise<void> => {
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
 
   try {
     const deletedArtist = await deleteArtists(parseInt(id, 10));

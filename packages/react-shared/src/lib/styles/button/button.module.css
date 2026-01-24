@@ -1,0 +1,32 @@
+@layer components {
+
+    :root {
+        --required: oklch(0.6427 0.2153 28.81);
+    }
+
+    .buttonRoot {
+        display: flex;
+        align-items: center;
+        gap: calc(var(--spacing) * 1.5);
+        background-color: transparent;
+
+    }
+
+    .iconStart {
+        order: 1;
+    }
+
+    .iconEnd {
+        order: 3;
+    }
+
+    .label {
+        order: 2;
+    }
+
+    .label[data-required=true]::after {
+        content: '*';
+        color: var(--required);
+        margin: calc(var(--spacing) * 0.5) 0 0 calc(var(--spacing) * 0.75);
+    }
+}

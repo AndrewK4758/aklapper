@@ -106,8 +106,9 @@ const connectWebsocket = function () {
 
   socketClient.onopen = async () => {
     console.log('CONNECTED TO GO LOBBY');
-    reconnecting = null;
     if (reconnecting) clearTimeout(reconnecting);
+    reconnecting = null;
+
     await syncWithGoLobby();
   };
 };
@@ -133,4 +134,4 @@ const server = httpServer.listen(port, () => {
 
 server.on('error', console.error);
 
-export default app;
+

@@ -11,13 +11,15 @@ import getArtistAlbums from '../../services/prisma/album/get-artist-albums.js';
  *
  * @param req - The Express request object.
  * @param resp - The Express response object.
- * @param next - The next middleware function in the chain.
  * @returns No explicit return value. It either sends a JSON response with the artist's albums or calls the `next()` middleware function.
  */
 
-const getArtistsAlbums = async (req: Request, resp: Response): Promise<void> => {
+const getArtistsAlbums: (req: Request, resp: Response) => Promise<void> = async (
+  req: Request,
+  resp: Response,
+): Promise<void> => {
   try {
-    const artistID = req.params.id;
+    const artistID = req.params.id as string;
 
     const query = {
       where: { artist_id: parseInt(artistID, 10) },

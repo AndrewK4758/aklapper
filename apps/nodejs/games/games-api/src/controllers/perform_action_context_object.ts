@@ -5,7 +5,12 @@ import { GameContextKeys, IInstanceOfGame } from '@aklapper/types';
 import type { Request, Response } from 'express';
 import { gameplaySocketServer } from '../main.js';
 
-const performAction = async (
+const performAction: (
+  req: Request | null,
+  resp: Response | null,
+  gameWS: IInstanceOfGame | null,
+  actionWS: string | null,
+) => Promise<void> = async (
   req: Request | null,
   resp: Response | null,
   gameWS: IInstanceOfGame | null,
@@ -29,7 +34,7 @@ const performAction = async (
     if (game && req && resp) {
       console.log(`Got Game: ${game.gameInstanceID} - ${game.instance.instance.constructor.name}`);
 
-      const { action } = (req as Request).params;
+      const { action } = req.params as { action: string };
       const ctx = ContextBuilder.build();
       ctx.put(GameContextKeys.ACTION, action);
       ctx.put(GameContextKeys.GAME, game);

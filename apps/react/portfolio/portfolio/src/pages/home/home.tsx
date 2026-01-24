@@ -16,13 +16,13 @@ import Theme from '../../styles/themes/theme';
 
 export default function Home(): ReactElement {
   const mediaQuery = useMediaQuery(Theme.breakpoints.down('md'));
-  return (
-    <ColoredBackground>
-      <CardContent id='about-me-header-box' sx={{ display: 'flex', flexDirection: mediaQuery ? 'column' : 'row' }}>
-        <IntroText />
-        <Divider orientation={mediaQuery ? 'horizontal' : 'vertical'} flexItem={true} textAlign='center' />
-        <TechStackLists />
-      </CardContent>
-    </ColoredBackground>
-  );
+    return (
+      <ColoredBackground>
+        <CardContent id='about-me-header-box' sx={{ display: 'flex', flexDirection: mediaQuery ? 'column' : 'row' }}>
+          <IntroText />
+          <Divider orientation={mediaQuery ? 'horizontal' : 'vertical'} flexItem={true} textAlign='center' />
+          <TechStackLists />
+        </CardContent>
+      </ColoredBackground>
+    );
 }

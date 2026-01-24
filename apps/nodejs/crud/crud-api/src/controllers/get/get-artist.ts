@@ -11,7 +11,7 @@ import findArtist from '../../services/prisma/artist/find-artist.js';
 
 const getArtist: RequestHandler = async (req: Request, resp: Response) => {
   try {
-    const artistID = req.params.id;
+    const artistID = req.params.id as string;
 
     const artist = await findArtist(parseInt(artistID, 10));
 

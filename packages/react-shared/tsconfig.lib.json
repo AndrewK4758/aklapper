@@ -8,7 +8,10 @@
     "outDir": "out-tsc/react-shared",
     "rootDir": "src",
     "tsBuildInfoFile": "out-tsc/react-shared/tsconfig.lib.tsbuildinfo",
-    "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"]
+    "types": ["node", "@nx/react/typings/cssmodule.d.ts", "@nx/react/typings/image.d.ts", "vite/client"],
+    "paths": {
+      "@styles/*": ["lib/styles/*"]
+    }
   },
   "exclude": [
     "out-tsc",
