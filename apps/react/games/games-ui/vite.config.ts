@@ -42,6 +42,8 @@ export default defineConfig({
   },
 
   envDir: 'env',
+
+  //@ts-expect-error -type
   test: {
     name: 'games-ui',
     watch: false,

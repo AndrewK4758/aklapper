@@ -2,7 +2,7 @@ import { workspaceRoot } from '@nx/devkit';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
 import { cwd } from 'node:process';
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite';
 import MODULES from './vite_modules.js';
 
 //Server
@@ -15,13 +15,17 @@ const BASE = '/';
 const NODE_ENV = process.env.NODE_ENV;
 const OUT_DIR = './dist';
 const ROOT = cwd();
-console.log(ROOT);
+
+
 const config = defineConfig({
   root: ROOT,
   cacheDir: resolve(workspaceRoot, 'node_modules/.vite/apps/react/portfolio/portfolio'),
   server: {
     port: PORT_DEV,
     host: HOST,
+    fs:{
+      allow: [workspaceRoot]
+    }
   },
   preview: {
     port: PORT_PREVIEW,
@@ -34,6 +38,7 @@ const config = defineConfig({
 
   dev: {
     sourcemap: true,
+    preTransformRequests: true,
   },
 
   plugins: [react()],
@@ -44,7 +49,7 @@ const config = defineConfig({
   // },
 
   optimizeDeps: {
-    noDiscovery: NODE_ENV === 'development',
+    noDiscovery: NODE_ENV !== 'development',
   },
 
   resolve: {
@@ -62,7 +67,7 @@ const config = defineConfig({
   envDir: './env',
 
   experimental: {
-    enableNativePlugin: true,
+    enableNativePlugin: false,
   },
 
   build: {
@@ -81,7 +86,7 @@ const config = defineConfig({
       },
     },
   },
-
+  // @ts-expect-error - type is real
   test: {
     name: 'portfolio',
     watch: false,

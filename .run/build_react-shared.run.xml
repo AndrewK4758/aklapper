@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="build:react-shared" type="NxRunConfigurationType">
+    <option name="nx-projects" value="react-shared" />
+    <option name="nx-targets" value="build" />
+    <option name="nx-target-configuration" value="" />
+    <envs />
+    <option name="arguments" value="" />
+    <method v="2" />
+  </configuration>
+</component>

@@ -6,7 +6,7 @@
     <envs />
     <option name="arguments" value="" />
     <method v="2">
-      <option name="LaunchBrowser.Before.Run" url="http://localhost:4700" withDebugger="true" />
+      <option name="LaunchBrowser.Before.Run" browser="f408f4a2-65ef-4e9f-b765-a3a93ce81ce6" url="http://localhost:4700" withDebugger="true" />
     </method>
   </configuration>
 </component>

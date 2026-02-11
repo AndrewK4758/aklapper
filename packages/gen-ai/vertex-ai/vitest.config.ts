@@ -3,7 +3,7 @@ import { configDotenv } from 'dotenv';
 import { dirname, resolve } from 'node:path';
 import { cwd } from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite';
 
 const __filenanme = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filenanme);

@@ -1,7 +1,7 @@
 import { workspaceRoot } from '@nx/devkit';
 import { resolve } from 'node:path';
 import { cwd } from 'node:process';
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite';
 
 const modules = {
   '@aklapper/games': resolve(workspaceRoot, 'packages/games/src/index.ts'),

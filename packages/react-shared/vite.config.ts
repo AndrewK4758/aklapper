@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import * as path from 'node:path';
 import { resolve } from 'node:path';
 import { cwd } from 'node:process';
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 
 export default defineConfig({

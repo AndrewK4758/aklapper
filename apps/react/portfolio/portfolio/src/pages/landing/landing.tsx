@@ -4,6 +4,7 @@ import AppButton from '@components/button/button';
 import { StarShineW400 } from '@material-symbols-svg/react/icons/star-shine';
 import { AwardStarW400 } from '@material-symbols-svg/react/icons/award-star';
 
+
 export default function LandingPage() {
   return (
     <div id={'landingWrapper'} className={pageStyles.landingWrapper}>
