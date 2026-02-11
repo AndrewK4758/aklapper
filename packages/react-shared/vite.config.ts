@@ -1,10 +1,10 @@
 import { workspaceRoot } from '@nx/devkit';
 import react from '@vitejs/plugin-react';
 import * as path from 'node:path';
+import { resolve } from 'node:path';
 import { cwd } from 'node:process';
 import { defineConfig } from 'vitest/config';
 import dts from 'vite-plugin-dts';
-import { resolve } from 'node:path';
 
 export default defineConfig({
   root: cwd(),
@@ -41,19 +41,19 @@ export default defineConfig({
 
   build: {
     outDir: './dist',
-    minify: true,
-    target: 'esnext',
+    minify: 'oxc',
     sourcemap: true,
     emptyOutDir: true,
     reportCompressedSize: true,
     lib: {
+      cssFileName: '[name].css',
       entry: 'src/index.ts',
       name: 'react-shared',
       fileName: 'index',
       formats: ['es'],
     },
     rolldownOptions: {
-      external: ['react', 'react-dom', 'react/jsx-runtime', 'react/*'],
+      external: ['react', 'react-dom', 'react/jsx-runtime', 'react/*', '@base-ui', '@base-ui/react'],
       logLevel: 'debug',
       output: {
         esModule: true,

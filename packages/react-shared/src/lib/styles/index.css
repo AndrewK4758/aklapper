@@ -1,1 +1,70 @@
-/*@layer reset, base, components, app;*/
+@layer reset, base, components, app;
+
+@layer base {
+    :root {
+        --border-width-sm: 1px;
+        --outline-width-sm: 2px;
+
+        --state-border-color: transparent;
+        --state-outline-color: transparent;
+        --state-outline-offset: 2px;
+        --outline-change-animation: outline-color 125ms ease;
+        --border-change-animation: border-color 125ms ease;
+
+
+    }
+
+    .outlineStyle {
+        outline: var(--outline-width-sm) solid var(--state-outline-color);
+        outline-offset: var(--state-outline-offset);
+    }
+
+    *[data-hover],
+    *[data-focus],
+    *[data-selected],
+    *[data-checked],
+    *[data-invalid],
+    *[data-active] {
+        transform: none !important;
+        transition: outline-color 75ms ease;
+    }
+
+    *[data-focus] {
+        --state-outline-color: var(--secondary-light);
+    }
+
+    *[data-hover] {
+        --state-border-color: var(--primary-light);
+        background-color: var(--primary-x-dark);
+    }
+
+    *[data-active] {
+        --state-border-color: black !important;
+        background-color: var(--primary-dark);
+    }
+
+    *[data-selected="true"],
+    *[data-checked="true"] {
+        --state-border-color: var(--secondary-2-dark);
+        background-color: var(--secondary-2-main);
+        color: var(--text-primary-dark);
+    }
+
+    *[data-invalid] {
+        --state-border-color: var(--secondary-main);
+        --state-outline-color: var(--secondary-x-light);
+    }
+
+    *[data-highlighted] {
+        --state-border-color: var(--primary-main);
+        background-color: var(--primary-x-light);
+        color: var(--text-primary);
+    }
+
+    *[data-disabled] {
+        --state-border-color: transparent;
+        --state-outline-color: transparent;
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+}

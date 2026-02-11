@@ -12,7 +12,7 @@
         gap: 1rem;
         align-items: center;
         padding-inline: var(--padding-inline-sm);
-        border-block-end: 1px dashed var(--secondary-drk);
+        border-block-end: 1px dashed var(--primary-light);
         align-content: center;
     }
 

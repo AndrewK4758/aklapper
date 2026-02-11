@@ -1,121 +1,207 @@
+@font-face {
+    font-family: League Gothic;
+    src: url(/fonts/LeagueGothic-Regular-VariableFont_wdth.ttf) format('truetype');
+    font-display: swap;
+}
+
+@font-face {
+    font-family: Lucida;
+    src: url(/fonts/LTYPE.ttf) format('truetype');
+    font-display: swap;
+}
+
+@font-face {
+    font-family: Lucida Bold;
+    src: url(/fonts/LTYPEB.ttf) format('truetype');
+    font-display: swap;
+}
+
+@font-face {
+    font-family: Orange Gummy;
+    src: url(/fonts/orange_gummy.ttf) format('truetype');
+}
+
+@property --primary-x-light {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: oklch(0.9174 0.1486 97.43);
+}
+
+@property --primary-light {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: oklch(89.8% 0.191 88.5);
+}
+
+@property --primary-main {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: oklch(0.9003 0.1712 96.61);
+}
+
+@property --primary-dark {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: oklch(0.7278 0.1492 93.96);
+}
+
+@property --primary-x-dark {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: oklch(0.6095 0.125099 94.7306);
+}
+
+/* Secondary Category */
+@property --secondary-x-light {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: oklch(0.6436 0.1829 348.29);
+}
+
+@property --secondary-light {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: oklch(0.5849 0.2107 351.36);
+}
+
+@property --secondary-main {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: oklch(0.5521 0.2254 356.98);
+}
+
+@property --secondary-dark {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: oklch(41% 0.194 342.3);
+}
+
+@property --secondary-x-dark {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: oklch(34.2% 0.153 342.3);
+}
+
+/* Secondary-2 Category */
+@property --secondary-2-x-light {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: oklch(69% 0.089 198);
+}
+
+@property --secondary-2-light {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: oklch(62.1% 0.096 198);
+}
+
+@property --secondary-2-main {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: oklch(58% 0.1 198);
+}
+
+@property --secondary-2-dark {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: oklch(46.6% 0.081 198);
+}
+
+@property --secondary-2-x-dark {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: oklch(37.5% 0.065 198);
+}
+
+/* Complement Category */
+@property --complement-x-light {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: oklch(49.9% 0.165 277.5);
+}
+
+@property --complement-light {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: oklch(41.4% 0.193 281.3);
+}
+
+@property --complement-main {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: oklch(34.6% 0.24 285.9);
+}
+
+@property --complement-dark {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: oklch(25.9% 0.18 285.9);
+}
+
+@property --complement-x-dark {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: oklch(20% 0.138 285.9);
+}
+
+@property --text-primary {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: oklch(0.2588 0.0073 106.9);
+}
+
+@property --text-primary-dark {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: oklch(0.958 0.0202 279.94);
+}
+
+@property --text-secondary {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: oklch(0.3393 0 0);
+}
+
+@property --text-secondary-dark {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: oklch(0.8075 0.0177 267.76);
+}
+
+@property --glow-deg {
+    syntax: "<angle>";
+    inherits: true;
+    initial-value: -180deg;
+}
+
+@property --angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: true;
+}
+
+@property --background {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: oklch(0.2588 0.0073 106.9);
+}
+
+@property --background-gradient-light {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: oklch(0.9346 0.0027 286.35 /21.96%);
+}
+
+@property --background-gradient-dark {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: oklch(0.173 0 0 / 21.96%);
+}
+
 @layer base {
-    @font-face {
-        font-family: League Gothic;
-        src: url(/fonts/LeagueGothic-Regular-VariableFont_wdth.ttf) format('truetype');
-        font-display: swap;
-    }
-
-    @font-face {
-        font-family: Lucida;
-        src: url(/fonts/LTYPE.ttf) format('truetype');
-        font-display: swap;
-    }
-
-    @font-face {
-        font-family: Lucida Bold;
-        src: url(/fonts/LTYPEB.ttf) format('truetype');
-        font-display: swap;
-    }
-
-    @font-face {
-        font-family: Orange Gummy;
-        src: url(/fonts/orange_gummy.ttf) format('truetype');
-    }
-
-    @property --primary-main {
-        syntax: "<color>";
-        inherits: false;
-        initial-value: oklch(0.8789 0.180077 93.5768);
-    }
-
-    @property --secondary-main {
-        syntax: "<color>";
-        inherits: false;
-        initial-value: oklch(0.4445 0.2043 328.36);
-    }
-
-    @property --text-primary {
-        syntax: "<color>";
-        inherits: false;
-        initial-value: oklch(0.173 0 0);
-    }
-
-    @property --text-secondary {
-        syntax: "<color>";
-        inherits: false;
-        initial-value: oklch(0.2393 0 0);
-    }
-
-    @property --text-primary-light {
-        syntax: "<color>";
-        inherits: false;
-        initial-value: #eef0ff;
-    }
-
-    @property --text-secondary-light {
-        syntax: "<color>";
-        inherits: false;
-        initial-value: #bbc0cc;
-    }
-
-    @property --primary-dark {
-        syntax: "<color>";
-        inherits: false;
-        initial-value: oklch(0.8016 0.1705 73.27)
-    }
-
-    @property --text-secondary-light-button {
-        syntax: "<color>";
-        inherits: false;
-        initial-value: oklch(0.5375 0.0177 267.76);
-    }
-
-    @property --primary-dark-background {
-        syntax: "<color>";
-        inherits: false;
-        initial-value: oklch(0.92 0.15 300)
-    }
-    /*oklch(0.35 0.15 300)*/
-    @property --secondary-dark {
-        syntax: "<color>";
-        inherits: false;
-        initial-value: oklch(0.4445 0.2043 328.36);
-    }
-
-    @property --glow-deg {
-        syntax: "<angle>";
-        inherits: true;
-        initial-value: -180deg;
-    }
-
-    @property --angle {
-        syntax: '<angle>';
-        initial-value: 0deg;
-        inherits: true;
-    }
-
-    @property --background {
-        syntax: "<color>";
-        inherits: false;
-        initial-value: #404040;
-    }
-
-    @property --background-gradient-light {
-        syntax: "<color>";
-        inherits: false;
-        initial-value: oklch(0.9346 0.0027 286.35 / 14.12%);
-    }
-
-    @property --background-gradient-dark {
-        syntax: "<color>";
-        inherits: false;
-        initial-value: oklch(0.173 0 0 / 21.96%);
-    }
-
     :root {
 
-        --background-gradient: linear-gradient(225deg, var(--background-gradient-light) 0%, transparent 80%),
-        linear-gradient(45deg, var(--background-gradient-dark) 0%, transparent 80%);
+        --background-gradient: linear-gradient(225deg, var(--background-gradient-light) 2%, var(--background-gradient-dark) 99%);
 
         --spacing: 0.25rem;
         --padding-xs: calc(var(--spacing));

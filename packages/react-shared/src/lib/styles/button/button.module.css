@@ -5,11 +5,14 @@
     }
 
     .buttonRoot {
+        composes: outlineStyle from '../index.css';
         display: flex;
         align-items: center;
         gap: calc(var(--spacing) * 1.5);
-        background-color: transparent;
-
+        
+        :hover {
+            transition: var(--border-change-animation);
+        }
     }
 
     .iconStart {

@@ -20,6 +20,7 @@ export default function LandingPage() {
             label={'Advanced'}
             icon={<AwardStarW400 />}
             RootProps={{ 'aria-label': 'Advanced' + ' User Type' }}
+            IconProps={{ iconPosition: 'start' }}
           />
         </div>
       </div>

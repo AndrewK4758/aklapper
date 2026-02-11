@@ -1,24 +1,27 @@
 @layer components {
 
     :root {
-        --color-hover: var(--text-primary-light);
-        --color: var(--text-secondary-light-button);
+        --color: var(--text-secondary);
+        --color-hover: var(--text-primary);
 
-        --background-hover: var(--secondary-dark);
+        --background-hover: var(--primary-x-light);
     }
 
     .appComponentStyles {
         font-size: 1.25rem;
-        border-radius: calc(var(--radius-sm) * 3);
+        border-radius: calc(var(--radius-sm) * 2.5);
         height: fit-content;
-        border-color: var(--color);
         color: var(--color);
-        background-color: var(--primary-dark-background);
+        background-color: var(--secondary-x-light);
 
         &:hover {
-            border-color: var(--secondary-dark);
+            border-color: var(--primary-x-light);
             color: var(--color-hover);
-            background-color: var(--secondary-dark);
+            background-color: var(--background-hover);
+        }
+
+        &:active {
+            border-color: black;
         }
     }
 

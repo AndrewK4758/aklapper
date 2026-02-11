@@ -32,12 +32,20 @@ const config = defineConfig({
     devSourcemap: true,
   },
 
+  dev: {
+    sourcemap: true,
+  },
+
   plugins: [react()],
 
   // Uncomment this if you are using workers.
   // worker: {
   //   plugins: [ nxViteTsPaths() ],
   // },
+
+  optimizeDeps: {
+    noDiscovery: NODE_ENV === 'development',
+  },
 
   resolve: {
     alias: MODULES,
@@ -59,23 +67,17 @@ const config = defineConfig({
 
   build: {
     outDir: OUT_DIR,
-    cssMinify: true,
-    minify: true,
-    target: 'esnext',
+    cssMinify: 'lightningcss',
+    minify: 'oxc',
     manifest: true,
     sourcemap: true,
     emptyOutDir: true,
     reportCompressedSize: true,
-
     rolldownOptions: {
       checks: { circularDependency: true },
       logLevel: 'info',
-      transform: {
-        target: 'esnext',
-      },
       experimental: {
         attachDebugInfo: 'full',
-        nativeMagicString: true,
       },
     },
   },

@@ -30,7 +30,7 @@
     body {
         line-height: 1.5;
         -webkit-font-smoothing: antialiased;
-        min-height: 100svh;
+        min-height: 100dvh;
     }
 
 
@@ -80,6 +80,12 @@
         overflow-wrap: break-word;
     }
 
+    *:focus,
+    *:focus-visible {
+        outline: none;
+        box-shadow: none;
+    }
+
 }
 
 @layer base {
@@ -96,7 +102,7 @@
 
 
     &::-webkit-scrollbar-thumb {
-        background-color: var(--secondary-drk);
+        background-color: var(--secondary-dark);
         border-radius: 2px;
     }
 
