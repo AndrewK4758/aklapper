@@ -8,7 +8,8 @@
     ".react-router/**",
     "coverage/**",
     "test-output/**",
-    "**/legacy-api-reference/**"
+    "**/legacy-api-reference/**",
+    "knowledge_base/**"
   ],
   "categories": {
     "correctness": "error"

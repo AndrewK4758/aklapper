@@ -5,12 +5,7 @@
     "emitDeclarationOnly": true,
     "erasableSyntaxOnly": true,
     "isolatedModules": true,
-    "lib": [
-      "esnext",
-      "DOM",
-      "DOM.Iterable",
-      "DOM.AsyncIterable"
-    ],
+    "lib": ["esnext", "DOM", "DOM.Iterable", "DOM.AsyncIterable"],
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "noEmitOnError": true,
