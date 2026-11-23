@@ -5,109 +5,31 @@
   "exclude": ["node_modules", "dist", "reports"],
   "references": [
     {
-      "path": "./packages/chain"
+      "path": "./packages/legacy/chain"
     },
     {
-      "path": "./packages/game"
+      "path": "./packages/legacy/game"
     },
     {
-      "path": "./packages/games"
+      "path": "./packages/legacy/games"
     },
     {
-      "path": "./packages/games-chains"
+      "path": "./packages/legacy/games-chains"
     },
     {
-      "path": "./packages/games-components"
+      "path": "./packages/legacy/games-components"
     },
     {
-      "path": "./packages/gen-ai/prompt-builder"
+      "path": "./packages/legacy/mocks"
     },
     {
-      "path": "./packages/gen-ai/vertex-ai"
+      "path": "./packages/legacy/models"
     },
     {
-      "path": "./packages/media-recorder"
+      "path": "./packages/legacy/types"
     },
     {
-      "path": "./packages/mocks"
-    },
-    {
-      "path": "./packages/models"
-    },
-    {
-      "path": "./packages/password"
-    },
-    {
-      "path": "./packages/socket-io/server"
-    },
-    {
-      "path": "./packages/socket-io/client"
-    },
-    {
-      "path": "./packages/types"
-    },
-    {
-      "path": "./packages/utils"
-    },
-    {
-      "path": "./packages/react-shared"
-    },
-    {
-      "path": "./apps/react/local-model/local-model-e2e"
-    },
-    {
-      "path": "./apps/react/local-model/local-model"
-    },
-    {
-      "path": "./apps/react/portfolio/portfolio-e2e"
-    },
-    {
-      "path": "./apps/nodejs/portfolio/portfolio-api"
-    },
-    {
-      "path": "./apps/react/portfolio/portfolio"
-    },
-    {
-      "path": "./apps/react/games/games-ui-e2e"
-    },
-    {
-      "path": "./apps/react/crud/crud-ui-e2e"
-    },
-    {
-      "path": "./apps/nodejs/vertex/vertex-api"
-    },
-    {
-      "path": "./apps/nodejs/games/games-api"
-    },
-    {
-      "path": "./apps/react/games/games-ui"
-    },
-    {
-      "path": "./apps/nodejs/crud/crud-api"
-    },
-    {
-      "path": "./apps/react/crud/crud-ui"
-    },
-    {
-      "path": "./packages/prisma/chinook"
-    },
-    {
-      "path": "./packages/prisma/games"
-    },
-    {
-      "path": "./apps/nodejs/games/games-api-e2e"
-    },
-    {
-      "path": "./apps/nodejs/portfolio/portfolio-api-e2e"
-    },
-    {
-      "path": "./apps/nodejs/vertex/vertex-api-e2e"
-    },
-    {
-      "path": "./apps/nodejs/crud/crud-api-e2e"
-    },
-    {
-      "path": "./packages/prisma/portfolio"
+      "path": "./packages/legacy/utils"
     }
   ]
 }

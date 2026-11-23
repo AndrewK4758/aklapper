@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.legacy.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
+    "emitDeclarationOnly": false,
+    "types": ["node", "../types/dist/lib/game/interfaces/chain.d.ts"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["vitest.config.ts", "tests/**/*.spec.ts", "tests/**/*.test.ts"],
+  "references": [
+    {
+      "path": "../types/tsconfig.lib.json"
+    }
+  ]
+}

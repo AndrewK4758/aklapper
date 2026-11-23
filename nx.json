@@ -3,7 +3,6 @@
     "appsDir": "apps",
     "libsDir": "packages"
   },
-  "defaultProject": "portfolio",
   "cli": {
     "packageManager": "pnpm"
   },
@@ -15,23 +14,16 @@
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "production": [
       "default",
-      "!{projectRoot}/.eslintrc.json",
-      "!{projectRoot}/eslint.config.cjs",
+      "!{projectRoot}/.oxlintrc.json",
+      "!{projectRoot}/.oxfmtrc.json",
       "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
       "!{projectRoot}/tsconfig.spec.json",
-      "!{projectRoot}/jest.config.[jt]s",
       "!{projectRoot}/src/test-setup.[jt]s",
       "!{projectRoot}/test-setup.[jt]s"
     ],
-    "sharedGlobals": ["{workspaceRoot}/go.work"]
+    "sharedGlobals": []
   },
   "plugins": [
-    {
-      "plugin": "@nxlv/python",
-      "options": {
-        "packageManager": "poetry"
-      }
-    },
     {
       "plugin": "@nx/js/typescript",
       "options": {
@@ -47,7 +39,7 @@
       }
     },
     {
-      "plugin": "@nx/eslint/plugin",
+      "plugin": "@nx/oxlint",
       "options": {
         "targetName": "lint"
       }
@@ -56,13 +48,7 @@
       "plugin": "@nx/playwright/plugin",
       "options": {
         "targetName": "e2e"
-      },
-      "include": [
-        "apps/react/crud/crud-ui-e2e/**",
-        "apps/react/games/games-ui-e2e/**",
-        "apps/react/portfolio/portfolio-e2e/**",
-        "apps/react/local-model/local-model-e2e/**"
-      ]
+      }
     },
     {
       "plugin": "@nx/vite/plugin",
@@ -75,39 +61,13 @@
       }
     },
     {
-      "plugin": "@nx/jest/plugin",
-      "options": {
-        "targetName": "jest:test"
-      },
-      "exclude": [
-        "apps/nodejs/crud/crud-api-e2e/**",
-        "apps/nodejs/games/games-api-e2e/**",
-        "apps/nodejs/portfolio/portfolio-api-e2e/**",
-        "apps/nodejs/vertex/vertex-api-e2e/**",
-        "apps/react/crud/crud-ui-e2e/**",
-        "apps/react/games/games-ui-e2e/**",
-        "apps/react/portfolio/portfolio-e2e/**",
-        "apps/react/local-model/local-model-e2e/**"
-      ]
-    },
-    {
-      "plugin": "@nx/js/typescript",
-      "include": ["**/*.ts", "**/*.tsx"],
-      "options": {
-        "typecheck": {
-          "targetName": "typecheck"
-        }
-      }
-    },
-    {
       "plugin": "@nx/react/router-plugin",
       "options": {
         "buildTargetName": "build",
         "devTargetName": "dev",
         "startTargetName": "start",
         "watchDepsTargetName": "watch-deps",
-        "buildDepsTargetName": "build-deps",
-        "typecheckTargetName": "typecheck"
+        "buildDepsTargetName": "build-deps"
       }
     },
     {
@@ -118,6 +78,14 @@
     }
   ],
   "targetDefaults": {
+    "format": {
+      "command": "oxfmt .",
+      "cache": true,
+      "options": {
+        "cwd": "{projectRoot}"
+      },
+      "inputs": ["{projectRoot}/**/*.{ts,tsx,js,jsx,mjs,cjs,mts,cts,json,css}"]
+    },
     "@nx/esbuild:esbuild": {
       "cache": true,
       "dependsOn": ["^build"],
@@ -133,13 +101,13 @@
     "@nx/react": {
       "library": {
         "style": "css",
-        "linter": "eslint",
+        "linter": "oxlint",
         "unitTestRunner": "vitest"
       },
       "application": {
         "babel": true,
         "style": "css",
-        "linter": "eslint",
+        "linter": "oxlint",
         "bundler": "vite"
       },
       "component": {
@@ -150,5 +118,9 @@
   "nxCloudId": "6793e339a43d353bb1fbd676",
   "tui": {
     "enabled": false
+  },
+  "analytics": true,
+  "affected": {
+    "legacy": true
   }
 }

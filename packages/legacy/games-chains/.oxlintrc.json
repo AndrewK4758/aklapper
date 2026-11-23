@@ -1,0 +1,5 @@
+{
+  "extends": ["../../../.oxlintrc.json"],
+  "plugins": ["vitest"],
+  "ignorePatterns": ["legacy-api-reference/**"]
+}

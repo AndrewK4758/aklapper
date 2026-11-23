@@ -1,42 +1,27 @@
 {
   "compilerOptions": {
-    "allowJs": false,
-    "allowSyntheticDefaultImports": true,
-    "baseUrl": ".",
     "composite": true,
-    "declaration": true,
     "declarationMap": true,
     "emitDeclarationOnly": true,
-    "emitDecoratorMetadata": true,
-    "esModuleInterop": true,
-    "experimentalDecorators": true,
-    "forceConsistentCasingInFileNames": true,
-    "importHelpers": true,
-    "incremental": true,
+    "erasableSyntaxOnly": true,
     "isolatedModules": true,
-    "lib": ["ESNext", "DOM"],
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "lib": [
+      "esnext",
+      "DOM",
+      "DOM.Iterable",
+      "DOM.AsyncIterable"
+    ],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "noEmitOnError": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
     "noImplicitReturns": true,
     "noUnusedLocals": true,
-    "pretty": true,
-    "removeComments": false,
-    "resolveJsonModule": false,
-    "skipDefaultLibCheck": false,
+    "noUnusedParameters": true,
     "skipLibCheck": true,
     "sourceMap": true,
-    "strict": true,
-    "target": "ESNext",
-    "useDefineForClassFields": true,
-    "verbatimModuleSyntax": false
-  },
-  "ts-node": {
-    "esm": true,
-    "files": true,
-    "logError": true,
-    "pretty": true
+    "target": "esnext",
+    "verbatimModuleSyntax": true
   }
 }

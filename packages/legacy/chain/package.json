@@ -1,0 +1,28 @@
+{
+  "name": "@aklapper/chain",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "tslib": "^2.8.1"
+  },
+  "devDependencies": {
+    "@aklapper/types": "workspace:*"
+  },
+  "nx": {
+    "sourceRoot": "packages/legacy/chain/src",
+    "projectType": "library",
+    "name": "chain",
+    "implicitDependencies": [
+      "types"
+    ]
+  }
+}

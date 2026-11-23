@@ -1,0 +1,33 @@
+{
+  "name": "@aklapper/games-chains",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "tslib": "^2.8.1"
+  },
+  "devDependencies": {
+    "@aklapper/chain": "workspace:*",
+    "@aklapper/game": "workspace:*",
+    "@aklapper/games": "workspace:*",
+    "@aklapper/games-components": "workspace:*",
+    "@aklapper/mocks": "workspace:*",
+    "@aklapper/models": "workspace:*",
+    "@aklapper/types": "workspace:*",
+    "@aklapper/utils": "workspace:*"
+  },
+  "nx": {
+    "sourceRoot": "packages/legacy/games-chains/src",
+    "projectType": "library",
+    "name": "games-chains",
+    "implicitDependencies": []
+  }
+}

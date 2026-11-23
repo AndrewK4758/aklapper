@@ -1,0 +1,24 @@
+{
+  "ignorePatterns": [
+    "dist/",
+    "out-tsc/",
+    "coverage/",
+    "test-output/",
+    ".nx/",
+    ".react-router/",
+    "node_modules/",
+    "build/",
+    "out/",
+    ".idea/",
+    ".vscode/",
+    "pnpm-lock.yaml",
+    "skills/",
+    "**/legacy-api-reference/"
+  ],
+  "singleQuote": true,
+  "sortImports": true,
+  "sortPackageJson": true,
+  "arrowParens": "avoid",
+  "jsdoc": true,
+  "jsxSingleQuote": true
+}
