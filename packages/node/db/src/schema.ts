@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   boolean,
   check,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -192,6 +193,33 @@ export const rateLimitBuckets = pgTable('rate_limit_buckets', {
   turnsUsed: integer('turns_used').notNull().default(0),
   tokensUsed: integer('tokens_used').notNull().default(0),
 });
+
+export const askTurns = pgTable(
+  'ask_turns',
+  {
+    attemptId: text('attempt_id').primaryKey(),
+    sessionId: text('session_id').notNull(),
+    role: text('role').$type<'guest' | 'admin'>().notNull(),
+    mode: text('mode').$type<'qa' | 'jd_match'>().notNull(),
+    promptHash: text('prompt_hash').notNull(),
+    status: text('status')
+      .$type<'pending' | 'running' | 'completed' | 'abstained' | 'failed' | 'expired'>()
+      .notNull(),
+    tokensReserved: integer('tokens_reserved').notNull().default(0),
+    tokensUsed: integer('tokens_used').notNull().default(0),
+    resultJson: jsonb('result_json').$type<Record<string, unknown> | null>(),
+    errorCode: text('error_code'),
+    correlationId: text('correlation_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    leaseExpiresAt: timestamp('lease_expires_at', { withTimezone: true }).notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  },
+  table => [
+    index('ask_turns_session_expires_idx').on(table.sessionId, table.expiresAt),
+    index('ask_turns_status_lease_idx').on(table.status, table.leaseExpiresAt),
+  ],
+);
 
 export const sandboxRuns = pgTable('sandbox_runs', {
   id: uuid('id').primaryKey().defaultRandom(),
