@@ -1,55 +1,55 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <style>
-    .sf-crosshairs {
-      animation: sf-sweep 2.4s ease-in-out infinite;
+    .sf-reticle {
+      animation: sf-sweep 2.24s ease-in-out infinite;
     }
     @keyframes sf-sweep {
       0%, 100% {
         transform: translateX(0);
       }
       25% {
-        transform: translateX(5px);
+        transform: translateX(5.5px);
       }
       75% {
-        transform: translateX(-5px);
+        transform: translateX(-5.5px);
       }
     }
     @media (prefers-reduced-motion: reduce) {
-      .sf-crosshairs {
+      .sf-reticle {
         animation: none;
       }
     }
   </style>
   <defs>
-    <linearGradient id="sf-bolt" x1="22" y1="10" x2="42" y2="54" gradientUnits="userSpaceOnUse">
+    <linearGradient id="sf-bg" x1="0" y1="0" x2="0" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2c261f" />
+      <stop offset="100%" stop-color="#141210" />
+    </linearGradient>
+    <linearGradient id="sf-bolt" x1="20" y1="6" x2="44" y2="58" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#ffe44d" />
       <stop offset="50%" stop-color="#ffa000" />
       <stop offset="100%" stop-color="#ff3d00" />
     </linearGradient>
-    <radialGradient id="sf-face" cx="32" cy="26" r="30" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#262420" />
-      <stop offset="100%" stop-color="#121110" />
+    <radialGradient id="sf-face" cx="32" cy="28" r="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#352f27" />
+      <stop offset="100%" stop-color="#171512" />
     </radialGradient>
-    <clipPath id="sf-inner">
-      <circle cx="32" cy="32" r="27.25" />
-    </clipPath>
   </defs>
-  <circle cx="32" cy="32" r="29.5" fill="url(#sf-face)" stroke="#ffd300" stroke-width="4.5" />
-  <g clip-path="url(#sf-inner)">
-    <g class="sf-crosshairs">
-      <path
-        d="M32 3 V12.5 M32 51.5 V61 M3 32 H14.5 M49.5 32 H61"
-        stroke="#ffd300"
-        stroke-width="3.8"
-        stroke-linecap="round"
-      />
-    </g>
+  <rect x="2" y="2" width="60" height="60" rx="6" fill="url(#sf-bg)" stroke="#ffb800" stroke-width="4" />
+  <g class="sf-reticle">
+    <circle cx="32" cy="32" r="20" fill="url(#sf-face)" stroke="#ffd300" stroke-width="4.5" />
+    <path
+      d="M32 12 V20 M32 44 V52 M12 32 H20 M44 32 H52"
+      stroke="#ffd300"
+      stroke-width="4"
+      stroke-linecap="round"
+    />
   </g>
   <path
-    d="M36.5 11.5 L18.5 35 H29.5 L27.5 52.5 L45.5 29 H34.5 Z"
+    d="M37.5 6.5 L15.5 35.5 H29.5 L26.5 57.5 L48.5 28.5 H34.5 Z"
     fill="url(#sf-bolt)"
-    stroke="#141312"
-    stroke-width="2"
+    stroke="#121110"
+    stroke-width="3.2"
     stroke-linejoin="round"
     paint-order="stroke"
   />
