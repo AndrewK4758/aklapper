@@ -555,7 +555,7 @@ export function ZshP10kTerminal({
           durationLabel,
           timestamp: nowLabel,
         });
-        formConfig.openTuiRoute?.();
+        formConfig.openTuiRoute?.(outcome.navTarget);
         return;
       }
 

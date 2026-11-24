@@ -88,6 +88,12 @@ export {
   pushPaneView,
   type TerminalNavTarget,
 } from './components/terminalPaneNav';
+export { PaneLink, type PaneLinkProps } from './components/PaneLink';
+export {
+  PaneNavigationContext,
+  type PaneNavigationContextValue,
+  usePaneNavigation,
+} from './components/paneNavigationContext';
 export { TuiWindow, type TuiWindowProps } from './components/TuiWindow';
 export {
   type TerminalVariant,
