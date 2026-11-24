@@ -572,6 +572,35 @@ describe('@aklapper/node-runtime/ssr', () => {
         payload: '{}',
       });
       expect(nonAuthPercent.statusCode).toBe(200);
+
+      for (const [idx, path] of [
+        '/api/auth/password/login.data',
+        '/api/auth/password/login/.data',
+        '/api/auth/password/login/_.data',
+        '/API/AUTH/password%252Flogin.data',
+        '/api/auth/totp/verify.data',
+        '/api/auth/totp/verify/_.data',
+      ].entries()) {
+        const ip = `203.0.113.${130 + idx}`;
+        for (let i = 0; i < 20; i += 1) {
+          const ok = await adminServer.app.inject({
+            method: 'POST',
+            url: path,
+            headers: { 'content-type': 'application/json', 'x-forwarded-for': ip },
+            payload: '{}',
+          });
+          expect(ok.statusCode).toBe(200);
+          expect(ok.headers['x-ratelimit-limit']).toBe('20');
+        }
+        const limited = await adminServer.app.inject({
+          method: 'POST',
+          url: path,
+          headers: { 'content-type': 'application/json', 'x-forwarded-for': ip },
+          payload: '{}',
+        });
+        expect(limited.statusCode).toBe(429);
+        expect(limited.json()).toMatchObject({ statusCode: 429, error: 'RATE_LIMITED' });
+      }
     } finally {
       await adminServer.app.close();
     }

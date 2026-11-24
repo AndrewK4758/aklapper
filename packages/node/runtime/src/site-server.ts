@@ -52,10 +52,15 @@ function normalizeAdminAuthPath(rawUrl: string): string | null {
   const collapsed = current.replace(/\\/g, '/').replace(/\/{2,}/g, '/');
   const prefixed = collapsed.startsWith('/') ? collapsed : `/${collapsed}`;
   try {
-    const resolved = new URL(prefixed, 'http://localhost').pathname
+    let normalized = new URL(prefixed, 'http://localhost').pathname
       .replace(/\/+$/, '')
       .toLowerCase();
-    return resolved || '/';
+    if (normalized.endsWith('/_.data')) {
+      normalized = normalized.slice(0, -'/_.data'.length);
+    } else if (normalized.endsWith('.data')) {
+      normalized = normalized.slice(0, -'.data'.length);
+    }
+    return normalized.replace(/\/+$/, '') || '/';
   } catch {
     return null;
   }
