@@ -98,7 +98,7 @@ export function createSsrPlaywrightConfig(
     projects: [
       {
         name: 'chromium',
-        use: { ...devices['Desktop Chrome'] },
+        use: { ...devices['Desktop Chrome'], channel: 'chrome' },
       },
       {
         name: 'firefox',
@@ -110,7 +110,7 @@ export function createSsrPlaywrightConfig(
       },
       {
         name: 'mobile-chrome',
-        use: { ...devices['Pixel 7'] },
+        use: { ...devices['Pixel 7'], channel: 'chrome' },
       },
     ],
     webServer: externalBaseURL

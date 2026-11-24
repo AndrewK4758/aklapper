@@ -1523,8 +1523,11 @@ export function matchWorkspaceShortcut(
     return { type: 'split', direction: 'down' };
   }
 
-  // Rotate active split orientation: Ctrl+Shift+R or Ctrl+Alt+Shift+R (browser-safe)
-  if ((isCtrlShiftOnly || isCtrlAltShiftOnly) && matchesLetter(keyLower, code, 'r')) {
+  // Rotate active split orientation: Alt+Shift+R / Ctrl+Alt+Shift+R (browser-safe) or Ctrl+Shift+R
+  if (
+    (isAltShiftOnly || isCtrlAltShiftOnly || isCtrlShiftOnly) &&
+    matchesLetter(keyLower, code, 'r')
+  ) {
     return { type: 'rotate-split' };
   }
 
