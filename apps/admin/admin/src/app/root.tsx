@@ -1,5 +1,5 @@
 import './theme.css';
-import { OscStatusBadge, SolarForgeEmblem } from '@aklapper/ui';
+import { OscStatusBadge, SolarForgeEmblem, useAnimatedFavicon } from '@aklapper/ui';
 import type { ReactNode } from 'react';
 import { Link, Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router';
 
@@ -12,6 +12,8 @@ export function Layout({ children }: { children: ReactNode }) {
         <meta charSet='utf-8' />
         <meta name='viewport' content='width=device-width, initial-scale=1' />
         <title>admin.andrew-k.us // Solar Forge Ops</title>
+        <link rel='icon' href='/favicon.ico' sizes='any' />
+        <link rel='icon' href='/favicon.svg' type='image/svg+xml' />
         <Meta />
         <Links />
       </head>
@@ -25,6 +27,7 @@ export function Layout({ children }: { children: ReactNode }) {
 }
 
 export default function AdminRoot() {
+  useAnimatedFavicon();
   return (
     <div className={styles.shell}>
       <header className={styles.bar}>

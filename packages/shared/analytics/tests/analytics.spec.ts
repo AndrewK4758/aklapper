@@ -1,6 +1,6 @@
 import type { AnalyticsBatch } from '@aklapper/contracts';
 
-import { createAnalyticsClient } from '../src/index.js';
+import { createAnalyticsClient } from '../src/index.ts';
 
 describe('@aklapper/analytics', () => {
   it('batches and flushes first-party events cleanly', () => {

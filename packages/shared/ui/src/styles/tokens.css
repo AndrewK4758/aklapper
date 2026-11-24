@@ -84,13 +84,48 @@
     --sf-iframe-min-h: 320px;
     --sf-z-floating: 40;
     --sf-opacity-muted: 0.6;
-    --sf-emblem-stroke-width: 1.4;
+    --sf-emblem-stroke-width: 4.5;
+    --sf-emblem-tick-width: 3.8;
+    --sf-emblem-bolt-halo: 2;
+    --sf-emblem-sweep-x: 5px;
+    --sf-emblem-sweep-duration: 2.4s;
 
     /* Motion */
     --sf-duration-fast: 140ms;
     --sf-duration-reduced: 0.01ms;
     --sf-ease-standard: ease;
+    --sf-ease-in-out: ease-in-out;
     --sf-dialog-enter-y: 6px;
+
+    /* Powerlevel10k / Zsh prompt tokens (aligned with user ~/.p10k.zsh) */
+    --sf-p10k-frame: #808080;
+    --sf-p10k-os-bg: #0087d7;
+    --sf-p10k-os-fg: #ffffff;
+    --sf-p10k-dir-bg: var(--sf-gold);
+    --sf-p10k-dir-fg: var(--sf-bg-editor);
+    --sf-p10k-dir-anchor: var(--sf-bg-frame);
+    --sf-p10k-vcs-clean-bg: var(--sf-green);
+    --sf-p10k-vcs-modified-bg: #ff9800;
+    --sf-p10k-vcs-untracked-bg: #80cbc4;
+    --sf-p10k-vcs-fg: var(--sf-bg-frame);
+    --sf-p10k-status-ok-bg: var(--sf-vermilion);
+    --sf-p10k-status-ok-fg: var(--sf-bg-frame);
+    --sf-p10k-status-err-bg: #b71c1c;
+    --sf-p10k-status-err-fg: #fffbf7;
+    --sf-p10k-exec-bg: #ff9800;
+    --sf-p10k-exec-fg: var(--sf-bg-frame);
+    --sf-p10k-ctx-bg: #29241b;
+    --sf-p10k-ctx-fg: var(--sf-gold);
+    --sf-p10k-time-bg: var(--sf-border);
+    --sf-p10k-time-fg: var(--sf-fg-bone);
+    --sf-p10k-prompt-ok: var(--sf-green);
+    --sf-p10k-prompt-err: var(--sf-err);
+    --sf-p10k-seg-h: 24px;
+    --sf-p10k-arrow-w: 10px;
+    --sf-terminal-min-h: 260px;
+    --sf-terminal-scroll-max-h: 340px;
+    --sf-progress-h: 8px;
+    --sf-progress-fill-pct: 72%;
 
     /* TUI floating window geometry defaults (overridden per floating instance) */
     --tui-x: auto;

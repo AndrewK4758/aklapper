@@ -26,10 +26,19 @@
       "path": "./packages/node/ssr-server"
     },
     {
-      "path": "./apis/node/auth"
+      "path": "./packages/node/e2e-kit"
     },
     {
-      "path": "./apis/node/analytics"
+      "path": "./apis/node/auth/auth"
+    },
+    {
+      "path": "./apis/node/auth/auth-e2e"
+    },
+    {
+      "path": "./apis/node/analytics/analytics"
+    },
+    {
+      "path": "./apis/node/analytics/analytics-e2e"
     },
     {
       "path": "./packages/legacy/chain"

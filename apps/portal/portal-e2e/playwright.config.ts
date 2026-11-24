@@ -1,9 +1,12 @@
-import { defineConfig } from '@playwright/test';
+import { createSsrPlaywrightConfig } from '@aklapper/shared-utils/playwright';
 
-export default defineConfig({
-  testDir: './src',
-  use: {
-    baseURL: process.env['PORTAL_BASE_URL'] ?? 'http://127.0.0.1:4200',
-    trace: 'on-first-retry',
+export default createSsrPlaywrightConfig({
+  configDir: import.meta.dirname,
+  appDir: '../portal',
+  defaultPort: 4300,
+  baseUrlEnvVar: 'PORTAL_BASE_URL',
+  portEnvVar: 'PORTAL_PORT',
+  extraEnv: {
+    PORTAL_MAINTENANCE_MODE: process.env['PORTAL_MAINTENANCE_MODE'] ?? 'false',
   },
 });

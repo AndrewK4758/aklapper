@@ -29,7 +29,7 @@ services:
     ports:
       - '${PG_BIND_ADDR:-127.0.0.1}:5432:5432'
     volumes:
-      - pg19_prod_data:/var/lib/postgresql/data
+      - pg19_prod_data:/var/lib/postgresql
     deploy:
       resources:
         limits:

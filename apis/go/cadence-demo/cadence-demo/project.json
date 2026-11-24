@@ -1,0 +1,7 @@
+{
+  "name": "go-cadence-demo",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apis/go/cadence-demo/cadence-demo",
+  "tags": ["scope:go", "type:api"]
+}

@@ -10,6 +10,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./entry": {
+      "@aklapper/source": "./src/entry-server.ts",
+      "types": "./dist/entry-server.d.ts",
+      "import": "./dist/entry-server.js",
+      "default": "./dist/entry-server.js"
     }
   },
   "dependencies": {

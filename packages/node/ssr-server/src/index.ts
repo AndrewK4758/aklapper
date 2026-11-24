@@ -3,5 +3,5 @@ export {
   type EntryServerOptions,
   handleRequest,
   streamTimeout,
-} from './entry-server.js';
-export { createSsrServer, type SsrServerInstance, type SsrServerOptions } from './site-server.js';
+} from './entry-server.ts';
+export { createSsrServer, type SsrServerInstance, type SsrServerOptions } from './site-server.ts';

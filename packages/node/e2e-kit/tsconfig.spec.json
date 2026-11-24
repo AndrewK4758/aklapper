@@ -1,0 +1,15 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out-tsc/vitest",
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": false,
+    "types": ["node", "vitest/globals"]
+  },
+  "include": ["vitest.config.ts", "tests/**/*.ts"],
+  "references": [
+    {
+      "path": "./tsconfig.lib.json"
+    }
+  ]
+}

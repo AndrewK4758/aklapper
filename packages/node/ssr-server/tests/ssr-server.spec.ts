@@ -1,7 +1,7 @@
 import type { EntryContext } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
-import { createEntryServer, streamTimeout } from '../src/index.js';
+import { createEntryServer, streamTimeout } from '../src/index.ts';
 
 describe('@aklapper/ssr-server', () => {
   it('handles HEAD requests without streaming body', async () => {

@@ -4,5 +4,10 @@
     "outDir": "out-tsc",
     "types": ["node"]
   },
-  "include": ["playwright.config.ts", "src/**/*.ts"]
+  "include": ["playwright.config.ts", "src/**/*.ts"],
+  "references": [
+    {
+      "path": "../../../packages/shared/utils"
+    }
+  ]
 }

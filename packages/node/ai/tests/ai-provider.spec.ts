@@ -1,4 +1,4 @@
-import { createAiProviderFromEnv } from '../src/index.js';
+import { createAiProviderFromEnv } from '../src/index.ts';
 
 describe('@aklapper/ai', () => {
   it('defaults to local llama-swap provider in dev', () => {

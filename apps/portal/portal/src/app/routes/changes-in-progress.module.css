@@ -1,0 +1,85 @@
+@layer page {
+  .workspace {
+    display: grid;
+    gap: var(--portal-space-2xl);
+    align-content: start;
+  }
+
+  .tuiGrid {
+    display: grid;
+    gap: var(--portal-space-lg);
+  }
+
+  .lead {
+    color: var(--portal-prop);
+    font-size: var(--portal-font-size-md);
+  }
+
+  .progress {
+    width: 100%;
+    height: var(--portal-progress-h);
+    appearance: none;
+    background: var(--portal-panel);
+    border: var(--portal-border-width) solid var(--portal-border);
+    border-radius: var(--portal-radius-sm);
+    overflow: hidden;
+  }
+
+  .progress::-webkit-progress-bar {
+    background: var(--portal-panel);
+  }
+
+  .progress::-webkit-progress-value {
+    background: linear-gradient(90deg, var(--portal-accent), var(--portal-vermilion));
+  }
+
+  .progress::-moz-progress-bar {
+    background: linear-gradient(90deg, var(--portal-accent), var(--portal-vermilion));
+  }
+
+  .checklist {
+    list-style: none;
+    margin: var(--portal-space-0);
+    padding: var(--portal-space-0);
+    display: grid;
+    gap: var(--portal-space-xs);
+    font-size: var(--portal-font-size-sm);
+  }
+
+  .checkItem {
+    display: flex;
+    align-items: baseline;
+    gap: var(--portal-space-sm);
+    padding: var(--portal-space-xs) var(--portal-space-sm);
+    background: var(--portal-panel);
+    border: var(--portal-border-width) solid var(--portal-border);
+    border-radius: var(--portal-radius-sm);
+  }
+
+  .markerDone {
+    color: var(--portal-green);
+    font-weight: var(--portal-font-weight-bold);
+    flex-shrink: 0;
+  }
+
+  .markerActive {
+    color: var(--portal-accent);
+    font-weight: var(--portal-font-weight-bold);
+    flex-shrink: 0;
+  }
+
+  .markerQueued {
+    color: var(--portal-muted);
+    font-weight: var(--portal-font-weight-bold);
+    flex-shrink: 0;
+  }
+
+  .metaRow {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--portal-space-xs);
+    color: var(--portal-muted);
+    font-size: var(--portal-font-size-xs);
+  }
+}

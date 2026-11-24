@@ -1,1 +1,1 @@
-export { handleRequest as default, streamTimeout } from '@aklapper/ssr-server';
+export { handleRequest as default, streamTimeout } from '@aklapper/ssr-server/entry';

@@ -1,3 +1,5 @@
+import { useId } from 'react';
+
 import styles from './SolarForgeEmblem.module.css';
 
 export interface SolarForgeEmblemProps {
@@ -5,17 +7,35 @@ export interface SolarForgeEmblemProps {
 }
 
 export function SolarForgeEmblem({ size = 20 }: SolarForgeEmblemProps) {
+  const clipId = useId();
   return (
     <svg
       className={styles.emblem}
       width={size}
       height={size}
-      viewBox='0 0 16 16'
+      viewBox='0 0 64 64'
       aria-hidden='true'
     >
-      <circle className={styles.ring} cx='8' cy='8' r='7' />
-      <path className={styles.bolt} d='M8 3.2 L11.4 8.6 L8.6 8.6 L9.4 12.8 L4.6 7.4 L7.4 7.4 Z' />
-      <circle className={styles.core} cx='8' cy='8' r='1.4' />
+      <defs>
+        <clipPath id={clipId}>
+          <circle cx='32' cy='32' r='27.25' />
+        </clipPath>
+      </defs>
+      <circle className={styles.ring} cx='32' cy='32' r='29.5' />
+      <g clipPath={`url(#${clipId})`}>
+        <g className={styles.crosshairs}>
+          <path
+            className={styles.ticks}
+            d='M32 3 V12.5 M32 51.5 V61 M3 32 H14.5 M49.5 32 H61'
+            strokeLinecap='round'
+          />
+        </g>
+      </g>
+      <path
+        className={styles.bolt}
+        d='M36.5 11.5 L18.5 35 H29.5 L27.5 52.5 L45.5 29 H34.5 Z'
+        strokeLinejoin='round'
+      />
     </svg>
   );
 }

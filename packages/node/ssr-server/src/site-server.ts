@@ -34,7 +34,7 @@ export async function createSsrServer(options: SsrServerOptions): Promise<SsrSer
   app.get('/healthz', async () => ({ status: 'ok', service: serviceName }));
 
   const serverBuildUrl = pathToFileURL(resolve(buildDir, 'server', 'index.js')).href;
-  const serverBuild = (await import(serverBuildUrl)) as ServerBuild;
+  const serverBuild = (await import(/* @vite-ignore */ serverBuildUrl)) as ServerBuild;
   const handleRequest = createRequestHandler(serverBuild, process.env['NODE_ENV'] ?? 'production');
 
   app.all('*', async (request, reply) => {

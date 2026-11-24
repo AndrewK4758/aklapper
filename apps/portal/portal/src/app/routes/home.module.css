@@ -1,9 +1,11 @@
 @layer page {
-  .card {
-    background: var(--portal-surface);
-    border: var(--portal-border-width) solid var(--portal-border);
-    border-radius: var(--portal-radius-md);
-    padding: var(--portal-space-2xl);
+  .workspace {
+    display: grid;
+    gap: var(--portal-space-2xl);
+    align-content: start;
+  }
+
+  .tuiBody {
     display: grid;
     gap: var(--portal-space-lg);
   }

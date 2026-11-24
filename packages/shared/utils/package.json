@@ -16,6 +16,12 @@
       "types": "./src/build.ts",
       "import": "./src/build.ts",
       "default": "./src/build.ts"
+    },
+    "./playwright": {
+      "@aklapper/source": "./src/playwright.ts",
+      "types": "./src/playwright.ts",
+      "import": "./src/playwright.ts",
+      "default": "./src/playwright.ts"
     }
   },
   "dependencies": {
@@ -23,6 +29,7 @@
   },
   "devDependencies": {
     "@nx/vite": "24.0.6",
+    "@playwright/test": "^1.65.1",
     "@react-router/dev": "8.5.2",
     "vite-plugin-dts": "5.1.2",
     "vitest": "5.1.1"

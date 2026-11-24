@@ -1,9 +1,30 @@
 import './theme.css';
-import { OscStatusBadge, SolarForgeEmblem } from '@aklapper/ui';
+import { OscStatusBadge, SolarForgeEmblem, useAnimatedFavicon } from '@aklapper/ui';
 import type { ReactNode } from 'react';
-import { Link, Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router';
+import {
+  Link,
+  Links,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  useLoaderData,
+  useLocation,
+} from 'react-router';
+
+import { ChangesInProgressView } from './routes/changes-in-progress';
 
 import styles from './root.module.css';
+
+export interface PortalRootLoaderData {
+  maintenanceMode: boolean;
+}
+
+export function loader(): PortalRootLoaderData {
+  return {
+    maintenanceMode: process.env['PORTAL_MAINTENANCE_MODE'] === 'true',
+  };
+}
 
 export function Layout({ children }: { children: ReactNode }) {
   return (
@@ -12,6 +33,8 @@ export function Layout({ children }: { children: ReactNode }) {
         <meta charSet='utf-8' />
         <meta name='viewport' content='width=device-width, initial-scale=1' />
         <title>andrew-k.us // Solar Forge Terminal</title>
+        <link rel='icon' href='/favicon.ico' sizes='any' />
+        <link rel='icon' href='/favicon.svg' type='image/svg+xml' />
         <Meta />
         <Links />
       </head>
@@ -25,6 +48,22 @@ export function Layout({ children }: { children: ReactNode }) {
 }
 
 export default function PortalRoot() {
+  useAnimatedFavicon();
+  const data = useLoaderData() as PortalRootLoaderData | undefined;
+  const location = useLocation();
+  const isStandalone =
+    data?.maintenanceMode === true || location.pathname === '/changes-in-progress';
+
+  if (isStandalone) {
+    return (
+      <div className={styles.standaloneShell}>
+        <main className={styles.main}>
+          <ChangesInProgressView />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.shell}>
       <header className={styles.bar}>

@@ -2,6 +2,8 @@
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./out-tsc/vitest",
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": false,
     "types": ["vitest/globals", "node"]
   },
   "include": ["vitest.config.ts", "tests/**/*.ts", "src/**/*.d.ts"],

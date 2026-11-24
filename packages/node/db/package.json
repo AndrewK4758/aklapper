@@ -6,6 +6,7 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
+      "@aklapper/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"

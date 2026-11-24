@@ -1,0 +1,25 @@
+{
+  "name": "@aklapper/node-e2e-kit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@aklapper/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "nx": {
+    "name": "node-e2e-kit",
+    "projectType": "library",
+    "sourceRoot": "packages/node/e2e-kit/src",
+    "tags": [
+      "scope:node",
+      "scope:e2e",
+      "runtime:node"
+    ]
+  }
+}

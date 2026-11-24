@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "devDependencies": {
+    "@aklapper/shared-utils": "workspace:*",
     "@playwright/test": "^1.65.1"
   },
   "nx": {
@@ -16,6 +17,18 @@
     "tags": [
       "scope:e2e",
       "app:portal"
-    ]
+    ],
+    "targets": {
+      "e2e": {
+        "dependsOn": [
+          "portal:build"
+        ]
+      },
+      "e2e-ci": {
+        "dependsOn": [
+          "portal:build"
+        ]
+      }
+    }
   }
 }

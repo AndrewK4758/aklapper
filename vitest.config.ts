@@ -5,7 +5,7 @@ export default defineConfig({
     name: 'root-config',
     projects: [
       'apps/*/*',
-      'apis/node/*',
+      'apis/node/*/*',
       'packages/shared/*',
       'packages/node/*',
       'packages/legacy/*',

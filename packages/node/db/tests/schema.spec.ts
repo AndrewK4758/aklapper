@@ -1,4 +1,4 @@
-import { DEFAULT_MENU_ITEMS, QDRANT_COLLECTIONS, menuItems, sandboxRuns } from '../src/index.js';
+import { DEFAULT_MENU_ITEMS, QDRANT_COLLECTIONS, menuItems, sandboxRuns } from '../src/index.ts';
 
 describe('@aklapper/db', () => {
   it('defines Drizzle tables and Qdrant vector collections', () => {

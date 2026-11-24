@@ -6,7 +6,7 @@ import {
   hasRemainingBudget,
   isPodEventVisibleToRole,
   remainingBudget,
-} from '../src/index.js';
+} from '../src/index.ts';
 
 describe('@aklapper/shared-utils', () => {
   it('hides admin menu items and cadence-admin pod events from guests', () => {

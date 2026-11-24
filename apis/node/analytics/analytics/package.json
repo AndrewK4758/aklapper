@@ -1,0 +1,37 @@
+{
+  "name": "@aklapper/api-analytics",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch --conditions=@aklapper/source src/main.ts",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@aklapper/contracts": "workspace:*",
+    "@aklapper/db": "workspace:*",
+    "@fastify/helmet": "^13.2.0",
+    "@fastify/rate-limit": "^11.3.0",
+    "fastify": "^5.12.8"
+  },
+  "nx": {
+    "name": "node-api-analytics",
+    "projectType": "application",
+    "sourceRoot": "apis/node/analytics/analytics/src",
+    "tags": [
+      "scope:api",
+      "runtime:node"
+    ],
+    "targets": {
+      "serve": {
+        "continuous": true,
+        "cache": false,
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "apis/node/analytics/analytics",
+          "command": "node --watch --conditions=@aklapper/source src/main.ts"
+        }
+      }
+    }
+  }
+}

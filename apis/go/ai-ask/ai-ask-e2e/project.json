@@ -1,0 +1,25 @@
+{
+  "name": "go-ai-ask-e2e",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "apis/go/ai-ask/ai-ask-e2e",
+  "implicitDependencies": ["go-ai-ask"],
+  "tags": ["scope:go", "scope:e2e", "type:e2e"],
+  "targets": {
+    "e2e": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "dependsOn": ["go-ai-ask:build"],
+      "inputs": [
+        "default",
+        "{workspaceRoot}/apis/go/ai-ask/ai-ask/**/*.go",
+        "{workspaceRoot}/apis/go/ai-ask/ai-ask/go.mod",
+        "{workspaceRoot}/packages/go/**/*.go"
+      ],
+      "options": {
+        "cwd": "apis/go/ai-ask/ai-ask-e2e",
+        "command": "go test -v -count=1 ./..."
+      }
+    }
+  }
+}

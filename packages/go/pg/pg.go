@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const DefaultDatabaseURL = "postgres://postgres:postgres@127.0.0.1:5432/aklapper?sslmode=disable"
+const DefaultDatabaseURL = "postgres://postgres:postgres@127.0.0.1:5439/aklapper?sslmode=disable"
 
 type Config struct {
 	DatabaseURL string

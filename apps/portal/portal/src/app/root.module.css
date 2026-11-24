@@ -25,6 +25,13 @@
     text-decoration: none;
   }
 
+  .standaloneShell {
+    min-height: var(--portal-viewport-h);
+    display: grid;
+    align-content: center;
+    background: var(--portal-bg);
+  }
+
   .main {
     width: min(var(--portal-max-width), 100%);
     margin-inline: auto;

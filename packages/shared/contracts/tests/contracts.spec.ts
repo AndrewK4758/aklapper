@@ -4,7 +4,7 @@ import {
   K8sPodEventSchema,
   MenuItemSchema,
   Osc7501StatusSchema,
-} from '../src/index.js';
+} from '../src/index.ts';
 
 describe('@aklapper/contracts', () => {
   it('validates a data-driven menu item', () => {
