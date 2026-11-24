@@ -1,0 +1,110 @@
+@layer tokens {
+  :root,
+  :root[data-theme='solar-forge'] {
+    color-scheme: dark;
+
+    /* Palette & surfaces */
+    --sf-bg-frame: #121110;
+    --sf-bg-editor: #181716;
+    --sf-bg-panel: #21201e;
+    --sf-bg-elevated: #282623;
+    --sf-bg-line-hl: #1f1e1c;
+    --sf-bg-sel: #332d22;
+    --sf-border: #383530;
+    --sf-guide: #2c2924;
+
+    /* Accents */
+    --sf-gold: #ffd300;
+    --sf-vermilion: #ff3d00;
+    --sf-gold-hover: color-mix(in oklch, var(--sf-gold) 88%, var(--sf-vermilion));
+
+    /* Foregrounds */
+    --sf-fg-bone: #e8e2d5;
+    --sf-fg-prop: #cfc6b8;
+    --sf-fg-str: #c5b896;
+    --sf-fg-op: #9e9689;
+    --sf-fg-cmt: #757067;
+    --sf-fg-type: #c9963b;
+    --sf-fg-num: #d46b66;
+    --sf-fg-tag: #c45853;
+
+    /* Semantic statuses */
+    --sf-green: #98c379;
+    --sf-warn: #a67824;
+    --sf-warn-bg: #362a14;
+    --sf-err: #ff5370;
+    --sf-err-bg: #38191e;
+
+    /* Overlays & elevation */
+    --sf-shadow-color: #000000;
+    --sf-backdrop: color-mix(in oklch, var(--sf-bg-frame) 82%, transparent);
+    --sf-shadow-floating: 0 14px 36px color-mix(in oklch, var(--sf-shadow-color) 72%, transparent);
+
+    /* Typography */
+    --sf-font-mono:
+      'JetBrains Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sf-font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --sf-text-xs: 11px;
+    --sf-text-sm: 12px;
+    --sf-text-md: 13px;
+    --sf-text-base: 14px;
+    --sf-text-lg: 18px;
+    --sf-text-xl: 22px;
+    --sf-leading-base: 1.55;
+    --sf-weight-normal: 400;
+    --sf-weight-bold: 700;
+
+    /* Spacing scale */
+    --sf-space-0: 0;
+    --sf-space-hairline: 1px;
+    --sf-space-1: 2px;
+    --sf-space-2: 4px;
+    --sf-space-3: 6px;
+    --sf-space-4: 8px;
+    --sf-space-5: 10px;
+    --sf-space-6: 12px;
+    --sf-space-7: 14px;
+    --sf-space-8: 18px;
+    --sf-space-9: 20px;
+    --sf-space-10: 28px;
+    --sf-space-11: 32px;
+
+    /* Borders, radii & sizing */
+    --sf-border-width: 1px;
+    --sf-outline-width: 2px;
+    --sf-outline-offset: 2px;
+    --sf-radius-sm: 2px;
+    --sf-radius-md: 4px;
+    --sf-min-viewport-h: 100dvh;
+    --sf-container-portal: 980px;
+    --sf-container-admin: 1080px;
+    --sf-window-min-w: 260px;
+    --sf-window-min-h: 160px;
+    --sf-resize-handle-size: 14px;
+    --sf-iframe-min-h: 320px;
+    --sf-z-floating: 40;
+    --sf-opacity-muted: 0.6;
+    --sf-emblem-stroke-width: 1.4;
+
+    /* Motion */
+    --sf-duration-fast: 140ms;
+    --sf-duration-reduced: 0.01ms;
+    --sf-ease-standard: ease;
+    --sf-dialog-enter-y: 6px;
+
+    /* TUI floating window geometry defaults (overridden per floating instance) */
+    --tui-x: auto;
+    --tui-y: auto;
+    --tui-w: auto;
+    --tui-h: auto;
+  }
+
+  :root[data-theme='solar-forge-high-contrast'] {
+    --sf-bg-frame: #090908;
+    --sf-bg-editor: #121110;
+    --sf-bg-panel: #1a1917;
+    --sf-border: #5a554c;
+    --sf-fg-bone: #faf6ee;
+    --sf-gold: #ffe033;
+  }
+}

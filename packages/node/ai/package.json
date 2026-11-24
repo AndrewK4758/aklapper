@@ -1,0 +1,23 @@
+{
+  "name": "@aklapper/ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "nx": {
+    "name": "node-ai",
+    "projectType": "library",
+    "sourceRoot": "packages/node/ai/src",
+    "tags": [
+      "scope:node",
+      "runtime:node"
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out-tsc/vitest",
+    "jsx": "react-jsx",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": ["node", "vitest/globals", "@nx/react/typings/cssmodule.d.ts", "vite/client"]
+  },
+  "include": ["vite.config.ts", "tests/**/*.ts", "tests/**/*.tsx"],
+  "references": [
+    {
+      "path": "./tsconfig.lib.json"
+    }
+  ]
+}

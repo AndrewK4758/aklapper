@@ -1,0 +1,8 @@
+/*
+ * Authoritative CSS cascade order for @aklapper/ui and all host applications:
+ *   tokens    -> root CSS custom properties (package theme + app semantic aliases)
+ *   element   -> bare HTML defaults & atomic element primitives
+ *   component -> composed interactive UI components
+ *   page      -> application shells & route-level page layouts
+ */
+@layer tokens, element, component, page;

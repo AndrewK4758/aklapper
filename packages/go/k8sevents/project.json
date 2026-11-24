@@ -1,0 +1,7 @@
+{
+  "name": "go-k8sevents",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "packages/go/k8sevents",
+  "tags": ["scope:go", "type:lib"]
+}

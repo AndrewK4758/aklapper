@@ -1,0 +1,34 @@
+{
+  "name": "@aklapper/ssr-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@aklapper/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.1.5",
+    "@fastify/helmet": "^13.2.0",
+    "@fastify/static": "^10.1.12",
+    "fastify": "^5.12.8",
+    "isbot": "^5.2.3",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router": "8.5.2"
+  },
+  "nx": {
+    "name": "node-ssr-server",
+    "projectType": "library",
+    "sourceRoot": "packages/node/ssr-server/src",
+    "tags": [
+      "scope:node",
+      "runtime:node"
+    ]
+  }
+}

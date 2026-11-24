@@ -1,0 +1,20 @@
+@layer element {
+  .emblem {
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  .ring {
+    fill: var(--sf-bg-editor);
+    stroke: var(--sf-gold);
+    stroke-width: var(--sf-emblem-stroke-width);
+  }
+
+  .bolt {
+    fill: var(--sf-vermilion);
+  }
+
+  .core {
+    fill: var(--sf-gold);
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "out-tsc",
+    "tsBuildInfoFile": "out-tsc/tsconfig.lib.tsbuildinfo",
+    "jsx": "react-jsx",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": [
+      "node",
+      "@nx/react/typings/cssmodule.d.ts",
+      "@nx/react/typings/image.d.ts",
+      "vite/client"
+    ]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["vite.config.ts", "tests/**/*.ts", "tests/**/*.tsx"],
+  "references": [
+    {
+      "path": "../contracts/tsconfig.lib.json"
+    },
+    {
+      "path": "../utils/tsconfig.lib.json"
+    }
+  ]
+}

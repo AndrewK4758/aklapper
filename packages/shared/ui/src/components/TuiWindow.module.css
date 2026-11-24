@@ -1,0 +1,90 @@
+@layer component {
+  .window {
+    container-type: inline-size;
+    display: flex;
+    flex-direction: column;
+    background: var(--sf-bg-editor);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-md);
+    overflow: hidden;
+    min-width: var(--sf-window-min-w);
+    min-height: var(--sf-window-min-h);
+  }
+
+  .window:has(:focus-visible),
+  .window[data-floating='true'] {
+    border-color: var(--sf-gold);
+  }
+
+  .window[data-floating='true'] {
+    position: fixed;
+    left: var(--tui-x);
+    top: var(--tui-y);
+    width: var(--tui-w);
+    height: var(--tui-h);
+    z-index: var(--sf-z-floating);
+    box-shadow: var(--sf-shadow-floating);
+  }
+
+  .titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sf-space-4);
+    padding: var(--sf-space-3) var(--sf-space-5);
+    background: var(--sf-bg-panel);
+    border-bottom: var(--sf-border-width) solid var(--sf-border);
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+  }
+
+  .titlebar:active {
+    cursor: grabbing;
+  }
+
+  .title {
+    color: var(--sf-gold);
+    font-size: var(--sf-text-sm);
+    font-weight: var(--sf-weight-bold);
+  }
+
+  .actions {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sf-space-2);
+  }
+
+  .iconButton {
+    border: var(--sf-border-width) solid var(--sf-border);
+    background: var(--sf-bg-frame);
+    color: var(--sf-fg-prop);
+    font-family: var(--sf-font-mono), monospace;
+    font-size: var(--sf-text-xs);
+    padding: var(--sf-space-hairline) var(--sf-space-3);
+    cursor: pointer;
+  }
+
+  .iconButton:hover {
+    border-color: var(--sf-gold);
+    color: var(--sf-gold);
+  }
+
+  .body {
+    flex: 1;
+    overflow: auto;
+    padding: var(--sf-space-6);
+    display: grid;
+    gap: var(--sf-space-6);
+  }
+
+  .resize {
+    align-self: flex-end;
+    width: var(--sf-resize-handle-size);
+    height: var(--sf-resize-handle-size);
+    cursor: nwse-resize;
+    touch-action: none;
+    background: linear-gradient(135deg, transparent 50%, var(--sf-gold) 50%);
+    opacity: var(--sf-opacity-muted);
+  }
+}

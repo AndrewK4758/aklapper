@@ -1,0 +1,28 @@
+{
+  "name": "@aklapper/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@aklapper/contracts": "workspace:*",
+    "drizzle-orm": "^0.45.4",
+    "pg": "^8.23.1"
+  },
+  "nx": {
+    "name": "node-db",
+    "projectType": "library",
+    "sourceRoot": "packages/node/db/src",
+    "tags": [
+      "scope:node",
+      "runtime:node"
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "go-llm",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "packages/go/llm",
+  "tags": ["scope:go", "type:lib"]
+}

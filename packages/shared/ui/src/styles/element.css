@@ -1,0 +1,93 @@
+@layer element {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: var(--sf-space-0);
+    padding: var(--sf-space-0);
+    min-height: var(--sf-min-viewport-h);
+  }
+
+  body {
+    background: var(--sf-bg-frame);
+    color: var(--sf-fg-bone);
+    font-family: var(--sf-font-mono), monospace;
+    font-size: var(--sf-text-base);
+    font-weight: var(--sf-weight-normal);
+    line-height: var(--sf-leading-base);
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1 {
+    margin: var(--sf-space-0);
+    font-size: var(--sf-text-xl);
+    font-weight: var(--sf-weight-bold);
+    color: var(--sf-gold);
+  }
+
+  p {
+    margin: var(--sf-space-0);
+    color: var(--sf-fg-prop);
+  }
+
+  a {
+    color: var(--sf-gold);
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+  code {
+    font-family: var(--sf-font-mono), monospace;
+    color: var(--sf-fg-str);
+    background: var(--sf-bg-panel);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    padding: var(--sf-space-hairline) var(--sf-space-2);
+  }
+
+  :focus-visible {
+    outline: var(--sf-outline-width) solid var(--sf-gold);
+    outline-offset: var(--sf-outline-offset);
+  }
+
+  dialog {
+    background: var(--sf-bg-editor);
+    color: var(--sf-fg-bone);
+    border: var(--sf-border-width) solid var(--sf-gold);
+    border-radius: var(--sf-radius-md);
+    padding: var(--sf-space-8);
+    transition:
+      opacity var(--sf-duration-fast) var(--sf-ease-standard),
+      transform var(--sf-duration-fast) var(--sf-ease-standard),
+      display var(--sf-duration-fast) allow-discrete,
+      overlay var(--sf-duration-fast) allow-discrete;
+  }
+
+  dialog::backdrop {
+    background: var(--sf-backdrop);
+  }
+
+  @starting-style {
+    dialog[open] {
+      opacity: 0;
+      transform: translateY(var(--sf-dialog-enter-y));
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: var(--sf-duration-reduced) !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: var(--sf-duration-reduced) !important;
+    }
+  }
+}
