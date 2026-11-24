@@ -21,31 +21,56 @@ export {
   useIsPaneActive,
 } from './components/TerminalWorkspace';
 export {
+  addWorkspaceTab,
+  closeActivePaneOrTab,
   closePaneById,
+  closeWorkspaceTab,
   computeLeafRects,
+  computePaneDropTarget,
+  computeSplitDividers,
+  createInitialTabbedWorkspaceState,
   createInitialWorkspaceState,
+  detachPaneToNewTab,
+  dockPane,
+  type DropTargetOptions,
   equalizeAllSplits,
   findLeafPane,
   focusDirectionalPane,
   focusPaneById,
   focusRelativePane,
+  getActiveWorkspaceTab,
   type GhosttyShortcutAction,
   type InitialWorkspaceOptions,
   type KeyboardShortcutInput,
   listLeafPanes,
   matchGhosttyShortcut,
+  moveActiveSplit,
+  type NormalizedBox,
+  type PaneDropTarget,
+  type PaneDropZone,
   type PaneNavDirection,
   type PaneRect,
+  renameWorkspaceTab,
   resizeActiveSplit,
+  rotateActiveSplit,
+  selectRelativeWorkspaceTab,
+  selectWorkspaceTab,
+  selectWorkspaceTabByIndex,
   setPaneTuiOpen,
+  setSplitRatio,
   splitActivePane,
   type SplitCreateDirection,
   type SplitDirection,
+  type SplitDividerRect,
+  swapPanes,
   type TerminalLeafPane,
   type TerminalPaneNode,
   type TerminalSplitPane,
+  type TerminalTabbedWorkspaceState,
   type TerminalWorkspaceState,
+  type TerminalWorkspaceTab,
   toggleZoomActivePane,
+  updateActiveTabWorkspace,
 } from './components/terminalPaneTree';
 export { TuiWindow, type TuiWindowProps } from './components/TuiWindow';
 export {
@@ -91,7 +116,6 @@ export {
 } from './elements/_internal/elementFactory';
 export * from './elements/base';
 export { OscStatusBadge, type OscStatusBadgeProps } from './elements/OscStatusBadge';
-export { SfButton, type SfButtonProps } from './elements/SfButton';
 export { SolarForgeEmblem, type SolarForgeEmblemProps } from './elements/SolarForgeEmblem';
 export { buildFaviconFrameDataUri, useAnimatedFavicon } from './elements/useAnimatedFavicon';
 export {

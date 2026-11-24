@@ -1,6 +1,18 @@
 export type SplitDirection = 'vertical' | 'horizontal';
 export type SplitCreateDirection = 'right' | 'down';
 export type PaneNavDirection = 'left' | 'right' | 'up' | 'down';
+export type PaneDropZone =
+  | 'none'
+  | 'center-swap'
+  | 'left'
+  | 'right'
+  | 'top'
+  | 'bottom'
+  | 'root-left'
+  | 'root-right'
+  | 'root-top'
+  | 'root-bottom'
+  | 'detach-tab';
 
 export interface TerminalLeafPane {
   readonly type: 'leaf';
@@ -29,6 +41,21 @@ export interface TerminalWorkspaceState {
   readonly focusToken: number;
 }
 
+export interface TerminalWorkspaceTab {
+  readonly id: string;
+  readonly title: string | null;
+  readonly pinned?: boolean;
+  readonly workspace: TerminalWorkspaceState;
+}
+
+export interface TerminalTabbedWorkspaceState {
+  readonly tabs: readonly TerminalWorkspaceTab[];
+  readonly activeTabId: string;
+  readonly tabHistory: readonly string[];
+  readonly nextTabNumber: number;
+  readonly nextPaneNumber: number;
+}
+
 export interface PaneRect {
   readonly id: string;
   readonly x: number;
@@ -37,14 +64,46 @@ export interface PaneRect {
   readonly height: number;
 }
 
+export interface SplitDividerRect {
+  readonly id: string;
+  readonly direction: SplitDirection;
+  readonly ratio: number;
+  readonly x: number;
+  readonly y: number;
+  readonly length: number;
+  readonly containerStart: number;
+  readonly containerSpan: number;
+}
+
+export interface NormalizedBox {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+export interface PaneDropTarget {
+  readonly targetId: string | null;
+  readonly zone: Exclude<PaneDropZone, 'none'>;
+  readonly previewRect: NormalizedBox;
+  readonly label: string;
+}
+
 export type GhosttyShortcutAction =
   | { readonly type: 'split'; readonly direction: SplitCreateDirection }
   | { readonly type: 'focus-relative'; readonly delta: 1 | -1 }
   | { readonly type: 'focus-direction'; readonly direction: PaneNavDirection }
   | { readonly type: 'resize'; readonly direction: PaneNavDirection }
+  | { readonly type: 'move-split'; readonly direction: PaneNavDirection }
+  | { readonly type: 'rotate-split' }
   | { readonly type: 'toggle-zoom' }
   | { readonly type: 'equalize' }
   | { readonly type: 'close-pane' }
+  | { readonly type: 'new-tab' }
+  | { readonly type: 'rename-tab' }
+  | { readonly type: 'focus-tab-relative'; readonly delta: 1 | -1 }
+  | { readonly type: 'focus-tab-index'; readonly index: number | 'last' }
+  | { readonly type: 'detach-pane' }
   | { readonly type: 'toggle-tui' }
   | { readonly type: 'open-menu' };
 
@@ -298,21 +357,85 @@ export function computeLeafRects(
   ];
 }
 
+export function computeSplitDividers(
+  node: TerminalPaneNode,
+  bounds: Omit<PaneRect, 'id'> = { x: 0, y: 0, width: 1, height: 1 },
+): SplitDividerRect[] {
+  if (node.type === 'leaf') {
+    return [];
+  }
+  if (node.direction === 'vertical') {
+    const firstWidth = bounds.width * node.ratio;
+    const divider: SplitDividerRect = {
+      id: node.id,
+      direction: 'vertical',
+      ratio: node.ratio,
+      x: bounds.x + firstWidth,
+      y: bounds.y,
+      length: bounds.height,
+      containerStart: bounds.x,
+      containerSpan: bounds.width,
+    };
+    return [
+      divider,
+      ...computeSplitDividers(node.first, {
+        x: bounds.x,
+        y: bounds.y,
+        width: firstWidth,
+        height: bounds.height,
+      }),
+      ...computeSplitDividers(node.second, {
+        x: bounds.x + firstWidth,
+        y: bounds.y,
+        width: bounds.width - firstWidth,
+        height: bounds.height,
+      }),
+    ];
+  }
+  const firstHeight = bounds.height * node.ratio;
+  const divider: SplitDividerRect = {
+    id: node.id,
+    direction: 'horizontal',
+    ratio: node.ratio,
+    x: bounds.x,
+    y: bounds.y + firstHeight,
+    length: bounds.width,
+    containerStart: bounds.y,
+    containerSpan: bounds.height,
+  };
+  return [
+    divider,
+    ...computeSplitDividers(node.first, {
+      x: bounds.x,
+      y: bounds.y,
+      width: bounds.width,
+      height: firstHeight,
+    }),
+    ...computeSplitDividers(node.second, {
+      x: bounds.x,
+      y: bounds.y + firstHeight,
+      width: bounds.width,
+      height: bounds.height - firstHeight,
+    }),
+  ];
+}
+
 function overlapLength(aStart: number, aEnd: number, bStart: number, bEnd: number): number {
   return Math.max(0, Math.min(aEnd, bEnd) - Math.max(aStart, bStart));
 }
 
-export function focusDirectionalPane(
-  state: TerminalWorkspaceState,
+function findDirectionalNeighborId(
+  root: TerminalPaneNode,
+  originId: string,
   direction: PaneNavDirection,
-): TerminalWorkspaceState {
-  const rects = computeLeafRects(state.root);
+): string | null {
+  const rects = computeLeafRects(root);
   if (rects.length <= 1) {
-    return state;
+    return null;
   }
-  const active = rects.find(rect => rect.id === state.activePaneId);
+  const active = rects.find(rect => rect.id === originId);
   if (!active) {
-    return state;
+    return null;
   }
 
   const activeCx = active.x + active.width / 2;
@@ -381,7 +504,432 @@ export function focusDirectionalPane(
     }
   }
 
-  return bestCandidate ? focusPaneById(state, bestCandidate.id, true) : state;
+  return bestCandidate?.id ?? null;
+}
+
+export function focusDirectionalPane(
+  state: TerminalWorkspaceState,
+  direction: PaneNavDirection,
+): TerminalWorkspaceState {
+  const neighborId = findDirectionalNeighborId(state.root, state.activePaneId, direction);
+  return neighborId ? focusPaneById(state, neighborId, true) : state;
+}
+
+function replaceTwoLeaves(
+  node: TerminalPaneNode,
+  leafA: TerminalLeafPane,
+  leafB: TerminalLeafPane,
+): TerminalPaneNode {
+  if (node.type === 'leaf') {
+    if (node.id === leafA.id) {
+      return leafB;
+    }
+    if (node.id === leafB.id) {
+      return leafA;
+    }
+    return node;
+  }
+  const nextFirst = replaceTwoLeaves(node.first, leafA, leafB);
+  const nextSecond = replaceTwoLeaves(node.second, leafA, leafB);
+  if (nextFirst === node.first && nextSecond === node.second) {
+    return node;
+  }
+  return { ...node, first: nextFirst, second: nextSecond };
+}
+
+export function swapPanes(
+  state: TerminalWorkspaceState,
+  paneIdA: string,
+  paneIdB: string,
+): TerminalWorkspaceState {
+  if (paneIdA === paneIdB) {
+    return state;
+  }
+  const leafA = findLeafPane(state.root, paneIdA);
+  const leafB = findLeafPane(state.root, paneIdB);
+  if (!leafA || !leafB) {
+    return state;
+  }
+  const nextRoot = replaceTwoLeaves(state.root, leafA, leafB);
+  if (nextRoot === state.root) {
+    return state;
+  }
+  return {
+    ...state,
+    root: nextRoot,
+    activePaneId: paneIdA,
+    zoomedPaneId: null,
+    focusToken: state.focusToken + 1,
+  };
+}
+
+function wrapTargetLeafWithPane(
+  node: TerminalPaneNode,
+  targetId: string,
+  sourceLeaf: TerminalLeafPane,
+  direction: SplitDirection,
+  insertBefore: boolean,
+  splitId: string,
+): TerminalPaneNode {
+  if (node.type === 'leaf') {
+    if (node.id !== targetId) {
+      return node;
+    }
+    return {
+      type: 'split',
+      id: splitId,
+      direction,
+      ratio: 0.5,
+      first: insertBefore ? sourceLeaf : node,
+      second: insertBefore ? node : sourceLeaf,
+    };
+  }
+  const nextFirst = wrapTargetLeafWithPane(
+    node.first,
+    targetId,
+    sourceLeaf,
+    direction,
+    insertBefore,
+    splitId,
+  );
+  if (nextFirst !== node.first) {
+    return { ...node, first: nextFirst };
+  }
+  const nextSecond = wrapTargetLeafWithPane(
+    node.second,
+    targetId,
+    sourceLeaf,
+    direction,
+    insertBefore,
+    splitId,
+  );
+  if (nextSecond !== node.second) {
+    return { ...node, second: nextSecond };
+  }
+  return node;
+}
+
+export function dockPane(
+  state: TerminalWorkspaceState,
+  sourceId: string,
+  targetId: string | null,
+  zone: PaneDropZone,
+): TerminalWorkspaceState {
+  if (zone === 'none' || zone === 'detach-tab') {
+    return state;
+  }
+  if (zone === 'center-swap') {
+    return targetId ? swapPanes(state, sourceId, targetId) : state;
+  }
+  const sourceLeaf = findLeafPane(state.root, sourceId);
+  if (!sourceLeaf || listLeafPanes(state.root).length < 2) {
+    return state;
+  }
+
+  const splitId = `split-dock-${state.focusToken + 1}`;
+  const isRootZone =
+    zone === 'root-left' || zone === 'root-right' || zone === 'root-top' || zone === 'root-bottom';
+
+  if (isRootZone) {
+    const remaining = removeLeafNode(state.root, sourceId);
+    if (!remaining) {
+      return state;
+    }
+    const direction: SplitDirection =
+      zone === 'root-left' || zone === 'root-right' ? 'vertical' : 'horizontal';
+    const insertFirst = zone === 'root-left' || zone === 'root-top';
+    const nextRoot: TerminalSplitPane = {
+      type: 'split',
+      id: splitId,
+      direction,
+      ratio: 0.5,
+      first: insertFirst ? sourceLeaf : remaining,
+      second: insertFirst ? remaining : sourceLeaf,
+    };
+    return {
+      ...state,
+      root: nextRoot,
+      activePaneId: sourceId,
+      zoomedPaneId: null,
+      focusToken: state.focusToken + 1,
+    };
+  }
+
+  if (!targetId || targetId === sourceId || !containsPane(state.root, targetId)) {
+    return state;
+  }
+  const remaining = removeLeafNode(state.root, sourceId);
+  if (!remaining) {
+    return state;
+  }
+  const direction: SplitDirection = zone === 'left' || zone === 'right' ? 'vertical' : 'horizontal';
+  const insertBefore = zone === 'left' || zone === 'top';
+  const nextRoot = wrapTargetLeafWithPane(
+    remaining,
+    targetId,
+    sourceLeaf,
+    direction,
+    insertBefore,
+    splitId,
+  );
+  if (nextRoot === remaining) {
+    return state;
+  }
+  return {
+    ...state,
+    root: nextRoot,
+    activePaneId: sourceId,
+    zoomedPaneId: null,
+    focusToken: state.focusToken + 1,
+  };
+}
+
+export function moveActiveSplit(
+  state: TerminalWorkspaceState,
+  direction: PaneNavDirection,
+): TerminalWorkspaceState {
+  if (state.zoomedPaneId || listLeafPanes(state.root).length < 2) {
+    return state;
+  }
+  const neighborId = findDirectionalNeighborId(state.root, state.activePaneId, direction);
+  if (neighborId) {
+    return swapPanes(state, state.activePaneId, neighborId);
+  }
+  const rootZone: PaneDropZone =
+    direction === 'left'
+      ? 'root-left'
+      : direction === 'right'
+        ? 'root-right'
+        : direction === 'up'
+          ? 'root-top'
+          : 'root-bottom';
+  return dockPane(state, state.activePaneId, null, rootZone);
+}
+
+function flipParentSplitOrientation(
+  node: TerminalPaneNode,
+  targetId: string,
+): { node: TerminalPaneNode; rotated: boolean } {
+  if (node.type === 'leaf') {
+    return { node, rotated: false };
+  }
+  const isDirectChild =
+    (node.first.type === 'leaf' && node.first.id === targetId) ||
+    (node.second.type === 'leaf' && node.second.id === targetId);
+  if (isDirectChild) {
+    return {
+      node: {
+        ...node,
+        direction: node.direction === 'vertical' ? 'horizontal' : 'vertical',
+      },
+      rotated: true,
+    };
+  }
+  const firstRes = flipParentSplitOrientation(node.first, targetId);
+  if (firstRes.rotated) {
+    return { node: { ...node, first: firstRes.node }, rotated: true };
+  }
+  const secondRes = flipParentSplitOrientation(node.second, targetId);
+  if (secondRes.rotated) {
+    return { node: { ...node, second: secondRes.node }, rotated: true };
+  }
+  return { node, rotated: false };
+}
+
+export function rotateActiveSplit(state: TerminalWorkspaceState): TerminalWorkspaceState {
+  if (state.zoomedPaneId || listLeafPanes(state.root).length < 2) {
+    return state;
+  }
+  const res = flipParentSplitOrientation(state.root, state.activePaneId);
+  if (!res.rotated) {
+    return state;
+  }
+  return {
+    ...state,
+    root: res.node,
+    focusToken: state.focusToken + 1,
+  };
+}
+
+export interface DropTargetOptions {
+  readonly allowDetachTab?: boolean;
+  readonly detachBandHeight?: number;
+}
+
+const ROOT_EDGE_MARGIN_PX = 18;
+const DEFAULT_DETACH_BAND_PX = 52;
+
+/**
+ * Pure geometric drop-zone resolver matching ghostty-union's TerminalTabPane::computeDropTarget:
+ * tab-strip detach band, 18px outer root-dock margins, and per-pane center-swap / 25% edge zones.
+ */
+export function computePaneDropTarget(
+  root: TerminalPaneNode,
+  sourceId: string,
+  point: { readonly x: number; readonly y: number },
+  containerRect: {
+    readonly left: number;
+    readonly top: number;
+    readonly width: number;
+    readonly height: number;
+  },
+  options?: DropTargetOptions,
+): PaneDropTarget | null {
+  if (containerRect.width <= 0 || containerRect.height <= 0) {
+    return null;
+  }
+  const leaves = listLeafPanes(root);
+  if (leaves.length < 2 || !leaves.some(leaf => leaf.id === sourceId)) {
+    return null;
+  }
+
+  const localX = point.x - containerRect.left;
+  const localY = point.y - containerRect.top;
+  const detachBand = options?.detachBandHeight ?? DEFAULT_DETACH_BAND_PX;
+
+  if (
+    options?.allowDetachTab &&
+    localY < 0 &&
+    localY >= -detachBand &&
+    localX >= 0 &&
+    localX <= containerRect.width
+  ) {
+    return {
+      targetId: null,
+      zone: 'detach-tab',
+      previewRect: { x: 0, y: 0, width: 1, height: 0.14 },
+      label: 'Move Split to New Tab',
+    };
+  }
+
+  if (localX < 0 || localX > containerRect.width || localY < 0 || localY > containerRect.height) {
+    return null;
+  }
+
+  const dLeft = localX;
+  const dRight = containerRect.width - localX;
+  const dTop = localY;
+  const dBottom = containerRect.height - localY;
+  const minEdgeDist = Math.min(dLeft, dRight, dTop, dBottom);
+
+  if (minEdgeDist < ROOT_EDGE_MARGIN_PX) {
+    let zone: PaneDropTarget['zone'];
+    let candidateAxis: SplitDirection;
+    let previewRect: NormalizedBox;
+    let label: string;
+    if (minEdgeDist === dLeft) {
+      zone = 'root-left';
+      candidateAxis = 'vertical';
+      previewRect = { x: 0, y: 0, width: 1 / 3, height: 1 };
+      label = 'Dock Full Left';
+    } else if (minEdgeDist === dRight) {
+      zone = 'root-right';
+      candidateAxis = 'vertical';
+      previewRect = { x: 2 / 3, y: 0, width: 1 / 3, height: 1 };
+      label = 'Dock Full Right';
+    } else if (minEdgeDist === dTop) {
+      zone = 'root-top';
+      candidateAxis = 'horizontal';
+      previewRect = { x: 0, y: 0, width: 1, height: 1 / 3 };
+      label = 'Dock Full Top';
+    } else {
+      zone = 'root-bottom';
+      candidateAxis = 'horizontal';
+      previewRect = { x: 0, y: 2 / 3, width: 1, height: 1 / 3 };
+      label = 'Dock Full Bottom';
+    }
+
+    if (leaves.length > 2 || (root.type === 'split' && root.direction !== candidateAxis)) {
+      return { targetId: null, zone, previewRect, label };
+    }
+  }
+
+  const normX = localX / containerRect.width;
+  const normY = localY / containerRect.height;
+  const rects = computeLeafRects(root);
+  const candidate = rects.find(
+    rect =>
+      normX >= rect.x - EPSILON &&
+      normX <= rect.x + rect.width + EPSILON &&
+      normY >= rect.y - EPSILON &&
+      normY <= rect.y + rect.height + EPSILON,
+  );
+  if (!candidate || candidate.id === sourceId) {
+    return null;
+  }
+
+  const rx = (normX - candidate.x) / Math.max(EPSILON, candidate.width);
+  const ry = (normY - candidate.y) / Math.max(EPSILON, candidate.height);
+  const eL = rx;
+  const eR = 1 - rx;
+  const eT = ry;
+  const eB = 1 - ry;
+  const minNorm = Math.min(eL, eR, eT, eB);
+
+  if (minNorm >= 0.25) {
+    return {
+      targetId: candidate.id,
+      zone: 'center-swap',
+      previewRect: {
+        x: candidate.x,
+        y: candidate.y,
+        width: candidate.width,
+        height: candidate.height,
+      },
+      label: 'Swap Panes',
+    };
+  }
+
+  if (minNorm === eL) {
+    return {
+      targetId: candidate.id,
+      zone: 'left',
+      previewRect: {
+        x: candidate.x,
+        y: candidate.y,
+        width: candidate.width / 2,
+        height: candidate.height,
+      },
+      label: 'Dock Left',
+    };
+  }
+  if (minNorm === eR) {
+    return {
+      targetId: candidate.id,
+      zone: 'right',
+      previewRect: {
+        x: candidate.x + candidate.width / 2,
+        y: candidate.y,
+        width: candidate.width / 2,
+        height: candidate.height,
+      },
+      label: 'Dock Right',
+    };
+  }
+  if (minNorm === eT) {
+    return {
+      targetId: candidate.id,
+      zone: 'top',
+      previewRect: {
+        x: candidate.x,
+        y: candidate.y,
+        width: candidate.width,
+        height: candidate.height / 2,
+      },
+      label: 'Dock Top',
+    };
+  }
+  return {
+    targetId: candidate.id,
+    zone: 'bottom',
+    previewRect: {
+      x: candidate.x,
+      y: candidate.y + candidate.height / 2,
+      width: candidate.width,
+      height: candidate.height / 2,
+    },
+    label: 'Dock Bottom',
+  };
 }
 
 function clampRatio(ratio: number): number {
@@ -440,6 +988,44 @@ export function resizeActiveSplit(
   return {
     ...state,
     root: result.node,
+  };
+}
+
+function updateSplitRatioById(
+  node: TerminalPaneNode,
+  splitId: string,
+  ratio: number,
+): TerminalPaneNode {
+  if (node.type === 'leaf') {
+    return node;
+  }
+  if (node.id === splitId) {
+    const nextRatio = clampRatio(ratio);
+    return nextRatio === node.ratio ? node : { ...node, ratio: nextRatio };
+  }
+  const nextFirst = updateSplitRatioById(node.first, splitId, ratio);
+  if (nextFirst !== node.first) {
+    return { ...node, first: nextFirst };
+  }
+  const nextSecond = updateSplitRatioById(node.second, splitId, ratio);
+  if (nextSecond !== node.second) {
+    return { ...node, second: nextSecond };
+  }
+  return node;
+}
+
+export function setSplitRatio(
+  state: TerminalWorkspaceState,
+  splitId: string,
+  ratio: number,
+): TerminalWorkspaceState {
+  const nextRoot = updateSplitRatioById(state.root, splitId, ratio);
+  if (nextRoot === state.root) {
+    return state;
+  }
+  return {
+    ...state,
+    root: nextRoot,
   };
 }
 
@@ -512,6 +1098,264 @@ export function setPaneTuiOpen(
   };
 }
 
+function recordTabHistory(history: readonly string[], tabId: string): readonly string[] {
+  return [tabId, ...history.filter(id => id !== tabId)];
+}
+
+export function createInitialTabbedWorkspaceState(
+  options?: InitialWorkspaceOptions,
+): TerminalTabbedWorkspaceState {
+  const initialWorkspace = createInitialWorkspaceState(options);
+  return {
+    tabs: [
+      {
+        id: 'tab-1',
+        title: null,
+        ...(options?.pinnedPrimary ? { pinned: true } : {}),
+        workspace: initialWorkspace,
+      },
+    ],
+    activeTabId: 'tab-1',
+    tabHistory: ['tab-1'],
+    nextTabNumber: 2,
+    nextPaneNumber: initialWorkspace.nextPaneNumber,
+  };
+}
+
+export function getActiveWorkspaceTab(state: TerminalTabbedWorkspaceState): TerminalWorkspaceTab {
+  return state.tabs.find(tab => tab.id === state.activeTabId) ?? state.tabs[0]!;
+}
+
+export function updateActiveTabWorkspace(
+  state: TerminalTabbedWorkspaceState,
+  updater: (workspace: TerminalWorkspaceState) => TerminalWorkspaceState,
+): TerminalTabbedWorkspaceState {
+  const activeTab = getActiveWorkspaceTab(state);
+  const syncedWorkspace: TerminalWorkspaceState =
+    activeTab.workspace.nextPaneNumber < state.nextPaneNumber
+      ? { ...activeTab.workspace, nextPaneNumber: state.nextPaneNumber }
+      : activeTab.workspace;
+  const nextWorkspace = updater(syncedWorkspace);
+  if (nextWorkspace === syncedWorkspace) {
+    return state;
+  }
+  const nextPaneNumber = Math.max(state.nextPaneNumber, nextWorkspace.nextPaneNumber);
+  return {
+    ...state,
+    nextPaneNumber,
+    tabs: state.tabs.map(tab =>
+      tab.id === activeTab.id ? { ...tab, workspace: nextWorkspace } : tab,
+    ),
+  };
+}
+
+export function addWorkspaceTab(state: TerminalTabbedWorkspaceState): TerminalTabbedWorkspaceState {
+  const tabNumber = state.nextTabNumber;
+  const paneNumber = state.nextPaneNumber;
+  const leaf: TerminalLeafPane = {
+    type: 'leaf',
+    id: `pane-${paneNumber}`,
+    ttyNumber: paneNumber,
+    tuiOpen: false,
+  };
+  const newTab: TerminalWorkspaceTab = {
+    id: `tab-${tabNumber}`,
+    title: null,
+    workspace: {
+      root: leaf,
+      activePaneId: leaf.id,
+      zoomedPaneId: null,
+      nextPaneNumber: paneNumber + 1,
+      focusToken: 1,
+    },
+  };
+  return {
+    tabs: [...state.tabs, newTab],
+    activeTabId: newTab.id,
+    tabHistory: recordTabHistory(state.tabHistory, newTab.id),
+    nextTabNumber: tabNumber + 1,
+    nextPaneNumber: paneNumber + 1,
+  };
+}
+
+export function selectWorkspaceTab(
+  state: TerminalTabbedWorkspaceState,
+  tabId: string,
+): TerminalTabbedWorkspaceState {
+  const target = state.tabs.find(tab => tab.id === tabId);
+  if (!target) {
+    return state;
+  }
+  if (state.activeTabId === tabId) {
+    return state;
+  }
+  return {
+    ...state,
+    activeTabId: tabId,
+    tabHistory: recordTabHistory(state.tabHistory, tabId),
+    tabs: state.tabs.map(tab =>
+      tab.id === tabId
+        ? {
+            ...tab,
+            workspace: {
+              ...tab.workspace,
+              focusToken: tab.workspace.focusToken + 1,
+            },
+          }
+        : tab,
+    ),
+  };
+}
+
+export function selectRelativeWorkspaceTab(
+  state: TerminalTabbedWorkspaceState,
+  delta: 1 | -1,
+): TerminalTabbedWorkspaceState {
+  if (state.tabs.length <= 1) {
+    return state;
+  }
+  const currentIdx = Math.max(
+    0,
+    state.tabs.findIndex(tab => tab.id === state.activeTabId),
+  );
+  const nextIdx = (currentIdx + delta + state.tabs.length) % state.tabs.length;
+  const nextTab = state.tabs[nextIdx];
+  return nextTab ? selectWorkspaceTab(state, nextTab.id) : state;
+}
+
+export function selectWorkspaceTabByIndex(
+  state: TerminalTabbedWorkspaceState,
+  index: number | 'last',
+): TerminalTabbedWorkspaceState {
+  if (state.tabs.length === 0) {
+    return state;
+  }
+  const resolvedIndex = index === 'last' ? state.tabs.length - 1 : index;
+  const target = state.tabs[resolvedIndex];
+  return target ? selectWorkspaceTab(state, target.id) : state;
+}
+
+export function renameWorkspaceTab(
+  state: TerminalTabbedWorkspaceState,
+  tabId: string,
+  title: string | null,
+): TerminalTabbedWorkspaceState {
+  const normalized = title?.trim() ? title.trim() : null;
+  let changed = false;
+  const nextTabs = state.tabs.map(tab => {
+    if (tab.id !== tabId) {
+      return tab;
+    }
+    if (tab.title === normalized) {
+      return tab;
+    }
+    changed = true;
+    return { ...tab, title: normalized };
+  });
+  return changed ? { ...state, tabs: nextTabs } : state;
+}
+
+export function closeWorkspaceTab(
+  state: TerminalTabbedWorkspaceState,
+  tabId: string,
+): TerminalTabbedWorkspaceState {
+  if (state.tabs.length <= 1) {
+    return state;
+  }
+  const targetIndex = state.tabs.findIndex(tab => tab.id === tabId);
+  const target = state.tabs[targetIndex];
+  if (!target || target.pinned) {
+    return state;
+  }
+
+  const remainingTabs = state.tabs.filter(tab => tab.id !== tabId);
+  const remainingHistory = state.tabHistory.filter(id => id !== tabId);
+  let nextActiveTabId = state.activeTabId;
+  if (state.activeTabId === tabId) {
+    const mruTabId = remainingHistory.find(id => remainingTabs.some(tab => tab.id === id));
+    const fallbackTab = remainingTabs[Math.min(targetIndex, remainingTabs.length - 1)];
+    nextActiveTabId = mruTabId ?? fallbackTab?.id ?? remainingTabs[0]!.id;
+  }
+
+  const nextTabs = remainingTabs.map(tab =>
+    tab.id === nextActiveTabId && state.activeTabId === tabId
+      ? {
+          ...tab,
+          workspace: {
+            ...tab.workspace,
+            focusToken: tab.workspace.focusToken + 1,
+          },
+        }
+      : tab,
+  );
+
+  return {
+    ...state,
+    tabs: nextTabs,
+    activeTabId: nextActiveTabId,
+    tabHistory: recordTabHistory(remainingHistory, nextActiveTabId),
+  };
+}
+
+export function closeActivePaneOrTab(
+  state: TerminalTabbedWorkspaceState,
+): TerminalTabbedWorkspaceState {
+  const activeTab = getActiveWorkspaceTab(state);
+  const leaves = listLeafPanes(activeTab.workspace.root);
+  if (leaves.length > 1) {
+    return updateActiveTabWorkspace(state, workspace =>
+      closePaneById(workspace, workspace.activePaneId),
+    );
+  }
+  return closeWorkspaceTab(state, activeTab.id);
+}
+
+export function detachPaneToNewTab(
+  state: TerminalTabbedWorkspaceState,
+  paneId: string,
+): TerminalTabbedWorkspaceState {
+  const activeTab = getActiveWorkspaceTab(state);
+  const leaves = listLeafPanes(activeTab.workspace.root);
+  if (leaves.length < 2) {
+    return state;
+  }
+  const targetLeaf = leaves.find(leaf => leaf.id === paneId);
+  if (!targetLeaf || targetLeaf.pinned) {
+    return state;
+  }
+
+  const nextSourceWorkspace = closePaneById(activeTab.workspace, paneId);
+  if (nextSourceWorkspace === activeTab.workspace) {
+    return state;
+  }
+
+  const tabNumber = state.nextTabNumber;
+  const detachedTab: TerminalWorkspaceTab = {
+    id: `tab-${tabNumber}`,
+    title: null,
+    workspace: {
+      root: targetLeaf,
+      activePaneId: targetLeaf.id,
+      zoomedPaneId: null,
+      nextPaneNumber: state.nextPaneNumber,
+      focusToken: 1,
+    },
+  };
+
+  return {
+    tabs: [
+      ...state.tabs.map(tab =>
+        tab.id === activeTab.id ? { ...tab, workspace: nextSourceWorkspace } : tab,
+      ),
+      detachedTab,
+    ],
+    activeTabId: detachedTab.id,
+    tabHistory: recordTabHistory(state.tabHistory, detachedTab.id),
+    nextTabNumber: tabNumber + 1,
+    nextPaneNumber: state.nextPaneNumber,
+  };
+}
+
 function mapArrowKeyToDirection(key: string): PaneNavDirection | null {
   switch (key) {
     case 'ArrowLeft':
@@ -531,11 +1375,28 @@ function matchesLetter(keyLower: string, code: string, letter: string): boolean 
   return keyLower === letter || code === `Key${letter.toUpperCase()}`;
 }
 
+function parseDigitIndex(key: string, code: string): number | 'last' | null {
+  if (/^[1-8]$/.test(key)) {
+    return Number(key) - 1;
+  }
+  if (key === '9') {
+    return 'last';
+  }
+  if (/^Digit[1-8]$/.test(code)) {
+    return Number(code.slice(5)) - 1;
+  }
+  if (code === 'Digit9') {
+    return 'last';
+  }
+  return null;
+}
+
 /**
- * Matches Ghostty & ghostty-union split/pane keybindings across Linux (`Ctrl+Shift+}`/`]`/`O`,
- * `Ctrl+Shift+{`/`[`/`E`, `Ctrl+Alt+Arrow`, `Alt+Shift+Arrow`, `Ctrl+Alt+Shift+E`) and macOS
- * (`Cmd+D`, `Cmd+Shift+D`, `Cmd+]`/`[`, `Cmd+Alt+Arrow`, `Ctrl+Cmd+Arrow`), plus browser-safe
- * `Alt+Shift` fallbacks and Solar Forge's `Alt+T` / `Alt+M` shortcuts.
+ * Matches Ghostty & ghostty-union split/pane/tab keybindings across Linux (`Ctrl+Shift+}`/`]`/`O`,
+ * `Ctrl+Shift+{`/`[`/`E`, `Ctrl+Alt+Arrow`, `Alt+Shift+Arrow`, `Ctrl+Alt+Shift+Arrow`,
+ * `Ctrl+Shift+R`, `Ctrl+Alt+Shift+E`, `Ctrl+Shift+T`/`A`/`W`, `Ctrl+Tab`/`PageUp`/`PageDown`,
+ * `Alt+1..9`) and macOS (`Cmd+D`, `Cmd+Shift+D`, `Cmd+]`/`[`, `Cmd+Alt+Arrow`, `Ctrl+Cmd+Arrow`),
+ * plus browser-safe `Alt`/`Alt+Shift` fallbacks and Solar Forge's `Alt+T` / `Alt+M` shortcuts.
  */
 export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShortcutAction | null {
   const keyLower = event.key.toLowerCase();
@@ -544,15 +1405,16 @@ export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShort
   const isBracketRight = event.key === ']' || event.key === '}' || code === 'BracketRight';
   const isBracketLeft = event.key === '[' || event.key === '{' || code === 'BracketLeft';
   const isCtrlShiftOnly = event.ctrlKey && event.shiftKey && !event.metaKey && !event.altKey;
+  const isCtrlAltShiftOnly = event.ctrlKey && event.altKey && event.shiftKey && !event.metaKey;
+  const isAltShiftOnly = event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey;
 
-  // Resize active split: Alt+Shift+Arrow* (ghostty-union & Ghostty config),
-  // Ctrl+Cmd+Arrow* (macOS Ghostty), or Ctrl+Shift+Alt+Arrow* (fallback)
-  if (
-    arrowDir &&
-    ((event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey) ||
-      (event.ctrlKey && event.metaKey && !event.altKey) ||
-      (event.ctrlKey && event.shiftKey && event.altKey && !event.metaKey))
-  ) {
+  // Move / swap active split directionally: Ctrl+Alt+Shift+Arrow* (ghostty-union)
+  if (arrowDir && isCtrlAltShiftOnly) {
+    return { type: 'move-split', direction: arrowDir };
+  }
+
+  // Resize active split: Alt+Shift+Arrow* (ghostty-union & Ghostty config) or Ctrl+Cmd+Arrow* (macOS Ghostty)
+  if (arrowDir && (isAltShiftOnly || (event.ctrlKey && event.metaKey && !event.altKey))) {
     return { type: 'resize', direction: arrowDir };
   }
 
@@ -575,11 +1437,7 @@ export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShort
       !event.altKey &&
       matchesLetter(keyLower, code, 'd')) ||
     (isCtrlShiftOnly && (isBracketRight || matchesLetter(keyLower, code, 'o'))) ||
-    (event.altKey &&
-      event.shiftKey &&
-      !event.ctrlKey &&
-      !event.metaKey &&
-      matchesLetter(keyLower, code, 'd'))
+    (isAltShiftOnly && matchesLetter(keyLower, code, 'd'))
   ) {
     return { type: 'split', direction: 'right' };
   }
@@ -593,13 +1451,39 @@ export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShort
       !event.altKey &&
       matchesLetter(keyLower, code, 'd')) ||
     (isCtrlShiftOnly && (isBracketLeft || matchesLetter(keyLower, code, 'e'))) ||
-    (event.altKey &&
-      event.shiftKey &&
-      !event.ctrlKey &&
-      !event.metaKey &&
-      matchesLetter(keyLower, code, 's'))
+    (isAltShiftOnly && matchesLetter(keyLower, code, 's'))
   ) {
     return { type: 'split', direction: 'down' };
+  }
+
+  // Rotate active split orientation: Ctrl+Shift+R (ghostty-union) or Ctrl+Alt+Shift+R (browser-safe)
+  if ((isCtrlShiftOnly || isCtrlAltShiftOnly) && matchesLetter(keyLower, code, 'r')) {
+    return { type: 'rotate-split' };
+  }
+
+  // Detach active split pane to a new tab: Ctrl+Alt+Shift+T
+  if (isCtrlAltShiftOnly && matchesLetter(keyLower, code, 't')) {
+    return { type: 'detach-pane' };
+  }
+
+  // New tab: Ctrl+Shift+T (ghostty-union) or Alt+Shift+T (browser-safe)
+  if ((isCtrlShiftOnly || isAltShiftOnly) && matchesLetter(keyLower, code, 't')) {
+    return { type: 'new-tab' };
+  }
+
+  // Rename active tab: Ctrl+Shift+A (ghostty-union) or Alt+Shift+A (browser-safe)
+  if ((isCtrlShiftOnly || isAltShiftOnly) && matchesLetter(keyLower, code, 'a')) {
+    return { type: 'rename-tab' };
+  }
+
+  // Tab switching: Ctrl+Tab / Ctrl+PageDown (next), Ctrl+Shift+Tab / Ctrl+PageUp (prev)
+  if (event.ctrlKey && !event.metaKey && !event.altKey) {
+    if ((event.key === 'Tab' && !event.shiftKey) || event.key === 'PageDown') {
+      return { type: 'focus-tab-relative', delta: 1 };
+    }
+    if ((event.key === 'Tab' && event.shiftKey) || event.key === 'PageUp') {
+      return { type: 'focus-tab-relative', delta: -1 };
+    }
   }
 
   // Cycle next / previous split: Cmd+] / Cmd+[ (macOS Ghostty)
@@ -625,11 +1509,7 @@ export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShort
   // Equalize splits: Ctrl+Alt+Shift+E (ghostty-union), Cmd+Shift+= / Ctrl+Shift+= (Ghostty)
   const isEqualKey = event.key === '=' || event.key === '+' || code === 'Equal';
   if (
-    (event.ctrlKey &&
-      event.altKey &&
-      event.shiftKey &&
-      !event.metaKey &&
-      matchesLetter(keyLower, code, 'e')) ||
+    (isCtrlAltShiftOnly && matchesLetter(keyLower, code, 'e')) ||
     (isEqualKey &&
       event.shiftKey &&
       !event.altKey &&
@@ -638,7 +1518,7 @@ export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShort
     return { type: 'equalize' };
   }
 
-  // Close active split pane: Cmd+Shift+W / Ctrl+Shift+W / Alt+Shift+W
+  // Close active split pane (or active tab if last pane): Cmd+Shift+W / Ctrl+Shift+W / Alt+Shift+W
   if (
     matchesLetter(keyLower, code, 'w') &&
     event.shiftKey &&
@@ -649,8 +1529,18 @@ export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShort
     return { type: 'close-pane' };
   }
 
-  // Active pane TUI toggle & launch menu shortcut
+  // Alt-only shortcuts: Alt+1..9 tab switching, Alt+]/[ tab cycling, Alt+T TUI toggle, Alt+M launch menu
   if (event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
+    const tabIndex = parseDigitIndex(event.key, code);
+    if (tabIndex !== null) {
+      return { type: 'focus-tab-index', index: tabIndex };
+    }
+    if (isBracketRight) {
+      return { type: 'focus-tab-relative', delta: 1 };
+    }
+    if (isBracketLeft) {
+      return { type: 'focus-tab-relative', delta: -1 };
+    }
     if (matchesLetter(keyLower, code, 't')) {
       return { type: 'toggle-tui' };
     }

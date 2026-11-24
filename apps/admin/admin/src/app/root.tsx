@@ -119,7 +119,7 @@ export default function AdminRoot() {
             <div className={styles.barMeta}>
               {hasGlobalWorkspace ? (
                 <span className={styles.shortcutHint}>
-                  {'Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit'}
+                  {'Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit · Alt+⇧T tab'}
                 </span>
               ) : null}
               <OscStatusBadge

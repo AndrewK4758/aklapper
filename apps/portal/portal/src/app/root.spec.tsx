@@ -200,5 +200,16 @@ describe('PortalRoot', () => {
     fireEvent.keyDown(window, { key: 'W', ctrlKey: true, shiftKey: true });
     fireEvent.keyDown(window, { key: 'W', ctrlKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
+
+    // Open a new terminal tab via Alt+Shift+T from /menu TUI route, switch back via Alt+1, then close it
+    fireEvent.keyDown(window, { key: 'T', code: 'KeyT', altKey: true, shiftKey: true });
+    expect(workspaceEl.getAttribute('data-tab-count')).toBe('2');
+    expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-2');
+    fireEvent.keyDown(window, { key: '1', code: 'Digit1', altKey: true });
+    expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-1');
+    expect(screen.getByText('TUI Menu Probe')).toBeTruthy();
+    fireEvent.keyDown(window, { key: '2', code: 'Digit2', altKey: true });
+    fireEvent.keyDown(window, { key: 'W', code: 'KeyW', altKey: true, shiftKey: true });
+    expect(workspaceEl.getAttribute('data-tab-count')).toBe('1');
   });
 });

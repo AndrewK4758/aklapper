@@ -8,10 +8,10 @@ import {
   useState,
 } from 'react';
 
-import { Button } from '../elements/base/Button';
-import { ScrollArea } from '../elements/base/ScrollArea';
-import { Toolbar } from '../elements/base/Toolbar';
-import { Tooltip } from '../elements/base/Tooltip';
+import { Button } from '../elements/base';
+import { ScrollArea } from '../elements/base';
+import { Toolbar } from '../elements/base';
+import { Tooltip } from '../elements/base';
 import { useIsPaneActive } from './TerminalWorkspace';
 
 import styles from './TuiWindow.module.css';
@@ -60,13 +60,13 @@ function WindowControlButton({ label, glyph, onClick }: WindowControlButtonProps
       <Tooltip.Trigger
         render={
           <Button.Root
-            type='button'
-            size='xs'
+            type="button"
+            size="xs"
             className={styles.iconButton}
             onClick={onClick}
             aria-label={label}
           >
-            <Button.Icon aria-hidden='true'>{glyph}</Button.Icon>
+            <Button.Icon aria-hidden="true">{glyph}</Button.Icon>
           </Button.Root>
         }
       />
@@ -80,12 +80,12 @@ function WindowControlButton({ label, glyph, onClick }: WindowControlButtonProps
 }
 
 export function TuiWindow({
-  title,
-  badge,
-  children,
-  onClose,
-  closeOnEscape = true,
-}: TuiWindowProps) {
+                            title,
+                            badge,
+                            children,
+                            onClose,
+                            closeOnEscape = true,
+                          }: TuiWindowProps) {
   const isPaneActive = useIsPaneActive();
   const [floating, setFloating] = useState<FloatingRect | null>(null);
   const frameRef = useRef<HTMLElement | null>(null);
@@ -120,10 +120,10 @@ export function TuiWindow({
     setFloating(prev =>
       prev
         ? {
-            ...prev,
-            x: event.clientX - origin.dx,
-            y: Math.max(MIN_WINDOW_TOP, event.clientY - origin.dy),
-          }
+          ...prev,
+          x: event.clientX - origin.dx,
+          y: Math.max(MIN_WINDOW_TOP, event.clientY - origin.dy),
+        }
         : prev,
     );
   };
@@ -150,10 +150,10 @@ export function TuiWindow({
     setFloating(prev =>
       prev
         ? {
-            ...prev,
-            width: Math.max(MIN_WINDOW_WIDTH, origin.sw + (event.clientX - origin.sx)),
-            height: Math.max(MIN_WINDOW_HEIGHT, origin.sh + (event.clientY - origin.sy)),
-          }
+          ...prev,
+          width: Math.max(MIN_WINDOW_WIDTH, origin.sw + (event.clientX - origin.sx)),
+          height: Math.max(MIN_WINDOW_HEIGHT, origin.sh + (event.clientY - origin.sy)),
+        }
         : prev,
     );
   };
@@ -208,11 +208,11 @@ export function TuiWindow({
 
   const floatingVars = floating
     ? ({
-        '--tui-x': `${floating.x}px`,
-        '--tui-y': `${floating.y}px`,
-        '--tui-w': `${floating.width}px`,
-        '--tui-h': `${floating.height}px`,
-      } as CSSProperties)
+      '--tui-x': `${floating.x}px`,
+      '--tui-y': `${floating.y}px`,
+      '--tui-w': `${floating.width}px`,
+      '--tui-h': `${floating.height}px`,
+    } as CSSProperties)
     : undefined;
 
   const hasControls = Boolean(floating || onClose);
@@ -232,9 +232,9 @@ export function TuiWindow({
         onPointerUp={onDragEnd}
       >
         <button
-          type='button'
+          type="button"
           className={styles.title}
-          data-drag-handle='true'
+          data-drag-handle="true"
           aria-label={`${title} window handle — arrows move, Shift+arrows resize, 0 snaps to grid`}
           onKeyDown={onTitleKeyDown}
         >
@@ -246,13 +246,13 @@ export function TuiWindow({
             <Toolbar.Root className={styles.actionToolbar} aria-label={`${title} window controls`}>
               {floating ? (
                 <WindowControlButton
-                  label='Snap window back to grid'
-                  glyph='⊞'
+                  label="Snap window back to grid"
+                  glyph="⊞"
                   onClick={() => setFloating(null)}
                 />
               ) : null}
               {onClose ? (
-                <WindowControlButton label='Close window' glyph='×' onClick={onClose} />
+                <WindowControlButton label="Close window" glyph="×" onClick={onClose} />
               ) : null}
             </Toolbar.Root>
           ) : null}
@@ -262,7 +262,7 @@ export function TuiWindow({
         <ScrollArea.Viewport className={styles.bodyViewport}>
           <ScrollArea.Content className={styles.body}>{children}</ScrollArea.Content>
         </ScrollArea.Viewport>
-        <ScrollArea.Scrollbar orientation='vertical'>
+        <ScrollArea.Scrollbar orientation="vertical">
           <ScrollArea.Thumb />
         </ScrollArea.Scrollbar>
       </ScrollArea.Root>
@@ -271,7 +271,7 @@ export function TuiWindow({
         onPointerDown={onResizeStart}
         onPointerMove={onResizeMove}
         onPointerUp={onResizeEnd}
-        aria-hidden='true'
+        aria-hidden="true"
       />
     </section>
   );
