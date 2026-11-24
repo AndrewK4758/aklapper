@@ -11,10 +11,12 @@ import {
   validateFormField,
 } from '@aklapper/core';
 
+import { parseCliNavFlags, type TerminalNavTarget } from './terminalPaneNav';
+
 export interface TerminalFormConfig {
   readonly definition: FormDefinition;
   readonly submit: (formData: FormData) => Promise<ContactActionResult>;
-  readonly openTuiRoute?: () => void;
+  readonly openTuiRoute?: (target?: TerminalNavTarget) => void;
 }
 
 export interface TerminalFormSessionState {
@@ -210,7 +212,11 @@ function buildValidationValueMap(
 
 export type StartTerminalFormOutcome =
   | { readonly kind: 'output'; readonly output: string; readonly status: 'ok' | 'error' }
-  | { readonly kind: 'open-tui'; readonly output: string }
+  | {
+      readonly kind: 'open-tui';
+      readonly output: string;
+      readonly navTarget: TerminalNavTarget;
+    }
   | {
       readonly kind: 'submit-immediately';
       readonly session: TerminalFormSessionState;
@@ -228,13 +234,21 @@ export function startTerminalFormSession(
   definition: FormDefinition,
   rawCommand: string,
 ): StartTerminalFormOutcome {
-  const parsed = parseCliFormInvocation(definition, rawCommand);
+  const tokens = rawCommand.trim().split(/\s+/);
+  const hasTuiFlag = tokens.includes('--tui');
+  const navFlags = hasTuiFlag
+    ? parseCliNavFlags(tokens.slice(1))
+    : { target: 'in-pane' as const, positional: tokens.slice(1) };
+  const sanitizedCommand = hasTuiFlag
+    ? [tokens[0] ?? '', ...navFlags.positional].join(' ')
+    : rawCommand;
+  const parsed = parseCliFormInvocation(definition, sanitizedCommand);
 
   if (parsed.help) {
     return { kind: 'output', output: formatCliFormHelp(definition), status: 'ok' };
   }
   if (parsed.openTui) {
-    return { kind: 'open-tui', output: 'opening /contact TUI ...' };
+    return { kind: 'open-tui', output: 'opening /contact TUI ...', navTarget: navFlags.target };
   }
   if (parsed.unknownTokens.length > 0) {
     return {

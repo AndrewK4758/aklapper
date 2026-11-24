@@ -2,6 +2,7 @@ import type { PortalHomeContent, TerminalProfileData } from '@aklapper/core';
 import {
   Button,
   OscStatusBadge,
+  PaneLink,
   type TerminalFormConfig,
   TerminalWorkspace,
   Toolbar,
@@ -49,7 +50,11 @@ export function PortalLauncherTui({
         <p>{content.description}</p>
         <Toolbar.Root className={styles.actions} aria-label='Portal launch actions'>
           {content.actions.map(action => (
-            <Button.Link key={action.to} render={<Link to={action.to} />} variant={action.variant}>
+            <Button.Link
+              key={action.to}
+              render={<PaneLink to={action.to} render={<Link to={action.to} />} />}
+              variant={action.variant}
+            >
               <Button.Label>{action.label}</Button.Label>
             </Button.Link>
           ))}

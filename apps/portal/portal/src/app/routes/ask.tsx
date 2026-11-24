@@ -12,6 +12,7 @@ import {
   searchPortfolioCorpusFallback,
 } from '@aklapper/db';
 import { proxyJson } from '@aklapper/node-runtime/http';
+import { usePaneNavigation } from '@aklapper/ui';
 import {
   type ActionFunctionArgs,
   data,
@@ -25,14 +26,16 @@ import {
 import { type PortalAskActionResult, PortalAskPage } from '#pages/ask';
 
 import { resolveGuestSession } from '../guest-session.server';
+import { runPaneSafeLoader, unwrapPaneLoaderData } from '../pane-loader';
 import { buildPortalPageMeta } from '../seo';
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { sessionId, setCookieHeader } = resolveGuestSession(request);
-  const payload = await loadPortalAskDataWithPrerender(sessionId);
-  return data<PortalAskLoaderData>(
-    payload,
-    setCookieHeader ? { headers: { 'Set-Cookie': setCookieHeader } } : undefined,
+  const headers = setCookieHeader ? { 'Set-Cookie': setCookieHeader } : undefined;
+  return runPaneSafeLoader<PortalAskLoaderData>(
+    request,
+    () => loadPortalAskDataWithPrerender(sessionId),
+    headers,
   );
 }
 
@@ -122,12 +125,13 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export function meta({ loaderData, matches, location }: MetaArgs<typeof loader>) {
+  const resolved = unwrapPaneLoaderData(loaderData);
   return buildPortalPageMeta({
     matches,
     pathname: location.pathname,
     title: 'Ask Portfolio & JD Match // andrew-k.us',
     description:
-      loaderData?.content.description ??
+      resolved?.content.description ??
       'Grounded portfolio RAG Q&A and Job Description matcher with strict abstention.',
   });
 }
@@ -136,6 +140,7 @@ export default function PortalAskRoute() {
   const { content, quota } = useLoaderData() as PortalAskLoaderData;
   const fetcher = useFetcher<PortalAskActionResult>();
   const navigate = useNavigate();
+  const paneNav = usePaneNavigation();
 
   return (
     <PortalAskPage
@@ -144,10 +149,14 @@ export default function PortalAskRoute() {
       actionResult={fetcher.data}
       isSubmitting={fetcher.state !== 'idle'}
       onSubmitAsk={({ mode, text }) => {
-        void fetcher.submit({ mode, text }, { method: 'post' });
+        void fetcher.submit({ mode, text }, { method: 'post', action: '/ask' });
       }}
       onClose={() => {
-        void navigate('/');
+        if (paneNav?.docked) {
+          paneNav.exitTui();
+        } else {
+          void navigate('/');
+        }
       }}
     />
   );

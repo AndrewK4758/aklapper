@@ -11,6 +11,7 @@ import {
   updateSandboxRunGateVerdict,
 } from '@aklapper/db';
 import { proxyJson } from '@aklapper/node-runtime/http';
+import { usePaneNavigation } from '@aklapper/ui';
 import {
   type ActionFunctionArgs,
   data,
@@ -24,6 +25,7 @@ import {
 import { type PortalCadenceActionResult, PortalCadencePage } from '#pages/cadence';
 
 import { resolveGuestSession } from '../guest-session.server';
+import { runPaneSafeLoader, unwrapPaneLoaderData } from '../pane-loader';
 import { buildPortalPageMeta } from '../seo';
 
 function escapeHtml(raw: string): string {
@@ -63,10 +65,11 @@ function buildFallbackArtifactHtml(prompt: string, presetSlug: string): string {
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { sessionId, setCookieHeader } = resolveGuestSession(request);
-  const payload = await loadPortalCadenceDataWithPrerender(sessionId);
-  return data<PortalCadenceLoaderData>(
-    payload,
-    setCookieHeader ? { headers: { 'Set-Cookie': setCookieHeader } } : undefined,
+  const headers = setCookieHeader ? { 'Set-Cookie': setCookieHeader } : undefined;
+  return runPaneSafeLoader<PortalCadenceLoaderData>(
+    request,
+    () => loadPortalCadenceDataWithPrerender(sessionId),
+    headers,
   );
 }
 
@@ -236,12 +239,13 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export function meta({ loaderData, matches, location }: MetaArgs<typeof loader>) {
+  const resolved = unwrapPaneLoaderData(loaderData);
   return buildPortalPageMeta({
     matches,
     pathname: location.pathname,
     title: 'CADENCE Builder // andrew-k.us',
     description:
-      loaderData?.content.description ??
+      resolved?.content.description ??
       'Quota-gated prompt-to-artifact sandbox wired for live GKE Autopilot scale-from-zero execution.',
   });
 }
@@ -250,6 +254,7 @@ export default function PortalCadenceRoute() {
   const { content, presets, quota, recentRuns } = useLoaderData() as PortalCadenceLoaderData;
   const fetcher = useFetcher<PortalCadenceActionResult>();
   const navigate = useNavigate();
+  const paneNav = usePaneNavigation();
 
   return (
     <PortalCadencePage
@@ -260,13 +265,23 @@ export default function PortalCadenceRoute() {
       actionResult={fetcher.data}
       isSubmitting={fetcher.state !== 'idle'}
       onRunBuild={({ prompt, presetSlug }) => {
-        void fetcher.submit({ intent: 'run', prompt, presetSlug }, { method: 'post' });
+        void fetcher.submit(
+          { intent: 'run', prompt, presetSlug },
+          { method: 'post', action: '/cadence' },
+        );
       }}
       onGateVerdict={({ runId, verdict }) => {
-        void fetcher.submit({ intent: 'gate', runId, verdict }, { method: 'post' });
+        void fetcher.submit(
+          { intent: 'gate', runId, verdict },
+          { method: 'post', action: '/cadence' },
+        );
       }}
       onClose={() => {
-        void navigate('/');
+        if (paneNav?.docked) {
+          paneNav.exitTui();
+        } else {
+          void navigate('/');
+        }
       }}
     />
   );

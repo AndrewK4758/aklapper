@@ -12,6 +12,7 @@ import { Button } from '../elements/base';
 import { ScrollArea } from '../elements/base';
 import { Toolbar } from '../elements/base';
 import { Tooltip } from '../elements/base';
+import { usePaneNavigation } from './paneNavigationContext';
 import { useIsPaneActive } from './TerminalWorkspace';
 
 import styles from './TuiWindow.module.css';
@@ -22,6 +23,14 @@ export interface TuiWindowProps {
   children: ReactNode;
   onClose?: () => void;
   closeOnEscape?: boolean;
+  docked?: boolean;
+}
+
+function formatStackSegmentLabel(viewId: string): string {
+  if (viewId === 'tui') return 'Launcher';
+  const cleaned = viewId.replace(/^\/+/, '');
+  if (!cleaned) return 'Home';
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 }
 
 interface FloatingRect {
@@ -85,15 +94,18 @@ export function TuiWindow({
   children,
   onClose,
   closeOnEscape = true,
+  docked: dockedProp,
 }: TuiWindowProps) {
   const isPaneActive = useIsPaneActive();
+  const paneNav = usePaneNavigation();
+  const isDocked = dockedProp ?? Boolean(paneNav?.docked);
   const [floating, setFloating] = useState<FloatingRect | null>(null);
   const frameRef = useRef<HTMLElement | null>(null);
   const dragOrigin = useRef<{ dx: number; dy: number } | null>(null);
   const resizeOrigin = useRef<{ sx: number; sy: number; sw: number; sh: number } | null>(null);
 
   useEffect(() => {
-    if (!onClose || !closeOnEscape || !isPaneActive) return;
+    if (isDocked || !onClose || !closeOnEscape || !isPaneActive) return;
     const handleWindowKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape' && !event.defaultPrevented) {
         event.preventDefault();
@@ -104,7 +116,7 @@ export function TuiWindow({
     return () => {
       window.removeEventListener('keydown', handleWindowKeyDown);
     };
-  }, [closeOnEscape, isPaneActive, onClose]);
+  }, [closeOnEscape, isDocked, isPaneActive, onClose]);
 
   const onDragStart = (event: PointerEvent<HTMLDivElement>) => {
     if ((event.target as HTMLElement).closest('button:not([data-drag-handle])')) return;
@@ -206,53 +218,89 @@ export function TuiWindow({
     }
   };
 
-  const floatingVars = floating
+  const effectiveFloating = isDocked ? null : floating;
+  const floatingVars = effectiveFloating
     ? ({
-        '--tui-x': `${floating.x}px`,
-        '--tui-y': `${floating.y}px`,
-        '--tui-w': `${floating.width}px`,
-        '--tui-h': `${floating.height}px`,
+        '--tui-x': `${effectiveFloating.x}px`,
+        '--tui-y': `${effectiveFloating.y}px`,
+        '--tui-w': `${effectiveFloating.width}px`,
+        '--tui-h': `${effectiveFloating.height}px`,
       } as CSSProperties)
     : undefined;
 
-  const hasControls = Boolean(floating || onClose);
+  const canGoBack = Boolean(isDocked && paneNav?.canGoBack);
+  const handleExitTui = isDocked && paneNav ? paneNav.exitTui : onClose;
+  const hasControls = Boolean(effectiveFloating || handleExitTui);
+  const parentTrail =
+    isDocked && paneNav && paneNav.stack.length > 1
+      ? paneNav.stack.slice(0, -1).map(formatStackSegmentLabel).join(' › ')
+      : null;
 
   return (
     <section
       ref={frameRef}
       className={styles.window}
-      data-floating={floating ? 'true' : 'false'}
+      data-docked={isDocked ? 'true' : 'false'}
+      data-floating={effectiveFloating ? 'true' : 'false'}
       style={floatingVars}
       aria-label={title}
     >
       <div
         className={styles.titlebar}
-        onPointerDown={onDragStart}
-        onPointerMove={onDragMove}
-        onPointerUp={onDragEnd}
+        data-tui-titlebar='true'
+        onPointerDown={isDocked ? undefined : onDragStart}
+        onPointerMove={isDocked ? undefined : onDragMove}
+        onPointerUp={isDocked ? undefined : onDragEnd}
       >
-        <button
-          type='button'
-          className={styles.title}
-          data-drag-handle='true'
-          aria-label={`${title} window handle — arrows move, Shift+arrows resize, 0 snaps to grid`}
-          onKeyDown={onTitleKeyDown}
-        >
-          {title}
-        </button>
+        <div className={styles.titleGroup}>
+          {canGoBack && paneNav ? (
+            <Button.Root
+              type='button'
+              size='xs'
+              className={styles.backButton}
+              onClick={paneNav.pop}
+              aria-label='Go back'
+            >
+              <Button.Icon aria-hidden='true'>←</Button.Icon>
+              <Button.Label>Back</Button.Label>
+            </Button.Root>
+          ) : null}
+          {isDocked ? (
+            <span className={styles.title}>
+              {parentTrail ? (
+                <span className={styles.breadcrumbTrail}>{parentTrail} › </span>
+              ) : null}
+              {title}
+            </span>
+          ) : (
+            <button
+              type='button'
+              className={styles.title}
+              data-drag-handle='true'
+              aria-label={`${title} window handle — arrows move, Shift+arrows resize, 0 snaps to grid`}
+              onKeyDown={onTitleKeyDown}
+            >
+              {title}
+            </button>
+          )}
+        </div>
         <div className={styles.actions}>
           {badge}
           {hasControls ? (
             <Toolbar.Root className={styles.actionToolbar} aria-label={`${title} window controls`}>
-              {floating ? (
+              {effectiveFloating ? (
                 <WindowControlButton
                   label='Snap window back to grid'
                   glyph='⊞'
                   onClick={() => setFloating(null)}
                 />
               ) : null}
-              {onClose ? (
-                <WindowControlButton label='Close window' glyph='×' onClick={onClose} />
+              {handleExitTui ? (
+                <WindowControlButton
+                  label={isDocked ? 'Exit TUI' : 'Close window'}
+                  glyph='×'
+                  onClick={handleExitTui}
+                />
               ) : null}
             </Toolbar.Root>
           ) : null}
@@ -266,13 +314,16 @@ export function TuiWindow({
           <ScrollArea.Thumb />
         </ScrollArea.Scrollbar>
       </ScrollArea.Root>
-      <div
-        className={styles.resize}
-        onPointerDown={onResizeStart}
-        onPointerMove={onResizeMove}
-        onPointerUp={onResizeEnd}
-        aria-hidden='true'
-      />
+      {isDocked ? null : (
+        <div
+          className={styles.resize}
+          data-resize-handle='true'
+          onPointerDown={onResizeStart}
+          onPointerMove={onResizeMove}
+          onPointerUp={onResizeEnd}
+          aria-hidden='true'
+        />
+      )}
     </section>
   );
 }

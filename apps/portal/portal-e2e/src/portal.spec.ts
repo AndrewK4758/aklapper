@@ -68,37 +68,44 @@ test.describe('portal SSR end-to-end journeys', () => {
     await commandInput.press('Control+l');
     await expect(page.getByText('guest@andrew-k.us (tty1)')).toHaveCount(0);
 
-    // `tui` command snaps open the TUI launcher in a split pane, and Escape closes that pane
+    // `tui` command takes over the current pane in-place without splitting, and Escape returns to shell
+    await commandInput.fill('whoami');
+    await commandInput.press('Enter');
+    await expect(page.getByText('guest@andrew-k.us (tty1)')).toBeVisible();
+
     await commandInput.fill('tui');
     await commandInput.press('Enter');
-    await expect(page.locator('[data-pane-count="2"]')).toBeVisible();
+    await expect(page.locator('[data-pane-count="1"]')).toBeVisible();
     await expect(page.locator('[data-pane-kind="tui"]')).toBeVisible();
+    await expect(page.locator('section[data-docked="true"][data-floating="false"]')).toBeVisible();
+    await expect(page.locator('[data-resize-handle="true"]')).toHaveCount(0);
     await expect(tuiHeading).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(tuiHeading).toHaveCount(0);
     await expect(page.locator('[data-pane-count="1"]')).toBeVisible();
+    await expect(page.getByText('guest@andrew-k.us (tty1)')).toBeVisible();
 
     // Footer includes Sitemap link
     const sitemapLink = page.locator('footer').getByRole('link', { name: 'Sitemap' });
     await expect(sitemapLink).toBeVisible();
     await expect(sitemapLink).toHaveAttribute('href', '/sitemap.xml');
 
-    // Alt+T toggles the TUI split pane open and closed
+    // Alt+T toggles the TUI launcher in-place on the active pane
     await page.keyboard.press('Alt+t');
-    await expect(page.locator('[data-pane-count="2"]')).toBeVisible();
+    await expect(page.locator('[data-pane-count="1"]')).toBeVisible();
     await expect(page.locator('[data-pane-kind="tui"]')).toBeVisible();
     await expect(tuiHeading).toBeVisible();
     await page.keyboard.press('Alt+t');
     await expect(tuiHeading).toHaveCount(0);
     await expect(page.locator('[data-pane-count="1"]')).toBeVisible();
 
-    // Ctrl+Shift+O splits a new terminal pane; `tui` snaps a 3rd pane, Escape closes TUI, exit closes tty2
+    // Ctrl+Shift+O splits a new terminal pane; `tui` takes over tty2 in-place, Escape returns tty2 to shell, exit closes tty2
     await page.keyboard.press('Control+Shift+O');
     await expect(page.locator('[data-pane-count="2"]')).toBeVisible();
     const splitPaneInput = page.getByLabel('Terminal command input', { exact: true });
     await splitPaneInput.fill('tui');
     await splitPaneInput.press('Enter');
-    await expect(page.locator('[data-pane-count="3"]')).toBeVisible();
+    await expect(page.locator('[data-pane-count="2"]')).toBeVisible();
     await expect(tuiHeading).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(tuiHeading).toHaveCount(0);
@@ -107,19 +114,22 @@ test.describe('portal SSR end-to-end journeys', () => {
     await splitPaneInput.press('Enter');
     await expect(page.locator('[data-pane-count="1"]')).toBeVisible();
 
-    // `menu` command navigates to /menu
+    // `menu` command opens /menu in-place while keeping URL at /
     await commandInput.fill('menu');
     await commandInput.press('Enter');
-    await expect(page).toHaveURL(/\/menu$/);
+    await expect(page).toHaveURL(/\/$/);
     await expect(page.getByRole('heading', { name: /Launch Menu/i })).toBeVisible();
     await expect(page.getByText(/CADENCE Builder/i)).toBeVisible();
     await expect(page.getByText(/cadence-admin/i)).toHaveCount(0);
 
-    // Keybinding `1` on /menu launches /cadence, and Escape returns to /
+    // Keybinding `1` on /menu pushes /cadence in-place, Escape pops back to /menu, q exits straight to shell
     await page.keyboard.press('1');
-    await expect(page).toHaveURL(/\/cadence$/);
-    await page.keyboard.press('Escape');
     await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByText(/CADENCE Builder \/\/ portfolio-public/i)).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('heading', { name: /Launch Menu/i })).toBeVisible();
+    await page.keyboard.press('q');
+    await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '0');
 
     expect(getErrors()).toEqual([]);
   });
@@ -176,13 +186,14 @@ test.describe('portal SSR end-to-end journeys', () => {
     test.skip(IS_MAINTENANCE_MODE, 'Contact route is gated in maintenance mode');
     const getErrors = trackPageErrors(page);
 
-    // Launch /contact TUI explicitly via `contact --tui`
+    // Launch /contact TUI explicitly via `contact --tui` (stays in-pane on `/`)
     await page.goto('/');
     const commandInput = page.getByLabel('Terminal command input');
     await expect(commandInput).toBeFocused();
     await commandInput.fill('contact --tui');
     await commandInput.press('Enter');
-    await expect(page).toHaveURL(/\/contact$/);
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '1');
 
     // Recursive nested fieldsets rendered from Postgres JSON schema
     await expect(page.locator('fieldset')).toHaveCount(3);
@@ -316,7 +327,8 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(page.getByTestId('menu-deploy-status-contact')).toBeVisible();
 
     await page.keyboard.press('3');
-    await expect(page).toHaveURL(/\/agensi$/);
+    await expect(page).toHaveURL(/\/menu$/);
+    await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '2');
     await expect(page.getByTestId('agensi-skill-grid')).toBeVisible();
 
     // Filter by tag via Base UI ToggleGroup
@@ -573,17 +585,102 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(workspace).toHaveAttribute('data-active-tab', 'tab-1');
     await expect(workspace).toHaveAttribute('data-pane-count', '1');
 
-    // 14. TUI split toggle via Alt+T and close via Escape
+    // 14. TUI in-place toggle via Alt+T and close via Escape
     await page.keyboard.press('Alt+t');
-    await expect(workspace).toHaveAttribute('data-pane-count', '2');
+    await expect(workspace).toHaveAttribute('data-pane-count', '1');
     await expect(page.locator('[data-pane-kind="tui"]')).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(workspace).toHaveAttribute('data-pane-count', '1');
+    await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '0');
 
-    // 15. Alt+M navigates to /menu
+    // 15. Alt+M opens /menu in-place while keeping URL at /
     await page.keyboard.press('Alt+m');
-    await expect(page).toHaveURL(/\/menu$/);
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole('heading', { name: /Launch Menu/i })).toBeVisible();
 
     expect(getErrors()).toEqual([]);
+  });
+
+  test('supports explicit split/tab escape hatches, focus-scoped pane controls, and deep-link return', async ({
+    page,
+  }) => {
+    test.skip(IS_MAINTENANCE_MODE, 'Workspace navigation is gated in maintenance mode');
+    const getErrors = trackPageErrors(page);
+
+    await page.goto('/');
+    const workspace = page.locator('[data-pane-count]');
+    const commandInput = page.getByLabel('Terminal command input', { exact: true });
+
+    // CLI --split opens a right split pane with /menu while keeping pane-1 in shell
+    await commandInput.fill('menu --split');
+    await commandInput.press('Enter');
+    await expect(workspace).toHaveAttribute('data-pane-count', '2');
+    const pane2 = page.locator('[data-pane-id="pane-2"]');
+    await expect(pane2).toHaveAttribute('data-active', 'true');
+    await pane2.getByRole('link', { name: /Agensi/i }).click();
+    await expect(pane2).toHaveAttribute('data-tui-depth', '2');
+
+    // Focus pane-1, hover pane-2 (must NOT steal focus), press Escape (must NOT pop pane-2)
+    const pane1 = page.locator('[data-pane-id="pane-1"]');
+    await pane1.click();
+    await expect(pane1).toHaveAttribute('data-active', 'true');
+    await pane2.hover();
+    await expect(pane1).toHaveAttribute('data-active', 'true');
+    await page.keyboard.press('Escape');
+    await expect(pane2).toHaveAttribute('data-tui-depth', '2');
+
+    // Clicking Go back inside unfocused pane-2 both focuses pane-2 and pops it to /menu
+    await pane2.getByRole('button', { name: 'Go back' }).click();
+    await expect(pane2).toHaveAttribute('data-active', 'true');
+    await expect(pane2).toHaveAttribute('data-tui-depth', '1');
+    await expect(pane2.getByRole('heading', { name: /Launch Menu/i })).toBeVisible();
+
+    // Shift+Click opens a split pane; Ctrl+Click opens a new tab
+    await pane2.getByRole('link', { name: /Agensi/i }).click({ modifiers: ['Control'] });
+    await expect(workspace).toHaveAttribute('data-tab-count', '2');
+    await expect(workspace).toHaveAttribute('data-active-tab', 'tab-2');
+
+    // Direct SSR deep-link to /agensi initializes pane-1 and returns to / on Exit TUI
+    await page.goto('/agensi');
+    await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '1');
+    await page.getByRole('button', { name: 'Exit TUI' }).click();
+    await expect(page).toHaveURL(/\/$/);
+
+    expect(getErrors()).toEqual([]);
+  });
+
+  test('persists guest session cookie on fresh-context in-pane /ask and /cadence loads', async ({
+    browser,
+  }) => {
+    test.skip(IS_MAINTENANCE_MODE, 'Ask and CADENCE routes are gated in maintenance mode');
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    const getErrors = trackPageErrors(page);
+
+    try {
+      await page.goto('/');
+      const commandInput = page.getByLabel('Terminal command input', { exact: true });
+
+      // Open /ask in-pane from a fresh context (no prior ak_guest_sid cookie)
+      await commandInput.fill('cd ask');
+      await commandInput.press('Enter');
+      await expect(page).toHaveURL(/\/$/);
+      await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '1');
+
+      // Wait for /ask view to load and verify guest cookie persistence
+      await expect(page.getByRole('button', { name: /Ask|Submit|Run/i }).first()).toBeVisible();
+      const cookies = await context.cookies();
+      expect(cookies.some(cookie => cookie.name === 'ak_guest_sid')).toBe(true);
+
+      // Exit back to shell and open /cadence in-pane
+      await page.getByRole('button', { name: 'Exit TUI' }).click();
+      await commandInput.fill('cadence');
+      await commandInput.press('Enter');
+      await expect(page).toHaveURL(/\/$/);
+      await expect(page.getByText(/CADENCE Builder \/\/ portfolio-public/i)).toBeVisible();
+
+      expect(getErrors()).toEqual([]);
+    } finally {
+      await context.close();
+    }
   });
 });

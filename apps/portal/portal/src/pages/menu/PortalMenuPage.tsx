@@ -1,6 +1,13 @@
 import type { K8sPodEvent, MenuItem, PortalMenuContent } from '@aklapper/core';
 import { filterMenuForRole } from '@aklapper/core';
-import { NavigationMenu, Separator, TuiWindow, useIsPaneActive } from '@aklapper/ui';
+import {
+  NavigationMenu,
+  PaneLink,
+  Separator,
+  TuiWindow,
+  useIsPaneActive,
+  usePaneNavigation,
+} from '@aklapper/ui';
 import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router';
 
@@ -25,6 +32,7 @@ function findDeploymentStatus(
 
 export function PortalMenuPage({ content, items, deployments, onNavigate }: PortalMenuPageProps) {
   const isPaneActive = useIsPaneActive();
+  const paneNav = usePaneNavigation();
   const visibleItems = useMemo(() => filterMenuForRole(items, 'guest'), [items]);
 
   useEffect(() => {
@@ -47,7 +55,12 @@ export function PortalMenuPage({ content, items, deployments, onNavigate }: Port
       );
       if (matched) {
         event.preventDefault();
-        onNavigate(`/${matched.slug}`);
+        const route = `/${matched.slug}`;
+        if (paneNav?.docked) {
+          paneNav.push(route);
+        } else {
+          onNavigate(route);
+        }
       }
     };
 
@@ -55,10 +68,13 @@ export function PortalMenuPage({ content, items, deployments, onNavigate }: Port
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isPaneActive, onNavigate, visibleItems]);
+  }, [isPaneActive, onNavigate, paneNav, visibleItems]);
 
   return (
-    <TuiWindow title={content.heading} onClose={() => onNavigate('/')}>
+    <TuiWindow
+      title={content.heading}
+      onClose={() => (paneNav?.docked ? paneNav.exitTui() : onNavigate('/'))}
+    >
       <div className={styles.card} aria-labelledby='menu-heading'>
         <h1 id='menu-heading'>{content.heading}</h1>
         <p>{content.description}</p>
@@ -80,7 +96,9 @@ export function PortalMenuPage({ content, items, deployments, onNavigate }: Port
               return (
                 <NavigationMenu.Item key={item.slug} className={styles.menuItem}>
                   <NavigationMenu.Link
-                    render={<Link to={`/${item.slug}`} />}
+                    render={
+                      <PaneLink to={`/${item.slug}`} render={<Link to={`/${item.slug}`} />} />
+                    }
                     className={styles.menuLink}
                   >
                     <span>
