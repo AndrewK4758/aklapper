@@ -5,10 +5,12 @@ import { pathToFileURL } from 'node:url';
 
 import fastifyCookie from '@fastify/cookie';
 import fastifyHelmet from '@fastify/helmet';
+import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { createRequestHandler, type ServerBuild } from 'react-router';
 
+import { AUTH_LOG_REDACT_PATHS } from './auth.ts';
 import { loadWorkspaceEnv } from './env.ts';
 
 export interface SsrServerOptions {
@@ -43,7 +45,16 @@ function collectResponseHeaders(webHeaders: Headers): Record<string, string | st
 export async function createSsrServer(options: SsrServerOptions): Promise<SsrServerInstance> {
   loadWorkspaceEnv({ startDir: options.buildDir });
   const { serviceName, buildDir, port, host } = options;
-  const app = Fastify({ logger: true, bodyLimit: 10 * 1024 * 1024 });
+  const app = Fastify({
+    trustProxy: true,
+    logger: {
+      redact: {
+        paths: [...AUTH_LOG_REDACT_PATHS],
+        censor: '[REDACTED]',
+      },
+    },
+    bodyLimit: 10 * 1024 * 1024,
+  });
 
   const rawBufferParser = (
     _request: unknown,
@@ -62,6 +73,29 @@ export async function createSsrServer(options: SsrServerOptions): Promise<SsrSer
 
   await app.register(fastifyHelmet, { contentSecurityPolicy: false });
   await app.register(fastifyCookie);
+  await app.register(fastifyRateLimit, {
+    global: false,
+    errorResponseBuilder: (_request, context) => ({
+      statusCode: context.statusCode,
+      error: 'RATE_LIMITED',
+      message: `Too many requests. Retry in ${context.after}.`,
+    }),
+  });
+
+  if (serviceName === 'admin-ssr') {
+    const passwordLoginLimiter = app.rateLimit({ max: 20, timeWindow: '1 minute' });
+    const totpVerifyLimiter = app.rateLimit({ max: 20, timeWindow: '1 minute' });
+    app.addHook('onRequest', async (request, reply) => {
+      if (request.method !== 'POST') return;
+      const pathname = request.url.split('?')[0];
+      if (pathname === '/api/auth/password/login') {
+        await passwordLoginLimiter.call(app, request, reply);
+      } else if (pathname === '/api/auth/totp/verify') {
+        await totpVerifyLimiter.call(app, request, reply);
+      }
+    });
+  }
+
   const servePrerenderedStatic = process.env['SERVE_PRERENDERED_STATIC'] === 'true';
 
   await app.register(fastifyStatic, {
@@ -88,6 +122,12 @@ export async function createSsrServer(options: SsrServerOptions): Promise<SsrSer
       } else if (typeof value === 'string') {
         headers.set(key, value);
       }
+    }
+    if (!headers.has('x-forwarded-for') && request.ip) {
+      headers.set('x-forwarded-for', request.ip);
+    }
+    if (!headers.has('x-forwarded-proto') && request.protocol) {
+      headers.set('x-forwarded-proto', request.protocol);
     }
     const hasBody = request.method !== 'GET' && request.method !== 'HEAD';
     let requestBody: BodyInit | undefined;

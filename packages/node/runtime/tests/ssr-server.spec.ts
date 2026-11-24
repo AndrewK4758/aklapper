@@ -282,4 +282,82 @@ describe('@aklapper/node-runtime/ssr', () => {
       await server.app.close();
     }
   });
+
+  it('enforces scoped rate limiting, proxy IP fallback, and header forwarding for admin-ssr auth routes only', async () => {
+    const buildDir = await createFixtureBuildDir();
+    activeHandlerRef.current = async request => {
+      return Response.json({
+        forwardedFor: request.headers.get('x-forwarded-for'),
+        forwardedProto: request.headers.get('x-forwarded-proto'),
+      });
+    };
+
+    const adminServer = await createSsrServer({
+      serviceName: 'admin-ssr',
+      buildDir,
+      port: 0,
+      host: '127.0.0.1',
+    });
+    const portalServer = await createSsrServer({
+      serviceName: 'portal-ssr',
+      buildDir,
+      port: 0,
+      host: '127.0.0.1',
+    });
+
+    try {
+      const probe = await adminServer.app.inject({
+        method: 'POST',
+        url: '/api/auth/passkey/login/options',
+        headers: { 'content-type': 'application/json' },
+        payload: JSON.stringify({}),
+      });
+      expect(probe.statusCode).toBe(200);
+      expect(probe.json().forwardedFor).toBeTruthy();
+      expect(probe.json().forwardedProto).toBe('http');
+
+      for (let i = 0; i < 20; i += 1) {
+        const res = await adminServer.app.inject({
+          method: 'POST',
+          url: '/api/auth/password/login',
+          headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.50' },
+          payload: JSON.stringify({ handle: 'admin', password: 'wrong' }),
+        });
+        expect(res.statusCode).toBe(200);
+      }
+
+      const throttled = await adminServer.app.inject({
+        method: 'POST',
+        url: '/api/auth/password/login',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.50' },
+        payload: JSON.stringify({ handle: 'admin', password: 'wrong' }),
+      });
+      expect(throttled.statusCode).toBe(429);
+      expect(throttled.headers['retry-after']).toBeDefined();
+      expect(throttled.json()).toMatchObject({
+        statusCode: 429,
+        error: 'RATE_LIMITED',
+      });
+
+      const unthrottledRoute = await adminServer.app.inject({
+        method: 'GET',
+        url: '/login',
+        headers: { 'x-forwarded-for': '203.0.113.50' },
+      });
+      expect(unthrottledRoute.statusCode).toBe(200);
+
+      for (let i = 0; i < 25; i += 1) {
+        const portalRes = await portalServer.app.inject({
+          method: 'POST',
+          url: '/api/auth/password/login',
+          headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.50' },
+          payload: JSON.stringify({}),
+        });
+        expect(portalRes.statusCode).toBe(200);
+      }
+    } finally {
+      await adminServer.app.close();
+      await portalServer.app.close();
+    }
+  });
 });
