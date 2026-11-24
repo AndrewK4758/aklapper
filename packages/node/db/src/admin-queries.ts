@@ -241,7 +241,7 @@ export async function loadAdminOverviewData(
       qdrant: options.qdrantHealth ?? {
         name: 'Qdrant Vector Store',
         status: 'offline',
-        detail: 'AI_ASK_URL not configured (PG19 fallback active)',
+        detail: 'AI_ASK_URL not configured (fail-closed)',
       },
       portfolioPublic: options.portfolioPublicHealth ?? {
         name: 'portfolio-public',

@@ -7,10 +7,6 @@ import {
   AgensiSkillSchema,
   type AnalyticsBatch,
   AnalyticsBatchSchema,
-  type AskMode,
-  type AskResponse,
-  AskResponseSchema,
-  type AskSource,
   type AuthSession,
   AuthSessionSchema,
   type CadenceGateVerdict,
@@ -1133,11 +1129,13 @@ export async function consumeQuotaForSession(
       .select()
       .from(schema.rateLimitBuckets)
       .where(eq(schema.rateLimitBuckets.scopeKey, sessionKey))
+      .for('update')
       .limit(1);
     const [globalRow] = await tx
       .select()
       .from(schema.rateLimitBuckets)
       .where(eq(schema.rateLimitBuckets.scopeKey, globalKey))
+      .for('update')
       .limit(1);
 
     const sessionTurns = sessionRow?.turnsUsed ?? 0;
@@ -1319,186 +1317,5 @@ export async function updateSandboxRunGateVerdict(
     tokensIn: result.run.tokensIn,
     tokensOut: result.run.tokensOut,
     createdAt: result.run.createdAt.toISOString(),
-  });
-}
-
-const FALLBACK_STOPWORDS = new Set([
-  'the',
-  'and',
-  'for',
-  'with',
-  'that',
-  'this',
-  'from',
-  'about',
-  'what',
-  'does',
-  'have',
-  'your',
-  'into',
-  'role',
-  'will',
-  'team',
-  'are',
-  'you',
-  'can',
-  'how',
-  'why',
-  'who',
-]);
-
-function extractTerms(text: string): string[] {
-  return Array.from(
-    new Set(
-      text
-        .toLowerCase()
-        .replace(/[^a-z0-9+#.-]+/g, ' ')
-        .split(/\s+/)
-        .filter(term => term.length >= 2 && !FALLBACK_STOPWORDS.has(term)),
-    ),
-  );
-}
-
-const CURATED_FALLBACK_CORPUS: ReadonlyArray<{
-  id: string;
-  title: string;
-  snippet: string;
-  category: string;
-}> = [
-  {
-    id: 'dossier-stack',
-    title: 'Andrew Klapper — Core Architecture & Stack',
-    snippet:
-      'Principal full-stack and cloud systems engineer specializing in TypeScript, React 19, React Router 8 SSR, Fastify 5, Go 1.27 microservices, PostgreSQL 19 with Drizzle ORM, Qdrant vector search, and GCP Cloud Run + GKE Autopilot scale-from-zero workloads.',
-    category: 'dossier',
-  },
-  {
-    id: 'dossier-cadence',
-    title: 'CADENCE — Agentic SDLC & CHORD Sandbox',
-    snippet:
-      'Designed CADENCE, a specification-driven multi-agent delivery workflow using phased CHORD execution (triage, spec, build, gate), isolated git worktrees, deterministic verification gates, and zero-trust sandboxed iframe previews.',
-    category: 'dossier',
-  },
-  {
-    id: 'dossier-security',
-    title: 'Security & Cloud Operations Posture',
-    snippet:
-      'Implemented WebAuthn Passkeys + TOTP 2FA, HMAC-SHA256 signed internal service tokens between SSR BFFs and Go APIs, strict namespace redaction separating portfolio-public from cadence-admin, and PostgreSQL CHECK constraints.',
-    category: 'dossier',
-  },
-  {
-    id: 'dossier-ai',
-    title: 'Grounded RAG & Dual-Provider AI Pipeline',
-    snippet:
-      'Unified LLM and embedding layer supporting local llama-swap inference and Google Cloud Vertex AI Gemini/text-embedding-005 with Qdrant cosine similarity retrieval and strict abstention when evidence scores are below threshold.',
-    category: 'dossier',
-  },
-];
-
-export async function searchPortfolioCorpusFallback(
-  db: AppDatabase,
-  queryText: string,
-  mode: AskMode,
-  quota?: QuotaStatus,
-): Promise<AskResponse> {
-  const [skills, milestones] = await Promise.all([
-    getAgensiSkills(db).catch(() => []),
-    getRoadmapMilestones(db).catch(() => []),
-  ]);
-
-  const docs = [
-    ...CURATED_FALLBACK_CORPUS,
-    ...skills.map(skill => ({
-      id: `agensi:${skill.slug}`,
-      title: `Agensi Skill // ${skill.name}`,
-      snippet: `${skill.summary} Tags: ${skill.tags.join(', ')}.`,
-      category: 'agensi_skills',
-    })),
-    ...milestones.map(milestone => ({
-      id: `milestone:${milestone.slug}`,
-      title: `Roadmap [${milestone.status}] // ${milestone.slug}`,
-      snippet: milestone.label,
-      category: 'roadmap_milestones',
-    })),
-  ];
-
-  const terms = extractTerms(queryText);
-  const scored: Array<AskSource & { matchedTerms: string[] }> = [];
-
-  for (const doc of docs) {
-    const haystack = `${doc.title} ${doc.snippet}`.toLowerCase();
-    const matchedTerms = terms.filter(term => haystack.includes(term));
-    if (matchedTerms.length === 0) continue;
-    const rawScore = Math.min(0.95, 0.32 + matchedTerms.length * 0.14);
-    scored.push({
-      id: doc.id,
-      title: doc.title,
-      snippet: doc.snippet,
-      score: Math.round(rawScore * 100) / 100,
-      category: doc.category,
-      matchedTerms,
-    });
-  }
-
-  scored.sort((a, b) => b.score - a.score);
-  const topHits = scored.slice(0, 4);
-
-  if (topHits.length === 0 || (topHits[0]?.score ?? 0) < 0.35) {
-    return AskResponseSchema.parse({
-      grounded: false,
-      mode,
-      answer:
-        'Abstaining: no grounded portfolio evidence matched your request above the confidence threshold.',
-      sources: [],
-      ...(mode === 'jd_match'
-        ? {
-            matchScore: 0,
-            strengths: [],
-            gaps: [
-              'No overlapping verified portfolio evidence was found for the supplied description.',
-            ],
-          }
-        : {}),
-      provider: 'pg19-local-corpus',
-      tokensUsed: 0,
-      quota,
-    });
-  }
-
-  const sources: AskSource[] = topHits.map(({ matchedTerms: _ignored, ...src }) => src);
-  if (mode === 'jd_match') {
-    const allMatched = new Set(topHits.flatMap(hit => hit.matchedTerms));
-    const unmatched = terms.filter(term => !allMatched.has(term)).slice(0, 4);
-    const ratio = terms.length > 0 ? allMatched.size / Math.min(terms.length, 12) : 0.5;
-    const matchScore = Math.max(35, Math.min(96, Math.round(ratio * 100)));
-    const strengths = topHits.slice(0, 3).map(hit => `${hit.title}: ${hit.snippet.slice(0, 140)}`);
-    const gaps =
-      unmatched.length > 0
-        ? [`Not explicitly evidenced in indexed portfolio corpus: ${unmatched.join(', ')}.`]
-        : ['No major stack gaps detected against the verified portfolio corpus.'];
-
-    return AskResponseSchema.parse({
-      grounded: true,
-      mode,
-      answer: `Grounded JD alignment (${matchScore}% match) across ${sources.length} verified portfolio documents covering ${Array.from(allMatched).slice(0, 6).join(', ')}.`,
-      sources,
-      matchScore,
-      strengths,
-      gaps,
-      provider: 'pg19-local-corpus',
-      tokensUsed: 0,
-      quota,
-    });
-  }
-
-  const lead = topHits[0];
-  return AskResponseSchema.parse({
-    grounded: true,
-    mode,
-    answer: `Based on verified portfolio evidence (${lead?.title}): ${lead?.snippet}`,
-    sources,
-    provider: 'pg19-local-corpus',
-    tokensUsed: 0,
-    quota,
   });
 }

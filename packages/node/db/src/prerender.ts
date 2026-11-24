@@ -57,7 +57,7 @@ const DEFAULT_GUEST_QUOTA: QuotaStatus = {
   turnsUsed: 0,
   maxTurns: 5,
   tokensUsed: 0,
-  maxTokens: 100_000,
+  maxTokens: 20_000,
 };
 
 export function getPrerenderPortalMaintenanceData(): PortalMaintenanceLoaderData {

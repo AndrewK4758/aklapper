@@ -5,6 +5,7 @@ import {
   deleteContactSubmission,
   deleteTerminalCommand,
   deleteTerminalInitialEntry,
+  getAskTurnByAttemptId,
   getContactSubmissionAttachment,
   overrideSandboxGateVerdict,
   purgeStaleRateLimitBuckets,
@@ -44,6 +45,7 @@ describe('@aklapper/db admin queries & mutations', () => {
     } as unknown as AppDatabase;
 
     expect(await getContactSubmissionAttachment(db, 'not-a-uuid')).toBeNull();
+    expect(await getAskTurnByAttemptId(db, 'not-a-uuid', 'guest_1')).toBeNull();
     expect(await deleteContactSubmission(db, 'not-a-uuid')).toBe(false);
     expect(await overrideSandboxGateVerdict(db, 'not-a-uuid', 'approved')).toBeNull();
     expect(await deleteTerminalCommand(db, -1)).toBe(false);
