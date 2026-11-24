@@ -1,7 +1,9 @@
-import { randomUUID } from 'node:crypto';
-
 import type { DiagnosticAppError } from '@aklapper/core/server-errors';
 import { createContext, type RouterContext, type RouterContextProvider } from 'react-router';
+
+function generateCorrelationUuid(): string {
+  return globalThis.crypto.randomUUID();
+}
 
 export interface SsrStructuredLogger {
   info: (obj: Record<string, unknown>, msg?: string) => void;
@@ -94,7 +96,7 @@ export function extractCorrelationId(
     if (CORRELATION_ID_PATTERN.test(direct)) {
       return { correlationId: direct, headerRejected: false };
     }
-    return { correlationId: randomUUID(), headerRejected: true };
+    return { correlationId: generateCorrelationUuid(), headerRejected: true };
   }
 
   const requestId = readHeaderValue(headers, 'x-request-id');
@@ -102,7 +104,7 @@ export function extractCorrelationId(
     if (CORRELATION_ID_PATTERN.test(requestId)) {
       return { correlationId: requestId, headerRejected: false };
     }
-    return { correlationId: randomUUID(), headerRejected: true };
+    return { correlationId: generateCorrelationUuid(), headerRejected: true };
   }
 
   const cloudTrace = readHeaderValue(headers, 'x-cloud-trace-context');
@@ -111,10 +113,10 @@ export function extractCorrelationId(
     if (CLOUD_TRACE_ID_PATTERN.test(traceId)) {
       return { correlationId: traceId, headerRejected: false };
     }
-    return { correlationId: randomUUID(), headerRejected: true };
+    return { correlationId: generateCorrelationUuid(), headerRejected: true };
   }
 
-  return { correlationId: randomUUID(), headerRejected: false };
+  return { correlationId: generateCorrelationUuid(), headerRejected: false };
 }
 
 export function getOrCreateCorrelationId(

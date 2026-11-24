@@ -1,6 +1,4 @@
 import type { StreamResult } from '@aklapper/core';
-import { deferStreamResult, getOrCreateCorrelationId } from '@aklapper/node-runtime/ssr/stream';
-import { data, type RouterContextProvider } from 'react-router';
 
 export interface PaneLoaderErrorEnvelope {
   readonly __paneLoaderError: true;
@@ -47,25 +45,4 @@ export function unwrapPaneLoaderData<T>(
     return undefined;
   }
   return value;
-}
-
-export function runPaneSafeLoader<T>(
-  request: Request,
-  load: () => Promise<T>,
-  options?: {
-    readonly context?: Readonly<RouterContextProvider>;
-    readonly source?: string;
-    readonly headers?: HeadersInit;
-  },
-) {
-  const correlationId = getOrCreateCorrelationId(request, options?.context);
-  const envelope: StreamLoaderEnvelope<T> = {
-    correlationId,
-    payload: deferStreamResult(Promise.resolve().then(load), {
-      request,
-      context: options?.context,
-      source: options?.source ?? 'portal.pane.loader',
-    }),
-  };
-  return options?.headers ? data(envelope, { headers: options.headers }) : envelope;
 }
