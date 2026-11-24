@@ -1,0 +1,15 @@
+@layer component {
+  .boundary {
+    display: flex;
+    flex-direction: column;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-center);
+    width: 100%;
+    padding: var(--sf-inset-section) var(--sf-inset-panel);
+  }
+
+  .content {
+    width: 100%;
+    max-width: var(--sf-container-sm);
+  }
+}

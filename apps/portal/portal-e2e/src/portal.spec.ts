@@ -1,4 +1,4 @@
-import { assertSsrHealthz, trackPageErrors } from '@aklapper/tooling/playwright';
+import { assertSsrHealthz, gotoStreamedPage, trackPageErrors } from '@aklapper/tooling/playwright';
 import { expect, test } from '@playwright/test';
 
 const IS_MAINTENANCE_MODE = process.env['PORTAL_MAINTENANCE_MODE'] === 'true';
@@ -14,7 +14,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     test.skip(IS_MAINTENANCE_MODE, 'Full greeter and menu routes are gated in maintenance mode');
     const getErrors = trackPageErrors(page);
 
-    await page.goto('/');
+    await gotoStreamedPage(page, '/');
     await expect(page).toHaveTitle(/^Andrew Klapper Portfolio$/);
 
     const commandInput = page.getByLabel('Terminal command input');
@@ -138,7 +138,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     test.skip(IS_MAINTENANCE_MODE, 'CADENCE builder route is gated in maintenance mode');
     const getErrors = trackPageErrors(page);
 
-    await page.goto('/cadence');
+    await gotoStreamedPage(page, '/cadence');
     await expect(page.getByText(/CADENCE Builder \/\/ portfolio-public/i)).toBeVisible();
     await expect(page.getByText(/0\/1 replicas/i)).toBeVisible();
 
@@ -165,7 +165,7 @@ test.describe('portal SSR end-to-end journeys', () => {
   }) => {
     const getErrors = trackPageErrors(page);
 
-    await page.goto('/changes-in-progress');
+    await gotoStreamedPage(page, '/changes-in-progress');
     await expect(page.getByRole('heading', { name: /Changes in Progress/i })).toBeVisible();
     await expect(page.locator('header')).toHaveCount(0);
     await expect(page.locator('footer')).toHaveCount(0);
@@ -187,7 +187,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     const getErrors = trackPageErrors(page);
 
     // Launch /contact TUI explicitly via `contact --tui` (stays in-pane on `/`)
-    await page.goto('/');
+    await gotoStreamedPage(page, '/');
     const commandInput = page.getByLabel('Terminal command input');
     await expect(commandInput).toBeFocused();
     await commandInput.fill('contact --tui');
@@ -249,7 +249,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     test.skip(IS_MAINTENANCE_MODE, 'Contact route is gated in maintenance mode');
     const getErrors = trackPageErrors(page);
 
-    await page.goto('/');
+    await gotoStreamedPage(page, '/');
     const terminalSection = page.locator('section[aria-label="Interactive Terminal tty1"]');
     const promptInput = page.getByLabel('Terminal command input', { exact: true });
     await expect(promptInput).toBeFocused();
@@ -321,7 +321,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     test.skip(IS_MAINTENANCE_MODE, 'Agensi storefront route is gated in maintenance mode');
     const getErrors = trackPageErrors(page);
 
-    await page.goto('/menu');
+    await gotoStreamedPage(page, '/menu');
     await expect(page.getByTestId('menu-deploy-status-cadence')).toBeVisible();
     await expect(page.getByTestId('menu-deploy-status-ask')).toBeVisible();
     await expect(page.getByTestId('menu-deploy-status-contact')).toBeVisible();
@@ -352,7 +352,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     test.skip(IS_MAINTENANCE_MODE, 'Ask Portfolio route is gated in maintenance mode');
     const getErrors = trackPageErrors(page);
 
-    await page.goto('/ask');
+    await gotoStreamedPage(page, '/ask');
     await expect(page.getByTestId('ask-quota-meter')).toBeVisible();
 
     // Starter question chip + grounded Q&A
@@ -393,7 +393,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     test.skip(IS_MAINTENANCE_MODE, 'CADENCE builder route is gated in maintenance mode');
     const getErrors = trackPageErrors(page);
 
-    await page.goto('/cadence');
+    await gotoStreamedPage(page, '/cadence');
     await expect(page.getByTestId('cadence-quota-meter')).toBeVisible();
     await page
       .getByTestId('cadence-prompt-input')
@@ -449,7 +449,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     test.skip(IS_MAINTENANCE_MODE, 'Workspace keybindings are tested in full portal mode');
     const getErrors = trackPageErrors(page);
 
-    await page.goto('/');
+    await gotoStreamedPage(page, '/');
 
     const workspace = page.locator('[data-pane-count]');
     const commandInput = page.getByLabel('Terminal command input', { exact: true });
@@ -606,7 +606,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     test.skip(IS_MAINTENANCE_MODE, 'Workspace navigation is gated in maintenance mode');
     const getErrors = trackPageErrors(page);
 
-    await page.goto('/');
+    await gotoStreamedPage(page, '/');
     const workspace = page.locator('[data-pane-count]');
     const commandInput = page.getByLabel('Terminal command input', { exact: true });
 
@@ -640,7 +640,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(workspace).toHaveAttribute('data-active-tab', 'tab-2');
 
     // Direct SSR deep-link to /agensi initializes pane-1 and returns to / on Exit TUI
-    await page.goto('/agensi');
+    await gotoStreamedPage(page, '/agensi');
     await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '1');
     await page.getByRole('button', { name: 'Exit TUI' }).click();
     await expect(page).toHaveURL(/\/$/);
@@ -657,10 +657,10 @@ test.describe('portal SSR end-to-end journeys', () => {
     const getErrors = trackPageErrors(page);
 
     try {
-      await page.goto('/');
+      await gotoStreamedPage(page, '/');
       const commandInput = page.getByLabel('Terminal command input', { exact: true });
 
-      // Open /ask in-pane from a fresh context (no prior ak_guest_sid cookie)
+      // Open /ask in-pane from a fresh context (no prior ak_guest_session cookie)
       await commandInput.fill('cd ask');
       await commandInput.press('Enter');
       await expect(page).toHaveURL(/\/$/);
@@ -669,7 +669,7 @@ test.describe('portal SSR end-to-end journeys', () => {
       // Wait for /ask view to load and verify guest cookie persistence
       await expect(page.getByRole('button', { name: /Ask|Submit|Run/i }).first()).toBeVisible();
       const cookies = await context.cookies();
-      expect(cookies.some(cookie => cookie.name === 'ak_guest_sid')).toBe(true);
+      expect(cookies.some(cookie => cookie.name === 'ak_guest_session')).toBe(true);
 
       // Exit back to shell and open /cadence in-pane
       await page.getByRole('button', { name: 'Exit TUI' }).click();
@@ -682,5 +682,35 @@ test.describe('portal SSR end-to-end journeys', () => {
     } finally {
       await context.close();
     }
+  });
+
+  test('emits streaming SSR headers and serves complete onAllReady HTML to search crawlers', async ({
+    request,
+  }) => {
+    test.skip(IS_MAINTENANCE_MODE, 'Crawler SSR route check is gated in maintenance mode');
+
+    const browserRes = await request.get('/menu', {
+      headers: {
+        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/135.0.0.0',
+      },
+    });
+    expect(browserRes.status()).toBe(200);
+    expect(browserRes.headers()['x-accel-buffering']).toBe('no');
+    expect(browserRes.headers()['x-correlation-id']).toMatch(/^[A-Za-z0-9._:-]{1,128}$/);
+
+    const botRes = await request.get('/menu', {
+      headers: {
+        'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+      },
+    });
+    expect(botRes.status()).toBe(200);
+    expect(botRes.headers()['x-correlation-id']).toMatch(/^[A-Za-z0-9._:-]{1,128}$/);
+    const botHtml = await botRes.text();
+    expect(botHtml).toContain('CADENCE Builder');
+    expect(botHtml).toContain('data-testid="menu-deploy-status-cadence"');
+    expect(botHtml).not.toContain('Loading launch menu...');
+    expect(botHtml).not.toContain('Initializing Solar Forge workspace...');
+    expect(botHtml).not.toContain('aria-busy="true"');
+    expect(botHtml).not.toMatch(/<div hidden="" id="S:/);
   });
 });

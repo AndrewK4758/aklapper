@@ -38,6 +38,7 @@
         "cache": true,
         "defaultConfiguration": "production",
         "dependsOn": [
+          "typegen",
           "^build"
         ],
         "inputs": [
@@ -135,6 +136,11 @@
           "cwd": "apps/portal/portal",
           "command": "react-router typegen"
         }
+      },
+      "test": {
+        "dependsOn": [
+          "typegen"
+        ]
       },
       "typecheck": {
         "dependsOn": [

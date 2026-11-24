@@ -39,6 +39,7 @@
         "cache": true,
         "defaultConfiguration": "production",
         "dependsOn": [
+          "typegen",
           "^build"
         ],
         "inputs": [
@@ -136,6 +137,11 @@
           "cwd": "apps/admin/admin",
           "command": "react-router typegen"
         }
+      },
+      "test": {
+        "dependsOn": [
+          "typegen"
+        ]
       },
       "typecheck": {
         "dependsOn": [

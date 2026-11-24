@@ -120,6 +120,9 @@ export function PortalContactPage({
             serverErrors={errorResult?.fieldErrors}
             serverFormError={errorResult?.formError ?? null}
             errorSource={errorResult?.source ?? null}
+            errorCode={errorResult?.code ?? null}
+            errorAction={errorResult?.action ?? null}
+            correlationId={errorResult?.correlationId ?? null}
             isSubmitting={isSubmitting}
             renderForm={({ className, onSubmit, children }) => {
               const formBody = (

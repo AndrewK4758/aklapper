@@ -1,11 +1,19 @@
 import type {
+  ActionErrorMetadata,
   AdminOpsLoaderData,
   AdminSandboxRun,
   CadenceGateVerdict,
   K8sPodEvent,
   Osc7501State,
 } from '@aklapper/core';
-import { Button, OscStatusBadge, SandboxedArtifactFrame, Separator, TuiWindow } from '@aklapper/ui';
+import {
+  ActionFeedbackBanner,
+  Button,
+  OscStatusBadge,
+  SandboxedArtifactFrame,
+  Separator,
+  TuiWindow,
+} from '@aklapper/ui';
 import { useState } from 'react';
 import { Form, useFetcher } from 'react-router';
 
@@ -13,7 +21,7 @@ import { markDeploymentWaking, useOpsClusterStream } from './opsClusterStore';
 
 import styles from './AdminOpsPage.module.css';
 
-export interface AdminOpsActionData {
+export interface AdminOpsActionData extends ActionErrorMetadata {
   ok: boolean;
   message: string;
 }
@@ -66,15 +74,7 @@ export function AdminOpsPage({ data, actionData }: AdminOpsPageProps) {
   return (
     <TuiWindow title='Cluster Watcher, cadence-admin & Sandbox Audit // Ops'>
       <div className={styles.panel}>
-        {feedback ? (
-          feedback.ok ? (
-            <output className={styles.statusNote}>{feedback.message}</output>
-          ) : (
-            <p role='alert' className={styles.errorNote}>
-              {feedback.message}
-            </p>
-          )
-        ) : null}
+        {feedback ? <ActionFeedbackBanner {...feedback} /> : null}
 
         <section className={styles.card} aria-label='Dual-namespace cluster watcher'>
           <div className={styles.cardHeader}>

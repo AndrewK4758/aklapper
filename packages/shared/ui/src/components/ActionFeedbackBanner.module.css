@@ -1,0 +1,41 @@
+@layer component {
+  .statusNote {
+    display: block;
+    margin: var(--sf-space-0);
+    padding: var(--sf-space-3) var(--sf-space-4);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-success-bg);
+    border: var(--sf-border-width) solid var(--sf-success);
+    font-size: var(--sf-text-xs);
+  }
+
+  .errorNote {
+    display: grid;
+    gap: var(--sf-space-1);
+    margin: var(--sf-space-0);
+    padding: var(--sf-space-3) var(--sf-space-4);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-err-bg);
+    border: var(--sf-border-width) solid var(--sf-err);
+    color: var(--sf-err);
+    font-size: var(--sf-text-xs);
+  }
+
+  .message,
+  .action,
+  .meta {
+    margin: var(--sf-space-0);
+  }
+
+  .action {
+    color: var(--sf-fg-bone);
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sf-space-3);
+    color: var(--sf-fg-cmt);
+    font-family: var(--sf-font-code), monospace;
+  }
+}

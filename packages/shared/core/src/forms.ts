@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import type { ActionErrorMetadata } from './errors.ts';
+
 export const CONTACT_MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MiB
 
 export const CONTACT_ALLOWED_MIME_TYPES = [
@@ -527,12 +529,12 @@ export type ContactActionResult =
       ok: true;
       submission: ContactSubmissionSummary;
     }
-  | {
+  | ({
       ok: false;
       source: 'client' | 'server' | 'database';
       formError: string;
       fieldErrors: FormFieldErrorMap;
-    };
+    } & ActionErrorMetadata);
 
 export interface FormFieldsetHeader {
   id: string;

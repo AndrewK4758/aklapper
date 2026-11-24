@@ -1,11 +1,21 @@
 import type {
+  ActionErrorMetadata,
   AskMode,
   AskResponse,
   Osc7501State,
   PortalAskContent,
   QuotaStatus,
 } from '@aklapper/core';
-import { Button, Input, Meter, OscStatusBadge, Separator, Tabs, TuiWindow } from '@aklapper/ui';
+import {
+  ActionFeedbackBanner,
+  Button,
+  Input,
+  Meter,
+  OscStatusBadge,
+  Separator,
+  Tabs,
+  TuiWindow,
+} from '@aklapper/ui';
 import { type FormEvent, useState } from 'react';
 
 import styles from './PortalAskPage.module.css';
@@ -17,12 +27,12 @@ export type PortalAskActionResult =
       readonly submittedText: string;
       readonly response: AskResponse;
     }
-  | {
+  | ({
       readonly ok: false;
       readonly mode: AskMode;
       readonly error: string;
       readonly quota?: QuotaStatus;
-    };
+    } & ActionErrorMetadata);
 
 export interface PortalAskPageProps {
   content: PortalAskContent;
@@ -154,9 +164,14 @@ export function PortalAskPage({
         <Separator.Root />
 
         {actionResult && !actionResult.ok && (
-          <div className={styles.errorBanner} role='alert' data-testid='ask-error-banner'>
-            {actionResult.error}
-          </div>
+          <ActionFeedbackBanner
+            ok={false}
+            message={actionResult.error}
+            action={actionResult.action}
+            code={actionResult.code}
+            correlationId={actionResult.correlationId}
+            testId='ask-error-banner'
+          />
         )}
 
         <Tabs.Root

@@ -1,18 +1,25 @@
 import {
   buildRouteMetaTags,
+  type DocumentSeoRuntimeConfig,
   getRootDataFromMatches,
-  type PortalRootLoaderData,
   type RouteMatchLike,
   type SeoMetaDescriptor,
 } from '@aklapper/core';
 
 export const DEFAULT_PORTAL_SITE_URL = 'https://andrew-k.us';
 export const PORTAL_SITE_NAME = 'andrew-k.us';
+export const DEFAULT_PORTAL_MAINTENANCE_DESCRIPTION =
+  'andrew-k.us is being rebuilt into the Solar Forge v2 interactive terminal and TUI platform.';
+
+export interface PortalRootSyncSeoData {
+  readonly maintenanceMode?: boolean;
+  readonly runtimeSeo?: DocumentSeoRuntimeConfig;
+}
 
 export function getPortalRootDataFromMatches(
   matches: readonly (RouteMatchLike | undefined)[],
-): PortalRootLoaderData | undefined {
-  return getRootDataFromMatches<PortalRootLoaderData>(matches);
+): PortalRootSyncSeoData | undefined {
+  return getRootDataFromMatches<PortalRootSyncSeoData>(matches);
 }
 
 export function buildPortalPageMeta(options: {
@@ -28,12 +35,8 @@ export function buildPortalPageMeta(options: {
 
   if (isMaintenance) {
     return buildRouteMetaTags({
-      title: rootData?.maintenance?.content.heading
-        ? `${rootData.maintenance.content.heading} // ${PORTAL_SITE_NAME}`
-        : `Changes in Progress // ${PORTAL_SITE_NAME}`,
-      description:
-        rootData?.maintenance?.content.lead ??
-        'andrew-k.us is being rebuilt into the Solar Forge v2 interactive terminal and TUI platform.',
+      title: `Changes in Progress // ${PORTAL_SITE_NAME}`,
+      description: DEFAULT_PORTAL_MAINTENANCE_DESCRIPTION,
       siteName: PORTAL_SITE_NAME,
       siteUrl,
       pathname: options.pathname,

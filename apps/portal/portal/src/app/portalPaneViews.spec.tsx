@@ -4,19 +4,100 @@ import {
   type PortalAgensiLoaderData,
   type PortalContactLoaderData,
   type PortalHomeContent,
+  type PortalHomeLoaderData,
   type PortalMenuLoaderData,
   type PortalRootLoaderData,
+  type StreamResult,
   type TerminalProfileData,
 } from '@aklapper/core';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { createMemoryRouter, type LoaderFunctionArgs, RouterProvider } from 'react-router';
+import {
+  createMemoryRouter,
+  type LoaderFunctionArgs,
+  RouterProvider,
+  useLoaderData,
+  useMatches,
+  useParams,
+} from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { runPaneSafeLoader } from './pane-loader';
-import PortalRoot from './root';
+import { runPaneSafeLoader, type StreamLoaderEnvelope } from './pane-loader';
+import PortalRoot, { type PortalRootStreamData } from './root';
 import PortalAgensiRoute from './routes/agensi';
 import PortalGreeterRoute from './routes/home';
 import PortalMenuRoute from './routes/menu';
+
+function streamOk<T>(data: T, correlationId = 'corr-pane-test'): StreamLoaderEnvelope<T> {
+  return {
+    correlationId,
+    payload: Promise.resolve<StreamResult<T>>({ ok: true, data }),
+  };
+}
+
+function makeRootStreamData(data: PortalRootLoaderData): PortalRootStreamData {
+  return {
+    runtimeSeo: { siteUrl: 'https://andrew-k.us' },
+    correlationId: 'corr-root-pane',
+    maintenanceMode: data.maintenanceMode,
+    rootPayload: Promise.resolve<StreamResult<PortalRootLoaderData>>({ ok: true, data }),
+  };
+}
+
+function PortalRootBridge() {
+  const loaderData = useLoaderData<PortalRootStreamData>();
+  const params = useParams();
+  const matches = useMatches();
+  return (
+    <PortalRoot
+      loaderData={loaderData}
+      params={params}
+      matches={matches as never}
+      actionData={undefined}
+    />
+  );
+}
+
+function PortalHomeBridge() {
+  const loaderData = useLoaderData<StreamLoaderEnvelope<PortalHomeLoaderData>>();
+  const params = useParams();
+  const matches = useMatches();
+  return (
+    <PortalGreeterRoute
+      loaderData={loaderData}
+      params={params}
+      matches={matches as never}
+      actionData={undefined}
+    />
+  );
+}
+
+function PortalAgensiBridge() {
+  const loaderData = useLoaderData<StreamLoaderEnvelope<PortalAgensiLoaderData>>();
+  const params = useParams();
+  const matches = useMatches();
+  return (
+    <PortalAgensiRoute
+      loaderData={loaderData}
+      params={params}
+      matches={matches as never}
+      actionData={undefined}
+    />
+  );
+}
+
+function PortalMenuBridge() {
+  const loaderData = useLoaderData<StreamLoaderEnvelope<PortalMenuLoaderData>>();
+  const params = useParams();
+  const matches = useMatches();
+  return (
+    <PortalMenuRoute
+      loaderData={loaderData}
+      params={params}
+      matches={matches as never}
+      actionData={undefined}
+    />
+  );
+}
 
 const CHROME: PortalRootLoaderData['chrome'] = {
   pageTitle: 'andrew-k.us // Solar Forge Terminal',
@@ -149,28 +230,34 @@ describe('Portal in-pane route adapters & deep-links', () => {
         {
           id: 'root',
           path: '/',
-          loader: (): PortalRootLoaderData => ({
-            maintenanceMode: false,
-            chrome: CHROME,
-            maintenance: null,
-            terminal: TERMINAL,
-            homeContent: HOME_CONTENT,
-          }),
-          Component: PortalRoot,
+          loader: () =>
+            makeRootStreamData({
+              maintenanceMode: false,
+              chrome: CHROME,
+              maintenance: null,
+              terminal: TERMINAL,
+              homeContent: HOME_CONTENT,
+            }),
+          Component: PortalRootBridge,
           children: [
             {
               index: true,
-              loader: () => ({ content: HOME_CONTENT, terminal: TERMINAL }),
-              Component: PortalGreeterRoute,
+              loader: () =>
+                streamOk<PortalHomeLoaderData>({
+                  content: HOME_CONTENT,
+                  terminal: TERMINAL,
+                  contactForm: CONTACT_FORM_DEFINITION,
+                }),
+              Component: PortalHomeBridge,
             },
             {
               path: 'menu',
-              loader: () => MENU_DATA,
+              loader: () => streamOk(MENU_DATA),
               Component: () => <div>Menu SSR</div>,
             },
             {
               path: 'contact',
-              loader: () => CONTACT_DATA,
+              loader: () => streamOk(CONTACT_DATA),
               action: contactActionSpy,
               Component: () => <div>Contact SSR</div>,
             },
@@ -212,24 +299,30 @@ describe('Portal in-pane route adapters & deep-links', () => {
         {
           id: 'root',
           path: '/',
-          loader: (): PortalRootLoaderData => ({
-            maintenanceMode: false,
-            chrome: CHROME,
-            maintenance: null,
-            terminal: TERMINAL,
-            homeContent: HOME_CONTENT,
-          }),
-          Component: PortalRoot,
+          loader: () =>
+            makeRootStreamData({
+              maintenanceMode: false,
+              chrome: CHROME,
+              maintenance: null,
+              terminal: TERMINAL,
+              homeContent: HOME_CONTENT,
+            }),
+          Component: PortalRootBridge,
           children: [
             {
               index: true,
-              loader: () => ({ content: HOME_CONTENT, terminal: TERMINAL }),
-              Component: PortalGreeterRoute,
+              loader: () =>
+                streamOk<PortalHomeLoaderData>({
+                  content: HOME_CONTENT,
+                  terminal: TERMINAL,
+                  contactForm: CONTACT_FORM_DEFINITION,
+                }),
+              Component: PortalHomeBridge,
             },
             {
               path: 'agensi',
-              loader: () => AGENSI_DATA,
-              Component: PortalAgensiRoute,
+              loader: () => streamOk(AGENSI_DATA),
+              Component: PortalAgensiBridge,
             },
           ],
         },
@@ -256,19 +349,25 @@ describe('Portal in-pane route adapters & deep-links', () => {
         {
           id: 'root',
           path: '/',
-          loader: (): PortalRootLoaderData => ({
-            maintenanceMode: false,
-            chrome: CHROME,
-            maintenance: null,
-            terminal: TERMINAL,
-            homeContent: HOME_CONTENT,
-          }),
-          Component: PortalRoot,
+          loader: () =>
+            makeRootStreamData({
+              maintenanceMode: false,
+              chrome: CHROME,
+              maintenance: null,
+              terminal: TERMINAL,
+              homeContent: HOME_CONTENT,
+            }),
+          Component: PortalRootBridge,
           children: [
             {
               index: true,
-              loader: () => ({ content: HOME_CONTENT, terminal: TERMINAL }),
-              Component: PortalGreeterRoute,
+              loader: () =>
+                streamOk<PortalHomeLoaderData>({
+                  content: HOME_CONTENT,
+                  terminal: TERMINAL,
+                  contactForm: CONTACT_FORM_DEFINITION,
+                }),
+              Component: PortalHomeBridge,
             },
             {
               path: 'agensi',
@@ -283,7 +382,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
                   }
                   return AGENSI_DATA;
                 }),
-              Component: PortalAgensiRoute,
+              Component: PortalAgensiBridge,
             },
           ],
         },
@@ -337,29 +436,35 @@ describe('Portal in-pane route adapters & deep-links', () => {
         {
           id: 'root',
           path: '/',
-          loader: (): PortalRootLoaderData => ({
-            maintenanceMode: false,
-            chrome: CHROME,
-            maintenance: null,
-            terminal: TERMINAL,
-            homeContent: HOME_CONTENT,
-          }),
-          Component: PortalRoot,
+          loader: () =>
+            makeRootStreamData({
+              maintenanceMode: false,
+              chrome: CHROME,
+              maintenance: null,
+              terminal: TERMINAL,
+              homeContent: HOME_CONTENT,
+            }),
+          Component: PortalRootBridge,
           children: [
             {
               index: true,
-              loader: () => ({ content: HOME_CONTENT, terminal: TERMINAL }),
-              Component: PortalGreeterRoute,
+              loader: () =>
+                streamOk<PortalHomeLoaderData>({
+                  content: HOME_CONTENT,
+                  terminal: TERMINAL,
+                  contactForm: CONTACT_FORM_DEFINITION,
+                }),
+              Component: PortalHomeBridge,
             },
             {
               path: 'agensi',
-              loader: () => AGENSI_DATA,
-              Component: PortalAgensiRoute,
+              loader: () => streamOk(AGENSI_DATA),
+              Component: PortalAgensiBridge,
             },
             {
               path: 'menu',
-              loader: () => MENU_DATA,
-              Component: PortalMenuRoute,
+              loader: () => streamOk(MENU_DATA),
+              Component: PortalMenuBridge,
             },
           ],
         },

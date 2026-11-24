@@ -1,5 +1,6 @@
 import {
   type ChangeEvent,
+  type DragEvent,
   type KeyboardEvent,
   type PointerEvent,
   type ReactNode,
@@ -9,10 +10,16 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
 
 import { Button, Form, Input, ScrollArea, Separator, Toolbar } from '../elements/base';
 import { SolarForgeEmblem } from '../elements/SolarForgeEmblem';
+import {
+  formatTerminalClock,
+  getTerminalClockSnapshot,
+  subscribeTerminalClock,
+} from './terminalClockStore';
 import {
   attachFileToTerminalForm,
   buildSessionFormData,
@@ -73,13 +80,6 @@ export interface ZshP10kTerminalProps {
   ariaLabel?: string;
   onFocusPane?: () => void;
   onEscape?: () => void;
-}
-
-function formatClock(date: Date): string {
-  const hh = String(date.getHours()).padStart(2, '0');
-  const mm = String(date.getMinutes()).padStart(2, '0');
-  const ss = String(date.getSeconds()).padStart(2, '0');
-  return `${hh}:${mm}:${ss}`;
 }
 
 function scheduleCaret(inputEl: HTMLInputElement | HTMLTextAreaElement, position: number): void {
@@ -243,13 +243,16 @@ export function ZshP10kTerminal({
   const [input, setInput] = useState('');
   const [lastStatus, setLastStatus] = useState<'ok' | 'error'>('ok');
   const [lastDuration, setLastDuration] = useState('12ms');
-  const [clock, setClock] = useState(initialTime);
+  const clock = useSyncExternalStore(
+    subscribeTerminalClock,
+    getTerminalClockSnapshot,
+    () => initialTime,
+  );
   const [cmdHistory, setCmdHistory] = useState<string[]>([]);
   const [historyCursor, setHistoryCursor] = useState<number>(-1);
   const [formSession, setFormSession] = useState<TerminalFormSessionState | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const terminalRef = useRef<HTMLElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -271,19 +274,7 @@ export function ZshP10kTerminal({
   const activePromptBadge = formSession ? getFormPromptBadge(formSession) : null;
   const activePlaceholder = formSession ? getFormPromptPlaceholder(formSession) : placeholder;
   const textareaRows = isTextareaStep ? Math.min(8, Math.max(2, input.split('\n').length)) : 2;
-
-  useEffect(() => {
-    const immediate = setTimeout(() => {
-      setClock(formatClock(new Date()));
-    }, 0);
-    const interval = setInterval(() => {
-      setClock(formatClock(new Date()));
-    }, 1000);
-    return () => {
-      clearTimeout(immediate);
-      clearInterval(interval);
-    };
-  }, []);
+  const showDragOver = isDragOver && formSession !== null && !isSubmittingForm;
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -362,10 +353,9 @@ export function ZshP10kTerminal({
         ? Math.max(1, Math.round(performance.now() - startedAtMs))
         : 1;
     const durationLabel = `${elapsedMs}ms`;
-    const nowLabel = formatClock(new Date());
+    const nowLabel = formatTerminalClock(new Date());
     const resolved = resolveTerminalFormSubmitResult(session, result);
 
-    setClock(nowLabel);
     setLastStatus(resolved.status);
     setLastDuration(durationLabel);
     setFormSession(resolved.session);
@@ -387,7 +377,7 @@ export function ZshP10kTerminal({
       return;
     }
 
-    const nowLabel = formatClock(new Date());
+    const nowLabel = formatTerminalClock(new Date());
     const startMs = typeof performance !== 'undefined' ? performance.now() : 0;
     const promptLabel = getFormPromptBadge(formSession);
     const outcome = processTerminalFormInput(formSession, rawValue);
@@ -395,7 +385,6 @@ export function ZshP10kTerminal({
       typeof performance !== 'undefined' ? Math.max(1, Math.round(performance.now() - startMs)) : 1;
     const durationLabel = `${elapsedMs}ms`;
 
-    setClock(nowLabel);
     setLastDuration(durationLabel);
 
     if (outcome.kind === 'open-file-picker') {
@@ -467,12 +456,11 @@ export function ZshP10kTerminal({
         return;
       }
 
-      const nowLabel = formatClock(new Date());
+      const nowLabel = formatTerminalClock(new Date());
       const promptLabel = getFormPromptBadge(formSession);
       const wasOnFileStep = getActiveFormStep(formSession)?.field.fieldType === 'file';
       const outcome = attachFileToTerminalForm(formSession, file);
 
-      setClock(nowLabel);
       setLastStatus(outcome.status);
       setLastDuration('1ms');
       setFormSession(outcome.session);
@@ -507,8 +495,7 @@ export function ZshP10kTerminal({
 
   const executeCommand = (rawInput: string) => {
     const trimmed = rawInput.trim();
-    const nowLabel = formatClock(new Date());
-    setClock(nowLabel);
+    const nowLabel = formatTerminalClock(new Date());
 
     if (!trimmed) {
       return;
@@ -670,8 +657,7 @@ export function ZshP10kTerminal({
         }
         event.preventDefault();
         submitSeqRef.current++;
-        const nowLabel = formatClock(new Date());
-        setClock(nowLabel);
+        const nowLabel = formatTerminalClock(new Date());
         appendEntry({
           promptLabel: getFormPromptBadge(formSession),
           command: `${input}^C`,
@@ -715,8 +701,7 @@ export function ZshP10kTerminal({
             return;
           }
           event.preventDefault();
-          const nowLabel = formatClock(new Date());
-          setClock(nowLabel);
+          const nowLabel = formatTerminalClock(new Date());
           if (input.length > 0) {
             appendEntry({
               command: `${input}^C`,
@@ -823,44 +808,37 @@ export function ZshP10kTerminal({
     }
   };
 
-  useEffect(() => {
-    const node = terminalRef.current;
-    if (!node || !formSession || isSubmittingForm) {
+  const handleDragOver = (event: DragEvent<HTMLElement>) => {
+    if (!formSession || isSubmittingForm) {
       return;
     }
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'copy';
+    }
+    setIsDragOver(true);
+  };
 
-    const onDragOver = (event: globalThis.DragEvent) => {
-      event.preventDefault();
-      if (event.dataTransfer) {
-        event.dataTransfer.dropEffect = 'copy';
-      }
-      setIsDragOver(true);
-    };
-
-    const onDragLeave = (event: globalThis.DragEvent) => {
-      if (!node.contains(event.relatedTarget as Node | null)) {
-        setIsDragOver(false);
-      }
-    };
-
-    const onDrop = (event: globalThis.DragEvent) => {
-      event.preventDefault();
+  const handleDragLeave = (event: DragEvent<HTMLElement>) => {
+    if (!formSession || isSubmittingForm) {
+      return;
+    }
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
       setIsDragOver(false);
-      const file = event.dataTransfer?.files?.[0];
-      if (file) {
-        handleAttachFile(file);
-      }
-    };
+    }
+  };
 
-    node.addEventListener('dragover', onDragOver);
-    node.addEventListener('dragleave', onDragLeave);
-    node.addEventListener('drop', onDrop);
-    return () => {
-      node.removeEventListener('dragover', onDragOver);
-      node.removeEventListener('dragleave', onDragLeave);
-      node.removeEventListener('drop', onDrop);
-    };
-  }, [formSession, handleAttachFile, isSubmittingForm]);
+  const handleDrop = (event: DragEvent<HTMLElement>) => {
+    if (!formSession || isSubmittingForm) {
+      return;
+    }
+    event.preventDefault();
+    setIsDragOver(false);
+    const file = event.dataTransfer?.files?.[0];
+    if (file) {
+      handleAttachFile(file);
+    }
+  };
 
   const handleSurfacePointerDown = () => {
     onFocusPane?.();
@@ -888,16 +866,19 @@ export function ZshP10kTerminal({
   };
 
   return (
+    // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- drag-and-drop dropzone on terminal landmark; keyboard parity via attach button
     <section
-      ref={terminalRef}
       className={styles.terminal}
       data-variant={variant}
       data-active={isActive ? 'true' : 'false'}
       data-form-mode={formSession ? formSession.definition.cliCommand : undefined}
-      data-drag-over={isDragOver ? 'true' : 'false'}
+      data-drag-over={showDragOver ? 'true' : 'false'}
       aria-label={ariaLabel}
       onPointerDown={handleSurfacePointerDown}
       onPointerUp={handleSurfacePointerUp}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     >
       <input
         ref={fileInputRef}

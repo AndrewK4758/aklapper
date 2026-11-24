@@ -34,11 +34,13 @@
     "@base-ui/react": "^1.9.0"
   },
   "devDependencies": {
-    "@aklapper/tooling": "workspace:*"
+    "@aklapper/tooling": "workspace:*",
+    "react-router": "8.5.2"
   },
   "peerDependencies": {
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-router": "^8.0.0"
   },
   "nx": {
     "name": "shared-ui",

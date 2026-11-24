@@ -31,16 +31,6 @@
     font-size: var(--sf-text-xs);
   }
 
-  .errorBanner {
-    padding: var(--sf-space-4);
-    border-radius: var(--sf-radius-sm);
-    border: var(--sf-border-width) solid var(--sf-err);
-    background: var(--sf-bg-panel);
-    color: var(--sf-err);
-    font-family: var(--sf-font-mono), monospace;
-    font-size: var(--sf-text-xs);
-  }
-
   .panel {
     display: grid;
     gap: var(--sf-space-6);

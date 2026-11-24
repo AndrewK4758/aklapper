@@ -1,10 +1,10 @@
-import type { AdminQuotasLoaderData } from '@aklapper/core';
-import { Button, Field, Separator, TuiWindow } from '@aklapper/ui';
+import type { ActionErrorMetadata, AdminQuotasLoaderData } from '@aklapper/core';
+import { ActionFeedbackBanner, Button, Field, Separator, TuiWindow } from '@aklapper/ui';
 import { Form } from 'react-router';
 
 import styles from './AdminQuotasPage.module.css';
 
-export interface AdminQuotasActionData {
+export interface AdminQuotasActionData extends ActionErrorMetadata {
   ok: boolean;
   message: string;
 }
@@ -20,15 +20,7 @@ export function AdminQuotasPage({ data, actionData }: AdminQuotasPageProps) {
   return (
     <TuiWindow title='AI Quotas & Rate-Limit Buckets // Postgres 19'>
       <div className={styles.panel}>
-        {actionData ? (
-          actionData.ok ? (
-            <output className={styles.statusNote}>{actionData.message}</output>
-          ) : (
-            <p role='alert' className={styles.errorNote}>
-              {actionData.message}
-            </p>
-          )
-        ) : null}
+        {actionData ? <ActionFeedbackBanner {...actionData} /> : null}
 
         <section aria-label='Quota policies'>
           <div className={styles.policyGrid}>

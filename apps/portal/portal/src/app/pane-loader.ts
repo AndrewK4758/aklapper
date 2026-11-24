@@ -1,8 +1,15 @@
-import { data } from 'react-router';
+import type { StreamResult } from '@aklapper/core';
+import { deferStreamResult, getOrCreateCorrelationId } from '@aklapper/node-runtime/ssr/stream';
+import { data, type RouterContextProvider } from 'react-router';
 
 export interface PaneLoaderErrorEnvelope {
   readonly __paneLoaderError: true;
   readonly message: string;
+}
+
+export interface StreamLoaderEnvelope<T> {
+  readonly correlationId: string;
+  readonly payload: Promise<StreamResult<T>>;
 }
 
 export function isPaneFetcherRequest(request: Request): boolean {
@@ -22,6 +29,17 @@ export function isPaneLoaderErrorEnvelope(value: unknown): value is PaneLoaderEr
   );
 }
 
+export function isStreamLoaderEnvelope<T>(value: unknown): value is StreamLoaderEnvelope<T> {
+  if (typeof value !== 'object' || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate['correlationId'] === 'string' &&
+    candidate['payload'] !== null &&
+    typeof candidate['payload'] === 'object' &&
+    'then' in (candidate['payload'] as object)
+  );
+}
+
 export function unwrapPaneLoaderData<T>(
   value: T | PaneLoaderErrorEnvelope | undefined,
 ): T | undefined {
@@ -31,43 +49,23 @@ export function unwrapPaneLoaderData<T>(
   return value;
 }
 
-export async function runPaneSafeLoader<T>(
+export function runPaneSafeLoader<T>(
   request: Request,
   load: () => Promise<T>,
-  headers?: HeadersInit,
+  options?: {
+    readonly context?: Readonly<RouterContextProvider>;
+    readonly source?: string;
+    readonly headers?: HeadersInit;
+  },
 ) {
-  try {
-    const payload = await load();
-    return headers ? data<T>(payload, { headers }) : data<T>(payload);
-  } catch (error) {
-    if (!isPaneFetcherRequest(request)) {
-      throw error;
-    }
-    let path = request.url;
-    try {
-      path = new URL(request.url).pathname;
-    } catch {
-      // Keep raw URL string when parsing fails
-    }
-    console.error(
-      JSON.stringify({
-        event: 'portal.pane_loader.failed',
-        path,
-        error:
-          error instanceof Response
-            ? `HTTP ${error.status}`
-            : error instanceof Error
-              ? error.message
-              : String(error),
-      }),
-    );
-    const message =
-      error instanceof Response
-        ? `Request failed (HTTP ${error.status})`
-        : 'Unable to load pane data.';
-    return data<PaneLoaderErrorEnvelope>(
-      { __paneLoaderError: true, message },
-      { status: 200, ...(headers ? { headers } : {}) },
-    );
-  }
+  const correlationId = getOrCreateCorrelationId(request, options?.context);
+  const envelope: StreamLoaderEnvelope<T> = {
+    correlationId,
+    payload: deferStreamResult(load(), {
+      request,
+      context: options?.context,
+      source: options?.source ?? 'portal.pane.loader',
+    }),
+  };
+  return options?.headers ? data(envelope, { headers: options.headers }) : envelope;
 }

@@ -1,4 +1,5 @@
-import type { K8sPodEvent, MenuItem, QuotaStatus, Role } from './contracts.ts';
+import type { QuotaStatus, Role } from './auth.ts';
+import type { K8sPodEvent, MenuItem } from './portal.ts';
 
 export const ADMIN_NAMESPACE = 'cadence-admin';
 

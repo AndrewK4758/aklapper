@@ -1,4 +1,5 @@
 import type {
+  ActionErrorMetadata,
   CadenceGateVerdict,
   CadencePreset,
   CadenceRunResult,
@@ -7,6 +8,7 @@ import type {
   QuotaStatus,
 } from '@aklapper/core';
 import {
+  ActionFeedbackBanner,
   Button,
   Meter,
   OscStatusBadge,
@@ -31,12 +33,12 @@ export type PortalCadenceActionResult =
       readonly intent: 'gate';
       readonly run: CadenceRunResult;
     }
-  | {
+  | ({
       readonly ok: false;
       readonly intent: 'run' | 'gate';
       readonly error: string;
       readonly quota?: QuotaStatus;
-    };
+    } & ActionErrorMetadata);
 
 export interface PortalCadencePageProps {
   content: PortalCadenceContent;
@@ -234,9 +236,14 @@ export function PortalCadencePage({
         </form>
 
         {actionResult && !actionResult.ok && (
-          <div className={styles.errorBanner} role='alert' data-testid='cadence-error-banner'>
-            {actionResult.error}
-          </div>
+          <ActionFeedbackBanner
+            ok={false}
+            message={actionResult.error}
+            action={actionResult.action}
+            code={actionResult.code}
+            correlationId={actionResult.correlationId}
+            testId='cadence-error-banner'
+          />
         )}
 
         {activeRun && (

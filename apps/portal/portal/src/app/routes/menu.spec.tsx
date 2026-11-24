@@ -1,9 +1,9 @@
-import type { PortalMenuLoaderData } from '@aklapper/core';
+import { createPublicAppError, type PortalMenuLoaderData, type StreamResult } from '@aklapper/core';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { createMemoryRouter, RouterProvider } from 'react-router';
+import { createRoutesStub } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
-import PortalMenuRoute, { meta } from './menu';
+import PortalMenuRoute, { ErrorBoundary, meta } from './menu';
 
 const MENU_FIXTURE: PortalMenuLoaderData = {
   content: {
@@ -49,45 +49,61 @@ const MENU_FIXTURE: PortalMenuLoaderData = {
 };
 
 describe('PortalMenuRoute', () => {
-  it('builds page meta from loaderData and falls back when loaderData is absent', () => {
-    const withData = meta({
-      loaderData: MENU_FIXTURE,
-      matches: [],
+  it('builds synchronous SEO meta without awaiting deferred payload', () => {
+    const pending = Promise.withResolvers<StreamResult<PortalMenuLoaderData>>();
+    const loaderData = { correlationId: 'corr-menu-meta', payload: pending.promise };
+    const tags = meta({
+      loaderData,
+      matches: [
+        {
+          id: 'root',
+          params: {},
+          pathname: '/',
+          meta: [],
+          loaderData: {
+            runtimeSeo: { siteUrl: 'https://andrew-k.us' },
+            correlationId: 'corr-root',
+            maintenanceMode: false,
+            rootPayload: Promise.withResolvers<never>().promise,
+          },
+        },
+        { id: 'routes/menu', params: {}, pathname: '/menu', meta: [], loaderData },
+      ],
       location: { pathname: '/menu', search: '', hash: '', state: null, key: 'm1' },
       params: {},
-    } as Parameters<typeof meta>[0]);
-    expect(withData).toContainEqual({ title: 'Launch Menu // andrew-k.us' });
+    });
 
-    const withoutData = meta({
-      loaderData: undefined,
-      matches: [],
-      location: { pathname: '/menu', search: '', hash: '', state: null, key: 'm2' },
-      params: {},
-    } as Parameters<typeof meta>[0]);
-    expect(withoutData).toContainEqual({ title: 'Launch Menu // andrew-k.us' });
+    expect(tags).toContainEqual({ title: 'Launch Menu // andrew-k.us' });
+    expect(tags).toContainEqual({ name: 'robots', content: 'index, follow' });
   });
 
-  it('filters out adminOnly items for guests and navigates via numeric keybindings', async () => {
-    const router = createMemoryRouter(
-      [
-        {
-          path: '/menu',
-          loader: (): PortalMenuLoaderData => MENU_FIXTURE,
-          Component: () => (
-            <div>
-              <input aria-label='Filter probe' />
-              <PortalMenuRoute />
-            </div>
-          ),
-        },
-        { path: '/cadence', Component: () => <div>Cadence Route</div> },
-        { path: '/contact', Component: () => <div>Contact Route</div> },
-        { path: '/', Component: () => <div>Home Route</div> },
-      ],
-      { initialEntries: ['/menu'] },
-    );
+  it('streams loading state, filters adminOnly items, and honors numeric and Escape keybindings', async () => {
+    const deferred = Promise.withResolvers<StreamResult<PortalMenuLoaderData>>();
+    const Stub = createRoutesStub([
+      {
+        path: '/menu',
+        loader: () => ({
+          correlationId: 'corr-menu-1',
+          payload: deferred.promise,
+        }),
+        Component: props => (
+          <div>
+            <input aria-label='Filter probe' />
+            <PortalMenuRoute {...props} />
+          </div>
+        ),
+        ErrorBoundary,
+      },
+      { path: '/cadence', Component: () => <div>Cadence Route</div> },
+      { path: '/contact', Component: () => <div>Contact Route</div> },
+      { path: '/', Component: () => <div>Home Route</div> },
+    ]);
 
-    render(<RouterProvider router={router} />);
+    render(<Stub initialEntries={['/menu']} />);
+
+    expect(await screen.findByRole('status')).toBeTruthy();
+
+    deferred.resolve({ ok: true, data: MENU_FIXTURE });
 
     expect(await screen.findByRole('heading', { name: 'Launch Menu' })).toBeTruthy();
     expect(screen.getByText(/CADENCE Builder/)).toBeTruthy();
@@ -97,11 +113,11 @@ describe('PortalMenuRoute', () => {
     // Shortcuts ignored while focused in an input element
     const probeInput = screen.getByLabelText('Filter probe');
     fireEvent.keyDown(probeInput, { key: '1' });
-    expect(router.state.location.pathname).toBe('/menu');
+    expect(screen.queryByText('Cadence Route')).toBeNull();
 
     // Shortcuts ignored when modifier keys are pressed
     fireEvent.keyDown(window, { key: '1', ctrlKey: true });
-    expect(router.state.location.pathname).toBe('/menu');
+    expect(screen.queryByText('Cadence Route')).toBeNull();
 
     // Pressing `1` launches /cadence
     fireEvent.keyDown(window, { key: '1' });
@@ -109,22 +125,58 @@ describe('PortalMenuRoute', () => {
   });
 
   it('returns to / when Escape closes the TUI menu window', async () => {
-    const router = createMemoryRouter(
-      [
-        {
-          path: '/menu',
-          loader: (): PortalMenuLoaderData => MENU_FIXTURE,
-          Component: PortalMenuRoute,
-        },
-        { path: '/', Component: () => <div>Home Route</div> },
-      ],
-      { initialEntries: ['/menu'] },
-    );
+    const Stub = createRoutesStub([
+      {
+        path: '/menu',
+        loader: () => ({
+          correlationId: 'corr-menu-esc',
+          payload: Promise.resolve<StreamResult<PortalMenuLoaderData>>({
+            ok: true,
+            data: MENU_FIXTURE,
+          }),
+        }),
+        Component: PortalMenuRoute,
+        ErrorBoundary,
+      },
+      { path: '/', Component: () => <div>Home Route</div> },
+    ]);
 
-    render(<RouterProvider router={router} />);
+    render(<Stub initialEntries={['/menu']} />);
     expect(await screen.findByRole('heading', { name: 'Launch Menu' })).toBeTruthy();
 
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(await screen.findByText('Home Route')).toBeTruthy();
+  });
+
+  it('renders correlated ErrorElement when streamed payload settles to ERR_DB_UNAVAILABLE', async () => {
+    const dbError = createPublicAppError({
+      code: 'ERR_DB_UNAVAILABLE',
+      status: 503,
+      message: 'Database temporarily unavailable.',
+      action: 'Retry shortly or share ID.',
+      correlationId: 'corr-menu-503',
+    });
+
+    const Stub = createRoutesStub([
+      {
+        path: '/menu',
+        loader: () => ({
+          correlationId: 'corr-menu-503',
+          payload: Promise.resolve<StreamResult<PortalMenuLoaderData>>({
+            ok: false,
+            error: dbError,
+          }),
+        }),
+        Component: PortalMenuRoute,
+        ErrorBoundary,
+      },
+    ]);
+
+    render(<Stub initialEntries={['/menu']} />);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('ERR_DB_UNAVAILABLE');
+    expect(alert.textContent).toContain('corr-menu-503');
+    expect(alert.textContent).not.toContain('Unexpected Server Error');
   });
 });

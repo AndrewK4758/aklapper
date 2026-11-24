@@ -24,7 +24,10 @@ const baseConfig = createSsrPlaywrightConfig({
 
 const config: PlaywrightTestConfig = {
   ...baseConfig,
-  workers: 2,
+  // Admin E2E mutates shared singleton Postgres rows (maintenance mode and guest quota policy)
+  // across browser projects; run serially to prevent cross-project races.
+  fullyParallel: false,
+  workers: 1,
   use: {
     ...baseConfig.use,
     // WebAuthn requires a domain hostname (localhost), never a raw IP literal (127.0.0.1).

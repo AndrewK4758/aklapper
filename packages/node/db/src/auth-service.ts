@@ -1234,10 +1234,10 @@ export async function resolveAdminSessionFromRequest(
     }
   }
 
-  const db = options.db ?? getSharedDb();
   const cookies = parseCookieHeader(cookieHeader);
   const adminSessionId = cookies[ADMIN_SESSION_COOKIE_NAME];
   if (!adminSessionId) return emptyStatus;
+  const db = options.db ?? getSharedDb();
   const record = await getValidAuthSession(db, adminSessionId);
   if (!record || record.session.role !== 'admin') return emptyStatus;
 

@@ -13,7 +13,8 @@
     ],
     "jsx": "react-jsx",
     "module": "esnext",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "rootDirs": [".", "./.react-router/types"]
   },
   "include": [
     "vite.config.ts",
@@ -22,7 +23,8 @@
     "src/**/*.spec.ts",
     "src/**/*.test.tsx",
     "src/**/*.spec.tsx",
-    "src/**/*.d.ts"
+    "src/**/*.d.ts",
+    ".react-router/types/**/*"
   ],
   "references": [
     {

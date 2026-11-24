@@ -1,4 +1,5 @@
 import {
+  type AppErrorCode,
   collectFormFields,
   type FormDefinition,
   type FormFieldErrorMap,
@@ -35,6 +36,9 @@ export interface RecursiveTuiFormProps {
   serverErrors?: FormFieldErrorMap;
   serverFormError?: string | null;
   errorSource?: 'client' | 'server' | 'database' | null;
+  errorCode?: AppErrorCode | null;
+  errorAction?: string | null;
+  correlationId?: string | null;
   isSubmitting?: boolean;
   onValidSubmit?: (values: FormFieldValues, event: SubmitEvent<HTMLFormElement>) => void;
   onReset?: () => void;
@@ -266,6 +270,9 @@ export function RecursiveTuiForm({
   serverErrors,
   serverFormError = null,
   errorSource = null,
+  errorCode = null,
+  errorAction = null,
+  correlationId = null,
   isSubmitting = false,
   onValidSubmit,
   onReset,
@@ -301,6 +308,9 @@ export function RecursiveTuiForm({
 
   const activeBannerError = clientFormError ?? serverFormError;
   const activeBannerSource = clientFormError ? 'client' : errorSource;
+  const activeErrorCode = clientFormError ? null : errorCode;
+  const activeErrorAction = clientFormError ? null : errorAction;
+  const activeCorrelationId = clientFormError ? null : correlationId;
 
   function registerFileInput(fieldName: string, el: HTMLInputElement | null): void {
     fileInputRefs.current[fieldName] = el;
@@ -431,7 +441,20 @@ export function RecursiveTuiForm({
       {activeBannerError && (
         <div role='alert' className={styles.bannerError}>
           <span className={styles.bannerSource}>[{activeBannerSource ?? 'error'}]</span>
-          <span>{activeBannerError}</span>
+          <div className={styles.bannerBody}>
+            <span>{activeBannerError}</span>
+            {activeErrorAction && <span className={styles.bannerAction}>{activeErrorAction}</span>}
+            {(activeErrorCode || activeCorrelationId) && (
+              <span className={styles.bannerMeta}>
+                {activeErrorCode && (
+                  <code className={styles.bannerMetaToken}>{activeErrorCode}</code>
+                )}
+                {activeCorrelationId && (
+                  <code className={styles.bannerMetaToken}>ref: {activeCorrelationId}</code>
+                )}
+              </span>
+            )}
+          </div>
         </div>
       )}
 

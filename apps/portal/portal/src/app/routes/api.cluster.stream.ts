@@ -1,6 +1,8 @@
 import type { K8sPodEvent } from '@aklapper/core';
 import { proxySse } from '@aklapper/node-runtime/http';
 
+import type { Route } from './+types/api.cluster.stream';
+
 const SIMULATED_PUBLIC_EVENTS: readonly Omit<K8sPodEvent, 'timestamp'>[] = [
   {
     eventId: 'sim-cadence-demo',
@@ -49,7 +51,7 @@ function createSimulatedPublicStream(): Response {
   });
 }
 
-export async function loader({ request }: { request: Request }): Promise<Response> {
+export async function loader({ request }: Route.LoaderArgs): Promise<Response> {
   const watchUrl = process.env['K8S_WATCH_URL']?.trim();
   if (!watchUrl) {
     return createSimulatedPublicStream();
