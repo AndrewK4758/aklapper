@@ -1,85 +1,68 @@
 @layer page {
   .workspace {
     display: grid;
-    gap: var(--portal-space-2xl);
-    align-content: start;
+    gap: var(--sf-space-9);
+    align-content: var(--sf-align-start);
   }
 
   .tuiGrid {
     display: grid;
-    gap: var(--portal-space-lg);
+    gap: var(--sf-space-7);
   }
 
   .lead {
-    color: var(--portal-prop);
-    font-size: var(--portal-font-size-md);
+    color: var(--sf-fg-prop);
+    font-size: var(--sf-text-md);
   }
 
   .progress {
-    width: 100%;
-    height: var(--portal-progress-h);
-    appearance: none;
-    background: var(--portal-panel);
-    border: var(--portal-border-width) solid var(--portal-border);
-    border-radius: var(--portal-radius-sm);
-    overflow: hidden;
-  }
-
-  .progress::-webkit-progress-bar {
-    background: var(--portal-panel);
-  }
-
-  .progress::-webkit-progress-value {
-    background: linear-gradient(90deg, var(--portal-accent), var(--portal-vermilion));
-  }
-
-  .progress::-moz-progress-bar {
-    background: linear-gradient(90deg, var(--portal-accent), var(--portal-vermilion));
+    --sf-progress-indicator-bg: linear-gradient(90deg, var(--sf-gold), var(--sf-vermilion));
+    --sf-radius-pill: var(--sf-radius-sm);
   }
 
   .checklist {
     list-style: none;
-    margin: var(--portal-space-0);
-    padding: var(--portal-space-0);
+    margin: var(--sf-space-0);
+    padding: var(--sf-space-0);
     display: grid;
-    gap: var(--portal-space-xs);
-    font-size: var(--portal-font-size-sm);
+    gap: var(--sf-space-4);
+    font-size: var(--sf-text-sm);
   }
 
   .checkItem {
     display: flex;
-    align-items: baseline;
-    gap: var(--portal-space-sm);
-    padding: var(--portal-space-xs) var(--portal-space-sm);
-    background: var(--portal-panel);
-    border: var(--portal-border-width) solid var(--portal-border);
-    border-radius: var(--portal-radius-sm);
+    align-items: var(--sf-align-baseline);
+    gap: var(--sf-space-5);
+    padding: var(--sf-space-4) var(--sf-space-5);
+    background: var(--sf-bg-panel);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
   }
 
   .markerDone {
-    color: var(--portal-green);
-    font-weight: var(--portal-font-weight-bold);
+    color: var(--sf-green);
+    font-weight: var(--sf-weight-bold);
     flex-shrink: 0;
   }
 
   .markerActive {
-    color: var(--portal-accent);
-    font-weight: var(--portal-font-weight-bold);
+    color: var(--sf-gold);
+    font-weight: var(--sf-weight-bold);
     flex-shrink: 0;
   }
 
   .markerQueued {
-    color: var(--portal-muted);
-    font-weight: var(--portal-font-weight-bold);
+    color: var(--sf-fg-cmt);
+    font-weight: var(--sf-weight-bold);
     flex-shrink: 0;
   }
 
   .metaRow {
     display: flex;
-    justify-content: space-between;
+    justify-content: var(--sf-justify-between);
     flex-wrap: wrap;
-    gap: var(--portal-space-xs);
-    color: var(--portal-muted);
-    font-size: var(--portal-font-size-xs);
+    gap: var(--sf-space-4);
+    color: var(--sf-fg-cmt);
+    font-size: var(--sf-text-xs);
   }
 }

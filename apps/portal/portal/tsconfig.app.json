@@ -42,6 +42,9 @@
     },
     {
       "path": "../../../packages/shared/analytics/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../packages/node/db/tsconfig.lib.json"
     }
   ]
 }

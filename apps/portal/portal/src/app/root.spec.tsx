@@ -1,16 +1,105 @@
+import type { PortalMaintenanceLoaderData, PortalRootLoaderData } from '@aklapper/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
 import PortalRoot from './root';
 
+const CHROME_FIXTURE: PortalRootLoaderData['chrome'] = {
+  pageTitle: 'andrew-k.us // Solar Forge Terminal',
+  brandLabel: 'andrew-k.us :: tty1',
+  statusBadge: {
+    source: 'gke-autopilot',
+    state: 'idle',
+    label: '0 pods (scale-to-0)',
+  },
+  footerText: 'Solar Forge // Fastify 5 + React Router 8 SSR',
+  footerLinkLabel: 'agensi.io/creators/aklapper',
+  footerLinkUrl: 'https://agensi.io/creators/aklapper',
+  maintenanceModeDefault: false,
+};
+
+const MAINTENANCE_FIXTURE: PortalMaintenanceLoaderData = {
+  content: {
+    windowTitle: 'tui :: andrew-k.us // changes in progress',
+    statusBadge: {
+      source: 'solar-forge-v2',
+      state: 'scaling',
+      label: 'CHANGES IN PROGRESS',
+    },
+    heading: 'Changes in Progress',
+    lead: 'andrew-k.us is being rebuilt into the Solar Forge v2 interactive terminal and TUI platform.',
+    progressPercent: 72,
+    progressAriaLabel: 'Solar Forge v2 rebuild progress',
+    metaLeft: 'mode: maintenance (no navigation)',
+    metaRight: 'progress: 72% · drag titlebar or type below',
+  },
+  terminal: {
+    slug: 'portal-maintenance',
+    bannerTitle: 'Solar Forge Terminal // andrew-k.us (maintenance)',
+    bannerMeta: 'tty1 · type "help" or press Tab',
+    osLabel: '⚡',
+    directory: '~/andrew-k.us',
+    vcsBranch: 'portfolio_v2 !wip',
+    vcsState: 'modified',
+    contextLabel: 'visitor@andrew-k.us',
+    placeholder: 'type a command',
+    quickCommands: ['whoami', 'clear'],
+    initialEntries: [
+      {
+        command: 'status',
+        output: 'andrew-k.us :: Solar Forge v2 rebuild is actively underway.',
+        status: 'ok',
+        durationLabel: '8ms',
+        timestamp: '00:00:00',
+        sortOrder: 0,
+      },
+    ],
+    commands: [
+      {
+        name: 'whoami',
+        description: 'active session identity',
+        kind: 'static',
+        output: 'visitor@andrew-k.us (read-only maintenance tty1)',
+        targetRoute: null,
+        allowedRoutes: [],
+        errorTemplate: null,
+        sortOrder: 1,
+      },
+      {
+        name: 'clear',
+        description: 'clear terminal',
+        kind: 'clear',
+        output: '',
+        targetRoute: null,
+        allowedRoutes: [],
+        errorTemplate: null,
+        sortOrder: 2,
+      },
+    ],
+  },
+  milestones: [
+    {
+      slug: 'solar-forge-theme',
+      status: 'done',
+      label: 'Solar Forge 4-layer CSS variable theme & animated reticle emblem',
+      sortOrder: 1,
+      enabled: true,
+    },
+  ],
+};
+
 describe('PortalRoot', () => {
-  it('renders the Solar Forge portal chrome without admin leakage', async () => {
+  it('renders the Solar Forge portal chrome from loader data without admin leakage', async () => {
     const router = createMemoryRouter(
       [
         {
           path: '/',
-          loader: () => ({ maintenanceMode: false }),
+          loader: (): PortalRootLoaderData => ({
+            maintenanceMode: false,
+            chrome: CHROME_FIXTURE,
+            maintenance: null,
+          }),
           Component: PortalRoot,
           children: [{ index: true, Component: () => <div>Home Probe</div> }],
         },
@@ -25,12 +114,16 @@ describe('PortalRoot', () => {
     expect(screen.queryByText('cadence-admin')).toBeNull();
   });
 
-  it('renders Changes in Progress with zero navigation links in maintenance mode', async () => {
+  it('renders Changes in Progress from loader data with zero navigation links in maintenance mode', async () => {
     const router = createMemoryRouter(
       [
         {
           path: '/',
-          loader: () => ({ maintenanceMode: true }),
+          loader: (): PortalRootLoaderData => ({
+            maintenanceMode: true,
+            chrome: CHROME_FIXTURE,
+            maintenance: MAINTENANCE_FIXTURE,
+          }),
           Component: PortalRoot,
           children: [{ index: true, Component: () => <div>Should Not Render</div> }],
         },
@@ -43,8 +136,12 @@ describe('PortalRoot', () => {
     expect(await screen.findByRole('heading', { name: 'Changes in Progress' })).toBeTruthy();
     expect(screen.queryAllByRole('link')).toHaveLength(0);
     expect(screen.queryByText('Should Not Render')).toBeNull();
+    const progressbar = screen.getByRole('progressbar', {
+      name: 'Solar Forge v2 rebuild progress',
+    });
+    expect(progressbar.getAttribute('aria-valuenow')).toBe('72');
 
-    const input = screen.getByLabelText('Zsh command input');
+    const input = screen.getByLabelText('Terminal command input');
     fireEvent.change(input, { target: { value: 'whoami' } });
     fireEvent.submit(input.closest('form') as HTMLFormElement);
     expect(screen.getByText(/visitor@andrew-k\.us \(read-only maintenance tty1\)/)).toBeTruthy();

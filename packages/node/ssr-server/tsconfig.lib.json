@@ -8,5 +8,10 @@
     "types": ["node"]
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["vitest.config.ts", "tests/**/*.ts"]
+  "exclude": ["vitest.config.ts", "tests/**/*.ts"],
+  "references": [
+    {
+      "path": "../../shared/utils/tsconfig.lib.json"
+    }
+  ]
 }

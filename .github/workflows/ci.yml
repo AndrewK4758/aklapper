@@ -70,6 +70,7 @@ jobs:
           path: |
             apps/portal/portal/dist
             apps/admin/admin/dist
+            packages/node/db/dist
             packages/node/ssr-server/dist
             packages/shared/ui/dist
             packages/shared/contracts/dist
@@ -81,6 +82,22 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:19-alpine
+        env:
+          POSTGRES_DB: aklapper
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5439:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d aklapper"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5439/aklapper?sslmode=disable
     strategy:
       fail-fast: false
       matrix:
@@ -116,6 +133,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ssr-dist-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Migrate and seed PostgreSQL 19
+        run: pnpm db:setup
 
       - name: Resolve Playwright browser binary
         id: browser

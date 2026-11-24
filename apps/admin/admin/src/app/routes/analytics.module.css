@@ -1,6 +1,17 @@
 @layer page {
   .panel {
     display: grid;
-    gap: var(--admin-space-lg);
+    gap: var(--sf-space-7);
+  }
+
+  .meter {
+    --sf-radius-pill: var(--sf-radius-sm);
+  }
+
+  .meterHeader {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    gap: var(--sf-space-4);
   }
 }

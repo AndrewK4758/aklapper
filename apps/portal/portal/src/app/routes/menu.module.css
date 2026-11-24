@@ -1,37 +1,42 @@
 @layer page {
   .card {
-    background: var(--portal-surface);
-    border: var(--portal-border-width) solid var(--portal-border);
-    border-radius: var(--portal-radius-md);
-    padding: var(--portal-space-2xl);
     display: grid;
-    gap: var(--portal-space-lg);
+    gap: var(--sf-space-7);
+  }
+
+  .menuNav {
+    display: block;
+    width: 100%;
   }
 
   .menuList {
-    list-style: none;
-    margin: 0;
-    padding: 0;
     display: grid;
-    gap: var(--portal-space-sm);
+    align-items: var(--sf-align-stretch);
+    gap: var(--sf-space-5);
+    width: 100%;
+  }
+
+  .menuItem {
+    width: 100%;
   }
 
   .menuLink {
+    --sf-space-3: var(--sf-space-6);
+    --sf-space-5: var(--sf-space-7);
+    --sf-gap-sm: var(--sf-space-6);
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: var(--portal-space-md);
-    padding: var(--portal-space-md) var(--portal-space-lg);
-    border: var(--portal-border-width) solid var(--portal-border);
-    border-radius: var(--portal-radius-sm);
-    background: var(--portal-panel);
-    color: var(--portal-fg);
-    text-decoration: none;
+    width: 100%;
+    justify-content: var(--sf-justify-between);
+    border: var(--sf-border-width) solid var(--sf-border);
+    background: var(--sf-bg-panel);
   }
 
   .menuLink:hover {
-    border-color: var(--portal-accent);
-    background: var(--portal-panel-hover);
-    text-decoration: none;
+    border-color: var(--sf-gold);
+  }
+
+  .menuTarget {
+    color: var(--sf-fg-op);
+    font-size: var(--sf-text-xs);
   }
 }

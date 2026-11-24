@@ -36,19 +36,6 @@ generated/
 node_modules/
 **/node_modules/
 
-# CADENCE governance & agent scaffolding (every level)
-knowledge_base/
-**/knowledge_base/
-**/CADENCE_DIRECTIVES.md
-**/CADENCE.md
-**/CADENCE_ORG.md
-**/cadence-surfaces.md
-**/.cadence-version
-**/.agents/
-**/.claude/
-**/.gemini/
-/skills/
-
 # IDEs and editors
 /.idea
 .project

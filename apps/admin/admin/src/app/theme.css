@@ -2,22 +2,9 @@
 
 @layer tokens {
   :root {
-    /* Admin app-level semantic tokens aliasing package --sf-* tokens */
-    --admin-bg: var(--sf-bg-frame);
-    --admin-surface: var(--sf-bg-editor);
-    --admin-border: var(--sf-border);
-    --admin-bar-border: var(--sf-vermilion);
-    --admin-border-width: var(--sf-border-width);
-    --admin-accent: var(--sf-gold);
-    --admin-fg: var(--sf-fg-bone);
-    --admin-radius-md: var(--sf-radius-md);
-    --admin-font-weight-bold: var(--sf-weight-bold);
-    --admin-viewport-h: var(--sf-min-viewport-h);
-    --admin-max-width: var(--sf-container-admin);
-    --admin-space-sm: var(--sf-space-5);
-    --admin-space-md: var(--sf-space-6);
-    --admin-space-lg: var(--sf-space-7);
-    --admin-space-xl: var(--sf-space-8);
-    --admin-space-2xl: var(--sf-space-10);
+    /* Admin app-level token overrides on top of @aklapper/ui */
+    --sf-container-lg: var(--sf-container-admin);
+    --sf-accent-border: var(--sf-vermilion);
+    --sf-progress-indicator-bg: linear-gradient(90deg, var(--sf-vermilion), var(--sf-gold));
   }
 }

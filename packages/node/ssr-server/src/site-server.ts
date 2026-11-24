@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { loadWorkspaceEnv } from '@aklapper/shared-utils/env';
 import fastifyCookie from '@fastify/cookie';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyStatic from '@fastify/static';
@@ -20,15 +21,20 @@ export interface SsrServerInstance {
 }
 
 export async function createSsrServer(options: SsrServerOptions): Promise<SsrServerInstance> {
+  loadWorkspaceEnv({ startDir: options.buildDir });
   const { serviceName, buildDir, port, host } = options;
   const app = Fastify({ logger: true });
 
   await app.register(fastifyHelmet, { contentSecurityPolicy: false });
   await app.register(fastifyCookie);
+  const servePrerenderedStatic = process.env['SERVE_PRERENDERED_STATIC'] === 'true';
+
   await app.register(fastifyStatic, {
     root: resolve(buildDir, 'client'),
     prefix: '/',
     wildcard: false,
+    index: servePrerenderedStatic ? 'index.html' : false,
+    globIgnore: servePrerenderedStatic ? [] : ['**/*.html', '**/*.data'],
   });
 
   app.get('/healthz', async () => ({ status: 'ok', service: serviceName }));

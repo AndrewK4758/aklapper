@@ -1,10 +1,18 @@
+import { loadWorkspaceEnv } from '@aklapper/shared-utils/env';
 import { defineConfig } from 'drizzle-kit';
+
+loadWorkspaceEnv({ startDir: import.meta.dirname });
+
+const databaseUrl = process.env['DATABASE_URL'];
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL is required in environment or workspace .env for drizzle-kit');
+}
 
 export default defineConfig({
   dialect: 'postgresql',
   schema: './src/schema.ts',
   out: './drizzle',
   dbCredentials: {
-    url: process.env['DATABASE_URL'] ?? 'postgres://postgres:postgres@127.0.0.1:5439/aklapper',
+    url: databaseUrl,
   },
 });

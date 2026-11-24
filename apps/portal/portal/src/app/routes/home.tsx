@@ -1,121 +1,115 @@
+import type { PortalHomeLoaderData } from '@aklapper/contracts';
+import { loadPortalHomeDataWithPrerender } from '@aklapper/db';
 import {
+  buildZshCommandHandlers,
+  Button,
   OscStatusBadge,
-  SfButton,
+  Toolbar,
   TuiWindow,
-  type ZshCommandHandler,
   ZshP10kTerminal,
-  type ZshTerminalHistoryItem,
 } from '@aklapper/ui';
-import { useMemo } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, type MetaArgs, useLoaderData, useNavigate } from 'react-router';
+
+import { buildPortalPageMeta } from '../seo';
 
 import styles from './home.module.css';
 
-const INITIAL_ENTRIES: readonly Omit<ZshTerminalHistoryItem, 'id'>[] = [
-  {
-    command: 'ls -la',
-    output: [
-      'drwxr-xr-x  guest  solar-forge  menu/                 # Interactive module launcher',
-      'drwxr-xr-x  guest  solar-forge  cadence/              # Sandboxed artifact builder',
-      '-rw-r--r--  guest  solar-forge  changes-in-progress   # Production maintenance preview',
-    ].join('\n'),
-    status: 'ok',
-    durationLabel: '6ms',
-    timestamp: '00:00:00',
-  },
-];
+export async function loader(): Promise<PortalHomeLoaderData> {
+  return loadPortalHomeDataWithPrerender();
+}
 
-const QUICK_COMMANDS = ['help', 'ls', 'menu', 'cadence', 'status', 'clear'] as const;
+export function meta({ loaderData, matches, location }: MetaArgs<typeof loader>) {
+  return buildPortalPageMeta({
+    matches,
+    pathname: location.pathname,
+    title: 'andrew-k.us // Solar Forge Terminal',
+    description:
+      loaderData?.content.description ??
+      'Interactive Solar Forge portfolio terminal and TUI workspace by Andrew Klapper.',
+  });
+}
 
 export default function PortalGreeterRoute() {
+  const { content, terminal } = useLoaderData() as PortalHomeLoaderData;
   const navigate = useNavigate();
+  const [tuiOpen, setTuiOpen] = useState(false);
 
-  const commands = useMemo<Readonly<Record<string, ZshCommandHandler>>>(
-    () => ({
-      help: () => ({
-        output: [
-          'Available zsh commands:',
-          '  ls         — list portal routes & modules',
-          '  menu       — open /menu TUI workspace',
-          '  cadence    — open /cadence artifact sandbox',
-          '  cd <route> — navigate to /menu, /cadence, or /changes-in-progress',
-          '  status     — inspect cluster & service state',
-          '  whoami     — display active terminal session',
-          '  clear      — clear terminal scrollback',
-        ].join('\n'),
+  const commands = useMemo(
+    () =>
+      buildZshCommandHandlers(terminal.commands, {
+        navigate,
+        openTui: () => setTuiOpen(true),
       }),
-      ls: () => ({
-        output: 'menu/   cadence/   changes-in-progress',
-      }),
-      menu: () => {
-        void navigate('/menu');
-        return { output: 'opening /menu ...' };
-      },
-      cadence: () => {
-        void navigate('/cadence');
-        return { output: 'opening /cadence ...' };
-      },
-      cd: args => {
-        const target = (args[0] ?? '').replace(/^\/+|\/+$/g, '');
-        if (target === 'menu' || target === 'cadence' || target === 'changes-in-progress') {
-          void navigate(`/${target}`);
-          return { output: `cd /${target}` };
-        }
-        return {
-          status: 'error',
-          output: `cd: no such route: ${args[0] ?? '(empty)'}\nTry: cd menu | cd cadence | cd changes-in-progress`,
-        };
-      },
-      status: () => ({
-        output: 'gke-autopilot: 0 pods (scale-to-0) · portal-ssr: online · theme: solar-forge',
-      }),
-      whoami: () => ({
-        output: 'guest@andrew-k.us (tty1)',
-      }),
-      clear: () => ({ output: '', clear: true }),
-    }),
-    [navigate],
+    [navigate, terminal.commands],
   );
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (event: KeyboardEvent) => {
+      if (!event.altKey || event.ctrlKey || event.metaKey) return;
+      const key = event.key.toLowerCase();
+      if (key === 't') {
+        event.preventDefault();
+        setTuiOpen(prev => !prev);
+      } else if (key === 'm') {
+        event.preventDefault();
+        void navigate('/menu');
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+    };
+  }, [navigate]);
 
   return (
     <div className={styles.workspace}>
       <ZshP10kTerminal
-        bannerTitle='zsh 5.9 :: powerlevel10k // Solar Forge tty1'
-        bannerMeta='local dev · type commands or use TUI below'
-        directory='~/projects/aklapper'
-        vcsBranch='portfolio_v2'
-        vcsState='clean'
-        contextLabel='guest@andrew-k.us'
+        bannerTitle={terminal.bannerTitle}
+        bannerMeta={terminal.bannerMeta}
+        osLabel={terminal.osLabel}
+        directory={terminal.directory}
+        vcsBranch={terminal.vcsBranch}
+        vcsState={terminal.vcsState}
+        contextLabel={terminal.contextLabel}
         commands={commands}
-        quickCommands={QUICK_COMMANDS}
-        initialEntries={INITIAL_ENTRIES}
-        placeholder='type a command (help, ls, menu, cadence, cd ...)'
+        quickCommands={terminal.quickCommands}
+        initialEntries={terminal.initialEntries}
+        placeholder={terminal.placeholder}
+        focusOnMount
+        onEscape={() => setTuiOpen(false)}
       />
 
-      <TuiWindow
-        title='tui :: solar-forge launcher'
-        badge={<OscStatusBadge source='gke-autopilot' state='idle' label='0 pods (scale-to-0)' />}
-      >
-        <div className={styles.tuiBody}>
-          <h1 id='greeter-heading'>Solar Forge Agentic Terminal — tty1</h1>
-          <p>
-            Type directly into the zsh + Powerlevel10k prompt above or use this draggable TUI window
-            to launch the clean menu, wake real GKE Autopilot scale-from-zero Go microservices on
-            demand, and build live sandboxed artifacts with CADENCE.
-          </p>
-          <div className={styles.actions}>
-            <Link to='/menu'>
-              <SfButton variant='primary'>Enter as Guest → /menu</SfButton>
-            </Link>
-            <Link to='/cadence'>
-              <SfButton variant='default'>Open CADENCE → /cadence</SfButton>
-            </Link>
-            <Link to='/changes-in-progress'>
-              <SfButton variant='default'>Preview Changes in Progress</SfButton>
-            </Link>
+      {tuiOpen ? (
+        <TuiWindow
+          title={content.tuiTitle}
+          onClose={() => setTuiOpen(false)}
+          badge={
+            <OscStatusBadge
+              source={content.tuiBadge.source}
+              state={content.tuiBadge.state}
+              label={content.tuiBadge.label}
+            />
+          }
+        >
+          <div className={styles.tuiBody}>
+            <h1 id='greeter-heading'>{content.heading}</h1>
+            <p>{content.description}</p>
+            <Toolbar.Root className={styles.actions} aria-label='Portal launch actions'>
+              {content.actions.map(action => (
+                <Button.Link
+                  key={action.to}
+                  render={<Link to={action.to} />}
+                  variant={action.variant}
+                >
+                  <Button.Label>{action.label}</Button.Label>
+                </Button.Link>
+              ))}
+            </Toolbar.Root>
           </div>
-        </div>
-      </TuiWindow>
+        </TuiWindow>
+      ) : null}
     </div>
   );
 }

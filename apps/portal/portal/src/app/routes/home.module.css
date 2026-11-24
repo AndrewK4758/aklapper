@@ -1,18 +1,21 @@
 @layer page {
   .workspace {
     display: grid;
-    gap: var(--portal-space-2xl);
-    align-content: start;
+    gap: var(--sf-space-9);
+    align-content: var(--sf-align-start);
   }
 
   .tuiBody {
     display: grid;
-    gap: var(--portal-space-lg);
+    gap: var(--sf-space-7);
   }
 
   .actions {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--portal-space-md);
+    gap: var(--sf-space-6);
+    background: transparent;
+    border: none;
+    padding: var(--sf-space-0);
   }
 }

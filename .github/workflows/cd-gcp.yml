@@ -6,6 +6,7 @@ name: GCP CI/CD Deploy
 # Required GitHub Environment Secrets (staging & production):
 #   - GCP_WORKLOAD_IDENTITY_PROVIDER : projects/<num>/locations/global/workloadIdentityPools/<pool>/providers/<provider>
 #   - GCP_WIF_SERVICE_ACCOUNT        : <deployer-sa>@<project-id>.iam.gserviceaccount.com
+#   - DATABASE_URL                   : PostgreSQL 19 connection string for portal & admin SSR loaders
 #
 # Required GitHub Environment / Repository Variables:
 #   - GCP_PROJECT_ID                 : Target GCP project ID
@@ -212,6 +213,12 @@ jobs:
           env_vars: |
             NODE_ENV=production
             PORTAL_MAINTENANCE_MODE=${{ vars.PORTAL_MAINTENANCE_MODE || 'false' }}
+            PUBLIC_PORTAL_URL=${{ vars.PUBLIC_PORTAL_URL || 'https://andrew-k.us' }}
+            PUBLIC_ANALYTICS_ENDPOINT=${{ vars.PUBLIC_ANALYTICS_ENDPOINT || '' }}
+            PUBLIC_GA_MEASUREMENT_ID=${{ vars.PUBLIC_GA_MEASUREMENT_ID || '' }}
+            PUBLIC_GTM_ID=${{ vars.PUBLIC_GTM_ID || '' }}
+            PUBLIC_GSC_VERIFICATION=${{ vars.PUBLIC_GSC_VERIFICATION || '' }}
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
           flags: >-
             --allow-unauthenticated
             --port=8080
@@ -231,6 +238,11 @@ jobs:
           image: ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY || 'aklapper' }}/admin:${{ github.sha }}
           env_vars: |
             NODE_ENV=production
+            PUBLIC_ADMIN_URL=${{ vars.PUBLIC_ADMIN_URL || 'https://admin.andrew-k.us' }}
+            PUBLIC_ANALYTICS_ENDPOINT=${{ vars.PUBLIC_ANALYTICS_ENDPOINT || '' }}
+            PUBLIC_GA_MEASUREMENT_ID=${{ vars.PUBLIC_GA_MEASUREMENT_ID || '' }}
+            PUBLIC_GTM_ID=${{ vars.PUBLIC_GTM_ID || '' }}
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
           flags: >-
             ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_ADMIN == 'true' && '--allow-unauthenticated' || '--no-allow-unauthenticated' }}
             --port=8080

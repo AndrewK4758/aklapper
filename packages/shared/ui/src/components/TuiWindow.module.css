@@ -44,9 +44,23 @@
   }
 
   .title {
+    appearance: none;
+    background: transparent;
+    border: none;
+    padding: var(--sf-space-0);
+    margin: var(--sf-space-0);
+    font: inherit;
     color: var(--sf-gold);
     font-size: var(--sf-text-sm);
     font-weight: var(--sf-weight-bold);
+    cursor: inherit;
+    text-align: left;
+  }
+
+  .title:focus-visible {
+    outline: var(--sf-border-width) solid var(--sf-gold);
+    outline-offset: var(--sf-space-1);
+    border-radius: var(--sf-radius-sm);
   }
 
   .actions {
@@ -55,24 +69,31 @@
     gap: var(--sf-space-2);
   }
 
-  .iconButton {
-    border: var(--sf-border-width) solid var(--sf-border);
-    background: var(--sf-bg-frame);
-    color: var(--sf-fg-prop);
-    font-family: var(--sf-font-mono), monospace;
-    font-size: var(--sf-text-xs);
-    padding: var(--sf-space-hairline) var(--sf-space-3);
-    cursor: pointer;
+  .actionToolbar {
+    background: transparent;
+    border: none;
+    padding: var(--sf-space-0);
   }
 
-  .iconButton:hover {
-    border-color: var(--sf-gold);
-    color: var(--sf-gold);
+  .iconButton {
+    --sf-bg-panel: var(--sf-bg-frame);
+    --sf-fg-bone: var(--sf-fg-prop);
+    --sf-control-h-xs: calc(var(--sf-space-unit) * 5.5);
+    --sf-space-1: var(--sf-space-hairline);
+    --sf-space-4: var(--sf-space-3);
+    --sf-icon-md: var(--sf-icon-xs);
+  }
+
+  .scrollRoot {
+    flex: 1;
+    min-height: var(--sf-space-0);
+  }
+
+  .bodyViewport {
+    height: 100%;
   }
 
   .body {
-    flex: 1;
-    overflow: auto;
     padding: var(--sf-space-6);
     display: grid;
     gap: var(--sf-space-6);

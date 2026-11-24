@@ -12,10 +12,18 @@
       "default": "./dist/index.js"
     }
   },
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node --conditions=@aklapper/source ./src/migrate.ts",
+    "db:seed": "node --conditions=@aklapper/source ./src/seed.ts",
+    "db:setup": "pnpm run db:migrate && pnpm run db:seed"
+  },
   "dependencies": {
     "@aklapper/contracts": "workspace:*",
+    "@aklapper/shared-utils": "workspace:*",
     "drizzle-orm": "^0.45.4",
-    "pg": "^8.23.1"
+    "pg": "^8.23.1",
+    "zod": "^4.6.7"
   },
   "nx": {
     "name": "node-db",
@@ -24,6 +32,67 @@
     "tags": [
       "scope:node",
       "runtime:node"
-    ]
+    ],
+    "targets": {
+      "db-generate": {
+        "cache": false,
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "packages/node/db",
+          "command": "drizzle-kit generate"
+        }
+      },
+      "db-migrate": {
+        "cache": false,
+        "defaultConfiguration": "development",
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "packages/node/db",
+          "command": "node --conditions=@aklapper/source ./src/migrate.ts"
+        },
+        "configurations": {
+          "development": {},
+          "test": {},
+          "e2e": {},
+          "ci": {},
+          "staging": {},
+          "production": {}
+        }
+      },
+      "db-seed": {
+        "cache": false,
+        "defaultConfiguration": "development",
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "packages/node/db",
+          "command": "node --conditions=@aklapper/source ./src/seed.ts"
+        },
+        "configurations": {
+          "development": {},
+          "test": {},
+          "e2e": {},
+          "ci": {},
+          "staging": {},
+          "production": {}
+        }
+      },
+      "db-setup": {
+        "cache": false,
+        "defaultConfiguration": "development",
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "packages/node/db",
+          "command": "node --conditions=@aklapper/source ./src/migrate.ts && node --conditions=@aklapper/source ./src/seed.ts"
+        },
+        "configurations": {
+          "development": {},
+          "test": {},
+          "e2e": {},
+          "ci": {},
+          "staging": {},
+          "production": {}
+        }
+      }
+    }
   }
 }

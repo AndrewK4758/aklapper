@@ -6,8 +6,8 @@
     padding: var(--sf-space-7) var(--sf-space-8);
     min-height: var(--sf-terminal-min-h);
     display: grid;
-    grid-template-rows: auto 1fr auto;
-    gap: var(--sf-space-6);
+    grid-template-rows: auto auto 1fr auto auto;
+    gap: var(--sf-space-5);
     cursor: text;
   }
 
@@ -17,8 +17,6 @@
     justify-content: space-between;
     flex-wrap: wrap;
     gap: var(--sf-space-4);
-    padding-bottom: var(--sf-space-5);
-    border-bottom: var(--sf-border-width) solid var(--sf-guide);
     color: var(--sf-fg-cmt);
     font-size: var(--sf-text-sm);
   }
@@ -31,13 +29,23 @@
     font-weight: var(--sf-weight-bold);
   }
 
+  .divider {
+    --sf-border: var(--sf-guide);
+  }
+
+  .historyRoot {
+    max-height: var(--sf-terminal-scroll-max-h);
+  }
+
+  .historyViewport {
+    max-height: var(--sf-terminal-scroll-max-h);
+    padding-right: var(--sf-space-3);
+  }
+
   .history {
     display: grid;
     gap: var(--sf-space-6);
     align-content: start;
-    max-height: var(--sf-terminal-scroll-max-h);
-    overflow-y: auto;
-    padding-right: var(--sf-space-2);
   }
 
   .entry {
@@ -61,6 +69,7 @@
   }
 
   .promptBlock {
+    --sf-gap-lg: var(--sf-space-2);
     display: grid;
     gap: var(--sf-space-2);
   }
@@ -323,20 +332,22 @@
   }
 
   .input {
-    width: 100%;
-    background: transparent;
-    border: var(--sf-space-0);
-    color: var(--sf-fg-bone);
-    font-family: var(--sf-font-mono), monospace;
-    font-size: var(--sf-text-base);
+    --sf-bg-editor: transparent;
+    --sf-border: transparent;
+    --sf-border-strong: transparent;
+    --sf-focus-ring: transparent;
+    --sf-control-h-md: auto;
+    --sf-inset-control-y: var(--sf-space-0);
+    --sf-inset-control-x: var(--sf-space-0);
+    --sf-text-control: var(--sf-text-base);
+    border-color: transparent;
     line-height: var(--sf-leading-base);
     caret-color: var(--sf-gold);
-    padding: var(--sf-space-0);
-    outline: none;
   }
 
-  .input::placeholder {
-    color: var(--sf-fg-cmt);
+  .input:focus {
+    border-color: transparent;
+    box-shadow: none;
   }
 
   .ghost {
@@ -357,35 +368,29 @@
 
   .quickBar {
     display: flex;
-    align-items: center;
     flex-wrap: wrap;
+    background: transparent;
+    border: none;
+    padding: var(--sf-space-0);
     gap: var(--sf-space-3);
-    padding-top: var(--sf-space-4);
-    border-top: var(--sf-border-width) solid var(--sf-guide);
     font-size: var(--sf-text-xs);
     color: var(--sf-fg-cmt);
   }
 
-  .quickChip {
-    background: var(--sf-bg-panel);
-    color: var(--sf-fg-str);
-    border: var(--sf-border-width) solid var(--sf-border);
-    border-radius: var(--sf-radius-sm);
-    padding: var(--sf-space-1) var(--sf-space-4);
-    font-family: var(--sf-font-mono), monospace;
-    font-size: var(--sf-text-xs);
-    cursor: pointer;
-    transition:
-      border-color var(--sf-duration-fast) var(--sf-ease-standard),
-      color var(--sf-duration-fast) var(--sf-ease-standard);
+  .quickGroup {
+    flex-wrap: wrap;
+    gap: var(--sf-space-3);
   }
 
-  .quickChip:hover {
-    border-color: var(--sf-gold);
+  .quickChip {
+    --sf-fg-bone: var(--sf-fg-str);
+  }
+
+  .quickChip:hover:not(:disabled, [data-disabled]) {
     color: var(--sf-gold);
   }
 
-  @media (max-width: 680px) {
+  @media (max-width: 42.5rem) {
     .segCtx,
     .arrowExecToCtx,
     .segExec,

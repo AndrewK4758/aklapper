@@ -25,7 +25,13 @@ export const LIGHTNINGCSS_MODULES = Object.freeze({ customIdents: true, containe
 export const external = (id: string): boolean =>
   !id.startsWith('.') && !id.startsWith('/') && !/^[A-Za-z]:[\\/]/.test(id) && !id.startsWith('\0');
 
-export function createReactRouterAppConfig(): ReactRouterConfig {
+export interface ReactRouterAppConfigOptions {
+  prerender?: ReactRouterConfig['prerender'];
+}
+
+export function createReactRouterAppConfig(
+  options: ReactRouterAppConfigOptions = {},
+): ReactRouterConfig {
   return {
     appDirectory: './src/app',
     basename: '/',
@@ -34,6 +40,7 @@ export function createReactRouterAppConfig(): ReactRouterConfig {
       unstable_enableNodeReadableStream: true,
       unstable_optimizeDeps: true,
     },
+    prerender: options.prerender ?? true,
     serverBuildFile: 'index.js',
     ssr: true,
     splitRouteModules: 'enforce',

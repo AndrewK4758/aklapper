@@ -278,9 +278,15 @@ importers:
 
   apps/admin/admin:
     dependencies:
+      '@aklapper/analytics':
+        specifier: workspace:*
+        version: link:../../../packages/shared/analytics
       '@aklapper/contracts':
         specifier: workspace:*
         version: link:../../../packages/shared/contracts
+      '@aklapper/db':
+        specifier: workspace:*
+        version: link:../../../packages/node/db
       '@aklapper/shared-utils':
         specifier: workspace:*
         version: link:../../../packages/shared/utils
@@ -333,6 +339,9 @@ importers:
       '@aklapper/contracts':
         specifier: workspace:*
         version: link:../../../packages/shared/contracts
+      '@aklapper/db':
+        specifier: workspace:*
+        version: link:../../../packages/node/db
       '@aklapper/shared-utils':
         specifier: workspace:*
         version: link:../../../packages/shared/utils
@@ -515,17 +524,26 @@ importers:
       '@aklapper/contracts':
         specifier: workspace:*
         version: link:../../shared/contracts
+      '@aklapper/shared-utils':
+        specifier: workspace:*
+        version: link:../../shared/utils
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@types/pg@8.23.1)(pg@8.23.1)
       pg:
         specifier: ^8.23.1
         version: 8.23.1
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
 
   packages/node/e2e-kit: {}
 
   packages/node/ssr-server:
     dependencies:
+      '@aklapper/shared-utils':
+        specifier: workspace:*
+        version: link:../../shared/utils
       '@fastify/cookie':
         specifier: ^11.1.5
         version: 11.1.5

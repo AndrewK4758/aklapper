@@ -1,151 +1,122 @@
+import type { PortalMaintenanceLoaderData, RoadmapMilestoneStatus } from '@aklapper/contracts';
+import { loadPortalMaintenanceDataWithPrerender } from '@aklapper/db';
 import {
+  buildZshCommandHandlers,
+  formatRoadmapMarker,
   OscStatusBadge,
+  Progress,
+  Separator,
   TuiWindow,
-  type ZshCommandHandler,
   ZshP10kTerminal,
-  type ZshTerminalHistoryItem,
 } from '@aklapper/ui';
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo, useState } from 'react';
+import { type MetaArgs, useLoaderData } from 'react-router';
+
+import { buildPortalPageMeta } from '../seo';
 
 import styles from './changes-in-progress.module.css';
 
-const INITIAL_ENTRIES: readonly Omit<ZshTerminalHistoryItem, 'id'>[] = [
-  {
-    command: 'status',
-    output:
-      'andrew-k.us :: Solar Forge v2 rebuild is actively underway.\n' +
-      'Navigation is temporarily offline while services migrate to Cloud Run + GKE Autopilot.\n' +
-      'Type "help" at the ❯ prompt below to inspect the rebuild status.',
-    status: 'ok',
-    durationLabel: '8ms',
-    timestamp: '00:00:00',
-  },
-];
+export async function loader(): Promise<PortalMaintenanceLoaderData> {
+  return loadPortalMaintenanceDataWithPrerender();
+}
 
-const QUICK_COMMANDS = ['help', 'status', 'roadmap', 'stack', 'whoami', 'clear'] as const;
+export function meta({ loaderData, matches, location }: MetaArgs<typeof loader>) {
+  return buildPortalPageMeta({
+    matches,
+    pathname: location.pathname,
+    title: `${loaderData?.content.heading ?? 'Changes in Progress'} // andrew-k.us`,
+    description:
+      loaderData?.content.lead ??
+      'andrew-k.us is being rebuilt into the Solar Forge v2 interactive terminal and TUI platform.',
+    robots: 'noindex, nofollow',
+  });
+}
 
-export function ChangesInProgressView() {
-  const bootMs = useRef<number>(0);
+function getMarkerClassName(status: RoadmapMilestoneStatus): string {
+  switch (status) {
+    case 'done':
+      return styles.markerDone;
+    case 'active':
+      return styles.markerActive;
+    case 'queued':
+      return styles.markerQueued;
+  }
+}
 
-  useEffect(() => {
-    bootMs.current = Date.now();
-  }, []);
+export function ChangesInProgressView({ data }: { data: PortalMaintenanceLoaderData }) {
+  const { content, terminal, milestones } = data;
+  const [bootMs] = useState<number>(() => Date.now());
 
-  const commands = useMemo<Readonly<Record<string, ZshCommandHandler>>>(
-    () => ({
-      help: () => ({
-        output: [
-          'Available commands (maintenance tty1):',
-          '  status    — current rebuild & deployment status',
-          '  roadmap   — active Solar Forge v2 milestones',
-          '  stack     — runtime & cloud architecture summary',
-          '  whoami    — active session identity',
-          '  uname     — print platform kernel banner',
-          '  uptime    — show browser session uptime',
-          '  clear     — clear terminal scrollback',
-        ].join('\n'),
+  const commands = useMemo(
+    () =>
+      buildZshCommandHandlers(terminal.commands, {
+        milestones,
+        getUptimeSeconds: () => Math.max(0, Math.floor((Date.now() - bootMs) / 1000)),
       }),
-      status: () => ({
-        output: [
-          'STATE    : CHANGES IN PROGRESS (maintenance mode)',
-          'HOST     : andrew-k.us',
-          'RUNTIME  : Google Cloud Run (us-central1, scale-to-0)',
-          'PROGRESS : [██████████████░░░░░░] 72%',
-          'NOTICE   : Full portal navigation will unlock as soon as v2 rollout completes.',
-        ].join('\n'),
-      }),
-      roadmap: () => ({
-        output: [
-          '[x] Solar Forge 4-layer CSS variable theme & animated emblem',
-          '[x] React Router 8 + Fastify 5 SSR server deployed on Cloud Run',
-          '[~] Interactive zsh + Powerlevel10k command shell & TUI desktop',
-          '[ ] GKE Autopilot scale-from-zero Go microservices & CADENCE sandbox',
-        ].join('\n'),
-      }),
-      stack: () => ({
-        output: [
-          'Frontend : React 19 · React Router 8 SSR · Vite 8 · CSS Modules + @layer tokens',
-          'Backend  : Go microservices + Fastify 5 Node 24/26 native TS · PostgreSQL 19 · Qdrant',
-          'Infra    : Cloud Run (edge SSR) + GKE Autopilot (scale-to-0 workloads)',
-        ].join('\n'),
-      }),
-      whoami: () => ({
-        output: 'visitor@andrew-k.us (read-only maintenance tty1)',
-      }),
-      uname: () => ({
-        output: 'SolarForge 2.0.0 andrew-k.us x86_64 CloudRun/Linux',
-      }),
-      uptime: () => {
-        const started = bootMs.current || Date.now();
-        const secs = Math.max(0, Math.floor((Date.now() - started) / 1000));
-        return { output: `up ${secs}s · 1 user · load average: 0.00, 0.00, 0.00` };
-      },
-      clear: () => ({ output: '', clear: true }),
-    }),
-    [],
+    [bootMs, milestones, terminal.commands],
   );
 
   return (
     <div className={styles.workspace}>
       <TuiWindow
-        title='tui :: andrew-k.us // changes in progress'
+        title={content.windowTitle}
         badge={
-          <OscStatusBadge source='solar-forge-v2' state='scaling' label='CHANGES IN PROGRESS' />
+          <OscStatusBadge
+            source={content.statusBadge.source}
+            state={content.statusBadge.state}
+            label={content.statusBadge.label}
+          />
         }
       >
         <div className={styles.tuiGrid}>
-          <h1>Changes in Progress</h1>
-          <p className={styles.lead}>
-            andrew-k.us is being rebuilt into the Solar Forge v2 interactive terminal and TUI
-            platform. Site navigation is temporarily disabled while the new architecture rolls out.
-          </p>
-          <progress
+          <h1>{content.heading}</h1>
+          <p className={styles.lead}>{content.lead}</p>
+          <Progress.Root
             className={styles.progress}
-            value={72}
+            value={content.progressPercent}
             max={100}
-            aria-label='Solar Forge v2 rebuild progress'
-          />
+            aria-label={content.progressAriaLabel}
+          >
+            <Progress.Track>
+              <Progress.Indicator />
+            </Progress.Track>
+          </Progress.Root>
           <ul className={styles.checklist}>
-            <li className={styles.checkItem}>
-              <span className={styles.markerDone}>[x]</span>
-              <span>Solar Forge 4-layer CSS variable theme &amp; animated reticle emblem</span>
-            </li>
-            <li className={styles.checkItem}>
-              <span className={styles.markerDone}>[x]</span>
-              <span>React Router 8 + Fastify 5 SSR migrated from App Engine to Cloud Run</span>
-            </li>
-            <li className={styles.checkItem}>
-              <span className={styles.markerActive}>[~]</span>
-              <span>Interactive zsh + Powerlevel10k command prompt &amp; TUI workspace</span>
-            </li>
-            <li className={styles.checkItem}>
-              <span className={styles.markerQueued}>[ ]</span>
-              <span>Scale-from-zero Go microservices &amp; CADENCE live sandbox rollout</span>
-            </li>
+            {milestones.map(milestone => (
+              <li key={milestone.slug} className={styles.checkItem}>
+                <span className={getMarkerClassName(milestone.status)}>
+                  {formatRoadmapMarker(milestone.status)}
+                </span>
+                <span>{milestone.label}</span>
+              </li>
+            ))}
           </ul>
+          <Separator.Root />
           <div className={styles.metaRow}>
-            <span>mode: maintenance (no navigation)</span>
-            <span>progress: 72% · drag titlebar or type below</span>
+            <span>{content.metaLeft}</span>
+            <span>{content.metaRight}</span>
           </div>
         </div>
       </TuiWindow>
 
       <ZshP10kTerminal
-        bannerTitle='zsh 5.9 :: p10k // andrew-k.us (maintenance)'
-        bannerMeta='tty1 · type "help" or press Tab'
-        directory='~/andrew-k.us'
-        vcsBranch='portfolio_v2 !wip'
-        vcsState='modified'
-        contextLabel='visitor@andrew-k.us'
+        bannerTitle={terminal.bannerTitle}
+        bannerMeta={terminal.bannerMeta}
+        osLabel={terminal.osLabel}
+        directory={terminal.directory}
+        vcsBranch={terminal.vcsBranch}
+        vcsState={terminal.vcsState}
+        contextLabel={terminal.contextLabel}
         commands={commands}
-        quickCommands={QUICK_COMMANDS}
-        initialEntries={INITIAL_ENTRIES}
-        placeholder='type a command: help, status, roadmap, stack, clear'
+        quickCommands={terminal.quickCommands}
+        initialEntries={terminal.initialEntries}
+        placeholder={terminal.placeholder}
       />
     </div>
   );
 }
 
 export default function ChangesInProgressRoute() {
-  return <ChangesInProgressView />;
+  const data = useLoaderData() as PortalMaintenanceLoaderData;
+  return <ChangesInProgressView data={data} />;
 }

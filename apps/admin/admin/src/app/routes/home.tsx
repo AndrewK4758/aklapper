@@ -1,22 +1,58 @@
-import { SfButton } from '@aklapper/ui';
-import { Link } from 'react-router';
+import type { AdminHomeLoaderData } from '@aklapper/contracts';
+import { loadAdminHomeDataWithPrerender } from '@aklapper/db';
+import { Button, Separator, Toolbar, TuiWindow } from '@aklapper/ui';
+import { Link, type MetaArgs, useLoaderData } from 'react-router';
+
+import { buildAdminPageMeta } from '../seo';
 
 import styles from './home.module.css';
 
+export async function loader(): Promise<AdminHomeLoaderData> {
+  return loadAdminHomeDataWithPrerender();
+}
+
+export function meta({ loaderData, matches, location }: MetaArgs<typeof loader>) {
+  return buildAdminPageMeta({
+    matches,
+    pathname: location.pathname,
+    title: 'admin.andrew-k.us // Solar Forge Ops',
+    description:
+      loaderData?.content.description ??
+      'Isolated operations console for andrew-k.us passkey auth, CMS, and telemetry.',
+  });
+}
+
 export default function AdminHomeRoute() {
+  const { content, menuItems } = useLoaderData() as AdminHomeLoaderData;
+
   return (
-    <section className={styles.card} aria-labelledby='admin-heading'>
-      <h1 id='admin-heading'>Admin Operations Console</h1>
-      <p>
-        Isolated bundle for <code>aklapper</code>: WebAuthn Passkey + future TOTP 2FA gate,
-        first-party analytics, Postgres 19 menu/quota CMS, and private <code>cadence-admin</code>{' '}
-        namespace controls.
-      </p>
-      <div className={styles.actions}>
-        <Link to='/analytics'>
-          <SfButton variant='primary'>Open Telemetry View</SfButton>
-        </Link>
-      </div>
-    </section>
+    <div className={styles.frame}>
+      <TuiWindow title={content.heading}>
+        <div className={styles.card} aria-labelledby='admin-heading'>
+          <h1 id='admin-heading'>{content.heading}</h1>
+          <p>{content.description}</p>
+          <Toolbar.Root className={styles.actions} aria-label='Admin actions'>
+            {content.actions.map(action => (
+              <Button.Link
+                key={action.to}
+                render={<Link to={action.to} />}
+                variant={action.variant}
+              >
+                <Button.Label>{action.label}</Button.Label>
+              </Button.Link>
+            ))}
+          </Toolbar.Root>
+          <Separator.Root />
+          <ul className={styles.registryList}>
+            {menuItems.map(item => (
+              <li key={item.slug} className={styles.registryItem}>
+                [{item.keyShortcut}] <strong>{item.title}</strong> (
+                {item.adminOnly ? 'admin' : 'public'})
+              </li>
+            ))}
+          </ul>
+        </div>
+      </TuiWindow>
+    </div>
   );
 }

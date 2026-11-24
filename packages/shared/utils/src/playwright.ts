@@ -9,6 +9,8 @@ import {
   type PlaywrightTestConfig,
 } from '@playwright/test';
 
+import { loadWorkspaceEnv } from './env.ts';
+
 export interface SsrPlaywrightConfigOptions {
   /** Absolute directory containing `playwright.config.ts` (pass `import.meta.dirname`). */
   configDir: string;
@@ -63,6 +65,8 @@ export function createSsrPlaywrightConfig(
   options: SsrPlaywrightConfigOptions,
 ): PlaywrightTestConfig {
   const { configDir, appDir, defaultPort, baseUrlEnvVar, portEnvVar, extraEnv = {} } = options;
+
+  loadWorkspaceEnv({ startDir: configDir, mode: 'e2e' });
 
   const isCI = Boolean(process.env['CI']);
   const externalBaseURL = process.env[baseUrlEnvVar]?.trim();

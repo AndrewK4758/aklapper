@@ -1,41 +1,89 @@
-import type { MenuItem } from '@aklapper/contracts';
+import type { PortalMenuLoaderData } from '@aklapper/contracts';
+import { loadPortalMenuDataWithPrerender } from '@aklapper/db';
 import { filterMenuForRole } from '@aklapper/shared-utils';
-import { Link } from 'react-router';
+import { NavigationMenu, Separator, TuiWindow } from '@aklapper/ui';
+import { useEffect, useMemo } from 'react';
+import { Link, type MetaArgs, useLoaderData, useNavigate } from 'react-router';
+
+import { buildPortalPageMeta } from '../seo';
 
 import styles from './menu.module.css';
 
-const PUBLIC_MENU_SEED: MenuItem[] = [
-  {
-    slug: 'cadence',
-    keyShortcut: '1',
-    title: 'CADENCE Builder',
-    description: 'Prompt-to-artifact sandbox backed by live GKE pods + Qdrant',
-    targetK8sDeploy: 'svc-cadence-demo',
-    namespace: 'portfolio-public',
-    adminOnly: false,
-    sortOrder: 1,
-    enabled: true,
-  },
-];
+export async function loader(): Promise<PortalMenuLoaderData> {
+  return loadPortalMenuDataWithPrerender();
+}
+
+export function meta({ loaderData, matches, location }: MetaArgs<typeof loader>) {
+  return buildPortalPageMeta({
+    matches,
+    pathname: location.pathname,
+    title: `${loaderData?.content.heading ?? 'Launch Menu'} // andrew-k.us`,
+    description:
+      loaderData?.content.description ??
+      'Select a Solar Forge module to explore CADENCE, RAG Q&A, Agensi skills, and contact workflows.',
+  });
+}
 
 export default function PortalMenuRoute() {
-  const items = filterMenuForRole(PUBLIC_MENU_SEED, 'guest');
+  const { content, items } = useLoaderData() as PortalMenuLoaderData;
+  const navigate = useNavigate();
+  const visibleItems = useMemo(() => filterMenuForRole(items, 'guest'), [items]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      const matched = visibleItems.find(
+        item => item.keyShortcut.toLowerCase() === event.key.toLowerCase(),
+      );
+      if (matched) {
+        event.preventDefault();
+        void navigate(`/${matched.slug}`);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [navigate, visibleItems]);
+
   return (
-    <section className={styles.card} aria-labelledby='menu-heading'>
-      <h1 id='menu-heading'>Launch Menu</h1>
-      <p>Select a module. No pods wake until you invoke a live GKE workflow.</p>
-      <ul className={styles.menuList}>
-        {items.map(item => (
-          <li key={item.slug}>
-            <Link to={`/${item.slug}`} className={styles.menuLink}>
-              <span>
-                [{item.keyShortcut}] <strong>{item.title}</strong> — {item.description}
-              </span>
-              <span>{item.targetK8sDeploy ?? 'local'}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <TuiWindow title={content.heading} onClose={() => void navigate('/')}>
+      <div className={styles.card} aria-labelledby='menu-heading'>
+        <h1 id='menu-heading'>{content.heading}</h1>
+        <p>{content.description}</p>
+        <Separator.Root />
+        <NavigationMenu.Root orientation='vertical' className={styles.menuNav}>
+          <NavigationMenu.List className={styles.menuList}>
+            {visibleItems.map(item => (
+              <NavigationMenu.Item key={item.slug} className={styles.menuItem}>
+                <NavigationMenu.Link
+                  render={<Link to={`/${item.slug}`} />}
+                  className={styles.menuLink}
+                >
+                  <span>
+                    [{item.keyShortcut}] <strong>{item.title}</strong> — {item.description}
+                  </span>
+                  <span className={styles.menuTarget}>
+                    {item.targetK8sDeploy ?? content.localTargetLabel}
+                  </span>
+                </NavigationMenu.Link>
+              </NavigationMenu.Item>
+            ))}
+          </NavigationMenu.List>
+        </NavigationMenu.Root>
+      </div>
+    </TuiWindow>
   );
 }

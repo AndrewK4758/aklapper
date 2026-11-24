@@ -85,3 +85,40 @@ export function createAnalyticsClient(options: AnalyticsClientOptions): Analytic
 
   return { enabled, sessionId, track, startWebVitals, flush };
 }
+
+export function bootstrapDocumentAnalytics(
+  doc: Document | undefined = typeof document !== 'undefined' ? document : undefined,
+): AnalyticsClient | null {
+  if (!doc || typeof window === 'undefined') return null;
+
+  const endpointMeta = doc.querySelector<HTMLMetaElement>(
+    'meta[name="aklapper-analytics-endpoint"]',
+  );
+  const endpoint = endpointMeta?.content.trim();
+  if (!endpoint) return null;
+
+  const appMeta = doc.querySelector<HTMLMetaElement>('meta[name="aklapper-analytics-app"]');
+  const appName = appMeta?.content.trim() || 'portal';
+
+  const client = createAnalyticsClient({ endpoint });
+  if (!client.enabled) return client;
+
+  client.startWebVitals();
+  client.track({
+    type: 'page_view',
+    name: `${appName}_page_view`,
+    path: window.location.pathname || '/',
+    metadata: { app: appName },
+  });
+
+  window.addEventListener('pagehide', () => {
+    client.flush();
+  });
+  doc.addEventListener('visibilitychange', () => {
+    if (doc.visibilityState === 'hidden') {
+      client.flush();
+    }
+  });
+
+  return client;
+}

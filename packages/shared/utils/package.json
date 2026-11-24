@@ -17,6 +17,12 @@
       "import": "./src/build.ts",
       "default": "./src/build.ts"
     },
+    "./env": {
+      "@aklapper/source": "./src/env.ts",
+      "types": "./dist/env.d.ts",
+      "import": "./dist/env.js",
+      "default": "./dist/env.js"
+    },
     "./playwright": {
       "@aklapper/source": "./src/playwright.ts",
       "types": "./src/playwright.ts",

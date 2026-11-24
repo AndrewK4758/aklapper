@@ -19,6 +19,7 @@
     }
   },
   "dependencies": {
+    "@aklapper/shared-utils": "workspace:*",
     "@fastify/cookie": "^11.1.5",
     "@fastify/helmet": "^13.2.0",
     "@fastify/static": "^10.1.12",

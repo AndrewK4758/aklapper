@@ -8,7 +8,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     await assertSsrHealthz(request, 'portal-ssr');
   });
 
-  test('renders tty1 greeter, runs zsh terminal commands, and hides admin items on /menu', async ({
+  test('renders terminal-only greeter, opens tui and menu via commands and keybindings, and hides admin items', async ({
     page,
   }) => {
     test.skip(IS_MAINTENANCE_MODE, 'Full greeter and menu routes are gated in maintenance mode');
@@ -16,26 +16,69 @@ test.describe('portal SSR end-to-end journeys', () => {
 
     await page.goto('/');
     await expect(page).toHaveTitle(/andrew-k\.us \/\/ Solar Forge Terminal/i);
-    await expect(
-      page.getByRole('heading', { name: /Solar Forge Agentic Terminal/i }),
-    ).toBeVisible();
 
-    const commandInput = page.getByLabel('Zsh command input');
+    const commandInput = page.getByLabel('Terminal command input');
     await expect(commandInput).toBeVisible();
+    await expect(commandInput).toBeFocused();
 
-    await commandInput.fill('whoami');
+    // TUI launcher window is hidden on initial entry — terminal is the only main item
+    const tuiHeading = page.getByRole('heading', { name: /Solar Forge Agentic Terminal/i });
+    await expect(tuiHeading).toHaveCount(0);
+
+    // Zero zsh or p10k references in rendered portal content
+    const initialBodyText = await page.locator('body').innerText();
+    expect(initialBodyText).not.toMatch(/\bzsh\b|p10k|powerlevel10k/i);
+
+    // Tab autocomplete + command execution + unknown command message without zsh prefix
+    await commandInput.fill('who');
+    await commandInput.press('Tab');
+    await expect(commandInput).toHaveValue('whoami');
     await commandInput.press('Enter');
     await expect(page.getByText('guest@andrew-k.us (tty1)')).toBeVisible();
 
+    // Up-arrow history recall & Ctrl+C cancel
+    await commandInput.press('ArrowUp');
+    await expect(commandInput).toHaveValue('whoami');
+    await commandInput.press('Control+c');
+    await expect(commandInput).toHaveValue('');
+    await expect(page.getByText('whoami^C')).toBeVisible();
+
+    // Unknown command
     await commandInput.fill('invalid-cmd');
     await commandInput.press('Enter');
-    await expect(page.getByText(/zsh: command not found: invalid-cmd/i)).toBeVisible();
+    await expect(page.getByText(/command not found: invalid-cmd/i)).toBeVisible();
+    expect(await page.locator('body').innerText()).not.toMatch(/\bzsh\b|p10k|powerlevel10k/i);
 
-    await page.getByRole('link', { name: /Enter as Guest/i }).click();
+    // Ctrl+L clears scrollback
+    await commandInput.press('Control+l');
+    await expect(page.getByText('guest@andrew-k.us (tty1)')).toHaveCount(0);
+
+    // `tui` command opens the TUI launcher window, and Escape closes it
+    await commandInput.fill('tui');
+    await commandInput.press('Enter');
+    await expect(tuiHeading).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(tuiHeading).toHaveCount(0);
+
+    // Alt+T toggles TUI window open and closed
+    await page.keyboard.press('Alt+t');
+    await expect(tuiHeading).toBeVisible();
+    await page.keyboard.press('Alt+t');
+    await expect(tuiHeading).toHaveCount(0);
+
+    // `menu` command navigates to /menu
+    await commandInput.fill('menu');
+    await commandInput.press('Enter');
     await expect(page).toHaveURL(/\/menu$/);
     await expect(page.getByRole('heading', { name: /Launch Menu/i })).toBeVisible();
     await expect(page.getByText(/CADENCE Builder/i)).toBeVisible();
     await expect(page.getByText(/cadence-admin/i)).toHaveCount(0);
+
+    // Keybinding `1` on /menu launches /cadence, and Escape returns to /
+    await page.keyboard.press('1');
+    await expect(page).toHaveURL(/\/cadence$/);
+    await page.keyboard.press('Escape');
+    await expect(page).toHaveURL(/\/$/);
 
     expect(getErrors()).toEqual([]);
   });
@@ -64,8 +107,9 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(page.getByRole('heading', { name: /Changes in Progress/i })).toBeVisible();
     await expect(page.locator('header')).toHaveCount(0);
     await expect(page.locator('footer')).toHaveCount(0);
+    expect(await page.locator('body').innerText()).not.toMatch(/\bzsh\b|p10k|powerlevel10k/i);
 
-    const commandInput = page.getByLabel('Zsh command input');
+    const commandInput = page.getByLabel('Terminal command input');
     await commandInput.fill('stack');
     await commandInput.press('Enter');
     await expect(page.getByText(/Cloud Run \(edge SSR\)/i)).toBeVisible();

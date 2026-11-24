@@ -4,6 +4,8 @@ import {
   K8sPodEventSchema,
   MenuItemSchema,
   Osc7501StatusSchema,
+  PortalChromeContentSchema,
+  TerminalProfileDataSchema,
 } from '../src/index.ts';
 
 describe('@aklapper/contracts', () => {
@@ -63,5 +65,54 @@ describe('@aklapper/contracts', () => {
       ],
     });
     expect(batch.events).toHaveLength(1);
+  });
+
+  it('validates DB-backed terminal profiles and portal chrome content', () => {
+    const profile = TerminalProfileDataSchema.parse({
+      slug: 'portal-home',
+      bannerTitle: 'zsh 5.9 :: powerlevel10k // Solar Forge tty1',
+      bannerMeta: 'local dev · type commands or use TUI below',
+      osLabel: '⚡',
+      directory: '~/projects/aklapper',
+      vcsBranch: 'portfolio_v2',
+      vcsState: 'clean',
+      contextLabel: 'guest@andrew-k.us',
+      placeholder: 'type a command',
+      quickCommands: ['help', 'ls'],
+      initialEntries: [
+        {
+          command: 'ls -la',
+          output: 'menu/',
+          status: 'ok',
+          durationLabel: '6ms',
+          timestamp: '00:00:00',
+          sortOrder: 0,
+        },
+      ],
+      commands: [
+        {
+          name: 'whoami',
+          description: 'display active terminal session',
+          kind: 'static',
+          output: 'guest@andrew-k.us (tty1)',
+          targetRoute: null,
+          allowedRoutes: [],
+          errorTemplate: null,
+          sortOrder: 0,
+        },
+      ],
+    });
+    expect(profile.initialEntries).toHaveLength(1);
+
+    const chrome = PortalChromeContentSchema.parse({
+      pageTitle: 'andrew-k.us // Solar Forge Terminal',
+      brandLabel: 'andrew-k.us :: tty1',
+      statusBadge: { source: 'gke-autopilot', state: 'idle', label: '0 pods (scale-to-0)' },
+      footerText: 'Solar Forge // Fastify 5 + React Router 8 SSR',
+      footerLinkLabel: 'agensi.io/creators/aklapper',
+      footerLinkUrl: 'https://agensi.io/creators/aklapper',
+      maintenanceModeDefault: false,
+    });
+    expect(chrome.maintenanceModeDefault).toBe(false);
   });
 });

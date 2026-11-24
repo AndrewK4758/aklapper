@@ -1,0 +1,73 @@
+@layer tokens {
+  :root,
+  :root[data-theme='solar-forge'] {
+    /* Font families — Fira Code Nerd Font primary */
+    --sf-font-mono:
+      'FiraCode Nerd Font Mono', 'FiraCode Nerd Font', 'Fira Code', 'JetBrains Mono',
+      'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sf-font-mono-propo:
+      'FiraCode Nerd Font Propo', 'FiraCode Nerd Font', 'Fira Code', ui-monospace, monospace;
+    --sf-font-display: var(--sf-font-mono);
+    --sf-font-code: var(--sf-font-mono);
+    --sf-font-sans:
+      'FiraCode Nerd Font Propo', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+    /* OpenType features for Fira Code Nerd Font ligatures & numerals */
+    --sf-font-features-ligatures: 'calt' 1, 'liga' 1, 'ss01' 1, 'zero' 1;
+    --sf-font-features-tabular: 'tnum' 1, 'zero' 1;
+    --sf-font-features-plain: 'calt' 0, 'liga' 0;
+
+    /* Relative calc-based typography scale rooted at --sf-text-unit (1rem) */
+    --sf-text-unit: 1rem;
+    --sf-text-2xs: calc(var(--sf-text-unit) * 0.625);
+    --sf-text-xs: calc(var(--sf-text-unit) * 0.6875);
+    --sf-text-sm: calc(var(--sf-text-unit) * 0.75);
+    --sf-text-md: calc(var(--sf-text-unit) * 0.8125);
+    --sf-text-base: calc(var(--sf-text-unit) * 0.875);
+    --sf-text-lg: calc(var(--sf-text-unit) * 1.125);
+    --sf-text-xl: calc(var(--sf-text-unit) * 1.375);
+    --sf-text-2xl: calc(var(--sf-text-unit) * 1.75);
+    --sf-text-3xl: calc(var(--sf-text-unit) * 2.25);
+    --sf-text-4xl: calc(var(--sf-text-unit) * 3);
+
+    /* Semantic type roles */
+    --sf-text-caption: var(--sf-text-xs);
+    --sf-text-label: var(--sf-text-sm);
+    --sf-text-control: var(--sf-text-md);
+    --sf-text-body: var(--sf-text-base);
+    --sf-text-heading-sm: var(--sf-text-base);
+    --sf-text-heading-md: var(--sf-text-lg);
+    --sf-text-heading-lg: var(--sf-text-xl);
+    --sf-text-heading-xl: var(--sf-text-2xl);
+
+    /* Line heights */
+    --sf-leading-none: 1;
+    --sf-leading-tight: 1.2;
+    --sf-leading-snug: 1.35;
+    --sf-leading-base: 1.55;
+    --sf-leading-relaxed: 1.7;
+    --sf-leading-loose: 1.9;
+
+    /* Font weights (matching Fira Code Nerd Font installed styles) */
+    --sf-weight-light: 300;
+    --sf-weight-normal: 400;
+    --sf-weight-retina: 450;
+    --sf-weight-medium: 500;
+    --sf-weight-semibold: 600;
+    --sf-weight-bold: 700;
+
+    /* Letter spacing (relative em tracking) */
+    --sf-tracking-tighter: calc(1em * -0.04);
+    --sf-tracking-tight: calc(1em * -0.02);
+    --sf-tracking-normal: 0em;
+    --sf-tracking-wide: calc(1em * 0.04);
+    --sf-tracking-wider: calc(1em * 0.08);
+    --sf-tracking-widest: calc(1em * 0.14);
+
+    /* Reading measures (relative ch character widths) */
+    --sf-measure-unit: 1ch;
+    --sf-measure-narrow: calc(var(--sf-measure-unit) * 45);
+    --sf-measure-base: calc(var(--sf-measure-unit) * 65);
+    --sf-measure-wide: calc(var(--sf-measure-unit) * 85);
+  }
+}

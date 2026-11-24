@@ -1,5 +1,8 @@
 import type { Osc7501State } from '@aklapper/contracts';
 
+import { Progress } from './base/Progress';
+import { Separator } from './base/Separator';
+
 import styles from './OscStatusBadge.module.css';
 
 export interface OscStatusBadgeProps {
@@ -13,8 +16,21 @@ export function OscStatusBadge({ source, state, label, progress }: OscStatusBadg
   return (
     <output className={styles.badge} data-state={state}>
       <strong>{source}</strong>
+      <Separator.Root orientation='vertical' className={styles.divider} />
       <span>{label}</span>
-      {typeof progress === 'number' ? <span>{progress}%</span> : null}
+      {typeof progress === 'number' ? (
+        <Progress.Root
+          className={styles.progress}
+          value={progress}
+          max={100}
+          aria-label={`${source} progress`}
+        >
+          <Progress.Track className={styles.progressTrack}>
+            <Progress.Indicator />
+          </Progress.Track>
+          <Progress.Value>{(_formatted, value) => `${value ?? progress}%`}</Progress.Value>
+        </Progress.Root>
+      ) : null}
     </output>
   );
 }

@@ -1,36 +1,34 @@
 @layer page {
   .shell {
-    min-height: var(--admin-viewport-h);
+    min-height: var(--sf-min-viewport-h);
     display: grid;
     grid-template-rows: auto 1fr;
-    background: var(--admin-bg);
+    background: var(--sf-bg-frame);
   }
 
   .bar {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--admin-space-md);
-    padding: var(--admin-space-sm) var(--admin-space-xl);
-    background: var(--admin-surface);
-    border-bottom: var(--admin-border-width) solid var(--admin-bar-border);
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    gap: var(--sf-space-6);
+    padding: var(--sf-space-4) var(--sf-space-8);
+    background: var(--sf-bg-editor);
+    border-bottom: var(--sf-border-width) solid var(--sf-accent-border);
   }
 
   .brand {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--admin-space-sm);
-    color: var(--admin-accent);
-    text-decoration: none;
-    font-weight: var(--admin-font-weight-bold);
+    --sf-fg-bone: var(--sf-gold);
+    --sf-space-3: var(--sf-space-2);
+    --sf-space-5: var(--sf-space-3);
+    font-weight: var(--sf-weight-bold);
   }
 
   .main {
-    width: min(var(--admin-max-width), 100%);
+    width: min(var(--sf-container-lg), 100%);
     margin-inline: auto;
-    padding: var(--admin-space-2xl) var(--admin-space-xl);
+    padding: var(--sf-space-10) var(--sf-space-8);
     display: grid;
-    gap: var(--admin-space-xl);
-    align-content: start;
+    gap: var(--sf-space-8);
+    align-content: var(--sf-align-start);
   }
 }

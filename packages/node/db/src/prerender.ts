@@ -1,0 +1,213 @@
+import {
+  type AdminAnalyticsLoaderData,
+  type AdminHomeLoaderData,
+  type AdminRootLoaderData,
+  CadencePresetSchema,
+  MenuItemSchema,
+  type PortalCadenceLoaderData,
+  type PortalHomeLoaderData,
+  type PortalMaintenanceLoaderData,
+  type PortalMenuLoaderData,
+  type PortalRootLoaderData,
+  RoadmapMilestoneSchema,
+  type TerminalProfileData,
+  TerminalProfileDataSchema,
+} from '@aklapper/contracts';
+
+import { type AppDatabase, getSharedDb, isReactRouterPrerender } from './client.ts';
+import {
+  loadAdminAnalyticsData,
+  loadAdminHomeData,
+  loadAdminRootData,
+  loadPortalCadenceData,
+  loadPortalHomeData,
+  loadPortalMaintenanceData,
+  loadPortalMenuData,
+  loadPortalRootData,
+  TERMINAL_PROFILE_SLUGS,
+} from './queries.ts';
+import {
+  ADMIN_ANALYTICS_SEED,
+  ADMIN_CHROME_SEED,
+  ADMIN_HOME_SEED,
+  CADENCE_PRESET_SEEDS,
+  DEFAULT_MENU_ITEMS,
+  PORTAL_CADENCE_SEED,
+  PORTAL_CHROME_SEED,
+  PORTAL_HOME_SEED,
+  PORTAL_MAINTENANCE_SEED,
+  PORTAL_MENU_SEED,
+  ROADMAP_MILESTONE_SEEDS,
+  TERMINAL_COMMAND_SEEDS,
+  TERMINAL_INITIAL_ENTRY_SEEDS,
+  TERMINAL_PROFILE_SEEDS,
+} from './seed.ts';
+
+function getSeedTerminalProfile(slug: string): TerminalProfileData {
+  const profile = TERMINAL_PROFILE_SEEDS.find(item => item.slug === slug);
+  if (!profile) {
+    throw new Error(`Missing seed terminal profile for prerender fallback: slug="${slug}"`);
+  }
+
+  return TerminalProfileDataSchema.parse({
+    slug: profile.slug,
+    bannerTitle: profile.bannerTitle,
+    bannerMeta: profile.bannerMeta,
+    osLabel: profile.osLabel,
+    directory: profile.directory,
+    vcsBranch: profile.vcsBranch,
+    vcsState: profile.vcsState,
+    contextLabel: profile.contextLabel,
+    placeholder: profile.placeholder,
+    quickCommands: [...profile.quickCommands],
+    initialEntries: TERMINAL_INITIAL_ENTRY_SEEDS.filter(entry => entry.profileSlug === slug)
+      .toSorted((a, b) => a.sortOrder - b.sortOrder)
+      .map(entry => ({
+        command: entry.command,
+        output: entry.output,
+        status: entry.status,
+        durationLabel: entry.durationLabel,
+        timestamp: entry.timestampLabel,
+        sortOrder: entry.sortOrder,
+      })),
+    commands: TERMINAL_COMMAND_SEEDS.filter(cmd => cmd.profileSlug === slug)
+      .toSorted((a, b) => a.sortOrder - b.sortOrder)
+      .map(cmd => ({
+        name: cmd.name,
+        description: cmd.description,
+        kind: cmd.kind,
+        output: cmd.output,
+        targetRoute: cmd.targetRoute,
+        allowedRoutes: [...cmd.allowedRoutes],
+        errorTemplate: cmd.errorTemplate,
+        sortOrder: cmd.sortOrder,
+      })),
+  });
+}
+
+export function getPrerenderPortalMaintenanceData(): PortalMaintenanceLoaderData {
+  return {
+    content: PORTAL_MAINTENANCE_SEED,
+    terminal: getSeedTerminalProfile(TERMINAL_PROFILE_SLUGS.portalMaintenance),
+    milestones: ROADMAP_MILESTONE_SEEDS.filter(m => m.enabled)
+      .toSorted((a, b) => a.sortOrder - b.sortOrder)
+      .map(m => RoadmapMilestoneSchema.parse(m)),
+  };
+}
+
+export function getPrerenderPortalRootData(
+  maintenanceModeOverride?: boolean,
+): PortalRootLoaderData {
+  const maintenanceMode = maintenanceModeOverride ?? PORTAL_CHROME_SEED.maintenanceModeDefault;
+  return {
+    maintenanceMode,
+    chrome: PORTAL_CHROME_SEED,
+    maintenance: maintenanceMode ? getPrerenderPortalMaintenanceData() : null,
+  };
+}
+
+export function getPrerenderPortalHomeData(): PortalHomeLoaderData {
+  return {
+    content: PORTAL_HOME_SEED,
+    terminal: getSeedTerminalProfile(TERMINAL_PROFILE_SLUGS.portalHome),
+  };
+}
+
+export function getPrerenderPortalMenuData(): PortalMenuLoaderData {
+  return {
+    content: PORTAL_MENU_SEED,
+    items: DEFAULT_MENU_ITEMS.filter(item => !item.adminOnly && item.enabled)
+      .toSorted((a, b) => a.sortOrder - b.sortOrder)
+      .map(item => MenuItemSchema.parse(item)),
+  };
+}
+
+export function getPrerenderPortalCadenceData(): PortalCadenceLoaderData {
+  return {
+    content: PORTAL_CADENCE_SEED,
+    presets: CADENCE_PRESET_SEEDS.toSorted((a, b) => a.sortOrder - b.sortOrder).map(preset =>
+      CadencePresetSchema.parse(preset),
+    ),
+  };
+}
+
+export function getPrerenderAdminRootData(): AdminRootLoaderData {
+  return {
+    chrome: ADMIN_CHROME_SEED,
+  };
+}
+
+export function getPrerenderAdminHomeData(): AdminHomeLoaderData {
+  return {
+    content: ADMIN_HOME_SEED,
+    menuItems: DEFAULT_MENU_ITEMS.toSorted((a, b) => a.sortOrder - b.sortOrder).map(item =>
+      MenuItemSchema.parse(item),
+    ),
+  };
+}
+
+export function getPrerenderAdminAnalyticsData(): AdminAnalyticsLoaderData {
+  return {
+    content: ADMIN_ANALYTICS_SEED,
+    summary: {
+      totalSessions: 0,
+      totalEvents: 0,
+    },
+  };
+}
+
+export async function withPrerenderFallback<T>(
+  loadFromDb: (db: AppDatabase) => Promise<T>,
+  getFallback: () => T,
+): Promise<T> {
+  if (!isReactRouterPrerender()) {
+    return loadFromDb(getSharedDb());
+  }
+
+  if (!process.env['DATABASE_URL']) {
+    return getFallback();
+  }
+
+  try {
+    return await loadFromDb(getSharedDb());
+  } catch {
+    return getFallback();
+  }
+}
+
+export function loadPortalRootDataWithPrerender(
+  maintenanceModeOverride?: boolean,
+): Promise<PortalRootLoaderData> {
+  return withPrerenderFallback(
+    db => loadPortalRootData(db, maintenanceModeOverride),
+    () => getPrerenderPortalRootData(maintenanceModeOverride),
+  );
+}
+
+export function loadPortalHomeDataWithPrerender(): Promise<PortalHomeLoaderData> {
+  return withPrerenderFallback(loadPortalHomeData, getPrerenderPortalHomeData);
+}
+
+export function loadPortalMenuDataWithPrerender(): Promise<PortalMenuLoaderData> {
+  return withPrerenderFallback(loadPortalMenuData, getPrerenderPortalMenuData);
+}
+
+export function loadPortalCadenceDataWithPrerender(): Promise<PortalCadenceLoaderData> {
+  return withPrerenderFallback(loadPortalCadenceData, getPrerenderPortalCadenceData);
+}
+
+export function loadPortalMaintenanceDataWithPrerender(): Promise<PortalMaintenanceLoaderData> {
+  return withPrerenderFallback(loadPortalMaintenanceData, getPrerenderPortalMaintenanceData);
+}
+
+export function loadAdminRootDataWithPrerender(): Promise<AdminRootLoaderData> {
+  return withPrerenderFallback(loadAdminRootData, getPrerenderAdminRootData);
+}
+
+export function loadAdminHomeDataWithPrerender(): Promise<AdminHomeLoaderData> {
+  return withPrerenderFallback(loadAdminHomeData, getPrerenderAdminHomeData);
+}
+
+export function loadAdminAnalyticsDataWithPrerender(): Promise<AdminAnalyticsLoaderData> {
+  return withPrerenderFallback(loadAdminAnalyticsData, getPrerenderAdminAnalyticsData);
+}

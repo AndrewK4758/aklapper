@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@aklapper/analytics": "workspace:*",
     "@aklapper/contracts": "workspace:*",
+    "@aklapper/db": "workspace:*",
     "@aklapper/shared-utils": "workspace:*",
     "@aklapper/ssr-server": "workspace:*",
     "@aklapper/ui": "workspace:*",

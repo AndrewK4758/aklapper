@@ -1,16 +1,35 @@
 @layer page {
-  .card {
-    background: var(--admin-surface);
-    border: var(--admin-border-width) solid var(--admin-border);
-    border-radius: var(--admin-radius-md);
-    padding: var(--admin-space-xl);
+  .frame {
     display: grid;
-    gap: var(--admin-space-lg);
+  }
+
+  .card {
+    display: grid;
+    gap: var(--sf-space-7);
   }
 
   .actions {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--admin-space-md);
+    gap: var(--sf-space-6);
+    background: transparent;
+    border: none;
+    padding: var(--sf-space-0);
+  }
+
+  .registryList {
+    list-style: none;
+    margin: var(--sf-space-0);
+    padding: var(--sf-space-0);
+    display: grid;
+    gap: var(--sf-space-3);
+  }
+
+  .registryItem {
+    padding: var(--sf-space-3) var(--sf-space-5);
+    background: var(--sf-bg-panel);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    font-size: var(--sf-text-sm);
   }
 }

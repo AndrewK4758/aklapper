@@ -29,4 +29,25 @@
     color: var(--sf-err);
     background: var(--sf-err-bg);
   }
+
+  .divider {
+    --sf-border: currentColor;
+    min-height: var(--sf-space-5);
+    opacity: var(--sf-opacity-muted);
+  }
+
+  .progress {
+    --sf-progress-h: var(--sf-space-2);
+    --sf-progress-indicator-bg: currentColor;
+    --sf-fg-num: currentColor;
+    --sf-border: currentColor;
+    flex-direction: row;
+    align-items: var(--sf-align-center);
+    width: auto;
+    gap: var(--sf-gap-xs);
+  }
+
+  .progressTrack {
+    width: var(--sf-space-11);
+  }
 }

@@ -7,6 +7,7 @@ import {
   serial,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 
@@ -43,7 +44,73 @@ export const cadencePresets = pgTable('cadence_presets', {
   title: text('title').notNull(),
   starterPrompt: text('starter_prompt').notNull(),
   expectedKind: text('expected_kind').notNull(),
+  starterArtifactHtml: text('starter_artifact_html').notNull(),
   sortOrder: integer('sort_order').notNull().default(0),
+});
+
+export const terminalProfiles = pgTable('terminal_profiles', {
+  slug: text('slug').primaryKey(),
+  bannerTitle: text('banner_title').notNull(),
+  bannerMeta: text('banner_meta').notNull(),
+  osLabel: text('os_label').notNull().default('⚡'),
+  directory: text('directory').notNull(),
+  vcsBranch: text('vcs_branch').notNull(),
+  vcsState: text('vcs_state')
+    .$type<'clean' | 'modified' | 'untracked'>()
+    .notNull()
+    .default('clean'),
+  contextLabel: text('context_label').notNull(),
+  placeholder: text('placeholder').notNull(),
+  quickCommands: text('quick_commands').array().notNull().default([]),
+});
+
+export const terminalInitialEntries = pgTable(
+  'terminal_initial_entries',
+  {
+    id: serial('id').primaryKey(),
+    profileSlug: text('profile_slug')
+      .notNull()
+      .references(() => terminalProfiles.slug, { onDelete: 'cascade' }),
+    command: text('command').notNull(),
+    output: text('output').notNull(),
+    status: text('status').$type<'ok' | 'error'>().notNull().default('ok'),
+    durationLabel: text('duration_label').notNull(),
+    timestampLabel: text('timestamp_label').notNull(),
+    sortOrder: integer('sort_order').notNull().default(0),
+  },
+  table => [
+    uniqueIndex('terminal_initial_entries_profile_sort_idx').on(table.profileSlug, table.sortOrder),
+  ],
+);
+
+export const terminalCommands = pgTable(
+  'terminal_commands',
+  {
+    id: serial('id').primaryKey(),
+    profileSlug: text('profile_slug')
+      .notNull()
+      .references(() => terminalProfiles.slug, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    description: text('description').notNull().default(''),
+    kind: text('kind')
+      .$type<'static' | 'navigate' | 'cd' | 'tui' | 'roadmap' | 'uptime' | 'clear'>()
+      .notNull()
+      .default('static'),
+    output: text('output').notNull().default(''),
+    targetRoute: text('target_route'),
+    allowedRoutes: text('allowed_routes').array().notNull().default([]),
+    errorTemplate: text('error_template'),
+    sortOrder: integer('sort_order').notNull().default(0),
+  },
+  table => [uniqueIndex('terminal_commands_profile_name_idx').on(table.profileSlug, table.name)],
+);
+
+export const roadmapMilestones = pgTable('roadmap_milestones', {
+  slug: text('slug').primaryKey(),
+  status: text('status').$type<'done' | 'active' | 'queued'>().notNull(),
+  label: text('label').notNull(),
+  sortOrder: integer('sort_order').notNull().default(0),
+  enabled: boolean('enabled').notNull().default(true),
 });
 
 export const users = pgTable('users', {

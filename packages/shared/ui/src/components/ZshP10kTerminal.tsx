@@ -1,5 +1,6 @@
 import {
   type KeyboardEvent,
+  type PointerEvent,
   type SyntheticEvent,
   useEffect,
   useMemo,
@@ -7,6 +8,7 @@ import {
   useState,
 } from 'react';
 
+import { Button, Form, Input, ScrollArea, Separator, Toolbar } from '../elements/base';
 import { SolarForgeEmblem } from '../elements/SolarForgeEmblem';
 
 import styles from './ZshP10kTerminal.module.css';
@@ -43,6 +45,8 @@ export interface ZshP10kTerminalProps {
   initialEntries?: readonly Omit<ZshTerminalHistoryItem, 'id'>[];
   placeholder?: string;
   initialTime?: string;
+  focusOnMount?: boolean;
+  onEscape?: () => void;
 }
 
 function formatClock(date: Date): string {
@@ -50,6 +54,12 @@ function formatClock(date: Date): string {
   const mm = String(date.getMinutes()).padStart(2, '0');
   const ss = String(date.getSeconds()).padStart(2, '0');
   return `${hh}:${mm}:${ss}`;
+}
+
+function scheduleCaret(inputEl: HTMLInputElement, position: number): void {
+  queueMicrotask(() => {
+    inputEl.setSelectionRange(position, position);
+  });
 }
 
 interface PromptHeaderProps {
@@ -63,7 +73,7 @@ interface PromptHeaderProps {
   timestamp: string;
 }
 
-function P10kPromptTop({
+function PromptHeader({
   osLabel,
   directory,
   vcsBranch,
@@ -114,8 +124,8 @@ function P10kPromptTop({
 }
 
 export function ZshP10kTerminal({
-  bannerTitle = 'zsh 5.9 :: powerlevel10k // Solar Forge',
-  bannerMeta = 'tty1 · nerdfont-rainbow',
+  bannerTitle = 'Solar Forge Terminal // tty1',
+  bannerMeta = 'tty1 · interactive shell',
   osLabel = '⚡',
   directory,
   vcsBranch,
@@ -126,6 +136,8 @@ export function ZshP10kTerminal({
   initialEntries = [],
   placeholder = 'type a command (try: help, status)',
   initialTime = '00:00:00',
+  focusOnMount = false,
+  onEscape,
 }: ZshP10kTerminalProps) {
   const [entries, setEntries] = useState<ZshTerminalHistoryItem[]>(() =>
     initialEntries.map((item, idx) => ({ ...item, id: `init-${idx}` })),
@@ -160,6 +172,12 @@ export function ZshP10kTerminal({
     }
   }, [entries]);
 
+  useEffect(() => {
+    if (focusOnMount) {
+      inputRef.current?.focus();
+    }
+  }, [focusOnMount]);
+
   const commandNames = useMemo(() => Object.keys(commands).sort(), [commands]);
 
   const suggestion = useMemo(() => {
@@ -190,7 +208,7 @@ export function ZshP10kTerminal({
     } else {
       result = {
         status: 'error',
-        output: `zsh: command not found: ${cmdName}\nType "help" to list available commands.`,
+        output: `command not found: ${cmdName}\nType "help" to list available commands.`,
       };
     }
 
@@ -229,7 +247,120 @@ export function ZshP10kTerminal({
     executeCommand(input);
   };
 
+  const navigateHistoryOlder = () => {
+    if (cmdHistory.length === 0) return;
+    const nextCursor = Math.min(historyCursor + 1, cmdHistory.length - 1);
+    setHistoryCursor(nextCursor);
+    setInput(cmdHistory[nextCursor] ?? '');
+  };
+
+  const navigateHistoryNewer = () => {
+    if (historyCursor <= 0) {
+      setHistoryCursor(-1);
+      setInput('');
+    } else {
+      const nextCursor = historyCursor - 1;
+      setHistoryCursor(nextCursor);
+      setInput(cmdHistory[nextCursor] ?? '');
+    }
+  };
+
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    const el = event.currentTarget;
+    const keyLower = event.key.toLowerCase();
+    const isCtrlOnly = event.ctrlKey && !event.metaKey && !event.altKey;
+    const selStart = el.selectionStart ?? input.length;
+    const selEnd = el.selectionEnd ?? input.length;
+
+    if (isCtrlOnly) {
+      switch (keyLower) {
+        case 'l':
+          event.preventDefault();
+          setEntries([]);
+          return;
+        case 'c': {
+          if (selStart !== selEnd) {
+            return;
+          }
+          event.preventDefault();
+          const nowLabel = formatClock(new Date());
+          setClock(nowLabel);
+          if (input.length > 0) {
+            const id = `cmd-${nextId.current++}`;
+            setEntries(prev => [
+              ...prev,
+              {
+                id,
+                command: `${input}^C`,
+                output: '',
+                status: 'error',
+                durationLabel: '0ms',
+                timestamp: nowLabel,
+              },
+            ]);
+            setLastStatus('error');
+          }
+          setInput('');
+          setHistoryCursor(-1);
+          return;
+        }
+        case 'u':
+          event.preventDefault();
+          setInput(input.slice(selStart));
+          scheduleCaret(el, 0);
+          return;
+        case 'k':
+          event.preventDefault();
+          setInput(input.slice(0, selStart));
+          scheduleCaret(el, selStart);
+          return;
+        case 'w': {
+          event.preventDefault();
+          const before = input.slice(0, selStart).replace(/\S+\s*$/, '');
+          const after = input.slice(selEnd);
+          setInput(`${before}${after}`);
+          scheduleCaret(el, before.length);
+          return;
+        }
+        case 'a':
+          event.preventDefault();
+          el.setSelectionRange(0, 0);
+          return;
+        case 'e':
+          event.preventDefault();
+          if (suggestion && selStart === input.length && selEnd === input.length) {
+            const completed = `${input}${suggestion}`;
+            setInput(completed);
+            scheduleCaret(el, completed.length);
+          } else {
+            el.setSelectionRange(input.length, input.length);
+          }
+          return;
+        case 'p':
+          event.preventDefault();
+          navigateHistoryOlder();
+          return;
+        case 'n':
+          event.preventDefault();
+          navigateHistoryNewer();
+          return;
+      }
+    }
+
+    if (event.key === 'Escape') {
+      if (input.length > 0) {
+        event.preventDefault();
+        setInput('');
+        setHistoryCursor(-1);
+        return;
+      }
+      if (onEscape) {
+        event.preventDefault();
+        onEscape();
+      }
+      return;
+    }
+
     if (event.key === 'Tab' && suggestion) {
       event.preventDefault();
       setInput(prev => `${prev}${suggestion}`);
@@ -238,7 +369,8 @@ export function ZshP10kTerminal({
     if (
       event.key === 'ArrowRight' &&
       suggestion &&
-      event.currentTarget.selectionStart === input.length
+      selStart === input.length &&
+      selEnd === input.length
     ) {
       event.preventDefault();
       setInput(prev => `${prev}${suggestion}`);
@@ -246,22 +378,25 @@ export function ZshP10kTerminal({
     }
     if (event.key === 'ArrowUp' && cmdHistory.length > 0) {
       event.preventDefault();
-      const nextCursor = Math.min(historyCursor + 1, cmdHistory.length - 1);
-      setHistoryCursor(nextCursor);
-      setInput(cmdHistory[nextCursor] ?? '');
+      navigateHistoryOlder();
       return;
     }
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      if (historyCursor <= 0) {
-        setHistoryCursor(-1);
-        setInput('');
-      } else {
-        const nextCursor = historyCursor - 1;
-        setHistoryCursor(nextCursor);
-        setInput(cmdHistory[nextCursor] ?? '');
-      }
+      navigateHistoryNewer();
     }
+  };
+
+  const handleSurfacePointerUp = (event: PointerEvent<HTMLElement>) => {
+    const target = event.target as HTMLElement;
+    if (target.closest('button, a, input')) {
+      return;
+    }
+    const selection = typeof window !== 'undefined' ? window.getSelection()?.toString() : '';
+    if (selection) {
+      return;
+    }
+    inputRef.current?.focus();
   };
 
   const runQuickCommand = (cmd: string) => {
@@ -270,7 +405,11 @@ export function ZshP10kTerminal({
   };
 
   return (
-    <section className={styles.terminal} aria-label='Interactive Zsh Powerlevel10k Terminal'>
+    <section
+      className={styles.terminal}
+      aria-label='Interactive Terminal'
+      onPointerUp={handleSurfacePointerUp}
+    >
       <div className={styles.banner}>
         <span className={styles.bannerBrand}>
           <SolarForgeEmblem size={18} />
@@ -279,94 +418,114 @@ export function ZshP10kTerminal({
         <span>{bannerMeta}</span>
       </div>
 
-      <div ref={scrollRef} className={styles.history} role='log' aria-live='polite'>
-        {entries.map(entry => (
-          <div key={entry.id} className={styles.entry}>
-            <div className={styles.promptBlock}>
-              <P10kPromptTop
+      <Separator.Root className={styles.divider} />
+
+      <ScrollArea.Root className={styles.historyRoot}>
+        <ScrollArea.Viewport
+          ref={scrollRef}
+          className={styles.historyViewport}
+          role='log'
+          aria-live='polite'
+        >
+          <ScrollArea.Content className={styles.history}>
+            {entries.map(entry => (
+              <div key={entry.id} className={styles.entry}>
+                <div className={styles.promptBlock}>
+                  <PromptHeader
+                    osLabel={osLabel}
+                    directory={directory}
+                    vcsBranch={vcsBranch}
+                    vcsState={vcsState}
+                    status={entry.status}
+                    durationLabel={entry.durationLabel}
+                    contextLabel={contextLabel}
+                    timestamp={entry.timestamp}
+                  />
+                  <div className={styles.promptBottom}>
+                    <span className={styles.frame}>╰─</span>
+                    <span className={styles.promptChar} data-status={entry.status}>
+                      ❯
+                    </span>
+                    <span className={styles.commandEcho}>{entry.command}</span>
+                    <span className={styles.frame}>─╯</span>
+                  </div>
+                </div>
+                {entry.output ? (
+                  <pre className={styles.output} data-status={entry.status}>
+                    {entry.output}
+                  </pre>
+                ) : null}
+              </div>
+            ))}
+
+            <Form.Root className={styles.promptBlock} onSubmit={handleSubmit}>
+              <PromptHeader
                 osLabel={osLabel}
                 directory={directory}
                 vcsBranch={vcsBranch}
                 vcsState={vcsState}
-                status={entry.status}
-                durationLabel={entry.durationLabel}
+                status={lastStatus}
+                durationLabel={lastDuration}
                 contextLabel={contextLabel}
-                timestamp={entry.timestamp}
+                timestamp={clock}
               />
-              <div className={styles.promptBottom}>
+              <label className={styles.promptBottom}>
                 <span className={styles.frame}>╰─</span>
-                <span className={styles.promptChar} data-status={entry.status}>
+                <span className={styles.promptChar} data-status={lastStatus}>
                   ❯
                 </span>
-                <span className={styles.commandEcho}>{entry.command}</span>
+                <div className={styles.inputWrap}>
+                  {suggestion ? (
+                    <span className={styles.ghost} aria-hidden='true'>
+                      <span className={styles.ghostTyped}>{input}</span>
+                      {suggestion}
+                    </span>
+                  ) : null}
+                  <Input.Root
+                    ref={inputRef}
+                    type='text'
+                    className={styles.input}
+                    value={input}
+                    onChange={event => setInput(event.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={placeholder}
+                    aria-label='Terminal command input'
+                    autoComplete='off'
+                    autoCorrect='off'
+                    autoCapitalize='off'
+                    spellCheck={false}
+                  />
+                </div>
                 <span className={styles.frame}>─╯</span>
-              </div>
-            </div>
-            {entry.output ? (
-              <pre className={styles.output} data-status={entry.status}>
-                {entry.output}
-              </pre>
-            ) : null}
-          </div>
-        ))}
-
-        <form className={styles.promptBlock} onSubmit={handleSubmit}>
-          <P10kPromptTop
-            osLabel={osLabel}
-            directory={directory}
-            vcsBranch={vcsBranch}
-            vcsState={vcsState}
-            status={lastStatus}
-            durationLabel={lastDuration}
-            contextLabel={contextLabel}
-            timestamp={clock}
-          />
-          <label className={styles.promptBottom}>
-            <span className={styles.frame}>╰─</span>
-            <span className={styles.promptChar} data-status={lastStatus}>
-              ❯
-            </span>
-            <div className={styles.inputWrap}>
-              {suggestion ? (
-                <span className={styles.ghost} aria-hidden='true'>
-                  <span className={styles.ghostTyped}>{input}</span>
-                  {suggestion}
-                </span>
-              ) : null}
-              <input
-                ref={inputRef}
-                type='text'
-                className={styles.input}
-                value={input}
-                onChange={event => setInput(event.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={placeholder}
-                aria-label='Zsh command input'
-                autoComplete='off'
-                autoCorrect='off'
-                autoCapitalize='off'
-                spellCheck={false}
-              />
-            </div>
-            <span className={styles.frame}>─╯</span>
-          </label>
-        </form>
-      </div>
+              </label>
+            </Form.Root>
+          </ScrollArea.Content>
+        </ScrollArea.Viewport>
+        <ScrollArea.Scrollbar orientation='vertical'>
+          <ScrollArea.Thumb />
+        </ScrollArea.Scrollbar>
+      </ScrollArea.Root>
 
       {quickCommands.length > 0 ? (
-        <div className={styles.quickBar}>
-          <span>run:</span>
-          {quickCommands.map(cmd => (
-            <button
-              key={cmd}
-              type='button'
-              className={styles.quickChip}
-              onClick={() => runQuickCommand(cmd)}
-            >
-              {cmd}
-            </button>
-          ))}
-        </div>
+        <>
+          <Separator.Root className={styles.divider} />
+          <Toolbar.Root className={styles.quickBar} aria-label='Quick terminal commands'>
+            <span>run:</span>
+            <Toolbar.Group className={styles.quickGroup}>
+              {quickCommands.map(cmd => (
+                <Button.Root
+                  key={cmd}
+                  type='button'
+                  size='xs'
+                  className={styles.quickChip}
+                  onClick={() => runQuickCommand(cmd)}
+                >
+                  <Button.Label>{cmd}</Button.Label>
+                </Button.Root>
+              ))}
+            </Toolbar.Group>
+          </Toolbar.Root>
+        </>
       ) : null}
     </section>
   );

@@ -1,6 +1,16 @@
 @layer page {
   .workspace {
     display: grid;
-    gap: var(--portal-space-lg);
+    gap: var(--sf-space-7);
+  }
+
+  .presetPanel {
+    display: grid;
+    gap: var(--sf-space-5);
+  }
+
+  .presetPrompt {
+    color: var(--sf-fg-cmt);
+    font-size: var(--sf-text-sm);
   }
 }

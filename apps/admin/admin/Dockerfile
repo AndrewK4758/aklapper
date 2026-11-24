@@ -5,12 +5,15 @@ RUN npm install -g pnpm@12.23.0
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages/shared ./packages/shared
+COPY packages/node/db ./packages/node/db
 COPY packages/node/ssr-server ./packages/node/ssr-server
 COPY apps/admin/admin ./apps/admin/admin
 
 RUN pnpm install --frozen-lockfile --ignore-scripts
 RUN pnpm --dir packages/shared/contracts exec tsc --build tsconfig.lib.json \
   && pnpm --dir packages/shared/utils exec tsc --build tsconfig.lib.json \
+  && pnpm --dir packages/shared/analytics exec tsc --build tsconfig.lib.json \
+  && pnpm --dir packages/node/db exec tsc --build tsconfig.lib.json \
   && pnpm --dir packages/node/ssr-server exec tsc --build tsconfig.lib.json \
   && pnpm --dir packages/shared/ui exec vite build \
   && pnpm --dir apps/admin/admin exec react-router build --mode production
@@ -19,7 +22,10 @@ RUN pnpm --filter @aklapper/admin deploy --prod --legacy /prod/admin \
   && cp -r /workspace/apps/admin/admin/dist /prod/admin/dist \
   && mkdir -p /prod/admin/src \
   && cp /workspace/apps/admin/admin/src/server.ts /prod/admin/src/server.ts \
-  && cp -r /workspace/packages/node/ssr-server/dist /prod/admin/node_modules/@aklapper/ssr-server/dist
+  && cp -r /workspace/packages/node/db/dist /prod/admin/node_modules/@aklapper/db/dist \
+  && cp -r /workspace/packages/node/db/drizzle /prod/admin/node_modules/@aklapper/db/drizzle \
+  && cp -r /workspace/packages/node/ssr-server/dist /prod/admin/node_modules/@aklapper/ssr-server/dist \
+  && cp -r /workspace/packages/shared/utils/dist /prod/admin/node_modules/@aklapper/shared-utils/dist
 
 FROM node:26-slim AS runtime
 WORKDIR /app
