@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express';
 import type { Namespace, Server } from 'socket.io';
 
-import type { IInstanceOfGame } from '../interfaces/instance-of-game.js';
-import type { ILiteSpace } from '../interfaces/lite-space.js';
-import type { IPlayerClientData } from '../interfaces/player.js';
+import type { IInstanceOfGame } from '../interfaces/instance-of-game.ts';
+import type { ILiteSpace } from '../interfaces/lite-space.ts';
+import type { IPlayerClientData } from '../interfaces/player.ts';
 
 export enum Color {
   UNDEFINED = '',

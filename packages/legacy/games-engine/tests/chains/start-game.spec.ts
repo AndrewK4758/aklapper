@@ -13,11 +13,11 @@ import {
 import { getCurrentMinute } from '@aklapper/legacy-games/utils';
 import type { Request, Response } from 'express';
 
-import { sendStartGameStatus } from '../../src/chains/lib/commands/action-start-game/send-start-game-status.js';
-import { setAvatarOnStartChutesAndLadders } from '../../src/chains/lib/commands/action-start-game/set-on-start-chutes-and-ladders.js';
-import { setPlayerInTurn } from '../../src/chains/lib/commands/action-start-game/set-player-in-turn.js';
-import { startGame } from '../../src/chains/lib/commands/action-start-game/start-game-start.js';
-import { verifyReadyToPlay } from '../../src/chains/lib/commands/action-start-game/verify-ready-to-play.js';
+import { sendStartGameStatus } from '../../src/chains/lib/commands/action-start-game/send-start-game-status.ts';
+import { setAvatarOnStartChutesAndLadders } from '../../src/chains/lib/commands/action-start-game/set-on-start-chutes-and-ladders.ts';
+import { setPlayerInTurn } from '../../src/chains/lib/commands/action-start-game/set-player-in-turn.ts';
+import { startGame } from '../../src/chains/lib/commands/action-start-game/start-game-start.ts';
+import { verifyReadyToPlay } from '../../src/chains/lib/commands/action-start-game/verify-ready-to-play.ts';
 
 let ctx: Context<GameContextKeys | string>,
   instanceOfGame: InstanceOfGame,

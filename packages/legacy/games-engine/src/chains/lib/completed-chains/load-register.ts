@@ -1,5 +1,5 @@
 import { ChainBuilder } from '../../../chain/index.ts';
-import loadRegister from '../commands/action-load-register/load-register-start.js';
-import sendLoadRegister from '../commands/action-load-register/send-load-register-data.js';
+import loadRegister from '../commands/action-load-register/load-register-start.ts';
+import sendLoadRegister from '../commands/action-load-register/send-load-register-data.ts';
 
 export const loadRegisterChain = ChainBuilder.build([loadRegister, sendLoadRegister], false);

@@ -1,4 +1,4 @@
-import { type K8sPodEvent, K8sPodEventSchema } from './index.ts';
+import { type K8sPodEvent, K8sPodEventSchema } from './contracts.ts';
 
 export interface PodEventStreamStore<TSnapshot> {
   subscribe: (listener: () => void) => () => void;

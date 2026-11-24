@@ -1,8 +1,8 @@
 import { Game } from '@aklapper/legacy-games/game';
 import type { AllGameTypes, GameInstanceID, Minute } from '@aklapper/legacy-games/types';
 
-import { AllGamesMap } from '../../src/models/lib/all-games-map/all-games-map.js';
-import { InstanceOfGame } from '../../src/models/lib/game-instance/instance-of-game.js';
+import { AllGamesMap } from '../../src/models/lib/all-games-map/all-games-map.ts';
+import { InstanceOfGame } from '../../src/models/lib/game-instance/instance-of-game.ts';
 
 let activeGame: InstanceOfGame,
   minute: Minute,

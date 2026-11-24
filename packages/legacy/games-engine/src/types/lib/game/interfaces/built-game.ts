@@ -1,5 +1,5 @@
-import type { Chain } from './chain.js';
-import type { IRule } from './rule.js';
+import type { Chain } from './chain.ts';
+import type { IRule } from './rule.ts';
 
 export interface IBuiltGame {
   id: string;

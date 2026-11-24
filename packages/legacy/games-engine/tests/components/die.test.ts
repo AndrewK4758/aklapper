@@ -1,4 +1,4 @@
-import { Die } from '../../src/components/lib/die.js';
+import { Die } from '../../src/components/lib/die.ts';
 
 let D1: Die,
   D2: Die,

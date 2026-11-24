@@ -1,5 +1,5 @@
 import { SpaceType, type IAvatar, type ISpace } from '../../types/index.ts';
-import { Avatar } from './avatar.js';
+import { Avatar } from './avatar.ts';
 
 export class Space implements ISpace {
   Value: string;

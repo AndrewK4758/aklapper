@@ -1,8 +1,8 @@
 import type { Request, Response } from 'express';
 import type { Namespace, Server } from 'socket.io';
 
-import { GameContextKeys } from '../types/game.js';
-import type { IInstanceOfGame } from './instance-of-game.js';
+import { GameContextKeys } from '../types/game.ts';
+import type { IInstanceOfGame } from './instance-of-game.ts';
 
 export type Context<K extends GameContextKeys | string> = {
   state: Map<K, GameContextState[K] | unknown>;

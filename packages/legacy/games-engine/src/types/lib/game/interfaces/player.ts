@@ -1,4 +1,4 @@
-import type { IAvatar } from './avatar.js';
+import type { IAvatar } from './avatar.ts';
 
 export type Email = `${string}@${string}.${string}` | '';
 

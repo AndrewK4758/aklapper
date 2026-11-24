@@ -6,7 +6,7 @@ import {
   type ILiteSpace,
   type ITicTacToe,
 } from '../../types/index.ts';
-import AvatarTotemsTTT from './avatar-totems_tic-tac-toe.js';
+import AvatarTotemsTTT from './avatar-totems_tic-tac-toe.ts';
 
 export const WINNING_POSITIONS: string[][] = [
   ['1', '2', '3'],
