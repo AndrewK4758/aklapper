@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   resolveAdminSessionFromRequest: vi.fn<(request: Request) => Promise<unknown>>(),
   getSharedDb: vi.fn<() => unknown>(),
   setMaintenanceModeDefault: vi.fn<AsyncUnknownFn>(),
+  upsertSiteContent: vi.fn<AsyncUnknownFn>(),
   deleteMenuItem: vi.fn<AsyncUnknownFn>(),
   deleteContactSubmission: vi.fn<AsyncUnknownFn>(),
   updateQuotaPolicy: vi.fn<AsyncUnknownFn>(),
@@ -32,6 +33,7 @@ vi.mock('@aklapper/db', async importOriginal => {
     ...actual,
     getSharedDb: mocks.getSharedDb,
     setMaintenanceModeDefault: mocks.setMaintenanceModeDefault,
+    upsertSiteContent: mocks.upsertSiteContent,
     deleteMenuItem: mocks.deleteMenuItem,
     deleteContactSubmission: mocks.deleteContactSubmission,
     updateQuotaPolicy: mocks.updateQuotaPolicy,
@@ -193,6 +195,70 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     const reindexRes = (await cmsAction(reindexCall.args as never)) as unknown as DataWithStatus;
     expectUpstream503(reindexRes, reindexCall.logger, 'corr-cms-reindex-503');
     expect(mocks.getSharedDb).not.toHaveBeenCalled();
+  });
+
+  it('validates site_content payloads server-side and emits structured warning and commit audit logs', async () => {
+    const invalidSchemaCall = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      {
+        intent: 'upsert-site-content',
+        key: 'portal-chrome',
+        markdownBody: '# Chrome',
+        metadataJson: JSON.stringify({
+          pageTitle: 'Portal',
+          brandLabel: 'andrew-k.us',
+          statusBadge: { source: 'portal', state: 'ready', label: 'Online' },
+          footerText: 'Solar Forge',
+          footerLinkLabel: 'GitHub',
+          footerLinkUrl: 'not-a-valid-url',
+          maintenanceModeDefault: false,
+        }),
+      },
+      'corr-sc-invalid',
+    );
+    const invalidRes = (await cmsAction(invalidSchemaCall.args as never)) as unknown as DataWithStatus;
+    expect(invalidRes.init?.status).toBe(400);
+    expect(invalidRes.data['code']).toBe('ERR_VALIDATION');
+    expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
+    expect(invalidSchemaCall.logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'admin.cms.site_content_invalid_payload',
+        key: 'portal-chrome',
+        correlationId: 'corr-sc-invalid',
+      }),
+      expect.any(String),
+    );
+
+    mocks.upsertSiteContent.mockResolvedValueOnce({
+      key: 'admin-analytics',
+      markdownBody: '# Analytics',
+      metadataJson: { windowTitle: 'Analytics', description: 'Live metrics.' },
+      updatedAt: '2026-11-24T22:45:00.000Z',
+    });
+    const validCall = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      {
+        intent: 'upsert-site-content',
+        key: 'admin-analytics',
+        markdownBody: '# Analytics',
+        metadataJson: JSON.stringify({ windowTitle: 'Analytics', description: 'Live metrics.' }),
+      },
+      'corr-sc-valid',
+    );
+    const validRes = (await cmsAction(validCall.args as never)) as unknown as DataWithStatus;
+    expect(validRes.init?.status).toBe(200);
+    expect(validRes.data['ok']).toBe(true);
+    expect(validCall.logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'admin.cms.site_content_upsert_committed',
+        key: 'admin-analytics',
+        updatedAt: '2026-11-24T22:45:00.000Z',
+        correlationId: 'corr-sc-valid',
+      }),
+      expect.any(String),
+    );
   });
 
   it('returns honest 200, 400, 404, and classified 503 responses in inbox action', async () => {

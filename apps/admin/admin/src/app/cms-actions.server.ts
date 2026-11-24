@@ -1,4 +1,4 @@
-import type { AppErrorCode } from '@aklapper/core';
+import { type AppErrorCode, validateSiteContentMetadata } from '@aklapper/core';
 import { classifyServerError } from '@aklapper/core/server-errors';
 import {
   deleteAgensiSkill,
@@ -111,6 +111,15 @@ export async function dispatchAdminCmsIntent(
     try {
       const candidate: unknown = JSON.parse(rawJson);
       if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+        logger.warn(
+          {
+            event: 'admin.cms.site_content_invalid_payload',
+            key,
+            correlationId,
+            reason: 'non_object_json',
+          },
+          'Rejected non-object site_content metadata payload.',
+        );
         return fail(
           400,
           'Metadata JSON must be a JSON object.',
@@ -121,6 +130,15 @@ export async function dispatchAdminCmsIntent(
       }
       parsedMetadata = candidate as Record<string, unknown>;
     } catch {
+      logger.warn(
+        {
+          event: 'admin.cms.site_content_invalid_payload',
+          key,
+          correlationId,
+          reason: 'malformed_json',
+        },
+        'Rejected malformed site_content metadata JSON.',
+      );
       return fail(
         400,
         'Invalid JSON in metadataJson.',
@@ -129,7 +147,41 @@ export async function dispatchAdminCmsIntent(
         correlationId,
       );
     }
-    const saved = await upsertSiteContent(getSharedDb(), key, markdownBody, parsedMetadata);
+
+    const validation = validateSiteContentMetadata(key, parsedMetadata);
+    if (!validation.ok) {
+      const firstIssue = validation.issues[0];
+      logger.warn(
+        {
+          event: 'admin.cms.site_content_invalid_payload',
+          key,
+          correlationId,
+          reason: 'schema_validation_failed',
+          issueCount: validation.issues.length,
+        },
+        'Rejected schema-invalid site_content metadata payload.',
+      );
+      return fail(
+        400,
+        firstIssue
+          ? `Invalid metadata for "${key}" (${firstIssue.pathKey || 'root'}): ${firstIssue.message}`
+          : `Invalid metadata payload for "${key}".`,
+        'ERR_VALIDATION',
+        'Correct the highlighted schema fields and submit again.',
+        correlationId,
+      );
+    }
+
+    const saved = await upsertSiteContent(getSharedDb(), key, markdownBody, validation.data);
+    logger.info(
+      {
+        event: 'admin.cms.site_content_upsert_committed',
+        key: saved.key,
+        updatedAt: saved.updatedAt,
+        correlationId,
+      },
+      'Committed site_content update.',
+    );
     return ok(`Saved site_content key "${saved.key}".`);
   }
 
