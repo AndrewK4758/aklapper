@@ -18,10 +18,10 @@
   "exclude": ["vite.config.ts", "tests/**/*.ts", "tests/**/*.tsx"],
   "references": [
     {
-      "path": "../contracts/tsconfig.lib.json"
+      "path": "../core/tsconfig.lib.json"
     },
     {
-      "path": "../utils/tsconfig.lib.json"
+      "path": "../../tooling/tsconfig.lib.json"
     }
   ]
 }

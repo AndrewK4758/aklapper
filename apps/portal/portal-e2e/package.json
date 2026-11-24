@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "devDependencies": {
-    "@aklapper/shared-utils": "workspace:*",
+    "@aklapper/tooling": "workspace:*",
     "@playwright/test": "^1.65.1"
   },
   "nx": {

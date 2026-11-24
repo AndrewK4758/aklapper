@@ -10,6 +10,48 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./schema": {
+      "@aklapper/source": "./src/schema.ts",
+      "types": "./dist/schema.d.ts",
+      "import": "./dist/schema.js",
+      "default": "./dist/schema.js"
+    },
+    "./client": {
+      "@aklapper/source": "./src/client.ts",
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js",
+      "default": "./dist/client.js"
+    },
+    "./queries": {
+      "@aklapper/source": "./src/queries.ts",
+      "types": "./dist/queries.d.ts",
+      "import": "./dist/queries.js",
+      "default": "./dist/queries.js"
+    },
+    "./prerender": {
+      "@aklapper/source": "./src/prerender.ts",
+      "types": "./dist/prerender.d.ts",
+      "import": "./dist/prerender.js",
+      "default": "./dist/prerender.js"
+    },
+    "./seed": {
+      "@aklapper/source": "./src/seed.ts",
+      "types": "./dist/seed.d.ts",
+      "import": "./dist/seed.js",
+      "default": "./dist/seed.js"
+    },
+    "./auth": {
+      "@aklapper/source": "./src/auth-service.ts",
+      "types": "./dist/auth-service.d.ts",
+      "import": "./dist/auth-service.js",
+      "default": "./dist/auth-service.js"
+    },
+    "./analytics": {
+      "@aklapper/source": "./src/analytics-bff.ts",
+      "types": "./dist/analytics-bff.d.ts",
+      "import": "./dist/analytics-bff.js",
+      "default": "./dist/analytics-bff.js"
     }
   },
   "scripts": {
@@ -19,8 +61,9 @@
     "db:setup": "pnpm run db:migrate && pnpm run db:seed"
   },
   "dependencies": {
-    "@aklapper/contracts": "workspace:*",
-    "@aklapper/shared-utils": "workspace:*",
+    "@aklapper/core": "workspace:*",
+    "@aklapper/node-runtime": "workspace:*",
+    "@simplewebauthn/server": "^14.1.0",
     "drizzle-orm": "^0.45.4",
     "pg": "^8.23.1",
     "zod": "^4.6.7"

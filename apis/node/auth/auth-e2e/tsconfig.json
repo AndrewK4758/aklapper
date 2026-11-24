@@ -9,10 +9,16 @@
   "include": ["vitest.config.ts", "src/**/*.ts"],
   "references": [
     {
-      "path": "../../../../packages/shared/contracts"
+      "path": "../../../../packages/tooling"
     },
     {
-      "path": "../../../../packages/node/e2e-kit"
+      "path": "../../../../packages/node/runtime"
+    },
+    {
+      "path": "../../../../packages/node/db"
+    },
+    {
+      "path": "../../../../packages/shared/core"
     }
   ]
 }

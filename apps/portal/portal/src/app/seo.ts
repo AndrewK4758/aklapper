@@ -1,20 +1,18 @@
-import type { PortalRootLoaderData } from '@aklapper/contracts';
-import { buildRouteMetaTags, type SeoMetaDescriptor } from '@aklapper/shared-utils';
+import {
+  buildRouteMetaTags,
+  getRootDataFromMatches,
+  type PortalRootLoaderData,
+  type RouteMatchLike,
+  type SeoMetaDescriptor,
+} from '@aklapper/core';
 
 export const DEFAULT_PORTAL_SITE_URL = 'https://andrew-k.us';
 export const PORTAL_SITE_NAME = 'andrew-k.us';
 
-interface RouteMatchLike {
-  id: string;
-  loaderData?: unknown;
-  data?: unknown;
-}
-
 export function getPortalRootDataFromMatches(
   matches: readonly (RouteMatchLike | undefined)[],
 ): PortalRootLoaderData | undefined {
-  const rootMatch = matches.find(match => match?.id === 'root');
-  return (rootMatch?.loaderData ?? rootMatch?.data) as PortalRootLoaderData | undefined;
+  return getRootDataFromMatches<PortalRootLoaderData>(matches);
 }
 
 export function buildPortalPageMeta(options: {

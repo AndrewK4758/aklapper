@@ -1,26 +1,33 @@
 import {
   type AdminAnalyticsLoaderData,
+  type AdminAnalyticsWindow,
   type AdminHomeLoaderData,
   type AdminRootLoaderData,
+  AgensiSkillSchema,
   CadencePresetSchema,
   MenuItemSchema,
+  type PortalAgensiLoaderData,
+  type PortalAskLoaderData,
   type PortalCadenceLoaderData,
   type PortalContactLoaderData,
   type PortalHomeLoaderData,
   type PortalMaintenanceLoaderData,
   type PortalMenuLoaderData,
   type PortalRootLoaderData,
+  type QuotaStatus,
   RoadmapMilestoneSchema,
   type TerminalProfileData,
   TerminalProfileDataSchema,
-} from '@aklapper/contracts';
+} from '@aklapper/core';
 
+import { loadAdminAnalyticsData } from './admin-queries.ts';
 import { type AppDatabase, getSharedDb, isReactRouterPrerender } from './client.ts';
 import {
   ADMIN_OPS_TERMINAL_PROFILE,
-  loadAdminAnalyticsData,
   loadAdminHomeData,
   loadAdminRootData,
+  loadPortalAgensiData,
+  loadPortalAskData,
   loadPortalCadenceData,
   loadPortalContactData,
   loadPortalHomeData,
@@ -33,8 +40,11 @@ import {
   ADMIN_ANALYTICS_SEED,
   ADMIN_CHROME_SEED,
   ADMIN_HOME_SEED,
+  AGENSI_SKILL_SEEDS,
   CADENCE_PRESET_SEEDS,
   DEFAULT_MENU_ITEMS,
+  PORTAL_AGENSI_SEED,
+  PORTAL_ASK_SEED,
   PORTAL_CADENCE_SEED,
   PORTAL_CHROME_SEED,
   PORTAL_CONTACT_SEED,
@@ -46,6 +56,14 @@ import {
   TERMINAL_INITIAL_ENTRY_SEEDS,
   TERMINAL_PROFILE_SEEDS,
 } from './seed.ts';
+
+const DEFAULT_GUEST_QUOTA: QuotaStatus = {
+  role: 'guest',
+  turnsUsed: 0,
+  maxTurns: 5,
+  tokensUsed: 0,
+  maxTokens: 100_000,
+};
 
 function getSeedTerminalProfile(slug: string): TerminalProfileData {
   const profile = TERMINAL_PROFILE_SEEDS.find(item => item.slug === slug);
@@ -139,12 +157,33 @@ export function getPrerenderPortalMenuData(): PortalMenuLoaderData {
   };
 }
 
+export function getPrerenderPortalAgensiData(): PortalAgensiLoaderData {
+  return {
+    content: PORTAL_AGENSI_SEED,
+    skills: AGENSI_SKILL_SEEDS.toSorted((a, b) => a.sortOrder - b.sortOrder).map(skill =>
+      AgensiSkillSchema.parse({
+        ...skill,
+        tags: [...skill.tags],
+      }),
+    ),
+  };
+}
+
+export function getPrerenderPortalAskData(): PortalAskLoaderData {
+  return {
+    content: PORTAL_ASK_SEED,
+    quota: DEFAULT_GUEST_QUOTA,
+  };
+}
+
 export function getPrerenderPortalCadenceData(): PortalCadenceLoaderData {
   return {
     content: PORTAL_CADENCE_SEED,
     presets: CADENCE_PRESET_SEEDS.toSorted((a, b) => a.sortOrder - b.sortOrder).map(preset =>
       CadencePresetSchema.parse(preset),
     ),
+    quota: DEFAULT_GUEST_QUOTA,
+    recentRuns: [],
   };
 }
 
@@ -170,12 +209,36 @@ export function getPrerenderAdminHomeData(): AdminHomeLoaderData {
   };
 }
 
-export function getPrerenderAdminAnalyticsData(): AdminAnalyticsLoaderData {
+export function getPrerenderAdminAnalyticsData(
+  window: AdminAnalyticsWindow = '7d',
+): AdminAnalyticsLoaderData {
   return {
     content: ADMIN_ANALYTICS_SEED,
+    window,
+    totalSessions: 0,
+    totalEvents: 0,
     summary: {
       totalSessions: 0,
       totalEvents: 0,
+    },
+    cwv: [
+      { metric: 'LCP', sampleCount: 0, p50: null, p75: null, p95: null },
+      { metric: 'INP', sampleCount: 0, p50: null, p75: null, p95: null },
+      { metric: 'CLS', sampleCount: 0, p50: null, p75: null, p95: null },
+      { metric: 'TTFB', sampleCount: 0, p50: null, p75: null, p95: null },
+    ],
+    topPaths: [],
+    topReferrers: [],
+    geoBreakdown: [],
+    agensiConversions: [],
+    aiMetrics: {
+      totalRuns: 0,
+      totalTokensIn: 0,
+      totalTokensOut: 0,
+      approvedGates: 0,
+      rejectedGates: 0,
+      pendingGates: 0,
+      abstentionEvents: 0,
     },
   };
 }
@@ -216,8 +279,21 @@ export function loadPortalMenuDataWithPrerender(): Promise<PortalMenuLoaderData>
   return withPrerenderFallback(loadPortalMenuData, getPrerenderPortalMenuData);
 }
 
-export function loadPortalCadenceDataWithPrerender(): Promise<PortalCadenceLoaderData> {
-  return withPrerenderFallback(loadPortalCadenceData, getPrerenderPortalCadenceData);
+export function loadPortalAgensiDataWithPrerender(): Promise<PortalAgensiLoaderData> {
+  return withPrerenderFallback(loadPortalAgensiData, getPrerenderPortalAgensiData);
+}
+
+export function loadPortalAskDataWithPrerender(sessionId?: string): Promise<PortalAskLoaderData> {
+  return withPrerenderFallback(db => loadPortalAskData(db, sessionId), getPrerenderPortalAskData);
+}
+
+export function loadPortalCadenceDataWithPrerender(
+  sessionId?: string,
+): Promise<PortalCadenceLoaderData> {
+  return withPrerenderFallback(
+    db => loadPortalCadenceData(db, sessionId),
+    getPrerenderPortalCadenceData,
+  );
 }
 
 export function loadPortalContactDataWithPrerender(): Promise<PortalContactLoaderData> {
@@ -236,6 +312,11 @@ export function loadAdminHomeDataWithPrerender(): Promise<AdminHomeLoaderData> {
   return withPrerenderFallback(loadAdminHomeData, getPrerenderAdminHomeData);
 }
 
-export function loadAdminAnalyticsDataWithPrerender(): Promise<AdminAnalyticsLoaderData> {
-  return withPrerenderFallback(loadAdminAnalyticsData, getPrerenderAdminAnalyticsData);
+export function loadAdminAnalyticsDataWithPrerender(
+  window: AdminAnalyticsWindow = '7d',
+): Promise<AdminAnalyticsLoaderData> {
+  return withPrerenderFallback(
+    db => loadAdminAnalyticsData(db, window),
+    () => getPrerenderAdminAnalyticsData(window),
+  );
 }

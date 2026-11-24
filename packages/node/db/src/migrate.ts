@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 
-import { loadWorkspaceEnv } from '@aklapper/shared-utils/env';
+import { loadWorkspaceEnv } from '@aklapper/node-runtime/env';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 
 import { type AppDatabase, createDb, createDbPool } from './client.ts';

@@ -1,4 +1,4 @@
-import type { DocumentSeoRuntimeConfig } from '@aklapper/contracts';
+import type { DocumentSeoRuntimeConfig } from '@aklapper/core';
 
 const SAFE_GA4_ID = /^G-[A-Z0-9]+$/i;
 const SAFE_GTM_ID = /^GTM-[A-Z0-9]+$/i;

@@ -1,4 +1,4 @@
-import { createSsrPlaywrightConfig } from '@aklapper/shared-utils/playwright';
+import { createSsrPlaywrightConfig } from '@aklapper/tooling/playwright';
 
 export default createSsrPlaywrightConfig({
   configDir: import.meta.dirname,

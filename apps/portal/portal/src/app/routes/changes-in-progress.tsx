@@ -1,4 +1,4 @@
-import type { PortalMaintenanceLoaderData } from '@aklapper/contracts';
+import type { PortalMaintenanceLoaderData } from '@aklapper/core';
 import { loadPortalMaintenanceDataWithPrerender } from '@aklapper/db';
 import { type MetaArgs, useLoaderData } from 'react-router';
 

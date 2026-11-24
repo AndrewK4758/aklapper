@@ -1,4 +1,4 @@
-import { createSsrViteConfig } from '@aklapper/shared-utils/build';
+import { createSsrViteConfig } from '@aklapper/tooling/build';
 
 export default createSsrViteConfig({
   name: '@aklapper/portal',

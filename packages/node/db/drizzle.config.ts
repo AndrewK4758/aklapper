@@ -1,4 +1,4 @@
-import { loadWorkspaceEnv } from '@aklapper/shared-utils/env';
+import { loadWorkspaceEnv } from '@aklapper/node-runtime/env';
 import { defineConfig } from 'drizzle-kit';
 
 loadWorkspaceEnv({ startDir: import.meta.dirname });

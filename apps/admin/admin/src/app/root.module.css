@@ -22,11 +22,39 @@
     border-bottom: var(--sf-border-width) solid var(--sf-accent-border);
   }
 
+  .navList {
+    display: flex;
+    align-items: var(--sf-align-center);
+    flex-wrap: wrap;
+    gap: var(--sf-space-2);
+  }
+
   .brand {
     --sf-fg-bone: var(--sf-gold);
     --sf-space-3: var(--sf-space-2);
     --sf-space-5: var(--sf-space-3);
     font-weight: var(--sf-weight-bold);
+  }
+
+  .navLink {
+    padding: var(--sf-space-2) var(--sf-space-4);
+    border-radius: var(--sf-radius-sm);
+    font-size: var(--sf-text-sm);
+    color: var(--sf-fg-prop);
+    border: var(--sf-border-width) solid transparent;
+    transition: var(--sf-transition-colors);
+  }
+
+  .navLink:hover {
+    color: var(--sf-fg-bone);
+    background: var(--sf-surface-hover);
+  }
+
+  .navLink[data-active='true'] {
+    color: var(--sf-gold);
+    background: var(--sf-accent-subtle);
+    border-color: var(--sf-accent-border);
+    font-weight: var(--sf-weight-semibold);
   }
 
   .barMeta {
@@ -39,6 +67,13 @@
   .shortcutHint {
     color: var(--sf-fg-cmt);
     font-size: var(--sf-text-xs);
+    white-space: nowrap;
+  }
+
+  .sessionHandle {
+    color: var(--sf-gold);
+    font-size: var(--sf-text-xs);
+    font-weight: var(--sf-weight-semibold);
     white-space: nowrap;
   }
 

@@ -1,5 +1,5 @@
-import { createReactRouterAppConfig } from '@aklapper/shared-utils/build';
+import { createReactRouterAppConfig } from '@aklapper/tooling/build';
 
 export default createReactRouterAppConfig({
-  prerender: ['/', '/menu', '/cadence', '/contact', '/changes-in-progress'],
+  prerender: ['/', '/menu', '/cadence', '/ask', '/agensi', '/contact', '/changes-in-progress'],
 });

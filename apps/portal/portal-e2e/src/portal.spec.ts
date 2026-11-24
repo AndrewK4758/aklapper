@@ -1,4 +1,4 @@
-import { assertSsrHealthz, trackPageErrors } from '@aklapper/shared-utils/playwright';
+import { assertSsrHealthz, trackPageErrors } from '@aklapper/tooling/playwright';
 import { expect, test } from '@playwright/test';
 
 const IS_MAINTENANCE_MODE = process.env['PORTAL_MAINTENANCE_MODE'] === 'true';
@@ -277,5 +277,132 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(page.getByText(/Alan Turing <alan\.cli@example\.com>/)).toBeVisible();
 
     expect(getErrors()).toEqual([]);
+  });
+
+  test('renders /agensi storefront with Base UI tag filter, search filter, and outbound Agensi CTA', async ({
+    page,
+  }) => {
+    test.skip(IS_MAINTENANCE_MODE, 'Agensi storefront route is gated in maintenance mode');
+    const getErrors = trackPageErrors(page);
+
+    await page.goto('/menu');
+    await expect(page.getByTestId('menu-deploy-status-cadence')).toBeVisible();
+    await expect(page.getByTestId('menu-deploy-status-ask')).toBeVisible();
+    await expect(page.getByTestId('menu-deploy-status-contact')).toBeVisible();
+
+    await page.keyboard.press('3');
+    await expect(page).toHaveURL(/\/agensi$/);
+    await expect(page.getByTestId('agensi-skill-grid')).toBeVisible();
+
+    // Filter by tag via Base UI ToggleGroup
+    const k8sTag = page.getByTestId('agensi-tag-kubernetes');
+    await expect(k8sTag).toBeVisible();
+    await k8sTag.click();
+    await expect(page.getByTestId('agensi-card-gke-scale-to-zero-go')).toBeVisible();
+
+    // Outbound CTA points to agensi.io
+    const outboundCta = page.getByTestId('agensi-cta-gke-scale-to-zero-go');
+    await expect(outboundCta).toHaveAttribute('href', /agensi\.io/);
+
+    // Search query yielding zero matches displays semantic empty state
+    await page.getByTestId('agensi-search-input').fill('zz-no-skill-matches-this');
+    await expect(page.getByTestId('agensi-empty-state')).toBeVisible();
+
+    expect(getErrors()).toEqual([]);
+  });
+
+  test('runs /ask grounded Q&A, strict abstention, and JD Match evaluation', async ({ page }) => {
+    test.skip(IS_MAINTENANCE_MODE, 'Ask Portfolio route is gated in maintenance mode');
+    const getErrors = trackPageErrors(page);
+
+    await page.goto('/ask');
+    await expect(page.getByTestId('ask-quota-meter')).toBeVisible();
+
+    // Starter question chip + grounded Q&A
+    await page.getByTestId('ask-starter-0').click();
+    await page.getByTestId('ask-qa-submit').click();
+    await expect(page.getByTestId('ask-qa-transcript')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="ask-qa-entry"] [data-grounded="true"]').first(),
+    ).toBeVisible();
+
+    // Unrelated query guarantees strict abstention
+    await page
+      .getByTestId('ask-question-input')
+      .fill('xylophone underwater flamingo recipe quantum soup?');
+    await page.getByTestId('ask-qa-submit').click();
+    await expect(
+      page.locator('[data-testid="ask-qa-entry"] [data-grounded="false"]').first(),
+    ).toBeVisible();
+
+    // JD Match tab evaluates role fit with grounded citations
+    await page.getByTestId('ask-tab-jd').click();
+    await page
+      .getByTestId('ask-jd-textarea')
+      .fill(
+        'Principal Full-Stack and Platform Engineer with TypeScript, React, Go microservices, Kubernetes GKE Autopilot, PostgreSQL, and agentic AI workflows.',
+      );
+    await page.getByTestId('ask-jd-submit').click();
+    const jdResult = page.getByTestId('ask-jd-result');
+    await expect(jdResult).toBeVisible();
+    await expect(jdResult.getByText(/Grounded Match Score/i)).toBeVisible();
+
+    expect(getErrors()).toEqual([]);
+  });
+
+  test('executes live /cadence CHORD 4-phase build, updates sandboxed iframe, and approves gate', async ({
+    page,
+  }) => {
+    test.skip(IS_MAINTENANCE_MODE, 'CADENCE builder route is gated in maintenance mode');
+    const getErrors = trackPageErrors(page);
+
+    await page.goto('/cadence');
+    await expect(page.getByTestId('cadence-quota-meter')).toBeVisible();
+    await page
+      .getByTestId('cadence-prompt-input')
+      .fill('Build a Solar Forge latency gauge showing Cloud Run and GKE scale-from-zero pods.');
+    await page.getByTestId('cadence-run-submit').click();
+
+    await expect(page.getByTestId('cadence-active-run')).toBeVisible();
+    await expect(page.getByTestId('cadence-turn-triage')).toBeVisible();
+    await expect(page.getByTestId('cadence-turn-spec')).toBeVisible();
+    await expect(page.getByTestId('cadence-turn-build')).toBeVisible();
+    await expect(page.getByTestId('cadence-turn-gate')).toBeVisible();
+    await expect(page.getByTestId('cadence-gate-verdict')).toContainText('pending');
+
+    const frame = page.locator('iframe[title="CADENCE Artifact Preview"]');
+    await expect(frame).toHaveAttribute('sandbox', 'allow-scripts');
+
+    await page.getByTestId('cadence-gate-approve').click();
+    await expect(page.getByTestId('cadence-gate-verdict')).toContainText('approved');
+    await expect(page.getByTestId('cadence-run-history')).toBeVisible();
+
+    expect(getErrors()).toEqual([]);
+  });
+
+  test('streams public-only events from /api/cluster/stream and rejects /contact honeypot spam', async ({
+    request,
+  }) => {
+    test.skip(
+      IS_MAINTENANCE_MODE,
+      'Public cluster SSE and contact routes are gated in maintenance mode',
+    );
+
+    const sseRes = await request.get('/api/cluster/stream');
+    expect(sseRes.status()).toBe(200);
+    expect(sseRes.headers()['content-type']).toContain('text/event-stream');
+    const sseBody = await sseRes.text();
+    expect(sseBody).toContain('portfolio-public');
+    expect(sseBody).not.toContain('cadence-admin');
+
+    const spamRes = await request.post('/api/contact', {
+      multipart: {
+        name: 'Bot User',
+        email: 'bot@example.com',
+        message: 'Automated submission attempting to fill the hidden honeypot.',
+        website: 'https://spam.example.invalid',
+      },
+    });
+    expect(spamRes.status()).toBe(400);
   });
 });

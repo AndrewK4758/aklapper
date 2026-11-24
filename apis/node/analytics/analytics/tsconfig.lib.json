@@ -11,7 +11,10 @@
   "exclude": ["vitest.config.ts", "tests/**/*.ts"],
   "references": [
     {
-      "path": "../../../../packages/shared/contracts/tsconfig.lib.json"
+      "path": "../../../../packages/shared/core/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../../packages/node/runtime/tsconfig.lib.json"
     },
     {
       "path": "../../../../packages/node/db/tsconfig.lib.json"

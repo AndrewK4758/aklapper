@@ -4,8 +4,10 @@
   "private": true,
   "type": "module",
   "devDependencies": {
-    "@aklapper/contracts": "workspace:*",
-    "@aklapper/node-e2e-kit": "workspace:*"
+    "@aklapper/core": "workspace:*",
+    "@aklapper/db": "workspace:*",
+    "@aklapper/node-runtime": "workspace:*",
+    "@aklapper/tooling": "workspace:*"
   },
   "nx": {
     "name": "node-api-analytics-e2e",

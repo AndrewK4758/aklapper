@@ -1,12 +1,12 @@
 import './theme.css';
-import type { PortalRootLoaderData } from '@aklapper/contracts';
-import { loadPortalRootDataWithPrerender } from '@aklapper/db';
+import type { PortalRootLoaderData } from '@aklapper/core';
 import {
   buildCanonicalUrl,
   buildPortalJsonLd,
   buildRouteMetaTags,
   readSeoRuntimeConfig,
-} from '@aklapper/shared-utils';
+} from '@aklapper/core';
+import { loadPortalRootDataWithPrerender } from '@aklapper/db';
 import {
   Button,
   DirectionProvider,
@@ -38,6 +38,7 @@ import {
 import { PortalChangesInProgressPage } from '#pages/changes-in-progress';
 import { PortalLauncherTui } from '#pages/home';
 
+import { useClusterTelemetry } from './cluster-stream';
 import { DEFAULT_PORTAL_SITE_URL, PORTAL_SITE_NAME } from './seo';
 import { createPortalTerminalForms } from './terminalForms';
 
@@ -115,6 +116,7 @@ export function Layout({ children }: { children: ReactNode }) {
 export default function PortalRoot() {
   useAnimatedFavicon();
   const data = useLoaderData() as PortalRootLoaderData;
+  const cluster = useClusterTelemetry();
   const location = useLocation();
   const navigate = useNavigate();
   const pathname = normalizePathname(location.pathname);
@@ -155,6 +157,9 @@ export default function PortalRoot() {
   const { chrome, terminal, homeContent } = data;
   const isTerminalViewport = pathname === '/';
   const hasGlobalWorkspace = Boolean(terminal);
+  const headerBadgeState = cluster.connected ? cluster.summaryState : chrome.statusBadge.state;
+  const headerBadgeLabel =
+    cluster.connected && cluster.summaryLabel ? cluster.summaryLabel : chrome.statusBadge.label;
 
   return (
     <DirectionProvider.Provider direction='ltr'>
@@ -184,8 +189,8 @@ export default function PortalRoot() {
                 ) : null}
                 <OscStatusBadge
                   source={chrome.statusBadge.source}
-                  state={chrome.statusBadge.state}
-                  label={chrome.statusBadge.label}
+                  state={headerBadgeState}
+                  label={headerBadgeLabel}
                 />
               </div>
             </header>

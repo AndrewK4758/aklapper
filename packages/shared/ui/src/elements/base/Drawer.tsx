@@ -14,7 +14,7 @@ export const Drawer = {
   Trigger: styledPart(BaseDrawer.Trigger, controlStyles.button, 'Drawer.Trigger'),
   SwipeArea: styledPart(BaseDrawer.SwipeArea, overlayStyles.drawerSwipeArea, 'Drawer.SwipeArea'),
   Portal: BaseDrawer.Portal,
-  Backdrop: styledPart(BaseDrawer.Backdrop, overlayStyles.backdrop, 'Drawer.Backdrop'),
+  Backdrop: styledPart(BaseDrawer.Backdrop, overlayStyles.drawerBackdrop, 'Drawer.Backdrop'),
   Viewport: styledPart(BaseDrawer.Viewport, overlayStyles.drawerViewport, 'Drawer.Viewport'),
   Popup: styledPart(BaseDrawer.Popup, overlayStyles.drawerPopup, 'Drawer.Popup'),
   Content: styledPart(BaseDrawer.Content, overlayStyles.drawerContent, 'Drawer.Content'),

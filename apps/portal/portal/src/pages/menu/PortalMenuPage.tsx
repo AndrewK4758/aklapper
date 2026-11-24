@@ -1,5 +1,5 @@
-import type { MenuItem, PortalMenuContent } from '@aklapper/contracts';
-import { filterMenuForRole } from '@aklapper/shared-utils';
+import type { K8sPodEvent, MenuItem, PortalMenuContent } from '@aklapper/core';
+import { filterMenuForRole } from '@aklapper/core';
 import { NavigationMenu, Separator, TuiWindow, useIsPaneActive } from '@aklapper/ui';
 import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router';
@@ -9,10 +9,21 @@ import styles from './PortalMenuPage.module.css';
 export interface PortalMenuPageProps {
   content: PortalMenuContent;
   items: readonly MenuItem[];
+  deployments?: Readonly<Record<string, K8sPodEvent>>;
   onNavigate: (to: string) => void;
 }
 
-export function PortalMenuPage({ content, items, onNavigate }: PortalMenuPageProps) {
+function findDeploymentStatus(
+  targetDeploy: string | null,
+  deployments?: Readonly<Record<string, K8sPodEvent>>,
+): K8sPodEvent | null {
+  if (!targetDeploy || !deployments) return null;
+  if (deployments[targetDeploy]) return deployments[targetDeploy];
+  const stripped = targetDeploy.replace(/^svc-/, '');
+  return deployments[stripped] ?? null;
+}
+
+export function PortalMenuPage({ content, items, deployments, onNavigate }: PortalMenuPageProps) {
   const isPaneActive = useIsPaneActive();
   const visibleItems = useMemo(() => filterMenuForRole(items, 'guest'), [items]);
 
@@ -54,21 +65,45 @@ export function PortalMenuPage({ content, items, onNavigate }: PortalMenuPagePro
         <Separator.Root />
         <NavigationMenu.Root orientation='vertical' className={styles.menuNav}>
           <NavigationMenu.List className={styles.menuList}>
-            {visibleItems.map(item => (
-              <NavigationMenu.Item key={item.slug} className={styles.menuItem}>
-                <NavigationMenu.Link
-                  render={<Link to={`/${item.slug}`} />}
-                  className={styles.menuLink}
-                >
-                  <span>
-                    [{item.keyShortcut}] <strong>{item.title}</strong> — {item.description}
-                  </span>
-                  <span className={styles.menuTarget}>
-                    {item.targetK8sDeploy ?? content.localTargetLabel}
-                  </span>
-                </NavigationMenu.Link>
-              </NavigationMenu.Item>
-            ))}
+            {visibleItems.map(item => {
+              const podEvent = findDeploymentStatus(item.targetK8sDeploy, deployments);
+              const pillState = podEvent
+                ? podEvent.ready || podEvent.phase === 'Running'
+                  ? 'ready'
+                  : podEvent.phase === 'TriggeredScaleUp' ||
+                      podEvent.phase === 'ContainerCreating' ||
+                      podEvent.phase === 'Pending'
+                    ? 'scaling'
+                    : 'idle'
+                : 'local';
+
+              return (
+                <NavigationMenu.Item key={item.slug} className={styles.menuItem}>
+                  <NavigationMenu.Link
+                    render={<Link to={`/${item.slug}`} />}
+                    className={styles.menuLink}
+                  >
+                    <span>
+                      [{item.keyShortcut}] <strong>{item.title}</strong> — {item.description}
+                    </span>
+                    <span className={styles.menuTargetGroup}>
+                      <span className={styles.menuTarget}>
+                        {item.targetK8sDeploy ?? content.localTargetLabel}
+                      </span>
+                      {item.targetK8sDeploy && (
+                        <span
+                          className={styles.statusPill}
+                          data-state={pillState}
+                          data-testid={`menu-deploy-status-${item.slug}`}
+                        >
+                          {podEvent ? podEvent.phase : 'ScaledZero'}
+                        </span>
+                      )}
+                    </span>
+                  </NavigationMenu.Link>
+                </NavigationMenu.Item>
+              );
+            })}
           </NavigationMenu.List>
         </NavigationMenu.Root>
       </div>

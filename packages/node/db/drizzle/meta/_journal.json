@@ -15,6 +15,13 @@
       "when": 1795506098352,
       "tag": "0001_married_metal_master",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795532942659,
+      "tag": "0002_webauthn_challenges",
+      "breakpoints": true
     }
   ]
 }

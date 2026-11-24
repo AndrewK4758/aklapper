@@ -1,1 +1,5 @@
-export { PortalCadencePage, type PortalCadencePageProps } from './PortalCadencePage';
+export {
+  PortalCadencePage,
+  type PortalCadenceActionResult,
+  type PortalCadencePageProps,
+} from './PortalCadencePage';

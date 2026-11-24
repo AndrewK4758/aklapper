@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 
-import { createUiLibViteConfig } from '@aklapper/shared-utils/build';
+import { createUiLibViteConfig } from '@aklapper/tooling/build';
 
 export default createUiLibViteConfig({
   name: '@aklapper/ui',

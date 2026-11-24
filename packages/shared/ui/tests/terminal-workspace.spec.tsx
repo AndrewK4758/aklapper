@@ -1,4 +1,4 @@
-import type { TerminalProfileData } from '@aklapper/contracts';
+import type { TerminalProfileData } from '@aklapper/core';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -565,24 +565,25 @@ describe('TerminalWorkspace', () => {
   });
 
   it('runs interactive contact form inline in terminal mode with fieldset headers, :back, Escape guard, Shift+Enter textarea, drag-and-drop file, review edit, and Postgres receipt', async () => {
-    const { CONTACT_FORM_DEFINITION } = await import('@aklapper/contracts');
+    const { CONTACT_FORM_DEFINITION } = await import('@aklapper/core');
     const navigate = vi.fn<(to: string) => void>();
     const openTuiRoute = vi.fn<() => void>();
-    const submit = vi.fn<
-      (fd: FormData) => Promise<import('@aklapper/contracts').ContactActionResult>
-    >(async fd => ({
-      ok: true,
-      submission: {
-        id: '55555555-5555-4555-8555-555555555555',
-        name: String(fd.get('name') ?? ''),
-        email: String(fd.get('email') ?? ''),
-        phone: (fd.get('phone') as string) || null,
-        attachmentName: fd.get('file') instanceof File ? (fd.get('file') as File).name : null,
-        attachmentSizeBytes: fd.get('file') instanceof File ? (fd.get('file') as File).size : null,
-        attachmentSha256: fd.get('file') instanceof File ? 'a'.repeat(64) : null,
-        createdAt: '2026-11-24T15:00:00.000Z',
-      },
-    }));
+    const submit = vi.fn<(fd: FormData) => Promise<import('@aklapper/core').ContactActionResult>>(
+      async fd => ({
+        ok: true,
+        submission: {
+          id: '55555555-5555-4555-8555-555555555555',
+          name: String(fd.get('name') ?? ''),
+          email: String(fd.get('email') ?? ''),
+          phone: (fd.get('phone') as string) || null,
+          attachmentName: fd.get('file') instanceof File ? (fd.get('file') as File).name : null,
+          attachmentSizeBytes:
+            fd.get('file') instanceof File ? (fd.get('file') as File).size : null,
+          attachmentSha256: fd.get('file') instanceof File ? 'a'.repeat(64) : null,
+          createdAt: '2026-11-24T15:00:00.000Z',
+        },
+      }),
+    );
 
     const { container } = render(
       <TerminalWorkspace
@@ -662,10 +663,10 @@ describe('TerminalWorkspace', () => {
   });
 
   it('supports one-shot CLI flags, --help, --tui, Ctrl+C cancel, 422 DB error recovery, and split-pane isolation', async () => {
-    const { CONTACT_FORM_DEFINITION } = await import('@aklapper/contracts');
+    const { CONTACT_FORM_DEFINITION } = await import('@aklapper/core');
     const openTuiRoute = vi.fn<() => void>();
     const submit = vi
-      .fn<(fd: FormData) => Promise<import('@aklapper/contracts').ContactActionResult>>()
+      .fn<(fd: FormData) => Promise<import('@aklapper/core').ContactActionResult>>()
       .mockResolvedValueOnce({
         ok: false,
         source: 'database',

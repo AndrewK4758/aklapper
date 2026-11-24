@@ -8,7 +8,7 @@ import {
   type FormNode,
   validateFormField,
   validateFormValues,
-} from '@aklapper/contracts';
+} from '@aklapper/core';
 import {
   type ChangeEvent,
   type JSX,

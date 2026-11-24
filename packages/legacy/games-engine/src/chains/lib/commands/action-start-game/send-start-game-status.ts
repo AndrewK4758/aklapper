@@ -1,0 +1,32 @@
+import { CommandBuilder } from '../../../../chain/index.ts';
+import {
+  type Context,
+  GameContextKeys,
+  type GameInstanceID,
+  type IPlayer,
+} from '../../../../types/index.ts';
+import { deRefContextObject } from '../../../../utils/index.ts';
+
+export const sendStartGameStatus = CommandBuilder.build(
+  (context: Context<GameContextKeys | string>) => {
+    if (
+      context.get(GameContextKeys.NEXT) &&
+      context.getString(GameContextKeys.NEXT) === 'send-start-game-status'
+    ) {
+      const { game, req, resp } = deRefContextObject(context);
+
+      const playersInOrder: { [key: string]: string } = {};
+      game.instance.playersArray.forEach(
+        (player: IPlayer) => (playersInOrder[player.avatar.name as string] = player.id),
+      );
+      resp.setHeader('current-game', req.header('current-game') as GameInstanceID);
+      context.put(GameContextKeys.OUTPUT, {
+        message: 'Game Started',
+        playersInOrder,
+      });
+      return true;
+    } else return false;
+  },
+);
+
+export default sendStartGameStatus;

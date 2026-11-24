@@ -4,6 +4,66 @@
     gap: var(--sf-space-7);
   }
 
+  .headerRow {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    flex-wrap: wrap;
+    gap: var(--sf-space-4);
+  }
+
+  .windowBar {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: var(--sf-space-2);
+  }
+
+  .windowLink {
+    padding: var(--sf-space-2) var(--sf-space-4);
+    border-radius: var(--sf-radius-sm);
+    border: var(--sf-border-width) solid var(--sf-border);
+    background: var(--sf-bg-panel);
+    color: var(--sf-fg-prop);
+    font-size: var(--sf-text-xs);
+    text-decoration: none;
+  }
+
+  .windowLink[data-active='true'] {
+    border-color: var(--sf-accent-border);
+    background: var(--sf-accent-subtle);
+    color: var(--sf-gold);
+    font-weight: var(--sf-weight-semibold);
+  }
+
+  .summaryGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: var(--sf-space-4);
+  }
+
+  .metricCard {
+    display: grid;
+    gap: var(--sf-space-2);
+    padding: var(--sf-space-5);
+    background: var(--sf-bg-panel);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+  }
+
+  .metricLabel {
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-cmt);
+    text-transform: uppercase;
+    letter-spacing: var(--sf-tracking-wider);
+  }
+
+  .metricValue {
+    font-size: var(--sf-text-xl);
+    font-weight: var(--sf-weight-bold);
+    color: var(--sf-fg-bone);
+    font-variant-numeric: tabular-nums;
+  }
+
   .meter {
     --sf-radius-pill: var(--sf-radius-sm);
   }
@@ -13,5 +73,78 @@
     align-items: var(--sf-align-center);
     justify-content: var(--sf-justify-between);
     gap: var(--sf-space-4);
+  }
+
+  .sectionTitle {
+    margin: var(--sf-space-0);
+    font-size: var(--sf-text-md);
+    color: var(--sf-gold);
+    font-weight: var(--sf-weight-semibold);
+  }
+
+  .cwvGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: var(--sf-space-4);
+  }
+
+  .cwvCard {
+    display: grid;
+    gap: var(--sf-space-3);
+    padding: var(--sf-space-5);
+    background: var(--sf-bg-panel);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+  }
+
+  .cwvRow {
+    display: flex;
+    justify-content: var(--sf-justify-between);
+    font-size: var(--sf-text-xs);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tableGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    gap: var(--sf-space-5);
+  }
+
+  .tableCard {
+    display: grid;
+    gap: var(--sf-space-4);
+    padding: var(--sf-space-5);
+    background: var(--sf-bg-panel);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+  }
+
+  .dataTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--sf-text-xs);
+  }
+
+  .dataTable th,
+  .dataTable td {
+    text-align: left;
+    padding: var(--sf-space-2) var(--sf-space-3);
+    border-bottom: var(--sf-border-width) solid var(--sf-border-subtle);
+  }
+
+  .dataTable th {
+    color: var(--sf-fg-cmt);
+    font-weight: var(--sf-weight-semibold);
+  }
+
+  .numericCell {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .emptyNote {
+    margin: var(--sf-space-0);
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-cmt);
   }
 }

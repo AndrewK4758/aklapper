@@ -1,4 +1,4 @@
-import type { ContactActionResult, PortalContactContent } from '@aklapper/contracts';
+import type { ContactActionResult, PortalContactContent } from '@aklapper/core';
 import { Button, OscStatusBadge, RecursiveTuiForm, Separator, TuiWindow } from '@aklapper/ui';
 import { useState } from 'react';
 import { Form, Link } from 'react-router';
@@ -106,6 +106,15 @@ export function PortalContactPage({
                 className={className}
                 onSubmit={onSubmit}
               >
+                <input
+                  type='text'
+                  name='website'
+                  tabIndex={-1}
+                  autoComplete='off'
+                  aria-hidden='true'
+                  defaultValue=''
+                  className={styles.honeypot}
+                />
                 {children}
               </Form>
             )}

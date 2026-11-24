@@ -1,34 +1,109 @@
-import type { CadencePreset, PortalCadenceContent } from '@aklapper/contracts';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { PortalCadencePage } from './index';
+import { PortalCadencePage, type PortalCadencePageProps } from './PortalCadencePage';
 
-const CONTENT: PortalCadenceContent = {
-  windowTitle: 'CADENCE // Artifact Builder',
-  description: 'Quota-gated prompt-to-artifact sandbox.',
-  statusBadge: { source: 'cadence-api', state: 'idle', label: '0 pods' },
+const SAMPLE_CONTENT = {
+  windowTitle: 'CADENCE Builder // portfolio-public',
+  statusBadge: {
+    source: 'svc-cadence-demo',
+    state: 'idle' as const,
+    label: '0/1 replicas',
+  },
+  description: 'Quota-gated prompt builder.',
   iframeTitle: 'CADENCE Artifact Preview',
 };
 
-const PRESETS: CadencePreset[] = [
+const SAMPLE_PRESETS = [
   {
-    slug: 'solar-card',
-    title: 'Solar Card',
-    starterPrompt: 'Render an OKLCH status card.',
-    expectedKind: 'html',
-    starterArtifactHtml: '<div>Hello Artifact</div>',
+    slug: 'solar-forge-starter',
+    title: 'Solar Forge Starter',
+    starterPrompt: 'Build a Solar Forge card.',
+    expectedKind: 'html-sandbox',
+    starterArtifactHtml: '<html><body>Starter</body></html>',
     sortOrder: 1,
   },
 ];
 
-describe('portal/pages/cadence', () => {
-  it('renders preset tabs and sandboxed artifact preview', () => {
-    const onClose = vi.fn<() => void>();
-    render(<PortalCadencePage content={CONTENT} presets={PRESETS} onClose={onClose} />);
+describe('PortalCadencePage', () => {
+  it('submits a prompt, displays 4 CHORD turns, and triggers gate approval', () => {
+    const onRunBuild = vi.fn<NonNullable<PortalCadencePageProps['onRunBuild']>>();
+    const onGateVerdict = vi.fn<NonNullable<PortalCadencePageProps['onGateVerdict']>>();
 
-    expect(screen.getByText(CONTENT.description)).toBeTruthy();
-    expect(screen.getByRole('tab', { name: 'Solar Card' })).toBeTruthy();
-    expect(screen.getByTitle(CONTENT.iframeTitle)).toBeTruthy();
+    const { rerender } = render(
+      <PortalCadencePage
+        content={SAMPLE_CONTENT}
+        presets={SAMPLE_PRESETS}
+        onRunBuild={onRunBuild}
+        onGateVerdict={onGateVerdict}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('cadence-run-submit'));
+    expect(onRunBuild).toHaveBeenCalledWith({
+      prompt: 'Build a Solar Forge card.',
+      presetSlug: 'solar-forge-starter',
+    });
+
+    const completedRun = {
+      runId: '11111111-1111-4111-8111-111111111111',
+      prompt: 'Build a Solar Forge card.',
+      presetSlug: 'solar-forge-starter',
+      gateVerdict: 'pending' as const,
+      turns: [
+        {
+          phase: 'triage' as const,
+          agentName: 'chord-triage',
+          status: 'completed' as const,
+          summary: 'Triaged',
+          latencyMs: 5,
+        },
+        {
+          phase: 'spec' as const,
+          agentName: 'chord-spec',
+          status: 'completed' as const,
+          summary: 'Specified',
+          latencyMs: 7,
+        },
+        {
+          phase: 'build' as const,
+          agentName: 'chord-builder',
+          status: 'completed' as const,
+          summary: 'Built',
+          latencyMs: 11,
+        },
+        {
+          phase: 'gate' as const,
+          agentName: 'chord-gate',
+          status: 'completed' as const,
+          summary: 'Gated',
+          latencyMs: 4,
+        },
+      ],
+      artifactHtml: '<html><body>Built Artifact</body></html>',
+      tokensIn: 120,
+      tokensOut: 400,
+    };
+
+    rerender(
+      <PortalCadencePage
+        content={SAMPLE_CONTENT}
+        presets={SAMPLE_PRESETS}
+        actionResult={{ ok: true, intent: 'run', run: completedRun }}
+        onRunBuild={onRunBuild}
+        onGateVerdict={onGateVerdict}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    expect(screen.getByTestId('cadence-turn-triage')).toBeTruthy();
+    expect(screen.getByTestId('cadence-turn-gate')).toBeTruthy();
+
+    fireEvent.click(screen.getByTestId('cadence-gate-approve'));
+    expect(onGateVerdict).toHaveBeenCalledWith({
+      runId: completedRun.runId,
+      verdict: 'approved',
+    });
   });
 });

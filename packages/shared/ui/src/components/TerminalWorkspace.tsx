@@ -1,4 +1,4 @@
-import type { TerminalProfileData } from '@aklapper/contracts';
+import type { TerminalProfileData } from '@aklapper/core';
 import {
   createContext,
   type CSSProperties,

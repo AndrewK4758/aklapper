@@ -1,4 +1,4 @@
-import type { PortalHomeContent, TerminalProfileData } from '@aklapper/contracts';
+import type { PortalHomeContent, TerminalProfileData } from '@aklapper/core';
 import {
   Button,
   OscStatusBadge,

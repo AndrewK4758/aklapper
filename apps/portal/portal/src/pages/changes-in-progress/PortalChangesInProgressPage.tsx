@@ -1,4 +1,4 @@
-import type { PortalMaintenanceLoaderData, RoadmapMilestoneStatus } from '@aklapper/contracts';
+import type { PortalMaintenanceLoaderData, RoadmapMilestoneStatus } from '@aklapper/core';
 import {
   buildZshCommandHandlers,
   formatRoadmapMarker,

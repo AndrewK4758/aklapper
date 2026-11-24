@@ -1,0 +1,81 @@
+{
+  "name": "@aklapper/legacy-games",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@aklapper/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./types": {
+      "@aklapper/source": "./src/types/index.ts",
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js",
+      "default": "./dist/types/index.js"
+    },
+    "./models": {
+      "@aklapper/source": "./src/models/index.ts",
+      "types": "./dist/models/index.d.ts",
+      "import": "./dist/models/index.js",
+      "default": "./dist/models/index.js"
+    },
+    "./chain": {
+      "@aklapper/source": "./src/chain/index.ts",
+      "types": "./dist/chain/index.d.ts",
+      "import": "./dist/chain/index.js",
+      "default": "./dist/chain/index.js"
+    },
+    "./game": {
+      "@aklapper/source": "./src/game/index.ts",
+      "types": "./dist/game/index.d.ts",
+      "import": "./dist/game/index.js",
+      "default": "./dist/game/index.js"
+    },
+    "./components": {
+      "@aklapper/source": "./src/components/index.ts",
+      "types": "./dist/components/index.d.ts",
+      "import": "./dist/components/index.js",
+      "default": "./dist/components/index.js"
+    },
+    "./games": {
+      "@aklapper/source": "./src/games/index.ts",
+      "types": "./dist/games/index.d.ts",
+      "import": "./dist/games/index.js",
+      "default": "./dist/games/index.js"
+    },
+    "./chains": {
+      "@aklapper/source": "./src/chains/index.ts",
+      "types": "./dist/chains/index.d.ts",
+      "import": "./dist/chains/index.js",
+      "default": "./dist/chains/index.js"
+    },
+    "./utils": {
+      "@aklapper/source": "./src/utils/index.ts",
+      "types": "./dist/utils/index.d.ts",
+      "import": "./dist/utils/index.js",
+      "default": "./dist/utils/index.js"
+    },
+    "./mocks": {
+      "@aklapper/source": "./src/mocks/index.ts",
+      "types": "./dist/mocks/index.d.ts",
+      "import": "./dist/mocks/index.js",
+      "default": "./dist/mocks/index.js"
+    }
+  },
+  "dependencies": {
+    "tslib": "^2.8.1"
+  },
+  "nx": {
+    "name": "legacy-games",
+    "projectType": "library",
+    "sourceRoot": "packages/legacy/games-engine/src",
+    "tags": [
+      "scope:legacy",
+      "runtime:isomorphic"
+    ]
+  }
+}

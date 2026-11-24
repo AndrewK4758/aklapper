@@ -1,4 +1,4 @@
-import type { PortalHomeContent, TerminalProfileData } from '@aklapper/contracts';
+import type { PortalHomeContent, TerminalProfileData } from '@aklapper/core';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';

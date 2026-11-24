@@ -1,6 +1,7 @@
 @layer element {
   /* Shared floating / modal overlay primitives */
-  .backdrop {
+  .backdrop,
+  .drawerBackdrop {
     position: fixed;
     inset: 0;
     z-index: var(--sf-z-modal);
@@ -8,8 +9,14 @@
     transition: opacity var(--sf-duration-fast) var(--sf-ease-out);
   }
 
+  .drawerBackdrop {
+    z-index: var(--sf-z-drawer);
+  }
+
   .backdrop[data-starting-style],
-  .backdrop[data-ending-style] {
+  .backdrop[data-ending-style],
+  .drawerBackdrop[data-starting-style],
+  .drawerBackdrop[data-ending-style] {
     opacity: 0;
   }
 

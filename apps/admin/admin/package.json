@@ -10,11 +10,9 @@
     }
   },
   "dependencies": {
-    "@aklapper/analytics": "workspace:*",
-    "@aklapper/contracts": "workspace:*",
+    "@aklapper/core": "workspace:*",
     "@aklapper/db": "workspace:*",
-    "@aklapper/shared-utils": "workspace:*",
-    "@aklapper/ssr-server": "workspace:*",
+    "@aklapper/node-runtime": "workspace:*",
     "@aklapper/ui": "workspace:*",
     "@base-ui/react": "^1.9.0",
     "@react-router/node": "8.5.2",
@@ -24,6 +22,7 @@
     "react-router": "8.5.2"
   },
   "devDependencies": {
+    "@aklapper/tooling": "workspace:*",
     "@react-router/dev": "8.5.2",
     "vite": "8.3.8"
   },
@@ -56,7 +55,7 @@
         ],
         "options": {
           "cwd": "apps/admin/admin",
-          "command": "node ../../../packages/shared/utils/dist/build-pages.js"
+          "command": "node ../../../packages/tooling/dist/build-pages.js"
         }
       },
       "build": {
