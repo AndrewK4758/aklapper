@@ -154,7 +154,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     await splitInput.fill('whoami');
     await splitInput.press('Enter');
     await expect(page.getByText('guest@andrew-k.us (tty1)')).toBeVisible();
-    await page.keyboard.press('Control+Shift+W');
+    await page.keyboard.press('Alt+Shift+KeyW');
     await expect(page.locator('[data-pane-count="1"]')).toBeVisible();
 
     expect(getErrors()).toEqual([]);
@@ -570,13 +570,13 @@ test.describe('portal SSR end-to-end journeys', () => {
     await page.keyboard.press('Alt+BracketLeft');
     await expect(workspace).toHaveAttribute('data-active-tab', 'tab-3');
 
-    // 13. Close tab-3 (MRU returns to tab-1 with 2 panes), close split pane in tab-1 via Control+Shift+W,
+    // 13. Close tab-3 (MRU returns to tab-1 with 2 panes), close split pane in tab-1 via Alt+Shift+W,
     //     then switch to tab-2 and close tab-2 via Alt+Shift+W
     await page.keyboard.press('Alt+Shift+KeyW');
     await expect(workspace).toHaveAttribute('data-tab-count', '2');
     await expect(workspace).toHaveAttribute('data-active-tab', 'tab-1');
     await expect(workspace).toHaveAttribute('data-pane-count', '2');
-    await page.keyboard.press('Control+Shift+KeyW');
+    await page.keyboard.press('Alt+Shift+KeyW');
     await expect(workspace).toHaveAttribute('data-pane-count', '1');
     await page.keyboard.press('Alt+2');
     await expect(workspace).toHaveAttribute('data-active-tab', 'tab-2');

@@ -330,14 +330,14 @@ function buildSplitHelpLines(options: { includeTui: boolean }): readonly string[
     '  Ctrl+Alt+Arrows / Cmd+Alt+Arrows (or Cmd+] / Cmd+[)         — focus neighbor pane',
     '  Alt+Shift+Arrows / drag pane divider (double-click=50/50)   — resize active split',
     '  Ctrl+Alt+Shift+Arrows (or "swap" / drag pane titlebar)      — swap or dock split pane',
-    '  Ctrl+Shift+R / Ctrl+Alt+Shift+R (or "rotate")               — rotate split orientation',
+    '  Alt+Shift+R / Ctrl+Alt+Shift+R (or "rotate")                — rotate split orientation',
     '  Ctrl+Shift+Enter / Cmd+Shift+Enter (or "zoom")              — toggle active pane zoom',
     '  Ctrl+Alt+Shift+E / Ctrl+Shift+= / Cmd+Shift+=               — equalize split sizes',
-    '  Ctrl+Shift+T / Alt+Shift+T (or "tab")                       — open a new tab',
+    '  Alt+Shift+T (or "tab")                                      — open a new tab',
     '  Ctrl+Alt+Shift+T (or "detach" / drag pane to tab strip)     — move split to new tab',
-    '  Ctrl+Shift+A / Alt+Shift+A (or double-click tab)            — rename active tab',
-    '  Ctrl+Tab / Alt+] / Alt+[ / Alt+1..9                         — switch tabs',
-    '  Ctrl+Shift+W / Cmd+Shift+W / Alt+Shift+W (or "exit")        — close active pane or tab',
+    '  Alt+Shift+A (or double-click tab)                           — rename active tab',
+    '  Alt+] / Alt+[ / Alt+1..9                                    — switch tabs',
+    '  Alt+Shift+W (or "exit")                                     — close active pane or tab',
   ];
 }
 

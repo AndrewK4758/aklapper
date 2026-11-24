@@ -361,15 +361,15 @@ describe('TerminalWorkspace keybind action validation', () => {
     expect(getSlot('pane-1').style.getPropertyValue('--sf-pane-y')).toBe('0.5');
   });
 
-  it('rotates split orientation via Ctrl+Shift+R, Ctrl+Alt+Shift+R, and "rotate" command', () => {
+  it('rotates split orientation via Alt+Shift+R, Ctrl+Shift+R, Ctrl+Alt+Shift+R, and "rotate" command', () => {
     const { getSlot, submitCommand } = renderWorkspace();
 
     fireEvent.keyDown(window, { key: '}', code: 'BracketRight', ctrlKey: true, shiftKey: true });
     expect(getSlot('pane-1').style.getPropertyValue('--sf-pane-w')).toBe('0.5');
     expect(getSlot('pane-1').style.getPropertyValue('--sf-pane-h')).toBe('1');
 
-    // Ctrl+Shift+R -> horizontal
-    fireEvent.keyDown(window, { key: 'R', code: 'KeyR', ctrlKey: true, shiftKey: true });
+    // Alt+Shift+R -> horizontal (browser-safe)
+    fireEvent.keyDown(window, { key: 'R', code: 'KeyR', altKey: true, shiftKey: true });
     expect(getSlot('pane-1').style.getPropertyValue('--sf-pane-w')).toBe('1');
     expect(getSlot('pane-1').style.getPropertyValue('--sf-pane-h')).toBe('0.5');
 
@@ -384,10 +384,15 @@ describe('TerminalWorkspace keybind action validation', () => {
     expect(getSlot('pane-1').style.getPropertyValue('--sf-pane-w')).toBe('0.5');
     expect(getSlot('pane-1').style.getPropertyValue('--sf-pane-h')).toBe('1');
 
-    // "rotate" command -> horizontal
-    submitCommand('rotate');
+    // Ctrl+Shift+R -> horizontal
+    fireEvent.keyDown(window, { key: 'R', code: 'KeyR', ctrlKey: true, shiftKey: true });
     expect(getSlot('pane-1').style.getPropertyValue('--sf-pane-w')).toBe('1');
     expect(getSlot('pane-1').style.getPropertyValue('--sf-pane-h')).toBe('0.5');
+
+    // "rotate" command -> vertical
+    submitCommand('rotate');
+    expect(getSlot('pane-1').style.getPropertyValue('--sf-pane-w')).toBe('0.5');
+    expect(getSlot('pane-1').style.getPropertyValue('--sf-pane-h')).toBe('1');
   });
 
   it('toggles pane zoom via Ctrl+Shift+Enter, Cmd+Shift+Enter, and "zoom" command', () => {

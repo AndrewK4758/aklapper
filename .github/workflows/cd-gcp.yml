@@ -583,7 +583,13 @@ jobs:
 
       - name: Install Playwright browser & system dependencies
         run: |
-          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
+          if [ "${{ matrix.engine }}" = "chromium" ]; then
+            if ! command -v google-chrome >/dev/null 2>&1 && ! command -v google-chrome-stable >/dev/null 2>&1; then
+              pnpm exec playwright install --with-deps chrome
+            else
+              pnpm exec playwright install-deps chrome
+            fi
+          elif [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
             pnpm exec playwright install-deps "${{ matrix.engine }}"
           else
             pnpm exec playwright install --with-deps "${{ matrix.engine }}"

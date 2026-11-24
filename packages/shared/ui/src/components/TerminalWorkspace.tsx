@@ -387,7 +387,7 @@ function TabStrip({
         size='xs'
         className={styles.newTabBtn}
         aria-label='New terminal tab'
-        title='New Tab (Ctrl+Shift+T / Alt+Shift+T)'
+        title='New Tab (Alt+Shift+T)'
         onClick={onAddTab}
       >
         <Button.Label>+</Button.Label>
