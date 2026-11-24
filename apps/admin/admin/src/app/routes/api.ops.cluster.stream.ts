@@ -1,8 +1,9 @@
 import type { K8sPodEvent } from '@aklapper/core';
 import { proxySse } from '@aklapper/node-runtime/http';
-import type { LoaderFunctionArgs } from 'react-router';
+import { getOrCreateCorrelationId } from '@aklapper/node-runtime/ssr/stream';
 
 import { requireAdminSession } from '../admin-ops.server';
+import type { Route } from './+types/api.ops.cluster.stream';
 
 const SIMULATED_ADMIN_CLUSTER_EVENTS: readonly Omit<K8sPodEvent, 'timestamp'>[] = [
   {
@@ -43,7 +44,7 @@ const SIMULATED_ADMIN_CLUSTER_EVENTS: readonly Omit<K8sPodEvent, 'timestamp'>[] 
   },
 ];
 
-function createSimulatedDualNamespaceStream(): Response {
+function createSimulatedDualNamespaceStream(correlationId: string): Response {
   const now = new Date().toISOString();
   const body = SIMULATED_ADMIN_CLUSTER_EVENTS.map(ev => {
     const payload: K8sPodEvent = { ...ev, timestamp: now };
@@ -57,16 +58,22 @@ function createSimulatedDualNamespaceStream(): Response {
       'cache-control': 'no-cache',
       connection: 'keep-alive',
       'x-accel-buffering': 'no',
+      'X-Correlation-Id': correlationId,
     },
   });
 }
 
-export async function loader({ request }: LoaderFunctionArgs): Promise<Response> {
-  await requireAdminSession(request);
+export async function loader({ request, context }: Route.LoaderArgs): Promise<Response> {
+  const correlationId = getOrCreateCorrelationId(request, context);
+  await requireAdminSession(request, {
+    context,
+    source: 'admin.ops.cluster.stream',
+    mode: 'resource',
+  });
 
   const watchUrl = process.env['K8S_WATCH_URL']?.trim();
   if (!watchUrl) {
-    return createSimulatedDualNamespaceStream();
+    return createSimulatedDualNamespaceStream(correlationId);
   }
 
   const upstream = await proxySse({
@@ -81,8 +88,14 @@ export async function loader({ request }: LoaderFunctionArgs): Promise<Response>
   });
 
   if (!upstream.ok) {
-    return createSimulatedDualNamespaceStream();
+    return createSimulatedDualNamespaceStream(correlationId);
   }
 
-  return upstream;
+  const headers = new Headers(upstream.headers);
+  headers.set('X-Correlation-Id', correlationId);
+  return new Response(upstream.body, {
+    status: upstream.status,
+    statusText: upstream.statusText,
+    headers,
+  });
 }

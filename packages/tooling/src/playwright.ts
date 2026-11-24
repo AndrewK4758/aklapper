@@ -139,6 +139,35 @@ export async function assertSsrHealthz(
   expect(body).toEqual({ status: 'ok', service: expectedService });
 }
 
+export async function waitForStreamedReveal(page: Page): Promise<void> {
+  await page.waitForFunction(() => document.querySelectorAll('div[hidden][id^="S:"]').length === 0);
+  await page.evaluate(
+    () =>
+      new Promise<void>(resolve => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => resolve());
+        });
+      }),
+  );
+}
+
+export async function gotoStreamedPage(
+  page: Page,
+  url: string,
+  options: { readonly waitUntil?: 'load' | 'domcontentloaded' | 'networkidle' } = {},
+): Promise<void> {
+  await page.goto(url, { waitUntil: options.waitUntil ?? 'load' });
+  await waitForStreamedReveal(page);
+}
+
+export async function reloadStreamedPage(
+  page: Page,
+  options: { readonly waitUntil?: 'load' | 'domcontentloaded' | 'networkidle' } = {},
+): Promise<void> {
+  await page.reload({ waitUntil: options.waitUntil ?? 'load' });
+  await waitForStreamedReveal(page);
+}
+
 export function trackPageErrors(page: Page): () => readonly Error[] {
   const errors: Error[] = [];
   page.on('pageerror', error => {

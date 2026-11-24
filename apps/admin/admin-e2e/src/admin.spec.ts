@@ -1,6 +1,12 @@
 import { randomUUID } from 'node:crypto';
 
-import { assertSsrHealthz, trackPageErrors } from '@aklapper/tooling/playwright';
+import {
+  assertSsrHealthz,
+  gotoStreamedPage,
+  reloadStreamedPage,
+  trackPageErrors,
+  waitForStreamedReveal,
+} from '@aklapper/tooling/playwright';
 import { type CDPSession, expect, test } from '@playwright/test';
 
 import {
@@ -24,7 +30,7 @@ test.describe('admin SSR end-to-end journeys', () => {
   }) => {
     const getErrors = trackPageErrors(page);
 
-    await page.goto('/');
+    await gotoStreamedPage(page, '/', { waitUntil: 'networkidle' });
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByRole('heading', { name: /Admin Passkey Gate/i })).toBeVisible();
     await expect(page.getByRole('heading', { name: /Admin Operations Console/i })).toHaveCount(0);
@@ -40,12 +46,17 @@ test.describe('admin SSR end-to-end journeys', () => {
     await expect(page.getByLabel(/Bootstrap Token/i)).toHaveCount(0);
 
     for (const protectedPath of ['/analytics', '/cms', '/inbox', '/quotas', '/ops']) {
-      await page.goto(protectedPath);
+      await gotoStreamedPage(page, protectedPath, { waitUntil: 'networkidle' });
       await expect(page).toHaveURL(
         new RegExp(`/login\\?next=${encodeURIComponent(protectedPath)}$`),
       );
       await expect(page.getByRole('heading', { name: /Admin Passkey Gate/i })).toBeVisible();
     }
+
+    const loginRes = await request.get('/login');
+    expect(loginRes.status()).toBe(200);
+    expect(loginRes.headers()['x-accel-buffering']).toBe('no');
+    expect(loginRes.headers()['x-correlation-id']).toMatch(/^[A-Za-z0-9._:-]{1,128}$/);
 
     const attachmentRes = await request.get(
       '/inbox/11111111-1111-4111-8111-111111111111/attachment',
@@ -99,7 +110,7 @@ test.describe('admin SSR end-to-end journeys', () => {
       }
 
       // 1. Navigating to /analytics while logged out redirects to /login?next=%2Fanalytics
-      await page.goto('/analytics', { waitUntil: 'networkidle' });
+      await gotoStreamedPage(page, '/analytics', { waitUntil: 'networkidle' });
       await expect(page).toHaveURL(/\/login\?next=%2Fanalytics$/);
 
       // 2. Sign in with seeded password credentials
@@ -121,6 +132,7 @@ test.describe('admin SSR end-to-end journeys', () => {
 
       // 4. Lands on /analytics with authenticated admin chrome
       await expect(page).toHaveURL(/\/analytics$/);
+      await waitForStreamedReveal(page);
       await expect(page.getByText(/First-Party Visitor Analytics \/\/ Postgres 19/i)).toBeVisible();
       await expect(page.getByText(`${handle}@admin`)).toBeVisible();
       await expect(page.getByText('Passkey Verified')).toBeVisible();
@@ -152,6 +164,7 @@ test.describe('admin SSR end-to-end journeys', () => {
       // 6. Verify Password + TOTP 2FA step-up sign-in after Sign Out
       await page.getByRole('button', { name: 'Sign Out' }).click();
       await page.waitForURL(/\/login$/, { waitUntil: 'networkidle' });
+      await waitForStreamedReveal(page);
 
       await page.getByLabel('Admin Handle', { exact: true }).fill(handle);
       await page.getByLabel('Password', { exact: true }).fill(password);
@@ -167,6 +180,7 @@ test.describe('admin SSR end-to-end journeys', () => {
       }
 
       await expect(page).toHaveURL(/\/$/);
+      await waitForStreamedReveal(page);
       await expect(page.getByText(`${handle}@admin`)).toBeVisible();
 
       // Disable TOTP cleanly and test discoverable passkey + all 6 admin console routes on Chromium
@@ -189,7 +203,7 @@ test.describe('admin SSR end-to-end journeys', () => {
           await maintSwitch.click();
           maintenanceToggledOn = true;
           await expect(page.getByText(/Maintenance mode is now ON/i)).toBeVisible();
-          await page.reload();
+          await reloadStreamedPage(page);
           await expect(page.getByRole('switch', { name: 'Maintenance Mode' })).toHaveAttribute(
             'aria-checked',
             'true',
@@ -234,8 +248,10 @@ test.describe('admin SSR end-to-end journeys', () => {
         // Sign out and sign back in via discoverable passkey (blank handle)
         await page.getByRole('button', { name: 'Sign Out' }).click();
         await page.waitForURL(/\/login$/, { waitUntil: 'load' });
+        await waitForStreamedReveal(page);
         await page.getByRole('button', { name: 'Sign in with Passkey' }).click();
         await expect(page).toHaveURL(/\/$/);
+        await waitForStreamedReveal(page);
         await expect(
           page.getByRole('heading', { name: /Admin Operations Console/i }),
         ).toBeVisible();
@@ -246,7 +262,7 @@ test.describe('admin SSR end-to-end journeys', () => {
     } finally {
       if (maintenanceToggledOn) {
         try {
-          await page.goto('/cms');
+          await gotoStreamedPage(page, '/cms');
           const sw = page.getByRole('switch', { name: 'Maintenance Mode' });
           if ((await sw.getAttribute('aria-checked')) === 'true') {
             await sw.click();
@@ -257,7 +273,7 @@ test.describe('admin SSR end-to-end journeys', () => {
       }
       if (quotaCleanupState.originalGuestMaxTurns !== null) {
         try {
-          await page.goto('/quotas');
+          await gotoStreamedPage(page, '/quotas');
           const guestCard = page.locator('form', { hasText: 'Role Policy: guest' });
           await guestCard
             .getByLabel('Max Turns / Session')

@@ -47,6 +47,34 @@
     flex-shrink: 0;
   }
 
+  .bannerBody {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-2xs);
+  }
+
+  .bannerAction {
+    color: var(--sf-fg-prop);
+    font-size: var(--sf-text-xs);
+  }
+
+  .bannerMeta {
+    display: inline-flex;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-gap-xs);
+    flex-wrap: wrap;
+    color: var(--sf-fg-cmt);
+    font-size: var(--sf-text-xs);
+  }
+
+  .bannerMetaToken {
+    padding: var(--sf-space-0) var(--sf-space-2);
+    border-radius: var(--sf-radius-xs);
+    border: var(--sf-border-width) solid var(--sf-border-subtle);
+    background: var(--sf-bg-frame);
+    color: var(--sf-fg-bone);
+  }
+
   .fieldset {
     display: flex;
     flex-direction: column;

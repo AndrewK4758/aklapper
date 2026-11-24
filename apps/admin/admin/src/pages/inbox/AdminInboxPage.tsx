@@ -1,11 +1,19 @@
-import type { AdminInboxItem, AdminInboxLoaderData } from '@aklapper/core';
-import { AlertDialog, Button, Field, OscStatusBadge, Separator, TuiWindow } from '@aklapper/ui';
+import type { ActionErrorMetadata, AdminInboxItem, AdminInboxLoaderData } from '@aklapper/core';
+import {
+  ActionFeedbackBanner,
+  AlertDialog,
+  Button,
+  Field,
+  OscStatusBadge,
+  Separator,
+  TuiWindow,
+} from '@aklapper/ui';
 import { useState } from 'react';
 import { Form, Link } from 'react-router';
 
 import styles from './AdminInboxPage.module.css';
 
-export interface AdminInboxActionData {
+export interface AdminInboxActionData extends ActionErrorMetadata {
   ok: boolean;
   message: string;
 }
@@ -48,15 +56,7 @@ export function AdminInboxPage({ data, actionData }: AdminInboxPageProps) {
   return (
     <TuiWindow title='Contact Submissions Inbox // Postgres 19'>
       <div className={styles.panel}>
-        {actionData ? (
-          actionData.ok ? (
-            <output className={styles.statusNote}>{actionData.message}</output>
-          ) : (
-            <p role='alert' className={styles.errorNote}>
-              {actionData.message}
-            </p>
-          )
-        ) : null}
+        {actionData ? <ActionFeedbackBanner {...actionData} /> : null}
 
         <div className={styles.searchBar}>
           <Form method='get' action='/inbox' className={styles.searchForm}>

@@ -34,6 +34,12 @@
       "types": "./dist/analytics.d.ts",
       "import": "./dist/analytics.js",
       "default": "./dist/analytics.js"
+    },
+    "./server-errors": {
+      "@aklapper/source": "./src/error-classification.ts",
+      "types": "./dist/error-classification.d.ts",
+      "import": "./dist/error-classification.js",
+      "default": "./dist/error-classification.js"
     }
   },
   "dependencies": {

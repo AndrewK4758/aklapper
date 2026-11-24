@@ -485,6 +485,9 @@ importers:
       '@aklapper/tooling':
         specifier: workspace:*
         version: link:../../tooling
+      react-router:
+        specifier: 8.5.2
+        version: 8.5.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
 
   packages/tooling:
     dependencies:

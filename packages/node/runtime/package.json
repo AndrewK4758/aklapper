@@ -30,6 +30,12 @@
       "import": "./dist/entry-server.js",
       "default": "./dist/entry-server.js"
     },
+    "./ssr/stream": {
+      "@aklapper/source": "./src/stream.ts",
+      "types": "./dist/stream.d.ts",
+      "import": "./dist/stream.js",
+      "default": "./dist/stream.js"
+    },
     "./ai": {
       "@aklapper/source": "./src/ai.ts",
       "types": "./dist/ai.d.ts",

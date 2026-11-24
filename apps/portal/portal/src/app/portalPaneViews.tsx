@@ -8,9 +8,16 @@ import type {
   PortalHomeContent,
   PortalMenuLoaderData,
 } from '@aklapper/core';
-import { Button, type TerminalPaneViewContext, TuiWindow } from '@aklapper/ui';
+import {
+  Button,
+  ErrorElement,
+  LoadingElement,
+  SuspenseElement,
+  type TerminalPaneViewContext,
+  TuiWindow,
+} from '@aklapper/ui';
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
-import { useFetcher } from 'react-router';
+import { href, useFetcher } from 'react-router';
 
 import { PortalAgensiPage } from '#pages/agensi';
 import { type PortalAskActionResult, PortalAskPage } from '#pages/ask';
@@ -19,9 +26,12 @@ import { PortalContactPage } from '#pages/contact';
 import { PortalLauncherTui } from '#pages/home';
 import { PortalMenuPage } from '#pages/menu';
 
+import { reportPortalClientError, reportPortalPublicError } from './client-telemetry';
 import {
   isPaneLoaderErrorEnvelope,
+  isStreamLoaderEnvelope,
   type PaneLoaderErrorEnvelope,
+  type StreamLoaderEnvelope,
   unwrapPaneLoaderData,
 } from './pane-loader';
 
@@ -33,74 +43,51 @@ export function isPortalPaneRoute(pathname: string): pathname is PortalPaneRoute
   return (PORTAL_PANE_ROUTES as readonly string[]).includes(pathname);
 }
 
-interface PaneRouteLoaderState<T> {
-  readonly data: T | undefined;
-  readonly isLoading: boolean;
-  readonly hasError: boolean;
-  readonly retry: () => void;
-}
+const PANE_TELEMETRY_DEDUP_MS = 5_000;
+const MAX_PANE_TELEMETRY_ENTRIES = 128;
+const recentPaneTelemetry = new Map<string, number>();
 
-function usePaneRouteLoader<T>(
-  routePath: PortalPaneRoute,
-  paneId: string,
-): PaneRouteLoaderState<T> {
-  const fetcher = useFetcher<T | PaneLoaderErrorEnvelope>();
-  const [settledAttempt, setSettledAttempt] = useState(0);
-  const initiatedRef = useRef(false);
-  const loggedErrorAttemptRef = useRef(0);
-
-  const triggerLoad = useCallback(() => {
-    void Promise.resolve(fetcher.load(`${routePath}?pane=1`)).finally(() => {
-      setSettledAttempt(c => c + 1);
-    });
-  }, [fetcher, routePath]);
-
-  const rawData = fetcher.data as T | PaneLoaderErrorEnvelope | undefined;
-  const resolvedData = unwrapPaneLoaderData(rawData);
-  const returnedErrorEnvelope = isPaneLoaderErrorEnvelope(rawData);
-
-  useEffect(() => {
-    if (!initiatedRef.current && fetcher.state === 'idle' && rawData === undefined) {
-      initiatedRef.current = true;
-      triggerLoad();
+function emitPaneTelemetryOnce(key: string, emit: () => void): void {
+  if (typeof window === 'undefined') return;
+  const now = Date.now();
+  const prev = recentPaneTelemetry.get(key);
+  if (prev !== undefined && now - prev < PANE_TELEMETRY_DEDUP_MS) {
+    return;
+  }
+  if (recentPaneTelemetry.size >= MAX_PANE_TELEMETRY_ENTRIES) {
+    for (const [entryKey, ts] of recentPaneTelemetry) {
+      if (now - ts >= PANE_TELEMETRY_DEDUP_MS) {
+        recentPaneTelemetry.delete(entryKey);
+      }
     }
-  }, [fetcher.state, rawData, triggerLoad]);
-
-  const hasError =
-    fetcher.state === 'idle' &&
-    (returnedErrorEnvelope || (settledAttempt > 0 && resolvedData === undefined));
-
-  useEffect(() => {
-    if (hasError && loggedErrorAttemptRef.current !== settledAttempt) {
-      loggedErrorAttemptRef.current = settledAttempt;
-      console.error(
-        JSON.stringify({
-          event: 'portal.pane_nav.fetcher_load_failed',
-          routePath,
-          paneId,
-          ...(returnedErrorEnvelope ? { message: rawData.message } : {}),
-        }),
-      );
+    if (recentPaneTelemetry.size >= MAX_PANE_TELEMETRY_ENTRIES) {
+      const oldestKey = recentPaneTelemetry.keys().next().value;
+      if (oldestKey !== undefined) recentPaneTelemetry.delete(oldestKey);
     }
-  }, [hasError, paneId, rawData, returnedErrorEnvelope, routePath, settledAttempt]);
-
-  const isLoading = !hasError && resolvedData === undefined;
-
-  return { data: resolvedData, isLoading, hasError, retry: triggerLoad };
+  }
+  recentPaneTelemetry.set(key, now);
+  emit();
 }
 
 interface PaneStatusFallbackProps {
   readonly title: string;
+  readonly loadingLabel: string;
   readonly isLoading: boolean;
   readonly onRetry: () => void;
   readonly onExit: () => void;
 }
 
-function PaneStatusFallback({ title, isLoading, onRetry, onExit }: PaneStatusFallbackProps) {
+function PaneStatusFallback({
+  title,
+  loadingLabel,
+  isLoading,
+  onRetry,
+  onExit,
+}: PaneStatusFallbackProps) {
   return (
     <TuiWindow title={title} onClose={onExit}>
       {isLoading ? (
-        <output>Loading {title} ...</output>
+        <LoadingElement label={loadingLabel} />
       ) : (
         <div role='alert'>
           <p>Unable to load {title}. Check your connection and try again.</p>
@@ -113,169 +100,281 @@ function PaneStatusFallback({ title, isLoading, onRetry, onExit }: PaneStatusFal
   );
 }
 
+interface PaneStreamGateProps<T> {
+  readonly routePath: PortalPaneRoute;
+  readonly paneId: string;
+  readonly title: string;
+  readonly loadingLabel: string;
+  readonly onExit: () => void;
+  readonly children: (data: T) => ReactNode;
+}
+
+function PaneStreamGate<T>({
+  routePath,
+  paneId,
+  title,
+  loadingLabel,
+  onExit,
+  children,
+}: PaneStreamGateProps<T>) {
+  const fetcher = useFetcher<StreamLoaderEnvelope<T> | T | PaneLoaderErrorEnvelope>();
+  const [settledAttempt, setSettledAttempt] = useState(0);
+  const initiatedRef = useRef(false);
+
+  const triggerLoad = useCallback(() => {
+    void Promise.resolve(fetcher.load(`${routePath}?pane=1`))
+      .catch(() => undefined)
+      .finally(() => {
+        setSettledAttempt(c => c + 1);
+      });
+  }, [fetcher, routePath]);
+
+  const rawData = fetcher.data as StreamLoaderEnvelope<T> | T | PaneLoaderErrorEnvelope | undefined;
+
+  useEffect(() => {
+    if (!initiatedRef.current && fetcher.state === 'idle' && rawData === undefined) {
+      initiatedRef.current = true;
+      triggerLoad();
+    }
+  }, [fetcher.state, rawData, triggerLoad]);
+
+  if (isStreamLoaderEnvelope<T>(rawData)) {
+    return (
+      <SuspenseElement<T>
+        resolve={rawData.payload}
+        correlationId={rawData.correlationId}
+        homeHref=''
+        loading={
+          <TuiWindow title={title} onClose={onExit}>
+            <LoadingElement label={loadingLabel} />
+          </TuiWindow>
+        }
+        onStreamError={error => {
+          reportPortalPublicError(error, { phase: 'stream', pathname: routePath });
+          console.error(
+            JSON.stringify({
+              event: 'portal.pane_nav.fetcher_load_failed',
+              routePath,
+              paneId,
+              code: error.code,
+              correlationId: error.correlationId,
+            }),
+          );
+        }}
+        errorElement={error => (
+          <TuiWindow title={title} onClose={onExit}>
+            <ErrorElement
+              error={error}
+              onRetry={triggerLoad}
+              isRetrying={fetcher.state !== 'idle'}
+              homeHref=''
+            />
+          </TuiWindow>
+        )}
+      >
+        {children}
+      </SuspenseElement>
+    );
+  }
+
+  const resolvedDirect = unwrapPaneLoaderData(rawData);
+  if (resolvedDirect !== undefined) {
+    return <>{children(resolvedDirect)}</>;
+  }
+
+  const returnedErrorEnvelope = isPaneLoaderErrorEnvelope(rawData);
+  const hasError =
+    fetcher.state === 'idle' &&
+    (returnedErrorEnvelope || (settledAttempt > 0 && rawData === undefined));
+
+  if (hasError) {
+    const fallbackReason = returnedErrorEnvelope ? 'loader_error_envelope' : 'transport_failure';
+    emitPaneTelemetryOnce(
+      `fallback:${paneId}:${routePath}:${fallbackReason}:${settledAttempt}`,
+      () => {
+        console.error(
+          JSON.stringify({
+            event: 'portal.pane_nav.fetcher_load_failed',
+            routePath,
+            paneId,
+            reason: fallbackReason,
+          }),
+        );
+        reportPortalClientError(
+          new Error(
+            returnedErrorEnvelope
+              ? 'Pane loader returned an error envelope.'
+              : 'Pane fetcher transport failure.',
+          ),
+          {
+            phase: 'boundary',
+            pathname: routePath,
+            errorCode: 'ERR_UPSTREAM_UNAVAILABLE',
+          },
+        );
+      },
+    );
+  }
+
+  return (
+    <PaneStatusFallback
+      title={title}
+      loadingLabel={loadingLabel}
+      isLoading={!hasError}
+      onRetry={triggerLoad}
+      onExit={onExit}
+    />
+  );
+}
+
 interface PaneAdapterProps {
   readonly ctx: TerminalPaneViewContext;
   readonly deployments?: Readonly<Record<string, K8sPodEvent>>;
 }
 
 function PortalMenuPaneView({ ctx, deployments }: PaneAdapterProps) {
-  const { data, isLoading, retry } = usePaneRouteLoader<PortalMenuLoaderData>('/menu', ctx.paneId);
-  if (!data) {
-    return (
-      <PaneStatusFallback
-        title='Launch Menu'
-        isLoading={isLoading}
-        onRetry={retry}
-        onExit={ctx.exitTui}
-      />
-    );
-  }
   return (
-    <PortalMenuPage
-      content={data.content}
-      items={data.items}
-      deployments={deployments}
-      onNavigate={to => {
-        if (to === '/') {
-          ctx.exitTui();
-        } else {
-          ctx.push(to);
-        }
-      }}
-    />
+    <PaneStreamGate<PortalMenuLoaderData>
+      routePath='/menu'
+      paneId={ctx.paneId}
+      title='Launch Menu'
+      loadingLabel='Loading launch menu...'
+      onExit={ctx.exitTui}
+    >
+      {data => (
+        <PortalMenuPage
+          content={data.content}
+          items={data.items}
+          deployments={deployments}
+          onNavigate={to => {
+            if (to === '/') {
+              ctx.exitTui();
+            } else {
+              ctx.push(to);
+            }
+          }}
+        />
+      )}
+    </PaneStreamGate>
   );
 }
 
 function PortalAgensiPaneView({ ctx }: PaneAdapterProps) {
-  const { data, isLoading, retry } = usePaneRouteLoader<PortalAgensiLoaderData>(
-    '/agensi',
-    ctx.paneId,
+  return (
+    <PaneStreamGate<PortalAgensiLoaderData>
+      routePath='/agensi'
+      paneId={ctx.paneId}
+      title='Agensi Storefront'
+      loadingLabel='Loading Agensi storefront...'
+      onExit={ctx.exitTui}
+    >
+      {data => (
+        <PortalAgensiPage content={data.content} skills={data.skills} onClose={ctx.exitTui} />
+      )}
+    </PaneStreamGate>
   );
-  if (!data) {
-    return (
-      <PaneStatusFallback
-        title='Agensi Storefront'
-        isLoading={isLoading}
-        onRetry={retry}
-        onExit={ctx.exitTui}
-      />
-    );
-  }
-  return <PortalAgensiPage content={data.content} skills={data.skills} onClose={ctx.exitTui} />;
 }
 
 function PortalAskPaneView({ ctx }: PaneAdapterProps) {
-  const { data, isLoading, retry } = usePaneRouteLoader<PortalAskLoaderData>('/ask', ctx.paneId);
   const submitFetcher = useFetcher<PortalAskActionResult>();
-
-  if (!data) {
-    return (
-      <PaneStatusFallback
-        title='Ask Portfolio'
-        isLoading={isLoading}
-        onRetry={retry}
-        onExit={ctx.exitTui}
-      />
-    );
-  }
   return (
-    <PortalAskPage
-      content={data.content}
-      quota={data.quota}
-      actionResult={submitFetcher.data}
-      isSubmitting={submitFetcher.state !== 'idle'}
-      onSubmitAsk={({ mode, text }) => {
-        void submitFetcher.submit({ mode, text }, { method: 'post', action: '/ask' });
-      }}
-      onClose={ctx.exitTui}
-    />
+    <PaneStreamGate<PortalAskLoaderData>
+      routePath='/ask'
+      paneId={ctx.paneId}
+      title='Ask Portfolio'
+      loadingLabel='Loading portfolio Q&A...'
+      onExit={ctx.exitTui}
+    >
+      {data => (
+        <PortalAskPage
+          content={data.content}
+          quota={data.quota}
+          actionResult={submitFetcher.data}
+          isSubmitting={submitFetcher.state !== 'idle'}
+          onSubmitAsk={({ mode, text }) => {
+            void submitFetcher.submit({ mode, text }, { method: 'post', action: href('/ask') });
+          }}
+          onClose={ctx.exitTui}
+        />
+      )}
+    </PaneStreamGate>
   );
 }
 
 function PortalCadencePaneView({ ctx }: PaneAdapterProps) {
-  const { data, isLoading, retry } = usePaneRouteLoader<PortalCadenceLoaderData>(
-    '/cadence',
-    ctx.paneId,
-  );
   const submitFetcher = useFetcher<PortalCadenceActionResult>();
-
-  if (!data) {
-    return (
-      <PaneStatusFallback
-        title='CADENCE Builder'
-        isLoading={isLoading}
-        onRetry={retry}
-        onExit={ctx.exitTui}
-      />
-    );
-  }
   return (
-    <PortalCadencePage
-      content={data.content}
-      presets={data.presets}
-      quota={data.quota}
-      recentRuns={data.recentRuns}
-      actionResult={submitFetcher.data}
-      isSubmitting={submitFetcher.state !== 'idle'}
-      onRunBuild={({ prompt, presetSlug }) => {
-        void submitFetcher.submit(
-          { intent: 'run', prompt, presetSlug },
-          { method: 'post', action: '/cadence' },
-        );
-      }}
-      onGateVerdict={({ runId, verdict }) => {
-        void submitFetcher.submit(
-          { intent: 'gate', runId, verdict },
-          { method: 'post', action: '/cadence' },
-        );
-      }}
-      onClose={ctx.exitTui}
-    />
+    <PaneStreamGate<PortalCadenceLoaderData>
+      routePath='/cadence'
+      paneId={ctx.paneId}
+      title='CADENCE Builder'
+      loadingLabel='Loading sandbox builder...'
+      onExit={ctx.exitTui}
+    >
+      {data => (
+        <PortalCadencePage
+          content={data.content}
+          presets={data.presets}
+          quota={data.quota}
+          recentRuns={data.recentRuns}
+          actionResult={submitFetcher.data}
+          isSubmitting={submitFetcher.state !== 'idle'}
+          onRunBuild={({ prompt, presetSlug }) => {
+            void submitFetcher.submit(
+              { intent: 'run', prompt, presetSlug },
+              { method: 'post', action: href('/cadence') },
+            );
+          }}
+          onGateVerdict={({ runId, verdict }) => {
+            void submitFetcher.submit(
+              { intent: 'gate', runId, verdict },
+              { method: 'post', action: href('/cadence') },
+            );
+          }}
+          onClose={ctx.exitTui}
+        />
+      )}
+    </PaneStreamGate>
   );
 }
 
 function PortalContactPaneView({ ctx }: PaneAdapterProps) {
-  const { data, isLoading, retry } = usePaneRouteLoader<PortalContactLoaderData>(
-    '/contact',
-    ctx.paneId,
-  );
   const submitFetcher = useFetcher<ContactActionResult>();
-
-  if (!data) {
-    return (
-      <PaneStatusFallback
-        title='Contact'
-        isLoading={isLoading}
-        onRetry={retry}
-        onExit={ctx.exitTui}
-      />
-    );
-  }
   return (
-    <PortalContactPage
-      content={data.content}
-      actionData={submitFetcher.data}
-      isSubmitting={submitFetcher.state !== 'idle'}
-      formAction='/contact'
-      onClose={ctx.exitTui}
-      renderFormElement={({ action, className, onSubmit, children }) => (
-        <submitFetcher.Form
-          action={action}
-          method='post'
-          encType='multipart/form-data'
-          noValidate
-          className={className}
-          onSubmit={onSubmit}
-        >
-          {children}
-        </submitFetcher.Form>
+    <PaneStreamGate<PortalContactLoaderData>
+      routePath='/contact'
+      paneId={ctx.paneId}
+      title='Contact'
+      loadingLabel='Loading contact channel...'
+      onExit={ctx.exitTui}
+    >
+      {data => (
+        <PortalContactPage
+          content={data.content}
+          actionData={submitFetcher.data}
+          isSubmitting={submitFetcher.state !== 'idle'}
+          formAction={href('/contact')}
+          onClose={ctx.exitTui}
+          renderFormElement={({ action, className, onSubmit, children }) => (
+            <submitFetcher.Form
+              action={action}
+              method='post'
+              encType='multipart/form-data'
+              noValidate
+              className={className}
+              onSubmit={onSubmit}
+            >
+              {children}
+            </submitFetcher.Form>
+          )}
+        />
       )}
-    />
+    </PaneStreamGate>
   );
 }
 
 function UnknownPaneView({ ctx }: { readonly ctx: TerminalPaneViewContext }) {
-  useEffect(() => {
+  emitPaneTelemetryOnce(`unknown:${ctx.paneId}:${ctx.viewId}`, () => {
     console.warn(
       JSON.stringify({
         event: 'portal.pane_nav.unknown_view_id',
@@ -283,7 +382,7 @@ function UnknownPaneView({ ctx }: { readonly ctx: TerminalPaneViewContext }) {
         paneId: ctx.paneId,
       }),
     );
-  }, [ctx.paneId, ctx.viewId]);
+  });
 
   return (
     <TuiWindow title={ctx.viewId} onClose={ctx.exitTui}>

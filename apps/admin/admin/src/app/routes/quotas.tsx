@@ -3,7 +3,9 @@ import {
   BucketPurgeSchema,
   BucketResetSchema,
   QuotaPolicyUpdateSchema,
+  type StreamResult,
 } from '@aklapper/core';
+import { classifyServerError } from '@aklapper/core/server-errors';
 import {
   getSharedDb,
   listQuotaPoliciesAndBuckets,
@@ -12,28 +14,68 @@ import {
   updateQuotaPolicy,
 } from '@aklapper/db';
 import {
-  type ActionFunctionArgs,
-  type LoaderFunctionArgs,
-  type MetaArgs,
-  useActionData,
-  useLoaderData,
-} from 'react-router';
+  createFallbackLogger,
+  deferStreamResult,
+  getOrCreateCorrelationId,
+  getRequestContext,
+  logDiagnosticError,
+} from '@aklapper/node-runtime/ssr/stream';
+import { RouteErrorBoundaryView, SuspenseElement } from '@aklapper/ui';
+import { data, href } from 'react-router';
 
 import { type AdminQuotasActionData, AdminQuotasPage } from '#pages/quotas';
 
 import { requireAdminSession } from '../admin-ops.server';
+import { reportAdminPublicError } from '../client-telemetry';
 import { buildAdminPageMeta } from '../seo';
+import type { Route } from './+types/quotas';
 
-export async function loader({ request }: LoaderFunctionArgs): Promise<AdminQuotasLoaderData> {
-  await requireAdminSession(request);
-  return listQuotaPoliciesAndBuckets(getSharedDb());
+export interface AdminQuotasStreamData {
+  readonly correlationId: string;
+  readonly payload: Promise<StreamResult<AdminQuotasLoaderData>>;
 }
 
-export async function action({ request }: ActionFunctionArgs): Promise<AdminQuotasActionData> {
-  await requireAdminSession(request);
-  const formData = await request.formData();
+export async function loader({
+  request,
+  context,
+}: Route.LoaderArgs): Promise<AdminQuotasStreamData> {
+  const correlationId = getOrCreateCorrelationId(request, context);
+  await requireAdminSession(request, { context, source: 'admin.quotas.loader' });
+
+  return {
+    correlationId,
+    payload: deferStreamResult((async () => listQuotaPoliciesAndBuckets(getSharedDb()))(), {
+      request,
+      context,
+      source: 'admin.quotas.loader',
+    }),
+  };
+}
+
+export async function action({ request, context }: Route.ActionArgs) {
+  await requireAdminSession(request, { context, source: 'admin.quotas.action' });
+  const correlationId = getOrCreateCorrelationId(request, context);
+  const reqCtx = getRequestContext(context);
+  const logger = reqCtx?.logger ?? createFallbackLogger('admin-quotas');
+  const headers = { 'X-Correlation-Id': correlationId };
+
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return data<AdminQuotasActionData>(
+      {
+        ok: false,
+        message: 'Malformed quota request payload.',
+        code: 'ERR_VALIDATION',
+        action: 'Review quota inputs and retry.',
+        correlationId,
+      },
+      { status: 400, headers },
+    );
+  }
+
   const intent = String(formData.get('intent') ?? '');
-  const db = getSharedDb();
 
   try {
     if (intent === 'update-policy') {
@@ -43,44 +85,82 @@ export async function action({ request }: ActionFunctionArgs): Promise<AdminQuot
         maxTokensPerRun: formData.get('maxTokensPerRun'),
         maxDailyGlobalTokens: formData.get('maxDailyGlobalTokens'),
       });
-      const updated = await updateQuotaPolicy(db, parsed);
-      return {
-        ok: true,
-        message: `Updated ${updated.role} quota policy (${updated.maxTurnsPerSession} turns, ${updated.maxTokensPerRun} tokens/run).`,
-      };
+      const updated = await updateQuotaPolicy(getSharedDb(), parsed);
+      return data<AdminQuotasActionData>(
+        {
+          ok: true,
+          message: `Updated ${updated.role} quota policy (${updated.maxTurnsPerSession} turns, ${updated.maxTokensPerRun} tokens/run).`,
+        },
+        { status: 200, headers },
+      );
     }
 
     if (intent === 'reset-bucket') {
       const { scopeKey } = BucketResetSchema.parse({
         scopeKey: formData.get('scopeKey'),
       });
-      const deleted = await resetRateLimitBucket(db, scopeKey);
+      const deleted = await resetRateLimitBucket(getSharedDb(), scopeKey);
       return deleted
-        ? { ok: true, message: `Reset rate-limit bucket ${scopeKey}.` }
-        : { ok: false, message: `Bucket ${scopeKey} was not found.` };
+        ? data<AdminQuotasActionData>(
+            { ok: true, message: `Reset rate-limit bucket ${scopeKey}.` },
+            { status: 200, headers },
+          )
+        : data<AdminQuotasActionData>(
+            {
+              ok: false,
+              message: `Bucket ${scopeKey} was not found.`,
+              code: 'ERR_NOT_FOUND',
+              action: 'Refresh the quota view and verify the bucket key.',
+              correlationId,
+            },
+            { status: 404, headers },
+          );
     }
 
     if (intent === 'purge-stale') {
       const { olderThanHours } = BucketPurgeSchema.parse({
         olderThanHours: formData.get('olderThanHours'),
       });
-      const count = await purgeStaleRateLimitBuckets(db, olderThanHours);
-      return {
-        ok: true,
-        message: `Purged ${count} stale bucket${count === 1 ? '' : 's'} older than ${olderThanHours}h.`,
-      };
+      const count = await purgeStaleRateLimitBuckets(getSharedDb(), olderThanHours);
+      return data<AdminQuotasActionData>(
+        {
+          ok: true,
+          message: `Purged ${count} stale bucket${count === 1 ? '' : 's'} older than ${olderThanHours}h.`,
+        },
+        { status: 200, headers },
+      );
     }
 
-    return { ok: false, message: `Unsupported quota intent: ${intent}` };
+    return data<AdminQuotasActionData>(
+      {
+        ok: false,
+        message: 'Unsupported quota intent.',
+        code: 'ERR_VALIDATION',
+        action: 'Select a valid quota control and retry.',
+        correlationId,
+      },
+      { status: 400, headers },
+    );
   } catch (error) {
-    return {
-      ok: false,
-      message: error instanceof Error ? error.message : 'Quota update failed validation.',
-    };
+    const { publicError, diagnostic } = classifyServerError(error, {
+      correlationId,
+      source: 'admin.quotas.action',
+    });
+    logDiagnosticError(logger, diagnostic);
+    return data<AdminQuotasActionData>(
+      {
+        ok: false,
+        message: publicError.message,
+        code: publicError.code,
+        action: publicError.action,
+        correlationId: publicError.correlationId,
+      },
+      { status: publicError.status, headers },
+    );
   }
 }
 
-export function meta({ matches, location }: MetaArgs<typeof loader>) {
+export function meta({ matches, location }: Route.MetaArgs) {
   return buildAdminPageMeta({
     matches,
     pathname: location.pathname,
@@ -89,8 +169,31 @@ export function meta({ matches, location }: MetaArgs<typeof loader>) {
   });
 }
 
-export default function AdminQuotasRoute() {
-  const data = useLoaderData() as AdminQuotasLoaderData;
-  const actionData = useActionData() as AdminQuotasActionData | undefined;
-  return <AdminQuotasPage data={data} actionData={actionData ?? null} />;
+export default function AdminQuotasRoute({ loaderData, actionData }: Route.ComponentProps) {
+  return (
+    <SuspenseElement<AdminQuotasLoaderData>
+      resolve={loaderData.payload}
+      correlationId={loaderData.correlationId}
+      homeHref={href('/')}
+      loadingLabel='Loading quota policies...'
+      onStreamError={error => {
+        reportAdminPublicError(error, { phase: 'stream' });
+      }}
+    >
+      {resolved => <AdminQuotasPage data={resolved} actionData={actionData ?? null} />}
+    </SuspenseElement>
+  );
+}
+
+export function ErrorBoundary({ error, loaderData }: Route.ErrorBoundaryProps) {
+  return (
+    <RouteErrorBoundaryView
+      error={error}
+      correlationId={loaderData?.correlationId}
+      homeHref={href('/')}
+      onError={publicError => {
+        reportAdminPublicError(publicError, { phase: 'boundary' });
+      }}
+    />
+  );
 }

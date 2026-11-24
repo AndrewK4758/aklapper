@@ -111,11 +111,11 @@ export function createSsrViteConfig(options: SsrAppViteConfigOptions): ViteUserC
 
     resolve: {
       conditions: SOURCE_CLIENT_CONDITIONS,
-      dedupe: ['react', 'react-dom', '@base-ui/react'],
+      dedupe: ['react', 'react-dom', 'react-router', '@base-ui/react'],
     },
 
     optimizeDeps: {
-      include: ['react', 'react-dom', '@base-ui/react', 'zod'],
+      include: ['react', 'react-dom', 'react-router', '@base-ui/react', 'zod'],
     },
 
     plugins: [...(process.env['VITEST'] ? [] : [reactRouter()]), nxReadySignal()],

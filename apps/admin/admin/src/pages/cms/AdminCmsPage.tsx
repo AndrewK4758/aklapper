@@ -1,4 +1,5 @@
 import type {
+  ActionErrorMetadata,
   AdminCmsLoaderData,
   AgensiSkill,
   CadencePreset,
@@ -7,6 +8,7 @@ import type {
   RoadmapMilestone,
 } from '@aklapper/core';
 import {
+  ActionFeedbackBanner,
   Button,
   Field,
   OscStatusBadge,
@@ -21,7 +23,7 @@ import { Form, useFetcher } from 'react-router';
 
 import styles from './AdminCmsPage.module.css';
 
-export interface AdminCmsActionData {
+export interface AdminCmsActionData extends ActionErrorMetadata {
   ok: boolean;
   message: string;
 }
@@ -86,15 +88,7 @@ export function AdminCmsPage({ data, qdrant, actionData }: AdminCmsPageProps) {
   return (
     <TuiWindow title='PostgreSQL 19 CMS // Site, Registry, Terminal & Presets'>
       <div className={styles.panel}>
-        {activeFeedback ? (
-          activeFeedback.ok ? (
-            <output className={styles.statusNote}>{activeFeedback.message}</output>
-          ) : (
-            <p role='alert' className={styles.errorNote}>
-              {activeFeedback.message}
-            </p>
-          )
-        ) : null}
+        {activeFeedback ? <ActionFeedbackBanner {...activeFeedback} /> : null}
 
         <Tabs.Root defaultValue='site'>
           <Tabs.List aria-label='CMS sections'>

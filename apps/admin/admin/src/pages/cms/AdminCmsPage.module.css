@@ -161,24 +161,6 @@
     min-height: 18rem;
   }
 
-  .statusNote {
-    margin: var(--sf-space-0);
-    padding: var(--sf-space-3) var(--sf-space-4);
-    border-radius: var(--sf-radius-sm);
-    background: var(--sf-success-bg);
-    border: var(--sf-border-width) solid var(--sf-success);
-    font-size: var(--sf-text-xs);
-  }
-
-  .errorNote {
-    margin: var(--sf-space-0);
-    padding: var(--sf-space-3) var(--sf-space-4);
-    border-radius: var(--sf-radius-sm);
-    background: var(--sf-err-bg);
-    border: var(--sf-border-width) solid var(--sf-err);
-    font-size: var(--sf-text-xs);
-  }
-
   .muted {
     margin: var(--sf-space-0);
     font-size: var(--sf-text-xs);

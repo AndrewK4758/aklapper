@@ -189,6 +189,8 @@ describe('@aklapper/node-runtime/http & auth', () => {
     expect(isSecureRequest('https://admin.andrew-k.us/login')).toBe(true);
     expect(isSecureRequest('http://localhost:4301/login')).toBe(false);
     expect(isSecureRequest('http://localhost:4301/login', 'https')).toBe(true);
+    expect(isSecureRequest('http://localhost:4301/login', 'http, https')).toBe(true);
+    expect(isSecureRequest('https://admin.andrew-k.us/login', 'https, http')).toBe(false);
 
     expect(isSafeRedirectTarget('/analytics?window=7d')).toBe(true);
     expect(isSafeRedirectTarget('//evil.example/phish')).toBe(false);

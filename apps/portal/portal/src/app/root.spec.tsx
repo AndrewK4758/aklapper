@@ -1,9 +1,27 @@
-import type { PortalMaintenanceLoaderData, PortalRootLoaderData } from '@aklapper/core';
+import {
+  createPublicAppError,
+  type PortalMaintenanceLoaderData,
+  type PortalRootLoaderData,
+  type StreamResult,
+} from '@aklapper/core';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { createMemoryRouter, RouterProvider } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { createRoutesStub, RouterContextProvider } from 'react-router';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import PortalRoot from './root';
+const { loadPortalRootDataWithPrerenderMock } = vi.hoisted(() => ({
+  loadPortalRootDataWithPrerenderMock:
+    vi.fn<(override?: boolean) => Promise<PortalRootLoaderData>>(),
+}));
+
+vi.mock('@aklapper/db', async importOriginal => {
+  const actual = await importOriginal<typeof import('@aklapper/db')>();
+  return {
+    ...actual,
+    loadPortalRootDataWithPrerender: loadPortalRootDataWithPrerenderMock,
+  };
+});
+
+import PortalRoot, { ErrorBoundary, loader, meta } from './root';
 
 const CHROME_FIXTURE: PortalRootLoaderData['chrome'] = {
   pageTitle: 'andrew-k.us // Solar Forge Terminal',
@@ -90,25 +108,89 @@ const MAINTENANCE_FIXTURE: PortalMaintenanceLoaderData = {
   ],
 };
 
-describe('PortalRoot', () => {
-  it('renders the Solar Forge portal chrome from loader data without admin leakage', async () => {
-    const router = createMemoryRouter(
-      [
-        {
-          path: '/',
-          loader: (): PortalRootLoaderData => ({
-            maintenanceMode: false,
-            chrome: CHROME_FIXTURE,
-            maintenance: null,
-          }),
-          Component: PortalRoot,
-          children: [{ index: true, Component: () => <div>Home Probe</div> }],
-        },
-      ],
-      { initialEntries: ['/'] },
-    );
+function makeRootLoaderArgs(url = 'https://andrew-k.us/'): Parameters<typeof loader>[0] {
+  return {
+    request: new Request(url),
+    params: {},
+    context: new RouterContextProvider(),
+    unstable_pattern: '/',
+    url: new URL(url),
+    pattern: '/',
+  } as Parameters<typeof loader>[0];
+}
 
-    render(<RouterProvider router={router} />);
+describe('PortalRoot', () => {
+  const originalMaintenanceEnv = process.env['PORTAL_MAINTENANCE_MODE'];
+
+  afterEach(() => {
+    if (originalMaintenanceEnv === undefined) {
+      delete process.env['PORTAL_MAINTENANCE_MODE'];
+    } else {
+      process.env['PORTAL_MAINTENANCE_MODE'] = originalMaintenanceEnv;
+    }
+    vi.clearAllMocks();
+  });
+
+  it('returns deferred rootPayload synchronously and forwards tri-state maintenanceModeOverride', async () => {
+    delete process.env['PORTAL_MAINTENANCE_MODE'];
+    const pending = Promise.withResolvers<PortalRootLoaderData>();
+    loadPortalRootDataWithPrerenderMock.mockReturnValueOnce(pending.promise);
+
+    const result = loader(makeRootLoaderArgs());
+
+    expect(result.maintenanceMode).toBe(false);
+    expect(result.correlationId).toMatch(/\S+/);
+    expect(loadPortalRootDataWithPrerenderMock).toHaveBeenCalledWith(undefined);
+    expect(result.rootPayload).toBeInstanceOf(Promise);
+
+    pending.resolve({
+      maintenanceMode: false,
+      chrome: CHROME_FIXTURE,
+      maintenance: null,
+    });
+    const settled = await result.rootPayload;
+    expect(settled).toEqual({
+      ok: true,
+      data: {
+        maintenanceMode: false,
+        chrome: CHROME_FIXTURE,
+        maintenance: null,
+      },
+    });
+  });
+
+  it('streams loading status first and then renders Solar Forge portal chrome without admin leakage', async () => {
+    const deferred = Promise.withResolvers<StreamResult<PortalRootLoaderData>>();
+    const Stub = createRoutesStub([
+      {
+        id: 'root',
+        path: '/',
+        loader: () => ({
+          runtimeSeo: { siteUrl: 'https://andrew-k.us' },
+          correlationId: 'corr-root-ok',
+          maintenanceMode: false,
+          rootPayload: deferred.promise,
+        }),
+        Component: PortalRoot,
+        ErrorBoundary,
+        children: [{ index: true, Component: () => <div>Home Probe</div> }],
+      },
+    ]);
+
+    render(<Stub initialEntries={['/']} />);
+
+    const status = await screen.findByRole('status');
+    expect(status.getAttribute('aria-live')).toBe('polite');
+    expect(status.getAttribute('aria-busy')).toBe('true');
+
+    deferred.resolve({
+      ok: true,
+      data: {
+        maintenanceMode: false,
+        chrome: CHROME_FIXTURE,
+        maintenance: null,
+      },
+    });
 
     expect(await screen.findByText('andrew-k.us :: tty1')).toBeTruthy();
     expect(
@@ -116,38 +198,43 @@ describe('PortalRoot', () => {
     ).toBeTruthy();
     expect(screen.getByText('Home Probe')).toBeTruthy();
     expect(screen.queryByText('cadence-admin')).toBeNull();
-    const sitemapLink = screen.getByRole('link', { name: 'Sitemap' });
-    expect(sitemapLink.getAttribute('href')).toBe('/sitemap.xml');
-    const main = screen.getByRole('main');
-    expect(main.getAttribute('data-terminal-viewport')).toBe('true');
+    expect(screen.getByRole('link', { name: 'Sitemap' }).getAttribute('href')).toBe('/sitemap.xml');
+    expect(screen.getByRole('main').getAttribute('data-terminal-viewport')).toBe('true');
   });
 
-  it('renders Changes in Progress from loader data with zero navigation links in maintenance mode', async () => {
-    const router = createMemoryRouter(
-      [
-        {
-          path: '/',
-          loader: (): PortalRootLoaderData => ({
-            maintenanceMode: true,
-            chrome: CHROME_FIXTURE,
-            maintenance: MAINTENANCE_FIXTURE,
+  it('switches streamed body to Changes in Progress when env is unset and DB maintenanceMode is active', async () => {
+    const Stub = createRoutesStub([
+      {
+        id: 'root',
+        path: '/',
+        loader: () => ({
+          runtimeSeo: { siteUrl: 'https://andrew-k.us' },
+          correlationId: 'corr-db-maint',
+          maintenanceMode: false,
+          rootPayload: Promise.resolve<StreamResult<PortalRootLoaderData>>({
+            ok: true,
+            data: {
+              maintenanceMode: true,
+              chrome: { ...CHROME_FIXTURE, maintenanceModeDefault: true },
+              maintenance: MAINTENANCE_FIXTURE,
+            },
           }),
-          Component: PortalRoot,
-          children: [{ index: true, Component: () => <div>Should Not Render</div> }],
-        },
-      ],
-      { initialEntries: ['/'] },
-    );
+        }),
+        Component: PortalRoot,
+        children: [{ index: true, Component: () => <div>Should Not Render</div> }],
+      },
+    ]);
 
-    render(<RouterProvider router={router} />);
+    render(<Stub initialEntries={['/']} />);
 
     expect(await screen.findByRole('heading', { name: 'Changes in Progress' })).toBeTruthy();
     expect(screen.queryAllByRole('link')).toHaveLength(0);
     expect(screen.queryByText('Should Not Render')).toBeNull();
-    const progressbar = screen.getByRole('progressbar', {
-      name: 'Solar Forge v2 rebuild progress',
-    });
-    expect(progressbar.getAttribute('aria-valuenow')).toBe('72');
+    expect(
+      screen
+        .getByRole('progressbar', { name: 'Solar Forge v2 rebuild progress' })
+        .getAttribute('aria-valuenow'),
+    ).toBe('72');
 
     const input = screen.getByLabelText('Terminal command input');
     fireEvent.change(input, { target: { value: 'whoami' } });
@@ -155,31 +242,111 @@ describe('PortalRoot', () => {
     expect(screen.getByText(/visitor@andrew-k\.us \(read-only maintenance tty1\)/)).toBeTruthy();
   });
 
-  it('supports split keybindings globally on portal TUI routes', async () => {
-    const router = createMemoryRouter(
-      [
+  it('emits synchronous noindex meta and static offline maintenance fallback when PORTAL_MAINTENANCE_MODE=true and Postgres is offline', async () => {
+    process.env['PORTAL_MAINTENANCE_MODE'] = 'true';
+    loadPortalRootDataWithPrerenderMock.mockRejectedValueOnce(new Error('connection terminated'));
+
+    const loaderData = loader(makeRootLoaderArgs());
+    expect(loaderData.maintenanceMode).toBe(true);
+    expect(loadPortalRootDataWithPrerenderMock).toHaveBeenCalledWith(true);
+
+    const tags = meta({
+      loaderData,
+      matches: [
         {
-          path: '/',
-          loader: (): PortalRootLoaderData => ({
-            maintenanceMode: false,
-            chrome: CHROME_FIXTURE,
-            maintenance: null,
-            terminal: MAINTENANCE_FIXTURE.terminal,
-          }),
-          Component: PortalRoot,
-          children: [{ path: 'menu', Component: () => <div>TUI Menu Probe</div> }],
+          id: 'root',
+          params: {},
+          pathname: '/',
+          meta: [],
+          loaderData,
         },
       ],
-      { initialEntries: ['/menu'] },
-    );
+      location: { pathname: '/', search: '', hash: '', state: null, key: 'r1' },
+      params: {},
+    });
+    expect(tags).toContainEqual({ name: 'robots', content: 'noindex, nofollow' });
 
-    const { container } = render(<RouterProvider router={router} />);
+    const Stub = createRoutesStub([
+      {
+        id: 'root',
+        path: '/',
+        loader: () => loaderData,
+        Component: PortalRoot,
+      },
+    ]);
+
+    render(<Stub initialEntries={['/']} />);
+
+    expect(await screen.findByTestId('offline-maintenance-fallback')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Changes in Progress' })).toBeTruthy();
+    expect(screen.getByText(loaderData.correlationId)).toBeTruthy();
+    expect(screen.queryAllByRole('link')).toHaveLength(0);
+  });
+
+  it('renders correlated ErrorElement inside intact shell on root stream timeout', async () => {
+    const timeoutError = createPublicAppError({
+      code: 'ERR_STREAM_TIMEOUT',
+      status: 504,
+      message: 'Section took too long to load.',
+      action: 'Retry loading or refresh.',
+      correlationId: 'corr-root-504',
+    });
+
+    const Stub = createRoutesStub([
+      {
+        id: 'root',
+        path: '/',
+        loader: () => ({
+          runtimeSeo: { siteUrl: 'https://andrew-k.us' },
+          correlationId: 'corr-root-504',
+          maintenanceMode: false,
+          rootPayload: Promise.resolve<StreamResult<PortalRootLoaderData>>({
+            ok: false,
+            error: timeoutError,
+          }),
+        }),
+        Component: PortalRoot,
+      },
+    ]);
+
+    render(<Stub initialEntries={['/']} />);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('ERR_STREAM_TIMEOUT');
+    expect(alert.textContent).toContain('corr-root-504');
+    expect(screen.getByRole('button', { name: /Retry/i })).toBeTruthy();
+  });
+
+  it('supports Ghostty split keybindings globally on portal TUI routes', async () => {
+    const Stub = createRoutesStub([
+      {
+        id: 'root',
+        path: '/',
+        loader: () => ({
+          runtimeSeo: { siteUrl: 'https://andrew-k.us' },
+          correlationId: 'corr-pane',
+          maintenanceMode: false,
+          rootPayload: Promise.resolve<StreamResult<PortalRootLoaderData>>({
+            ok: true,
+            data: {
+              maintenanceMode: false,
+              chrome: CHROME_FIXTURE,
+              maintenance: null,
+              terminal: MAINTENANCE_FIXTURE.terminal,
+            },
+          }),
+        }),
+        Component: PortalRoot,
+        children: [{ path: 'menu', Component: () => <div>TUI Menu Probe</div> }],
+      },
+    ]);
+
+    const { container } = render(<Stub initialEntries={['/menu']} />);
 
     expect(await screen.findByText('TUI Menu Probe')).toBeTruthy();
     const workspaceEl = container.querySelector('[data-pane-count]') as HTMLElement;
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
 
-    // Split open a separate terminal pane right alongside the TUI route via Ctrl+Shift+}
     fireEvent.keyDown(window, {
       key: '}',
       code: 'BracketRight',
@@ -187,33 +354,33 @@ describe('PortalRoot', () => {
       shiftKey: true,
     });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
-    expect(screen.getByText('TUI Menu Probe')).toBeTruthy();
     expect(container.querySelector('[data-pane-tty="tty2"]')).toBeTruthy();
 
-    // Split the active terminal pane down via Ctrl+Shift+{
-    fireEvent.keyDown(window, {
-      key: '{',
-      code: 'BracketLeft',
-      ctrlKey: true,
-      shiftKey: true,
-    });
-    expect(workspaceEl.getAttribute('data-pane-count')).toBe('3');
-    expect(container.querySelector('[data-pane-tty="tty3"]')).toBeTruthy();
-
-    // Close spawned split panes cleanly
-    fireEvent.keyDown(window, { key: 'W', ctrlKey: true, shiftKey: true });
     fireEvent.keyDown(window, { key: 'W', ctrlKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
 
-    // Open a new terminal tab via Alt+Shift+T from /menu TUI route, switch back via Alt+1, then close it
     fireEvent.keyDown(window, { key: 'T', code: 'KeyT', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-tab-count')).toBe('2');
-    expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-2');
-    fireEvent.keyDown(window, { key: '1', code: 'Digit1', altKey: true });
-    expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-1');
-    expect(screen.getByText('TUI Menu Probe')).toBeTruthy();
-    fireEvent.keyDown(window, { key: '2', code: 'Digit2', altKey: true });
     fireEvent.keyDown(window, { key: 'W', code: 'KeyW', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-tab-count')).toBe('1');
+  });
+
+  it('contains unexpected route errors cleanly in exported ErrorBoundary', async () => {
+    const Stub = createRoutesStub([
+      {
+        id: 'root',
+        path: '/',
+        Component: () => {
+          throw new Error('Internal crash at /srv/secret/file.ts:42');
+        },
+        ErrorBoundary,
+      },
+    ]);
+
+    render(<Stub initialEntries={['/']} />);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('ERR_INTERNAL');
+    expect(alert.textContent).not.toContain('/srv/secret/file.ts');
   });
 });

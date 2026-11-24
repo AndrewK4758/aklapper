@@ -80,4 +80,31 @@ describe('PortalAskPage', () => {
     expect(screen.getByText(/Cloud Run serves SSR/)).toBeTruthy();
     expect(screen.getByText('Portfolio Architecture')).toBeTruthy();
   });
+
+  it('renders optional code, action, and correlationId metadata inside the alert banner on failure', () => {
+    render(
+      <PortalAskPage
+        content={SAMPLE_CONTENT}
+        quota={SAMPLE_QUOTA}
+        actionResult={{
+          ok: false,
+          mode: 'qa',
+          error: 'Database temporarily unavailable.',
+          code: 'ERR_DB_UNAVAILABLE',
+          action: 'Retry shortly or share ID.',
+          correlationId: 'corr-ask-503',
+        }}
+        isSubmitting={false}
+        onSubmitAsk={vi.fn<PortalAskPageProps['onSubmitAsk']>()}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    const banner = screen.getByTestId('ask-error-banner');
+    expect(banner.getAttribute('role')).toBe('alert');
+    expect(banner.textContent).toContain('Database temporarily unavailable.');
+    expect(banner.textContent).toContain('ERR_DB_UNAVAILABLE');
+    expect(banner.textContent).toContain('Retry shortly or share ID.');
+    expect(banner.textContent).toContain('corr-ask-503');
+  });
 });

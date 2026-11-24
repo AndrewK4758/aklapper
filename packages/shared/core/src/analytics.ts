@@ -1,6 +1,6 @@
 import { onCLS, onINP, onLCP, onTTFB } from 'web-vitals';
 
-import type { AnalyticsBatch, AnalyticsEvent } from './contracts.ts';
+import type { AnalyticsBatch, AnalyticsEvent } from './analytics-schemas.ts';
 
 export interface AnalyticsClientOptions {
   endpoint: string;
@@ -205,3 +205,5 @@ export function bootstrapDocumentAnalytics(
 
   return client;
 }
+
+export * from './error-reporter.ts';

@@ -1,51 +1,83 @@
 import type { PortalMenuLoaderData } from '@aklapper/core';
 import { loadPortalMenuDataWithPrerender } from '@aklapper/db';
-import { usePaneNavigation } from '@aklapper/ui';
-import { type LoaderFunctionArgs, type MetaArgs, useLoaderData, useNavigate } from 'react-router';
+import { deferStreamResult, getOrCreateCorrelationId } from '@aklapper/node-runtime/ssr/stream';
+import { RouteErrorBoundaryView, SuspenseElement, usePaneNavigation } from '@aklapper/ui';
+import { href, useNavigate } from 'react-router';
 
 import { PortalMenuPage } from '#pages/menu';
 
+import { reportPortalPublicError } from '../client-telemetry';
 import { useClusterTelemetry } from '../cluster-stream';
-import { runPaneSafeLoader, unwrapPaneLoaderData } from '../pane-loader';
 import { buildPortalPageMeta } from '../seo';
+import type { Route } from './+types/menu';
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  return runPaneSafeLoader<PortalMenuLoaderData>(request, () => loadPortalMenuDataWithPrerender());
+export function loader({ request, context }: Route.LoaderArgs) {
+  const correlationId = getOrCreateCorrelationId(request, context);
+  return {
+    correlationId,
+    payload: deferStreamResult(loadPortalMenuDataWithPrerender(), {
+      request,
+      context,
+      source: 'portal.menu.loader',
+    }),
+  };
 }
 
-export function meta({ loaderData, matches, location }: MetaArgs<typeof loader>) {
-  const resolved = unwrapPaneLoaderData(loaderData);
+export function meta({ matches, location }: Route.MetaArgs) {
   return buildPortalPageMeta({
     matches,
     pathname: location.pathname,
-    title: `${resolved?.content.heading ?? 'Launch Menu'} // andrew-k.us`,
+    title: 'Launch Menu // andrew-k.us',
     description:
-      resolved?.content.description ??
       'Select a Solar Forge module to explore CADENCE, RAG Q&A, Agensi skills, and contact workflows.',
   });
 }
 
-export default function PortalMenuRoute() {
-  const { content, items } = useLoaderData() as PortalMenuLoaderData;
+export default function PortalMenuRoute({ loaderData }: Route.ComponentProps) {
   const cluster = useClusterTelemetry();
   const navigate = useNavigate();
   const paneNav = usePaneNavigation();
 
   return (
-    <PortalMenuPage
-      content={content}
-      items={items}
-      deployments={cluster.deployments}
-      onNavigate={to => {
-        if (paneNav?.docked) {
-          if (to === '/') {
-            paneNav.exitTui();
-          } else {
-            paneNav.push(to);
-          }
-        } else {
-          void navigate(to);
-        }
+    <SuspenseElement<PortalMenuLoaderData>
+      resolve={loaderData.payload}
+      correlationId={loaderData.correlationId}
+      homeHref={href('/')}
+      loadingLabel='Loading launch menu...'
+      onStreamError={error => {
+        reportPortalPublicError(error, { phase: 'stream' });
+      }}
+    >
+      {({ content, items }) => (
+        <PortalMenuPage
+          content={content}
+          items={items}
+          deployments={cluster.deployments}
+          onNavigate={to => {
+            if (paneNav?.docked) {
+              if (to === '/') {
+                paneNav.exitTui();
+              } else {
+                paneNav.push(to);
+              }
+            } else {
+              void navigate(to);
+            }
+          }}
+        />
+      )}
+    </SuspenseElement>
+  );
+}
+
+export function ErrorBoundary({ error, loaderData }: Route.ErrorBoundaryProps) {
+  return (
+    <RouteErrorBoundaryView
+      error={error}
+      correlationId={loaderData?.correlationId}
+      homeHref={href('/')}
+      onError={publicError => {
+        reportPortalPublicError(publicError, { phase: 'boundary' });
       }}
     />
   );

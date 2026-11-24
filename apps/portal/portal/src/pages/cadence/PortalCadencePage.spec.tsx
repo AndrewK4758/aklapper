@@ -106,4 +106,29 @@ describe('PortalCadencePage', () => {
       verdict: 'approved',
     });
   });
+
+  it('renders optional code, action, and correlationId metadata inside the alert banner on failure', () => {
+    render(
+      <PortalCadencePage
+        content={SAMPLE_CONTENT}
+        presets={SAMPLE_PRESETS}
+        actionResult={{
+          ok: false,
+          intent: 'run',
+          error: 'Database temporarily unavailable.',
+          code: 'ERR_DB_UNAVAILABLE',
+          action: 'Retry shortly or share ID.',
+          correlationId: 'corr-cadence-503',
+        }}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    const banner = screen.getByTestId('cadence-error-banner');
+    expect(banner.getAttribute('role')).toBe('alert');
+    expect(banner.textContent).toContain('Database temporarily unavailable.');
+    expect(banner.textContent).toContain('ERR_DB_UNAVAILABLE');
+    expect(banner.textContent).toContain('Retry shortly or share ID.');
+    expect(banner.textContent).toContain('corr-cadence-503');
+  });
 });

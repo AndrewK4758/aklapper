@@ -683,6 +683,15 @@ export function resolveTerminalFormSubmitResult(
   }
 
   const lines: string[] = [`[${result.source}] ${result.formError}`];
+  if (result.code) {
+    lines.push(`▸ code: ${result.code}`);
+  }
+  if (result.action) {
+    lines.push(`▸ action: ${result.action}`);
+  }
+  if (result.correlationId) {
+    lines.push(`▸ ref: ${result.correlationId}`);
+  }
   const failingIndices: number[] = [];
 
   for (const [fieldName, messages] of Object.entries(result.fieldErrors)) {

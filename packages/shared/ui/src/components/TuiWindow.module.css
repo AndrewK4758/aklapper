@@ -63,7 +63,9 @@
     display: inline-flex;
     align-items: center;
     gap: var(--sf-space-3);
+    flex: 1 1 auto;
     min-width: var(--sf-space-0);
+    overflow: hidden;
   }
 
   .breadcrumbTrail {
@@ -93,6 +95,10 @@
     font-weight: var(--sf-weight-bold);
     cursor: inherit;
     text-align: left;
+    min-width: var(--sf-space-0);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .title:focus-visible {
@@ -105,6 +111,18 @@
     display: inline-flex;
     align-items: center;
     gap: var(--sf-space-2);
+    flex-shrink: 0;
+  }
+
+  @container (max-width: 24rem) {
+    .titlebar {
+      flex-wrap: wrap;
+      gap: var(--sf-space-2);
+    }
+
+    .actions {
+      margin-inline-start: auto;
+    }
   }
 
   .actionToolbar {

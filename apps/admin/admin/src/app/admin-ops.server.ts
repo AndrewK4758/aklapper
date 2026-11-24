@@ -1,30 +1,18 @@
 import {
   AdminWakeDeploymentSchema,
   type AdminServiceHealth,
-  type AuthSessionStatus,
   type CadenceAdminStatus,
   CadenceAdminStatusSchema,
   type QdrantHealthStatus,
   QdrantHealthStatusSchema,
 } from '@aklapper/core';
-import { resolveAdminSessionFromRequest } from '@aklapper/db/auth';
 import { proxyJson } from '@aklapper/node-runtime/http';
 
-export interface AuthenticatedAdminContext {
-  status: AuthSessionStatus;
-  session: NonNullable<AuthSessionStatus['session']>;
-}
-
-export async function requireAdminSession(request: Request): Promise<AuthenticatedAdminContext> {
-  const status = await resolveAdminSessionFromRequest(request);
-  if (!status.authenticated || !status.session || status.session.role !== 'admin') {
-    throw Response.json(
-      { error: 'UNAUTHORIZED', message: 'Verified admin session required.' },
-      { status: 401 },
-    );
-  }
-  return { status, session: status.session };
-}
+export {
+  type AuthenticatedAdminContext,
+  requireAdminSession,
+  type RequireAdminSessionOptions,
+} from './admin-auth.server';
 
 export function sanitizeDownloadFilename(rawName: string | null | undefined): string {
   const base = (rawName ?? '')

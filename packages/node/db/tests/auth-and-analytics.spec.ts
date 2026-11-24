@@ -56,7 +56,7 @@ import {
   handleAdminAuthBffRequest,
   resolveAdminSessionFromRequest,
 } from '../src/auth-service.ts';
-import type { AppDatabase } from '../src/client.ts';
+import { type AppDatabase, closeSharedDb } from '../src/client.ts';
 import { seedAdminUserFromEnv } from '../src/seed.ts';
 
 const FAKE_DB = {} as unknown as AppDatabase;
@@ -931,5 +931,40 @@ describe('@aklapper/db auth & analytics BFF services', () => {
       'http://analytics.internal:4102/v1/analytics/ingest',
       expect.objectContaining({ method: 'POST' }),
     );
+  });
+
+  it('returns unauthenticated status for cookie-less and unrelated-cookie requests without requiring DATABASE_URL', async () => {
+    await closeSharedDb();
+    const prevDatabaseUrl = process.env['DATABASE_URL'];
+    delete process.env['DATABASE_URL'];
+    try {
+      const noCookieStatus = await resolveAdminSessionFromRequest(
+        new Request('http://localhost:4301/analytics'),
+        { env: { NODE_ENV: 'test' } },
+      );
+      expect(noCookieStatus).toEqual({
+        authenticated: false,
+        session: null,
+        totpEnabled: false,
+        passkeyCount: 0,
+      });
+
+      const unrelatedCookieStatus = await resolveAdminSessionFromRequest(
+        new Request('http://localhost:4301/analytics', {
+          headers: { cookie: 'ak_guest_sid=guest-123; theme=solar-forge' },
+        }),
+        { env: { NODE_ENV: 'test' } },
+      );
+      expect(unrelatedCookieStatus).toEqual({
+        authenticated: false,
+        session: null,
+        totpEnabled: false,
+        passkeyCount: 0,
+      });
+    } finally {
+      if (prevDatabaseUrl !== undefined) {
+        process.env['DATABASE_URL'] = prevDatabaseUrl;
+      }
+    }
   });
 });
