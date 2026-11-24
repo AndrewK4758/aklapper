@@ -56,6 +56,7 @@ test.describe('admin SSR end-to-end journeys', () => {
     const loginRes = await request.get('/login');
     expect(loginRes.status()).toBe(200);
     expect(loginRes.headers()['x-accel-buffering']).toBe('no');
+    expect(loginRes.headers()['x-frame-options']).toMatch(/sameorigin/i);
     expect(loginRes.headers()['x-correlation-id']).toMatch(/^[A-Za-z0-9._:-]{1,128}$/);
 
     const attachmentRes = await request.get(
@@ -197,6 +198,30 @@ test.describe('admin SSR end-to-end journeys', () => {
 
         await page.getByRole('link', { name: 'CMS', exact: true }).click();
         await expect(page).toHaveURL(/\/cms$/);
+        await page.setViewportSize({ width: 1920, height: 1080 });
+        const layoutMetrics = await page.evaluate(() => {
+          const main = document.querySelector('main');
+          return {
+            mainWidth: main ? Math.round(main.getBoundingClientRect().width) : 0,
+            scrollWidth: document.documentElement.scrollWidth,
+            innerWidth: window.innerWidth,
+          };
+        });
+        expect(layoutMetrics.mainWidth).toBeGreaterThan(1080);
+        expect(layoutMetrics.mainWidth).toBeLessThanOrEqual(1760);
+        expect(layoutMetrics.scrollWidth).toBeLessThanOrEqual(layoutMetrics.innerWidth);
+
+        await expect(page.getByLabel('Qdrant RAG Corpus Note (Markdown)')).toBeVisible();
+        await expect(page.getByLabel('Live site content preview')).toBeVisible();
+        await page.getByRole('button', { name: 'Mobile', exact: true }).click();
+        await expect(page.locator('[data-preview-viewport="mobile"]')).toBeVisible();
+        await page.getByRole('button', { name: 'Desktop', exact: true }).click();
+        await page.getByRole('button', { name: 'Raw JSON', exact: true }).click();
+        await expect(page.getByLabel('Raw Metadata JSON')).toBeVisible();
+        await page.getByRole('button', { name: 'Form', exact: true }).click();
+        await page.getByRole('button', { name: /portal-contact/i }).click();
+        await expect(page.getByText('Contact Form Builder')).toBeVisible();
+
         const maintSwitch = page.getByRole('switch', { name: 'Maintenance Mode' });
         await expect(maintSwitch).toBeVisible();
         if ((await maintSwitch.getAttribute('aria-checked')) !== 'true') {

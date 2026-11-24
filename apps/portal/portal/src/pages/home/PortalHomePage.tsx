@@ -5,7 +5,7 @@ import {
   PaneLink,
   type TerminalFormConfig,
   TerminalWorkspace,
-  Toolbar,
+  TuiHeroCard,
   TuiWindow,
 } from '@aklapper/ui';
 import { Link } from 'react-router';
@@ -45,21 +45,23 @@ export function PortalLauncherTui({
         />
       }
     >
-      <div className={styles.tuiBody}>
-        <h1>{content.heading}</h1>
-        <p>{content.description}</p>
-        <Toolbar.Root className={styles.actions} aria-label='Portal launch actions'>
-          {content.actions.map(action => (
-            <Button.Link
-              key={action.to}
-              render={<PaneLink to={action.to} render={<Link to={action.to} />} />}
-              variant={action.variant}
-            >
-              <Button.Label>{action.label}</Button.Label>
-            </Button.Link>
-          ))}
-        </Toolbar.Root>
-      </div>
+      <TuiHeroCard
+        heading={content.heading}
+        description={content.description}
+        actions={content.actions}
+        actionsAriaLabel='Portal launch actions'
+        className={styles.tuiBody}
+        actionsClassName={styles.actions}
+        renderAction={action => (
+          <Button.Link
+            key={action.to}
+            render={<PaneLink to={action.to} render={<Link to={action.to} />} />}
+            variant={action.variant}
+          >
+            <Button.Label>{action.label}</Button.Label>
+          </Button.Link>
+        )}
+      />
     </TuiWindow>
   );
 }

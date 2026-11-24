@@ -54,14 +54,15 @@ describe('@aklapper/db admin queries & mutations', () => {
     expect(db.delete).not.toHaveBeenCalled();
   });
 
-  it('validates known site_content schemas on upsertSiteContent', async () => {
-    const { db } = createReturningMockDb([
+  it('validates known site_content schemas on upsertSiteContent and preserves unknown extra keys', async () => {
+    const { db, values } = createReturningMockDb([
       {
         key: 'admin-analytics',
         markdownBody: '# Analytics',
         metadataJson: {
           windowTitle: 'Analytics // PG19',
           description: 'Live telemetry.',
+          customNote: 'keep-me',
         },
         updatedAt: new Date('2026-11-24T12:00:00.000Z'),
       },
@@ -74,9 +75,20 @@ describe('@aklapper/db admin queries & mutations', () => {
     const saved = await upsertSiteContent(db, 'admin-analytics', '# Analytics', {
       windowTitle: 'Analytics // PG19',
       description: 'Live telemetry.',
+      customNote: 'keep-me',
     });
     expect(saved.key).toBe('admin-analytics');
     expect(saved.metadataJson['windowTitle']).toBe('Analytics // PG19');
+    expect(saved.metadataJson['customNote']).toBe('keep-me');
+    expect(values).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadataJson: expect.objectContaining({
+          windowTitle: 'Analytics // PG19',
+          description: 'Live telemetry.',
+          customNote: 'keep-me',
+        }),
+      }),
+    );
   });
 
   it('updates quota policies, resets buckets, and purges stale buckets', async () => {

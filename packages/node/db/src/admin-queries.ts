@@ -5,7 +5,6 @@ import {
   AdminAnalyticsLoaderDataSchema,
   type AdminAnalyticsWindow,
   AdminAnalyticsWindowSchema,
-  AdminChromeContentSchema,
   type AdminCmsLoaderData,
   AdminCmsLoaderDataSchema,
   AdminHomeContentSchema,
@@ -45,19 +44,14 @@ import {
   type CadenceTurn,
   type CwvMetricName,
   type CwvPercentileRow,
+  isKnownSiteContentKey,
   MaintenanceModeUpdateSchema,
   type MenuItem,
   MenuItemSchema,
   type MenuItemUpsertInput,
   MenuItemUpsertSchema,
-  PortalAgensiContentSchema,
-  PortalAskContentSchema,
-  PortalCadenceContentSchema,
   PortalChromeContentSchema,
-  PortalContactContentSchema,
-  PortalHomeContentSchema,
   PortalMaintenanceContentSchema,
-  PortalMenuContentSchema,
   type QuotaPolicyRecord,
   QuotaPolicyRecordSchema,
   type QuotaPolicyUpdate,
@@ -67,6 +61,7 @@ import {
   RoadmapMilestoneSchema,
   type RoadmapMilestoneUpsertInput,
   RoadmapMilestoneUpsertSchema,
+  SITE_CONTENT_SCHEMA_BY_KEY,
   type SiteContentRow,
   SiteContentRowSchema,
   SiteContentUpsertSchema,
@@ -80,7 +75,6 @@ import {
   TerminalProfileUpsertSchema,
 } from '@aklapper/core';
 import { asc, count, desc, eq, gte, ilike, inArray, lte, or, sql } from 'drizzle-orm';
-import type { z } from 'zod';
 
 import type { AppDatabase } from './client.ts';
 import { getMenuItems, getSiteContent, SITE_CONTENT_KEYS } from './queries.ts';
@@ -93,20 +87,6 @@ import * as schema from './schema.ts';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CWV_METRICS: readonly CwvMetricName[] = ['LCP', 'INP', 'CLS', 'TTFB'];
-
-const SITE_CONTENT_SCHEMA_BY_KEY: Readonly<Record<string, z.ZodType<Record<string, unknown>>>> = {
-  [SITE_CONTENT_KEYS.portalChrome]: PortalChromeContentSchema,
-  [SITE_CONTENT_KEYS.portalHome]: PortalHomeContentSchema,
-  [SITE_CONTENT_KEYS.portalMenu]: PortalMenuContentSchema,
-  [SITE_CONTENT_KEYS.portalAgensi]: PortalAgensiContentSchema,
-  [SITE_CONTENT_KEYS.portalAsk]: PortalAskContentSchema,
-  [SITE_CONTENT_KEYS.portalCadence]: PortalCadenceContentSchema,
-  [SITE_CONTENT_KEYS.portalContact]: PortalContactContentSchema,
-  [SITE_CONTENT_KEYS.portalMaintenance]: PortalMaintenanceContentSchema,
-  [SITE_CONTENT_KEYS.adminChrome]: AdminChromeContentSchema,
-  [SITE_CONTENT_KEYS.adminHome]: AdminHomeContentSchema,
-  [SITE_CONTENT_KEYS.adminAnalytics]: AdminAnalyticsContentSchema,
-};
 
 function toNumber(value: unknown): number {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -801,8 +781,12 @@ export async function upsertSiteContent(
   metadataJson: Record<string, unknown>,
 ): Promise<SiteContentRow> {
   const parsed = SiteContentUpsertSchema.parse({ key, markdownBody, metadataJson });
-  const keySchema = SITE_CONTENT_SCHEMA_BY_KEY[parsed.key];
-  const validatedMetadata = keySchema ? keySchema.parse(parsed.metadataJson) : parsed.metadataJson;
+  const validatedMetadata = isKnownSiteContentKey(parsed.key)
+    ? {
+        ...parsed.metadataJson,
+        ...SITE_CONTENT_SCHEMA_BY_KEY[parsed.key].parse(parsed.metadataJson),
+      }
+    : parsed.metadataJson;
 
   const [row] = await db
     .insert(schema.siteContent)

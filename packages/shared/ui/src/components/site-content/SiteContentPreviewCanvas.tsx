@@ -1,0 +1,247 @@
+import {
+  AdminAnalyticsContentSchema,
+  AdminChromeContentSchema,
+  AdminHomeContentSchema,
+  PortalAgensiContentSchema,
+  PortalAskContentSchema,
+  PortalCadenceContentSchema,
+  PortalChromeContentSchema,
+  PortalContactContentSchema,
+  PortalHomeContentSchema,
+  PortalMaintenanceContentSchema,
+  PortalMenuContentSchema,
+  SITE_CONTENT_KEYS,
+} from '@aklapper/core';
+
+import { cx } from '../../elements/_internal/elementFactory';
+import { OscStatusBadge } from '../../elements/OscStatusBadge';
+import { RecursiveTuiForm } from '../RecursiveTuiForm';
+import { TuiWindow } from '../TuiWindow';
+import { MaintenanceProgressCard } from './MaintenanceProgressCard';
+import { SiteChromePreviewBar } from './SiteChromePreviewBar';
+import { SiteContentWindowHeader } from './SiteContentWindowHeader';
+import { TuiHeroCard } from './TuiHeroCard';
+
+import styles from './SiteContentPreview.module.css';
+
+export type SiteContentPreviewViewport = 'desktop' | 'mobile';
+
+export interface SiteContentPreviewCanvasProps {
+  readonly contentKey: string;
+  readonly metadata: Record<string, unknown>;
+  readonly viewport: SiteContentPreviewViewport;
+}
+
+function renderKeyPreview(contentKey: string, metadata: Record<string, unknown>) {
+  switch (contentKey) {
+    case SITE_CONTENT_KEYS.portalChrome: {
+      const parsed = PortalChromeContentSchema.safeParse(metadata);
+      if (!parsed.success) return null;
+      return <SiteChromePreviewBar {...parsed.data} />;
+    }
+
+    case SITE_CONTENT_KEYS.adminChrome: {
+      const parsed = AdminChromeContentSchema.safeParse(metadata);
+      if (!parsed.success) return null;
+      return <SiteChromePreviewBar {...parsed.data} />;
+    }
+
+    case SITE_CONTENT_KEYS.portalHome: {
+      const parsed = PortalHomeContentSchema.safeParse(metadata);
+      if (!parsed.success) return null;
+      const d = parsed.data;
+      return (
+        <TuiWindow
+          title={d.tuiTitle}
+          badge={
+            <OscStatusBadge
+              source={d.tuiBadge.source}
+              state={d.tuiBadge.state}
+              label={d.tuiBadge.label}
+            />
+          }
+        >
+          <TuiHeroCard
+            heading={d.heading}
+            description={d.description}
+            actions={d.actions}
+            actionsAriaLabel='Portal launch actions preview'
+          />
+        </TuiWindow>
+      );
+    }
+
+    case SITE_CONTENT_KEYS.adminHome: {
+      const parsed = AdminHomeContentSchema.safeParse(metadata);
+      if (!parsed.success) return null;
+      const d = parsed.data;
+      return (
+        <TuiWindow title='Admin Overview // Preview'>
+          <TuiHeroCard
+            heading={d.heading}
+            description={d.description}
+            actions={d.actions}
+            actionsAriaLabel='Admin overview actions preview'
+          />
+        </TuiWindow>
+      );
+    }
+
+    case SITE_CONTENT_KEYS.portalMenu: {
+      const parsed = PortalMenuContentSchema.safeParse(metadata);
+      if (!parsed.success) return null;
+      const d = parsed.data;
+      return (
+        <SiteContentWindowHeader
+          title='Portal Menu // Preview'
+          heading={d.heading}
+          description={d.description}
+        >
+          <span className={styles.previewChip}>{d.localTargetLabel}</span>
+        </SiteContentWindowHeader>
+      );
+    }
+
+    case SITE_CONTENT_KEYS.portalAgensi: {
+      const parsed = PortalAgensiContentSchema.safeParse(metadata);
+      if (!parsed.success) return null;
+      const d = parsed.data;
+      return (
+        <SiteContentWindowHeader
+          title={d.windowTitle}
+          statusBadge={d.statusBadge}
+          description={d.description}
+        >
+          <div className={styles.previewSlotBox}>
+            <div>Search placeholder: {d.searchPlaceholder}</div>
+            <div>Empty state: {d.emptyStateLabel}</div>
+            <div>Outbound CTA: {d.outboundCtaLabel}</div>
+          </div>
+        </SiteContentWindowHeader>
+      );
+    }
+
+    case SITE_CONTENT_KEYS.portalAsk: {
+      const parsed = PortalAskContentSchema.safeParse(metadata);
+      if (!parsed.success) return null;
+      const d = parsed.data;
+      return (
+        <SiteContentWindowHeader
+          title={d.windowTitle}
+          statusBadge={d.statusBadge}
+          description={d.description}
+        >
+          <ul className={styles.previewChipList}>
+            {d.starterQuestions.map((question, idx) => (
+              <li key={`${idx}-${question}`} className={styles.previewChip}>
+                {question}
+              </li>
+            ))}
+          </ul>
+          <div className={styles.previewSlotBox}>
+            <div>JD placeholder: {d.jdPlaceholder}</div>
+            <div>Abstention notice: {d.abstentionNotice}</div>
+          </div>
+        </SiteContentWindowHeader>
+      );
+    }
+
+    case SITE_CONTENT_KEYS.portalCadence: {
+      const parsed = PortalCadenceContentSchema.safeParse(metadata);
+      if (!parsed.success) return null;
+      const d = parsed.data;
+      return (
+        <SiteContentWindowHeader
+          title={d.windowTitle}
+          statusBadge={d.statusBadge}
+          description={d.description}
+        >
+          <div className={styles.previewSlotBox}>
+            Sandboxed artifact frame slot: {d.iframeTitle} (non-executing preview)
+          </div>
+        </SiteContentWindowHeader>
+      );
+    }
+
+    case SITE_CONTENT_KEYS.portalContact: {
+      const parsed = PortalContactContentSchema.safeParse(metadata);
+      if (!parsed.success) return null;
+      const d = parsed.data;
+      return (
+        <SiteContentWindowHeader
+          title={d.windowTitle}
+          statusBadge={d.statusBadge}
+          description={d.description}
+        >
+          <RecursiveTuiForm
+            definition={d.form}
+            renderForm={({ className, children }) => <div className={className}>{children}</div>}
+          />
+        </SiteContentWindowHeader>
+      );
+    }
+
+    case SITE_CONTENT_KEYS.portalMaintenance: {
+      const parsed = PortalMaintenanceContentSchema.safeParse(metadata);
+      if (!parsed.success) return null;
+      const d = parsed.data;
+      return (
+        <TuiWindow
+          title={d.windowTitle}
+          badge={
+            <OscStatusBadge
+              source={d.statusBadge.source}
+              state={d.statusBadge.state}
+              label={d.statusBadge.label}
+            />
+          }
+        >
+          <MaintenanceProgressCard
+            heading={d.heading}
+            lead={d.lead}
+            progressPercent={d.progressPercent}
+            progressAriaLabel={d.progressAriaLabel}
+            metaLeft={d.metaLeft}
+            metaRight={d.metaRight}
+          />
+        </TuiWindow>
+      );
+    }
+
+    case SITE_CONTENT_KEYS.adminAnalytics: {
+      const parsed = AdminAnalyticsContentSchema.safeParse(metadata);
+      if (!parsed.success) return null;
+      const d = parsed.data;
+      return <SiteContentWindowHeader title={d.windowTitle} description={d.description} />;
+    }
+
+    default:
+      return (
+        <p className={styles.previewNotice}>
+          No UI preview is registered for custom site_content key <code>{contentKey}</code>.
+        </p>
+      );
+  }
+}
+
+export function SiteContentPreviewCanvas({
+  contentKey,
+  metadata,
+  viewport,
+}: SiteContentPreviewCanvasProps) {
+  const rendered = renderKeyPreview(contentKey, metadata);
+
+  return (
+    <div
+      className={cx(styles.previewViewport, viewport === 'mobile' && styles.previewViewportMobile)}
+      data-preview-viewport={viewport}
+      data-preview-key={contentKey}
+    >
+      {rendered ?? (
+        <output className={styles.previewNotice}>
+          Preview waiting for valid metadata matching <code>{contentKey}</code>.
+        </output>
+      )}
+    </div>
+  );
+}

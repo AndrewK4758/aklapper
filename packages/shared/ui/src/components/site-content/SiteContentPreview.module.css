@@ -1,0 +1,192 @@
+@layer component {
+  .previewViewport {
+    container-type: inline-size;
+    container-name: sf-site-content-preview;
+    width: 100%;
+    margin-inline: auto;
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-md);
+    background: var(--sf-bg-editor);
+    padding: var(--sf-space-5);
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  .previewViewportMobile {
+    max-width: calc(var(--sf-size-unit) * 24.375);
+  }
+
+  .chromeShell {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-md);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-bg-panel);
+    padding: var(--sf-space-4);
+  }
+
+  .chromeHeader {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    gap: var(--sf-gap-sm);
+    flex-wrap: wrap;
+  }
+
+  .chromeBrandGroup {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-2xs);
+  }
+
+  .chromeBrand {
+    font-family: var(--sf-font-display);
+    font-size: var(--sf-text-md);
+    font-weight: var(--sf-weight-semibold);
+    color: var(--sf-fg-bone);
+  }
+
+  .chromeMeta {
+    font-family: var(--sf-font-mono);
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-cmt);
+  }
+
+  .chromeFooter {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    gap: var(--sf-gap-sm);
+    flex-wrap: wrap;
+    border-top: var(--sf-border-width) solid var(--sf-border-subtle);
+    padding-top: var(--sf-space-3);
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-prop);
+  }
+
+  .chromeLink {
+    color: var(--sf-gold);
+    text-decoration: underline;
+    word-break: break-all;
+  }
+
+  .heroBody {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-md);
+  }
+
+  .heroHeading {
+    margin: 0;
+    font-family: var(--sf-font-display);
+    font-size: var(--sf-text-2xl);
+    line-height: var(--sf-leading-tight);
+    color: var(--sf-fg-bone);
+  }
+
+  .heroDescription {
+    margin: 0;
+    font-size: var(--sf-text-sm);
+    line-height: var(--sf-leading-relaxed);
+    color: var(--sf-fg-prop);
+  }
+
+  .heroActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sf-gap-sm);
+  }
+
+  .maintenanceGrid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-md);
+  }
+
+  .maintenanceLead {
+    margin: 0;
+    color: var(--sf-fg-prop);
+    font-size: var(--sf-text-sm);
+  }
+
+  .maintenanceProgress {
+    width: 100%;
+  }
+
+  .maintenanceMetaRow {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    gap: var(--sf-gap-sm);
+    flex-wrap: wrap;
+    font-family: var(--sf-font-mono);
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-cmt);
+  }
+
+  .windowHeaderBody {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-sm);
+  }
+
+  .windowDescription {
+    margin: 0;
+    font-size: var(--sf-text-sm);
+    color: var(--sf-fg-prop);
+  }
+
+  .previewChipList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sf-gap-xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .previewChip {
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-bg-elevated);
+    padding: var(--sf-space-1) var(--sf-space-3);
+    font-family: var(--sf-font-mono);
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-bone);
+  }
+
+  .previewSlotBox {
+    border: var(--sf-border-width) dashed var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-bg-panel);
+    padding: var(--sf-space-4);
+    font-family: var(--sf-font-mono);
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-cmt);
+  }
+
+  .previewNotice {
+    margin: 0;
+    padding: var(--sf-space-4);
+    border: var(--sf-border-width) dashed var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    font-family: var(--sf-font-mono);
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-cmt);
+  }
+
+  @container sf-site-content-preview (max-width: 32rem) {
+    .chromeHeader,
+    .chromeFooter,
+    .maintenanceMetaRow {
+      flex-direction: column;
+      align-items: var(--sf-align-start);
+    }
+
+    .heroActions {
+      flex-direction: column;
+      align-items: var(--sf-align-stretch);
+    }
+  }
+}

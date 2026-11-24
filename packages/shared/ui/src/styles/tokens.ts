@@ -86,6 +86,7 @@ export const SF_LAYOUT_TOKENS = {
   containerLg: '--sf-container-lg',
   containerPortal: '--sf-container-portal',
   containerAdmin: '--sf-container-admin',
+  containerAdminWide: '--sf-container-admin-wide',
   containerXl: '--sf-container-xl',
   container2xl: '--sf-container-2xl',
   controlHXs: '--sf-control-h-xs',
