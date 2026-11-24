@@ -11,6 +11,7 @@ import {
   updateSandboxRunGateVerdict,
 } from '@aklapper/db';
 import { proxyJson } from '@aklapper/node-runtime/http';
+import { usePaneNavigation } from '@aklapper/ui';
 import {
   type ActionFunctionArgs,
   data,
@@ -250,6 +251,7 @@ export default function PortalCadenceRoute() {
   const { content, presets, quota, recentRuns } = useLoaderData() as PortalCadenceLoaderData;
   const fetcher = useFetcher<PortalCadenceActionResult>();
   const navigate = useNavigate();
+  const paneNav = usePaneNavigation();
 
   return (
     <PortalCadencePage
@@ -260,13 +262,23 @@ export default function PortalCadenceRoute() {
       actionResult={fetcher.data}
       isSubmitting={fetcher.state !== 'idle'}
       onRunBuild={({ prompt, presetSlug }) => {
-        void fetcher.submit({ intent: 'run', prompt, presetSlug }, { method: 'post' });
+        void fetcher.submit(
+          { intent: 'run', prompt, presetSlug },
+          { method: 'post', action: '/cadence' },
+        );
       }}
       onGateVerdict={({ runId, verdict }) => {
-        void fetcher.submit({ intent: 'gate', runId, verdict }, { method: 'post' });
+        void fetcher.submit(
+          { intent: 'gate', runId, verdict },
+          { method: 'post', action: '/cadence' },
+        );
       }}
       onClose={() => {
-        void navigate('/');
+        if (paneNav?.docked) {
+          paneNav.exitTui();
+        } else {
+          void navigate('/');
+        }
       }}
     />
   );

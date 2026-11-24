@@ -1,5 +1,6 @@
 import type { PortalMenuLoaderData } from '@aklapper/core';
 import { loadPortalMenuDataWithPrerender } from '@aklapper/db';
+import { usePaneNavigation } from '@aklapper/ui';
 import { type MetaArgs, useLoaderData, useNavigate } from 'react-router';
 
 import { PortalMenuPage } from '#pages/menu';
@@ -26,6 +27,7 @@ export default function PortalMenuRoute() {
   const { content, items } = useLoaderData() as PortalMenuLoaderData;
   const cluster = useClusterTelemetry();
   const navigate = useNavigate();
+  const paneNav = usePaneNavigation();
 
   return (
     <PortalMenuPage
@@ -33,7 +35,15 @@ export default function PortalMenuRoute() {
       items={items}
       deployments={cluster.deployments}
       onNavigate={to => {
-        void navigate(to);
+        if (paneNav?.docked) {
+          if (to === '/') {
+            paneNav.exitTui();
+          } else {
+            paneNav.push(to);
+          }
+        } else {
+          void navigate(to);
+        }
       }}
     />
   );

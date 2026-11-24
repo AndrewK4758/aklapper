@@ -1,5 +1,5 @@
 import type { ContactActionResult, FormDefinition } from '@aklapper/core';
-import type { TerminalFormConfig } from '@aklapper/ui';
+import type { TerminalFormConfig, TerminalNavTarget } from '@aklapper/ui';
 
 export async function submitPortalContactForm(formData: FormData): Promise<ContactActionResult> {
   const response = await fetch('/api/contact', {
@@ -30,7 +30,7 @@ export function createPortalTerminalForms(
   return {
     [contactForm.cliCommand.toLowerCase()]: {
       definition: contactForm,
-      openTuiRoute: () => {
+      openTuiRoute: (_target?: TerminalNavTarget) => {
         void navigate('/contact');
       },
       submit: submitPortalContactForm,

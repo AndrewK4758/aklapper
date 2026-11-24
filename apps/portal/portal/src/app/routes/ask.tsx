@@ -12,6 +12,7 @@ import {
   searchPortfolioCorpusFallback,
 } from '@aklapper/db';
 import { proxyJson } from '@aklapper/node-runtime/http';
+import { usePaneNavigation } from '@aklapper/ui';
 import {
   type ActionFunctionArgs,
   data,
@@ -136,6 +137,7 @@ export default function PortalAskRoute() {
   const { content, quota } = useLoaderData() as PortalAskLoaderData;
   const fetcher = useFetcher<PortalAskActionResult>();
   const navigate = useNavigate();
+  const paneNav = usePaneNavigation();
 
   return (
     <PortalAskPage
@@ -144,10 +146,14 @@ export default function PortalAskRoute() {
       actionResult={fetcher.data}
       isSubmitting={fetcher.state !== 'idle'}
       onSubmitAsk={({ mode, text }) => {
-        void fetcher.submit({ mode, text }, { method: 'post' });
+        void fetcher.submit({ mode, text }, { method: 'post', action: '/ask' });
       }}
       onClose={() => {
-        void navigate('/');
+        if (paneNav?.docked) {
+          paneNav.exitTui();
+        } else {
+          void navigate('/');
+        }
       }}
     />
   );

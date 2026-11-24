@@ -39,6 +39,7 @@ import { PortalChangesInProgressPage } from '#pages/changes-in-progress';
 import { PortalLauncherTui } from '#pages/home';
 
 import { useClusterTelemetry } from './cluster-stream';
+import { isPortalPaneRoute, renderPortalPaneView } from './portalPaneViews';
 import { DEFAULT_PORTAL_SITE_URL, PORTAL_SITE_NAME } from './seo';
 import { createPortalTerminalForms } from './terminalForms';
 
@@ -156,6 +157,8 @@ export default function PortalRoot() {
 
   const { chrome, terminal, homeContent } = data;
   const isTerminalViewport = pathname === '/';
+  const isPortalPaneDeepLink = isPortalPaneRoute(pathname);
+  const initialPrimaryTuiStack = isPortalPaneDeepLink ? [pathname] : undefined;
   const hasGlobalWorkspace = Boolean(terminal);
   const headerBadgeState = cluster.connected ? cluster.summaryState : chrome.statusBadge.state;
   const headerBadgeLabel =
@@ -206,6 +209,20 @@ export default function PortalRoot() {
                 navigate={to => {
                   void navigate(to);
                 }}
+                initialPrimaryTuiStack={initialPrimaryTuiStack}
+                onPrimaryPaneReturnToShell={() => {
+                  if (pathname !== '/') {
+                    void navigate('/');
+                  }
+                }}
+                canHandleInPaneRoute={to => to === 'tui' || isPortalPaneRoute(to)}
+                renderPaneView={ctx =>
+                  renderPortalPaneView({
+                    ctx,
+                    homeContent,
+                    deployments: cluster.deployments,
+                  })
+                }
                 renderTui={
                   homeContent
                     ? ({ ttyNumber, isSinglePane, closeTui }) => (
@@ -221,7 +238,7 @@ export default function PortalRoot() {
                 primaryPane={{
                   title: getPortalPaneTitle(pathname),
                   content: <Outlet />,
-                  flush: isTerminalViewport,
+                  flush: isTerminalViewport || isPortalPaneDeepLink,
                   embeddedTerminal: isTerminalViewport,
                 }}
               />

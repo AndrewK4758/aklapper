@@ -1,5 +1,6 @@
 import type { ContactActionResult, PortalContactLoaderData } from '@aklapper/core';
 import { loadPortalContactDataWithPrerender } from '@aklapper/db';
+import { usePaneNavigation } from '@aklapper/ui';
 import {
   type ActionFunctionArgs,
   data,
@@ -40,14 +41,20 @@ export default function PortalContactRoute() {
   const actionData = useActionData<typeof action>() as ContactActionResult | undefined;
   const navigation = useNavigation();
   const navigate = useNavigate();
+  const paneNav = usePaneNavigation();
 
   return (
     <PortalContactPage
       content={content}
       actionData={actionData}
       isSubmitting={navigation.state === 'submitting'}
+      formAction='/contact'
       onClose={() => {
-        void navigate('/');
+        if (paneNav?.docked) {
+          paneNav.exitTui();
+        } else {
+          void navigate('/');
+        }
       }}
     />
   );

@@ -539,9 +539,9 @@ const TERMINAL_COMMAND_SEEDS = [
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'tui',
-    description: 'open TUI launcher in a split pane',
+    description: 'open TUI launcher in current pane (--split / --tab)',
     kind: 'tui' as const,
-    output: 'opening TUI launcher split pane ... (press Esc to close)',
+    output: 'opening TUI launcher ... (Esc back · q exit · --split / --tab)',
     targetRoute: null,
     allowedRoutes: [] as string[],
     errorTemplate: null,

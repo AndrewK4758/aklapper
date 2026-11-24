@@ -1,15 +1,31 @@
 import type { ContactActionResult, PortalContactContent } from '@aklapper/core';
-import { Button, OscStatusBadge, RecursiveTuiForm, Separator, TuiWindow } from '@aklapper/ui';
-import { useState } from 'react';
+import {
+  Button,
+  OscStatusBadge,
+  RecursiveTuiForm,
+  Separator,
+  TuiWindow,
+  usePaneNavigation,
+} from '@aklapper/ui';
+import { type FormEvent, type ReactNode, useState } from 'react';
 import { Form, Link } from 'react-router';
 
 import styles from './PortalContactPage.module.css';
+
+export interface PortalContactFormRenderProps {
+  readonly action: string;
+  readonly className: string;
+  readonly onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  readonly children: ReactNode;
+}
 
 export interface PortalContactPageProps {
   content: PortalContactContent;
   actionData?: ContactActionResult;
   isSubmitting: boolean;
   onClose: () => void;
+  formAction?: string;
+  renderFormElement?: (props: PortalContactFormRenderProps) => ReactNode;
 }
 
 export function PortalContactPage({
@@ -17,7 +33,10 @@ export function PortalContactPage({
   actionData,
   isSubmitting,
   onClose,
+  formAction = '/contact',
+  renderFormElement,
 }: PortalContactPageProps) {
+  const paneNav = usePaneNavigation();
   const [dismissedId, setDismissedId] = useState<string | null>(null);
 
   const confirmedSubmission =
@@ -83,9 +102,15 @@ export function PortalContactPage({
               >
                 New Transmission
               </Button>
-              <Button.Link variant='default' render={<Link to='/' />}>
-                Return to Terminal
-              </Button.Link>
+              {paneNav?.docked ? (
+                <Button type='button' variant='default' onClick={paneNav.exitTui}>
+                  Return to Terminal
+                </Button>
+              ) : (
+                <Button.Link variant='default' render={<Link to='/' />}>
+                  Return to Terminal
+                </Button.Link>
+              )}
             </div>
           </section>
         )}
@@ -98,26 +123,42 @@ export function PortalContactPage({
             serverFormError={errorResult?.formError ?? null}
             errorSource={errorResult?.source ?? null}
             isSubmitting={isSubmitting}
-            renderForm={({ className, onSubmit, children }) => (
-              <Form
-                method='post'
-                encType='multipart/form-data'
-                noValidate
-                className={className}
-                onSubmit={onSubmit}
-              >
-                <input
-                  type='text'
-                  name='website'
-                  tabIndex={-1}
-                  autoComplete='off'
-                  aria-hidden='true'
-                  defaultValue=''
-                  className={styles.honeypot}
-                />
-                {children}
-              </Form>
-            )}
+            renderForm={({ className, onSubmit, children }) => {
+              const formBody = (
+                <>
+                  <input
+                    type='text'
+                    name='website'
+                    tabIndex={-1}
+                    autoComplete='off'
+                    aria-hidden='true'
+                    defaultValue=''
+                    className={styles.honeypot}
+                  />
+                  {children}
+                </>
+              );
+              if (renderFormElement) {
+                return renderFormElement({
+                  action: formAction,
+                  className,
+                  onSubmit,
+                  children: formBody,
+                });
+              }
+              return (
+                <Form
+                  action={formAction}
+                  method='post'
+                  encType='multipart/form-data'
+                  noValidate
+                  className={className}
+                  onSubmit={onSubmit}
+                >
+                  {formBody}
+                </Form>
+              );
+            }}
           />
         )}
       </TuiWindow>

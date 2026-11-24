@@ -1,5 +1,6 @@
 import type { PortalAgensiLoaderData } from '@aklapper/core';
 import { loadPortalAgensiDataWithPrerender } from '@aklapper/db';
+import { usePaneNavigation } from '@aklapper/ui';
 import { type MetaArgs, useLoaderData, useNavigate } from 'react-router';
 
 import { PortalAgensiPage } from '#pages/agensi';
@@ -24,13 +25,18 @@ export function meta({ loaderData, matches, location }: MetaArgs<typeof loader>)
 export default function PortalAgensiRoute() {
   const { content, skills } = useLoaderData() as PortalAgensiLoaderData;
   const navigate = useNavigate();
+  const paneNav = usePaneNavigation();
 
   return (
     <PortalAgensiPage
       content={content}
       skills={skills}
       onClose={() => {
-        void navigate('/');
+        if (paneNav?.docked) {
+          paneNav.exitTui();
+        } else {
+          void navigate('/');
+        }
       }}
     />
   );
