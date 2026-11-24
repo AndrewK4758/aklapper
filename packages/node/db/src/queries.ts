@@ -10,12 +10,18 @@ import {
   AgensiSkillSchema,
   type CadencePreset,
   CadencePresetSchema,
+  type ContactFormSubmission,
+  ContactFormSubmissionSchema,
+  type ContactSubmissionSummary,
+  type FormFieldErrorMap,
   type MenuItem,
   MenuItemSchema,
   type PortalCadenceLoaderData,
   PortalCadenceContentSchema,
   type PortalChromeContent,
   PortalChromeContentSchema,
+  type PortalContactLoaderData,
+  PortalContactContentSchema,
   type PortalHomeLoaderData,
   PortalHomeContentSchema,
   type PortalMaintenanceLoaderData,
@@ -39,6 +45,7 @@ export const SITE_CONTENT_KEYS = {
   portalHome: 'portal-home',
   portalMenu: 'portal-menu',
   portalCadence: 'portal-cadence',
+  portalContact: 'portal-contact',
   portalMaintenance: 'portal-maintenance',
   adminChrome: 'admin-chrome',
   adminHome: 'admin-home',
@@ -211,22 +218,34 @@ export async function loadPortalRootData(
     PortalChromeContentSchema,
   );
   const maintenanceMode = maintenanceModeOverride ?? chrome.maintenanceModeDefault;
-  const maintenance = maintenanceMode ? await loadPortalMaintenanceData(db) : null;
+  if (maintenanceMode) {
+    const maintenance = await loadPortalMaintenanceData(db);
+    return {
+      maintenanceMode,
+      chrome,
+      maintenance,
+    };
+  }
 
+  const { content: homeContent, terminal, contactForm } = await loadPortalHomeData(db);
   return {
     maintenanceMode,
     chrome,
-    maintenance,
+    maintenance: null,
+    terminal,
+    homeContent,
+    contactForm,
   };
 }
 
 export async function loadPortalHomeData(db: AppDatabase): Promise<PortalHomeLoaderData> {
-  const [content, terminal] = await Promise.all([
+  const [content, terminal, contactContent] = await Promise.all([
     getSiteContent(db, SITE_CONTENT_KEYS.portalHome, PortalHomeContentSchema),
     getTerminalProfile(db, TERMINAL_PROFILE_SLUGS.portalHome),
+    getSiteContent(db, SITE_CONTENT_KEYS.portalContact, PortalContactContentSchema),
   ]);
 
-  return { content, terminal };
+  return { content, terminal, contactForm: contactContent.form };
 }
 
 export async function loadPortalMenuData(db: AppDatabase): Promise<PortalMenuLoaderData> {
@@ -251,6 +270,245 @@ export async function loadPortalCadenceData(db: AppDatabase): Promise<PortalCade
   return { content, presets };
 }
 
+export async function loadPortalContactData(db: AppDatabase): Promise<PortalContactLoaderData> {
+  const content = await getSiteContent(
+    db,
+    SITE_CONTENT_KEYS.portalContact,
+    PortalContactContentSchema,
+  );
+  return { content };
+}
+
+const CONTACT_CONSTRAINT_FIELD_MAP: Readonly<Record<string, { field: string; message: string }>> = {
+  contact_name_length_check: {
+    field: 'name',
+    message: 'Database constraint rejected Name (must be 2–120 non-whitespace characters).',
+  },
+  contact_phone_format_check: {
+    field: 'phone',
+    message: 'Database constraint rejected Phone format.',
+  },
+  contact_email_format_check: {
+    field: 'email',
+    message: 'Database constraint rejected Email format.',
+  },
+  contact_message_length_check: {
+    field: 'message',
+    message: 'Database constraint rejected Message (must be 10–4000 non-whitespace characters).',
+  },
+  contact_attachment_consistency_check: {
+    field: 'file',
+    message: 'Database constraint rejected File attachment metadata or size.',
+  },
+};
+
+export class ContactDbConstraintError extends Error {
+  readonly constraintName: string;
+  readonly fieldErrors: FormFieldErrorMap;
+
+  constructor(constraintName: string, fieldErrors: FormFieldErrorMap, message: string) {
+    super(message);
+    this.name = 'ContactDbConstraintError';
+    this.constraintName = constraintName;
+    this.fieldErrors = fieldErrors;
+  }
+}
+
+interface PgErrorShape {
+  code?: string;
+  constraint?: string;
+  column?: string;
+  cause?: PgErrorShape;
+}
+
+export function extractPgConstraintViolation(error: unknown): ContactDbConstraintError | null {
+  if (!error || typeof error !== 'object') return null;
+  const err = error as PgErrorShape;
+  const pgErr = err.code ? err : err.cause;
+  if (!pgErr || (pgErr.code !== '23514' && pgErr.code !== '23502')) {
+    return null;
+  }
+  const constraintName = pgErr.constraint ?? pgErr.column ?? 'unknown_constraint';
+  const mapped = CONTACT_CONSTRAINT_FIELD_MAP[constraintName];
+  if (mapped) {
+    return new ContactDbConstraintError(
+      constraintName,
+      { [mapped.field]: [mapped.message] },
+      mapped.message,
+    );
+  }
+  if (pgErr.code === '23502' && pgErr.column) {
+    const field = pgErr.column.startsWith('attachment_') ? 'file' : pgErr.column;
+    const message = `Database NOT NULL constraint rejected missing field "${pgErr.column}".`;
+    return new ContactDbConstraintError(constraintName, { [field]: [message] }, message);
+  }
+  return new ContactDbConstraintError(
+    constraintName,
+    {},
+    `Database constraint violation (${constraintName}).`,
+  );
+}
+
+export async function insertContactSubmission(
+  db: AppDatabase,
+  submission: ContactFormSubmission,
+): Promise<ContactSubmissionSummary> {
+  const parsed = ContactFormSubmissionSchema.parse(submission);
+  let inserted:
+    | {
+        id: string;
+        name: string;
+        email: string;
+        phone: string | null;
+        attachmentName: string | null;
+        attachmentSizeBytes: number | null;
+        attachmentSha256: string | null;
+        createdAt: Date;
+      }
+    | undefined;
+
+  try {
+    [inserted] = await db
+      .insert(schema.contactSubmissions)
+      .values({
+        name: parsed.name,
+        phone: parsed.phone,
+        email: parsed.email,
+        message: parsed.message,
+        attachmentName: parsed.attachment?.filename ?? null,
+        attachmentMimeType: parsed.attachment?.mimeType ?? null,
+        attachmentSizeBytes: parsed.attachment?.sizeBytes ?? null,
+        attachmentSha256: parsed.attachment?.sha256 ?? null,
+        attachmentContentBase64: parsed.attachment?.contentBase64 ?? null,
+      })
+      .returning({
+        id: schema.contactSubmissions.id,
+        name: schema.contactSubmissions.name,
+        email: schema.contactSubmissions.email,
+        phone: schema.contactSubmissions.phone,
+        attachmentName: schema.contactSubmissions.attachmentName,
+        attachmentSizeBytes: schema.contactSubmissions.attachmentSizeBytes,
+        attachmentSha256: schema.contactSubmissions.attachmentSha256,
+        createdAt: schema.contactSubmissions.createdAt,
+      });
+  } catch (error) {
+    const mapped = extractPgConstraintViolation(error);
+    if (mapped) {
+      throw mapped;
+    }
+    throw error;
+  }
+
+  if (!inserted) {
+    throw new Error('Failed to persist contact submission in Postgres');
+  }
+
+  return {
+    id: inserted.id,
+    name: inserted.name,
+    email: inserted.email,
+    phone: inserted.phone,
+    attachmentName: inserted.attachmentName,
+    attachmentSizeBytes: inserted.attachmentSizeBytes,
+    attachmentSha256: inserted.attachmentSha256,
+    createdAt: inserted.createdAt.toISOString(),
+  };
+}
+
+export const ADMIN_OPS_TERMINAL_PROFILE: TerminalProfileData = TerminalProfileDataSchema.parse({
+  slug: 'admin-ops',
+  bannerTitle: 'Solar Forge Ops Terminal // admin',
+  bannerMeta: 'ops tty · type "help" or press Tab',
+  osLabel: '⚡',
+  directory: '~/admin.andrew-k.us',
+  vcsBranch: 'ops-isolated',
+  vcsState: 'clean',
+  contextLabel: 'admin@andrew-k.us',
+  placeholder: 'type an ops command (help, analytics, home, status, clear)',
+  quickCommands: ['help', 'analytics', 'home', 'status', 'clear'],
+  initialEntries: [
+    {
+      command: 'status',
+      output: 'admin.andrew-k.us :: isolated ops console ready · Ghostty split panes enabled.',
+      status: 'ok',
+      durationLabel: '3ms',
+      timestamp: '00:00:00',
+      sortOrder: 0,
+    },
+  ],
+  commands: [
+    {
+      name: 'help',
+      description: 'list available ops commands',
+      kind: 'static',
+      output: [
+        'Available admin ops commands:',
+        '  help      — list available ops commands',
+        '  home      — open Admin Operations Console (/)',
+        '  analytics — open First-Party Visitor Analytics (/analytics)',
+        '  status    — print isolated ops status',
+        '  whoami    — print active ops identity',
+        '  clear     — clear terminal scrollback',
+      ].join('\n'),
+      targetRoute: null,
+      allowedRoutes: [],
+      errorTemplate: null,
+      sortOrder: 1,
+    },
+    {
+      name: 'home',
+      description: 'open Admin Operations Console (/)',
+      kind: 'navigate',
+      output: 'opening / ...',
+      targetRoute: '/',
+      allowedRoutes: [],
+      errorTemplate: null,
+      sortOrder: 2,
+    },
+    {
+      name: 'analytics',
+      description: 'open First-Party Visitor Analytics (/analytics)',
+      kind: 'navigate',
+      output: 'opening /analytics ...',
+      targetRoute: '/analytics',
+      allowedRoutes: [],
+      errorTemplate: null,
+      sortOrder: 3,
+    },
+    {
+      name: 'status',
+      description: 'print isolated ops status',
+      kind: 'static',
+      output:
+        'SURFACE : admin.andrew-k.us (noindex, nofollow, noarchive)\nAUTH    : WebAuthn passkey gate · Postgres 19 telemetry active',
+      targetRoute: null,
+      allowedRoutes: [],
+      errorTemplate: null,
+      sortOrder: 4,
+    },
+    {
+      name: 'whoami',
+      description: 'print active ops identity',
+      kind: 'static',
+      output: 'admin@andrew-k.us (isolated ops shell)',
+      targetRoute: null,
+      allowedRoutes: [],
+      errorTemplate: null,
+      sortOrder: 5,
+    },
+    {
+      name: 'clear',
+      description: 'clear terminal scrollback',
+      kind: 'clear',
+      output: '',
+      targetRoute: null,
+      allowedRoutes: [],
+      errorTemplate: null,
+      sortOrder: 6,
+    },
+  ],
+});
+
 export async function loadAdminRootData(db: AppDatabase): Promise<AdminRootLoaderData> {
   const chrome: AdminChromeContent = await getSiteContent(
     db,
@@ -258,7 +516,7 @@ export async function loadAdminRootData(db: AppDatabase): Promise<AdminRootLoade
     AdminChromeContentSchema,
   );
 
-  return { chrome };
+  return { chrome, terminal: ADMIN_OPS_TERMINAL_PROFILE };
 }
 
 export async function loadAdminHomeData(db: AppDatabase): Promise<AdminHomeLoaderData> {

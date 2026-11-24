@@ -23,7 +23,22 @@ export interface SsrServerInstance {
 export async function createSsrServer(options: SsrServerOptions): Promise<SsrServerInstance> {
   loadWorkspaceEnv({ startDir: options.buildDir });
   const { serviceName, buildDir, port, host } = options;
-  const app = Fastify({ logger: true });
+  const app = Fastify({ logger: true, bodyLimit: 10 * 1024 * 1024 });
+
+  const rawBufferParser = (
+    _request: unknown,
+    body: Buffer,
+    done: (err: Error | null, body?: Buffer) => void,
+  ) => {
+    done(null, body);
+  };
+
+  app.addContentTypeParser(/^multipart\/form-data/i, { parseAs: 'buffer' }, rawBufferParser);
+  app.addContentTypeParser(
+    ['application/x-www-form-urlencoded', 'application/json'],
+    { parseAs: 'buffer' },
+    rawBufferParser,
+  );
 
   await app.register(fastifyHelmet, { contentSecurityPolicy: false });
   await app.register(fastifyCookie);
@@ -55,10 +70,20 @@ export async function createSsrServer(options: SsrServerOptions): Promise<SsrSer
       }
     }
     const hasBody = request.method !== 'GET' && request.method !== 'HEAD';
+    let requestBody: BodyInit | undefined;
+    if (hasBody && request.body !== undefined && request.body !== null) {
+      if (Buffer.isBuffer(request.body)) {
+        requestBody = new Uint8Array(request.body);
+      } else if (typeof request.body === 'string') {
+        requestBody = request.body;
+      } else {
+        requestBody = JSON.stringify(request.body);
+      }
+    }
     const webRequest = new Request(url, {
       method: request.method,
       headers,
-      body: hasBody && request.body ? JSON.stringify(request.body) : undefined,
+      body: requestBody,
     });
 
     const webResponse = await handleRequest(webRequest);

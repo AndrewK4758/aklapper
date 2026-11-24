@@ -1,4 +1,15 @@
 @layer page {
+  .viewport {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    width: 100%;
+    height: 100%;
+    min-width: var(--sf-space-0);
+    min-height: var(--sf-space-0);
+    overflow: hidden;
+  }
+
   .workspace {
     display: grid;
     gap: var(--sf-space-9);

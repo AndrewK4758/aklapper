@@ -1,7 +1,10 @@
 import {
+  type ChangeEvent,
   type KeyboardEvent,
   type PointerEvent,
+  type ReactNode,
   type SyntheticEvent,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -10,10 +13,23 @@ import {
 
 import { Button, Form, Input, ScrollArea, Separator, Toolbar } from '../elements/base';
 import { SolarForgeEmblem } from '../elements/SolarForgeEmblem';
+import {
+  attachFileToTerminalForm,
+  buildSessionFormData,
+  getActiveFormStep,
+  getFormPromptBadge,
+  getFormPromptPlaceholder,
+  processTerminalFormInput,
+  resolveTerminalFormSubmitResult,
+  startTerminalFormSession,
+  type TerminalFormConfig,
+  type TerminalFormSessionState,
+} from './terminalFormSession';
 
 import styles from './ZshP10kTerminal.module.css';
 
 export type VcsState = 'clean' | 'modified' | 'untracked';
+export type TerminalVariant = 'framed' | 'viewport';
 
 export interface ZshCommandResult {
   output: string;
@@ -25,6 +41,7 @@ export type ZshCommandHandler = (args: readonly string[], raw: string) => ZshCom
 
 export interface ZshTerminalHistoryItem {
   id: string;
+  promptLabel?: string;
   command: string;
   output: string;
   status: 'ok' | 'error';
@@ -33,19 +50,28 @@ export interface ZshTerminalHistoryItem {
 }
 
 export interface ZshP10kTerminalProps {
+  variant?: TerminalVariant;
+  showBanner?: boolean;
   bannerTitle?: string;
   bannerMeta?: string;
+  bannerActions?: ReactNode;
   osLabel?: string;
   directory: string;
   vcsBranch: string;
   vcsState?: VcsState;
   contextLabel: string;
   commands: Readonly<Record<string, ZshCommandHandler>>;
+  terminalForms?: Readonly<Record<string, TerminalFormConfig>>;
   quickCommands?: readonly string[];
   initialEntries?: readonly Omit<ZshTerminalHistoryItem, 'id'>[];
   placeholder?: string;
   initialTime?: string;
   focusOnMount?: boolean;
+  isActive?: boolean;
+  focusToken?: number;
+  inputLabel?: string;
+  ariaLabel?: string;
+  onFocusPane?: () => void;
   onEscape?: () => void;
 }
 
@@ -56,10 +82,72 @@ function formatClock(date: Date): string {
   return `${hh}:${mm}:${ss}`;
 }
 
-function scheduleCaret(inputEl: HTMLInputElement, position: number): void {
+function scheduleCaret(inputEl: HTMLInputElement | HTMLTextAreaElement, position: number): void {
   queueMicrotask(() => {
     inputEl.setSelectionRange(position, position);
   });
+}
+
+const PROMPT_TAIL_WIDTH = 24;
+const PROMPT_TAIL_HEIGHT = 16;
+const PROMPT_TAIL_BAND_WIDTH = 8;
+
+function isLeftTailDotLit(x: number, y: number): boolean {
+  if (x < PROMPT_TAIL_BAND_WIDTH) {
+    return (y % 2 === 0 && x % 4 === 0) || (y % 2 === 1 && x % 4 === 2);
+  }
+  if (x < PROMPT_TAIL_BAND_WIDTH * 2) {
+    return (x + y) % 2 === 0;
+  }
+  const localX = x - PROMPT_TAIL_BAND_WIDTH * 2;
+  return !((y % 2 === 0 && localX % 4 === 2) || (y % 2 === 1 && localX % 4 === 0));
+}
+
+function buildPromptTailPath(direction: 'left' | 'right'): string {
+  const commands: string[] = [];
+  for (let y = 0; y < PROMPT_TAIL_HEIGHT; y++) {
+    let x = 0;
+    while (x < PROMPT_TAIL_WIDTH) {
+      const sampleX = direction === 'left' ? x : PROMPT_TAIL_WIDTH - 1 - x;
+      if (!isLeftTailDotLit(sampleX, y)) {
+        x++;
+        continue;
+      }
+      const runStart = x;
+      while (x < PROMPT_TAIL_WIDTH) {
+        const nextSampleX = direction === 'left' ? x : PROMPT_TAIL_WIDTH - 1 - x;
+        if (!isLeftTailDotLit(nextSampleX, y)) {
+          break;
+        }
+        x++;
+      }
+      commands.push(`M${runStart} ${y}h${x - runStart}v1h-${x - runStart}z`);
+    }
+  }
+  return commands.join('');
+}
+
+const LEFT_TAIL_PATH = buildPromptTailPath('left');
+const RIGHT_TAIL_PATH = buildPromptTailPath('right');
+
+interface PromptFadeTailProps {
+  direction: 'left' | 'right';
+}
+
+function PromptFadeTail({ direction }: PromptFadeTailProps) {
+  return (
+    <svg
+      className={direction === 'left' ? styles.tailLeft : styles.tailRight}
+      viewBox={`0 0 ${PROMPT_TAIL_WIDTH} ${PROMPT_TAIL_HEIGHT}`}
+      preserveAspectRatio='none'
+      shapeRendering='crispEdges'
+      aria-hidden='true'
+      focusable='false'
+      data-prompt-tail={direction}
+    >
+      <path d={direction === 'left' ? LEFT_TAIL_PATH : RIGHT_TAIL_PATH} fill='currentColor' />
+    </svg>
+  );
 }
 
 interface PromptHeaderProps {
@@ -90,7 +178,7 @@ function PromptHeader({
   return (
     <div className={styles.promptTop} aria-hidden='true'>
       <span className={styles.frame}>╭─</span>
-      <span className={styles.tailLeft}>░▒▓</span>
+      <PromptFadeTail direction='left' />
       <div className={styles.leftSegments}>
         <span className={`${styles.seg} ${styles.segOs}`}>{osLabel}</span>
         <span className={styles.arrowOsToDir} />
@@ -117,28 +205,38 @@ function PromptHeader({
         <span className={styles.arrowCtxToTime} />
         <span className={`${styles.seg} ${styles.segTime}`}>{timestamp}</span>
       </div>
-      <span className={styles.tailRight}>▓▒░</span>
+      <PromptFadeTail direction='right' />
       <span className={styles.frame}>─╮</span>
     </div>
   );
 }
 
 export function ZshP10kTerminal({
+  variant = 'framed',
+  showBanner,
   bannerTitle = 'Solar Forge Terminal // tty1',
   bannerMeta = 'tty1 · interactive shell',
+  bannerActions,
   osLabel = '⚡',
   directory,
   vcsBranch,
   vcsState = 'clean',
   contextLabel,
   commands,
+  terminalForms,
   quickCommands = [],
   initialEntries = [],
   placeholder = 'type a command (try: help, status)',
   initialTime = '00:00:00',
   focusOnMount = false,
+  isActive = true,
+  focusToken = 0,
+  inputLabel = 'Terminal command input',
+  ariaLabel = 'Interactive Terminal',
+  onFocusPane,
   onEscape,
 }: ZshP10kTerminalProps) {
+  const shouldShowBanner = showBanner ?? variant !== 'viewport';
   const [entries, setEntries] = useState<ZshTerminalHistoryItem[]>(() =>
     initialEntries.map((item, idx) => ({ ...item, id: `init-${idx}` })),
   );
@@ -148,10 +246,31 @@ export function ZshP10kTerminal({
   const [clock, setClock] = useState(initialTime);
   const [cmdHistory, setCmdHistory] = useState<string[]>([]);
   const [historyCursor, setHistoryCursor] = useState<number>(-1);
+  const [formSession, setFormSession] = useState<TerminalFormSessionState | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
 
+  const terminalRef = useRef<HTMLElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const nextId = useRef(initialEntries.length + 1);
+  const submitSeqRef = useRef(0);
+
+  const activeFormStep = formSession ? getActiveFormStep(formSession) : null;
+  const isTextareaStep = activeFormStep?.field.fieldType === 'textarea';
+  const isFileStep = activeFormStep?.field.fieldType === 'file';
+  const isFormActive = formSession !== null;
+  const isSubmittingForm = formSession?.phase === 'submitting';
+  const activeFormConfig = formSession
+    ? terminalForms?.[formSession.definition.cliCommand.toLowerCase()]
+    : undefined;
+  const fileStepField = formSession?.steps.find(step => step.field.fieldType === 'file')?.field;
+  const formFileAccept =
+    fileStepField?.fieldType === 'file' ? fileStepField.accept?.join(',') : undefined;
+  const activePromptBadge = formSession ? getFormPromptBadge(formSession) : null;
+  const activePlaceholder = formSession ? getFormPromptPlaceholder(formSession) : placeholder;
+  const textareaRows = isTextareaStep ? Math.min(8, Math.max(2, input.split('\n').length)) : 2;
 
   useEffect(() => {
     const immediate = setTimeout(() => {
@@ -173,19 +292,218 @@ export function ZshP10kTerminal({
   }, [entries]);
 
   useEffect(() => {
-    if (focusOnMount) {
-      inputRef.current?.focus();
+    if ((focusOnMount || isFormActive) && isActive) {
+      if (isTextareaStep) {
+        textareaRef.current?.focus();
+      } else {
+        inputRef.current?.focus();
+      }
     }
-  }, [focusOnMount]);
+  }, [focusOnMount, isActive, focusToken, isFormActive, isTextareaStep]);
 
-  const commandNames = useMemo(() => Object.keys(commands).sort(), [commands]);
+  const commandNames = useMemo(() => {
+    const merged = new Set<string>(Object.keys(commands));
+    if (terminalForms) {
+      for (const name of Object.keys(terminalForms)) {
+        merged.add(name);
+      }
+    }
+    return Array.from(merged).sort();
+  }, [commands, terminalForms]);
 
   const suggestion = useMemo(() => {
+    if (formSession !== null) return '';
     const trimmed = input.trimStart();
     if (!trimmed) return '';
     const match = commandNames.find(name => name.startsWith(trimmed) && name !== trimmed);
     return match ? match.slice(trimmed.length) : '';
-  }, [commandNames, input]);
+  }, [commandNames, formSession, input]);
+
+  const appendEntry = useCallback((item: Omit<ZshTerminalHistoryItem, 'id'>) => {
+    const id = `cmd-${nextId.current++}`;
+    setEntries(prev => [...prev, { ...item, id }]);
+  }, []);
+
+  const focusActiveInput = () => {
+    if (isTextareaStep) {
+      textareaRef.current?.focus();
+    } else {
+      inputRef.current?.focus();
+    }
+  };
+
+  const runFormSubmission = async (
+    session: TerminalFormSessionState,
+    config: TerminalFormConfig,
+    startedAtMs: number,
+  ) => {
+    const seq = ++submitSeqRef.current;
+    let result: Awaited<ReturnType<TerminalFormConfig['submit']>>;
+    try {
+      result = await config.submit(buildSessionFormData(session));
+    } catch (error) {
+      result = {
+        ok: false,
+        source: 'server',
+        formError:
+          error instanceof Error
+            ? `Network error while transmitting contact form: ${error.message}`
+            : 'Network error while transmitting contact form.',
+        fieldErrors: {},
+      };
+    }
+
+    if (seq !== submitSeqRef.current) {
+      return;
+    }
+
+    const elapsedMs =
+      typeof performance !== 'undefined'
+        ? Math.max(1, Math.round(performance.now() - startedAtMs))
+        : 1;
+    const durationLabel = `${elapsedMs}ms`;
+    const nowLabel = formatClock(new Date());
+    const resolved = resolveTerminalFormSubmitResult(session, result);
+
+    setClock(nowLabel);
+    setLastStatus(resolved.status);
+    setLastDuration(durationLabel);
+    setFormSession(resolved.session);
+    setInput(resolved.nextInput);
+    setIsDragOver(false);
+
+    appendEntry({
+      promptLabel: `${session.definition.cliCommand} :: ${result.ok ? 'receipt' : result.source}`,
+      command: result.ok ? 'POST /contact → 201 Created' : 'POST /contact → rejected',
+      output: resolved.output,
+      status: resolved.status,
+      durationLabel,
+      timestamp: nowLabel,
+    });
+  };
+
+  const submitFormInput = (rawValue: string) => {
+    if (!formSession || formSession.phase === 'submitting') {
+      return;
+    }
+
+    const nowLabel = formatClock(new Date());
+    const startMs = typeof performance !== 'undefined' ? performance.now() : 0;
+    const promptLabel = getFormPromptBadge(formSession);
+    const outcome = processTerminalFormInput(formSession, rawValue);
+    const elapsedMs =
+      typeof performance !== 'undefined' ? Math.max(1, Math.round(performance.now() - startMs)) : 1;
+    const durationLabel = `${elapsedMs}ms`;
+
+    setClock(nowLabel);
+    setLastDuration(durationLabel);
+
+    if (outcome.kind === 'open-file-picker') {
+      fileInputRef.current?.click();
+      setLastStatus('ok');
+      setInput('');
+      appendEntry({
+        promptLabel,
+        command: rawValue.trim() || 'attach',
+        output: outcome.output,
+        status: 'ok',
+        durationLabel,
+        timestamp: nowLabel,
+      });
+      return;
+    }
+
+    if (outcome.kind === 'cancel') {
+      submitSeqRef.current++;
+      setLastStatus('error');
+      setFormSession(null);
+      setInput('');
+      setIsDragOver(false);
+      appendEntry({
+        promptLabel,
+        command: rawValue.trim() || 'c',
+        output: outcome.output,
+        status: 'error',
+        durationLabel,
+        timestamp: nowLabel,
+      });
+      return;
+    }
+
+    if (outcome.kind === 'submit') {
+      setLastStatus('ok');
+      setFormSession(outcome.session);
+      setInput('');
+      appendEntry({
+        promptLabel,
+        command: rawValue.trim() || 'y',
+        output: outcome.output,
+        status: 'ok',
+        durationLabel,
+        timestamp: nowLabel,
+      });
+      if (activeFormConfig) {
+        void runFormSubmission(outcome.session, activeFormConfig, startMs);
+      }
+      return;
+    }
+
+    setLastStatus(outcome.status);
+    setFormSession(outcome.session);
+    setInput(outcome.nextInput);
+    appendEntry({
+      promptLabel,
+      command: rawValue.trim().length > 0 ? rawValue : '(enter)',
+      output: outcome.output,
+      status: outcome.status,
+      durationLabel,
+      timestamp: nowLabel,
+    });
+  };
+
+  const handleAttachFile = useCallback(
+    (file: File) => {
+      if (!formSession || formSession.phase === 'submitting') {
+        return;
+      }
+
+      const nowLabel = formatClock(new Date());
+      const promptLabel = getFormPromptBadge(formSession);
+      const wasOnFileStep = getActiveFormStep(formSession)?.field.fieldType === 'file';
+      const outcome = attachFileToTerminalForm(formSession, file);
+
+      setClock(nowLabel);
+      setLastStatus(outcome.status);
+      setLastDuration('1ms');
+      setFormSession(outcome.session);
+      if (wasOnFileStep) {
+        setInput(outcome.nextInput);
+      }
+
+      appendEntry({
+        promptLabel,
+        command: `attach ${file.name}`,
+        output: outcome.output,
+        status: outcome.status,
+        durationLabel: '1ms',
+        timestamp: nowLabel,
+      });
+    },
+    [appendEntry, formSession],
+  );
+
+  const handleFileInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = '';
+    if (file) {
+      handleAttachFile(file);
+    }
+    focusActiveInput();
+  };
+
+  const handleOpenFilePicker = () => {
+    fileInputRef.current?.click();
+  };
 
   const executeCommand = (rawInput: string) => {
     const trimmed = rawInput.trim();
@@ -200,6 +518,75 @@ export function ZshP10kTerminal({
     const parts = trimmed.split(/\s+/);
     const cmdName = (parts[0] ?? '').toLowerCase();
     const args = parts.slice(1);
+    const formConfig = terminalForms?.[cmdName];
+
+    if (formConfig) {
+      const outcome = startTerminalFormSession(formConfig.definition, trimmed);
+      const elapsedMs =
+        typeof performance !== 'undefined'
+          ? Math.max(1, Math.round(performance.now() - startMs))
+          : 1;
+      const durationLabel = `${elapsedMs}ms`;
+
+      setCmdHistory(prev => [trimmed, ...prev]);
+      setHistoryCursor(-1);
+      setLastDuration(durationLabel);
+
+      if (outcome.kind === 'output') {
+        setLastStatus(outcome.status);
+        setInput('');
+        appendEntry({
+          command: trimmed,
+          output: outcome.output,
+          status: outcome.status,
+          durationLabel,
+          timestamp: nowLabel,
+        });
+        return;
+      }
+
+      if (outcome.kind === 'open-tui') {
+        setLastStatus('ok');
+        setInput('');
+        appendEntry({
+          command: trimmed,
+          output: outcome.output,
+          status: 'ok',
+          durationLabel,
+          timestamp: nowLabel,
+        });
+        formConfig.openTuiRoute?.();
+        return;
+      }
+
+      if (outcome.kind === 'submit-immediately') {
+        setLastStatus('ok');
+        setFormSession(outcome.session);
+        setInput('');
+        appendEntry({
+          command: trimmed,
+          output: outcome.output,
+          status: 'ok',
+          durationLabel,
+          timestamp: nowLabel,
+        });
+        void runFormSubmission(outcome.session, formConfig, startMs);
+        return;
+      }
+
+      setLastStatus(outcome.status);
+      setFormSession(outcome.session);
+      setInput(outcome.initialInput);
+      appendEntry({
+        command: trimmed,
+        output: outcome.output,
+        status: outcome.status,
+        durationLabel,
+        timestamp: nowLabel,
+      });
+      return;
+    }
+
     const handler = commands[cmdName];
 
     let result: ZshCommandResult;
@@ -228,22 +615,21 @@ export function ZshP10kTerminal({
       return;
     }
 
-    const id = `cmd-${nextId.current++}`;
-    setEntries(prev => [
-      ...prev,
-      {
-        id,
-        command: trimmed,
-        output: result.output,
-        status,
-        durationLabel,
-        timestamp: nowLabel,
-      },
-    ]);
+    appendEntry({
+      command: trimmed,
+      output: result.output,
+      status,
+      durationLabel,
+      timestamp: nowLabel,
+    });
   };
 
   const handleSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (formSession) {
+      submitFormInput(input);
+      return;
+    }
     executeCommand(input);
   };
 
@@ -265,12 +651,58 @@ export function ZshP10kTerminal({
     }
   };
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const el = event.currentTarget;
     const keyLower = event.key.toLowerCase();
-    const isCtrlOnly = event.ctrlKey && !event.metaKey && !event.altKey;
+    const isCtrlOnly = event.ctrlKey && !event.shiftKey && !event.metaKey && !event.altKey;
     const selStart = el.selectionStart ?? input.length;
     const selEnd = el.selectionEnd ?? input.length;
+
+    if (formSession !== null) {
+      if (isCtrlOnly && keyLower === 'l') {
+        event.preventDefault();
+        setEntries([]);
+        return;
+      }
+      if (isCtrlOnly && keyLower === 'c') {
+        if (selStart !== selEnd) {
+          return;
+        }
+        event.preventDefault();
+        submitSeqRef.current++;
+        const nowLabel = formatClock(new Date());
+        setClock(nowLabel);
+        appendEntry({
+          promptLabel: getFormPromptBadge(formSession),
+          command: `${input}^C`,
+          output: 'Transmission cancelled.',
+          status: 'error',
+          durationLabel: '0ms',
+          timestamp: nowLabel,
+        });
+        setFormSession(null);
+        setInput('');
+        setLastStatus('error');
+        setIsDragOver(false);
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        return;
+      }
+      if (
+        isTextareaStep &&
+        event.key === 'Enter' &&
+        !event.shiftKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey
+      ) {
+        event.preventDefault();
+        submitFormInput(input);
+      }
+      return;
+    }
 
     if (isCtrlOnly) {
       switch (keyLower) {
@@ -286,18 +718,13 @@ export function ZshP10kTerminal({
           const nowLabel = formatClock(new Date());
           setClock(nowLabel);
           if (input.length > 0) {
-            const id = `cmd-${nextId.current++}`;
-            setEntries(prev => [
-              ...prev,
-              {
-                id,
-                command: `${input}^C`,
-                output: '',
-                status: 'error',
-                durationLabel: '0ms',
-                timestamp: nowLabel,
-              },
-            ]);
+            appendEntry({
+              command: `${input}^C`,
+              output: '',
+              status: 'error',
+              durationLabel: '0ms',
+              timestamp: nowLabel,
+            });
             setLastStatus('error');
           }
           setInput('');
@@ -368,6 +795,9 @@ export function ZshP10kTerminal({
     }
     if (
       event.key === 'ArrowRight' &&
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.metaKey &&
       suggestion &&
       selStart === input.length &&
       selEnd === input.length
@@ -376,49 +806,125 @@ export function ZshP10kTerminal({
       setInput(prev => `${prev}${suggestion}`);
       return;
     }
-    if (event.key === 'ArrowUp' && cmdHistory.length > 0) {
+    if (
+      event.key === 'ArrowUp' &&
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      cmdHistory.length > 0
+    ) {
       event.preventDefault();
       navigateHistoryOlder();
       return;
     }
-    if (event.key === 'ArrowDown') {
+    if (event.key === 'ArrowDown' && !event.altKey && !event.ctrlKey && !event.metaKey) {
       event.preventDefault();
       navigateHistoryNewer();
     }
   };
 
+  useEffect(() => {
+    const node = terminalRef.current;
+    if (!node || !formSession || isSubmittingForm) {
+      return;
+    }
+
+    const onDragOver = (event: globalThis.DragEvent) => {
+      event.preventDefault();
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'copy';
+      }
+      setIsDragOver(true);
+    };
+
+    const onDragLeave = (event: globalThis.DragEvent) => {
+      if (!node.contains(event.relatedTarget as Node | null)) {
+        setIsDragOver(false);
+      }
+    };
+
+    const onDrop = (event: globalThis.DragEvent) => {
+      event.preventDefault();
+      setIsDragOver(false);
+      const file = event.dataTransfer?.files?.[0];
+      if (file) {
+        handleAttachFile(file);
+      }
+    };
+
+    node.addEventListener('dragover', onDragOver);
+    node.addEventListener('dragleave', onDragLeave);
+    node.addEventListener('drop', onDrop);
+    return () => {
+      node.removeEventListener('dragover', onDragOver);
+      node.removeEventListener('dragleave', onDragLeave);
+      node.removeEventListener('drop', onDrop);
+    };
+  }, [formSession, handleAttachFile, isSubmittingForm]);
+
+  const handleSurfacePointerDown = () => {
+    onFocusPane?.();
+  };
+
   const handleSurfacePointerUp = (event: PointerEvent<HTMLElement>) => {
     const target = event.target as HTMLElement;
-    if (target.closest('button, a, input')) {
+    if (target.closest('button, a, input, textarea')) {
       return;
     }
     const selection = typeof window !== 'undefined' ? window.getSelection()?.toString() : '';
     if (selection) {
       return;
     }
-    inputRef.current?.focus();
+    focusActiveInput();
   };
 
   const runQuickCommand = (cmd: string) => {
+    if (formSession !== null) {
+      return;
+    }
+    onFocusPane?.();
     executeCommand(cmd);
-    inputRef.current?.focus();
+    focusActiveInput();
   };
 
   return (
     <section
+      ref={terminalRef}
       className={styles.terminal}
-      aria-label='Interactive Terminal'
+      data-variant={variant}
+      data-active={isActive ? 'true' : 'false'}
+      data-form-mode={formSession ? formSession.definition.cliCommand : undefined}
+      data-drag-over={isDragOver ? 'true' : 'false'}
+      aria-label={ariaLabel}
+      onPointerDown={handleSurfacePointerDown}
       onPointerUp={handleSurfacePointerUp}
     >
-      <div className={styles.banner}>
-        <span className={styles.bannerBrand}>
-          <SolarForgeEmblem size={18} />
-          <span>{bannerTitle}</span>
-        </span>
-        <span>{bannerMeta}</span>
-      </div>
+      <input
+        ref={fileInputRef}
+        type='file'
+        className={styles.hiddenFileInput}
+        accept={formFileAccept}
+        tabIndex={-1}
+        aria-hidden='true'
+        onChange={handleFileInputChange}
+      />
 
-      <Separator.Root className={styles.divider} />
+      {shouldShowBanner ? (
+        <>
+          <div className={styles.banner}>
+            <span className={styles.bannerBrand}>
+              <SolarForgeEmblem size={18} />
+              <span>{bannerTitle}</span>
+            </span>
+            <div className={styles.bannerRight}>
+              <span>{bannerMeta}</span>
+              {bannerActions}
+            </div>
+          </div>
+
+          <Separator.Root className={styles.divider} />
+        </>
+      ) : null}
 
       <ScrollArea.Root className={styles.historyRoot}>
         <ScrollArea.Viewport
@@ -443,6 +949,9 @@ export function ZshP10kTerminal({
                   />
                   <div className={styles.promptBottom}>
                     <span className={styles.frame}>╰─</span>
+                    {entry.promptLabel ? (
+                      <span className={styles.formBadge}>{entry.promptLabel}</span>
+                    ) : null}
                     <span className={styles.promptChar} data-status={entry.status}>
                       ❯
                     </span>
@@ -469,8 +978,16 @@ export function ZshP10kTerminal({
                 contextLabel={contextLabel}
                 timestamp={clock}
               />
-              <label className={styles.promptBottom}>
+              <div
+                className={styles.promptBottom}
+                data-multiline={isTextareaStep ? 'true' : 'false'}
+              >
                 <span className={styles.frame}>╰─</span>
+                {activePromptBadge ? (
+                  <span className={styles.formBadge} data-phase={formSession?.phase}>
+                    {activePromptBadge}
+                  </span>
+                ) : null}
                 <span className={styles.promptChar} data-status={lastStatus}>
                   ❯
                 </span>
@@ -481,23 +998,56 @@ export function ZshP10kTerminal({
                       {suggestion}
                     </span>
                   ) : null}
-                  <Input.Root
-                    ref={inputRef}
-                    type='text'
-                    className={styles.input}
-                    value={input}
-                    onChange={event => setInput(event.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder={placeholder}
-                    aria-label='Terminal command input'
-                    autoComplete='off'
-                    autoCorrect='off'
-                    autoCapitalize='off'
-                    spellCheck={false}
-                  />
+                  {isTextareaStep ? (
+                    <textarea
+                      ref={textareaRef}
+                      rows={textareaRows}
+                      className={styles.textarea}
+                      value={input}
+                      disabled={isSubmittingForm}
+                      onChange={event => setInput(event.target.value)}
+                      onFocus={onFocusPane}
+                      onKeyDown={handleKeyDown}
+                      placeholder={activePlaceholder}
+                      aria-label={inputLabel}
+                      data-form-field={activeFormStep?.field.name}
+                      autoComplete='off'
+                      autoCorrect='off'
+                      autoCapitalize='off'
+                      spellCheck={false}
+                    />
+                  ) : (
+                    <Input.Root
+                      ref={inputRef}
+                      type='text'
+                      className={styles.input}
+                      value={input}
+                      disabled={isSubmittingForm}
+                      onChange={event => setInput(event.target.value)}
+                      onFocus={onFocusPane}
+                      onKeyDown={handleKeyDown}
+                      placeholder={activePlaceholder}
+                      aria-label={inputLabel}
+                      data-form-field={activeFormStep?.field.name}
+                      autoComplete='off'
+                      autoCorrect='off'
+                      autoCapitalize='off'
+                      spellCheck={false}
+                    />
+                  )}
+                  {isFileStep && !isSubmittingForm ? (
+                    <Button.Root
+                      type='button'
+                      size='xs'
+                      className={styles.inlineAction}
+                      onClick={handleOpenFilePicker}
+                    >
+                      <Button.Label>[attach file]</Button.Label>
+                    </Button.Root>
+                  ) : null}
                 </div>
                 <span className={styles.frame}>─╯</span>
-              </label>
+              </div>
             </Form.Root>
           </ScrollArea.Content>
         </ScrollArea.Viewport>
@@ -518,6 +1068,7 @@ export function ZshP10kTerminal({
                   type='button'
                   size='xs'
                   className={styles.quickChip}
+                  disabled={isFormActive}
                   onClick={() => runQuickCommand(cmd)}
                 >
                   <Button.Label>{cmd}</Button.Label>

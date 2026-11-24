@@ -16,10 +16,11 @@ import {
   OscStatusBadge,
   Separator,
   SolarForgeEmblem,
+  TerminalWorkspace,
   Tooltip,
   useAnimatedFavicon,
 } from '@aklapper/ui';
-import type { ReactNode } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import {
   Link,
   Links,
@@ -30,11 +31,15 @@ import {
   ScrollRestoration,
   useLoaderData,
   useLocation,
+  useNavigate,
   useRouteLoaderData,
 } from 'react-router';
 
-import { ChangesInProgressView } from './routes/changes-in-progress';
+import { PortalChangesInProgressPage } from '#pages/changes-in-progress';
+import { PortalLauncherTui } from '#pages/home';
+
 import { DEFAULT_PORTAL_SITE_URL, PORTAL_SITE_NAME } from './seo';
+import { createPortalTerminalForms } from './terminalForms';
 
 import styles from './root.module.css';
 
@@ -54,6 +59,10 @@ export async function loader(): Promise<PortalRootLoaderData> {
 
 function normalizePathname(pathname: string): string {
   return pathname.replace(/\/+$/, '') || '/';
+}
+
+function getPortalPaneTitle(pathname: string): string {
+  return pathname === '/' ? 'tty1' : `tui :: ${pathname}`;
 }
 
 export function meta({ loaderData, location }: MetaArgs<typeof loader>) {
@@ -107,15 +116,21 @@ export default function PortalRoot() {
   useAnimatedFavicon();
   const data = useLoaderData() as PortalRootLoaderData;
   const location = useLocation();
+  const navigate = useNavigate();
   const pathname = normalizePathname(location.pathname);
+
+  const terminalForms = useMemo(
+    () => createPortalTerminalForms(data.contactForm, navigate),
+    [data.contactForm, navigate],
+  );
 
   if (data.maintenanceMode && data.maintenance) {
     return (
       <DirectionProvider.Provider direction='ltr'>
         <Tooltip.Provider>
           <div className={styles.standaloneShell}>
-            <main className={styles.main}>
-              <ChangesInProgressView data={data.maintenance} />
+            <main className={styles.standaloneMain}>
+              <PortalChangesInProgressPage data={data.maintenance} />
             </main>
           </div>
         </Tooltip.Provider>
@@ -128,7 +143,7 @@ export default function PortalRoot() {
       <DirectionProvider.Provider direction='ltr'>
         <Tooltip.Provider>
           <div className={styles.standaloneShell}>
-            <main className={styles.main}>
+            <main className={styles.standaloneMain}>
               <Outlet />
             </main>
           </div>
@@ -137,46 +152,104 @@ export default function PortalRoot() {
     );
   }
 
-  const { chrome } = data;
+  const { chrome, terminal, homeContent } = data;
+  const isTerminalViewport = pathname === '/';
+  const hasGlobalWorkspace = Boolean(terminal);
 
   return (
     <DirectionProvider.Provider direction='ltr'>
       <Tooltip.Provider>
-        <div className={styles.shell}>
-          <header className={styles.bar}>
-            <NavigationMenu.Root>
-              <NavigationMenu.List>
-                <NavigationMenu.Item>
-                  <NavigationMenu.Link render={<Link to='/' />} className={styles.brand}>
-                    <SolarForgeEmblem size={20} />
-                    <span>{chrome.brandLabel}</span>
-                  </NavigationMenu.Link>
-                </NavigationMenu.Item>
-              </NavigationMenu.List>
-            </NavigationMenu.Root>
-            <OscStatusBadge
-              source={chrome.statusBadge.source}
-              state={chrome.statusBadge.state}
-              label={chrome.statusBadge.label}
-            />
-          </header>
-          <main className={styles.main}>
-            <Outlet />
+        <div
+          className={styles.shell}
+          data-terminal-viewport={isTerminalViewport ? 'true' : 'false'}
+          data-pane-workspace={hasGlobalWorkspace ? 'true' : 'false'}
+        >
+          <div className={styles.barWrap}>
+            <header className={styles.bar}>
+              <NavigationMenu.Root>
+                <NavigationMenu.List>
+                  <NavigationMenu.Item>
+                    <NavigationMenu.Link render={<Link to='/' />} className={styles.brand}>
+                      <SolarForgeEmblem size={18} />
+                      <span>{chrome.brandLabel}</span>
+                    </NavigationMenu.Link>
+                  </NavigationMenu.Item>
+                </NavigationMenu.List>
+              </NavigationMenu.Root>
+              <div className={styles.barMeta}>
+                {hasGlobalWorkspace || isTerminalViewport ? (
+                  <span className={styles.shortcutHint}>
+                    ⌘D / Ctrl+⇧O split · ⌘⇧D / Ctrl+⇧E hsplit · Alt+T tui
+                  </span>
+                ) : null}
+                <OscStatusBadge
+                  source={chrome.statusBadge.source}
+                  state={chrome.statusBadge.state}
+                  label={chrome.statusBadge.label}
+                />
+              </div>
+            </header>
+            <Separator.Root className={styles.barDivider} />
+          </div>
+          <main
+            className={styles.main}
+            data-terminal-viewport={isTerminalViewport ? 'true' : 'false'}
+            data-pane-workspace={hasGlobalWorkspace ? 'true' : 'false'}
+          >
+            {terminal ? (
+              <TerminalWorkspace
+                terminal={terminal}
+                terminalForms={terminalForms}
+                navigate={to => {
+                  void navigate(to);
+                }}
+                renderTui={
+                  homeContent
+                    ? ({ ttyNumber, isSinglePane, closeTui }) => (
+                        <PortalLauncherTui
+                          content={homeContent}
+                          ttyNumber={ttyNumber}
+                          isSinglePane={isSinglePane}
+                          onClose={closeTui}
+                        />
+                      )
+                    : undefined
+                }
+                primaryPane={{
+                  title: getPortalPaneTitle(pathname),
+                  content: <Outlet />,
+                  flush: isTerminalViewport,
+                  embeddedTerminal: isTerminalViewport,
+                }}
+              />
+            ) : (
+              <Outlet />
+            )}
           </main>
           <div className={styles.footerWrap}>
             <Separator.Root />
             <footer className={styles.footer}>
               <span>{chrome.footerText}</span>
-              <Button.Link
-                href={chrome.footerLinkUrl}
-                target='_blank'
-                rel='noreferrer'
-                variant='ghost'
-                size='xs'
-                className={styles.footerLink}
-              >
-                <Button.Label>{chrome.footerLinkLabel}</Button.Label>
-              </Button.Link>
+              <div className={styles.footerLinks}>
+                <Button.Link
+                  href='/sitemap.xml'
+                  variant='ghost'
+                  size='xs'
+                  className={styles.footerLink}
+                >
+                  <Button.Label>Sitemap</Button.Label>
+                </Button.Link>
+                <Button.Link
+                  href={chrome.footerLinkUrl}
+                  target='_blank'
+                  rel='noreferrer'
+                  variant='ghost'
+                  size='xs'
+                  className={styles.footerLink}
+                >
+                  <Button.Label>{chrome.footerLinkLabel}</Button.Label>
+                </Button.Link>
+              </div>
             </footer>
           </div>
         </div>

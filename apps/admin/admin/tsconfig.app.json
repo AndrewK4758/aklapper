@@ -19,6 +19,8 @@
   "exclude": [
     "out-tsc",
     "dist",
+    "build",
+    "src/pages/**",
     "src/**/*.spec.ts",
     "src/**/*.test.ts",
     "src/**/*.spec.tsx",

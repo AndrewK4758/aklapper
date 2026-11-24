@@ -156,16 +156,21 @@
     --sf-emblem-bolt-halo: 2;
     --sf-p10k-seg-h: calc(var(--sf-space-unit) * 6);
     --sf-p10k-arrow-w: calc(var(--sf-space-unit) * 2.5);
+    --sf-p10k-tail-w: calc(var(--sf-space-unit) * 9);
     --sf-terminal-min-h: calc(var(--sf-size-unit) * 16.25);
     --sf-terminal-scroll-max-h: calc(var(--sf-size-unit) * 21.25);
     --sf-progress-h: calc(var(--sf-space-unit) * 2);
     --sf-progress-fill-pct: 72%;
 
-    /* TUI floating window & Base UI indicator geometry defaults (overridden per instance) */
+    /* TUI floating window, split-pane compositor & Base UI indicator defaults (overridden per instance) */
     --tui-x: auto;
     --tui-y: auto;
     --tui-w: auto;
     --tui-h: auto;
+    --sf-pane-x: 0;
+    --sf-pane-y: 0;
+    --sf-pane-w: 1;
+    --sf-pane-h: 1;
     --active-tab-left: 0;
     --active-tab-width: 0;
   }

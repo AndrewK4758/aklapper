@@ -12,6 +12,7 @@ import { Button } from '../elements/base/Button';
 import { ScrollArea } from '../elements/base/ScrollArea';
 import { Toolbar } from '../elements/base/Toolbar';
 import { Tooltip } from '../elements/base/Tooltip';
+import { useIsPaneActive } from './TerminalWorkspace';
 
 import styles from './TuiWindow.module.css';
 
@@ -20,6 +21,7 @@ export interface TuiWindowProps {
   badge?: ReactNode;
   children: ReactNode;
   onClose?: () => void;
+  closeOnEscape?: boolean;
 }
 
 interface FloatingRect {
@@ -77,14 +79,21 @@ function WindowControlButton({ label, glyph, onClick }: WindowControlButtonProps
   );
 }
 
-export function TuiWindow({ title, badge, children, onClose }: TuiWindowProps) {
+export function TuiWindow({
+  title,
+  badge,
+  children,
+  onClose,
+  closeOnEscape = true,
+}: TuiWindowProps) {
+  const isPaneActive = useIsPaneActive();
   const [floating, setFloating] = useState<FloatingRect | null>(null);
   const frameRef = useRef<HTMLElement | null>(null);
   const dragOrigin = useRef<{ dx: number; dy: number } | null>(null);
   const resizeOrigin = useRef<{ sx: number; sy: number; sw: number; sh: number } | null>(null);
 
   useEffect(() => {
-    if (!onClose) return;
+    if (!onClose || !closeOnEscape || !isPaneActive) return;
     const handleWindowKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape' && !event.defaultPrevented) {
         event.preventDefault();
@@ -95,7 +104,7 @@ export function TuiWindow({ title, badge, children, onClose }: TuiWindowProps) {
     return () => {
       window.removeEventListener('keydown', handleWindowKeyDown);
     };
-  }, [onClose]);
+  }, [closeOnEscape, isPaneActive, onClose]);
 
   const onDragStart = (event: PointerEvent<HTMLDivElement>) => {
     if ((event.target as HTMLElement).closest('button:not([data-drag-handle])')) return;
@@ -154,6 +163,10 @@ export function TuiWindow({ title, badge, children, onClose }: TuiWindowProps) {
   };
 
   const onTitleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (event.ctrlKey || event.metaKey || event.altKey) {
+      return;
+    }
+
     if (event.key === '0' || event.key === 'Home') {
       event.preventDefault();
       setFloating(null);

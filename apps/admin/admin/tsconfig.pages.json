@@ -1,0 +1,32 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src/pages",
+    "outDir": "out-tsc/pages",
+    "tsBuildInfoFile": "out-tsc/tsconfig.pages.tsbuildinfo",
+    "jsx": "react-jsx",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": [
+      "node",
+      "@nx/react/typings/cssmodule.d.ts",
+      "@nx/react/typings/image.d.ts",
+      "vite/client"
+    ]
+  },
+  "include": ["src/pages/**/*.ts", "src/pages/**/*.tsx"],
+  "exclude": [
+    "src/pages/**/*.spec.ts",
+    "src/pages/**/*.test.ts",
+    "src/pages/**/*.spec.tsx",
+    "src/pages/**/*.test.tsx"
+  ],
+  "references": [
+    {
+      "path": "../../../packages/shared/contracts/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../packages/shared/ui/tsconfig.lib.json"
+    }
+  ]
+}

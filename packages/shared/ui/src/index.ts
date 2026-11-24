@@ -5,11 +5,51 @@ export {
   type DocumentHeadTagsProps,
 } from './components/DocumentHeadTags';
 export {
+  RecursiveTuiForm,
+  type RecursiveTuiFormProps,
+  type RecursiveTuiFormRenderProps,
+} from './components/RecursiveTuiForm';
+export {
   SandboxedArtifactFrame,
   type SandboxedArtifactFrameProps,
 } from './components/SandboxedArtifactFrame';
+export {
+  TerminalWorkspace,
+  type TerminalPaneTuiContext,
+  type TerminalWorkspacePrimaryPane,
+  type TerminalWorkspaceProps,
+  useIsPaneActive,
+} from './components/TerminalWorkspace';
+export {
+  closePaneById,
+  computeLeafRects,
+  createInitialWorkspaceState,
+  equalizeAllSplits,
+  findLeafPane,
+  focusDirectionalPane,
+  focusPaneById,
+  focusRelativePane,
+  type GhosttyShortcutAction,
+  type InitialWorkspaceOptions,
+  type KeyboardShortcutInput,
+  listLeafPanes,
+  matchGhosttyShortcut,
+  type PaneNavDirection,
+  type PaneRect,
+  resizeActiveSplit,
+  setPaneTuiOpen,
+  splitActivePane,
+  type SplitCreateDirection,
+  type SplitDirection,
+  type TerminalLeafPane,
+  type TerminalPaneNode,
+  type TerminalSplitPane,
+  type TerminalWorkspaceState,
+  toggleZoomActivePane,
+} from './components/terminalPaneTree';
 export { TuiWindow, type TuiWindowProps } from './components/TuiWindow';
 export {
+  type TerminalVariant,
   type VcsState,
   type ZshCommandHandler,
   type ZshCommandResult,
@@ -17,6 +57,25 @@ export {
   type ZshP10kTerminalProps,
   type ZshTerminalHistoryItem,
 } from './components/ZshP10kTerminal';
+export {
+  type StartTerminalFormOutcome,
+  type StepInputOutcome,
+  type TerminalFormConfig,
+  type TerminalFormSessionState,
+  attachFileToTerminalForm,
+  buildSessionFormData,
+  formatFieldsetHeaderLines,
+  formatReceiptOutput,
+  formatReviewSummary,
+  formatStepPromptOutput,
+  formatTerminalBytes,
+  getActiveFormStep,
+  getFormPromptBadge,
+  getFormPromptPlaceholder,
+  processTerminalFormInput,
+  resolveTerminalFormSubmitResult,
+  startTerminalFormSession,
+} from './components/terminalFormSession';
 export {
   buildZshCommandHandlers,
   formatRoadmapMarker,

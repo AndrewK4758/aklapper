@@ -112,6 +112,10 @@ describe('PortalRoot', () => {
     expect(await screen.findByText('andrew-k.us :: tty1')).toBeTruthy();
     expect(screen.getByText('Home Probe')).toBeTruthy();
     expect(screen.queryByText('cadence-admin')).toBeNull();
+    const sitemapLink = screen.getByRole('link', { name: 'Sitemap' });
+    expect(sitemapLink.getAttribute('href')).toBe('/sitemap.xml');
+    const main = screen.getByRole('main');
+    expect(main.getAttribute('data-terminal-viewport')).toBe('true');
   });
 
   it('renders Changes in Progress from loader data with zero navigation links in maintenance mode', async () => {
@@ -145,5 +149,40 @@ describe('PortalRoot', () => {
     fireEvent.change(input, { target: { value: 'whoami' } });
     fireEvent.submit(input.closest('form') as HTMLFormElement);
     expect(screen.getByText(/visitor@andrew-k\.us \(read-only maintenance tty1\)/)).toBeTruthy();
+  });
+
+  it('supports Ghostty split keybindings globally on portal TUI routes', async () => {
+    const router = createMemoryRouter(
+      [
+        {
+          path: '/',
+          loader: (): PortalRootLoaderData => ({
+            maintenanceMode: false,
+            chrome: CHROME_FIXTURE,
+            maintenance: null,
+            terminal: MAINTENANCE_FIXTURE.terminal,
+          }),
+          Component: PortalRoot,
+          children: [{ path: 'menu', Component: () => <div>TUI Menu Probe</div> }],
+        },
+      ],
+      { initialEntries: ['/menu'] },
+    );
+
+    const { container } = render(<RouterProvider router={router} />);
+
+    expect(await screen.findByText('TUI Menu Probe')).toBeTruthy();
+    const workspaceEl = container.querySelector('[data-pane-count]') as HTMLElement;
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
+
+    // Split open a separate terminal pane alongside the TUI route
+    fireEvent.keyDown(window, { key: 'O', ctrlKey: true, shiftKey: true });
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
+    expect(screen.getByText('TUI Menu Probe')).toBeTruthy();
+    expect(container.querySelector('[data-pane-tty="tty2"]')).toBeTruthy();
+
+    // Close the spawned split pane cleanly
+    fireEvent.keyDown(window, { key: 'W', ctrlKey: true, shiftKey: true });
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
   });
 });

@@ -5,6 +5,7 @@ import {
   CadencePresetSchema,
   MenuItemSchema,
   type PortalCadenceLoaderData,
+  type PortalContactLoaderData,
   type PortalHomeLoaderData,
   type PortalMaintenanceLoaderData,
   type PortalMenuLoaderData,
@@ -16,10 +17,12 @@ import {
 
 import { type AppDatabase, getSharedDb, isReactRouterPrerender } from './client.ts';
 import {
+  ADMIN_OPS_TERMINAL_PROFILE,
   loadAdminAnalyticsData,
   loadAdminHomeData,
   loadAdminRootData,
   loadPortalCadenceData,
+  loadPortalContactData,
   loadPortalHomeData,
   loadPortalMaintenanceData,
   loadPortalMenuData,
@@ -34,6 +37,7 @@ import {
   DEFAULT_MENU_ITEMS,
   PORTAL_CADENCE_SEED,
   PORTAL_CHROME_SEED,
+  PORTAL_CONTACT_SEED,
   PORTAL_HOME_SEED,
   PORTAL_MAINTENANCE_SEED,
   PORTAL_MENU_SEED,
@@ -99,10 +103,22 @@ export function getPrerenderPortalRootData(
   maintenanceModeOverride?: boolean,
 ): PortalRootLoaderData {
   const maintenanceMode = maintenanceModeOverride ?? PORTAL_CHROME_SEED.maintenanceModeDefault;
+  if (maintenanceMode) {
+    return {
+      maintenanceMode,
+      chrome: PORTAL_CHROME_SEED,
+      maintenance: getPrerenderPortalMaintenanceData(),
+    };
+  }
+
+  const { content: homeContent, terminal, contactForm } = getPrerenderPortalHomeData();
   return {
     maintenanceMode,
     chrome: PORTAL_CHROME_SEED,
-    maintenance: maintenanceMode ? getPrerenderPortalMaintenanceData() : null,
+    maintenance: null,
+    terminal,
+    homeContent,
+    contactForm,
   };
 }
 
@@ -110,6 +126,7 @@ export function getPrerenderPortalHomeData(): PortalHomeLoaderData {
   return {
     content: PORTAL_HOME_SEED,
     terminal: getSeedTerminalProfile(TERMINAL_PROFILE_SLUGS.portalHome),
+    contactForm: PORTAL_CONTACT_SEED.form,
   };
 }
 
@@ -131,9 +148,16 @@ export function getPrerenderPortalCadenceData(): PortalCadenceLoaderData {
   };
 }
 
+export function getPrerenderPortalContactData(): PortalContactLoaderData {
+  return {
+    content: PORTAL_CONTACT_SEED,
+  };
+}
+
 export function getPrerenderAdminRootData(): AdminRootLoaderData {
   return {
     chrome: ADMIN_CHROME_SEED,
+    terminal: ADMIN_OPS_TERMINAL_PROFILE,
   };
 }
 
@@ -194,6 +218,10 @@ export function loadPortalMenuDataWithPrerender(): Promise<PortalMenuLoaderData>
 
 export function loadPortalCadenceDataWithPrerender(): Promise<PortalCadenceLoaderData> {
   return withPrerenderFallback(loadPortalCadenceData, getPrerenderPortalCadenceData);
+}
+
+export function loadPortalContactDataWithPrerender(): Promise<PortalContactLoaderData> {
+  return withPrerenderFallback(loadPortalContactData, getPrerenderPortalContactData);
 }
 
 export function loadPortalMaintenanceDataWithPrerender(): Promise<PortalMaintenanceLoaderData> {

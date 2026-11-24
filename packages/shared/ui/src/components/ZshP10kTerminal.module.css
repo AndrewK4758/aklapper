@@ -5,10 +5,20 @@
     border-radius: var(--sf-radius-md);
     padding: var(--sf-space-7) var(--sf-space-8);
     min-height: var(--sf-terminal-min-h);
-    display: grid;
-    grid-template-rows: auto auto 1fr auto auto;
+    display: flex;
+    flex-direction: column;
     gap: var(--sf-space-5);
     cursor: text;
+  }
+
+  .terminal[data-variant='viewport'] {
+    border: none;
+    border-radius: var(--sf-radius-none);
+    padding: var(--sf-space-5) var(--sf-space-7);
+    min-height: var(--sf-space-0);
+    height: 100%;
+    width: 100%;
+    gap: var(--sf-space-4);
   }
 
   .banner {
@@ -19,6 +29,7 @@
     gap: var(--sf-space-4);
     color: var(--sf-fg-cmt);
     font-size: var(--sf-text-sm);
+    flex-shrink: 0;
   }
 
   .bannerBrand {
@@ -29,17 +40,32 @@
     font-weight: var(--sf-weight-bold);
   }
 
+  .bannerRight {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sf-space-4);
+  }
+
   .divider {
     --sf-border: var(--sf-guide);
+    flex-shrink: 0;
   }
 
   .historyRoot {
+    flex: 1 1 auto;
+    min-height: var(--sf-space-0);
     max-height: var(--sf-terminal-scroll-max-h);
   }
 
   .historyViewport {
+    height: 100%;
     max-height: var(--sf-terminal-scroll-max-h);
     padding-right: var(--sf-space-3);
+  }
+
+  .terminal[data-variant='viewport'] .historyRoot,
+  .terminal[data-variant='viewport'] .historyViewport {
+    max-height: none;
   }
 
   .history {
@@ -92,18 +118,21 @@
     user-select: none;
   }
 
-  .tailLeft {
-    color: var(--sf-p10k-os-bg);
-    white-space: pre;
+  .tailLeft,
+  .tailRight {
+    display: block;
+    width: var(--sf-p10k-tail-w);
+    height: var(--sf-p10k-seg-h);
     flex-shrink: 0;
     user-select: none;
   }
 
+  .tailLeft {
+    color: var(--sf-p10k-os-bg);
+  }
+
   .tailRight {
     color: var(--sf-p10k-time-bg);
-    white-space: pre;
-    flex-shrink: 0;
-    user-select: none;
   }
 
   .leftSegments,
@@ -298,11 +327,49 @@
     clip-path: polygon(100% 0, 0 50%, 100% 100%);
   }
 
+  .terminal[data-drag-over='true'] {
+    outline: var(--sf-border-width) dashed var(--sf-gold);
+    outline-offset: calc(var(--sf-space-2) * -1);
+    background: var(--sf-bg-editor);
+  }
+
   .promptBottom {
     display: flex;
     align-items: center;
     gap: var(--sf-space-3);
     min-height: var(--sf-p10k-seg-h);
+  }
+
+  .promptBottom[data-multiline='true'] {
+    align-items: flex-start;
+  }
+
+  .formBadge {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--sf-space-0) var(--sf-space-3);
+    border: var(--sf-border-width) solid var(--sf-accent-border);
+    border-radius: var(--sf-radius-xs);
+    background: var(--sf-accent-subtle);
+    color: var(--sf-gold);
+    font-family: var(--sf-font-mono), monospace;
+    font-size: var(--sf-text-xs);
+    font-weight: var(--sf-weight-bold);
+    white-space: nowrap;
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  .formBadge[data-phase='review'] {
+    border-color: var(--sf-info);
+    background: var(--sf-info-bg);
+    color: var(--sf-info);
+  }
+
+  .formBadge[data-phase='submitting'] {
+    border-color: var(--sf-success);
+    background: var(--sf-success-bg);
+    color: var(--sf-success);
   }
 
   .promptChar {
@@ -321,6 +388,8 @@
     font-family: var(--sf-font-mono), monospace;
     font-size: var(--sf-text-base);
     flex: 1 1 auto;
+    white-space: pre-wrap;
+    word-break: break-word;
   }
 
   .inputWrap {
@@ -328,6 +397,7 @@
     flex: 1 1 auto;
     display: flex;
     align-items: center;
+    gap: var(--sf-space-3);
     min-width: var(--sf-space-0);
   }
 
@@ -348,6 +418,34 @@
   .input:focus {
     border-color: transparent;
     box-shadow: none;
+  }
+
+  .textarea {
+    width: 100%;
+    padding: var(--sf-space-0);
+    margin: var(--sf-space-0);
+    border: none;
+    background: transparent;
+    color: var(--sf-fg-bone);
+    font-family: var(--sf-font-mono), monospace;
+    font-size: var(--sf-text-base);
+    line-height: var(--sf-leading-base);
+    caret-color: var(--sf-gold);
+    resize: none;
+    outline: none;
+  }
+
+  .textarea::placeholder {
+    color: var(--sf-fg-cmt);
+  }
+
+  .inlineAction {
+    flex-shrink: 0;
+    --sf-fg-bone: var(--sf-gold);
+  }
+
+  .hiddenFileInput {
+    display: none;
   }
 
   .ghost {
@@ -375,6 +473,7 @@
     gap: var(--sf-space-3);
     font-size: var(--sf-text-xs);
     color: var(--sf-fg-cmt);
+    flex-shrink: 0;
   }
 
   .quickGroup {

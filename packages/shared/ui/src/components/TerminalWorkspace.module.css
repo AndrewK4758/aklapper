@@ -1,0 +1,170 @@
+@layer component {
+  .workspace {
+    position: relative;
+    flex: 1 1 auto;
+    width: 100%;
+    height: 100%;
+    min-width: var(--sf-space-0);
+    min-height: var(--sf-space-0);
+    background: var(--sf-bg-frame);
+    overflow: hidden;
+  }
+
+  .paneSlot {
+    position: absolute;
+    left: calc(var(--sf-pane-x, 0) * 100%);
+    top: calc(var(--sf-pane-y, 0) * 100%);
+    width: calc(var(--sf-pane-w, 1) * 100%);
+    height: calc(var(--sf-pane-h, 1) * 100%);
+    display: flex;
+    flex-direction: column;
+    min-width: var(--sf-space-0);
+    min-height: var(--sf-space-0);
+    overflow: hidden;
+  }
+
+  .paneSlot[data-hidden='true'] {
+    display: none;
+  }
+
+  .pane {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    width: 100%;
+    height: 100%;
+    min-width: var(--sf-space-0);
+    min-height: var(--sf-space-0);
+    background: var(--sf-bg-frame);
+    overflow: hidden;
+  }
+
+  .pane[data-multi='true'] {
+    box-shadow: inset 0 0 0 var(--sf-border-width) var(--sf-guide);
+  }
+
+  .pane[data-multi='true'][data-active='true'] {
+    box-shadow: inset 0 0 0 var(--sf-border-width) var(--sf-accent-border);
+  }
+
+  .paneBar {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    gap: var(--sf-space-3);
+    padding: var(--sf-space-1) var(--sf-space-5);
+    background: var(--sf-bg-editor);
+    border-bottom: var(--sf-border-width) solid var(--sf-guide);
+    color: var(--sf-fg-cmt);
+    font-size: var(--sf-text-xs);
+    flex-shrink: 0;
+  }
+
+  .pane[data-active='true'] .paneBar {
+    color: var(--sf-gold);
+    border-bottom-color: var(--sf-accent-border);
+  }
+
+  .paneTitle {
+    display: inline-flex;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-space-2);
+    font-weight: var(--sf-weight-bold);
+    white-space: nowrap;
+  }
+
+  .paneDot {
+    width: var(--sf-space-2);
+    height: var(--sf-space-2);
+    border-radius: var(--sf-radius-full);
+    background: var(--sf-fg-cmt);
+    flex-shrink: 0;
+  }
+
+  .pane[data-active='true'] .paneDot {
+    background: var(--sf-gold);
+  }
+
+  .paneToolbar {
+    display: inline-flex;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-space-1);
+    background: transparent;
+    border: none;
+    padding: var(--sf-space-0);
+  }
+
+  .paneAction {
+    --sf-bg-panel: transparent;
+    --sf-border: transparent;
+    --sf-fg-bone: var(--sf-fg-cmt);
+    --sf-control-h-xs: calc(var(--sf-space-unit) * 5);
+    --sf-space-4: var(--sf-space-2);
+    font-size: var(--sf-text-xs);
+  }
+
+  .paneAction:hover:not(:disabled, [data-disabled]) {
+    --sf-fg-bone: var(--sf-gold);
+  }
+
+  .paneBody {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: var(--sf-space-0);
+    min-height: var(--sf-space-0);
+    overflow: hidden;
+  }
+
+  .primaryFlushBody {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    width: 100%;
+    height: 100%;
+    min-width: var(--sf-space-0);
+    min-height: var(--sf-space-0);
+    overflow: hidden;
+    outline: none;
+  }
+
+  .primaryScrollBody {
+    position: relative;
+    flex: 1 1 auto;
+    width: 100%;
+    height: 100%;
+    min-width: var(--sf-space-0);
+    min-height: var(--sf-space-0);
+    overflow: auto;
+    outline: none;
+  }
+
+  .primaryInner {
+    width: min(var(--sf-container-lg), 100%);
+    margin-inline: auto;
+    padding: var(--sf-space-11) var(--sf-space-8);
+    display: grid;
+    gap: var(--sf-space-9);
+    align-content: var(--sf-align-start);
+  }
+
+  .tuiOverlay {
+    position: absolute;
+    inset: var(--sf-space-4);
+    z-index: var(--sf-z-sticky);
+    display: flex;
+    flex-direction: column;
+    justify-content: var(--sf-justify-start);
+    pointer-events: none;
+    overflow: auto;
+  }
+
+  .tuiOverlay > * {
+    pointer-events: auto;
+    max-width: var(--sf-container-md);
+    width: 100%;
+  }
+}

@@ -13,6 +13,7 @@ import {
   NavigationMenu,
   OscStatusBadge,
   SolarForgeEmblem,
+  TerminalWorkspace,
   Tooltip,
   useAnimatedFavicon,
 } from '@aklapper/ui';
@@ -27,6 +28,7 @@ import {
   ScrollRestoration,
   useLoaderData,
   useLocation,
+  useNavigate,
   useRouteLoaderData,
 } from 'react-router';
 
@@ -43,6 +45,11 @@ export async function loader(): Promise<AdminRootLoaderData> {
       siteUrlEnvKey: 'PUBLIC_ADMIN_URL',
     }),
   };
+}
+
+function getAdminPaneTitle(pathname: string): string {
+  const normalized = pathname.replace(/\/+$/, '') || '/';
+  return normalized === '/' ? 'tui :: admin' : `tui :: admin${normalized}`;
 }
 
 export function meta({ loaderData, location }: MetaArgs<typeof loader>) {
@@ -89,12 +96,18 @@ export function Layout({ children }: { children: ReactNode }) {
 
 export default function AdminRoot() {
   useAnimatedFavicon();
-  const { chrome } = useLoaderData() as AdminRootLoaderData;
+  const { chrome, terminal } = useLoaderData() as AdminRootLoaderData;
+  const location = useLocation();
+  const navigate = useNavigate();
+  const hasGlobalWorkspace = Boolean(terminal);
 
   return (
     <DirectionProvider.Provider direction='ltr'>
       <Tooltip.Provider>
-        <div className={styles.shell}>
+        <div
+          className={styles.shell}
+          data-pane-workspace={hasGlobalWorkspace ? 'true' : 'false'}
+        >
           <header className={styles.bar}>
             <NavigationMenu.Root>
               <NavigationMenu.List>
@@ -106,14 +119,38 @@ export default function AdminRoot() {
                 </NavigationMenu.Item>
               </NavigationMenu.List>
             </NavigationMenu.Root>
-            <OscStatusBadge
-              source={chrome.statusBadge.source}
-              state={chrome.statusBadge.state}
-              label={chrome.statusBadge.label}
-            />
+            <div className={styles.barMeta}>
+              {hasGlobalWorkspace ? (
+                <span className={styles.shortcutHint}>
+                  ⌘D / Ctrl+⇧O split · ⌘⇧D / Ctrl+⇧E hsplit
+                </span>
+              ) : null}
+              <OscStatusBadge
+                source={chrome.statusBadge.source}
+                state={chrome.statusBadge.state}
+                label={chrome.statusBadge.label}
+              />
+            </div>
           </header>
-          <main className={styles.main}>
-            <Outlet />
+          <main
+            className={styles.main}
+            data-pane-workspace={hasGlobalWorkspace ? 'true' : 'false'}
+          >
+            {terminal ? (
+              <TerminalWorkspace
+                terminal={terminal}
+                disableMenuShortcut
+                navigate={to => {
+                  void navigate(to);
+                }}
+                primaryPane={{
+                  title: getAdminPaneTitle(location.pathname),
+                  content: <Outlet />,
+                }}
+              />
+            ) : (
+              <Outlet />
+            )}
           </main>
         </div>
       </Tooltip.Provider>

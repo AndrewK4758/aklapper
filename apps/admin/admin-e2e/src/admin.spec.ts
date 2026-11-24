@@ -12,7 +12,7 @@ test.describe('admin SSR end-to-end journeys', () => {
     const getErrors = trackPageErrors(page);
 
     await page.goto('/');
-    await expect(page).toHaveTitle(/admin\.andrew-k\.us \/\/ Solar Forge Ops/i);
+    await expect(page).toHaveTitle(/^Andrew Klapper Admin$/);
     await expect(page.getByRole('heading', { name: /Admin Operations Console/i })).toBeVisible();
     await expect(page.getByText(/Passkey Auth Required/i)).toBeVisible();
 

@@ -1,5 +1,7 @@
+import { sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
   integer,
   jsonb,
   pgTable,
@@ -212,3 +214,69 @@ export const analyticsEvents = pgTable('analytics_events', {
   metadataJson: jsonb('metadata_json').$type<Record<string, unknown>>().notNull().default({}),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const contactSubmissions = pgTable(
+  'contact_submissions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    phone: text('phone'),
+    email: text('email').notNull(),
+    message: text('message').notNull(),
+    attachmentName: text('attachment_name'),
+    attachmentMimeType: text('attachment_mime_type'),
+    attachmentSizeBytes: integer('attachment_size_bytes'),
+    attachmentSha256: text('attachment_sha256'),
+    attachmentContentBase64: text('attachment_content_base64'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  table => [
+    check(
+      'contact_name_length_check',
+      sql`char_length(btrim(${table.name})) >= 2 AND char_length(btrim(${table.name})) <= 120`,
+    ),
+    check(
+      'contact_phone_format_check',
+      sql`${table.phone} IS NULL OR (char_length(btrim(${table.phone})) >= 7 AND char_length(btrim(${table.phone})) <= 32 AND ${table.phone} ~ '^[0-9+(). -]+$')`,
+    ),
+    check(
+      'contact_email_format_check',
+      sql`char_length(btrim(${table.email})) <= 254 AND ${table.email} ~* '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$'`,
+    ),
+    check(
+      'contact_message_length_check',
+      sql`char_length(btrim(${table.message})) >= 10 AND char_length(btrim(${table.message})) <= 4000`,
+    ),
+    check(
+      'contact_attachment_consistency_check',
+      sql`(
+        ${table.attachmentName} IS NULL
+        AND ${table.attachmentMimeType} IS NULL
+        AND ${table.attachmentSizeBytes} IS NULL
+        AND ${table.attachmentSha256} IS NULL
+        AND ${table.attachmentContentBase64} IS NULL
+      ) OR (
+        ${table.attachmentName} IS NOT NULL
+        AND char_length(btrim(${table.attachmentName})) >= 1
+        AND char_length(btrim(${table.attachmentName})) <= 255
+        AND ${table.attachmentMimeType} IN (
+          'application/pdf',
+          'text/plain',
+          'text/markdown',
+          'image/png',
+          'image/jpeg',
+          'image/webp',
+          'application/json',
+          'text/csv'
+        )
+        AND ${table.attachmentSizeBytes} IS NOT NULL
+        AND ${table.attachmentSizeBytes} >= 1
+        AND ${table.attachmentSizeBytes} <= 5242880
+        AND ${table.attachmentSha256} IS NOT NULL
+        AND ${table.attachmentSha256} ~ '^[a-fA-F0-9]{64}$'
+        AND ${table.attachmentContentBase64} IS NOT NULL
+        AND char_length(${table.attachmentContentBase64}) >= 1
+      )`,
+    ),
+  ],
+);

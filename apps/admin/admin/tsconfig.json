@@ -4,6 +4,9 @@
   "include": [],
   "references": [
     {
+      "path": "./tsconfig.pages.json"
+    },
+    {
       "path": "./tsconfig.app.json"
     },
     {

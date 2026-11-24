@@ -6,6 +6,7 @@ import {
   buildZshCommandHandlers,
   Button,
   OscStatusBadge,
+  RecursiveTuiForm,
   SandboxedArtifactFrame,
   SolarForgeEmblem,
   TuiWindow,
@@ -100,7 +101,7 @@ describe('@aklapper/ui', () => {
 
   it('executes typed terminal commands, supports shell keybindings, and runs quick-command chips', () => {
     const onEscape = vi.fn<() => void>();
-    render(
+    const { container } = render(
       <ZshP10kTerminal
         directory='~/andrew-k.us'
         vcsBranch='portfolio_v2'
@@ -113,6 +114,13 @@ describe('@aklapper/ui', () => {
         }}
       />,
     );
+
+    const leftTail = container.querySelector('svg[data-prompt-tail="left"]');
+    const rightTail = container.querySelector('svg[data-prompt-tail="right"]');
+    expect(leftTail?.getAttribute('viewBox')).toBe('0 0 24 16');
+    expect(rightTail?.getAttribute('viewBox')).toBe('0 0 24 16');
+    expect(leftTail?.querySelector('path')?.getAttribute('d')).toBeTruthy();
+    expect(rightTail?.querySelector('path')?.getAttribute('d')).toBeTruthy();
 
     const input = screen.getByLabelText('Terminal command input') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'sta' } });
@@ -233,5 +241,120 @@ describe('@aklapper/ui', () => {
     });
     expect(handlers['roadmap']?.([], 'roadmap')).toEqual({ output: '[x] Postgres 19 wired' });
     expect(handlers['uptime']?.([], 'uptime')).toEqual({ output: 'up 42s' });
+  });
+
+  it('recursively parses nested fieldsets/fields in RecursiveTuiForm and enforces client validation', async () => {
+    const { CONTACT_FORM_DEFINITION } = await import('@aklapper/contracts');
+    const onValidSubmit = vi.fn<(values: unknown, event: { preventDefault: () => void }) => void>(
+      (_values, event) => event.preventDefault(),
+    );
+
+    const { container } = render(
+      <RecursiveTuiForm
+        definition={CONTACT_FORM_DEFINITION}
+        serverErrors={{ email: ['Server flagged disposable domain'] }}
+        serverFormError='Server validation failed'
+        errorSource='server'
+        onValidSubmit={onValidSubmit}
+      />,
+    );
+
+    // Verifies recursive fieldset nesting (2 top-level + 1 nested fieldset)
+    const fieldsets = container.querySelectorAll('fieldset');
+    expect(fieldsets).toHaveLength(3);
+    expect(screen.getByText(/01 \/\/ Sender Identity/i)).toBeTruthy();
+    expect(screen.getByText(/01\.1 \/\/ Optional Callback Channel/i)).toBeTruthy();
+    expect(screen.getByText(/02 \/\/ Message & Attachment/i)).toBeTruthy();
+
+    // Server error renders initially
+    expect(screen.getByText('Server flagged disposable domain')).toBeTruthy();
+
+    // Empty submit triggers client-side validation and blocks onValidSubmit
+    fireEvent.click(screen.getByRole('button', { name: /Transmit Message/i }));
+    expect(onValidSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText('Name is required')).toBeTruthy();
+    expect(screen.getByText('Email is required')).toBeTruthy();
+    expect(screen.getByText('Message is required')).toBeTruthy();
+
+    // Fill required fields (leaving optional Phone & File empty) -> clears errors and succeeds
+    fireEvent.change(screen.getByLabelText(/Name/i), { target: { value: 'Ada Lovelace' } });
+    fireEvent.change(screen.getByLabelText(/Email/i), {
+      target: { value: 'ada@analytical-engine.org' },
+    });
+    fireEvent.change(screen.getByLabelText(/^Message\b/i), {
+      target: { value: 'Building a recursive Solar Forge TUI form.' },
+    });
+
+    // Live CLI command preview reflects current values
+    expect(screen.getByText(/\$ contact --name "Ada Lovelace"/i)).toBeTruthy();
+
+    // Attach optional file and then clear it
+    const fileInput = screen.getByLabelText(/File/i) as HTMLInputElement;
+    const sampleFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
+    fireEvent.change(fileInput, { target: { files: [sampleFile] } });
+    expect(screen.getByText(/▸ notes\.txt/i)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Clear File/i }));
+    expect(screen.queryByText(/▸ notes\.txt/i)).toBeNull();
+
+    // Valid submit succeeds without optional phone/file
+    fireEvent.click(screen.getByRole('button', { name: /Transmit Message/i }));
+    expect(onValidSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('validates fields on blur, rejects disallowed files, resets buffer, and submits with Ctrl+Enter', async () => {
+    const { CONTACT_FORM_DEFINITION } = await import('@aklapper/contracts');
+    const onValidSubmit = vi.fn<(values: unknown, event: { preventDefault: () => void }) => void>(
+      (_values, event) => event.preventDefault(),
+    );
+
+    render(
+      <RecursiveTuiForm
+        definition={CONTACT_FORM_DEFINITION}
+        serverErrors={{ email: ['Email field rejected by DB check'] }}
+        serverFormError='Database constraint rejected submission.'
+        errorSource='database'
+        onValidSubmit={onValidSubmit}
+      />,
+    );
+
+    // Database constraint error source badge and field error render
+    expect(screen.getByText('[database]')).toBeTruthy();
+    expect(screen.getByText('Email field rejected by DB check')).toBeTruthy();
+
+    // Editing email clears the server/database field error on that field
+    const emailInput = screen.getByLabelText(/Email/i) as HTMLInputElement;
+    fireEvent.change(emailInput, { target: { value: 'not-an-email' } });
+    expect(screen.queryByText('Email field rejected by DB check')).toBeNull();
+
+    // Blur validates invalid email and optional invalid phone
+    fireEvent.blur(emailInput);
+    expect(screen.getByText(/Enter a valid email address/i)).toBeTruthy();
+
+    const phoneInput = screen.getByLabelText(/Phone/i) as HTMLInputElement;
+    fireEvent.change(phoneInput, { target: { value: '12' } });
+    fireEvent.blur(phoneInput);
+    expect(screen.getByText(/Phone must be at least 7 characters/i)).toBeTruthy();
+
+    // Disallowed file extension shows immediate client validation error
+    const fileInput = screen.getByLabelText(/File/i) as HTMLInputElement;
+    const badFile = new File(['#!/bin/sh'], 'payload.sh', { type: 'text/plain' });
+    fireEvent.change(fileInput, { target: { files: [badFile] } });
+    expect(screen.getByText(/Unsupported file type/i)).toBeTruthy();
+
+    // Reset Buffer clears values, file, and client errors
+    fireEvent.click(screen.getByRole('button', { name: /Reset Buffer/i }));
+    expect(emailInput.value).toBe('');
+    expect(phoneInput.value).toBe('');
+    expect(screen.queryByText(/Unsupported file type/i)).toBeNull();
+
+    // Populate valid required fields and submit via Ctrl+Enter in message textarea
+    fireEvent.change(screen.getByLabelText(/Name/i), { target: { value: 'Linus Torvalds' } });
+    fireEvent.change(emailInput, { target: { value: 'linus@kernel.example' } });
+    const messageInput = screen.getByLabelText(/^Message\b/i);
+    fireEvent.change(messageInput, {
+      target: { value: 'Testing Ctrl+Enter submission shortcut from textarea.' },
+    });
+    fireEvent.keyDown(messageInput, { key: 'Enter', ctrlKey: true });
+    expect(onValidSubmit).toHaveBeenCalledTimes(1);
   });
 });

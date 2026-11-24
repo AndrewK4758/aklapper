@@ -1,5 +1,9 @@
 import { z } from 'zod';
 
+import { type FormDefinition, FormDefinitionSchema } from './forms.ts';
+
+export * from './forms.ts';
+
 export const RoleSchema = z.enum(['guest', 'admin']);
 export type Role = z.infer<typeof RoleSchema>;
 
@@ -216,6 +220,14 @@ export const PortalCadenceContentSchema = z.object({
 });
 export type PortalCadenceContent = z.infer<typeof PortalCadenceContentSchema>;
 
+export const PortalContactContentSchema = z.object({
+  windowTitle: z.string().min(1),
+  statusBadge: StatusBadgeSpecSchema,
+  description: z.string().min(1),
+  form: FormDefinitionSchema,
+});
+export type PortalContactContent = z.infer<typeof PortalContactContentSchema>;
+
 export const PortalMaintenanceContentSchema = z.object({
   windowTitle: z.string().min(1),
   statusBadge: StatusBadgeSpecSchema,
@@ -277,12 +289,16 @@ export interface PortalRootLoaderData {
   maintenanceMode: boolean;
   chrome: PortalChromeContent;
   maintenance: PortalMaintenanceLoaderData | null;
+  terminal?: TerminalProfileData;
+  homeContent?: PortalHomeContent;
+  contactForm?: FormDefinition;
   runtimeSeo?: DocumentSeoRuntimeConfig;
 }
 
 export interface PortalHomeLoaderData {
   content: PortalHomeContent;
   terminal: TerminalProfileData;
+  contactForm: FormDefinition;
 }
 
 export interface PortalMenuLoaderData {
@@ -295,8 +311,13 @@ export interface PortalCadenceLoaderData {
   presets: readonly CadencePreset[];
 }
 
+export interface PortalContactLoaderData {
+  content: PortalContactContent;
+}
+
 export interface AdminRootLoaderData {
   chrome: AdminChromeContent;
+  terminal?: TerminalProfileData;
   runtimeSeo?: DocumentSeoRuntimeConfig;
 }
 

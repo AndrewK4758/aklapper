@@ -1,13 +1,15 @@
-import type {
-  AdminAnalyticsContent,
-  AdminChromeContent,
-  AdminHomeContent,
-  MenuItem,
-  PortalCadenceContent,
-  PortalChromeContent,
-  PortalHomeContent,
-  PortalMaintenanceContent,
-  PortalMenuContent,
+import {
+  type AdminAnalyticsContent,
+  type AdminChromeContent,
+  type AdminHomeContent,
+  CONTACT_FORM_DEFINITION,
+  type MenuItem,
+  type PortalCadenceContent,
+  type PortalChromeContent,
+  type PortalContactContent,
+  type PortalHomeContent,
+  type PortalMaintenanceContent,
+  type PortalMenuContent,
 } from '@aklapper/contracts';
 import { loadWorkspaceEnv } from '@aklapper/shared-utils/env';
 import { notInArray } from 'drizzle-orm';
@@ -123,6 +125,7 @@ const PORTAL_HOME_SEED: PortalHomeContent = {
   actions: [
     { label: 'Enter as Guest → /menu', to: '/menu', variant: 'primary' },
     { label: 'Open CADENCE → /cadence', to: '/cadence', variant: 'default' },
+    { label: 'Open Contact → /contact', to: '/contact', variant: 'default' },
     { label: 'Preview Changes in Progress', to: '/changes-in-progress', variant: 'default' },
   ],
 };
@@ -143,6 +146,18 @@ const PORTAL_CADENCE_SEED: PortalCadenceContent = {
   description:
     'Quota-gated prompt builder wired for live Go GKE scale-from-zero execution and Qdrant recall.',
   iframeTitle: 'CADENCE Artifact Preview',
+};
+
+const PORTAL_CONTACT_SEED: PortalContactContent = {
+  windowTitle: 'tui :: contact // direct transmission',
+  statusBadge: {
+    source: 'postgres-19',
+    state: 'ready',
+    label: 'validated · pg19',
+  },
+  description:
+    'Recursive Zod + JSON TUI form parser with client, server, and PostgreSQL 19 CHECK constraint validation.',
+  form: CONTACT_FORM_DEFINITION,
 };
 
 const PORTAL_MAINTENANCE_SEED: PortalMaintenanceContent = {
@@ -209,6 +224,11 @@ const SITE_CONTENT_SEEDS: ReadonlyArray<{
     metadataJson: PORTAL_CADENCE_SEED,
   },
   {
+    key: SITE_CONTENT_KEYS.portalContact,
+    markdownBody: 'Portal contact form TUI content and recursive JSON schema.',
+    metadataJson: PORTAL_CONTACT_SEED,
+  },
+  {
     key: SITE_CONTENT_KEYS.portalMaintenance,
     markdownBody: 'Portal standalone changes-in-progress maintenance screen.',
     metadataJson: PORTAL_MAINTENANCE_SEED,
@@ -234,14 +254,14 @@ const TERMINAL_PROFILE_SEEDS = [
   {
     slug: TERMINAL_PROFILE_SLUGS.portalHome,
     bannerTitle: 'Solar Forge Terminal // tty1',
-    bannerMeta: 'tty1 · type "menu" or "tui" · Tab autocomplete',
+    bannerMeta: 'tty1 · type "menu", "tui", or "contact" · Tab autocomplete',
     osLabel: '⚡',
     directory: '~/projects/aklapper',
     vcsBranch: 'portfolio_v2',
     vcsState: 'clean' as const,
     contextLabel: 'guest@andrew-k.us',
-    placeholder: 'type a command (help, ls, menu, tui, cadence, cd ...)',
-    quickCommands: ['help', 'ls', 'menu', 'tui', 'cadence', 'status', 'clear'],
+    placeholder: 'type a command (help, ls, menu, tui, cadence, contact, cd ...)',
+    quickCommands: ['help', 'ls', 'menu', 'tui', 'cadence', 'contact', 'status', 'clear'],
   },
   {
     slug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
@@ -265,6 +285,7 @@ const TERMINAL_INITIAL_ENTRY_SEEDS = [
       'drwxr-xr-x  guest  solar-forge  menu/                 # Interactive module launcher',
       'drwxr-xr-x  guest  solar-forge  tui/                  # Draggable TUI launcher window',
       'drwxr-xr-x  guest  solar-forge  cadence/              # Sandboxed artifact builder',
+      'drwxr-xr-x  guest  solar-forge  contact/              # Recursive Zod/JSON TUI contact form',
       '-rw-r--r--  guest  solar-forge  changes-in-progress   # Production maintenance preview',
     ].join('\n'),
     status: 'ok' as const,
@@ -299,7 +320,8 @@ const TERMINAL_COMMAND_SEEDS = [
       '  menu       — open /menu module launcher',
       '  tui        — open draggable TUI launcher window',
       '  cadence    — open /cadence artifact sandbox',
-      '  cd <route> — navigate to /menu, /cadence, or /changes-in-progress',
+      '  contact    — run inline terminal contact form (or "contact --tui" / "--help")',
+      '  cd <route> — navigate to /menu, /cadence, /contact, or /changes-in-progress',
       '  status     — inspect cluster & service state',
       '  whoami     — display active terminal session',
       '  clear      — clear terminal scrollback',
@@ -320,7 +342,7 @@ const TERMINAL_COMMAND_SEEDS = [
     name: 'ls',
     description: 'list portal routes & workspaces',
     kind: 'static' as const,
-    output: 'menu/   tui/   cadence/   changes-in-progress',
+    output: 'menu/   tui/   cadence/   contact/   changes-in-progress',
     targetRoute: null,
     allowedRoutes: [] as string[],
     errorTemplate: null,
@@ -361,15 +383,26 @@ const TERMINAL_COMMAND_SEEDS = [
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
+    name: 'contact',
+    description: 'run inline terminal contact form (or "contact --tui" / "--help")',
+    kind: 'navigate' as const,
+    output: 'opening /contact ...',
+    targetRoute: '/contact',
+    allowedRoutes: [] as string[],
+    errorTemplate: null,
+    sortOrder: 6,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'cd',
-    description: 'navigate to /menu, /cadence, or /changes-in-progress',
+    description: 'navigate to /menu, /cadence, /contact, or /changes-in-progress',
     kind: 'cd' as const,
     output: 'cd /{{target}}',
     targetRoute: null,
-    allowedRoutes: ['menu', 'cadence', 'changes-in-progress'],
+    allowedRoutes: ['menu', 'cadence', 'contact', 'changes-in-progress'],
     errorTemplate:
-      'cd: no such route: {{input}}\nTry: cd menu | cd cadence | cd changes-in-progress',
-    sortOrder: 6,
+      'cd: no such route: {{input}}\nTry: cd menu | cd cadence | cd contact | cd changes-in-progress',
+    sortOrder: 7,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
@@ -380,7 +413,7 @@ const TERMINAL_COMMAND_SEEDS = [
     targetRoute: null,
     allowedRoutes: [] as string[],
     errorTemplate: null,
-    sortOrder: 7,
+    sortOrder: 8,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
@@ -391,7 +424,7 @@ const TERMINAL_COMMAND_SEEDS = [
     targetRoute: null,
     allowedRoutes: [] as string[],
     errorTemplate: null,
-    sortOrder: 8,
+    sortOrder: 9,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
@@ -402,7 +435,7 @@ const TERMINAL_COMMAND_SEEDS = [
     targetRoute: null,
     allowedRoutes: [] as string[],
     errorTemplate: null,
-    sortOrder: 9,
+    sortOrder: 10,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
@@ -590,6 +623,7 @@ export {
   AGENSI_SKILL_SEEDS,
   CADENCE_PRESET_SEEDS,
   PORTAL_CADENCE_SEED,
+  PORTAL_CONTACT_SEED,
   PORTAL_HOME_SEED,
   PORTAL_MAINTENANCE_SEED,
   PORTAL_MENU_SEED,

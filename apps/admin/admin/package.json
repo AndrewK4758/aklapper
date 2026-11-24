@@ -3,6 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "imports": {
+    "#pages/*": {
+      "types": "./build/pages/*/index.d.ts",
+      "default": "./build/pages/*/index.js"
+    }
+  },
   "dependencies": {
     "@aklapper/analytics": "workspace:*",
     "@aklapper/contracts": "workspace:*",
@@ -32,11 +38,33 @@
       "runtime:ssr"
     ],
     "targets": {
+      "build-pages": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "dependsOn": [
+          "^build"
+        ],
+        "inputs": [
+          "{projectRoot}/src/pages/**/*",
+          "!{projectRoot}/src/pages/**/*.spec.*",
+          "!{projectRoot}/src/pages/**/*.test.*",
+          "{projectRoot}/tsconfig.pages.json",
+          "^production"
+        ],
+        "outputs": [
+          "{projectRoot}/build/pages"
+        ],
+        "options": {
+          "cwd": "apps/admin/admin",
+          "command": "node ../../../packages/shared/utils/dist/build-pages.js"
+        }
+      },
       "build": {
         "executor": "nx:run-commands",
         "cache": true,
         "defaultConfiguration": "production",
         "dependsOn": [
+          "build-pages",
           "^build"
         ],
         "inputs": [
@@ -69,6 +97,9 @@
         "cache": false,
         "executor": "nx:run-commands",
         "defaultConfiguration": "development",
+        "dependsOn": [
+          "build-pages"
+        ],
         "options": {
           "cwd": "apps/admin/admin",
           "command": "react-router dev"
@@ -135,9 +166,16 @@
           "command": "react-router typegen"
         }
       },
+      "test": {
+        "dependsOn": [
+          "build-pages"
+        ]
+      },
       "typecheck": {
         "dependsOn": [
+          "build-pages",
           "typegen",
+          "^build",
           "^typecheck"
         ]
       }
