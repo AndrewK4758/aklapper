@@ -1072,16 +1072,12 @@ const FORWARDED_UPSTREAM_RESPONSE_HEADERS = [
   'x-ratelimit-reset',
 ] as const;
 
-function hasTraversalSegment(splat: string): boolean {
-  for (const segment of splat.split(/[/\\]/)) {
-    if (segment === '..') return true;
-    try {
-      if (decodeURIComponent(segment) === '..') return true;
-    } catch {
-      return true;
-    }
+function isInvalidAuthSplat(splat: string): boolean {
+  if (splat.length === 0) return false;
+  if (splat.includes('%') || splat.includes('..') || !/^[a-z0-9/-]+$/.test(splat)) {
+    return true;
   }
-  return false;
+  return splat.split('/').some(segment => segment.length === 0 || segment === '.');
 }
 
 /**
@@ -1098,7 +1094,7 @@ export async function handleAdminAuthBffRequest(
   const env = options.env ?? process.env;
   const upstreamBase = (options.authApiUrl ?? env['AUTH_API_URL'])?.trim();
   const normalizedSplat = splat.replace(/^\/+|\/+$/g, '');
-  if (hasTraversalSegment(normalizedSplat)) {
+  if (isInvalidAuthSplat(normalizedSplat)) {
     return Response.json(
       { error: 'INVALID_REQUEST', message: 'Invalid auth path' },
       { status: 400 },

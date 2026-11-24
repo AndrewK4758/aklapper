@@ -29,21 +29,62 @@ const BODILESS_STATUS_CODES = new Set([204, 205, 304]);
 const SINGLE_PROXY_HOP = (_address: string, hop: number): boolean => hop === 0;
 
 function normalizeAdminAuthPath(rawUrl: string): string | null {
-  const rawPathname = rawUrl.split(/[?#]/, 1)[0] ?? '/';
-  let decoded: string;
+  let current: string;
   try {
-    decoded = decodeURIComponent(rawPathname);
+    current = new URL(rawUrl, 'http://localhost').pathname;
   } catch {
     return null;
   }
-  const collapsed = decoded.replace(/\\/g, '/').replace(/\/{2,}/g, '/');
+  for (let pass = 0; pass < 3; pass += 1) {
+    if (!current.includes('%')) break;
+    let next: string;
+    try {
+      next = decodeURIComponent(current);
+    } catch {
+      return null;
+    }
+    if (next === current) break;
+    current = next;
+  }
+  if (current.includes('%')) {
+    return null;
+  }
+  const collapsed = current.replace(/\\/g, '/').replace(/\/{2,}/g, '/');
   const prefixed = collapsed.startsWith('/') ? collapsed : `/${collapsed}`;
   try {
-    const resolved = new URL(prefixed, 'http://localhost').pathname.replace(/\/+$/, '');
+    const resolved = new URL(prefixed, 'http://localhost').pathname
+      .replace(/\/+$/, '')
+      .toLowerCase();
     return resolved || '/';
   } catch {
     return null;
   }
+}
+
+function isRawAuthApiTarget(rawUrl: string): boolean {
+  let candidatePath: string;
+  try {
+    candidatePath = new URL(rawUrl, 'http://localhost').pathname;
+  } catch {
+    candidatePath = rawUrl.split(/[?#]/, 1)[0] ?? '';
+  }
+  let decoded = candidatePath;
+  for (let pass = 0; pass < 3; pass += 1) {
+    const next = decoded.replace(/%[0-9a-fA-F]{2}/g, seq => {
+      try {
+        return decodeURIComponent(seq);
+      } catch {
+        return seq;
+      }
+    });
+    if (next === decoded) break;
+    decoded = next;
+  }
+  const normalized = decoded
+    .replace(/\\/g, '/')
+    .replace(/\/{2,}/g, '/')
+    .toLowerCase();
+  return normalized.startsWith('/api/auth/') || normalized === '/api/auth';
 }
 
 function collectResponseHeaders(webHeaders: Headers): Record<string, string | string[]> {
@@ -108,11 +149,14 @@ export async function createSsrServer(options: SsrServerOptions): Promise<SsrSer
       if (request.method !== 'POST') return;
       const pathname = normalizeAdminAuthPath(request.url);
       if (pathname === null) {
-        return reply.code(400).send({
-          statusCode: 400,
-          error: 'INVALID_REQUEST',
-          message: 'Malformed request URL',
-        });
+        if (isRawAuthApiTarget(request.url)) {
+          return reply.code(400).send({
+            statusCode: 400,
+            error: 'INVALID_REQUEST',
+            message: 'Malformed request URL',
+          });
+        }
+        return;
       }
       if (pathname === '/api/auth/password/login') {
         await passwordLoginLimiter.call(app, request, reply);

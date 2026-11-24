@@ -1,4 +1,5 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { connect } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -461,6 +462,116 @@ describe('@aklapper/node-runtime/ssr', () => {
         statusCode: 429,
         error: 'RATE_LIMITED',
       });
+    } finally {
+      await adminServer.app.close();
+    }
+  });
+
+  it('rate-limits uppercase, double-encoded %252F, and HTTP/1.1 absolute-form request targets on admin-ssr', async () => {
+    const buildDir = await createFixtureBuildDir();
+    activeHandlerRef.current = async () => new Response('ok', { status: 200 });
+
+    const adminServer = await createSsrServer({
+      serviceName: 'admin-ssr',
+      buildDir,
+      port: 0,
+      host: '127.0.0.1',
+    });
+
+    const sendRawAbsoluteFormPost = async (
+      port: number,
+      target: string,
+      clientIp: string,
+    ): Promise<{ status: number; headers: string; body: string }> => {
+      return new Promise((resolvePromise, reject) => {
+        const socket = connect(port, '127.0.0.1', () => {
+          socket.write(
+            `POST ${target} HTTP/1.1\r\nHost: localhost\r\nX-Forwarded-For: ${clientIp}\r\nContent-Type: application/json\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}`,
+          );
+        });
+        let raw = '';
+        socket.on('data', chunk => {
+          raw += chunk.toString('utf8');
+        });
+        socket.on('error', reject);
+        socket.on('end', () => {
+          const [head = '', body = ''] = raw.split('\r\n\r\n', 2);
+          const status = Number(head.split('\r\n')[0]?.split(' ')[1] ?? '0');
+          resolvePromise({ status, headers: head.toLowerCase(), body });
+        });
+      });
+    };
+
+    try {
+      const address = new URL(await adminServer.start());
+      const port = Number(address.port);
+
+      for (const [idx, path] of [
+        '/API/AUTH/password/login',
+        '/api/auth/password%252Flogin',
+        '/Api/Auth/totp/verify',
+        '/api/auth/totp%252Fverify',
+      ].entries()) {
+        const ip = `203.0.113.${101 + idx}`;
+        for (let i = 0; i < 20; i += 1) {
+          const ok = await adminServer.app.inject({
+            method: 'POST',
+            url: path,
+            headers: { 'content-type': 'application/json', 'x-forwarded-for': ip },
+            payload: '{}',
+          });
+          expect(ok.statusCode).toBe(200);
+          expect(ok.headers['x-ratelimit-limit']).toBe('20');
+        }
+        const limited = await adminServer.app.inject({
+          method: 'POST',
+          url: path,
+          headers: { 'content-type': 'application/json', 'x-forwarded-for': ip },
+          payload: '{}',
+        });
+        expect(limited.statusCode).toBe(429);
+        expect(limited.json()).toMatchObject({ statusCode: 429, error: 'RATE_LIMITED' });
+      }
+
+      for (const [idx, target] of [
+        'http://localhost/api/auth/password/login',
+        'http://localhost/api/auth/totp/verify',
+      ].entries()) {
+        const ip = `203.0.113.${110 + idx}`;
+        for (let i = 0; i < 20; i += 1) {
+          const ok = await sendRawAbsoluteFormPost(port, target, ip);
+          expect(ok.status).toBe(200);
+          expect(ok.headers).toContain('x-ratelimit-limit: 20');
+        }
+        const limited = await sendRawAbsoluteFormPost(port, target, ip);
+        expect(limited.status).toBe(429);
+        expect(JSON.parse(limited.body)).toMatchObject({ statusCode: 429, error: 'RATE_LIMITED' });
+      }
+
+      const malformedAuth = await adminServer.app.inject({
+        method: 'POST',
+        url: '/api/auth/password%ZZlogin',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.120' },
+        payload: '{}',
+      });
+      expect(malformedAuth.statusCode).toBe(400);
+
+      const overEncodedAuth = await adminServer.app.inject({
+        method: 'POST',
+        url: '/api/auth/password%2525252Flogin',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.120' },
+        payload: '{}',
+      });
+      expect(overEncodedAuth.statusCode).toBe(400);
+      expect(overEncodedAuth.json()).toMatchObject({ statusCode: 400, error: 'INVALID_REQUEST' });
+
+      const nonAuthPercent = await adminServer.app.inject({
+        method: 'POST',
+        url: '/cms/100%25',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.120' },
+        payload: '{}',
+      });
+      expect(nonAuthPercent.statusCode).toBe(200);
     } finally {
       await adminServer.app.close();
     }

@@ -836,6 +836,21 @@ describe('@aklapper/db auth & analytics BFF services', () => {
       { authApiUrl: 'http://auth.internal:4101', fetchImpl: fetchMock },
     );
     expect(encodedTraversal.status).toBe(400);
+
+    const encodedSlashTraversal = await handleAdminAuthBffRequest(
+      new Request('http://localhost:4301/api/auth/..%2Fsession'),
+      '..%2Fsession',
+      { authApiUrl: 'http://auth.internal:4101', fetchImpl: fetchMock },
+    );
+    expect(encodedSlashTraversal.status).toBe(400);
+    expect(await encodedSlashTraversal.json()).toMatchObject({ error: 'INVALID_REQUEST' });
+
+    const doubleEncodedAuth = await handleAdminAuthBffRequest(
+      new Request('http://localhost:4301/api/auth/password%252Flogin'),
+      'password%252Flogin',
+      { authApiUrl: 'http://auth.internal:4101', fetchImpl: fetchMock },
+    );
+    expect(doubleEncodedAuth.status).toBe(400);
     expect(fetchMock.mock.calls.length).toBe(traversalCallsBefore);
   });
 
