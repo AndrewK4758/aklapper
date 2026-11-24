@@ -1,0 +1,179 @@
+@layer tokens {
+  :root,
+  :root[data-theme='solar-forge'] {
+    /* Durations (calc-derived from --sf-duration-unit) */
+    --sf-duration-unit: 100ms;
+    --sf-duration-instant: calc(var(--sf-duration-unit) * 0.75);
+    --sf-duration-fast: calc(var(--sf-duration-unit) * 1.4);
+    --sf-duration-normal: calc(var(--sf-duration-unit) * 2);
+    --sf-duration-slow: calc(var(--sf-duration-unit) * 3.2);
+    --sf-duration-slower: calc(var(--sf-duration-unit) * 4.8);
+    --sf-duration-spin: calc(var(--sf-duration-unit) * 9);
+    --sf-duration-pulse: calc(var(--sf-duration-unit) * 16);
+    --sf-duration-shimmer: calc(var(--sf-duration-unit) * 18);
+    --sf-duration-reduced: 0.01ms;
+
+    /* Easing curves */
+    --sf-ease-linear: linear;
+    --sf-ease-standard: ease;
+    --sf-ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --sf-ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --sf-ease-in-out: ease-in-out;
+    --sf-ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+    --sf-ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+    --sf-ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* Motion distances & transform scales (relative calc) */
+    --sf-motion-distance-xs: calc(var(--sf-space-unit) * 1);
+    --sf-motion-distance-sm: calc(var(--sf-space-unit) * 1.5);
+    --sf-motion-distance-md: calc(var(--sf-space-unit) * 3);
+    --sf-motion-distance-lg: calc(var(--sf-space-unit) * 6);
+    --sf-motion-scale-enter: 0.96;
+    --sf-motion-scale-press: 0.98;
+    --sf-dialog-enter-y: var(--sf-motion-distance-sm);
+    --sf-emblem-sweep-x: calc(var(--sf-space-unit) * 1.25);
+    --sf-emblem-sweep-duration: calc(var(--sf-duration-unit) * 24);
+
+    /* Composite transition shorthands */
+    --sf-transition-colors:
+      color var(--sf-duration-fast) var(--sf-ease-standard),
+      background-color var(--sf-duration-fast) var(--sf-ease-standard),
+      border-color var(--sf-duration-fast) var(--sf-ease-standard);
+    --sf-transition-transform: transform var(--sf-duration-normal) var(--sf-ease-spring);
+    --sf-transition-overlay:
+      opacity var(--sf-duration-fast) var(--sf-ease-out),
+      transform var(--sf-duration-fast) var(--sf-ease-spring);
+  }
+
+  @keyframes sf-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes sf-fade-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes sf-scale-in {
+    from {
+      opacity: 0;
+      transform: scale(var(--sf-motion-scale-enter));
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes sf-scale-out {
+    from {
+      opacity: 1;
+      transform: scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: scale(var(--sf-motion-scale-enter));
+    }
+  }
+
+  @keyframes sf-slide-up-in {
+    from {
+      opacity: 0;
+      transform: translateY(var(--sf-motion-distance-sm));
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes sf-slide-down-in {
+    from {
+      opacity: 0;
+      transform: translateY(calc(var(--sf-motion-distance-sm) * -1));
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes sf-slide-left-in {
+    from {
+      opacity: 0;
+      transform: translateX(var(--sf-motion-distance-md));
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes sf-slide-right-in {
+    from {
+      opacity: 0;
+      transform: translateX(calc(var(--sf-motion-distance-md) * -1));
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes sf-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes sf-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.45;
+    }
+  }
+
+  @keyframes sf-shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+
+  @keyframes sf-caret-blink {
+    0%,
+    49% {
+      opacity: 1;
+    }
+    50%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes sf-indeterminate {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(300%);
+    }
+  }
+}

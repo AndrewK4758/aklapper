@@ -1,0 +1,8 @@
+@import '@aklapper/ui/theme.css';
+
+@layer tokens {
+  :root {
+    /* Portal app-level token overrides on top of @aklapper/ui */
+    --sf-container-lg: var(--sf-container-portal);
+  }
+}

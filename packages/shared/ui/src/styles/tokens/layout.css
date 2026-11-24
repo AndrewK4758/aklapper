@@ -1,0 +1,177 @@
+@layer tokens {
+  :root,
+  :root[data-theme='solar-forge'] {
+    /* Root relative sizing units (1rem root, 0.25rem spacing step) */
+    --sf-size-unit: 1rem;
+    --sf-space-unit: calc(var(--sf-size-unit) * 0.25);
+
+    /* Spacing scale (calc-derived from --sf-space-unit) */
+    --sf-space-0: 0;
+    --sf-space-hairline: calc(var(--sf-space-unit) * 0.25);
+    --sf-space-1: calc(var(--sf-space-unit) * 0.5);
+    --sf-space-2: calc(var(--sf-space-unit) * 1);
+    --sf-space-3: calc(var(--sf-space-unit) * 1.5);
+    --sf-space-4: calc(var(--sf-space-unit) * 2);
+    --sf-space-5: calc(var(--sf-space-unit) * 2.5);
+    --sf-space-6: calc(var(--sf-space-unit) * 3);
+    --sf-space-7: calc(var(--sf-space-unit) * 3.5);
+    --sf-space-8: calc(var(--sf-space-unit) * 4.5);
+    --sf-space-9: calc(var(--sf-space-unit) * 5);
+    --sf-space-10: calc(var(--sf-space-unit) * 7);
+    --sf-space-11: calc(var(--sf-space-unit) * 8);
+    --sf-space-12: calc(var(--sf-space-unit) * 10);
+    --sf-space-13: calc(var(--sf-space-unit) * 12);
+    --sf-space-14: calc(var(--sf-space-unit) * 16);
+    --sf-space-15: calc(var(--sf-space-unit) * 20);
+    --sf-space-16: calc(var(--sf-space-unit) * 24);
+
+    /* Semantic spacing & insets */
+    --sf-gap-2xs: var(--sf-space-1);
+    --sf-gap-xs: var(--sf-space-2);
+    --sf-gap-sm: var(--sf-space-3);
+    --sf-gap-md: var(--sf-space-4);
+    --sf-gap-lg: var(--sf-space-6);
+    --sf-gap-xl: var(--sf-space-8);
+    --sf-gap-2xl: var(--sf-space-10);
+    --sf-inset-control-x: var(--sf-space-6);
+    --sf-inset-control-y: var(--sf-space-3);
+    --sf-inset-panel: var(--sf-space-7);
+    --sf-inset-section: var(--sf-space-9);
+
+    /* Flex & grid alignment tokens */
+    --sf-align-start: flex-start;
+    --sf-align-center: center;
+    --sf-align-end: flex-end;
+    --sf-align-stretch: stretch;
+    --sf-align-baseline: baseline;
+    --sf-justify-start: flex-start;
+    --sf-justify-center: center;
+    --sf-justify-end: flex-end;
+    --sf-justify-between: space-between;
+    --sf-justify-around: space-around;
+    --sf-justify-evenly: space-evenly;
+
+    /* Borders & outlines (relative calc) */
+    --sf-border-width: var(--sf-space-hairline);
+    --sf-border-width-thick: var(--sf-space-1);
+    --sf-outline-width: var(--sf-space-1);
+    --sf-outline-offset: var(--sf-space-1);
+
+    /* Border radii (relative calc) */
+    --sf-radius-none: 0;
+    --sf-radius-xs: var(--sf-space-hairline);
+    --sf-radius-sm: var(--sf-space-1);
+    --sf-radius-md: var(--sf-space-2);
+    --sf-radius-lg: var(--sf-space-3);
+    --sf-radius-pill: calc(var(--sf-size-unit) * 62.5);
+    --sf-radius-full: 50%;
+
+    /* Control & component sizing (relative calc) */
+    --sf-control-h-xs: calc(var(--sf-space-unit) * 6);
+    --sf-control-h-sm: calc(var(--sf-space-unit) * 7);
+    --sf-control-h-md: calc(var(--sf-space-unit) * 8.5);
+    --sf-control-h-lg: calc(var(--sf-space-unit) * 10.5);
+    --sf-icon-xs: calc(var(--sf-space-unit) * 3);
+    --sf-icon-sm: calc(var(--sf-space-unit) * 3.5);
+    --sf-icon-md: calc(var(--sf-space-unit) * 4);
+    --sf-icon-lg: calc(var(--sf-space-unit) * 5);
+    --sf-icon-xl: calc(var(--sf-space-unit) * 6);
+    --sf-avatar-sm: calc(var(--sf-space-unit) * 7);
+    --sf-avatar-md: calc(var(--sf-space-unit) * 9);
+    --sf-avatar-lg: calc(var(--sf-space-unit) * 12);
+    --sf-checkbox-size: calc(var(--sf-space-unit) * 4);
+    --sf-radio-size: calc(var(--sf-space-unit) * 4);
+    --sf-switch-w: calc(var(--sf-space-unit) * 9);
+    --sf-switch-h: calc(var(--sf-space-unit) * 5);
+    --sf-switch-thumb: calc(var(--sf-space-unit) * 3.5);
+    --sf-slider-track-h: calc(var(--sf-space-unit) * 1);
+    --sf-slider-thumb-size: calc(var(--sf-space-unit) * 4);
+    --sf-scrollbar-size: calc(var(--sf-space-unit) * 2);
+    --sf-otp-slot-w: calc(var(--sf-space-unit) * 9.5);
+    --sf-otp-slot-h: calc(var(--sf-space-unit) * 10.5);
+
+    /* Layout containers & viewport (relative calc) */
+    --sf-min-viewport-h: 100dvh;
+    --sf-container-xs: calc(var(--sf-size-unit) * 22.5);
+    --sf-container-sm: calc(var(--sf-size-unit) * 40);
+    --sf-container-md: calc(var(--sf-size-unit) * 48);
+    --sf-container-lg: calc(var(--sf-size-unit) * 61.25);
+    --sf-container-portal: calc(var(--sf-size-unit) * 61.25);
+    --sf-container-admin: calc(var(--sf-size-unit) * 67.5);
+    --sf-container-xl: calc(var(--sf-size-unit) * 80);
+    --sf-container-2xl: calc(var(--sf-size-unit) * 90);
+    --sf-sidebar-w: calc(var(--sf-size-unit) * 16.25);
+    --sf-topbar-h: calc(var(--sf-space-unit) * 12);
+    --sf-popup-min-w: calc(var(--sf-size-unit) * 11.25);
+    --sf-popup-max-w: calc(var(--sf-size-unit) * 27.5);
+    --sf-popup-max-h: calc(var(--sf-size-unit) * 22.5);
+    --sf-dialog-max-w: calc(var(--sf-size-unit) * 35);
+    --sf-drawer-w: calc(var(--sf-size-unit) * 23.75);
+    --sf-drawer-h: calc(var(--sf-size-unit) * 20);
+    --sf-tooltip-max-w: calc(var(--sf-size-unit) * 17.5);
+    --sf-toast-w: calc(var(--sf-size-unit) * 22.5);
+    --sf-window-min-w: calc(var(--sf-size-unit) * 16.25);
+    --sf-window-min-h: calc(var(--sf-size-unit) * 10);
+    --sf-resize-handle-size: calc(var(--sf-space-unit) * 3.5);
+    --sf-iframe-min-h: calc(var(--sf-size-unit) * 20);
+
+    /* Z-index ladder */
+    --sf-z-base: 0;
+    --sf-z-sticky: 10;
+    --sf-z-dropdown: 20;
+    --sf-z-popover: 30;
+    --sf-z-floating: 40;
+    --sf-z-drawer: 50;
+    --sf-z-modal: 60;
+    --sf-z-toast: 70;
+    --sf-z-tooltip: 80;
+
+    /* Elevation shadows & glows (relative calc offsets & OKLCH color-mix) */
+    --sf-shadow-xs: 0 var(--sf-space-hairline) var(--sf-space-1)
+      color-mix(in oklch, var(--sf-shadow-color) 45%, transparent);
+    --sf-shadow-sm: 0 var(--sf-space-2) var(--sf-space-5)
+      color-mix(in oklch, var(--sf-shadow-color) 55%, transparent);
+    --sf-shadow-md: 0 var(--sf-space-5) calc(var(--sf-space-unit) * 6)
+      color-mix(in oklch, var(--sf-shadow-color) 65%, transparent);
+    --sf-shadow-lg: 0 var(--sf-space-8) calc(var(--sf-space-unit) * 11)
+      color-mix(in oklch, var(--sf-shadow-color) 78%, transparent);
+    --sf-shadow-floating: 0 var(--sf-space-7) calc(var(--sf-space-unit) * 9)
+      color-mix(in oklch, var(--sf-shadow-color) 72%, transparent);
+    --sf-shadow-glow-gold:
+      0 0 0 var(--sf-border-width) var(--sf-accent-border),
+      0 0 var(--sf-space-8) color-mix(in oklch, var(--sf-gold) 22%, transparent);
+    --sf-shadow-glow-vermilion:
+      0 0 0 var(--sf-border-width) var(--sf-vermilion),
+      0 0 var(--sf-space-8) color-mix(in oklch, var(--sf-vermilion) 24%, transparent);
+
+    /* Opacity */
+    --sf-opacity-disabled: 0.45;
+    --sf-opacity-muted: 0.6;
+    --sf-opacity-subtle: 0.8;
+    --sf-opacity-backdrop: 0.82;
+
+    /* Emblem, P10k, Terminal, Progress & TUI geometry */
+    --sf-emblem-stroke-width: 4.5;
+    --sf-emblem-tick-width: 3.8;
+    --sf-emblem-bolt-halo: 2;
+    --sf-p10k-seg-h: calc(var(--sf-space-unit) * 6);
+    --sf-p10k-arrow-w: calc(var(--sf-space-unit) * 2.5);
+    --sf-p10k-tail-w: calc(var(--sf-space-unit) * 9);
+    --sf-terminal-min-h: calc(var(--sf-size-unit) * 16.25);
+    --sf-terminal-scroll-max-h: calc(var(--sf-size-unit) * 21.25);
+    --sf-progress-h: calc(var(--sf-space-unit) * 2);
+    --sf-progress-fill-pct: 72%;
+
+    /* TUI floating window, split-pane compositor & Base UI indicator defaults (overridden per instance) */
+    --tui-x: auto;
+    --tui-y: auto;
+    --tui-w: auto;
+    --tui-h: auto;
+    --sf-pane-x: 0;
+    --sf-pane-y: 0;
+    --sf-pane-w: 1;
+    --sf-pane-h: 1;
+    --active-tab-left: 0;
+    --active-tab-width: 0;
+  }
+}

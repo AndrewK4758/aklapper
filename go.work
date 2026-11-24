@@ -1,7 +1,17 @@
-go 1.24
+go 1.27.4
 
 use (
-	./apps/go/file-uploader
-	./apps/go/games-lobby
-	./apps/go/utils
+	./apis/go/ai-ask/ai-ask
+	./apis/go/ai-ask/ai-ask-e2e
+	./apis/go/cadence-admin/cadence-admin
+	./apis/go/cadence-admin/cadence-admin-e2e
+	./apis/go/cadence-demo/cadence-demo
+	./apis/go/cadence-demo/cadence-demo-e2e
+	./apis/go/contact/contact
+	./apis/go/contact/contact-e2e
+	./apis/go/k8s-watch/k8s-watch
+	./apis/go/k8s-watch/k8s-watch-e2e
+	./packages/go/kit
 )
+
+replace github.com/AndrewK4758/aklapper/packages/go/kit v0.0.0 => ./packages/go/kit

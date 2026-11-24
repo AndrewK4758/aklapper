@@ -1,0 +1,44 @@
+@layer element {
+  .emblem {
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  .ring {
+    fill: var(--sf-bg-editor);
+    stroke: var(--sf-gold);
+    stroke-width: var(--sf-emblem-stroke-width);
+  }
+
+  .crosshairs {
+    animation: sf-crosshair-sweep var(--sf-emblem-sweep-duration) var(--sf-ease-in-out) infinite;
+  }
+
+  .ticks {
+    fill: none;
+    stroke: var(--sf-gold);
+    stroke-width: var(--sf-emblem-tick-width);
+  }
+
+  .bolt {
+    fill: var(--sf-vermilion);
+    stroke: var(--sf-bg-frame);
+    stroke-width: var(--sf-emblem-bolt-halo);
+    paint-order: stroke;
+  }
+
+  @keyframes sf-crosshair-sweep {
+    0%,
+    100% {
+      transform: translateX(var(--sf-space-0));
+    }
+
+    25% {
+      transform: translateX(var(--sf-emblem-sweep-x));
+    }
+
+    75% {
+      transform: translateX(calc(var(--sf-emblem-sweep-x) * -1));
+    }
+  }
+}

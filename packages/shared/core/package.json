@@ -1,0 +1,52 @@
+{
+  "name": "@aklapper/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@aklapper/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./forms": {
+      "@aklapper/source": "./src/forms.ts",
+      "types": "./dist/forms.d.ts",
+      "import": "./dist/forms.js",
+      "default": "./dist/forms.js"
+    },
+    "./rbac": {
+      "@aklapper/source": "./src/rbac.ts",
+      "types": "./dist/rbac.d.ts",
+      "import": "./dist/rbac.js",
+      "default": "./dist/rbac.js"
+    },
+    "./seo": {
+      "@aklapper/source": "./src/seo.ts",
+      "types": "./dist/seo.d.ts",
+      "import": "./dist/seo.js",
+      "default": "./dist/seo.js"
+    },
+    "./analytics": {
+      "@aklapper/source": "./src/analytics.ts",
+      "types": "./dist/analytics.d.ts",
+      "import": "./dist/analytics.js",
+      "default": "./dist/analytics.js"
+    }
+  },
+  "dependencies": {
+    "web-vitals": "^6.2.3",
+    "zod": "^4.6.7"
+  },
+  "nx": {
+    "name": "shared-core",
+    "projectType": "library",
+    "sourceRoot": "packages/shared/core/src",
+    "tags": [
+      "scope:shared",
+      "runtime:isomorphic"
+    ]
+  }
+}

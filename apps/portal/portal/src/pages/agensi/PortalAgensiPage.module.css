@@ -1,0 +1,120 @@
+@layer page {
+  .workspace {
+    display: grid;
+    gap: var(--sf-space-7);
+  }
+
+  .intro {
+    margin: var(--sf-space-0);
+    color: var(--sf-fg-prop);
+    font-size: var(--sf-text-sm);
+    line-height: var(--sf-leading-base);
+  }
+
+  .controls {
+    display: grid;
+    gap: var(--sf-gap-md);
+  }
+
+  .searchGroup {
+    width: 100%;
+  }
+
+  .filterRow {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    gap: var(--sf-gap-sm);
+    flex-wrap: wrap;
+  }
+
+  .tagGroup {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sf-gap-xs);
+  }
+
+  .grid {
+    list-style: none;
+    margin: var(--sf-space-0);
+    padding: var(--sf-space-0);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    gap: var(--sf-space-6);
+  }
+
+  .card {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: var(--sf-gap-md);
+    padding: var(--sf-inset-panel);
+    border-radius: var(--sf-radius-md);
+    border: var(--sf-border-width) solid var(--sf-border);
+    background: var(--sf-bg-panel);
+  }
+
+  .card:hover {
+    border-color: var(--sf-gold);
+  }
+
+  .cardHeader {
+    display: flex;
+    align-items: var(--sf-align-baseline);
+    justify-content: var(--sf-justify-between);
+    gap: var(--sf-gap-sm);
+    flex-wrap: wrap;
+  }
+
+  .cardTitle {
+    margin: var(--sf-space-0);
+    color: var(--sf-gold);
+    font-size: var(--sf-text-base);
+    font-weight: var(--sf-weight-semibold);
+  }
+
+  .cardSlug {
+    color: var(--sf-fg-cmt);
+    font-family: var(--sf-font-mono), monospace;
+    font-size: var(--sf-text-xs);
+  }
+
+  .cardSummary {
+    margin: var(--sf-space-0);
+    color: var(--sf-fg-bone);
+    font-size: var(--sf-text-sm);
+    line-height: var(--sf-leading-base);
+  }
+
+  .cardFooter {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    gap: var(--sf-gap-sm);
+    flex-wrap: wrap;
+  }
+
+  .cardTags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sf-gap-xs);
+  }
+
+  .tagPill {
+    padding: var(--sf-space-1) var(--sf-space-3);
+    border-radius: var(--sf-radius-sm);
+    border: var(--sf-border-width) solid var(--sf-border);
+    background: var(--sf-bg-obsidian);
+    color: var(--sf-fg-op);
+    font-family: var(--sf-font-mono), monospace;
+    font-size: var(--sf-text-xs);
+  }
+
+  .emptyState {
+    padding: var(--sf-inset-panel);
+    border-radius: var(--sf-radius-md);
+    border: var(--sf-border-width) dashed var(--sf-border);
+    color: var(--sf-fg-cmt);
+    font-size: var(--sf-text-sm);
+    text-align: center;
+  }
+}

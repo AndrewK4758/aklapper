@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /changes-in-progress
+
+Sitemap: https://andrew-k.us/sitemap.xml

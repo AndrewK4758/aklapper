@@ -1,0 +1,95 @@
+@layer page {
+  .panel {
+    display: grid;
+    gap: var(--sf-space-7);
+  }
+
+  .policyGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    gap: var(--sf-space-6);
+  }
+
+  .card {
+    display: grid;
+    gap: var(--sf-space-5);
+    padding: var(--sf-space-6);
+    background: var(--sf-bg-panel);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+  }
+
+  .cardHeader {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    flex-wrap: wrap;
+    gap: var(--sf-space-4);
+  }
+
+  .sectionTitle {
+    margin: var(--sf-space-0);
+    font-size: var(--sf-text-md);
+    color: var(--sf-gold);
+    font-weight: var(--sf-weight-semibold);
+  }
+
+  .formGrid {
+    display: grid;
+    gap: var(--sf-space-4);
+  }
+
+  .inlineForm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: var(--sf-align-end);
+    gap: var(--sf-space-3);
+  }
+
+  .dataTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--sf-text-xs);
+  }
+
+  .dataTable th,
+  .dataTable td {
+    text-align: left;
+    padding: var(--sf-space-3);
+    border-bottom: var(--sf-border-width) solid var(--sf-border-subtle);
+  }
+
+  .dataTable th {
+    color: var(--sf-fg-cmt);
+    font-weight: var(--sf-weight-semibold);
+  }
+
+  .numericCell {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .statusNote {
+    margin: var(--sf-space-0);
+    padding: var(--sf-space-3) var(--sf-space-4);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-success-bg);
+    border: var(--sf-border-width) solid var(--sf-success);
+    font-size: var(--sf-text-xs);
+  }
+
+  .errorNote {
+    margin: var(--sf-space-0);
+    padding: var(--sf-space-3) var(--sf-space-4);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-err-bg);
+    border: var(--sf-border-width) solid var(--sf-err);
+    font-size: var(--sf-text-xs);
+  }
+
+  .emptyNote {
+    margin: var(--sf-space-0);
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-cmt);
+  }
+}

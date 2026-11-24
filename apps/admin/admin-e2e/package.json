@@ -1,0 +1,34 @@
+{
+  "name": "@aklapper/admin-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@aklapper/tooling": "workspace:*",
+    "@playwright/test": "^1.65.1"
+  },
+  "nx": {
+    "name": "admin-e2e",
+    "projectType": "application",
+    "sourceRoot": "apps/admin/admin-e2e/src",
+    "implicitDependencies": [
+      "admin"
+    ],
+    "tags": [
+      "scope:e2e",
+      "app:admin"
+    ],
+    "targets": {
+      "e2e": {
+        "dependsOn": [
+          "admin:build"
+        ]
+      },
+      "e2e-ci": {
+        "dependsOn": [
+          "admin:build"
+        ]
+      }
+    }
+  }
+}

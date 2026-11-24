@@ -1,0 +1,55 @@
+import { CommandBuilder } from '../../../../chain/index.ts';
+import { type Context, GameContextKeys, TurnStatus } from '../../../../types/index.ts';
+import { deRefContextObject } from '../../../../utils/index.ts';
+import { gameCommandMap } from '../../utils/context-next-map.js';
+
+export const verifyReadyToPlay = CommandBuilder.build(
+  (context: Context<GameContextKeys | string>) => {
+    if (
+      context.get(GameContextKeys.NEXT) &&
+      context.getString(GameContextKeys.NEXT) === 'verify-ready-to-play'
+    ) {
+      const { game, req } = deRefContextObject(context);
+
+      const readyToPlay = game.instance.verifyReadyToPlay(
+        game.instance.instance.MIN_PLAYERS,
+        game.instance.instance.MAX_PLAYERS,
+      );
+
+      if (readyToPlay) {
+        context.put('ready-to-play', readyToPlay);
+
+        const gameName =
+          (context.get('req-params-id') as string) ??
+          (req.params['id'] as string) ??
+          'Chutes-&-Ladders';
+
+        const nextGameCommandMap = gameCommandMap.get(gameName);
+
+        if (nextGameCommandMap) {
+          const nextCommand = nextGameCommandMap.get(context.getString(GameContextKeys.NEXT));
+
+          if (nextCommand) {
+            context.put(GameContextKeys.NEXT, nextCommand);
+
+            return true;
+          }
+
+          return false;
+        }
+
+        return false;
+      } else {
+        context.put(GameContextKeys.OUTPUT, {
+          gameStatus: TurnStatus.NOT_READY,
+        });
+
+        return false;
+      }
+    } else {
+      return false;
+    }
+  },
+);
+
+export default verifyReadyToPlay;

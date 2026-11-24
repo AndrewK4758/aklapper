@@ -1,0 +1,49 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out-tsc",
+    "tsBuildInfoFile": "out-tsc/tsconfig.app.tsbuildinfo",
+    "jsx": "react-jsx",
+    "types": [
+      "node",
+      "@nx/react/typings/cssmodule.d.ts",
+      "@nx/react/typings/image.d.ts",
+      "vite/client"
+    ],
+    "rootDir": ".",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "rootDirs": [".", "./.react-router/types"],
+    "sourceMap": true
+  },
+  "exclude": [
+    "out-tsc",
+    "dist",
+    "build",
+    "src/pages/**",
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "src/**/*.spec.tsx",
+    "src/**/*.test.tsx",
+    "vite.config.ts",
+    "vitest.config.ts"
+  ],
+  "include": ["src/**/*.ts", "src/**/*.tsx", ".react-router/types/**/*"],
+  "references": [
+    {
+      "path": "../../../packages/shared/ui/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../packages/node/runtime/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../packages/node/db/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../packages/shared/core/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../packages/tooling/tsconfig.lib.json"
+    }
+  ]
+}

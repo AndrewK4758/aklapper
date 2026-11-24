@@ -1,0 +1,105 @@
+@layer page {
+  .shell {
+    min-height: var(--sf-min-viewport-h);
+    display: grid;
+    grid-template-rows: auto 1fr;
+    background: var(--sf-bg-frame);
+  }
+
+  .shell[data-pane-workspace='true'] {
+    height: var(--sf-min-viewport-h);
+    overflow: hidden;
+  }
+
+  .bar {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    flex-wrap: wrap;
+    gap: var(--sf-space-6);
+    padding: var(--sf-space-4) var(--sf-space-8);
+    background: var(--sf-bg-editor);
+    border-bottom: var(--sf-border-width) solid var(--sf-accent-border);
+  }
+
+  .navList {
+    display: flex;
+    align-items: var(--sf-align-center);
+    flex-wrap: wrap;
+    gap: var(--sf-space-2);
+  }
+
+  .brand {
+    --sf-fg-bone: var(--sf-gold);
+    --sf-space-3: var(--sf-space-2);
+    --sf-space-5: var(--sf-space-3);
+    font-weight: var(--sf-weight-bold);
+  }
+
+  .navLink {
+    padding: var(--sf-space-2) var(--sf-space-4);
+    border-radius: var(--sf-radius-sm);
+    font-size: var(--sf-text-sm);
+    color: var(--sf-fg-prop);
+    border: var(--sf-border-width) solid transparent;
+    transition: var(--sf-transition-colors);
+  }
+
+  .navLink:hover {
+    color: var(--sf-fg-bone);
+    background: var(--sf-surface-hover);
+  }
+
+  .navLink[data-active='true'] {
+    color: var(--sf-gold);
+    background: var(--sf-accent-subtle);
+    border-color: var(--sf-accent-border);
+    font-weight: var(--sf-weight-semibold);
+  }
+
+  .barMeta {
+    display: inline-flex;
+    align-items: var(--sf-align-center);
+    flex-wrap: wrap;
+    gap: var(--sf-space-5);
+  }
+
+  .shortcutHint {
+    color: var(--sf-fg-cmt);
+    font-size: var(--sf-text-xs);
+    white-space: nowrap;
+  }
+
+  .sessionHandle {
+    color: var(--sf-gold);
+    font-size: var(--sf-text-xs);
+    font-weight: var(--sf-weight-semibold);
+    white-space: nowrap;
+  }
+
+  .main {
+    width: min(var(--sf-container-lg), 100%);
+    margin-inline: auto;
+    padding: var(--sf-space-10) var(--sf-space-8);
+    display: grid;
+    gap: var(--sf-space-8);
+    align-content: var(--sf-align-start);
+  }
+
+  .main[data-pane-workspace='true'] {
+    width: 100%;
+    height: 100%;
+    min-height: var(--sf-space-0);
+    margin-inline: var(--sf-space-0);
+    padding: var(--sf-space-0);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  @media (max-width: 52rem) {
+    .shortcutHint {
+      display: none;
+    }
+  }
+}

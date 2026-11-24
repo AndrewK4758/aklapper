@@ -1,0 +1,53 @@
+@layer element {
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sf-space-3);
+    padding: var(--sf-space-1) var(--sf-space-4);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-bg-panel);
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-str);
+  }
+
+  .badge[data-state='scaling'],
+  .badge[data-state='gate'] {
+    border-color: var(--sf-gold);
+    color: var(--sf-gold);
+    background: var(--sf-warn-bg);
+  }
+
+  .badge[data-state='running'],
+  .badge[data-state='ready'] {
+    border-color: var(--sf-green);
+    color: var(--sf-green);
+  }
+
+  .badge[data-state='error'] {
+    border-color: var(--sf-err);
+    color: var(--sf-err);
+    background: var(--sf-err-bg);
+  }
+
+  .divider {
+    --sf-border: currentColor;
+    min-height: var(--sf-space-5);
+    opacity: var(--sf-opacity-muted);
+  }
+
+  .progress {
+    --sf-progress-h: var(--sf-space-2);
+    --sf-progress-indicator-bg: currentColor;
+    --sf-fg-num: currentColor;
+    --sf-border: currentColor;
+    flex-direction: row;
+    align-items: var(--sf-align-center);
+    width: auto;
+    gap: var(--sf-gap-xs);
+  }
+
+  .progressTrack {
+    width: var(--sf-space-11);
+  }
+}

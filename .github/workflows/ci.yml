@@ -4,25 +4,29 @@ on:
   pull_request:
     branches:
       - main
+      - portfolio_v2
+  push:
+    branches:
+      - main
+      - portfolio_v2
+  workflow_call:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   actions: read
   contents: read
 
 env:
-  PYTHON_VERSION: 3.13.3
-  PNPM_VERSION: 10
-  NODE_VERSION: 24.x
-
-  PRISMA_CLIENT_OUTPUT_PATH: ${{ secrets.PRISMA_CLIENT_OUTPUT_PATH }}
-
-  REGION: ${{ secrets.GCP_REGION }}
-  PROJECT_LOCATION: ${{ secrets.GCP_REGION }}
-  PROJECT_ID: ${{ secrets.PROJECT_ID }}
-  GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
+  PNPM_VERSION: 12.23.0
+  NODE_VERSION: 26.13.1
+  GO_VERSION: '1.27'
 
 jobs:
-  cache-and-install:
+  verify:
+    name: Format, lint, test, build & typecheck
     runs-on: ubuntu-latest
 
     steps:
@@ -31,8 +35,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v4
-        name: Install pnpm
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
           run_install: false
@@ -43,93 +47,74 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: go.work
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - uses: nrwl/nx-set-shas@v4
+      - name: Check formatting (oxfmt)
+        run: pnpm format:check
 
-  lint:
-    needs: ['cache-and-install']
+      - name: Lint, test, build, and typecheck
+        run: pnpm exec nx run-many -t lint test build typecheck --verbose
+
+      - name: Upload built SSR artifacts for Playwright E2E
+        uses: actions/upload-artifact@v4
+        with:
+          name: ssr-dist-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 1
+          path: |
+            apps/portal/portal/dist
+            apps/admin/admin/dist
+            packages/node/db/dist
+            packages/node/runtime/dist
+            packages/shared/ui/dist
+            packages/shared/core/dist
+            packages/tooling/dist
+
+  e2e:
+    name: E2E (${{ matrix.app }} / ${{ matrix.project }})
+    needs: verify
     runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: pnpm/action-setup@v4
-        name: Install pnpm
-        with:
-          version: ${{ env.PNPM_VERSION }}
-          run_install: false
-
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - uses: nrwl/nx-set-shas@v4
-
-      - name: Lint all projects
-        run: pnpx nx run-many -t=lint--exclude=wdg-agents,games-lobby,go-file-uploader,go_utils --verbose
-
-  test:
-    needs: ['cache-and-install']
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: pnpm/action-setup@v4
-        name: Install pnpm
-        with:
-          version: ${{ env.PNPM_VERSION }}
-          run_install: false
-
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - uses: nrwl/nx-set-shas@v4
-
-      - name: Generate Prisma Client for CRUD-Api
-        run: pnpm generate-chinook-client
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:19-alpine
         env:
-          NODE_ENV: test
-          DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
-          PRISMA_CLIENT_OUTPUT_PATH: ${{ secrets.PRISMA_CLIENT_OUTPUT_PATH }}
-
-      - name: Test all projects
-        env:
-          NODE_ENV: test
-          DB_URL_TEST: ${{ secrets.DB_URL_TEST }}
-        run: pnpx nx run-many -t=test --exclude=wdg-agents,games-lobby,go-file-uploader,go_utils --verbose
-
-  build-and-typecheck:
-    needs: ['cache-and-install']
-    runs-on: ubuntu-latest
+          POSTGRES_DB: aklapper
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5439:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d aklapper"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5439/aklapper?sslmode=disable
+    strategy:
+      fail-fast: false
+      matrix:
+        app:
+          - portal-e2e
+          - admin-e2e
+        project:
+          - chromium
+          - firefox
+          - webkit
+          - mobile-chrome
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - uses: pnpm/action-setup@v4
-        name: Install pnpm
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
           run_install: false
@@ -143,123 +128,96 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate Prisma Clients
+      - name: Download built SSR artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ssr-dist-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Migrate and seed PostgreSQL 19
+        run: pnpm db:setup
+
+      - name: Resolve Playwright browser binary
+        id: browser
+        shell: bash
         run: |
-          pnpm generate-chinook-client
-          pnpm generate-games-client
-        env:
-          NODE_ENV: production
-          PRISMA_CLIENT_OUTPUT_PATH: ${{ secrets.PRISMA_CLIENT_OUTPUT_PATH }}
+          if [ "${{ matrix.project }}" = "mobile-chrome" ]; then
+            echo "binary=chromium" >> "$GITHUB_OUTPUT"
+          else
+            echo "binary=${{ matrix.project }}" >> "$GITHUB_OUTPUT"
+          fi
 
-      - uses: nrwl/nx-set-shas@v4
+      - name: Cache Playwright browser
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.browser.outputs.binary }}-${{ hashFiles('pnpm-lock.yaml') }}
 
-      - name: Build all Projects
-        env:
-          NODE_ENV: production
-        run: pnpx nx run-many -t=build --exclude=wdg-agents,games-lobby,go-file-uploader,go_utils --verbose
+      - name: Install Playwright browser & system dependencies
+        run: |
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
+            pnpm exec playwright install-deps "${{ steps.browser.outputs.binary }}"
+          else
+            pnpm exec playwright install --with-deps "${{ steps.browser.outputs.binary }}"
+          fi
 
-      - name: Typecheck all Affected Projects
-        env:
-          NODE_ENV: production
-        run: pnpx nx run-many -t=typecheck --exclude=wdg-agents,games-lobby,file-uploader,go_utils --verbose
+      - name: Run Playwright E2E suite
+        run: pnpm exec nx run ${{ matrix.app }}:e2e -- --project=${{ matrix.project }}
 
-  deploy-apis:
-    needs: ['lint', 'test', 'build-and-typecheck']
+      - name: Upload Playwright report & failure artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-${{ matrix.app }}-${{ matrix.project }}
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            apps/portal/portal-e2e/playwright-report
+            apps/portal/portal-e2e/test-results
+            apps/admin/admin-e2e/playwright-report
+            apps/admin/admin-e2e/test-results
+
+  docker-build-check:
+    name: Docker build check (${{ matrix.service }})
+    needs: verify
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: portal
+            dockerfile: apps/portal/portal/Dockerfile
+          - service: admin
+            dockerfile: apps/admin/admin/Dockerfile
+          - service: node-api-auth
+            dockerfile: apis/node/auth/auth/Dockerfile
+          - service: node-api-analytics
+            dockerfile: apis/node/analytics/analytics/Dockerfile
+          - service: k8s-watch
+            dockerfile: apis/go/k8s-watch/k8s-watch/Dockerfile
+          - service: cadence-demo
+            dockerfile: apis/go/cadence-demo/cadence-demo/Dockerfile
+          - service: ai-ask
+            dockerfile: apis/go/ai-ask/ai-ask/Dockerfile
+          - service: contact
+            dockerfile: apis/go/contact/contact/Dockerfile
+          - service: cadence-admin
+            dockerfile: apis/go/cadence-admin/cadence-admin/Dockerfile
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate Docker image build
+        uses: docker/build-push-action@v6
         with:
-          fetch-depth: 0
-
-      - uses: pnpm/action-setup@v4
-        name: Install pnpm
-        with:
-          version: ${{ env.PNPM_VERSION }}
-          run_install: false
-
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Generate Prisma Clients
-        run: |
-          pnpm generate-chinook-client
-          pnpm generate-games-client
-        env:
-          NODE_ENV: production
-          PRISMA_CLIENT_OUTPUT_PATH: ${{ secrets.PRISMA_CLIENT_OUTPUT_PATH  }}
-
-      - uses: nrwl/nx-set-shas@v4
-
-      - name: Authenticate with GCP
-        uses: 'google-github-actions/auth@v2'
-        with:
-          credentials_json: ${{ secrets.GCP_SA_CREDENTIALS_JSON }}
-
-      - name: Configure Docker
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
-
-      - name: Deploy APIs to Cloud Run
-        run: pnpx nx affected -t deploy-cloud-run --verbose
-
-  deploy-portfolio:
-    needs: ['lint', 'test', 'build-and-typecheck']
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: pnpm/action-setup@v4
-        name: Install pnpm
-        with:
-          version: ${{ env.PNPM_VERSION }}
-          run_install: false
-
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - uses: nrwl/nx-set-shas@v4
-
-      - name: Authenticate with GCP
-        uses: 'google-github-actions/auth@v2'
-        with:
-          credentials_json: ${{ secrets.GCP_SA_CREDENTIALS_JSON }}
-
-      - name: Create .env file
-        run: |
-          mkdir -p ./apps/react/portfolio/portfolio/env
-          touch ./apps/react/portfolio/portfolio/env/.env.production
-          echo "NODE_ENV=production" >> ./apps/react/portfolio/portfolio/env/.env.production
-          echo "VITE_OAUTH_CLIENT_ID=${{ secrets.VITE_OAUTH_CLIENT_ID }}" >> ./apps/react/portfolio/portfolio/env/.env.production
-          echo "VITE_CRUD_API_URL=${{ secrets.VITE_CRUD_API_URL }}" >> ./apps/react/portfolio/portfolio/env/.env.production
-          echo "VITE_GAMES_API_URL=${{ secrets.VITE_GAMES_API_URL }}" >> ./apps/react/portfolio/portfolio/env/.env.production
-          echo "VITE_PORTFOLIO_API_URL=${{ secrets.VITE_PORTFOLIO_API_URL }}" >> ./apps/react/portfolio/portfolio/env/.env.production
-          echo "VITE_VERTEX_API_URL=${{ secrets.VITE_VERTEX_API_URL }}" >> ./apps/react/portfolio/portfolio/env/.env.production
-          echo "VITE_GAMES_WS_URL=${{ secrets.VITE_GAMES_WS_URL }}" >> ./apps/react/portfolio/portfolio/env/.env.production
-          echo "VITE_GAMES_WS_PATH=${{ secrets.VITE_GAMES_WS_PATH }}" >> ./apps/react/portfolio/portfolio/env/.env.production
-          echo "VITE_GAMES_WS_GAMEPLAY_NAMESPACE=${{ secrets.VITE_GAMES_WS_GAMEPLAY_NAMESPACE }}" >> ./apps/react/portfolio/portfolio/env/.env.production
-          echo "VITE_VERTEX_WS_URL=${{ secrets.VITE_VERTEX_WS_URL }}" >> ./apps/react/portfolio/portfolio/env/.env.production
-
-      - name: Verify .env file
-        run: |
-          ls -la ./apps/react/portfolio/portfolio/env/.env.production
-          cat ./apps/react/portfolio/portfolio/env/.env.production
-
-      - name: Deploy Portfolio to App Engine
-        run: pnpx nx affected -t deploy-app-engine --verbose --no-cache
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}

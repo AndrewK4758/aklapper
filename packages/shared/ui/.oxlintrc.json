@@ -1,0 +1,4 @@
+{
+  "extends": ["../../../.oxlintrc.json"],
+  "plugins": ["vitest", "react", "jsx-a11y"]
+}

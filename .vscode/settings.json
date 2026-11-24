@@ -1,25 +1,10 @@
 {
-  "jest.enable": true,
-  "jest.rootPath": "./",
-
-  "jest.runMode": {
-    "type": "on-demand",
-    "showInlineError": true,
-    "coverage": true
-  },
-  "jest.outputConfig": {
-    "revealOn": "run",
-    "revealWithFocus": "test-results",
-    "clearOnRun": "none",
-    "coverage": true
-  },
-
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "editor.formatOnSave": true,
   "vitest.logLevel": "verbose",
+  "vitest.disableWorkspaceWarning": true,
   "playwright.showTrace": false,
-
   "typescript.tsdk": "node_modules/typescript/lib",
-
   "testing.automaticallyOpenTestResults": "neverOpen",
-  "python.analysis.typeCheckingMode": "basic",
-  "vitest.disableWorkspaceWarning": true
+  "deno.enable": false
 }

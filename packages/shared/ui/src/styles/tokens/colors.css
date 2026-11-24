@@ -1,0 +1,97 @@
+@layer tokens {
+  :root,
+  :root[data-theme='solar-forge'] {
+    color-scheme: dark;
+
+    /* Palette & surfaces (100% OKLCH) */
+    --sf-bg-frame: oklch(0.1784 0.0026 67.66);
+    --sf-bg-editor: oklch(0.2054 0.0025 67.69);
+    --sf-bg-panel: oklch(0.2439 0.004 84.59);
+    --sf-bg-elevated: oklch(0.2697 0.0062 78.22);
+    --sf-bg-line-hl: oklch(0.2354 0.0041 84.59);
+    --sf-bg-sel: oklch(0.3001 0.0208 82.59);
+    --sf-border: oklch(0.3303 0.0096 80.67);
+    --sf-border-subtle: oklch(0.2786 0.0084 75.24);
+    --sf-border-strong: oklch(0.4225 0.0145 79.7);
+    --sf-guide: oklch(0.2824 0.01 80.64);
+
+    /* Accents */
+    --sf-gold: oklch(0.8789 0.1801 93.58);
+    --sf-vermilion: oklch(0.6535 0.2348 34.04);
+    --sf-gold-hover: color-mix(in oklch, var(--sf-gold) 88%, var(--sf-vermilion));
+    --sf-gold-active: color-mix(in oklch, var(--sf-gold) 76%, var(--sf-vermilion));
+    --sf-accent-subtle: color-mix(in oklch, var(--sf-gold) 14%, var(--sf-bg-panel));
+    --sf-accent-border: color-mix(in oklch, var(--sf-gold) 52%, var(--sf-border));
+    --sf-progress-indicator-bg: var(--sf-gold);
+
+    /* Interactive surfaces */
+    --sf-surface-hover: oklch(0.2827 0.0084 75.24);
+    --sf-surface-active: oklch(0.3161 0.0141 76.36);
+    --sf-surface-disabled: oklch(0.2181 0.0041 84.59);
+    --sf-focus-ring: color-mix(in oklch, var(--sf-gold) 70%, transparent);
+
+    /* Foregrounds */
+    --sf-fg-bone: oklch(0.914 0.0186 86.15);
+    --sf-fg-prop: oklch(0.83 0.0217 79.08);
+    --sf-fg-str: oklch(0.7847 0.0484 89.59);
+    --sf-fg-op: oklch(0.6762 0.0209 80.08);
+    --sf-fg-cmt: oklch(0.5469 0.015 82.39);
+    --sf-fg-disabled: oklch(0.4659 0.0156 82.37);
+    --sf-fg-type: oklch(0.7054 0.1222 78.65);
+    --sf-fg-num: oklch(0.6495 0.1332 24.23);
+    --sf-fg-tag: oklch(0.5947 0.1396 24.88);
+
+    /* Semantic statuses */
+    --sf-info: oklch(0.7726 0.1268 231.11);
+    --sf-info-bg: oklch(0.2647 0.0339 232.9);
+    --sf-green: oklch(0.7683 0.1103 133);
+    --sf-success: var(--sf-green);
+    --sf-success-bg: oklch(0.271 0.0382 136.18);
+    --sf-warn: oklch(0.6044 0.1122 78.01);
+    --sf-warn-bg: oklch(0.2929 0.0394 81.39);
+    --sf-err: oklch(0.685 0.2071 14.79);
+    --sf-err-bg: oklch(0.2597 0.0494 10.89);
+    --sf-danger: var(--sf-vermilion);
+    --sf-danger-bg: var(--sf-err-bg);
+
+    /* Overlays & elevation color primitives */
+    --sf-shadow-color: oklch(0 0 0);
+    --sf-backdrop: color-mix(in oklch, var(--sf-bg-frame) 82%, transparent);
+
+    /* Powerlevel10k / Zsh prompt tokens (aligned with user ~/.p10k.zsh) */
+    --sf-p10k-frame: oklch(0.5999 0 0);
+    --sf-p10k-os-bg: oklch(0.6039 0.1546 245.8);
+    --sf-p10k-os-fg: oklch(1 0 0);
+    --sf-p10k-dir-bg: var(--sf-gold);
+    --sf-p10k-dir-fg: var(--sf-bg-editor);
+    --sf-p10k-dir-anchor: var(--sf-bg-frame);
+    --sf-p10k-vcs-clean-bg: var(--sf-green);
+    --sf-p10k-vcs-modified-bg: oklch(0.7703 0.1741 64.05);
+    --sf-p10k-vcs-untracked-bg: oklch(0.7912 0.0755 188.24);
+    --sf-p10k-vcs-fg: var(--sf-bg-frame);
+    --sf-p10k-status-ok-bg: var(--sf-vermilion);
+    --sf-p10k-status-ok-fg: var(--sf-bg-frame);
+    --sf-p10k-status-err-bg: oklch(0.5016 0.1887 27.48);
+    --sf-p10k-status-err-fg: oklch(0.99 0.0068 67.75);
+    --sf-p10k-exec-bg: oklch(0.7703 0.1741 64.05);
+    --sf-p10k-exec-fg: var(--sf-bg-frame);
+    --sf-p10k-ctx-bg: oklch(0.2629 0.0177 82.19);
+    --sf-p10k-ctx-fg: var(--sf-gold);
+    --sf-p10k-time-bg: var(--sf-border);
+    --sf-p10k-time-fg: var(--sf-fg-bone);
+    --sf-p10k-prompt-ok: var(--sf-green);
+    --sf-p10k-prompt-err: var(--sf-err);
+  }
+
+  :root[data-theme='solar-forge-high-contrast'] {
+    --sf-bg-frame: oklch(0.1393 0.0024 106.7);
+    --sf-bg-editor: oklch(0.1784 0.0026 67.66);
+    --sf-bg-panel: oklch(0.2138 0.0042 84.59);
+    --sf-bg-elevated: oklch(0.2527 0.0079 84.59);
+    --sf-border: oklch(0.4514 0.0157 82.37);
+    --sf-border-strong: oklch(0.5683 0.0213 83.04);
+    --sf-fg-bone: oklch(0.974 0.0114 84.58);
+    --sf-fg-prop: oklch(0.9056 0.0191 83.06);
+    --sf-gold: oklch(0.9059 0.1758 98.18);
+  }
+}

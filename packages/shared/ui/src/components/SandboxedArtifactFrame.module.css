@@ -1,0 +1,9 @@
+@layer component {
+  .frame {
+    width: 100%;
+    min-height: var(--sf-iframe-min-h);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-bg-frame);
+  }
+}

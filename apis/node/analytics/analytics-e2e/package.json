@@ -1,0 +1,25 @@
+{
+  "name": "@aklapper/api-analytics-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@aklapper/core": "workspace:*",
+    "@aklapper/db": "workspace:*",
+    "@aklapper/node-runtime": "workspace:*",
+    "@aklapper/tooling": "workspace:*"
+  },
+  "nx": {
+    "name": "node-api-analytics-e2e",
+    "projectType": "application",
+    "sourceRoot": "apis/node/analytics/analytics-e2e/src",
+    "implicitDependencies": [
+      "node-api-analytics"
+    ],
+    "tags": [
+      "scope:e2e",
+      "scope:api",
+      "runtime:node"
+    ]
+  }
+}

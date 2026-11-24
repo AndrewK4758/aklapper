@@ -1,0 +1,141 @@
+{
+  "name": "@aklapper/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@aklapper/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./schema": {
+      "@aklapper/source": "./src/schema.ts",
+      "types": "./dist/schema.d.ts",
+      "import": "./dist/schema.js",
+      "default": "./dist/schema.js"
+    },
+    "./client": {
+      "@aklapper/source": "./src/client.ts",
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js",
+      "default": "./dist/client.js"
+    },
+    "./queries": {
+      "@aklapper/source": "./src/queries.ts",
+      "types": "./dist/queries.d.ts",
+      "import": "./dist/queries.js",
+      "default": "./dist/queries.js"
+    },
+    "./prerender": {
+      "@aklapper/source": "./src/prerender.ts",
+      "types": "./dist/prerender.d.ts",
+      "import": "./dist/prerender.js",
+      "default": "./dist/prerender.js"
+    },
+    "./seed": {
+      "@aklapper/source": "./src/seed.ts",
+      "types": "./dist/seed.d.ts",
+      "import": "./dist/seed.js",
+      "default": "./dist/seed.js"
+    },
+    "./auth": {
+      "@aklapper/source": "./src/auth-service.ts",
+      "types": "./dist/auth-service.d.ts",
+      "import": "./dist/auth-service.js",
+      "default": "./dist/auth-service.js"
+    },
+    "./analytics": {
+      "@aklapper/source": "./src/analytics-bff.ts",
+      "types": "./dist/analytics-bff.d.ts",
+      "import": "./dist/analytics-bff.js",
+      "default": "./dist/analytics-bff.js"
+    }
+  },
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node --conditions=@aklapper/source ./src/migrate.ts",
+    "db:seed": "node --conditions=@aklapper/source ./src/seed.ts",
+    "db:setup": "pnpm run db:migrate && pnpm run db:seed"
+  },
+  "dependencies": {
+    "@aklapper/core": "workspace:*",
+    "@aklapper/node-runtime": "workspace:*",
+    "@simplewebauthn/server": "^14.1.0",
+    "drizzle-orm": "^0.45.4",
+    "pg": "^8.23.1",
+    "zod": "^4.6.7"
+  },
+  "nx": {
+    "name": "node-db",
+    "projectType": "library",
+    "sourceRoot": "packages/node/db/src",
+    "tags": [
+      "scope:node",
+      "runtime:node"
+    ],
+    "targets": {
+      "db-generate": {
+        "cache": false,
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "packages/node/db",
+          "command": "drizzle-kit generate"
+        }
+      },
+      "db-migrate": {
+        "cache": false,
+        "defaultConfiguration": "development",
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "packages/node/db",
+          "command": "node --conditions=@aklapper/source ./src/migrate.ts"
+        },
+        "configurations": {
+          "development": {},
+          "test": {},
+          "e2e": {},
+          "ci": {},
+          "staging": {},
+          "production": {}
+        }
+      },
+      "db-seed": {
+        "cache": false,
+        "defaultConfiguration": "development",
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "packages/node/db",
+          "command": "node --conditions=@aklapper/source ./src/seed.ts"
+        },
+        "configurations": {
+          "development": {},
+          "test": {},
+          "e2e": {},
+          "ci": {},
+          "staging": {},
+          "production": {}
+        }
+      },
+      "db-setup": {
+        "cache": false,
+        "defaultConfiguration": "development",
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "packages/node/db",
+          "command": "node --conditions=@aklapper/source ./src/migrate.ts && node --conditions=@aklapper/source ./src/seed.ts"
+        },
+        "configurations": {
+          "development": {},
+          "test": {},
+          "e2e": {},
+          "ci": {},
+          "staging": {},
+          "production": {}
+        }
+      }
+    }
+  }
+}

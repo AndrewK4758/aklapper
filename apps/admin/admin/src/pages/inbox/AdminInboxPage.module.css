@@ -1,0 +1,174 @@
+@layer page {
+  .panel {
+    display: grid;
+    gap: var(--sf-space-6);
+  }
+
+  .searchBar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: var(--sf-align-end);
+    justify-content: var(--sf-justify-between);
+    gap: var(--sf-space-4);
+  }
+
+  .searchForm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: var(--sf-align-end);
+    gap: var(--sf-space-3);
+  }
+
+  .metaCount {
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-cmt);
+  }
+
+  .splitLayout {
+    display: grid;
+    grid-template-columns: minmax(16rem, 1fr) minmax(20rem, 1.5fr);
+    gap: var(--sf-space-6);
+    align-items: var(--sf-align-start);
+  }
+
+  .listColumn {
+    display: grid;
+    gap: var(--sf-space-3);
+  }
+
+  .itemButton {
+    display: grid;
+    gap: var(--sf-space-1);
+    width: 100%;
+    text-align: left;
+    padding: var(--sf-space-4);
+    background: var(--sf-bg-panel);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    color: var(--sf-fg-bone);
+    cursor: pointer;
+  }
+
+  .itemButton[data-selected='true'] {
+    border-color: var(--sf-accent-border);
+    background: var(--sf-accent-subtle);
+  }
+
+  .itemHeader {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    gap: var(--sf-space-3);
+    font-size: var(--sf-text-sm);
+  }
+
+  .itemSub {
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-prop);
+  }
+
+  .itemSnippet {
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-cmt);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .detailCard {
+    display: grid;
+    gap: var(--sf-space-5);
+    padding: var(--sf-space-6);
+    background: var(--sf-bg-panel);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+  }
+
+  .detailHeader {
+    display: flex;
+    align-items: var(--sf-align-start);
+    justify-content: var(--sf-justify-between);
+    flex-wrap: wrap;
+    gap: var(--sf-space-4);
+  }
+
+  .metaGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: var(--sf-space-3);
+    font-size: var(--sf-text-xs);
+  }
+
+  .metaLabel {
+    color: var(--sf-fg-cmt);
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: var(--sf-tracking-wider);
+  }
+
+  .messageBody {
+    margin: var(--sf-space-0);
+    padding: var(--sf-space-5);
+    background: var(--sf-bg-editor);
+    border: var(--sf-border-width) solid var(--sf-border-subtle);
+    border-radius: var(--sf-radius-sm);
+    white-space: pre-wrap;
+    font-size: var(--sf-text-sm);
+    line-height: var(--sf-leading-relaxed);
+  }
+
+  .attachmentCard {
+    display: grid;
+    gap: var(--sf-space-3);
+    padding: var(--sf-space-4);
+    background: var(--sf-bg-editor);
+    border: var(--sf-border-width) solid var(--sf-accent-border);
+    border-radius: var(--sf-radius-sm);
+  }
+
+  .attachmentRow {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    flex-wrap: wrap;
+    gap: var(--sf-space-3);
+  }
+
+  .shaCode {
+    font-family: var(--sf-font-code);
+    font-size: var(--sf-text-2xs);
+    color: var(--sf-gold);
+    word-break: break-all;
+  }
+
+  .pager {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    gap: var(--sf-space-4);
+  }
+
+  .statusNote {
+    margin: var(--sf-space-0);
+    padding: var(--sf-space-3) var(--sf-space-4);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-success-bg);
+    border: var(--sf-border-width) solid var(--sf-success);
+    font-size: var(--sf-text-xs);
+  }
+
+  .errorNote {
+    margin: var(--sf-space-0);
+    padding: var(--sf-space-3) var(--sf-space-4);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-err-bg);
+    border: var(--sf-border-width) solid var(--sf-err);
+    font-size: var(--sf-text-xs);
+  }
+
+  @media (max-width: 56rem) {
+    .splitLayout {
+      grid-template-columns: 1fr;
+    }
+  }
+}

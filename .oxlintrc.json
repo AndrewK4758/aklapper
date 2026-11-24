@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "react", "jsx-a11y"],
+  "ignorePatterns": [
+    "dist/**",
+    "out-tsc/**",
+    "build/**",
+    ".react-router/**",
+    "coverage/**",
+    "test-output/**",
+    "**/test-results/**",
+    "**/playwright-report/**",
+    "**/blob-report/**",
+    "**/legacy-api-reference/**",
+    "knowledge_base/**"
+  ],
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "typescript/no-explicit-any": "error"
+  },
+  "env": {
+    "builtin": true
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "name": "@aklapper/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@aklapper/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./theme.css": "./src/styles/theme.css",
+    "./layers.css": "./src/styles/layers.css",
+    "./tokens.css": "./src/styles/tokens.css",
+    "./tokens/colors.css": "./src/styles/tokens/colors.css",
+    "./tokens/typography.css": "./src/styles/tokens/typography.css",
+    "./tokens/layout.css": "./src/styles/tokens/layout.css",
+    "./tokens/animations.css": "./src/styles/tokens/animations.css",
+    "./element.css": "./src/styles/element.css",
+    "./solar-forge.css": "./src/styles/solar-forge.css"
+  },
+  "dependencies": {
+    "@aklapper/core": "workspace:*",
+    "@base-ui/react": "^1.9.0"
+  },
+  "devDependencies": {
+    "@aklapper/tooling": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "nx": {
+    "name": "shared-ui",
+    "projectType": "library",
+    "sourceRoot": "packages/shared/ui/src",
+    "tags": [
+      "scope:shared",
+      "runtime:browser"
+    ]
+  }
+}

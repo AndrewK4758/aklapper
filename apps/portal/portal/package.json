@@ -1,0 +1,182 @@
+{
+  "name": "@aklapper/portal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#pages/*": {
+      "types": "./build/pages/*/index.d.ts",
+      "default": "./build/pages/*/index.js"
+    }
+  },
+  "dependencies": {
+    "@aklapper/core": "workspace:*",
+    "@aklapper/db": "workspace:*",
+    "@aklapper/node-runtime": "workspace:*",
+    "@aklapper/ui": "workspace:*",
+    "@base-ui/react": "^1.9.0",
+    "@react-router/node": "8.5.2",
+    "isbot": "^5.2.3",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router": "8.5.2"
+  },
+  "devDependencies": {
+    "@aklapper/tooling": "workspace:*",
+    "@react-router/dev": "8.5.2",
+    "vite": "8.3.8"
+  },
+  "nx": {
+    "name": "portal",
+    "projectType": "application",
+    "sourceRoot": "apps/portal/portal/src",
+    "tags": [
+      "scope:app",
+      "app:portal",
+      "runtime:ssr"
+    ],
+    "targets": {
+      "build-pages": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "dependsOn": [
+          "^build"
+        ],
+        "inputs": [
+          "{projectRoot}/src/pages/**/*",
+          "!{projectRoot}/src/pages/**/*.spec.*",
+          "!{projectRoot}/src/pages/**/*.test.*",
+          "{projectRoot}/tsconfig.pages.json",
+          "^production"
+        ],
+        "outputs": [
+          "{projectRoot}/build/pages"
+        ],
+        "options": {
+          "cwd": "apps/portal/portal",
+          "command": "node ../../../packages/tooling/dist/build-pages.js"
+        }
+      },
+      "build": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "defaultConfiguration": "production",
+        "dependsOn": [
+          "build-pages",
+          "^build"
+        ],
+        "inputs": [
+          "production",
+          "^production"
+        ],
+        "outputs": [
+          "{projectRoot}/dist"
+        ],
+        "options": {
+          "cwd": "apps/portal/portal",
+          "command": "react-router build"
+        },
+        "configurations": {
+          "development": {
+            "command": "react-router build --mode development"
+          },
+          "test": {
+            "command": "react-router build --mode test"
+          },
+          "e2e": {
+            "command": "react-router build --mode e2e"
+          },
+          "production": {
+            "command": "react-router build --mode production"
+          }
+        }
+      },
+      "serve": {
+        "cache": false,
+        "executor": "nx:run-commands",
+        "defaultConfiguration": "development",
+        "dependsOn": [
+          "build-pages"
+        ],
+        "options": {
+          "cwd": "apps/portal/portal",
+          "command": "react-router dev"
+        },
+        "configurations": {
+          "development": {},
+          "test": {},
+          "e2e": {},
+          "production": {}
+        }
+      },
+      "preview": {
+        "continuous": true,
+        "cache": false,
+        "defaultConfiguration": "development",
+        "dependsOn": [
+          "build"
+        ],
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "apps/portal/portal",
+          "command": "PORT=${PORTAL_PORT:-${PORT:-4300}} exec node --conditions=@aklapper/source ./src/server.ts"
+        },
+        "configurations": {
+          "development": {},
+          "test": {},
+          "e2e": {},
+          "production": {}
+        }
+      },
+      "start": {
+        "continuous": true,
+        "cache": false,
+        "defaultConfiguration": "production",
+        "dependsOn": [
+          "build"
+        ],
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "apps/portal/portal",
+          "command": "node ./src/server.ts"
+        },
+        "configurations": {
+          "development": {},
+          "test": {},
+          "e2e": {},
+          "production": {}
+        }
+      },
+      "typegen": {
+        "cache": true,
+        "executor": "nx:run-commands",
+        "inputs": [
+          "{projectRoot}/src/app/routes.ts",
+          "{projectRoot}/src/app/**/*.tsx",
+          "{projectRoot}/src/app/**/*.ts",
+          "{projectRoot}/react-router.config.ts"
+        ],
+        "outputs": [
+          "{projectRoot}/.react-router/types"
+        ],
+        "options": {
+          "cwd": "apps/portal/portal",
+          "command": "react-router typegen"
+        }
+      },
+      "test": {
+        "dependsOn": [
+          "build-pages"
+        ]
+      },
+      "typecheck": {
+        "dependsOn": [
+          "build-pages",
+          "typegen",
+          "^build",
+          "^typecheck"
+        ]
+      }
+    }
+  }
+}
