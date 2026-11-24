@@ -245,6 +245,19 @@ func (s *Store) IsLivePG() bool {
 	return s != nil && s.pool != nil
 }
 
+// Ping verifies live PostgreSQL pool health; returns nil for isolated in-memory test stores.
+func (s *Store) Ping(ctx context.Context) error {
+	if s == nil {
+		return errors.New("postgres store is nil")
+	}
+	if s.pool == nil {
+		return nil
+	}
+	pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	return s.pool.Ping(pingCtx)
+}
+
 func (s *Store) SetPolicyForTest(policy QuotaPolicy) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
