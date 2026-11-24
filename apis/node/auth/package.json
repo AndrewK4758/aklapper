@@ -1,0 +1,28 @@
+{
+  "name": "@aklapper/api-auth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@aklapper/contracts": "workspace:*",
+    "@aklapper/db": "workspace:*",
+    "@aklapper/shared-utils": "workspace:*",
+    "@fastify/cookie": "^11.1.5",
+    "@fastify/helmet": "^13.2.0",
+    "@fastify/rate-limit": "^11.3.0",
+    "@simplewebauthn/server": "^14.1.0",
+    "fastify": "^5.12.8"
+  },
+  "nx": {
+    "name": "node-api-auth",
+    "projectType": "application",
+    "sourceRoot": "apis/node/auth/src",
+    "tags": [
+      "scope:api",
+      "runtime:node"
+    ]
+  }
+}
