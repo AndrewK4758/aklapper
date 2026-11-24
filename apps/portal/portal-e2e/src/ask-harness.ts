@@ -278,8 +278,8 @@ async function waitForHealth(baseUrl: string, child: ChildProcess, timeoutMs: nu
     try {
       const res = await fetch(`${baseUrl}/healthz`);
       if (res.ok) return;
-    } catch {
-      // Wait for socket bind.
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('EACCES')) throw error;
     }
     await delay(50);
   }
