@@ -1186,6 +1186,9 @@ function StandaloneTerminalWorkspace({
   primaryPane,
   disableMenuShortcut = false,
 }: TerminalWorkspaceProps) {
+  const isDockedMode = dockTuiWindows ?? Boolean(renderPaneView);
+  const initialDeepLinkRoute = initialPrimaryTuiStack?.[0] ?? null;
+
   const [tabState, setTabState] = useState<TerminalTabbedWorkspaceState>(() =>
     createInitialTabbedWorkspaceState({
       pinnedPrimary: Boolean(primaryPane),
@@ -1193,14 +1196,38 @@ function StandaloneTerminalWorkspace({
     }),
   );
   const [prevEmbeddedTerminal, setPrevEmbeddedTerminal] = useState(primaryPane?.embeddedTerminal);
+  const [prevDeepLinkRoute, setPrevDeepLinkRoute] = useState<string | null>(initialDeepLinkRoute);
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
   const [dragState, setDragState] = useState<ActiveDragState | null>(null);
   const [resizingSplitId, setResizingSplitId] = useState<string | null>(null);
 
-  if (primaryPane?.embeddedTerminal !== prevEmbeddedTerminal) {
+  if (
+    primaryPane?.embeddedTerminal !== prevEmbeddedTerminal ||
+    initialDeepLinkRoute !== prevDeepLinkRoute
+  ) {
+    const wasEmbeddedFalse = prevEmbeddedTerminal === false;
+    const previousRoute = prevDeepLinkRoute;
     setPrevEmbeddedTerminal(primaryPane?.embeddedTerminal);
-    if (primaryPane?.embeddedTerminal && prevEmbeddedTerminal === false) {
+    setPrevDeepLinkRoute(initialDeepLinkRoute);
+
+    if (initialDeepLinkRoute !== null && initialDeepLinkRoute !== previousRoute) {
+      setTabState(prev => ({
+        ...prev,
+        tabs: prev.tabs.map(tab =>
+          tab.id === 'tab-1'
+            ? {
+                ...tab,
+                workspace: pushPaneView(
+                  exitPaneTui(tab.workspace, 'pane-1'),
+                  'pane-1',
+                  initialDeepLinkRoute,
+                ),
+              }
+            : tab,
+        ),
+      }));
+    } else if (primaryPane?.embeddedTerminal && wasEmbeddedFalse) {
       setTabState(prev => ({
         ...prev,
         tabs: prev.tabs.map(tab =>
@@ -1209,9 +1236,6 @@ function StandaloneTerminalWorkspace({
       }));
     }
   }
-
-  const isDockedMode = dockTuiWindows ?? Boolean(renderPaneView);
-  const initialDeepLinkRoute = initialPrimaryTuiStack?.[0] ?? null;
 
   const paneAreaRef = useRef<HTMLDivElement | null>(null);
   const dragOriginRef = useRef<DragOrigin | null>(null);

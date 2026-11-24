@@ -327,7 +327,8 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(page.getByTestId('menu-deploy-status-contact')).toBeVisible();
 
     await page.keyboard.press('3');
-    await expect(page).toHaveURL(/\/agensi$/);
+    await expect(page).toHaveURL(/\/menu$/);
+    await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '2');
     await expect(page.getByTestId('agensi-skill-grid')).toBeVisible();
 
     // Filter by tag via Base UI ToggleGroup

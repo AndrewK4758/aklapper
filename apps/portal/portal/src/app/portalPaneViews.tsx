@@ -19,6 +19,12 @@ import { PortalContactPage } from '#pages/contact';
 import { PortalLauncherTui } from '#pages/home';
 import { PortalMenuPage } from '#pages/menu';
 
+import {
+  isPaneLoaderErrorEnvelope,
+  type PaneLoaderErrorEnvelope,
+  unwrapPaneLoaderData,
+} from './pane-loader';
+
 export const PORTAL_PANE_ROUTES = ['/menu', '/agensi', '/ask', '/cadence', '/contact'] as const;
 export type PortalPaneRoute = (typeof PORTAL_PANE_ROUTES)[number];
 export type PortalPaneViewId = 'tui' | PortalPaneRoute;
@@ -38,25 +44,31 @@ function usePaneRouteLoader<T>(
   routePath: PortalPaneRoute,
   paneId: string,
 ): PaneRouteLoaderState<T> {
-  const fetcher = useFetcher<T>();
+  const fetcher = useFetcher<T | PaneLoaderErrorEnvelope>();
   const [settledAttempt, setSettledAttempt] = useState(0);
   const initiatedRef = useRef(false);
   const loggedErrorAttemptRef = useRef(0);
 
   const triggerLoad = useCallback(() => {
-    void Promise.resolve(fetcher.load(routePath)).finally(() => {
+    void Promise.resolve(fetcher.load(`${routePath}?pane=1`)).finally(() => {
       setSettledAttempt(c => c + 1);
     });
   }, [fetcher, routePath]);
 
+  const rawData = fetcher.data as T | PaneLoaderErrorEnvelope | undefined;
+  const resolvedData = unwrapPaneLoaderData(rawData);
+  const returnedErrorEnvelope = isPaneLoaderErrorEnvelope(rawData);
+
   useEffect(() => {
-    if (!initiatedRef.current && fetcher.state === 'idle' && fetcher.data === undefined) {
+    if (!initiatedRef.current && fetcher.state === 'idle' && rawData === undefined) {
       initiatedRef.current = true;
       triggerLoad();
     }
-  }, [fetcher.data, fetcher.state, triggerLoad]);
+  }, [fetcher.state, rawData, triggerLoad]);
 
-  const hasError = settledAttempt > 0 && fetcher.state === 'idle' && fetcher.data === undefined;
+  const hasError =
+    fetcher.state === 'idle' &&
+    (returnedErrorEnvelope || (settledAttempt > 0 && resolvedData === undefined));
 
   useEffect(() => {
     if (hasError && loggedErrorAttemptRef.current !== settledAttempt) {
@@ -66,14 +78,15 @@ function usePaneRouteLoader<T>(
           event: 'portal.pane_nav.fetcher_load_failed',
           routePath,
           paneId,
+          ...(returnedErrorEnvelope ? { message: rawData.message } : {}),
         }),
       );
     }
-  }, [hasError, paneId, routePath, settledAttempt]);
+  }, [hasError, paneId, rawData, returnedErrorEnvelope, routePath, settledAttempt]);
 
-  const isLoading = !hasError && fetcher.data === undefined;
+  const isLoading = !hasError && resolvedData === undefined;
 
-  return { data: fetcher.data as T | undefined, isLoading, hasError, retry: triggerLoad };
+  return { data: resolvedData, isLoading, hasError, retry: triggerLoad };
 }
 
 interface PaneStatusFallbackProps {

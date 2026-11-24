@@ -9,9 +9,10 @@ import {
   type TerminalProfileData,
 } from '@aklapper/core';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { createMemoryRouter, RouterProvider } from 'react-router';
+import { createMemoryRouter, type LoaderFunctionArgs, RouterProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
+import { runPaneSafeLoader } from './pane-loader';
 import PortalRoot from './root';
 import PortalAgensiRoute from './routes/agensi';
 import PortalGreeterRoute from './routes/home';
@@ -245,9 +246,9 @@ describe('Portal in-pane route adapters & deep-links', () => {
     });
   });
 
-  it('renders Retry UI and emits error telemetry when an in-pane fetcher load fails', async () => {
+  it('isolates thrown HTTP 500 Response and Error in in-pane loader without crashing PortalRoot and recovers on Retry', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    let shouldFail = true;
+    let attempt = 0;
 
     const router = createMemoryRouter(
       [
@@ -270,12 +271,17 @@ describe('Portal in-pane route adapters & deep-links', () => {
             },
             {
               path: 'agensi',
-              loader: () => {
-                if (shouldFail) {
-                  return undefined as unknown as PortalAgensiLoaderData;
-                }
-                return AGENSI_DATA;
-              },
+              loader: ({ request }: LoaderFunctionArgs) =>
+                runPaneSafeLoader<PortalAgensiLoaderData>(request, async () => {
+                  attempt += 1;
+                  if (attempt === 1) {
+                    throw new Response('upstream unavailable', { status: 500 });
+                  }
+                  if (attempt === 2) {
+                    throw new Error('transient DB timeout');
+                  }
+                  return AGENSI_DATA;
+                }),
               Component: PortalAgensiRoute,
             },
           ],
@@ -284,20 +290,30 @@ describe('Portal in-pane route adapters & deep-links', () => {
       { initialEntries: ['/'] },
     );
 
-    render(<RouterProvider router={router} />);
+    const { container } = render(<RouterProvider router={router} />);
 
     const input = (await screen.findByLabelText('Terminal command input')) as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'agensi' } });
     fireEvent.submit(input.closest('form') as HTMLFormElement);
 
+    // Attempt 1 (thrown HTTP 500 Response): PortalRoot + TerminalWorkspace remain mounted
     expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(container.querySelector('[data-pane-count="1"]')).toBeTruthy();
     expect(
       errorSpy.mock.calls.some(args =>
         String(args[0]).includes('portal.pane_nav.fetcher_load_failed'),
       ),
     ).toBe(true);
 
-    shouldFail = false;
+    // Attempt 2 (thrown Error): still isolated inside pane with Retry
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await waitFor(() => {
+      expect(attempt).toBe(2);
+    });
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(container.querySelector('[data-pane-count="1"]')).toBeTruthy();
+
+    // Attempt 3: recovers cleanly
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(await screen.findByText('Commercial AI skills.')).toBeTruthy();
     errorSpy.mockRestore();

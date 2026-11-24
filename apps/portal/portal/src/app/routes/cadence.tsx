@@ -25,6 +25,7 @@ import {
 import { type PortalCadenceActionResult, PortalCadencePage } from '#pages/cadence';
 
 import { resolveGuestSession } from '../guest-session.server';
+import { runPaneSafeLoader, unwrapPaneLoaderData } from '../pane-loader';
 import { buildPortalPageMeta } from '../seo';
 
 function escapeHtml(raw: string): string {
@@ -64,10 +65,11 @@ function buildFallbackArtifactHtml(prompt: string, presetSlug: string): string {
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { sessionId, setCookieHeader } = resolveGuestSession(request);
-  const payload = await loadPortalCadenceDataWithPrerender(sessionId);
-  return data<PortalCadenceLoaderData>(
-    payload,
-    setCookieHeader ? { headers: { 'Set-Cookie': setCookieHeader } } : undefined,
+  const headers = setCookieHeader ? { 'Set-Cookie': setCookieHeader } : undefined;
+  return runPaneSafeLoader<PortalCadenceLoaderData>(
+    request,
+    () => loadPortalCadenceDataWithPrerender(sessionId),
+    headers,
   );
 }
 
@@ -237,12 +239,13 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export function meta({ loaderData, matches, location }: MetaArgs<typeof loader>) {
+  const resolved = unwrapPaneLoaderData(loaderData);
   return buildPortalPageMeta({
     matches,
     pathname: location.pathname,
     title: 'CADENCE Builder // andrew-k.us',
     description:
-      loaderData?.content.description ??
+      resolved?.content.description ??
       'Quota-gated prompt-to-artifact sandbox wired for live GKE Autopilot scale-from-zero execution.',
   });
 }

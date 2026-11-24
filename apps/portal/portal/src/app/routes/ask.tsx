@@ -26,14 +26,16 @@ import {
 import { type PortalAskActionResult, PortalAskPage } from '#pages/ask';
 
 import { resolveGuestSession } from '../guest-session.server';
+import { runPaneSafeLoader, unwrapPaneLoaderData } from '../pane-loader';
 import { buildPortalPageMeta } from '../seo';
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { sessionId, setCookieHeader } = resolveGuestSession(request);
-  const payload = await loadPortalAskDataWithPrerender(sessionId);
-  return data<PortalAskLoaderData>(
-    payload,
-    setCookieHeader ? { headers: { 'Set-Cookie': setCookieHeader } } : undefined,
+  const headers = setCookieHeader ? { 'Set-Cookie': setCookieHeader } : undefined;
+  return runPaneSafeLoader<PortalAskLoaderData>(
+    request,
+    () => loadPortalAskDataWithPrerender(sessionId),
+    headers,
   );
 }
 
@@ -123,12 +125,13 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export function meta({ loaderData, matches, location }: MetaArgs<typeof loader>) {
+  const resolved = unwrapPaneLoaderData(loaderData);
   return buildPortalPageMeta({
     matches,
     pathname: location.pathname,
     title: 'Ask Portfolio & JD Match // andrew-k.us',
     description:
-      loaderData?.content.description ??
+      resolved?.content.description ??
       'Grounded portfolio RAG Q&A and Job Description matcher with strict abstention.',
   });
 }

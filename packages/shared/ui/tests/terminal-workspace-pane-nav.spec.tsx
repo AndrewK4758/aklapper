@@ -312,4 +312,85 @@ describe('TerminalWorkspace in-pane TUI navigation', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Exit TUI' }));
     expect(onReturnToShell).toHaveBeenCalledTimes(1);
   });
+
+  it('re-seeds pane-1 stack on browser Back re-entry from / to a deep-link and on deep-link route switch', () => {
+    const onReturnToShell = vi.fn<() => void>();
+    const { container, rerender } = render(
+      <TerminalWorkspace
+        terminal={NAV_TERMINAL_FIXTURE}
+        initialPrimaryTuiStack={['/agensi']}
+        onPrimaryPaneReturnToShell={onReturnToShell}
+        renderPaneView={renderTestPaneView}
+        primaryPane={{
+          title: 'tui :: /agensi',
+          content: <TuiWindow title='SSR Agensi'>SSR Agensi Content</TuiWindow>,
+          flush: true,
+          embeddedTerminal: false,
+        }}
+      />,
+    );
+
+    const pane1 = container.querySelector('[data-pane-id="pane-1"]') as HTMLElement;
+    expect(pane1.getAttribute('data-tui-depth')).toBe('1');
+
+    // Exit TUI -> navigate to / (embeddedTerminal: true, initialPrimaryTuiStack: undefined)
+    fireEvent.click(screen.getByRole('button', { name: 'Exit TUI' }));
+    expect(onReturnToShell).toHaveBeenCalledTimes(1);
+    rerender(
+      <TerminalWorkspace
+        terminal={NAV_TERMINAL_FIXTURE}
+        initialPrimaryTuiStack={undefined}
+        onPrimaryPaneReturnToShell={onReturnToShell}
+        renderPaneView={renderTestPaneView}
+        primaryPane={{
+          title: 'tty1',
+          content: <div>Embedded Shell</div>,
+          flush: true,
+          embeddedTerminal: true,
+        }}
+      />,
+    );
+    expect(pane1.getAttribute('data-tui-depth')).toBe('0');
+
+    // Browser Back to /agensi (embeddedTerminal flips true -> false, initialPrimaryTuiStack: ['/agensi'])
+    rerender(
+      <TerminalWorkspace
+        terminal={NAV_TERMINAL_FIXTURE}
+        initialPrimaryTuiStack={['/agensi']}
+        onPrimaryPaneReturnToShell={onReturnToShell}
+        renderPaneView={renderTestPaneView}
+        primaryPane={{
+          title: 'tui :: /agensi',
+          content: <TuiWindow title='SSR Agensi'>SSR Agensi Content</TuiWindow>,
+          flush: true,
+          embeddedTerminal: false,
+        }}
+      />,
+    );
+    expect(pane1.getAttribute('data-tui-depth')).toBe('1');
+    expect(screen.getByText('SSR Agensi Content')).toBeTruthy();
+
+    // Escape works on re-entered deep-link (not deadlocked)
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(onReturnToShell).toHaveBeenCalledTimes(2);
+
+    // Direct deep-link switch /agensi -> /menu updates stack without stale overlay
+    rerender(
+      <TerminalWorkspace
+        terminal={NAV_TERMINAL_FIXTURE}
+        initialPrimaryTuiStack={['/menu']}
+        onPrimaryPaneReturnToShell={onReturnToShell}
+        renderPaneView={renderTestPaneView}
+        primaryPane={{
+          title: 'tui :: /menu',
+          content: <TuiWindow title='SSR Menu'>SSR Menu Content</TuiWindow>,
+          flush: true,
+          embeddedTerminal: false,
+        }}
+      />,
+    );
+    expect(pane1.getAttribute('data-tui-depth')).toBe('1');
+    expect(screen.getByText('SSR Menu Content')).toBeTruthy();
+    expect(screen.queryByText('Agensi View')).toBeNull();
+  });
 });
