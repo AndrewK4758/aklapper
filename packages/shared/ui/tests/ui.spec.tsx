@@ -93,6 +93,17 @@ describe('@aklapper/ui', () => {
     vi.advanceTimersByTime(560);
     expect(link.href.startsWith('data:image/svg+xml,')).toBe(true);
 
+    const pausedHref = link.href;
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    vi.advanceTimersByTime(700);
+    expect(link.href).toBe(pausedHref);
+
+    Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+    document.dispatchEvent(new Event('visibilitychange'));
+    vi.advanceTimersByTime(280);
+    expect(link.href).not.toBe(pausedHref);
+
     unmount();
     expect(link.getAttribute('href')).toBe('/favicon.svg');
     link.remove();

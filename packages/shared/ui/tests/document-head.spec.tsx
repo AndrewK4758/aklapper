@@ -39,6 +39,9 @@ describe('DocumentHeadTags & DocumentBodyAnalytics', () => {
     expect(doc.head.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe(
       'https://andrew-k.us/',
     );
+    const iconLinks = doc.head.querySelectorAll('link[rel="icon"]');
+    expect(iconLinks).toHaveLength(1);
+    expect(iconLinks[0]?.getAttribute('href')).toBe('/favicon.svg');
     expect(doc.head.querySelector('link[rel="manifest"]')?.getAttribute('href')).toBe(
       '/site.webmanifest',
     );

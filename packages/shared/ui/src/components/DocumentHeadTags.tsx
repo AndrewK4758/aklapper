@@ -84,7 +84,6 @@ export function DocumentHeadTags({
         <meta name='aklapper-analytics-endpoint' content={analyticsEndpoint} />
       ) : null}
       <link rel='canonical' href={canonicalUrl} />
-      <link rel='icon' href='/favicon.ico' sizes='any' />
       <link rel='icon' href='/favicon.svg' type='image/svg+xml' />
       <link rel='apple-touch-icon' href='/favicon.svg' />
       <link rel='manifest' href='/site.webmanifest' />
