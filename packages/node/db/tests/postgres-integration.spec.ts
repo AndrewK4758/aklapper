@@ -1,18 +1,25 @@
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
   type AppDatabase,
+  askTurns,
+  consumeQuotaForSession,
   ContactDbConstraintError,
   createDb,
   createDbPool,
   deleteTerminalDirectoryEntry,
   extractPgConstraintViolation,
+  getAskTurnByAttemptId,
   getTerminalDirectoryEntries,
   getTerminalProfile,
   insertContactSubmission,
   loadAdminCmsData,
+  loadAdminOverviewData,
+  pruneExpiredAskTurns,
+  rateLimitBuckets,
+  resetRateLimitBucket,
   TERMINAL_PROFILE_SLUGS,
   upsertTerminalDirectoryEntry,
 } from '../src/index.ts';
@@ -114,5 +121,97 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
     expect(mapped).toBeInstanceOf(ContactDbConstraintError);
     expect(mapped?.constraintName).toBe('contact_email_format_check');
     expect(mapped?.fieldErrors['email']).toBeTruthy();
+  });
+
+  it('serializes concurrent quota mutations via FOR UPDATE and enforces ask_turns lifecycle and Admin status detail', async () => {
+    const overview = await loadAdminOverviewData(db);
+    expect(overview.health.qdrant.detail).toBe('AI_ASK_URL not configured (fail-closed)');
+
+    const sessionId = `guest_for_update_${Date.now()}`;
+    const todayKey = `global:${new Date().toISOString().slice(0, 10)}`;
+
+    try {
+      const results = await Promise.all(
+        Array.from({ length: 7 }, () => consumeQuotaForSession(db, 'guest', sessionId, 1, 512)),
+      );
+      const allowedCount = results.filter(r => r.allowed).length;
+      const rejectedCount = results.filter(r => !r.allowed).length;
+      expect(allowedCount).toBe(5);
+      expect(rejectedCount).toBe(2);
+
+      const [bucketRow] = await db
+        .select()
+        .from(rateLimitBuckets)
+        .where(eq(rateLimitBuckets.scopeKey, `session:${sessionId}`))
+        .limit(1);
+      expect(bucketRow?.turnsUsed).toBe(5);
+      expect(bucketRow?.tokensUsed).toBe(5 * 512);
+    } finally {
+      await resetRateLimitBucket(db, `session:${sessionId}`);
+      await resetRateLimitBucket(db, todayKey);
+    }
+
+    const activeAttemptId = '11111111-1111-4111-8111-111111111119';
+    const expiredAttemptId = '22222222-2222-4222-8222-222222222229';
+    const now = new Date();
+    const futureLease = new Date(now.getTime() + 60_000);
+    const futureExpiry = new Date(now.getTime() + 900_000);
+    const pastExpiry = new Date(now.getTime() - 60_000);
+
+    try {
+      await db.insert(askTurns).values([
+        {
+          attemptId: activeAttemptId,
+          sessionId: 'guest_turn_owner',
+          role: 'guest',
+          mode: 'qa',
+          promptHash: 'a'.repeat(64),
+          status: 'completed',
+          tokensReserved: 512,
+          tokensUsed: 320,
+          resultJson: {
+            attemptId: activeAttemptId,
+            grounded: true,
+            abstained: false,
+            mode: 'qa',
+            answer: 'Grounded portfolio overview.',
+            sources: [],
+            provider: 'local-llama-swap',
+            model: 'inference',
+            tokensUsed: 320,
+          },
+          correlationId: 'corr-pg-turn-1',
+          leaseExpiresAt: futureLease,
+          expiresAt: futureExpiry,
+        },
+        {
+          attemptId: expiredAttemptId,
+          sessionId: 'guest_turn_owner',
+          role: 'guest',
+          mode: 'qa',
+          promptHash: 'b'.repeat(64),
+          status: 'running',
+          tokensReserved: 512,
+          tokensUsed: 0,
+          correlationId: 'corr-pg-turn-2',
+          leaseExpiresAt: pastExpiry,
+          expiresAt: pastExpiry,
+        },
+      ]);
+
+      const owned = await getAskTurnByAttemptId(db, activeAttemptId, 'guest_turn_owner');
+      expect(owned?.status).toBe('completed');
+      expect(owned?.response?.tokensUsed).toBe(320);
+
+      const crossSession = await getAskTurnByAttemptId(db, activeAttemptId, 'guest_other');
+      expect(crossSession).toBeNull();
+
+      const pruned = await pruneExpiredAskTurns(db, now);
+      expect(pruned).toBeGreaterThanOrEqual(1);
+      expect(await getAskTurnByAttemptId(db, expiredAttemptId, 'guest_turn_owner')).toBeNull();
+    } finally {
+      await db.delete(askTurns).where(eq(askTurns.attemptId, activeAttemptId));
+      await db.delete(askTurns).where(eq(askTurns.attemptId, expiredAttemptId));
+    }
   });
 });
