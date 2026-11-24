@@ -6,12 +6,14 @@ import {
   CONTACT_MAX_FILE_BYTES,
   ContactFormSubmissionSchema,
   FormDefinitionSchema,
+  formatTerminalDirectoryListing,
   K8sPodEventSchema,
   MenuItemSchema,
   Osc7501StatusSchema,
   PortalChromeContentSchema,
   resolveAllowedMimeType,
   sanitizeFilename,
+  TerminalDirectoryEntryUpsertSchema,
   TerminalProfileDataSchema,
   validateFormValues,
 } from '../src/index.ts';
@@ -89,8 +91,11 @@ describe('@aklapper/core (contracts)', () => {
       quickCommands: ['help', 'ls'],
       initialEntries: [
         {
-          command: 'ls -la',
-          output: 'menu/',
+          command: 'ls',
+          output: formatTerminalDirectoryListing([
+            { name: 'menu', description: 'Site menu' },
+            { name: 'changes-in-progress', description: 'Maintenance preview' },
+          ]),
           status: 'ok',
           durationLabel: '6ms',
           timestamp: '00:00:00',
@@ -111,6 +116,28 @@ describe('@aklapper/core (contracts)', () => {
       ],
     });
     expect(profile.initialEntries).toHaveLength(1);
+    expect(profile.initialEntries[0]?.output).toBe(
+      ['menu                  # Site menu', 'changes-in-progress   # Maintenance preview'].join(
+        '\n',
+      ),
+    );
+    expect(formatTerminalDirectoryListing([])).toBe('');
+    expect(
+      TerminalDirectoryEntryUpsertSchema.parse({
+        profileSlug: 'portal-home',
+        name: 'contact',
+        description: 'Connect with me',
+        sortOrder: 6,
+      }),
+    ).toMatchObject({ name: 'contact', enabled: true });
+    expect(() =>
+      TerminalDirectoryEntryUpsertSchema.parse({
+        profileSlug: 'portal-home',
+        name: 'menu/',
+        description: 'Site menu',
+        sortOrder: 1,
+      }),
+    ).toThrow(/Invalid/i);
 
     const chrome = PortalChromeContentSchema.parse({
       pageTitle: 'andrew-k.us // Solar Forge Terminal',

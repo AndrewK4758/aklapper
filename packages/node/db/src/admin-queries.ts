@@ -22,6 +22,8 @@ import {
   type AdminServiceHealth,
   type AdminTerminalCommandRow,
   AdminTerminalCommandRowSchema,
+  type AdminTerminalDirectoryEntryRow,
+  AdminTerminalDirectoryEntryRowSchema,
   type AdminTerminalInitialEntryRow,
   AdminTerminalInitialEntryRowSchema,
   type AdminTerminalProfileRow,
@@ -70,6 +72,8 @@ import {
   SiteContentUpsertSchema,
   type TerminalCommandUpsertInput,
   TerminalCommandUpsertSchema,
+  type TerminalDirectoryEntryUpsertInput,
+  TerminalDirectoryEntryUpsertSchema,
   type TerminalInitialEntryUpsertInput,
   TerminalInitialEntryUpsertSchema,
   type TerminalProfileUpsertInput,
@@ -707,6 +711,7 @@ export async function loadAdminCmsData(db: AppDatabase): Promise<AdminCmsLoaderD
     profileRows,
     commandRows,
     entryRows,
+    directoryEntryRows,
     milestoneRows,
     skillRows,
     presetRows,
@@ -732,6 +737,14 @@ export async function loadAdminCmsData(db: AppDatabase): Promise<AdminCmsLoaderD
         asc(schema.terminalInitialEntries.profileSlug),
         asc(schema.terminalInitialEntries.sortOrder),
         asc(schema.terminalInitialEntries.id),
+      ),
+    db
+      .select()
+      .from(schema.terminalDirectoryEntries)
+      .orderBy(
+        asc(schema.terminalDirectoryEntries.profileSlug),
+        asc(schema.terminalDirectoryEntries.sortOrder),
+        asc(schema.terminalDirectoryEntries.id),
       ),
     db
       .select()
@@ -772,6 +785,9 @@ export async function loadAdminCmsData(db: AppDatabase): Promise<AdminCmsLoaderD
     terminalProfiles: profileRows.map(row => AdminTerminalProfileRowSchema.parse(row)),
     terminalCommands: commandRows.map(row => AdminTerminalCommandRowSchema.parse(row)),
     terminalInitialEntries: entryRows.map(row => AdminTerminalInitialEntryRowSchema.parse(row)),
+    terminalDirectoryEntries: directoryEntryRows.map(row =>
+      AdminTerminalDirectoryEntryRowSchema.parse(row),
+    ),
     roadmapMilestones: milestoneRows.map(row => RoadmapMilestoneSchema.parse(row)),
     agensiSkills: skillRows.map(row => AgensiSkillSchema.parse(row)),
     cadencePresets: presetRows.map(row => CadencePresetSchema.parse(row)),
@@ -1075,6 +1091,54 @@ export async function deleteTerminalInitialEntry(db: AppDatabase, id: number): P
     .delete(schema.terminalInitialEntries)
     .where(eq(schema.terminalInitialEntries.id, id))
     .returning({ id: schema.terminalInitialEntries.id });
+  return deleted.length > 0;
+}
+
+export async function upsertTerminalDirectoryEntry(
+  db: AppDatabase,
+  input: TerminalDirectoryEntryUpsertInput,
+): Promise<AdminTerminalDirectoryEntryRow> {
+  const parsed = TerminalDirectoryEntryUpsertSchema.parse(input);
+  const values = {
+    profileSlug: parsed.profileSlug,
+    name: parsed.name,
+    description: parsed.description,
+    sortOrder: parsed.sortOrder,
+    enabled: parsed.enabled,
+  };
+
+  if (parsed.id) {
+    const [updated] = await db
+      .update(schema.terminalDirectoryEntries)
+      .set(values)
+      .where(eq(schema.terminalDirectoryEntries.id, parsed.id))
+      .returning();
+    if (updated) return AdminTerminalDirectoryEntryRowSchema.parse(updated);
+  }
+
+  const [row] = await db
+    .insert(schema.terminalDirectoryEntries)
+    .values(values)
+    .onConflictDoUpdate({
+      target: [schema.terminalDirectoryEntries.profileSlug, schema.terminalDirectoryEntries.name],
+      set: {
+        description: parsed.description,
+        sortOrder: parsed.sortOrder,
+        enabled: parsed.enabled,
+      },
+    })
+    .returning();
+
+  if (!row) throw new Error(`Failed to upsert terminal_directory_entries row "${parsed.name}"`);
+  return AdminTerminalDirectoryEntryRowSchema.parse(row);
+}
+
+export async function deleteTerminalDirectoryEntry(db: AppDatabase, id: number): Promise<boolean> {
+  if (!Number.isInteger(id) || id <= 0) return false;
+  const deleted = await db
+    .delete(schema.terminalDirectoryEntries)
+    .where(eq(schema.terminalDirectoryEntries.id, id))
+    .returning({ id: schema.terminalDirectoryEntries.id });
   return deleted.length > 0;
 }
 

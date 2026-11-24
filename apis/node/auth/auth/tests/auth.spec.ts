@@ -1,3 +1,4 @@
+import { createDb, createDbPool } from '@aklapper/db';
 import type { AuthDispatchRequest, AuthDispatchResult } from '@aklapper/db/auth';
 import { vi } from 'vitest';
 
@@ -83,6 +84,53 @@ describe('node-api-auth', () => {
       expect(calls.some(c => c.originHeader === 'http://localhost:4301')).toBe(true);
     } finally {
       await app.close();
+    }
+  });
+
+  it('persists and revokes guest sessions against the ephemeral PostgreSQL 19 test database', async () => {
+    const pool = createDbPool();
+    const db = createDb(pool);
+    const app = await buildAuthServer({ db });
+
+    try {
+      const guest = await app.inject({ method: 'POST', url: '/v1/auth/guest' });
+      expect(guest.statusCode).toBe(201);
+      const guestBody = guest.json() as { sessionId: string; role: string };
+      expect(guestBody.role).toBe('guest');
+      expect(guestBody.sessionId).toMatch(/^[0-9a-f-]{36}$/i);
+
+      const cookieHeader = `ak_guest_session=${guestBody.sessionId}`;
+      const activeSession = await app.inject({
+        method: 'GET',
+        url: '/v1/auth/session',
+        headers: { cookie: cookieHeader },
+      });
+      expect(activeSession.statusCode).toBe(200);
+      expect(activeSession.json()).toMatchObject({
+        authenticated: true,
+        session: { sessionId: guestBody.sessionId, role: 'guest' },
+      });
+
+      const logout = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/logout',
+        headers: { cookie: cookieHeader },
+      });
+      expect(logout.statusCode).toBe(200);
+
+      const revokedSession = await app.inject({
+        method: 'GET',
+        url: '/v1/auth/session',
+        headers: { cookie: cookieHeader },
+      });
+      expect(revokedSession.statusCode).toBe(200);
+      expect(revokedSession.json()).toMatchObject({
+        authenticated: false,
+        session: null,
+      });
+    } finally {
+      await app.close();
+      await pool.end();
     }
   });
 });

@@ -47,8 +47,11 @@ import {
   type RoadmapMilestone,
   RoadmapMilestoneSchema,
   type Role,
+  type TerminalDirectoryEntry,
+  TerminalDirectoryEntrySchema,
   type TerminalProfileData,
   TerminalProfileDataSchema,
+  formatTerminalDirectoryListing,
 } from '@aklapper/core';
 import { and, asc, count, desc, eq, gt, isNull, sql } from 'drizzle-orm';
 import type { z } from 'zod';
@@ -99,6 +102,45 @@ export async function getSiteContent<T>(
   return contentSchema.parse(row.metadataJson);
 }
 
+export async function getTerminalDirectoryEntries(
+  db: AppDatabase,
+  profileSlug: string,
+): Promise<TerminalDirectoryEntry[]> {
+  const rows = await db
+    .select()
+    .from(schema.terminalDirectoryEntries)
+    .where(
+      and(
+        eq(schema.terminalDirectoryEntries.profileSlug, profileSlug),
+        eq(schema.terminalDirectoryEntries.enabled, true),
+      ),
+    )
+    .orderBy(
+      asc(schema.terminalDirectoryEntries.sortOrder),
+      asc(schema.terminalDirectoryEntries.id),
+    );
+
+  return rows.map(row =>
+    TerminalDirectoryEntrySchema.parse({
+      name: row.name,
+      description: row.description,
+      sortOrder: row.sortOrder,
+      enabled: row.enabled,
+    }),
+  );
+}
+
+export function resolveTerminalLsOutput(
+  commandName: string,
+  fallbackOutput: string,
+  directoryListing: string | null,
+): string {
+  if (directoryListing !== null && commandName.trim() === 'ls') {
+    return directoryListing;
+  }
+  return fallbackOutput;
+}
+
 export async function getTerminalProfile(
   db: AppDatabase,
   slug: string,
@@ -113,7 +155,7 @@ export async function getTerminalProfile(
     throw new Error(`Missing required terminal_profiles row in Postgres: slug="${slug}"`);
   }
 
-  const [entryRows, commandRows] = await Promise.all([
+  const [entryRows, commandRows, directoryEntries] = await Promise.all([
     db
       .select()
       .from(schema.terminalInitialEntries)
@@ -124,7 +166,11 @@ export async function getTerminalProfile(
       .from(schema.terminalCommands)
       .where(eq(schema.terminalCommands.profileSlug, slug))
       .orderBy(asc(schema.terminalCommands.sortOrder), asc(schema.terminalCommands.id)),
+    getTerminalDirectoryEntries(db, slug),
   ]);
+
+  const directoryListing =
+    directoryEntries.length > 0 ? formatTerminalDirectoryListing(directoryEntries) : null;
 
   return TerminalProfileDataSchema.parse({
     slug: profile.slug,
@@ -139,7 +185,7 @@ export async function getTerminalProfile(
     quickCommands: profile.quickCommands,
     initialEntries: entryRows.map(entry => ({
       command: entry.command,
-      output: entry.output,
+      output: resolveTerminalLsOutput(entry.command, entry.output, directoryListing),
       status: entry.status,
       durationLabel: entry.durationLabel,
       timestamp: entry.timestampLabel,
@@ -149,7 +195,7 @@ export async function getTerminalProfile(
       name: cmd.name,
       description: cmd.description,
       kind: cmd.kind,
-      output: cmd.output,
+      output: resolveTerminalLsOutput(cmd.name, cmd.output, directoryListing),
       targetRoute: cmd.targetRoute,
       allowedRoutes: cmd.allowedRoutes,
       errorTemplate: cmd.errorTemplate,

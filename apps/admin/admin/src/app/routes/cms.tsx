@@ -5,6 +5,7 @@ import {
   deleteMenuItem,
   deleteRoadmapMilestone,
   deleteTerminalCommand,
+  deleteTerminalDirectoryEntry,
   deleteTerminalInitialEntry,
   getSharedDb,
   loadAdminCmsData,
@@ -15,6 +16,7 @@ import {
   upsertRoadmapMilestone,
   upsertSiteContent,
   upsertTerminalCommand,
+  upsertTerminalDirectoryEntry,
   upsertTerminalInitialEntry,
   upsertTerminalProfile,
 } from '@aklapper/db';
@@ -190,6 +192,27 @@ export async function action({ request }: ActionFunctionArgs): Promise<AdminCmsA
       return deleted
         ? { ok: true, message: `Deleted terminal entry #${id}.` }
         : { ok: false, message: `Terminal entry #${id} not found.` };
+    }
+
+    if (intent === 'upsert-terminal-directory-entry') {
+      const rawId = formData.get('id');
+      const saved = await upsertTerminalDirectoryEntry(db, {
+        ...(rawId ? { id: Number(rawId) } : {}),
+        profileSlug: String(formData.get('profileSlug') ?? ''),
+        name: String(formData.get('name') ?? ''),
+        description: String(formData.get('description') ?? ''),
+        sortOrder: Number(formData.get('sortOrder') ?? 0),
+        enabled: formData.get('enabled') !== 'false',
+      });
+      return { ok: true, message: `Saved terminal directory entry "${saved.name}".` };
+    }
+
+    if (intent === 'delete-terminal-directory-entry') {
+      const id = Number(formData.get('id') ?? 0);
+      const deleted = await deleteTerminalDirectoryEntry(db, id);
+      return deleted
+        ? { ok: true, message: `Deleted terminal directory entry #${id}.` }
+        : { ok: false, message: `Terminal directory entry #${id} not found.` };
     }
 
     if (intent === 'upsert-roadmap-milestone') {

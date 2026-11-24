@@ -1,4 +1,6 @@
-import type { AppDatabase, ingestAnalyticsBatch } from '@aklapper/db';
+import { randomUUID } from 'node:crypto';
+
+import { type AppDatabase, createDb, createDbPool, type ingestAnalyticsBatch } from '@aklapper/db';
 import { vi } from 'vitest';
 
 import { buildAnalyticsServer } from '../src/server.ts';
@@ -51,6 +53,50 @@ describe('node-api-analytics', () => {
       );
     } finally {
       await app.close();
+    }
+  });
+
+  it('persists telemetry sessions and events into the ephemeral PostgreSQL 19 test database', async () => {
+    const pool = createDbPool();
+    const db = createDb(pool);
+    const app = await buildAnalyticsServer({
+      db,
+      env: { ANALYTICS_DAILY_SALT: 'ephemeral-test-salt' },
+    });
+    const sessionId = `unit-pg-${randomUUID().slice(0, 8)}`;
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/analytics/ingest',
+        headers: {
+          'x-cloud-country': 'US',
+          'x-cloud-region': 'GA',
+        },
+        payload: {
+          sessionId,
+          referrer: 'https://andrew-k.us/',
+          events: [
+            {
+              type: 'page_view',
+              name: 'portal_home',
+              path: '/',
+              timestamp: new Date().toISOString(),
+            },
+          ],
+        },
+      });
+      expect(response.statusCode).toBe(202);
+      expect(response.json().accepted).toBe(1);
+
+      const persisted = await pool.query<{ name: string; path: string }>(
+        'SELECT name, path FROM analytics_events WHERE session_id = $1',
+        [sessionId],
+      );
+      expect(persisted.rows).toEqual([{ name: 'portal_home', path: '/' }]);
+    } finally {
+      await app.close();
+      await pool.end();
     }
   });
 });

@@ -711,6 +711,87 @@ export function AdminCmsPage({ data, qdrant, actionData }: AdminCmsPageProps) {
               </Form>
             </section>
 
+            <section className={styles.card} aria-label='Terminal directory entries'>
+              <h2 className={styles.sectionTitle}>
+                Terminal Directory Entries ({data.terminalDirectoryEntries.length})
+              </h2>
+              <table className={styles.dataTable}>
+                <thead>
+                  <tr>
+                    <th>Profile</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Order</th>
+                    <th>Enabled</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.terminalDirectoryEntries.map(entry => (
+                    <tr key={entry.id}>
+                      <td>{entry.profileSlug}</td>
+                      <td>
+                        <code>{entry.name}</code>
+                      </td>
+                      <td>{entry.description}</td>
+                      <td>{entry.sortOrder}</td>
+                      <td>{entry.enabled ? 'yes' : 'no'}</td>
+                      <td aria-label={`Delete directory entry ${entry.name}`}>
+                        <Form method='post'>
+                          <input
+                            type='hidden'
+                            name='intent'
+                            value='delete-terminal-directory-entry'
+                          />
+                          <input type='hidden' name='id' value={String(entry.id)} />
+                          <Button.Root type='submit' variant='danger' size='sm'>
+                            <Button.Label>Delete</Button.Label>
+                          </Button.Root>
+                        </Form>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <Form method='post' className={styles.stackForm}>
+                <input type='hidden' name='intent' value='upsert-terminal-directory-entry' />
+                <div className={styles.formGrid}>
+                  <Field.Root>
+                    <Field.Label>Profile Slug</Field.Label>
+                    <Field.Control
+                      name='profileSlug'
+                      defaultValue={selectedProfile?.slug ?? 'portal-home'}
+                      required
+                    />
+                  </Field.Root>
+                  <Field.Root>
+                    <Field.Label>Entry Name</Field.Label>
+                    <Field.Control name='name' placeholder='menu' required />
+                  </Field.Root>
+                  <Field.Root>
+                    <Field.Label>Description</Field.Label>
+                    <Field.Control name='description' placeholder='Site menu' required />
+                  </Field.Root>
+                  <Field.Root>
+                    <Field.Label>Sort Order</Field.Label>
+                    <Field.Control name='sortOrder' type='number' defaultValue={10} required />
+                  </Field.Root>
+                  <Field.Root>
+                    <Field.Label>Enabled</Field.Label>
+                    <select name='enabled' className={styles.selectControl} defaultValue='true'>
+                      <option value='true'>true</option>
+                      <option value='false'>false</option>
+                    </select>
+                  </Field.Root>
+                </div>
+                <div>
+                  <Button.Root type='submit' variant='secondary' size='sm'>
+                    <Button.Label>Save Directory Entry</Button.Label>
+                  </Button.Root>
+                </div>
+              </Form>
+            </section>
+
             <Separator.Root />
 
             <section className={styles.card} aria-label='Roadmap milestones'>
