@@ -7,7 +7,7 @@
   "include": ["playwright.config.ts", "src/**/*.ts"],
   "references": [
     {
-      "path": "../../../packages/shared/utils"
+      "path": "../../../packages/tooling"
     }
   ]
 }

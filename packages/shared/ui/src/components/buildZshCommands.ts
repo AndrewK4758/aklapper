@@ -1,8 +1,4 @@
-import type {
-  RoadmapMilestone,
-  RoadmapMilestoneStatus,
-  TerminalCommandSpec,
-} from '@aklapper/contracts';
+import type { RoadmapMilestone, RoadmapMilestoneStatus, TerminalCommandSpec } from '@aklapper/core';
 
 import type { ZshCommandHandler } from './ZshP10kTerminal';
 

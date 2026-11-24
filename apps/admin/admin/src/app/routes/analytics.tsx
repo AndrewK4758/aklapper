@@ -1,4 +1,4 @@
-import type { AdminAnalyticsLoaderData } from '@aklapper/contracts';
+import type { AdminAnalyticsLoaderData } from '@aklapper/core';
 import { loadAdminAnalyticsDataWithPrerender } from '@aklapper/db';
 import { type MetaArgs, useLoaderData } from 'react-router';
 

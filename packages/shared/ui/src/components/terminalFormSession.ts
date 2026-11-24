@@ -9,7 +9,7 @@ import {
   parseCliFormInvocation,
   validateFormValues,
   validateFormField,
-} from '@aklapper/contracts';
+} from '@aklapper/core';
 
 export interface TerminalFormConfig {
   readonly definition: FormDefinition;

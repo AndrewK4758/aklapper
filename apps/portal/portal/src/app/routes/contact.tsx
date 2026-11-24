@@ -1,4 +1,4 @@
-import type { ContactActionResult, PortalContactLoaderData } from '@aklapper/contracts';
+import type { ContactActionResult, PortalContactLoaderData } from '@aklapper/core';
 import { loadPortalContactDataWithPrerender } from '@aklapper/db';
 import {
   type ActionFunctionArgs,

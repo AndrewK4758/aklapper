@@ -1,4 +1,4 @@
-import { assertSsrHealthz, trackPageErrors } from '@aklapper/shared-utils/playwright';
+import { assertSsrHealthz, trackPageErrors } from '@aklapper/tooling/playwright';
 import { expect, test } from '@playwright/test';
 
 const IS_MAINTENANCE_MODE = process.env['PORTAL_MAINTENANCE_MODE'] === 'true';

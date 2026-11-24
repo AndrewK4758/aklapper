@@ -1,4 +1,4 @@
-import type { AdminHomeLoaderData } from '@aklapper/contracts';
+import type { AdminHomeLoaderData } from '@aklapper/core';
 import { loadAdminHomeDataWithPrerender } from '@aklapper/db';
 import { type MetaArgs, useLoaderData } from 'react-router';
 

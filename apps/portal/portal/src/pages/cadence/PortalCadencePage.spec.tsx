@@ -1,4 +1,4 @@
-import type { CadencePreset, PortalCadenceContent } from '@aklapper/contracts';
+import type { CadencePreset, PortalCadenceContent } from '@aklapper/core';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 

@@ -1,0 +1,7 @@
+{
+  "name": "go-kit",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "packages/go/kit",
+  "tags": ["scope:go", "type:lib"]
+}

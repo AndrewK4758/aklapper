@@ -5,13 +5,7 @@
   "exclude": ["node_modules", "dist", "reports"],
   "references": [
     {
-      "path": "./packages/shared/contracts"
-    },
-    {
-      "path": "./packages/shared/utils"
-    },
-    {
-      "path": "./packages/shared/analytics"
+      "path": "./packages/shared/core"
     },
     {
       "path": "./packages/shared/ui"
@@ -20,13 +14,13 @@
       "path": "./packages/node/db"
     },
     {
-      "path": "./packages/node/ai"
+      "path": "./packages/node/runtime"
     },
     {
-      "path": "./packages/node/ssr-server"
+      "path": "./packages/tooling"
     },
     {
-      "path": "./packages/node/e2e-kit"
+      "path": "./packages/legacy/games-engine"
     },
     {
       "path": "./apis/node/auth/auth"
@@ -39,33 +33,6 @@
     },
     {
       "path": "./apis/node/analytics/analytics-e2e"
-    },
-    {
-      "path": "./packages/legacy/chain"
-    },
-    {
-      "path": "./packages/legacy/game"
-    },
-    {
-      "path": "./packages/legacy/games"
-    },
-    {
-      "path": "./packages/legacy/games-chains"
-    },
-    {
-      "path": "./packages/legacy/games-components"
-    },
-    {
-      "path": "./packages/legacy/mocks"
-    },
-    {
-      "path": "./packages/legacy/models"
-    },
-    {
-      "path": "./packages/legacy/types"
-    },
-    {
-      "path": "./packages/legacy/utils"
     },
     {
       "path": "./apps/portal/portal-e2e"

@@ -1,12 +1,12 @@
 import './theme.css';
-import type { PortalRootLoaderData } from '@aklapper/contracts';
-import { loadPortalRootDataWithPrerender } from '@aklapper/db';
+import type { PortalRootLoaderData } from '@aklapper/core';
 import {
   buildCanonicalUrl,
   buildPortalJsonLd,
   buildRouteMetaTags,
   readSeoRuntimeConfig,
-} from '@aklapper/shared-utils';
+} from '@aklapper/core';
+import { loadPortalRootDataWithPrerender } from '@aklapper/db';
 import {
   Button,
   DirectionProvider,

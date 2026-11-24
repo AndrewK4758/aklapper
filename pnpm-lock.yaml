@@ -215,12 +215,15 @@ importers:
 
   apis/node/analytics/analytics:
     dependencies:
-      '@aklapper/contracts':
+      '@aklapper/core':
         specifier: workspace:*
-        version: link:../../../../packages/shared/contracts
+        version: link:../../../../packages/shared/core
       '@aklapper/db':
         specifier: workspace:*
         version: link:../../../../packages/node/db
+      '@aklapper/node-runtime':
+        specifier: workspace:*
+        version: link:../../../../packages/node/runtime
       '@fastify/helmet':
         specifier: ^13.2.0
         version: 13.2.0
@@ -233,24 +236,24 @@ importers:
 
   apis/node/analytics/analytics-e2e:
     devDependencies:
-      '@aklapper/contracts':
+      '@aklapper/core':
         specifier: workspace:*
-        version: link:../../../../packages/shared/contracts
-      '@aklapper/node-e2e-kit':
+        version: link:../../../../packages/shared/core
+      '@aklapper/tooling':
         specifier: workspace:*
-        version: link:../../../../packages/node/e2e-kit
+        version: link:../../../../packages/tooling
 
   apis/node/auth/auth:
     dependencies:
-      '@aklapper/contracts':
+      '@aklapper/core':
         specifier: workspace:*
-        version: link:../../../../packages/shared/contracts
+        version: link:../../../../packages/shared/core
       '@aklapper/db':
         specifier: workspace:*
         version: link:../../../../packages/node/db
-      '@aklapper/shared-utils':
+      '@aklapper/node-runtime':
         specifier: workspace:*
-        version: link:../../../../packages/shared/utils
+        version: link:../../../../packages/node/runtime
       '@fastify/cookie':
         specifier: ^11.1.5
         version: 11.1.5
@@ -269,30 +272,24 @@ importers:
 
   apis/node/auth/auth-e2e:
     devDependencies:
-      '@aklapper/contracts':
+      '@aklapper/core':
         specifier: workspace:*
-        version: link:../../../../packages/shared/contracts
-      '@aklapper/node-e2e-kit':
+        version: link:../../../../packages/shared/core
+      '@aklapper/tooling':
         specifier: workspace:*
-        version: link:../../../../packages/node/e2e-kit
+        version: link:../../../../packages/tooling
 
   apps/admin/admin:
     dependencies:
-      '@aklapper/analytics':
+      '@aklapper/core':
         specifier: workspace:*
-        version: link:../../../packages/shared/analytics
-      '@aklapper/contracts':
-        specifier: workspace:*
-        version: link:../../../packages/shared/contracts
+        version: link:../../../packages/shared/core
       '@aklapper/db':
         specifier: workspace:*
         version: link:../../../packages/node/db
-      '@aklapper/shared-utils':
+      '@aklapper/node-runtime':
         specifier: workspace:*
-        version: link:../../../packages/shared/utils
-      '@aklapper/ssr-server':
-        specifier: workspace:*
-        version: link:../../../packages/node/ssr-server
+        version: link:../../../packages/node/runtime
       '@aklapper/ui':
         specifier: workspace:*
         version: link:../../../packages/shared/ui
@@ -315,6 +312,9 @@ importers:
         specifier: 8.5.2
         version: 8.5.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
+      '@aklapper/tooling':
+        specifier: workspace:*
+        version: link:../../../packages/tooling
       '@react-router/dev':
         specifier: 8.5.2
         version: 8.5.2(babel-plugin-macros@3.1.0)(react-router@8.5.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(supports-color@8.1.1)(typescript@6.0.3)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.0))
@@ -324,30 +324,24 @@ importers:
 
   apps/admin/admin-e2e:
     devDependencies:
-      '@aklapper/shared-utils':
+      '@aklapper/tooling':
         specifier: workspace:*
-        version: link:../../../packages/shared/utils
+        version: link:../../../packages/tooling
       '@playwright/test':
         specifier: ^1.65.1
         version: 1.65.1
 
   apps/portal/portal:
     dependencies:
-      '@aklapper/analytics':
+      '@aklapper/core':
         specifier: workspace:*
-        version: link:../../../packages/shared/analytics
-      '@aklapper/contracts':
-        specifier: workspace:*
-        version: link:../../../packages/shared/contracts
+        version: link:../../../packages/shared/core
       '@aklapper/db':
         specifier: workspace:*
         version: link:../../../packages/node/db
-      '@aklapper/shared-utils':
+      '@aklapper/node-runtime':
         specifier: workspace:*
-        version: link:../../../packages/shared/utils
-      '@aklapper/ssr-server':
-        specifier: workspace:*
-        version: link:../../../packages/node/ssr-server
+        version: link:../../../packages/node/runtime
       '@aklapper/ui':
         specifier: workspace:*
         version: link:../../../packages/shared/ui
@@ -370,6 +364,9 @@ importers:
         specifier: 8.5.2
         version: 8.5.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
+      '@aklapper/tooling':
+        specifier: workspace:*
+        version: link:../../../packages/tooling
       '@react-router/dev':
         specifier: 8.5.2
         version: 8.5.2(babel-plugin-macros@3.1.0)(react-router@8.5.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(supports-color@8.1.1)(typescript@6.0.3)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.0))
@@ -379,154 +376,27 @@ importers:
 
   apps/portal/portal-e2e:
     devDependencies:
-      '@aklapper/shared-utils':
+      '@aklapper/tooling':
         specifier: workspace:*
-        version: link:../../../packages/shared/utils
+        version: link:../../../packages/tooling
       '@playwright/test':
         specifier: ^1.65.1
         version: 1.65.1
 
-  packages/legacy/chain:
+  packages/legacy/games-engine:
     dependencies:
       tslib:
         specifier: ^2.8.1
         version: 2.9.1
-    devDependencies:
-      '@aklapper/types':
-        specifier: workspace:*
-        version: link:../types
-
-  packages/legacy/game:
-    dependencies:
-      tslib:
-        specifier: ^2.8.1
-        version: 2.9.1
-    devDependencies:
-      '@aklapper/games-components':
-        specifier: workspace:*
-        version: link:../games-components
-      '@aklapper/types':
-        specifier: workspace:*
-        version: link:../types
-
-  packages/legacy/games:
-    dependencies:
-      tslib:
-        specifier: ^2.8.1
-        version: 2.9.1
-    devDependencies:
-      '@aklapper/games-components':
-        specifier: workspace:^
-        version: link:../games-components
-      '@aklapper/types':
-        specifier: workspace:^
-        version: link:../types
-
-  packages/legacy/games-chains:
-    dependencies:
-      tslib:
-        specifier: ^2.8.1
-        version: 2.9.1
-    devDependencies:
-      '@aklapper/chain':
-        specifier: workspace:*
-        version: link:../chain
-      '@aklapper/game':
-        specifier: workspace:*
-        version: link:../game
-      '@aklapper/games':
-        specifier: workspace:*
-        version: link:../games
-      '@aklapper/games-components':
-        specifier: workspace:*
-        version: link:../games-components
-      '@aklapper/mocks':
-        specifier: workspace:*
-        version: link:../mocks
-      '@aklapper/models':
-        specifier: workspace:*
-        version: link:../models
-      '@aklapper/types':
-        specifier: workspace:*
-        version: link:../types
-      '@aklapper/utils':
-        specifier: workspace:*
-        version: link:../utils
-
-  packages/legacy/games-components:
-    dependencies:
-      tslib:
-        specifier: ^2.8.1
-        version: 2.9.1
-    devDependencies:
-      '@aklapper/types':
-        specifier: workspace:*
-        version: link:../types
-
-  packages/legacy/mocks:
-    dependencies:
-      tslib:
-        specifier: ^2.8.1
-        version: 2.9.1
-    devDependencies:
-      '@aklapper/types':
-        specifier: workspace:*
-        version: link:../types
-
-  packages/legacy/models:
-    dependencies:
-      tslib:
-        specifier: ^2.8.1
-        version: 2.9.1
-    devDependencies:
-      '@aklapper/chain':
-        specifier: workspace:*
-        version: link:../chain
-      '@aklapper/game':
-        specifier: workspace:*
-        version: link:../game
-      '@aklapper/types':
-        specifier: workspace:*
-        version: link:../types
-
-  packages/legacy/types:
-    dependencies:
-      tslib:
-        specifier: ^2.8.1
-        version: 2.9.1
-
-  packages/legacy/utils:
-    dependencies:
-      tslib:
-        specifier: ^2.8.1
-        version: 2.9.1
-    devDependencies:
-      '@aklapper/chain':
-        specifier: workspace:^
-        version: link:../chain
-      '@aklapper/game':
-        specifier: workspace:^
-        version: link:../game
-      '@aklapper/mocks':
-        specifier: workspace:^
-        version: link:../mocks
-      '@aklapper/models':
-        specifier: workspace:^
-        version: link:../models
-      '@aklapper/types':
-        specifier: workspace:^
-        version: link:../types
-
-  packages/node/ai: {}
 
   packages/node/db:
     dependencies:
-      '@aklapper/contracts':
+      '@aklapper/core':
         specifier: workspace:*
-        version: link:../../shared/contracts
-      '@aklapper/shared-utils':
+        version: link:../../shared/core
+      '@aklapper/node-runtime':
         specifier: workspace:*
-        version: link:../../shared/utils
+        version: link:../runtime
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@types/pg@8.23.1)(pg@8.23.1)
@@ -537,13 +407,11 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
 
-  packages/node/e2e-kit: {}
-
-  packages/node/ssr-server:
+  packages/node/runtime:
     dependencies:
-      '@aklapper/shared-utils':
+      '@aklapper/core':
         specifier: workspace:*
-        version: link:../../shared/utils
+        version: link:../../shared/core
       '@fastify/cookie':
         specifier: ^11.1.5
         version: 11.1.5
@@ -569,26 +437,20 @@ importers:
         specifier: 8.5.2
         version: 8.5.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
 
-  packages/shared/analytics:
+  packages/shared/core:
     dependencies:
-      '@aklapper/contracts':
-        specifier: workspace:*
-        version: link:../contracts
       web-vitals:
         specifier: ^6.2.3
         version: 6.2.3
-
-  packages/shared/contracts:
-    dependencies:
       zod:
         specifier: ^4.6.7
         version: 4.6.7
 
   packages/shared/ui:
     dependencies:
-      '@aklapper/contracts':
+      '@aklapper/core':
         specifier: workspace:*
-        version: link:../contracts
+        version: link:../core
       '@base-ui/react':
         specifier: ^1.9.0
         version: 1.9.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -599,16 +461,15 @@ importers:
         specifier: ^19.0.0
         version: 19.3.1(react@19.3.1)
     devDependencies:
-      '@aklapper/shared-utils':
+      '@aklapper/tooling':
         specifier: workspace:*
-        version: link:../utils
+        version: link:../../tooling
 
-  packages/shared/utils:
+  packages/tooling:
     dependencies:
-      '@aklapper/contracts':
+      '@aklapper/node-runtime':
         specifier: workspace:*
-        version: link:../contracts
-    devDependencies:
+        version: link:../node/runtime
       '@nx/vite':
         specifier: 24.0.6
         version: 24.0.6(@babel/traverse@7.29.15(supports-color@8.1.1))(@nx/eslint@24.0.6(ec7d76eba9f7f2b55f04b77436225884))(@swc-node/register@1.12.1(@swc/core@1.16.22(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@8.1.1)(typescript@6.0.3))(@swc/cli@0.8.2(@swc/core@1.16.22(@swc/helpers@0.5.24))(chokidar@5.0.0)(supports-color@8.1.1))(@swc/core@1.16.22(@swc/helpers@0.5.24))(nx@24.0.6(@swc-node/register@1.12.1(@swc/core@1.16.22(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@8.1.1)(typescript@6.0.3))(@swc/core@1.16.22(@swc/helpers@0.5.24)))(supports-color@8.1.1)(typescript@6.0.3)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.0))(vitest@5.1.1)

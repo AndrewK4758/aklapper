@@ -8,9 +8,9 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
-    "@aklapper/contracts": "workspace:*",
+    "@aklapper/core": "workspace:*",
     "@aklapper/db": "workspace:*",
-    "@aklapper/shared-utils": "workspace:*",
+    "@aklapper/node-runtime": "workspace:*",
     "@fastify/cookie": "^11.1.5",
     "@fastify/helmet": "^13.2.0",
     "@fastify/rate-limit": "^11.3.0",

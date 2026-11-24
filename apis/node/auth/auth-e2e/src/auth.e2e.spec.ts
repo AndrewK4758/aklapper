@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 
-import { AuthSessionSchema } from '@aklapper/contracts';
-import { fetchJson, startNodeApiProcess, type RunningNodeApi } from '@aklapper/node-e2e-kit';
+import { AuthSessionSchema } from '@aklapper/core';
+import { fetchJson, startNodeApiProcess, type RunningNodeApi } from '@aklapper/tooling/e2e';
 
 interface AuthHealthPayload {
   status: string;

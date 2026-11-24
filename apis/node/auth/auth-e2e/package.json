@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "devDependencies": {
-    "@aklapper/contracts": "workspace:*",
-    "@aklapper/node-e2e-kit": "workspace:*"
+    "@aklapper/core": "workspace:*",
+    "@aklapper/tooling": "workspace:*"
   },
   "nx": {
     "name": "node-api-auth-e2e",

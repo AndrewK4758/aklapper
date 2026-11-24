@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 
-import type { AnalyticsBatch } from '@aklapper/contracts';
-import { fetchJson, startNodeApiProcess, type RunningNodeApi } from '@aklapper/node-e2e-kit';
+import type { AnalyticsBatch } from '@aklapper/core';
+import { fetchJson, startNodeApiProcess, type RunningNodeApi } from '@aklapper/tooling/e2e';
 
 interface AnalyticsHealthPayload {
   status: string;

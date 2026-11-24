@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/AndrewK4758/aklapper/packages/go/llm"
-	"github.com/AndrewK4758/aklapper/packages/go/qdrant"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/llm"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/qdrant"
 )
 
 type stubProvider struct{}

@@ -1,4 +1,4 @@
-import { assertSsrHealthz, trackPageErrors } from '@aklapper/shared-utils/playwright';
+import { assertSsrHealthz, trackPageErrors } from '@aklapper/tooling/playwright';
 import { expect, test } from '@playwright/test';
 
 test.describe('admin SSR end-to-end journeys', () => {

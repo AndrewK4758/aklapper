@@ -1,4 +1,4 @@
-import type { CadencePreset, PortalCadenceContent } from '@aklapper/contracts';
+import type { CadencePreset, PortalCadenceContent } from '@aklapper/core';
 import { OscStatusBadge, SandboxedArtifactFrame, Separator, Tabs, TuiWindow } from '@aklapper/ui';
 
 import styles from './PortalCadencePage.module.css';

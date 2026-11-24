@@ -1,4 +1,4 @@
-import type { ContactActionResult, FormDefinition } from '@aklapper/contracts';
+import type { ContactActionResult, FormDefinition } from '@aklapper/core';
 import type { TerminalFormConfig } from '@aklapper/ui';
 
 export async function submitPortalContactForm(formData: FormData): Promise<ContactActionResult> {

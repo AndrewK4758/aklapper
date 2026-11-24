@@ -1,4 +1,4 @@
-import type { AdminHomeContent, MenuItem } from '@aklapper/contracts';
+import type { AdminHomeContent, MenuItem } from '@aklapper/core';
 import { Button, Separator, Toolbar, TuiWindow } from '@aklapper/ui';
 import { Link } from 'react-router';
 

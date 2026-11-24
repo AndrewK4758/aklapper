@@ -11,10 +11,5 @@ use (
 	./apis/go/contact/contact-e2e
 	./apis/go/k8s-watch/k8s-watch
 	./apis/go/k8s-watch/k8s-watch-e2e
-	./packages/go/contracts
-	./packages/go/httpkit
-	./packages/go/k8sevents
-	./packages/go/llm
-	./packages/go/pg
-	./packages/go/qdrant
+	./packages/go/kit
 )

@@ -9,7 +9,7 @@ import {
   resolveAllowedMimeType,
   sanitizeFilename,
   validateFormValues,
-} from '@aklapper/contracts';
+} from '@aklapper/core';
 import {
   ContactDbConstraintError,
   getSharedDb,

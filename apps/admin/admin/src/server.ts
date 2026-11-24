@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 
-import { createSsrServer, type SsrServerInstance } from '@aklapper/ssr-server';
+import { createSsrServer, type SsrServerInstance } from '@aklapper/node-runtime/ssr';
 
 export interface AdminServerOptions {
   buildDir?: string;

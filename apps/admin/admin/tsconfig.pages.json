@@ -23,7 +23,7 @@
   ],
   "references": [
     {
-      "path": "../../../packages/shared/contracts/tsconfig.lib.json"
+      "path": "../../../packages/shared/core/tsconfig.lib.json"
     },
     {
       "path": "../../../packages/shared/ui/tsconfig.lib.json"

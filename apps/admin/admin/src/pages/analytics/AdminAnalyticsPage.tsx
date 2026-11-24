@@ -1,4 +1,4 @@
-import type { AdminAnalyticsContent, AdminAnalyticsSummary } from '@aklapper/contracts';
+import type { AdminAnalyticsContent, AdminAnalyticsSummary } from '@aklapper/core';
 import { Meter, Separator, TuiWindow } from '@aklapper/ui';
 
 import styles from './AdminAnalyticsPage.module.css';

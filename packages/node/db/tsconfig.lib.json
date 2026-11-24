@@ -11,10 +11,10 @@
   "exclude": ["vitest.config.ts", "drizzle.config.ts", "tests/**/*.ts"],
   "references": [
     {
-      "path": "../../shared/contracts/tsconfig.lib.json"
+      "path": "../../shared/core/tsconfig.lib.json"
     },
     {
-      "path": "../../shared/utils/tsconfig.lib.json"
+      "path": "../runtime/tsconfig.lib.json"
     }
   ]
 }

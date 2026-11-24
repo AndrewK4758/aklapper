@@ -1,0 +1,51 @@
+{
+  "name": "@aklapper/tooling",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@aklapper/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./build": {
+      "@aklapper/source": "./src/build.ts",
+      "types": "./src/build.ts",
+      "import": "./src/build.ts",
+      "default": "./src/build.ts"
+    },
+    "./playwright": {
+      "@aklapper/source": "./src/playwright.ts",
+      "types": "./src/playwright.ts",
+      "import": "./src/playwright.ts",
+      "default": "./src/playwright.ts"
+    },
+    "./e2e": {
+      "@aklapper/source": "./src/e2e.ts",
+      "types": "./dist/e2e.d.ts",
+      "import": "./dist/e2e.js",
+      "default": "./dist/e2e.js"
+    }
+  },
+  "dependencies": {
+    "@aklapper/node-runtime": "workspace:*",
+    "@nx/vite": "24.0.6",
+    "@playwright/test": "^1.65.1",
+    "@react-router/dev": "8.5.2",
+    "vite": "8.3.8",
+    "vite-plugin-dts": "5.1.2",
+    "vitest": "5.1.1"
+  },
+  "nx": {
+    "name": "tooling",
+    "projectType": "library",
+    "sourceRoot": "packages/tooling/src",
+    "tags": [
+      "scope:tooling",
+      "runtime:node"
+    ]
+  }
+}

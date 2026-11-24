@@ -2,7 +2,7 @@ import type {
   AdminAnalyticsLoaderData,
   AdminHomeLoaderData,
   AdminRootLoaderData,
-} from '@aklapper/contracts';
+} from '@aklapper/core';
 import { ADMIN_OPS_TERMINAL_PROFILE } from '@aklapper/db';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';

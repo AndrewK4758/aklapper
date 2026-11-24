@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { AuthSessionSchema } from '@aklapper/contracts';
+import { AuthSessionSchema } from '@aklapper/core';
 import cookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';

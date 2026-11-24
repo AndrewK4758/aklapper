@@ -1,4 +1,4 @@
-import type { PortalMenuLoaderData } from '@aklapper/contracts';
+import type { PortalMenuLoaderData } from '@aklapper/core';
 import { loadPortalMenuDataWithPrerender } from '@aklapper/db';
 import { type MetaArgs, useLoaderData, useNavigate } from 'react-router';
 

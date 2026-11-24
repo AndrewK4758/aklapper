@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/AndrewK4758/aklapper/packages/go/httpkit"
-	"github.com/AndrewK4758/aklapper/packages/go/llm"
-	"github.com/AndrewK4758/aklapper/packages/go/qdrant"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/llm"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/qdrant"
 )
 
 type askRequest struct {

@@ -6,7 +6,7 @@ import {
   type ContactFormSubmission,
   type ContactSubmissionSummary,
   type PortalContactLoaderData,
-} from '@aklapper/contracts';
+} from '@aklapper/core';
 import { ContactDbConstraintError } from '@aklapper/db';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';

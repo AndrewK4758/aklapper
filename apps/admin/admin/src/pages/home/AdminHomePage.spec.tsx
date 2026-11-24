@@ -1,4 +1,4 @@
-import type { AdminHomeContent, MenuItem } from '@aklapper/contracts';
+import type { AdminHomeContent, MenuItem } from '@aklapper/core';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';

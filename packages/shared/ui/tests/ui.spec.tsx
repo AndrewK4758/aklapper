@@ -244,7 +244,7 @@ describe('@aklapper/ui', () => {
   });
 
   it('recursively parses nested fieldsets/fields in RecursiveTuiForm and enforces client validation', async () => {
-    const { CONTACT_FORM_DEFINITION } = await import('@aklapper/contracts');
+    const { CONTACT_FORM_DEFINITION } = await import('@aklapper/core');
     const onValidSubmit = vi.fn<(values: unknown, event: { preventDefault: () => void }) => void>(
       (_values, event) => event.preventDefault(),
     );
@@ -302,7 +302,7 @@ describe('@aklapper/ui', () => {
   });
 
   it('validates fields on blur, rejects disallowed files, resets buffer, and submits with Ctrl+Enter', async () => {
-    const { CONTACT_FORM_DEFINITION } = await import('@aklapper/contracts');
+    const { CONTACT_FORM_DEFINITION } = await import('@aklapper/core');
     const onValidSubmit = vi.fn<(values: unknown, event: { preventDefault: () => void }) => void>(
       (_values, event) => event.preventDefault(),
     );

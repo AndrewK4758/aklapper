@@ -1,4 +1,4 @@
-import type { PortalCadenceLoaderData } from '@aklapper/contracts';
+import type { PortalCadenceLoaderData } from '@aklapper/core';
 import { loadPortalCadenceDataWithPrerender } from '@aklapper/db';
 import { type MetaArgs, useLoaderData, useNavigate } from 'react-router';
 

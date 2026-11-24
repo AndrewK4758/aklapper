@@ -1,4 +1,4 @@
-import type { Osc7501State } from '@aklapper/contracts';
+import type { Osc7501State } from '@aklapper/core';
 
 import { Progress, Separator } from './base';
 

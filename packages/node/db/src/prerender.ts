@@ -13,7 +13,7 @@ import {
   RoadmapMilestoneSchema,
   type TerminalProfileData,
   TerminalProfileDataSchema,
-} from '@aklapper/contracts';
+} from '@aklapper/core';
 
 import { type AppDatabase, getSharedDb, isReactRouterPrerender } from './client.ts';
 import {

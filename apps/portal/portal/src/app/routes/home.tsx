@@ -1,4 +1,4 @@
-import type { PortalHomeLoaderData } from '@aklapper/contracts';
+import type { PortalHomeLoaderData } from '@aklapper/core';
 import { loadPortalHomeDataWithPrerender } from '@aklapper/db';
 import { useMemo } from 'react';
 import { type MetaArgs, useLoaderData, useNavigate } from 'react-router';

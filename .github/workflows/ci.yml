@@ -71,11 +71,10 @@ jobs:
             apps/portal/portal/dist
             apps/admin/admin/dist
             packages/node/db/dist
-            packages/node/ssr-server/dist
+            packages/node/runtime/dist
             packages/shared/ui/dist
-            packages/shared/contracts/dist
-            packages/shared/utils/dist
-            packages/shared/analytics/dist
+            packages/shared/core/dist
+            packages/tooling/dist
 
   e2e:
     name: E2E (${{ matrix.app }} / ${{ matrix.project }})

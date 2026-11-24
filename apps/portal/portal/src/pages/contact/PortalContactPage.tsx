@@ -1,4 +1,4 @@
-import type { ContactActionResult, PortalContactContent } from '@aklapper/contracts';
+import type { ContactActionResult, PortalContactContent } from '@aklapper/core';
 import { Button, OscStatusBadge, RecursiveTuiForm, Separator, TuiWindow } from '@aklapper/ui';
 import { useState } from 'react';
 import { Form, Link } from 'react-router';

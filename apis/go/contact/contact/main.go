@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/AndrewK4758/aklapper/packages/go/contracts"
-	"github.com/AndrewK4758/aklapper/packages/go/httpkit"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
 )
 
 func newHandler() http.Handler {

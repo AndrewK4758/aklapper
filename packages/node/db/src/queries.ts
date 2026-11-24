@@ -33,7 +33,7 @@ import {
   RoadmapMilestoneSchema,
   type TerminalProfileData,
   TerminalProfileDataSchema,
-} from '@aklapper/contracts';
+} from '@aklapper/core';
 import { and, asc, count, eq } from 'drizzle-orm';
 import type { z } from 'zod';
 

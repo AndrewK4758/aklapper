@@ -1,7 +1,0 @@
-{
-  "name": "go-contracts",
-  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
-  "projectType": "library",
-  "sourceRoot": "packages/go/contracts",
-  "tags": ["scope:go", "type:lib"]
-}

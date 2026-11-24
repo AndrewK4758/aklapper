@@ -1,11 +1,7 @@
 import './theme.css';
-import type { AdminRootLoaderData } from '@aklapper/contracts';
+import type { AdminRootLoaderData } from '@aklapper/core';
+import { buildCanonicalUrl, buildRouteMetaTags, readSeoRuntimeConfig } from '@aklapper/core';
 import { loadAdminRootDataWithPrerender } from '@aklapper/db';
-import {
-  buildCanonicalUrl,
-  buildRouteMetaTags,
-  readSeoRuntimeConfig,
-} from '@aklapper/shared-utils';
 import {
   DirectionProvider,
   DocumentBodyAnalytics,

@@ -34,19 +34,16 @@
       "path": "../../../packages/shared/ui/tsconfig.lib.json"
     },
     {
-      "path": "../../../packages/node/ssr-server/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../packages/shared/utils/tsconfig.lib.json"
+      "path": "../../../packages/node/runtime/tsconfig.lib.json"
     },
     {
       "path": "../../../packages/node/db/tsconfig.lib.json"
     },
     {
-      "path": "../../../packages/shared/contracts/tsconfig.lib.json"
+      "path": "../../../packages/shared/core/tsconfig.lib.json"
     },
     {
-      "path": "../../../packages/shared/analytics/tsconfig.lib.json"
+      "path": "../../../packages/tooling/tsconfig.lib.json"
     }
   ]
 }

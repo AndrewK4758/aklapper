@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/AndrewK4758/aklapper/packages/go/httpkit"
-	"github.com/AndrewK4758/aklapper/packages/go/httpkit/e2etest"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit/e2etest"
 )
 
 type askResponse struct {

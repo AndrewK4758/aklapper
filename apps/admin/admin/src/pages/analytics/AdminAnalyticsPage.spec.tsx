@@ -1,4 +1,4 @@
-import type { AdminAnalyticsContent, AdminAnalyticsSummary } from '@aklapper/contracts';
+import type { AdminAnalyticsContent, AdminAnalyticsSummary } from '@aklapper/core';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 

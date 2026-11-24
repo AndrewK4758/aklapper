@@ -1,5 +1,5 @@
-import type { MenuItem, PortalMenuContent } from '@aklapper/contracts';
-import { filterMenuForRole } from '@aklapper/shared-utils';
+import type { MenuItem, PortalMenuContent } from '@aklapper/core';
+import { filterMenuForRole } from '@aklapper/core';
 import { NavigationMenu, Separator, TuiWindow, useIsPaneActive } from '@aklapper/ui';
 import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router';

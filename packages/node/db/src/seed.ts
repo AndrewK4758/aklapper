@@ -10,8 +10,8 @@ import {
   type PortalHomeContent,
   type PortalMaintenanceContent,
   type PortalMenuContent,
-} from '@aklapper/contracts';
-import { loadWorkspaceEnv } from '@aklapper/shared-utils/env';
+} from '@aklapper/core';
+import { loadWorkspaceEnv } from '@aklapper/node-runtime/env';
 import { notInArray } from 'drizzle-orm';
 
 import { type AppDatabase, createDb, createDbPool } from './client.ts';

@@ -4,6 +4,7 @@ packages:
   - 'packages/shared/*'
   - 'packages/node/*'
   - 'packages/legacy/*'
+  - 'packages/tooling'
 
 allowBuilds:
   '@google/genai': true

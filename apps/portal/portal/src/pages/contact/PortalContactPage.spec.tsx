@@ -1,4 +1,4 @@
-import type { ContactActionResult, PortalContactContent } from '@aklapper/contracts';
+import type { ContactActionResult, PortalContactContent } from '@aklapper/core';
 import { render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';

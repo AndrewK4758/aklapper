@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import { AnalyticsBatchSchema } from '@aklapper/contracts';
+import { AnalyticsBatchSchema } from '@aklapper/core';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance } from 'fastify';
