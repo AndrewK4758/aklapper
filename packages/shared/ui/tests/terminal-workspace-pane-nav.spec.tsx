@@ -2,12 +2,7 @@ import type { TerminalProfileData } from '@aklapper/core';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  PaneLink,
-  TerminalWorkspace,
-  type TerminalPaneViewContext,
-  TuiWindow,
-} from '../src';
+import { PaneLink, TerminalWorkspace, type TerminalPaneViewContext, TuiWindow } from '../src';
 
 const NAV_TERMINAL_FIXTURE: TerminalProfileData = {
   slug: 'portal-home',
@@ -131,7 +126,7 @@ function submitActiveCommand(cmd: string) {
 
 describe('TerminalWorkspace in-pane TUI navigation', () => {
   it('takes over current pane in-place on tui/module commands and preserves shell scrollback', () => {
-    const topNavigate = vi.fn();
+    const topNavigate = vi.fn<(to: string) => void>();
     const { container } = render(
       <TerminalWorkspace
         terminal={NAV_TERMINAL_FIXTURE}
@@ -297,7 +292,7 @@ describe('TerminalWorkspace in-pane TUI navigation', () => {
   });
 
   it('seeds primary pane stack on deep-link and calls onPrimaryPaneReturnToShell on exit', () => {
-    const onReturnToShell = vi.fn();
+    const onReturnToShell = vi.fn<() => void>();
     render(
       <TerminalWorkspace
         terminal={NAV_TERMINAL_FIXTURE}

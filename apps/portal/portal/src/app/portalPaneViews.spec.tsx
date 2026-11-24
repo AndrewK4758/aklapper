@@ -12,9 +12,9 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
+import PortalRoot from './root';
 import PortalAgensiRoute from './routes/agensi';
 import PortalGreeterRoute from './routes/home';
-import PortalRoot from './root';
 
 const CHROME: PortalRootLoaderData['chrome'] = {
   pageTitle: 'andrew-k.us // Solar Forge Terminal',
@@ -97,10 +97,10 @@ const AGENSI_DATA: PortalAgensiLoaderData = {
   content: {
     windowTitle: 'tui :: agensi',
     statusBadge: { source: 'agensi', state: 'ready', label: 'LIVE' },
-    heading: 'Agensi Storefront',
     description: 'Commercial AI skills.',
-    ctaLabel: 'Visit Agensi',
-    ctaUrl: 'https://agensi.io',
+    searchPlaceholder: 'Filter skills...',
+    emptyStateLabel: 'No matching skills.',
+    outboundCtaLabel: 'Visit Agensi',
   },
   skills: [],
 };
@@ -118,7 +118,8 @@ const MENU_DATA: PortalMenuLoaderData = {
       description: 'AI storefront',
       keyShortcut: '1',
       targetK8sDeploy: null,
-      minRole: 'guest',
+      adminOnly: false,
+      namespace: 'portfolio-public',
       sortOrder: 1,
       enabled: true,
     },
@@ -127,7 +128,7 @@ const MENU_DATA: PortalMenuLoaderData = {
 
 describe('Portal in-pane route adapters & deep-links', () => {
   it('submits in-pane /contact form explicitly to /contact while keeping URL at /', async () => {
-    const contactActionSpy = vi.fn(async (): Promise<ContactActionResult> => ({
+    const contactActionSpy = vi.fn<() => Promise<ContactActionResult>>(async () => ({
       ok: true,
       submission: {
         id: 'rcpt-101',
@@ -291,7 +292,9 @@ describe('Portal in-pane route adapters & deep-links', () => {
 
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(
-      errorSpy.mock.calls.some(args => String(args[0]).includes('portal.pane_nav.fetcher_load_failed')),
+      errorSpy.mock.calls.some(args =>
+        String(args[0]).includes('portal.pane_nav.fetcher_load_failed'),
+      ),
     ).toBe(true);
 
     shouldFail = false;

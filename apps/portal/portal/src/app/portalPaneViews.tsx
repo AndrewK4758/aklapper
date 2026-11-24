@@ -34,7 +34,10 @@ interface PaneRouteLoaderState<T> {
   readonly retry: () => void;
 }
 
-function usePaneRouteLoader<T>(routePath: PortalPaneRoute, paneId: string): PaneRouteLoaderState<T> {
+function usePaneRouteLoader<T>(
+  routePath: PortalPaneRoute,
+  paneId: string,
+): PaneRouteLoaderState<T> {
   const fetcher = useFetcher<T>();
   const [settledAttempt, setSettledAttempt] = useState(0);
   const initiatedRef = useRef(false);
@@ -70,7 +73,7 @@ function usePaneRouteLoader<T>(routePath: PortalPaneRoute, paneId: string): Pane
 
   const isLoading = !hasError && fetcher.data === undefined;
 
-  return { data: fetcher.data, isLoading, hasError, retry: triggerLoad };
+  return { data: fetcher.data as T | undefined, isLoading, hasError, retry: triggerLoad };
 }
 
 interface PaneStatusFallbackProps {
@@ -84,7 +87,7 @@ function PaneStatusFallback({ title, isLoading, onRetry, onExit }: PaneStatusFal
   return (
     <TuiWindow title={title} onClose={onExit}>
       {isLoading ? (
-        <div role='status'>Loading {title} ...</div>
+        <output>Loading {title} ...</output>
       ) : (
         <div role='alert'>
           <p>Unable to load {title}. Check your connection and try again.</p>

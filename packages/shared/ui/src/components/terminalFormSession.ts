@@ -239,7 +239,9 @@ export function startTerminalFormSession(
   const navFlags = hasTuiFlag
     ? parseCliNavFlags(tokens.slice(1))
     : { target: 'in-pane' as const, positional: tokens.slice(1) };
-  const sanitizedCommand = hasTuiFlag ? [tokens[0] ?? '', ...navFlags.positional].join(' ') : rawCommand;
+  const sanitizedCommand = hasTuiFlag
+    ? [tokens[0] ?? '', ...navFlags.positional].join(' ')
+    : rawCommand;
   const parsed = parseCliFormInvocation(definition, sanitizedCommand);
 
   if (parsed.help) {

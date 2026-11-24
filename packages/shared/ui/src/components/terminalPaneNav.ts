@@ -79,10 +79,7 @@ export function pushPaneView(
   };
 }
 
-export function popPaneView(
-  state: TerminalWorkspaceState,
-  paneId: string,
-): TerminalWorkspaceState {
+export function popPaneView(state: TerminalWorkspaceState, paneId: string): TerminalWorkspaceState {
   const leaf = findLeafPane(state.root, paneId);
   if (!leaf) {
     return state;
@@ -102,10 +99,7 @@ export function popPaneView(
   };
 }
 
-export function exitPaneTui(
-  state: TerminalWorkspaceState,
-  paneId: string,
-): TerminalWorkspaceState {
+export function exitPaneTui(state: TerminalWorkspaceState, paneId: string): TerminalWorkspaceState {
   const leaf = findLeafPane(state.root, paneId);
   if (!leaf) {
     return state;

@@ -3,20 +3,18 @@ import {
   Button,
   OscStatusBadge,
   RecursiveTuiForm,
+  type RecursiveTuiFormRenderProps,
   Separator,
   TuiWindow,
   usePaneNavigation,
 } from '@aklapper/ui';
-import { type FormEvent, type ReactNode, useState } from 'react';
+import { type JSX, useState } from 'react';
 import { Form, Link } from 'react-router';
 
 import styles from './PortalContactPage.module.css';
 
-export interface PortalContactFormRenderProps {
+export interface PortalContactFormRenderProps extends RecursiveTuiFormRenderProps {
   readonly action: string;
-  readonly className: string;
-  readonly onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  readonly children: ReactNode;
 }
 
 export interface PortalContactPageProps {
@@ -25,7 +23,7 @@ export interface PortalContactPageProps {
   isSubmitting: boolean;
   onClose: () => void;
   formAction?: string;
-  renderFormElement?: (props: PortalContactFormRenderProps) => ReactNode;
+  renderFormElement?: (props: PortalContactFormRenderProps) => JSX.Element;
 }
 
 export function PortalContactPage({

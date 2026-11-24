@@ -1,5 +1,6 @@
 import { CONTACT_FORM_DEFINITION, type TerminalCommandSpec } from '@aklapper/core';
 import { fireEvent, render, screen } from '@testing-library/react';
+import type { MouseEvent as ReactMouseEvent } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -8,6 +9,7 @@ import {
   PaneNavigationContext,
   type PaneNavigationContextValue,
   startTerminalFormSession,
+  type TerminalNavTarget,
   TuiWindow,
 } from '../src';
 
@@ -20,11 +22,11 @@ function makePaneNav(overrides?: Partial<PaneNavigationContextValue>): PaneNavig
     docked: true,
     stack: ['tui', '/menu', '/agensi'],
     canGoBack: true,
-    push: vi.fn(),
-    pop: vi.fn(),
-    exitTui: vi.fn(),
-    openInSplit: vi.fn(),
-    openInTab: vi.fn(),
+    push: vi.fn<(viewId: string) => void>(),
+    pop: vi.fn<() => void>(),
+    exitTui: vi.fn<() => void>(),
+    openInSplit: vi.fn<(viewId: string) => void>(),
+    openInTab: vi.fn<(viewId: string) => void>(),
     ...overrides,
   };
 }
@@ -57,9 +59,16 @@ describe('PaneLink', () => {
   });
 
   it('supports custom render prop and falls through cleanly outside PaneNavigationContext', () => {
-    const onNativeClick = vi.fn((e: React.MouseEvent<HTMLAnchorElement>) => e.preventDefault());
+    const onNativeClick = vi.fn<(e: ReactMouseEvent<HTMLAnchorElement>) => void>(e =>
+      e.preventDefault(),
+    );
     render(
-      <PaneLink to='/menu' render={<a href='/menu' data-custom='true' onClick={onNativeClick} />}>
+      <PaneLink
+        to='/menu'
+        render={
+          <a href='/menu' data-custom='true' aria-label='Launch Menu' onClick={onNativeClick} />
+        }
+      >
         Launch Menu
       </PaneLink>,
     );
@@ -74,7 +83,7 @@ describe('PaneLink', () => {
 describe('Docked TuiWindow chrome', () => {
   it('renders docked edge-to-edge without floating, resize handle, or duplicate Escape listener', () => {
     const nav = makePaneNav();
-    const onClose = vi.fn();
+    const onClose = vi.fn<() => void>();
 
     const { container } = render(
       <PaneNavigationContext.Provider value={nav}>
@@ -149,8 +158,8 @@ describe('CLI navigation flags in buildZshCommandHandlers and terminalFormSessio
   ];
 
   it('forwards --split and --tab dispositions to navigateView and openTui', () => {
-    const navigateView = vi.fn();
-    const openTui = vi.fn();
+    const navigateView = vi.fn<(to: string, target: TerminalNavTarget) => void>();
+    const openTui = vi.fn<(target?: TerminalNavTarget) => void>();
     const handlers = buildZshCommandHandlers(specs, { navigateView, openTui });
 
     handlers['tui']?.([], 'tui');

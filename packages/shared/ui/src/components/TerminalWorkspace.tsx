@@ -14,10 +14,7 @@ import {
 
 import { Button, Toolbar } from '../elements/base';
 import { buildZshCommandHandlers } from './buildZshCommands';
-import {
-  PaneNavigationContext,
-  type PaneNavigationContextValue,
-} from './paneNavigationContext';
+import { PaneNavigationContext, type PaneNavigationContextValue } from './paneNavigationContext';
 import { type TerminalFormConfig } from './terminalFormSession';
 import {
   exitPaneTui,
@@ -554,7 +551,9 @@ function WorkspacePaneFrame({
   return (
     <PaneActiveContext.Provider value={isActive}>
       {paneNav ? (
-        <PaneNavigationContext.Provider value={paneNav}>{frameContent}</PaneNavigationContext.Provider>
+        <PaneNavigationContext.Provider value={paneNav}>
+          {frameContent}
+        </PaneNavigationContext.Provider>
       ) : (
         frameContent
       )}
@@ -1025,10 +1024,10 @@ function PrimaryPaneView({
   const hasTuiView = Boolean(renderPaneView && activeViewId);
   const isInitialPrimaryDeepLink = Boolean(
     hasTuiView &&
-      !primaryPane.embeddedTerminal &&
-      initialDeepLinkRoute &&
-      stack.length === 1 &&
-      stack[0] === initialDeepLinkRoute,
+    !primaryPane.embeddedTerminal &&
+    initialDeepLinkRoute &&
+    stack.length === 1 &&
+    stack[0] === initialDeepLinkRoute,
   );
   const showOverlayTuiLayer = Boolean(hasTuiView && !isInitialPrimaryDeepLink && activeViewId);
 
@@ -1205,9 +1204,7 @@ function StandaloneTerminalWorkspace({
       setTabState(prev => ({
         ...prev,
         tabs: prev.tabs.map(tab =>
-          tab.id === 'tab-1'
-            ? { ...tab, workspace: exitPaneTui(tab.workspace, 'pane-1') }
-            : tab,
+          tab.id === 'tab-1' ? { ...tab, workspace: exitPaneTui(tab.workspace, 'pane-1') } : tab,
         ),
       }));
     }
