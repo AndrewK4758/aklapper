@@ -18,13 +18,12 @@ const authMocks = vi.hoisted(() => ({
 
 vi.mock('@aklapper/db/auth', () => authMocks);
 
-import { fetchQdrantStatus, triggerQdrantReindex } from '../admin-ops.server';
-import AdminRoot from '../root';
 import {
   fetchQdrantStatus,
   QDRANT_REINDEX_TIMEOUT_MS,
   triggerQdrantReindex,
 } from '../admin-ops.server';
+import AdminRoot from '../root';
 import { ADMIN_ROBOTS_DIRECTIVE, buildAdminPageMeta } from '../seo';
 import {
   ADMIN_ANALYTICS_FIXTURE,

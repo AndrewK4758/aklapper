@@ -100,7 +100,6 @@ func embedAllConcurrently(ctx context.Context, provider llm.Provider, docs []See
 	}
 	workers := clampConcurrency(concurrency)
 	vectors := make([][]float32, len(docs))
-	errs := make([]error, len(docs))
 
 	workCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -110,43 +109,57 @@ func embedAllConcurrently(ctx context.Context, provider llm.Provider, docs []See
 	}
 	close(jobs)
 
-	var wg sync.WaitGroup
+	var (
+		wg           sync.WaitGroup
+		firstErrOnce sync.Once
+		firstErr     error
+	)
+	// Record the root failure atomically before canceling workCtx so sibling context.Canceled
+	// errors from aborted HTTP requests can never overwrite ErrInvalidVectorConfig or HTTP diagnostics.
+	recordErr := func(err error) {
+		firstErrOnce.Do(func() {
+			firstErr = err
+		})
+		cancel()
+	}
+
 	for range workers {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for idx := range jobs {
 				if workCtx.Err() != nil {
-					errs[idx] = workCtx.Err()
-					continue
+					recordErr(workCtx.Err())
+					return
 				}
 				vec, err := provider.Embed(workCtx, strings.TrimSpace(docs[idx].Title+"\n"+docs[idx].Body))
 				if err != nil {
-					errs[idx] = fmt.Errorf("%w: doc %q: %v", ErrEmbedOperation, docs[idx].ID, err)
-					cancel()
-					continue
+					if errors.Is(err, llm.ErrEmptyEmbedding) {
+						recordErr(fmt.Errorf("%w: doc %q: %w", ErrInvalidVectorConfig, docs[idx].ID, err))
+					} else {
+						recordErr(fmt.Errorf("%w: doc %q: %v", ErrEmbedOperation, docs[idx].ID, err))
+					}
+					return
 				}
 				if len(vec) == 0 {
-					errs[idx] = fmt.Errorf("%w: doc %q returned empty vector", ErrInvalidVectorConfig, docs[idx].ID)
-					cancel()
-					continue
+					recordErr(fmt.Errorf("%w: doc %q returned empty vector", ErrInvalidVectorConfig, docs[idx].ID))
+					return
 				}
 				if dimErr := llm.ValidateEmbeddingDims(vec); dimErr != nil {
-					errs[idx] = fmt.Errorf("%w: doc %q: %v", ErrInvalidVectorConfig, docs[idx].ID, dimErr)
-					cancel()
-					continue
+					recordErr(fmt.Errorf("%w: doc %q: %v", ErrInvalidVectorConfig, docs[idx].ID, dimErr))
+					return
 				}
 				vectors[idx] = vec
 			}
 		}()
 	}
 	wg.Wait()
+	if firstErr != nil {
+		return nil, 0, firstErr
+	}
 
 	vectorSize := 0
-	for i, err := range errs {
-		if err != nil {
-			return nil, 0, err
-		}
+	for i := range docs {
 		if len(vectors[i]) == 0 {
 			return nil, 0, fmt.Errorf("%w: doc %q produced empty vector", ErrInvalidVectorConfig, docs[i].ID)
 		}

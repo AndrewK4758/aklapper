@@ -414,6 +414,12 @@ func TestPortfolioDocsPrunesLegacyOrdinalsAndDeletedRows(t *testing.T) {
 	if _, exists := col.points[qdrant.CollectionPointID(CollectionPortfolioDocs, "agensi:stale-removed")]; exists {
 		t.Fatal("expected stale UUID point to be deleted")
 	}
+	for _, doc := range CuratedPortfolioDocs() {
+		expectedID := qdrant.PortfolioPointID(doc.ID, 0)
+		if _, exists := col.points[expectedID]; !exists {
+			t.Fatalf("expected portfolio_docs point %q to use canonical PortfolioPointID(%q, 0)=%q", doc.ID, doc.ID, expectedID)
+		}
+	}
 	// Verify upsert occurred before delete
 	upsertIdx, deleteIdx := -1, -1
 	for idx, req := range sim.requests {
@@ -670,5 +676,72 @@ func TestDegradedPostgresStoreFailsPortfolioDocsSeed(t *testing.T) {
 	}
 	if !strings.Contains(logBuf.String(), "UNSOUND_CONDITION") || !strings.Contains(logBuf.String(), "qdrant.seed.pg_corpus_unavailable") {
 		t.Fatalf("expected UNSOUND_CONDITION log, got %s", logBuf.String())
+	}
+}
+
+func TestEmbedConcurrencyPreservesRootCauseWithHTTPClient(t *testing.T) {
+	t.Parallel()
+
+	for _, mode := range []string{"empty", "http503"} {
+		mode := mode
+		t.Run(mode, func(t *testing.T) {
+			t.Parallel()
+			sim := newQdrantSimulator()
+			qSrv := sim.server()
+			defer qSrv.Close()
+
+			llmSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				var req struct {
+					Input string `json:"input"`
+				}
+				_ = json.NewDecoder(r.Body).Decode(&req)
+				if strings.Contains(req.Input, "Solar Forge Telemetry Card") {
+					select {
+					case <-time.After(60 * time.Millisecond):
+					case <-r.Context().Done():
+						return
+					}
+					vec := make([]float32, 768)
+					vec[0] = 0.1
+					_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]any{{"embedding": vec}}})
+					return
+				}
+				if mode == "empty" {
+					_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]any{{"embedding": []float32{}}}})
+					return
+				}
+				http.Error(w, "embed backend down", http.StatusServiceUnavailable)
+			}))
+			defer llmSrv.Close()
+
+			provider := &llm.LocalClient{BaseURL: llmSrv.URL + "/v1", EmbedModel: "embedding", HTTPClient: llmSrv.Client()}
+			var logBuf bytes.Buffer
+			opts := DefaultSeedOptions()
+			opts.LogWriter = &logBuf
+
+			_, err := SeedCadencePatterns(context.Background(), provider, &qdrant.Client{BaseURL: qSrv.URL, HTTPClient: qSrv.Client()}, opts)
+			if err == nil {
+				t.Fatal("expected error")
+			}
+			if errors.Is(err, context.Canceled) || strings.Contains(err.Error(), "context canceled") {
+				t.Fatalf("expected root-cause error instead of context.Canceled: %v", err)
+			}
+			if strings.Contains(err.Error(), "pattern-solar-forge-telemetry") {
+				t.Fatalf("expected root-cause error to identify failing doc rather than slow in-flight doc 0: %v", err)
+			}
+			if mode == "empty" {
+				if !errors.Is(err, ErrInvalidVectorConfig) {
+					t.Fatalf("expected ErrInvalidVectorConfig for empty vector via LocalClient.Embed, got %v", err)
+				}
+				if !strings.Contains(logBuf.String(), "UNSOUND_CONDITION") || !strings.Contains(logBuf.String(), "qdrant.seed.invalid_vector_config") {
+					t.Fatalf("expected UNSOUND_CONDITION log on concurrent empty vector, got %s", logBuf.String())
+				}
+			} else if !errors.Is(err, ErrEmbedOperation) || !strings.Contains(err.Error(), "503") {
+				t.Fatalf("expected ErrEmbedOperation 503 root error via LocalClient.Embed, got %v", err)
+			}
+			if len(sim.requests) != 0 {
+				t.Fatalf("expected zero Qdrant HTTP requests, got %v", sim.requests)
+			}
+		})
 	}
 }
