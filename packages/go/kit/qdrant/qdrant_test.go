@@ -104,3 +104,73 @@ func TestQdrantUpsertPointsAndCollectionInfo(t *testing.T) {
 		t.Fatalf("unexpected collection info: %+v", info)
 	}
 }
+
+func TestQdrantUUIDv5ListAndDeletePoints(t *testing.T) {
+	t.Parallel()
+
+	id1 := PortfolioPointID("curated:architecture", 0)
+	id1Again := PortfolioPointID("curated:architecture", 0)
+	idChunk1 := PortfolioPointID("curated:architecture", 1)
+	if id1 != id1Again {
+		t.Fatalf("expected deterministic UUIDv5, got %q != %q", id1, id1Again)
+	}
+	if id1 == idChunk1 {
+		t.Fatalf("expected distinct chunk index UUIDv5 IDs, got identical %q", id1)
+	}
+	if len(id1) != 36 || id1[14] != '5' {
+		t.Fatalf("expected RFC 4122 UUIDv5 version nibble '5', got %q", id1)
+	}
+
+	var deletedIDs []any
+	scrollPage := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/collections/portfolio_docs/points/scroll":
+			scrollPage++
+			if scrollPage == 1 {
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"result": map[string]any{
+						"points":           []map[string]any{{"id": id1}},
+						"next_page_offset": "page-2",
+					},
+				})
+				return
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"result": map[string]any{
+					"points":           []map[string]any{{"id": "orphan-id"}},
+					"next_page_offset": nil,
+				},
+			})
+		case r.Method == http.MethodPost && r.URL.Path == "/collections/portfolio_docs/points/delete":
+			var body struct {
+				Points []any `json:"points"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			deletedIDs = body.Points
+			_ = json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	client := &Client{BaseURL: srv.URL, HTTPClient: srv.Client()}
+	listed, err := client.ListPointIDs(context.Background(), "portfolio_docs")
+	if err != nil {
+		t.Fatalf("ListPointIDs failed: %v", err)
+	}
+	if len(listed) != 2 || listed[0] != id1 || listed[1] != "orphan-id" {
+		t.Fatalf("unexpected listed point IDs: %+v", listed)
+	}
+
+	if err := client.DeletePoints(context.Background(), "portfolio_docs", []any{"orphan-id"}); err != nil {
+		t.Fatalf("DeletePoints failed: %v", err)
+	}
+	if len(deletedIDs) != 1 || deletedIDs[0] != "orphan-id" {
+		t.Fatalf("expected orphan-id deleted, got %+v", deletedIDs)
+	}
+}
