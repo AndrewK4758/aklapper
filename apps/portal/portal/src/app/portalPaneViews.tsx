@@ -232,10 +232,14 @@ function PortalAskPaneView({ ctx }: PaneAdapterProps) {
         <PortalAskPage
           content={data.content}
           quota={data.quota}
+          askStatus={data.askStatus}
           actionResult={submitFetcher.data}
           isSubmitting={submitFetcher.state !== 'idle'}
-          onSubmitAsk={({ mode, text }) => {
-            void submitFetcher.submit({ mode, text }, { method: 'post', action: href('/ask') });
+          onSubmitAsk={({ mode, text, attemptId }) => {
+            void submitFetcher.submit(
+              { mode, text, attemptId },
+              { method: 'post', action: href('/ask') },
+            );
           }}
           onClose={ctx.exitTui}
         />

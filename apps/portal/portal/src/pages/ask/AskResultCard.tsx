@@ -1,0 +1,142 @@
+import type { AskResponse, AskTurnState } from '@aklapper/core';
+import { Meter } from '@aklapper/ui';
+
+import styles from './PortalAskPage.module.css';
+
+export interface AskPendingCardProps {
+  readonly turnState: AskTurnState;
+  readonly submittedText: string;
+}
+
+export function AskPendingCard({ turnState, submittedText }: AskPendingCardProps) {
+  return (
+    <output aria-live='polite' className={styles.entryCard} data-testid='ask-turn-pending'>
+      <div className={styles.entryHeader}>
+        <strong className={styles.entryQuestion}>
+          {turnState.mode === 'jd_match'
+            ? 'JD Fit Assessment (In Progress)'
+            : `Q: ${submittedText}`}
+        </strong>
+        <span className={styles.groundingPill} data-grounded='false'>
+          {turnState.status.toUpperCase()}
+        </span>
+      </div>
+      <p className={styles.answerText}>
+        Retrieving portfolio evidence and synthesizing grounded response...
+      </p>
+      <p className={styles.metaLine}>
+        attempt: {turnState.attemptId} · ref: {turnState.correlationId}
+      </p>
+    </output>
+  );
+}
+
+function CitationList({
+  sources,
+  ariaLabel,
+}: {
+  readonly sources: AskResponse['sources'];
+  readonly ariaLabel: string;
+}) {
+  if (sources.length === 0) return null;
+  return (
+    <ul className={styles.citations} aria-label={ariaLabel}>
+      {sources.map(source => (
+        <li key={source.id ?? source.title} className={styles.citationCard}>
+          <div className={styles.citationHeader}>
+            <strong>{source.title}</strong>
+            <span className={styles.citationScore}>
+              {source.category ?? 'corpus'} · {Math.round(source.score * 100)}%
+            </span>
+          </div>
+          <p className={styles.citationSnippet}>{source.snippet}</p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function TelemetryLine({ response }: { readonly response: AskResponse }) {
+  return (
+    <p className={styles.metaLine} data-testid='ask-telemetry-line'>
+      provider: {response.provider} · model: {response.model ?? 'default'} · tokens:{' '}
+      {response.tokensUsed}
+      {typeof response.latencyMs === 'number' ? ` · ${response.latencyMs}ms` : ''}
+    </p>
+  );
+}
+
+export function AskQaTranscriptCard({
+  question,
+  response,
+}: {
+  readonly question: string;
+  readonly response: AskResponse;
+}) {
+  return (
+    <li className={styles.entryCard} data-testid='ask-qa-entry'>
+      <div className={styles.entryHeader}>
+        <strong className={styles.entryQuestion}>Q: {question}</strong>
+        <span className={styles.groundingPill} data-grounded={response.grounded ? 'true' : 'false'}>
+          {response.grounded ? 'GROUNDED' : 'ABSTAINED'}
+        </span>
+      </div>
+      <p className={styles.answerText}>{response.answer}</p>
+      <TelemetryLine response={response} />
+      <CitationList sources={response.sources} ariaLabel='Grounded citations' />
+    </li>
+  );
+}
+
+export function AskJdResultCard({ response }: { readonly response: AskResponse }) {
+  return (
+    <section className={styles.entryCard} data-testid='ask-jd-result'>
+      <div className={styles.entryHeader}>
+        <strong className={styles.entryQuestion}>JD Fit Assessment</strong>
+        <span className={styles.groundingPill} data-grounded={response.grounded ? 'true' : 'false'}>
+          {response.grounded ? 'GROUNDED' : 'ABSTAINED'}
+        </span>
+      </div>
+
+      {typeof response.matchScore === 'number' && (
+        <Meter.Root value={response.matchScore} min={0} max={100}>
+          <div className={styles.meterHeader}>
+            <Meter.Label>Grounded Match Score</Meter.Label>
+            <Meter.Value>{() => `${response.matchScore ?? 0}%`}</Meter.Value>
+          </div>
+          <Meter.Track>
+            <Meter.Indicator />
+          </Meter.Track>
+        </Meter.Root>
+      )}
+
+      <p className={styles.answerText}>{response.answer}</p>
+      <TelemetryLine response={response} />
+
+      <div className={styles.jdGrid}>
+        <div className={styles.jdColumn}>
+          <h3 className={styles.jdSubhead}>Verified Strengths</h3>
+          <ul className={styles.jdList}>
+            {(response.strengths ?? []).length > 0 ? (
+              (response.strengths ?? []).map(item => <li key={item}>{item}</li>)
+            ) : (
+              <li>No grounded overlap detected.</li>
+            )}
+          </ul>
+        </div>
+        <div className={styles.jdColumn}>
+          <h3 className={styles.jdSubhead}>Gaps / Unverified</h3>
+          <ul className={styles.jdList}>
+            {(response.gaps ?? []).length > 0 ? (
+              (response.gaps ?? []).map(item => <li key={item}>{item}</li>)
+            ) : (
+              <li>No unverified gaps flagged.</li>
+            )}
+          </ul>
+        </div>
+      </div>
+
+      <CitationList sources={response.sources} ariaLabel='JD Match citations' />
+    </section>
+  );
+}

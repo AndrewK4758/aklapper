@@ -1,17 +1,18 @@
+import { randomUUID } from 'node:crypto';
+
 import {
   type AskMode,
   AskResponseSchema,
+  type AskServiceStatus,
+  AskServiceStatusSchema,
+  AskTurnStateSchema,
   type PortalAskLoaderData,
-  type QuotaStatus,
   QuotaStatusSchema,
+  createPublicAppError,
+  isPublicAppError,
 } from '@aklapper/core';
 import { classifyServerError } from '@aklapper/core/server-errors';
-import {
-  consumeQuotaForSession,
-  getSharedDb,
-  loadPortalAskDataWithPrerender,
-  searchPortfolioCorpusFallback,
-} from '@aklapper/db';
+import { loadPortalAskDataWithPrerender } from '@aklapper/db';
 import { proxyJson } from '@aklapper/node-runtime/http';
 import {
   createFallbackLogger,
@@ -30,13 +31,55 @@ import { resolveGuestSession } from '../guest-session.server';
 import { buildPortalPageMeta } from '../seo';
 import type { Route } from './+types/ask';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function probeAskServiceStatus(
+  aiAskUrl: string | undefined,
+  signal: AbortSignal | undefined,
+): Promise<AskServiceStatus | undefined> {
+  if (!aiAskUrl) return undefined;
+  const res = await proxyJson<Record<string, unknown>>({
+    baseUrl: aiAskUrl,
+    path: '/v1/ask/status',
+    method: 'GET',
+    timeoutMs: 1_500,
+    signal,
+  });
+  if (!res.ok || !res.data) {
+    return { status: 'offline', provider: 'ai-ask', pointsCount: 0 };
+  }
+  const collection =
+    res.data['collection'] && typeof res.data['collection'] === 'object'
+      ? (res.data['collection'] as Record<string, unknown>)
+      : null;
+  const candidate = AskServiceStatusSchema.safeParse({
+    status: res.data['status'] === 'ready' ? 'ready' : 'degraded',
+    provider: typeof res.data['provider'] === 'string' ? res.data['provider'] : 'ai-ask',
+    pointsCount: typeof collection?.['pointsCount'] === 'number' ? collection['pointsCount'] : 0,
+  });
+  return candidate.success
+    ? candidate.data
+    : { status: 'degraded', provider: 'ai-ask', pointsCount: 0 };
+}
+
 export function loader({ request, context }: Route.LoaderArgs) {
   const { sessionId, setCookieHeader } = resolveGuestSession(request);
   const correlationId = getOrCreateCorrelationId(request, context);
+  const aiAskUrl = process.env['AI_ASK_URL']?.trim();
+  const reqCtx = getRequestContext(context);
+
+  const loadCombined = async (): Promise<PortalAskLoaderData> => {
+    const [base, askStatus] = await Promise.all([
+      loadPortalAskDataWithPrerender(sessionId),
+      probeAskServiceStatus(aiAskUrl, reqCtx?.signal ?? request.signal),
+    ]);
+    return askStatus ? { ...base, askStatus } : base;
+  };
+
   return data(
     {
       correlationId,
-      payload: deferStreamResult(loadPortalAskDataWithPrerender(sessionId), {
+      payload: deferStreamResult(loadCombined(), {
         request,
         context,
         source: 'portal.ask.loader',
@@ -76,6 +119,22 @@ export async function action({ request, context }: Route.ActionArgs) {
   const rawMode = String(formData.get('mode') ?? 'qa').trim();
   const mode: AskMode = rawMode === 'jd_match' ? 'jd_match' : 'qa';
   const text = String(formData.get('text') ?? '').trim();
+  const rawAttemptId = String(formData.get('attemptId') ?? '').trim();
+  const attemptId = rawAttemptId || randomUUID();
+
+  if (!UUID_RE.test(attemptId)) {
+    return data<PortalAskActionResult>(
+      {
+        ok: false,
+        mode,
+        error: 'Invalid submission attempt identifier.',
+        code: 'ERR_VALIDATION',
+        action: 'Refresh and retry your request.',
+        correlationId,
+      },
+      { status: 400, headers },
+    );
+  }
 
   if (mode === 'qa' && (text.length < 4 || text.length > 800)) {
     return data<PortalAskActionResult>(
@@ -103,78 +162,21 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   const aiAskUrl = process.env['AI_ASK_URL']?.trim();
-  if (aiAskUrl) {
-    const upstream = await proxyJson<Record<string, unknown>>({
-      baseUrl: aiAskUrl,
-      path: '/v1/ask',
-      method: 'POST',
-      body:
-        mode === 'qa'
-          ? { mode, question: text, sessionId }
-          : { mode, jobDescription: text, sessionId },
-      timeoutMs: 8_000,
-    });
-
-    if (upstream.status === 429) {
-      const parsedQuota = QuotaStatusSchema.safeParse(upstream.data?.['quota']);
-      return data<PortalAskActionResult>(
-        {
-          ok: false,
-          mode,
-          error:
-            typeof upstream.data?.['error'] === 'string'
-              ? upstream.data['error']
-              : 'Session or daily quota exceeded.',
-          code: 'ERR_RATE_LIMITED',
-          action: 'Wait a moment and submit again.',
+  if (!aiAskUrl) {
+    const { publicError, diagnostic } = classifyServerError(
+      Object.assign(new Error('AI_ASK_URL is not configured'), {
+        status: 503,
+        statusText: 'Service Unavailable',
+        data: createPublicAppError({
+          code: 'ERR_UPSTREAM_UNAVAILABLE',
+          status: 503,
+          message: 'Upstream service unreachable.',
+          action: 'Retry shortly or go home.',
           correlationId,
-          ...(parsedQuota.success ? { quota: parsedQuota.data } : {}),
-        },
-        { status: 429, headers },
-      );
-    }
-
-    if (upstream.ok && upstream.data) {
-      const parsed = AskResponseSchema.safeParse(upstream.data);
-      if (parsed.success) {
-        return data<PortalAskActionResult>(
-          { ok: true, mode, submittedText: text, response: parsed.data },
-          { status: 200, headers },
-        );
-      }
-    }
-  }
-
-  // Deterministic PG19-backed fallback when AI_ASK_URL is unset or unreachable.
-  try {
-    const db = getSharedDb();
-    const quotaCheck = await consumeQuotaForSession(db, 'guest', sessionId, 1, 512);
-    const quotaStatus: QuotaStatus = quotaCheck.quota;
-    if (!quotaCheck.allowed) {
-      return data<PortalAskActionResult>(
-        {
-          ok: false,
-          mode,
-          error: 'Session or daily guest quota exceeded. Try again later.',
-          code: 'ERR_RATE_LIMITED',
-          action: 'Wait a moment and submit again.',
-          correlationId,
-          quota: quotaStatus,
-        },
-        { status: 429, headers },
-      );
-    }
-
-    const fallbackResponse = await searchPortfolioCorpusFallback(db, text, mode, quotaStatus);
-    return data<PortalAskActionResult>(
-      { ok: true, mode, submittedText: text, response: fallbackResponse },
-      { status: 200, headers },
+        }),
+      }),
+      { correlationId, source: 'portal.ask.action' },
     );
-  } catch (error) {
-    const { publicError, diagnostic } = classifyServerError(error, {
-      correlationId,
-      source: 'portal.ask.action',
-    });
     logDiagnosticError(logger, diagnostic);
     return data<PortalAskActionResult>(
       {
@@ -185,9 +187,100 @@ export async function action({ request, context }: Route.ActionArgs) {
         action: publicError.action,
         correlationId: publicError.correlationId,
       },
-      { status: publicError.status, headers },
+      { status: 503, headers },
     );
   }
+
+  const upstream = await proxyJson<Record<string, unknown>>({
+    baseUrl: aiAskUrl,
+    path: '/v1/ask',
+    method: 'POST',
+    headers: { 'X-Correlation-Id': correlationId },
+    internalAuth: { role: 'guest', subject: sessionId },
+    body:
+      mode === 'qa'
+        ? { mode, question: text, attemptId }
+        : { mode, jobDescription: text, attemptId },
+    timeoutMs: 35_000,
+    signal: request.signal,
+  });
+
+  if (upstream.status === 429) {
+    const parsedQuota = QuotaStatusSchema.safeParse(upstream.data?.['quota']);
+    return data<PortalAskActionResult>(
+      {
+        ok: false,
+        mode,
+        error:
+          typeof upstream.data?.['error'] === 'string'
+            ? upstream.data['error']
+            : 'Session or daily quota exceeded.',
+        code: 'ERR_RATE_LIMITED',
+        action: 'Wait a moment and submit again.',
+        correlationId,
+        ...(parsedQuota.success ? { quota: parsedQuota.data } : {}),
+      },
+      { status: 429, headers },
+    );
+  }
+
+  if (upstream.status === 202 && upstream.data) {
+    const parsedState = AskTurnStateSchema.safeParse(upstream.data);
+    if (parsedState.success) {
+      return data<PortalAskActionResult>(
+        {
+          ok: true,
+          pending: true,
+          mode,
+          submittedText: text,
+          attemptId: parsedState.data.attemptId,
+          turnState: parsedState.data,
+        },
+        { status: 202, headers },
+      );
+    }
+  }
+
+  if (upstream.ok && upstream.data) {
+    const parsed = AskResponseSchema.safeParse(upstream.data);
+    if (parsed.success) {
+      return data<PortalAskActionResult>(
+        {
+          ok: true,
+          mode,
+          submittedText: text,
+          attemptId: parsed.data.attemptId ?? attemptId,
+          response: parsed.data,
+        },
+        { status: 200, headers },
+      );
+    }
+  }
+
+  const rawStatus =
+    upstream.error === 'UPSTREAM_TIMEOUT' ? 504 : upstream.status >= 400 ? upstream.status : 503;
+
+  const { publicError, diagnostic } = classifyServerError(
+    Object.assign(new Error(upstream.error ?? `AI ask upstream HTTP ${rawStatus}`), {
+      status: rawStatus,
+      statusText: 'Upstream Error',
+      data: isPublicAppError(upstream.data) ? upstream.data : null,
+    }),
+    { correlationId, source: 'portal.ask.action' },
+  );
+  logDiagnosticError(logger, diagnostic);
+
+  return data<PortalAskActionResult>(
+    {
+      ok: false,
+      mode,
+      error: publicError.message,
+      code: publicError.code,
+      action: publicError.action,
+      correlationId: publicError.correlationId,
+    },
+    { status: rawStatus, headers },
+  );
 }
 
 export function meta({ matches, location }: Route.MetaArgs) {
@@ -214,14 +307,18 @@ export default function PortalAskRoute({ loaderData }: Route.ComponentProps) {
         reportPortalPublicError(error, { phase: 'stream' });
       }}
     >
-      {({ content, quota }) => (
+      {({ content, quota, askStatus }) => (
         <PortalAskPage
           content={content}
           quota={quota}
+          askStatus={askStatus}
           actionResult={fetcher.data}
           isSubmitting={fetcher.state !== 'idle'}
-          onSubmitAsk={({ mode, text }) => {
-            void fetcher.submit({ mode, text }, { method: 'post', action: href('/ask') });
+          onSubmitAsk={({ mode, text, attemptId }) => {
+            void fetcher.submit(
+              { mode, text, attemptId },
+              { method: 'post', action: href('/ask') },
+            );
           }}
           onClose={() => {
             if (paneNav?.docked) {

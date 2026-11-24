@@ -8,6 +8,7 @@ export default [
   route('agensi', 'routes/agensi.tsx'),
   route('contact', 'routes/contact.tsx'),
   route('api/contact', 'routes/api.contact.ts'),
+  route('api/ask/turns/:attemptId', 'routes/api.ask.turns.$attemptId.ts'),
   route('api/analytics/ingest', 'routes/api.analytics.ingest.ts'),
   route('api/cluster/stream', 'routes/api.cluster.stream.ts'),
   route('changes-in-progress', 'routes/changes-in-progress.tsx'),
