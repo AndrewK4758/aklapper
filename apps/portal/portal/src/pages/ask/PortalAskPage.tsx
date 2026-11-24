@@ -1,10 +1,8 @@
 import type {
-  ActionErrorMetadata,
   AskMode,
   AskResponse,
   AskServiceStatus,
   AskTurnState,
-  Osc7501State,
   PortalAskContent,
   QuotaStatus,
 } from '@aklapper/core';
@@ -12,7 +10,6 @@ import {
   ActionFeedbackBanner,
   Button,
   Input,
-  Meter,
   OscStatusBadge,
   Separator,
   Tabs,
@@ -20,12 +17,24 @@ import {
 } from '@aklapper/ui';
 import { type FormEvent, useEffect, useState, useSyncExternalStore } from 'react';
 
-import { AskJdResultCard, AskPendingCard, AskQaTranscriptCard } from './AskResultCard';
+import {
+  AskJdResultCard,
+  AskPendingCard,
+  AskQaTranscriptCard,
+  AskQuotaMeter,
+  AskStarterRow,
+  resolveAskBadgeStatus,
+} from './AskResultCard';
 import {
   buildRecoveringTurnState,
   clearPersistedAskTurn,
   generateAskAttemptId,
+  isPendingAskResult,
+  type PortalAskActionResult,
+  prependQaTranscriptEntry,
+  type QaTranscriptEntry,
   readPersistedAskTurn,
+  type RecoveredErrorState,
   startAskTurnPolling,
   subscribePersistedAskTurn,
   writePersistedAskTurn,
@@ -33,29 +42,7 @@ import {
 
 import styles from './PortalAskPage.module.css';
 
-export type PortalAskActionResult =
-  | {
-      readonly ok: true;
-      readonly pending?: false;
-      readonly mode: AskMode;
-      readonly submittedText: string;
-      readonly attemptId?: string;
-      readonly response: AskResponse;
-    }
-  | {
-      readonly ok: true;
-      readonly pending: true;
-      readonly mode: AskMode;
-      readonly submittedText: string;
-      readonly attemptId: string;
-      readonly turnState: AskTurnState;
-    }
-  | ({
-      readonly ok: false;
-      readonly mode: AskMode;
-      readonly error: string;
-      readonly quota?: QuotaStatus;
-    } & ActionErrorMetadata);
+export type { PortalAskActionResult };
 
 export interface PortalAskPageProps {
   content: PortalAskContent;
@@ -65,48 +52,6 @@ export interface PortalAskPageProps {
   isSubmitting: boolean;
   onSubmitAsk: (payload: { mode: AskMode; text: string; attemptId: string }) => void;
   onClose: () => void;
-}
-
-interface QaTranscriptEntry {
-  readonly id: string;
-  readonly question: string;
-  readonly response: AskResponse;
-}
-
-type RecoveredErrorState = {
-  readonly ok: false;
-  readonly mode: AskMode;
-  readonly error: string;
-} & ActionErrorMetadata;
-
-function isPendingResult(
-  result: PortalAskActionResult | undefined,
-): result is Extract<PortalAskActionResult, { readonly pending: true }> {
-  return Boolean(result && result.ok && 'pending' in result && result.pending === true);
-}
-
-function resolveBadgeStatus(
-  content: PortalAskContent,
-  isBusy: boolean,
-  latestResponse: AskResponse | null,
-  askStatus?: AskServiceStatus,
-): { state: Osc7501State; label: string } {
-  if (isBusy) return { state: 'scaling', label: 'waking · querying corpus' };
-  if (latestResponse) {
-    return latestResponse.grounded
-      ? { state: 'ready', label: `grounded · ${latestResponse.sources.length} source(s)` }
-      : { state: 'gate', label: 'abstained · strict grounding' };
-  }
-  if (askStatus) {
-    if (askStatus.status === 'ready') {
-      return { state: 'ready', label: `ready · ${askStatus.pointsCount} pts` };
-    }
-    if (askStatus.status === 'degraded') {
-      return { state: 'gate', label: 'degraded · empty corpus' };
-    }
-    return { state: 'error', label: 'offline · upstream unreachable' };
-  }
-  return { state: content.statusBadge.state, label: content.statusBadge.label };
 }
 
 export function PortalAskPage({
@@ -131,6 +76,7 @@ export function PortalAskPage({
   const [polledTurnState, setPolledTurnState] = useState<AskTurnState | null>(null);
   const [polledQuota, setPolledQuota] = useState<QuotaStatus | null>(null);
   const [recoveredError, setRecoveredError] = useState<RecoveredErrorState | null>(null);
+  const [dispatchedAttemptId, setDispatchedAttemptId] = useState<string | null>(null);
   const [lastRecordedResult, setLastRecordedResult] = useState<PortalAskActionResult | undefined>(
     undefined,
   );
@@ -139,24 +85,20 @@ export function PortalAskPage({
   if (actionResult && actionResult !== lastRecordedResult) {
     setLastRecordedResult(actionResult);
     setRecoveredError(null);
-    if (actionResult.ok && isPendingResult(actionResult)) {
+    if (actionResult.ok && isPendingAskResult(actionResult)) {
       setPolledTurnState(actionResult.turnState);
-    } else if (actionResult.ok && !isPendingResult(actionResult)) {
+    } else if (actionResult.ok && !isPendingAskResult(actionResult)) {
       setPolledTurnState(null);
       setPolledQuota(null);
       if (actionResult.mode === 'qa') {
         const entryId = actionResult.attemptId ?? `qa-${qaTranscript.length + 1}`;
         setQaTranscript(prev =>
-          prev.some(item => item.id === entryId)
-            ? prev
-            : [
-                {
-                  id: entryId,
-                  question: actionResult.submittedText,
-                  response: actionResult.response,
-                },
-                ...prev,
-              ],
+          prependQaTranscriptEntry(
+            prev,
+            entryId,
+            actionResult.submittedText,
+            actionResult.response,
+          ),
         );
       } else {
         setLatestJdResult(actionResult.response);
@@ -166,29 +108,34 @@ export function PortalAskPage({
     }
   }
 
-  const actionSettled = Boolean(actionResult && !isPendingResult(actionResult));
+  const actionSettled = Boolean(actionResult && !isPendingAskResult(actionResult));
   useEffect(() => {
     if (actionSettled) clearPersistedAskTurn();
-  }, [actionSettled]);
+  }, [actionSettled, actionResult]);
 
-  const hasPendingTurn =
-    isPendingResult(actionResult) || (persistedTurn !== null && !isSubmitting && !actionSettled);
-  const pendingAttemptId = isPendingResult(actionResult)
+  // Only recover sessionStorage turns from prior mounts; same-mount dispatches wait for POST 202.
+  const isRecoveredTurn =
+    persistedTurn !== null &&
+    persistedTurn.attemptId !== dispatchedAttemptId &&
+    !isSubmitting &&
+    !actionSettled;
+  const hasPendingTurn = isPendingAskResult(actionResult) || isRecoveredTurn;
+  const pendingAttemptId = isPendingAskResult(actionResult)
     ? actionResult.attemptId
-    : hasPendingTurn && persistedTurn
+    : isRecoveredTurn
       ? persistedTurn.attemptId
       : undefined;
-  const pendingMode = isPendingResult(actionResult)
+  const pendingMode = isPendingAskResult(actionResult)
     ? actionResult.mode
-    : hasPendingTurn && persistedTurn
+    : isRecoveredTurn
       ? persistedTurn.mode
       : undefined;
-  const pendingSubmittedText = isPendingResult(actionResult)
+  const pendingSubmittedText = isPendingAskResult(actionResult)
     ? actionResult.submittedText
-    : hasPendingTurn && persistedTurn
+    : isRecoveredTurn
       ? persistedTurn.question
       : undefined;
-  const pollImmediately = hasPendingTurn && !isPendingResult(actionResult);
+  const pollImmediately = hasPendingTurn && !isPendingAskResult(actionResult);
 
   // Poll /api/ask/turns/:attemptId while an async 202 or sessionStorage-recovered turn is active.
   useEffect(() => {
@@ -206,12 +153,7 @@ export function PortalAskPage({
         setRecoveredError(null);
         if (state.mode === 'qa') {
           setQaTranscript(prev =>
-            prev.some(item => item.id === pendingAttemptId)
-              ? prev
-              : [
-                  { id: pendingAttemptId, question: pendingSubmittedText, response: settled },
-                  ...prev,
-                ],
+            prependQaTranscriptEntry(prev, pendingAttemptId, pendingSubmittedText, settled),
           );
         } else {
           setLatestJdResult(settled);
@@ -232,39 +174,37 @@ export function PortalAskPage({
     });
   }, [pendingAttemptId, pendingMode, pendingSubmittedText, pollImmediately]);
 
-  const activeQuota =
-    polledQuota ??
-    (actionResult?.ok && !isPendingResult(actionResult) && actionResult.response.quota
-      ? actionResult.response.quota
-      : actionResult?.ok && isPendingResult(actionResult) && actionResult.turnState.quota
-        ? actionResult.turnState.quota
-        : !actionResult?.ok && actionResult?.quota
-          ? actionResult.quota
-          : quota);
+  const actionQuota = actionResult?.ok
+    ? isPendingAskResult(actionResult)
+      ? actionResult.turnState.quota
+      : actionResult.response.quota
+    : actionResult?.quota;
+  const activeQuota = polledQuota ?? actionQuota ?? quota;
 
   const visibleTab = hasPendingTurn && pendingMode ? pendingMode : activeTab;
   const visiblePendingTurnState =
     hasPendingTurn && pendingAttemptId && pendingMode
       ? polledTurnState?.attemptId === pendingAttemptId
         ? polledTurnState
-        : isPendingResult(actionResult)
+        : isPendingAskResult(actionResult)
           ? actionResult.turnState
           : buildRecoveringTurnState(pendingAttemptId, pendingMode)
       : null;
 
   const latestResponse =
-    actionResult?.ok && !isPendingResult(actionResult)
+    actionResult?.ok && !isPendingAskResult(actionResult)
       ? actionResult.response
       : visibleTab === 'jd_match'
         ? latestJdResult
         : (qaTranscript[0]?.response ?? null);
 
   const isBusy = isSubmitting || hasPendingTurn;
-  const badge = resolveBadgeStatus(content, isBusy, latestResponse, askStatus);
+  const badge = resolveAskBadgeStatus(content, isBusy, latestResponse, askStatus);
   const activeError = recoveredError ?? (actionResult && !actionResult.ok ? actionResult : null);
 
   const dispatchTurn = (mode: AskMode, text: string) => {
     const attemptId = generateAskAttemptId();
+    setDispatchedAttemptId(attemptId);
     writePersistedAskTurn({ attemptId, mode, question: text });
     setRecoveredError(null);
     onSubmitAsk({ mode, text, attemptId });
@@ -300,19 +240,7 @@ export function PortalAskPage({
         <p className={styles.intro}>{content.description}</p>
         <p className={styles.notice}>{content.abstentionNotice}</p>
 
-        <div className={styles.quotaBar} data-testid='ask-quota-meter'>
-          <Meter.Root value={activeQuota.turnsUsed} min={0} max={Math.max(1, activeQuota.maxTurns)}>
-            <div className={styles.meterHeader}>
-              <Meter.Label>Session Quota ({activeQuota.role})</Meter.Label>
-              <Meter.Value>
-                {() => `${activeQuota.turnsUsed}/${activeQuota.maxTurns} turns`}
-              </Meter.Value>
-            </div>
-            <Meter.Track>
-              <Meter.Indicator />
-            </Meter.Track>
-          </Meter.Root>
-        </div>
+        <AskQuotaMeter quota={activeQuota} />
 
         <Separator.Root />
 
@@ -342,20 +270,7 @@ export function PortalAskPage({
           </Tabs.List>
 
           <Tabs.Panel value='qa' className={styles.panel}>
-            <div className={styles.starterRow} aria-label='Starter questions'>
-              {content.starterQuestions.map((starter, idx) => (
-                <Button
-                  key={starter}
-                  type='button'
-                  variant='ghost'
-                  size='xs'
-                  onClick={() => setQuestionText(starter)}
-                  data-testid={`ask-starter-${idx}`}
-                >
-                  <Button.Label>{starter}</Button.Label>
-                </Button>
-              ))}
-            </div>
+            <AskStarterRow questions={content.starterQuestions} onSelect={setQuestionText} />
 
             <form className={styles.form} onSubmit={handleQaSubmit}>
               <Input.Group className={styles.inputGroup}>

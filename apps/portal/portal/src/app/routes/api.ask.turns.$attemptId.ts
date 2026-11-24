@@ -93,9 +93,11 @@ export async function loader({ request, params, context }: Route.LoaderArgs): Pr
   logDiagnosticError(logger, diagnostic);
 
   const responseStatus =
-    upstream.status === 504 || upstream.status === 502 || upstream.status === 503
-      ? upstream.status
-      : publicError.status;
+    upstream.error === 'UPSTREAM_UNAVAILABLE'
+      ? 503
+      : upstream.status === 504 || upstream.status === 502 || upstream.status === 503
+        ? upstream.status
+        : publicError.status;
 
   return Response.json(
     createPublicAppError({

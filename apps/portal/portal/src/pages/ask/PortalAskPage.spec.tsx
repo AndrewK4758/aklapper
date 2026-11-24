@@ -293,6 +293,30 @@ describe('PortalAskPage', () => {
     );
   });
 
+  it('does not eagerly poll /api/ask/turns right on same-mount submit before POST settles or returns 202', () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const onSubmitAsk = vi.fn<PortalAskPageProps['onSubmitAsk']>();
+
+    render(
+      <PortalAskPage
+        content={SAMPLE_CONTENT}
+        quota={SAMPLE_QUOTA}
+        isSubmitting={false}
+        onSubmitAsk={onSubmitAsk}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('ask-starter-0'));
+    fireEvent.click(screen.getByTestId('ask-qa-submit'));
+
+    expect(onSubmitAsk).toHaveBeenCalledTimes(1);
+    expect(window.sessionStorage.getItem(ASK_TURN_STORAGE_KEY)).toContain(
+      onSubmitAsk.mock.calls[0]?.[0]?.attemptId ?? '',
+    );
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it('renders optional code, action, and correlationId metadata inside the alert banner on failure', () => {
     render(
       <PortalAskPage

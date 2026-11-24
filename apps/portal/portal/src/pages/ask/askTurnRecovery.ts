@@ -1,12 +1,65 @@
 import {
   type ActionErrorMetadata,
   type AskMode,
+  type AskResponse,
   type AskTurnState,
   AskTurnStateSchema,
   PublicAppErrorSchema,
+  type QuotaStatus,
 } from '@aklapper/core';
 
 export const ASK_TURN_STORAGE_KEY = 'aklapper.portal.ask.activeTurn';
+
+export type PortalAskActionResult =
+  | {
+      readonly ok: true;
+      readonly pending?: false;
+      readonly mode: AskMode;
+      readonly submittedText: string;
+      readonly attemptId?: string;
+      readonly response: AskResponse;
+    }
+  | {
+      readonly ok: true;
+      readonly pending: true;
+      readonly mode: AskMode;
+      readonly submittedText: string;
+      readonly attemptId: string;
+      readonly turnState: AskTurnState;
+    }
+  | ({
+      readonly ok: false;
+      readonly mode: AskMode;
+      readonly error: string;
+      readonly quota?: QuotaStatus;
+    } & ActionErrorMetadata);
+
+export interface QaTranscriptEntry {
+  readonly id: string;
+  readonly question: string;
+  readonly response: AskResponse;
+}
+
+export type RecoveredErrorState = {
+  readonly ok: false;
+  readonly mode: AskMode;
+  readonly error: string;
+} & ActionErrorMetadata;
+
+export function isPendingAskResult(
+  result: PortalAskActionResult | undefined,
+): result is Extract<PortalAskActionResult, { readonly pending: true }> {
+  return Boolean(result && result.ok && 'pending' in result && result.pending === true);
+}
+
+export function prependQaTranscriptEntry(
+  prev: readonly QaTranscriptEntry[],
+  id: string,
+  question: string,
+  response: AskResponse,
+): readonly QaTranscriptEntry[] {
+  return prev.some(item => item.id === id) ? prev : [{ id, question, response }, ...prev];
+}
 
 export interface PersistedAskTurn {
   readonly attemptId: string;

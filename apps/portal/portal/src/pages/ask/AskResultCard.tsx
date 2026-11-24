@@ -1,7 +1,79 @@
-import type { AskResponse, AskTurnState } from '@aklapper/core';
-import { Meter } from '@aklapper/ui';
+import type {
+  AskResponse,
+  AskServiceStatus,
+  AskTurnState,
+  Osc7501State,
+  PortalAskContent,
+  QuotaStatus,
+} from '@aklapper/core';
+import { Button, Meter } from '@aklapper/ui';
 
 import styles from './PortalAskPage.module.css';
+
+export function resolveAskBadgeStatus(
+  content: PortalAskContent,
+  isBusy: boolean,
+  latestResponse: AskResponse | null,
+  askStatus?: AskServiceStatus,
+): { state: Osc7501State; label: string } {
+  if (isBusy) return { state: 'scaling', label: 'waking · querying corpus' };
+  if (latestResponse) {
+    return latestResponse.grounded
+      ? { state: 'ready', label: `grounded · ${latestResponse.sources.length} source(s)` }
+      : { state: 'gate', label: 'abstained · strict grounding' };
+  }
+  if (askStatus) {
+    if (askStatus.status === 'ready') {
+      return { state: 'ready', label: `ready · ${askStatus.pointsCount} pts` };
+    }
+    if (askStatus.status === 'degraded') {
+      return { state: 'gate', label: 'degraded · empty corpus' };
+    }
+    return { state: 'error', label: 'offline · upstream unreachable' };
+  }
+  return { state: content.statusBadge.state, label: content.statusBadge.label };
+}
+
+export function AskStarterRow({
+  questions,
+  onSelect,
+}: {
+  readonly questions: readonly string[];
+  readonly onSelect: (question: string) => void;
+}) {
+  return (
+    <div className={styles.starterRow} aria-label='Starter questions'>
+      {questions.map((starter, idx) => (
+        <Button
+          key={starter}
+          type='button'
+          variant='ghost'
+          size='xs'
+          onClick={() => onSelect(starter)}
+          data-testid={`ask-starter-${idx}`}
+        >
+          <Button.Label>{starter}</Button.Label>
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+export function AskQuotaMeter({ quota }: { readonly quota: QuotaStatus }) {
+  return (
+    <div className={styles.quotaBar} data-testid='ask-quota-meter'>
+      <Meter.Root value={quota.turnsUsed} min={0} max={Math.max(1, quota.maxTurns)}>
+        <div className={styles.meterHeader}>
+          <Meter.Label>Session Quota ({quota.role})</Meter.Label>
+          <Meter.Value>{() => `${quota.turnsUsed}/${quota.maxTurns} turns`}</Meter.Value>
+        </div>
+        <Meter.Track>
+          <Meter.Indicator />
+        </Meter.Track>
+      </Meter.Root>
+    </div>
+  );
+}
 
 export interface AskPendingCardProps {
   readonly turnState: AskTurnState;

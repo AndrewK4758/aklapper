@@ -258,7 +258,13 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   const rawStatus =
-    upstream.error === 'UPSTREAM_TIMEOUT' ? 504 : upstream.status >= 400 ? upstream.status : 503;
+    upstream.error === 'UPSTREAM_TIMEOUT'
+      ? 504
+      : upstream.error === 'UPSTREAM_UNAVAILABLE'
+        ? 503
+        : upstream.status >= 400
+          ? upstream.status
+          : 503;
 
   const { publicError, diagnostic } = classifyServerError(
     Object.assign(new Error(upstream.error ?? `AI ask upstream HTTP ${rawStatus}`), {
