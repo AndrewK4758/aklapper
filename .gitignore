@@ -1,12 +1,47 @@
 # See http://help.github.com/ignore-files/ for more about ignoring files.
 
-# compiled output
-dist
-tmp
-out-tsc
+# Build, dist, typegen & compiler artifacts (every level)
+dist/
+**/dist/
+build/
+**/build/
+out/
+**/out/
+out-tsc/
+**/out-tsc/
+.react-router/
+**/.react-router/
+**/*.tsbuildinfo
+tmp/
+**/tmp/
+.vite/
+**/.vite/
+coverage/
+**/coverage/
+.coverage
+test-output/
+**/test-output/
+reports/
+**/reports/
+generated/
+**/generated/
 
-# dependencies
-node_modules
+# Dependencies
+node_modules/
+**/node_modules/
+
+# CADENCE governance & agent scaffolding (every level)
+knowledge_base/
+**/knowledge_base/
+**/CADENCE_DIRECTIVES.md
+**/CADENCE.md
+**/CADENCE_ORG.md
+**/cadence-surfaces.md
+**/.cadence-version
+**/.agents/
+**/.claude/
+**/.gemini/
+/skills/
 
 # IDEs and editors
 /.idea
@@ -24,48 +59,40 @@ node_modules
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# misc
+# Nx & caches
+.nx/cache
+.nx/workspace-data
+.nx/polygraph
+.nx/self-healing
+.nx/migrate-runs
+.cache/
+**/.cache/
+vite.config.*.timestamp*
+vitest.config.*.timestamp*
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+!infra/.env.example
+env
+secrets
+
+# Misc & system files
 /.sass-cache
 /connect.lock
-/coverage
 /libpeerconnection.log
 npm-debug.log
 yarn-error.log
 testem.log
 /typings
-
-# System Files
 .DS_Store
 Thumbs.db
-
-.nx/cache
-.nx/workspace-data
-
-vite.config.*.timestamp*
-vitest.config.*.timestamp*
-test-output
-.cache
-
-.env
-env
-secrets
-reports
 .venv
 .tool-versions
 __pycache__
 data_store
-dist
-.coverage
-.pyc
-generated
+*.pyc
+test.html
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
-
-test.html
-
-.claude/worktrees
-.nx/polygraph
-.nx/self-healing
-
-.nx/migrate-runs
-knowledge_base/

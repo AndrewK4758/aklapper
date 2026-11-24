@@ -8,4 +8,4 @@ Run `nx build games-components` to build the library.
 
 ## Running unit tests
 
-Run `nx test games-components` to execute the unit tests via [Jest](https://jestjs.io).
+Run `nx test games-components` to execute the unit tests via [Vitest](https://vitest.dev).
