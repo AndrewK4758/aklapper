@@ -90,7 +90,12 @@ describe('site-server edge request & proxy hardening', () => {
 export const entry = {
   module: {
     default: async function handleRequest(request) {
-      return Response.json({ url: request.url, origin: new URL(request.url).origin });
+      return Response.json({
+        url: request.url,
+        origin: new URL(request.url).origin,
+        forwardedProto: request.headers.get('x-forwarded-proto'),
+        forwardedHost: request.headers.get('x-forwarded-host'),
+      });
     },
   },
 };
@@ -155,6 +160,8 @@ export const basename = '/';
       expect(spoofedHost.json()).toEqual({
         url: 'https://admin.andrew-k.us/api/auth/session',
         origin: 'https://admin.andrew-k.us',
+        forwardedProto: 'https',
+        forwardedHost: null,
       });
 
       const malformedForwardedHost = await server.app.inject({
@@ -172,6 +179,42 @@ export const basename = '/';
       expect(malformedForwardedHost.json()).toEqual({
         url: 'http://admin.andrew-k.us/api/auth/session',
         origin: 'http://admin.andrew-k.us',
+        forwardedProto: 'http',
+        forwardedHost: null,
+      });
+
+      const multiHopHttps = await server.app.inject({
+        method: 'GET',
+        url: '/api/auth/session',
+        headers: {
+          host: 'admin.andrew-k.us',
+          'x-forwarded-proto': 'http, https',
+          'x-correlation-id': 'sec-cid-proto-multi-https',
+        },
+      });
+      expect(multiHopHttps.statusCode).toBe(200);
+      expect(multiHopHttps.json()).toEqual({
+        url: 'https://admin.andrew-k.us/api/auth/session',
+        origin: 'https://admin.andrew-k.us',
+        forwardedProto: 'https',
+        forwardedHost: null,
+      });
+
+      const multiHopHttp = await server.app.inject({
+        method: 'GET',
+        url: '/api/auth/session',
+        headers: {
+          host: 'admin.andrew-k.us',
+          'x-forwarded-proto': 'https, http',
+          'x-correlation-id': 'sec-cid-proto-multi-http',
+        },
+      });
+      expect(multiHopHttp.statusCode).toBe(200);
+      expect(multiHopHttp.json()).toEqual({
+        url: 'http://admin.andrew-k.us/api/auth/session',
+        origin: 'http://admin.andrew-k.us',
+        forwardedProto: 'http',
+        forwardedHost: null,
       });
     } finally {
       await server.app.close();
@@ -237,6 +280,22 @@ export const basename = '/';
         correlationId: 'sec-cid-bad-url',
       });
 
+      const userinfoAbsolute = await sendRawHttp(port, {
+        method: 'GET',
+        path: `http://user:pass@127.0.0.1:${port}/`,
+        headers: {
+          host: `127.0.0.1:${port}`,
+          'x-correlation-id': 'sec-cid-userinfo-url',
+        },
+      });
+      expect(userinfoAbsolute.status).toBe(400);
+      expect(userinfoAbsolute.headers['x-correlation-id']).toBe('sec-cid-userinfo-url');
+      expect(JSON.parse(userinfoAbsolute.body)).toMatchObject({
+        code: 'ERR_VALIDATION',
+        status: 400,
+        correlationId: 'sec-cid-userinfo-url',
+      });
+
       const traceRes = await server.app.inject({
         method: 'TRACE',
         url: '/',
@@ -247,12 +306,20 @@ export const basename = '/';
       });
       expect(traceRes.statusCode).toBe(405);
       expect(traceRes.headers['x-correlation-id']).toBe('sec-cid-trace');
+      expect(traceRes.headers['allow']).toContain('GET');
       expect(traceRes.json()).toMatchObject({
         code: 'ERR_VALIDATION',
         status: 405,
         correlationId: 'sec-cid-trace',
       });
       expect(traceRes.body).not.toContain('HTTP method is unsupported');
+      expect(
+        logs.records.some(
+          record =>
+            record['seam_type'] === 'UNSOUND_CONDITION' &&
+            record['correlationId'] === 'sec-cid-trace',
+        ),
+      ).toBe(true);
     } finally {
       await server.app.close();
     }

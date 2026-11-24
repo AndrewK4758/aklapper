@@ -137,37 +137,51 @@ export function createEntryServer(options: EntryServerOptions = {}) {
 
       request.signal.addEventListener('abort', handleRequestAbort, { once: true });
 
+      const startResponseStream = () => {
+        const body = new PassThrough({
+          final(callback) {
+            cleanupLifecycle();
+            callback();
+          },
+          destroy(error, callback) {
+            streamClosed = true;
+            cleanupLifecycle();
+            callback(error);
+          },
+        });
+        const stream = Readable.toWeb(body) as ReadableStream;
+
+        responseHeaders.set('Content-Type', 'text/html');
+        pipe(body);
+
+        resolve(
+          new Response(stream, {
+            headers: responseHeaders,
+            status: statusCode,
+          }),
+        );
+      };
+
       const { pipe, abort } = renderToPipeableStream(
         createElement(ServerRouter, { context: routerContext, url: request.url }),
         {
           ...(readyOption === 'onAllReady'
             ? { progressiveChunkSize: Number.POSITIVE_INFINITY }
             : {}),
-          [readyOption]() {
+          onShellReady() {
             shellRendered = true;
-            const body = new PassThrough({
-              final(callback) {
-                cleanupLifecycle();
-                callback();
-              },
-              destroy(error, callback) {
-                streamClosed = true;
-                cleanupLifecycle();
-                callback(error);
-              },
-            });
-            const stream = Readable.toWeb(body) as ReadableStream;
-
-            responseHeaders.set('Content-Type', 'text/html');
-            pipe(body);
-
-            resolve(
-              new Response(stream, {
-                headers: responseHeaders,
-                status: statusCode,
-              }),
-            );
+            if (readyOption === 'onShellReady') {
+              startResponseStream();
+            }
           },
+          ...(readyOption === 'onAllReady'
+            ? {
+                onAllReady() {
+                  shellRendered = true;
+                  startResponseStream();
+                },
+              }
+            : {}),
           onShellError(error: unknown) {
             cleanupLifecycle();
             reject(error);

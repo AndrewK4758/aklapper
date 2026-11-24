@@ -366,4 +366,31 @@ describe('@aklapper/node-runtime entry-server and deferStreamResult', () => {
     );
     expect(prerenderResult).toEqual({ ok: true, data: 'prerender-ok' });
   });
+
+  it('logs post-shell Suspense render errors on onAllReady crawler requests', async () => {
+    const entry = createEntryServer({ streamTimeout: 5_000 });
+    const { logger, logs } = createMemoryLogger();
+    const rejected = Promise.reject(new Error('suspense render exploded'));
+    rejected.catch(() => undefined);
+    const botReq = new Request('http://localhost/', {
+      headers: { 'user-agent': 'Googlebot/2.1 (+http://www.google.com/bot.html)' },
+    });
+    const res = await entry.handleRequest(
+      botReq,
+      200,
+      new Headers(),
+      await createDeferredEntryContext(rejected),
+      makeLoadContext('cid-bot-suspense-err', logger, botReq.signal),
+    );
+    await res.text();
+    expect(res.status).toBe(500);
+    expect(
+      logs.find(
+        l =>
+          l.level === 'error' &&
+          l.obj['source'] === 'ssr.entry.onError' &&
+          l.obj['correlationId'] === 'cid-bot-suspense-err',
+      ),
+    ).toBeDefined();
+  });
 });

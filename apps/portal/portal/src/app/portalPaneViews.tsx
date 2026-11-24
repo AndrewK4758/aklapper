@@ -26,7 +26,7 @@ import { PortalContactPage } from '#pages/contact';
 import { PortalLauncherTui } from '#pages/home';
 import { PortalMenuPage } from '#pages/menu';
 
-import { reportPortalPublicError } from './client-telemetry';
+import { reportPortalClientError, reportPortalPublicError } from './client-telemetry';
 import {
   isPaneLoaderErrorEnvelope,
   isStreamLoaderEnvelope,
@@ -41,6 +41,32 @@ export type PortalPaneViewId = 'tui' | PortalPaneRoute;
 
 export function isPortalPaneRoute(pathname: string): pathname is PortalPaneRoute {
   return (PORTAL_PANE_ROUTES as readonly string[]).includes(pathname);
+}
+
+const PANE_TELEMETRY_DEDUP_MS = 5_000;
+const MAX_PANE_TELEMETRY_ENTRIES = 128;
+const recentPaneTelemetry = new Map<string, number>();
+
+function emitPaneTelemetryOnce(key: string, emit: () => void): void {
+  if (typeof window === 'undefined') return;
+  const now = Date.now();
+  const prev = recentPaneTelemetry.get(key);
+  if (prev !== undefined && now - prev < PANE_TELEMETRY_DEDUP_MS) {
+    return;
+  }
+  if (recentPaneTelemetry.size >= MAX_PANE_TELEMETRY_ENTRIES) {
+    for (const [entryKey, ts] of recentPaneTelemetry) {
+      if (now - ts >= PANE_TELEMETRY_DEDUP_MS) {
+        recentPaneTelemetry.delete(entryKey);
+      }
+    }
+    if (recentPaneTelemetry.size >= MAX_PANE_TELEMETRY_ENTRIES) {
+      const oldestKey = recentPaneTelemetry.keys().next().value;
+      if (oldestKey !== undefined) recentPaneTelemetry.delete(oldestKey);
+    }
+  }
+  recentPaneTelemetry.set(key, now);
+  emit();
 }
 
 interface PaneStatusFallbackProps {
@@ -96,9 +122,11 @@ function PaneStreamGate<T>({
   const initiatedRef = useRef(false);
 
   const triggerLoad = useCallback(() => {
-    void Promise.resolve(fetcher.load(`${routePath}?pane=1`)).finally(() => {
-      setSettledAttempt(c => c + 1);
-    });
+    void Promise.resolve(fetcher.load(`${routePath}?pane=1`))
+      .catch(() => undefined)
+      .finally(() => {
+        setSettledAttempt(c => c + 1);
+      });
   }, [fetcher, routePath]);
 
   const rawData = fetcher.data as StreamLoaderEnvelope<T> | T | PaneLoaderErrorEnvelope | undefined;
@@ -158,6 +186,35 @@ function PaneStreamGate<T>({
   const hasError =
     fetcher.state === 'idle' &&
     (returnedErrorEnvelope || (settledAttempt > 0 && rawData === undefined));
+
+  if (hasError) {
+    const fallbackReason = returnedErrorEnvelope ? 'loader_error_envelope' : 'transport_failure';
+    emitPaneTelemetryOnce(
+      `fallback:${paneId}:${routePath}:${fallbackReason}:${settledAttempt}`,
+      () => {
+        console.error(
+          JSON.stringify({
+            event: 'portal.pane_nav.fetcher_load_failed',
+            routePath,
+            paneId,
+            reason: fallbackReason,
+          }),
+        );
+        reportPortalClientError(
+          new Error(
+            returnedErrorEnvelope
+              ? 'Pane loader returned an error envelope.'
+              : 'Pane fetcher transport failure.',
+          ),
+          {
+            phase: 'boundary',
+            pathname: routePath,
+            errorCode: 'ERR_UPSTREAM_UNAVAILABLE',
+          },
+        );
+      },
+    );
+  }
 
   return (
     <PaneStatusFallback
@@ -317,6 +374,16 @@ function PortalContactPaneView({ ctx }: PaneAdapterProps) {
 }
 
 function UnknownPaneView({ ctx }: { readonly ctx: TerminalPaneViewContext }) {
+  emitPaneTelemetryOnce(`unknown:${ctx.paneId}:${ctx.viewId}`, () => {
+    console.warn(
+      JSON.stringify({
+        event: 'portal.pane_nav.unknown_view_id',
+        viewId: ctx.viewId,
+        paneId: ctx.paneId,
+      }),
+    );
+  });
+
   return (
     <TuiWindow title={ctx.viewId} onClose={ctx.exitTui}>
       <div role='alert'>

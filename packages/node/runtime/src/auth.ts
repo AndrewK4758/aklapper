@@ -64,9 +64,13 @@ export function isSecureRequest(
   forwardedProto?: string | null,
 ): boolean {
   if (forwardedProto) {
-    const primary = forwardedProto.split(',')[0]?.trim().toLowerCase();
-    if (primary === 'https') return true;
-    if (primary === 'http') return false;
+    const hops = forwardedProto
+      .split(',')
+      .map(part => part.trim().toLowerCase())
+      .filter(Boolean);
+    const trustedHop = hops[hops.length - 1];
+    if (trustedHop === 'https') return true;
+    if (trustedHop === 'http') return false;
   }
   if (urlOrProtocol instanceof URL) {
     return urlOrProtocol.protocol === 'https:';

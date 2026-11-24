@@ -79,6 +79,9 @@ function parseSafeRequestUrl(rawUrl: string, origin: string): URL | null {
     }
     if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
       const parsed = new URL(rawUrl);
+      if (parsed.username !== '' || parsed.password !== '') {
+        return null;
+      }
       return parsed.origin === expectedOrigin ? parsed : null;
     }
     return null;
@@ -352,9 +355,8 @@ export async function createSsrServer(options: SsrServerOptions): Promise<SsrSer
     if (request.ip) {
       headers.set('x-forwarded-for', request.ip);
     }
-    if (!headers.has('x-forwarded-proto') && request.protocol) {
-      headers.set('x-forwarded-proto', request.protocol);
-    }
+    headers.set('x-forwarded-proto', protocol);
+    headers.delete('x-forwarded-host');
     headers.set('x-correlation-id', correlationId);
 
     const hasBody = method !== 'GET' && method !== 'HEAD';

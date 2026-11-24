@@ -61,7 +61,7 @@ export function runPaneSafeLoader<T>(
   const correlationId = getOrCreateCorrelationId(request, options?.context);
   const envelope: StreamLoaderEnvelope<T> = {
     correlationId,
-    payload: deferStreamResult(load(), {
+    payload: deferStreamResult(Promise.resolve().then(load), {
       request,
       context: options?.context,
       source: options?.source ?? 'portal.pane.loader',
