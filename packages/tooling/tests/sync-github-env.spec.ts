@@ -34,7 +34,10 @@ describe('@aklapper/tooling GitHub Actions environment sync script', () => {
       GCP_PROJECT_ID: 'games-424800',
       GCP_REGION: 'us-central1',
       GAR_REPOSITORY: 'portfolio',
+      AI_PROVIDER: 'vertex',
+      GCP_LOCATION: 'us-central1',
       PUBLIC_PORTAL_URL: 'https://andrew-k.us',
+      QDRANT_API_KEY: 'qdrant-secret-token',
       GKE_CLUSTER_NAME: '',
     });
 
@@ -47,14 +50,35 @@ describe('@aklapper/tooling GitHub Actions environment sync script', () => {
       'TOTP_ENCRYPTION_KEY',
       'ANALYTICS_DAILY_SALT',
       'ADMIN_BOOTSTRAP_TOKEN',
+      'QDRANT_API_KEY',
     ]);
     expect(plan.variables.map(v => v.key)).toEqual([
       'GCP_PROJECT_ID',
       'GCP_REGION',
       'GAR_REPOSITORY',
+      'AI_PROVIDER',
+      'GCP_LOCATION',
       'PUBLIC_PORTAL_URL',
     ]);
+    expect(plan.skippedOptionalSecrets).toEqual([]);
     expect(plan.skippedOptionalVariables).toContain('GKE_CLUSTER_NAME');
+
+    const skippedSecretPlan = buildSyncPlan({
+      GCP_WORKLOAD_IDENTITY_PROVIDER:
+        'projects/1/locations/global/workloadIdentityPools/p/providers/g',
+      GCP_WIF_SERVICE_ACCOUNT: 'aklapper@games-424800.iam.gserviceaccount.com',
+      DATABASE_URL: 'postgres://postgres:ok@db.bgdkapis.us:5432/aklapper',
+      INTERNAL_AUTH_SECRET: 'secret-1',
+      TOTP_ENCRYPTION_KEY: 'secret-2',
+      ANALYTICS_DAILY_SALT: 'secret-3',
+      ADMIN_BOOTSTRAP_TOKEN: 'secret-4',
+      GCP_PROJECT_ID: 'games-424800',
+      GCP_REGION: 'us-central1',
+      GAR_REPOSITORY: 'portfolio',
+      QDRANT_API_KEY: 'PLACEHOLDER_REPLACE_ME',
+    });
+    expect(skippedSecretPlan.placeholderKeys).toEqual(['QDRANT_API_KEY']);
+    expect(skippedSecretPlan.variables.map(v => v.key)).not.toContain('QDRANT_API_KEY');
   });
 
   it('parses CLI arguments with production default and rejects non-production environments', () => {
