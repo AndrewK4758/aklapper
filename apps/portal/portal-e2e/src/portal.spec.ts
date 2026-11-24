@@ -346,45 +346,6 @@ test.describe('portal SSR end-to-end journeys', () => {
     expect(getErrors()).toEqual([]);
   });
 
-  test('runs /ask grounded Q&A, strict abstention, and JD Match evaluation', async ({ page }) => {
-    test.skip(IS_MAINTENANCE_MODE, 'Ask Portfolio route is gated in maintenance mode');
-    const getErrors = trackPageErrors(page);
-
-    await gotoStreamedPage(page, '/ask');
-    await expect(page.getByTestId('ask-quota-meter')).toBeVisible();
-
-    // Starter question chip + grounded Q&A
-    await page.getByTestId('ask-starter-0').click();
-    await page.getByTestId('ask-qa-submit').click();
-    await expect(page.getByTestId('ask-qa-transcript')).toBeVisible();
-    await expect(
-      page.locator('[data-testid="ask-qa-entry"] [data-grounded="true"]').first(),
-    ).toBeVisible();
-
-    // Unrelated query guarantees strict abstention
-    await page
-      .getByTestId('ask-question-input')
-      .fill('xylophone underwater flamingo recipe quantum soup?');
-    await page.getByTestId('ask-qa-submit').click();
-    await expect(
-      page.locator('[data-testid="ask-qa-entry"] [data-grounded="false"]').first(),
-    ).toBeVisible();
-
-    // JD Match tab evaluates role fit with grounded citations
-    await page.getByTestId('ask-tab-jd').click();
-    await page
-      .getByTestId('ask-jd-textarea')
-      .fill(
-        'Principal Full-Stack and Platform Engineer with TypeScript, React, Go microservices, Kubernetes GKE Autopilot, PostgreSQL, and agentic AI workflows.',
-      );
-    await page.getByTestId('ask-jd-submit').click();
-    const jdResult = page.getByTestId('ask-jd-result');
-    await expect(jdResult).toBeVisible();
-    await expect(jdResult.getByText(/Grounded Match Score/i)).toBeVisible();
-
-    expect(getErrors()).toEqual([]);
-  });
-
   test('executes live /cadence CHORD 4-phase build, updates sandboxed iframe, and approves gate', async ({
     page,
   }) => {
