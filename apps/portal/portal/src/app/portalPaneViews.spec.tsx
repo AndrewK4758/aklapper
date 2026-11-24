@@ -22,11 +22,8 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 
 import { initPortalClientTelemetry, resetPortalClientTelemetryForTest } from './client-telemetry';
-import {
-  type PaneLoaderErrorEnvelope,
-  runPaneSafeLoader,
-  type StreamLoaderEnvelope,
-} from './pane-loader';
+import { type PaneLoaderErrorEnvelope, type StreamLoaderEnvelope } from './pane-loader';
+import { runPaneSafeLoader } from './pane-loader.server';
 import { renderPortalPaneView } from './portalPaneViews';
 import PortalRoot, { type PortalRootStreamData } from './root';
 import PortalAgensiRoute from './routes/agensi';
