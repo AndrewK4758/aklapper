@@ -6,7 +6,9 @@ import { Form } from 'react-router';
 import { JsonSchemaFormRenderer } from './JsonSchemaFormRenderer';
 import {
   createInitialSiteContentDraftState,
+  emitSiteContentDiagnostic,
   evaluateSiteContentDraft,
+  parsePlainJsonObject,
   siteContentDraftReducer,
 } from './siteContentDraftState';
 import { SiteContentPreviewPane } from './SiteContentPreviewPane';
@@ -60,6 +62,14 @@ function SiteContentEditorSession({
                   size='xs'
                   aria-pressed={draft.mode === 'form'}
                   onClick={() => {
+                    if (draft.mode !== 'form' && parsePlainJsonObject(draft.rawText).ok) {
+                      emitSiteContentDiagnostic({
+                        event: 'admin.cms.site_content_editor_mode_branch',
+                        seamType: 'RULE_DIVERGENCE',
+                        key: row.key,
+                        branch: 'known-schema-form',
+                      });
+                    }
                     dispatch({ type: 'SWITCH_TO_FORM' });
                   }}
                 >
@@ -71,6 +81,14 @@ function SiteContentEditorSession({
                   size='xs'
                   aria-pressed={draft.mode === 'json'}
                   onClick={() => {
+                    if (draft.mode !== 'json') {
+                      emitSiteContentDiagnostic({
+                        event: 'admin.cms.site_content_editor_mode_branch',
+                        seamType: 'RULE_DIVERGENCE',
+                        key: row.key,
+                        branch: 'known-schema-raw-json',
+                      });
+                    }
                     dispatch({ type: 'SWITCH_TO_JSON' });
                   }}
                 >

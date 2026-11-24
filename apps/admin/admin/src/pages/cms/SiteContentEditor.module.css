@@ -22,10 +22,10 @@
     gap: var(--sf-gap-2xs);
     width: 100%;
     padding: var(--sf-space-2) var(--sf-space-3);
-    border: var(--sf-border-width) solid var(--sf-border-default);
+    border: var(--sf-border-width) solid var(--sf-border);
     border-radius: var(--sf-radius-sm);
-    background: var(--sf-bg-surface);
-    color: var(--sf-text-primary);
+    background: var(--sf-bg-panel);
+    color: var(--sf-fg-bone);
     text-align: left;
     cursor: pointer;
     font-family: var(--sf-font-mono);
@@ -39,7 +39,7 @@
 
   .keyMeta {
     font-size: var(--sf-text-2xs);
-    color: var(--sf-text-muted);
+    color: var(--sf-fg-cmt);
   }
 
   .editorGrid {
@@ -86,13 +86,13 @@
     font-family: var(--sf-font-mono);
     font-size: var(--sf-text-xs);
     font-weight: var(--sf-weight-semibold);
-    color: var(--sf-text-primary);
+    color: var(--sf-fg-bone);
   }
 
   .helperText {
     margin: 0;
     font-size: var(--sf-text-xs);
-    color: var(--sf-text-muted);
+    color: var(--sf-fg-cmt);
   }
 
   .input,
@@ -100,10 +100,10 @@
   .textarea {
     width: 100%;
     box-sizing: border-box;
-    border: var(--sf-border-width) solid var(--sf-border-default);
+    border: var(--sf-border-width) solid var(--sf-border);
     border-radius: var(--sf-radius-sm);
-    background: var(--sf-bg-canvas);
-    color: var(--sf-text-primary);
+    background: var(--sf-bg-editor);
+    color: var(--sf-fg-bone);
     padding: var(--sf-space-2) var(--sf-space-3);
     font-family: var(--sf-font-mono);
     font-size: var(--sf-text-xs);
@@ -134,9 +134,9 @@
     display: flex;
     flex-direction: column;
     gap: var(--sf-gap-sm);
-    border: var(--sf-border-width) solid var(--sf-border-default);
+    border: var(--sf-border-width) solid var(--sf-border);
     border-radius: var(--sf-radius-sm);
-    background: var(--sf-bg-surface);
+    background: var(--sf-bg-panel);
     padding: var(--sf-space-4);
   }
 
@@ -153,7 +153,7 @@
     font-family: var(--sf-font-mono);
     font-size: var(--sf-text-xs);
     font-weight: var(--sf-weight-semibold);
-    color: var(--sf-text-primary);
+    color: var(--sf-fg-bone);
   }
 
   .inlineGrid2 {
@@ -179,7 +179,7 @@
   .alertBox {
     border: var(--sf-border-width) solid var(--sf-vermilion);
     border-radius: var(--sf-radius-sm);
-    background: var(--sf-bg-surface);
+    background: var(--sf-bg-panel);
     padding: var(--sf-space-3);
     color: var(--sf-vermilion);
     font-size: var(--sf-text-xs);
@@ -199,11 +199,11 @@
   .noticeBanner {
     margin: 0;
     padding: var(--sf-space-3);
-    border: var(--sf-border-width) solid var(--sf-border-default);
+    border: var(--sf-border-width) solid var(--sf-border);
     border-radius: var(--sf-radius-sm);
-    background: var(--sf-bg-surface);
+    background: var(--sf-bg-panel);
     font-size: var(--sf-text-xs);
-    color: var(--sf-text-secondary);
+    color: var(--sf-fg-prop);
   }
 
   .previewPane {

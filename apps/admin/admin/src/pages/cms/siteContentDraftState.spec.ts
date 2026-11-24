@@ -1,8 +1,10 @@
 import { CONTACT_FORM_DEFINITION, SITE_CONTENT_KEYS, type SiteContentRow } from '@aklapper/core';
+import { vi } from 'vitest';
 
 import {
   createInitialSiteContentDraftState,
   evaluateSiteContentDraft,
+  type SiteContentEditorDiagnosticEvent,
   siteContentDraftReducer,
   updateValueAtPath,
 } from './siteContentDraftState';
@@ -136,25 +138,68 @@ describe('siteContentDraftState pure reducer & validation', () => {
     expect(evalFixed.previewObject['footerLinkUrl']).toBe('https://andrew-k.us');
   });
 
-  it('falls back to Raw JSON mode for unknown keys and on unexpected schema introspection failure', () => {
+  it('falls back to Raw JSON mode for unknown keys and emits observability diagnostics on introspection failure', () => {
+    const unknownEvents: SiteContentEditorDiagnosticEvent[] = [];
     const unknownRow = makeRow('custom-banner', { text: 'Hello' });
-    const unknownInit = createInitialSiteContentDraftState(unknownRow);
+    const unknownInit = createInitialSiteContentDraftState(unknownRow, undefined, evt => {
+      unknownEvents.push(evt);
+    });
     expect(unknownInit.state.isKnownKey).toBe(false);
     expect(unknownInit.state.mode).toBe('json');
     expect(unknownInit.schema).toBeNull();
     expect(evaluateSiteContentDraft(unknownInit.state).canSubmit).toBe(true);
+    expect(unknownEvents).toEqual([
+      {
+        event: 'admin.cms.site_content_editor_mode_branch',
+        seamType: 'RULE_DIVERGENCE',
+        key: 'custom-banner',
+        branch: 'unknown-key-raw-json',
+      },
+    ]);
 
+    const faultEvents: SiteContentEditorDiagnosticEvent[] = [];
     const contactRow = makeRow(SITE_CONTENT_KEYS.portalContact, {
       windowTitle: 'Contact',
       statusBadge: { source: 'contact', state: 'ready', label: 'PG19' },
       description: 'Reach out',
       form: CONTACT_FORM_DEFINITION,
     });
-    const faultInit = createInitialSiteContentDraftState(contactRow, () => {
-      throw new Error('Synthetic introspection failure');
-    });
+    const faultInit = createInitialSiteContentDraftState(
+      contactRow,
+      () => {
+        throw new Error('Synthetic introspection failure');
+      },
+      evt => {
+        faultEvents.push(evt);
+      },
+    );
     expect(faultInit.state.introspectionFailed).toBe(true);
     expect(faultInit.state.mode).toBe('json');
     expect(faultInit.introspectionError).toContain('Synthetic introspection failure');
+    expect(faultEvents).toEqual([
+      {
+        event: 'admin.cms.site_content_schema_introspect_fallback',
+        seamType: 'BOUNDARY_FAULT',
+        key: SITE_CONTENT_KEYS.portalContact,
+        reason: 'Synthetic introspection failure',
+      },
+      {
+        event: 'admin.cms.site_content_editor_mode_branch',
+        seamType: 'RULE_DIVERGENCE',
+        key: SITE_CONTENT_KEYS.portalContact,
+        branch: 'known-schema-raw-json',
+      },
+    ]);
+
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    try {
+      const homeRow = makeRow(SITE_CONTENT_KEYS.portalHome, PORTAL_HOME_METADATA);
+      createInitialSiteContentDraftState(homeRow);
+      expect(infoSpy).toHaveBeenCalledWith(
+        expect.stringContaining('"event":"admin.cms.site_content_editor_mode_branch"'),
+      );
+    } finally {
+      infoSpy.mockRestore();
+    }
   });
 });

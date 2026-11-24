@@ -1,4 +1,4 @@
-import type { FormFieldNode, FormFieldsetNode, FormNode } from '@aklapper/core';
+import type { FormFieldNode, FormFieldsetNode } from '@aklapper/core';
 import { Button } from '@aklapper/ui';
 
 import { FormFieldNodeCard } from './FormFieldNodeCard';
@@ -38,20 +38,21 @@ function createNewFieldset(index: number): FormFieldsetNode {
 
 interface NodeListProps {
   readonly basePath: readonly (string | number)[];
-  readonly nodes: readonly FormNode[];
+  readonly nodes: readonly unknown[];
   readonly issuesByPath: Readonly<Record<string, readonly string[]>>;
   readonly onChange: (path: readonly (string | number)[], value: unknown) => void;
 }
 
 function FormNodeListEditor({ basePath, nodes, issuesByPath, onChange }: NodeListProps) {
+  const safeNodes = Array.isArray(nodes) ? nodes : [];
   const listError = issuesByPath[basePath.join('.')]?.[0];
 
   function moveNode(index: number, delta: -1 | 1) {
     const target = index + delta;
-    if (target < 0 || target >= nodes.length) return;
-    const next = [...nodes];
+    if (target < 0 || target >= safeNodes.length) return;
+    const next = [...safeNodes];
     const [item] = next.splice(index, 1);
-    if (!item) return;
+    if (item === undefined) return;
     next.splice(target, 0, item);
     onChange(basePath, next);
   }
@@ -59,15 +60,49 @@ function FormNodeListEditor({ basePath, nodes, issuesByPath, onChange }: NodeLis
   return (
     <div className={styles.formStack}>
       {listError ? <p className={styles.fieldError}>{listError}</p> : null}
-      {nodes.map((node, index) => {
+      {safeNodes.map((rawNode, index) => {
         const nodePath = [...basePath, index];
+        const nodeKey = nodePath.join('.');
         const nodeId = nodePath.join('-');
 
-        if (node.kind === 'fieldset') {
+        if (!isRecord(rawNode) || (rawNode['kind'] !== 'fieldset' && rawNode['kind'] !== 'field')) {
           return (
-            <div key={`${node.id}-${index}`} className={styles.subCard}>
+            <div key={nodeKey} className={styles.subCard}>
               <div className={styles.subCardHeader}>
-                <span className={styles.subCardTitle}>Fieldset: {node.legend || node.id}</span>
+                <span className={styles.subCardTitle}>Invalid node at index {index}</span>
+                <Button.Root
+                  type='button'
+                  variant='ghost'
+                  size='xs'
+                  onClick={() => {
+                    onChange(
+                      basePath,
+                      safeNodes.filter((_, i) => i !== index),
+                    );
+                  }}
+                >
+                  <Button.Label>Remove</Button.Label>
+                </Button.Root>
+              </div>
+              <p className={styles.helperText}>
+                Remove this entry or repair its structure in Raw JSON mode.
+              </p>
+            </div>
+          );
+        }
+
+        if (rawNode['kind'] === 'fieldset') {
+          const fieldsetId = asString(rawNode['id']);
+          const fieldsetLegend = asString(rawNode['legend']);
+          const fieldsetColumns = rawNode['columns'] === 2 ? 2 : 1;
+          const fieldsetChildren = Array.isArray(rawNode['children']) ? rawNode['children'] : [];
+
+          return (
+            <div key={nodeKey} className={styles.subCard}>
+              <div className={styles.subCardHeader}>
+                <span className={styles.subCardTitle}>
+                  Fieldset: {fieldsetLegend || fieldsetId}
+                </span>
                 <div className={styles.toolbarGroup}>
                   <Button.Root
                     type='button'
@@ -84,7 +119,7 @@ function FormNodeListEditor({ basePath, nodes, issuesByPath, onChange }: NodeLis
                     type='button'
                     variant='ghost'
                     size='xs'
-                    disabled={index === nodes.length - 1}
+                    disabled={index === safeNodes.length - 1}
                     onClick={() => {
                       moveNode(index, 1);
                     }}
@@ -98,7 +133,7 @@ function FormNodeListEditor({ basePath, nodes, issuesByPath, onChange }: NodeLis
                     onClick={() => {
                       onChange(
                         basePath,
-                        nodes.filter((_, i) => i !== index),
+                        safeNodes.filter((_, i) => i !== index),
                       );
                     }}
                   >
@@ -115,7 +150,7 @@ function FormNodeListEditor({ basePath, nodes, issuesByPath, onChange }: NodeLis
                   <input
                     id={`${nodeId}-id`}
                     className={styles.input}
-                    value={node.id}
+                    value={fieldsetId}
                     onChange={event => {
                       onChange([...nodePath, 'id'], event.target.value);
                     }}
@@ -128,7 +163,7 @@ function FormNodeListEditor({ basePath, nodes, issuesByPath, onChange }: NodeLis
                   <input
                     id={`${nodeId}-legend`}
                     className={styles.input}
-                    value={node.legend}
+                    value={fieldsetLegend}
                     onChange={event => {
                       onChange([...nodePath, 'legend'], event.target.value);
                     }}
@@ -141,7 +176,7 @@ function FormNodeListEditor({ basePath, nodes, issuesByPath, onChange }: NodeLis
                   <select
                     id={`${nodeId}-columns`}
                     className={styles.select}
-                    value={String(node.columns ?? 1)}
+                    value={String(fieldsetColumns)}
                     onChange={event => {
                       onChange([...nodePath, 'columns'], Number(event.target.value));
                     }}
@@ -155,7 +190,7 @@ function FormNodeListEditor({ basePath, nodes, issuesByPath, onChange }: NodeLis
               <div className={styles.nestedList}>
                 <FormNodeListEditor
                   basePath={[...nodePath, 'children']}
-                  nodes={node.children}
+                  nodes={fieldsetChildren}
                   issuesByPath={issuesByPath}
                   onChange={onChange}
                 />
@@ -166,11 +201,11 @@ function FormNodeListEditor({ basePath, nodes, issuesByPath, onChange }: NodeLis
 
         return (
           <FormFieldNodeCard
-            key={`${node.id}-${index}`}
-            node={node}
+            key={nodeKey}
+            node={rawNode as unknown as FormFieldNode}
             nodePath={nodePath}
             canMoveUp={index > 0}
-            canMoveDown={index < nodes.length - 1}
+            canMoveDown={index < safeNodes.length - 1}
             onMoveUp={() => {
               moveNode(index, -1);
             }}
@@ -180,7 +215,7 @@ function FormNodeListEditor({ basePath, nodes, issuesByPath, onChange }: NodeLis
             onRemove={() => {
               onChange(
                 basePath,
-                nodes.filter((_, i) => i !== index),
+                safeNodes.filter((_, i) => i !== index),
               );
             }}
             onChange={onChange}
@@ -194,7 +229,7 @@ function FormNodeListEditor({ basePath, nodes, issuesByPath, onChange }: NodeLis
           variant='secondary'
           size='xs'
           onClick={() => {
-            onChange(basePath, [...nodes, createNewField(nodes.length)]);
+            onChange(basePath, [...safeNodes, createNewField(safeNodes.length)]);
           }}
         >
           <Button.Label>+ Add Field</Button.Label>
@@ -204,7 +239,7 @@ function FormNodeListEditor({ basePath, nodes, issuesByPath, onChange }: NodeLis
           variant='secondary'
           size='xs'
           onClick={() => {
-            onChange(basePath, [...nodes, createNewFieldset(nodes.length)]);
+            onChange(basePath, [...safeNodes, createNewFieldset(safeNodes.length)]);
           }}
         >
           <Button.Label>+ Add Fieldset</Button.Label>
@@ -228,7 +263,7 @@ export function FormDefinitionBuilder({
   onChange,
 }: FormDefinitionBuilderProps) {
   const form = isRecord(value) ? value : {};
-  const nodes = Array.isArray(form['nodes']) ? (form['nodes'] as FormNode[]) : [];
+  const nodes: readonly unknown[] = Array.isArray(form['nodes']) ? form['nodes'] : [];
 
   return (
     <fieldset className={styles.subCard}>

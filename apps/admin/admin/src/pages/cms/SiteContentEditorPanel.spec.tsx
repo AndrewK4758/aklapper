@@ -153,4 +153,43 @@ describe('SiteContentEditorPanel', () => {
     expect(screen.getByText(/custom key/i)).toBeTruthy();
     expect(screen.getByLabelText('Raw Metadata JSON')).toBeTruthy();
   });
+
+  it('preserves Fieldset ID DOM node and focus while typing and handles schema-invalid form nodes without crashing', () => {
+    renderPanel();
+
+    fireEvent.click(screen.getByRole('button', { name: /portal-contact/i }));
+    const fieldsetIdInput = screen.getAllByLabelText('Fieldset ID')[0] as HTMLInputElement;
+    fieldsetIdInput.focus();
+    expect(document.activeElement).toBe(fieldsetIdInput);
+
+    fireEvent.change(fieldsetIdInput, { target: { value: 'sender-identity-v2' } });
+    expect(fieldsetIdInput.isConnected).toBe(true);
+    expect(document.activeElement).toBe(fieldsetIdInput);
+    expect(fieldsetIdInput.value).toBe('sender-identity-v2');
+
+    // Switch to Raw JSON with fieldset omitting children and a null node entry, then back to Form
+    fireEvent.click(screen.getByRole('button', { name: 'Raw JSON' }));
+    const jsonBox = screen.getByLabelText('Raw Metadata JSON') as HTMLTextAreaElement;
+    const malformedContact = {
+      windowTitle: 'Contact',
+      statusBadge: { source: 'contact', state: 'ready', label: 'PG19' },
+      description: 'Send a direct message.',
+      form: {
+        id: 'contact-form',
+        slug: 'contact',
+        title: 'Contact',
+        description: 'Desc',
+        cliCommand: 'contact',
+        submitLabel: 'Send',
+        resetLabel: 'Reset',
+        nodes: [{ kind: 'fieldset', id: 'broken-fs', legend: 'Broken Fieldset' }, null],
+      },
+    };
+    fireEvent.change(jsonBox, { target: { value: JSON.stringify(malformedContact, null, 2) } });
+    fireEvent.click(screen.getByRole('button', { name: 'Form' }));
+
+    expect(screen.getByText('Fieldset: Broken Fieldset')).toBeTruthy();
+    expect(screen.getByText('Invalid node at index 1')).toBeTruthy();
+    expect(screen.getByRole('alert')).toBeTruthy();
+  });
 });

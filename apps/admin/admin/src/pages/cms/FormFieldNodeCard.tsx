@@ -64,12 +64,24 @@ export function FormFieldNodeCard({
   onChange,
 }: FormFieldNodeCardProps) {
   const nodeId = nodePath.join('-');
+  const raw = node as unknown as Record<string, unknown>;
+  const safeLabel = asString(raw['label']);
+  const safeName = asString(raw['name']);
+  const rawType = asString(raw['fieldType']);
+  const safeType: FormFieldNode['fieldType'] = FIELD_TYPES.includes(
+    rawType as FormFieldNode['fieldType'],
+  )
+    ? (rawType as FormFieldNode['fieldType'])
+    : 'text';
+  const safeCliFlag = asString(raw['cliFlag']);
+  const safeDescription = asString(raw['description']);
+  const safeRequired = Boolean(raw['required']);
 
   return (
     <div className={styles.subCard}>
       <div className={styles.subCardHeader}>
         <span className={styles.subCardTitle}>
-          Field ({node.fieldType}): {node.label || node.name}
+          Field ({safeType}): {safeLabel || safeName}
         </span>
         <div className={styles.toolbarGroup}>
           <Button.Root
@@ -104,7 +116,7 @@ export function FormFieldNodeCard({
           <input
             id={`${nodeId}-label`}
             className={styles.input}
-            value={node.label}
+            value={safeLabel}
             onChange={event => {
               onChange([...nodePath, 'label'], event.target.value);
             }}
@@ -117,7 +129,7 @@ export function FormFieldNodeCard({
           <input
             id={`${nodeId}-name`}
             className={styles.input}
-            value={node.name}
+            value={safeName}
             onChange={event => {
               onChange([...nodePath, 'name'], event.target.value);
             }}
@@ -130,14 +142,11 @@ export function FormFieldNodeCard({
           <select
             id={`${nodeId}-type`}
             className={styles.select}
-            value={node.fieldType}
+            value={safeType}
             onChange={event => {
               onChange(
                 nodePath,
-                switchFieldType(
-                  node as unknown as Record<string, unknown>,
-                  event.target.value as FormFieldNode['fieldType'],
-                ),
+                switchFieldType(raw, event.target.value as FormFieldNode['fieldType']),
               );
             }}
           >
@@ -158,7 +167,7 @@ export function FormFieldNodeCard({
           <input
             id={`${nodeId}-cliflag`}
             className={styles.input}
-            value={node.cliFlag ?? ''}
+            value={safeCliFlag}
             onChange={event => {
               const trimmed = event.target.value.trim();
               onChange([...nodePath, 'cliFlag'], trimmed.length > 0 ? trimmed : undefined);
@@ -172,7 +181,7 @@ export function FormFieldNodeCard({
           <input
             id={`${nodeId}-desc`}
             className={styles.input}
-            value={node.description ?? ''}
+            value={safeDescription}
             onChange={event => {
               const nextVal = event.target.value;
               onChange([...nodePath, 'description'], nextVal.length > 0 ? nextVal : undefined);
@@ -182,8 +191,8 @@ export function FormFieldNodeCard({
         <div className={styles.switchRow}>
           <Switch.Root
             id={`${nodeId}-required`}
-            aria-label={`Required ${node.label}`}
-            checked={node.required}
+            aria-label={`Required ${safeLabel || safeName || 'field'}`}
+            checked={safeRequired}
             onCheckedChange={checked => {
               onChange([...nodePath, 'required'], Boolean(checked));
             }}

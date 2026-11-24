@@ -10,6 +10,36 @@ import {
 
 export type SiteContentEditorMode = 'form' | 'json';
 
+export type SiteContentEditorModeBranch =
+  | 'known-schema-form'
+  | 'known-schema-raw-json'
+  | 'unknown-key-raw-json';
+
+export type SiteContentEditorDiagnosticEvent =
+  | {
+      readonly event: 'admin.cms.site_content_schema_introspect_fallback';
+      readonly seamType: 'BOUNDARY_FAULT';
+      readonly key: string;
+      readonly reason: string;
+    }
+  | {
+      readonly event: 'admin.cms.site_content_editor_mode_branch';
+      readonly seamType: 'RULE_DIVERGENCE';
+      readonly key: string;
+      readonly branch: SiteContentEditorModeBranch;
+    };
+
+export type SiteContentDiagnosticEmitter = (payload: SiteContentEditorDiagnosticEvent) => void;
+
+export function emitSiteContentDiagnostic(payload: SiteContentEditorDiagnosticEvent): void {
+  const line = JSON.stringify(payload);
+  if (payload.seamType === 'BOUNDARY_FAULT') {
+    console.warn(line);
+  } else {
+    console.info(line);
+  }
+}
+
 export interface SiteContentDraftState {
   readonly key: string;
   readonly isKnownKey: boolean;
@@ -115,6 +145,7 @@ export function updateValueAtPath(
 export function createInitialSiteContentDraftState(
   row: SiteContentRow,
   introspect: (key: SiteContentKey) => JsonSchemaObject = introspectSiteContentSchema,
+  emitDiagnostic: SiteContentDiagnosticEmitter = emitSiteContentDiagnostic,
 ): InitialSiteContentDraftResult {
   const known = isKnownSiteContentKey(row.key);
   const initialObject = isPlainRecord(row.metadataJson) ? { ...row.metadataJson } : {};
@@ -131,8 +162,26 @@ export function createInitialSiteContentDraftState(
       introspectionFailed = true;
       introspectionError =
         error instanceof Error ? error.message : 'Failed to introspect site_content schema.';
+      emitDiagnostic({
+        event: 'admin.cms.site_content_schema_introspect_fallback',
+        seamType: 'BOUNDARY_FAULT',
+        key: row.key,
+        reason: introspectionError,
+      });
     }
   }
+
+  const branch: SiteContentEditorModeBranch = !known
+    ? 'unknown-key-raw-json'
+    : introspectionFailed
+      ? 'known-schema-raw-json'
+      : 'known-schema-form';
+  emitDiagnostic({
+    event: 'admin.cms.site_content_editor_mode_branch',
+    seamType: 'RULE_DIVERGENCE',
+    key: row.key,
+    branch,
+  });
 
   return {
     schema,

@@ -4,9 +4,9 @@
     container-name: sf-site-content-preview;
     width: 100%;
     margin-inline: auto;
-    border: var(--sf-border-width) solid var(--sf-border-default);
+    border: var(--sf-border-width) solid var(--sf-border);
     border-radius: var(--sf-radius-md);
-    background: var(--sf-bg-canvas);
+    background: var(--sf-bg-editor);
     padding: var(--sf-space-5);
     box-sizing: border-box;
     overflow-x: hidden;
@@ -20,9 +20,9 @@
     display: flex;
     flex-direction: column;
     gap: var(--sf-gap-md);
-    border: var(--sf-border-width) solid var(--sf-border-default);
+    border: var(--sf-border-width) solid var(--sf-border);
     border-radius: var(--sf-radius-sm);
-    background: var(--sf-bg-surface);
+    background: var(--sf-bg-panel);
     padding: var(--sf-space-4);
   }
 
@@ -44,13 +44,13 @@
     font-family: var(--sf-font-display);
     font-size: var(--sf-text-md);
     font-weight: var(--sf-weight-semibold);
-    color: var(--sf-text-primary);
+    color: var(--sf-fg-bone);
   }
 
   .chromeMeta {
     font-family: var(--sf-font-mono);
     font-size: var(--sf-text-xs);
-    color: var(--sf-text-muted);
+    color: var(--sf-fg-cmt);
   }
 
   .chromeFooter {
@@ -62,11 +62,11 @@
     border-top: var(--sf-border-width) solid var(--sf-border-subtle);
     padding-top: var(--sf-space-3);
     font-size: var(--sf-text-xs);
-    color: var(--sf-text-secondary);
+    color: var(--sf-fg-prop);
   }
 
   .chromeLink {
-    color: var(--sf-accent-primary);
+    color: var(--sf-gold);
     text-decoration: underline;
     word-break: break-all;
   }
@@ -82,14 +82,14 @@
     font-family: var(--sf-font-display);
     font-size: var(--sf-text-2xl);
     line-height: var(--sf-leading-tight);
-    color: var(--sf-text-primary);
+    color: var(--sf-fg-bone);
   }
 
   .heroDescription {
     margin: 0;
     font-size: var(--sf-text-sm);
     line-height: var(--sf-leading-relaxed);
-    color: var(--sf-text-secondary);
+    color: var(--sf-fg-prop);
   }
 
   .heroActions {
@@ -106,7 +106,7 @@
 
   .maintenanceLead {
     margin: 0;
-    color: var(--sf-text-secondary);
+    color: var(--sf-fg-prop);
     font-size: var(--sf-text-sm);
   }
 
@@ -122,7 +122,7 @@
     flex-wrap: wrap;
     font-family: var(--sf-font-mono);
     font-size: var(--sf-text-xs);
-    color: var(--sf-text-muted);
+    color: var(--sf-fg-cmt);
   }
 
   .windowHeaderBody {
@@ -134,7 +134,7 @@
   .windowDescription {
     margin: 0;
     font-size: var(--sf-text-sm);
-    color: var(--sf-text-secondary);
+    color: var(--sf-fg-prop);
   }
 
   .previewChipList {
@@ -147,33 +147,33 @@
   }
 
   .previewChip {
-    border: var(--sf-border-width) solid var(--sf-border-default);
+    border: var(--sf-border-width) solid var(--sf-border);
     border-radius: var(--sf-radius-sm);
     background: var(--sf-bg-elevated);
     padding: var(--sf-space-1) var(--sf-space-3);
     font-family: var(--sf-font-mono);
     font-size: var(--sf-text-xs);
-    color: var(--sf-text-primary);
+    color: var(--sf-fg-bone);
   }
 
   .previewSlotBox {
-    border: var(--sf-border-width) dashed var(--sf-border-default);
+    border: var(--sf-border-width) dashed var(--sf-border);
     border-radius: var(--sf-radius-sm);
-    background: var(--sf-bg-surface);
+    background: var(--sf-bg-panel);
     padding: var(--sf-space-4);
     font-family: var(--sf-font-mono);
     font-size: var(--sf-text-xs);
-    color: var(--sf-text-muted);
+    color: var(--sf-fg-cmt);
   }
 
   .previewNotice {
     margin: 0;
     padding: var(--sf-space-4);
-    border: var(--sf-border-width) dashed var(--sf-border-default);
+    border: var(--sf-border-width) dashed var(--sf-border);
     border-radius: var(--sf-radius-sm);
     font-family: var(--sf-font-mono);
     font-size: var(--sf-text-xs);
-    color: var(--sf-text-muted);
+    color: var(--sf-fg-cmt);
   }
 
   @container sf-site-content-preview (max-width: 32rem) {
