@@ -1,0 +1,175 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-watch
+  namespace: portfolio-public
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: k8s-watch
+  template:
+    metadata:
+      labels:
+        app: k8s-watch
+    spec:
+      automountServiceAccountToken: true
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: k8s-watch
+          image: us-central1-docker.pkg.dev/PROJECT_ID/aklapper/k8s-watch:latest
+          ports:
+            - containerPort: 8081
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ['ALL']
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cadence-demo
+  namespace: portfolio-public
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: cadence-demo
+  template:
+    metadata:
+      labels:
+        app: cadence-demo
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: cadence-demo
+          image: us-central1-docker.pkg.dev/PROJECT_ID/aklapper/cadence-demo:latest
+          ports:
+            - containerPort: 8082
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8082
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ['ALL']
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-ask
+  namespace: portfolio-public
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: ai-ask
+  template:
+    metadata:
+      labels:
+        app: ai-ask
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: ai-ask
+          image: us-central1-docker.pkg.dev/PROJECT_ID/aklapper/ai-ask:latest
+          ports:
+            - containerPort: 8083
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8083
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ['ALL']
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: contact
+  namespace: portfolio-public
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: contact
+  template:
+    metadata:
+      labels:
+        app: contact
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: contact
+          image: us-central1-docker.pkg.dev/PROJECT_ID/aklapper/contact:latest
+          ports:
+            - containerPort: 8084
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8084
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 150m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ['ALL']

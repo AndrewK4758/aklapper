@@ -1,0 +1,62 @@
+# Cheapest production stateful host layout:
+# - Designed for GCP Always-Free e2-micro (0.25 vCPU shared, 1 GB RAM, 30 GB standard PD)
+# - Postgres 19 is memory-tuned for 1 GB RAM and bound to loopback/private VPC interface.
+# - Vector search defaults to Qdrant Cloud 1 GB Forever-Free via QDRANT_URL + QDRANT_API_KEY.
+# - Pass `--profile colocate-qdrant` only if you want Qdrant on-disk on the same VM.
+services:
+  postgres:
+    image: postgres:19-alpine
+    container_name: aklapper-pg19-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-aklapper}
+      POSTGRES_USER: ${POSTGRES_USER:-aklapper}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in env}
+    command:
+      - postgres
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - effective_cache_size=256MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - max_connections=30
+      - -c
+      - wal_level=minimal
+      - -c
+      - max_wal_senders=0
+    ports:
+      - '${PG_BIND_ADDR:-127.0.0.1}:5432:5432'
+    volumes:
+      - pg19_prod_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 450M
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-aklapper} -d ${POSTGRES_DB:-aklapper}']
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: aklapper-qdrant-prod
+    profiles: ['colocate-qdrant']
+    restart: unless-stopped
+    environment:
+      QDRANT__STORAGE__ON_DISK_PAYLOAD: 'true'
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?Set QDRANT_API_KEY when colocating}
+    ports:
+      - '${QDRANT_BIND_ADDR:-127.0.0.1}:6333:6333'
+    volumes:
+      - qdrant_prod_data:/qdrant/storage
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+
+volumes:
+  pg19_prod_data:
+  qdrant_prod_data:
