@@ -98,6 +98,7 @@
     --sf-container-lg: calc(var(--sf-size-unit) * 61.25);
     --sf-container-portal: calc(var(--sf-size-unit) * 61.25);
     --sf-container-admin: calc(var(--sf-size-unit) * 67.5);
+    --sf-container-admin-wide: calc(var(--sf-size-unit) * 110);
     --sf-container-xl: calc(var(--sf-size-unit) * 80);
     --sf-container-2xl: calc(var(--sf-size-unit) * 90);
     --sf-sidebar-w: calc(var(--sf-size-unit) * 16.25);

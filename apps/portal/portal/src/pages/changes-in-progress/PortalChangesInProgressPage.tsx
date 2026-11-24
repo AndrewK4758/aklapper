@@ -2,9 +2,8 @@ import type { PortalMaintenanceLoaderData, RoadmapMilestoneStatus } from '@aklap
 import {
   buildZshCommandHandlers,
   formatRoadmapMarker,
+  MaintenanceProgressCard,
   OscStatusBadge,
-  Progress,
-  Separator,
   TerminalWorkspace,
   TuiWindow,
   ZshP10kTerminal,
@@ -53,19 +52,15 @@ export function PortalChangesInProgressPage({ data }: PortalChangesInProgressPag
           />
         }
       >
-        <div className={styles.tuiGrid}>
-          <h1>{content.heading}</h1>
-          <p className={styles.lead}>{content.lead}</p>
-          <Progress.Root
-            className={styles.progress}
-            value={content.progressPercent}
-            max={100}
-            aria-label={content.progressAriaLabel}
-          >
-            <Progress.Track>
-              <Progress.Indicator />
-            </Progress.Track>
-          </Progress.Root>
+        <MaintenanceProgressCard
+          heading={content.heading}
+          lead={content.lead}
+          progressPercent={content.progressPercent}
+          progressAriaLabel={content.progressAriaLabel}
+          metaLeft={content.metaLeft}
+          metaRight={content.metaRight}
+          className={styles.tuiGrid}
+        >
           <ul className={styles.checklist}>
             {milestones.map(milestone => (
               <li key={milestone.slug} className={styles.checkItem}>
@@ -76,12 +71,7 @@ export function PortalChangesInProgressPage({ data }: PortalChangesInProgressPag
               </li>
             ))}
           </ul>
-          <Separator.Root />
-          <div className={styles.metaRow}>
-            <span>{content.metaLeft}</span>
-            <span>{content.metaRight}</span>
-          </div>
-        </div>
+        </MaintenanceProgressCard>
       </TuiWindow>
 
       <ZshP10kTerminal
