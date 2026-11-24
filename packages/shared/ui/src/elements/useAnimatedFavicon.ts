@@ -56,17 +56,25 @@ export function useAnimatedFavicon(): void {
     let timer: ReturnType<typeof setInterval> | null = null;
     let frameIndex = 0;
 
-    const stop = () => {
+    const stopTimer = () => {
       if (timer !== null) {
         clearInterval(timer);
         timer = null;
       }
+    };
+
+    const stop = () => {
+      stopTimer();
       link.href = STATIC_FAVICON_HREF;
     };
 
-    const start = () => {
+    const sync = () => {
       if (mediaQuery?.matches) {
         stop();
+        return;
+      }
+      if (document.hidden) {
+        stopTimer();
         return;
       }
       if (timer !== null) {
@@ -81,11 +89,13 @@ export function useAnimatedFavicon(): void {
       }, FRAME_INTERVAL_MS);
     };
 
-    start();
-    mediaQuery?.addEventListener('change', start);
+    sync();
+    mediaQuery?.addEventListener('change', sync);
+    document.addEventListener('visibilitychange', sync);
 
     return () => {
-      mediaQuery?.removeEventListener('change', start);
+      mediaQuery?.removeEventListener('change', sync);
+      document.removeEventListener('visibilitychange', sync);
       stop();
     };
   }, []);
