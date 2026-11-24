@@ -153,7 +153,7 @@ func (c *LocalClient) Embed(ctx context.Context, text string) ([]float32, error)
 	if err := json.NewDecoder(res.Body).Decode(&parsed); err != nil {
 		return nil, err
 	}
-	if len(parsed.Data) == 0 {
+	if len(parsed.Data) == 0 || len(parsed.Data[0].Embedding) == 0 {
 		return nil, errors.New("local llm returned zero embeddings")
 	}
 	return parsed.Data[0].Embedding, nil
