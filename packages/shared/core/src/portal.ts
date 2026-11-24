@@ -90,48 +90,6 @@ export const CadenceRunResultSchema = z.object({
 });
 export type CadenceRunResult = z.infer<typeof CadenceRunResultSchema>;
 
-export const AskModeSchema = z.enum(['qa', 'jd_match']);
-export type AskMode = z.infer<typeof AskModeSchema>;
-
-export const AskPortfolioRequestSchema = z.object({
-  mode: z.literal('qa').default('qa'),
-  question: z.string().trim().min(4).max(800),
-  sessionId: z.string().min(1).optional(),
-});
-export type AskPortfolioRequest = z.infer<typeof AskPortfolioRequestSchema>;
-
-export const JdMatchRequestSchema = z.object({
-  mode: z.literal('jd_match'),
-  jobDescription: z.string().trim().min(20).max(6000),
-  question: z.string().trim().max(800).optional(),
-  sessionId: z.string().min(1).optional(),
-});
-export type JdMatchRequest = z.infer<typeof JdMatchRequestSchema>;
-
-export const AskSourceSchema = z.object({
-  id: z.string().min(1).optional(),
-  title: z.string().min(1),
-  snippet: z.string(),
-  score: z.number().min(0).max(1),
-  category: z.string().min(1).optional(),
-});
-export type AskSource = z.infer<typeof AskSourceSchema>;
-
-export const AskResponseSchema = z.object({
-  grounded: z.boolean(),
-  mode: AskModeSchema,
-  answer: z.string(),
-  sources: z.array(AskSourceSchema),
-  matchScore: z.number().min(0).max(100).optional(),
-  strengths: z.array(z.string()).optional(),
-  gaps: z.array(z.string()).optional(),
-  provider: z.string().min(1),
-  model: z.string().min(1).optional(),
-  tokensUsed: z.number().int().nonnegative(),
-  quota: QuotaStatusSchema.optional(),
-});
-export type AskResponse = z.infer<typeof AskResponseSchema>;
-
 export const RoadmapMilestoneStatusSchema = z.enum(['done', 'active', 'queued']);
 export type RoadmapMilestoneStatus = z.infer<typeof RoadmapMilestoneStatusSchema>;
 

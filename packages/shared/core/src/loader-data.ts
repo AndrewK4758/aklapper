@@ -1,3 +1,4 @@
+import type { AskServiceStatus } from './ask.ts';
 import type { AuthSession, QuotaStatus } from './auth.ts';
 import type { FormDefinition } from './forms.ts';
 import type {
@@ -55,6 +56,7 @@ export interface PortalAgensiLoaderData {
 export interface PortalAskLoaderData {
   content: PortalAskContent;
   quota: QuotaStatus;
+  askStatus?: AskServiceStatus;
 }
 
 export interface PortalCadenceLoaderData {

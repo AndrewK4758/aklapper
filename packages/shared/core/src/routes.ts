@@ -6,6 +6,7 @@ export const PORTAL_ROUTE_PATHS = [
   '/agensi',
   '/contact',
   '/api/contact',
+  '/api/ask/turns/:attemptId',
   '/api/analytics/ingest',
   '/api/cluster/stream',
   '/changes-in-progress',

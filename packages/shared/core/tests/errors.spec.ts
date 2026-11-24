@@ -308,6 +308,7 @@ describe('@aklapper/core error contracts and server error classification', () =>
       '/agensi',
       '/contact',
       '/api/contact',
+      '/api/ask/turns/:attemptId',
       '/api/analytics/ingest',
       '/api/cluster/stream',
       '/changes-in-progress',

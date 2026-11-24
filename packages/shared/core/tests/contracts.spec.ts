@@ -1,12 +1,20 @@
 import {
   AnalyticsBatchSchema,
+  AskPortfolioRequestSchema,
+  AskResponseSchema,
+  AskServiceStatusSchema,
+  AskTurnStateSchema,
+  AskTurnStatusSchema,
   CadenceRunRequestSchema,
   collectFormFields,
   CONTACT_FORM_DEFINITION,
   CONTACT_MAX_FILE_BYTES,
   ContactFormSubmissionSchema,
+  createPublicAppError,
   FormDefinitionSchema,
   formatTerminalDirectoryListing,
+  JdMatchEvaluationSchema,
+  JdMatchRequestSchema,
   K8sPodEventSchema,
   MenuItemSchema,
   Osc7501StatusSchema,
@@ -345,5 +353,146 @@ describe('@aklapper/core (contracts)', () => {
     expect(helpText).toContain('--phone <phone>');
     expect(helpText).toContain('--message <message>');
     expect(helpText).toContain('--file');
+  });
+
+  it('validates unified 8000-char Ask/JD bounds, attemptId, AskTurnStateSchema, JdMatchEvaluationSchema, and AskServiceStatusSchema', () => {
+    const attemptId = '11111111-1111-4111-8111-111111111111';
+
+    const qaReq = AskPortfolioRequestSchema.parse({
+      mode: 'qa',
+      question: 'How does the Go backend index Qdrant?',
+      attemptId,
+      sessionId: 'guest_sess-01',
+    });
+    expect(qaReq.attemptId).toBe(attemptId);
+    expect(() =>
+      AskPortfolioRequestSchema.parse({
+        mode: 'qa',
+        question: 'Valid length question',
+        attemptId: 'not-a-uuid',
+      }),
+    ).toThrow(/Invalid UUID/i);
+
+    const minJd = JdMatchRequestSchema.parse({
+      mode: 'jd_match',
+      jobDescription: 'x'.repeat(20),
+    });
+    expect(minJd.jobDescription).toHaveLength(20);
+
+    const legacy6k = JdMatchRequestSchema.parse({
+      mode: 'jd_match',
+      jobDescription: 'a'.repeat(6000),
+    });
+    expect(legacy6k.jobDescription).toHaveLength(6000);
+
+    const boundary7500 = JdMatchRequestSchema.parse({
+      mode: 'jd_match',
+      jobDescription: 'b'.repeat(7500),
+      attemptId,
+    });
+    expect(boundary7500.jobDescription).toHaveLength(7500);
+
+    const max8000 = JdMatchRequestSchema.parse({
+      mode: 'jd_match',
+      jobDescription: 'c'.repeat(8000),
+    });
+    expect(max8000.jobDescription).toHaveLength(8000);
+
+    expect(() =>
+      JdMatchRequestSchema.parse({
+        mode: 'jd_match',
+        jobDescription: 'd'.repeat(8001),
+      }),
+    ).toThrow(/8000/);
+
+    expect(AskTurnStatusSchema.options).toEqual([
+      'pending',
+      'running',
+      'completed',
+      'abstained',
+      'failed',
+      'expired',
+    ]);
+
+    const jdEval = JdMatchEvaluationSchema.parse({
+      matchScore: 84,
+      strengths: ['Go microservices on GKE Autopilot'],
+      gaps: ['Terraform provider authoring not indexed'],
+    });
+    expect(jdEval.matchScore).toBe(84);
+    expect(() =>
+      JdMatchEvaluationSchema.parse({
+        matchScore: 84.5,
+        strengths: [],
+        gaps: [],
+      }),
+    ).toThrow(/expected int/i);
+    expect(() =>
+      JdMatchEvaluationSchema.parse({
+        matchScore: 101,
+        strengths: [],
+        gaps: [],
+      }),
+    ).toThrow(/<=100/);
+
+    const response = AskResponseSchema.parse({
+      attemptId,
+      grounded: true,
+      abstained: false,
+      mode: 'jd_match',
+      answer: 'Strong distributed architecture fit.',
+      sources: [
+        {
+          id: 'curated-stack',
+          title: 'Core Architecture',
+          snippet: 'Go + React SSR + PostgreSQL 19.',
+          score: 0.92,
+          category: 'dossier',
+        },
+      ],
+      matchScore: jdEval.matchScore,
+      strengths: jdEval.strengths,
+      gaps: jdEval.gaps,
+      provider: 'local-llama-swap',
+      model: 'inference',
+      tokensUsed: 410,
+      latencyMs: 1200,
+      correlationId: 'corr-ask-1',
+    });
+    expect(response.abstained).toBe(false);
+
+    const runningState = AskTurnStateSchema.parse({
+      attemptId,
+      status: 'running',
+      mode: 'qa',
+      correlationId: 'corr-ask-run',
+      leaseExpiresAt: '2026-11-24T22:01:00.000Z',
+      expiresAt: '2026-11-24T22:15:00.000Z',
+    });
+    expect(runningState.status).toBe('running');
+
+    const failedState = AskTurnStateSchema.parse({
+      attemptId,
+      status: 'failed',
+      mode: 'qa',
+      correlationId: 'corr-ask-fail',
+      leaseExpiresAt: '2026-11-24T22:01:00.000Z',
+      expiresAt: '2026-11-24T22:15:00.000Z',
+      error: createPublicAppError({
+        code: 'ERR_UPSTREAM_UNAVAILABLE',
+        status: 503,
+        message: 'Upstream service unreachable.',
+        action: 'Retry shortly or go home.',
+        correlationId: 'corr-ask-fail',
+      }),
+    });
+    expect(failedState.error?.code).toBe('ERR_UPSTREAM_UNAVAILABLE');
+
+    const status = AskServiceStatusSchema.parse({
+      status: 'ready',
+      provider: 'local-llama-swap',
+      pointsCount: 18,
+    });
+    expect(status.pointsCount).toBe(18);
   });
 });
