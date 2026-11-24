@@ -40,11 +40,10 @@ export {
   focusPaneById,
   focusRelativePane,
   getActiveWorkspaceTab,
-  type GhosttyShortcutAction,
   type InitialWorkspaceOptions,
   type KeyboardShortcutInput,
   listLeafPanes,
-  matchGhosttyShortcut,
+  matchWorkspaceShortcut,
   moveActiveSplit,
   type NormalizedBox,
   openTuiPane,
@@ -64,6 +63,7 @@ export {
   type SplitCreateDirection,
   type SplitDirection,
   type SplitDividerRect,
+  swapActivePaneWithNeighbor,
   swapPanes,
   type TerminalLeafPane,
   type TerminalPaneKind,
@@ -75,6 +75,7 @@ export {
   toggleTuiPane,
   toggleZoomActivePane,
   updateActiveTabWorkspace,
+  type WorkspaceShortcutAction,
 } from './components/terminalPaneTree';
 export { TuiWindow, type TuiWindowProps } from './components/TuiWindow';
 export {

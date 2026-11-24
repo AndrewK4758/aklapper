@@ -33,7 +33,7 @@ import {
   focusRelativePane,
   getActiveWorkspaceTab,
   listLeafPanes,
-  matchGhosttyShortcut,
+  matchWorkspaceShortcut,
   moveActiveSplit,
   openTuiPane,
   type PaneDropTarget,
@@ -48,6 +48,7 @@ import {
   type SplitCreateDirection,
   type SplitDirection,
   type SplitDividerRect,
+  swapActivePaneWithNeighbor,
   type TerminalLeafPane,
   type TerminalTabbedWorkspaceState,
   type TerminalWorkspaceTab,
@@ -133,25 +134,6 @@ const EmbeddedTerminalPaneContext = createContext<EmbeddedTerminalPaneContextVal
 export function useIsPaneActive(): boolean {
   return useContext(PaneActiveContext);
 }
-
-const SPLIT_HELP_APPENDIX = [
-  '',
-  'Split panes & tabs (Ghostty / ghostty-union keybindings & commands):',
-  '  Ctrl+Shift+} / Ctrl+Shift+O / Cmd+D (or "split" / "vsplit") — split terminal right',
-  '  Ctrl+Shift+{ / Ctrl+Shift+E / Cmd+Shift+D (or "hsplit")     — split terminal down',
-  '  Alt+T (or "tui")                                            — open or toggle TUI split pane',
-  '  Ctrl+Alt+Arrows / Cmd+Alt+Arrows (or Cmd+] / Cmd+[)         — focus neighbor pane',
-  '  Alt+Shift+Arrows / drag pane divider (double-click=50/50)   — resize active split',
-  '  Ctrl+Alt+Shift+Arrows (or "swap" / drag pane titlebar)      — swap or dock split pane',
-  '  Ctrl+Shift+R / Ctrl+Alt+Shift+R (or "rotate")               — rotate split orientation',
-  '  Ctrl+Shift+Enter / Cmd+Shift+Enter (or "zoom")              — toggle active pane zoom',
-  '  Ctrl+Alt+Shift+E / Ctrl+Shift+= / Cmd+Shift+=               — equalize split sizes',
-  '  Ctrl+Shift+T / Alt+Shift+T (or "tab")                       — open a new tab',
-  '  Ctrl+Alt+Shift+T (or "detach" / drag pane to tab strip)     — move split to new tab',
-  '  Ctrl+Shift+A / Alt+Shift+A (or double-click tab)            — rename active tab',
-  '  Ctrl+Tab / Alt+] / Alt+[ / Alt+1..9                         — switch tabs',
-  '  Ctrl+Shift+W / Cmd+Shift+W / Alt+Shift+W (or "exit")        — close active pane or tab',
-].join('\n');
 
 function resolveTabDisplayTitle(
   tab: TerminalWorkspaceTab,
@@ -558,17 +540,9 @@ function TerminalLeafContent({
       navigate,
       openTui: () => onOpenTui(pane.id),
     });
-    const baseHelp = base['help'];
 
     return {
       ...base,
-      help: (args, raw) => {
-        const res = baseHelp ? baseHelp(args, raw) : { output: '' };
-        return {
-          ...res,
-          output: res.output ? `${res.output}\n${SPLIT_HELP_APPENDIX}` : SPLIT_HELP_APPENDIX.trim(),
-        };
-      },
       split: () => {
         onSplit(pane.id, 'right');
         return { output: `opened new terminal pane to the right from tty${pane.ttyNumber}` };
@@ -920,7 +894,7 @@ function PrimaryPaneView({
     ],
   );
 
-  // Move DOM focus back into a non-terminal primary pane when switched via Ghostty keyboard navigation.
+  // Move DOM focus back into a non-terminal primary pane when switched via workspace keyboard navigation.
   useEffect(() => {
     if (!isActive || focusToken <= 1 || primaryPane.embeddedTerminal) {
       return;
@@ -1040,7 +1014,7 @@ function StandaloneTerminalWorkspace({
         return;
       }
 
-      const action = matchGhosttyShortcut(event);
+      const action = matchWorkspaceShortcut(event);
       if (!action) {
         return;
       }
@@ -1195,22 +1169,9 @@ function StandaloneTerminalWorkspace({
 
   const handleSwapPane = (paneId: string) => {
     setTabState(prev =>
-      updateActiveTabWorkspace(prev, ws => {
-        const focused = focusPaneById(ws, paneId, false);
-        const swappedRight = moveActiveSplit(focused, 'right');
-        if (swappedRight !== focused) {
-          return swappedRight;
-        }
-        const swappedLeft = moveActiveSplit(focused, 'left');
-        if (swappedLeft !== focused) {
-          return swappedLeft;
-        }
-        const swappedDown = moveActiveSplit(focused, 'down');
-        if (swappedDown !== focused) {
-          return swappedDown;
-        }
-        return moveActiveSplit(focused, 'up');
-      }),
+      updateActiveTabWorkspace(prev, ws =>
+        swapActivePaneWithNeighbor(focusPaneById(ws, paneId, false)),
+      ),
     );
   };
 

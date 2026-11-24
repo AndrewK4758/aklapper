@@ -182,10 +182,8 @@ export default function PortalRoot() {
                 </NavigationMenu.List>
               </NavigationMenu.Root>
               <div className={styles.barMeta}>
-                {hasGlobalWorkspace || isTerminalViewport ? (
-                  <span className={styles.shortcutHint}>
-                    {'Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit · Alt+⇧T tab · Alt+T tui'}
-                  </span>
+                {(hasGlobalWorkspace || isTerminalViewport) && chrome.shortcutHint ? (
+                  <span className={styles.shortcutHint}>{chrome.shortcutHint}</span>
                 ) : null}
                 <OscStatusBadge
                   source={chrome.statusBadge.source}

@@ -1,5 +1,4 @@
 import {
-  type AdminChromeContent,
   AdminChromeContentSchema,
   type AdminHomeLoaderData,
   AdminHomeContentSchema,
@@ -79,6 +78,7 @@ export const SITE_CONTENT_KEYS = {
 export const TERMINAL_PROFILE_SLUGS = {
   portalHome: 'portal-home',
   portalMaintenance: 'portal-maintenance',
+  adminOps: 'admin-ops',
 } as const;
 
 export async function getSiteContent<T>(
@@ -465,152 +465,13 @@ export async function insertContactSubmission(
   };
 }
 
-export const ADMIN_OPS_TERMINAL_PROFILE: TerminalProfileData = TerminalProfileDataSchema.parse({
-  slug: 'admin-ops',
-  bannerTitle: 'Solar Forge Ops Terminal // admin',
-  bannerMeta: 'ops tty · type "help" or press Tab',
-  osLabel: '⚡',
-  directory: '~/admin.andrew-k.us',
-  vcsBranch: 'ops-isolated',
-  vcsState: 'clean',
-  contextLabel: 'admin@andrew-k.us',
-  placeholder: 'type an ops command (help, analytics, cms, inbox, quotas, ops, status, clear)',
-  quickCommands: ['help', 'analytics', 'cms', 'inbox', 'quotas', 'ops', 'status'],
-  initialEntries: [
-    {
-      command: 'status',
-      output: 'admin.andrew-k.us :: isolated ops console ready · Ghostty split panes enabled.',
-      status: 'ok',
-      durationLabel: '3ms',
-      timestamp: '00:00:00',
-      sortOrder: 0,
-    },
-  ],
-  commands: [
-    {
-      name: 'help',
-      description: 'list available ops commands',
-      kind: 'static',
-      output: [
-        'Available admin ops commands:',
-        '  help      — list available ops commands',
-        '  home      — open Operations Overview (/)',
-        '  analytics — open Telemetry & CWV Dashboard (/analytics)',
-        '  cms       — open Postgres 19 CMS (/cms)',
-        '  inbox     — open Contact Inbox & Attachments (/inbox)',
-        '  quotas    — open Quota Policies & Buckets (/quotas)',
-        '  ops       — open Cluster SSE & Sandbox Audit (/ops)',
-        '  status    — print isolated ops status',
-        '  whoami    — print active ops identity',
-        '  clear     — clear terminal scrollback',
-      ].join('\n'),
-      targetRoute: null,
-      allowedRoutes: [],
-      errorTemplate: null,
-      sortOrder: 1,
-    },
-    {
-      name: 'home',
-      description: 'open Operations Overview (/)',
-      kind: 'navigate',
-      output: 'opening / ...',
-      targetRoute: '/',
-      allowedRoutes: [],
-      errorTemplate: null,
-      sortOrder: 2,
-    },
-    {
-      name: 'analytics',
-      description: 'open Telemetry & CWV Dashboard (/analytics)',
-      kind: 'navigate',
-      output: 'opening /analytics ...',
-      targetRoute: '/analytics',
-      allowedRoutes: [],
-      errorTemplate: null,
-      sortOrder: 3,
-    },
-    {
-      name: 'cms',
-      description: 'open Postgres 19 CMS (/cms)',
-      kind: 'navigate',
-      output: 'opening /cms ...',
-      targetRoute: '/cms',
-      allowedRoutes: [],
-      errorTemplate: null,
-      sortOrder: 4,
-    },
-    {
-      name: 'inbox',
-      description: 'open Contact Inbox (/inbox)',
-      kind: 'navigate',
-      output: 'opening /inbox ...',
-      targetRoute: '/inbox',
-      allowedRoutes: [],
-      errorTemplate: null,
-      sortOrder: 5,
-    },
-    {
-      name: 'quotas',
-      description: 'open Quota Policies & Rate-Limit Buckets (/quotas)',
-      kind: 'navigate',
-      output: 'opening /quotas ...',
-      targetRoute: '/quotas',
-      allowedRoutes: [],
-      errorTemplate: null,
-      sortOrder: 6,
-    },
-    {
-      name: 'ops',
-      description: 'open Cluster SSE & Sandbox Ops (/ops)',
-      kind: 'navigate',
-      output: 'opening /ops ...',
-      targetRoute: '/ops',
-      allowedRoutes: [],
-      errorTemplate: null,
-      sortOrder: 7,
-    },
-    {
-      name: 'status',
-      description: 'print isolated ops status',
-      kind: 'static',
-      output:
-        'SURFACE : admin.andrew-k.us (noindex, nofollow, noarchive)\nAUTH    : WebAuthn passkey gate · Postgres 19 telemetry active',
-      targetRoute: null,
-      allowedRoutes: [],
-      errorTemplate: null,
-      sortOrder: 8,
-    },
-    {
-      name: 'whoami',
-      description: 'print active ops identity',
-      kind: 'static',
-      output: 'admin@andrew-k.us (isolated ops shell)',
-      targetRoute: null,
-      allowedRoutes: [],
-      errorTemplate: null,
-      sortOrder: 9,
-    },
-    {
-      name: 'clear',
-      description: 'clear terminal scrollback',
-      kind: 'clear',
-      output: '',
-      targetRoute: null,
-      allowedRoutes: [],
-      errorTemplate: null,
-      sortOrder: 10,
-    },
-  ],
-});
-
 export async function loadAdminRootData(db: AppDatabase): Promise<AdminRootLoaderData> {
-  const chrome: AdminChromeContent = await getSiteContent(
-    db,
-    SITE_CONTENT_KEYS.adminChrome,
-    AdminChromeContentSchema,
-  );
+  const [chrome, terminal] = await Promise.all([
+    getSiteContent(db, SITE_CONTENT_KEYS.adminChrome, AdminChromeContentSchema),
+    getTerminalProfile(db, TERMINAL_PROFILE_SLUGS.adminOps),
+  ]);
 
-  return { chrome, terminal: ADMIN_OPS_TERMINAL_PROFILE };
+  return { chrome, terminal };
 }
 
 export async function loadAdminHomeData(db: AppDatabase): Promise<AdminHomeLoaderData> {

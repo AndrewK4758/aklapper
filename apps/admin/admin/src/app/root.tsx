@@ -186,10 +186,8 @@ export default function AdminRoot() {
               </NavigationMenu.List>
             </NavigationMenu.Root>
             <div className={styles.barMeta}>
-              {hasGlobalWorkspace ? (
-                <span className={styles.shortcutHint}>
-                  {'Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit · Alt+⇧T tab'}
-                </span>
+              {hasGlobalWorkspace && chrome.shortcutHint ? (
+                <span className={styles.shortcutHint}>{chrome.shortcutHint}</span>
               ) : null}
               {isAdminSession && session ? (
                 <span className={styles.sessionHandle}>{session.handle}@admin</span>

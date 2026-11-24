@@ -408,7 +408,7 @@ describe('Admin routes & SEO', () => {
     });
   });
 
-  it('supports Ghostty split keybindings globally across admin TUI routes', async () => {
+  it('supports split keybindings globally across admin TUI routes and renders DB shortcut hint', async () => {
     const router = createMemoryRouter(
       [
         {
@@ -417,6 +417,7 @@ describe('Admin routes & SEO', () => {
             chrome: {
               pageTitle: 'admin.andrew-k.us // Solar Forge Ops',
               brandLabel: 'admin.andrew-k.us',
+              shortcutHint: 'Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit · Alt+⇧T tab',
               statusBadge: {
                 source: 'passkey-gate',
                 state: 'ready',
@@ -441,10 +442,11 @@ describe('Admin routes & SEO', () => {
     const { container } = render(<RouterProvider router={router} />);
 
     expect(await screen.findByText(/node-api-analytics/i)).toBeTruthy();
+    expect(screen.getByText('Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit · Alt+⇧T tab')).toBeTruthy();
     const workspaceEl = container.querySelector('[data-pane-count]') as HTMLElement;
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
 
-    // Ghostty Ctrl+Shift+{ splits open an isolated admin ops terminal pane below /analytics
+    // Ctrl+Shift+{ splits open an isolated admin ops terminal pane below /analytics
     fireEvent.keyDown(window, {
       key: '{',
       code: 'BracketLeft',
