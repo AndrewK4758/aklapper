@@ -77,7 +77,7 @@ describe('@aklapper/ui', () => {
     expect(iframe.getAttribute('referrerpolicy')).toBe('no-referrer');
   });
 
-  it('sweeps favicon crosshairs horizontally and restores static svg on unmount', () => {
+  it('sweeps the entire favicon circle and crosshairs horizontally over a full-bleed badge while keeping the bolt centered', () => {
     vi.useFakeTimers();
     const link = document.createElement('link');
     link.rel = 'icon';
@@ -85,9 +85,14 @@ describe('@aklapper/ui', () => {
     link.href = '/favicon.svg';
     document.head.appendChild(link);
 
-    const frameRight = buildFaviconFrameDataUri(5);
+    const frameRight = buildFaviconFrameDataUri(5.5);
     expect(frameRight.startsWith('data:image/svg+xml,')).toBe(true);
-    expect(decodeURIComponent(frameRight)).toContain('translate(5 0)');
+    const decodedSvg = decodeURIComponent(frameRight);
+    expect(decodedSvg).toContain('<rect x="2" y="2" width="60" height="60"');
+    expect(decodedSvg).toContain('<g transform="translate(5.5 0)"><circle cx="32" cy="32" r="20"');
+    expect(decodedSvg).toContain(
+      'stroke-linecap="round"/></g><path d="M37.5 6.5 L15.5 35.5 H29.5 L26.5 57.5 L48.5 28.5 H34.5 Z"',
+    );
 
     const { unmount } = render(<FaviconHost />);
     vi.advanceTimersByTime(560);
