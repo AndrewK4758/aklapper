@@ -81,7 +81,8 @@ export const SITE_CONTENT_METADATA: Readonly<Record<SiteContentKey, SiteContentK
   [SITE_CONTENT_KEYS.portalAsk]: {
     key: SITE_CONTENT_KEYS.portalAsk,
     label: 'Portal Ask',
-    description: 'AI Ask portfolio window copy, starter questions, JD input, and abstention notice.',
+    description:
+      'AI Ask portfolio window copy, starter questions, JD input, and abstention notice.',
     surface: 'portal',
   },
   [SITE_CONTENT_KEYS.portalCadence]: {

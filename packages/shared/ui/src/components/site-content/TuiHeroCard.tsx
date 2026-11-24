@@ -1,8 +1,8 @@
 import type { LinkActionSpec } from '@aklapper/core';
 import type { ReactNode } from 'react';
 
-import { Button, Toolbar } from '../../elements/base';
 import { cx } from '../../elements/_internal/elementFactory';
+import { Button, Toolbar } from '../../elements/base';
 
 import styles from './SiteContentPreview.module.css';
 

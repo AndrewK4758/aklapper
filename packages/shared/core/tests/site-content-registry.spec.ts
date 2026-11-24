@@ -115,10 +115,12 @@ describe('@aklapper/core site_content registry', () => {
     for (const key of Object.values(SITE_CONTENT_KEYS)) {
       const candidate = { ...VALID_FIXTURES[key], customNote: 'keep-me' };
       const result = validateSiteContentMetadata(key, candidate);
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        expect(result.data['customNote']).toBe('keep-me');
-      }
+      expect(result).toEqual(
+        expect.objectContaining({
+          ok: true,
+          data: expect.objectContaining({ customNote: 'keep-me' }),
+        }),
+      );
     }
   });
 
@@ -127,19 +129,23 @@ describe('@aklapper/core site_content registry', () => {
       ...VALID_FIXTURES[SITE_CONTENT_KEYS.portalChrome],
       footerLinkUrl: 'not-a-valid-url',
     });
-    expect(invalidChrome.ok).toBe(false);
-    if (!invalidChrome.ok) {
-      expect(invalidChrome.issues.some(issue => issue.pathKey === 'footerLinkUrl')).toBe(true);
-    }
+    expect(invalidChrome).toEqual(
+      expect.objectContaining({
+        ok: false,
+        issues: expect.arrayContaining([expect.objectContaining({ pathKey: 'footerLinkUrl' })]),
+      }),
+    );
 
     const invalidMaint = validateSiteContentMetadata(SITE_CONTENT_KEYS.portalMaintenance, {
       ...VALID_FIXTURES[SITE_CONTENT_KEYS.portalMaintenance],
       progressPercent: 150,
     });
-    expect(invalidMaint.ok).toBe(false);
-    if (!invalidMaint.ok) {
-      expect(invalidMaint.issues.some(issue => issue.pathKey === 'progressPercent')).toBe(true);
-    }
+    expect(invalidMaint).toEqual(
+      expect.objectContaining({
+        ok: false,
+        issues: expect.arrayContaining([expect.objectContaining({ pathKey: 'progressPercent' })]),
+      }),
+    );
 
     const unknownResult = validateSiteContentMetadata('custom-banner', { banner: 'hello' });
     expect(unknownResult).toEqual({ ok: true, data: { banner: 'hello' } });

@@ -322,7 +322,10 @@ function FormNodeListEditor({ basePath, nodes, issuesByPath, onChange }: NodeLis
                   value={node.description ?? ''}
                   onChange={event => {
                     const nextVal = event.target.value;
-                    onChange([...nodePath, 'description'], nextVal.length > 0 ? nextVal : undefined);
+                    onChange(
+                      [...nodePath, 'description'],
+                      nextVal.length > 0 ? nextVal : undefined,
+                    );
                   }}
                 />
               </div>

@@ -217,7 +217,9 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
       },
       'corr-sc-invalid',
     );
-    const invalidRes = (await cmsAction(invalidSchemaCall.args as never)) as unknown as DataWithStatus;
+    const invalidRes = (await cmsAction(
+      invalidSchemaCall.args as never,
+    )) as unknown as DataWithStatus;
     expect(invalidRes.init?.status).toBe(400);
     expect(invalidRes.data['code']).toBe('ERR_VALIDATION');
     expect(mocks.upsertSiteContent).not.toHaveBeenCalled();

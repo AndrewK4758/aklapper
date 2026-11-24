@@ -1,8 +1,4 @@
-import {
-  Button,
-  SiteContentPreviewCanvas,
-  type SiteContentPreviewViewport,
-} from '@aklapper/ui';
+import { Button, SiteContentPreviewCanvas, type SiteContentPreviewViewport } from '@aklapper/ui';
 
 import styles from './SiteContentEditor.module.css';
 
@@ -57,16 +53,12 @@ export function SiteContentPreviewPane({
       </div>
 
       {hasValidationErrors ? (
-        <p className={styles.noticeBanner} role='status'>
+        <output className={styles.noticeBanner}>
           Showing last valid snapshot while current draft has validation errors.
-        </p>
+        </output>
       ) : null}
 
-      <SiteContentPreviewCanvas
-        contentKey={contentKey}
-        metadata={metadata}
-        viewport={viewport}
-      />
+      <SiteContentPreviewCanvas contentKey={contentKey} metadata={metadata} viewport={viewport} />
     </aside>
   );
 }

@@ -1,20 +1,17 @@
-import {
-  isKnownSiteContentKey,
-  SITE_CONTENT_METADATA,
-  type SiteContentRow,
-} from '@aklapper/core';
+import { isKnownSiteContentKey, SITE_CONTENT_METADATA, type SiteContentRow } from '@aklapper/core';
 import { Button, cx, type SiteContentPreviewViewport } from '@aklapper/ui';
 import { useReducer, useState } from 'react';
 import { Form } from 'react-router';
 
 import { JsonSchemaFormRenderer } from './JsonSchemaFormRenderer';
-import styles from './SiteContentEditor.module.css';
 import {
   createInitialSiteContentDraftState,
   evaluateSiteContentDraft,
   siteContentDraftReducer,
 } from './siteContentDraftState';
 import { SiteContentPreviewPane } from './SiteContentPreviewPane';
+
+import styles from './SiteContentEditor.module.css';
 
 export interface SiteContentEditorPanelProps {
   readonly siteContents: readonly SiteContentRow[];
@@ -168,12 +165,7 @@ function SiteContentEditorSession({
         )}
 
         <div>
-          <Button.Root
-            type='submit'
-            variant='primary'
-            size='sm'
-            disabled={!evaluated.canSubmit}
-          >
+          <Button.Root type='submit' variant='primary' size='sm' disabled={!evaluated.canSubmit}>
             <Button.Label>Save Site Content</Button.Label>
           </Button.Root>
         </div>
@@ -205,7 +197,7 @@ export function SiteContentEditorPanel({ siteContents }: SiteContentEditorPanelP
 
   return (
     <div className={styles.workspace}>
-      <div className={styles.keyList} role='list' aria-label='Site content keys'>
+      <nav className={styles.keyList} aria-label='Site content keys'>
         {siteContents.map(row => {
           const meta = isKnownSiteContentKey(row.key) ? SITE_CONTENT_METADATA[row.key] : null;
           return (
@@ -223,7 +215,7 @@ export function SiteContentEditorPanel({ siteContents }: SiteContentEditorPanelP
             </button>
           );
         })}
-      </div>
+      </nav>
 
       {selectedSiteRow ? (
         <SiteContentEditorSession

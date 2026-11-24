@@ -107,9 +107,7 @@ export function LinkActionListEditor({
   issuesByPath,
   onChange,
 }: LinkActionListEditorProps) {
-  const actions: Record<string, unknown>[] = Array.isArray(value)
-    ? value.filter(isRecord)
-    : [];
+  const actions: Record<string, unknown>[] = Array.isArray(value) ? value.filter(isRecord) : [];
   const rootError = issuesByPath[fieldKey]?.[0];
 
   function moveAction(index: number, delta: -1 | 1) {

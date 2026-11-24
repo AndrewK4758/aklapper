@@ -17,12 +17,12 @@ import { cx } from '../../elements/_internal/elementFactory';
 import { OscStatusBadge } from '../../elements/OscStatusBadge';
 import { RecursiveTuiForm } from '../RecursiveTuiForm';
 import { TuiWindow } from '../TuiWindow';
-
 import { MaintenanceProgressCard } from './MaintenanceProgressCard';
 import { SiteChromePreviewBar } from './SiteChromePreviewBar';
-import styles from './SiteContentPreview.module.css';
 import { SiteContentWindowHeader } from './SiteContentWindowHeader';
 import { TuiHeroCard } from './TuiHeroCard';
+
+import styles from './SiteContentPreview.module.css';
 
 export type SiteContentPreviewViewport = 'desktop' | 'mobile';
 
@@ -233,17 +233,14 @@ export function SiteContentPreviewCanvas({
 
   return (
     <div
-      className={cx(
-        styles.previewViewport,
-        viewport === 'mobile' && styles.previewViewportMobile,
-      )}
+      className={cx(styles.previewViewport, viewport === 'mobile' && styles.previewViewportMobile)}
       data-preview-viewport={viewport}
       data-preview-key={contentKey}
     >
       {rendered ?? (
-        <p className={styles.previewNotice} role='status'>
+        <output className={styles.previewNotice}>
           Preview waiting for valid metadata matching <code>{contentKey}</code>.
-        </p>
+        </output>
       )}
     </div>
   );

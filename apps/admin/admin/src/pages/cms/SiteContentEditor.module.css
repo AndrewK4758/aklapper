@@ -1,7 +1,10 @@
 @layer page {
   .workspace {
     display: grid;
-    grid-template-columns: minmax(calc(var(--sf-size-unit) * 12), calc(var(--sf-size-unit) * 15)) minmax(0, 1fr);
+    grid-template-columns: minmax(
+        calc(var(--sf-size-unit) * 12),
+        calc(var(--sf-size-unit) * 15)
+      ) minmax(0, 1fr);
     gap: var(--sf-gap-lg);
     align-items: var(--sf-align-start);
   }

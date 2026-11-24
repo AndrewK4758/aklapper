@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
-import { Progress, Separator } from '../../elements/base';
 import { cx } from '../../elements/_internal/elementFactory';
+import { Progress, Separator } from '../../elements/base';
 
 import styles from './SiteContentPreview.module.css';
 

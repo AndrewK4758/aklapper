@@ -1,8 +1,4 @@
-import {
-  CONTACT_FORM_DEFINITION,
-  SITE_CONTENT_KEYS,
-  type SiteContentKey,
-} from '@aklapper/core';
+import { CONTACT_FORM_DEFINITION, SITE_CONTENT_KEYS, type SiteContentKey } from '@aklapper/core';
 import { render, screen } from '@testing-library/react';
 
 import {

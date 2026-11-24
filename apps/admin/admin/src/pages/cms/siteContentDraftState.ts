@@ -55,7 +55,9 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
 
 export function parsePlainJsonObject(
   rawText: string,
-): { readonly ok: true; readonly value: Record<string, unknown> } | { readonly ok: false; readonly error: string } {
+):
+  | { readonly ok: true; readonly value: Record<string, unknown> }
+  | { readonly ok: false; readonly error: string } {
   try {
     const parsed: unknown = JSON.parse(rawText);
     if (!isPlainRecord(parsed)) {
@@ -94,12 +96,7 @@ function updateNodeImmutable(
     return record;
   }
 
-  record[String(segment)] = updateNodeImmutable(
-    record[String(segment)],
-    path,
-    index + 1,
-    value,
-  );
+  record[String(segment)] = updateNodeImmutable(record[String(segment)], path, index + 1, value);
   return record;
 }
 

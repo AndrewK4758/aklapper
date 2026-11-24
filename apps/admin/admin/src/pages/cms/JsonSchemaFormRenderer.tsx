@@ -2,12 +2,9 @@ import type { JsonSchemaObject } from '@aklapper/core';
 import { Switch } from '@aklapper/ui';
 
 import { FormDefinitionBuilder } from './FormDefinitionBuilder';
+import { LinkActionListEditor, StatusBadgeEditor, StringListEditor } from './SiteContentSubEditors';
+
 import styles from './SiteContentEditor.module.css';
-import {
-  LinkActionListEditor,
-  StatusBadgeEditor,
-  StringListEditor,
-} from './SiteContentSubEditors';
 
 export interface JsonSchemaFormRendererProps {
   readonly schema: JsonSchemaObject;
@@ -87,7 +84,11 @@ export function JsonSchemaFormRenderer({
           );
         }
 
-        if (isSchemaType(propSchema, 'array') && propSchema.items && isSchemaType(propSchema.items, 'string')) {
+        if (
+          isSchemaType(propSchema, 'array') &&
+          propSchema.items &&
+          isSchemaType(propSchema.items, 'string')
+        ) {
           return (
             <StringListEditor
               key={propKey}
@@ -126,9 +127,10 @@ export function JsonSchemaFormRenderer({
         }
 
         if (isSchemaType(propSchema, 'integer') || isSchemaType(propSchema, 'number')) {
-          const displayValue = typeof currentValue === 'number' && Number.isFinite(currentValue)
-            ? String(currentValue)
-            : '';
+          const displayValue =
+            typeof currentValue === 'number' && Number.isFinite(currentValue)
+              ? String(currentValue)
+              : '';
           return (
             <div key={propKey} className={styles.fieldGroup}>
               <label className={styles.fieldLabel} htmlFor={inputId}>
