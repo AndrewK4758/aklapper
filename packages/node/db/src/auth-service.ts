@@ -21,7 +21,12 @@ import {
   verifyTotpCode,
 } from '@aklapper/node-runtime/auth';
 import {
+  evictGcpIdentityTokenCache,
+  extractRightmostForwardedIp,
+  GcpOidcTokenError,
   joinUpstreamUrl,
+  resolveGcpIdentityToken,
+  shouldAttachGcpOidcToken,
   signInternalAuthToken,
   verifyInternalAuthToken,
 } from '@aklapper/node-runtime/http';
@@ -140,15 +145,6 @@ function emitAuthEvent(options: AuthServiceOptions, payload: AuthTelemetryEvent)
   if (nodeEnv !== 'test') {
     console.info(JSON.stringify(payload));
   }
-}
-
-function extractClientIp(forwardedFor: string | null | undefined): string {
-  const hops = forwardedFor
-    ?.split(',')
-    .map(part => part.trim())
-    .filter(Boolean);
-  const rightmostHop = hops && hops.length > 0 ? hops[hops.length - 1] : undefined;
-  return rightmostHop ?? 'unknown';
 }
 
 function hashRateLimitPart(value: string): string {
@@ -353,7 +349,7 @@ export async function dispatchAuthAction(
       };
     }
 
-    const clientIp = extractClientIp(req.clientIp);
+    const clientIp = extractRightmostForwardedIp(req.clientIp, null, 'unknown');
     const ipLimit = await consumeAuthRateLimit(
       db,
       `auth:login:ip:${hashRateLimitPart(clientIp)}`,
@@ -901,7 +897,7 @@ export async function dispatchAuthAction(
       };
     }
 
-    const clientIp = extractClientIp(req.clientIp);
+    const clientIp = extractRightmostForwardedIp(req.clientIp, null, 'unknown');
     const ipLimit = await consumeAuthRateLimit(
       db,
       `auth:totp:ip:${hashRateLimitPart(clientIp)}`,
@@ -1080,6 +1076,47 @@ function isInvalidAuthSplat(splat: string): boolean {
   return splat.split('/').some(segment => segment.length === 0 || segment === '.');
 }
 
+async function fetchUpstreamWithGcpOidc(
+  targetUrl: string,
+  init: RequestInit,
+  options: {
+    upstreamBase: string;
+    env: Record<string, string | undefined>;
+    fetchImpl: typeof fetch;
+    allowAuthRetry: boolean;
+  },
+): Promise<Response> {
+  const { upstreamBase, env, fetchImpl, allowAuthRetry } = options;
+  const headers = new Headers(init.headers);
+  const attachOidc = shouldAttachGcpOidcToken(upstreamBase, env);
+  const audience = attachOidc ? new URL(upstreamBase).origin : null;
+
+  if (audience) {
+    const token = await resolveGcpIdentityToken(audience, {
+      metadataUrl: env['GCP_METADATA_IDENTITY_URL'],
+      fetchImpl,
+      env,
+    });
+    headers.set('authorization', `Bearer ${token}`);
+  }
+
+  let response = await fetchImpl(targetUrl, { ...init, headers });
+  if (audience && (response.status === 401 || response.status === 403)) {
+    evictGcpIdentityTokenCache(audience);
+    if (allowAuthRetry) {
+      const refreshedToken = await resolveGcpIdentityToken(audience, {
+        metadataUrl: env['GCP_METADATA_IDENTITY_URL'],
+        fetchImpl,
+        env,
+        forceRefresh: true,
+      });
+      headers.set('authorization', `Bearer ${refreshedToken}`);
+      response = await fetchImpl(targetUrl, { ...init, headers });
+    }
+  }
+  return response;
+}
+
 /**
  * Dual-mode Admin BFF auth handler:
  *
@@ -1101,7 +1138,11 @@ export async function handleAdminAuthBffRequest(
     );
   }
   const reqUrl = new URL(request.url);
-  const resolvedClientIp = extractClientIp(request.headers.get('x-forwarded-for'));
+  const resolvedClientIp = extractRightmostForwardedIp(
+    request.headers.get('x-forwarded-for'),
+    request.headers.get('x-real-ip'),
+    'unknown',
+  );
 
   if (upstreamBase) {
     const fetchImpl = options.fetchImpl ?? fetch;
@@ -1137,12 +1178,21 @@ export async function handleAdminAuthBffRequest(
     const rawBody = hasBody ? await request.text() : undefined;
 
     try {
-      const upstream = await fetchImpl(targetUrl, {
-        method: request.method,
-        headers: forwardHeaders,
-        body: rawBody && rawBody.length > 0 ? rawBody : undefined,
-        signal: AbortSignal.timeout(10_000),
-      });
+      const upstream = await fetchUpstreamWithGcpOidc(
+        targetUrl,
+        {
+          method: request.method,
+          headers: forwardHeaders,
+          body: rawBody && rawBody.length > 0 ? rawBody : undefined,
+          signal: AbortSignal.timeout(10_000),
+        },
+        {
+          upstreamBase,
+          env,
+          fetchImpl,
+          allowAuthRetry: request.method === 'GET' || request.method === 'HEAD',
+        },
+      );
 
       const responseHeaders = new Headers();
       for (const headerName of FORWARDED_UPSTREAM_RESPONSE_HEADERS) {
@@ -1161,7 +1211,13 @@ export async function handleAdminAuthBffRequest(
         status: upstream.status,
         headers: responseHeaders,
       });
-    } catch {
+    } catch (error) {
+      if (error instanceof GcpOidcTokenError) {
+        return Response.json(
+          { error: 'GCP_OIDC_TOKEN_UNAVAILABLE', message: error.message },
+          { status: 503 },
+        );
+      }
       return Response.json(
         { error: 'AUTH_UPSTREAM_UNAVAILABLE', message: 'Auth service unreachable' },
         { status: 502 },
@@ -1221,15 +1277,36 @@ export async function resolveAdminSessionFromRequest(
   if (upstreamBase) {
     const fetchImpl = options.fetchImpl ?? fetch;
     try {
-      const res = await fetchImpl(joinUpstreamUrl(upstreamBase, '/v1/auth/session'), {
-        method: 'GET',
-        headers: { cookie: cookieHeader, accept: 'application/json' },
-        signal: AbortSignal.timeout(5_000),
-      });
+      const res = await fetchUpstreamWithGcpOidc(
+        joinUpstreamUrl(upstreamBase, '/v1/auth/session'),
+        {
+          method: 'GET',
+          headers: { cookie: cookieHeader, accept: 'application/json' },
+          signal: AbortSignal.timeout(5_000),
+        },
+        {
+          upstreamBase,
+          env,
+          fetchImpl,
+          allowAuthRetry: true,
+        },
+      );
       if (!res.ok) return emptyStatus;
       const parsed = AuthSessionStatusSchema.safeParse(await res.json());
       return parsed.success ? parsed.data : emptyStatus;
-    } catch {
+    } catch (error) {
+      if (
+        error instanceof GcpOidcTokenError &&
+        (env['NODE_ENV'] ?? process.env['NODE_ENV']) !== 'test'
+      ) {
+        console.error(
+          JSON.stringify({
+            event: 'admin.auth_session.oidc_unavailable',
+            error: 'GCP_OIDC_TOKEN_UNAVAILABLE',
+            message: error.message,
+          }),
+        );
+      }
       return emptyStatus;
     }
   }

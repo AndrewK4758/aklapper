@@ -11,3 +11,4 @@ export * from './qdrant.ts';
 export * from './queries.ts';
 export * from './schema.ts';
 export * from './seed.ts';
+export * from './seed-admin.ts';

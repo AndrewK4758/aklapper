@@ -1,10 +1,9 @@
-import { isIP } from 'node:net';
 import type { Writable } from 'node:stream';
 
 import type { AppDatabase } from '@aklapper/db';
 import { dispatchAuthAction } from '@aklapper/db/auth';
 import { AUTH_LOG_REDACT_PATHS, isSecureRequest } from '@aklapper/node-runtime/auth';
-import { verifyInternalAuthToken } from '@aklapper/node-runtime/http';
+import { resolveTrustedClientIp, SINGLE_PROXY_HOP } from '@aklapper/node-runtime/http';
 import cookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
@@ -17,33 +16,10 @@ export interface BuildAuthServerOptions {
   loggerStream?: Writable;
 }
 
-const INTERNAL_CLIENT_IP_HEADER = 'x-internal-client-ip';
-const CLIENT_IP_SUBJECT_PREFIX = 'client-ip:';
-const SINGLE_PROXY_HOP = (_address: string, hop: number): boolean => hop === 0;
-
 function getSingleHeader(value: string | string[] | undefined): string | null {
   if (typeof value === 'string') return value;
   if (Array.isArray(value)) return value[0] ?? null;
   return null;
-}
-
-function resolveTrustedClientIp(
-  request: FastifyRequest,
-  env: Record<string, string | undefined> = process.env,
-): string {
-  const token = getSingleHeader(request.headers[INTERNAL_CLIENT_IP_HEADER]);
-  const internalSecret = env['INTERNAL_AUTH_SECRET']?.trim();
-  const isProd = (env['NODE_ENV'] ?? process.env['NODE_ENV']) === 'production';
-  if (token && (internalSecret || !isProd)) {
-    const claims = verifyInternalAuthToken(token, internalSecret);
-    if (claims?.role === 'service' && claims.sub.startsWith(CLIENT_IP_SUBJECT_PREFIX)) {
-      const verifiedIp = claims.sub.slice(CLIENT_IP_SUBJECT_PREFIX.length).trim();
-      if (verifiedIp.length > 0 && isIP(verifiedIp) !== 0) {
-        return verifiedIp;
-      }
-    }
-  }
-  return request.ip;
 }
 
 export async function buildAuthServer(

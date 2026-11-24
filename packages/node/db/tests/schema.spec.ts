@@ -15,6 +15,7 @@ import {
   QDRANT_COLLECTIONS,
   roadmapMilestones,
   sandboxRuns,
+  seedDatabase,
   SITE_CONTENT_KEYS,
   TERMINAL_DIRECTORY_ENTRY_SEEDS,
   TERMINAL_PROFILE_SLUGS,
@@ -213,5 +214,84 @@ describe('@aklapper/db', () => {
         attachment: null,
       }),
     ).rejects.toThrow(/Failed to persist contact submission/i);
+  });
+
+  it('preserves custom roadmap_milestones by default, supports non-overwriting bootstrap mode, and gates pruning behind pruneMissingMilestones', async () => {
+    const deleteCalls: unknown[] = [];
+    const onConflictUpdateCalls: unknown[] = [];
+    const onConflictNothingCalls: unknown[] = [];
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+
+    const onConflictDoUpdate = vi.fn<() => Promise<void>>(async () => {
+      onConflictUpdateCalls.push(lastTable);
+    });
+    const onConflictDoNothing = vi.fn<() => Promise<void>>(async () => {
+      onConflictNothingCalls.push(lastTable);
+    });
+    const whereFn = vi.fn<() => Promise<void>>(async () => {
+      deleteCalls.push(lastTable);
+    });
+    let lastTable: unknown = null;
+
+    const mockDb = {
+      select: vi.fn<
+        () => {
+          from: () => {
+            where: () => {
+              limit: () => Promise<Array<{ slug: string }>>;
+            };
+          };
+        }
+      >(() => ({
+        from: () => ({
+          where: () => ({
+            limit: async () => [{ slug: 'live-agensi-skill' }],
+          }),
+        }),
+      })),
+      insert: vi.fn<
+        (table: unknown) => {
+          values: () => {
+            onConflictDoUpdate: typeof onConflictDoUpdate;
+            onConflictDoNothing: typeof onConflictDoNothing;
+          };
+        }
+      >(table => {
+        lastTable = table;
+        return {
+          values: () => ({
+            onConflictDoUpdate,
+            onConflictDoNothing,
+          }),
+        };
+      }),
+      delete: vi.fn<(table: unknown) => { where: typeof whereFn }>(table => {
+        lastTable = table;
+        return { where: whereFn };
+      }),
+    } as unknown as AppDatabase;
+
+    try {
+      await seedDatabase(mockDb, { ADMIN_PASSWORD: '' });
+      expect(deleteCalls).toHaveLength(0);
+      expect(onConflictUpdateCalls.length).toBeGreaterThan(0);
+
+      onConflictUpdateCalls.length = 0;
+      await seedDatabase(mockDb, { mode: 'bootstrap', env: { ADMIN_PASSWORD: '' } });
+      expect(deleteCalls).toHaveLength(0);
+      expect(onConflictUpdateCalls).toHaveLength(0);
+      expect(onConflictNothingCalls.length).toBeGreaterThan(0);
+
+      await seedDatabase(mockDb, { pruneMissingMilestones: true, env: { ADMIN_PASSWORD: '' } });
+      expect(deleteCalls).toEqual([roadmapMilestones]);
+
+      const logged = infoSpy.mock.calls.flat().join('\n');
+      expect(logged).toContain('db.seed.mode_branch');
+      expect(logged).toContain('RULE_DIVERGENCE');
+      expect(logged).toContain('bootstrap_missing_only');
+      expect(logged).toContain('explicit_prune_roadmap');
+    } finally {
+      infoSpy.mockRestore();
+    }
   });
 });

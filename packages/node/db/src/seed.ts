@@ -1150,153 +1150,214 @@ export {
   TERMINAL_PROFILE_SEEDS,
 };
 
+export interface SeedDatabaseOptions {
+  mode?: 'upsert' | 'bootstrap';
+  pruneMissingMilestones?: boolean;
+  env?: Record<string, string | undefined>;
+}
+
+function resolveSeedOptions(
+  optionsOrEnv?: SeedDatabaseOptions | Record<string, string | undefined>,
+): {
+  mode: 'upsert' | 'bootstrap';
+  pruneMissingMilestones: boolean;
+  env: Record<string, string | undefined>;
+} {
+  if (!optionsOrEnv) {
+    return { mode: 'upsert', pruneMissingMilestones: false, env: process.env };
+  }
+  const maybeOpts = optionsOrEnv as SeedDatabaseOptions;
+  if (
+    'mode' in maybeOpts ||
+    'pruneMissingMilestones' in maybeOpts ||
+    (typeof maybeOpts.env === 'object' && maybeOpts.env !== null)
+  ) {
+    return {
+      mode: maybeOpts.mode === 'bootstrap' ? 'bootstrap' : 'upsert',
+      pruneMissingMilestones: Boolean(maybeOpts.pruneMissingMilestones),
+      env: maybeOpts.env ?? process.env,
+    };
+  }
+  return {
+    mode: 'upsert',
+    pruneMissingMilestones: false,
+    env: optionsOrEnv as Record<string, string | undefined>,
+  };
+}
+
 export async function seedDatabase(
   db: AppDatabase,
-  env: Record<string, string | undefined> = process.env,
+  optionsOrEnv: SeedDatabaseOptions | Record<string, string | undefined> = process.env,
 ): Promise<void> {
+  const { mode, pruneMissingMilestones, env } = resolveSeedOptions(optionsOrEnv);
+  const isBootstrap = mode === 'bootstrap';
+
+  console.info(
+    JSON.stringify({
+      event: 'db.seed.mode_branch',
+      seam: 'RULE_DIVERGENCE',
+      branch: isBootstrap ? 'bootstrap_missing_only' : 'upsert_safe',
+    }),
+  );
+
   for (const item of DEFAULT_MENU_ITEMS) {
-    await db
-      .insert(menuItems)
-      .values(item)
-      .onConflictDoUpdate({
-        target: menuItems.slug,
-        set: {
-          keyShortcut: item.keyShortcut,
-          title: item.title,
-          description: item.description,
-          targetK8sDeploy: item.targetK8sDeploy,
-          namespace: item.namespace,
-          adminOnly: item.adminOnly,
-          sortOrder: item.sortOrder,
-          enabled: item.enabled,
-        },
-      });
+    const stmt = db.insert(menuItems).values(item);
+    await (isBootstrap
+      ? stmt.onConflictDoNothing({ target: menuItems.slug })
+      : stmt.onConflictDoUpdate({
+          target: menuItems.slug,
+          set: {
+            keyShortcut: item.keyShortcut,
+            title: item.title,
+            description: item.description,
+            targetK8sDeploy: item.targetK8sDeploy,
+            namespace: item.namespace,
+            adminOnly: item.adminOnly,
+            sortOrder: item.sortOrder,
+            enabled: item.enabled,
+          },
+        }));
   }
 
   for (const content of SITE_CONTENT_SEEDS) {
-    await db
-      .insert(siteContent)
-      .values(content)
-      .onConflictDoUpdate({
-        target: siteContent.key,
-        set: {
-          markdownBody: content.markdownBody,
-          metadataJson: content.metadataJson,
-          updatedAt: new Date(),
-        },
-      });
+    const stmt = db.insert(siteContent).values(content);
+    await (isBootstrap
+      ? stmt.onConflictDoNothing({ target: siteContent.key })
+      : stmt.onConflictDoUpdate({
+          target: siteContent.key,
+          set: {
+            markdownBody: content.markdownBody,
+            metadataJson: content.metadataJson,
+            updatedAt: new Date(),
+          },
+        }));
   }
 
   for (const profile of TERMINAL_PROFILE_SEEDS) {
-    await db
-      .insert(terminalProfiles)
-      .values({
-        ...profile,
-        quickCommands: [...profile.quickCommands],
-      })
-      .onConflictDoUpdate({
-        target: terminalProfiles.slug,
-        set: {
-          bannerTitle: profile.bannerTitle,
-          bannerMeta: profile.bannerMeta,
-          osLabel: profile.osLabel,
-          directory: profile.directory,
-          vcsBranch: profile.vcsBranch,
-          vcsState: profile.vcsState,
-          contextLabel: profile.contextLabel,
-          placeholder: profile.placeholder,
-          quickCommands: [...profile.quickCommands],
-        },
-      });
+    const stmt = db.insert(terminalProfiles).values({
+      ...profile,
+      quickCommands: [...profile.quickCommands],
+    });
+    await (isBootstrap
+      ? stmt.onConflictDoNothing({ target: terminalProfiles.slug })
+      : stmt.onConflictDoUpdate({
+          target: terminalProfiles.slug,
+          set: {
+            bannerTitle: profile.bannerTitle,
+            bannerMeta: profile.bannerMeta,
+            osLabel: profile.osLabel,
+            directory: profile.directory,
+            vcsBranch: profile.vcsBranch,
+            vcsState: profile.vcsState,
+            contextLabel: profile.contextLabel,
+            placeholder: profile.placeholder,
+            quickCommands: [...profile.quickCommands],
+          },
+        }));
   }
 
   for (const entry of TERMINAL_INITIAL_ENTRY_SEEDS) {
-    await db
-      .insert(terminalInitialEntries)
-      .values(entry)
-      .onConflictDoUpdate({
-        target: [terminalInitialEntries.profileSlug, terminalInitialEntries.sortOrder],
-        set: {
-          command: entry.command,
-          output: entry.output,
-          status: entry.status,
-          durationLabel: entry.durationLabel,
-          timestampLabel: entry.timestampLabel,
-        },
-      });
+    const stmt = db.insert(terminalInitialEntries).values(entry);
+    await (isBootstrap
+      ? stmt.onConflictDoNothing({
+          target: [terminalInitialEntries.profileSlug, terminalInitialEntries.sortOrder],
+        })
+      : stmt.onConflictDoUpdate({
+          target: [terminalInitialEntries.profileSlug, terminalInitialEntries.sortOrder],
+          set: {
+            command: entry.command,
+            output: entry.output,
+            status: entry.status,
+            durationLabel: entry.durationLabel,
+            timestampLabel: entry.timestampLabel,
+          },
+        }));
   }
 
   for (const cmd of TERMINAL_COMMAND_SEEDS) {
-    await db
-      .insert(terminalCommands)
-      .values({
-        ...cmd,
-        allowedRoutes: [...cmd.allowedRoutes],
-      })
-      .onConflictDoUpdate({
-        target: [terminalCommands.profileSlug, terminalCommands.name],
-        set: {
-          description: cmd.description,
-          kind: cmd.kind,
-          output: cmd.output,
-          targetRoute: cmd.targetRoute,
-          allowedRoutes: [...cmd.allowedRoutes],
-          errorTemplate: cmd.errorTemplate,
-          sortOrder: cmd.sortOrder,
-        },
-      });
+    const stmt = db.insert(terminalCommands).values({
+      ...cmd,
+      allowedRoutes: [...cmd.allowedRoutes],
+    });
+    await (isBootstrap
+      ? stmt.onConflictDoNothing({
+          target: [terminalCommands.profileSlug, terminalCommands.name],
+        })
+      : stmt.onConflictDoUpdate({
+          target: [terminalCommands.profileSlug, terminalCommands.name],
+          set: {
+            description: cmd.description,
+            kind: cmd.kind,
+            output: cmd.output,
+            targetRoute: cmd.targetRoute,
+            allowedRoutes: [...cmd.allowedRoutes],
+            errorTemplate: cmd.errorTemplate,
+            sortOrder: cmd.sortOrder,
+          },
+        }));
   }
 
   for (const dirEntry of TERMINAL_DIRECTORY_ENTRY_SEEDS) {
-    await db
-      .insert(terminalDirectoryEntries)
-      .values(dirEntry)
-      .onConflictDoUpdate({
-        target: [terminalDirectoryEntries.profileSlug, terminalDirectoryEntries.name],
-        set: {
-          description: dirEntry.description,
-          sortOrder: dirEntry.sortOrder,
-          enabled: dirEntry.enabled,
-        },
-      });
+    const stmt = db.insert(terminalDirectoryEntries).values(dirEntry);
+    await (isBootstrap
+      ? stmt.onConflictDoNothing({
+          target: [terminalDirectoryEntries.profileSlug, terminalDirectoryEntries.name],
+        })
+      : stmt.onConflictDoUpdate({
+          target: [terminalDirectoryEntries.profileSlug, terminalDirectoryEntries.name],
+          set: {
+            description: dirEntry.description,
+            sortOrder: dirEntry.sortOrder,
+            enabled: dirEntry.enabled,
+          },
+        }));
   }
 
-  await db.delete(roadmapMilestones).where(
-    notInArray(
-      roadmapMilestones.slug,
-      ROADMAP_MILESTONE_SEEDS.map(milestone => milestone.slug),
-    ),
-  );
+  if (pruneMissingMilestones) {
+    console.info(
+      JSON.stringify({
+        event: 'db.seed.mode_branch',
+        seam: 'RULE_DIVERGENCE',
+        branch: 'explicit_prune_roadmap',
+      }),
+    );
+    await db.delete(roadmapMilestones).where(
+      notInArray(
+        roadmapMilestones.slug,
+        ROADMAP_MILESTONE_SEEDS.map(milestone => milestone.slug),
+      ),
+    );
+  }
 
   for (const milestone of ROADMAP_MILESTONE_SEEDS) {
-    await db
-      .insert(roadmapMilestones)
-      .values(milestone)
-      .onConflictDoUpdate({
-        target: roadmapMilestones.slug,
-        set: {
-          status: milestone.status,
-          label: milestone.label,
-          sortOrder: milestone.sortOrder,
-          enabled: milestone.enabled,
-        },
-      });
+    const stmt = db.insert(roadmapMilestones).values(milestone);
+    await (isBootstrap
+      ? stmt.onConflictDoNothing({ target: roadmapMilestones.slug })
+      : stmt.onConflictDoUpdate({
+          target: roadmapMilestones.slug,
+          set: {
+            status: milestone.status,
+            label: milestone.label,
+            sortOrder: milestone.sortOrder,
+            enabled: milestone.enabled,
+          },
+        }));
   }
 
   for (const preset of CADENCE_PRESET_SEEDS) {
-    await db
-      .insert(cadencePresets)
-      .values(preset)
-      .onConflictDoUpdate({
-        target: cadencePresets.slug,
-        set: {
-          title: preset.title,
-          starterPrompt: preset.starterPrompt,
-          expectedKind: preset.expectedKind,
-          starterArtifactHtml: preset.starterArtifactHtml,
-          sortOrder: preset.sortOrder,
-        },
-      });
+    const stmt = db.insert(cadencePresets).values(preset);
+    await (isBootstrap
+      ? stmt.onConflictDoNothing({ target: cadencePresets.slug })
+      : stmt.onConflictDoUpdate({
+          target: cadencePresets.slug,
+          set: {
+            title: preset.title,
+            starterPrompt: preset.starterPrompt,
+            expectedKind: preset.expectedKind,
+            starterArtifactHtml: preset.starterArtifactHtml,
+            sortOrder: preset.sortOrder,
+          },
+        }));
   }
 
   const isProductionEnv = (env['NODE_ENV'] ?? process.env['NODE_ENV']) === 'production';
@@ -1339,17 +1400,17 @@ export async function seedDatabase(
   }
 
   for (const policy of QUOTA_POLICY_SEEDS) {
-    await db
-      .insert(quotaPolicies)
-      .values(policy)
-      .onConflictDoUpdate({
-        target: quotaPolicies.role,
-        set: {
-          maxTurnsPerSession: policy.maxTurnsPerSession,
-          maxTokensPerRun: policy.maxTokensPerRun,
-          maxDailyGlobalTokens: policy.maxDailyGlobalTokens,
-        },
-      });
+    const stmt = db.insert(quotaPolicies).values(policy);
+    await (isBootstrap
+      ? stmt.onConflictDoNothing({ target: quotaPolicies.role })
+      : stmt.onConflictDoUpdate({
+          target: quotaPolicies.role,
+          set: {
+            maxTurnsPerSession: policy.maxTurnsPerSession,
+            maxTokensPerRun: policy.maxTokensPerRun,
+            maxDailyGlobalTokens: policy.maxDailyGlobalTokens,
+          },
+        }));
   }
 
   await seedAdminUserFromEnv(db, env);
@@ -1357,10 +1418,18 @@ export async function seedDatabase(
 
 if (import.meta.main) {
   loadWorkspaceEnv({ startDir: import.meta.dirname });
+  const argv = process.argv.slice(2);
+  let mode: 'upsert' | 'bootstrap' = 'upsert';
+  let pruneMissingMilestones = false;
+  for (const arg of argv) {
+    if (arg === '--mode=bootstrap') mode = 'bootstrap';
+    else if (arg === '--mode=upsert') mode = 'upsert';
+    else if (arg === '--prune') pruneMissingMilestones = true;
+  }
   const pool = createDbPool();
   try {
     const db = createDb(pool);
-    await seedDatabase(db);
+    await seedDatabase(db, { mode, pruneMissingMilestones });
     console.log('Postgres seed data applied successfully.');
   } finally {
     await pool.end();

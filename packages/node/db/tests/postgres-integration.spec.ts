@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { eq, sql } from 'drizzle-orm';
 import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -20,6 +23,8 @@ import {
   pruneExpiredAskTurns,
   rateLimitBuckets,
   resetRateLimitBucket,
+  roadmapMilestones,
+  seedDatabase,
   TERMINAL_PROFILE_SLUGS,
   upsertTerminalDirectoryEntry,
 } from '../src/index.ts';
@@ -212,6 +217,48 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
     } finally {
       await db.delete(askTurns).where(eq(askTurns.attemptId, activeAttemptId));
       await db.delete(askTurns).where(eq(askTurns.attemptId, expiredAttemptId));
+    }
+  });
+
+  it('preserves admin-added roadmap_milestones rows on default and bootstrap seedDatabase runs and exports ./migrate and ./seed-admin', async () => {
+    const pkgJson = JSON.parse(
+      readFileSync(resolve(import.meta.dirname, '..', 'package.json'), 'utf8'),
+    ) as { exports: Record<string, unknown> };
+    expect(pkgJson.exports['./migrate']).toMatchObject({
+      import: './dist/migrate.js',
+      default: './dist/migrate.js',
+    });
+    expect(pkgJson.exports['./seed-admin']).toMatchObject({
+      import: './dist/seed-admin.js',
+      default: './dist/seed-admin.js',
+    });
+    expect(existsSync(resolve(import.meta.dirname, '..', 'dist', 'migrate.js'))).toBe(true);
+    expect(existsSync(resolve(import.meta.dirname, '..', 'dist', 'seed-admin.js'))).toBe(true);
+
+    const customSlug = 'custom-cms-milestone-e2e-check';
+    await db
+      .insert(roadmapMilestones)
+      .values({
+        slug: customSlug,
+        status: 'active',
+        label: 'Custom CMS milestone added by admin',
+        sortOrder: 99,
+        enabled: true,
+      })
+      .onConflictDoNothing({ target: roadmapMilestones.slug });
+
+    try {
+      await seedDatabase(db, { mode: 'bootstrap', env: { ADMIN_PASSWORD: '' } });
+      await seedDatabase(db, { env: { ADMIN_PASSWORD: '' } });
+
+      const rows = await db
+        .select()
+        .from(roadmapMilestones)
+        .where(eq(roadmapMilestones.slug, customSlug));
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.label).toBe('Custom CMS milestone added by admin');
+    } finally {
+      await db.delete(roadmapMilestones).where(eq(roadmapMilestones.slug, customSlug));
     }
   });
 });

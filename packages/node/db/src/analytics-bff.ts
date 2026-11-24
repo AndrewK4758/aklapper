@@ -1,6 +1,10 @@
 import { AnalyticsBatchSchema } from '@aklapper/core';
 import { buildDailyAnalyticsSalt, hashVisitorIp } from '@aklapper/node-runtime/auth';
-import { proxyJson } from '@aklapper/node-runtime/http';
+import {
+  extractRightmostForwardedIp,
+  proxyJson,
+  signInternalAuthToken,
+} from '@aklapper/node-runtime/http';
 
 import { type AppDatabase, getSharedDb } from './client.ts';
 import { ingestAnalyticsBatch, type IngestAnalyticsResult } from './queries.ts';
@@ -10,17 +14,6 @@ export interface AnalyticsBffOptions {
   upstreamUrl?: string;
   env?: Record<string, string | undefined>;
   fetchImpl?: typeof fetch;
-}
-
-function extractClientIp(request: Request): string {
-  const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded) {
-    const first = forwarded.split(',')[0]?.trim();
-    if (first) return first;
-  }
-  const realIp = request.headers.get('x-real-ip')?.trim();
-  if (realIp) return realIp;
-  return '127.0.0.1';
 }
 
 /**
@@ -53,12 +46,27 @@ export async function handleAnalyticsIngestRequest(
   const upstreamUrl = (options.upstreamUrl ?? env['ANALYTICS_API_URL'])?.trim();
   const country = request.headers.get('x-cloud-country')?.trim() || undefined;
   const region = request.headers.get('x-cloud-region')?.trim() || undefined;
+  const clientIp = extractRightmostForwardedIp(
+    request.headers.get('x-forwarded-for'),
+    request.headers.get('x-real-ip'),
+    '127.0.0.1',
+  );
 
   if (upstreamUrl) {
     const forwardHeaders: Record<string, string> = {
       'content-type': 'application/json',
-      'x-forwarded-for': extractClientIp(request),
+      'x-forwarded-for': clientIp,
     };
+    const internalSecret = env['INTERNAL_AUTH_SECRET']?.trim();
+    const isProd = (env['NODE_ENV'] ?? process.env['NODE_ENV']) === 'production';
+    if (internalSecret || !isProd) {
+      forwardHeaders['x-internal-client-ip'] = signInternalAuthToken({
+        role: 'service',
+        subject: `client-ip:${clientIp}`,
+        secret: internalSecret,
+        ttlSeconds: 60,
+      });
+    }
     if (country) forwardHeaders['x-cloud-country'] = country;
     if (region) forwardHeaders['x-cloud-region'] = region;
 
@@ -68,6 +76,8 @@ export async function handleAnalyticsIngestRequest(
       method: 'POST',
       headers: forwardHeaders,
       body: parsed.data,
+      oidcAuth: 'auto',
+      env,
       fetchImpl: options.fetchImpl,
     });
 
@@ -81,7 +91,7 @@ export async function handleAnalyticsIngestRequest(
 
   const db = options.db ?? getSharedDb();
   const salt = buildDailyAnalyticsSalt(env['ANALYTICS_DAILY_SALT']?.trim() || 'dev-only');
-  const ipHash = hashVisitorIp(extractClientIp(request), salt);
+  const ipHash = hashVisitorIp(clientIp, salt);
   const persisted = await ingestAnalyticsBatch(db, parsed.data, {
     ipHash,
     country: country ?? null,

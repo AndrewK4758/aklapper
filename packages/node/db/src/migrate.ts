@@ -22,7 +22,23 @@ if (import.meta.main) {
   try {
     const db = createDb(pool);
     await runMigrations(db);
-    console.log('Postgres migrations applied successfully.');
+    console.info(
+      JSON.stringify({
+        event: 'db.migrate_job.execution',
+        seam: 'DELTA_AUDIT_GAP',
+        status: 'applied',
+      }),
+    );
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        event: 'db.migrate_job.execution',
+        seam: 'DELTA_AUDIT_GAP',
+        status: 'failed',
+        reason: error instanceof Error ? error.message : 'migration_failed',
+      }),
+    );
+    throw error;
   } finally {
     await pool.end();
   }

@@ -468,4 +468,61 @@ describe('Admin streaming routes, auth guards & SEO', () => {
       else process.env['QDRANT_API_KEY'] = prevQdrantKey;
     }
   });
+
+  it('probes direct Qdrant Cloud with api-key header, skips GCP OIDC JWTs, and logs BOUNDARY_FAULT on 401/404', async () => {
+    const origAiAsk = process.env['AI_ASK_URL'];
+    const origQdrantUrl = process.env['QDRANT_URL'];
+    const origQdrantKey = process.env['QDRANT_API_KEY'];
+    const requests: Array<{ url: string; apiKey: string | null; authorization: string | null }> =
+      [];
+    let failWithAuthError = false;
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+      const headers = new Headers(init?.headers);
+      requests.push({
+        url,
+        apiKey: headers.get('api-key'),
+        authorization: headers.get('authorization'),
+      });
+      if (failWithAuthError) {
+        return new Response('unauthorized', { status: 401 });
+      }
+      return Response.json({ result: { status: 'green', points_count: 14 } });
+    });
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    try {
+      delete process.env['AI_ASK_URL'];
+      process.env['QDRANT_URL'] = 'https://cluster.example.qdrant.io';
+      process.env['QDRANT_API_KEY'] = 'qdrant-cloud-secret';
+
+      const okStatus = await fetchQdrantStatus();
+      expect(okStatus.online).toBe(true);
+      expect(okStatus.collection).toBe('portfolio_docs');
+      expect(okStatus.pointsCount).toBe(14);
+      expect(requests[0]).toEqual({
+        url: 'https://cluster.example.qdrant.io/collections/portfolio_docs',
+        apiKey: 'qdrant-cloud-secret',
+        authorization: null,
+      });
+
+      failWithAuthError = true;
+      const failedStatus = await fetchQdrantStatus();
+      expect(failedStatus.online).toBe(false);
+      expect(failedStatus.status).toBe('error');
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('admin.qdrant_probe.auth_or_collection'),
+      );
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('BOUNDARY_FAULT'));
+    } finally {
+      fetchSpy.mockRestore();
+      warnSpy.mockRestore();
+      if (origAiAsk === undefined) delete process.env['AI_ASK_URL'];
+      else process.env['AI_ASK_URL'] = origAiAsk;
+      if (origQdrantUrl === undefined) delete process.env['QDRANT_URL'];
+      else process.env['QDRANT_URL'] = origQdrantUrl;
+      if (origQdrantKey === undefined) delete process.env['QDRANT_API_KEY'];
+      else process.env['QDRANT_API_KEY'] = origQdrantKey;
+    }
+  });
 });
