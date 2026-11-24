@@ -200,6 +200,23 @@ export const basename = '/';
         forwardedHost: null,
       });
 
+      const multiHopUppercaseHttps = await server.app.inject({
+        method: 'GET',
+        url: '/api/auth/session',
+        headers: {
+          host: 'admin.andrew-k.us',
+          'x-forwarded-proto': 'http, HTTPS',
+          'x-correlation-id': 'sec-cid-proto-multi-upper',
+        },
+      });
+      expect(multiHopUppercaseHttps.statusCode).toBe(200);
+      expect(multiHopUppercaseHttps.json()).toEqual({
+        url: 'https://admin.andrew-k.us/api/auth/session',
+        origin: 'https://admin.andrew-k.us',
+        forwardedProto: 'https',
+        forwardedHost: null,
+      });
+
       const multiHopHttp = await server.app.inject({
         method: 'GET',
         url: '/api/auth/session',
@@ -295,6 +312,9 @@ export const basename = '/';
         status: 400,
         correlationId: 'sec-cid-userinfo-url',
       });
+      const serializedLogs = JSON.stringify(logs.records);
+      expect(serializedLogs).not.toContain('user:pass');
+      expect(serializedLogs).toContain('[REDACTED]@');
 
       const traceRes = await server.app.inject({
         method: 'TRACE',

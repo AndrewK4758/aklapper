@@ -9,7 +9,7 @@ import fastifyCookie from '@fastify/cookie';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import { createRequestHandler, RouterContextProvider, type ServerBuild } from 'react-router';
 
 import { AUTH_LOG_REDACT_PATHS } from './auth.ts';
@@ -34,6 +34,18 @@ const SINGLE_PROXY_HOP = (_address: string, hop: number): boolean => hop === 0;
 const UNSUPPORTED_FETCH_METHODS = new Set(['TRACE', 'CONNECT']);
 const HOSTNAME_RE = /^[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?(?::(\d{1,5}))?$/;
 const IPV6_HOST_RE = /^\[[0-9a-fA-F:]+\](?::(\d{1,5}))?$/;
+const URL_USERINFO_RE = /^([a-z][a-z0-9+.-]*:\/\/)[^/?#\s]+@/i;
+const HOST_USERINFO_RE = /^[^/?#\s]+@/;
+
+function scrubRequestUrlForLog(rawUrl: string | undefined): string | undefined {
+  if (typeof rawUrl !== 'string') return rawUrl;
+  return rawUrl.replace(URL_USERINFO_RE, '$1[REDACTED]@');
+}
+
+function scrubHostForLog(rawHost: string | undefined): string | undefined {
+  if (typeof rawHost !== 'string') return rawHost;
+  return rawHost.replace(HOST_USERINFO_RE, '[REDACTED]@');
+}
 
 function isValidHostHeader(host: string): boolean {
   if (host.length === 0 || host.length > 255 || host.includes('..')) {
@@ -186,9 +198,22 @@ export async function createSsrServer(options: SsrServerOptions): Promise<SsrSer
     paths: [...AUTH_LOG_REDACT_PATHS],
     censor: '[REDACTED]',
   };
+  const serializers = {
+    req(request: FastifyRequest) {
+      const rawVersion = request.headers['accept-version'];
+      return {
+        method: request.method,
+        url: scrubRequestUrlForLog(request.url) ?? '',
+        version: Array.isArray(rawVersion) ? rawVersion[0] : rawVersion,
+        host: scrubHostForLog(request.host) ?? '',
+        remoteAddress: request.ip,
+        remotePort: request.socket?.remotePort,
+      };
+    },
+  };
   const app = Fastify({
     trustProxy: SINGLE_PROXY_HOP,
-    logger: loggerStream ? { stream: loggerStream, redact } : { redact },
+    logger: loggerStream ? { stream: loggerStream, redact, serializers } : { redact, serializers },
     bodyLimit: 10 * 1024 * 1024,
   });
 
@@ -321,7 +346,7 @@ export async function createSsrServer(options: SsrServerOptions): Promise<SsrSer
       return reply.code(400).header('x-correlation-id', correlationId).send(publicError);
     }
 
-    const protocol = request.protocol === 'https' ? 'https' : 'http';
+    const protocol = request.protocol.trim().toLowerCase() === 'https' ? 'https' : 'http';
     const origin = `${protocol}://${resolvedHost}`;
     const url = parseSafeRequestUrl(request.url, origin);
     if (url === null) {
