@@ -20,8 +20,8 @@ services:
     image: qdrant/qdrant:latest
     container_name: aklapper-qdrant-dev
     ports:
-      - '127.0.0.1:6333:6333'
-      - '127.0.0.1:6334:6334'
+      - '127.0.0.1:${QDRANT_PORT:-6333}:6333'
+      - '127.0.0.1:${QDRANT_GRPC_PORT:-6334}:6334'
     volumes:
       - qdrant_dev_data:/qdrant/storage
     healthcheck:

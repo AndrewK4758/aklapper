@@ -1,6 +1,4 @@
 import {
-  type AdminAnalyticsLoaderData,
-  AdminAnalyticsContentSchema,
   type AdminChromeContent,
   AdminChromeContentSchema,
   type AdminHomeLoaderData,
@@ -471,8 +469,8 @@ export const ADMIN_OPS_TERMINAL_PROFILE: TerminalProfileData = TerminalProfileDa
   vcsBranch: 'ops-isolated',
   vcsState: 'clean',
   contextLabel: 'admin@andrew-k.us',
-  placeholder: 'type an ops command (help, analytics, home, status, clear)',
-  quickCommands: ['help', 'analytics', 'home', 'status', 'clear'],
+  placeholder: 'type an ops command (help, analytics, cms, inbox, quotas, ops, status, clear)',
+  quickCommands: ['help', 'analytics', 'cms', 'inbox', 'quotas', 'ops', 'status'],
   initialEntries: [
     {
       command: 'status',
@@ -491,8 +489,12 @@ export const ADMIN_OPS_TERMINAL_PROFILE: TerminalProfileData = TerminalProfileDa
       output: [
         'Available admin ops commands:',
         '  help      — list available ops commands',
-        '  home      — open Admin Operations Console (/)',
-        '  analytics — open First-Party Visitor Analytics (/analytics)',
+        '  home      — open Operations Overview (/)',
+        '  analytics — open Telemetry & CWV Dashboard (/analytics)',
+        '  cms       — open Postgres 19 CMS (/cms)',
+        '  inbox     — open Contact Inbox & Attachments (/inbox)',
+        '  quotas    — open Quota Policies & Buckets (/quotas)',
+        '  ops       — open Cluster SSE & Sandbox Audit (/ops)',
         '  status    — print isolated ops status',
         '  whoami    — print active ops identity',
         '  clear     — clear terminal scrollback',
@@ -504,7 +506,7 @@ export const ADMIN_OPS_TERMINAL_PROFILE: TerminalProfileData = TerminalProfileDa
     },
     {
       name: 'home',
-      description: 'open Admin Operations Console (/)',
+      description: 'open Operations Overview (/)',
       kind: 'navigate',
       output: 'opening / ...',
       targetRoute: '/',
@@ -514,13 +516,53 @@ export const ADMIN_OPS_TERMINAL_PROFILE: TerminalProfileData = TerminalProfileDa
     },
     {
       name: 'analytics',
-      description: 'open First-Party Visitor Analytics (/analytics)',
+      description: 'open Telemetry & CWV Dashboard (/analytics)',
       kind: 'navigate',
       output: 'opening /analytics ...',
       targetRoute: '/analytics',
       allowedRoutes: [],
       errorTemplate: null,
       sortOrder: 3,
+    },
+    {
+      name: 'cms',
+      description: 'open Postgres 19 CMS (/cms)',
+      kind: 'navigate',
+      output: 'opening /cms ...',
+      targetRoute: '/cms',
+      allowedRoutes: [],
+      errorTemplate: null,
+      sortOrder: 4,
+    },
+    {
+      name: 'inbox',
+      description: 'open Contact Inbox (/inbox)',
+      kind: 'navigate',
+      output: 'opening /inbox ...',
+      targetRoute: '/inbox',
+      allowedRoutes: [],
+      errorTemplate: null,
+      sortOrder: 5,
+    },
+    {
+      name: 'quotas',
+      description: 'open Quota Policies & Rate-Limit Buckets (/quotas)',
+      kind: 'navigate',
+      output: 'opening /quotas ...',
+      targetRoute: '/quotas',
+      allowedRoutes: [],
+      errorTemplate: null,
+      sortOrder: 6,
+    },
+    {
+      name: 'ops',
+      description: 'open Cluster SSE & Sandbox Ops (/ops)',
+      kind: 'navigate',
+      output: 'opening /ops ...',
+      targetRoute: '/ops',
+      allowedRoutes: [],
+      errorTemplate: null,
+      sortOrder: 7,
     },
     {
       name: 'status',
@@ -531,7 +573,7 @@ export const ADMIN_OPS_TERMINAL_PROFILE: TerminalProfileData = TerminalProfileDa
       targetRoute: null,
       allowedRoutes: [],
       errorTemplate: null,
-      sortOrder: 4,
+      sortOrder: 8,
     },
     {
       name: 'whoami',
@@ -541,7 +583,7 @@ export const ADMIN_OPS_TERMINAL_PROFILE: TerminalProfileData = TerminalProfileDa
       targetRoute: null,
       allowedRoutes: [],
       errorTemplate: null,
-      sortOrder: 5,
+      sortOrder: 9,
     },
     {
       name: 'clear',
@@ -551,7 +593,7 @@ export const ADMIN_OPS_TERMINAL_PROFILE: TerminalProfileData = TerminalProfileDa
       targetRoute: null,
       allowedRoutes: [],
       errorTemplate: null,
-      sortOrder: 6,
+      sortOrder: 10,
     },
   ],
 });
@@ -573,22 +615,6 @@ export async function loadAdminHomeData(db: AppDatabase): Promise<AdminHomeLoade
   ]);
 
   return { content, menuItems: items };
-}
-
-export async function loadAdminAnalyticsData(db: AppDatabase): Promise<AdminAnalyticsLoaderData> {
-  const [content, sessionCountRows, eventCountRows] = await Promise.all([
-    getSiteContent(db, SITE_CONTENT_KEYS.adminAnalytics, AdminAnalyticsContentSchema),
-    db.select({ total: count() }).from(schema.analyticsSessions),
-    db.select({ total: count() }).from(schema.analyticsEvents),
-  ]);
-
-  return {
-    content,
-    summary: {
-      totalSessions: sessionCountRows[0]?.total ?? 0,
-      totalEvents: eventCountRows[0]?.total ?? 0,
-    },
-  };
 }
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

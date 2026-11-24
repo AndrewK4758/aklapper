@@ -9,13 +9,22 @@ import (
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit/e2etest"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
 )
 
 type adminStatusResponse struct {
-	Namespace string `json:"namespace"`
-	Isolated  bool   `json:"isolated"`
-	Mode      string `json:"mode"`
-	Timestamp string `json:"timestamp"`
+	Namespace         string `json:"namespace"`
+	Isolated          bool   `json:"isolated"`
+	Mode              string `json:"mode"`
+	DatabaseConnected bool   `json:"databaseConnected"`
+	TotalSandboxRuns  int    `json:"totalSandboxRuns"`
+	PendingGates      int    `json:"pendingGates"`
+	Timestamp         string `json:"timestamp"`
+}
+
+type adminRunsResponse struct {
+	Runs  []pg.SandboxRun `json:"runs"`
+	Count int             `json:"count"`
 }
 
 func TestCadenceAdminEndToEnd(t *testing.T) {
@@ -66,17 +75,19 @@ func TestCadenceAdminEndToEnd(t *testing.T) {
 		}
 	})
 
-	t.Run("GET /v1/admin/status succeeds for signed admin token", func(t *testing.T) {
+	t.Run("GET /v1/admin/status and /v1/admin/runs succeed for signed admin token", func(t *testing.T) {
 		adminToken, err := internalauth.Sign(internalauth.RoleAdmin, "admin-e2e", time.Minute, "")
 		if err != nil {
 			t.Fatalf("sign admin token: %v", err)
 		}
+		headers := map[string]string{internalauth.HeaderName: adminToken}
+
 		res, status := e2etest.DoJSON[adminStatusResponse](
 			t,
 			http.MethodGet,
 			baseURL+"/v1/admin/status",
 			nil,
-			map[string]string{internalauth.HeaderName: adminToken},
+			headers,
 		)
 		if res.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200 for signed admin token, got %d", res.StatusCode)
@@ -84,8 +95,36 @@ func TestCadenceAdminEndToEnd(t *testing.T) {
 		if status.Namespace != contracts.AdminNamespace || !status.Isolated || status.Mode != "full-cadence-runtime" {
 			t.Fatalf("unexpected admin status payload: %+v", status)
 		}
+		if status.TotalSandboxRuns < 0 || status.PendingGates < 0 {
+			t.Fatalf("unexpected negative sandbox counts: %+v", status)
+		}
 		if _, err := time.Parse(time.RFC3339, status.Timestamp); err != nil {
 			t.Fatalf("expected RFC3339 timestamp, got %q: %v", status.Timestamp, err)
+		}
+
+		runsRes, runsBody := e2etest.DoJSON[adminRunsResponse](
+			t,
+			http.MethodGet,
+			baseURL+"/v1/admin/runs?limit=5",
+			nil,
+			headers,
+		)
+		if runsRes.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 for /v1/admin/runs, got %d", runsRes.StatusCode)
+		}
+		if runsBody.Count != len(runsBody.Runs) {
+			t.Fatalf("mismatched run count: %+v", runsBody)
+		}
+
+		missingRes, _ := e2etest.DoJSON[httpkit.ErrorResponse](
+			t,
+			http.MethodPost,
+			baseURL+"/v1/admin/runs/22222222-2222-4222-8222-222222222222/gate",
+			map[string]string{"gateVerdict": "approved"},
+			headers,
+		)
+		if missingRes.StatusCode != http.StatusNotFound {
+			t.Fatalf("expected 404 for nonexistent run gate override, got %d", missingRes.StatusCode)
 		}
 	})
 

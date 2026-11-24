@@ -6,7 +6,11 @@ name: GCP CI/CD Deploy
 # Required GitHub Environment Secrets (staging & production):
 #   - GCP_WORKLOAD_IDENTITY_PROVIDER : projects/<num>/locations/global/workloadIdentityPools/<pool>/providers/<provider>
 #   - GCP_WIF_SERVICE_ACCOUNT        : <deployer-sa>@<project-id>.iam.gserviceaccount.com
-#   - DATABASE_URL                   : PostgreSQL 19 connection string for portal & admin SSR loaders
+#   - DATABASE_URL                   : PostgreSQL 19 connection string for portal, admin, and Node APIs
+#   - INTERNAL_AUTH_SECRET           : HMAC-SHA256 signing secret for X-Internal-Auth between BFFs and APIs
+#   - TOTP_ENCRYPTION_KEY            : AES-256-GCM key material for encrypted admin TOTP secrets
+#   - ANALYTICS_DAILY_SALT           : Secret salt for daily visitor IP hashing in analytics ingestion
+#   - ADMIN_BOOTSTRAP_TOKEN          : One-time bootstrap token for initial admin WebAuthn passkey registration
 #
 # Required GitHub Environment / Repository Variables:
 #   - GCP_PROJECT_ID                 : Target GCP project ID
@@ -17,6 +21,11 @@ name: GCP CI/CD Deploy
 #   - GKE_CLUSTER_NAME               : GKE Autopilot cluster name (GKE rollout skipped cleanly if unset)
 #   - GKE_CLUSTER_LOCATION           : GKE cluster region/zone (defaults to GCP_REGION)
 #   - PORTAL_MAINTENANCE_MODE        : 'true' | 'false' (default: 'false')
+#   - WEBAUTHN_RP_ID                 : Relying party ID for passkeys (default: admin.andrew-k.us)
+#   - WEBAUTHN_RP_NAME               : Relying party display name (default: andrew-k.us Admin)
+#   - WEBAUTHN_ORIGIN                : Expected WebAuthn origin (defaults to PUBLIC_ADMIN_URL)
+#   - AUTH_API_URL / ANALYTICS_API_URL : Override Cloud Run API URLs (defaults to deployed service URLs)
+#   - K8S_WATCH_URL / CADENCE_DEMO_URL / AI_ASK_URL / CADENCE_ADMIN_URL / CONTACT_API_URL / QDRANT_URL
 #   - CLOUD_RUN_ALLOW_UNAUTH_ADMIN   : 'true' | 'false' (default: 'false')
 #   - CLOUD_RUN_ALLOW_UNAUTH_APIS    : 'true' | 'false' (default: 'false')
 # =============================================================================
@@ -202,6 +211,54 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
 
+      - name: Deploy node-api-auth to Cloud Run
+        id: deploy-api-auth
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          region: ${{ vars.GCP_REGION || 'us-central1' }}
+          service: aklapper-api-auth${{ needs.resolve-env.outputs.service_suffix }}
+          image: ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY || 'aklapper' }}/node-api-auth:${{ github.sha }}
+          env_vars: |
+            NODE_ENV=production
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            WEBAUTHN_RP_ID=${{ vars.WEBAUTHN_RP_ID || 'admin.andrew-k.us' }}
+            WEBAUTHN_RP_NAME=${{ vars.WEBAUTHN_RP_NAME || 'andrew-k.us Admin' }}
+            WEBAUTHN_ORIGIN=${{ vars.WEBAUTHN_ORIGIN || vars.PUBLIC_ADMIN_URL || 'https://admin.andrew-k.us' }}
+            TOTP_ENCRYPTION_KEY=${{ secrets.TOTP_ENCRYPTION_KEY }}
+            INTERNAL_AUTH_SECRET=${{ secrets.INTERNAL_AUTH_SECRET }}
+            ADMIN_BOOTSTRAP_TOKEN=${{ secrets.ADMIN_BOOTSTRAP_TOKEN }}
+          flags: >-
+            ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_APIS == 'true' && '--allow-unauthenticated' || '--no-allow-unauthenticated' }}
+            --port=8080
+            --min-instances=0
+            --max-instances=3
+            --memory=256Mi
+            --cpu=1
+            --cpu-throttling
+
+      - name: Deploy node-api-analytics to Cloud Run
+        id: deploy-api-analytics
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          region: ${{ vars.GCP_REGION || 'us-central1' }}
+          service: aklapper-api-analytics${{ needs.resolve-env.outputs.service_suffix }}
+          image: ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY || 'aklapper' }}/node-api-analytics:${{ github.sha }}
+          env_vars: |
+            NODE_ENV=production
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            ANALYTICS_DAILY_SALT=${{ secrets.ANALYTICS_DAILY_SALT }}
+            INTERNAL_AUTH_SECRET=${{ secrets.INTERNAL_AUTH_SECRET }}
+          flags: >-
+            ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_APIS == 'true' && '--allow-unauthenticated' || '--no-allow-unauthenticated' }}
+            --port=8080
+            --min-instances=0
+            --max-instances=3
+            --memory=256Mi
+            --cpu=1
+            --cpu-throttling
+
       - name: Deploy portal SSR to Cloud Run
         id: deploy-portal
         uses: google-github-actions/deploy-cloudrun@v2
@@ -219,6 +276,13 @@ jobs:
             PUBLIC_GTM_ID=${{ vars.PUBLIC_GTM_ID || '' }}
             PUBLIC_GSC_VERIFICATION=${{ vars.PUBLIC_GSC_VERIFICATION || '' }}
             DATABASE_URL=${{ secrets.DATABASE_URL }}
+            INTERNAL_AUTH_SECRET=${{ secrets.INTERNAL_AUTH_SECRET }}
+            ANALYTICS_DAILY_SALT=${{ secrets.ANALYTICS_DAILY_SALT }}
+            ANALYTICS_API_URL=${{ vars.ANALYTICS_API_URL || steps.deploy-api-analytics.outputs.url }}
+            K8S_WATCH_URL=${{ vars.K8S_WATCH_URL || '' }}
+            CADENCE_DEMO_URL=${{ vars.CADENCE_DEMO_URL || '' }}
+            AI_ASK_URL=${{ vars.AI_ASK_URL || '' }}
+            CONTACT_API_URL=${{ vars.CONTACT_API_URL || '' }}
           flags: >-
             --allow-unauthenticated
             --port=8080
@@ -243,48 +307,27 @@ jobs:
             PUBLIC_GA_MEASUREMENT_ID=${{ vars.PUBLIC_GA_MEASUREMENT_ID || '' }}
             PUBLIC_GTM_ID=${{ vars.PUBLIC_GTM_ID || '' }}
             DATABASE_URL=${{ secrets.DATABASE_URL }}
+            WEBAUTHN_RP_ID=${{ vars.WEBAUTHN_RP_ID || 'admin.andrew-k.us' }}
+            WEBAUTHN_RP_NAME=${{ vars.WEBAUTHN_RP_NAME || 'andrew-k.us Admin' }}
+            WEBAUTHN_ORIGIN=${{ vars.WEBAUTHN_ORIGIN || vars.PUBLIC_ADMIN_URL || 'https://admin.andrew-k.us' }}
+            TOTP_ENCRYPTION_KEY=${{ secrets.TOTP_ENCRYPTION_KEY }}
+            INTERNAL_AUTH_SECRET=${{ secrets.INTERNAL_AUTH_SECRET }}
+            ANALYTICS_DAILY_SALT=${{ secrets.ANALYTICS_DAILY_SALT }}
+            ADMIN_BOOTSTRAP_TOKEN=${{ secrets.ADMIN_BOOTSTRAP_TOKEN }}
+            AUTH_API_URL=${{ vars.AUTH_API_URL || steps.deploy-api-auth.outputs.url }}
+            ANALYTICS_API_URL=${{ vars.ANALYTICS_API_URL || steps.deploy-api-analytics.outputs.url }}
+            K8S_WATCH_URL=${{ vars.K8S_WATCH_URL || '' }}
+            CADENCE_DEMO_URL=${{ vars.CADENCE_DEMO_URL || '' }}
+            AI_ASK_URL=${{ vars.AI_ASK_URL || '' }}
+            CADENCE_ADMIN_URL=${{ vars.CADENCE_ADMIN_URL || '' }}
+            CONTACT_API_URL=${{ vars.CONTACT_API_URL || '' }}
+            QDRANT_URL=${{ vars.QDRANT_URL || '' }}
           flags: >-
             ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_ADMIN == 'true' && '--allow-unauthenticated' || '--no-allow-unauthenticated' }}
             --port=8080
             --min-instances=0
             --max-instances=2
             --memory=512Mi
-            --cpu=1
-            --cpu-throttling
-
-      - name: Deploy node-api-auth to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          project_id: ${{ vars.GCP_PROJECT_ID }}
-          region: ${{ vars.GCP_REGION || 'us-central1' }}
-          service: aklapper-api-auth${{ needs.resolve-env.outputs.service_suffix }}
-          image: ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY || 'aklapper' }}/node-api-auth:${{ github.sha }}
-          env_vars: |
-            NODE_ENV=production
-          flags: >-
-            ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_APIS == 'true' && '--allow-unauthenticated' || '--no-allow-unauthenticated' }}
-            --port=8080
-            --min-instances=0
-            --max-instances=3
-            --memory=256Mi
-            --cpu=1
-            --cpu-throttling
-
-      - name: Deploy node-api-analytics to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          project_id: ${{ vars.GCP_PROJECT_ID }}
-          region: ${{ vars.GCP_REGION || 'us-central1' }}
-          service: aklapper-api-analytics${{ needs.resolve-env.outputs.service_suffix }}
-          image: ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY || 'aklapper' }}/node-api-analytics:${{ github.sha }}
-          env_vars: |
-            NODE_ENV=production
-          flags: >-
-            ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_APIS == 'true' && '--allow-unauthenticated' || '--no-allow-unauthenticated' }}
-            --port=8080
-            --min-instances=0
-            --max-instances=3
-            --memory=256Mi
             --cpu=1
             --cpu-throttling
 
@@ -295,6 +338,8 @@ jobs:
             echo "### Cloud Run Deploy (${{ needs.resolve-env.outputs.env_name }})"
             echo "- Portal: ${{ steps.deploy-portal.outputs.url }}"
             echo "- Admin: ${{ steps.deploy-admin.outputs.url }}"
+            echo "- Auth API: ${{ steps.deploy-api-auth.outputs.url }}"
+            echo "- Analytics API: ${{ steps.deploy-api-analytics.outputs.url }}"
             echo "- Image tag: \`${{ github.sha }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 

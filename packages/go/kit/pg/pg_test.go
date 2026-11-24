@@ -91,9 +91,22 @@ func TestMemoryStoreSandboxRunsTurnsAndGateVerdict(t *testing.T) {
 		t.Fatalf("ListSandboxRuns unexpected: runs=%+v err=%v", runs, err)
 	}
 
+	totalRuns, pendingGates, err := store.GetSandboxRunSummary(ctx)
+	if err != nil || totalRuns != 1 || pendingGates != 1 {
+		t.Fatalf("expected 1 total / 1 pending before verdict, got total=%d pending=%d err=%v", totalRuns, pendingGates, err)
+	}
+
 	updated, err := store.UpdateSandboxGateVerdict(ctx, runID, "approved")
 	if err != nil || updated.GateVerdict != "approved" {
 		t.Fatalf("UpdateSandboxGateVerdict failed: updated=%+v err=%v", updated, err)
+	}
+
+	overridden, err := store.OverrideSandboxGateVerdict(ctx, runID, "pending")
+	if err != nil || overridden.GateVerdict != "pending" {
+		t.Fatalf("OverrideSandboxGateVerdict(pending) failed: updated=%+v err=%v", overridden, err)
+	}
+	if _, err := store.OverrideSandboxGateVerdict(ctx, runID, "bogus"); !errors.Is(err, ErrInvalidAdminVerdict) {
+		t.Fatalf("expected ErrInvalidAdminVerdict, got %v", err)
 	}
 
 	if _, err := store.UpdateSandboxGateVerdict(ctx, runID, "bogus"); !errors.Is(err, ErrInvalidVerdict) {

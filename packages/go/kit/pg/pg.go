@@ -21,8 +21,9 @@ import (
 const DefaultDatabaseURL = "postgres://postgres:postgres@127.0.0.1:5439/aklapper?sslmode=disable"
 
 var (
-	ErrRunNotFound    = errors.New("sandbox run not found")
-	ErrInvalidVerdict = errors.New("gate verdict must be approved or rejected")
+	ErrRunNotFound         = errors.New("sandbox run not found")
+	ErrInvalidVerdict      = errors.New("gate verdict must be approved or rejected")
+	ErrInvalidAdminVerdict = errors.New("gate verdict must be approved, rejected, or pending")
 )
 
 type Config struct {
@@ -855,11 +856,70 @@ func (s *Store) loadTurnsForRun(ctx context.Context, runID string) ([]contracts.
 	return out, rows.Err()
 }
 
+func isValidUUIDString(value string) bool {
+	if len(value) != 36 {
+		return false
+	}
+	for i := 0; i < len(value); i++ {
+		c := value[i]
+		if i == 8 || i == 13 || i == 18 || i == 23 {
+			if c != '-' {
+				return false
+			}
+			continue
+		}
+		isHex := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
+		if !isHex {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *Store) GetSandboxRunSummary(ctx context.Context) (int, int, error) {
+	if s == nil || s.pool == nil {
+		if s == nil {
+			return 0, 0, nil
+		}
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		total := len(s.runs)
+		pending := 0
+		for _, r := range s.runs {
+			if r.GateVerdict == "pending" {
+				pending++
+			}
+		}
+		return total, pending, nil
+	}
+
+	var total, pending int
+	err := s.pool.QueryRow(
+		ctx,
+		`SELECT COUNT(*)::int, COUNT(*) FILTER (WHERE gate_verdict = 'pending')::int
+		 FROM sandbox_runs`,
+	).Scan(&total, &pending)
+	if err != nil {
+		return 0, 0, err
+	}
+	return total, pending, nil
+}
+
 func (s *Store) UpdateSandboxGateVerdict(ctx context.Context, runID, verdict string) (*SandboxRun, error) {
 	if verdict != "approved" && verdict != "rejected" {
 		return nil, ErrInvalidVerdict
 	}
+	return s.setSandboxGateVerdict(ctx, runID, verdict)
+}
 
+func (s *Store) OverrideSandboxGateVerdict(ctx context.Context, runID, verdict string) (*SandboxRun, error) {
+	if verdict != "approved" && verdict != "rejected" && verdict != "pending" {
+		return nil, ErrInvalidAdminVerdict
+	}
+	return s.setSandboxGateVerdict(ctx, runID, verdict)
+}
+
+func (s *Store) setSandboxGateVerdict(ctx context.Context, runID, verdict string) (*SandboxRun, error) {
 	if s == nil || s.pool == nil {
 		if s == nil {
 			return nil, ErrRunNotFound
@@ -874,6 +934,10 @@ func (s *Store) UpdateSandboxGateVerdict(ctx context.Context, runID, verdict str
 		copied := *run
 		copied.Turns = append([]contracts.CadenceTurn(nil), run.Turns...)
 		return &copied, nil
+	}
+
+	if !isValidUUIDString(runID) {
+		return nil, ErrRunNotFound
 	}
 
 	var r SandboxRun

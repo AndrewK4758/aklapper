@@ -1,5 +1,6 @@
 import {
   type AdminAnalyticsLoaderData,
+  type AdminAnalyticsWindow,
   type AdminHomeLoaderData,
   type AdminRootLoaderData,
   AgensiSkillSchema,
@@ -19,10 +20,10 @@ import {
   TerminalProfileDataSchema,
 } from '@aklapper/core';
 
+import { loadAdminAnalyticsData } from './admin-queries.ts';
 import { type AppDatabase, getSharedDb, isReactRouterPrerender } from './client.ts';
 import {
   ADMIN_OPS_TERMINAL_PROFILE,
-  loadAdminAnalyticsData,
   loadAdminHomeData,
   loadAdminRootData,
   loadPortalAgensiData,
@@ -208,12 +209,36 @@ export function getPrerenderAdminHomeData(): AdminHomeLoaderData {
   };
 }
 
-export function getPrerenderAdminAnalyticsData(): AdminAnalyticsLoaderData {
+export function getPrerenderAdminAnalyticsData(
+  window: AdminAnalyticsWindow = '7d',
+): AdminAnalyticsLoaderData {
   return {
     content: ADMIN_ANALYTICS_SEED,
+    window,
+    totalSessions: 0,
+    totalEvents: 0,
     summary: {
       totalSessions: 0,
       totalEvents: 0,
+    },
+    cwv: [
+      { metric: 'LCP', sampleCount: 0, p50: null, p75: null, p95: null },
+      { metric: 'INP', sampleCount: 0, p50: null, p75: null, p95: null },
+      { metric: 'CLS', sampleCount: 0, p50: null, p75: null, p95: null },
+      { metric: 'TTFB', sampleCount: 0, p50: null, p75: null, p95: null },
+    ],
+    topPaths: [],
+    topReferrers: [],
+    geoBreakdown: [],
+    agensiConversions: [],
+    aiMetrics: {
+      totalRuns: 0,
+      totalTokensIn: 0,
+      totalTokensOut: 0,
+      approvedGates: 0,
+      rejectedGates: 0,
+      pendingGates: 0,
+      abstentionEvents: 0,
     },
   };
 }
@@ -287,6 +312,11 @@ export function loadAdminHomeDataWithPrerender(): Promise<AdminHomeLoaderData> {
   return withPrerenderFallback(loadAdminHomeData, getPrerenderAdminHomeData);
 }
 
-export function loadAdminAnalyticsDataWithPrerender(): Promise<AdminAnalyticsLoaderData> {
-  return withPrerenderFallback(loadAdminAnalyticsData, getPrerenderAdminAnalyticsData);
+export function loadAdminAnalyticsDataWithPrerender(
+  window: AdminAnalyticsWindow = '7d',
+): Promise<AdminAnalyticsLoaderData> {
+  return withPrerenderFallback(
+    db => loadAdminAnalyticsData(db, window),
+    () => getPrerenderAdminAnalyticsData(window),
+  );
 }

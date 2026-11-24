@@ -1,13 +1,16 @@
-import type { AdminAnalyticsLoaderData } from '@aklapper/core';
+import { type AdminAnalyticsLoaderData, AdminAnalyticsWindowSchema } from '@aklapper/core';
 import { loadAdminAnalyticsDataWithPrerender } from '@aklapper/db';
-import { type MetaArgs, useLoaderData } from 'react-router';
+import { type LoaderFunctionArgs, type MetaArgs, useLoaderData } from 'react-router';
 
 import { AdminAnalyticsPage } from '#pages/analytics';
 
 import { buildAdminPageMeta } from '../seo';
 
-export async function loader(): Promise<AdminAnalyticsLoaderData> {
-  return loadAdminAnalyticsDataWithPrerender();
+export async function loader({ request }: LoaderFunctionArgs): Promise<AdminAnalyticsLoaderData> {
+  const url = new URL(request.url);
+  const parsedWindow = AdminAnalyticsWindowSchema.safeParse(url.searchParams.get('window'));
+  const window = parsedWindow.success ? parsedWindow.data : '7d';
+  return loadAdminAnalyticsDataWithPrerender(window);
 }
 
 export function meta({ loaderData, matches, location }: MetaArgs<typeof loader>) {
@@ -22,6 +25,6 @@ export function meta({ loaderData, matches, location }: MetaArgs<typeof loader>)
 }
 
 export default function AdminAnalyticsRoute() {
-  const { content, summary } = useLoaderData() as AdminAnalyticsLoaderData;
-  return <AdminAnalyticsPage content={content} summary={summary} />;
+  const data = useLoaderData() as AdminAnalyticsLoaderData;
+  return <AdminAnalyticsPage data={data} />;
 }

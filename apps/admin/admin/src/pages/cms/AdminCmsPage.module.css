@@ -1,0 +1,193 @@
+@layer page {
+  .panel {
+    display: grid;
+    gap: var(--sf-space-6);
+  }
+
+  .tabPanel {
+    display: grid;
+    gap: var(--sf-space-6);
+    padding-top: var(--sf-space-5);
+  }
+
+  .card {
+    display: grid;
+    gap: var(--sf-space-5);
+    padding: var(--sf-space-6);
+    background: var(--sf-bg-panel);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+  }
+
+  .cardHeader {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    flex-wrap: wrap;
+    gap: var(--sf-space-4);
+  }
+
+  .sectionTitle {
+    margin: var(--sf-space-0);
+    font-size: var(--sf-text-md);
+    color: var(--sf-gold);
+    font-weight: var(--sf-weight-semibold);
+  }
+
+  .maintenanceRow {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    flex-wrap: wrap;
+    gap: var(--sf-space-5);
+  }
+
+  .switchGroup {
+    display: inline-flex;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-space-4);
+  }
+
+  .inlineForm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: var(--sf-align-end);
+    gap: var(--sf-space-4);
+  }
+
+  .splitGrid {
+    display: grid;
+    grid-template-columns: minmax(14rem, 1fr) minmax(22rem, 2fr);
+    gap: var(--sf-space-6);
+    align-items: var(--sf-align-start);
+  }
+
+  .keyList {
+    display: grid;
+    gap: var(--sf-space-2);
+  }
+
+  .keyButton {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    width: 100%;
+    text-align: left;
+    padding: var(--sf-space-3) var(--sf-space-4);
+    background: var(--sf-bg-editor);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    color: var(--sf-fg-bone);
+    font-size: var(--sf-text-xs);
+    cursor: pointer;
+  }
+
+  .keyButton[data-selected='true'] {
+    border-color: var(--sf-accent-border);
+    background: var(--sf-accent-subtle);
+    color: var(--sf-gold);
+  }
+
+  .formGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: var(--sf-space-4);
+  }
+
+  .stackForm {
+    display: grid;
+    gap: var(--sf-space-4);
+  }
+
+  .textarea {
+    width: 100%;
+    min-height: 9rem;
+    padding: var(--sf-space-3);
+    background: var(--sf-bg-editor);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    color: var(--sf-fg-bone);
+    font-family: var(--sf-font-code);
+    font-size: var(--sf-text-xs);
+    resize: vertical;
+  }
+
+  .selectControl {
+    width: 100%;
+    padding: var(--sf-space-2) var(--sf-space-3);
+    background: var(--sf-bg-editor);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    color: var(--sf-fg-bone);
+    font-size: var(--sf-text-sm);
+  }
+
+  .checkboxRow {
+    display: inline-flex;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-space-2);
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-prop);
+  }
+
+  .dataTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--sf-text-xs);
+  }
+
+  .dataTable th,
+  .dataTable td {
+    text-align: left;
+    padding: var(--sf-space-2) var(--sf-space-3);
+    border-bottom: var(--sf-border-width) solid var(--sf-border-subtle);
+    vertical-align: top;
+  }
+
+  .dataTable th {
+    color: var(--sf-fg-cmt);
+    font-weight: var(--sf-weight-semibold);
+  }
+
+  .actionCell {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sf-space-2);
+  }
+
+  .previewWrap {
+    display: grid;
+    gap: var(--sf-space-3);
+    min-height: 18rem;
+  }
+
+  .statusNote {
+    margin: var(--sf-space-0);
+    padding: var(--sf-space-3) var(--sf-space-4);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-success-bg);
+    border: var(--sf-border-width) solid var(--sf-success);
+    font-size: var(--sf-text-xs);
+  }
+
+  .errorNote {
+    margin: var(--sf-space-0);
+    padding: var(--sf-space-3) var(--sf-space-4);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-err-bg);
+    border: var(--sf-border-width) solid var(--sf-err);
+    font-size: var(--sf-text-xs);
+  }
+
+  .muted {
+    margin: var(--sf-space-0);
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-cmt);
+  }
+
+  @media (max-width: 56rem) {
+    .splitGrid {
+      grid-template-columns: 1fr;
+    }
+  }
+}

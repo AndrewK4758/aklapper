@@ -37,6 +37,21 @@ import { ADMIN_ROBOTS_DIRECTIVE, ADMIN_SITE_NAME, DEFAULT_ADMIN_SITE_URL } from 
 
 import styles from './root.module.css';
 
+const ADMIN_NAV_ITEMS = [
+  { to: '/', label: 'Overview' },
+  { to: '/analytics', label: 'Analytics' },
+  { to: '/cms', label: 'CMS' },
+  { to: '/inbox', label: 'Inbox' },
+  { to: '/quotas', label: 'Quotas' },
+  { to: '/ops', label: 'Ops' },
+] as const;
+
+function isNavItemActive(pathname: string, to: string): boolean {
+  const normalized = pathname.replace(/\/+$/, '') || '/';
+  if (to === '/') return normalized === '/';
+  return normalized === to || normalized.startsWith(`${to}/`);
+}
+
 export async function loader({ request }: LoaderFunctionArgs): Promise<AdminRootLoaderData> {
   const url = new URL(request.url);
   const pathname = url.pathname;
@@ -83,7 +98,7 @@ export function meta({ loaderData, location }: MetaArgs<typeof loader>) {
   return buildRouteMetaTags({
     title: loaderData?.chrome.pageTitle ?? 'admin.andrew-k.us // Solar Forge Ops',
     description:
-      'Isolated operations console for andrew-k.us: passkey gate, first-party analytics telemetry, and cadence-admin controls.',
+      'Isolated operations console for andrew-k.us: passkey gate, first-party analytics telemetry, CMS, inbox, quotas, and cadence-admin controls.',
     siteName: ADMIN_SITE_NAME,
     siteUrl,
     pathname: location.pathname,
@@ -143,14 +158,31 @@ export default function AdminRoot() {
       <Tooltip.Provider>
         <div className={styles.shell} data-pane-workspace={hasGlobalWorkspace ? 'true' : 'false'}>
           <header className={styles.bar}>
-            <NavigationMenu.Root>
-              <NavigationMenu.List>
+            <NavigationMenu.Root aria-label='Admin console navigation'>
+              <NavigationMenu.List className={styles.navList}>
                 <NavigationMenu.Item>
                   <NavigationMenu.Link render={<Link to='/' />} className={styles.brand}>
                     <SolarForgeEmblem size={20} />
                     <span>{chrome.brandLabel}</span>
                   </NavigationMenu.Link>
                 </NavigationMenu.Item>
+                {isAdminSession
+                  ? ADMIN_NAV_ITEMS.map(item => {
+                      const active = isNavItemActive(location.pathname, item.to);
+                      return (
+                        <NavigationMenu.Item key={item.to}>
+                          <NavigationMenu.Link
+                            render={<Link to={item.to} />}
+                            className={styles.navLink}
+                            data-active={active ? 'true' : 'false'}
+                            aria-current={active ? 'page' : undefined}
+                          >
+                            {item.label}
+                          </NavigationMenu.Link>
+                        </NavigationMenu.Item>
+                      );
+                    })
+                  : null}
               </NavigationMenu.List>
             </NavigationMenu.Root>
             <div className={styles.barMeta}>
