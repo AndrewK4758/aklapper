@@ -1,101 +1,17 @@
-import { createHash, createHmac, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 
-import { createDb, createDbPool, seedAdminUserFromEnv } from '@aklapper/db';
 import { assertSsrHealthz, trackPageErrors } from '@aklapper/tooling/playwright';
-import { type CDPSession, expect, type Page, test } from '@playwright/test';
+import { type CDPSession, expect, test } from '@playwright/test';
 
-const HAS_DATABASE_URL = Boolean(process.env['DATABASE_URL']?.trim());
-const RFC4648_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-const PROJECT_IP_OCTET: Readonly<Record<string, number>> = {
-  chromium: 10,
-  firefox: 20,
-  webkit: 30,
-  'mobile-chrome': 40,
-};
-
-function sha256Hex(value: string): string {
-  return createHash('sha256').update(value, 'utf8').digest('hex');
-}
-
-function generateSixDigitTotp(base32Secret: string): string {
-  const normalized = base32Secret.toUpperCase().replace(/[^A-Z2-7]/g, '');
-  let acc = 0;
-  let bits = 0;
-  const keyBytes: number[] = [];
-  for (const ch of normalized) {
-    acc = (acc << 5) | RFC4648_ALPHABET.indexOf(ch);
-    bits += 5;
-    if (bits >= 8) {
-      bits -= 8;
-      keyBytes.push((acc >>> bits) & 0xff);
-    }
-  }
-  const step = Math.floor(Date.now() / 30_000);
-  const msg = Buffer.alloc(8);
-  msg.writeBigUInt64BE(BigInt(step));
-  const digest = createHmac('sha1', Buffer.from(keyBytes)).update(msg).digest();
-  const offset = digest[digest.length - 1]! & 0x0f;
-  const binCode =
-    ((digest[offset]! & 0x7f) << 24) |
-    ((digest[offset + 1]! & 0xff) << 16) |
-    ((digest[offset + 2]! & 0xff) << 8) |
-    (digest[offset + 3]! & 0xff);
-  return String(binCode % 1_000_000).padStart(6, '0');
-}
-
-function buildIsolatedTestIp(projectName: string, offset: number): string {
-  const base = PROJECT_IP_OCTET[projectName] ?? 50;
-  return `198.51.100.${base + offset}`;
-}
-
-async function seedIsolatedAdmin(handle: string, password: string): Promise<void> {
-  const pool = createDbPool();
-  try {
-    const db = createDb(pool);
-    await seedAdminUserFromEnv(db, {
-      ADMIN_HANDLE: handle,
-      ADMIN_PASSWORD: password,
-    });
-  } finally {
-    await pool.end();
-  }
-}
-
-async function cleanupIsolatedAuthState(handles: string[], scopeKeys: string[]): Promise<void> {
-  if (!HAS_DATABASE_URL) return;
-  const pool = createDbPool();
-  try {
-    if (handles.length > 0) {
-      await pool.query('DELETE FROM users WHERE handle = ANY($1::text[])', [handles]);
-    }
-    if (scopeKeys.length > 0) {
-      await pool.query('DELETE FROM rate_limit_buckets WHERE scope_key = ANY($1::text[])', [
-        scopeKeys,
-      ]);
-    }
-  } finally {
-    await pool.end();
-  }
-}
-
-async function attachVirtualAuthenticator(page: Page): Promise<{
-  cdp: CDPSession;
-  authenticatorId: string;
-}> {
-  const cdp = await page.context().newCDPSession(page);
-  await cdp.send('WebAuthn.enable');
-  const { authenticatorId } = await cdp.send('WebAuthn.addVirtualAuthenticator', {
-    options: {
-      protocol: 'ctap2',
-      transport: 'internal',
-      hasResidentKey: true,
-      hasUserVerification: true,
-      isUserVerified: true,
-      automaticPresenceSimulation: true,
-    },
-  });
-  return { cdp, authenticatorId };
-}
+import {
+  attachVirtualAuthenticator,
+  buildIsolatedTestIp,
+  cleanupIsolatedAuthState,
+  generateSixDigitTotp,
+  HAS_DATABASE_URL,
+  seedIsolatedAdmin,
+  sha256Hex,
+} from './admin-helpers.js';
 
 test.describe('admin SSR end-to-end journeys', () => {
   test('serves healthy Fastify SSR /healthz endpoint', async ({ request }) => {
@@ -170,7 +86,9 @@ test.describe('admin SSR end-to-end journeys', () => {
 
     let authenticator: { cdp: CDPSession; authenticatorId: string } | null = null;
     let maintenanceToggledOn = false;
-    let originalGuestMaxTurns: string | null = null;
+    const quotaCleanupState: { originalGuestMaxTurns: string | null } = {
+      originalGuestMaxTurns: null,
+    };
 
     await seedIsolatedAdmin(handle, password);
     await page.setExtraHTTPHeaders({ 'x-forwarded-for': testIp });
@@ -294,14 +212,15 @@ test.describe('admin SSR end-to-end journeys', () => {
         await expect(page).toHaveURL(/\/quotas$/);
         const guestCard = page.locator('form', { hasText: 'Role Policy: guest' });
         const turnsInput = guestCard.getByLabel('Max Turns / Session');
-        originalGuestMaxTurns = await turnsInput.inputValue();
+        const originalGuestMaxTurns = await turnsInput.inputValue();
+        quotaCleanupState.originalGuestMaxTurns = originalGuestMaxTurns;
         await turnsInput.fill(String(Number(originalGuestMaxTurns || '5') + 1));
         await guestCard.getByRole('button', { name: 'Save guest Policy' }).click();
         await expect(page.getByText(/Updated guest quota policy/i)).toBeVisible();
         await guestCard.getByLabel('Max Turns / Session').fill(originalGuestMaxTurns);
         await guestCard.getByRole('button', { name: 'Save guest Policy' }).click();
         await expect(page.getByText(/Updated guest quota policy/i)).toBeVisible();
-        originalGuestMaxTurns = null;
+        quotaCleanupState.originalGuestMaxTurns = null;
 
         await page.getByRole('link', { name: 'Ops', exact: true }).click();
         await expect(page).toHaveURL(/\/ops$/);
@@ -336,11 +255,13 @@ test.describe('admin SSR end-to-end journeys', () => {
           // best-effort cleanup
         }
       }
-      if (originalGuestMaxTurns !== null) {
+      if (quotaCleanupState.originalGuestMaxTurns !== null) {
         try {
           await page.goto('/quotas');
           const guestCard = page.locator('form', { hasText: 'Role Policy: guest' });
-          await guestCard.getByLabel('Max Turns / Session').fill(originalGuestMaxTurns);
+          await guestCard
+            .getByLabel('Max Turns / Session')
+            .fill(quotaCleanupState.originalGuestMaxTurns);
           await guestCard.getByRole('button', { name: 'Save guest Policy' }).click();
         } catch {
           // best-effort cleanup
