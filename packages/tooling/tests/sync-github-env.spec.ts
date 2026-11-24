@@ -1,8 +1,38 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { buildSyncPlan, parseEnvFileContent, parseSyncCliArgs } from '../src/index.ts';
+import {
+  buildSyncPlan,
+  ensureRuntimeServiceAccountBindings,
+  parseEnvFileContent,
+  parseSyncCliArgs,
+  resolveSecretId,
+  syncGcpSecretVersions,
+} from '../src/index.ts';
 
-describe('@aklapper/tooling GitHub Actions environment sync script', () => {
+const VALID_BASE_ENV: Record<string, string> = {
+  GCP_WORKLOAD_IDENTITY_PROVIDER:
+    'projects/120904484903/locations/global/workloadIdentityPools/aklapper-pool/providers/github-actions',
+  GCP_WIF_SERVICE_ACCOUNT: 'aklapper@games-424800.iam.gserviceaccount.com',
+  GCP_CLOUDRUN_SERVICE_ACCOUNT: 'aklapper-runtime@games-424800.iam.gserviceaccount.com',
+  GCP_MIGRATOR_SERVICE_ACCOUNT: 'aklapper-migrator@games-424800.iam.gserviceaccount.com',
+  GCP_GKE_WORKLOAD_SA: 'aklapper-gke@games-424800.iam.gserviceaccount.com',
+  DATABASE_URL:
+    'postgres://postgres:super-db-pass@localhost/aklapper?host=/cloudsql/games-424800:us-central1:aklapper',
+  INTERNAL_AUTH_SECRET: 'internal-secret-val',
+  TOTP_ENCRYPTION_KEY: 'totp-key-val',
+  ANALYTICS_DAILY_SALT: 'analytics-salt-val',
+  GCP_PROJECT_ID: 'games-424800',
+  GCP_REGION: 'us-central1',
+  GCP_LOCATION: 'us-central1',
+  GAR_REPOSITORY: 'portfolio',
+  AI_PROVIDER: 'vertex',
+  VERTEX_MODEL: 'gemini-2.5-flash',
+  VERTEX_EMBED_MODEL: 'text-embedding-005',
+  PUBLIC_PORTAL_URL: 'https://andrew-k.us',
+  GKE_CLUSTER_NAME: '',
+};
+
+describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
   it('parses env files with comments, blank lines, and quoted values', () => {
     const parsed = parseEnvFileContent(`
       # Comment line
@@ -20,74 +50,221 @@ describe('@aklapper/tooling GitHub Actions environment sync script', () => {
     });
   });
 
-  it('classifies secrets, required/optional vars, and flags placeholders', () => {
-    const plan = buildSyncPlan({
-      GCP_WORKLOAD_IDENTITY_PROVIDER:
-        'projects/120904484903/locations/global/workloadIdentityPools/aklapper-pool/providers/github-actions',
-      GCP_WIF_SERVICE_ACCOUNT: 'aklapper@games-424800.iam.gserviceaccount.com',
-      DATABASE_URL:
-        'postgres://postgres:REPLACE_ME_DB_PASSWORD@db.bgdkapis.us:5432/aklapper?sslmode=disable',
-      INTERNAL_AUTH_SECRET: 'secret-1',
-      TOTP_ENCRYPTION_KEY: 'secret-2',
-      ANALYTICS_DAILY_SALT: 'secret-3',
-      ADMIN_BOOTSTRAP_TOKEN: 'secret-4',
-      GCP_PROJECT_ID: 'games-424800',
-      GCP_REGION: 'us-central1',
-      GAR_REPOSITORY: 'portfolio',
-      AI_PROVIDER: 'vertex',
-      GCP_LOCATION: 'us-central1',
-      PUBLIC_PORTAL_URL: 'https://andrew-k.us',
-      QDRANT_API_KEY: 'qdrant-secret-token',
-      GKE_CLUSTER_NAME: '',
+  it('separates WIF secrets, optional GitHub secrets, Secret Manager credentials, and Vertex/Agensi/SA config vars without retired bootstrap tokens', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const plan = buildSyncPlan({
+        ...VALID_BASE_ENV,
+        QDRANT_URL: 'https://cluster.example.qdrant.io',
+        QDRANT_API_KEY: 'qdrant-secret-val',
+        AGENSI_API_BASE_URL: 'https://agensi.io',
+        AGENSI_API_PATH: '/api/creators/aklapper',
+        AGENSI_CREATOR_HANDLE: 'aklapper',
+        AGENSI_API_KEY: 'agensi-secret-val',
+        AGENSI_CACHE_TTL_SECONDS: '300',
+        AGENSI_FETCH_TIMEOUT_MS: '1800',
+        ADMIN_HANDLE: 'admin',
+        ADMIN_PASSWORD: 'admin-password-val',
+      });
+
+      expect(plan.missingRequired).toEqual([]);
+      expect(plan.placeholderKeys).toEqual([]);
+      expect(plan.retiredKeys).toEqual([]);
+      expect(plan.secrets.map(s => s.key)).toEqual([
+        'GCP_WORKLOAD_IDENTITY_PROVIDER',
+        'GCP_WIF_SERVICE_ACCOUNT',
+        'QDRANT_API_KEY',
+        'AGENSI_API_KEY',
+      ]);
+      expect(plan.skippedOptionalSecrets).toEqual([]);
+      expect(plan.gcpSecrets.map(s => s.envKey)).toEqual([
+        'DATABASE_URL',
+        'INTERNAL_AUTH_SECRET',
+        'TOTP_ENCRYPTION_KEY',
+        'ANALYTICS_DAILY_SALT',
+        'QDRANT_API_KEY',
+        'ADMIN_PASSWORD',
+        'AGENSI_API_KEY',
+      ]);
+      expect(plan.variables.map(v => v.key)).toEqual(
+        expect.arrayContaining([
+          'GCP_PROJECT_ID',
+          'GCP_REGION',
+          'GAR_REPOSITORY',
+          'AI_PROVIDER',
+          'GCP_LOCATION',
+          'VERTEX_MODEL',
+          'VERTEX_EMBED_MODEL',
+          'ADMIN_HANDLE',
+          'GCP_CLOUDRUN_SERVICE_ACCOUNT',
+          'GCP_MIGRATOR_SERVICE_ACCOUNT',
+          'GCP_GKE_WORKLOAD_SA',
+          'QDRANT_URL',
+          'AGENSI_API_BASE_URL',
+          'AGENSI_API_PATH',
+          'AGENSI_CREATOR_HANDLE',
+          'AGENSI_CACHE_TTL_SECONDS',
+          'AGENSI_FETCH_TIMEOUT_MS',
+        ]),
+      );
+      expect(plan.variables.map(v => v.key)).not.toContain('QDRANT_API_KEY');
+      expect(plan.variables.map(v => v.key)).not.toContain('AGENSI_API_KEY');
+      expect(plan.skippedOptionalVariables).toContain('GKE_CLUSTER_NAME');
+      expect(resolveSecretId('QDRANT_API_KEY')).toBe('QDRANT_API_KEY');
+      expect(resolveSecretId('AGENSI_API_KEY')).toBe('AGENSI_API_KEY');
+      expect(warnSpy).not.toHaveBeenCalled();
+
+      const minimalPlan = buildSyncPlan(VALID_BASE_ENV);
+      expect(minimalPlan.missingRequired).toEqual([]);
+      expect(minimalPlan.secrets.map(s => s.key)).toEqual([
+        'GCP_WORKLOAD_IDENTITY_PROVIDER',
+        'GCP_WIF_SERVICE_ACCOUNT',
+      ]);
+      expect(minimalPlan.skippedOptionalSecrets).toEqual(['QDRANT_API_KEY', 'AGENSI_API_KEY']);
+      expect(minimalPlan.gcpSecrets.map(s => s.envKey)).toEqual([
+        'DATABASE_URL',
+        'INTERNAL_AUTH_SECRET',
+        'TOTP_ENCRYPTION_KEY',
+        'ANALYTICS_DAILY_SALT',
+      ]);
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it('flags retired ADMIN_BOOTSTRAP_TOKEN, placeholders, and missing QDRANT_API_KEY for HTTPS Qdrant via UNSOUND_CONDITION telemetry', () => {
+    const logged: string[] = [];
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation((msg: unknown) => {
+      logged.push(String(msg));
+    });
+    try {
+      const plan = buildSyncPlan({
+        ...VALID_BASE_ENV,
+        DATABASE_URL:
+          'postgres://postgres:REPLACE_ME_DB_PASSWORD@db.bgdkapis.us:5432/aklapper?sslmode=disable',
+        QDRANT_URL: 'https://cluster.example.qdrant.io',
+        ADMIN_BOOTSTRAP_TOKEN: 'legacy-secret-do-not-print',
+      });
+
+      expect(plan.placeholderKeys).toEqual(['DATABASE_URL']);
+      expect(plan.missingRequired).toEqual(['QDRANT_API_KEY']);
+      expect(plan.retiredKeys).toEqual(['ADMIN_BOOTSTRAP_TOKEN']);
+      expect(logged.join('\n')).toContain('deploy.env_sync.invalid_input');
+      expect(logged.join('\n')).toContain('UNSOUND_CONDITION');
+      expect(logged.join('\n')).toContain('QDRANT_API_KEY');
+      expect(logged.join('\n')).toContain('ADMIN_BOOTSTRAP_TOKEN');
+      expect(logged.join('\n')).not.toContain('legacy-secret-do-not-print');
+
+      const placeholderSecretPlan = buildSyncPlan({
+        ...VALID_BASE_ENV,
+        QDRANT_API_KEY: 'PLACEHOLDER_REPLACE_ME',
+      });
+      expect(placeholderSecretPlan.placeholderKeys).toEqual(['QDRANT_API_KEY']);
+      expect(placeholderSecretPlan.variables.map(v => v.key)).not.toContain('QDRANT_API_KEY');
+      expect(placeholderSecretPlan.secrets.map(s => s.key)).not.toContain('QDRANT_API_KEY');
+      expect(placeholderSecretPlan.gcpSecrets.map(s => s.envKey)).not.toContain('QDRANT_API_KEY');
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it('versions Secret Manager credentials via stdin only and binds least-privilege runtime, migrator, and GKE WIF IAM roles', () => {
+    const calls: Array<{ args: readonly string[]; input?: string }> = [];
+    const runner = (args: readonly string[], input?: string): string => {
+      calls.push({ args, input });
+      if (args[0] === 'secrets' && args[1] === 'describe') {
+        throw new Error('NOT_FOUND');
+      }
+      return '';
+    };
+
+    syncGcpSecretVersions(
+      [
+        {
+          envKey: 'ADMIN_PASSWORD',
+          secretId: 'ADMIN_PASSWORD',
+          value: 'admin-stdin-secret-value',
+        },
+      ],
+      'games-424800',
+      false,
+      runner,
+    );
+
+    expect(calls[0]?.args).toEqual([
+      'secrets',
+      'describe',
+      'ADMIN_PASSWORD',
+      '--project',
+      'games-424800',
+      '--format=value(name)',
+    ]);
+    expect(calls[1]?.args).toEqual([
+      'secrets',
+      'create',
+      'ADMIN_PASSWORD',
+      '--project',
+      'games-424800',
+      '--replication-policy=automatic',
+    ]);
+    expect(calls[2]?.args).toEqual([
+      'secrets',
+      'versions',
+      'add',
+      'ADMIN_PASSWORD',
+      '--project',
+      'games-424800',
+      '--data-file=-',
+    ]);
+    expect(calls[2]?.args.join(' ')).not.toContain('admin-stdin-secret-value');
+    expect(calls[2]?.input).toBe('admin-stdin-secret-value');
+
+    calls.length = 0;
+    ensureRuntimeServiceAccountBindings({
+      projectId: 'games-424800',
+      deployerSa: 'aklapper@games-424800.iam.gserviceaccount.com',
+      runtimeSa: 'aklapper-runtime@games-424800.iam.gserviceaccount.com',
+      migratorSa: 'aklapper-migrator@games-424800.iam.gserviceaccount.com',
+      gkeWorkloadSa: 'aklapper-gke@games-424800.iam.gserviceaccount.com',
+      dryRun: false,
+      execGcloud: runner,
     });
 
-    expect(plan.missingRequired).toEqual([]);
-    expect(plan.placeholderKeys).toEqual(['DATABASE_URL']);
-    expect(plan.secrets.map(s => s.key)).toEqual([
-      'GCP_WORKLOAD_IDENTITY_PROVIDER',
-      'GCP_WIF_SERVICE_ACCOUNT',
-      'INTERNAL_AUTH_SECRET',
-      'TOTP_ENCRYPTION_KEY',
-      'ANALYTICS_DAILY_SALT',
-      'ADMIN_BOOTSTRAP_TOKEN',
-      'QDRANT_API_KEY',
-    ]);
-    expect(plan.variables.map(v => v.key)).toEqual([
-      'GCP_PROJECT_ID',
-      'GCP_REGION',
-      'GAR_REPOSITORY',
-      'AI_PROVIDER',
-      'GCP_LOCATION',
-      'PUBLIC_PORTAL_URL',
-    ]);
-    expect(plan.skippedOptionalSecrets).toEqual([]);
-    expect(plan.skippedOptionalVariables).toContain('GKE_CLUSTER_NAME');
-
-    const skippedSecretPlan = buildSyncPlan({
-      GCP_WORKLOAD_IDENTITY_PROVIDER:
-        'projects/1/locations/global/workloadIdentityPools/p/providers/g',
-      GCP_WIF_SERVICE_ACCOUNT: 'aklapper@games-424800.iam.gserviceaccount.com',
-      DATABASE_URL: 'postgres://postgres:ok@db.bgdkapis.us:5432/aklapper',
-      INTERNAL_AUTH_SECRET: 'secret-1',
-      TOTP_ENCRYPTION_KEY: 'secret-2',
-      ANALYTICS_DAILY_SALT: 'secret-3',
-      ADMIN_BOOTSTRAP_TOKEN: 'secret-4',
-      GCP_PROJECT_ID: 'games-424800',
-      GCP_REGION: 'us-central1',
-      GAR_REPOSITORY: 'portfolio',
-      QDRANT_API_KEY: 'PLACEHOLDER_REPLACE_ME',
-    });
-    expect(skippedSecretPlan.placeholderKeys).toEqual(['QDRANT_API_KEY']);
-    expect(skippedSecretPlan.variables.map(v => v.key)).not.toContain('QDRANT_API_KEY');
+    const renderedArgs = calls.map(c => c.args.join(' '));
+    expect(renderedArgs).toContain(
+      'projects add-iam-policy-binding games-424800 --member=serviceAccount:aklapper@games-424800.iam.gserviceaccount.com --role=roles/run.invoker --condition=None',
+    );
+    expect(renderedArgs).toContain(
+      'projects add-iam-policy-binding games-424800 --member=serviceAccount:aklapper-runtime@games-424800.iam.gserviceaccount.com --role=roles/run.invoker --condition=None',
+    );
+    expect(renderedArgs).toContain(
+      'projects add-iam-policy-binding games-424800 --member=serviceAccount:aklapper-runtime@games-424800.iam.gserviceaccount.com --role=roles/aiplatform.user --condition=None',
+    );
+    expect(renderedArgs).toContain(
+      'iam service-accounts add-iam-policy-binding aklapper-runtime@games-424800.iam.gserviceaccount.com --project=games-424800 --role=roles/iam.serviceAccountUser --member=serviceAccount:aklapper@games-424800.iam.gserviceaccount.com',
+    );
+    expect(renderedArgs).toContain(
+      'iam service-accounts add-iam-policy-binding aklapper-migrator@games-424800.iam.gserviceaccount.com --project=games-424800 --role=roles/iam.serviceAccountUser --member=serviceAccount:aklapper@games-424800.iam.gserviceaccount.com',
+    );
+    expect(renderedArgs).toContain(
+      'iam service-accounts add-iam-policy-binding aklapper-gke@games-424800.iam.gserviceaccount.com --project=games-424800 --role=roles/iam.workloadIdentityUser --member=serviceAccount:games-424800.svc.id.goog[portfolio-public/ai-ask]',
+    );
+    expect(renderedArgs).toContain(
+      'iam service-accounts add-iam-policy-binding aklapper-gke@games-424800.iam.gserviceaccount.com --project=games-424800 --role=roles/iam.workloadIdentityUser --member=serviceAccount:games-424800.svc.id.goog[portfolio-public/cadence-demo]',
+    );
+    expect(renderedArgs).toContain(
+      'iam service-accounts add-iam-policy-binding aklapper-gke@games-424800.iam.gserviceaccount.com --project=games-424800 --role=roles/iam.workloadIdentityUser --member=serviceAccount:games-424800.svc.id.goog[cadence-admin/cadence-admin]',
+    );
   });
 
   it('parses CLI arguments with production default and rejects non-production environments', () => {
-    expect(parseSyncCliArgs(['--', '--dry-run', '--bootstrap-wif'])).toEqual({
+    expect(parseSyncCliArgs(['--', '--dry-run', '--bootstrap-wif', '--skip-gcp-secrets'])).toEqual({
       env: 'production',
       filePath: '.env.gcp.production.local',
       repo: 'AndrewK4758/aklapper',
       dryRun: true,
       bootstrapWif: true,
+      skipGcpSecrets: true,
     });
 
     expect(parseSyncCliArgs(['--env=production', '--file=/tmp/prod.env'])).toEqual({
@@ -96,6 +273,7 @@ describe('@aklapper/tooling GitHub Actions environment sync script', () => {
       repo: 'AndrewK4758/aklapper',
       dryRun: false,
       bootstrapWif: false,
+      skipGcpSecrets: false,
     });
 
     expect(() => parseSyncCliArgs(['--env', 'staging'])).toThrow(/production/);
