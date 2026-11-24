@@ -1,5 +1,5 @@
 import type { TerminalProfileData } from '@aklapper/core';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -38,6 +38,7 @@ import {
   TerminalWorkspace,
   toggleTuiPane,
   toggleZoomActivePane,
+  Tooltip,
   TuiWindow,
 } from '../src';
 
@@ -1331,5 +1332,71 @@ describe('TerminalWorkspace', () => {
     expect(container.querySelectorAll('[data-split-divider]')).toHaveLength(0);
     fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true, shiftKey: true });
     expect(container.querySelectorAll('[data-split-divider]')).toHaveLength(2);
+  });
+
+  it('renders styled Tooltip popups without native title attributes for workspace controls and omits drag tooltip when zoomed', async () => {
+    const { container } = render(
+      <Tooltip.Provider delay={0}>
+        <TerminalWorkspace terminal={TERMINAL_FIXTURE} />
+      </Tooltip.Provider>,
+    );
+
+    // Split right to expose pane drag handles and split divider
+    fireEvent.keyDown(window, { key: '}', code: 'BracketRight', ctrlKey: true, shiftKey: true });
+
+    const tabButton = screen.getByRole('tab');
+    const newTabButton = screen.getByRole('button', { name: 'New terminal tab' });
+    const dragHandle = container.querySelector('[data-pane-drag-handle="pane-1"]') as HTMLElement;
+    const splitDivider = container.querySelector('[data-split-divider]') as HTMLElement;
+
+    expect(dragHandle).not.toBeNull();
+    expect(splitDivider).not.toBeNull();
+
+    // None of the four controls should expose native HTML title attributes
+    expect(tabButton.getAttribute('title')).toBeNull();
+    expect(newTabButton.getAttribute('title')).toBeNull();
+    expect(dragHandle.getAttribute('title')).toBeNull();
+    expect(splitDivider.getAttribute('title')).toBeNull();
+
+    // Tab label button tooltip on focus
+    fireEvent.focus(tabButton);
+    await waitFor(() => {
+      expect(screen.getByText('Click to switch · double-click to rename')).toBeTruthy();
+    });
+    fireEvent.blur(tabButton);
+
+    // New-tab button tooltip on focus
+    fireEvent.focus(newTabButton);
+    await waitFor(() => {
+      expect(screen.getByText('New Tab (Alt+Shift+T)')).toBeTruthy();
+    });
+    fireEvent.blur(newTabButton);
+
+    // Pane drag handle tooltip on pointer hover when draggable
+    fireEvent.pointerMove(dragHandle);
+    fireEvent.mouseEnter(dragHandle);
+    await waitFor(() => {
+      expect(screen.getByText('Drag to swap, dock, or drop onto tab strip to detach')).toBeTruthy();
+    });
+    fireEvent.mouseLeave(dragHandle);
+
+    // Split divider tooltip on focus
+    fireEvent.focus(splitDivider);
+    await waitFor(() => {
+      expect(screen.getByText('Drag to resize split · double-click to equalize')).toBeTruthy();
+    });
+    fireEvent.blur(splitDivider);
+
+    // Zooming sets canDrag=false; drag handle should have no title and show no drag tooltip
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom tty1' }));
+    const zoomedDragHandle = container.querySelector(
+      '[data-pane-drag-handle="pane-1"]',
+    ) as HTMLElement;
+    expect(zoomedDragHandle).not.toBeNull();
+    expect(zoomedDragHandle.getAttribute('data-draggable')).toBe('false');
+    expect(zoomedDragHandle.getAttribute('title')).toBeNull();
+    fireEvent.pointerMove(zoomedDragHandle);
+    fireEvent.mouseEnter(zoomedDragHandle);
+    expect(screen.queryByText('Drag to swap, dock, or drop onto tab strip to detach')).toBeNull();
   });
 });
