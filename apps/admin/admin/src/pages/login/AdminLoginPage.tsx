@@ -1,6 +1,7 @@
-import { Button, Field, Separator, Tabs, TuiWindow } from '@aklapper/ui';
+import { Button, Field, Separator, TuiWindow } from '@aklapper/ui';
 import { type FormEvent, useState } from 'react';
 
+import { CreatePasskeyPanel, TotpChallengePanel } from './AdminLoginStepPanels';
 import {
   type AuthenticationOptionsJSON,
   createPasskeyCredential,
@@ -30,10 +31,11 @@ interface RegisterOptionsResponse {
   options: RegistrationOptionsJSON;
 }
 
-interface LoginVerifyResponse {
+interface AuthStepResponse {
   verified: boolean;
   requiresTotp?: boolean;
   pendingToken?: string;
+  passkeyCount?: number;
 }
 
 async function parseErrorMessage(response: Response, fallback: string): Promise<string> {
@@ -46,11 +48,11 @@ async function parseErrorMessage(response: Response, fallback: string): Promise<
 }
 
 export function AdminLoginPage({ nextTarget = '/', onAuthenticated }: AdminLoginPageProps) {
-  const [activeTab, setActiveTab] = useState<'signin' | 'bootstrap'>('signin');
-  const [handle, setHandle] = useState('admin');
-  const [bootstrapToken, setBootstrapToken] = useState('');
+  const [handle, setHandle] = useState('');
+  const [password, setPassword] = useState('');
   const [pendingTotpToken, setPendingTotpToken] = useState<string | null>(null);
   const [totpCode, setTotpCode] = useState('');
+  const [passkeyPromptActive, setPasskeyPromptActive] = useState(false);
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -64,8 +66,57 @@ export function AdminLoginPage({ nextTarget = '/', onAuthenticated }: AdminLogin
     window.location.assign(target);
   };
 
-  async function handlePasskeySignIn(event: FormEvent<HTMLFormElement>) {
+  async function handlePasswordSignIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const trimmedHandle = handle.trim();
+    if (!trimmedHandle || !password) {
+      setErrorMessage('Admin handle and password are required.');
+      setStatusMessage(null);
+      return;
+    }
+
+    setBusy(true);
+    setErrorMessage(null);
+    setStatusMessage('Verifying admin credentials...');
+
+    try {
+      const res = await fetch('/api/auth/password/login', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ handle: trimmedHandle, password }),
+      });
+      if (!res.ok) {
+        throw new Error(await parseErrorMessage(res, 'Invalid credentials.'));
+      }
+
+      const data = (await res.json()) as AuthStepResponse;
+      setPassword('');
+
+      if (data.requiresTotp && data.pendingToken) {
+        setPendingTotpToken(data.pendingToken);
+        setStatusMessage('Password verified. Enter your 6-digit TOTP or backup code to continue.');
+        return;
+      }
+
+      if (data.passkeyCount === 0) {
+        setPasskeyPromptActive(true);
+        setStatusMessage(
+          'Signed in. Create a passkey for faster passwordless sign-in or continue to console.',
+        );
+        return;
+      }
+
+      setStatusMessage('Authenticated. Redirecting to ops console...');
+      completeNavigation();
+    } catch (error) {
+      setStatusMessage(null);
+      setErrorMessage(error instanceof Error ? error.message : 'Password authentication failed.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handlePasskeySignIn() {
     setBusy(true);
     setErrorMessage(null);
     setStatusMessage('Requesting WebAuthn login challenge...');
@@ -93,7 +144,7 @@ export function AdminLoginPage({ nextTarget = '/', onAuthenticated }: AdminLogin
         throw new Error(await parseErrorMessage(verifyRes, 'Passkey verification failed.'));
       }
 
-      const verifyData = (await verifyRes.json()) as LoginVerifyResponse;
+      const verifyData = (await verifyRes.json()) as AuthStepResponse;
       if (verifyData.requiresTotp && verifyData.pendingToken) {
         setPendingTotpToken(verifyData.pendingToken);
         setStatusMessage('Passkey verified. Enter your 6-digit TOTP or backup code to continue.');
@@ -131,6 +182,18 @@ export function AdminLoginPage({ nextTarget = '/', onAuthenticated }: AdminLogin
         throw new Error(await parseErrorMessage(res, 'Invalid TOTP or backup code.'));
       }
 
+      const verifyData = (await res.json()) as AuthStepResponse;
+      setPendingTotpToken(null);
+      setTotpCode('');
+
+      if (verifyData.passkeyCount === 0) {
+        setPasskeyPromptActive(true);
+        setStatusMessage(
+          '2FA verified. Create a passkey for faster passwordless sign-in or continue to console.',
+        );
+        return;
+      }
+
       setStatusMessage('2FA verified. Redirecting to ops console...');
       completeNavigation();
     } catch (error) {
@@ -141,29 +204,23 @@ export function AdminLoginPage({ nextTarget = '/', onAuthenticated }: AdminLogin
     }
   }
 
-  async function handleBootstrapRegister(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleCreatePasskey() {
     setBusy(true);
     setErrorMessage(null);
-    setStatusMessage('Validating bootstrap token and generating passkey challenge...');
+    setStatusMessage('Generating resident passkey challenge...');
 
     try {
       const optionsRes = await fetch('/api/auth/passkey/register/options', {
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-bootstrap-token': bootstrapToken.trim(),
-        },
-        body: JSON.stringify({ handle: handle.trim() || 'admin' }),
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({}),
       });
       if (!optionsRes.ok) {
-        throw new Error(
-          await parseErrorMessage(optionsRes, 'Bootstrap token rejected or registration denied.'),
-        );
+        throw new Error(await parseErrorMessage(optionsRes, 'Failed to start passkey creation.'));
       }
 
       const { challengeId, options } = (await optionsRes.json()) as RegisterOptionsResponse;
-      setStatusMessage('Touch your authenticator to register your admin passkey...');
+      setStatusMessage('Touch your authenticator to create your passkey...');
       const credential = await createPasskeyCredential(options);
 
       const verifyRes = await fetch('/api/auth/passkey/register/verify', {
@@ -172,16 +229,14 @@ export function AdminLoginPage({ nextTarget = '/', onAuthenticated }: AdminLogin
         body: JSON.stringify({ challengeId, response: credential }),
       });
       if (!verifyRes.ok) {
-        throw new Error(
-          await parseErrorMessage(verifyRes, 'Passkey registration verification failed.'),
-        );
+        throw new Error(await parseErrorMessage(verifyRes, 'Passkey verification failed.'));
       }
 
-      setStatusMessage('Passkey registered and session established. Redirecting...');
+      setStatusMessage('Passkey created. Redirecting to ops console...');
       completeNavigation();
     } catch (error) {
       setStatusMessage(null);
-      setErrorMessage(error instanceof Error ? error.message : 'Passkey registration failed.');
+      setErrorMessage(error instanceof Error ? error.message : 'Passkey creation failed.');
     } finally {
       setBusy(false);
     }
@@ -189,12 +244,13 @@ export function AdminLoginPage({ nextTarget = '/', onAuthenticated }: AdminLogin
 
   return (
     <div className={styles.frame}>
-      <TuiWindow title='admin.andrew-k.us // WebAuthn Passkey Gate'>
+      <TuiWindow title='admin.andrew-k.us // WebAuthn & Password Gate'>
         <div className={styles.card}>
           <div>
             <h1>Admin Passkey Gate</h1>
             <p className={styles.subtitle}>
-              Hardware-backed WebAuthn passkey authentication with optional TOTP 2FA step-up.
+              Sign in with your administrator password or a registered WebAuthn passkey, with
+              optional TOTP 2FA step-up.
             </p>
           </div>
 
@@ -210,105 +266,72 @@ export function AdminLoginPage({ nextTarget = '/', onAuthenticated }: AdminLogin
             </div>
           ) : null}
 
-          <Tabs.Root
-            value={activeTab}
-            onValueChange={next => {
-              if (next === 'signin' || next === 'bootstrap') {
-                setActiveTab(next);
+          {passkeyPromptActive ? (
+            <CreatePasskeyPanel
+              busy={busy}
+              onCreatePasskey={() => {
+                void handleCreatePasskey();
+              }}
+              onContinue={completeNavigation}
+            />
+          ) : pendingTotpToken ? (
+            <TotpChallengePanel
+              totpCode={totpCode}
+              busy={busy}
+              onTotpCodeChange={setTotpCode}
+              onSubmit={event => {
+                void handleTotpSubmit(event);
+              }}
+              onBack={() => {
+                setPendingTotpToken(null);
+                setTotpCode('');
                 setErrorMessage(null);
                 setStatusMessage(null);
-              }
-            }}
-          >
-            <Tabs.List aria-label='Authentication mode'>
-              <Tabs.Tab value='signin'>Passkey Sign In</Tabs.Tab>
-              <Tabs.Tab value='bootstrap'>Bootstrap Passkey</Tabs.Tab>
-            </Tabs.List>
-
-            <Tabs.Panel value='signin'>
-              {pendingTotpToken ? (
-                <form className={styles.form} onSubmit={handleTotpSubmit}>
-                  <Field.Root name='totpCode'>
-                    <Field.Label>2FA Verification Code (TOTP or Backup Code)</Field.Label>
-                    <Field.Control
-                      type='text'
-                      inputMode='numeric'
-                      autoComplete='one-time-code'
-                      placeholder='123456'
-                      value={totpCode}
-                      onChange={event => setTotpCode(event.currentTarget.value)}
-                      required
-                    />
-                  </Field.Root>
-                  <div className={styles.actions}>
-                    <Button.Root type='submit' variant='primary' loading={busy}>
-                      <Button.Label>Verify 2FA Code</Button.Label>
-                    </Button.Root>
-                    <Button.Root
-                      type='button'
-                      variant='ghost'
-                      disabled={busy}
-                      onClick={() => {
-                        setPendingTotpToken(null);
-                        setTotpCode('');
-                        setErrorMessage(null);
-                        setStatusMessage(null);
-                      }}
-                    >
-                      <Button.Label>Back to Passkey</Button.Label>
-                    </Button.Root>
-                  </div>
-                </form>
-              ) : (
-                <form className={styles.form} onSubmit={handlePasskeySignIn}>
-                  <Field.Root name='handle'>
-                    <Field.Label>Admin Handle</Field.Label>
-                    <Field.Control
-                      type='text'
-                      autoComplete='username webauthn'
-                      value={handle}
-                      onChange={event => setHandle(event.currentTarget.value)}
-                    />
-                  </Field.Root>
-                  <div className={styles.actions}>
-                    <Button.Root type='submit' variant='primary' loading={busy}>
-                      <Button.Label>Sign in with Passkey</Button.Label>
-                    </Button.Root>
-                  </div>
-                </form>
-              )}
-            </Tabs.Panel>
-
-            <Tabs.Panel value='bootstrap'>
-              <form className={styles.form} onSubmit={handleBootstrapRegister}>
-                <Field.Root name='bootstrapHandle'>
-                  <Field.Label>Admin Handle</Field.Label>
-                  <Field.Control
-                    type='text'
-                    value={handle}
-                    onChange={event => setHandle(event.currentTarget.value)}
-                    required
-                  />
-                </Field.Root>
-                <Field.Root name='bootstrapToken'>
-                  <Field.Label>Bootstrap Token</Field.Label>
-                  <Field.Control
-                    type='password'
-                    autoComplete='off'
-                    placeholder='Enter ADMIN_BOOTSTRAP_TOKEN'
-                    value={bootstrapToken}
-                    onChange={event => setBootstrapToken(event.currentTarget.value)}
-                    required
-                  />
-                </Field.Root>
-                <div className={styles.actions}>
-                  <Button.Root type='submit' variant='primary' loading={busy}>
-                    <Button.Label>Register Bootstrap Passkey</Button.Label>
-                  </Button.Root>
-                </div>
-              </form>
-            </Tabs.Panel>
-          </Tabs.Root>
+              }}
+            />
+          ) : (
+            <form
+              className={styles.form}
+              onSubmit={event => {
+                void handlePasswordSignIn(event);
+              }}
+            >
+              <Field.Root name='handle'>
+                <Field.Label>Admin Handle</Field.Label>
+                <Field.Control
+                  type='text'
+                  autoComplete='username webauthn'
+                  placeholder='admin'
+                  value={handle}
+                  onChange={event => setHandle(event.currentTarget.value)}
+                />
+              </Field.Root>
+              <Field.Root name='password'>
+                <Field.Label>Password</Field.Label>
+                <Field.Control
+                  type='password'
+                  autoComplete='current-password'
+                  value={password}
+                  onChange={event => setPassword(event.currentTarget.value)}
+                />
+              </Field.Root>
+              <div className={styles.actions}>
+                <Button.Root type='submit' variant='primary' loading={busy}>
+                  <Button.Label>Sign in with Password</Button.Label>
+                </Button.Root>
+                <Button.Root
+                  type='button'
+                  variant='secondary'
+                  disabled={busy}
+                  onClick={() => {
+                    void handlePasskeySignIn();
+                  }}
+                >
+                  <Button.Label>Sign in with Passkey</Button.Label>
+                </Button.Root>
+              </div>
+            </form>
+          )}
 
           <Separator.Root />
           <p className={styles.subtitle}>

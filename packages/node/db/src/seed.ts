@@ -33,6 +33,7 @@ import {
   terminalInitialEntries,
   terminalProfiles,
 } from './schema.ts';
+import { seedAdminUserFromEnv, type SeedAdminUserResult } from './seed-admin.ts';
 
 export const DEFAULT_MENU_ITEMS: readonly MenuItem[] = [
   {
@@ -1050,13 +1051,18 @@ export {
   PORTAL_MAINTENANCE_SEED,
   PORTAL_MENU_SEED,
   ROADMAP_MILESTONE_SEEDS,
+  seedAdminUserFromEnv,
+  type SeedAdminUserResult,
   TERMINAL_COMMAND_SEEDS,
   TERMINAL_DIRECTORY_ENTRY_SEEDS,
   TERMINAL_INITIAL_ENTRY_SEEDS,
   TERMINAL_PROFILE_SEEDS,
 };
 
-export async function seedDatabase(db: AppDatabase): Promise<void> {
+export async function seedDatabase(
+  db: AppDatabase,
+  env: Record<string, string | undefined> = process.env,
+): Promise<void> {
   for (const item of DEFAULT_MENU_ITEMS) {
     await db
       .insert(menuItems)
@@ -1234,6 +1240,8 @@ export async function seedDatabase(db: AppDatabase): Promise<void> {
         },
       });
   }
+
+  await seedAdminUserFromEnv(db, env);
 }
 
 if (import.meta.main) {

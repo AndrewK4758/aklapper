@@ -5,10 +5,12 @@ import { pathToFileURL } from 'node:url';
 
 import fastifyCookie from '@fastify/cookie';
 import fastifyHelmet from '@fastify/helmet';
+import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { createRequestHandler, type ServerBuild } from 'react-router';
 
+import { AUTH_LOG_REDACT_PATHS } from './auth.ts';
 import { loadWorkspaceEnv } from './env.ts';
 
 export interface SsrServerOptions {
@@ -24,6 +26,71 @@ export interface SsrServerInstance {
 }
 
 const BODILESS_STATUS_CODES = new Set([204, 205, 304]);
+const SINGLE_PROXY_HOP = (_address: string, hop: number): boolean => hop === 0;
+
+function normalizeAdminAuthPath(rawUrl: string): string | null {
+  let current: string;
+  try {
+    current = new URL(rawUrl, 'http://localhost').pathname;
+  } catch {
+    return null;
+  }
+  for (let pass = 0; pass < 3; pass += 1) {
+    if (!current.includes('%')) break;
+    let next: string;
+    try {
+      next = decodeURIComponent(current);
+    } catch {
+      return null;
+    }
+    if (next === current) break;
+    current = next;
+  }
+  if (current.includes('%')) {
+    return null;
+  }
+  const collapsed = current.replace(/\\/g, '/').replace(/\/{2,}/g, '/');
+  const prefixed = collapsed.startsWith('/') ? collapsed : `/${collapsed}`;
+  try {
+    let normalized = new URL(prefixed, 'http://localhost').pathname
+      .replace(/\/+$/, '')
+      .toLowerCase();
+    if (normalized.endsWith('/_.data')) {
+      normalized = normalized.slice(0, -'/_.data'.length);
+    } else if (normalized.endsWith('.data')) {
+      normalized = normalized.slice(0, -'.data'.length);
+    }
+    return normalized.replace(/\/+$/, '') || '/';
+  } catch {
+    return null;
+  }
+}
+
+function isRawAuthApiTarget(rawUrl: string): boolean {
+  let candidatePath: string;
+  try {
+    candidatePath = new URL(rawUrl, 'http://localhost').pathname;
+  } catch {
+    candidatePath = rawUrl.split(/[?#]/, 1)[0] ?? '';
+  }
+  let decoded = candidatePath;
+  for (let pass = 0; pass < 3; pass += 1) {
+    const next = decoded.replace(/%[0-9a-fA-F]{2}/g, seq => {
+      try {
+        return decodeURIComponent(seq);
+      } catch {
+        return seq;
+      }
+    });
+    if (next === decoded) break;
+    decoded = next;
+  }
+  const normalized = decoded
+    .replace(/\\/g, '/')
+    .replace(/\/{2,}/g, '/')
+    .toLowerCase();
+  return normalized.startsWith('/api/auth/') || normalized === '/api/auth';
+}
 
 function collectResponseHeaders(webHeaders: Headers): Record<string, string | string[]> {
   const responseHeaders: Record<string, string | string[]> = {};
@@ -43,7 +110,16 @@ function collectResponseHeaders(webHeaders: Headers): Record<string, string | st
 export async function createSsrServer(options: SsrServerOptions): Promise<SsrServerInstance> {
   loadWorkspaceEnv({ startDir: options.buildDir });
   const { serviceName, buildDir, port, host } = options;
-  const app = Fastify({ logger: true, bodyLimit: 10 * 1024 * 1024 });
+  const app = Fastify({
+    trustProxy: SINGLE_PROXY_HOP,
+    logger: {
+      redact: {
+        paths: [...AUTH_LOG_REDACT_PATHS],
+        censor: '[REDACTED]',
+      },
+    },
+    bodyLimit: 10 * 1024 * 1024,
+  });
 
   const rawBufferParser = (
     _request: unknown,
@@ -62,6 +138,39 @@ export async function createSsrServer(options: SsrServerOptions): Promise<SsrSer
 
   await app.register(fastifyHelmet, { contentSecurityPolicy: false });
   await app.register(fastifyCookie);
+  await app.register(fastifyRateLimit, {
+    global: false,
+    errorResponseBuilder: (_request, context) => ({
+      statusCode: context.statusCode,
+      error: 'RATE_LIMITED',
+      message: `Too many requests. Retry in ${context.after}.`,
+    }),
+  });
+
+  if (serviceName === 'admin-ssr') {
+    const passwordLoginLimiter = app.rateLimit({ max: 20, timeWindow: '1 minute' });
+    const totpVerifyLimiter = app.rateLimit({ max: 20, timeWindow: '1 minute' });
+    app.addHook('onRequest', async (request, reply) => {
+      if (request.method !== 'POST') return;
+      const pathname = normalizeAdminAuthPath(request.url);
+      if (pathname === null) {
+        if (isRawAuthApiTarget(request.url)) {
+          return reply.code(400).send({
+            statusCode: 400,
+            error: 'INVALID_REQUEST',
+            message: 'Malformed request URL',
+          });
+        }
+        return;
+      }
+      if (pathname === '/api/auth/password/login') {
+        await passwordLoginLimiter.call(app, request, reply);
+      } else if (pathname === '/api/auth/totp/verify') {
+        await totpVerifyLimiter.call(app, request, reply);
+      }
+    });
+  }
+
   const servePrerenderedStatic = process.env['SERVE_PRERENDERED_STATIC'] === 'true';
 
   await app.register(fastifyStatic, {
@@ -88,6 +197,12 @@ export async function createSsrServer(options: SsrServerOptions): Promise<SsrSer
       } else if (typeof value === 'string') {
         headers.set(key, value);
       }
+    }
+    if (request.ip) {
+      headers.set('x-forwarded-for', request.ip);
+    }
+    if (!headers.has('x-forwarded-proto') && request.protocol) {
+      headers.set('x-forwarded-proto', request.protocol);
     }
     const hasBody = request.method !== 'GET' && request.method !== 'HEAD';
     let requestBody: BodyInit | undefined;

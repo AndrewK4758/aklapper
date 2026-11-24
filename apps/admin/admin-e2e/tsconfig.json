@@ -7,6 +7,9 @@
   "include": ["playwright.config.ts", "src/**/*.ts"],
   "references": [
     {
+      "path": "../../../packages/node/db"
+    },
+    {
       "path": "../../../packages/tooling"
     }
   ]

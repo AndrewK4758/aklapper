@@ -47,4 +47,19 @@
     color: var(--sf-fg-prop);
     font-size: var(--sf-text-xs);
   }
+
+  .passkeyPrompt {
+    display: grid;
+    gap: var(--sf-space-5);
+    padding: var(--sf-space-5);
+    background: var(--sf-bg-panel);
+    border: var(--sf-border-width) solid var(--sf-accent-border);
+    border-radius: var(--sf-radius-sm);
+  }
+
+  .passkeyPrompt h2 {
+    margin: var(--sf-space-0) var(--sf-space-0) var(--sf-space-2);
+    font-size: var(--sf-text-md);
+    color: var(--sf-gold);
+  }
 }

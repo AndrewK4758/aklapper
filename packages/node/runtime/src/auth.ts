@@ -7,6 +7,17 @@ import {
   timingSafeEqual,
 } from 'node:crypto';
 
+export {
+  ARGON2ID_DEFAULTS,
+  Argon2ConcurrencyError,
+  type Argon2HashOptions,
+  AUTH_LOG_REDACT_PATHS,
+  hashPasswordArgon2id,
+  parseArgon2idPhc,
+  type ParsedArgon2idPhc,
+  verifyPasswordArgon2id,
+} from './password.ts';
+
 export const ADMIN_SESSION_COOKIE_NAME = 'ak_admin_session';
 export const GUEST_SESSION_COOKIE_NAME = 'ak_guest_session';
 

@@ -1,0 +1,9 @@
+@layer element {
+  .qr {
+    display: block;
+    border-radius: var(--sf-radius-xs);
+    background: oklch(1 0 0);
+    max-width: 100%;
+    height: auto;
+  }
+}

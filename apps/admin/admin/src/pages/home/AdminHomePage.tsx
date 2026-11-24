@@ -9,6 +9,7 @@ import {
   Field,
   Meter,
   OscStatusBadge,
+  QrCodeSvg,
   Separator,
   Toolbar,
   TuiWindow,
@@ -101,7 +102,7 @@ export function AdminHomePage({ data, onRegisterPasskey }: AdminHomePageProps) {
       setEnrollment(payload);
       setVerifyCode('');
       setSecurityMessage(
-        'TOTP secret generated. Scan the otpauth:// URI and enter a 6-digit code to activate 2FA.',
+        'TOTP secret generated. Scan the QR code with your authenticator app and enter a 6-digit code to activate 2FA.',
       );
     } catch (error) {
       setSecurityError(error instanceof Error ? error.message : 'TOTP enrollment failed.');
@@ -275,6 +276,13 @@ export function AdminHomePage({ data, onRegisterPasskey }: AdminHomePageProps) {
 
                           {enrollment ? (
                             <div className={styles.secretBlock}>
+                              <div className={styles.qrFrame}>
+                                <QrCodeSvg
+                                  value={enrollment.otpauthUrl}
+                                  size={184}
+                                  label='TOTP 2FA QR Code'
+                                />
+                              </div>
                               <div>
                                 <div className={styles.tileLabel}>Base32 Secret</div>
                                 <code data-testid='totp-secret' className={styles.codeText}>

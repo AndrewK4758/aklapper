@@ -1,6 +1,9 @@
+import { createHash } from 'node:crypto';
+
 import { type AuthSessionStatus, AuthSessionStatusSchema } from '@aklapper/core';
 import {
   ADMIN_SESSION_COOKIE_NAME,
+  Argon2ConcurrencyError,
   buildTotpOtpAuthUrl,
   clearSessionCookie,
   decryptTotpSecret,
@@ -10,10 +13,11 @@ import {
   GUEST_SESSION_COOKIE_NAME,
   hashBackupCode,
   isSecureRequest,
+  parseArgon2idPhc,
   parseCookieHeader,
   serializeSessionCookie,
-  timingSafeStringEqual,
   verifyBackupCode,
+  verifyPasswordArgon2id,
   verifyTotpCode,
 } from '@aklapper/node-runtime/auth';
 import {
@@ -33,14 +37,16 @@ import { z } from 'zod';
 
 import { type AppDatabase, getSharedDb } from './client.ts';
 import {
+  consumeAuthRateLimit,
   consumeTotpBackupCode,
   consumeWebauthnChallenge,
+  countUserWebauthnCredentials,
   createAuthSession,
   createWebauthnChallenge,
   disableUserTotpSecret,
   enableUserTotpSecret,
   findAdminUser,
-  findOrCreateAdminUser,
+  findAdminUserForPasswordLogin,
   getUserById,
   getUserTotpSecret,
   getValidAuthSession,
@@ -57,12 +63,21 @@ const ADMIN_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 const PENDING_TOTP_TTL_SECONDS = 300;
 const PENDING_TOTP_PREFIX = 'totp-pending:';
+const LOGIN_IP_RATE_LIMIT = { maxAttempts: 20, windowMs: 60_000 } as const;
+const LOGIN_HANDLE_RATE_LIMIT = { maxAttempts: 10, windowMs: 5 * 60_000 } as const;
+const TOTP_IP_RATE_LIMIT = { maxAttempts: 20, windowMs: 60_000 } as const;
+const TOTP_USER_RATE_LIMIT = { maxAttempts: 10, windowMs: 5 * 60_000 } as const;
+
+export interface AuthTelemetryEvent {
+  event: string;
+  [key: string]: unknown;
+}
 
 export interface AuthDispatchRequest {
   method: string;
   action: string;
   cookieHeader?: string | null;
-  bootstrapTokenHeader?: string | null;
+  clientIp?: string | null;
   originHeader?: string | null;
   isSecure?: boolean;
   body?: unknown;
@@ -71,20 +86,22 @@ export interface AuthDispatchRequest {
 export interface AuthDispatchResult {
   status: number;
   body: Record<string, unknown>;
+  headers?: Record<string, string>;
   cookies?: string[];
 }
 
 export interface AuthServiceOptions {
   db?: AppDatabase;
   env?: Record<string, string | undefined>;
+  onAuthEvent?: (event: AuthTelemetryEvent) => void;
 }
 
-const RegisterOptionsBodySchema = z
-  .object({
-    handle: z.string().trim().min(1).max(64).optional(),
-    bootstrapToken: z.string().min(1).optional(),
-  })
-  .optional();
+const PasswordLoginBodySchema = z.object({
+  handle: z.string().trim().min(1).max(64),
+  password: z.string().min(1).max(1024),
+});
+
+const RegisterOptionsBodySchema = z.object({}).optional();
 
 const RegisterVerifyBodySchema = z.object({
   challengeId: z.string().min(1),
@@ -114,9 +131,69 @@ interface WebAuthnConfig {
   expectedOrigins: string[];
 }
 
+function emitAuthEvent(options: AuthServiceOptions, payload: AuthTelemetryEvent): void {
+  if (options.onAuthEvent) {
+    options.onAuthEvent(payload);
+    return;
+  }
+  const nodeEnv = options.env?.['NODE_ENV'] ?? process.env['NODE_ENV'];
+  if (nodeEnv !== 'test') {
+    console.info(JSON.stringify(payload));
+  }
+}
+
+function extractClientIp(forwardedFor: string | null | undefined): string {
+  const hops = forwardedFor
+    ?.split(',')
+    .map(part => part.trim())
+    .filter(Boolean);
+  const rightmostHop = hops && hops.length > 0 ? hops[hops.length - 1] : undefined;
+  return rightmostHop ?? 'unknown';
+}
+
+function hashRateLimitPart(value: string): string {
+  return createHash('sha256').update(value, 'utf8').digest('hex');
+}
+
+function buildRateLimitResult(retryAfterSeconds: number): AuthDispatchResult {
+  return {
+    status: 429,
+    headers: { 'retry-after': String(retryAfterSeconds) },
+    body: {
+      statusCode: 429,
+      error: 'RATE_LIMITED',
+      message: `Too many authentication attempts. Retry in ${retryAfterSeconds}s.`,
+    },
+  };
+}
+
+function issuePendingTotpToken(
+  userId: string,
+  env: Record<string, string | undefined>,
+  options: AuthServiceOptions,
+): string | null {
+  const internalSecret = env['INTERNAL_AUTH_SECRET'];
+  if (env['NODE_ENV'] === 'production' && !internalSecret?.trim()) {
+    emitAuthEvent(options, { event: 'auth.totp_stepup.secret_missing', userId });
+    return null;
+  }
+  try {
+    return signInternalAuthToken({
+      role: 'service',
+      subject: `${PENDING_TOTP_PREFIX}${userId}`,
+      secret: internalSecret,
+      ttlSeconds: PENDING_TOTP_TTL_SECONDS,
+    });
+  } catch {
+    emitAuthEvent(options, { event: 'auth.totp_stepup.secret_missing', userId });
+    return null;
+  }
+}
+
 function resolveWebAuthnConfig(
   env: Record<string, string | undefined>,
   originHeader?: string | null,
+  options: AuthServiceOptions = {},
 ): WebAuthnConfig {
   const rpName = env['WEBAUTHN_RP_NAME']?.trim() || 'andrew-k.us Admin';
   const rpID = env['WEBAUTHN_RP_ID']?.trim() || 'localhost';
@@ -130,14 +207,20 @@ function resolveWebAuthnConfig(
 
   const reqOrigin = originHeader?.trim().replace(/\/+$/, '');
   if (reqOrigin) {
-    try {
-      const parsed = new URL(reqOrigin);
-      const isMatchingHost = parsed.hostname === rpID || parsed.hostname.endsWith(`.${rpID}`);
-      if (isMatchingHost && (parsed.protocol === 'http:' || parsed.protocol === 'https:')) {
-        origins.add(parsed.origin);
+    if (env['NODE_ENV'] === 'production') {
+      if (!origins.has(reqOrigin)) {
+        emitAuthEvent(options, { event: 'auth.webauthn.origin_rejected', origin: reqOrigin });
       }
-    } catch {
-      // ignore invalid origin header
+    } else {
+      try {
+        const parsed = new URL(reqOrigin);
+        const isMatchingHost = parsed.hostname === rpID || parsed.hostname.endsWith(`.${rpID}`);
+        if (isMatchingHost && (parsed.protocol === 'http:' || parsed.protocol === 'https:')) {
+          origins.add(parsed.origin);
+        }
+      } catch {
+        // ignore invalid origin header
+      }
     }
   }
 
@@ -146,16 +229,6 @@ function resolveWebAuthnConfig(
     rpID,
     expectedOrigins: [...origins],
   };
-}
-
-function isValidBootstrapToken(
-  provided: string | null | undefined,
-  env: Record<string, string | undefined>,
-): boolean {
-  const configured = env['ADMIN_BOOTSTRAP_TOKEN']?.trim();
-  const candidate = provided?.trim();
-  if (!configured || !candidate) return false;
-  return timingSafeStringEqual(candidate, configured);
 }
 
 async function resolveAdminSession(db: AppDatabase, cookieHeader?: string | null) {
@@ -270,6 +343,143 @@ export async function dispatchAuthAction(
     };
   }
 
+  // POST /v1/auth/password/login
+  if (method === 'POST' && action === 'password/login') {
+    const parsedBody = PasswordLoginBodySchema.safeParse(req.body);
+    if (!parsedBody.success) {
+      return {
+        status: 400,
+        body: { error: 'INVALID_REQUEST', message: 'Handle and password are required' },
+      };
+    }
+
+    const clientIp = extractClientIp(req.clientIp);
+    const ipLimit = await consumeAuthRateLimit(
+      db,
+      `auth:login:ip:${hashRateLimitPart(clientIp)}`,
+      LOGIN_IP_RATE_LIMIT,
+    );
+    if (!ipLimit.allowed) {
+      emitAuthEvent(options, {
+        event: 'auth.password_login.outcome_branch',
+        branch: 'rate_limited',
+      });
+      return buildRateLimitResult(ipLimit.retryAfterSeconds);
+    }
+
+    const normalizedHandle = parsedBody.data.handle.toLowerCase();
+    const handleLimit = await consumeAuthRateLimit(
+      db,
+      `auth:login:handle:${hashRateLimitPart(normalizedHandle)}`,
+      LOGIN_HANDLE_RATE_LIMIT,
+    );
+    if (!handleLimit.allowed) {
+      emitAuthEvent(options, {
+        event: 'auth.password_login.outcome_branch',
+        branch: 'rate_limited',
+      });
+      return buildRateLimitResult(handleLimit.retryAfterSeconds);
+    }
+
+    const user = await findAdminUserForPasswordLogin(db, normalizedHandle);
+    const storedHash = user?.role === 'admin' ? user.passwordHashArgon2 : null;
+    if (storedHash !== null && !parseArgon2idPhc(storedHash)) {
+      emitAuthEvent(options, { event: 'auth.password_login.phc_invalid', userId: user?.id });
+    }
+
+    let passwordValid = false;
+    try {
+      passwordValid = await verifyPasswordArgon2id(parsedBody.data.password, storedHash);
+    } catch (error) {
+      if (error instanceof Argon2ConcurrencyError) {
+        emitAuthEvent(options, {
+          event: 'auth.password_login.outcome_branch',
+          branch: 'concurrency_saturated',
+        });
+        return {
+          status: 503,
+          headers: { 'retry-after': '2' },
+          body: {
+            error: 'SERVICE_BUSY',
+            message: 'Authentication service is temporarily busy. Please retry.',
+          },
+        };
+      }
+      throw error;
+    }
+
+    if (!passwordValid || !user || user.role !== 'admin') {
+      emitAuthEvent(options, {
+        event: 'auth.password_login.outcome_branch',
+        branch: 'invalid_credentials',
+      });
+      return {
+        status: 401,
+        body: { error: 'INVALID_CREDENTIALS', message: 'Invalid credentials' },
+      };
+    }
+
+    const totpRecord = await getUserTotpSecret(db, user.id);
+    if (totpRecord?.enabled) {
+      const pendingToken = issuePendingTotpToken(user.id, env, options);
+      if (!pendingToken) {
+        emitAuthEvent(options, {
+          event: 'auth.password_login.outcome_branch',
+          branch: 'misconfigured',
+        });
+        return {
+          status: 500,
+          body: {
+            error: 'AUTH_MISCONFIGURED',
+            message: 'Authentication service is missing required server configuration.',
+          },
+        };
+      }
+      emitAuthEvent(options, {
+        event: 'auth.password_login.outcome_branch',
+        branch: 'requires_totp',
+      });
+      return {
+        status: 200,
+        body: {
+          verified: false,
+          requiresTotp: true,
+          pendingToken,
+        },
+      };
+    }
+
+    const [session, passkeyCount] = await Promise.all([
+      createAuthSession(db, {
+        userId: user.id,
+        role: 'admin',
+        handle: user.handle,
+        ttlMs: ADMIN_SESSION_TTL_MS,
+      }),
+      countUserWebauthnCredentials(db, user.id),
+    ]);
+
+    emitAuthEvent(options, {
+      event: 'auth.password_login.outcome_branch',
+      branch: 'authenticated',
+    });
+    return {
+      status: 200,
+      body: {
+        verified: true,
+        requiresTotp: false,
+        passkeyCount,
+        session,
+      },
+      cookies: [
+        serializeSessionCookie(ADMIN_SESSION_COOKIE_NAME, session.sessionId, {
+          maxAgeSeconds: ADMIN_SESSION_TTL_MS / 1000,
+          secure: secureCookie,
+        }),
+      ],
+    };
+  }
+
   // POST /v1/auth/passkey/register/options
   if (method === 'POST' && action === 'passkey/register/options') {
     const parsedBody = RegisterOptionsBodySchema.safeParse(req.body);
@@ -281,23 +491,34 @@ export async function dispatchAuthAction(
     }
 
     const adminSession = await resolveAdminSession(db, req.cookieHeader);
-    const providedToken = req.bootstrapTokenHeader ?? parsedBody.data?.bootstrapToken;
-    const bootstrapAuthorized = isValidBootstrapToken(providedToken, env);
-
-    if (!adminSession && !bootstrapAuthorized) {
+    if (!adminSession || !adminSession.userId) {
+      emitAuthEvent(options, {
+        event: 'auth.passkey_register.unauthenticated',
+        route: 'passkey/register/options',
+      });
       return {
         status: 401,
         body: {
           error: 'UNAUTHORIZED',
-          message: 'Valid admin session or bootstrap token required',
+          message: 'Valid admin session required',
         },
       };
     }
 
-    const handle = adminSession?.session.handle ?? parsedBody.data?.handle ?? 'admin';
-    const user = await findOrCreateAdminUser(db, handle);
+    const user = await getUserById(db, adminSession.userId);
+    if (!user || user.role !== 'admin') {
+      emitAuthEvent(options, {
+        event: 'auth.passkey_register.unauthenticated',
+        route: 'passkey/register/options',
+      });
+      return {
+        status: 401,
+        body: { error: 'UNAUTHORIZED', message: 'Valid admin session required' },
+      };
+    }
+
     const existingCreds = await listUserWebauthnCredentials(db, user.id);
-    const config = resolveWebAuthnConfig(env, req.originHeader);
+    const config = resolveWebAuthnConfig(env, req.originHeader, options);
 
     const registrationOptions = await generateRegistrationOptions({
       rpName: config.rpName,
@@ -311,7 +532,7 @@ export async function dispatchAuthAction(
         transports: cred.transports,
       })),
       authenticatorSelection: {
-        residentKey: 'preferred',
+        residentKey: 'required',
         userVerification: 'preferred',
       },
     });
@@ -342,6 +563,18 @@ export async function dispatchAuthAction(
       };
     }
 
+    const adminSession = await resolveAdminSession(db, req.cookieHeader);
+    if (!adminSession || !adminSession.userId) {
+      emitAuthEvent(options, {
+        event: 'auth.passkey_register.unauthenticated',
+        route: 'passkey/register/verify',
+      });
+      return {
+        status: 401,
+        body: { error: 'UNAUTHORIZED', message: 'Valid admin session required' },
+      };
+    }
+
     const challengeRow = await consumeWebauthnChallenge(db, {
       challengeId: parsedBody.data.challengeId,
       kind: 'register',
@@ -356,7 +589,22 @@ export async function dispatchAuthAction(
       };
     }
 
-    const config = resolveWebAuthnConfig(env, req.originHeader);
+    if (challengeRow.userId !== adminSession.userId) {
+      emitAuthEvent(options, {
+        event: 'auth.passkey_register.unauthenticated',
+        route: 'passkey/register/verify',
+        reason: 'challenge_user_mismatch',
+      });
+      return {
+        status: 403,
+        body: {
+          error: 'FORBIDDEN',
+          message: 'Registration challenge does not match authenticated admin',
+        },
+      };
+    }
+
+    const config = resolveWebAuthnConfig(env, req.originHeader, options);
     try {
       const verification = await verifyRegistrationResponse({
         response: parsedBody.data.response as unknown as RegistrationResponseJSON,
@@ -376,16 +624,17 @@ export async function dispatchAuthAction(
       const { credential } = verification.registrationInfo;
       await saveWebauthnCredential(db, {
         credentialId: credential.id,
-        userId: challengeRow.userId,
+        userId: adminSession.userId,
         publicKey: Buffer.from(credential.publicKey).toString('base64url'),
         counter: credential.counter,
         transports: credential.transports ?? [],
       });
 
-      const session = await createAuthSession(db, {
-        userId: challengeRow.userId,
-        role: 'admin',
-        ttlMs: ADMIN_SESSION_TTL_MS,
+      emitAuthEvent(options, {
+        event: 'auth.passkey_register.audit_event',
+        userId: adminSession.userId,
+        credentialId: credential.id,
+        sessionPreserved: true,
       });
 
       return {
@@ -393,14 +642,8 @@ export async function dispatchAuthAction(
         body: {
           verified: true,
           credentialId: credential.id,
-          session,
+          session: adminSession.session,
         },
-        cookies: [
-          serializeSessionCookie(ADMIN_SESSION_COOKIE_NAME, session.sessionId, {
-            maxAgeSeconds: ADMIN_SESSION_TTL_MS / 1000,
-            secure: secureCookie,
-          }),
-        ],
       };
     } catch (error) {
       return {
@@ -423,9 +666,10 @@ export async function dispatchAuthAction(
       };
     }
 
-    const user = await findAdminUser(db, parsedBody.data?.handle);
+    const requestedHandle = parsedBody.data?.handle?.trim();
+    const user = requestedHandle ? await findAdminUser(db, requestedHandle) : null;
     const creds = user ? await listUserWebauthnCredentials(db, user.id) : [];
-    const config = resolveWebAuthnConfig(env, req.originHeader);
+    const config = resolveWebAuthnConfig(env, req.originHeader, options);
 
     const authOptions = await generateAuthenticationOptions({
       rpID: config.rpID,
@@ -492,6 +736,16 @@ export async function dispatchAuthAction(
       };
     }
 
+    if (challengeRow.userId && challengeRow.userId !== storedCred.userId) {
+      return {
+        status: 401,
+        body: {
+          error: 'CREDENTIAL_USER_MISMATCH',
+          message: 'Passkey credential does not match the requested admin handle',
+        },
+      };
+    }
+
     const user = await getUserById(db, storedCred.userId);
     if (!user || user.role !== 'admin') {
       return {
@@ -500,7 +754,7 @@ export async function dispatchAuthAction(
       };
     }
 
-    const config = resolveWebAuthnConfig(env, req.originHeader);
+    const config = resolveWebAuthnConfig(env, req.originHeader, options);
     try {
       const verification = await verifyAuthenticationResponse({
         response: assertionResponse,
@@ -532,12 +786,16 @@ export async function dispatchAuthAction(
       const totpRecord = await getUserTotpSecret(db, user.id);
       if (totpRecord?.enabled) {
         if (!parsedBody.data.totpCode) {
-          const pendingToken = signInternalAuthToken({
-            role: 'service',
-            subject: `${PENDING_TOTP_PREFIX}${user.id}`,
-            secret: internalSecret,
-            ttlSeconds: PENDING_TOTP_TTL_SECONDS,
-          });
+          const pendingToken = issuePendingTotpToken(user.id, env, options);
+          if (!pendingToken) {
+            return {
+              status: 500,
+              body: {
+                error: 'AUTH_MISCONFIGURED',
+                message: 'Authentication service is missing required server configuration.',
+              },
+            };
+          }
           return {
             status: 200,
             body: {
@@ -643,6 +901,16 @@ export async function dispatchAuthAction(
       };
     }
 
+    const clientIp = extractClientIp(req.clientIp);
+    const ipLimit = await consumeAuthRateLimit(
+      db,
+      `auth:totp:ip:${hashRateLimitPart(clientIp)}`,
+      TOTP_IP_RATE_LIMIT,
+    );
+    if (!ipLimit.allowed) {
+      return buildRateLimitResult(ipLimit.retryAfterSeconds);
+    }
+
     // Step-up login verification via pendingToken
     if (parsedBody.data.pendingToken) {
       const claims = verifyInternalAuthToken(parsedBody.data.pendingToken, internalSecret);
@@ -657,6 +925,15 @@ export async function dispatchAuthAction(
       }
 
       const userId = claims.sub.slice(PENDING_TOTP_PREFIX.length);
+      const userLimit = await consumeAuthRateLimit(
+        db,
+        `auth:totp:user:${userId}`,
+        TOTP_USER_RATE_LIMIT,
+      );
+      if (!userLimit.allowed) {
+        return buildRateLimitResult(userLimit.retryAfterSeconds);
+      }
+
       const user = await getUserById(db, userId);
       const totpRecord = await getUserTotpSecret(db, userId);
       if (!user || user.role !== 'admin' || !totpRecord || !totpRecord.enabled) {
@@ -680,17 +957,21 @@ export async function dispatchAuthAction(
         };
       }
 
-      const session = await createAuthSession(db, {
-        userId: user.id,
-        role: 'admin',
-        handle: user.handle,
-        ttlMs: ADMIN_SESSION_TTL_MS,
-      });
+      const [session, passkeyCount] = await Promise.all([
+        createAuthSession(db, {
+          userId: user.id,
+          role: 'admin',
+          handle: user.handle,
+          ttlMs: ADMIN_SESSION_TTL_MS,
+        }),
+        countUserWebauthnCredentials(db, user.id),
+      ]);
 
       return {
         status: 200,
         body: {
           verified: true,
+          passkeyCount,
           session,
         },
         cookies: [
@@ -762,6 +1043,11 @@ export async function dispatchAuthAction(
 
 function buildWebResponseFromDispatch(result: AuthDispatchResult): Response {
   const headers = new Headers({ 'content-type': 'application/json; charset=utf-8' });
+  if (result.headers) {
+    for (const [key, value] of Object.entries(result.headers)) {
+      headers.set(key, value);
+    }
+  }
   if (result.cookies) {
     for (const cookie of result.cookies) {
       headers.append('set-cookie', cookie);
@@ -778,6 +1064,22 @@ export interface BffAuthProxyOptions extends AuthServiceOptions {
   fetchImpl?: typeof fetch;
 }
 
+const FORWARDED_UPSTREAM_RESPONSE_HEADERS = [
+  'content-type',
+  'retry-after',
+  'x-ratelimit-limit',
+  'x-ratelimit-remaining',
+  'x-ratelimit-reset',
+] as const;
+
+function isInvalidAuthSplat(splat: string): boolean {
+  if (splat.length === 0) return false;
+  if (splat.includes('%') || splat.includes('..') || !/^[a-z0-9/-]+$/.test(splat)) {
+    return true;
+  }
+  return splat.split('/').some(segment => segment.length === 0 || segment === '.');
+}
+
 /**
  * Dual-mode Admin BFF auth handler:
  *
@@ -792,6 +1094,14 @@ export async function handleAdminAuthBffRequest(
   const env = options.env ?? process.env;
   const upstreamBase = (options.authApiUrl ?? env['AUTH_API_URL'])?.trim();
   const normalizedSplat = splat.replace(/^\/+|\/+$/g, '');
+  if (isInvalidAuthSplat(normalizedSplat)) {
+    return Response.json(
+      { error: 'INVALID_REQUEST', message: 'Invalid auth path' },
+      { status: 400 },
+    );
+  }
+  const reqUrl = new URL(request.url);
+  const resolvedClientIp = extractClientIp(request.headers.get('x-forwarded-for'));
 
   if (upstreamBase) {
     const fetchImpl = options.fetchImpl ?? fetch;
@@ -801,11 +1111,26 @@ export async function handleAdminAuthBffRequest(
     if (contentType) forwardHeaders.set('content-type', contentType);
     const cookie = request.headers.get('cookie');
     if (cookie) forwardHeaders.set('cookie', cookie);
-    const bootstrapToken = request.headers.get('x-bootstrap-token');
-    if (bootstrapToken) forwardHeaders.set('x-bootstrap-token', bootstrapToken);
-    const origin = request.headers.get('origin') ?? new URL(request.url).origin;
+    const origin = request.headers.get('origin') ?? reqUrl.origin;
     if (origin) forwardHeaders.set('origin', origin);
-    const forwardedProto = request.headers.get('x-forwarded-proto');
+    const internalSecret = env['INTERNAL_AUTH_SECRET']?.trim();
+    const isProd = (env['NODE_ENV'] ?? process.env['NODE_ENV']) === 'production';
+    if (resolvedClientIp !== 'unknown') {
+      forwardHeaders.set('x-forwarded-for', resolvedClientIp);
+      if (internalSecret || !isProd) {
+        forwardHeaders.set(
+          'x-internal-client-ip',
+          signInternalAuthToken({
+            role: 'service',
+            subject: `client-ip:${resolvedClientIp}`,
+            secret: internalSecret,
+            ttlSeconds: 60,
+          }),
+        );
+      }
+    }
+    const forwardedProto =
+      request.headers.get('x-forwarded-proto') || reqUrl.protocol.replace(/:$/, '');
     if (forwardedProto) forwardHeaders.set('x-forwarded-proto', forwardedProto);
 
     const hasBody = request.method !== 'GET' && request.method !== 'HEAD';
@@ -820,9 +1145,11 @@ export async function handleAdminAuthBffRequest(
       });
 
       const responseHeaders = new Headers();
-      const upstreamContentType = upstream.headers.get('content-type');
-      if (upstreamContentType) {
-        responseHeaders.set('content-type', upstreamContentType);
+      for (const headerName of FORWARDED_UPSTREAM_RESPONSE_HEADERS) {
+        const value = upstream.headers.get(headerName);
+        if (value) {
+          responseHeaders.set(headerName, value);
+        }
       }
       const setCookies =
         typeof upstream.headers.getSetCookie === 'function' ? upstream.headers.getSetCookie() : [];
@@ -857,13 +1184,12 @@ export async function handleAdminAuthBffRequest(
     }
   }
 
-  const reqUrl = new URL(request.url);
   const result = await dispatchAuthAction(
     {
       method: request.method,
       action: normalizedSplat,
       cookieHeader: request.headers.get('cookie'),
-      bootstrapTokenHeader: request.headers.get('x-bootstrap-token'),
+      clientIp: resolvedClientIp === 'unknown' ? null : resolvedClientIp,
       originHeader: request.headers.get('origin') ?? reqUrl.origin,
       isSecure: isSecureRequest(reqUrl, request.headers.get('x-forwarded-proto')),
       body,

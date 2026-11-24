@@ -153,6 +153,15 @@
     border-radius: var(--sf-radius-sm);
   }
 
+  .qrFrame {
+    display: inline-flex;
+    justify-content: center;
+    padding: var(--sf-space-3);
+    background: oklch(1 0 0);
+    border-radius: var(--sf-radius-sm);
+    width: fit-content;
+  }
+
   .codeText {
     font-family: var(--sf-font-code);
     font-size: var(--sf-text-xs);

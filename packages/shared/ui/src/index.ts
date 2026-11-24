@@ -139,6 +139,8 @@ export {
 } from './elements/_internal/elementFactory';
 export * from './elements/base';
 export { OscStatusBadge, type OscStatusBadgeProps } from './elements/OscStatusBadge';
+export { QrCodeSvg, type QrCodeSvgProps } from './elements/QrCodeSvg';
+export { generateQrMatrix, type QrMatrix } from './elements/qrMatrix';
 export { SolarForgeEmblem, type SolarForgeEmblemProps } from './elements/SolarForgeEmblem';
 export { buildFaviconFrameDataUri, useAnimatedFavicon } from './elements/useAnimatedFavicon';
 export {
