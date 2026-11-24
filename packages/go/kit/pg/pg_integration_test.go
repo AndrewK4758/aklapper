@@ -3,6 +3,7 @@ package pg
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"sync"
 	"testing"
@@ -23,7 +24,7 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 	}
 	defer store.Close()
 
-	// Seed rows across site_content, agensi_skills, and roadmap_milestones cleanly for S-4.1/S-4.2
+	// Seed rows across site_content, agensi_skills, and roadmap_milestones cleanly for live corpus queries
 	if _, err := store.pool.Exec(ctx, `
 		INSERT INTO site_content (key, markdown_body, metadata_json)
 		VALUES ('test-site-corpus', 'Streaming SSR and Go microservices corpus text.', '{}'::jsonb)
@@ -99,7 +100,61 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 		t.Fatalf("expected 5 allowed and 2 rejected under FOR UPDATE serialization, got allowed=%d rejected=%d", allowedCnt, rejectedCnt)
 	}
 
-	// Verify expired lease transition in live PG19 + ReconcileTurnTx rejection (CP-13)
+	// Verify concurrent Turn 5/5 duplicate attemptId returns idempotent reuse (allowed) rather than false 429
+	dupSession := "pg_live_dup5_" + newUUIDv4()
+	t.Cleanup(func() {
+		_, _ = store.pool.Exec(context.Background(), `DELETE FROM ask_turns WHERE session_id = $1`, dupSession)
+		_, _ = store.pool.Exec(context.Background(), `DELETE FROM rate_limit_buckets WHERE scope_key IN ($1, $2)`, "session:"+dupSession, todayKey)
+	})
+	for i := range 4 {
+		id := newUUIDv4()
+		if _, allowed, rErr := store.ReserveTurnTx(ctx, ReserveTurnInput{
+			AttemptID: id, SessionID: dupSession, Role: contracts.RoleGuest, Mode: "qa",
+			PromptHash: "dup5-pre-" + id, CorrelationID: "corr-dup5-pre-" + id,
+		}); rErr != nil || !allowed {
+			t.Fatalf("pre-turn %d failed: allowed=%v err=%v", i+1, allowed, rErr)
+		}
+	}
+	dupAttempt5 := newUUIDv4()
+	var dupWg sync.WaitGroup
+	var dupMu sync.Mutex
+	dupAllowed, dupReused := 0, 0
+	for i := range 2 {
+		dupWg.Add(1)
+		go func(idx int) {
+			defer dupWg.Done()
+			res, allowed, rErr := store.ReserveTurnTx(ctx, ReserveTurnInput{
+				AttemptID: dupAttempt5, SessionID: dupSession, Role: contracts.RoleGuest, Mode: "qa",
+				PromptHash: "dup5-shared-hash", CorrelationID: fmt.Sprintf("corr-dup5-%d", idx),
+			})
+			dupMu.Lock()
+			defer dupMu.Unlock()
+			if rErr != nil {
+				t.Errorf("concurrent dup attempt 5/5 err (%d): %v", idx, rErr)
+				return
+			}
+			if !allowed || res.Quota.TurnsUsed != 5 {
+				t.Errorf("expected allowed=true and turnsUsed=5 on dup attempt 5/5 (%d), got allowed=%v quota=%+v", idx, allowed, res.Quota)
+				return
+			}
+			dupAllowed++
+			if res.Reused {
+				dupReused++
+			}
+		}(i)
+	}
+	dupWg.Wait()
+	if dupAllowed != 2 || dupReused != 1 {
+		t.Fatalf("expected 2 allowed (1 fresh + 1 reused) for concurrent Turn 5/5 duplicate attemptId, got allowed=%d reused=%d", dupAllowed, dupReused)
+	}
+	if _, allowedDistinct, dErr := store.ReserveTurnTx(ctx, ReserveTurnInput{
+		AttemptID: newUUIDv4(), SessionID: dupSession, Role: contracts.RoleGuest, Mode: "qa",
+		PromptHash: "dup5-turn6", CorrelationID: "corr-dup5-turn6",
+	}); dErr != nil || allowedDistinct {
+		t.Fatalf("expected distinct 6th turn rejected cleanly, got allowed=%v err=%v", allowedDistinct, dErr)
+	}
+
+	// Verify expired lease transition in live PG19 + ReconcileTurnTx rejection
 	leaseID := newUUIDv4()
 	_, _, err = store.ReserveTurnTx(ctx, ReserveTurnInput{
 		AttemptID: leaseID, SessionID: "pg_lease_" + leaseID, Role: contracts.RoleGuest, Mode: "qa",

@@ -255,6 +255,7 @@ describe('PortalAskPage', () => {
       }),
     );
 
+    const onSubmitAsk = vi.fn<PortalAskPageProps['onSubmitAsk']>();
     render(
       <PortalAskPage
         content={SAMPLE_CONTENT}
@@ -275,7 +276,7 @@ describe('PortalAskPage', () => {
           },
         }}
         isSubmitting={false}
-        onSubmitAsk={vi.fn<PortalAskPageProps['onSubmitAsk']>()}
+        onSubmitAsk={onSubmitAsk}
         onClose={vi.fn<() => void>()}
       />,
     );
@@ -291,6 +292,89 @@ describe('PortalAskPage', () => {
       `/api/ask/turns/${attemptId}`,
       expect.objectContaining({ method: 'GET' }),
     );
+    expect(screen.queryByTestId('ask-turn-pending')).toBeNull();
+
+    // Verify tabs and subsequent submissions unlock even while fetcher.data stays 202 pending
+    fireEvent.click(screen.getByTestId('ask-tab-jd'));
+    expect((screen.getByTestId('ask-jd-textarea') as HTMLTextAreaElement).disabled).toBe(false);
+    fireEvent.click(screen.getByTestId('ask-tab-qa'));
+    fireEvent.click(screen.getByTestId('ask-starter-0'));
+    const qaSubmit = screen.getByTestId('ask-qa-submit') as HTMLButtonElement;
+    expect(qaSubmit.disabled).toBe(false);
+    fireEvent.click(qaSubmit);
+    expect(onSubmitAsk).toHaveBeenCalledWith({
+      mode: 'qa',
+      text: 'How does Cloud Run integrate with GKE?',
+      attemptId: expect.any(String),
+    });
+  });
+
+  it('unblocks UI and refreshes quota when a 202 pending turn fails during /api/ask/turns polling', async () => {
+    const attemptId = '77777777-7777-4777-8777-777777777777';
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      Response.json({
+        attemptId,
+        status: 'failed',
+        mode: 'qa',
+        correlationId: 'corr-pending-fail',
+        leaseExpiresAt: '2026-11-24T22:01:00Z',
+        expiresAt: '2026-11-24T22:15:00Z',
+        quota: { ...SAMPLE_QUOTA, turnsUsed: 0, tokensUsed: 0 },
+        error: {
+          code: 'ERR_UPSTREAM_UNAVAILABLE',
+          status: 503,
+          message: 'Upstream inference failed cleanly.',
+          action: 'Retry your question.',
+          correlationId: 'corr-pending-fail',
+        },
+      }),
+    );
+
+    const onSubmitAsk = vi.fn<PortalAskPageProps['onSubmitAsk']>();
+    render(
+      <PortalAskPage
+        content={SAMPLE_CONTENT}
+        quota={SAMPLE_QUOTA}
+        actionResult={{
+          ok: true,
+          pending: true,
+          mode: 'qa',
+          submittedText: 'Fail mid-flight.',
+          attemptId,
+          turnState: {
+            attemptId,
+            status: 'running',
+            mode: 'qa',
+            correlationId: 'corr-pending-start',
+            leaseExpiresAt: '2026-11-24T22:01:00Z',
+            expiresAt: '2026-11-24T22:15:00Z',
+            quota: { ...SAMPLE_QUOTA, turnsUsed: 1, tokensUsed: 512 },
+          },
+        }}
+        isSubmitting={false}
+        onSubmitAsk={onSubmitAsk}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('ask-error-banner')).toBeTruthy();
+      },
+      { timeout: 2_500 },
+    );
+
+    expect(screen.queryByTestId('ask-turn-pending')).toBeNull();
+    expect(screen.getByTestId('ask-error-banner').textContent).toContain(
+      'Upstream inference failed cleanly.',
+    );
+    expect(screen.getByText('0/5 turns')).toBeTruthy();
+
+    fireEvent.click(screen.getByTestId('ask-starter-0'));
+    const submitBtn = screen.getByTestId('ask-qa-submit') as HTMLButtonElement;
+    expect(submitBtn.disabled).toBe(false);
+    fireEvent.click(submitBtn);
+    expect(onSubmitAsk).toHaveBeenCalledTimes(1);
   });
 
   it('does not eagerly poll /api/ask/turns right on same-mount submit before POST settles or returns 202', () => {

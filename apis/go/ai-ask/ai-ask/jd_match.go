@@ -25,13 +25,17 @@ type jdSynthesisPayload struct {
 
 func chunkTextForEmbed(text string, chunkSize int) []string {
 	trimmed := strings.TrimSpace(text)
-	if len(trimmed) <= chunkSize {
+	if chunkSize <= 0 {
+		return []string{trimmed}
+	}
+	runes := []rune(trimmed)
+	if len(runes) <= chunkSize {
 		return []string{trimmed}
 	}
 	var chunks []string
-	for start := 0; start < len(trimmed) && len(chunks) < 5; start += chunkSize {
-		end := min(len(trimmed), start+chunkSize)
-		chunks = append(chunks, trimmed[start:end])
+	for start := 0; start < len(runes) && len(chunks) < 5; start += chunkSize {
+		end := min(len(runes), start+chunkSize)
+		chunks = append(chunks, string(runes[start:end]))
 	}
 	return chunks
 }

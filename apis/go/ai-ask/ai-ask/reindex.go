@@ -126,16 +126,16 @@ func handleReindex(provider llm.Provider, vectorStore *qdrant.Client, store *pg.
 			}
 		}
 
-		existingIDs, listErr := vectorStore.ListPointIDs(r.Context(), portfolioCollection)
+		existingIDs, listErr := vectorStore.ListTypedPointIDs(r.Context(), portfolioCollection)
 		if listErr != nil {
 			writePublicError(w, http.StatusBadGateway, contracts.ErrCodeUpstreamUnavailable,
 				"Upstream service unreachable.", "Retry shortly or go home.", corrID)
 			return
 		}
 		staleIDs := make([]any, 0)
-		for _, id := range existingIDs {
-			if _, keep := keepIDs[id]; !keep {
-				staleIDs = append(staleIDs, id)
+		for _, pt := range existingIDs {
+			if _, keep := keepIDs[pt.Key]; !keep {
+				staleIDs = append(staleIDs, pt.Raw)
 			}
 		}
 		if len(staleIDs) > 0 {

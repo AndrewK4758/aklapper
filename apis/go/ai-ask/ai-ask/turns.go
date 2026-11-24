@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
@@ -104,7 +105,8 @@ func handleAskPost(provider llm.Provider, vectorStore *qdrant.Client, store *pg.
 		var queryText string
 		if mode == "qa" {
 			queryText = strings.TrimSpace(req.Question)
-			if len(queryText) < 4 || len(queryText) > 800 {
+			qRunes := utf8.RuneCountInString(queryText)
+			if qRunes < 4 || qRunes > 800 {
 				writePublicError(w, http.StatusBadRequest, contracts.ErrCodeValidation,
 					"Question must be between 4 and 800 characters.", "Adjust your question and retry.", corrID)
 				return
@@ -114,7 +116,8 @@ func handleAskPost(provider llm.Provider, vectorStore *qdrant.Client, store *pg.
 			if queryText == "" {
 				queryText = strings.TrimSpace(req.Question)
 			}
-			if len(queryText) < 20 || len(queryText) > 8000 {
+			jdRunes := utf8.RuneCountInString(queryText)
+			if jdRunes < 20 || jdRunes > 8000 {
 				writePublicError(w, http.StatusBadRequest, contracts.ErrCodeValidation,
 					"Job description must be between 20 and 8000 characters.", "Adjust job description length and retry.", corrID)
 				return

@@ -70,7 +70,11 @@ export interface PersistedAskTurn {
 export type PollTurnOutcome =
   | { readonly kind: 'pending'; readonly state: AskTurnState }
   | { readonly kind: 'settled'; readonly state: AskTurnState }
-  | ({ readonly kind: 'error'; readonly message: string } & ActionErrorMetadata);
+  | ({
+      readonly kind: 'error';
+      readonly message: string;
+      readonly quota?: QuotaStatus;
+    } & ActionErrorMetadata);
 
 export function generateAskAttemptId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -207,6 +211,7 @@ export async function pollAskTurnState(
       code: turnErr?.code ?? 'ERR_UPSTREAM_UNAVAILABLE',
       action: turnErr?.action ?? 'Retry your question.',
       correlationId: turnErr?.correlationId ?? parsedTurn.data.correlationId,
+      quota: parsedTurn.data.quota,
     };
   }
 

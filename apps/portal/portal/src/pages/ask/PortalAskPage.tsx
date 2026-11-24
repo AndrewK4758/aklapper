@@ -77,6 +77,9 @@ export function PortalAskPage({
   const [polledQuota, setPolledQuota] = useState<QuotaStatus | null>(null);
   const [recoveredError, setRecoveredError] = useState<RecoveredErrorState | null>(null);
   const [dispatchedAttemptId, setDispatchedAttemptId] = useState<string | null>(null);
+  const [settledPendingAttemptIds, setSettledPendingAttemptIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
   const [lastRecordedResult, setLastRecordedResult] = useState<PortalAskActionResult | undefined>(
     undefined,
   );
@@ -87,6 +90,7 @@ export function PortalAskPage({
     setRecoveredError(null);
     if (actionResult.ok && isPendingAskResult(actionResult)) {
       setPolledTurnState(actionResult.turnState);
+      setPolledQuota(null);
     } else if (actionResult.ok && !isPendingAskResult(actionResult)) {
       setPolledTurnState(null);
       setPolledQuota(null);
@@ -105,9 +109,14 @@ export function PortalAskPage({
       }
     } else if (!actionResult.ok) {
       setPolledTurnState(null);
+      setPolledQuota(null);
     }
   }
 
+  const pendingActionResult =
+    isPendingAskResult(actionResult) && !settledPendingAttemptIds.has(actionResult.attemptId)
+      ? actionResult
+      : undefined;
   const actionSettled = Boolean(actionResult && !isPendingAskResult(actionResult));
   useEffect(() => {
     if (actionSettled) clearPersistedAskTurn();
@@ -117,25 +126,35 @@ export function PortalAskPage({
   const isRecoveredTurn =
     persistedTurn !== null &&
     persistedTurn.attemptId !== dispatchedAttemptId &&
+    !settledPendingAttemptIds.has(persistedTurn.attemptId) &&
     !isSubmitting &&
     !actionSettled;
-  const hasPendingTurn = isPendingAskResult(actionResult) || isRecoveredTurn;
-  const pendingAttemptId = isPendingAskResult(actionResult)
-    ? actionResult.attemptId
+  const hasPendingTurn = Boolean(pendingActionResult) || isRecoveredTurn;
+  const pendingAttemptId = pendingActionResult
+    ? pendingActionResult.attemptId
     : isRecoveredTurn
       ? persistedTurn.attemptId
       : undefined;
-  const pendingMode = isPendingAskResult(actionResult)
-    ? actionResult.mode
+  const pendingMode = pendingActionResult
+    ? pendingActionResult.mode
     : isRecoveredTurn
       ? persistedTurn.mode
       : undefined;
-  const pendingSubmittedText = isPendingAskResult(actionResult)
-    ? actionResult.submittedText
+  const pendingSubmittedText = pendingActionResult
+    ? pendingActionResult.submittedText
     : isRecoveredTurn
       ? persistedTurn.question
       : undefined;
-  const pollImmediately = hasPendingTurn && !isPendingAskResult(actionResult);
+  const pollImmediately = hasPendingTurn && !pendingActionResult;
+
+  const markPendingAttemptSettled = (attemptId: string) => {
+    setSettledPendingAttemptIds(prev => {
+      if (prev.has(attemptId)) return prev;
+      const next = new Set(prev);
+      next.add(attemptId);
+      return next;
+    });
+  };
 
   // Poll /api/ask/turns/:attemptId while an async 202 or sessionStorage-recovered turn is active.
   useEffect(() => {
@@ -145,6 +164,7 @@ export function PortalAskPage({
       pollImmediately,
       onPending: state => setPolledTurnState(state),
       onSettled: state => {
+        markPendingAttemptSettled(pendingAttemptId);
         setPolledTurnState(null);
         setActiveTab(pendingMode);
         if (!state.response) return;
@@ -160,7 +180,9 @@ export function PortalAskPage({
         }
       },
       onError: outcome => {
+        markPendingAttemptSettled(pendingAttemptId);
         setPolledTurnState(null);
+        if (outcome.quota) setPolledQuota(outcome.quota);
         setActiveTab(pendingMode);
         setRecoveredError({
           ok: false,
@@ -175,9 +197,11 @@ export function PortalAskPage({
   }, [pendingAttemptId, pendingMode, pendingSubmittedText, pollImmediately]);
 
   const actionQuota = actionResult?.ok
-    ? isPendingAskResult(actionResult)
-      ? actionResult.turnState.quota
-      : actionResult.response.quota
+    ? pendingActionResult
+      ? pendingActionResult.turnState.quota
+      : isPendingAskResult(actionResult)
+        ? undefined
+        : actionResult.response.quota
     : actionResult?.quota;
   const activeQuota = polledQuota ?? actionQuota ?? quota;
 
@@ -186,8 +210,8 @@ export function PortalAskPage({
     hasPendingTurn && pendingAttemptId && pendingMode
       ? polledTurnState?.attemptId === pendingAttemptId
         ? polledTurnState
-        : isPendingAskResult(actionResult)
-          ? actionResult.turnState
+        : pendingActionResult
+          ? pendingActionResult.turnState
           : buildRecoveringTurnState(pendingAttemptId, pendingMode)
       : null;
 

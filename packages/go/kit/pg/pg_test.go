@@ -205,7 +205,7 @@ func TestAskTurnReserveReconcileRefundAndLeaseExpiry(t *testing.T) {
 		t.Fatalf("expected exact refund back to turns=2 tokens=1414, got %+v err=%v", qAfterRefund, err)
 	}
 
-	// Expired lease rejects late ReconcileTurnTx and refunds once (CP-13)
+	// Expired lease rejects late ReconcileTurnTx and refunds once
 	idLease := "44444444-4444-4444-8444-444444444444"
 	_, _, err = store.ReserveTurnTx(ctx, ReserveTurnInput{
 		AttemptID: idLease, SessionID: "guest_lease", Role: contracts.RoleGuest, Mode: "qa",

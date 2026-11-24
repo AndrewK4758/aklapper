@@ -231,9 +231,47 @@ func (c *Client) CollectionInfo(ctx context.Context, collection string) (*Collec
 	}, nil
 }
 
-// ListPointIDs scrolls all stored point IDs in a collection for orphan cleanup after reindex.
-func (c *Client) ListPointIDs(ctx context.Context, collection string) ([]string, error) {
-	ids := []string{}
+// StoredPointID preserves a scrolled Qdrant point identifier's lookup key and wire representation.
+type StoredPointID struct {
+	Key string
+	Raw any
+}
+
+func parseStoredPointID(raw any) (StoredPointID, bool) {
+	switch v := raw.(type) {
+	case string:
+		trimmed := strings.TrimSpace(v)
+		if trimmed == "" {
+			return StoredPointID{}, false
+		}
+		return StoredPointID{Key: trimmed, Raw: trimmed}, true
+	case json.Number:
+		s := strings.TrimSpace(v.String())
+		if s == "" {
+			return StoredPointID{}, false
+		}
+		if u, err := strconv.ParseUint(s, 10, 64); err == nil {
+			return StoredPointID{Key: strconv.FormatUint(u, 10), Raw: u}, true
+		}
+		if i, err := v.Int64(); err == nil && i >= 0 {
+			u := uint64(i)
+			return StoredPointID{Key: strconv.FormatUint(u, 10), Raw: u}, true
+		}
+		return StoredPointID{}, false
+	case float64:
+		if v >= 0 {
+			u := uint64(v)
+			return StoredPointID{Key: strconv.FormatUint(u, 10), Raw: u}, true
+		}
+		return StoredPointID{}, false
+	default:
+		return StoredPointID{}, false
+	}
+}
+
+// ListTypedPointIDs scrolls all stored point IDs while preserving string vs uint64 wire types.
+func (c *Client) ListTypedPointIDs(ctx context.Context, collection string) ([]StoredPointID, error) {
+	ids := []StoredPointID{}
 	var offset any
 
 	for {
@@ -255,7 +293,7 @@ func (c *Client) ListPointIDs(ctx context.Context, collection string) ([]string,
 		}
 		if res.StatusCode == http.StatusNotFound {
 			res.Body.Close()
-			return []string{}, nil
+			return []StoredPointID{}, nil
 		}
 		if res.StatusCode >= 300 {
 			res.Body.Close()
@@ -270,25 +308,35 @@ func (c *Client) ListPointIDs(ctx context.Context, collection string) ([]string,
 				NextPageOffset any `json:"next_page_offset"`
 			} `json:"result"`
 		}
-		decodeErr := json.NewDecoder(res.Body).Decode(&parsed)
+		dec := json.NewDecoder(res.Body)
+		dec.UseNumber()
+		decodeErr := dec.Decode(&parsed)
 		res.Body.Close()
 		if decodeErr != nil {
 			return nil, decodeErr
 		}
 		for _, pt := range parsed.Result.Points {
-			switch v := pt.ID.(type) {
-			case string:
-				if strings.TrimSpace(v) != "" {
-					ids = append(ids, v)
-				}
-			case float64:
-				ids = append(ids, strconv.FormatInt(int64(v), 10))
+			if id, ok := parseStoredPointID(pt.ID); ok {
+				ids = append(ids, id)
 			}
 		}
 		if parsed.Result.NextPageOffset == nil {
 			break
 		}
 		offset = parsed.Result.NextPageOffset
+	}
+	return ids, nil
+}
+
+// ListPointIDs scrolls all stored point IDs as strings for callers needing canonical string keys.
+func (c *Client) ListPointIDs(ctx context.Context, collection string) ([]string, error) {
+	typed, err := c.ListTypedPointIDs(ctx, collection)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, len(typed))
+	for i, pt := range typed {
+		ids[i] = pt.Key
 	}
 	return ids, nil
 }

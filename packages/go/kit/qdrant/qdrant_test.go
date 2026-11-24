@@ -174,3 +174,85 @@ func TestQdrantUUIDv5ListAndDeletePoints(t *testing.T) {
 		t.Fatalf("expected orphan-id deleted, got %+v", deletedIDs)
 	}
 }
+
+func TestQdrantListTypedPointIDsPreservesUint64ForDelete(t *testing.T) {
+	t.Parallel()
+
+	var deletedWireIDs []json.Number
+	var observedSecondOffset string
+	scrollCall := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/collections/portfolio_docs/points/scroll":
+			scrollCall++
+			var body map[string]any
+			dec := json.NewDecoder(r.Body)
+			dec.UseNumber()
+			_ = dec.Decode(&body)
+			if scrollCall == 1 {
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"result": map[string]any{
+						"points":           []map[string]any{{"id": 1}},
+						"next_page_offset": 2,
+					},
+				})
+				return
+			}
+			if off, ok := body["offset"].(json.Number); ok {
+				observedSecondOffset = off.String()
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"result": map[string]any{
+					"points":           []map[string]any{{"id": 2}, {"id": "stale-uuid"}},
+					"next_page_offset": nil,
+				},
+			})
+		case r.Method == http.MethodPost && r.URL.Path == "/collections/portfolio_docs/points/delete":
+			var body struct {
+				Points []any `json:"points"`
+			}
+			dec := json.NewDecoder(r.Body)
+			dec.UseNumber()
+			if err := dec.Decode(&body); err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			for _, raw := range body.Points {
+				num, ok := raw.(json.Number)
+				if !ok {
+					http.Error(w, "expected numeric json point ID", http.StatusBadRequest)
+					return
+				}
+				deletedWireIDs = append(deletedWireIDs, num)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	client := &Client{BaseURL: srv.URL, HTTPClient: srv.Client()}
+	typed, err := client.ListTypedPointIDs(context.Background(), "portfolio_docs")
+	if err != nil {
+		t.Fatalf("ListTypedPointIDs failed: %v", err)
+	}
+	if observedSecondOffset != "2" {
+		t.Fatalf("expected numeric next_page_offset '2' forwarded without quotes, got %q", observedSecondOffset)
+	}
+	if len(typed) != 3 {
+		t.Fatalf("expected 3 IDs, got %+v", typed)
+	}
+	u0, ok0 := typed[0].Raw.(uint64)
+	u1, ok1 := typed[1].Raw.(uint64)
+	s2, ok2 := typed[2].Raw.(string)
+	if !ok0 || u0 != 1 || !ok1 || u1 != 2 || !ok2 || s2 != "stale-uuid" {
+		t.Fatalf("unexpected typed point IDs: %+v", typed)
+	}
+	if err := client.DeletePoints(context.Background(), "portfolio_docs", []any{typed[0].Raw, typed[1].Raw}); err != nil {
+		t.Fatalf("DeletePoints failed for uint64 IDs: %v", err)
+	}
+	if len(deletedWireIDs) != 2 || deletedWireIDs[0].String() != "1" || deletedWireIDs[1].String() != "2" {
+		t.Fatalf("expected JSON numbers [1, 2], got %+v", deletedWireIDs)
+	}
+}

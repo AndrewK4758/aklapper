@@ -181,7 +181,7 @@ func (s *Store) getTurnMemory(now time.Time, attemptID, sessionID string) (*Turn
 	return &copied, formatQuotaStatus(rec.Role, policy, sb.turnsUsed, sb.tokensUsed), nil
 }
 
-// ExpireLeaseForTest backdates leaseExpiresAt in memory store for unit testing CP-13 lease expiry.
+// ExpireLeaseForTest backdates leaseExpiresAt in memory store for unit testing execution-lease expiry.
 func (s *Store) ExpireLeaseForTest(attemptID string, expiredAt time.Time) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

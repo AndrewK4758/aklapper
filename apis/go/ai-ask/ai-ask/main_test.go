@@ -87,7 +87,7 @@ func TestAiAskUnitFlows(t *testing.T) {
 	var qdrantErr bool
 	var statusErr bool
 	upsertedPoints := []qdrant.Point{}
-	existingScrollIDs := []string{"stale-orphan-point"}
+	existingScrollIDs := []any{uint64(1), uint64(2), "stale-orphan-point"}
 	deletedIDs := []any{}
 
 	qdrantSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -126,7 +126,15 @@ func TestAiAskUnitFlows(t *testing.T) {
 			var body struct {
 				Points []any `json:"points"`
 			}
-			_ = json.NewDecoder(r.Body).Decode(&body)
+			dec := json.NewDecoder(r.Body)
+			dec.UseNumber()
+			_ = dec.Decode(&body)
+			for _, pt := range body.Points {
+				if strVal, isStr := pt.(string); isStr && (strVal == "1" || strVal == "2") {
+					http.Error(w, "legacy uint64 ID must be JSON number, not string", http.StatusBadRequest)
+					return
+				}
+			}
 			deletedIDs = append([]any(nil), body.Points...)
 			existingScrollIDs = nil
 			_ = json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
@@ -200,7 +208,7 @@ func TestAiAskUnitFlows(t *testing.T) {
 		}
 	})
 
-	t.Run("POST /v1/ask/reindex uses UUIDv5 IDs and prunes orphan points", func(t *testing.T) {
+	t.Run("POST /v1/ask/reindex uses UUIDv5 IDs and prunes legacy uint64 + string orphan points", func(t *testing.T) {
 		reqForbidden := httptest.NewRequest(http.MethodPost, "/v1/ask/reindex", nil)
 		recForbidden := httptest.NewRecorder()
 		h.ServeHTTP(recForbidden, reqForbidden)
@@ -219,8 +227,8 @@ func TestAiAskUnitFlows(t *testing.T) {
 		nPts := len(upsertedPoints)
 		pruned := len(deletedIDs)
 		mu.Unlock()
-		if nPts < 3 || pruned != 1 {
-			t.Fatalf("expected >=3 UUIDv5 points and 1 stale point pruned, got pts=%d pruned=%d", nPts, pruned)
+		if nPts < 3 || pruned != 3 {
+			t.Fatalf("expected >=3 UUIDv5 points and 3 stale points pruned, got pts=%d pruned=%d", nPts, pruned)
 		}
 	})
 

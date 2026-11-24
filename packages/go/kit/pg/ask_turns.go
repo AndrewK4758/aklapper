@@ -149,6 +149,14 @@ func (s *Store) ReserveTurnTx(ctx context.Context, in ReserveTurnInput) (TurnRes
 	if err != nil {
 		return TurnReservation{}, false, err
 	}
+	// Re-check under the serialized session quota lock without inverting ask_turns -> session lock order.
+	racedTurn, racedErr := readAskTurnRowNoLock(ctx, tx, in.AttemptID)
+	if racedErr != nil && !errors.Is(racedErr, ErrTurnNotFound) {
+		return TurnReservation{}, false, racedErr
+	}
+	if racedErr == nil {
+		return s.reuseCommittedRaceTurn(ctx, tx, in, racedTurn, role, sessionID, policy, sessionTurns, sessionTokens, now)
+	}
 	if sessionTurns+1 > policy.MaxTurnsPerSession ||
 		reserveTokens > policy.MaxTokensPerRun ||
 		globalTokens+reserveTokens > policy.MaxDailyGlobalTokens {

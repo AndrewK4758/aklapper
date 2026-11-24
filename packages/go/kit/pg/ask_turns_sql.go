@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	"github.com/jackc/pgx/v5"
@@ -94,16 +95,10 @@ func (s *Store) refundLockedTurnPG(
 	return formatQuotaStatus(row.Role, policy, max(0, turnsUsed-1), max(0, tokensUsed-row.TokensReserved)), nil
 }
 
-func lockAskTurnRow(ctx context.Context, tx pgx.Tx, attemptID string) (*TurnRecord, error) {
+func scanAskTurnRow(row pgx.Row) (*TurnRecord, error) {
 	var rec TurnRecord
 	var resultText, errorCode *string
-	err := tx.QueryRow(
-		ctx,
-		`SELECT attempt_id, session_id, role, mode, prompt_hash, status, tokens_reserved, tokens_used,
-		        result_json::text, error_code, correlation_id, created_at, updated_at, lease_expires_at, expires_at
-		 FROM ask_turns WHERE attempt_id = $1 FOR UPDATE`,
-		attemptID,
-	).Scan(
+	err := row.Scan(
 		&rec.AttemptID, &rec.SessionID, &rec.Role, &rec.Mode, &rec.PromptHash, &rec.Status,
 		&rec.TokensReserved, &rec.TokensUsed, &resultText, &errorCode, &rec.CorrelationID,
 		&rec.CreatedAt, &rec.UpdatedAt, &rec.LeaseExpiresAt, &rec.ExpiresAt,
@@ -125,4 +120,48 @@ func lockAskTurnRow(ctx context.Context, tx pgx.Tx, attemptID string) (*TurnReco
 		rec.Result = &parsed
 	}
 	return &rec, nil
+}
+
+const selectAskTurnColsSQL = `SELECT attempt_id, session_id, role, mode, prompt_hash, status, tokens_reserved, tokens_used,
+        result_json::text, error_code, correlation_id, created_at, updated_at, lease_expires_at, expires_at
+ FROM ask_turns WHERE attempt_id = $1`
+
+func readAskTurnRowNoLock(ctx context.Context, tx pgx.Tx, attemptID string) (*TurnRecord, error) {
+	return scanAskTurnRow(tx.QueryRow(ctx, selectAskTurnColsSQL, attemptID))
+}
+
+func lockAskTurnRow(ctx context.Context, tx pgx.Tx, attemptID string) (*TurnRecord, error) {
+	return scanAskTurnRow(tx.QueryRow(ctx, selectAskTurnColsSQL+" FOR UPDATE", attemptID))
+}
+
+func (s *Store) reuseCommittedRaceTurn(
+	ctx context.Context,
+	tx pgx.Tx,
+	in ReserveTurnInput,
+	raced *TurnRecord,
+	role, sessionID string,
+	policy QuotaPolicy,
+	sessionTurns, sessionTokens int,
+	now time.Time,
+) (TurnReservation, bool, error) {
+	if raced.SessionID != sessionID || raced.PromptHash != in.PromptHash {
+		return TurnReservation{}, false, ErrTurnConflict
+	}
+	if (raced.Status == contracts.TurnStatusPending || raced.Status == contracts.TurnStatusRunning) &&
+		!raced.LeaseExpiresAt.After(now) {
+		_ = tx.Rollback(ctx)
+		turn, quota, getErr := s.GetTurnByAttemptID(ctx, in.AttemptID, sessionID)
+		if getErr != nil {
+			return TurnReservation{}, false, getErr
+		}
+		return TurnReservation{Turn: *turn, Quota: quota, Reused: true}, true, nil
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return TurnReservation{}, false, err
+	}
+	return TurnReservation{
+		Turn:   *raced,
+		Quota:  formatQuotaStatus(role, policy, sessionTurns, sessionTokens),
+		Reused: true,
+	}, true, nil
 }

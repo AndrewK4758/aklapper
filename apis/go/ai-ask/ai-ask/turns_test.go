@@ -6,8 +6,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
@@ -126,6 +129,86 @@ func TestAiAskAsyncRecoveryDisconnectAndQuota(t *testing.T) {
 		h.ServeHTTP(recOver, reqOver)
 		if recOver.Code != http.StatusTooManyRequests {
 			t.Fatalf("expected 429, got %d", recOver.Code)
+		}
+	})
+
+	t.Run("UTF-8 multi-byte rune validation and JD chunk slicing avoid byte truncation", func(t *testing.T) {
+		tok := signHeader(t, internalauth.RoleGuest, "guest-utf8")
+
+		multiByteJD := strings.Repeat("•", 7900) // 7900 chars, 23700 UTF-8 bytes
+		chunks := chunkTextForEmbed(multiByteJD, maxEmbedChunkChars)
+		if len(chunks) != 5 {
+			t.Fatalf("expected 5 rune chunks for 7900-rune JD, got %d", len(chunks))
+		}
+		for i, ch := range chunks {
+			if !utf8.ValidString(ch) || strings.ContainsRune(ch, utf8.RuneError) {
+				t.Fatalf("chunk %d split multi-byte UTF-8 rune: valid=%v", i, utf8.ValidString(ch))
+			}
+		}
+
+		body, _ := json.Marshal(map[string]any{
+			"mode":           "jd_match",
+			"jobDescription": multiByteJD,
+		})
+		req := httptest.NewRequest(http.MethodPost, "/v1/ask", bytes.NewReader(body))
+		req.Header.Set(internalauth.HeaderName, tok)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		if rec.Code == http.StatusBadRequest {
+			t.Fatalf("expected 7900-rune multi-byte JD accepted past validation, got 400: %s", rec.Body.String())
+		}
+
+		multiByteQ := strings.Repeat("字", 800) // 800 chars, 2400 UTF-8 bytes
+		qBody, _ := json.Marshal(map[string]any{"mode": "qa", "question": multiByteQ})
+		qReq := httptest.NewRequest(http.MethodPost, "/v1/ask", bytes.NewReader(qBody))
+		qReq.Header.Set(internalauth.HeaderName, tok)
+		qRec := httptest.NewRecorder()
+		h.ServeHTTP(qRec, qReq)
+		if qRec.Code == http.StatusBadRequest {
+			t.Fatalf("expected 800-rune multi-byte question accepted past validation, got 400: %s", qRec.Body.String())
+		}
+
+		overQ := strings.Repeat("字", 801)
+		overBody, _ := json.Marshal(map[string]any{"mode": "qa", "question": overQ})
+		overReq := httptest.NewRequest(http.MethodPost, "/v1/ask", bytes.NewReader(overBody))
+		overReq.Header.Set(internalauth.HeaderName, tok)
+		overRec := httptest.NewRecorder()
+		h.ServeHTTP(overRec, overReq)
+		if overRec.Code != http.StatusBadRequest {
+			t.Fatalf("expected 801-rune question rejected with 400, got %d", overRec.Code)
+		}
+	})
+
+	t.Run("Concurrent duplicate attemptId at final quota slot reuses idempotently instead of 429", func(t *testing.T) {
+		tok := signHeader(t, internalauth.RoleGuest, "guest-cap-dup")
+		req1 := httptest.NewRequest(http.MethodPost, "/v1/ask", bytes.NewReader([]byte(`{"mode":"qa","question":"First quota slot turn"}`)))
+		req1.Header.Set(internalauth.HeaderName, tok)
+		rec1 := httptest.NewRecorder()
+		h.ServeHTTP(rec1, req1)
+		if rec1.Code != http.StatusOK {
+			t.Fatalf("expected turn 1 200, got %d", rec1.Code)
+		}
+
+		finalAttempt := "88888888-8888-4888-8888-888888888888"
+		payload := []byte(`{"mode":"qa","attemptId":"` + finalAttempt + `","question":"Concurrent final slot attempt"}`)
+		var wg sync.WaitGroup
+		codes := make([]int, 2)
+		for i := range 2 {
+			wg.Add(1)
+			go func(idx int) {
+				defer wg.Done()
+				req := httptest.NewRequest(http.MethodPost, "/v1/ask", bytes.NewReader(payload))
+				req.Header.Set(internalauth.HeaderName, tok)
+				rec := httptest.NewRecorder()
+				h.ServeHTTP(rec, req)
+				codes[idx] = rec.Code
+			}(i)
+		}
+		wg.Wait()
+		for i, code := range codes {
+			if code != http.StatusOK && code != http.StatusAccepted {
+				t.Fatalf("expected duplicate final-slot request %d to return 200/202, got %d", i, code)
+			}
 		}
 	})
 }
