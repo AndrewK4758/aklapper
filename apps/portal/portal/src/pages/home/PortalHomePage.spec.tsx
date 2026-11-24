@@ -40,18 +40,25 @@ const TERMINAL: TerminalProfileData = {
 };
 
 describe('portal/pages/home', () => {
-  it('renders the full-viewport terminal workspace and opens its TUI launcher', () => {
+  it('renders the full-viewport terminal workspace and snaps its TUI launcher into a split pane', () => {
     const onNavigate = vi.fn<(to: string) => void>();
-    render(
+    const { container } = render(
       <MemoryRouter>
         <PortalHomePage content={CONTENT} terminal={TERMINAL} onNavigate={onNavigate} />
       </MemoryRouter>,
     );
 
+    const workspaceEl = container.querySelector('[data-pane-count]') as HTMLElement;
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
+
     const input = screen.getByLabelText('Terminal command input');
     fireEvent.change(input, { target: { value: 'tui' } });
     fireEvent.submit(input.closest('form') as HTMLFormElement);
 
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
+    const tuiPane = container.querySelector('[data-pane-kind="tui"]') as HTMLElement;
+    expect(tuiPane).toBeTruthy();
+    expect(tuiPane.getAttribute('data-active')).toBe('true');
     expect(screen.getByRole('heading', { name: CONTENT.heading })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Open Menu' }).getAttribute('href')).toBe('/menu');
   });

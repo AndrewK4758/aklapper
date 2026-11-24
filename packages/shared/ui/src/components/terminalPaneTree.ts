@@ -14,10 +14,13 @@ export type PaneDropZone =
   | 'root-bottom'
   | 'detach-tab';
 
+export type TerminalPaneKind = 'terminal' | 'tui';
+
 export interface TerminalLeafPane {
   readonly type: 'leaf';
   readonly id: string;
   readonly ttyNumber: number;
+  readonly kind?: TerminalPaneKind;
   readonly tuiOpen: boolean;
   readonly pinned?: boolean;
 }
@@ -157,6 +160,13 @@ export function findLeafPane(node: TerminalPaneNode, paneId: string): TerminalLe
   return findLeafPane(node.first, paneId) ?? findLeafPane(node.second, paneId);
 }
 
+export function findTuiPane(node: TerminalPaneNode): TerminalLeafPane | null {
+  if (node.type === 'leaf') {
+    return node.kind === 'tui' ? node : null;
+  }
+  return findTuiPane(node.first) ?? findTuiPane(node.second);
+}
+
 function containsPane(node: TerminalPaneNode, paneId: string): boolean {
   return findLeafPane(node, paneId) !== null;
 }
@@ -192,21 +202,24 @@ function splitNode(
   return node;
 }
 
-export function splitActivePane(
+function splitPaneWithKind(
   state: TerminalWorkspaceState,
+  targetPaneId: string,
   direction: SplitCreateDirection,
+  kind?: TerminalPaneKind,
 ): TerminalWorkspaceState {
   const paneNumber = state.nextPaneNumber;
   const newLeaf: TerminalLeafPane = {
     type: 'leaf',
     id: `pane-${paneNumber}`,
     ttyNumber: paneNumber,
-    tuiOpen: false,
+    ...(kind ? { kind } : {}),
+    tuiOpen: kind === 'tui',
   };
   const splitDirection: SplitDirection = direction === 'right' ? 'vertical' : 'horizontal';
   const nextRoot = splitNode(
     state.root,
-    state.activePaneId,
+    targetPaneId,
     splitDirection,
     `split-${paneNumber}`,
     newLeaf,
@@ -221,6 +234,13 @@ export function splitActivePane(
     nextPaneNumber: paneNumber + 1,
     focusToken: state.focusToken + 1,
   };
+}
+
+export function splitActivePane(
+  state: TerminalWorkspaceState,
+  direction: SplitCreateDirection,
+): TerminalWorkspaceState {
+  return splitPaneWithKind(state, state.activePaneId, direction);
 }
 
 function removeLeafNode(node: TerminalPaneNode, targetId: string): TerminalPaneNode | null {
@@ -1096,6 +1116,32 @@ export function setPaneTuiOpen(
     ...state,
     root: nextRoot,
   };
+}
+
+export function openTuiPane(
+  state: TerminalWorkspaceState,
+  anchorPaneId?: string,
+  direction: SplitCreateDirection = 'right',
+): TerminalWorkspaceState {
+  const existing = findTuiPane(state.root);
+  if (existing) {
+    return focusPaneById(state, existing.id, true);
+  }
+  const targetPaneId =
+    anchorPaneId && containsPane(state.root, anchorPaneId) ? anchorPaneId : state.activePaneId;
+  return splitPaneWithKind(state, targetPaneId, direction, 'tui');
+}
+
+export function toggleTuiPane(
+  state: TerminalWorkspaceState,
+  anchorPaneId?: string,
+  direction: SplitCreateDirection = 'right',
+): TerminalWorkspaceState {
+  const existing = findTuiPane(state.root);
+  if (existing && state.activePaneId === existing.id) {
+    return closePaneById(state, existing.id);
+  }
+  return openTuiPane(state, anchorPaneId, direction);
 }
 
 function recordTabHistory(history: readonly string[], tabId: string): readonly string[] {

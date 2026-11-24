@@ -16,12 +16,15 @@ import {
   dockPane,
   equalizeAllSplits,
   findLeafPane,
+  findTuiPane,
   focusDirectionalPane,
+  focusPaneById,
   focusRelativePane,
   getActiveWorkspaceTab,
   listLeafPanes,
   matchGhosttyShortcut,
   moveActiveSplit,
+  openTuiPane,
   renameWorkspaceTab,
   resizeActiveSplit,
   rotateActiveSplit,
@@ -33,6 +36,7 @@ import {
   splitActivePane,
   swapPanes,
   TerminalWorkspace,
+  toggleTuiPane,
   toggleZoomActivePane,
   TuiWindow,
 } from '../src';
@@ -484,10 +488,51 @@ describe('terminalPaneTree', () => {
     tabs = closeActivePaneOrTab(tabs);
     expect(tabs.tabs).toHaveLength(2);
   });
+
+  it('opens, focuses, and toggles a snapped TUI split pane beside the anchor pane without duplicating', () => {
+    let state = createInitialWorkspaceState();
+    expect(findTuiPane(state.root)).toBeNull();
+
+    // Opening TUI splits right beside pane-1 and activates the new TUI pane
+    state = openTuiPane(state, 'pane-1', 'right');
+    const tuiLeaf = findTuiPane(state.root);
+    expect(tuiLeaf).toMatchObject({ id: 'pane-2', kind: 'tui', tuiOpen: true });
+    expect(state.activePaneId).toBe('pane-2');
+    expect(computeLeafRects(state.root)).toEqual([
+      { id: 'pane-1', x: 0, y: 0, width: 0.5, height: 1 },
+      { id: 'pane-2', x: 0.5, y: 0, width: 0.5, height: 1 },
+    ]);
+    expect(computeSplitDividers(state.root)).toHaveLength(1);
+
+    // Focus back on pane-1, then openTuiPane again focuses the existing TUI pane without spawning a 3rd pane
+    state = focusPaneById(state, 'pane-1');
+    expect(state.activePaneId).toBe('pane-1');
+    const beforeToken = state.focusToken;
+    state = openTuiPane(state, 'pane-1', 'right');
+    expect(listLeafPanes(state.root)).toHaveLength(2);
+    expect(state.activePaneId).toBe('pane-2');
+    expect(state.focusToken).toBe(beforeToken + 1);
+
+    // toggleTuiPane closes the TUI split pane when it is active and restores focus to pane-1
+    state = toggleTuiPane(state);
+    expect(findTuiPane(state.root)).toBeNull();
+    expect(listLeafPanes(state.root).map(p => p.id)).toEqual(['pane-1']);
+    expect(state.activePaneId).toBe('pane-1');
+
+    // toggleTuiPane re-opens when closed, and focuses existing when inactive
+    state = toggleTuiPane(state, 'pane-1', 'right');
+    const reopenedId = findTuiPane(state.root)?.id;
+    expect(reopenedId).toBe('pane-3');
+    expect(state.activePaneId).toBe('pane-3');
+    state = focusPaneById(state, 'pane-1');
+    state = toggleTuiPane(state, 'pane-1', 'right');
+    expect(state.activePaneId).toBe('pane-3');
+    expect(listLeafPanes(state.root)).toHaveLength(2);
+  });
 });
 
 describe('TerminalWorkspace', () => {
-  it('opens split terminals via Ghostty keybindings, runs independent per-pane TUIs, preserves scrollback across zoom, and closes panes', () => {
+  it('opens split terminals via Ghostty keybindings, snaps TUI into a split pane, preserves scrollback across zoom, and closes panes', () => {
     const navigate = vi.fn<(to: string) => void>();
     const { container } = render(
       <TerminalWorkspace
@@ -495,7 +540,7 @@ describe('TerminalWorkspace', () => {
         navigate={navigate}
         renderTui={({ ttyNumber, closeTui }) => (
           <TuiWindow title={`tui :: tty${ttyNumber}`} closeOnEscape={false} onClose={closeTui}>
-            <div>Launcher inside tty{ttyNumber}</div>
+            <div>Launcher pane {ttyNumber}</div>
           </TuiWindow>
         )}
       />,
@@ -517,34 +562,47 @@ describe('TerminalWorkspace', () => {
     const pane2 = container.querySelector('[data-pane-tty="tty2"]') as HTMLElement;
     expect(pane2.getAttribute('data-active')).toBe('true');
 
-    // Open a TUI inside tty2 via `tui` command
+    // Running `tui` inside tty2 snaps a TUI split pane beside tty2 (3 panes total)
     const activeInput = screen.getByLabelText('Terminal command input') as HTMLInputElement;
     fireEvent.change(activeInput, { target: { value: 'tui' } });
     fireEvent.submit(activeInput.closest('form') as HTMLFormElement);
-    expect(within(pane2).getByText('Launcher inside tty2')).toBeTruthy();
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('3');
+    const tuiPane = container.querySelector('[data-pane-kind="tui"]') as HTMLElement;
+    expect(tuiPane).toBeTruthy();
+    expect(tuiPane.getAttribute('data-active')).toBe('true');
+    expect(within(tuiPane).getByText('Launcher pane 3')).toBeTruthy();
 
-    // Switch back to tty1 via Ghostty Ctrl+Alt+ArrowLeft and open its own TUI via Alt+T
+    // Switch back to tty1 via Ghostty Ctrl+Alt+ArrowLeft; running `tui` again focuses existing TUI pane without duplicating
+    fireEvent.keyDown(window, { key: 'ArrowLeft', ctrlKey: true, altKey: true });
     fireEvent.keyDown(window, { key: 'ArrowLeft', ctrlKey: true, altKey: true });
     const pane1 = container.querySelector('[data-pane-tty="tty1"]') as HTMLElement;
     expect(pane1.getAttribute('data-active')).toBe('true');
 
-    fireEvent.keyDown(window, { key: 't', altKey: true });
-    expect(within(pane1).getByText('Launcher inside tty1')).toBeTruthy();
-    expect(within(pane2).getByText('Launcher inside tty2')).toBeTruthy();
+    const tty1Input = screen.getByLabelText('Terminal command input') as HTMLInputElement;
+    fireEvent.change(tty1Input, { target: { value: 'tui' } });
+    fireEvent.submit(tty1Input.closest('form') as HTMLFormElement);
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('3');
+    expect(tuiPane.getAttribute('data-active')).toBe('true');
 
-    // Pressing Escape closes ONLY active pane's (tty1) TUI while tty2's TUI stays open
-    fireEvent.keyDown(window, { key: 'Escape' });
-    expect(within(pane1).queryByText('Launcher inside tty1')).toBeNull();
-    expect(within(pane2).getByText('Launcher inside tty2')).toBeTruthy();
-
-    // Zoom tty2 via Ghostty Ctrl+Shift+Enter, then unzoom and verify tty1 scrollback survived
-    fireEvent.keyDown(window, { key: ']', metaKey: true });
-    expect(pane2.getAttribute('data-active')).toBe('true');
+    // Zoom the TUI pane via Ghostty Ctrl+Shift+Enter, then unzoom and verify tty1 scrollback survived
     fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-zoomed')).toBe('true');
     fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-zoomed')).toBe('false');
     expect(within(pane1).getByText('guest@andrew-k.us (tty1)')).toBeTruthy();
+
+    // Pressing Escape while the TUI pane is active closes the TUI split pane and returns to 2 panes
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
+    expect(container.querySelector('[data-pane-kind="tui"]')).toBeNull();
+
+    // Alt+T opens a snapped TUI split pane and pressing Alt+T again closes it
+    fireEvent.keyDown(window, { key: 't', altKey: true });
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('3');
+    expect(container.querySelector('[data-pane-kind="tui"]')).toBeTruthy();
+    fireEvent.keyDown(window, { key: 't', altKey: true });
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
+    expect(container.querySelector('[data-pane-kind="tui"]')).toBeNull();
 
     // Close active split pane (tty2) via Ghostty Ctrl+Shift+W
     fireEvent.keyDown(window, { key: 'W', ctrlKey: true, shiftKey: true });
@@ -786,11 +844,15 @@ describe('TerminalWorkspace', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClosePrimaryTui).not.toHaveBeenCalled();
 
-    // Spawned tty2 pane can open its own TUI via Alt+T and close ONLY its own overlay on Escape
+    // Spawned tty2 pane can snap open a TUI split pane via Alt+T and close ONLY that TUI pane on Escape
     fireEvent.keyDown(window, { key: 't', altKey: true });
-    expect(within(pane2).getByText('Overlay inside tty2')).toBeTruthy();
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('3');
+    const tuiPane = container.querySelector('[data-pane-kind="tui"]') as HTMLElement;
+    expect(tuiPane).toBeTruthy();
+    expect(within(tuiPane).getByText('Overlay inside tty3')).toBeTruthy();
     fireEvent.keyDown(window, { key: 'Escape' });
-    expect(within(pane2).queryByText('Overlay inside tty2')).toBeNull();
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
+    expect(container.querySelector('[data-pane-kind="tui"]')).toBeNull();
     expect(onClosePrimaryTui).not.toHaveBeenCalled();
 
     // Switch focus back to pane-1 via Ghostty Ctrl+Alt+ArrowLeft; trying to close pinned pane-1 is ignored
@@ -810,10 +872,15 @@ describe('TerminalWorkspace', () => {
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
   });
 
-  it('delegates cleanly without double-splitting when an embedded TerminalWorkspace mounts inside primaryPane', () => {
+  it('delegates splits and tui split panes cleanly without double-splitting when an embedded TerminalWorkspace mounts inside primaryPane', () => {
     const { container } = render(
       <TerminalWorkspace
         terminal={TERMINAL_FIXTURE}
+        renderTui={({ closeTui }) => (
+          <TuiWindow title='tui :: launcher' closeOnEscape={false} onClose={closeTui}>
+            <div>Embedded Launcher Surface</div>
+          </TuiWindow>
+        )}
         primaryPane={{
           title: 'tty1',
           flush: true,
@@ -827,9 +894,41 @@ describe('TerminalWorkspace', () => {
     expect(workspaces).toHaveLength(1);
     const workspaceEl = workspaces[0] as HTMLElement;
 
+    // Typing `tui` inside the embedded tty1 snaps open a TUI split pane in the outer workspace
+    const input = screen.getByLabelText('Terminal command input') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'tui' } });
+    fireEvent.submit(input.closest('form') as HTMLFormElement);
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
+    const tuiPane = container.querySelector('[data-pane-kind="tui"]') as HTMLElement;
+    expect(tuiPane).toBeTruthy();
+    expect(within(tuiPane).getByText('Embedded Launcher Surface')).toBeTruthy();
+
+    // Detaching the TUI pane moves it to its own tab labeled `tui`; clicking TuiWindow close closes that tab
+    fireEvent.keyDown(window, { key: 'T', ctrlKey: true, altKey: true, shiftKey: true });
+    expect(workspaceEl.getAttribute('data-tab-count')).toBe('2');
+    expect(screen.getByRole('tab', { name: 'tui' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Close window' }));
+    expect(workspaceEl.getAttribute('data-tab-count')).toBe('1');
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
+
     // One Ghostty Cmd+D splits into exactly 2 panes (no nested double-handling)
     fireEvent.keyDown(window, { key: 'd', metaKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
+  });
+
+  it('ignores tui command and Alt+T when renderTui is not provided', () => {
+    const { container } = render(<TerminalWorkspace terminal={TERMINAL_FIXTURE} />);
+    const workspaceEl = container.querySelector('[data-pane-count]') as HTMLElement;
+
+    const input = screen.getByLabelText('Terminal command input') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'tui' } });
+    fireEvent.submit(input.closest('form') as HTMLFormElement);
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
+    expect(container.querySelector('[data-pane-kind="tui"]')).toBeNull();
+
+    fireEvent.keyDown(window, { key: 't', altKey: true });
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
+    expect(container.querySelector('[data-pane-kind="tui"]')).toBeNull();
   });
 
   it('splits horizontally and vertically via ghostty-union Ctrl+Shift+} and Ctrl+Shift+{ on terminal and TUI windows, resizes with Alt+Shift+Arrow, and equalizes with Ctrl+Alt+Shift+E', () => {

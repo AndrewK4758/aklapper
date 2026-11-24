@@ -53,33 +53,41 @@ test.describe('portal SSR end-to-end journeys', () => {
     await commandInput.press('Control+l');
     await expect(page.getByText('guest@andrew-k.us (tty1)')).toHaveCount(0);
 
-    // `tui` command opens the TUI launcher window, and Escape closes it
+    // `tui` command snaps open the TUI launcher in a split pane, and Escape closes that pane
     await commandInput.fill('tui');
     await commandInput.press('Enter');
+    await expect(page.locator('[data-pane-count="2"]')).toBeVisible();
+    await expect(page.locator('[data-pane-kind="tui"]')).toBeVisible();
     await expect(tuiHeading).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(tuiHeading).toHaveCount(0);
+    await expect(page.locator('[data-pane-count="1"]')).toBeVisible();
 
     // Footer includes Sitemap link
     const sitemapLink = page.locator('footer').getByRole('link', { name: 'Sitemap' });
     await expect(sitemapLink).toBeVisible();
     await expect(sitemapLink).toHaveAttribute('href', '/sitemap.xml');
 
-    // Alt+T toggles TUI window open and closed
+    // Alt+T toggles the TUI split pane open and closed
     await page.keyboard.press('Alt+t');
+    await expect(page.locator('[data-pane-count="2"]')).toBeVisible();
+    await expect(page.locator('[data-pane-kind="tui"]')).toBeVisible();
     await expect(tuiHeading).toBeVisible();
     await page.keyboard.press('Alt+t');
     await expect(tuiHeading).toHaveCount(0);
+    await expect(page.locator('[data-pane-count="1"]')).toBeVisible();
 
-    // Ghostty Ctrl+Shift+O splits a new terminal pane which can open its own TUI, then exit closes it
+    // Ghostty Ctrl+Shift+O splits a new terminal pane; `tui` snaps a 3rd pane, Escape closes TUI, exit closes tty2
     await page.keyboard.press('Control+Shift+O');
     await expect(page.locator('[data-pane-count="2"]')).toBeVisible();
     const splitPaneInput = page.getByLabel('Terminal command input', { exact: true });
     await splitPaneInput.fill('tui');
     await splitPaneInput.press('Enter');
+    await expect(page.locator('[data-pane-count="3"]')).toBeVisible();
     await expect(tuiHeading).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(tuiHeading).toHaveCount(0);
+    await expect(page.locator('[data-pane-count="2"]')).toBeVisible();
     await splitPaneInput.fill('exit');
     await splitPaneInput.press('Enter');
     await expect(page.locator('[data-pane-count="1"]')).toBeVisible();

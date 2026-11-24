@@ -35,6 +35,7 @@ import {
   listLeafPanes,
   matchGhosttyShortcut,
   moveActiveSplit,
+  openTuiPane,
   type PaneDropTarget,
   renameWorkspaceTab,
   resizeActiveSplit,
@@ -42,7 +43,6 @@ import {
   selectRelativeWorkspaceTab,
   selectWorkspaceTab,
   selectWorkspaceTabByIndex,
-  setPaneTuiOpen,
   setSplitRatio,
   splitActivePane,
   type SplitCreateDirection,
@@ -51,6 +51,7 @@ import {
   type TerminalLeafPane,
   type TerminalTabbedWorkspaceState,
   type TerminalWorkspaceTab,
+  toggleTuiPane,
   toggleZoomActivePane,
   updateActiveTabWorkspace,
 } from './terminalPaneTree';
@@ -96,7 +97,7 @@ interface EmbeddedTerminalPaneContextValue {
   readonly onClose: (paneId: string) => void;
   readonly onNewTab: () => void;
   readonly onCloseCurrentTab: () => void;
-  readonly onSetTuiOpen: (paneId: string, open: boolean) => void;
+  readonly onOpenTui: (paneId: string) => void;
 }
 
 interface DragOrigin {
@@ -138,6 +139,7 @@ const SPLIT_HELP_APPENDIX = [
   'Split panes & tabs (Ghostty / ghostty-union keybindings & commands):',
   '  Ctrl+Shift+} / Ctrl+Shift+O / Cmd+D (or "split" / "vsplit") — split terminal right',
   '  Ctrl+Shift+{ / Ctrl+Shift+E / Cmd+Shift+D (or "hsplit")     — split terminal down',
+  '  Alt+T (or "tui")                                            — open or toggle TUI split pane',
   '  Ctrl+Alt+Arrows / Cmd+Alt+Arrows (or Cmd+] / Cmd+[)         — focus neighbor pane',
   '  Alt+Shift+Arrows / drag pane divider (double-click=50/50)   — resize active split',
   '  Ctrl+Alt+Shift+Arrows (or "swap" / drag pane titlebar)      — swap or dock split pane',
@@ -163,6 +165,9 @@ function resolveTabDisplayTitle(
     listLeafPanes(tab.workspace.root)[0];
   if (primaryPane && tab.id === 'tab-1' && !primaryPane.embeddedTerminal) {
     return primaryPane.title;
+  }
+  if (activeLeaf?.kind === 'tui') {
+    return 'tui';
   }
   return activeLeaf ? `tty${activeLeaf.ttyNumber}` : tab.id;
 }
@@ -422,6 +427,91 @@ function PaneChromeBar({
   );
 }
 
+interface PaneDragHandlers {
+  readonly onDragPointerDown?: (
+    paneId: string,
+    canDetach: boolean,
+    event: ReactPointerEvent<HTMLElement>,
+  ) => void;
+  readonly onDragPointerMove?: (event: ReactPointerEvent<HTMLElement>) => void;
+  readonly onDragPointerUp?: (event: ReactPointerEvent<HTMLElement>) => void;
+  readonly onDragPointerCancel?: () => void;
+}
+
+interface WorkspacePaneFrameProps extends PaneDragHandlers {
+  pane: TerminalLeafPane;
+  title: string;
+  paneKind: 'terminal' | 'primary' | 'tui';
+  isActive: boolean;
+  isMultiPane: boolean;
+  isZoomed: boolean;
+  isDragging: boolean;
+  onFocus: (paneId: string) => void;
+  onSplit: (paneId: string, direction: SplitCreateDirection) => void;
+  onRotate: (paneId: string) => void;
+  onDetach: (paneId: string) => void;
+  onToggleZoom: (paneId: string) => void;
+  onClose: (paneId: string) => void;
+  children: ReactNode;
+}
+
+function WorkspacePaneFrame({
+  pane,
+  title,
+  paneKind,
+  isActive,
+  isMultiPane,
+  isZoomed,
+  isDragging,
+  onFocus,
+  onSplit,
+  onRotate,
+  onDetach,
+  onToggleZoom,
+  onClose,
+  onDragPointerDown,
+  onDragPointerMove,
+  onDragPointerUp,
+  onDragPointerCancel,
+  children,
+}: WorkspacePaneFrameProps) {
+  return (
+    <PaneActiveContext.Provider value={isActive}>
+      <div
+        className={styles.pane}
+        data-pane-id={pane.id}
+        data-pane-tty={title}
+        data-pane-kind={paneKind}
+        data-active={isActive ? 'true' : 'false'}
+        data-multi={isMultiPane ? 'true' : 'false'}
+        data-dragging={isDragging ? 'true' : 'false'}
+        onPointerDown={() => onFocus(pane.id)}
+      >
+        {isMultiPane ? (
+          <PaneChromeBar
+            paneId={pane.id}
+            title={title}
+            isZoomed={isZoomed}
+            canClose={!pane.pinned}
+            canDrag={!isZoomed}
+            onSplit={onSplit}
+            onRotate={onRotate}
+            onDetach={onDetach}
+            onToggleZoom={onToggleZoom}
+            onClose={onClose}
+            onDragPointerDown={onDragPointerDown}
+            onDragPointerMove={onDragPointerMove}
+            onDragPointerUp={onDragPointerUp}
+            onDragPointerCancel={onDragPointerCancel}
+          />
+        ) : null}
+
+        {children}
+      </div>
+    </PaneActiveContext.Provider>
+  );
+}
+
 interface TerminalLeafContentProps {
   pane: TerminalLeafPane;
   terminal: TerminalProfileData;
@@ -431,7 +521,6 @@ interface TerminalLeafContentProps {
   canCloseTab: boolean;
   focusToken: number;
   navigate?: (to: string) => void | Promise<void>;
-  renderTui?: (context: TerminalPaneTuiContext) => ReactNode;
   onFocus: (paneId: string) => void;
   onSplit: (paneId: string, direction: SplitCreateDirection) => void;
   onRotate: (paneId: string) => void;
@@ -441,7 +530,7 @@ interface TerminalLeafContentProps {
   onClose: (paneId: string) => void;
   onNewTab: () => void;
   onCloseCurrentTab: () => void;
-  onSetTuiOpen: (paneId: string, open: boolean) => void;
+  onOpenTui: (paneId: string) => void;
 }
 
 function TerminalLeafContent({
@@ -453,7 +542,6 @@ function TerminalLeafContent({
   canCloseTab,
   focusToken,
   navigate,
-  renderTui,
   onFocus,
   onSplit,
   onRotate,
@@ -463,12 +551,12 @@ function TerminalLeafContent({
   onClose,
   onNewTab,
   onCloseCurrentTab,
-  onSetTuiOpen,
+  onOpenTui,
 }: TerminalLeafContentProps) {
   const commands = useMemo<Readonly<Record<string, ZshCommandHandler>>>(() => {
     const base = buildZshCommandHandlers(terminal.commands, {
       navigate,
-      openTui: () => onSetTuiOpen(pane.id, true),
+      openTui: () => onOpenTui(pane.id),
     });
     const baseHelp = base['help'];
 
@@ -529,10 +617,6 @@ function TerminalLeafContent({
         return { output: isMultiPane ? 'toggled pane zoom' : 'single pane already fills viewport' };
       },
       exit: () => {
-        if (pane.tuiOpen) {
-          onSetTuiOpen(pane.id, false);
-          return { output: `closed TUI in tty${pane.ttyNumber}` };
-        }
         if (isMultiPane && !pane.pinned) {
           onClose(pane.id);
           return { output: `closing tty${pane.ttyNumber} ...` };
@@ -554,15 +638,14 @@ function TerminalLeafContent({
     onCloseCurrentTab,
     onDetach,
     onNewTab,
+    onOpenTui,
     onRotate,
-    onSetTuiOpen,
     onSplit,
     onSwap,
     onToggleZoom,
     pane.id,
     pane.pinned,
     pane.ttyNumber,
-    pane.tuiOpen,
     terminal.commands,
   ]);
 
@@ -592,34 +675,14 @@ function TerminalLeafContent({
         inputLabel={inputLabel}
         ariaLabel={`Interactive Terminal ${ttyLabel}`}
         onFocusPane={() => onFocus(pane.id)}
-        onEscape={() => onSetTuiOpen(pane.id, false)}
       />
-
-      {pane.tuiOpen && renderTui ? (
-        <div className={styles.tuiOverlay}>
-          {renderTui({
-            paneId: pane.id,
-            ttyNumber: pane.ttyNumber,
-            isSinglePane: !isMultiPane,
-            closeTui: () => onSetTuiOpen(pane.id, false),
-          })}
-        </div>
-      ) : null}
     </div>
   );
 }
 
-interface TerminalLeafViewProps extends TerminalLeafContentProps {
+interface TerminalLeafViewProps extends TerminalLeafContentProps, PaneDragHandlers {
   isZoomed: boolean;
   isDragging: boolean;
-  onDragPointerDown?: (
-    paneId: string,
-    canDetach: boolean,
-    event: ReactPointerEvent<HTMLElement>,
-  ) => void;
-  onDragPointerMove?: (event: ReactPointerEvent<HTMLElement>) => void;
-  onDragPointerUp?: (event: ReactPointerEvent<HTMLElement>) => void;
-  onDragPointerCancel?: () => void;
 }
 
 function TerminalLeafView({
@@ -633,7 +696,6 @@ function TerminalLeafView({
   isDragging,
   focusToken,
   navigate,
-  renderTui,
   onFocus,
   onSplit,
   onRotate,
@@ -643,71 +705,139 @@ function TerminalLeafView({
   onClose,
   onNewTab,
   onCloseCurrentTab,
-  onSetTuiOpen,
+  onOpenTui,
   onDragPointerDown,
   onDragPointerMove,
   onDragPointerUp,
   onDragPointerCancel,
 }: TerminalLeafViewProps) {
-  const ttyLabel = `tty${pane.ttyNumber}`;
-
   return (
-    <PaneActiveContext.Provider value={isActive}>
-      <div
-        className={styles.pane}
-        data-pane-id={pane.id}
-        data-pane-tty={ttyLabel}
-        data-active={isActive ? 'true' : 'false'}
-        data-multi={isMultiPane ? 'true' : 'false'}
-        data-dragging={isDragging ? 'true' : 'false'}
-        onPointerDown={() => onFocus(pane.id)}
-      >
-        {isMultiPane ? (
-          <PaneChromeBar
-            paneId={pane.id}
-            title={ttyLabel}
-            isZoomed={isZoomed}
-            canClose={!pane.pinned}
-            canDrag={!isZoomed}
-            onSplit={onSplit}
-            onRotate={onRotate}
-            onDetach={onDetach}
-            onToggleZoom={onToggleZoom}
-            onClose={onClose}
-            onDragPointerDown={onDragPointerDown}
-            onDragPointerMove={onDragPointerMove}
-            onDragPointerUp={onDragPointerUp}
-            onDragPointerCancel={onDragPointerCancel}
-          />
-        ) : null}
-
-        <TerminalLeafContent
-          pane={pane}
-          terminal={terminal}
-          terminalForms={terminalForms}
-          isActive={isActive}
-          isMultiPane={isMultiPane}
-          canCloseTab={canCloseTab}
-          focusToken={focusToken}
-          navigate={navigate}
-          renderTui={renderTui}
-          onFocus={onFocus}
-          onSplit={onSplit}
-          onRotate={onRotate}
-          onSwap={onSwap}
-          onDetach={onDetach}
-          onToggleZoom={onToggleZoom}
-          onClose={onClose}
-          onNewTab={onNewTab}
-          onCloseCurrentTab={onCloseCurrentTab}
-          onSetTuiOpen={onSetTuiOpen}
-        />
-      </div>
-    </PaneActiveContext.Provider>
+    <WorkspacePaneFrame
+      pane={pane}
+      title={`tty${pane.ttyNumber}`}
+      paneKind='terminal'
+      isActive={isActive}
+      isMultiPane={isMultiPane}
+      isZoomed={isZoomed}
+      isDragging={isDragging}
+      onFocus={onFocus}
+      onSplit={onSplit}
+      onRotate={onRotate}
+      onDetach={onDetach}
+      onToggleZoom={onToggleZoom}
+      onClose={onClose}
+      onDragPointerDown={onDragPointerDown}
+      onDragPointerMove={onDragPointerMove}
+      onDragPointerUp={onDragPointerUp}
+      onDragPointerCancel={onDragPointerCancel}
+    >
+      <TerminalLeafContent
+        pane={pane}
+        terminal={terminal}
+        terminalForms={terminalForms}
+        isActive={isActive}
+        isMultiPane={isMultiPane}
+        canCloseTab={canCloseTab}
+        focusToken={focusToken}
+        navigate={navigate}
+        onFocus={onFocus}
+        onSplit={onSplit}
+        onRotate={onRotate}
+        onSwap={onSwap}
+        onDetach={onDetach}
+        onToggleZoom={onToggleZoom}
+        onClose={onClose}
+        onNewTab={onNewTab}
+        onCloseCurrentTab={onCloseCurrentTab}
+        onOpenTui={onOpenTui}
+      />
+    </WorkspacePaneFrame>
   );
 }
 
-interface PrimaryPaneViewProps {
+interface TuiLeafViewProps extends PaneDragHandlers {
+  pane: TerminalLeafPane;
+  isActive: boolean;
+  isMultiPane: boolean;
+  isZoomed: boolean;
+  isDragging: boolean;
+  focusToken: number;
+  renderTui: (context: TerminalPaneTuiContext) => ReactNode;
+  onFocus: (paneId: string) => void;
+  onSplit: (paneId: string, direction: SplitCreateDirection) => void;
+  onRotate: (paneId: string) => void;
+  onDetach: (paneId: string) => void;
+  onToggleZoom: (paneId: string) => void;
+  onClose: (paneId: string) => void;
+  onCloseTui: (paneId: string) => void;
+}
+
+function TuiLeafView({
+  pane,
+  isActive,
+  isMultiPane,
+  isZoomed,
+  isDragging,
+  focusToken,
+  renderTui,
+  onFocus,
+  onSplit,
+  onRotate,
+  onDetach,
+  onToggleZoom,
+  onClose,
+  onCloseTui,
+  onDragPointerDown,
+  onDragPointerMove,
+  onDragPointerUp,
+  onDragPointerCancel,
+}: TuiLeafViewProps) {
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+
+  // Move DOM focus into the TUI split pane when opened or focused via keyboard navigation.
+  useEffect(() => {
+    if (!isActive) {
+      return;
+    }
+    const container = bodyRef.current;
+    if (container && !container.contains(document.activeElement)) {
+      container.focus({ preventScroll: true });
+    }
+  }, [focusToken, isActive]);
+
+  return (
+    <WorkspacePaneFrame
+      pane={pane}
+      title='tui'
+      paneKind='tui'
+      isActive={isActive}
+      isMultiPane={isMultiPane}
+      isZoomed={isZoomed}
+      isDragging={isDragging}
+      onFocus={onFocus}
+      onSplit={onSplit}
+      onRotate={onRotate}
+      onDetach={onDetach}
+      onToggleZoom={onToggleZoom}
+      onClose={onClose}
+      onDragPointerDown={onDragPointerDown}
+      onDragPointerMove={onDragPointerMove}
+      onDragPointerUp={onDragPointerUp}
+      onDragPointerCancel={onDragPointerCancel}
+    >
+      <div ref={bodyRef} tabIndex={-1} className={styles.tuiPaneBody}>
+        {renderTui({
+          paneId: pane.id,
+          ttyNumber: pane.ttyNumber,
+          isSinglePane: !isMultiPane,
+          closeTui: () => onCloseTui(pane.id),
+        })}
+      </div>
+    </WorkspacePaneFrame>
+  );
+}
+
+interface PrimaryPaneViewProps extends PaneDragHandlers {
   pane: TerminalLeafPane;
   primaryPane: TerminalWorkspacePrimaryPane;
   isActive: boolean;
@@ -725,15 +855,7 @@ interface PrimaryPaneViewProps {
   onClose: (paneId: string) => void;
   onNewTab: () => void;
   onCloseCurrentTab: () => void;
-  onSetTuiOpen: (paneId: string, open: boolean) => void;
-  onDragPointerDown?: (
-    paneId: string,
-    canDetach: boolean,
-    event: ReactPointerEvent<HTMLElement>,
-  ) => void;
-  onDragPointerMove?: (event: ReactPointerEvent<HTMLElement>) => void;
-  onDragPointerUp?: (event: ReactPointerEvent<HTMLElement>) => void;
-  onDragPointerCancel?: () => void;
+  onOpenTui: (paneId: string) => void;
 }
 
 function PrimaryPaneView({
@@ -754,7 +876,7 @@ function PrimaryPaneView({
   onClose,
   onNewTab,
   onCloseCurrentTab,
-  onSetTuiOpen,
+  onOpenTui,
   onDragPointerDown,
   onDragPointerMove,
   onDragPointerUp,
@@ -777,7 +899,7 @@ function PrimaryPaneView({
       onClose,
       onNewTab,
       onCloseCurrentTab,
-      onSetTuiOpen,
+      onOpenTui,
     }),
     [
       pane,
@@ -794,7 +916,7 @@ function PrimaryPaneView({
       onClose,
       onNewTab,
       onCloseCurrentTab,
-      onSetTuiOpen,
+      onOpenTui,
     ],
   );
 
@@ -825,39 +947,27 @@ function PrimaryPaneView({
   );
 
   return (
-    <PaneActiveContext.Provider value={isActive}>
-      <div
-        className={styles.pane}
-        data-pane-id={pane.id}
-        data-pane-tty={paneLabel}
-        data-pane-kind={primaryPane.embeddedTerminal ? 'terminal' : 'primary'}
-        data-active={isActive ? 'true' : 'false'}
-        data-multi={isMultiPane ? 'true' : 'false'}
-        data-dragging={isDragging ? 'true' : 'false'}
-        onPointerDown={() => onFocus(pane.id)}
-      >
-        {isMultiPane ? (
-          <PaneChromeBar
-            paneId={pane.id}
-            title={paneLabel}
-            isZoomed={isZoomed}
-            canClose={!pane.pinned}
-            canDrag={!isZoomed}
-            onSplit={onSplit}
-            onRotate={onRotate}
-            onDetach={onDetach}
-            onToggleZoom={onToggleZoom}
-            onClose={onClose}
-            onDragPointerDown={onDragPointerDown}
-            onDragPointerMove={onDragPointerMove}
-            onDragPointerUp={onDragPointerUp}
-            onDragPointerCancel={onDragPointerCancel}
-          />
-        ) : null}
-
-        {bodyNode}
-      </div>
-    </PaneActiveContext.Provider>
+    <WorkspacePaneFrame
+      pane={pane}
+      title={paneLabel}
+      paneKind={primaryPane.embeddedTerminal ? 'terminal' : 'primary'}
+      isActive={isActive}
+      isMultiPane={isMultiPane}
+      isZoomed={isZoomed}
+      isDragging={isDragging}
+      onFocus={onFocus}
+      onSplit={onSplit}
+      onRotate={onRotate}
+      onDetach={onDetach}
+      onToggleZoom={onToggleZoom}
+      onClose={onClose}
+      onDragPointerDown={onDragPointerDown}
+      onDragPointerMove={onDragPointerMove}
+      onDragPointerUp={onDragPointerUp}
+      onDragPointerCancel={onDragPointerCancel}
+    >
+      {bodyNode}
+    </WorkspacePaneFrame>
   );
 }
 
@@ -886,12 +996,13 @@ function StandaloneTerminalWorkspace({
   const activeLeaves = useMemo(() => listLeafPanes(activeWorkspace.root), [activeWorkspace.root]);
   const isActiveMultiPane = activeLeaves.length > 1;
   const activeLeaf = findLeafPane(activeWorkspace.root, activeWorkspace.activePaneId);
-  const activeIsTerminalPane =
-    activeTab.id !== 'tab-1' ||
-    activeLeaf?.id !== 'pane-1' ||
-    !primaryPane ||
-    Boolean(primaryPane.embeddedTerminal);
-  const activeTuiOpen = activeIsTerminalPane && Boolean(activeLeaf?.tuiOpen);
+  const activeIsPrimaryNonTerminal =
+    activeTab.id === 'tab-1' &&
+    activeLeaf?.id === 'pane-1' &&
+    Boolean(primaryPane) &&
+    !primaryPane?.embeddedTerminal;
+  const activeIsTuiPane = activeLeaf?.kind === 'tui';
+  const activeCanToggleTui = Boolean(renderTui) && !activeIsPrimaryNonTerminal;
   const activeZoomedPaneId =
     activeWorkspace.zoomedPaneId && findLeafPane(activeWorkspace.root, activeWorkspace.zoomedPaneId)
       ? activeWorkspace.zoomedPaneId
@@ -923,11 +1034,9 @@ function StandaloneTerminalWorkspace({
         return;
       }
 
-      if (event.key === 'Escape' && !event.defaultPrevented && activeTuiOpen) {
+      if (event.key === 'Escape' && !event.defaultPrevented && activeIsTuiPane) {
         event.preventDefault();
-        setTabState(prev =>
-          updateActiveTabWorkspace(prev, ws => setPaneTuiOpen(ws, ws.activePaneId, false)),
-        );
+        setTabState(prev => closeActivePaneOrTab(prev));
         return;
       }
 
@@ -936,7 +1045,7 @@ function StandaloneTerminalWorkspace({
         return;
       }
 
-      if (action.type === 'toggle-tui' && !activeIsTerminalPane) {
+      if (action.type === 'toggle-tui' && !activeCanToggleTui) {
         return;
       }
       if (action.type === 'open-menu' && (disableMenuShortcut || !navigate)) {
@@ -1026,9 +1135,19 @@ function StandaloneTerminalWorkspace({
           );
           return;
         case 'toggle-tui':
-          setTabState(prev =>
-            updateActiveTabWorkspace(prev, ws => setPaneTuiOpen(ws, ws.activePaneId, 'toggle')),
-          );
+          setTabState(prev => {
+            const currentTab = getActiveWorkspaceTab(prev);
+            const currentActive = findLeafPane(
+              currentTab.workspace.root,
+              currentTab.workspace.activePaneId,
+            );
+            if (currentActive?.kind === 'tui') {
+              return closeActivePaneOrTab(prev);
+            }
+            return updateActiveTabWorkspace(prev, ws =>
+              toggleTuiPane(ws, ws.activePaneId, 'right'),
+            );
+          });
           return;
         case 'open-menu':
           if (navigate) {
@@ -1043,10 +1162,10 @@ function StandaloneTerminalWorkspace({
       window.removeEventListener('keydown', handleGlobalKeyDown, { capture: true });
     };
   }, [
-    activeIsTerminalPane,
+    activeCanToggleTui,
+    activeIsTuiPane,
     activeLeaf?.pinned,
     activeTab,
-    activeTuiOpen,
     disableMenuShortcut,
     dragState,
     isActiveMultiPane,
@@ -1109,8 +1228,25 @@ function StandaloneTerminalWorkspace({
     setTabState(prev => updateActiveTabWorkspace(prev, ws => closePaneById(ws, paneId)));
   };
 
-  const handleSetPaneTuiOpen = (paneId: string, open: boolean) => {
-    setTabState(prev => updateActiveTabWorkspace(prev, ws => setPaneTuiOpen(ws, paneId, open)));
+  const handleOpenTui = (paneId: string) => {
+    if (!renderTui) {
+      return;
+    }
+    setTabState(prev => updateActiveTabWorkspace(prev, ws => openTuiPane(ws, paneId, 'right')));
+  };
+
+  const handleCloseTuiPane = (paneId: string) => {
+    setTabState(prev => {
+      const currentTab = getActiveWorkspaceTab(prev);
+      const leaves = listLeafPanes(currentTab.workspace.root);
+      if (leaves.length > 1) {
+        return updateActiveTabWorkspace(prev, ws => closePaneById(ws, paneId));
+      }
+      if (leaves[0]?.id === paneId) {
+        return closeWorkspaceTab(prev, currentTab.id);
+      }
+      return prev;
+    });
   };
 
   const handleAddTab = () => {
@@ -1405,7 +1541,28 @@ function StandaloneTerminalWorkspace({
                         onClose={handleClosePane}
                         onNewTab={handleAddTab}
                         onCloseCurrentTab={handleCloseCurrentTab}
-                        onSetTuiOpen={handleSetPaneTuiOpen}
+                        onOpenTui={handleOpenTui}
+                        onDragPointerDown={handleDragPointerDown}
+                        onDragPointerMove={handleDragPointerMove}
+                        onDragPointerUp={handleDragPointerUp}
+                        onDragPointerCancel={clearDrag}
+                      />
+                    ) : pane.kind === 'tui' && renderTui ? (
+                      <TuiLeafView
+                        pane={pane}
+                        isActive={isPaneActive}
+                        isMultiPane={isMultiPane}
+                        isZoomed={isZoomed}
+                        isDragging={isDraggingPane}
+                        focusToken={ws.focusToken}
+                        renderTui={renderTui}
+                        onFocus={handleFocusPane}
+                        onSplit={handleSplitPane}
+                        onRotate={handleRotatePane}
+                        onDetach={handleDetachPane}
+                        onToggleZoom={handleToggleZoom}
+                        onClose={handleClosePane}
+                        onCloseTui={handleCloseTuiPane}
                         onDragPointerDown={handleDragPointerDown}
                         onDragPointerMove={handleDragPointerMove}
                         onDragPointerUp={handleDragPointerUp}
@@ -1423,7 +1580,6 @@ function StandaloneTerminalWorkspace({
                         isDragging={isDraggingPane}
                         focusToken={ws.focusToken}
                         navigate={navigate}
-                        renderTui={renderTui}
                         onFocus={handleFocusPane}
                         onSplit={handleSplitPane}
                         onRotate={handleRotatePane}
@@ -1433,7 +1589,7 @@ function StandaloneTerminalWorkspace({
                         onClose={handleClosePane}
                         onNewTab={handleAddTab}
                         onCloseCurrentTab={handleCloseCurrentTab}
-                        onSetTuiOpen={handleSetPaneTuiOpen}
+                        onOpenTui={handleOpenTui}
                         onDragPointerDown={handleDragPointerDown}
                         onDragPointerMove={handleDragPointerMove}
                         onDragPointerUp={handleDragPointerUp}
@@ -1519,7 +1675,6 @@ export function TerminalWorkspace(props: TerminalWorkspaceProps) {
         canCloseTab={embeddedCtx.canCloseTab}
         focusToken={embeddedCtx.focusToken}
         navigate={props.navigate}
-        renderTui={props.renderTui}
         onFocus={embeddedCtx.onFocus}
         onSplit={embeddedCtx.onSplit}
         onRotate={embeddedCtx.onRotate}
@@ -1529,7 +1684,7 @@ export function TerminalWorkspace(props: TerminalWorkspaceProps) {
         onClose={embeddedCtx.onClose}
         onNewTab={embeddedCtx.onNewTab}
         onCloseCurrentTab={embeddedCtx.onCloseCurrentTab}
-        onSetTuiOpen={embeddedCtx.onSetTuiOpen}
+        onOpenTui={embeddedCtx.onOpenTui}
       />
     );
   }
