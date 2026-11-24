@@ -47,6 +47,7 @@ import {
   type RoadmapMilestone,
   RoadmapMilestoneSchema,
   type Role,
+  SITE_CONTENT_KEYS,
   type TerminalDirectoryEntry,
   TerminalDirectoryEntrySchema,
   type TerminalProfileData,
@@ -78,19 +79,7 @@ export {
   consumeAuthRateLimit,
 } from './auth-rate-limit.ts';
 
-export const SITE_CONTENT_KEYS = {
-  portalChrome: 'portal-chrome',
-  portalHome: 'portal-home',
-  portalMenu: 'portal-menu',
-  portalAgensi: 'portal-agensi',
-  portalAsk: 'portal-ask',
-  portalCadence: 'portal-cadence',
-  portalContact: 'portal-contact',
-  portalMaintenance: 'portal-maintenance',
-  adminChrome: 'admin-chrome',
-  adminHome: 'admin-home',
-  adminAnalytics: 'admin-analytics',
-} as const;
+export { SITE_CONTENT_KEYS };
 
 export const TERMINAL_PROFILE_SLUGS = {
   portalHome: 'portal-home',
