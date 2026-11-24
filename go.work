@@ -1,0 +1,15 @@
+go 1.27.4
+
+use (
+	./apis/go/ai-ask
+	./apis/go/cadence-admin
+	./apis/go/cadence-demo
+	./apis/go/contact
+	./apis/go/k8s-watch
+	./packages/go/contracts
+	./packages/go/httpkit
+	./packages/go/k8sevents
+	./packages/go/llm
+	./packages/go/pg
+	./packages/go/qdrant
+)

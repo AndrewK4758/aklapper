@@ -10,6 +10,9 @@
     "projectsRelationship": "independent"
   },
   "useInferencePlugins": true,
+  "sync": {
+    "applyChanges": true
+  },
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "production": [
@@ -19,11 +22,15 @@
       "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
       "!{projectRoot}/tsconfig.spec.json",
       "!{projectRoot}/src/test-setup.[jt]s",
-      "!{projectRoot}/test-setup.[jt]s"
+      "!{projectRoot}/test-setup.[jt]s",
+      "!{projectRoot}/**/*_test.go"
     ],
-    "sharedGlobals": []
+    "sharedGlobals": ["{workspaceRoot}/go.work"]
   },
   "plugins": [
+    {
+      "plugin": "@nx-go/nx-go"
+    },
     {
       "plugin": "@nx/js/typescript",
       "options": {
@@ -46,6 +53,7 @@
     },
     {
       "plugin": "@nx/playwright/plugin",
+      "include": ["apps/**/*-e2e/**"],
       "options": {
         "targetName": "e2e"
       }
@@ -72,12 +80,29 @@
     },
     {
       "plugin": "@nx/vitest",
+      "exclude": ["apis/**/*-e2e/**", "packages/**/*-e2e/**"],
       "options": {
-        "testTargetName": "test"
+        "testTargetName": "test",
+        "testMode": "run"
+      }
+    },
+    {
+      "plugin": "@nx/vitest",
+      "include": ["apis/**/*-e2e/**", "packages/**/*-e2e/**"],
+      "options": {
+        "testTargetName": "e2e",
+        "testMode": "run"
       }
     }
   ],
   "targetDefaults": {
+    "build": {
+      "dependsOn": ["^build", "^typecheck"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "outputs": ["{projectRoot}/out-tsc"]
+    },
     "format": {
       "command": "oxfmt .",
       "cache": true,
@@ -85,11 +110,6 @@
         "cwd": "{projectRoot}"
       },
       "inputs": ["{projectRoot}/**/*.{ts,tsx,js,jsx,mjs,cjs,mts,cts,json,css}"]
-    },
-    "@nx/esbuild:esbuild": {
-      "cache": true,
-      "dependsOn": ["^build"],
-      "inputs": ["production", "^production"]
     },
     "@nx/js:tsc": {
       "cache": true,

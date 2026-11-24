@@ -1,7 +1,8 @@
 packages:
-  - 'apps/*'
   - 'apps/*/*'
-  - 'packages/*'
+  - 'apis/node/*'
+  - 'packages/shared/*'
+  - 'packages/node/*'
   - 'packages/legacy/*'
 
 allowBuilds:

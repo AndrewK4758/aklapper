@@ -5,6 +5,33 @@
   "exclude": ["node_modules", "dist", "reports"],
   "references": [
     {
+      "path": "./packages/shared/contracts"
+    },
+    {
+      "path": "./packages/shared/utils"
+    },
+    {
+      "path": "./packages/shared/analytics"
+    },
+    {
+      "path": "./packages/shared/ui"
+    },
+    {
+      "path": "./packages/node/db"
+    },
+    {
+      "path": "./packages/node/ai"
+    },
+    {
+      "path": "./packages/node/ssr-server"
+    },
+    {
+      "path": "./apis/node/auth"
+    },
+    {
+      "path": "./apis/node/analytics"
+    },
+    {
       "path": "./packages/legacy/chain"
     },
     {
@@ -30,6 +57,18 @@
     },
     {
       "path": "./packages/legacy/utils"
+    },
+    {
+      "path": "./apps/portal/portal-e2e"
+    },
+    {
+      "path": "./apps/admin/admin-e2e"
+    },
+    {
+      "path": "./apps/portal/portal"
+    },
+    {
+      "path": "./apps/admin/admin"
     }
   ]
 }
