@@ -163,7 +163,7 @@ export function writePersistedAskTurn(turn: PersistedAskTurn): void {
   try {
     window.sessionStorage.setItem(ASK_TURN_STORAGE_KEY, JSON.stringify(turn));
   } catch {
-    // Ignore storage quota or restricted browsing context errors.
+    return;
   }
   notifyPersistedAskListeners();
 }
@@ -173,7 +173,7 @@ export function clearPersistedAskTurn(): void {
   try {
     window.sessionStorage.removeItem(ASK_TURN_STORAGE_KEY);
   } catch {
-    // Ignore storage removal errors.
+    return;
   }
   notifyPersistedAskListeners();
 }
