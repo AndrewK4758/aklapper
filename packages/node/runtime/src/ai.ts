@@ -39,7 +39,7 @@ export function createLocalAiProvider(config: LocalAiConfig = {}): AiProvider {
     config.embedModel ??
     process.env['LOCAL_LLM_EMBED_MODEL'] ??
     process.env['LOCAL_EMBED_MODEL'] ??
-    'embeddinggemma';
+    'embedding';
 
   return {
     kind: 'local',
@@ -59,6 +59,7 @@ export function createLocalAiProvider(config: LocalAiConfig = {}): AiProvider {
           messages,
           max_tokens: input.maxTokens ?? 1024,
         }),
+        signal: AbortSignal.timeout(30_000),
       });
       if (!response.ok) {
         throw new Error(`Local AI chat request failed with status ${response.status}`);
@@ -80,6 +81,7 @@ export function createLocalAiProvider(config: LocalAiConfig = {}): AiProvider {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ model: embedModel, input: texts }),
+        signal: AbortSignal.timeout(30_000),
       });
       if (!response.ok) {
         throw new Error(`Local AI embed request failed with status ${response.status}`);
@@ -177,6 +179,7 @@ export function createVertexAiProvider(config: VertexAiConfig): AiProvider {
           authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(30_000),
       });
 
       if (!response.ok) {
@@ -220,6 +223,7 @@ export function createVertexAiProvider(config: VertexAiConfig): AiProvider {
         body: JSON.stringify({
           instances: texts.map(content => ({ content })),
         }),
+        signal: AbortSignal.timeout(30_000),
       });
 
       if (!response.ok) {

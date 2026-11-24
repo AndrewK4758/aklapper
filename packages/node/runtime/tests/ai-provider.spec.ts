@@ -54,7 +54,11 @@ describe('@aklapper/node-runtime/ai', () => {
     expect(fetchSpy).toHaveBeenNthCalledWith(
       2,
       'http://127.0.0.1:11434/v1/embeddings',
-      expect.objectContaining({ method: 'POST' }),
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"model":"embedding"'),
+        signal: expect.any(AbortSignal),
+      }),
     );
   });
 
