@@ -8,7 +8,7 @@ import {
   type PortalRootLoaderData,
   type TerminalProfileData,
 } from '@aklapper/core';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, type LoaderFunctionArgs, RouterProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -16,6 +16,7 @@ import { runPaneSafeLoader } from './pane-loader';
 import PortalRoot from './root';
 import PortalAgensiRoute from './routes/agensi';
 import PortalGreeterRoute from './routes/home';
+import PortalMenuRoute from './routes/menu';
 
 const CHROME: PortalRootLoaderData['chrome'] = {
   pageTitle: 'andrew-k.us // Solar Forge Terminal',
@@ -278,7 +279,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
                     throw new Response('upstream unavailable', { status: 500 });
                   }
                   if (attempt === 2) {
-                    throw new Error('transient DB timeout');
+                    throw new Error('Failed query: select * from secret_table where token = $1');
                   }
                   return AGENSI_DATA;
                 }),
@@ -305,17 +306,118 @@ describe('Portal in-pane route adapters & deep-links', () => {
       ),
     ).toBe(true);
 
-    // Attempt 2 (thrown Error): still isolated inside pane with Retry
+    // Attempt 2 (thrown SQL Error): isolated inside pane without leaking SQL internals over the wire
+    errorSpy.mockClear();
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     await waitFor(() => {
       expect(attempt).toBe(2);
     });
-    expect(await screen.findByRole('alert')).toBeTruthy();
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).not.toContain('secret_table');
+    expect(alert.textContent).not.toContain('select *');
+    const clientFetcherErrorLogs = errorSpy.mock.calls
+      .map(args => String(args[0]))
+      .filter(msg => msg.includes('portal.pane_nav.fetcher_load_failed'));
+    expect(clientFetcherErrorLogs.length).toBeGreaterThan(0);
+    for (const msg of clientFetcherErrorLogs) {
+      expect(msg).not.toContain('secret_table');
+      expect(msg).not.toContain('select *');
+    }
     expect(container.querySelector('[data-pane-count="1"]')).toBeTruthy();
 
     // Attempt 3: recovers cleanly
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(await screen.findByText('Commercial AI skills.')).toBeTruthy();
     errorSpy.mockRestore();
+  });
+
+  it('handles browser Back/Forward re-entry from / to /agensi and /menu -> /agensi -> Back without deadlocks or stale overlays', async () => {
+    const router = createMemoryRouter(
+      [
+        {
+          id: 'root',
+          path: '/',
+          loader: (): PortalRootLoaderData => ({
+            maintenanceMode: false,
+            chrome: CHROME,
+            maintenance: null,
+            terminal: TERMINAL,
+            homeContent: HOME_CONTENT,
+          }),
+          Component: PortalRoot,
+          children: [
+            {
+              index: true,
+              loader: () => ({ content: HOME_CONTENT, terminal: TERMINAL }),
+              Component: PortalGreeterRoute,
+            },
+            {
+              path: 'agensi',
+              loader: () => AGENSI_DATA,
+              Component: PortalAgensiRoute,
+            },
+            {
+              path: 'menu',
+              loader: () => MENU_DATA,
+              Component: PortalMenuRoute,
+            },
+          ],
+        },
+      ],
+      { initialEntries: ['/agensi'] },
+    );
+
+    const { container } = render(<RouterProvider router={router} />);
+
+    // Deep-link /agensi -> Exit TUI -> / -> Browser Back to /agensi -> Escape returns cleanly to /
+    expect(await screen.findByText('Commercial AI skills.')).toBeTruthy();
+    const pane1 = container.querySelector('[data-pane-id="pane-1"]') as HTMLElement;
+    expect(pane1.getAttribute('data-tui-depth')).toBe('1');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Exit TUI' }));
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/');
+      expect(pane1.getAttribute('data-tui-depth')).toBe('0');
+    });
+
+    await act(async () => {
+      await router.navigate(-1);
+    });
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/agensi');
+      expect(pane1.getAttribute('data-tui-depth')).toBe('1');
+    });
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/');
+      expect(pane1.getAttribute('data-tui-depth')).toBe('0');
+    });
+
+    // Deep-link route switch: /menu -> /agensi -> Browser Back to /menu (no stale Agensi overlay)
+    await act(async () => {
+      await router.navigate('/menu');
+    });
+    expect(await screen.findByRole('heading', { name: 'Launch Menu' })).toBeTruthy();
+    await waitFor(() => {
+      expect(pane1.getAttribute('data-tui-depth')).toBe('1');
+    });
+
+    await act(async () => {
+      await router.navigate('/agensi');
+    });
+    expect(await screen.findByText('Commercial AI skills.')).toBeTruthy();
+
+    await act(async () => {
+      await router.navigate(-1);
+    });
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/menu');
+      expect(pane1.getAttribute('data-tui-depth')).toBe('1');
+    });
+    const shellLayer = pane1.querySelector('[data-shell-layer="true"]') as HTMLElement;
+    expect(shellLayer.hidden).toBe(false);
+    expect(screen.getByRole('heading', { name: 'Launch Menu' })).toBeTruthy();
+    expect(screen.queryByText('Commercial AI skills.')).toBeNull();
   });
 });

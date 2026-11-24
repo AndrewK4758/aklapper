@@ -43,12 +43,28 @@ export async function runPaneSafeLoader<T>(
     if (!isPaneFetcherRequest(request)) {
       throw error;
     }
+    let path = request.url;
+    try {
+      path = new URL(request.url).pathname;
+    } catch {
+      // Keep raw URL string when parsing fails
+    }
+    console.error(
+      JSON.stringify({
+        event: 'portal.pane_loader.failed',
+        path,
+        error:
+          error instanceof Response
+            ? `HTTP ${error.status}`
+            : error instanceof Error
+              ? error.message
+              : String(error),
+      }),
+    );
     const message =
       error instanceof Response
         ? `Request failed (HTTP ${error.status})`
-        : error instanceof Error
-          ? error.message
-          : 'Unable to load pane data.';
+        : 'Unable to load pane data.';
     return data<PaneLoaderErrorEnvelope>(
       { __paneLoaderError: true, message },
       { status: 200, ...(headers ? { headers } : {}) },
