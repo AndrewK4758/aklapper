@@ -178,18 +178,30 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
       return '';
     };
 
-    syncGcpSecretVersions(
-      [
-        {
-          envKey: 'ADMIN_PASSWORD',
-          secretId: 'ADMIN_PASSWORD',
-          value: 'admin-stdin-secret-value',
-        },
-      ],
-      'games-424800',
-      false,
-      runner,
-    );
+    const infoLogs: string[] = [];
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation((msg: unknown) => {
+      infoLogs.push(String(msg));
+    });
+    try {
+      syncGcpSecretVersions(
+        [
+          {
+            envKey: 'ADMIN_PASSWORD',
+            secretId: 'ADMIN_PASSWORD',
+            value: 'admin-stdin-secret-value',
+          },
+        ],
+        'games-424800',
+        false,
+        runner,
+      );
+      expect(infoLogs.join('\n')).toContain('deploy.secret_sync.applied');
+      expect(infoLogs.join('\n')).toContain('DELTA_AUDIT_GAP');
+      expect(infoLogs.join('\n')).toContain('ADMIN_PASSWORD');
+      expect(infoLogs.join('\n')).not.toContain('admin-stdin-secret-value');
+    } finally {
+      infoSpy.mockRestore();
+    }
 
     expect(calls[0]?.args).toEqual([
       'secrets',

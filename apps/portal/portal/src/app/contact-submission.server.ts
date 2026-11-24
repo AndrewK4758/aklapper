@@ -344,6 +344,7 @@ export async function processContactSubmission(
           receivedAt: submission.createdAt,
         },
         timeoutMs: 2_000,
+        internalAuth: { role: 'service', subject: 'portal-contact' },
       }).catch(() => undefined);
     }
 

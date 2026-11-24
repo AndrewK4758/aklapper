@@ -454,6 +454,7 @@ jobs:
             ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_APIS == 'true' && '--allow-unauthenticated' || '--no-allow-unauthenticated' }}
             ${{ vars.CLOUD_SQL_INSTANCE != '' && format('--add-cloudsql-instances={0}', vars.CLOUD_SQL_INSTANCE) || '' }}
             --service-account=${{ vars.GCP_CLOUDRUN_SERVICE_ACCOUNT || secrets.GCP_WIF_SERVICE_ACCOUNT }}
+            --remove-env-vars=DATABASE_URL,TOTP_ENCRYPTION_KEY,INTERNAL_AUTH_SECRET
             --set-secrets=DATABASE_URL=DATABASE_URL:latest,TOTP_ENCRYPTION_KEY=TOTP_ENCRYPTION_KEY:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest
             --port=8080
             --min-instances=0
@@ -477,6 +478,7 @@ jobs:
             ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_APIS == 'true' && '--allow-unauthenticated' || '--no-allow-unauthenticated' }}
             ${{ vars.CLOUD_SQL_INSTANCE != '' && format('--add-cloudsql-instances={0}', vars.CLOUD_SQL_INSTANCE) || '' }}
             --service-account=${{ vars.GCP_CLOUDRUN_SERVICE_ACCOUNT || secrets.GCP_WIF_SERVICE_ACCOUNT }}
+            --remove-env-vars=DATABASE_URL,ANALYTICS_DAILY_SALT,INTERNAL_AUTH_SECRET
             --set-secrets=DATABASE_URL=DATABASE_URL:latest,ANALYTICS_DAILY_SALT=ANALYTICS_DAILY_SALT:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest
             --port=8080
             --min-instances=0
@@ -564,6 +566,7 @@ jobs:
             --allow-unauthenticated
             ${{ vars.CLOUD_SQL_INSTANCE != '' && format('--add-cloudsql-instances={0}', vars.CLOUD_SQL_INSTANCE) || '' }}
             --service-account=${{ vars.GCP_CLOUDRUN_SERVICE_ACCOUNT || secrets.GCP_WIF_SERVICE_ACCOUNT }}
+            --remove-env-vars=DATABASE_URL,INTERNAL_AUTH_SECRET,ANALYTICS_DAILY_SALT,QDRANT_API_KEY,AGENSI_API_KEY
             ${{ steps.api-urls.outputs.has_agensi_api_key == 'true' && '--set-secrets=DATABASE_URL=DATABASE_URL:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest,ANALYTICS_DAILY_SALT=ANALYTICS_DAILY_SALT:latest,AGENSI_API_KEY=AGENSI_API_KEY:latest' || '--set-secrets=DATABASE_URL=DATABASE_URL:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest,ANALYTICS_DAILY_SALT=ANALYTICS_DAILY_SALT:latest' }}
             --port=8080
             --min-instances=0
@@ -612,6 +615,7 @@ jobs:
             ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_ADMIN == 'true' && '--allow-unauthenticated' || '--no-allow-unauthenticated' }}
             ${{ vars.CLOUD_SQL_INSTANCE != '' && format('--add-cloudsql-instances={0}', vars.CLOUD_SQL_INSTANCE) || '' }}
             --service-account=${{ vars.GCP_CLOUDRUN_SERVICE_ACCOUNT || secrets.GCP_WIF_SERVICE_ACCOUNT }}
+            --remove-env-vars=DATABASE_URL,TOTP_ENCRYPTION_KEY,INTERNAL_AUTH_SECRET,ANALYTICS_DAILY_SALT,QDRANT_API_KEY,AGENSI_API_KEY
             --set-secrets=DATABASE_URL=DATABASE_URL:latest,TOTP_ENCRYPTION_KEY=TOTP_ENCRYPTION_KEY:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest,ANALYTICS_DAILY_SALT=ANALYTICS_DAILY_SALT:latest${{ vars.QDRANT_URL != '' && ',QDRANT_API_KEY=QDRANT_API_KEY:latest' || '' }}${{ steps.api-urls.outputs.has_agensi_api_key == 'true' && ',AGENSI_API_KEY=AGENSI_API_KEY:latest' || '' }}
             --port=8080
             --min-instances=0
@@ -910,7 +914,7 @@ jobs:
             if [ -z "$url" ]; then
               continue
             fi
-            if [[ "$url" != https://*.run.app* ]]; then
+            if [[ ! "${url%/}" =~ ^https://[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.run\.app$ ]]; then
               echo "::error::Expected canonical *.run.app URL for ${svc}, got ${url}"
               exit 1
             fi

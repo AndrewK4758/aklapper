@@ -7,6 +7,7 @@ import {
   type StreamResult,
 } from '@aklapper/core';
 import { ADMIN_OPS_TERMINAL_PROFILE } from '@aklapper/db';
+import { INTERNAL_AUTH_HEADER, verifyInternalAuthToken } from '@aklapper/node-runtime/http';
 import { requestContextKey } from '@aklapper/node-runtime/ssr/stream';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { createRoutesStub, RouterContextProvider } from 'react-router';
@@ -523,6 +524,47 @@ describe('Admin streaming routes, auth guards & SEO', () => {
       else process.env['QDRANT_URL'] = origQdrantUrl;
       if (origQdrantKey === undefined) delete process.env['QDRANT_API_KEY'];
       else process.env['QDRANT_API_KEY'] = origQdrantKey;
+    }
+  });
+
+  it('signs X-Internal-Auth admin token when probing AI_ASK_URL /v1/ask/status', async () => {
+    const origAiAsk = process.env['AI_ASK_URL'];
+    const origQdrantUrl = process.env['QDRANT_URL'];
+    const origSecret = process.env['INTERNAL_AUTH_SECRET'];
+    let capturedInternalAuth: string | null = null;
+    let capturedUrl = '';
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      capturedUrl =
+        typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+      capturedInternalAuth = new Headers(init?.headers).get(INTERNAL_AUTH_HEADER);
+      return Response.json({
+        status: 'ready',
+        provider: 'vertex',
+        pgConnected: true,
+        collection: { name: 'portfolio_docs', status: 'green', pointsCount: 9 },
+      });
+    });
+
+    try {
+      delete process.env['QDRANT_URL'];
+      process.env['AI_ASK_URL'] = 'http://127.0.0.1:8083';
+      process.env['INTERNAL_AUTH_SECRET'] = 'admin-ops-test-secret';
+
+      const status = await fetchQdrantStatus();
+      expect(status.online).toBe(true);
+      expect(status.pointsCount).toBe(9);
+      expect(capturedUrl).toBe('http://127.0.0.1:8083/v1/ask/status');
+      const claims = verifyInternalAuthToken(capturedInternalAuth, 'admin-ops-test-secret');
+      expect(claims?.role).toBe('admin');
+      expect(claims?.sub).toBe('admin-console-status');
+    } finally {
+      fetchSpy.mockRestore();
+      if (origAiAsk === undefined) delete process.env['AI_ASK_URL'];
+      else process.env['AI_ASK_URL'] = origAiAsk;
+      if (origQdrantUrl === undefined) delete process.env['QDRANT_URL'];
+      else process.env['QDRANT_URL'] = origQdrantUrl;
+      if (origSecret === undefined) delete process.env['INTERNAL_AUTH_SECRET'];
+      else process.env['INTERNAL_AUTH_SECRET'] = origSecret;
     }
   });
 });

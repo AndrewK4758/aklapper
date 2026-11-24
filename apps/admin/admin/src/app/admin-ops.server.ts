@@ -170,6 +170,7 @@ export async function fetchQdrantStatus(): Promise<QdrantHealthStatus> {
       path: '/v1/ask/status',
       method: 'GET',
       timeoutMs: 2_500,
+      internalAuth: { role: 'admin', subject: 'admin-console-status' },
     });
     if (res.ok && res.data) {
       const col = res.data.collection;

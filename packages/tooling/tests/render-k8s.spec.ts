@@ -78,6 +78,7 @@ describe('@aklapper/tooling GKE manifest renderer', () => {
     expect(rendered).not.toContain('iam.gke.io/gcp-service-account');
     expect(rendered).not.toMatch(/^[ \t]*annotations:\s*$/m);
     expect(rendered).not.toMatch(/^[ \t]*volumes:\s*$/m);
+    expect(rendered).not.toMatch(/^[ \t]*volumeMounts:\s*$/m);
     expect(rendered).not.toContain('cloud-sql-proxy');
     expect(rendered).toContain('name: k8s-watch');
     expect(rendered).toContain('name: cadence-admin');

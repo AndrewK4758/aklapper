@@ -201,6 +201,9 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
     expect(workflow).toContain('aklapper-runtime-secrets');
     expect(workflow).toContain('render-k8s.ts');
     expect(workflow).toContain('gcloud auth print-identity-token');
+    expect(workflow).toContain('cd.post_deploy_smoke.verified');
+    expect(workflow).toContain('--remove-env-vars=');
+    expect(workflow).toContain('^https://[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.run\\.app$');
     expect(workflow).toContain('--grep @smoke');
   });
 });

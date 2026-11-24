@@ -27,11 +27,14 @@ spec:
           env:
             - name: APP_ENV
               value: production
+            - name: INTERNAL_AUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: aklapper-runtime-secrets
+                  key: INTERNAL_AUTH_SECRET
           envFrom:
             - configMapRef:
                 name: aklapper-runtime-config
-            - secretRef:
-                name: aklapper-runtime-secrets
           readinessProbe:
             httpGet:
               path: /healthz
@@ -245,11 +248,14 @@ spec:
           env:
             - name: APP_ENV
               value: production
+            - name: INTERNAL_AUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: aklapper-runtime-secrets
+                  key: INTERNAL_AUTH_SECRET
           envFrom:
             - configMapRef:
                 name: aklapper-runtime-config
-            - secretRef:
-                name: aklapper-runtime-secrets
           readinessProbe:
             httpGet:
               path: /healthz

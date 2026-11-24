@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 
 import { eq, sql } from 'drizzle-orm';
 import type { Pool } from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import {
   type AppDatabase,
@@ -28,6 +28,7 @@ import {
   TERMINAL_PROFILE_SLUGS,
   upsertTerminalDirectoryEntry,
 } from '../src/index.ts';
+import { runMigrationCli } from '../src/migrate.ts';
 
 describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
   let pool: Pool;
@@ -259,6 +260,33 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       expect(rows[0]?.label).toBe('Custom CMS milestone added by admin');
     } finally {
       await db.delete(roadmapMilestones).where(eq(roadmapMilestones.slug, customSlug));
+    }
+  });
+
+  it('runs Drizzle migrations idempotently and emits db.migrate_job.execution for applied and failed runs', async () => {
+    const infoLogs: string[] = [];
+    const errorLogs: string[] = [];
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation((msg: unknown) => {
+      infoLogs.push(String(msg));
+    });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation((msg: unknown) => {
+      errorLogs.push(String(msg));
+    });
+    const badPool = createDbPool('postgres://postgres:postgres@127.0.0.1:1/unreachable');
+    try {
+      await runMigrationCli({ pool });
+      expect(infoLogs.join('\n')).toContain('db.migrate_job.execution');
+      expect(infoLogs.join('\n')).toContain('"status":"applied"');
+
+      await expect(runMigrationCli({ pool: badPool })).rejects.toThrow(
+        /Failed query|ECONNREFUSED|connect/i,
+      );
+      expect(errorLogs.join('\n')).toContain('db.migrate_job.execution');
+      expect(errorLogs.join('\n')).toContain('"status":"failed"');
+    } finally {
+      await badPool.end();
+      infoSpy.mockRestore();
+      errorSpy.mockRestore();
     }
   });
 });

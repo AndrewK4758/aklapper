@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 
 import { loadWorkspaceEnv } from '@aklapper/node-runtime/env';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
+import type { Pool } from 'pg';
 
 import { type AppDatabase, createDb, createDbPool } from './client.ts';
 
@@ -16,12 +17,17 @@ export async function runMigrations(
   await migrate(db, { migrationsFolder });
 }
 
-if (import.meta.main) {
-  loadWorkspaceEnv({ startDir: import.meta.dirname });
-  const pool = createDbPool();
+export async function runMigrationCli(
+  options: {
+    pool?: Pool;
+    migrationsFolder?: string;
+  } = {},
+): Promise<void> {
+  const ownsPool = !options.pool;
+  const pool = options.pool ?? createDbPool();
   try {
     const db = createDb(pool);
-    await runMigrations(db);
+    await runMigrations(db, options.migrationsFolder);
     console.info(
       JSON.stringify({
         event: 'db.migrate_job.execution',
@@ -40,6 +46,13 @@ if (import.meta.main) {
     );
     throw error;
   } finally {
-    await pool.end();
+    if (ownsPool) {
+      await pool.end();
+    }
   }
+}
+
+if (import.meta.main) {
+  loadWorkspaceEnv({ startDir: import.meta.dirname });
+  await runMigrationCli();
 }
