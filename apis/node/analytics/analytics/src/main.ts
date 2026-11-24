@@ -1,4 +1,8 @@
+import { loadWorkspaceEnv } from '@aklapper/node-runtime/env';
+
 import { buildAnalyticsServer } from './server.ts';
+
+loadWorkspaceEnv({ startDir: import.meta.dirname });
 
 const port = Number(process.env['PORT'] ?? 4102);
 const host = process.env['HOST'] ?? '0.0.0.0';

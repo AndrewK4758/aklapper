@@ -2,7 +2,10 @@ import './theme.css';
 import type { AdminRootLoaderData } from '@aklapper/core';
 import { buildCanonicalUrl, buildRouteMetaTags, readSeoRuntimeConfig } from '@aklapper/core';
 import { loadAdminRootDataWithPrerender } from '@aklapper/db';
+import { resolveAdminSessionFromRequest } from '@aklapper/db/auth';
+import { sanitizeRedirectTarget } from '@aklapper/node-runtime/auth';
 import {
+  Button,
   DirectionProvider,
   DocumentBodyAnalytics,
   DocumentHeadTags,
@@ -13,13 +16,15 @@ import {
   Tooltip,
   useAnimatedFavicon,
 } from '@aklapper/ui';
-import type { ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import {
   Link,
   Links,
+  type LoaderFunctionArgs,
   Meta,
   type MetaArgs,
   Outlet,
+  redirect,
   Scripts,
   ScrollRestoration,
   useLoaderData,
@@ -32,10 +37,35 @@ import { ADMIN_ROBOTS_DIRECTIVE, ADMIN_SITE_NAME, DEFAULT_ADMIN_SITE_URL } from 
 
 import styles from './root.module.css';
 
-export async function loader(): Promise<AdminRootLoaderData> {
+export async function loader({ request }: LoaderFunctionArgs): Promise<AdminRootLoaderData> {
+  const url = new URL(request.url);
+  const pathname = url.pathname;
+  const isLoginRoute = pathname === '/login' || pathname === '/login/';
+  const isApiRoute = pathname.startsWith('/api/');
+
+  const status = await resolveAdminSessionFromRequest(request);
+  const isAuthenticatedAdmin = Boolean(status.authenticated && status.session?.role === 'admin');
+
+  if (!isLoginRoute && !isApiRoute && !isAuthenticatedAdmin) {
+    const safeNext = sanitizeRedirectTarget(`${url.pathname}${url.search}`, '/');
+    const loginUrl = safeNext === '/' ? '/login' : `/login?next=${encodeURIComponent(safeNext)}`;
+    throw redirect(loginUrl);
+  }
+
+  if (isLoginRoute && isAuthenticatedAdmin) {
+    const safeNext = sanitizeRedirectTarget(url.searchParams.get('next'), '/');
+    throw redirect(safeNext === '/login' ? '/' : safeNext);
+  }
+
   const data = await loadAdminRootDataWithPrerender();
   return {
     ...data,
+    terminal: isLoginRoute ? undefined : data.terminal,
+    session: isAuthenticatedAdmin ? status.session : null,
+    authMeta: {
+      totpEnabled: status.totpEnabled,
+      passkeyCount: status.passkeyCount,
+    },
     runtimeSeo: readSeoRuntimeConfig({
       defaultSiteUrl: DEFAULT_ADMIN_SITE_URL,
       siteUrlEnvKey: 'PUBLIC_ADMIN_URL',
@@ -92,10 +122,21 @@ export function Layout({ children }: { children: ReactNode }) {
 
 export default function AdminRoot() {
   useAnimatedFavicon();
-  const { chrome, terminal } = useLoaderData() as AdminRootLoaderData;
+  const { chrome, terminal, session } = useLoaderData() as AdminRootLoaderData;
   const location = useLocation();
   const navigate = useNavigate();
+  const [signingOut, setSigningOut] = useState(false);
   const hasGlobalWorkspace = Boolean(terminal);
+  const isAdminSession = session?.role === 'admin';
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } finally {
+      window.location.assign('/login');
+    }
+  }
 
   return (
     <DirectionProvider.Provider direction='ltr'>
@@ -118,11 +159,27 @@ export default function AdminRoot() {
                   {'Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit'}
                 </span>
               ) : null}
+              {isAdminSession && session ? (
+                <span className={styles.sessionHandle}>{session.handle}@admin</span>
+              ) : null}
               <OscStatusBadge
                 source={chrome.statusBadge.source}
-                state={chrome.statusBadge.state}
-                label={chrome.statusBadge.label}
+                state={isAdminSession ? 'ready' : chrome.statusBadge.state}
+                label={isAdminSession ? 'Passkey Verified' : chrome.statusBadge.label}
               />
+              {isAdminSession ? (
+                <Button.Root
+                  type='button'
+                  variant='ghost'
+                  size='sm'
+                  loading={signingOut}
+                  onClick={() => {
+                    void handleSignOut();
+                  }}
+                >
+                  <Button.Label>Sign Out</Button.Label>
+                </Button.Root>
+              ) : null}
             </div>
           </header>
           <main className={styles.main} data-pane-workspace={hasGlobalWorkspace ? 'true' : 'false'}>

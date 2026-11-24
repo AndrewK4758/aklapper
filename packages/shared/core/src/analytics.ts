@@ -87,6 +87,67 @@ export function createAnalyticsClient(options: AnalyticsClientOptions): Analytic
   return { enabled, sessionId, track, startWebVitals, flush };
 }
 
+let activeAnalyticsClient: AnalyticsClient | null = null;
+let activeAnalyticsAppName = 'portal';
+let lastTrackedPathname: string | null = null;
+let historyTrackingCleanup: (() => void) | null = null;
+
+function normalizeRoutePathname(pathname: string): string {
+  const trimmed = pathname.trim();
+  if (!trimmed) return '/';
+  return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+}
+
+export function getActiveAnalyticsClient(): AnalyticsClient | null {
+  return activeAnalyticsClient;
+}
+
+export function trackRouteNavigation(pathname: string, appName = activeAnalyticsAppName): void {
+  if (!activeAnalyticsClient || !activeAnalyticsClient.enabled) return;
+  const normalized = normalizeRoutePathname(pathname);
+  if (lastTrackedPathname === normalized) return;
+  lastTrackedPathname = normalized;
+  activeAnalyticsClient.track({
+    type: 'page_view',
+    name: `${appName}_page_view`,
+    path: normalized,
+    metadata: { app: appName, navigation: 'spa' },
+  });
+}
+
+function installSpaHistoryTracking(): () => void {
+  const originalPushState = window.history.pushState.bind(window.history);
+  const handlePopState = (): void => {
+    trackRouteNavigation(window.location.pathname || '/');
+  };
+
+  window.history.pushState = function patchedPushState(
+    data: unknown,
+    unused: string,
+    url?: string | URL | null,
+  ): void {
+    originalPushState(data, unused, url);
+    trackRouteNavigation(window.location.pathname || '/');
+  };
+
+  window.addEventListener('popstate', handlePopState);
+
+  return () => {
+    window.history.pushState = originalPushState;
+    window.removeEventListener('popstate', handlePopState);
+  };
+}
+
+export function resetAnalyticsBootstrap(): void {
+  if (historyTrackingCleanup) {
+    historyTrackingCleanup();
+    historyTrackingCleanup = null;
+  }
+  activeAnalyticsClient = null;
+  activeAnalyticsAppName = 'portal';
+  lastTrackedPathname = null;
+}
+
 export function bootstrapDocumentAnalytics(
   doc: Document | undefined = typeof document !== 'undefined' ? document : undefined,
 ): AnalyticsClient | null {
@@ -101,25 +162,46 @@ export function bootstrapDocumentAnalytics(
   const appMeta = doc.querySelector<HTMLMetaElement>('meta[name="aklapper-analytics-app"]');
   const appName = appMeta?.content.trim() || 'portal';
 
+  if (historyTrackingCleanup) {
+    historyTrackingCleanup();
+    historyTrackingCleanup = null;
+  }
+
   const client = createAnalyticsClient({ endpoint });
+  activeAnalyticsClient = client;
+  activeAnalyticsAppName = appName;
+
   if (!client.enabled) return client;
+
+  const initialPath = normalizeRoutePathname(window.location.pathname || '/');
+  lastTrackedPathname = initialPath;
 
   client.startWebVitals();
   client.track({
     type: 'page_view',
     name: `${appName}_page_view`,
-    path: window.location.pathname || '/',
+    path: initialPath,
     metadata: { app: appName },
   });
 
-  window.addEventListener('pagehide', () => {
+  const cleanupHistory = installSpaHistoryTracking();
+  const handlePageHide = (): void => {
     client.flush();
-  });
-  doc.addEventListener('visibilitychange', () => {
+  };
+  const handleVisibilityChange = (): void => {
     if (doc.visibilityState === 'hidden') {
       client.flush();
     }
-  });
+  };
+
+  window.addEventListener('pagehide', handlePageHide);
+  doc.addEventListener('visibilitychange', handleVisibilityChange);
+
+  historyTrackingCleanup = () => {
+    cleanupHistory();
+    window.removeEventListener('pagehide', handlePageHide);
+    doc.removeEventListener('visibilitychange', handleVisibilityChange);
+  };
 
   return client;
 }

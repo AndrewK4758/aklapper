@@ -4,18 +4,23 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   bootstrapDocumentAnalytics,
   createAnalyticsClient,
+  getActiveAnalyticsClient,
   isPrivacyOptOut,
+  resetAnalyticsBootstrap,
+  trackRouteNavigation,
 } from '../src/analytics.ts';
 import type { AnalyticsBatch } from '../src/index.ts';
 
 describe('@aklapper/core/analytics', () => {
   afterEach(() => {
+    resetAnalyticsBootstrap();
     Object.defineProperty(navigator, 'doNotTrack', { value: null, configurable: true });
     Object.defineProperty(navigator, 'globalPrivacyControl', {
       value: undefined,
       configurable: true,
     });
     document.head.innerHTML = '';
+    window.history.replaceState({}, '', '/');
     vi.restoreAllMocks();
   });
 
@@ -67,8 +72,9 @@ describe('@aklapper/core/analytics', () => {
     expect(isPrivacyOptOut()).toBe(true);
   });
 
-  it('bootstraps analytics from document meta tags and returns null when unconfigured', () => {
+  it('bootstraps analytics from document meta tags, tracks SPA history transitions, and exposes active client', () => {
     expect(bootstrapDocumentAnalytics(document)).toBeNull();
+    expect(getActiveAnalyticsClient()).toBeNull();
 
     const metaEndpoint = document.createElement('meta');
     metaEndpoint.name = 'aklapper-analytics-endpoint';
@@ -85,12 +91,22 @@ describe('@aklapper/core/analytics', () => {
     const client = bootstrapDocumentAnalytics(document);
     expect(client).not.toBeNull();
     expect(client?.enabled).toBe(true);
+    expect(getActiveAnalyticsClient()).toBe(client);
 
-    // Triggering pagehide flushes the queued initial page_view
+    // SPA route transition via History pushState and explicit helper
+    window.history.pushState({}, '', '/menu');
+    // Duplicate push to same path is deduplicated
+    trackRouteNavigation('/menu');
+    trackRouteNavigation('/contact');
+
+    // Triggering pagehide flushes initial + SPA page_view events
     window.dispatchEvent(new Event('pagehide'));
     expect(fetchSpy).toHaveBeenCalledWith(
       '/api/analytics/ingest',
       expect.objectContaining({ method: 'POST' }),
     );
+    const bodyArg = fetchSpy.mock.calls[0]?.[1]?.body;
+    const parsed = JSON.parse(String(bodyArg)) as AnalyticsBatch;
+    expect(parsed.events.map(e => e.path)).toEqual(['/', '/menu', '/contact']);
   });
 });

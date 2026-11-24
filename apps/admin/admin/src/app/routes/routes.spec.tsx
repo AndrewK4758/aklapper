@@ -5,13 +5,14 @@ import type {
 } from '@aklapper/core';
 import { ADMIN_OPS_TERMINAL_PROFILE } from '@aklapper/db';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { createMemoryRouter, RouterProvider } from 'react-router';
+import { createMemoryRouter, RouterContextProvider, RouterProvider } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
 import AdminRoot from '../root';
 import { ADMIN_ROBOTS_DIRECTIVE, buildAdminPageMeta } from '../seo';
 import AdminAnalyticsRoute from './analytics';
 import AdminHomeRoute from './home';
+import AdminLoginRoute, { loader as loginLoader } from './login';
 
 const ADMIN_HOME_FIXTURE: AdminHomeLoaderData = {
   content: {
@@ -173,5 +174,31 @@ describe('Admin routes & SEO', () => {
 
     fireEvent.keyDown(window, { key: 'W', ctrlKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
+  });
+
+  it('renders AdminLoginRoute and sanitizes untrusted redirect targets', async () => {
+    const loginUrl = new URL('http://localhost:4301/login?next=https://evil.example/phish');
+    const safeResult = loginLoader({
+      request: new Request(loginUrl),
+      url: loginUrl,
+      pattern: '/login',
+      params: {},
+      context: new RouterContextProvider(),
+    });
+    expect(safeResult.nextTarget).toBe('/');
+
+    const router = createMemoryRouter(
+      [
+        {
+          path: '/login',
+          loader: () => ({ nextTarget: '/analytics' }),
+          Component: AdminLoginRoute,
+        },
+      ],
+      { initialEntries: ['/login'] },
+    );
+
+    render(<RouterProvider router={router} />);
+    expect(await screen.findByRole('heading', { name: 'Admin Passkey Gate' })).toBeTruthy();
   });
 });

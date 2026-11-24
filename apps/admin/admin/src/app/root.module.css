@@ -42,6 +42,13 @@
     white-space: nowrap;
   }
 
+  .sessionHandle {
+    color: var(--sf-gold);
+    font-size: var(--sf-text-xs);
+    font-weight: var(--sf-weight-semibold);
+    white-space: nowrap;
+  }
+
   .main {
     width: min(var(--sf-container-lg), 100%);
     margin-inline: auto;

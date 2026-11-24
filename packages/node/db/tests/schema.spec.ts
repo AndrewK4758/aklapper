@@ -17,6 +17,7 @@ import {
   terminalCommands,
   terminalInitialEntries,
   terminalProfiles,
+  webauthnChallenges,
 } from '../src/index.ts';
 
 function createMockInsertDb(returningFn: () => Promise<unknown[]>) {
@@ -41,6 +42,9 @@ describe('@aklapper/db', () => {
     expect(terminalInitialEntries.profileSlug.name).toBe('profile_slug');
     expect(terminalCommands.allowedRoutes.name).toBe('allowed_routes');
     expect(roadmapMilestones.status.name).toBe('status');
+    expect(webauthnChallenges.challenge.name).toBe('challenge');
+    expect(webauthnChallenges.consumedAt.name).toBe('consumed_at');
+    expect(webauthnChallenges.kind.name).toBe('kind');
     expect(QDRANT_COLLECTIONS.map(c => c.name)).toEqual([
       'ak_dossier',
       'cadence_patterns',

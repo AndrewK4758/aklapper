@@ -7,6 +7,7 @@ import (
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/k8sevents"
 )
 
@@ -16,7 +17,7 @@ func newHandler() http.Handler {
 
 	mux.HandleFunc("GET /v1/cluster/stream", func(w http.ResponseWriter, r *http.Request) {
 		role := contracts.RoleGuest
-		if r.Header.Get("X-Admin-Role") == contracts.RoleAdmin {
+		if internalauth.IsAdminRequest(r) {
 			role = contracts.RoleAdmin
 		}
 
@@ -40,8 +41,8 @@ func newHandler() http.Handler {
 			httpkit.WriteError(w, http.StatusBadRequest, "deployment is required")
 			return
 		}
-		if deployment == "cadence-admin" && r.Header.Get("X-Admin-Role") != contracts.RoleAdmin {
-			httpkit.WriteError(w, http.StatusForbidden, "admin role required to wake isolated admin workload")
+		if deployment == "cadence-admin" && !internalauth.IsAdminRequest(r) {
+			httpkit.WriteError(w, http.StatusForbidden, "signed admin internal auth required to wake isolated admin workload")
 			return
 		}
 		ns := contracts.PublicNamespace

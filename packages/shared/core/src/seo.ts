@@ -12,6 +12,7 @@ export type SeoMetaDescriptor =
 export interface ReadSeoRuntimeConfigOptions {
   defaultSiteUrl: string;
   siteUrlEnvKey?: string;
+  defaultAnalyticsEndpoint?: string;
   env?: Record<string, string | undefined>;
 }
 
@@ -63,6 +64,8 @@ function matchPattern(raw: string | undefined, pattern: RegExp): string | undefi
   return trimmed;
 }
 
+export const DEFAULT_ANALYTICS_ENDPOINT = '/api/analytics/ingest';
+
 export function readSeoRuntimeConfig(
   options: ReadSeoRuntimeConfigOptions,
 ): DocumentSeoRuntimeConfig {
@@ -72,7 +75,11 @@ export function readSeoRuntimeConfig(
     specificSiteUrl ?? env['PUBLIC_SITE_URL'],
     options.defaultSiteUrl,
   );
-  const analyticsEndpoint = normalizeEndpointUrl(env['PUBLIC_ANALYTICS_ENDPOINT']);
+  const rawAnalyticsEndpoint = env['PUBLIC_ANALYTICS_ENDPOINT'];
+  const analyticsEndpoint =
+    rawAnalyticsEndpoint === undefined || rawAnalyticsEndpoint.trim() === ''
+      ? normalizeEndpointUrl(options.defaultAnalyticsEndpoint ?? DEFAULT_ANALYTICS_ENDPOINT)
+      : normalizeEndpointUrl(rawAnalyticsEndpoint);
   const gaMeasurementId = matchPattern(env['PUBLIC_GA_MEASUREMENT_ID'], GA4_ID_PATTERN);
   const gtmId = matchPattern(env['PUBLIC_GTM_ID'], GTM_ID_PATTERN);
   const gscVerification = matchPattern(env['PUBLIC_GSC_VERIFICATION'], GSC_TOKEN_PATTERN);

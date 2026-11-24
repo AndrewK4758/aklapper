@@ -8,6 +8,10 @@ import {
   type AdminRootLoaderData,
   type AgensiSkill,
   AgensiSkillSchema,
+  type AnalyticsBatch,
+  AnalyticsBatchSchema,
+  type AuthSession,
+  AuthSessionSchema,
   type CadencePreset,
   CadencePresetSchema,
   type ContactFormSubmission,
@@ -31,10 +35,11 @@ import {
   type PortalRootLoaderData,
   type RoadmapMilestone,
   RoadmapMilestoneSchema,
+  type Role,
   type TerminalProfileData,
   TerminalProfileDataSchema,
 } from '@aklapper/core';
-import { and, asc, count, eq } from 'drizzle-orm';
+import { and, asc, count, eq, gt, isNull } from 'drizzle-orm';
 import type { z } from 'zod';
 
 import type { AppDatabase } from './client.ts';
@@ -541,5 +546,513 @@ export async function loadAdminAnalyticsData(db: AppDatabase): Promise<AdminAnal
       totalSessions: sessionCountRows[0]?.total ?? 0,
       totalEvents: eventCountRows[0]?.total ?? 0,
     },
+  };
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export interface AuthUserRecord {
+  id: string;
+  handle: string;
+  role: Role;
+  createdAt: Date;
+}
+
+export interface ValidAuthSessionRecord {
+  session: AuthSession;
+  userId: string | null;
+  totpEnabled: boolean;
+  passkeyCount: number;
+}
+
+export interface WebauthnChallengeRecord {
+  id: string;
+  challenge: string;
+  userId: string | null;
+  kind: 'register' | 'login';
+  expiresAt: Date;
+  consumedAt: Date | null;
+  createdAt: Date;
+}
+
+export interface WebauthnCredentialRecord {
+  credentialId: string;
+  userId: string;
+  publicKey: string;
+  counter: number;
+  transports: string[];
+  createdAt: Date;
+}
+
+export interface TotpSecretRecord {
+  userId: string;
+  encryptedSecret: string;
+  enabled: boolean;
+  backupCodesHash: string[];
+}
+
+export async function findOrCreateAdminUser(
+  db: AppDatabase,
+  handle = 'admin',
+): Promise<AuthUserRecord> {
+  const normalizedHandle = handle.trim().toLowerCase() || 'admin';
+
+  await db
+    .insert(schema.users)
+    .values({
+      handle: normalizedHandle,
+      role: 'admin',
+    })
+    .onConflictDoNothing({ target: schema.users.handle });
+
+  const [existing] = await db
+    .select({
+      id: schema.users.id,
+      handle: schema.users.handle,
+      role: schema.users.role,
+      createdAt: schema.users.createdAt,
+    })
+    .from(schema.users)
+    .where(eq(schema.users.handle, normalizedHandle))
+    .limit(1);
+
+  if (!existing) {
+    throw new Error(`Failed to find or create admin user "${normalizedHandle}"`);
+  }
+
+  if (existing.role !== 'admin') {
+    const [updated] = await db
+      .update(schema.users)
+      .set({ role: 'admin' })
+      .where(eq(schema.users.id, existing.id))
+      .returning({
+        id: schema.users.id,
+        handle: schema.users.handle,
+        role: schema.users.role,
+        createdAt: schema.users.createdAt,
+      });
+    if (updated) return updated;
+  }
+
+  return existing;
+}
+
+export async function getUserById(db: AppDatabase, userId: string): Promise<AuthUserRecord | null> {
+  if (!UUID_PATTERN.test(userId)) return null;
+  const [row] = await db
+    .select({
+      id: schema.users.id,
+      handle: schema.users.handle,
+      role: schema.users.role,
+      createdAt: schema.users.createdAt,
+    })
+    .from(schema.users)
+    .where(eq(schema.users.id, userId))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function findAdminUser(
+  db: AppDatabase,
+  handle?: string,
+): Promise<AuthUserRecord | null> {
+  const normalizedHandle = handle?.trim().toLowerCase();
+  const [row] = await db
+    .select({
+      id: schema.users.id,
+      handle: schema.users.handle,
+      role: schema.users.role,
+      createdAt: schema.users.createdAt,
+    })
+    .from(schema.users)
+    .where(
+      normalizedHandle
+        ? and(eq(schema.users.role, 'admin'), eq(schema.users.handle, normalizedHandle))
+        : eq(schema.users.role, 'admin'),
+    )
+    .orderBy(asc(schema.users.createdAt))
+    .limit(1);
+
+  return row ?? null;
+}
+
+export interface CreateAuthSessionInput {
+  userId: string | null;
+  role: Role;
+  handle?: string;
+  ttlMs: number;
+}
+
+export async function createAuthSession(
+  db: AppDatabase,
+  input: CreateAuthSessionInput,
+): Promise<AuthSession> {
+  const expiresAt = new Date(Date.now() + input.ttlMs);
+  const [inserted] = await db
+    .insert(schema.authSessions)
+    .values({
+      userId: input.userId,
+      role: input.role,
+      expiresAt,
+    })
+    .returning({
+      id: schema.authSessions.id,
+      role: schema.authSessions.role,
+      expiresAt: schema.authSessions.expiresAt,
+    });
+
+  if (!inserted) {
+    throw new Error('Failed to create auth session in Postgres');
+  }
+
+  let handle = input.handle?.trim() || (input.role === 'guest' ? 'guest' : 'admin');
+  if (!input.handle && input.userId) {
+    const user = await getUserById(db, input.userId);
+    if (user) handle = user.handle;
+  }
+
+  return AuthSessionSchema.parse({
+    sessionId: inserted.id,
+    role: inserted.role,
+    handle,
+    expiresAt: inserted.expiresAt.toISOString(),
+  });
+}
+
+export async function getValidAuthSession(
+  db: AppDatabase,
+  sessionId: string | null | undefined,
+): Promise<ValidAuthSessionRecord | null> {
+  if (!sessionId || !UUID_PATTERN.test(sessionId)) {
+    return null;
+  }
+
+  const now = new Date();
+  const [row] = await db
+    .select({
+      id: schema.authSessions.id,
+      userId: schema.authSessions.userId,
+      role: schema.authSessions.role,
+      expiresAt: schema.authSessions.expiresAt,
+      userHandle: schema.users.handle,
+    })
+    .from(schema.authSessions)
+    .leftJoin(schema.users, eq(schema.authSessions.userId, schema.users.id))
+    .where(
+      and(
+        eq(schema.authSessions.id, sessionId),
+        isNull(schema.authSessions.revokedAt),
+        gt(schema.authSessions.expiresAt, now),
+      ),
+    )
+    .limit(1);
+
+  if (!row) return null;
+
+  let totpEnabled = false;
+  let passkeyCount = 0;
+
+  if (row.userId) {
+    const [totpRow, credCountRows] = await Promise.all([
+      db
+        .select({ enabled: schema.totpSecrets.enabled })
+        .from(schema.totpSecrets)
+        .where(eq(schema.totpSecrets.userId, row.userId))
+        .limit(1),
+      db
+        .select({ total: count() })
+        .from(schema.webauthnCredentials)
+        .where(eq(schema.webauthnCredentials.userId, row.userId)),
+    ]);
+    totpEnabled = Boolean(totpRow[0]?.enabled);
+    passkeyCount = credCountRows[0]?.total ?? 0;
+  }
+
+  const session = AuthSessionSchema.parse({
+    sessionId: row.id,
+    role: row.role,
+    handle: row.userHandle ?? (row.role === 'guest' ? 'guest' : 'admin'),
+    expiresAt: row.expiresAt.toISOString(),
+  });
+
+  return {
+    session,
+    userId: row.userId,
+    totpEnabled,
+    passkeyCount,
+  };
+}
+
+export async function revokeAuthSession(
+  db: AppDatabase,
+  sessionId: string | null | undefined,
+): Promise<boolean> {
+  if (!sessionId || !UUID_PATTERN.test(sessionId)) {
+    return false;
+  }
+  const updated = await db
+    .update(schema.authSessions)
+    .set({ revokedAt: new Date() })
+    .where(and(eq(schema.authSessions.id, sessionId), isNull(schema.authSessions.revokedAt)))
+    .returning({ id: schema.authSessions.id });
+  return updated.length > 0;
+}
+
+export interface CreateWebauthnChallengeInput {
+  challenge: string;
+  userId: string | null;
+  kind: 'register' | 'login';
+  ttlMs?: number;
+}
+
+export async function createWebauthnChallenge(
+  db: AppDatabase,
+  input: CreateWebauthnChallengeInput,
+): Promise<WebauthnChallengeRecord> {
+  const expiresAt = new Date(Date.now() + (input.ttlMs ?? 5 * 60 * 1000));
+  const [inserted] = await db
+    .insert(schema.webauthnChallenges)
+    .values({
+      challenge: input.challenge,
+      userId: input.userId,
+      kind: input.kind,
+      expiresAt,
+    })
+    .returning();
+
+  if (!inserted) {
+    throw new Error('Failed to persist WebAuthn challenge in Postgres');
+  }
+  return inserted;
+}
+
+export interface ConsumeWebauthnChallengeInput {
+  challengeId: string;
+  kind: 'register' | 'login';
+}
+
+export async function consumeWebauthnChallenge(
+  db: AppDatabase,
+  input: ConsumeWebauthnChallengeInput,
+): Promise<WebauthnChallengeRecord | null> {
+  if (!UUID_PATTERN.test(input.challengeId)) {
+    return null;
+  }
+  const now = new Date();
+  const [consumed] = await db
+    .update(schema.webauthnChallenges)
+    .set({ consumedAt: now })
+    .where(
+      and(
+        eq(schema.webauthnChallenges.id, input.challengeId),
+        eq(schema.webauthnChallenges.kind, input.kind),
+        isNull(schema.webauthnChallenges.consumedAt),
+        gt(schema.webauthnChallenges.expiresAt, now),
+      ),
+    )
+    .returning();
+
+  return consumed ?? null;
+}
+
+export async function listUserWebauthnCredentials(
+  db: AppDatabase,
+  userId: string,
+): Promise<WebauthnCredentialRecord[]> {
+  if (!UUID_PATTERN.test(userId)) return [];
+  return db
+    .select()
+    .from(schema.webauthnCredentials)
+    .where(eq(schema.webauthnCredentials.userId, userId))
+    .orderBy(asc(schema.webauthnCredentials.createdAt));
+}
+
+export async function getWebauthnCredentialById(
+  db: AppDatabase,
+  credentialId: string,
+): Promise<WebauthnCredentialRecord | null> {
+  const [row] = await db
+    .select()
+    .from(schema.webauthnCredentials)
+    .where(eq(schema.webauthnCredentials.credentialId, credentialId))
+    .limit(1);
+  return row ?? null;
+}
+
+export interface SaveWebauthnCredentialInput {
+  credentialId: string;
+  userId: string;
+  publicKey: string;
+  counter: number;
+  transports?: string[];
+}
+
+export async function saveWebauthnCredential(
+  db: AppDatabase,
+  input: SaveWebauthnCredentialInput,
+): Promise<WebauthnCredentialRecord> {
+  const [inserted] = await db
+    .insert(schema.webauthnCredentials)
+    .values({
+      credentialId: input.credentialId,
+      userId: input.userId,
+      publicKey: input.publicKey,
+      counter: input.counter,
+      transports: input.transports ?? [],
+    })
+    .onConflictDoUpdate({
+      target: schema.webauthnCredentials.credentialId,
+      set: {
+        publicKey: input.publicKey,
+        counter: input.counter,
+        transports: input.transports ?? [],
+      },
+    })
+    .returning();
+
+  if (!inserted) {
+    throw new Error('Failed to save WebAuthn credential in Postgres');
+  }
+  return inserted;
+}
+
+export async function updateWebauthnCredentialCounter(
+  db: AppDatabase,
+  credentialId: string,
+  counter: number,
+): Promise<void> {
+  await db
+    .update(schema.webauthnCredentials)
+    .set({ counter })
+    .where(eq(schema.webauthnCredentials.credentialId, credentialId));
+}
+
+export async function getUserTotpSecret(
+  db: AppDatabase,
+  userId: string,
+): Promise<TotpSecretRecord | null> {
+  if (!UUID_PATTERN.test(userId)) return null;
+  const [row] = await db
+    .select()
+    .from(schema.totpSecrets)
+    .where(eq(schema.totpSecrets.userId, userId))
+    .limit(1);
+  return row ?? null;
+}
+
+export interface UpsertUserTotpSecretInput {
+  userId: string;
+  encryptedSecret: string;
+  backupCodesHash: string[];
+  enabled?: boolean;
+}
+
+export async function upsertUserTotpSecret(
+  db: AppDatabase,
+  input: UpsertUserTotpSecretInput,
+): Promise<TotpSecretRecord> {
+  const [row] = await db
+    .insert(schema.totpSecrets)
+    .values({
+      userId: input.userId,
+      encryptedSecret: input.encryptedSecret,
+      backupCodesHash: input.backupCodesHash,
+      enabled: input.enabled ?? false,
+    })
+    .onConflictDoUpdate({
+      target: schema.totpSecrets.userId,
+      set: {
+        encryptedSecret: input.encryptedSecret,
+        backupCodesHash: input.backupCodesHash,
+        enabled: input.enabled ?? false,
+      },
+    })
+    .returning();
+
+  if (!row) {
+    throw new Error('Failed to persist TOTP secret in Postgres');
+  }
+  return row;
+}
+
+export async function enableUserTotpSecret(db: AppDatabase, userId: string): Promise<boolean> {
+  if (!UUID_PATTERN.test(userId)) return false;
+  const updated = await db
+    .update(schema.totpSecrets)
+    .set({ enabled: true })
+    .where(eq(schema.totpSecrets.userId, userId))
+    .returning({ userId: schema.totpSecrets.userId });
+  return updated.length > 0;
+}
+
+export async function consumeTotpBackupCode(
+  db: AppDatabase,
+  userId: string,
+  remainingHashes: string[],
+): Promise<void> {
+  if (!UUID_PATTERN.test(userId)) return;
+  await db
+    .update(schema.totpSecrets)
+    .set({ backupCodesHash: remainingHashes })
+    .where(eq(schema.totpSecrets.userId, userId));
+}
+
+export async function disableUserTotpSecret(db: AppDatabase, userId: string): Promise<boolean> {
+  if (!UUID_PATTERN.test(userId)) return false;
+  const deleted = await db
+    .delete(schema.totpSecrets)
+    .where(eq(schema.totpSecrets.userId, userId))
+    .returning({ userId: schema.totpSecrets.userId });
+  return deleted.length > 0;
+}
+
+export interface IngestAnalyticsMeta {
+  ipHash: string;
+  country?: string | null;
+  region?: string | null;
+}
+
+export interface IngestAnalyticsResult {
+  accepted: number;
+  sessionId: string;
+  ipHash: string;
+}
+
+export async function ingestAnalyticsBatch(
+  db: AppDatabase,
+  batch: AnalyticsBatch,
+  meta: IngestAnalyticsMeta,
+): Promise<IngestAnalyticsResult> {
+  const parsed = AnalyticsBatchSchema.parse(batch);
+  const country = meta.country?.trim() || null;
+  const region = meta.region?.trim() || null;
+
+  await db
+    .insert(schema.analyticsSessions)
+    .values({
+      sessionId: parsed.sessionId,
+      ipHash: meta.ipHash,
+      referrer: parsed.referrer ?? null,
+      country,
+      region,
+    })
+    .onConflictDoNothing({ target: schema.analyticsSessions.sessionId });
+
+  await db.insert(schema.analyticsEvents).values(
+    parsed.events.map(event => ({
+      sessionId: parsed.sessionId,
+      type: event.type,
+      name: event.name,
+      path: event.path,
+      value: event.value ?? null,
+      metadataJson: (event.metadata ?? {}) as Record<string, unknown>,
+      createdAt: new Date(event.timestamp),
+    })),
+  );
+
+  return {
+    accepted: parsed.events.length,
+    sessionId: parsed.sessionId,
+    ipHash: meta.ipHash,
   };
 }

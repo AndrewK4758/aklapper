@@ -1,0 +1,50 @@
+@layer page {
+  .frame {
+    width: min(var(--sf-container-sm), 100%);
+    margin-inline: auto;
+    display: grid;
+    gap: var(--sf-space-7);
+  }
+
+  .card {
+    display: grid;
+    gap: var(--sf-space-6);
+  }
+
+  .subtitle {
+    margin: var(--sf-space-0);
+    color: var(--sf-fg-cmt);
+    font-size: var(--sf-text-sm);
+    line-height: var(--sf-leading-base);
+  }
+
+  .form {
+    display: grid;
+    gap: var(--sf-space-5);
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-space-4);
+  }
+
+  .alertError {
+    padding: var(--sf-space-4) var(--sf-space-5);
+    background: var(--sf-err-bg);
+    border: var(--sf-border-width) solid var(--sf-err);
+    border-radius: var(--sf-radius-sm);
+    color: var(--sf-fg-bone);
+    font-size: var(--sf-text-sm);
+  }
+
+  .statusNote {
+    padding: var(--sf-space-3) var(--sf-space-5);
+    background: var(--sf-bg-panel);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    color: var(--sf-fg-prop);
+    font-size: var(--sf-text-xs);
+  }
+}

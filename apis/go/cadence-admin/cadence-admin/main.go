@@ -7,12 +7,13 @@ import (
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 )
 
 func requireAdmin(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("X-Admin-Role") != contracts.RoleAdmin {
-			httpkit.WriteError(w, http.StatusForbidden, "admin passkey session required")
+		if !internalauth.IsAdminRequest(r) {
+			httpkit.WriteError(w, http.StatusForbidden, "signed admin internal auth required")
 			return
 		}
 		next(w, r)

@@ -152,6 +152,16 @@ export const authSessions = pgTable('auth_sessions', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const webauthnChallenges = pgTable('webauthn_challenges', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  challenge: text('challenge').notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  kind: text('kind').$type<'register' | 'login'>().notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  consumedAt: timestamp('consumed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const quotaPolicies = pgTable('quota_policies', {
   role: text('role').$type<'guest' | 'admin'>().primaryKey(),
   maxTurnsPerSession: integer('max_turns_per_session').notNull(),

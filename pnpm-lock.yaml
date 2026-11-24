@@ -239,6 +239,12 @@ importers:
       '@aklapper/core':
         specifier: workspace:*
         version: link:../../../../packages/shared/core
+      '@aklapper/db':
+        specifier: workspace:*
+        version: link:../../../../packages/node/db
+      '@aklapper/node-runtime':
+        specifier: workspace:*
+        version: link:../../../../packages/node/runtime
       '@aklapper/tooling':
         specifier: workspace:*
         version: link:../../../../packages/tooling
@@ -275,6 +281,12 @@ importers:
       '@aklapper/core':
         specifier: workspace:*
         version: link:../../../../packages/shared/core
+      '@aklapper/db':
+        specifier: workspace:*
+        version: link:../../../../packages/node/db
+      '@aklapper/node-runtime':
+        specifier: workspace:*
+        version: link:../../../../packages/node/runtime
       '@aklapper/tooling':
         specifier: workspace:*
         version: link:../../../../packages/tooling
@@ -397,6 +409,9 @@ importers:
       '@aklapper/node-runtime':
         specifier: workspace:*
         version: link:../runtime
+      '@simplewebauthn/server':
+        specifier: ^14.1.0
+        version: 14.1.0
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@types/pg@8.23.1)(pg@8.23.1)

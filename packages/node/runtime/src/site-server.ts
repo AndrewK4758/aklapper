@@ -1,4 +1,6 @@
 import { resolve } from 'node:path';
+import { Readable } from 'node:stream';
+import type { ReadableStream as NodeWebReadableStream } from 'node:stream/web';
 import { pathToFileURL } from 'node:url';
 
 import fastifyCookie from '@fastify/cookie';
@@ -19,6 +21,23 @@ export interface SsrServerOptions {
 export interface SsrServerInstance {
   app: FastifyInstance;
   start: () => Promise<string>;
+}
+
+const BODILESS_STATUS_CODES = new Set([204, 205, 304]);
+
+function collectResponseHeaders(webHeaders: Headers): Record<string, string | string[]> {
+  const responseHeaders: Record<string, string | string[]> = {};
+  webHeaders.forEach((value, key) => {
+    const existing = responseHeaders[key];
+    if (existing === undefined) {
+      responseHeaders[key] = value;
+    } else if (Array.isArray(existing)) {
+      existing.push(value);
+    } else {
+      responseHeaders[key] = [existing, value];
+    }
+  });
+  return responseHeaders;
 }
 
 export async function createSsrServer(options: SsrServerOptions): Promise<SsrServerInstance> {
@@ -88,19 +107,38 @@ export async function createSsrServer(options: SsrServerOptions): Promise<SsrSer
     });
 
     const webResponse = await handleRequest(webRequest);
-    const bodyText = await webResponse.text();
-    const responseHeaders: Record<string, string | string[]> = {};
-    webResponse.headers.forEach((value, key) => {
-      const existing = responseHeaders[key];
-      if (existing === undefined) {
-        responseHeaders[key] = value;
-      } else if (Array.isArray(existing)) {
-        existing.push(value);
-      } else {
-        responseHeaders[key] = [existing, value];
+    const responseHeaders = collectResponseHeaders(webResponse.headers);
+
+    if (
+      request.method === 'HEAD' ||
+      BODILESS_STATUS_CODES.has(webResponse.status) ||
+      webResponse.body === null
+    ) {
+      return reply.code(webResponse.status).headers(responseHeaders).send();
+    }
+
+    const contentType = (webResponse.headers.get('content-type') ?? '').toLowerCase();
+    if (contentType.includes('text/event-stream')) {
+      if (responseHeaders['cache-control'] === undefined) {
+        responseHeaders['cache-control'] = 'no-cache';
       }
-    });
-    return reply.code(webResponse.status).headers(responseHeaders).send(bodyText);
+      if (responseHeaders['connection'] === undefined) {
+        responseHeaders['connection'] = 'keep-alive';
+      }
+      if (responseHeaders['x-accel-buffering'] === undefined) {
+        responseHeaders['x-accel-buffering'] = 'no';
+      }
+      const nodeStream = Readable.fromWeb(webResponse.body as unknown as NodeWebReadableStream);
+      request.raw.once('close', () => {
+        if (!nodeStream.destroyed) {
+          nodeStream.destroy();
+        }
+      });
+      return reply.code(webResponse.status).headers(responseHeaders).send(nodeStream);
+    }
+
+    const bodyBuffer = Buffer.from(await webResponse.arrayBuffer());
+    return reply.code(webResponse.status).headers(responseHeaders).send(bodyBuffer);
   });
 
   return {

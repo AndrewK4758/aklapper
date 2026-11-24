@@ -49,6 +49,20 @@ describe('@aklapper/core/seo', () => {
     });
   });
 
+  it('defaults analyticsEndpoint to /api/analytics/ingest when PUBLIC_ANALYTICS_ENDPOINT is unset or blank', () => {
+    const unsetConfig = readSeoRuntimeConfig({
+      defaultSiteUrl: 'https://andrew-k.us',
+      env: {},
+    });
+    expect(unsetConfig.analyticsEndpoint).toBe('/api/analytics/ingest');
+
+    const blankConfig = readSeoRuntimeConfig({
+      defaultSiteUrl: 'https://andrew-k.us',
+      env: { PUBLIC_ANALYTICS_ENDPOINT: '   ' },
+    });
+    expect(blankConfig.analyticsEndpoint).toBe('/api/analytics/ingest');
+  });
+
   it('normalizes canonical URLs and builds complete OpenGraph + Twitter route meta tags', () => {
     expect(buildCanonicalUrl('https://andrew-k.us/', '/')).toBe('https://andrew-k.us/');
     expect(buildCanonicalUrl('https://andrew-k.us/', '/menu/')).toBe('https://andrew-k.us/menu');

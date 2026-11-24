@@ -15,6 +15,14 @@ export const AuthSessionSchema = z.object({
 });
 export type AuthSession = z.infer<typeof AuthSessionSchema>;
 
+export const AuthSessionStatusSchema = z.object({
+  authenticated: z.boolean(),
+  session: AuthSessionSchema.nullable(),
+  totpEnabled: z.boolean(),
+  passkeyCount: z.number().int().nonnegative(),
+});
+export type AuthSessionStatus = z.infer<typeof AuthSessionStatusSchema>;
+
 export const MenuItemSchema = z.object({
   slug: z.string().min(1),
   keyShortcut: z.string().min(1).max(4),
@@ -318,6 +326,11 @@ export interface PortalContactLoaderData {
 export interface AdminRootLoaderData {
   chrome: AdminChromeContent;
   terminal?: TerminalProfileData;
+  session?: AuthSession | null;
+  authMeta?: {
+    totpEnabled: boolean;
+    passkeyCount: number;
+  };
   runtimeSeo?: DocumentSeoRuntimeConfig;
 }
 
