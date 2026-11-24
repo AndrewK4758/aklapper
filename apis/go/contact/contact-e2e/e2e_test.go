@@ -92,4 +92,34 @@ func TestContactEndToEnd(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("POST /v1/contact/notify queues valid notifications and rejects invalid ones", func(t *testing.T) {
+		resOK, notifyOut := e2etest.DoJSON[map[string]any](
+			t,
+			http.MethodPost,
+			baseURL+"/v1/contact/notify",
+			contracts.ContactNotifyRequest{
+				SubmissionID:  "sub-e2e-1",
+				Name:          "Grace Hopper",
+				Email:         "grace@example.com",
+				HasAttachment: false,
+				ReceivedAt:    time.Now().UTC().Format(time.RFC3339),
+			},
+			nil,
+		)
+		if resOK.StatusCode != http.StatusAccepted || notifyOut["accepted"] != true || notifyOut["submissionId"] != "sub-e2e-1" {
+			t.Fatalf("expected 202 accepted notification, got (%d): %+v", resOK.StatusCode, notifyOut)
+		}
+
+		resBad, _ := e2etest.DoJSON[httpkit.ErrorResponse](
+			t,
+			http.MethodPost,
+			baseURL+"/v1/contact/notify",
+			contracts.ContactNotifyRequest{SubmissionID: "", Name: "A", Email: "bad"},
+			nil,
+		)
+		if resBad.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400 for invalid notify payload, got %d", resBad.StatusCode)
+		}
+	})
 }

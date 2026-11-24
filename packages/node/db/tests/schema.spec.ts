@@ -51,7 +51,9 @@ describe('@aklapper/db', () => {
       'verified_artifacts',
     ]);
     expect(DEFAULT_MENU_ITEMS.some(item => item.adminOnly)).toBe(true);
-    expect(Object.keys(SITE_CONTENT_KEYS)).toHaveLength(9);
+    expect(Object.keys(SITE_CONTENT_KEYS)).toHaveLength(11);
+    expect(SITE_CONTENT_KEYS.portalAgensi).toBe('portal-agensi');
+    expect(SITE_CONTENT_KEYS.portalAsk).toBe('portal-ask');
     expect(SITE_CONTENT_KEYS.portalContact).toBe('portal-contact');
     expect(TERMINAL_PROFILE_SLUGS.portalHome).toBe('portal-home');
   });

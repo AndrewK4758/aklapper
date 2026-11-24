@@ -4,6 +4,7 @@ import { type MetaArgs, useLoaderData, useNavigate } from 'react-router';
 
 import { PortalMenuPage } from '#pages/menu';
 
+import { useClusterTelemetry } from '../cluster-stream';
 import { buildPortalPageMeta } from '../seo';
 
 export async function loader(): Promise<PortalMenuLoaderData> {
@@ -23,12 +24,14 @@ export function meta({ loaderData, matches, location }: MetaArgs<typeof loader>)
 
 export default function PortalMenuRoute() {
   const { content, items } = useLoaderData() as PortalMenuLoaderData;
+  const cluster = useClusterTelemetry();
   const navigate = useNavigate();
 
   return (
     <PortalMenuPage
       content={content}
       items={items}
+      deployments={cluster.deployments}
       onNavigate={to => {
         void navigate(to);
       }}

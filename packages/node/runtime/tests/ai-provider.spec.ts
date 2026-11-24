@@ -68,7 +68,7 @@ describe('@aklapper/node-runtime/ai', () => {
     await expect(provider.embed(['test'])).rejects.toThrow(/status 503/);
   });
 
-  it('requires GCP_PROJECT_ID when AI_PROVIDER=vertex and fails loud without credentials', async () => {
+  it('requires GCP_PROJECT_ID when AI_PROVIDER=vertex and fails loud when metadata server is unreachable', async () => {
     expect(() => createAiProviderFromEnv({ AI_PROVIDER: 'vertex' })).toThrow('GCP_PROJECT_ID');
     const vertex = createAiProviderFromEnv({
       AI_PROVIDER: 'vertex',
@@ -76,12 +76,97 @@ describe('@aklapper/node-runtime/ai', () => {
     });
     expect(vertex.kind).toBe('vertex');
 
+    const failingFetch = vi
+      .fn<typeof fetch>()
+      .mockRejectedValue(new Error('connect ECONNREFUSED metadata.google.internal'));
     const directVertex = createVertexAiProvider({
       projectId: 'aklapper-prod',
       location: 'us-central1',
+      fetchImpl: failingFetch,
     });
-    await expect(directVertex.generateText({ prompt: 'hi' })).rejects.toThrow(/aklapper-prod/);
+    await expect(directVertex.generateText({ prompt: 'hi' })).rejects.toThrow(
+      /aklapper-prod\/us-central1/,
+    );
     await expect(directVertex.embed(['hi'])).rejects.toThrow(/Workload Identity/);
+  });
+
+  it('calls Vertex AI generateContent and predict using metadata server or GOOGLE_OAUTH_ACCESS_TOKEN', async () => {
+    const mockFetch = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(Response.json({ access_token: 'meta-token-123' }))
+      .mockResolvedValueOnce(
+        Response.json({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Vertex grounded answer' }],
+              },
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 18,
+            candidatesTokenCount: 7,
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          predictions: [{ embeddings: { values: [0.25, 0.5, 0.75] } }],
+        }),
+      );
+
+    const metadataVertex = createVertexAiProvider({
+      projectId: 'aklapper-prod',
+      location: 'us-central1',
+      geminiModel: 'gemini-2.5-flash',
+      embedModel: 'text-embedding-005',
+      fetchImpl: mockFetch,
+    });
+
+    const chat = await metadataVertex.generateText({
+      systemPrompt: 'Stay grounded',
+      prompt: 'Summarize portfolio',
+      maxTokens: 256,
+    });
+    expect(chat).toEqual({
+      text: 'Vertex grounded answer',
+      model: 'gemini-2.5-flash',
+      tokensIn: 18,
+      tokensOut: 7,
+    });
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      1,
+      'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token',
+      expect.objectContaining({
+        headers: { 'Metadata-Flavor': 'Google' },
+      }),
+    );
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      2,
+      'https://us-central1-aiplatform.googleapis.com/v1/projects/aklapper-prod/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ authorization: 'Bearer meta-token-123' }),
+      }),
+    );
+
+    const envTokenVertex = createVertexAiProvider({
+      projectId: 'aklapper-prod',
+      location: 'us-central1',
+      embedModel: 'text-embedding-005',
+      accessToken: 'env-token-456',
+      fetchImpl: mockFetch,
+    });
+    const vectors = await envTokenVertex.embed(['Solar Forge']);
+    expect(vectors).toEqual([[0.25, 0.5, 0.75]]);
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      3,
+      'https://us-central1-aiplatform.googleapis.com/v1/projects/aklapper-prod/locations/us-central1/publishers/google/models/text-embedding-005:predict',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ authorization: 'Bearer env-token-456' }),
+      }),
+    );
   });
 
   it('prefers canonical LOCAL_LLM_* and VERTEX_MODEL env vars over legacy aliases', async () => {

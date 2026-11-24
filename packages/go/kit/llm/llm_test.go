@@ -53,3 +53,90 @@ func TestLocalClientChatAndEmbed(t *testing.T) {
 		t.Fatalf("expected 3 dims, got %d", len(vec))
 	}
 }
+
+func TestVertexClientChatEmbedAndMetadataToken(t *testing.T) {
+	t.Parallel()
+
+	metaSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Metadata-Flavor") != "Google" {
+			http.Error(w, "missing Metadata-Flavor", http.StatusForbidden)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"access_token": "meta-tok-xyz"})
+	}))
+	defer metaSrv.Close()
+
+	vertexSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer meta-tok-xyz" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		switch r.URL.Path {
+		case "/v1/projects/aklapper-prod/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"candidates": []map[string]any{
+					{
+						"content": map[string]any{
+							"parts": []map[string]any{{"text": "Vertex grounded output"}},
+						},
+					},
+				},
+				"usageMetadata": map[string]any{
+					"promptTokenCount":     14,
+					"candidatesTokenCount": 9,
+				},
+			})
+		case "/v1/projects/aklapper-prod/locations/us-central1/publishers/google/models/text-embedding-005:predict":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"predictions": []map[string]any{
+					{"embeddings": map[string]any{"values": []float32{0.1, 0.2, 0.3, 0.4}}},
+				},
+			})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer vertexSrv.Close()
+
+	client := &VertexClient{
+		ProjectID:       "aklapper-prod",
+		Location:        "us-central1",
+		Model:           "gemini-2.5-flash",
+		EmbedModel:      "text-embedding-005",
+		MetadataURL:     metaSrv.URL,
+		EndpointBaseURL: vertexSrv.URL,
+		HTTPClient:      vertexSrv.Client(),
+	}
+
+	comp, err := client.Chat(context.Background(), []ChatMessage{
+		{Role: "system", Content: "Stay grounded"},
+		{Role: "user", Content: "Hello"},
+	}, 200)
+	if err != nil {
+		t.Fatalf("Vertex Chat failed: %v", err)
+	}
+	if comp.Text != "Vertex grounded output" || comp.TokensUsed != 23 || comp.Model != "gemini-2.5-flash" {
+		t.Fatalf("unexpected Vertex completion: %+v", comp)
+	}
+
+	vec, err := client.Embed(context.Background(), "Solar Forge")
+	if err != nil {
+		t.Fatalf("Vertex Embed failed: %v", err)
+	}
+	if len(vec) != 4 {
+		t.Fatalf("expected 4 dims, got %d", len(vec))
+	}
+}
+
+func TestVertexClientFailsClearlyWhenMetadataUnreachable(t *testing.T) {
+	t.Parallel()
+
+	client := &VertexClient{
+		ProjectID:   "aklapper-prod",
+		Location:    "us-central1",
+		MetadataURL: "http://127.0.0.1:1/unreachable",
+	}
+	if _, err := client.Chat(context.Background(), []ChatMessage{{Role: "user", Content: "hi"}}, 64); err == nil {
+		t.Fatal("expected clear error when metadata server is unreachable")
+	}
+}

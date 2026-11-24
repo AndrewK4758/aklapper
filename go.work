@@ -13,3 +13,5 @@ use (
 	./apis/go/k8s-watch/k8s-watch-e2e
 	./packages/go/kit
 )
+
+replace github.com/AndrewK4758/aklapper/packages/go/kit v0.0.0 => ./packages/go/kit

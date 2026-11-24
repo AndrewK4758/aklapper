@@ -4,6 +4,8 @@ import {
   type AdminHomeContent,
   CONTACT_FORM_DEFINITION,
   type MenuItem,
+  type PortalAgensiContent,
+  type PortalAskContent,
   type PortalCadenceContent,
   type PortalChromeContent,
   type PortalContactContent,
@@ -98,6 +100,17 @@ strong{color:var(--a-accent)}
 <body><strong>CADENCE Sandbox Ready</strong><p>Submit a prompt to spin up svc-cadence-demo on GKE.</p></body>
 </html>`;
 
+const STARTER_K8S_TELEMETRY_ARTIFACT_HTML = `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><style>
+:root{--a-bg:#121110;--a-panel:#1c1a17;--a-fg:#e8e2d5;--a-accent:#ffd300;--a-green:#22c55e;--a-pad:16px;--a-font:monospace}
+body{margin:0;padding:var(--a-pad);background:var(--a-bg);color:var(--a-fg);font-family:var(--a-font),monospace}
+.card{border:1px solid var(--a-accent);background:var(--a-panel);padding:12px}
+.ok{color:var(--a-green)}
+</style></head>
+<body><div class="card"><strong>GKE Autopilot // portfolio-public</strong><p class="ok">svc-cadence-demo · scale-to-0 ready</p><p>Submit a prompt to synthesize a live telemetry widget.</p></div></body>
+</html>`;
+
 export const PORTAL_CHROME_SEED: PortalChromeContent = {
   pageTitle: 'andrew-k.us // Solar Forge Terminal',
   brandLabel: 'andrew-k.us :: tty1',
@@ -125,6 +138,8 @@ const PORTAL_HOME_SEED: PortalHomeContent = {
   actions: [
     { label: 'Enter as Guest → /menu', to: '/menu', variant: 'primary' },
     { label: 'Open CADENCE → /cadence', to: '/cadence', variant: 'default' },
+    { label: 'Ask Portfolio → /ask', to: '/ask', variant: 'default' },
+    { label: 'Agensi Storefront → /agensi', to: '/agensi', variant: 'default' },
     { label: 'Open Contact → /contact', to: '/contact', variant: 'default' },
     { label: 'Preview Changes in Progress', to: '/changes-in-progress', variant: 'default' },
   ],
@@ -134,6 +149,40 @@ const PORTAL_MENU_SEED: PortalMenuContent = {
   heading: 'Launch Menu',
   description: 'Select a module. No pods wake until you invoke a live GKE workflow.',
   localTargetLabel: 'local',
+};
+
+const PORTAL_AGENSI_SEED: PortalAgensiContent = {
+  windowTitle: 'tui :: agensi storefront // published skills',
+  statusBadge: {
+    source: 'agensi-catalog',
+    state: 'ready',
+    label: 'catalog · live',
+  },
+  description:
+    'Published commercial AI agent skills, SDLC guardrails, and cloud-native operational blueprints available on agensi.io/creators/aklapper.',
+  searchPlaceholder: 'Filter skills by name, summary, or tag...',
+  emptyStateLabel: 'No Agensi skills match the current tag and search filters.',
+  outboundCtaLabel: 'Open on Agensi →',
+};
+
+const PORTAL_ASK_SEED: PortalAskContent = {
+  windowTitle: 'tui :: ask portfolio // grounded rag & jd match',
+  statusBadge: {
+    source: 'svc-ai-ask',
+    state: 'idle',
+    label: '0/1 replicas · strict grounding',
+  },
+  description:
+    'Ask grounded questions about Andrew Klapper’s architecture, Go microservices, React SSR stack, and published skills — or paste a Job Description for an evidence-backed fit assessment.',
+  starterQuestions: [
+    'How does the Solar Forge portal integrate Cloud Run SSR with scale-to-zero GKE Go microservices?',
+    'What security and isolation guardrails protect the CADENCE artifact sandbox?',
+    'Which published Agensi skills cover multi-agent SDLC and Kubernetes delivery?',
+  ],
+  jdPlaceholder:
+    'Paste a Principal / Staff Engineer or AI Platform Architect Job Description to evaluate grounded portfolio fit...',
+  abstentionNotice:
+    'Strict abstention active: answers are only emitted when indexed portfolio corpus evidence meets the minimum similarity threshold.',
 };
 
 const PORTAL_CADENCE_SEED: PortalCadenceContent = {
@@ -219,6 +268,16 @@ const SITE_CONTENT_SEEDS: ReadonlyArray<{
     metadataJson: PORTAL_MENU_SEED,
   },
   {
+    key: SITE_CONTENT_KEYS.portalAgensi,
+    markdownBody: 'Portal Agensi commercial skills storefront copy and filter labels.',
+    metadataJson: PORTAL_AGENSI_SEED,
+  },
+  {
+    key: SITE_CONTENT_KEYS.portalAsk,
+    markdownBody: 'Portal Ask Portfolio grounded RAG Q&A and Job Description matcher copy.',
+    metadataJson: PORTAL_ASK_SEED,
+  },
+  {
     key: SITE_CONTENT_KEYS.portalCadence,
     markdownBody: 'Portal CADENCE sandbox builder header and copy.',
     metadataJson: PORTAL_CADENCE_SEED,
@@ -254,14 +313,25 @@ const TERMINAL_PROFILE_SEEDS = [
   {
     slug: TERMINAL_PROFILE_SLUGS.portalHome,
     bannerTitle: 'Solar Forge Terminal // tty1',
-    bannerMeta: 'tty1 · type "menu", "tui", or "contact" · Tab autocomplete',
+    bannerMeta: 'tty1 · type "menu", "ask", "agensi", "cadence", or "contact" · Tab autocomplete',
     osLabel: '⚡',
     directory: '~/projects/aklapper',
     vcsBranch: 'portfolio_v2',
     vcsState: 'clean' as const,
     contextLabel: 'guest@andrew-k.us',
-    placeholder: 'type a command (help, ls, menu, tui, cadence, contact, cd ...)',
-    quickCommands: ['help', 'ls', 'menu', 'tui', 'cadence', 'contact', 'status', 'clear'],
+    placeholder: 'type a command (help, ls, menu, ask, agensi, cadence, contact, cd ...)',
+    quickCommands: [
+      'help',
+      'ls',
+      'menu',
+      'tui',
+      'cadence',
+      'ask',
+      'agensi',
+      'contact',
+      'status',
+      'clear',
+    ],
   },
   {
     slug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
@@ -285,6 +355,8 @@ const TERMINAL_INITIAL_ENTRY_SEEDS = [
       'drwxr-xr-x  guest  solar-forge  menu/                 # Interactive module launcher',
       'drwxr-xr-x  guest  solar-forge  tui/                  # Draggable TUI launcher window',
       'drwxr-xr-x  guest  solar-forge  cadence/              # Sandboxed artifact builder',
+      'drwxr-xr-x  guest  solar-forge  ask/                  # Grounded portfolio RAG & JD match',
+      'drwxr-xr-x  guest  solar-forge  agensi/               # Published Agensi skills storefront',
       'drwxr-xr-x  guest  solar-forge  contact/              # Recursive Zod/JSON TUI contact form',
       '-rw-r--r--  guest  solar-forge  changes-in-progress   # Production maintenance preview',
     ].join('\n'),
@@ -320,8 +392,10 @@ const TERMINAL_COMMAND_SEEDS = [
       '  menu       — open /menu module launcher',
       '  tui        — open draggable TUI launcher window',
       '  cadence    — open /cadence artifact sandbox',
+      '  ask        — open /ask grounded RAG & JD match',
+      '  agensi     — open /agensi commercial skills storefront',
       '  contact    — run inline terminal contact form (or "contact --tui" / "--help")',
-      '  cd <route> — navigate to /menu, /cadence, /contact, or /changes-in-progress',
+      '  cd <route> — navigate to /menu, /cadence, /ask, /agensi, /contact, or /changes-in-progress',
       '  status     — inspect cluster & service state',
       '  whoami     — display active terminal session',
       '  clear      — clear terminal scrollback',
@@ -342,7 +416,7 @@ const TERMINAL_COMMAND_SEEDS = [
     name: 'ls',
     description: 'list portal routes & workspaces',
     kind: 'static' as const,
-    output: 'menu/   tui/   cadence/   contact/   changes-in-progress',
+    output: 'menu/   tui/   cadence/   ask/   agensi/   contact/   changes-in-progress',
     targetRoute: null,
     allowedRoutes: [] as string[],
     errorTemplate: null,
@@ -383,6 +457,28 @@ const TERMINAL_COMMAND_SEEDS = [
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
+    name: 'ask',
+    description: 'open /ask grounded RAG & JD match',
+    kind: 'navigate' as const,
+    output: 'opening /ask ...',
+    targetRoute: '/ask',
+    allowedRoutes: [] as string[],
+    errorTemplate: null,
+    sortOrder: 6,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
+    name: 'agensi',
+    description: 'open /agensi published skills storefront',
+    kind: 'navigate' as const,
+    output: 'opening /agensi ...',
+    targetRoute: '/agensi',
+    allowedRoutes: [] as string[],
+    errorTemplate: null,
+    sortOrder: 7,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'contact',
     description: 'run inline terminal contact form (or "contact --tui" / "--help")',
     kind: 'navigate' as const,
@@ -390,19 +486,19 @@ const TERMINAL_COMMAND_SEEDS = [
     targetRoute: '/contact',
     allowedRoutes: [] as string[],
     errorTemplate: null,
-    sortOrder: 6,
+    sortOrder: 8,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'cd',
-    description: 'navigate to /menu, /cadence, /contact, or /changes-in-progress',
+    description: 'navigate to /menu, /cadence, /ask, /agensi, /contact, or /changes-in-progress',
     kind: 'cd' as const,
     output: 'cd /{{target}}',
     targetRoute: null,
-    allowedRoutes: ['menu', 'cadence', 'contact', 'changes-in-progress'],
+    allowedRoutes: ['menu', 'cadence', 'ask', 'agensi', 'contact', 'changes-in-progress'],
     errorTemplate:
-      'cd: no such route: {{input}}\nTry: cd menu | cd cadence | cd contact | cd changes-in-progress',
-    sortOrder: 7,
+      'cd: no such route: {{input}}\nTry: cd menu | cd cadence | cd ask | cd agensi | cd contact | cd changes-in-progress',
+    sortOrder: 9,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
@@ -413,7 +509,7 @@ const TERMINAL_COMMAND_SEEDS = [
     targetRoute: null,
     allowedRoutes: [] as string[],
     errorTemplate: null,
-    sortOrder: 8,
+    sortOrder: 10,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
@@ -424,7 +520,7 @@ const TERMINAL_COMMAND_SEEDS = [
     targetRoute: null,
     allowedRoutes: [] as string[],
     errorTemplate: null,
-    sortOrder: 9,
+    sortOrder: 11,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
@@ -435,7 +531,7 @@ const TERMINAL_COMMAND_SEEDS = [
     targetRoute: null,
     allowedRoutes: [] as string[],
     errorTemplate: null,
-    sortOrder: 10,
+    sortOrder: 12,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
@@ -587,6 +683,15 @@ const CADENCE_PRESET_SEEDS = [
     starterArtifactHtml: STARTER_CADENCE_ARTIFACT_HTML,
     sortOrder: 1,
   },
+  {
+    slug: 'k8s-pod-telemetry',
+    title: 'GKE Pod Telemetry Widget',
+    starterPrompt:
+      'Build a GKE Autopilot scale-from-zero pod monitor card showing cold-start latency, replica count, and health status.',
+    expectedKind: 'html-sandbox',
+    starterArtifactHtml: STARTER_K8S_TELEMETRY_ARTIFACT_HTML,
+    sortOrder: 2,
+  },
 ] as const;
 
 const AGENSI_SKILL_SEEDS = [
@@ -594,10 +699,46 @@ const AGENSI_SKILL_SEEDS = [
     slug: 'cadence-sdlc',
     name: 'CADENCE Agentic SDLC',
     summary:
-      'Specification-driven multi-agent delivery framework with deterministic certainty gates.',
+      'Specification-driven multi-agent delivery framework with deterministic certainty gates, phased CHORD execution, and strict verification.',
     tags: ['sdlc', 'agents', 'tdd'],
     url: 'https://agensi.io/creators/aklapper',
     sortOrder: 1,
+  },
+  {
+    slug: 'gke-scale-to-zero-go',
+    name: 'GKE Scale-to-Zero Go Microservices',
+    summary:
+      'Distroless Go HTTP services with Kubernetes Gateway API, KEDA scale-from-zero probes, and internal HMAC service authentication.',
+    tags: ['kubernetes', 'go', 'security'],
+    url: 'https://agensi.io/creators/aklapper',
+    sortOrder: 2,
+  },
+  {
+    slug: 'grounded-qdrant-rag',
+    name: 'Grounded Qdrant RAG & Abstention Kit',
+    summary:
+      'Evidence-first vector retrieval workflow combining Qdrant cosine similarity thresholds with fail-closed abstention and citation tracking.',
+    tags: ['rag', 'agents', 'go'],
+    url: 'https://agensi.io/creators/aklapper',
+    sortOrder: 3,
+  },
+  {
+    slug: 'solar-forge-react-ssr',
+    name: 'Solar Forge React Router SSR Architecture',
+    summary:
+      'React 19 + Fastify 5 SSR monorepo blueprint with Base UI primitives, strict 4-layer CSS tokens, and zero-any TypeScript ESM.',
+    tags: ['react', 'tdd', 'sdlc'],
+    url: 'https://agensi.io/creators/aklapper',
+    sortOrder: 4,
+  },
+  {
+    slug: 'pg19-quota-guardrails',
+    name: 'PostgreSQL 19 Quota & Constraint Guardrails',
+    summary:
+      'Fail-closed transactional rate limiting, CHECK constraint schema enforcement, and Drizzle ORM migration patterns for AI workloads.',
+    tags: ['security', 'kubernetes', 'tdd'],
+    url: 'https://agensi.io/creators/aklapper',
+    sortOrder: 5,
   },
 ] as const;
 
@@ -622,6 +763,8 @@ export {
   ADMIN_HOME_SEED,
   AGENSI_SKILL_SEEDS,
   CADENCE_PRESET_SEEDS,
+  PORTAL_AGENSI_SEED,
+  PORTAL_ASK_SEED,
   PORTAL_CADENCE_SEED,
   PORTAL_CONTACT_SEED,
   PORTAL_HOME_SEED,

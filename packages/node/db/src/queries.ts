@@ -10,16 +10,28 @@ import {
   AgensiSkillSchema,
   type AnalyticsBatch,
   AnalyticsBatchSchema,
+  type AskMode,
+  type AskResponse,
+  AskResponseSchema,
+  type AskSource,
   type AuthSession,
   AuthSessionSchema,
+  type CadenceGateVerdict,
   type CadencePreset,
   CadencePresetSchema,
+  type CadenceRunResult,
+  CadenceRunResultSchema,
+  type CadenceTurn,
   type ContactFormSubmission,
   ContactFormSubmissionSchema,
   type ContactSubmissionSummary,
   type FormFieldErrorMap,
   type MenuItem,
   MenuItemSchema,
+  PortalAgensiContentSchema,
+  type PortalAgensiLoaderData,
+  PortalAskContentSchema,
+  type PortalAskLoaderData,
   type PortalCadenceLoaderData,
   PortalCadenceContentSchema,
   type PortalChromeContent,
@@ -33,13 +45,15 @@ import {
   type PortalMenuLoaderData,
   PortalMenuContentSchema,
   type PortalRootLoaderData,
+  type QuotaStatus,
+  QuotaStatusSchema,
   type RoadmapMilestone,
   RoadmapMilestoneSchema,
   type Role,
   type TerminalProfileData,
   TerminalProfileDataSchema,
 } from '@aklapper/core';
-import { and, asc, count, eq, gt, isNull } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gt, isNull, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 
 import type { AppDatabase } from './client.ts';
@@ -49,6 +63,8 @@ export const SITE_CONTENT_KEYS = {
   portalChrome: 'portal-chrome',
   portalHome: 'portal-home',
   portalMenu: 'portal-menu',
+  portalAgensi: 'portal-agensi',
+  portalAsk: 'portal-ask',
   portalCadence: 'portal-cadence',
   portalContact: 'portal-contact',
   portalMaintenance: 'portal-maintenance',
@@ -262,17 +278,43 @@ export async function loadPortalMenuData(db: AppDatabase): Promise<PortalMenuLoa
   return { content, items };
 }
 
-export async function loadPortalCadenceData(db: AppDatabase): Promise<PortalCadenceLoaderData> {
-  const [content, presets] = await Promise.all([
+export async function loadPortalAgensiData(db: AppDatabase): Promise<PortalAgensiLoaderData> {
+  const [content, skills] = await Promise.all([
+    getSiteContent(db, SITE_CONTENT_KEYS.portalAgensi, PortalAgensiContentSchema),
+    getAgensiSkills(db),
+  ]);
+
+  return { content, skills };
+}
+
+export async function loadPortalAskData(
+  db: AppDatabase,
+  sessionId?: string,
+): Promise<PortalAskLoaderData> {
+  const [content, quota] = await Promise.all([
+    getSiteContent(db, SITE_CONTENT_KEYS.portalAsk, PortalAskContentSchema),
+    getQuotaStatusForSession(db, 'guest', sessionId),
+  ]);
+
+  return { content, quota };
+}
+
+export async function loadPortalCadenceData(
+  db: AppDatabase,
+  sessionId?: string,
+): Promise<PortalCadenceLoaderData> {
+  const [content, presets, quota, recentRuns] = await Promise.all([
     getSiteContent(db, SITE_CONTENT_KEYS.portalCadence, PortalCadenceContentSchema),
     getCadencePresets(db),
+    getQuotaStatusForSession(db, 'guest', sessionId),
+    sessionId ? listSandboxRunsForSession(db, sessionId, 8) : Promise.resolve([]),
   ]);
 
   if (presets.length === 0) {
     throw new Error('Missing required cadence_presets rows in Postgres');
   }
 
-  return { content, presets };
+  return { content, presets, quota, recentRuns };
 }
 
 export async function loadPortalContactData(db: AppDatabase): Promise<PortalContactLoaderData> {
@@ -1055,4 +1097,510 @@ export async function ingestAnalyticsBatch(
     sessionId: parsed.sessionId,
     ipHash: meta.ipHash,
   };
+}
+
+const DEFAULT_QUOTA_BY_ROLE: Readonly<
+  Record<
+    Role,
+    { maxTurnsPerSession: number; maxTokensPerRun: number; maxDailyGlobalTokens: number }
+  >
+> = {
+  guest: { maxTurnsPerSession: 5, maxTokensPerRun: 4_000, maxDailyGlobalTokens: 100_000 },
+  admin: { maxTurnsPerSession: 100, maxTokensPerRun: 32_000, maxDailyGlobalTokens: 2_000_000 },
+};
+
+export async function getQuotaStatusForSession(
+  db: AppDatabase,
+  role: Role,
+  sessionId?: string,
+): Promise<QuotaStatus> {
+  const [policyRow] = await db
+    .select()
+    .from(schema.quotaPolicies)
+    .where(eq(schema.quotaPolicies.role, role))
+    .limit(1);
+
+  const policy = policyRow ?? DEFAULT_QUOTA_BY_ROLE[role];
+  const maxTokens = policy.maxTokensPerRun * policy.maxTurnsPerSession;
+
+  const trimmedSession = sessionId?.trim();
+  if (!trimmedSession) {
+    return QuotaStatusSchema.parse({
+      role,
+      turnsUsed: 0,
+      maxTurns: policy.maxTurnsPerSession,
+      tokensUsed: 0,
+      maxTokens,
+    });
+  }
+
+  const [bucket] = await db
+    .select()
+    .from(schema.rateLimitBuckets)
+    .where(eq(schema.rateLimitBuckets.scopeKey, `session:${trimmedSession}`))
+    .limit(1);
+
+  return QuotaStatusSchema.parse({
+    role,
+    turnsUsed: bucket?.turnsUsed ?? 0,
+    maxTurns: policy.maxTurnsPerSession,
+    tokensUsed: bucket?.tokensUsed ?? 0,
+    maxTokens,
+  });
+}
+
+export async function consumeQuotaForSession(
+  db: AppDatabase,
+  role: Role,
+  sessionId: string,
+  turnsDelta: number,
+  tokensDelta: number,
+): Promise<{ allowed: boolean; quota: QuotaStatus }> {
+  const trimmedSession = sessionId.trim() || 'anonymous';
+  const today = new Date().toISOString().slice(0, 10);
+  const sessionKey = `session:${trimmedSession}`;
+  const globalKey = `global:${today}`;
+
+  return db.transaction(async tx => {
+    const [policyRow] = await tx
+      .select()
+      .from(schema.quotaPolicies)
+      .where(eq(schema.quotaPolicies.role, role))
+      .limit(1);
+    const policy = policyRow ?? DEFAULT_QUOTA_BY_ROLE[role];
+    const maxTokens = policy.maxTokensPerRun * policy.maxTurnsPerSession;
+
+    for (const scopeKey of [sessionKey, globalKey]) {
+      await tx
+        .insert(schema.rateLimitBuckets)
+        .values({ scopeKey, turnsUsed: 0, tokensUsed: 0 })
+        .onConflictDoNothing({ target: schema.rateLimitBuckets.scopeKey });
+    }
+
+    const [sessionRow] = await tx
+      .select()
+      .from(schema.rateLimitBuckets)
+      .where(eq(schema.rateLimitBuckets.scopeKey, sessionKey))
+      .limit(1);
+    const [globalRow] = await tx
+      .select()
+      .from(schema.rateLimitBuckets)
+      .where(eq(schema.rateLimitBuckets.scopeKey, globalKey))
+      .limit(1);
+
+    const sessionTurns = sessionRow?.turnsUsed ?? 0;
+    const sessionTokens = sessionRow?.tokensUsed ?? 0;
+    const globalTokens = globalRow?.tokensUsed ?? 0;
+
+    if (
+      sessionTurns + turnsDelta > policy.maxTurnsPerSession ||
+      tokensDelta > policy.maxTokensPerRun ||
+      globalTokens + tokensDelta > policy.maxDailyGlobalTokens
+    ) {
+      return {
+        allowed: false,
+        quota: QuotaStatusSchema.parse({
+          role,
+          turnsUsed: sessionTurns,
+          maxTurns: policy.maxTurnsPerSession,
+          tokensUsed: sessionTokens,
+          maxTokens,
+        }),
+      };
+    }
+
+    await tx
+      .update(schema.rateLimitBuckets)
+      .set({
+        turnsUsed: sql`${schema.rateLimitBuckets.turnsUsed} + ${turnsDelta}`,
+        tokensUsed: sql`${schema.rateLimitBuckets.tokensUsed} + ${tokensDelta}`,
+      })
+      .where(eq(schema.rateLimitBuckets.scopeKey, sessionKey));
+
+    await tx
+      .update(schema.rateLimitBuckets)
+      .set({
+        turnsUsed: sql`${schema.rateLimitBuckets.turnsUsed} + ${turnsDelta}`,
+        tokensUsed: sql`${schema.rateLimitBuckets.tokensUsed} + ${tokensDelta}`,
+      })
+      .where(eq(schema.rateLimitBuckets.scopeKey, globalKey));
+
+    return {
+      allowed: true,
+      quota: QuotaStatusSchema.parse({
+        role,
+        turnsUsed: sessionTurns + turnsDelta,
+        maxTurns: policy.maxTurnsPerSession,
+        tokensUsed: sessionTokens + tokensDelta,
+        maxTokens,
+      }),
+    };
+  });
+}
+
+export interface CreateSandboxRunInput {
+  sessionId: string;
+  ipHash: string;
+  menuSlug?: string;
+  prompt: string;
+  presetSlug?: string;
+  artifactHtml: string;
+  tokensIn: number;
+  tokensOut: number;
+  turns: readonly Omit<CadenceTurn, 'id' | 'createdAt'>[];
+}
+
+export async function createSandboxRunWithTurns(
+  db: AppDatabase,
+  input: CreateSandboxRunInput,
+): Promise<CadenceRunResult> {
+  const [insertedRun] = await db
+    .insert(schema.sandboxRuns)
+    .values({
+      sessionId: input.sessionId,
+      ipHash: input.ipHash,
+      menuSlug: input.menuSlug ?? 'cadence',
+      prompt: input.prompt,
+      status: 'ready',
+      gateVerdict: 'pending',
+      tokensIn: input.tokensIn,
+      tokensOut: input.tokensOut,
+      artifactHtml: input.artifactHtml,
+    })
+    .returning();
+
+  if (!insertedRun) {
+    throw new Error('Failed to create sandbox run in Postgres');
+  }
+
+  const insertedTurns: CadenceTurn[] = [];
+  for (const turn of input.turns) {
+    const [row] = await db
+      .insert(schema.sandboxTurns)
+      .values({
+        runId: insertedRun.id,
+        phase: turn.phase,
+        agentName: turn.agentName,
+        status: turn.status,
+        payloadJson: { summary: turn.summary },
+        latencyMs: turn.latencyMs,
+      })
+      .returning();
+    if (row) {
+      insertedTurns.push({
+        id: row.id,
+        phase: turn.phase,
+        agentName: row.agentName,
+        status: turn.status,
+        summary: turn.summary,
+        latencyMs: row.latencyMs,
+        createdAt: row.createdAt.toISOString(),
+      });
+    }
+  }
+
+  return CadenceRunResultSchema.parse({
+    runId: insertedRun.id,
+    prompt: insertedRun.prompt,
+    presetSlug: input.presetSlug,
+    gateVerdict: insertedRun.gateVerdict,
+    turns: insertedTurns,
+    artifactHtml: insertedRun.artifactHtml ?? '',
+    tokensIn: insertedRun.tokensIn,
+    tokensOut: insertedRun.tokensOut,
+    createdAt: insertedRun.createdAt.toISOString(),
+  });
+}
+
+export async function listSandboxRunsForSession(
+  db: AppDatabase,
+  sessionId: string,
+  limit = 8,
+): Promise<CadenceRunResult[]> {
+  const runs = await db
+    .select()
+    .from(schema.sandboxRuns)
+    .where(eq(schema.sandboxRuns.sessionId, sessionId))
+    .orderBy(desc(schema.sandboxRuns.createdAt))
+    .limit(limit);
+
+  const results: CadenceRunResult[] = [];
+  for (const run of runs) {
+    const turnRows = await db
+      .select()
+      .from(schema.sandboxTurns)
+      .where(eq(schema.sandboxTurns.runId, run.id))
+      .orderBy(asc(schema.sandboxTurns.id));
+
+    const turns: CadenceTurn[] = turnRows.map(row => ({
+      id: row.id,
+      phase:
+        row.phase === 'triage' ||
+        row.phase === 'spec' ||
+        row.phase === 'build' ||
+        row.phase === 'gate'
+          ? row.phase
+          : 'build',
+      agentName: row.agentName,
+      status:
+        row.status === 'pending' ||
+        row.status === 'running' ||
+        row.status === 'completed' ||
+        row.status === 'failed'
+          ? row.status
+          : 'completed',
+      summary: typeof row.payloadJson['summary'] === 'string' ? row.payloadJson['summary'] : '',
+      latencyMs: row.latencyMs,
+      createdAt: row.createdAt.toISOString(),
+    }));
+
+    results.push(
+      CadenceRunResultSchema.parse({
+        runId: run.id,
+        prompt: run.prompt,
+        gateVerdict:
+          run.gateVerdict === 'approved' || run.gateVerdict === 'rejected'
+            ? run.gateVerdict
+            : 'pending',
+        turns,
+        artifactHtml: run.artifactHtml ?? '',
+        tokensIn: run.tokensIn,
+        tokensOut: run.tokensOut,
+        createdAt: run.createdAt.toISOString(),
+      }),
+    );
+  }
+  return results;
+}
+
+export async function updateSandboxRunGateVerdict(
+  db: AppDatabase,
+  runId: string,
+  verdict: Exclude<CadenceGateVerdict, 'pending'>,
+): Promise<CadenceRunResult | null> {
+  if (!UUID_PATTERN.test(runId)) return null;
+  const [updated] = await db
+    .update(schema.sandboxRuns)
+    .set({ gateVerdict: verdict })
+    .where(eq(schema.sandboxRuns.id, runId))
+    .returning();
+  if (!updated) return null;
+
+  const turnRows = await db
+    .select()
+    .from(schema.sandboxTurns)
+    .where(eq(schema.sandboxTurns.runId, updated.id))
+    .orderBy(asc(schema.sandboxTurns.id));
+
+  return CadenceRunResultSchema.parse({
+    runId: updated.id,
+    prompt: updated.prompt,
+    gateVerdict: verdict,
+    turns: turnRows.map(row => ({
+      id: row.id,
+      phase:
+        row.phase === 'triage' ||
+        row.phase === 'spec' ||
+        row.phase === 'build' ||
+        row.phase === 'gate'
+          ? row.phase
+          : 'build',
+      agentName: row.agentName,
+      status:
+        row.status === 'pending' ||
+        row.status === 'running' ||
+        row.status === 'completed' ||
+        row.status === 'failed'
+          ? row.status
+          : 'completed',
+      summary: typeof row.payloadJson['summary'] === 'string' ? row.payloadJson['summary'] : '',
+      latencyMs: row.latencyMs,
+      createdAt: row.createdAt.toISOString(),
+    })),
+    artifactHtml: updated.artifactHtml ?? '',
+    tokensIn: updated.tokensIn,
+    tokensOut: updated.tokensOut,
+    createdAt: updated.createdAt.toISOString(),
+  });
+}
+
+const FALLBACK_STOPWORDS = new Set([
+  'the',
+  'and',
+  'for',
+  'with',
+  'that',
+  'this',
+  'from',
+  'about',
+  'what',
+  'does',
+  'have',
+  'your',
+  'into',
+  'role',
+  'will',
+  'team',
+  'are',
+  'you',
+  'can',
+  'how',
+  'why',
+  'who',
+]);
+
+function extractTerms(text: string): string[] {
+  return Array.from(
+    new Set(
+      text
+        .toLowerCase()
+        .replace(/[^a-z0-9+#.-]+/g, ' ')
+        .split(/\s+/)
+        .filter(term => term.length >= 2 && !FALLBACK_STOPWORDS.has(term)),
+    ),
+  );
+}
+
+const CURATED_FALLBACK_CORPUS: ReadonlyArray<{
+  id: string;
+  title: string;
+  snippet: string;
+  category: string;
+}> = [
+  {
+    id: 'dossier-stack',
+    title: 'Andrew Klapper — Core Architecture & Stack',
+    snippet:
+      'Principal full-stack and cloud systems engineer specializing in TypeScript, React 19, React Router 8 SSR, Fastify 5, Go 1.27 microservices, PostgreSQL 19 with Drizzle ORM, Qdrant vector search, and GCP Cloud Run + GKE Autopilot scale-from-zero workloads.',
+    category: 'dossier',
+  },
+  {
+    id: 'dossier-cadence',
+    title: 'CADENCE — Agentic SDLC & CHORD Sandbox',
+    snippet:
+      'Designed CADENCE, a specification-driven multi-agent delivery workflow using phased CHORD execution (triage, spec, build, gate), isolated git worktrees, deterministic verification gates, and zero-trust sandboxed iframe previews.',
+    category: 'dossier',
+  },
+  {
+    id: 'dossier-security',
+    title: 'Security & Cloud Operations Posture',
+    snippet:
+      'Implemented WebAuthn Passkeys + TOTP 2FA, HMAC-SHA256 signed internal service tokens between SSR BFFs and Go APIs, strict namespace redaction separating portfolio-public from cadence-admin, and PostgreSQL CHECK constraints.',
+    category: 'dossier',
+  },
+  {
+    id: 'dossier-ai',
+    title: 'Grounded RAG & Dual-Provider AI Pipeline',
+    snippet:
+      'Unified LLM and embedding layer supporting local llama-swap inference and Google Cloud Vertex AI Gemini/text-embedding-005 with Qdrant cosine similarity retrieval and strict abstention when evidence scores are below threshold.',
+    category: 'dossier',
+  },
+];
+
+export async function searchPortfolioCorpusFallback(
+  db: AppDatabase,
+  queryText: string,
+  mode: AskMode,
+  quota?: QuotaStatus,
+): Promise<AskResponse> {
+  const [skills, milestones] = await Promise.all([
+    getAgensiSkills(db).catch(() => []),
+    getRoadmapMilestones(db).catch(() => []),
+  ]);
+
+  const docs = [
+    ...CURATED_FALLBACK_CORPUS,
+    ...skills.map(skill => ({
+      id: `agensi:${skill.slug}`,
+      title: `Agensi Skill // ${skill.name}`,
+      snippet: `${skill.summary} Tags: ${skill.tags.join(', ')}.`,
+      category: 'agensi_skills',
+    })),
+    ...milestones.map(milestone => ({
+      id: `milestone:${milestone.slug}`,
+      title: `Roadmap [${milestone.status}] // ${milestone.slug}`,
+      snippet: milestone.label,
+      category: 'roadmap_milestones',
+    })),
+  ];
+
+  const terms = extractTerms(queryText);
+  const scored: Array<AskSource & { matchedTerms: string[] }> = [];
+
+  for (const doc of docs) {
+    const haystack = `${doc.title} ${doc.snippet}`.toLowerCase();
+    const matchedTerms = terms.filter(term => haystack.includes(term));
+    if (matchedTerms.length === 0) continue;
+    const rawScore = Math.min(0.95, 0.32 + matchedTerms.length * 0.14);
+    scored.push({
+      id: doc.id,
+      title: doc.title,
+      snippet: doc.snippet,
+      score: Math.round(rawScore * 100) / 100,
+      category: doc.category,
+      matchedTerms,
+    });
+  }
+
+  scored.sort((a, b) => b.score - a.score);
+  const topHits = scored.slice(0, 4);
+
+  if (topHits.length === 0 || (topHits[0]?.score ?? 0) < 0.35) {
+    return AskResponseSchema.parse({
+      grounded: false,
+      mode,
+      answer:
+        'Abstaining: no grounded portfolio evidence matched your request above the confidence threshold.',
+      sources: [],
+      ...(mode === 'jd_match'
+        ? {
+            matchScore: 0,
+            strengths: [],
+            gaps: [
+              'No overlapping verified portfolio evidence was found for the supplied description.',
+            ],
+          }
+        : {}),
+      provider: 'pg19-local-corpus',
+      tokensUsed: 0,
+      quota,
+    });
+  }
+
+  const sources: AskSource[] = topHits.map(({ matchedTerms: _ignored, ...src }) => src);
+  if (mode === 'jd_match') {
+    const allMatched = new Set(topHits.flatMap(hit => hit.matchedTerms));
+    const unmatched = terms.filter(term => !allMatched.has(term)).slice(0, 4);
+    const ratio = terms.length > 0 ? allMatched.size / Math.min(terms.length, 12) : 0.5;
+    const matchScore = Math.max(35, Math.min(96, Math.round(ratio * 100)));
+    const strengths = topHits.slice(0, 3).map(hit => `${hit.title}: ${hit.snippet.slice(0, 140)}`);
+    const gaps =
+      unmatched.length > 0
+        ? [`Not explicitly evidenced in indexed portfolio corpus: ${unmatched.join(', ')}.`]
+        : ['No major stack gaps detected against the verified portfolio corpus.'];
+
+    return AskResponseSchema.parse({
+      grounded: true,
+      mode,
+      answer: `Grounded JD alignment (${matchScore}% match) across ${sources.length} verified portfolio documents covering ${Array.from(allMatched).slice(0, 6).join(', ')}.`,
+      sources,
+      matchScore,
+      strengths,
+      gaps,
+      provider: 'pg19-local-corpus',
+      tokensUsed: 0,
+      quota,
+    });
+  }
+
+  const lead = topHits[0];
+  return AskResponseSchema.parse({
+    grounded: true,
+    mode,
+    answer: `Based on verified portfolio evidence (${lead?.title}): ${lead?.snippet}`,
+    sources,
+    provider: 'pg19-local-corpus',
+    tokensUsed: 0,
+    quota,
+  });
 }

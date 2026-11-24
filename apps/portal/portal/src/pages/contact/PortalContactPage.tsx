@@ -106,6 +106,15 @@ export function PortalContactPage({
                 className={className}
                 onSubmit={onSubmit}
               >
+                <input
+                  type='text'
+                  name='website'
+                  tabIndex={-1}
+                  autoComplete='off'
+                  aria-hidden='true'
+                  defaultValue=''
+                  className={styles.honeypot}
+                />
                 {children}
               </Form>
             )}

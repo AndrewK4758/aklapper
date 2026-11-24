@@ -5,6 +5,8 @@ import {
   getPrerenderAdminAnalyticsData,
   getPrerenderAdminHomeData,
   getPrerenderAdminRootData,
+  getPrerenderPortalAgensiData,
+  getPrerenderPortalAskData,
   getPrerenderPortalCadenceData,
   getPrerenderPortalContactData,
   getPrerenderPortalHomeData,
@@ -44,6 +46,8 @@ describe('db prerender fallback loaders', () => {
     );
     expect(getPrerenderPortalHomeData().terminal.commands.length).toBeGreaterThan(0);
     expect(getPrerenderPortalMenuData().items.every(item => !item.adminOnly)).toBe(true);
+    expect(getPrerenderPortalAgensiData().skills.length).toBeGreaterThanOrEqual(4);
+    expect(getPrerenderPortalAskData().content.starterQuestions.length).toBeGreaterThan(0);
     expect(getPrerenderPortalCadenceData().presets.length).toBeGreaterThan(0);
     expect(getPrerenderPortalContactData().content.form.id).toBe('contact-form');
     expect(getPrerenderPortalMaintenanceData().milestones.length).toBeGreaterThan(0);

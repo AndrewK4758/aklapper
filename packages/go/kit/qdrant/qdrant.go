@@ -106,6 +106,18 @@ func (c *Client) EnsureCollection(ctx context.Context, name string, vectorSize i
 	return nil
 }
 
+type Point struct {
+	ID      any            `json:"id"`
+	Vector  []float32      `json:"vector"`
+	Payload map[string]any `json:"payload"`
+}
+
+type CollectionInfo struct {
+	Status      string `json:"status"`
+	PointsCount int    `json:"pointsCount"`
+	VectorSize  int    `json:"vectorSize"`
+}
+
 func (c *Client) Search(ctx context.Context, collection string, vector []float32, limit int) ([]SearchHit, error) {
 	if limit <= 0 {
 		limit = 5
@@ -132,4 +144,62 @@ func (c *Client) Search(ctx context.Context, collection string, vector []float32
 		return nil, err
 	}
 	return parsed.Result, nil
+}
+
+func (c *Client) UpsertPoints(ctx context.Context, collection string, points []Point) error {
+	if len(points) == 0 {
+		return nil
+	}
+	payload := map[string]any{
+		"points": points,
+	}
+	req, err := c.newRequest(ctx, http.MethodPut, "/collections/"+collection+"/points?wait=true", payload)
+	if err != nil {
+		return err
+	}
+	res, err := c.httpClient().Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	if res.StatusCode >= 300 {
+		return fmt.Errorf("qdrant upsert points to %q failed with status %d", collection, res.StatusCode)
+	}
+	return nil
+}
+
+func (c *Client) CollectionInfo(ctx context.Context, collection string) (*CollectionInfo, error) {
+	req, err := c.newRequest(ctx, http.MethodGet, "/collections/"+collection, nil)
+	if err != nil {
+		return nil, err
+	}
+	res, err := c.httpClient().Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	if res.StatusCode >= 300 {
+		return nil, fmt.Errorf("qdrant collection info %q failed with status %d", collection, res.StatusCode)
+	}
+	var parsed struct {
+		Result struct {
+			Status      string `json:"status"`
+			PointsCount int    `json:"points_count"`
+			Config      struct {
+				Params struct {
+					Vectors struct {
+						Size int `json:"size"`
+					} `json:"vectors"`
+				} `json:"params"`
+			} `json:"config"`
+		} `json:"result"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&parsed); err != nil {
+		return nil, err
+	}
+	return &CollectionInfo{
+		Status:      parsed.Result.Status,
+		PointsCount: parsed.Result.PointsCount,
+		VectorSize:  parsed.Result.Config.Params.Vectors.Size,
+	}, nil
 }

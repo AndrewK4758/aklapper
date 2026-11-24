@@ -346,5 +346,13 @@ describe('PortalContactRoute & action', () => {
       formError: 'Database constraint rejected Email format.',
       fieldErrors: { email: ['Database constraint rejected Email format.'] },
     });
+
+    const honeypotFd = new FormData();
+    honeypotFd.set('name', 'Bot Sender');
+    honeypotFd.set('email', 'bot@example.com');
+    honeypotFd.set('message', 'Honeypot test payload should be rejected.');
+    honeypotFd.set('website', 'https://spam.example.invalid');
+    const spamRes = await apiContactAction(makeJsonArgs(honeypotFd));
+    expect(spamRes.status).toBe(400);
   });
 });

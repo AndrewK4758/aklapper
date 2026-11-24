@@ -45,6 +45,8 @@ type QuotaStatus struct {
 type CadenceRunRequest struct {
 	Prompt     string `json:"prompt"`
 	PresetSlug string `json:"presetSlug,omitempty"`
+	SessionID  string `json:"sessionId,omitempty"`
+	Role       string `json:"role,omitempty"`
 }
 
 func (r CadenceRunRequest) Validate() error {
@@ -56,6 +58,25 @@ func (r CadenceRunRequest) Validate() error {
 		return errors.New("prompt must not exceed 1200 characters")
 	}
 	return nil
+}
+
+type CadenceTurn struct {
+	ID        int            `json:"id,omitempty"`
+	Phase     string         `json:"phase"`
+	AgentName string         `json:"agentName"`
+	Status    string         `json:"status"`
+	Summary   string         `json:"summary"`
+	LatencyMs int            `json:"latencyMs"`
+	Payload   map[string]any `json:"payload,omitempty"`
+	CreatedAt string         `json:"createdAt,omitempty"`
+}
+
+type AskSource struct {
+	ID       string  `json:"id,omitempty"`
+	Title    string  `json:"title"`
+	Snippet  string  `json:"snippet"`
+	Score    float64 `json:"score"`
+	Category string  `json:"category,omitempty"`
 }
 
 type MenuItem struct {
@@ -87,6 +108,28 @@ func (r ContactRequest) Validate() error {
 	}
 	if len(strings.TrimSpace(r.Message)) < 10 {
 		return errors.New("message must be at least 10 characters")
+	}
+	return nil
+}
+
+type ContactNotifyRequest struct {
+	SubmissionID  string `json:"submissionId"`
+	Name          string `json:"name"`
+	Email         string `json:"email"`
+	HasAttachment bool   `json:"hasAttachment"`
+	ReceivedAt    string `json:"receivedAt"`
+}
+
+func (r ContactNotifyRequest) Validate() error {
+	if strings.TrimSpace(r.SubmissionID) == "" {
+		return errors.New("submissionId is required")
+	}
+	if len(strings.TrimSpace(r.Name)) < 2 {
+		return errors.New("name must be at least 2 characters")
+	}
+	email := strings.TrimSpace(r.Email)
+	if !strings.Contains(email, "@") || len(email) < 5 {
+		return errors.New("valid email is required")
 	}
 	return nil
 }
