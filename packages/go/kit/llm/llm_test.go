@@ -52,6 +52,15 @@ func TestLocalClientChatAndEmbed(t *testing.T) {
 	if len(vec) != 3 {
 		t.Fatalf("expected 3 dims, got %d", len(vec))
 	}
+	if DefaultLocalEmbedModel != "embedding" {
+		t.Fatalf("expected DefaultLocalEmbedModel=embedding, got %q", DefaultLocalEmbedModel)
+	}
+	if err := ValidateEmbeddingDims(make([]float32, ExpectedEmbeddingDims)); err != nil {
+		t.Fatalf("expected 768-dim zero vector to validate, got %v", err)
+	}
+	if err := ValidateEmbeddingDims([]float32{0.5, 0.25, 0.75}); err == nil {
+		t.Fatal("expected dimension mismatch error for 3-dim vector")
+	}
 }
 
 func TestVertexClientChatEmbedAndMetadataToken(t *testing.T) {

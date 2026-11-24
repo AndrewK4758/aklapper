@@ -13,6 +13,25 @@ const (
 
 	RoleGuest = "guest"
 	RoleAdmin = "admin"
+
+	TurnStatusPending   = "pending"
+	TurnStatusRunning   = "running"
+	TurnStatusCompleted = "completed"
+	TurnStatusAbstained = "abstained"
+	TurnStatusFailed    = "failed"
+	TurnStatusExpired   = "expired"
+
+	ErrCodeValidation          = "ERR_VALIDATION"
+	ErrCodeConstraint          = "ERR_CONSTRAINT"
+	ErrCodeNotFound            = "ERR_NOT_FOUND"
+	ErrCodeUnauthorized        = "ERR_UNAUTHORIZED"
+	ErrCodeForbidden           = "ERR_FORBIDDEN"
+	ErrCodeRateLimited         = "ERR_RATE_LIMITED"
+	ErrCodeDbUnavailable       = "ERR_DB_UNAVAILABLE"
+	ErrCodeStreamTimeout       = "ERR_STREAM_TIMEOUT"
+	ErrCodeStreamAborted       = "ERR_STREAM_ABORTED"
+	ErrCodeUpstreamUnavailable = "ERR_UPSTREAM_UNAVAILABLE"
+	ErrCodeInternal            = "ERR_INTERNAL"
 )
 
 type Osc7501Status struct {
@@ -40,6 +59,14 @@ type QuotaStatus struct {
 	MaxTurns   int    `json:"maxTurns"`
 	TokensUsed int    `json:"tokensUsed"`
 	MaxTokens  int    `json:"maxTokens"`
+}
+
+type PublicAppError struct {
+	Code          string `json:"code"`
+	Status        int    `json:"status"`
+	Message       string `json:"message"`
+	Action        string `json:"action"`
+	CorrelationID string `json:"correlationId"`
 }
 
 type CadenceRunRequest struct {
@@ -77,6 +104,77 @@ type AskSource struct {
 	Snippet  string  `json:"snippet"`
 	Score    float64 `json:"score"`
 	Category string  `json:"category,omitempty"`
+}
+
+type JdMatchEvaluation struct {
+	MatchScore int      `json:"matchScore"`
+	Strengths  []string `json:"strengths"`
+	Gaps       []string `json:"gaps"`
+}
+
+type AskResponse struct {
+	AttemptID     string       `json:"attemptId,omitempty"`
+	Grounded      bool         `json:"grounded"`
+	Abstained     bool         `json:"abstained"`
+	Mode          string       `json:"mode"`
+	Answer        string       `json:"answer"`
+	Sources       []AskSource  `json:"sources"`
+	MatchScore    *int         `json:"matchScore,omitempty"`
+	Strengths     []string     `json:"strengths,omitempty"`
+	Gaps          []string     `json:"gaps,omitempty"`
+	Provider      string       `json:"provider"`
+	Model         string       `json:"model,omitempty"`
+	TokensUsed    int          `json:"tokensUsed"`
+	LatencyMs     int          `json:"latencyMs,omitempty"`
+	CorrelationID string       `json:"correlationId,omitempty"`
+	Quota         *QuotaStatus `json:"quota,omitempty"`
+}
+
+type AskTurnState struct {
+	AttemptID      string          `json:"attemptId"`
+	Status         string          `json:"status"`
+	Mode           string          `json:"mode"`
+	CorrelationID  string          `json:"correlationId"`
+	LeaseExpiresAt string          `json:"leaseExpiresAt"`
+	ExpiresAt      string          `json:"expiresAt"`
+	Quota          *QuotaStatus    `json:"quota,omitempty"`
+	Response       *AskResponse    `json:"response,omitempty"`
+	Error          *PublicAppError `json:"error,omitempty"`
+}
+
+type AskCollectionStatus struct {
+	Name        string `json:"name"`
+	Status      string `json:"status"`
+	PointsCount int    `json:"pointsCount"`
+	VectorSize  int    `json:"vectorSize,omitempty"`
+}
+
+type AskServiceStatus struct {
+	Status      string               `json:"status"`
+	Provider    string               `json:"provider"`
+	PGConnected bool                 `json:"pgConnected"`
+	Collection  *AskCollectionStatus `json:"collection,omitempty"`
+}
+
+// ValidateUUID returns true strictly when value is a canonical 36-char UUID string.
+func ValidateUUID(value string) bool {
+	if len(value) != 36 {
+		return false
+	}
+	for i := 0; i < len(value); i++ {
+		c := value[i]
+		if i == 8 || i == 13 || i == 18 || i == 23 {
+			if c != '-' {
+				return false
+			}
+			continue
+		}
+		isHex := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
+		if !isHex {
+			return false
+		}
+	}
+	return true
 }
 
 type MenuItem struct {
