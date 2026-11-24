@@ -203,20 +203,31 @@ func TestAiAskEndToEnd(t *testing.T) {
 		}
 	})
 
-	t.Run("GET /healthz and /v1/ask/status return healthy and redacted 503", func(t *testing.T) {
+	t.Run("GET /healthz and /v1/ask/status enforce signed internal auth and return healthy and redacted 503", func(t *testing.T) {
 		res, health := e2etest.DoJSON[httpkit.HealthResponse](t, http.MethodGet, baseURL+"/healthz", nil, nil)
 		if res.StatusCode != http.StatusOK || !health.OK || health.Service != "ai-ask" {
 			t.Fatalf("unexpected healthz (%d): %+v", res.StatusCode, health)
 		}
 
-		resS, out := e2etest.DoJSON[contracts.AskServiceStatus](t, http.MethodGet, baseURL+"/v1/ask/status", nil, nil)
+		resUnauth, _ := e2etest.DoJSON[httpkit.ErrorResponse](t, http.MethodGet, baseURL+"/v1/ask/status", nil, nil)
+		if resUnauth.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected 401 without internal auth header, got %d", resUnauth.StatusCode)
+		}
+
+		serviceTok, err := internalauth.Sign(internalauth.RoleService, "e2e-portal", time.Minute, secret)
+		if err != nil {
+			t.Fatalf("sign service token: %v", err)
+		}
+		serviceHeaders := map[string]string{internalauth.HeaderName: serviceTok}
+
+		resS, out := e2etest.DoJSON[contracts.AskServiceStatus](t, http.MethodGet, baseURL+"/v1/ask/status", nil, serviceHeaders)
 		if resS.StatusCode != http.StatusOK || out.Status != "ready" || !out.PGConnected {
 			t.Fatalf("unexpected status (%d): %+v", resS.StatusCode, out)
 		}
 
 		qdrantStatusFail.Store(true)
 		defer qdrantStatusFail.Store(false)
-		res503, body := e2etest.DoRequest(t, http.MethodGet, baseURL+"/v1/ask/status", nil, nil)
+		res503, body := e2etest.DoRequest(t, http.MethodGet, baseURL+"/v1/ask/status", nil, serviceHeaders)
 		if res503.StatusCode != http.StatusServiceUnavailable || strings.Contains(string(body), "secret internal connection") {
 			t.Fatalf("expected redacted 503 status, got (%d): %s", res503.StatusCode, string(body))
 		}

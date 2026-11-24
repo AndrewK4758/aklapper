@@ -58,9 +58,28 @@ func TestK8sWatchInClusterDiscoveryAndRBAC(t *testing.T) {
 		http:    k8sSrv.Client(),
 	}
 	h := newHandler(client)
+	serviceTok, err := internalauth.Sign(internalauth.RoleService, "portal-ssr", time.Minute, "k8s-unit-secret")
+	if err != nil {
+		t.Fatalf("sign service token: %v", err)
+	}
 
-	t.Run("guest receives only portfolio-public deployments from K8s API", func(t *testing.T) {
+	t.Run("rejects unauthenticated requests to cluster stream and wake", func(t *testing.T) {
+		recStream := httptest.NewRecorder()
+		h.ServeHTTP(recStream, httptest.NewRequest(http.MethodGet, "/v1/cluster/stream", nil))
+		if recStream.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401 on unauthenticated stream, got %d", recStream.Code)
+		}
+
+		recWake := httptest.NewRecorder()
+		h.ServeHTTP(recWake, httptest.NewRequest(http.MethodPost, "/v1/cluster/wake/cadence-demo", nil))
+		if recWake.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401 on unauthenticated wake, got %d", recWake.Code)
+		}
+	})
+
+	t.Run("guest/service receives only portfolio-public deployments from K8s API", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/v1/cluster/stream", nil)
+		req.Header.Set(internalauth.HeaderName, serviceTok)
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, req)
 		if rec.Code != http.StatusOK {
@@ -93,6 +112,7 @@ func TestK8sWatchInClusterDiscoveryAndRBAC(t *testing.T) {
 	t.Run("nil client falls back to local scale-from-zero simulation", func(t *testing.T) {
 		simHandler := newHandler(nil)
 		req := httptest.NewRequest(http.MethodGet, "/v1/cluster/stream", nil)
+		req.Header.Set(internalauth.HeaderName, serviceTok)
 		rec := httptest.NewRecorder()
 		simHandler.ServeHTTP(rec, req)
 		if !strings.Contains(rec.Body.String(), "cadence-demo") {

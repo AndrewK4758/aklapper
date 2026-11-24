@@ -1,8 +1,12 @@
 package internalauth
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -52,18 +56,62 @@ func TestVerifyRejectsExpiredTamperedAndWrongSecret(t *testing.T) {
 }
 
 func TestFailsClosedInProductionWhenSecretMissing(t *testing.T) {
-	t.Setenv("NODE_ENV", "production")
-	t.Setenv("INTERNAL_AUTH_SECRET", "")
-
-	if _, err := Sign(RoleAdmin, "admin", time.Minute, ""); err != ErrMissingSecret {
-		t.Fatalf("expected ErrMissingSecret in production, got %v", err)
+	captureMissingSecretStderr := func(t *testing.T, fn func()) string {
+		t.Helper()
+		origStderr := os.Stderr
+		rPipe, wPipe, err := os.Pipe()
+		if err != nil {
+			t.Fatalf("pipe failed: %v", err)
+		}
+		os.Stderr = wPipe
+		defer func() { os.Stderr = origStderr }()
+		fn()
+		_ = wPipe.Close()
+		var buf bytes.Buffer
+		_, _ = io.Copy(&buf, rPipe)
+		_ = rPipe.Close()
+		return buf.String()
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/v1/admin/status", nil)
-	req.Header.Set(HeaderName, crossLangExpectedToken)
-	if IsAdminRequest(req) {
-		t.Fatal("expected IsAdminRequest to fail closed in production without INTERNAL_AUTH_SECRET")
-	}
+	t.Run("NODE_ENV=production fails closed and emits seam", func(t *testing.T) {
+		t.Setenv("NODE_ENV", "production")
+		t.Setenv("APP_ENV", "")
+		t.Setenv("INTERNAL_AUTH_SECRET", "")
+
+		out := captureMissingSecretStderr(t, func() {
+			if _, err := Sign(RoleAdmin, "admin", time.Minute, ""); err != ErrMissingSecret {
+				t.Fatalf("expected ErrMissingSecret in production, got %v", err)
+			}
+			req := httptest.NewRequest(http.MethodGet, "/v1/admin/status", nil)
+			req.Header.Set(HeaderName, crossLangExpectedToken)
+			if IsAdminRequest(req) {
+				t.Fatal("expected IsAdminRequest to fail closed in production without INTERNAL_AUTH_SECRET")
+			}
+		})
+		if !strings.Contains(out, "k8s.internalauth.prod_secret_missing") || !strings.Contains(out, "UNSOUND_CONDITION") {
+			t.Fatalf("expected k8s.internalauth.prod_secret_missing seam on stderr, got: %q", out)
+		}
+	})
+
+	t.Run("APP_ENV=production fails closed and emits seam without NODE_ENV", func(t *testing.T) {
+		t.Setenv("NODE_ENV", "")
+		t.Setenv("APP_ENV", "production")
+		t.Setenv("INTERNAL_AUTH_SECRET", "")
+
+		out := captureMissingSecretStderr(t, func() {
+			if _, err := ResolveSecret(""); err != ErrMissingSecret {
+				t.Fatalf("expected ErrMissingSecret under APP_ENV=production, got %v", err)
+			}
+			req := httptest.NewRequest(http.MethodGet, "/v1/admin/status", nil)
+			req.Header.Set(HeaderName, crossLangExpectedToken)
+			if IsAdminRequest(req) {
+				t.Fatal("expected IsAdminRequest to fail closed under APP_ENV=production without INTERNAL_AUTH_SECRET")
+			}
+		})
+		if !strings.Contains(out, "k8s.internalauth.prod_secret_missing") || !strings.Contains(out, "UNSOUND_CONDITION") {
+			t.Fatalf("expected k8s.internalauth.prod_secret_missing seam on stderr under APP_ENV=production, got: %q", out)
+		}
+	})
 }
 
 func TestVerifyRequestRejectsSpoofedAdminRoleHeader(t *testing.T) {

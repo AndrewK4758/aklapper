@@ -50,7 +50,11 @@ describe('@aklapper/tooling GKE manifest renderer', () => {
     );
     expect(rendered).toContain('name: k8s-watch');
     expect(rendered).toContain('name: k8s-watch-admin-reader');
-    expect(rendered).toContain('kind: Gateway');
+    const gatewayDoc = rendered.split('\n---\n').find(doc => doc.includes('kind: Gateway')) ?? '';
+    expect(gatewayDoc).toContain('protocol: HTTPS');
+    expect(gatewayDoc).toContain('name: aklapper-go-tls');
+    expect(gatewayDoc).not.toMatch(/protocol:\s*HTTP\s*$/m);
+    expect(gatewayDoc).not.toMatch(/port:\s*80\s*$/m);
     expect(rendered).toContain('kind: HTTPRoute');
     expect(rendered).toContain('port: 8081');
     expect(rendered).toContain('port: 8082');
@@ -61,6 +65,22 @@ describe('@aklapper/tooling GKE manifest renderer', () => {
     expect(rendered).toContain('port: 5432');
     expect(rendered).toContain('port: 3307');
     expect(rendered).toContain('port: 53');
+  });
+
+  it('omits dangling annotations and volumes keys when optional gkeWorkloadSa and cloudSqlInstance are unset', () => {
+    const rendered = renderK8sManifests(MANIFESTS_DIR, {
+      projectId: 'games-424800',
+      region: 'us-central1',
+      garRepository: 'portfolio',
+      imageTag: 'sha-abc1234',
+    });
+
+    expect(rendered).not.toContain('iam.gke.io/gcp-service-account');
+    expect(rendered).not.toMatch(/^[ \t]*annotations:\s*$/m);
+    expect(rendered).not.toMatch(/^[ \t]*volumes:\s*$/m);
+    expect(rendered).not.toContain('cloud-sql-proxy');
+    expect(rendered).toContain('name: k8s-watch');
+    expect(rendered).toContain('name: cadence-admin');
   });
 
   it('rejects placeholder PROJECT_ID, empty image tags, and zero replicas', () => {

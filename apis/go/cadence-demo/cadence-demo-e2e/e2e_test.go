@@ -4,10 +4,12 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit/e2etest"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 )
 
 type cadenceRunResponse struct {
@@ -40,6 +42,30 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 		}
 	})
 
+	guestTok, err := internalauth.Sign(internalauth.RoleGuest, "e2e-cadence-1", time.Minute, "")
+	if err != nil {
+		t.Fatalf("sign guest token: %v", err)
+	}
+	guestHeaders := map[string]string{internalauth.HeaderName: guestTok}
+
+	t.Run("rejects unauthenticated callers across run and gate endpoints", func(t *testing.T) {
+		resList, _ := e2etest.DoJSON[httpkit.ErrorResponse](t, http.MethodGet, baseURL+"/v1/cadence/runs?limit=50", nil, nil)
+		if resList.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected 401 without internal auth, got %d", resList.StatusCode)
+		}
+
+		resCreate, _ := e2etest.DoJSON[httpkit.ErrorResponse](
+			t,
+			http.MethodPost,
+			baseURL+"/v1/cadence/runs",
+			contracts.CadenceRunRequest{Prompt: "Unauthenticated run"},
+			nil,
+		)
+		if resCreate.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected 401 for unauthenticated run creation, got %d", resCreate.StatusCode)
+		}
+	})
+
 	var createdRunID string
 	t.Run("POST /v1/cadence/runs creates 4-phase CHORD sandbox artifact and escapes HTML", func(t *testing.T) {
 		res, run := e2etest.DoJSON[cadenceRunResponse](
@@ -51,7 +77,7 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 				PresetSlug: "solar-forge-starter",
 				SessionID:  "e2e-cadence-1",
 			},
-			nil,
+			guestHeaders,
 		)
 		if res.StatusCode != http.StatusCreated {
 			t.Fatalf("expected 201, got %d", res.StatusCode)
@@ -78,21 +104,37 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 	})
 
 	t.Run("POST /v1/cadence/runs/{id}/gate persists verdict and GET /v1/cadence/runs lists it", func(t *testing.T) {
-		resGate, gateOut := e2etest.DoJSON[map[string]any](
+		resGateUnauth, _ := e2etest.DoJSON[httpkit.ErrorResponse](
 			t,
 			http.MethodPost,
 			baseURL+"/v1/cadence/runs/"+createdRunID+"/gate",
 			map[string]string{"verdict": "approved"},
 			nil,
 		)
+		if resGateUnauth.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected 401 without internal auth on gate update, got %d", resGateUnauth.StatusCode)
+		}
+
+		resGate, gateOut := e2etest.DoJSON[map[string]any](
+			t,
+			http.MethodPost,
+			baseURL+"/v1/cadence/runs/"+createdRunID+"/gate",
+			map[string]string{"verdict": "approved"},
+			guestHeaders,
+		)
 		if resGate.StatusCode != http.StatusOK || gateOut["gateVerdict"] != "approved" {
 			t.Fatalf("expected 200 approved, got (%d): %+v", resGate.StatusCode, gateOut)
+		}
+
+		resNoSess, _ := e2etest.DoJSON[httpkit.ErrorResponse](t, http.MethodGet, baseURL+"/v1/cadence/runs?limit=50", nil, guestHeaders)
+		if resNoSess.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400 when non-admin caller omits sessionId, got %d", resNoSess.StatusCode)
 		}
 
 		resList, listOut := e2etest.DoJSON[struct {
 			Runs  []map[string]any      `json:"runs"`
 			Quota contracts.QuotaStatus `json:"quota"`
-		}](t, http.MethodGet, baseURL+"/v1/cadence/runs?sessionId=e2e-cadence-1", nil, nil)
+		}](t, http.MethodGet, baseURL+"/v1/cadence/runs?sessionId=e2e-cadence-1", nil, guestHeaders)
 		if resList.StatusCode != http.StatusOK || len(listOut.Runs) != 1 {
 			t.Fatalf("expected 1 run in history, got (%d): %+v", resList.StatusCode, listOut)
 		}
@@ -111,7 +153,7 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 					Prompt:    "Quota enforcement check prompt",
 					SessionID: "e2e-quota-cap",
 				},
-				nil,
+				guestHeaders,
 			)
 			if res.StatusCode != http.StatusCreated {
 				t.Fatalf("run %d expected 201, got %d", i+1, res.StatusCode)
@@ -125,7 +167,7 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 				Prompt:    "Sixth run should exceed guest quota",
 				SessionID: "e2e-quota-cap",
 			},
-			nil,
+			guestHeaders,
 		)
 		if resOver.StatusCode != http.StatusTooManyRequests || body["quota"] == nil {
 			t.Fatalf("expected 429 with quota payload, got (%d): %+v", resOver.StatusCode, body)
@@ -138,7 +180,10 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 			http.MethodPost,
 			baseURL+"/v1/cadence/runs",
 			[]byte("not-json"),
-			map[string]string{"Content-Type": "application/json"},
+			map[string]string{
+				"Content-Type":          "application/json",
+				internalauth.HeaderName: guestTok,
+			},
 		)
 		if resBadJSON.StatusCode != http.StatusBadRequest {
 			t.Fatalf("expected 400 for malformed JSON, got %d", resBadJSON.StatusCode)
@@ -149,7 +194,7 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 			http.MethodPost,
 			baseURL+"/v1/cadence/runs",
 			contracts.CadenceRunRequest{Prompt: "abc"},
-			nil,
+			guestHeaders,
 		)
 		if resShort.StatusCode != http.StatusBadRequest {
 			t.Fatalf("expected 400 for short prompt, got %d", resShort.StatusCode)
@@ -160,7 +205,7 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 			http.MethodPost,
 			baseURL+"/v1/cadence/runs",
 			contracts.CadenceRunRequest{Prompt: strings.Repeat("x", 1201)},
-			nil,
+			guestHeaders,
 		)
 		if resLong.StatusCode != http.StatusBadRequest {
 			t.Fatalf("expected 400 for oversized prompt, got %d", resLong.StatusCode)

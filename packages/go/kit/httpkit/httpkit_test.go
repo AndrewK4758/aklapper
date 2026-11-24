@@ -6,6 +6,9 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 )
 
 func TestNewHealthHandler(t *testing.T) {
@@ -37,5 +40,27 @@ func TestWriteSSEEvent(t *testing.T) {
 	body := rec.Body.String()
 	if !strings.Contains(body, "event: status\n") || !strings.Contains(body, `"state":"ready"`) {
 		t.Fatalf("unexpected SSE payload: %q", body)
+	}
+}
+
+func TestRequireInternalAuth(t *testing.T) {
+	t.Setenv("INTERNAL_AUTH_SECRET", "httpkit-test-secret")
+
+	recUnauth := httptest.NewRecorder()
+	reqUnauth := httptest.NewRequest(http.MethodGet, "/v1/private", nil)
+	if claims, ok := RequireInternalAuth(recUnauth, reqUnauth); ok || claims != nil || recUnauth.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 when header missing, got ok=%v status=%d", ok, recUnauth.Code)
+	}
+
+	tok, err := internalauth.Sign(internalauth.RoleService, "portal-ssr", time.Minute, "")
+	if err != nil {
+		t.Fatalf("sign failed: %v", err)
+	}
+	recOK := httptest.NewRecorder()
+	reqOK := httptest.NewRequest(http.MethodGet, "/v1/private", nil)
+	reqOK.Header.Set(internalauth.HeaderName, tok)
+	claims, ok := RequireInternalAuth(recOK, reqOK)
+	if !ok || claims == nil || claims.Role != internalauth.RoleService || claims.Sub != "portal-ssr" {
+		t.Fatalf("expected verified service claims, got ok=%v claims=%+v", ok, claims)
 	}
 }

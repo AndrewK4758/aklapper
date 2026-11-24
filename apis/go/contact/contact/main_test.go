@@ -7,14 +7,33 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 )
 
 func TestContactNotifyEndpoint(t *testing.T) {
+	t.Setenv("INTERNAL_AUTH_SECRET", "contact-unit-secret")
+	serviceTok, err := internalauth.Sign(internalauth.RoleService, "portal-contact", time.Minute, "contact-unit-secret")
+	if err != nil {
+		t.Fatalf("sign service token: %v", err)
+	}
 	h := newHandler()
+
+	t.Run("rejects unauthenticated notify requests", func(t *testing.T) {
+		body := []byte(`{"submissionId":"sub-123","name":"Grace Hopper","email":"grace@example.com","hasAttachment":true,"receivedAt":"2026-11-24T12:00:00Z"}`)
+		req := httptest.NewRequest(http.MethodPost, "/v1/contact/notify", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d", rec.Code)
+		}
+	})
 
 	t.Run("accepts valid notification payload", func(t *testing.T) {
 		body := []byte(`{"submissionId":"sub-123","name":"Grace Hopper","email":"grace@example.com","hasAttachment":true,"receivedAt":"2026-11-24T12:00:00Z"}`)
 		req := httptest.NewRequest(http.MethodPost, "/v1/contact/notify", bytes.NewReader(body))
+		req.Header.Set(internalauth.HeaderName, serviceTok)
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, req)
 		if rec.Code != http.StatusAccepted {
@@ -31,6 +50,7 @@ func TestContactNotifyEndpoint(t *testing.T) {
 
 	t.Run("rejects invalid notification payload", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/v1/contact/notify", bytes.NewReader([]byte(`{"submissionId":"","name":"A","email":"bad"}`)))
+		req.Header.Set(internalauth.HeaderName, serviceTok)
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, req)
 		if rec.Code != http.StatusBadRequest {

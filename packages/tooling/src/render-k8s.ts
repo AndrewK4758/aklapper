@@ -37,8 +37,10 @@ const GKE_SERVICE_NAMES = [
 
 const CLOUDSQL_PROXY_BLOCK_RE = /[ \t]*# cloud-sql-proxy-start[\s\S]*?# cloud-sql-proxy-end\r?\n?/g;
 const CLOUDSQL_VOLUME_MOUNT_RE = /[ \t]*- name: cloudsql\r?\n[ \t]*mountPath: \/cloudsql\r?\n?/g;
-const CLOUDSQL_VOLUME_BLOCK_RE = /[ \t]*- name: cloudsql\r?\n[ \t]*emptyDir: \{\}\r?\n?/g;
-const GKE_SA_ANNOTATION_LINE_RE = /^[ \t]*iam\.gke\.io\/gcp-service-account:.*\r?\n?/gm;
+const CLOUDSQL_VOLUME_BLOCK_RE =
+  /^[ \t]*volumes:\r?\n[ \t]*- name: cloudsql\r?\n[ \t]*emptyDir: \{\}\r?\n?/gm;
+const GKE_SA_ANNOTATION_LINE_RE =
+  /^[ \t]*annotations:\r?\n[ \t]*iam\.gke\.io\/gcp-service-account:.*\r?\n?/gm;
 
 function validateRenderOptions(options: RenderK8sOptions): {
   projectId: string;

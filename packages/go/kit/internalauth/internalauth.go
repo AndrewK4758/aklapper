@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -64,6 +65,7 @@ func ResolveSecret(explicitSecret string) (string, error) {
 	if !isProductionEnv() {
 		return DevFallbackSecret, nil
 	}
+	_, _ = fmt.Fprintln(os.Stderr, `{"event":"k8s.internalauth.prod_secret_missing","seam":"UNSOUND_CONDITION"}`)
 	return "", ErrMissingSecret
 }
 

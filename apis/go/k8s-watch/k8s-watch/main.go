@@ -174,8 +174,12 @@ func newHandler(client *k8sAPIClient) http.Handler {
 	mux.HandleFunc("GET /healthz", httpkit.NewHealthHandler("k8s-watch"))
 
 	mux.HandleFunc("GET /v1/cluster/stream", func(w http.ResponseWriter, r *http.Request) {
+		claims, ok := httpkit.RequireInternalAuth(w, r)
+		if !ok {
+			return
+		}
 		role := contracts.RoleGuest
-		if internalauth.IsAdminRequest(r) {
+		if claims.Role == internalauth.RoleAdmin {
 			role = contracts.RoleAdmin
 		}
 
@@ -189,12 +193,16 @@ func newHandler(client *k8sAPIClient) http.Handler {
 	})
 
 	mux.HandleFunc("POST /v1/cluster/wake/{deployment}", func(w http.ResponseWriter, r *http.Request) {
+		claims, ok := httpkit.RequireInternalAuth(w, r)
+		if !ok {
+			return
+		}
 		deployment := r.PathValue("deployment")
 		if deployment == "" {
 			httpkit.WriteError(w, http.StatusBadRequest, "deployment is required")
 			return
 		}
-		if deployment == "cadence-admin" && !internalauth.IsAdminRequest(r) {
+		if deployment == "cadence-admin" && claims.Role != internalauth.RoleAdmin {
 			httpkit.WriteError(w, http.StatusForbidden, "signed admin internal auth required to wake isolated admin workload")
 			return
 		}
