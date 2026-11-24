@@ -72,7 +72,7 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
     expect(plan.needsGo).toBe(true);
     expect(plan.hasTypecheck).toBe(false);
     expect(plan.needsTestDb).toBe(false);
-    expect(plan.needsApiE2eDb).toBe(false);
+    expect(plan.needsApiE2eDb).toBe(true);
     expect(plan.hasPlaywright).toBe(false);
     expect(plan.gkeServices).toEqual([
       'k8s-watch',
