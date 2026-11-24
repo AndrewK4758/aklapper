@@ -17,7 +17,6 @@ RUN pnpm --dir packages/shared/core exec tsc --build tsconfig.lib.json \
   && pnpm --dir packages/node/db exec tsc --build tsconfig.lib.json \
   && pnpm --dir packages/tooling exec tsc --build tsconfig.lib.json \
   && pnpm --dir packages/shared/ui exec vite build \
-  && (cd apps/portal/portal && node /workspace/packages/tooling/dist/build-pages.js) \
   && pnpm --dir apps/portal/portal exec react-router build --mode production
 RUN pnpm --filter @aklapper/portal deploy --prod --legacy /prod/portal \
   && rm -rf /prod/portal/dist \
