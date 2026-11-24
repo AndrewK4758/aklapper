@@ -22,6 +22,7 @@ import { useState } from 'react';
 import { Form, useFetcher } from 'react-router';
 
 import styles from './AdminCmsPage.module.css';
+import { SiteContentEditorPanel } from './SiteContentEditorPanel';
 
 export interface AdminCmsActionData extends ActionErrorMetadata {
   ok: boolean;
@@ -38,9 +39,6 @@ export function AdminCmsPage({ data, qdrant, actionData }: AdminCmsPageProps) {
   const maintenanceFetcher = useFetcher<AdminCmsActionData>();
   const reindexFetcher = useFetcher<AdminCmsActionData>();
 
-  const [selectedSiteKey, setSelectedSiteKey] = useState<string>(
-    data.siteContents[0]?.key ?? 'portal-home',
-  );
   const [selectedMenuSlug, setSelectedMenuSlug] = useState<string | null>(null);
   const [selectedProfileSlug, setSelectedProfileSlug] = useState<string>(
     data.terminalProfiles[0]?.slug ?? 'portal-shell',
@@ -52,8 +50,6 @@ export function AdminCmsPage({ data, qdrant, actionData }: AdminCmsPageProps) {
   );
   const [previewDraftHtml, setPreviewDraftHtml] = useState<string | null>(null);
 
-  const selectedSiteRow =
-    data.siteContents.find(row => row.key === selectedSiteKey) ?? data.siteContents[0] ?? null;
   const editingMenuItem: MenuItem | null =
     data.menuItems.find(item => item.slug === selectedMenuSlug) ?? null;
   const selectedProfile =
@@ -175,60 +171,10 @@ export function AdminCmsPage({ data, qdrant, actionData }: AdminCmsPageProps) {
             </section>
 
             <section className={styles.card} aria-label='Site content editor'>
-              <h2 className={styles.sectionTitle}>site_content JSON &amp; Markdown Editor</h2>
-              <div className={styles.splitGrid}>
-                <div className={styles.keyList}>
-                  {data.siteContents.map(row => (
-                    <button
-                      key={row.key}
-                      type='button'
-                      className={styles.keyButton}
-                      data-selected={selectedSiteRow?.key === row.key ? 'true' : 'false'}
-                      onClick={() => {
-                        setSelectedSiteKey(row.key);
-                      }}
-                    >
-                      <span>{row.key}</span>
-                    </button>
-                  ))}
-                </div>
-
-                {selectedSiteRow ? (
-                  <Form
-                    key={`${selectedSiteRow.key}:${selectedSiteRow.updatedAt}`}
-                    method='post'
-                    className={styles.stackForm}
-                  >
-                    <input type='hidden' name='intent' value='upsert-site-content' />
-                    <input type='hidden' name='key' value={selectedSiteRow.key} />
-                    <p className={styles.muted}>
-                      Editing key <code>{selectedSiteRow.key}</code> · last updated{' '}
-                      {new Date(selectedSiteRow.updatedAt).toLocaleString()}
-                    </p>
-                    <Field.Root>
-                      <Field.Label>Markdown Body</Field.Label>
-                      <textarea
-                        name='markdownBody'
-                        className={styles.textarea}
-                        defaultValue={selectedSiteRow.markdownBody}
-                      />
-                    </Field.Root>
-                    <Field.Root>
-                      <Field.Label>Metadata JSON (Zod validated per key)</Field.Label>
-                      <textarea
-                        name='metadataJson'
-                        className={styles.textarea}
-                        defaultValue={JSON.stringify(selectedSiteRow.metadataJson, null, 2)}
-                      />
-                    </Field.Root>
-                    <div>
-                      <Button.Root type='submit' variant='primary' size='sm'>
-                        <Button.Label>Save Site Content</Button.Label>
-                      </Button.Root>
-                    </div>
-                  </Form>
-                ) : null}
-              </div>
+              <h2 className={styles.sectionTitle}>
+                Site Content Structured Editor &amp; Live Preview
+              </h2>
+              <SiteContentEditorPanel siteContents={data.siteContents} />
             </section>
           </Tabs.Panel>
 

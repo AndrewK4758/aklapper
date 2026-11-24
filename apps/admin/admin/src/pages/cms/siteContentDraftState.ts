@@ -127,7 +127,7 @@ export function createInitialSiteContentDraftState(
   let introspectionError: string | null = null;
   let introspectionFailed = false;
 
-  if (known) {
+  if (isKnownSiteContentKey(row.key)) {
     try {
       schema = introspect(row.key);
     } catch (error) {
