@@ -45,6 +45,7 @@ vi.mock('@aklapper/db', async importOriginal => {
 });
 
 import PortalAgensiRoute, { ErrorBoundary as AgensiErrorBoundary } from './agensi';
+import { loader as askTurnPollLoader } from './api.ask.turns.$attemptId';
 import { action as askAction, loader as askLoader } from './ask';
 import { action as cadenceAction, loader as cadenceLoader } from './cadence';
 import ChangesInProgressRoute, {
@@ -128,6 +129,8 @@ function makeFormRequest(url: string, fields: Record<string, string>): Request {
 
 describe('Portal streaming child routes, guest sessions, actions, and boundaries', () => {
   afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
     vi.clearAllMocks();
   });
 
@@ -310,12 +313,7 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
     );
     expect(cadLoadRes.data.payload).toBeInstanceOf(Promise);
 
-    const drizzleError = Object.assign(
-      new Error('Failed query: SELECT * FROM quotas params: [secret]'),
-      { name: 'DrizzleQueryError', cause: new Error('connection terminated') },
-    );
-
-    consumeQuotaMock.mockRejectedValueOnce(drizzleError);
+    vi.stubEnv('AI_ASK_URL', '');
     const askErrCtx = makeContext('corr-ask-503');
     const askErrRes = await askAction({
       request: makeFormRequest('https://andrew-k.us/ask', {
@@ -331,13 +329,115 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
     expect(askErrRes.data).toMatchObject({
       ok: false,
       mode: 'qa',
-      code: 'ERR_DB_UNAVAILABLE',
+      code: 'ERR_UPSTREAM_UNAVAILABLE',
       action: expect.any(String),
       correlationId: 'corr-ask-503',
     });
-    expect(JSON.stringify(askErrRes.data)).not.toContain('connection terminated');
-    expect(JSON.stringify(askErrRes.data)).not.toContain('Failed query');
+    expect(consumeQuotaMock).not.toHaveBeenCalled();
     expect(askErrCtx.errorCalls).toHaveLength(1);
+
+    const oversizeJdRes = await askAction({
+      request: makeFormRequest('https://andrew-k.us/ask', {
+        mode: 'jd_match',
+        text: 'A'.repeat(8001),
+      }),
+      params: {},
+      context: makeContext('corr-ask-400').context,
+      url: new URL('https://andrew-k.us/ask'),
+      pattern: '/ask',
+    });
+    expect(oversizeJdRes.init?.status).toBe(400);
+    expect(oversizeJdRes.data).toMatchObject({
+      ok: false,
+      mode: 'jd_match',
+      code: 'ERR_VALIDATION',
+    });
+
+    vi.stubEnv('AI_ASK_URL', 'http://127.0.0.1:8083');
+    const pendingAttemptId = '22222222-2222-4222-8222-222222222222';
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      Response.json(
+        {
+          attemptId: pendingAttemptId,
+          status: 'running',
+          mode: 'qa',
+          correlationId: 'corr-ask-202',
+          leaseExpiresAt: '2026-11-24T22:01:00Z',
+          expiresAt: '2026-11-24T22:15:00Z',
+        },
+        { status: 202 },
+      ),
+    );
+    const pendingRes = await askAction({
+      request: makeFormRequest('https://andrew-k.us/ask', {
+        mode: 'qa',
+        text: 'Explain detached turn execution.',
+        attemptId: pendingAttemptId,
+      }),
+      params: {},
+      context: makeContext('corr-ask-202').context,
+      url: new URL('https://andrew-k.us/ask'),
+      pattern: '/ask',
+    });
+    expect(pendingRes.init?.status).toBe(202);
+    expect(pendingRes.data).toMatchObject({
+      ok: true,
+      pending: true,
+      mode: 'qa',
+      attemptId: pendingAttemptId,
+    });
+    expect(consumeQuotaMock).not.toHaveBeenCalled();
+    const postReqInit = fetchSpy.mock.calls[0]?.[1];
+    expect(new Headers(postReqInit?.headers).get('x-internal-auth')).toBeTruthy();
+
+    const pollBadUuid = await askTurnPollLoader({
+      request: new Request('https://andrew-k.us/api/ask/turns/not-a-uuid'),
+      params: { attemptId: 'not-a-uuid' },
+      context: makeContext('corr-poll-400').context,
+      url: new URL('https://andrew-k.us/api/ask/turns/not-a-uuid'),
+      pattern: '/api/ask/turns/:attemptId',
+    });
+    expect(pollBadUuid.status).toBe(400);
+
+    vi.stubEnv('AI_ASK_URL', '');
+    const pollNoUpstream = await askTurnPollLoader({
+      request: new Request(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`),
+      params: { attemptId: pendingAttemptId },
+      context: makeContext('corr-poll-503').context,
+      url: new URL(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`),
+      pattern: '/api/ask/turns/:attemptId',
+    });
+    expect(pollNoUpstream.status).toBe(503);
+
+    vi.stubEnv('AI_ASK_URL', 'http://127.0.0.1:8083');
+    fetchSpy.mockResolvedValueOnce(
+      Response.json(
+        {
+          attemptId: pendingAttemptId,
+          status: 'running',
+          mode: 'qa',
+          correlationId: 'corr-poll-202',
+          leaseExpiresAt: '2026-11-24T22:01:00Z',
+          expiresAt: '2026-11-24T22:15:00Z',
+        },
+        { status: 202 },
+      ),
+    );
+    const pollPending = await askTurnPollLoader({
+      request: new Request(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`),
+      params: { attemptId: pendingAttemptId },
+      context: makeContext('corr-poll-202').context,
+      url: new URL(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`),
+      pattern: '/api/ask/turns/:attemptId',
+    });
+    expect(pollPending.status).toBe(202);
+    const pollReqInit = fetchSpy.mock.calls[1]?.[1];
+    expect(new Headers(pollReqInit?.headers).get('x-internal-auth')).toBeTruthy();
+
+    const drizzleError = Object.assign(
+      new Error('Failed query: SELECT * FROM quotas params: [secret]'),
+      { name: 'DrizzleQueryError', cause: new Error('connection terminated') },
+    );
 
     consumeQuotaMock.mockRejectedValueOnce(drizzleError);
     const cadRunErrCtx = makeContext('corr-cad-run-503');
