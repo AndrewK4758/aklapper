@@ -19,6 +19,8 @@
     },
     "./theme.css": "./src/styles/theme.css",
     "./layers.css": "./src/styles/layers.css",
+    "./fonts.css": "./src/styles/fonts.css",
+    "./fonts/*": "./src/styles/fonts/*",
     "./tokens.css": "./src/styles/tokens.css",
     "./tokens/colors.css": "./src/styles/tokens/colors.css",
     "./tokens/typography.css": "./src/styles/tokens/typography.css",

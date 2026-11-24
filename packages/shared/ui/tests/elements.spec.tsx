@@ -103,6 +103,32 @@ describe('@aklapper/ui design tokens', () => {
     expect(sfVar(SF_TOKENS.animation.easeSpring)).toBe('var(--sf-ease-spring)');
   });
 
+  it('bundles all 6 FiraCode Nerd Font Mono WOFF2 weights and wires @font-face through theme.css', () => {
+    const themeCss = readFileSync(resolve(stylesDir, 'theme.css'), 'utf8');
+    const fontsCss = readFileSync(resolve(stylesDir, 'fonts.css'), 'utf8');
+
+    expect(themeCss).toContain("@import './fonts.css';");
+    expect(fontsCss).toContain('@layer tokens');
+    expect(fontsCss).toContain("font-family: 'FiraCode Nerd Font Mono';");
+
+    const expectedWeights = [
+      { file: 'FiraCodeNerdFontMono-Light.woff2', weight: '300' },
+      { file: 'FiraCodeNerdFontMono-Regular.woff2', weight: '400' },
+      { file: 'FiraCodeNerdFontMono-Retina.woff2', weight: '450' },
+      { file: 'FiraCodeNerdFontMono-Medium.woff2', weight: '500' },
+      { file: 'FiraCodeNerdFontMono-SemiBold.woff2', weight: '600' },
+      { file: 'FiraCodeNerdFontMono-Bold.woff2', weight: '700' },
+    ] as const;
+
+    for (const { file, weight } of expectedWeights) {
+      expect(fontsCss).toContain(`url('./fonts/${file}') format('woff2')`);
+      expect(fontsCss).toContain(`font-weight: ${weight};`);
+      const bytes = readFileSync(resolve(stylesDir, 'fonts', file));
+      expect(bytes.subarray(0, 4).toString('ascii')).toBe('wOF2');
+      expect(bytes.byteLength).toBeGreaterThan(100_000);
+    }
+  });
+
   it('uses OKLCH-only colors and relative calc() sizing with zero hex/rgb/hsl/px across UI, portal, and admin stylesheets', () => {
     const repoRoot = resolve(here, '../../../..');
     const cssFiles = [
