@@ -15,6 +15,7 @@ import {
   CadencePresetUpsertSchema,
   MaintenanceModeUpdateSchema,
   MenuItemUpsertSchema,
+  QdrantHealthStatusSchema,
   QuotaPolicyUpdateSchema,
   RoadmapMilestoneUpsertSchema,
   SiteContentUpsertSchema,
@@ -311,6 +312,28 @@ describe('@aklapper/core admin console contracts', () => {
       k8sWatchConfigured: false,
     });
     expect(ops.cadenceAdminStatus.isolated).toBe(true);
+
+    const legacyHealth = QdrantHealthStatusSchema.parse({
+      online: true,
+      collection: 'portfolio_docs',
+      status: 'green',
+      pointsCount: 11,
+      provider: 'local',
+    });
+    expect(legacyHealth.collections).toBeUndefined();
+
+    const multiHealth = QdrantHealthStatusSchema.parse({
+      online: true,
+      collection: 'portfolio_docs',
+      status: 'green',
+      pointsCount: 11,
+      provider: 'qdrant-direct',
+      collections: [
+        { name: 'portfolio_docs', online: true, status: 'green', pointsCount: 11 },
+        { name: 'cadence_patterns', online: true, status: 'green', pointsCount: 8 },
+      ],
+    });
+    expect(multiHealth.collections).toHaveLength(2);
   });
 
   it('validates optional agensiSyncState inside AdminCmsLoaderDataSchema', () => {

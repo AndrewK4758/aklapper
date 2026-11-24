@@ -348,6 +348,14 @@ export const CadenceAdminStatusSchema = z.object({
 });
 export type CadenceAdminStatus = z.infer<typeof CadenceAdminStatusSchema>;
 
+export const QdrantCollectionHealthSchema = z.object({
+  name: z.string().min(1),
+  online: z.boolean(),
+  status: z.string().min(1),
+  pointsCount: z.number().int().nonnegative(),
+});
+export type QdrantCollectionHealth = z.infer<typeof QdrantCollectionHealthSchema>;
+
 export const QdrantHealthStatusSchema = z.object({
   online: z.boolean(),
   collection: z.string().min(1),
@@ -355,6 +363,7 @@ export const QdrantHealthStatusSchema = z.object({
   pointsCount: z.number().int().nonnegative(),
   provider: z.string().min(1),
   detail: z.string().optional(),
+  collections: z.array(QdrantCollectionHealthSchema).optional(),
 });
 export type QdrantHealthStatus = z.infer<typeof QdrantHealthStatusSchema>;
 
