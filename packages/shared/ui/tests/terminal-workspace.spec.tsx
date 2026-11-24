@@ -169,12 +169,28 @@ describe('terminalPaneTree', () => {
     expect(listLeafPanes(state.root).map(p => p.id)).toEqual(['pane-1']);
   });
 
-  it('matches Ghostty macOS and Linux split keybindings', () => {
+  it('matches Ghostty and ghostty-union macOS and Linux split keybindings', () => {
     expect(matchGhosttyShortcut(makeKey({ key: 'd', metaKey: true }))).toEqual({
       type: 'split',
       direction: 'right',
     });
     expect(matchGhosttyShortcut(makeKey({ key: 'O', ctrlKey: true, shiftKey: true }))).toEqual({
+      type: 'split',
+      direction: 'right',
+    });
+    expect(
+      matchGhosttyShortcut(
+        makeKey({ key: '}', code: 'BracketRight', ctrlKey: true, shiftKey: true }),
+      ),
+    ).toEqual({
+      type: 'split',
+      direction: 'right',
+    });
+    expect(
+      matchGhosttyShortcut(
+        makeKey({ key: ']', code: 'BracketRight', ctrlKey: true, shiftKey: true }),
+      ),
+    ).toEqual({
       type: 'split',
       direction: 'right',
     });
@@ -186,15 +202,27 @@ describe('terminalPaneTree', () => {
       type: 'split',
       direction: 'down',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: ']', metaKey: true }))).toEqual({
-      type: 'focus-relative',
-      delta: 1,
-    });
     expect(
       matchGhosttyShortcut(
         makeKey({ key: '{', code: 'BracketLeft', ctrlKey: true, shiftKey: true }),
       ),
     ).toEqual({
+      type: 'split',
+      direction: 'down',
+    });
+    expect(
+      matchGhosttyShortcut(
+        makeKey({ key: '[', code: 'BracketLeft', ctrlKey: true, shiftKey: true }),
+      ),
+    ).toEqual({
+      type: 'split',
+      direction: 'down',
+    });
+    expect(matchGhosttyShortcut(makeKey({ key: ']', metaKey: true }))).toEqual({
+      type: 'focus-relative',
+      delta: 1,
+    });
+    expect(matchGhosttyShortcut(makeKey({ key: '[', metaKey: true }))).toEqual({
       type: 'focus-relative',
       delta: -1,
     });
@@ -210,10 +238,29 @@ describe('terminalPaneTree', () => {
       type: 'focus-direction',
       direction: 'right',
     });
+    expect(
+      matchGhosttyShortcut(makeKey({ key: 'ArrowRight', altKey: true, shiftKey: true })),
+    ).toEqual({
+      type: 'resize',
+      direction: 'right',
+    });
+    expect(matchGhosttyShortcut(makeKey({ key: 'ArrowUp', altKey: true, shiftKey: true }))).toEqual(
+      {
+        type: 'resize',
+        direction: 'up',
+      },
+    );
     expect(matchGhosttyShortcut(makeKey({ key: 'Enter', metaKey: true, shiftKey: true }))).toEqual({
       type: 'toggle-zoom',
     });
     expect(matchGhosttyShortcut(makeKey({ key: '+', ctrlKey: true, shiftKey: true }))).toEqual({
+      type: 'equalize',
+    });
+    expect(
+      matchGhosttyShortcut(
+        makeKey({ key: 'E', code: 'KeyE', ctrlKey: true, altKey: true, shiftKey: true }),
+      ),
+    ).toEqual({
       type: 'equalize',
     });
     expect(matchGhosttyShortcut(makeKey({ key: 'W', ctrlKey: true, shiftKey: true }))).toEqual({
@@ -489,7 +536,7 @@ describe('TerminalWorkspace', () => {
   });
 
   it('splits a separate terminal pane from a TUI primary view, isolates Escape to the active pane, and protects the pinned route pane', () => {
-    const onClosePrimaryTui = vi.fn();
+    const onClosePrimaryTui = vi.fn<() => void>();
     const { container } = render(
       <TerminalWorkspace
         terminal={TERMINAL_FIXTURE}
@@ -569,5 +616,80 @@ describe('TerminalWorkspace', () => {
     // One Ghostty Cmd+D splits into exactly 2 panes (no nested double-handling)
     fireEvent.keyDown(window, { key: 'd', metaKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
+  });
+
+  it('splits horizontally and vertically via ghostty-union Ctrl+Shift+} and Ctrl+Shift+{ on terminal and TUI windows, resizes with Alt+Shift+Arrow, and equalizes with Ctrl+Alt+Shift+E', () => {
+    const { container } = render(
+      <TerminalWorkspace
+        terminal={TERMINAL_FIXTURE}
+        primaryPane={{
+          title: 'tui :: /menu',
+          content: (
+            <TuiWindow title='Menu TUI'>
+              <div>Menu Surface</div>
+            </TuiWindow>
+          ),
+        }}
+      />,
+    );
+
+    const workspaceEl = container.querySelector('[data-pane-count]') as HTMLElement;
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
+
+    // Ctrl+Shift+} splits right (side-by-side) directly from the TUI window
+    fireEvent.keyDown(window, {
+      key: '}',
+      code: 'BracketRight',
+      ctrlKey: true,
+      shiftKey: true,
+    });
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
+
+    // Key-repeat while holding Ctrl+Shift+} does not spawn duplicate panes
+    fireEvent.keyDown(window, {
+      key: '}',
+      code: 'BracketRight',
+      ctrlKey: true,
+      shiftKey: true,
+      repeat: true,
+    });
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
+
+    const slotsAfterRight = Array.from(container.querySelectorAll('[data-pane-id]')).map(
+      el => el.parentElement as HTMLElement,
+    );
+    expect(slotsAfterRight[0]?.style.getPropertyValue('--sf-pane-w')).toBe('0.5');
+    expect(slotsAfterRight[1]?.style.getPropertyValue('--sf-pane-x')).toBe('0.5');
+    expect(slotsAfterRight[1]?.style.getPropertyValue('--sf-pane-w')).toBe('0.5');
+
+    // Alt+Shift+ArrowRight resizes active vertical split; Ctrl+Alt+Shift+E equalizes back to 0.5
+    fireEvent.keyDown(window, { key: 'ArrowRight', altKey: true, shiftKey: true });
+    expect(slotsAfterRight[0]?.style.getPropertyValue('--sf-pane-w')).toBe('0.55');
+    fireEvent.keyDown(window, {
+      key: 'E',
+      code: 'KeyE',
+      ctrlKey: true,
+      altKey: true,
+      shiftKey: true,
+    });
+    expect(slotsAfterRight[0]?.style.getPropertyValue('--sf-pane-w')).toBe('0.5');
+
+    // Ctrl+Shift+{ splits the active terminal pane (tty2) vertically (stacked top/bottom)
+    fireEvent.keyDown(window, {
+      key: '{',
+      code: 'BracketLeft',
+      ctrlKey: true,
+      shiftKey: true,
+    });
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('3');
+
+    const pane2Slot = container.querySelector('[data-pane-tty="tty2"]')
+      ?.parentElement as HTMLElement;
+    const pane3Slot = container.querySelector('[data-pane-tty="tty3"]')
+      ?.parentElement as HTMLElement;
+    expect(pane2Slot.style.getPropertyValue('--sf-pane-y')).toBe('0');
+    expect(pane2Slot.style.getPropertyValue('--sf-pane-h')).toBe('0.5');
+    expect(pane3Slot.style.getPropertyValue('--sf-pane-y')).toBe('0.5');
+    expect(pane3Slot.style.getPropertyValue('--sf-pane-h')).toBe('0.5');
   });
 });

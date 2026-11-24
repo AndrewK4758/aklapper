@@ -104,10 +104,7 @@ export default function AdminRoot() {
   return (
     <DirectionProvider.Provider direction='ltr'>
       <Tooltip.Provider>
-        <div
-          className={styles.shell}
-          data-pane-workspace={hasGlobalWorkspace ? 'true' : 'false'}
-        >
+        <div className={styles.shell} data-pane-workspace={hasGlobalWorkspace ? 'true' : 'false'}>
           <header className={styles.bar}>
             <NavigationMenu.Root>
               <NavigationMenu.List>
@@ -122,7 +119,7 @@ export default function AdminRoot() {
             <div className={styles.barMeta}>
               {hasGlobalWorkspace ? (
                 <span className={styles.shortcutHint}>
-                  ⌘D / Ctrl+⇧O split · ⌘⇧D / Ctrl+⇧E hsplit
+                  {'Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit'}
                 </span>
               ) : null}
               <OscStatusBadge
@@ -132,10 +129,7 @@ export default function AdminRoot() {
               />
             </div>
           </header>
-          <main
-            className={styles.main}
-            data-pane-workspace={hasGlobalWorkspace ? 'true' : 'false'}
-          >
+          <main className={styles.main} data-pane-workspace={hasGlobalWorkspace ? 'true' : 'false'}>
             {terminal ? (
               <TerminalWorkspace
                 terminal={terminal}

@@ -175,13 +175,29 @@ describe('PortalRoot', () => {
     const workspaceEl = container.querySelector('[data-pane-count]') as HTMLElement;
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
 
-    // Split open a separate terminal pane alongside the TUI route
-    fireEvent.keyDown(window, { key: 'O', ctrlKey: true, shiftKey: true });
+    // Split open a separate terminal pane right alongside the TUI route via Ctrl+Shift+}
+    fireEvent.keyDown(window, {
+      key: '}',
+      code: 'BracketRight',
+      ctrlKey: true,
+      shiftKey: true,
+    });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
     expect(screen.getByText('TUI Menu Probe')).toBeTruthy();
     expect(container.querySelector('[data-pane-tty="tty2"]')).toBeTruthy();
 
-    // Close the spawned split pane cleanly
+    // Split the active terminal pane down via Ctrl+Shift+{
+    fireEvent.keyDown(window, {
+      key: '{',
+      code: 'BracketLeft',
+      ctrlKey: true,
+      shiftKey: true,
+    });
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('3');
+    expect(container.querySelector('[data-pane-tty="tty3"]')).toBeTruthy();
+
+    // Close spawned split panes cleanly
+    fireEvent.keyDown(window, { key: 'W', ctrlKey: true, shiftKey: true });
     fireEvent.keyDown(window, { key: 'W', ctrlKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
   });

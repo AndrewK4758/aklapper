@@ -157,8 +157,13 @@ describe('Admin routes & SEO', () => {
     const workspaceEl = container.querySelector('[data-pane-count]') as HTMLElement;
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
 
-    // Ghostty Cmd+D splits open an isolated admin ops terminal pane alongside /analytics
-    fireEvent.keyDown(window, { key: 'd', metaKey: true });
+    // Ghostty Ctrl+Shift+{ splits open an isolated admin ops terminal pane below /analytics
+    fireEvent.keyDown(window, {
+      key: '{',
+      code: 'BracketLeft',
+      ctrlKey: true,
+      shiftKey: true,
+    });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
 
     const input = screen.getByLabelText('Terminal command input') as HTMLInputElement;

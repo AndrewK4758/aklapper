@@ -81,13 +81,13 @@ export function useIsPaneActive(): boolean {
 const SPLIT_HELP_APPENDIX = [
   '',
   'Split panes (Ghostty keybindings & commands):',
-  '  Cmd+D / Ctrl+Shift+O (or "split" / "vsplit") — split terminal right',
-  '  Cmd+Shift+D / Ctrl+Shift+E (or "hsplit")     — split terminal down',
-  '  Cmd+] / Cmd+[ (or Ctrl+Shift+] / [)          — focus next / previous pane',
-  '  Cmd+Alt+Arrows / Ctrl+Alt+Arrows             — focus pane by direction',
-  '  Cmd+Shift+Enter / Ctrl+Shift+Enter ("zoom")  — toggle active pane zoom',
-  '  Cmd+Shift+= / Ctrl+Shift+=                   — equalize split sizes',
-  '  Cmd+Shift+W / Ctrl+Shift+W (or "exit")       — close active split pane',
+  '  Ctrl+Shift+} / Ctrl+Shift+O / Cmd+D (or "split" / "vsplit") — split terminal right',
+  '  Ctrl+Shift+{ / Ctrl+Shift+E / Cmd+Shift+D (or "hsplit")     — split terminal down',
+  '  Ctrl+Alt+Arrows / Cmd+Alt+Arrows (or Cmd+] / Cmd+[)         — focus neighbor pane',
+  '  Alt+Shift+Arrows / Ctrl+Cmd+Arrows                          — resize active split',
+  '  Ctrl+Shift+Enter / Cmd+Shift+Enter (or "zoom")              — toggle active pane zoom',
+  '  Ctrl+Alt+Shift+E / Ctrl+Shift+= / Cmd+Shift+=               — equalize split sizes',
+  '  Ctrl+Shift+W / Cmd+Shift+W (or "exit")                      — close active split pane',
 ].join('\n');
 
 interface PaneChromeBarProps {
@@ -492,6 +492,10 @@ function StandaloneTerminalWorkspace({
 
   useEffect(() => {
     const handleGlobalKeyDown = (event: KeyboardEvent) => {
+      if (event.isComposing) {
+        return;
+      }
+
       if (event.key === 'Escape' && !event.defaultPrevented && activeTuiOpen) {
         event.preventDefault();
         setWorkspace(prev => setPaneTuiOpen(prev, prev.activePaneId, false));
@@ -509,9 +513,16 @@ function StandaloneTerminalWorkspace({
       if (action.type === 'open-menu' && (disableMenuShortcut || !navigate)) {
         return;
       }
+      if (action.type === 'resize' && !isMultiPane) {
+        return;
+      }
 
       event.preventDefault();
       event.stopPropagation();
+
+      if (event.repeat && action.type !== 'resize') {
+        return;
+      }
 
       switch (action.type) {
         case 'split':
@@ -550,7 +561,7 @@ function StandaloneTerminalWorkspace({
     return () => {
       window.removeEventListener('keydown', handleGlobalKeyDown, { capture: true });
     };
-  }, [activeIsTerminalPane, activeTuiOpen, disableMenuShortcut, navigate]);
+  }, [activeIsTerminalPane, activeTuiOpen, disableMenuShortcut, isMultiPane, navigate]);
 
   const handleFocusPane = (paneId: string) => {
     setWorkspace(prev => focusPaneById(prev, paneId, false));

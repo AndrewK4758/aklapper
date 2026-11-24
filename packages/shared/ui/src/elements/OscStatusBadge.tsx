@@ -1,7 +1,6 @@
 import type { Osc7501State } from '@aklapper/contracts';
 
-import { Progress } from './base/Progress';
-import { Separator } from './base/Separator';
+import { Progress, Separator } from './base';
 
 import styles from './OscStatusBadge.module.css';
 

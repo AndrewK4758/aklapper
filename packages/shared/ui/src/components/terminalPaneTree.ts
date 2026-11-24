@@ -532,24 +532,31 @@ function matchesLetter(keyLower: string, code: string, letter: string): boolean 
 }
 
 /**
- * Matches Ghostty's default split/pane keybindings across macOS (Cmd) and Linux (Ctrl+Shift /
- * Ctrl+Alt), plus browser-safe Alt+Shift fallbacks and Solar Forge's Alt+T / Alt+M shortcuts.
+ * Matches Ghostty & ghostty-union split/pane keybindings across Linux (`Ctrl+Shift+}`/`]`/`O`,
+ * `Ctrl+Shift+{`/`[`/`E`, `Ctrl+Alt+Arrow`, `Alt+Shift+Arrow`, `Ctrl+Alt+Shift+E`) and macOS
+ * (`Cmd+D`, `Cmd+Shift+D`, `Cmd+]`/`[`, `Cmd+Alt+Arrow`, `Ctrl+Cmd+Arrow`), plus browser-safe
+ * `Alt+Shift` fallbacks and Solar Forge's `Alt+T` / `Alt+M` shortcuts.
  */
 export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShortcutAction | null {
   const keyLower = event.key.toLowerCase();
   const code = event.code ?? '';
   const arrowDir = mapArrowKeyToDirection(event.key);
+  const isBracketRight = event.key === ']' || event.key === '}' || code === 'BracketRight';
+  const isBracketLeft = event.key === '[' || event.key === '{' || code === 'BracketLeft';
+  const isCtrlShiftOnly = event.ctrlKey && event.shiftKey && !event.metaKey && !event.altKey;
 
-  // Resize active split: Ctrl+Cmd+Arrow* (macOS Ghostty) or Ctrl+Shift+Alt+Arrow* (Linux)
+  // Resize active split: Alt+Shift+Arrow* (ghostty-union & Ghostty config),
+  // Ctrl+Cmd+Arrow* (macOS Ghostty), or Ctrl+Shift+Alt+Arrow* (fallback)
   if (
     arrowDir &&
-    ((event.ctrlKey && event.metaKey && !event.altKey) ||
+    ((event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey) ||
+      (event.ctrlKey && event.metaKey && !event.altKey) ||
       (event.ctrlKey && event.shiftKey && event.altKey && !event.metaKey))
   ) {
     return { type: 'resize', direction: arrowDir };
   }
 
-  // Directional split focus: Cmd+Alt+Arrow* (macOS Ghostty) or Ctrl+Alt+Arrow* (Linux Ghostty)
+  // Directional split focus: Cmd+Alt+Arrow* (macOS Ghostty) or Ctrl+Alt+Arrow* (Linux Ghostty / ghostty-union)
   if (
     arrowDir &&
     event.altKey &&
@@ -559,18 +566,15 @@ export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShort
     return { type: 'focus-direction', direction: arrowDir };
   }
 
-  // Split right: Cmd+D (macOS Ghostty), Ctrl+Shift+O (Linux Ghostty), Alt+Shift+D (browser fallback)
+  // Split right (side-by-side): Ctrl+Shift+}/] (ghostty-union / Ghostty config),
+  // Ctrl+Shift+O (Linux Ghostty / ghostty-union), Cmd+D (macOS Ghostty), Alt+Shift+D (browser fallback)
   if (
     (event.metaKey &&
       !event.shiftKey &&
       !event.ctrlKey &&
       !event.altKey &&
       matchesLetter(keyLower, code, 'd')) ||
-    (event.ctrlKey &&
-      event.shiftKey &&
-      !event.metaKey &&
-      !event.altKey &&
-      matchesLetter(keyLower, code, 'o')) ||
+    (isCtrlShiftOnly && (isBracketRight || matchesLetter(keyLower, code, 'o'))) ||
     (event.altKey &&
       event.shiftKey &&
       !event.ctrlKey &&
@@ -580,18 +584,15 @@ export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShort
     return { type: 'split', direction: 'right' };
   }
 
-  // Split down: Cmd+Shift+D (macOS Ghostty), Ctrl+Shift+E (Linux Ghostty), Alt+Shift+S (browser fallback)
+  // Split down (stacked): Ctrl+Shift+{/[ (ghostty-union / Ghostty config),
+  // Ctrl+Shift+E (Linux Ghostty / ghostty-union), Cmd+Shift+D (macOS Ghostty), Alt+Shift+S (browser fallback)
   if (
     (event.metaKey &&
       event.shiftKey &&
       !event.ctrlKey &&
       !event.altKey &&
       matchesLetter(keyLower, code, 'd')) ||
-    (event.ctrlKey &&
-      event.shiftKey &&
-      !event.metaKey &&
-      !event.altKey &&
-      matchesLetter(keyLower, code, 'e')) ||
+    (isCtrlShiftOnly && (isBracketLeft || matchesLetter(keyLower, code, 'e'))) ||
     (event.altKey &&
       event.shiftKey &&
       !event.ctrlKey &&
@@ -601,23 +602,17 @@ export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShort
     return { type: 'split', direction: 'down' };
   }
 
-  // Cycle next / previous split: Cmd+] / Cmd+[ (macOS Ghostty) or Ctrl+Shift+] / Ctrl+Shift+[
-  const isBracketRight = event.key === ']' || event.key === '}' || code === 'BracketRight';
-  const isBracketLeft = event.key === '[' || event.key === '{' || code === 'BracketLeft';
-  if (
-    (event.metaKey && !event.shiftKey && !event.ctrlKey && !event.altKey && isBracketRight) ||
-    (event.ctrlKey && event.shiftKey && !event.metaKey && !event.altKey && isBracketRight)
-  ) {
-    return { type: 'focus-relative', delta: 1 };
-  }
-  if (
-    (event.metaKey && !event.shiftKey && !event.ctrlKey && !event.altKey && isBracketLeft) ||
-    (event.ctrlKey && event.shiftKey && !event.metaKey && !event.altKey && isBracketLeft)
-  ) {
-    return { type: 'focus-relative', delta: -1 };
+  // Cycle next / previous split: Cmd+] / Cmd+[ (macOS Ghostty)
+  if (event.metaKey && !event.shiftKey && !event.ctrlKey && !event.altKey) {
+    if (isBracketRight) {
+      return { type: 'focus-relative', delta: 1 };
+    }
+    if (isBracketLeft) {
+      return { type: 'focus-relative', delta: -1 };
+    }
   }
 
-  // Toggle split zoom: Cmd+Shift+Enter (macOS Ghostty) or Ctrl+Shift+Enter (Linux Ghostty)
+  // Toggle split zoom: Cmd+Shift+Enter (macOS Ghostty) or Ctrl+Shift+Enter (Linux Ghostty / ghostty-union)
   if (
     event.key === 'Enter' &&
     event.shiftKey &&
@@ -627,13 +622,18 @@ export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShort
     return { type: 'toggle-zoom' };
   }
 
-  // Equalize splits: Cmd+Shift+= / Ctrl+Shift+=
+  // Equalize splits: Ctrl+Alt+Shift+E (ghostty-union), Cmd+Shift+= / Ctrl+Shift+= (Ghostty)
   const isEqualKey = event.key === '=' || event.key === '+' || code === 'Equal';
   if (
-    isEqualKey &&
-    event.shiftKey &&
-    !event.altKey &&
-    ((event.metaKey && !event.ctrlKey) || (event.ctrlKey && !event.metaKey))
+    (event.ctrlKey &&
+      event.altKey &&
+      event.shiftKey &&
+      !event.metaKey &&
+      matchesLetter(keyLower, code, 'e')) ||
+    (isEqualKey &&
+      event.shiftKey &&
+      !event.altKey &&
+      ((event.metaKey && !event.ctrlKey) || (event.ctrlKey && !event.metaKey)))
   ) {
     return { type: 'equalize' };
   }

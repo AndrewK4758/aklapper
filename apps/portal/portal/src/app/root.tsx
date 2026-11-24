@@ -179,7 +179,7 @@ export default function PortalRoot() {
               <div className={styles.barMeta}>
                 {hasGlobalWorkspace || isTerminalViewport ? (
                   <span className={styles.shortcutHint}>
-                    ⌘D / Ctrl+⇧O split · ⌘⇧D / Ctrl+⇧E hsplit · Alt+T tui
+                    {'Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit · Alt+T tui'}
                   </span>
                 ) : null}
                 <OscStatusBadge
