@@ -64,6 +64,20 @@ import {
 } from './sandbox-helpers.ts';
 import * as schema from './schema.ts';
 
+export {
+  type AdminPasswordUserRecord,
+  countUserWebauthnCredentials,
+  findAdminUserForPasswordLogin,
+  type UpsertAdminPasswordInput,
+  type UpsertAdminPasswordResult,
+  upsertAdminUserPassword,
+} from './auth-queries.ts';
+export {
+  type AuthRateLimitOptions,
+  type AuthRateLimitResult,
+  consumeAuthRateLimit,
+} from './auth-rate-limit.ts';
+
 export const SITE_CONTENT_KEYS = {
   portalChrome: 'portal-chrome',
   portalHome: 'portal-home',
