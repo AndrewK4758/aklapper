@@ -336,6 +336,9 @@ importers:
 
   apps/admin/admin-e2e:
     devDependencies:
+      '@aklapper/db':
+        specifier: workspace:*
+        version: link:../../../packages/node/db
       '@aklapper/tooling':
         specifier: workspace:*
         version: link:../../../packages/tooling
@@ -433,6 +436,9 @@ importers:
       '@fastify/helmet':
         specifier: ^13.2.0
         version: 13.2.0
+      '@fastify/rate-limit':
+        specifier: ^11.3.0
+        version: 11.3.0
       '@fastify/static':
         specifier: ^10.1.12
         version: 10.1.12
