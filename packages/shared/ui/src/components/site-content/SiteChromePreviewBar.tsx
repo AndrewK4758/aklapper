@@ -1,5 +1,6 @@
 import type { StatusBadgeSpec } from '@aklapper/core';
 
+import { Tooltip } from '../../elements/base';
 import { OscStatusBadge } from '../../elements/OscStatusBadge';
 
 import styles from './SiteContentPreview.module.css';
@@ -46,10 +47,25 @@ export function SiteChromePreviewBar({
         <div className={styles.chromeFooter}>
           <span>{footerText ?? ''}</span>
           {footerLinkLabel ? (
-            <span className={styles.chromeLink} title={footerLinkUrl}>
-              {footerLinkLabel}
-              {footerLinkUrl ? ` (${footerLinkUrl})` : ''}
-            </span>
+            footerLinkUrl ? (
+              <Tooltip.Root>
+                <Tooltip.Trigger
+                  render={
+                    <span className={styles.chromeLink}>
+                      {footerLinkLabel}
+                      {` (${footerLinkUrl})`}
+                    </span>
+                  }
+                />
+                <Tooltip.Portal>
+                  <Tooltip.Positioner sideOffset={6}>
+                    <Tooltip.Popup>{footerLinkUrl}</Tooltip.Popup>
+                  </Tooltip.Positioner>
+                </Tooltip.Portal>
+              </Tooltip.Root>
+            ) : (
+              <span className={styles.chromeLink}>{footerLinkLabel}</span>
+            )
           ) : null}
           {maintenanceModeDefault !== undefined ? (
             <span className={styles.chromeMeta}>

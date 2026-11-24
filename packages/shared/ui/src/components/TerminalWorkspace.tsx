@@ -4,6 +4,7 @@ import {
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
+  type ReactElement,
   type ReactNode,
   useCallback,
   useContext,
@@ -13,7 +14,7 @@ import {
   useState,
 } from 'react';
 
-import { Button, Toolbar } from '../elements/base';
+import { Button, Toolbar, Tooltip } from '../elements/base';
 import { buildZshCommandHandlers } from './buildZshCommands';
 import { PaneNavigationContext, type PaneNavigationContextValue } from './paneNavigationContext';
 import { type TerminalFormConfig } from './terminalFormSession';
@@ -292,6 +293,28 @@ function focusRenameInput(node: HTMLInputElement | null): void {
   }
 }
 
+interface WorkspaceTooltipProps {
+  label: string;
+  disabled?: boolean;
+  children: ReactElement;
+}
+
+function WorkspaceTooltip({ label, disabled = false, children }: WorkspaceTooltipProps) {
+  if (disabled) {
+    return children;
+  }
+  return (
+    <Tooltip.Root>
+      <Tooltip.Trigger render={children} />
+      <Tooltip.Portal>
+        <Tooltip.Positioner sideOffset={6}>
+          <Tooltip.Popup>{label}</Tooltip.Popup>
+        </Tooltip.Positioner>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+  );
+}
+
 function TabStrip({
   tabs,
   activeTabId,
@@ -348,22 +371,23 @@ function TabStrip({
                   onBlur={onCommitRename}
                 />
               ) : (
-                <button
-                  type='button'
-                  role='tab'
-                  aria-selected={isActive}
-                  className={styles.tabLabelButton}
-                  title='Click to switch · double-click to rename'
-                  onClick={() => onSelectTab(tab.id)}
-                  onDoubleClick={() => onStartRename(tab.id, displayTitle)}
-                >
-                  <span>{displayTitle}</span>
-                  {paneCount > 1 ? (
-                    <span className={styles.tabPaneCount} aria-label={`${paneCount} panes`}>
-                      {paneCount}
-                    </span>
-                  ) : null}
-                </button>
+                <WorkspaceTooltip label='Click to switch · double-click to rename'>
+                  <button
+                    type='button'
+                    role='tab'
+                    aria-selected={isActive}
+                    className={styles.tabLabelButton}
+                    onClick={() => onSelectTab(tab.id)}
+                    onDoubleClick={() => onStartRename(tab.id, displayTitle)}
+                  >
+                    <span>{displayTitle}</span>
+                    {paneCount > 1 ? (
+                      <span className={styles.tabPaneCount} aria-label={`${paneCount} panes`}>
+                        {paneCount}
+                      </span>
+                    ) : null}
+                  </button>
+                </WorkspaceTooltip>
               )}
 
               {canClose && !isRenaming ? (
@@ -382,16 +406,17 @@ function TabStrip({
         })}
       </div>
 
-      <Button.Root
-        type='button'
-        size='xs'
-        className={styles.newTabBtn}
-        aria-label='New terminal tab'
-        title='New Tab (Alt+Shift+T)'
-        onClick={onAddTab}
-      >
-        <Button.Label>+</Button.Label>
-      </Button.Root>
+      <WorkspaceTooltip label='New Tab (Alt+Shift+T)'>
+        <Button.Root
+          type='button'
+          size='xs'
+          className={styles.newTabBtn}
+          aria-label='New terminal tab'
+          onClick={onAddTab}
+        >
+          <Button.Label>+</Button.Label>
+        </Button.Root>
+      </WorkspaceTooltip>
     </div>
   );
 }
@@ -435,31 +460,35 @@ function PaneChromeBar({
 }: PaneChromeBarProps) {
   return (
     <div className={styles.paneBar}>
-      <span
-        className={styles.paneTitle}
-        data-draggable={canDrag ? 'true' : 'false'}
-        data-pane-drag-handle={paneId}
-        title={canDrag ? 'Drag to swap, dock, or drop onto tab strip to detach' : undefined}
-        onPointerDown={
-          canDrag && onDragPointerDown
-            ? event => onDragPointerDown(paneId, canClose, event)
-            : undefined
-        }
-        onPointerMove={canDrag ? onDragPointerMove : undefined}
-        onPointerUp={canDrag ? onDragPointerUp : undefined}
-        onPointerCancel={canDrag ? onDragPointerCancel : undefined}
+      <WorkspaceTooltip
+        label='Drag to swap, dock, or drop onto tab strip to detach'
+        disabled={!canDrag}
       >
-        {canDrag ? (
-          <span className={styles.paneGrip} aria-hidden='true'>
-            ⠿
+        <span
+          className={styles.paneTitle}
+          data-draggable={canDrag ? 'true' : 'false'}
+          data-pane-drag-handle={paneId}
+          onPointerDown={
+            canDrag && onDragPointerDown
+              ? event => onDragPointerDown(paneId, canClose, event)
+              : undefined
+          }
+          onPointerMove={canDrag ? onDragPointerMove : undefined}
+          onPointerUp={canDrag ? onDragPointerUp : undefined}
+          onPointerCancel={canDrag ? onDragPointerCancel : undefined}
+        >
+          {canDrag ? (
+            <span className={styles.paneGrip} aria-hidden='true'>
+              ⠿
+            </span>
+          ) : null}
+          <span className={styles.paneDot} aria-hidden='true' />
+          <span>
+            {title}
+            {isZoomed ? ' · zoomed' : ''}
           </span>
-        ) : null}
-        <span className={styles.paneDot} aria-hidden='true' />
-        <span>
-          {title}
-          {isZoomed ? ' · zoomed' : ''}
         </span>
-      </span>
+      </WorkspaceTooltip>
       <Toolbar.Root className={styles.paneToolbar} aria-label={`${title} pane controls`}>
         <Button.Root
           type='button'
@@ -2047,34 +2076,37 @@ function StandaloneTerminalWorkspace({
                 const isResizing = isCurrentTab && resizingSplitId === divider.id;
                 const percent = Math.round(divider.ratio * 100);
                 return (
-                  <button
+                  <WorkspaceTooltip
                     key={divider.id}
-                    type='button'
-                    aria-label={
-                      divider.direction === 'vertical'
-                        ? `Resize vertical split (${percent}%)`
-                        : `Resize horizontal split (${percent}%)`
-                    }
-                    title='Drag to resize split · double-click to equalize'
-                    className={styles.splitDivider}
-                    data-split-divider={divider.id}
-                    data-direction={divider.direction}
-                    data-resizing={isResizing ? 'true' : 'false'}
-                    style={
-                      {
-                        '--sf-pane-x': divider.x,
-                        '--sf-pane-y': divider.y,
-                        '--sf-pane-w': divider.direction === 'horizontal' ? divider.length : 1,
-                        '--sf-pane-h': divider.direction === 'vertical' ? divider.length : 1,
-                      } as CSSProperties
-                    }
-                    onPointerDown={event => handleDividerPointerDown(divider, event)}
-                    onPointerMove={handleDividerPointerMove}
-                    onPointerUp={event => clearDividerDrag(event)}
-                    onPointerCancel={() => clearDividerDrag()}
-                    onDoubleClick={() => handleDividerDoubleClick(divider.id)}
-                    onKeyDown={event => handleDividerKeyDown(divider, event)}
-                  />
+                    label='Drag to resize split · double-click to equalize'
+                  >
+                    <button
+                      type='button'
+                      aria-label={
+                        divider.direction === 'vertical'
+                          ? `Resize vertical split (${percent}%)`
+                          : `Resize horizontal split (${percent}%)`
+                      }
+                      className={styles.splitDivider}
+                      data-split-divider={divider.id}
+                      data-direction={divider.direction}
+                      data-resizing={isResizing ? 'true' : 'false'}
+                      style={
+                        {
+                          '--sf-pane-x': divider.x,
+                          '--sf-pane-y': divider.y,
+                          '--sf-pane-w': divider.direction === 'horizontal' ? divider.length : 1,
+                          '--sf-pane-h': divider.direction === 'vertical' ? divider.length : 1,
+                        } as CSSProperties
+                      }
+                      onPointerDown={event => handleDividerPointerDown(divider, event)}
+                      onPointerMove={handleDividerPointerMove}
+                      onPointerUp={event => clearDividerDrag(event)}
+                      onPointerCancel={() => clearDividerDrag()}
+                      onDoubleClick={() => handleDividerDoubleClick(divider.id)}
+                      onKeyDown={event => handleDividerKeyDown(divider, event)}
+                    />
+                  </WorkspaceTooltip>
                 );
               })}
             </div>
