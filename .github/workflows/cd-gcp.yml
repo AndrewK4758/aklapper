@@ -1,34 +1,43 @@
-name: GCP CI/CD Deploy
+name: GCP Production Deploy
 
 # =============================================================================
-# Hybrid GCP Deployment Pipeline (Cloud Run + GKE Autopilot)
+# Hybrid GCP Production Deployment Pipeline (local -> ci -> prod)
 #
 # Manual dispatch ONLY (`workflow_dispatch`) — CD never runs automatically on
 # any push or PR so zero cloud build/deploy costs occur without explicit action.
 #
-# Required GitHub Environment Secrets (staging & production):
+# Required GitHub Environment Secrets (`production`):
 #   - GCP_WORKLOAD_IDENTITY_PROVIDER : projects/<num>/locations/global/workloadIdentityPools/<pool>/providers/<provider>
 #   - GCP_WIF_SERVICE_ACCOUNT        : <deployer-sa>@<project-id>.iam.gserviceaccount.com
-#   - DATABASE_URL                   : PostgreSQL 19 connection string for portal, admin, and Node APIs
+#   - DATABASE_URL                   : PostgreSQL connection string for portal, admin, and Node APIs
 #   - INTERNAL_AUTH_SECRET           : HMAC-SHA256 signing secret for X-Internal-Auth between BFFs and APIs
 #   - TOTP_ENCRYPTION_KEY            : AES-256-GCM key material for encrypted admin TOTP secrets
 #   - ANALYTICS_DAILY_SALT           : Secret salt for daily visitor IP hashing in analytics ingestion
 #   - ADMIN_BOOTSTRAP_TOKEN          : One-time bootstrap token for initial admin WebAuthn passkey registration
 #
-# Required GitHub Environment / Repository Variables:
-#   - GCP_PROJECT_ID                 : Target GCP project ID
-#   - GCP_REGION                     : Artifact Registry / Cloud Run region (default: us-central1)
-#   - GAR_REPOSITORY                 : Artifact Registry Docker repo name (default: aklapper)
+# Required GitHub Environment Variables (`production`):
+#   - GCP_PROJECT_ID                 : Target GCP project ID (games-424800)
+#   - GCP_REGION                     : Artifact Registry / Cloud Run region (us-central1)
+#   - GAR_REPOSITORY                 : Artifact Registry Docker repo name (portfolio)
 #
-# Optional Variables:
+# Optional Environment Variables (`production`):
+#   - CLOUD_SQL_INSTANCE             : Cloud SQL connection name (e.g. games-424800:us-central1:aklapper)
 #   - GKE_CLUSTER_NAME               : GKE Autopilot cluster name (GKE rollout skipped cleanly if unset)
 #   - GKE_CLUSTER_LOCATION           : GKE cluster region/zone (defaults to GCP_REGION)
 #   - PORTAL_MAINTENANCE_MODE        : 'true' | 'false' (default: 'false')
-#   - WEBAUTHN_RP_ID                 : Relying party ID for passkeys (default: admin.andrew-k.us)
-#   - WEBAUTHN_RP_NAME               : Relying party display name (default: andrew-k.us Admin)
-#   - WEBAUTHN_ORIGIN                : Expected WebAuthn origin (defaults to PUBLIC_ADMIN_URL)
-#   - AUTH_API_URL / ANALYTICS_API_URL : Override Cloud Run API URLs (defaults to deployed service URLs)
-#   - K8S_WATCH_URL / CADENCE_DEMO_URL / AI_ASK_URL / CADENCE_ADMIN_URL / CONTACT_API_URL / QDRANT_URL
+#   - PUBLIC_PORTAL_URL              : https://andrew-k.us
+#   - PUBLIC_ADMIN_URL               : https://admin.andrew-k.us
+#   - WEBAUTHN_RP_ID                 : admin.andrew-k.us
+#   - WEBAUTHN_RP_NAME               : andrew-k.us Admin
+#   - WEBAUTHN_ORIGIN                : https://admin.andrew-k.us
+#   - AUTH_API_URL                   : https://auth.bgdkapis.us
+#   - ANALYTICS_API_URL              : https://analytics.bgdkapis.us
+#   - AI_ASK_URL                     : https://ask.bgdkapis.us
+#   - CADENCE_DEMO_URL               : https://cadence.bgdkapis.us
+#   - CADENCE_ADMIN_URL              : https://cadence-admin.bgdkapis.us
+#   - K8S_WATCH_URL                  : https://k8s-watch.bgdkapis.us
+#   - CONTACT_API_URL                : https://contact.bgdkapis.us
+#   - QDRANT_URL                     : https://qdrant.bgdkapis.us
 #   - CLOUD_RUN_ALLOW_UNAUTH_ADMIN   : 'true' | 'false' (default: 'false')
 #   - CLOUD_RUN_ALLOW_UNAUTH_APIS    : 'true' | 'false' (default: 'false')
 # =============================================================================
@@ -36,14 +45,6 @@ name: GCP CI/CD Deploy
 on:
   workflow_dispatch:
     inputs:
-      target_environment:
-        description: Target GCP environment
-        type: choice
-        required: true
-        default: staging
-        options:
-          - staging
-          - production
       deploy_all_services:
         description: Build & deploy all 9 services (unchecked = only Nx affected services since base_ref)
         type: boolean
@@ -63,9 +64,9 @@ on:
       deploy_gke:
         description: Apply manifests and roll out affected Go services to GKE Autopilot
         type: boolean
-        default: true
+        default: false
       run_smoke_e2e:
-        description: Run post-deploy Playwright E2E smoke suite against live URLs
+        description: Run post-deploy Playwright E2E smoke suite against live production URLs
         type: boolean
         default: true
       smoke_all_browsers:
@@ -74,7 +75,7 @@ on:
         default: false
 
 concurrency:
-  group: cd-gcp-${{ inputs.target_environment }}
+  group: cd-gcp-production
   cancel-in-progress: false
 
 permissions:
@@ -90,12 +91,10 @@ env:
 
 jobs:
   resolve-plan:
-    name: Resolve deployment environment & affected services
+    name: Resolve affected production services
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
-      env_name: ${{ steps.resolve.outputs.env_name }}
-      service_suffix: ${{ steps.resolve.outputs.service_suffix }}
       deploy_cloud_run: ${{ steps.resolve.outputs.deploy_cloud_run }}
       deploy_gke: ${{ steps.resolve.outputs.deploy_gke }}
       run_smoke_e2e: ${{ steps.resolve.outputs.run_smoke_e2e }}
@@ -120,30 +119,21 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           restore-nx-cache: 'false'
 
-      - name: Determine target environment and smoke matrix
+      - name: Resolve deploy flags and smoke matrix
         id: resolve
         shell: bash
         env:
-          INPUT_TARGET_ENV: ${{ inputs.target_environment }}
           INPUT_DEPLOY_CLOUD_RUN: ${{ inputs.deploy_cloud_run }}
           INPUT_DEPLOY_GKE: ${{ inputs.deploy_gke }}
           INPUT_RUN_SMOKE_E2E: ${{ inputs.run_smoke_e2e }}
           INPUT_SMOKE_ALL_BROWSERS: ${{ inputs.smoke_all_browsers }}
         run: |
-          if [ "$INPUT_TARGET_ENV" = "production" ]; then
-            SERVICE_SUFFIX=""
-          else
-            SERVICE_SUFFIX="-staging"
-          fi
-
           if [ "$INPUT_SMOKE_ALL_BROWSERS" = "true" ]; then
             SMOKE_ENGINES='["chromium","firefox","webkit"]'
           else
             SMOKE_ENGINES='["chromium"]'
           fi
 
-          echo "env_name=${INPUT_TARGET_ENV}" >> "$GITHUB_OUTPUT"
-          echo "service_suffix=${SERVICE_SUFFIX}" >> "$GITHUB_OUTPUT"
           echo "deploy_cloud_run=${INPUT_DEPLOY_CLOUD_RUN}" >> "$GITHUB_OUTPUT"
           echo "deploy_gke=${INPUT_DEPLOY_GKE}" >> "$GITHUB_OUTPUT"
           echo "run_smoke_e2e=${INPUT_RUN_SMOKE_E2E}" >> "$GITHUB_OUTPUT"
@@ -182,7 +172,7 @@ jobs:
       (needs.ci-gate.result == 'success' || needs.ci-gate.result == 'skipped') &&
       needs.resolve-plan.outputs.has_docker == 'true'
     runs-on: ubuntu-latest
-    environment: ${{ needs.resolve-plan.outputs.env_name }}
+    environment: production
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -197,7 +187,7 @@ jobs:
         shell: bash
         run: |
           if [ -z "${{ vars.GCP_PROJECT_ID }}" ]; then
-            echo "::error::Missing required GitHub variable GCP_PROJECT_ID for environment ${{ needs.resolve-plan.outputs.env_name }}."
+            echo "::error::Missing required GitHub variable GCP_PROJECT_ID for environment production."
             exit 1
           fi
 
@@ -225,13 +215,13 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: true
           tags: |
-            ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY || 'aklapper' }}/${{ matrix.service }}:${{ github.sha }}
-            ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY || 'aklapper' }}/${{ matrix.service }}:${{ needs.resolve-plan.outputs.env_name }}-latest
+            ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY || 'portfolio' }}/${{ matrix.service }}:${{ github.sha }}
+            ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY || 'portfolio' }}/${{ matrix.service }}:production-latest
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
   deploy-cloud-run:
-    name: Deploy Cloud Run (${{ needs.resolve-plan.outputs.env_name }})
+    name: Deploy Cloud Run (production)
     needs:
       - resolve-plan
       - build-and-push
@@ -239,7 +229,7 @@ jobs:
       needs.resolve-plan.outputs.deploy_cloud_run == 'true' &&
       needs.resolve-plan.outputs.has_cloud_run == 'true'
     runs-on: ubuntu-latest
-    environment: ${{ needs.resolve-plan.outputs.env_name }}
+    environment: production
     outputs:
       portal_url: ${{ steps.resolve-urls.outputs.portal_url }}
       admin_url: ${{ steps.resolve-urls.outputs.admin_url }}
@@ -253,6 +243,8 @@ jobs:
 
       - name: Setup gcloud CLI
         uses: google-github-actions/setup-gcloud@v3
+        with:
+          install_components: beta
 
       - name: Deploy node-api-auth to Cloud Run
         id: deploy-api-auth
@@ -261,8 +253,8 @@ jobs:
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
           region: ${{ vars.GCP_REGION || 'us-central1' }}
-          service: aklapper-api-auth${{ needs.resolve-plan.outputs.service_suffix }}
-          image: ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY || 'aklapper' }}/node-api-auth:${{ github.sha }}
+          service: node-api-auth
+          image: ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY || 'portfolio' }}/node-api-auth:${{ github.sha }}
           env_vars: |
             NODE_ENV=production
             DATABASE_URL=${{ secrets.DATABASE_URL }}
@@ -274,6 +266,8 @@ jobs:
             ADMIN_BOOTSTRAP_TOKEN=${{ secrets.ADMIN_BOOTSTRAP_TOKEN }}
           flags: >-
             ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_APIS == 'true' && '--allow-unauthenticated' || '--no-allow-unauthenticated' }}
+            ${{ vars.CLOUD_SQL_INSTANCE != '' && format('--add-cloudsql-instances={0}', vars.CLOUD_SQL_INSTANCE) || '' }}
+            --service-account=${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
             --port=8080
             --min-instances=0
             --max-instances=3
@@ -288,8 +282,8 @@ jobs:
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
           region: ${{ vars.GCP_REGION || 'us-central1' }}
-          service: aklapper-api-analytics${{ needs.resolve-plan.outputs.service_suffix }}
-          image: ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY || 'aklapper' }}/node-api-analytics:${{ github.sha }}
+          service: node-api-analytics
+          image: ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY || 'portfolio' }}/node-api-analytics:${{ github.sha }}
           env_vars: |
             NODE_ENV=production
             DATABASE_URL=${{ secrets.DATABASE_URL }}
@@ -297,6 +291,8 @@ jobs:
             INTERNAL_AUTH_SECRET=${{ secrets.INTERNAL_AUTH_SECRET }}
           flags: >-
             ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_APIS == 'true' && '--allow-unauthenticated' || '--no-allow-unauthenticated' }}
+            ${{ vars.CLOUD_SQL_INSTANCE != '' && format('--add-cloudsql-instances={0}', vars.CLOUD_SQL_INSTANCE) || '' }}
+            --service-account=${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
             --port=8080
             --min-instances=0
             --max-instances=3
@@ -310,16 +306,15 @@ jobs:
         env:
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
           GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
-          SERVICE_SUFFIX: ${{ needs.resolve-plan.outputs.service_suffix }}
         run: |
           AUTH_URL="${{ vars.AUTH_API_URL || steps.deploy-api-auth.outputs.url }}"
           if [ -z "$AUTH_URL" ]; then
-            AUTH_URL="$(gcloud run services describe "aklapper-api-auth${SERVICE_SUFFIX}" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.url)' 2>/dev/null || true)"
+            AUTH_URL="$(gcloud run services describe "node-api-auth" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.url)' 2>/dev/null || true)"
           fi
 
           ANALYTICS_URL="${{ vars.ANALYTICS_API_URL || steps.deploy-api-analytics.outputs.url }}"
           if [ -z "$ANALYTICS_URL" ]; then
-            ANALYTICS_URL="$(gcloud run services describe "aklapper-api-analytics${SERVICE_SUFFIX}" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.url)' 2>/dev/null || true)"
+            ANALYTICS_URL="$(gcloud run services describe "node-api-analytics" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.url)' 2>/dev/null || true)"
           fi
 
           echo "auth_url=${AUTH_URL}" >> "$GITHUB_OUTPUT"
@@ -332,8 +327,8 @@ jobs:
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
           region: ${{ vars.GCP_REGION || 'us-central1' }}
-          service: aklapper-portal${{ needs.resolve-plan.outputs.service_suffix }}
-          image: ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY || 'aklapper' }}/portal:${{ github.sha }}
+          service: portal
+          image: ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY || 'portfolio' }}/portal:${{ github.sha }}
           env_vars: |
             NODE_ENV=production
             PORTAL_MAINTENANCE_MODE=${{ vars.PORTAL_MAINTENANCE_MODE || 'false' }}
@@ -352,6 +347,8 @@ jobs:
             CONTACT_API_URL=${{ vars.CONTACT_API_URL || '' }}
           flags: >-
             --allow-unauthenticated
+            ${{ vars.CLOUD_SQL_INSTANCE != '' && format('--add-cloudsql-instances={0}', vars.CLOUD_SQL_INSTANCE) || '' }}
+            --service-account=${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
             --port=8080
             --min-instances=0
             --max-instances=5
@@ -366,8 +363,8 @@ jobs:
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
           region: ${{ vars.GCP_REGION || 'us-central1' }}
-          service: aklapper-admin${{ needs.resolve-plan.outputs.service_suffix }}
-          image: ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY || 'aklapper' }}/admin:${{ github.sha }}
+          service: admin
+          image: ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY || 'portfolio' }}/admin:${{ github.sha }}
           env_vars: |
             NODE_ENV=production
             PUBLIC_ADMIN_URL=${{ vars.PUBLIC_ADMIN_URL || 'https://admin.andrew-k.us' }}
@@ -392,6 +389,8 @@ jobs:
             QDRANT_URL=${{ vars.QDRANT_URL || '' }}
           flags: >-
             ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_ADMIN == 'true' && '--allow-unauthenticated' || '--no-allow-unauthenticated' }}
+            ${{ vars.CLOUD_SQL_INSTANCE != '' && format('--add-cloudsql-instances={0}', vars.CLOUD_SQL_INSTANCE) || '' }}
+            --service-account=${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
             --port=8080
             --min-instances=0
             --max-instances=2
@@ -399,22 +398,55 @@ jobs:
             --cpu=1
             --cpu-throttling
 
+      - name: Ensure custom domain mappings for deployed Cloud Run services
+        shell: bash
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+          CLOUD_RUN_SERVICES_JSON: ${{ needs.resolve-plan.outputs.cloud_run_services_json }}
+          ADMIN_URL: ${{ vars.PUBLIC_ADMIN_URL || 'https://admin.andrew-k.us' }}
+          AUTH_URL: ${{ vars.AUTH_API_URL || 'https://auth.bgdkapis.us' }}
+          ANALYTICS_URL: ${{ vars.ANALYTICS_API_URL || 'https://analytics.bgdkapis.us' }}
+        run: |
+          ensure_mapping() {
+            local service="$1"
+            local url="$2"
+            local domain="${url#https://}"
+            domain="${domain#http://}"
+            domain="${domain%%/*}"
+            if [ -z "$domain" ] || [[ "$domain" == *.run.app ]]; then
+              return 0
+            fi
+            if gcloud beta run domain-mappings describe --quiet --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --domain="$domain" >/dev/null 2>&1; then
+              echo "✓ Domain mapping already exists: ${domain} -> ${service}"
+            else
+              gcloud beta run domain-mappings create --quiet --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --service="$service" --domain="$domain"
+            fi
+          }
+
+          for svc in $(node -e 'console.log(JSON.parse(process.env.CLOUD_RUN_SERVICES_JSON).join(" "))'); do
+            case "$svc" in
+              admin) ensure_mapping "admin" "$ADMIN_URL" ;;
+              node-api-auth) ensure_mapping "node-api-auth" "$AUTH_URL" ;;
+              node-api-analytics) ensure_mapping "node-api-analytics" "$ANALYTICS_URL" ;;
+            esac
+          done
+
       - name: Resolve deployed portal and admin URLs
         id: resolve-urls
         shell: bash
         env:
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
           GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
-          SERVICE_SUFFIX: ${{ needs.resolve-plan.outputs.service_suffix }}
         run: |
-          PORTAL_URL="${{ steps.deploy-portal.outputs.url }}"
+          PORTAL_URL="${{ vars.PUBLIC_PORTAL_URL || steps.deploy-portal.outputs.url }}"
           if [ -z "$PORTAL_URL" ]; then
-            PORTAL_URL="$(gcloud run services describe "aklapper-portal${SERVICE_SUFFIX}" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.url)' 2>/dev/null || true)"
+            PORTAL_URL="$(gcloud run services describe "portal" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.url)' 2>/dev/null || true)"
           fi
 
-          ADMIN_URL="${{ steps.deploy-admin.outputs.url }}"
+          ADMIN_URL="${{ vars.PUBLIC_ADMIN_URL || steps.deploy-admin.outputs.url }}"
           if [ -z "$ADMIN_URL" ]; then
-            ADMIN_URL="$(gcloud run services describe "aklapper-admin${SERVICE_SUFFIX}" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.url)' 2>/dev/null || true)"
+            ADMIN_URL="$(gcloud run services describe "admin" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.url)' 2>/dev/null || true)"
           fi
 
           echo "portal_url=${PORTAL_URL}" >> "$GITHUB_OUTPUT"
@@ -424,7 +456,7 @@ jobs:
         shell: bash
         run: |
           {
-            echo "### Cloud Run Deploy (${{ needs.resolve-plan.outputs.env_name }})"
+            echo "### Cloud Run Deploy (production)"
             echo "- Deployed services: \`${{ needs.resolve-plan.outputs.cloud_run_services_json }}\`"
             echo "- Portal: ${{ steps.resolve-urls.outputs.portal_url }}"
             echo "- Admin: ${{ steps.resolve-urls.outputs.admin_url }}"
@@ -434,7 +466,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   deploy-gke:
-    name: Deploy GKE Autopilot Go services (${{ needs.resolve-plan.outputs.env_name }})
+    name: Deploy GKE Autopilot Go services (production)
     needs:
       - resolve-plan
       - build-and-push
@@ -442,7 +474,7 @@ jobs:
       needs.resolve-plan.outputs.deploy_gke == 'true' &&
       needs.resolve-plan.outputs.has_gke == 'true'
     runs-on: ubuntu-latest
-    environment: ${{ needs.resolve-plan.outputs.env_name }}
+    environment: production
 
     steps:
       - name: Checkout
@@ -456,7 +488,7 @@ jobs:
             echo "configured=false" >> "$GITHUB_OUTPUT"
             {
               echo "### GKE Autopilot Deploy Skipped"
-              echo "Set \`GKE_CLUSTER_NAME\` in the \`${{ needs.resolve-plan.outputs.env_name }}\` environment to enable Go microservice rollout. Affected Go images (\`${{ needs.resolve-plan.outputs.gke_services_json }}\`) were built and pushed to Artifact Registry with tag \`${{ github.sha }}\`."
+              echo "Set \`GKE_CLUSTER_NAME\` in the \`production\` environment to enable Go microservice rollout. Affected Go images (\`${{ needs.resolve-plan.outputs.gke_services_json }}\`) were built and pushed to Artifact Registry with tag \`${{ github.sha }}\`."
             } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "configured=true" >> "$GITHUB_OUTPUT"
@@ -491,7 +523,7 @@ jobs:
         env:
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
           GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
-          GAR_REPOSITORY: ${{ vars.GAR_REPOSITORY || 'aklapper' }}
+          GAR_REPOSITORY: ${{ vars.GAR_REPOSITORY || 'portfolio' }}
           IMAGE_TAG: ${{ github.sha }}
           GKE_SERVICES_JSON: ${{ needs.resolve-plan.outputs.gke_services_json }}
           DEPLOY_ALL: ${{ inputs.deploy_all_services }}
@@ -524,7 +556,7 @@ jobs:
       needs.resolve-plan.outputs.run_smoke_e2e == 'true' &&
       needs.deploy-cloud-run.outputs.portal_url != ''
     runs-on: ubuntu-latest
-    environment: ${{ needs.resolve-plan.outputs.env_name }}
+    environment: production
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -585,7 +617,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: live-e2e-${{ needs.resolve-plan.outputs.env_name }}-${{ matrix.engine }}
+          name: live-e2e-production-${{ matrix.engine }}
           retention-days: 7
           if-no-files-found: ignore
           path: |
