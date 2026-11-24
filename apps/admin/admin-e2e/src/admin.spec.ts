@@ -20,11 +20,11 @@ import {
 } from './admin-helpers.js';
 
 test.describe('admin SSR end-to-end journeys', () => {
-  test('serves healthy Fastify SSR /healthz endpoint', async ({ request }) => {
+  test('serves healthy Fastify SSR /healthz endpoint @smoke', async ({ request }) => {
     await assertSsrHealthz(request, 'admin-ssr');
   });
 
-  test('guards protected pages, renders unified login UI without bootstrap tab, and rejects unauthenticated registration', async ({
+  test('guards protected pages, renders unified login UI without bootstrap tab, and rejects unauthenticated registration @smoke', async ({
     page,
     request,
   }) => {

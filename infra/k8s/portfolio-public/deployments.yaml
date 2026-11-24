@@ -4,7 +4,7 @@ metadata:
   name: k8s-watch
   namespace: portfolio-public
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: k8s-watch
@@ -13,6 +13,7 @@ spec:
       labels:
         app: k8s-watch
     spec:
+      serviceAccountName: k8s-watch
       automountServiceAccountToken: true
       securityContext:
         runAsNonRoot: true
@@ -23,6 +24,14 @@ spec:
           image: us-central1-docker.pkg.dev/PROJECT_ID/aklapper/k8s-watch:latest
           ports:
             - containerPort: 8081
+          env:
+            - name: APP_ENV
+              value: production
+          envFrom:
+            - configMapRef:
+                name: aklapper-runtime-config
+            - secretRef:
+                name: aklapper-runtime-secrets
           readinessProbe:
             httpGet:
               path: /healthz
@@ -48,7 +57,7 @@ metadata:
   name: cadence-demo
   namespace: portfolio-public
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: cadence-demo
@@ -57,16 +66,31 @@ spec:
       labels:
         app: cadence-demo
     spec:
+      serviceAccountName: cadence-demo
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      volumes:
+        - name: cloudsql
+          emptyDir: {}
       containers:
         - name: cadence-demo
           image: us-central1-docker.pkg.dev/PROJECT_ID/aklapper/cadence-demo:latest
           ports:
             - containerPort: 8082
+          env:
+            - name: APP_ENV
+              value: production
+          envFrom:
+            - configMapRef:
+                name: aklapper-runtime-config
+            - secretRef:
+                name: aklapper-runtime-secrets
+          volumeMounts:
+            - name: cloudsql
+              mountPath: /cloudsql
           readinessProbe:
             httpGet:
               path: /healthz
@@ -85,31 +109,29 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: ['ALL']
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: ai-ask
-  namespace: portfolio-public
-  annotations:
-    iam.gke.io/gcp-service-account: ai-ask@PROJECT_ID.iam.gserviceaccount.com
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: ai-ask
-  namespace: portfolio-public
-  labels:
-    app: ai-ask
-spec:
-  type: ClusterIP
-  selector:
-    app: ai-ask
-  ports:
-    - name: http
-      port: 80
-      targetPort: 8083
-      protocol: TCP
+        # cloud-sql-proxy-start
+        - name: cloud-sql-proxy
+          image: gcr.io/cloud-sql-proxies/cloud-sql-proxy:2.15.2
+          args:
+            - --unix-socket=/cloudsql
+            - --structured-logs
+            - PROJECT_ID:us-central1:aklapper
+          volumeMounts:
+            - name: cloudsql
+              mountPath: /cloudsql
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ['ALL']
+        # cloud-sql-proxy-end
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -127,11 +149,14 @@ spec:
         app: ai-ask
     spec:
       serviceAccountName: ai-ask
-      automountServiceAccountToken: true
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      volumes:
+        - name: cloudsql
+          emptyDir: {}
       containers:
         - name: ai-ask
           image: us-central1-docker.pkg.dev/PROJECT_ID/aklapper/ai-ask:latest
@@ -142,42 +167,14 @@ spec:
               value: production
             - name: PORT
               value: '8083'
-            - name: AI_PROVIDER
-              valueFrom:
-                configMapKeyRef:
-                  name: ai-ask-config
-                  key: AI_PROVIDER
-            - name: GCP_PROJECT_ID
-              valueFrom:
-                configMapKeyRef:
-                  name: ai-ask-config
-                  key: GCP_PROJECT_ID
-            - name: GCP_LOCATION
-              valueFrom:
-                configMapKeyRef:
-                  name: ai-ask-config
-                  key: GCP_LOCATION
-            - name: QDRANT_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: ai-ask-config
-                  key: QDRANT_URL
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: ai-ask-secrets
-                  key: DATABASE_URL
-            - name: INTERNAL_AUTH_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: ai-ask-secrets
-                  key: INTERNAL_AUTH_SECRET
-            - name: QDRANT_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: ai-ask-secrets
-                  key: QDRANT_API_KEY
-                  optional: true
+          envFrom:
+            - configMapRef:
+                name: aklapper-runtime-config
+            - secretRef:
+                name: aklapper-runtime-secrets
+          volumeMounts:
+            - name: cloudsql
+              mountPath: /cloudsql
           readinessProbe:
             httpGet:
               path: /healthz
@@ -196,6 +193,29 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: ['ALL']
+        # cloud-sql-proxy-start
+        - name: cloud-sql-proxy
+          image: gcr.io/cloud-sql-proxies/cloud-sql-proxy:2.15.2
+          args:
+            - --unix-socket=/cloudsql
+            - --structured-logs
+            - PROJECT_ID:us-central1:aklapper
+          volumeMounts:
+            - name: cloudsql
+              mountPath: /cloudsql
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ['ALL']
+        # cloud-sql-proxy-end
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -203,7 +223,7 @@ metadata:
   name: contact
   namespace: portfolio-public
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: contact
@@ -222,6 +242,14 @@ spec:
           image: us-central1-docker.pkg.dev/PROJECT_ID/aklapper/contact:latest
           ports:
             - containerPort: 8084
+          env:
+            - name: APP_ENV
+              value: production
+          envFrom:
+            - configMapRef:
+                name: aklapper-runtime-config
+            - secretRef:
+                name: aklapper-runtime-secrets
           readinessProbe:
             httpGet:
               path: /healthz
