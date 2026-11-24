@@ -80,6 +80,11 @@ import type { z } from 'zod';
 
 import type { AppDatabase } from './client.ts';
 import { getMenuItems, getSiteContent, SITE_CONTENT_KEYS } from './queries.ts';
+import {
+  mapSandboxTurnRow,
+  normalizeGateVerdict,
+  updateSandboxRunGateVerdictRow,
+} from './sandbox-helpers.ts';
 import * as schema from './schema.ts';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -1168,30 +1173,6 @@ export async function deleteCadencePreset(db: AppDatabase, slug: string): Promis
   return deleted.length > 0;
 }
 
-function mapSandboxTurnRow(row: typeof schema.sandboxTurns.$inferSelect): CadenceTurn {
-  return {
-    id: row.id,
-    phase:
-      row.phase === 'triage' ||
-      row.phase === 'spec' ||
-      row.phase === 'build' ||
-      row.phase === 'gate'
-        ? row.phase
-        : 'build',
-    agentName: row.agentName,
-    status:
-      row.status === 'pending' ||
-      row.status === 'running' ||
-      row.status === 'completed' ||
-      row.status === 'failed'
-        ? row.status
-        : 'completed',
-    summary: typeof row.payloadJson['summary'] === 'string' ? row.payloadJson['summary'] : '',
-    latencyMs: row.latencyMs,
-    createdAt: row.createdAt.toISOString(),
-  };
-}
-
 export async function listAdminSandboxRuns(
   db: AppDatabase,
   limit = 25,
@@ -1226,10 +1207,7 @@ export async function listAdminSandboxRuns(
       menuSlug: run.menuSlug,
       runStatus: run.status,
       prompt: run.prompt,
-      gateVerdict:
-        run.gateVerdict === 'approved' || run.gateVerdict === 'rejected'
-          ? run.gateVerdict
-          : 'pending',
+      gateVerdict: normalizeGateVerdict(run.gateVerdict),
       turns: turnsByRun.get(run.id) ?? [],
       artifactHtml: run.artifactHtml ?? '',
       tokensIn: run.tokensIn,
@@ -1244,34 +1222,21 @@ export async function overrideSandboxGateVerdict(
   runId: string,
   gateVerdict: CadenceGateVerdict,
 ): Promise<AdminSandboxRun | null> {
-  if (!UUID_PATTERN.test(runId)) return null;
   const verdict = CadenceGateVerdictSchema.parse(gateVerdict);
-
-  const [updated] = await db
-    .update(schema.sandboxRuns)
-    .set({ gateVerdict: verdict })
-    .where(eq(schema.sandboxRuns.id, runId))
-    .returning();
-
-  if (!updated) return null;
-
-  const turnRows = await db
-    .select()
-    .from(schema.sandboxTurns)
-    .where(eq(schema.sandboxTurns.runId, updated.id))
-    .orderBy(asc(schema.sandboxTurns.id));
+  const result = await updateSandboxRunGateVerdictRow(db, runId, verdict);
+  if (!result) return null;
 
   return AdminSandboxRunSchema.parse({
-    runId: updated.id,
-    sessionId: updated.sessionId,
-    menuSlug: updated.menuSlug,
-    runStatus: updated.status,
-    prompt: updated.prompt,
+    runId: result.run.id,
+    sessionId: result.run.sessionId,
+    menuSlug: result.run.menuSlug,
+    runStatus: result.run.status,
+    prompt: result.run.prompt,
     gateVerdict: verdict,
-    turns: turnRows.map(mapSandboxTurnRow),
-    artifactHtml: updated.artifactHtml ?? '',
-    tokensIn: updated.tokensIn,
-    tokensOut: updated.tokensOut,
-    createdAt: updated.createdAt.toISOString(),
+    turns: result.turns,
+    artifactHtml: result.run.artifactHtml ?? '',
+    tokensIn: result.run.tokensIn,
+    tokensOut: result.run.tokensOut,
+    createdAt: result.run.createdAt.toISOString(),
   });
 }

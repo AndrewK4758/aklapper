@@ -1,4 +1,4 @@
-import { type K8sPodEvent, K8sPodEventSchema } from '@aklapper/core';
+import { createPodEventStreamStore, type K8sPodEvent } from '@aklapper/core';
 import { useSyncExternalStore } from 'react';
 
 export interface OpsClusterSnapshot {
@@ -59,125 +59,67 @@ const SERVER_SNAPSHOT: OpsClusterSnapshot = {
   adminDeployments: DEFAULT_ADMIN,
 };
 
-let deploymentMap: Record<string, K8sPodEvent> = {};
-for (const ev of [...DEFAULT_PUBLIC, ...DEFAULT_ADMIN]) {
-  deploymentMap[`${ev.namespace}:${ev.deployment}`] = ev;
+function upsertDeployment(list: readonly K8sPodEvent[], next: K8sPodEvent): readonly K8sPodEvent[] {
+  const byName = new Map(list.map(ev => [ev.deployment, ev]));
+  byName.set(next.deployment, next);
+  return [...byName.values()].sort((a, b) => a.deployment.localeCompare(b.deployment));
 }
 
-let currentSnapshot: OpsClusterSnapshot = SERVER_SNAPSHOT;
-let eventSource: EventSource | null = null;
-const listeners = new Set<() => void>();
-
-function rebuildSnapshot(connected: boolean): void {
-  const all = Object.values(deploymentMap);
-  const publicDeployments = all
-    .filter(ev => ev.namespace === 'portfolio-public')
-    .sort((a, b) => a.deployment.localeCompare(b.deployment));
-  const adminDeployments = all
-    .filter(ev => ev.namespace === 'cadence-admin')
-    .sort((a, b) => a.deployment.localeCompare(b.deployment));
-
-  currentSnapshot = {
-    connected,
-    publicDeployments,
-    adminDeployments,
-  };
-}
-
-function notifyListeners(): void {
-  for (const listener of listeners) {
-    listener();
+function applyDeploymentUpdate(
+  current: OpsClusterSnapshot,
+  ev: K8sPodEvent,
+  connected: boolean,
+): OpsClusterSnapshot {
+  if (ev.namespace === 'cadence-admin') {
+    return {
+      connected,
+      publicDeployments: current.publicDeployments,
+      adminDeployments: upsertDeployment(current.adminDeployments, ev),
+    };
   }
+  if (ev.namespace === 'portfolio-public') {
+    return {
+      connected,
+      publicDeployments: upsertDeployment(current.publicDeployments, ev),
+      adminDeployments: current.adminDeployments,
+    };
+  }
+  return current.connected === connected ? current : { ...current, connected };
 }
 
-function applyPodEvent(rawData: string): void {
-  let parsedJson: unknown;
-  try {
-    parsedJson = JSON.parse(rawData);
-  } catch {
-    return;
-  }
-  const parsed = K8sPodEventSchema.safeParse(parsedJson);
-  if (!parsed.success) return;
-  const ev = parsed.data;
-  deploymentMap[`${ev.namespace}:${ev.deployment}`] = ev;
-  rebuildSnapshot(true);
-  notifyListeners();
-}
+const opsClusterStore = createPodEventStreamStore<OpsClusterSnapshot>({
+  endpoint: '/api/ops/cluster/stream',
+  initialSnapshot: SERVER_SNAPSHOT,
+  onPodEvent: (current, ev) => applyDeploymentUpdate(current, ev, true),
+});
 
 export function markDeploymentWaking(deployment: string): void {
   const namespace = deployment === 'cadence-admin' ? 'cadence-admin' : 'portfolio-public';
-  const key = `${namespace}:${deployment}`;
-  const existing = deploymentMap[key];
-  deploymentMap[key] = {
-    eventId: `wake-${deployment}-${Date.now()}`,
-    namespace,
-    deployment,
-    podName: existing?.podName ?? `${deployment}-0`,
-    phase: 'TriggeredScaleUp',
-    message: 'Manual wake requested from admin ops console',
-    ready: false,
-    timestamp: new Date().toISOString(),
-  };
-  rebuildSnapshot(currentSnapshot.connected);
-  notifyListeners();
-}
-
-function ensureConnection(): void {
-  if (typeof window === 'undefined' || typeof EventSource === 'undefined') {
-    return;
-  }
-  if (eventSource) return;
-
-  try {
-    const source = new EventSource('/api/ops/cluster/stream');
-    eventSource = source;
-
-    source.addEventListener('pod', event => {
-      if (event instanceof MessageEvent && typeof event.data === 'string') {
-        applyPodEvent(event.data);
-      }
-    });
-
-    source.onerror = () => {
-      source.close();
-      if (eventSource === source) {
-        eventSource = null;
-      }
-    };
-  } catch {
-    eventSource = null;
-  }
-}
-
-function teardownConnection(): void {
-  if (eventSource) {
-    eventSource.close();
-    eventSource = null;
-  }
-}
-
-function subscribe(listener: () => void): () => void {
-  listeners.add(listener);
-  if (listeners.size === 1) {
-    ensureConnection();
-  }
-  return () => {
-    listeners.delete(listener);
-    if (listeners.size === 0) {
-      teardownConnection();
-    }
-  };
-}
-
-function getSnapshot(): OpsClusterSnapshot {
-  return currentSnapshot;
-}
-
-function getServerSnapshot(): OpsClusterSnapshot {
-  return SERVER_SNAPSHOT;
+  opsClusterStore.update(current => {
+    const existingList =
+      namespace === 'cadence-admin' ? current.adminDeployments : current.publicDeployments;
+    const existing = existingList.find(ev => ev.deployment === deployment);
+    return applyDeploymentUpdate(
+      current,
+      {
+        eventId: `wake-${deployment}-${Date.now()}`,
+        namespace,
+        deployment,
+        podName: existing?.podName ?? `${deployment}-0`,
+        phase: 'TriggeredScaleUp',
+        message: 'Manual wake requested from admin ops console',
+        ready: false,
+        timestamp: new Date().toISOString(),
+      },
+      current.connected,
+    );
+  });
 }
 
 export function useOpsClusterStream(): OpsClusterSnapshot {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  return useSyncExternalStore(
+    opsClusterStore.subscribe,
+    opsClusterStore.getSnapshot,
+    opsClusterStore.getServerSnapshot,
+  );
 }

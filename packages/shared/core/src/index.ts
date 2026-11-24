@@ -852,5 +852,6 @@ export const AdminWakeDeploymentSchema = z.object({
 });
 export type AdminWakeDeploymentInput = z.infer<typeof AdminWakeDeploymentSchema>;
 
+export * from './cluster-stream.ts';
 export * from './rbac.ts';
 export * from './seo.ts';

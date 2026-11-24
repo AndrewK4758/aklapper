@@ -1,4 +1,4 @@
-import { type K8sPodEvent, K8sPodEventSchema, type Osc7501State } from '@aklapper/core';
+import { createPodEventStreamStore, type K8sPodEvent, type Osc7501State } from '@aklapper/core';
 import { useSyncExternalStore } from 'react';
 
 export interface ClusterTelemetrySnapshot {
@@ -18,16 +18,6 @@ const SERVER_SNAPSHOT: ClusterTelemetrySnapshot = {
   summaryState: 'idle',
   summaryLabel: null,
 };
-
-let currentSnapshot: ClusterTelemetrySnapshot = SERVER_SNAPSHOT;
-let eventSource: EventSource | null = null;
-const listeners = new Set<() => void>();
-
-function notifyListeners(): void {
-  for (const listener of listeners) {
-    listener();
-  }
-}
 
 function buildSummary(deployments: Record<string, K8sPodEvent>): {
   readyCount: number;
@@ -75,87 +65,27 @@ function buildSummary(deployments: Record<string, K8sPodEvent>): {
   };
 }
 
-function applyPodEvent(rawData: string): void {
-  let parsedJson: unknown;
-  try {
-    parsedJson = JSON.parse(rawData);
-  } catch {
-    return;
-  }
-  const parsed = K8sPodEventSchema.safeParse(parsedJson);
-  if (!parsed.success) return;
-  const ev = parsed.data;
-  if (ev.namespace !== 'portfolio-public') return;
-
-  const nextDeployments: Record<string, K8sPodEvent> = {
-    ...currentSnapshot.deployments,
-    [ev.deployment]: ev,
-  };
-  const summary = buildSummary(nextDeployments);
-  currentSnapshot = {
-    connected: true,
-    deployments: nextDeployments,
-    ...summary,
-  };
-  notifyListeners();
-}
-
-function ensureConnection(): void {
-  if (typeof window === 'undefined' || typeof EventSource === 'undefined') {
-    return;
-  }
-  if (eventSource) return;
-
-  try {
-    const source = new EventSource('/api/cluster/stream');
-    eventSource = source;
-
-    source.addEventListener('pod', event => {
-      if (event instanceof MessageEvent && typeof event.data === 'string') {
-        applyPodEvent(event.data);
-      }
-    });
-
-    source.onerror = () => {
-      // Close on stream EOF/error so simulated one-shot streams don't spin aggressively.
-      source.close();
-      if (eventSource === source) {
-        eventSource = null;
-      }
+const portalClusterStore = createPodEventStreamStore<ClusterTelemetrySnapshot>({
+  endpoint: '/api/cluster/stream',
+  initialSnapshot: SERVER_SNAPSHOT,
+  onPodEvent: (current, ev) => {
+    if (ev.namespace !== 'portfolio-public') return current;
+    const nextDeployments: Record<string, K8sPodEvent> = {
+      ...current.deployments,
+      [ev.deployment]: ev,
     };
-  } catch {
-    eventSource = null;
-  }
-}
-
-function teardownConnection(): void {
-  if (eventSource) {
-    eventSource.close();
-    eventSource = null;
-  }
-}
-
-function subscribe(listener: () => void): () => void {
-  listeners.add(listener);
-  if (listeners.size === 1) {
-    ensureConnection();
-  }
-  return () => {
-    listeners.delete(listener);
-    if (listeners.size === 0) {
-      teardownConnection();
-    }
-  };
-}
-
-function getSnapshot(): ClusterTelemetrySnapshot {
-  return currentSnapshot;
-}
-
-function getServerSnapshot(): ClusterTelemetrySnapshot {
-  return SERVER_SNAPSHOT;
-}
+    return {
+      connected: true,
+      deployments: nextDeployments,
+      ...buildSummary(nextDeployments),
+    };
+  },
+});
 
 export function useClusterTelemetry(): ClusterTelemetrySnapshot {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  return useSyncExternalStore(
+    portalClusterStore.subscribe,
+    portalClusterStore.getSnapshot,
+    portalClusterStore.getServerSnapshot,
+  );
 }

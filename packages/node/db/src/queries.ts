@@ -55,6 +55,11 @@ import { and, asc, count, desc, eq, gt, isNull, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 
 import type { AppDatabase } from './client.ts';
+import {
+  mapSandboxTurnRow,
+  normalizeGateVerdict,
+  updateSandboxRunGateVerdictRow,
+} from './sandbox-helpers.ts';
 import * as schema from './schema.ts';
 
 export const SITE_CONTENT_KEYS = {
@@ -1358,36 +1363,13 @@ export async function listSandboxRunsForSession(
       .where(eq(schema.sandboxTurns.runId, run.id))
       .orderBy(asc(schema.sandboxTurns.id));
 
-    const turns: CadenceTurn[] = turnRows.map(row => ({
-      id: row.id,
-      phase:
-        row.phase === 'triage' ||
-        row.phase === 'spec' ||
-        row.phase === 'build' ||
-        row.phase === 'gate'
-          ? row.phase
-          : 'build',
-      agentName: row.agentName,
-      status:
-        row.status === 'pending' ||
-        row.status === 'running' ||
-        row.status === 'completed' ||
-        row.status === 'failed'
-          ? row.status
-          : 'completed',
-      summary: typeof row.payloadJson['summary'] === 'string' ? row.payloadJson['summary'] : '',
-      latencyMs: row.latencyMs,
-      createdAt: row.createdAt.toISOString(),
-    }));
+    const turns: CadenceTurn[] = turnRows.map(mapSandboxTurnRow);
 
     results.push(
       CadenceRunResultSchema.parse({
         runId: run.id,
         prompt: run.prompt,
-        gateVerdict:
-          run.gateVerdict === 'approved' || run.gateVerdict === 'rejected'
-            ? run.gateVerdict
-            : 'pending',
+        gateVerdict: normalizeGateVerdict(run.gateVerdict),
         turns,
         artifactHtml: run.artifactHtml ?? '',
         tokensIn: run.tokensIn,
@@ -1404,49 +1386,18 @@ export async function updateSandboxRunGateVerdict(
   runId: string,
   verdict: Exclude<CadenceGateVerdict, 'pending'>,
 ): Promise<CadenceRunResult | null> {
-  if (!UUID_PATTERN.test(runId)) return null;
-  const [updated] = await db
-    .update(schema.sandboxRuns)
-    .set({ gateVerdict: verdict })
-    .where(eq(schema.sandboxRuns.id, runId))
-    .returning();
-  if (!updated) return null;
-
-  const turnRows = await db
-    .select()
-    .from(schema.sandboxTurns)
-    .where(eq(schema.sandboxTurns.runId, updated.id))
-    .orderBy(asc(schema.sandboxTurns.id));
+  const result = await updateSandboxRunGateVerdictRow(db, runId, verdict);
+  if (!result) return null;
 
   return CadenceRunResultSchema.parse({
-    runId: updated.id,
-    prompt: updated.prompt,
+    runId: result.run.id,
+    prompt: result.run.prompt,
     gateVerdict: verdict,
-    turns: turnRows.map(row => ({
-      id: row.id,
-      phase:
-        row.phase === 'triage' ||
-        row.phase === 'spec' ||
-        row.phase === 'build' ||
-        row.phase === 'gate'
-          ? row.phase
-          : 'build',
-      agentName: row.agentName,
-      status:
-        row.status === 'pending' ||
-        row.status === 'running' ||
-        row.status === 'completed' ||
-        row.status === 'failed'
-          ? row.status
-          : 'completed',
-      summary: typeof row.payloadJson['summary'] === 'string' ? row.payloadJson['summary'] : '',
-      latencyMs: row.latencyMs,
-      createdAt: row.createdAt.toISOString(),
-    })),
-    artifactHtml: updated.artifactHtml ?? '',
-    tokensIn: updated.tokensIn,
-    tokensOut: updated.tokensOut,
-    createdAt: updated.createdAt.toISOString(),
+    turns: result.turns,
+    artifactHtml: result.run.artifactHtml ?? '',
+    tokensIn: result.run.tokensIn,
+    tokensOut: result.run.tokensOut,
+    createdAt: result.run.createdAt.toISOString(),
   });
 }
 
