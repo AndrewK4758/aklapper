@@ -3,12 +3,16 @@ import {
   reloadStreamedPage,
   trackPageErrors,
 } from '@aklapper/tooling/playwright';
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
 import { startIsolatedPortalWithoutAsk } from './ask-harness.ts';
 
 const IS_MAINTENANCE_MODE = process.env['PORTAL_MAINTENANCE_MODE'] === 'true';
 const IS_LIVE_DEPLOYMENT = Boolean(process.env['PORTAL_BASE_URL']?.trim());
+
+async function waitForAskHydrated(page: Page): Promise<void> {
+  await expect(page.getByTestId('ask-workspace')).toHaveAttribute('data-hydrated', 'true');
+}
 
 test.describe('/ask end-to-end AI Q&A, JD Match, abstention, failure, quota, and recovery', () => {
   test('executes grounded Q&A, semantic abstention, and structured AI JD Match with telemetry', async ({
@@ -18,6 +22,7 @@ test.describe('/ask end-to-end AI Q&A, JD Match, abstention, failure, quota, and
     const getErrors = trackPageErrors(page);
 
     await gotoStreamedPage(page, '/ask');
+    await waitForAskHydrated(page);
     await expect(page.getByTestId('ask-quota-meter')).toBeVisible();
 
     // Grounded starter Q&A via live Go ai-ask (never fallback provider)
@@ -76,6 +81,7 @@ test.describe('/ask end-to-end AI Q&A, JD Match, abstention, failure, quota, and
 
     try {
       await gotoStreamedPage(page, '/ask');
+      await waitForAskHydrated(page);
       await page
         .getByTestId('ask-question-input')
         .fill('Explain delayed cold-start recovery architecture across SSR and Go workers?');
@@ -96,6 +102,7 @@ test.describe('/ask end-to-end AI Q&A, JD Match, abstention, failure, quota, and
       // Wait briefly so PG19 turn reservation commits before closing browser request on reload
       await page.waitForTimeout(450);
       await reloadStreamedPage(page);
+      await waitForAskHydrated(page);
 
       await expect(
         page.getByTestId('ask-turn-pending').or(page.getByTestId('ask-qa-transcript')),
@@ -130,6 +137,7 @@ test.describe('/ask end-to-end AI Q&A, JD Match, abstention, failure, quota, and
       await page.waitForFunction(
         () => document.querySelectorAll('div[hidden][id^="S:"]').length === 0,
       );
+      await waitForAskHydrated(page);
       await expect(page.getByText(/offline · upstream unreachable/i)).toBeVisible();
 
       const responsePromise = page.waitForResponse(
@@ -168,6 +176,7 @@ test.describe('/ask end-to-end AI Q&A, JD Match, abstention, failure, quota, and
 
     try {
       await gotoStreamedPage(page, '/ask');
+      await waitForAskHydrated(page);
       for (let turn = 1; turn <= 5; turn += 1) {
         await page
           .getByTestId('ask-question-input')

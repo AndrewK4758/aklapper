@@ -44,6 +44,10 @@ import styles from './PortalAskPage.module.css';
 
 export type { PortalAskActionResult };
 
+const subscribeAskHydrated = () => () => undefined;
+const getClientAskHydrated = () => true;
+const getServerAskHydrated = () => false;
+
 export interface PortalAskPageProps {
   content: PortalAskContent;
   quota: QuotaStatus;
@@ -67,6 +71,11 @@ export function PortalAskPage({
     subscribePersistedAskTurn,
     readPersistedAskTurn,
     () => null,
+  );
+  const isHydrated = useSyncExternalStore(
+    subscribeAskHydrated,
+    getClientAskHydrated,
+    getServerAskHydrated,
   );
   const [activeTab, setActiveTab] = useState<AskMode>('qa');
   const [questionText, setQuestionText] = useState('');
@@ -249,7 +258,11 @@ export function PortalAskPage({
   };
 
   return (
-    <div className={styles.workspace}>
+    <div
+      className={styles.workspace}
+      data-testid='ask-workspace'
+      data-hydrated={isHydrated ? 'true' : 'false'}
+    >
       <TuiWindow
         title={content.windowTitle}
         onClose={onClose}
