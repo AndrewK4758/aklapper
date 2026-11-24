@@ -92,7 +92,7 @@ export interface PaneDropTarget {
   readonly label: string;
 }
 
-export type GhosttyShortcutAction =
+export type WorkspaceShortcutAction =
   | { readonly type: 'split'; readonly direction: SplitCreateDirection }
   | { readonly type: 'focus-relative'; readonly delta: 1 | -1 }
   | { readonly type: 'focus-direction'; readonly direction: PaneNavDirection }
@@ -726,6 +726,20 @@ export function moveActiveSplit(
   return dockPane(state, state.activePaneId, null, rootZone);
 }
 
+export function swapActivePaneWithNeighbor(state: TerminalWorkspaceState): TerminalWorkspaceState {
+  if (state.zoomedPaneId || listLeafPanes(state.root).length < 2) {
+    return state;
+  }
+  const directions: readonly PaneNavDirection[] = ['right', 'left', 'down', 'up'];
+  for (const direction of directions) {
+    const neighborId = findDirectionalNeighborId(state.root, state.activePaneId, direction);
+    if (neighborId) {
+      return swapPanes(state, state.activePaneId, neighborId);
+    }
+  }
+  return state;
+}
+
 function flipParentSplitOrientation(
   node: TerminalPaneNode,
   targetId: string,
@@ -780,8 +794,8 @@ const ROOT_EDGE_MARGIN_PX = 18;
 const DEFAULT_DETACH_BAND_PX = 52;
 
 /**
- * Pure geometric drop-zone resolver matching ghostty-union's TerminalTabPane::computeDropTarget:
- * tab-strip detach band, 18px outer root-dock margins, and per-pane center-swap / 25% edge zones.
+ * Pure geometric drop-zone resolver for pane drag-and-drop: tab-strip detach band, 18px outer
+ * root-dock margins, and per-pane center-swap / 25% edge zones.
  */
 export function computePaneDropTarget(
   root: TerminalPaneNode,
@@ -1438,13 +1452,15 @@ function parseDigitIndex(key: string, code: string): number | 'last' | null {
 }
 
 /**
- * Matches Ghostty & ghostty-union split/pane/tab keybindings across Linux (`Ctrl+Shift+}`/`]`/`O`,
- * `Ctrl+Shift+{`/`[`/`E`, `Ctrl+Alt+Arrow`, `Alt+Shift+Arrow`, `Ctrl+Alt+Shift+Arrow`,
- * `Ctrl+Shift+R`, `Ctrl+Alt+Shift+E`, `Ctrl+Shift+T`/`A`/`W`, `Ctrl+Tab`/`PageUp`/`PageDown`,
- * `Alt+1..9`) and macOS (`Cmd+D`, `Cmd+Shift+D`, `Cmd+]`/`[`, `Cmd+Alt+Arrow`, `Ctrl+Cmd+Arrow`),
- * plus browser-safe `Alt`/`Alt+Shift` fallbacks and Solar Forge's `Alt+T` / `Alt+M` shortcuts.
+ * Matches split/pane/tab keybindings across Linux (`Ctrl+Shift+}`/`]`/`O`, `Ctrl+Shift+{`/`[`/`E`,
+ * `Ctrl+Alt+Arrow`, `Alt+Shift+Arrow`, `Ctrl+Alt+Shift+Arrow`, `Ctrl+Shift+R`, `Ctrl+Alt+Shift+E`,
+ * `Ctrl+Shift+T`/`A`/`W`, `Ctrl+Tab`/`PageUp`/`PageDown`, `Alt+1..9`) and macOS (`Cmd+D`,
+ * `Cmd+Shift+D`, `Cmd+]`/`[`, `Cmd+Alt+Arrow`, `Ctrl+Cmd+Arrow`), plus browser-safe
+ * `Alt`/`Alt+Shift` fallbacks and Solar Forge's `Alt+T` / `Alt+M` shortcuts.
  */
-export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShortcutAction | null {
+export function matchWorkspaceShortcut(
+  event: KeyboardShortcutInput,
+): WorkspaceShortcutAction | null {
   const keyLower = event.key.toLowerCase();
   const code = event.code ?? '';
   const arrowDir = mapArrowKeyToDirection(event.key);
@@ -1454,17 +1470,17 @@ export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShort
   const isCtrlAltShiftOnly = event.ctrlKey && event.altKey && event.shiftKey && !event.metaKey;
   const isAltShiftOnly = event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey;
 
-  // Move / swap active split directionally: Ctrl+Alt+Shift+Arrow* (ghostty-union)
+  // Move / swap active split directionally: Ctrl+Alt+Shift+Arrow*
   if (arrowDir && isCtrlAltShiftOnly) {
     return { type: 'move-split', direction: arrowDir };
   }
 
-  // Resize active split: Alt+Shift+Arrow* (ghostty-union & Ghostty config) or Ctrl+Cmd+Arrow* (macOS Ghostty)
+  // Resize active split: Alt+Shift+Arrow* or Ctrl+Cmd+Arrow*
   if (arrowDir && (isAltShiftOnly || (event.ctrlKey && event.metaKey && !event.altKey))) {
     return { type: 'resize', direction: arrowDir };
   }
 
-  // Directional split focus: Cmd+Alt+Arrow* (macOS Ghostty) or Ctrl+Alt+Arrow* (Linux Ghostty / ghostty-union)
+  // Directional split focus: Cmd+Alt+Arrow* or Ctrl+Alt+Arrow*
   if (
     arrowDir &&
     event.altKey &&
@@ -1474,8 +1490,7 @@ export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShort
     return { type: 'focus-direction', direction: arrowDir };
   }
 
-  // Split right (side-by-side): Ctrl+Shift+}/] (ghostty-union / Ghostty config),
-  // Ctrl+Shift+O (Linux Ghostty / ghostty-union), Cmd+D (macOS Ghostty), Alt+Shift+D (browser fallback)
+  // Split right (side-by-side): Ctrl+Shift+}/], Ctrl+Shift+O, Cmd+D, Alt+Shift+D (browser fallback)
   if (
     (event.metaKey &&
       !event.shiftKey &&
@@ -1488,8 +1503,7 @@ export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShort
     return { type: 'split', direction: 'right' };
   }
 
-  // Split down (stacked): Ctrl+Shift+{/[ (ghostty-union / Ghostty config),
-  // Ctrl+Shift+E (Linux Ghostty / ghostty-union), Cmd+Shift+D (macOS Ghostty), Alt+Shift+S (browser fallback)
+  // Split down (stacked): Ctrl+Shift+{/[, Ctrl+Shift+E, Cmd+Shift+D, Alt+Shift+S (browser fallback)
   if (
     (event.metaKey &&
       event.shiftKey &&
@@ -1502,7 +1516,7 @@ export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShort
     return { type: 'split', direction: 'down' };
   }
 
-  // Rotate active split orientation: Ctrl+Shift+R (ghostty-union) or Ctrl+Alt+Shift+R (browser-safe)
+  // Rotate active split orientation: Ctrl+Shift+R or Ctrl+Alt+Shift+R (browser-safe)
   if ((isCtrlShiftOnly || isCtrlAltShiftOnly) && matchesLetter(keyLower, code, 'r')) {
     return { type: 'rotate-split' };
   }
@@ -1512,12 +1526,12 @@ export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShort
     return { type: 'detach-pane' };
   }
 
-  // New tab: Ctrl+Shift+T (ghostty-union) or Alt+Shift+T (browser-safe)
+  // New tab: Ctrl+Shift+T or Alt+Shift+T (browser-safe)
   if ((isCtrlShiftOnly || isAltShiftOnly) && matchesLetter(keyLower, code, 't')) {
     return { type: 'new-tab' };
   }
 
-  // Rename active tab: Ctrl+Shift+A (ghostty-union) or Alt+Shift+A (browser-safe)
+  // Rename active tab: Ctrl+Shift+A or Alt+Shift+A (browser-safe)
   if ((isCtrlShiftOnly || isAltShiftOnly) && matchesLetter(keyLower, code, 'a')) {
     return { type: 'rename-tab' };
   }
@@ -1532,7 +1546,7 @@ export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShort
     }
   }
 
-  // Cycle next / previous split: Cmd+] / Cmd+[ (macOS Ghostty)
+  // Cycle next / previous split: Cmd+] / Cmd+[
   if (event.metaKey && !event.shiftKey && !event.ctrlKey && !event.altKey) {
     if (isBracketRight) {
       return { type: 'focus-relative', delta: 1 };
@@ -1542,7 +1556,7 @@ export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShort
     }
   }
 
-  // Toggle split zoom: Cmd+Shift+Enter (macOS Ghostty) or Ctrl+Shift+Enter (Linux Ghostty / ghostty-union)
+  // Toggle split zoom: Cmd+Shift+Enter or Ctrl+Shift+Enter
   if (
     event.key === 'Enter' &&
     event.shiftKey &&
@@ -1552,7 +1566,7 @@ export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShort
     return { type: 'toggle-zoom' };
   }
 
-  // Equalize splits: Ctrl+Alt+Shift+E (ghostty-union), Cmd+Shift+= / Ctrl+Shift+= (Ghostty)
+  // Equalize splits: Ctrl+Alt+Shift+E, Cmd+Shift+= / Ctrl+Shift+=
   const isEqualKey = event.key === '=' || event.key === '+' || code === 'Equal';
   if (
     (isCtrlAltShiftOnly && matchesLetter(keyLower, code, 'e')) ||

@@ -12,8 +12,8 @@ import {
 import { getCurrentMinute } from '@aklapper/legacy-games/utils';
 import type { Request, Response } from 'express';
 
-import { loadRegister } from '../../src/chains/lib/commands/action-load-register/load-register-start.js';
-import { sendLoadRegister } from '../../src/chains/lib/commands/action-load-register/send-load-register-data.js';
+import { loadRegister } from '../../src/chains/lib/commands/action-load-register/load-register-start.ts';
+import { sendLoadRegister } from '../../src/chains/lib/commands/action-load-register/send-load-register-data.ts';
 
 let ctx: Context<GameContextKeys | string>,
   game: InstanceOfGame,

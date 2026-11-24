@@ -8,6 +8,7 @@ import PortalRoot from './root';
 const CHROME_FIXTURE: PortalRootLoaderData['chrome'] = {
   pageTitle: 'andrew-k.us // Solar Forge Terminal',
   brandLabel: 'andrew-k.us :: tty1',
+  shortcutHint: 'Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit · Alt+⇧T tab · Alt+T tui',
   statusBadge: {
     source: 'gke-autopilot',
     state: 'idle',
@@ -110,6 +111,9 @@ describe('PortalRoot', () => {
     render(<RouterProvider router={router} />);
 
     expect(await screen.findByText('andrew-k.us :: tty1')).toBeTruthy();
+    expect(
+      screen.getByText('Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit · Alt+⇧T tab · Alt+T tui'),
+    ).toBeTruthy();
     expect(screen.getByText('Home Probe')).toBeTruthy();
     expect(screen.queryByText('cadence-admin')).toBeNull();
     const sitemapLink = screen.getByRole('link', { name: 'Sitemap' });
@@ -151,7 +155,7 @@ describe('PortalRoot', () => {
     expect(screen.getByText(/visitor@andrew-k\.us \(read-only maintenance tty1\)/)).toBeTruthy();
   });
 
-  it('supports Ghostty split keybindings globally on portal TUI routes', async () => {
+  it('supports split keybindings globally on portal TUI routes', async () => {
     const router = createMemoryRouter(
       [
         {

@@ -12,6 +12,8 @@ import {
   type PortalHomeContent,
   type PortalMaintenanceContent,
   type PortalMenuContent,
+  type TerminalProfileData,
+  TerminalProfileDataSchema,
 } from '@aklapper/core';
 import { loadWorkspaceEnv } from '@aklapper/node-runtime/env';
 import { notInArray } from 'drizzle-orm';
@@ -114,6 +116,7 @@ body{margin:0;padding:var(--a-pad);background:var(--a-bg);color:var(--a-fg);font
 export const PORTAL_CHROME_SEED: PortalChromeContent = {
   pageTitle: 'andrew-k.us // Solar Forge Terminal',
   brandLabel: 'andrew-k.us :: tty1',
+  shortcutHint: 'Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit · Alt+⇧T tab · Alt+T tui',
   statusBadge: {
     source: 'gke-autopilot',
     state: 'idle',
@@ -227,6 +230,7 @@ const PORTAL_MAINTENANCE_SEED: PortalMaintenanceContent = {
 const ADMIN_CHROME_SEED: AdminChromeContent = {
   pageTitle: 'admin.andrew-k.us // Solar Forge Ops',
   brandLabel: 'admin.andrew-k.us :: cadence-admin',
+  shortcutHint: 'Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit · Alt+⇧T tab',
   statusBadge: {
     source: 'cadence-admin',
     state: 'gate',
@@ -309,6 +313,31 @@ const SITE_CONTENT_SEEDS: ReadonlyArray<{
   },
 ];
 
+function buildSplitHelpLines(options: { includeTui: boolean }): readonly string[] {
+  return [
+    '',
+    'Split panes & tabs (keybindings & commands):',
+    '  Ctrl+Shift+} / Ctrl+Shift+O / Cmd+D (or "split" / "vsplit") — split terminal right',
+    '  Ctrl+Shift+{ / Ctrl+Shift+E / Cmd+Shift+D (or "hsplit")     — split terminal down',
+    ...(options.includeTui
+      ? [
+          '  Alt+T (or "tui")                                            — open or toggle TUI split pane',
+        ]
+      : []),
+    '  Ctrl+Alt+Arrows / Cmd+Alt+Arrows (or Cmd+] / Cmd+[)         — focus neighbor pane',
+    '  Alt+Shift+Arrows / drag pane divider (double-click=50/50)   — resize active split',
+    '  Ctrl+Alt+Shift+Arrows (or "swap" / drag pane titlebar)      — swap or dock split pane',
+    '  Ctrl+Shift+R / Ctrl+Alt+Shift+R (or "rotate")               — rotate split orientation',
+    '  Ctrl+Shift+Enter / Cmd+Shift+Enter (or "zoom")              — toggle active pane zoom',
+    '  Ctrl+Alt+Shift+E / Ctrl+Shift+= / Cmd+Shift+=               — equalize split sizes',
+    '  Ctrl+Shift+T / Alt+Shift+T (or "tab")                       — open a new tab',
+    '  Ctrl+Alt+Shift+T (or "detach" / drag pane to tab strip)     — move split to new tab',
+    '  Ctrl+Shift+A / Alt+Shift+A (or double-click tab)            — rename active tab',
+    '  Ctrl+Tab / Alt+] / Alt+[ / Alt+1..9                         — switch tabs',
+    '  Ctrl+Shift+W / Cmd+Shift+W / Alt+Shift+W (or "exit")        — close active pane or tab',
+  ];
+}
+
 const TERMINAL_PROFILE_SEEDS = [
   {
     slug: TERMINAL_PROFILE_SLUGS.portalHome,
@@ -345,6 +374,18 @@ const TERMINAL_PROFILE_SEEDS = [
     placeholder: 'type a command: help, status, roadmap, stack, clear',
     quickCommands: ['help', 'status', 'roadmap', 'stack', 'whoami', 'clear'],
   },
+  {
+    slug: TERMINAL_PROFILE_SLUGS.adminOps,
+    bannerTitle: 'Solar Forge Ops Terminal // admin',
+    bannerMeta: 'ops tty · type "help" or press Tab',
+    osLabel: '⚡',
+    directory: '~/admin.andrew-k.us',
+    vcsBranch: 'ops-isolated',
+    vcsState: 'clean' as const,
+    contextLabel: 'admin@andrew-k.us',
+    placeholder: 'type an ops command (help, analytics, cms, inbox, quotas, ops, status, clear)',
+    quickCommands: ['help', 'analytics', 'cms', 'inbox', 'quotas', 'ops', 'status'],
+  },
 ] as const;
 
 const TERMINAL_INITIAL_ENTRY_SEEDS = [
@@ -353,7 +394,7 @@ const TERMINAL_INITIAL_ENTRY_SEEDS = [
     command: 'ls -la',
     output: [
       'drwxr-xr-x  guest  solar-forge  menu/                 # Interactive module launcher',
-      'drwxr-xr-x  guest  solar-forge  tui/                  # Draggable TUI launcher window',
+      'drwxr-xr-x  guest  solar-forge  tui/                  # TUI launcher split pane',
       'drwxr-xr-x  guest  solar-forge  cadence/              # Sandboxed artifact builder',
       'drwxr-xr-x  guest  solar-forge  ask/                  # Grounded portfolio RAG & JD match',
       'drwxr-xr-x  guest  solar-forge  agensi/               # Published Agensi skills storefront',
@@ -378,6 +419,15 @@ const TERMINAL_INITIAL_ENTRY_SEEDS = [
     timestampLabel: '00:00:00',
     sortOrder: 0,
   },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
+    command: 'status',
+    output: 'admin.andrew-k.us :: isolated ops console ready · split panes enabled.',
+    status: 'ok' as const,
+    durationLabel: '3ms',
+    timestampLabel: '00:00:00',
+    sortOrder: 0,
+  },
 ] as const;
 
 const TERMINAL_COMMAND_SEEDS = [
@@ -390,7 +440,7 @@ const TERMINAL_COMMAND_SEEDS = [
       'Available terminal commands:',
       '  ls         — list portal routes & workspaces',
       '  menu       — open /menu module launcher',
-      '  tui        — open draggable TUI launcher window',
+      '  tui        — open TUI launcher in a split pane',
       '  cadence    — open /cadence artifact sandbox',
       '  ask        — open /ask grounded RAG & JD match',
       '  agensi     — open /agensi commercial skills storefront',
@@ -405,6 +455,7 @@ const TERMINAL_COMMAND_SEEDS = [
       '  Up / Down (Ctrl+P / Ctrl+N) — command history',
       '  Ctrl+L — clear · Ctrl+C — cancel line · Ctrl+U/K/W — edit line',
       '  Alt+T — toggle TUI · Alt+M — open /menu · Esc — close TUI',
+      ...buildSplitHelpLines({ includeTui: true }),
     ].join('\n'),
     targetRoute: null,
     allowedRoutes: [] as string[],
@@ -436,9 +487,9 @@ const TERMINAL_COMMAND_SEEDS = [
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'tui',
-    description: 'open draggable TUI launcher window',
+    description: 'open TUI launcher in a split pane',
     kind: 'tui' as const,
-    output: 'opening TUI launcher window ... (press Esc to close)',
+    output: 'opening TUI launcher split pane ... (press Esc to close)',
     targetRoute: null,
     allowedRoutes: [] as string[],
     errorTemplate: null,
@@ -640,6 +691,130 @@ const TERMINAL_COMMAND_SEEDS = [
     errorTemplate: null,
     sortOrder: 8,
   },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
+    name: 'help',
+    description: 'list available ops commands',
+    kind: 'static' as const,
+    output: [
+      'Available admin ops commands:',
+      '  help      — list available ops commands',
+      '  home      — open Operations Overview (/)',
+      '  analytics — open Telemetry & CWV Dashboard (/analytics)',
+      '  cms       — open Postgres 19 CMS (/cms)',
+      '  inbox     — open Contact Inbox & Attachments (/inbox)',
+      '  quotas    — open Quota Policies & Buckets (/quotas)',
+      '  ops       — open Cluster SSE & Sandbox Audit (/ops)',
+      '  status    — print isolated ops status',
+      '  whoami    — print active ops identity',
+      '  clear     — clear terminal scrollback',
+      ...buildSplitHelpLines({ includeTui: false }),
+    ].join('\n'),
+    targetRoute: null,
+    allowedRoutes: [] as string[],
+    errorTemplate: null,
+    sortOrder: 1,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
+    name: 'home',
+    description: 'open Operations Overview (/)',
+    kind: 'navigate' as const,
+    output: 'opening / ...',
+    targetRoute: '/',
+    allowedRoutes: [] as string[],
+    errorTemplate: null,
+    sortOrder: 2,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
+    name: 'analytics',
+    description: 'open Telemetry & CWV Dashboard (/analytics)',
+    kind: 'navigate' as const,
+    output: 'opening /analytics ...',
+    targetRoute: '/analytics',
+    allowedRoutes: [] as string[],
+    errorTemplate: null,
+    sortOrder: 3,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
+    name: 'cms',
+    description: 'open Postgres 19 CMS (/cms)',
+    kind: 'navigate' as const,
+    output: 'opening /cms ...',
+    targetRoute: '/cms',
+    allowedRoutes: [] as string[],
+    errorTemplate: null,
+    sortOrder: 4,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
+    name: 'inbox',
+    description: 'open Contact Inbox (/inbox)',
+    kind: 'navigate' as const,
+    output: 'opening /inbox ...',
+    targetRoute: '/inbox',
+    allowedRoutes: [] as string[],
+    errorTemplate: null,
+    sortOrder: 5,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
+    name: 'quotas',
+    description: 'open Quota Policies & Rate-Limit Buckets (/quotas)',
+    kind: 'navigate' as const,
+    output: 'opening /quotas ...',
+    targetRoute: '/quotas',
+    allowedRoutes: [] as string[],
+    errorTemplate: null,
+    sortOrder: 6,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
+    name: 'ops',
+    description: 'open Cluster SSE & Sandbox Ops (/ops)',
+    kind: 'navigate' as const,
+    output: 'opening /ops ...',
+    targetRoute: '/ops',
+    allowedRoutes: [] as string[],
+    errorTemplate: null,
+    sortOrder: 7,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
+    name: 'status',
+    description: 'print isolated ops status',
+    kind: 'static' as const,
+    output:
+      'SURFACE : admin.andrew-k.us (noindex, nofollow, noarchive)\nAUTH    : WebAuthn passkey gate · Postgres 19 telemetry active',
+    targetRoute: null,
+    allowedRoutes: [] as string[],
+    errorTemplate: null,
+    sortOrder: 8,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
+    name: 'whoami',
+    description: 'print active ops identity',
+    kind: 'static' as const,
+    output: 'admin@andrew-k.us (isolated ops shell)',
+    targetRoute: null,
+    allowedRoutes: [] as string[],
+    errorTemplate: null,
+    sortOrder: 9,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
+    name: 'clear',
+    description: 'clear terminal scrollback',
+    kind: 'clear' as const,
+    output: '',
+    targetRoute: null,
+    allowedRoutes: [] as string[],
+    errorTemplate: null,
+    sortOrder: 10,
+  },
 ] as const;
 
 const ROADMAP_MILESTONE_SEEDS = [
@@ -756,6 +931,52 @@ const QUOTA_POLICY_SEEDS = [
     maxDailyGlobalTokens: 2_000_000,
   },
 ] as const;
+
+export function buildSeedTerminalProfile(slug: string): TerminalProfileData {
+  const profile = TERMINAL_PROFILE_SEEDS.find(item => item.slug === slug);
+  if (!profile) {
+    throw new Error(`Missing seed terminal profile: slug="${slug}"`);
+  }
+
+  return TerminalProfileDataSchema.parse({
+    slug: profile.slug,
+    bannerTitle: profile.bannerTitle,
+    bannerMeta: profile.bannerMeta,
+    osLabel: profile.osLabel,
+    directory: profile.directory,
+    vcsBranch: profile.vcsBranch,
+    vcsState: profile.vcsState,
+    contextLabel: profile.contextLabel,
+    placeholder: profile.placeholder,
+    quickCommands: [...profile.quickCommands],
+    initialEntries: TERMINAL_INITIAL_ENTRY_SEEDS.filter(entry => entry.profileSlug === slug)
+      .toSorted((a, b) => a.sortOrder - b.sortOrder)
+      .map(entry => ({
+        command: entry.command,
+        output: entry.output,
+        status: entry.status,
+        durationLabel: entry.durationLabel,
+        timestamp: entry.timestampLabel,
+        sortOrder: entry.sortOrder,
+      })),
+    commands: TERMINAL_COMMAND_SEEDS.filter(cmd => cmd.profileSlug === slug)
+      .toSorted((a, b) => a.sortOrder - b.sortOrder)
+      .map(cmd => ({
+        name: cmd.name,
+        description: cmd.description,
+        kind: cmd.kind,
+        output: cmd.output,
+        targetRoute: cmd.targetRoute,
+        allowedRoutes: [...cmd.allowedRoutes],
+        errorTemplate: cmd.errorTemplate,
+        sortOrder: cmd.sortOrder,
+      })),
+  });
+}
+
+export const ADMIN_OPS_TERMINAL_PROFILE: TerminalProfileData = buildSeedTerminalProfile(
+  TERMINAL_PROFILE_SLUGS.adminOps,
+);
 
 export {
   ADMIN_ANALYTICS_SEED,

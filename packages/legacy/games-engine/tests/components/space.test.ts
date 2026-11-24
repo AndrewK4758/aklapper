@@ -1,7 +1,7 @@
 import { Color, SpaceType } from '@aklapper/legacy-games/types';
 
-import { Avatar } from '../../src/components/lib/avatar.js';
-import { Space } from '../../src/components/lib/space.js';
+import { Avatar } from '../../src/components/lib/avatar.ts';
+import { Space } from '../../src/components/lib/space.ts';
 
 // Setup of spaces & avatars
 let s1: Space,

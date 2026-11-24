@@ -22,7 +22,7 @@ import {
   focusRelativePane,
   getActiveWorkspaceTab,
   listLeafPanes,
-  matchGhosttyShortcut,
+  matchWorkspaceShortcut,
   moveActiveSplit,
   openTuiPane,
   renameWorkspaceTab,
@@ -191,17 +191,17 @@ describe('terminalPaneTree', () => {
     expect(listLeafPanes(state.root).map(p => p.id)).toEqual(['pane-1']);
   });
 
-  it('matches Ghostty and ghostty-union macOS and Linux split keybindings', () => {
-    expect(matchGhosttyShortcut(makeKey({ key: 'd', metaKey: true }))).toEqual({
+  it('matches macOS, Linux, and browser-safe workspace split/tab keybindings', () => {
+    expect(matchWorkspaceShortcut(makeKey({ key: 'd', metaKey: true }))).toEqual({
       type: 'split',
       direction: 'right',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'O', ctrlKey: true, shiftKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'O', ctrlKey: true, shiftKey: true }))).toEqual({
       type: 'split',
       direction: 'right',
     });
     expect(
-      matchGhosttyShortcut(
+      matchWorkspaceShortcut(
         makeKey({ key: '}', code: 'BracketRight', ctrlKey: true, shiftKey: true }),
       ),
     ).toEqual({
@@ -209,23 +209,23 @@ describe('terminalPaneTree', () => {
       direction: 'right',
     });
     expect(
-      matchGhosttyShortcut(
+      matchWorkspaceShortcut(
         makeKey({ key: ']', code: 'BracketRight', ctrlKey: true, shiftKey: true }),
       ),
     ).toEqual({
       type: 'split',
       direction: 'right',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'd', metaKey: true, shiftKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'd', metaKey: true, shiftKey: true }))).toEqual({
       type: 'split',
       direction: 'down',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'E', ctrlKey: true, shiftKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'E', ctrlKey: true, shiftKey: true }))).toEqual({
       type: 'split',
       direction: 'down',
     });
     expect(
-      matchGhosttyShortcut(
+      matchWorkspaceShortcut(
         makeKey({ key: '{', code: 'BracketLeft', ctrlKey: true, shiftKey: true }),
       ),
     ).toEqual({
@@ -233,129 +233,131 @@ describe('terminalPaneTree', () => {
       direction: 'down',
     });
     expect(
-      matchGhosttyShortcut(
+      matchWorkspaceShortcut(
         makeKey({ key: '[', code: 'BracketLeft', ctrlKey: true, shiftKey: true }),
       ),
     ).toEqual({
       type: 'split',
       direction: 'down',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: ']', metaKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: ']', metaKey: true }))).toEqual({
       type: 'focus-relative',
       delta: 1,
     });
-    expect(matchGhosttyShortcut(makeKey({ key: '[', metaKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: '[', metaKey: true }))).toEqual({
       type: 'focus-relative',
       delta: -1,
     });
     expect(
-      matchGhosttyShortcut(makeKey({ key: 'ArrowLeft', ctrlKey: true, altKey: true })),
+      matchWorkspaceShortcut(makeKey({ key: 'ArrowLeft', ctrlKey: true, altKey: true })),
     ).toEqual({
       type: 'focus-direction',
       direction: 'left',
     });
     expect(
-      matchGhosttyShortcut(makeKey({ key: 'ArrowRight', metaKey: true, altKey: true })),
+      matchWorkspaceShortcut(makeKey({ key: 'ArrowRight', metaKey: true, altKey: true })),
     ).toEqual({
       type: 'focus-direction',
       direction: 'right',
     });
     expect(
-      matchGhosttyShortcut(makeKey({ key: 'ArrowRight', altKey: true, shiftKey: true })),
+      matchWorkspaceShortcut(makeKey({ key: 'ArrowRight', altKey: true, shiftKey: true })),
     ).toEqual({
       type: 'resize',
       direction: 'right',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'ArrowUp', altKey: true, shiftKey: true }))).toEqual(
-      {
-        type: 'resize',
-        direction: 'up',
-      },
-    );
-    expect(matchGhosttyShortcut(makeKey({ key: 'Enter', metaKey: true, shiftKey: true }))).toEqual({
+    expect(
+      matchWorkspaceShortcut(makeKey({ key: 'ArrowUp', altKey: true, shiftKey: true })),
+    ).toEqual({
+      type: 'resize',
+      direction: 'up',
+    });
+    expect(
+      matchWorkspaceShortcut(makeKey({ key: 'Enter', metaKey: true, shiftKey: true })),
+    ).toEqual({
       type: 'toggle-zoom',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: '+', ctrlKey: true, shiftKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: '+', ctrlKey: true, shiftKey: true }))).toEqual({
       type: 'equalize',
     });
     expect(
-      matchGhosttyShortcut(
+      matchWorkspaceShortcut(
         makeKey({ key: 'E', code: 'KeyE', ctrlKey: true, altKey: true, shiftKey: true }),
       ),
     ).toEqual({
       type: 'equalize',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'W', ctrlKey: true, shiftKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'W', ctrlKey: true, shiftKey: true }))).toEqual({
       type: 'close-pane',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 't', altKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 't', altKey: true }))).toEqual({
       type: 'toggle-tui',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'm', altKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'm', altKey: true }))).toEqual({
       type: 'open-menu',
     });
     expect(
-      matchGhosttyShortcut(
+      matchWorkspaceShortcut(
         makeKey({ key: 'ArrowLeft', ctrlKey: true, altKey: true, shiftKey: true }),
       ),
     ).toEqual({
       type: 'move-split',
       direction: 'left',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'R', ctrlKey: true, shiftKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'R', ctrlKey: true, shiftKey: true }))).toEqual({
       type: 'rotate-split',
     });
     expect(
-      matchGhosttyShortcut(makeKey({ key: 'R', ctrlKey: true, altKey: true, shiftKey: true })),
+      matchWorkspaceShortcut(makeKey({ key: 'R', ctrlKey: true, altKey: true, shiftKey: true })),
     ).toEqual({
       type: 'rotate-split',
     });
     expect(
-      matchGhosttyShortcut(makeKey({ key: 'T', ctrlKey: true, altKey: true, shiftKey: true })),
+      matchWorkspaceShortcut(makeKey({ key: 'T', ctrlKey: true, altKey: true, shiftKey: true })),
     ).toEqual({
       type: 'detach-pane',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'T', ctrlKey: true, shiftKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'T', ctrlKey: true, shiftKey: true }))).toEqual({
       type: 'new-tab',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'T', altKey: true, shiftKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'T', altKey: true, shiftKey: true }))).toEqual({
       type: 'new-tab',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'A', ctrlKey: true, shiftKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'A', ctrlKey: true, shiftKey: true }))).toEqual({
       type: 'rename-tab',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'A', altKey: true, shiftKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'A', altKey: true, shiftKey: true }))).toEqual({
       type: 'rename-tab',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'Tab', ctrlKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'Tab', ctrlKey: true }))).toEqual({
       type: 'focus-tab-relative',
       delta: 1,
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'Tab', ctrlKey: true, shiftKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'Tab', ctrlKey: true, shiftKey: true }))).toEqual({
       type: 'focus-tab-relative',
       delta: -1,
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'PageDown', ctrlKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'PageDown', ctrlKey: true }))).toEqual({
       type: 'focus-tab-relative',
       delta: 1,
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'PageUp', ctrlKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'PageUp', ctrlKey: true }))).toEqual({
       type: 'focus-tab-relative',
       delta: -1,
     });
-    expect(matchGhosttyShortcut(makeKey({ key: ']', altKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: ']', altKey: true }))).toEqual({
       type: 'focus-tab-relative',
       delta: 1,
     });
-    expect(matchGhosttyShortcut(makeKey({ key: '[', altKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: '[', altKey: true }))).toEqual({
       type: 'focus-tab-relative',
       delta: -1,
     });
-    expect(matchGhosttyShortcut(makeKey({ key: '1', altKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: '1', altKey: true }))).toEqual({
       type: 'focus-tab-index',
       index: 0,
     });
-    expect(matchGhosttyShortcut(makeKey({ key: '9', altKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: '9', altKey: true }))).toEqual({
       type: 'focus-tab-index',
       index: 'last',
     });
@@ -400,7 +402,7 @@ describe('terminalPaneTree', () => {
     expect(pair.root).toMatchObject({ type: 'split', direction: 'vertical' });
   });
 
-  it('computes ghostty-union drop zones for detach-tab, root margins, center-swap, and 25% edges', () => {
+  it('computes workspace drop zones for detach-tab, root margins, center-swap, and 25% edges', () => {
     let state = splitActivePane(createInitialWorkspaceState(), 'right');
     state = splitActivePane(state, 'down'); // pane-1 (left half) | (pane-2 top-right / pane-3 bottom-right)
     const rect = { left: 100, top: 100, width: 800, height: 600 };
@@ -532,7 +534,7 @@ describe('terminalPaneTree', () => {
 });
 
 describe('TerminalWorkspace', () => {
-  it('opens split terminals via Ghostty keybindings, snaps TUI into a split pane, preserves scrollback across zoom, and closes panes', () => {
+  it('opens split terminals via workspace keybindings, snaps TUI into a split pane, preserves scrollback across zoom, and closes panes', () => {
     const navigate = vi.fn<(to: string) => void>();
     const { container } = render(
       <TerminalWorkspace
@@ -555,7 +557,7 @@ describe('TerminalWorkspace', () => {
     fireEvent.submit(pane1Input.closest('form') as HTMLFormElement);
     expect(screen.getByText('guest@andrew-k.us (tty1)')).toBeTruthy();
 
-    // Ghostty Cmd+D splits right into tty2 and focuses tty2
+    // Cmd+D splits right into tty2 and focuses tty2
     fireEvent.keyDown(window, { key: 'd', metaKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
 
@@ -572,7 +574,7 @@ describe('TerminalWorkspace', () => {
     expect(tuiPane.getAttribute('data-active')).toBe('true');
     expect(within(tuiPane).getByText('Launcher pane 3')).toBeTruthy();
 
-    // Switch back to tty1 via Ghostty Ctrl+Alt+ArrowLeft; running `tui` again focuses existing TUI pane without duplicating
+    // Switch back to tty1 via Ctrl+Alt+ArrowLeft; running `tui` again focuses existing TUI pane without duplicating
     fireEvent.keyDown(window, { key: 'ArrowLeft', ctrlKey: true, altKey: true });
     fireEvent.keyDown(window, { key: 'ArrowLeft', ctrlKey: true, altKey: true });
     const pane1 = container.querySelector('[data-pane-tty="tty1"]') as HTMLElement;
@@ -584,7 +586,7 @@ describe('TerminalWorkspace', () => {
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('3');
     expect(tuiPane.getAttribute('data-active')).toBe('true');
 
-    // Zoom the TUI pane via Ghostty Ctrl+Shift+Enter, then unzoom and verify tty1 scrollback survived
+    // Zoom the TUI pane via Ctrl+Shift+Enter, then unzoom and verify tty1 scrollback survived
     fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-zoomed')).toBe('true');
     fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true, shiftKey: true });
@@ -604,18 +606,16 @@ describe('TerminalWorkspace', () => {
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
     expect(container.querySelector('[data-pane-kind="tui"]')).toBeNull();
 
-    // Close active split pane (tty2) via Ghostty Ctrl+Shift+W
+    // Close active split pane (tty2) via Ctrl+Shift+W
     fireEvent.keyDown(window, { key: 'W', ctrlKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
 
-    // Help output mentions split keybindings without zsh/p10k leakage
+    // Help output renders directly from terminal.commands (DB-driven) with zero hardcoded Ghostty/zsh leakage
     const remainingInput = screen.getByLabelText('Terminal command input') as HTMLInputElement;
     fireEvent.change(remainingInput, { target: { value: 'help' } });
     fireEvent.submit(remainingInput.closest('form') as HTMLFormElement);
-    expect(
-      screen.getByText(/Split panes & tabs \(Ghostty \/ ghostty-union keybindings & commands\)/i),
-    ).toBeTruthy();
-    expect(container.textContent).not.toMatch(/\bzsh\b|p10k|powerlevel10k/i);
+    expect(screen.getByText(/Available terminal commands:/i)).toBeTruthy();
+    expect(container.textContent).not.toMatch(/ghostty|\bzsh\b|p10k|powerlevel10k/i);
 
     // Alt+M still navigates to /menu
     fireEvent.keyDown(window, { key: 'm', altKey: true });
@@ -832,7 +832,7 @@ describe('TerminalWorkspace', () => {
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
     expect(screen.getByText('Contact Form Surface')).toBeTruthy();
 
-    // Ghostty physical KeyD (e.g. macOS Option+Shift+D) splits right from the TUI view
+    // Physical KeyD (e.g. macOS Option+Shift+D) splits right from the TUI view
     fireEvent.keyDown(window, { key: 'Î', code: 'KeyD', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
     expect(screen.getByText('Contact Form Surface')).toBeTruthy();
@@ -855,7 +855,7 @@ describe('TerminalWorkspace', () => {
     expect(container.querySelector('[data-pane-kind="tui"]')).toBeNull();
     expect(onClosePrimaryTui).not.toHaveBeenCalled();
 
-    // Switch focus back to pane-1 via Ghostty Ctrl+Alt+ArrowLeft; trying to close pinned pane-1 is ignored
+    // Switch focus back to pane-1 via Ctrl+Alt+ArrowLeft; trying to close pinned pane-1 is ignored
     fireEvent.keyDown(window, { key: 'ArrowLeft', ctrlKey: true, altKey: true });
     const pane1 = container.querySelector('[data-pane-id="pane-1"]') as HTMLElement;
     expect(pane1.getAttribute('data-active')).toBe('true');
@@ -866,7 +866,7 @@ describe('TerminalWorkspace', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClosePrimaryTui).toHaveBeenCalledTimes(1);
 
-    // Switch back to tty2 and close it via Ghostty Cmd+Shift+W
+    // Switch back to tty2 and close it via Cmd+Shift+W
     fireEvent.keyDown(window, { key: ']', metaKey: true });
     fireEvent.keyDown(window, { key: 'w', metaKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
@@ -911,7 +911,7 @@ describe('TerminalWorkspace', () => {
     expect(workspaceEl.getAttribute('data-tab-count')).toBe('1');
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
 
-    // One Ghostty Cmd+D splits into exactly 2 panes (no nested double-handling)
+    // One Cmd+D splits into exactly 2 panes (no nested double-handling)
     fireEvent.keyDown(window, { key: 'd', metaKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
   });
@@ -931,7 +931,7 @@ describe('TerminalWorkspace', () => {
     expect(container.querySelector('[data-pane-kind="tui"]')).toBeNull();
   });
 
-  it('splits horizontally and vertically via ghostty-union Ctrl+Shift+} and Ctrl+Shift+{ on terminal and TUI windows, resizes with Alt+Shift+Arrow, and equalizes with Ctrl+Alt+Shift+E', () => {
+  it('splits horizontally and vertically via Ctrl+Shift+} and Ctrl+Shift+{ on terminal and TUI windows, resizes with Alt+Shift+Arrow, and equalizes with Ctrl+Alt+Shift+E', () => {
     const { container } = render(
       <TerminalWorkspace
         terminal={TERMINAL_FIXTURE}

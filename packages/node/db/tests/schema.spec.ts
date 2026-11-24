@@ -56,6 +56,7 @@ describe('@aklapper/db', () => {
     expect(SITE_CONTENT_KEYS.portalAsk).toBe('portal-ask');
     expect(SITE_CONTENT_KEYS.portalContact).toBe('portal-contact');
     expect(TERMINAL_PROFILE_SLUGS.portalHome).toBe('portal-home');
+    expect(TERMINAL_PROFILE_SLUGS.adminOps).toBe('admin-ops');
   });
 
   it('maps Postgres 19 CHECK and NOT NULL errors to ContactDbConstraintError', () => {

@@ -1,5 +1,5 @@
 import type { Email, IPlayer, IPlayerClientData } from '../../types/index.ts';
-import type { Avatar } from './avatar.js';
+import type { Avatar } from './avatar.ts';
 
 export class Player implements IPlayer {
   private readonly _Name: string;

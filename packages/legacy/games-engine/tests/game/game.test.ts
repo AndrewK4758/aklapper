@@ -9,7 +9,7 @@ import {
   type ISpace,
 } from '@aklapper/legacy-games/types';
 
-import Game from '../../src/game/lib/game.js';
+import Game from '../../src/game/lib/game.ts';
 
 let game: Game, instance: TestGame, playerInTurn: Player;
 

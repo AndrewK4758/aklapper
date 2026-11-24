@@ -40,18 +40,35 @@ describe('db prerender fallback loaders', () => {
   });
 
   it('builds complete validated seed snapshots for all portal and admin routes', () => {
-    expect(getPrerenderPortalRootData().chrome.pageTitle).toContain('andrew-k.us');
+    const portalRoot = getPrerenderPortalRootData();
+    const portalHome = getPrerenderPortalHomeData();
+    const adminRoot = getPrerenderAdminRootData();
+
+    expect(portalRoot.chrome.pageTitle).toContain('andrew-k.us');
+    expect(portalRoot.chrome.shortcutHint).toContain('split');
     expect(getPrerenderPortalRootData(true).maintenance?.content.heading).toBe(
       'Changes in Progress',
     );
-    expect(getPrerenderPortalHomeData().terminal.commands.length).toBeGreaterThan(0);
+    expect(portalHome.terminal.commands.length).toBeGreaterThan(0);
+    const portalHelp = portalHome.terminal.commands.find(cmd => cmd.name === 'help')?.output ?? '';
+    expect(portalHelp).toContain('Split panes & tabs (keybindings & commands):');
+    expect(portalHelp).not.toMatch(/ghostty/i);
+
     expect(getPrerenderPortalMenuData().items.every(item => !item.adminOnly)).toBe(true);
     expect(getPrerenderPortalAgensiData().skills.length).toBeGreaterThanOrEqual(4);
     expect(getPrerenderPortalAskData().content.starterQuestions.length).toBeGreaterThan(0);
     expect(getPrerenderPortalCadenceData().presets.length).toBeGreaterThan(0);
     expect(getPrerenderPortalContactData().content.form.id).toBe('contact-form');
     expect(getPrerenderPortalMaintenanceData().milestones.length).toBeGreaterThan(0);
-    expect(getPrerenderAdminRootData().chrome.brandLabel).toContain('admin.andrew-k.us');
+
+    expect(adminRoot.chrome.brandLabel).toContain('admin.andrew-k.us');
+    expect(adminRoot.chrome.shortcutHint).toContain('split');
+    const adminHelp = adminRoot.terminal?.commands.find(cmd => cmd.name === 'help')?.output ?? '';
+    expect(adminHelp).toContain('Split panes & tabs (keybindings & commands):');
+    expect(adminHelp).not.toMatch(/ghostty/i);
+    expect(JSON.stringify(adminRoot.terminal)).not.toMatch(/ghostty/i);
+    expect(JSON.stringify(portalHome.terminal)).not.toMatch(/ghostty/i);
+
     expect(getPrerenderAdminHomeData().menuItems.some(item => item.adminOnly)).toBe(true);
     expect(getPrerenderAdminAnalyticsData().summary).toEqual({ totalSessions: 0, totalEvents: 0 });
   });

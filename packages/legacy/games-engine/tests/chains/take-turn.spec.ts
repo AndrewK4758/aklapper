@@ -15,12 +15,12 @@ import {
 import { getCurrentMinute } from '@aklapper/legacy-games/utils';
 import type { Request, Response } from 'express';
 
-import { moveAvatar } from '../../src/chains/lib/commands/action-take-turn/move-avatar.js';
-import { rollDice } from '../../src/chains/lib/commands/action-take-turn/roll-dice.js';
-import { rotatePlayer } from '../../src/chains/lib/commands/action-take-turn/rotate-player.js';
-import { takeTurnStart } from '../../src/chains/lib/commands/action-take-turn/take-turn-start.js';
-import { verifyPlayerTakingTurn } from '../../src/chains/lib/commands/action-take-turn/verify-player-taking-turn.js';
-import { wonGameCheckChutesAndLadders } from '../../src/chains/lib/commands/action-take-turn/won-game-chutes-and-ladders.js';
+import { moveAvatar } from '../../src/chains/lib/commands/action-take-turn/move-avatar.ts';
+import { rollDice } from '../../src/chains/lib/commands/action-take-turn/roll-dice.ts';
+import { rotatePlayer } from '../../src/chains/lib/commands/action-take-turn/rotate-player.ts';
+import { takeTurnStart } from '../../src/chains/lib/commands/action-take-turn/take-turn-start.ts';
+import { verifyPlayerTakingTurn } from '../../src/chains/lib/commands/action-take-turn/verify-player-taking-turn.ts';
+import { wonGameCheckChutesAndLadders } from '../../src/chains/lib/commands/action-take-turn/won-game-chutes-and-ladders.ts';
 
 interface ICtxOutput {
   turnStatus: TurnStatus;

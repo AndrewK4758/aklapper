@@ -13,9 +13,9 @@ import {
 import { deRefContextObject, getCurrentMinute } from '@aklapper/legacy-games/utils';
 import type { Request } from 'express';
 
-import { flipHaveWinnerFlag } from '../../src/chains/lib/commands/action-reset-game/flip-winner-flag.js';
-import { makeNewGameBoard } from '../../src/chains/lib/commands/action-reset-game/make-new-game-board.js';
-import { resetGame } from '../../src/chains/lib/commands/action-reset-game/reset-game-start.js';
+import { flipHaveWinnerFlag } from '../../src/chains/lib/commands/action-reset-game/flip-winner-flag.ts';
+import { makeNewGameBoard } from '../../src/chains/lib/commands/action-reset-game/make-new-game-board.ts';
+import { resetGame } from '../../src/chains/lib/commands/action-reset-game/reset-game-start.ts';
 
 let ctx: Context<GameContextKeys | string>,
   instanceOfGame: InstanceOfGame,

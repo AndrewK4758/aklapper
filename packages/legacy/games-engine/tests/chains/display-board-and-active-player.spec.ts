@@ -14,10 +14,10 @@ import {
 import { getCurrentMinute } from '@aklapper/legacy-games/utils';
 import type { Request, Response } from 'express';
 
-import { activeDataToSend } from '../../src/chains/lib/commands/action-board/active-game-data-to-send.js';
-import { boardStart } from '../../src/chains/lib/commands/action-board/board-start.js';
-import { checkIfWinner } from '../../src/chains/lib/commands/action-board/check-if-winner.js';
-import { readyToPlayCheck } from '../../src/chains/lib/commands/action-board/ready-to-play.js';
+import { activeDataToSend } from '../../src/chains/lib/commands/action-board/active-game-data-to-send.ts';
+import { boardStart } from '../../src/chains/lib/commands/action-board/board-start.ts';
+import { checkIfWinner } from '../../src/chains/lib/commands/action-board/check-if-winner.ts';
+import { readyToPlayCheck } from '../../src/chains/lib/commands/action-board/ready-to-play.ts';
 
 let ctx: Context<GameContextKeys | string>,
   game: InstanceOfGame,

@@ -6,7 +6,7 @@ import { GameContextKeys, type AllGameTypes, type Context } from '@aklapper/lega
 import type { Request, Response } from 'express';
 import { Server } from 'socket.io';
 
-import { deRefContextObject } from '../../src/utils/lib/de-ref-context-object.js';
+import { deRefContextObject } from '../../src/utils/lib/de-ref-context-object.ts';
 
 let context: Context<GameContextKeys | string>, req: Partial<Request>, resp: Partial<Response>;
 describe('Test de referencing context object', () => {

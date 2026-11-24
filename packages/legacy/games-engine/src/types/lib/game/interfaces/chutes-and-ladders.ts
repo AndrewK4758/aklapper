@@ -1,7 +1,7 @@
-import type { AvatarTotem, Color } from '../types/game.js';
-import type { IDie } from './die.js';
-import type { ILiteSpace } from './lite-space.js';
-import type { ISpace } from './space.js';
+import type { AvatarTotem, Color } from '../types/game.ts';
+import type { IDie } from './die.ts';
+import type { ILiteSpace } from './lite-space.ts';
+import type { ISpace } from './space.ts';
 
 export interface IChutesAndLadders {
   NAME: string;

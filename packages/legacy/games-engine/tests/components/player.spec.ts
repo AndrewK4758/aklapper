@@ -1,7 +1,7 @@
 import { Color } from '@aklapper/legacy-games/types';
 
-import { Avatar } from '../../src/components/lib/avatar.js';
-import { Player } from '../../src/components/lib/player.js';
+import { Avatar } from '../../src/components/lib/avatar.ts';
+import { Player } from '../../src/components/lib/player.ts';
 
 let player: Player, avatar: Avatar, pName: string, aName: string, id: string;
 

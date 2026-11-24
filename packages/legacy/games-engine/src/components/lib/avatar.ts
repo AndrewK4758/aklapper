@@ -1,5 +1,5 @@
 import { Color, type IAvatar } from '../../types/index.ts';
-import { Space } from './space.js';
+import { Space } from './space.ts';
 
 export class Avatar implements IAvatar {
   Name: string;

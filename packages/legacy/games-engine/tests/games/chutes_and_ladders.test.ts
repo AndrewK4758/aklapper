@@ -8,7 +8,7 @@ import {
   START,
   TOTAL_SPACES,
   uniqueSpecialValues,
-} from '../../src/games/lib/chutes_and_ladders.js';
+} from '../../src/games/lib/chutes_and_ladders.ts';
 
 let game: ChutesAndLadders, gameBoard: ILiteSpace[];
 
