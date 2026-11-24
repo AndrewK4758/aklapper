@@ -1,0 +1,48 @@
+@layer page {
+  .shell {
+    min-height: var(--portal-viewport-h);
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    background: var(--portal-bg);
+  }
+
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--portal-space-md);
+    padding: var(--portal-space-sm) var(--portal-space-xl);
+    background: var(--portal-surface);
+    border-bottom: var(--portal-border-width) solid var(--portal-border);
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--portal-space-sm);
+    color: var(--portal-accent);
+    font-weight: var(--portal-font-weight-bold);
+    text-decoration: none;
+  }
+
+  .main {
+    width: min(var(--portal-max-width), 100%);
+    margin-inline: auto;
+    padding: var(--portal-space-3xl) var(--portal-space-xl);
+    display: grid;
+    gap: var(--portal-space-2xl);
+    align-content: start;
+  }
+
+  .footer {
+    padding: var(--portal-space-xs) var(--portal-space-xl);
+    border-top: var(--portal-border-width) solid var(--portal-border);
+    background: var(--portal-surface);
+    color: var(--portal-muted);
+    font-size: var(--portal-font-size-sm);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--portal-space-xs);
+  }
+}

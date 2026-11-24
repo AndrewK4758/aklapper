@@ -1,0 +1,37 @@
+@layer page {
+  .card {
+    background: var(--portal-surface);
+    border: var(--portal-border-width) solid var(--portal-border);
+    border-radius: var(--portal-radius-md);
+    padding: var(--portal-space-2xl);
+    display: grid;
+    gap: var(--portal-space-lg);
+  }
+
+  .menuList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--portal-space-sm);
+  }
+
+  .menuLink {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--portal-space-md);
+    padding: var(--portal-space-md) var(--portal-space-lg);
+    border: var(--portal-border-width) solid var(--portal-border);
+    border-radius: var(--portal-radius-sm);
+    background: var(--portal-panel);
+    color: var(--portal-fg);
+    text-decoration: none;
+  }
+
+  .menuLink:hover {
+    border-color: var(--portal-accent);
+    background: var(--portal-panel-hover);
+    text-decoration: none;
+  }
+}

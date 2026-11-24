@@ -1,0 +1,36 @@
+@layer page {
+  .shell {
+    min-height: var(--admin-viewport-h);
+    display: grid;
+    grid-template-rows: auto 1fr;
+    background: var(--admin-bg);
+  }
+
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--admin-space-md);
+    padding: var(--admin-space-sm) var(--admin-space-xl);
+    background: var(--admin-surface);
+    border-bottom: var(--admin-border-width) solid var(--admin-bar-border);
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--admin-space-sm);
+    color: var(--admin-accent);
+    text-decoration: none;
+    font-weight: var(--admin-font-weight-bold);
+  }
+
+  .main {
+    width: min(var(--admin-max-width), 100%);
+    margin-inline: auto;
+    padding: var(--admin-space-2xl) var(--admin-space-xl);
+    display: grid;
+    gap: var(--admin-space-xl);
+    align-content: start;
+  }
+}

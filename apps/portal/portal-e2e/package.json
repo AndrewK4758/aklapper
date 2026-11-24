@@ -1,0 +1,21 @@
+{
+  "name": "@aklapper/portal-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@playwright/test": "^1.65.1"
+  },
+  "nx": {
+    "name": "portal-e2e",
+    "projectType": "application",
+    "sourceRoot": "apps/portal/portal-e2e/src",
+    "implicitDependencies": [
+      "portal"
+    ],
+    "tags": [
+      "scope:e2e",
+      "app:portal"
+    ]
+  }
+}

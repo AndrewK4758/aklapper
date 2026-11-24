@@ -1,0 +1,6 @@
+@layer page {
+  .workspace {
+    display: grid;
+    gap: var(--portal-space-lg);
+  }
+}

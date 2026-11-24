@@ -1,0 +1,6 @@
+@layer page {
+  .panel {
+    display: grid;
+    gap: var(--admin-space-lg);
+  }
+}

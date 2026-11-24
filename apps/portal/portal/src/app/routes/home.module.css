@@ -1,0 +1,16 @@
+@layer page {
+  .card {
+    background: var(--portal-surface);
+    border: var(--portal-border-width) solid var(--portal-border);
+    border-radius: var(--portal-radius-md);
+    padding: var(--portal-space-2xl);
+    display: grid;
+    gap: var(--portal-space-lg);
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--portal-space-md);
+  }
+}

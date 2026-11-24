@@ -1,0 +1,142 @@
+{
+  "name": "@aklapper/portal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@aklapper/analytics": "workspace:*",
+    "@aklapper/contracts": "workspace:*",
+    "@aklapper/shared-utils": "workspace:*",
+    "@aklapper/ssr-server": "workspace:*",
+    "@aklapper/ui": "workspace:*",
+    "@react-router/node": "8.5.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router": "8.5.2"
+  },
+  "devDependencies": {
+    "@react-router/dev": "8.5.2",
+    "vite": "8.3.8"
+  },
+  "nx": {
+    "name": "portal",
+    "projectType": "application",
+    "sourceRoot": "apps/portal/portal/src",
+    "tags": [
+      "scope:app",
+      "app:portal",
+      "runtime:ssr"
+    ],
+    "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "defaultConfiguration": "production",
+        "dependsOn": [
+          "^build"
+        ],
+        "inputs": [
+          "production",
+          "^production"
+        ],
+        "outputs": [
+          "{projectRoot}/dist"
+        ],
+        "options": {
+          "cwd": "apps/portal/portal",
+          "command": "react-router build"
+        },
+        "configurations": {
+          "development": {
+            "command": "react-router build --mode development"
+          },
+          "test": {
+            "command": "react-router build --mode test"
+          },
+          "e2e": {
+            "command": "react-router build --mode e2e"
+          },
+          "production": {
+            "command": "react-router build --mode production"
+          }
+        }
+      },
+      "serve": {
+        "cache": false,
+        "executor": "nx:run-commands",
+        "defaultConfiguration": "development",
+        "options": {
+          "cwd": "apps/portal/portal",
+          "command": "react-router dev"
+        },
+        "configurations": {
+          "development": {},
+          "test": {},
+          "e2e": {},
+          "production": {}
+        }
+      },
+      "preview": {
+        "continuous": true,
+        "cache": false,
+        "defaultConfiguration": "development",
+        "dependsOn": [
+          "build"
+        ],
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "apps/portal/portal",
+          "command": "PORT=${PORTAL_PORT:-${PORT:-4300}} exec node ./src/server.ts"
+        },
+        "configurations": {
+          "development": {},
+          "test": {},
+          "e2e": {},
+          "production": {}
+        }
+      },
+      "start": {
+        "continuous": true,
+        "cache": false,
+        "defaultConfiguration": "production",
+        "dependsOn": [
+          "build"
+        ],
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "apps/portal/portal",
+          "command": "node ./src/server.ts"
+        },
+        "configurations": {
+          "development": {},
+          "test": {},
+          "e2e": {},
+          "production": {}
+        }
+      },
+      "typegen": {
+        "cache": true,
+        "executor": "nx:run-commands",
+        "inputs": [
+          "{projectRoot}/src/app/routes.ts",
+          "{projectRoot}/src/app/**/*.tsx",
+          "{projectRoot}/src/app/**/*.ts",
+          "{projectRoot}/react-router.config.ts"
+        ],
+        "outputs": [
+          "{projectRoot}/.react-router/types"
+        ],
+        "options": {
+          "cwd": "apps/portal/portal",
+          "command": "react-router typegen"
+        }
+      },
+      "typecheck": {
+        "dependsOn": [
+          "typegen",
+          "^typecheck"
+        ]
+      }
+    }
+  }
+}

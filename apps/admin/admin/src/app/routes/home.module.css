@@ -1,0 +1,16 @@
+@layer page {
+  .card {
+    background: var(--admin-surface);
+    border: var(--admin-border-width) solid var(--admin-border);
+    border-radius: var(--admin-radius-md);
+    padding: var(--admin-space-xl);
+    display: grid;
+    gap: var(--admin-space-lg);
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--admin-space-md);
+  }
+}

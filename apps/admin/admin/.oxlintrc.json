@@ -1,0 +1,5 @@
+{
+  "extends": ["../../../.oxlintrc.json"],
+  "plugins": ["react", "jsx-a11y", "vitest"],
+  "ignorePatterns": [".react-router/**", "build/**"]
+}
