@@ -12,12 +12,16 @@ export const GITHUB_ENV_SECRETS = [
   'ADMIN_BOOTSTRAP_TOKEN',
 ] as const;
 
+export const GITHUB_OPTIONAL_ENV_SECRETS = ['QDRANT_API_KEY'] as const;
+
 export const GITHUB_REQUIRED_ENV_VARS = ['GCP_PROJECT_ID', 'GCP_REGION', 'GAR_REPOSITORY'] as const;
 
 export const GITHUB_OPTIONAL_ENV_VARS = [
   'CLOUD_SQL_INSTANCE',
   'GKE_CLUSTER_NAME',
   'GKE_CLUSTER_LOCATION',
+  'AI_PROVIDER',
+  'GCP_LOCATION',
   'PORTAL_MAINTENANCE_MODE',
   'PUBLIC_PORTAL_URL',
   'PUBLIC_ADMIN_URL',
@@ -58,6 +62,7 @@ export interface SyncEntry {
 export interface SyncPlan {
   readonly secrets: readonly SyncEntry[];
   readonly variables: readonly SyncEntry[];
+  readonly skippedOptionalSecrets: readonly string[];
   readonly skippedOptionalVariables: readonly string[];
   readonly missingRequired: readonly string[];
   readonly placeholderKeys: readonly string[];
@@ -90,49 +95,80 @@ export function parseEnvFileContent(content: string): Record<string, string> {
   return result;
 }
 
+function classifyKeys(
+  keys: readonly string[],
+  values: Readonly<Record<string, string>>,
+  options: { readonly required: boolean },
+  targetEntries: SyncEntry[],
+  missingRequired: string[],
+  skippedOptional: string[],
+  placeholderKeys: string[],
+): void {
+  for (const key of keys) {
+    const value = values[key]?.trim() ?? '';
+    if (!value) {
+      if (options.required) {
+        missingRequired.push(key);
+      } else {
+        skippedOptional.push(key);
+      }
+    } else if (PLACEHOLDER_PATTERN.test(value)) {
+      placeholderKeys.push(key);
+    } else {
+      targetEntries.push({ key, value });
+    }
+  }
+}
+
 export function buildSyncPlan(values: Readonly<Record<string, string>>): SyncPlan {
   const secrets: SyncEntry[] = [];
   const variables: SyncEntry[] = [];
+  const skippedOptionalSecrets: string[] = [];
   const skippedOptionalVariables: string[] = [];
   const missingRequired: string[] = [];
   const placeholderKeys: string[] = [];
 
-  for (const key of GITHUB_ENV_SECRETS) {
-    const value = values[key]?.trim() ?? '';
-    if (!value) {
-      missingRequired.push(key);
-    } else if (PLACEHOLDER_PATTERN.test(value)) {
-      placeholderKeys.push(key);
-    } else {
-      secrets.push({ key, value });
-    }
-  }
-
-  for (const key of GITHUB_REQUIRED_ENV_VARS) {
-    const value = values[key]?.trim() ?? '';
-    if (!value) {
-      missingRequired.push(key);
-    } else if (PLACEHOLDER_PATTERN.test(value)) {
-      placeholderKeys.push(key);
-    } else {
-      variables.push({ key, value });
-    }
-  }
-
-  for (const key of GITHUB_OPTIONAL_ENV_VARS) {
-    const value = values[key]?.trim() ?? '';
-    if (!value) {
-      skippedOptionalVariables.push(key);
-    } else if (PLACEHOLDER_PATTERN.test(value)) {
-      placeholderKeys.push(key);
-    } else {
-      variables.push({ key, value });
-    }
-  }
+  classifyKeys(
+    GITHUB_ENV_SECRETS,
+    values,
+    { required: true },
+    secrets,
+    missingRequired,
+    skippedOptionalSecrets,
+    placeholderKeys,
+  );
+  classifyKeys(
+    GITHUB_OPTIONAL_ENV_SECRETS,
+    values,
+    { required: false },
+    secrets,
+    missingRequired,
+    skippedOptionalSecrets,
+    placeholderKeys,
+  );
+  classifyKeys(
+    GITHUB_REQUIRED_ENV_VARS,
+    values,
+    { required: true },
+    variables,
+    missingRequired,
+    skippedOptionalVariables,
+    placeholderKeys,
+  );
+  classifyKeys(
+    GITHUB_OPTIONAL_ENV_VARS,
+    values,
+    { required: false },
+    variables,
+    missingRequired,
+    skippedOptionalVariables,
+    placeholderKeys,
+  );
 
   return {
     secrets,
     variables,
+    skippedOptionalSecrets,
     skippedOptionalVariables,
     missingRequired,
     placeholderKeys,
@@ -405,8 +441,8 @@ function main(): void {
 
   console.log(
     `\nSummary (${args.dryRun ? 'dry-run' : 'applied'} -> ${args.repo} [${args.env}]): ` +
-      `${plan.secrets.length} secrets, ${plan.variables.length} variables set, ` +
-      `${plan.skippedOptionalVariables.length} optional variables skipped.`,
+      `${plan.secrets.length} secrets (${plan.skippedOptionalSecrets.length} optional secrets skipped), ` +
+      `${plan.variables.length} variables (${plan.skippedOptionalVariables.length} optional variables skipped).`,
   );
 }
 

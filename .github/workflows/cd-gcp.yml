@@ -13,6 +13,8 @@ name: GCP Production Deploy
 #   - INTERNAL_AUTH_SECRET           : HMAC-SHA256 signing secret for X-Internal-Auth between BFFs and APIs
 #   - TOTP_ENCRYPTION_KEY            : AES-256-GCM key material for encrypted admin TOTP secrets
 #   - ANALYTICS_DAILY_SALT           : Secret salt for daily visitor IP hashing in analytics ingestion
+# Optional GitHub Environment Secrets (`production`):
+#   - QDRANT_API_KEY                 : API key for Qdrant Cloud vector cluster
 #
 # Pre-deploy Prerequisite:
 #   - Seed admin password credentials (`ADMIN_HANDLE` / `ADMIN_PASSWORD`) via `pnpm db:seed` against target `DATABASE_URL` before deploying Cloud Run services.
@@ -26,6 +28,8 @@ name: GCP Production Deploy
 #   - CLOUD_SQL_INSTANCE             : Cloud SQL connection name (e.g. games-424800:us-central1:aklapper)
 #   - GKE_CLUSTER_NAME               : GKE Autopilot cluster name (GKE rollout skipped cleanly if unset)
 #   - GKE_CLUSTER_LOCATION           : GKE cluster region/zone (defaults to GCP_REGION)
+#   - AI_PROVIDER                    : 'local' | 'vertex' (default in GKE: 'vertex')
+#   - GCP_LOCATION                   : Vertex AI region (defaults to GCP_REGION / 'us-central1')
 #   - PORTAL_MAINTENANCE_MODE        : 'true' | 'false' (default: 'false')
 #   - PUBLIC_PORTAL_URL              : https://andrew-k.us
 #   - PUBLIC_ADMIN_URL               : https://admin.andrew-k.us
@@ -387,6 +391,7 @@ jobs:
             CADENCE_ADMIN_URL=${{ vars.CADENCE_ADMIN_URL || '' }}
             CONTACT_API_URL=${{ vars.CONTACT_API_URL || '' }}
             QDRANT_URL=${{ vars.QDRANT_URL || '' }}
+            QDRANT_API_KEY=${{ secrets.QDRANT_API_KEY || '' }}
           flags: >-
             ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_ADMIN == 'true' && '--allow-unauthenticated' || '--no-allow-unauthenticated' }}
             ${{ vars.CLOUD_SQL_INSTANCE != '' && format('--add-cloudsql-instances={0}', vars.CLOUD_SQL_INSTANCE) || '' }}
@@ -517,34 +522,89 @@ jobs:
           kubectl apply -f infra/k8s/base/quotas-limits.yaml
           kubectl apply -f infra/k8s/base/network-policies.yaml
 
-      - name: Roll out affected Go microservice deployments with immutable SHA tags
+      - name: Reconcile portfolio-public runtime ConfigMap and Secrets
+        if: steps.gke-check.outputs.configured == 'true'
+        shell: bash
+        env:
+          AI_PROVIDER: ${{ vars.AI_PROVIDER || 'vertex' }}
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_LOCATION: ${{ vars.GCP_LOCATION || vars.GCP_REGION || 'us-central1' }}
+          QDRANT_URL: ${{ vars.QDRANT_URL || '' }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          INTERNAL_AUTH_SECRET: ${{ secrets.INTERNAL_AUTH_SECRET }}
+          QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY || '' }}
+        run: |
+          kubectl create configmap ai-ask-config \
+            --namespace=portfolio-public \
+            --from-literal=AI_PROVIDER="$AI_PROVIDER" \
+            --from-literal=GCP_PROJECT_ID="$GCP_PROJECT_ID" \
+            --from-literal=GCP_LOCATION="$GCP_LOCATION" \
+            --from-literal=QDRANT_URL="$QDRANT_URL" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          SECRET_ARGS=(
+            --from-literal="DATABASE_URL=${DATABASE_URL}"
+            --from-literal="INTERNAL_AUTH_SECRET=${INTERNAL_AUTH_SECRET}"
+          )
+          if [ -n "$QDRANT_API_KEY" ]; then
+            SECRET_ARGS+=(--from-literal="QDRANT_API_KEY=${QDRANT_API_KEY}")
+          fi
+          kubectl create secret generic ai-ask-secrets \
+            --namespace=portfolio-public \
+            "${SECRET_ARGS[@]}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Apply GKE manifests and scope immutable SHA tags to affected Go services
         if: steps.gke-check.outputs.configured == 'true'
         shell: bash
         env:
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
           GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
           GAR_REPOSITORY: ${{ vars.GAR_REPOSITORY || 'portfolio' }}
+          GCP_WIF_SERVICE_ACCOUNT: ${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
           IMAGE_TAG: ${{ github.sha }}
           GKE_SERVICES_JSON: ${{ needs.resolve-plan.outputs.gke_services_json }}
           DEPLOY_ALL: ${{ inputs.deploy_all_services }}
         run: |
           REGISTRY="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}"
-          if [ "$DEPLOY_ALL" = "true" ] || [ "$(node -e 'console.log(JSON.parse(process.env.GKE_SERVICES_JSON).length)')" = "5" ]; then
-            for manifest in infra/k8s/portfolio-public/deployments.yaml infra/k8s/cadence-admin/deployment.yaml; do
-              sed \
-                -e "s|us-central1-docker.pkg.dev/PROJECT_ID/aklapper/|${REGISTRY}/|g" \
-                -e "s|:latest|:${IMAGE_TAG}|g" \
-                "$manifest" | kubectl apply -f -
-            done
-          else
-            for svc in $(node -e 'console.log(JSON.parse(process.env.GKE_SERVICES_JSON).join(" "))'); do
-              if [ "$svc" = "cadence-admin" ]; then
-                NS="cadence-admin"
-              else
-                NS="portfolio-public"
-              fi
-              kubectl -n "$NS" set image "deployment/${svc}" "${svc}=${REGISTRY}/${svc}:${IMAGE_TAG}"
-            done
+          AFFECTED_SET=" $(node -e 'console.log(JSON.parse(process.env.GKE_SERVICES_JSON).join(" "))') "
+
+          resolve_service_image() {
+            local svc="$1"
+            local ns="$2"
+            if [ "$DEPLOY_ALL" = "true" ] || [[ "$AFFECTED_SET" == *" ${svc} "* ]]; then
+              echo "${REGISTRY}/${svc}:${IMAGE_TAG}"
+              return
+            fi
+            local live_image
+            live_image="$(kubectl -n "$ns" get deployment "$svc" -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || true)"
+            if [ -n "$live_image" ]; then
+              echo "$live_image"
+            else
+              echo "${REGISTRY}/${svc}:production-latest"
+            fi
+          }
+
+          IMG_K8S_WATCH="$(resolve_service_image k8s-watch portfolio-public)"
+          IMG_CADENCE_DEMO="$(resolve_service_image cadence-demo portfolio-public)"
+          IMG_AI_ASK="$(resolve_service_image ai-ask portfolio-public)"
+          IMG_CONTACT="$(resolve_service_image contact portfolio-public)"
+          IMG_CADENCE_ADMIN="$(resolve_service_image cadence-admin cadence-admin)"
+
+          sed \
+            -e "s|ai-ask@PROJECT_ID\.iam\.gserviceaccount\.com|${GCP_WIF_SERVICE_ACCOUNT}|g" \
+            -e "s|us-central1-docker\.pkg\.dev/PROJECT_ID/aklapper/k8s-watch:latest|${IMG_K8S_WATCH}|g" \
+            -e "s|us-central1-docker\.pkg\.dev/PROJECT_ID/aklapper/cadence-demo:latest|${IMG_CADENCE_DEMO}|g" \
+            -e "s|us-central1-docker\.pkg\.dev/PROJECT_ID/aklapper/ai-ask:latest|${IMG_AI_ASK}|g" \
+            -e "s|us-central1-docker\.pkg\.dev/PROJECT_ID/aklapper/contact:latest|${IMG_CONTACT}|g" \
+            infra/k8s/portfolio-public/deployments.yaml | kubectl apply -f -
+
+          sed \
+            -e "s|us-central1-docker\.pkg\.dev/PROJECT_ID/aklapper/cadence-admin:latest|${IMG_CADENCE_ADMIN}|g" \
+            infra/k8s/cadence-admin/deployment.yaml | kubectl apply -f -
+
+          if [ "$DEPLOY_ALL" = "true" ] || [[ "$AFFECTED_SET" == *" ai-ask "* ]]; then
+            kubectl -n portfolio-public rollout status deployment/ai-ask --timeout=180s
           fi
 
   post-deploy-e2e:
