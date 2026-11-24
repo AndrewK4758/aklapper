@@ -97,11 +97,22 @@
   ],
   "targetDefaults": {
     "build": {
+      "cache": true,
       "dependsOn": ["^build", "^typecheck"]
     },
     "typecheck": {
+      "cache": true,
       "dependsOn": ["^build"],
       "outputs": ["{projectRoot}/out-tsc"]
+    },
+    "lint": {
+      "cache": true
+    },
+    "test": {
+      "cache": true
+    },
+    "e2e": {
+      "cache": true
     },
     "format": {
       "command": "oxfmt .",
@@ -135,6 +146,7 @@
       }
     }
   },
+  "defaultBase": "origin/main",
   "nxCloudId": "6793e339a43d353bb1fbd676",
   "tui": {
     "enabled": false

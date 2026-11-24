@@ -215,6 +215,25 @@ export const TerminalCommandSpecSchema = z.object({
 });
 export type TerminalCommandSpec = z.infer<typeof TerminalCommandSpecSchema>;
 
+export const TerminalDirectoryEntrySchema = z.object({
+  name: z.string().min(1),
+  description: z.string().min(1),
+  sortOrder: z.number().int().nonnegative(),
+  enabled: z.boolean(),
+});
+export type TerminalDirectoryEntry = z.infer<typeof TerminalDirectoryEntrySchema>;
+
+export function formatTerminalDirectoryListing(
+  entries: ReadonlyArray<Pick<TerminalDirectoryEntry, 'name' | 'description'>>,
+): string {
+  if (entries.length === 0) {
+    return '';
+  }
+  const longestName = entries.reduce((max, entry) => Math.max(max, entry.name.length), 0);
+  const padWidth = longestName + 3;
+  return entries.map(entry => `${entry.name.padEnd(padWidth)}# ${entry.description}`).join('\n');
+}
+
 export const TerminalProfileDataSchema = z.object({
   slug: z.string().min(1),
   bannerTitle: z.string().min(1),
@@ -664,6 +683,12 @@ export const AdminTerminalInitialEntryRowSchema = z.object({
 });
 export type AdminTerminalInitialEntryRow = z.infer<typeof AdminTerminalInitialEntryRowSchema>;
 
+export const AdminTerminalDirectoryEntryRowSchema = TerminalDirectoryEntrySchema.extend({
+  id: z.number().int().positive(),
+  profileSlug: z.string().min(1),
+});
+export type AdminTerminalDirectoryEntryRow = z.infer<typeof AdminTerminalDirectoryEntryRowSchema>;
+
 export const AdminCmsLoaderDataSchema = z.object({
   siteContents: z.array(SiteContentRowSchema),
   maintenanceModeDefault: z.boolean(),
@@ -672,6 +697,7 @@ export const AdminCmsLoaderDataSchema = z.object({
   terminalProfiles: z.array(AdminTerminalProfileRowSchema),
   terminalCommands: z.array(AdminTerminalCommandRowSchema),
   terminalInitialEntries: z.array(AdminTerminalInitialEntryRowSchema),
+  terminalDirectoryEntries: z.array(AdminTerminalDirectoryEntryRowSchema).default([]),
   roadmapMilestones: z.array(RoadmapMilestoneSchema),
   agensiSkills: z.array(AgensiSkillSchema),
   cadencePresets: z.array(CadencePresetSchema),
@@ -753,6 +779,21 @@ export const TerminalInitialEntryUpsertSchema = z.object({
   sortOrder: z.coerce.number().int().min(0).max(1000),
 });
 export type TerminalInitialEntryUpsertInput = z.infer<typeof TerminalInitialEntryUpsertSchema>;
+
+export const TerminalDirectoryEntryUpsertSchema = z.object({
+  id: z.coerce.number().int().positive().optional(),
+  profileSlug: z.string().trim().min(1).max(64),
+  name: z
+    .string()
+    .trim()
+    .min(1)
+    .max(64)
+    .regex(/^[a-z0-9._-]+$/),
+  description: z.string().trim().min(1).max(240),
+  sortOrder: z.coerce.number().int().min(0).max(1000),
+  enabled: z.boolean().default(true),
+});
+export type TerminalDirectoryEntryUpsertInput = z.infer<typeof TerminalDirectoryEntryUpsertSchema>;
 
 export const RoadmapMilestoneUpsertSchema = z.object({
   slug: z

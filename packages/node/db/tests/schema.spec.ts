@@ -13,8 +13,10 @@ import {
   roadmapMilestones,
   sandboxRuns,
   SITE_CONTENT_KEYS,
+  TERMINAL_DIRECTORY_ENTRY_SEEDS,
   TERMINAL_PROFILE_SLUGS,
   terminalCommands,
+  terminalDirectoryEntries,
   terminalInitialEntries,
   terminalProfiles,
   webauthnChallenges,
@@ -41,6 +43,10 @@ describe('@aklapper/db', () => {
     expect(terminalProfiles.quickCommands.name).toBe('quick_commands');
     expect(terminalInitialEntries.profileSlug.name).toBe('profile_slug');
     expect(terminalCommands.allowedRoutes.name).toBe('allowed_routes');
+    expect(terminalDirectoryEntries.profileSlug.name).toBe('profile_slug');
+    expect(terminalDirectoryEntries.description.name).toBe('description');
+    expect(TERMINAL_DIRECTORY_ENTRY_SEEDS).toHaveLength(7);
+    expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.every(entry => !entry.name.endsWith('/'))).toBe(true);
     expect(roadmapMilestones.status.name).toBe('status');
     expect(webauthnChallenges.challenge.name).toBe('challenge');
     expect(webauthnChallenges.consumedAt.name).toBe('consumed_at');

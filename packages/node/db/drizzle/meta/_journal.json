@@ -22,6 +22,13 @@
       "when": 1795532942659,
       "tag": "0002_webauthn_challenges",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795547645592,
+      "tag": "0003_terminal_directory_entries",
+      "breakpoints": true
     }
   ]
 }

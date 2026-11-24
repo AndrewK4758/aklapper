@@ -107,6 +107,23 @@ export const terminalCommands = pgTable(
   table => [uniqueIndex('terminal_commands_profile_name_idx').on(table.profileSlug, table.name)],
 );
 
+export const terminalDirectoryEntries = pgTable(
+  'terminal_directory_entries',
+  {
+    id: serial('id').primaryKey(),
+    profileSlug: text('profile_slug')
+      .notNull()
+      .references(() => terminalProfiles.slug, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    description: text('description').notNull(),
+    sortOrder: integer('sort_order').notNull().default(0),
+    enabled: boolean('enabled').notNull().default(true),
+  },
+  table => [
+    uniqueIndex('terminal_directory_entries_profile_name_idx').on(table.profileSlug, table.name),
+  ],
+);
+
 export const roadmapMilestones = pgTable('roadmap_milestones', {
   slug: text('slug').primaryKey(),
   status: text('status').$type<'done' | 'active' | 'queued'>().notNull(),

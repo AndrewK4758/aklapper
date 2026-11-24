@@ -22,7 +22,10 @@
       "e2e": {
         "dependsOn": [
           "portal:build"
-        ]
+        ],
+        "options": {
+          "command": "node --conditions=@aklapper/source ../../../packages/tooling/src/run-with-ephemeral-pg.ts --label e2e -- pnpm exec playwright test"
+        }
       },
       "e2e-ci": {
         "dependsOn": [

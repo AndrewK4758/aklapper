@@ -3,6 +3,7 @@ import {
   type AdminChromeContent,
   type AdminHomeContent,
   CONTACT_FORM_DEFINITION,
+  formatTerminalDirectoryListing,
   type MenuItem,
   type PortalAgensiContent,
   type PortalAskContent,
@@ -19,7 +20,7 @@ import { loadWorkspaceEnv } from '@aklapper/node-runtime/env';
 import { notInArray } from 'drizzle-orm';
 
 import { type AppDatabase, createDb, createDbPool } from './client.ts';
-import { SITE_CONTENT_KEYS, TERMINAL_PROFILE_SLUGS } from './queries.ts';
+import { resolveTerminalLsOutput, SITE_CONTENT_KEYS, TERMINAL_PROFILE_SLUGS } from './queries.ts';
 import {
   agensiSkills,
   cadencePresets,
@@ -28,6 +29,7 @@ import {
   roadmapMilestones,
   siteContent,
   terminalCommands,
+  terminalDirectoryEntries,
   terminalInitialEntries,
   terminalProfiles,
 } from './schema.ts';
@@ -388,19 +390,69 @@ const TERMINAL_PROFILE_SEEDS = [
   },
 ] as const;
 
+const TERMINAL_DIRECTORY_ENTRY_SEEDS = [
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
+    name: 'menu',
+    description: 'Site menu',
+    sortOrder: 1,
+    enabled: true,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
+    name: 'tui',
+    description: 'TUI version',
+    sortOrder: 2,
+    enabled: true,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
+    name: 'cadence',
+    description: 'Agentic workflow example',
+    sortOrder: 3,
+    enabled: true,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
+    name: 'ask',
+    description: 'Ask about my work',
+    sortOrder: 4,
+    enabled: true,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
+    name: 'agensi',
+    description: 'Published AI skills',
+    sortOrder: 5,
+    enabled: true,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
+    name: 'contact',
+    description: 'Connect with me',
+    sortOrder: 6,
+    enabled: true,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
+    name: 'changes-in-progress',
+    description: 'Maintenance preview',
+    sortOrder: 7,
+    enabled: true,
+  },
+] as const;
+
+const PORTAL_HOME_DIRECTORY_LISTING = formatTerminalDirectoryListing(
+  TERMINAL_DIRECTORY_ENTRY_SEEDS.filter(
+    entry => entry.profileSlug === TERMINAL_PROFILE_SLUGS.portalHome && entry.enabled,
+  ).toSorted((a, b) => a.sortOrder - b.sortOrder),
+);
+
 const TERMINAL_INITIAL_ENTRY_SEEDS = [
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    command: 'ls -la',
-    output: [
-      'drwxr-xr-x  guest  solar-forge  menu/                 # Interactive module launcher',
-      'drwxr-xr-x  guest  solar-forge  tui/                  # TUI launcher split pane',
-      'drwxr-xr-x  guest  solar-forge  cadence/              # Sandboxed artifact builder',
-      'drwxr-xr-x  guest  solar-forge  ask/                  # Grounded portfolio RAG & JD match',
-      'drwxr-xr-x  guest  solar-forge  agensi/               # Published Agensi skills storefront',
-      'drwxr-xr-x  guest  solar-forge  contact/              # Recursive Zod/JSON TUI contact form',
-      '-rw-r--r--  guest  solar-forge  changes-in-progress   # Production maintenance preview',
-    ].join('\n'),
+    command: 'ls',
+    output: PORTAL_HOME_DIRECTORY_LISTING,
     status: 'ok' as const,
     durationLabel: '6ms',
     timestampLabel: '00:00:00',
@@ -467,7 +519,7 @@ const TERMINAL_COMMAND_SEEDS = [
     name: 'ls',
     description: 'list portal routes & workspaces',
     kind: 'static' as const,
-    output: 'menu/   tui/   cadence/   ask/   agensi/   contact/   changes-in-progress',
+    output: PORTAL_HOME_DIRECTORY_LISTING,
     targetRoute: null,
     allowedRoutes: [] as string[],
     errorTemplate: null,
@@ -938,6 +990,12 @@ export function buildSeedTerminalProfile(slug: string): TerminalProfileData {
     throw new Error(`Missing seed terminal profile: slug="${slug}"`);
   }
 
+  const directoryEntries = TERMINAL_DIRECTORY_ENTRY_SEEDS.filter(
+    entry => entry.profileSlug === slug && entry.enabled,
+  ).toSorted((a, b) => a.sortOrder - b.sortOrder);
+  const directoryListing =
+    directoryEntries.length > 0 ? formatTerminalDirectoryListing(directoryEntries) : null;
+
   return TerminalProfileDataSchema.parse({
     slug: profile.slug,
     bannerTitle: profile.bannerTitle,
@@ -953,7 +1011,7 @@ export function buildSeedTerminalProfile(slug: string): TerminalProfileData {
       .toSorted((a, b) => a.sortOrder - b.sortOrder)
       .map(entry => ({
         command: entry.command,
-        output: entry.output,
+        output: resolveTerminalLsOutput(entry.command, entry.output, directoryListing),
         status: entry.status,
         durationLabel: entry.durationLabel,
         timestamp: entry.timestampLabel,
@@ -965,7 +1023,7 @@ export function buildSeedTerminalProfile(slug: string): TerminalProfileData {
         name: cmd.name,
         description: cmd.description,
         kind: cmd.kind,
-        output: cmd.output,
+        output: resolveTerminalLsOutput(cmd.name, cmd.output, directoryListing),
         targetRoute: cmd.targetRoute,
         allowedRoutes: [...cmd.allowedRoutes],
         errorTemplate: cmd.errorTemplate,
@@ -993,6 +1051,7 @@ export {
   PORTAL_MENU_SEED,
   ROADMAP_MILESTONE_SEEDS,
   TERMINAL_COMMAND_SEEDS,
+  TERMINAL_DIRECTORY_ENTRY_SEEDS,
   TERMINAL_INITIAL_ENTRY_SEEDS,
   TERMINAL_PROFILE_SEEDS,
 };
@@ -1087,6 +1146,20 @@ export async function seedDatabase(db: AppDatabase): Promise<void> {
           allowedRoutes: [...cmd.allowedRoutes],
           errorTemplate: cmd.errorTemplate,
           sortOrder: cmd.sortOrder,
+        },
+      });
+  }
+
+  for (const dirEntry of TERMINAL_DIRECTORY_ENTRY_SEEDS) {
+    await db
+      .insert(terminalDirectoryEntries)
+      .values(dirEntry)
+      .onConflictDoUpdate({
+        target: [terminalDirectoryEntries.profileSlug, terminalDirectoryEntries.name],
+        set: {
+          description: dirEntry.description,
+          sortOrder: dirEntry.sortOrder,
+          enabled: dirEntry.enabled,
         },
       });
   }

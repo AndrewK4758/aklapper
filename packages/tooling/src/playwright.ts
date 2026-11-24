@@ -120,7 +120,7 @@ export function createSsrPlaywrightConfig(
             'sh -c "[ -f dist/server/index.js ] || pnpm exec react-router build --mode production; exec node --conditions=@aklapper/source ./src/server.ts"',
           cwd: appCwd,
           url: `http://127.0.0.1:${port}/healthz`,
-          reuseExistingServer: !isCI,
+          reuseExistingServer: !isCI && process.env['AKLAPPER_EPHEMERAL_PG_ACTIVE'] !== '1',
           timeout: 120_000,
           stdout: 'pipe',
           stderr: 'pipe',

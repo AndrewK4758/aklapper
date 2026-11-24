@@ -29,6 +29,21 @@ test.describe('portal SSR end-to-end journeys', () => {
     const initialBodyText = await page.locator('body').innerText();
     expect(initialBodyText).not.toMatch(/\bzsh\b|p10k|powerlevel10k/i);
 
+    // Clean DB-driven `ls` directory listing without Unix permission columns or trailing `/`
+    expect(initialBodyText).not.toMatch(/drwxr-xr-x|-rw-r--r--|menu\//);
+    await expect(page.getByText(/menu\s+# Site menu/)).toBeVisible();
+    await expect(page.getByText(/tui\s+# TUI version/)).toBeVisible();
+    await expect(page.getByText(/cadence\s+# Agentic workflow example/)).toBeVisible();
+    await expect(page.getByText(/ask\s+# Ask about my work/)).toBeVisible();
+    await expect(page.getByText(/agensi\s+# Published AI skills/)).toBeVisible();
+    await expect(page.getByText(/contact\s+# Connect with me/)).toBeVisible();
+    await expect(page.getByText(/changes-in-progress\s+# Maintenance preview/)).toBeVisible();
+
+    // Typing `ls` produces the same clean DB-driven listing
+    await commandInput.fill('ls');
+    await commandInput.press('Enter');
+    await expect(page.getByText(/contact\s+# Connect with me/)).toHaveCount(2);
+
     // Tab autocomplete + command execution + unknown command message without zsh prefix
     await commandInput.fill('who');
     await commandInput.press('Tab');

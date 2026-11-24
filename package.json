@@ -7,8 +7,8 @@
   "scripts": {
     "build": "nx run-many -t build",
     "typecheck": "nx run-many -t typecheck",
-    "test": "nx run-many -t test",
-    "e2e": "nx run-many -t e2e",
+    "test": "node --conditions=@aklapper/source packages/tooling/src/run-with-ephemeral-pg.ts --label test -- pnpm exec nx run-many -t test",
+    "e2e": "node --conditions=@aklapper/source packages/tooling/src/run-with-ephemeral-pg.ts --label e2e -- pnpm exec nx run-many -t e2e",
     "lint": "nx run-many -t lint",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",

@@ -201,6 +201,7 @@ const ADMIN_CMS_FIXTURE: AdminCmsLoaderData = {
   ],
   terminalCommands: [],
   terminalInitialEntries: [],
+  terminalDirectoryEntries: [],
   roadmapMilestones: [
     {
       slug: 'slice-1',

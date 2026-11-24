@@ -50,6 +50,16 @@ describe('db prerender fallback loaders', () => {
       'Changes in Progress',
     );
     expect(portalHome.terminal.commands.length).toBeGreaterThan(0);
+    expect(portalHome.terminal.initialEntries[0]?.command).toBe('ls');
+    expect(portalHome.terminal.initialEntries[0]?.output).toContain(
+      'menu                  # Site menu',
+    );
+    expect(portalHome.terminal.initialEntries[0]?.output).toContain(
+      'changes-in-progress   # Maintenance preview',
+    );
+    expect(portalHome.terminal.initialEntries[0]?.output).not.toMatch(
+      /drwxr-xr-x|-rw-r--r--|menu\//,
+    );
     const portalHelp = portalHome.terminal.commands.find(cmd => cmd.name === 'help')?.output ?? '';
     expect(portalHelp).toContain('Split panes & tabs (keybindings & commands):');
     expect(portalHelp).not.toMatch(/ghostty/i);
