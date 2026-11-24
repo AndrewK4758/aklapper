@@ -13,7 +13,9 @@ name: GCP CI/CD Deploy
 #   - INTERNAL_AUTH_SECRET           : HMAC-SHA256 signing secret for X-Internal-Auth between BFFs and APIs
 #   - TOTP_ENCRYPTION_KEY            : AES-256-GCM key material for encrypted admin TOTP secrets
 #   - ANALYTICS_DAILY_SALT           : Secret salt for daily visitor IP hashing in analytics ingestion
-#   - ADMIN_BOOTSTRAP_TOKEN          : One-time bootstrap token for initial admin WebAuthn passkey registration
+#
+# Pre-deploy Prerequisite:
+#   - Seed admin password credentials (`ADMIN_HANDLE` / `ADMIN_PASSWORD`) via `pnpm db:seed` against target `DATABASE_URL` before deploying Cloud Run services.
 #
 # Required GitHub Environment / Repository Variables:
 #   - GCP_PROJECT_ID                 : Target GCP project ID
@@ -271,7 +273,6 @@ jobs:
             WEBAUTHN_ORIGIN=${{ vars.WEBAUTHN_ORIGIN || vars.PUBLIC_ADMIN_URL || 'https://admin.andrew-k.us' }}
             TOTP_ENCRYPTION_KEY=${{ secrets.TOTP_ENCRYPTION_KEY }}
             INTERNAL_AUTH_SECRET=${{ secrets.INTERNAL_AUTH_SECRET }}
-            ADMIN_BOOTSTRAP_TOKEN=${{ secrets.ADMIN_BOOTSTRAP_TOKEN }}
           flags: >-
             ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_APIS == 'true' && '--allow-unauthenticated' || '--no-allow-unauthenticated' }}
             --port=8080
@@ -381,7 +382,6 @@ jobs:
             TOTP_ENCRYPTION_KEY=${{ secrets.TOTP_ENCRYPTION_KEY }}
             INTERNAL_AUTH_SECRET=${{ secrets.INTERNAL_AUTH_SECRET }}
             ANALYTICS_DAILY_SALT=${{ secrets.ANALYTICS_DAILY_SALT }}
-            ADMIN_BOOTSTRAP_TOKEN=${{ secrets.ADMIN_BOOTSTRAP_TOKEN }}
             AUTH_API_URL=${{ steps.api-urls.outputs.auth_url }}
             ANALYTICS_API_URL=${{ steps.api-urls.outputs.analytics_url }}
             K8S_WATCH_URL=${{ vars.K8S_WATCH_URL || '' }}

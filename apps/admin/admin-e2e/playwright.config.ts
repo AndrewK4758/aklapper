@@ -17,7 +17,6 @@ const baseConfig = createSsrPlaywrightConfig({
     INTERNAL_AUTH_SECRET:
       process.env['INTERNAL_AUTH_SECRET'] || 'e2e-internal-auth-secret-local-only',
     TOTP_ENCRYPTION_KEY: process.env['TOTP_ENCRYPTION_KEY'] || 'e2e-totp-encryption-key-local-only',
-    ADMIN_BOOTSTRAP_TOKEN: process.env['ADMIN_BOOTSTRAP_TOKEN'] || 'e2e-bootstrap-token-local-only',
     WEBAUTHN_RP_ID: 'localhost',
     WEBAUTHN_ORIGIN: localhostBaseURL,
   },
@@ -25,6 +24,7 @@ const baseConfig = createSsrPlaywrightConfig({
 
 const config: PlaywrightTestConfig = {
   ...baseConfig,
+  workers: 2,
   use: {
     ...baseConfig.use,
     // WebAuthn requires a domain hostname (localhost), never a raw IP literal (127.0.0.1).
