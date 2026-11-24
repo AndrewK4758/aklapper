@@ -116,12 +116,8 @@
           "name": "analytics_events_session_id_analytics_sessions_session_id_fk",
           "tableFrom": "analytics_events",
           "tableTo": "analytics_sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "session_id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["session_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -381,12 +377,8 @@
           "name": "auth_sessions_user_id_users_id_fk",
           "tableFrom": "auth_sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -887,12 +879,8 @@
           "name": "sandbox_turns_run_id_sandbox_runs_id_fk",
           "tableFrom": "sandbox_turns",
           "tableTo": "sandbox_runs",
-          "columnsFrom": [
-            "run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["run_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1040,12 +1028,8 @@
           "name": "terminal_commands_profile_slug_terminal_profiles_slug_fk",
           "tableFrom": "terminal_commands",
           "tableTo": "terminal_profiles",
-          "columnsFrom": [
-            "profile_slug"
-          ],
-          "columnsTo": [
-            "slug"
-          ],
+          "columnsFrom": ["profile_slug"],
+          "columnsTo": ["slug"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1127,12 +1111,8 @@
           "name": "terminal_directory_entries_profile_slug_terminal_profiles_slug_fk",
           "tableFrom": "terminal_directory_entries",
           "tableTo": "terminal_profiles",
-          "columnsFrom": [
-            "profile_slug"
-          ],
-          "columnsTo": [
-            "slug"
-          ],
+          "columnsFrom": ["profile_slug"],
+          "columnsTo": ["slug"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1226,12 +1206,8 @@
           "name": "terminal_initial_entries_profile_slug_terminal_profiles_slug_fk",
           "tableFrom": "terminal_initial_entries",
           "tableTo": "terminal_profiles",
-          "columnsFrom": [
-            "profile_slug"
-          ],
-          "columnsTo": [
-            "slug"
-          ],
+          "columnsFrom": ["profile_slug"],
+          "columnsTo": ["slug"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1355,12 +1331,8 @@
           "name": "totp_secrets_user_id_users_id_fk",
           "tableFrom": "totp_secrets",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1416,9 +1388,7 @@
         "users_handle_unique": {
           "name": "users_handle_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "handle"
-          ]
+          "columns": ["handle"]
         }
       },
       "policies": {},
@@ -1480,12 +1450,8 @@
           "name": "webauthn_challenges_user_id_users_id_fk",
           "tableFrom": "webauthn_challenges",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1546,12 +1512,8 @@
           "name": "webauthn_credentials_user_id_users_id_fk",
           "tableFrom": "webauthn_credentials",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
