@@ -2,6 +2,7 @@ import { PassThrough } from 'node:stream';
 
 import { createDb, createDbPool } from '@aklapper/db';
 import type { AuthDispatchRequest, AuthDispatchResult } from '@aklapper/db/auth';
+import { signInternalAuthToken } from '@aklapper/node-runtime/http';
 import { vi } from 'vitest';
 
 import { buildAuthServer } from '../src/server.ts';
@@ -181,6 +182,86 @@ describe('node-api-auth', () => {
       expect(limited.statusCode).toBe(429);
       expect(limited.headers['retry-after']).toBeDefined();
       expect(limited.json()).toMatchObject({ statusCode: 429, error: 'RATE_LIMITED' });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('trusts rightmost proxy hop and signed x-internal-client-ip while ignoring spoofed leftmost hops and forged headers', async () => {
+    const internalSecret = 'test-internal-secret';
+    const seenIps: Array<string | null | undefined> = [];
+    const dispatch = vi.fn<(req: AuthDispatchRequest) => Promise<AuthDispatchResult>>(async req => {
+      seenIps.push(req.clientIp);
+      return { status: 401, body: { error: 'INVALID' } };
+    });
+    const app = await buildAuthServer({
+      dispatch,
+      env: { NODE_ENV: 'production', INTERNAL_AUTH_SECRET: internalSecret },
+    });
+
+    try {
+      for (let i = 0; i < 20; i += 1) {
+        const res = await app.inject({
+          method: 'POST',
+          url: '/v1/auth/password/login',
+          headers: { 'x-forwarded-for': `10.0.0.${i + 1}, 203.0.113.88` },
+          payload: { handle: 'admin', password: 'bad' },
+        });
+        expect(res.statusCode).toBe(401);
+      }
+      expect(seenIps).toEqual(Array.from({ length: 20 }, () => '203.0.113.88'));
+
+      const throttledRightmost = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/password/login',
+        headers: { 'x-forwarded-for': '10.99.0.1, 203.0.113.88' },
+        payload: { handle: 'admin', password: 'bad' },
+      });
+      expect(throttledRightmost.statusCode).toBe(429);
+      expect(throttledRightmost.json()).toMatchObject({ statusCode: 429, error: 'RATE_LIMITED' });
+
+      const signedToken = signInternalAuthToken({
+        role: 'service',
+        subject: 'client-ip:198.51.100.200',
+        secret: internalSecret,
+        ttlSeconds: 60,
+      });
+      for (let i = 0; i < 20; i += 1) {
+        const res = await app.inject({
+          method: 'POST',
+          url: '/v1/auth/password/login',
+          headers: {
+            'x-forwarded-for': '34.120.0.5',
+            'x-internal-client-ip': signedToken,
+          },
+          payload: { handle: 'admin', password: 'bad' },
+        });
+        expect(res.statusCode).toBe(401);
+      }
+      expect(seenIps.slice(20)).toEqual(Array.from({ length: 20 }, () => '198.51.100.200'));
+
+      const throttledSigned = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/password/login',
+        headers: {
+          'x-forwarded-for': '34.120.0.5',
+          'x-internal-client-ip': signedToken,
+        },
+        payload: { handle: 'admin', password: 'bad' },
+      });
+      expect(throttledSigned.statusCode).toBe(429);
+
+      const forgedRes = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/password/login',
+        headers: {
+          'x-forwarded-for': '10.0.0.5, 203.0.113.89',
+          'x-internal-client-ip': 'v1.forged.signature',
+        },
+        payload: { handle: 'admin', password: 'bad' },
+      });
+      expect(forgedRes.statusCode).toBe(401);
+      expect(seenIps[seenIps.length - 1]).toBe('203.0.113.89');
     } finally {
       await app.close();
     }

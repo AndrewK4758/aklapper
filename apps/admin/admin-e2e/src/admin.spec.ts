@@ -99,7 +99,7 @@ test.describe('admin SSR end-to-end journeys', () => {
       }
 
       // 1. Navigating to /analytics while logged out redirects to /login?next=%2Fanalytics
-      await page.goto('/analytics');
+      await page.goto('/analytics', { waitUntil: 'networkidle' });
       await expect(page).toHaveURL(/\/login\?next=%2Fanalytics$/);
 
       // 2. Sign in with seeded password credentials
@@ -151,7 +151,7 @@ test.describe('admin SSR end-to-end journeys', () => {
 
       // 6. Verify Password + TOTP 2FA step-up sign-in after Sign Out
       await page.getByRole('button', { name: 'Sign Out' }).click();
-      await page.waitForURL(/\/login$/, { waitUntil: 'load' });
+      await page.waitForURL(/\/login$/, { waitUntil: 'networkidle' });
 
       await page.getByLabel('Admin Handle', { exact: true }).fill(handle);
       await page.getByLabel('Password', { exact: true }).fill(password);

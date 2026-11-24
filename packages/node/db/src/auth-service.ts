@@ -143,8 +143,12 @@ function emitAuthEvent(options: AuthServiceOptions, payload: AuthTelemetryEvent)
 }
 
 function extractClientIp(forwardedFor: string | null | undefined): string {
-  const firstHop = forwardedFor?.split(',')[0]?.trim();
-  return firstHop && firstHop.length > 0 ? firstHop : 'unknown';
+  const hops = forwardedFor
+    ?.split(',')
+    .map(part => part.trim())
+    .filter(Boolean);
+  const rightmostHop = hops && hops.length > 0 ? hops[hops.length - 1] : undefined;
+  return rightmostHop ?? 'unknown';
 }
 
 function hashRateLimitPart(value: string): string {
@@ -1068,6 +1072,18 @@ const FORWARDED_UPSTREAM_RESPONSE_HEADERS = [
   'x-ratelimit-reset',
 ] as const;
 
+function hasTraversalSegment(splat: string): boolean {
+  for (const segment of splat.split(/[/\\]/)) {
+    if (segment === '..') return true;
+    try {
+      if (decodeURIComponent(segment) === '..') return true;
+    } catch {
+      return true;
+    }
+  }
+  return false;
+}
+
 /**
  * Dual-mode Admin BFF auth handler:
  *
@@ -1082,7 +1098,14 @@ export async function handleAdminAuthBffRequest(
   const env = options.env ?? process.env;
   const upstreamBase = (options.authApiUrl ?? env['AUTH_API_URL'])?.trim();
   const normalizedSplat = splat.replace(/^\/+|\/+$/g, '');
+  if (hasTraversalSegment(normalizedSplat)) {
+    return Response.json(
+      { error: 'INVALID_REQUEST', message: 'Invalid auth path' },
+      { status: 400 },
+    );
+  }
   const reqUrl = new URL(request.url);
+  const resolvedClientIp = extractClientIp(request.headers.get('x-forwarded-for'));
 
   if (upstreamBase) {
     const fetchImpl = options.fetchImpl ?? fetch;
@@ -1094,8 +1117,22 @@ export async function handleAdminAuthBffRequest(
     if (cookie) forwardHeaders.set('cookie', cookie);
     const origin = request.headers.get('origin') ?? reqUrl.origin;
     if (origin) forwardHeaders.set('origin', origin);
-    const forwardedFor = request.headers.get('x-forwarded-for');
-    if (forwardedFor) forwardHeaders.set('x-forwarded-for', forwardedFor);
+    const internalSecret = env['INTERNAL_AUTH_SECRET']?.trim();
+    const isProd = (env['NODE_ENV'] ?? process.env['NODE_ENV']) === 'production';
+    if (resolvedClientIp !== 'unknown') {
+      forwardHeaders.set('x-forwarded-for', resolvedClientIp);
+      if (internalSecret || !isProd) {
+        forwardHeaders.set(
+          'x-internal-client-ip',
+          signInternalAuthToken({
+            role: 'service',
+            subject: `client-ip:${resolvedClientIp}`,
+            secret: internalSecret,
+            ttlSeconds: 60,
+          }),
+        );
+      }
+    }
     const forwardedProto =
       request.headers.get('x-forwarded-proto') || reqUrl.protocol.replace(/:$/, '');
     if (forwardedProto) forwardHeaders.set('x-forwarded-proto', forwardedProto);
@@ -1156,7 +1193,7 @@ export async function handleAdminAuthBffRequest(
       method: request.method,
       action: normalizedSplat,
       cookieHeader: request.headers.get('cookie'),
-      clientIp: request.headers.get('x-forwarded-for'),
+      clientIp: resolvedClientIp === 'unknown' ? null : resolvedClientIp,
       originHeader: request.headers.get('origin') ?? reqUrl.origin,
       isSecure: isSecureRequest(reqUrl, request.headers.get('x-forwarded-proto')),
       body,

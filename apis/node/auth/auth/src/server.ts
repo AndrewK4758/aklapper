@@ -1,8 +1,10 @@
+import { isIP } from 'node:net';
 import type { Writable } from 'node:stream';
 
 import type { AppDatabase } from '@aklapper/db';
 import { dispatchAuthAction } from '@aklapper/db/auth';
 import { AUTH_LOG_REDACT_PATHS, isSecureRequest } from '@aklapper/node-runtime/auth';
+import { verifyInternalAuthToken } from '@aklapper/node-runtime/http';
 import cookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
@@ -15,10 +17,33 @@ export interface BuildAuthServerOptions {
   loggerStream?: Writable;
 }
 
+const INTERNAL_CLIENT_IP_HEADER = 'x-internal-client-ip';
+const CLIENT_IP_SUBJECT_PREFIX = 'client-ip:';
+const SINGLE_PROXY_HOP = (_address: string, hop: number): boolean => hop === 0;
+
 function getSingleHeader(value: string | string[] | undefined): string | null {
   if (typeof value === 'string') return value;
   if (Array.isArray(value)) return value[0] ?? null;
   return null;
+}
+
+function resolveTrustedClientIp(
+  request: FastifyRequest,
+  env: Record<string, string | undefined> = process.env,
+): string {
+  const token = getSingleHeader(request.headers[INTERNAL_CLIENT_IP_HEADER]);
+  const internalSecret = env['INTERNAL_AUTH_SECRET']?.trim();
+  const isProd = (env['NODE_ENV'] ?? process.env['NODE_ENV']) === 'production';
+  if (token && (internalSecret || !isProd)) {
+    const claims = verifyInternalAuthToken(token, internalSecret);
+    if (claims?.role === 'service' && claims.sub.startsWith(CLIENT_IP_SUBJECT_PREFIX)) {
+      const verifiedIp = claims.sub.slice(CLIENT_IP_SUBJECT_PREFIX.length).trim();
+      if (verifiedIp.length > 0 && isIP(verifiedIp) !== 0) {
+        return verifiedIp;
+      }
+    }
+  }
+  return request.ip;
 }
 
 export async function buildAuthServer(
@@ -36,7 +61,7 @@ export async function buildAuthServer(
         };
 
   const app = Fastify({
-    trustProxy: true,
+    trustProxy: SINGLE_PROXY_HOP,
     logger: loggerConfig,
   });
   const dispatch = options.dispatch ?? dispatchAuthAction;
@@ -46,6 +71,7 @@ export async function buildAuthServer(
   await app.register(rateLimit, {
     max: 120,
     timeWindow: '1 minute',
+    keyGenerator: request => resolveTrustedClientIp(request, options.env),
     errorResponseBuilder: (_request, context) => ({
       statusCode: context.statusCode,
       error: 'RATE_LIMITED',
@@ -66,14 +92,13 @@ export async function buildAuthServer(
   ) => {
     const handler = async (request: FastifyRequest, reply: FastifyReply) => {
       const forwardedProto = getSingleHeader(request.headers['x-forwarded-proto']);
-      const forwardedFor = getSingleHeader(request.headers['x-forwarded-for']);
       const protocol = request.protocol === 'https' ? 'https:' : 'http:';
       const result = await dispatch(
         {
           method,
           action,
           cookieHeader: getSingleHeader(request.headers.cookie),
-          clientIp: forwardedFor ?? request.ip,
+          clientIp: resolveTrustedClientIp(request, options.env),
           originHeader: getSingleHeader(request.headers.origin),
           isSecure: isSecureRequest(`${protocol}//${request.hostname}`, forwardedProto),
           body: request.body,

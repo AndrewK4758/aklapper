@@ -1,4 +1,7 @@
+import { createHash } from 'node:crypto';
+
 import { computeTotpCode, hashPasswordArgon2id } from '@aklapper/node-runtime/auth';
+import { verifyInternalAuthToken } from '@aklapper/node-runtime/http';
 import { vi } from 'vitest';
 
 type QueryFn = (...args: never[]) => Promise<unknown>;
@@ -753,6 +756,87 @@ describe('@aklapper/db auth & analytics BFF services', () => {
       { db: FAKE_DB, env: TEST_ENV },
     );
     expect(status.authenticated).toBe(false);
+  });
+
+  it('uses rightmost client IP for rate-limit keys, signs upstream x-internal-client-ip, and rejects traversal paths', async () => {
+    queryMocks.consumeAuthRateLimit.mockClear();
+    queryMocks.findAdminUserForPasswordLogin.mockResolvedValue(null);
+
+    await dispatchAuthAction(
+      {
+        method: 'POST',
+        action: 'password/login',
+        clientIp: '10.0.0.1, 203.0.113.45',
+        body: { handle: 'admin', password: 'wrong' },
+      },
+      { db: FAKE_DB, env: TEST_ENV },
+    );
+    await dispatchAuthAction(
+      {
+        method: 'POST',
+        action: 'password/login',
+        clientIp: '10.0.0.2, 203.0.113.45',
+        body: { handle: 'admin', password: 'wrong' },
+      },
+      { db: FAKE_DB, env: TEST_ENV },
+    );
+
+    const expectedIpKey = `auth:login:ip:${createHash('sha256').update('203.0.113.45', 'utf8').digest('hex')}`;
+    const ipCalls = queryMocks.consumeAuthRateLimit.mock.calls.filter(call =>
+      String(call[1]).startsWith('auth:login:ip:'),
+    );
+    expect(ipCalls.map(call => call[1])).toEqual([expectedIpKey, expectedIpKey]);
+
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    const bffSecret = 'bff-internal-secret';
+    const proxiedRes = await handleAdminAuthBffRequest(
+      new Request('http://localhost:4301/api/auth/password/login', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-forwarded-for': '10.0.0.1, 203.0.113.66',
+          'x-internal-client-ip': 'v1.spoofed.token',
+        },
+        body: JSON.stringify({ handle: 'admin', password: 'pw' }),
+      }),
+      'password/login',
+      {
+        authApiUrl: 'http://auth.internal:4101',
+        env: { NODE_ENV: 'production', INTERNAL_AUTH_SECRET: bffSecret },
+        fetchImpl: fetchMock,
+      },
+    );
+    expect(proxiedRes.status).toBe(200);
+    const forwardedHeaders = fetchMock.mock.calls[0]?.[1]?.headers as Headers;
+    expect(forwardedHeaders.get('x-forwarded-for')).toBe('203.0.113.66');
+    const signedClientIp = forwardedHeaders.get('x-internal-client-ip');
+    expect(signedClientIp).toBeTruthy();
+    expect(verifyInternalAuthToken(signedClientIp, bffSecret)).toMatchObject({
+      role: 'service',
+      sub: 'client-ip:203.0.113.66',
+    });
+
+    const traversalCallsBefore = fetchMock.mock.calls.length;
+    const traversal = await handleAdminAuthBffRequest(
+      new Request('http://localhost:4301/api/auth/../session'),
+      '../session',
+      { authApiUrl: 'http://auth.internal:4101', fetchImpl: fetchMock },
+    );
+    expect(traversal.status).toBe(400);
+    expect(await traversal.json()).toMatchObject({ error: 'INVALID_REQUEST' });
+
+    const encodedTraversal = await handleAdminAuthBffRequest(
+      new Request('http://localhost:4301/api/auth/password/%2e%2e/session'),
+      'password/%2e%2e/session',
+      { authApiUrl: 'http://auth.internal:4101', fetchImpl: fetchMock },
+    );
+    expect(encodedTraversal.status).toBe(400);
+    expect(fetchMock.mock.calls.length).toBe(traversalCallsBefore);
   });
 
   it('handles same-origin analytics ingest BFF for both direct PG persistence and upstream proxy', async () => {

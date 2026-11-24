@@ -26,6 +26,25 @@ export interface SsrServerInstance {
 }
 
 const BODILESS_STATUS_CODES = new Set([204, 205, 304]);
+const SINGLE_PROXY_HOP = (_address: string, hop: number): boolean => hop === 0;
+
+function normalizeAdminAuthPath(rawUrl: string): string | null {
+  const rawPathname = rawUrl.split(/[?#]/, 1)[0] ?? '/';
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(rawPathname);
+  } catch {
+    return null;
+  }
+  const collapsed = decoded.replace(/\\/g, '/').replace(/\/{2,}/g, '/');
+  const prefixed = collapsed.startsWith('/') ? collapsed : `/${collapsed}`;
+  try {
+    const resolved = new URL(prefixed, 'http://localhost').pathname.replace(/\/+$/, '');
+    return resolved || '/';
+  } catch {
+    return null;
+  }
+}
 
 function collectResponseHeaders(webHeaders: Headers): Record<string, string | string[]> {
   const responseHeaders: Record<string, string | string[]> = {};
@@ -46,7 +65,7 @@ export async function createSsrServer(options: SsrServerOptions): Promise<SsrSer
   loadWorkspaceEnv({ startDir: options.buildDir });
   const { serviceName, buildDir, port, host } = options;
   const app = Fastify({
-    trustProxy: true,
+    trustProxy: SINGLE_PROXY_HOP,
     logger: {
       redact: {
         paths: [...AUTH_LOG_REDACT_PATHS],
@@ -87,7 +106,14 @@ export async function createSsrServer(options: SsrServerOptions): Promise<SsrSer
     const totpVerifyLimiter = app.rateLimit({ max: 20, timeWindow: '1 minute' });
     app.addHook('onRequest', async (request, reply) => {
       if (request.method !== 'POST') return;
-      const pathname = request.url.split('?')[0];
+      const pathname = normalizeAdminAuthPath(request.url);
+      if (pathname === null) {
+        return reply.code(400).send({
+          statusCode: 400,
+          error: 'INVALID_REQUEST',
+          message: 'Malformed request URL',
+        });
+      }
       if (pathname === '/api/auth/password/login') {
         await passwordLoginLimiter.call(app, request, reply);
       } else if (pathname === '/api/auth/totp/verify') {
@@ -123,7 +149,7 @@ export async function createSsrServer(options: SsrServerOptions): Promise<SsrSer
         headers.set(key, value);
       }
     }
-    if (!headers.has('x-forwarded-for') && request.ip) {
+    if (request.ip) {
       headers.set('x-forwarded-for', request.ip);
     }
     if (!headers.has('x-forwarded-proto') && request.protocol) {

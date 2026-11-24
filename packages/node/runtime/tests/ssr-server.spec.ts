@@ -360,4 +360,109 @@ describe('@aklapper/node-runtime/ssr', () => {
       await portalServer.app.close();
     }
   });
+
+  it('strips spoofed leftmost X-Forwarded-For hops and enforces rate limits across trailing-slash and %2F path variants', async () => {
+    const buildDir = await createFixtureBuildDir();
+    activeHandlerRef.current = async request =>
+      Response.json({
+        forwardedFor: request.headers.get('x-forwarded-for'),
+      });
+
+    const adminServer = await createSsrServer({
+      serviceName: 'admin-ssr',
+      buildDir,
+      port: 0,
+      host: '127.0.0.1',
+    });
+
+    try {
+      for (let i = 0; i < 10; i += 1) {
+        const res = await adminServer.app.inject({
+          method: 'POST',
+          url: '/api/auth/password/login',
+          headers: {
+            'content-type': 'application/json',
+            'x-forwarded-for': `10.0.0.${i + 1}, 203.0.113.91`,
+          },
+          payload: JSON.stringify({ handle: 'admin', password: 'wrong' }),
+        });
+        expect(res.statusCode).toBe(200);
+        expect(res.json()).toEqual({ forwardedFor: '203.0.113.91' });
+      }
+      for (let i = 0; i < 10; i += 1) {
+        const res = await adminServer.app.inject({
+          method: 'POST',
+          url: '/api/auth/password/login',
+          headers: {
+            'content-type': 'application/json',
+            'x-forwarded-for': `10.1.0.${i + 1}, 203.0.113.91`,
+          },
+          payload: JSON.stringify({ handle: 'admin', password: 'wrong' }),
+        });
+        expect(res.statusCode).toBe(200);
+      }
+
+      const spoofLimited = await adminServer.app.inject({
+        method: 'POST',
+        url: '/api/auth/password/login',
+        headers: {
+          'content-type': 'application/json',
+          'x-forwarded-for': '10.2.0.99, 203.0.113.91',
+        },
+        payload: JSON.stringify({ handle: 'admin', password: 'wrong' }),
+      });
+      expect(spoofLimited.statusCode).toBe(429);
+      expect(spoofLimited.json()).toMatchObject({ statusCode: 429, error: 'RATE_LIMITED' });
+
+      const passwordVariantUrls = ['/api/auth/password/login/', '/api/auth/password%2Flogin'];
+      for (let i = 0; i < 20; i += 1) {
+        const res = await adminServer.app.inject({
+          method: 'POST',
+          url: passwordVariantUrls[i % passwordVariantUrls.length]!,
+          headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.92' },
+          payload: JSON.stringify({ handle: 'admin', password: 'wrong' }),
+        });
+        expect(res.statusCode).toBe(200);
+        expect(res.headers['x-ratelimit-limit']).toBe('20');
+      }
+
+      const passwordVariantLimited = await adminServer.app.inject({
+        method: 'POST',
+        url: '/api/auth/foo/../password%2Flogin/',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.92' },
+        payload: JSON.stringify({ handle: 'admin', password: 'wrong' }),
+      });
+      expect(passwordVariantLimited.statusCode).toBe(429);
+      expect(passwordVariantLimited.json()).toMatchObject({
+        statusCode: 429,
+        error: 'RATE_LIMITED',
+      });
+
+      const totpVariantUrls = ['/api/auth/totp/verify/', '/api/auth/totp%2Fverify'];
+      for (let i = 0; i < 20; i += 1) {
+        const res = await adminServer.app.inject({
+          method: 'POST',
+          url: totpVariantUrls[i % totpVariantUrls.length]!,
+          headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.93' },
+          payload: JSON.stringify({ code: '123456' }),
+        });
+        expect(res.statusCode).toBe(200);
+        expect(res.headers['x-ratelimit-limit']).toBe('20');
+      }
+
+      const totpVariantLimited = await adminServer.app.inject({
+        method: 'POST',
+        url: '/api/auth/totp/verify/',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.93' },
+        payload: JSON.stringify({ code: '123456' }),
+      });
+      expect(totpVariantLimited.statusCode).toBe(429);
+      expect(totpVariantLimited.json()).toMatchObject({
+        statusCode: 429,
+        error: 'RATE_LIMITED',
+      });
+    } finally {
+      await adminServer.app.close();
+    }
+  });
 });
