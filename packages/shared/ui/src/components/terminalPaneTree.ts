@@ -22,6 +22,7 @@ export interface TerminalLeafPane {
   readonly ttyNumber: number;
   readonly kind?: TerminalPaneKind;
   readonly tuiOpen: boolean;
+  readonly tuiStack?: readonly string[];
   readonly pinned?: boolean;
 }
 
@@ -121,6 +122,7 @@ export interface KeyboardShortcutInput {
 
 export interface InitialWorkspaceOptions {
   readonly pinnedPrimary?: boolean;
+  readonly initialPrimaryTuiStack?: readonly string[];
 }
 
 const MIN_SPLIT_RATIO = 0.2;
@@ -131,12 +133,17 @@ const EPSILON = 1e-6;
 export function createInitialWorkspaceState(
   options?: InitialWorkspaceOptions,
 ): TerminalWorkspaceState {
+  const initialStack =
+    options?.initialPrimaryTuiStack && options.initialPrimaryTuiStack.length > 0
+      ? [...options.initialPrimaryTuiStack]
+      : undefined;
   return {
     root: {
       type: 'leaf',
       id: 'pane-1',
       ttyNumber: 1,
       tuiOpen: false,
+      ...(initialStack ? { tuiStack: initialStack } : {}),
       ...(options?.pinnedPrimary ? { pinned: true } : {}),
     },
     activePaneId: 'pane-1',

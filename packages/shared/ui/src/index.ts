@@ -77,6 +77,17 @@ export {
   updateActiveTabWorkspace,
   type WorkspaceShortcutAction,
 } from './components/terminalPaneTree';
+export {
+  exitPaneTui,
+  getActivePaneViewId,
+  openViewInSplit,
+  openViewInTab,
+  parseCliNavFlags,
+  type ParsedCliNavFlags,
+  popPaneView,
+  pushPaneView,
+  type TerminalNavTarget,
+} from './components/terminalPaneNav';
 export { TuiWindow, type TuiWindowProps } from './components/TuiWindow';
 export {
   type TerminalVariant,
