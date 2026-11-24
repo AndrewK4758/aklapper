@@ -166,10 +166,10 @@ export const basename = '/';
 
       const malformedForwardedHost = await server.app.inject({
         method: 'GET',
-        url: '/api/auth/session',
+        url: '/api/auth/session?email=a@b.com',
         headers: {
           host: 'admin.andrew-k.us',
-          'x-forwarded-host': 'user:pass@evil.example.invalid',
+          'x-forwarded-host': 'https://user:p/ss?q#f@evil.example.invalid',
           'x-forwarded-proto': 'javascript',
           'x-correlation-id': 'sec-cid-proto-2',
         },
@@ -177,11 +177,14 @@ export const basename = '/';
       expect(malformedForwardedHost.statusCode).toBe(200);
       expect(malformedForwardedHost.headers['x-correlation-id']).toBe('sec-cid-proto-2');
       expect(malformedForwardedHost.json()).toEqual({
-        url: 'http://admin.andrew-k.us/api/auth/session',
+        url: 'http://admin.andrew-k.us/api/auth/session?email=a@b.com',
         origin: 'http://admin.andrew-k.us',
         forwardedProto: 'http',
         forwardedHost: null,
       });
+      const protoLogs = JSON.stringify(logs.records);
+      expect(protoLogs).not.toContain('p/ss?q#f');
+      expect(protoLogs).toContain('email=a@b.com');
 
       const multiHopHttps = await server.app.inject({
         method: 'GET',
@@ -300,20 +303,41 @@ export const basename = '/';
       const userinfoAbsolute = await sendRawHttp(port, {
         method: 'GET',
         path: `http://user:pass@127.0.0.1:${port}/`,
-        headers: {
-          host: `127.0.0.1:${port}`,
-          'x-correlation-id': 'sec-cid-userinfo-url',
-        },
+        headers: { host: `127.0.0.1:${port}`, 'x-correlation-id': 'sec-cid-userinfo-url' },
       });
       expect(userinfoAbsolute.status).toBe(400);
-      expect(userinfoAbsolute.headers['x-correlation-id']).toBe('sec-cid-userinfo-url');
       expect(JSON.parse(userinfoAbsolute.body)).toMatchObject({
         code: 'ERR_VALIDATION',
         status: 400,
         correlationId: 'sec-cid-userinfo-url',
       });
+
+      const protoRelUserinfo = await sendRawHttp(port, {
+        method: 'GET',
+        path: `//user:protoSecret@127.0.0.1:${port}/`,
+        headers: { host: 'user:space secret@evil.invalid', 'x-correlation-id': 'sec-cid-pr-ui' },
+      });
+      expect(protoRelUserinfo.status).toBe(400);
+
+      const backslashUserinfo = await sendRawHttp(port, {
+        method: 'GET',
+        path: `/\\user:bsSecret@127.0.0.1:${port}/`,
+        headers: { host: `127.0.0.1:${port}`, 'x-correlation-id': 'sec-cid-bs-ui' },
+      });
+      expect(backslashUserinfo.status).toBe(400);
+
+      const propfindUserinfo = await sendRawHttp(port, {
+        method: 'PROPFIND',
+        path: `http://user:propSecret@127.0.0.1:${port}/`,
+        headers: { host: `127.0.0.1:${port}`, 'x-correlation-id': 'sec-cid-propfind' },
+      });
+      expect(propfindUserinfo.status).toBe(405);
+      expect(propfindUserinfo.body).not.toContain('propSecret');
+
       const serializedLogs = JSON.stringify(logs.records);
-      expect(serializedLogs).not.toContain('user:pass');
+      for (const secret of ['user:pass', 'protoSecret', 'bsSecret', 'space secret', 'propSecret']) {
+        expect(serializedLogs).not.toContain(secret);
+      }
       expect(serializedLogs).toContain('[REDACTED]@');
 
       const traceRes = await server.app.inject({

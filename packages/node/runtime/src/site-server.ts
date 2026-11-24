@@ -34,8 +34,8 @@ const SINGLE_PROXY_HOP = (_address: string, hop: number): boolean => hop === 0;
 const UNSUPPORTED_FETCH_METHODS = new Set(['TRACE', 'CONNECT']);
 const HOSTNAME_RE = /^[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?(?::(\d{1,5}))?$/;
 const IPV6_HOST_RE = /^\[[0-9a-fA-F:]+\](?::(\d{1,5}))?$/;
-const URL_USERINFO_RE = /^([a-z][a-z0-9+.-]*:\/\/)[^/?#\s]+@/i;
-const HOST_USERINFO_RE = /^[^/?#\s]+@/;
+const URL_USERINFO_RE = /^((?:[a-z][a-z0-9+.-]*:)?\/[/\\])[^/?#\s]+@/i;
+const HOST_USERINFO_RE = /^[\s\S]+@/;
 
 function scrubRequestUrlForLog(rawUrl: string | undefined): string | undefined {
   if (typeof rawUrl !== 'string') return rawUrl;
@@ -200,7 +200,7 @@ export async function createSsrServer(options: SsrServerOptions): Promise<SsrSer
   };
   const serializers = {
     req(request: FastifyRequest) {
-      const rawVersion = request.headers['accept-version'];
+      const rawVersion = request?.headers?.['accept-version'];
       return {
         method: request.method,
         url: scrubRequestUrlForLog(request.url) ?? '',
@@ -278,6 +278,32 @@ export async function createSsrServer(options: SsrServerOptions): Promise<SsrSer
   });
 
   app.get('/healthz', async () => ({ status: 'ok', service: serviceName }));
+
+  app.setNotFoundHandler((request, reply) => {
+    const { correlationId } = extractCorrelationId(request.headers);
+    const publicError = createPublicAppError({
+      code: 'ERR_VALIDATION',
+      status: 405,
+      message: 'HTTP method is not allowed.',
+      action: 'Use a supported HTTP method and retry.',
+      correlationId,
+    });
+    request.log.warn(
+      {
+        seam_type: 'UNSOUND_CONDITION',
+        event: 'ssr.request.unsupported_method',
+        method: request.method.toUpperCase(),
+        correlationId,
+        service: serviceName,
+      },
+      'Rejected unsupported HTTP method',
+    );
+    return reply
+      .code(405)
+      .header('x-correlation-id', correlationId)
+      .header('allow', 'GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS')
+      .send(publicError);
+  });
 
   const serverBuildUrl = pathToFileURL(resolve(buildDir, 'server', 'index.js')).href;
   const serverBuild = (await import(/* @vite-ignore */ serverBuildUrl)) as ServerBuild;
