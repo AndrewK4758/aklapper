@@ -67,6 +67,18 @@ describe('createPrimaryRouteClientAction', () => {
     ).rejects.toBe(redirectResponse);
   });
 
+  it('re-throws AbortError without synthesizing a 503 error result during navigation or reload unload', async () => {
+    const clientAction = createPrimaryRouteClientAction<PortalAskActionResult>('/chat');
+    const abortErr = new DOMException('Aborted', 'AbortError');
+    await expect(
+      clientAction(
+        buildClientActionArgs('http://localhost/chat', { mode: 'jd_match' }, async () => {
+          throw abortErr;
+        }),
+      ),
+    ).rejects.toBe(abortErr);
+  });
+
   it('returns fail-closed 503 data preserving /chat mode on offline TypeError', async () => {
     const clientAction = createPrimaryRouteClientAction<PortalAskActionResult>('/chat');
     const result = await clientAction(

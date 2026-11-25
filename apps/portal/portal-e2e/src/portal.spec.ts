@@ -850,10 +850,12 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(workspace).toHaveAttribute('data-tab-count', '2');
     await expect(workspace).toHaveAttribute('data-active-tab', 'tab-2');
 
-    // Direct SSR deep-link to /agensi initializes pane-1 and returns to / on Exit TUI
+    // Direct SSR deep-link to /agensi preserves global tabs/splits, initializes pane-1, and returns to / on Exit TUI
     await gotoStreamedPage(page, '/agensi');
+    await expect(workspace).toHaveAttribute('data-tab-count', '2');
+    await expect(workspace).toHaveAttribute('data-pane-count', '2');
     await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '1');
-    await page.getByRole('button', { name: 'Exit TUI' }).click();
+    await page.locator('[data-pane-id="pane-1"]').getByRole('button', { name: 'Exit TUI' }).click();
     await expect(page).toHaveURL(/\/$/);
 
     expect(getErrors()).toEqual([]);
