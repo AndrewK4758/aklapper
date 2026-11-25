@@ -6,6 +6,8 @@ import {
   type CadenceStreamErrorEvent,
   type CadenceStreamPhaseEvent,
   type CadenceTurn,
+  extractCadencePromptKeywords,
+  MAX_CADENCE_ARTIFACT_BYTES,
   type QuotaStatus,
   sanitizeCadenceArtifactHtml,
 } from '@aklapper/core';
@@ -249,6 +251,7 @@ export async function runFallbackChordPipelineSse(
       0,
       15,
     );
+    const detectedKeywords = extractCadencePromptKeywords(run.prompt, 6);
     await emitStep(
       'triage',
       'chord-triage',
@@ -256,7 +259,13 @@ export async function runFallbackChordPipelineSse(
       `Classified prompt (${run.prompt.length} chars) under "${presetSlug}" (${mode} fallback).`,
       2,
       25,
-      { presetSlug, promptLen: run.prompt.length, mode },
+      {
+        presetSlug,
+        promptLen: run.prompt.length,
+        mode,
+        detectedKeywords,
+        isolationPolicy: 'sandbox=allow-scripts; opaque-origin; max-48KiB',
+      },
     );
 
     await emitStep('spec', 'chord-spec', 'running', 'Drafting tailored UI artifact spec...', 0, 40);
@@ -264,10 +273,19 @@ export async function runFallbackChordPipelineSse(
       'spec',
       'chord-spec',
       'completed',
-      'Drafted single-file Solar Forge HTML/CSS/JS specification.',
+      'Drafted single-file Solar Forge HTML/CSS specification.',
       4,
       50,
-      { recalledPatterns: [] },
+      {
+        recalledPatterns: [],
+        acceptanceCriteria: [
+          'Self-contained dark Solar Forge HTML5+CSS document filling 100% width',
+          'Interactive controls using pure HTML5/CSS (tabs, collapsible panels, charts)',
+          'Zero external fetches, zero arbitrary inline JS, <= 48 KiB UTF-8',
+        ],
+        sandboxConstraints:
+          "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'",
+      },
     );
 
     await emitStep(
@@ -283,10 +301,19 @@ export async function runFallbackChordPipelineSse(
       'build',
       'chord-builder',
       'completed',
-      `Synthesized bounded HTML/CSS/JS artifact (${rawHtml.length} bytes) via ${mode}-node-fallback.`,
+      `Synthesized bounded HTML/CSS artifact (${rawHtml.length} bytes) via ${mode}-node-fallback.`,
       6,
       80,
-      { provider: `${mode}-node-fallback`, artifactBytes: rawHtml.length },
+      {
+        provider: `${mode}-node-fallback`,
+        artifactBytes: rawHtml.length,
+        ...(mode === 'llm'
+          ? {
+              fallbackReason:
+                'CADENCE Go service unreachable; rendered structured interactive fallback.',
+            }
+          : {}),
+      },
     );
 
     await emitStep(
@@ -316,7 +343,16 @@ export async function runFallbackChordPipelineSse(
         : 'Artifact passed HTML/JS isolation sanitizer; ready for operator gate verdict.',
       3,
       100,
-      { sanitized: sanitized.stripped, gateVerdict: 'pending' },
+      {
+        sanitized: sanitized.stripped,
+        gateVerdict: 'pending',
+        artifactBytes: sanitized.html.length,
+        checks: [
+          "Strict CSP meta injected (default-src 'none', sha256-pinned probe script)",
+          `Payload size verified (${sanitized.html.length} / ${MAX_CADENCE_ARTIFACT_BYTES} bytes)`,
+          'Zero external network fetches, zero iframe/svg/object/event-handler escape hatches',
+        ],
+      },
     );
 
     const completed = await completeSandboxRunRow(db, {

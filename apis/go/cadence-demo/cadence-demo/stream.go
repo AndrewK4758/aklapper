@@ -138,7 +138,11 @@ func handleRunStream(provider llm.Provider, vectorStore *qdrant.Client, store *p
 		})
 
 		// Detach DB lifecycle commits from HTTP client cancel so reloads see durable terminal state.
-		workCtx, workCancel := context.WithTimeout(context.WithoutCancel(r.Context()), 15*time.Second)
+		workTimeout := 15 * time.Second
+		if mode == contracts.CadenceModeLLM {
+			workTimeout = 45 * time.Second
+		}
+		workCtx, workCancel := context.WithTimeout(context.WithoutCancel(r.Context()), workTimeout)
 		defer workCancel()
 
 		out, execErr := executeChordSteps(

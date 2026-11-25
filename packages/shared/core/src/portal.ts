@@ -71,6 +71,15 @@ export type CadenceTurnPhase = z.infer<typeof CadenceTurnPhaseSchema>;
 export const CadenceTurnStatusSchema = z.enum(['pending', 'running', 'completed', 'failed']);
 export type CadenceTurnStatus = z.infer<typeof CadenceTurnStatusSchema>;
 
+export const CadenceTurnPayloadValueSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.null(),
+  z.array(z.string()),
+]);
+export type CadenceTurnPayloadValue = z.infer<typeof CadenceTurnPayloadValueSchema>;
+
 export const CadenceTurnSchema = z.object({
   id: z.number().int().positive().optional(),
   phase: CadenceTurnPhaseSchema,
@@ -78,6 +87,7 @@ export const CadenceTurnSchema = z.object({
   status: CadenceTurnStatusSchema,
   summary: z.string(),
   latencyMs: z.number().int().nonnegative(),
+  payload: z.record(z.string(), CadenceTurnPayloadValueSchema).optional(),
   createdAt: z.string().optional(),
 });
 export type CadenceTurn = z.infer<typeof CadenceTurnSchema>;
