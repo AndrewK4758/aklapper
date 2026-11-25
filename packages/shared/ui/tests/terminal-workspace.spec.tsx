@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   addWorkspaceTab,
+  allocateNextTabNumber,
   closeActivePaneOrTab,
   closePaneById,
   closeWorkspaceTab,
@@ -454,6 +455,43 @@ describe('terminalPaneTree', () => {
     // closeActivePaneOrTab closes the detached single-pane tab
     tabs = closeActivePaneOrTab(tabs);
     expect(tabs.tabs).toHaveLength(2);
+  });
+
+  it('reuses the lowest unused positive tab number in addWorkspaceTab and detachPaneToNewTab while keeping pane IDs monotonic', () => {
+    let tabs = createInitialTabbedWorkspaceState();
+    tabs = addWorkspaceTab(tabs);
+    tabs = addWorkspaceTab(tabs);
+    expect(tabs.tabs.map(t => t.id)).toEqual(['tab-1', 'tab-2', 'tab-3']);
+    expect(allocateNextTabNumber(tabs.tabs)).toBe(4);
+
+    // Close tab-2 and tab-3; next new tab should reuse tab-2 while pane IDs continue monotonically
+    tabs = closeWorkspaceTab(tabs, 'tab-2');
+    tabs = closeWorkspaceTab(tabs, 'tab-3');
+    expect(tabs.tabs.map(t => t.id)).toEqual(['tab-1']);
+    expect(allocateNextTabNumber(tabs.tabs)).toBe(2);
+
+    tabs = addWorkspaceTab(tabs);
+    expect(tabs.activeTabId).toBe('tab-2');
+    expect(tabs.tabs.map(t => t.id)).toEqual(['tab-1', 'tab-2']);
+    expect(getActiveWorkspaceTab(tabs).workspace.activePaneId).toBe('pane-4');
+
+    // Close tab-1 (unpinned); next detached pane should reuse tab-1 while preserving its monotonic pane ID
+    tabs = closeWorkspaceTab(tabs, 'tab-1');
+    expect(tabs.tabs.map(t => t.id)).toEqual(['tab-2']);
+    expect(allocateNextTabNumber(tabs.tabs)).toBe(1);
+
+    tabs = {
+      ...tabs,
+      tabs: tabs.tabs.map(t =>
+        t.id === 'tab-2' ? { ...t, workspace: splitActivePane(t.workspace, 'right') } : t,
+      ),
+      nextPaneNumber: Math.max(tabs.nextPaneNumber, 6),
+    };
+    const splitPaneId = getActiveWorkspaceTab(tabs).workspace.activePaneId;
+    tabs = detachPaneToNewTab(tabs, splitPaneId);
+    expect(tabs.activeTabId).toBe('tab-1');
+    expect(tabs.tabs.map(t => t.id)).toEqual(['tab-2', 'tab-1']);
+    expect(getActiveWorkspaceTab(tabs).workspace.activePaneId).toBe(splitPaneId);
   });
 
   it('opens, focuses, and toggles a snapped TUI split pane beside the anchor pane without duplicating', () => {

@@ -1148,6 +1148,27 @@ function recordTabHistory(history: readonly string[], tabId: string): readonly s
   return [tabId, ...history.filter(id => id !== tabId)];
 }
 
+const TAB_ID_NUMBER_PATTERN = /^tab-(\d+)$/;
+
+export function allocateNextTabNumber(tabs: readonly TerminalWorkspaceTab[]): number {
+  const usedNumbers = new Set<number>();
+  for (const tab of tabs) {
+    const match = TAB_ID_NUMBER_PATTERN.exec(tab.id);
+    if (!match?.[1]) {
+      continue;
+    }
+    const parsed = Number.parseInt(match[1], 10);
+    if (Number.isSafeInteger(parsed) && parsed >= 1) {
+      usedNumbers.add(parsed);
+    }
+  }
+  let candidate = 1;
+  while (usedNumbers.has(candidate)) {
+    candidate += 1;
+  }
+  return candidate;
+}
+
 export function createInitialTabbedWorkspaceState(
   options?: InitialWorkspaceOptions,
 ): TerminalTabbedWorkspaceState {
@@ -1196,7 +1217,7 @@ export function updateActiveTabWorkspace(
 }
 
 export function addWorkspaceTab(state: TerminalTabbedWorkspaceState): TerminalTabbedWorkspaceState {
-  const tabNumber = state.nextTabNumber;
+  const tabNumber = allocateNextTabNumber(state.tabs);
   const paneNumber = state.nextPaneNumber;
   const leaf: TerminalLeafPane = {
     type: 'leaf',
@@ -1215,11 +1236,12 @@ export function addWorkspaceTab(state: TerminalTabbedWorkspaceState): TerminalTa
       focusToken: 1,
     },
   };
+  const nextTabs = [...state.tabs, newTab];
   return {
-    tabs: [...state.tabs, newTab],
+    tabs: nextTabs,
     activeTabId: newTab.id,
     tabHistory: recordTabHistory(state.tabHistory, newTab.id),
-    nextTabNumber: tabNumber + 1,
+    nextTabNumber: allocateNextTabNumber(nextTabs),
     nextPaneNumber: paneNumber + 1,
   };
 }
@@ -1375,7 +1397,7 @@ export function detachPaneToNewTab(
     return state;
   }
 
-  const tabNumber = state.nextTabNumber;
+  const tabNumber = allocateNextTabNumber(state.tabs);
   const detachedTab: TerminalWorkspaceTab = {
     id: `tab-${tabNumber}`,
     title: null,
@@ -1388,16 +1410,18 @@ export function detachPaneToNewTab(
     },
   };
 
+  const nextTabs = [
+    ...state.tabs.map(tab =>
+      tab.id === activeTab.id ? { ...tab, workspace: nextSourceWorkspace } : tab,
+    ),
+    detachedTab,
+  ];
+
   return {
-    tabs: [
-      ...state.tabs.map(tab =>
-        tab.id === activeTab.id ? { ...tab, workspace: nextSourceWorkspace } : tab,
-      ),
-      detachedTab,
-    ],
+    tabs: nextTabs,
     activeTabId: detachedTab.id,
     tabHistory: recordTabHistory(state.tabHistory, detachedTab.id),
-    nextTabNumber: tabNumber + 1,
+    nextTabNumber: allocateNextTabNumber(nextTabs),
     nextPaneNumber: state.nextPaneNumber,
   };
 }
