@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"os"
 	"strings"
@@ -15,8 +16,23 @@ import (
 const (
 	DefaultLocalBaseURL    = "http://127.0.0.1:11434/v1"
 	DefaultLocalChatModel  = "inference"
-	DefaultLocalEmbedModel = "embeddinggemma"
+	DefaultLocalEmbedModel = "embedding"
+	ExpectedEmbeddingDims  = 768
 )
+
+// ValidateEmbeddingDims verifies embedding vectors match the configured 768-dim Qdrant index
+// and contain finite float values before any vector store I/O occurs.
+func ValidateEmbeddingDims(vec []float32) error {
+	if len(vec) != ExpectedEmbeddingDims {
+		return fmt.Errorf("expected %d embedding dimensions, got %d", ExpectedEmbeddingDims, len(vec))
+	}
+	for i, v := range vec {
+		if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
+			return fmt.Errorf("non-finite embedding value at index %d", i)
+		}
+	}
+	return nil
+}
 
 type ChatMessage struct {
 	Role    string `json:"role"`

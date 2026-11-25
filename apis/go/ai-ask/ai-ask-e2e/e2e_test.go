@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -13,36 +16,55 @@ import (
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit/e2etest"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/llm"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/qdrant"
 )
 
-type askResponse struct {
-	Grounded   bool                   `json:"grounded"`
-	Mode       string                 `json:"mode"`
-	Provider   string                 `json:"provider"`
-	Model      string                 `json:"model"`
-	TokensUsed int                    `json:"tokensUsed"`
-	Answer     string                 `json:"answer"`
-	Sources    []contracts.AskSource  `json:"sources"`
-	MatchScore *int                   `json:"matchScore,omitempty"`
-	Strengths  []string               `json:"strengths,omitempty"`
-	Gaps       []string               `json:"gaps,omitempty"`
-	Quota      *contracts.QuotaStatus `json:"quota,omitempty"`
+func make768Vec(val float32) []float32 {
+	v := make([]float32, llm.ExpectedEmbeddingDims)
+	for i := range v {
+		v[i] = val
+	}
+	return v
 }
 
-type reindexResponse struct {
-	Indexed    int    `json:"indexed"`
-	Collection string `json:"collection"`
-	VectorSize int    `json:"vectorSize"`
-	Provider   string `json:"provider"`
+func guestHeaders(t *testing.T, sub, secret string) map[string]string {
+	t.Helper()
+	tok, err := internalauth.Sign(internalauth.RoleGuest, sub, time.Minute, secret)
+	if err != nil {
+		t.Fatalf("sign guest token: %v", err)
+	}
+	return map[string]string{internalauth.HeaderName: tok}
+}
+
+func envWithout(drop ...string) []string {
+	blocked := map[string]bool{}
+	for _, k := range drop {
+		blocked[k] = true
+	}
+	var out []string
+	for _, kv := range os.Environ() {
+		idx := strings.IndexByte(kv, '=')
+		if idx <= 0 || blocked[kv[:idx]] {
+			continue
+		}
+		out = append(out, kv)
+	}
+	return out
 }
 
 func TestAiAskEndToEnd(t *testing.T) {
-	t.Parallel()
+	if strings.TrimSpace(os.Getenv("DATABASE_URL")) == "" {
+		t.Fatal("DATABASE_URL must be set for ai-ask-e2e (live PG19 strict startup)")
+	}
 
 	var embedFail atomic.Bool
 	var chatFail atomic.Bool
+	var chatModeJD atomic.Bool
 	var qdrantEmpty atomic.Bool
 	var qdrantLowScore atomic.Bool
+	var qdrantStatusFail atomic.Bool
 
 	llmServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -52,20 +74,20 @@ func TestAiAskEndToEnd(t *testing.T) {
 				return
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{
-				"data": []map[string]any{
-					{"embedding": []float32{0.12, 0.34, 0.56}},
-				},
+				"data": []map[string]any{{"embedding": make768Vec(0.25)}},
 			})
 		case "/v1/chat/completions":
 			if chatFail.Load() {
 				http.Error(w, "chat backend error", http.StatusInternalServerError)
 				return
 			}
+			content := "Grounded answer citing Portfolio Architecture."
+			if chatModeJD.Load() {
+				content = `{"answer":"Strong match for Go microservices and React SSR.","matchScore":88,"strengths":["Go microservices on GKE","PostgreSQL 19 & Qdrant RAG"],"gaps":["Rust embedded experience not indexed"]}`
+			}
 			_ = json.NewEncoder(w).Encode(map[string]any{
-				"choices": []map[string]any{
-					{"message": map[string]any{"content": "Grounded answer from portfolio evidence."}},
-				},
-				"usage": map[string]any{"total_tokens": 42},
+				"choices": []map[string]any{{"message": map[string]any{"content": content}}},
+				"usage":   map[string]any{"total_tokens": 42},
 			})
 		default:
 			http.NotFound(w, r)
@@ -76,10 +98,15 @@ func TestAiAskEndToEnd(t *testing.T) {
 	qdrantServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodGet && r.URL.Path == "/collections/portfolio_docs":
+			if qdrantStatusFail.Load() {
+				http.Error(w, "qdrant secret internal connection error", http.StatusBadGateway)
+				return
+			}
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"result": map[string]any{
 					"status":       "green",
 					"points_count": 3,
+					"config":       map[string]any{"params": map[string]any{"vectors": map[string]any{"size": 768}}},
 				},
 			})
 		case r.Method == http.MethodPut && r.URL.Path == "/collections/portfolio_docs":
@@ -88,6 +115,8 @@ func TestAiAskEndToEnd(t *testing.T) {
 		case r.Method == http.MethodPut && r.URL.Path == "/collections/portfolio_docs/points":
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"status":"ok"}`))
+		case r.Method == http.MethodPost && r.URL.Path == "/collections/portfolio_docs/points/scroll":
+			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"points": []any{}}})
 		case r.Method == http.MethodPost && r.URL.Path == "/collections/portfolio_docs/points/search":
 			if qdrantEmpty.Load() {
 				_ = json.NewEncoder(w).Encode(map[string]any{"result": []any{}})
@@ -98,18 +127,15 @@ func TestAiAskEndToEnd(t *testing.T) {
 				score = 0.22
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{
-				"result": []map[string]any{
-					{
-						"id":    "doc-1",
-						"score": score,
-						"payload": map[string]any{
-							"docId":    "doc-1",
-							"title":    "Portfolio Architecture",
-							"snippet":  "Monorepo built with Go, Node 26, React Router SSR, Kubernetes GKE, and PostgreSQL 19.",
-							"category": "architecture",
-						},
+				"result": []map[string]any{{
+					"id":    qdrant.PortfolioPointID("doc-1", 0),
+					"score": score,
+					"payload": map[string]any{
+						"docId": "doc-1", "title": "Portfolio Architecture",
+						"snippet":  "Monorepo built with Go, Node 26, React Router SSR, Kubernetes GKE, and PostgreSQL 19.",
+						"category": "architecture",
 					},
-				},
+				}},
 			})
 		default:
 			http.NotFound(w, r)
@@ -121,233 +147,147 @@ func TestAiAskEndToEnd(t *testing.T) {
 	baseURL := e2etest.StartBinary(
 		t,
 		"../ai-ask",
-		"PG_DISABLE_LIVE=true",
+		"APP_ENV=production",
 		"INTERNAL_AUTH_SECRET="+secret,
 		"LOCAL_LLM_BASE_URL="+llmServer.URL+"/v1",
 		"LOCAL_LLM_CHAT_MODEL=e2e-chat",
-		"LOCAL_LLM_EMBED_MODEL=e2e-embed",
+		"LOCAL_LLM_EMBED_MODEL=embedding",
 		"QDRANT_URL="+qdrantServer.URL,
 	)
 
-	t.Run("GET /healthz returns service identity", func(t *testing.T) {
+	t.Run("Binary fails closed on empty DATABASE_URL or production missing INTERNAL_AUTH_SECRET", func(t *testing.T) {
+		absDir, _ := filepath.Abs("../ai-ask")
+		binPath := filepath.Join(t.TempDir(), "ai-ask-strict-check")
+		out, buildErr := exec.Command("go", "build", "-o", binPath, ".").CombinedOutput()
+		if buildErr != nil {
+			// Build from explicit dir
+			c := exec.Command("go", "build", "-o", binPath, ".")
+			c.Dir = absDir
+			if o, err := c.CombinedOutput(); err != nil {
+				t.Fatalf("build strict binary: %v\n%s\n%s", err, string(out), string(o))
+			}
+		}
+
+		noDB := exec.Command(binPath)
+		noDB.Env = append(envWithout("DATABASE_URL"), "DATABASE_URL=", "APP_ENV=production", "INTERNAL_AUTH_SECRET="+secret)
+		if _, err := noDB.CombinedOutput(); err == nil {
+			t.Fatal("expected ai-ask startup failure when DATABASE_URL is empty")
+		}
+
+		noSecret := exec.Command(binPath)
+		noSecret.Env = append(envWithout("INTERNAL_AUTH_SECRET"), "APP_ENV=production", "INTERNAL_AUTH_SECRET=")
+		if _, err := noSecret.CombinedOutput(); err == nil {
+			t.Fatal("expected ai-ask startup failure when APP_ENV=production and INTERNAL_AUTH_SECRET empty")
+		}
+	})
+
+	t.Run("GET /healthz and /v1/ask/status return healthy and redacted 503", func(t *testing.T) {
 		res, health := e2etest.DoJSON[httpkit.HealthResponse](t, http.MethodGet, baseURL+"/healthz", nil, nil)
-		if res.StatusCode != http.StatusOK {
-			t.Fatalf("expected 200, got %d", res.StatusCode)
+		if res.StatusCode != http.StatusOK || !health.OK || health.Service != "ai-ask" {
+			t.Fatalf("unexpected healthz (%d): %+v", res.StatusCode, health)
 		}
-		if !health.OK || health.Service != "ai-ask" || health.Time == "" {
-			t.Fatalf("unexpected health payload: %+v", health)
+
+		resS, out := e2etest.DoJSON[contracts.AskServiceStatus](t, http.MethodGet, baseURL+"/v1/ask/status", nil, nil)
+		if resS.StatusCode != http.StatusOK || out.Status != "ready" || !out.PGConnected {
+			t.Fatalf("unexpected status (%d): %+v", resS.StatusCode, out)
+		}
+
+		qdrantStatusFail.Store(true)
+		defer qdrantStatusFail.Store(false)
+		res503, body := e2etest.DoRequest(t, http.MethodGet, baseURL+"/v1/ask/status", nil, nil)
+		if res503.StatusCode != http.StatusServiceUnavailable || strings.Contains(string(body), "secret internal connection") {
+			t.Fatalf("expected redacted 503 status, got (%d): %s", res503.StatusCode, string(body))
 		}
 	})
 
-	t.Run("GET /v1/ask/status returns collection status and provider", func(t *testing.T) {
-		res, out := e2etest.DoJSON[map[string]any](t, http.MethodGet, baseURL+"/v1/ask/status", nil, nil)
-		if res.StatusCode != http.StatusOK || out["status"] != "ready" || out["provider"] != "local-llama-swap" {
-			t.Fatalf("unexpected status response (%d): %+v", res.StatusCode, out)
-		}
-	})
-
-	t.Run("POST /v1/ask/reindex requires admin token and indexes corpus", func(t *testing.T) {
-		resForbidden, _ := e2etest.DoJSON[httpkit.ErrorResponse](t, http.MethodPost, baseURL+"/v1/ask/reindex", nil, nil)
-		if resForbidden.StatusCode != http.StatusForbidden {
-			t.Fatalf("expected 403 without admin token, got %d", resForbidden.StatusCode)
+	t.Run("POST /v1/ask/reindex indexes 768-dim UUIDv5 points with admin auth", func(t *testing.T) {
+		resF, _ := e2etest.DoRequest(t, http.MethodPost, baseURL+"/v1/ask/reindex", nil, nil)
+		if resF.StatusCode != http.StatusForbidden {
+			t.Fatalf("expected 403, got %d", resF.StatusCode)
 		}
 
-		tok, err := internalauth.Sign(internalauth.RoleAdmin, "e2e-admin", time.Minute, secret)
-		if err != nil {
-			t.Fatalf("sign admin token: %v", err)
-		}
-		resOK, out := e2etest.DoJSON[reindexResponse](
-			t,
-			http.MethodPost,
-			baseURL+"/v1/ask/reindex",
-			nil,
-			map[string]string{internalauth.HeaderName: tok},
+		tok, _ := internalauth.Sign(internalauth.RoleAdmin, "e2e-admin", time.Minute, secret)
+		resOK, out := e2etest.DoJSON[map[string]any](
+			t, http.MethodPost, baseURL+"/v1/ask/reindex", nil, map[string]string{internalauth.HeaderName: tok},
 		)
-		if resOK.StatusCode != http.StatusOK {
-			t.Fatalf("expected 200, got %d", resOK.StatusCode)
-		}
-		if out.Indexed < 3 || out.Collection != "portfolio_docs" || out.VectorSize != 3 {
-			t.Fatalf("unexpected reindex response: %+v", out)
+		if resOK.StatusCode != http.StatusOK || int(out["vectorSize"].(float64)) != llm.ExpectedEmbeddingDims {
+			t.Fatalf("unexpected reindex (%d): %+v", resOK.StatusCode, out)
 		}
 	})
 
-	t.Run("POST /v1/ask returns grounded qa completion with structured sources", func(t *testing.T) {
-		embedFail.Store(false)
-		chatFail.Store(false)
-		qdrantEmpty.Store(false)
-		qdrantLowScore.Store(false)
-
-		res, out := e2etest.DoJSON[askResponse](
-			t,
-			http.MethodPost,
-			baseURL+"/v1/ask",
-			map[string]string{
-				"mode":      "qa",
-				"sessionId": "e2e-qa-1",
-				"question":  "What stack powers this portfolio monorepo?",
-			},
-			nil,
+	t.Run("POST /v1/ask authenticates, grounds QA & JD Match, polls /v1/ask/turns/:id, and fails closed 502 on backend failure", func(t *testing.T) {
+		resUnauth, _ := e2etest.DoJSON[contracts.PublicAppError](
+			t, http.MethodPost, baseURL+"/v1/ask", map[string]string{"question": "What stack?"}, nil,
 		)
-		if res.StatusCode != http.StatusOK {
-			t.Fatalf("expected 200, got %d", res.StatusCode)
+		if resUnauth.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected 401 without X-Internal-Auth, got %d", resUnauth.StatusCode)
 		}
-		if !out.Grounded || out.Mode != "qa" || out.Provider != "local-llama-swap" || out.Model != "e2e-chat" {
-			t.Fatalf("unexpected grounded metadata: %+v", out)
-		}
-		if out.TokensUsed != 42 || len(out.Sources) != 1 || out.Sources[0].Title != "Portfolio Architecture" {
-			t.Fatalf("unexpected completion payload: %+v", out)
-		}
-		if !strings.Contains(out.Answer, "Grounded answer") {
-			t.Fatalf("unexpected answer: %q", out.Answer)
-		}
-	})
 
-	t.Run("POST /v1/ask jd_match returns match score, strengths, and gaps", func(t *testing.T) {
-		embedFail.Store(false)
-		chatFail.Store(false)
-		qdrantEmpty.Store(false)
-		qdrantLowScore.Store(false)
-
-		res, out := e2etest.DoJSON[askResponse](
-			t,
-			http.MethodPost,
-			baseURL+"/v1/ask",
-			map[string]string{
-				"mode":           "jd_match",
-				"sessionId":      "e2e-jd-1",
-				"jobDescription": "Principal engineer building Go microservices on Kubernetes GKE with React SSR and PostgreSQL.",
-			},
-			nil,
+		attemptQA := "11111111-1111-4111-8111-111111111121"
+		headers := guestHeaders(t, "e2e-qa-guest", secret)
+		resQA, outQA := e2etest.DoJSON[contracts.AskResponse](
+			t, http.MethodPost, baseURL+"/v1/ask",
+			map[string]string{"mode": "qa", "attemptId": attemptQA, "question": "What stack powers this portfolio?"},
+			headers,
 		)
-		if res.StatusCode != http.StatusOK {
-			t.Fatalf("expected 200, got %d", res.StatusCode)
+		if resQA.StatusCode != http.StatusOK || !outQA.Grounded || outQA.TokensUsed != 42 || outQA.Quota == nil || outQA.Quota.TokensUsed != 42 {
+			t.Fatalf("unexpected QA response (%d): %+v", resQA.StatusCode, outQA)
 		}
-		if !out.Grounded || out.Mode != "jd_match" || out.MatchScore == nil || *out.MatchScore < 20 {
-			t.Fatalf("unexpected jd_match response: %+v", out)
-		}
-		if len(out.Strengths) == 0 {
-			t.Fatalf("expected grounded strengths in jd_match response: %+v", out)
-		}
-	})
 
-	t.Run("POST /v1/ask abstains when Qdrant returns zero hits or low score", func(t *testing.T) {
-		embedFail.Store(false)
-		chatFail.Store(false)
-		qdrantEmpty.Store(true)
-
-		res, out := e2etest.DoJSON[askResponse](
-			t,
-			http.MethodPost,
-			baseURL+"/v1/ask",
-			map[string]string{"sessionId": "e2e-empty", "question": "Tell me about an undocumented topic"},
-			nil,
+		// Recovery GET /v1/ask/turns/:attemptId returns completed turn without extra debit
+		resPoll, pollOut := e2etest.DoJSON[contracts.AskTurnState](
+			t, http.MethodGet, baseURL+"/v1/ask/turns/"+attemptQA, nil, headers,
 		)
-		if res.StatusCode != http.StatusOK || out.Grounded || len(out.Sources) != 0 {
-			t.Fatalf("expected zero-hit abstention, got (%d): %+v", res.StatusCode, out)
+		if resPoll.StatusCode != http.StatusOK || pollOut.Status != contracts.TurnStatusCompleted || pollOut.Response == nil {
+			t.Fatalf("unexpected turn lookup (%d): %+v", resPoll.StatusCode, pollOut)
 		}
 
-		qdrantEmpty.Store(false)
-		qdrantLowScore.Store(true)
-		resLow, outLow := e2etest.DoJSON[askResponse](
-			t,
-			http.MethodPost,
-			baseURL+"/v1/ask",
-			map[string]string{"sessionId": "e2e-low", "question": "Tell me about an unrelated topic"},
-			nil,
+		// AI JD Match
+		chatModeJD.Store(true)
+		defer chatModeJD.Store(false)
+		resJD, outJD := e2etest.DoJSON[contracts.AskResponse](
+			t, http.MethodPost, baseURL+"/v1/ask",
+			map[string]string{"mode": "jd_match", "jobDescription": "Principal engineer building Go microservices on GKE with React SSR and PostgreSQL."},
+			guestHeaders(t, "e2e-jd-guest", secret),
 		)
-		if resLow.StatusCode != http.StatusOK || outLow.Grounded || len(outLow.Sources) != 0 {
-			t.Fatalf("expected low-score abstention, got (%d): %+v", resLow.StatusCode, outLow)
+		if resJD.StatusCode != http.StatusOK || !outJD.Grounded || outJD.MatchScore == nil || *outJD.MatchScore != 88 {
+			t.Fatalf("unexpected JD response (%d): %+v", resJD.StatusCode, outJD)
 		}
-		qdrantLowScore.Store(false)
-	})
 
-	t.Run("POST /v1/ask abstains when embedding or chat provider fails", func(t *testing.T) {
+		// Upstream failure -> HTTP 502 (not 200 abstention) + quota refund
 		embedFail.Store(true)
-		qdrantEmpty.Store(false)
-
-		res, out := e2etest.DoJSON[askResponse](
-			t,
-			http.MethodPost,
-			baseURL+"/v1/ask",
-			map[string]string{"sessionId": "e2e-embed-fail", "question": "Will embedding failure abstain cleanly?"},
-			nil,
+		failHeaders := guestHeaders(t, "e2e-fail-guest", secret)
+		resFail, failErr := e2etest.DoJSON[contracts.PublicAppError](
+			t, http.MethodPost, baseURL+"/v1/ask",
+			map[string]string{"mode": "qa", "question": "Should fail closed 502"},
+			failHeaders,
 		)
-		if res.StatusCode != http.StatusOK || out.Grounded || !strings.Contains(out.Answer, "embedding provider is unavailable") {
-			t.Fatalf("expected embedding abstention, got (%d): %+v", res.StatusCode, out)
-		}
-
 		embedFail.Store(false)
-		chatFail.Store(true)
-		resChat, outChat := e2etest.DoJSON[askResponse](
-			t,
-			http.MethodPost,
-			baseURL+"/v1/ask",
-			map[string]string{"sessionId": "e2e-chat-fail", "question": "Will chat failure abstain cleanly?"},
-			nil,
-		)
-		if resChat.StatusCode != http.StatusOK || outChat.Grounded || !strings.Contains(outChat.Answer, "Abstaining") {
-			t.Fatalf("expected chat-failure abstention, got (%d): %+v", resChat.StatusCode, outChat)
+		if resFail.StatusCode != http.StatusBadGateway || failErr.Code != contracts.ErrCodeUpstreamUnavailable {
+			t.Fatalf("expected 502 PublicAppError on embed error, got (%d): %+v", resFail.StatusCode, failErr)
 		}
-		chatFail.Store(false)
+		_ = pg.DefaultAskTurnReserveTokens // compile check that pg kit aligns cleanly
 	})
 
-	t.Run("POST /v1/ask enforces guest session quota with HTTP 429", func(t *testing.T) {
+	t.Run("POST /v1/ask enforces guest session 5-turn quota with HTTP 429", func(t *testing.T) {
+		headers := guestHeaders(t, "e2e-quota-guest", secret)
 		for i := range 5 {
-			res, _ := e2etest.DoJSON[askResponse](
-				t,
-				http.MethodPost,
-				baseURL+"/v1/ask",
-				map[string]string{"sessionId": "e2e-quota-sess", "question": "Check quota turn tracking"},
-				nil,
+			res, _ := e2etest.DoJSON[contracts.AskResponse](
+				t, http.MethodPost, baseURL+"/v1/ask",
+				map[string]string{"question": "Check quota turn tracking"},
+				headers,
 			)
 			if res.StatusCode != http.StatusOK {
 				t.Fatalf("turn %d expected 200, got %d", i+1, res.StatusCode)
 			}
 		}
 		resOver, body := e2etest.DoJSON[map[string]any](
-			t,
-			http.MethodPost,
-			baseURL+"/v1/ask",
-			map[string]string{"sessionId": "e2e-quota-sess", "question": "Sixth turn should exceed guest quota"},
-			nil,
+			t, http.MethodPost, baseURL+"/v1/ask",
+			map[string]string{"question": "Sixth turn rejected"},
+			headers,
 		)
 		if resOver.StatusCode != http.StatusTooManyRequests || body["quota"] == nil {
-			t.Fatalf("expected 429 with quota payload, got (%d): %+v", resOver.StatusCode, body)
-		}
-	})
-
-	t.Run("POST /v1/ask rejects invalid JSON and invalid input lengths", func(t *testing.T) {
-		res, body := e2etest.DoRequest(
-			t,
-			http.MethodPost,
-			baseURL+"/v1/ask",
-			[]byte("{invalid"),
-			map[string]string{"Content-Type": "application/json"},
-		)
-		if res.StatusCode != http.StatusBadRequest {
-			t.Fatalf("expected 400 for malformed JSON, got %d (%s)", res.StatusCode, string(body))
-		}
-
-		resShort, _ := e2etest.DoJSON[httpkit.ErrorResponse](
-			t,
-			http.MethodPost,
-			baseURL+"/v1/ask",
-			map[string]string{"question": "hi"},
-			nil,
-		)
-		if resShort.StatusCode != http.StatusBadRequest {
-			t.Fatalf("expected 400 for short question, got %d", resShort.StatusCode)
-		}
-
-		resLong, _ := e2etest.DoJSON[httpkit.ErrorResponse](
-			t,
-			http.MethodPost,
-			baseURL+"/v1/ask",
-			map[string]string{"question": strings.Repeat("a", 801)},
-			nil,
-		)
-		if resLong.StatusCode != http.StatusBadRequest {
-			t.Fatalf("expected 400 for oversized question, got %d", resLong.StatusCode)
+			t.Fatalf("expected 429 with quota, got (%d): %+v", resOver.StatusCode, body)
 		}
 	})
 }

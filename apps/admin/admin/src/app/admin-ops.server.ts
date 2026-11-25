@@ -108,6 +108,8 @@ interface RawQdrantCollectionResponse {
   };
 }
 
+export const QDRANT_REINDEX_TIMEOUT_MS = 90_000;
+
 export async function fetchQdrantStatus(): Promise<QdrantHealthStatus> {
   const aiAskUrl = process.env['AI_ASK_URL']?.trim();
   if (aiAskUrl) {
@@ -120,13 +122,19 @@ export async function fetchQdrantStatus(): Promise<QdrantHealthStatus> {
     if (result.ok && result.data) {
       const collection = result.data.collection;
       const provider = result.data.provider?.trim() || 'dual-provider';
+      const pointsCount = Number(collection?.pointsCount ?? 0);
+      const status =
+        pointsCount === 0 ? 'degraded' : (collection?.status ?? result.data.status ?? 'ok');
       return QdrantHealthStatusSchema.parse({
         online: true,
         collection: collection?.name ?? 'portfolio_docs',
-        pointsCount: Number(collection?.pointsCount ?? 0),
-        status: collection?.status ?? result.data.status ?? 'ok',
+        pointsCount,
+        status,
         provider,
-        detail: `Connected via ai-ask (${provider}).`,
+        detail:
+          pointsCount === 0
+            ? `Connected via ai-ask (${provider}) with 0 indexed points.`
+            : `Connected via ai-ask (${provider}).`,
       });
     }
   }
@@ -145,31 +153,45 @@ export async function fetchQdrantStatus(): Promise<QdrantHealthStatus> {
     });
   }
 
+  const qdrantApiKey = process.env['QDRANT_API_KEY']?.trim();
   const qdrantRes = await proxyJson<RawQdrantCollectionResponse>({
     baseUrl: qdrantUrl,
     path: '/collections/portfolio_docs',
     method: 'GET',
+    ...(qdrantApiKey ? { headers: { 'api-key': qdrantApiKey } } : {}),
     timeoutMs: 2_500,
   });
 
   if (!qdrantRes.ok || !qdrantRes.data) {
+    const isAuthError = qdrantRes.status === 401 || qdrantRes.status === 403;
     return QdrantHealthStatusSchema.parse({
       online: false,
       collection: 'portfolio_docs',
       pointsCount: 0,
-      status: 'offline',
+      status: isAuthError ? 'error' : 'offline',
       provider: 'qdrant-direct',
-      detail: qdrantRes.error ?? 'Qdrant collection probe unavailable.',
+      detail: isAuthError
+        ? `Qdrant authentication failed (HTTP ${qdrantRes.status}).`
+        : (qdrantRes.error ?? 'Qdrant collection probe unavailable.'),
     });
   }
+
+  const pointsCount = Number(qdrantRes.data.result?.points_count ?? 0);
+  const resolvedStatus =
+    pointsCount === 0
+      ? 'degraded'
+      : (qdrantRes.data.result?.status ?? qdrantRes.data.status ?? 'green');
 
   return QdrantHealthStatusSchema.parse({
     online: true,
     collection: 'portfolio_docs',
-    pointsCount: Number(qdrantRes.data.result?.points_count ?? 0),
-    status: qdrantRes.data.result?.status ?? qdrantRes.data.status ?? 'green',
+    pointsCount,
+    status: resolvedStatus,
     provider: 'qdrant-direct',
-    detail: 'Direct Qdrant collection probe healthy.',
+    detail:
+      pointsCount === 0
+        ? 'Direct Qdrant collection online with 0 indexed points.'
+        : 'Direct Qdrant collection probe healthy.',
   });
 }
 
@@ -204,7 +226,7 @@ export async function triggerQdrantReindex(): Promise<ReindexResult> {
     path: '/v1/ask/reindex',
     method: 'POST',
     body: {},
-    timeoutMs: 15_000,
+    timeoutMs: QDRANT_REINDEX_TIMEOUT_MS,
     internalAuth: {
       role: 'admin',
       subject: 'admin-console-reindex',
@@ -336,7 +358,13 @@ export async function buildOverviewHealthSummary(): Promise<{
   return {
     qdrantHealth: {
       name: 'Qdrant',
-      status: qdrant.online ? 'ok' : hasQdrantConfig ? 'offline' : 'degraded',
+      status: qdrant.online
+        ? qdrant.status === 'degraded'
+          ? 'degraded'
+          : 'ok'
+        : hasQdrantConfig
+          ? 'offline'
+          : 'degraded',
       detail: qdrant.online
         ? `${qdrant.collection} (${qdrant.pointsCount} points)`
         : (qdrant.detail ?? 'Qdrant unavailable.'),

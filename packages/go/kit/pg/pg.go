@@ -131,9 +131,19 @@ type Store struct {
 	mu       sync.Mutex
 	policies map[string]QuotaPolicy
 	buckets  map[string]*memBucket
+	turns    map[string]*TurnRecord
 	runs     []*SandboxRun
 	runsByID map[string]*SandboxRun
 	turnSeq  int
+}
+
+func NewMemoryStore() *Store {
+	return &Store{
+		policies: defaultPolicies(),
+		buckets:  make(map[string]*memBucket),
+		turns:    make(map[string]*TurnRecord),
+		runsByID: make(map[string]*SandboxRun),
+	}
 }
 
 func defaultPolicies() map[string]QuotaPolicy {
@@ -150,14 +160,6 @@ func defaultPolicies() map[string]QuotaPolicy {
 			MaxTokensPerRun:      32000,
 			MaxDailyGlobalTokens: 2000000,
 		},
-	}
-}
-
-func NewMemoryStore() *Store {
-	return &Store{
-		policies: defaultPolicies(),
-		buckets:  make(map[string]*memBucket),
-		runsByID: make(map[string]*SandboxRun),
 	}
 }
 
@@ -186,6 +188,7 @@ func Open(ctx context.Context, cfg Config) (*Store, error) {
 		pool:     pool,
 		policies: defaultPolicies(),
 		buckets:  make(map[string]*memBucket),
+		turns:    make(map[string]*TurnRecord),
 		runsByID: make(map[string]*SandboxRun),
 	}, nil
 }
@@ -196,6 +199,27 @@ func OpenFromEnv(ctx context.Context) (*Store, error) {
 		return nil, err
 	}
 	return Open(ctx, cfg)
+}
+
+// OpenFromEnvStrict requires an explicit valid DATABASE_URL and live PostgreSQL 19
+// connectivity, refusing both DefaultDatabaseURL and NewMemoryStore fallbacks.
+func OpenFromEnvStrict(ctx context.Context) (*Store, error) {
+	dsn := strings.TrimSpace(os.Getenv("DATABASE_URL"))
+	if dsn == "" {
+		return nil, errors.New("DATABASE_URL is required (strict mode refuses default or in-memory fallback)")
+	}
+	if err := ValidateDSN(dsn); err != nil {
+		return nil, err
+	}
+	maxConns := 10
+	if raw := strings.TrimSpace(os.Getenv("PG_MAX_CONNS")); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil || parsed <= 0 {
+			return nil, errors.New("PG_MAX_CONNS must be a positive integer")
+		}
+		maxConns = parsed
+	}
+	return Open(ctx, Config{DatabaseURL: dsn, MaxConns: maxConns})
 }
 
 // OpenBestEffort connects to live PG19 when DATABASE_URL is reachable,
@@ -219,6 +243,19 @@ func (s *Store) Close() {
 
 func (s *Store) IsLivePG() bool {
 	return s != nil && s.pool != nil
+}
+
+// Ping verifies live PostgreSQL pool health; returns nil for isolated in-memory test stores.
+func (s *Store) Ping(ctx context.Context) error {
+	if s == nil {
+		return errors.New("postgres store is nil")
+	}
+	if s.pool == nil {
+		return nil
+	}
+	pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	return s.pool.Ping(pingCtx)
 }
 
 func (s *Store) SetPolicyForTest(policy QuotaPolicy) {
@@ -521,78 +558,119 @@ func CuratedPortfolioDocs() []CorpusDocument {
 
 // LoadCorpusDocs loads portfolio documents from PostgreSQL (site_content, agensi_skills,
 // roadmap_milestones) combined with curated portfolio dossiers for Qdrant indexing.
+// Fails loudly on SQL/scan errors so reindex never silently indexes partial static docs.
 func (s *Store) LoadCorpusDocs(ctx context.Context) ([]CorpusDocument, error) {
 	docs := CuratedPortfolioDocs()
 	if s == nil || s.pool == nil {
 		return docs, nil
 	}
 
-	// site_content
+	siteDocs, err := s.loadSiteContentDocs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	docs = append(docs, siteDocs...)
+
+	skillDocs, err := s.loadAgensiSkillDocs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	docs = append(docs, skillDocs...)
+
+	milestoneDocs, err := s.loadRoadmapMilestoneDocs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return append(docs, milestoneDocs...), nil
+}
+
+func (s *Store) loadSiteContentDocs(ctx context.Context) ([]CorpusDocument, error) {
 	rows, err := s.pool.Query(ctx, `SELECT key, markdown_body, metadata_json::text FROM site_content ORDER BY key ASC`)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var key, body, meta string
-			if scanErr := rows.Scan(&key, &body, &meta); scanErr != nil {
-				continue
-			}
-			snippet := strings.TrimSpace(body)
-			if len(meta) > 2 && len(meta) <= 600 {
-				snippet = strings.TrimSpace(snippet + " " + meta)
-			}
-			if snippet == "" {
-				continue
-			}
-			docs = append(docs, CorpusDocument{
-				ID:       "site:" + key,
-				Title:    "Site Content // " + key,
-				Snippet:  snippet,
-				Category: "site_content",
-				Source:   "postgres",
-			})
-		}
+	if err != nil {
+		return nil, fmt.Errorf("load site_content corpus: %w", err)
 	}
+	defer rows.Close()
 
-	// agensi_skills
-	skillRows, err := s.pool.Query(ctx, `SELECT slug, name, summary, tags, url FROM agensi_skills ORDER BY sort_order ASC, slug ASC`)
-	if err == nil {
-		defer skillRows.Close()
-		for skillRows.Next() {
-			var slug, name, summary, link string
-			var tags []string
-			if scanErr := skillRows.Scan(&slug, &name, &summary, &tags, &link); scanErr != nil {
-				continue
-			}
-			snippet := fmt.Sprintf("%s Tags: %s. URL: %s", summary, strings.Join(tags, ", "), link)
-			docs = append(docs, CorpusDocument{
-				ID:       "agensi:" + slug,
-				Title:    "Agensi Skill // " + name,
-				Snippet:  snippet,
-				Category: "agensi_skills",
-				Source:   "postgres",
-			})
+	var docs []CorpusDocument
+	for rows.Next() {
+		var key, body, meta string
+		if scanErr := rows.Scan(&key, &body, &meta); scanErr != nil {
+			return nil, fmt.Errorf("scan site_content corpus: %w", scanErr)
 		}
-	}
-
-	// roadmap_milestones
-	mileRows, err := s.pool.Query(ctx, `SELECT slug, status, label FROM roadmap_milestones WHERE enabled = true ORDER BY sort_order ASC`)
-	if err == nil {
-		defer mileRows.Close()
-		for mileRows.Next() {
-			var slug, status, label string
-			if scanErr := mileRows.Scan(&slug, &status, &label); scanErr != nil {
-				continue
-			}
-			docs = append(docs, CorpusDocument{
-				ID:       "milestone:" + slug,
-				Title:    fmt.Sprintf("Roadmap [%s] // %s", status, slug),
-				Snippet:  label,
-				Category: "roadmap_milestones",
-				Source:   "postgres",
-			})
+		snippet := strings.TrimSpace(body)
+		if len(meta) > 2 && len(meta) <= 600 {
+			snippet = strings.TrimSpace(snippet + " " + meta)
 		}
+		if snippet == "" {
+			continue
+		}
+		docs = append(docs, CorpusDocument{
+			ID:       "site:" + key,
+			Title:    "Site Content // " + key,
+			Snippet:  snippet,
+			Category: "site_content",
+			Source:   "postgres",
+		})
 	}
+	if rowsErr := rows.Err(); rowsErr != nil {
+		return nil, fmt.Errorf("iterate site_content corpus: %w", rowsErr)
+	}
+	return docs, nil
+}
 
+func (s *Store) loadAgensiSkillDocs(ctx context.Context) ([]CorpusDocument, error) {
+	rows, err := s.pool.Query(ctx, `SELECT slug, name, summary, tags, url FROM agensi_skills ORDER BY sort_order ASC, slug ASC`)
+	if err != nil {
+		return nil, fmt.Errorf("load agensi_skills corpus: %w", err)
+	}
+	defer rows.Close()
+
+	var docs []CorpusDocument
+	for rows.Next() {
+		var slug, name, summary, link string
+		var tags []string
+		if scanErr := rows.Scan(&slug, &name, &summary, &tags, &link); scanErr != nil {
+			return nil, fmt.Errorf("scan agensi_skills corpus: %w", scanErr)
+		}
+		snippet := fmt.Sprintf("%s Tags: %s. URL: %s", summary, strings.Join(tags, ", "), link)
+		docs = append(docs, CorpusDocument{
+			ID:       "agensi:" + slug,
+			Title:    "Agensi Skill // " + name,
+			Snippet:  snippet,
+			Category: "agensi_skills",
+			Source:   "postgres",
+		})
+	}
+	if rowsErr := rows.Err(); rowsErr != nil {
+		return nil, fmt.Errorf("iterate agensi_skills corpus: %w", rowsErr)
+	}
+	return docs, nil
+}
+
+func (s *Store) loadRoadmapMilestoneDocs(ctx context.Context) ([]CorpusDocument, error) {
+	rows, err := s.pool.Query(ctx, `SELECT slug, status, label FROM roadmap_milestones WHERE enabled = true ORDER BY sort_order ASC`)
+	if err != nil {
+		return nil, fmt.Errorf("load roadmap_milestones corpus: %w", err)
+	}
+	defer rows.Close()
+
+	var docs []CorpusDocument
+	for rows.Next() {
+		var slug, status, label string
+		if scanErr := rows.Scan(&slug, &status, &label); scanErr != nil {
+			return nil, fmt.Errorf("scan roadmap_milestones corpus: %w", scanErr)
+		}
+		docs = append(docs, CorpusDocument{
+			ID:       "milestone:" + slug,
+			Title:    fmt.Sprintf("Roadmap [%s] // %s", status, slug),
+			Snippet:  label,
+			Category: "roadmap_milestones",
+			Source:   "postgres",
+		})
+	}
+	if rowsErr := rows.Err(); rowsErr != nil {
+		return nil, fmt.Errorf("iterate roadmap_milestones corpus: %w", rowsErr)
+	}
 	return docs, nil
 }
 

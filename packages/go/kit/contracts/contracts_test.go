@@ -29,3 +29,14 @@ func TestContactRequestValidate(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestValidateUUID(t *testing.T) {
+	t.Parallel()
+
+	if !ValidateUUID("11111111-1111-4111-8111-111111111111") {
+		t.Fatal("expected canonical UUIDv4 to validate")
+	}
+	if ValidateUUID("not-a-uuid") || ValidateUUID("11111111-1111-4111-8111-11111111111g") {
+		t.Fatal("expected malformed UUID to fail validation")
+	}
+}

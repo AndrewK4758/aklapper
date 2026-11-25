@@ -71,7 +71,11 @@ const PLAYWRIGHT_APP_MAP: Readonly<Record<string, string>> = {
 };
 
 const DB_BACKED_TEST_PROJECTS = new Set(['node-db', 'node-api-auth', 'node-api-analytics']);
-const DB_BACKED_API_E2E_PROJECTS = new Set(['node-api-auth-e2e', 'node-api-analytics-e2e']);
+const DB_BACKED_API_E2E_PROJECTS = new Set([
+  'node-api-auth-e2e',
+  'node-api-analytics-e2e',
+  'go-ai-ask-e2e',
+]);
 
 export interface CiPlanInput {
   readonly runAll: boolean;

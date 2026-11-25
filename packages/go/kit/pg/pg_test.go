@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 )
@@ -119,5 +120,108 @@ func TestMemoryStoreSandboxRunsTurnsAndGateVerdict(t *testing.T) {
 	docs, err := store.LoadCorpusDocs(ctx)
 	if err != nil || len(docs) < 4 {
 		t.Fatalf("expected curated corpus docs, got len=%d err=%v", len(docs), err)
+	}
+}
+
+func TestOpenFromEnvStrictAndUntouchedOpenFromEnv(t *testing.T) {
+	t.Setenv("DATABASE_URL", "")
+	if _, err := ConfigFromEnv(); err != nil {
+		t.Fatalf("expected untouched ConfigFromEnv to default DSN when DATABASE_URL unset, got %v", err)
+	}
+	if _, err := OpenFromEnvStrict(context.Background()); err == nil {
+		t.Fatal("expected OpenFromEnvStrict to fail closed when DATABASE_URL is empty")
+	}
+
+	t.Setenv("DATABASE_URL", "postgres://postgres:postgres@127.0.0.1:59998/aklapper?sslmode=disable")
+	if _, err := OpenFromEnvStrict(context.Background()); err == nil {
+		t.Fatal("expected OpenFromEnvStrict to fail when PG19 endpoint is unreachable")
+	}
+}
+
+func TestAskTurnReserveReconcileRefundAndLeaseExpiry(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	store := NewMemoryStore()
+	store.SetPolicyForTest(QuotaPolicy{
+		Role:                 contracts.RoleGuest,
+		MaxTurnsPerSession:   3,
+		MaxTokensPerRun:      4000,
+		MaxDailyGlobalTokens: 10000,
+	})
+
+	// Upward delta reconciliation: reserved 512, actual 1234 -> final tokens 1234 (+722)
+	idUp := "11111111-1111-4111-8111-111111111111"
+	resUp, allowed, err := store.ReserveTurnTx(ctx, ReserveTurnInput{
+		AttemptID: idUp, SessionID: "guest_rec", Role: contracts.RoleGuest, Mode: "qa",
+		PromptHash: "hash-up", CorrelationID: "corr-up",
+	})
+	if err != nil || !allowed || resUp.Quota.TurnsUsed != 1 || resUp.Quota.TokensUsed != 512 {
+		t.Fatalf("unexpected reserve up: allowed=%v res=%+v err=%v", allowed, resUp, err)
+	}
+	// Idempotent duplicate attemptId reuses without double charge
+	dupUp, allowedDup, err := store.ReserveTurnTx(ctx, ReserveTurnInput{
+		AttemptID: idUp, SessionID: "guest_rec", Role: contracts.RoleGuest, Mode: "qa",
+		PromptHash: "hash-up", CorrelationID: "corr-up",
+	})
+	if err != nil || !allowedDup || !dupUp.Reused || dupUp.Quota.TurnsUsed != 1 {
+		t.Fatalf("expected idempotent reuse, got reused=%v allowed=%v quota=%+v err=%v", dupUp.Reused, allowedDup, dupUp.Quota, err)
+	}
+
+	qAfterUp, err := store.ReconcileTurnTx(ctx, idUp, contracts.AskResponse{
+		Grounded: true, Mode: "qa", Answer: "ok", Provider: "local", TokensUsed: 1234,
+	})
+	if err != nil || qAfterUp.TokensUsed != 1234 || qAfterUp.TurnsUsed != 1 {
+		t.Fatalf("expected upward reconcile tokensUsed=1234, got %+v err=%v", qAfterUp, err)
+	}
+
+	// Downward delta reconciliation: reserved 512, actual 180 -> final session tokens 1234 + 180 = 1414
+	idDown := "22222222-2222-4222-8222-222222222222"
+	_, allowed, err = store.ReserveTurnTx(ctx, ReserveTurnInput{
+		AttemptID: idDown, SessionID: "guest_rec", Role: contracts.RoleGuest, Mode: "qa",
+		PromptHash: "hash-down", CorrelationID: "corr-down",
+	})
+	if err != nil || !allowed {
+		t.Fatalf("reserve down failed: err=%v", err)
+	}
+	qAfterDown, err := store.ReconcileTurnTx(ctx, idDown, contracts.AskResponse{
+		Grounded: false, Abstained: true, Mode: "qa", Answer: "abstain", Provider: "local", TokensUsed: 180,
+	})
+	if err != nil || qAfterDown.TokensUsed != 1414 || qAfterDown.TurnsUsed != 2 {
+		t.Fatalf("expected downward credit-back total=1414, got %+v err=%v", qAfterDown, err)
+	}
+
+	// Refund decrements turn + reserved tokens cleanly and is idempotent
+	idFail := "33333333-3333-4333-8333-333333333333"
+	_, _, err = store.ReserveTurnTx(ctx, ReserveTurnInput{
+		AttemptID: idFail, SessionID: "guest_rec", Role: contracts.RoleGuest, Mode: "qa",
+		PromptHash: "hash-fail", CorrelationID: "corr-fail",
+	})
+	if err != nil {
+		t.Fatalf("reserve fail turn err=%v", err)
+	}
+	qAfterRefund, err := store.RefundTurnTx(ctx, idFail, contracts.ErrCodeUpstreamUnavailable)
+	if err != nil || qAfterRefund.TurnsUsed != 2 || qAfterRefund.TokensUsed != 1414 {
+		t.Fatalf("expected exact refund back to turns=2 tokens=1414, got %+v err=%v", qAfterRefund, err)
+	}
+
+	// Expired lease rejects late ReconcileTurnTx and refunds once
+	idLease := "44444444-4444-4444-8444-444444444444"
+	_, _, err = store.ReserveTurnTx(ctx, ReserveTurnInput{
+		AttemptID: idLease, SessionID: "guest_lease", Role: contracts.RoleGuest, Mode: "qa",
+		PromptHash: "hash-lease", CorrelationID: "corr-lease",
+	})
+	if err != nil {
+		t.Fatalf("reserve lease err=%v", err)
+	}
+	store.ExpireLeaseForTest(idLease, time.Now().UTC().Add(-90*time.Second))
+	if _, err := store.ReconcileTurnTx(ctx, idLease, contracts.AskResponse{
+		Grounded: true, Mode: "qa", Answer: "stale", Provider: "local", TokensUsed: 900,
+	}); !errors.Is(err, ErrTurnLeaseExpired) {
+		t.Fatalf("expected ErrTurnLeaseExpired on stale lease, got %v", err)
+	}
+	rec, qPoll, err := store.GetTurnByAttemptID(ctx, idLease, "guest_lease")
+	if err != nil || rec.Status != contracts.TurnStatusExpired || qPoll.TurnsUsed != 0 || qPoll.TokensUsed != 0 {
+		t.Fatalf("expected expired status and zeroed quota after lease refund, got rec=%+v q=%+v err=%v", rec, qPoll, err)
 	}
 }
