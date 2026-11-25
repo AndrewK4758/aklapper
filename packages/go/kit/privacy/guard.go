@@ -9,7 +9,10 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-const maxRawPendingRunes = 4096
+const (
+	maxRawPendingRunes       = 4096
+	maxPostDrainPendingRunes = maxRawPendingRunes + MaxSecretHoldbackRunes + MaxNormalizedDenylistRunes + 1
+)
 
 var pendingLimitFingerprint = ruleFingerprint("builtin", len(builtInSecretRules), "max_pending_runes")
 
@@ -251,7 +254,12 @@ func (g *StreamGuard) drain(isFlush bool) (string, error) {
 	}
 
 	// 5. Emit safe text and committed redactions strictly up to H, holding any straddling interval.
+	type committedTrigger struct {
+		category    string
+		fingerprint string
+	}
 	var out strings.Builder
+	var triggers []committedTrigger
 	cursor := 0
 	for _, iv := range merged {
 		if iv.start >= horizon {
@@ -261,7 +269,10 @@ func (g *StreamGuard) drain(isFlush bool) (string, error) {
 			if iv.start > cursor {
 				out.WriteString(string(g.pending[cursor:iv.start]))
 			}
-			g.recordTrigger(iv.category, ActionRedact, iv.fingerprint)
+			triggers = append(triggers, committedTrigger{
+				category:    iv.category,
+				fingerprint: iv.fingerprint,
+			})
 			out.WriteString(RedactionPlaceholder)
 			cursor = iv.end
 			continue
@@ -286,14 +297,17 @@ func (g *StreamGuard) drain(isFlush bool) (string, error) {
 		cursor = horizon
 	}
 
+	if !isFlush && n-cursor > maxPostDrainPendingRunes {
+		return g.abortPendingLimit()
+	}
+
+	for _, tr := range triggers {
+		g.recordTrigger(tr.category, ActionRedact, tr.fingerprint)
+	}
 	if cursor >= n {
 		g.pending = nil
 	} else if cursor > 0 {
 		g.pending = append([]rune(nil), g.pending[cursor:]...)
-	}
-
-	if !isFlush && len(g.pending) > maxRawPendingRunes {
-		return g.abortPendingLimit()
 	}
 	return out.String(), nil
 }
@@ -357,10 +371,11 @@ func (g *StreamGuard) safeDenylistHorizon(normBuilt bool, normMap []normRuneSpan
 		if !normBuilt {
 			_, spans = buildNormalizedMap(g.pending)
 		}
-		if len(spans) <= g.cfg.maxDenylistNonSep {
-			return 0
+		if len(spans) > 0 && len(spans) <= g.cfg.maxDenylistNonSep {
+			limit = min(limit, spans[0].rawStart)
+		} else if len(spans) > g.cfg.maxDenylistNonSep {
+			limit = min(limit, spans[len(spans)-g.cfg.maxDenylistNonSep].rawStart)
 		}
-		limit = min(limit, spans[len(spans)-g.cfg.maxDenylistNonSep].rawStart)
 	}
 	if g.cfg.maxRegexRunes > 0 {
 		rawLimit := n - g.cfg.maxRegexRunes

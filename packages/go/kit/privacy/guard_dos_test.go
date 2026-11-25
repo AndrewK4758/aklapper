@@ -2,6 +2,7 @@ package privacy
 
 import (
 	"errors"
+	"log"
 	"strings"
 	"testing"
 )
@@ -179,4 +180,80 @@ func TestStreamGuardActionAbortSelfOverlappingAbortsMidStream(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestStreamGuardPendingThresholdHeadroomAndAtomicAudit(t *testing.T) {
+	t.Run("leading separators and lookahead headroom preserve single-shot vs streaming parity at 4096 cliff", func(t *testing.T) {
+		cases := []struct {
+			name     string
+			denylist string
+			input    string
+			chunks   []int
+		}{
+			{
+				name:     "4080 leading spaces before literal window",
+				denylist: `["abc"]`,
+				input:    strings.Repeat(" ", 4080) + "a" + strings.Repeat("x", 100),
+				chunks:   []int{1, 16, 256, 4081},
+			},
+			{
+				name:     "4000 combining marks before :// secret anchor lookahead",
+				denylist: "",
+				input:    "a" + strings.Repeat("\u0301", 4000) + "://" + strings.Repeat("x", 200),
+				chunks:   []int{16, 4104},
+			},
+			{
+				name:     "4090 leading spaces before redacted denylist match",
+				denylist: `["AcmeCorp"]`,
+				input:    strings.Repeat(" ", 4090) + "AcmeCorp" + strings.Repeat("z", 200),
+				chunks:   []int{16, 4095},
+			},
+		}
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				cfg, err := LoadConfig(ConfigInput{RawDenylist: tc.denylist, DenylistAction: ActionRedact})
+				if err != nil {
+					t.Fatalf("LoadConfig: %v", err)
+				}
+				want, wantAb, wantLogs := runGuardPartitionWithLogs(t, cfg, []string{tc.input})
+				if wantAb {
+					t.Fatalf("expected single-shot to succeed, aborted")
+				}
+				for _, sz := range tc.chunks {
+					got, ab, logs := runGuardPartitionWithLogs(t, cfg, splitRunes(tc.input, sz))
+					if ab || got != want || logs != wantLogs {
+						t.Fatalf("sz=%d diverged: ab=%v logs=%d/%d len=%d/%d", sz, ab, logs, wantLogs, len(got), len(want))
+					}
+				}
+			})
+		}
+	})
+
+	t.Run("post-drain pending_limit abort never emits phantom redact audit log", func(t *testing.T) {
+		cfg, err := LoadConfig(ConfigInput{RawDenylist: `["Acme"]`, DenylistAction: ActionRedact})
+		if err != nil {
+			t.Fatalf("LoadConfig: %v", err)
+		}
+		payload := "Acme " + strings.Repeat("z", 20) + "a" + strings.Repeat(" ", 2500) + "b" + strings.Repeat(" ", 2500)
+		var buf strings.Builder
+		prev := log.Writer()
+		log.SetOutput(&buf)
+		defer log.SetOutput(prev)
+
+		g := NewStreamGuard(cfg, "corr-atomic-audit")
+		out, err := g.Process(payload)
+		if !errors.Is(err, ErrPrivacyAborted) {
+			t.Fatalf("expected ErrPrivacyAborted, got err=%v out=%q", err, out)
+		}
+		if out != "" {
+			t.Fatalf("expected empty output on abort, got %q", out)
+		}
+		logs := buf.String()
+		if strings.Contains(logs, `"action":"redact"`) {
+			t.Fatalf("emitted phantom redact audit record on aborted chunk:\n%s", logs)
+		}
+		if !strings.Contains(logs, `"ruleCategory":"pending_limit"`) || !strings.Contains(logs, `"action":"abort"`) {
+			t.Fatalf("expected pending_limit abort audit record, got:\n%s", logs)
+		}
+	})
 }
