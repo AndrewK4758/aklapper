@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -5,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { renderK8sManifests } from '../src/index.ts';
 
 const MANIFESTS_DIR = resolve(import.meta.dirname, '../../../infra/k8s');
+const CD_WORKFLOW_PATH = resolve(import.meta.dirname, '../../../.github/workflows/cd-gcp.yml');
 
 describe('@aklapper/tooling GKE manifest renderer', () => {
   it('renders multi-namespace manifests without PROJECT_ID placeholders, setting APP_ENV=production, Cloud SQL sidecars, RBAC, Services, Gateway, and NetworkPolicy', () => {
@@ -59,6 +61,11 @@ describe('@aklapper/tooling GKE manifest renderer', () => {
     expect(rendered).toContain('port: 8081');
     expect(rendered).toContain('port: 8082');
     expect(rendered).toContain('port: 8083');
+    expect(rendered).toContain('port: 9090');
+    expect(rendered).toContain('appProtocol: kubernetes.io/h2c');
+    expect(rendered).toContain('containerPort: 9090');
+    expect(rendered).toContain('name: GRPC_PORT');
+    expect(rendered).toContain("value: '9090'");
     expect(rendered).toContain('port: 8084');
     expect(rendered).toContain('port: 8085');
     expect(rendered).toContain('port: 443');
@@ -103,5 +110,18 @@ describe('@aklapper/tooling GKE manifest renderer', () => {
         replicas: 0,
       }),
     ).toThrow(/replicas/i);
+  });
+
+  it('keeps cd-gcp.yml strictly workflow_dispatch-only and guards optional VERTEX_THINKING_BUDGET and AI_PRIVACY_DENYLIST safely', () => {
+    const workflow = readFileSync(CD_WORKFLOW_PATH, 'utf8');
+    expect(workflow).toMatch(/^on:\s*\n\s+workflow_dispatch:/m);
+    expect(workflow).not.toMatch(/^on:\s*\n\s+(?:push|pull_request):/m);
+    expect(workflow).toContain('VERTEX_THINKING_BUDGET');
+    expect(workflow).toContain(
+      'gcloud secrets versions describe latest --secret="AI_PRIVACY_DENYLIST"',
+    );
+    expect(workflow).toContain(
+      '--from-file="AI_PRIVACY_DENYLIST=${tmp_secrets_dir}/AI_PRIVACY_DENYLIST"',
+    );
   });
 });

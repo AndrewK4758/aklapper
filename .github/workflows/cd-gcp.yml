@@ -784,6 +784,7 @@ jobs:
           AI_PROVIDER: ${{ vars.AI_PROVIDER || 'vertex' }}
           GCP_LOCATION: ${{ vars.GCP_LOCATION || vars.GCP_REGION || 'us-central1' }}
           VERTEX_MODEL: ${{ vars.VERTEX_MODEL || '' }}
+          VERTEX_THINKING_BUDGET: ${{ vars.VERTEX_THINKING_BUDGET || '0' }}
           VERTEX_EMBED_MODEL: ${{ vars.VERTEX_EMBED_MODEL || '' }}
           QDRANT_URL: ${{ vars.QDRANT_URL || '' }}
           AGENSI_CREATOR_HANDLE: ${{ vars.AGENSI_CREATOR_HANDLE || 'aklapper' }}
@@ -803,6 +804,10 @@ jobs:
             gcloud secrets versions access latest --secret="QDRANT_API_KEY" --project="$GCP_PROJECT_ID" > "${tmp_secrets_dir}/QDRANT_API_KEY"
             chmod 600 "${tmp_secrets_dir}/QDRANT_API_KEY"
           fi
+          if gcloud secrets versions describe latest --secret="AI_PRIVACY_DENYLIST" --project="$GCP_PROJECT_ID" >/dev/null 2>&1; then
+            gcloud secrets versions access latest --secret="AI_PRIVACY_DENYLIST" --project="$GCP_PROJECT_ID" > "${tmp_secrets_dir}/AI_PRIVACY_DENYLIST"
+            chmod 600 "${tmp_secrets_dir}/AI_PRIVACY_DENYLIST"
+          fi
 
           kubectl create configmap aklapper-runtime-config \
             -n portfolio-public \
@@ -811,6 +816,7 @@ jobs:
             --from-literal="GCP_PROJECT_ID=${GCP_PROJECT_ID}" \
             --from-literal="GCP_LOCATION=${GCP_LOCATION}" \
             --from-literal="VERTEX_MODEL=${VERTEX_MODEL}" \
+            --from-literal="VERTEX_THINKING_BUDGET=${VERTEX_THINKING_BUDGET}" \
             --from-literal="VERTEX_EMBED_MODEL=${VERTEX_EMBED_MODEL}" \
             --from-literal="QDRANT_URL=${QDRANT_URL}" \
             --from-literal="AGENSI_CREATOR_HANDLE=${AGENSI_CREATOR_HANDLE}" \
@@ -827,6 +833,9 @@ jobs:
           )
           if [ -s "${tmp_secrets_dir}/QDRANT_API_KEY" ]; then
             public_secret_args+=(--from-file="QDRANT_API_KEY=${tmp_secrets_dir}/QDRANT_API_KEY")
+          fi
+          if [ -s "${tmp_secrets_dir}/AI_PRIVACY_DENYLIST" ]; then
+            public_secret_args+=(--from-file="AI_PRIVACY_DENYLIST=${tmp_secrets_dir}/AI_PRIVACY_DENYLIST")
           fi
           kubectl create secret generic aklapper-runtime-secrets \
             -n portfolio-public \

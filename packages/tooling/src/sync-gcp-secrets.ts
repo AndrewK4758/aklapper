@@ -11,6 +11,7 @@ export const GCP_OPTIONAL_SECRET_MANAGER_SECRETS = [
   'QDRANT_API_KEY',
   'ADMIN_PASSWORD',
   'AGENSI_API_KEY',
+  'AI_PRIVACY_DENYLIST',
 ] as const;
 
 export interface GcpSecretSyncEntry {

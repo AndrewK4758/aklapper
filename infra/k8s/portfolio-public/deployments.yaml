@@ -164,12 +164,17 @@ spec:
         - name: ai-ask
           image: us-central1-docker.pkg.dev/PROJECT_ID/aklapper/ai-ask:latest
           ports:
-            - containerPort: 8083
+            - name: http
+              containerPort: 8083
+            - name: grpc
+              containerPort: 9090
           env:
             - name: APP_ENV
               value: production
             - name: PORT
               value: '8083'
+            - name: GRPC_PORT
+              value: '9090'
           envFrom:
             - configMapRef:
                 name: aklapper-runtime-config

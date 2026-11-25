@@ -62,6 +62,8 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
         AGENSI_CREATOR_HANDLE: 'aklapper',
         AGENSI_SYNC_DISABLED: 'false',
         AGENSI_API_KEY: 'agensi-secret-val',
+        AI_PRIVACY_DENYLIST: '["Synthetic-Test-Term"]',
+        VERTEX_THINKING_BUDGET: '0',
         AGENSI_CACHE_TTL_SECONDS: '300',
         AGENSI_FETCH_TIMEOUT_MS: '1800',
         ADMIN_HANDLE: 'admin',
@@ -76,6 +78,7 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
         'GCP_WIF_SERVICE_ACCOUNT',
         'QDRANT_API_KEY',
         'AGENSI_API_KEY',
+        'AI_PRIVACY_DENYLIST',
       ]);
       expect(plan.skippedOptionalSecrets).toEqual([]);
       expect(plan.gcpSecrets.map(s => s.envKey)).toEqual([
@@ -86,6 +89,7 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
         'QDRANT_API_KEY',
         'ADMIN_PASSWORD',
         'AGENSI_API_KEY',
+        'AI_PRIVACY_DENYLIST',
       ]);
       expect(plan.variables.map(v => v.key)).toEqual(
         expect.arrayContaining([
@@ -95,6 +99,7 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
           'AI_PROVIDER',
           'GCP_LOCATION',
           'VERTEX_MODEL',
+          'VERTEX_THINKING_BUDGET',
           'VERTEX_EMBED_MODEL',
           'ADMIN_HANDLE',
           'GCP_CLOUDRUN_SERVICE_ACCOUNT',
@@ -122,7 +127,12 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
         'GCP_WORKLOAD_IDENTITY_PROVIDER',
         'GCP_WIF_SERVICE_ACCOUNT',
       ]);
-      expect(minimalPlan.skippedOptionalSecrets).toEqual(['QDRANT_API_KEY', 'AGENSI_API_KEY']);
+      expect(minimalPlan.skippedOptionalSecrets).toEqual([
+        'QDRANT_API_KEY',
+        'AGENSI_API_KEY',
+        'AI_PRIVACY_DENYLIST',
+      ]);
+      expect(minimalPlan.skippedOptionalVariables).toContain('VERTEX_THINKING_BUDGET');
       expect(minimalPlan.gcpSecrets.map(s => s.envKey)).toEqual([
         'DATABASE_URL',
         'INTERNAL_AUTH_SECRET',
