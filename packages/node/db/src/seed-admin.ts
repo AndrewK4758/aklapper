@@ -1,7 +1,8 @@
 import { hashPasswordArgon2id } from '@aklapper/node-runtime/auth';
+import { loadWorkspaceEnv } from '@aklapper/node-runtime/env';
 
 import { upsertAdminUserPassword } from './auth-queries.ts';
-import type { AppDatabase } from './client.ts';
+import { type AppDatabase, createDb, createDbPool } from './client.ts';
 
 export interface SeedAdminUserResult {
   seeded: boolean;
@@ -39,4 +40,15 @@ export async function seedAdminUserFromEnv(
     handle,
     action,
   };
+}
+
+if (import.meta.main) {
+  loadWorkspaceEnv({ startDir: import.meta.dirname });
+  const pool = createDbPool();
+  try {
+    const db = createDb(pool);
+    await seedAdminUserFromEnv(db);
+  } finally {
+    await pool.end();
+  }
 }

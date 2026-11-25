@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-watch
+  namespace: portfolio-public
+spec:
+  type: ClusterIP
+  selector:
+    app: k8s-watch
+  ports:
+    - name: http
+      port: 8081
+      targetPort: 8081
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cadence-demo
+  namespace: portfolio-public
+spec:
+  type: ClusterIP
+  selector:
+    app: cadence-demo
+  ports:
+    - name: http
+      port: 8082
+      targetPort: 8082
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-ask
+  namespace: portfolio-public
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-ask
+  ports:
+    - name: http
+      port: 8083
+      targetPort: 8083
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: contact
+  namespace: portfolio-public
+spec:
+  type: ClusterIP
+  selector:
+    app: contact
+  ports:
+    - name: http
+      port: 8084
+      targetPort: 8084

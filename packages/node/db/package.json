@@ -41,6 +41,18 @@
       "import": "./dist/seed.js",
       "default": "./dist/seed.js"
     },
+    "./migrate": {
+      "@aklapper/source": "./src/migrate.ts",
+      "types": "./dist/migrate.d.ts",
+      "import": "./dist/migrate.js",
+      "default": "./dist/migrate.js"
+    },
+    "./seed-admin": {
+      "@aklapper/source": "./src/seed-admin.ts",
+      "types": "./dist/seed-admin.d.ts",
+      "import": "./dist/seed-admin.js",
+      "default": "./dist/seed-admin.js"
+    },
     "./auth": {
       "@aklapper/source": "./src/auth-service.ts",
       "types": "./dist/auth-service.d.ts",
@@ -58,6 +70,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --conditions=@aklapper/source ./src/migrate.ts",
     "db:seed": "node --conditions=@aklapper/source ./src/seed.ts",
+    "db:seed-admin": "node --conditions=@aklapper/source ./src/seed-admin.ts",
     "db:setup": "pnpm run db:migrate && pnpm run db:seed"
   },
   "dependencies": {

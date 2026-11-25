@@ -59,6 +59,12 @@ func TestValidateDSN(t *testing.T) {
 	if err := ValidateDSN("postgres:///missinghost"); err == nil {
 		t.Fatal("expected error for missing host")
 	}
+	if err := ValidateDSN("postgres://user:pass@/aklapper?host="); err == nil {
+		t.Fatal("expected error for empty query host")
+	}
+	if err := ValidateDSN("postgres://user:pass@/aklapper?host=/cloudsql/games-424800:us-central1:aklapper"); err != nil {
+		t.Fatalf("expected Cloud SQL Unix socket DSN with ?host= to be valid, got %v", err)
+	}
 }
 
 func TestMemoryStoreQuotaFailClosed(t *testing.T) {

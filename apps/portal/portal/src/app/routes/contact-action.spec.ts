@@ -7,6 +7,7 @@ import {
   type PortalContactLoaderData,
 } from '@aklapper/core';
 import { ContactDbConstraintError } from '@aklapper/db';
+import { INTERNAL_AUTH_HEADER, verifyInternalAuthToken } from '@aklapper/node-runtime/http';
 import { requestContextKey, type SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
 import { RouterContextProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -361,5 +362,85 @@ describe('processContactSubmission & resource action routes', () => {
       correlationId: 'corr-analytics-503',
     });
     expect(errorCalls).toHaveLength(3);
+  });
+
+  it('attaches signed X-Internal-Auth service tokens on contact notify and public cluster SSE proxies', async () => {
+    const origContactUrl = process.env['CONTACT_API_URL'];
+    const origWatchUrl = process.env['K8S_WATCH_URL'];
+    const origSecret = process.env['INTERNAL_AUTH_SECRET'];
+    const capturedCalls: Array<{ url: string; token: string | null }> = [];
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+      capturedCalls.push({ url, token: new Headers(init?.headers).get(INTERNAL_AUTH_HEADER) });
+      if (url.endsWith('/v1/cluster/stream')) {
+        return new Response('event: pod\ndata: {"deployment":"cadence-demo"}\n\n', {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        });
+      }
+      return Response.json({
+        accepted: true,
+        submissionId: '55555555-5555-4555-8555-555555555555',
+      });
+    });
+
+    try {
+      process.env['CONTACT_API_URL'] = 'http://127.0.0.1:8084';
+      process.env['K8S_WATCH_URL'] = 'http://127.0.0.1:8081';
+      process.env['INTERNAL_AUTH_SECRET'] = 'portal-bff-test-secret';
+
+      loadPortalContactDataMock.mockResolvedValue(CONTACT_LOADER_FIXTURE);
+      insertContactSubmissionMock.mockResolvedValueOnce({
+        id: '55555555-5555-4555-8555-555555555555',
+        name: 'Grace Hopper',
+        email: 'grace@example.com',
+        phone: null,
+        attachmentName: null,
+        attachmentSizeBytes: null,
+        attachmentSha256: null,
+        createdAt: '2026-11-24T15:00:00.000Z',
+      });
+      const validFd = new FormData();
+      validFd.set('name', 'Grace Hopper');
+      validFd.set('email', 'grace@example.com');
+      validFd.set('message', 'Verifying signed contact notify webhook forwarding.');
+      await processContactSubmission(
+        makeRequest(async () => validFd),
+        {
+          correlationId: 'corr-signed-notify',
+        },
+      );
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      const { loader: clusterStreamLoader } = await import('./api.cluster.stream');
+      const sseRes = await clusterStreamLoader({
+        request: new Request('http://localhost/api/cluster/stream'),
+        params: {},
+        context: new RouterContextProvider(),
+        url: new URL('http://localhost/api/cluster/stream'),
+        pattern: '/api/cluster/stream',
+      } as never);
+      expect(sseRes.status).toBe(200);
+
+      const notifyCall = capturedCalls.find(c => c.url.endsWith('/v1/contact/notify'));
+      const streamCall = capturedCalls.find(c => c.url.endsWith('/v1/cluster/stream'));
+      expect(notifyCall?.token).toBeTruthy();
+      expect(streamCall?.token).toBeTruthy();
+
+      const notifyClaims = verifyInternalAuthToken(notifyCall?.token, 'portal-bff-test-secret');
+      const streamClaims = verifyInternalAuthToken(streamCall?.token, 'portal-bff-test-secret');
+      expect(notifyClaims?.role).toBe('service');
+      expect(notifyClaims?.sub).toBe('portal-contact');
+      expect(streamClaims?.role).toBe('service');
+      expect(streamClaims?.sub).toBe('portal-cluster-stream');
+    } finally {
+      fetchSpy.mockRestore();
+      if (origContactUrl === undefined) delete process.env['CONTACT_API_URL'];
+      else process.env['CONTACT_API_URL'] = origContactUrl;
+      if (origWatchUrl === undefined) delete process.env['K8S_WATCH_URL'];
+      else process.env['K8S_WATCH_URL'] = origWatchUrl;
+      if (origSecret === undefined) delete process.env['INTERNAL_AUTH_SECRET'];
+      else process.env['INTERNAL_AUTH_SECRET'] = origSecret;
+    }
   });
 });

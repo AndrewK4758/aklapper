@@ -16,6 +16,9 @@ func newHandler() http.Handler {
 	mux.HandleFunc("GET /healthz", httpkit.NewHealthHandler("contact"))
 
 	mux.HandleFunc("POST /v1/contact", func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := httpkit.RequireInternalAuth(w, r); !ok {
+			return
+		}
 		var req contracts.ContactRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			httpkit.WriteError(w, http.StatusBadRequest, "invalid JSON payload")
@@ -34,6 +37,9 @@ func newHandler() http.Handler {
 	})
 
 	mux.HandleFunc("POST /v1/contact/notify", func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := httpkit.RequireInternalAuth(w, r); !ok {
+			return
+		}
 		var req contracts.ContactNotifyRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			httpkit.WriteError(w, http.StatusBadRequest, "invalid JSON payload")

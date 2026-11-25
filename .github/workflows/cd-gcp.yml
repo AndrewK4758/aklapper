@@ -9,15 +9,15 @@ name: GCP Production Deploy
 # Required GitHub Environment Secrets (`production`):
 #   - GCP_WORKLOAD_IDENTITY_PROVIDER : projects/<num>/locations/global/workloadIdentityPools/<pool>/providers/<provider>
 #   - GCP_WIF_SERVICE_ACCOUNT        : <deployer-sa>@<project-id>.iam.gserviceaccount.com
-#   - DATABASE_URL                   : PostgreSQL connection string for portal, admin, and Node APIs
+#
+# Required GCP Secret Manager Secrets (`production`, synced via `pnpm gh:sync-env`):
+#   - DATABASE_URL                   : PostgreSQL connection string (?host=/cloudsql/<project>:<region>:<instance>)
 #   - INTERNAL_AUTH_SECRET           : HMAC-SHA256 signing secret for X-Internal-Auth between BFFs and APIs
 #   - TOTP_ENCRYPTION_KEY            : AES-256-GCM key material for encrypted admin TOTP secrets
 #   - ANALYTICS_DAILY_SALT           : Secret salt for daily visitor IP hashing in analytics ingestion
-# Optional GitHub Environment Secrets (`production`):
-#   - QDRANT_API_KEY                 : API key for Qdrant Cloud vector cluster
-#
-# Pre-deploy Prerequisite:
-#   - Seed admin password credentials (`ADMIN_HANDLE` / `ADMIN_PASSWORD`) via `pnpm db:seed` against target `DATABASE_URL` before deploying Cloud Run services.
+#   - QDRANT_API_KEY (optional)      : API key when QDRANT_URL points to an authenticated Qdrant cluster
+#   - ADMIN_PASSWORD (optional)      : Admin credential secret consumed only when `seed_admin=true`
+#   - AGENSI_API_KEY (optional)      : API key when Agensi storefront upstream requires key auth
 #
 # Required GitHub Environment Variables (`production`):
 #   - GCP_PROJECT_ID                 : Target GCP project ID (games-424800)
@@ -25,25 +25,36 @@ name: GCP Production Deploy
 #   - GAR_REPOSITORY                 : Artifact Registry Docker repo name (portfolio)
 #
 # Optional Environment Variables (`production`):
+#   - GCP_CLOUDRUN_SERVICE_ACCOUNT   : Dedicated runtime SA for Cloud Run SSR/API services
+#   - GCP_MIGRATOR_SERVICE_ACCOUNT   : Dedicated migration job SA for `aklapper-db-migrate`
+#   - GCP_GKE_WORKLOAD_SA            : Dedicated Workload Identity SA for GKE Go pods
 #   - CLOUD_SQL_INSTANCE             : Cloud SQL connection name (e.g. games-424800:us-central1:aklapper)
 #   - GKE_CLUSTER_NAME               : GKE Autopilot cluster name (GKE rollout skipped cleanly if unset)
 #   - GKE_CLUSTER_LOCATION           : GKE cluster region/zone (defaults to GCP_REGION)
-#   - AI_PROVIDER                    : 'local' | 'vertex' (default in GKE: 'vertex')
-#   - GCP_LOCATION                   : Vertex AI region (defaults to GCP_REGION / 'us-central1')
+#   - AI_PROVIDER                    : 'vertex' | 'local' (default: 'vertex')
+#   - GCP_LOCATION                   : Vertex AI location (defaults to GCP_REGION)
+#   - VERTEX_MODEL                   : Vertex AI generation model ID
+#   - VERTEX_EMBED_MODEL             : Vertex AI embedding model ID
+#   - ADMIN_HANDLE                   : Target admin handle when running `seed_admin=true` (default: 'admin')
+#   - AGENSI_API_BASE_URL            : https://agensi.io
+#   - AGENSI_API_PATH                : /api/creators/aklapper
+#   - AGENSI_CREATOR_HANDLE          : aklapper
+#   - AGENSI_CACHE_TTL_SECONDS       : 300
+#   - AGENSI_FETCH_TIMEOUT_MS        : 1800
 #   - PORTAL_MAINTENANCE_MODE        : 'true' | 'false' (default: 'false')
 #   - PUBLIC_PORTAL_URL              : https://andrew-k.us
 #   - PUBLIC_ADMIN_URL               : https://admin.andrew-k.us
 #   - WEBAUTHN_RP_ID                 : admin.andrew-k.us
 #   - WEBAUTHN_RP_NAME               : andrew-k.us Admin
 #   - WEBAUTHN_ORIGIN                : https://admin.andrew-k.us
-#   - AUTH_API_URL                   : https://auth.bgdkapis.us
-#   - ANALYTICS_API_URL              : https://analytics.bgdkapis.us
+#   - AUTH_API_URL                   : https://auth.bgdkapis.us (used when CLOUD_RUN_ALLOW_UNAUTH_APIS=true)
+#   - ANALYTICS_API_URL              : https://analytics.bgdkapis.us (used when CLOUD_RUN_ALLOW_UNAUTH_APIS=true)
 #   - AI_ASK_URL                     : https://ask.bgdkapis.us
 #   - CADENCE_DEMO_URL               : https://cadence.bgdkapis.us
 #   - CADENCE_ADMIN_URL              : https://cadence-admin.bgdkapis.us
 #   - K8S_WATCH_URL                  : https://k8s-watch.bgdkapis.us
 #   - CONTACT_API_URL                : https://contact.bgdkapis.us
-#   - QDRANT_URL                     : https://qdrant.bgdkapis.us
+#   - QDRANT_URL                     : https://qdrant.bgdkapis.us (or managed Qdrant Cloud URL)
 #   - CLOUD_RUN_ALLOW_UNAUTH_ADMIN   : 'true' | 'false' (default: 'false')
 #   - CLOUD_RUN_ALLOW_UNAUTH_APIS    : 'true' | 'false' (default: 'false')
 # =============================================================================
@@ -61,6 +72,18 @@ on:
         default: HEAD~1
       skip_ci_gate:
         description: Skip pre-deploy CI gate (use only when CI already passed for this exact SHA)
+        type: boolean
+        default: false
+      migrate_db:
+        description: Run Cloud Run Job (aklapper-db-migrate) before deploying services
+        type: boolean
+        default: true
+      seed_admin:
+        description: Seed or rotate ADMIN_HANDLE password using Secret Manager ADMIN_PASSWORD during migrate-db
+        type: boolean
+        default: false
+      seed_content:
+        description: Bootstrap missing initial CMS/terminal seed content without deleting existing rows
         type: boolean
         default: false
       deploy_cloud_run:
@@ -103,9 +126,13 @@ jobs:
     outputs:
       deploy_cloud_run: ${{ steps.resolve.outputs.deploy_cloud_run }}
       deploy_gke: ${{ steps.resolve.outputs.deploy_gke }}
+      migrate_db: ${{ steps.resolve.outputs.migrate_db }}
+      seed_admin: ${{ steps.resolve.outputs.seed_admin }}
+      seed_content: ${{ steps.resolve.outputs.seed_content }}
       run_smoke_e2e: ${{ steps.resolve.outputs.run_smoke_e2e }}
       smoke_engines_json: ${{ steps.resolve.outputs.smoke_engines_json }}
       has_docker: ${{ steps.plan.outputs.has_docker }}
+      has_admin_or_db_migration: ${{ steps.plan.outputs.has_admin_or_db_migration }}
       has_cloud_run: ${{ steps.plan.outputs.has_cloud_run }}
       has_gke: ${{ steps.plan.outputs.has_gke }}
       docker_matrix_json: ${{ steps.plan.outputs.docker_matrix_json }}
@@ -131,6 +158,9 @@ jobs:
         env:
           INPUT_DEPLOY_CLOUD_RUN: ${{ inputs.deploy_cloud_run }}
           INPUT_DEPLOY_GKE: ${{ inputs.deploy_gke }}
+          INPUT_MIGRATE_DB: ${{ inputs.migrate_db }}
+          INPUT_SEED_ADMIN: ${{ inputs.seed_admin }}
+          INPUT_SEED_CONTENT: ${{ inputs.seed_content }}
           INPUT_RUN_SMOKE_E2E: ${{ inputs.run_smoke_e2e }}
           INPUT_SMOKE_ALL_BROWSERS: ${{ inputs.smoke_all_browsers }}
         run: |
@@ -142,6 +172,9 @@ jobs:
 
           echo "deploy_cloud_run=${INPUT_DEPLOY_CLOUD_RUN}" >> "$GITHUB_OUTPUT"
           echo "deploy_gke=${INPUT_DEPLOY_GKE}" >> "$GITHUB_OUTPUT"
+          echo "migrate_db=${INPUT_MIGRATE_DB}" >> "$GITHUB_OUTPUT"
+          echo "seed_admin=${INPUT_SEED_ADMIN}" >> "$GITHUB_OUTPUT"
+          echo "seed_content=${INPUT_SEED_CONTENT}" >> "$GITHUB_OUTPUT"
           echo "run_smoke_e2e=${INPUT_RUN_SMOKE_E2E}" >> "$GITHUB_OUTPUT"
           echo "smoke_engines_json=${SMOKE_ENGINES}" >> "$GITHUB_OUTPUT"
 
@@ -151,11 +184,12 @@ jobs:
         env:
           INPUT_DEPLOY_ALL: ${{ inputs.deploy_all_services }}
           INPUT_BASE_REF: ${{ inputs.base_ref }}
+          INPUT_MIGRATE_DB: ${{ inputs.migrate_db }}
         run: |
           if [ "$INPUT_DEPLOY_ALL" = "true" ]; then
-            node --conditions=@aklapper/source packages/tooling/src/ci-plan.ts --all
+            node --conditions=@aklapper/source packages/tooling/src/ci-plan.ts --all "--migrate-db=${INPUT_MIGRATE_DB}"
           else
-            node --conditions=@aklapper/source packages/tooling/src/ci-plan.ts --base="$INPUT_BASE_REF" --head=HEAD
+            node --conditions=@aklapper/source packages/tooling/src/ci-plan.ts --base="$INPUT_BASE_REF" --head=HEAD "--migrate-db=${INPUT_MIGRATE_DB}"
           fi
 
   ci-gate:
@@ -226,12 +260,158 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
+  migrate-db:
+    name: Run Drizzle migrations & optional seed (production)
+    needs:
+      - resolve-plan
+      - ci-gate
+      - build-and-push
+    if: >-
+      always() &&
+      needs.resolve-plan.result == 'success' &&
+      (needs.ci-gate.result == 'success' || needs.ci-gate.result == 'skipped') &&
+      (needs.build-and-push.result == 'success' || needs.build-and-push.result == 'skipped') &&
+      needs.resolve-plan.outputs.migrate_db == 'true' &&
+      (
+        (needs.resolve-plan.outputs.deploy_cloud_run == 'true' && needs.resolve-plan.outputs.has_cloud_run == 'true') ||
+        (needs.resolve-plan.outputs.deploy_gke == 'true' && needs.resolve-plan.outputs.has_gke == 'true') ||
+        needs.resolve-plan.outputs.has_admin_or_db_migration == 'true' ||
+        needs.resolve-plan.outputs.seed_admin == 'true' ||
+        needs.resolve-plan.outputs.seed_content == 'true'
+      )
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 15
+
+    steps:
+      - name: Validate GCP deployment variables
+        shell: bash
+        run: |
+          if [ -z "${{ vars.GCP_PROJECT_ID }}" ]; then
+            echo "::error::Missing required GitHub variable GCP_PROJECT_ID for environment production."
+            exit 1
+          fi
+
+      - name: Authenticate to Google Cloud (WIF)
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
+
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Execute Cloud Run Job aklapper-db-migrate
+        shell: bash
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+          GAR_REPOSITORY: ${{ vars.GAR_REPOSITORY || 'portfolio' }}
+          CLOUD_SQL_INSTANCE: ${{ vars.CLOUD_SQL_INSTANCE || '' }}
+          MIGRATOR_SA: ${{ vars.GCP_MIGRATOR_SERVICE_ACCOUNT || secrets.GCP_WIF_SERVICE_ACCOUNT }}
+          HAS_ADMIN_IMAGE: ${{ needs.resolve-plan.outputs.has_admin_or_db_migration }}
+          SEED_ADMIN: ${{ needs.resolve-plan.outputs.seed_admin }}
+          SEED_CONTENT: ${{ needs.resolve-plan.outputs.seed_content }}
+          ADMIN_HANDLE: ${{ vars.ADMIN_HANDLE || 'admin' }}
+          IMAGE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          IMAGE_TAG="production-latest"
+          if [ "$HAS_ADMIN_IMAGE" = "true" ]; then
+            IMAGE_TAG="$IMAGE_SHA"
+          fi
+          ADMIN_IMAGE="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/admin:${IMAGE_TAG}"
+
+          CLOUDSQL_FLAGS=()
+          if [ -n "$CLOUD_SQL_INSTANCE" ]; then
+            CLOUDSQL_FLAGS=(--set-cloudsql-instances="$CLOUD_SQL_INSTANCE")
+          else
+            CLOUDSQL_FLAGS=(--clear-cloudsql-instances)
+          fi
+
+          deploy_base_migrate_job() {
+            gcloud run jobs deploy aklapper-db-migrate \
+              --quiet \
+              --project="$GCP_PROJECT_ID" \
+              --region="$GCP_REGION" \
+              --image="$ADMIN_IMAGE" \
+              --service-account="$MIGRATOR_SA" \
+              --command=node \
+              --args="node_modules/@aklapper/db/dist/migrate.js" \
+              --tasks=1 \
+              --max-retries=0 \
+              --task-timeout=5m \
+              --set-env-vars="NODE_ENV=production" \
+              --set-secrets="DATABASE_URL=DATABASE_URL:latest" \
+              "${CLOUDSQL_FLAGS[@]}"
+          }
+
+          restore_default_on_exit=false
+          cleanup_job_spec() {
+            if [ "$restore_default_on_exit" = "true" ]; then
+              deploy_base_migrate_job >/dev/null || true
+            fi
+          }
+          trap cleanup_job_spec EXIT
+
+          deploy_base_migrate_job
+          gcloud run jobs execute aklapper-db-migrate --quiet --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --wait
+
+          if [ "$SEED_CONTENT" = "true" ]; then
+            restore_default_on_exit=true
+            gcloud run jobs deploy aklapper-db-migrate \
+              --quiet \
+              --project="$GCP_PROJECT_ID" \
+              --region="$GCP_REGION" \
+              --image="$ADMIN_IMAGE" \
+              --service-account="$MIGRATOR_SA" \
+              --command=node \
+              --args="node_modules/@aklapper/db/dist/seed.js,--mode=bootstrap" \
+              --tasks=1 \
+              --max-retries=0 \
+              --task-timeout=5m \
+              --set-env-vars="NODE_ENV=production" \
+              --set-secrets="DATABASE_URL=DATABASE_URL:latest" \
+              "${CLOUDSQL_FLAGS[@]}"
+            gcloud run jobs execute aklapper-db-migrate --quiet --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --wait
+          fi
+
+          if [ "$SEED_ADMIN" = "true" ]; then
+            if ! gcloud secrets versions describe latest --secret="ADMIN_PASSWORD" --project="$GCP_PROJECT_ID" >/dev/null 2>&1; then
+              echo "::error::Missing enabled Secret Manager version ADMIN_PASSWORD in project ${GCP_PROJECT_ID}; cannot execute seed_admin."
+              exit 1
+            fi
+            restore_default_on_exit=true
+            gcloud run jobs deploy aklapper-db-migrate \
+              --quiet \
+              --project="$GCP_PROJECT_ID" \
+              --region="$GCP_REGION" \
+              --image="$ADMIN_IMAGE" \
+              --service-account="$MIGRATOR_SA" \
+              --command=node \
+              --args="node_modules/@aklapper/db/dist/seed-admin.js" \
+              --tasks=1 \
+              --max-retries=0 \
+              --task-timeout=5m \
+              --set-env-vars="NODE_ENV=production,ADMIN_HANDLE=${ADMIN_HANDLE}" \
+              --set-secrets="DATABASE_URL=DATABASE_URL:latest,ADMIN_PASSWORD=ADMIN_PASSWORD:latest" \
+              "${CLOUDSQL_FLAGS[@]}"
+            gcloud run jobs execute aklapper-db-migrate --quiet --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --wait
+          fi
+
   deploy-cloud-run:
     name: Deploy Cloud Run (production)
     needs:
       - resolve-plan
+      - ci-gate
       - build-and-push
+      - migrate-db
     if: >-
+      always() &&
+      needs.resolve-plan.result == 'success' &&
+      (needs.ci-gate.result == 'success' || needs.ci-gate.result == 'skipped') &&
+      (needs.build-and-push.result == 'success' || needs.build-and-push.result == 'skipped') &&
+      (needs.migrate-db.result == 'success' || needs.migrate-db.result == 'skipped') &&
       needs.resolve-plan.outputs.deploy_cloud_run == 'true' &&
       needs.resolve-plan.outputs.has_cloud_run == 'true'
     runs-on: ubuntu-latest
@@ -239,6 +419,10 @@ jobs:
     outputs:
       portal_url: ${{ steps.resolve-urls.outputs.portal_url }}
       admin_url: ${{ steps.resolve-urls.outputs.admin_url }}
+      portal_service_url: ${{ steps.resolve-urls.outputs.portal_service_url }}
+      admin_service_url: ${{ steps.resolve-urls.outputs.admin_service_url }}
+      auth_service_url: ${{ steps.api-urls.outputs.auth_service_url }}
+      analytics_service_url: ${{ steps.api-urls.outputs.analytics_service_url }}
 
     steps:
       - name: Authenticate to Google Cloud (WIF)
@@ -263,16 +447,15 @@ jobs:
           image: ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY || 'portfolio' }}/node-api-auth:${{ github.sha }}
           env_vars: |
             NODE_ENV=production
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
             WEBAUTHN_RP_ID=${{ vars.WEBAUTHN_RP_ID || 'admin.andrew-k.us' }}
             WEBAUTHN_RP_NAME=${{ vars.WEBAUTHN_RP_NAME || 'andrew-k.us Admin' }}
             WEBAUTHN_ORIGIN=${{ vars.WEBAUTHN_ORIGIN || vars.PUBLIC_ADMIN_URL || 'https://admin.andrew-k.us' }}
-            TOTP_ENCRYPTION_KEY=${{ secrets.TOTP_ENCRYPTION_KEY }}
-            INTERNAL_AUTH_SECRET=${{ secrets.INTERNAL_AUTH_SECRET }}
           flags: >-
             ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_APIS == 'true' && '--allow-unauthenticated' || '--no-allow-unauthenticated' }}
             ${{ vars.CLOUD_SQL_INSTANCE != '' && format('--add-cloudsql-instances={0}', vars.CLOUD_SQL_INSTANCE) || '' }}
-            --service-account=${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
+            --service-account=${{ vars.GCP_CLOUDRUN_SERVICE_ACCOUNT || secrets.GCP_WIF_SERVICE_ACCOUNT }}
+            --remove-env-vars=DATABASE_URL,TOTP_ENCRYPTION_KEY,INTERNAL_AUTH_SECRET
+            --set-secrets=DATABASE_URL=DATABASE_URL:latest,TOTP_ENCRYPTION_KEY=TOTP_ENCRYPTION_KEY:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest
             --port=8080
             --min-instances=0
             --max-instances=3
@@ -291,13 +474,12 @@ jobs:
           image: ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY || 'portfolio' }}/node-api-analytics:${{ github.sha }}
           env_vars: |
             NODE_ENV=production
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
-            ANALYTICS_DAILY_SALT=${{ secrets.ANALYTICS_DAILY_SALT }}
-            INTERNAL_AUTH_SECRET=${{ secrets.INTERNAL_AUTH_SECRET }}
           flags: >-
             ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_APIS == 'true' && '--allow-unauthenticated' || '--no-allow-unauthenticated' }}
             ${{ vars.CLOUD_SQL_INSTANCE != '' && format('--add-cloudsql-instances={0}', vars.CLOUD_SQL_INSTANCE) || '' }}
-            --service-account=${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
+            --service-account=${{ vars.GCP_CLOUDRUN_SERVICE_ACCOUNT || secrets.GCP_WIF_SERVICE_ACCOUNT }}
+            --remove-env-vars=DATABASE_URL,ANALYTICS_DAILY_SALT,INTERNAL_AUTH_SECRET
+            --set-secrets=DATABASE_URL=DATABASE_URL:latest,ANALYTICS_DAILY_SALT=ANALYTICS_DAILY_SALT:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest
             --port=8080
             --min-instances=0
             --max-instances=3
@@ -311,19 +493,42 @@ jobs:
         env:
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
           GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+          ALLOW_UNAUTH_APIS: ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_APIS || 'false' }}
+          CUSTOM_AUTH_URL: ${{ vars.AUTH_API_URL || '' }}
+          CUSTOM_ANALYTICS_URL: ${{ vars.ANALYTICS_API_URL || '' }}
         run: |
-          AUTH_URL="${{ vars.AUTH_API_URL || steps.deploy-api-auth.outputs.url }}"
-          if [ -z "$AUTH_URL" ]; then
-            AUTH_URL="$(gcloud run services describe "node-api-auth" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.url)' 2>/dev/null || true)"
+          AUTH_SERVICE_URL="${{ steps.deploy-api-auth.outputs.url }}"
+          if [ -z "$AUTH_SERVICE_URL" ]; then
+            AUTH_SERVICE_URL="$(gcloud run services describe "node-api-auth" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.url)' 2>/dev/null || true)"
           fi
 
-          ANALYTICS_URL="${{ vars.ANALYTICS_API_URL || steps.deploy-api-analytics.outputs.url }}"
-          if [ -z "$ANALYTICS_URL" ]; then
-            ANALYTICS_URL="$(gcloud run services describe "node-api-analytics" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.url)' 2>/dev/null || true)"
+          ANALYTICS_SERVICE_URL="${{ steps.deploy-api-analytics.outputs.url }}"
+          if [ -z "$ANALYTICS_SERVICE_URL" ]; then
+            ANALYTICS_SERVICE_URL="$(gcloud run services describe "node-api-analytics" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.url)' 2>/dev/null || true)"
+          fi
+
+          if [ "$ALLOW_UNAUTH_APIS" = "true" ] && [ -n "$CUSTOM_AUTH_URL" ]; then
+            AUTH_URL="$CUSTOM_AUTH_URL"
+          else
+            AUTH_URL="$AUTH_SERVICE_URL"
+          fi
+
+          if [ "$ALLOW_UNAUTH_APIS" = "true" ] && [ -n "$CUSTOM_ANALYTICS_URL" ]; then
+            ANALYTICS_URL="$CUSTOM_ANALYTICS_URL"
+          else
+            ANALYTICS_URL="$ANALYTICS_SERVICE_URL"
+          fi
+
+          HAS_AGENSI_API_KEY="false"
+          if gcloud secrets versions describe latest --secret="AGENSI_API_KEY" --project="$GCP_PROJECT_ID" >/dev/null 2>&1; then
+            HAS_AGENSI_API_KEY="true"
           fi
 
           echo "auth_url=${AUTH_URL}" >> "$GITHUB_OUTPUT"
           echo "analytics_url=${ANALYTICS_URL}" >> "$GITHUB_OUTPUT"
+          echo "auth_service_url=${AUTH_SERVICE_URL}" >> "$GITHUB_OUTPUT"
+          echo "analytics_service_url=${ANALYTICS_SERVICE_URL}" >> "$GITHUB_OUTPUT"
+          echo "has_agensi_api_key=${HAS_AGENSI_API_KEY}" >> "$GITHUB_OUTPUT"
 
       - name: Deploy portal SSR to Cloud Run
         id: deploy-portal
@@ -342,9 +547,11 @@ jobs:
             PUBLIC_GA_MEASUREMENT_ID=${{ vars.PUBLIC_GA_MEASUREMENT_ID || '' }}
             PUBLIC_GTM_ID=${{ vars.PUBLIC_GTM_ID || '' }}
             PUBLIC_GSC_VERIFICATION=${{ vars.PUBLIC_GSC_VERIFICATION || '' }}
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
-            INTERNAL_AUTH_SECRET=${{ secrets.INTERNAL_AUTH_SECRET }}
-            ANALYTICS_DAILY_SALT=${{ secrets.ANALYTICS_DAILY_SALT }}
+            AI_PROVIDER=${{ vars.AI_PROVIDER || 'vertex' }}
+            GCP_PROJECT_ID=${{ vars.GCP_PROJECT_ID }}
+            GCP_LOCATION=${{ vars.GCP_LOCATION || vars.GCP_REGION || 'us-central1' }}
+            VERTEX_MODEL=${{ vars.VERTEX_MODEL || '' }}
+            VERTEX_EMBED_MODEL=${{ vars.VERTEX_EMBED_MODEL || '' }}
             ANALYTICS_API_URL=${{ steps.api-urls.outputs.analytics_url }}
             K8S_WATCH_URL=${{ vars.K8S_WATCH_URL || '' }}
             CADENCE_DEMO_URL=${{ vars.CADENCE_DEMO_URL || '' }}
@@ -355,11 +562,12 @@ jobs:
             AGENSI_CREATOR_HANDLE=${{ vars.AGENSI_CREATOR_HANDLE || 'aklapper' }}
             AGENSI_CACHE_TTL_SECONDS=${{ vars.AGENSI_CACHE_TTL_SECONDS || '300' }}
             AGENSI_FETCH_TIMEOUT_MS=${{ vars.AGENSI_FETCH_TIMEOUT_MS || '1800' }}
-            AGENSI_API_KEY=${{ secrets.AGENSI_API_KEY }}
           flags: >-
             --allow-unauthenticated
             ${{ vars.CLOUD_SQL_INSTANCE != '' && format('--add-cloudsql-instances={0}', vars.CLOUD_SQL_INSTANCE) || '' }}
-            --service-account=${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
+            --service-account=${{ vars.GCP_CLOUDRUN_SERVICE_ACCOUNT || secrets.GCP_WIF_SERVICE_ACCOUNT }}
+            --remove-env-vars=DATABASE_URL,INTERNAL_AUTH_SECRET,ANALYTICS_DAILY_SALT,QDRANT_API_KEY,AGENSI_API_KEY
+            ${{ steps.api-urls.outputs.has_agensi_api_key == 'true' && '--set-secrets=DATABASE_URL=DATABASE_URL:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest,ANALYTICS_DAILY_SALT=ANALYTICS_DAILY_SALT:latest,AGENSI_API_KEY=AGENSI_API_KEY:latest' || '--set-secrets=DATABASE_URL=DATABASE_URL:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest,ANALYTICS_DAILY_SALT=ANALYTICS_DAILY_SALT:latest' }}
             --port=8080
             --min-instances=0
             --max-instances=5
@@ -382,13 +590,14 @@ jobs:
             PUBLIC_ANALYTICS_ENDPOINT=${{ vars.PUBLIC_ANALYTICS_ENDPOINT || '' }}
             PUBLIC_GA_MEASUREMENT_ID=${{ vars.PUBLIC_GA_MEASUREMENT_ID || '' }}
             PUBLIC_GTM_ID=${{ vars.PUBLIC_GTM_ID || '' }}
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
             WEBAUTHN_RP_ID=${{ vars.WEBAUTHN_RP_ID || 'admin.andrew-k.us' }}
             WEBAUTHN_RP_NAME=${{ vars.WEBAUTHN_RP_NAME || 'andrew-k.us Admin' }}
             WEBAUTHN_ORIGIN=${{ vars.WEBAUTHN_ORIGIN || vars.PUBLIC_ADMIN_URL || 'https://admin.andrew-k.us' }}
-            TOTP_ENCRYPTION_KEY=${{ secrets.TOTP_ENCRYPTION_KEY }}
-            INTERNAL_AUTH_SECRET=${{ secrets.INTERNAL_AUTH_SECRET }}
-            ANALYTICS_DAILY_SALT=${{ secrets.ANALYTICS_DAILY_SALT }}
+            AI_PROVIDER=${{ vars.AI_PROVIDER || 'vertex' }}
+            GCP_PROJECT_ID=${{ vars.GCP_PROJECT_ID }}
+            GCP_LOCATION=${{ vars.GCP_LOCATION || vars.GCP_REGION || 'us-central1' }}
+            VERTEX_MODEL=${{ vars.VERTEX_MODEL || '' }}
+            VERTEX_EMBED_MODEL=${{ vars.VERTEX_EMBED_MODEL || '' }}
             AUTH_API_URL=${{ steps.api-urls.outputs.auth_url }}
             ANALYTICS_API_URL=${{ steps.api-urls.outputs.analytics_url }}
             K8S_WATCH_URL=${{ vars.K8S_WATCH_URL || '' }}
@@ -397,17 +606,17 @@ jobs:
             CADENCE_ADMIN_URL=${{ vars.CADENCE_ADMIN_URL || '' }}
             CONTACT_API_URL=${{ vars.CONTACT_API_URL || '' }}
             QDRANT_URL=${{ vars.QDRANT_URL || '' }}
-            QDRANT_API_KEY=${{ secrets.QDRANT_API_KEY || '' }}
             AGENSI_API_BASE_URL=${{ vars.AGENSI_API_BASE_URL || 'https://agensi.io' }}
             AGENSI_API_PATH=${{ vars.AGENSI_API_PATH || '/api/creators/aklapper' }}
             AGENSI_CREATOR_HANDLE=${{ vars.AGENSI_CREATOR_HANDLE || 'aklapper' }}
             AGENSI_CACHE_TTL_SECONDS=${{ vars.AGENSI_CACHE_TTL_SECONDS || '300' }}
             AGENSI_FETCH_TIMEOUT_MS=${{ vars.AGENSI_FETCH_TIMEOUT_MS || '1800' }}
-            AGENSI_API_KEY=${{ secrets.AGENSI_API_KEY }}
           flags: >-
             ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_ADMIN == 'true' && '--allow-unauthenticated' || '--no-allow-unauthenticated' }}
             ${{ vars.CLOUD_SQL_INSTANCE != '' && format('--add-cloudsql-instances={0}', vars.CLOUD_SQL_INSTANCE) || '' }}
-            --service-account=${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
+            --service-account=${{ vars.GCP_CLOUDRUN_SERVICE_ACCOUNT || secrets.GCP_WIF_SERVICE_ACCOUNT }}
+            --remove-env-vars=DATABASE_URL,TOTP_ENCRYPTION_KEY,INTERNAL_AUTH_SECRET,ANALYTICS_DAILY_SALT,QDRANT_API_KEY,AGENSI_API_KEY
+            --set-secrets=DATABASE_URL=DATABASE_URL:latest,TOTP_ENCRYPTION_KEY=TOTP_ENCRYPTION_KEY:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest,ANALYTICS_DAILY_SALT=ANALYTICS_DAILY_SALT:latest${{ vars.QDRANT_URL != '' && ',QDRANT_API_KEY=QDRANT_API_KEY:latest' || '' }}${{ steps.api-urls.outputs.has_agensi_api_key == 'true' && ',AGENSI_API_KEY=AGENSI_API_KEY:latest' || '' }}
             --port=8080
             --min-instances=0
             --max-instances=2
@@ -456,18 +665,30 @@ jobs:
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
           GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
         run: |
-          PORTAL_URL="${{ vars.PUBLIC_PORTAL_URL || steps.deploy-portal.outputs.url }}"
-          if [ -z "$PORTAL_URL" ]; then
-            PORTAL_URL="$(gcloud run services describe "portal" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.url)' 2>/dev/null || true)"
+          PORTAL_SERVICE_URL="${{ steps.deploy-portal.outputs.url }}"
+          if [ -z "$PORTAL_SERVICE_URL" ]; then
+            PORTAL_SERVICE_URL="$(gcloud run services describe "portal" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.url)' 2>/dev/null || true)"
           fi
 
-          ADMIN_URL="${{ vars.PUBLIC_ADMIN_URL || steps.deploy-admin.outputs.url }}"
+          ADMIN_SERVICE_URL="${{ steps.deploy-admin.outputs.url }}"
+          if [ -z "$ADMIN_SERVICE_URL" ]; then
+            ADMIN_SERVICE_URL="$(gcloud run services describe "admin" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.url)' 2>/dev/null || true)"
+          fi
+
+          PORTAL_URL="${{ vars.PUBLIC_PORTAL_URL || '' }}"
+          if [ -z "$PORTAL_URL" ]; then
+            PORTAL_URL="$PORTAL_SERVICE_URL"
+          fi
+
+          ADMIN_URL="${{ vars.PUBLIC_ADMIN_URL || '' }}"
           if [ -z "$ADMIN_URL" ]; then
-            ADMIN_URL="$(gcloud run services describe "admin" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.url)' 2>/dev/null || true)"
+            ADMIN_URL="$ADMIN_SERVICE_URL"
           fi
 
           echo "portal_url=${PORTAL_URL}" >> "$GITHUB_OUTPUT"
           echo "admin_url=${ADMIN_URL}" >> "$GITHUB_OUTPUT"
+          echo "portal_service_url=${PORTAL_SERVICE_URL}" >> "$GITHUB_OUTPUT"
+          echo "admin_service_url=${ADMIN_SERVICE_URL}" >> "$GITHUB_OUTPUT"
 
       - name: Write Cloud Run deployment summary
         shell: bash
@@ -475,10 +696,12 @@ jobs:
           {
             echo "### Cloud Run Deploy (production)"
             echo "- Deployed services: \`${{ needs.resolve-plan.outputs.cloud_run_services_json }}\`"
-            echo "- Portal: ${{ steps.resolve-urls.outputs.portal_url }}"
-            echo "- Admin: ${{ steps.resolve-urls.outputs.admin_url }}"
-            echo "- Auth API: ${{ steps.api-urls.outputs.auth_url }}"
-            echo "- Analytics API: ${{ steps.api-urls.outputs.analytics_url }}"
+            echo "- Portal (public): ${{ steps.resolve-urls.outputs.portal_url }}"
+            echo "- Portal (service): ${{ steps.resolve-urls.outputs.portal_service_url }}"
+            echo "- Admin (public): ${{ steps.resolve-urls.outputs.admin_url }}"
+            echo "- Admin (service): ${{ steps.resolve-urls.outputs.admin_service_url }}"
+            echo "- Auth API (service): ${{ steps.api-urls.outputs.auth_service_url }}"
+            echo "- Analytics API (service): ${{ steps.api-urls.outputs.analytics_service_url }}"
             echo "- Image tag: \`${{ github.sha }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -486,8 +709,15 @@ jobs:
     name: Deploy GKE Autopilot Go services (production)
     needs:
       - resolve-plan
+      - ci-gate
       - build-and-push
+      - migrate-db
     if: >-
+      always() &&
+      needs.resolve-plan.result == 'success' &&
+      (needs.ci-gate.result == 'success' || needs.ci-gate.result == 'skipped') &&
+      (needs.build-and-push.result == 'success' || needs.build-and-push.result == 'skipped') &&
+      (needs.migrate-db.result == 'success' || needs.migrate-db.result == 'skipped') &&
       needs.resolve-plan.outputs.deploy_gke == 'true' &&
       needs.resolve-plan.outputs.has_gke == 'true'
     runs-on: ubuntu-latest
@@ -508,8 +738,20 @@ jobs:
               echo "Set \`GKE_CLUSTER_NAME\` in the \`production\` environment to enable Go microservice rollout. Affected Go images (\`${{ needs.resolve-plan.outputs.gke_services_json }}\`) were built and pushed to Artifact Registry with tag \`${{ github.sha }}\`."
             } >> "$GITHUB_STEP_SUMMARY"
           else
+            if [ -z "${{ vars.GCP_PROJECT_ID }}" ]; then
+              echo "::error::Missing required GitHub variable GCP_PROJECT_ID for GKE deployment."
+              exit 1
+            fi
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Setup workspace
+        if: steps.gke-check.outputs.configured == 'true'
+        uses: ./.github/actions/setup-workspace
+        with:
+          pnpm-version: ${{ env.PNPM_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          restore-nx-cache: 'false'
 
       - name: Authenticate to Google Cloud (WIF)
         if: steps.gke-check.outputs.configured == 'true'
@@ -517,6 +759,10 @@ jobs:
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
+
+      - name: Setup gcloud CLI
+        if: steps.gke-check.outputs.configured == 'true'
+        uses: google-github-actions/setup-gcloud@v3
 
       - name: Fetch GKE Autopilot credentials
         if: steps.gke-check.outputs.configured == 'true'
@@ -526,97 +772,95 @@ jobs:
           cluster_name: ${{ vars.GKE_CLUSTER_NAME }}
           location: ${{ vars.GKE_CLUSTER_LOCATION || vars.GCP_REGION || 'us-central1' }}
 
-      - name: Apply base namespaces, quotas, and network policies
-        if: steps.gke-check.outputs.configured == 'true'
-        shell: bash
-        run: |
-          kubectl apply -f infra/k8s/base/namespaces.yaml
-          kubectl apply -f infra/k8s/base/quotas-limits.yaml
-          kubectl apply -f infra/k8s/base/network-policies.yaml
-
-      - name: Reconcile portfolio-public runtime ConfigMap and Secrets
+      - name: Ensure namespaces and materialize runtime ConfigMaps & Secrets
         if: steps.gke-check.outputs.configured == 'true'
         shell: bash
         env:
-          AI_PROVIDER: ${{ vars.AI_PROVIDER || 'vertex' }}
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+          AI_PROVIDER: ${{ vars.AI_PROVIDER || 'vertex' }}
           GCP_LOCATION: ${{ vars.GCP_LOCATION || vars.GCP_REGION || 'us-central1' }}
+          VERTEX_MODEL: ${{ vars.VERTEX_MODEL || '' }}
+          VERTEX_EMBED_MODEL: ${{ vars.VERTEX_EMBED_MODEL || '' }}
           QDRANT_URL: ${{ vars.QDRANT_URL || '' }}
           AGENSI_CREATOR_HANDLE: ${{ vars.AGENSI_CREATOR_HANDLE || 'aklapper' }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          INTERNAL_AUTH_SECRET: ${{ secrets.INTERNAL_AUTH_SECRET }}
-          QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY || '' }}
         run: |
-          kubectl create configmap ai-ask-config \
-            --namespace=portfolio-public \
-            --from-literal=AI_PROVIDER="$AI_PROVIDER" \
-            --from-literal=GCP_PROJECT_ID="$GCP_PROJECT_ID" \
-            --from-literal=GCP_LOCATION="$GCP_LOCATION" \
-            --from-literal=QDRANT_URL="$QDRANT_URL" \
-            --from-literal=AGENSI_CREATOR_HANDLE="$AGENSI_CREATOR_HANDLE" \
-            --dry-run=client -o yaml | kubectl apply -f -
+          set -euo pipefail
+          kubectl apply -f infra/k8s/base/namespaces.yaml
 
-          SECRET_ARGS=(
-            --from-literal="DATABASE_URL=${DATABASE_URL}"
-            --from-literal="INTERNAL_AUTH_SECRET=${INTERNAL_AUTH_SECRET}"
-          )
-          if [ -n "$QDRANT_API_KEY" ]; then
-            SECRET_ARGS+=(--from-literal="QDRANT_API_KEY=${QDRANT_API_KEY}")
+          tmp_secrets_dir="$(mktemp -d)"
+          chmod 700 "$tmp_secrets_dir"
+          trap 'rm -rf "$tmp_secrets_dir"' EXIT
+
+          for secret_id in DATABASE_URL INTERNAL_AUTH_SECRET; do
+            gcloud secrets versions access latest --secret="$secret_id" --project="$GCP_PROJECT_ID" > "${tmp_secrets_dir}/${secret_id}"
+            chmod 600 "${tmp_secrets_dir}/${secret_id}"
+          done
+          if [ -n "$QDRANT_URL" ]; then
+            gcloud secrets versions access latest --secret="QDRANT_API_KEY" --project="$GCP_PROJECT_ID" > "${tmp_secrets_dir}/QDRANT_API_KEY"
+            chmod 600 "${tmp_secrets_dir}/QDRANT_API_KEY"
           fi
-          kubectl create secret generic ai-ask-secrets \
-            --namespace=portfolio-public \
-            "${SECRET_ARGS[@]}" \
-            --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Apply GKE manifests and scope immutable SHA tags to affected Go services
+          kubectl create configmap aklapper-runtime-config \
+            -n portfolio-public \
+            --from-literal="APP_ENV=production" \
+            --from-literal="AI_PROVIDER=${AI_PROVIDER}" \
+            --from-literal="GCP_PROJECT_ID=${GCP_PROJECT_ID}" \
+            --from-literal="GCP_LOCATION=${GCP_LOCATION}" \
+            --from-literal="VERTEX_MODEL=${VERTEX_MODEL}" \
+            --from-literal="VERTEX_EMBED_MODEL=${VERTEX_EMBED_MODEL}" \
+            --from-literal="QDRANT_URL=${QDRANT_URL}" \
+            --from-literal="AGENSI_CREATOR_HANDLE=${AGENSI_CREATOR_HANDLE}" \
+            --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+
+          kubectl create configmap aklapper-runtime-config \
+            -n cadence-admin \
+            --from-literal="APP_ENV=production" \
+            --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+
+          public_secret_args=(
+            --from-file="DATABASE_URL=${tmp_secrets_dir}/DATABASE_URL"
+            --from-file="INTERNAL_AUTH_SECRET=${tmp_secrets_dir}/INTERNAL_AUTH_SECRET"
+          )
+          if [ -s "${tmp_secrets_dir}/QDRANT_API_KEY" ]; then
+            public_secret_args+=(--from-file="QDRANT_API_KEY=${tmp_secrets_dir}/QDRANT_API_KEY")
+          fi
+          kubectl create secret generic aklapper-runtime-secrets \
+            -n portfolio-public \
+            "${public_secret_args[@]}" \
+            --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+
+          kubectl create secret generic aklapper-runtime-secrets \
+            -n cadence-admin \
+            --from-file="DATABASE_URL=${tmp_secrets_dir}/DATABASE_URL" \
+            --from-file="INTERNAL_AUTH_SECRET=${tmp_secrets_dir}/INTERNAL_AUTH_SECRET" \
+            --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+
+      - name: Render and apply complete GKE Autopilot manifests
         if: steps.gke-check.outputs.configured == 'true'
         shell: bash
         env:
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
           GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
           GAR_REPOSITORY: ${{ vars.GAR_REPOSITORY || 'portfolio' }}
-          GCP_WIF_SERVICE_ACCOUNT: ${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
           IMAGE_TAG: ${{ github.sha }}
+          GCP_GKE_WORKLOAD_SA: ${{ vars.GCP_GKE_WORKLOAD_SA || '' }}
+          CLOUD_SQL_INSTANCE: ${{ vars.CLOUD_SQL_INSTANCE || '' }}
           GKE_SERVICES_JSON: ${{ needs.resolve-plan.outputs.gke_services_json }}
           DEPLOY_ALL: ${{ inputs.deploy_all_services }}
         run: |
-          REGISTRY="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}"
+          set -euo pipefail
+          node --conditions=@aklapper/source packages/tooling/src/render-k8s.ts \
+            --dir=infra/k8s \
+            --project-id="$GCP_PROJECT_ID" \
+            --region="$GCP_REGION" \
+            --gar-repository="$GAR_REPOSITORY" \
+            --image-tag="$IMAGE_TAG" \
+            --gke-workload-sa="$GCP_GKE_WORKLOAD_SA" \
+            --cloud-sql-instance="$CLOUD_SQL_INSTANCE" \
+            | kubectl apply -f -
+
           AFFECTED_SET=" $(node -e 'console.log(JSON.parse(process.env.GKE_SERVICES_JSON).join(" "))') "
-
-          resolve_service_image() {
-            local svc="$1"
-            local ns="$2"
-            if [ "$DEPLOY_ALL" = "true" ] || [[ "$AFFECTED_SET" == *" ${svc} "* ]]; then
-              echo "${REGISTRY}/${svc}:${IMAGE_TAG}"
-              return
-            fi
-            local live_image
-            live_image="$(kubectl -n "$ns" get deployment "$svc" -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || true)"
-            if [ -n "$live_image" ]; then
-              echo "$live_image"
-            else
-              echo "${REGISTRY}/${svc}:production-latest"
-            fi
-          }
-
-          IMG_K8S_WATCH="$(resolve_service_image k8s-watch portfolio-public)"
-          IMG_CADENCE_DEMO="$(resolve_service_image cadence-demo portfolio-public)"
-          IMG_AI_ASK="$(resolve_service_image ai-ask portfolio-public)"
-          IMG_CONTACT="$(resolve_service_image contact portfolio-public)"
-          IMG_CADENCE_ADMIN="$(resolve_service_image cadence-admin cadence-admin)"
-
-          sed \
-            -e "s|ai-ask@PROJECT_ID\.iam\.gserviceaccount\.com|${GCP_WIF_SERVICE_ACCOUNT}|g" \
-            -e "s|us-central1-docker\.pkg\.dev/PROJECT_ID/aklapper/k8s-watch:latest|${IMG_K8S_WATCH}|g" \
-            -e "s|us-central1-docker\.pkg\.dev/PROJECT_ID/aklapper/cadence-demo:latest|${IMG_CADENCE_DEMO}|g" \
-            -e "s|us-central1-docker\.pkg\.dev/PROJECT_ID/aklapper/ai-ask:latest|${IMG_AI_ASK}|g" \
-            -e "s|us-central1-docker\.pkg\.dev/PROJECT_ID/aklapper/contact:latest|${IMG_CONTACT}|g" \
-            infra/k8s/portfolio-public/deployments.yaml | kubectl apply -f -
-
-          sed \
-            -e "s|us-central1-docker\.pkg\.dev/PROJECT_ID/aklapper/cadence-admin:latest|${IMG_CADENCE_ADMIN}|g" \
-            infra/k8s/cadence-admin/deployment.yaml | kubectl apply -f -
-
           if [ "$DEPLOY_ALL" = "true" ] || [[ "$AFFECTED_SET" == *" ai-ask "* ]]; then
             kubectl -n portfolio-public rollout status deployment/ai-ask --timeout=180s
           fi
@@ -640,6 +884,53 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Authenticate to Google Cloud (WIF)
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
+
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Verify WIF-authenticated /healthz on deployed Cloud Run services
+        if: matrix.engine == 'chromium'
+        shell: bash
+        env:
+          PORTAL_SERVICE_URL: ${{ needs.deploy-cloud-run.outputs.portal_service_url }}
+          ADMIN_SERVICE_URL: ${{ needs.deploy-cloud-run.outputs.admin_service_url }}
+          AUTH_SERVICE_URL: ${{ needs.deploy-cloud-run.outputs.auth_service_url }}
+          ANALYTICS_SERVICE_URL: ${{ needs.deploy-cloud-run.outputs.analytics_service_url }}
+        run: |
+          set -euo pipefail
+          for entry in \
+            "portal:${PORTAL_SERVICE_URL}" \
+            "admin:${ADMIN_SERVICE_URL}" \
+            "node-api-auth:${AUTH_SERVICE_URL}" \
+            "node-api-analytics:${ANALYTICS_SERVICE_URL}"; do
+            svc="${entry%%:*}"
+            url="${entry#*:}"
+            if [ -z "$url" ]; then
+              continue
+            fi
+            if [[ ! "${url%/}" =~ ^https://[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.run\.app$ ]]; then
+              echo "::error::Expected canonical *.run.app URL for ${svc}, got ${url}"
+              exit 1
+            fi
+            token="$(gcloud auth print-identity-token --audiences="${url%/}")"
+            if [ -z "$token" ]; then
+              echo "::error::Failed to obtain WIF OIDC identity token for ${svc}"
+              exit 1
+            fi
+            status="$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer ${token}" "${url%/}/healthz" || echo '000')"
+            unset token
+            if [ "$status" != "200" ]; then
+              echo "::error::Health check failed for ${svc} (${url%/}/healthz) with HTTP ${status}"
+              exit 1
+            fi
+            echo "{\"event\":\"cd.post_deploy_smoke.verified\",\"seam\":\"DELTA_AUDIT_GAP\",\"service\":\"${svc}\",\"httpStatus\":${status}}"
+          done
 
       - name: Setup workspace
         uses: ./.github/actions/setup-workspace
@@ -669,28 +960,28 @@ jobs:
             pnpm exec playwright install --with-deps "${{ matrix.engine }}"
           fi
 
-      - name: Run live Playwright smoke against deployed portal
+      - name: Run live Playwright @smoke suite against deployed portal
         env:
           PORTAL_BASE_URL: ${{ needs.deploy-cloud-run.outputs.portal_url }}
           PORTAL_MAINTENANCE_MODE: ${{ vars.PORTAL_MAINTENANCE_MODE || 'false' }}
         shell: bash
         run: |
           if [ "${{ matrix.engine }}" = "chromium" ]; then
-            pnpm --dir apps/portal/portal-e2e exec playwright test --project=chromium --project=mobile-chrome
+            pnpm --dir apps/portal/portal-e2e exec playwright test --grep @smoke --project=chromium --project=mobile-chrome
           else
-            pnpm --dir apps/portal/portal-e2e exec playwright test --project="${{ matrix.engine }}"
+            pnpm --dir apps/portal/portal-e2e exec playwright test --grep @smoke --project="${{ matrix.engine }}"
           fi
 
-      - name: Run live Playwright smoke against deployed admin (when public)
+      - name: Run live Playwright @smoke suite against deployed admin (when public)
         if: vars.CLOUD_RUN_ALLOW_UNAUTH_ADMIN == 'true' && needs.deploy-cloud-run.outputs.admin_url != ''
         env:
           ADMIN_BASE_URL: ${{ needs.deploy-cloud-run.outputs.admin_url }}
         shell: bash
         run: |
           if [ "${{ matrix.engine }}" = "chromium" ]; then
-            pnpm --dir apps/admin/admin-e2e exec playwright test --project=chromium --project=mobile-chrome
+            pnpm --dir apps/admin/admin-e2e exec playwright test --grep @smoke --project=chromium --project=mobile-chrome
           else
-            pnpm --dir apps/admin/admin-e2e exec playwright test --project="${{ matrix.engine }}"
+            pnpm --dir apps/admin/admin-e2e exec playwright test --grep @smoke --project="${{ matrix.engine }}"
           fi
 
       - name: Upload live smoke Playwright report

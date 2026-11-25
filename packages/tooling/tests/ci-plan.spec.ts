@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -124,11 +127,83 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
       base: undefined,
       head: undefined,
     });
-    expect(parseCiPlanCliArgs(['--base', 'origin/main', '--head=HEAD'])).toEqual({
+    expect(parseCiPlanCliArgs(['--base', 'origin/main', '--head=HEAD', '--migrate-db'])).toEqual({
       runAll: false,
       base: 'origin/main',
       head: 'HEAD',
+      migrateDb: true,
     });
     expect(() => parseCiPlanCliArgs(['--bogus'])).toThrow(/Unknown ci-plan option/);
+  });
+
+  it('adds admin migration host image when migrateDb is enabled with active deployment targets and skips empty diffs', () => {
+    const withK8sAndMigrate = buildCiPlan({
+      runAll: false,
+      base: 'aaa111',
+      head: 'bbb222',
+      affectedAll: [],
+      lintProjects: [],
+      typecheckProjects: [],
+      buildProjects: [],
+      testProjects: [],
+      e2eProjects: [],
+      k8sManifestsChanged: true,
+      migrateDb: true,
+    });
+
+    expect(withK8sAndMigrate.gkeServices).toEqual([
+      'k8s-watch',
+      'cadence-demo',
+      'ai-ask',
+      'contact',
+      'cadence-admin',
+    ]);
+    expect(withK8sAndMigrate.dockerServices.map(s => s.service)).toContain('admin');
+    expect(withK8sAndMigrate.hasAdminOrDbMigration).toBe(true);
+    expect(formatGithubOutputs(withK8sAndMigrate)['has_admin_or_db_migration']).toBe('true');
+
+    const docsOnlyWithMigrate = buildCiPlan({
+      runAll: false,
+      base: 'aaa111',
+      head: 'bbb222',
+      affectedAll: [],
+      lintProjects: [],
+      typecheckProjects: [],
+      buildProjects: [],
+      testProjects: [],
+      e2eProjects: [],
+      k8sManifestsChanged: false,
+      migrateDb: true,
+    });
+    expect(docsOnlyWithMigrate.hasDocker).toBe(false);
+    expect(docsOnlyWithMigrate.hasAdminOrDbMigration).toBe(false);
+  });
+
+  it('configures cd-gcp.yml with migrate-db, Secret Manager mounts, dedicated SAs, GKE materialization, and WIF /healthz smoke gates', () => {
+    const workflow = readFileSync(
+      resolve(import.meta.dirname, '../../../.github/workflows/cd-gcp.yml'),
+      'utf8',
+    );
+
+    expect(workflow).not.toContain('ADMIN_BOOTSTRAP_TOKEN');
+    expect(workflow).toContain('migrate-db:');
+    expect(workflow).toContain('aklapper-db-migrate');
+    expect(workflow).toContain('GCP_MIGRATOR_SERVICE_ACCOUNT');
+    expect(workflow).toContain('GCP_CLOUDRUN_SERVICE_ACCOUNT');
+    expect(workflow).toContain(
+      "needs.migrate-db.result == 'success' || needs.migrate-db.result == 'skipped'",
+    );
+    expect(workflow).toContain("vars.QDRANT_URL != ''");
+    expect(workflow).toContain('portal_service_url:');
+    expect(workflow).toContain('admin_service_url:');
+    expect(workflow).toContain('auth_service_url:');
+    expect(workflow).toContain('analytics_service_url:');
+    expect(workflow).toContain('aklapper-runtime-secrets');
+    expect(workflow).toContain('render-k8s.ts');
+    expect(workflow).toContain('gcloud auth print-identity-token');
+    expect(workflow).toContain('cd.post_deploy_smoke.verified');
+    expect(workflow).toContain('--remove-env-vars=');
+    expect(workflow).toContain('^https://[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.run\\.app$');
+    expect(workflow).toContain('--grep @smoke');
   });
 });

@@ -14,6 +14,7 @@ import { createRequestHandler, RouterContextProvider, type ServerBuild } from 'r
 
 import { AUTH_LOG_REDACT_PATHS } from './auth.ts';
 import { loadWorkspaceEnv } from './env.ts';
+import { SINGLE_PROXY_HOP } from './http.ts';
 import { extractCorrelationId, logDiagnosticError, requestContextKey } from './request-context.ts';
 
 export interface SsrServerOptions {
@@ -30,7 +31,6 @@ export interface SsrServerInstance {
 }
 
 const BODILESS_STATUS_CODES = new Set([204, 205, 304]);
-const SINGLE_PROXY_HOP = (_address: string, hop: number): boolean => hop === 0;
 const UNSUPPORTED_FETCH_METHODS = new Set(['TRACE', 'CONNECT']);
 const HOSTNAME_RE = /^[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?(?::(\d{1,5}))?$/;
 const IPV6_HOST_RE = /^\[[0-9a-fA-F:]+\](?::(\d{1,5}))?$/;

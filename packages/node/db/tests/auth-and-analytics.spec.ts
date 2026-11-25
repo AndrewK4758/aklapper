@@ -967,4 +967,106 @@ describe('@aklapper/db auth & analytics BFF services', () => {
       }
     }
   });
+
+  it('attaches GCP OIDC tokens to Cloud Run auth/analytics BFF calls, propagates GCP_OIDC_TOKEN_UNAVAILABLE, and signs x-internal-client-ip on analytics ingest', async () => {
+    const exp = Math.floor(Date.now() / 1000) + 600;
+    const mockOidcJwt = `${Buffer.from('{"alg":"RS256"}').toString('base64url')}.${Buffer.from(
+      JSON.stringify({ exp }),
+    ).toString('base64url')}.sig`;
+
+    const capturedAuthHeaders: Array<Headers> = [];
+    const cloudRunFetch: typeof fetch = async (input, init) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+      if (url.startsWith('http://metadata.google.internal')) {
+        return new Response(mockOidcJwt, { status: 200 });
+      }
+      const headers = new Headers(init?.headers);
+      capturedAuthHeaders.push(headers);
+      if (url.includes('/v1/auth/session')) {
+        return Response.json({
+          authenticated: false,
+          session: null,
+          totpEnabled: false,
+          passkeyCount: 0,
+        });
+      }
+      return Response.json(
+        { accepted: 1, sessionId: 'sess-cr', ipHash: 'c'.repeat(24) },
+        { status: 202 },
+      );
+    };
+
+    const authBffRes = await handleAdminAuthBffRequest(
+      new Request('https://admin.andrew-k.us/api/auth/session', {
+        headers: { cookie: 'ak_admin_session=abc' },
+      }),
+      'session',
+      {
+        authApiUrl: 'https://node-api-auth-test.a.run.app',
+        env: { NODE_ENV: 'production', INTERNAL_AUTH_SECRET: 'cr-secret' },
+        fetchImpl: cloudRunFetch,
+      },
+    );
+    expect(authBffRes.status).toBe(200);
+    expect(capturedAuthHeaders[0]?.get('authorization')).toBe(`Bearer ${mockOidcJwt}`);
+
+    await resolveAdminSessionFromRequest(
+      new Request('https://admin.andrew-k.us/ops', {
+        headers: { cookie: 'ak_admin_session=abc' },
+      }),
+      {
+        authApiUrl: 'https://node-api-auth-test.a.run.app',
+        fetchImpl: cloudRunFetch,
+      },
+    );
+    expect(capturedAuthHeaders[1]?.get('authorization')).toBe(`Bearer ${mockOidcJwt}`);
+
+    const ingestRes = await handleAnalyticsIngestRequest(
+      new Request('https://andrew-k.us/api/analytics/ingest', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-forwarded-for': '198.51.100.1, 203.0.113.88',
+        },
+        body: JSON.stringify({
+          sessionId: 'sess-cr',
+          events: [
+            {
+              type: 'page_view',
+              name: 'portal',
+              path: '/',
+              timestamp: '2026-11-24T12:00:00.000Z',
+            },
+          ],
+        }),
+      }),
+      {
+        upstreamUrl: 'https://node-api-analytics-test.a.run.app',
+        env: { NODE_ENV: 'production', INTERNAL_AUTH_SECRET: 'cr-secret' },
+        fetchImpl: cloudRunFetch,
+      },
+    );
+    expect(ingestRes.status).toBe(202);
+    const analyticsHeaders = capturedAuthHeaders[2];
+    expect(analyticsHeaders?.get('authorization')).toBe(`Bearer ${mockOidcJwt}`);
+    expect(analyticsHeaders?.get('x-forwarded-for')).toBe('203.0.113.88');
+    const signedClientIp = verifyInternalAuthToken(
+      analyticsHeaders?.get('x-internal-client-ip'),
+      'cr-secret',
+    );
+    expect(signedClientIp).toMatchObject({ role: 'service', sub: 'client-ip:203.0.113.88' });
+
+    const { clearGcpIdentityTokenCacheForTest } = await import('@aklapper/node-runtime/http');
+    clearGcpIdentityTokenCacheForTest();
+    const oidcOutageRes = await handleAdminAuthBffRequest(
+      new Request('https://admin.andrew-k.us/api/auth/session'),
+      'session',
+      {
+        authApiUrl: 'https://node-api-auth-test.a.run.app',
+        fetchImpl: async () => new Response('metadata error', { status: 503 }),
+      },
+    );
+    expect(oidcOutageRes.status).toBe(503);
+    expect(await oidcOutageRes.json()).toMatchObject({ error: 'GCP_OIDC_TOKEN_UNAVAILABLE' });
+  });
 });

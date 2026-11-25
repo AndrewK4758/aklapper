@@ -73,7 +73,7 @@ func ValidateDSN(dsn string) error {
 	if parsed.Scheme != "postgres" && parsed.Scheme != "postgresql" {
 		return errors.New("DATABASE_URL must use postgres:// or postgresql:// scheme")
 	}
-	if parsed.Host == "" {
+	if parsed.Host == "" && strings.TrimSpace(parsed.Query().Get("host")) == "" {
 		return errors.New("DATABASE_URL must include a host")
 	}
 	return nil

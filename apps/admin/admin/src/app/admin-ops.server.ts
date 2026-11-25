@@ -109,9 +109,20 @@ async function probeCollection(
     path: `/collections/${encodeURIComponent(name)}`,
     method: 'GET',
     ...(apiKey ? { headers: { 'api-key': apiKey } } : {}),
+    oidcAuth: false,
     timeoutMs: 2_500,
   });
   if (!res.ok || !res.data) {
+    if (res.status === 401 || res.status === 403 || res.status === 404) {
+      console.warn(
+        JSON.stringify({
+          event: 'admin.qdrant_probe.auth_or_collection',
+          seam: 'BOUNDARY_FAULT',
+          status: res.status,
+          collection: name,
+        }),
+      );
+    }
     const isAuthError = res.status === 401 || res.status === 403;
     return {
       name,
@@ -159,6 +170,7 @@ export async function fetchQdrantStatus(): Promise<QdrantHealthStatus> {
       path: '/v1/ask/status',
       method: 'GET',
       timeoutMs: 2_500,
+      internalAuth: { role: 'admin', subject: 'admin-console-status' },
     });
     if (res.ok && res.data) {
       const col = res.data.collection;

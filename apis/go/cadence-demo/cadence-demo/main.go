@@ -143,20 +143,28 @@ func newHandler(provider llm.Provider, vectorStore *qdrant.Client, store *pg.Sto
 	mux.HandleFunc("GET /healthz", httpkit.NewHealthHandler("cadence-demo"))
 
 	mux.HandleFunc("GET /v1/cadence/runs", func(w http.ResponseWriter, r *http.Request) {
+		claims, ok := httpkit.RequireInternalAuth(w, r)
+		if !ok {
+			return
+		}
+
 		sessionID := strings.TrimSpace(r.URL.Query().Get("sessionId"))
 		if sessionID == "" {
 			sessionID = strings.TrimSpace(r.Header.Get("X-Session-Id"))
+		}
+		role := contracts.RoleGuest
+		if claims.Role == internalauth.RoleAdmin {
+			role = contracts.RoleAdmin
+		}
+		if sessionID == "" && role != contracts.RoleAdmin {
+			httpkit.WriteError(w, http.StatusBadRequest, "sessionId is required")
+			return
 		}
 		limit := 10
 		if rawLimit := strings.TrimSpace(r.URL.Query().Get("limit")); rawLimit != "" {
 			if parsed, err := strconv.Atoi(rawLimit); err == nil && parsed > 0 && parsed <= 50 {
 				limit = parsed
 			}
-		}
-
-		role := contracts.RoleGuest
-		if internalauth.IsAdminRequest(r) {
-			role = contracts.RoleAdmin
 		}
 
 		runs, err := store.ListSandboxRuns(r.Context(), sessionID, limit)
@@ -173,6 +181,9 @@ func newHandler(provider llm.Provider, vectorStore *qdrant.Client, store *pg.Sto
 	})
 
 	mux.HandleFunc("POST /v1/cadence/runs/{id}/gate", func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := httpkit.RequireInternalAuth(w, r); !ok {
+			return
+		}
 		runID := strings.TrimSpace(r.PathValue("id"))
 		if runID == "" {
 			httpkit.WriteError(w, http.StatusBadRequest, "missing run id")
@@ -205,6 +216,10 @@ func newHandler(provider llm.Provider, vectorStore *qdrant.Client, store *pg.Sto
 	})
 
 	mux.HandleFunc("POST /v1/cadence/runs", func(w http.ResponseWriter, r *http.Request) {
+		claims, ok := httpkit.RequireInternalAuth(w, r)
+		if !ok {
+			return
+		}
 		var req contracts.CadenceRunRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			httpkit.WriteError(w, http.StatusBadRequest, "invalid JSON payload")
@@ -216,7 +231,7 @@ func newHandler(provider llm.Provider, vectorStore *qdrant.Client, store *pg.Sto
 		}
 
 		role := contracts.RoleGuest
-		if internalauth.IsAdminRequest(r) {
+		if claims.Role == internalauth.RoleAdmin {
 			role = contracts.RoleAdmin
 		}
 		sessionID := strings.TrimSpace(req.SessionID)

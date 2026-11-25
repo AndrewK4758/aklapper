@@ -43,6 +43,9 @@ func handleAskStatus(provider llm.Provider, vectorStore *qdrant.Client, store *p
 	return func(w http.ResponseWriter, r *http.Request) {
 		corrID := extractCorrelationID(r)
 		w.Header().Set("X-Correlation-Id", corrID)
+		if _, ok := httpkit.RequireInternalAuth(w, r); !ok {
+			return
+		}
 
 		pgErr := store.Ping(r.Context())
 		if pgErr != nil {

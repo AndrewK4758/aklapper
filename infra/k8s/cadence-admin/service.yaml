@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cadence-admin
+  namespace: cadence-admin
+spec:
+  type: ClusterIP
+  selector:
+    app: cadence-admin
+  ports:
+    - name: http
+      port: 8085
+      targetPort: 8085

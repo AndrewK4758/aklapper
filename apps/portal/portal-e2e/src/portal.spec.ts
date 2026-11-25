@@ -4,11 +4,11 @@ import { expect, test } from '@playwright/test';
 const IS_MAINTENANCE_MODE = process.env['PORTAL_MAINTENANCE_MODE'] === 'true';
 
 test.describe('portal SSR end-to-end journeys', () => {
-  test('serves healthy Fastify SSR /healthz endpoint', async ({ request }) => {
+  test('serves healthy Fastify SSR /healthz endpoint @smoke', async ({ request }) => {
     await assertSsrHealthz(request, 'portal-ssr');
   });
 
-  test('renders terminal-only greeter, opens tui and menu via commands and keybindings, and hides admin items', async ({
+  test('renders terminal-only greeter, opens tui and menu via commands and keybindings, and hides admin items @smoke', async ({
     page,
   }) => {
     test.skip(IS_MAINTENANCE_MODE, 'Full greeter and menu routes are gated in maintenance mode');
@@ -134,7 +134,9 @@ test.describe('portal SSR end-to-end journeys', () => {
     expect(getErrors()).toEqual([]);
   });
 
-  test('navigates to /cadence and renders sandboxed artifact preview iframe', async ({ page }) => {
+  test('navigates to /cadence and renders sandboxed artifact preview iframe @smoke', async ({
+    page,
+  }) => {
     test.skip(IS_MAINTENANCE_MODE, 'CADENCE builder route is gated in maintenance mode');
     const getErrors = trackPageErrors(page);
 
@@ -160,7 +162,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     expect(getErrors()).toEqual([]);
   });
 
-  test('renders standalone /changes-in-progress maintenance shell without main nav', async ({
+  test('renders standalone /changes-in-progress maintenance shell without main nav @smoke', async ({
     page,
   }) => {
     const getErrors = trackPageErrors(page);
@@ -313,7 +315,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     expect(getErrors()).toEqual([]);
   });
 
-  test('renders /agensi storefront with Base UI tag filter, search filter, and outbound Agensi CTA', async ({
+  test('renders /agensi storefront with Base UI tag filter, search filter, and outbound Agensi CTA @smoke', async ({
     page,
   }) => {
     test.skip(IS_MAINTENANCE_MODE, 'Agensi storefront route is gated in maintenance mode');
@@ -611,7 +613,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     expect(getErrors()).toEqual([]);
   });
 
-  test('persists guest session cookie on fresh-context in-pane /ask and /cadence loads', async ({
+  test('persists guest session cookie on fresh-context in-pane /ask and /cadence loads @smoke', async ({
     browser,
   }) => {
     test.skip(IS_MAINTENANCE_MODE, 'Ask and CADENCE routes are gated in maintenance mode');
@@ -622,6 +624,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     try {
       await gotoStreamedPage(page, '/');
       const commandInput = page.getByLabel('Terminal command input', { exact: true });
+      await expect(commandInput).toBeFocused();
 
       // Open /ask in-pane from a fresh context (no prior ak_guest_session cookie)
       await commandInput.fill('cd ask');

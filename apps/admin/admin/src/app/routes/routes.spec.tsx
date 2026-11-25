@@ -7,6 +7,7 @@ import {
   type StreamResult,
 } from '@aklapper/core';
 import { ADMIN_OPS_TERMINAL_PROFILE } from '@aklapper/db';
+import { INTERNAL_AUTH_HEADER, verifyInternalAuthToken } from '@aklapper/node-runtime/http';
 import { requestContextKey } from '@aklapper/node-runtime/ssr/stream';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { createRoutesStub, RouterContextProvider } from 'react-router';
@@ -466,6 +467,104 @@ describe('Admin streaming routes, auth guards & SEO', () => {
       else process.env['QDRANT_URL'] = prevQdrantUrl;
       if (prevQdrantKey === undefined) delete process.env['QDRANT_API_KEY'];
       else process.env['QDRANT_API_KEY'] = prevQdrantKey;
+    }
+  });
+
+  it('probes direct Qdrant Cloud with api-key header, skips GCP OIDC JWTs, and logs BOUNDARY_FAULT on 401/404', async () => {
+    const origAiAsk = process.env['AI_ASK_URL'];
+    const origQdrantUrl = process.env['QDRANT_URL'];
+    const origQdrantKey = process.env['QDRANT_API_KEY'];
+    const requests: Array<{ url: string; apiKey: string | null; authorization: string | null }> =
+      [];
+    let failWithAuthError = false;
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+      const headers = new Headers(init?.headers);
+      requests.push({
+        url,
+        apiKey: headers.get('api-key'),
+        authorization: headers.get('authorization'),
+      });
+      if (failWithAuthError) {
+        return new Response('unauthorized', { status: 401 });
+      }
+      return Response.json({ result: { status: 'green', points_count: 14 } });
+    });
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    try {
+      delete process.env['AI_ASK_URL'];
+      process.env['QDRANT_URL'] = 'https://cluster.example.qdrant.io';
+      process.env['QDRANT_API_KEY'] = 'qdrant-cloud-secret';
+
+      const okStatus = await fetchQdrantStatus();
+      expect(okStatus.online).toBe(true);
+      expect(okStatus.collection).toBe('portfolio_docs');
+      expect(okStatus.pointsCount).toBe(14);
+      expect(requests[0]).toEqual({
+        url: 'https://cluster.example.qdrant.io/collections/portfolio_docs',
+        apiKey: 'qdrant-cloud-secret',
+        authorization: null,
+      });
+
+      failWithAuthError = true;
+      const failedStatus = await fetchQdrantStatus();
+      expect(failedStatus.online).toBe(false);
+      expect(failedStatus.status).toBe('error');
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('admin.qdrant_probe.auth_or_collection'),
+      );
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('BOUNDARY_FAULT'));
+    } finally {
+      fetchSpy.mockRestore();
+      warnSpy.mockRestore();
+      if (origAiAsk === undefined) delete process.env['AI_ASK_URL'];
+      else process.env['AI_ASK_URL'] = origAiAsk;
+      if (origQdrantUrl === undefined) delete process.env['QDRANT_URL'];
+      else process.env['QDRANT_URL'] = origQdrantUrl;
+      if (origQdrantKey === undefined) delete process.env['QDRANT_API_KEY'];
+      else process.env['QDRANT_API_KEY'] = origQdrantKey;
+    }
+  });
+
+  it('signs X-Internal-Auth admin token when probing AI_ASK_URL /v1/ask/status', async () => {
+    const origAiAsk = process.env['AI_ASK_URL'];
+    const origQdrantUrl = process.env['QDRANT_URL'];
+    const origSecret = process.env['INTERNAL_AUTH_SECRET'];
+    let capturedInternalAuth: string | null = null;
+    let capturedUrl = '';
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      capturedUrl =
+        typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+      capturedInternalAuth = new Headers(init?.headers).get(INTERNAL_AUTH_HEADER);
+      return Response.json({
+        status: 'ready',
+        provider: 'vertex',
+        pgConnected: true,
+        collection: { name: 'portfolio_docs', status: 'green', pointsCount: 9 },
+      });
+    });
+
+    try {
+      delete process.env['QDRANT_URL'];
+      process.env['AI_ASK_URL'] = 'http://127.0.0.1:8083';
+      process.env['INTERNAL_AUTH_SECRET'] = 'admin-ops-test-secret';
+
+      const status = await fetchQdrantStatus();
+      expect(status.online).toBe(true);
+      expect(status.pointsCount).toBe(9);
+      expect(capturedUrl).toBe('http://127.0.0.1:8083/v1/ask/status');
+      const claims = verifyInternalAuthToken(capturedInternalAuth, 'admin-ops-test-secret');
+      expect(claims?.role).toBe('admin');
+      expect(claims?.sub).toBe('admin-console-status');
+    } finally {
+      fetchSpy.mockRestore();
+      if (origAiAsk === undefined) delete process.env['AI_ASK_URL'];
+      else process.env['AI_ASK_URL'] = origAiAsk;
+      if (origQdrantUrl === undefined) delete process.env['QDRANT_URL'];
+      else process.env['QDRANT_URL'] = origQdrantUrl;
+      if (origSecret === undefined) delete process.env['INTERNAL_AUTH_SECRET'];
+      else process.env['INTERNAL_AUTH_SECRET'] = origSecret;
     }
   });
 });

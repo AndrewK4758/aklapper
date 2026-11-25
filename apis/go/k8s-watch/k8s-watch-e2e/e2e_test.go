@@ -46,13 +46,32 @@ func TestK8sWatchEndToEnd(t *testing.T) {
 		}
 	})
 
-	t.Run("GET /v1/cluster/stream streams SSE and redacts admin namespace for guests and spoofed headers", func(t *testing.T) {
-		res, body := e2etest.DoRequest(
+	serviceTok, err := internalauth.Sign(internalauth.RoleService, "portal-ssr", time.Minute, "")
+	if err != nil {
+		t.Fatalf("sign service token: %v", err)
+	}
+
+	t.Run("GET /v1/cluster/stream rejects unauthenticated requests and redacts admin namespace for non-admin signed callers", func(t *testing.T) {
+		resUnauth, _ := e2etest.DoRequest(
 			t,
 			http.MethodGet,
 			baseURL+"/v1/cluster/stream",
 			nil,
 			map[string]string{"X-Admin-Role": contracts.RoleAdmin},
+		)
+		if resUnauth.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected 401 without signed X-Internal-Auth, got %d", resUnauth.StatusCode)
+		}
+
+		res, body := e2etest.DoRequest(
+			t,
+			http.MethodGet,
+			baseURL+"/v1/cluster/stream",
+			nil,
+			map[string]string{
+				"X-Admin-Role":          contracts.RoleAdmin,
+				internalauth.HeaderName: serviceTok,
+			},
 		)
 		if res.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200, got %d", res.StatusCode)
@@ -98,12 +117,23 @@ func TestK8sWatchEndToEnd(t *testing.T) {
 	})
 
 	t.Run("POST /v1/cluster/wake/{deployment} enforces signed internal auth and emits OSC7501 status", func(t *testing.T) {
-		resPublic, wakePublic := e2etest.DoJSON[wakeResponse](
+		resWakeUnauth, _ := e2etest.DoJSON[httpkit.ErrorResponse](
 			t,
 			http.MethodPost,
 			baseURL+"/v1/cluster/wake/cadence-demo",
 			nil,
 			nil,
+		)
+		if resWakeUnauth.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected 401 for unauthenticated public wake, got %d", resWakeUnauth.StatusCode)
+		}
+
+		resPublic, wakePublic := e2etest.DoJSON[wakeResponse](
+			t,
+			http.MethodPost,
+			baseURL+"/v1/cluster/wake/cadence-demo",
+			nil,
+			map[string]string{internalauth.HeaderName: serviceTok},
 		)
 		if resPublic.StatusCode != http.StatusAccepted {
 			t.Fatalf("expected 202 for public wake, got %d", resPublic.StatusCode)
@@ -120,10 +150,13 @@ func TestK8sWatchEndToEnd(t *testing.T) {
 			http.MethodPost,
 			baseURL+"/v1/cluster/wake/cadence-admin",
 			nil,
-			map[string]string{"X-Admin-Role": contracts.RoleAdmin},
+			map[string]string{
+				"X-Admin-Role":          contracts.RoleAdmin,
+				internalauth.HeaderName: serviceTok,
+			},
 		)
 		if resDenied.StatusCode != http.StatusForbidden || errDenied.Error == "" {
-			t.Fatalf("expected 403 for spoofed admin header waking admin workload, got %d (%+v)", resDenied.StatusCode, errDenied)
+			t.Fatalf("expected 403 for non-admin signed token waking admin workload, got %d (%+v)", resDenied.StatusCode, errDenied)
 		}
 
 		adminToken, err := internalauth.Sign(internalauth.RoleAdmin, "admin-e2e", time.Minute, "")

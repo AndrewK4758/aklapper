@@ -63,6 +63,7 @@ export async function loader({ request }: Route.LoaderArgs): Promise<Response> {
     path: '/v1/cluster/stream',
     timeoutMs: 3_000,
     signal: request.signal,
+    internalAuth: { role: 'service', subject: 'portal-cluster-stream' },
   });
 
   if (!upstream.ok) {

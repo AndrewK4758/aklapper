@@ -8,8 +8,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/llm"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/qdrant"
@@ -32,6 +34,12 @@ func (s *stubBuildLLM) Chat(_ context.Context, _ []llm.ChatMessage, _ int) (llm.
 }
 
 func TestCadenceDemoUnitFlows(t *testing.T) {
+	t.Setenv("INTERNAL_AUTH_SECRET", "cadence-demo-unit-secret")
+	guestTok, err := internalauth.Sign(internalauth.RoleGuest, "unit-sess-1", time.Minute, "cadence-demo-unit-secret")
+	if err != nil {
+		t.Fatalf("sign guest token: %v", err)
+	}
+
 	store := pg.NewMemoryStore()
 	store.SetPolicyForTest(pg.QuotaPolicy{
 		Role:                 contracts.RoleGuest,
@@ -45,10 +53,33 @@ func TestCadenceDemoUnitFlows(t *testing.T) {
 	}
 	h := newHandler(unsafeLLM, &qdrant.Client{BaseURL: "http://127.0.0.1:1"}, store)
 
+	t.Run("rejects unauthenticated callers and non-admin cross-session listing", func(t *testing.T) {
+		recListUnauth := httptest.NewRecorder()
+		h.ServeHTTP(recListUnauth, httptest.NewRequest(http.MethodGet, "/v1/cadence/runs?limit=50", nil))
+		if recListUnauth.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401 for unauthenticated list, got %d", recListUnauth.Code)
+		}
+
+		reqNoSession := httptest.NewRequest(http.MethodGet, "/v1/cadence/runs?limit=50", nil)
+		reqNoSession.Header.Set(internalauth.HeaderName, guestTok)
+		recNoSession := httptest.NewRecorder()
+		h.ServeHTTP(recNoSession, reqNoSession)
+		if recNoSession.Code != http.StatusBadRequest {
+			t.Fatalf("expected 400 for guest list omitting sessionId, got %d", recNoSession.Code)
+		}
+
+		recCreateUnauth := httptest.NewRecorder()
+		h.ServeHTTP(recCreateUnauth, httptest.NewRequest(http.MethodPost, "/v1/cadence/runs", bytes.NewReader([]byte(`{"prompt":"Build telemetry"}`))))
+		if recCreateUnauth.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401 for unauthenticated run creation, got %d", recCreateUnauth.Code)
+		}
+	})
+
 	var createdRunID string
 	t.Run("POST /v1/cadence/runs executes 4 CHORD turns and sanitizes artifact", func(t *testing.T) {
 		body := []byte(`{"prompt":"Build a telemetry monitor card","presetSlug":"solar-forge-starter","sessionId":"unit-sess-1"}`)
 		req := httptest.NewRequest(http.MethodPost, "/v1/cadence/runs", bytes.NewReader(body))
+		req.Header.Set(internalauth.HeaderName, guestTok)
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, req)
 		if rec.Code != http.StatusCreated {
@@ -81,7 +112,14 @@ func TestCadenceDemoUnitFlows(t *testing.T) {
 	})
 
 	t.Run("POST /v1/cadence/runs/{id}/gate updates verdict and rejects invalid verdict", func(t *testing.T) {
+		recGateUnauth := httptest.NewRecorder()
+		h.ServeHTTP(recGateUnauth, httptest.NewRequest(http.MethodPost, "/v1/cadence/runs/"+createdRunID+"/gate", bytes.NewReader([]byte(`{"verdict":"approved"}`))))
+		if recGateUnauth.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401 for unauthenticated gate update, got %d", recGateUnauth.Code)
+		}
+
 		reqBad := httptest.NewRequest(http.MethodPost, "/v1/cadence/runs/"+createdRunID+"/gate", bytes.NewReader([]byte(`{"verdict":"maybe"}`)))
+		reqBad.Header.Set(internalauth.HeaderName, guestTok)
 		recBad := httptest.NewRecorder()
 		h.ServeHTTP(recBad, reqBad)
 		if recBad.Code != http.StatusBadRequest {
@@ -89,6 +127,7 @@ func TestCadenceDemoUnitFlows(t *testing.T) {
 		}
 
 		reqOK := httptest.NewRequest(http.MethodPost, "/v1/cadence/runs/"+createdRunID+"/gate", bytes.NewReader([]byte(`{"verdict":"approved"}`)))
+		reqOK.Header.Set(internalauth.HeaderName, guestTok)
 		recOK := httptest.NewRecorder()
 		h.ServeHTTP(recOK, reqOK)
 		if recOK.Code != http.StatusOK || !strings.Contains(recOK.Body.String(), `"gateVerdict":"approved"`) {
@@ -98,6 +137,7 @@ func TestCadenceDemoUnitFlows(t *testing.T) {
 
 	t.Run("GET /v1/cadence/runs returns session-scoped history", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/v1/cadence/runs?sessionId=unit-sess-1", nil)
+		req.Header.Set(internalauth.HeaderName, guestTok)
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, req)
 		if rec.Code != http.StatusOK {
@@ -115,6 +155,7 @@ func TestCadenceDemoUnitFlows(t *testing.T) {
 	t.Run("POST /v1/cadence/runs returns 429 when quota is exhausted", func(t *testing.T) {
 		// 2nd run succeeds
 		req2 := httptest.NewRequest(http.MethodPost, "/v1/cadence/runs", bytes.NewReader([]byte(`{"prompt":"Second turn prompt","sessionId":"unit-sess-1"}`)))
+		req2.Header.Set(internalauth.HeaderName, guestTok)
 		rec2 := httptest.NewRecorder()
 		h.ServeHTTP(rec2, req2)
 		if rec2.Code != http.StatusCreated {
@@ -122,6 +163,7 @@ func TestCadenceDemoUnitFlows(t *testing.T) {
 		}
 		// 3rd run fails closed with 429
 		req3 := httptest.NewRequest(http.MethodPost, "/v1/cadence/runs", bytes.NewReader([]byte(`{"prompt":"Third turn prompt","sessionId":"unit-sess-1"}`)))
+		req3.Header.Set(internalauth.HeaderName, guestTok)
 		rec3 := httptest.NewRecorder()
 		h.ServeHTTP(rec3, req3)
 		if rec3.Code != http.StatusTooManyRequests {
@@ -157,6 +199,7 @@ func TestCadenceDemoUnitFlows(t *testing.T) {
 		fallbackLLM := &stubBuildLLM{html: "not-html-uses-deterministic-starter"}
 		hRecall := newHandler(fallbackLLM, &qdrant.Client{BaseURL: qdrantSrv.URL, HTTPClient: qdrantSrv.Client()}, pg.NewMemoryStore())
 		req := httptest.NewRequest(http.MethodPost, "/v1/cadence/runs", bytes.NewReader([]byte(`{"prompt":"Build a telemetry monitor widget","sessionId":"recall-sess-1"}`)))
+		req.Header.Set(internalauth.HeaderName, guestTok)
 		rec := httptest.NewRecorder()
 		hRecall.ServeHTTP(rec, req)
 		if rec.Code != http.StatusCreated {

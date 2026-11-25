@@ -88,6 +88,7 @@ export interface CiPlanInput {
   readonly testProjects: readonly string[];
   readonly e2eProjects: readonly string[];
   readonly k8sManifestsChanged?: boolean;
+  readonly migrateDb?: boolean;
 }
 
 export interface CiPlanOutput {
@@ -101,6 +102,7 @@ export interface CiPlanOutput {
   readonly hasApiE2e: boolean;
   readonly hasPlaywright: boolean;
   readonly hasDocker: boolean;
+  readonly hasAdminOrDbMigration: boolean;
   readonly needsGo: boolean;
   readonly needsTestDb: boolean;
   readonly needsApiE2eDb: boolean;
@@ -122,7 +124,7 @@ export function buildCiPlan(input: CiPlanInput): CiPlanOutput {
     .filter((project): project is string => Boolean(project));
   const apiE2eProjects = input.e2eProjects.filter(project => !(project in PLAYWRIGHT_APP_MAP));
 
-  const dockerServices = DOCKER_SERVICES.filter(spec => {
+  const baseDockerServices = DOCKER_SERVICES.filter(spec => {
     if (input.runAll) {
       return true;
     }
@@ -132,12 +134,24 @@ export function buildCiPlan(input: CiPlanInput): CiPlanOutput {
     return Boolean(input.k8sManifestsChanged && spec.runtime === 'gke');
   });
 
-  const cloudRunServices = dockerServices
+  const cloudRunServices = baseDockerServices
     .filter(spec => spec.runtime === 'cloud-run')
     .map(spec => spec.service);
-  const gkeServices = dockerServices
+  const gkeServices = baseDockerServices
     .filter(spec => spec.runtime === 'gke')
     .map(spec => spec.service);
+
+  const shouldBuildAdminForMigration = Boolean(
+    input.migrateDb && (baseDockerServices.length > 0 || affectedSet.has('node-db')),
+  );
+  const adminSpec = DOCKER_SERVICES.find(spec => spec.service === 'admin');
+  const dockerServices =
+    shouldBuildAdminForMigration &&
+    adminSpec &&
+    !baseDockerServices.some(spec => spec.service === 'admin')
+      ? [...baseDockerServices, adminSpec]
+      : baseDockerServices;
+  const hasAdminOrDbMigration = dockerServices.some(spec => spec.service === 'admin');
 
   const needsGo = input.affectedAll.some(project => project.startsWith('go-'));
   const needsTestDb = input.testProjects.some(project => DB_BACKED_TEST_PROJECTS.has(project));
@@ -154,6 +168,7 @@ export function buildCiPlan(input: CiPlanInput): CiPlanOutput {
     hasApiE2e: apiE2eProjects.length > 0,
     hasPlaywright: playwrightApps.length > 0,
     hasDocker: dockerServices.length > 0,
+    hasAdminOrDbMigration,
     needsGo,
     needsTestDb,
     needsApiE2eDb,
@@ -178,6 +193,7 @@ export function formatGithubOutputs(plan: CiPlanOutput): Record<string, string> 
     has_api_e2e: String(plan.hasApiE2e),
     has_playwright: String(plan.hasPlaywright),
     has_docker: String(plan.hasDocker),
+    has_admin_or_db_migration: String(plan.hasAdminOrDbMigration),
     needs_go: String(plan.needsGo),
     needs_test_db: String(plan.needsTestDb),
     needs_api_e2e_db: String(plan.needsApiE2eDb),
@@ -196,12 +212,14 @@ export interface ParsedCiPlanCliArgs {
   readonly runAll: boolean;
   readonly base?: string;
   readonly head?: string;
+  readonly migrateDb?: boolean;
 }
 
 export function parseCiPlanCliArgs(argv: readonly string[]): ParsedCiPlanCliArgs {
   let runAll = false;
   let base: string | undefined;
   let head: string | undefined;
+  let migrateDb: boolean | undefined;
 
   for (let i = 0; i < argv.length; i += 1) {
     const token = argv[i];
@@ -217,12 +235,16 @@ export function parseCiPlanCliArgs(argv: readonly string[]): ParsedCiPlanCliArgs
       i += 1;
     } else if (token?.startsWith('--head=')) {
       head = token.slice('--head='.length);
+    } else if (token === '--migrate-db') {
+      migrateDb = true;
+    } else if (token?.startsWith('--migrate-db=')) {
+      migrateDb = token.slice('--migrate-db='.length) === 'true';
     } else {
       throw new Error(`Unknown ci-plan option: ${String(token)}`);
     }
   }
 
-  return { runAll, base, head };
+  return migrateDb !== undefined ? { runAll, base, head, migrateDb } : { runAll, base, head };
 }
 
 function queryNxProjects(
@@ -303,6 +325,7 @@ function main(): void {
     testProjects,
     e2eProjects,
     k8sManifestsChanged,
+    migrateDb: parsed.migrateDb ?? process.env['INPUT_MIGRATE_DB'] === 'true',
   });
 
   const outputs = formatGithubOutputs(plan);

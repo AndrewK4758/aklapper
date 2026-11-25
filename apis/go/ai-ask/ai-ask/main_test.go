@@ -199,9 +199,17 @@ func TestAiAskUnitFlows(t *testing.T) {
 		Role: contracts.RoleGuest, MaxTurnsPerSession: 2, MaxTokensPerRun: 4000, MaxDailyGlobalTokens: 100000,
 	})
 	h := newHandlerWithSyncWait(provider, &qdrant.Client{BaseURL: qdrantSrv.URL, HTTPClient: qdrantSrv.Client()}, store, 150*time.Millisecond)
+	serviceTok := signHeader(t, internalauth.RoleService, "portal-ssr")
 
-	t.Run("GET /v1/ask/status reports 200 healthy and 503 redacted on Qdrant failure", func(t *testing.T) {
+	t.Run("GET /v1/ask/status enforces signed X-Internal-Auth, reports 200 healthy and 503 redacted on Qdrant failure", func(t *testing.T) {
+		recUnauth := httptest.NewRecorder()
+		h.ServeHTTP(recUnauth, httptest.NewRequest(http.MethodGet, "/v1/ask/status", nil))
+		if recUnauth.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401 on unauthenticated status, got %d", recUnauth.Code)
+		}
+
 		req := httptest.NewRequest(http.MethodGet, "/v1/ask/status", nil)
+		req.Header.Set(internalauth.HeaderName, serviceTok)
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, req)
 		if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"pointsCount":7`) {
@@ -216,8 +224,10 @@ func TestAiAskUnitFlows(t *testing.T) {
 			statusErr = false
 			mu.Unlock()
 		}()
+		reqErr := httptest.NewRequest(http.MethodGet, "/v1/ask/status", nil)
+		reqErr.Header.Set(internalauth.HeaderName, serviceTok)
 		recErr := httptest.NewRecorder()
-		h.ServeHTTP(recErr, httptest.NewRequest(http.MethodGet, "/v1/ask/status", nil))
+		h.ServeHTTP(recErr, reqErr)
 		if recErr.Code != http.StatusServiceUnavailable {
 			t.Fatalf("expected 503 when qdrant unavailable, got %d", recErr.Code)
 		}

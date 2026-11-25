@@ -44,6 +44,7 @@ async function probeAskServiceStatus(
     method: 'GET',
     timeoutMs: 1_500,
     signal,
+    internalAuth: { role: 'service', subject: 'portal-ask-status' },
   });
   if (!res.ok || !res.data) {
     return { status: 'offline', provider: 'ai-ask', pointsCount: 0 };

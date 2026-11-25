@@ -159,6 +159,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         method: 'POST',
         body: { verdict: rawVerdict },
         timeoutMs: 6_000,
+        internalAuth: { role: 'guest', subject: sessionId },
       });
       if (upstream.ok && upstream.data?.['run']) {
         const parsed = CadenceRunResultSchema.safeParse(upstream.data['run']);
@@ -218,6 +219,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       method: 'POST',
       body: { prompt, presetSlug, sessionId },
       timeoutMs: 12_000,
+      internalAuth: { role: 'guest', subject: sessionId },
     });
 
     if (upstream.status === 429) {
