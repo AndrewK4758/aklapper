@@ -23,18 +23,6 @@
       "path": "./packages/legacy/games-engine"
     },
     {
-      "path": "./apis/node/auth/auth"
-    },
-    {
-      "path": "./apis/node/auth/auth-e2e"
-    },
-    {
-      "path": "./apis/node/analytics/analytics"
-    },
-    {
-      "path": "./apis/node/analytics/analytics-e2e"
-    },
-    {
       "path": "./apps/portal/portal-e2e"
     },
     {

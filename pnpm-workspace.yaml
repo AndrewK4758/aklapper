@@ -1,6 +1,5 @@
 packages:
   - 'apps/*/*'
-  - 'apis/node/*/*'
   - 'packages/shared/*'
   - 'packages/node/*'
   - 'packages/legacy/*'
