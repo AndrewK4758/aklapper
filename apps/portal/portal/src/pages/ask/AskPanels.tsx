@@ -134,13 +134,9 @@ export function AskQaPanel({
           <div className={styles.preambleBox}>
             <strong className={styles.entryQuestion}>Q: {activeStream.question}</strong>
             {activeStream.isPreambleLoading ? (
-              <p
-                className={styles.preambleLoading}
-                data-testid='ask-preamble-loading'
-                role='status'
-              >
+              <output className={styles.preambleLoading} data-testid='ask-preamble-loading'>
                 {activeStream.statusLabel}
-              </p>
+              </output>
             ) : null}
             {activeStream.preambleText.length > 0 ? (
               <p className={styles.preambleText} data-testid='ask-preamble-feed' aria-live='polite'>
@@ -148,12 +144,12 @@ export function AskQaPanel({
               </p>
             ) : null}
             {activeStream.preambleError ? (
-              <div className={styles.preambleError} data-testid='ask-preamble-error' role='status'>
+              <output className={styles.preambleError} data-testid='ask-preamble-error'>
                 <p className={styles.preambleErrorText}>{activeStream.preambleError.message}</p>
                 {activeStream.preambleError.action ? (
                   <p className={styles.metaLine}>{activeStream.preambleError.action}</p>
                 ) : null}
-              </div>
+              </output>
             ) : null}
           </div>
           <CitationSourceList heading='Live Retrieved Sources' sources={activeStream.sources} />
