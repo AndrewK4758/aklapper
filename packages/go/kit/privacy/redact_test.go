@@ -200,3 +200,62 @@ func TestPrivacySeparatorAndDiacriticFoldingClosure(t *testing.T) {
 		t.Fatalf("expected benign accented text preserved in %q", redacted)
 	}
 }
+
+func TestRedactTextForStorageSinglePassOverlapNoSelfRedactionHangulAndCGJ(t *testing.T) {
+	// 1. Overlapping accented + short denylist rules must merge cleanly without leaking accented prefix
+	cfgOverlap, err := LoadConfig(ConfigInput{
+		RawDenylist: `["CafeCorp-Cloud","Cloud","Red","ACT","한글Corp","re:secret-[0-9]{4}"]`,
+	})
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+
+	gotOverlap := RedactTextForStorage(cfgOverlap, "How did Andrew architect Cafe\u0301Corp-Cloud systems?", 1000)
+	if gotOverlap != "How did Andrew architect [REDACTED] systems?" {
+		t.Fatalf("overlapping accented rule leaked or corrupted: %q", gotOverlap)
+	}
+
+	// 2. Denylist substrings of [REDACTED] ("Red", "ACT") must never re-redact emitted placeholders
+	gotRed := RedactTextForStorage(cfgOverlap, "How did Andrew build Project Red services?", 1000)
+	if gotRed != "How did Andrew build Project [REDACTED] services?" {
+		t.Fatalf("recursive placeholder corruption on Red: %q", gotRed)
+	}
+	gotActSecret := RedactTextForStorage(cfgOverlap, "Debug postgres://admin:S3cr3tP4ss@db.internal:5432/app issue", 1000)
+	if gotActSecret != "Debug [REDACTED] issue" {
+		t.Fatalf("recursive placeholder corruption on ACT + secret: %q", gotActSecret)
+	}
+
+	// 3. Hangul precomposed, LV+T, and decomposed Jamo with combining marks recompose via NFKC and match denylist
+	for _, hVariant := range []string{
+		"How did Andrew work with \uD55C\u0301\uAE00Corp systems?",
+		"How did Andrew work with \u1112\u0301\u1161\u11AB\uAE00Corp systems?",
+		"How did Andrew work with \uD558\u0301\u11AB\uAE00Corp systems?",
+	} {
+		gotHangul := RedactTextForStorage(cfgOverlap, hVariant, 1000)
+		if gotHangul != "How did Andrew work with [REDACTED] systems?" {
+			t.Fatalf("Hangul combining-mark bypass on %q in RedactTextForStorage: %q", hVariant, gotHangul)
+		}
+	}
+
+	// 4. Invisible Mn (U+034F CGJ) and combining acute (\u0301) cannot bypass built-in secrets, re:, extra credentials, PII, or tracker keys
+	gotCGJ := RedactTextForStorage(
+		cfgOverlap,
+		"Check post\u034Fgres://admin:S3cr3tP4ss@localhost:5432/app AK\u034FIAIOSFODNN7EXAMPLE se\u0301cret-4829 alice@\u034Fexample.com PR\u034FOJ-9042 UTF-8",
+		1000,
+	)
+	for _, forbidden := range []string{"postgres", "S3cr3tP4ss", "AK", "EXAMPLE", "secret", "4829", "alice", "example.com", "PROJ-9042"} {
+		if strings.Contains(gotCGJ, forbidden) {
+			t.Fatalf("Mn/CGJ bypass leaked %q in %q", forbidden, gotCGJ)
+		}
+	}
+	if !strings.Contains(gotCGJ, "UTF-8") {
+		t.Fatalf("expected allow-listed UTF-8 preserved in %q", gotCGJ)
+	}
+
+	// 5. Base64-encoded JSON null in DOSSIER_PRIVACY_DENYLIST fails closed
+	t.Setenv("AI_PRIVACY_DENYLIST", "")
+	t.Setenv("DOSSIER_PRIVACY_DENYLIST", base64.StdEncoding.EncodeToString([]byte("null")))
+	if _, nullErr := LoadConfigFromEnv(); nullErr == nil {
+		t.Fatal("expected base64 JSON null in DOSSIER_PRIVACY_DENYLIST to fail closed")
+	}
+}

@@ -73,8 +73,8 @@ func TestMultiChunkPointIDDedupAndSectionHeadingSanitization(t *testing.T) {
 		t.Fatalf("malformed denylist error must not leak raw env value: %v", malformedErr)
 	}
 
-	// ValidateOriginConfidentiality catches newline, double-space, hyphen, dot, slash, Cf (ZWSP/U+2060), fullwidth, and NFD obfuscation
-	obfJSON, _ := json.Marshal([]string{"Acme Capital", "SecretClient", "CafeCorp"})
+	// ValidateOriginConfidentiality catches newline, double-space, hyphen, dot, slash, Cf (ZWSP/U+2060), fullwidth, Hangul+Mn, and NFD obfuscation
+	obfJSON, _ := json.Marshal([]string{"Acme Capital", "SecretClient", "CafeCorp", "\uD55C\uAE00Corp"})
 	t.Setenv("DOSSIER_PRIVACY_DENYLIST", strings.TrimRight(base64.StdEncoding.EncodeToString(obfJSON), "="))
 	for _, variant := range []string{
 		"Built for Acme\nCapital platform",
@@ -86,6 +86,7 @@ func TestMultiChunkPointIDDedupAndSectionHeadingSanitization(t *testing.T) {
 		"Built for Sec\u2060retClient platform",
 		"Built for \uFF33\uFF45\uFF43\uFF52\uFF45\uFF54\uFF23\uFF4C\uFF49\uFF45\uFF4E\uFF54 platform",
 		"Built for Cafe\u0301Corp platform",
+		"Built for \uD55C\u0301\uAE00Corp platform",
 	} {
 		vErr := ValidateOriginConfidentiality([]SeedDocument{
 			{ID: "dossier:obf", Title: "Clean", Body: variant, Category: "career_dossier", Source: "postgres"},
@@ -93,6 +94,14 @@ func TestMultiChunkPointIDDedupAndSectionHeadingSanitization(t *testing.T) {
 		if !errors.Is(vErr, ErrOriginConfidentiality) {
 			t.Fatalf("expected ErrOriginConfidentiality for obfuscated variant %q, got %v", variant, vErr)
 		}
+	}
+
+	// Base64 JSON null in DOSSIER_PRIVACY_DENYLIST fails closed
+	t.Setenv("DOSSIER_PRIVACY_DENYLIST", base64.StdEncoding.EncodeToString([]byte("null")))
+	if nullErr := ValidateOriginConfidentiality([]SeedDocument{
+		{ID: "dossier:clean", Title: "Clean", Body: "Clean body", Category: "career_dossier", Source: "postgres"},
+	}); !errors.Is(nullErr, ErrOriginConfidentiality) {
+		t.Fatalf("expected ErrOriginConfidentiality on base64 JSON null DOSSIER_PRIVACY_DENYLIST, got %v", nullErr)
 	}
 
 	// Empty DOSSIER_PRIVACY_DENYLIST STILL blocks built-in secrets, extended credentials, and ZWSP-obfuscated tokens

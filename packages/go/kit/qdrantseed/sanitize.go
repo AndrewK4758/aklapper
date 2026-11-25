@@ -72,7 +72,7 @@ func parseRuntimeDenylistConfig(raw string) (*privacy.Config, error) {
 		payload = strings.TrimSpace(string(decoded))
 	}
 	var list []string
-	if err := json.Unmarshal([]byte(payload), &list); err != nil {
+	if err := json.Unmarshal([]byte(payload), &list); err != nil || list == nil {
 		return nil, fmt.Errorf("BOUNDARY_FAULT qdrant.seed.denylist_parse_failed: %w: invalid JSON array DOSSIER_PRIVACY_DENYLIST", ErrOriginConfidentiality)
 	}
 	expanded := make([]string, 0, len(list)*2)
