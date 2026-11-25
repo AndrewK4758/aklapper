@@ -473,9 +473,10 @@ jobs:
             PUBLIC_GSC_VERIFICATION=${{ vars.PUBLIC_GSC_VERIFICATION || '' }}
             AI_PROVIDER=${{ vars.AI_PROVIDER || 'vertex' }}
             GCP_PROJECT_ID=${{ vars.GCP_PROJECT_ID }}
-            GCP_LOCATION=${{ vars.GCP_LOCATION || vars.GCP_REGION || 'us-central1' }}
-            VERTEX_MODEL=${{ vars.VERTEX_MODEL || '' }}
-            VERTEX_EMBED_MODEL=${{ vars.VERTEX_EMBED_MODEL || '' }}
+            GCP_LOCATION=${{ vars.GCP_LOCATION || 'global' }}
+            VERTEX_MODEL=${{ vars.VERTEX_MODEL || 'gemini-3.8-flash' }}
+            VERTEX_THINKING_LEVEL=${{ vars.VERTEX_THINKING_LEVEL || 'LOW' }}
+            VERTEX_EMBED_MODEL=${{ vars.VERTEX_EMBED_MODEL || 'gemini-embedding-2' }}
             K8S_WATCH_URL=${{ vars.K8S_WATCH_URL || '' }}
             CADENCE_DEMO_URL=${{ vars.CADENCE_DEMO_URL || '' }}
             AI_ASK_URL=${{ vars.AI_ASK_URL || '' }}
@@ -518,9 +519,10 @@ jobs:
             WEBAUTHN_ORIGIN=${{ vars.WEBAUTHN_ORIGIN || vars.PUBLIC_ADMIN_URL || 'https://admin.andrew-k.us' }}
             AI_PROVIDER=${{ vars.AI_PROVIDER || 'vertex' }}
             GCP_PROJECT_ID=${{ vars.GCP_PROJECT_ID }}
-            GCP_LOCATION=${{ vars.GCP_LOCATION || vars.GCP_REGION || 'us-central1' }}
-            VERTEX_MODEL=${{ vars.VERTEX_MODEL || '' }}
-            VERTEX_EMBED_MODEL=${{ vars.VERTEX_EMBED_MODEL || '' }}
+            GCP_LOCATION=${{ vars.GCP_LOCATION || 'global' }}
+            VERTEX_MODEL=${{ vars.VERTEX_MODEL || 'gemini-3.8-flash' }}
+            VERTEX_THINKING_LEVEL=${{ vars.VERTEX_THINKING_LEVEL || 'LOW' }}
+            VERTEX_EMBED_MODEL=${{ vars.VERTEX_EMBED_MODEL || 'gemini-embedding-2' }}
             K8S_WATCH_URL=${{ vars.K8S_WATCH_URL || '' }}
             CADENCE_DEMO_URL=${{ vars.CADENCE_DEMO_URL || '' }}
             AI_ASK_URL=${{ vars.AI_ASK_URL || '' }}
@@ -693,10 +695,10 @@ jobs:
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
           GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
           AI_PROVIDER: ${{ vars.AI_PROVIDER || 'vertex' }}
-          GCP_LOCATION: ${{ vars.GCP_LOCATION || vars.GCP_REGION || 'us-central1' }}
-          VERTEX_MODEL: ${{ vars.VERTEX_MODEL || '' }}
-          VERTEX_THINKING_BUDGET: ${{ vars.VERTEX_THINKING_BUDGET || '0' }}
-          VERTEX_EMBED_MODEL: ${{ vars.VERTEX_EMBED_MODEL || '' }}
+          GCP_LOCATION: ${{ vars.GCP_LOCATION || 'global' }}
+          VERTEX_MODEL: ${{ vars.VERTEX_MODEL || 'gemini-3.8-flash' }}
+          VERTEX_THINKING_LEVEL: ${{ vars.VERTEX_THINKING_LEVEL || 'LOW' }}
+          VERTEX_EMBED_MODEL: ${{ vars.VERTEX_EMBED_MODEL || 'gemini-embedding-2' }}
           QDRANT_URL: ${{ vars.QDRANT_URL || '' }}
           AGENSI_CREATOR_HANDLE: ${{ vars.AGENSI_CREATOR_HANDLE || 'aklapper' }}
         run: |
@@ -731,7 +733,7 @@ jobs:
             --from-literal="GCP_PROJECT_ID=${GCP_PROJECT_ID}" \
             --from-literal="GCP_LOCATION=${GCP_LOCATION}" \
             --from-literal="VERTEX_MODEL=${VERTEX_MODEL}" \
-            --from-literal="VERTEX_THINKING_BUDGET=${VERTEX_THINKING_BUDGET}" \
+            --from-literal="VERTEX_THINKING_LEVEL=${VERTEX_THINKING_LEVEL}" \
             --from-literal="VERTEX_EMBED_MODEL=${VERTEX_EMBED_MODEL}" \
             --from-literal="QDRANT_URL=${QDRANT_URL}" \
             --from-literal="AGENSI_CREATOR_HANDLE=${AGENSI_CREATOR_HANDLE}" \

@@ -23,11 +23,11 @@ const VALID_BASE_ENV: Record<string, string> = {
   ANALYTICS_DAILY_SALT: 'analytics-salt-val',
   GCP_PROJECT_ID: 'games-424800',
   GCP_REGION: 'us-central1',
-  GCP_LOCATION: 'us-central1',
+  GCP_LOCATION: 'global',
   GAR_REPOSITORY: 'portfolio',
   AI_PROVIDER: 'vertex',
-  VERTEX_MODEL: 'gemini-2.5-flash',
-  VERTEX_EMBED_MODEL: 'text-embedding-005',
+  VERTEX_MODEL: 'gemini-3.8-flash',
+  VERTEX_EMBED_MODEL: 'gemini-embedding-2',
   PUBLIC_PORTAL_URL: 'https://andrew-k.us',
   GKE_CLUSTER_NAME: '',
 };
@@ -63,7 +63,7 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
         AGENSI_SYNC_DISABLED: 'false',
         AGENSI_API_KEY: 'agensi-secret-val',
         AI_PRIVACY_DENYLIST: '["Synthetic-Test-Term"]',
-        VERTEX_THINKING_BUDGET: '0',
+        VERTEX_THINKING_LEVEL: 'LOW',
         AGENSI_CACHE_TTL_SECONDS: '300',
         AGENSI_FETCH_TIMEOUT_MS: '1800',
         ADMIN_HANDLE: 'admin',
@@ -102,7 +102,7 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
           'AI_PROVIDER',
           'GCP_LOCATION',
           'VERTEX_MODEL',
-          'VERTEX_THINKING_BUDGET',
+          'VERTEX_THINKING_LEVEL',
           'VERTEX_EMBED_MODEL',
           'ADMIN_HANDLE',
           'GCP_CLOUDRUN_SERVICE_ACCOUNT',
@@ -136,7 +136,7 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
         'AI_PRIVACY_DENYLIST',
         'DOSSIER_PRIVACY_DENYLIST',
       ]);
-      expect(minimalPlan.skippedOptionalVariables).toContain('VERTEX_THINKING_BUDGET');
+      expect(minimalPlan.skippedOptionalVariables).toContain('VERTEX_THINKING_LEVEL');
       expect(minimalPlan.gcpSecrets.map(s => s.envKey)).toEqual([
         'DATABASE_URL',
         'INTERNAL_AUTH_SECRET',
@@ -165,6 +165,7 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
         CADENCE_ADMIN_URL: 'https://cadence-admin.bgdkapis.us',
         CONTACT_API_URL: 'https://contact.bgdkapis.us',
         CLOUD_RUN_ALLOW_UNAUTH_APIS: 'false',
+        VERTEX_THINKING_BUDGET: '0',
       });
 
       expect(plan.placeholderKeys).toEqual(['DATABASE_URL']);
@@ -176,7 +177,9 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
         'CADENCE_ADMIN_URL',
         'CONTACT_API_URL',
         'CLOUD_RUN_ALLOW_UNAUTH_APIS',
+        'VERTEX_THINKING_BUDGET',
       ]);
+      expect(plan.variables.map(v => v.key)).not.toContain('VERTEX_THINKING_BUDGET');
       expect(plan.variables.map(v => v.key)).not.toContain('AUTH_API_URL');
       expect(plan.variables.map(v => v.key)).not.toContain('ANALYTICS_API_URL');
       expect(plan.variables.map(v => v.key)).not.toContain('CADENCE_ADMIN_URL');

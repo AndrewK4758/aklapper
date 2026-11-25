@@ -123,16 +123,38 @@ describe('@aklapper/tooling GKE manifest renderer', () => {
     ).toThrow(/replicas/i);
   });
 
-  it('keeps cd-gcp.yml strictly workflow_dispatch-only and guards optional VERTEX_THINKING_BUDGET and AI_PRIVACY_DENYLIST safely', () => {
+  it('keeps cd-gcp.yml strictly workflow_dispatch-only, wires Gemini 3.8 Flash / global / VERTEX_THINKING_LEVEL, and guards AI_PRIVACY_DENYLIST safely', () => {
     const workflow = readFileSync(CD_WORKFLOW_PATH, 'utf8');
     expect(workflow).toMatch(/^on:\s*\n\s+workflow_dispatch:/m);
     expect(workflow).not.toMatch(/^on:\s*\n\s+(?:push|pull_request):/m);
-    expect(workflow).toContain('VERTEX_THINKING_BUDGET');
+    expect(workflow).toContain('VERTEX_THINKING_LEVEL');
+    expect(workflow).not.toContain('VERTEX_THINKING_BUDGET');
+    expect(workflow).toContain("vars.GCP_LOCATION || 'global'");
+    expect(workflow).not.toContain('vars.GCP_LOCATION || vars.GCP_REGION');
+    expect(workflow).toContain("vars.VERTEX_MODEL || 'gemini-3.8-flash'");
+    expect(workflow).toContain("vars.VERTEX_EMBED_MODEL || 'gemini-embedding-2'");
     expect(workflow).toContain(
       'gcloud secrets versions describe latest --secret="AI_PRIVACY_DENYLIST"',
     );
     expect(workflow).toContain(
       '--from-file="AI_PRIVACY_DENYLIST=${tmp_secrets_dir}/AI_PRIVACY_DENYLIST"',
     );
+
+    const rootEnv = readFileSync(resolve(import.meta.dirname, '../../../.env.example'), 'utf8');
+    const infraEnv = readFileSync(
+      resolve(import.meta.dirname, '../../../infra/.env.example'),
+      'utf8',
+    );
+    for (const envText of [rootEnv, infraEnv]) {
+      expect(envText).toContain('AI_PROVIDER=local');
+      expect(envText).toContain('LOCAL_LLM_BASE_URL=http://127.0.0.1:11434/v1');
+      expect(envText).toContain('LOCAL_LLM_CHAT_MODEL=inference');
+      expect(envText).toContain('LOCAL_LLM_EMBED_MODEL=embedding');
+      expect(envText).toContain('GCP_LOCATION=global');
+      expect(envText).toContain('VERTEX_MODEL=gemini-3.8-flash');
+      expect(envText).toContain('VERTEX_THINKING_LEVEL=LOW');
+      expect(envText).toContain('VERTEX_EMBED_MODEL=gemini-embedding-2');
+      expect(envText).not.toContain('VERTEX_THINKING_BUDGET');
+    }
   });
 });
