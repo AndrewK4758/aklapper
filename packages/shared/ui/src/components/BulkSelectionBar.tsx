@@ -50,7 +50,11 @@ export function SelectionCheckbox({
   };
 
   return (
-    <span className={cx(styles.checkboxWrapper, className)} onClick={handleClick}>
+    <span
+      role='presentation'
+      className={cx(styles.checkboxWrapper, className)}
+      onClick={handleClick}
+    >
       <Checkbox.Root
         aria-label={ariaLabel}
         checked={checked}

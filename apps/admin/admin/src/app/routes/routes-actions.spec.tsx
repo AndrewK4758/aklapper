@@ -409,7 +409,9 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
       ],
       'corr-inbox-bulk-single-200',
     );
-    const singleOkRes = (await inboxAction(singleOkCall.args as never)) as unknown as DataWithStatus;
+    const singleOkRes = (await inboxAction(
+      singleOkCall.args as never,
+    )) as unknown as DataWithStatus;
     expect(singleOkRes.init?.status).toBe(200);
     expect(singleOkRes.data['message']).toBe('Deleted 1 contact submission from PostgreSQL 19.');
 

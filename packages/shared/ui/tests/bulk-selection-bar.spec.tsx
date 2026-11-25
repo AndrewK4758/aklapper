@@ -19,7 +19,7 @@ describe('BulkSelectionBar and SelectionCheckbox', () => {
     const onCheckedChange = vi.fn<(checked: boolean) => void>();
 
     render(
-      <div onClick={onRowClick}>
+      <div role='presentation' onClick={onRowClick}>
         <SelectionCheckbox
           aria-label='Select Jane Doe'
           checked={false}

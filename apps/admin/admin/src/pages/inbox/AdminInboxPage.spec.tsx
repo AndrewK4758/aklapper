@@ -98,7 +98,9 @@ describe('AdminInboxPage multi-select and bulk delete', () => {
     const caraRowBtn = screen.getByRole('button', { name: /Cara Singh/i });
     fireEvent.click(caraRowBtn);
     expect(detail.textContent).toContain('Cara Singh');
-    const caraCheckbox = screen.getByRole('checkbox', { name: 'Select submission from Cara Singh' });
+    const caraCheckbox = screen.getByRole('checkbox', {
+      name: 'Select submission from Cara Singh',
+    });
     expect(caraCheckbox.getAttribute('aria-checked')).toBe('false');
 
     // Clicking select-all selects all 3 rows on page
@@ -114,16 +116,16 @@ describe('AdminInboxPage multi-select and bulk delete', () => {
 
   it('submits intent=delete-many with all selected IDs on confirmation and clears selection', async () => {
     const submittedPayloads: { intent: string; ids: string[] }[] = [];
-    const actionSpy = vi.fn<(args: { request: Request }) => Promise<{ ok: boolean; message: string }>>(
-      async ({ request }) => {
-        const fd = await request.formData();
-        submittedPayloads.push({
-          intent: String(fd.get('intent') ?? ''),
-          ids: fd.getAll('id').map(v => String(v)),
-        });
-        return { ok: true, message: 'Deleted 2 contact submissions from PostgreSQL 19.' };
-      },
-    );
+    const actionSpy = vi.fn<
+      (args: { request: Request }) => Promise<{ ok: boolean; message: string }>
+    >(async ({ request }) => {
+      const fd = await request.formData();
+      submittedPayloads.push({
+        intent: String(fd.get('intent') ?? ''),
+        ids: fd.getAll('id').map(v => String(v)),
+      });
+      return { ok: true, message: 'Deleted 2 contact submissions from PostgreSQL 19.' };
+    });
 
     const Stub = createRoutesStub([
       {
@@ -167,16 +169,16 @@ describe('AdminInboxPage multi-select and bulk delete', () => {
 
   it('prunes stale selected IDs during render when items change and preserves single-item delete', async () => {
     const submittedPayloads: { intent: string; id: string }[] = [];
-    const actionSpy = vi.fn<(args: { request: Request }) => Promise<{ ok: boolean; message: string }>>(
-      async ({ request }) => {
-        const fd = await request.formData();
-        submittedPayloads.push({
-          intent: String(fd.get('intent') ?? ''),
-          id: String(fd.get('id') ?? ''),
-        });
-        return { ok: true, message: 'Contact submission deleted from PostgreSQL 19.' };
-      },
-    );
+    const actionSpy = vi.fn<
+      (args: { request: Request }) => Promise<{ ok: boolean; message: string }>
+    >(async ({ request }) => {
+      const fd = await request.formData();
+      submittedPayloads.push({
+        intent: String(fd.get('intent') ?? ''),
+        id: String(fd.get('id') ?? ''),
+      });
+      return { ok: true, message: 'Contact submission deleted from PostgreSQL 19.' };
+    });
 
     function InboxHarness() {
       const [currentItems, setCurrentItems] = useState<readonly AdminInboxItem[]>(ITEMS_FIXTURE);
