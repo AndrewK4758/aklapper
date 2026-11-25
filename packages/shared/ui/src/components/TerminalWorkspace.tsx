@@ -199,12 +199,32 @@ interface SyncedTabState {
   readonly deepLinkRoute: string | null;
 }
 
+function isPrimaryHostTab(tab: TerminalWorkspaceTab): boolean {
+  return Boolean(tab.pinned);
+}
+
+function isPrimaryHostPane(
+  tab: TerminalWorkspaceTab,
+  pane: TerminalLeafPane | null | undefined,
+): boolean {
+  return Boolean(tab.pinned && pane?.pinned);
+}
+
+function findPrimaryHostPaneId(tab: TerminalWorkspaceTab): string | null {
+  if (!tab.pinned) {
+    return null;
+  }
+  const pinnedLeaf = listLeafPanes(tab.workspace.root).find(leaf => Boolean(leaf.pinned));
+  return pinnedLeaf?.id ?? tab.workspace.activePaneId;
+}
+
 function exitPrimaryPaneTui(state: TerminalTabbedWorkspaceState): TerminalTabbedWorkspaceState {
   return {
     ...state,
-    tabs: state.tabs.map(tab =>
-      tab.id === 'tab-1' ? { ...tab, workspace: exitPaneTui(tab.workspace, 'pane-1') } : tab,
-    ),
+    tabs: state.tabs.map(tab => {
+      const hostPaneId = findPrimaryHostPaneId(tab);
+      return hostPaneId ? { ...tab, workspace: exitPaneTui(tab.workspace, hostPaneId) } : tab;
+    }),
   };
 }
 
@@ -214,14 +234,19 @@ function seedPrimaryPaneDeepLink(
 ): TerminalTabbedWorkspaceState {
   return {
     ...state,
-    tabs: state.tabs.map(tab =>
-      tab.id === 'tab-1'
+    tabs: state.tabs.map(tab => {
+      const hostPaneId = findPrimaryHostPaneId(tab);
+      return hostPaneId
         ? {
             ...tab,
-            workspace: pushPaneView(exitPaneTui(tab.workspace, 'pane-1'), 'pane-1', deepLinkRoute),
+            workspace: pushPaneView(
+              exitPaneTui(tab.workspace, hostPaneId),
+              hostPaneId,
+              deepLinkRoute,
+            ),
           }
-        : tab,
-    ),
+        : tab;
+    }),
   };
 }
 
@@ -298,7 +323,7 @@ function resolveTabDisplayTitle(
   const activeLeaf =
     findLeafPane(tab.workspace.root, tab.workspace.activePaneId) ??
     listLeafPanes(tab.workspace.root)[0];
-  if (primaryPane && tab.id === 'tab-1' && !primaryPane.embeddedTerminal) {
+  if (primaryPane && isPrimaryHostTab(tab) && !primaryPane.embeddedTerminal) {
     return primaryPane.title;
   }
   const activeViewId = activeLeaf ? getActivePaneViewId(activeLeaf) : null;
@@ -382,7 +407,7 @@ function TabStrip({
           const isActive = tab.id === activeTabId;
           const displayTitle = resolveTabDisplayTitle(tab, primaryPane);
           const paneCount = listLeafPanes(tab.workspace.root).length;
-          const canClose = tabs.length > 1 && !tab.pinned;
+          const canClose = tabs.length > 1;
           const isRenaming = renamingTabId === tab.id;
 
           return (
@@ -815,7 +840,7 @@ function TerminalLeafContent({
           onClose(pane.id);
           return { output: `closing tty${pane.ttyNumber} ...` };
         }
-        if (!isMultiPane && canCloseTab && !pane.pinned) {
+        if (!isMultiPane && canCloseTab) {
           onCloseCurrentTab();
           return { output: `closing tab for tty${pane.ttyNumber} ...` };
         }
@@ -1397,8 +1422,7 @@ function StandaloneTerminalWorkspace({
   const activeLeafViewId = activeLeaf ? getActivePaneViewId(activeLeaf) : null;
   const activeHasTuiStack = Boolean(renderPaneView && activeLeafViewId);
   const activeIsPrimaryNonTerminal =
-    activeTab.id === 'tab-1' &&
-    activeLeaf?.id === 'pane-1' &&
+    isPrimaryHostPane(activeTab, activeLeaf) &&
     Boolean(primaryPane) &&
     !primaryPane?.embeddedTerminal;
   const activeIsTuiPane = activeLeaf?.kind === 'tui';
@@ -1409,7 +1433,8 @@ function StandaloneTerminalWorkspace({
       : null;
 
   const notifyIfPrimaryReturnedToShell = (paneId: string, nextStackEmpty: boolean) => {
-    if (nextStackEmpty && activeTab.id === 'tab-1' && paneId === 'pane-1') {
+    const targetLeaf = findLeafPane(activeWorkspace.root, paneId);
+    if (nextStackEmpty && isPrimaryHostPane(activeTab, targetLeaf)) {
       onPrimaryPaneReturnToShell?.();
     }
   };
@@ -1531,7 +1556,7 @@ function StandaloneTerminalWorkspace({
           event.preventDefault();
           const currentLen = activeLeaf.tuiStack?.length ?? 0;
           setTabState(prev => updateActiveTabWorkspace(prev, ws => popPaneView(ws, activeLeaf.id)));
-          if (currentLen === 1 && activeTab.id === 'tab-1' && activeLeaf.id === 'pane-1') {
+          if (currentLen === 1 && isPrimaryHostPane(activeTab, activeLeaf)) {
             onPrimaryPaneReturnToShell?.();
           }
           return;
@@ -1545,7 +1570,7 @@ function StandaloneTerminalWorkspace({
         ) {
           event.preventDefault();
           setTabState(prev => updateActiveTabWorkspace(prev, ws => exitPaneTui(ws, activeLeaf.id)));
-          if (activeTab.id === 'tab-1' && activeLeaf.id === 'pane-1') {
+          if (isPrimaryHostPane(activeTab, activeLeaf)) {
             onPrimaryPaneReturnToShell?.();
           }
           return;
@@ -1688,7 +1713,7 @@ function StandaloneTerminalWorkspace({
               setTabState(prev =>
                 updateActiveTabWorkspace(prev, ws => popPaneView(ws, activeLeaf.id)),
               );
-              if (currentLen === 1 && activeTab.id === 'tab-1' && activeLeaf.id === 'pane-1') {
+              if (currentLen === 1 && isPrimaryHostPane(activeTab, activeLeaf)) {
                 onPrimaryPaneReturnToShell?.();
               }
             } else {
@@ -2049,7 +2074,7 @@ function StandaloneTerminalWorkspace({
           const ws = tab.workspace;
           const leaves = listLeafPanes(ws.root);
           const isMultiPane = leaves.length > 1;
-          const canCloseThisTab = tabState.tabs.length > 1 && !tab.pinned;
+          const canCloseThisTab = tabState.tabs.length > 1;
           const zoomedPaneId =
             ws.zoomedPaneId && findLeafPane(ws.root, ws.zoomedPaneId) ? ws.zoomedPaneId : null;
           const rectsById = new Map<
@@ -2110,7 +2135,7 @@ function StandaloneTerminalWorkspace({
                     }
                   >
                     <PaneReadlineScope paneId={pane.id} registerHandle={registerTerminalHandle}>
-                      {primaryPane && tab.id === 'tab-1' && pane.id === 'pane-1' ? (
+                      {primaryPane && isPrimaryHostPane(tab, pane) ? (
                         <PrimaryPaneView
                           pane={pane}
                           primaryPane={primaryPane}

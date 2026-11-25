@@ -1323,6 +1323,40 @@ export function renameWorkspaceTab(
   return changed ? { ...state, tabs: nextTabs } : state;
 }
 
+function setLeafPinned(
+  node: TerminalPaneNode,
+  targetPaneId: string,
+  pinned: boolean,
+  fallbackTuiStack?: readonly string[],
+): TerminalPaneNode {
+  if (node.type === 'leaf') {
+    const nextPinned = node.id === targetPaneId ? pinned : false;
+    const shouldAttachStack =
+      node.id === targetPaneId &&
+      nextPinned &&
+      (!node.tuiStack || node.tuiStack.length === 0) &&
+      Boolean(fallbackTuiStack && fallbackTuiStack.length > 0);
+    if (Boolean(node.pinned) === nextPinned && !shouldAttachStack) {
+      return node;
+    }
+    if (nextPinned) {
+      return {
+        ...node,
+        pinned: true,
+        ...(shouldAttachStack && fallbackTuiStack ? { tuiStack: [...fallbackTuiStack] } : {}),
+      };
+    }
+    const { pinned: _removed, ...rest } = node;
+    return rest;
+  }
+  const nextFirst = setLeafPinned(node.first, targetPaneId, pinned, fallbackTuiStack);
+  const nextSecond = setLeafPinned(node.second, targetPaneId, pinned, fallbackTuiStack);
+  if (nextFirst === node.first && nextSecond === node.second) {
+    return node;
+  }
+  return { ...node, first: nextFirst, second: nextSecond };
+}
+
 export function closeWorkspaceTab(
   state: TerminalTabbedWorkspaceState,
   tabId: string,
@@ -1332,10 +1366,12 @@ export function closeWorkspaceTab(
   }
   const targetIndex = state.tabs.findIndex(tab => tab.id === tabId);
   const target = state.tabs[targetIndex];
-  if (!target || target.pinned) {
+  if (!target) {
     return state;
   }
 
+  const closedPinnedLeaf = listLeafPanes(target.workspace.root).find(leaf => Boolean(leaf.pinned));
+  const closedHeldPin = Boolean(target.pinned) || Boolean(closedPinnedLeaf);
   const remainingTabs = state.tabs.filter(tab => tab.id !== tabId);
   const remainingHistory = state.tabHistory.filter(id => id !== tabId);
   let nextActiveTabId = state.activeTabId;
@@ -1345,23 +1381,48 @@ export function closeWorkspaceTab(
     nextActiveTabId = mruTabId ?? fallbackTab?.id ?? remainingTabs[0]!.id;
   }
 
-  const nextTabs = remainingTabs.map(tab =>
-    tab.id === nextActiveTabId && state.activeTabId === tabId
-      ? {
-          ...tab,
-          workspace: {
-            ...tab.workspace,
-            focusToken: tab.workspace.focusToken + 1,
-          },
-        }
-      : tab,
-  );
+  const nextTabs = remainingTabs.map(tab => {
+    const isNextActive = tab.id === nextActiveTabId;
+    const shouldBumpFocus = isNextActive && state.activeTabId === tabId;
+    if (closedHeldPin && isNextActive) {
+      const targetPaneId =
+        findLeafPane(tab.workspace.root, tab.workspace.activePaneId)?.id ??
+        listLeafPanes(tab.workspace.root)[0]?.id ??
+        tab.workspace.activePaneId;
+      const nextRoot = setLeafPinned(
+        tab.workspace.root,
+        targetPaneId,
+        true,
+        closedPinnedLeaf?.tuiStack,
+      );
+      return {
+        ...tab,
+        pinned: true,
+        workspace: {
+          ...tab.workspace,
+          root: nextRoot,
+          focusToken: shouldBumpFocus ? tab.workspace.focusToken + 1 : tab.workspace.focusToken,
+        },
+      };
+    }
+    if (shouldBumpFocus) {
+      return {
+        ...tab,
+        workspace: {
+          ...tab.workspace,
+          focusToken: tab.workspace.focusToken + 1,
+        },
+      };
+    }
+    return tab;
+  });
 
   return {
     ...state,
     tabs: nextTabs,
     activeTabId: nextActiveTabId,
     tabHistory: recordTabHistory(remainingHistory, nextActiveTabId),
+    nextTabNumber: allocateNextTabNumber(nextTabs),
   };
 }
 
