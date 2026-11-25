@@ -147,12 +147,39 @@ export function ArtifactInspector({
   onGateVerdict,
   className,
 }: ArtifactInspectorProps) {
-  const [activeTab, setActiveTab] = useState<string>('preview');
+  const hasArtifactHtml = artifactHtml.trim().length > 0;
+  const isActivelyRunning = isStreaming || isPipelineBusy;
+
+  const [activeTab, setActiveTab] = useState<string>(() =>
+    isActivelyRunning && !hasArtifactHtml ? 'stream' : 'preview',
+  );
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
+  const [prevRunning, setPrevRunning] = useState(isActivelyRunning);
+  const [prevHasArtifact, setPrevHasArtifact] = useState(hasArtifactHtml);
+  const [prevRunStatus, setPrevRunStatus] = useState(runStatus);
+
+  // Sync active tab on lifecycle transitions during render (zero useEffect, never overriding manual clicks).
+  if (isActivelyRunning !== prevRunning) {
+    setPrevRunning(isActivelyRunning);
+    if (isActivelyRunning) {
+      setActiveTab('stream');
+    }
+  }
+  if (runStatus !== prevRunStatus) {
+    setPrevRunStatus(runStatus);
+    if (runStatus === 'awaiting_approval') {
+      setActiveTab('preview');
+    }
+  }
+  if (hasArtifactHtml !== prevHasArtifact) {
+    setPrevHasArtifact(hasArtifactHtml);
+    if (hasArtifactHtml) {
+      setActiveTab('preview');
+    }
+  }
 
   const modeBadge = resolveModeBadge(executionMode, labels);
   const streamText = streamLogs.join('\n');
-  const hasArtifactHtml = artifactHtml.trim().length > 0;
 
   return (
     <section className={cx(styles.inspector, className)} data-testid='artifact-inspector'>
