@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   AskStreamEventSchema,
+  AskStreamPreambleErrorEventSchema,
+  AskStreamPreambleEventSchema,
   consumePostSseStream,
   createSseParser,
   parseSseChunk,
@@ -201,5 +203,73 @@ describe('@aklapper/core/sse WHATWG POST SSE parser', () => {
       correlationId: 'corr-done-1',
     });
     expect(parsedDone.type).toBe('done');
+  });
+
+  it('validates preamble and preamble_error SSE events and rejects malformed payloads', () => {
+    const parsedPreamble = AskStreamEventSchema.parse({
+      type: 'preamble',
+      text: 'Looking through Andrew Klapper portfolio records now.',
+    });
+    expect(parsedPreamble).toEqual({
+      type: 'preamble',
+      text: 'Looking through Andrew Klapper portfolio records now.',
+    });
+    expect(
+      AskStreamPreambleEventSchema.safeParse({
+        type: 'preamble',
+        text: '',
+      }).success,
+    ).toBe(true);
+
+    const parsedPreambleErr = AskStreamEventSchema.parse({
+      type: 'preamble_error',
+      code: 'ERR_STREAM_TIMEOUT',
+      message: 'Quick preview timed out while searching portfolio records.',
+      action: 'Wait for the grounded answer below.',
+      correlationId: 'corr-pre-1',
+    });
+    expect(parsedPreambleErr).toEqual({
+      type: 'preamble_error',
+      code: 'ERR_STREAM_TIMEOUT',
+      message: 'Quick preview timed out while searching portfolio records.',
+      action: 'Wait for the grounded answer below.',
+      correlationId: 'corr-pre-1',
+    });
+
+    // Optional action may be omitted cleanly
+    expect(
+      AskStreamPreambleErrorEventSchema.safeParse({
+        type: 'preamble_error',
+        code: 'ERR_UPSTREAM_UNAVAILABLE',
+        message: 'Quick preview is temporarily unavailable while searching portfolio records.',
+        correlationId: 'corr-pre-2',
+      }).success,
+    ).toBe(true);
+
+    // Reject missing correlationId, empty message, or empty action string
+    expect(
+      AskStreamPreambleErrorEventSchema.safeParse({
+        type: 'preamble_error',
+        code: 'ERR_STREAM_TIMEOUT',
+        message: 'Timed out.',
+      }).success,
+    ).toBe(false);
+    expect(
+      AskStreamPreambleErrorEventSchema.safeParse({
+        type: 'preamble_error',
+        code: 'ERR_STREAM_TIMEOUT',
+        message: '',
+        correlationId: 'corr-pre-3',
+      }).success,
+    ).toBe(false);
+    expect(
+      AskStreamPreambleErrorEventSchema.safeParse({
+        type: 'preamble_error',
+        code: 'ERR_STREAM_TIMEOUT',
+        message: 'Timed out.',
+        action: '',
+        correlationId: 'corr-pre-4',
+      }).success,
+    ).toBe(false);
   });
 });
