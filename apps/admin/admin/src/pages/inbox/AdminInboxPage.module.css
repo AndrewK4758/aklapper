@@ -36,6 +36,13 @@
     gap: var(--sf-space-3);
   }
 
+  .itemRow {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: var(--sf-align-center);
+    gap: var(--sf-space-3);
+  }
+
   .itemButton {
     display: grid;
     gap: var(--sf-space-1);
