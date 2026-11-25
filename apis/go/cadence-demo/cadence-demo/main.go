@@ -426,8 +426,8 @@ func newHandlerWithDeps(deps cadenceServiceDeps) http.Handler {
 }
 
 func main() {
-	if _, err := llm.ParseVertexThinkingBudget(os.Getenv("VERTEX_THINKING_BUDGET")); err != nil {
-		log.Fatalf("cadence-demo invalid VERTEX_THINKING_BUDGET: %v", err)
+	if _, err := llm.ParseVertexThinkingLevel(os.Getenv("VERTEX_THINKING_LEVEL")); err != nil {
+		log.Fatalf("cadence-demo invalid VERTEX_THINKING_LEVEL: %v", err)
 	}
 	privacyCfg, err := privacy.LoadConfigFromEnv()
 	if err != nil {

@@ -119,7 +119,7 @@ func CuratedPortfolioDocs() []SeedDocument {
 		{
 			ID:       "curated:ai-rag",
 			Title:    "Grounded AI Retrieval // Vertex AI + Local Llama-Swap + Qdrant",
-			Body:     "Unified Node and Go LLM providers support local llama-swap on :11434 (embedding model alias) and live Google Cloud Vertex AI text-embedding-005 / Gemini endpoints, paired with Qdrant cosine similarity thresholds (0.35) and strict fail-closed abstention when evidence is missing or weak.",
+			Body:     "Unified Node and Go LLM providers support local llama-swap on :11434 (embedding model alias) and live Google Cloud Vertex AI gemini-embedding-2 / Gemini 3.8 Flash endpoints, paired with Qdrant cosine similarity thresholds (0.35) and strict fail-closed abstention when evidence is missing or weak.",
 			Category: "ai",
 			Source:   "curated",
 		},

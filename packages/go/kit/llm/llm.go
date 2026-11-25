@@ -166,20 +166,14 @@ func (c *LocalClient) Embed(ctx context.Context, text string) ([]float32, error)
 	return parsed.Data[0].Embedding, nil
 }
 
-const (
-	DefaultVertexModel      = "gemini-2.5-flash"
-	DefaultVertexEmbedModel = "text-embedding-005"
-	DefaultVertexLocation   = "us-central1"
-	DefaultGCPMetadataURL   = "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token"
-)
-
-// VertexClient calls Vertex AI Gemini (:generateContent) and Embeddings (:predict)
-// using GOOGLE_OAUTH_ACCESS_TOKEN or the GCP Metadata Server (Workload Identity).
+// VertexClient calls Vertex AI Gemini (:generateContent / :streamGenerateContent) and
+// Embeddings (:embedContent / :predict) using GOOGLE_OAUTH_ACCESS_TOKEN or GCP Metadata Server.
 type VertexClient struct {
 	ProjectID           string
 	Location            string
 	Model               string
 	EmbedModel          string
+	ThinkingLevel       string
 	AccessToken         string
 	MetadataURL         string
 	EndpointBaseURL     string
@@ -203,14 +197,7 @@ func (v *VertexClient) httpClient() *http.Client {
 }
 
 func (v *VertexClient) endpointBase() string {
-	if base := strings.TrimRight(strings.TrimSpace(v.EndpointBaseURL), "/"); base != "" {
-		return base
-	}
-	loc := strings.TrimSpace(v.Location)
-	if loc == "" {
-		loc = DefaultVertexLocation
-	}
-	return fmt.Sprintf("https://%s-aiplatform.googleapis.com", loc)
+	return formatVertexEndpointBase(v.Location, v.EndpointBaseURL)
 }
 
 func (v *VertexClient) resolveAccessToken(ctx context.Context) (string, error) {
@@ -261,10 +248,6 @@ func (v *VertexClient) Chat(ctx context.Context, messages []ChatMessage, maxToke
 	if strings.TrimSpace(v.ProjectID) == "" {
 		return Completion{}, errors.New("vertex ai provider requires GCP_PROJECT_ID")
 	}
-	token, err := v.resolveAccessToken(ctx)
-	if err != nil {
-		return Completion{}, err
-	}
 	if maxTokens <= 0 {
 		maxTokens = 512
 	}
@@ -272,17 +255,18 @@ func (v *VertexClient) Chat(ctx context.Context, messages []ChatMessage, maxToke
 	if model == "" {
 		model = DefaultVertexModel
 	}
-	loc := strings.TrimSpace(v.Location)
-	if loc == "" {
-		loc = DefaultVertexLocation
-	}
+	loc := normalizeVertexLocation(v.Location)
 
-	payload, err := buildVertexGeneratePayload(messages, maxTokens, nil, v.ThinkingBudget, nil)
+	payload, err := buildVertexGeneratePayload(model, messages, maxTokens, nil, v.ThinkingLevel, v.ThinkingBudget, false, nil)
 	if err != nil {
 		return Completion{}, err
 	}
 
 	body, err := json.Marshal(payload)
+	if err != nil {
+		return Completion{}, err
+	}
+	token, err := v.resolveAccessToken(ctx)
 	if err != nil {
 		return Completion{}, err
 	}
@@ -306,6 +290,12 @@ func (v *VertexClient) Chat(ctx context.Context, messages []ChatMessage, maxToke
 	}
 	defer res.Body.Close()
 	if res.StatusCode >= 300 {
+		logLLMSeam("BOUNDARY_FAULT", "llm.vertex.upstream_http_error", map[string]any{
+			"action":   "generateContent",
+			"status":   res.StatusCode,
+			"model":    model,
+			"location": loc,
+		})
 		return Completion{}, fmt.Errorf("vertex ai generateContent failed with status %d", res.StatusCode)
 	}
 
@@ -352,25 +342,25 @@ func (v *VertexClient) Embed(ctx context.Context, text string) ([]float32, error
 	if model == "" {
 		model = DefaultVertexEmbedModel
 	}
-	loc := strings.TrimSpace(v.Location)
-	if loc == "" {
-		loc = DefaultVertexLocation
-	}
+	loc := normalizeVertexLocation(v.Location)
 
-	body, err := json.Marshal(map[string]any{
-		"instances": []map[string]string{
-			{"content": text},
-		},
+	action, branch, payload := buildVertexEmbedPayload(model, text)
+	logLLMSeam("RULE_DIVERGENCE", "llm.vertex.embed_protocol_selected", map[string]any{
+		"branch":   branch,
+		"model":    model,
+		"location": loc,
 	})
+	body, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
 	}
 	endpoint := fmt.Sprintf(
-		"%s/v1/projects/%s/locations/%s/publishers/google/models/%s:predict",
+		"%s/v1/projects/%s/locations/%s/publishers/google/models/%s:%s",
 		v.endpointBase(),
 		v.ProjectID,
 		loc,
 		model,
+		action,
 	)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
 	if err != nil {
@@ -385,65 +375,18 @@ func (v *VertexClient) Embed(ctx context.Context, text string) ([]float32, error
 	}
 	defer res.Body.Close()
 	if res.StatusCode >= 300 {
-		return nil, fmt.Errorf("vertex ai predict failed with status %d", res.StatusCode)
+		logLLMSeam("BOUNDARY_FAULT", "llm.vertex.upstream_http_error", map[string]any{
+			"action":   action,
+			"status":   res.StatusCode,
+			"model":    model,
+			"location": loc,
+		})
+		return nil, fmt.Errorf("vertex ai %s failed with status %d", action, res.StatusCode)
 	}
 
-	var parsed struct {
-		Predictions []struct {
-			Embeddings struct {
-				Values []float32 `json:"values"`
-			} `json:"embeddings"`
-		} `json:"predictions"`
-	}
-	if err := json.NewDecoder(res.Body).Decode(&parsed); err != nil {
-		return nil, err
-	}
-	if len(parsed.Predictions) == 0 || len(parsed.Predictions[0].Embeddings.Values) == 0 {
-		return nil, fmt.Errorf("%w: vertex ai returned zero embeddings", ErrEmptyEmbedding)
-	}
-	return parsed.Predictions[0].Embeddings.Values, nil
+	return decodeVertexEmbedResponse(action, model, loc, res.Body)
 }
 
 func NewFromEnv() Provider {
-	if strings.EqualFold(os.Getenv("AI_PROVIDER"), "vertex") {
-		model := os.Getenv("VERTEX_MODEL")
-		if model == "" {
-			model = DefaultVertexModel
-		}
-		embedModel := os.Getenv("VERTEX_EMBED_MODEL")
-		if embedModel == "" {
-			embedModel = DefaultVertexEmbedModel
-		}
-		location := os.Getenv("GCP_LOCATION")
-		if location == "" {
-			location = DefaultVertexLocation
-		}
-		budget, budgetErr := ParseVertexThinkingBudget(os.Getenv("VERTEX_THINKING_BUDGET"))
-		if budgetErr != nil {
-			zero := 0
-			budget = &zero
-		}
-		return &VertexClient{
-			ProjectID:        os.Getenv("GCP_PROJECT_ID"),
-			Location:         location,
-			Model:            model,
-			EmbedModel:       embedModel,
-			AccessToken:      os.Getenv("GOOGLE_OAUTH_ACCESS_TOKEN"),
-			MetadataURL:      os.Getenv("GCP_METADATA_TOKEN_URL"),
-			ThinkingBudget:   budget,
-			HTTPClient:       &http.Client{Timeout: 30 * time.Second},
-			StreamHTTPClient: newDefaultStreamHTTPClient(nil),
-		}
-	}
-	baseURL := os.Getenv("LOCAL_LLM_BASE_URL")
-	if baseURL == "" {
-		baseURL = DefaultLocalBaseURL
-	}
-	return &LocalClient{
-		BaseURL:          baseURL,
-		ChatModel:        os.Getenv("LOCAL_LLM_CHAT_MODEL"),
-		EmbedModel:       os.Getenv("LOCAL_LLM_EMBED_MODEL"),
-		HTTPClient:       &http.Client{Timeout: localHTTPTimeout()},
-		StreamHTTPClient: newStreamHTTPClient(nil, localStreamResponseHeaderTTL()),
-	}
+	return NewFromEnvMap(os.Getenv)
 }

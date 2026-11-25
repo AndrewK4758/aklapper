@@ -210,8 +210,9 @@ func executeStreamingTurn(
 
 	var postGuard strings.Builder
 	streamResult, streamErr := llm.StreamChat(ctx, deps.provider, llm.ChatStreamRequest{
-		Messages:  messages,
-		MaxTokens: 512,
+		Messages:        messages,
+		MaxTokens:       1024,
+		IncludeThoughts: false,
 	}, func(chunk llm.ChatStreamChunk) error {
 		if chunk.Delta == "" {
 			return nil

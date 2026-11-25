@@ -38,10 +38,13 @@ func extractVertexThoughtText(parts []vertexPart) string {
 }
 
 func buildVertexGeneratePayload(
+	model string,
 	messages []ChatMessage,
 	maxTokens int,
 	temperature *float64,
+	thinkingLevel string,
 	thinkingBudget *int,
+	includeThoughts bool,
 	schema *JSONSchema,
 ) (map[string]any, error) {
 	if maxTokens <= 0 {
@@ -51,8 +54,40 @@ func buildVertexGeneratePayload(
 	if temperature != nil {
 		temp = *temperature
 	}
-	if thinkingBudget != nil && *thinkingBudget < 0 {
-		return nil, fmt.Errorf("invalid vertex thinkingBudget %d: must be non-negative", *thinkingBudget)
+
+	var thinkingCfg map[string]any
+	if isGemini3Model(model) {
+		level, err := ParseVertexThinkingLevel(thinkingLevel)
+		if err != nil {
+			return nil, err
+		}
+		thinkingCfg = map[string]any{
+			"thinkingLevel": level,
+		}
+		if includeThoughts {
+			thinkingCfg["includeThoughts"] = true
+		}
+		logLLMSeam("RULE_DIVERGENCE", "llm.vertex.thinking_protocol_selected", map[string]any{
+			"branch":        "gemini3_level",
+			"model":         model,
+			"thinkingLevel": level,
+		})
+	} else if thinkingBudget != nil {
+		if *thinkingBudget < 0 {
+			return nil, fmt.Errorf("invalid vertex thinkingBudget %d: must be non-negative", *thinkingBudget)
+		}
+		thinkingCfg = map[string]any{
+			"thinkingBudget": *thinkingBudget,
+		}
+		logLLMSeam("RULE_DIVERGENCE", "llm.vertex.thinking_protocol_selected", map[string]any{
+			"branch": "gemini2_budget",
+			"model":  model,
+		})
+	} else {
+		logLLMSeam("RULE_DIVERGENCE", "llm.vertex.thinking_protocol_selected", map[string]any{
+			"branch": "none",
+			"model":  model,
+		})
 	}
 
 	var systemParts []map[string]string
@@ -82,10 +117,8 @@ func buildVertexGeneratePayload(
 		"maxOutputTokens": maxTokens,
 		"temperature":     temp,
 	}
-	if thinkingBudget != nil {
-		genCfg["thinkingConfig"] = map[string]any{
-			"thinkingBudget": *thinkingBudget,
-		}
+	if thinkingCfg != nil {
+		genCfg["thinkingConfig"] = thinkingCfg
 	}
 	if schema != nil {
 		vs, err := schema.ToVertexSchema()
@@ -125,11 +158,33 @@ func (v *VertexClient) ChatStream(
 		return ChatStreamResult{}, errors.New("vertex ai provider requires GCP_PROJECT_ID")
 	}
 
+	model := strings.TrimSpace(req.Model)
+	if model == "" {
+		model = strings.TrimSpace(v.Model)
+	}
+	if model == "" {
+		model = DefaultVertexModel
+	}
+	loc := normalizeVertexLocation(v.Location)
+
+	effectiveLevel := v.ThinkingLevel
+	if strings.TrimSpace(req.ThinkingLevel) != "" {
+		effectiveLevel = req.ThinkingLevel
+	}
 	effectiveBudget := v.ThinkingBudget
 	if req.ThinkingBudget != nil {
 		effectiveBudget = req.ThinkingBudget
 	}
-	payload, err := buildVertexGeneratePayload(req.Messages, req.MaxTokens, req.Temperature, effectiveBudget, req.ResponseSchema)
+	payload, err := buildVertexGeneratePayload(
+		model,
+		req.Messages,
+		req.MaxTokens,
+		req.Temperature,
+		effectiveLevel,
+		effectiveBudget,
+		req.IncludeThoughts,
+		req.ResponseSchema,
+	)
 	if err != nil {
 		return ChatStreamResult{}, err
 	}
@@ -141,18 +196,6 @@ func (v *VertexClient) ChatStream(
 	token, err := v.resolveAccessToken(ctx)
 	if err != nil {
 		return ChatStreamResult{}, err
-	}
-
-	model := strings.TrimSpace(req.Model)
-	if model == "" {
-		model = strings.TrimSpace(v.Model)
-	}
-	if model == "" {
-		model = DefaultVertexModel
-	}
-	loc := strings.TrimSpace(v.Location)
-	if loc == "" {
-		loc = DefaultVertexLocation
 	}
 
 	streamCtx, cancel := context.WithCancel(ctx)
@@ -181,6 +224,12 @@ func (v *VertexClient) ChatStream(
 	defer watched.Close()
 
 	if res.StatusCode >= 300 {
+		logLLMSeam("BOUNDARY_FAULT", "llm.vertex.upstream_http_error", map[string]any{
+			"action":   "streamGenerateContent",
+			"status":   res.StatusCode,
+			"model":    model,
+			"location": loc,
+		})
 		return ChatStreamResult{}, fmt.Errorf("vertex ai streamGenerateContent failed with status %d", res.StatusCode)
 	}
 

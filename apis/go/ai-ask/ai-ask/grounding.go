@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	followUpRewriteMaxTokens = 120
+	followUpRewriteMaxTokens = 384
 	followUpRewriteTimeout   = 4 * time.Second
 )
 

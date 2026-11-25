@@ -321,7 +321,7 @@ func executeTurnWorker(
 		}
 		comp, chatErr := provider.Chat(ctx, []llm.ChatMessage{
 			{Role: "system", Content: systemPrompt}, {Role: "user", Content: userPrompt},
-		}, 512)
+		}, 1024)
 		if chatErr != nil {
 			status := http.StatusBadGateway
 			errCode := contracts.ErrCodeUpstreamUnavailable
