@@ -1,15 +1,17 @@
 package privacy
 
 import (
+	"sort"
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"golang.org/x/text/unicode/norm"
 )
 
-const (
-	maxRawPendingRunes     = 4096
-	maxConsecutiveSepRunes = MaxNormalizedDenylistRunes
-)
+const maxRawPendingRunes = 4096
+
+var pendingLimitFingerprint = ruleFingerprint("builtin", len(builtInSecretRules), "max_pending_runes")
 
 // StreamGuard inspects incremental stream chunks over an immutable rolling holdback window,
 // catching split denylist terms, Unicode/separator obfuscation, and built-in secret patterns
@@ -18,6 +20,9 @@ type StreamGuard struct {
 	cfg           *Config
 	correlationID string
 	pending       []rune
+	sepRun        int
+	combRun       int
+	floodExceeded bool
 	aborted       bool
 }
 
@@ -34,7 +39,29 @@ func NewStreamGuard(cfg *Config, correlationID string) *StreamGuard {
 
 func (g *StreamGuard) resetOnAbort() {
 	g.pending = nil
+	g.sepRun = 0
+	g.combRun = 0
+	g.floodExceeded = false
 	g.aborted = true
+}
+
+func isNormalizedSeparator(r rune) bool {
+	if isSeparatorRune(r) {
+		return true
+	}
+	if r < utf8.RuneSelf {
+		return false
+	}
+	expanded := norm.NFKC.String(string(r))
+	if expanded == "" {
+		return false
+	}
+	for _, nr := range expanded {
+		if !isSeparatorRune(nr) {
+			return false
+		}
+	}
+	return true
 }
 
 // Process ingests the next incremental chunk and returns only text proven safe to emit.
@@ -43,8 +70,28 @@ func (g *StreamGuard) Process(chunk string) (string, error) {
 		return "", ErrPrivacyAborted
 	}
 	if chunk != "" {
-		g.pending = append(g.pending, []rune(chunk)...)
-		g.collapseExtremeSeparators()
+		chunkRunes := []rune(chunk)
+		for _, r := range chunkRunes {
+			if isCombiningMark(r) {
+				g.combRun++
+				if g.combRun > maxRawPendingRunes {
+					g.floodExceeded = true
+				}
+			} else {
+				g.combRun = 0
+			}
+			if g.cfg.maxDenylistNonSep > 0 {
+				if isNormalizedSeparator(r) {
+					g.sepRun++
+					if g.sepRun > maxRawPendingRunes {
+						g.floodExceeded = true
+					}
+				} else {
+					g.sepRun = 0
+				}
+			}
+		}
+		g.pending = append(g.pending, chunkRunes...)
 	}
 	return g.drain(false)
 }
@@ -57,26 +104,6 @@ func (g *StreamGuard) Flush() (string, error) {
 	return g.drain(true)
 }
 
-func (g *StreamGuard) collapseExtremeSeparators() {
-	if len(g.pending) <= maxRawPendingRunes {
-		return
-	}
-	out := make([]rune, 0, len(g.pending))
-	sepRun := 0
-	for _, r := range g.pending {
-		if isSeparatorRune(r) {
-			sepRun++
-			if sepRun <= maxConsecutiveSepRunes {
-				out = append(out, r)
-			}
-			continue
-		}
-		sepRun = 0
-		out = append(out, r)
-	}
-	g.pending = out
-}
-
 func (g *StreamGuard) recordTrigger(category string, action Action, fingerprint string) {
 	logPrivacySeam("BOUNDARY_FAULT", "privacy.stream_guard.triggered", map[string]any{
 		"ruleCategory":    category,
@@ -86,9 +113,18 @@ func (g *StreamGuard) recordTrigger(category string, action Action, fingerprint 
 	})
 }
 
+func (g *StreamGuard) abortPendingLimit() (string, error) {
+	g.recordTrigger("pending_limit", ActionAbort, pendingLimitFingerprint)
+	g.resetOnAbort()
+	return "", ErrPrivacyAborted
+}
+
 func (g *StreamGuard) drain(isFlush bool) (string, error) {
 	n := len(g.pending)
 	if n == 0 {
+		if g.floodExceeded {
+			return g.abortPendingLimit()
+		}
 		return "", nil
 	}
 
@@ -108,6 +144,11 @@ func (g *StreamGuard) drain(isFlush bool) (string, error) {
 		intervals = collectRegexMatches(intervals, rule.regex, pendingStr, "builtin_secret", rule.fingerprint, true, i)
 	}
 
+	// 1b. Enforce chunk-invariant flood bounds strictly after built-in secret scanning.
+	if g.floodExceeded {
+		return g.abortPendingLimit()
+	}
+
 	// 2. Scan immutable pending buffer against configured runtime denylist rules.
 	var normStr string
 	var normMap []normRuneSpan
@@ -116,6 +157,16 @@ func (g *StreamGuard) drain(isFlush bool) (string, error) {
 		if !normBuilt {
 			normStr, normMap = buildNormalizedMap(g.pending)
 			normBuilt = true
+		}
+	}
+
+	if g.cfg.maxDenylistNonSep > 0 {
+		ensureNorm()
+		w := g.cfg.maxDenylistNonSep
+		for i := w; i < len(normMap); i++ {
+			if normMap[i].rawStart-normMap[i-w].rawStart > maxRawPendingRunes {
+				return g.abortPendingLimit()
+			}
 		}
 	}
 
@@ -145,7 +196,16 @@ func (g *StreamGuard) drain(isFlush bool) (string, error) {
 
 	abortHold := n
 	if len(abortMatches) > 0 {
-		abortMatches = mergeOverlappingIntervals(abortMatches)
+		sort.Slice(abortMatches, func(i, j int) bool {
+			a, b := abortMatches[i], abortMatches[j]
+			if a.start != b.start {
+				return a.start < b.start
+			}
+			if a.ruleOrder != b.ruleOrder {
+				return a.ruleOrder < b.ruleOrder
+			}
+			return a.end > b.end
+		})
 		for _, iv := range abortMatches {
 			if isFlush || iv.end <= safeSecret {
 				g.recordTrigger("denylist", ActionAbort, iv.fingerprint)
@@ -154,6 +214,13 @@ func (g *StreamGuard) drain(isFlush bool) (string, error) {
 			}
 			if iv.start < abortHold {
 				abortHold = iv.start
+			}
+		}
+		for _, iv := range mergeOverlappingIntervals(abortMatches) {
+			if iv.end-iv.start > maxRawPendingRunes {
+				g.recordTrigger("denylist", ActionAbort, iv.fingerprint)
+				g.resetOnAbort()
+				return "", ErrPrivacyAborted
 			}
 		}
 	}
@@ -223,6 +290,10 @@ func (g *StreamGuard) drain(isFlush bool) (string, error) {
 		g.pending = nil
 	} else if cursor > 0 {
 		g.pending = append([]rune(nil), g.pending[cursor:]...)
+	}
+
+	if !isFlush && len(g.pending) > maxRawPendingRunes {
+		return g.abortPendingLimit()
 	}
 	return out.String(), nil
 }
