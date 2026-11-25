@@ -131,6 +131,7 @@ export interface TerminalWorkspaceProps {
   isActive?: boolean;
   routeKey?: string;
   workspaceStore?: WorkspaceStoreAdapter;
+  navigatePrimaryInPaneRoutes?: boolean;
 }
 
 interface EmbeddedTerminalPaneContextValue {
@@ -1459,6 +1460,7 @@ function StandaloneTerminalWorkspace({
   isActive = true,
   routeKey,
   workspaceStore,
+  navigatePrimaryInPaneRoutes = false,
 }: TerminalWorkspaceProps) {
   const isDockedMode = dockTuiWindows ?? Boolean(renderPaneView);
   const initialDeepLinkRoute = initialPrimaryTuiStack?.[0] ?? null;
@@ -1736,6 +1738,12 @@ function StandaloneTerminalWorkspace({
     }
     if (target === 'split') {
       handleOpenViewInSplit(paneId, viewId);
+      return;
+    }
+    const targetLeaf = findLeafPane(activeWorkspace.root, paneId);
+    const isPrimaryHost = isPrimaryHostPane(activeTab.pinned, targetLeaf?.pinned);
+    if (navigatePrimaryInPaneRoutes && isPrimaryHost && viewId !== 'tui' && navigate) {
+      void navigate(viewId);
       return;
     }
     handlePushPaneView(paneId, viewId);

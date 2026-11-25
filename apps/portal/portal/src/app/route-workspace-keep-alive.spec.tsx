@@ -273,6 +273,16 @@ describe('Portal global workspace persistence and exclusions', () => {
       container.querySelector('[data-tab-panel="tab-1"]')?.getAttribute('data-tab-active'),
     ).toBe('true');
     expect(container.querySelector('[data-tab-count="2"]')).toBeTruthy();
+
+    // Header route links render with active-route indicators matching current pathname
+    const contactNavLink = screen.getByRole('link', { name: 'Contact' });
+    expect(contactNavLink.getAttribute('data-active')).toBe('true');
+    expect(contactNavLink.getAttribute('aria-current')).toBe('page');
+    const cadenceNavLink = screen.getByRole('link', { name: 'CADENCE' });
+    expect(cadenceNavLink.getAttribute('data-active')).toBe('false');
+    expect(cadenceNavLink.getAttribute('aria-current')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Chat' }).getAttribute('href')).toBe('/chat');
+    expect(screen.getByRole('link', { name: 'Agensi' }).getAttribute('href')).toBe('/agensi');
   });
 
   it('launches split and tab panes from the header Open Pane menu on non-root routes and dismisses on Escape without exiting route', async () => {

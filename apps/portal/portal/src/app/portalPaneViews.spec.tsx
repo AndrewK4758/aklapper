@@ -16,7 +16,7 @@ import {
   type TerminalProfileData,
 } from '@aklapper/core';
 import { usePaneNavigation, ViewportProvider } from '@aklapper/ui';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import {
   createMemoryRouter,
   type LoaderFunctionArgs,
@@ -363,14 +363,17 @@ describe('Portal in-pane route adapters & deep-links', () => {
       { initialEntries: ['/'] },
     );
 
-    render(<RouterProvider router={router} />);
+    const { container } = render(<RouterProvider router={router} />);
 
     const input = (await screen.findByLabelText('Terminal command input')) as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'tui' } });
     fireEvent.submit(input.closest('form') as HTMLFormElement);
 
-    // Click Contact in docked launcher -> loads /contact in-pane via useFetcher
-    fireEvent.click(await screen.findByRole('link', { name: 'Contact' }));
+    // Shift+Click Contact in docked launcher -> opens /contact in a secondary split while keeping URL at /
+    const pane1 = container.querySelector('[data-pane-id="pane-1"]') as HTMLElement;
+    fireEvent.click(await within(pane1).findByRole('link', { name: 'Contact' }), {
+      shiftKey: true,
+    });
     const nameInput = await screen.findByLabelText(/Name/i);
     const emailInput = screen.getByLabelText(/Email/i);
     const messageInput = screen.getByRole('textbox', { name: /Message/i });
@@ -497,12 +500,12 @@ describe('Portal in-pane route adapters & deep-links', () => {
     const { container } = render(<RouterProvider router={router} />);
 
     const input = (await screen.findByLabelText('Terminal command input')) as HTMLInputElement;
-    fireEvent.change(input, { target: { value: 'agensi' } });
+    fireEvent.change(input, { target: { value: 'agensi --split' } });
     fireEvent.submit(input.closest('form') as HTMLFormElement);
 
     // Attempt 1 (thrown HTTP 500 Response): PortalRoot + TerminalWorkspace remain mounted
     expect(await screen.findByRole('alert')).toBeTruthy();
-    expect(container.querySelector('[data-pane-count="1"]')).toBeTruthy();
+    expect(container.querySelector('[data-pane-count="2"]')).toBeTruthy();
     expect(
       errorSpy.mock.calls.some(args =>
         String(args[0]).includes('portal.pane_nav.fetcher_load_failed'),
@@ -526,7 +529,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
       expect(msg).not.toContain('secret_table');
       expect(msg).not.toContain('select *');
     }
-    expect(container.querySelector('[data-pane-count="1"]')).toBeTruthy();
+    expect(container.querySelector('[data-pane-count="2"]')).toBeTruthy();
 
     // Attempt 3: recovers cleanly
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
@@ -744,7 +747,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
 
     render(<RouterProvider router={router} />);
     const input = (await screen.findByLabelText('Terminal command input')) as HTMLInputElement;
-    fireEvent.change(input, { target: { value: 'agensi' } });
+    fireEvent.change(input, { target: { value: 'agensi --split' } });
     fireEvent.submit(input.closest('form') as HTMLFormElement);
 
     const alert = await screen.findByRole('alert');
@@ -1017,21 +1020,21 @@ describe('Portal in-pane route adapters & deep-links', () => {
 
       const { container } = render(<RouterProvider router={router} />);
       const input = (await screen.findByLabelText('Terminal command input')) as HTMLInputElement;
-      fireEvent.change(input, { target: { value: 'cadence' } });
+      fireEvent.change(input, { target: { value: 'cadence --split' } });
       fireEvent.submit(input.closest('form') as HTMLFormElement);
 
       const selectTrigger = await screen.findByTestId('cadence-preset-select');
-      const pane1 = container.querySelector('[data-pane-id="pane-1"]') as HTMLElement;
-      expect(pane1.getAttribute('data-tui-depth')).toBe('1');
+      const pane2 = container.querySelector('[data-pane-id="pane-2"]') as HTMLElement;
+      expect(pane2.getAttribute('data-tui-depth')).toBe('1');
 
-      // Opening Select popup and pressing Escape dismisses popup WITHOUT popping pane-1.
+      // Opening Select popup and pressing Escape dismisses popup WITHOUT popping pane-2.
       fireEvent.click(selectTrigger);
       await screen.findByRole('listbox');
       fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
       await waitFor(() => {
         expect(screen.queryByRole('listbox')).toBeNull();
       });
-      expect(pane1.getAttribute('data-tui-depth')).toBe('1');
+      expect(pane2.getAttribute('data-tui-depth')).toBe('1');
       expect(screen.getByTestId('cadence-prompt-input')).toBeTruthy();
 
       // Select pipeline monitor item & submit in fast mode.
@@ -1099,7 +1102,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
       // After Select selection & gate approval, closed Select popup must NOT block pane Escape exit.
       fireEvent.keyDown(window, { key: 'Escape' });
       await waitFor(() => {
-        expect(pane1.getAttribute('data-tui-depth')).toBe('0');
+        expect(pane2.getAttribute('data-tui-depth')).toBe('0');
       });
     } finally {
       globalThis.EventSource = originalEventSource;
@@ -1253,7 +1256,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
 
       render(<RouterProvider router={router} />);
       const input = (await screen.findByLabelText('Terminal command input')) as HTMLInputElement;
-      fireEvent.change(input, { target: { value: 'cadence' } });
+      fireEvent.change(input, { target: { value: 'cadence --split' } });
       fireEvent.submit(input.closest('form') as HTMLFormElement);
 
       fireEvent.click(await screen.findByTestId('cadence-run-submit'));
@@ -1418,7 +1421,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
 
       render(<RouterProvider router={router} />);
       const input = (await screen.findByLabelText('Terminal command input')) as HTMLInputElement;
-      fireEvent.change(input, { target: { value: 'cadence' } });
+      fireEvent.change(input, { target: { value: 'cadence --split' } });
       fireEvent.submit(input.closest('form') as HTMLFormElement);
 
       await waitFor(() => {
@@ -1510,7 +1513,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
 
     const first = render(<RouterProvider router={router} />);
     const input = (await screen.findByLabelText('Terminal command input')) as HTMLInputElement;
-    fireEvent.change(input, { target: { value: 'chat' } });
+    fireEvent.change(input, { target: { value: 'chat --split' } });
     fireEvent.submit(input.closest('form') as HTMLFormElement);
 
     expect(await screen.findByTestId('ask-question-input')).toBeTruthy();
@@ -1570,7 +1573,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
     window.sessionStorage.clear();
     render(<RouterProvider router={mismatchRouter} />);
     const input2 = (await screen.findByLabelText('Terminal command input')) as HTMLInputElement;
-    fireEvent.change(input2, { target: { value: 'chat' } });
+    fireEvent.change(input2, { target: { value: 'chat --split' } });
     fireEvent.submit(input2.closest('form') as HTMLFormElement);
 
     expect(await screen.findByTestId('ask-question-input')).toBeTruthy();
@@ -1769,7 +1772,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
       expect(el).toBeTruthy();
       return el as HTMLInputElement;
     });
-    fireEvent.change(input, { target: { value: 'agensi' } });
+    fireEvent.change(input, { target: { value: 'agensi --split' } });
     fireEvent.submit(input.closest('form') as HTMLFormElement);
     await waitFor(() => {
       expect(pane1Signal?.aborted).toBe(false);

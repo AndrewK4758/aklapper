@@ -125,15 +125,14 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(page.getByText(/CADENCE Builder/i)).toBeVisible();
     await expect(page.getByText(/cadence-admin/i)).toHaveCount(0);
 
-    // Clicking CADENCE Builder pushes /cadence in-place, Escape pops back to TUI, q exits straight to shell
+    // Clicking CADENCE Builder from primary TUI navigates to /cadence; Escape exits back to /
     await page.getByRole('link', { name: /CADENCE Builder/i }).click();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/cadence$/);
     await expect(
       page.getByText(/CADENCE Builder — Interactive Multi-Artifact Showcase/i),
     ).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(page.getByRole('heading', { name: /Andrew Klapper — Portfolio/i })).toBeVisible();
-    await page.keyboard.press('q');
+    await expect(page).toHaveURL(/\/$/);
     await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '0');
 
     expect(getErrors()).toEqual([]);
@@ -218,13 +217,13 @@ test.describe('portal SSR end-to-end journeys', () => {
     );
     const getErrors = trackPageErrors(page);
 
-    // Launch /contact TUI explicitly via `contact --tui` (stays in-pane on `/`)
+    // Launch /contact TUI explicitly via `contact --tui` (navigates primary pane to /contact)
     await gotoStreamedPage(page, '/');
     const commandInput = page.getByLabel('Terminal command input');
     await expect(commandInput).toBeFocused();
     await commandInput.fill('contact --tui');
     await commandInput.press('Enter');
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/contact$/);
     await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '1');
 
     // Recursive nested fieldsets rendered from Postgres JSON schema
@@ -509,7 +508,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     expect(getErrors()).toEqual([]);
   });
 
-  test('runs cadence inside docked terminal pane with Select Escape guard and approves gate on /', async ({
+  test('runs cadence from primary terminal to /cadence with Select Escape guard and approves gate', async ({
     page,
   }, testInfo) => {
     if (IS_MAINTENANCE_MODE) {
@@ -527,16 +526,17 @@ test.describe('portal SSR end-to-end journeys', () => {
     await commandInput.fill('cadence');
     await commandInput.press('Enter');
 
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/cadence$/);
     await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '1');
     const selectTrigger = page.getByTestId('cadence-preset-select');
     await expect(selectTrigger).toBeVisible();
 
-    // Opening Select listbox and pressing Escape dismisses only the listbox without popping the pane.
+    // Opening Select listbox and pressing Escape dismisses only the listbox without leaving /cadence.
     await selectTrigger.click();
     await expect(page.getByRole('listbox')).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(page.getByRole('listbox')).toHaveCount(0);
+    await expect(page).toHaveURL(/\/cadence$/);
     await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '1');
     await expect(page.getByTestId('cadence-prompt-input')).toBeVisible();
 
@@ -552,10 +552,11 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(page.getByTestId('cadence-turn-gate')).toHaveAttribute('data-status', 'completed');
     await page.getByTestId('cadence-gate-approve').click();
     await expect(page.getByTestId('cadence-gate-verdict')).toContainText('approved');
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/cadence$/);
 
-    // Pressing Escape when popup is closed cleanly exits docked /cadence back to shell.
+    // Pressing Escape when popup is closed cleanly exits /cadence back to shell at /.
     await page.keyboard.press('Escape');
+    await expect(page).toHaveURL(/\/$/);
     await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '0');
 
     expect(getErrors()).toEqual([]);
@@ -880,24 +881,27 @@ test.describe('portal SSR end-to-end journeys', () => {
       const commandInput = page.getByLabel('Terminal command input', { exact: true });
       await expect(commandInput).toBeFocused();
 
-      // Open /chat in-pane from a fresh context (no prior ak_guest_session cookie)
-      await commandInput.fill('cd chat');
+      // Open /chat in a secondary split from a fresh context (stays on / and sets ak_guest_session)
+      await commandInput.fill('chat --split');
       await commandInput.press('Enter');
       await expect(page).toHaveURL(/\/$/);
-      await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '1');
+      await expect(page.locator('[data-pane-id="pane-2"]')).toHaveAttribute('data-tui-depth', '1');
 
-      // Wait for /chat view to load and verify guest cookie persistence
+      // Wait for secondary /chat view to load and verify guest cookie persistence
       await expect(page.getByTestId('ask-qa-submit')).toBeVisible();
       const cookies = await context.cookies();
       expect(cookies.some(cookie => cookie.name === 'ak_guest_session')).toBe(true);
 
-      // Exit back to shell and open /cadence in-pane
-      await page.getByRole('button', { name: 'Exit TUI' }).click();
+      // Primary terminal `cadence` navigates to real /cadence route while secondary /chat split persists
+      await page.locator('[data-pane-id="pane-1"]').click();
       await commandInput.fill('cadence');
       await commandInput.press('Enter');
-      await expect(page).toHaveURL(/\/$/);
+      await expect(page).toHaveURL(/\/cadence$/);
       await expect(
         page.getByText(/CADENCE Builder — Interactive Multi-Artifact Showcase/i),
+      ).toBeVisible();
+      await expect(
+        page.locator('[data-pane-id="pane-2"]').getByTestId('ask-qa-submit'),
       ).toBeVisible();
 
       expect(getErrors()).toEqual([]);

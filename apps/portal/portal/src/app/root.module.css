@@ -36,7 +36,29 @@
   .brandGroup {
     display: inline-flex;
     align-items: var(--sf-align-center);
+    flex-wrap: wrap;
     gap: var(--sf-space-2);
+  }
+
+  .navLink {
+    padding: var(--sf-space-1) var(--sf-space-3);
+    border-radius: var(--sf-radius-sm);
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-prop);
+    border: var(--sf-border-width) solid transparent;
+    transition: var(--sf-transition-colors);
+  }
+
+  .navLink:hover {
+    color: var(--sf-fg-bone);
+    background: var(--sf-surface-hover);
+  }
+
+  .navLink[data-active='true'] {
+    color: var(--sf-gold);
+    background: var(--sf-accent-subtle);
+    border-color: var(--sf-accent-border);
+    font-weight: var(--sf-weight-semibold);
   }
 
   .brand {
