@@ -618,4 +618,60 @@ describe('PortalCadencePage', () => {
       }),
     );
   });
+
+  it('clears active mid-stream run state and invokes onReset when Reset is clicked', async () => {
+    const user = userEvent.setup();
+    const onReset = vi.fn<() => void>();
+    const runningRun: CadenceRunResult = {
+      runId: 'run-mid-stream-1',
+      prompt: 'Custom mid-flight prompt',
+      presetSlug: 'custom',
+      runStatus: 'running',
+      mode: 'llm',
+      executionMode: 'live',
+      gateVerdict: 'pending',
+      turns: [
+        {
+          phase: 'triage',
+          agentName: 'chord-triage',
+          status: 'completed',
+          summary: 'Classified prompt',
+          latencyMs: 5,
+        },
+        {
+          phase: 'spec',
+          agentName: 'chord-spec',
+          status: 'running',
+          summary: 'Authoring spec...',
+          latencyMs: 0,
+        },
+      ],
+      artifactHtml: '',
+    };
+
+    render(
+      <PortalCadencePage
+        content={SAMPLE_CONTENT}
+        presets={SAMPLE_PRESETS}
+        recentRuns={[runningRun]}
+        isStreaming={true}
+        onRunBuild={vi.fn<() => void>()}
+        onReset={onReset}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    const resetButton = screen.getByTestId('cadence-reset-button') as HTMLButtonElement;
+    expect(resetButton.disabled).toBe(false);
+    expect(screen.getByTestId('cadence-run-history')).toBeTruthy();
+
+    await user.click(resetButton);
+
+    expect(onReset).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId('cadence-run-history')).toBeNull();
+    expect(screen.queryByTestId('cadence-active-run')).toBeNull();
+    expect((screen.getByTestId('cadence-prompt-input') as HTMLTextAreaElement).value).toBe(
+      SAMPLE_PRESETS[0]?.starterPrompt,
+    );
+  });
 });

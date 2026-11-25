@@ -34,6 +34,7 @@ function PortalCadencePaneBody({
       onRunBuild={controller.onRunBuild}
       onApproveSpec={controller.onApproveSpec}
       onGateVerdict={controller.onGateVerdict}
+      onReset={controller.onReset}
       onClose={onClose}
     />
   );

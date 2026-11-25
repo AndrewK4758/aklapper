@@ -25,8 +25,7 @@ function isStreamableRun(run: CadenceRunResult | undefined): run is CadenceRunRe
 }
 
 function resolveStreamKey(run: CadenceRunResult): string {
-  const stage =
-    run.runStatus === 'build_queued' || run.runStatus === 'building' ? 'build' : 'spec';
+  const stage = run.runStatus === 'build_queued' || run.runStatus === 'building' ? 'build' : 'spec';
   return `${run.runId}:${stage}`;
 }
 
@@ -51,6 +50,7 @@ export interface CadenceRunController {
     runId: string;
     verdict: Exclude<CadenceGateVerdict, 'pending'>;
   }) => void;
+  readonly onReset: () => void;
 }
 
 export function useCadenceRunController({
@@ -66,6 +66,9 @@ export function useCadenceRunController({
   const [lastFetcherData, setLastFetcherData] = useState<PortalCadenceActionResult | undefined>(
     undefined,
   );
+  const [suppressedFetcherData, setSuppressedFetcherData] = useState<
+    PortalCadenceActionResult | undefined
+  >(undefined);
   const [streamEntry, setStreamEntry] = useState<{
     readonly streamKey: string;
     readonly store: CadenceRunStreamStore;
@@ -119,9 +122,15 @@ export function useCadenceRunController({
           }),
         });
       }
-    } else if (fetcherData.ok && (fetcherData.intent === 'run' || fetcherData.intent === 'gate')) {
+    } else if (
+      fetcherData.ok &&
+      (fetcherData.intent === 'run' ||
+        fetcherData.intent === 'gate' ||
+        fetcherData.intent === 'reset')
+    ) {
       setTargetRun(undefined);
       if (streamEntry !== null) {
+        streamEntry.store.close();
         setStreamEntry(null);
       }
     }
@@ -147,8 +156,9 @@ export function useCadenceRunController({
     (streamSnapshot.connectionState === 'connecting' ||
       streamSnapshot.connectionState === 'streaming');
 
-  let actionResult: PortalCadenceActionResult | undefined = fetcherData;
-  if (streamSnapshot && !(fetcherData && !fetcherData.ok)) {
+  const visibleFetcherData = fetcherData === suppressedFetcherData ? undefined : fetcherData;
+  let actionResult: PortalCadenceActionResult | undefined = visibleFetcherData;
+  if (streamSnapshot && !(visibleFetcherData && !visibleFetcherData.ok)) {
     if (streamSnapshot.error) {
       actionResult = {
         ok: false,
@@ -157,8 +167,8 @@ export function useCadenceRunController({
         run: streamSnapshot.run,
         ...(streamSnapshot.quota ? { quota: streamSnapshot.quota } : {}),
       };
-    } else if (fetcherData?.ok && fetcherData.intent === 'gate') {
-      actionResult = fetcherData;
+    } else if (visibleFetcherData?.ok && visibleFetcherData.intent === 'gate') {
+      actionResult = visibleFetcherData;
     } else {
       const activeStreamPhase =
         streamSnapshot.run.runStatus === 'pending' ||
@@ -196,6 +206,13 @@ export function useCadenceRunController({
         { intent: 'gate', runId, verdict },
         { method: 'post', action: href('/cadence') },
       );
+    },
+    onReset: () => {
+      streamEntry?.store.close();
+      setStreamEntry(null);
+      setTargetRun(undefined);
+      setSuppressedFetcherData(fetcher.data);
+      void fetcher.submit({ intent: 'reset' }, { method: 'post', action: href('/cadence') });
     },
   };
 }

@@ -50,9 +50,13 @@ export type PortalCadenceActionResult =
       readonly intent: 'gate';
       readonly run: CadenceRunResult;
     }
+  | {
+      readonly ok: true;
+      readonly intent: 'reset';
+    }
   | ({
       readonly ok: false;
-      readonly intent: 'run' | 'gate' | 'spec-approve';
+      readonly intent: 'run' | 'gate' | 'spec-approve' | 'reset';
       readonly error: string;
       readonly run?: CadenceRunResult;
       readonly quota?: QuotaStatus;
@@ -74,6 +78,7 @@ export interface PortalCadencePageProps {
     runId: string;
     verdict: Exclude<CadenceGateVerdict, 'pending'>;
   }) => void;
+  onReset?: () => void;
   onClose: () => void;
 }
 
@@ -108,6 +113,7 @@ export function PortalCadencePage({
   onRunBuild,
   onApproveSpec,
   onGateVerdict,
+  onReset,
   onClose,
 }: PortalCadencePageProps) {
   const defaultPreset = presets[0];
@@ -134,12 +140,16 @@ export function PortalCadencePage({
   }
   if (actionResult && actionResult !== lastRecordedResult) {
     setLastRecordedResult(actionResult);
-    const updatedRun = actionResult.run;
+    const updatedRun = 'run' in actionResult ? actionResult.run : undefined;
     const nextQuota = 'quota' in actionResult ? actionResult.quota : updatedRun?.quota;
     if (nextQuota) {
       setLatestQuota(nextQuota);
     }
-    if (updatedRun) {
+    if (actionResult.ok && actionResult.intent === 'reset') {
+      setRuns([]);
+      setSelectedRunId(goldenRuns[0]?.runId ?? null);
+      setRevisionNote('');
+    } else if (updatedRun) {
       setRuns(prev => {
         const filtered = prev.filter(item => item.runId !== updatedRun.runId);
         return [updatedRun, ...filtered];
@@ -160,7 +170,9 @@ export function PortalCadencePage({
   const actionQuota = actionResult
     ? 'quota' in actionResult
       ? actionResult.quota
-      : actionResult.run?.quota
+      : 'run' in actionResult
+        ? actionResult.run?.quota
+        : undefined
     : undefined;
   const activeQuota = actionQuota ?? (propQuotaChanged ? quota : latestQuota);
 
@@ -241,6 +253,16 @@ export function PortalCadencePage({
     });
   };
 
+  const handleReset = () => {
+    setRuns([]);
+    setSelectedRunId(goldenRuns[0]?.runId ?? null);
+    setActivePresetSlug(defaultPreset?.slug ?? CUSTOM_PRESET_VALUE);
+    setPromptText(defaultPreset?.starterPrompt ?? '');
+    setFastMode(false);
+    setRevisionNote('');
+    onReset?.();
+  };
+
   const handleRevisionSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const note = revisionNote.trim();
@@ -315,6 +337,7 @@ export function PortalCadencePage({
             onPromptChange={setPromptText}
             onFastModeChange={setFastMode}
             onSubmit={handleRunSubmit}
+            onReset={handleReset}
           />
         </section>
 

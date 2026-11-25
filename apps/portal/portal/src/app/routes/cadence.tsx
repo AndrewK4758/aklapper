@@ -13,6 +13,7 @@ import { type PortalCadenceActionResult, PortalCadencePage } from '#pages/cadenc
 
 import {
   handleCadenceGateAction,
+  handleCadenceResetAction,
   handleCadenceRunAction,
   handleCadenceSpecApproveAction,
 } from '../cadence-action.server';
@@ -74,6 +75,9 @@ export async function action({ request, context }: Route.ActionArgs) {
   };
   const intent = String(formData.get('intent') ?? 'run').trim();
 
+  if (intent === 'reset') {
+    return handleCadenceResetAction(actionCtx);
+  }
   if (intent === 'spec-approve') {
     return handleCadenceSpecApproveAction(formData, actionCtx);
   }
@@ -117,6 +121,7 @@ function CadenceLoadedView({
       onRunBuild={controller.onRunBuild}
       onApproveSpec={controller.onApproveSpec}
       onGateVerdict={controller.onGateVerdict}
+      onReset={controller.onReset}
       onClose={onClose}
     />
   );

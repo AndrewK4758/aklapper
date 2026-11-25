@@ -15,6 +15,7 @@ export { GoldenRunImmutableError } from './sandbox-helpers.ts';
 export {
   approveSandboxRunSpecForSession,
   claimBuildQueuedSandboxRun,
+  clearSandboxRunsForSession,
   pauseSandboxRunForSpecApproval,
 } from './sandbox-lifecycle.ts';
 export * from './schema-dossiers.ts';
