@@ -23,6 +23,12 @@
       "import": "./dist/terminal-workspace.js",
       "default": "./dist/terminal-workspace.js"
     },
+    "./mobile-tui-workspace": {
+      "@aklapper/source": "./src/mobile-tui-workspace.ts",
+      "types": "./dist/mobile-tui-workspace.d.ts",
+      "import": "./dist/mobile-tui-workspace.js",
+      "default": "./dist/mobile-tui-workspace.js"
+    },
     "./workspace-storage": {
       "@aklapper/source": "./src/workspace-storage.ts",
       "types": "./dist/workspace-storage.d.ts",
