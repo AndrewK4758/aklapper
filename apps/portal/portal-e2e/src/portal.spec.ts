@@ -200,7 +200,9 @@ test.describe('portal SSR end-to-end journeys', () => {
     const commandInput = page.getByLabel('Terminal command input');
     await commandInput.fill('stack');
     await commandInput.press('Enter');
-    await expect(page.getByText(/Cloud Run \(edge SSR\)/i)).toBeVisible();
+    await expect(
+      page.getByText(/Cloud Run \(4-service scale-to-0\) \+ Direct VPC Egress PG19/i),
+    ).toBeVisible();
 
     expect(getErrors()).toEqual([]);
   });
