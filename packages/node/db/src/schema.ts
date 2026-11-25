@@ -1,3 +1,4 @@
+import type { AgensiCatalogSource, AgensiSyncStatus } from '@aklapper/core';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
@@ -33,13 +34,38 @@ export const siteContent = pgTable('site_content', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const agensiSkills = pgTable('agensi_skills', {
-  slug: text('slug').primaryKey(),
-  name: text('name').notNull(),
-  summary: text('summary').notNull(),
-  tags: text('tags').array().notNull().default([]),
-  url: text('url').notNull(),
-  sortOrder: integer('sort_order').notNull().default(0),
+export const agensiSkills = pgTable(
+  'agensi_skills',
+  {
+    slug: text('slug').primaryKey(),
+    name: text('name').notNull(),
+    summary: text('summary').notNull(),
+    tags: text('tags').array().notNull().default([]),
+    url: text('url').notNull(),
+    sortOrder: integer('sort_order').notNull().default(0),
+    creatorHandle: text('creator_handle'),
+    isPublished: boolean('is_published').notNull().default(false),
+    syncedAt: timestamp('synced_at', { withTimezone: true }),
+    source: text('source').$type<AgensiCatalogSource>().notNull().default('seed'),
+  },
+  table => [
+    index('agensi_skills_creator_published_sort_idx').on(
+      table.creatorHandle,
+      table.isPublished,
+      table.sortOrder,
+      table.slug,
+    ),
+  ],
+);
+
+export const agensiSyncState = pgTable('agensi_sync_state', {
+  creatorHandle: text('creator_handle').primaryKey(),
+  lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
+  lastAttemptAt: timestamp('last_attempt_at', { withTimezone: true }),
+  lastStatus: text('last_status').$type<AgensiSyncStatus>().notNull().default('idle'),
+  lastError: text('last_error'),
+  itemCount: integer('item_count').notNull().default(0),
+  etag: text('etag'),
 });
 
 export const cadencePresets = pgTable('cadence_presets', {

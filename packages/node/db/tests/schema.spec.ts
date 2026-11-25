@@ -1,6 +1,8 @@
 import { vi } from 'vitest';
 
 import {
+  agensiSkills,
+  agensiSyncState,
   type AppDatabase,
   askTurns,
   cadencePresets,
@@ -68,6 +70,17 @@ describe('@aklapper/db', () => {
     expect(SITE_CONTENT_KEYS.portalContact).toBe('portal-contact');
     expect(TERMINAL_PROFILE_SLUGS.portalHome).toBe('portal-home');
     expect(TERMINAL_PROFILE_SLUGS.adminOps).toBe('admin-ops');
+    expect(agensiSkills.creatorHandle.name).toBe('creator_handle');
+    expect(agensiSkills.isPublished.name).toBe('is_published');
+    expect(agensiSkills.syncedAt.name).toBe('synced_at');
+    expect(agensiSkills.source.name).toBe('source');
+    expect(agensiSyncState.creatorHandle.name).toBe('creator_handle');
+    expect(agensiSyncState.lastSyncedAt.name).toBe('last_synced_at');
+    expect(agensiSyncState.lastAttemptAt.name).toBe('last_attempt_at');
+    expect(agensiSyncState.lastStatus.name).toBe('last_status');
+    expect(agensiSyncState.lastError.name).toBe('last_error');
+    expect(agensiSyncState.itemCount.name).toBe('item_count');
+    expect(agensiSyncState.etag.name).toBe('etag');
   });
 
   it('maps Postgres 19 CHECK and NOT NULL errors to ContactDbConstraintError', () => {
