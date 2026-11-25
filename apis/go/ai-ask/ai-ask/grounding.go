@@ -70,13 +70,13 @@ func resolvePinnedProfileCore(ctx context.Context, store *pg.Store) pg.CorpusDoc
 	}
 }
 
-// classifyGroundingTier deterministically assigns Tier B (evidence), Tier A (profile), or Tier C (boundary).
+// classifyGroundingTier deterministically assigns Tier A (profile), Tier B (evidence), or Tier C (boundary).
 func classifyGroundingTier(mode, queryText string, hybrid hybridSearchResult) string {
-	if len(hybrid.Candidates) > 0 {
-		return contracts.GroundingTierEvidence
-	}
 	if mode == "qa" && isProfileOverviewIntent(queryText) {
 		return contracts.GroundingTierProfile
+	}
+	if len(hybrid.Candidates) > 0 {
+		return contracts.GroundingTierEvidence
 	}
 	return contracts.GroundingTierBoundary
 }
@@ -106,7 +106,8 @@ func rewriteFollowUpQuery(
 		{
 			Role: "system",
 			Content: "Rewrite the follow-up question into a concise standalone search query about Andrew Klapper's portfolio or career history. " +
-				"Output ONLY the rewritten search query with no explanation or quotes.",
+				"If the follow-up is completely off-topic or unrelated to Andrew Klapper or the conversation, return the follow-up question unchanged. " +
+				"Output ONLY the resulting query with no explanation or quotes.",
 		},
 		{
 			Role:    "user",

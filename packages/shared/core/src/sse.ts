@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { AskSourceSchema } from './ask.ts';
 import { QuotaStatusSchema, type QuotaStatus } from './auth.ts';
+import { AskSuggestedLinkSchema, GroundingTierSchema } from './career-dossiers.ts';
 import { createPublicAppError, PublicAppErrorSchema, type PublicAppError } from './errors.ts';
 
 export interface SseFrame {
@@ -19,9 +20,17 @@ export const StreamErrorPayloadSchema = z
   .strict();
 export type StreamErrorPayload = z.infer<typeof StreamErrorPayloadSchema>;
 
+export const AskStreamStatusEventSchema = z.object({
+  type: z.literal('status'),
+  stage: z.string().min(1),
+  label: z.string().min(1),
+});
+
 export const AskStreamMetaEventSchema = z.object({
   type: z.literal('meta'),
   attemptId: z.string().min(1),
+  conversationId: z.string().min(1).optional(),
+  turnIndex: z.number().int().positive().optional(),
   correlationId: z.string().min(1),
   mode: z.string().min(1),
   provider: z.string().min(1),
@@ -41,9 +50,14 @@ export const AskStreamDeltaEventSchema = z.object({
 export const AskStreamDoneEventSchema = z.object({
   type: z.literal('done'),
   attemptId: z.string().min(1),
+  conversationId: z.string().min(1).optional(),
+  turnIndex: z.number().int().positive().optional(),
   grounded: z.boolean(),
   abstained: z.boolean(),
+  groundingTier: GroundingTierSchema.optional(),
   answer: z.string(),
+  suggestedLinks: z.array(AskSuggestedLinkSchema).optional(),
+  followUpQuestions: z.array(z.string()).optional(),
   provider: z.string().min(1),
   model: z.string().optional(),
   tokensUsed: z.number().int().nonnegative(),
@@ -59,6 +73,7 @@ export const AskStreamErrorEventSchema = z.object({
 });
 
 export const AskStreamEventSchema = z.discriminatedUnion('type', [
+  AskStreamStatusEventSchema,
   AskStreamMetaEventSchema,
   AskStreamSourcesEventSchema,
   AskStreamDeltaEventSchema,

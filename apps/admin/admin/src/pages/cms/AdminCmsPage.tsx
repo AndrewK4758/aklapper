@@ -15,7 +15,7 @@ import {
   Tabs,
   TuiWindow,
 } from '@aklapper/ui';
-import { type ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Form, useFetcher } from 'react-router';
 
 import { reportAdminLazyChunkError } from '../client-telemetry';
@@ -47,13 +47,46 @@ export interface AdminCmsPageProps {
   qdrant?: QdrantHealthStatus;
   qdrantStatusSlot?: ReactNode;
   actionData?: AdminCmsActionData | null;
+  activeTab?: string;
+  onActiveTabChange?: (tab: string) => void;
 }
 
-export function AdminCmsPage({ data, qdrant, qdrantStatusSlot, actionData }: AdminCmsPageProps) {
+export function AdminCmsPage({
+  data,
+  qdrant,
+  qdrantStatusSlot,
+  actionData,
+  activeTab,
+  onActiveTabChange,
+}: AdminCmsPageProps) {
   const maintenanceFetcher = useFetcher<AdminCmsActionData>();
   const reindexFetcher = useFetcher<AdminCmsActionData>();
 
-  const activeFeedback = maintenanceFetcher.data ?? reindexFetcher.data ?? actionData ?? null;
+  const [lastMaintenanceData, setLastMaintenanceData] = useState<AdminCmsActionData | undefined>(
+    undefined,
+  );
+  const [lastReindexData, setLastReindexData] = useState<AdminCmsActionData | undefined>(undefined);
+  const [lastActionData, setLastActionData] = useState<AdminCmsActionData | null | undefined>(
+    undefined,
+  );
+  const [latestFeedback, setLatestFeedback] = useState<AdminCmsActionData | null>(
+    () => actionData ?? null,
+  );
+
+  if (maintenanceFetcher.data && maintenanceFetcher.data !== lastMaintenanceData) {
+    setLastMaintenanceData(maintenanceFetcher.data);
+    setLatestFeedback(maintenanceFetcher.data);
+  } else if (reindexFetcher.data && reindexFetcher.data !== lastReindexData) {
+    setLastReindexData(reindexFetcher.data);
+    setLatestFeedback(reindexFetcher.data);
+  } else if (actionData !== lastActionData) {
+    setLastActionData(actionData);
+    if (actionData) {
+      setLatestFeedback(actionData);
+    }
+  }
+
+  const activeFeedback = latestFeedback ?? actionData ?? null;
 
   const optimisticMaintenance = maintenanceFetcher.formData
     ? maintenanceFetcher.formData.get('maintenanceModeDefault') === 'true'
@@ -72,7 +105,16 @@ export function AdminCmsPage({ data, qdrant, qdrantStatusSlot, actionData }: Adm
       <div className={styles.panel}>
         {activeFeedback ? <ActionFeedbackBanner {...activeFeedback} /> : null}
 
-        <Tabs.Root defaultValue='site'>
+        <Tabs.Root
+          {...(activeTab !== undefined
+            ? {
+                value: activeTab,
+                onValueChange: value => {
+                  onActiveTabChange?.(String(value));
+                },
+              }
+            : { defaultValue: 'site' })}
+        >
           <Tabs.List aria-label='CMS sections'>
             <Tabs.Tab value='site'>Site &amp; Maintenance</Tabs.Tab>
             <Tabs.Tab value='dossiers'>Career Dossiers ({data.careerDossiers.length})</Tabs.Tab>

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
 	"regexp"
 	"strings"
 	"unicode"
@@ -254,18 +253,13 @@ func LoadConfig(in ConfigInput) (*Config, error) {
 	return cfg, nil
 }
 
-// LoadConfigFromEnv loads AI_PRIVACY_DENYLIST or AI_PRIVACY_DENYLIST_FILE from the environment.
+// LoadConfigFromEnv loads AI_PRIVACY_DENYLIST (or AI_PRIVACY_DENYLIST_FILE) merged with
+// DOSSIER_PRIVACY_DENYLIST (base64-JSON or plain JSON fallback) from the environment.
 // Empty denylist in production is permitted with built-in secrets active plus a WARN audit event.
 func LoadConfigFromEnv() (*Config, error) {
-	raw := strings.TrimSpace(os.Getenv("AI_PRIVACY_DENYLIST"))
-	if raw == "" {
-		if filePath := strings.TrimSpace(os.Getenv("AI_PRIVACY_DENYLIST_FILE")); filePath != "" {
-			data, err := os.ReadFile(filePath)
-			if err != nil {
-				return nil, fmt.Errorf("read AI_PRIVACY_DENYLIST_FILE: %w", err)
-			}
-			raw = string(data)
-		}
+	raw, err := resolveEnvDenylistRaw()
+	if err != nil {
+		return nil, err
 	}
 
 	cfg, err := LoadConfig(ConfigInput{

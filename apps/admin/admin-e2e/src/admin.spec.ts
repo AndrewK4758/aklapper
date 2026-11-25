@@ -254,6 +254,60 @@ test.describe('admin SSR end-to-end journeys', () => {
         await expect(page.getByRole('button', { name: 'Save Agensi Skill' })).toHaveCount(0);
         await expect(page.locator('iframe[sandbox="allow-scripts"]')).toBeVisible();
 
+        // Career Dossiers Studio: paste-import, save draft, publish, privacy 422 gate, cleanup delete
+        await page.getByRole('tab', { name: /Career Dossiers/i }).click();
+        const dossierStudio = page.getByRole('region', { name: 'Career Dossier Studio' });
+        await expect(dossierStudio).toBeVisible();
+        const e2eSlug = `e2e-dossier-${Date.now()}`;
+        await dossierStudio
+          .getByLabel('Markdown paste import')
+          .fill(
+            `# E2E Cloud Platform\nKind: architecture\nDomain: Cloud Platform\nRole: Principal Architect\nTimeframe: 2025\nSkills: Go, PostgreSQL 19, gRPC\n\nAnonymized platform engineering overview.\n\n## Database Reliability\nReversible Drizzle migrations and atomic locks.\n`,
+          );
+        await dossierStudio.getByRole('button', { name: 'Parse Markdown into Form' }).click();
+        await dossierStudio.getByRole('textbox', { name: 'Slug' }).fill(e2eSlug);
+        await expect(dossierStudio.getByTestId('dossier-validation-gate')).toHaveAttribute(
+          'data-gate-status',
+          'pass',
+        );
+        await dossierStudio.getByRole('button', { name: 'Save Sanitized Draft' }).click();
+        await expect(
+          page.getByText(new RegExp(`Saved draft career dossier "${e2eSlug}"`)),
+        ).toBeVisible();
+
+        const createdActions = dossierStudio.getByLabel(`Actions for ${e2eSlug}`);
+        await expect(createdActions).toBeVisible();
+        await createdActions.getByRole('button', { name: 'Publish' }).click();
+        await expect(
+          page.getByText(new RegExp(`Published career dossier "${e2eSlug}"`)),
+        ).toBeVisible();
+
+        // Privacy 422 gate blocks synthetic secret & denylist term without echoing literals
+        await dossierStudio
+          .locator('textarea[name="summaryBody"]')
+          .fill(
+            'Blocked SyntheticConfidentialClientX and credential AKIAIOSFODNN7EXAMPLE must never persist.',
+          );
+        await dossierStudio.getByRole('button', { name: 'Save Sanitized Draft' }).click();
+        await expect(page.getByRole('alert')).toContainText('ERR_CONSTRAINT');
+        await expect(dossierStudio.getByTestId('dossier-validation-gate')).toHaveAttribute(
+          'data-gate-status',
+          'fail',
+        );
+        const visibleBannerText = await page.getByRole('alert').innerText();
+        const visibleGateText = await dossierStudio
+          .getByTestId('dossier-validation-gate')
+          .innerText();
+        expect(`${visibleBannerText} ${visibleGateText}`).not.toContain(
+          'SyntheticConfidentialClientX',
+        );
+        expect(`${visibleBannerText} ${visibleGateText}`).not.toContain('AKIAIOSFODNN7EXAMPLE');
+
+        await createdActions.getByRole('button', { name: 'Delete' }).click();
+        await expect(
+          page.getByText(new RegExp(`Deleted career dossier "${e2eSlug}"`)),
+        ).toBeVisible();
+
         await page.getByRole('link', { name: 'Inbox', exact: true }).click();
         await expect(page).toHaveURL(/\/inbox$/);
         await page.getByLabel('Search Submissions').fill('no-such-submission-99999');

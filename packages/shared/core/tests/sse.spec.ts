@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
+  AskStreamEventSchema,
   consumePostSseStream,
   createSseParser,
   parseSseChunk,
@@ -169,5 +170,36 @@ describe('@aklapper/core/sse WHATWG POST SSE parser', () => {
     for (const line of nonEmptyIndexLines) {
       expect(line).toMatch(/^export\s+\*\s+from\s+['"]\.\/[^'"]+['"];$/);
     }
+
+    expect(
+      AskStreamEventSchema.parse({
+        type: 'status',
+        stage: 'retrieving',
+        label: 'Searching portfolio records...',
+      }),
+    ).toEqual({
+      type: 'status',
+      stage: 'retrieving',
+      label: 'Searching portfolio records...',
+    });
+
+    const parsedDone = AskStreamEventSchema.parse({
+      type: 'done',
+      attemptId: '11111111-1111-4111-8111-111111111111',
+      conversationId: '22222222-2222-4222-8222-222222222222',
+      turnIndex: 2,
+      grounded: true,
+      abstained: false,
+      groundingTier: 'evidence',
+      answer: 'Andrew built streaming SSR and Go microservices.',
+      suggestedLinks: [
+        { route: '/cadence', label: 'CADENCE Builder', reason: 'Inspect interactive sandbox.' },
+      ],
+      followUpQuestions: ['How are migrations verified?'],
+      provider: 'local-llama-swap',
+      tokensUsed: 120,
+      correlationId: 'corr-done-1',
+    });
+    expect(parsedDone.type).toBe('done');
   });
 });

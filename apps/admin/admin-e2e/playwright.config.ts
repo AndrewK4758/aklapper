@@ -22,6 +22,9 @@ const baseConfig = createSsrPlaywrightConfig({
     INTERNAL_AUTH_SECRET:
       process.env['INTERNAL_AUTH_SECRET'] || 'e2e-internal-auth-secret-local-only',
     TOTP_ENCRYPTION_KEY: process.env['TOTP_ENCRYPTION_KEY'] || 'e2e-totp-encryption-key-local-only',
+    DOSSIER_PRIVACY_DENYLIST:
+      process.env['DOSSIER_PRIVACY_DENYLIST'] ||
+      Buffer.from(JSON.stringify(['SyntheticConfidentialClientX']), 'utf8').toString('base64'),
     WEBAUTHN_RP_ID: webAuthnRpId,
     WEBAUTHN_ORIGIN: webAuthnOrigin,
   },

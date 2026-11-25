@@ -319,7 +319,7 @@ export const PortalAskContentSchema = z.object({
     .min(1)
     .default("Ask about Andrew's architecture, engineering leadership, or portfolio stack..."),
   questionAriaLabel: z.string().min(1).default('Ask a question about Andrew Klapper'),
-  submitQaLabel: z.string().min(1).default('Send Question'),
+  submitQaLabel: z.string().min(1).default('Ask Assistant'),
   streamingQaLabel: z.string().min(1).default('Streaming Answer...'),
   newConversationLabel: z.string().min(1).default('New Conversation'),
   jdTextareaLabel: z

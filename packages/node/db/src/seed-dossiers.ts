@@ -34,7 +34,7 @@ export const PORTAL_ASK_SEED: PortalAskContent = PortalAskContentSchema.parse({
   questionPlaceholder:
     "Ask about Andrew's architecture, engineering leadership, or portfolio stack...",
   questionAriaLabel: 'Ask a question about Andrew Klapper',
-  submitQaLabel: 'Send Question',
+  submitQaLabel: 'Ask Assistant',
   streamingQaLabel: 'Streaming Answer...',
   newConversationLabel: 'New Conversation',
   jdTextareaLabel: 'Paste a job description to evaluate fit against published career dossiers',

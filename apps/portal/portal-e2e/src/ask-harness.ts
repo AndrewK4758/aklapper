@@ -8,6 +8,8 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 import { fetchJson, reserveLoopbackPort, type RunningNodeApi } from '@aklapper/tooling/e2e';
 
+import { handleMockChatCompletions } from './ask-harness-sse.ts';
+
 const DEFAULT_E2E_INTERNAL_AUTH_SECRET = 'portal-e2e-internal-auth-secret-not-for-prod';
 const VECTOR_DIMS = 768;
 const REPO_ROOT = resolve(import.meta.dirname, '..', '..', '..', '..');
@@ -168,39 +170,7 @@ export async function startMockAiAndQdrantServer(): Promise<RunningMockAiAndQdra
 
     if (method === 'POST' && urlPath === '/v1/chat/completions') {
       const body = await readJsonBody(req);
-      const messages = Array.isArray(body['messages']) ? body['messages'] : [];
-      const joined = messages
-        .map(msg =>
-          msg && typeof msg === 'object'
-            ? String((msg as Record<string, unknown>)['content'] ?? '')
-            : '',
-        )
-        .join('\n');
-
-      if (joined.toLowerCase().includes('delayed cold-start')) {
-        await delay(4_500);
-      }
-
-      const isJdMatch =
-        joined.includes('untrusted_job_description') || joined.includes('matchScore');
-      const content = isJdMatch
-        ? JSON.stringify({
-            answer:
-              'Strong grounded alignment across Go microservices, GKE Autopilot, TypeScript streaming React Router SSR, PostgreSQL 19, and Qdrant retrieval.',
-            matchScore: 89,
-            strengths: [
-              'Production Cloud Run SSR paired with Go microservices on GKE Autopilot',
-              'Atomic PostgreSQL 19 quota accounting and Qdrant semantic retrieval',
-            ],
-            gaps: ['No Terraform HCL modules indexed in public portfolio artifacts'],
-          })
-        : 'Cloud Run serves React Router 8 streaming SSR while Go microservices run on GKE Autopilot backed by PostgreSQL 19 and Qdrant cosine vector retrieval.';
-
-      writeJsonResponse(res, 200, {
-        model: 'gemma-4',
-        choices: [{ message: { content } }],
-        usage: { total_tokens: isJdMatch ? 320 : 240 },
-      });
+      await handleMockChatCompletions(req, res, body, writeJsonResponse);
       return;
     }
 

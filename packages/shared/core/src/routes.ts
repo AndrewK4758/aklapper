@@ -23,6 +23,7 @@ export const PORTAL_ROUTE_PATHS = [
   '/agensi',
   '/contact',
   '/api/contact',
+  '/api/ask/stream',
   '/api/ask/turns/:attemptId',
   '/api/analytics/ingest',
   '/api/cluster/stream',

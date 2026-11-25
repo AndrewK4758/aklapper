@@ -2,13 +2,9 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -19,6 +15,7 @@ import (
 	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/llm"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/privacy"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/qdrant"
 )
 
@@ -30,48 +27,7 @@ type workerOutcome struct {
 	errEnv     *contracts.PublicAppError
 }
 
-func newUUIDv4() string {
-	var b [16]byte
-	_, _ = rand.Read(b[:])
-	b[6] = (b[6] & 0x0f) | 0x40
-	b[8] = (b[8] & 0x3f) | 0x80
-	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
-}
-
-func extractCorrelationID(r *http.Request) string {
-	if r != nil {
-		if c := strings.TrimSpace(r.Header.Get("X-Correlation-Id")); c != "" && len(c) <= 128 {
-			return c
-		}
-	}
-	return newUUIDv4()
-}
-
-func hashPrompt(mode, text string) string {
-	sum := sha256.Sum256([]byte(mode + ":" + text))
-	return hex.EncodeToString(sum[:])
-}
-
-func writePublicError(w http.ResponseWriter, status int, code, msg, action, corrID string) {
-	w.Header().Set("X-Correlation-Id", corrID)
-	httpkit.WriteJSON(w, status, contracts.PublicAppError{
-		Code:          code,
-		Status:        status,
-		Message:       msg,
-		Action:        action,
-		CorrelationID: corrID,
-	})
-}
-
-func logAskEvent(event string, fields map[string]any) {
-	fields["event"] = event
-	raw, err := json.Marshal(fields)
-	if err == nil {
-		log.Println(string(raw))
-	}
-}
-
-func handleAskPost(provider llm.Provider, vectorStore *qdrant.Client, store *pg.Store, syncWait time.Duration) http.HandlerFunc {
+func handleAskPost(provider llm.Provider, vectorStore *qdrant.Client, store *pg.Store, privacyCfg *privacy.Config, syncWait time.Duration) http.HandlerFunc {
 	if syncWait <= 0 {
 		syncWait = defaultSyncWaitWindow
 	}
@@ -140,9 +96,21 @@ func handleAskPost(provider llm.Provider, vectorStore *qdrant.Client, store *pg.
 		sessionID := claims.Sub
 		promptHash := hashPrompt(mode, queryText)
 
+		convID := strings.TrimSpace(req.ConversationID)
+		if convID != "" && !contracts.ValidateUUID(convID) {
+			writePublicError(w, http.StatusBadRequest, contracts.ErrCodeValidation,
+				"Invalid conversation identifier.", "Start a new conversation and retry.", corrID)
+			return
+		}
+		storedPrompt := ""
+		if mode == "qa" {
+			storedPrompt = privacy.RedactTextForStorage(privacyCfg, queryText, pg.MaxPromptTextRunes)
+		}
+
 		res, allowed, reserveErr := store.ReserveTurnTx(r.Context(), pg.ReserveTurnInput{
 			AttemptID: attemptID, SessionID: sessionID, Role: role, Mode: mode,
-			PromptHash: promptHash, CorrelationID: corrID, ReserveTokens: pg.DefaultAskTurnReserveTokens,
+			PromptHash: promptHash, ConversationID: convID, PromptText: storedPrompt,
+			CorrelationID: corrID, ReserveTokens: pg.DefaultAskTurnReserveTokens,
 		})
 		if errors.Is(reserveErr, pg.ErrTurnConflict) {
 			writePublicError(w, http.StatusConflict, contracts.ErrCodeValidation,

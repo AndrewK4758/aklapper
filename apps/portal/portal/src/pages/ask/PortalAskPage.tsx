@@ -8,8 +8,6 @@ import type {
 } from '@aklapper/core';
 import {
   ActionFeedbackBanner,
-  Button,
-  Input,
   Separator,
   Tabs,
   TuiWindow,
@@ -17,14 +15,8 @@ import {
 } from '@aklapper/ui';
 import { type FormEvent, type ReactNode, useEffect, useState, useSyncExternalStore } from 'react';
 
-import {
-  AskHeaderBadge,
-  AskJdResultCard,
-  AskPendingCard,
-  AskQaTranscriptCard,
-  AskQuotaMeter,
-  AskStarterRow,
-} from './AskResultCard';
+import { AskJdPanel, AskQaPanel } from './AskPanels';
+import { AskHeaderBadge, AskQuotaMeter } from './AskResultCard';
 import {
   buildRecoveringTurnState,
   clearPersistedAskTurn,
@@ -39,6 +31,7 @@ import {
   subscribePersistedAskTurn,
   writePersistedAskTurn,
 } from './askTurnRecovery';
+import { useAskStreaming } from './useAskStreaming';
 
 import styles from './PortalAskPage.module.css';
 
@@ -49,9 +42,15 @@ export interface PortalAskPageProps {
   quota: QuotaStatus;
   askStatus?: AskServiceStatus;
   askStatusSlot?: ReactNode;
+  streamEndpoint?: string;
   actionResult?: PortalAskActionResult;
   isSubmitting: boolean;
-  onSubmitAsk: (payload: { mode: AskMode; text: string; attemptId: string }) => void;
+  onSubmitAsk: (payload: {
+    mode: AskMode;
+    text: string;
+    attemptId: string;
+    conversationId?: string;
+  }) => void;
   onClose: () => void;
 }
 
@@ -60,6 +59,7 @@ export function PortalAskPage({
   quota,
   askStatus,
   askStatusSlot,
+  streamEndpoint,
   actionResult,
   isSubmitting,
   onSubmitAsk,
@@ -72,6 +72,7 @@ export function PortalAskPage({
   );
   const isHydrated = useHydrated();
   const [activeTab, setActiveTab] = useState<AskMode>('qa');
+  const [selectedLensId, setSelectedLensId] = useState<string>('');
   const [questionText, setQuestionText] = useState('');
   const [jdText, setJdText] = useState('');
   const [qaTranscript, setQaTranscript] = useState<readonly QaTranscriptEntry[]>([]);
@@ -86,6 +87,35 @@ export function PortalAskPage({
   const [lastRecordedResult, setLastRecordedResult] = useState<PortalAskActionResult | undefined>(
     undefined,
   );
+
+  const {
+    conversationId,
+    activeStream,
+    isStreaming,
+    startStreamingQa,
+    cancelStream,
+    resetConversation,
+  } = useAskStreaming({
+    streamEndpoint,
+    submittingLabel: content.streamingQaLabel,
+    onDispatched: attemptId => {
+      setDispatchedAttemptId(attemptId);
+      setRecoveredError(null);
+    },
+    onCompleted: (attemptId, question, response) => {
+      setQuestionText('');
+      if (response.quota) {
+        setPolledQuota(response.quota);
+      }
+      setQaTranscript(prev => prependQaTranscriptEntry(prev, attemptId, question, response));
+    },
+    onFailed: (errState, errQuota) => {
+      if (errQuota) {
+        setPolledQuota(errQuota);
+      }
+      setRecoveredError(errState);
+    },
+  });
 
   // Sync settled or 202 pending fetcher results during render without an extra effect pass.
   if (actionResult && actionResult !== lastRecordedResult) {
@@ -125,12 +155,13 @@ export function PortalAskPage({
     if (actionSettled) clearPersistedAskTurn();
   }, [actionSettled, actionResult]);
 
-  // Only recover sessionStorage turns from prior mounts; same-mount dispatches wait for POST 202.
+  // Recover sessionStorage turns strictly from prior mounts; same-mount dispatches manage their own lifecycle.
   const isRecoveredTurn =
     persistedTurn !== null &&
     persistedTurn.attemptId !== dispatchedAttemptId &&
     !settledPendingAttemptIds.has(persistedTurn.attemptId) &&
     !isSubmitting &&
+    !activeStream &&
     !actionSettled;
   const hasPendingTurn = Boolean(pendingActionResult) || isRecoveredTurn;
   const pendingAttemptId = pendingActionResult
@@ -219,16 +250,30 @@ export function PortalAskPage({
       : null;
 
   const latestResponse =
-    actionResult?.ok && !isPendingAskResult(actionResult)
-      ? actionResult.response
-      : visibleTab === 'jd_match'
-        ? latestJdResult
-        : (qaTranscript[0]?.response ?? null);
+    visibleTab === 'jd_match'
+      ? latestJdResult
+      : (qaTranscript[0]?.response ??
+        (actionResult?.ok && !isPendingAskResult(actionResult) ? actionResult.response : null));
 
-  const isBusy = isSubmitting || hasPendingTurn;
+  const isBusy = isSubmitting || hasPendingTurn || isStreaming;
   const activeError = recoveredError ?? (actionResult && !actionResult.ok ? actionResult : null);
 
-  const dispatchTurn = (mode: AskMode, text: string) => {
+  const activeLens = selectedLensId
+    ? content.visitorLenses.find(lens => lens.id === selectedLensId)
+    : undefined;
+  const visibleStarters =
+    activeLens && activeLens.starterQuestions.length > 0
+      ? activeLens.starterQuestions
+      : content.starterQuestions;
+
+  const handleNewConversation = () => {
+    resetConversation();
+    setQaTranscript([]);
+    setRecoveredError(null);
+    setQuestionText('');
+  };
+
+  const dispatchUnaryTurn = (mode: AskMode, text: string) => {
     const attemptId = generateAskAttemptId();
     setDispatchedAttemptId(attemptId);
     writePersistedAskTurn({ attemptId, mode, question: text });
@@ -240,14 +285,18 @@ export function PortalAskPage({
     event.preventDefault();
     const trimmed = questionText.trim();
     if (trimmed.length < 4 || trimmed.length > 800 || isBusy) return;
-    dispatchTurn('qa', trimmed);
+    if (streamEndpoint) {
+      startStreamingQa(trimmed, activeLens?.id);
+    } else {
+      dispatchUnaryTurn('qa', trimmed);
+    }
   };
 
   const handleJdSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = jdText.trim();
     if (trimmed.length < 20 || trimmed.length > 8000 || isBusy) return;
-    dispatchTurn('jd_match', trimmed);
+    dispatchUnaryTurn('jd_match', trimmed);
   };
 
   return (
@@ -255,6 +304,7 @@ export function PortalAskPage({
       className={styles.workspace}
       data-testid='ask-workspace'
       data-hydrated={isHydrated ? 'true' : 'false'}
+      data-conversation-id={conversationId}
     >
       <TuiWindow
         title={content.windowTitle}
@@ -293,99 +343,53 @@ export function PortalAskPage({
         >
           <Tabs.List>
             <Tabs.Tab value='qa' data-testid='ask-tab-qa'>
-              Ask Portfolio
+              {content.qaTabLabel}
             </Tabs.Tab>
             <Tabs.Tab value='jd_match' data-testid='ask-tab-jd'>
-              JD Match
+              {content.jdTabLabel}
             </Tabs.Tab>
             <Tabs.Indicator />
           </Tabs.List>
 
           <Tabs.Panel value='qa' className={styles.panel}>
-            <AskStarterRow questions={content.starterQuestions} onSelect={setQuestionText} />
-
-            <form className={styles.form} onSubmit={handleQaSubmit}>
-              <Input.Group className={styles.inputGroup}>
-                <Input.Prefix aria-hidden='true'>?</Input.Prefix>
-                <Input.Root
-                  type='text'
-                  name='question'
-                  maxLength={800}
-                  value={questionText}
-                  onChange={event => setQuestionText(event.currentTarget.value)}
-                  placeholder='Ask a grounded question about architecture, Go services, or published skills...'
-                  aria-label='Portfolio question'
-                  data-testid='ask-question-input'
-                />
-              </Input.Group>
-              <div className={styles.actions}>
-                <Button
-                  type='submit'
-                  variant='primary'
-                  disabled={isBusy || questionText.trim().length < 4}
-                  data-testid='ask-qa-submit'
-                >
-                  <Button.Label>{isBusy ? 'Querying Corpus...' : 'Ask Portfolio'}</Button.Label>
-                </Button>
-              </div>
-            </form>
-
-            {visiblePendingTurnState && pendingMode === 'qa' && pendingSubmittedText && (
-              <AskPendingCard
-                turnState={visiblePendingTurnState}
-                submittedText={pendingSubmittedText}
-              />
-            )}
-
-            {qaTranscript.length > 0 && (
-              <ol className={styles.transcript} data-testid='ask-qa-transcript'>
-                {qaTranscript.map(entry => (
-                  <AskQaTranscriptCard
-                    key={entry.id}
-                    question={entry.question}
-                    response={entry.response}
-                  />
-                ))}
-              </ol>
-            )}
+            <AskQaPanel
+              content={content}
+              activeLensId={activeLens?.id}
+              visibleStarters={visibleStarters}
+              questionText={questionText}
+              isBusy={isBusy}
+              isStreaming={isStreaming}
+              activeStream={activeStream}
+              visiblePendingTurnState={pendingMode === 'qa' ? visiblePendingTurnState : null}
+              pendingSubmittedText={pendingSubmittedText}
+              qaTranscript={qaTranscript}
+              onSelectLens={setSelectedLensId}
+              onSelectStarter={setQuestionText}
+              onChangeQuestion={setQuestionText}
+              onSubmitQa={handleQaSubmit}
+              onCancelStream={cancelStream}
+              onNewConversation={handleNewConversation}
+              onSelectFollowUp={followUp => {
+                if (streamEndpoint && !isBusy) {
+                  startStreamingQa(followUp, activeLens?.id);
+                } else {
+                  setQuestionText(followUp);
+                }
+              }}
+            />
           </Tabs.Panel>
 
           <Tabs.Panel value='jd_match' className={styles.panel}>
-            <form className={styles.form} onSubmit={handleJdSubmit}>
-              <label className={styles.textareaLabel} htmlFor='jd-match-textarea'>
-                Job Description (min 20 characters, max 8000 characters)
-              </label>
-              <textarea
-                id='jd-match-textarea'
-                name='jobDescription'
-                className={styles.textarea}
-                rows={6}
-                maxLength={8000}
-                value={jdText}
-                onChange={event => setJdText(event.currentTarget.value)}
-                placeholder={content.jdPlaceholder}
-                data-testid='ask-jd-textarea'
-              />
-              <div className={styles.actions}>
-                <Button
-                  type='submit'
-                  variant='primary'
-                  disabled={isBusy || jdText.trim().length < 20}
-                  data-testid='ask-jd-submit'
-                >
-                  <Button.Label>{isBusy ? 'Evaluating Fit...' : 'Analyze JD Fit'}</Button.Label>
-                </Button>
-              </div>
-            </form>
-
-            {visiblePendingTurnState && pendingMode === 'jd_match' && pendingSubmittedText && (
-              <AskPendingCard
-                turnState={visiblePendingTurnState}
-                submittedText={pendingSubmittedText}
-              />
-            )}
-
-            {latestJdResult && <AskJdResultCard response={latestJdResult} />}
+            <AskJdPanel
+              content={content}
+              jdText={jdText}
+              isBusy={isBusy}
+              visiblePendingTurnState={pendingMode === 'jd_match' ? visiblePendingTurnState : null}
+              pendingSubmittedText={pendingSubmittedText}
+              latestJdResult={latestJdResult}
+              onChangeJd={setJdText}
+              onSubmitJd={handleJdSubmit}
+            />
           </Tabs.Panel>
         </Tabs.Root>
       </TuiWindow>

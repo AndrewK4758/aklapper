@@ -53,6 +53,7 @@ export function AskPaneAdapter({ ctx }: PaneAdapterProps) {
             quota={data.quota}
             askStatus={data.askStatus}
             askStatusSlot={askStatusSlot}
+            streamEndpoint={href('/api/ask/stream')}
             actionResult={submitFetcher.data}
             isSubmitting={submitFetcher.state !== 'idle'}
             onSubmitAsk={({ mode, text, attemptId }) => {

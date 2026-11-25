@@ -1,6 +1,6 @@
 import type { CareerDossierPublishStatus, PrivacySanitizationFinding } from '@aklapper/core';
 
-import { cx } from '../elements/_internal/elementFactory';
+import { StatusPill } from '../elements/StatusPill';
 
 import styles from './ValidationGatePreview.module.css';
 
@@ -31,11 +31,10 @@ export function ValidationGatePreview({
     >
       <div className={styles.header}>
         <div className={styles.pillGroup}>
-          <span
-            className={cx(styles.statusPill, safePassed ? styles.statusPass : styles.statusFail)}
-            data-testid={testId ? `${testId}-status` : undefined}
-          >
-            {safePassed ? 'Privacy Gate Passed' : `Privacy Gate Blocked (${findings.length})`}
+          <span data-testid={testId ? `${testId}-status` : undefined}>
+            <StatusPill tone={safePassed ? 'success' : 'danger'} size='sm' as='output'>
+              {safePassed ? 'Privacy Gate Passed' : `Privacy Gate Blocked (${findings.length})`}
+            </StatusPill>
           </span>
           <span className={styles.metaBadge}>status: {publishStatus}</span>
         </div>

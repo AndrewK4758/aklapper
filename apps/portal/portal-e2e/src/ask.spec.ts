@@ -14,8 +14,8 @@ async function waitForAskHydrated(page: Page): Promise<void> {
   await expect(page.getByTestId('ask-workspace')).toHaveAttribute('data-hydrated', 'true');
 }
 
-test.describe('/ask end-to-end AI Q&A, JD Match, abstention, failure, quota, and recovery', () => {
-  test('executes grounded Q&A, semantic abstention, and structured AI JD Match with telemetry', async ({
+test.describe('/ask end-to-end streaming assistant, JD Match, abstention, failure, quota, and recovery', () => {
+  test('executes streaming multi-turn Q&A with visitor lenses, abstention, docked pane parity, and structured JD Match', async ({
     page,
   }) => {
     test.skip(IS_MAINTENANCE_MODE, 'Ask Portfolio route is gated in maintenance mode');
@@ -24,28 +24,64 @@ test.describe('/ask end-to-end AI Q&A, JD Match, abstention, failure, quota, and
     await gotoStreamedPage(page, '/ask');
     await waitForAskHydrated(page);
     await expect(page.getByTestId('ask-quota-meter')).toBeVisible();
+    await expect(page.getByTestId('ask-empty-hint')).toBeVisible();
 
-    // Grounded starter Q&A via live Go ai-ask (never fallback provider)
-    await page.getByTestId('ask-starter-0').click();
+    // Visitor lens switching updates active lens and starter chips
+    await page.getByTestId('ask-lens-engineering-peer').click();
+    await expect(page.getByTestId('ask-lens-engineering-peer')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    // Turn 1: Profile overview intent streams via POST /api/ask/stream (attaches cookie, tier=profile)
+    const streamResPromise = page.waitForResponse(
+      res => res.url().includes('/api/ask/stream') && res.request().method() === 'POST',
+    );
+    await page
+      .getByTestId('ask-question-input')
+      .fill('Who is Andrew Klapper and what does he focus on?');
     await page.getByTestId('ask-qa-submit').click();
+    const streamRes = await streamResPromise;
+    expect(streamRes.status()).toBe(200);
+    expect(streamRes.headers()['x-accel-buffering']).toBe('no');
+
     await expect(page.getByTestId('ask-qa-transcript')).toBeVisible();
     const firstEntry = page.getByTestId('ask-qa-entry').first();
+    await expect(firstEntry).toHaveAttribute('data-grounding-tier', 'profile');
     await expect(firstEntry.locator('[data-grounded="true"]')).toBeVisible();
     await expect(firstEntry.getByTestId('ask-telemetry-line')).toContainText('local-llama-swap');
     await expect(firstEntry.getByTestId('ask-telemetry-line')).toContainText('gemma-4');
     expect(await firstEntry.innerText()).not.toContain('pg19-local-corpus');
 
-    // Low semantic similarity triggers strict HTTP 200 abstention with zero citations
+    // Turn 2: Pronoun follow-up in same conversation triggers rewrite and returns grounded evidence
+    await page.getByTestId('ask-question-input').fill('How did he deploy that on GCP?');
+    await page.getByTestId('ask-qa-submit').click();
+    await expect(page.getByTestId('ask-qa-entry')).toHaveCount(2);
+    const secondEntry = page.getByTestId('ask-qa-entry').first();
+    await expect(secondEntry).toHaveAttribute('data-grounding-tier', 'evidence');
+    await expect(secondEntry.locator('[data-grounded="true"]')).toBeVisible();
+
+    // Low semantic similarity triggers strict HTTP 200 abstention with zero citations (0 <ul>)
     await page
       .getByTestId('ask-question-input')
       .fill('xylophone underwater flamingo recipe quantum soup?');
     await page.getByTestId('ask-qa-submit').click();
-    await expect(page.getByTestId('ask-qa-entry')).toHaveCount(2);
+    await expect(page.getByTestId('ask-qa-entry')).toHaveCount(3);
     const abstainedEntry = page.getByTestId('ask-qa-entry').first();
+    await expect(abstainedEntry).toHaveAttribute('data-grounding-tier', 'boundary');
     await expect(abstainedEntry.locator('[data-grounded="false"]')).toBeVisible();
     await expect(abstainedEntry.locator('ul')).toHaveCount(0);
 
-    // Structured AI JD Match evaluation (synonyms without static keywords) + telemetry strip
+    // New Conversation resets thread and rotates conversationId
+    const prevConvId = await page.getByTestId('ask-workspace').getAttribute('data-conversation-id');
+    await page.getByTestId('ask-new-conversation').click();
+    await expect(page.getByTestId('ask-qa-entry')).toHaveCount(0);
+    await expect(page.getByTestId('ask-workspace')).not.toHaveAttribute(
+      'data-conversation-id',
+      prevConvId ?? '',
+    );
+
+    // Structured AI JD Match evaluation (unary POST /ask + telemetry strip)
     await page.getByTestId('ask-tab-jd').click();
     await page
       .getByTestId('ask-jd-textarea')
@@ -55,18 +91,23 @@ test.describe('/ask end-to-end AI Q&A, JD Match, abstention, failure, quota, and
     await page.getByTestId('ask-jd-submit').click();
     const jdResult = page.getByTestId('ask-jd-result');
     await expect(jdResult).toBeVisible();
-    await expect(jdResult.getByText(/Grounded Match Score/i)).toBeVisible();
+    await expect(jdResult.getByText(/Overall Fit Score|Grounded Match Score/i)).toBeVisible();
     await expect(jdResult.getByText(/Verified Strengths/i)).toBeVisible();
-    await expect(jdResult.getByText(/Gaps \/ Unverified/i)).toBeVisible();
+    await expect(jdResult.getByText(/Gaps/i)).toBeVisible();
     await expect(jdResult.getByTestId('ask-telemetry-line')).toContainText('local-llama-swap');
     await expect(jdResult.getByTestId('ask-telemetry-line')).toContainText('gemma-4');
     await expect(jdResult.getByTestId('ask-telemetry-line')).toContainText('tokens: 320');
     expect(await page.locator('body').innerText()).not.toContain('pg19-local-corpus');
 
+    // Docked TUI /ask?pane=1 parity renders DB-backed lenses and streaming controls cleanly
+    await gotoStreamedPage(page, '/ask?pane=1');
+    await waitForAskHydrated(page);
+    await expect(page.getByTestId('ask-lens-hiring-manager')).toBeVisible();
+
     expect(getErrors()).toEqual([]);
   });
 
-  test('recovers an active delayed turn across page reload via /api/ask/turns/:attemptId without double-billing', async ({
+  test('recovers an active delayed unary JD Match turn across page reload via /api/ask/turns/:attemptId without double-billing', async ({
     browser,
   }) => {
     test.skip(IS_MAINTENANCE_MODE, 'Ask Portfolio route is gated in maintenance mode');
@@ -82,21 +123,29 @@ test.describe('/ask end-to-end AI Q&A, JD Match, abstention, failure, quota, and
     try {
       await gotoStreamedPage(page, '/ask');
       await waitForAskHydrated(page);
+      await page.getByTestId('ask-tab-jd').click();
       await page
-        .getByTestId('ask-question-input')
-        .fill('Explain delayed cold-start recovery architecture across SSR and Go workers?');
+        .getByTestId('ask-jd-textarea')
+        .fill(
+          'Staff Platform Engineer delayed cold-start recovery evaluation across Cloud Run SSR, Go microservices, and PostgreSQL 19.',
+        );
 
       let askPostCount = 0;
       page.on('request', req => {
-        if (req.url().includes('/ask') && req.method() === 'POST') {
+        if (
+          req.url().includes('/ask') &&
+          !req.url().includes('/api/ask/') &&
+          req.method() === 'POST'
+        ) {
           askPostCount += 1;
         }
       });
 
       const postRequestPromise = page.waitForRequest(
-        req => req.url().includes('/ask') && req.method() === 'POST',
+        req =>
+          req.url().includes('/ask') && !req.url().includes('/api/ask/') && req.method() === 'POST',
       );
-      await page.getByTestId('ask-qa-submit').click();
+      await page.getByTestId('ask-jd-submit').click();
       await postRequestPromise;
 
       // Wait briefly so PG19 turn reservation commits before closing browser request on reload
@@ -105,11 +154,11 @@ test.describe('/ask end-to-end AI Q&A, JD Match, abstention, failure, quota, and
       await waitForAskHydrated(page);
 
       await expect(
-        page.getByTestId('ask-turn-pending').or(page.getByTestId('ask-qa-transcript')),
+        page.getByTestId('ask-turn-pending').or(page.getByTestId('ask-jd-result')),
       ).toBeVisible();
-      await expect(page.getByTestId('ask-qa-transcript')).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByTestId('ask-jd-result')).toBeVisible({ timeout: 15_000 });
       await expect(page.getByTestId('ask-turn-pending')).toHaveCount(0);
-      await expect(page.getByTestId('ask-quota-meter')).toContainText('1/5 turns');
+      await expect(page.getByTestId('ask-quota-meter')).toContainText('1/10 turns');
       expect(askPostCount).toBe(1);
       expect(await page.locator('body').innerText()).not.toContain('pg19-local-corpus');
       expect(getErrors()).toEqual([]);
@@ -141,7 +190,7 @@ test.describe('/ask end-to-end AI Q&A, JD Match, abstention, failure, quota, and
       await expect(page.getByText(/offline · upstream unreachable/i)).toBeVisible();
 
       const responsePromise = page.waitForResponse(
-        res => res.url().includes('/ask') && res.request().method() === 'POST',
+        res => res.url().includes('/api/ask/stream') && res.request().method() === 'POST',
       );
       await page.getByTestId('ask-starter-0').click();
       await page.getByTestId('ask-qa-submit').click();
@@ -161,7 +210,7 @@ test.describe('/ask end-to-end AI Q&A, JD Match, abstention, failure, quota, and
     }
   });
 
-  test('enforces 5-turn guest session quota and displays 429 error banner on 6th turn', async ({
+  test('enforces 10-turn guest session quota and displays 429 error banner on 11th turn', async ({
     browser,
   }) => {
     test.skip(IS_MAINTENANCE_MODE, 'Ask Portfolio route is gated in maintenance mode');
@@ -177,18 +226,18 @@ test.describe('/ask end-to-end AI Q&A, JD Match, abstention, failure, quota, and
     try {
       await gotoStreamedPage(page, '/ask');
       await waitForAskHydrated(page);
-      for (let turn = 1; turn <= 5; turn += 1) {
+      for (let turn = 1; turn <= 10; turn += 1) {
         await page
           .getByTestId('ask-question-input')
           .fill(`Quota verification question number ${turn} about Cloud Run SSR architecture?`);
         await page.getByTestId('ask-qa-submit').click();
         await expect(page.getByTestId('ask-qa-entry')).toHaveCount(turn);
       }
-      await expect(page.getByTestId('ask-quota-meter')).toContainText('5/5 turns');
+      await expect(page.getByTestId('ask-quota-meter')).toContainText('10/10 turns');
 
       await page
         .getByTestId('ask-question-input')
-        .fill('Sixth portfolio question that exceeds guest session turn cap.');
+        .fill('Eleventh portfolio question that exceeds guest session turn cap.');
       await page.getByTestId('ask-qa-submit').click();
 
       const banner = page.getByTestId('ask-error-banner');
