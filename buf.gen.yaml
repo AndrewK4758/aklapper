@@ -1,0 +1,13 @@
+version: v2
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/AndrewK4758/aklapper/packages/go/kit/gen
+plugins:
+  - local: ['go', 'tool', 'protoc-gen-go']
+    out: packages/go/kit/gen
+    opt: paths=source_relative
+  - local: ['go', 'tool', 'protoc-gen-go-grpc']
+    out: packages/go/kit/gen
+    opt: paths=source_relative

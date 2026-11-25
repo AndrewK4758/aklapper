@@ -67,7 +67,10 @@ func (s *Store) reserveTurnMemory(
 	if sb.turnsUsed+1 > policy.MaxTurnsPerSession ||
 		reserveTokens > policy.MaxTokensPerRun ||
 		gb.tokensUsed+reserveTokens > policy.MaxDailyGlobalTokens {
-		return TurnReservation{Quota: formatQuotaStatus(role, policy, sb.turnsUsed, sb.tokensUsed)}, false, nil
+		if !s.isDevUnlimitedEnabled() {
+			return TurnReservation{Quota: formatQuotaStatus(role, policy, sb.turnsUsed, sb.tokensUsed)}, false, nil
+		}
+		logDevUnlimitedBypass(role, sessionID, in.AttemptID, in.CorrelationID)
 	}
 
 	sb.turnsUsed++
@@ -179,6 +182,26 @@ func (s *Store) getTurnMemory(now time.Time, attemptID, sessionID string) (*Turn
 	}
 	copied := *rec
 	return &copied, formatQuotaStatus(rec.Role, policy, sb.turnsUsed, sb.tokensUsed), nil
+}
+
+func (s *Store) extendTurnLeaseMemory(now time.Time, attemptID string, extension time.Duration) (time.Time, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	rec, ok := s.turns[attemptID]
+	if !ok {
+		return time.Time{}, ErrTurnNotFound
+	}
+	if (rec.Status != contracts.TurnStatusPending && rec.Status != contracts.TurnStatusRunning) || !rec.LeaseExpiresAt.After(now) {
+		return time.Time{}, ErrTurnLeaseExpired
+	}
+	newLease := clampExtendedLease(now, rec.CreatedAt, rec.ExpiresAt, extension)
+	if newLease.Before(rec.LeaseExpiresAt) {
+		newLease = rec.LeaseExpiresAt
+	}
+	rec.LeaseExpiresAt = newLease
+	rec.UpdatedAt = now
+	return newLease, nil
 }
 
 // ExpireLeaseForTest backdates leaseExpiresAt in memory store for unit testing execution-lease expiry.

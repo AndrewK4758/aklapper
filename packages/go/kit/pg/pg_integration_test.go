@@ -196,4 +196,44 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 	if err != nil || rec.Status != contracts.TurnStatusExpired || quota.TurnsUsed != 0 || quota.TokensUsed != 0 {
 		t.Fatalf("expected expired status + refunded quota, got rec=%+v quota=%+v err=%v", rec, quota, err)
 	}
+
+	// Verify ExtendTurnLeaseTx on live PG19 extends active lease and caps at 5m
+	extID := newUUIDv4()
+	extRes, extOK, err := store.ReserveTurnTx(ctx, ReserveTurnInput{
+		AttemptID: extID, SessionID: "pg_ext_" + extID, Role: contracts.RoleGuest, Mode: "qa",
+		PromptHash: "ext-hash", CorrelationID: "corr-ext-pg",
+	})
+	if err != nil || !extOK {
+		t.Fatalf("ReserveTurnTx ext failed: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = store.pool.Exec(context.Background(), `DELETE FROM ask_turns WHERE attempt_id = $1`, extID)
+		_, _ = store.pool.Exec(context.Background(), `DELETE FROM rate_limit_buckets WHERE scope_key = $1`, "session:pg_ext_"+extID)
+	})
+	newLease, err := store.ExtendTurnLeaseTx(ctx, extID, 90*time.Second)
+	if err != nil || !newLease.After(extRes.Turn.LeaseExpiresAt) {
+		t.Fatalf("expected extended PG lease after %v, got %v err=%v", extRes.Turn.LeaseExpiresAt, newLease, err)
+	}
+
+	// Verify AI_DEV_UNLIMITED=true in local dev bypasses 5-turn guest cap while still writing ask_turns audit rows
+	t.Setenv("APP_ENV", "development")
+	t.Setenv("NODE_ENV", "development")
+	t.Setenv("AI_PROVIDER", "local")
+	t.Setenv("AI_DEV_UNLIMITED", "true")
+	devAttempt := newUUIDv4()
+	devRes, devAllowed, err := store.ReserveTurnTx(ctx, ReserveTurnInput{
+		AttemptID: devAttempt, SessionID: dupSession, Role: contracts.RoleGuest, Mode: "qa",
+		PromptHash: "dev-unlimited-turn6", CorrelationID: "corr-dev-unlimited",
+	})
+	if err != nil || !devAllowed || devRes.Quota.TurnsUsed != 6 {
+		t.Fatalf("expected local AI_DEV_UNLIMITED=true to allow 6th turn and increment usage, got allowed=%v quota=%+v err=%v", devAllowed, devRes.Quota, err)
+	}
+	t.Cleanup(func() {
+		_, _ = store.pool.Exec(context.Background(), `DELETE FROM ask_turns WHERE attempt_id = $1`, devAttempt)
+	})
+	if _, err := store.ReconcileTurnTx(ctx, devAttempt, contracts.AskResponse{
+		Grounded: true, Mode: "qa", Answer: "dev unlimited persisted", Provider: "local", TokensUsed: 50,
+	}); err != nil {
+		t.Fatalf("expected ask_turns audit row reconciled under AI_DEV_UNLIMITED, got %v", err)
+	}
 }

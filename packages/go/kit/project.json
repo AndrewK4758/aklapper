@@ -20,6 +20,14 @@
         "cwd": "packages/go/kit",
         "command": "go run ./cmd/qdrant-seed --dry-run"
       }
+    },
+    "proto-gen": {
+      "cache": false,
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{workspaceRoot}",
+        "command": "buf lint && buf generate"
+      }
     }
   }
 }

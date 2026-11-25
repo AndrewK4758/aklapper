@@ -1,0 +1,137 @@
+syntax = "proto3";
+
+package ai_ask.v1;
+
+option go_package = "github.com/AndrewK4758/aklapper/packages/go/kit/gen/ai_ask/v1;ai_askv1";
+
+service AskService {
+  rpc StreamAsk(StreamAskRequest) returns (stream AskStreamChunk);
+  rpc GetAskStatus(GetAskStatusRequest) returns (GetAskStatusResponse);
+  rpc GetTurn(GetTurnRequest) returns (GetTurnResponse);
+}
+
+message StreamAskRequest {
+  string mode = 1;
+  string question = 2;
+  string job_description = 3;
+  string attempt_id = 4;
+}
+
+message AskSource {
+  string id = 1;
+  string title = 2;
+  string snippet = 3;
+  double score = 4;
+  string category = 5;
+}
+
+message QuotaStatus {
+  string role = 1;
+  int32 turns_used = 2;
+  int32 max_turns = 3;
+  int32 tokens_used = 4;
+  int32 max_tokens = 5;
+}
+
+message PublicAppError {
+  string code = 1;
+  int32 status = 2;
+  string message = 3;
+  string action = 4;
+  string correlation_id = 5;
+}
+
+message AskStreamMeta {
+  string attempt_id = 1;
+  string correlation_id = 2;
+  string mode = 3;
+  string provider = 4;
+  string model = 5;
+}
+
+message AskStreamSources {
+  repeated AskSource sources = 1;
+}
+
+message AskStreamDelta {
+  string text = 1;
+}
+
+message AskStreamDone {
+  string attempt_id = 1;
+  bool grounded = 2;
+  bool abstained = 3;
+  string answer = 4;
+  string provider = 5;
+  string model = 6;
+  int32 tokens_used = 7;
+  bool usage_estimated = 8;
+  int32 latency_ms = 9;
+  QuotaStatus quota = 10;
+  string correlation_id = 11;
+}
+
+message AskStreamError {
+  PublicAppError error = 1;
+  QuotaStatus quota = 2;
+}
+
+message AskStreamChunk {
+  oneof payload {
+    AskStreamMeta meta = 1;
+    AskStreamSources sources = 2;
+    AskStreamDelta delta = 3;
+    AskStreamDone done = 4;
+    AskStreamError error = 5;
+  }
+}
+
+message GetAskStatusRequest {}
+
+message AskCollectionStatus {
+  string name = 1;
+  string status = 2;
+  int32 points_count = 3;
+  int32 vector_size = 4;
+}
+
+message GetAskStatusResponse {
+  string status = 1;
+  string provider = 2;
+  bool pg_connected = 3;
+  AskCollectionStatus collection = 4;
+}
+
+message GetTurnRequest {
+  string attempt_id = 1;
+}
+
+message AskResponse {
+  string attempt_id = 1;
+  bool grounded = 2;
+  bool abstained = 3;
+  string mode = 4;
+  string answer = 5;
+  repeated AskSource sources = 6;
+  optional int32 match_score = 7;
+  repeated string strengths = 8;
+  repeated string gaps = 9;
+  string provider = 10;
+  string model = 11;
+  int32 tokens_used = 12;
+  int32 latency_ms = 13;
+  string correlation_id = 14;
+  QuotaStatus quota = 15;
+}
+
+message GetTurnResponse {
+  string attempt_id = 1;
+  string status = 2;
+  string mode = 3;
+  string correlation_id = 4;
+  string lease_expires_at = 5;
+  string expires_at = 6;
+  QuotaStatus quota = 7;
+  AskResponse response = 8;
+  PublicAppError error = 9;
+}

@@ -142,6 +142,7 @@ type Store struct {
 	pool                *pgxpool.Pool
 	openErr             error
 	AgensiCreatorHandle string
+	DevUnlimitedFn      func() bool
 	mu                  sync.Mutex
 	policies            map[string]QuotaPolicy
 	buckets             map[string]*memBucket
@@ -436,13 +437,16 @@ func (s *Store) CheckAndConsumeQuota(
 		if sb.turnsUsed+turnsDelta > policy.MaxTurnsPerSession ||
 			tokensDelta > policy.MaxTokensPerRun ||
 			gb.tokensUsed+tokensDelta > policy.MaxDailyGlobalTokens {
-			return contracts.QuotaStatus{
-				Role:       role,
-				TurnsUsed:  sb.turnsUsed,
-				MaxTurns:   policy.MaxTurnsPerSession,
-				TokensUsed: sb.tokensUsed,
-				MaxTokens:  maxSessionTokens,
-			}, false, nil
+			if !s.isDevUnlimitedEnabled() {
+				return contracts.QuotaStatus{
+					Role:       role,
+					TurnsUsed:  sb.turnsUsed,
+					MaxTurns:   policy.MaxTurnsPerSession,
+					TokensUsed: sb.tokensUsed,
+					MaxTokens:  maxSessionTokens,
+				}, false, nil
+			}
+			logDevUnlimitedBypass(role, sessionID, "", "")
 		}
 
 		sb.turnsUsed += turnsDelta
@@ -502,13 +506,16 @@ func (s *Store) CheckAndConsumeQuota(
 	if sessionTurns+turnsDelta > policy.MaxTurnsPerSession ||
 		tokensDelta > policy.MaxTokensPerRun ||
 		globalTokens+tokensDelta > policy.MaxDailyGlobalTokens {
-		return contracts.QuotaStatus{
-			Role:       role,
-			TurnsUsed:  sessionTurns,
-			MaxTurns:   policy.MaxTurnsPerSession,
-			TokensUsed: sessionTokens,
-			MaxTokens:  maxSessionTokens,
-		}, false, nil
+		if !s.isDevUnlimitedEnabled() {
+			return contracts.QuotaStatus{
+				Role:       role,
+				TurnsUsed:  sessionTurns,
+				MaxTurns:   policy.MaxTurnsPerSession,
+				TokensUsed: sessionTokens,
+				MaxTokens:  maxSessionTokens,
+			}, false, nil
+		}
+		logDevUnlimitedBypass(role, sessionID, "", "")
 	}
 
 	if _, err := tx.Exec(

@@ -67,27 +67,7 @@ func (r TurnRecord) ToState(quota *contracts.QuotaStatus) contracts.AskTurnState
 		Quota:          quota,
 		Response:       r.Result,
 	}
-	if r.Status == contracts.TurnStatusFailed || r.Status == contracts.TurnStatusExpired {
-		code := r.ErrorCode
-		status := 503
-		msg := "Upstream service unreachable."
-		action := "Retry shortly or go home."
-		if r.Status == contracts.TurnStatusExpired || code == contracts.ErrCodeStreamTimeout {
-			code = contracts.ErrCodeStreamTimeout
-			status = 504
-			msg = "Section took too long to load."
-			action = "Retry loading or refresh."
-		} else if code == "" {
-			code = contracts.ErrCodeUpstreamUnavailable
-		}
-		state.Error = &contracts.PublicAppError{
-			Code:          code,
-			Status:        status,
-			Message:       msg,
-			Action:        action,
-			CorrelationID: r.CorrelationID,
-		}
-	}
+	state.Error = mapTurnErrorToPublicAppError(r)
 	return state
 }
 
@@ -160,7 +140,10 @@ func (s *Store) ReserveTurnTx(ctx context.Context, in ReserveTurnInput) (TurnRes
 	if sessionTurns+1 > policy.MaxTurnsPerSession ||
 		reserveTokens > policy.MaxTokensPerRun ||
 		globalTokens+reserveTokens > policy.MaxDailyGlobalTokens {
-		return TurnReservation{Quota: formatQuotaStatus(role, policy, sessionTurns, sessionTokens)}, false, nil
+		if !s.isDevUnlimitedEnabled() {
+			return TurnReservation{Quota: formatQuotaStatus(role, policy, sessionTurns, sessionTokens)}, false, nil
+		}
+		logDevUnlimitedBypass(role, sessionID, in.AttemptID, in.CorrelationID)
 	}
 
 	leaseExp := now.Add(AskTurnLeaseDuration)

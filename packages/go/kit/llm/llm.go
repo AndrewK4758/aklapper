@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -55,10 +56,13 @@ type Provider interface {
 }
 
 type LocalClient struct {
-	BaseURL    string
-	ChatModel  string
-	EmbedModel string
-	HTTPClient *http.Client
+	BaseURL             string
+	ChatModel           string
+	EmbedModel          string
+	HTTPClient          *http.Client
+	StreamHTTPClient    *http.Client
+	streamClientOnce    sync.Once
+	defaultStreamClient *http.Client
 }
 
 func (c *LocalClient) Name() string { return "local-llama-swap" }
@@ -172,14 +176,18 @@ const (
 // VertexClient calls Vertex AI Gemini (:generateContent) and Embeddings (:predict)
 // using GOOGLE_OAUTH_ACCESS_TOKEN or the GCP Metadata Server (Workload Identity).
 type VertexClient struct {
-	ProjectID       string
-	Location        string
-	Model           string
-	EmbedModel      string
-	AccessToken     string
-	MetadataURL     string
-	EndpointBaseURL string
-	HTTPClient      *http.Client
+	ProjectID           string
+	Location            string
+	Model               string
+	EmbedModel          string
+	AccessToken         string
+	MetadataURL         string
+	EndpointBaseURL     string
+	ThinkingBudget      *int
+	HTTPClient          *http.Client
+	StreamHTTPClient    *http.Client
+	streamClientOnce    sync.Once
+	defaultStreamClient *http.Client
 }
 
 // VertexStub is kept as a type alias for backward compatibility.
@@ -269,38 +277,9 @@ func (v *VertexClient) Chat(ctx context.Context, messages []ChatMessage, maxToke
 		loc = DefaultVertexLocation
 	}
 
-	var systemParts []map[string]string
-	contents := make([]map[string]any, 0, len(messages))
-	for _, msg := range messages {
-		if strings.EqualFold(msg.Role, "system") {
-			systemParts = append(systemParts, map[string]string{"text": msg.Content})
-			continue
-		}
-		role := "user"
-		if strings.EqualFold(msg.Role, "assistant") || strings.EqualFold(msg.Role, "model") {
-			role = "model"
-		}
-		contents = append(contents, map[string]any{
-			"role":  role,
-			"parts": []map[string]string{{"text": msg.Content}},
-		})
-	}
-	if len(contents) == 0 {
-		contents = append(contents, map[string]any{
-			"role":  "user",
-			"parts": []map[string]string{{"text": ""}},
-		})
-	}
-
-	payload := map[string]any{
-		"contents": contents,
-		"generationConfig": map[string]any{
-			"maxOutputTokens": maxTokens,
-			"temperature":     0.2,
-		},
-	}
-	if len(systemParts) > 0 {
-		payload["systemInstruction"] = map[string]any{"parts": systemParts}
+	payload, err := buildVertexGeneratePayload(messages, maxTokens, nil, v.ThinkingBudget, nil)
+	if err != nil {
+		return Completion{}, err
 	}
 
 	body, err := json.Marshal(payload)
@@ -333,9 +312,7 @@ func (v *VertexClient) Chat(ctx context.Context, messages []ChatMessage, maxToke
 	var parsed struct {
 		Candidates []struct {
 			Content struct {
-				Parts []struct {
-					Text string `json:"text"`
-				} `json:"parts"`
+				Parts []vertexPart `json:"parts"`
 			} `json:"content"`
 		} `json:"candidates"`
 		UsageMetadata struct {
@@ -351,16 +328,13 @@ func (v *VertexClient) Chat(ctx context.Context, messages []ChatMessage, maxToke
 		return Completion{}, errors.New("vertex ai returned zero candidates")
 	}
 
-	var out strings.Builder
-	for _, part := range parsed.Candidates[0].Content.Parts {
-		out.WriteString(part.Text)
-	}
+	text := extractVertexNonThoughtText(parsed.Candidates[0].Content.Parts)
 	tokens := parsed.UsageMetadata.TotalTokenCount
 	if tokens == 0 {
 		tokens = parsed.UsageMetadata.PromptTokenCount + parsed.UsageMetadata.CandidatesTokenCount
 	}
 	return Completion{
-		Text:       strings.TrimSpace(out.String()),
+		Text:       strings.TrimSpace(text),
 		TokensUsed: tokens,
 		Model:      model,
 	}, nil
@@ -444,14 +418,21 @@ func NewFromEnv() Provider {
 		if location == "" {
 			location = DefaultVertexLocation
 		}
+		budget, budgetErr := ParseVertexThinkingBudget(os.Getenv("VERTEX_THINKING_BUDGET"))
+		if budgetErr != nil {
+			zero := 0
+			budget = &zero
+		}
 		return &VertexClient{
-			ProjectID:   os.Getenv("GCP_PROJECT_ID"),
-			Location:    location,
-			Model:       model,
-			EmbedModel:  embedModel,
-			AccessToken: os.Getenv("GOOGLE_OAUTH_ACCESS_TOKEN"),
-			MetadataURL: os.Getenv("GCP_METADATA_TOKEN_URL"),
-			HTTPClient:  &http.Client{Timeout: 30 * time.Second},
+			ProjectID:        os.Getenv("GCP_PROJECT_ID"),
+			Location:         location,
+			Model:            model,
+			EmbedModel:       embedModel,
+			AccessToken:      os.Getenv("GOOGLE_OAUTH_ACCESS_TOKEN"),
+			MetadataURL:      os.Getenv("GCP_METADATA_TOKEN_URL"),
+			ThinkingBudget:   budget,
+			HTTPClient:       &http.Client{Timeout: 30 * time.Second},
+			StreamHTTPClient: newDefaultStreamHTTPClient(nil),
 		}
 	}
 	baseURL := os.Getenv("LOCAL_LLM_BASE_URL")
@@ -459,9 +440,10 @@ func NewFromEnv() Provider {
 		baseURL = DefaultLocalBaseURL
 	}
 	return &LocalClient{
-		BaseURL:    baseURL,
-		ChatModel:  os.Getenv("LOCAL_LLM_CHAT_MODEL"),
-		EmbedModel: os.Getenv("LOCAL_LLM_EMBED_MODEL"),
-		HTTPClient: &http.Client{Timeout: 30 * time.Second},
+		BaseURL:          baseURL,
+		ChatModel:        os.Getenv("LOCAL_LLM_CHAT_MODEL"),
+		EmbedModel:       os.Getenv("LOCAL_LLM_EMBED_MODEL"),
+		HTTPClient:       &http.Client{Timeout: 30 * time.Second},
+		StreamHTTPClient: newDefaultStreamHTTPClient(nil),
 	}
 }
