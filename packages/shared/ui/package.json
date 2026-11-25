@@ -23,6 +23,12 @@
       "import": "./dist/terminal-workspace.js",
       "default": "./dist/terminal-workspace.js"
     },
+    "./workspace-storage": {
+      "@aklapper/source": "./src/workspace-storage.ts",
+      "types": "./dist/workspace-storage.d.ts",
+      "import": "./dist/workspace-storage.js",
+      "default": "./dist/workspace-storage.js"
+    },
     "./qr-code": {
       "@aklapper/source": "./src/qr-code.ts",
       "types": "./dist/qr-code.d.ts",
