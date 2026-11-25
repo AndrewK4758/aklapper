@@ -9,6 +9,7 @@ export const PORTAL_ROUTE_PATHS = [
   '/api/ask/turns/:attemptId',
   '/api/analytics/ingest',
   '/api/cluster/stream',
+  '/api/cadence/runs/:runId/stream',
   '/changes-in-progress',
 ] as const;
 

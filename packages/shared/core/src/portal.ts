@@ -47,10 +47,18 @@ export const K8sPodEventSchema = z.object({
 });
 export type K8sPodEvent = z.infer<typeof K8sPodEventSchema>;
 
+export const CadenceRunModeSchema = z.enum(['fast', 'llm']);
+export type CadenceRunMode = z.infer<typeof CadenceRunModeSchema>;
+
+export const CadenceRunLifecycleStatusSchema = z.enum(['pending', 'running', 'ready', 'failed']);
+export type CadenceRunLifecycleStatus = z.infer<typeof CadenceRunLifecycleStatusSchema>;
+
 export const CadenceRunRequestSchema = z.object({
   prompt: z.string().trim().min(4).max(1200),
   presetSlug: z.string().min(1).optional(),
   sessionId: z.string().min(1).optional(),
+  mode: CadenceRunModeSchema.optional(),
+  deferExecution: z.boolean().optional(),
 });
 export type CadenceRunRequest = z.infer<typeof CadenceRunRequestSchema>;
 
@@ -78,6 +86,8 @@ export const CadenceRunResultSchema = z.object({
   runId: z.string().min(1),
   prompt: z.string().min(1),
   presetSlug: z.string().optional(),
+  runStatus: CadenceRunLifecycleStatusSchema.optional(),
+  mode: CadenceRunModeSchema.optional(),
   status: Osc7501StatusSchema.optional(),
   osc7501: z.string().optional(),
   gateVerdict: CadenceGateVerdictSchema,
@@ -89,6 +99,29 @@ export const CadenceRunResultSchema = z.object({
   createdAt: z.string().optional(),
 });
 export type CadenceRunResult = z.infer<typeof CadenceRunResultSchema>;
+
+export const CadenceStreamPhaseEventSchema = z.object({
+  runId: z.string().min(1),
+  runStatus: CadenceRunLifecycleStatusSchema,
+  status: Osc7501StatusSchema.optional(),
+  progress: z.number().min(0).max(100).optional(),
+  turn: CadenceTurnSchema,
+});
+export type CadenceStreamPhaseEvent = z.infer<typeof CadenceStreamPhaseEventSchema>;
+
+export const CadenceStreamCompleteEventSchema = z.object({
+  run: CadenceRunResultSchema,
+  quota: QuotaStatusSchema.optional(),
+});
+export type CadenceStreamCompleteEvent = z.infer<typeof CadenceStreamCompleteEventSchema>;
+
+export const CadenceStreamErrorEventSchema = z.object({
+  runId: z.string().min(1),
+  error: z.string().min(1),
+  code: z.string().min(1).optional(),
+  runStatus: CadenceRunLifecycleStatusSchema.optional(),
+});
+export type CadenceStreamErrorEvent = z.infer<typeof CadenceStreamErrorEventSchema>;
 
 export const RoadmapMilestoneStatusSchema = z.enum(['done', 'active', 'queued']);
 export type RoadmapMilestoneStatus = z.infer<typeof RoadmapMilestoneStatusSchema>;
