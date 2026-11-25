@@ -39,6 +39,10 @@ spec:
     - name: http
       port: 8083
       targetPort: 8083
+    - name: grpc
+      port: 9090
+      targetPort: 9090
+      appProtocol: kubernetes.io/h2c
 ---
 apiVersion: v1
 kind: Service

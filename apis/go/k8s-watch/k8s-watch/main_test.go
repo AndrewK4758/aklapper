@@ -85,6 +85,12 @@ func TestK8sWatchInClusterDiscoveryAndRBAC(t *testing.T) {
 		if rec.Code != http.StatusOK {
 			t.Fatalf("expected 200, got %d", rec.Code)
 		}
+		if rec.Header().Get("Connection") != "" {
+			t.Fatalf("expected zero RFC 9113 Connection header on SSE stream, got %q", rec.Header().Get("Connection"))
+		}
+		if rec.Header().Get("X-Accel-Buffering") != "no" {
+			t.Fatalf("expected X-Accel-Buffering=no, got %q", rec.Header().Get("X-Accel-Buffering"))
+		}
 		body := rec.Body.String()
 		if !strings.Contains(body, "svc-cadence-demo") || !strings.Contains(body, "svc-ai-ask") {
 			t.Fatalf("expected public deployments in SSE stream, got: %s", body)

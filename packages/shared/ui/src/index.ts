@@ -48,6 +48,7 @@ export {
   type SiteContentWindowHeaderProps,
 } from './components/site-content/SiteContentWindowHeader';
 export { TuiHeroCard, type TuiHeroCardProps } from './components/site-content/TuiHeroCard';
+export { StreamingTextFeed, type StreamingTextFeedProps } from './components/StreamingTextFeed';
 export { SuspenseElement, type SuspenseElementProps } from './components/SuspenseElement';
 export {
   TerminalWorkspace,
@@ -179,6 +180,12 @@ export { OscStatusBadge, type OscStatusBadgeProps } from './elements/OscStatusBa
 export { QrCodeSvg, type QrCodeSvgProps } from './elements/QrCodeSvg';
 export { generateQrMatrix, type QrMatrix } from './elements/qrMatrix';
 export { SolarForgeEmblem, type SolarForgeEmblemProps } from './elements/SolarForgeEmblem';
+export {
+  StatusPill,
+  type StatusPillProps,
+  type StatusPillSize,
+  type StatusPillTone,
+} from './elements/StatusPill';
 export { buildFaviconFrameDataUri, useAnimatedFavicon } from './elements/useAnimatedFavicon';
 export {
   SF_ALIGNMENT_TOKENS,

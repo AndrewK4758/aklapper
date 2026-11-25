@@ -56,7 +56,6 @@ function createSimulatedDualNamespaceStream(correlationId: string): Response {
     headers: {
       'content-type': 'text/event-stream; charset=utf-8',
       'cache-control': 'no-cache',
-      connection: 'keep-alive',
       'x-accel-buffering': 'no',
       'X-Correlation-Id': correlationId,
     },

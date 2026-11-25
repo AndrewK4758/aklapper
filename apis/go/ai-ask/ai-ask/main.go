@@ -4,14 +4,18 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
+	ai_askv1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/ai_ask/v1"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/grpckit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/llm"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/privacy"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/qdrant"
 )
 
@@ -101,16 +105,30 @@ func newHandler(provider llm.Provider, vectorStore *qdrant.Client, store *pg.Sto
 }
 
 func newHandlerWithSyncWait(provider llm.Provider, vectorStore *qdrant.Client, store *pg.Store, syncWait time.Duration) http.Handler {
-	if store == nil {
-		store = pg.NewMemoryStore()
+	privacyCfg, _ := privacy.LoadConfig(privacy.ConfigInput{})
+	return newHandlerWithDeps(askStreamDeps{
+		provider:    provider,
+		vectorStore: vectorStore,
+		store:       store,
+		privacyCfg:  privacyCfg,
+	}, syncWait)
+}
+
+func newHandlerWithDeps(deps askStreamDeps, syncWait time.Duration) http.Handler {
+	if deps.store == nil {
+		deps.store = pg.NewMemoryStore()
+	}
+	if deps.privacyCfg == nil {
+		deps.privacyCfg, _ = privacy.LoadConfig(privacy.ConfigInput{})
 	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", httpkit.NewHealthHandler("ai-ask"))
-	mux.HandleFunc("GET /v1/ask/status", handleAskStatus(provider, vectorStore, store))
-	mux.HandleFunc("POST /v1/ask/reindex", handleReindex(provider, vectorStore, store))
-	mux.HandleFunc("POST /v1/ask", handleAskPost(provider, vectorStore, store, syncWait))
-	mux.HandleFunc("GET /v1/ask/turns/{attemptId}", handleTurnLookup(store))
+	mux.HandleFunc("GET /v1/ask/status", handleAskStatus(deps.provider, deps.vectorStore, deps.store))
+	mux.HandleFunc("POST /v1/ask/reindex", handleReindex(deps.provider, deps.vectorStore, deps.store))
+	mux.HandleFunc("POST /v1/ask", handleAskPost(deps.provider, deps.vectorStore, deps.store, syncWait))
+	mux.HandleFunc("POST /v1/ask/stream", handleAskStreamPost(deps))
+	mux.HandleFunc("GET /v1/ask/turns/{attemptId}", handleTurnLookup(deps.store))
 	return mux
 }
 
@@ -118,15 +136,48 @@ func main() {
 	if _, err := internalauth.ResolveSecret(""); err != nil {
 		log.Fatalf("ai-ask production auth startup failure: %v", err)
 	}
+	if _, err := llm.ParseVertexThinkingBudget(os.Getenv("VERTEX_THINKING_BUDGET")); err != nil {
+		log.Fatalf("ai-ask invalid VERTEX_THINKING_BUDGET: %v", err)
+	}
+	privacyCfg, err := privacy.LoadConfigFromEnv()
+	if err != nil {
+		log.Fatalf("ai-ask invalid privacy denylist configuration: %v", err)
+	}
+	// Evaluate AI_DEV_UNLIMITED once at startup so invalid prod/vertex overrides log loudly.
+	_ = llm.IsDevUnlimitedEnabled()
+
 	store, err := pg.OpenFromEnvStrict(context.Background())
 	if err != nil {
 		log.Fatalf("ai-ask strict postgres startup failure: %v", err)
 	}
 	defer store.Close()
 
+	deps := askStreamDeps{
+		provider:    llm.NewFromEnv(),
+		vectorStore: qdrant.NewFromEnv(),
+		store:       store,
+		privacyCfg:  privacyCfg,
+	}
+	httpHandler := newHandlerWithDeps(deps, defaultSyncWaitWindow)
 	addr := httpkit.ListenAddr("8083")
-	log.Printf("ai-ask listening on %s (pgLive=%v)", addr, store.IsLivePG())
-	if err := httpkit.ListenAndServeGraceful(addr, newHandler(llm.NewFromEnv(), qdrant.NewFromEnv(), store)); err != nil {
+	grpcAddr := grpckit.GRPCListenAddr()
+
+	var grpcSrv httpkit.GRPCGracefulServer
+	if grpcAddr != "" {
+		srv, _ := grpckit.NewServer("", "ai_ask.v1.AskService")
+		ai_askv1.RegisterAskServiceServer(srv, newAskGRPCServer(deps))
+		grpcSrv = srv
+		log.Printf("ai-ask listening on http=%s grpc=%s (pgLive=%v)", addr, grpcAddr, store.IsLivePG())
+	} else {
+		log.Printf("ai-ask listening on http=%s (gRPC disabled: GRPC_PORT empty, pgLive=%v)", addr, store.IsLivePG())
+	}
+
+	if err := httpkit.ListenAndServeDualGracefulSignals(httpkit.DualServerConfig{
+		HTTPAddr:    addr,
+		HTTPHandler: httpHandler,
+		GRPCAddr:    grpcAddr,
+		GRPCServer:  grpcSrv,
+	}); err != nil {
 		log.Fatal(err)
 	}
 }

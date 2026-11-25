@@ -1,0 +1,88 @@
+@layer component {
+  .feed {
+    display: flex;
+    flex-direction: column;
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-md);
+    background: var(--sf-bg-editor);
+    color: var(--sf-fg-bone);
+    overflow: hidden;
+  }
+
+  .header {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    gap: var(--sf-gap-sm);
+    padding: var(--sf-space-3) var(--sf-space-5);
+    border-bottom: var(--sf-border-width) solid var(--sf-border-subtle);
+    background: var(--sf-bg-panel);
+  }
+
+  .headerContent {
+    display: flex;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-gap-xs);
+    min-width: 0;
+  }
+
+  .scrollRoot {
+    min-height: var(--sf-terminal-min-h);
+    max-height: var(--sf-terminal-scroll-max-h);
+    overflow: hidden;
+  }
+
+  .viewport {
+    min-height: var(--sf-terminal-min-h);
+    max-height: var(--sf-terminal-scroll-max-h);
+    overflow-y: auto;
+    overflow-anchor: auto;
+    padding: var(--sf-inset-panel);
+  }
+
+  .content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-xs);
+  }
+
+  .output {
+    margin: var(--sf-space-0);
+    font-family: var(--sf-font-mono);
+    font-size: var(--sf-text-sm);
+    line-height: var(--sf-leading-base);
+    color: var(--sf-fg-bone);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .empty {
+    margin: var(--sf-space-0);
+    font-family: var(--sf-font-mono);
+    font-size: var(--sf-text-sm);
+    line-height: var(--sf-leading-base);
+    color: var(--sf-fg-cmt);
+  }
+
+  .caret {
+    display: inline-block;
+    width: var(--sf-space-2);
+    height: var(--sf-text-sm);
+    margin-inline-start: var(--sf-space-1);
+    vertical-align: text-bottom;
+    background: var(--sf-gold);
+    animation: sf-caret-blink var(--sf-duration-spin) step-end infinite;
+  }
+
+  .anchor {
+    height: var(--sf-space-hairline);
+    overflow-anchor: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .caret {
+      animation: none;
+    }
+  }
+}

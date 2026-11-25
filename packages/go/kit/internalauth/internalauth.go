@@ -53,6 +53,12 @@ func isProductionEnv() bool {
 		strings.EqualFold(strings.TrimSpace(os.Getenv("APP_ENV")), "production")
 }
 
+// IsProductionEnv returns true when either NODE_ENV or APP_ENV is "production"
+// (case-insensitive, trimmed).
+func IsProductionEnv() bool {
+	return isProductionEnv()
+}
+
 // ResolveSecret returns explicitSecret if non-empty, otherwise INTERNAL_AUTH_SECRET,
 // otherwise DevFallbackSecret ONLY outside production.
 func ResolveSecret(explicitSecret string) (string, error) {

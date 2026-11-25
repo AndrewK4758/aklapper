@@ -1,24 +1,34 @@
 package aiask_e2e_test
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
+	ai_askv1 "github.com/AndrewK4758/aklapper/packages/go/kit/gen/ai_ask/v1"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/grpckit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit/e2etest"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/llm"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/qdrant"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 func make768Vec(val float32) []float32 {
@@ -79,6 +89,21 @@ func TestAiAskEndToEnd(t *testing.T) {
 		case "/v1/chat/completions":
 			if chatFail.Load() {
 				http.Error(w, "chat backend error", http.StatusInternalServerError)
+				return
+			}
+			var reqBody map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&reqBody)
+			if reqBody["stream"] == true {
+				w.Header().Set("Content-Type", "text/event-stream")
+				flusher, _ := w.(http.Flusher)
+				_, _ = fmt.Fprint(w, "data: {\"model\":\"e2e-chat\",\"choices\":[{\"delta\":{\"content\":\"Grounded stream Pro\"}}]}\n\n")
+				flusher.Flush()
+				_, _ = fmt.Fprint(w, "data: {\"model\":\"e2e-chat\",\"choices\":[{\"delta\":{\"content\":\"ject-Mercury-NDA answer.\"},\"finish_reason\":\"stop\"}]}\n\n")
+				flusher.Flush()
+				_, _ = fmt.Fprint(w, "data: {\"model\":\"e2e-chat\",\"choices\":[],\"usage\":{\"total_tokens\":57}}\n\n")
+				flusher.Flush()
+				_, _ = fmt.Fprint(w, "data: [DONE]\n\n")
+				flusher.Flush()
 				return
 			}
 			content := "Grounded answer citing Portfolio Architecture."
@@ -166,11 +191,15 @@ func TestAiAskEndToEnd(t *testing.T) {
 	t.Cleanup(qdrantServer.Close)
 
 	const secret = "e2e-ai-ask-secret"
+	grpcPort := e2etest.ReservePort(t)
 	baseURL := e2etest.StartBinary(
 		t,
 		"../ai-ask",
 		"APP_ENV=production",
 		"INTERNAL_AUTH_SECRET="+secret,
+		"GRPC_PORT="+strconv.Itoa(grpcPort),
+		"AI_PRIVACY_DENYLIST=[\"Project-Mercury-NDA\"]",
+		"AI_DEV_UNLIMITED=true",
 		"LOCAL_LLM_BASE_URL="+llmServer.URL+"/v1",
 		"LOCAL_LLM_CHAT_MODEL=e2e-chat",
 		"LOCAL_LLM_EMBED_MODEL=embedding",
@@ -324,6 +353,85 @@ func TestAiAskEndToEnd(t *testing.T) {
 		)
 		if resOver.StatusCode != http.StatusTooManyRequests || body["quota"] == nil {
 			t.Fatalf("expected 429 with quota, got (%d): %+v", resOver.StatusCode, body)
+		}
+	})
+
+	t.Run("POST /v1/ask/stream SSE redacts split denylist and live gRPC StreamAsk + health work over GRPC_PORT", func(t *testing.T) {
+		headers := guestHeaders(t, "e2e-stream-guest", secret)
+		headers["Content-Type"] = "application/json"
+		resSSE, rawSSE := e2etest.DoRequest(
+			t, http.MethodPost, baseURL+"/v1/ask/stream",
+			[]byte(`{"mode":"qa","question":"Stream grounded architecture summary"}`),
+			headers,
+		)
+		sseText := string(rawSSE)
+		if resSSE.StatusCode != http.StatusOK || resSSE.Header.Get("Connection") != "" {
+			t.Fatalf("unexpected SSE status=%d conn=%q body=%s", resSSE.StatusCode, resSSE.Header.Get("Connection"), sseText)
+		}
+		if strings.Contains(sseText, "Project-Mercury-NDA") || !strings.Contains(sseText, "[REDACTED]") || !strings.Contains(sseText, "event: done") {
+			t.Fatalf("expected redacted SSE stream with done event, got:\n%s", sseText)
+		}
+
+		cfg := grpckit.ClientAuthConfig{Role: internalauth.RoleGuest, Subject: "e2e-grpc-guest", Secret: secret, TTL: time.Minute}
+		conn, err := grpc.NewClient(
+			fmt.Sprintf("127.0.0.1:%d", grpcPort),
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithUnaryInterceptor(grpckit.UnaryClientAuthInterceptor(cfg)),
+			grpc.WithStreamInterceptor(grpckit.StreamClientAuthInterceptor(cfg)),
+		)
+		if err != nil {
+			t.Fatalf("dial live gRPC: %v", err)
+		}
+		t.Cleanup(func() { _ = conn.Close() })
+
+		hc := healthpb.NewHealthClient(conn)
+		hRes, err := hc.Check(context.Background(), &healthpb.HealthCheckRequest{Service: "ai_ask.v1.AskService"})
+		if err != nil || hRes.GetStatus() != healthpb.HealthCheckResponse_SERVING {
+			t.Fatalf("live gRPC health check failed: res=%v err=%v", hRes, err)
+		}
+
+		askClient := ai_askv1.NewAskServiceClient(conn)
+		st, err := askClient.StreamAsk(context.Background(), &ai_askv1.StreamAskRequest{
+			Mode: "qa", Question: "Stream over native gRPC",
+		})
+		if err != nil {
+			t.Fatalf("live gRPC StreamAsk: %v", err)
+		}
+		var deltaBuf strings.Builder
+		var gotDone bool
+		for {
+			ch, rErr := st.Recv()
+			if errors.Is(rErr, io.EOF) {
+				break
+			}
+			if rErr != nil {
+				t.Fatalf("gRPC Recv: %v", rErr)
+			}
+			if d := ch.GetDelta(); d != nil {
+				deltaBuf.WriteString(d.GetText())
+			}
+			if done := ch.GetDone(); done != nil {
+				gotDone = done.GetGrounded() && done.GetTokensUsed() == 57
+			}
+		}
+		if !gotDone || strings.Contains(deltaBuf.String(), "Project-Mercury-NDA") || !strings.Contains(deltaBuf.String(), "[REDACTED]") {
+			t.Fatalf("unexpected live gRPC stream output: gotDone=%v text=%q", gotDone, deltaBuf.String())
+		}
+	})
+
+	t.Run("Single-port Cloud Run mode starts cleanly when GRPC_PORT is empty", func(t *testing.T) {
+		singleURL := e2etest.StartBinary(
+			t,
+			"../ai-ask",
+			"APP_ENV=production",
+			"INTERNAL_AUTH_SECRET="+secret,
+			"GRPC_PORT=",
+			"LOCAL_LLM_BASE_URL="+llmServer.URL+"/v1",
+			"QDRANT_URL="+qdrantServer.URL,
+		)
+		res, health := e2etest.DoJSON[httpkit.HealthResponse](t, http.MethodGet, singleURL+"/healthz", nil, nil)
+		if res.StatusCode != http.StatusOK || !health.OK {
+			t.Fatalf("expected single-port Cloud Run mode healthy, got %d %+v", res.StatusCode, health)
 		}
 	})
 }
