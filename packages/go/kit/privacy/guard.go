@@ -4,29 +4,26 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
-
-	"golang.org/x/text/unicode/norm"
 )
 
 const (
 	maxRawPendingRunes     = 4096
 	maxConsecutiveSepRunes = 64
+	maxWordSnapBackRunes   = 64
 	rawSecretTailRunes     = MaxSecretHoldbackRunes + 256
 )
-
-type guardRune struct {
-	r        rune
-	redacted bool
-}
 
 // StreamGuard inspects incremental stream chunks with a rolling holdback window,
 // catching split denylist terms, Unicode/separator obfuscation, and built-in secret patterns.
 type StreamGuard struct {
-	cfg           *Config
-	correlationID string
-	pending       []guardRune
-	rawSecretBuf  []rune
-	aborted       bool
+	cfg               *Config
+	correlationID     string
+	pending           []guardRune
+	rawSecretBuf      []rune
+	prevFlushedRune   rune
+	hasPrevFlushed    bool
+	deferredHoldIndex int
+	aborted           bool
 }
 
 // NewStreamGuard constructs a fresh per-stream guard instance.
@@ -40,16 +37,13 @@ func NewStreamGuard(cfg *Config, correlationID string) *StreamGuard {
 	}
 }
 
-func pendingToString(items []guardRune) string {
-	out := make([]rune, len(items))
-	for i, item := range items {
-		out[i] = item.r
-	}
-	return string(out)
-}
-
-func isCombiningMark(r rune) bool {
-	return unicode.Is(unicode.Mn, r) || unicode.Is(unicode.Mc, r) || unicode.Is(unicode.Me, r)
+func (g *StreamGuard) resetOnAbort() {
+	g.pending = nil
+	g.rawSecretBuf = nil
+	g.prevFlushedRune = 0
+	g.hasPrevFlushed = false
+	g.deferredHoldIndex = 0
+	g.aborted = true
 }
 
 // Process ingests the next incremental chunk and returns only text proven safe to emit.
@@ -76,6 +70,8 @@ func (g *StreamGuard) Process(chunk string) (string, error) {
 		return "", nil
 	}
 	safe := pendingToString(g.pending[:flushEnd])
+	g.prevFlushedRune = g.pending[flushEnd-1].r
+	g.hasPrevFlushed = true
 	g.pending = append([]guardRune(nil), g.pending[flushEnd:]...)
 	return safe, nil
 }
@@ -93,8 +89,11 @@ func (g *StreamGuard) Flush() (string, error) {
 		return "", nil
 	}
 	out := pendingToString(g.pending)
+	g.prevFlushedRune = g.pending[len(g.pending)-1].r
+	g.hasPrevFlushed = true
 	g.pending = nil
 	g.rawSecretBuf = nil
+	g.deferredHoldIndex = 0
 	return out, nil
 }
 
@@ -127,29 +126,14 @@ func (g *StreamGuard) recordTrigger(category string, action Action, fingerprint 
 	})
 }
 
-type runeSegment struct {
-	start int
-	end   int
-}
-
-func unredactedSegments(items []guardRune, limit int) []runeSegment {
-	if limit > len(items) {
-		limit = len(items)
+func (g *StreamGuard) segmentPrefixContext(segStart int) (bool, rune) {
+	if segStart > 0 {
+		return true, g.pending[segStart-1].r
 	}
-	var segs []runeSegment
-	i := 0
-	for i < limit {
-		if items[i].redacted {
-			i++
-			continue
-		}
-		start := i
-		for i < limit && !items[i].redacted {
-			i++
-		}
-		segs = append(segs, runeSegment{start: start, end: i})
+	if g.hasPrevFlushed {
+		return true, g.prevFlushedRune
 	}
-	return segs
+	return false, 0
 }
 
 func (g *StreamGuard) applyRules(isFlush bool) error {
@@ -160,9 +144,7 @@ func (g *StreamGuard) applyRules(isFlush bool) error {
 		for _, rule := range builtInSecretRules {
 			if rule.regex.FindStringIndex(rawStr) != nil {
 				g.recordTrigger("builtin_secret", ActionAbort, rule.fingerprint)
-				g.pending = nil
-				g.rawSecretBuf = nil
-				g.aborted = true
+				g.resetOnAbort()
 				return ErrPrivacyAborted
 			}
 		}
@@ -170,6 +152,8 @@ func (g *StreamGuard) applyRules(isFlush bool) error {
 
 	maxIter := len(g.pending) + 64
 	for iter := 0; iter < maxIter; iter++ {
+		g.deferredHoldIndex = len(g.pending)
+
 		// 1b. Always-on built-in secret patterns over unredacted segments (handles ActionRedact too).
 		allSegs := unredactedSegments(g.pending, len(g.pending))
 		if len(allSegs) == 0 {
@@ -185,9 +169,7 @@ func (g *StreamGuard) applyRules(isFlush bool) error {
 				}
 				g.recordTrigger("builtin_secret", g.cfg.SecretAction, rule.fingerprint)
 				if g.cfg.SecretAction == ActionAbort {
-					g.pending = nil
-					g.rawSecretBuf = nil
-					g.aborted = true
+					g.resetOnAbort()
 					return ErrPrivacyAborted
 				}
 				startRune := seg.start + utf8.RuneCountInString(segStr[:loc[0]])
@@ -206,7 +188,8 @@ func (g *StreamGuard) applyRules(isFlush bool) error {
 
 		// 2. Configured runtime denylist (deferred past safeSecretBoundary during streaming so
 		// neither trailing <=16-rune partial secret-anchor prefixes nor active 128-rune secret
-		// windows are mutated, and matches starting at/past commitLimit wait for real trailing context).
+		// windows are mutated, and matches wait until endRune <= commitLimit and no overlapping
+		// higher-priority rule is deferred).
 		if len(g.cfg.rules) == 0 {
 			return nil
 		}
@@ -231,34 +214,27 @@ func (g *StreamGuard) applyRules(isFlush bool) error {
 			segSlice := g.pending[seg.start:seg.end]
 			segStr := pendingToString(segSlice)
 			normStr, normMap := buildNormalizedMap(segSlice)
+			hasPrefix, prefixRune := g.segmentPrefixContext(seg.start)
+			deferredStart := seg.end
 			for _, rule := range g.cfg.rules {
-				var startRune, endRune int
-				found := false
-				if rule.regex != nil {
-					if loc := rule.regex.FindStringIndex(segStr); loc != nil && loc[1] > loc[0] {
-						startRune = seg.start + utf8.RuneCountInString(segStr[:loc[0]])
-						endRune = startRune + utf8.RuneCountInString(segStr[loc[0]:loc[1]])
-						found = true
-					}
-				} else if rule.normalized != "" {
-					if idx := strings.Index(normStr, rule.normalized); idx >= 0 {
-						startNormRune := utf8.RuneCountInString(normStr[:idx])
-						endNormRune := startNormRune + utf8.RuneCountInString(rule.normalized)
-						if endNormRune > startNormRune && endNormRune <= len(normMap) {
-							startRune = seg.start + normMap[startNormRune].rawStart
-							endRune = seg.start + normMap[endNormRune-1].rawEnd
-							found = true
-						}
-					}
+				startRune, endRune, found := matchDenylistRule(
+					rule, seg.start, segStr, normStr, normMap, hasPrefix, prefixRune,
+				)
+				if !found {
+					continue
 				}
-				if !found || (!isFlush && startRune >= commitLimit) {
+				if !isFlush && (endRune > commitLimit || endRune >= denylistLimit || endRune > deferredStart) {
+					if startRune < deferredStart {
+						deferredStart = startRune
+					}
+					if startRune < g.deferredHoldIndex {
+						g.deferredHoldIndex = startRune
+					}
 					continue
 				}
 				g.recordTrigger("denylist", g.cfg.DenylistAction, rule.fingerprint)
 				if g.cfg.DenylistAction == ActionAbort {
-					g.pending = nil
-					g.rawSecretBuf = nil
-					g.aborted = true
+					g.resetOnAbort()
 					return ErrPrivacyAborted
 				}
 				g.replacePendingSpan(startRune, endRune)
@@ -273,9 +249,7 @@ func (g *StreamGuard) applyRules(isFlush bool) error {
 			return nil
 		}
 	}
-	g.pending = nil
-	g.rawSecretBuf = nil
-	g.aborted = true
+	g.resetOnAbort()
 	return ErrPrivacyAborted
 }
 
@@ -288,37 +262,6 @@ func (g *StreamGuard) replacePendingSpan(startRune, endRune int) {
 	}
 	updated = append(updated, g.pending[endRune:]...)
 	g.pending = updated
-}
-
-type normRuneSpan struct {
-	rawStart int
-	rawEnd   int
-}
-
-func buildNormalizedMap(raw []guardRune) (string, []normRuneSpan) {
-	var b strings.Builder
-	spans := make([]normRuneSpan, 0, len(raw))
-	for i := 0; i < len(raw); {
-		if raw[i].redacted || isSeparatorRune(raw[i].r) {
-			i++
-			continue
-		}
-		j := i + 1
-		for j < len(raw) && !raw[j].redacted && isCombiningMark(raw[j].r) {
-			j++
-		}
-		cluster := pendingToString(raw[i:j])
-		expanded := norm.NFKC.String(cluster)
-		for _, nr := range expanded {
-			if isSeparatorRune(nr) {
-				continue
-			}
-			b.WriteRune(unicode.ToLower(nr))
-			spans = append(spans, normRuneSpan{rawStart: i, rawEnd: j})
-		}
-		i = j
-	}
-	return b.String(), spans
 }
 
 func (g *StreamGuard) earliestActiveSecretAnchor() int {
@@ -369,14 +312,22 @@ func (g *StreamGuard) safeDenylistCommitIndex(scanLimit int) int {
 	if scanLimit <= 0 {
 		return 0
 	}
-	if g.cfg.maxDenylistNonSep <= 0 {
-		return scanLimit
+	limit := scanLimit
+	if g.cfg.maxDenylistNonSep > 0 {
+		_, spans := buildNormalizedMap(g.pending[:scanLimit])
+		if len(spans) <= g.cfg.maxDenylistNonSep {
+			return 0
+		}
+		limit = min(limit, spans[len(spans)-g.cfg.maxDenylistNonSep].rawStart)
 	}
-	_, spans := buildNormalizedMap(g.pending[:scanLimit])
-	if len(spans) <= g.cfg.maxDenylistNonSep {
-		return 0
+	if g.cfg.maxRegexRunes > 0 {
+		rawLimit := scanLimit - g.cfg.maxRegexRunes
+		if rawLimit <= 0 {
+			return 0
+		}
+		limit = min(limit, rawLimit)
 	}
-	return spans[len(spans)-g.cfg.maxDenylistNonSep].rawStart
+	return limit
 }
 
 func (g *StreamGuard) safeFlushIndex() int {
@@ -389,8 +340,23 @@ func (g *StreamGuard) safeFlushIndex() int {
 		return 0
 	}
 	flushEnd := min(safeSecret, g.safeDenylistCommitIndex(safeSecret))
+	if g.deferredHoldIndex < flushEnd {
+		flushEnd = g.deferredHoldIndex
+	}
 	for flushEnd > 0 && flushEnd < n && !g.pending[flushEnd].redacted && isCombiningMark(g.pending[flushEnd].r) {
 		flushEnd--
+	}
+	if flushEnd > 0 && flushEnd < n &&
+		!g.pending[flushEnd-1].redacted && !g.pending[flushEnd].redacted &&
+		isWordRune(g.pending[flushEnd-1].r) && isWordRune(g.pending[flushEnd].r) {
+		snapped := flushEnd
+		for snapped > 0 && flushEnd-snapped < maxWordSnapBackRunes &&
+			!g.pending[snapped-1].redacted && isWordRune(g.pending[snapped-1].r) {
+			snapped--
+		}
+		if flushEnd-snapped < maxWordSnapBackRunes {
+			flushEnd = snapped
+		}
 	}
 	return flushEnd
 }
