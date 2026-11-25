@@ -61,6 +61,7 @@ export {
 export {
   addWorkspaceTab,
   allocateNextTabNumber,
+  allocateNextTtyNumber,
   closeActivePaneOrTab,
   closePaneById,
   closeWorkspaceTab,
