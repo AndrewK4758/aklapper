@@ -115,4 +115,51 @@ describe('PortalAgensiPage', () => {
     );
     expect(screen.queryByTestId('agensi-catalog-meta')).toBeNull();
   });
+
+  it('renders long unbroken and hyphenated skill slugs without truncation while preserving card structure and filtering', () => {
+    const longUnbrokenSlug =
+      'agensilongunbrokenskillslugwithoutanyseparatorsforlayoutwrapping0123456789';
+    const longHyphenatedSlug =
+      'long-hyphenated-agensi-skill-slug-for-card-header-wrapping-verification-suite';
+
+    render(
+      <PortalAgensiPage
+        content={SAMPLE_CONTENT}
+        skills={[
+          ...SAMPLE_SKILLS,
+          {
+            slug: longUnbrokenSlug,
+            name: 'Unbroken Slug Skill',
+            summary: 'Skill with a long unbroken slug.',
+            tags: ['layout'],
+            url: `https://agensi.io/skills/${longUnbrokenSlug}`,
+            sortOrder: 3,
+          },
+          {
+            slug: longHyphenatedSlug,
+            name: 'Hyphenated Slug Skill',
+            summary: 'Skill with a long hyphenated slug.',
+            tags: ['webkit'],
+            url: `https://agensi.io/skills/${longHyphenatedSlug}`,
+            sortOrder: 4,
+          },
+        ]}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    const unbrokenCard = screen.getByTestId(`agensi-card-${longUnbrokenSlug}`);
+    const hyphenatedCard = screen.getByTestId(`agensi-card-${longHyphenatedSlug}`);
+    expect(unbrokenCard.textContent).toContain(longUnbrokenSlug);
+    expect(hyphenatedCard.textContent).toContain(longHyphenatedSlug);
+    expect(screen.getByText(longUnbrokenSlug)).toBeTruthy();
+    expect(screen.getByText(longHyphenatedSlug)).toBeTruthy();
+    expect(screen.getByTestId(`agensi-cta-${longUnbrokenSlug}`).getAttribute('href')).toBe(
+      `https://agensi.io/skills/${longUnbrokenSlug}`,
+    );
+
+    fireEvent.click(screen.getByTestId('agensi-tag-webkit'));
+    expect(screen.queryByTestId(`agensi-card-${longUnbrokenSlug}`)).toBeNull();
+    expect(screen.getByTestId(`agensi-card-${longHyphenatedSlug}`)).toBeTruthy();
+  });
 });
