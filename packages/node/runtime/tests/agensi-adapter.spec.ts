@@ -410,7 +410,8 @@ describe('@aklapper/node-runtime/agensi adapter', () => {
 
     let receivedAccept: string | undefined;
     const srv = await startLoopbackServer((req, res) => {
-      receivedAccept = typeof req.headers['accept'] === 'string' ? req.headers['accept'] : undefined;
+      receivedAccept =
+        typeof req.headers['accept'] === 'string' ? req.headers['accept'] : undefined;
       res.setHeader('content-type', 'text/html; charset=utf-8');
       res.end(tsrHtml);
     });
