@@ -69,12 +69,7 @@ export interface PortalRootShellProps {
   readonly navigate: (to: string) => void | Promise<void>;
 }
 
-export function PortalRootShell({
-  data,
-  pathname,
-  runtimeStatus,
-  navigate,
-}: PortalRootShellProps) {
+export function PortalRootShell({ data, pathname, runtimeStatus, navigate }: PortalRootShellProps) {
   const outlet = useOutlet();
   const layoutMode = useViewportLayoutMode();
   const terminalForms = useMemo(

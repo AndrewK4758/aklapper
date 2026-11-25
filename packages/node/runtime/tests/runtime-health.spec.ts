@@ -85,7 +85,8 @@ describe('@aklapper/node-runtime/runtime-health', () => {
     expect(JSON.stringify(logs)).not.toContain('supersecret');
     expect(
       logs.some(
-        l => l['event'] === 'runtime.health.upstream_contract_fault' && l['seam'] === 'BOUNDARY_FAULT',
+        l =>
+          l['event'] === 'runtime.health.upstream_contract_fault' && l['seam'] === 'BOUNDARY_FAULT',
       ),
     ).toBe(true);
     expect(
@@ -120,7 +121,8 @@ describe('@aklapper/node-runtime/runtime-health', () => {
     ).toBe(true);
     expect(
       logs.some(
-        l => l['event'] === 'runtime.health.upstream_contract_fault' && l['seam'] === 'BOUNDARY_FAULT',
+        l =>
+          l['event'] === 'runtime.health.upstream_contract_fault' && l['seam'] === 'BOUNDARY_FAULT',
       ),
     ).toBe(true);
   });

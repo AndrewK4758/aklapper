@@ -28,11 +28,7 @@ import {
   QdrantRuntimeStatusBody,
 } from '#pages/ops';
 
-import {
-  fetchQdrantStatus,
-  requireAdminSession,
-  triggerQdrantReindex,
-} from '../admin-ops.server';
+import { fetchQdrantStatus, requireAdminSession, triggerQdrantReindex } from '../admin-ops.server';
 import { reportAdminPublicError } from '../client-telemetry';
 import { buildAdminPageMeta } from '../seo';
 import type { Route } from './+types/ops';

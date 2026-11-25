@@ -51,8 +51,7 @@ export const DEFAULT_MENU_ITEMS: readonly MenuItem[] = [
     slug: 'cadence',
     keyShortcut: '1',
     title: 'CADENCE Builder',
-    description:
-      'Prompt-to-artifact showcase backed by Cloud Run Go services and Qdrant recall',
+    description: 'Prompt-to-artifact showcase backed by Cloud Run Go services and Qdrant recall',
     adminOnly: false,
     sortOrder: 1,
     enabled: true,
