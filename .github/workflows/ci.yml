@@ -359,15 +359,16 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ matrix.engine }}-${{ hashFiles('pnpm-lock.yaml') }}
+          key: playwright-v2-${{ runner.os }}-${{ matrix.engine }}-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Install Playwright browser & system dependencies
         run: |
           if [ "${{ matrix.engine }}" = "chromium" ]; then
             if ! command -v google-chrome >/dev/null 2>&1 && ! command -v google-chrome-stable >/dev/null 2>&1; then
-              pnpm exec playwright install --with-deps chrome
+              pnpm exec playwright install --with-deps chrome ffmpeg
             else
               pnpm exec playwright install-deps chrome
+              pnpm exec playwright install ffmpeg
             fi
           elif [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
             pnpm exec playwright install-deps "${{ matrix.engine }}"
