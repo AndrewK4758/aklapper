@@ -1,4 +1,3 @@
-import type { K8sPodEvent } from '@aklapper/core';
 import {
   Button,
   ErrorElement,
@@ -55,7 +54,6 @@ export function emitPaneTelemetryOnce(key: string, emit: () => void): void {
 
 export interface PaneAdapterProps {
   readonly ctx: TerminalPaneViewContext;
-  readonly deployments?: Readonly<Record<string, K8sPodEvent>>;
 }
 
 interface PaneStatusFallbackProps {

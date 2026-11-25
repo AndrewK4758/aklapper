@@ -18,9 +18,9 @@ import { href, Link, Outlet, useOutlet } from 'react-router';
 import { PortalLauncherTui } from '#pages/home';
 
 import { reportPortalClientError } from './client-telemetry';
-import type { ClusterTelemetrySnapshot } from './cluster-stream';
 import { PortalMobileWorkspaceHost } from './PortalMobileWorkspaceHost';
 import { isPortalPaneRoute, renderPortalPaneView } from './portalPaneViews';
+import type { RuntimeStatusTelemetrySnapshot } from './runtime-status';
 import { createPortalTerminalForms } from './terminalForms';
 
 import styles from './root.module.css';
@@ -65,11 +65,16 @@ export function OfflineMaintenanceFallback({ error }: { readonly error: PublicAp
 export interface PortalRootShellProps {
   readonly data: PortalRootLoaderData;
   readonly pathname: string;
-  readonly cluster: ClusterTelemetrySnapshot;
+  readonly runtimeStatus: RuntimeStatusTelemetrySnapshot;
   readonly navigate: (to: string) => void | Promise<void>;
 }
 
-export function PortalRootShell({ data, pathname, cluster, navigate }: PortalRootShellProps) {
+export function PortalRootShell({
+  data,
+  pathname,
+  runtimeStatus,
+  navigate,
+}: PortalRootShellProps) {
   const outlet = useOutlet();
   const layoutMode = useViewportLayoutMode();
   const terminalForms = useMemo(
@@ -112,9 +117,13 @@ export function PortalRootShell({ data, pathname, cluster, navigate }: PortalRoo
   if (hasGlobalWorkspace) {
     portalRouteWorkspaceStore.recordRoutePolicy(pathname, 'cached-workspace');
   }
-  const headerBadgeState = cluster.connected ? cluster.summaryState : chrome.statusBadge.state;
+  const headerBadgeState = runtimeStatus.loaded
+    ? runtimeStatus.summaryState
+    : chrome.statusBadge.state;
   const headerBadgeLabel =
-    cluster.connected && cluster.summaryLabel ? cluster.summaryLabel : chrome.statusBadge.label;
+    runtimeStatus.loaded && runtimeStatus.summaryLabel
+      ? runtimeStatus.summaryLabel
+      : chrome.statusBadge.label;
 
   if (layoutMode !== 'desktop') {
     return (
@@ -122,7 +131,7 @@ export function PortalRootShell({ data, pathname, cluster, navigate }: PortalRoo
         layoutMode={layoutMode}
         data={data}
         pathname={pathname}
-        cluster={cluster}
+        runtimeStatus={runtimeStatus}
         navigate={navigate}
       />
     );
@@ -213,7 +222,6 @@ export function PortalRootShell({ data, pathname, cluster, navigate }: PortalRoo
                     renderPortalPaneView({
                       ctx,
                       homeContent,
-                      deployments: cluster.deployments,
                     })
                   }
                   renderTui={
