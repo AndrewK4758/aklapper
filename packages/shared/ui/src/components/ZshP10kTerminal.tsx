@@ -34,7 +34,6 @@ import {
   type TerminalFormConfig,
   type TerminalFormSessionState,
 } from './terminalFormSession';
-
 import {
   TerminalReadlineRegistryContext,
   type ZshTerminalHandle,
@@ -651,7 +650,8 @@ export function ZshP10kTerminal({
     if (selStart !== selEnd) {
       return true;
     }
-    const docSelection = typeof window !== 'undefined' ? (window.getSelection()?.toString() ?? '') : '';
+    const docSelection =
+      typeof window !== 'undefined' ? (window.getSelection()?.toString() ?? '') : '';
     return docSelection.length > 0;
   };
 

@@ -79,7 +79,9 @@ describe('db prerender fallback loaders', () => {
     expect(portalHelp).toContain('Alt+Shift+1..9');
     expect(portalHelp).toContain('Alt+H/J/K/L');
     expect(portalHelp).toContain('Alt+Backspace');
-    expect(portalHelp).not.toMatch(/ghostty|Ctrl\+Shift\+O|\bCmd\+D\b|\bCtrl\+W\b|\bCtrl\+N\b|Alt\+1\.\.9/i);
+    expect(portalHelp).not.toMatch(
+      /ghostty|Ctrl\+Shift\+O|\bCmd\+D\b|\bCtrl\+W\b|\bCtrl\+N\b|Alt\+1\.\.9/i,
+    );
 
     expect(getPrerenderPortalMenuData().items.every(item => !item.adminOnly)).toBe(true);
     const prerenderAgensi = getPrerenderPortalAgensiData();

@@ -85,9 +85,9 @@ describe('matchWorkspaceShortcut', () => {
     expect(
       matchWorkspaceShortcut(keyEvent('ArrowRight', { altKey: true, shiftKey: true })),
     ).toEqual({ type: 'resize', direction: 'right' });
-    expect(
-      matchWorkspaceShortcut(keyEvent('ArrowLeft', { ctrlKey: true, metaKey: true })),
-    ).toEqual({ type: 'resize', direction: 'left' });
+    expect(matchWorkspaceShortcut(keyEvent('ArrowLeft', { ctrlKey: true, metaKey: true }))).toEqual(
+      { type: 'resize', direction: 'left' },
+    );
 
     expect(
       matchWorkspaceShortcut(keyEvent('R', { code: 'KeyR', altKey: true, shiftKey: true })),
@@ -160,14 +160,16 @@ describe('matchWorkspaceShortcut', () => {
 
     const shiftedSymbols = ['!', '@', '#', '$', '%', '^', '&', '*'] as const;
     shiftedSymbols.forEach((symbol, index) => {
-      expect(
-        matchWorkspaceShortcut(keyEvent(symbol, { altKey: true, shiftKey: true })),
-      ).toEqual({ type: 'focus-tab-index', index });
+      expect(matchWorkspaceShortcut(keyEvent(symbol, { altKey: true, shiftKey: true }))).toEqual({
+        type: 'focus-tab-index',
+        index,
+      });
     });
 
-    expect(
-      matchWorkspaceShortcut(keyEvent('(', { altKey: true, shiftKey: true })),
-    ).toEqual({ type: 'focus-tab-index', index: 'last' });
+    expect(matchWorkspaceShortcut(keyEvent('(', { altKey: true, shiftKey: true }))).toEqual({
+      type: 'focus-tab-index',
+      index: 'last',
+    });
     expect(
       matchWorkspaceShortcut(keyEvent('9', { code: 'Digit9', altKey: true, shiftKey: true })),
     ).toEqual({ type: 'focus-tab-index', index: 'last' });
@@ -241,9 +243,15 @@ describe('matchTerminalReadlineShortcut', () => {
       'history-next',
     );
 
-    expect(matchTerminalReadlineShortcut(keyEvent('c', { code: 'KeyC', ctrlKey: true }))).toBeNull();
-    expect(matchTerminalReadlineShortcut(keyEvent('w', { code: 'KeyW', ctrlKey: true }))).toBeNull();
-    expect(matchTerminalReadlineShortcut(keyEvent('n', { code: 'KeyN', ctrlKey: true }))).toBeNull();
+    expect(
+      matchTerminalReadlineShortcut(keyEvent('c', { code: 'KeyC', ctrlKey: true })),
+    ).toBeNull();
+    expect(
+      matchTerminalReadlineShortcut(keyEvent('w', { code: 'KeyW', ctrlKey: true })),
+    ).toBeNull();
+    expect(
+      matchTerminalReadlineShortcut(keyEvent('n', { code: 'KeyN', ctrlKey: true })),
+    ).toBeNull();
   });
 });
 

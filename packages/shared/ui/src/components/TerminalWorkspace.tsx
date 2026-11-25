@@ -22,10 +22,6 @@ import {
 import { Button, Toolbar, Tooltip } from '../elements/base';
 import { buildZshCommandHandlers } from './buildZshCommands';
 import { PaneNavigationContext, type PaneNavigationContextValue } from './paneNavigationContext';
-import {
-  TerminalReadlineRegistryContext,
-  type ZshTerminalHandle,
-} from './terminalReadlineRegistryContext';
 import { type TerminalFormConfig } from './terminalFormSession';
 import {
   exitPaneTui,
@@ -77,6 +73,10 @@ import {
   toggleZoomActivePane,
   updateActiveTabWorkspace,
 } from './terminalPaneTree';
+import {
+  TerminalReadlineRegistryContext,
+  type ZshTerminalHandle,
+} from './terminalReadlineRegistryContext';
 import { ZshP10kTerminal, type ZshCommandHandler } from './ZshP10kTerminal';
 
 import styles from './TerminalWorkspace.module.css';

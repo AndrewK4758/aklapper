@@ -313,7 +313,9 @@ describe('Admin streaming routes, auth guards & SEO', () => {
     const boundaryAlert = await screen.findByRole('alert');
     expect(boundaryAlert.textContent).toContain('ERR_INTERNAL');
     expect(screen.getByText('admin.andrew-k.us')).toBeTruthy();
-    expect(screen.getByText('Ctrl+⇧} / Alt+⇧D split · Ctrl+⇧{ / Alt+⇧S hsplit · Alt+⇧N tab')).toBeTruthy();
+    expect(
+      screen.getByText('Ctrl+⇧} / Alt+⇧D split · Ctrl+⇧{ / Alt+⇧S hsplit · Alt+⇧N tab'),
+    ).toBeTruthy();
 
     const workspaceEl = container.querySelector('[data-pane-count]') as HTMLElement;
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');

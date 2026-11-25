@@ -141,8 +141,9 @@ function parseDigitIndex(key: string, code: string): number | 'last' | null {
 }
 
 /**
- * Matches uniform, browser-safe workspace pane and tab keybindings across Linux, Windows, and macOS.
- * Explicitly excludes browser-reserved chords (e.g., Ctrl+W/N, Alt+1..9, Cmd+D/R/L, Ctrl+Shift+O/E/R/T/A/W/I/=).
+ * Matches uniform, browser-safe workspace pane and tab keybindings across Linux, Windows, and
+ * macOS. Explicitly excludes browser-reserved chords (e.g., Ctrl+W/N, Alt+1..9, Cmd+D/R/L,
+ * Ctrl+Shift+O/E/R/T/A/W/I/=).
  */
 export function matchWorkspaceShortcut(
   event: KeyboardShortcutInput,
@@ -261,8 +262,8 @@ export function matchWorkspaceShortcut(
 }
 
 /**
- * Returns true when the keypress is physical Alt+N (macOS Option+N dead-key tilde chord)
- * so capture-phase handling can intercept it before dead-key composition begins.
+ * Returns true when the keypress is physical Alt+N (macOS Option+N dead-key tilde chord) so
+ * capture-phase handling can intercept it before dead-key composition begins.
  */
 export function isAltNReadlineChord(event: KeyboardShortcutInput): boolean {
   return (

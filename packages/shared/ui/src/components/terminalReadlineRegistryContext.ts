@@ -11,5 +11,6 @@ export interface TerminalReadlineRegistryValue {
   readonly registerHandle: (paneId: string, handle: ZshTerminalHandle) => () => void;
 }
 
-export const TerminalReadlineRegistryContext =
-  createContext<TerminalReadlineRegistryValue | null>(null);
+export const TerminalReadlineRegistryContext = createContext<TerminalReadlineRegistryValue | null>(
+  null,
+);

@@ -6,11 +6,7 @@ import {
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  TerminalWorkspace,
-  ZshP10kTerminal,
-  type TerminalFormConfig,
-} from '../src';
+import { TerminalWorkspace, ZshP10kTerminal, type TerminalFormConfig } from '../src';
 
 const BASE_TERMINAL: TerminalProfileData = {
   slug: 'portal-home',
@@ -207,7 +203,10 @@ describe('TerminalWorkspace capture-level readline dispatch and isolation', () =
     expect(document.activeElement).toBe(tabButton);
 
     // Alt+Backspace deletes last word
-    const altBs = dispatchWindowKey({ key: 'Backspace', code: 'Backspace', altKey: true }, tabButton);
+    const altBs = dispatchWindowKey(
+      { key: 'Backspace', code: 'Backspace', altKey: true },
+      tabButton,
+    );
     expect(altBs.defaultPrevented).toBe(true);
     expect(input.value).toBe('alpha beta ');
     expect(document.activeElement).toBe(input);
@@ -365,12 +364,7 @@ describe('TerminalWorkspace capture-level readline dispatch and isolation', () =
       submit,
     };
 
-    render(
-      <TerminalWorkspace
-        terminal={BASE_TERMINAL}
-        terminalForms={{ contact: formConfig }}
-      />,
-    );
+    render(<TerminalWorkspace terminal={BASE_TERMINAL} terminalForms={{ contact: formConfig }} />);
 
     const input = screen.getByLabelText('Terminal command input') as HTMLInputElement;
     const form = input.closest('form') as HTMLFormElement;
@@ -407,7 +401,12 @@ describe('TerminalWorkspace capture-level readline dispatch and isolation', () =
     expect(screen.queryByText('INITIAL_SCROLLBACK_LINE')).toBeNull();
 
     await act(async () => {
-      resolveSubmit({ ok: false, source: 'client', formError: 'cancelled in test', fieldErrors: {} });
+      resolveSubmit({
+        ok: false,
+        source: 'client',
+        formError: 'cancelled in test',
+        fieldErrors: {},
+      });
       await Promise.resolve();
     });
   });
