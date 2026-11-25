@@ -11,6 +11,7 @@ export default [
   route('api/ask/turns/:attemptId', 'routes/api.ask.turns.$attemptId.ts'),
   route('api/analytics/ingest', 'routes/api.analytics.ingest.ts'),
   route('api/cluster/stream', 'routes/api.cluster.stream.ts'),
+  route('api/cadence/runs/:runId/stream', 'routes/api.cadence.runs.$runId.stream.ts'),
   route('changes-in-progress', 'routes/changes-in-progress.tsx'),
   route('*', 'routes/changes-in-progress.tsx', { id: 'routes/changes-in-progress-catchall' }),
 ] satisfies RouteConfig;

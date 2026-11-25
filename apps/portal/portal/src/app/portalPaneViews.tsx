@@ -17,7 +17,7 @@ import {
   TuiWindow,
 } from '@aklapper/ui';
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
-import { href, useFetcher } from 'react-router';
+import { type FetcherWithComponents, href, useFetcher } from 'react-router';
 
 import { PortalAgensiPage } from '#pages/agensi';
 import { type PortalAskActionResult, PortalAskPage } from '#pages/ask';
@@ -26,6 +26,7 @@ import { PortalContactPage } from '#pages/contact';
 import { PortalLauncherTui } from '#pages/home';
 import { PortalMenuPage } from '#pages/menu';
 
+import { useCadenceRunController } from './cadence-stream';
 import { reportPortalClientError, reportPortalPublicError } from './client-telemetry';
 import {
   isPaneLoaderErrorEnvelope,
@@ -310,6 +311,36 @@ function PortalAskPaneView({ ctx }: PaneAdapterProps) {
   );
 }
 
+function PortalCadencePaneBody({
+  data,
+  submitFetcher,
+  onClose,
+}: {
+  readonly data: PortalCadenceLoaderData;
+  readonly submitFetcher: FetcherWithComponents<PortalCadenceActionResult>;
+  readonly onClose: () => void;
+}) {
+  const controller = useCadenceRunController({
+    recentRuns: data.recentRuns,
+    fetcher: submitFetcher,
+  });
+
+  return (
+    <PortalCadencePage
+      content={data.content}
+      presets={data.presets}
+      quota={data.quota}
+      recentRuns={data.recentRuns}
+      actionResult={controller.actionResult}
+      isSubmitting={controller.isSubmitting}
+      isStreaming={controller.isStreaming}
+      onRunBuild={controller.onRunBuild}
+      onGateVerdict={controller.onGateVerdict}
+      onClose={onClose}
+    />
+  );
+}
+
 function PortalCadencePaneView({ ctx }: PaneAdapterProps) {
   const submitFetcher = useFetcher<PortalCadenceActionResult>();
   return (
@@ -321,27 +352,7 @@ function PortalCadencePaneView({ ctx }: PaneAdapterProps) {
       onExit={ctx.exitTui}
     >
       {data => (
-        <PortalCadencePage
-          content={data.content}
-          presets={data.presets}
-          quota={data.quota}
-          recentRuns={data.recentRuns}
-          actionResult={submitFetcher.data}
-          isSubmitting={submitFetcher.state !== 'idle'}
-          onRunBuild={({ prompt, presetSlug }) => {
-            void submitFetcher.submit(
-              { intent: 'run', prompt, presetSlug },
-              { method: 'post', action: href('/cadence') },
-            );
-          }}
-          onGateVerdict={({ runId, verdict }) => {
-            void submitFetcher.submit(
-              { intent: 'gate', runId, verdict },
-              { method: 'post', action: href('/cadence') },
-            );
-          }}
-          onClose={ctx.exitTui}
-        />
+        <PortalCadencePaneBody data={data} submitFetcher={submitFetcher} onClose={ctx.exitTui} />
       )}
     </PaneStreamGate>
   );

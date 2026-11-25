@@ -24,10 +24,22 @@
     font-size: var(--sf-text-xs);
   }
 
-  .presetPanel {
+  .selectorRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: start;
+    gap: var(--sf-gap-md);
+  }
+
+  .selectField {
     display: grid;
-    gap: var(--sf-space-4);
-    padding-top: var(--sf-space-3);
+    gap: var(--sf-gap-xs);
+    flex: 1 1 18rem;
+    min-width: 0;
+  }
+
+  .modeToggle {
+    padding-top: var(--sf-space-6);
   }
 
   .presetPrompt {
@@ -152,6 +164,18 @@
     background: var(--sf-bg-panel);
   }
 
+  .turnCard[data-status='running'] {
+    border-color: var(--sf-gold);
+  }
+
+  .turnCard[data-status='completed'] {
+    border-color: var(--sf-green);
+  }
+
+  .turnCard[data-status='failed'] {
+    border-color: var(--sf-err);
+  }
+
   .turnTop {
     display: flex;
     align-items: var(--sf-align-center);
@@ -164,6 +188,28 @@
   .turnPhase {
     color: var(--sf-gold);
     font-weight: var(--sf-weight-bold);
+  }
+
+  .turnStatus {
+    color: var(--sf-fg-cmt);
+    text-transform: uppercase;
+  }
+
+  .turnStatus[data-status='running'] {
+    color: var(--sf-gold);
+  }
+
+  .turnStatus[data-status='completed'] {
+    color: var(--sf-green);
+  }
+
+  .turnStatus[data-status='failed'] {
+    color: var(--sf-err);
+  }
+
+  .turnMeta {
+    font-family: var(--sf-font-mono), monospace;
+    font-size: var(--sf-text-xs);
   }
 
   .turnAgent {

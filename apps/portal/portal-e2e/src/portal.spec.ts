@@ -353,33 +353,214 @@ test.describe('portal SSR end-to-end journeys', () => {
   });
 
   test('executes live /cadence CHORD 4-phase build, updates sandboxed iframe, and approves gate', async ({
+    browser,
     page,
+    request,
   }) => {
     test.skip(IS_MAINTENANCE_MODE, 'CADENCE builder route is gated in maintenance mode');
     const getErrors = trackPageErrors(page);
 
     await gotoStreamedPage(page, '/cadence');
     await expect(page.getByTestId('cadence-quota-meter')).toBeVisible();
-    await page
-      .getByTestId('cadence-prompt-input')
-      .fill('Build a Solar Forge latency gauge showing Cloud Run and GKE scale-from-zero pods.');
+
+    const selectTrigger = page.getByTestId('cadence-preset-select');
+    await expect(selectTrigger).toBeVisible();
+    const fastSwitch = page.getByTestId('cadence-fast-mode-switch');
+    await expect(fastSwitch).toHaveAttribute('aria-checked', 'true');
+
+    // Dropdown lists all 5 seeded buildable items plus the custom free-form option.
+    await selectTrigger.click();
+    await expect(page.getByRole('option', { name: /Solar Forge Sandbox Starter/i })).toBeVisible();
+    await expect(page.getByRole('option', { name: /GKE Pod Telemetry Widget/i })).toBeVisible();
+    await expect(
+      page.getByRole('option', { name: /CHORD Pipeline Latency Monitor/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('option', { name: /Qdrant Grounded RAG Inspector/i }),
+    ).toBeVisible();
+    await expect(page.getByRole('option', { name: /Zero-Trust Gate Audit Panel/i })).toBeVisible();
+    const customOption = page.getByRole('option', { name: /Custom Prompt \(Free-form\)/i });
+    await expect(customOption).toBeVisible();
+
+    // Selecting a catalog preset populates its starter prompt; switching to Custom keeps user edits.
+    await page.getByRole('option', { name: /CHORD Pipeline Latency Monitor/i }).click();
+    const promptInput = page.getByTestId('cadence-prompt-input');
+    await expect(promptInput).toHaveValue(/triage, spec, build, and gate/i);
+
+    await selectTrigger.click();
+    await customOption.click();
+
+    await promptInput.fill('  ab ');
+    await expect(page.getByTestId('cadence-run-submit')).toBeDisabled();
+
+    const customPrompt =
+      'Build a Solar Forge latency gauge showing Cloud Run and GKE scale-from-zero pods.';
+    await promptInput.fill(customPrompt);
+
+    const streamResponsePromise = page.waitForResponse(
+      res =>
+        /\/api\/cadence\/runs\/[^/]+\/stream$/.test(res.url()) && res.request().method() === 'GET',
+    );
     await page.getByTestId('cadence-run-submit').click();
 
+    const streamResponse = await streamResponsePromise;
+    expect(streamResponse.status()).toBe(200);
+    expect(streamResponse.headers()['content-type']).toContain('text/event-stream');
+    const streamRunIdMatch = /\/api\/cadence\/runs\/([^/]+)\/stream$/.exec(streamResponse.url());
+    expect(streamRunIdMatch?.[1]).toBeTruthy();
+    const createdRunId = streamRunIdMatch?.[1] ?? '';
+
     await expect(page.getByTestId('cadence-active-run')).toBeVisible();
-    await expect(page.getByTestId('cadence-turn-triage')).toBeVisible();
-    await expect(page.getByTestId('cadence-turn-spec')).toBeVisible();
-    await expect(page.getByTestId('cadence-turn-build')).toBeVisible();
-    await expect(page.getByTestId('cadence-turn-gate')).toBeVisible();
+    await expect(page.getByTestId('cadence-turn-triage')).toHaveAttribute(
+      'data-status',
+      'completed',
+    );
+    await expect(page.getByTestId('cadence-turn-spec')).toHaveAttribute('data-status', 'completed');
+    await expect(page.getByTestId('cadence-turn-build')).toHaveAttribute(
+      'data-status',
+      'completed',
+    );
+    await expect(page.getByTestId('cadence-turn-gate')).toHaveAttribute('data-status', 'completed');
     await expect(page.getByTestId('cadence-gate-verdict')).toContainText('pending');
+    await expect(page.getByTestId('cadence-quota-meter')).toContainText('1/5 turns');
 
     const frame = page.locator('iframe[title="CADENCE Artifact Preview"]');
     await expect(frame).toHaveAttribute('sandbox', 'allow-scripts');
+    const srcdoc = (await frame.getAttribute('srcdoc')) ?? '';
+    expect(srcdoc).toContain('scale-from-zero pods');
+    expect(srcdoc).not.toContain('allow-same-origin');
+    const previewFrame = page.frameLocator('iframe[title="CADENCE Artifact Preview"]');
+    await previewFrame.locator('#ping-btn').click();
+    await expect(previewFrame.locator('#probe-val')).toContainText('#1');
 
     await page.getByTestId('cadence-gate-approve').click();
     await expect(page.getByTestId('cadence-gate-verdict')).toContainText('approved');
     await expect(page.getByTestId('cadence-run-history')).toBeVisible();
 
+    // Reload recovers persisted approved run from PG19 without double-charging guest quota.
+    await page.reload();
+    await expect(page.getByTestId('cadence-gate-verdict')).toContainText('approved');
+    await expect(page.getByTestId('cadence-quota-meter')).toContainText('1/5 turns');
+    await expect(page.getByTestId('cadence-run-history')).toBeVisible();
+
+    // Missing cookie -> 401 with zero Set-Cookie; foreign cookie session -> 403.
+    const unauthRes = await request.get(`/api/cadence/runs/${createdRunId}/stream`);
+    expect(unauthRes.status()).toBe(401);
+    expect(unauthRes.headers()['set-cookie']).toBeUndefined();
+
+    const otherContext = await browser.newContext();
+    try {
+      const otherPage = await otherContext.newPage();
+      await gotoStreamedPage(otherPage, '/cadence');
+      const otherStreamRes = await otherPage.request.get(
+        `/api/cadence/runs/${createdRunId}/stream`,
+      );
+      expect(otherStreamRes.status()).toBe(403);
+    } finally {
+      await otherContext.close();
+    }
+
     expect(getErrors()).toEqual([]);
+  });
+
+  test('runs cadence inside docked terminal pane with Select Escape guard and approves gate on /', async ({
+    page,
+  }) => {
+    if (IS_MAINTENANCE_MODE) {
+      return;
+    }
+    const getErrors = trackPageErrors(page);
+
+    await gotoStreamedPage(page, '/');
+    const commandInput = page.getByLabel('Terminal command input', { exact: true });
+    await expect(commandInput).toBeFocused();
+    await commandInput.fill('cadence');
+    await commandInput.press('Enter');
+
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '1');
+    const selectTrigger = page.getByTestId('cadence-preset-select');
+    await expect(selectTrigger).toBeVisible();
+
+    // Opening Select listbox and pressing Escape dismisses only the listbox without popping the pane.
+    await selectTrigger.click();
+    await expect(page.getByRole('listbox')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('listbox')).toHaveCount(0);
+    await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '1');
+    await expect(page.getByTestId('cadence-prompt-input')).toBeVisible();
+
+    await selectTrigger.click();
+    await page.getByRole('option', { name: /GKE Pod Telemetry Widget/i }).click();
+    await page.getByTestId('cadence-run-submit').click();
+
+    await expect(page.getByTestId('cadence-turn-triage')).toHaveAttribute(
+      'data-status',
+      'completed',
+    );
+    await expect(page.getByTestId('cadence-turn-gate')).toHaveAttribute('data-status', 'completed');
+    await page.getByTestId('cadence-gate-approve').click();
+    await expect(page.getByTestId('cadence-gate-verdict')).toContainText('approved');
+    await expect(page).toHaveURL(/\/$/);
+
+    // Pressing Escape when popup is closed cleanly exits docked /cadence back to shell.
+    await page.keyboard.press('Escape');
+    await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '0');
+
+    expect(getErrors()).toEqual([]);
+  });
+
+  test('sanitizes unsafe markup and enforces 429 quota exhaustion cleanly', async ({ browser }) => {
+    if (IS_MAINTENANCE_MODE) {
+      return;
+    }
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    const getErrors = trackPageErrors(page);
+
+    try {
+      await gotoStreamedPage(page, '/cadence');
+      const selectTrigger = page.getByTestId('cadence-preset-select');
+      await selectTrigger.click();
+      await page.getByRole('option', { name: /Custom Prompt \(Free-form\)/i }).click();
+
+      const promptInput = page.getByTestId('cadence-prompt-input');
+      await promptInput.fill(
+        'Render probe <iframe src="https://evil.example"></iframe> <script>alert(1)</script>',
+      );
+      await page.getByTestId('cadence-run-submit').click();
+      await expect(page.getByTestId('cadence-turn-gate')).toHaveAttribute(
+        'data-status',
+        'completed',
+      );
+
+      const frame = page.locator('iframe[title="CADENCE Artifact Preview"]');
+      await expect(frame).toHaveAttribute('sandbox', 'allow-scripts');
+      const srcdoc = (await frame.getAttribute('srcdoc')) ?? '';
+      expect(srcdoc).not.toContain('<iframe');
+      expect(srcdoc).not.toContain('<script>alert(1)</script>');
+      expect(srcdoc).toContain('&lt;iframe');
+
+      // Exhaust remaining 4 session turns cleanly, then assert 6th triggers 429 error banner.
+      for (let i = 2; i <= 5; i += 1) {
+        await promptInput.fill(`Quota exhaustion build run number ${i} telemetry gauge`);
+        await page.getByTestId('cadence-run-submit').click();
+        await expect(page.getByTestId('cadence-quota-meter')).toContainText(`${i}/5 turns`);
+        await expect(page.getByTestId('cadence-turn-gate')).toHaveAttribute(
+          'data-status',
+          'completed',
+        );
+      }
+
+      await promptInput.fill('Sixth attempt should hit atomic session turn limit');
+      await page.getByTestId('cadence-run-submit').click();
+      await expect(page.getByTestId('cadence-error-banner')).toBeVisible();
+      await expect(page.getByTestId('cadence-quota-meter')).toContainText('5/5 turns');
+
+      expect(getErrors()).toEqual([]);
+    } finally {
+      await context.close();
+    }
   });
 
   test('streams public-only events from /api/cluster/stream and rejects /contact honeypot spam', async ({

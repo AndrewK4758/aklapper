@@ -31,6 +31,7 @@ import {
   selectRelativeWorkspaceTab,
   selectWorkspaceTab,
   selectWorkspaceTabByIndex,
+  Select,
   setPaneTuiOpen,
   setSplitRatio,
   splitActivePane,
@@ -1398,5 +1399,74 @@ describe('TerminalWorkspace', () => {
     fireEvent.pointerMove(zoomedDragHandle);
     fireEvent.mouseEnter(zoomedDragHandle);
     expect(screen.queryByText('Drag to swap, dock, or drop onto tab strip to detach')).toBeNull();
+  });
+
+  it('allows Escape to exit TUI pane while passive Tooltip is open but blocks Escape while interactive Select popup is open', async () => {
+    const { container } = render(
+      <Tooltip.Provider delay={0}>
+        <TerminalWorkspace
+          terminal={TERMINAL_FIXTURE}
+          renderPaneView={ctx => {
+            if (ctx.viewId === 'tui') {
+              return (
+                <TuiWindow title='Interactive Select Pane' onClose={ctx.exitTui}>
+                  <Select.Root defaultValue='one'>
+                    <Select.Trigger data-testid='pane-select-trigger'>
+                      <Select.Value />
+                    </Select.Trigger>
+                    <Select.Portal>
+                      <Select.Positioner>
+                        <Select.Popup>
+                          <Select.List>
+                            <Select.Item value='one'>
+                              <Select.ItemText>Option One</Select.ItemText>
+                            </Select.Item>
+                          </Select.List>
+                        </Select.Popup>
+                      </Select.Positioner>
+                    </Select.Portal>
+                  </Select.Root>
+                </TuiWindow>
+              );
+            }
+            return null;
+          }}
+        />
+      </Tooltip.Provider>,
+    );
+
+    const openTui = () => {
+      const input = screen.getByLabelText('Terminal command input') as HTMLInputElement;
+      fireEvent.change(input, { target: { value: 'tui' } });
+      fireEvent.submit(input.closest('form') as HTMLFormElement);
+    };
+
+    const pane1 = () => container.querySelector('[data-pane-id="pane-1"]') as HTMLElement;
+
+    // 1. Open TUI and open interactive Select popup -> Escape closes popup without exiting TUI pane.
+    openTui();
+    expect(pane1().getAttribute('data-tui-depth')).toBe('1');
+    const selectTrigger = screen.getByTestId('pane-select-trigger');
+    fireEvent.click(selectTrigger);
+    await screen.findByRole('listbox');
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+    await waitFor(() => {
+      expect(screen.queryByRole('listbox')).toBeNull();
+    });
+    expect(pane1().getAttribute('data-tui-depth')).toBe('1');
+
+    // 2. Focus passive Tooltip trigger (sets data-popup-open without aria-haspopup) -> Escape MUST still exit TUI pane.
+    const newTabButton = screen.getByRole('button', { name: 'New terminal tab' });
+    fireEvent.focus(newTabButton);
+    await waitFor(() => {
+      expect(screen.getByText('New Tab (Alt+Shift+T)')).toBeTruthy();
+    });
+    expect(newTabButton.getAttribute('data-popup-open')).not.toBeNull();
+    expect(newTabButton.getAttribute('aria-haspopup')).toBeNull();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => {
+      expect(pane1().getAttribute('data-tui-depth')).toBe('0');
+    });
   });
 });

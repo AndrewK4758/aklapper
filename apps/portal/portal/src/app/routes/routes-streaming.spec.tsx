@@ -21,14 +21,16 @@ const {
   loadPortalAskMock,
   loadPortalCadenceMock,
   consumeQuotaMock,
-  updateGateMock,
+  createPendingRunMock,
+  updateGateForSessionMock,
 } = vi.hoisted(() => ({
   getSharedDbMock: vi.fn<() => Record<string, never>>(() => ({})),
   loadPortalHomeMock: vi.fn<() => Promise<PortalHomeLoaderData>>(),
   loadPortalAskMock: vi.fn<(sid?: string) => Promise<PortalAskLoaderData>>(),
   loadPortalCadenceMock: vi.fn<(sid?: string) => Promise<PortalCadenceLoaderData>>(),
   consumeQuotaMock: vi.fn<() => Promise<{ allowed: boolean; quota: QuotaStatus }>>(),
-  updateGateMock: vi.fn<() => Promise<null>>(),
+  createPendingRunMock: vi.fn<() => Promise<never>>(),
+  updateGateForSessionMock: vi.fn<() => Promise<never>>(),
 }));
 
 vi.mock('@aklapper/db', async importOriginal => {
@@ -40,7 +42,8 @@ vi.mock('@aklapper/db', async importOriginal => {
     loadPortalAskDataWithPrerender: loadPortalAskMock,
     loadPortalCadenceDataWithPrerender: loadPortalCadenceMock,
     consumeQuotaForSession: consumeQuotaMock,
-    updateSandboxRunGateVerdict: updateGateMock,
+    createPendingSandboxRunWithQuota: createPendingRunMock,
+    updateSandboxRunGateVerdictForSession: updateGateForSessionMock,
   };
 });
 
@@ -439,7 +442,7 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
       { name: 'DrizzleQueryError', cause: new Error('connection terminated') },
     );
 
-    consumeQuotaMock.mockRejectedValueOnce(drizzleError);
+    createPendingRunMock.mockRejectedValueOnce(drizzleError);
     const cadRunErrCtx = makeContext('corr-cad-run-503');
     const cadRunErrRes = await cadenceAction({
       request: makeFormRequest('https://andrew-k.us/cadence', {
@@ -463,12 +466,12 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
     expect(JSON.stringify(cadRunErrRes.data)).not.toContain('connection terminated');
     expect(cadRunErrCtx.errorCalls).toHaveLength(1);
 
-    updateGateMock.mockRejectedValueOnce(drizzleError);
+    updateGateForSessionMock.mockRejectedValueOnce(drizzleError);
     const cadGateErrCtx = makeContext('corr-cad-gate-503');
     const cadGateErrRes = await cadenceAction({
       request: makeFormRequest('https://andrew-k.us/cadence', {
         intent: 'gate',
-        runId: 'run-123',
+        runId: '33333333-3333-4333-8333-333333333333',
         verdict: 'approved',
       }),
       params: {},
