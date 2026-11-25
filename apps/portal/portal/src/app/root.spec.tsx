@@ -4,6 +4,7 @@ import {
   type PortalRootLoaderData,
   type StreamResult,
 } from '@aklapper/core';
+import { usePaneNavigation, ViewportProvider } from '@aklapper/ui';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { createRoutesStub, RouterContextProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -109,9 +110,12 @@ const MAINTENANCE_FIXTURE: PortalMaintenanceLoaderData = {
   ],
 };
 
-function makeRootLoaderArgs(url = 'https://andrew-k.us/'): Parameters<typeof loader>[0] {
+function makeRootLoaderArgs(
+  url = 'https://andrew-k.us/',
+  headers?: HeadersInit,
+): Parameters<typeof loader>[0] {
   return {
-    request: new Request(url),
+    request: new Request(url, { headers }),
     params: {},
     context: new RouterContextProvider(),
     unstable_pattern: '/',
@@ -385,5 +389,92 @@ describe('PortalRoot', () => {
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('ERR_INTERNAL');
     expect(alert.textContent).not.toContain('/srv/secret/file.ts');
+  });
+
+  it('detects initialViewport synchronously from Sec-CH-UA-Mobile and User-Agent headers', () => {
+    loadPortalRootDataWithPrerenderMock.mockReturnValue(
+      Promise.resolve({
+        maintenanceMode: false,
+        chrome: CHROME_FIXTURE,
+        maintenance: null,
+      }),
+    );
+
+    const mobileResult = loader(
+      makeRootLoaderArgs('https://andrew-k.us/', { 'Sec-CH-UA-Mobile': '?1' }),
+    );
+    expect(mobileResult.initialViewport).toBe('mobile-portrait');
+
+    const desktopResult = loader(
+      makeRootLoaderArgs('https://andrew-k.us/', { 'Sec-CH-UA-Mobile': '?0' }),
+    );
+    expect(desktopResult.initialViewport).toBe('desktop');
+  });
+
+  it('resets PortalMobileWorkspaceHost in-pane TUI stack on dock route navigation and exitTui', async () => {
+    function StackTriggerHome() {
+      const paneNav = usePaneNavigation();
+      return (
+        <div>
+          <span>Mobile Home Content</span>
+          <button type='button' onClick={() => paneNav?.push('tui')}>
+            Open Stacked TUI
+          </button>
+        </div>
+      );
+    }
+
+    const Stub = createRoutesStub([
+      {
+        id: 'root',
+        path: '/',
+        loader: () => ({
+          runtimeSeo: { siteUrl: 'https://andrew-k.us' },
+          correlationId: 'corr-mobile-stack',
+          initialViewport: 'mobile-portrait' as const,
+          maintenanceMode: false,
+          rootPayload: Promise.resolve<StreamResult<PortalRootLoaderData>>({
+            ok: true,
+            data: {
+              maintenanceMode: false,
+              chrome: CHROME_FIXTURE,
+              maintenance: null,
+              homeContent: {
+                tuiTitle: 'Solar Forge Launcher',
+                tuiBadge: { source: 'portal', state: 'ready', label: 'READY' },
+                heading: 'Welcome Launcher',
+                description: 'Pick a view',
+                actions: [],
+              },
+            },
+          }),
+        }),
+        Component: PortalRoot,
+        ErrorBoundary,
+        children: [
+          { index: true, Component: StackTriggerHome },
+          { path: 'menu', Component: () => <div>Menu Route Content</div> },
+        ],
+      },
+    ]);
+
+    render(
+      <ViewportProvider mode='mobile-portrait'>
+        <Stub initialEntries={['/']} />
+      </ViewportProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Open Stacked TUI' }));
+    expect(await screen.findByText('Welcome Launcher')).toBeTruthy();
+
+    // Activating Back button in sticky TUI header pops stack and restores home content
+    fireEvent.click(screen.getByRole('button', { name: 'Back to previous pane' }));
+    expect(await screen.findByText('Mobile Home Content')).toBeTruthy();
+
+    // Re-push stack, then navigate via bottom dock link -> resets stack and shows /menu
+    fireEvent.click(screen.getByRole('button', { name: 'Open Stacked TUI' }));
+    expect(await screen.findByText('Welcome Launcher')).toBeTruthy();
+    fireEvent.click(screen.getByRole('link', { name: 'Menu' }));
+    expect(await screen.findByText('Menu Route Content')).toBeTruthy();
   });
 });

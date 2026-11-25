@@ -1,9 +1,10 @@
 import { Select as BaseSelect } from '@base-ui/react/select';
 
-import { styledPart } from '../_internal/elementFactory';
+import { cx, styledPart, viewportStyledPart } from '../_internal/elementFactory';
 
 import disclosureStyles from '../_styles/disclosure.module.css';
 import menuStyles from '../_styles/menu.module.css';
+import overlayMobileStyles from '../_styles/overlay-mobile.module.css';
 import overlayStyles from '../_styles/overlay.module.css';
 
 export const Select = {
@@ -13,9 +14,22 @@ export const Select = {
   Value: styledPart(BaseSelect.Value, menuStyles.value, 'Select.Value'),
   Icon: styledPart(BaseSelect.Icon, menuStyles.icon, 'Select.Icon'),
   Portal: BaseSelect.Portal,
-  Backdrop: styledPart(BaseSelect.Backdrop, overlayStyles.backdrop, 'Select.Backdrop'),
-  Positioner: styledPart(BaseSelect.Positioner, menuStyles.positioner, 'Select.Positioner'),
-  Popup: styledPart(BaseSelect.Popup, menuStyles.popup, 'Select.Popup'),
+  Backdrop: viewportStyledPart(
+    BaseSelect.Backdrop,
+    cx(overlayStyles.backdrop, overlayMobileStyles.sheetBackdrop),
+    'Select.Backdrop',
+  ),
+  Positioner: viewportStyledPart(
+    BaseSelect.Positioner,
+    cx(menuStyles.positioner, overlayMobileStyles.sheetPositioner),
+    'Select.Positioner',
+  ),
+  Popup: viewportStyledPart(
+    BaseSelect.Popup,
+    cx(menuStyles.popup, overlayMobileStyles.sheetPopup),
+    'Select.Popup',
+    { mobileSheet: true },
+  ),
   List: styledPart(BaseSelect.List, menuStyles.list, 'Select.List'),
   Item: styledPart(BaseSelect.Item, menuStyles.item, 'Select.Item'),
   ItemIndicator: styledPart(
@@ -24,7 +38,11 @@ export const Select = {
     'Select.ItemIndicator',
   ),
   ItemText: styledPart(BaseSelect.ItemText, menuStyles.itemText, 'Select.ItemText'),
-  Arrow: styledPart(BaseSelect.Arrow, overlayStyles.arrow, 'Select.Arrow'),
+  Arrow: viewportStyledPart(
+    BaseSelect.Arrow,
+    cx(overlayStyles.arrow, overlayMobileStyles.sheetArrow),
+    'Select.Arrow',
+  ),
   ScrollUpArrow: styledPart(
     BaseSelect.ScrollUpArrow,
     menuStyles.scrollArrow,

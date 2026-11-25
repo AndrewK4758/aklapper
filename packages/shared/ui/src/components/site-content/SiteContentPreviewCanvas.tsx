@@ -17,6 +17,7 @@ import { cx } from '../../elements/_internal/elementFactory';
 import { OscStatusBadge } from '../../elements/OscStatusBadge';
 import { RecursiveTuiForm } from '../RecursiveTuiForm';
 import { TuiWindow } from '../TuiWindow';
+import { ViewportProvider } from '../ViewportProvider';
 import { MaintenanceProgressCard } from './MaintenanceProgressCard';
 import { SiteChromePreviewBar } from './SiteChromePreviewBar';
 import { SiteContentWindowHeader } from './SiteContentWindowHeader';
@@ -248,18 +249,25 @@ export function SiteContentPreviewCanvas({
   viewport,
 }: SiteContentPreviewCanvasProps) {
   const rendered = renderKeyPreview(contentKey, metadata);
+  const scopedViewportMode = viewport === 'mobile' ? 'mobile-portrait' : 'desktop';
 
   return (
-    <div
-      className={cx(styles.previewViewport, viewport === 'mobile' && styles.previewViewportMobile)}
-      data-preview-viewport={viewport}
-      data-preview-key={contentKey}
-    >
-      {rendered ?? (
-        <output className={styles.previewNotice}>
-          Preview waiting for valid metadata matching <code>{contentKey}</code>.
-        </output>
-      )}
-    </div>
+    <ViewportProvider mode={scopedViewportMode}>
+      <div
+        className={cx(
+          styles.previewViewport,
+          viewport === 'mobile' && styles.previewViewportMobile,
+        )}
+        data-preview-viewport={viewport}
+        data-viewport={scopedViewportMode}
+        data-preview-key={contentKey}
+      >
+        {rendered ?? (
+          <output className={styles.previewNotice}>
+            Preview waiting for valid metadata matching <code>{contentKey}</code>.
+          </output>
+        )}
+      </div>
+    </ViewportProvider>
   );
 }

@@ -22,13 +22,17 @@ import {
   logDiagnosticError,
 } from '@aklapper/node-runtime/ssr/stream';
 import {
+  detectServerViewportMode,
   DirectionProvider,
   DocumentBodyAnalytics,
   DocumentHeadTags,
   RouteErrorBoundaryView,
+  type ServerViewportLayoutMode,
   SuspenseElement,
   Tooltip,
   useAnimatedFavicon,
+  ViewportHtml,
+  ViewportProvider,
 } from '@aklapper/ui';
 import type { ReactNode } from 'react';
 import {
@@ -62,6 +66,7 @@ export type AdminRoutePathParityCheck = [
 export interface AdminRootStreamData {
   readonly runtimeSeo: DocumentSeoRuntimeConfig;
   readonly correlationId: string;
+  readonly initialViewport: ServerViewportLayoutMode;
   readonly isLoginRoute: boolean;
   readonly session: AuthSession | null;
   readonly authMeta: {
@@ -115,10 +120,12 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Ad
     defaultSiteUrl: DEFAULT_ADMIN_SITE_URL,
     siteUrlEnvKey: 'PUBLIC_ADMIN_URL',
   });
+  const initialViewport = detectServerViewportMode(request.headers);
 
   return {
     runtimeSeo,
     correlationId,
+    initialViewport,
     isLoginRoute,
     session: isAuthenticatedAdmin ? status.session : null,
     authMeta: {
@@ -190,28 +197,30 @@ export function Layout({ children }: { children: ReactNode }) {
   const canonicalUrl = buildCanonicalUrl(siteUrl, location.pathname);
 
   return (
-    <html lang='en' data-theme='solar-forge'>
-      <head>
-        <DocumentHeadTags
-          applicationName='admin.andrew-k.us // Solar Forge Ops'
-          canonicalUrl={canonicalUrl}
-          robots={ADMIN_ROBOTS_DIRECTIVE}
-          analyticsApp='admin'
-          runtimeSeo={rootData?.runtimeSeo}
-        />
-        {rootData?.correlationId ? (
-          <meta name='aklapper-correlation-id' content={rootData.correlationId} />
-        ) : null}
-        <Meta />
-        <Links />
-      </head>
-      <body>
-        <DocumentBodyAnalytics gtmId={rootData?.runtimeSeo?.gtmId} />
-        {children}
-        <ScrollRestoration />
-        <Scripts />
-      </body>
-    </html>
+    <ViewportProvider initialMode={rootData?.initialViewport ?? 'desktop'}>
+      <ViewportHtml lang='en' data-theme='solar-forge'>
+        <head>
+          <DocumentHeadTags
+            applicationName='admin.andrew-k.us // Solar Forge Ops'
+            canonicalUrl={canonicalUrl}
+            robots={ADMIN_ROBOTS_DIRECTIVE}
+            analyticsApp='admin'
+            runtimeSeo={rootData?.runtimeSeo}
+          />
+          {rootData?.correlationId ? (
+            <meta name='aklapper-correlation-id' content={rootData.correlationId} />
+          ) : null}
+          <Meta />
+          <Links />
+        </head>
+        <body>
+          <DocumentBodyAnalytics gtmId={rootData?.runtimeSeo?.gtmId} />
+          {children}
+          <ScrollRestoration />
+          <Scripts />
+        </body>
+      </ViewportHtml>
+    </ViewportProvider>
   );
 }
 

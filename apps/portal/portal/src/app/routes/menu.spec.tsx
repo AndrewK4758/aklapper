@@ -63,6 +63,7 @@ describe('PortalMenuRoute', () => {
           loaderData: {
             runtimeSeo: { siteUrl: 'https://andrew-k.us' },
             correlationId: 'corr-root',
+            initialViewport: 'desktop',
             maintenanceMode: false,
             rootPayload: Promise.withResolvers<never>().promise,
           },

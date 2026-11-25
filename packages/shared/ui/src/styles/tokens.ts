@@ -156,11 +156,36 @@ export const SF_KEYFRAMES = {
   indeterminate: 'sf-indeterminate',
 } as const;
 
+export const SF_MOBILE_TOKENS = {
+  touchMin: '--sf-mobile-touch-min',
+  inputFontSize: '--sf-mobile-input-font-size',
+  safeTop: '--sf-safe-top',
+  safeRight: '--sf-safe-right',
+  safeBottom: '--sf-safe-bottom',
+  safeLeft: '--sf-safe-left',
+  headerH: '--sf-mobile-header-h',
+  dockH: '--sf-mobile-dock-h',
+  railW: '--sf-mobile-rail-w',
+  railExpandedW: '--sf-mobile-rail-expanded-w',
+  accessoryH: '--sf-mobile-accessory-h',
+  sheetRadius: '--sf-mobile-sheet-radius',
+  sheetShadow: '--sf-mobile-sheet-shadow',
+  sheetMaxH: '--sf-mobile-sheet-max-h',
+  handleW: '--sf-mobile-handle-w',
+  handleH: '--sf-mobile-handle-h',
+  zDock: '--sf-z-mobile-dock',
+  zAccessory: '--sf-z-mobile-accessory',
+  zSheet: '--sf-z-mobile-sheet',
+  activeScale: '--sf-mobile-active-scale',
+  activeOpacity: '--sf-mobile-active-opacity',
+} as const;
+
 export const SF_TOKENS = {
   spacing: SF_SPACING_TOKENS,
   alignment: SF_ALIGNMENT_TOKENS,
   typography: SF_TYPOGRAPHY_TOKENS,
   layout: SF_LAYOUT_TOKENS,
+  mobile: SF_MOBILE_TOKENS,
   animation: SF_ANIMATION_TOKENS,
   keyframes: SF_KEYFRAMES,
 } as const;
@@ -170,6 +195,7 @@ export type SfCssTokenName =
   | (typeof SF_ALIGNMENT_TOKENS)[keyof typeof SF_ALIGNMENT_TOKENS]
   | (typeof SF_TYPOGRAPHY_TOKENS)[keyof typeof SF_TYPOGRAPHY_TOKENS]
   | (typeof SF_LAYOUT_TOKENS)[keyof typeof SF_LAYOUT_TOKENS]
+  | (typeof SF_MOBILE_TOKENS)[keyof typeof SF_MOBILE_TOKENS]
   | (typeof SF_ANIMATION_TOKENS)[keyof typeof SF_ANIMATION_TOKENS];
 
 export function sfVar(token: SfCssTokenName): `var(${SfCssTokenName})` {

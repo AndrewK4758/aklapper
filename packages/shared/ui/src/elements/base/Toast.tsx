@@ -1,15 +1,19 @@
 import { Toast as BaseToast } from '@base-ui/react/toast';
 
-import { cx, styledPart } from '../_internal/elementFactory';
+import { cx, styledPart, viewportStyledPart } from '../_internal/elementFactory';
 
 import overlayStyles from '../_styles/overlay.module.css';
 
 export const Toast = {
   Provider: BaseToast.Provider,
   Portal: BaseToast.Portal,
-  Viewport: styledPart(BaseToast.Viewport, overlayStyles.toastViewport, 'Toast.Viewport'),
-  Positioner: styledPart(BaseToast.Positioner, overlayStyles.toastPositioner, 'Toast.Positioner'),
-  Root: styledPart(BaseToast.Root, overlayStyles.toastRoot, 'Toast.Root'),
+  Viewport: viewportStyledPart(BaseToast.Viewport, overlayStyles.toastViewport, 'Toast.Viewport'),
+  Positioner: viewportStyledPart(
+    BaseToast.Positioner,
+    overlayStyles.toastPositioner,
+    'Toast.Positioner',
+  ),
+  Root: viewportStyledPart(BaseToast.Root, overlayStyles.toastRoot, 'Toast.Root'),
   Content: styledPart(BaseToast.Content, overlayStyles.toastContent, 'Toast.Content'),
   Title: styledPart(BaseToast.Title, overlayStyles.title, 'Toast.Title'),
   Description: styledPart(BaseToast.Description, overlayStyles.description, 'Toast.Description'),

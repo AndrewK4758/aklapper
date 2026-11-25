@@ -1,26 +1,40 @@
 import { PreviewCard as BasePreviewCard } from '@base-ui/react/preview-card';
 
-import { styledPart } from '../_internal/elementFactory';
+import { cx, viewportStyledPart } from '../_internal/elementFactory';
 
+import overlayMobileStyles from '../_styles/overlay-mobile.module.css';
 import overlayStyles from '../_styles/overlay.module.css';
 
 export const PreviewCard = {
   Root: BasePreviewCard.Root,
   Trigger: BasePreviewCard.Trigger,
   Portal: BasePreviewCard.Portal,
-  Backdrop: styledPart(BasePreviewCard.Backdrop, overlayStyles.backdrop, 'PreviewCard.Backdrop'),
-  Positioner: styledPart(
+  Backdrop: viewportStyledPart(
+    BasePreviewCard.Backdrop,
+    cx(overlayStyles.backdrop, overlayMobileStyles.sheetBackdrop),
+    'PreviewCard.Backdrop',
+  ),
+  Positioner: viewportStyledPart(
     BasePreviewCard.Positioner,
-    overlayStyles.positioner,
+    cx(overlayStyles.positioner, overlayMobileStyles.sheetPositioner),
     'PreviewCard.Positioner',
   ),
-  Popup: styledPart(BasePreviewCard.Popup, overlayStyles.floatingPopup, 'PreviewCard.Popup'),
-  Viewport: styledPart(
+  Popup: viewportStyledPart(
+    BasePreviewCard.Popup,
+    cx(overlayStyles.floatingPopup, overlayMobileStyles.sheetPopup),
+    'PreviewCard.Popup',
+    { mobileSheet: true },
+  ),
+  Viewport: viewportStyledPart(
     BasePreviewCard.Viewport,
     overlayStyles.floatingViewport,
     'PreviewCard.Viewport',
   ),
-  Arrow: styledPart(BasePreviewCard.Arrow, overlayStyles.arrow, 'PreviewCard.Arrow'),
+  Arrow: viewportStyledPart(
+    BasePreviewCard.Arrow,
+    cx(overlayStyles.arrow, overlayMobileStyles.sheetArrow),
+    'PreviewCard.Arrow',
+  ),
   Handle: BasePreviewCard.Handle,
   createHandle: BasePreviewCard.createHandle,
 } as const;

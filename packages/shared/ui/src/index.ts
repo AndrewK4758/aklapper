@@ -34,11 +34,6 @@ export {
 } from './components/LazyChunkBoundary';
 export { LoadingElement, type LoadingElementProps } from './components/LoadingElement';
 export {
-  MobileAppShell,
-  type MobileAppShellProps,
-  type MobileNavItem,
-} from './components/MobileAppShell';
-export {
   RecursiveTuiForm,
   type RecursiveTuiFormProps,
   type RecursiveTuiFormRenderProps,
@@ -156,15 +151,27 @@ export {
   type TerminalNavTarget,
 } from './components/terminalPaneNav';
 export {
+  detectServerViewportMode,
+  type ElementViewMode,
   isPortraitViewport,
   MOBILE_LANDSCAPE_MEDIA_QUERY,
   MOBILE_PORTRAIT_MEDIA_QUERY,
   resolveAutoSplitDirection,
+  resolveElementViewport,
   resolveViewportLayoutMode,
+  type ServerViewportLayoutMode,
   useAutoSplitDirection,
-  useViewportLayoutMode,
   type ViewportLayoutMode,
 } from './components/terminalViewportSplit';
+export {
+  useViewportContext,
+  useViewportLayoutMode,
+  ViewportContext,
+  type ViewportContextValue,
+  ViewportHtml,
+  ViewportProvider,
+  type ViewportProviderProps,
+} from './components/ViewportProvider';
 export { PaneLink, type PaneLinkProps } from './components/PaneLink';
 export {
   PaneNavigationContext,
@@ -212,6 +219,8 @@ export {
   mergeBaseClassName,
   type SlotProps,
   styledPart,
+  type StyledPartOptions,
+  viewportStyledPart,
 } from './elements/_internal/elementFactory';
 export * from './elements/base';
 export { OscStatusBadge, type OscStatusBadgeProps } from './elements/OscStatusBadge';
@@ -230,6 +239,7 @@ export {
   SF_ANIMATION_TOKENS,
   SF_KEYFRAMES,
   SF_LAYOUT_TOKENS,
+  SF_MOBILE_TOKENS,
   SF_SPACING_TOKENS,
   SF_TOKENS,
   SF_TYPOGRAPHY_TOKENS,

@@ -23,6 +23,12 @@
       "import": "./dist/terminal-workspace.js",
       "default": "./dist/terminal-workspace.js"
     },
+    "./mobile-tui-workspace": {
+      "@aklapper/source": "./src/mobile-tui-workspace.ts",
+      "types": "./dist/mobile-tui-workspace.d.ts",
+      "import": "./dist/mobile-tui-workspace.js",
+      "default": "./dist/mobile-tui-workspace.js"
+    },
     "./workspace-storage": {
       "@aklapper/source": "./src/workspace-storage.ts",
       "types": "./dist/workspace-storage.d.ts",
@@ -55,6 +61,7 @@
     "./tokens/colors.css": "./src/styles/tokens/colors.css",
     "./tokens/typography.css": "./src/styles/tokens/typography.css",
     "./tokens/layout.css": "./src/styles/tokens/layout.css",
+    "./tokens/mobile.css": "./src/styles/tokens/mobile.css",
     "./tokens/animations.css": "./src/styles/tokens/animations.css",
     "./element.css": "./src/styles/element.css",
     "./solar-forge.css": "./src/styles/solar-forge.css"

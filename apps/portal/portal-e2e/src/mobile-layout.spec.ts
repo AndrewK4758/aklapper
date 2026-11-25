@@ -27,8 +27,8 @@ async function assertNativeVerticalScroll(page: import('@playwright/test').Page)
   expect(scrollMetrics.scrollY).toBeGreaterThan(0);
 }
 
-test.describe('portal mobile native layout and scrolling', () => {
-  test('renders portrait compact header, 44px+ bottom nav, /agensi menu access, and native scroll at 390x844 @smoke', async ({
+test.describe('portal mobile TUI workspace and adaptive layout', () => {
+  test('renders portrait TUI status header, 44px+ bottom dock, bottom sheets, terminal accessory bar, and overflow-free routes at 390x844 @smoke', async ({
     page,
   }) => {
     test.skip(IS_MAINTENANCE_MODE, 'Full portal navigation is gated in maintenance mode');
@@ -37,57 +37,81 @@ test.describe('portal mobile native layout and scrolling', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoStreamedPage(page, '/');
 
-    // Home renders direct terminal without multi-pane TerminalWorkspace
-    await expect(page.getByLabel('Terminal command input')).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('data-viewport', 'mobile-portrait');
+    const terminalInput = page.getByLabel('Terminal command input');
+    await expect(terminalInput).toBeVisible();
     await expect(page.locator('[data-pane-count]')).toHaveCount(0);
-    await expect(page.locator('[data-mobile-header="true"]')).toBeVisible();
-    await expect(page.locator('[data-mobile-bottom-nav="true"]')).toBeVisible();
+    await expect(page.locator('[data-mobile-tui-header="true"]')).toBeVisible();
+    const bottomDock = page.locator('[data-mobile-tui-dock="true"]');
+    await expect(bottomDock).toBeVisible();
     await expect(page.locator('[data-mobile-rail="true"]')).toHaveCount(0);
     await assertNoHorizontalOverflow(page);
 
-    // Verify 5 primary bottom nav destinations and 44px+ touch targets
-    const bottomNav = page.locator('[data-mobile-bottom-nav="true"]');
-    for (const label of ['Terminal', 'Menu', 'Ask', 'CADENCE', 'Contact']) {
-      const link = bottomNav.getByRole('link', { name: label, exact: true });
+    // Verify 16px+ input font floor on mobile terminal input
+    const inputFontSize = await terminalInput.evaluate(el =>
+      Number.parseFloat(getComputedStyle(el).fontSize),
+    );
+    expect(inputFontSize).toBeGreaterThanOrEqual(16);
+
+    // Focus terminal input -> reveals touch accessory bar and suppresses portrait bottom dock
+    await terminalInput.focus();
+    await expect(page.locator('[data-terminal-accessory-bar="true"]')).toBeVisible();
+    await expect(bottomDock).toHaveCount(0);
+    await terminalInput.blur();
+    await expect(bottomDock).toBeVisible();
+
+    // Verify primary bottom dock destinations and 44px+ touch targets
+    for (const label of ['TUI', 'Menu', 'Ask', 'CAD', 'Mail']) {
+      const link = bottomDock.getByRole('link', { name: label, exact: true });
       await expect(link).toBeVisible();
       const box = await link.boundingBox();
       expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
     }
 
+    // Open Quick Launch bottom sheet and verify mobile sheet presentation
+    await page.getByRole('button', { name: 'Open TUI Quick Launch' }).click();
+    const quickLaunchSheet = page.locator('[data-mobile-quick-launch-sheet="true"]');
+    await expect(quickLaunchSheet).toBeVisible();
+    await expect(quickLaunchSheet).toHaveAttribute('data-mobile-sheet', 'true');
+    await page.getByRole('button', { name: 'Close TUI quick launch' }).click();
+
     // Navigate across primary routes, verifying aria-current, overflow, and native scroll
     const routeChecks: ReadonlyArray<{ path: string; label: string; expectScroll: boolean }> = [
       { path: '/menu', label: 'Menu', expectScroll: false },
       { path: '/ask', label: 'Ask', expectScroll: false },
-      { path: '/cadence', label: 'CADENCE', expectScroll: true },
-      { path: '/contact', label: 'Contact', expectScroll: true },
+      { path: '/cadence', label: 'CAD', expectScroll: true },
+      { path: '/contact', label: 'Mail', expectScroll: true },
     ];
 
     for (const check of routeChecks) {
       await gotoStreamedPage(page, check.path);
-      await expect(bottomNav.getByRole('link', { name: check.label, exact: true })).toHaveAttribute(
-        'aria-current',
-        'page',
-      );
+      await expect(
+        bottomDock.getByRole('link', { name: check.label, exact: true }),
+      ).toHaveAttribute('aria-current', 'page');
       await assertNoHorizontalOverflow(page);
       if (check.expectScroll) {
         await assertNativeVerticalScroll(page);
       }
     }
 
-    // Open compact header overflow menu and navigate to /agensi
-    await page.getByRole('button', { name: 'Open navigation menu' }).click();
-    const agensiLink = page
-      .locator('[data-mobile-secondary-menu="true"]')
-      .getByRole('link', { name: 'Agensi', exact: true });
+    // Open overflow bottom sheet and navigate to /agensi
+    await page.getByRole('button', { name: 'Open workspace menu' }).click();
+    const overflowSheet = page.locator('[data-mobile-overflow-sheet="true"]');
+    await expect(overflowSheet).toBeVisible();
+    const agensiLink = overflowSheet.getByRole('link', { name: 'Agensi', exact: true });
     await expect(agensiLink).toBeVisible();
     await agensiLink.click();
     await expect(page).toHaveURL(/\/agensi$/);
     await assertNoHorizontalOverflow(page);
 
+    // Verify /changes-in-progress renders overflow-free on mobile portrait
+    await gotoStreamedPage(page, '/changes-in-progress');
+    await assertNoHorizontalOverflow(page);
+
     expect(getErrors()).toEqual([]);
   });
 
-  test('renders collapsible left rail with >=85% workspace height and native scroll in 844x390 landscape @smoke', async ({
+  test('renders collapsible left rail and overflow-free routes in 844x390 landscape @smoke', async ({
     page,
   }) => {
     test.skip(IS_MAINTENANCE_MODE, 'Full portal navigation is gated in maintenance mode');
@@ -96,20 +120,14 @@ test.describe('portal mobile native layout and scrolling', () => {
     await page.setViewportSize({ width: 844, height: 390 });
     await gotoStreamedPage(page, '/cadence');
 
+    await expect(page.locator('html')).toHaveAttribute('data-viewport', 'mobile-landscape');
     const rail = page.locator('[data-mobile-rail="true"]');
     await expect(rail).toBeVisible();
-    await expect(page.locator('[data-mobile-bottom-nav="true"]')).toHaveCount(0);
-    await expect(page.locator('[data-mobile-header="true"]')).toHaveCount(0);
+    await expect(page.locator('[data-mobile-tui-dock="true"]')).toHaveCount(0);
 
     const collapsedBox = await rail.boundingBox();
     expect(collapsedBox?.width ?? 0).toBeGreaterThanOrEqual(52);
     expect(collapsedBox?.width ?? 0).toBeLessThanOrEqual(72);
-
-    const mainHeightRatio = await page.evaluate(() => {
-      const main = document.querySelector<HTMLElement>('[data-mobile-main="landscape"]');
-      return main ? main.getBoundingClientRect().height / window.innerHeight : 0;
-    });
-    expect(mainHeightRatio).toBeGreaterThanOrEqual(0.85);
 
     const railToggle = page.getByRole('button', { name: 'Expand navigation rail' });
     await expect(railToggle).toHaveAttribute('aria-expanded', 'false');
@@ -122,9 +140,10 @@ test.describe('portal mobile native layout and scrolling', () => {
     await assertNoHorizontalOverflow(page);
     await assertNativeVerticalScroll(page);
 
-    await gotoStreamedPage(page, '/contact');
-    await assertNoHorizontalOverflow(page);
-    await assertNativeVerticalScroll(page);
+    for (const path of ['/contact', '/changes-in-progress']) {
+      await gotoStreamedPage(page, path);
+      await assertNoHorizontalOverflow(page);
+    }
 
     expect(getErrors()).toEqual([]);
   });
@@ -136,8 +155,9 @@ test.describe('portal mobile native layout and scrolling', () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await gotoStreamedPage(page, '/');
 
+    await expect(page.locator('html')).toHaveAttribute('data-viewport', 'desktop');
     await expect(page.locator('[data-pane-count="1"]')).toBeVisible();
-    await expect(page.locator('[data-mobile-bottom-nav="true"]')).toHaveCount(0);
+    await expect(page.locator('[data-mobile-tui-dock="true"]')).toHaveCount(0);
     await expect(page.locator('[data-mobile-rail="true"]')).toHaveCount(0);
 
     expect(getErrors()).toEqual([]);

@@ -1,8 +1,15 @@
 import { AlertDialog as BaseAlertDialog } from '@base-ui/react/alert-dialog';
 
-import { createSlot, cx, type SlotProps, styledPart } from '../_internal/elementFactory';
+import {
+  createSlot,
+  cx,
+  type SlotProps,
+  styledPart,
+  viewportStyledPart,
+} from '../_internal/elementFactory';
 
 import controlStyles from '../_styles/control.module.css';
+import overlayMobileStyles from '../_styles/overlay-mobile.module.css';
 import overlayStyles from '../_styles/overlay.module.css';
 
 export type AlertDialogActionsProps = SlotProps<'div'>;
@@ -12,12 +19,21 @@ export const AlertDialog = {
   Root: BaseAlertDialog.Root,
   Trigger: styledPart(BaseAlertDialog.Trigger, controlStyles.button, 'AlertDialog.Trigger'),
   Portal: BaseAlertDialog.Portal,
-  Backdrop: styledPart(BaseAlertDialog.Backdrop, overlayStyles.backdrop, 'AlertDialog.Backdrop'),
-  Viewport: styledPart(BaseAlertDialog.Viewport, overlayStyles.viewport, 'AlertDialog.Viewport'),
-  Popup: styledPart(
+  Backdrop: viewportStyledPart(
+    BaseAlertDialog.Backdrop,
+    cx(overlayStyles.backdrop, overlayMobileStyles.sheetBackdrop),
+    'AlertDialog.Backdrop',
+  ),
+  Viewport: viewportStyledPart(
+    BaseAlertDialog.Viewport,
+    cx(overlayStyles.viewport, overlayMobileStyles.sheetViewport),
+    'AlertDialog.Viewport',
+  ),
+  Popup: viewportStyledPart(
     BaseAlertDialog.Popup,
-    cx(overlayStyles.dialogPopup, overlayStyles.alertPopup),
+    cx(overlayStyles.dialogPopup, overlayStyles.alertPopup, overlayMobileStyles.sheetPopup),
     'AlertDialog.Popup',
+    { mobileSheet: true },
   ),
   Title: styledPart(BaseAlertDialog.Title, overlayStyles.title, 'AlertDialog.Title'),
   Description: styledPart(

@@ -12,13 +12,17 @@ import {
 import { loadPortalRootDataWithPrerender } from '@aklapper/db';
 import { deferStreamResult, getOrCreateCorrelationId } from '@aklapper/node-runtime/ssr/stream';
 import {
+  detectServerViewportMode,
   DirectionProvider,
   DocumentBodyAnalytics,
   DocumentHeadTags,
   RouteErrorBoundaryView,
+  type ServerViewportLayoutMode,
   SuspenseElement,
   Tooltip,
   useAnimatedFavicon,
+  ViewportHtml,
+  ViewportProvider,
 } from '@aklapper/ui';
 import type { ReactNode } from 'react';
 import {
@@ -56,6 +60,7 @@ export type PortalRoutePathParityCheck = [
 export interface PortalRootStreamData {
   readonly runtimeSeo: DocumentSeoRuntimeConfig;
   readonly correlationId: string;
+  readonly initialViewport: ServerViewportLayoutMode;
   readonly maintenanceMode: boolean;
   readonly rootPayload: Promise<StreamResult<PortalRootLoaderData>>;
 }
@@ -65,6 +70,7 @@ export function loader({ request, context }: Route.LoaderArgs): PortalRootStream
   const maintenanceModeOverride =
     envFlag === 'true' ? true : envFlag === 'false' ? false : undefined;
   const correlationId = getOrCreateCorrelationId(request, context);
+  const initialViewport = detectServerViewportMode(request.headers);
   const runtimeSeo = readSeoRuntimeConfig({
     defaultSiteUrl: DEFAULT_PORTAL_SITE_URL,
     siteUrlEnvKey: 'PUBLIC_PORTAL_URL',
@@ -73,6 +79,7 @@ export function loader({ request, context }: Route.LoaderArgs): PortalRootStream
   return {
     runtimeSeo,
     correlationId,
+    initialViewport,
     maintenanceMode: maintenanceModeOverride === true,
     rootPayload: deferStreamResult(loadPortalRootDataWithPrerender(maintenanceModeOverride), {
       request,
@@ -130,29 +137,31 @@ export function Layout({ children }: { children: ReactNode }) {
   const canonicalUrl = buildCanonicalUrl(siteUrl, pathname);
 
   return (
-    <html lang='en' data-theme='solar-forge'>
-      <head>
-        <DocumentHeadTags
-          applicationName='andrew-k.us // Solar Forge'
-          canonicalUrl={canonicalUrl}
-          robots={isNoIndex ? 'noindex, nofollow' : 'index, follow'}
-          analyticsApp='portal'
-          runtimeSeo={rootData?.runtimeSeo}
-          jsonLd={isNoIndex ? undefined : buildPortalJsonLd(siteUrl)}
-        />
-        {rootData?.correlationId ? (
-          <meta name='aklapper-correlation-id' content={rootData.correlationId} />
-        ) : null}
-        <Meta />
-        <Links />
-      </head>
-      <body>
-        <DocumentBodyAnalytics gtmId={rootData?.runtimeSeo?.gtmId} />
-        {children}
-        <ScrollRestoration />
-        <Scripts />
-      </body>
-    </html>
+    <ViewportProvider initialMode={rootData?.initialViewport ?? 'desktop'}>
+      <ViewportHtml lang='en' data-theme='solar-forge'>
+        <head>
+          <DocumentHeadTags
+            applicationName='andrew-k.us // Solar Forge'
+            canonicalUrl={canonicalUrl}
+            robots={isNoIndex ? 'noindex, nofollow' : 'index, follow'}
+            analyticsApp='portal'
+            runtimeSeo={rootData?.runtimeSeo}
+            jsonLd={isNoIndex ? undefined : buildPortalJsonLd(siteUrl)}
+          />
+          {rootData?.correlationId ? (
+            <meta name='aklapper-correlation-id' content={rootData.correlationId} />
+          ) : null}
+          <Meta />
+          <Links />
+        </head>
+        <body>
+          <DocumentBodyAnalytics gtmId={rootData?.runtimeSeo?.gtmId} />
+          {children}
+          <ScrollRestoration />
+          <Scripts />
+        </body>
+      </ViewportHtml>
+    </ViewportProvider>
   );
 }
 

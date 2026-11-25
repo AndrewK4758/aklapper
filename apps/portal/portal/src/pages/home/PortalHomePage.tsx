@@ -8,6 +8,7 @@ import {
   TerminalWorkspace,
   TuiHeroCard,
   TuiWindow,
+  usePaneNavigation,
   useViewportLayoutMode,
   ZshP10kTerminal,
 } from '@aklapper/ui';
@@ -77,15 +78,20 @@ export function PortalHomePage({
   onNavigate,
 }: PortalHomePageProps) {
   const layoutMode = useViewportLayoutMode();
+  const paneNav = usePaneNavigation();
   const mobileCommands = useMemo(
     () =>
       buildZshCommandHandlers(terminal.commands, {
         navigate: onNavigate,
         openTui: () => {
-          void onNavigate?.('/menu');
+          if (paneNav) {
+            paneNav.push('tui');
+          } else {
+            void onNavigate?.('/menu');
+          }
         },
       }),
-    [terminal.commands, onNavigate],
+    [terminal.commands, onNavigate, paneNav],
   );
 
   if (layoutMode !== 'desktop') {

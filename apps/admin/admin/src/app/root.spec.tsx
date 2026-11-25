@@ -500,17 +500,17 @@ describe('AdminRoot', () => {
 
       const { unmount: unmountAuth } = render(<AuthHandheldStub initialEntries={['/cms']} />);
       expect(await screen.findByText('CMS Mobile View')).toBeTruthy();
-      expect(document.querySelector('[data-mobile-bottom-nav="true"]')).toBeTruthy();
+      expect(document.querySelector('[data-mobile-tui-dock="true"]')).toBeTruthy();
       expect(screen.getByRole('link', { name: 'CMS' }).getAttribute('aria-current')).toBe('page');
       expect(
         infoSpy.mock.calls.some(
           call =>
             String(call[0]).includes('admin.root.workspace_mount_branch') &&
-            String(call[0]).includes('"branch":"mobile-app-shell"'),
+            String(call[0]).includes('"branch":"mobile-tui-workspace"'),
         ),
       ).toBe(true);
 
-      fireEvent.click(screen.getByRole('button', { name: 'Open navigation menu' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Open workspace menu' }));
       expect(screen.getByRole('link', { name: 'Quotas' }).getAttribute('href')).toBe('/quotas');
       fireEvent.click(screen.getByRole('button', { name: 'Sign Out' }));
       await waitFor(() => {
@@ -546,7 +546,7 @@ describe('AdminRoot', () => {
 
       const { unmount: unmountLogin } = render(<LoginHandheldStub initialEntries={['/login']} />);
       expect(await screen.findByText('Mobile Login Form')).toBeTruthy();
-      expect(document.querySelector('[data-mobile-bottom-nav="true"]')).toBeNull();
+      expect(document.querySelector('[data-mobile-tui-dock="true"]')).toBeNull();
       expect(
         infoSpy.mock.calls.some(
           call =>
@@ -589,7 +589,7 @@ describe('AdminRoot', () => {
 
       render(<UnauthNonLoginStub initialEntries={['/cms']} />);
       expect(await screen.findByText('Guarded Outlet')).toBeTruthy();
-      expect(document.querySelector('[data-mobile-bottom-nav="true"]')).toBeNull();
+      expect(document.querySelector('[data-mobile-tui-dock="true"]')).toBeNull();
       expect(
         warnSpy.mock.calls.some(call => {
           const raw = String(call[0]);

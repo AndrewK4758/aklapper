@@ -19,6 +19,11 @@ import { Button, Form, Input, ScrollArea, Separator, Toolbar } from '../elements
 import { SolarForgeEmblem } from '../elements/SolarForgeEmblem';
 import { MAX_TERMINAL_HISTORY_ENTRIES, trimCommandHistory } from './routeWorkspaceSnapshot';
 import {
+  dispatchTerminalAccessoryAction,
+  type TerminalAccessoryAction,
+  TerminalAccessoryBar,
+} from './TerminalAccessoryBar';
+import {
   formatTerminalClock,
   getTerminalClockSnapshot,
   subscribeTerminalClock,
@@ -40,6 +45,7 @@ import {
   type ZshTerminalHandle,
 } from './terminalReadlineRegistryContext';
 import { useHydrated } from './useHydrated';
+import { useViewportContext } from './ViewportProvider';
 
 import styles from './ZshP10kTerminal.module.css';
 
@@ -252,6 +258,8 @@ export function ZshP10kTerminal({
 }: ZshP10kTerminalProps) {
   const shouldShowBanner = showBanner ?? variant !== 'viewport';
   const isHydrated = useHydrated();
+  const { isMobile } = useViewportContext();
+  const [inputFocused, setInputFocused] = useState(false);
   const [entries, setEntries] = useState<ZshTerminalHistoryItem[]>(() =>
     initialEntries.map((item, idx) => ({ ...item, id: `init-${idx}` })),
   );
@@ -1086,10 +1094,15 @@ export function ZshP10kTerminal({
                       value={input}
                       disabled={isSubmittingForm}
                       onChange={event => setInput(event.target.value)}
-                      onFocus={onFocusPane}
+                      onFocus={() => {
+                        setInputFocused(true);
+                        onFocusPane?.();
+                      }}
+                      onBlur={() => setInputFocused(false)}
                       onKeyDown={handleKeyDown}
                       placeholder={activePlaceholder}
                       aria-label={inputLabel}
+                      data-terminal-input='true'
                       data-form-field={activeFormStep?.field.name}
                       autoComplete='off'
                       autoCorrect='off'
@@ -1104,10 +1117,15 @@ export function ZshP10kTerminal({
                       value={input}
                       disabled={isSubmittingForm}
                       onChange={event => setInput(event.target.value)}
-                      onFocus={onFocusPane}
+                      onFocus={() => {
+                        setInputFocused(true);
+                        onFocusPane?.();
+                      }}
+                      onBlur={() => setInputFocused(false)}
                       onKeyDown={handleKeyDown}
                       placeholder={activePlaceholder}
                       aria-label={inputLabel}
+                      data-terminal-input='true'
                       data-form-field={activeFormStep?.field.name}
                       autoComplete='off'
                       autoCorrect='off'
@@ -1135,6 +1153,18 @@ export function ZshP10kTerminal({
           <ScrollArea.Thumb />
         </ScrollArea.Scrollbar>
       </ScrollArea.Root>
+
+      <TerminalAccessoryBar
+        visible={isMobile && inputFocused}
+        quickCommands={isFormActive ? [] : quickCommands}
+        onAction={(action: TerminalAccessoryAction) => {
+          dispatchTerminalAccessoryAction(
+            action,
+            isTextareaStep ? textareaRef.current : inputRef.current,
+            runQuickCommand,
+          );
+        }}
+      />
 
       {quickCommands.length > 0 ? (
         <>

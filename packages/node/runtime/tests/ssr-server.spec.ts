@@ -59,7 +59,43 @@ describe('@aklapper/node-runtime/ssr', () => {
 
     expect(res.status).toBe(200);
     expect(res.headers.get('X-Test')).toBe('ok');
+    expect(res.headers.get('Vary')).toContain('Sec-CH-UA-Mobile');
+    expect(res.headers.get('Vary')).toContain('User-Agent');
     expect(res.body).toBeNull();
+  });
+
+  it('merges Vary header tokens without duplicates while preserving existing Vary values', async () => {
+    const entry = createEntryServer({ streamTimeout: 2_500 });
+    const headers = new Headers({ Vary: 'Accept-Encoding, User-Agent' });
+    const res = await entry.handleRequest(
+      new Request('http://localhost/', { method: 'HEAD' }),
+      200,
+      headers,
+      {} as EntryContext,
+    );
+
+    const varyTokens = (res.headers.get('Vary') ?? '')
+      .split(',')
+      .map(token => token.trim())
+      .filter(Boolean);
+    expect(varyTokens).toContain('Accept-Encoding');
+    expect(varyTokens).toContain('User-Agent');
+    expect(varyTokens).toContain('Sec-CH-UA-Mobile');
+    expect(varyTokens.filter(token => token.toLowerCase() === 'user-agent')).toHaveLength(1);
+    expect(varyTokens.filter(token => token.toLowerCase() === 'sec-ch-ua-mobile')).toHaveLength(1);
+  });
+
+  it('preserves Vary: * alone without appending tokens per RFC 9110', async () => {
+    const entry = createEntryServer({ streamTimeout: 2_500 });
+    const headers = new Headers({ Vary: '*' });
+    const res = await entry.handleRequest(
+      new Request('http://localhost/', { method: 'HEAD' }),
+      200,
+      headers,
+      {} as EntryContext,
+    );
+
+    expect(res.headers.get('Vary')).toBe('*');
   });
 
   it('serves /healthz and bridges SSR GET headers including multi-value Set-Cookie', async () => {

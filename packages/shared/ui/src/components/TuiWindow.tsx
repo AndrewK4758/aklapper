@@ -14,7 +14,7 @@ import { Toolbar } from '../elements/base';
 import { Tooltip } from '../elements/base';
 import { useIsPaneActive } from './paneActiveContext';
 import { usePaneNavigation } from './paneNavigationContext';
-import { useViewportLayoutMode } from './terminalViewportSplit';
+import { useViewportLayoutMode } from './ViewportProvider';
 
 import styles from './TuiWindow.module.css';
 

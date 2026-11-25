@@ -50,6 +50,7 @@ function makeRootStreamData(data: PortalRootLoaderData): PortalRootStreamData {
   return {
     runtimeSeo: { siteUrl: 'https://andrew-k.us' },
     correlationId: 'corr-root-pane',
+    initialViewport: 'desktop',
     maintenanceMode: data.maintenanceMode,
     rootPayload: Promise.resolve<StreamResult<PortalRootLoaderData>>({ ok: true, data }),
   };
