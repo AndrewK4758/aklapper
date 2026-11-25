@@ -16,6 +16,8 @@
     "db:migrate": "nx run node-db:db-migrate",
     "db:seed": "nx run node-db:db-seed",
     "db:setup": "nx run node-db:db-setup",
+    "qdrant:seed": "nx run go-kit:qdrant-seed",
+    "qdrant:dry-run": "nx run go-kit:qdrant-dry-run",
     "gh:sync-env": "node --conditions=@aklapper/source packages/tooling/src/sync-github-env.ts",
     "mwg:scan": "pnpm dlx modern-web-guidance@latest legacy-scan apps && pnpm dlx modern-web-guidance@latest legacy-scan packages/shared"
   },

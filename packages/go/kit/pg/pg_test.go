@@ -11,6 +11,42 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+type stubCorpusQuerier struct {
+	queryErr error
+	rowsErr  error
+	scanErr  error
+}
+
+func (q *stubCorpusQuerier) Query(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+	if q.queryErr != nil {
+		return nil, q.queryErr
+	}
+	return &stubCorpusRows{rowsErr: q.rowsErr, scanErr: q.scanErr}, nil
+}
+
+type stubCorpusRows struct {
+	pgx.Rows
+	idx     int
+	rowsErr error
+	scanErr error
+}
+
+func (r *stubCorpusRows) Close()     {}
+func (r *stubCorpusRows) Err() error { return r.rowsErr }
+func (r *stubCorpusRows) Next() bool {
+	if r.scanErr != nil && r.idx == 0 {
+		r.idx++
+		return true
+	}
+	return false
+}
+func (r *stubCorpusRows) Scan(_ ...any) error {
+	if r.scanErr != nil {
+		return r.scanErr
+	}
+	return nil
+}
+
 func TestValidateDSN(t *testing.T) {
 	t.Parallel()
 
@@ -316,5 +352,40 @@ func TestResolveAgensiCreatorHandleAndLoadQuery(t *testing.T) {
 	qFail := &stubQuerier{err: errBoom}
 	if _, err := queryPublishedCreatorSkills(context.Background(), qFail, "aklapper"); !errors.Is(err, errBoom) {
 		t.Fatalf("expected live SQL error propagation, got %v", err)
+	}
+}
+
+func TestOpenBestEffortAndLoadCorpusErrorPropagation(t *testing.T) {
+	t.Setenv("PG_DISABLE_LIVE", "false")
+	t.Setenv("DATABASE_URL", "postgres://postgres:postgres@127.0.0.1:1/aklapper?sslmode=disable")
+
+	degraded := OpenBestEffort(context.Background())
+	if degraded.IsLivePG() {
+		t.Fatal("expected IsLivePG() == false on unreachable PG")
+	}
+	if degraded.OpenError() == nil {
+		t.Fatal("expected OpenBestEffort to record OpenError when PG_DISABLE_LIVE != true")
+	}
+	if _, err := degraded.LoadCorpusDocs(context.Background()); err == nil {
+		t.Fatal("expected LoadCorpusDocs to fail fast when Store has OpenError")
+	}
+
+	t.Setenv("PG_DISABLE_LIVE", "true")
+	disabled := OpenBestEffort(context.Background())
+	if disabled.OpenError() != nil {
+		t.Fatalf("expected nil OpenError when PG_DISABLE_LIVE=true, got %v", disabled.OpenError())
+	}
+	if docs, err := disabled.LoadCorpusDocs(context.Background()); err != nil || len(docs) < 4 {
+		t.Fatalf("expected curated docs when PG_DISABLE_LIVE=true, got len=%d err=%v", len(docs), err)
+	}
+
+	if _, err := loadCorpusDocsFromQuerier(context.Background(), &stubCorpusQuerier{queryErr: errors.New("boom query")}, "aklapper", CuratedPortfolioDocs()); err == nil {
+		t.Fatal("expected query error to propagate")
+	}
+	if _, err := loadCorpusDocsFromQuerier(context.Background(), &stubCorpusQuerier{scanErr: errors.New("boom scan")}, "aklapper", CuratedPortfolioDocs()); err == nil {
+		t.Fatal("expected scan error to propagate")
+	}
+	if _, err := loadCorpusDocsFromQuerier(context.Background(), &stubCorpusQuerier{rowsErr: errors.New("boom rows")}, "aklapper", CuratedPortfolioDocs()); err == nil {
+		t.Fatal("expected rows.Err() to propagate")
 	}
 }

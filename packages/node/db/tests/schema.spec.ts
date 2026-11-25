@@ -58,11 +58,12 @@ describe('@aklapper/db', () => {
     expect(askTurns.leaseExpiresAt.name).toBe('lease_expires_at');
     expect(askTurns.expiresAt.name).toBe('expires_at');
     expect(QDRANT_COLLECTIONS.map(c => [c.name, c.vectorSize])).toEqual([
-      ['ak_dossier', 768],
       ['cadence_patterns', 768],
-      ['verified_artifacts', 768],
       ['portfolio_docs', 768],
     ]);
+    expect(
+      QDRANT_COLLECTIONS.every(c => c.vectorSize === 768 && c.distance === 'Cosine' && c.onDisk),
+    ).toBe(true);
     expect(DEFAULT_MENU_ITEMS.some(item => item.adminOnly)).toBe(true);
     expect(Object.keys(SITE_CONTENT_KEYS)).toHaveLength(11);
     expect(SITE_CONTENT_KEYS.portalAgensi).toBe('portal-agensi');

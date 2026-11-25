@@ -3,6 +3,7 @@ import {
   type AdminServiceHealth,
   type CadenceAdminStatus,
   CadenceAdminStatusSchema,
+  type QdrantCollectionHealth,
   type QdrantHealthStatus,
   QdrantHealthStatusSchema,
 } from '@aklapper/core';
@@ -92,59 +93,111 @@ export async function fetchCadenceAdminStatus(): Promise<CadenceAdminStatus> {
 interface RawAiAskStatus {
   status?: string;
   provider?: string;
-  pgConnected?: boolean;
-  collection?: {
-    name?: string;
+  collection?: { name?: string; status?: string; pointsCount?: number };
+}
+
+async function probeCollection(
+  qdrantUrl: string,
+  name: string,
+  apiKey?: string,
+): Promise<QdrantCollectionHealth & { httpStatus?: number; error?: string }> {
+  const res = await proxyJson<{
     status?: string;
-    pointsCount?: number;
+    result?: { status?: string; points_count?: number };
+  }>({
+    baseUrl: qdrantUrl,
+    path: `/collections/${encodeURIComponent(name)}`,
+    method: 'GET',
+    ...(apiKey ? { headers: { 'api-key': apiKey } } : {}),
+    timeoutMs: 2_500,
+  });
+  if (!res.ok || !res.data) {
+    const isAuthError = res.status === 401 || res.status === 403;
+    return {
+      name,
+      online: false,
+      status: isAuthError ? 'error' : 'offline',
+      pointsCount: 0,
+      httpStatus: res.status,
+      error: res.error,
+    };
+  }
+  const pointsCount = Number(res.data.result?.points_count ?? 0);
+  const status =
+    pointsCount === 0 ? 'degraded' : (res.data.result?.status ?? res.data.status ?? 'green');
+  return {
+    name,
+    online: true,
+    status,
+    pointsCount,
   };
 }
 
-interface RawQdrantCollectionResponse {
-  status?: string;
-  result?: {
-    status?: string;
-    points_count?: number;
+function toCollectionHealth(entry: QdrantCollectionHealth): QdrantCollectionHealth {
+  return {
+    name: entry.name,
+    online: entry.online,
+    status: entry.status,
+    pointsCount: entry.pointsCount,
   };
 }
 
 export const QDRANT_REINDEX_TIMEOUT_MS = 90_000;
 
 export async function fetchQdrantStatus(): Promise<QdrantHealthStatus> {
-  const aiAskUrl = process.env['AI_ASK_URL']?.trim();
+  const [aiAskUrl, qdrantUrl, qdrantApiKey] = [
+    process.env['AI_ASK_URL']?.trim(),
+    process.env['QDRANT_URL']?.trim(),
+    process.env['QDRANT_API_KEY']?.trim(),
+  ];
+  const parse = (p: Partial<QdrantHealthStatus>) =>
+    QdrantHealthStatusSchema.parse({ collection: 'portfolio_docs', pointsCount: 0, ...p });
+
   if (aiAskUrl) {
-    const result = await proxyJson<RawAiAskStatus>({
+    const res = await proxyJson<RawAiAskStatus>({
       baseUrl: aiAskUrl,
       path: '/v1/ask/status',
       method: 'GET',
       timeoutMs: 2_500,
     });
-    if (result.ok && result.data) {
-      const collection = result.data.collection;
-      const provider = result.data.provider?.trim() || 'dual-provider';
-      const pointsCount = Number(collection?.pointsCount ?? 0);
-      const status =
-        pointsCount === 0 ? 'degraded' : (collection?.status ?? result.data.status ?? 'ok');
-      return QdrantHealthStatusSchema.parse({
-        online: true,
-        collection: collection?.name ?? 'portfolio_docs',
-        pointsCount,
+    if (res.ok && res.data) {
+      const col = res.data.collection;
+      const provider = res.data.provider?.trim() || 'dual-provider';
+      const rawStatus = col?.status ?? res.data.status ?? 'ok';
+      const bad = new Set(['degraded', 'unreachable', 'offline', 'error']);
+      const online = !(bad.has(res.data.status ?? '') || bad.has(col?.status ?? ''));
+      const pointsCount = Number(col?.pointsCount ?? 0);
+      const status = online && pointsCount === 0 ? 'degraded' : rawStatus;
+      const portfolio: QdrantCollectionHealth = {
+        name: col?.name ?? 'portfolio_docs',
+        online,
         status,
+        pointsCount,
+      };
+      const collections = qdrantUrl
+        ? [
+            portfolio,
+            toCollectionHealth(await probeCollection(qdrantUrl, 'cadence_patterns', qdrantApiKey)),
+          ]
+        : [portfolio];
+      return parse({
+        online,
+        collection: portfolio.name,
+        pointsCount: portfolio.pointsCount,
+        status: portfolio.status,
         provider,
-        detail:
-          pointsCount === 0
+        detail: !online
+          ? `ai-ask reported Qdrant ${status} (${provider}).`
+          : pointsCount === 0
             ? `Connected via ai-ask (${provider}) with 0 indexed points.`
             : `Connected via ai-ask (${provider}).`,
+        collections,
       });
     }
   }
-
-  const qdrantUrl = process.env['QDRANT_URL']?.trim();
   if (!qdrantUrl) {
-    return QdrantHealthStatusSchema.parse({
+    return parse({
       online: false,
-      collection: 'portfolio_docs',
-      pointsCount: 0,
       status: aiAskUrl ? 'offline' : 'unconfigured',
       provider: 'unconfigured',
       detail: aiAskUrl
@@ -152,46 +205,24 @@ export async function fetchQdrantStatus(): Promise<QdrantHealthStatus> {
         : 'AI_ASK_URL and QDRANT_URL not configured.',
     });
   }
-
-  const qdrantApiKey = process.env['QDRANT_API_KEY']?.trim();
-  const qdrantRes = await proxyJson<RawQdrantCollectionResponse>({
-    baseUrl: qdrantUrl,
-    path: '/collections/portfolio_docs',
-    method: 'GET',
-    ...(qdrantApiKey ? { headers: { 'api-key': qdrantApiKey } } : {}),
-    timeoutMs: 2_500,
-  });
-
-  if (!qdrantRes.ok || !qdrantRes.data) {
-    const isAuthError = qdrantRes.status === 401 || qdrantRes.status === 403;
-    return QdrantHealthStatusSchema.parse({
-      online: false,
-      collection: 'portfolio_docs',
-      pointsCount: 0,
-      status: isAuthError ? 'error' : 'offline',
-      provider: 'qdrant-direct',
-      detail: isAuthError
-        ? `Qdrant authentication failed (HTTP ${qdrantRes.status}).`
-        : (qdrantRes.error ?? 'Qdrant collection probe unavailable.'),
-    });
-  }
-
-  const pointsCount = Number(qdrantRes.data.result?.points_count ?? 0);
-  const resolvedStatus =
-    pointsCount === 0
-      ? 'degraded'
-      : (qdrantRes.data.result?.status ?? qdrantRes.data.status ?? 'green');
-
-  return QdrantHealthStatusSchema.parse({
-    online: true,
-    collection: 'portfolio_docs',
-    pointsCount,
-    status: resolvedStatus,
+  const [portfolio, cadence] = await Promise.all([
+    probeCollection(qdrantUrl, 'portfolio_docs', qdrantApiKey),
+    probeCollection(qdrantUrl, 'cadence_patterns', qdrantApiKey),
+  ]);
+  const isAuthError = portfolio.httpStatus === 401 || portfolio.httpStatus === 403;
+  return parse({
+    online: portfolio.online,
+    pointsCount: portfolio.pointsCount,
+    status: portfolio.status,
     provider: 'qdrant-direct',
-    detail:
-      pointsCount === 0
-        ? 'Direct Qdrant collection online with 0 indexed points.'
-        : 'Direct Qdrant collection probe healthy.',
+    detail: isAuthError
+      ? `Qdrant authentication failed (HTTP ${portfolio.httpStatus}).`
+      : !portfolio.online
+        ? (portfolio.error ?? 'Qdrant collection probe unavailable.')
+        : portfolio.pointsCount === 0
+          ? 'Direct Qdrant collection online with 0 indexed points.'
+          : 'Direct Qdrant collection probe healthy.',
+    collections: [toCollectionHealth(portfolio), toCollectionHealth(cadence)],
   });
 }
 

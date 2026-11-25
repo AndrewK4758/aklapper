@@ -20,6 +20,9 @@ const (
 	ExpectedEmbeddingDims  = 768
 )
 
+// ErrEmptyEmbedding indicates an embedding backend succeeded over HTTP but returned zero dimensions.
+var ErrEmptyEmbedding = errors.New("empty embedding vector")
+
 // ValidateEmbeddingDims verifies embedding vectors match the configured 768-dim Qdrant index
 // and contain finite float values before any vector store I/O occurs.
 func ValidateEmbeddingDims(vec []float32) error {
@@ -153,8 +156,8 @@ func (c *LocalClient) Embed(ctx context.Context, text string) ([]float32, error)
 	if err := json.NewDecoder(res.Body).Decode(&parsed); err != nil {
 		return nil, err
 	}
-	if len(parsed.Data) == 0 {
-		return nil, errors.New("local llm returned zero embeddings")
+	if len(parsed.Data) == 0 || len(parsed.Data[0].Embedding) == 0 {
+		return nil, fmt.Errorf("%w: local llm returned zero embeddings", ErrEmptyEmbedding)
 	}
 	return parsed.Data[0].Embedding, nil
 }
@@ -422,7 +425,7 @@ func (v *VertexClient) Embed(ctx context.Context, text string) ([]float32, error
 		return nil, err
 	}
 	if len(parsed.Predictions) == 0 || len(parsed.Predictions[0].Embeddings.Values) == 0 {
-		return nil, errors.New("vertex ai returned zero embeddings")
+		return nil, fmt.Errorf("%w: vertex ai returned zero embeddings", ErrEmptyEmbedding)
 	}
 	return parsed.Predictions[0].Embeddings.Values, nil
 }

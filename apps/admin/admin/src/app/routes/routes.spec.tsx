@@ -1,4 +1,5 @@
 import {
+  type AdminOpsLoaderData,
   type AdminOverviewLoaderData,
   type AdminRootLoaderData,
   createPublicAppError,
@@ -17,6 +18,11 @@ const authMocks = vi.hoisted(() => ({
 
 vi.mock('@aklapper/db/auth', () => authMocks);
 
+import {
+  fetchQdrantStatus,
+  QDRANT_REINDEX_TIMEOUT_MS,
+  triggerQdrantReindex,
+} from '../admin-ops.server';
 import AdminRoot from '../root';
 import { ADMIN_ROBOTS_DIRECTIVE, buildAdminPageMeta } from '../seo';
 import {
@@ -373,5 +379,93 @@ describe('Admin streaming routes, auth guards & SEO', () => {
     ]);
     render(<Stub initialEntries={['/login']} />);
     expect(await screen.findByRole('heading', { name: 'Admin Passkey Gate' })).toBeTruthy();
+  });
+
+  it('forwards api-key on direct Qdrant probe, honors 90s reindex timeout, and renders multi-collection breakdown', async () => {
+    const prevAiAsk = process.env['AI_ASK_URL'];
+    const prevQdrantUrl = process.env['QDRANT_URL'];
+    const prevQdrantKey = process.env['QDRANT_API_KEY'];
+
+    const seenHeaders: Array<string | null> = [];
+    const seenUrls: string[] = [];
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    let reindexHasSignal = false;
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const url =
+        typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      seenUrls.push(url);
+      seenHeaders.push(new Headers(init?.headers).get('api-key'));
+      if (url.endsWith('/collections/portfolio_docs')) {
+        return Response.json({ result: { status: 'green', points_count: 11 } });
+      }
+      if (url.endsWith('/collections/cadence_patterns')) {
+        return Response.json({ result: { status: 'green', points_count: 8 } });
+      }
+      if (url.endsWith('/v1/ask/reindex')) {
+        reindexHasSignal = Boolean(init?.signal);
+        return Response.json({ indexed: 11, collection: 'portfolio_docs', provider: 'local' });
+      }
+      return new Response('not found', { status: 404 });
+    });
+
+    try {
+      delete process.env['AI_ASK_URL'];
+      process.env['QDRANT_URL'] = 'http://qdrant.local:6333';
+      process.env['QDRANT_API_KEY'] = 'qdrant-secret-api-key';
+
+      const status = await fetchQdrantStatus();
+      expect(status.online).toBe(true);
+      expect(status.pointsCount).toBe(11);
+      expect(status.collections).toEqual([
+        { name: 'portfolio_docs', online: true, status: 'green', pointsCount: 11 },
+        { name: 'cadence_patterns', online: true, status: 'green', pointsCount: 8 },
+      ]);
+      expect(seenUrls).toEqual([
+        'http://qdrant.local:6333/collections/portfolio_docs',
+        'http://qdrant.local:6333/collections/cadence_patterns',
+      ]);
+      expect(seenHeaders).toEqual(['qdrant-secret-api-key', 'qdrant-secret-api-key']);
+
+      process.env['AI_ASK_URL'] = 'http://ai-ask.local:8083';
+      const reindex = await triggerQdrantReindex();
+      expect(reindexHasSignal).toBe(true);
+      expect(timeoutSpy).toHaveBeenCalledWith(QDRANT_REINDEX_TIMEOUT_MS);
+      expect(reindex).toEqual({
+        ok: true,
+        indexed: 11,
+        collection: 'portfolio_docs',
+        message: 'Re-indexed 11 documents into portfolio_docs.',
+      });
+
+      const multiOpsData: AdminOpsLoaderData = {
+        ...ADMIN_OPS_FIXTURE,
+        qdrantStatus: status,
+      };
+      const Stub = createRoutesStub([
+        {
+          path: '/ops',
+          loader: () => ({
+            correlationId: 'corr-ops-multi',
+            payload: Promise.resolve<StreamResult<AdminOpsLoaderData>>({
+              ok: true,
+              data: multiOpsData,
+            }),
+          }),
+          Component: AdminOpsRoute,
+        },
+      ]);
+      render(<Stub initialEntries={['/ops']} />);
+      expect(await screen.findByText('8 pts (green)')).toBeTruthy();
+      expect(screen.getByText('11 pts (green)')).toBeTruthy();
+    } finally {
+      timeoutSpy.mockRestore();
+      fetchSpy.mockRestore();
+      if (prevAiAsk === undefined) delete process.env['AI_ASK_URL'];
+      else process.env['AI_ASK_URL'] = prevAiAsk;
+      if (prevQdrantUrl === undefined) delete process.env['QDRANT_URL'];
+      else process.env['QDRANT_URL'] = prevQdrantUrl;
+      if (prevQdrantKey === undefined) delete process.env['QDRANT_API_KEY'];
+      else process.env['QDRANT_API_KEY'] = prevQdrantKey;
+    }
   });
 });

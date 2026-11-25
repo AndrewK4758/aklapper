@@ -219,6 +219,14 @@ export function AdminOpsPage({ data, actionData }: AdminOpsPageProps) {
                 <span>Provider</span>
                 <code>{data.qdrantStatus.provider}</code>
               </div>
+              {data.qdrantStatus.collections?.map(col => (
+                <div key={col.name} className={styles.statRow}>
+                  <span>{col.name}</span>
+                  <strong>
+                    {col.pointsCount} pts ({col.status})
+                  </strong>
+                </div>
+              ))}
             </div>
             {data.qdrantStatus.detail ? (
               <p className={styles.muted}>{data.qdrantStatus.detail}</p>

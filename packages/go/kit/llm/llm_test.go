@@ -11,6 +11,7 @@ import (
 func TestLocalClientChatAndEmbed(t *testing.T) {
 	t.Parallel()
 
+	var capturedEmbedModel string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/chat/completions":
@@ -21,6 +22,11 @@ func TestLocalClientChatAndEmbed(t *testing.T) {
 				"usage": map[string]any{"total_tokens": 42},
 			})
 		case "/embeddings":
+			var req struct {
+				Model string `json:"model"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&req)
+			capturedEmbedModel = req.Model
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"data": []map[string]any{
 					{"embedding": []float32{0.5, 0.25, 0.75}},
@@ -55,11 +61,36 @@ func TestLocalClientChatAndEmbed(t *testing.T) {
 	if DefaultLocalEmbedModel != "embedding" {
 		t.Fatalf("expected DefaultLocalEmbedModel=embedding, got %q", DefaultLocalEmbedModel)
 	}
+	if capturedEmbedModel != "embedding" {
+		t.Fatalf("expected default embed model %q, got %q", "embedding", capturedEmbedModel)
+	}
 	if err := ValidateEmbeddingDims(make([]float32, ExpectedEmbeddingDims)); err != nil {
 		t.Fatalf("expected 768-dim zero vector to validate, got %v", err)
 	}
 	if err := ValidateEmbeddingDims([]float32{0.5, 0.25, 0.75}); err == nil {
 		t.Fatal("expected dimension mismatch error for 3-dim vector")
+	}
+}
+
+func TestLocalClientEmbedRejectsEmptyVector(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/embeddings" {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"data": []map[string]any{
+					{"embedding": []float32{}},
+				},
+			})
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer srv.Close()
+
+	client := &LocalClient{BaseURL: srv.URL, HTTPClient: srv.Client()}
+	if _, err := client.Embed(context.Background(), "hello"); err == nil {
+		t.Fatal("expected error when local embedder returns an empty vector")
 	}
 }
 
