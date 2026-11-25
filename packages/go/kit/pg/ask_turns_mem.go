@@ -148,7 +148,7 @@ func (s *Store) reconcileTurnMemory(now time.Time, attemptID string, res contrac
 	rec.TokensUsed = res.TokensUsed
 	rec.UpdatedAt = now
 	rec.Status = contracts.TurnStatusCompleted
-	if !res.Grounded || res.Abstained {
+	if res.Abstained {
 		rec.Status = contracts.TurnStatusAbstained
 	}
 	return quota, nil

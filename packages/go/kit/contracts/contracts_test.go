@@ -89,3 +89,17 @@ func TestValidateUUID(t *testing.T) {
 		t.Fatal("expected malformed UUID to fail validation")
 	}
 }
+
+func TestGroundingTierAndPortalNavigableRoutes(t *testing.T) {
+	t.Parallel()
+
+	if GroundingTierGeneral != "general" {
+		t.Fatalf("expected GroundingTierGeneral to be %q, got %q", "general", GroundingTierGeneral)
+	}
+	if !IsAllowedPortalNavigableRoute("/chat") {
+		t.Fatal("expected /chat to be an allowed navigable portal route")
+	}
+	if IsAllowedPortalNavigableRoute("/ask") {
+		t.Fatal("expected retired /ask route to be rejected by navigable route allow-list")
+	}
+}

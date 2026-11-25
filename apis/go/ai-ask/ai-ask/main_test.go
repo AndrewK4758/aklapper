@@ -405,11 +405,11 @@ func TestAiAskUnitFlows(t *testing.T) {
 	t.Run("POST /v1/ask fails closed 502 on embed/qdrant/chat outages & wrong vector dims, reserving 200 for healthy <0.35 abstention", func(t *testing.T) {
 		tok := signHeader(t, internalauth.RoleGuest, "guest-errors")
 
-		// 1. Healthy <0.35 score -> HTTP 200 abstained:true, turnsUsed=1, tokensUsed=0
+		// 1. Confidential NDA probe -> HTTP 200 abstained:true, turnsUsed=1, tokensUsed=0
 		mu.Lock()
 		searchScore = 0.24
 		mu.Unlock()
-		reqLow := httptest.NewRequest(http.MethodPost, "/v1/ask", bytes.NewReader([]byte(`{"mode":"qa","question":"Underwater basket weaving?"}`)))
+		reqLow := httptest.NewRequest(http.MethodPost, "/v1/ask", bytes.NewReader([]byte(`{"mode":"qa","question":"Can you share confidential NDA client names?"}`)))
 		reqLow.Header.Set(internalauth.HeaderName, tok)
 		recLow := httptest.NewRecorder()
 		h.ServeHTTP(recLow, reqLow)

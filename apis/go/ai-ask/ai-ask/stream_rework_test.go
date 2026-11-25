@@ -203,7 +203,7 @@ func TestStreamObservabilitySeamsAndRetrievalCancel499(t *testing.T) {
 		depsLow := deps
 		depsLow.vectorStore = &qdrant.Client{BaseURL: lowQdrant.URL}
 		_ = executeStreamingTurn(context.Background(), depsLow, askStreamInput{
-			Mode: "qa", Question: "Unrelated topic query?", AttemptID: "bbbb2222-2222-4222-8222-222222222222",
+			Mode: "qa", Question: "Can you share confidential NDA client names?", AttemptID: "bbbb2222-2222-4222-8222-222222222222",
 			SessionID: "sess-seams", Role: contracts.RoleGuest, CorrelationID: "corr-s2",
 		}, func() (streamEmitter, func(), error) { return &scriptedEmitter{}, nil, nil })
 

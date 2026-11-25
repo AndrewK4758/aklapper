@@ -276,13 +276,14 @@ func finalizeStreamOutcome(
 	}
 
 	totalTokens := result.TokensUsed + rewriteTokens
+	isGrounded := tier != contracts.GroundingTierGeneral
 	links := defaultSuggestedLinksForTier(tier, sources, in.CorrelationID)
 	followUps := defaultFollowUpQuestionsForTier(tier)
 	resp := contracts.AskResponse{
 		AttemptID:         attemptID,
 		ConversationID:    convID,
 		TurnIndex:         turnIndex,
-		Grounded:          true,
+		Grounded:          isGrounded,
 		Abstained:         false,
 		GroundingTier:     tier,
 		Mode:              mode,
@@ -320,7 +321,7 @@ func finalizeStreamOutcome(
 		AttemptID:         attemptID,
 		ConversationID:    convID,
 		TurnIndex:         turnIndex,
-		Grounded:          true,
+		Grounded:          isGrounded,
 		Abstained:         false,
 		GroundingTier:     tier,
 		Answer:            postGuardAnswer,

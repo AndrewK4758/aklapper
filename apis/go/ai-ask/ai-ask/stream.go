@@ -198,7 +198,11 @@ func executeStreamingTurn(
 	profileCore := resolvePinnedProfileCore(ctx, deps.store)
 	sources, evidenceCtx := buildStreamingPromptContext(tier, profileCore, hybrid)
 	_ = emitter.EmitSources(sources)
-	_ = emitter.EmitStatus("generating", "Synthesizing grounded response...")
+	genStatusLabel := "Synthesizing grounded response..."
+	if tier == contracts.GroundingTierGeneral {
+		genStatusLabel = "Chatting with Andrew's AI..."
+	}
+	_ = emitter.EmitStatus("generating", genStatusLabel)
 
 	guard := privacy.NewStreamGuard(deps.privacyCfg, in.CorrelationID)
 

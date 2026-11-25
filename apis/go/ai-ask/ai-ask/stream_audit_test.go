@@ -187,7 +187,7 @@ func TestStreamEmitDisconnectOrderingAndTurnAuditLogs(t *testing.T) {
 			privacyCfg:  privCfg,
 		}
 		_ = executeStreamingTurn(context.Background(), depsAbstain, askStreamInput{
-			Mode: "qa", Question: "Unrelated unknown topic?", AttemptID: "aaaa4444-4444-4444-8444-444444444444",
+			Mode: "qa", Question: "Can you share confidential NDA client names?", AttemptID: "aaaa4444-4444-4444-8444-444444444444",
 			SessionID: "sess-audit", Role: contracts.RoleGuest, CorrelationID: "corr-audit-abstain",
 		}, func() (streamEmitter, func(), error) { return &scriptedEmitter{}, nil, nil })
 
