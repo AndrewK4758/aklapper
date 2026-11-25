@@ -17,7 +17,6 @@ import {
   insertContactSubmission,
   loadPortalContactData,
 } from '@aklapper/db';
-import { proxyJson } from '@aklapper/node-runtime/http';
 import {
   createFallbackLogger,
   getOrCreateCorrelationId,
@@ -327,25 +326,6 @@ export async function processContactSubmission(
         'portal.contact.insert',
         logger,
       );
-    }
-
-    // Non-blocking best-effort notification to Go contact microservice after PG19 commit.
-    const contactApiUrl = process.env['CONTACT_API_URL']?.trim();
-    if (contactApiUrl) {
-      void proxyJson({
-        baseUrl: contactApiUrl,
-        path: '/v1/contact/notify',
-        method: 'POST',
-        body: {
-          submissionId: submission.id,
-          name: submission.name,
-          email: submission.email,
-          hasAttachment: Boolean(submission.attachmentName),
-          receivedAt: submission.createdAt,
-        },
-        timeoutMs: 2_000,
-        internalAuth: { role: 'service', subject: 'portal-contact' },
-      }).catch(() => undefined);
     }
 
     return {

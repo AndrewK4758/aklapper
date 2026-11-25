@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import { type AuthSessionStatus, AuthSessionStatusSchema } from '@aklapper/core';
+import { type AuthSessionStatus } from '@aklapper/core';
 import {
   ADMIN_SESSION_COOKIE_NAME,
   Argon2ConcurrencyError,
@@ -21,12 +21,7 @@ import {
   verifyTotpCode,
 } from '@aklapper/node-runtime/auth';
 import {
-  evictGcpIdentityTokenCache,
   extractRightmostForwardedIp,
-  GcpOidcTokenError,
-  joinUpstreamUrl,
-  resolveGcpIdentityToken,
-  shouldAttachGcpOidcToken,
   signInternalAuthToken,
   verifyInternalAuthToken,
 } from '@aklapper/node-runtime/http';
@@ -1055,18 +1050,7 @@ function buildWebResponseFromDispatch(result: AuthDispatchResult): Response {
   });
 }
 
-export interface BffAuthProxyOptions extends AuthServiceOptions {
-  authApiUrl?: string;
-  fetchImpl?: typeof fetch;
-}
-
-const FORWARDED_UPSTREAM_RESPONSE_HEADERS = [
-  'content-type',
-  'retry-after',
-  'x-ratelimit-limit',
-  'x-ratelimit-remaining',
-  'x-ratelimit-reset',
-] as const;
+export type BffAuthProxyOptions = AuthServiceOptions;
 
 function isInvalidAuthSplat(splat: string): boolean {
   if (splat.length === 0) return false;
@@ -1076,60 +1060,14 @@ function isInvalidAuthSplat(splat: string): boolean {
   return splat.split('/').some(segment => segment.length === 0 || segment === '.');
 }
 
-async function fetchUpstreamWithGcpOidc(
-  targetUrl: string,
-  init: RequestInit,
-  options: {
-    upstreamBase: string;
-    env: Record<string, string | undefined>;
-    fetchImpl: typeof fetch;
-    allowAuthRetry: boolean;
-  },
-): Promise<Response> {
-  const { upstreamBase, env, fetchImpl, allowAuthRetry } = options;
-  const headers = new Headers(init.headers);
-  const attachOidc = shouldAttachGcpOidcToken(upstreamBase, env);
-  const audience = attachOidc ? new URL(upstreamBase).origin : null;
-
-  if (audience) {
-    const token = await resolveGcpIdentityToken(audience, {
-      metadataUrl: env['GCP_METADATA_IDENTITY_URL'],
-      fetchImpl,
-      env,
-    });
-    headers.set('authorization', `Bearer ${token}`);
-  }
-
-  let response = await fetchImpl(targetUrl, { ...init, headers });
-  if (audience && (response.status === 401 || response.status === 403)) {
-    evictGcpIdentityTokenCache(audience);
-    if (allowAuthRetry) {
-      const refreshedToken = await resolveGcpIdentityToken(audience, {
-        metadataUrl: env['GCP_METADATA_IDENTITY_URL'],
-        fetchImpl,
-        env,
-        forceRefresh: true,
-      });
-      headers.set('authorization', `Bearer ${refreshedToken}`);
-      response = await fetchImpl(targetUrl, { ...init, headers });
-    }
-  }
-  return response;
-}
-
 /**
- * Dual-mode Admin BFF auth handler:
- *
- * - Forwards to AUTH_API_URL (/v1/auth/*) when configured.
- * - Falls back directly to PostgreSQL 19 via dispatchAuthAction when AUTH_API_URL is unset.
+ * Direct PostgreSQL 19 Admin BFF auth handler.
  */
 export async function handleAdminAuthBffRequest(
   request: Request,
   splat: string,
   options: BffAuthProxyOptions = {},
 ): Promise<Response> {
-  const env = options.env ?? process.env;
-  const upstreamBase = (options.authApiUrl ?? env['AUTH_API_URL'])?.trim();
   const normalizedSplat = splat.replace(/^\/+|\/+$/g, '');
   if (isInvalidAuthSplat(normalizedSplat)) {
     return Response.json(
@@ -1143,87 +1081,6 @@ export async function handleAdminAuthBffRequest(
     request.headers.get('x-real-ip'),
     'unknown',
   );
-
-  if (upstreamBase) {
-    const fetchImpl = options.fetchImpl ?? fetch;
-    const targetUrl = joinUpstreamUrl(upstreamBase, `/v1/auth/${normalizedSplat}`);
-    const forwardHeaders = new Headers();
-    const contentType = request.headers.get('content-type');
-    if (contentType) forwardHeaders.set('content-type', contentType);
-    const cookie = request.headers.get('cookie');
-    if (cookie) forwardHeaders.set('cookie', cookie);
-    const origin = request.headers.get('origin') ?? reqUrl.origin;
-    if (origin) forwardHeaders.set('origin', origin);
-    const internalSecret = env['INTERNAL_AUTH_SECRET']?.trim();
-    const isProd = (env['NODE_ENV'] ?? process.env['NODE_ENV']) === 'production';
-    if (resolvedClientIp !== 'unknown') {
-      forwardHeaders.set('x-forwarded-for', resolvedClientIp);
-      if (internalSecret || !isProd) {
-        forwardHeaders.set(
-          'x-internal-client-ip',
-          signInternalAuthToken({
-            role: 'service',
-            subject: `client-ip:${resolvedClientIp}`,
-            secret: internalSecret,
-            ttlSeconds: 60,
-          }),
-        );
-      }
-    }
-    const forwardedProto =
-      request.headers.get('x-forwarded-proto') || reqUrl.protocol.replace(/:$/, '');
-    if (forwardedProto) forwardHeaders.set('x-forwarded-proto', forwardedProto);
-
-    const hasBody = request.method !== 'GET' && request.method !== 'HEAD';
-    const rawBody = hasBody ? await request.text() : undefined;
-
-    try {
-      const upstream = await fetchUpstreamWithGcpOidc(
-        targetUrl,
-        {
-          method: request.method,
-          headers: forwardHeaders,
-          body: rawBody && rawBody.length > 0 ? rawBody : undefined,
-          signal: AbortSignal.timeout(10_000),
-        },
-        {
-          upstreamBase,
-          env,
-          fetchImpl,
-          allowAuthRetry: request.method === 'GET' || request.method === 'HEAD',
-        },
-      );
-
-      const responseHeaders = new Headers();
-      for (const headerName of FORWARDED_UPSTREAM_RESPONSE_HEADERS) {
-        const value = upstream.headers.get(headerName);
-        if (value) {
-          responseHeaders.set(headerName, value);
-        }
-      }
-      const setCookies =
-        typeof upstream.headers.getSetCookie === 'function' ? upstream.headers.getSetCookie() : [];
-      for (const sc of setCookies) {
-        responseHeaders.append('set-cookie', sc);
-      }
-
-      return new Response(await upstream.arrayBuffer(), {
-        status: upstream.status,
-        headers: responseHeaders,
-      });
-    } catch (error) {
-      if (error instanceof GcpOidcTokenError) {
-        return Response.json(
-          { error: 'GCP_OIDC_TOKEN_UNAVAILABLE', message: error.message },
-          { status: 503 },
-        );
-      }
-      return Response.json(
-        { error: 'AUTH_UPSTREAM_UNAVAILABLE', message: 'Auth service unreachable' },
-        { status: 502 },
-      );
-    }
-  }
 
   let body: unknown;
   if (request.method !== 'GET' && request.method !== 'HEAD') {
@@ -1256,8 +1113,7 @@ export async function handleAdminAuthBffRequest(
 }
 
 /**
- * Resolves current session status for the Admin SSR root loader guard. Uses AUTH_API_URL
- * (/v1/auth/session) if configured, else queries PG19 directly.
+ * Resolves current session status directly from PostgreSQL 19 for the Admin SSR root loader guard.
  */
 export async function resolveAdminSessionFromRequest(
   request: Request,
@@ -1271,45 +1127,6 @@ export async function resolveAdminSessionFromRequest(
     passkeyCount: 0,
   };
   if (!cookieHeader) return emptyStatus;
-
-  const env = options.env ?? process.env;
-  const upstreamBase = (options.authApiUrl ?? env['AUTH_API_URL'])?.trim();
-  if (upstreamBase) {
-    const fetchImpl = options.fetchImpl ?? fetch;
-    try {
-      const res = await fetchUpstreamWithGcpOidc(
-        joinUpstreamUrl(upstreamBase, '/v1/auth/session'),
-        {
-          method: 'GET',
-          headers: { cookie: cookieHeader, accept: 'application/json' },
-          signal: AbortSignal.timeout(5_000),
-        },
-        {
-          upstreamBase,
-          env,
-          fetchImpl,
-          allowAuthRetry: true,
-        },
-      );
-      if (!res.ok) return emptyStatus;
-      const parsed = AuthSessionStatusSchema.safeParse(await res.json());
-      return parsed.success ? parsed.data : emptyStatus;
-    } catch (error) {
-      if (
-        error instanceof GcpOidcTokenError &&
-        (env['NODE_ENV'] ?? process.env['NODE_ENV']) !== 'test'
-      ) {
-        console.error(
-          JSON.stringify({
-            event: 'admin.auth_session.oidc_unavailable',
-            error: 'GCP_OIDC_TOKEN_UNAVAILABLE',
-            message: error.message,
-          }),
-        );
-      }
-      return emptyStatus;
-    }
-  }
 
   const cookies = parseCookieHeader(cookieHeader);
   const adminSessionId = cookies[ADMIN_SESSION_COOKIE_NAME];
