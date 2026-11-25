@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
+import { AgensiSkillSchema, AgensiSyncStateSchema } from './agensi.ts';
 import { RoleSchema } from './auth.ts';
 import {
   AdminHomeContentSchema,
-  AgensiSkillSchema,
   CadenceGateVerdictSchema,
   CadencePresetSchema,
   CadenceRunResultSchema,
@@ -190,6 +190,7 @@ export const AdminCmsLoaderDataSchema = z.object({
   terminalDirectoryEntries: z.array(AdminTerminalDirectoryEntryRowSchema).default([]),
   roadmapMilestones: z.array(RoadmapMilestoneSchema),
   agensiSkills: z.array(AgensiSkillSchema),
+  agensiSyncState: AgensiSyncStateSchema.nullable().optional(),
   cadencePresets: z.array(CadencePresetSchema),
 });
 export type AdminCmsLoaderData = z.infer<typeof AdminCmsLoaderDataSchema>;
@@ -299,6 +300,10 @@ export const RoadmapMilestoneUpsertSchema = z.object({
 });
 export type RoadmapMilestoneUpsertInput = z.infer<typeof RoadmapMilestoneUpsertSchema>;
 
+/**
+ * @deprecated Admin CMS manual skill CRUD has been retired in favor of creator-scoped Agensi catalog sync;
+ * retained for one release cycle compatibility before removal.
+ */
 export const AgensiSkillUpsertSchema = z.object({
   slug: z
     .string()
@@ -312,6 +317,7 @@ export const AgensiSkillUpsertSchema = z.object({
   url: z.url(),
   sortOrder: z.coerce.number().int().min(0).max(1000),
 });
+/** @deprecated Retained for one release cycle alongside `AgensiSkillUpsertSchema`. */
 export type AgensiSkillUpsertInput = z.infer<typeof AgensiSkillUpsertSchema>;
 
 export const CadencePresetUpsertSchema = z.object({

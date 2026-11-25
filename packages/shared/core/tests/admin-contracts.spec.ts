@@ -9,6 +9,7 @@ import {
   AdminQuotasLoaderDataSchema,
   AdminWakeDeploymentSchema,
   AgensiSkillUpsertSchema,
+  AgensiSyncStateSchema,
   BucketPurgeSchema,
   BucketResetSchema,
   CadencePresetUpsertSchema,
@@ -310,5 +311,32 @@ describe('@aklapper/core admin console contracts', () => {
       k8sWatchConfigured: false,
     });
     expect(ops.cadenceAdminStatus.isolated).toBe(true);
+  });
+
+  it('validates optional agensiSyncState inside AdminCmsLoaderDataSchema', () => {
+    const syncState = AgensiSyncStateSchema.parse({
+      creatorHandle: 'aklapper',
+      lastSyncedAt: '2026-11-24T12:00:00.000Z',
+      lastAttemptAt: '2026-11-24T12:05:00.000Z',
+      lastStatus: 'ok',
+      lastError: null,
+      itemCount: 6,
+    });
+    expect(syncState.itemCount).toBe(6);
+
+    const cmsWithSync = AdminCmsLoaderDataSchema.parse({
+      siteContents: [],
+      maintenanceModeDefault: false,
+      rebuildProgressPercent: 50,
+      menuItems: [],
+      terminalProfiles: [],
+      terminalCommands: [],
+      terminalInitialEntries: [],
+      roadmapMilestones: [],
+      agensiSkills: [],
+      agensiSyncState: syncState,
+      cadencePresets: [],
+    });
+    expect(cmsWithSync.agensiSyncState?.lastStatus).toBe('ok');
   });
 });

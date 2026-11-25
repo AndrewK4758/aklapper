@@ -204,16 +204,6 @@ export const AdminAnalyticsContentSchema = z.object({
 });
 export type AdminAnalyticsContent = z.infer<typeof AdminAnalyticsContentSchema>;
 
-export const AgensiSkillSchema = z.object({
-  slug: z.string().min(1),
-  name: z.string().min(1),
-  summary: z.string().min(1),
-  tags: z.array(z.string()),
-  url: z.url(),
-  sortOrder: z.number().int().nonnegative(),
-});
-export type AgensiSkill = z.infer<typeof AgensiSkillSchema>;
-
 export const PortalAgensiContentSchema = z.object({
   windowTitle: z.string().min(1),
   statusBadge: StatusBadgeSpecSchema,

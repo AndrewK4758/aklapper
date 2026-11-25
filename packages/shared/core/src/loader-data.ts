@@ -1,10 +1,10 @@
+import type { AgensiCatalogMeta, AgensiSkill } from './agensi.ts';
 import type { AskServiceStatus } from './ask.ts';
 import type { AuthSession, QuotaStatus } from './auth.ts';
 import type { FormDefinition } from './forms.ts';
 import type {
   AdminChromeContent,
   AdminHomeContent,
-  AgensiSkill,
   CadencePreset,
   CadenceRunResult,
   DocumentSeoRuntimeConfig,
@@ -51,6 +51,7 @@ export interface PortalMenuLoaderData {
 export interface PortalAgensiLoaderData {
   content: PortalAgensiContent;
   skills: readonly AgensiSkill[];
+  catalogMeta?: AgensiCatalogMeta;
 }
 
 export interface PortalAskLoaderData {

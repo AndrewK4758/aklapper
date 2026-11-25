@@ -1,4 +1,8 @@
 import {
+  AgensiCatalogMetaSchema,
+  AgensiRemoteResponseSchema,
+  AgensiRemoteSkillItemSchema,
+  AgensiSkillSchema,
   AnalyticsBatchSchema,
   AskPortfolioRequestSchema,
   AskResponseSchema,
@@ -18,6 +22,7 @@ import {
   K8sPodEventSchema,
   MenuItemSchema,
   Osc7501StatusSchema,
+  type PortalAgensiLoaderData,
   PortalChromeContentSchema,
   resolveAllowedMimeType,
   sanitizeFilename,
@@ -494,5 +499,92 @@ describe('@aklapper/core (contracts)', () => {
       pointsCount: 18,
     });
     expect(status.pointsCount).toBe(18);
+  });
+
+  it('validates Agensi catalog contracts, live creator-profile responses, and optional loader metadata', () => {
+    const legacySkill = AgensiSkillSchema.parse({
+      slug: 'cadence-governed-agentic-sdlc-framework',
+      name: 'CADENCE: Governed Agentic SDLC Framework',
+      summary: 'Governed multi-phase agentic delivery framework.',
+      tags: ['sdlc', 'agents'],
+      url: 'https://agensi.io/skills/cadence-governed-agentic-sdlc-framework',
+      sortOrder: 1,
+    });
+    expect(legacySkill.creatorHandle).toBeUndefined();
+    expect(legacySkill.source).toBeUndefined();
+
+    const extendedSkill = AgensiSkillSchema.parse({
+      ...legacySkill,
+      creatorHandle: 'aklapper',
+      isPublished: true,
+      syncedAt: '2026-11-24T12:00:00.000Z',
+      source: 'agensi_api',
+    });
+    expect(extendedSkill.creatorHandle).toBe('aklapper');
+    expect(extendedSkill.source).toBe('agensi_api');
+
+    const remoteItem = AgensiRemoteSkillItemSchema.parse({
+      slug: 'cadence-triage-risk-classifier',
+      name: 'CADENCE Triage & Risk Classifier',
+      summary: 'Classifies engineering tasks across 4 axes.',
+      tags: ['triage', 'agents-orchestration'],
+      url: 'https://agensi.io/skills/cadence-triage-risk-classifier',
+      install_count: 0,
+      vote_count: 1,
+      rating: null,
+    });
+    expect(remoteItem.slug).toBe('cadence-triage-risk-classifier');
+
+    const creatorEnvelope = AgensiRemoteResponseSchema.parse({
+      name: 'Andrew Klapper',
+      slug: 'aklapper',
+      verified: true,
+      skill_count: 1,
+      url: 'https://agensi.io/creators/aklapper',
+      skills: [remoteItem],
+    });
+    expect(creatorEnvelope.slug).toBe('aklapper');
+    expect(creatorEnvelope.skills).toHaveLength(1);
+
+    const paginatedEnvelope = AgensiRemoteResponseSchema.parse({
+      items: [
+        {
+          slug: 'local-gpu-coprocessor-offload-for-coding-agents-fastmcp',
+          title: 'Local GPU Coprocessor Offload for Coding Agents (FastMCP)',
+          description: 'Read-only local GPU FastMCP server.',
+          tags: ['mcp', 'local-llm'],
+          url: 'https://agensi.io/skills/local-gpu-coprocessor-offload-for-coding-agents-fastmcp',
+          creatorHandle: 'aklapper',
+          isPublished: true,
+          sortOrder: 3,
+        },
+      ],
+      nextCursor: 'page-2',
+    });
+    expect(paginatedEnvelope.items).toHaveLength(1);
+    expect(paginatedEnvelope.nextCursor).toBe('page-2');
+
+    const catalogMeta = AgensiCatalogMetaSchema.parse({
+      mode: 'cached_fallback',
+      creatorHandle: 'aklapper',
+      syncedAt: '2026-11-24T12:00:00.000Z',
+    });
+    const loaderPayload: PortalAgensiLoaderData = {
+      content: {
+        windowTitle: 'tui :: agensi',
+        statusBadge: {
+          source: 'agensi-catalog',
+          state: 'idle',
+          label: 'catalog · cached fallback',
+        },
+        description: 'Creator skills.',
+        searchPlaceholder: 'Filter...',
+        emptyStateLabel: 'No skills.',
+        outboundCtaLabel: 'Open on Agensi ->',
+      },
+      skills: [extendedSkill],
+      catalogMeta,
+    };
+    expect(loaderPayload.catalogMeta?.mode).toBe('cached_fallback');
   });
 });
