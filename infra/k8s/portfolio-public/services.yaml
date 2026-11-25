@@ -47,17 +47,3 @@ spec:
       port: 9090
       targetPort: 9090
       appProtocol: kubernetes.io/h2c
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: contact
-  namespace: portfolio-public
-spec:
-  type: ClusterIP
-  selector:
-    app: contact
-  ports:
-    - name: http
-      port: 8084
-      targetPort: 8084

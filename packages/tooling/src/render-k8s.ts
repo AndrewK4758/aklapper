@@ -19,21 +19,12 @@ const MANIFEST_FILES = [
   'base/quotas-limits.yaml',
   'base/network-policies.yaml',
   'portfolio-public/rbac.yaml',
-  'cadence-admin/rbac.yaml',
   'portfolio-public/services.yaml',
-  'cadence-admin/service.yaml',
   'base/gateway.yaml',
   'portfolio-public/deployments.yaml',
-  'cadence-admin/deployment.yaml',
 ] as const;
 
-const GKE_SERVICE_NAMES = [
-  'k8s-watch',
-  'cadence-demo',
-  'ai-ask',
-  'contact',
-  'cadence-admin',
-] as const;
+const GKE_SERVICE_NAMES = ['k8s-watch', 'cadence-demo', 'ai-ask'] as const;
 
 const CLOUDSQL_PROXY_BLOCK_RE = /[ \t]*# cloud-sql-proxy-start[\s\S]*?# cloud-sql-proxy-end\r?\n?/g;
 const CLOUDSQL_VOLUME_MOUNT_RE =

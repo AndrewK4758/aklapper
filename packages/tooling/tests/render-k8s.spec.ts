@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -9,7 +9,9 @@ const MANIFESTS_DIR = resolve(import.meta.dirname, '../../../infra/k8s');
 const CD_WORKFLOW_PATH = resolve(import.meta.dirname, '../../../.github/workflows/cd-gcp.yml');
 
 describe('@aklapper/tooling GKE manifest renderer', () => {
-  it('renders multi-namespace manifests without PROJECT_ID placeholders, setting APP_ENV=production, Cloud SQL sidecars, RBAC, Services, Gateway, and NetworkPolicy', () => {
+  it('renders single-namespace portfolio-public manifests without PROJECT_ID placeholders, setting APP_ENV=production, Cloud SQL sidecars, RBAC, Services, Gateway, and NetworkPolicy', () => {
+    expect(existsSync(resolve(MANIFESTS_DIR, 'cadence-admin'))).toBe(false);
+
     const rendered = renderK8sManifests(MANIFESTS_DIR, {
       projectId: 'games-424800',
       region: 'us-central1',
@@ -19,8 +21,6 @@ describe('@aklapper/tooling GKE manifest renderer', () => {
         'k8s-watch': 'sha-abc1234',
         'cadence-demo': 'production-latest',
         'ai-ask': 'sha-abc1234',
-        contact: 'production-latest',
-        'cadence-admin': 'sha-abc1234',
       },
       replicas: 1,
       gkeWorkloadSa: 'aklapper-gke@games-424800.iam.gserviceaccount.com',
@@ -30,15 +30,18 @@ describe('@aklapper/tooling GKE manifest renderer', () => {
     expect(rendered).not.toContain('PROJECT_ID');
     expect(rendered).not.toMatch(/__[A-Z0-9_]+__/);
     expect(rendered).not.toContain('replicas: 0');
+    expect(rendered).not.toContain('cadence-admin');
+    expect(rendered).not.toContain('contact-route');
+    expect(rendered).not.toContain('name: contact');
     expect(rendered).toContain('replicas: 1');
+    expect(rendered).toContain(
+      'us-central1-docker.pkg.dev/games-424800/portfolio/k8s-watch:sha-abc1234',
+    );
     expect(rendered).toContain(
       'us-central1-docker.pkg.dev/games-424800/portfolio/ai-ask:sha-abc1234',
     );
     expect(rendered).toContain(
       'us-central1-docker.pkg.dev/games-424800/portfolio/cadence-demo:production-latest',
-    );
-    expect(rendered).toContain(
-      'us-central1-docker.pkg.dev/games-424800/portfolio/cadence-admin:sha-abc1234',
     );
     expect(rendered).toContain('name: APP_ENV');
     expect(rendered).toContain('value: production');
@@ -51,10 +54,11 @@ describe('@aklapper/tooling GKE manifest renderer', () => {
       'iam.gke.io/gcp-service-account: aklapper-gke@games-424800.iam.gserviceaccount.com',
     );
     expect(rendered).toContain('name: k8s-watch');
-    expect(rendered).toContain('name: k8s-watch-admin-reader');
     const gatewayDoc = rendered.split('\n---\n').find(doc => doc.includes('kind: Gateway')) ?? '';
     expect(gatewayDoc).toContain('protocol: HTTPS');
     expect(gatewayDoc).toContain('name: aklapper-go-tls');
+    expect(gatewayDoc).toContain('from: Same');
+    expect(gatewayDoc).not.toContain('from: All');
     expect(gatewayDoc).not.toMatch(/protocol:\s*HTTP\s*$/m);
     expect(gatewayDoc).not.toMatch(/port:\s*80\s*$/m);
     expect(rendered).toContain('kind: HTTPRoute');
@@ -73,8 +77,8 @@ describe('@aklapper/tooling GKE manifest renderer', () => {
         .find(doc => doc.includes('kind: Service\n') && doc.includes('name: cadence-demo')) ?? '';
     expect(cadenceServiceDoc).toContain('port: 9090');
     expect(cadenceServiceDoc).toContain('appProtocol: kubernetes.io/h2c');
-    expect(rendered).toContain('port: 8084');
-    expect(rendered).toContain('port: 8085');
+    expect(rendered).not.toContain('port: 8084');
+    expect(rendered).not.toContain('port: 8085');
     expect(rendered).toContain('port: 443');
     expect(rendered).toContain('port: 5432');
     expect(rendered).toContain('port: 3307');
@@ -95,7 +99,7 @@ describe('@aklapper/tooling GKE manifest renderer', () => {
     expect(rendered).not.toMatch(/^[ \t]*volumeMounts:\s*$/m);
     expect(rendered).not.toContain('cloud-sql-proxy');
     expect(rendered).toContain('name: k8s-watch');
-    expect(rendered).toContain('name: cadence-admin');
+    expect(rendered).not.toContain('cadence-admin');
   });
 
   it('rejects placeholder PROJECT_ID, empty image tags, and zero replicas', () => {
