@@ -206,13 +206,18 @@ func (g *StreamGuard) applyRules(isFlush bool) error {
 
 		// 2. Configured runtime denylist (deferred past safeSecretBoundary during streaming so
 		// neither trailing <=16-rune partial secret-anchor prefixes nor active 128-rune secret
-		// windows are mutated before secret detection resolves or EOF Flush runs).
+		// windows are mutated, and matches starting at/past commitLimit wait for real trailing context).
 		if len(g.cfg.rules) == 0 {
 			return nil
 		}
 		denylistLimit := len(g.pending)
+		commitLimit := denylistLimit
 		if !isFlush {
 			denylistLimit = g.safeSecretBoundary()
+			commitLimit = g.safeDenylistCommitIndex(denylistLimit)
+			if commitLimit <= 0 {
+				return nil
+			}
 		}
 		denylistSegs := unredactedSegments(g.pending, denylistLimit)
 		if len(denylistSegs) == 0 {
@@ -220,6 +225,9 @@ func (g *StreamGuard) applyRules(isFlush bool) error {
 		}
 		matchedDenylist := false
 		for _, seg := range denylistSegs {
+			if !isFlush && seg.start >= commitLimit {
+				break
+			}
 			segSlice := g.pending[seg.start:seg.end]
 			segStr := pendingToString(segSlice)
 			normStr, normMap := buildNormalizedMap(segSlice)
@@ -243,7 +251,7 @@ func (g *StreamGuard) applyRules(isFlush bool) error {
 						}
 					}
 				}
-				if !found {
+				if !found || (!isFlush && startRune >= commitLimit) {
 					continue
 				}
 				g.recordTrigger("denylist", g.cfg.DenylistAction, rule.fingerprint)
@@ -344,15 +352,31 @@ func (g *StreamGuard) earliestActiveSecretAnchor() int {
 }
 
 // safeSecretBoundary is the unified streaming deferral boundary shared by applyRules(false)
-// and safeFlushIndex(). Because every entry in secretAnchorPrefixes has length <= 14 <=
-// BaselineSecretAnchorRunes (16), holding back both the trailing 16 runes and any active
-// secret anchor prevents premature denylist mutation of split secret-anchor prefixes.
+// and safeFlushIndex(). Every secretAnchorPrefixes entry has length <= 14 <= BaselineSecretAnchorRunes.
 func (g *StreamGuard) safeSecretBoundary() int {
 	n := len(g.pending)
 	if n == 0 {
 		return 0
 	}
-	return min(max(0, n-BaselineSecretAnchorRunes), g.earliestActiveSecretAnchor())
+	boundary := min(max(0, n-BaselineSecretAnchorRunes), g.earliestActiveSecretAnchor())
+	for boundary > 0 && boundary < n && !g.pending[boundary].redacted && isCombiningMark(g.pending[boundary].r) {
+		boundary--
+	}
+	return boundary
+}
+
+func (g *StreamGuard) safeDenylistCommitIndex(scanLimit int) int {
+	if scanLimit <= 0 {
+		return 0
+	}
+	if g.cfg.maxDenylistNonSep <= 0 {
+		return scanLimit
+	}
+	_, spans := buildNormalizedMap(g.pending[:scanLimit])
+	if len(spans) <= g.cfg.maxDenylistNonSep {
+		return 0
+	}
+	return spans[len(spans)-g.cfg.maxDenylistNonSep].rawStart
 }
 
 func (g *StreamGuard) safeFlushIndex() int {
@@ -360,29 +384,11 @@ func (g *StreamGuard) safeFlushIndex() int {
 	if n == 0 {
 		return 0
 	}
-
-	// Constraint 1: unified secret holdback boundary (16-rune anchor baseline + 128-rune active anchor).
 	safeSecret := g.safeSecretBoundary()
 	if safeSecret <= 0 {
 		return 0
 	}
-
-	// Constraint 2: non-separator normalized denylist holdback computed strictly over the
-	// denylist-scanned prefix g.pending[:safeSecret] so denylist terms straddling safeSecret
-	// (such as internal URLs or terms containing "eyj"/"aiza") are never split and flushed.
-	safeDenylist := safeSecret
-	if g.cfg.maxDenylistNonSep > 0 {
-		_, spans := buildNormalizedMap(g.pending[:safeSecret])
-		if len(spans) <= g.cfg.maxDenylistNonSep {
-			safeDenylist = 0
-		} else {
-			keepFromNorm := len(spans) - g.cfg.maxDenylistNonSep
-			safeDenylist = spans[keepFromNorm].rawStart
-		}
-	}
-
-	flushEnd := min(safeSecret, safeDenylist)
-	// Never split an already-buffered combining mark cluster at the flush boundary.
+	flushEnd := min(safeSecret, g.safeDenylistCommitIndex(safeSecret))
 	for flushEnd > 0 && flushEnd < n && !g.pending[flushEnd].redacted && isCombiningMark(g.pending[flushEnd].r) {
 		flushEnd--
 	}
