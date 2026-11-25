@@ -4,6 +4,7 @@ import {
   CadenceGateAuditSchema,
   type CadenceGateVerdict,
   type CadenceRunLifecycleStatus,
+  CadenceRunLifecycleStatusSchema,
   type CadenceRunMode,
   type CadenceRunResult,
   CadenceRunResultSchema,
@@ -84,10 +85,8 @@ export function normalizeGateVerdict(value: string): CadenceGateVerdict {
 }
 
 export function normalizeRunLifecycleStatus(value: string): CadenceRunLifecycleStatus {
-  if (value === 'pending' || value === 'running' || value === 'ready' || value === 'failed') {
-    return value;
-  }
-  return 'ready';
+  const parsed = CadenceRunLifecycleStatusSchema.safeParse(value);
+  return parsed.success ? parsed.data : 'ready';
 }
 
 export function extractPresetSlugFromTurnRows(

@@ -74,7 +74,7 @@ test.describe('portal mobile TUI workspace and adaptive layout', () => {
     await expect(bottomDock).toBeVisible();
 
     // Verify primary bottom dock destinations and 44px+ touch targets
-    for (const label of ['TUI', 'Menu', 'Ask', 'CAD', 'Mail']) {
+    for (const label of ['TUI', 'Skills', 'Chat', 'CAD', 'Mail']) {
       const link = bottomDock.getByRole('link', { name: label, exact: true });
       await expect(link).toBeVisible();
       const box = await link.boundingBox();
