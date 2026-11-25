@@ -38,7 +38,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(page.getByText(/menu\s+# Site menu/)).toBeVisible();
     await expect(page.getByText(/tui\s+# TUI version/)).toBeVisible();
     await expect(page.getByText(/cadence\s+# Agentic workflow example/)).toBeVisible();
-    await expect(page.getByText(/ask\s+# Ask about my work/)).toBeVisible();
+    await expect(page.getByText(/chat\s+# Chat with Andrew's AI/)).toBeVisible();
     await expect(page.getByText(/agensi\s+# Published AI skills/)).toBeVisible();
     await expect(page.getByText(/contact\s+# Connect with me/)).toBeVisible();
     await expect(page.getByText(/changes-in-progress\s+# Maintenance preview/)).toBeVisible();
@@ -353,7 +353,7 @@ test.describe('portal SSR end-to-end journeys', () => {
 
     await gotoStreamedPage(page, '/menu');
     await expect(page.getByTestId('menu-deploy-status-cadence')).toBeVisible();
-    await expect(page.getByTestId('menu-deploy-status-ask')).toBeVisible();
+    await expect(page.getByTestId('menu-deploy-status-chat')).toBeVisible();
     await expect(page.getByTestId('menu-deploy-status-contact')).toBeVisible();
 
     await page.keyboard.press('3');
@@ -854,10 +854,10 @@ test.describe('portal SSR end-to-end journeys', () => {
     expect(getErrors()).toEqual([]);
   });
 
-  test('persists guest session cookie on fresh-context in-pane /ask and /cadence loads @smoke', async ({
+  test('persists guest session cookie on fresh-context in-pane /chat and /cadence loads @smoke', async ({
     browser,
   }, testInfo) => {
-    test.skip(IS_MAINTENANCE_MODE, 'Ask and CADENCE routes are gated in maintenance mode');
+    test.skip(IS_MAINTENANCE_MODE, 'Chat and CADENCE routes are gated in maintenance mode');
     test.skip(
       testInfo.project.name === 'mobile-chrome',
       'Desktop in-pane navigation journey; handheld journeys are covered in mobile-layout.spec.ts',
@@ -871,14 +871,14 @@ test.describe('portal SSR end-to-end journeys', () => {
       const commandInput = page.getByLabel('Terminal command input', { exact: true });
       await expect(commandInput).toBeFocused();
 
-      // Open /ask in-pane from a fresh context (no prior ak_guest_session cookie)
-      await commandInput.fill('cd ask');
+      // Open /chat in-pane from a fresh context (no prior ak_guest_session cookie)
+      await commandInput.fill('cd chat');
       await commandInput.press('Enter');
       await expect(page).toHaveURL(/\/$/);
       await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '1');
 
-      // Wait for /ask view to load and verify guest cookie persistence
-      await expect(page.getByRole('button', { name: /Ask|Submit|Run/i }).first()).toBeVisible();
+      // Wait for /chat view to load and verify guest cookie persistence
+      await expect(page.getByTestId('ask-qa-submit')).toBeVisible();
       const cookies = await context.cookies();
       expect(cookies.some(cookie => cookie.name === 'ak_guest_session')).toBe(true);
 

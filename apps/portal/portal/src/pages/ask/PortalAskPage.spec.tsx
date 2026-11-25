@@ -162,7 +162,7 @@ describe('PortalAskPage', () => {
     expect(jdCard.textContent).toContain('940');
   });
 
-  it('recovers active pending turn from sessionStorage on mount without re-submitting POST /ask', async () => {
+  it('recovers active pending turn from sessionStorage on mount without re-submitting POST /chat', async () => {
     const attemptId = '55555555-5555-4555-8555-555555555555';
     window.sessionStorage.setItem(
       ASK_TURN_STORAGE_KEY,
