@@ -557,3 +557,18 @@ export async function claimBuildQueuedSandboxRun(
     mode,
   };
 }
+
+export async function clearSandboxRunsForSession(
+  db: AppDatabase,
+  sessionId: string,
+): Promise<number> {
+  const trimmed = sessionId.trim();
+  if (!trimmed) return 0;
+
+  const deleted = await db
+    .delete(schema.sandboxRuns)
+    .where(and(eq(schema.sandboxRuns.sessionId, trimmed), eq(schema.sandboxRuns.isGolden, false)))
+    .returning({ id: schema.sandboxRuns.id });
+
+  return deleted.length;
+}

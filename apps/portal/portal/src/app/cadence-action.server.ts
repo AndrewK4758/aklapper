@@ -8,6 +8,7 @@ import {
 import { classifyServerError } from '@aklapper/core/server-errors';
 import {
   approveSandboxRunSpecForSession,
+  clearSandboxRunsForSession,
   cloneCachedSandboxRunForSession,
   createPendingSandboxRunWithQuota,
   findCachedSandboxRun,
@@ -78,7 +79,7 @@ function makeUpstreamStatusError(
 }
 
 function actionError(
-  intent: 'run' | 'gate' | 'spec-approve',
+  intent: 'run' | 'gate' | 'spec-approve' | 'reset',
   status: number,
   error: string,
   code: AppErrorCode,
@@ -93,7 +94,7 @@ function actionError(
 
 export function classifyCadenceActionFailure(
   error: unknown,
-  intent: 'run' | 'gate' | 'spec-approve',
+  intent: 'run' | 'gate' | 'spec-approve' | 'reset',
   correlationId: string,
   logger: SsrStructuredLogger,
   headers: Record<string, string>,
@@ -114,6 +115,16 @@ export function classifyCadenceActionFailure(
     },
     { action: publicError.action },
   );
+}
+
+export async function handleCadenceResetAction(ctx: CadenceActionContext) {
+  const { sessionId, correlationId, logger, headers } = ctx;
+  try {
+    await clearSandboxRunsForSession(getSharedDb(), sessionId);
+    return data<PortalCadenceActionResult>({ ok: true, intent: 'reset' }, { status: 200, headers });
+  } catch (error) {
+    return classifyCadenceActionFailure(error, 'reset', correlationId, logger, headers);
+  }
 }
 
 export async function handleCadenceGateAction(formData: FormData, ctx: CadenceActionContext) {
@@ -249,7 +260,13 @@ export async function handleCadenceSpecApproveAction(
   const runId = String(formData.get('runId') ?? '').trim();
 
   if (!UUID_RE.test(runId)) {
-    return actionError('spec-approve', 400, 'Invalid runId for spec approval.', 'ERR_VALIDATION', ctx);
+    return actionError(
+      'spec-approve',
+      400,
+      'Invalid runId for spec approval.',
+      'ERR_VALIDATION',
+      ctx,
+    );
   }
 
   if (cadenceDemoUrl) {

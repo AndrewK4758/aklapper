@@ -112,6 +112,13 @@
     flex-wrap: wrap;
   }
 
+  .composerButtons {
+    display: flex;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-gap-xs);
+    flex-wrap: wrap;
+  }
+
   .modeControlGroup {
     display: flex;
     align-items: var(--sf-align-center);

@@ -19,6 +19,7 @@ export interface CadenceComposerSectionProps {
   readonly onPromptChange: (value: string) => void;
   readonly onFastModeChange: (checked: boolean) => void;
   readonly onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  readonly onReset?: () => void;
 }
 
 export function CadenceComposerSection({
@@ -34,6 +35,7 @@ export function CadenceComposerSection({
   onPromptChange,
   onFastModeChange,
   onSubmit,
+  onReset,
 }: CadenceComposerSectionProps) {
   const selectItems: Record<string, string> = {
     ...Object.fromEntries(presets.map(preset => [preset.slug, preset.title])),
@@ -122,16 +124,28 @@ export function CadenceComposerSection({
             </Switch.Label>
             <span className={styles.isolationHint}>{content.fastModeHint}</span>
           </div>
-          <Button
-            type='submit'
-            variant='primary'
-            disabled={!canSubmit}
-            data-testid='cadence-run-submit'
-          >
-            <Button.Label>
-              {isPipelineBusy ? content.runningRunLabel : content.submitRunLabel}
-            </Button.Label>
-          </Button>
+          <div className={styles.composerButtons}>
+            {onReset && (
+              <Button
+                type='button'
+                variant='ghost'
+                onClick={onReset}
+                data-testid='cadence-reset-button'
+              >
+                <Button.Label>Reset</Button.Label>
+              </Button>
+            )}
+            <Button
+              type='submit'
+              variant='primary'
+              disabled={!canSubmit}
+              data-testid='cadence-run-submit'
+            >
+              <Button.Label>
+                {isPipelineBusy ? content.runningRunLabel : content.submitRunLabel}
+              </Button.Label>
+            </Button>
+          </div>
         </div>
       </form>
     </>
