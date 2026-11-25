@@ -128,7 +128,7 @@ describe('@aklapper/db Agensi cache fallback, corpus isolation & prod seed guard
     });
     expect(freshLoader.skills).toHaveLength(2);
     expect(freshLoader.catalogMeta?.mode).toBe('live');
-    expect(freshLoader.content.statusBadge.label).toBe('catalog · live');
+    expect(freshLoader.content.statusBadge.label).toBe('Catalog live');
     expect(requestCount).toBe(1);
 
     // 2. Within TTL -> cache hit, 0 extra HTTP requests
