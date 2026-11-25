@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "devDependencies": {
+    "@aklapper/db": "workspace:*",
     "@aklapper/tooling": "workspace:*",
     "@playwright/test": "^1.65.1"
   },
