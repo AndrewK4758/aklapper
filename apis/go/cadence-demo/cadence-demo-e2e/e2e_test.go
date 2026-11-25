@@ -103,7 +103,7 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 		}
 	})
 
-	t.Run("POST /v1/cadence/runs/{id}/gate persists verdict and GET /v1/cadence/runs lists it", func(t *testing.T) {
+	t.Run("POST /v1/cadence/runs/{id}/gate enforces internal auth and X-Session-Id, persists verdict, and GET /v1/cadence/runs lists it", func(t *testing.T) {
 		resGateUnauth, _ := e2etest.DoJSON[httpkit.ErrorResponse](
 			t,
 			http.MethodPost,
@@ -115,12 +115,26 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 			t.Fatalf("expected 401 without internal auth on gate update, got %d", resGateUnauth.StatusCode)
 		}
 
-		resGate, gateOut := e2etest.DoJSON[map[string]any](
+		resNoSessGate, _ := e2etest.DoJSON[httpkit.ErrorResponse](
 			t,
 			http.MethodPost,
 			baseURL+"/v1/cadence/runs/"+createdRunID+"/gate",
 			map[string]string{"verdict": "approved"},
 			guestHeaders,
+		)
+		if resNoSessGate.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected 401 when X-Session-Id is omitted on gate update, got %d", resNoSessGate.StatusCode)
+		}
+
+		resGate, gateOut := e2etest.DoJSON[map[string]any](
+			t,
+			http.MethodPost,
+			baseURL+"/v1/cadence/runs/"+createdRunID+"/gate",
+			map[string]string{"verdict": "approved"},
+			map[string]string{
+				internalauth.HeaderName: guestTok,
+				"X-Session-Id":          "e2e-cadence-1",
+			},
 		)
 		if resGate.StatusCode != http.StatusOK || gateOut["gateVerdict"] != "approved" {
 			t.Fatalf("expected 200 approved, got (%d): %+v", resGate.StatusCode, gateOut)
@@ -171,6 +185,68 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 		)
 		if resOver.StatusCode != http.StatusTooManyRequests || body["quota"] == nil {
 			t.Fatalf("expected 429 with quota payload, got (%d): %+v", resOver.StatusCode, body)
+		}
+	})
+
+	t.Run("two-phase deferExecution init + SSE stream + session gate works end-to-end", func(t *testing.T) {
+		resInit, initRun := e2etest.DoJSON[contracts.CadenceRunResult](
+			t,
+			http.MethodPost,
+			baseURL+"/v1/cadence/runs",
+			contracts.CadenceRunRequest{
+				Prompt:         "Render GKE scale-from-zero telemetry card with latency probe",
+				PresetSlug:     "k8s-pod-telemetry",
+				SessionID:      "e2e-stream-1",
+				Mode:           contracts.CadenceModeFast,
+				DeferExecution: true,
+			},
+			guestHeaders,
+		)
+		if resInit.StatusCode != http.StatusAccepted || initRun.RunStatus != contracts.CadenceStatusPending {
+			t.Fatalf("expected 202 pending run, got (%d): %+v", resInit.StatusCode, initRun)
+		}
+
+		resNoToken, _ := e2etest.DoRequest(t, http.MethodGet, baseURL+"/v1/cadence/runs/"+initRun.RunID+"/stream", nil, map[string]string{"X-Session-Id": "e2e-stream-1"})
+		if resNoToken.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected 401 without internal auth on stream, got %d", resNoToken.StatusCode)
+		}
+
+		resMissing, _ := e2etest.DoRequest(t, http.MethodGet, baseURL+"/v1/cadence/runs/"+initRun.RunID+"/stream", nil, guestHeaders)
+		if resMissing.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected 401 without X-Session-Id, got %d", resMissing.StatusCode)
+		}
+
+		resWrong, _ := e2etest.DoRequest(t, http.MethodGet, baseURL+"/v1/cadence/runs/"+initRun.RunID+"/stream", nil, map[string]string{
+			internalauth.HeaderName: guestTok,
+			"X-Session-Id":          "e2e-other",
+		})
+		if resWrong.StatusCode != http.StatusForbidden {
+			t.Fatalf("expected 403 for wrong X-Session-Id, got %d", resWrong.StatusCode)
+		}
+
+		resStream, streamBytes := e2etest.DoRequest(t, http.MethodGet, baseURL+"/v1/cadence/runs/"+initRun.RunID+"/stream", nil, map[string]string{
+			internalauth.HeaderName: guestTok,
+			"X-Session-Id":          "e2e-stream-1",
+		})
+		streamText := string(streamBytes)
+		if resStream.StatusCode != http.StatusOK || !strings.Contains(streamText, "event: phase") || !strings.Contains(streamText, "event: complete") || !strings.Contains(streamText, "k8s-pod-telemetry") {
+			t.Fatalf("unexpected SSE stream response (%d): %s", resStream.StatusCode, streamText)
+		}
+
+		resGate, gateBody := e2etest.DoJSON[struct {
+			Run contracts.CadenceRunResult `json:"run"`
+		}](
+			t,
+			http.MethodPost,
+			baseURL+"/v1/cadence/runs/"+initRun.RunID+"/gate",
+			map[string]string{"verdict": "approved"},
+			map[string]string{
+				internalauth.HeaderName: guestTok,
+				"X-Session-Id":          "e2e-stream-1",
+			},
+		)
+		if resGate.StatusCode != http.StatusOK || gateBody.Run.GateVerdict != "approved" || gateBody.Run.RunStatus != contracts.CadenceStatusReady {
+			t.Fatalf("unexpected gate result (%d): %+v", resGate.StatusCode, gateBody)
 		}
 	})
 
