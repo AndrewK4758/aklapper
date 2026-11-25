@@ -10,10 +10,14 @@ const IS_MAINTENANCE_MODE = process.env['PORTAL_MAINTENANCE_MODE'] === 'true';
 test.describe('portal per-route workspace keep-alive and session persistence', () => {
   test('isolates workspaces per route, gates shortcuts to active layer, preserves form drafts and scroll offsets, and restores across hard reload', async ({
     page,
-  }) => {
+  }, testInfo) => {
     test.skip(
       IS_MAINTENANCE_MODE,
       'Per-route keep-alive workspaces are bypassed in maintenance mode',
+    );
+    test.skip(
+      testInfo.project.name === 'mobile-chrome',
+      'Desktop per-route keep-alive workspace journey; handheld journeys are covered in mobile-layout.spec.ts',
     );
 
     const getErrors = trackPageErrors(page);
@@ -68,6 +72,8 @@ test.describe('portal per-route workspace keep-alive and session persistence', (
     await page.locator('header a[href="/"]').click();
     await expect(page).toHaveURL(/\/$/);
     await expect(homeLayer).toHaveAttribute('data-route-active', 'true');
+    await expect(homeLayer.locator('[data-tab-count="2"]')).toBeVisible();
+    await homeLayer.getByRole('tab', { name: 'tty1' }).click();
     await expect(homeLayer.getByText('guest@andrew-k.us (tty1)')).toBeVisible();
 
     // Return to "/contact" — unsaved draft survives without remounting
@@ -79,14 +85,11 @@ test.describe('portal per-route workspace keep-alive and session persistence', (
     await page.locator('header a[href="/"]').click();
     await expect(page).toHaveURL(/\/$/);
 
-    // Switch back to Tab 1 before reload so tty1 is active on restore
-    await page.keyboard.press('Alt+1');
-
     await reloadStreamedPage(page);
     const reloadedHomeLayer = page.locator('[data-route-workspace="/"]');
     await expect(reloadedHomeLayer.locator('[data-tab-count="2"]')).toBeVisible();
 
-    const reloadedInput = reloadedHomeLayer.getByLabel('Terminal command input');
+    const reloadedInput = reloadedHomeLayer.getByLabel('Terminal command input', { exact: true });
     await expect(reloadedInput).toBeVisible();
     await reloadedInput.press('ArrowUp');
     await expect(reloadedInput).toHaveValue('ls');
