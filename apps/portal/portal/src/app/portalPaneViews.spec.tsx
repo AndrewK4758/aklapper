@@ -1988,4 +1988,137 @@ describe('Portal in-pane route adapters & deep-links', () => {
       ownerInstanceId: 'pane:pane-2',
     });
   });
+
+  it('commits ok:true responses during a cancelled beforeunload window and displays external ERR_STREAM_ABORTED errors without wedging submit', async () => {
+    const askData: PortalAskLoaderData = {
+      content: PortalAskContentSchema.parse({
+        windowTitle: 'Chat with Andrew',
+        statusBadge: { source: 'ai-ask', state: 'idle', label: 'idle' },
+        description: 'Grounded docked Q&A.',
+        abstentionNotice: 'Strict grounding enabled.',
+        starterQuestions: ['What stack powers this site?'],
+        jdPlaceholder: 'Paste JD...',
+      }),
+      quota: { role: 'guest', turnsUsed: 0, maxTurns: 10, tokensUsed: 0, maxTokens: 40_000 },
+    };
+
+    const firstDeferred = Promise.withResolvers<unknown>();
+    let actionCalls = 0;
+    installTestPaneTransport({
+      loaders: {
+        '/chat': () => ({
+          correlationId: 'corr-chat-cancelled-unload',
+          payload: Promise.resolve<StreamResult<PortalAskLoaderData>>({
+            ok: true,
+            data: askData,
+          }),
+          askStatusPayload: Promise.resolve<StreamResult<AskServiceStatus | undefined>>({
+            ok: true,
+            data: { status: 'ready', provider: 'vertex', pointsCount: 12 },
+          }),
+        }),
+      },
+      actions: {
+        '/chat': () => {
+          actionCalls += 1;
+          if (actionCalls === 1) {
+            return firstDeferred.promise;
+          }
+          // Simulate an external proxy HTTP 499 ERR_STREAM_ABORTED (no local abort or unload)
+          return Promise.resolve({
+            ok: false,
+            mode: 'jd_match',
+            error: 'Upstream proxy terminated request early.',
+            code: 'ERR_STREAM_ABORTED',
+            action: 'Retry your JD Match request.',
+            correlationId: 'corr-ext-499',
+          });
+        },
+      },
+    });
+
+    const router = createMemoryRouter(
+      [
+        {
+          id: 'root',
+          path: '/',
+          loader: () =>
+            makeRootStreamData({
+              maintenanceMode: false,
+              chrome: CHROME,
+              maintenance: null,
+              terminal: TERMINAL,
+              homeContent: HOME_CONTENT,
+            }),
+          Component: PortalRootBridge,
+          children: [
+            {
+              index: true,
+              loader: () =>
+                streamOk<PortalHomeLoaderData>({
+                  content: HOME_CONTENT,
+                  terminal: TERMINAL,
+                  contactForm: CONTACT_FORM_DEFINITION,
+                }),
+              Component: PortalHomeBridge,
+            },
+          ],
+        },
+      ],
+      { initialEntries: ['/'] },
+    );
+
+    render(<RouterProvider router={router} />);
+    await screen.findByLabelText('Terminal command input');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Pane' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Chat (Split)' }));
+
+    fireEvent.click(await screen.findByTestId('ask-tab-jd'));
+    fireEvent.change(await screen.findByTestId('ask-jd-textarea'), {
+      target: {
+        value:
+          'Staff Platform Engineer working on streaming SSR, Go microservices, and PostgreSQL 19.',
+      },
+    });
+    fireEvent.click(screen.getByTestId('ask-jd-submit'));
+
+    // Case (a): beforeunload fires and user stays on page while ok:true response arrives
+    act(() => {
+      window.dispatchEvent(new Event('beforeunload'));
+      firstDeferred.resolve({
+        ok: true,
+        mode: 'jd_match',
+        submittedText:
+          'Staff Platform Engineer working on streaming SSR, Go microservices, and PostgreSQL 19.',
+        response: {
+          mode: 'jd_match',
+          grounded: true,
+          abstained: false,
+          answer: 'Strong platform engineering match.',
+          jdMatch: {
+            overallScore: 92,
+            verdict: 'Strong Fit',
+            strengths: ['Streaming SSR & Go microservices'],
+            gaps: [],
+          },
+          sources: [],
+          provider: 'test-ai',
+          model: 'test-model',
+          tokensUsed: 120,
+          latencyMs: 42,
+        },
+      });
+    });
+
+    expect(await screen.findByTestId('ask-jd-result')).toBeTruthy();
+    const submitBtn = screen.getByTestId('ask-jd-submit') as HTMLButtonElement;
+    expect(submitBtn.disabled).toBe(false);
+
+    // Case (b): External ERR_STREAM_ABORTED without local abort/unload shows inline error and re-enables submit
+    fireEvent.click(submitBtn);
+    const errorBanner = await screen.findByTestId('ask-error-banner');
+    expect(errorBanner.textContent).toContain('ERR_STREAM_ABORTED');
+    expect((screen.getByTestId('ask-jd-submit') as HTMLButtonElement).disabled).toBe(false);
+  });
 });

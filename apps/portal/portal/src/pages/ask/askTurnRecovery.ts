@@ -179,6 +179,12 @@ const turnStores = new Map<
   }
 >();
 const NULL_ASK_TURN = (): null => null;
+const NOOP_UNSUBSCRIBE = (): void => undefined;
+const SSR_TURN_STORE = Object.freeze({
+  subscribe: () => NOOP_UNSUBSCRIBE,
+  getSnapshot: NULL_ASK_TURN,
+  getServerSnapshot: NULL_ASK_TURN,
+});
 
 function notifyPersistedAskListeners(): void {
   cachedSnapshots.clear();
@@ -191,15 +197,15 @@ function parsePersistedAskTurnRaw(raw: string | null): PersistedAskTurn | null {
     const parsed = JSON.parse(raw) as Partial<PersistedAskTurn>;
     if (
       typeof parsed.attemptId !== 'string' ||
-      parsed.attemptId.length === 0 ||
+      !parsed.attemptId ||
       (parsed.mode !== 'qa' && parsed.mode !== 'jd_match') ||
       typeof parsed.question !== 'string' ||
-      parsed.question.length === 0
+      !parsed.question
     ) {
       return null;
     }
     const ownerInstanceId =
-      typeof parsed.ownerInstanceId === 'string' && parsed.ownerInstanceId.length > 0
+      typeof parsed.ownerInstanceId === 'string' && parsed.ownerInstanceId
         ? parsed.ownerInstanceId
         : undefined;
     return {
@@ -217,12 +223,8 @@ export function subscribePersistedAskTurn(
   listener: () => void,
   ownerInstanceId?: string,
 ): () => void {
+  if (typeof window === 'undefined') return NOOP_UNSUBSCRIBE;
   storageListeners.add(listener);
-  if (typeof window === 'undefined') {
-    return () => {
-      storageListeners.delete(listener);
-    };
-  }
   const scopedKey = resolveAskTurnStorageKey(ownerInstanceId);
   const onStorage = (event: StorageEvent) => {
     if (event.key === scopedKey || event.key === ASK_TURN_STORAGE_KEY || event.key === null) {
@@ -264,6 +266,7 @@ export function readPersistedAskTurn(ownerInstanceId?: string): PersistedAskTurn
 }
 
 export function getPersistedAskTurnStore(ownerInstanceId?: string) {
+  if (typeof window === 'undefined') return SSR_TURN_STORE;
   const scope = ownerInstanceId ?? '';
   const existing = turnStores.get(scope);
   if (existing) return existing;

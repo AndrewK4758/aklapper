@@ -84,6 +84,7 @@ export interface PortalPaneStreamStore {
 
 interface PaneStreamRecord {
   readonly controller: AbortController;
+  renderAccessed: boolean;
   entry: PaneStreamEntry<unknown>;
 }
 
@@ -148,13 +149,15 @@ export function createPortalPaneStreamStore(
     );
   };
 
-  const enforceLruCap = (): void => {
+  const enforceLruCap = (protectedKey?: string): void => {
     if (records.size <= maxEntries) return;
     for (const candidateKey of Array.from(records.keys())) {
       if (records.size <= maxEntries) break;
+      if (candidateKey === protectedKey) continue;
       if ((listenersByKey.get(candidateKey)?.size ?? 0) > 0) continue;
       const oldest = records.get(candidateKey);
-      oldest?.controller.abort();
+      if (!oldest || oldest.renderAccessed) continue;
+      oldest.controller.abort();
       records.delete(candidateKey);
     }
   };
@@ -169,6 +172,7 @@ export function createPortalPaneStreamStore(
     routePath: PortalPaneRoute,
     retryNonce: number,
     shouldNotify: boolean,
+    renderAccessed: boolean,
   ): PaneStreamEntry<T> => {
     const key = buildKey(paneId, routePath);
     const existing = records.get(key);
@@ -188,6 +192,7 @@ export function createPortalPaneStreamStore(
 
     const record: PaneStreamRecord = {
       controller,
+      renderAccessed,
       entry: {
         key,
         paneId,
@@ -243,7 +248,7 @@ export function createPortalPaneStreamStore(
     };
 
     records.set(key, record);
-    enforceLruCap();
+    enforceLruCap(key);
 
     if (shouldNotify) {
       notifyKey(key);
@@ -261,10 +266,11 @@ export function createPortalPaneStreamStore(
     const key = buildKey(paneId, routePath);
     const existing = records.get(key);
     if (existing) {
+      existing.renderAccessed = true;
       touchRecord(key, existing);
       return existing.entry as PaneStreamEntry<T>;
     }
-    return startRecord<T>(paneId, routePath, 0, false);
+    return startRecord<T>(paneId, routePath, 0, false, true);
   };
 
   const prewarm = <T = unknown>(paneId: string, routePath: PortalPaneRoute): PaneStreamEntry<T> => {
@@ -272,7 +278,13 @@ export function createPortalPaneStreamStore(
       emitSsrMutationBlocked('prewarm');
       return getImmutableServerEntry<T>(paneId, routePath);
     }
-    return getOrStart<T>(paneId, routePath);
+    const key = buildKey(paneId, routePath);
+    const existing = records.get(key);
+    if (existing) {
+      touchRecord(key, existing);
+      return existing.entry as PaneStreamEntry<T>;
+    }
+    return startRecord<T>(paneId, routePath, 0, false, false);
   };
 
   const retry = <T = unknown>(paneId: string, routePath: PortalPaneRoute): PaneStreamEntry<T> => {
@@ -281,8 +293,15 @@ export function createPortalPaneStreamStore(
       return getImmutableServerEntry<T>(paneId, routePath);
     }
     const key = buildKey(paneId, routePath);
-    const prevNonce = records.get(key)?.entry.retryNonce ?? 0;
-    return startRecord<T>(paneId, routePath, prevNonce + 1, true);
+    const existing = records.get(key);
+    const prevNonce = existing?.entry.retryNonce ?? 0;
+    return startRecord<T>(
+      paneId,
+      routePath,
+      prevNonce + 1,
+      true,
+      existing?.renderAccessed ?? false,
+    );
   };
 
   const subscribe = (
@@ -304,6 +323,11 @@ export function createPortalPaneStreamStore(
       set?.delete(listener);
       if (set && set.size === 0) {
         listenersByKey.delete(key);
+        const record = records.get(key);
+        if (record) {
+          record.renderAccessed = false;
+        }
+        enforceLruCap();
       }
     };
   };

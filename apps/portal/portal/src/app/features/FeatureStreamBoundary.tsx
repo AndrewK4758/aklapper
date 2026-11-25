@@ -28,14 +28,12 @@ import {
 
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
-function isAbortedActionResult(result: unknown): boolean {
+function isFailedActionResult(result: unknown): boolean {
   return (
     typeof result === 'object' &&
     result !== null &&
     'ok' in result &&
-    result.ok === false &&
-    'code' in result &&
-    result.code === 'ERR_STREAM_ABORTED'
+    (result as { readonly ok?: unknown }).ok === false
   );
 }
 
@@ -126,24 +124,31 @@ export function usePaneActionSubmit<T>(routePath: PortalPaneRoute): {
       const seq = seqRef.current + 1;
       seqRef.current = seq;
       setIsSubmitting(true);
-      void submitPortalPaneAction<T>(routePath, formData, controller.signal).then(result => {
-        const unloading = unloadTracker.isUnloading();
-        unloadTracker.dispose();
-        if (unloadRef.current === unloadTracker) {
-          unloadRef.current = null;
-        }
-        if (
-          !mountedRef.current ||
-          seqRef.current !== seq ||
-          controller.signal.aborted ||
-          unloading ||
-          isAbortedActionResult(result)
-        ) {
-          return;
-        }
-        setActionData(result);
-        setIsSubmitting(false);
-      });
+      void submitPortalPaneAction<T>(routePath, formData, controller.signal)
+        .then(result => {
+          if (!mountedRef.current || seqRef.current !== seq) {
+            return;
+          }
+          const unloading = unloadTracker.isUnloading();
+          const failed = isFailedActionResult(result);
+          if (failed && (controller.signal.aborted || unloading)) {
+            setIsSubmitting(false);
+            return;
+          }
+          setActionData(result);
+          setIsSubmitting(false);
+        })
+        .catch(() => {
+          if (mountedRef.current && seqRef.current === seq) {
+            setIsSubmitting(false);
+          }
+        })
+        .finally(() => {
+          unloadTracker.dispose();
+          if (unloadRef.current === unloadTracker) {
+            unloadRef.current = null;
+          }
+        });
     },
     [routePath],
   );

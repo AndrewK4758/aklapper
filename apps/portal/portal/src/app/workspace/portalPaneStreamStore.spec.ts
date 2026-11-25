@@ -181,14 +181,90 @@ describe('portalPaneStreamStore', () => {
     }
     expect(loadSpy).toHaveBeenCalledTimes(MAX_CACHED_PANE_ENVELOPES + 3);
 
-    // Unsubscribe mounted-1 and add one new unsubscribed prewarm -> only unsubscribed mounted-1 is evicted
+    // Unsubscribe mounted-1 -> clears renderAccessed and immediately evicts mounted-1 via enforceLruCap
     unsubs[0]?.();
-    currentPane = 'unsub-extra';
-    store.prewarm(currentPane, '/agensi');
     expect(signalsByPane.get('mounted-1')?.aborted).toBe(true);
     expect(signalsByPane.get('mounted-2')?.aborted).toBe(false);
 
     for (const unsub of unsubs.slice(1)) unsub();
+  });
+
+  it('prevents self-eviction on prewarm -> getOrStart -> double getOrStart -> subscribe past 32 mounted panes', () => {
+    const signalsByPane = new Map<string, AbortSignal>();
+    let currentPane = '';
+    const { loadSpy, transport } = createMockTransport((_routePath, signal) => {
+      signalsByPane.set(currentPane, signal);
+      return new Promise(() => undefined);
+    });
+
+    const store = createPortalPaneStreamStore({ getTransport: () => transport });
+    const unsubs: Array<() => void> = [];
+
+    for (let idx = 1; idx <= MAX_CACHED_PANE_ENVELOPES; idx += 1) {
+      currentPane = `pane-${idx}`;
+      store.getOrStart(currentPane, '/agensi');
+      unsubs.push(store.subscribe(currentPane, '/agensi', () => undefined));
+    }
+    expect(loadSpy).toHaveBeenCalledTimes(MAX_CACHED_PANE_ENVELOPES);
+
+    // 33rd pane: prewarm -> React render getOrStart -> React dev double getOrStart -> subscribe
+    currentPane = 'pane-33';
+    const prewarmed = store.prewarm('pane-33', '/agensi');
+    const renderFirst = store.getOrStart('pane-33', '/agensi');
+    const renderSecond = store.getOrStart('pane-33', '/agensi');
+    unsubs.push(store.subscribe('pane-33', '/agensi', () => undefined));
+
+    expect(renderFirst).toBe(prewarmed);
+    expect(renderSecond).toBe(prewarmed);
+    expect(loadSpy).toHaveBeenCalledTimes(MAX_CACHED_PANE_ENVELOPES + 1);
+    for (let idx = 1; idx <= MAX_CACHED_PANE_ENVELOPES + 1; idx += 1) {
+      expect(signalsByPane.get(`pane-${idx}`)?.aborted).toBe(false);
+    }
+
+    for (const unsub of unsubs) unsub();
+  });
+
+  it('preserves all entries across simultaneous 35-pane render-phase getOrStart before any subscribe runs', () => {
+    const signalsByPane = new Map<string, AbortSignal>();
+    let currentPane = '';
+    const { loadSpy, transport } = createMockTransport((_routePath, signal) => {
+      signalsByPane.set(currentPane, signal);
+      return new Promise(() => undefined);
+    });
+
+    const store = createPortalPaneStreamStore({ getTransport: () => transport });
+    const total = MAX_CACHED_PANE_ENVELOPES + 3;
+    const renderEntries = [];
+
+    // Phase 1: React renders all 35 panes before committing any subscribe() calls
+    for (let idx = 1; idx <= total; idx += 1) {
+      currentPane = `batch-${idx}`;
+      renderEntries.push(store.getOrStart(currentPane, '/agensi'));
+    }
+
+    // Phase 2: React dev stability check (second getOrStart per pane) before subscribe
+    for (let idx = 1; idx <= total; idx += 1) {
+      expect(store.getOrStart(`batch-${idx}`, '/agensi')).toBe(renderEntries[idx - 1]);
+    }
+    expect(loadSpy).toHaveBeenCalledTimes(total);
+
+    // Phase 3: React commits subscribe() on all 35 panes
+    const unsubs: Array<() => void> = [];
+    for (let idx = 1; idx <= total; idx += 1) {
+      unsubs.push(store.subscribe(`batch-${idx}`, '/agensi', () => undefined));
+      expect(signalsByPane.get(`batch-${idx}`)?.aborted).toBe(false);
+    }
+
+    // Unmounting batch-1..batch-3 releases them for immediate LRU eviction back to 32
+    unsubs[0]?.();
+    unsubs[1]?.();
+    unsubs[2]?.();
+    expect(signalsByPane.get('batch-1')?.aborted).toBe(true);
+    expect(signalsByPane.get('batch-2')?.aborted).toBe(true);
+    expect(signalsByPane.get('batch-3')?.aborted).toBe(true);
+    expect(signalsByPane.get('batch-4')?.aborted).toBe(false);
+
+    for (const unsub of unsubs.slice(3)) unsub();
   });
 
   it('guards SSR renders where window is undefined with zero module state mutation and emits UNSOUND_CONDITION telemetry', () => {
