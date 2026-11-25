@@ -103,8 +103,8 @@ func TestGeneralTierStreamingUnaryAndBoundaries(t *testing.T) {
 		if rec.Code != http.StatusOK {
 			t.Fatalf("expected 200 SSE, got %d: %s", rec.Code, body)
 		}
-		if prov.streamCalls != 1 {
-			t.Fatalf("expected 1 StreamChat call, got %d", prov.streamCalls)
+		if prov.streamCalls < 1 || prov.streamCalls > 2 {
+			t.Fatalf("expected 1-2 StreamChat calls (preamble + main), got %d", prov.streamCalls)
 		}
 		if !strings.Contains(body, `"label":"Chatting with Andrew's AI..."`) {
 			t.Fatalf("expected conversational status label, got body:\n%s", body)
