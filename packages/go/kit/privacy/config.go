@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"regexp"
-	"regexp/syntax"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -44,7 +43,7 @@ var (
 		},
 		{
 			name:        "credentialed_url",
-			regex:       regexp.MustCompile(`(?i)\b(?:postgres(?:ql)?|mysql|redis|mongodb(?:\+srv)?|amqp|https?)://[^\s:@"'<>]{1,40}:[^\s@"'<>]{1,64}@[^\s"'<>]{1,64}`),
+			regex:       regexp.MustCompile(`(?i)(?:postgres(?:ql)?|mysql|redis|mongodb(?:\+srv)?|amqp|https?)://[^\s:@"'<>]{1,40}:[^\s@"'<>]{1,64}@[^\s"'<>]{1,64}`),
 			fingerprint: ruleFingerprint("builtin", 1, "credentialed_url"),
 		},
 		{
@@ -54,7 +53,7 @@ var (
 		},
 		{
 			name:        "github_token",
-			regex:       regexp.MustCompile(`\b(?:ghp_[0-9A-Za-z]{36}|github_pat_[0-9A-Za-z_]{22,82})\b`),
+			regex:       regexp.MustCompile(`(?:ghp_[0-9A-Za-z]{36}|github_pat_[0-9A-Za-z_]{22,82})`),
 			fingerprint: ruleFingerprint("builtin", 3, "github_token"),
 		},
 		{
@@ -100,8 +99,8 @@ type ConfigInput struct {
 
 type denylistRule struct {
 	normalized  string
+	normLen     int
 	regex       *regexp.Regexp
-	prefixRegex *regexp.Regexp
 	fingerprint string
 }
 
@@ -182,75 +181,8 @@ func validateBoundedEntry(entry string) error {
 	return nil
 }
 
-// maxRegexMatchRunes computes the exact maximum match length in runes for a parsed Go RE2
-// expression without invoking Simplify. Returns (_, false) if any subexpression is unbounded.
-func maxRegexMatchRunes(re *syntax.Regexp) (int, bool) {
-	if re == nil {
-		return 0, true
-	}
-	switch re.Op {
-	case syntax.OpNoMatch, syntax.OpEmptyMatch,
-		syntax.OpBeginLine, syntax.OpEndLine,
-		syntax.OpBeginText, syntax.OpEndText,
-		syntax.OpWordBoundary, syntax.OpNoWordBoundary:
-		return 0, true
-	case syntax.OpLiteral:
-		return len(re.Rune), true
-	case syntax.OpCharClass, syntax.OpAnyCharNotNL, syntax.OpAnyChar:
-		return 1, true
-	case syntax.OpCapture, syntax.OpQuest:
-		if len(re.Sub) == 0 {
-			return 0, true
-		}
-		return maxRegexMatchRunes(re.Sub[0])
-	case syntax.OpStar, syntax.OpPlus:
-		return 0, false
-	case syntax.OpRepeat:
-		if re.Max < 0 || len(re.Sub) == 0 {
-			return 0, false
-		}
-		subMax, bounded := maxRegexMatchRunes(re.Sub[0])
-		if !bounded {
-			return 0, false
-		}
-		if re.Max == 0 || subMax == 0 {
-			return 0, true
-		}
-		if re.Max > MaxNormalizedDenylistRunes || subMax > MaxNormalizedDenylistRunes || re.Max*subMax > MaxNormalizedDenylistRunes {
-			return MaxNormalizedDenylistRunes + 1, true
-		}
-		return re.Max * subMax, true
-	case syntax.OpConcat:
-		total := 0
-		for _, sub := range re.Sub {
-			subMax, bounded := maxRegexMatchRunes(sub)
-			if !bounded {
-				return 0, false
-			}
-			total += subMax
-			if total > MaxNormalizedDenylistRunes {
-				total = MaxNormalizedDenylistRunes + 1
-			}
-		}
-		return total, true
-	case syntax.OpAlternate:
-		best := 0
-		for _, sub := range re.Sub {
-			subMax, bounded := maxRegexMatchRunes(sub)
-			if !bounded {
-				return 0, false
-			}
-			if subMax > best {
-				best = subMax
-			}
-		}
-		return best, true
-	default:
-		return 0, false
-	}
-}
-
-// LoadConfig parses and validates denylist entries, rejecting unbounded regexes fail-closed.
+// LoadConfig parses and validates denylist entries, rejecting unbounded, empty-matchable,
+// over-length, or context-anchored regexes fail-closed.
 func LoadConfig(in ConfigInput) (*Config, error) {
 	denylistAction := in.DenylistAction
 	if denylistAction == "" {
@@ -284,34 +216,12 @@ func LoadConfig(in ConfigInput) (*Config, error) {
 			if expr == "" {
 				return nil, errors.New("empty regex entry in privacy denylist")
 			}
-			parsed, err := syntax.Parse("(?i)"+expr, syntax.Perl)
+			compiled, maxRunes, err := compileContextFreeDenylistRegex(i, expr)
 			if err != nil {
-				return nil, fmt.Errorf("invalid privacy denylist regex: %w", err)
-			}
-			maxRunes, bounded := maxRegexMatchRunes(parsed)
-			if !bounded {
-				return nil, errors.New("privacy denylist entry contains unbounded regex quantifier")
-			}
-			if maxRunes == 0 {
-				return nil, errors.New("privacy denylist regex must match at least 1 rune")
-			}
-			if maxRunes > MaxNormalizedDenylistRunes {
-				return nil, fmt.Errorf("privacy denylist regex max match length %d exceeds max %d runes", maxRunes, MaxNormalizedDenylistRunes)
-			}
-			compiled, err := regexp.Compile("(?i)" + expr)
-			if err != nil {
-				return nil, fmt.Errorf("invalid privacy denylist regex: %w", err)
-			}
-			if compiled.MatchString("") {
-				return nil, errors.New("privacy denylist regex must not match empty string")
-			}
-			prefixCompiled, err := regexp.Compile("(?s:^.)(?s:.*?)((?i)" + expr + ")")
-			if err != nil {
-				return nil, fmt.Errorf("invalid privacy denylist prefix regex: %w", err)
+				return nil, err
 			}
 			cfg.rules = append(cfg.rules, denylistRule{
 				regex:       compiled,
-				prefixRegex: prefixCompiled,
 				fingerprint: ruleFingerprint("denylist_re", i, expr),
 			})
 			if maxRunes > cfg.maxRegexRunes {
@@ -333,6 +243,7 @@ func LoadConfig(in ConfigInput) (*Config, error) {
 		}
 		cfg.rules = append(cfg.rules, denylistRule{
 			normalized:  normKey,
+			normLen:     normLen,
 			fingerprint: ruleFingerprint("denylist", i, normKey),
 		})
 		if normLen > cfg.maxDenylistNonSep {

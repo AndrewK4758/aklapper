@@ -1,6 +1,8 @@
 package privacy
 
 import (
+	"regexp"
+	"sort"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -8,72 +10,37 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-type guardRune struct {
-	r        rune
-	redacted bool
-}
-
-type runeSegment struct {
-	start int
-	end   int
-}
-
 type normRuneSpan struct {
 	rawStart int
 	rawEnd   int
 }
 
-func pendingToString(items []guardRune) string {
-	out := make([]rune, len(items))
-	for i, item := range items {
-		out[i] = item.r
-	}
-	return string(out)
+type matchInterval struct {
+	start       int
+	end         int
+	category    string
+	fingerprint string
+	isSecret    bool
+	ruleOrder   int
 }
 
 func isCombiningMark(r rune) bool {
 	return unicode.Is(unicode.Mn, r) || unicode.Is(unicode.Mc, r) || unicode.Is(unicode.Me, r)
 }
 
-// isWordRune matches Go RE2's ASCII word-character class ([0-9A-Za-z_]) used by \b and \B.
-func isWordRune(r rune) bool {
-	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_'
-}
-
-func unredactedSegments(items []guardRune, limit int) []runeSegment {
-	if limit > len(items) {
-		limit = len(items)
-	}
-	var segs []runeSegment
-	i := 0
-	for i < limit {
-		if items[i].redacted {
-			i++
-			continue
-		}
-		start := i
-		for i < limit && !items[i].redacted {
-			i++
-		}
-		segs = append(segs, runeSegment{start: start, end: i})
-	}
-	return segs
-}
-
-func buildNormalizedMap(raw []guardRune) (string, []normRuneSpan) {
+func buildNormalizedMap(raw []rune) (string, []normRuneSpan) {
 	var b strings.Builder
 	spans := make([]normRuneSpan, 0, len(raw))
 	for i := 0; i < len(raw); {
-		if raw[i].redacted || isSeparatorRune(raw[i].r) {
+		if isSeparatorRune(raw[i]) {
 			i++
 			continue
 		}
 		j := i + 1
-		for j < len(raw) && !raw[j].redacted && isCombiningMark(raw[j].r) {
+		for j < len(raw) && isCombiningMark(raw[j]) {
 			j++
 		}
-		cluster := pendingToString(raw[i:j])
-		expanded := norm.NFKC.String(cluster)
+		expanded := norm.NFKC.String(string(raw[i:j]))
 		for _, nr := range expanded {
 			if isSeparatorRune(nr) {
 				continue
@@ -86,50 +53,128 @@ func buildNormalizedMap(raw []guardRune) (string, []normRuneSpan) {
 	return b.String(), spans
 }
 
-// matchDenylistRule finds the leftmost match of rule within segStr/normStr, translating
-// indices back to pending rune offsets. When hasPrefix is true, regex rules scan a 1-rune
-// read-only prefix via prefixRegex so \b, \B, ^, and \A observe the real preceding rune.
-func matchDenylistRule(
+// collectRegexMatches enumerates all matches of a context-free regex over pendingStr,
+// advancing by 1 rune past each match start so self-overlaps and cross-rule overlaps are
+// captured completely and independently of chunk boundaries.
+func collectRegexMatches(
+	dst []matchInterval,
+	re *regexp.Regexp,
+	pendingStr string,
+	category string,
+	fingerprint string,
+	isSecret bool,
+	ruleOrder int,
+) []matchInterval {
+	searchByte := 0
+	searchRune := 0
+	for searchByte < len(pendingStr) {
+		loc := re.FindStringIndex(pendingStr[searchByte:])
+		if loc == nil {
+			break
+		}
+		matchStartByte := searchByte + loc[0]
+		matchEndByte := searchByte + loc[1]
+		matchStartRune := searchRune + utf8.RuneCountInString(pendingStr[searchByte:matchStartByte])
+		matchEndRune := matchStartRune + utf8.RuneCountInString(pendingStr[matchStartByte:matchEndByte])
+		if matchEndRune > matchStartRune {
+			dst = append(dst, matchInterval{
+				start:       matchStartRune,
+				end:         matchEndRune,
+				category:    category,
+				fingerprint: fingerprint,
+				isSecret:    isSecret,
+				ruleOrder:   ruleOrder,
+			})
+		}
+		_, size := utf8.DecodeRuneInString(pendingStr[matchStartByte:])
+		if size <= 0 {
+			break
+		}
+		searchByte = matchStartByte + size
+		searchRune = matchStartRune + 1
+	}
+	return dst
+}
+
+// collectLiteralMatches enumerates all occurrences of a normalized literal rule in normStr,
+// stepping by 1 rune past each match start so self-overlapping literals merge cleanly.
+func collectLiteralMatches(
+	dst []matchInterval,
 	rule denylistRule,
-	segStart int,
-	segStr string,
 	normStr string,
 	normMap []normRuneSpan,
-	hasPrefix bool,
-	prefixRune rune,
-) (int, int, bool) {
-	if rule.regex != nil {
-		if hasPrefix && rule.prefixRegex != nil {
-			prefix := string(prefixRune)
-			combined := prefix + segStr
-			loc := rule.prefixRegex.FindStringSubmatchIndex(combined)
-			if loc != nil && len(loc) >= 4 && loc[2] >= len(prefix) && loc[3] > loc[2] {
-				relStart := loc[2] - len(prefix)
-				relEnd := loc[3] - len(prefix)
-				startRune := segStart + utf8.RuneCountInString(segStr[:relStart])
-				endRune := startRune + utf8.RuneCountInString(segStr[relStart:relEnd])
-				return startRune, endRune, true
-			}
-			return 0, 0, false
+	ruleOrder int,
+) []matchInterval {
+	searchByte := 0
+	searchRune := 0
+	for searchByte < len(normStr) {
+		rel := strings.Index(normStr[searchByte:], rule.normalized)
+		if rel < 0 {
+			break
 		}
-		if loc := rule.regex.FindStringIndex(segStr); loc != nil && loc[1] > loc[0] {
-			startRune := segStart + utf8.RuneCountInString(segStr[:loc[0]])
-			endRune := startRune + utf8.RuneCountInString(segStr[loc[0]:loc[1]])
-			return startRune, endRune, true
+		matchByte := searchByte + rel
+		startNormRune := searchRune + utf8.RuneCountInString(normStr[searchByte:matchByte])
+		endNormRune := startNormRune + rule.normLen
+		if endNormRune > startNormRune && endNormRune <= len(normMap) {
+			dst = append(dst, matchInterval{
+				start:       normMap[startNormRune].rawStart,
+				end:         normMap[endNormRune-1].rawEnd,
+				category:    "denylist",
+				fingerprint: rule.fingerprint,
+				isSecret:    false,
+				ruleOrder:   ruleOrder,
+			})
 		}
-		return 0, 0, false
+		_, size := utf8.DecodeRuneInString(normStr[matchByte:])
+		if size <= 0 {
+			break
+		}
+		searchByte = matchByte + size
+		searchRune = startNormRune + 1
 	}
+	return dst
+}
 
-	if rule.normalized != "" {
-		if idx := strings.Index(normStr, rule.normalized); idx >= 0 {
-			startNormRune := utf8.RuneCountInString(normStr[:idx])
-			endNormRune := startNormRune + utf8.RuneCountInString(rule.normalized)
-			if endNormRune > startNormRune && endNormRune <= len(normMap) {
-				startRune := segStart + normMap[startNormRune].rawStart
-				endRune := segStart + normMap[endNormRune-1].rawEnd
-				return startRune, endRune, true
-			}
+// mergeOverlappingIntervals sorts match intervals deterministically and merges strictly
+// overlapping spans (next.start < cur.end). Adjacent spans (next.start == cur.end) remain distinct.
+func mergeOverlappingIntervals(intervals []matchInterval) []matchInterval {
+	if len(intervals) <= 1 {
+		return intervals
+	}
+	sort.Slice(intervals, func(i, j int) bool {
+		a, b := intervals[i], intervals[j]
+		if a.start != b.start {
+			return a.start < b.start
+		}
+		if a.isSecret != b.isSecret {
+			return a.isSecret
+		}
+		if a.ruleOrder != b.ruleOrder {
+			return a.ruleOrder < b.ruleOrder
+		}
+		return a.end > b.end
+	})
+
+	merged := make([]matchInterval, 0, len(intervals))
+	for _, iv := range intervals {
+		if len(merged) == 0 || iv.start >= merged[len(merged)-1].end {
+			merged = append(merged, iv)
+			continue
+		}
+		last := &merged[len(merged)-1]
+		if iv.end > last.end {
+			last.end = iv.end
+		}
+		if iv.isSecret && !last.isSecret {
+			last.isSecret = true
+			last.category = iv.category
+			last.fingerprint = iv.fingerprint
+			last.ruleOrder = iv.ruleOrder
+		} else if iv.isSecret == last.isSecret && iv.ruleOrder < last.ruleOrder {
+			last.category = iv.category
+			last.fingerprint = iv.fingerprint
+			last.ruleOrder = iv.ruleOrder
 		}
 	}
-	return 0, 0, false
+	return merged
 }

@@ -3,6 +3,7 @@ package privacy
 import (
 	"encoding/base64"
 	"errors"
+	"log"
 	"math/rand/v2"
 	"strings"
 	"testing"
@@ -33,6 +34,18 @@ func runGuardPartition(t *testing.T, cfg *Config, chunks []string) (string, bool
 	return out.String(), false
 }
 
+func runGuardPartitionWithLogs(t *testing.T, cfg *Config, chunks []string) (string, bool, int) {
+	t.Helper()
+	var buf strings.Builder
+	prev := log.Writer()
+	log.SetOutput(&buf)
+	defer log.SetOutput(prev)
+
+	out, aborted := runGuardPartition(t, cfg, chunks)
+	events := strings.Count(buf.String(), `"event":"privacy.stream_guard.triggered"`)
+	return out, aborted, events
+}
+
 func randomRunePartitions(s string, rng *rand.Rand) []string {
 	runes := []rune(s)
 	var chunks []string
@@ -45,19 +58,33 @@ func randomRunePartitions(s string, rng *rand.Rand) []string {
 	return chunks
 }
 
-func TestLoadConfigEnforcesBoundedRegexMaxRuneCap(t *testing.T) {
+func TestLoadConfigContextFreeFiniteRegexGate(t *testing.T) {
 	rejectCases := []struct {
 		name  string
 		entry string
 	}{
+		{name: "word boundary \\b", entry: `["re:\\bCAT\\b"]`},
+		{name: "non-word boundary \\B", entry: `["re:\\BSECRET"]`},
+		{name: "caret anchor ^", entry: `["re:^SECRET"]`},
+		{name: "dollar anchor $", entry: `["re:SECRET$"]`},
+		{name: "start of text \\A", entry: `["re:\\ASECRET"]`},
+		{name: "end of text \\z", entry: `["re:SECRET\\z"]`},
+		{name: "multiline start (?m)^", entry: `["re:(?m)^SECRET"]`},
+		{name: "multiline end (?m)$", entry: `["re:(?m)SECRET$"]`},
+		{name: "zero-repeat anchored subexpr", entry: `["re:(?:\\b){0}SECRET"]`},
+		{name: "word-bounded empty-matchable regex", entry: `["re:\\b[A-Z]{0,12}\\b"]`},
+		{name: "word-boundary alternation", entry: `["re:(?:\\b|SECRET)"]`},
+		{name: "empty-matchable repeat", entry: `["re:a{0,5}"]`},
+		{name: "empty-matchable optional", entry: `["re:(?:SECRET)?"]`},
+		{name: "empty-matchable alternation", entry: `["re:(?:|SECRET)"]`},
+		{name: "unsatisfiable char class", entry: `["re:[^\\s\\S]"]`},
 		{name: "188-rune bounded regex exceeds 128 cap", entry: `["re:sk-proj-[A-Za-z0-9]{20,180}"]`},
 		{name: "129-rune repeat exceeds 128 cap", entry: `["re:a{1,129}"]`},
 		{name: "grouped repeat 200 runes exceeds 128 cap", entry: `["re:(?:ab){1,100}"]`},
 		{name: "nested repeat 400 runes exceeds 128 cap", entry: `["re:(?:a{0,20}){0,20}"]`},
 		{name: "escaped backslash followed by star is unbounded", entry: `["re:foo\\\\*"]`},
+		{name: "unbounded inside zero repeat", entry: `["re:(?:a*){0}foo"]`},
 		{name: "open-ended repeat quantifier", entry: `["re:sk-[A-Za-z0-9]{8,}"]`},
-		{name: "zero-width only regex", entry: `["re:\\b"]`},
-		{name: "empty-string matching regex", entry: `["re:a{0,5}"]`},
 	}
 	for _, tc := range rejectCases {
 		t.Run("reject_"+tc.name, func(t *testing.T) {
@@ -67,11 +94,21 @@ func TestLoadConfigEnforcesBoundedRegexMaxRuneCap(t *testing.T) {
 		})
 	}
 
+	t.Run("syntax error does not echo secret regex text", func(t *testing.T) {
+		_, err := LoadConfig(ConfigInput{RawDenylist: `["re:(SUPER_SECRET_CLIENT_PATTERN"]`})
+		if err == nil {
+			t.Fatal("expected syntax error")
+		}
+		if strings.Contains(err.Error(), "SUPER_SECRET_CLIENT_PATTERN") {
+			t.Fatalf("error echoed raw denylist pattern: %v", err)
+		}
+	})
+
 	acceptCases := []string{
 		`["re:a{1,128}"]`,
 		`["re:sk-[A-Za-z0-9]{8,48}"]`,
-		`["re:\\b[A-Z]{5,12}\\b"]`,
-		`["re:(?m)^SECRET-[0-9]{4}$"]`,
+		`["re:(?-i)[A-Z]{5,12}"]`,
+		`["re:NDA-[0-9]{4}"]`,
 	}
 	for _, raw := range acceptCases {
 		if _, err := LoadConfig(ConfigInput{RawDenylist: raw}); err != nil {
@@ -80,90 +117,144 @@ func TestLoadConfigEnforcesBoundedRegexMaxRuneCap(t *testing.T) {
 	}
 }
 
-func TestStreamGuardPriorityOrderAndLongStreamWordBoundaries(t *testing.T) {
-	t.Run("higher-priority deferred rule blocks overlapping lower-priority rule", func(t *testing.T) {
-		cfgRe, err := LoadConfig(ConfigInput{
-			RawDenylist:    `["re:sk-[A-Za-z0-9]{8,48}","acme-sk"]`,
-			DenylistAction: ActionRedact,
-		})
-		if err != nil {
-			t.Fatalf("LoadConfig: %v", err)
-		}
-		fullRe := "Configured acme-sk-SUPERSECRETKEY9999 in CI. " + strings.Repeat("Benign engineering prose continues cleanly across chunks. ", 5)
-		wantRe, wantAb := runGuardPartition(t, cfgRe, []string{fullRe})
-		if wantAb || strings.Contains(wantRe, "SUPERSECRETKEY9999") || !strings.HasPrefix(wantRe, "Configured acme-[REDACTED] in CI.") {
-			t.Fatalf("unexpected single-shot result: aborted=%v got=%q", wantAb, wantRe)
-		}
-		for _, sz := range []int{1, 2, 3, 5, 7, 13, 31} {
-			got, ab := runGuardPartition(t, cfgRe, splitRunes(fullRe, sz))
-			if ab || got != wantRe {
-				t.Fatalf("chunkSz=%d mismatch:\ngot:  %q\nwant: %q", sz, got, wantRe)
-			}
-		}
+func TestStreamGuardEmbeddedSecretsAndActionRedactInvariance(t *testing.T) {
+	gcpHdr := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"RS256","kid":"3d4b8c1f2a9e7b6d5c4f3e2a1b0c9d8e7f6a5b4c","typ":"JWT"}`))
+	gcpPayload := base64.RawURLEncoding.EncodeToString([]byte(`{"iss":"https://accounts.google.com","sub":"109876543210","aud":"https://ai-ask.example"}`))
+	gcpJWT := gcpHdr + "." + gcpPayload + "." + strings.Repeat("S", 342)
+	prose := strings.Repeat("Benign streaming portfolio prose about Go services. ", 4)
 
-		cfgLit, err := LoadConfig(ConfigInput{
-			RawDenylist:    `["Mercury-NDA","Project-Mercury"]`,
-			DenylistAction: ActionRedact,
-		})
+	t.Run("embedded github_token and credentialed_url abort fail-closed regardless of prefix", func(t *testing.T) {
+		cfg, err := LoadConfig(ConfigInput{SecretAction: ActionAbort})
 		if err != nil {
 			t.Fatalf("LoadConfig: %v", err)
 		}
-		fullLit := "Delivered Project-Mercury-NDA cleanly. " + strings.Repeat("Additional portfolio summary text follows safely. ", 5)
-		wantLit, _ := runGuardPartition(t, cfgLit, []string{fullLit})
-		if strings.Contains(wantLit, "-NDA") || !strings.HasPrefix(wantLit, "Delivered Project-[REDACTED] cleanly.") {
-			t.Fatalf("unexpected single-shot literal overlap: %q", wantLit)
+		embedded := []struct {
+			name   string
+			input  string
+			forbid string
+		}{
+			{name: "token=ghp_", input: prose + "token=ghp_" + strings.Repeat("A", 36) + " end " + prose, forbid: "ghp_"},
+			{name: "long word prefix + ghp_", input: prose + strings.Repeat("a", 64) + "ghp_" + strings.Repeat("b", 36) + " " + prose, forbid: "ghp_"},
+			{name: "url=postgres://", input: prose + "url=postgres://admin:S3cr3tP4ss@db.internal:5432/app " + prose, forbid: "S3cr3tP4ss"},
+			{name: "long word prefix + https://", input: prose + strings.Repeat("a", 64) + "https://u:Sup3rPass@h.co/x " + prose, forbid: "Sup3rPass"},
 		}
-		for _, sz := range []int{1, 2, 3, 5, 7, 13} {
-			got, ab := runGuardPartition(t, cfgLit, splitRunes(fullLit, sz))
-			if ab || got != wantLit {
-				t.Fatalf("literal overlap chunkSz=%d mismatch:\ngot:  %q\nwant: %q", sz, got, wantLit)
-			}
+		for _, tc := range embedded {
+			t.Run(tc.name, func(t *testing.T) {
+				for _, sz := range []int{len([]rune(tc.input)), 1, 3, 7, 13, 31} {
+					out, ab := runGuardPartition(t, cfg, splitRunes(tc.input, sz))
+					if !ab {
+						t.Fatalf("chunkSz=%d expected abort, got %q", sz, out)
+					}
+					if strings.Contains(out, tc.forbid) {
+						t.Fatalf("chunkSz=%d leaked %q before abort: %q", sz, tc.forbid, out)
+					}
+				}
+			})
 		}
 	})
 
-	t.Run("long-stream flushes never create synthetic left-edge word boundaries", func(t *testing.T) {
-		shortWordPrefix := strings.Repeat("go ok to do in it by us we on at ", 10)
-		shortWordSuffix := strings.Repeat(" ok go to do in it by us we on at", 10)
-		longPrefix := strings.Repeat("standard benign prose line for streaming flush verification ", 5)
-		longSuffix := strings.Repeat(" trailing safe commentary after the test token ", 5)
-
-		for _, action := range []Action{ActionRedact, ActionAbort} {
-			cfgCfg, err := LoadConfig(ConfigInput{RawDenylist: `["re:\\b[A-Z]{5,12}\\b"]`, DenylistAction: action})
-			if err != nil {
-				t.Fatalf("LoadConfig: %v", err)
+	t.Run("SecretAction ActionRedact redacts long JWT, URL, and PAT identically across chunk sizes", func(t *testing.T) {
+		cfg, err := LoadConfig(ConfigInput{SecretAction: ActionRedact})
+		if err != nil {
+			t.Fatalf("LoadConfig: %v", err)
+		}
+		inputs := []string{
+			prose + "Bearer " + gcpJWT + " done. " + prose,
+			prose + "url=postgres://user_name_123:Sup3rS3cr3tP4ssw0rd@db.prod.internal:5432/portfolio end. " + prose,
+			prose + "key=github_pat_" + strings.Repeat("Z", 82) + " ok. " + prose,
+		}
+		for _, full := range inputs {
+			want, wantAb, wantLogs := runGuardPartitionWithLogs(t, cfg, []string{full})
+			if wantAb || !strings.Contains(want, RedactionPlaceholder) || strings.Contains(want, "eyJ") || strings.Contains(want, "Sup3rS3cr3t") || strings.Contains(want, "github_pat_") {
+				t.Fatalf("unexpected single-shot secret redact: ab=%v logs=%d got=%q", wantAb, wantLogs, want)
 			}
-			// Test both a normal 13-letter word (CONFIGURATION) and an 80-char unbroken word exceeding word-snap cap.
-			full1 := shortWordPrefix + "CONFIGURATION " + strings.Repeat("A", 80) + shortWordSuffix
-			for _, sz := range []int{1, 3, 7, 13, 31} {
-				got, ab := runGuardPartition(t, cfgCfg, splitRunes(full1, sz))
-				if ab || got != full1 {
-					t.Fatalf("action=%s chunkSz=%d corrupted long-stream word: aborted=%v", action, sz, ab)
+			for _, sz := range []int{1, 2, 3, 5, 7, 13, 29, 31} {
+				got, ab, logs := runGuardPartitionWithLogs(t, cfg, splitRunes(full, sz))
+				if ab || got != want || logs != wantLogs {
+					t.Fatalf("chunkSz=%d mismatch: ab=%v logs=%d (want %d)\ngot:  %q\nwant: %q", sz, ab, logs, wantLogs, got, want)
 				}
 			}
+		}
+	})
+}
 
-			cfgCaseSens, err := LoadConfig(ConfigInput{RawDenylist: `["re:(?-i)\\b[A-Z]{5,12}\\b"]`, DenylistAction: action})
-			if err != nil {
-				t.Fatalf("LoadConfig: %v", err)
-			}
-			fullCS := longPrefix + "CONFIGURATION " + strings.Repeat("A", 80) + longSuffix
-			for _, sz := range []int{1, 3, 7, 13, 31} {
-				got, ab := runGuardPartition(t, cfgCaseSens, splitRunes(fullCS, sz))
-				if ab || got != fullCS {
-					t.Fatalf("case-sensitive action=%s chunkSz=%d corrupted long-stream word: aborted=%v", action, sz, ab)
-				}
-			}
+func TestStreamGuardIntervalUnionOverlapAndDoSBound(t *testing.T) {
+	prose := strings.Repeat("Additional portfolio summary text follows safely. ", 5)
 
-			cfgCat, err := LoadConfig(ConfigInput{RawDenylist: `["re:\\bCAT\\b"]`, DenylistAction: action})
-			if err != nil {
-				t.Fatalf("LoadConfig: %v", err)
-			}
-			full2 := longPrefix + "TOMCAT WILDCAT CONCAT CATALOG " + strings.Repeat("B", 72) + "CAT" + longSuffix
-			for _, sz := range []int{1, 2, 5, 11, 29} {
-				got, ab := runGuardPartition(t, cfgCat, splitRunes(full2, sz))
-				if ab || got != full2 {
-					t.Fatalf("action=%s chunkSz=%d false \\bCAT\\b match: aborted=%v", action, sz, ab)
+	t.Run("overlapping rules merge into single placeholder with identical audit count", func(t *testing.T) {
+		cases := []struct {
+			name     string
+			denylist string
+			input    string
+			wantPart string
+			forbid   string
+		}{
+			{
+				name:     "regex + literal overlap",
+				denylist: `["re:sk-[A-Za-z0-9]{8,48}","acme-sk"]`,
+				input:    "Configured acme-sk-SUPERSECRETKEY9999 in CI. " + prose,
+				wantPart: "Configured [REDACTED] in CI.",
+				forbid:   "SUPERSECRETKEY9999",
+			},
+			{
+				name:     "overlapping literals",
+				denylist: `["Mercury-NDA","Project-Mercury"]`,
+				input:    "Delivered Project-Mercury-NDA cleanly. " + prose,
+				wantPart: "Delivered [REDACTED] cleanly.",
+				forbid:   "Mercury",
+			},
+			{
+				name:     "self-overlapping literal aba on ababa",
+				denylist: `["aba"]`,
+				input:    "Token ababa ok. " + prose,
+				wantPart: "Token [REDACTED] ok.",
+				forbid:   "aba",
+			},
+			{
+				name:     "adjacent non-overlapping rules stay distinct",
+				denylist: `["BAD","CAT"]`,
+				input:    "See BADCAT here. " + prose,
+				wantPart: "See [REDACTED][REDACTED] here.",
+				forbid:   "BAD",
+			},
+		}
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				cfg, err := LoadConfig(ConfigInput{RawDenylist: tc.denylist, DenylistAction: ActionRedact})
+				if err != nil {
+					t.Fatalf("LoadConfig: %v", err)
 				}
-			}
+				want, wantAb, wantLogs := runGuardPartitionWithLogs(t, cfg, []string{tc.input})
+				if wantAb || !strings.Contains(want, tc.wantPart) || strings.Contains(want, tc.forbid) {
+					t.Fatalf("unexpected single-shot: ab=%v got=%q", wantAb, want)
+				}
+				for _, sz := range []int{1, 2, 3, 5, 7, 13, 31} {
+					got, ab, logs := runGuardPartitionWithLogs(t, cfg, splitRunes(tc.input, sz))
+					if ab || got != want || logs != wantLogs {
+						t.Fatalf("chunkSz=%d mismatch: ab=%v logs=%d (want %d)\ngot:  %q\nwant: %q", sz, ab, logs, wantLogs, got, want)
+					}
+				}
+			})
+		}
+	})
+
+	t.Run("adversarial >4096-rune overlap chain aborts identically while 10000-rune benign single-shot passes", func(t *testing.T) {
+		cfg, err := LoadConfig(ConfigInput{RawDenylist: `["re:a{2,5}"]`, DenylistAction: ActionRedact})
+		if err != nil {
+			t.Fatalf("LoadConfig: %v", err)
+		}
+		attack := strings.Repeat("a", maxRawPendingRunes+32)
+		if _, ab := runGuardPartition(t, cfg, []string{attack}); !ab {
+			t.Fatal("expected single-shot >4096-rune overlap chain to abort fail-closed")
+		}
+		if _, ab := runGuardPartition(t, cfg, splitRunes(attack, 17)); !ab {
+			t.Fatal("expected streaming >4096-rune overlap chain to abort fail-closed")
+		}
+
+		benign := strings.Repeat("Go streaming text without forbidden runs. ", 250)
+		got, ab := runGuardPartition(t, cfg, []string{benign})
+		if ab || got != benign {
+			t.Fatalf("10000-rune benign single-shot text failed: ab=%v len=%d", ab, len(got))
 		}
 	})
 }
@@ -206,16 +297,10 @@ func TestStreamGuardChunkSizeInvarianceDifferential(t *testing.T) {
 			input:    proseA + "ABCDEFGH and ABCDE and ABCD. " + proseB,
 		},
 		{
-			name:     "word-bounded regex with benign compounds and true matches",
-			denylist: `["re:\\bCAT\\b","re:\\b[A-Z]{5,12}\\b"]`,
+			name:     "NFD combining marks, ligatures, and separator-flooded literal + regex overlap",
+			denylist: `["Cafe","AcmeCorp","re:NDA-[0-9]{4}"]`,
 			action:   ActionRedact,
-			input:    proseA + "TOMCAT CATALOG CONFIGURATION CAT MERCURY " + strings.Repeat("Z", 75) + "CAT " + proseB,
-		},
-		{
-			name:     "NFD combining marks and Unicode ligatures with regex",
-			denylist: `["Cafe","re:\\bNDA-[0-9]{4}\\b"]`,
-			action:   ActionRedact,
-			input:    proseA + "Cafe\u0301 vs Cafe and \uFB01le NDA-2025 NDA-20259. " + proseB,
+			input:    proseA + "Cafe\u0301 vs Cafe and A" + strings.Repeat("\u200B", 19) + "cmeCorp \uFB01le NDA-2025. " + proseB,
 		},
 		{
 			name:     "128-rune max regex boundary",
@@ -224,22 +309,25 @@ func TestStreamGuardChunkSizeInvarianceDifferential(t *testing.T) {
 			input:    proseA + strings.Repeat("a", 128) + " tail " + strings.Repeat("a", 130) + " " + proseB,
 		},
 		{
-			name:     "multiline start-of-line and end-of-line anchors across flushed lines",
-			denylist: `["re:(?m)^SECRET-[0-9]{3}$","re:^START"]`,
-			action:   ActionRedact,
-			input:    "START " + proseA + "\nSECRET-123\nSECRET-999x\nnot SECRET-456\nSTART again\n" + proseB,
-		},
-		{
-			name:     "cascading word-boundary redaction after adjacent literal match",
-			denylist: `["re:\\bCAT\\b","BAD"]`,
-			action:   ActionRedact,
-			input:    proseA + "CATBAD and BADCAT and TOMCAT. " + proseB,
-		},
-		{
 			name:     "anchor-straddling denylist terms across long stream",
 			denylist: `["https://internal.acme.com","SurveyJS-NDA","Faiza"]`,
 			action:   ActionRedact,
 			input:    proseA + "Contact Faiza on SurveyJS-NDA at https://internal.acme.com/docs today. " + proseB,
+		},
+		{
+			name:        "ActionAbort on anchor-straddling denylist term with zero leak",
+			denylist:    `["Faiza","https://internal.acme.com"]`,
+			action:      ActionAbort,
+			input:       proseA + "Contact Faiza at https://internal.acme.com/docs today. " + proseB,
+			expectAbort: true,
+			forbid:      []string{"Faiza", "internal.acme.com"},
+		},
+		{
+			name:        "ActionAbort on NFD Cafe\\u0301 does not false-abort",
+			denylist:    `["Cafe"]`,
+			action:      ActionAbort,
+			input:       proseA + "Visited Cafe\u0301 yesterday. " + proseB,
+			expectAbort: false,
 		},
 		{
 			name:        "split postgres credentialed URL aborts with zero secret leak",
@@ -259,7 +347,7 @@ func TestStreamGuardChunkSizeInvarianceDifferential(t *testing.T) {
 		},
 	}
 
-	fixedSizes := []int{1, 2, 3, 5, 7, 13, 31}
+	fixedSizes := []int{1, 2, 3, 5, 7, 13, 29, 31}
 	rng := rand.New(rand.NewPCG(42, 99))
 
 	for _, tc := range cases {
@@ -272,19 +360,19 @@ func TestStreamGuardChunkSizeInvarianceDifferential(t *testing.T) {
 			if err != nil {
 				t.Fatalf("LoadConfig: %v", err)
 			}
-			wantOut, wantAborted := runGuardPartition(t, cfg, []string{tc.input})
+			wantOut, wantAborted, wantLogs := runGuardPartitionWithLogs(t, cfg, []string{tc.input})
 			if wantAborted != tc.expectAbort {
 				t.Fatalf("single-shot aborted=%v want=%v out=%q", wantAborted, tc.expectAbort, wantOut)
 			}
 
 			verifyPartition := func(label string, chunks []string) {
-				gotOut, gotAborted := runGuardPartition(t, cfg, chunks)
+				gotOut, gotAborted, gotLogs := runGuardPartitionWithLogs(t, cfg, chunks)
 				if gotAborted != wantAborted {
 					t.Fatalf("%s: aborted=%v want=%v (out=%q)", label, gotAborted, wantAborted, gotOut)
 				}
 				if !wantAborted {
-					if gotOut != wantOut {
-						t.Fatalf("%s: output diverged from single-shot:\ngot:  %q\nwant: %q", label, gotOut, wantOut)
+					if gotOut != wantOut || gotLogs != wantLogs {
+						t.Fatalf("%s: diverged from single-shot (logs=%d want=%d):\ngot:  %q\nwant: %q", label, gotLogs, wantLogs, gotOut, wantOut)
 					}
 					return
 				}
@@ -298,7 +386,7 @@ func TestStreamGuardChunkSizeInvarianceDifferential(t *testing.T) {
 			for _, sz := range fixedSizes {
 				verifyPartition("fixed", splitRunes(tc.input, sz))
 			}
-			for trial := 0; trial < 20; trial++ {
+			for trial := 0; trial < 25; trial++ {
 				verifyPartition("random", randomRunePartitions(tc.input, rng))
 			}
 		})

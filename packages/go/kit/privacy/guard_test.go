@@ -181,7 +181,7 @@ func TestStreamGuardRedactPlaceholderDoesNotLoop(t *testing.T) {
 	}{
 		{name: "literal ACT substring of REDACTED", denylist: `["ACT"]`, input: "Built React app for ACT client."},
 		{name: "literal Red substring of REDACTED", denylist: `["Red"]`, input: "Project Red launched cleanly."},
-		{name: "bounded regex matching REDACTED", denylist: `["re:\\b[A-Z]{5,12}\\b"]`, input: "Project MERCURY launched cleanly."},
+		{name: "bounded regex matching REDACTED", denylist: `["re:(?-i)[A-Z]{5,12}"]`, input: "Project MERCURY launched cleanly."},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -326,7 +326,7 @@ func TestStreamGuardAbortsLongStreamedJWTAndNormalizesNFD(t *testing.T) {
 		}
 
 		// 3. Regex denylist cannot blind HS256 JWT streamed in 8-rune chunks
-		cfgJWT, err := LoadConfig(ConfigInput{RawDenylist: `["Red","ACT","re:\\b[A-Z]{5,12}\\b"]`, DenylistAction: ActionRedact})
+		cfgJWT, err := LoadConfig(ConfigInput{RawDenylist: `["Red","ACT","re:[A-Z]{5,12}"]`, DenylistAction: ActionRedact})
 		if err != nil {
 			t.Fatalf("LoadConfig failed: %v", err)
 		}
