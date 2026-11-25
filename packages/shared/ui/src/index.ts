@@ -16,7 +16,11 @@ export {
   type DocumentHeadTagsProps,
 } from './components/DocumentHeadTags';
 export { ErrorElement, type ErrorElementProps } from './components/ErrorElement';
-export { LazyChunkBoundary, type LazyChunkBoundaryProps } from './components/LazyChunkBoundary';
+export {
+  LazyChunkBoundary,
+  type LazyChunkBoundaryProps,
+  lazyWithRetry,
+} from './components/LazyChunkBoundary';
 export { LoadingElement, type LoadingElementProps } from './components/LoadingElement';
 export {
   RecursiveTuiForm,

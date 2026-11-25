@@ -2,13 +2,14 @@ import type { PortalRootLoaderData, PublicAppError } from '@aklapper/core';
 import {
   Button,
   LazyChunkBoundary,
+  lazyWithRetry,
   NavigationMenu,
   OscStatusBadge,
   Separator,
   SolarForgeEmblem,
   TerminalWorkspace,
 } from '@aklapper/ui';
-import { lazy, useMemo } from 'react';
+import { useMemo } from 'react';
 import { href, Link, Outlet } from 'react-router';
 
 import { PortalLauncherTui } from '#pages/home';
@@ -20,7 +21,7 @@ import { createPortalTerminalForms } from './terminalForms';
 
 import styles from './root.module.css';
 
-const LazyPortalChangesInProgressPage = lazy(() =>
+const LazyPortalChangesInProgressPage = lazyWithRetry(() =>
   import('#pages/changes-in-progress').then(mod => ({
     default: mod.PortalChangesInProgressPage,
   })),

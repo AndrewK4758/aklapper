@@ -1,9 +1,11 @@
-import { Button, Field, LazyChunkBoundary, OscStatusBadge } from '@aklapper/ui';
-import { type FormEvent, lazy } from 'react';
+import { Button, Field, LazyChunkBoundary, lazyWithRetry, OscStatusBadge } from '@aklapper/ui';
+import { type FormEvent } from 'react';
+
+import { reportAdminLazyChunkError } from '../client-telemetry';
 
 import styles from './AdminHomePage.module.css';
 
-const LazyQrCodeSvg = lazy(() =>
+const LazyQrCodeSvg = lazyWithRetry(() =>
   import('@aklapper/ui/qr-code').then(mod => ({ default: mod.QrCodeSvg })),
 );
 
@@ -75,6 +77,9 @@ export function TotpEnrollmentSection({
             <LazyChunkBoundary
               loadingLabel='Loading QR code...'
               errorTitle='Unable to load TOTP QR code'
+              onChunkError={error => {
+                reportAdminLazyChunkError('@aklapper/ui/qr-code', '/', error);
+              }}
             >
               <LazyQrCodeSvg value={enrollment.otpauthUrl} size={184} label='TOTP 2FA QR Code' />
             </LazyChunkBoundary>

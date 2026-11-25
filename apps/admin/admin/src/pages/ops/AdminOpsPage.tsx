@@ -12,19 +12,21 @@ import {
   ActionFeedbackBanner,
   Button,
   LazyChunkBoundary,
+  lazyWithRetry,
   OscStatusBadge,
   Separator,
   TuiWindow,
 } from '@aklapper/ui';
-import { lazy, type ReactNode, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Form, useFetcher } from 'react-router';
 
+import { reportAdminLazyChunkError } from '../client-telemetry';
 import { AdminOpsRuntimeCards } from './AdminOpsRuntimeCards';
 import { markDeploymentWaking, useOpsClusterStream } from './opsClusterStore';
 
 import styles from './AdminOpsPage.module.css';
 
-const LazySandboxedArtifactFrame = lazy(() =>
+const LazySandboxedArtifactFrame = lazyWithRetry(() =>
   import('@aklapper/ui/sandboxed-artifact-frame').then(mod => ({
     default: mod.SandboxedArtifactFrame,
   })),
@@ -320,6 +322,13 @@ export function AdminOpsPage({
                       <LazyChunkBoundary
                         loadingLabel='Loading sandboxed artifact preview...'
                         errorTitle='Unable to load artifact preview'
+                        onChunkError={error => {
+                          reportAdminLazyChunkError(
+                            '@aklapper/ui/sandboxed-artifact-frame',
+                            '/ops',
+                            error,
+                          );
+                        }}
                       >
                         <LazySandboxedArtifactFrame
                           title={`Sandbox Run ${selectedRun.runId}`}

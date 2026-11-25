@@ -4,25 +4,27 @@ import {
   Button,
   Field,
   LazyChunkBoundary,
+  lazyWithRetry,
   OscStatusBadge,
   Switch,
   Tabs,
   TuiWindow,
 } from '@aklapper/ui';
-import { lazy, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { Form, useFetcher } from 'react-router';
 
+import { reportAdminLazyChunkError } from '../client-telemetry';
 import { SiteContentEditorPanel } from './SiteContentEditorPanel';
 
 import styles from './AdminCmsPage.module.css';
 
-const LazyCmsMenuTab = lazy(() =>
+const LazyCmsMenuTab = lazyWithRetry(() =>
   import('./CmsMenuTab').then(mod => ({ default: mod.CmsMenuTab })),
 );
-const LazyCmsTerminalTab = lazy(() =>
+const LazyCmsTerminalTab = lazyWithRetry(() =>
   import('./CmsTerminalTab').then(mod => ({ default: mod.CmsTerminalTab })),
 );
-const LazyCmsAgensiPresetsTab = lazy(() =>
+const LazyCmsAgensiPresetsTab = lazyWithRetry(() =>
   import('./CmsAgensiPresetsTab').then(mod => ({ default: mod.CmsAgensiPresetsTab })),
 );
 
@@ -159,6 +161,9 @@ export function AdminCmsPage({ data, qdrant, qdrantStatusSlot, actionData }: Adm
             <LazyChunkBoundary
               loadingLabel='Loading menu registry editor...'
               errorTitle='Unable to load Menu Registry tab'
+              onChunkError={error => {
+                reportAdminLazyChunkError('./CmsMenuTab', '/cms', error);
+              }}
             >
               <LazyCmsMenuTab menuItems={data.menuItems} />
             </LazyChunkBoundary>
@@ -168,6 +173,9 @@ export function AdminCmsPage({ data, qdrant, qdrantStatusSlot, actionData }: Adm
             <LazyChunkBoundary
               loadingLabel='Loading terminal & roadmap editor...'
               errorTitle='Unable to load Terminal & Roadmap tab'
+              onChunkError={error => {
+                reportAdminLazyChunkError('./CmsTerminalTab', '/cms', error);
+              }}
             >
               <LazyCmsTerminalTab data={data} />
             </LazyChunkBoundary>
@@ -177,6 +185,9 @@ export function AdminCmsPage({ data, qdrant, qdrantStatusSlot, actionData }: Adm
             <LazyChunkBoundary
               loadingLabel='Loading Agensi & presets editor...'
               errorTitle='Unable to load Agensi & Presets tab'
+              onChunkError={error => {
+                reportAdminLazyChunkError('./CmsAgensiPresetsTab', '/cms', error);
+              }}
             >
               <LazyCmsAgensiPresetsTab data={data} />
             </LazyChunkBoundary>

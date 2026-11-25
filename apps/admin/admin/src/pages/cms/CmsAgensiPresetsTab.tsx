@@ -1,13 +1,14 @@
 import type { AdminCmsLoaderData, CadencePreset } from '@aklapper/core';
-import { Button, Field, LazyChunkBoundary, Separator } from '@aklapper/ui';
-import { lazy, useState } from 'react';
+import { Button, Field, LazyChunkBoundary, lazyWithRetry, Separator } from '@aklapper/ui';
+import { useState } from 'react';
 import { Form } from 'react-router';
 
+import { reportAdminLazyChunkError } from '../client-telemetry';
 import { AgensiCacheSection } from './AgensiCacheSection';
 
 import styles from './AdminCmsPage.module.css';
 
-const LazySandboxedArtifactFrame = lazy(() =>
+const LazySandboxedArtifactFrame = lazyWithRetry(() =>
   import('@aklapper/ui/sandboxed-artifact-frame').then(mod => ({
     default: mod.SandboxedArtifactFrame,
   })),
@@ -175,6 +176,9 @@ export function CmsAgensiPresetsTab({ data }: CmsAgensiPresetsTabProps) {
             <LazyChunkBoundary
               loadingLabel='Loading sandboxed preview...'
               errorTitle='Unable to load sandboxed artifact preview'
+              onChunkError={error => {
+                reportAdminLazyChunkError('@aklapper/ui/sandboxed-artifact-frame', '/cms', error);
+              }}
             >
               <LazySandboxedArtifactFrame
                 title={`CADENCE Preset Preview: ${selectedPreset?.title ?? 'Draft'}`}

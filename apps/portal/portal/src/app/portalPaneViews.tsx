@@ -2,11 +2,12 @@ import type { K8sPodEvent, PortalHomeContent } from '@aklapper/core';
 import {
   Button,
   LazyChunkBoundary,
+  lazyWithRetry,
   LoadingElement,
   type TerminalPaneViewContext,
   TuiWindow,
 } from '@aklapper/ui';
-import { lazy, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 
 import { PortalLauncherTui } from '#pages/home';
 
@@ -21,19 +22,19 @@ import {
 
 export { isPortalPaneRoute, PORTAL_PANE_ROUTES, type PortalPaneRoute, type PortalPaneViewId };
 
-const LazyMenuPaneAdapter = lazy(() =>
+const LazyMenuPaneAdapter = lazyWithRetry(() =>
   import('./pane-views/MenuPaneAdapter').then(mod => ({ default: mod.MenuPaneAdapter })),
 );
-const LazyAgensiPaneAdapter = lazy(() =>
+const LazyAgensiPaneAdapter = lazyWithRetry(() =>
   import('./pane-views/AgensiPaneAdapter').then(mod => ({ default: mod.AgensiPaneAdapter })),
 );
-const LazyAskPaneAdapter = lazy(() =>
+const LazyAskPaneAdapter = lazyWithRetry(() =>
   import('./pane-views/AskPaneAdapter').then(mod => ({ default: mod.AskPaneAdapter })),
 );
-const LazyCadencePaneAdapter = lazy(() =>
+const LazyCadencePaneAdapter = lazyWithRetry(() =>
   import('./pane-views/CadencePaneAdapter').then(mod => ({ default: mod.CadencePaneAdapter })),
 );
-const LazyContactPaneAdapter = lazy(() =>
+const LazyContactPaneAdapter = lazyWithRetry(() =>
   import('./pane-views/ContactPaneAdapter').then(mod => ({ default: mod.ContactPaneAdapter })),
 );
 

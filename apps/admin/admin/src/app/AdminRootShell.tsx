@@ -2,20 +2,46 @@ import type { AdminRootLoaderData, AuthSession } from '@aklapper/core';
 import {
   Button,
   LazyChunkBoundary,
+  lazyWithRetry,
   NavigationMenu,
   OscStatusBadge,
   SolarForgeEmblem,
 } from '@aklapper/ui';
-import { lazy, useState } from 'react';
+import { useState } from 'react';
 import { href, Link, Outlet } from 'react-router';
 
-import { reportAdminClientError } from './client-telemetry';
+import { reportAdminLazyChunkError } from './client-telemetry';
 
 import styles from './root.module.css';
 
-const LazyTerminalWorkspace = lazy(() =>
+const LazyTerminalWorkspace = lazyWithRetry(() =>
   import('@aklapper/ui/terminal-workspace').then(mod => ({ default: mod.TerminalWorkspace })),
 );
+
+export type AdminWorkspaceMountBranch = 'login-outlet-only' | 'lazy-terminal-workspace';
+
+let lastEmittedWorkspaceBranchKey: string | null = null;
+
+export function resetAdminRootBranchTelemetryForTest(): void {
+  lastEmittedWorkspaceBranchKey = null;
+}
+
+function emitAdminWorkspaceMountBranch(branch: AdminWorkspaceMountBranch, pathname: string): void {
+  if (typeof window === 'undefined') return;
+  const dedupKey = `${branch}:${pathname}`;
+  if (lastEmittedWorkspaceBranchKey === dedupKey) {
+    return;
+  }
+  lastEmittedWorkspaceBranchKey = dedupKey;
+  console.info(
+    JSON.stringify({
+      event: 'admin.root.workspace_mount_branch',
+      seamType: 'RULE_DIVERGENCE',
+      branch,
+      pathname,
+    }),
+  );
+}
 
 const ADMIN_NAV_ITEMS = [
   { to: href('/'), label: 'Overview' },
@@ -57,6 +83,10 @@ export function AdminRootShell({
   const resolvedTerminal = isLoginRoute ? undefined : terminal;
   const hasGlobalWorkspace = !isLoginRoute && Boolean(resolvedTerminal);
   const isAdminSession = session?.role === 'admin';
+  const workspaceMountBranch: AdminWorkspaceMountBranch = hasGlobalWorkspace
+    ? 'lazy-terminal-workspace'
+    : 'login-outlet-only';
+  emitAdminWorkspaceMountBranch(workspaceMountBranch, pathname);
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -133,18 +163,7 @@ export function AdminRootShell({
             loadingLabel='Loading terminal workspace...'
             errorTitle='Unable to load terminal workspace'
             onChunkError={error => {
-              console.error(
-                JSON.stringify({
-                  event: 'ui.lazy_chunk.load_failed',
-                  module: '@aklapper/ui/terminal-workspace',
-                  pathname,
-                }),
-              );
-              reportAdminClientError(error, {
-                phase: 'boundary',
-                pathname,
-                errorCode: 'ERR_UPSTREAM_UNAVAILABLE',
-              });
+              reportAdminLazyChunkError('@aklapper/ui/terminal-workspace', pathname, error);
             }}
           >
             <LazyTerminalWorkspace

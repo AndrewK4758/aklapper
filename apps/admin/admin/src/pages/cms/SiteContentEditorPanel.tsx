@@ -1,8 +1,15 @@
 import { isKnownSiteContentKey, SITE_CONTENT_METADATA, type SiteContentRow } from '@aklapper/core';
-import { Button, cx, LazyChunkBoundary, type SiteContentPreviewViewport } from '@aklapper/ui';
-import { lazy, useReducer, useState } from 'react';
+import {
+  Button,
+  cx,
+  LazyChunkBoundary,
+  lazyWithRetry,
+  type SiteContentPreviewViewport,
+} from '@aklapper/ui';
+import { useReducer, useState } from 'react';
 import { Form } from 'react-router';
 
+import { reportAdminLazyChunkError } from '../client-telemetry';
 import { JsonSchemaFormRenderer } from './JsonSchemaFormRenderer';
 import {
   createInitialSiteContentDraftState,
@@ -14,7 +21,7 @@ import {
 
 import styles from './SiteContentEditor.module.css';
 
-const LazySiteContentPreviewPane = lazy(() =>
+const LazySiteContentPreviewPane = lazyWithRetry(() =>
   import('./SiteContentPreviewPane').then(mod => ({ default: mod.SiteContentPreviewPane })),
 );
 
@@ -196,6 +203,9 @@ function SiteContentEditorSession({
         <LazyChunkBoundary
           loadingLabel='Loading live preview...'
           errorTitle='Unable to load live preview'
+          onChunkError={error => {
+            reportAdminLazyChunkError('./SiteContentPreviewPane', '/cms', error);
+          }}
         >
           <LazySiteContentPreviewPane
             contentKey={row.key}

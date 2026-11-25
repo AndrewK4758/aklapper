@@ -1,9 +1,66 @@
-import { Component, type ErrorInfo, type ReactNode, Suspense } from 'react';
+import {
+  Component,
+  createContext,
+  createElement,
+  type ErrorInfo,
+  type FunctionComponent,
+  lazy,
+  type LazyExoticComponent,
+  type ReactNode,
+  Suspense,
+  useContext,
+} from 'react';
 
 import { Button } from '../elements/base';
 import { LoadingElement } from './LoadingElement';
 
 import styles from './ErrorElement.module.css';
+
+const MAX_LAZY_RETRY_CACHE_ENTRIES = 16;
+
+const LazyChunkRetryContext = createContext<number>(0);
+
+type LazyComponentFn = (props: never) => ReactNode | Promise<ReactNode>;
+
+type LazyComponentProps<TComponent extends LazyComponentFn> = TComponent extends (
+  props: infer TProps,
+) => ReactNode | Promise<ReactNode>
+  ? unknown extends TProps
+    ? Record<string, never>
+    : TProps
+  : Record<string, never>;
+
+export function lazyWithRetry<TComponent extends LazyComponentFn>(
+  factory: () => Promise<{ default: TComponent }>,
+): FunctionComponent<LazyComponentProps<TComponent>> {
+  const cache = new Map<
+    number,
+    LazyExoticComponent<FunctionComponent<LazyComponentProps<TComponent>>>
+  >();
+
+  function LazyRetryWrapper(props: LazyComponentProps<TComponent>): ReactNode {
+    const retryKey = useContext(LazyChunkRetryContext);
+    let LazyComponent = cache.get(retryKey);
+    if (!LazyComponent) {
+      if (cache.size >= MAX_LAZY_RETRY_CACHE_ENTRIES) {
+        const oldestKey = cache.keys().next().value;
+        if (oldestKey !== undefined) {
+          cache.delete(oldestKey);
+        }
+      }
+      LazyComponent = lazy(
+        factory as unknown as () => Promise<{
+          default: FunctionComponent<LazyComponentProps<TComponent>>;
+        }>,
+      );
+      cache.set(retryKey, LazyComponent);
+    }
+    return createElement(LazyComponent, props);
+  }
+
+  LazyRetryWrapper.displayName = 'LazyWithRetry';
+  return LazyRetryWrapper;
+}
 
 export interface LazyChunkBoundaryProps {
   readonly loadingLabel: string;
@@ -64,9 +121,11 @@ export class LazyChunkBoundary extends Component<LazyChunkBoundaryProps, LazyChu
     const fallback = this.props.fallback ?? <LoadingElement label={this.props.loadingLabel} />;
 
     return (
-      <Suspense key={this.state.retryKey} fallback={fallback}>
-        {this.props.children}
-      </Suspense>
+      <LazyChunkRetryContext.Provider value={this.state.retryKey}>
+        <Suspense key={this.state.retryKey} fallback={fallback}>
+          {this.props.children}
+        </Suspense>
+      </LazyChunkRetryContext.Provider>
     );
   }
 }
