@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
-	"github.com/AndrewK4758/aklapper/packages/go/kit/k8sevents"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/llm"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/privacy"
@@ -321,7 +320,7 @@ func executeChordSpecPhase(ctx context.Context, in chordExecInput) (specPhaseOut
 		TokensIn:         len(in.Prompt)/4 + 120,
 		ExecutionMode:    execMode,
 		Status:           gateStatus,
-		OSC7501:          k8sevents.FormatOSC7501(gateStatus),
+		OSC7501:          contracts.FormatOSC7501(gateStatus),
 		Turns: []pg.SandboxTurnInput{
 			{RunID: in.RunID, Phase: "triage", AgentName: "chord-triage", Status: "completed", Summary: triageSummary, PayloadJSON: triagePayload, LatencyMs: t1Ms},
 			{RunID: in.RunID, Phase: "spec", AgentName: "chord-spec", Status: "completed", Summary: specSummary, PayloadJSON: specPayload, LatencyMs: t2Ms},
@@ -472,7 +471,7 @@ func executeChordBuildPhase(
 		TokensIn:      tokensIn,
 		TokensOut:     tokensOut,
 		Status:        readyStatus,
-		OSC7501:       k8sevents.FormatOSC7501(readyStatus),
+		OSC7501:       contracts.FormatOSC7501(readyStatus),
 		Turns:         allTurns,
 	}, nil
 }

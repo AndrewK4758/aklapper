@@ -10,7 +10,6 @@ import (
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
-	"github.com/AndrewK4758/aklapper/packages/go/kit/k8sevents"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/privacy"
 )
@@ -24,7 +23,7 @@ func buildReadyStatus() (contracts.Osc7501Status, string) {
 		Progress:  &pct,
 		Timestamp: time.Now().UTC(),
 	}
-	return st, k8sevents.FormatOSC7501(st)
+	return st, contracts.FormatOSC7501(st)
 }
 
 func resolveAuthorizedSession(w http.ResponseWriter, r *http.Request, claims *internalauth.Claims, candidate string, requireCandidate bool) (string, bool) {

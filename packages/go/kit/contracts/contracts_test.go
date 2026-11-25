@@ -103,3 +103,25 @@ func TestGroundingTierAndPortalNavigableRoutes(t *testing.T) {
 		t.Fatal("expected retired /ask and /menu routes to be rejected by navigable route allow-list")
 	}
 }
+
+func TestMenuItemJSONOmitsK8sFields(t *testing.T) {
+	t.Parallel()
+
+	item := MenuItem{
+		Slug:        "cadence",
+		KeyShortcut: "1",
+		Title:       "CADENCE Sandbox",
+		Description: "Spec-driven agent workflow on Cloud Run",
+		AdminOnly:   false,
+		SortOrder:   1,
+		Enabled:     true,
+	}
+	raw, err := json.Marshal(item)
+	if err != nil {
+		t.Fatalf("marshal MenuItem: %v", err)
+	}
+	text := string(raw)
+	if strings.Contains(text, "targetK8sDeploy") || strings.Contains(text, "namespace") {
+		t.Fatalf("expected MenuItem JSON to omit retired K8s fields, got %s", text)
+	}
+}
