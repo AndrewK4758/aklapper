@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { vi } from 'vitest';
 
 import {
@@ -46,6 +49,27 @@ function createMockInsertDb(returningFn: () => Promise<unknown[]>) {
 describe('@aklapper/db', () => {
   it('defines Drizzle tables for portal/admin data and Qdrant vector collections', () => {
     expect(menuItems.slug.name).toBe('slug');
+    expect('targetK8sDeploy' in menuItems).toBe(false);
+    expect('namespace' in menuItems).toBe(false);
+    const journal = JSON.parse(
+      readFileSync(resolve(import.meta.dirname, '../drizzle/meta/_journal.json'), 'utf8'),
+    ) as { entries: Array<{ idx: number; tag: string }> };
+    expect(journal.entries.some(e => e.idx === 8 && e.tag === '0008_drop_menu_item_k8s_columns')).toBe(
+      true,
+    );
+    const upSql = readFileSync(
+      resolve(import.meta.dirname, '../drizzle/0008_drop_menu_item_k8s_columns.sql'),
+      'utf8',
+    );
+    const downSql = readFileSync(
+      resolve(import.meta.dirname, '../drizzle/0008_drop_menu_item_k8s_columns.down.sql'),
+      'utf8',
+    );
+    expect(upSql).toContain('DROP COLUMN IF EXISTS "target_k8s_deploy"');
+    expect(upSql).toContain('DROP COLUMN IF EXISTS "namespace"');
+    expect(upSql).toContain("WHERE \"slug\" = 'cadence' AND \"description\" LIKE '%GKE%'");
+    expect(downSql).toContain('ADD COLUMN IF NOT EXISTS "target_k8s_deploy"');
+    expect(downSql).toContain('ADD COLUMN IF NOT EXISTS "namespace"');
     expect(sandboxRuns.artifactHtml.name).toBe('artifact_html');
     expect(sandboxRuns.isGolden.name).toBe('is_golden');
     expect(sandboxRuns.promptHash.name).toBe('prompt_hash');

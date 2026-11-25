@@ -104,8 +104,8 @@ func CuratedPortfolioDocs() []SeedDocument {
 	extra := []SeedDocument{
 		{
 			ID:       "curated:architecture",
-			Title:    "Portfolio Architecture // Cloud Run SSR + GKE Scale-to-Zero Go",
-			Body:     "Andrew Klapper's Solar Forge v2 portfolio pairs React 19 + React Router 8 + Fastify 5 SSR on Cloud Run with scale-from-zero distroless Go microservices on GKE Autopilot, PostgreSQL 19, Qdrant cosine vector search, and strict 4-layer CSS tokens.",
+			Title:    "Portfolio Architecture // Pure Cloud Run SSR + Scale-to-Zero Go",
+			Body:     "Andrew Klapper's Solar Forge v2 portfolio pairs React 19 + React Router 8 + Fastify 5 SSR on Cloud Run with scale-to-zero distroless Go microservices on Cloud Run, Direct VPC Egress PostgreSQL 19, Qdrant cosine vector search, and strict 4-layer CSS tokens.",
 			Category: "architecture",
 			Source:   "curated",
 		},

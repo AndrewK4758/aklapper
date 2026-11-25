@@ -18,7 +18,7 @@ func CuratedPortfolioDocs() []CorpusDocument {
 		{
 			ID:       "curated-stack",
 			Title:    "Andrew Klapper -- Core Architecture & Stack",
-			Snippet:  "Principal full-stack and cloud systems engineer specializing in TypeScript, React 19, React Router 8 SSR, Fastify 5, Go 1.27 microservices, PostgreSQL 19 with Drizzle ORM, Qdrant vector search, and GCP (Cloud Run + GKE Autopilot scale-from-zero).",
+			Snippet:  "Principal full-stack and cloud systems engineer specializing in TypeScript, React 19, React Router 8 SSR, Fastify 5, Go 1.27 microservices, PostgreSQL 19 with Drizzle ORM, Qdrant vector search, and GCP (Cloud Run scale-to-zero + Direct VPC Egress).",
 			Category: "dossier",
 			Source:   "curated",
 		},
@@ -32,7 +32,7 @@ func CuratedPortfolioDocs() []CorpusDocument {
 		{
 			ID:       "curated-security",
 			Title:    "Security & Cloud Operations Posture",
-			Snippet:  "Implemented WebAuthn Passkeys with optional TOTP 2FA, Argon2id password verification, HMAC-SHA256 signed internal service assertions between Node SSR BFFs and Go microservices in portfolio-public, and PostgreSQL CHECK constraints.",
+			Snippet:  "Implemented WebAuthn Passkeys with optional TOTP 2FA, Argon2id password verification, Cloud Run Direct IAP, OIDC + HMAC-SHA256 signed internal service assertions between Node SSR BFFs and Go microservices, and PostgreSQL CHECK constraints.",
 			Category: "dossier",
 			Source:   "curated",
 		},
