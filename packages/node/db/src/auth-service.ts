@@ -258,8 +258,8 @@ function verifyTotpOrBackupCode(
     return Promise.resolve(true);
   }
   const backupCheck = verifyBackupCode(code, totpRecord.backupCodesHash);
-  if (backupCheck.matched) {
-    return consumeTotpBackupCode(db, userId, backupCheck.remainingHashes).then(() => true);
+  if (backupCheck.matched && backupCheck.matchedHash) {
+    return consumeTotpBackupCode(db, userId, backupCheck.matchedHash);
   }
   return Promise.resolve(false);
 }
