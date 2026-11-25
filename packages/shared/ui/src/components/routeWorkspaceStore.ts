@@ -103,7 +103,7 @@ function defaultEmitStorageEvent(event: WorkspaceStorageEvent): void {
   } else if (event.seamType === 'BOUNDARY_FAULT' || event.seamType === 'DELTA_AUDIT_GAP') {
     console.warn(serialized);
   } else {
-    console.info(serialized);
+    console.debug(serialized);
   }
 }
 

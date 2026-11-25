@@ -355,7 +355,7 @@ describe('AdminRoot', () => {
   });
 
   it('emits deduplicated admin.root.workspace_mount_branch for login-outlet-only and lazy-terminal-workspace without PII', async () => {
-    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
 
     try {
       const LoginStub = createRoutesStub([
@@ -382,7 +382,7 @@ describe('AdminRoot', () => {
       const { unmount } = render(<LoginStub initialEntries={['/login']} />);
       expect(await screen.findByText('Login Outlet')).toBeTruthy();
 
-      const loginEvents = infoSpy.mock.calls
+      const loginEvents = debugSpy.mock.calls
         .map(call => String(call[0]))
         .filter(line => line.includes('admin.root.workspace_mount_branch'));
       expect(loginEvents).toHaveLength(1);
@@ -394,7 +394,7 @@ describe('AdminRoot', () => {
       });
       unmount();
 
-      infoSpy.mockClear();
+      debugSpy.mockClear();
       const WorkspaceStub = createRoutesStub([
         {
           id: 'root',
@@ -435,7 +435,7 @@ describe('AdminRoot', () => {
       render(<WorkspaceStub initialEntries={['/']} />);
       expect(await screen.findByText('admin.andrew-k.us :: cadence-admin')).toBeTruthy();
 
-      const wsEvents = infoSpy.mock.calls
+      const wsEvents = debugSpy.mock.calls
         .map(call => String(call[0]))
         .filter(line => line.includes('admin.root.workspace_mount_branch'));
       expect(wsEvents).toHaveLength(1);
@@ -448,13 +448,13 @@ describe('AdminRoot', () => {
       expect(wsEvents[0]).not.toContain('aklapper');
       expect(wsEvents[0]).not.toContain(ACTIVE_ADMIN_SESSION.sessionId);
     } finally {
-      infoSpy.mockRestore();
+      debugSpy.mockRestore();
     }
   });
 
   it('mounts MobileAppShell on authenticated handheld viewports, omits it on /login, and guards unexpected unauthenticated non-login handheld renders', async () => {
     const originalMatchMedia = window.matchMedia;
-    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')
@@ -503,7 +503,7 @@ describe('AdminRoot', () => {
       expect(document.querySelector('[data-mobile-tui-dock="true"]')).toBeTruthy();
       expect(screen.getByRole('link', { name: 'CMS' }).getAttribute('aria-current')).toBe('page');
       expect(
-        infoSpy.mock.calls.some(
+        debugSpy.mock.calls.some(
           call =>
             String(call[0]).includes('admin.root.workspace_mount_branch') &&
             String(call[0]).includes('"branch":"mobile-tui-workspace"'),
@@ -519,7 +519,7 @@ describe('AdminRoot', () => {
       unmountAuth();
 
       // 2. Unauthenticated /login on handheld -> login-outlet-only, zero UNSOUND_CONDITION
-      infoSpy.mockClear();
+      debugSpy.mockClear();
       warnSpy.mockClear();
       resetAdminRootBranchTelemetryForTest();
 
@@ -548,7 +548,7 @@ describe('AdminRoot', () => {
       expect(await screen.findByText('Mobile Login Form')).toBeTruthy();
       expect(document.querySelector('[data-mobile-tui-dock="true"]')).toBeNull();
       expect(
-        infoSpy.mock.calls.some(
+        debugSpy.mock.calls.some(
           call =>
             String(call[0]).includes('admin.root.workspace_mount_branch') &&
             String(call[0]).includes('"branch":"login-outlet-only"'),
@@ -562,7 +562,7 @@ describe('AdminRoot', () => {
       unmountLogin();
 
       // 3. Unexpected unauthenticated non-login handheld render -> UNSOUND_CONDITION + login-outlet-only
-      infoSpy.mockClear();
+      debugSpy.mockClear();
       warnSpy.mockClear();
       resetAdminRootBranchTelemetryForTest();
 
@@ -600,7 +600,7 @@ describe('AdminRoot', () => {
         }),
       ).toBe(true);
       expect(
-        infoSpy.mock.calls.some(
+        debugSpy.mock.calls.some(
           call =>
             String(call[0]).includes('admin.root.workspace_mount_branch') &&
             String(call[0]).includes('"branch":"login-outlet-only"'),
@@ -612,7 +612,7 @@ describe('AdminRoot', () => {
         writable: true,
         value: originalMatchMedia,
       });
-      infoSpy.mockRestore();
+      debugSpy.mockRestore();
       warnSpy.mockRestore();
       fetchSpy.mockRestore();
     }

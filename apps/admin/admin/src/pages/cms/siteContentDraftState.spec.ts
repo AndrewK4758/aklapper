@@ -191,15 +191,15 @@ describe('siteContentDraftState pure reducer & validation', () => {
       },
     ]);
 
-    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
     try {
       const homeRow = makeRow(SITE_CONTENT_KEYS.portalHome, PORTAL_HOME_METADATA);
       createInitialSiteContentDraftState(homeRow);
-      expect(infoSpy).toHaveBeenCalledWith(
+      expect(debugSpy).toHaveBeenCalledWith(
         expect.stringContaining('"event":"admin.cms.site_content_editor_mode_branch"'),
       );
     } finally {
-      infoSpy.mockRestore();
+      debugSpy.mockRestore();
     }
   });
 

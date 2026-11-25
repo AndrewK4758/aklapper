@@ -88,7 +88,7 @@ function emitAdminWorkspaceMountBranch(branch: AdminWorkspaceMountBranch, pathna
     return;
   }
   lastEmittedWorkspaceBranchKey = dedupKey;
-  console.info(
+  console.debug(
     JSON.stringify({
       event: 'admin.root.workspace_mount_branch',
       seamType: 'RULE_DIVERGENCE',

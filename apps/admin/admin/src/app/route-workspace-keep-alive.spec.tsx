@@ -154,7 +154,7 @@ describe('Admin route workspace keep-alive and sign-out security boundary', () =
   });
 
   it('clears stale admin workspace storage idempotently when rendering /login and emits admin-cleared telemetry', async () => {
-    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => undefined);
     const opsKey = buildRouteWorkspaceStorageKey('admin', '/ops');
     window.sessionStorage.setItem(opsKey, '{"stale":true}');
 
@@ -184,7 +184,7 @@ describe('Admin route workspace keep-alive and sign-out security boundary', () =
 
     expect(window.sessionStorage.getItem(opsKey)).toBeNull();
     expect(
-      infoSpy.mock.calls.some(call => String(call[0]).includes('"branch":"admin-cleared"')),
+      debugSpy.mock.calls.some(call => String(call[0]).includes('"branch":"admin-cleared"')),
     ).toBe(true);
   });
 
