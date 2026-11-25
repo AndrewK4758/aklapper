@@ -156,10 +156,11 @@ func (s *Store) CreatePendingSandboxRunWithQuota(
 			payload := map[string]any{"summary": "Queued"}
 			if spec.Phase == "triage" {
 				payload = map[string]any{
-					"summary":        "Queued in CHORD pipeline",
-					"presetSlug":     presetSlug,
-					"mode":           mode,
-					"reservedTokens": tokensDelta,
+					"summary":             "Queued in CHORD pipeline",
+					"presetSlug":          presetSlug,
+					"mode":                mode,
+					"reservedTokens":      tokensDelta,
+					"requireSpecApproval": input.RequireSpecApproval,
 				}
 			}
 			turns = append(turns, contracts.CadenceTurn{
@@ -312,10 +313,11 @@ func (s *Store) CreatePendingSandboxRunWithQuota(
 		payload := map[string]any{"summary": "Queued"}
 		if spec.Phase == "triage" {
 			payload = map[string]any{
-				"summary":        "Queued in CHORD pipeline",
-				"presetSlug":     presetSlug,
-				"mode":           mode,
-				"reservedTokens": tokensDelta,
+				"summary":             "Queued in CHORD pipeline",
+				"presetSlug":          presetSlug,
+				"mode":                mode,
+				"reservedTokens":      tokensDelta,
+				"requireSpecApproval": input.RequireSpecApproval,
 			}
 		}
 		rawJSON, err := json.Marshal(payload)

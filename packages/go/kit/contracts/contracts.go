@@ -30,10 +30,13 @@ const (
 	CadenceExecutionModeFast     = "fast"
 	CadenceExecutionModeFallback = "fallback"
 
-	CadenceStatusPending = "pending"
-	CadenceStatusRunning = "running"
-	CadenceStatusReady   = "ready"
-	CadenceStatusFailed  = "failed"
+	CadenceStatusPending          = "pending"
+	CadenceStatusRunning          = "running"
+	CadenceStatusAwaitingApproval = "awaiting_approval"
+	CadenceStatusBuildQueued      = "build_queued"
+	CadenceStatusBuilding         = "building"
+	CadenceStatusReady            = "ready"
+	CadenceStatusFailed           = "failed"
 
 	GroundingTierProfile  = "profile"
 	GroundingTierEvidence = "evidence"
@@ -88,12 +91,13 @@ type PublicAppError struct {
 }
 
 type CadenceRunRequest struct {
-	Prompt         string `json:"prompt"`
-	PresetSlug     string `json:"presetSlug,omitempty"`
-	SessionID      string `json:"sessionId,omitempty"`
-	Role           string `json:"role,omitempty"`
-	Mode           string `json:"mode,omitempty"`
-	DeferExecution bool   `json:"deferExecution,omitempty"`
+	Prompt              string `json:"prompt"`
+	PresetSlug          string `json:"presetSlug,omitempty"`
+	SessionID           string `json:"sessionId,omitempty"`
+	Role                string `json:"role,omitempty"`
+	Mode                string `json:"mode,omitempty"`
+	DeferExecution      bool   `json:"deferExecution,omitempty"`
+	RequireSpecApproval bool   `json:"requireSpecApproval,omitempty"`
 }
 
 func (r CadenceRunRequest) Validate() error {

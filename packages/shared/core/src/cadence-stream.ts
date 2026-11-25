@@ -110,7 +110,7 @@ function upsertPhaseTurn(
 }
 
 function initialConnectionStateForRun(run: CadenceRunResult): CadenceStreamConnectionState {
-  if (!run.runStatus || run.runStatus === 'ready') {
+  if (!run.runStatus || run.runStatus === 'ready' || run.runStatus === 'awaiting_approval') {
     return 'completed';
   }
   if (run.runStatus === 'failed') {

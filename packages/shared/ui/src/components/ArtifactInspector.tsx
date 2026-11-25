@@ -2,6 +2,7 @@ import type {
   CadenceExecutionMode,
   CadenceGateAudit,
   CadenceGateVerdict,
+  CadenceRunLifecycleStatus,
   CadenceSpecArtifact,
 } from '@aklapper/core';
 import { useState } from 'react';
@@ -46,6 +47,7 @@ export interface ArtifactInspectorProps {
   readonly artifactHtml: string;
   readonly fileName?: string;
   readonly executionMode?: CadenceExecutionMode;
+  readonly runStatus?: CadenceRunLifecycleStatus;
   readonly isGolden?: boolean;
   readonly spec?: CadenceSpecArtifact;
   readonly gateAudit?: CadenceGateAudit;
@@ -132,6 +134,7 @@ export function ArtifactInspector({
   artifactHtml,
   fileName = 'cadence-artifact.html',
   executionMode,
+  runStatus,
   isGolden = false,
   spec,
   gateAudit,
@@ -201,22 +204,33 @@ export function ArtifactInspector({
         </div>
 
         <Tabs.Panel value='preview'>
-          <div className={styles.previewStack}>
-            {spec ? (
-              <section
-                className={styles.liveSpecSection}
-                aria-label='CHORD Specification'
-                data-testid='cadence-live-spec-view'
-              >
-                <SpecDocumentView spec={spec} headingBadge='CHORD Spec' />
-              </section>
-            ) : isStreaming ? (
-              <p className={styles.emptyNotice} data-testid='cadence-spec-streaming-notice'>
-                Authoring live CHORD specification from your prompt...
+          {runStatus === 'awaiting_approval' ? (
+            <div className={styles.buildLockedPanel} data-testid='cadence-build-locked-panel'>
+              <StatusPill tone='warn' size='sm'>
+                ⏸ Phase 3 Locked · Human Spec Gate
+              </StatusPill>
+              <h3 className={styles.specTitle}>Awaiting Spec Approval Before Build</h3>
+              <p className={styles.specSummary}>
+                Inspect the CHORD specification in the left panel. Click{' '}
+                <strong>Approve Spec &amp; Start Build</strong> to authorize{' '}
+                <code>chord-builder</code> to synthesize the sandboxed HTML5/CSS artifact, or
+                request a spec revision first.
               </p>
-            ) : null}
-            <SandboxedArtifactFrame title={labels.iframeTitle} srcDoc={artifactHtml} />
-          </div>
+            </div>
+          ) : (
+            <div className={styles.previewStack}>
+              {isStreaming && streamLogs.length > 0 && (
+                <StreamingTextFeed
+                  content={streamText}
+                  isStreaming={isStreaming}
+                  ariaLabel={labels.streamLogHeading ?? 'Pipeline Stream Output'}
+                  header={labels.streamLogHeading ?? 'Live Pipeline Stream'}
+                  statusLabel='streaming'
+                />
+              )}
+              <SandboxedArtifactFrame title={labels.iframeTitle} srcDoc={artifactHtml} />
+            </div>
+          )}
         </Tabs.Panel>
 
         <Tabs.Panel value='spec' data-testid='cadence-spec-panel'>

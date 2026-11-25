@@ -15,7 +15,19 @@ const NOOP_SUBSCRIBE = (): (() => void) => () => undefined;
 const NULL_SNAPSHOT = (): CadenceRunStreamSnapshot | null => null;
 
 function isStreamableRun(run: CadenceRunResult | undefined): run is CadenceRunResult {
-  return Boolean(run && (run.runStatus === 'pending' || run.runStatus === 'running'));
+  return Boolean(
+    run &&
+    (run.runStatus === 'pending' ||
+      run.runStatus === 'running' ||
+      run.runStatus === 'build_queued' ||
+      run.runStatus === 'building'),
+  );
+}
+
+function resolveStreamKey(run: CadenceRunResult): string {
+  const stage =
+    run.runStatus === 'build_queued' || run.runStatus === 'building' ? 'build' : 'spec';
+  return `${run.runId}:${stage}`;
 }
 
 export interface UseCadenceRunControllerOptions {
@@ -34,6 +46,7 @@ export interface CadenceRunController {
     presetSlug: string;
     mode: CadenceRunMode;
   }) => void;
+  readonly onApproveSpec: (runId: string) => void;
   readonly onGateVerdict: (payload: {
     runId: string;
     verdict: Exclude<CadenceGateVerdict, 'pending'>;
@@ -54,12 +67,12 @@ export function useCadenceRunController({
     undefined,
   );
   const [streamEntry, setStreamEntry] = useState<{
-    readonly runId: string;
+    readonly streamKey: string;
     readonly store: CadenceRunStreamStore;
   } | null>(() =>
     initialRecoverable
       ? {
-          runId: initialRecoverable.runId,
+          streamKey: resolveStreamKey(initialRecoverable),
           store: createCadenceRunStreamStore({
             runId: initialRecoverable.runId,
             initialRun: initialRecoverable,
@@ -78,7 +91,7 @@ export function useCadenceRunController({
       if (lateRecoverable) {
         setTargetRun(lateRecoverable);
         setStreamEntry({
-          runId: lateRecoverable.runId,
+          streamKey: resolveStreamKey(lateRecoverable),
           store: createCadenceRunStreamStore({
             runId: lateRecoverable.runId,
             initialRun: lateRecoverable,
@@ -89,11 +102,16 @@ export function useCadenceRunController({
     }
   } else if (fetcherData && fetcherData !== lastFetcherData) {
     setLastFetcherData(fetcherData);
-    if (fetcherData.ok && fetcherData.intent === 'run-init' && isStreamableRun(fetcherData.run)) {
+    if (
+      fetcherData.ok &&
+      (fetcherData.intent === 'run-init' || fetcherData.intent === 'spec-approve') &&
+      isStreamableRun(fetcherData.run)
+    ) {
+      const nextKey = resolveStreamKey(fetcherData.run);
       setTargetRun(fetcherData.run);
-      if (streamEntry?.runId !== fetcherData.run.runId) {
+      if (streamEntry?.streamKey !== nextKey) {
         setStreamEntry({
-          runId: fetcherData.run.runId,
+          streamKey: nextKey,
           store: createCadenceRunStreamStore({
             runId: fetcherData.run.runId,
             initialRun: fetcherData.run,
@@ -107,9 +125,9 @@ export function useCadenceRunController({
         setStreamEntry(null);
       }
     }
-  } else if (targetRun && streamEntry?.runId !== targetRun.runId) {
+  } else if (targetRun && streamEntry?.streamKey !== resolveStreamKey(targetRun)) {
     setStreamEntry({
-      runId: targetRun.runId,
+      streamKey: resolveStreamKey(targetRun),
       store: createCadenceRunStreamStore({
         runId: targetRun.runId,
         initialRun: targetRun,
@@ -142,12 +160,14 @@ export function useCadenceRunController({
     } else if (fetcherData?.ok && fetcherData.intent === 'gate') {
       actionResult = fetcherData;
     } else {
+      const activeStreamPhase =
+        streamSnapshot.run.runStatus === 'pending' ||
+        streamSnapshot.run.runStatus === 'running' ||
+        streamSnapshot.run.runStatus === 'build_queued' ||
+        streamSnapshot.run.runStatus === 'building';
       actionResult = {
         ok: true,
-        intent:
-          streamSnapshot.run.runStatus === 'pending' || streamSnapshot.run.runStatus === 'running'
-            ? 'run-init'
-            : 'run',
+        intent: activeStreamPhase ? 'run-init' : 'run',
         run: streamSnapshot.run,
         ...(streamSnapshot.quota ? { quota: streamSnapshot.quota } : {}),
       };
@@ -161,7 +181,13 @@ export function useCadenceRunController({
     streamLogs: streamSnapshot?.logs ?? [],
     onRunBuild: ({ prompt, presetSlug, mode }) => {
       void fetcher.submit(
-        { intent: 'run', prompt, presetSlug, mode },
+        { intent: 'run', prompt, presetSlug, mode, requireSpecApproval: 'true' },
+        { method: 'post', action: href('/cadence') },
+      );
+    },
+    onApproveSpec: runId => {
+      void fetcher.submit(
+        { intent: 'spec-approve', runId },
         { method: 'post', action: href('/cadence') },
       );
     },

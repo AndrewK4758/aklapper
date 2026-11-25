@@ -45,6 +45,7 @@ export interface CreatePendingSandboxRunInput {
   readonly mode: CadenceRunMode;
   readonly promptHash?: string | null;
   readonly estimatedTokens?: number;
+  readonly requireSpecApproval?: boolean;
 }
 
 export type CreatePendingSandboxRunResult =
@@ -177,6 +178,7 @@ export async function createPendingSandboxRunWithQuota(
               presetSlug,
               mode: input.mode,
               reservedTokens: tokensDelta,
+              ...(input.requireSpecApproval ? { requireSpecApproval: true } : {}),
             }
           : { summary: 'Queued' },
       latencyMs: 0,
@@ -425,5 +427,133 @@ export async function updateSandboxRunGateVerdictForSession(
   return {
     outcome: 'ok',
     run: mapSandboxRunResult(updated, turnRows),
+  };
+}
+
+export async function pauseSandboxRunForSpecApproval(
+  db: AppDatabase,
+  input: {
+    readonly runId: string;
+    readonly tokensIn: number;
+    readonly tokensOut: number;
+    readonly executionMode?: CadenceExecutionMode;
+    readonly spec: CadenceSpecArtifact;
+    readonly promptHash?: string | null;
+  },
+): Promise<CadenceRunResult | null> {
+  if (!SANDBOX_UUID_PATTERN.test(input.runId)) return null;
+
+  const [updated] = await db
+    .update(schema.sandboxRuns)
+    .set({
+      status: 'awaiting_approval',
+      tokensIn: input.tokensIn,
+      tokensOut: input.tokensOut,
+      specJson: input.spec,
+      ...(input.executionMode ? { executionMode: input.executionMode } : {}),
+      ...(input.promptHash !== undefined ? { promptHash: input.promptHash } : {}),
+    })
+    .where(and(eq(schema.sandboxRuns.id, input.runId), eq(schema.sandboxRuns.isGolden, false)))
+    .returning();
+
+  if (!updated) return null;
+
+  const turnRows = await db
+    .select()
+    .from(schema.sandboxTurns)
+    .where(eq(schema.sandboxTurns.runId, updated.id))
+    .orderBy(asc(schema.sandboxTurns.id));
+
+  return mapSandboxRunResult(updated, turnRows);
+}
+
+export async function approveSandboxRunSpecForSession(
+  db: AppDatabase,
+  runId: string,
+  sessionId: string,
+): Promise<SessionGateVerdictOutcome> {
+  if (!SANDBOX_UUID_PATTERN.test(runId)) {
+    return { outcome: 'not-found' };
+  }
+
+  const [existing] = await db
+    .select()
+    .from(schema.sandboxRuns)
+    .where(eq(schema.sandboxRuns.id, runId))
+    .limit(1);
+
+  if (!existing) {
+    return { outcome: 'not-found' };
+  }
+  if (existing.isGolden) {
+    throw new GoldenRunImmutableError(runId);
+  }
+  if (existing.sessionId !== sessionId) {
+    return { outcome: 'forbidden' };
+  }
+  if (existing.status !== 'awaiting_approval') {
+    return { outcome: 'conflict', status: existing.status };
+  }
+
+  const [updated] = await db
+    .update(schema.sandboxRuns)
+    .set({ status: 'build_queued' })
+    .where(
+      and(
+        eq(schema.sandboxRuns.id, runId),
+        eq(schema.sandboxRuns.sessionId, sessionId),
+        eq(schema.sandboxRuns.status, 'awaiting_approval'),
+        eq(schema.sandboxRuns.isGolden, false),
+      ),
+    )
+    .returning();
+
+  if (!updated) {
+    return { outcome: 'conflict', status: existing.status };
+  }
+
+  const turnRows = await db
+    .select()
+    .from(schema.sandboxTurns)
+    .where(eq(schema.sandboxTurns.runId, updated.id))
+    .orderBy(asc(schema.sandboxTurns.id));
+
+  return {
+    outcome: 'ok',
+    run: mapSandboxRunResult(updated, turnRows),
+  };
+}
+
+export async function claimBuildQueuedSandboxRun(
+  db: AppDatabase,
+  runId: string,
+  sessionId: string,
+): Promise<{ readonly run: CadenceRunResult; readonly mode: CadenceRunMode } | null> {
+  if (!SANDBOX_UUID_PATTERN.test(runId)) return null;
+
+  const [claimed] = await db
+    .update(schema.sandboxRuns)
+    .set({ status: 'building' })
+    .where(
+      and(
+        eq(schema.sandboxRuns.id, runId),
+        eq(schema.sandboxRuns.sessionId, sessionId),
+        eq(schema.sandboxRuns.status, 'build_queued'),
+      ),
+    )
+    .returning();
+
+  if (!claimed) return null;
+
+  const turnRows = await db
+    .select()
+    .from(schema.sandboxTurns)
+    .where(eq(schema.sandboxTurns.runId, claimed.id))
+    .orderBy(asc(schema.sandboxTurns.id));
+
+  const mode = extractRunModeFromTurnRows(turnRows) ?? 'fast';
+  return {
+    run: mapSandboxRunResult(claimed, turnRows),
+    mode,
   };
 }

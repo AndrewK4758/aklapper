@@ -89,6 +89,65 @@ func newHandlerWithDeps(deps cadenceServiceDeps) http.Handler {
 
 	mux.HandleFunc("GET /v1/cadence/runs/{id}/stream", handleRunStream(deps))
 
+	mux.HandleFunc("POST /v1/cadence/runs/{id}/spec-gate", func(w http.ResponseWriter, r *http.Request) {
+		claims, ok := httpkit.RequireInternalAuth(w, r)
+		if !ok {
+			return
+		}
+		runID := strings.TrimSpace(r.PathValue("id"))
+		if runID == "" {
+			httpkit.WriteError(w, http.StatusBadRequest, "missing run id")
+			return
+		}
+		headerSession := strings.TrimSpace(r.Header.Get("X-Session-Id"))
+		if headerSession == "" && (claims == nil || strings.TrimSpace(claims.Sub) == "") {
+			httpkit.WriteError(w, http.StatusUnauthorized, "missing X-Session-Id header")
+			return
+		}
+		sessionID, authOK := resolveAuthorizedSession(w, r, claims, headerSession, false)
+		if !authOK {
+			return
+		}
+
+		updated, err := deps.store.ApproveSandboxRunSpecForSession(r.Context(), runID, sessionID)
+		if err != nil {
+			switch {
+			case errors.Is(err, pg.ErrGoldenRunImmutable):
+				httpkit.WriteError(w, http.StatusConflict, err.Error())
+			case errors.Is(err, pg.ErrRunNotFound):
+				httpkit.WriteError(w, http.StatusNotFound, err.Error())
+			case errors.Is(err, pg.ErrForbiddenSession):
+				httpkit.WriteError(w, http.StatusForbidden, err.Error())
+			case errors.Is(err, pg.ErrRunNotAwaitingApproval):
+				httpkit.WriteError(w, http.StatusConflict, err.Error())
+			default:
+				httpkit.WriteError(w, http.StatusInternalServerError, "failed to approve spec gate")
+			}
+			return
+		}
+
+		pct := 55
+		queuedStatus := contracts.Osc7501Status{
+			Source:    "cadence-demo",
+			State:     contracts.CadenceStatusRunning,
+			Label:     "Spec approved · queuing CHORD build",
+			Progress:  &pct,
+			Timestamp: time.Now().UTC(),
+		}
+		role := contracts.RoleGuest
+		if claims.Role == internalauth.RoleAdmin {
+			role = contracts.RoleAdmin
+		}
+		quota, _ := deps.store.GetQuotaStatus(r.Context(), role, sessionID)
+		contractRun := pg.SandboxRunToContractResult(updated, &quota, &queuedStatus, k8sevents.FormatOSC7501(queuedStatus))
+		httpkit.WriteJSON(w, http.StatusAccepted, map[string]any{
+			"runId":  updated.RunID,
+			"status": updated.Status,
+			"run":    contractRun,
+			"quota":  quota,
+		})
+	})
+
 	mux.HandleFunc("POST /v1/cadence/runs/{id}/gate", func(w http.ResponseWriter, r *http.Request) {
 		claims, ok := httpkit.RequireInternalAuth(w, r)
 		if !ok {
@@ -204,10 +263,10 @@ func newHandlerWithDeps(deps cadenceServiceDeps) http.Handler {
 			mode = contracts.CadenceModeLLM
 		}
 
-		// Compute canonical prompt_hash for auditability; only clone cached runs in fast mode so
-		// live LLM runs always execute fresh, varied Spec -> Build generations.
+		// Compute canonical prompt_hash for auditability; only clone cached runs in fast mode when
+		// human spec approval is NOT required, so live LLM and spec-gated runs always execute fresh.
 		var cacheRes cacheLookupResult
-		if mode == contracts.CadenceModeFast {
+		if mode == contracts.CadenceModeFast && !req.RequireSpecApproval {
 			var cacheErr error
 			cacheRes, cacheErr = resolveCacheLookupAndClone(
 				r.Context(),
@@ -228,9 +287,10 @@ func newHandlerWithDeps(deps cadenceServiceDeps) http.Handler {
 		} else {
 			cacheRes.PromptHash = computePromptHash(presetSlug, "", mode, strings.TrimSpace(req.Prompt))
 			logCadenceSeam("RULE_DIVERGENCE", "cadence.cache.lookup_outcome", "info", map[string]any{
-				"branch":     "bypass_live_llm",
-				"presetSlug": nonEmptyOr(presetSlug, "custom"),
-				"mode":       mode,
+				"branch":              "bypass_live_or_gated",
+				"presetSlug":          nonEmptyOr(presetSlug, "custom"),
+				"mode":                mode,
+				"requireSpecApproval": req.RequireSpecApproval,
 			})
 		}
 
@@ -242,12 +302,13 @@ func newHandlerWithDeps(deps cadenceServiceDeps) http.Handler {
 				1,
 				800,
 				pg.PendingSandboxRunInput{
-					SessionID:  sessionID,
-					IPHash:     "portal-proxy",
-					PresetSlug: presetSlug,
-					Prompt:     strings.TrimSpace(req.Prompt),
-					Mode:       mode,
-					PromptHash: cacheRes.PromptHash,
+					SessionID:           sessionID,
+					IPHash:              "portal-proxy",
+					PresetSlug:          presetSlug,
+					Prompt:              strings.TrimSpace(req.Prompt),
+					Mode:                mode,
+					PromptHash:          cacheRes.PromptHash,
+					RequireSpecApproval: req.RequireSpecApproval,
 				},
 			)
 			if initErr != nil {

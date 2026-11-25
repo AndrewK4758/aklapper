@@ -524,4 +524,90 @@ describe('PortalCadencePage', () => {
     expect(screen.getByTestId('gate-audit-readonly-notice')).toBeTruthy();
     expect(screen.queryByTestId('gate-audit-approve')).toBeNull();
   });
+
+  it('pauses at the Human Spec Gate (awaiting_approval), locks Build preview, and dispatches approve or spec revision', async () => {
+    const user = userEvent.setup();
+    const onApproveSpec = vi.fn<(runId: string) => void>();
+    const onRunBuild = vi.fn<NonNullable<PortalCadencePageProps['onRunBuild']>>();
+
+    const pausedRun: CadenceRunResult = {
+      runId: '77777777-7777-4777-8777-777777777777',
+      prompt: 'Build a zero-trust deployment checklist',
+      presetSlug: 'custom',
+      runStatus: 'awaiting_approval',
+      mode: 'llm',
+      executionMode: 'live',
+      gateVerdict: 'pending',
+      turns: [
+        {
+          phase: 'triage',
+          agentName: 'chord-triage',
+          status: 'completed',
+          summary: 'Classified prompt',
+          latencyMs: 3,
+        },
+        {
+          phase: 'spec',
+          agentName: 'chord-spec',
+          status: 'completed',
+          summary: 'Authored live CHORD spec',
+          latencyMs: 1200,
+        },
+        {
+          phase: 'build',
+          agentName: 'chord-builder',
+          status: 'pending',
+          summary: 'Queued',
+          latencyMs: 0,
+        },
+        {
+          phase: 'gate',
+          agentName: 'chord-gate',
+          status: 'pending',
+          summary: 'Queued',
+          latencyMs: 0,
+        },
+      ],
+      artifactHtml: '',
+      spec: {
+        title: 'Zero-Trust Deployment Checklist',
+        summary: 'Interactive pre-deploy verification workbench.',
+        conditions: ['Operator supplies target namespace'],
+        handling: ['Render pure-CSS checkbox verification matrix'],
+        outcomes: ['Visual pass/fail readiness scorecard'],
+        rules: ['No inline scripts or external network calls'],
+        deltas: ['Persists approved CHORD spec before build'],
+      },
+    };
+
+    render(
+      <PortalCadencePage
+        content={SAMPLE_CONTENT}
+        presets={SAMPLE_PRESETS}
+        recentRuns={[pausedRun]}
+        onRunBuild={onRunBuild}
+        onApproveSpec={onApproveSpec}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    expect(screen.getByTestId('cadence-pipeline-rail')).toBeTruthy();
+    expect(screen.getByTestId('cadence-rail-human-gate').getAttribute('data-status')).toBe('gate');
+    expect(screen.getByTestId('cadence-human-spec-gate')).toBeTruthy();
+    expect(screen.getByTestId('cadence-live-spec-view').textContent).toContain(
+      'Zero-Trust Deployment Checklist',
+    );
+    expect(screen.getByTestId('cadence-build-locked-panel')).toBeTruthy();
+
+    await user.click(screen.getByTestId('cadence-spec-approve'));
+    expect(onApproveSpec).toHaveBeenCalledWith(pausedRun.runId);
+
+    await user.type(screen.getByTestId('cadence-spec-revise-input'), 'Add rollback triggers');
+    await user.click(screen.getByTestId('cadence-spec-revise-submit'));
+    expect(onRunBuild).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: expect.stringContaining('Spec Revision: Add rollback triggers'),
+      }),
+    );
+  });
 });

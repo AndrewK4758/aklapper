@@ -228,6 +228,89 @@ func TestCadenceShowcaseCacheGoldenPrivacyAndGRPC(t *testing.T) {
 		}
 	})
 
+	t.Run("human spec gate pauses at awaiting_approval and resumes Build on POST /spec-gate at $0 extra quota", func(t *testing.T) {
+		specJSON, _ := json.Marshal(map[string]any{
+			"triage": "Human gated spec",
+			"spec": map[string]any{
+				"title":      "Human-Approved Telemetry Spec",
+				"summary":    "Spec paused for operator sign-off before Build.",
+				"conditions": []string{"Prompt requires human spec gate"},
+				"handling":   []string{"Pause after Phase 2 spec"},
+				"outcomes":   []string{"Build executes only after approval"},
+				"rules":      []string{"Zero inline scripts"},
+				"deltas":     []string{"Transitions awaiting_approval -> build_queued -> ready"},
+			},
+		})
+		buildJSON, _ := json.Marshal(map[string]any{
+			"gateChecks":   []map[string]any{{"id": "c1", "label": "Spec Check", "status": "pass", "detail": "ok"}},
+			"artifactHtml": "<!doctype html><html><body><h1>Built From Approved Spec</h1></body></html>",
+		})
+		stub := &streamingStubLLM{
+			responses: [][]string{{string(specJSON)}, {string(buildJSON)}},
+		}
+		store := pg.NewMemoryStore()
+		h := newHandler(stub, nil, store)
+
+		// 1. Initialize deferred run requiring human spec approval.
+		initReq := httptest.NewRequest(http.MethodPost, "/v1/cadence/runs", bytes.NewReader([]byte(`{"prompt":"Build a gated telemetry workbench","presetSlug":"custom","sessionId":"sess-A","mode":"llm","deferExecution":true,"requireSpecApproval":true}`)))
+		initReq.Header.Set(internalauth.HeaderName, sessATok)
+		initRec := httptest.NewRecorder()
+		h.ServeHTTP(initRec, initReq)
+		if initRec.Code != http.StatusAccepted {
+			t.Fatalf("expected 202 init, got %d: %s", initRec.Code, initRec.Body.String())
+		}
+		var initRun contracts.CadenceRunResult
+		_ = json.Unmarshal(initRec.Body.Bytes(), &initRun)
+
+		// 2. Stream 1 runs Triage + Spec only and pauses at awaiting_approval.
+		stream1Req := httptest.NewRequest(http.MethodGet, "/v1/cadence/runs/"+initRun.RunID+"/stream", nil)
+		stream1Req.Header.Set(internalauth.HeaderName, sessATok)
+		stream1Req.Header.Set("X-Session-Id", "sess-A")
+		stream1Rec := httptest.NewRecorder()
+		h.ServeHTTP(stream1Rec, stream1Req)
+		if stream1Rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 stream1, got %d", stream1Rec.Code)
+		}
+		if stub.calls != 1 {
+			t.Fatalf("expected exactly 1 LLM call (Spec only) before human approval, got %d", stub.calls)
+		}
+		pausedRow, _ := store.GetSandboxRun(context.Background(), initRun.RunID)
+		if pausedRow.Status != contracts.CadenceStatusAwaitingApproval || pausedRow.SpecJSON == nil || pausedRow.SpecJSON.Title != "Human-Approved Telemetry Spec" {
+			t.Fatalf("expected paused awaiting_approval with real spec, got status=%q spec=%+v", pausedRow.Status, pausedRow.SpecJSON)
+		}
+
+		// 3. Human approves spec -> 202 build_queued, quota unchanged (turnsUsed still 1).
+		approveReq := httptest.NewRequest(http.MethodPost, "/v1/cadence/runs/"+initRun.RunID+"/spec-gate", bytes.NewReader([]byte(`{"approved":true}`)))
+		approveReq.Header.Set(internalauth.HeaderName, sessATok)
+		approveReq.Header.Set("X-Session-Id", "sess-A")
+		approveRec := httptest.NewRecorder()
+		h.ServeHTTP(approveRec, approveReq)
+		if approveRec.Code != http.StatusAccepted {
+			t.Fatalf("expected 202 spec-gate approval, got %d: %s", approveRec.Code, approveRec.Body.String())
+		}
+
+		// 4. Stream 2 runs Build + Gate -> ready!
+		stream2Req := httptest.NewRequest(http.MethodGet, "/v1/cadence/runs/"+initRun.RunID+"/stream", nil)
+		stream2Req.Header.Set(internalauth.HeaderName, sessATok)
+		stream2Req.Header.Set("X-Session-Id", "sess-A")
+		stream2Rec := httptest.NewRecorder()
+		h.ServeHTTP(stream2Rec, stream2Req)
+		if stream2Rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 stream2, got %d", stream2Rec.Code)
+		}
+		if stub.calls != 2 {
+			t.Fatalf("expected 2 total LLM calls (Spec + Build), got %d", stub.calls)
+		}
+		finalRow, _ := store.GetSandboxRun(context.Background(), initRun.RunID)
+		if finalRow.Status != contracts.CadenceStatusReady || !strings.Contains(finalRow.ArtifactHTML, "Built From Approved Spec") {
+			t.Fatalf("expected ready run with built HTML, got status=%q html=%q", finalRow.Status, finalRow.ArtifactHTML)
+		}
+		q, _ := store.GetQuotaStatus(context.Background(), contracts.RoleGuest, "sess-A")
+		if q.TurnsUsed != 1 {
+			t.Fatalf("expected 1 total turn charged across gated Spec->Build run, got %d", q.TurnsUsed)
+		}
+	})
+
 	t.Run("post-parse StreamGuard ActionAbort fails closed without fallback", func(t *testing.T) {
 		// Synthetic credentialed URL matching built-in secret rule (not a real credential).
 		fakeSecret := "postgres://demo_user:synthetic_secret_val@db.invalid:5432/app"

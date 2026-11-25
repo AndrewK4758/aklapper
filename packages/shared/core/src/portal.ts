@@ -56,7 +56,15 @@ export type K8sPodEvent = z.infer<typeof K8sPodEventSchema>;
 export const CadenceRunModeSchema = z.enum(['fast', 'llm']);
 export type CadenceRunMode = z.infer<typeof CadenceRunModeSchema>;
 
-export const CadenceRunLifecycleStatusSchema = z.enum(['pending', 'running', 'ready', 'failed']);
+export const CadenceRunLifecycleStatusSchema = z.enum([
+  'pending',
+  'running',
+  'awaiting_approval',
+  'build_queued',
+  'building',
+  'ready',
+  'failed',
+]);
 export type CadenceRunLifecycleStatus = z.infer<typeof CadenceRunLifecycleStatusSchema>;
 
 export const CadenceRunRequestSchema = z.object({
@@ -65,6 +73,7 @@ export const CadenceRunRequestSchema = z.object({
   sessionId: z.string().min(1).optional(),
   mode: CadenceRunModeSchema.optional(),
   deferExecution: z.boolean().optional(),
+  requireSpecApproval: z.boolean().optional(),
 });
 export type CadenceRunRequest = z.infer<typeof CadenceRunRequestSchema>;
 

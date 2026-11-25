@@ -1,6 +1,7 @@
 import { type CadenceStreamErrorEvent, createPublicAppError } from '@aklapper/core';
 import { classifyServerError } from '@aklapper/core/server-errors';
 import {
+  claimBuildQueuedSandboxRun,
   claimPendingSandboxRun,
   getQuotaStatusForSession,
   getSandboxRunWithTurnsById,
@@ -20,6 +21,7 @@ import {
   logCadenceStreamSeam,
   pollActiveFallbackRunSse,
   replayReadyRunSse,
+  runFallbackChordBuildPhaseSse,
   runFallbackChordPipelineSse,
 } from '../cadence-fallback-stream.server';
 import type { Route } from './+types/api.cadence.runs.$runId.stream';
@@ -178,10 +180,14 @@ export async function loader({ request, params, context }: Route.LoaderArgs): Pr
     async start(controller) {
       const sink = createSafeSseSink(controller, encoder, isCancelled);
       try {
-        if (record.run.runStatus === 'ready') {
+        if (
+          record.run.runStatus === 'ready' ||
+          record.run.runStatus === 'awaiting_approval'
+        ) {
           logCadenceStreamSeam('info', 'RULE_DIVERGENCE', 'cadence.run.execution_branch', 'info', {
             runId,
             branch: 'stream-replay',
+            status: record.run.runStatus,
           });
           const quota = await getQuotaStatusForSession(db, 'guest', sessionId);
           replayReadyRunSse(sink, record.run, quota);
@@ -194,6 +200,23 @@ export async function loader({ request, params, context }: Route.LoaderArgs): Pr
             error: 'Sandbox run failed before artifact completion.',
             runStatus: 'failed',
           } satisfies CadenceStreamErrorEvent);
+          return;
+        }
+
+        if (record.run.runStatus === 'build_queued') {
+          const claimedBuild = await claimBuildQueuedSandboxRun(db, runId, sessionId);
+          if (!claimedBuild) {
+            await pollActiveFallbackRunSse(db, runId, sessionId, isCancelled, sink);
+            return;
+          }
+          await runFallbackChordBuildPhaseSse(
+            db,
+            claimedBuild.run,
+            claimedBuild.mode,
+            sessionId,
+            sink,
+            { correlationId, logger },
+          );
           return;
         }
 

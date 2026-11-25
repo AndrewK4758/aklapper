@@ -11,7 +11,11 @@ import { data, type FetcherWithComponents, href, useFetcher, useNavigate } from 
 
 import { type PortalCadenceActionResult, PortalCadencePage } from '#pages/cadence';
 
-import { handleCadenceGateAction, handleCadenceRunAction } from '../cadence-action.server';
+import {
+  handleCadenceGateAction,
+  handleCadenceRunAction,
+  handleCadenceSpecApproveAction,
+} from '../cadence-action.server';
 import { useCadenceRunController } from '../cadence-stream';
 import { reportPortalPublicError } from '../client-telemetry';
 import { resolveGuestSession } from '../guest-session.server';
@@ -70,6 +74,9 @@ export async function action({ request, context }: Route.ActionArgs) {
   };
   const intent = String(formData.get('intent') ?? 'run').trim();
 
+  if (intent === 'spec-approve') {
+    return handleCadenceSpecApproveAction(formData, actionCtx);
+  }
   if (intent === 'gate') {
     return handleCadenceGateAction(formData, actionCtx);
   }
@@ -108,6 +115,7 @@ function CadenceLoadedView({
       isStreaming={controller.isStreaming}
       streamLogs={controller.streamLogs}
       onRunBuild={controller.onRunBuild}
+      onApproveSpec={controller.onApproveSpec}
       onGateVerdict={controller.onGateVerdict}
       onClose={onClose}
     />

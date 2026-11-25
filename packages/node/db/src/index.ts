@@ -12,6 +12,11 @@ export * from './prerender.ts';
 export * from './qdrant.ts';
 export * from './queries.ts';
 export { GoldenRunImmutableError } from './sandbox-helpers.ts';
+export {
+  approveSandboxRunSpecForSession,
+  claimBuildQueuedSandboxRun,
+  pauseSandboxRunForSpecApproval,
+} from './sandbox-lifecycle.ts';
 export * from './schema-dossiers.ts';
 export * from './schema-sandbox.ts';
 export * from './schema.ts';
