@@ -237,13 +237,14 @@ describe('RouteWorkspaceHost and TerminalWorkspace keep-alive containment', () =
 
   it('uncontrolled TerminalWorkspace without workspaceStore never writes to sessionStorage', () => {
     const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
-    render(<TerminalWorkspace terminal={TEST_TERMINAL} />);
+    const { container } = render(<TerminalWorkspace terminal={TEST_TERMINAL} />);
     fireEvent.keyDown(window, {
       key: 'N',
       code: 'KeyN',
       altKey: true,
       shiftKey: true,
     });
+    expect(container.querySelector('[data-tab-count="2"]')).not.toBeNull();
     expect(setItemSpy).not.toHaveBeenCalled();
   });
 });
