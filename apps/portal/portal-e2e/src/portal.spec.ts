@@ -22,7 +22,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(commandInput).toBeFocused();
 
     // TUI launcher window is hidden on initial entry — terminal is the only main item
-    const tuiHeading = page.getByRole('heading', { name: /Solar Forge Agentic Terminal/i });
+    const tuiHeading = page.getByRole('heading', { name: /Andrew Klapper — Portfolio/i });
     await expect(tuiHeading).toHaveCount(0);
 
     // Zero zsh or p10k references in rendered portal content
@@ -118,16 +118,16 @@ test.describe('portal SSR end-to-end journeys', () => {
     await commandInput.fill('menu');
     await commandInput.press('Enter');
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole('heading', { name: /Launch Menu/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Module Menu/i })).toBeVisible();
     await expect(page.getByText(/CADENCE Builder/i)).toBeVisible();
     await expect(page.getByText(/cadence-admin/i)).toHaveCount(0);
 
     // Keybinding `1` on /menu pushes /cadence in-place, Escape pops back to /menu, q exits straight to shell
     await page.keyboard.press('1');
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByText(/CADENCE Builder \/\/ portfolio-public/i)).toBeVisible();
+    await expect(page.getByText(/CADENCE Builder — Artifact Sandbox/i)).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(page.getByRole('heading', { name: /Launch Menu/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Module Menu/i })).toBeVisible();
     await page.keyboard.press('q');
     await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '0');
 
@@ -139,8 +139,8 @@ test.describe('portal SSR end-to-end journeys', () => {
     const getErrors = trackPageErrors(page);
 
     await gotoStreamedPage(page, '/cadence');
-    await expect(page.getByText(/CADENCE Builder \/\/ portfolio-public/i)).toBeVisible();
-    await expect(page.getByText(/0\/1 replicas/i)).toBeVisible();
+    await expect(page.getByText(/CADENCE Builder — Artifact Sandbox/i)).toBeVisible();
+    await expect(page.getByText(/On-demand/i)).toBeVisible();
 
     const frame = page.locator('iframe[title="CADENCE Artifact Preview"]');
     await expect(frame).toBeVisible();
@@ -166,7 +166,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     const getErrors = trackPageErrors(page);
 
     await gotoStreamedPage(page, '/changes-in-progress');
-    await expect(page.getByRole('heading', { name: /Changes in Progress/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Site Updates in Progress/i })).toBeVisible();
     await expect(page.locator('header')).toHaveCount(0);
     await expect(page.locator('footer')).toHaveCount(0);
     expect(await page.locator('body').innerText()).not.toMatch(/\bzsh\b|p10k|powerlevel10k/i);
@@ -259,9 +259,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     await promptInput.press('Enter');
     await expect(page).toHaveURL(/\/$/);
     await expect(terminalSection).toHaveAttribute('data-form-mode', 'contact');
-    await expect(page.getByRole('heading', { name: /Solar Forge Agentic Terminal/i })).toHaveCount(
-      0,
-    );
+    await expect(page.getByRole('heading', { name: /Andrew Klapper — Portfolio/i })).toHaveCount(0);
     await expect(page.getByText(/┌─ 01 \/\/ Sender Identity/)).toBeVisible();
 
     // Walk Name -> Email -> Phone (skip) -> Message (Shift+Enter + Escape guard) -> File (skip) -> Review -> Send
@@ -595,7 +593,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     // 15. Alt+M opens /menu in-place while keeping URL at /
     await page.keyboard.press('Alt+m');
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole('heading', { name: /Launch Menu/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Module Menu/i })).toBeVisible();
 
     expect(getErrors()).toEqual([]);
   });
@@ -632,7 +630,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     await pane2.getByRole('button', { name: 'Go back' }).click();
     await expect(pane2).toHaveAttribute('data-active', 'true');
     await expect(pane2).toHaveAttribute('data-tui-depth', '1');
-    await expect(pane2.getByRole('heading', { name: /Launch Menu/i })).toBeVisible();
+    await expect(pane2.getByRole('heading', { name: /Module Menu/i })).toBeVisible();
 
     // Shift+Click opens a split pane; Ctrl+Click opens a new tab
     await pane2.getByRole('link', { name: /Agensi/i }).click({ modifiers: ['Control'] });
@@ -676,7 +674,7 @@ test.describe('portal SSR end-to-end journeys', () => {
       await commandInput.fill('cadence');
       await commandInput.press('Enter');
       await expect(page).toHaveURL(/\/$/);
-      await expect(page.getByText(/CADENCE Builder \/\/ portfolio-public/i)).toBeVisible();
+      await expect(page.getByText(/CADENCE Builder — Artifact Sandbox/i)).toBeVisible();
 
       expect(getErrors()).toEqual([]);
     } finally {
