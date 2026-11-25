@@ -179,10 +179,9 @@ describe('PortalCadencePage', () => {
     expect(screen.getByTestId('cadence-turn-triage').getAttribute('data-status')).toBe('pending');
     expect(screen.getByTestId('cadence-turn-spec').getAttribute('data-status')).toBe('pending');
 
-    // Starter preview remains intact (non-empty) rather than flashing blank frame during streaming.
-    const iframe = screen.getByTitle('CADENCE Artifact Preview') as HTMLIFrameElement;
-    expect(iframe.getAttribute('sandbox')).toBe('allow-scripts');
-    expect(iframe.getAttribute('srcdoc')).toContain('Starter Preset HTML');
+    // Do NOT show pre-baked starter HTML before Build completes.
+    expect(screen.queryByTitle('CADENCE Artifact Preview')).toBeNull();
+    expect(screen.getByTestId('cadence-preview-pending')).toBeTruthy();
 
     // Gate buttons remain disabled while runStatus !== 'ready'.
     const approveBtn = screen.getByTestId('cadence-gate-approve') as HTMLButtonElement;
@@ -253,6 +252,8 @@ describe('PortalCadencePage', () => {
       />,
     );
 
+    const iframe = screen.getByTitle('CADENCE Artifact Preview') as HTMLIFrameElement;
+    expect(iframe.getAttribute('sandbox')).toBe('allow-scripts');
     expect(iframe.getAttribute('srcdoc')).toContain('Built Tailored Artifact');
     expect(approveBtn.disabled).toBe(false);
     fireEvent.click(approveBtn);
@@ -598,6 +599,10 @@ describe('PortalCadencePage', () => {
       'Zero-Trust Deployment Checklist',
     );
     expect(screen.getByTestId('cadence-build-locked-panel')).toBeTruthy();
+
+    await user.click(screen.getByTestId('cadence-view-source'));
+    expect(screen.getByTestId('cadence-source-empty')).toBeTruthy();
+    await user.click(screen.getByTestId('cadence-view-preview'));
 
     await user.click(screen.getByTestId('cadence-spec-approve'));
     expect(onApproveSpec).toHaveBeenCalledWith(pausedRun.runId);

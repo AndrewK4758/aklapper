@@ -180,12 +180,13 @@ export function PortalCadencePage({
     activeRun,
     hasActiveRunError,
   );
-  const fallbackStarterHtml =
-    activePreset?.starterArtifactHtml ?? presets[0]?.starterArtifactHtml ?? '';
-  const previewHtml =
-    activeRun?.artifactHtml && activeRun.artifactHtml.trim().length > 0
-      ? activeRun.artifactHtml
-      : fallbackStarterHtml;
+  const hasBuiltArtifact = Boolean(
+    activeRun &&
+    activeRun.artifactHtml &&
+    activeRun.artifactHtml.trim().length > 0 &&
+    (!activeRun.runStatus || activeRun.runStatus === 'ready' || activeRun.isGolden),
+  );
+  const previewHtml = hasBuiltArtifact ? (activeRun?.artifactHtml ?? '') : '';
 
   const isRunReady = Boolean(
     activeRun && (!activeRun.runStatus || activeRun.runStatus === 'ready'),

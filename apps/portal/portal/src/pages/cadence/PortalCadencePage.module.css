@@ -93,6 +93,14 @@
     flex-wrap: wrap;
   }
 
+  .modeControlGroup {
+    display: flex;
+    align-items: var(--sf-align-center);
+    flex-wrap: wrap;
+    gap: var(--sf-gap-sm);
+    flex: 1 1 min(22rem, 100%);
+  }
+
   .isolationHint {
     color: var(--sf-fg-cmt);
     font-family: var(--sf-font-mono), monospace;
@@ -374,11 +382,13 @@
     padding: var(--sf-space-0);
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr));
+    align-items: start;
     gap: var(--sf-gap-sm);
   }
 
   .turnCard {
     display: grid;
+    align-content: start;
     gap: var(--sf-gap-xs);
     padding: var(--sf-space-4);
     border-radius: var(--sf-radius-sm);
