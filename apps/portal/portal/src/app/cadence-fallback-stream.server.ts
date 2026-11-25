@@ -360,6 +360,7 @@ export async function runFallbackChordPipelineSse(
       tokensIn,
       tokensOut,
       artifactHtml: sanitized.html,
+      executionMode: mode === 'llm' ? 'fallback' : 'fast',
     });
     const quota = await getQuotaStatusForSession(db, 'guest', sessionId);
     const finalRun: CadenceRunResult = {

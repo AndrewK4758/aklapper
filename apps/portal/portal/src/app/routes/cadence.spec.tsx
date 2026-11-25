@@ -1,5 +1,6 @@
 import {
   buildTailoredCadenceArtifactHtml,
+  type CadenceExecutionMode,
   type CadencePreset,
   type CadenceRunLifecycleStatus,
   type CadenceRunMode,
@@ -168,6 +169,7 @@ vi.mock('@aklapper/db', async importOriginal => {
           presetSlug?: string;
           prompt: string;
           mode: CadenceRunMode;
+          promptHash?: string | null;
           estimatedTokens?: number;
         },
       ) => Promise<
@@ -182,6 +184,7 @@ vi.mock('@aklapper/db', async importOriginal => {
           presetSlug?: string;
           prompt: string;
           mode: CadenceRunMode;
+          promptHash?: string | null;
           estimatedTokens?: number;
         },
       ) => {
@@ -317,12 +320,24 @@ vi.mock('@aklapper/db', async importOriginal => {
     completeSandboxRunRow: vi.fn<
       (
         _db: unknown,
-        input: { runId: string; tokensIn: number; tokensOut: number; artifactHtml: string },
+        input: {
+          runId: string;
+          tokensIn: number;
+          tokensOut: number;
+          artifactHtml: string;
+          executionMode?: CadenceExecutionMode;
+        },
       ) => Promise<CadenceRunResult | null>
     >(
       async (
         _db: unknown,
-        input: { runId: string; tokensIn: number; tokensOut: number; artifactHtml: string },
+        input: {
+          runId: string;
+          tokensIn: number;
+          tokensOut: number;
+          artifactHtml: string;
+          executionMode?: CadenceExecutionMode;
+        },
       ) => {
         const row = stateStore.runs.get(input.runId);
         if (!row) return null;
@@ -373,6 +388,8 @@ vi.mock('@aklapper/db', async importOriginal => {
     }),
   };
 });
+
+import { completeSandboxRunRow, createPendingSandboxRunWithQuota } from '@aklapper/db';
 
 import { loader as streamLoader } from './api.cadence.runs.$runId.stream';
 import { action } from './cadence';
@@ -906,5 +923,81 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
     expect(text).not.toContain('sandbox_runs');
     expect(stderrSpy).toHaveBeenCalled();
     expect(stderrChunks.join('')).toContain('"errorCode":"ERR_DB_UNAVAILABLE"');
+  });
+
+  it('persists promptHash on fallback init and records executionMode as fallback for llm or fast for fast streams', async () => {
+    const cookie = `${GUEST_SESSION_COOKIE_NAME}=guest_session_meta123`;
+    const createMock = vi.mocked(createPendingSandboxRunWithQuota);
+    const completeMock = vi.mocked(completeSandboxRunRow);
+    createMock.mockClear();
+    completeMock.mockClear();
+
+    const llmInit = unwrapDataResult(
+      await action(
+        makeActionArgs(
+          {
+            intent: 'run',
+            prompt: 'Fallback metadata verification in llm mode',
+            presetSlug: 'solar-forge-starter',
+            mode: 'llm',
+          },
+          cookie,
+        ),
+      ),
+    );
+    expect(llmInit.init?.status).toBe(202);
+    expect(createMock).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        mode: 'llm',
+        promptHash: 'test-hash',
+      }),
+    );
+
+    const llmRunId = (llmInit.data as { run: CadenceRunResult }).run.runId;
+    const llmStream = await streamLoader(makeStreamArgs(llmRunId, cookie));
+    expect(llmStream.status).toBe(200);
+    await llmStream.text();
+    expect(completeMock).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        runId: llmRunId,
+        executionMode: 'fallback',
+      }),
+    );
+
+    const fastInit = unwrapDataResult(
+      await action(
+        makeActionArgs(
+          {
+            intent: 'run',
+            prompt: 'Fallback metadata verification in fast mode',
+            presetSlug: 'solar-forge-starter',
+            mode: 'fast',
+          },
+          cookie,
+        ),
+      ),
+    );
+    expect(fastInit.init?.status).toBe(202);
+    expect(createMock).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        mode: 'fast',
+        promptHash: 'test-hash',
+      }),
+    );
+
+    const fastRunId = (fastInit.data as { run: CadenceRunResult }).run.runId;
+    const fastStream = await streamLoader(makeStreamArgs(fastRunId, cookie));
+    expect(fastStream.status).toBe(200);
+    await fastStream.text();
+    expect(completeMock).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        runId: fastRunId,
+        executionMode: 'fast',
+      }),
+    );
   });
 });

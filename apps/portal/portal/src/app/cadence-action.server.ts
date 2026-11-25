@@ -407,6 +407,7 @@ export async function handleCadenceRunAction(formData: FormData, ctx: CadenceAct
       presetSlug,
       prompt: validatedReq.data.prompt,
       mode: resolvedMode,
+      promptHash: cacheLookup.promptHash,
       estimatedTokens: 800,
     });
 
