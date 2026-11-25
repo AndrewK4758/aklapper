@@ -1,7 +1,9 @@
 @layer element {
   .badge {
     display: inline-flex;
+    flex-wrap: wrap;
     align-items: center;
+    max-width: 100%;
     gap: var(--sf-space-3);
     padding: var(--sf-space-1) var(--sf-space-4);
     border: var(--sf-border-width) solid var(--sf-border);

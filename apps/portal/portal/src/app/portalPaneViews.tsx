@@ -269,7 +269,12 @@ function PortalAgensiPaneView({ ctx }: PaneAdapterProps) {
       onExit={ctx.exitTui}
     >
       {data => (
-        <PortalAgensiPage content={data.content} skills={data.skills} onClose={ctx.exitTui} />
+        <PortalAgensiPage
+          content={data.content}
+          skills={data.skills}
+          catalogMeta={data.catalogMeta}
+          onClose={ctx.exitTui}
+        />
       )}
     </PaneStreamGate>
   );

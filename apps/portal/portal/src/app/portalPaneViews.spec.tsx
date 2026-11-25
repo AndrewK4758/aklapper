@@ -646,4 +646,87 @@ describe('Portal in-pane route adapters & deep-links', () => {
     resetPortalClientTelemetryForTest();
     errorSpy.mockRestore();
   });
+
+  it('forwards catalogMeta parity cleanly across direct /agensi SSR and in-pane /agensi?pane=1', async () => {
+    const fallbackPayload: PortalAgensiLoaderData = {
+      ...AGENSI_DATA,
+      content: {
+        ...AGENSI_DATA.content,
+        statusBadge: {
+          source: 'agensi-catalog',
+          state: 'idle',
+          label: 'catalog · cached fallback',
+        },
+      },
+      skills: [
+        {
+          slug: 'cadence-governed-agentic-sdlc-framework',
+          name: 'CADENCE: Governed Agentic SDLC Framework',
+          summary: 'Governed SDLC framework.',
+          tags: ['sdlc'],
+          url: 'https://agensi.io/skills/cadence-governed-agentic-sdlc-framework',
+          sortOrder: 1,
+          creatorHandle: 'aklapper',
+          isPublished: true,
+          source: 'agensi_api',
+        },
+      ],
+      catalogMeta: {
+        mode: 'cached_fallback',
+        creatorHandle: 'aklapper',
+        syncedAt: '2026-11-24T12:00:00.000Z',
+      },
+    };
+
+    const router = createMemoryRouter(
+      [
+        {
+          id: 'root',
+          path: '/',
+          loader: () =>
+            makeRootStreamData({
+              maintenanceMode: false,
+              chrome: CHROME,
+              maintenance: null,
+              terminal: TERMINAL,
+              homeContent: HOME_CONTENT,
+            }),
+          Component: PortalRootBridge,
+          children: [
+            {
+              index: true,
+              loader: () =>
+                streamOk<PortalHomeLoaderData>({
+                  content: HOME_CONTENT,
+                  terminal: TERMINAL,
+                  contactForm: CONTACT_FORM_DEFINITION,
+                }),
+              Component: PortalHomeBridge,
+            },
+            {
+              path: 'agensi',
+              loader: () => streamOk(fallbackPayload),
+              Component: PortalAgensiBridge,
+            },
+          ],
+        },
+      ],
+      { initialEntries: ['/'] },
+    );
+
+    render(<RouterProvider router={router} />);
+    const input = (await screen.findByLabelText('Terminal command input')) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'agensi' } });
+    fireEvent.submit(input.closest('form') as HTMLFormElement);
+
+    const paneMeta = await screen.findByTestId('agensi-catalog-meta');
+    expect(paneMeta.textContent).toContain('aklapper');
+    expect(paneMeta.textContent).toContain('cached fallback');
+    expect(screen.getByText(/catalog · cached fallback/)).toBeTruthy();
+
+    await act(async () => {
+      await router.navigate('/agensi');
+    });
+    expect(await screen.findByTestId('agensi-catalog-meta')).toBeTruthy();
+  });
 });

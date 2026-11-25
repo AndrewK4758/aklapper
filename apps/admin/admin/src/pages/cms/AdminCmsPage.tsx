@@ -1,7 +1,6 @@
 import type {
   ActionErrorMetadata,
   AdminCmsLoaderData,
-  AgensiSkill,
   CadencePreset,
   MenuItem,
   QdrantHealthStatus,
@@ -21,6 +20,7 @@ import {
 import { useState } from 'react';
 import { Form, useFetcher } from 'react-router';
 
+import { AgensiCacheSection } from './AgensiCacheSection';
 import { SiteContentEditorPanel } from './SiteContentEditorPanel';
 
 import styles from './AdminCmsPage.module.css';
@@ -45,7 +45,6 @@ export function AdminCmsPage({ data, qdrant, actionData }: AdminCmsPageProps) {
     data.terminalProfiles[0]?.slug ?? 'portal-shell',
   );
   const [selectedMilestoneSlug, setSelectedMilestoneSlug] = useState<string | null>(null);
-  const [selectedSkillSlug, setSelectedSkillSlug] = useState<string | null>(null);
   const [selectedPresetSlug, setSelectedPresetSlug] = useState<string>(
     data.cadencePresets[0]?.slug ?? '',
   );
@@ -59,8 +58,6 @@ export function AdminCmsPage({ data, qdrant, actionData }: AdminCmsPageProps) {
     null;
   const editingMilestone: RoadmapMilestone | null =
     data.roadmapMilestones.find(item => item.slug === selectedMilestoneSlug) ?? null;
-  const editingSkill: AgensiSkill | null =
-    data.agensiSkills.find(item => item.slug === selectedSkillSlug) ?? null;
   const selectedPreset: CadencePreset | null =
     data.cadencePresets.find(item => item.slug === selectedPresetSlug) ??
     data.cadencePresets[0] ??
@@ -860,127 +857,11 @@ export function AdminCmsPage({ data, qdrant, actionData }: AdminCmsPageProps) {
           </Tabs.Panel>
 
           <Tabs.Panel value='agensi' className={styles.tabPanel}>
-            <section className={styles.card} aria-label='Agensi skills'>
-              <div className={styles.cardHeader}>
-                <h2 className={styles.sectionTitle}>
-                  Agensi Skills Showcase ({data.agensiSkills.length})
-                </h2>
-                <Button.Root
-                  type='button'
-                  variant='ghost'
-                  size='sm'
-                  onClick={() => {
-                    setSelectedSkillSlug(null);
-                  }}
-                >
-                  <Button.Label>New Skill</Button.Label>
-                </Button.Root>
-              </div>
-              <table className={styles.dataTable}>
-                <thead>
-                  <tr>
-                    <th>Slug</th>
-                    <th>Name</th>
-                    <th>Tags</th>
-                    <th>Order</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.agensiSkills.map(skill => (
-                    <tr key={skill.slug}>
-                      <td>
-                        <code>{skill.slug}</code>
-                      </td>
-                      <td>{skill.name}</td>
-                      <td>{skill.tags.join(', ')}</td>
-                      <td>{skill.sortOrder}</td>
-                      <td className={styles.actionCell} aria-label={`Actions for ${skill.slug}`}>
-                        <Button.Root
-                          type='button'
-                          variant='ghost'
-                          size='sm'
-                          onClick={() => {
-                            setSelectedSkillSlug(skill.slug);
-                          }}
-                        >
-                          <Button.Label>Edit</Button.Label>
-                        </Button.Root>
-                        <Form method='post'>
-                          <input type='hidden' name='intent' value='delete-agensi-skill' />
-                          <input type='hidden' name='slug' value={skill.slug} />
-                          <Button.Root type='submit' variant='danger' size='sm'>
-                            <Button.Label>Delete</Button.Label>
-                          </Button.Root>
-                        </Form>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              <Form
-                key={editingSkill?.slug ?? 'new-skill'}
-                method='post'
-                className={styles.stackForm}
-              >
-                <input type='hidden' name='intent' value='upsert-agensi-skill' />
-                <div className={styles.formGrid}>
-                  <Field.Root>
-                    <Field.Label>Slug</Field.Label>
-                    <Field.Control
-                      name='slug'
-                      defaultValue={editingSkill?.slug ?? ''}
-                      placeholder='skill-slug'
-                      required
-                    />
-                  </Field.Root>
-                  <Field.Root>
-                    <Field.Label>Name</Field.Label>
-                    <Field.Control name='name' defaultValue={editingSkill?.name ?? ''} required />
-                  </Field.Root>
-                  <Field.Root>
-                    <Field.Label>URL</Field.Label>
-                    <Field.Control
-                      name='url'
-                      type='url'
-                      defaultValue={editingSkill?.url ?? 'https://agensi.io/'}
-                      required
-                    />
-                  </Field.Root>
-                  <Field.Root>
-                    <Field.Label>Tags (comma-separated)</Field.Label>
-                    <Field.Control
-                      name='tags'
-                      defaultValue={editingSkill?.tags.join(', ') ?? ''}
-                      placeholder='go, ssr, qdrant'
-                    />
-                  </Field.Root>
-                  <Field.Root>
-                    <Field.Label>Sort Order</Field.Label>
-                    <Field.Control
-                      name='sortOrder'
-                      type='number'
-                      defaultValue={editingSkill?.sortOrder ?? data.agensiSkills.length + 1}
-                      required
-                    />
-                  </Field.Root>
-                </div>
-                <Field.Root>
-                  <Field.Label>Summary</Field.Label>
-                  <Field.Control
-                    name='summary'
-                    defaultValue={editingSkill?.summary ?? ''}
-                    required
-                  />
-                </Field.Root>
-                <div>
-                  <Button.Root type='submit' variant='primary' size='sm'>
-                    <Button.Label>Save Agensi Skill</Button.Label>
-                  </Button.Root>
-                </div>
-              </Form>
-            </section>
+            <AgensiCacheSection
+              skills={data.agensiSkills}
+              syncState={data.agensiSyncState}
+              styles={styles}
+            />
 
             <Separator.Root />
 

@@ -167,6 +167,12 @@
     color: var(--sf-fg-cmt);
   }
 
+  .errorNote {
+    display: block;
+    font-size: var(--sf-text-xs);
+    color: var(--sf-err);
+  }
+
   @media (max-width: 56rem) {
     .splitGrid {
       grid-template-columns: 1fr;

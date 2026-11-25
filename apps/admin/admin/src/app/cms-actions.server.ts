@@ -1,7 +1,6 @@
 import { type AppErrorCode, validateSiteContentMetadata } from '@aklapper/core';
 import { classifyServerError } from '@aklapper/core/server-errors';
 import {
-  deleteAgensiSkill,
   deleteCadencePreset,
   deleteMenuItem,
   deleteRoadmapMilestone,
@@ -10,7 +9,7 @@ import {
   deleteTerminalInitialEntry,
   getSharedDb,
   setMaintenanceModeDefault,
-  upsertAgensiSkill,
+  syncAgensiCatalog,
   upsertCadencePreset,
   upsertMenuItem,
   upsertRoadmapMilestone,
@@ -323,24 +322,33 @@ export async function dispatchAdminCmsIntent(
       : notFound(`Milestone "${slug}" not found.`, correlationId);
   }
 
-  if (intent === 'upsert-agensi-skill') {
-    const saved = await upsertAgensiSkill(getSharedDb(), {
-      slug: String(formData.get('slug') ?? ''),
-      name: String(formData.get('name') ?? ''),
-      summary: String(formData.get('summary') ?? ''),
-      tags: splitTags(formData.get('tags')),
-      url: String(formData.get('url') ?? ''),
-      sortOrder: Number(formData.get('sortOrder') ?? 0),
+  if (intent === 'sync-agensi-catalog') {
+    const result = await syncAgensiCatalog(getSharedDb(), {
+      forceRefresh: true,
+      correlationId,
     });
-    return ok(`Saved Agensi skill "${saved.name}".`);
+    return ok(
+      `Synced ${result.skills.length} Agensi skill(s) for ${result.creatorHandle} (status: ${result.syncState.lastStatus}).`,
+    );
   }
 
-  if (intent === 'delete-agensi-skill') {
-    const slug = String(formData.get('slug') ?? '').trim();
-    const deleted = await deleteAgensiSkill(getSharedDb(), slug);
-    return deleted
-      ? ok(`Deleted Agensi skill "${slug}".`)
-      : notFound(`Agensi skill "${slug}" not found.`, correlationId);
+  if (intent === 'upsert-agensi-skill' || intent === 'delete-agensi-skill') {
+    logger.warn(
+      {
+        seam_type: 'UNSOUND_CONDITION',
+        event: 'agensi.cms.legacy_manual_mutation_blocked',
+        intent,
+        correlationId,
+      },
+      'Blocked retired manual Agensi skill CMS mutation.',
+    );
+    return fail(
+      410,
+      'Manual Agensi skill editing has been retired; use Sync Agensi Catalog instead.',
+      'ERR_VALIDATION',
+      'Use Sync Agensi Catalog to refresh creator-scoped skills from agensi.io.',
+      correlationId,
+    );
   }
 
   if (intent === 'upsert-cadence-preset') {

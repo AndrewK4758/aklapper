@@ -1,4 +1,4 @@
-import type { AgensiSkill, PortalAgensiContent } from '@aklapper/core';
+import type { AgensiCatalogMeta, AgensiSkill, PortalAgensiContent } from '@aklapper/core';
 import { getActiveAnalyticsClient } from '@aklapper/core/analytics';
 import {
   Button,
@@ -16,10 +16,19 @@ import styles from './PortalAgensiPage.module.css';
 export interface PortalAgensiPageProps {
   content: PortalAgensiContent;
   skills: readonly AgensiSkill[];
+  catalogMeta?: AgensiCatalogMeta;
   onClose: () => void;
 }
 
-export function PortalAgensiPage({ content, skills, onClose }: PortalAgensiPageProps) {
+const CATALOG_MODE_LABELS: Readonly<Record<AgensiCatalogMeta['mode'], string>> = {
+  live: 'live sync',
+  cache: 'fresh cache',
+  cached_fallback: 'cached fallback',
+  prerender: 'prerender snapshot',
+  empty: 'cold cache empty',
+};
+
+export function PortalAgensiPage({ content, skills, catalogMeta, onClose }: PortalAgensiPageProps) {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -58,6 +67,12 @@ export function PortalAgensiPage({ content, skills, onClose }: PortalAgensiPageP
         }
       >
         <p className={styles.intro}>{content.description}</p>
+        {catalogMeta ? (
+          <p className={styles.catalogMeta} data-testid='agensi-catalog-meta'>
+            creator: @{catalogMeta.creatorHandle} · source: {CATALOG_MODE_LABELS[catalogMeta.mode]}
+            {catalogMeta.syncedAt ? ` · synced: ${catalogMeta.syncedAt}` : ''}
+          </p>
+        ) : null}
         <Separator.Root />
 
         <div className={styles.controls}>

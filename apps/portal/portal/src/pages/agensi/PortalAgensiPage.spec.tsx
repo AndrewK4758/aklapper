@@ -79,4 +79,40 @@ describe('PortalAgensiPage', () => {
     });
     expect(screen.getByTestId('agensi-empty-state')).toBeTruthy();
   });
+
+  it('renders optional catalogMeta fallback diagnostics while keeping omitted catalogMeta compatible', () => {
+    const { rerender } = render(
+      <PortalAgensiPage
+        content={{
+          ...SAMPLE_CONTENT,
+          statusBadge: {
+            source: 'agensi-catalog',
+            state: 'idle',
+            label: 'catalog · cached fallback',
+          },
+        }}
+        skills={SAMPLE_SKILLS}
+        catalogMeta={{
+          mode: 'cached_fallback',
+          creatorHandle: 'aklapper',
+          syncedAt: '2026-11-24T12:00:00.000Z',
+        }}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    expect(screen.getByText(/catalog · cached fallback/)).toBeTruthy();
+    const metaEl = screen.getByTestId('agensi-catalog-meta');
+    expect(metaEl.textContent).toContain('aklapper');
+    expect(metaEl.textContent).toContain('cached fallback');
+
+    rerender(
+      <PortalAgensiPage
+        content={SAMPLE_CONTENT}
+        skills={SAMPLE_SKILLS}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+    expect(screen.queryByTestId('agensi-catalog-meta')).toBeNull();
+  });
 });

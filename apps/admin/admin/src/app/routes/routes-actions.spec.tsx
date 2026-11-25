@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   resolveAdminSessionFromRequest: vi.fn<(request: Request) => Promise<unknown>>(),
   getSharedDb: vi.fn<() => unknown>(),
   setMaintenanceModeDefault: vi.fn<AsyncUnknownFn>(),
+  syncAgensiCatalog: vi.fn<AsyncUnknownFn>(),
   upsertSiteContent: vi.fn<AsyncUnknownFn>(),
   deleteMenuItem: vi.fn<AsyncUnknownFn>(),
   deleteContactSubmission: vi.fn<AsyncUnknownFn>(),
@@ -33,6 +34,7 @@ vi.mock('@aklapper/db', async importOriginal => {
     ...actual,
     getSharedDb: mocks.getSharedDb,
     setMaintenanceModeDefault: mocks.setMaintenanceModeDefault,
+    syncAgensiCatalog: mocks.syncAgensiCatalog,
     upsertSiteContent: mocks.upsertSiteContent,
     deleteMenuItem: mocks.deleteMenuItem,
     deleteContactSubmission: mocks.deleteContactSubmission,
@@ -42,7 +44,7 @@ vi.mock('@aklapper/db', async importOriginal => {
   };
 });
 
-import { AUTH_STATUS } from './admin-test-fixtures';
+import { ADMIN_CMS_FIXTURE, AUTH_STATUS } from './admin-test-fixtures';
 import { action as analyticsIngestAction } from './api.analytics.ingest';
 import { action as cmsAction } from './cms';
 import { action as inboxAction } from './inbox';
@@ -261,6 +263,63 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
       }),
       expect.any(String),
     );
+  });
+
+  it('triggers syncAgensiCatalog on sync-agensi-catalog and rejects retired manual CRUD intents with HTTP 410', async () => {
+    mocks.syncAgensiCatalog.mockResolvedValueOnce({
+      creatorHandle: 'aklapper',
+      skills: ADMIN_CMS_FIXTURE.agensiSkills,
+      syncState: ADMIN_CMS_FIXTURE.agensiSyncState,
+      notModified: false,
+      syncedCount: 1,
+      deactivatedCount: 0,
+    });
+
+    const syncCall = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      { intent: 'sync-agensi-catalog' },
+      'corr-agensi-sync',
+    );
+    const syncRes = (await cmsAction(syncCall.args as never)) as unknown as DataWithStatus;
+    expect(mocks.syncAgensiCatalog).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ forceRefresh: true, correlationId: 'corr-agensi-sync' }),
+    );
+    expect(syncRes.init?.status).toBe(200);
+    expect(syncRes.init?.headers?.['X-Correlation-Id']).toBe('corr-agensi-sync');
+    expect(syncRes.data).toEqual({
+      ok: true,
+      message: expect.stringMatching(/Synced 1 Agensi skill/i),
+    });
+
+    for (const retiredIntent of ['upsert-agensi-skill', 'delete-agensi-skill'] as const) {
+      const legacyCall = makeActionArgs(
+        'http://localhost:4301/cms',
+        '/cms',
+        { intent: retiredIntent },
+        'corr-agensi-retired',
+      );
+      const legacyRes = (await cmsAction(legacyCall.args as never)) as unknown as DataWithStatus;
+      expect(legacyRes.init?.status).toBe(410);
+      expect(legacyRes.init?.headers?.['X-Correlation-Id']).toBe('corr-agensi-retired');
+      expect(legacyRes.data).toEqual(
+        expect.objectContaining({
+          ok: false,
+          code: 'ERR_VALIDATION',
+          correlationId: 'corr-agensi-retired',
+        }),
+      );
+      expect(legacyCall.logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          seam_type: 'UNSOUND_CONDITION',
+          event: 'agensi.cms.legacy_manual_mutation_blocked',
+          intent: retiredIntent,
+          correlationId: 'corr-agensi-retired',
+        }),
+        expect.any(String),
+      );
+    }
   });
 
   it('returns honest 200, 400, 404, and classified 503 responses in inbox action', async () => {
