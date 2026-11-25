@@ -1,4 +1,15 @@
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
+import {
+  UNSAFE_DataRouterDataContext,
+  UNSAFE_DataRouterStateContext,
+} from 'react-router';
 
 import { cx } from '../elements/_internal/elementFactory';
 import { normalizeWorkspaceRouteKey } from './routeWorkspaceSnapshot';
@@ -41,6 +52,19 @@ function RouteWorkspaceLayer({ routeKey, isActive, children }: RouteWorkspaceLay
   const scrollCoordsRef = useRef<WeakMap<Element, ScrollCoords>>(new WeakMap());
   const scrolledElementsRef = useRef<Set<Element>>(new Set());
   const wasActiveRef = useRef<boolean>(isActive);
+
+  const liveRouterState = useContext(UNSAFE_DataRouterStateContext);
+  const liveRouterData = useContext(UNSAFE_DataRouterDataContext);
+  const frozenRouterStateRef = useRef(liveRouterState);
+  const frozenRouterDataRef = useRef(liveRouterData);
+
+  if (isActive) {
+    frozenRouterStateRef.current = liveRouterState;
+    frozenRouterDataRef.current = liveRouterData;
+  }
+
+  const effectiveRouterState = isActive ? liveRouterState : frozenRouterStateRef.current;
+  const effectiveRouterData = isActive ? liveRouterData : frozenRouterDataRef.current;
 
   useEffect(() => {
     const layerEl = layerRef.current;
@@ -94,6 +118,22 @@ function RouteWorkspaceLayer({ routeKey, isActive, children }: RouteWorkspaceLay
     }
   }, [isActive]);
 
+  let content: ReactNode = children;
+  if (effectiveRouterData !== null) {
+    content = (
+      <UNSAFE_DataRouterDataContext.Provider value={effectiveRouterData}>
+        {content}
+      </UNSAFE_DataRouterDataContext.Provider>
+    );
+  }
+  if (effectiveRouterState !== null) {
+    content = (
+      <UNSAFE_DataRouterStateContext.Provider value={effectiveRouterState}>
+        {content}
+      </UNSAFE_DataRouterStateContext.Provider>
+    );
+  }
+
   return (
     <div
       ref={layerRef}
@@ -104,7 +144,7 @@ function RouteWorkspaceLayer({ routeKey, isActive, children }: RouteWorkspaceLay
       inert={!isActive}
       aria-hidden={!isActive ? 'true' : undefined}
     >
-      {children}
+      {content}
     </div>
   );
 }
