@@ -12,27 +12,27 @@ import { type ReactNode } from 'react';
 import { PortalLauncherTui } from '#pages/home';
 
 import { reportPortalClientError } from './client-telemetry';
+import { emitPaneTelemetryOnce } from './workspace/portalPaneStreamStore';
 import {
-  emitPaneTelemetryOnce,
   isPortalPaneRoute,
   PORTAL_PANE_ROUTES,
   type PortalPaneRoute,
   type PortalPaneViewId,
-} from './PaneStreamGate';
+} from './workspace/portalWorkspaceSnapshot';
 
 export { isPortalPaneRoute, PORTAL_PANE_ROUTES, type PortalPaneRoute, type PortalPaneViewId };
 
-const LazyAgensiPaneAdapter = lazyWithRetry(() =>
-  import('./pane-views/AgensiPaneAdapter').then(mod => ({ default: mod.AgensiPaneAdapter })),
+const LazyAgensiPaneView = lazyWithRetry(() =>
+  import('./features/AgensiFeatureView').then(mod => ({ default: mod.AgensiPaneView })),
 );
-const LazyAskPaneAdapter = lazyWithRetry(() =>
-  import('./pane-views/AskPaneAdapter').then(mod => ({ default: mod.AskPaneAdapter })),
+const LazyChatPaneView = lazyWithRetry(() =>
+  import('./features/ChatFeatureView').then(mod => ({ default: mod.ChatPaneView })),
 );
-const LazyCadencePaneAdapter = lazyWithRetry(() =>
-  import('./pane-views/CadencePaneAdapter').then(mod => ({ default: mod.CadencePaneAdapter })),
+const LazyCadencePaneView = lazyWithRetry(() =>
+  import('./features/CadenceFeatureView').then(mod => ({ default: mod.CadencePaneView })),
 );
-const LazyContactPaneAdapter = lazyWithRetry(() =>
-  import('./pane-views/ContactPaneAdapter').then(mod => ({ default: mod.ContactPaneAdapter })),
+const LazyContactPaneView = lazyWithRetry(() =>
+  import('./features/ContactFeatureView').then(mod => ({ default: mod.ContactPaneView })),
 );
 
 function reportLazyPaneChunkError(routePath: string, error: unknown): void {
@@ -128,7 +128,7 @@ export function renderPortalPaneView({ ctx, homeContent }: RenderPortalPaneViewO
           loadingLabel='Loading Agensi storefront...'
           onExit={ctx.exitTui}
         >
-          <LazyAgensiPaneAdapter ctx={ctx} />
+          <LazyAgensiPaneView ctx={ctx} />
         </LazyPaneSlot>
       );
     case '/chat':
@@ -140,7 +140,7 @@ export function renderPortalPaneView({ ctx, homeContent }: RenderPortalPaneViewO
           loadingLabel='Loading Chat with Andrew...'
           onExit={ctx.exitTui}
         >
-          <LazyAskPaneAdapter ctx={ctx} />
+          <LazyChatPaneView ctx={ctx} />
         </LazyPaneSlot>
       );
     case '/cadence':
@@ -152,7 +152,7 @@ export function renderPortalPaneView({ ctx, homeContent }: RenderPortalPaneViewO
           loadingLabel='Loading sandbox builder...'
           onExit={ctx.exitTui}
         >
-          <LazyCadencePaneAdapter ctx={ctx} />
+          <LazyCadencePaneView ctx={ctx} />
         </LazyPaneSlot>
       );
     case '/contact':
@@ -164,7 +164,7 @@ export function renderPortalPaneView({ ctx, homeContent }: RenderPortalPaneViewO
           loadingLabel='Loading contact channel...'
           onExit={ctx.exitTui}
         >
-          <LazyContactPaneAdapter ctx={ctx} />
+          <LazyContactPaneView ctx={ctx} />
         </LazyPaneSlot>
       );
     default:

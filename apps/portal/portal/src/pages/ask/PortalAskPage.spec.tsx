@@ -3,7 +3,13 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { streamAskQuestion } from './askStreamClient';
-import { ASK_TURN_STORAGE_KEY } from './askTurnRecovery';
+import {
+  ASK_TURN_STORAGE_KEY,
+  clearPersistedAskTurn,
+  readPersistedAskTurn,
+  resolveAskTurnStorageKey,
+  writePersistedAskTurn,
+} from './askTurnRecovery';
 import { PortalAskPage, type PortalAskPageProps } from './PortalAskPage';
 
 const SAMPLE_CONTENT = PortalAskContentSchema.parse({
@@ -832,5 +838,74 @@ describe('PortalAskPage', () => {
     fireEvent.click(screen.getByTestId('ask-stream-cancel'));
     expect(screen.queryByTestId('ask-preamble-feed')).toBeNull();
     expect(screen.queryByTestId('ask-streaming-feed')).toBeNull();
+  });
+
+  it('isolates askTurnRecovery storage and ownership across concurrent primary and secondary chat instances', async () => {
+    const primaryAttemptId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    writePersistedAskTurn({
+      attemptId: primaryAttemptId,
+      mode: 'qa',
+      question: 'Primary chat turn in flight',
+      ownerInstanceId: 'primary:/chat',
+    });
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const secondarySubmitSpy = vi.fn<PortalAskPageProps['onSubmitAsk']>();
+
+    // Secondary chat pane with different instanceId must NOT hijack or poll primary's persisted turn
+    render(
+      <PortalAskPage
+        instanceId='pane:pane-2'
+        content={SAMPLE_CONTENT}
+        quota={SAMPLE_QUOTA}
+        isSubmitting={false}
+        actionResult={{
+          ok: false,
+          mode: 'qa',
+          error: 'Secondary pane settled error',
+        }}
+        onSubmitAsk={secondarySubmitSpy}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    await Promise.resolve();
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    // Starting a concurrent turn in pane:pane-2 writes to its own scoped storage key without overwriting primary:/chat
+    const qaInput = screen.getByTestId('ask-question-input');
+    fireEvent.change(qaInput, {
+      target: { value: 'Secondary pane concurrent question about Cloud Run?' },
+    });
+    fireEvent.click(screen.getByTestId('ask-qa-submit'));
+
+    expect(secondarySubmitSpy).toHaveBeenCalledTimes(1);
+    expect(window.sessionStorage.getItem(resolveAskTurnStorageKey('primary:/chat'))).toBeTruthy();
+    expect(window.sessionStorage.getItem(resolveAskTurnStorageKey('pane:pane-2'))).toBeTruthy();
+    expect(readPersistedAskTurn('primary:/chat')).toEqual({
+      attemptId: primaryAttemptId,
+      mode: 'qa',
+      question: 'Primary chat turn in flight',
+      ownerInstanceId: 'primary:/chat',
+    });
+    expect(readPersistedAskTurn('pane:pane-2')).toMatchObject({
+      mode: 'qa',
+      question: 'Secondary pane concurrent question about Cloud Run?',
+      ownerInstanceId: 'pane:pane-2',
+    });
+
+    // Clearing pane:pane-2 leaves primary:/chat completely intact
+    clearPersistedAskTurn('pane:pane-2');
+    expect(readPersistedAskTurn('pane:pane-2')).toBeNull();
+    expect(readPersistedAskTurn('primary:/chat')).toEqual({
+      attemptId: primaryAttemptId,
+      mode: 'qa',
+      question: 'Primary chat turn in flight',
+      ownerInstanceId: 'primary:/chat',
+    });
+
+    // Clearing primary:/chat removes its scoped entry cleanly
+    clearPersistedAskTurn('primary:/chat');
+    expect(readPersistedAskTurn('primary:/chat')).toBeNull();
   });
 });

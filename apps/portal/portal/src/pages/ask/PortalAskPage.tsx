@@ -15,14 +15,14 @@ import {
   buildRecoveringTurnState,
   clearPersistedAskTurn,
   generateAskAttemptId,
+  getPersistedAskTurnStore,
   isPendingAskResult,
   type PortalAskActionResult,
   prependQaTranscriptEntry,
   type QaTranscriptEntry,
-  readPersistedAskTurn,
   type RecoveredErrorState,
+  resolvePendingAskTurn,
   startAskTurnPolling,
-  subscribePersistedAskTurn,
   writePersistedAskTurn,
 } from './askTurnRecovery';
 import { useAskStreaming } from './useAskStreaming';
@@ -32,6 +32,7 @@ import styles from './PortalAskPage.module.css';
 export type { PortalAskActionResult };
 
 export interface PortalAskPageProps {
+  instanceId?: string;
   content: PortalAskContent;
   quota: QuotaStatus;
   askStatus?: AskServiceStatus;
@@ -49,6 +50,7 @@ export interface PortalAskPageProps {
 }
 
 export function PortalAskPage({
+  instanceId,
   content,
   quota,
   askStatus,
@@ -59,10 +61,11 @@ export function PortalAskPage({
   onSubmitAsk,
   onClose,
 }: PortalAskPageProps) {
+  const turnStore = getPersistedAskTurnStore(instanceId);
   const persistedTurn = useSyncExternalStore(
-    subscribePersistedAskTurn,
-    readPersistedAskTurn,
-    () => null,
+    turnStore.subscribe,
+    turnStore.getSnapshot,
+    turnStore.getServerSnapshot,
   );
   const isHydrated = useHydrated();
   const [activeTab, setActiveTab] = useState<AskMode>('qa');
@@ -92,6 +95,7 @@ export function PortalAskPage({
     resetConversation,
     restoreConversationId,
   } = useAskStreaming({
+    instanceId,
     streamEndpoint,
     submittingLabel: content.streamingQaLabel,
     onDispatched: attemptId => {
@@ -100,15 +104,11 @@ export function PortalAskPage({
     },
     onCompleted: (attemptId, question, response) => {
       setQuestionText('');
-      if (response.quota) {
-        setPolledQuota(response.quota);
-      }
+      if (response.quota) setPolledQuota(response.quota);
       setQaTranscript(prev => prependQaTranscriptEntry(prev, attemptId, question, response));
     },
     onFailed: (errState, errQuota) => {
-      if (errQuota) {
-        setPolledQuota(errQuota);
-      }
+      if (errQuota) setPolledQuota(errQuota);
       setRecoveredError(errState);
     },
   });
@@ -148,42 +148,31 @@ export function PortalAskPage({
       : undefined;
   const actionSettled = Boolean(actionResult && !isPendingAskResult(actionResult));
   useEffect(() => {
-    if (actionSettled) clearPersistedAskTurn();
-  }, [actionSettled, actionResult]);
+    if (actionSettled) clearPersistedAskTurn(instanceId);
+  }, [actionSettled, actionResult, instanceId]);
 
   // Recover sessionStorage turns strictly from prior mounts; same-mount dispatches manage their own lifecycle.
-  const isRecoveredTurn =
-    persistedTurn !== null &&
-    persistedTurn.attemptId !== dispatchedAttemptId &&
-    !settledPendingAttemptIds.has(persistedTurn.attemptId) &&
-    !isSubmitting &&
-    !activeStream &&
-    !actionSettled;
-  const hasPendingTurn = Boolean(pendingActionResult) || isRecoveredTurn;
-  const pendingAttemptId = pendingActionResult
-    ? pendingActionResult.attemptId
-    : isRecoveredTurn
-      ? persistedTurn.attemptId
-      : undefined;
-  const pendingMode = pendingActionResult
-    ? pendingActionResult.mode
-    : isRecoveredTurn
-      ? persistedTurn.mode
-      : undefined;
-  const pendingSubmittedText = pendingActionResult
-    ? pendingActionResult.submittedText
-    : isRecoveredTurn
-      ? persistedTurn.question
-      : undefined;
-  const pollImmediately = hasPendingTurn && !pendingActionResult;
+  const {
+    hasPendingTurn,
+    attemptId: pendingAttemptId,
+    mode: pendingMode,
+    submittedText: pendingSubmittedText,
+    pollImmediately,
+  } = resolvePendingAskTurn({
+    pendingActionResult,
+    persistedTurn,
+    instanceId,
+    dispatchedAttemptId,
+    settledPendingAttemptIds,
+    isSubmitting,
+    hasActiveStream: Boolean(activeStream),
+    actionSettled,
+  });
 
   const markPendingAttemptSettled = (attemptId: string) => {
-    setSettledPendingAttemptIds(prev => {
-      if (prev.has(attemptId)) return prev;
-      const next = new Set(prev);
-      next.add(attemptId);
-      return next;
-    });
+    setSettledPendingAttemptIds(prev =>
+      prev.has(attemptId) ? prev : new Set(prev).add(attemptId),
+    );
   };
 
   // Poll /api/ask/turns/:attemptId while an async 202 or sessionStorage-recovered turn is active.
@@ -192,6 +181,7 @@ export function PortalAskPage({
     return startAskTurnPolling({
       attemptId: pendingAttemptId,
       pollImmediately,
+      ownerInstanceId: instanceId,
       onPending: state => setPolledTurnState(state),
       onSettled: state => {
         markPendingAttemptSettled(pendingAttemptId);
@@ -225,7 +215,14 @@ export function PortalAskPage({
         });
       },
     });
-  }, [pendingAttemptId, pendingMode, pendingSubmittedText, pollImmediately, restoreConversationId]);
+  }, [
+    instanceId,
+    pendingAttemptId,
+    pendingMode,
+    pendingSubmittedText,
+    pollImmediately,
+    restoreConversationId,
+  ]);
 
   const actionQuota = actionResult?.ok
     ? pendingActionResult
@@ -273,7 +270,12 @@ export function PortalAskPage({
   const dispatchUnaryTurn = (mode: AskMode, text: string) => {
     const attemptId = generateAskAttemptId();
     setDispatchedAttemptId(attemptId);
-    writePersistedAskTurn({ attemptId, mode, question: text });
+    writePersistedAskTurn({
+      attemptId,
+      mode,
+      question: text,
+      ...(instanceId ? { ownerInstanceId: instanceId } : {}),
+    });
     setRecoveredError(null);
     onSubmitAsk({ mode, text, attemptId });
   };

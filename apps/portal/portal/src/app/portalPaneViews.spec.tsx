@@ -15,6 +15,7 @@ import {
   type StreamResult,
   type TerminalProfileData,
 } from '@aklapper/core';
+import { usePaneNavigation, ViewportProvider } from '@aklapper/ui';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import {
   createMemoryRouter,
@@ -24,19 +25,86 @@ import {
   useMatches,
   useParams,
 } from 'react-router';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { PortalCadenceActionResult } from '#pages/cadence';
 
+import { readPersistedAskTurn } from '../pages/ask/askTurnRecovery';
+import { resetCadenceAutoAttachRegistryForTest } from './cadence-stream';
 import { initPortalClientTelemetry, resetPortalClientTelemetryForTest } from './client-telemetry';
-import { type PaneLoaderErrorEnvelope, type StreamLoaderEnvelope } from './pane-loader';
+import { type StreamLoaderEnvelope } from './pane-loader';
 import { runPaneSafeLoader } from './pane-loader.server';
 import { renderPortalPaneView } from './portalPaneViews';
-import { portalRouteWorkspaceStore } from './PortalRootShell';
 import PortalRoot, { type PortalRootStreamData } from './root';
 import PortalAgensiRoute from './routes/agensi';
 import PortalCadenceRoute from './routes/cadence';
 import PortalGreeterRoute from './routes/home';
+import { portalPaneStreamStore } from './workspace/portalPaneStreamStore';
+import {
+  buildTypedPaneActionError,
+  createTransportPublicError,
+  type PaneLoadedEnvelope,
+  type PaneStreamTransport,
+} from './workspace/portalPaneTransport';
+import type { PortalPaneRoute } from './workspace/portalWorkspaceSnapshot';
+import { portalWorkspaceStore } from './workspace/portalWorkspaceStore';
+
+function installTestPaneTransport(config: {
+  readonly loaders?: Partial<
+    Record<PortalPaneRoute, (request: Request, signal: AbortSignal) => unknown | Promise<unknown>>
+  >;
+  readonly actions?: Partial<
+    Record<
+      PortalPaneRoute,
+      (request: Request, formData: FormData, signal?: AbortSignal) => unknown | Promise<unknown>
+    >
+  >;
+}): void {
+  const transport: PaneStreamTransport = {
+    load: async <T = unknown,>(routePath: PortalPaneRoute, signal: AbortSignal) => {
+      const loaderFn = config.loaders?.[routePath];
+      if (!loaderFn) {
+        throw new Error(`No test pane loader registered for ${routePath}`);
+      }
+      const request = new Request(`http://localhost${routePath}?pane=1`, { signal });
+      const raw = await loaderFn(request, signal);
+      if (raw && typeof raw === 'object' && 'correlationId' in raw && 'payload' in raw) {
+        return raw as PaneLoadedEnvelope<T>;
+      }
+      const publicError = createTransportPublicError({
+        error: new Error('Malformed test pane envelope'),
+        status: 503,
+      });
+      return {
+        correlationId: publicError.correlationId,
+        payload: Promise.resolve<StreamResult<T>>({ ok: false, error: publicError }),
+      };
+    },
+    submitAction: async <T = unknown,>(
+      routePath: PortalPaneRoute,
+      formData: FormData,
+      signal?: AbortSignal,
+    ) => {
+      const actionFn = config.actions?.[routePath];
+      if (!actionFn) {
+        const publicError = createTransportPublicError({ status: 503 });
+        return buildTypedPaneActionError(routePath, formData, publicError) as T;
+      }
+      try {
+        const request = new Request(`http://localhost${routePath}`, {
+          method: 'POST',
+          body: formData,
+          signal,
+        });
+        return (await actionFn(request, formData, signal)) as T;
+      } catch (error) {
+        const publicError = createTransportPublicError({ error });
+        return buildTypedPaneActionError(routePath, formData, publicError) as T;
+      }
+    },
+  };
+  portalPaneStreamStore.setTransportForTest(transport);
+}
 
 function streamOk<T>(data: T, correlationId = 'corr-pane-test'): StreamLoaderEnvelope<T> {
   return {
@@ -221,8 +289,17 @@ const AGENSI_DATA: PortalAgensiLoaderData = {
 };
 
 describe('Portal in-pane route adapters & deep-links', () => {
+  beforeEach(() => {
+    portalWorkspaceStore.resetForTest();
+    portalPaneStreamStore.resetForTest();
+    resetCadenceAutoAttachRegistryForTest();
+    window.sessionStorage.clear();
+  });
+
   afterEach(() => {
-    portalRouteWorkspaceStore.resetForTest();
+    portalWorkspaceStore.resetForTest();
+    portalPaneStreamStore.resetForTest();
+    resetCadenceAutoAttachRegistryForTest();
     window.sessionStorage.clear();
   });
   it('submits in-pane /contact form explicitly to /contact while keeping URL at /', async () => {
@@ -239,6 +316,15 @@ describe('Portal in-pane route adapters & deep-links', () => {
         createdAt: '2026-11-24T19:00:00Z',
       },
     }));
+
+    installTestPaneTransport({
+      loaders: {
+        '/contact': () => streamOk(CONTACT_DATA),
+      },
+      actions: {
+        '/contact': () => contactActionSpy(),
+      },
+    });
 
     const router = createMemoryRouter(
       [
@@ -354,6 +440,24 @@ describe('Portal in-pane route adapters & deep-links', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     let attempt = 0;
 
+    const loadAgensiSafe = (request: Request) =>
+      runPaneSafeLoader<PortalAgensiLoaderData>(request, async () => {
+        attempt += 1;
+        if (attempt === 1) {
+          throw new Response('upstream unavailable', { status: 500 });
+        }
+        if (attempt === 2) {
+          throw new Error('Failed query: select * from secret_table where token = $1');
+        }
+        return AGENSI_DATA;
+      });
+
+    installTestPaneTransport({
+      loaders: {
+        '/agensi': request => loadAgensiSafe(request),
+      },
+    });
+
     const router = createMemoryRouter(
       [
         {
@@ -381,17 +485,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
             },
             {
               path: 'agensi',
-              loader: ({ request }: LoaderFunctionArgs) =>
-                runPaneSafeLoader<PortalAgensiLoaderData>(request, async () => {
-                  attempt += 1;
-                  if (attempt === 1) {
-                    throw new Response('upstream unavailable', { status: 500 });
-                  }
-                  if (attempt === 2) {
-                    throw new Error('Failed query: select * from secret_table where token = $1');
-                  }
-                  return AGENSI_DATA;
-                }),
+              loader: ({ request }: LoaderFunctionArgs) => loadAgensiSafe(request),
               Component: PortalAgensiBridge,
             },
           ],
@@ -493,8 +587,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
 
     const { container } = render(<RouterProvider router={router} />);
 
-    const getActivePane1 = () =>
-      container.querySelector('[data-route-active="true"] [data-pane-id="pane-1"]') as HTMLElement;
+    const getActivePane1 = () => container.querySelector('[data-pane-id="pane-1"]') as HTMLElement;
 
     // Deep-link /agensi -> Exit TUI -> / -> Browser Back to /agensi -> Escape returns cleanly to /
     expect(await screen.findByText('Commercial AI skills.')).toBeTruthy();
@@ -585,7 +678,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
     warnSpy.mockRestore();
   });
 
-  it('emits portal.pane_nav.fetcher_load_failed and client telemetry on PaneStatusFallback error envelope and recovers on Retry', async () => {
+  it('emits portal.pane_nav.fetcher_load_failed and client telemetry on malformed pane envelope and recovers on Retry', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const track = vi.fn<() => void>();
     const flush = vi.fn<() => void>();
@@ -598,6 +691,21 @@ describe('Portal in-pane route adapters & deep-links', () => {
     });
 
     let attempt = 0;
+    installTestPaneTransport({
+      loaders: {
+        '/agensi': () => {
+          attempt += 1;
+          if (attempt === 1) {
+            return {
+              malformed: true,
+              secret: 'secret_sql_should_never_leak',
+            };
+          }
+          return streamOk(AGENSI_DATA);
+        },
+      },
+    });
+
     const router = createMemoryRouter(
       [
         {
@@ -625,17 +733,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
             },
             {
               path: 'agensi',
-              loader: () => {
-                attempt += 1;
-                if (attempt === 1) {
-                  const errEnv: PaneLoaderErrorEnvelope = {
-                    __paneLoaderError: true,
-                    message: 'secret_sql_should_never_leak',
-                  };
-                  return errEnv;
-                }
-                return streamOk(AGENSI_DATA);
-              },
+              loader: () => streamOk(AGENSI_DATA),
               Component: PortalAgensiBridge,
             },
           ],
@@ -649,9 +747,9 @@ describe('Portal in-pane route adapters & deep-links', () => {
     fireEvent.change(input, { target: { value: 'agensi' } });
     fireEvent.submit(input.closest('form') as HTMLFormElement);
 
-    expect(
-      await screen.findByText(/Unable to load Agensi Storefront\. Check your connection/i),
-    ).toBeTruthy();
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('ERR_UPSTREAM_UNAVAILABLE');
+    expect(alert.textContent).not.toContain('secret_sql_should_never_leak');
     const failedLogs = errorSpy.mock.calls
       .map(args => String(args[0] ?? ''))
       .filter(msg => msg.includes('portal.pane_nav.fetcher_load_failed'));
@@ -696,6 +794,12 @@ describe('Portal in-pane route adapters & deep-links', () => {
         syncedAt: '2026-11-24T12:00:00.000Z',
       },
     };
+
+    installTestPaneTransport({
+      loaders: {
+        '/agensi': () => streamOk(fallbackPayload),
+      },
+    });
 
     const router = createMemoryRouter(
       [
@@ -747,8 +851,9 @@ describe('Portal in-pane route adapters & deep-links', () => {
       await router.navigate('/agensi');
     });
     await waitFor(() => {
-      const activeAgensiLayer = container.querySelector('[data-route-workspace="/agensi"]');
-      expect(activeAgensiLayer?.querySelector('[data-testid="agensi-catalog-meta"]')).toBeTruthy();
+      expect(container.querySelectorAll('[data-route-workspace]')).toHaveLength(0);
+      const primaryPane = container.querySelector('[data-pane-id="pane-1"]');
+      expect(primaryPane?.querySelector('[data-testid="agensi-catalog-meta"]')).toBeTruthy();
     });
   });
 
@@ -861,6 +966,15 @@ describe('Portal in-pane route adapters & deep-links', () => {
         run: pendingRun,
         quota: { role: 'guest', turnsUsed: 1, maxTurns: 5, tokensUsed: 800, maxTokens: 20_000 },
       };
+    });
+
+    installTestPaneTransport({
+      loaders: {
+        '/cadence': () => streamOk(cadenceData),
+      },
+      actions: {
+        '/cadence': request => cadenceActionSpy({ request }),
+      },
     });
 
     try {
@@ -1090,6 +1204,15 @@ describe('Portal in-pane route adapters & deep-links', () => {
       };
     });
 
+    installTestPaneTransport({
+      loaders: {
+        '/cadence': () => streamOk(cadenceData),
+      },
+      actions: {
+        '/cadence': () => cadenceActionSpy(),
+      },
+    });
+
     try {
       const router = createMemoryRouter(
         [
@@ -1250,6 +1373,12 @@ describe('Portal in-pane route adapters & deep-links', () => {
     }
     globalThis.EventSource = MockEventSource as unknown as typeof EventSource;
 
+    installTestPaneTransport({
+      loaders: {
+        '/cadence': () => streamOk(cadenceData),
+      },
+    });
+
     try {
       const router = createMemoryRouter(
         [
@@ -1324,6 +1453,18 @@ describe('Portal in-pane route adapters & deep-links', () => {
     };
 
     const askStatusDeferred = Promise.withResolvers<StreamResult<AskServiceStatus | undefined>>();
+    installTestPaneTransport({
+      loaders: {
+        '/chat': () => ({
+          correlationId: 'corr-ask-pane',
+          payload: Promise.resolve<StreamResult<PortalAskLoaderData>>({
+            ok: true,
+            data: askData,
+          }),
+          askStatusPayload: askStatusDeferred.promise,
+        }),
+      },
+    });
     const router = createMemoryRouter(
       [
         {
@@ -1419,7 +1560,13 @@ describe('Portal in-pane route adapters & deep-links', () => {
       { initialEntries: ['/'] },
     );
 
-    portalRouteWorkspaceStore.resetForTest();
+    portalWorkspaceStore.resetForTest();
+    portalPaneStreamStore.resetForTest();
+    installTestPaneTransport({
+      loaders: {
+        '/chat': () => streamOk(askData, 'corr-ask-mismatch'),
+      },
+    });
     window.sessionStorage.clear();
     render(<RouterProvider router={mismatchRouter} />);
     const input2 = (await screen.findByLabelText('Terminal command input')) as HTMLInputElement;
@@ -1433,5 +1580,545 @@ describe('Portal in-pane route adapters & deep-links', () => {
       ),
     ).toBe(true);
     errorSpy.mockRestore();
+  });
+
+  it('isolates secondary-pane HTTP 502/offline action faults without crashing PortalRoot or revalidating active primary /agensi', async () => {
+    let agensiRouteLoads = 0;
+    installTestPaneTransport({
+      loaders: {
+        '/contact': () => streamOk(CONTACT_DATA),
+      },
+      actions: {
+        '/contact': async () => {
+          throw new TypeError('Failed to fetch');
+        },
+      },
+    });
+
+    const router = createMemoryRouter(
+      [
+        {
+          id: 'root',
+          path: '/',
+          loader: () =>
+            makeRootStreamData({
+              maintenanceMode: false,
+              chrome: CHROME,
+              maintenance: null,
+              terminal: TERMINAL,
+              homeContent: HOME_CONTENT,
+            }),
+          Component: PortalRootBridge,
+          children: [
+            {
+              index: true,
+              loader: () =>
+                streamOk<PortalHomeLoaderData>({
+                  content: HOME_CONTENT,
+                  terminal: TERMINAL,
+                  contactForm: CONTACT_FORM_DEFINITION,
+                }),
+              Component: PortalHomeBridge,
+            },
+            {
+              path: 'agensi',
+              loader: () => {
+                agensiRouteLoads += 1;
+                return streamOk(AGENSI_DATA);
+              },
+              Component: PortalAgensiBridge,
+            },
+          ],
+        },
+      ],
+      { initialEntries: ['/agensi'] },
+    );
+
+    const { container } = render(<RouterProvider router={router} />);
+    expect(await screen.findByText('Commercial AI skills.')).toBeTruthy();
+    expect(agensiRouteLoads).toBe(1);
+
+    // Open secondary /contact split via header Open Pane menu while /agensi is primary
+    fireEvent.click(screen.getByRole('button', { name: 'Open Pane' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Contact (Split)' }));
+
+    const nameInput = await screen.findByLabelText(/Name/i);
+    const emailInput = screen.getByLabelText(/Email/i);
+    const messageInput = screen.getByRole('textbox', { name: /Message/i });
+    fireEvent.change(nameInput, { target: { value: 'Ada Lovelace' } });
+    fireEvent.change(emailInput, { target: { value: 'ada@example.com' } });
+    fireEvent.change(messageInput, {
+      target: { value: 'Testing offline pane action resilience.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Transmit|Send|Submit/i }));
+
+    // Wire-safe inline alert inside /contact split; primary /agensi and workspace stay untouched
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('Unable to reach the server.');
+    expect(screen.getByText('Commercial AI skills.')).toBeTruthy();
+    expect(container.querySelector('[data-pane-count="2"]')).toBeTruthy();
+    expect(agensiRouteLoads).toBe(1);
+    expect(router.state.location.pathname).toBe('/agensi');
+  });
+
+  it('never aborts a sibling pane .data load on action submit and aborts/evicts when popping an in-pane view', async () => {
+    const agensiDeferred = Promise.withResolvers<StreamResult<PortalAgensiLoaderData>>();
+    let agensiSignal: AbortSignal | undefined;
+
+    installTestPaneTransport({
+      loaders: {
+        '/agensi': (_request, signal) => {
+          agensiSignal = signal;
+          return {
+            correlationId: 'corr-agensi-slow',
+            payload: agensiDeferred.promise,
+          };
+        },
+        '/contact': () => streamOk(CONTACT_DATA),
+      },
+      actions: {
+        '/contact': async (): Promise<ContactActionResult> => ({
+          ok: true,
+          submission: {
+            id: 'rcpt-202',
+            name: 'Grace Hopper',
+            email: 'grace@example.com',
+            phone: null,
+            attachmentName: null,
+            attachmentSizeBytes: null,
+            attachmentSha256: null,
+            createdAt: '2026-11-25T19:00:00Z',
+          },
+        }),
+      },
+    });
+
+    const router = createMemoryRouter(
+      [
+        {
+          id: 'root',
+          path: '/',
+          loader: () =>
+            makeRootStreamData({
+              maintenanceMode: false,
+              chrome: CHROME,
+              maintenance: null,
+              terminal: TERMINAL,
+              homeContent: HOME_CONTENT,
+            }),
+          Component: PortalRootBridge,
+          children: [
+            {
+              index: true,
+              loader: () =>
+                streamOk<PortalHomeLoaderData>({
+                  content: HOME_CONTENT,
+                  terminal: TERMINAL,
+                  contactForm: CONTACT_FORM_DEFINITION,
+                }),
+              Component: PortalHomeBridge,
+            },
+          ],
+        },
+      ],
+      { initialEntries: ['/'] },
+    );
+
+    const { container } = render(<RouterProvider router={router} />);
+    await screen.findByLabelText('Terminal command input');
+
+    // Launch slow /agensi in split and /contact in another split
+    fireEvent.click(screen.getByRole('button', { name: 'Open Pane' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Agensi (Split)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open Pane' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Contact (Split)' }));
+
+    // Submit /contact while /agensi is still streaming -> /agensi signal must NOT abort
+    fireEvent.change(await screen.findByLabelText(/Name/i), { target: { value: 'Grace Hopper' } });
+    fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: 'grace@example.com' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /Message/i }), {
+      target: { value: 'Sibling pane load must stay alive.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Transmit|Send|Submit/i }));
+    await waitFor(() => {
+      expect(agensiSignal?.aborted).toBe(false);
+    });
+    expect(await screen.findByTestId('contact-receipt')).toBeTruthy();
+
+    // Resolving /agensi completes cleanly
+    agensiDeferred.resolve({ ok: true, data: AGENSI_DATA });
+    expect(await screen.findByText('Commercial AI skills.')).toBeTruthy();
+
+    // Now test in-pane view pop/exit aborting an active fetch on pane-1
+    let pane1Signal: AbortSignal | undefined;
+    installTestPaneTransport({
+      loaders: {
+        '/agensi': (_request, signal) => {
+          pane1Signal = signal;
+          return {
+            correlationId: 'corr-pane1-pop',
+            payload: new Promise<StreamResult<PortalAgensiLoaderData>>(() => undefined),
+          };
+        },
+      },
+    });
+    const pane1 = container.querySelector('[data-pane-id="pane-1"]') as HTMLElement;
+    fireEvent.pointerDown(pane1);
+    const input = await waitFor(() => {
+      const el = pane1.querySelector('input[data-terminal-input="true"]');
+      expect(el).toBeTruthy();
+      return el as HTMLInputElement;
+    });
+    fireEvent.change(input, { target: { value: 'agensi' } });
+    fireEvent.submit(input.closest('form') as HTMLFormElement);
+    await waitFor(() => {
+      expect(pane1Signal?.aborted).toBe(false);
+    });
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => {
+      expect(pane1Signal?.aborted).toBe(true);
+    });
+  });
+
+  it('ignores Alt+M in PortalRootShell (disableMenuShortcut) without opening retired /menu view', async () => {
+    const router = createMemoryRouter(
+      [
+        {
+          id: 'root',
+          path: '/',
+          loader: () =>
+            makeRootStreamData({
+              maintenanceMode: false,
+              chrome: CHROME,
+              maintenance: null,
+              terminal: TERMINAL,
+              homeContent: HOME_CONTENT,
+            }),
+          Component: PortalRootBridge,
+          children: [
+            {
+              index: true,
+              loader: () =>
+                streamOk<PortalHomeLoaderData>({
+                  content: HOME_CONTENT,
+                  terminal: TERMINAL,
+                  contactForm: CONTACT_FORM_DEFINITION,
+                }),
+              Component: PortalHomeBridge,
+            },
+          ],
+        },
+      ],
+      { initialEntries: ['/'] },
+    );
+
+    render(<RouterProvider router={router} />);
+    await screen.findByLabelText('Terminal command input');
+
+    fireEvent.keyDown(window, { key: 'm', code: 'KeyM', altKey: true });
+    expect(screen.queryByText(/Unregistered view/i)).toBeNull();
+  });
+
+  it('renders shared feature views in PortalMobileWorkspaceHost without desktop provider and evicts on pop', async () => {
+    let mobileSignal: AbortSignal | undefined;
+    installTestPaneTransport({
+      loaders: {
+        '/agensi': (_request, signal) => {
+          mobileSignal = signal;
+          return streamOk(AGENSI_DATA);
+        },
+      },
+    });
+
+    function MobileStackTrigger() {
+      const paneNav = usePaneNavigation();
+      return (
+        <button type='button' onClick={() => paneNav?.push('/agensi')}>
+          Open Mobile Agensi
+        </button>
+      );
+    }
+
+    const router = createMemoryRouter(
+      [
+        {
+          id: 'root',
+          path: '/',
+          loader: () => ({
+            ...makeRootStreamData({
+              maintenanceMode: false,
+              chrome: CHROME,
+              maintenance: null,
+              terminal: TERMINAL,
+              homeContent: HOME_CONTENT,
+            }),
+            initialViewport: 'mobile-portrait' as const,
+          }),
+          Component: PortalRootBridge,
+          children: [
+            {
+              index: true,
+              Component: MobileStackTrigger,
+            },
+          ],
+        },
+      ],
+      { initialEntries: ['/'] },
+    );
+
+    render(
+      <ViewportProvider mode='mobile-portrait'>
+        <RouterProvider router={router} />
+      </ViewportProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Open Mobile Agensi' }));
+
+    expect(await screen.findByText('Commercial AI skills.')).toBeTruthy();
+    expect(mobileSignal?.aborted).toBe(false);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back to previous pane' }));
+    await waitFor(() => {
+      expect(mobileSignal?.aborted).toBe(true);
+    });
+  });
+
+  it('preserves secondary-pane ChatPaneView JD Match persisted turn recovery when reload/unload aborts submitPortalPaneAction', async () => {
+    const askData: PortalAskLoaderData = {
+      content: PortalAskContentSchema.parse({
+        windowTitle: 'Chat with Andrew',
+        statusBadge: { source: 'ai-ask', state: 'idle', label: 'idle' },
+        description: 'Grounded docked Q&A.',
+        abstentionNotice: 'Strict grounding enabled.',
+        starterQuestions: ['What stack powers this site?'],
+        jdPlaceholder: 'Paste JD...',
+      }),
+      quota: { role: 'guest', turnsUsed: 0, maxTurns: 10, tokensUsed: 0, maxTokens: 40_000 },
+    };
+
+    const actionDeferred = Promise.withResolvers<unknown>();
+    installTestPaneTransport({
+      loaders: {
+        '/chat': () => ({
+          correlationId: 'corr-chat-unload',
+          payload: Promise.resolve<StreamResult<PortalAskLoaderData>>({
+            ok: true,
+            data: askData,
+          }),
+          askStatusPayload: Promise.resolve<StreamResult<AskServiceStatus | undefined>>({
+            ok: true,
+            data: { status: 'ready', provider: 'vertex', pointsCount: 12 },
+          }),
+        }),
+      },
+      actions: {
+        '/chat': () => actionDeferred.promise,
+      },
+    });
+
+    const router = createMemoryRouter(
+      [
+        {
+          id: 'root',
+          path: '/',
+          loader: () =>
+            makeRootStreamData({
+              maintenanceMode: false,
+              chrome: CHROME,
+              maintenance: null,
+              terminal: TERMINAL,
+              homeContent: HOME_CONTENT,
+            }),
+          Component: PortalRootBridge,
+          children: [
+            {
+              index: true,
+              loader: () =>
+                streamOk<PortalHomeLoaderData>({
+                  content: HOME_CONTENT,
+                  terminal: TERMINAL,
+                  contactForm: CONTACT_FORM_DEFINITION,
+                }),
+              Component: PortalHomeBridge,
+            },
+          ],
+        },
+      ],
+      { initialEntries: ['/'] },
+    );
+
+    render(<RouterProvider router={router} />);
+    await screen.findByLabelText('Terminal command input');
+
+    // Open secondary /chat split ("pane-2") via header Open Pane menu
+    fireEvent.click(screen.getByRole('button', { name: 'Open Pane' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Chat (Split)' }));
+
+    // Switch to JD Match tab and submit a delayed unary turn
+    fireEvent.click(await screen.findByTestId('ask-tab-jd'));
+    fireEvent.change(await screen.findByTestId('ask-jd-textarea'), {
+      target: {
+        value:
+          'Staff Platform Engineer working on streaming SSR, Go microservices, and PostgreSQL 19.',
+      },
+    });
+    fireEvent.click(screen.getByTestId('ask-jd-submit'));
+
+    await waitFor(() => {
+      expect(readPersistedAskTurn('pane:pane-2')).toMatchObject({
+        mode: 'jd_match',
+        ownerInstanceId: 'pane:pane-2',
+      });
+    });
+
+    // Simulate browser reload/unload aborting the in-flight secondary pane POST action
+    act(() => {
+      window.dispatchEvent(new Event('pagehide'));
+      actionDeferred.reject(new DOMException('The operation was aborted.', 'AbortError'));
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // Persisted turn recovery entry for pane:pane-2 MUST remain intact (never cleared by unload abort)
+    expect(readPersistedAskTurn('pane:pane-2')).toMatchObject({
+      mode: 'jd_match',
+      ownerInstanceId: 'pane:pane-2',
+    });
+  });
+
+  it('commits ok:true responses during a cancelled beforeunload window and displays external ERR_STREAM_ABORTED errors without wedging submit', async () => {
+    const askData: PortalAskLoaderData = {
+      content: PortalAskContentSchema.parse({
+        windowTitle: 'Chat with Andrew',
+        statusBadge: { source: 'ai-ask', state: 'idle', label: 'idle' },
+        description: 'Grounded docked Q&A.',
+        abstentionNotice: 'Strict grounding enabled.',
+        starterQuestions: ['What stack powers this site?'],
+        jdPlaceholder: 'Paste JD...',
+      }),
+      quota: { role: 'guest', turnsUsed: 0, maxTurns: 10, tokensUsed: 0, maxTokens: 40_000 },
+    };
+
+    const firstDeferred = Promise.withResolvers<unknown>();
+    let actionCalls = 0;
+    installTestPaneTransport({
+      loaders: {
+        '/chat': () => ({
+          correlationId: 'corr-chat-cancelled-unload',
+          payload: Promise.resolve<StreamResult<PortalAskLoaderData>>({
+            ok: true,
+            data: askData,
+          }),
+          askStatusPayload: Promise.resolve<StreamResult<AskServiceStatus | undefined>>({
+            ok: true,
+            data: { status: 'ready', provider: 'vertex', pointsCount: 12 },
+          }),
+        }),
+      },
+      actions: {
+        '/chat': () => {
+          actionCalls += 1;
+          if (actionCalls === 1) {
+            return firstDeferred.promise;
+          }
+          // Simulate an external proxy HTTP 499 ERR_STREAM_ABORTED (no local abort or unload)
+          return Promise.resolve({
+            ok: false,
+            mode: 'jd_match',
+            error: 'Upstream proxy terminated request early.',
+            code: 'ERR_STREAM_ABORTED',
+            action: 'Retry your JD Match request.',
+            correlationId: 'corr-ext-499',
+          });
+        },
+      },
+    });
+
+    const router = createMemoryRouter(
+      [
+        {
+          id: 'root',
+          path: '/',
+          loader: () =>
+            makeRootStreamData({
+              maintenanceMode: false,
+              chrome: CHROME,
+              maintenance: null,
+              terminal: TERMINAL,
+              homeContent: HOME_CONTENT,
+            }),
+          Component: PortalRootBridge,
+          children: [
+            {
+              index: true,
+              loader: () =>
+                streamOk<PortalHomeLoaderData>({
+                  content: HOME_CONTENT,
+                  terminal: TERMINAL,
+                  contactForm: CONTACT_FORM_DEFINITION,
+                }),
+              Component: PortalHomeBridge,
+            },
+          ],
+        },
+      ],
+      { initialEntries: ['/'] },
+    );
+
+    render(<RouterProvider router={router} />);
+    await screen.findByLabelText('Terminal command input');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Pane' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Chat (Split)' }));
+
+    fireEvent.click(await screen.findByTestId('ask-tab-jd'));
+    fireEvent.change(await screen.findByTestId('ask-jd-textarea'), {
+      target: {
+        value:
+          'Staff Platform Engineer working on streaming SSR, Go microservices, and PostgreSQL 19.',
+      },
+    });
+    fireEvent.click(screen.getByTestId('ask-jd-submit'));
+
+    // Case (a): beforeunload fires and user stays on page while ok:true response arrives
+    act(() => {
+      window.dispatchEvent(new Event('beforeunload'));
+      firstDeferred.resolve({
+        ok: true,
+        mode: 'jd_match',
+        submittedText:
+          'Staff Platform Engineer working on streaming SSR, Go microservices, and PostgreSQL 19.',
+        response: {
+          mode: 'jd_match',
+          grounded: true,
+          abstained: false,
+          answer: 'Strong platform engineering match.',
+          jdMatch: {
+            overallScore: 92,
+            verdict: 'Strong Fit',
+            strengths: ['Streaming SSR & Go microservices'],
+            gaps: [],
+          },
+          sources: [],
+          provider: 'test-ai',
+          model: 'test-model',
+          tokensUsed: 120,
+          latencyMs: 42,
+        },
+      });
+    });
+
+    expect(await screen.findByTestId('ask-jd-result')).toBeTruthy();
+    const submitBtn = screen.getByTestId('ask-jd-submit') as HTMLButtonElement;
+    expect(submitBtn.disabled).toBe(false);
+
+    // Case (b): External ERR_STREAM_ABORTED without local abort/unload shows inline error and re-enables submit
+    fireEvent.click(submitBtn);
+    const errorBanner = await screen.findByTestId('ask-error-banner');
+    expect(errorBanner.textContent).toContain('ERR_STREAM_ABORTED');
+    expect((screen.getByTestId('ask-jd-submit') as HTMLButtonElement).disabled).toBe(false);
   });
 });

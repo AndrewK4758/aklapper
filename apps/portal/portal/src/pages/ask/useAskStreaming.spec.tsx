@@ -203,4 +203,61 @@ describe('useAskStreaming post-abort race guards', () => {
       result.current.cancelStream();
     });
   });
+
+  it('scopes persisted turn ownership to instanceId and refuses to clear another instance turn', async () => {
+    const stream = createControlledSseStream();
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(stream.response);
+    const onDispatched = vi.fn<(attemptId: string) => void>();
+    const onCompleted =
+      vi.fn<(attemptId: string, question: string, response: AskResponse) => void>();
+    const onFailed = vi.fn<(error: RecoveredErrorState, quota?: QuotaStatus) => void>();
+
+    const primary = renderHook(() =>
+      useAskStreaming({
+        instanceId: 'route:/chat',
+        streamEndpoint: '/api/ask/stream',
+        submittingLabel: 'Searching...',
+        onDispatched,
+        onCompleted,
+        onFailed,
+      }),
+    );
+
+    const secondary = renderHook(() =>
+      useAskStreaming({
+        instanceId: 'pane-2:/chat',
+        streamEndpoint: '/api/ask/stream',
+        submittingLabel: 'Searching...',
+        onDispatched,
+        onCompleted,
+        onFailed,
+      }),
+    );
+
+    act(() => {
+      primary.result.current.startStreamingQa('Primary owned question');
+    });
+
+    await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    expect(readPersistedAskTurn('route:/chat')).toMatchObject({
+      question: 'Primary owned question',
+      ownerInstanceId: 'route:/chat',
+    });
+    expect(readPersistedAskTurn('pane-2:/chat')).toBeNull();
+
+    // Secondary instance canceling must NOT clear primary's persisted turn
+    act(() => {
+      secondary.result.current.cancelStream();
+    });
+    expect(readPersistedAskTurn('route:/chat')?.ownerInstanceId).toBe('route:/chat');
+
+    // Primary canceling clears its own persisted turn
+    act(() => {
+      primary.result.current.cancelStream();
+    });
+    expect(readPersistedAskTurn('route:/chat')).toBeNull();
+  });
 });

@@ -65,6 +65,71 @@ export interface PersistedAskTurn {
   readonly attemptId: string;
   readonly mode: AskMode;
   readonly question: string;
+  readonly ownerInstanceId?: string;
+}
+
+export function matchesPersistedAskTurnOwner(
+  turn: PersistedAskTurn | null,
+  instanceId?: string,
+): turn is PersistedAskTurn {
+  if (!turn) return false;
+  if (!turn.ownerInstanceId || !instanceId) return true;
+  return turn.ownerInstanceId === instanceId;
+}
+
+export interface PendingAskTurnSummary {
+  readonly hasPendingTurn: boolean;
+  readonly attemptId: string | undefined;
+  readonly mode: AskMode | undefined;
+  readonly submittedText: string | undefined;
+  readonly pollImmediately: boolean;
+}
+
+export function resolvePendingAskTurn(input: {
+  readonly pendingActionResult:
+    | Extract<PortalAskActionResult, { readonly pending: true }>
+    | undefined;
+  readonly persistedTurn: PersistedAskTurn | null;
+  readonly instanceId?: string;
+  readonly dispatchedAttemptId: string | null;
+  readonly settledPendingAttemptIds: ReadonlySet<string>;
+  readonly isSubmitting: boolean;
+  readonly hasActiveStream: boolean;
+  readonly actionSettled: boolean;
+}): PendingAskTurnSummary {
+  const { pendingActionResult, persistedTurn, instanceId } = input;
+  const isRecovered =
+    matchesPersistedAskTurnOwner(persistedTurn, instanceId) &&
+    persistedTurn.attemptId !== input.dispatchedAttemptId &&
+    !input.settledPendingAttemptIds.has(persistedTurn.attemptId) &&
+    !input.isSubmitting &&
+    !input.hasActiveStream &&
+    !input.actionSettled;
+  if (pendingActionResult) {
+    return {
+      hasPendingTurn: true,
+      attemptId: pendingActionResult.attemptId,
+      mode: pendingActionResult.mode,
+      submittedText: pendingActionResult.submittedText,
+      pollImmediately: false,
+    };
+  }
+  if (isRecovered && persistedTurn) {
+    return {
+      hasPendingTurn: true,
+      attemptId: persistedTurn.attemptId,
+      mode: persistedTurn.mode,
+      submittedText: persistedTurn.question,
+      pollImmediately: true,
+    };
+  }
+  return {
+    hasPendingTurn: false,
+    attemptId: undefined,
+    mode: undefined,
+    submittedText: undefined,
+    pollImmediately: false,
+  };
 }
 
 export type PollTurnOutcome =
@@ -95,27 +160,75 @@ export function buildRecoveringTurnState(attemptId: string, mode: AskMode): AskT
   };
 }
 
+export function resolveAskTurnStorageKey(ownerInstanceId?: string): string {
+  return ownerInstanceId ? `${ASK_TURN_STORAGE_KEY}:${ownerInstanceId}` : ASK_TURN_STORAGE_KEY;
+}
+
 const storageListeners = new Set<() => void>();
-let cachedRawSnapshot: string | null | undefined;
-let cachedParsedSnapshot: PersistedAskTurn | null = null;
+const cachedSnapshots = new Map<
+  string,
+  { readonly rawKey: string; readonly parsed: PersistedAskTurn | null }
+>();
+const MAX_CACHED_TURN_STORES = 64;
+const turnStores = new Map<
+  string,
+  {
+    readonly subscribe: (listener: () => void) => () => void;
+    readonly getSnapshot: () => PersistedAskTurn | null;
+    readonly getServerSnapshot: () => null;
+  }
+>();
+const NULL_ASK_TURN = (): null => null;
+const NOOP_UNSUBSCRIBE = (): void => undefined;
+const SSR_TURN_STORE = Object.freeze({
+  subscribe: () => NOOP_UNSUBSCRIBE,
+  getSnapshot: NULL_ASK_TURN,
+  getServerSnapshot: NULL_ASK_TURN,
+});
 
 function notifyPersistedAskListeners(): void {
-  cachedRawSnapshot = undefined;
-  for (const listener of storageListeners) {
-    listener();
+  cachedSnapshots.clear();
+  for (const listener of storageListeners) listener();
+}
+
+function parsePersistedAskTurnRaw(raw: string | null): PersistedAskTurn | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<PersistedAskTurn>;
+    if (
+      typeof parsed.attemptId !== 'string' ||
+      !parsed.attemptId ||
+      (parsed.mode !== 'qa' && parsed.mode !== 'jd_match') ||
+      typeof parsed.question !== 'string' ||
+      !parsed.question
+    ) {
+      return null;
+    }
+    const ownerInstanceId =
+      typeof parsed.ownerInstanceId === 'string' && parsed.ownerInstanceId
+        ? parsed.ownerInstanceId
+        : undefined;
+    return {
+      attemptId: parsed.attemptId,
+      mode: parsed.mode,
+      question: parsed.question,
+      ...(ownerInstanceId ? { ownerInstanceId } : {}),
+    };
+  } catch {
+    return null;
   }
 }
 
-export function subscribePersistedAskTurn(listener: () => void): () => void {
+export function subscribePersistedAskTurn(
+  listener: () => void,
+  ownerInstanceId?: string,
+): () => void {
+  if (typeof window === 'undefined') return NOOP_UNSUBSCRIBE;
   storageListeners.add(listener);
-  if (typeof window === 'undefined') {
-    return () => {
-      storageListeners.delete(listener);
-    };
-  }
+  const scopedKey = resolveAskTurnStorageKey(ownerInstanceId);
   const onStorage = (event: StorageEvent) => {
-    if (event.key === ASK_TURN_STORAGE_KEY || event.key === null) {
-      cachedRawSnapshot = undefined;
+    if (event.key === scopedKey || event.key === ASK_TURN_STORAGE_KEY || event.key === null) {
+      cachedSnapshots.clear();
       listener();
     }
   };
@@ -126,56 +239,73 @@ export function subscribePersistedAskTurn(listener: () => void): () => void {
   };
 }
 
-export function readPersistedAskTurn(): PersistedAskTurn | null {
+export function readPersistedAskTurn(ownerInstanceId?: string): PersistedAskTurn | null {
   if (typeof window === 'undefined') return null;
+  const scope = ownerInstanceId ?? '';
+  const scopedKey = resolveAskTurnStorageKey(ownerInstanceId);
   try {
-    const raw = window.sessionStorage.getItem(ASK_TURN_STORAGE_KEY);
-    if (raw === cachedRawSnapshot) {
-      return cachedParsedSnapshot;
+    const scopedRaw = window.sessionStorage.getItem(scopedKey);
+    const legacyRaw =
+      ownerInstanceId && scopedRaw === null
+        ? window.sessionStorage.getItem(ASK_TURN_STORAGE_KEY)
+        : null;
+    const rawKey = `${scopedRaw ?? ''}\0${legacyRaw ?? ''}`;
+    const cached = cachedSnapshots.get(scope);
+    if (cached?.rawKey === rawKey) return cached.parsed;
+    let resolved = parsePersistedAskTurnRaw(scopedRaw);
+    if (!resolved && ownerInstanceId && legacyRaw !== null) {
+      const parsedLegacy = parsePersistedAskTurnRaw(legacyRaw);
+      resolved = matchesPersistedAskTurnOwner(parsedLegacy, ownerInstanceId) ? parsedLegacy : null;
     }
-    cachedRawSnapshot = raw;
-    if (!raw) {
-      cachedParsedSnapshot = null;
-      return null;
-    }
-    const parsed = JSON.parse(raw) as Partial<PersistedAskTurn>;
-    if (
-      typeof parsed.attemptId === 'string' &&
-      parsed.attemptId.length > 0 &&
-      (parsed.mode === 'qa' || parsed.mode === 'jd_match') &&
-      typeof parsed.question === 'string' &&
-      parsed.question.length > 0
-    ) {
-      cachedParsedSnapshot = {
-        attemptId: parsed.attemptId,
-        mode: parsed.mode,
-        question: parsed.question,
-      };
-      return cachedParsedSnapshot;
-    }
-    cachedParsedSnapshot = null;
-    return null;
+    cachedSnapshots.set(scope, { rawKey, parsed: resolved });
+    return resolved;
   } catch {
-    cachedRawSnapshot = null;
-    cachedParsedSnapshot = null;
+    cachedSnapshots.delete(scope);
     return null;
   }
+}
+
+export function getPersistedAskTurnStore(ownerInstanceId?: string) {
+  if (typeof window === 'undefined') return SSR_TURN_STORE;
+  const scope = ownerInstanceId ?? '';
+  const existing = turnStores.get(scope);
+  if (existing) return existing;
+  const store = {
+    subscribe: (listener: () => void) => subscribePersistedAskTurn(listener, ownerInstanceId),
+    getSnapshot: () => readPersistedAskTurn(ownerInstanceId),
+    getServerSnapshot: NULL_ASK_TURN,
+  };
+  if (turnStores.size >= MAX_CACHED_TURN_STORES) {
+    const oldest = turnStores.keys().next().value;
+    if (oldest !== undefined) turnStores.delete(oldest);
+  }
+  turnStores.set(scope, store);
+  return store;
 }
 
 export function writePersistedAskTurn(turn: PersistedAskTurn): void {
   if (typeof window === 'undefined') return;
   try {
-    window.sessionStorage.setItem(ASK_TURN_STORAGE_KEY, JSON.stringify(turn));
+    window.sessionStorage.setItem(
+      resolveAskTurnStorageKey(turn.ownerInstanceId),
+      JSON.stringify(turn),
+    );
   } catch {
     return;
   }
   notifyPersistedAskListeners();
 }
 
-export function clearPersistedAskTurn(): void {
+export function clearPersistedAskTurn(ownerInstanceId?: string): void {
   if (typeof window === 'undefined') return;
   try {
-    window.sessionStorage.removeItem(ASK_TURN_STORAGE_KEY);
+    window.sessionStorage.removeItem(resolveAskTurnStorageKey(ownerInstanceId));
+    if (ownerInstanceId) {
+      const legacy = parsePersistedAskTurnRaw(window.sessionStorage.getItem(ASK_TURN_STORAGE_KEY));
+      if (legacy && matchesPersistedAskTurnOwner(legacy, ownerInstanceId)) {
+        window.sessionStorage.removeItem(ASK_TURN_STORAGE_KEY);
+      }
+    }
   } catch {
     return;
   }
@@ -237,6 +367,7 @@ export async function pollAskTurnState(
 export interface StartAskTurnPollingOptions {
   readonly attemptId: string;
   readonly pollImmediately: boolean;
+  readonly ownerInstanceId?: string;
   readonly intervalMs?: number;
   readonly onPending: (state: AskTurnState) => void;
   readonly onSettled: (state: AskTurnState) => void;
@@ -244,7 +375,15 @@ export interface StartAskTurnPollingOptions {
 }
 
 export function startAskTurnPolling(options: StartAskTurnPollingOptions): () => void {
-  const { attemptId, pollImmediately, intervalMs = 700, onPending, onSettled, onError } = options;
+  const {
+    attemptId,
+    pollImmediately,
+    ownerInstanceId,
+    intervalMs = 700,
+    onPending,
+    onSettled,
+    onError,
+  } = options;
   const controller = new AbortController();
   let timerId: number | undefined;
   let cancelled = false;
@@ -264,7 +403,7 @@ export function startAskTurnPolling(options: StartAskTurnPollingOptions): () => 
         scheduleNext();
         return;
       }
-      clearPersistedAskTurn();
+      clearPersistedAskTurn(ownerInstanceId);
       if (outcome.kind === 'settled') {
         onSettled(outcome.state);
         return;

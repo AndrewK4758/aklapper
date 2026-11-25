@@ -1,10 +1,5 @@
 import type { AskServiceStatus, PortalAskLoaderData, StreamResult } from '@aklapper/core';
 
-export interface PaneLoaderErrorEnvelope {
-  readonly __paneLoaderError: true;
-  readonly message: string;
-}
-
 export interface StreamLoaderEnvelope<T> {
   readonly correlationId: string;
   readonly payload: Promise<StreamResult<T>>;
@@ -12,23 +7,6 @@ export interface StreamLoaderEnvelope<T> {
 
 export interface AskStreamLoaderEnvelope extends StreamLoaderEnvelope<PortalAskLoaderData> {
   readonly askStatusPayload: Promise<StreamResult<AskServiceStatus | undefined>>;
-}
-
-export function isPaneFetcherRequest(request: Request): boolean {
-  try {
-    return new URL(request.url).searchParams.get('pane') === '1';
-  } catch {
-    return false;
-  }
-}
-
-export function isPaneLoaderErrorEnvelope(value: unknown): value is PaneLoaderErrorEnvelope {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    '__paneLoaderError' in value &&
-    (value as { readonly __paneLoaderError?: unknown }).__paneLoaderError === true
-  );
 }
 
 export function isStreamLoaderEnvelope<T>(value: unknown): value is StreamLoaderEnvelope<T> {
@@ -50,13 +28,4 @@ export function isAskStreamLoaderEnvelope(value: unknown): value is AskStreamLoa
     typeof candidate['askStatusPayload'] === 'object' &&
     'then' in (candidate['askStatusPayload'] as object)
   );
-}
-
-export function unwrapPaneLoaderData<T>(
-  value: T | PaneLoaderErrorEnvelope | undefined,
-): T | undefined {
-  if (value === undefined || isPaneLoaderErrorEnvelope(value)) {
-    return undefined;
-  }
-  return value;
 }

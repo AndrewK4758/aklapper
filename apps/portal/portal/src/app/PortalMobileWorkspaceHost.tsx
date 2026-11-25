@@ -1,15 +1,19 @@
 import type { PortalRootLoaderData } from '@aklapper/core';
 import { OscStatusBadge, SolarForgeEmblem } from '@aklapper/ui';
 import { type MobileNavItem, MobileTuiWorkspace } from '@aklapper/ui/mobile-tui-workspace';
-import { useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { href, Link, Outlet } from 'react-router';
 
 import { PortalLauncherTui } from '#pages/home';
 
-import { renderPortalPaneView } from './portalPaneViews';
+import { isPortalPaneRoute, renderPortalPaneView } from './portalPaneViews';
 import type { RuntimeStatusTelemetrySnapshot } from './runtime-status';
+import { portalPaneStreamStore } from './workspace/portalPaneStreamStore';
 
 import styles from './root.module.css';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+const MOBILE_PANE_ID = 'mobile-tty1';
 
 const PORTAL_MOBILE_NAV = [
   { id: 'terminal', to: href('/'), label: 'Terminal', shortLabel: 'TUI', icon: '>_' },
@@ -47,6 +51,8 @@ export function PortalMobileWorkspaceHost({
 }: PortalMobileWorkspaceHostProps) {
   const [paneStack, setPaneStack] = useState<readonly string[]>([]);
   const [prevPathname, setPrevPathname] = useState(pathname);
+  const lastPathnameRef = useRef(pathname);
+
   if (prevPathname !== pathname) {
     setPrevPathname(pathname);
     if (paneStack.length > 0) {
@@ -54,15 +60,40 @@ export function PortalMobileWorkspaceHost({
     }
   }
 
+  useIsomorphicLayoutEffect(() => {
+    if (lastPathnameRef.current !== pathname) {
+      lastPathnameRef.current = pathname;
+      portalPaneStreamStore.evictPane(MOBILE_PANE_ID);
+    }
+  }, [pathname]);
+
+  useIsomorphicLayoutEffect(
+    () => () => {
+      portalPaneStreamStore.evictPane(MOBILE_PANE_ID);
+    },
+    [],
+  );
+
   const pushPane = (viewId: string) => {
+    if (isPortalPaneRoute(viewId)) {
+      portalPaneStreamStore.prewarm(MOBILE_PANE_ID, viewId);
+    }
     setPaneStack(prev => [...prev, viewId]);
   };
 
   const popPane = () => {
-    setPaneStack(prev => prev.slice(0, -1));
+    const top = paneStack[paneStack.length - 1];
+    const nextStack = paneStack.slice(0, -1);
+    if (nextStack.length === 0) {
+      portalPaneStreamStore.evictPane(MOBILE_PANE_ID);
+    } else if (top && isPortalPaneRoute(top) && !nextStack.includes(top)) {
+      portalPaneStreamStore.evictPaneViews([{ paneId: MOBILE_PANE_ID, routePath: top }]);
+    }
+    setPaneStack(nextStack);
   };
 
   const exitPane = () => {
+    portalPaneStreamStore.evictPane(MOBILE_PANE_ID);
     setPaneStack([]);
   };
 
@@ -157,7 +188,7 @@ export function PortalMobileWorkspaceHost({
         renderPortalPaneView({
           ctx: {
             viewId,
-            paneId: 'mobile-tty1',
+            paneId: MOBILE_PANE_ID,
             ttyNumber: 1,
             isSinglePane: true,
             isActive: true,

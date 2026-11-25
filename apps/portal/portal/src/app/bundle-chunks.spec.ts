@@ -50,10 +50,10 @@ describe.runIf(existsSync(ASSETS_DIR))('Portal production client chunk isolation
     expect(entryFiles.length).toBeGreaterThanOrEqual(3);
 
     for (const forbiddenChunk of [
-      /^AgensiPaneAdapter-/,
-      /^AskPaneAdapter-/,
-      /^CadencePaneAdapter-/,
-      /^ContactPaneAdapter-/,
+      /^AgensiFeatureView-/,
+      /^ChatFeatureView-/,
+      /^CadenceFeatureView-/,
+      /^ContactFeatureView-/,
       /^cadence-stream-/,
       /^changes-in-progress-/,
     ]) {
@@ -73,10 +73,10 @@ describe.runIf(existsSync(ASSETS_DIR))('Portal production client chunk isolation
       expect(combinedSource).not.toContain(forbiddenMarker);
     }
 
-    expect(allJsFiles.some(file => file.startsWith('AgensiPaneAdapter-'))).toBe(true);
-    expect(allJsFiles.some(file => file.startsWith('AskPaneAdapter-'))).toBe(true);
-    expect(allJsFiles.some(file => file.startsWith('CadencePaneAdapter-'))).toBe(true);
-    expect(allJsFiles.some(file => file.startsWith('ContactPaneAdapter-'))).toBe(true);
+    expect(allJsFiles.some(file => file.startsWith('AgensiFeatureView-'))).toBe(true);
+    expect(allJsFiles.some(file => file.startsWith('ChatFeatureView-'))).toBe(true);
+    expect(allJsFiles.some(file => file.startsWith('CadenceFeatureView-'))).toBe(true);
+    expect(allJsFiles.some(file => file.startsWith('ContactFeatureView-'))).toBe(true);
     expect(allJsFiles.some(file => file.startsWith('changes-in-progress-'))).toBe(true);
   });
 });

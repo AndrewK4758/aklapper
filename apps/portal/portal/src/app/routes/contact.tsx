@@ -1,17 +1,17 @@
-import type { ContactActionResult, PortalContactLoaderData } from '@aklapper/core';
+import type { ContactActionResult } from '@aklapper/core';
 import { loadPortalContactDataWithPrerender } from '@aklapper/db';
 import {
   deferStreamResult,
   getOrCreateCorrelationId,
   getRequestContext,
 } from '@aklapper/node-runtime/ssr/stream';
-import { RouteErrorBoundaryView, SuspenseElement, usePaneNavigation } from '@aklapper/ui';
-import { data, href, useNavigate, useNavigation } from 'react-router';
-
-import { PortalContactPage } from '#pages/contact';
+import { RouteErrorBoundaryView } from '@aklapper/ui';
+import { data, href } from 'react-router';
 
 import { reportPortalPublicError } from '../client-telemetry';
 import { processContactSubmission } from '../contact-submission.server';
+import { ContactRouteView } from '../features/ContactFeatureView';
+import { createPrimaryRouteClientAction } from '../features/paneClientAction';
 import { buildPortalPageMeta } from '../seo';
 import type { Route } from './+types/contact';
 
@@ -50,40 +50,10 @@ export async function action({ request, context }: Route.ActionArgs) {
   });
 }
 
-export default function PortalContactRoute({ loaderData, actionData }: Route.ComponentProps) {
-  const navigation = useNavigation();
-  const navigate = useNavigate();
-  const paneNav = usePaneNavigation();
+export const clientAction = createPrimaryRouteClientAction<ContactActionResult>('/contact');
 
-  return (
-    <SuspenseElement<PortalContactLoaderData>
-      resolve={loaderData.payload}
-      correlationId={loaderData.correlationId}
-      homeHref={href('/')}
-      loadingLabel='Loading contact channel...'
-      onStreamError={error => {
-        reportPortalPublicError(error, { phase: 'stream' });
-      }}
-    >
-      {({ content }) => (
-        <PortalContactPage
-          content={content}
-          actionData={actionData}
-          isSubmitting={
-            navigation.state === 'submitting' && navigation.formAction === href('/contact')
-          }
-          formAction={href('/contact')}
-          onClose={() => {
-            if (paneNav?.docked) {
-              paneNav.exitTui();
-            } else {
-              void navigate(href('/'));
-            }
-          }}
-        />
-      )}
-    </SuspenseElement>
-  );
+export default function PortalContactRoute({ loaderData, actionData }: Route.ComponentProps) {
+  return <ContactRouteView loaderData={loaderData} actionData={actionData} />;
 }
 
 export function ErrorBoundary({ error, loaderData }: Route.ErrorBoundaryProps) {

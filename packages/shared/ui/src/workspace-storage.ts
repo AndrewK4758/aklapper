@@ -1,4 +1,9 @@
 export {
+  normalizePinnedPrimaryHost,
+  type WorkspaceStateSnapshot,
+  type WorkspaceStoreAdapter,
+} from './components/workspaceStoreAdapter';
+export {
   buildRouteWorkspaceStorageKey,
   buildRouteWorkspaceStoragePrefix,
   createDefaultRouteWorkspaceSnapshot,

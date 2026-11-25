@@ -2,7 +2,14 @@ import type { TerminalProfileData } from '@aklapper/core';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { PaneLink, TerminalWorkspace, type TerminalPaneViewContext, TuiWindow } from '../src';
+import {
+  PaneLink,
+  TerminalWorkspace,
+  type TerminalPaneViewContext,
+  TuiWindow,
+  WorkspaceLauncherContext,
+  type WorkspaceLauncherContextValue,
+} from '../src';
 
 const NAV_TERMINAL_FIXTURE: TerminalProfileData = {
   slug: 'portal-home',
@@ -392,5 +399,153 @@ describe('TerminalWorkspace in-pane TUI navigation', () => {
     expect(pane1.getAttribute('data-tui-depth')).toBe('1');
     expect(screen.getByText('SSR Menu Content')).toBeTruthy();
     expect(screen.queryByText('Agensi View')).toBeNull();
+  });
+
+  it('handles primaryPane.isRouteView depth, Escape/Alt+Left/q/Exit TUI exits, and overlay layering without mutating tuiStack for routes', () => {
+    const onReturnToShell = vi.fn<() => void>();
+    const { container } = render(
+      <TerminalWorkspace
+        terminal={NAV_TERMINAL_FIXTURE}
+        onPrimaryPaneReturnToShell={onReturnToShell}
+        renderPaneView={renderTestPaneView}
+        primaryPane={{
+          title: 'tui :: /agensi',
+          content: (
+            <TuiWindow title='SSR Agensi' onClose={onReturnToShell}>
+              <div>Primary Route Agensi</div>
+            </TuiWindow>
+          ),
+          flush: true,
+          embeddedTerminal: false,
+          isRouteView: true,
+        }}
+      />,
+    );
+
+    const pane1 = container.querySelector('[data-pane-id="pane-1"]') as HTMLElement;
+    expect(pane1.getAttribute('data-pane-kind')).toBe('tui');
+    expect(pane1.getAttribute('data-tui-depth')).toBe('1');
+    expect(screen.getByText('Primary Route Agensi')).toBeTruthy();
+
+    // Exit TUI at depth 1 (stack empty, isRouteView true) returns to shell
+    fireEvent.click(screen.getByRole('button', { name: 'Exit TUI' }));
+    expect(onReturnToShell).toHaveBeenCalledTimes(1);
+
+    // Escape at depth 1 returns to shell
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(onReturnToShell).toHaveBeenCalledTimes(2);
+
+    // Alt+ArrowLeft at depth 1 returns to shell
+    fireEvent.keyDown(window, { key: 'ArrowLeft', altKey: true });
+    expect(onReturnToShell).toHaveBeenCalledTimes(3);
+
+    // 'q' at depth 1 returns to shell
+    fireEvent.keyDown(window, { key: 'q' });
+    expect(onReturnToShell).toHaveBeenCalledTimes(4);
+
+    // Pushing an in-pane overlay (Alt+T) bumps depth to 2 across both frame and tuiLayer
+    fireEvent.keyDown(window, { key: 't', code: 'KeyT', altKey: true });
+    expect(pane1.getAttribute('data-tui-depth')).toBe('2');
+    const tuiLayer = pane1.querySelector('[data-tui-view="tui"]') as HTMLElement;
+    expect(tuiLayer.getAttribute('data-tui-depth')).toBe('2');
+    expect(screen.getByText('Launcher View')).toBeTruthy();
+
+    // First Escape pops overlay back to primary route (depth 1) without calling onPrimaryPaneReturnToShell
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(pane1.getAttribute('data-tui-depth')).toBe('1');
+    expect(screen.getByText('Primary Route Agensi')).toBeTruthy();
+    expect(onReturnToShell).toHaveBeenCalledTimes(4);
+
+    // Second Escape returns to shell
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(onReturnToShell).toHaveBeenCalledTimes(5);
+
+    // Overlay + 'q' exits straight back to shell
+    fireEvent.keyDown(window, { key: 't', code: 'KeyT', altKey: true });
+    expect(pane1.getAttribute('data-tui-depth')).toBe('2');
+    fireEvent.keyDown(window, { key: 'q' });
+    expect(pane1.getAttribute('data-tui-depth')).toBe('1');
+    expect(onReturnToShell).toHaveBeenCalledTimes(6);
+  });
+
+  it('updates primary tab display title when focus moves between primary route, overlay, secondary terminal split, and custom title', () => {
+    const { container } = render(
+      <TerminalWorkspace
+        terminal={NAV_TERMINAL_FIXTURE}
+        renderPaneView={renderTestPaneView}
+        primaryPane={{
+          title: 'tui :: /cadence',
+          content: (
+            <TuiWindow title='CADENCE Builder'>
+              <div>CADENCE Route Content</div>
+            </TuiWindow>
+          ),
+          flush: true,
+          embeddedTerminal: false,
+          isRouteView: true,
+        }}
+      />,
+    );
+
+    expect(screen.getByRole('tab', { name: 'tui :: /cadence' })).toBeTruthy();
+
+    // Split active pane -> secondary terminal tty2 becomes focused -> tab title shows tty2
+    fireEvent.keyDown(window, { key: 'D', code: 'KeyD', altKey: true, shiftKey: true });
+    expect(screen.getByRole('tab', { name: /tty2/ })).toBeTruthy();
+
+    // Focus back to pinned primary pane -> tab title shows tui :: /cadence
+    const pane1 = container.querySelector('[data-pane-id="pane-1"]') as HTMLElement;
+    fireEvent.pointerDown(pane1);
+    expect(screen.getByRole('tab', { name: /tui :: \/cadence/ })).toBeTruthy();
+
+    // Push overlay on primary pane -> tab title shows 'tui'
+    fireEvent.keyDown(window, { key: 't', code: 'KeyT', altKey: true });
+    expect(screen.getByRole('tab', { name: /tui/ })).toBeTruthy();
+    expect(screen.queryByRole('tab', { name: /tui :: \/cadence/ })).toBeNull();
+
+    // Custom tab title overrides leaf focus
+    fireEvent.keyDown(window, { key: 'F2' });
+    const renameInput = screen.getByLabelText('Rename tab') as HTMLInputElement;
+    expect(renameInput.value).toBe('tui');
+    fireEvent.change(renameInput, { target: { value: 'ops' } });
+    fireEvent.keyDown(renameInput, { key: 'Enter' });
+    expect(screen.getByRole('tab', { name: /ops/ })).toBeTruthy();
+
+    const pane2 = container.querySelector('[data-pane-id="pane-2"]') as HTMLElement;
+    fireEvent.pointerDown(pane2);
+    expect(screen.getByRole('tab', { name: /ops/ })).toBeTruthy();
+  });
+
+  it('PaneLink falls back to WorkspaceLauncherContext when rendered outside PaneNavigationContext', () => {
+    const launcher: WorkspaceLauncherContextValue = {
+      openPane: vi.fn<(viewId: string, target: 'in-pane' | 'split' | 'tab') => void>(),
+      openTerminal: vi.fn<(target: 'split' | 'tab') => void>(),
+      focusPrimaryHostTab: vi.fn<() => void>(),
+    };
+
+    const { rerender } = render(
+      <WorkspaceLauncherContext.Provider value={launcher}>
+        <PaneLink to='/agensi'>Open Agensi</PaneLink>
+      </WorkspaceLauncherContext.Provider>,
+    );
+
+    const link = screen.getByRole('link', { name: 'Open Agensi' });
+    fireEvent.click(link);
+    expect(launcher.openPane).toHaveBeenLastCalledWith('/agensi', 'in-pane');
+
+    fireEvent.click(link, { shiftKey: true });
+    expect(launcher.openPane).toHaveBeenLastCalledWith('/agensi', 'split');
+
+    fireEvent.click(link, { ctrlKey: true });
+    expect(launcher.openPane).toHaveBeenLastCalledWith('/agensi', 'tab');
+
+    fireEvent(link, new MouseEvent('auxclick', { bubbles: true, cancelable: true, button: 1 }));
+    expect(launcher.openPane).toHaveBeenCalledTimes(4);
+    expect(launcher.openPane).toHaveBeenLastCalledWith('/agensi', 'tab');
+
+    // Without either context, degrades cleanly to standard anchor without preventing default
+    rerender(<PaneLink to='/agensi'>Plain Anchor</PaneLink>);
+    const plainLink = screen.getByRole('link', { name: 'Plain Anchor' });
+    expect(plainLink.getAttribute('href')).toBe('/agensi');
   });
 });

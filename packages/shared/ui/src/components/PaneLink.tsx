@@ -2,6 +2,7 @@ import { useRender } from '@base-ui/react/use-render';
 import { type MouseEvent } from 'react';
 
 import { usePaneNavigation } from './paneNavigationContext';
+import { useWorkspaceLauncher } from './workspaceLauncherContext';
 
 export interface PaneLinkProps extends Omit<useRender.ComponentProps<'a'>, 'href'> {
   readonly to: string;
@@ -9,15 +10,20 @@ export interface PaneLinkProps extends Omit<useRender.ComponentProps<'a'>, 'href
 
 export function PaneLink({ to, render, onClick, onAuxClick, ...rest }: PaneLinkProps) {
   const paneNav = usePaneNavigation();
+  const launcher = useWorkspaceLauncher();
 
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
     onClick?.(event);
-    if (event.defaultPrevented || !paneNav) {
+    if (event.defaultPrevented || (!paneNav && !launcher)) {
       return;
     }
     if (event.button === 1 || event.ctrlKey || event.metaKey) {
       event.preventDefault();
-      paneNav.openInTab(to);
+      if (paneNav) {
+        paneNav.openInTab(to);
+      } else {
+        launcher?.openPane(to, 'tab');
+      }
       return;
     }
     if (event.button !== 0) {
@@ -25,20 +31,30 @@ export function PaneLink({ to, render, onClick, onAuxClick, ...rest }: PaneLinkP
     }
     event.preventDefault();
     if (event.shiftKey) {
-      paneNav.openInSplit(to);
-    } else {
+      if (paneNav) {
+        paneNav.openInSplit(to);
+      } else {
+        launcher?.openPane(to, 'split');
+      }
+    } else if (paneNav) {
       paneNav.push(to);
+    } else {
+      launcher?.openPane(to, 'in-pane');
     }
   };
 
   const handleAuxClick = (event: MouseEvent<HTMLAnchorElement>) => {
     onAuxClick?.(event);
-    if (event.defaultPrevented || !paneNav) {
+    if (event.defaultPrevented || (!paneNav && !launcher)) {
       return;
     }
     if (event.button === 1) {
       event.preventDefault();
-      paneNav.openInTab(to);
+      if (paneNav) {
+        paneNav.openInTab(to);
+      } else {
+        launcher?.openPane(to, 'tab');
+      }
     }
   };
 

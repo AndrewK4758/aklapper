@@ -185,6 +185,11 @@ export {
   type PaneNavigationContextValue,
   usePaneNavigation,
 } from './components/paneNavigationContext';
+export {
+  WorkspaceLauncherContext,
+  type WorkspaceLauncherContextValue,
+  useWorkspaceLauncher,
+} from './components/workspaceLauncherContext';
 export { TuiWindow, type TuiWindowProps } from './components/TuiWindow';
 export {
   type TerminalVariant,
