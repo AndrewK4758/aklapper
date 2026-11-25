@@ -18,7 +18,10 @@ interface RailStep {
   readonly meta: string;
 }
 
-function resolveSteps(activeRun: CadenceRunResult | null, isStreaming: boolean): readonly RailStep[] {
+function resolveSteps(
+  activeRun: CadenceRunResult | null,
+  isStreaming: boolean,
+): readonly RailStep[] {
   const findTurn = (phase: 'triage' | 'spec' | 'build' | 'gate') =>
     activeRun?.turns.find(t => t.phase === phase);
 
@@ -61,7 +64,7 @@ function resolveSteps(activeRun: CadenceRunResult | null, isStreaming: boolean):
       label: 'Triage',
       agent: triage?.agentName ?? 'chord-triage',
       status: mapTurnStatus(triage?.status, isStreaming && !activeRun ? 'running' : 'pending'),
-      meta: triage && triage.latencyMs > 0 ? `${triage.latencyMs}ms` : triage?.status ?? 'idle',
+      meta: triage && triage.latencyMs > 0 ? `${triage.latencyMs}ms` : (triage?.status ?? 'idle'),
     },
     {
       id: 'spec',
@@ -69,7 +72,7 @@ function resolveSteps(activeRun: CadenceRunResult | null, isStreaming: boolean):
       label: 'CHORD Spec',
       agent: spec?.agentName ?? 'chord-spec',
       status: mapTurnStatus(spec?.status),
-      meta: spec && spec.latencyMs > 0 ? `${spec.latencyMs}ms` : spec?.status ?? 'idle',
+      meta: spec && spec.latencyMs > 0 ? `${spec.latencyMs}ms` : (spec?.status ?? 'idle'),
     },
     {
       id: 'human-gate',
@@ -84,16 +87,13 @@ function resolveSteps(activeRun: CadenceRunResult | null, isStreaming: boolean):
       index: '03',
       label: 'Build',
       agent: build?.agentName ?? 'chord-builder',
-      status:
-        runStatus === 'build_queued'
-          ? 'running'
-          : mapTurnStatus(build?.status),
+      status: runStatus === 'build_queued' ? 'running' : mapTurnStatus(build?.status),
       meta:
         runStatus === 'awaiting_approval'
           ? 'awaiting spec'
           : build && build.latencyMs > 0
             ? `${build.latencyMs}ms`
-            : build?.status ?? 'idle',
+            : (build?.status ?? 'idle'),
     },
     {
       id: 'gate',
@@ -101,7 +101,7 @@ function resolveSteps(activeRun: CadenceRunResult | null, isStreaming: boolean):
       label: 'Gate Audit',
       agent: gate?.agentName ?? 'chord-gate',
       status: mapTurnStatus(gate?.status),
-      meta: gate && gate.latencyMs > 0 ? `${gate.latencyMs}ms` : gate?.status ?? 'idle',
+      meta: gate && gate.latencyMs > 0 ? `${gate.latencyMs}ms` : (gate?.status ?? 'idle'),
     },
   ];
 }
