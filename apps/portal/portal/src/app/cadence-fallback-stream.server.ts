@@ -346,7 +346,14 @@ export async function runFallbackChordPipelineSse(
       return;
     }
 
-    await runFallbackChordBuildPhaseSse(db, { ...run, spec: fallbackSpec }, mode, sessionId, sink, telemetry);
+    await runFallbackChordBuildPhaseSse(
+      db,
+      { ...run, spec: fallbackSpec },
+      mode,
+      sessionId,
+      sink,
+      telemetry,
+    );
     return;
   } catch (error) {
     const correlationId = telemetry?.correlationId ?? run.runId;
@@ -435,7 +442,14 @@ export async function runFallbackChordBuildPhaseSse(
     const presetSlug = run.presetSlug ?? 'custom';
     const preset = await getCadencePresetBySlug(db, presetSlug);
 
-    await emitStep('build', 'chord-builder', 'running', 'Synthesizing sandbox HTML widget...', 0, 70);
+    await emitStep(
+      'build',
+      'chord-builder',
+      'running',
+      'Synthesizing sandbox HTML widget...',
+      0,
+      70,
+    );
     const rawHtml = buildTailoredCadenceArtifactHtml({ prompt: run.prompt, preset });
     await emitStep(
       'build',

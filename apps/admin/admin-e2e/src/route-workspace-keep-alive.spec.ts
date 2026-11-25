@@ -67,13 +67,13 @@ test.describe('admin per-route workspace keep-alive and sign-out boundary', () =
       await page.getByLabel('Admin Handle', { exact: true }).fill(handle);
       await page.getByLabel('Password', { exact: true }).fill(password);
       await page.getByRole('button', { name: 'Sign in with Password' }).click();
-      await waitForStreamedReveal(page);
 
-      const skipPasskeyBtn = page.getByRole('button', { name: /Skip for now|Continue/i });
-      if (await skipPasskeyBtn.isVisible().catch(() => false)) {
-        await skipPasskeyBtn.click();
-        await waitForStreamedReveal(page);
-      }
+      const continueBtn = page.getByRole('button', {
+        name: /Skip for now|Continue to Console|Continue/i,
+      });
+      await expect(continueBtn).toBeVisible();
+      await continueBtn.click();
+      await waitForStreamedReveal(page);
 
       // Navigate to /analytics and open a second tab
       await page.locator('header').getByRole('link', { name: 'Analytics', exact: true }).click();
