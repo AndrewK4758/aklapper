@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   upsertSiteContent: vi.fn<AsyncUnknownFn>(),
   deleteMenuItem: vi.fn<AsyncUnknownFn>(),
   deleteContactSubmission: vi.fn<AsyncUnknownFn>(),
+  deleteContactSubmissions: vi.fn<AsyncUnknownFn>(),
   updateQuotaPolicy: vi.fn<AsyncUnknownFn>(),
   resetRateLimitBucket: vi.fn<AsyncUnknownFn>(),
   overrideSandboxGateVerdict: vi.fn<AsyncUnknownFn>(),
@@ -38,6 +39,7 @@ vi.mock('@aklapper/db', async importOriginal => {
     upsertSiteContent: mocks.upsertSiteContent,
     deleteMenuItem: mocks.deleteMenuItem,
     deleteContactSubmission: mocks.deleteContactSubmission,
+    deleteContactSubmissions: mocks.deleteContactSubmissions,
     updateQuotaPolicy: mocks.updateQuotaPolicy,
     resetRateLimitBucket: mocks.resetRateLimitBucket,
     overrideSandboxGateVerdict: mocks.overrideSandboxGateVerdict,
@@ -60,7 +62,7 @@ interface DataWithStatus<T = Record<string, unknown>> {
 function makeActionArgs(
   urlStr: string,
   pattern: string,
-  fields: Record<string, string>,
+  fields: Record<string, string> | readonly (readonly [string, string])[],
   correlationId: string,
 ) {
   const logger = { info: vi.fn<LogFn>(), warn: vi.fn<LogFn>(), error: vi.fn<LogFn>() };
@@ -71,7 +73,9 @@ function makeActionArgs(
     serviceName: 'admin-ssr',
     signal: new AbortController().signal,
   });
-  const body = new URLSearchParams(fields);
+  const body = Array.isArray(fields)
+    ? new URLSearchParams(fields.map(([k, v]) => [k, v]))
+    : new URLSearchParams(fields as Record<string, string>);
   const request = new Request(urlStr, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
@@ -368,6 +372,89 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(dbRes.init?.status).toBe(503);
     expect(dbRes.data['code']).toBe('ERR_DB_UNAVAILABLE');
     expect(dbRes.data['correlationId']).toBe('corr-inbox-503');
+    expect(String(dbRes.data['message'])).not.toContain('connection terminated');
+    expect(dbCall.logger.error).toHaveBeenCalledTimes(1);
+  });
+
+  it('handles delete-many intent with deduplication and honest 200, 400, 404, and 503 statuses', async () => {
+    mocks.deleteContactSubmissions.mockResolvedValueOnce(2);
+    const okCall = makeActionArgs(
+      'http://localhost:4301/inbox',
+      '/inbox',
+      [
+        ['intent', 'delete-many'],
+        ['id', ' sub-1 '],
+        ['id', 'sub-2'],
+        ['id', 'sub-1'],
+        ['id', '   '],
+      ],
+      'corr-inbox-bulk-200',
+    );
+    const okRes = (await inboxAction(okCall.args as never)) as unknown as DataWithStatus;
+    expect(okRes.init?.status).toBe(200);
+    expect(okRes.data['ok']).toBe(true);
+    expect(okRes.data['message']).toBe('Deleted 2 contact submissions from PostgreSQL 19.');
+    expect(mocks.deleteContactSubmissions).toHaveBeenCalledWith(expect.anything(), [
+      'sub-1',
+      'sub-2',
+    ]);
+
+    mocks.deleteContactSubmissions.mockResolvedValueOnce(1);
+    const singleOkCall = makeActionArgs(
+      'http://localhost:4301/inbox',
+      '/inbox',
+      [
+        ['intent', 'delete-many'],
+        ['id', 'sub-only'],
+      ],
+      'corr-inbox-bulk-single-200',
+    );
+    const singleOkRes = (await inboxAction(singleOkCall.args as never)) as unknown as DataWithStatus;
+    expect(singleOkRes.init?.status).toBe(200);
+    expect(singleOkRes.data['message']).toBe('Deleted 1 contact submission from PostgreSQL 19.');
+
+    const emptyCall = makeActionArgs(
+      'http://localhost:4301/inbox',
+      '/inbox',
+      [
+        ['intent', 'delete-many'],
+        ['id', '   '],
+      ],
+      'corr-inbox-bulk-400',
+    );
+    const emptyRes = (await inboxAction(emptyCall.args as never)) as unknown as DataWithStatus;
+    expect(emptyRes.init?.status).toBe(400);
+    expect(emptyRes.data['code']).toBe('ERR_VALIDATION');
+    expect(emptyRes.data['message']).toBe('Select at least one submission to delete.');
+
+    mocks.deleteContactSubmissions.mockResolvedValueOnce(0);
+    const missingCall = makeActionArgs(
+      'http://localhost:4301/inbox',
+      '/inbox',
+      [
+        ['intent', 'delete-many'],
+        ['id', 'sub-missing'],
+      ],
+      'corr-inbox-bulk-404',
+    );
+    const missingRes = (await inboxAction(missingCall.args as never)) as unknown as DataWithStatus;
+    expect(missingRes.init?.status).toBe(404);
+    expect(missingRes.data['code']).toBe('ERR_NOT_FOUND');
+
+    mocks.deleteContactSubmissions.mockRejectedValueOnce(new Error('connection terminated'));
+    const dbCall = makeActionArgs(
+      'http://localhost:4301/inbox',
+      '/inbox',
+      [
+        ['intent', 'delete-many'],
+        ['id', 'sub-err'],
+      ],
+      'corr-inbox-bulk-503',
+    );
+    const dbRes = (await inboxAction(dbCall.args as never)) as unknown as DataWithStatus;
+    expect(dbRes.init?.status).toBe(503);
+    expect(dbRes.data['code']).toBe('ERR_DB_UNAVAILABLE');
+    expect(dbRes.data['correlationId']).toBe('corr-inbox-bulk-503');
     expect(String(dbRes.data['message'])).not.toContain('connection terminated');
     expect(dbCall.logger.error).toHaveBeenCalledTimes(1);
   });
