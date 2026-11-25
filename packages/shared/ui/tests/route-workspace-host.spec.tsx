@@ -2,12 +2,7 @@ import type { TerminalProfileData } from '@aklapper/core';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  RouteWorkspaceHost,
-  TerminalWorkspace,
-  ZshP10kTerminal,
-  useIsPaneActive,
-} from '../src';
+import { RouteWorkspaceHost, TerminalWorkspace, ZshP10kTerminal, useIsPaneActive } from '../src';
 import {
   buildRouteWorkspaceStorageKey,
   createRouteWorkspaceStore,
@@ -205,7 +200,7 @@ describe('RouteWorkspaceHost and TerminalWorkspace keep-alive containment', () =
 
   it('retains [initialDeepLinkRoute] in sessionStorage when popping/exiting a deep-linked primary pane back to shell', () => {
     const store = createRouteWorkspaceStore({ namespace: 'portal' });
-    const onReturnToShell = vi.fn();
+    const onReturnToShell = vi.fn<() => void>();
 
     render(
       <TerminalWorkspace
@@ -228,11 +223,10 @@ describe('RouteWorkspaceHost and TerminalWorkspace keep-alive containment', () =
     expect(onReturnToShell).toHaveBeenCalledTimes(1);
 
     const raw = window.sessionStorage.getItem(buildRouteWorkspaceStorageKey('portal', '/agensi'));
-    if (raw) {
-      const parsed = parseRouteWorkspaceSnapshot(raw);
-      const leaf = parsed?.tabs.tabs[0]?.workspace.root;
-      expect(leaf?.type === 'leaf' ? leaf.tuiStack : []).toEqual(['/agensi']);
-    }
+    const parsedLeaf = raw ? parseRouteWorkspaceSnapshot(raw)?.tabs.tabs[0]?.workspace.root : null;
+    expect(
+      raw === null || (parsedLeaf?.type === 'leaf' && parsedLeaf.tuiStack?.[0] === '/agensi'),
+    ).toBe(true);
     const snap = store.getClientSnapshot('/agensi', {
       pinnedPrimary: true,
       initialPrimaryTuiStack: ['/agensi'],
@@ -256,7 +250,7 @@ describe('RouteWorkspaceHost and TerminalWorkspace keep-alive containment', () =
 
 describe('ZshP10kTerminal command history hydration and capping', () => {
   it('syncs post-SSR initialCommandHistory, enforces maxCommandHistory, and invokes onCommandHistoryChange', () => {
-    const onChange = vi.fn();
+    const onChange = vi.fn<(history: readonly string[]) => void>();
     const commands = {
       help: () => ({ output: 'help output' }),
       status: () => ({ output: 'status output' }),

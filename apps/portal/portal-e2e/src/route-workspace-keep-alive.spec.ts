@@ -11,7 +11,10 @@ test.describe('portal per-route workspace keep-alive and session persistence', (
   test('isolates workspaces per route, gates shortcuts to active layer, preserves form drafts and scroll offsets, and restores across hard reload', async ({
     page,
   }) => {
-    test.skip(IS_MAINTENANCE_MODE, 'Per-route keep-alive workspaces are bypassed in maintenance mode');
+    test.skip(
+      IS_MAINTENANCE_MODE,
+      'Per-route keep-alive workspaces are bypassed in maintenance mode',
+    );
 
     const getErrors = trackPageErrors(page);
     const hydrationWarnings: string[] = [];

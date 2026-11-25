@@ -1,4 +1,8 @@
-import type { PortalMaintenanceLoaderData, PortalRootLoaderData, StreamResult } from '@aklapper/core';
+import type {
+  PortalMaintenanceLoaderData,
+  PortalRootLoaderData,
+  StreamResult,
+} from '@aklapper/core';
 import {
   buildRouteWorkspaceStorageKey,
   parseRouteWorkspaceSnapshot,
@@ -293,9 +297,7 @@ describe('Portal route workspace keep-alive and session persistence', () => {
     await screen.findByText('Changes in Progress');
     expect(window.sessionStorage.getItem(homeKey)).toBe('{"sentinel":"keep"}');
     expect(
-      infoSpy.mock.calls.some(call =>
-        String(call[0]).includes('"branch":"excluded-maintenance"'),
-      ),
+      infoSpy.mock.calls.some(call => String(call[0]).includes('"branch":"excluded-maintenance"')),
     ).toBe(true);
   });
 });

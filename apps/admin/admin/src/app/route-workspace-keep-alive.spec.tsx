@@ -7,10 +7,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createRoutesStub, Link } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  adminRouteWorkspaceStore,
-  resetAdminRootBranchTelemetryForTest,
-} from './AdminRootShell';
+import { adminRouteWorkspaceStore, resetAdminRootBranchTelemetryForTest } from './AdminRootShell';
 import AdminRoot, { ErrorBoundary, shouldRevalidate } from './root';
 
 const ADMIN_TERMINAL: NonNullable<AdminRootLoaderData['terminal']> = {

@@ -64,9 +64,9 @@ describe('routeWorkspaceSnapshot', () => {
     expect(parsed?.tabs.tabs[1]?.title).toBe('ops');
     const activeTab = parsed?.tabs.tabs.find(t => t.id === parsed.tabs.activeTabId);
     expect(activeTab?.workspace.root.type).toBe('split');
-    if (activeTab?.workspace.root.type === 'split') {
-      expect(activeTab.workspace.root.ratio).toBeCloseTo(0.65, 5);
-    }
+    const splitRatio =
+      activeTab?.workspace.root.type === 'split' ? activeTab.workspace.root.ratio : null;
+    expect(splitRatio).toBeCloseTo(0.65, 5);
     expect(parsed?.paneHistory['pane-1']).toEqual(['status', 'help']);
   });
 
@@ -97,9 +97,7 @@ describe('routeWorkspaceSnapshot', () => {
 
     const baseTabs = createInitialTabbedWorkspaceState({ pinnedPrimary: true });
     expect(
-      parseRouteWorkspaceSnapshot(
-        JSON.stringify({ version: 99, tabs: baseTabs, paneHistory: {} }),
-      ),
+      parseRouteWorkspaceSnapshot(JSON.stringify({ version: 99, tabs: baseTabs, paneHistory: {} })),
     ).toBeNull();
 
     expect(
@@ -276,7 +274,7 @@ describe('createRouteWorkspaceStore', () => {
 
   it('clearAll removes only namespace keys and supports silent idempotent clearing', () => {
     const adminStore = createRouteWorkspaceStore({ namespace: 'admin' });
-    const listener = vi.fn();
+    const listener = vi.fn<() => void>();
     const unsub = adminStore.subscribe('/analytics', listener);
 
     window.sessionStorage.setItem('aklapper.portal.workspace.v1:/', '{"keep":true}');

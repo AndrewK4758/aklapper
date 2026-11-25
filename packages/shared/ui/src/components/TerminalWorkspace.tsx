@@ -1575,68 +1575,100 @@ function StandaloneTerminalWorkspace({
       ? activeWorkspace.zoomedPaneId
       : null;
 
-  const shouldPreserveDeepLinkBase = (targetLeafPinned: boolean | undefined): boolean =>
-    Boolean(
-      !primaryPane?.embeddedTerminal &&
-      initialDeepLinkRoute &&
-      onPrimaryPaneReturnToShell &&
-      isPrimaryHostPane(activeTab.pinned, targetLeafPinned),
-    );
+  const shouldPreserveDeepLinkBase = useCallback(
+    (targetLeafPinned: boolean | undefined): boolean =>
+      Boolean(
+        !primaryPane?.embeddedTerminal &&
+        initialDeepLinkRoute &&
+        onPrimaryPaneReturnToShell &&
+        isPrimaryHostPane(activeTab.pinned, targetLeafPinned),
+      ),
+    [
+      activeTab.pinned,
+      initialDeepLinkRoute,
+      onPrimaryPaneReturnToShell,
+      primaryPane?.embeddedTerminal,
+    ],
+  );
 
-  const notifyIfPrimaryReturnedToShell = (
-    targetLeafPinned: boolean | undefined,
-    nextStackEmpty: boolean,
-  ) => {
-    if (nextStackEmpty && isPrimaryHostPane(activeTab.pinned, targetLeafPinned)) {
-      onPrimaryPaneReturnToShell?.();
-    }
-  };
+  const notifyIfPrimaryReturnedToShell = useCallback(
+    (targetLeafPinned: boolean | undefined, nextStackEmpty: boolean) => {
+      if (nextStackEmpty && isPrimaryHostPane(activeTab.pinned, targetLeafPinned)) {
+        onPrimaryPaneReturnToShell?.();
+      }
+    },
+    [activeTab.pinned, onPrimaryPaneReturnToShell],
+  );
 
   const handlePushPaneView = (paneId: string, viewId: string) => {
     setTabState(prev => updateActiveTabWorkspace(prev, ws => pushPaneView(ws, paneId, viewId)));
   };
 
-  const handlePopPaneView = (paneId: string) => {
-    const targetLeaf = findLeafPane(activeWorkspace.root, paneId);
-    const currentLen = targetLeaf?.tuiStack?.length ?? 0;
-    if (currentLen === 0) {
-      return;
-    }
-    if (currentLen <= 1 && shouldPreserveDeepLinkBase(targetLeaf?.pinned) && initialDeepLinkRoute) {
-      if (targetLeaf?.tuiStack?.[0] !== initialDeepLinkRoute) {
-        setTabState(prev =>
-          updateActiveTabWorkspace(prev, ws =>
-            pushPaneView(exitPaneTui(ws, paneId), paneId, initialDeepLinkRoute),
-          ),
-        );
+  const handlePopPaneView = useCallback(
+    (paneId: string) => {
+      const targetLeaf = findLeafPane(activeWorkspace.root, paneId);
+      const currentLen = targetLeaf?.tuiStack?.length ?? 0;
+      if (currentLen === 0) {
+        return;
       }
-      onPrimaryPaneReturnToShell?.();
-      return;
-    }
-    setTabState(prev => updateActiveTabWorkspace(prev, ws => popPaneView(ws, paneId)));
-    notifyIfPrimaryReturnedToShell(targetLeaf?.pinned, currentLen === 1);
-  };
+      if (
+        currentLen <= 1 &&
+        shouldPreserveDeepLinkBase(targetLeaf?.pinned) &&
+        initialDeepLinkRoute
+      ) {
+        if (targetLeaf?.tuiStack?.[0] !== initialDeepLinkRoute) {
+          setTabState(prev =>
+            updateActiveTabWorkspace(prev, ws =>
+              pushPaneView(exitPaneTui(ws, paneId), paneId, initialDeepLinkRoute),
+            ),
+          );
+        }
+        onPrimaryPaneReturnToShell?.();
+        return;
+      }
+      setTabState(prev => updateActiveTabWorkspace(prev, ws => popPaneView(ws, paneId)));
+      notifyIfPrimaryReturnedToShell(targetLeaf?.pinned, currentLen === 1);
+    },
+    [
+      activeWorkspace.root,
+      initialDeepLinkRoute,
+      notifyIfPrimaryReturnedToShell,
+      onPrimaryPaneReturnToShell,
+      setTabState,
+      shouldPreserveDeepLinkBase,
+    ],
+  );
 
-  const handleExitPaneTui = (paneId: string) => {
-    const targetLeaf = findLeafPane(activeWorkspace.root, paneId);
-    const currentLen = targetLeaf?.tuiStack?.length ?? 0;
-    if (currentLen === 0) {
-      return;
-    }
-    if (shouldPreserveDeepLinkBase(targetLeaf?.pinned) && initialDeepLinkRoute) {
-      if (currentLen > 1 || targetLeaf?.tuiStack?.[0] !== initialDeepLinkRoute) {
-        setTabState(prev =>
-          updateActiveTabWorkspace(prev, ws =>
-            pushPaneView(exitPaneTui(ws, paneId), paneId, initialDeepLinkRoute),
-          ),
-        );
+  const handleExitPaneTui = useCallback(
+    (paneId: string) => {
+      const targetLeaf = findLeafPane(activeWorkspace.root, paneId);
+      const currentLen = targetLeaf?.tuiStack?.length ?? 0;
+      if (currentLen === 0) {
+        return;
       }
-      onPrimaryPaneReturnToShell?.();
-      return;
-    }
-    setTabState(prev => updateActiveTabWorkspace(prev, ws => exitPaneTui(ws, paneId)));
-    notifyIfPrimaryReturnedToShell(targetLeaf?.pinned, true);
-  };
+      if (shouldPreserveDeepLinkBase(targetLeaf?.pinned) && initialDeepLinkRoute) {
+        if (currentLen > 1 || targetLeaf?.tuiStack?.[0] !== initialDeepLinkRoute) {
+          setTabState(prev =>
+            updateActiveTabWorkspace(prev, ws =>
+              pushPaneView(exitPaneTui(ws, paneId), paneId, initialDeepLinkRoute),
+            ),
+          );
+        }
+        onPrimaryPaneReturnToShell?.();
+        return;
+      }
+      setTabState(prev => updateActiveTabWorkspace(prev, ws => exitPaneTui(ws, paneId)));
+      notifyIfPrimaryReturnedToShell(targetLeaf?.pinned, true);
+    },
+    [
+      activeWorkspace.root,
+      initialDeepLinkRoute,
+      notifyIfPrimaryReturnedToShell,
+      onPrimaryPaneReturnToShell,
+      setTabState,
+      shouldPreserveDeepLinkBase,
+    ],
+  );
 
   const handleOpenViewInSplit = (paneId: string, viewId: string) => {
     const direction = resolveAutoSplitDirection();
@@ -1931,6 +1963,8 @@ function StandaloneTerminalWorkspace({
     activeWorkspace.activePaneId,
     disableMenuShortcut,
     dragState,
+    handleExitPaneTui,
+    handlePopPaneView,
     initialDeepLinkRoute,
     isActive,
     isActiveMultiPane,
@@ -2269,7 +2303,8 @@ function StandaloneTerminalWorkspace({
                 const isZoomed = pane.id === zoomedPaneId;
                 const isHidden = Boolean(zoomedPaneId) && !isZoomed;
                 const isPaneActive = isActive && isCurrentTab && pane.id === ws.activePaneId;
-                const isDraggingPane = isActive && isCurrentTab && dragState?.sourcePaneId === pane.id;
+                const isDraggingPane =
+                  isActive && isCurrentTab && dragState?.sourcePaneId === pane.id;
                 const rect = isZoomed
                   ? { x: 0, y: 0, width: 1, height: 1 }
                   : (rectsById.get(pane.id) ?? { x: 0, y: 0, width: 1, height: 1 });

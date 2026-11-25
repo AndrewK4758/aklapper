@@ -1,15 +1,5 @@
-import {
-  type ReactNode,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react';
-import {
-  UNSAFE_DataRouterDataContext,
-  UNSAFE_DataRouterStateContext,
-} from 'react-router';
+import { type ReactNode, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { UNSAFE_DataRouterDataContext, UNSAFE_DataRouterStateContext } from 'react-router';
 
 import { cx } from '../elements/_internal/elementFactory';
 import { normalizeWorkspaceRouteKey } from './routeWorkspaceSnapshot';
@@ -55,16 +45,18 @@ function RouteWorkspaceLayer({ routeKey, isActive, children }: RouteWorkspaceLay
 
   const liveRouterState = useContext(UNSAFE_DataRouterStateContext);
   const liveRouterData = useContext(UNSAFE_DataRouterDataContext);
-  const frozenRouterStateRef = useRef(liveRouterState);
-  const frozenRouterDataRef = useRef(liveRouterData);
+  const [frozenRouterState, setFrozenRouterState] = useState(liveRouterState);
+  const [frozenRouterData, setFrozenRouterData] = useState(liveRouterData);
 
-  if (isActive) {
-    frozenRouterStateRef.current = liveRouterState;
-    frozenRouterDataRef.current = liveRouterData;
+  if (isActive && frozenRouterState !== liveRouterState) {
+    setFrozenRouterState(liveRouterState);
+  }
+  if (isActive && frozenRouterData !== liveRouterData) {
+    setFrozenRouterData(liveRouterData);
   }
 
-  const effectiveRouterState = isActive ? liveRouterState : frozenRouterStateRef.current;
-  const effectiveRouterData = isActive ? liveRouterData : frozenRouterDataRef.current;
+  const effectiveRouterState = isActive ? liveRouterState : frozenRouterState;
+  const effectiveRouterData = isActive ? liveRouterData : frozenRouterData;
 
   useEffect(() => {
     const layerEl = layerRef.current;
@@ -159,33 +151,19 @@ export function RouteWorkspaceHost({
   const [cachedEntries, setCachedEntries] = useState<readonly CachedRouteEntry[]>(() => [
     { routeKey: normalizedActiveKey, outlet },
   ]);
-  const lastActiveRef = useRef<CachedRouteEntry>({
-    routeKey: normalizedActiveKey,
-    outlet,
-  });
 
-  const activeChanged = lastActiveRef.current.routeKey !== normalizedActiveKey;
-  const hasActiveInCache = cachedEntries.some(entry => entry.routeKey === normalizedActiveKey);
-
-  if (activeChanged || !hasActiveInCache) {
-    const previousActive = lastActiveRef.current;
-    const nextEntries = cachedEntries.map(entry =>
-      entry.routeKey === previousActive.routeKey
-        ? { routeKey: entry.routeKey, outlet: previousActive.outlet }
-        : entry.routeKey === normalizedActiveKey
-          ? { routeKey: entry.routeKey, outlet }
-          : entry,
+  const activeEntry = cachedEntries.find(entry => entry.routeKey === normalizedActiveKey);
+  if (!activeEntry) {
+    setCachedEntries([...cachedEntries, { routeKey: normalizedActiveKey, outlet }]);
+  } else if (activeEntry.outlet !== outlet) {
+    setCachedEntries(
+      cachedEntries.map(entry =>
+        entry.routeKey === normalizedActiveKey ? { routeKey: entry.routeKey, outlet } : entry,
+      ),
     );
-    if (!hasActiveInCache) {
-      nextEntries.push({ routeKey: normalizedActiveKey, outlet });
-    }
-    lastActiveRef.current = { routeKey: normalizedActiveKey, outlet };
-    setCachedEntries(nextEntries);
-  } else {
-    lastActiveRef.current = { routeKey: normalizedActiveKey, outlet };
   }
 
-  const effectiveEntries = hasActiveInCache
+  const effectiveEntries = activeEntry
     ? cachedEntries
     : [...cachedEntries, { routeKey: normalizedActiveKey, outlet }];
 
