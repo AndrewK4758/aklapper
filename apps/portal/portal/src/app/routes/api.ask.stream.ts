@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { createPublicAppError } from '@aklapper/core';
-import { proxyPostSse } from '@aklapper/node-runtime/http';
+import { DEFAULT_SSE_HEADER_TIMEOUT_MS, proxyPostSse } from '@aklapper/node-runtime/http';
 import {
   createFallbackLogger,
   getOrCreateCorrelationId,
@@ -13,6 +13,22 @@ import type { Route } from './+types/api.ask.stream';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const VISITOR_LENS_RE = /^[a-z0-9-]{1,48}$/;
+const DEV_SSE_HEADER_TIMEOUT_MS = 60_000;
+
+export function resolveAskStreamHeaderTimeoutMs(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): number {
+  const raw = env['ASK_SSE_HEADER_TIMEOUT_MS']?.trim();
+  if (raw) {
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return env['NODE_ENV'] === 'production'
+    ? DEFAULT_SSE_HEADER_TIMEOUT_MS
+    : DEV_SSE_HEADER_TIMEOUT_MS;
+}
 
 function jsonErrorResponse(
   status: number,
@@ -156,6 +172,7 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Re
       ...(visitorLens ? { visitorLens } : {}),
     },
     extraResponseHeaders,
+    headerTimeoutMs: resolveAskStreamHeaderTimeoutMs(),
     signal: request.signal,
     internalAuth: { role: 'guest', subject: sessionId },
     correlationId,

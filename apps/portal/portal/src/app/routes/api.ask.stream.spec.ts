@@ -2,7 +2,7 @@ import { requestContextKey } from '@aklapper/node-runtime/ssr/stream';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { action } from './api.ask.stream';
+import { action, resolveAskStreamHeaderTimeoutMs } from './api.ask.stream';
 
 function makeStreamArgs(payload: Record<string, unknown>, correlationId: string) {
   const context = new RouterContextProvider();
@@ -43,5 +43,22 @@ describe('POST /api/ask/stream validation', () => {
     expect(res.headers.get('Set-Cookie')).toContain('ak_guest_session=');
     const body = (await res.json()) as { code?: string };
     expect(body.code).toBe('ERR_VALIDATION');
+  });
+
+  it('uses 15s SSE header timeout in production, 60s in development, and honors ASK_SSE_HEADER_TIMEOUT_MS', () => {
+    expect(resolveAskStreamHeaderTimeoutMs({ NODE_ENV: 'production' })).toBe(15_000);
+    expect(resolveAskStreamHeaderTimeoutMs({ NODE_ENV: 'development' })).toBe(60_000);
+    expect(
+      resolveAskStreamHeaderTimeoutMs({
+        NODE_ENV: 'production',
+        ASK_SSE_HEADER_TIMEOUT_MS: '45000',
+      }),
+    ).toBe(45_000);
+    expect(
+      resolveAskStreamHeaderTimeoutMs({
+        NODE_ENV: 'development',
+        ASK_SSE_HEADER_TIMEOUT_MS: 'invalid',
+      }),
+    ).toBe(60_000);
   });
 });

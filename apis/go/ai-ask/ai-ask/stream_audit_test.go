@@ -16,16 +16,20 @@ import (
 )
 
 type scriptedEmitter struct {
-	failOnDelta int
-	deltaCalls  int
-	emitted     strings.Builder
-	doneCount   int
-	errorCodes  []string
+	failOnDelta  int
+	deltaCalls   int
+	sourcesCalls int
+	emitted      strings.Builder
+	doneCount    int
+	errorCodes   []string
 }
 
-func (e *scriptedEmitter) EmitStatus(_, _ string) error            { return nil }
-func (e *scriptedEmitter) EmitMeta(askStreamMeta) error            { return nil }
-func (e *scriptedEmitter) EmitSources([]contracts.AskSource) error { return nil }
+func (e *scriptedEmitter) EmitStatus(_, _ string) error { return nil }
+func (e *scriptedEmitter) EmitMeta(askStreamMeta) error { return nil }
+func (e *scriptedEmitter) EmitSources([]contracts.AskSource) error {
+	e.sourcesCalls++
+	return nil
+}
 func (e *scriptedEmitter) EmitDone(askStreamDone) error            { e.doneCount++; return nil }
 func (e *scriptedEmitter) EmitError(p contracts.PublicAppError, _ *contracts.QuotaStatus) error {
 	e.errorCodes = append(e.errorCodes, p.Code)

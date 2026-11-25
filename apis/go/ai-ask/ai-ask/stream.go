@@ -115,6 +115,48 @@ func executeStreamingTurn(
 		return newSyncFailure(status, errCode, msg, action, in.CorrelationID, &quota)
 	}
 
+	emitter, stopStream, err := startStream()
+	if err != nil {
+		return refundPreStream(http.StatusBadGateway, contracts.ErrCodeUpstreamUnavailable,
+			"Upstream service unreachable.", "Retry shortly or go home.", "stream_init_error")
+	}
+	if stopStream != nil {
+		defer stopStream()
+	}
+
+	stopRenewer := startLeaseRenewer(ctx, deps.store, attemptID, deps.leaseRenewInterval)
+	defer stopRenewer()
+
+	_ = emitter.EmitStatus("retrieving", "Searching portfolio records...")
+	_ = emitter.EmitMeta(askStreamMeta{
+		AttemptID:      attemptID,
+		ConversationID: convID,
+		TurnIndex:      turnIndex,
+		CorrelationID:  in.CorrelationID,
+		Mode:           mode,
+		Provider:       deps.provider.Name(),
+	})
+
+	refundStreamError := func(status int, errCode, msg, action, reason string) {
+		stopRenewer()
+		cleanCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), detachedCleanupTimeout)
+		defer cancel()
+		quota, _ := deps.store.RefundTurnTx(cleanCtx, attemptID, errCode)
+		_ = emitter.EmitError(contracts.PublicAppError{
+			Code:          errCode,
+			Status:        status,
+			Message:       msg,
+			Action:        action,
+			CorrelationID: in.CorrelationID,
+		}, &quota)
+		logAskEvent("ai_ask.turn.audit", map[string]any{
+			"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
+			"provider": deps.provider.Name(), "tokensReserved": pg.DefaultAskTurnReserveTokens,
+			"tokensUsed": 0, "deltaStatus": "refunded", "reason": reason,
+			"correlationId": in.CorrelationID, "seam_type": "DELTA_AUDIT_GAP",
+		})
+	}
+
 	history, _ := deps.store.ListConversationHistory(ctx, in.SessionID, convID, conversationRecallMax)
 	retrievalQuery, rewriteTokens := rewriteFollowUpQuery(ctx, deps.provider, history, queryText)
 
@@ -122,15 +164,18 @@ func executeStreamingTurn(
 	hybrid, searchErr := executeHybridSearch(ctx, deps.provider, deps.vectorStore, deps.store, retrievalQuery, 6, in.CorrelationID, allowProfileFallback)
 	if searchErr != nil {
 		if errors.Is(ctx.Err(), context.Canceled) || errors.Is(searchErr, context.Canceled) {
-			return refundPreStream(499, contracts.ErrCodeStreamAborted,
+			refundStreamError(499, contracts.ErrCodeStreamAborted,
 				"Request cancelled early.", "Retry if you still need this view.", "retrieval_canceled")
+			return nil
 		}
 		if errors.Is(searchErr, context.DeadlineExceeded) {
-			return refundPreStream(http.StatusGatewayTimeout, contracts.ErrCodeStreamTimeout,
+			refundStreamError(http.StatusGatewayTimeout, contracts.ErrCodeStreamTimeout,
 				"Section took too long to load.", "Retry loading or refresh.", "retrieval_timeout")
+			return nil
 		}
-		return refundPreStream(http.StatusBadGateway, contracts.ErrCodeUpstreamUnavailable,
+		refundStreamError(http.StatusBadGateway, contracts.ErrCodeUpstreamUnavailable,
 			"Upstream service unreachable.", "Retry shortly or go home.", "retrieval_error")
+		return nil
 	}
 
 	tier := classifyGroundingTier(mode, queryText, hybrid)
@@ -144,26 +189,8 @@ func executeStreamingTurn(
 		"correlationId": in.CorrelationID,
 	})
 
-	emitter, stopStream, err := startStream()
-	if err != nil {
-		return refundPreStream(http.StatusBadGateway, contracts.ErrCodeUpstreamUnavailable,
-			"Upstream service unreachable.", "Retry shortly or go home.", "stream_init_error")
-	}
-	if stopStream != nil {
-		defer stopStream()
-	}
-
-	_ = emitter.EmitStatus("retrieving", "Searching portfolio records...")
-	_ = emitter.EmitMeta(askStreamMeta{
-		AttemptID:      attemptID,
-		ConversationID: convID,
-		TurnIndex:      turnIndex,
-		CorrelationID:  in.CorrelationID,
-		Mode:           mode,
-		Provider:       deps.provider.Name(),
-	})
-
 	if tier == contracts.GroundingTierBoundary {
+		stopRenewer()
 		streamAbstainedTurn(ctx, deps, emitter, attemptID, convID, turnIndex, in, role, mode, hybrid.TopDenseScore, len(hybrid.Candidates), started)
 		return nil
 	}
@@ -173,8 +200,6 @@ func executeStreamingTurn(
 	_ = emitter.EmitSources(sources)
 	_ = emitter.EmitStatus("generating", "Synthesizing grounded response...")
 
-	stopRenewer := startLeaseRenewer(ctx, deps.store, attemptID, deps.leaseRenewInterval)
-	defer stopRenewer()
 	guard := privacy.NewStreamGuard(deps.privacyCfg, in.CorrelationID)
 
 	messages := buildStreamingMessages(tier, in.VisitorLens, profileCore, history, evidenceCtx, queryText)

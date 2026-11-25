@@ -22,11 +22,41 @@ import (
 )
 
 const (
-	DefaultStreamIdleTimeout       = 45 * time.Second
-	DefaultStreamDialTimeout       = 5 * time.Second
-	DefaultStreamTLSHandshake      = 5 * time.Second
-	DefaultStreamResponseHeaderTTL = 15 * time.Second
+	DefaultStreamIdleTimeout            = 45 * time.Second
+	DefaultStreamDialTimeout            = 5 * time.Second
+	DefaultStreamTLSHandshake           = 5 * time.Second
+	DefaultStreamResponseHeaderTTL      = 15 * time.Second
+	DefaultLocalHTTPTimeout             = 120 * time.Second
+	DefaultLocalStreamResponseHeaderTTL = 120 * time.Second
+	DefaultLocalStreamIdleTimeout       = 120 * time.Second
 )
+
+func parseEnvDurationMs(envKey string, fallback time.Duration) time.Duration {
+	raw := strings.TrimSpace(os.Getenv(envKey))
+	if raw == "" {
+		return fallback
+	}
+	ms, err := strconv.Atoi(raw)
+	if err != nil || ms <= 0 {
+		return fallback
+	}
+	return time.Duration(ms) * time.Millisecond
+}
+
+func localHTTPTimeout() time.Duration {
+	return parseEnvDurationMs("LOCAL_LLM_HTTP_TIMEOUT_MS", DefaultLocalHTTPTimeout)
+}
+
+func localStreamResponseHeaderTTL() time.Duration {
+	return parseEnvDurationMs("LOCAL_LLM_STREAM_HEADER_TIMEOUT_MS", DefaultLocalStreamResponseHeaderTTL)
+}
+
+func localStreamIdleTimeout(requested time.Duration) time.Duration {
+	if requested > 0 {
+		return requested
+	}
+	return parseEnvDurationMs("LOCAL_LLM_STREAM_IDLE_TIMEOUT_MS", DefaultLocalStreamIdleTimeout)
+}
 
 // ErrStreamIdleTimeout indicates an active LLM stream stopped delivering bytes past IdleTimeout.
 var ErrStreamIdleTimeout = errors.New("llm stream idle timeout exceeded")
@@ -147,6 +177,13 @@ func logLLMSeam(seamType, event string, fields map[string]any) {
 }
 
 func newDefaultStreamHTTPClient(base *http.Client) *http.Client {
+	return newStreamHTTPClient(base, DefaultStreamResponseHeaderTTL)
+}
+
+func newStreamHTTPClient(base *http.Client, responseHeaderTimeout time.Duration) *http.Client {
+	if responseHeaderTimeout <= 0 {
+		responseHeaderTimeout = DefaultStreamResponseHeaderTTL
+	}
 	var transport http.RoundTripper
 	if base != nil && base.Transport != nil {
 		if ht, ok := base.Transport.(*http.Transport); ok {
@@ -155,7 +192,7 @@ func newDefaultStreamHTTPClient(base *http.Client) *http.Client {
 				cloned.TLSHandshakeTimeout = DefaultStreamTLSHandshake
 			}
 			if cloned.ResponseHeaderTimeout == 0 {
-				cloned.ResponseHeaderTimeout = DefaultStreamResponseHeaderTTL
+				cloned.ResponseHeaderTimeout = responseHeaderTimeout
 			}
 			transport = cloned
 		} else {
@@ -173,7 +210,7 @@ func newDefaultStreamHTTPClient(base *http.Client) *http.Client {
 			KeepAlive: 30 * time.Second,
 		}).DialContext
 		cloned.TLSHandshakeTimeout = DefaultStreamTLSHandshake
-		cloned.ResponseHeaderTimeout = DefaultStreamResponseHeaderTTL
+		cloned.ResponseHeaderTimeout = responseHeaderTimeout
 		transport = cloned
 	}
 	return &http.Client{
