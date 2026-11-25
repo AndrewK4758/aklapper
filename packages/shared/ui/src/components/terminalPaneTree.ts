@@ -188,6 +188,42 @@ function splitNode(
   return node;
 }
 
+function allocateNextTtyNumberFromUsed(usedNumbers: ReadonlySet<number>): number {
+  let candidate = 1;
+  while (usedNumbers.has(candidate)) {
+    candidate += 1;
+  }
+  return candidate;
+}
+
+function allocateNextTtyNumberFromLeaves(leaves: readonly TerminalLeafPane[]): number {
+  const usedNumbers = new Set<number>();
+  for (const leaf of leaves) {
+    if (Number.isSafeInteger(leaf.ttyNumber) && leaf.ttyNumber >= 1) {
+      usedNumbers.add(leaf.ttyNumber);
+    }
+  }
+  return allocateNextTtyNumberFromUsed(usedNumbers);
+}
+
+function updateLeafTtyNumbers(
+  node: TerminalPaneNode,
+  replacements: ReadonlyMap<string, number>,
+): TerminalPaneNode {
+  if (node.type === 'leaf') {
+    const nextTty = replacements.get(node.id);
+    return nextTty !== undefined && nextTty !== node.ttyNumber
+      ? { ...node, ttyNumber: nextTty }
+      : node;
+  }
+  const nextFirst = updateLeafTtyNumbers(node.first, replacements);
+  const nextSecond = updateLeafTtyNumbers(node.second, replacements);
+  if (nextFirst === node.first && nextSecond === node.second) {
+    return node;
+  }
+  return { ...node, first: nextFirst, second: nextSecond };
+}
+
 function splitPaneWithKind(
   state: TerminalWorkspaceState,
   targetPaneId: string,
@@ -195,10 +231,11 @@ function splitPaneWithKind(
   kind?: TerminalPaneKind,
 ): TerminalWorkspaceState {
   const paneNumber = state.nextPaneNumber;
+  const ttyNumber = allocateNextTtyNumberFromLeaves(listLeafPanes(state.root));
   const newLeaf: TerminalLeafPane = {
     type: 'leaf',
     id: `pane-${paneNumber}`,
-    ttyNumber: paneNumber,
+    ttyNumber,
     ...(kind ? { kind } : {}),
     tuiOpen: kind === 'tui',
   };
@@ -1169,6 +1206,18 @@ export function allocateNextTabNumber(tabs: readonly TerminalWorkspaceTab[]): nu
   return candidate;
 }
 
+export function allocateNextTtyNumber(tabs: readonly TerminalWorkspaceTab[]): number {
+  const usedNumbers = new Set<number>();
+  for (const tab of tabs) {
+    for (const leaf of listLeafPanes(tab.workspace.root)) {
+      if (Number.isSafeInteger(leaf.ttyNumber) && leaf.ttyNumber >= 1) {
+        usedNumbers.add(leaf.ttyNumber);
+      }
+    }
+  }
+  return allocateNextTtyNumberFromUsed(usedNumbers);
+}
+
 export function createInitialTabbedWorkspaceState(
   options?: InitialWorkspaceOptions,
 ): TerminalTabbedWorkspaceState {
@@ -1202,10 +1251,48 @@ export function updateActiveTabWorkspace(
     activeTab.workspace.nextPaneNumber < state.nextPaneNumber
       ? { ...activeTab.workspace, nextPaneNumber: state.nextPaneNumber }
       : activeTab.workspace;
-  const nextWorkspace = updater(syncedWorkspace);
-  if (nextWorkspace === syncedWorkspace) {
+  const rawNextWorkspace = updater(syncedWorkspace);
+  if (rawNextWorkspace === syncedWorkspace) {
     return state;
   }
+
+  let nextWorkspace = rawNextWorkspace;
+  const prevLeafIds = new Set(listLeafPanes(activeTab.workspace.root).map(leaf => leaf.id));
+  const nextLeaves = listLeafPanes(rawNextWorkspace.root);
+  const newLeaves = nextLeaves.filter(leaf => !prevLeafIds.has(leaf.id));
+  if (newLeaves.length > 0) {
+    const usedNumbers = new Set<number>();
+    for (const tab of state.tabs) {
+      if (tab.id === activeTab.id) {
+        continue;
+      }
+      for (const leaf of listLeafPanes(tab.workspace.root)) {
+        if (Number.isSafeInteger(leaf.ttyNumber) && leaf.ttyNumber >= 1) {
+          usedNumbers.add(leaf.ttyNumber);
+        }
+      }
+    }
+    for (const leaf of nextLeaves) {
+      if (prevLeafIds.has(leaf.id) && Number.isSafeInteger(leaf.ttyNumber) && leaf.ttyNumber >= 1) {
+        usedNumbers.add(leaf.ttyNumber);
+      }
+    }
+    const replacements = new Map<string, number>();
+    for (const newLeaf of newLeaves) {
+      const assigned = allocateNextTtyNumberFromUsed(usedNumbers);
+      usedNumbers.add(assigned);
+      if (assigned !== newLeaf.ttyNumber) {
+        replacements.set(newLeaf.id, assigned);
+      }
+    }
+    if (replacements.size > 0) {
+      nextWorkspace = {
+        ...rawNextWorkspace,
+        root: updateLeafTtyNumbers(rawNextWorkspace.root, replacements),
+      };
+    }
+  }
+
   const nextPaneNumber = Math.max(state.nextPaneNumber, nextWorkspace.nextPaneNumber);
   return {
     ...state,
@@ -1219,10 +1306,11 @@ export function updateActiveTabWorkspace(
 export function addWorkspaceTab(state: TerminalTabbedWorkspaceState): TerminalTabbedWorkspaceState {
   const tabNumber = allocateNextTabNumber(state.tabs);
   const paneNumber = state.nextPaneNumber;
+  const ttyNumber = allocateNextTtyNumber(state.tabs);
   const leaf: TerminalLeafPane = {
     type: 'leaf',
     id: `pane-${paneNumber}`,
-    ttyNumber: paneNumber,
+    ttyNumber,
     tuiOpen: false,
   };
   const newTab: TerminalWorkspaceTab = {

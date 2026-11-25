@@ -533,11 +533,15 @@ describe('TerminalWorkspace keybind action validation', () => {
     expect(workspaceEl.getAttribute('data-tab-count')).toBe('1');
     expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-1');
 
-    // Opening a new tab reuses tab-2 rather than skipping to tab-4
+    // Opening a new tab reuses tab-2 AND visible label tty2 rather than skipping to tab-4 / tty4
     fireEvent.keyDown(window, { key: 'N', code: 'KeyN', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-2');
+    const tabLabelsAfterReopen = Array.from(workspaceEl.querySelectorAll('[role="tab"]')).map(el =>
+      el.textContent?.trim(),
+    );
+    expect(tabLabelsAfterReopen).toEqual(['tty1', 'tty2']);
 
-    // Switch back to tab-1 and close it via "exit", then open a new tab -> reuses tab-1
+    // Switch back to tab-1 and close it via "exit", then open a new tab -> reuses tab-1 AND visible label tty1
     fireEvent.keyDown(window, { key: '!', code: 'Digit1', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-1');
     submitCommand('exit');
@@ -547,6 +551,10 @@ describe('TerminalWorkspace keybind action validation', () => {
     submitCommand('tab');
     expect(workspaceEl.getAttribute('data-tab-count')).toBe('2');
     expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-1');
+    const tabLabelsAfterClosingFirst = Array.from(workspaceEl.querySelectorAll('[role="tab"]')).map(
+      el => el.textContent?.trim(),
+    );
+    expect(tabLabelsAfterClosingFirst).toEqual(['tty2', 'tty1']);
   });
 
   it('navigates to /menu via Alt+M unless disableMenuShortcut is set', () => {
