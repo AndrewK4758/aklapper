@@ -170,7 +170,7 @@ func handleRunStream(deps cadenceServiceDeps) http.HandlerFunc {
 			workCancel context.CancelFunc
 		)
 		if mode == contracts.CadenceModeLLM {
-			workCtx, workCancel = context.WithTimeout(r.Context(), 60*time.Second)
+			workCtx, workCancel = context.WithTimeout(r.Context(), 90*time.Second)
 		} else {
 			workCtx, workCancel = context.WithTimeout(context.WithoutCancel(r.Context()), 15*time.Second)
 		}
@@ -186,7 +186,7 @@ func handleRunStream(deps cadenceServiceDeps) http.HandlerFunc {
 			Prompt:      claimed.Prompt,
 			PresetSlug:  presetSlug,
 			Mode:        mode,
-			OnPhase: func(turn contracts.CadenceTurn, runStatus string, progress int) {
+			OnPhase: func(turn contracts.CadenceTurn, runStatus string, progress int, spec *contracts.CadenceSpecArtifact) {
 				if r.Context().Err() != nil {
 					return
 				}
@@ -203,6 +203,7 @@ func handleRunStream(deps cadenceServiceDeps) http.HandlerFunc {
 					Status:    &st,
 					Progress:  progress,
 					Turn:      turn,
+					Spec:      spec,
 				})
 			},
 			OnLog: func(line string) {
@@ -319,11 +320,16 @@ func replayRun(sse *httpkit.SSEWriter, r *http.Request, store *pg.Store, role, s
 		if progress > 100 {
 			progress = 100
 		}
+		var phaseSpec *contracts.CadenceSpecArtifact
+		if turn.Phase == "spec" {
+			phaseSpec = run.SpecJSON
+		}
 		_ = sse.WriteEvent("phase", contracts.CadenceStreamPhaseEvent{
 			RunID:     run.RunID,
 			RunStatus: run.Status,
 			Progress:  progress,
 			Turn:      turn,
+			Spec:      phaseSpec,
 		})
 	}
 	if r.Context().Err() != nil {

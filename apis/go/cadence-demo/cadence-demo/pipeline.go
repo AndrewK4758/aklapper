@@ -29,7 +29,7 @@ type chordExecutionOutput struct {
 	OSC7501       string
 }
 
-type phaseEmitFn func(turn contracts.CadenceTurn, runStatus string, progress int)
+type phaseEmitFn func(turn contracts.CadenceTurn, runStatus string, progress int, spec *contracts.CadenceSpecArtifact)
 
 type chordExecInput struct {
 	Provider    llm.Provider
@@ -166,7 +166,7 @@ func executeChordStepsWithOptions(ctx context.Context, in chordExecInput) (chord
 		}
 	}
 
-	emitUpdate := func(phase, agentName, status, summary string, latencyMs, progress int, payload map[string]any) error {
+	emitUpdate := func(phase, agentName, status, summary string, latencyMs, progress int, payload map[string]any, spec *contracts.CadenceSpecArtifact) error {
 		var emitted contracts.CadenceTurn
 		if in.RunID != "" {
 			updated, err := in.Store.UpdateSandboxTurn(ctx, in.RunID, phase, status, summary, latencyMs, payload)
@@ -178,7 +178,7 @@ func executeChordStepsWithOptions(ctx context.Context, in chordExecInput) (chord
 			emitted = contracts.CadenceTurn{Phase: phase, AgentName: agentName, Status: status, Summary: summary, LatencyMs: latencyMs, Payload: payload}
 		}
 		if in.OnPhase != nil {
-			in.OnPhase(emitted, contracts.CadenceStatusRunning, progress)
+			in.OnPhase(emitted, contracts.CadenceStatusRunning, progress, spec)
 		}
 		return nil
 	}
@@ -186,7 +186,7 @@ func executeChordStepsWithOptions(ctx context.Context, in chordExecInput) (chord
 	// Phase 1: Triage
 	t1Start := time.Now()
 	emitLog("[triage] Evaluating prompt scope and sandbox isolation profile...")
-	if err := emitUpdate("triage", "chord-triage", "running", "Evaluating prompt and isolation profile...", 0, 10, nil); err != nil {
+	if err := emitUpdate("triage", "chord-triage", "running", "Evaluating prompt and isolation profile...", 0, 10, nil, nil); err != nil {
 		return chordExecutionOutput{}, err
 	}
 	detectedKeywords := extractPromptKeywords(in.Prompt, 6)
@@ -199,14 +199,14 @@ func executeChordStepsWithOptions(ctx context.Context, in chordExecInput) (chord
 		"isolationPolicy":  "sandbox=allow-scripts; opaque-origin; max-48KiB",
 	}
 	t1Ms := int(time.Since(t1Start).Milliseconds()) + 2
-	if err := emitUpdate("triage", "chord-triage", "completed", triageSummary, t1Ms, 25, triagePayload); err != nil {
+	if err := emitUpdate("triage", "chord-triage", "completed", triageSummary, t1Ms, 25, triagePayload, nil); err != nil {
 		return chordExecutionOutput{}, err
 	}
 
-	// Phase 2: Spec (+ bounded Qdrant recall)
+	// Phase 2: Spec (+ bounded Qdrant recall + live LLM CHORD spec generation)
 	t2Start := time.Now()
-	emitLog("[spec] Running bounded Qdrant pattern recall and drafting CHORD spec...")
-	if err := emitUpdate("spec", "chord-spec", "running", "Drafting sandbox spec and bounded vector recall...", 0, 35, nil); err != nil {
+	emitLog("[spec] Running bounded Qdrant pattern recall and authoring CHORD specification...")
+	if err := emitUpdate("spec", "chord-spec", "running", "Authoring CHORD specification and running vector recall...", 0, 35, nil, nil); err != nil {
 		return chordExecutionOutput{}, err
 	}
 	recalledPatterns := []string{}
@@ -228,21 +228,68 @@ func executeChordStepsWithOptions(ctx context.Context, in chordExecInput) (chord
 		}
 		cancel()
 	}
+
 	specArtifact := buildDeterministicSpec(in.Prompt, in.PresetSlug, preset, recalledPatterns)
-	specSummary := fmt.Sprintf("Drafted single-file HTML/CSS spec (recalled %d Qdrant pattern(s)).", len(recalledPatterns))
+	specProvider := "deterministic-fast"
+	specFallbackReason := ""
+	specTokens := 0
+	if mode == contracts.CadenceModeLLM {
+		liveSpec, usedTokens, specErr := invokeLLMSpecStage(
+			ctx,
+			in.Provider,
+			in.PrivacyCfg,
+			in.CorrID,
+			in.PresetSlug,
+			in.Prompt,
+			recalledPatterns,
+			emitLog,
+		)
+		if specErr != nil {
+			if errors.Is(specErr, privacy.ErrPrivacyAborted) || errors.Is(specErr, context.Canceled) {
+				return chordExecutionOutput{}, specErr
+			}
+			specProvider = "deterministic-fallback"
+			specFallbackReason = "Live LLM spec stage failed or timed out; degraded explicitly to deterministic CHORD spec."
+			emitLog("[spec] " + specFallbackReason)
+			logCadenceSeam("RULE_DIVERGENCE", "cadence.spec.fallback", "warn", map[string]any{
+				"runId":  in.RunID,
+				"reason": specErr.Error(),
+			})
+		} else if liveSpec != nil {
+			specCopy := liveSpec.Spec
+			specCopy.RecalledPatterns = recalledPatterns
+			specArtifact = &specCopy
+			specProvider = in.Provider.Name()
+			specTokens = usedTokens
+			emitLog("[spec] CHORD specification ready: " + specArtifact.Title)
+		}
+	}
+
+	specSummary := fmt.Sprintf("Authored CHORD spec %q via %s (recalled %d Qdrant pattern(s)).", specArtifact.Title, specProvider, len(recalledPatterns))
 	specPayload := map[string]any{
+		"provider":           specProvider,
+		"specTitle":          specArtifact.Title,
+		"specSummary":        specArtifact.Summary,
+		"conditions":         specArtifact.Conditions,
+		"handling":           specArtifact.Handling,
+		"outcomes":           specArtifact.Outcomes,
+		"rules":              specArtifact.Rules,
+		"deltas":             specArtifact.Deltas,
 		"recalledPatterns":   recalledPatterns,
 		"acceptanceCriteria": specArtifact.Outcomes,
 		"sandboxConstraints": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'",
 	}
+	if specFallbackReason != "" {
+		specPayload["fallbackReason"] = specFallbackReason
+	}
 	t2Ms := int(time.Since(t2Start).Milliseconds()) + 4
-	if err := emitUpdate("spec", "chord-spec", "completed", specSummary, t2Ms, 50, specPayload); err != nil {
+	if err := emitUpdate("spec", "chord-spec", "completed", specSummary, t2Ms, 50, specPayload, specArtifact); err != nil {
 		return chordExecutionOutput{}, err
 	}
 
-	// Phase 3: Build (fast tailored synthesis vs single-call structured streaming LLM)
+	// Phase 3: Build (fast tailored synthesis vs live LLM implementing the Phase 2 CHORD spec)
 	t3Start := time.Now()
-	if err := emitUpdate("build", "chord-builder", "running", "Synthesizing tailored Solar Forge artifact...", 0, 65, nil); err != nil {
+	if err := emitUpdate("build", "chord-builder", "running", "Synthesizing bespoke HTML5/CSS artifact from CHORD spec...", 0, 65, nil, nil); err != nil {
 		return chordExecutionOutput{}, err
 	}
 	tokensIn := len(in.Prompt)/4 + 120
@@ -254,13 +301,14 @@ func executeChordStepsWithOptions(ctx context.Context, in chordExecInput) (chord
 	var extraChecks []contracts.CadenceGateCheckItem
 
 	if mode == contracts.CadenceModeLLM {
-		structured, usedTokens, err := invokeStructuredLLM(
+		built, buildTokens, err := invokeLLMBuildStage(
 			ctx,
 			in.Provider,
 			in.PrivacyCfg,
 			in.CorrID,
 			in.PresetSlug,
 			in.Prompt,
+			specArtifact,
 			recalledPatterns,
 			emitLog,
 		)
@@ -277,19 +325,14 @@ func executeChordStepsWithOptions(ctx context.Context, in chordExecInput) (chord
 				"runId":  in.RunID,
 				"reason": err.Error(),
 			})
-		} else if structured != nil {
+		} else if built != nil {
 			executionMode = contracts.CadenceExecutionModeLive
 			buildMode = in.Provider.Name()
-			artifactHTML = structured.ArtifactHTML
-			if usedTokens > 0 {
-				tokensOut = usedTokens
+			artifactHTML = built.ArtifactHTML
+			if specTokens+buildTokens > 0 {
+				tokensOut = specTokens + buildTokens
 			}
-			if strings.TrimSpace(structured.Spec.Title) != "" {
-				specCopy := structured.Spec
-				specCopy.RecalledPatterns = recalledPatterns
-				specArtifact = &specCopy
-			}
-			extraChecks = structured.GateChecks
+			extraChecks = built.GateChecks
 			logCadenceSeam("RULE_DIVERGENCE", "cadence.run.execution_mode_selected", "info", map[string]any{
 				"branch": contracts.CadenceExecutionModeLive,
 				"runId":  in.RunID,
@@ -312,14 +355,14 @@ func executeChordStepsWithOptions(ctx context.Context, in chordExecInput) (chord
 	if fallbackReason != "" {
 		buildPayload["fallbackReason"] = fallbackReason
 	}
-	if err := emitUpdate("build", "chord-builder", "completed", buildSummary, t3Ms, 80, buildPayload); err != nil {
+	if err := emitUpdate("build", "chord-builder", "completed", buildSummary, t3Ms, 80, buildPayload, nil); err != nil {
 		return chordExecutionOutput{}, err
 	}
 
 	// Phase 4: Gate — sanitize & validate
 	t4Start := time.Now()
 	emitLog("[gate] Running strict SHA-256 CSP HTML sanitizer...")
-	if err := emitUpdate("gate", "chord-gate", "running", "Running HTML/JS isolation sanitizer...", 0, 90, nil); err != nil {
+	if err := emitUpdate("gate", "chord-gate", "running", "Running HTML/JS isolation sanitizer...", 0, 90, nil, nil); err != nil {
 		return chordExecutionOutput{}, err
 	}
 	sanitizedHTML, stripped := sanitizeArtifactHTML(artifactHTML)
@@ -335,7 +378,7 @@ func executeChordStepsWithOptions(ctx context.Context, in chordExecInput) (chord
 		"checks":        gateCheckLabels,
 	}
 	t4Ms := int(time.Since(t4Start).Milliseconds()) + 3
-	if err := emitUpdate("gate", "chord-gate", "completed", gateAudit.Summary, t4Ms, 100, gatePayload); err != nil {
+	if err := emitUpdate("gate", "chord-gate", "completed", gateAudit.Summary, t4Ms, 100, gatePayload, nil); err != nil {
 		return chordExecutionOutput{}, err
 	}
 

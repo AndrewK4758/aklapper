@@ -107,7 +107,7 @@ export function PortalCadencePage({
     defaultPreset?.slug ?? CUSTOM_PRESET_VALUE,
   );
   const [promptText, setPromptText] = useState(defaultPreset?.starterPrompt ?? '');
-  const [fastMode, setFastMode] = useState(true);
+  const [fastMode, setFastMode] = useState(false);
   const [runs, setRuns] = useState<readonly CadenceRunResult[]>(recentRuns);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(initialSelectedRunId);
   const [revisionNote, setRevisionNote] = useState('');

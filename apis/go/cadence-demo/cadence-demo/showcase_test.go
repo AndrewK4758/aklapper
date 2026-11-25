@@ -29,7 +29,9 @@ import (
 )
 
 type streamingStubLLM struct {
-	chunks []string
+	chunks    []string
+	responses [][]string
+	calls     int
 }
 
 func (s *streamingStubLLM) Name() string                                         { return "stub-streaming-llm" }
@@ -38,8 +40,17 @@ func (s *streamingStubLLM) Chat(_ context.Context, _ []llm.ChatMessage, _ int) (
 	return llm.Completion{Text: strings.Join(s.chunks, ""), Model: "stub", TokensUsed: 120}, nil
 }
 func (s *streamingStubLLM) ChatStream(ctx context.Context, _ llm.ChatStreamRequest, onChunk func(llm.ChatStreamChunk) error) (llm.ChatStreamResult, error) {
+	activeChunks := s.chunks
+	if len(s.responses) > 0 {
+		idx := s.calls
+		if idx >= len(s.responses) {
+			idx = len(s.responses) - 1
+		}
+		activeChunks = s.responses[idx]
+	}
+	s.calls++
 	var all strings.Builder
-	for _, ch := range s.chunks {
+	for _, ch := range activeChunks {
 		if ctx.Err() != nil {
 			return llm.ChatStreamResult{}, ctx.Err()
 		}
@@ -143,6 +154,80 @@ func TestCadenceShowcaseCacheGoldenPrivacyAndGRPC(t *testing.T) {
 		}
 	})
 
+	t.Run("live llm mode bypasses cache and runs two-stage Spec -> Build producing fresh output each time", func(t *testing.T) {
+		spec1, _ := json.Marshal(map[string]any{
+			"triage": "First live angle",
+			"spec": map[string]any{
+				"title":      "Variant Alpha Scorecard",
+				"summary":    "First live spec summary",
+				"conditions": []string{"Prompt alpha received"},
+				"handling":   []string{"Render split KPI matrix"},
+				"outcomes":   []string{"Interactive alpha dashboard"},
+				"rules":      []string{"Zero inline scripts"},
+				"deltas":     []string{"Emits alpha spec"},
+			},
+		})
+		build1, _ := json.Marshal(map[string]any{
+			"gateChecks":   []map[string]any{{"id": "c1", "label": "Alpha Check", "status": "pass", "detail": "ok"}},
+			"artifactHtml": "<!doctype html><html><body><h1>Variant Alpha</h1></body></html>",
+		})
+		spec2, _ := json.Marshal(map[string]any{
+			"triage": "Second live angle",
+			"spec": map[string]any{
+				"title":      "Variant Beta Timeline",
+				"summary":    "Second live spec summary",
+				"conditions": []string{"Prompt beta received"},
+				"handling":   []string{"Render accordion timeline"},
+				"outcomes":   []string{"Interactive beta timeline"},
+				"rules":      []string{"Zero inline scripts"},
+				"deltas":     []string{"Emits beta spec"},
+			},
+		})
+		build2, _ := json.Marshal(map[string]any{
+			"gateChecks":   []map[string]any{{"id": "c2", "label": "Beta Check", "status": "pass", "detail": "ok"}},
+			"artifactHtml": "<!doctype html><html><body><h1>Variant Beta</h1></body></html>",
+		})
+		stub := &streamingStubLLM{
+			responses: [][]string{{string(spec1)}, {string(build1)}, {string(spec2)}, {string(build2)}},
+		}
+		store := pg.NewMemoryStore()
+		h := newHandler(stub, nil, store)
+
+		body := []byte(`{"prompt":"Build an architecture scorecard","presetSlug":"custom","sessionId":"sess-A","mode":"llm"}`)
+		req1 := httptest.NewRequest(http.MethodPost, "/v1/cadence/runs", bytes.NewReader(body))
+		req1.Header.Set(internalauth.HeaderName, sessATok)
+		rec1 := httptest.NewRecorder()
+		h.ServeHTTP(rec1, req1)
+		if rec1.Code != http.StatusCreated {
+			t.Fatalf("expected 201 for live run 1, got %d: %s", rec1.Code, rec1.Body.String())
+		}
+		var run1 contracts.CadenceRunResult
+		_ = json.Unmarshal(rec1.Body.Bytes(), &run1)
+
+		req2 := httptest.NewRequest(http.MethodPost, "/v1/cadence/runs", bytes.NewReader(body))
+		req2.Header.Set(internalauth.HeaderName, sessATok)
+		rec2 := httptest.NewRecorder()
+		h.ServeHTTP(rec2, req2)
+		if rec2.Code != http.StatusCreated {
+			t.Fatalf("expected 201 for live run 2, got %d: %s", rec2.Code, rec2.Body.String())
+		}
+		var run2 contracts.CadenceRunResult
+		_ = json.Unmarshal(rec2.Body.Bytes(), &run2)
+
+		if run1.ExecutionMode != contracts.CadenceExecutionModeLive || run2.ExecutionMode != contracts.CadenceExecutionModeLive {
+			t.Fatalf("expected both runs to execute live without cache cloning, got (%q, %q)", run1.ExecutionMode, run2.ExecutionMode)
+		}
+		if run1.Spec == nil || run2.Spec == nil || run1.Spec.Title == run2.Spec.Title {
+			t.Fatalf("expected distinct live specs across identical prompts, got (%+v, %+v)", run1.Spec, run2.Spec)
+		}
+		if !strings.Contains(run1.ArtifactHTML, "Variant Alpha") || !strings.Contains(run2.ArtifactHTML, "Variant Beta") {
+			t.Fatalf("expected distinct live HTML artifacts across runs")
+		}
+		if stub.calls != 4 {
+			t.Fatalf("expected 4 LLM calls (2 Spec + 2 Build), got %d", stub.calls)
+		}
+	})
+
 	t.Run("post-parse StreamGuard ActionAbort fails closed without fallback", func(t *testing.T) {
 		// Synthetic credentialed URL matching built-in secret rule (not a real credential).
 		fakeSecret := "postgres://demo_user:synthetic_secret_val@db.invalid:5432/app"
@@ -157,8 +242,6 @@ func TestCadenceShowcaseCacheGoldenPrivacyAndGRPC(t *testing.T) {
 				"rules":      []string{"r1"},
 				"deltas":     []string{"d1"},
 			},
-			"gateChecks":   []map[string]any{{"id": "c1", "label": "Check", "status": "pass", "detail": "ok"}},
-			"artifactHtml": "<!doctype html><html><body><p>Hello</p></body></html>",
 		}
 		raw, _ := json.Marshal(payload)
 		privacyCfg, _ := privacy.LoadConfig(privacy.ConfigInput{})

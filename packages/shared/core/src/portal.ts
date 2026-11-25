@@ -126,6 +126,7 @@ export const CadenceStreamPhaseEventSchema = z.object({
   status: Osc7501StatusSchema.optional(),
   progress: z.number().min(0).max(100).optional(),
   turn: CadenceTurnSchema,
+  spec: CadenceSpecArtifactSchema.optional(),
 });
 export type CadenceStreamPhaseEvent = z.infer<typeof CadenceStreamPhaseEventSchema>;
 
