@@ -55,39 +55,9 @@ func envLookup(env map[string]string, key string) string {
 }
 
 func providerFromEnvMap(env map[string]string) llm.Provider {
-	if strings.EqualFold(envLookup(env, "AI_PROVIDER"), "vertex") {
-		model := envLookup(env, "VERTEX_MODEL")
-		if model == "" {
-			model = llm.DefaultVertexModel
-		}
-		embedModel := envLookup(env, "VERTEX_EMBED_MODEL")
-		if embedModel == "" {
-			embedModel = llm.DefaultVertexEmbedModel
-		}
-		location := envLookup(env, "GCP_LOCATION")
-		if location == "" {
-			location = llm.DefaultVertexLocation
-		}
-		return &llm.VertexClient{
-			ProjectID:   envLookup(env, "GCP_PROJECT_ID"),
-			Location:    location,
-			Model:       model,
-			EmbedModel:  embedModel,
-			AccessToken: envLookup(env, "GOOGLE_OAUTH_ACCESS_TOKEN"),
-			MetadataURL: envLookup(env, "GCP_METADATA_TOKEN_URL"),
-			HTTPClient:  &http.Client{Timeout: 30 * time.Second},
-		}
-	}
-	baseURL := envLookup(env, "LOCAL_LLM_BASE_URL")
-	if baseURL == "" {
-		baseURL = llm.DefaultLocalBaseURL
-	}
-	return &llm.LocalClient{
-		BaseURL:    baseURL,
-		ChatModel:  envLookup(env, "LOCAL_LLM_CHAT_MODEL"),
-		EmbedModel: envLookup(env, "LOCAL_LLM_EMBED_MODEL"),
-		HTTPClient: &http.Client{Timeout: 30 * time.Second},
-	}
+	return llm.NewFromEnvMap(func(key string) string {
+		return envLookup(env, key)
+	})
 }
 
 func qdrantFromEnvMap(env map[string]string) *qdrant.Client {

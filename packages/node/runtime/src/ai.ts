@@ -92,24 +92,64 @@ export function createLocalAiProvider(config: LocalAiConfig = {}): AiProvider {
   };
 }
 
+export type VertexThinkingLevel = 'LOW' | 'MEDIUM' | 'HIGH';
+
 export interface VertexAiConfig {
   projectId: string;
-  location: string;
+  location?: string;
   geminiModel?: string;
   embedModel?: string;
+  thinkingLevel?: VertexThinkingLevel;
   accessToken?: string;
   metadataUrl?: string;
   endpointBaseUrl?: string;
   fetchImpl?: typeof fetch;
 }
 
-const DEFAULT_VERTEX_GEMINI_MODEL = 'gemini-2.5-flash';
-const DEFAULT_VERTEX_EMBED_MODEL = 'text-embedding-005';
+const DEFAULT_VERTEX_LOCATION = 'global';
+const DEFAULT_VERTEX_GEMINI_MODEL = 'gemini-3.8-flash';
+const DEFAULT_VERTEX_EMBED_MODEL = 'gemini-embedding-2';
+const DEFAULT_VERTEX_THINKING_LEVEL: VertexThinkingLevel = 'LOW';
+const EXPECTED_VERTEX_EMBED_DIMS = 768;
+const VERTEX_EMBED_CONCURRENCY = 4;
 const DEFAULT_GCP_METADATA_TOKEN_URL =
   'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token';
 const METADATA_TOKEN_TIMEOUT_MS = 2_000;
 
-async function resolveVertexAccessToken(config: VertexAiConfig): Promise<string> {
+function normalizeVertexLocation(location?: string): string {
+  const trimmed = location?.trim() ?? '';
+  return !trimmed || trimmed.toLowerCase() === 'global' ? DEFAULT_VERTEX_LOCATION : trimmed;
+}
+
+function formatVertexEndpointBase(location: string, endpointBaseUrl?: string): string {
+  const override = endpointBaseUrl?.trim();
+  if (override) return override.replace(/\/$/, '');
+  return location === DEFAULT_VERTEX_LOCATION
+    ? 'https://aiplatform.googleapis.com'
+    : `https://${location}-aiplatform.googleapis.com`;
+}
+
+export function parseVertexThinkingLevel(raw?: string): VertexThinkingLevel {
+  const trimmed = raw?.trim() ?? '';
+  if (!trimmed) return DEFAULT_VERTEX_THINKING_LEVEL;
+  const upper = trimmed.toUpperCase();
+  if (upper === 'LOW' || upper === 'MEDIUM' || upper === 'HIGH') return upper;
+  throw new Error(`Invalid VERTEX_THINKING_LEVEL "${raw}": must be LOW, MEDIUM, or HIGH`);
+}
+
+function isGemini3Model(model: string): boolean {
+  return model.trim().toLowerCase().startsWith('gemini-3');
+}
+
+function usesEmbedContent(model: string): boolean {
+  return model.trim().toLowerCase().startsWith('gemini-embedding-2');
+}
+
+function isGeminiEmbedding001(model: string): boolean {
+  return model.trim().toLowerCase().startsWith('gemini-embedding-001');
+}
+
+async function resolveVertexAccessToken(config: VertexAiConfig, location: string): Promise<string> {
   const direct = config.accessToken?.trim() || process.env['GOOGLE_OAUTH_ACCESS_TOKEN']?.trim();
   if (direct) {
     return direct;
@@ -139,32 +179,37 @@ async function resolveVertexAccessToken(config: VertexAiConfig): Promise<string>
   } catch (error) {
     const reason = error instanceof Error ? error.message : 'unreachable';
     throw new Error(
-      `Vertex AI credentials unavailable for ${config.projectId}/${config.location}: set GOOGLE_OAUTH_ACCESS_TOKEN or run with GCP Workload Identity metadata server (${reason}).`,
+      `Vertex AI credentials unavailable for ${config.projectId}/${location}: set GOOGLE_OAUTH_ACCESS_TOKEN or run with GCP Workload Identity metadata server (${reason}).`,
       { cause: error },
     );
   }
 }
 
 export function createVertexAiProvider(config: VertexAiConfig): AiProvider {
+  const location = normalizeVertexLocation(config.location);
   const geminiModel = config.geminiModel?.trim() || DEFAULT_VERTEX_GEMINI_MODEL;
   const embedModel = config.embedModel?.trim() || DEFAULT_VERTEX_EMBED_MODEL;
+  const thinkingLevel = parseVertexThinkingLevel(config.thinkingLevel);
   const fetchFn = config.fetchImpl ?? fetch;
-  const baseUrl = (
-    config.endpointBaseUrl?.trim() || `https://${config.location}-aiplatform.googleapis.com`
-  ).replace(/\/$/, '');
+  const baseUrl = formatVertexEndpointBase(location, config.endpointBaseUrl);
 
   return {
     kind: 'vertex',
     async generateText(input) {
-      const token = await resolveVertexAccessToken(config);
-      const url = `${baseUrl}/v1/projects/${encodeURIComponent(config.projectId)}/locations/${encodeURIComponent(config.location)}/publishers/google/models/${encodeURIComponent(geminiModel)}:generateContent`;
+      const token = await resolveVertexAccessToken(config, location);
+      const url = `${baseUrl}/v1/projects/${encodeURIComponent(config.projectId)}/locations/${encodeURIComponent(location)}/publishers/google/models/${encodeURIComponent(geminiModel)}:generateContent`;
+
+      const generationConfig: Record<string, unknown> = {
+        maxOutputTokens: input.maxTokens ?? 1024,
+        temperature: 0.2,
+      };
+      if (isGemini3Model(geminiModel)) {
+        generationConfig['thinkingConfig'] = { thinkingLevel };
+      }
 
       const body: Record<string, unknown> = {
         contents: [{ role: 'user', parts: [{ text: input.prompt }] }],
-        generationConfig: {
-          maxOutputTokens: input.maxTokens ?? 1024,
-          temperature: 0.2,
-        },
+        generationConfig,
       };
       if (input.systemPrompt?.trim()) {
         body['systemInstruction'] = {
@@ -184,12 +229,12 @@ export function createVertexAiProvider(config: VertexAiConfig): AiProvider {
 
       if (!response.ok) {
         throw new Error(
-          `Vertex AI generateContent failed for ${config.projectId}/${config.location} with status ${response.status}`,
+          `Vertex AI generateContent failed for ${config.projectId}/${location} with status ${response.status}`,
         );
       }
 
       const data = (await response.json()) as {
-        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+        candidates?: Array<{ content?: { parts?: Array<{ text?: string; thought?: boolean }> } }>;
         usageMetadata?: {
           promptTokenCount?: number;
           candidatesTokenCount?: number;
@@ -198,6 +243,7 @@ export function createVertexAiProvider(config: VertexAiConfig): AiProvider {
 
       const parts = data.candidates?.[0]?.content?.parts ?? [];
       const text = parts
+        .filter(part => part.thought !== true)
         .map(part => part.text ?? '')
         .join('')
         .trim();
@@ -211,8 +257,87 @@ export function createVertexAiProvider(config: VertexAiConfig): AiProvider {
     },
     async embed(texts) {
       if (texts.length === 0) return [];
-      const token = await resolveVertexAccessToken(config);
-      const url = `${baseUrl}/v1/projects/${encodeURIComponent(config.projectId)}/locations/${encodeURIComponent(config.location)}/publishers/google/models/${encodeURIComponent(embedModel)}:predict`;
+      const token = await resolveVertexAccessToken(config, location);
+
+      if (usesEmbedContent(embedModel)) {
+        const url = `${baseUrl}/v1/projects/${encodeURIComponent(config.projectId)}/locations/${encodeURIComponent(location)}/publishers/google/models/${encodeURIComponent(embedModel)}:embedContent`;
+        const results: number[][] = Array.from({ length: texts.length }, () => []);
+        const batchController = new AbortController();
+        let nextIndex = 0;
+
+        const worker = async (): Promise<void> => {
+          while (!batchController.signal.aborted) {
+            const current = nextIndex++;
+            if (current >= texts.length) {
+              return;
+            }
+            const text = texts[current] ?? '';
+            const response = await fetchFn(url, {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                content: { parts: [{ text }] },
+                outputDimensionality: EXPECTED_VERTEX_EMBED_DIMS,
+              }),
+              signal: AbortSignal.any([batchController.signal, AbortSignal.timeout(30_000)]),
+            });
+
+            if (!response.ok) {
+              throw new Error(
+                `Vertex AI embedContent failed for ${config.projectId}/${location} with status ${response.status}`,
+              );
+            }
+
+            const data = (await response.json()) as {
+              embedding?: { values?: number[] };
+            };
+            const values = data.embedding?.values;
+            if (
+              !Array.isArray(values) ||
+              values.length !== EXPECTED_VERTEX_EMBED_DIMS ||
+              values.some(v => !Number.isFinite(v))
+            ) {
+              throw new Error(
+                `Vertex AI embedContent returned invalid vector dimensions (${Array.isArray(values) ? values.length : 0}, expected ${EXPECTED_VERTEX_EMBED_DIMS})`,
+              );
+            }
+            results[current] = values;
+          }
+        };
+
+        const workerCount = Math.min(VERTEX_EMBED_CONCURRENCY, texts.length);
+        try {
+          await Promise.all(
+            Array.from({ length: workerCount }, async () => {
+              try {
+                await worker();
+              } catch (err) {
+                if (!batchController.signal.aborted) {
+                  batchController.abort(err);
+                }
+                throw err;
+              }
+            }),
+          );
+        } catch (err) {
+          if (batchController.signal.aborted && batchController.signal.reason instanceof Error) {
+            throw batchController.signal.reason;
+          }
+          throw err;
+        }
+        return results;
+      }
+
+      const url = `${baseUrl}/v1/projects/${encodeURIComponent(config.projectId)}/locations/${encodeURIComponent(location)}/publishers/google/models/${encodeURIComponent(embedModel)}:predict`;
+      const predictBody: Record<string, unknown> = {
+        instances: texts.map(content => ({ content })),
+      };
+      if (isGeminiEmbedding001(embedModel)) {
+        predictBody['parameters'] = { outputDimensionality: EXPECTED_VERTEX_EMBED_DIMS };
+      }
 
       const response = await fetchFn(url, {
         method: 'POST',
@@ -220,15 +345,13 @@ export function createVertexAiProvider(config: VertexAiConfig): AiProvider {
           'content-type': 'application/json',
           authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          instances: texts.map(content => ({ content })),
-        }),
+        body: JSON.stringify(predictBody),
         signal: AbortSignal.timeout(30_000),
       });
 
       if (!response.ok) {
         throw new Error(
-          `Vertex AI embeddings predict failed for ${config.projectId}/${config.location} with status ${response.status}`,
+          `Vertex AI embeddings predict failed for ${config.projectId}/${location} with status ${response.status}`,
         );
       }
 
@@ -244,7 +367,7 @@ export function createVertexAiProvider(config: VertexAiConfig): AiProvider {
 export function createAiProviderFromEnv(env: NodeJS.ProcessEnv = process.env): AiProvider {
   if (env['AI_PROVIDER'] === 'vertex') {
     const projectId = env['GCP_PROJECT_ID'];
-    const location = env['GCP_LOCATION'] ?? 'us-central1';
+    const location = normalizeVertexLocation(env['GCP_LOCATION']);
     if (!projectId) {
       throw new Error('GCP_PROJECT_ID is required when AI_PROVIDER=vertex');
     }
@@ -253,6 +376,7 @@ export function createAiProviderFromEnv(env: NodeJS.ProcessEnv = process.env): A
       location,
       geminiModel: env['VERTEX_MODEL'] ?? env['VERTEX_GEMINI_MODEL'],
       embedModel: env['VERTEX_EMBED_MODEL'],
+      thinkingLevel: parseVertexThinkingLevel(env['VERTEX_THINKING_LEVEL']),
       accessToken: env['GOOGLE_OAUTH_ACCESS_TOKEN'],
       metadataUrl: env['GCP_METADATA_TOKEN_URL'],
     });

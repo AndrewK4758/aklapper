@@ -458,10 +458,10 @@ jobs:
             PG_MAX_CONNS=4
             AI_PROVIDER=${{ vars.AI_PROVIDER || 'vertex' }}
             GCP_PROJECT_ID=${{ vars.GCP_PROJECT_ID }}
-            GCP_LOCATION=${{ vars.GCP_LOCATION || vars.GCP_REGION || 'us-central1' }}
-            VERTEX_MODEL=${{ vars.VERTEX_MODEL || '' }}
-            VERTEX_THINKING_BUDGET=${{ vars.VERTEX_THINKING_BUDGET || '0' }}
-            VERTEX_EMBED_MODEL=${{ vars.VERTEX_EMBED_MODEL || '' }}
+            GCP_LOCATION=${{ vars.GCP_LOCATION || 'global' }}
+            VERTEX_MODEL=${{ vars.VERTEX_MODEL || 'gemini-3.8-flash' }}
+            VERTEX_THINKING_LEVEL=${{ vars.VERTEX_THINKING_LEVEL || 'LOW' }}
+            VERTEX_EMBED_MODEL=${{ vars.VERTEX_EMBED_MODEL || 'gemini-embedding-2' }}
             QDRANT_URL=${{ vars.QDRANT_URL || '' }}
             AGENSI_CREATOR_HANDLE=${{ vars.AGENSI_CREATOR_HANDLE || 'aklapper' }}
           flags: >-
@@ -470,7 +470,7 @@ jobs:
             --subnet=default
             --vpc-egress=private-ranges-only
             --service-account=${{ vars.GCP_CLOUDRUN_SERVICE_ACCOUNT || secrets.GCP_WIF_SERVICE_ACCOUNT }}
-            --remove-env-vars=GRPC_PORT,DATABASE_URL,INTERNAL_AUTH_SECRET,QDRANT_API_KEY,AI_PRIVACY_DENYLIST,DOSSIER_PRIVACY_DENYLIST
+            --remove-env-vars=GRPC_PORT,VERTEX_THINKING_BUDGET,DATABASE_URL,INTERNAL_AUTH_SECRET,QDRANT_API_KEY,AI_PRIVACY_DENYLIST,DOSSIER_PRIVACY_DENYLIST
             --set-secrets=DATABASE_URL=DATABASE_URL:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest${{ vars.QDRANT_URL != '' && ',QDRANT_API_KEY=QDRANT_API_KEY:latest' || '' }}${{ steps.optional-secrets.outputs.has_ai_privacy_denylist == 'true' && ',AI_PRIVACY_DENYLIST=AI_PRIVACY_DENYLIST:latest' || '' }}${{ steps.optional-secrets.outputs.has_dossier_privacy_denylist == 'true' && ',DOSSIER_PRIVACY_DENYLIST=DOSSIER_PRIVACY_DENYLIST:latest' || '' }}
             --port=8080
             --use-http2
@@ -495,10 +495,10 @@ jobs:
             PG_MAX_CONNS=3
             AI_PROVIDER=${{ vars.AI_PROVIDER || 'vertex' }}
             GCP_PROJECT_ID=${{ vars.GCP_PROJECT_ID }}
-            GCP_LOCATION=${{ vars.GCP_LOCATION || vars.GCP_REGION || 'us-central1' }}
-            VERTEX_MODEL=${{ vars.VERTEX_MODEL || '' }}
-            VERTEX_THINKING_BUDGET=${{ vars.VERTEX_THINKING_BUDGET || '0' }}
-            VERTEX_EMBED_MODEL=${{ vars.VERTEX_EMBED_MODEL || '' }}
+            GCP_LOCATION=${{ vars.GCP_LOCATION || 'global' }}
+            VERTEX_MODEL=${{ vars.VERTEX_MODEL || 'gemini-3.8-flash' }}
+            VERTEX_THINKING_LEVEL=${{ vars.VERTEX_THINKING_LEVEL || 'LOW' }}
+            VERTEX_EMBED_MODEL=${{ vars.VERTEX_EMBED_MODEL || 'gemini-embedding-2' }}
             QDRANT_URL=${{ vars.QDRANT_URL || '' }}
             AGENSI_CREATOR_HANDLE=${{ vars.AGENSI_CREATOR_HANDLE || 'aklapper' }}
           flags: >-
@@ -507,7 +507,7 @@ jobs:
             --subnet=default
             --vpc-egress=private-ranges-only
             --service-account=${{ vars.GCP_CLOUDRUN_SERVICE_ACCOUNT || secrets.GCP_WIF_SERVICE_ACCOUNT }}
-            --remove-env-vars=GRPC_PORT,DATABASE_URL,INTERNAL_AUTH_SECRET,QDRANT_API_KEY,AI_PRIVACY_DENYLIST,DOSSIER_PRIVACY_DENYLIST
+            --remove-env-vars=GRPC_PORT,VERTEX_THINKING_BUDGET,DATABASE_URL,INTERNAL_AUTH_SECRET,QDRANT_API_KEY,AI_PRIVACY_DENYLIST,DOSSIER_PRIVACY_DENYLIST
             --set-secrets=DATABASE_URL=DATABASE_URL:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest${{ vars.QDRANT_URL != '' && ',QDRANT_API_KEY=QDRANT_API_KEY:latest' || '' }}${{ steps.optional-secrets.outputs.has_ai_privacy_denylist == 'true' && ',AI_PRIVACY_DENYLIST=AI_PRIVACY_DENYLIST:latest' || '' }}${{ steps.optional-secrets.outputs.has_dossier_privacy_denylist == 'true' && ',DOSSIER_PRIVACY_DENYLIST=DOSSIER_PRIVACY_DENYLIST:latest' || '' }}
             --port=8080
             --use-http2
@@ -562,10 +562,10 @@ jobs:
             PUBLIC_GSC_VERIFICATION=${{ vars.PUBLIC_GSC_VERIFICATION || '' }}
             AI_PROVIDER=${{ vars.AI_PROVIDER || 'vertex' }}
             GCP_PROJECT_ID=${{ vars.GCP_PROJECT_ID }}
-            GCP_LOCATION=${{ vars.GCP_LOCATION || vars.GCP_REGION || 'us-central1' }}
-            VERTEX_MODEL=${{ vars.VERTEX_MODEL || '' }}
-            VERTEX_THINKING_BUDGET=${{ vars.VERTEX_THINKING_BUDGET || '0' }}
-            VERTEX_EMBED_MODEL=${{ vars.VERTEX_EMBED_MODEL || '' }}
+            GCP_LOCATION=${{ vars.GCP_LOCATION || 'global' }}
+            VERTEX_MODEL=${{ vars.VERTEX_MODEL || 'gemini-3.8-flash' }}
+            VERTEX_THINKING_LEVEL=${{ vars.VERTEX_THINKING_LEVEL || 'LOW' }}
+            VERTEX_EMBED_MODEL=${{ vars.VERTEX_EMBED_MODEL || 'gemini-embedding-2' }}
             CADENCE_DEMO_URL=${{ steps.resolve-wave1-urls.outputs.cadence_demo_service_url || vars.CADENCE_DEMO_URL || '' }}
             AI_ASK_URL=${{ steps.resolve-wave1-urls.outputs.ai_ask_service_url || vars.AI_ASK_URL || '' }}
             AGENSI_API_BASE_URL=${{ vars.AGENSI_API_BASE_URL || 'https://www.agensi.io' }}
@@ -580,7 +580,7 @@ jobs:
             --subnet=default
             --vpc-egress=private-ranges-only
             --service-account=${{ vars.GCP_CLOUDRUN_SERVICE_ACCOUNT || secrets.GCP_WIF_SERVICE_ACCOUNT }}
-            --remove-env-vars=DATABASE_URL,INTERNAL_AUTH_SECRET,ANALYTICS_DAILY_SALT,QDRANT_API_KEY,AGENSI_API_KEY,ANALYTICS_API_URL,CONTACT_API_URL,AUTH_API_URL,CADENCE_ADMIN_URL,K8S_WATCH_URL
+            --remove-env-vars=DATABASE_URL,INTERNAL_AUTH_SECRET,ANALYTICS_DAILY_SALT,QDRANT_API_KEY,AGENSI_API_KEY,ANALYTICS_API_URL,CONTACT_API_URL,AUTH_API_URL,CADENCE_ADMIN_URL,K8S_WATCH_URL,VERTEX_THINKING_BUDGET
             --set-secrets=DATABASE_URL=DATABASE_URL:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest,ANALYTICS_DAILY_SALT=ANALYTICS_DAILY_SALT:latest${{ steps.optional-secrets.outputs.has_agensi_api_key == 'true' && ',AGENSI_API_KEY=AGENSI_API_KEY:latest' || '' }}
             --port=8080
             --timeout=300
@@ -609,10 +609,10 @@ jobs:
           WEBAUTHN_RP_NAME: ${{ vars.WEBAUTHN_RP_NAME || 'andrew-k.us Admin' }}
           WEBAUTHN_ORIGIN: ${{ vars.WEBAUTHN_ORIGIN || vars.PUBLIC_ADMIN_URL || 'https://admin.andrew-k.us' }}
           AI_PROVIDER: ${{ vars.AI_PROVIDER || 'vertex' }}
-          GCP_LOCATION: ${{ vars.GCP_LOCATION || vars.GCP_REGION || 'us-central1' }}
-          VERTEX_MODEL: ${{ vars.VERTEX_MODEL || '' }}
-          VERTEX_THINKING_BUDGET: ${{ vars.VERTEX_THINKING_BUDGET || '0' }}
-          VERTEX_EMBED_MODEL: ${{ vars.VERTEX_EMBED_MODEL || '' }}
+          GCP_LOCATION: ${{ vars.GCP_LOCATION || 'global' }}
+          VERTEX_MODEL: ${{ vars.VERTEX_MODEL || 'gemini-3.8-flash' }}
+          VERTEX_THINKING_LEVEL: ${{ vars.VERTEX_THINKING_LEVEL || 'LOW' }}
+          VERTEX_EMBED_MODEL: ${{ vars.VERTEX_EMBED_MODEL || 'gemini-embedding-2' }}
           CADENCE_DEMO_URL: ${{ steps.resolve-wave1-urls.outputs.cadence_demo_service_url || vars.CADENCE_DEMO_URL || '' }}
           AI_ASK_URL: ${{ steps.resolve-wave1-urls.outputs.ai_ask_service_url || vars.AI_ASK_URL || '' }}
           QDRANT_URL: ${{ vars.QDRANT_URL || '' }}
@@ -638,7 +638,7 @@ jobs:
             SECRETS="${SECRETS},DOSSIER_PRIVACY_DENYLIST=DOSSIER_PRIVACY_DENYLIST:latest"
           fi
 
-          ENV_VARS="NODE_ENV=production,PG_MAX_CONNS=2,PUBLIC_PORTAL_URL=${PUBLIC_PORTAL_URL},PUBLIC_ADMIN_URL=${PUBLIC_ADMIN_URL},PUBLIC_ANALYTICS_ENDPOINT=${PUBLIC_ANALYTICS_ENDPOINT},PUBLIC_GA_MEASUREMENT_ID=${PUBLIC_GA_MEASUREMENT_ID},PUBLIC_GTM_ID=${PUBLIC_GTM_ID},WEBAUTHN_RP_ID=${WEBAUTHN_RP_ID},WEBAUTHN_RP_NAME=${WEBAUTHN_RP_NAME},WEBAUTHN_ORIGIN=${WEBAUTHN_ORIGIN},AI_PROVIDER=${AI_PROVIDER},GCP_PROJECT_ID=${GCP_PROJECT_ID},GCP_LOCATION=${GCP_LOCATION},VERTEX_MODEL=${VERTEX_MODEL},VERTEX_THINKING_BUDGET=${VERTEX_THINKING_BUDGET},VERTEX_EMBED_MODEL=${VERTEX_EMBED_MODEL},CADENCE_DEMO_URL=${CADENCE_DEMO_URL},AI_ASK_URL=${AI_ASK_URL},QDRANT_URL=${QDRANT_URL},AGENSI_API_BASE_URL=${AGENSI_API_BASE_URL},AGENSI_API_PATH=${AGENSI_API_PATH},AGENSI_CREATOR_HANDLE=${AGENSI_CREATOR_HANDLE},AGENSI_SYNC_DISABLED=${AGENSI_SYNC_DISABLED},AGENSI_CACHE_TTL_SECONDS=${AGENSI_CACHE_TTL_SECONDS},AGENSI_FETCH_TIMEOUT_MS=${AGENSI_FETCH_TIMEOUT_MS}"
+          ENV_VARS="NODE_ENV=production,PG_MAX_CONNS=2,PUBLIC_PORTAL_URL=${PUBLIC_PORTAL_URL},PUBLIC_ADMIN_URL=${PUBLIC_ADMIN_URL},PUBLIC_ANALYTICS_ENDPOINT=${PUBLIC_ANALYTICS_ENDPOINT},PUBLIC_GA_MEASUREMENT_ID=${PUBLIC_GA_MEASUREMENT_ID},PUBLIC_GTM_ID=${PUBLIC_GTM_ID},WEBAUTHN_RP_ID=${WEBAUTHN_RP_ID},WEBAUTHN_RP_NAME=${WEBAUTHN_RP_NAME},WEBAUTHN_ORIGIN=${WEBAUTHN_ORIGIN},AI_PROVIDER=${AI_PROVIDER},GCP_PROJECT_ID=${GCP_PROJECT_ID},GCP_LOCATION=${GCP_LOCATION},VERTEX_MODEL=${VERTEX_MODEL},VERTEX_THINKING_LEVEL=${VERTEX_THINKING_LEVEL},VERTEX_EMBED_MODEL=${VERTEX_EMBED_MODEL},CADENCE_DEMO_URL=${CADENCE_DEMO_URL},AI_ASK_URL=${AI_ASK_URL},QDRANT_URL=${QDRANT_URL},AGENSI_API_BASE_URL=${AGENSI_API_BASE_URL},AGENSI_API_PATH=${AGENSI_API_PATH},AGENSI_CREATOR_HANDLE=${AGENSI_CREATOR_HANDLE},AGENSI_SYNC_DISABLED=${AGENSI_SYNC_DISABLED},AGENSI_CACHE_TTL_SECONDS=${AGENSI_CACHE_TTL_SECONDS},AGENSI_FETCH_TIMEOUT_MS=${AGENSI_FETCH_TIMEOUT_MS}"
 
           gcloud beta run deploy admin \
             --quiet \
@@ -652,7 +652,7 @@ jobs:
             --vpc-egress=private-ranges-only \
             --service-account="$RUNTIME_SA" \
             --update-env-vars="$ENV_VARS" \
-            --remove-env-vars=DATABASE_URL,TOTP_ENCRYPTION_KEY,INTERNAL_AUTH_SECRET,ANALYTICS_DAILY_SALT,QDRANT_API_KEY,AGENSI_API_KEY,DOSSIER_PRIVACY_DENYLIST,AUTH_API_URL,ANALYTICS_API_URL,CADENCE_ADMIN_URL,CONTACT_API_URL,K8S_WATCH_URL \
+            --remove-env-vars=DATABASE_URL,TOTP_ENCRYPTION_KEY,INTERNAL_AUTH_SECRET,ANALYTICS_DAILY_SALT,QDRANT_API_KEY,AGENSI_API_KEY,DOSSIER_PRIVACY_DENYLIST,AUTH_API_URL,ANALYTICS_API_URL,CADENCE_ADMIN_URL,CONTACT_API_URL,K8S_WATCH_URL,VERTEX_THINKING_BUDGET \
             --set-secrets="$SECRETS" \
             --port=8080 \
             --timeout=300 \
@@ -732,6 +732,7 @@ jobs:
             echo "- Wave 2 admin (Direct IAP): ${{ steps.resolve-urls.outputs.admin_url }}"
             echo "- Image tag: \`${{ github.sha }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
+
 
   post-deploy-e2e:
     name: Live E2E & IAP smoke (${{ matrix.engine }})

@@ -184,8 +184,13 @@ func main() {
 	if _, err := internalauth.ResolveSecret(""); err != nil {
 		log.Fatalf("ai-ask production auth startup failure: %v", err)
 	}
-	if _, err := llm.ParseVertexThinkingBudget(os.Getenv("VERTEX_THINKING_BUDGET")); err != nil {
-		log.Fatalf("ai-ask invalid VERTEX_THINKING_BUDGET: %v", err)
+	if _, err := llm.ParseVertexThinkingLevel(os.Getenv("VERTEX_THINKING_LEVEL")); err != nil {
+		log.Fatalf("ai-ask invalid VERTEX_THINKING_LEVEL: %v", err)
+	}
+	if rawBudget := strings.TrimSpace(os.Getenv("VERTEX_THINKING_BUDGET")); rawBudget != "" {
+		if _, err := llm.ParseVertexThinkingBudget(rawBudget); err != nil {
+			log.Fatalf("ai-ask invalid VERTEX_THINKING_BUDGET: %v", err)
+		}
 	}
 	privacyCfg, err := privacy.LoadConfigFromEnv()
 	if err != nil {

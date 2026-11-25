@@ -389,6 +389,8 @@ test.describe('portal SSR end-to-end journeys', () => {
     const selectTrigger = page.getByTestId('cadence-preset-select');
     await expect(selectTrigger).toBeVisible();
     const fastSwitch = page.getByTestId('cadence-fast-mode-switch');
+    await expect(fastSwitch).toHaveAttribute('aria-checked', 'false');
+    await fastSwitch.click();
     await expect(fastSwitch).toHaveAttribute('aria-checked', 'true');
 
     // Dropdown lists all 5 seeded CADENCE methodology showcases plus the custom option.
@@ -447,6 +449,7 @@ test.describe('portal SSR end-to-end journeys', () => {
       'completed',
     );
     await expect(page.getByTestId('cadence-turn-spec')).toHaveAttribute('data-status', 'completed');
+    await page.getByTestId('cadence-spec-approve').click();
     await expect(page.getByTestId('cadence-turn-build')).toHaveAttribute(
       'data-status',
       'completed',
@@ -536,6 +539,7 @@ test.describe('portal SSR end-to-end journeys', () => {
       'data-status',
       'completed',
     );
+    await page.getByTestId('cadence-spec-approve').click();
     await expect(page.getByTestId('cadence-turn-gate')).toHaveAttribute('data-status', 'completed');
     await page.getByTestId('cadence-gate-approve').click();
     await expect(page.getByTestId('cadence-gate-verdict')).toContainText('approved');
@@ -568,6 +572,7 @@ test.describe('portal SSR end-to-end journeys', () => {
       );
       await page.getByTestId('cadence-run-submit').click();
       await expect(page.getByTestId('cadence-quota-meter')).toContainText('1/10 turns');
+      await page.getByTestId('cadence-spec-approve').click();
       await expect(page.getByTestId('cadence-gate-verdict')).toContainText('pending');
       await expect(page.getByTestId('cadence-turn-gate')).toHaveAttribute(
         'data-status',
@@ -586,6 +591,7 @@ test.describe('portal SSR end-to-end journeys', () => {
         await promptInput.fill(`Quota exhaustion build run number ${i} telemetry gauge`);
         await page.getByTestId('cadence-run-submit').click();
         await expect(page.getByTestId('cadence-quota-meter')).toContainText(`${i}/10 turns`);
+        await page.getByTestId('cadence-spec-approve').click();
         await expect(page.getByTestId('cadence-turn-gate')).toHaveAttribute(
           'data-status',
           'completed',

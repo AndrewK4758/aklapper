@@ -32,6 +32,7 @@ type streamingStubLLM struct {
 	chunks        []string
 	thoughtChunks []string
 	responses     [][]string
+	reqs          []llm.ChatStreamRequest
 	calls         int
 }
 
@@ -40,7 +41,8 @@ func (s *streamingStubLLM) Embed(_ context.Context, _ string) ([]float32, error)
 func (s *streamingStubLLM) Chat(_ context.Context, _ []llm.ChatMessage, _ int) (llm.Completion, error) {
 	return llm.Completion{Text: strings.Join(s.chunks, ""), Model: "stub", TokensUsed: 120}, nil
 }
-func (s *streamingStubLLM) ChatStream(ctx context.Context, _ llm.ChatStreamRequest, onChunk func(llm.ChatStreamChunk) error) (llm.ChatStreamResult, error) {
+func (s *streamingStubLLM) ChatStream(ctx context.Context, req llm.ChatStreamRequest, onChunk func(llm.ChatStreamChunk) error) (llm.ChatStreamResult, error) {
+	s.reqs = append(s.reqs, req)
 	for _, th := range s.thoughtChunks {
 		if ctx.Err() != nil {
 			return llm.ChatStreamResult{}, ctx.Err()
@@ -458,4 +460,23 @@ func TestCadenceShowcaseCacheGoldenPrivacyAndGRPC(t *testing.T) {
 			t.Fatal("expected CadenceDoneEvent from gRPC StreamRun")
 		}
 	})
+}
+
+func TestCadenceStructuredStagesEnableIncludeThoughts(t *testing.T) {
+	stub := &streamingStubLLM{
+		responses: [][]string{
+			{`{"triage":"Feature tier Medium","spec":{"title":"Test Spec","summary":"Summary","conditions":["c1"],"handling":["h1"],"outcomes":["o1"],"rules":["r1"],"deltas":["d1"]}}`},
+			{`{"gateChecks":[{"name":"security","status":"pass","detail":"ok"}],"artifactHtml":"<html><body><main><h1>OK</h1></main></body></html>"}`},
+		},
+	}
+	specOut, _, err := invokeLLMSpecStage(context.Background(), stub, nil, "corr-1", "custom", "Build widget", nil, nil)
+	if err != nil {
+		t.Fatalf("invokeLLMSpecStage failed: %v", err)
+	}
+	if _, _, err := invokeLLMBuildStage(context.Background(), stub, nil, "corr-1", "custom", "Build widget", &specOut.Spec, nil, nil); err != nil {
+		t.Fatalf("invokeLLMBuildStage failed: %v", err)
+	}
+	if len(stub.reqs) != 2 || !stub.reqs[0].IncludeThoughts || !stub.reqs[1].IncludeThoughts {
+		t.Fatalf("expected IncludeThoughts=true for both spec and build stages, got %+v", stub.reqs)
+	}
 }

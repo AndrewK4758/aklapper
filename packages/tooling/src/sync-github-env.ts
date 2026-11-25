@@ -48,7 +48,7 @@ export const GITHUB_OPTIONAL_ENV_VARS = [
   'AI_PROVIDER',
   'GCP_LOCATION',
   'VERTEX_MODEL',
-  'VERTEX_THINKING_BUDGET',
+  'VERTEX_THINKING_LEVEL',
   'VERTEX_EMBED_MODEL',
   'ADMIN_HANDLE',
   'GCP_CLOUDRUN_SERVICE_ACCOUNT',
@@ -99,6 +99,7 @@ export const RETIRED_ENV_KEYS = [
   'GCP_GKE_WORKLOAD_SA',
   'K8S_WATCH_URL',
   'CLOUD_RUN_ALLOW_UNAUTH_ADMIN',
+  'VERTEX_THINKING_BUDGET',
 ] as const;
 
 export function parseEnvFileContent(content: string): Record<string, string> {

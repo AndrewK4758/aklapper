@@ -154,7 +154,7 @@ func evaluateJDWithLLM(
 	firstComp, err := provider.Chat(ctx, []llm.ChatMessage{
 		{Role: "system", Content: systemPrompt},
 		{Role: "user", Content: userPrompt},
-	}, 640)
+	}, 1024)
 	if err != nil {
 		return jdSynthesisPayload{}, llm.Completion{}, err
 	}
@@ -170,7 +170,7 @@ func evaluateJDWithLLM(
 			Content: `Convert the prior evaluation into valid raw JSON ONLY matching {"answer":"...","matchScore":0,"strengths":[],"gaps":[]}.`,
 		},
 		{Role: "user", Content: firstComp.Text},
-	}, 512)
+	}, 1024)
 	if repairErr != nil {
 		return jdSynthesisPayload{}, llm.Completion{}, repairErr
 	}

@@ -157,7 +157,7 @@ func TestVertexClientUnaryAndStreamFilterThoughtAndEnforceBudgetAndSchema(t *tes
 	client := &VertexClient{
 		ProjectID:       "proj-test",
 		Location:        "us-central1",
-		Model:           DefaultVertexModel,
+		Model:           "gemini-2.5-flash",
 		AccessToken:     "test-token",
 		EndpointBaseURL: srv.URL,
 		ThinkingBudget:  &zero,
@@ -438,4 +438,235 @@ func TestLocalAndVertexStreamForwardThoughtDeltasSeparately(t *testing.T) {
 			t.Fatalf("expected non-thought text, got %q", got)
 		}
 	})
+}
+
+func TestVertexEndpointHostAndThinkingLevelValidation(t *testing.T) {
+	t.Run("global, empty, and mixed-case global resolve to apex aiplatform host", func(t *testing.T) {
+		for _, loc := range []string{"", "global", "  GLOBAL  "} {
+			got := formatVertexEndpointBase(loc, "")
+			if got != "https://aiplatform.googleapis.com" {
+				t.Fatalf("formatVertexEndpointBase(%q, \"\") = %q, want https://aiplatform.googleapis.com", loc, got)
+			}
+			if norm := normalizeVertexLocation(loc); norm != "global" {
+				t.Fatalf("normalizeVertexLocation(%q) = %q, want global", loc, norm)
+			}
+		}
+		if got := formatVertexEndpointBase("us-central1", ""); got != "https://us-central1-aiplatform.googleapis.com" {
+			t.Fatalf("regional host = %q", got)
+		}
+		if got := formatVertexEndpointBase("global", "http://127.0.0.1:18080/"); got != "http://127.0.0.1:18080" {
+			t.Fatalf("override host = %q", got)
+		}
+	})
+
+	t.Run("ParseVertexThinkingLevel normalizes valid levels and fails closed with UNSOUND_CONDITION", func(t *testing.T) {
+		var logs strings.Builder
+		prevOut := log.Writer()
+		log.SetOutput(&logs)
+		defer log.SetOutput(prevOut)
+
+		for raw, want := range map[string]string{
+			"":         "LOW",
+			"low":      "LOW",
+			"  Medium": "MEDIUM",
+			"HIGH":     "HIGH",
+		} {
+			got, err := ParseVertexThinkingLevel(raw)
+			if err != nil || got != want {
+				t.Fatalf("ParseVertexThinkingLevel(%q) = (%q, %v), want (%q, nil)", raw, got, err, want)
+			}
+		}
+
+		for _, bad := range []string{"MINIMAL", "0", "turbo"} {
+			if _, err := ParseVertexThinkingLevel(bad); err == nil {
+				t.Fatalf("expected ParseVertexThinkingLevel(%q) to fail closed", bad)
+			}
+		}
+		logOut := logs.String()
+		if !strings.Contains(logOut, "UNSOUND_CONDITION") || !strings.Contains(logOut, "llm.vertex.invalid_thinking_level") {
+			t.Fatalf("expected UNSOUND_CONDITION llm.vertex.invalid_thinking_level seam log, got %s", logOut)
+		}
+	})
+}
+
+func TestVertexGemini3ThinkingLevelPayloadIncludeThoughtsAndUpstreamFault(t *testing.T) {
+	var logs strings.Builder
+	prevOut := log.Writer()
+	log.SetOutput(&logs)
+	defer log.SetOutput(prevOut)
+
+	var capturedStreamPayload map[string]any
+	var capturedStreamPath string
+	var capturedUnaryPayload map[string]any
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasSuffix(r.URL.Path, ":streamGenerateContent"):
+			capturedStreamPath = r.URL.Path
+			_ = json.NewDecoder(r.Body).Decode(&capturedStreamPayload)
+			w.Header().Set("Content-Type", "text/event-stream")
+			flusher, _ := w.(http.Flusher)
+			_, _ = fmt.Fprint(w, "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"reasoning step\",\"thought\":true}]}}]}\n\n")
+			flusher.Flush()
+			_, _ = fmt.Fprint(w, "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"final delta\"}]},\"finishReason\":\"STOP\"}],\"usageMetadata\":{\"totalTokenCount\":55}}\n\n")
+			flusher.Flush()
+		case strings.HasSuffix(r.URL.Path, ":generateContent"):
+			_ = json.NewDecoder(r.Body).Decode(&capturedUnaryPayload)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"candidates": []map[string]any{{
+					"content": map[string]any{
+						"parts": []map[string]any{
+							{"text": "hidden thought", "thought": true},
+							{"text": "clean answer"},
+						},
+					},
+				}},
+				"usageMetadata": map[string]any{"totalTokenCount": 33},
+			})
+		default:
+			http.Error(w, "upstream fault", http.StatusServiceUnavailable)
+		}
+	}))
+	defer srv.Close()
+
+	zero := 0
+	client := &VertexClient{
+		ProjectID:       "games-424800",
+		Location:        "  GLOBAL ",
+		Model:           "gemini-3.8-flash",
+		ThinkingLevel:   "medium",
+		ThinkingBudget:  &zero, // must be ignored on gemini-3*
+		AccessToken:     "secret-oauth-token",
+		EndpointBaseURL: srv.URL,
+		HTTPClient:      srv.Client(),
+	}
+
+	var thoughts, deltas strings.Builder
+	res, err := client.ChatStream(context.Background(), ChatStreamRequest{
+		Messages:        []ChatMessage{{Role: "user", Content: "build"}},
+		MaxTokens:       1024,
+		IncludeThoughts: true,
+	}, func(ch ChatStreamChunk) error {
+		thoughts.WriteString(ch.ThoughtDelta)
+		deltas.WriteString(ch.Delta)
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("ChatStream failed: %v", err)
+	}
+	if !strings.Contains(capturedStreamPath, "/locations/global/publishers/google/models/gemini-3.8-flash:streamGenerateContent") {
+		t.Fatalf("unexpected stream path: %q", capturedStreamPath)
+	}
+	if thoughts.String() != "reasoning step" || deltas.String() != "final delta" || res.Text != "final delta" {
+		t.Fatalf("unexpected thought/delta split: thoughts=%q deltas=%q text=%q", thoughts.String(), deltas.String(), res.Text)
+	}
+	genCfg, _ := capturedStreamPayload["generationConfig"].(map[string]any)
+	tc, _ := genCfg["thinkingConfig"].(map[string]any)
+	if tc["thinkingLevel"] != "MEDIUM" || tc["includeThoughts"] != true {
+		t.Fatalf("expected thinkingLevel=MEDIUM and includeThoughts=true, got %#v", tc)
+	}
+	if _, hasBudget := tc["thinkingBudget"]; hasBudget {
+		t.Fatalf("expected thinkingBudget omitted on gemini-3*, got %#v", tc)
+	}
+
+	// Stream with IncludeThoughts=false omits includeThoughts
+	if _, err := client.ChatStream(context.Background(), ChatStreamRequest{
+		Messages:        []ChatMessage{{Role: "user", Content: "ask"}},
+		MaxTokens:       1024,
+		IncludeThoughts: false,
+	}, nil); err != nil {
+		t.Fatalf("ChatStream without includeThoughts failed: %v", err)
+	}
+	genCfgNoThoughts, _ := capturedStreamPayload["generationConfig"].(map[string]any)
+	tcNoThoughts, _ := genCfgNoThoughts["thinkingConfig"].(map[string]any)
+	if _, hasInc := tcNoThoughts["includeThoughts"]; hasInc {
+		t.Fatalf("expected includeThoughts omitted when false, got %#v", tcNoThoughts)
+	}
+
+	// Unary Chat emits thinkingLevel, omits thinkingBudget, strips thought parts
+	comp, err := client.Chat(context.Background(), []ChatMessage{{Role: "user", Content: "hi"}}, 1024)
+	if err != nil {
+		t.Fatalf("Chat failed: %v", err)
+	}
+	if comp.Text != "clean answer" {
+		t.Fatalf("expected clean answer without thought leak, got %q", comp.Text)
+	}
+	uGenCfg, _ := capturedUnaryPayload["generationConfig"].(map[string]any)
+	uTC, _ := uGenCfg["thinkingConfig"].(map[string]any)
+	if uTC["thinkingLevel"] != "MEDIUM" {
+		t.Fatalf("expected unary thinkingLevel=MEDIUM, got %#v", uTC)
+	}
+	if _, hasBudget := uTC["thinkingBudget"]; hasBudget {
+		t.Fatalf("expected unary thinkingBudget omitted on gemini-3*, got %#v", uTC)
+	}
+
+	// NewFromEnvMap defaults and fail-closed invalid VERTEX_THINKING_LEVEL
+	envClient, ok := NewFromEnvMap(func(k string) string {
+		switch k {
+		case "AI_PROVIDER":
+			return "vertex"
+		case "GCP_PROJECT_ID":
+			return "games-424800"
+		default:
+			return ""
+		}
+	}).(*VertexClient)
+	if !ok {
+		t.Fatal("expected *VertexClient from NewFromEnvMap")
+	}
+	if envClient.Location != "global" || envClient.Model != "gemini-3.8-flash" || envClient.EmbedModel != "gemini-embedding-2" || envClient.ThinkingLevel != "LOW" {
+		t.Fatalf("unexpected Vertex defaults from NewFromEnvMap: %+v", envClient)
+	}
+
+	invalidEnvClient, ok := NewFromEnvMap(func(k string) string {
+		switch k {
+		case "AI_PROVIDER":
+			return "vertex"
+		case "GCP_PROJECT_ID":
+			return "games-424800"
+		case "VERTEX_THINKING_LEVEL":
+			return "MINIMAL"
+		default:
+			return ""
+		}
+	}).(*VertexClient)
+	if !ok {
+		t.Fatal("expected *VertexClient")
+	}
+	invalidEnvClient.AccessToken = "secret-oauth-token"
+	invalidEnvClient.EndpointBaseURL = srv.URL
+	if _, err := invalidEnvClient.Chat(context.Background(), []ChatMessage{{Role: "user", Content: "hi"}}, 64); err == nil {
+		t.Fatal("expected invalid VERTEX_THINKING_LEVEL stored verbatim to fail closed in Chat")
+	}
+
+	// Upstream 503 emits BOUNDARY_FAULT without leaking secret-oauth-token
+	errSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "service unavailable", http.StatusServiceUnavailable)
+	}))
+	defer errSrv.Close()
+	errClient := &VertexClient{
+		ProjectID:       "games-424800",
+		Location:        "global",
+		Model:           "gemini-3.8-flash",
+		AccessToken:     "secret-oauth-token",
+		EndpointBaseURL: errSrv.URL,
+		HTTPClient:      errSrv.Client(),
+	}
+	_, err = errClient.Chat(context.Background(), []ChatMessage{{Role: "user", Content: "hi"}}, 64)
+	if err == nil {
+		t.Fatal("expected upstream 503 error")
+	}
+	if strings.Contains(err.Error(), "secret-oauth-token") {
+		t.Fatalf("bearer token leaked in error: %v", err)
+	}
+	logOut := logs.String()
+	if !strings.Contains(logOut, "RULE_DIVERGENCE") || !strings.Contains(logOut, "llm.vertex.thinking_protocol_selected") {
+		t.Fatalf("expected RULE_DIVERGENCE llm.vertex.thinking_protocol_selected seam log, got %s", logOut)
+	}
+	if !strings.Contains(logOut, "BOUNDARY_FAULT") || !strings.Contains(logOut, "llm.vertex.upstream_http_error") {
+		t.Fatalf("expected BOUNDARY_FAULT llm.vertex.upstream_http_error seam log, got %s", logOut)
+	}
+	if strings.Contains(logOut, "secret-oauth-token") {
+		t.Fatalf("bearer token leaked in logs: %s", logOut)
+	}
 }

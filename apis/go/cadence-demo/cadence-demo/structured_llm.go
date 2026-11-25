@@ -433,10 +433,11 @@ func invokeLLMSpecStage(
 				Content: fmt.Sprintf("Run Variation Seed: %s\nPreset: %s\nRecalled Patterns: %s\nUser Prompt: %s", nonce, nonEmptyOr(presetSlug, "custom"), patternHint, prompt),
 			},
 		},
-		MaxTokens:      3200,
-		Temperature:    &specTemperature,
-		ResponseSchema: structuredSpecSchema(),
-		IdleTimeout:    stageIdleTimeout,
+		MaxTokens:       3200,
+		Temperature:     &specTemperature,
+		IncludeThoughts: true,
+		ResponseSchema:  structuredSpecSchema(),
+		IdleTimeout:     stageIdleTimeout,
 	}
 
 	stageCtx, stageCancel := context.WithTimeout(ctx, specStageTimeout)
@@ -499,10 +500,11 @@ func invokeLLMBuildStage(
 				),
 			},
 		},
-		MaxTokens:      6144,
-		Temperature:    &buildTemperature,
-		ResponseSchema: structuredBuildSchema(),
-		IdleTimeout:    stageIdleTimeout,
+		MaxTokens:       6144,
+		Temperature:     &buildTemperature,
+		IncludeThoughts: true,
+		ResponseSchema:  structuredBuildSchema(),
+		IdleTimeout:     stageIdleTimeout,
 	}
 
 	stageCtx, stageCancel := context.WithTimeout(ctx, buildStageTimeout)

@@ -39,7 +39,7 @@ func CuratedPortfolioDocs() []CorpusDocument {
 		{
 			ID:       "curated-ai-rag",
 			Title:    "Grounded AI & Dual-Provider LLM Architecture",
-			Snippet:  "Built unified LLM and embedding adapters supporting both local llama-swap inference (:11434) and Google Cloud Vertex AI Gemini/text-embedding-005, paired with Qdrant cosine similarity retrieval and strict abstention thresholds.",
+			Snippet:  "Built unified LLM and embedding adapters supporting both local llama-swap inference (:11434) and Google Cloud Vertex AI Gemini 3.8 Flash / gemini-embedding-2, paired with Qdrant cosine similarity retrieval and strict abstention thresholds.",
 			Category: "dossier",
 			Source:   "curated",
 		},

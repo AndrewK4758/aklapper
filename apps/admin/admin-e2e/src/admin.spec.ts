@@ -138,7 +138,9 @@ test.describe('admin SSR end-to-end journeys', () => {
       // 4. Lands on /analytics with authenticated admin chrome
       await expect(page).toHaveURL(/\/analytics$/);
       await waitForStreamedReveal(page);
-      await expect(page.getByText(/First-Party Visitor Analytics/i)).toBeVisible();
+      await expect(
+        page.getByRole('region', { name: /First-Party Visitor Analytics/i }),
+      ).toBeVisible();
       await expect(page.getByText(`${handle}@admin`)).toBeVisible();
       await expect(page.getByText('Passkey Verified')).toBeVisible();
 

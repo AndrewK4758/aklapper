@@ -126,6 +126,7 @@ export function PortalCadencePage({
   const [runs, setRuns] = useState<readonly CadenceRunResult[]>(recentRuns);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(initialSelectedRunId);
   const [revisionNote, setRevisionNote] = useState('');
+  const [resetNonce, setResetNonce] = useState(0);
   const [lastPropQuota, setLastPropQuota] = useState<QuotaStatus>(quota);
   const [latestQuota, setLatestQuota] = useState<QuotaStatus>(quota);
   const [lastRecordedResult, setLastRecordedResult] = useState<
@@ -147,7 +148,7 @@ export function PortalCadencePage({
     }
     if (actionResult.ok && actionResult.intent === 'reset') {
       setRuns([]);
-      setSelectedRunId(goldenRuns[0]?.runId ?? null);
+      setSelectedRunId(null);
       setRevisionNote('');
     } else if (updatedRun) {
       setRuns(prev => {
@@ -255,11 +256,12 @@ export function PortalCadencePage({
 
   const handleReset = () => {
     setRuns([]);
-    setSelectedRunId(goldenRuns[0]?.runId ?? null);
-    setActivePresetSlug(defaultPreset?.slug ?? CUSTOM_PRESET_VALUE);
-    setPromptText(defaultPreset?.starterPrompt ?? '');
+    setSelectedRunId(null);
+    setActivePresetSlug(CUSTOM_PRESET_VALUE);
+    setPromptText('');
     setFastMode(false);
     setRevisionNote('');
+    setResetNonce(prev => prev + 1);
     onReset?.();
   };
 
@@ -356,6 +358,7 @@ export function PortalCadencePage({
 
         <div className={styles.workbenchSplit} data-testid='cadence-workbench-split'>
           <CadenceSpecGatePane
+            key={`cadence-spec-pane-${resetNonce}`}
             activeRun={activeRun}
             isStreaming={isStreaming}
             isSubmitting={isSubmitting}
@@ -364,6 +367,7 @@ export function PortalCadencePage({
           />
 
           <ArtifactInspector
+            key={`cadence-inspector-${resetNonce}`}
             artifactHtml={previewHtml}
             fileName={`cadence-${activeRun?.presetSlug ?? 'artifact'}.html`}
             executionMode={activeRun?.executionMode}
