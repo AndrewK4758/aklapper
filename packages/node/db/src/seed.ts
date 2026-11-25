@@ -61,10 +61,10 @@ export const DEFAULT_MENU_ITEMS: readonly MenuItem[] = [
     enabled: true,
   },
   {
-    slug: 'ask',
+    slug: 'chat',
     keyShortcut: '2',
-    title: 'Ask Portfolio / JD Match',
-    description: 'Grounded Qdrant RAG dossier search with strict abstention',
+    title: 'Chat with Andrew / JD Match',
+    description: "Chat with Andrew's AI using portfolio records, general chat, or JD role fit",
     targetK8sDeploy: 'svc-ai-ask',
     namespace: 'portfolio-public',
     adminOnly: false,
@@ -132,11 +132,11 @@ const PORTAL_HOME_SEED: PortalHomeContent = {
   },
   heading: 'Andrew Klapper — Portfolio',
   description:
-    'Explore interactive demos, ask questions about my work and experience, browse published Agensi skills, or send a direct message. Use the launcher below or the terminal above to navigate.',
+    "Explore interactive demos, chat with Andrew's AI about his work and experience, browse published Agensi skills, or send a direct message. Use the launcher below or the terminal above to navigate.",
   actions: [
     { label: 'Open Menu → /menu', to: '/menu', variant: 'primary' },
     { label: 'CADENCE Builder → /cadence', to: '/cadence', variant: 'default' },
-    { label: 'Ask Portfolio → /ask', to: '/ask', variant: 'default' },
+    { label: 'Chat with Andrew → /chat', to: '/chat', variant: 'default' },
     { label: 'Agensi Storefront → /agensi', to: '/agensi', variant: 'default' },
     { label: 'Contact → /contact', to: '/contact', variant: 'default' },
     {
@@ -284,20 +284,20 @@ const TERMINAL_PROFILE_SEEDS = [
   {
     slug: TERMINAL_PROFILE_SLUGS.portalHome,
     bannerTitle: 'Solar Forge Terminal // tty1',
-    bannerMeta: 'tty1 · type "menu", "ask", "agensi", "cadence", or "contact" · Tab autocomplete',
+    bannerMeta: 'tty1 · type "menu", "chat", "agensi", "cadence", or "contact" · Tab autocomplete',
     osLabel: '⚡',
     directory: '~/projects/aklapper',
     vcsBranch: 'portfolio_v2',
     vcsState: 'clean' as const,
     contextLabel: 'guest@andrew-k.us',
-    placeholder: 'type a command (help, ls, menu, ask, agensi, cadence, contact, cd ...)',
+    placeholder: 'type a command (help, ls, menu, chat, agensi, cadence, contact, cd ...)',
     quickCommands: [
       'help',
       'ls',
       'menu',
       'tui',
       'cadence',
-      'ask',
+      'chat',
       'agensi',
       'contact',
       'status',
@@ -354,8 +354,8 @@ const TERMINAL_DIRECTORY_ENTRY_SEEDS = [
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'ask',
-    description: 'Ask about my work',
+    name: 'chat',
+    description: "Chat with Andrew's AI",
     sortOrder: 4,
     enabled: true,
   },
@@ -434,10 +434,10 @@ const TERMINAL_COMMAND_SEEDS = [
       '  menu       — open /menu module launcher',
       '  tui        — open TUI launcher in a split pane',
       '  cadence    — open /cadence artifact sandbox',
-      '  ask        — open /ask grounded RAG & JD match',
+      '  chat       — open /chat to chat with Andrew\'s AI & JD match',
       '  agensi     — open /agensi commercial skills storefront',
       '  contact    — run inline terminal contact form (or "contact --tui" / "--help")',
-      '  cd <route> — navigate to /menu, /cadence, /ask, /agensi, /contact, or /changes-in-progress',
+      '  cd <route> — navigate to /menu, /cadence, /chat, /agensi, /contact, or /changes-in-progress',
       '  status     — inspect cluster & service state',
       '  whoami     — display active terminal session',
       '  clear      — clear terminal scrollback',
@@ -496,11 +496,11 @@ const TERMINAL_COMMAND_SEEDS = [
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'ask',
-    description: 'open /ask grounded RAG & JD match',
+    name: 'chat',
+    description: "open /chat to chat with Andrew's AI & JD match",
     kind: 'navigate' as const,
-    output: 'opening /ask ...',
-    targetRoute: '/ask',
+    output: 'opening /chat ...',
+    targetRoute: '/chat',
     allowedRoutes: [] as string[],
     errorTemplate: null,
     sortOrder: 6,
@@ -530,13 +530,13 @@ const TERMINAL_COMMAND_SEEDS = [
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'cd',
-    description: 'navigate to /menu, /cadence, /ask, /agensi, /contact, or /changes-in-progress',
+    description: 'navigate to /menu, /cadence, /chat, /agensi, /contact, or /changes-in-progress',
     kind: 'cd' as const,
     output: 'cd /{{target}}',
     targetRoute: null,
-    allowedRoutes: ['menu', 'cadence', 'ask', 'agensi', 'contact', 'changes-in-progress'],
+    allowedRoutes: ['menu', 'cadence', 'chat', 'agensi', 'contact', 'changes-in-progress'],
     errorTemplate:
-      'cd: no such route: {{input}}\nTry: cd menu | cd cadence | cd ask | cd agensi | cd contact | cd changes-in-progress',
+      'cd: no such route: {{input}}\nTry: cd menu | cd cadence | cd chat | cd agensi | cd contact | cd changes-in-progress',
     sortOrder: 9,
   },
   {
@@ -1221,6 +1221,26 @@ export async function seedDatabase(
         }));
   }
 
+  if (!isBootstrap) {
+    await db.delete(menuItems).where(eq(menuItems.slug, 'ask'));
+    await db
+      .delete(terminalCommands)
+      .where(
+        and(
+          eq(terminalCommands.profileSlug, TERMINAL_PROFILE_SLUGS.portalHome),
+          eq(terminalCommands.name, 'ask'),
+        ),
+      );
+    await db
+      .delete(terminalDirectoryEntries)
+      .where(
+        and(
+          eq(terminalDirectoryEntries.profileSlug, TERMINAL_PROFILE_SLUGS.portalHome),
+          eq(terminalDirectoryEntries.name, 'ask'),
+        ),
+      );
+  }
+
   if (pruneMissingMilestones) {
     console.info(
       JSON.stringify({
@@ -1376,27 +1396,35 @@ export async function seedDatabase(
   }
 
   for (const dossier of CAREER_DOSSIER_SEEDS) {
-    await db
-      .insert(careerDossiers)
-      .values({
-        slug: dossier.slug,
-        kind: dossier.kind,
-        title: dossier.title,
-        domainLabel: dossier.domainLabel,
-        roleTitle: dossier.roleTitle,
-        timeframe: dossier.timeframe,
-        skills: [...dossier.skills],
-        summaryBody: dossier.summaryBody,
-        sectionsJson: dossier.sectionsJson.map(section => ({
-          heading: section.heading,
-          body: section.body,
-        })),
-        publishStatus: dossier.publishStatus,
-        sanitizationVerifiedAt: dossier.sanitizationVerifiedAt,
-        denylistHash: dossier.denylistHash,
-        sortOrder: dossier.sortOrder,
-      })
-      .onConflictDoNothing({ target: careerDossiers.slug });
+    const sections = dossier.sectionsJson.map(section => ({
+      heading: section.heading,
+      body: section.body,
+    }));
+    const dossierStmt = db.insert(careerDossiers).values({
+      slug: dossier.slug,
+      kind: dossier.kind,
+      title: dossier.title,
+      domainLabel: dossier.domainLabel,
+      roleTitle: dossier.roleTitle,
+      timeframe: dossier.timeframe,
+      skills: [...dossier.skills],
+      summaryBody: dossier.summaryBody,
+      sectionsJson: sections,
+      publishStatus: dossier.publishStatus,
+      sanitizationVerifiedAt: dossier.sanitizationVerifiedAt,
+      denylistHash: dossier.denylistHash,
+      sortOrder: dossier.sortOrder,
+    });
+    await (isBootstrap
+      ? dossierStmt.onConflictDoNothing({ target: careerDossiers.slug })
+      : dossierStmt.onConflictDoUpdate({
+          target: careerDossiers.slug,
+          set: {
+            summaryBody: dossier.summaryBody,
+            sectionsJson: sections,
+            updatedAt: new Date(),
+          },
+        }));
   }
 
   await seedAdminUserFromEnv(db, env);

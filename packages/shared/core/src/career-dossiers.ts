@@ -84,7 +84,7 @@ export const PrivacySanitizationFindingSchema = z.object({
 });
 export type PrivacySanitizationFinding = z.infer<typeof PrivacySanitizationFindingSchema>;
 
-export const GroundingTierSchema = z.enum(['profile', 'evidence', 'boundary']);
+export const GroundingTierSchema = z.enum(['profile', 'evidence', 'general', 'boundary']);
 export type GroundingTier = z.infer<typeof GroundingTierSchema>;
 
 export const AskSuggestedLinkSchema = z.object({

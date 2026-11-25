@@ -156,7 +156,7 @@ describe('@aklapper/core site_content registry', () => {
   it('hydrates defaults cleanly for legacy 6-field portal-ask rows and rejects disallowed contactCtaHref routes', () => {
     const legacyParsed = PortalAskContentSchema.parse(VALID_FIXTURES[SITE_CONTENT_KEYS.portalAsk]);
     expect(legacyParsed.visitorLenses.length).toBeGreaterThanOrEqual(3);
-    expect(legacyParsed.qaTabLabel).toBe('Ask Andrew Assistant');
+    expect(legacyParsed.qaTabLabel).toBe('Chat with Andrew');
     expect(legacyParsed.jdTabLabel).toBe('JD Match');
     expect(legacyParsed.contactCtaHref).toBe('/contact');
 

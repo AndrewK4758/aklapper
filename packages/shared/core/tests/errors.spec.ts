@@ -333,7 +333,7 @@ describe('@aklapper/core error contracts and server error classification', () =>
       '/',
       '/menu',
       '/cadence',
-      '/ask',
+      '/chat',
       '/agensi',
       '/contact',
     ]);
@@ -345,7 +345,7 @@ describe('@aklapper/core error contracts and server error classification', () =>
       '/',
       '/menu',
       '/cadence',
-      '/ask',
+      '/chat',
       '/agensi',
       '/contact',
       '/api/contact',

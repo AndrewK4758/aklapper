@@ -8,14 +8,14 @@ import {
 import { computeDenylistHash } from '@aklapper/node-runtime/privacy';
 
 export const PORTAL_ASK_SEED: PortalAskContent = PortalAskContentSchema.parse({
-  windowTitle: 'Ask Andrew Assistant — Q&A & Role Fit',
+  windowTitle: 'Chat with Andrew — AI Chat & Role Fit',
   statusBadge: {
     source: 'svc-ai-ask',
     state: 'idle',
-    label: 'On-demand · grounded answers only',
+    label: "On-demand · Andrew's AI",
   },
   description:
-    "Explore Andrew Klapper's engineering background, architecture patterns, and published work through a multi-turn assistant, or evaluate role fit against anonymized career dossiers.",
+    "Chat with Andrew's AI about Andrew Klapper's engineering background, architecture patterns, and published work — or drop in for a quick conversation and evaluate role fit against published career dossiers.",
   starterQuestions: [
     'Who is Andrew Klapper and what kinds of systems does he architect?',
     'How does this portfolio combine streaming React Router SSR, Go microservices, and Qdrant?',
@@ -24,24 +24,24 @@ export const PORTAL_ASK_SEED: PortalAskContent = PortalAskContentSchema.parse({
   jdPlaceholder:
     'Paste a job description to evaluate role fit against published career dossiers and portfolio evidence...',
   abstentionNotice:
-    'Grounded responses only: answers draw strictly from published career dossiers and indexed portfolio records.',
+    "Portfolio questions cite published records, casual chat streams live from Andrew's AI, and confidential client boundaries remain strictly enforced.",
   visitorLenses: DEFAULT_PORTAL_ASK_VISITOR_LENSES.map(lens => ({
     ...lens,
     starterQuestions: [...lens.starterQuestions],
   })),
-  qaTabLabel: 'Ask Andrew Assistant',
+  qaTabLabel: 'Chat with Andrew',
   jdTabLabel: 'JD Match',
   questionPlaceholder:
-    "Ask about Andrew's architecture, engineering leadership, or portfolio stack...",
-  questionAriaLabel: 'Ask a question about Andrew Klapper',
-  submitQaLabel: 'Ask Assistant',
-  streamingQaLabel: 'Streaming Answer...',
+    "Say hi or ask Andrew's AI about his work, architecture, or anything else...",
+  questionAriaLabel: "Message Andrew's AI",
+  submitQaLabel: 'Send Message',
+  streamingQaLabel: 'Chatting...',
   newConversationLabel: 'New Conversation',
   jdTextareaLabel: 'Paste a job description to evaluate fit against published career dossiers',
   submitJdLabel: 'Evaluate Fit',
   evaluatingJdLabel: 'Evaluating Fit...',
   emptyThreadHint:
-    'Select a visitor lens or starter question below to begin a grounded multi-turn conversation.',
+    "Say hello, select a visitor lens, or pick a starter prompt below to chat with Andrew's AI.",
   boundaryFallbackNotice:
     'That topic falls outside published portfolio records or confidential client boundaries. Use the contact page to reach Andrew directly.',
   contactCtaLabel: 'Contact Andrew Directly',
@@ -107,7 +107,7 @@ export const CAREER_DOSSIER_SEEDS: readonly CareerDossierSeedEntry[] = [
       },
       {
         heading: 'Portfolio Highlights',
-        body: 'This portfolio showcases a multi-pane terminal workspace, interactive sandboxed artifact generation on /cadence, hybrid lexical plus dense vector retrieval on /ask, creator-scoped AI skills on /agensi, and direct outreach on /contact.',
+        body: 'This portfolio showcases a multi-pane terminal workspace, interactive sandboxed artifact generation on /cadence, conversational AI chat and hybrid lexical plus dense vector retrieval on /chat, creator-scoped AI skills on /agensi, and direct outreach on /contact.',
       },
     ],
     publishStatus: 'published',
