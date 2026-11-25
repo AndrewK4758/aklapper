@@ -24,11 +24,7 @@ import { Button, Toolbar, Tooltip } from '../elements/base';
 import { buildZshCommandHandlers } from './buildZshCommands';
 import { PaneActiveContext, useIsPaneActive } from './paneActiveContext';
 import { PaneNavigationContext, type PaneNavigationContextValue } from './paneNavigationContext';
-import {
-  normalizeWorkspaceRouteKey,
-  type RouteWorkspaceSnapshotV1,
-} from './routeWorkspaceSnapshot';
-import type { RouteWorkspaceStore } from './routeWorkspaceStore';
+import { normalizeWorkspaceRouteKey } from './routeWorkspaceSnapshot';
 import { type TerminalFormConfig } from './terminalFormSession';
 import {
   exitPaneTui,
@@ -85,6 +81,7 @@ import {
   type ZshTerminalHandle,
 } from './terminalReadlineRegistryContext';
 import { resolveAutoSplitDirection, useAutoSplitDirection } from './terminalViewportSplit';
+import { type WorkspaceStateSnapshot, type WorkspaceStoreAdapter } from './workspaceStoreAdapter';
 import { ZshP10kTerminal, type ZshCommandHandler } from './ZshP10kTerminal';
 
 import styles from './TerminalWorkspace.module.css';
@@ -116,6 +113,7 @@ export interface TerminalWorkspacePrimaryPane {
   readonly content: ReactNode;
   readonly flush?: boolean;
   readonly embeddedTerminal?: boolean;
+  readonly isRouteView?: boolean;
 }
 
 export interface TerminalWorkspaceProps {
@@ -132,7 +130,7 @@ export interface TerminalWorkspaceProps {
   disableMenuShortcut?: boolean;
   isActive?: boolean;
   routeKey?: string;
-  workspaceStore?: RouteWorkspaceStore;
+  workspaceStore?: WorkspaceStoreAdapter;
 }
 
 interface EmbeddedTerminalPaneContextValue {
@@ -210,10 +208,6 @@ interface SyncedTabState {
   readonly tabs: TerminalTabbedWorkspaceState;
   readonly embeddedTerminal: boolean | undefined;
   readonly deepLinkRoute: string | null;
-}
-
-function isPrimaryHostTab(tab: TerminalWorkspaceTab): boolean {
-  return Boolean(tab.pinned);
 }
 
 function isPrimaryHostPane(
@@ -326,6 +320,7 @@ export { useIsPaneActive };
 function resolveTabDisplayTitle(
   tab: TerminalWorkspaceTab,
   primaryPane?: TerminalWorkspacePrimaryPane,
+  initialDeepLinkRoute: string | null = null,
 ): string {
   if (tab.title) {
     return tab.title;
@@ -333,12 +328,25 @@ function resolveTabDisplayTitle(
   const activeLeaf =
     findLeafPane(tab.workspace.root, tab.workspace.activePaneId) ??
     listLeafPanes(tab.workspace.root)[0];
-  if (primaryPane && isPrimaryHostTab(tab) && !primaryPane.embeddedTerminal) {
-    return primaryPane.title;
-  }
+  const isPrimaryLeaf = Boolean(primaryPane && isPrimaryHostPane(tab.pinned, activeLeaf?.pinned));
+  const activeStack = activeLeaf?.tuiStack ?? [];
   const activeViewId = activeLeaf ? getActivePaneViewId(activeLeaf) : null;
-  if (activeViewId) {
+  const isInitialPrimaryDeepLink = Boolean(
+    isPrimaryLeaf &&
+    !primaryPane?.embeddedTerminal &&
+    initialDeepLinkRoute &&
+    activeStack.length === 1 &&
+    activeStack[0] === initialDeepLinkRoute,
+  );
+  if (activeViewId && !isInitialPrimaryDeepLink) {
     return activeViewId === 'tui' ? 'tui' : activeViewId.replace(/^\/+/, '');
+  }
+  if (isPrimaryLeaf && primaryPane) {
+    return primaryPane.embeddedTerminal
+      ? activeLeaf
+        ? `tty${activeLeaf.ttyNumber}`
+        : primaryPane.title
+      : primaryPane.title;
   }
   if (activeLeaf?.kind === 'tui') {
     return 'tui';
@@ -350,6 +358,7 @@ interface TabStripProps {
   tabs: readonly TerminalWorkspaceTab[];
   activeTabId: string;
   primaryPane?: TerminalWorkspacePrimaryPane;
+  initialDeepLinkRoute?: string | null;
   renamingTabId: string | null;
   renameDraft: string;
   isDetachPreview: boolean;
@@ -396,6 +405,7 @@ function TabStrip({
   tabs,
   activeTabId,
   primaryPane,
+  initialDeepLinkRoute = null,
   renamingTabId,
   renameDraft,
   isDetachPreview,
@@ -427,7 +437,7 @@ function TabStrip({
       <div className={styles.tabList} role='tablist' aria-label='Terminal workspace tabs'>
         {tabs.map(tab => {
           const isActive = tab.id === activeTabId;
-          const displayTitle = resolveTabDisplayTitle(tab, primaryPane);
+          const displayTitle = resolveTabDisplayTitle(tab, primaryPane, initialDeepLinkRoute);
           const paneCount = listLeafPanes(tab.workspace.root).length;
           const canClose = tabs.length > 1;
           const isRenaming = renamingTabId === tab.id;
@@ -685,6 +695,7 @@ interface WorkspacePaneFrameProps extends PaneDragHandlers {
   pane: TerminalLeafPane;
   title: string;
   paneKind: 'terminal' | 'primary' | 'tui';
+  tuiDepth?: number;
   isActive: boolean;
   isMultiPane: boolean;
   isZoomed: boolean;
@@ -703,6 +714,7 @@ function WorkspacePaneFrame({
   pane,
   title,
   paneKind,
+  tuiDepth,
   isActive,
   isMultiPane,
   isZoomed,
@@ -726,7 +738,7 @@ function WorkspacePaneFrame({
       data-pane-id={pane.id}
       data-pane-tty={title}
       data-pane-kind={paneKind}
-      data-tui-depth={pane.tuiStack?.length ?? 0}
+      data-tui-depth={tuiDepth ?? pane.tuiStack?.length ?? 0}
       data-active={isActive ? 'true' : 'false'}
       data-multi={isMultiPane ? 'true' : 'false'}
       data-dragging={isDragging ? 'true' : 'false'}
@@ -1252,6 +1264,7 @@ function PrimaryPaneView({
   const stack = pane.tuiStack ?? [];
   const activeViewId = getActivePaneViewId(pane);
   const hasTuiView = Boolean(renderPaneView && activeViewId);
+  const effectiveTuiDepth = stack.length + (primaryPane.isRouteView ? 1 : 0);
   const isInitialPrimaryDeepLink = Boolean(
     hasTuiView &&
     !primaryPane.embeddedTerminal &&
@@ -1358,7 +1371,7 @@ function PrimaryPaneView({
           tabIndex={-1}
           className={styles.tuiLayer}
           data-tui-view={activeViewId}
-          data-tui-depth={stack.length}
+          data-tui-depth={effectiveTuiDepth}
         >
           {renderPaneView({
             paneId: pane.id,
@@ -1385,7 +1398,14 @@ function PrimaryPaneView({
     <WorkspacePaneFrame
       pane={pane}
       title={paneLabel}
-      paneKind={hasTuiView ? 'tui' : primaryPane.embeddedTerminal ? 'terminal' : 'primary'}
+      paneKind={
+        hasTuiView || primaryPane.isRouteView
+          ? 'tui'
+          : primaryPane.embeddedTerminal
+            ? 'terminal'
+            : 'primary'
+      }
+      tuiDepth={effectiveTuiDepth}
       isActive={isActive}
       isMultiPane={isMultiPane}
       isZoomed={isZoomed}
@@ -1458,7 +1478,7 @@ function StandaloneTerminalWorkspace({
     [initialStackKey, pinnedPrimary],
   );
 
-  const serverStoreSnapshot = useMemo<RouteWorkspaceSnapshotV1 | null>(
+  const serverStoreSnapshot = useMemo<WorkspaceStateSnapshot | null>(
     () =>
       workspaceStore && normalizedRouteKey
         ? workspaceStore.getServerSnapshot(normalizedRouteKey, stableInitialOptions)
@@ -1475,7 +1495,7 @@ function StandaloneTerminalWorkspace({
   );
 
   const getClientStoreSnapshot = useCallback(
-    (): RouteWorkspaceSnapshotV1 | null =>
+    (): WorkspaceStateSnapshot | null =>
       workspaceStore && normalizedRouteKey
         ? workspaceStore.getClientSnapshot(normalizedRouteKey, stableInitialOptions)
         : null,
@@ -1564,6 +1584,9 @@ function StandaloneTerminalWorkspace({
   const activeLeaf = findLeafPane(activeWorkspace.root, activeWorkspace.activePaneId);
   const activeLeafViewId = activeLeaf ? getActivePaneViewId(activeLeaf) : null;
   const activeHasTuiStack = Boolean(renderPaneView && activeLeafViewId);
+  const activeIsPrimaryRouteView = Boolean(
+    primaryPane?.isRouteView && isPrimaryHostPane(activeTab.pinned, activeLeaf?.pinned),
+  );
   const activeIsPrimaryNonTerminal =
     isPrimaryHostPane(activeTab.pinned, activeLeaf?.pinned) &&
     Boolean(primaryPane) &&
@@ -1608,7 +1631,13 @@ function StandaloneTerminalWorkspace({
     (paneId: string) => {
       const targetLeaf = findLeafPane(activeWorkspace.root, paneId);
       const currentLen = targetLeaf?.tuiStack?.length ?? 0;
+      const isRouteBase = Boolean(
+        primaryPane?.isRouteView && isPrimaryHostPane(activeTab.pinned, targetLeaf?.pinned),
+      );
       if (currentLen === 0) {
+        if (isRouteBase) {
+          onPrimaryPaneReturnToShell?.();
+        }
         return;
       }
       if (
@@ -1627,13 +1656,17 @@ function StandaloneTerminalWorkspace({
         return;
       }
       setTabState(prev => updateActiveTabWorkspace(prev, ws => popPaneView(ws, paneId)));
-      notifyIfPrimaryReturnedToShell(targetLeaf?.pinned, currentLen === 1);
+      if (!isRouteBase) {
+        notifyIfPrimaryReturnedToShell(targetLeaf?.pinned, currentLen === 1);
+      }
     },
     [
+      activeTab.pinned,
       activeWorkspace.root,
       initialDeepLinkRoute,
       notifyIfPrimaryReturnedToShell,
       onPrimaryPaneReturnToShell,
+      primaryPane?.isRouteView,
       setTabState,
       shouldPreserveDeepLinkBase,
     ],
@@ -1643,7 +1676,13 @@ function StandaloneTerminalWorkspace({
     (paneId: string) => {
       const targetLeaf = findLeafPane(activeWorkspace.root, paneId);
       const currentLen = targetLeaf?.tuiStack?.length ?? 0;
+      const isRouteBase = Boolean(
+        primaryPane?.isRouteView && isPrimaryHostPane(activeTab.pinned, targetLeaf?.pinned),
+      );
       if (currentLen === 0) {
+        if (isRouteBase) {
+          onPrimaryPaneReturnToShell?.();
+        }
         return;
       }
       if (shouldPreserveDeepLinkBase(targetLeaf?.pinned) && initialDeepLinkRoute) {
@@ -1661,10 +1700,12 @@ function StandaloneTerminalWorkspace({
       notifyIfPrimaryReturnedToShell(targetLeaf?.pinned, true);
     },
     [
+      activeTab.pinned,
       activeWorkspace.root,
       initialDeepLinkRoute,
       notifyIfPrimaryReturnedToShell,
       onPrimaryPaneReturnToShell,
+      primaryPane?.isRouteView,
       setTabState,
       shouldPreserveDeepLinkBase,
     ],
@@ -1710,7 +1751,10 @@ function StandaloneTerminalWorkspace({
       }
 
       const isVisibleTerminalPane =
-        !activeHasTuiStack && !activeIsTuiPane && !hasOpenOverlayOrPopup(event.target);
+        !activeHasTuiStack &&
+        !activeIsTuiPane &&
+        !activeIsPrimaryRouteView &&
+        !hasOpenOverlayOrPopup(event.target);
 
       // Intercept physical Alt+N before macOS dead-key tilde composition starts when a terminal is active.
       if (isVisibleTerminalPane && isAltNReadlineChord(event)) {
@@ -1751,7 +1795,7 @@ function StandaloneTerminalWorkspace({
       }
 
       if (
-        activeHasTuiStack &&
+        (activeHasTuiStack || activeIsPrimaryRouteView) &&
         activeLeaf &&
         !isEditableTarget(event.target) &&
         !hasOpenOverlayOrPopup(event.target)
@@ -1894,7 +1938,7 @@ function StandaloneTerminalWorkspace({
           setTabState(prev => addWorkspaceTab(prev));
           return;
         case 'rename-tab': {
-          const currentTitle = resolveTabDisplayTitle(activeTab, primaryPane);
+          const currentTitle = resolveTabDisplayTitle(activeTab, primaryPane, initialDeepLinkRoute);
           setRenamingTabId(activeTab.id);
           setRenameDraft(currentTitle);
           return;
@@ -1956,6 +2000,7 @@ function StandaloneTerminalWorkspace({
   }, [
     activeCanToggleTui,
     activeHasTuiStack,
+    activeIsPrimaryRouteView,
     activeIsTuiPane,
     activeLeaf,
     activeLeafViewId,
@@ -2258,6 +2303,7 @@ function StandaloneTerminalWorkspace({
         tabs={tabState.tabs}
         activeTabId={tabState.activeTabId}
         primaryPane={primaryPane}
+        initialDeepLinkRoute={initialDeepLinkRoute}
         renamingTabId={renamingTabId}
         renameDraft={renameDraft}
         isDetachPreview={dropTarget?.zone === 'detach-tab'}
@@ -2309,6 +2355,9 @@ function StandaloneTerminalWorkspace({
                   ? { x: 0, y: 0, width: 1, height: 1 }
                   : (rectsById.get(pane.id) ?? { x: 0, y: 0, width: 1, height: 1 });
                 const paneStack = pane.tuiStack ?? [];
+                const isPrimaryRoutePane = Boolean(
+                  primaryPane?.isRouteView && isPrimaryHostPane(tab.pinned, pane.pinned),
+                );
                 const paneNav: PaneNavigationContextValue | null = isDockedMode
                   ? {
                       paneId: pane.id,
@@ -2317,7 +2366,7 @@ function StandaloneTerminalWorkspace({
                       isSinglePane: !isMultiPane,
                       docked: true,
                       stack: paneStack,
-                      canGoBack: paneStack.length > 0,
+                      canGoBack: paneStack.length > 0 || isPrimaryRoutePane,
                       push: viewId => handleNavigateView(pane.id, viewId, 'in-pane'),
                       pop: () => handlePopPaneView(pane.id),
                       exitTui: () => handleExitPaneTui(pane.id),
