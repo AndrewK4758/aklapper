@@ -11,7 +11,8 @@ export type ServerViewportLayoutMode = 'desktop' | 'mobile-portrait';
 export const MOBILE_PORTRAIT_MEDIA_QUERY = '(max-width: 48rem)';
 export const MOBILE_LANDSCAPE_MEDIA_QUERY = '(max-height: 32rem) and (orientation: landscape)';
 
-const MOBILE_USER_AGENT_REGEX = /Android.*Mobile|iPhone|iPod|IEMobile|Mobile Safari|Windows Phone|BlackBerry/i;
+const MOBILE_USER_AGENT_REGEX =
+  /Android.*Mobile|iPhone|iPod|IEMobile|Mobile Safari|Windows Phone|BlackBerry/i;
 
 type HeaderMap = Headers | Readonly<Record<string, string | string[] | undefined>>;
 

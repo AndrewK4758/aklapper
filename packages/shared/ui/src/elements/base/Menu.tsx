@@ -28,11 +28,7 @@ export const Menu = {
     'Menu.Popup',
     { mobileSheet: true },
   ),
-  Viewport: viewportStyledPart(
-    BaseMenu.Viewport,
-    overlayStyles.floatingViewport,
-    'Menu.Viewport',
-  ),
+  Viewport: viewportStyledPart(BaseMenu.Viewport, overlayStyles.floatingViewport, 'Menu.Viewport'),
   Arrow: viewportStyledPart(
     BaseMenu.Arrow,
     cx(overlayStyles.arrow, overlayMobileStyles.sheetArrow),

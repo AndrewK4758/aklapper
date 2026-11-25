@@ -128,8 +128,9 @@ export function PortalMobileWorkspaceHost({
             paneId: 'mobile-tty1',
             ttyNumber: 1,
             isSinglePane: true,
+            isActive: true,
+            isInitialPrimaryDeepLink: false,
             stack: [viewId],
-            canGoBack: true,
             push: next => {
               void navigate(next);
             },

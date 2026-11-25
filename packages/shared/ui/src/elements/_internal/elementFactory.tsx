@@ -42,9 +42,7 @@ interface ViewportClassBearingProps {
   'data-mobile-sheet'?: string;
 }
 
-export type WithElementViewMode<Component> = Component extends (
-  props: infer Props,
-) => infer Result
+export type WithElementViewMode<Component> = Component extends (props: infer Props) => infer Result
   ? (props: Props & { readonly viewMode?: ElementViewMode }) => Result
   : Component;
 

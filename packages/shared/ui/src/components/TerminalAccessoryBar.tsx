@@ -58,14 +58,17 @@ export function dispatchTerminalAccessoryAction(
   target: HTMLInputElement | HTMLTextAreaElement | null,
   runCommand: (command: string) => void,
 ): void {
-  if (typeof action === 'object' && action.type === 'command') {
+  if (typeof action !== 'string') {
     runCommand(action.command);
     return;
   }
   if (!target) {
     return;
   }
-  const keyMap: Record<Exclude<TerminalAccessoryAction, { readonly type: 'command' }>, KeyboardEventInit> = {
+  const keyMap: Record<
+    Exclude<TerminalAccessoryAction, { readonly type: 'command' }>,
+    KeyboardEventInit
+  > = {
     tab: { key: 'Tab', code: 'Tab', bubbles: true, cancelable: true },
     escape: { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true },
     'ctrl-c': { key: 'c', code: 'KeyC', ctrlKey: true, bubbles: true, cancelable: true },

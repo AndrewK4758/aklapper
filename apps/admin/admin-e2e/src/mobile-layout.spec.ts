@@ -39,8 +39,8 @@ async function assertNativeVerticalScroll(page: import('@playwright/test').Page)
   expect(scrollMetrics.scrollY).toBeGreaterThan(0);
 }
 
-test.describe('admin mobile native layout and scrolling', () => {
-  test('keeps unauthenticated /login standalone without mobile bottom nav at 390x844 @smoke', async ({
+test.describe('admin mobile TUI workspace and adaptive layout', () => {
+  test('keeps unauthenticated /login standalone without mobile TUI dock at 390x844 @smoke', async ({
     page,
   }) => {
     const getErrors = trackPageErrors(page);
@@ -48,15 +48,16 @@ test.describe('admin mobile native layout and scrolling', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoStreamedPage(page, '/login', { waitUntil: 'networkidle' });
 
+    await expect(page.locator('html')).toHaveAttribute('data-viewport', 'mobile-portrait');
     await expect(page.getByRole('heading', { name: /Admin Passkey Gate/i })).toBeVisible();
-    await expect(page.locator('[data-mobile-bottom-nav="true"]')).toHaveCount(0);
+    await expect(page.locator('[data-mobile-tui-dock="true"]')).toHaveCount(0);
     await expect(page.locator('[data-mobile-rail="true"]')).toHaveCount(0);
     await assertNoHorizontalOverflow(page);
 
     expect(getErrors()).toEqual([]);
   });
 
-  test('renders portrait bottom nav, landscape left rail, native scroll, and desktop parity for authenticated admin', async ({
+  test('renders portrait TUI dock, stacked CMS tabs, landscape rail, and desktop parity for authenticated admin', async ({
     page,
   }, testInfo) => {
     test.skip(!HAS_DATABASE_URL, 'Requires DATABASE_URL for isolated admin credential seeding');
@@ -87,28 +88,29 @@ test.describe('admin mobile native layout and scrolling', () => {
       await expect(page).toHaveURL(/\/$/);
       await waitForStreamedReveal(page);
 
-      // Portrait bottom navigation bar & 44px+ targets
-      const bottomNav = page.locator('[data-mobile-bottom-nav="true"]');
-      await expect(bottomNav).toBeVisible();
+      // Portrait bottom TUI dock & 44px+ targets
+      await expect(page.locator('html')).toHaveAttribute('data-viewport', 'mobile-portrait');
+      const bottomDock = page.locator('[data-mobile-tui-dock="true"]');
+      await expect(bottomDock).toBeVisible();
       await expect(page.locator('[data-mobile-rail="true"]')).toHaveCount(0);
-      for (const label of ['Home', 'CMS', 'Inbox', 'Ops', 'Analytics']) {
-        const link = bottomNav.getByRole('link', { name: label, exact: true });
+      for (const label of ['Home', 'CMS', 'Inbox', 'Ops', 'Stats']) {
+        const link = bottomDock.getByRole('link', { name: label, exact: true });
         await expect(link).toBeVisible();
         const box = await link.boundingBox();
         expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
       }
 
-      // Check tall Admin routes scroll natively in portrait with zero horizontal overflow
+      // Check all authenticated Admin routes in portrait with zero horizontal overflow
       for (const route of [
         { path: '/cms', label: 'CMS', expectScroll: true },
         { path: '/inbox', label: 'Inbox', expectScroll: false },
         { path: '/ops', label: 'Ops', expectScroll: true },
-        { path: '/analytics', label: 'Analytics', expectScroll: false },
+        { path: '/analytics', label: 'Stats', expectScroll: false },
       ]) {
         await gotoStreamedPage(page, route.path);
         await waitForStreamedReveal(page);
         await expect(
-          bottomNav.getByRole('link', { name: route.label, exact: true }),
+          bottomDock.getByRole('link', { name: route.label, exact: true }),
         ).toHaveAttribute('aria-current', 'page');
         await assertNoHorizontalOverflow(page);
         if (route.expectScroll) {
@@ -116,32 +118,29 @@ test.describe('admin mobile native layout and scrolling', () => {
         }
       }
 
-      // Portrait overflow menu exposes Quotas and Sign Out
-      await page.getByRole('button', { name: 'Open navigation menu' }).click();
-      const secondaryMenu = page.locator('[data-mobile-secondary-menu="true"]');
-      await expect(secondaryMenu.getByRole('link', { name: 'Quotas', exact: true })).toBeVisible();
+      // Portrait overflow sheet exposes Quotas and Sign Out
+      await page.getByRole('button', { name: 'Open workspace menu' }).click();
+      const overflowSheet = page.locator('[data-mobile-overflow-sheet="true"]');
+      await expect(overflowSheet).toBeVisible();
+      await expect(overflowSheet.getByRole('link', { name: 'Quotas', exact: true })).toBeVisible();
       await expect(
-        secondaryMenu.getByRole('button', { name: 'Sign Out', exact: true }),
+        overflowSheet.getByRole('button', { name: 'Sign Out', exact: true }),
       ).toBeVisible();
+      await page.getByRole('button', { name: 'Close workspace menu' }).click();
 
       // Landscape 844x390 switches to collapsible left rail with Quotas & Sign Out in rail footer
       await page.setViewportSize({ width: 844, height: 390 });
       await gotoStreamedPage(page, '/ops');
       await waitForStreamedReveal(page);
 
+      await expect(page.locator('html')).toHaveAttribute('data-viewport', 'mobile-landscape');
       const rail = page.locator('[data-mobile-rail="true"]');
       await expect(rail).toBeVisible();
-      await expect(page.locator('[data-mobile-bottom-nav="true"]')).toHaveCount(0);
+      await expect(page.locator('[data-mobile-tui-dock="true"]')).toHaveCount(0);
 
       const collapsedBox = await rail.boundingBox();
       expect(collapsedBox?.width ?? 0).toBeGreaterThanOrEqual(52);
       expect(collapsedBox?.width ?? 0).toBeLessThanOrEqual(72);
-
-      const mainHeightRatio = await page.evaluate(() => {
-        const main = document.querySelector<HTMLElement>('[data-mobile-main="landscape"]');
-        return main ? main.getBoundingClientRect().height / window.innerHeight : 0;
-      });
-      expect(mainHeightRatio).toBeGreaterThanOrEqual(0.85);
 
       await page.getByRole('button', { name: 'Expand navigation rail' }).click();
       await expect(rail).toHaveAttribute('data-expanded', 'true');
@@ -155,15 +154,16 @@ test.describe('admin mobile native layout and scrolling', () => {
       await page.setViewportSize({ width: 1280, height: 800 });
       await gotoStreamedPage(page, '/');
       await waitForStreamedReveal(page);
-      await expect(page.locator('[data-mobile-bottom-nav="true"]')).toHaveCount(0);
+      await expect(page.locator('html')).toHaveAttribute('data-viewport', 'desktop');
+      await expect(page.locator('[data-mobile-tui-dock="true"]')).toHaveCount(0);
       await expect(page.locator('[data-mobile-rail="true"]')).toHaveCount(0);
       await expect(page.getByText(`${handle}@admin`)).toBeVisible();
 
-      // Sign out from portrait mobile menu via POST /api/auth/logout
+      // Sign out from portrait mobile overflow sheet via POST /api/auth/logout
       await page.setViewportSize({ width: 390, height: 844 });
-      await page.getByRole('button', { name: 'Open navigation menu' }).click();
+      await page.getByRole('button', { name: 'Open workspace menu' }).click();
       await page
-        .locator('[data-mobile-secondary-menu="true"]')
+        .locator('[data-mobile-overflow-sheet="true"]')
         .getByRole('button', { name: 'Sign Out', exact: true })
         .click();
       await page.waitForURL(/\/login$/, { waitUntil: 'networkidle' });

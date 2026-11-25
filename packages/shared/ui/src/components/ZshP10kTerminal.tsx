@@ -19,6 +19,11 @@ import { Button, Form, Input, ScrollArea, Separator, Toolbar } from '../elements
 import { SolarForgeEmblem } from '../elements/SolarForgeEmblem';
 import { MAX_TERMINAL_HISTORY_ENTRIES, trimCommandHistory } from './routeWorkspaceSnapshot';
 import {
+  dispatchTerminalAccessoryAction,
+  type TerminalAccessoryAction,
+  TerminalAccessoryBar,
+} from './TerminalAccessoryBar';
+import {
   formatTerminalClock,
   getTerminalClockSnapshot,
   subscribeTerminalClock,
@@ -39,13 +44,8 @@ import {
   TerminalReadlineRegistryContext,
   type ZshTerminalHandle,
 } from './terminalReadlineRegistryContext';
-import {
-  dispatchTerminalAccessoryAction,
-  type TerminalAccessoryAction,
-  TerminalAccessoryBar,
-} from './TerminalAccessoryBar';
-import { useViewportContext } from './ViewportProvider';
 import { useHydrated } from './useHydrated';
+import { useViewportContext } from './ViewportProvider';
 
 import styles from './ZshP10kTerminal.module.css';
 

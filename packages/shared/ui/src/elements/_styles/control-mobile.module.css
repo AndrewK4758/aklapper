@@ -10,8 +10,12 @@
     gap: var(--sf-gap-xs);
   }
 
-  :is([data-viewport='mobile-portrait'], [data-viewport='mobile-landscape']) .touchStrip::-webkit-scrollbar,
-  .touchStrip:is([data-viewport='mobile-portrait'], [data-viewport='mobile-landscape'])::-webkit-scrollbar {
+  :is([data-viewport='mobile-portrait'], [data-viewport='mobile-landscape'])
+    .touchStrip::-webkit-scrollbar,
+  .touchStrip:is(
+      [data-viewport='mobile-portrait'],
+      [data-viewport='mobile-landscape']
+    )::-webkit-scrollbar {
     display: none;
   }
 
@@ -22,8 +26,11 @@
     min-width: var(--sf-mobile-touch-min);
   }
 
-  :is([data-viewport='mobile-portrait'], [data-viewport='mobile-landscape']) .touchTarget:active:not(:disabled),
-  .touchTarget:is([data-viewport='mobile-portrait'], [data-viewport='mobile-landscape']):active:not(:disabled) {
+  :is([data-viewport='mobile-portrait'], [data-viewport='mobile-landscape'])
+    .touchTarget:active:not(:disabled),
+  .touchTarget:is([data-viewport='mobile-portrait'], [data-viewport='mobile-landscape']):active:not(
+      :disabled
+    ) {
     transform: scale(var(--sf-mobile-active-scale));
     opacity: var(--sf-mobile-active-opacity);
   }

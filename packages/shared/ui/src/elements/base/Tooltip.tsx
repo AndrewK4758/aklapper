@@ -3,7 +3,7 @@ import {
   type TooltipRootProps as BaseTooltipRootProps,
   type TooltipTriggerProps as BaseTooltipTriggerProps,
 } from '@base-ui/react/tooltip';
-import { createContext, type JSX, type MouseEvent, useCallback, useContext, useState } from 'react';
+import { createContext, type JSX, useCallback, useContext, useState } from 'react';
 
 import {
   type ElementViewMode,
@@ -43,7 +43,10 @@ function TooltipRoot({
   const open = isControlled ? controlledOpen : uncontrolledOpen;
 
   const handleOpenChange: BaseTooltipRootProps['onOpenChange'] = useCallback(
-    (nextOpen: boolean, eventDetails: Parameters<NonNullable<BaseTooltipRootProps['onOpenChange']>>[1]) => {
+    (
+      nextOpen: boolean,
+      eventDetails: Parameters<NonNullable<BaseTooltipRootProps['onOpenChange']>>[1],
+    ) => {
       if (!isControlled) {
         setUncontrolledOpen(nextOpen);
       }
@@ -90,7 +93,7 @@ function TooltipTrigger({ onClick, ...props }: BaseTooltipTriggerProps): JSX.Ele
     return <BaseTooltip.Trigger {...props} onClick={onClick} />;
   }
 
-  const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
+  const handleClick: NonNullable<BaseTooltipTriggerProps['onClick']> = event => {
     mobileCtx.toggleOpen();
     onClick?.(event);
   };

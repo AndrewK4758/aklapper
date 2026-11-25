@@ -246,7 +246,9 @@ describe('adaptive mobile views across @aklapper/ui elements', () => {
       </ViewportProvider>,
     );
 
-    expect(screen.getByTestId('override-btn').getAttribute('data-viewport')).toBe('mobile-portrait');
+    expect(screen.getByTestId('override-btn').getAttribute('data-viewport')).toBe(
+      'mobile-portrait',
+    );
     expect(screen.getByTestId('override-input').getAttribute('data-viewport')).toBe(
       'mobile-portrait',
     );
@@ -357,10 +359,10 @@ describe('adaptive mobile views across @aklapper/ui elements', () => {
             <Toolbar.Root>
               <Toolbar.Button>Run</Toolbar.Button>
             </Toolbar.Root>
-            <OscStatusBadge state='ready' label='2 pods' />
+            <OscStatusBadge source='gke-autopilot' state='ready' label='2 pods' />
             <QrCodeSvg value='https://andrew-k.us' label='Portal QR' />
             <SolarForgeEmblem size={24} />
-            <StatusPill tone='ok'>OK</StatusPill>
+            <StatusPill tone='success'>OK</StatusPill>
           </ViewportProvider>
         </DirectionProvider.Provider>
       </CSPProvider.Provider>,

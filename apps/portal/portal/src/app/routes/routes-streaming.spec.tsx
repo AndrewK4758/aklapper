@@ -165,6 +165,7 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
           loaderData: {
             runtimeSeo: { siteUrl: 'https://andrew-k.us' },
             correlationId: 'corr-root',
+            initialViewport: 'desktop',
             maintenanceMode: false,
             rootPayload: Promise.withResolvers<never>().promise,
           },
@@ -249,6 +250,7 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
           loaderData: {
             runtimeSeo: { siteUrl: 'https://andrew-k.us' },
             correlationId: 'corr-root',
+            initialViewport: 'desktop',
             maintenanceMode: false,
             rootPayload: Promise.withResolvers<never>().promise,
           },

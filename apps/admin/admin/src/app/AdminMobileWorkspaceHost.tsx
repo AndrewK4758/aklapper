@@ -13,11 +13,7 @@ import { reportAdminLazyChunkError } from './client-telemetry';
 
 import styles from './root.module.css';
 
-const LazyMobileTuiWorkspace = lazyWithRetry(() =>
-  import('@aklapper/ui/mobile-tui-workspace').then(mod => ({
-    default: mod.MobileTuiWorkspace,
-  })),
-);
+const LazyMobileTuiWorkspace = lazyWithRetry(() => import('@aklapper/ui/mobile-tui-workspace'));
 
 const ADMIN_MOBILE_NAV = [
   { id: 'home', to: href('/'), label: 'Home', shortLabel: 'Home', icon: '⌂' },

@@ -1,4 +1,5 @@
 export {
+  MobileTuiWorkspace as default,
   type MobileNavItem,
   MobileTuiWorkspace,
   type MobileTuiWorkspaceProps,

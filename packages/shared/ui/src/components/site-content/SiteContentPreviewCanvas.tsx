@@ -254,7 +254,10 @@ export function SiteContentPreviewCanvas({
   return (
     <ViewportProvider mode={scopedViewportMode}>
       <div
-        className={cx(styles.previewViewport, viewport === 'mobile' && styles.previewViewportMobile)}
+        className={cx(
+          styles.previewViewport,
+          viewport === 'mobile' && styles.previewViewportMobile,
+        )}
         data-preview-viewport={viewport}
         data-viewport={scopedViewportMode}
         data-preview-key={contentKey}

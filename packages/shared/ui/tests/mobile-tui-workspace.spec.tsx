@@ -11,6 +11,7 @@ import {
 import {
   type MobileNavItem,
   MobileTuiWorkspace,
+  type TerminalAccessoryAction,
   TerminalAccessoryBar,
 } from '../src/mobile-tui-workspace';
 
@@ -60,7 +61,7 @@ describe('MobileTuiWorkspace and TerminalAccessoryBar', () => {
           activeTtyLabel='tty1 :: /'
           navLabel='Mobile primary navigation'
           navItems={NAV_ITEMS}
-          statusBadge={<OscStatusBadge state='ready' label='2 pods' />}
+          statusBadge={<OscStatusBadge source='gke-autopilot' state='ready' label='2 pods' />}
           overflowItems={<div>Overflow Item</div>}
           quickLaunchItems={<div>Quick Launch Launcher</div>}
           renderStackedPane={viewId => <div data-testid='stacked-pane'>View: {viewId}</div>}
@@ -93,7 +94,10 @@ describe('MobileTuiWorkspace and TerminalAccessoryBar', () => {
   });
 
   it('hides portrait bottom dock and reveals TerminalAccessoryBar when ZshP10kTerminal input is focused', () => {
-    const onRun = vi.fn(() => ({ output: 'help output', status: 'ok' as const }));
+    const onRun = vi.fn<() => { output: string; status: 'ok' }>(() => ({
+      output: 'help output',
+      status: 'ok' as const,
+    }));
     render(
       <ViewportProvider mode='mobile-portrait'>
         <MobileTuiWorkspace
@@ -164,10 +168,8 @@ describe('MobileTuiWorkspace and TerminalAccessoryBar', () => {
   });
 
   it('dispatches TerminalAccessoryBar actions when buttons are tapped', () => {
-    const onAction = vi.fn();
-    render(
-      <TerminalAccessoryBar visible quickCommands={['status']} onAction={onAction} />,
-    );
+    const onAction = vi.fn<(action: TerminalAccessoryAction) => void>();
+    render(<TerminalAccessoryBar visible quickCommands={['status']} onAction={onAction} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Tab' }));
     fireEvent.click(screen.getByRole('button', { name: 'Ctrl+C' }));

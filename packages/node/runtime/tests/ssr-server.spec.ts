@@ -81,12 +81,8 @@ describe('@aklapper/node-runtime/ssr', () => {
     expect(varyTokens).toContain('Accept-Encoding');
     expect(varyTokens).toContain('User-Agent');
     expect(varyTokens).toContain('Sec-CH-UA-Mobile');
-    expect(
-      varyTokens.filter(token => token.toLowerCase() === 'user-agent'),
-    ).toHaveLength(1);
-    expect(
-      varyTokens.filter(token => token.toLowerCase() === 'sec-ch-ua-mobile'),
-    ).toHaveLength(1);
+    expect(varyTokens.filter(token => token.toLowerCase() === 'user-agent')).toHaveLength(1);
+    expect(varyTokens.filter(token => token.toLowerCase() === 'sec-ch-ua-mobile')).toHaveLength(1);
   });
 
   it('serves /healthz and bridges SSR GET headers including multi-value Set-Cookie', async () => {

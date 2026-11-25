@@ -101,35 +101,27 @@ export function ViewportProvider({
 
 export function useViewportContext(): ViewportContextValue {
   const ctx = useContext(ViewportContext);
-  const fallbackMode = useSyncExternalStore(
+  return ctx ?? DEFAULT_VIEWPORT_CONTEXT;
+}
+
+export function useViewportLayoutMode(): ViewportLayoutMode {
+  const ctx = useContext(ViewportContext);
+  const liveMode = useSyncExternalStore(
     subscribeViewportLayoutMode,
     resolveViewportLayoutMode,
     () => DEFAULT_VIEWPORT_CONTEXT.layoutMode,
   );
-
-  if (ctx) {
-    return ctx;
-  }
-
-  return {
-    layoutMode: fallbackMode,
-    isMobile: fallbackMode !== 'desktop',
-    isScopedOverride: false,
-    portalContainer: null,
-  };
-}
-
-export function useViewportLayoutMode(): ViewportLayoutMode {
-  return useViewportContext().layoutMode;
+  return ctx ? ctx.layoutMode : liveMode;
 }
 
 export function ViewportHtml({
+  lang = 'en',
   children,
   ...htmlProps
 }: ComponentPropsWithoutRef<'html'>): JSX.Element {
   const { layoutMode } = useViewportContext();
   return (
-    <html {...htmlProps} data-viewport={layoutMode}>
+    <html lang={lang} {...htmlProps} data-viewport={layoutMode}>
       {children}
     </html>
   );
