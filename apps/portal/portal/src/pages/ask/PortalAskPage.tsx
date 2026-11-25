@@ -85,6 +85,7 @@ export function PortalAskPage({
   const {
     conversationId,
     activeStream,
+    failedStreamSources,
     isStreaming,
     startStreamingQa,
     cancelStream,
@@ -356,6 +357,7 @@ export function PortalAskPage({
               isBusy={isBusy}
               isStreaming={isStreaming}
               activeStream={activeStream}
+              failedStreamSources={failedStreamSources}
               visiblePendingTurnState={pendingMode === 'qa' ? visiblePendingTurnState : null}
               pendingSubmittedText={pendingSubmittedText}
               qaTranscript={qaTranscript}

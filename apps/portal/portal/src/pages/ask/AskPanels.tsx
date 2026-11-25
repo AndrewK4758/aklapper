@@ -1,4 +1,4 @@
-import type { AskResponse, AskTurnState, PortalAskContent } from '@aklapper/core';
+import type { AskResponse, AskSource, AskTurnState, PortalAskContent } from '@aklapper/core';
 import {
   Button,
   CitationSourceList,
@@ -28,6 +28,7 @@ export interface AskQaPanelProps {
   readonly isBusy: boolean;
   readonly isStreaming: boolean;
   readonly activeStream: ActiveAskStreamState | null;
+  readonly failedStreamSources?: readonly AskSource[];
   readonly visiblePendingTurnState: AskTurnState | null;
   readonly pendingSubmittedText?: string;
   readonly qaTranscript: readonly QaTranscriptEntry[];
@@ -48,6 +49,7 @@ export function AskQaPanel({
   isBusy,
   isStreaming,
   activeStream,
+  failedStreamSources,
   visiblePendingTurnState,
   pendingSubmittedText,
   qaTranscript,
@@ -129,14 +131,44 @@ export function AskQaPanel({
 
       {activeStream ? (
         <div className={styles.streamContainer} data-testid='ask-streaming-feed'>
-          <StreamingTextFeed
-            content={activeStream.text}
-            isStreaming={true}
-            header={<strong>Q: {activeStream.question}</strong>}
-            statusLabel={activeStream.statusLabel}
-            emptyText={activeStream.statusLabel}
-          />
+          <div className={styles.preambleBox}>
+            <strong className={styles.entryQuestion}>Q: {activeStream.question}</strong>
+            {activeStream.isPreambleLoading ? (
+              <p
+                className={styles.preambleLoading}
+                data-testid='ask-preamble-loading'
+                role='status'
+              >
+                {activeStream.statusLabel}
+              </p>
+            ) : null}
+            {activeStream.preambleText.length > 0 ? (
+              <p className={styles.preambleText} data-testid='ask-preamble-feed' aria-live='polite'>
+                {activeStream.preambleText}
+              </p>
+            ) : null}
+            {activeStream.preambleError ? (
+              <div className={styles.preambleError} data-testid='ask-preamble-error' role='status'>
+                <p className={styles.preambleErrorText}>{activeStream.preambleError.message}</p>
+                {activeStream.preambleError.action ? (
+                  <p className={styles.metaLine}>{activeStream.preambleError.action}</p>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
           <CitationSourceList heading='Live Retrieved Sources' sources={activeStream.sources} />
+          {activeStream.sourcesReceived || activeStream.text.length > 0 ? (
+            <StreamingTextFeed
+              content={activeStream.text}
+              isStreaming={true}
+              statusLabel={activeStream.statusLabel}
+              emptyText={activeStream.statusLabel}
+            />
+          ) : null}
+        </div>
+      ) : failedStreamSources && failedStreamSources.length > 0 ? (
+        <div className={styles.streamContainer} data-testid='ask-failed-sources'>
+          <CitationSourceList heading='Live Retrieved Sources' sources={failedStreamSources} />
         </div>
       ) : null}
 

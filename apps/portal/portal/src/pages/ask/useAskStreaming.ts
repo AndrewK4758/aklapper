@@ -1,4 +1,4 @@
-import type { AskResponse, QuotaStatus } from '@aklapper/core';
+import type { AskResponse, AskSource, QuotaStatus } from '@aklapper/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
@@ -30,6 +30,7 @@ export function useAskStreaming({
 }: UseAskStreamingOptions) {
   const [conversationId, setConversationId] = useState<string>('');
   const [activeStream, setActiveStream] = useState<ActiveAskStreamState | null>(null);
+  const [failedStreamSources, setFailedStreamSources] = useState<readonly AskSource[]>([]);
   const streamAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -43,6 +44,7 @@ export function useAskStreaming({
     streamAbortRef.current = null;
     clearPersistedAskTurn();
     setActiveStream(null);
+    setFailedStreamSources([]);
   };
 
   const resetConversation = () => {
@@ -67,13 +69,19 @@ export function useAskStreaming({
       setConversationId(activeConversationId);
     }
     const attemptId = generateAskAttemptId();
+    let capturedSources: readonly AskSource[] = [];
     onDispatched(attemptId);
     writePersistedAskTurn({ attemptId, mode: 'qa', question: trimmed });
+    setFailedStreamSources([]);
     setActiveStream({
       attemptId,
       conversationId: activeConversationId,
       question: trimmed,
       statusLabel: submittingLabel,
+      preambleText: '',
+      preambleError: null,
+      isPreambleLoading: true,
+      sourcesReceived: false,
       text: '',
       sources: [],
     });
@@ -95,17 +103,43 @@ export function useAskStreaming({
           setConversationId(meta.conversationId);
         }
       },
+      onPreamble: preambleDelta => {
+        setActiveStream(prev =>
+          prev?.attemptId === attemptId
+            ? {
+                ...prev,
+                preambleText: prev.preambleText + preambleDelta,
+                isPreambleLoading: false,
+              }
+            : prev,
+        );
+      },
+      onPreambleError: preambleErr => {
+        setActiveStream(prev =>
+          prev?.attemptId === attemptId
+            ? { ...prev, preambleError: preambleErr, isPreambleLoading: false }
+            : prev,
+        );
+      },
       onSources: sources => {
-        setActiveStream(prev => (prev?.attemptId === attemptId ? { ...prev, sources } : prev));
+        capturedSources = sources;
+        setActiveStream(prev =>
+          prev?.attemptId === attemptId
+            ? { ...prev, sources, sourcesReceived: true, isPreambleLoading: false }
+            : prev,
+        );
       },
       onDelta: deltaText => {
         setActiveStream(prev =>
-          prev?.attemptId === attemptId ? { ...prev, text: prev.text + deltaText } : prev,
+          prev?.attemptId === attemptId
+            ? { ...prev, text: prev.text + deltaText, isPreambleLoading: false }
+            : prev,
         );
       },
       onDone: response => {
         clearPersistedAskTurn();
         setActiveStream(null);
+        setFailedStreamSources([]);
         if (response.conversationId) {
           setConversationId(response.conversationId);
         }
@@ -114,6 +148,7 @@ export function useAskStreaming({
       onError: (errState, errQuota) => {
         clearPersistedAskTurn();
         setActiveStream(null);
+        setFailedStreamSources(capturedSources.length > 0 ? capturedSources : []);
         onFailed(errState, errQuota);
       },
     });
@@ -122,6 +157,7 @@ export function useAskStreaming({
   return {
     conversationId,
     activeStream,
+    failedStreamSources,
     isStreaming: activeStream !== null,
     startStreamingQa,
     cancelStream,
