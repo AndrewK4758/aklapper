@@ -21,6 +21,24 @@ import (
 
 const defaultSyncWaitWindow = 20 * time.Second
 
+type turnTxStore interface {
+	ReserveTurnTx(ctx context.Context, in pg.ReserveTurnInput) (pg.TurnReservation, bool, error)
+	ReconcileTurnTx(ctx context.Context, attemptID string, res contracts.AskResponse) (contracts.QuotaStatus, error)
+	RefundTurnTx(ctx context.Context, attemptID, errorCode string) (contracts.QuotaStatus, error)
+}
+
+type unaryTurnDeps struct {
+	provider       llm.Provider
+	vectorStore    *qdrant.Client
+	store          *pg.Store
+	turnStore      turnTxStore
+	privacyCfg     *privacy.Config
+	syncWait       time.Duration
+	workerTimeout  time.Duration
+	cleanupTimeout time.Duration
+	onWorkerExit   func()
+}
+
 type workerOutcome struct {
 	httpStatus int
 	response   *contracts.AskResponse
@@ -28,9 +46,39 @@ type workerOutcome struct {
 }
 
 func handleAskPost(provider llm.Provider, vectorStore *qdrant.Client, store *pg.Store, privacyCfg *privacy.Config, syncWait time.Duration) http.HandlerFunc {
-	if syncWait <= 0 {
-		syncWait = defaultSyncWaitWindow
+	return handleAskPostWithDeps(unaryTurnDeps{
+		provider:    provider,
+		vectorStore: vectorStore,
+		store:       store,
+		privacyCfg:  privacyCfg,
+		syncWait:    syncWait,
+	})
+}
+
+func resolveUnaryStores(deps unaryTurnDeps) (*pg.Store, turnTxStore) {
+	store := deps.store
+	turnStore := deps.turnStore
+	if turnStore == nil {
+		if store == nil {
+			store = pg.NewMemoryStore()
+		}
+		turnStore = store
 	}
+	return store, turnStore
+}
+
+func handleAskPostWithDeps(deps unaryTurnDeps) http.HandlerFunc {
+	if deps.syncWait <= 0 {
+		deps.syncWait = defaultSyncWaitWindow
+	}
+	store, turnStore := resolveUnaryStores(deps)
+	deps.store = store
+	deps.turnStore = turnStore
+	workerTimeout := deps.workerTimeout
+	if workerTimeout <= 0 {
+		workerTimeout = pg.AskTurnLeaseDuration
+	}
+	privacyCfg := deps.privacyCfg
 	return func(w http.ResponseWriter, r *http.Request) {
 		corrID := extractCorrelationID(r)
 		claims, authErr := internalauth.VerifyRequest(r)
@@ -107,7 +155,7 @@ func handleAskPost(provider llm.Provider, vectorStore *qdrant.Client, store *pg.
 			storedPrompt = privacy.RedactTextForStorage(privacyCfg, queryText, pg.MaxPromptTextRunes)
 		}
 
-		res, allowed, reserveErr := store.ReserveTurnTx(r.Context(), pg.ReserveTurnInput{
+		res, allowed, reserveErr := turnStore.ReserveTurnTx(r.Context(), pg.ReserveTurnInput{
 			AttemptID: attemptID, SessionID: sessionID, Role: role, Mode: mode,
 			PromptHash: promptHash, ConversationID: convID, PromptText: storedPrompt,
 			CorrelationID: corrID, ReserveTokens: pg.DefaultAskTurnReserveTokens,
@@ -139,14 +187,17 @@ func handleAskPost(provider llm.Provider, vectorStore *qdrant.Client, store *pg.
 			return
 		}
 
-		workerCtx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), pg.AskTurnLeaseDuration)
+		workerCtx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), workerTimeout)
 		doneCh := make(chan workerOutcome, 1)
 		go func() {
+			if deps.onWorkerExit != nil {
+				defer deps.onWorkerExit()
+			}
 			defer cancel()
-			doneCh <- executeTurnWorker(workerCtx, provider, vectorStore, store, privacyCfg, attemptID, sessionID, role, mode, queryText, corrID)
+			doneCh <- executeTurnWorker(workerCtx, deps, attemptID, sessionID, role, mode, queryText, corrID)
 		}()
 
-		timer := time.NewTimer(syncWait)
+		timer := time.NewTimer(deps.syncWait)
 		defer timer.Stop()
 
 		select {
@@ -166,21 +217,104 @@ func handleAskPost(provider llm.Provider, vectorStore *qdrant.Client, store *pg.
 	}
 }
 
+func effectiveCleanupTimeout(d time.Duration) time.Duration {
+	if d <= 0 {
+		return detachedCleanupTimeout
+	}
+	return d
+}
+
+func classifyStoreErrorReason(err error) string {
+	switch {
+	case errors.Is(err, context.DeadlineExceeded):
+		return "timeout"
+	case errors.Is(err, context.Canceled):
+		return "canceled"
+	case errors.Is(err, pg.ErrTurnLeaseExpired):
+		return "lease_expired"
+	case errors.Is(err, pg.ErrTurnNotFound):
+		return "not_found"
+	default:
+		return "store_error"
+	}
+}
+
+func reconcileUnaryTurn(
+	ctx context.Context,
+	turnStore turnTxStore,
+	cleanupTimeout time.Duration,
+	attemptID, mode, tier, corrID string,
+	resp contracts.AskResponse,
+	failWithRefund func(status int, errCode, msg, action, reason string) workerOutcome,
+) (contracts.QuotaStatus, *workerOutcome) {
+	cleanCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), effectiveCleanupTimeout(cleanupTimeout))
+	quota, recErr := turnStore.ReconcileTurnTx(cleanCtx, attemptID, resp)
+	cancel()
+	if recErr == nil {
+		return quota, nil
+	}
+
+	logAskEvent("ai_ask.turn.reconcile_error", map[string]any{
+		"attemptId":     attemptID,
+		"mode":          mode,
+		"groundingTier": tier,
+		"reason":        classifyStoreErrorReason(recErr),
+		"correlationId": corrID,
+		"seam_type":     "BOUNDARY_FAULT",
+	})
+	if errors.Is(recErr, pg.ErrTurnLeaseExpired) {
+		out := workerOutcome{
+			httpStatus: http.StatusGatewayTimeout,
+			errEnv: &contracts.PublicAppError{
+				Code:          contracts.ErrCodeStreamTimeout,
+				Status:        http.StatusGatewayTimeout,
+				Message:       "Section took too long to load.",
+				Action:        "Retry loading or refresh.",
+				CorrelationID: corrID,
+			},
+		}
+		return contracts.QuotaStatus{}, &out
+	}
+	out := failWithRefund(
+		http.StatusGatewayTimeout,
+		contracts.ErrCodeStreamTimeout,
+		"Section took too long to load.",
+		"Retry loading or refresh.",
+		"reconcile_failed",
+	)
+	return contracts.QuotaStatus{}, &out
+}
+
 func executeTurnWorker(
 	ctx context.Context,
-	provider llm.Provider,
-	vectorStore *qdrant.Client,
-	store *pg.Store,
-	privacyCfg *privacy.Config,
+	deps unaryTurnDeps,
 	attemptID, sessionID, role, mode, queryText, corrID string,
 ) workerOutcome {
+	provider := deps.provider
+	vectorStore := deps.vectorStore
+	privacyCfg := deps.privacyCfg
+	store, turnStore := resolveUnaryStores(deps)
 	started := time.Now()
 	failWithRefund := func(status int, errCode, msg, action, reason string) workerOutcome {
-		_, _ = store.RefundTurnTx(context.Background(), attemptID, errCode)
+		cleanCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), effectiveCleanupTimeout(deps.cleanupTimeout))
+		_, refundErr := turnStore.RefundTurnTx(cleanCtx, attemptID, errCode)
+		cancel()
+		deltaStatus := "refunded"
+		if refundErr != nil {
+			deltaStatus = "refund_failed"
+			logAskEvent("ai_ask.turn.refund_error", map[string]any{
+				"attemptId":     attemptID,
+				"mode":          mode,
+				"reason":        classifyStoreErrorReason(refundErr),
+				"upstreamCode":  errCode,
+				"correlationId": corrID,
+				"seam_type":     "BOUNDARY_FAULT",
+			})
+		}
 		logAskEvent("ai_ask.turn.audit", map[string]any{
 			"attemptId": attemptID, "sessionId": sessionID, "role": role, "mode": mode,
 			"provider": provider.Name(), "tokensReserved": pg.DefaultAskTurnReserveTokens,
-			"tokensUsed": 0, "deltaStatus": "refunded", "reason": reason,
+			"tokensUsed": 0, "deltaStatus": deltaStatus, "reason": reason,
 			"correlationId": corrID, "seam_type": "BOUNDARY_FAULT",
 		})
 		return workerOutcome{
@@ -243,9 +377,9 @@ func executeTurnWorker(
 				CorrelationID:     corrID,
 			}
 		}
-		quota, recErr := store.ReconcileTurnTx(context.Background(), attemptID, abstainedResp)
-		if recErr != nil {
-			return failWithRefund(http.StatusGatewayTimeout, contracts.ErrCodeStreamTimeout, "Section took too long to load.", "Retry loading or refresh.", "lease_expired")
+		quota, out := reconcileUnaryTurn(ctx, turnStore, deps.cleanupTimeout, attemptID, mode, tier, corrID, abstainedResp, failWithRefund)
+		if out != nil {
+			return *out
 		}
 		abstainedResp.Quota = &quota
 		logAskEvent("ai_ask.turn.audit", map[string]any{
@@ -358,18 +492,9 @@ func executeTurnWorker(
 		}
 	}
 
-	quota, recErr := store.ReconcileTurnTx(context.Background(), attemptID, resp)
-	if errors.Is(recErr, pg.ErrTurnLeaseExpired) {
-		return workerOutcome{
-			httpStatus: http.StatusGatewayTimeout,
-			errEnv: &contracts.PublicAppError{
-				Code: contracts.ErrCodeStreamTimeout, Status: http.StatusGatewayTimeout,
-				Message: "Section took too long to load.", Action: "Retry loading or refresh.", CorrelationID: corrID,
-			},
-		}
-	}
-	if recErr != nil {
-		return failWithRefund(http.StatusGatewayTimeout, contracts.ErrCodeStreamTimeout, "Section took too long to load.", "Retry loading or refresh.", "lease_expired")
+	quota, out := reconcileUnaryTurn(ctx, turnStore, deps.cleanupTimeout, attemptID, mode, tier, corrID, resp, failWithRefund)
+	if out != nil {
+		return *out
 	}
 	resp.Quota = &quota
 	logAskEvent("ai_ask.turn.audit", map[string]any{
