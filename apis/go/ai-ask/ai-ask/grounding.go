@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -35,8 +36,12 @@ var profileIntentPhrases = []string{
 	"contact andrew",
 }
 
+var (
+	confidentialNDARe      = regexp.MustCompile(`(?i)\bnda(?:s|'s)?\b`)
+	untrustedQuestionTagRe = regexp.MustCompile(`(?i)<\s*/?\s*untrusted_question\b[^>]*>?`)
+)
+
 var confidentialBoundaryPhrases = []string{
-	"nda",
 	"non-disclosure",
 	"non disclosure",
 	"confidential client",
@@ -56,6 +61,9 @@ func isConfidentialBoundaryProbe(queryText string) bool {
 	lower := strings.ToLower(strings.TrimSpace(queryText))
 	if lower == "" {
 		return false
+	}
+	if confidentialNDARe.MatchString(lower) {
+		return true
 	}
 	for _, phrase := range confidentialBoundaryPhrases {
 		if strings.Contains(lower, phrase) {
@@ -84,13 +92,7 @@ func isProfileOverviewIntent(queryText string) bool {
 
 // sanitizeUntrustedQuestionText neutralizes embedded delimiter tags before interpolation.
 func sanitizeUntrustedQuestionText(raw string) string {
-	replacer := strings.NewReplacer(
-		"<untrusted_question>", "[untrusted_question]",
-		"</untrusted_question>", "[/untrusted_question]",
-		"<UNTRUSTED_QUESTION>", "[untrusted_question]",
-		"</UNTRUSTED_QUESTION>", "[/untrusted_question]",
-	)
-	return replacer.Replace(strings.TrimSpace(raw))
+	return untrustedQuestionTagRe.ReplaceAllString(strings.TrimSpace(raw), "[untrusted_question_tag_redacted]")
 }
 
 // resolvePinnedProfileCore loads the published profile_core dossier from PG19, falling back

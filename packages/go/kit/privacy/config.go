@@ -120,11 +120,11 @@ func ruleFingerprint(category string, idx int, canonical string) string {
 }
 
 func isSeparatorRune(r rune) bool {
-	if unicode.IsSpace(r) {
+	if unicode.IsSpace(r) || unicode.Is(unicode.Cf, r) {
 		return true
 	}
 	switch r {
-	case '-', '_', '\u200B', '\u200C', '\u200D', '\uFEFF', '\u00AD':
+	case '-', '_', '.', '/':
 		return true
 	default:
 		return false

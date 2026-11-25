@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"golang.org/x/text/unicode/norm"
 )
@@ -41,7 +42,8 @@ var storageAllowedTechPrefixes = map[string]struct{}{
 	"TIER": {}, "TLS": {}, "TS": {}, "UDP": {}, "US": {}, "UTF": {}, "UUID": {}, "WCAG": {}, "XML": {},
 }
 
-func stripInvisibleFormatRunes(raw string) string {
+// StripInvisibleAndNormalize applies NFKC normalization and strips invisible Unicode format (Cf) runes.
+func StripInvisibleAndNormalize(raw string) string {
 	nfkc := norm.NFKC.String(raw)
 	var b strings.Builder
 	b.Grow(len(nfkc))
@@ -52,6 +54,91 @@ func stripInvisibleFormatRunes(raw string) string {
 		b.WriteRune(r)
 	}
 	return b.String()
+}
+
+// FoldDiacriticsAndInvisible normalizes via NFKC -> NFKD and strips invisible format (Cf)
+// and non-spacing combining mark (Mn) runes for whole-document and storage confidentiality gates.
+func FoldDiacriticsAndInvisible(raw string) string {
+	nfkd := norm.NFKD.String(norm.NFKC.String(raw))
+	var b strings.Builder
+	b.Grow(len(nfkd))
+	for _, r := range nfkd {
+		if unicode.Is(unicode.Cf, r) || unicode.Is(unicode.Mn, r) {
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
+}
+
+func buildFoldedNormalizedMap(raw []rune) (string, []normRuneSpan) {
+	var b strings.Builder
+	spans := make([]normRuneSpan, 0, len(raw))
+	for i := 0; i < len(raw); {
+		if isSeparatorRune(raw[i]) {
+			i++
+			continue
+		}
+		j := i + 1
+		for j < len(raw) && isCombiningMark(raw[j]) {
+			j++
+		}
+		expanded := norm.NFKD.String(norm.NFKC.String(string(raw[i:j])))
+		for _, nr := range expanded {
+			if isSeparatorRune(nr) || unicode.Is(unicode.Mn, nr) {
+				continue
+			}
+			b.WriteRune(unicode.ToLower(nr))
+			spans = append(spans, normRuneSpan{rawStart: i, rawEnd: j})
+		}
+		i = j
+	}
+	return b.String(), spans
+}
+
+func redactFoldedLiteralDenylist(cfg *Config, text string) string {
+	if cfg == nil || cfg.maxDenylistNonSep == 0 || text == "" {
+		return text
+	}
+	raw := []rune(text)
+	normStr, normMap := buildFoldedNormalizedMap(raw)
+	if normStr == "" {
+		return text
+	}
+	var intervals []matchInterval
+	for i, rule := range cfg.rules {
+		if rule.normalized == "" {
+			continue
+		}
+		foldedKey := normalizeDenylistKey(FoldDiacriticsAndInvisible(rule.normalized))
+		foldedLen := utf8.RuneCountInString(foldedKey)
+		if foldedLen == 0 {
+			continue
+		}
+		foldedRule := denylistRule{
+			normalized:  foldedKey,
+			normLen:     foldedLen,
+			fingerprint: rule.fingerprint,
+		}
+		intervals = collectLiteralMatches(intervals, foldedRule, normStr, normMap, i)
+	}
+	if len(intervals) == 0 {
+		return text
+	}
+	merged := mergeOverlappingIntervals(intervals)
+	var out strings.Builder
+	cursor := 0
+	for _, iv := range merged {
+		if iv.start > cursor {
+			out.WriteString(string(raw[cursor:iv.start]))
+		}
+		out.WriteString(RedactionPlaceholder)
+		cursor = iv.end
+	}
+	if cursor < len(raw) {
+		out.WriteString(string(raw[cursor:]))
+	}
+	return out.String()
 }
 
 func parseDossierDenylistEnv(raw string) ([]string, error) {
@@ -153,7 +240,7 @@ func RedactTextForStorage(cfg *Config, raw string, maxRunes int) string {
 		redactCfg.DenylistTermCount = cfg.DenylistTermCount
 	}
 
-	normalized := strings.TrimSpace(stripInvisibleFormatRunes(trimmed))
+	normalized := strings.TrimSpace(StripInvisibleAndNormalize(trimmed))
 	if normalized == "" {
 		return ""
 	}
@@ -170,7 +257,7 @@ func RedactTextForStorage(cfg *Config, raw string, maxRunes int) string {
 		return RedactionPlaceholder
 	}
 
-	cleaned := out.String()
+	cleaned := redactFoldedLiteralDenylist(redactCfg, out.String())
 	for _, re := range storageExtraRedactPatterns {
 		cleaned = re.ReplaceAllString(cleaned, RedactionPlaceholder)
 	}

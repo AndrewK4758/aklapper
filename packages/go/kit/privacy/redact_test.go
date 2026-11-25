@@ -156,3 +156,47 @@ func TestLoadConfigAllowsLiteralPlusStarBrandNamesAndRedactCoversExtendedSecrets
 		t.Fatalf("expected allow-listed UTF-8 preserved in %q", redacted)
 	}
 }
+
+func TestPrivacySeparatorAndDiacriticFoldingClosure(t *testing.T) {
+	cfg, err := LoadConfig(ConfigInput{
+		RawDenylist:    `["CafeCorp", "Acme Capital", "SecretClient"]`,
+		DenylistAction: ActionRedact,
+		SecretAction:   ActionAbort,
+	})
+	if err != nil {
+		t.Fatalf("LoadConfig failed: %v", err)
+	}
+
+	// StreamGuard catches dot, slash, and general Unicode Cf (U+2060 Word Joiner) obfuscation
+	for _, variant := range []string{
+		"Built for Acme.Capital platform.",
+		"Built for Acme/Capital platform.",
+		"Built for Sec\u2060retClient platform.",
+	} {
+		guard := NewStreamGuard(cfg, "corr-sep-cf")
+		s1, pErr := guard.Process(variant)
+		if pErr != nil {
+			t.Fatalf("Process(%q): %v", variant, pErr)
+		}
+		s2, fErr := guard.Flush()
+		if fErr != nil {
+			t.Fatalf("Flush(%q): %v", variant, fErr)
+		}
+		got := s1 + s2
+		if !strings.Contains(got, RedactionPlaceholder) || strings.Contains(got, "Capital") || strings.Contains(got, "Client") {
+			t.Fatalf("StreamGuard failed to redact %q -> %q", variant, got)
+		}
+	}
+
+	// RedactTextForStorage catches NFD combining marks alongside dot/slash/U+2060 while preserving benign accents
+	input := "Ask about Cafe\u0301Corp, Acme.Capital, Sec\u2060retClient, and Andrew's r\u00E9sum\u00E9."
+	redacted := RedactTextForStorage(cfg, input, 1000)
+	for _, forbidden := range []string{"Cafe", "Acme", "Capital", "Secret", "Client"} {
+		if strings.Contains(redacted, forbidden) {
+			t.Fatalf("RedactTextForStorage leaked %q in %q", forbidden, redacted)
+		}
+	}
+	if !strings.Contains(redacted, "r\u00E9sum\u00E9") {
+		t.Fatalf("expected benign accented text preserved in %q", redacted)
+	}
+}

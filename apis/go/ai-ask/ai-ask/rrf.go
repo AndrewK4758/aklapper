@@ -207,6 +207,9 @@ func executeHybridSearch(
 	corrID string,
 	allowProfileFallback ...bool,
 ) (hybridSearchResult, error) {
+	if ctx.Err() != nil {
+		return hybridSearchResult{}, ctx.Err()
+	}
 	canFallbackToProfile := len(allowProfileFallback) > 0 && allowProfileFallback[0]
 	var (
 		wg        sync.WaitGroup
@@ -241,6 +244,9 @@ func executeHybridSearch(
 	}()
 	wg.Wait()
 
+	if ctx.Err() != nil {
+		return hybridSearchResult{}, ctx.Err()
+	}
 	if embedErr != nil && !canFallbackToProfile {
 		return hybridSearchResult{}, embedErr
 	}

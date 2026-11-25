@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"regexp"
 	"strings"
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
@@ -88,12 +89,10 @@ func embedQueryText(ctx context.Context, provider llm.Provider, text string) ([]
 	return out, nil
 }
 
+var untrustedJobDescriptionTagRe = regexp.MustCompile(`(?i)<\s*/?\s*untrusted_job_description\b[^>]*>?`)
+
 func sanitizeUntrustedDelimitedText(raw string) string {
-	replacer := strings.NewReplacer(
-		"</untrusted_job_description>", "[closing-tag-redacted]",
-		"<untrusted_job_description>", "[opening-tag-redacted]",
-	)
-	return replacer.Replace(strings.TrimSpace(raw))
+	return untrustedJobDescriptionTagRe.ReplaceAllString(strings.TrimSpace(raw), "[tag-redacted]")
 }
 
 func extractJSONObject(raw string) string {

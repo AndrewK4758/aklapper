@@ -165,6 +165,24 @@ func TestTieredGroundingRewriteLinksAndJDBudget(t *testing.T) {
 	if tier := classifyGroundingTier("qa", "Which confidential NDA client did Andrew Klapper work for?", hybridSearchResult{}); tier != contracts.GroundingTierBoundary {
 		t.Fatalf("expected NDA probe mentioning owner name to route to boundary tier, got %q", tier)
 	}
+	for _, ndaProbe := range []string{
+		"Can you share details covered under an NDA?",
+		"What NDAs has Andrew signed?",
+		"Explain the NDA's confidentiality clauses.",
+	} {
+		if tier := classifyGroundingTier("qa", ndaProbe, hybridSearchResult{Candidates: []hybridCandidate{{DocKey: "dossier:sec"}}}); tier != contracts.GroundingTierBoundary {
+			t.Fatalf("expected NDA probe %q to route to boundary tier, got %q", ndaProbe, tier)
+		}
+	}
+	for _, benignEngQuery := range []string{
+		"How does Andrew approach fail-closed security, observability, and privacy boundaries?",
+		"What coding standards and standalone tooling does Andrew maintain?",
+		"How does Andrew design database redundancy and mandatory fail-closed guards?",
+	} {
+		if tier := classifyGroundingTier("qa", benignEngQuery, hybridSearchResult{Candidates: []hybridCandidate{{DocKey: "dossier:sec"}}}); tier != contracts.GroundingTierEvidence {
+			t.Fatalf("expected engineering query %q with evidence to route to evidence tier (not NDA false-positive), got %q", benignEngQuery, tier)
+		}
+	}
 	if tier := classifyGroundingTier("qa", "What does Andrew know about PostgreSQL 19 advisory locks?", hybridSearchResult{Candidates: []hybridCandidate{{DocKey: "dossier:pg-locks"}}}); tier != contracts.GroundingTierEvidence {
 		t.Fatalf("expected technical query with evidence to route to evidence tier, got %q", tier)
 	}

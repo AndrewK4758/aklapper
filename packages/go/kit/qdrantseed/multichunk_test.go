@@ -73,21 +73,49 @@ func TestMultiChunkPointIDDedupAndSectionHeadingSanitization(t *testing.T) {
 		t.Fatalf("malformed denylist error must not leak raw env value: %v", malformedErr)
 	}
 
-	// ValidateOriginConfidentiality catches newline, double-space, hyphen, ZWSP, and fullwidth obfuscation via privacy.StreamGuard
-	obfJSON, _ := json.Marshal([]string{"Acme Capital", "SecretClient"})
+	// ValidateOriginConfidentiality catches newline, double-space, hyphen, dot, slash, Cf (ZWSP/U+2060), fullwidth, and NFD obfuscation
+	obfJSON, _ := json.Marshal([]string{"Acme Capital", "SecretClient", "CafeCorp"})
 	t.Setenv("DOSSIER_PRIVACY_DENYLIST", strings.TrimRight(base64.StdEncoding.EncodeToString(obfJSON), "="))
 	for _, variant := range []string{
 		"Built for Acme\nCapital platform",
 		"Built for Acme  Capital platform",
 		"Built for Acme-Capital platform",
+		"Built for Acme.Capital platform",
+		"Built for Acme/Capital platform",
 		"Built for Sec\u200BretClient platform",
+		"Built for Sec\u2060retClient platform",
 		"Built for \uFF33\uFF45\uFF43\uFF52\uFF45\uFF54\uFF23\uFF4C\uFF49\uFF45\uFF4E\uFF54 platform",
+		"Built for Cafe\u0301Corp platform",
 	} {
 		vErr := ValidateOriginConfidentiality([]SeedDocument{
 			{ID: "dossier:obf", Title: "Clean", Body: variant, Category: "career_dossier", Source: "postgres"},
 		})
 		if !errors.Is(vErr, ErrOriginConfidentiality) {
 			t.Fatalf("expected ErrOriginConfidentiality for obfuscated variant %q, got %v", variant, vErr)
+		}
+	}
+
+	// Empty DOSSIER_PRIVACY_DENYLIST STILL blocks built-in secrets, extended credentials, and ZWSP-obfuscated tokens
+	t.Setenv("DOSSIER_PRIVACY_DENYLIST", "")
+	jwtHeader := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"HS256","typ":"JWT"}`))
+	jwtPayload := base64.RawURLEncoding.EncodeToString([]byte(`{"sub":"user-123","iss":"issuer"}`))
+	fakeJWT := jwtHeader + "." + jwtPayload + "." + strings.Repeat("S", 32)
+	for _, secretVariant := range []string{
+		"Connect postgres://admin:S3cr3tP4ss@db.internal:5432/app",
+		"Bearer " + fakeJWT,
+		"Token github_pat_11ABCDEFGH0123456789_abcdefghijklmnopqrstuvwxyz",
+		"OpenAI sk-proj-AbCdEf1234567890GhIjKlMnOpQrStUv",
+		"Stripe sk_live_1234567890abcdefghij",
+		"AWS ASIAIOSFODNN7EXAMPLE",
+		"AWS AK\u200BIAIOSFODNN7EXAMPLE",
+		"Slack xoxb-123456789012-123456789012-abcdefg",
+		"Reference OQ\u200B-999 internal item",
+	} {
+		sErr := ValidateOriginConfidentiality([]SeedDocument{
+			{ID: "dossier:secret", Title: "Clean", Body: secretVariant, Category: "career_dossier", Source: "postgres"},
+		})
+		if !errors.Is(sErr, ErrOriginConfidentiality) {
+			t.Fatalf("expected empty-denylist ValidateOriginConfidentiality to reject %q, got %v", secretVariant, sErr)
 		}
 	}
 }
