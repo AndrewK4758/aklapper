@@ -28,7 +28,6 @@ const OVERVIEW_DATA: AdminOverviewLoaderData = {
     postgres: { name: 'PostgreSQL 19', status: 'ok', detail: 'Connected' },
     qdrant: { name: 'Qdrant', status: 'ok', detail: 'portfolio_docs (12 points)' },
     portfolioPublic: { name: 'portfolio-public', status: 'ok', detail: 'Scale-to-0 watcher ready' },
-    cadenceAdmin: { name: 'cadence-admin', status: 'ok', detail: 'full-cadence-runtime' },
   },
   metrics: {
     contactCount: 4,
@@ -61,8 +60,8 @@ describe('admin/pages/home', () => {
       '/analytics',
     );
     expect(screen.getByText('PostgreSQL 19')).toBeTruthy();
-    expect(screen.getAllByText('cadence-admin').length).toBeGreaterThan(0);
-    expect(screen.getByText('full-cadence-runtime')).toBeTruthy();
+    expect(screen.getAllByText('portfolio-public').length).toBeGreaterThan(0);
+    expect(screen.queryByText('cadence-admin')).toBeNull();
     expect(screen.getByText('PORTAL LIVE')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Security Settings' })).toBeTruthy();
     expect(screen.getByText(/\(admin\)/)).toBeTruthy();

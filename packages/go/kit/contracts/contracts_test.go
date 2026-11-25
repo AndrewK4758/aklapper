@@ -79,23 +79,6 @@ func TestCadenceRunResultAndStreamJSONParity(t *testing.T) {
 	}
 }
 
-func TestContactRequestValidate(t *testing.T) {
-	t.Parallel()
-
-	if err := (ContactRequest{Name: "A", Email: "bad", Message: "short"}).Validate(); err == nil {
-		t.Fatal("expected error for invalid contact payload")
-	}
-	valid := ContactRequest{
-		Name:    "Andrew",
-		Email:   "hello@andrew-k.us",
-		Subject: "Architecture",
-		Message: "Would love to discuss CADENCE and GKE scale-to-zero.",
-	}
-	if err := valid.Validate(); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
 func TestValidateUUID(t *testing.T) {
 	t.Parallel()
 

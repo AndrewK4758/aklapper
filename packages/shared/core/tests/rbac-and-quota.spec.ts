@@ -1,14 +1,14 @@
 import type { K8sPodEvent, MenuItem } from '../src/index.ts';
 import {
-  ADMIN_NAMESPACE,
   filterMenuForRole,
   hasRemainingBudget,
   isPodEventVisibleToRole,
+  PUBLIC_NAMESPACE,
   remainingBudget,
 } from '../src/index.ts';
 
 describe('@aklapper/core/rbac', () => {
-  it('hides admin menu items and cadence-admin pod events from guests', () => {
+  it('hides admin menu items and non-public pod events from guests', () => {
     const items: MenuItem[] = [
       {
         slug: 'admin-analytics',
@@ -16,7 +16,7 @@ describe('@aklapper/core/rbac', () => {
         title: 'Admin Analytics',
         description: 'Private telemetry',
         targetK8sDeploy: null,
-        namespace: ADMIN_NAMESPACE,
+        namespace: null,
         adminOnly: true,
         sortOrder: 9,
         enabled: true,
@@ -27,7 +27,7 @@ describe('@aklapper/core/rbac', () => {
         title: 'CADENCE Builder',
         description: 'Public demo',
         targetK8sDeploy: 'svc-cadence-demo',
-        namespace: 'portfolio-public',
+        namespace: PUBLIC_NAMESPACE,
         adminOnly: false,
         sortOrder: 1,
         enabled: true,
@@ -40,18 +40,29 @@ describe('@aklapper/core/rbac', () => {
       'admin-analytics',
     ]);
 
-    const adminEvent: K8sPodEvent = {
+    const privateEvent: K8sPodEvent = {
       eventId: 'e1',
-      namespace: ADMIN_NAMESPACE,
-      deployment: 'cadence-admin-runner',
-      podName: 'cadence-admin-runner-0',
+      namespace: 'internal-ops',
+      deployment: 'internal-worker',
+      podName: 'internal-worker-0',
       phase: 'Running',
       ready: true,
       message: 'Ready',
       timestamp: new Date().toISOString(),
     };
-    expect(isPodEventVisibleToRole(adminEvent, 'guest')).toBe(false);
-    expect(isPodEventVisibleToRole(adminEvent, 'admin')).toBe(true);
+    const publicEvent: K8sPodEvent = {
+      eventId: 'e2',
+      namespace: PUBLIC_NAMESPACE,
+      deployment: 'svc-cadence-demo',
+      podName: 'svc-cadence-demo-0',
+      phase: 'Running',
+      ready: true,
+      message: 'Ready',
+      timestamp: new Date().toISOString(),
+    };
+    expect(isPodEventVisibleToRole(privateEvent, 'guest')).toBe(false);
+    expect(isPodEventVisibleToRole(privateEvent, 'admin')).toBe(true);
+    expect(isPodEventVisibleToRole(publicEvent, 'guest')).toBe(true);
   });
 
   it('enforces turn and token quotas accurately', () => {

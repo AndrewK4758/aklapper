@@ -3,7 +3,6 @@ import {
   type AdminAnalyticsSummaryData,
   type AdminOverviewLoaderData,
   type AdminRootLoaderData,
-  type CadenceAdminStatus,
   createPublicAppError,
   isPublicAppError,
   type QdrantHealthStatus,
@@ -171,10 +170,6 @@ describe('Admin streaming routes, auth guards & SEO', () => {
               k8sWatchConfigured: ADMIN_OPS_FIXTURE.k8sWatchConfigured,
             },
           }),
-          cadenceStatusPayload: Promise.resolve({
-            ok: true as const,
-            data: ADMIN_OPS_FIXTURE.cadenceAdminStatus,
-          }),
           qdrantStatusPayload: Promise.resolve({
             ok: true as const,
             data: ADMIN_OPS_FIXTURE.qdrantStatus,
@@ -213,7 +208,8 @@ describe('Admin streaming routes, auth guards & SEO', () => {
     r4.unmount();
 
     render(<Stub initialEntries={['/ops']} />);
-    expect(await screen.findByText('Namespace: cadence-admin')).toBeTruthy();
+    expect(await screen.findByText('Namespace: portfolio-public')).toBeTruthy();
+    expect(screen.queryByText('Namespace: cadence-admin')).toBeNull();
   });
 
   it('rejects unauthenticated direct loader calls with HTTP 401 across all 6 protected child routes and 2 resource routes', async () => {
@@ -504,10 +500,6 @@ describe('Admin streaming routes, auth guards & SEO', () => {
                 k8sWatchConfigured: ADMIN_OPS_FIXTURE.k8sWatchConfigured,
               },
             }),
-            cadenceStatusPayload: Promise.resolve({
-              ok: true as const,
-              data: ADMIN_OPS_FIXTURE.cadenceAdminStatus,
-            }),
             qdrantStatusPayload: Promise.resolve({
               ok: true as const,
               data: status,
@@ -631,14 +623,13 @@ describe('Admin streaming routes, auth guards & SEO', () => {
 
   it('paints primary /cms, /ops, and /analytics controls while secondary slots stream or fail independently', async () => {
     const qdrantCmsDeferred = Promise.withResolvers<StreamResult<QdrantHealthStatus>>();
-    const cadenceOpsErr = createPublicAppError({
+    const qdrantOpsErr = createPublicAppError({
       code: 'ERR_UPSTREAM_UNAVAILABLE',
       status: 503,
       message: 'Upstream service unreachable.',
       action: 'Retry shortly or go home.',
-      correlationId: 'corr-ops-cadence-503',
+      correlationId: 'corr-ops-qdrant-503',
     });
-    const qdrantOpsDeferred = Promise.withResolvers<StreamResult<QdrantHealthStatus>>();
     const breakdownsDeferred = Promise.withResolvers<StreamResult<AdminAnalyticsBreakdownsData>>();
 
     const summaryData: AdminAnalyticsSummaryData = {
@@ -664,7 +655,7 @@ describe('Admin streaming routes, auth guards & SEO', () => {
       {
         path: '/ops',
         loader: () => ({
-          correlationId: 'corr-ops-cadence-503',
+          correlationId: 'corr-ops-qdrant-503',
           payload: Promise.resolve({
             ok: true as const,
             data: {
@@ -672,11 +663,10 @@ describe('Admin streaming routes, auth guards & SEO', () => {
               k8sWatchConfigured: ADMIN_OPS_FIXTURE.k8sWatchConfigured,
             },
           }),
-          cadenceStatusPayload: Promise.resolve<StreamResult<CadenceAdminStatus>>({
+          qdrantStatusPayload: Promise.resolve<StreamResult<QdrantHealthStatus>>({
             ok: false,
-            error: cadenceOpsErr,
+            error: qdrantOpsErr,
           }),
-          qdrantStatusPayload: qdrantOpsDeferred.promise,
         }),
         Component: AdminOpsRoute,
       },
@@ -708,12 +698,10 @@ describe('Admin streaming routes, auth guards & SEO', () => {
     cmsView.unmount();
 
     const opsView = render(<Stub initialEntries={['/ops']} />);
-    expect(await screen.findByText('Namespace: cadence-admin')).toBeTruthy();
+    expect(await screen.findByText('Namespace: portfolio-public')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Re-Index portfolio_docs' })).toBeTruthy();
     const opsAlert = await screen.findByRole('alert');
-    expect(opsAlert.textContent).toContain('corr-ops-cadence-503');
-    qdrantOpsDeferred.resolve({ ok: true, data: QDRANT_FIXTURE });
-    expect(await screen.findByText('portfolio_docs')).toBeTruthy();
+    expect(opsAlert.textContent).toContain('corr-ops-qdrant-503');
     opsView.unmount();
 
     const analyticsView = render(<Stub initialEntries={['/analytics']} />);

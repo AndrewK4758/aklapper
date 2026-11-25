@@ -32,7 +32,7 @@ func CuratedPortfolioDocs() []CorpusDocument {
 		{
 			ID:       "curated-security",
 			Title:    "Security & Cloud Operations Posture",
-			Snippet:  "Implemented WebAuthn Passkeys with optional TOTP 2FA, HMAC-SHA256 signed internal service assertions between Node SSR BFFs and Go microservices, strict namespace redaction separating portfolio-public from cadence-admin, and PostgreSQL CHECK constraints.",
+			Snippet:  "Implemented WebAuthn Passkeys with optional TOTP 2FA, Argon2id password verification, HMAC-SHA256 signed internal service assertions between Node SSR BFFs and Go microservices in portfolio-public, and PostgreSQL CHECK constraints.",
 			Category: "dossier",
 			Source:   "curated",
 		},

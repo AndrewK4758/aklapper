@@ -7,8 +7,6 @@ import (
 )
 
 const (
-	// AdminNamespace is strictly isolated from public guest telemetry.
-	AdminNamespace  = "cadence-admin"
 	PublicNamespace = "portfolio-public"
 
 	RoleGuest = "guest"
@@ -324,47 +322,4 @@ type MenuItem struct {
 	AdminOnly       bool    `json:"adminOnly"`
 	SortOrder       int     `json:"sortOrder"`
 	Enabled         bool    `json:"enabled"`
-}
-
-type ContactRequest struct {
-	Name    string `json:"name"`
-	Email   string `json:"email"`
-	Subject string `json:"subject"`
-	Message string `json:"message"`
-}
-
-func (r ContactRequest) Validate() error {
-	if len(strings.TrimSpace(r.Name)) < 2 {
-		return errors.New("name must be at least 2 characters")
-	}
-	email := strings.TrimSpace(r.Email)
-	if !strings.Contains(email, "@") || len(email) < 5 {
-		return errors.New("valid email is required")
-	}
-	if len(strings.TrimSpace(r.Message)) < 10 {
-		return errors.New("message must be at least 10 characters")
-	}
-	return nil
-}
-
-type ContactNotifyRequest struct {
-	SubmissionID  string `json:"submissionId"`
-	Name          string `json:"name"`
-	Email         string `json:"email"`
-	HasAttachment bool   `json:"hasAttachment"`
-	ReceivedAt    string `json:"receivedAt"`
-}
-
-func (r ContactNotifyRequest) Validate() error {
-	if strings.TrimSpace(r.SubmissionID) == "" {
-		return errors.New("submissionId is required")
-	}
-	if len(strings.TrimSpace(r.Name)) < 2 {
-		return errors.New("name must be at least 2 characters")
-	}
-	email := strings.TrimSpace(r.Email)
-	if !strings.Contains(email, "@") || len(email) < 5 {
-		return errors.New("valid email is required")
-	}
-	return nil
 }

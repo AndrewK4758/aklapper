@@ -2,8 +2,6 @@ import {
   AdminWakeDeploymentSchema,
   type AdminServiceHealth,
   type AppErrorCode,
-  type CadenceAdminStatus,
-  CadenceAdminStatusSchema,
   type QdrantCollectionHealth,
   type QdrantHealthStatus,
   QdrantHealthStatusSchema,
@@ -24,71 +22,6 @@ export function sanitizeDownloadFilename(rawName: string | null | undefined): st
     .trim();
   if (!base) return 'attachment.bin';
   return base.slice(0, 128);
-}
-
-interface RawCadenceAdminStatus {
-  namespace?: string;
-  isolated?: boolean;
-  mode?: string;
-  databaseConnected?: boolean;
-  totalSandboxRuns?: number;
-  pendingGates?: number;
-  timestamp?: string;
-}
-
-export async function fetchCadenceAdminStatus(): Promise<CadenceAdminStatus> {
-  const baseUrl = process.env['CADENCE_ADMIN_URL']?.trim();
-  const now = new Date().toISOString();
-  if (!baseUrl) {
-    return CadenceAdminStatusSchema.parse({
-      online: false,
-      namespace: 'cadence-admin',
-      isolated: true,
-      mode: 'full-cadence-runtime',
-      databaseConnected: false,
-      totalSandboxRuns: 0,
-      pendingGates: 0,
-      timestamp: now,
-      detail: 'CADENCE_ADMIN_URL not configured (using PG19 direct audit fallback).',
-    });
-  }
-
-  const result = await proxyJson<RawCadenceAdminStatus>({
-    baseUrl,
-    path: '/v1/admin/status',
-    method: 'GET',
-    timeoutMs: 2_500,
-    internalAuth: {
-      role: 'admin',
-      subject: 'admin-console-status',
-    },
-  });
-
-  if (!result.ok || !result.data) {
-    return CadenceAdminStatusSchema.parse({
-      online: false,
-      namespace: 'cadence-admin',
-      isolated: true,
-      mode: 'full-cadence-runtime',
-      databaseConnected: false,
-      totalSandboxRuns: 0,
-      pendingGates: 0,
-      timestamp: now,
-      detail: result.error ?? 'cadence-admin status probe unavailable.',
-    });
-  }
-
-  return CadenceAdminStatusSchema.parse({
-    online: true,
-    namespace: result.data.namespace ?? 'cadence-admin',
-    isolated: result.data.isolated ?? true,
-    mode: result.data.mode ?? 'full-cadence-runtime',
-    databaseConnected: Boolean(result.data.databaseConnected),
-    totalSandboxRuns: Number(result.data.totalSandboxRuns ?? 0),
-    pendingGates: Number(result.data.pendingGates ?? 0),
-    timestamp: result.data.timestamp ?? now,
-    detail: 'Signed X-Internal-Auth probe verified.',
-  });
 }
 
 interface RawAiAskStatus {
@@ -394,18 +327,15 @@ export async function probePublicClusterHealth(): Promise<AdminServiceHealth> {
 export async function buildOverviewHealthSummary(): Promise<{
   qdrantHealth: AdminServiceHealth;
   portfolioPublicHealth: AdminServiceHealth;
-  cadenceAdminHealth: AdminServiceHealth;
 }> {
-  const [qdrant, portfolioPublicHealth, cadenceAdmin] = await Promise.all([
+  const [qdrant, portfolioPublicHealth] = await Promise.all([
     fetchQdrantStatus(),
     probePublicClusterHealth(),
-    fetchCadenceAdminStatus(),
   ]);
 
   const hasQdrantConfig = Boolean(
     process.env['AI_ASK_URL']?.trim() || process.env['QDRANT_URL']?.trim(),
   );
-  const hasCadenceAdminConfig = Boolean(process.env['CADENCE_ADMIN_URL']?.trim());
 
   return {
     qdrantHealth: {
@@ -422,32 +352,5 @@ export async function buildOverviewHealthSummary(): Promise<{
         : (qdrant.detail ?? 'Qdrant unavailable.'),
     },
     portfolioPublicHealth,
-    cadenceAdminHealth: {
-      name: 'cadence-admin',
-      status: cadenceAdmin.online ? 'ok' : hasCadenceAdminConfig ? 'offline' : 'degraded',
-      detail: cadenceAdmin.online
-        ? `${cadenceAdmin.mode} · ${cadenceAdmin.pendingGates} pending gate(s)`
-        : (cadenceAdmin.detail ?? 'cadence-admin offline.'),
-    },
   };
-}
-
-export async function forwardCadenceGateOverride(
-  runId: string,
-  gateVerdict: 'approved' | 'rejected' | 'pending',
-): Promise<boolean> {
-  const baseUrl = process.env['CADENCE_ADMIN_URL']?.trim();
-  if (!baseUrl) return false;
-  const res = await proxyJson({
-    baseUrl,
-    path: `/v1/admin/runs/${encodeURIComponent(runId)}/gate`,
-    method: 'POST',
-    body: { gateVerdict },
-    timeoutMs: 3_000,
-    internalAuth: {
-      role: 'admin',
-      subject: 'admin-ops-gate',
-    },
-  });
-  return res.ok;
 }

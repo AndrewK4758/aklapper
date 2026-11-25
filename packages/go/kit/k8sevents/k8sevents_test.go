@@ -8,12 +8,12 @@ import (
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 )
 
-func TestFilterForRoleRedactsAdminNamespaceForGuests(t *testing.T) {
+func TestFilterForRoleRestrictsGuestsToPublicNamespace(t *testing.T) {
 	t.Parallel()
 
 	events := []contracts.K8sPodEvent{
 		NewScaleEvent("1", contracts.PublicNamespace, "cadence-demo", "Running", "ready", true),
-		NewScaleEvent("2", contracts.AdminNamespace, "cadence-admin", "Running", "admin pod", true),
+		NewScaleEvent("2", "internal-ops", "internal-worker", "Running", "internal pod", true),
 	}
 
 	guestEvents := FilterForRole(events, contracts.RoleGuest)
