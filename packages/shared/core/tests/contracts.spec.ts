@@ -9,11 +9,18 @@ import {
   AskServiceStatusSchema,
   AskTurnStateSchema,
   AskTurnStatusSchema,
+  CadenceRunLifecycleStatusSchema,
+  CadenceRunModeSchema,
   CadenceRunRequestSchema,
+  CadenceRunResultSchema,
+  CadenceStreamCompleteEventSchema,
+  CadenceStreamErrorEventSchema,
+  CadenceStreamPhaseEventSchema,
   collectFormFields,
   CONTACT_FORM_DEFINITION,
   CONTACT_MAX_FILE_BYTES,
   ContactFormSubmissionSchema,
+  createCadenceRunStreamStore,
   createPublicAppError,
   FormDefinitionSchema,
   formatTerminalDirectoryListing,
@@ -22,6 +29,7 @@ import {
   K8sPodEventSchema,
   MenuItemSchema,
   Osc7501StatusSchema,
+  parseCadenceSseEvent,
   type PortalAgensiLoaderData,
   PortalChromeContentSchema,
   resolveAllowedMimeType,
@@ -586,5 +594,165 @@ describe('@aklapper/core (contracts)', () => {
       catalogMeta,
     };
     expect(loaderPayload.catalogMeta?.mode).toBe('cached_fallback');
+  });
+
+  it('validates fast/llm run modes, lifecycle statuses, and SSE stream schemas', () => {
+    expect(CadenceRunModeSchema.parse('fast')).toBe('fast');
+    expect(CadenceRunModeSchema.parse('llm')).toBe('llm');
+    expect(() => CadenceRunModeSchema.parse('turbo')).toThrow(/Invalid/i);
+
+    expect(CadenceRunLifecycleStatusSchema.parse('pending')).toBe('pending');
+    expect(CadenceRunLifecycleStatusSchema.parse('running')).toBe('running');
+    expect(CadenceRunLifecycleStatusSchema.parse('ready')).toBe('ready');
+    expect(CadenceRunLifecycleStatusSchema.parse('failed')).toBe('failed');
+
+    const initReq = CadenceRunRequestSchema.parse({
+      prompt: 'Monitor pipeline phase latency and replica readiness',
+      presetSlug: 'chord-pipeline-monitor',
+      mode: 'fast',
+      deferExecution: true,
+    });
+    expect(initReq.mode).toBe('fast');
+    expect(initReq.deferExecution).toBe(true);
+
+    const run = CadenceRunResultSchema.parse({
+      runId: '11111111-1111-4111-8111-111111111111',
+      prompt: 'Monitor pipeline phase latency',
+      presetSlug: 'chord-pipeline-monitor',
+      runStatus: 'pending',
+      mode: 'fast',
+      gateVerdict: 'pending',
+      turns: [],
+      artifactHtml: '',
+    });
+    expect(run.runStatus).toBe('pending');
+    expect(run.mode).toBe('fast');
+
+    const phaseEvent = CadenceStreamPhaseEventSchema.parse({
+      runId: run.runId,
+      runStatus: 'running',
+      progress: 50,
+      turn: {
+        phase: 'spec',
+        agentName: 'chord-spec',
+        status: 'completed',
+        summary: 'Spec drafted',
+        latencyMs: 3,
+      },
+    });
+    expect(phaseEvent.turn.phase).toBe('spec');
+
+    const completeEvent = CadenceStreamCompleteEventSchema.parse({
+      run: { ...run, runStatus: 'ready', artifactHtml: '<html></html>' },
+    });
+    expect(completeEvent.run.runStatus).toBe('ready');
+
+    const errorEvent = CadenceStreamErrorEventSchema.parse({
+      runId: run.runId,
+      error: 'Pipeline aborted cleanly',
+      code: 'ERR_CADENCE_STREAM',
+    });
+    expect(errorEvent.code).toBe('ERR_CADENCE_STREAM');
+  });
+
+  it('parses SSE events and updates external stream store through phase -> complete without reconnect loops', () => {
+    const parsedPhase = parseCadenceSseEvent(
+      'phase',
+      JSON.stringify({
+        runId: '11111111-1111-4111-8111-111111111111',
+        runStatus: 'running',
+        turn: {
+          phase: 'triage',
+          agentName: 'chord-triage',
+          status: 'completed',
+          summary: 'Triaged prompt',
+          latencyMs: 2,
+        },
+      }),
+    );
+    expect(parsedPhase?.type).toBe('phase');
+    expect(parseCadenceSseEvent('phase', 'not-json')).toBeNull();
+
+    const listeners = new Map<string, Array<(ev: unknown) => void>>();
+    let closed = false;
+    const mockSource = {
+      addEventListener: (type: string, cb: (ev: unknown) => void) => {
+        const list = listeners.get(type) ?? [];
+        list.push(cb);
+        listeners.set(type, list);
+      },
+      close: () => {
+        closed = true;
+      },
+      onerror: null as ((ev: unknown) => void) | null,
+    } as unknown as EventSource;
+
+    const initialRun = CadenceRunResultSchema.parse({
+      runId: '11111111-1111-4111-8111-111111111111',
+      prompt: 'Stream test prompt',
+      presetSlug: 'k8s-pod-telemetry',
+      runStatus: 'pending',
+      mode: 'fast',
+      gateVerdict: 'pending',
+      turns: [
+        {
+          phase: 'triage',
+          agentName: 'chord-triage',
+          status: 'pending',
+          summary: 'Queued',
+          latencyMs: 0,
+        },
+      ],
+      artifactHtml: '',
+    });
+
+    const store = createCadenceRunStreamStore({
+      runId: initialRun.runId,
+      initialRun,
+      eventSourceFactory: () => mockSource,
+    });
+
+    let notifications = 0;
+    const unsub = store.subscribe(() => {
+      notifications += 1;
+    });
+
+    const phaseHandlers = listeners.get('phase') ?? [];
+    for (const fn of phaseHandlers) {
+      fn({
+        data: JSON.stringify({
+          runId: initialRun.runId,
+          runStatus: 'running',
+          turn: {
+            phase: 'triage',
+            agentName: 'chord-triage',
+            status: 'completed',
+            summary: 'Triaged fast',
+            latencyMs: 3,
+          },
+        }),
+      });
+    }
+    expect(store.getSnapshot().run.runStatus).toBe('running');
+    expect(store.getSnapshot().run.turns[0]?.status).toBe('completed');
+    expect(notifications).toBeGreaterThan(0);
+
+    const completeHandlers = listeners.get('complete') ?? [];
+    for (const fn of completeHandlers) {
+      fn({
+        data: JSON.stringify({
+          run: {
+            ...initialRun,
+            runStatus: 'ready',
+            artifactHtml: '<html><body>Tailored</body></html>',
+          },
+          quota: { role: 'guest', turnsUsed: 1, maxTurns: 5, tokensUsed: 800, maxTokens: 20000 },
+        }),
+      });
+    }
+    expect(store.getSnapshot().run.runStatus).toBe('ready');
+    expect(store.getSnapshot().quota?.turnsUsed).toBe(1);
+    expect(closed).toBe(true);
+    unsub();
   });
 });

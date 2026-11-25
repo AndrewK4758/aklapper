@@ -311,6 +311,7 @@ describe('@aklapper/core error contracts and server error classification', () =>
       '/api/ask/turns/:attemptId',
       '/api/analytics/ingest',
       '/api/cluster/stream',
+      '/api/cadence/runs/:runId/stream',
       '/changes-in-progress',
     ]);
     expect(ADMIN_ROUTE_PATHS).toEqual([

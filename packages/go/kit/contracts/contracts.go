@@ -21,6 +21,14 @@ const (
 	TurnStatusFailed    = "failed"
 	TurnStatusExpired   = "expired"
 
+	CadenceModeFast = "fast"
+	CadenceModeLLM  = "llm"
+
+	CadenceStatusPending = "pending"
+	CadenceStatusRunning = "running"
+	CadenceStatusReady   = "ready"
+	CadenceStatusFailed  = "failed"
+
 	ErrCodeValidation          = "ERR_VALIDATION"
 	ErrCodeConstraint          = "ERR_CONSTRAINT"
 	ErrCodeNotFound            = "ERR_NOT_FOUND"
@@ -70,10 +78,12 @@ type PublicAppError struct {
 }
 
 type CadenceRunRequest struct {
-	Prompt     string `json:"prompt"`
-	PresetSlug string `json:"presetSlug,omitempty"`
-	SessionID  string `json:"sessionId,omitempty"`
-	Role       string `json:"role,omitempty"`
+	Prompt         string `json:"prompt"`
+	PresetSlug     string `json:"presetSlug,omitempty"`
+	SessionID      string `json:"sessionId,omitempty"`
+	Role           string `json:"role,omitempty"`
+	Mode           string `json:"mode,omitempty"`
+	DeferExecution bool   `json:"deferExecution,omitempty"`
 }
 
 func (r CadenceRunRequest) Validate() error {
@@ -83,6 +93,10 @@ func (r CadenceRunRequest) Validate() error {
 	}
 	if len(trimmed) > 1200 {
 		return errors.New("prompt must not exceed 1200 characters")
+	}
+	mode := strings.TrimSpace(r.Mode)
+	if mode != "" && mode != CadenceModeFast && mode != CadenceModeLLM {
+		return errors.New("mode must be 'fast' or 'llm'")
 	}
 	return nil
 }
@@ -96,6 +110,52 @@ type CadenceTurn struct {
 	LatencyMs int            `json:"latencyMs"`
 	Payload   map[string]any `json:"payload,omitempty"`
 	CreatedAt string         `json:"createdAt,omitempty"`
+}
+
+type CadencePreset struct {
+	Slug                string `json:"slug"`
+	Title               string `json:"title"`
+	StarterPrompt       string `json:"starterPrompt"`
+	ExpectedKind        string `json:"expectedKind"`
+	StarterArtifactHTML string `json:"starterArtifactHtml"`
+	SortOrder           int    `json:"sortOrder"`
+}
+
+type CadenceRunResult struct {
+	RunID        string         `json:"runId"`
+	Prompt       string         `json:"prompt"`
+	PresetSlug   string         `json:"presetSlug,omitempty"`
+	RunStatus    string         `json:"runStatus,omitempty"`
+	Mode         string         `json:"mode,omitempty"`
+	Status       *Osc7501Status `json:"status,omitempty"`
+	OSC7501      string         `json:"osc7501,omitempty"`
+	GateVerdict  string         `json:"gateVerdict"`
+	Turns        []CadenceTurn  `json:"turns"`
+	ArtifactHTML string         `json:"artifactHtml"`
+	TokensIn     int            `json:"tokensIn,omitempty"`
+	TokensOut    int            `json:"tokensOut,omitempty"`
+	Quota        *QuotaStatus   `json:"quota,omitempty"`
+	CreatedAt    string         `json:"createdAt,omitempty"`
+}
+
+type CadenceStreamPhaseEvent struct {
+	RunID     string         `json:"runId"`
+	RunStatus string         `json:"runStatus"`
+	Status    *Osc7501Status `json:"status,omitempty"`
+	Progress  int            `json:"progress,omitempty"`
+	Turn      CadenceTurn    `json:"turn"`
+}
+
+type CadenceStreamCompleteEvent struct {
+	Run   CadenceRunResult `json:"run"`
+	Quota *QuotaStatus     `json:"quota,omitempty"`
+}
+
+type CadenceStreamErrorEvent struct {
+	RunID     string `json:"runId"`
+	Error     string `json:"error"`
+	Code      string `json:"code,omitempty"`
+	RunStatus string `json:"runStatus,omitempty"`
 }
 
 type AskSource struct {

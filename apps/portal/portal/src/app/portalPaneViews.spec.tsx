@@ -1,7 +1,9 @@
 import {
+  type CadenceRunResult,
   CONTACT_FORM_DEFINITION,
   type ContactActionResult,
   type PortalAgensiLoaderData,
+  type PortalCadenceLoaderData,
   type PortalContactLoaderData,
   type PortalHomeContent,
   type PortalHomeLoaderData,
@@ -21,12 +23,15 @@ import {
 } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
+import type { PortalCadenceActionResult } from '#pages/cadence';
+
 import { initPortalClientTelemetry, resetPortalClientTelemetryForTest } from './client-telemetry';
 import { type PaneLoaderErrorEnvelope, type StreamLoaderEnvelope } from './pane-loader';
 import { runPaneSafeLoader } from './pane-loader.server';
 import { renderPortalPaneView } from './portalPaneViews';
 import PortalRoot, { type PortalRootStreamData } from './root';
 import PortalAgensiRoute from './routes/agensi';
+import PortalCadenceRoute from './routes/cadence';
 import PortalGreeterRoute from './routes/home';
 import PortalMenuRoute from './routes/menu';
 
@@ -102,6 +107,20 @@ function PortalMenuBridge() {
   );
 }
 
+function PortalCadenceBridge() {
+  const loaderData = useLoaderData<StreamLoaderEnvelope<PortalCadenceLoaderData>>();
+  const params = useParams();
+  const matches = useMatches();
+  return (
+    <PortalCadenceRoute
+      loaderData={loaderData}
+      params={params}
+      matches={matches as never}
+      actionData={undefined}
+    />
+  );
+}
+
 const CHROME: PortalRootLoaderData['chrome'] = {
   pageTitle: 'andrew-k.us // Solar Forge Terminal',
   brandLabel: 'andrew-k.us',
@@ -166,6 +185,16 @@ const TERMINAL: TerminalProfileData = {
       allowedRoutes: [],
       errorTemplate: null,
       sortOrder: 3,
+    },
+    {
+      name: 'cadence',
+      description: 'open cadence builder',
+      kind: 'navigate',
+      output: 'opening /cadence ...',
+      targetRoute: '/cadence',
+      allowedRoutes: [],
+      errorTemplate: null,
+      sortOrder: 4,
     },
   ],
 };
@@ -728,5 +757,563 @@ describe('Portal in-pane route adapters & deep-links', () => {
       await router.navigate('/agensi');
     });
     expect(await screen.findByTestId('agensi-catalog-meta')).toBeTruthy();
+  });
+
+  it('runs docked /cadence with Select Escape guard, live EventSource streaming, and gate approval without changing URL', async () => {
+    const cadenceData: PortalCadenceLoaderData = {
+      content: {
+        windowTitle: 'CADENCE Builder // portfolio-public',
+        statusBadge: { source: 'svc-cadence-demo', state: 'idle', label: '0/1 replicas' },
+        description: 'Build interactive artifacts inside pane.',
+        iframeTitle: 'CADENCE Artifact Preview',
+      },
+      presets: [
+        {
+          slug: 'solar-forge-starter',
+          title: 'Solar Forge Starter',
+          starterPrompt: 'Build a Solar Forge card.',
+          expectedKind: 'diagnostic-card',
+          starterArtifactHtml: '<html><body>Pane Starter HTML</body></html>',
+          sortOrder: 1,
+        },
+        {
+          slug: 'chord-pipeline-monitor',
+          title: 'CHORD Pipeline Monitor',
+          starterPrompt: 'Track CHORD pipeline turn latency.',
+          expectedKind: 'pipeline-monitor',
+          starterArtifactHtml: '<html><body>Pipeline Starter</body></html>',
+          sortOrder: 2,
+        },
+      ],
+      quota: { role: 'guest', turnsUsed: 0, maxTurns: 5, tokensUsed: 0, maxTokens: 20_000 },
+      recentRuns: [],
+    };
+
+    const runId = '22222222-2222-4222-8222-222222222222';
+    const pendingRun: CadenceRunResult = {
+      runId,
+      prompt: 'Track CHORD pipeline turn latency.',
+      presetSlug: 'chord-pipeline-monitor',
+      runStatus: 'pending',
+      mode: 'fast',
+      gateVerdict: 'pending',
+      turns: [
+        {
+          phase: 'triage',
+          agentName: 'chord-triage',
+          status: 'pending',
+          summary: 'Queued',
+          latencyMs: 0,
+        },
+        {
+          phase: 'spec',
+          agentName: 'chord-spec',
+          status: 'pending',
+          summary: 'Queued',
+          latencyMs: 0,
+        },
+        {
+          phase: 'build',
+          agentName: 'chord-builder',
+          status: 'pending',
+          summary: 'Queued',
+          latencyMs: 0,
+        },
+        {
+          phase: 'gate',
+          agentName: 'chord-gate',
+          status: 'pending',
+          summary: 'Queued',
+          latencyMs: 0,
+        },
+      ],
+      artifactHtml: '',
+    };
+
+    const listeners = new Map<string, Array<(ev: Event) => void>>();
+    const originalEventSource = globalThis.EventSource;
+    class MockEventSource {
+      addEventListener(type: string, cb: (ev: Event) => void) {
+        const list = listeners.get(type) ?? [];
+        list.push(cb);
+        listeners.set(type, list);
+      }
+      close() {
+        /* noop */
+      }
+      onerror: ((ev: Event) => void) | null = null;
+    }
+    globalThis.EventSource = MockEventSource as unknown as typeof EventSource;
+
+    const cadenceActionSpy = vi.fn<
+      ({ request }: { request: Request }) => Promise<PortalCadenceActionResult>
+    >(async ({ request }) => {
+      const fd = await request.formData();
+      const intent = String(fd.get('intent') ?? 'run');
+      if (intent === 'gate') {
+        return {
+          ok: true,
+          intent: 'gate',
+          run: {
+            ...pendingRun,
+            runStatus: 'ready',
+            gateVerdict: 'approved',
+            artifactHtml: '<html><body>Pane Tailored Result</body></html>',
+          },
+        };
+      }
+      return {
+        ok: true,
+        intent: 'run-init',
+        run: pendingRun,
+        quota: { role: 'guest', turnsUsed: 1, maxTurns: 5, tokensUsed: 800, maxTokens: 20_000 },
+      };
+    });
+
+    try {
+      const router = createMemoryRouter(
+        [
+          {
+            id: 'root',
+            path: '/',
+            loader: () =>
+              makeRootStreamData({
+                maintenanceMode: false,
+                chrome: CHROME,
+                maintenance: null,
+                terminal: TERMINAL,
+                homeContent: HOME_CONTENT,
+              }),
+            Component: PortalRootBridge,
+            children: [
+              {
+                index: true,
+                loader: () =>
+                  streamOk<PortalHomeLoaderData>({
+                    content: HOME_CONTENT,
+                    terminal: TERMINAL,
+                    contactForm: CONTACT_FORM_DEFINITION,
+                  }),
+                Component: PortalHomeBridge,
+              },
+              {
+                path: 'cadence',
+                loader: () => streamOk(cadenceData),
+                action: cadenceActionSpy,
+                Component: PortalCadenceBridge,
+              },
+            ],
+          },
+        ],
+        { initialEntries: ['/'] },
+      );
+
+      const { container } = render(<RouterProvider router={router} />);
+      const input = (await screen.findByLabelText('Terminal command input')) as HTMLInputElement;
+      fireEvent.change(input, { target: { value: 'cadence' } });
+      fireEvent.submit(input.closest('form') as HTMLFormElement);
+
+      const selectTrigger = await screen.findByTestId('cadence-preset-select');
+      const pane1 = container.querySelector('[data-pane-id="pane-1"]') as HTMLElement;
+      expect(pane1.getAttribute('data-tui-depth')).toBe('1');
+
+      // Opening Select popup and pressing Escape dismisses popup WITHOUT popping pane-1.
+      fireEvent.click(selectTrigger);
+      await screen.findByRole('listbox');
+      fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+      await waitFor(() => {
+        expect(screen.queryByRole('listbox')).toBeNull();
+      });
+      expect(pane1.getAttribute('data-tui-depth')).toBe('1');
+      expect(screen.getByTestId('cadence-prompt-input')).toBeTruthy();
+
+      // Select pipeline monitor item & submit in fast mode.
+      fireEvent.click(selectTrigger);
+      const monitorOption = await screen.findByRole('option', { name: /CHORD Pipeline Monitor/i });
+      fireEvent.pointerDown(monitorOption);
+      fireEvent.click(monitorOption);
+      fireEvent.click(screen.getByTestId('cadence-run-submit'));
+
+      await waitFor(() => {
+        expect(cadenceActionSpy).toHaveBeenCalledTimes(1);
+      });
+      await waitFor(() => {
+        expect((listeners.get('complete') ?? []).length).toBeGreaterThan(0);
+      });
+
+      act(() => {
+        for (const fn of listeners.get('phase') ?? []) {
+          fn({
+            data: JSON.stringify({
+              runId,
+              runStatus: 'running',
+              progress: 25,
+              turn: {
+                phase: 'triage',
+                agentName: 'chord-triage',
+                status: 'completed',
+                summary: 'Triaged in pane',
+                latencyMs: 2,
+              },
+            }),
+          } as unknown as Event);
+        }
+        for (const fn of listeners.get('complete') ?? []) {
+          fn({
+            data: JSON.stringify({
+              run: {
+                ...pendingRun,
+                runStatus: 'ready',
+                turns: pendingRun.turns.map(t => ({ ...t, status: 'completed', latencyMs: 3 })),
+                artifactHtml: '<html><body>Pane Tailored Result</body></html>',
+              },
+              quota: {
+                role: 'guest',
+                turnsUsed: 1,
+                maxTurns: 5,
+                tokensUsed: 800,
+                maxTokens: 20_000,
+              },
+            }),
+          } as unknown as Event);
+        }
+      });
+
+      expect(await screen.findByTestId('cadence-gate-approve')).toBeTruthy();
+      expect(screen.getByTestId('cadence-quota-meter').textContent).toContain('1/5 turns');
+      fireEvent.click(screen.getByTestId('cadence-gate-approve'));
+      await waitFor(() => {
+        expect(screen.getByTestId('cadence-gate-verdict').textContent).toContain('approved');
+      });
+      // Gate approval must retain updated 1/5 turns quota even without loader revalidation.
+      expect(screen.getByTestId('cadence-quota-meter').textContent).toContain('1/5 turns');
+      expect(router.state.location.pathname).toBe('/');
+
+      // After Select selection & gate approval, closed Select popup must NOT block pane Escape exit.
+      fireEvent.keyDown(window, { key: 'Escape' });
+      await waitFor(() => {
+        expect(pane1.getAttribute('data-tui-depth')).toBe('0');
+      });
+    } finally {
+      globalThis.EventSource = originalEventSource;
+    }
+  });
+
+  it('displays 429 error banner inside docked cadence pane after a prior streamed run completes without crashing workspace', async () => {
+    const cadenceData: PortalCadenceLoaderData = {
+      content: {
+        windowTitle: 'CADENCE Builder // portfolio-public',
+        statusBadge: { source: 'svc-cadence-demo', state: 'idle', label: '0/1 replicas' },
+        description: 'Build widgets cleanly.',
+        iframeTitle: 'CADENCE Artifact Preview',
+      },
+      presets: [
+        {
+          slug: 'solar-forge-starter',
+          title: 'Solar Forge Starter',
+          starterPrompt: 'Build a Solar Forge card.',
+          expectedKind: 'diagnostic-card',
+          starterArtifactHtml: '<html><body>Starter</body></html>',
+          sortOrder: 1,
+        },
+      ],
+      quota: { role: 'guest', turnsUsed: 4, maxTurns: 5, tokensUsed: 3200, maxTokens: 20_000 },
+      recentRuns: [],
+    };
+
+    const runId = '33333333-3333-4333-8333-333333333333';
+    const pendingRun: CadenceRunResult = {
+      runId,
+      prompt: 'Build a Solar Forge card.',
+      presetSlug: 'solar-forge-starter',
+      runStatus: 'pending',
+      mode: 'fast',
+      gateVerdict: 'pending',
+      turns: [
+        {
+          phase: 'triage',
+          agentName: 'chord-triage',
+          status: 'pending',
+          summary: 'Queued',
+          latencyMs: 0,
+        },
+        {
+          phase: 'spec',
+          agentName: 'chord-spec',
+          status: 'pending',
+          summary: 'Queued',
+          latencyMs: 0,
+        },
+        {
+          phase: 'build',
+          agentName: 'chord-builder',
+          status: 'pending',
+          summary: 'Queued',
+          latencyMs: 0,
+        },
+        {
+          phase: 'gate',
+          agentName: 'chord-gate',
+          status: 'pending',
+          summary: 'Queued',
+          latencyMs: 0,
+        },
+      ],
+      artifactHtml: '',
+    };
+
+    const listeners = new Map<string, Array<(ev: Event) => void>>();
+    const originalEventSource = globalThis.EventSource;
+    class MockEventSource {
+      addEventListener(type: string, cb: (ev: Event) => void) {
+        const list = listeners.get(type) ?? [];
+        list.push(cb);
+        listeners.set(type, list);
+      }
+      close() {
+        /* noop */
+      }
+      onerror: ((ev: Event) => void) | null = null;
+    }
+    globalThis.EventSource = MockEventSource as unknown as typeof EventSource;
+
+    let calls = 0;
+    const cadenceActionSpy = vi.fn<() => Promise<PortalCadenceActionResult>>(async () => {
+      calls += 1;
+      if (calls === 1) {
+        return {
+          ok: true,
+          intent: 'run-init',
+          run: pendingRun,
+          quota: { role: 'guest', turnsUsed: 5, maxTurns: 5, tokensUsed: 4000, maxTokens: 20_000 },
+        };
+      }
+      return {
+        ok: false,
+        intent: 'run',
+        error: 'Session or daily CADENCE guest quota exceeded.',
+        code: 'ERR_RATE_LIMITED',
+        quota: { role: 'guest', turnsUsed: 5, maxTurns: 5, tokensUsed: 4000, maxTokens: 20_000 },
+      };
+    });
+
+    try {
+      const router = createMemoryRouter(
+        [
+          {
+            id: 'root',
+            path: '/',
+            loader: () =>
+              makeRootStreamData({
+                maintenanceMode: false,
+                chrome: CHROME,
+                maintenance: null,
+                terminal: TERMINAL,
+                homeContent: HOME_CONTENT,
+              }),
+            Component: PortalRootBridge,
+            children: [
+              {
+                index: true,
+                loader: () =>
+                  streamOk<PortalHomeLoaderData>({
+                    content: HOME_CONTENT,
+                    terminal: TERMINAL,
+                    contactForm: CONTACT_FORM_DEFINITION,
+                  }),
+                Component: PortalHomeBridge,
+              },
+              {
+                path: 'cadence',
+                loader: () => streamOk(cadenceData),
+                action: cadenceActionSpy,
+                Component: PortalCadenceBridge,
+              },
+            ],
+          },
+        ],
+        { initialEntries: ['/'] },
+      );
+
+      render(<RouterProvider router={router} />);
+      const input = (await screen.findByLabelText('Terminal command input')) as HTMLInputElement;
+      fireEvent.change(input, { target: { value: 'cadence' } });
+      fireEvent.submit(input.closest('form') as HTMLFormElement);
+
+      fireEvent.click(await screen.findByTestId('cadence-run-submit'));
+      await waitFor(() => {
+        expect((listeners.get('complete') ?? []).length).toBeGreaterThan(0);
+      });
+      act(() => {
+        for (const fn of listeners.get('complete') ?? []) {
+          fn({
+            data: JSON.stringify({
+              run: {
+                ...pendingRun,
+                runStatus: 'ready',
+                turns: pendingRun.turns.map(t => ({ ...t, status: 'completed', latencyMs: 2 })),
+                artifactHtml: '<html><body>Completed 5th</body></html>',
+              },
+              quota: {
+                role: 'guest',
+                turnsUsed: 5,
+                maxTurns: 5,
+                tokensUsed: 4000,
+                maxTokens: 20_000,
+              },
+            }),
+          } as unknown as Event);
+        }
+      });
+
+      fireEvent.click(screen.getByTestId('cadence-run-submit'));
+      expect(await screen.findByTestId('cadence-error-banner')).toBeTruthy();
+      expect(screen.getByTestId('cadence-error-banner').textContent).toContain('quota exceeded');
+      expect(router.state.location.pathname).toBe('/');
+    } finally {
+      globalThis.EventSource = originalEventSource;
+    }
+  });
+
+  it('recovers async running run in docked pane via EventSource and unblocks submit on SSE onerror', async () => {
+    const runningRunId = '44444444-4444-4444-8444-444444444444';
+    const runningRun: CadenceRunResult = {
+      runId: runningRunId,
+      prompt: 'Async reload recovery prompt',
+      presetSlug: 'solar-forge-starter',
+      runStatus: 'running',
+      mode: 'fast',
+      gateVerdict: 'pending',
+      turns: [
+        {
+          phase: 'triage',
+          agentName: 'chord-triage',
+          status: 'completed',
+          summary: 'Triaged',
+          latencyMs: 2,
+        },
+        {
+          phase: 'spec',
+          agentName: 'chord-spec',
+          status: 'running',
+          summary: 'Running spec...',
+          latencyMs: 0,
+        },
+        {
+          phase: 'build',
+          agentName: 'chord-builder',
+          status: 'pending',
+          summary: 'Queued',
+          latencyMs: 0,
+        },
+        {
+          phase: 'gate',
+          agentName: 'chord-gate',
+          status: 'pending',
+          summary: 'Queued',
+          latencyMs: 0,
+        },
+      ],
+      artifactHtml: '',
+    };
+
+    const cadenceData: PortalCadenceLoaderData = {
+      content: {
+        windowTitle: 'CADENCE Builder // portfolio-public',
+        statusBadge: { source: 'svc-cadence-demo', state: 'idle', label: '0/1 replicas' },
+        description: 'Async recovery check.',
+        iframeTitle: 'CADENCE Artifact Preview',
+      },
+      presets: [
+        {
+          slug: 'solar-forge-starter',
+          title: 'Solar Forge Starter',
+          starterPrompt: 'Build a Solar Forge card.',
+          expectedKind: 'diagnostic-card',
+          starterArtifactHtml: '<html><body>Starter</body></html>',
+          sortOrder: 1,
+        },
+      ],
+      quota: { role: 'guest', turnsUsed: 1, maxTurns: 5, tokensUsed: 800, maxTokens: 20_000 },
+      recentRuns: [runningRun],
+    };
+
+    let createdUrl = '';
+    let latestOnError: ((ev: Event) => void) | null = null;
+    const originalEventSource = globalThis.EventSource;
+    class MockEventSource {
+      constructor(url: string) {
+        createdUrl = url;
+      }
+      addEventListener() {
+        /* registered cleanly */
+      }
+      close() {
+        /* noop */
+      }
+      set onerror(cb: ((ev: Event) => void) | null) {
+        latestOnError = cb;
+      }
+    }
+    globalThis.EventSource = MockEventSource as unknown as typeof EventSource;
+
+    try {
+      const router = createMemoryRouter(
+        [
+          {
+            id: 'root',
+            path: '/',
+            loader: () =>
+              makeRootStreamData({
+                maintenanceMode: false,
+                chrome: CHROME,
+                maintenance: null,
+                terminal: TERMINAL,
+                homeContent: HOME_CONTENT,
+              }),
+            Component: PortalRootBridge,
+            children: [
+              {
+                index: true,
+                loader: () =>
+                  streamOk<PortalHomeLoaderData>({
+                    content: HOME_CONTENT,
+                    terminal: TERMINAL,
+                    contactForm: CONTACT_FORM_DEFINITION,
+                  }),
+                Component: PortalHomeBridge,
+              },
+              {
+                path: 'cadence',
+                loader: () => streamOk(cadenceData),
+                Component: PortalCadenceBridge,
+              },
+            ],
+          },
+        ],
+        { initialEntries: ['/'] },
+      );
+
+      render(<RouterProvider router={router} />);
+      const input = (await screen.findByLabelText('Terminal command input')) as HTMLInputElement;
+      fireEvent.change(input, { target: { value: 'cadence' } });
+      fireEvent.submit(input.closest('form') as HTMLFormElement);
+
+      await waitFor(() => {
+        expect(createdUrl).toContain(`/api/cadence/runs/${runningRunId}/stream`);
+      });
+      const submitBtn = (await screen.findByTestId('cadence-run-submit')) as HTMLButtonElement;
+      expect(submitBtn.disabled).toBe(true);
+
+      act(() => {
+        latestOnError?.(new Event('error'));
+      });
+
+      expect(await screen.findByTestId('cadence-error-banner')).toBeTruthy();
+      expect((screen.getByTestId('cadence-run-submit') as HTMLButtonElement).disabled).toBe(false);
+      expect(screen.getByText(/CHORD stream interrupted/i)).toBeTruthy();
+    } finally {
+      globalThis.EventSource = originalEventSource;
+    }
   });
 });

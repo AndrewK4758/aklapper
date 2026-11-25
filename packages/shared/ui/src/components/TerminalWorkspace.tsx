@@ -148,6 +148,38 @@ function isEditableTarget(target: EventTarget | null): boolean {
   );
 }
 
+function isVisibleOpenPopup(el: Element): boolean {
+  return (
+    el.closest('[hidden], [inert], [aria-hidden="true"]') === null &&
+    el.getAttribute('data-closed') === null
+  );
+}
+
+function hasOpenOverlayOrPopup(target: EventTarget | null): boolean {
+  const popupSelector =
+    '[role="listbox"], [role="menu"], [data-popup-open][aria-haspopup], [aria-expanded="true"][aria-haspopup]';
+  if (
+    target &&
+    typeof target === 'object' &&
+    'closest' in target &&
+    typeof (target as Element).closest === 'function'
+  ) {
+    const match = (target as Element).closest(popupSelector);
+    if (match && isVisibleOpenPopup(match)) {
+      return true;
+    }
+  }
+  if (typeof document !== 'undefined') {
+    const candidates = document.querySelectorAll(popupSelector);
+    for (const candidate of candidates) {
+      if (isVisibleOpenPopup(candidate)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 function defaultCanHandleInPaneRoute(to: string): boolean {
   return to !== '/changes-in-progress';
 }
@@ -1427,7 +1459,12 @@ function StandaloneTerminalWorkspace({
         return;
       }
 
-      if (activeHasTuiStack && activeLeaf && !isEditableTarget(event.target)) {
+      if (
+        activeHasTuiStack &&
+        activeLeaf &&
+        !isEditableTarget(event.target) &&
+        !hasOpenOverlayOrPopup(event.target)
+      ) {
         const isEscape = event.key === 'Escape' && !event.defaultPrevented;
         const isAltLeft =
           event.altKey &&
@@ -1460,7 +1497,12 @@ function StandaloneTerminalWorkspace({
         }
       }
 
-      if (event.key === 'Escape' && !event.defaultPrevented && activeIsTuiPane) {
+      if (
+        event.key === 'Escape' &&
+        !event.defaultPrevented &&
+        activeIsTuiPane &&
+        !hasOpenOverlayOrPopup(event.target)
+      ) {
         event.preventDefault();
         setTabState(prev => closeActivePaneOrTab(prev));
         return;

@@ -5,6 +5,7 @@ import {
   agensiSyncState,
   type AppDatabase,
   askTurns,
+  CADENCE_PRESET_SEEDS,
   cadencePresets,
   ContactDbConstraintError,
   contactSubmissions,
@@ -65,6 +66,13 @@ describe('@aklapper/db', () => {
     expect(
       QDRANT_COLLECTIONS.every(c => c.vectorSize === 768 && c.distance === 'Cosine' && c.onDisk),
     ).toBe(true);
+    expect(CADENCE_PRESET_SEEDS.map(p => p.slug)).toEqual([
+      'solar-forge-starter',
+      'k8s-pod-telemetry',
+      'chord-pipeline-monitor',
+      'qdrant-rag-inspector',
+      'zero-trust-gate-panel',
+    ]);
     expect(DEFAULT_MENU_ITEMS.some(item => item.adminOnly)).toBe(true);
     expect(Object.keys(SITE_CONTENT_KEYS)).toHaveLength(11);
     expect(SITE_CONTENT_KEYS.portalAgensi).toBe('portal-agensi');

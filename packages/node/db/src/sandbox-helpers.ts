@@ -1,10 +1,30 @@
-import { type CadenceGateVerdict, type CadenceTurn } from '@aklapper/core';
+import {
+  type CadenceGateVerdict,
+  type CadenceRunLifecycleStatus,
+  type CadenceRunMode,
+  type CadenceRunResult,
+  CadenceRunResultSchema,
+  type CadenceTurn,
+  type QuotaStatus,
+  type Role,
+} from '@aklapper/core';
 import { asc, eq } from 'drizzle-orm';
 
 import type { AppDatabase } from './client.ts';
 import * as schema from './schema.ts';
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const SANDBOX_UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const DEFAULT_QUOTA_BY_ROLE: Readonly<
+  Record<
+    Role,
+    { maxTurnsPerSession: number; maxTokensPerRun: number; maxDailyGlobalTokens: number }
+  >
+> = {
+  guest: { maxTurnsPerSession: 5, maxTokensPerRun: 4_000, maxDailyGlobalTokens: 100_000 },
+  admin: { maxTurnsPerSession: 100, maxTokensPerRun: 32_000, maxDailyGlobalTokens: 2_000_000 },
+};
 
 export function mapSandboxTurnRow(row: typeof schema.sandboxTurns.$inferSelect): CadenceTurn {
   return {
@@ -34,6 +54,59 @@ export function normalizeGateVerdict(value: string): CadenceGateVerdict {
   return value === 'approved' || value === 'rejected' ? value : 'pending';
 }
 
+export function normalizeRunLifecycleStatus(value: string): CadenceRunLifecycleStatus {
+  if (value === 'pending' || value === 'running' || value === 'ready' || value === 'failed') {
+    return value;
+  }
+  return 'ready';
+}
+
+export function extractPresetSlugFromTurnRows(
+  turnRows: readonly (typeof schema.sandboxTurns.$inferSelect)[],
+  fallbackMenuSlug?: string,
+): string | undefined {
+  const triageRow = turnRows.find(row => row.phase === 'triage');
+  const rawSlug = triageRow?.payloadJson['presetSlug'];
+  if (typeof rawSlug === 'string' && rawSlug.trim().length > 0) {
+    return rawSlug.trim();
+  }
+  if (fallbackMenuSlug && fallbackMenuSlug.trim().length > 0 && fallbackMenuSlug !== 'cadence') {
+    return fallbackMenuSlug.trim();
+  }
+  return undefined;
+}
+
+export function extractRunModeFromTurnRows(
+  turnRows: readonly (typeof schema.sandboxTurns.$inferSelect)[],
+): CadenceRunMode | undefined {
+  const triageRow = turnRows.find(row => row.phase === 'triage');
+  const rawMode = triageRow?.payloadJson['mode'];
+  return rawMode === 'fast' || rawMode === 'llm' ? rawMode : undefined;
+}
+
+export function mapSandboxRunResult(
+  run: typeof schema.sandboxRuns.$inferSelect,
+  turnRows: readonly (typeof schema.sandboxTurns.$inferSelect)[],
+  quota?: QuotaStatus,
+): CadenceRunResult {
+  const presetSlug = extractPresetSlugFromTurnRows(turnRows, run.menuSlug);
+  const mode = extractRunModeFromTurnRows(turnRows);
+  return CadenceRunResultSchema.parse({
+    runId: run.id,
+    prompt: run.prompt,
+    ...(presetSlug ? { presetSlug } : {}),
+    runStatus: normalizeRunLifecycleStatus(run.status),
+    ...(mode ? { mode } : {}),
+    gateVerdict: normalizeGateVerdict(run.gateVerdict),
+    turns: turnRows.map(mapSandboxTurnRow),
+    artifactHtml: run.artifactHtml ?? '',
+    tokensIn: run.tokensIn,
+    tokensOut: run.tokensOut,
+    ...(quota ? { quota } : {}),
+    createdAt: run.createdAt.toISOString(),
+  });
+}
+
 export async function updateSandboxRunGateVerdictRow(
   db: AppDatabase,
   runId: string,
@@ -42,7 +115,7 @@ export async function updateSandboxRunGateVerdictRow(
   run: typeof schema.sandboxRuns.$inferSelect;
   turns: CadenceTurn[];
 } | null> {
-  if (!UUID_PATTERN.test(runId)) return null;
+  if (!SANDBOX_UUID_PATTERN.test(runId)) return null;
 
   const [updated] = await db
     .update(schema.sandboxRuns)
