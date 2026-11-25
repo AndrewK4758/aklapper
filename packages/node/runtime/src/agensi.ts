@@ -1,19 +1,27 @@
-// Bounded context: External Agensi HTTP catalog client and pagination orchestration.
-// Invariant: Bounded timeout (<= 2000ms), direct 304 support, secret scrubbing, and fail-closed validation.
+// Bounded context: External Agensi HTTP catalog client, content negotiation, and pagination orchestration.
+// Invariant: Bounded timeout (<= 2000ms), pre-hop redirect validation, 512 KiB body cap, and fail-closed validation.
 
 import { AgensiRemoteResponseSchema, type AgensiSkill } from '@aklapper/core';
 
 import {
   type AgensiCatalogAdapterConfig,
+  clampAgensiFetchTimeoutMs,
   emitAgensiSeamLog,
   filterCreatorPublishedSkills,
   isAllowedUpstreamBaseUrl,
   MAX_AGENSI_PAGES,
-  clampAgensiFetchTimeoutMs,
 } from './agensi-filter.ts';
+import {
+  fetchWithValidatedRedirects,
+  MAX_AGENSI_RESPONSE_BYTES,
+  readBoundedResponseText,
+} from './agensi-http.ts';
+import { parseAgensiCreatorHtml } from './agensi-tsr-parser.ts';
 import { joinUpstreamUrl } from './http.ts';
 
 export * from './agensi-filter.ts';
+export * from './agensi-http.ts';
+export * from './agensi-tsr-parser.ts';
 
 export interface FetchAgensiCatalogOptions {
   readonly correlationId?: string;
@@ -78,10 +86,27 @@ function buildTimeoutFetchResult(timeoutMs: number): AgensiCatalogFetchResult {
   };
 }
 
+function isHtmlContentType(contentType: string): boolean {
+  const normalized = contentType.toLowerCase();
+  return normalized.includes('text/html') || normalized.includes('application/xhtml+xml');
+}
+
+function buildInvalidPayloadResult(
+  correlationId: string | undefined,
+  reason: string,
+  message: string,
+): AgensiCatalogFetchResult {
+  emitAgensiSeamLog('BOUNDARY_FAULT', 'agensi.catalog.payload_validation_failed', {
+    correlationId,
+    reason,
+  });
+  return { ok: false, errorCode: 'AGENSI_INVALID_PAYLOAD', message };
+}
+
 /**
- * Fetches published Agensi skills owned by `config.creatorHandle` under a bounded latency and page
- * budget. Upstream: Agensi HTTP API (`200 OK` JSON envelope or `304 Not Modified`). Downstream:
- * Transactional PostgreSQL catalog sync and runtime SSR fallback.
+ * Fetches published Agensi skills owned by `config.creatorHandle` under a bounded latency,
+ * redirect, response-size, and page budget. Supports both HTML creator storefront responses
+ * (non-executing TSR hydration + semantic HTML card fallback) and paginated JSON overrides.
  */
 export async function fetchAgensiCreatorCatalog(
   config: AgensiCatalogAdapterConfig,
@@ -105,6 +130,9 @@ export async function fetchAgensiCreatorCatalog(
   const seenSlugs = new Set<string>();
   const seenCursors = new Set<string>();
   const collected: AgensiSkill[] = [];
+  const acceptHeader = config.apiPath.startsWith('/api/')
+    ? 'application/json, text/html;q=0.9'
+    : 'text/html, application/json;q=0.9';
 
   let rejectedForeignCount = 0;
   let rejectedUnpublishedCount = 0;
@@ -116,7 +144,7 @@ export async function fetchAgensiCreatorCatalog(
   for (let pageIdx = 0; pageIdx < maxPages; pageIdx += 1) {
     const targetPath = buildPagePath(config.apiPath, nextCursor, nextPageNumber);
     const targetUrl = joinUpstreamUrl(safeBaseUrl, targetPath);
-    const headers = new Headers({ accept: 'application/json' });
+    const headers = new Headers({ accept: acceptHeader });
     if (config.apiKey?.trim()) {
       headers.set('x-api-key', config.apiKey.trim());
     }
@@ -125,12 +153,20 @@ export async function fetchAgensiCreatorCatalog(
     }
 
     let response: Response;
+    let effectiveUrl: string;
     try {
-      response = await fetchImpl(targetUrl, {
-        method: 'GET',
+      const redirectResult = await fetchWithValidatedRedirects(targetUrl, {
+        fetchImpl,
         headers,
         signal,
+        allowedOrigins: config.allowedOrigins,
+        correlationId: options.correlationId,
       });
+      if (!redirectResult.ok) {
+        return redirectResult;
+      }
+      response = redirectResult.response;
+      effectiveUrl = redirectResult.effectiveUrl;
     } catch (error) {
       if (isTimeoutOrAbortError(error)) {
         return buildTimeoutFetchResult(timeoutMs);
@@ -166,48 +202,93 @@ export async function fetchAgensiCreatorCatalog(
       page1Etag = response.headers.get('etag');
     }
 
-    let rawJson: unknown;
+    let bodyText: string;
     try {
-      rawJson = (await response.json()) as unknown;
+      const bounded = await readBoundedResponseText(
+        response,
+        MAX_AGENSI_RESPONSE_BYTES,
+        options.correlationId,
+      );
+      if (!bounded.ok) {
+        return bounded;
+      }
+      bodyText = bounded.text;
     } catch (error) {
       if (isTimeoutOrAbortError(error)) {
         return buildTimeoutFetchResult(timeoutMs);
       }
-      emitAgensiSeamLog('BOUNDARY_FAULT', 'agensi.catalog.payload_validation_failed', {
-        correlationId: options.correlationId,
-        reason: 'malformed_json',
-      });
       return {
         ok: false,
-        errorCode: 'AGENSI_INVALID_PAYLOAD',
-        message: 'Agensi catalog response was not valid JSON.',
+        errorCode: 'AGENSI_UNAVAILABLE',
+        message: `Agensi catalog response stream failed: ${sanitizeAgensiErrorMessage(error, config.apiKey)}`,
       };
     }
 
-    if (!rawJson || typeof rawJson !== 'object' || Array.isArray(rawJson)) {
-      emitAgensiSeamLog('BOUNDARY_FAULT', 'agensi.catalog.payload_validation_failed', {
-        correlationId: options.correlationId,
-        reason: 'envelope_not_object',
+    const contentType = response.headers.get('content-type') ?? '';
+    if (isHtmlContentType(contentType)) {
+      const parsedHtml = parseAgensiCreatorHtml(bodyText, {
+        creatorHandle: config.creatorHandle,
+        finalUrl: effectiveUrl,
       });
-      return {
-        ok: false,
-        errorCode: 'AGENSI_INVALID_PAYLOAD',
-        message: 'Agensi catalog envelope must be a JSON object.',
-      };
+      if (!parsedHtml.ok) {
+        return buildInvalidPayloadResult(
+          options.correlationId,
+          parsedHtml.reason,
+          parsedHtml.message,
+        );
+      }
+
+      emitAgensiSeamLog('RULE_DIVERGENCE', 'agensi.catalog.parse_mode_total', {
+        correlationId: options.correlationId,
+        parse_mode: parsedHtml.parseMode,
+      });
+      const filtered = filterCreatorPublishedSkills(
+        parsedHtml.items,
+        config.creatorHandle,
+        config.allowedOrigins,
+        {
+          envelopeCreatorHandle: parsedHtml.creatorHandle,
+          isCreatorProfileSkills: true,
+          fetchedAt,
+          correlationId: options.correlationId,
+          sortOffset: collected.length,
+          seenSlugs,
+        },
+      );
+      collected.push(...filtered.items);
+      rejectedForeignCount += filtered.rejectedForeignCount;
+      rejectedUnpublishedCount += filtered.rejectedUnpublishedCount;
+      rejectedInvalidCount += filtered.rejectedInvalidCount;
+      break;
+    }
+
+    let rawJson: unknown;
+    try {
+      rawJson = JSON.parse(bodyText) as unknown;
+    } catch {
+      return buildInvalidPayloadResult(
+        options.correlationId,
+        'malformed_json',
+        'Agensi catalog response was not valid JSON.',
+      );
+    }
+
+    if (!rawJson || typeof rawJson !== 'object' || Array.isArray(rawJson)) {
+      return buildInvalidPayloadResult(
+        options.correlationId,
+        'envelope_not_object',
+        'Agensi catalog envelope must be a JSON object.',
+      );
     }
 
     const rawRecord = rawJson as Record<string, unknown>;
     const rawItemsCandidate = rawRecord['items'] ?? rawRecord['skills'] ?? rawRecord['data'];
     if (!Array.isArray(rawItemsCandidate)) {
-      emitAgensiSeamLog('BOUNDARY_FAULT', 'agensi.catalog.payload_validation_failed', {
-        correlationId: options.correlationId,
-        reason: 'missing_items_array',
-      });
-      return {
-        ok: false,
-        errorCode: 'AGENSI_INVALID_PAYLOAD',
-        message: 'Agensi catalog envelope is missing an items or skills array.',
-      };
+      return buildInvalidPayloadResult(
+        options.correlationId,
+        'missing_items_array',
+        'Agensi catalog envelope is missing an items or skills array.',
+      );
     }
 
     const envelopeMetaCheck = AgensiRemoteResponseSchema.safeParse({
@@ -217,15 +298,18 @@ export async function fetchAgensiCreatorCatalog(
       data: undefined,
     });
     if (!envelopeMetaCheck.success) {
-      emitAgensiSeamLog('BOUNDARY_FAULT', 'agensi.catalog.payload_validation_failed', {
+      return buildInvalidPayloadResult(
+        options.correlationId,
+        'envelope_metadata_invalid',
+        'Agensi catalog envelope metadata failed validation.',
+      );
+    }
+
+    if (pageIdx === 0) {
+      emitAgensiSeamLog('RULE_DIVERGENCE', 'agensi.catalog.parse_mode_total', {
         correlationId: options.correlationId,
-        reason: 'envelope_metadata_invalid',
+        parse_mode: 'json',
       });
-      return {
-        ok: false,
-        errorCode: 'AGENSI_INVALID_PAYLOAD',
-        message: 'Agensi catalog envelope metadata failed validation.',
-      };
     }
 
     const meta = envelopeMetaCheck.data;
@@ -271,9 +355,7 @@ export async function fetchAgensiCreatorCatalog(
         : null);
 
     if (candidateCursor) {
-      if (seenCursors.has(candidateCursor)) {
-        break;
-      }
+      if (seenCursors.has(candidateCursor)) break;
       seenCursors.add(candidateCursor);
       nextCursor = candidateCursor;
       nextPageNumber = null;
@@ -282,9 +364,7 @@ export async function fetchAgensiCreatorCatalog(
 
     if (candidateNextPage !== null) {
       const pageKey = `page:${candidateNextPage}`;
-      if (seenCursors.has(pageKey)) {
-        break;
-      }
+      if (seenCursors.has(pageKey)) break;
       seenCursors.add(pageKey);
       nextCursor = null;
       nextPageNumber = candidateNextPage;
