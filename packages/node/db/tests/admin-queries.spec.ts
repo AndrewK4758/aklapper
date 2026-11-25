@@ -3,6 +3,7 @@ import { vi } from 'vitest';
 import {
   type AppDatabase,
   deleteContactSubmission,
+  deleteContactSubmissions,
   deleteTerminalCommand,
   deleteTerminalInitialEntry,
   getAskTurnByAttemptId,
@@ -47,6 +48,8 @@ describe('@aklapper/db admin queries & mutations', () => {
     expect(await getContactSubmissionAttachment(db, 'not-a-uuid')).toBeNull();
     expect(await getAskTurnByAttemptId(db, 'not-a-uuid', 'guest_1')).toBeNull();
     expect(await deleteContactSubmission(db, 'not-a-uuid')).toBe(false);
+    expect(await deleteContactSubmissions(db, [])).toBe(0);
+    expect(await deleteContactSubmissions(db, ['not-a-uuid', ''])).toBe(0);
     expect(await overrideSandboxGateVerdict(db, 'not-a-uuid', 'approved')).toBeNull();
     expect(await deleteTerminalCommand(db, -1)).toBe(false);
     expect(await deleteTerminalInitialEntry(db, 0)).toBe(false);
@@ -118,5 +121,23 @@ describe('@aklapper/db admin queries & mutations', () => {
       { scopeKey: 'session:old-2' },
     ]);
     expect(await purgeStaleRateLimitBuckets(purgeMock.db, 24)).toBe(2);
+  });
+
+  it('deduplicates and validates UUIDs before bulk deleting contact submissions in one query', async () => {
+    const id1 = '11111111-1111-4111-8111-111111111111';
+    const id2 = '22222222-2222-4222-8222-222222222222';
+    const deleteMock = createReturningMockDb([{ id: id1 }, { id: id2 }]);
+
+    const deletedCount = await deleteContactSubmissions(deleteMock.db, [
+      id1,
+      'not-a-uuid',
+      id2,
+      id1,
+    ]);
+
+    expect(deletedCount).toBe(2);
+    expect(deleteMock.db.delete).toHaveBeenCalledTimes(1);
+    expect(deleteMock.where).toHaveBeenCalledTimes(1);
+    expect(deleteMock.returning).toHaveBeenCalledTimes(1);
   });
 });

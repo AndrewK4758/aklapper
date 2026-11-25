@@ -607,6 +607,19 @@ export async function deleteContactSubmission(db: AppDatabase, id: string): Prom
   return deleted.length > 0;
 }
 
+export async function deleteContactSubmissions(
+  db: AppDatabase,
+  ids: readonly string[],
+): Promise<number> {
+  const validIds = [...new Set(ids.filter(id => UUID_PATTERN.test(id)))];
+  if (validIds.length === 0) return 0;
+  const deleted = await db
+    .delete(schema.contactSubmissions)
+    .where(inArray(schema.contactSubmissions.id, validIds))
+    .returning({ id: schema.contactSubmissions.id });
+  return deleted.length;
+}
+
 export async function listQuotaPoliciesAndBuckets(db: AppDatabase): Promise<AdminQuotasLoaderData> {
   const [policyRows, bucketRows] = await Promise.all([
     db.select().from(schema.quotaPolicies).orderBy(asc(schema.quotaPolicies.role)),
