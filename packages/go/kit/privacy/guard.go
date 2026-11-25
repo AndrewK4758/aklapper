@@ -204,14 +204,15 @@ func (g *StreamGuard) applyRules(isFlush bool) error {
 			continue
 		}
 
-		// 2. Configured runtime denylist (deferred past any active secret-anchor holdback during
-		// streaming so secret prefixes stay intact until secret detection clears or EOF Flush runs).
+		// 2. Configured runtime denylist (deferred past safeSecretBoundary during streaming so
+		// neither trailing <=16-rune partial secret-anchor prefixes nor active 128-rune secret
+		// windows are mutated before secret detection resolves or EOF Flush runs).
 		if len(g.cfg.rules) == 0 {
 			return nil
 		}
 		denylistLimit := len(g.pending)
 		if !isFlush {
-			denylistLimit = g.earliestActiveSecretAnchor()
+			denylistLimit = g.safeSecretBoundary()
 		}
 		denylistSegs := unredactedSegments(g.pending, denylistLimit)
 		if len(denylistSegs) == 0 {
@@ -342,19 +343,36 @@ func (g *StreamGuard) earliestActiveSecretAnchor() int {
 	return earliest
 }
 
+// safeSecretBoundary is the unified streaming deferral boundary shared by applyRules(false)
+// and safeFlushIndex(). Because every entry in secretAnchorPrefixes has length <= 14 <=
+// BaselineSecretAnchorRunes (16), holding back both the trailing 16 runes and any active
+// secret anchor prevents premature denylist mutation of split secret-anchor prefixes.
+func (g *StreamGuard) safeSecretBoundary() int {
+	n := len(g.pending)
+	if n == 0 {
+		return 0
+	}
+	return min(max(0, n-BaselineSecretAnchorRunes), g.earliestActiveSecretAnchor())
+}
+
 func (g *StreamGuard) safeFlushIndex() int {
 	n := len(g.pending)
 	if n == 0 {
 		return 0
 	}
 
-	// Constraint 1: adaptive built-in secret holdback (16-rune anchor baseline, up to 128 runes when anchor enters window).
-	safeSecret := min(max(0, n-BaselineSecretAnchorRunes), g.earliestActiveSecretAnchor())
+	// Constraint 1: unified secret holdback boundary (16-rune anchor baseline + 128-rune active anchor).
+	safeSecret := g.safeSecretBoundary()
+	if safeSecret <= 0 {
+		return 0
+	}
 
-	// Constraint 2: non-separator normalized denylist holdback (unredacted runes only; blocks separator flooding).
-	safeDenylist := n
+	// Constraint 2: non-separator normalized denylist holdback computed strictly over the
+	// denylist-scanned prefix g.pending[:safeSecret] so denylist terms straddling safeSecret
+	// (such as internal URLs or terms containing "eyj"/"aiza") are never split and flushed.
+	safeDenylist := safeSecret
 	if g.cfg.maxDenylistNonSep > 0 {
-		_, spans := buildNormalizedMap(g.pending)
+		_, spans := buildNormalizedMap(g.pending[:safeSecret])
 		if len(spans) <= g.cfg.maxDenylistNonSep {
 			safeDenylist = 0
 		} else {
