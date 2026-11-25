@@ -23,7 +23,9 @@ func writeReusedTurn(w http.ResponseWriter, turn pg.TurnRecord, quota contracts.
 		httpkit.WriteJSON(w, http.StatusAccepted, state)
 	case contracts.TurnStatusFailed, contracts.TurnStatusExpired:
 		status := http.StatusBadGateway
-		if turn.Status == contracts.TurnStatusExpired {
+		if state.Error != nil && state.Error.Status >= 400 {
+			status = state.Error.Status
+		} else if turn.Status == contracts.TurnStatusExpired {
 			status = http.StatusGatewayTimeout
 		}
 		httpkit.WriteJSON(w, status, state.Error)
@@ -66,7 +68,11 @@ func handleTurnLookup(store *pg.Store) http.HandlerFunc {
 		case contracts.TurnStatusExpired:
 			httpkit.WriteJSON(w, http.StatusGatewayTimeout, state)
 		case contracts.TurnStatusFailed:
-			httpkit.WriteJSON(w, http.StatusBadGateway, state)
+			status := http.StatusBadGateway
+			if state.Error != nil && state.Error.Status >= 400 {
+				status = state.Error.Status
+			}
+			httpkit.WriteJSON(w, status, state)
 		default:
 			httpkit.WriteJSON(w, http.StatusAccepted, state)
 		}
