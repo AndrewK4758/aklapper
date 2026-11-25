@@ -151,13 +151,13 @@ export function renderPortalPaneView({
           <LazyAgensiPaneAdapter ctx={ctx} />
         </LazyPaneSlot>
       );
-    case '/ask':
+    case '/chat':
       return (
         <LazyPaneSlot
-          key={`${ctx.paneId}:/ask`}
-          routePath='/ask'
-          title='Ask Portfolio'
-          loadingLabel='Loading portfolio Q&A...'
+          key={`${ctx.paneId}:/chat`}
+          routePath='/chat'
+          title='Chat with Andrew'
+          loadingLabel='Loading Chat with Andrew...'
           onExit={ctx.exitTui}
         >
           <LazyAskPaneAdapter ctx={ctx} />

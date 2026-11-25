@@ -4,7 +4,7 @@ export default [
   index('routes/home.tsx'),
   route('menu', 'routes/menu.tsx'),
   route('cadence', 'routes/cadence.tsx'),
-  route('ask', 'routes/ask.tsx'),
+  route('chat', 'routes/chat.tsx'),
   route('agensi', 'routes/agensi.tsx'),
   route('contact', 'routes/contact.tsx'),
   route('api/contact', 'routes/api.contact.ts'),

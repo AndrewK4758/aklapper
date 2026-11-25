@@ -19,6 +19,10 @@ import type { ReactNode } from 'react';
 
 import styles from './PortalAskPage.module.css';
 
+function isGeneralConversationalResponse(response: AskResponse): boolean {
+  return response.groundingTier === 'general' && !response.abstained;
+}
+
 export function resolveAskBadgeStatus(
   content: PortalAskContent,
   isBusy: boolean,
@@ -27,6 +31,9 @@ export function resolveAskBadgeStatus(
 ): { state: Osc7501State; label: string } {
   if (isBusy) return { state: 'scaling', label: 'waking · querying corpus' };
   if (latestResponse) {
+    if (isGeneralConversationalResponse(latestResponse)) {
+      return { state: 'ready', label: 'general · conversational' };
+    }
     return latestResponse.grounded
       ? { state: 'ready', label: `grounded · ${latestResponse.sources.length} source(s)` }
       : { state: 'gate', label: 'abstained · strict grounding' };
@@ -143,6 +150,7 @@ function TelemetryLine({ response }: { readonly response: AskResponse }) {
 }
 
 function resolveTierLabel(response: AskResponse): string {
+  if (isGeneralConversationalResponse(response)) return 'GENERAL';
   if (!response.grounded) return 'ABSTAINED';
   if (response.groundingTier === 'profile') return 'PROFILE · GROUNDED';
   return 'GROUNDED';
@@ -161,6 +169,9 @@ export function AskQaTranscriptCard({
   readonly isBusy?: boolean;
   readonly onSelectFollowUp?: (followUp: string) => void;
 }) {
+  const isGeneral = isGeneralConversationalResponse(response);
+  const pillTone = response.grounded ? 'success' : isGeneral ? 'info' : 'warn';
+
   return (
     <li
       className={styles.entryCard}
@@ -170,20 +181,20 @@ export function AskQaTranscriptCard({
       <div className={styles.entryHeader}>
         <strong className={styles.entryQuestion}>Q: {question}</strong>
         <span data-grounded={response.grounded ? 'true' : 'false'}>
-          <StatusPill tone={response.grounded ? 'success' : 'warn'} size='sm'>
+          <StatusPill tone={pillTone} size='sm'>
             {resolveTierLabel(response)}
           </StatusPill>
         </span>
       </div>
       <p className={styles.answerText}>{response.answer}</p>
-      {!response.grounded && content.boundaryFallbackNotice ? (
+      {!response.grounded && !isGeneral && content.boundaryFallbackNotice ? (
         <p className={styles.notice}>{content.boundaryFallbackNotice}</p>
       ) : null}
       <TelemetryLine response={response} />
       <CitationSourceList heading={content.citationsHeading} sources={response.sources} />
       {response.suggestedLinks && response.suggestedLinks.length > 0 ? (
         <DeepLinkCardRow heading={content.suggestedLinksHeading} links={response.suggestedLinks} />
-      ) : !response.grounded ? (
+      ) : !response.grounded && !isGeneral ? (
         <div className={styles.ctaRow}>
           <PaneLink to={content.contactCtaHref} className={styles.ctaLink}>
             {content.contactCtaLabel}

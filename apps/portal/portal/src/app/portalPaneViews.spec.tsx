@@ -203,11 +203,11 @@ const TERMINAL: TerminalProfileData = {
       sortOrder: 4,
     },
     {
-      name: 'ask',
-      description: 'open ask portfolio',
+      name: 'chat',
+      description: 'open chat with Andrew',
       kind: 'navigate',
-      output: 'opening /ask ...',
-      targetRoute: '/ask',
+      output: 'opening /chat ...',
+      targetRoute: '/chat',
       allowedRoutes: [],
       errorTemplate: null,
       sortOrder: 5,
@@ -1343,10 +1343,10 @@ describe('Portal in-pane route adapters & deep-links', () => {
     }
   });
 
-  it('streams askStatusPayload into docked /ask?pane=1 and logs envelope_shape_mismatch when omitted', async () => {
+  it('streams askStatusPayload into docked /chat?pane=1 and logs envelope_shape_mismatch when omitted', async () => {
     const askData: PortalAskLoaderData = {
       content: PortalAskContentSchema.parse({
-        windowTitle: 'Ask Portfolio',
+        windowTitle: 'Chat with Andrew',
         statusBadge: { source: 'ai-ask', state: 'idle', label: 'idle' },
         description: 'Grounded docked Q&A.',
         abstentionNotice: 'Strict grounding enabled.',
@@ -1383,7 +1383,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
               Component: PortalHomeBridge,
             },
             {
-              path: 'ask',
+              path: 'chat',
               loader: () => ({
                 correlationId: 'corr-ask-pane',
                 payload: Promise.resolve<StreamResult<PortalAskLoaderData>>({
@@ -1392,7 +1392,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
                 }),
                 askStatusPayload: askStatusDeferred.promise,
               }),
-              Component: () => <div>Ask SSR</div>,
+              Component: () => <div>Chat SSR</div>,
             },
           ],
         },
@@ -1402,7 +1402,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
 
     const first = render(<RouterProvider router={router} />);
     const input = (await screen.findByLabelText('Terminal command input')) as HTMLInputElement;
-    fireEvent.change(input, { target: { value: 'ask' } });
+    fireEvent.change(input, { target: { value: 'chat' } });
     fireEvent.submit(input.closest('form') as HTMLFormElement);
 
     expect(await screen.findByTestId('ask-question-input')).toBeTruthy();
@@ -1442,9 +1442,9 @@ describe('Portal in-pane route adapters & deep-links', () => {
               Component: PortalHomeBridge,
             },
             {
-              path: 'ask',
+              path: 'chat',
               loader: () => streamOk(askData, 'corr-ask-mismatch'),
-              Component: () => <div>Ask SSR</div>,
+              Component: () => <div>Chat SSR</div>,
             },
           ],
         },
@@ -1456,7 +1456,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
     window.sessionStorage.clear();
     render(<RouterProvider router={mismatchRouter} />);
     const input2 = (await screen.findByLabelText('Terminal command input')) as HTMLInputElement;
-    fireEvent.change(input2, { target: { value: 'ask' } });
+    fireEvent.change(input2, { target: { value: 'chat' } });
     fireEvent.submit(input2.closest('form') as HTMLFormElement);
 
     expect(await screen.findByTestId('ask-question-input')).toBeTruthy();

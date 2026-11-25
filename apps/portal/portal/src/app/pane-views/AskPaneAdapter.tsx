@@ -12,10 +12,10 @@ export function AskPaneAdapter({ ctx }: PaneAdapterProps) {
   const submitFetcher = useFetcher<PortalAskActionResult>();
   return (
     <PaneStreamGate<PortalAskLoaderData>
-      routePath='/ask'
+      routePath='/chat'
       paneId={ctx.paneId}
-      title='Ask Portfolio'
-      loadingLabel='Loading portfolio Q&A...'
+      title='Chat with Andrew'
+      loadingLabel='Loading Chat with Andrew...'
       onExit={ctx.exitTui}
     >
       {(data, rawEnvelope) => {
@@ -31,7 +31,7 @@ export function AskPaneAdapter({ ctx }: PaneAdapterProps) {
             console.error(
               JSON.stringify({
                 event: 'portal.pane_nav.envelope_shape_mismatch',
-                routePath: '/ask',
+                routePath: '/chat',
                 paneId: ctx.paneId,
                 correlationId: rawEnvelope.correlationId,
               }),
@@ -40,7 +40,7 @@ export function AskPaneAdapter({ ctx }: PaneAdapterProps) {
               new Error('Ask pane loader envelope missing askStatusPayload stream.'),
               {
                 phase: 'boundary',
-                pathname: '/ask',
+                pathname: '/chat',
                 errorCode: 'ERR_UPSTREAM_UNAVAILABLE',
               },
             );
@@ -59,7 +59,7 @@ export function AskPaneAdapter({ ctx }: PaneAdapterProps) {
             onSubmitAsk={({ mode, text, attemptId }) => {
               void submitFetcher.submit(
                 { mode, text, attemptId },
-                { method: 'post', action: href('/ask') },
+                { method: 'post', action: href('/chat') },
               );
             }}
             onClose={ctx.exitTui}

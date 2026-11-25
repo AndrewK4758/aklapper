@@ -319,8 +319,8 @@ describe('@aklapper/db', () => {
 
       expect(DEFAULT_MENU_ITEMS.some(item => item.slug === 'chat')).toBe(true);
       expect(DEFAULT_MENU_ITEMS.some(item => item.slug === 'ask')).toBe(false);
-      expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.some(entry => entry.name === 'chat')).toBe(true);
-      expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.some(entry => entry.name === 'ask')).toBe(false);
+      expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.map(entry => entry.name)).toContain('chat');
+      expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.map(entry => entry.name)).not.toContain('ask');
       expect(PORTAL_ASK_SEED.windowTitle).toContain('Chat with Andrew');
       const profileDossier = CAREER_DOSSIER_SEEDS.find(
         d => d.slug === 'andrew-klapper-profile-core',

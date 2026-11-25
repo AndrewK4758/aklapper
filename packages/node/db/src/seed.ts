@@ -434,7 +434,7 @@ const TERMINAL_COMMAND_SEEDS = [
       '  menu       — open /menu module launcher',
       '  tui        — open TUI launcher in a split pane',
       '  cadence    — open /cadence artifact sandbox',
-      '  chat       — open /chat to chat with Andrew\'s AI & JD match',
+      "  chat       — open /chat to chat with Andrew's AI & JD match",
       '  agensi     — open /agensi commercial skills storefront',
       '  contact    — run inline terminal contact form (or "contact --tui" / "--help")',
       '  cd <route> — navigate to /menu, /cadence, /chat, /agensi, /contact, or /changes-in-progress',

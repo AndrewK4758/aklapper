@@ -66,12 +66,12 @@ vi.mock('@aklapper/db', async importOriginal => {
 
 import PortalAgensiRoute, { ErrorBoundary as AgensiErrorBoundary } from './agensi';
 import { loader as askTurnPollLoader } from './api.ask.turns.$attemptId';
-import PortalAskRoute, { action as askAction, loader as askLoader } from './ask';
 import { action as cadenceAction, loader as cadenceLoader } from './cadence';
 import ChangesInProgressRoute, {
   ErrorBoundary as MaintenanceErrorBoundary,
   meta as maintenanceMeta,
 } from './changes-in-progress';
+import PortalChatRoute, { action as chatAction, loader as chatLoader } from './chat';
 import PortalHomeRoute, {
   ErrorBoundary as HomeErrorBoundary,
   loader as homeLoader,
@@ -304,16 +304,16 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
     expect(await screen.findByRole('heading', { name: 'Changes in Progress' })).toBeTruthy();
   });
 
-  it('emits synchronous Set-Cookie on /ask and /cadence loaders and classifies DB action faults to HTTP 503', async () => {
+  it('emits synchronous Set-Cookie on /chat and /cadence loaders and classifies DB action faults to HTTP 503', async () => {
     const askPending = Promise.withResolvers<PortalAskLoaderData>();
     loadPortalAskMock.mockReturnValueOnce(askPending.promise);
     const askCtx = makeContext('corr-ask-load');
-    const askLoadRes = askLoader({
-      request: new Request('https://andrew-k.us/ask'),
+    const askLoadRes = chatLoader({
+      request: new Request('https://andrew-k.us/chat'),
       params: {},
       context: askCtx.context,
-      url: new URL('https://andrew-k.us/ask'),
-      pattern: '/ask',
+      url: new URL('https://andrew-k.us/chat'),
+      pattern: '/chat',
     });
     expect(new Headers(askLoadRes.init?.headers).get('Set-Cookie')).toContain(
       `${GUEST_SESSION_COOKIE_NAME}=`,
@@ -337,15 +337,15 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
 
     vi.stubEnv('AI_ASK_URL', '');
     const askErrCtx = makeContext('corr-ask-503');
-    const askErrRes = await askAction({
-      request: makeFormRequest('https://andrew-k.us/ask', {
+    const askErrRes = await chatAction({
+      request: makeFormRequest('https://andrew-k.us/chat', {
         mode: 'qa',
         text: 'How does streaming SSR work?',
       }),
       params: {},
       context: askErrCtx.context,
-      url: new URL('https://andrew-k.us/ask'),
-      pattern: '/ask',
+      url: new URL('https://andrew-k.us/chat'),
+      pattern: '/chat',
     });
     expect(askErrRes.init?.status).toBe(503);
     expect(askErrRes.data).toMatchObject({
@@ -358,15 +358,15 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
     expect(consumeQuotaMock).not.toHaveBeenCalled();
     expect(askErrCtx.errorCalls).toHaveLength(1);
 
-    const oversizeJdRes = await askAction({
-      request: makeFormRequest('https://andrew-k.us/ask', {
+    const oversizeJdRes = await chatAction({
+      request: makeFormRequest('https://andrew-k.us/chat', {
         mode: 'jd_match',
         text: 'A'.repeat(8001),
       }),
       params: {},
       context: makeContext('corr-ask-400').context,
-      url: new URL('https://andrew-k.us/ask'),
-      pattern: '/ask',
+      url: new URL('https://andrew-k.us/chat'),
+      pattern: '/chat',
     });
     expect(oversizeJdRes.init?.status).toBe(400);
     expect(oversizeJdRes.data).toMatchObject({
@@ -390,16 +390,16 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
         { status: 202 },
       ),
     );
-    const pendingRes = await askAction({
-      request: makeFormRequest('https://andrew-k.us/ask', {
+    const pendingRes = await chatAction({
+      request: makeFormRequest('https://andrew-k.us/chat', {
         mode: 'qa',
         text: 'Explain detached turn execution.',
         attemptId: pendingAttemptId,
       }),
       params: {},
       context: makeContext('corr-ask-202').context,
-      url: new URL('https://andrew-k.us/ask'),
-      pattern: '/ask',
+      url: new URL('https://andrew-k.us/chat'),
+      pattern: '/chat',
     });
     expect(pendingRes.init?.status).toBe(202);
     expect(pendingRes.data).toMatchObject({
@@ -508,7 +508,7 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
     expect(cadGateErrCtx.errorCalls).toHaveLength(1);
   });
 
-  it('streams /ask primary form immediately while askStatusPayload settles independently and preserves live badge precedence', async () => {
+  it('streams /chat primary form immediately while askStatusPayload settles independently and preserves live badge precedence', async () => {
     const askStatusDeferred = Promise.withResolvers<StreamResult<AskServiceStatus | undefined>>();
     const askData: PortalAskLoaderData = {
       content: PortalAskContentSchema.parse({
@@ -544,17 +544,17 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
 
     const Stub = createRoutesStub([
       {
-        path: '/ask',
+        path: '/chat',
         loader: () => ({
           correlationId: 'corr-ask-split',
           payload: Promise.resolve<StreamResult<PortalAskLoaderData>>({ ok: true, data: askData }),
           askStatusPayload: askStatusDeferred.promise,
         }),
-        Component: PortalAskRoute,
+        Component: PortalChatRoute,
       },
     ]);
 
-    render(<Stub initialEntries={['/ask']} />);
+    render(<Stub initialEntries={['/chat']} />);
     expect(await screen.findByTestId('ask-question-input')).toBeTruthy();
     expect(screen.getByText(/probing · ai-ask/i)).toBeTruthy();
 
