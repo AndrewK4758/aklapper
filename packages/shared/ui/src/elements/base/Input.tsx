@@ -37,7 +37,7 @@ export function InputRoot({
       {...props}
       size={htmlSize}
       data-size={inputSize}
-      data-viewport={resolvedViewport}
+      {...(resolvedViewport !== undefined ? { 'data-viewport': resolvedViewport } : {})}
       className={mergeBaseClassName(
         cx(controlStyles.input, controlMobileStyles.touchInput),
         className,

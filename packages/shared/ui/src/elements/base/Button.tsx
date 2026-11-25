@@ -50,7 +50,7 @@ export function ButtonRoot({
       data-variant={variant}
       data-size={size}
       data-loading={loading ? '' : undefined}
-      data-viewport={resolvedViewport}
+      {...(resolvedViewport !== undefined ? { 'data-viewport': resolvedViewport } : {})}
       className={mergeBaseClassName(
         cx(controlStyles.button, controlMobileStyles.touchTarget),
         className,

@@ -1,6 +1,7 @@
 import type { PortalRootLoaderData } from '@aklapper/core';
 import { OscStatusBadge, SolarForgeEmblem } from '@aklapper/ui';
 import { type MobileNavItem, MobileTuiWorkspace } from '@aklapper/ui/mobile-tui-workspace';
+import { useState } from 'react';
 import { href, Link, Outlet } from 'react-router';
 
 import { PortalLauncherTui } from '#pages/home';
@@ -44,6 +45,27 @@ export function PortalMobileWorkspaceHost({
   cluster,
   navigate,
 }: PortalMobileWorkspaceHostProps) {
+  const [paneStack, setPaneStack] = useState<readonly string[]>([]);
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
+    if (paneStack.length > 0) {
+      setPaneStack([]);
+    }
+  }
+
+  const pushPane = (viewId: string) => {
+    setPaneStack(prev => [...prev, viewId]);
+  };
+
+  const popPane = () => {
+    setPaneStack(prev => prev.slice(0, -1));
+  };
+
+  const exitPane = () => {
+    setPaneStack([]);
+  };
+
   const { chrome, homeContent } = data;
   const headerBadgeState = cluster.connected ? cluster.summaryState : chrome.statusBadge.state;
   const headerBadgeLabel =
@@ -86,6 +108,7 @@ export function PortalMobileWorkspaceHost({
   return (
     <MobileTuiWorkspace
       layoutMode={layoutMode}
+      routeKey={pathname}
       brand={
         <Link to={href('/')} prefetch='intent' className={styles.mobileBrand}>
           <SolarForgeEmblem size={18} />
@@ -96,6 +119,10 @@ export function PortalMobileWorkspaceHost({
       navLabel='Portal mobile navigation'
       navItems={mobileNavItems}
       statusBadge={statusBadge}
+      paneStack={paneStack}
+      onPushPane={pushPane}
+      onPopPane={popPane}
+      onExitPane={exitPane}
       overflowItems={
         <>
           {agensiLink}
@@ -113,6 +140,7 @@ export function PortalMobileWorkspaceHost({
             ttyNumber={1}
             isSinglePane
             onClose={() => {
+              exitPane();
               void navigate(href('/'));
             }}
           />
@@ -130,22 +158,12 @@ export function PortalMobileWorkspaceHost({
             isSinglePane: true,
             isActive: true,
             isInitialPrimaryDeepLink: false,
-            stack: [viewId],
-            push: next => {
-              void navigate(next);
-            },
-            pop: () => {
-              void navigate(href('/'));
-            },
-            exitTui: () => {
-              void navigate(href('/'));
-            },
-            openInSplit: next => {
-              void navigate(next);
-            },
-            openInTab: next => {
-              void navigate(next);
-            },
+            stack: paneStack,
+            push: pushPane,
+            pop: popPane,
+            exitTui: exitPane,
+            openInSplit: pushPane,
+            openInTab: pushPane,
           },
           homeContent,
           deployments: cluster.deployments,

@@ -1,9 +1,18 @@
 import {
   Tooltip as BaseTooltip,
+  type TooltipRootChangeEventDetails,
   type TooltipRootProps as BaseTooltipRootProps,
   type TooltipTriggerProps as BaseTooltipTriggerProps,
 } from '@base-ui/react/tooltip';
-import { createContext, type JSX, useCallback, useContext, useState } from 'react';
+import {
+  createContext,
+  type JSX,
+  type MouseEvent,
+  useCallback,
+  useContext,
+  useRef,
+  useState,
+} from 'react';
 
 import {
   type ElementViewMode,
@@ -17,7 +26,8 @@ import overlayStyles from '../_styles/overlay.module.css';
 
 interface MobileTooltipToggleContextValue {
   readonly isMobile: boolean;
-  readonly toggleOpen: () => void;
+  readonly onTriggerPointerDown: () => void;
+  readonly onTriggerClick: (event: MouseEvent<HTMLButtonElement>) => void;
 }
 
 const MobileTooltipToggleContext = createContext<MobileTooltipToggleContextValue | null>(null);
@@ -38,15 +48,16 @@ function TooltipRoot({
   const resolvedViewport = resolveElementViewport(layoutMode, viewMode);
   const isMobile = resolvedViewport !== 'desktop';
   const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+  const openBeforePointerDownRef = useRef<boolean | null>(null);
 
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : uncontrolledOpen;
 
   const handleOpenChange: BaseTooltipRootProps['onOpenChange'] = useCallback(
-    (
-      nextOpen: boolean,
-      eventDetails: Parameters<NonNullable<BaseTooltipRootProps['onOpenChange']>>[1],
-    ) => {
+    (nextOpen: boolean, eventDetails: TooltipRootChangeEventDetails) => {
+      if (eventDetails.reason === 'trigger-press') {
+        return;
+      }
       if (!isControlled) {
         setUncontrolledOpen(nextOpen);
       }
@@ -55,12 +66,33 @@ function TooltipRoot({
     [isControlled, onOpenChange],
   );
 
-  const toggleOpen = useCallback(() => {
-    const nextOpen = !open;
-    if (!isControlled) {
-      setUncontrolledOpen(nextOpen);
-    }
-  }, [isControlled, open]);
+  const onTriggerPointerDown = useCallback(() => {
+    openBeforePointerDownRef.current = open;
+  }, [open]);
+
+  const onTriggerClick = useCallback(
+    (event: MouseEvent<HTMLButtonElement>) => {
+      const baseOpen = openBeforePointerDownRef.current ?? open;
+      openBeforePointerDownRef.current = null;
+      const nextOpen = !baseOpen;
+      if (!isControlled) {
+        setUncontrolledOpen(nextOpen);
+      }
+      if (onOpenChange) {
+        const syntheticDetails = {
+          reason: 'trigger-press',
+          event: event.nativeEvent,
+          cancel: () => {},
+          allowPropagation: () => {},
+          isCanceled: false,
+          isPropagationAllowed: false,
+          trigger: event.currentTarget,
+        } as unknown as TooltipRootChangeEventDetails;
+        onOpenChange(nextOpen, syntheticDetails);
+      }
+    },
+    [isControlled, onOpenChange, open],
+  );
 
   if (!isMobile) {
     return (
@@ -76,7 +108,9 @@ function TooltipRoot({
   }
 
   return (
-    <MobileTooltipToggleContext.Provider value={{ isMobile: true, toggleOpen }}>
+    <MobileTooltipToggleContext.Provider
+      value={{ isMobile: true, onTriggerPointerDown, onTriggerClick }}
+    >
       <BaseTooltip.Root {...props} open={open} onOpenChange={handleOpenChange}>
         {children}
       </BaseTooltip.Root>
@@ -86,19 +120,28 @@ function TooltipRoot({
 
 TooltipRoot.displayName = 'Tooltip.Root';
 
-function TooltipTrigger({ onClick, ...props }: BaseTooltipTriggerProps): JSX.Element {
+function TooltipTrigger({
+  onClick,
+  onPointerDown,
+  ...props
+}: BaseTooltipTriggerProps): JSX.Element {
   const mobileCtx = useContext(MobileTooltipToggleContext);
 
   if (!mobileCtx?.isMobile) {
-    return <BaseTooltip.Trigger {...props} onClick={onClick} />;
+    return <BaseTooltip.Trigger {...props} onPointerDown={onPointerDown} onClick={onClick} />;
   }
 
+  const handlePointerDown: NonNullable<BaseTooltipTriggerProps['onPointerDown']> = event => {
+    mobileCtx.onTriggerPointerDown();
+    onPointerDown?.(event);
+  };
+
   const handleClick: NonNullable<BaseTooltipTriggerProps['onClick']> = event => {
-    mobileCtx.toggleOpen();
+    mobileCtx.onTriggerClick(event);
     onClick?.(event);
   };
 
-  return <BaseTooltip.Trigger {...props} onClick={handleClick} />;
+  return <BaseTooltip.Trigger {...props} onPointerDown={handlePointerDown} onClick={handleClick} />;
 }
 
 TooltipTrigger.displayName = 'Tooltip.Trigger';

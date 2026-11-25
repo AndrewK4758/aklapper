@@ -30,9 +30,17 @@ export function mergeVaryHeader(headers: Headers, tokens: readonly string[]): vo
     .map(token => token.trim())
     .filter(Boolean);
   const seen = new Set(existing.map(token => token.toLowerCase()));
+  if (seen.has('*')) {
+    headers.set('Vary', '*');
+    return;
+  }
   const merged = [...existing];
   for (const token of tokens) {
     const normalized = token.trim();
+    if (normalized === '*') {
+      headers.set('Vary', '*');
+      return;
+    }
     if (normalized && !seen.has(normalized.toLowerCase())) {
       seen.add(normalized.toLowerCase());
       merged.push(normalized);

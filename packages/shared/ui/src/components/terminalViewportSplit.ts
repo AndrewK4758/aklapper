@@ -11,10 +11,19 @@ export type ServerViewportLayoutMode = 'desktop' | 'mobile-portrait';
 export const MOBILE_PORTRAIT_MEDIA_QUERY = '(max-width: 48rem)';
 export const MOBILE_LANDSCAPE_MEDIA_QUERY = '(max-height: 32rem) and (orientation: landscape)';
 
-const MOBILE_USER_AGENT_REGEX =
-  /Android.*Mobile|iPhone|iPod|IEMobile|Mobile Safari|Windows Phone|BlackBerry/i;
+const MAX_USER_AGENT_INSPECT_LENGTH = 512;
+const NON_ANDROID_MOBILE_UA_REGEX = /iphone|ipod|iemobile|mobile safari|windows phone|blackberry/;
 
 type HeaderMap = Headers | Readonly<Record<string, string | string[] | undefined>>;
+
+function isMobileUserAgent(rawUserAgent: string): boolean {
+  const ua = rawUserAgent.slice(0, MAX_USER_AGENT_INSPECT_LENGTH).toLowerCase();
+  const androidIdx = ua.indexOf('android');
+  if (androidIdx !== -1 && ua.indexOf('mobile', androidIdx + 7) !== -1) {
+    return true;
+  }
+  return NON_ANDROID_MOBILE_UA_REGEX.test(ua);
+}
 
 function readHeaderValue(headers: HeaderMap, name: string): string | undefined {
   if (typeof (headers as Headers).get === 'function') {
@@ -43,7 +52,7 @@ export function detectServerViewportMode(headers: HeaderMap): ServerViewportLayo
     return 'desktop';
   }
   const userAgent = readHeaderValue(headers, 'user-agent')?.trim() ?? '';
-  if (userAgent.length > 0 && MOBILE_USER_AGENT_REGEX.test(userAgent)) {
+  if (userAgent.length > 0 && isMobileUserAgent(userAgent)) {
     return 'mobile-portrait';
   }
   return 'desktop';

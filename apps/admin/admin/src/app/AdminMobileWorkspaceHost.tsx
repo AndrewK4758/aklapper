@@ -123,6 +123,7 @@ export function AdminMobileWorkspaceHost({
     >
       <LazyMobileTuiWorkspace
         layoutMode={layoutMode}
+        routeKey={pathname}
         brand={
           <Link to={href('/')} prefetch='intent' className={styles.mobileBrand}>
             <SolarForgeEmblem size={18} />

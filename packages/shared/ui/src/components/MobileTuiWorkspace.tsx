@@ -1,4 +1,11 @@
-import { type FocusEvent, type JSX, type ReactNode, useMemo, useState } from 'react';
+import {
+  type FocusEvent,
+  type JSX,
+  type MouseEvent,
+  type ReactNode,
+  useMemo,
+  useState,
+} from 'react';
 
 import { cx } from '../elements/_internal/elementFactory';
 import { Button } from '../elements/base/Button';
@@ -23,6 +30,7 @@ export interface MobileNavItem {
 
 export interface MobileTuiWorkspaceProps {
   readonly layoutMode: 'mobile-portrait' | 'mobile-landscape';
+  readonly routeKey?: string;
   readonly brand: ReactNode;
   readonly activeTtyLabel: string;
   readonly navLabel: string;
@@ -43,6 +51,7 @@ export interface MobileTuiWorkspaceProps {
 
 export function MobileTuiWorkspace({
   layoutMode,
+  routeKey,
   brand,
   activeTtyLabel,
   navLabel,
@@ -66,6 +75,41 @@ export function MobileTuiWorkspace({
   const [railExpanded, setRailExpanded] = useState(false);
   const [terminalInputFocused, setTerminalInputFocused] = useState(false);
 
+  const stack = paneStack ?? internalStack;
+  const canGoBack = stack.length > 0;
+  const activeStackedViewId = stack.length > 0 ? stack[stack.length - 1] : null;
+
+  const routeResetKey = `${routeKey ?? ''}|${activeTtyLabel}|${layoutMode}`;
+  const [prevRouteResetKey, setPrevRouteResetKey] = useState(routeResetKey);
+  if (prevRouteResetKey !== routeResetKey) {
+    setPrevRouteResetKey(routeResetKey);
+    if (overflowOpen) {
+      setOverflowOpen(false);
+    }
+    if (quickLaunchOpen) {
+      setQuickLaunchOpen(false);
+    }
+  }
+
+  const focusResetKey = `${routeResetKey}|${activeStackedViewId ?? ''}`;
+  const [prevFocusResetKey, setPrevFocusResetKey] = useState(focusResetKey);
+  if (prevFocusResetKey !== focusResetKey) {
+    setPrevFocusResetKey(focusResetKey);
+    if (terminalInputFocused) {
+      setTerminalInputFocused(false);
+    }
+  }
+
+  const handleSheetBodyClick = (
+    event: MouseEvent<HTMLDivElement>,
+    closeSheet: () => void,
+  ): void => {
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('a[href]')) {
+      closeSheet();
+    }
+  };
+
   const isKeyboardSuppressed = keyboardActive || terminalInputFocused;
 
   const handleMainFocusCapture = (event: FocusEvent<HTMLElement>) => {
@@ -81,10 +125,6 @@ export function MobileTuiWorkspace({
       setTerminalInputFocused(false);
     }
   };
-
-  const stack = paneStack ?? internalStack;
-  const canGoBack = stack.length > 0;
-  const activeStackedViewId = stack.length > 0 ? stack[stack.length - 1] : null;
 
   const paneNavValue = useMemo<PaneNavigationContextValue>(
     () => ({
@@ -191,7 +231,12 @@ export function MobileTuiWorkspace({
               <Dialog.Title>Workspace Menu</Dialog.Title>
               <Dialog.Close aria-label='Close workspace menu'>×</Dialog.Close>
             </Dialog.Header>
-            <Dialog.Body className={styles.sheetBody}>{overflowItems}</Dialog.Body>
+            <Dialog.Body
+              className={styles.sheetBody}
+              onClick={event => handleSheetBodyClick(event, () => setOverflowOpen(false))}
+            >
+              {overflowItems}
+            </Dialog.Body>
           </Dialog.Popup>
         </Dialog.Viewport>
       </Dialog.Portal>
@@ -208,7 +253,12 @@ export function MobileTuiWorkspace({
               <Dialog.Title>TUI Quick Launch</Dialog.Title>
               <Dialog.Close aria-label='Close TUI quick launch'>×</Dialog.Close>
             </Dialog.Header>
-            <Dialog.Body className={styles.sheetBody}>{quickLaunchItems}</Dialog.Body>
+            <Dialog.Body
+              className={styles.sheetBody}
+              onClick={event => handleSheetBodyClick(event, () => setQuickLaunchOpen(false))}
+            >
+              {quickLaunchItems}
+            </Dialog.Body>
           </Dialog.Popup>
         </Dialog.Viewport>
       </Dialog.Portal>

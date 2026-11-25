@@ -85,6 +85,19 @@ describe('@aklapper/node-runtime/ssr', () => {
     expect(varyTokens.filter(token => token.toLowerCase() === 'sec-ch-ua-mobile')).toHaveLength(1);
   });
 
+  it('preserves Vary: * alone without appending tokens per RFC 9110', async () => {
+    const entry = createEntryServer({ streamTimeout: 2_500 });
+    const headers = new Headers({ Vary: '*' });
+    const res = await entry.handleRequest(
+      new Request('http://localhost/', { method: 'HEAD' }),
+      200,
+      headers,
+      {} as EntryContext,
+    );
+
+    expect(res.headers.get('Vary')).toBe('*');
+  });
+
   it('serves /healthz and bridges SSR GET headers including multi-value Set-Cookie', async () => {
     const buildDir = await createFixtureBuildDir();
     activeHandlerRef.current = async request => {

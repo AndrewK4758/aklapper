@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -178,5 +181,98 @@ describe('MobileTuiWorkspace and TerminalAccessoryBar', () => {
     expect(onAction).toHaveBeenNthCalledWith(1, 'tab');
     expect(onAction).toHaveBeenNthCalledWith(2, 'ctrl-c');
     expect(onAction).toHaveBeenNthCalledWith(3, { type: 'command', command: 'status' });
+  });
+
+  it('restores portrait bottom dock when a focused terminal input unmounts on route change', () => {
+    const { rerender } = render(
+      <ViewportProvider mode='mobile-portrait'>
+        <MobileTuiWorkspace
+          layoutMode='mobile-portrait'
+          routeKey='/'
+          brand={<span>SF</span>}
+          activeTtyLabel='tty1 :: /'
+          navLabel='Mobile primary navigation'
+          navItems={NAV_ITEMS}
+        >
+          <input data-terminal-input='true' aria-label='Terminal command input' />
+        </MobileTuiWorkspace>
+      </ViewportProvider>,
+    );
+
+    const input = screen.getByRole('textbox', { name: 'Terminal command input' });
+    fireEvent.focus(input);
+    expect(document.querySelector('[data-mobile-tui-dock="true"]')).toBeNull();
+
+    rerender(
+      <ViewportProvider mode='mobile-portrait'>
+        <MobileTuiWorkspace
+          layoutMode='mobile-portrait'
+          routeKey='/menu'
+          brand={<span>SF</span>}
+          activeTtyLabel='tty1 :: /menu'
+          navLabel='Mobile primary navigation'
+          navItems={NAV_ITEMS}
+        >
+          <div>Menu Route</div>
+        </MobileTuiWorkspace>
+      </ViewportProvider>,
+    );
+
+    expect(document.querySelector('[data-mobile-tui-dock="true"]')).toBeTruthy();
+  });
+
+  it('dismisses overflow and quick-launch sheets on link click and on routeKey change, and consumes --sf-keyboard-offset in CSS', () => {
+    const cssPath = join(
+      import.meta.dirname,
+      '..',
+      'src',
+      'components',
+      'TerminalAccessoryBar.module.css',
+    );
+    expect(readFileSync(cssPath, 'utf8')).toContain('var(--sf-keyboard-offset');
+
+    const { rerender } = render(
+      <ViewportProvider mode='mobile-portrait'>
+        <MobileTuiWorkspace
+          layoutMode='mobile-portrait'
+          routeKey='/'
+          brand={<span>SF</span>}
+          activeTtyLabel='tty1 :: /'
+          navLabel='Mobile primary navigation'
+          navItems={NAV_ITEMS}
+          overflowItems={<a href='/agensi'>Agensi Link</a>}
+          quickLaunchItems={<a href='/menu'>Quick Menu</a>}
+        >
+          <div>Home</div>
+        </MobileTuiWorkspace>
+      </ViewportProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open workspace menu' }));
+    const agensiLink = screen.getByRole('link', { name: 'Agensi Link' });
+    fireEvent.click(agensiLink);
+    expect(document.querySelector('[data-mobile-overflow-sheet="true"]')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open TUI Quick Launch' }));
+    expect(document.querySelector('[data-mobile-quick-launch-sheet="true"]')).toBeTruthy();
+
+    rerender(
+      <ViewportProvider mode='mobile-portrait'>
+        <MobileTuiWorkspace
+          layoutMode='mobile-portrait'
+          routeKey='/contact'
+          brand={<span>SF</span>}
+          activeTtyLabel='tty1 :: /contact'
+          navLabel='Mobile primary navigation'
+          navItems={NAV_ITEMS}
+          overflowItems={<a href='/agensi'>Agensi Link</a>}
+          quickLaunchItems={<a href='/menu'>Quick Menu</a>}
+        >
+          <div>Contact</div>
+        </MobileTuiWorkspace>
+      </ViewportProvider>,
+    );
+
+    expect(document.querySelector('[data-mobile-quick-launch-sheet="true"]')).toBeNull();
   });
 });

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -222,9 +223,55 @@ describe('adaptive mobile views across @aklapper/ui elements', () => {
       </ViewportProvider>,
     );
 
-    fireEvent.click(screen.getByTestId('tip-trigger'));
+    const trigger = screen.getByTestId('tip-trigger');
+    fireEvent.pointerDown(trigger);
+    fireEvent.focus(trigger);
+    fireEvent.pointerUp(trigger);
+    fireEvent.click(trigger);
+
     expect(screen.getByTestId('tip-popup').textContent).toBe('Mobile tap tip');
     expect(screen.getByTestId('tip-popup').getAttribute('data-viewport')).toBe('mobile-portrait');
+
+    fireEvent.pointerDown(trigger);
+    fireEvent.pointerUp(trigger);
+    fireEvent.click(trigger);
+    expect(screen.queryByTestId('tip-popup')).toBeNull();
+  });
+
+  it('supports controlled Tooltip.Root on mobile tap and preserves explicit data-viewport on Button and Input', () => {
+    function ControlledMobileTooltip() {
+      const [open, setOpen] = useState(false);
+      return (
+        <ViewportProvider mode='mobile-portrait'>
+          <Tooltip.Provider>
+            <Tooltip.Root open={open} onOpenChange={next => setOpen(next)}>
+              <Tooltip.Trigger data-testid='ctrl-tip-trigger'>Controlled</Tooltip.Trigger>
+              <Tooltip.Portal>
+                <Tooltip.Positioner>
+                  <Tooltip.Popup data-testid='ctrl-tip-popup'>Controlled mobile tip</Tooltip.Popup>
+                </Tooltip.Positioner>
+              </Tooltip.Portal>
+            </Tooltip.Root>
+          </Tooltip.Provider>
+          <Button.Root data-viewport='desktop' data-testid='explicit-btn'>
+            Desktop Button
+          </Button.Root>
+          <Input.Root data-viewport='desktop' data-testid='explicit-input' aria-label='Desktop' />
+        </ViewportProvider>
+      );
+    }
+
+    render(<ControlledMobileTooltip />);
+
+    const trigger = screen.getByTestId('ctrl-tip-trigger');
+    fireEvent.pointerDown(trigger);
+    fireEvent.focus(trigger);
+    fireEvent.pointerUp(trigger);
+    fireEvent.click(trigger);
+    expect(screen.getByTestId('ctrl-tip-popup').textContent).toBe('Controlled mobile tip');
+
+    expect(screen.getByTestId('explicit-btn').getAttribute('data-viewport')).toBe('desktop');
+    expect(screen.getByTestId('explicit-input').getAttribute('data-viewport')).toBe('desktop');
   });
 
   it('respects explicit viewMode override on elements inside desktop ViewportProvider', () => {

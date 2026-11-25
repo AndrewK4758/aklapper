@@ -135,6 +135,16 @@ describe('detectServerViewportMode', () => {
       }),
     ).toBe('desktop');
   });
+
+  it('bounds User-Agent inspection to linear time against adversarial 64 KB ReDoS strings', () => {
+    const adversarialUa = 'Android'.repeat(9_200);
+    const start = performance.now();
+    const result = detectServerViewportMode({ 'user-agent': adversarialUa });
+    const elapsedMs = performance.now() - start;
+
+    expect(result).toBe('desktop');
+    expect(elapsedMs).toBeLessThan(10);
+  });
 });
 
 describe('ViewportProvider', () => {
