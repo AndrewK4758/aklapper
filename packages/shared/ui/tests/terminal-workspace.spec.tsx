@@ -498,6 +498,62 @@ describe('terminalPaneTree', () => {
     expect(promotedLeaf?.tuiStack).toEqual(['/agensi']);
   });
 
+  it('prefers a non-TUI leaf when promoting a split tab with an active TUI pane, and normalizes kind to terminal for a detached single-pane TUI tab', () => {
+    // Path A: tab-2 has a terminal pane + active kind: 'tui' split pane -> closing tab-1 pins the terminal pane, not the TUI pane
+    let splitTabs = createInitialTabbedWorkspaceState({ pinnedPrimary: true });
+    splitTabs = addWorkspaceTab(splitTabs);
+    splitTabs = {
+      ...splitTabs,
+      tabs: splitTabs.tabs.map(t =>
+        t.id === 'tab-2' ? { ...t, workspace: openTuiPane(t.workspace) } : t,
+      ),
+    };
+    const splitTab2Before = getActiveWorkspaceTab(splitTabs);
+    const tuiPaneBefore = findTuiPane(splitTab2Before.workspace.root);
+    expect(tuiPaneBefore).toBeTruthy();
+    expect(splitTab2Before.workspace.activePaneId).toBe(tuiPaneBefore!.id);
+
+    splitTabs = closeWorkspaceTab(splitTabs, 'tab-1');
+    const promotedSplitTab = getActiveWorkspaceTab(splitTabs);
+    expect(promotedSplitTab.id).toBe('tab-2');
+    expect(promotedSplitTab.pinned).toBe(true);
+    const promotedSplitLeaves = listLeafPanes(promotedSplitTab.workspace.root);
+    const terminalLeaf = promotedSplitLeaves.find(leaf => leaf.kind !== 'tui');
+    const tuiLeaf = promotedSplitLeaves.find(leaf => leaf.kind === 'tui');
+    expect(terminalLeaf?.pinned).toBe(true);
+    expect(tuiLeaf?.pinned).toBeUndefined();
+    expect(tuiLeaf?.kind).toBe('tui');
+
+    // Path B: detached single-pane TUI tab is active -> closing tab-1 normalizes promoted leaf to kind: 'terminal'
+    let detachedTabs = createInitialTabbedWorkspaceState({ pinnedPrimary: true });
+    detachedTabs = addWorkspaceTab(detachedTabs);
+    detachedTabs = {
+      ...detachedTabs,
+      tabs: detachedTabs.tabs.map(t =>
+        t.id === 'tab-2' ? { ...t, workspace: openTuiPane(t.workspace) } : t,
+      ),
+    };
+    const detachedTuiPaneId = findTuiPane(getActiveWorkspaceTab(detachedTabs).workspace.root)!.id;
+    detachedTabs = detachPaneToNewTab(detachedTabs, detachedTuiPaneId);
+    expect(detachedTabs.activeTabId).toBe('tab-3');
+    expect(
+      findLeafPane(getActiveWorkspaceTab(detachedTabs).workspace.root, detachedTuiPaneId)?.kind,
+    ).toBe('tui');
+
+    // Close tab-1 while detached TUI tab-3 is active
+    detachedTabs = closeWorkspaceTab(detachedTabs, 'tab-1');
+    const promotedDetachedTab = getActiveWorkspaceTab(detachedTabs);
+    expect(promotedDetachedTab.id).toBe('tab-3');
+    expect(promotedDetachedTab.pinned).toBe(true);
+    const normalizedLeaf = findLeafPane(
+      promotedDetachedTab.workspace.root,
+      promotedDetachedTab.workspace.activePaneId,
+    );
+    expect(normalizedLeaf?.pinned).toBe(true);
+    expect(normalizedLeaf?.kind).toBe('terminal');
+    expect(normalizedLeaf?.tuiOpen).toBe(false);
+  });
+
   it('reuses the lowest unused positive tab number in addWorkspaceTab and detachPaneToNewTab while keeping pane IDs monotonic', () => {
     let tabs = createInitialTabbedWorkspaceState();
     tabs = addWorkspaceTab(tabs);
@@ -1225,6 +1281,50 @@ describe('TerminalWorkspace', () => {
     fireEvent.submit(survivingInput.closest('form') as HTMLFormElement);
     expect(embeddedEl.getAttribute('data-tab-count')).toBe('1');
     expect(embeddedEl.getAttribute('data-active-tab')).toBe('tab-2');
+    embedded.unmount();
+
+    // Detached single-pane TUI tab promoted to primary host normalizes kind to terminal,
+    // no longer shows "tui" as tab title, and Escape does not close the primary tab
+    const detached = render(
+      <TerminalWorkspace
+        terminal={TERMINAL_FIXTURE}
+        renderTui={() => <div>Split TUI Content</div>}
+        primaryPane={{
+          title: 'tty1',
+          content: <TerminalWorkspace terminal={TERMINAL_FIXTURE} />,
+          flush: true,
+          embeddedTerminal: true,
+        }}
+      />,
+    );
+    const detachedEl = detached.container.querySelector('[data-pane-count]') as HTMLElement;
+    // Open tab-2, open a TUI split pane via Alt+T, detach it to tab-3 via Ctrl+Alt+Shift+T
+    fireEvent.keyDown(window, { key: 'N', code: 'KeyN', altKey: true, shiftKey: true });
+    fireEvent.keyDown(window, { key: 't', code: 'KeyT', altKey: true });
+    fireEvent.keyDown(window, {
+      key: 'T',
+      code: 'KeyT',
+      ctrlKey: true,
+      altKey: true,
+      shiftKey: true,
+    });
+    expect(detachedEl.getAttribute('data-tab-count')).toBe('3');
+    expect(detachedEl.getAttribute('data-active-tab')).toBe('tab-3');
+    expect(screen.getByRole('tab', { name: 'tui' })).toBeTruthy();
+
+    // Close inactive pinned tab-1 -> active tab-3 is promoted and normalized to terminal host
+    const closePrimaryBtn = detached.container.querySelector(
+      '[data-tab-id="tab-1"] button[aria-label^="Close tab"]',
+    ) as HTMLButtonElement;
+    fireEvent.click(closePrimaryBtn);
+    expect(detachedEl.getAttribute('data-tab-count')).toBe('2');
+    expect(detachedEl.getAttribute('data-active-tab')).toBe('tab-3');
+    expect(screen.queryByRole('tab', { name: 'tui' })).toBeNull();
+
+    // Pressing Escape on the promoted primary host tab does NOT close tab-3
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(detachedEl.getAttribute('data-tab-count')).toBe('2');
+    expect(detachedEl.getAttribute('data-active-tab')).toBe('tab-3');
   });
 
   it('swaps splits with Alt+Shift+H/J/K/L, rotates orientation with Alt+Shift+R, preserves Ctrl+Shift+R hard reload, and detaches panes to new tabs', () => {

@@ -1336,12 +1336,14 @@ function setLeafPinned(
       nextPinned &&
       (!node.tuiStack || node.tuiStack.length === 0) &&
       Boolean(fallbackTuiStack && fallbackTuiStack.length > 0);
-    if (Boolean(node.pinned) === nextPinned && !shouldAttachStack) {
+    const shouldNormalizeKind = node.id === targetPaneId && nextPinned && node.kind === 'tui';
+    if (Boolean(node.pinned) === nextPinned && !shouldAttachStack && !shouldNormalizeKind) {
       return node;
     }
     if (nextPinned) {
       return {
         ...node,
+        ...(shouldNormalizeKind ? { kind: 'terminal' as const, tuiOpen: false } : {}),
         pinned: true,
         ...(shouldAttachStack && fallbackTuiStack ? { tuiStack: [...fallbackTuiStack] } : {}),
       };
@@ -1385,9 +1387,13 @@ export function closeWorkspaceTab(
     const isNextActive = tab.id === nextActiveTabId;
     const shouldBumpFocus = isNextActive && state.activeTabId === tabId;
     if (closedHeldPin && isNextActive) {
+      const leaves = listLeafPanes(tab.workspace.root);
+      const activeLeaf = findLeafPane(tab.workspace.root, tab.workspace.activePaneId);
       const targetPaneId =
-        findLeafPane(tab.workspace.root, tab.workspace.activePaneId)?.id ??
-        listLeafPanes(tab.workspace.root)[0]?.id ??
+        (activeLeaf && activeLeaf.kind !== 'tui' ? activeLeaf.id : undefined) ??
+        leaves.find(leaf => leaf.kind !== 'tui')?.id ??
+        activeLeaf?.id ??
+        leaves[0]?.id ??
         tab.workspace.activePaneId;
       const nextRoot = setLeafPinned(
         tab.workspace.root,
