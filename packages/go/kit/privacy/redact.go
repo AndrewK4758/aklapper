@@ -110,6 +110,7 @@ func RedactTextForStorage(cfg *Config, raw string, maxRunes int) string {
 	if cfg != nil {
 		redactCfg.rules = cfg.rules
 		redactCfg.maxDenylistNonSep = cfg.maxDenylistNonSep
+		redactCfg.maxRegexRunes = cfg.maxRegexRunes
 		redactCfg.DenylistTermCount = cfg.DenylistTermCount
 	}
 

@@ -444,7 +444,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     );
     await expect(page.getByTestId('cadence-turn-gate')).toHaveAttribute('data-status', 'completed');
     await expect(page.getByTestId('cadence-gate-verdict')).toContainText('pending');
-    await expect(page.getByTestId('cadence-quota-meter')).toContainText('1/5 turns');
+    await expect(page.getByTestId('cadence-quota-meter')).toContainText('1/10 turns');
 
     const frame = page.locator('iframe[title="CADENCE Artifact Preview"]');
     await expect(frame).toHaveAttribute('sandbox', 'allow-scripts');
@@ -465,7 +465,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     // Reload recovers persisted approved run from PG19 without double-charging guest quota.
     await page.reload();
     await expect(page.getByTestId('cadence-gate-verdict')).toContainText('approved');
-    await expect(page.getByTestId('cadence-quota-meter')).toContainText('1/5 turns');
+    await expect(page.getByTestId('cadence-quota-meter')).toContainText('1/10 turns');
     await expect(page.getByTestId('cadence-run-history')).toBeVisible();
 
     // Missing cookie -> 401 with zero Set-Cookie; foreign cookie session -> 403.
@@ -570,21 +570,21 @@ test.describe('portal SSR end-to-end journeys', () => {
       expect(srcdoc).not.toContain('<script>alert(1)</script>');
       expect(srcdoc).toContain('&lt;iframe');
 
-      // Exhaust remaining 4 session turns cleanly, then assert 6th triggers 429 error banner.
-      for (let i = 2; i <= 5; i += 1) {
+      // Exhaust remaining 9 session turns cleanly (10-turn guest cap), then assert 11th triggers 429 error banner.
+      for (let i = 2; i <= 10; i += 1) {
         await promptInput.fill(`Quota exhaustion build run number ${i} telemetry gauge`);
         await page.getByTestId('cadence-run-submit').click();
-        await expect(page.getByTestId('cadence-quota-meter')).toContainText(`${i}/5 turns`);
+        await expect(page.getByTestId('cadence-quota-meter')).toContainText(`${i}/10 turns`);
         await expect(page.getByTestId('cadence-turn-gate')).toHaveAttribute(
           'data-status',
           'completed',
         );
       }
 
-      await promptInput.fill('Sixth attempt should hit atomic session turn limit');
+      await promptInput.fill('Eleventh attempt should hit atomic session turn limit');
       await page.getByTestId('cadence-run-submit').click();
       await expect(page.getByTestId('cadence-error-banner')).toBeVisible();
-      await expect(page.getByTestId('cadence-quota-meter')).toContainText('5/5 turns');
+      await expect(page.getByTestId('cadence-quota-meter')).toContainText('10/10 turns');
 
       expect(getErrors()).toEqual([]);
     } finally {

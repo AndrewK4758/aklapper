@@ -95,3 +95,32 @@ func TestRedactTextForStorageScrubsSecretsDenylistPIIAndCapsRunes(t *testing.T) 
 		t.Fatalf("expected <=1000 runes, got %d", utf8.RuneCountInString(redacted))
 	}
 }
+
+func TestRedactTextForStorageAppliesBoundedContextFreeRegexRules(t *testing.T) {
+	cfg, err := LoadConfig(ConfigInput{
+		RawDenylist:    `["re:secret-[0-9]{4}", "SyntheticClientZ"]`,
+		DenylistAction: ActionAbort,
+		SecretAction:   ActionAbort,
+	})
+	if err != nil {
+		t.Fatalf("LoadConfig failed: %v", err)
+	}
+	if cfg.maxRegexRunes == 0 {
+		t.Fatal("expected non-zero maxRegexRunes for bounded regex entry")
+	}
+
+	input := "Please tell me about secret-4829 and SyntheticClientZ architecture."
+	redacted := RedactTextForStorage(cfg, input, 1000)
+
+	for _, forbidden := range []string{"secret-4829", "SyntheticClientZ"} {
+		if strings.Contains(redacted, forbidden) {
+			t.Fatalf("RedactTextForStorage leaked %q in %q", forbidden, redacted)
+		}
+	}
+	if !strings.Contains(redacted, RedactionPlaceholder) {
+		t.Fatalf("expected [REDACTED] placeholder in %q", redacted)
+	}
+	if !strings.Contains(redacted, "architecture.") {
+		t.Fatalf("expected benign surrounding text preserved in %q", redacted)
+	}
+}
