@@ -6,6 +6,7 @@ import {
 } from '@aklapper/core';
 import {
   isProductionPrivacyEnv,
+  PrivacySanitizationError,
   sanitizeCareerDossierPayload,
 } from '@aklapper/node-runtime/privacy';
 import { and, asc, eq, isNotNull } from 'drizzle-orm';
@@ -146,6 +147,112 @@ export async function upsertCareerDossier(
   return mapCareerDossierRow(row);
 }
 
+export async function upsertCareerDossierBatch(
+  db: AppDatabase,
+  inputs: readonly CareerDossierUpsertInput[],
+  options: CareerDossierMutationOptions = {},
+): Promise<CareerDossier[]> {
+  if (inputs.length === 0) {
+    return [];
+  }
+  const prepared: Array<{
+    readonly parsed: CareerDossierUpsertInput;
+    readonly denylistHash: string;
+    readonly verifiedAt: Date;
+  }> = [];
+  const aggregatedFindings: Array<{
+    readonly ruleId: string;
+    readonly category: 'secret' | 'pii' | 'tracker' | 'workspace' | 'denylist' | 'config';
+    readonly field: string;
+    readonly location: string;
+  }> = [];
+
+  for (const input of inputs) {
+    const parsed = CareerDossierUpsertSchema.parse(input);
+    try {
+      const { denylistHash, verifiedAt } = sanitizeCareerDossierPayload(parsed, {
+        requireConfiguredDenylist: false,
+        rawDenylist: options.rawDenylist,
+        env: options.env,
+        correlationId: options.correlationId,
+      });
+      prepared.push({ parsed, denylistHash, verifiedAt });
+    } catch (error) {
+      if (error instanceof PrivacySanitizationError) {
+        for (const finding of error.findings) {
+          aggregatedFindings.push({
+            ruleId: finding.ruleId,
+            category: finding.category,
+            field: `${parsed.slug}.${finding.field}`,
+            location: finding.location,
+          });
+        }
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  if (aggregatedFindings.length > 0) {
+    throw new PrivacySanitizationError(aggregatedFindings);
+  }
+
+  return db.transaction(async tx => {
+    const saved: CareerDossier[] = [];
+    for (const item of prepared) {
+      const { parsed, denylistHash, verifiedAt } = item;
+      const [row] = await tx
+        .insert(careerDossiers)
+        .values({
+          slug: parsed.slug,
+          kind: parsed.kind,
+          title: parsed.title,
+          domainLabel: parsed.domainLabel,
+          roleTitle: parsed.roleTitle,
+          timeframe: parsed.timeframe,
+          skills: [...parsed.skills],
+          summaryBody: parsed.summaryBody,
+          sectionsJson: parsed.sections.map(section => ({
+            heading: section.heading,
+            body: section.body,
+          })),
+          publishStatus: 'draft',
+          sanitizationVerifiedAt: verifiedAt,
+          denylistHash,
+          sortOrder: parsed.sortOrder,
+          updatedAt: verifiedAt,
+        })
+        .onConflictDoUpdate({
+          target: careerDossiers.slug,
+          set: {
+            kind: parsed.kind,
+            title: parsed.title,
+            domainLabel: parsed.domainLabel,
+            roleTitle: parsed.roleTitle,
+            timeframe: parsed.timeframe,
+            skills: [...parsed.skills],
+            summaryBody: parsed.summaryBody,
+            sectionsJson: parsed.sections.map(section => ({
+              heading: section.heading,
+              body: section.body,
+            })),
+            publishStatus: 'draft',
+            sanitizationVerifiedAt: verifiedAt,
+            denylistHash,
+            sortOrder: parsed.sortOrder,
+            updatedAt: verifiedAt,
+          },
+        })
+        .returning();
+      if (!row) {
+        throw new Error(`Failed to persist career dossier "${parsed.slug}".`);
+      }
+      saved.push(mapCareerDossierRow(row));
+    }
+    return saved;
+  });
+}
+
 export async function publishCareerDossier(
   db: AppDatabase,
   slug: string,
@@ -161,7 +268,8 @@ export async function publishCareerDossier(
       .select()
       .from(careerDossiers)
       .where(eq(careerDossiers.slug, normalized))
-      .limit(1);
+      .limit(1)
+      .for('update');
 
     if (!existing) {
       return null;

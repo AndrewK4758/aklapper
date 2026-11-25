@@ -196,4 +196,50 @@ describe('Admin CMS Career Dossier Studio, VisitorLensListEditor & 409/400 actio
     expect(oversizedOutcome.status).toBe(400);
     expect(oversizedOutcome.payload.code).toBe('ERR_VALIDATION');
   });
+
+  it('renders HTTP 409 ERR_CONSTRAINT reindex banner in CareerDossierSection and handles markdown code fences, quoted YAML, unclosed ---, and >80-char skills cleanly', async () => {
+    const fencedMd = [
+      '---',
+      'title: "Quoted Cloud Platform"',
+      'kind: "architecture"',
+      'skills: ["TypeScript", "PostgreSQL 19", "' + 'S'.repeat(95) + '"]',
+      '---',
+      'Summary paragraph.',
+      '## GKE Automation',
+      '```bash',
+      '## Comment inside bash code block must NOT split section',
+      'kubectl apply -f infra/k8s/',
+      '```',
+    ].join('\n');
+    const parsedFenced = parseCareerDossierMarkdown(fencedMd, 'quoted-platform.md');
+    expect(parsedFenced.title).toBe('Quoted Cloud Platform');
+    expect(parsedFenced.kind).toBe('architecture');
+    expect(parsedFenced.sections).toHaveLength(1);
+    expect(parsedFenced.sections[0]?.heading).toBe('GKE Automation');
+    expect(parsedFenced.sections[0]?.body).toContain('## Comment inside bash code block');
+    expect(parsedFenced.skills.every(s => s.length <= 80)).toBe(true);
+
+    // Leading --- without closing delimiter does not swallow document body
+    const unclosed = parseCareerDossierMarkdown('---\n# Standalone Title\nBody text.', 'notes.md');
+    expect(unclosed.title).toBe('Standalone Title');
+    expect(unclosed.summaryBody).toContain('Body text.');
+
+    // Clicking Re-Index Qdrant Corpus inside CareerDossierSection surfaces HTTP 409 feedback banner
+    const Stub409 = createRoutesStub([
+      {
+        path: '/cms',
+        Component: () => <CareerDossierSection dossiers={[]} qdrant={QDRANT_FIXTURE} />,
+        action: async () => ({
+          ok: false,
+          code: 'ERR_CONSTRAINT',
+          message: 'A portfolio reindex is already in progress.',
+          action: 'Wait for the active reindex to complete and retry.',
+          correlationId: 'corr-ui-409',
+        }),
+      },
+    ]);
+    render(<Stub409 initialEntries={['/cms']} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Re-Index Qdrant Corpus' }));
+    expect(await screen.findByText(/A portfolio reindex is already in progress/i)).toBeTruthy();
+  });
 });

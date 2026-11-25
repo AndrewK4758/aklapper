@@ -462,6 +462,9 @@ describe('PortalAskPage', () => {
       />,
     );
 
+    // Deterministic empty conversationId during SSR/initial mount prevents React 19 hydration mismatches
+    expect(screen.getByTestId('ask-workspace').getAttribute('data-conversation-id')).toBe('');
+
     // Clicking a visitor lens updates selection and reveals lens starter chips
     fireEvent.click(screen.getByTestId('ask-lens-engineering-peer'));
     expect(screen.getByTestId('ask-lens-engineering-peer').getAttribute('aria-pressed')).toBe(

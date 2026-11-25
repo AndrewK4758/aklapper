@@ -12,6 +12,7 @@ import { resolveGuestSession } from '../guest-session.server';
 import type { Route } from './+types/api.ask.stream';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const VISITOR_LENS_RE = /^[a-z0-9-]{1,48}$/;
 
 function jsonErrorResponse(
   status: number,
@@ -118,8 +119,18 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Re
     );
   }
 
-  const visitorLens =
-    typeof body['visitorLens'] === 'string' ? body['visitorLens'].trim().slice(0, 64) : '';
+  const rawVisitorLens = typeof body['visitorLens'] === 'string' ? body['visitorLens'].trim() : '';
+  if (rawVisitorLens && !VISITOR_LENS_RE.test(rawVisitorLens)) {
+    return jsonErrorResponse(
+      400,
+      'ERR_VALIDATION',
+      'Invalid visitor lens identifier.',
+      'Choose a supported visitor lens and retry.',
+      correlationId,
+      setCookieHeader,
+    );
+  }
+  const visitorLens = rawVisitorLens;
 
   const aiAskUrl = process.env['AI_ASK_URL']?.trim();
   if (!aiAskUrl) {

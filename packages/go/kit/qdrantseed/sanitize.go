@@ -8,6 +8,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/AndrewK4758/aklapper/packages/go/kit/privacy"
 )
 
 // ErrOriginConfidentiality indicates a document violated public-repository confidentiality rules.
@@ -37,14 +39,18 @@ var originForbiddenRules = []forbiddenRule{
 	},
 }
 
-func parseRuntimeDenylistTerms(raw string) ([]string, error) {
+func parseRuntimeDenylistConfig(raw string) (*privacy.Config, error) {
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" {
 		return nil, nil
 	}
 	payload := trimmed
 	if !strings.HasPrefix(payload, "[") {
-		decoded, err := base64.StdEncoding.DecodeString(strings.ReplaceAll(trimmed, " ", ""))
+		compact := strings.Join(strings.Fields(trimmed), "")
+		decoded, err := base64.StdEncoding.DecodeString(compact)
+		if err != nil {
+			decoded, err = base64.RawStdEncoding.DecodeString(strings.TrimRight(compact, "="))
+		}
 		if err != nil {
 			return nil, fmt.Errorf("BOUNDARY_FAULT qdrant.seed.denylist_parse_failed: %w: invalid base64 DOSSIER_PRIVACY_DENYLIST", ErrOriginConfidentiality)
 		}
@@ -54,20 +60,25 @@ func parseRuntimeDenylistTerms(raw string) ([]string, error) {
 	if err := json.Unmarshal([]byte(payload), &list); err != nil {
 		return nil, fmt.Errorf("BOUNDARY_FAULT qdrant.seed.denylist_parse_failed: %w: invalid JSON array DOSSIER_PRIVACY_DENYLIST", ErrOriginConfidentiality)
 	}
-	out := make([]string, 0, len(list))
-	for _, term := range list {
-		norm := strings.ToLower(strings.TrimSpace(term))
-		if len(norm) >= 2 {
-			out = append(out, norm)
-		}
+	encoded, err := json.Marshal(list)
+	if err != nil {
+		return nil, fmt.Errorf("BOUNDARY_FAULT qdrant.seed.denylist_parse_failed: %w", ErrOriginConfidentiality)
 	}
-	return out, nil
+	cfg, err := privacy.LoadConfig(privacy.ConfigInput{
+		RawDenylist:    string(encoded),
+		DenylistAction: privacy.ActionAbort,
+		SecretAction:   privacy.ActionAbort,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("BOUNDARY_FAULT qdrant.seed.denylist_parse_failed: %w: invalid DOSSIER_PRIVACY_DENYLIST rules", ErrOriginConfidentiality)
+	}
+	return cfg, nil
 }
 
 // ValidateOriginConfidentiality verifies every candidate document is non-empty and free
 // of private governance tokens, private workspace paths, credential literals, or runtime denylist terms.
 func ValidateOriginConfidentiality(docs []SeedDocument) error {
-	denylistTerms, err := parseRuntimeDenylistTerms(os.Getenv("DOSSIER_PRIVACY_DENYLIST"))
+	privCfg, err := parseRuntimeDenylistConfig(os.Getenv("DOSSIER_PRIVACY_DENYLIST"))
 	if err != nil {
 		return err
 	}
@@ -113,18 +124,23 @@ func ValidateOriginConfidentiality(docs []SeedDocument) error {
 					)
 				}
 			}
-			if len(denylistTerms) > 0 {
-				lowered := strings.ToLower(f.value)
-				for idx, term := range denylistTerms {
-					if strings.Contains(lowered, term) {
-						return fmt.Errorf(
-							"BOUNDARY_FAULT qdrant.seed.origin_confidentiality_violation: %w: doc %q field %q matched rule %q",
-							ErrOriginConfidentiality,
-							doc.ID,
-							f.name,
-							fmt.Sprintf("denylist_term_%d", idx+1),
-						)
-					}
+			if privCfg != nil && privCfg.DenylistTermCount > 0 {
+				guard := privacy.NewStreamGuard(privCfg, "qdrant-seed-origin-check")
+				if _, procErr := guard.Process(f.value); errors.Is(procErr, privacy.ErrPrivacyAborted) {
+					return fmt.Errorf(
+						"BOUNDARY_FAULT qdrant.seed.origin_confidentiality_violation: %w: doc %q field %q matched privacy denylist",
+						ErrOriginConfidentiality,
+						doc.ID,
+						f.name,
+					)
+				}
+				if _, flushErr := guard.Flush(); errors.Is(flushErr, privacy.ErrPrivacyAborted) {
+					return fmt.Errorf(
+						"BOUNDARY_FAULT qdrant.seed.origin_confidentiality_violation: %w: doc %q field %q matched privacy denylist",
+						ErrOriginConfidentiality,
+						doc.ID,
+						f.name,
+					)
 				}
 			}
 		}

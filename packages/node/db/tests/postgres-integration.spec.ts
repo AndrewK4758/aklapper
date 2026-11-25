@@ -49,6 +49,7 @@ import {
   updateSandboxRunGateVerdictForSession,
   updateSandboxTurnRow,
   upsertCareerDossier,
+  upsertCareerDossierBatch,
   upsertSiteContent,
   upsertTerminalDirectoryEntry,
 } from '../src/index.ts';
@@ -648,9 +649,121 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       const forbiddenState = await getAskTurnByAttemptId(db, forbiddenAttemptId, 'guest_err_map');
       expect(forbiddenState?.error?.code).toBe('ERR_FORBIDDEN');
       expect(forbiddenState?.error?.status).toBe(403);
+
+      // S-3.3: ask_turns_prompt_text_length_check accepts 1000 chars and rejects 1001 chars (SQLSTATE 23514)
+      const okPromptId = '66666666-6666-4666-8666-666666666669';
+      const overPromptId = '77777777-7777-4777-8777-777777777779';
+      try {
+        await db.insert(askTurns).values({
+          attemptId: okPromptId,
+          sessionId: 'guest_err_map',
+          role: 'guest',
+          mode: 'qa',
+          promptHash: 'e'.repeat(64),
+          status: 'failed',
+          errorCode: 'ERR_STREAM_ABORTED',
+          correlationId: 'corr-len-1000',
+          conversationId: convId,
+          turnIndex: 3,
+          promptText: 'a'.repeat(1000),
+          leaseExpiresAt: future,
+          expiresAt: future,
+        });
+
+        let lenErr: unknown = null;
+        try {
+          await db.insert(askTurns).values({
+            attemptId: overPromptId,
+            sessionId: 'guest_err_map',
+            role: 'guest',
+            mode: 'qa',
+            promptHash: 'f'.repeat(64),
+            status: 'failed',
+            errorCode: 'ERR_STREAM_ABORTED',
+            correlationId: 'corr-len-1001',
+            conversationId: convId,
+            turnIndex: 4,
+            promptText: 'a'.repeat(1001),
+            leaseExpiresAt: future,
+            expiresAt: future,
+          });
+        } catch (err) {
+          lenErr = err;
+        }
+        expect(extractPgConstraintViolation(lenErr)?.constraintName).toBe(
+          'ask_turns_prompt_text_length_check',
+        );
+      } finally {
+        await db.delete(askTurns).where(eq(askTurns.attemptId, okPromptId));
+        await db.delete(askTurns).where(eq(askTurns.attemptId, overPromptId));
+      }
     } finally {
       await db.delete(askTurns).where(eq(askTurns.attemptId, abortedAttemptId));
       await db.delete(askTurns).where(eq(askTurns.attemptId, forbiddenAttemptId));
     }
+
+    // Atomic batch upsert rejects 2-file batch when file #2 fails privacy with zero DB mutations
+    const batchCleanSlug = `batch-clean-${Date.now()}`;
+    const batchLeakySlug = `batch-leaky-${Date.now()}`;
+    try {
+      await expect(
+        upsertCareerDossierBatch(
+          db,
+          [
+            {
+              slug: batchCleanSlug,
+              kind: 'architecture',
+              title: 'Clean File One',
+              domainLabel: 'Cloud',
+              roleTitle: 'Architect',
+              timeframe: '2025',
+              skills: ['Go'],
+              summaryBody: 'Clean architectural summary.',
+              sections: [],
+              sortOrder: 0,
+            },
+            {
+              slug: batchLeakySlug,
+              kind: 'architecture',
+              title: 'Leaky File Two',
+              domainLabel: 'Cloud',
+              roleTitle: 'Architect',
+              timeframe: '2025',
+              skills: ['Go'],
+              summaryBody: 'Contains SyntheticConfidentialClientX which must abort whole batch.',
+              sections: [],
+              sortOrder: 0,
+            },
+          ],
+          { rawDenylist: denylistV1 },
+        ),
+      ).rejects.toBeInstanceOf(PrivacySanitizationError);
+
+      expect(await getCareerDossierBySlug(db, batchCleanSlug)).toBeNull();
+      expect(await getCareerDossierBySlug(db, batchLeakySlug)).toBeNull();
+    } finally {
+      await deleteCareerDossier(db, batchCleanSlug);
+      await deleteCareerDossier(db, batchLeakySlug);
+    }
+
+    // S-3.1: Reversible migration 0006 down -> up -> up round-trip preserving custom quota overrides
+    const drizzleDir = resolve(import.meta.dirname, '../drizzle');
+    const downSql = readFileSync(
+      resolve(drizzleDir, '0006_career_dossiers_and_ask_turns.down.sql'),
+      'utf8',
+    );
+    const upSql = readFileSync(
+      resolve(drizzleDir, '0006_career_dossiers_and_ask_turns.sql'),
+      'utf8',
+    );
+    expect(existsSync(resolve(drizzleDir, '0006_career_dossiers_and_ask_turns.down.sql'))).toBe(
+      true,
+    );
+    await pool.query(downSql);
+    await pool.query(upSql);
+    await pool.query(upSql);
+    await seedDatabase(db);
+    const restoredCore = await getCareerDossierBySlug(db, 'andrew-klapper-profile-core');
+    expect(restoredCore?.publishStatus).toBe('published');
   });
 });

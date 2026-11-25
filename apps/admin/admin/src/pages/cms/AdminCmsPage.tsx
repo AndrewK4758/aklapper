@@ -137,6 +137,7 @@ export function AdminCmsPage({
                 qdrant={qdrant}
                 qdrantStatusSlot={qdrantStatusSlot}
                 sanitizationFindings={actionData?.sanitizationFindings}
+                reindexFetcher={reindexFetcher}
               />
             </LazyChunkBoundary>
           </Tabs.Panel>

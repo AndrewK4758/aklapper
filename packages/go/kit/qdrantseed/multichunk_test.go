@@ -72,4 +72,22 @@ func TestMultiChunkPointIDDedupAndSectionHeadingSanitization(t *testing.T) {
 	if strings.Contains(malformedErr.Error(), "not-valid-base64-secret-value") {
 		t.Fatalf("malformed denylist error must not leak raw env value: %v", malformedErr)
 	}
+
+	// ValidateOriginConfidentiality catches newline, double-space, hyphen, ZWSP, and fullwidth obfuscation via privacy.StreamGuard
+	obfJSON, _ := json.Marshal([]string{"Acme Capital", "SecretClient"})
+	t.Setenv("DOSSIER_PRIVACY_DENYLIST", strings.TrimRight(base64.StdEncoding.EncodeToString(obfJSON), "="))
+	for _, variant := range []string{
+		"Built for Acme\nCapital platform",
+		"Built for Acme  Capital platform",
+		"Built for Acme-Capital platform",
+		"Built for Sec\u200BretClient platform",
+		"Built for \uFF33\uFF45\uFF43\uFF52\uFF45\uFF54\uFF23\uFF4C\uFF49\uFF45\uFF4E\uFF54 platform",
+	} {
+		vErr := ValidateOriginConfidentiality([]SeedDocument{
+			{ID: "dossier:obf", Title: "Clean", Body: variant, Category: "career_dossier", Source: "postgres"},
+		})
+		if !errors.Is(vErr, ErrOriginConfidentiality) {
+			t.Fatalf("expected ErrOriginConfidentiality for obfuscated variant %q, got %v", variant, vErr)
+		}
+	}
 }

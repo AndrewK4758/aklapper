@@ -9,6 +9,7 @@ import (
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/llm"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/privacy"
 )
 
 const (
@@ -18,9 +19,8 @@ const (
 
 var profileIntentPhrases = []string{
 	"who is andrew",
+	"tell me about andrew",
 	"about andrew",
-	"andrew klapper",
-	"what does andrew",
 	"what does he focus",
 	"what does he do",
 	"his background",
@@ -32,11 +32,42 @@ var profileIntentPhrases = []string{
 	"navigate this site",
 	"sections of this portfolio",
 	"how can i contact andrew",
+	"contact andrew",
+}
+
+var confidentialBoundaryPhrases = []string{
+	"nda",
+	"non-disclosure",
+	"non disclosure",
+	"confidential client",
+	"confidential nda",
+	"private client",
+	"secret client",
+	"client name",
+	"client names",
+	"private workspace",
+	"salary",
+	"compensation",
+	"social security",
+	"private key",
+}
+
+func isConfidentialBoundaryProbe(queryText string) bool {
+	lower := strings.ToLower(strings.TrimSpace(queryText))
+	if lower == "" {
+		return false
+	}
+	for _, phrase := range confidentialBoundaryPhrases {
+		if strings.Contains(lower, phrase) {
+			return true
+		}
+	}
+	return false
 }
 
 func isProfileOverviewIntent(queryText string) bool {
 	lower := strings.ToLower(strings.TrimSpace(queryText))
-	if lower == "" {
+	if lower == "" || isConfidentialBoundaryProbe(lower) {
 		return false
 	}
 	for _, phrase := range profileIntentPhrases {
@@ -44,7 +75,22 @@ func isProfileOverviewIntent(queryText string) bool {
 			return true
 		}
 	}
+	fields := strings.Fields(strings.Trim(lower, "?!.,"))
+	if len(fields) >= 2 && len(fields) <= 3 && fields[0] == "andrew" && fields[1] == "klapper" {
+		return true
+	}
 	return false
+}
+
+// sanitizeUntrustedQuestionText neutralizes embedded delimiter tags before interpolation.
+func sanitizeUntrustedQuestionText(raw string) string {
+	replacer := strings.NewReplacer(
+		"<untrusted_question>", "[untrusted_question]",
+		"</untrusted_question>", "[/untrusted_question]",
+		"<UNTRUSTED_QUESTION>", "[untrusted_question]",
+		"</UNTRUSTED_QUESTION>", "[/untrusted_question]",
+	)
+	return replacer.Replace(strings.TrimSpace(raw))
 }
 
 // resolvePinnedProfileCore loads the published profile_core dossier from PG19, falling back
@@ -72,6 +118,9 @@ func resolvePinnedProfileCore(ctx context.Context, store *pg.Store) pg.CorpusDoc
 
 // classifyGroundingTier deterministically assigns Tier A (profile), Tier B (evidence), or Tier C (boundary).
 func classifyGroundingTier(mode, queryText string, hybrid hybridSearchResult) string {
+	if mode == "qa" && isConfidentialBoundaryProbe(queryText) {
+		return contracts.GroundingTierBoundary
+	}
 	if mode == "qa" && isProfileOverviewIntent(queryText) {
 		return contracts.GroundingTierProfile
 	}
@@ -223,4 +272,38 @@ func defaultFollowUpQuestionsForTier(tier string) []string {
 			"Who is Andrew Klapper and what kinds of systems does he build?",
 		}
 	}
+}
+
+func guardUnaryOutputText(cfg *privacy.Config, corrID, raw string) (string, error) {
+	if raw == "" {
+		return "", nil
+	}
+	guard := privacy.NewStreamGuard(cfg, corrID)
+	safe, err := guard.Process(raw)
+	if err != nil {
+		return "", err
+	}
+	tail, err := guard.Flush()
+	if err != nil {
+		return "", err
+	}
+	return safe + tail, nil
+}
+
+func guardJDEvaluationOutput(cfg *privacy.Config, corrID string, eval *jdSynthesisPayload) error {
+	var err error
+	if eval.Answer, err = guardUnaryOutputText(cfg, corrID, eval.Answer); err != nil {
+		return err
+	}
+	for i, s := range eval.Strengths {
+		if eval.Strengths[i], err = guardUnaryOutputText(cfg, corrID, s); err != nil {
+			return err
+		}
+	}
+	for i, g := range eval.Gaps {
+		if eval.Gaps[i], err = guardUnaryOutputText(cfg, corrID, g); err != nil {
+			return err
+		}
+	}
+	return nil
 }

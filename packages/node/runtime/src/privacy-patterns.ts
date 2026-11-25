@@ -8,22 +8,51 @@ export interface ParsedDenylist {
   readonly configured: boolean;
 }
 
+const INVISIBLE_FORMAT_RE = /\p{Cf}/gu;
+const COMBINING_MARKS_RE = /\p{Mn}/gu;
+const BASE64_CHARS_RE = /^[A-Za-z0-9+/]+={0,2}$/;
+
+export function stripInvisibleAndNormalize(raw: string): string {
+  return raw.normalize('NFKC').replace(INVISIBLE_FORMAT_RE, '');
+}
+
+export function foldDiacriticsForMatch(raw: string): string {
+  return stripInvisibleAndNormalize(raw).normalize('NFKD').replace(COMBINING_MARKS_RE, '');
+}
+
 export function normalizePrivacyTerm(raw: string): string {
-  return raw.normalize('NFKC').trim().replace(/\s+/g, ' ').toLowerCase();
+  return stripInvisibleAndNormalize(raw).trim().replace(/\s+/g, ' ').toLowerCase();
 }
 
 export function collapseForSeparatorMatch(raw: string): string {
-  return raw
-    .normalize('NFKC')
+  return foldDiacriticsForMatch(raw)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '');
 }
 
 export function buildTermWordRegex(normalizedTerm: string): RegExp {
-  const parts = normalizedTerm
-    .split(/\s+/)
-    .map(value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const folded = foldDiacriticsForMatch(normalizedTerm).trim().toLowerCase();
+  const parts = folded.split(/\s+/).map(value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   return new RegExp(`(?<![a-z0-9])${parts.join('[\\s_./-]+')}(?![a-z0-9])`, 'i');
+}
+
+export function buildSeparatorObfuscatedRegex(collapsedTerm: string): RegExp | null {
+  if (collapsedTerm.length < 2 || collapsedTerm.length > 64) {
+    return null;
+  }
+  const chars = Array.from(collapsedTerm).map(ch => ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  return new RegExp(`(?<![a-z0-9])${chars.join('[\\s_./-]*')}(?![a-z0-9])`, 'i');
+}
+
+export function decodeBase64JsonCandidate(compact: string): string | null {
+  if (!compact || compact.length % 4 === 1 || !BASE64_CHARS_RE.test(compact)) {
+    return null;
+  }
+  const padded =
+    compact.length % 4 === 0
+      ? compact
+      : compact.padEnd(compact.length + (4 - (compact.length % 4)), '=');
+  return Buffer.from(padded, 'base64').toString('utf8').trim();
 }
 
 export function computeDenylistHash(terms: readonly string[]): string {
@@ -102,7 +131,7 @@ export const PRIVACY_PATTERN_RULES: readonly PrivacyPatternRule[] = [
   {
     ruleId: 'pii.email_address',
     category: 'pii',
-    regex: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
+    regex: /(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]{1,64}@(?:[A-Za-z0-9-]{1,63}\.)+[A-Za-z]{2,24}\b/g,
   },
   {
     ruleId: 'pii.us_ssn',
@@ -112,7 +141,7 @@ export const PRIVACY_PATTERN_RULES: readonly PrivacyPatternRule[] = [
   {
     ruleId: 'pii.us_phone',
     category: 'pii',
-    regex: /(?<!\w)(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}(?!\w)/g,
+    regex: /(?<![A-Za-z0-9])(?:\+?1[-.\s])?(?:\(\d{3}\)[-.\s]?|\d{3}[-.\s])\d{3}[-.\s]\d{4}(?!\d)/g,
   },
   {
     ruleId: 'workspace.private_governance_repo',
@@ -132,7 +161,44 @@ export const PRIVACY_PATTERN_RULES: readonly PrivacyPatternRule[] = [
   },
 ];
 
-export const TRACKER_ISSUE_KEY_RE = /\b([A-Z]{2,8})-(\d{1,6})\b/g;
+export const TRACKER_ISSUE_KEY_RE = /\b([A-Za-z]{2,8})-(\d{1,8})\b/g;
+
+export const CASE_INSENSITIVE_TRACKER_PREFIXES = new Set<string>([
+  'akl',
+  'dec',
+  'ii',
+  'prod',
+  'oq',
+]);
+
+export function isBlockedTrackerPrefix(rawPrefix: string): boolean {
+  if (CASE_INSENSITIVE_TRACKER_PREFIXES.has(rawPrefix.toLowerCase())) {
+    return true;
+  }
+  return rawPrefix === rawPrefix.toUpperCase() && !ALLOWED_TECHNICAL_CODE_PREFIXES.has(rawPrefix);
+}
+
+export function collectStringLeaves(
+  value: unknown,
+  prefix: string,
+  out: Array<readonly [field: string, text: string]>,
+): void {
+  if (typeof value === 'string') {
+    out.push([prefix, value]);
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i += 1) {
+      collectStringLeaves(value[i], `${prefix}[${i}]`, out);
+    }
+    return;
+  }
+  if (typeof value === 'object' && value !== null) {
+    for (const [k, v] of Object.entries(value)) {
+      collectStringLeaves(v, `${prefix}.${k}`, out);
+    }
+  }
+}
 
 export const ALLOWED_TECHNICAL_CODE_PREFIXES = new Set<string>([
   'AES',

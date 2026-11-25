@@ -143,7 +143,7 @@ func handleAskPost(provider llm.Provider, vectorStore *qdrant.Client, store *pg.
 		doneCh := make(chan workerOutcome, 1)
 		go func() {
 			defer cancel()
-			doneCh <- executeTurnWorker(workerCtx, provider, vectorStore, store, attemptID, sessionID, role, mode, queryText, corrID)
+			doneCh <- executeTurnWorker(workerCtx, provider, vectorStore, store, privacyCfg, attemptID, sessionID, role, mode, queryText, corrID)
 		}()
 
 		timer := time.NewTimer(syncWait)
@@ -171,6 +171,7 @@ func executeTurnWorker(
 	provider llm.Provider,
 	vectorStore *qdrant.Client,
 	store *pg.Store,
+	privacyCfg *privacy.Config,
 	attemptID, sessionID, role, mode, queryText, corrID string,
 ) workerOutcome {
 	started := time.Now()
@@ -194,7 +195,8 @@ func executeTurnWorker(
 	if mode == "jd_match" {
 		maxCandidates = jdMaxEvidenceChunks
 	}
-	hybrid, searchErr := executeHybridSearch(ctx, provider, vectorStore, store, queryText, maxCandidates, corrID)
+	allowProfileFallback := mode == "qa" && isProfileOverviewIntent(queryText) && !isConfidentialBoundaryProbe(queryText)
+	hybrid, searchErr := executeHybridSearch(ctx, provider, vectorStore, store, queryText, maxCandidates, corrID, allowProfileFallback)
 	if searchErr != nil {
 		status := http.StatusBadGateway
 		errCode := contracts.ErrCodeUpstreamUnavailable
@@ -293,6 +295,14 @@ func executeTurnWorker(
 			}
 			return failWithRefund(status, errCode, "Upstream service unreachable.", "Retry shortly or go home.", "jd_chat_error")
 		}
+		if privErr := guardJDEvaluationOutput(privacyCfg, corrID, &eval); privErr != nil {
+			logAskEvent("ai_ask.stream.privacy_guard_triggered", map[string]any{
+				"seam_type": "BOUNDARY_FAULT", "severity": "CRITICAL", "attemptId": attemptID,
+				"mode": mode, "action": "aborted", "correlationId": corrID,
+			})
+			return failWithRefund(http.StatusForbidden, contracts.ErrCodeForbidden,
+				"Permission denied for action.", "Return home or sign in again.", "privacy_abort")
+		}
 		score := eval.MatchScore
 		resp = contracts.AskResponse{
 			AttemptID: attemptID, Grounded: true, Abstained: false, GroundingTier: tier, Mode: mode,
@@ -302,7 +312,7 @@ func executeTurnWorker(
 		}
 	} else {
 		systemPrompt := buildThirdPersonSystemPrompt(tier, profileCore)
-		userPrompt := fmt.Sprintf("Evidence:\n%s\n<untrusted_question>\n%s\n</untrusted_question>", evidenceCtx, queryText)
+		userPrompt := fmt.Sprintf("Evidence:\n%s\n<untrusted_question>\n%s\n</untrusted_question>", evidenceCtx, sanitizeUntrustedQuestionText(queryText))
 		comp, chatErr := provider.Chat(ctx, []llm.ChatMessage{
 			{Role: "system", Content: systemPrompt}, {Role: "user", Content: userPrompt},
 		}, 512)
@@ -315,13 +325,22 @@ func executeTurnWorker(
 			}
 			return failWithRefund(status, errCode, "Upstream service unreachable.", "Retry shortly or go home.", "qa_chat_error")
 		}
+		safeAnswer, privErr := guardUnaryOutputText(privacyCfg, corrID, comp.Text)
+		if privErr != nil {
+			logAskEvent("ai_ask.stream.privacy_guard_triggered", map[string]any{
+				"seam_type": "BOUNDARY_FAULT", "severity": "CRITICAL", "attemptId": attemptID,
+				"mode": mode, "action": "aborted", "correlationId": corrID,
+			})
+			return failWithRefund(http.StatusForbidden, contracts.ErrCodeForbidden,
+				"Permission denied for action.", "Return home or sign in again.", "privacy_abort")
+		}
 		resp = contracts.AskResponse{
 			AttemptID:         attemptID,
 			Grounded:          true,
 			Abstained:         false,
 			GroundingTier:     tier,
 			Mode:              mode,
-			Answer:            comp.Text,
+			Answer:            safeAnswer,
 			Sources:           sources,
 			SuggestedLinks:    defaultSuggestedLinksForTier(tier, sources, corrID),
 			FollowUpQuestions: defaultFollowUpQuestionsForTier(tier),

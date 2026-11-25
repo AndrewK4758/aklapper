@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -114,6 +115,11 @@ func TestHybridSearchDegradesGracefullyWhenQdrantUnavailable(t *testing.T) {
 	}))
 	defer qdrantDown.Close()
 
+	var logs strings.Builder
+	prevOut := log.Writer()
+	log.SetOutput(&logs)
+	defer log.SetOutput(prevOut)
+
 	res, err := executeHybridSearch(
 		context.Background(),
 		&stubHybridLLM{},
@@ -129,6 +135,24 @@ func TestHybridSearchDegradesGracefullyWhenQdrantUnavailable(t *testing.T) {
 	if !res.DenseDegraded || len(res.Candidates) != 1 || res.Candidates[0].DocKey != "dossier:grpc-platform" {
 		t.Fatalf("unexpected degraded search result: %+v", res)
 	}
+	if !strings.Contains(logs.String(), `"event":"ai_ask.retrieval.arm_degraded"`) || !strings.Contains(logs.String(), `"seam_type":"BOUNDARY_FAULT"`) {
+		t.Fatalf("expected ai_ask.retrieval.arm_degraded log, got %s", logs.String())
+	}
+
+	// Tier A profile fallback succeeds cleanly even when dense search fails with 0 lexical hits
+	resProfile, err := executeHybridSearch(
+		context.Background(),
+		&stubHybridLLM{},
+		&qdrant.Client{BaseURL: qdrantDown.URL, HTTPClient: qdrantDown.Client()},
+		store,
+		"How can I contact Andrew?",
+		6,
+		"corr-profile-fallback",
+		true,
+	)
+	if err != nil || !resProfile.DenseDegraded {
+		t.Fatalf("expected Tier A profile fallback when Qdrant degrades, got res=%+v err=%v", resProfile, err)
+	}
 }
 
 func TestTieredGroundingRewriteLinksAndJDBudget(t *testing.T) {
@@ -137,6 +161,12 @@ func TestTieredGroundingRewriteLinksAndJDBudget(t *testing.T) {
 	}
 	if tier := classifyGroundingTier("qa", "xylophone underwater flamingo soup?", hybridSearchResult{}); tier != contracts.GroundingTierBoundary {
 		t.Fatalf("expected boundary tier, got %q", tier)
+	}
+	if tier := classifyGroundingTier("qa", "Which confidential NDA client did Andrew Klapper work for?", hybridSearchResult{}); tier != contracts.GroundingTierBoundary {
+		t.Fatalf("expected NDA probe mentioning owner name to route to boundary tier, got %q", tier)
+	}
+	if tier := classifyGroundingTier("qa", "What does Andrew know about PostgreSQL 19 advisory locks?", hybridSearchResult{Candidates: []hybridCandidate{{DocKey: "dossier:pg-locks"}}}); tier != contracts.GroundingTierEvidence {
+		t.Fatalf("expected technical query with evidence to route to evidence tier, got %q", tier)
 	}
 	if tier := classifyGroundingTier("qa", "How does gRPC work?", hybridSearchResult{Candidates: []hybridCandidate{{DocKey: "dossier:grpc"}}}); tier != contracts.GroundingTierEvidence {
 		t.Fatalf("expected evidence tier, got %q", tier)

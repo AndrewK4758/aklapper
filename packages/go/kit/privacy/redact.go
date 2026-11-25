@@ -8,15 +8,50 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"unicode"
+
+	"golang.org/x/text/unicode/norm"
 )
 
 const DefaultStorageMaxRunes = 1000
 
 var storageExtraRedactPatterns = []*regexp.Regexp{
-	regexp.MustCompile(`\bAKIA[0-9A-Z]{16}\b`),
-	regexp.MustCompile(`\bsk-[A-Za-z0-9]{20,}\b`),
-	regexp.MustCompile(`\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b`),
-	regexp.MustCompile(`(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}\b`),
+	regexp.MustCompile(`\b(?:AKIA|ASIA|AIDA|AROA|AIPA|ANPA|ANVA)[0-9A-Z]{16}\b`),
+	regexp.MustCompile(`\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b`),
+	regexp.MustCompile(`\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{16,}\b`),
+	regexp.MustCompile(`\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b`),
+	regexp.MustCompile(`\bxox[baprs]-[A-Za-z0-9-]{10,}\b`),
+	regexp.MustCompile(`[A-Za-z0-9._%+-]{1,64}@(?:[A-Za-z0-9-]{1,63}\.)+[A-Za-z]{2,24}\b`),
+	regexp.MustCompile(`\b\d{3}-\d{2}-\d{4}\b`),
+	regexp.MustCompile(`(?:\+?1[-.\s])?(?:\(\d{3}\)[-.\s]?|\d{3}[-.\s])\d{3}[-.\s]\d{4}\b`),
+	regexp.MustCompile(`(?i)(?:~|/home/[A-Za-z0-9._-]+|/Users/[A-Za-z0-9._-]+)/projects/[A-Za-z0-9._/-]+`),
+	regexp.MustCompile(`(?i)\baklapper[-_/]cadence\b`),
+	regexp.MustCompile(`(?i)\b(?:AKL|DEC|II|PROD|OQ)-\d+\b`),
+}
+
+var storageTrackerKeyRe = regexp.MustCompile(`\b([A-Z]{2,8})-(\d{1,8})\b`)
+
+var storageAllowedTechPrefixes = map[string]struct{}{
+	"AES": {}, "AMD": {}, "ANSI": {}, "AWS": {}, "BASE": {}, "CI": {}, "CVE": {}, "CWE": {},
+	"DDR": {}, "ECMA": {}, "ES": {}, "EU": {}, "FIPS": {}, "GCP": {}, "GO": {}, "GPT": {},
+	"GRPC": {}, "HMAC": {}, "HTML": {}, "HTTP": {}, "HTTPS": {}, "IEEE": {}, "IPV": {}, "ISO": {},
+	"JS": {}, "JSON": {}, "JWT": {}, "K8S": {}, "MD": {}, "NIST": {}, "NODE": {}, "OAUTH": {},
+	"OIDC": {}, "OS": {}, "OWASP": {}, "PBKDF": {}, "PCI": {}, "PG": {}, "PKCS": {}, "POSIX": {},
+	"RFC": {}, "RSA": {}, "SAML": {}, "SHA": {}, "SOC": {}, "SQL": {}, "SSL": {}, "TCP": {},
+	"TIER": {}, "TLS": {}, "TS": {}, "UDP": {}, "US": {}, "UTF": {}, "UUID": {}, "WCAG": {}, "XML": {},
+}
+
+func stripInvisibleFormatRunes(raw string) string {
+	nfkc := norm.NFKC.String(raw)
+	var b strings.Builder
+	b.Grow(len(nfkc))
+	for _, r := range nfkc {
+		if unicode.Is(unicode.Cf, r) {
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
 }
 
 func parseDossierDenylistEnv(raw string) ([]string, error) {
@@ -26,7 +61,11 @@ func parseDossierDenylistEnv(raw string) ([]string, error) {
 	}
 	payload := trimmed
 	if !strings.HasPrefix(payload, "[") {
-		decoded, err := base64.StdEncoding.DecodeString(strings.ReplaceAll(trimmed, " ", ""))
+		compact := strings.Join(strings.Fields(trimmed), "")
+		decoded, err := base64.StdEncoding.DecodeString(compact)
+		if err != nil {
+			decoded, err = base64.RawStdEncoding.DecodeString(strings.TrimRight(compact, "="))
+		}
 		if err != nil {
 			return nil, errors.New("invalid base64 encoding in DOSSIER_PRIVACY_DENYLIST")
 		}
@@ -114,9 +153,13 @@ func RedactTextForStorage(cfg *Config, raw string, maxRunes int) string {
 		redactCfg.DenylistTermCount = cfg.DenylistTermCount
 	}
 
+	normalized := strings.TrimSpace(stripInvisibleFormatRunes(trimmed))
+	if normalized == "" {
+		return ""
+	}
 	guard := NewStreamGuard(redactCfg, "storage-redact")
 	var out strings.Builder
-	if safe, err := guard.Process(trimmed); err == nil {
+	if safe, err := guard.Process(normalized); err == nil {
 		out.WriteString(safe)
 	} else {
 		return RedactionPlaceholder
@@ -131,6 +174,15 @@ func RedactTextForStorage(cfg *Config, raw string, maxRunes int) string {
 	for _, re := range storageExtraRedactPatterns {
 		cleaned = re.ReplaceAllString(cleaned, RedactionPlaceholder)
 	}
+	cleaned = storageTrackerKeyRe.ReplaceAllStringFunc(cleaned, func(match string) string {
+		parts := strings.SplitN(match, "-", 2)
+		if len(parts) == 2 {
+			if _, ok := storageAllowedTechPrefixes[parts[0]]; ok {
+				return match
+			}
+		}
+		return RedactionPlaceholder
+	})
 	cleaned = strings.TrimSpace(cleaned)
 
 	runes := []rune(cleaned)

@@ -3,6 +3,7 @@ import {
   extractPrivacySanitizationFindings,
   type AppErrorCode,
   type CareerDossierSection,
+  type CareerDossierUpsertInput,
 } from '@aklapper/core';
 import {
   deleteCareerDossier,
@@ -10,6 +11,7 @@ import {
   publishCareerDossier,
   unpublishCareerDossier,
   upsertCareerDossier,
+  upsertCareerDossierBatch,
 } from '@aklapper/db';
 import type { SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
 
@@ -250,35 +252,49 @@ export async function handleCareerDossierIntent(
       decodedPayloads.push(parseCareerDossierMarkdown(utf8Text, file.name));
     }
 
-    const savedSlugs: string[] = [];
+    const validatedPayloads: CareerDossierUpsertInput[] = [];
     for (const payload of decodedPayloads) {
-      try {
-        const saved = await upsertCareerDossier(
-          getSharedDb(),
-          {
-            slug: payload.slug,
-            kind: payload.kind,
-            title: payload.title,
-            domainLabel: payload.domainLabel,
-            roleTitle: payload.roleTitle,
-            timeframe: payload.timeframe,
-            skills: [...payload.skills],
-            summaryBody: payload.summaryBody,
-            sections: [...payload.sections],
-            sortOrder: 0,
-          },
-          { correlationId: ctx.correlationId },
+      const checked = CareerDossierUpsertSchema.safeParse({
+        slug: payload.slug,
+        kind: payload.kind,
+        title: payload.title,
+        domainLabel: payload.domainLabel,
+        roleTitle: payload.roleTitle,
+        timeframe: payload.timeframe,
+        skills: [...payload.skills],
+        summaryBody: payload.summaryBody,
+        sections: [...payload.sections],
+        sortOrder: 0,
+      });
+      if (!checked.success) {
+        const first = checked.error.issues[0];
+        return fail(
+          400,
+          first
+            ? `Invalid markdown dossier "${payload.slug}" (${first.path.join('.')}): ${first.message}`
+            : `Invalid markdown dossier "${payload.slug}".`,
+          'ERR_VALIDATION',
+          'Adjust markdown metadata or headings and retry.',
+          ctx.correlationId,
         );
-        emitDossierAuditLog(ctx, saved.slug, saved.publishStatus, 1 + saved.sections.length);
-        savedSlugs.push(saved.slug);
-      } catch (error) {
-        const mapped = mapPrivacyFailure(error, ctx.correlationId);
-        if (mapped) return mapped;
-        throw error;
       }
+      validatedPayloads.push(checked.data);
     }
 
-    return ok(`Imported ${savedSlugs.length} draft career dossier(s): ${savedSlugs.join(', ')}.`);
+    try {
+      const savedList = await upsertCareerDossierBatch(getSharedDb(), validatedPayloads, {
+        correlationId: ctx.correlationId,
+      });
+      for (const saved of savedList) {
+        emitDossierAuditLog(ctx, saved.slug, saved.publishStatus, 1 + saved.sections.length);
+      }
+      const savedSlugs = savedList.map(item => item.slug);
+      return ok(`Imported ${savedSlugs.length} draft career dossier(s): ${savedSlugs.join(', ')}.`);
+    } catch (error) {
+      const mapped = mapPrivacyFailure(error, ctx.correlationId);
+      if (mapped) return mapped;
+      throw error;
+    }
   }
 
   if (intent === 'publish-career-dossier') {

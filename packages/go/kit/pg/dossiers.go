@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 	"unicode/utf8"
 )
@@ -260,21 +259,31 @@ func (s *Store) SearchPublishedDossiersLexical(ctx context.Context, query string
 		return s.searchMemoryDossiersLexical(trimmed, limit), nil
 	}
 
+	orExpr := buildLexicalOrQuery(trimmed)
+	if orExpr == "" {
+		return nil, nil
+	}
+
 	rows, err := s.pool.Query(
 		ctx,
 		`WITH q AS (
-			SELECT websearch_to_tsquery('english', $1) AS q_en,
-			       websearch_to_tsquery('simple', $1) AS q_simple
+			SELECT to_tsquery('english', $1) AS q_en,
+			       to_tsquery('simple', $1) AS q_simple,
+			       websearch_to_tsquery('english', $2) AS q_web_en,
+			       websearch_to_tsquery('simple', $2) AS q_web_simple
 		)
 		SELECT d.slug, d.kind, d.title, d.domain_label, d.role_title, d.summary_body,
-		       GREATEST(ts_rank_cd(d.search_tsv, q.q_en), ts_rank_cd(d.search_tsv, q.q_simple))::float8 AS rank
+		       (
+		           GREATEST(ts_rank_cd(d.search_tsv, q.q_en), ts_rank_cd(d.search_tsv, q.q_simple))
+		           + CASE WHEN d.search_tsv @@ q.q_web_en OR d.search_tsv @@ q.q_web_simple THEN 0.5 ELSE 0.0 END
+		       )::float8 AS rank
 		FROM career_dossiers d, q
 		WHERE d.publish_status = 'published'
 		  AND d.sanitization_verified_at IS NOT NULL
 		  AND (d.search_tsv @@ q.q_en OR d.search_tsv @@ q.q_simple)
 		ORDER BY rank DESC, d.sort_order ASC, d.slug ASC
-		LIMIT $2`,
-		trimmed, limit,
+		LIMIT $3`,
+		orExpr, trimmed, limit,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("lexical search career_dossiers: %w", err)
@@ -303,7 +312,11 @@ func (s *Store) SearchPublishedDossiersLexical(ctx context.Context, query string
 func (s *Store) searchMemoryDossiersLexical(query string, limit int) []LexicalDossierHit {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	terms := strings.Fields(strings.ToLower(query))
+	orExpr := buildLexicalOrQuery(query)
+	if orExpr == "" {
+		return nil
+	}
+	terms := strings.Split(orExpr, " | ")
 	var hits []LexicalDossierHit
 	for _, rec := range s.publishedMemoryDossiersLocked() {
 		haystackParts := []string{rec.Title, rec.DomainLabel, rec.RoleTitle, rec.SummaryBody, strings.Join(rec.Skills, " ")}
@@ -313,8 +326,7 @@ func (s *Store) searchMemoryDossiersLexical(query string, limit int) []LexicalDo
 		haystack := strings.ToLower(strings.Join(haystackParts, " "))
 		matches := 0
 		for _, token := range terms {
-			clean := strings.Trim(token, ".,?!:;()[]\"'")
-			if len(clean) >= 2 && strings.Contains(haystack, clean) {
+			if len(token) >= 2 && strings.Contains(haystack, token) {
 				matches++
 			}
 		}
@@ -336,60 +348,4 @@ func (s *Store) searchMemoryDossiersLexical(query string, limit int) []LexicalDo
 		hits = hits[:limit]
 	}
 	return hits
-}
-
-// TryAcquireReindexLock acquires a session-pinned PostgreSQL advisory lock on a dedicated pooled
-// connection so concurrent CLI qdrant-seed and HTTP /v1/ask/reindex runs never cross-prune points.
-func (s *Store) TryAcquireReindexLock(ctx context.Context) (func(context.Context) error, bool, error) {
-	if s == nil || s.pool == nil {
-		if s == nil {
-			return func(context.Context) error { return nil }, true, nil
-		}
-		s.mu.Lock()
-		defer s.mu.Unlock()
-		if s.reindexLocked {
-			return nil, false, nil
-		}
-		s.reindexLocked = true
-		var once sync.Once
-		return func(context.Context) error {
-			once.Do(func() {
-				s.mu.Lock()
-				s.reindexLocked = false
-				s.mu.Unlock()
-			})
-			return nil
-		}, true, nil
-	}
-
-	conn, err := s.pool.Acquire(ctx)
-	if err != nil {
-		return nil, false, fmt.Errorf("acquire reindex lock connection: %w", err)
-	}
-	var acquired bool
-	if err := conn.QueryRow(ctx, `SELECT pg_try_advisory_lock(hashtext($1))`, reindexAdvisoryLockKey).Scan(&acquired); err != nil {
-		conn.Release()
-		return nil, false, fmt.Errorf("pg_try_advisory_lock: %w", err)
-	}
-	if !acquired {
-		conn.Release()
-		return nil, false, nil
-	}
-
-	var once sync.Once
-	release := func(releaseCtx context.Context) error {
-		var unlockErr error
-		once.Do(func() {
-			defer conn.Release()
-			baseCtx := releaseCtx
-			if baseCtx == nil {
-				baseCtx = context.Background()
-			}
-			unlockCtx, cancel := context.WithTimeout(context.WithoutCancel(baseCtx), 5*time.Second)
-			defer cancel()
-			_, unlockErr = conn.Exec(unlockCtx, `SELECT pg_advisory_unlock(hashtext($1))`, reindexAdvisoryLockKey)
-		})
-		return unlockErr
-	}
-	return release, true, nil
 }

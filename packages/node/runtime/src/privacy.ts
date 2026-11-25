@@ -1,13 +1,18 @@
 import type { CareerDossierUpsertInput, PrivacySanitizationFinding } from '@aklapper/core';
 
 import {
-  ALLOWED_TECHNICAL_CODE_PREFIXES,
+  buildSeparatorObfuscatedRegex,
   buildTermWordRegex,
   collapseForSeparatorMatch,
+  collectStringLeaves,
   computeDenylistHash,
+  decodeBase64JsonCandidate,
+  foldDiacriticsForMatch,
+  isBlockedTrackerPrefix,
   normalizePrivacyTerm,
   parseJsonStringArray,
   PRIVACY_PATTERN_RULES,
+  stripInvisibleAndNormalize,
   TRACKER_ISSUE_KEY_RE,
   type ParsedDenylist,
 } from './privacy-patterns.ts';
@@ -44,8 +49,6 @@ export class PrivacySanitizationError extends Error {
   }
 }
 
-const BASE64_RE = /^[A-Za-z0-9+/]+={0,2}$/;
-
 export function parseDossierPrivacyDenylist(rawEnv?: string): ParsedDenylist {
   const trimmed = rawEnv?.trim() ?? '';
   if (!trimmed) {
@@ -61,11 +64,9 @@ export function parseDossierPrivacyDenylist(rawEnv?: string): ParsedDenylist {
     parsedTerms = parseJsonStringArray(trimmed);
   } else {
     const compact = trimmed.replace(/\s+/g, '');
-    if (compact.length > 0 && compact.length % 4 === 0 && BASE64_RE.test(compact)) {
-      const decoded = Buffer.from(compact, 'base64').toString('utf8').trim();
-      if (decoded.startsWith('[')) {
-        parsedTerms = parseJsonStringArray(decoded);
-      }
+    const decoded = decodeBase64JsonCandidate(compact);
+    if (decoded?.startsWith('[')) {
+      parsedTerms = parseJsonStringArray(decoded);
     }
   }
 
@@ -103,14 +104,10 @@ export function parseDenylistFileContent(rawContent: string): ParsedDenylist {
     .split(/\r?\n/)
     .map(line => line.trim())
     .filter(line => line.length > 0 && !line.startsWith('#'));
-  if (lines.length === 1 && lines[0] && BASE64_RE.test(lines[0]) && lines[0].length % 4 === 0) {
-    try {
-      const decoded = Buffer.from(lines[0], 'base64').toString('utf8').trim();
-      if (decoded.startsWith('[')) {
-        return parseDossierPrivacyDenylist(lines[0]);
-      }
-    } catch {
-      // Fall through to plain line-delimited terms.
+  if (lines.length === 1 && lines[0]) {
+    const decoded = decodeBase64JsonCandidate(lines[0]);
+    if (decoded?.startsWith('[')) {
+      return parseDossierPrivacyDenylist(lines[0]);
     }
   }
   const normalized = [
@@ -152,12 +149,42 @@ export function scanTextForPrivacyFindings(
   }
   const findings: PrivacySanitizationFinding[] = [];
   const seen = new Set<string>();
+  const matchedDenylistRules = new Set<string>();
   const lines = text.split(/\r?\n/);
-  const denylistEntries = denylist.terms.map((term, index) => ({
-    ruleId: `denylist.term_${index + 1}`,
-    regex: buildTermWordRegex(term),
-    collapsed: collapseForSeparatorMatch(term),
-  }));
+  const denylistEntries = denylist.terms.map((term, index) => {
+    const collapsed = collapseForSeparatorMatch(term);
+    return {
+      ruleId: `denylist.term_${index + 1}`,
+      regex: buildTermWordRegex(term),
+      obfuscatedRegex: collapsed.length < 6 ? buildSeparatorObfuscatedRegex(collapsed) : null,
+      collapsed,
+    };
+  });
+
+  const scanDenylistTarget = (
+    foldedTarget: string,
+    location: string,
+    skipAlreadyMatched: boolean,
+  ) => {
+    if (denylistEntries.length === 0) return;
+    const collapsedTarget = collapseForSeparatorMatch(foldedTarget);
+    for (const entry of denylistEntries) {
+      if (skipAlreadyMatched && matchedDenylistRules.has(entry.ruleId)) continue;
+      const matched =
+        entry.regex.test(foldedTarget) ||
+        (entry.obfuscatedRegex !== null && entry.obfuscatedRegex.test(foldedTarget)) ||
+        (entry.collapsed.length >= 6 && collapsedTarget.includes(entry.collapsed));
+      if (matched) {
+        matchedDenylistRules.add(entry.ruleId);
+        addFindingUnique(findings, seen, {
+          ruleId: entry.ruleId,
+          category: 'denylist',
+          field,
+          location,
+        });
+      }
+    }
+  };
 
   for (let lineIdx = 0; lineIdx < lines.length; lineIdx += 1) {
     const rawLine = lines[lineIdx] ?? '';
@@ -165,7 +192,7 @@ export function scanTextForPrivacyFindings(
       continue;
     }
     const location = `line:${lineIdx + 1}`;
-    const normalizedLine = rawLine.normalize('NFKC');
+    const normalizedLine = stripInvisibleAndNormalize(rawLine);
 
     for (const rule of PRIVACY_PATTERN_RULES) {
       rule.regex.lastIndex = 0;
@@ -183,7 +210,7 @@ export function scanTextForPrivacyFindings(
     let trackerMatch = TRACKER_ISSUE_KEY_RE.exec(normalizedLine);
     while (trackerMatch !== null) {
       const prefix = trackerMatch[1] ?? '';
-      if (!ALLOWED_TECHNICAL_CODE_PREFIXES.has(prefix)) {
+      if (isBlockedTrackerPrefix(prefix)) {
         addFindingUnique(findings, seen, {
           ruleId: 'tracker.issue_key',
           category: 'tracker',
@@ -195,22 +222,12 @@ export function scanTextForPrivacyFindings(
       trackerMatch = TRACKER_ISSUE_KEY_RE.exec(normalizedLine);
     }
 
-    if (denylistEntries.length > 0) {
-      const collapsedLine = collapseForSeparatorMatch(normalizedLine);
-      for (const entry of denylistEntries) {
-        const matched =
-          entry.regex.test(normalizedLine) ||
-          (entry.collapsed.length >= 6 && collapsedLine.includes(entry.collapsed));
-        if (matched) {
-          addFindingUnique(findings, seen, {
-            ruleId: entry.ruleId,
-            category: 'denylist',
-            field,
-            location,
-          });
-        }
-      }
-    }
+    scanDenylistTarget(foldDiacriticsForMatch(normalizedLine), location, false);
+  }
+
+  if (lines.length > 1 && denylistEntries.length > 0) {
+    const foldedJoined = foldDiacriticsForMatch(lines.join(' '));
+    scanDenylistTarget(foldedJoined, 'multiline', true);
   }
 
   return findings;
@@ -300,37 +317,33 @@ export function sanitizeCareerDossierPayload(
   };
 }
 
-function collectStringLeaves(
-  value: unknown,
-  prefix: string,
-  out: Array<readonly [field: string, text: string]>,
-): void {
-  if (typeof value === 'string') {
-    out.push([prefix, value]);
-    return;
-  }
-  if (Array.isArray(value)) {
-    for (let i = 0; i < value.length; i += 1) {
-      collectStringLeaves(value[i], `${prefix}[${i}]`, out);
-    }
-    return;
-  }
-  if (typeof value === 'object' && value !== null) {
-    for (const [k, v] of Object.entries(value)) {
-      collectStringLeaves(v, `${prefix}.${k}`, out);
-    }
-  }
-}
-
 export function sanitizePortalAskSiteContent(
   markdownBody: string,
   metadataJson: Record<string, unknown>,
   rawDenylist?: string,
   correlationId?: string,
+  env: NodeJS.ProcessEnv = process.env,
 ): void {
-  const parsed = parseDossierPrivacyDenylist(
-    rawDenylist ?? process.env['DOSSIER_PRIVACY_DENYLIST'],
-  );
+  const parsed = parseDossierPrivacyDenylist(rawDenylist ?? env['DOSSIER_PRIVACY_DENYLIST']);
+  if (isProductionPrivacyEnv(env) && !parsed.configured) {
+    console.warn(
+      JSON.stringify({
+        event: 'admin.privacy.denylist_empty_in_prod',
+        seam_type: 'UNSOUND_CONDITION',
+        severity: 'CRITICAL',
+        surface: 'site_content.portal-ask',
+        ...(correlationId ? { correlationId } : {}),
+      }),
+    );
+    throw new PrivacySanitizationError([
+      {
+        ruleId: 'config.denylist_empty_in_prod',
+        category: 'config',
+        field: 'DOSSIER_PRIVACY_DENYLIST',
+        location: 'site_content.portal-ask',
+      },
+    ]);
+  }
   const leaves: Array<readonly [field: string, text: string]> = [['markdownBody', markdownBody]];
   collectStringLeaves(metadataJson, 'metadataJson', leaves);
 
@@ -349,18 +362,22 @@ export function redactTextForStorage(raw: string, rawDenylist?: string, maxRunes
   const parsed = parseDossierPrivacyDenylist(
     rawDenylist ?? process.env['DOSSIER_PRIVACY_DENYLIST'],
   );
-  let output = raw.normalize('NFKC');
+  let output = stripInvisibleAndNormalize(raw);
   for (const rule of PRIVACY_PATTERN_RULES) {
     rule.regex.lastIndex = 0;
     output = output.replace(rule.regex, '[REDACTED]');
   }
   TRACKER_ISSUE_KEY_RE.lastIndex = 0;
   output = output.replace(TRACKER_ISSUE_KEY_RE, (full, prefix: string) =>
-    ALLOWED_TECHNICAL_CODE_PREFIXES.has(prefix) ? full : '[REDACTED]',
+    isBlockedTrackerPrefix(prefix) ? '[REDACTED]' : full,
   );
   for (const term of parsed.terms) {
-    const globalRe = new RegExp(buildTermWordRegex(term).source, 'gi');
-    output = output.replace(globalRe, '[REDACTED]');
+    const wordRe = new RegExp(buildTermWordRegex(term).source, 'gi');
+    output = output.replace(wordRe, '[REDACTED]');
+    const obf = buildSeparatorObfuscatedRegex(collapseForSeparatorMatch(term));
+    if (obf) {
+      output = output.replace(new RegExp(obf.source, 'gi'), '[REDACTED]');
+    }
   }
   const runes = Array.from(output.trim());
   return runes.length > maxRunes ? runes.slice(0, maxRunes).join('') : runes.join('');

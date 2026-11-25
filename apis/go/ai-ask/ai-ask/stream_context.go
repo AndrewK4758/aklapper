@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -235,6 +236,22 @@ func buildStreamingPromptContext(
 	return sources, b.String()
 }
 
+var (
+	visitorLensSlugRe = regexp.MustCompile(`^[a-z0-9-]{1,48}$`)
+
+	// Server-owned lens emphasis map prevents untrusted public lens strings from injecting
+	// arbitrary instructions into the privileged role="system" prompt.
+	visitorLensEmphasis = map[string]string{
+		"hiring-manager":    "Emphasize architectural ownership, delivery leadership, reliability impact, and measurable system outcomes.",
+		"engineering-peer":  "Emphasize concrete implementation tradeoffs, concurrency invariants, database design, testing, and observability.",
+		"technical-partner": "Emphasize collaboration patterns, cross-boundary contracts, migration safety, and production operations.",
+	}
+)
+
+func isValidVisitorLensSlug(raw string) bool {
+	return visitorLensSlugRe.MatchString(strings.TrimSpace(raw))
+}
+
 func buildStreamingMessages(
 	tier string,
 	visitorLens string,
@@ -244,8 +261,8 @@ func buildStreamingMessages(
 	queryText string,
 ) []llm.ChatMessage {
 	systemPrompt := buildThirdPersonSystemPrompt(tier, profileCore)
-	if lens := strings.TrimSpace(visitorLens); lens != "" && len(lens) <= 64 {
-		systemPrompt += fmt.Sprintf(" Tailor emphasis clearly for visitor lens: %s.", lens)
+	if emphasis, ok := visitorLensEmphasis[strings.TrimSpace(visitorLens)]; ok {
+		systemPrompt += " " + emphasis
 	}
 
 	messages := make([]llm.ChatMessage, 0, 2+len(history)*2)
@@ -258,7 +275,11 @@ func buildStreamingMessages(
 			messages = append(messages, llm.ChatMessage{Role: "assistant", Content: a})
 		}
 	}
-	userPrompt := fmt.Sprintf("Evidence:\n%s\n<untrusted_question>\n%s\n</untrusted_question>", evidenceCtx, queryText)
+	userPrompt := fmt.Sprintf(
+		"Evidence:\n%s\n<untrusted_question>\n%s\n</untrusted_question>",
+		evidenceCtx,
+		sanitizeUntrustedQuestionText(queryText),
+	)
 	messages = append(messages, llm.ChatMessage{Role: "user", Content: userPrompt})
 	return messages
 }

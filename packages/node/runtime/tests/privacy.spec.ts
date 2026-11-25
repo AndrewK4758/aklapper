@@ -192,4 +192,60 @@ describe('@aklapper/node-runtime/privacy fail-closed sanitization', () => {
     expect(separatorFindings).toHaveLength(1);
     expect(separatorFindings[0]?.category).toBe('denylist');
   });
+
+  it('catches multiline-wrapped, zero-width, NFD, short obfuscated terms, malformed base64 files, lowercase governance keys, prod portal-ask empty denylist, and stays linear-time against ReDoS', () => {
+    const denylistRaw = encodeBase64Denylist(['SecretPartner Corp', 'Acme', 'SecretClient']);
+    const unpadded = denylistRaw.replace(/=+$/, '');
+    const parsed = parseDossierPrivacyDenylist(unpadded);
+    expect(parsed.configured).toBe(true);
+
+    // Malformed single-line base64-JSON file MUST fail closed
+    const badBase64Json = Buffer.from('["ClientA", ]', 'utf8').toString('base64');
+    expect(() => parseDenylistFileContent(badBase64Json)).toThrow(PrivacySanitizationError);
+
+    // Multi-line wrapped multi-word denylist
+    const multilineHits = scanTextForPrivacyFindings(
+      'Delivered platform for SecretPartner\nCorp across regions.',
+      'summaryBody',
+      parsed,
+    );
+    expect(multilineHits.some(f => f.category === 'denylist' && f.location === 'multiline')).toBe(
+      true,
+    );
+
+    // Zero-width / soft-hyphen / separator-obfuscated short terms & secrets & NFD combining accents
+    for (const payload of [
+      'AKIA\u200B1234567890ABCDEF',
+      'alice@\u200Bexample.com',
+      'Ac\u00ADme platform',
+      'A-c-m-e engineering',
+      'Secre\u0301tClient rollout',
+      `ticket ${'a' + 'kl'}-020 and ${'A' + 'KL'}-1234567`,
+    ]) {
+      const hits = scanTextForPrivacyFindings(payload, 'body', parsed);
+      expect(hits.length, `expected hit for ${JSON.stringify(payload)}`).toBeGreaterThan(0);
+    }
+
+    // Obfuscated storage redaction
+    const redactedObf = redactTextForStorage(
+      'Ask about S-e-c-r-e-t-C-l-i-e-n-t and Sec\u200BretClient',
+      denylistRaw,
+    );
+    expect(redactedObf).not.toContain('S-e-c-r-e-t');
+    expect(redactedObf).not.toContain('retClient');
+
+    // Prod portal-ask empty denylist fails closed
+    expect(() =>
+      sanitizePortalAskSiteContent('Clean', { description: 'Clean' }, '', 'corr-prod-ask', {
+        NODE_ENV: 'production',
+      }),
+    ).toThrow(PrivacySanitizationError);
+
+    // Linear-time ReDoS check on 120 KB dotted email & repeated phone prefixes (< 200ms)
+    const start = performance.now();
+    scanTextForPrivacyFindings(`${'a.b.c.'.repeat(20_000)}@x`, 'body', parsed);
+    scanTextForPrivacyFindings('111-'.repeat(15_000), 'body', parsed);
+    const elapsedMs = performance.now() - start;
+    expect(elapsedMs).toBeLessThan(200);
+  });
 });

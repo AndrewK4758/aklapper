@@ -111,6 +111,26 @@ export function slugifyDossierName(raw: string): string {
   return cleaned || 'career-dossier';
 }
 
+function stripYamlScalar(raw: string): string {
+  const trimmed = raw.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+}
+
+function parseSkillsList(raw: string): string[] {
+  const cleaned = stripYamlScalar(raw).replace(/^\[|\]$/g, '');
+  return cleaned
+    .split(/[,;]/)
+    .map(item => stripYamlScalar(item).slice(0, 80))
+    .filter(Boolean)
+    .slice(0, 64);
+}
+
 export function parseCareerDossierMarkdown(
   markdown: string,
   fallbackSlug = 'career-dossier',
@@ -123,12 +143,19 @@ export function parseCareerDossierMarkdown(
   let activeSection: { heading: string; lines: string[] } | null = null;
   let inFrontmatter = false;
   let startedBody = false;
+  let activeFenceChar: '`' | '~' | null = null;
+  let activeFenceLen = 0;
+
+  const hasClosingFrontmatter =
+    lines.length > 1 &&
+    (lines[0]?.trim() ?? '') === '---' &&
+    lines.slice(1).some(line => line.trim() === '---');
 
   for (let i = 0; i < lines.length; i += 1) {
     const rawLine = lines[i] ?? '';
     const trimmed = rawLine.trim();
 
-    if (i === 0 && trimmed === '---') {
+    if (i === 0 && trimmed === '---' && hasClosingFrontmatter) {
       inFrontmatter = true;
       continue;
     }
@@ -140,43 +167,65 @@ export function parseCareerDossierMarkdown(
       const sep = trimmed.indexOf(':');
       if (sep > 0) {
         const key = trimmed.slice(0, sep).trim().toLowerCase();
-        const val = trimmed.slice(sep + 1).trim();
+        const val = stripYamlScalar(trimmed.slice(sep + 1));
         if (key && val) meta[key] = val;
       }
       continue;
     }
 
-    if (!title && trimmed.startsWith('# ')) {
-      title = trimmed.slice(2).trim();
+    const fenceMatch = /^(`{3,}|~{3,})/.exec(trimmed);
+    if (fenceMatch?.[1]) {
+      const ch = fenceMatch[1][0] as '`' | '~';
+      const len = fenceMatch[1].length;
+      if (activeFenceChar === null) {
+        activeFenceChar = ch;
+        activeFenceLen = len;
+      } else if (activeFenceChar === ch && len >= activeFenceLen && trimmed === fenceMatch[1]) {
+        activeFenceChar = null;
+        activeFenceLen = 0;
+      }
+      startedBody = true;
+      if (activeSection) {
+        activeSection.lines.push(rawLine);
+      } else {
+        summaryLines.push(rawLine);
+      }
       continue;
     }
 
-    if (!startedBody && !activeSection && /^[a-z][a-z0-9_-]{1,24}:\s+.+$/i.test(trimmed)) {
-      const sep = trimmed.indexOf(':');
-      const key = trimmed.slice(0, sep).trim().toLowerCase();
-      const val = trimmed.slice(sep + 1).trim();
-      if (
-        key === 'slug' ||
-        key === 'kind' ||
-        key === 'title' ||
-        key === 'domain' ||
-        key === 'domainlabel' ||
-        key === 'role' ||
-        key === 'roletitle' ||
-        key === 'timeframe' ||
-        key === 'skills'
-      ) {
-        meta[key] = val;
+    if (activeFenceChar === null) {
+      if (!title && trimmed.startsWith('# ')) {
+        title = trimmed.slice(2).trim();
         continue;
       }
-    }
 
-    const headingMatch = /^#{2,3}\s+(.+)$/.exec(trimmed);
-    if (headingMatch?.[1]) {
-      startedBody = true;
-      activeSection = { heading: headingMatch[1].trim().slice(0, 160), lines: [] };
-      sections.push(activeSection);
-      continue;
+      if (!startedBody && !activeSection && /^[a-z][a-z0-9_-]{1,24}:\s+.+$/i.test(trimmed)) {
+        const sep = trimmed.indexOf(':');
+        const key = trimmed.slice(0, sep).trim().toLowerCase();
+        const val = stripYamlScalar(trimmed.slice(sep + 1));
+        if (
+          key === 'slug' ||
+          key === 'kind' ||
+          key === 'title' ||
+          key === 'domain' ||
+          key === 'domainlabel' ||
+          key === 'role' ||
+          key === 'roletitle' ||
+          key === 'timeframe' ||
+          key === 'skills'
+        ) {
+          meta[key] = val;
+          continue;
+        }
+      }
+
+      const headingMatch = /^#{2,3}\s+(.+)$/.exec(trimmed);
+      if (headingMatch?.[1]) {
+        startedBody = true;
+        activeSection = { heading: headingMatch[1].trim().slice(0, 160), lines: [] };
+        sections.push(activeSection);
+        continue;
+      }
     }
 
     if (trimmed.length > 0) {
@@ -192,7 +241,7 @@ export function parseCareerDossierMarkdown(
   const resolvedTitle = (meta['title'] || title || fallbackSlug.replace(/-/g, ' '))
     .trim()
     .slice(0, 160);
-  const rawKind = (meta['kind'] ?? 'experience').toLowerCase() as CareerDossierKind;
+  const rawKind = stripYamlScalar(meta['kind'] ?? 'experience').toLowerCase() as CareerDossierKind;
   const kind: CareerDossierKind = VALID_KINDS.has(rawKind) ? rawKind : 'experience';
   const slug = slugifyDossierName(meta['slug'] || fallbackSlug || resolvedTitle);
   const domainLabel = (meta['domain'] || meta['domainlabel'] || 'Software Engineering').slice(
@@ -201,11 +250,7 @@ export function parseCareerDossierMarkdown(
   );
   const roleTitle = (meta['role'] || meta['roletitle'] || 'Principal Engineer').slice(0, 120);
   const timeframe = (meta['timeframe'] || 'Recent').slice(0, 80);
-  const skills = (meta['skills'] ?? '')
-    .split(',')
-    .map(item => item.trim())
-    .filter(Boolean)
-    .slice(0, 64);
+  const skills = parseSkillsList(meta['skills'] ?? '');
 
   const normalizedSections: CareerDossierSection[] = sections
     .map(section => ({

@@ -295,7 +295,11 @@ func SeedPortfolioDocs(ctx context.Context, provider llm.Provider, vectorStore *
 			emitSeam(opts.LogWriter, "UNSOUND_CONDITION", "ai_ask.reindex.lock_contended", CollectionPortfolioDocs, map[string]any{"branch": "lock_contended"})
 			return CollectionResult{}, ErrReindexLocked
 		}
-		defer func() { _ = release(context.Background()) }()
+		defer func() {
+			if relErr := release(context.Background()); relErr != nil {
+				emitSeam(opts.LogWriter, "BOUNDARY_FAULT", "qdrant.seed.reindex_unlock_failed", CollectionPortfolioDocs, map[string]any{"detail": relErr.Error()})
+			}
+		}()
 	}
 
 	var pgDocs []SeedDocument

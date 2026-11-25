@@ -124,3 +124,35 @@ func TestRedactTextForStorageAppliesBoundedContextFreeRegexRules(t *testing.T) {
 		t.Fatalf("expected benign surrounding text preserved in %q", redacted)
 	}
 }
+
+func TestLoadConfigAllowsLiteralPlusStarBrandNamesAndRedactCoversExtendedSecrets(t *testing.T) {
+	rawJSON, _ := json.Marshal([]string{"Disney+", "Health+", "A*Corp"})
+	unpadded := strings.TrimRight(base64.StdEncoding.EncodeToString(rawJSON), "=")
+	t.Setenv("AI_PRIVACY_DENYLIST", "")
+	t.Setenv("DOSSIER_PRIVACY_DENYLIST", unpadded)
+
+	cfg, err := LoadConfigFromEnv()
+	if err != nil {
+		t.Fatalf("expected literal +/* brand names in unpadded base64 denylist to load cleanly, got %v", err)
+	}
+	if cfg.DenylistTermCount != 3 {
+		t.Fatalf("expected 3 terms, got %d", cfg.DenylistTermCount)
+	}
+
+	input := "Keys sk-proj-AbCdEf1234567890GhIjKlMnOpQrStUvWxYz, sk_live_1234567890abcdefghij, " +
+		"ASIAIOSFODNN7EXAMPLE, gho_1234567890abcdefghijklmnopqrstuvwx, xoxb-123456789012-123456789012-abcdefg, " +
+		"SSN 123-45-6789, user\uFF20example.com, alice@\u200Bexample.com, PROJ-9042, and Disney+ under UTF-8."
+	redacted := RedactTextForStorage(cfg, input, 1000)
+
+	for _, forbidden := range []string{
+		"sk-proj-", "sk_live_", "ASIAIOSFODNN7EXAMPLE", "gho_1234", "xoxb-",
+		"123-45-6789", "user@example.com", "alice@example.com", "PROJ-9042", "Disney+",
+	} {
+		if strings.Contains(redacted, forbidden) {
+			t.Fatalf("RedactTextForStorage leaked %q in %q", forbidden, redacted)
+		}
+	}
+	if !strings.Contains(redacted, "UTF-8") {
+		t.Fatalf("expected allow-listed UTF-8 preserved in %q", redacted)
+	}
+}

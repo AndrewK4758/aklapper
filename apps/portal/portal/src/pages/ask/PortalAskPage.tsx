@@ -95,6 +95,7 @@ export function PortalAskPage({
     startStreamingQa,
     cancelStream,
     resetConversation,
+    restoreConversationId,
   } = useAskStreaming({
     streamEndpoint,
     submittingLabel: content.streamingQaLabel,
@@ -206,6 +207,7 @@ export function PortalAskPage({
         setPolledQuota(settled.quota ?? null);
         setRecoveredError(null);
         if (state.mode === 'qa') {
+          restoreConversationId(state.conversationId ?? settled.conversationId);
           setQaTranscript(prev =>
             prependQaTranscriptEntry(prev, pendingAttemptId, pendingSubmittedText, settled),
           );
@@ -228,7 +230,7 @@ export function PortalAskPage({
         });
       },
     });
-  }, [pendingAttemptId, pendingMode, pendingSubmittedText, pollImmediately]);
+  }, [pendingAttemptId, pendingMode, pendingSubmittedText, pollImmediately, restoreConversationId]);
 
   const actionQuota = actionResult?.ok
     ? pendingActionResult

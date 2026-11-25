@@ -6,6 +6,7 @@ import {
   type QdrantHealthStatus,
 } from '@aklapper/core';
 import {
+  ActionFeedbackBanner,
   Button,
   CitationSourceList,
   Field,
@@ -14,7 +15,7 @@ import {
   ValidationGatePreview,
 } from '@aklapper/ui';
 import { type ReactNode, useState } from 'react';
-import { Form, useFetcher } from 'react-router';
+import { Form, type FetcherWithComponents, useFetcher } from 'react-router';
 
 import type { AdminCmsActionData } from './AdminCmsPage';
 import { CareerDossierImportControls } from './CareerDossierImportControls';
@@ -34,6 +35,7 @@ export interface CareerDossierSectionProps {
   readonly qdrant?: QdrantHealthStatus;
   readonly qdrantStatusSlot?: ReactNode;
   readonly sanitizationFindings?: readonly PrivacySanitizationFinding[];
+  readonly reindexFetcher?: FetcherWithComponents<AdminCmsActionData>;
 }
 
 export function CareerDossierSection({
@@ -41,8 +43,11 @@ export function CareerDossierSection({
   qdrant,
   qdrantStatusSlot,
   sanitizationFindings = [],
+  reindexFetcher: sharedReindexFetcher,
 }: CareerDossierSectionProps) {
-  const reindexFetcher = useFetcher<AdminCmsActionData>();
+  const localReindexFetcher = useFetcher<AdminCmsActionData>();
+  const reindexFetcher = sharedReindexFetcher ?? localReindexFetcher;
+  const standaloneReindexFeedback = !sharedReindexFetcher ? localReindexFetcher.data : undefined;
   const [draft, setDraft] = useState<DraftEditorValues>(() =>
     dossiers[0] ? draftFromCareerDossier(dossiers[0]) : createBlankDossierDraft(dossiers.length),
   );
@@ -108,6 +113,8 @@ export function CareerDossierSection({
           </reindexFetcher.Form>
         </div>
       </div>
+
+      {standaloneReindexFeedback ? <ActionFeedbackBanner {...standaloneReindexFeedback} /> : null}
 
       <CareerDossierTable
         dossiers={dossiers}

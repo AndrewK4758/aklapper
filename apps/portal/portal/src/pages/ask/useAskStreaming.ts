@@ -1,5 +1,5 @@
 import type { AskResponse, QuotaStatus } from '@aklapper/core';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   type ActiveAskStreamState,
@@ -28,7 +28,7 @@ export function useAskStreaming({
   onCompleted,
   onFailed,
 }: UseAskStreamingOptions) {
-  const [conversationId, setConversationId] = useState<string>(() => generateConversationId());
+  const [conversationId, setConversationId] = useState<string>('');
   const [activeStream, setActiveStream] = useState<ActiveAskStreamState | null>(null);
   const streamAbortRef = useRef<AbortController | null>(null);
 
@@ -50,18 +50,28 @@ export function useAskStreaming({
     setConversationId(generateConversationId());
   };
 
+  const restoreConversationId = useCallback((nextId?: string) => {
+    if (nextId && nextId.trim()) {
+      setConversationId(nextId.trim());
+    }
+  }, []);
+
   const startStreamingQa = (trimmed: string, visitorLens?: string) => {
     if (!streamEndpoint) return;
     streamAbortRef.current?.abort();
     const controller = new AbortController();
     streamAbortRef.current = controller;
 
+    const activeConversationId = conversationId || generateConversationId();
+    if (!conversationId) {
+      setConversationId(activeConversationId);
+    }
     const attemptId = generateAskAttemptId();
     onDispatched(attemptId);
     writePersistedAskTurn({ attemptId, mode: 'qa', question: trimmed });
     setActiveStream({
       attemptId,
-      conversationId,
+      conversationId: activeConversationId,
       question: trimmed,
       statusLabel: submittingLabel,
       text: '',
@@ -72,7 +82,7 @@ export function useAskStreaming({
       url: streamEndpoint,
       question: trimmed,
       attemptId,
-      conversationId,
+      conversationId: activeConversationId,
       visitorLens,
       signal: controller.signal,
       onStatus: label => {
@@ -116,5 +126,6 @@ export function useAskStreaming({
     startStreamingQa,
     cancelStream,
     resetConversation,
+    restoreConversationId,
   };
 }

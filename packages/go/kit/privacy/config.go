@@ -32,7 +32,7 @@ var (
 	// ErrPrivacyAborted is returned when a fail-closed privacy rule halts stream emission.
 	ErrPrivacyAborted = errors.New("stream aborted by privacy guard")
 
-	unboundedQuantifierRe = regexp.MustCompile(`(^|[^\\])(?:\.\*|\.\+|\*|\+|\{\d+,\})`)
+	unboundedQuantifierRe = regexp.MustCompile(`(^|[^\\])(?:\.\*|\.\+|\{\d+,\})`)
 
 	builtInSecretRules = []builtInSecretRule{
 		{

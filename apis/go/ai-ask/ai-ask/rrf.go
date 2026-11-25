@@ -205,12 +205,15 @@ func executeHybridSearch(
 	queryText string,
 	maxCandidates int,
 	corrID string,
+	allowProfileFallback ...bool,
 ) (hybridSearchResult, error) {
+	canFallbackToProfile := len(allowProfileFallback) > 0 && allowProfileFallback[0]
 	var (
 		wg        sync.WaitGroup
 		lexHits   []pg.LexicalDossierHit
 		lexErr    error
 		denseHits []qdrant.SearchHit
+		embedErr  error
 		denseErr  error
 	)
 
@@ -230,6 +233,7 @@ func executeHybridSearch(
 		}
 		vec, err := embedQueryText(ctx, provider, queryText)
 		if err != nil {
+			embedErr = err
 			denseErr = err
 			return
 		}
@@ -237,10 +241,13 @@ func executeHybridSearch(
 	}()
 	wg.Wait()
 
-	if denseErr != nil && len(lexHits) == 0 {
-		return hybridSearchResult{}, denseErr
+	if embedErr != nil && !canFallbackToProfile {
+		return hybridSearchResult{}, embedErr
 	}
 	if lexErr != nil && denseErr != nil {
+		return hybridSearchResult{}, denseErr
+	}
+	if denseErr != nil && len(lexHits) == 0 && !canFallbackToProfile {
 		return hybridSearchResult{}, denseErr
 	}
 

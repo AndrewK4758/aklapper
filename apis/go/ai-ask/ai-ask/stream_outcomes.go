@@ -137,7 +137,11 @@ func streamAbstainedTurn(
 			Code: contracts.ErrCodeStreamTimeout, Status: http.StatusGatewayTimeout,
 			Message: "Section took too long to load.", Action: "Retry loading or refresh.", CorrelationID: in.CorrelationID,
 		}, &refQuota)
-		logStreamLifecycleOutcome("upstream_error", attemptID, in.CorrelationID)
+		branch := "upstream_error"
+		if errors.Is(recErr, pg.ErrTurnLeaseExpired) {
+			branch = "lease_expired"
+		}
+		logStreamLifecycleOutcome(branch, attemptID, in.CorrelationID)
 		logAskEvent("ai_ask.turn.audit", map[string]any{
 			"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
 			"provider": deps.provider.Name(), "tokensReserved": pg.DefaultAskTurnReserveTokens,
@@ -197,6 +201,14 @@ func finalizeStreamOutcome(
 			Code: contracts.ErrCodeForbidden, Status: http.StatusForbidden,
 			Message: "Permission denied for action.", Action: "Return home or sign in again.", CorrelationID: in.CorrelationID,
 		}, &quota)
+		logAskEvent("ai_ask.stream.privacy_guard_triggered", map[string]any{
+			"seam_type":     "BOUNDARY_FAULT",
+			"severity":      "CRITICAL",
+			"attemptId":     attemptID,
+			"mode":          mode,
+			"action":        "aborted",
+			"correlationId": in.CorrelationID,
+		})
 		logStreamLifecycleOutcome("privacy_aborted", attemptID, in.CorrelationID)
 		logAskEvent("ai_ask.turn.audit", map[string]any{
 			"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
@@ -214,7 +226,7 @@ func finalizeStreamOutcome(
 				Code: contracts.ErrCodeStreamAborted, Status: 499,
 				Message: "Request cancelled early.", Action: "Retry if you still need this view.", CorrelationID: in.CorrelationID,
 			}, &quota)
-			logStreamLifecycleOutcome("client_aborted_zero_tokens", attemptID, in.CorrelationID)
+			logStreamLifecycleOutcome("refunded_zero_token_abort", attemptID, in.CorrelationID)
 			logAskEvent("ai_ask.turn.audit", map[string]any{
 				"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
 				"provider": deps.provider.Name(), "tokensUsed": 0, "deltaStatus": "refunded",
@@ -230,7 +242,7 @@ func finalizeStreamOutcome(
 		if _, recErr := deps.store.ReconcilePartialAbortTurnTx(cleanCtx, attemptID, charged, contracts.ErrCodeStreamAborted); recErr != nil {
 			deltaStatus = "reconcile_failed"
 		}
-		logStreamLifecycleOutcome("client_aborted_partial", attemptID, in.CorrelationID)
+		logStreamLifecycleOutcome("partial_abort_reconciled", attemptID, in.CorrelationID)
 		logAskEvent("ai_ask.turn.audit", map[string]any{
 			"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
 			"provider": deps.provider.Name(), "model": result.Model, "tokensUsed": charged,
@@ -291,7 +303,11 @@ func finalizeStreamOutcome(
 			Code: contracts.ErrCodeStreamTimeout, Status: http.StatusGatewayTimeout,
 			Message: "Section took too long to load.", Action: "Retry loading or refresh.", CorrelationID: in.CorrelationID,
 		}, &refQuota)
-		logStreamLifecycleOutcome("upstream_error", attemptID, in.CorrelationID)
+		branch := "upstream_error"
+		if errors.Is(recErr, pg.ErrTurnLeaseExpired) {
+			branch = "lease_expired"
+		}
+		logStreamLifecycleOutcome(branch, attemptID, in.CorrelationID)
 		logAskEvent("ai_ask.turn.audit", map[string]any{
 			"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
 			"provider": deps.provider.Name(), "model": result.Model, "tokensReserved": pg.DefaultAskTurnReserveTokens,

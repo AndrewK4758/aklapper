@@ -22,7 +22,11 @@ export const AskPortfolioRequestSchema = z.object({
   question: z.string().trim().min(4).max(800),
   attemptId: z.uuid().optional(),
   conversationId: z.uuid().optional(),
-  visitorLens: z.string().trim().min(1).max(48).optional(),
+  visitorLens: z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9-]{1,48}$/)
+    .optional(),
   sessionId: z.string().min(1).optional(),
 });
 export type AskPortfolioRequest = z.infer<typeof AskPortfolioRequestSchema>;
@@ -31,7 +35,11 @@ export const AskStreamRequestSchema = z.object({
   question: z.string().trim().min(4).max(800),
   attemptId: z.uuid().optional(),
   conversationId: z.uuid().optional(),
-  visitorLens: z.string().trim().min(1).max(48).optional(),
+  visitorLens: z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9-]{1,48}$/)
+    .optional(),
 });
 export type AskStreamRequest = z.infer<typeof AskStreamRequestSchema>;
 

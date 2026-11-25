@@ -59,6 +59,11 @@ func executeStreamingTurn(
 			"Invalid conversation identifier.", "Start a new conversation and retry.", in.CorrelationID, nil)
 	}
 
+	if lens := strings.TrimSpace(in.VisitorLens); lens != "" && !isValidVisitorLensSlug(lens) {
+		return newSyncFailure(http.StatusBadRequest, contracts.ErrCodeValidation,
+			"Invalid visitor lens identifier.", "Choose a supported visitor lens and retry.", in.CorrelationID, nil)
+	}
+
 	role := contracts.RoleGuest
 	if in.Role == contracts.RoleAdmin {
 		role = contracts.RoleAdmin
@@ -113,8 +118,13 @@ func executeStreamingTurn(
 	history, _ := deps.store.ListConversationHistory(ctx, in.SessionID, convID, conversationRecallMax)
 	retrievalQuery, rewriteTokens := rewriteFollowUpQuery(ctx, deps.provider, history, queryText)
 
-	hybrid, searchErr := executeHybridSearch(ctx, deps.provider, deps.vectorStore, deps.store, retrievalQuery, 6, in.CorrelationID)
+	allowProfileFallback := isProfileOverviewIntent(queryText) && !isConfidentialBoundaryProbe(queryText)
+	hybrid, searchErr := executeHybridSearch(ctx, deps.provider, deps.vectorStore, deps.store, retrievalQuery, 6, in.CorrelationID, allowProfileFallback)
 	if searchErr != nil {
+		if errors.Is(ctx.Err(), context.Canceled) || errors.Is(searchErr, context.Canceled) {
+			return refundPreStream(499, contracts.ErrCodeStreamAborted,
+				"Request cancelled early.", "Retry if you still need this view.", "retrieval_canceled")
+		}
 		if errors.Is(searchErr, context.DeadlineExceeded) {
 			return refundPreStream(http.StatusGatewayTimeout, contracts.ErrCodeStreamTimeout,
 				"Section took too long to load.", "Retry loading or refresh.", "retrieval_timeout")

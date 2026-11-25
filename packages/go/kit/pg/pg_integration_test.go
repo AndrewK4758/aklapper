@@ -385,4 +385,37 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 	if forbState.Error == nil || forbState.Error.Status != 403 || forbState.Error.Code != contracts.ErrCodeForbidden {
 		t.Fatalf("expected 403 ERR_FORBIDDEN state error, got %+v", forbState.Error)
 	}
+
+	// Verify live PG19 disjunctive lexical search matches natural-language starter questions & JDs
+	// while returning 0 hits for off-topic queries even when mentioning the owner name.
+	starterHits, err := store.SearchPublishedDossiersLexical(ctx, "Who is Andrew Klapper and what kinds of systems does he architect?", 8)
+	if err != nil || len(starterHits) == 0 {
+		t.Fatalf("expected live PG19 disjunctive lexical match on starter question, got hits=%d err=%v", len(starterHits), err)
+	}
+	jdHits, err := store.SearchPublishedDossiersLexical(ctx, "Seeking Principal Engineer with TypeScript, Go microservices, PostgreSQL, and Cloud Run architecture experience.", 8)
+	if err != nil || len(jdHits) == 0 {
+		t.Fatalf("expected live PG19 disjunctive lexical match on realistic JD, got hits=%d err=%v", len(jdHits), err)
+	}
+	offTopicHits, err := store.SearchPublishedDossiersLexical(ctx, "What is Andrew Klapper's favorite pepperoni pizza topping?", 8)
+	if err != nil || len(offTopicHits) != 0 {
+		t.Fatalf("expected 0 lexical hits on off-topic owner-name query, got %+v err=%v", offTopicHits, err)
+	}
+
+	// Verify session-pinned advisory lock contention & clean unlock release
+	rel1, acq1, lockErr1 := store.TryAcquireReindexLock(ctx)
+	if lockErr1 != nil || !acq1 {
+		t.Fatalf("expected first reindex lock acquisition to succeed, acq=%v err=%v", acq1, lockErr1)
+	}
+	_, acq2, lockErr2 := store.TryAcquireReindexLock(ctx)
+	if lockErr2 != nil || acq2 {
+		t.Fatalf("expected concurrent reindex lock acquisition to contend (acq=false), acq=%v err=%v", acq2, lockErr2)
+	}
+	if err := rel1(ctx); err != nil {
+		t.Fatalf("expected clean advisory unlock, got %v", err)
+	}
+	rel3, acq3, lockErr3 := store.TryAcquireReindexLock(ctx)
+	if lockErr3 != nil || !acq3 {
+		t.Fatalf("expected reindex lock re-acquisition after unlock, acq=%v err=%v", acq3, lockErr3)
+	}
+	_ = rel3(ctx)
 }
