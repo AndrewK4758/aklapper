@@ -564,3 +564,285 @@ func TestConcurrentPreambleOrchestrationAndBoundarySuppression(t *testing.T) {
 		}
 	})
 }
+
+func TestPreamblePrivacyAbortAndTokenAuditAccounting(t *testing.T) {
+	qdrantSrv := newTestQdrantServer(t, 0.91)
+	privCfg, err := privacy.LoadConfig(privacy.ConfigInput{})
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+
+	t.Run("preamble StreamGuard abort cancels RAG and emits single 403 ERR_FORBIDDEN with phase=preamble", func(t *testing.T) {
+		var logs strings.Builder
+		prevOut := log.Writer()
+		log.SetOutput(&logs)
+		defer log.SetOutput(prevOut)
+
+		var ragCancelled atomic.Bool
+		fakeLLM := &preambleCaptureLLM{
+			embedFn: func(ctx context.Context, _ string) ([]float32, error) {
+				select {
+				case <-ctx.Done():
+					ragCancelled.Store(true)
+					return nil, ctx.Err()
+				case <-time.After(2 * time.Second):
+				}
+				return make([]float32, llm.ExpectedEmbeddingDims), nil
+			},
+			preambleFn: func(_ context.Context, _ llm.ChatStreamRequest, onChunk func(llm.ChatStreamChunk) error) (llm.ChatStreamResult, error) {
+				if err := onChunk(llm.ChatStreamChunk{Delta: "postgres://admin:s3cr3tP4ssw0rd@db.internal:5432/aklapper"}); err != nil {
+					return llm.ChatStreamResult{Model: "stub-small", TokensUsed: 12}, err
+				}
+				return llm.ChatStreamResult{Model: "stub-small", TokensUsed: 12}, nil
+			},
+		}
+		store := pg.NewMemoryStore()
+		em := &orderingEmitter{supportsPreamble: true}
+		attemptID := "77777777-7777-4777-8777-777777777771"
+		syncFail := executeStreamingTurn(context.Background(), askStreamDeps{
+			provider:        fakeLLM,
+			vectorStore:     &qdrant.Client{BaseURL: qdrantSrv.URL},
+			store:           store,
+			privacyCfg:      privCfg,
+			preambleTimeout: 2 * time.Second,
+		}, askStreamInput{
+			Mode: "qa", Question: "How does Andrew deploy databases on GCP?",
+			AttemptID: attemptID, SessionID: "sess-priv-abort",
+			Role: contracts.RoleGuest, CorrelationID: "corr-priv-abort",
+		}, func() (streamEmitter, func(), error) { return em, nil, nil })
+		if syncFail != nil {
+			t.Fatalf("unexpected syncFail: %+v", syncFail)
+		}
+		if !ragCancelled.Load() {
+			t.Fatalf("expected ragCtx to be cancelled immediately on preamble privacy abort")
+		}
+		events := em.snapshot()
+		errCount := 0
+		for _, ev := range events {
+			if ev.name == "sources" || ev.name == "preamble_error" || ev.name == "delta" || ev.name == "done" {
+				t.Fatalf("unexpected event %+v after preamble privacy abort", ev)
+			}
+			if ev.name == "error" {
+				errCount++
+				if ev.code != contracts.ErrCodeForbidden {
+					t.Fatalf("expected ERR_FORBIDDEN, got %s", ev.code)
+				}
+			}
+		}
+		if errCount != 1 {
+			t.Fatalf("expected single 403 ERR_FORBIDDEN event, got %d (%+v)", errCount, events)
+		}
+		quota, _ := store.GetQuotaStatus(context.Background(), contracts.RoleGuest, "sess-priv-abort")
+		if quota.TurnsUsed != 0 {
+			t.Fatalf("expected refunded turn (0 used), got %d", quota.TurnsUsed)
+		}
+		logText := logs.String()
+		if strings.Contains(logText, "s3cr3tP4ssw0rd") {
+			t.Fatalf("raw secret leaked in logs: %s", logText)
+		}
+		if !strings.Contains(logText, `"event":"ai_ask.stream.privacy_guard_triggered"`) ||
+			!strings.Contains(logText, `"phase":"preamble"`) ||
+			!strings.Contains(logText, `"preambleTokens":`) {
+			t.Fatalf("expected phase=preamble privacy seam and preambleTokens audit, got:\n%s", logText)
+		}
+	})
+
+	t.Run("client cancel mid-preamble refunds cleanly with 0 billed turns while auditing preambleTokens", func(t *testing.T) {
+		var logs strings.Builder
+		prevOut := log.Writer()
+		log.SetOutput(&logs)
+		defer log.SetOutput(prevOut)
+
+		parentCtx, cancelParent := context.WithCancel(context.Background())
+		fakeLLM := &preambleCaptureLLM{
+			embedFn: func(ctx context.Context, _ string) ([]float32, error) {
+				<-ctx.Done()
+				return nil, ctx.Err()
+			},
+			preambleFn: func(_ context.Context, _ llm.ChatStreamRequest, onChunk func(llm.ChatStreamChunk) error) (llm.ChatStreamResult, error) {
+				_ = onChunk(llm.ChatStreamChunk{Delta: "Checking Andrew's architecture records "})
+				_ = onChunk(llm.ChatStreamChunk{Delta: "across Cloud Run and GKE right now."})
+				cancelParent()
+				return llm.ChatStreamResult{Model: "stub-small", TokensUsed: 16}, context.Canceled
+			},
+		}
+		store := pg.NewMemoryStore()
+		em := &orderingEmitter{supportsPreamble: true}
+		attemptID := "77777777-7777-4777-8777-777777777772"
+		_ = executeStreamingTurn(parentCtx, askStreamDeps{
+			provider:        fakeLLM,
+			vectorStore:     &qdrant.Client{BaseURL: qdrantSrv.URL},
+			store:           store,
+			privacyCfg:      privCfg,
+			preambleTimeout: 2 * time.Second,
+		}, askStreamInput{
+			Mode: "qa", Question: "How does Andrew deploy Go services on GKE?",
+			AttemptID: attemptID, SessionID: "sess-cancel-pre",
+			Role: contracts.RoleGuest, CorrelationID: "corr-cancel-pre",
+		}, func() (streamEmitter, func(), error) { return em, nil, nil })
+
+		quota, _ := store.GetQuotaStatus(context.Background(), contracts.RoleGuest, "sess-cancel-pre")
+		if quota.TurnsUsed != 0 {
+			t.Fatalf("expected 0 turns billed on mid-preamble cancel, got %d", quota.TurnsUsed)
+		}
+		logText := logs.String()
+		if !strings.Contains(logText, `"deltaStatus":"refunded"`) ||
+			!strings.Contains(logText, `"preambleTokens":16`) {
+			t.Fatalf("expected refunded audit with preambleTokens=16, got:\n%s", logText)
+		}
+	})
+
+	t.Run("client cancel mid-main-answer estimates main runes before adding preambleTokens", func(t *testing.T) {
+		var logs strings.Builder
+		prevOut := log.Writer()
+		log.SetOutput(&logs)
+		defer log.SetOutput(prevOut)
+
+		// 80 runes emitted in main answer with result.TokensUsed=0 -> mainCharged = 80/4 = 20; + preambleTokens(24) = 44
+		eightyRunes := strings.Repeat("a", 80)
+		parentCtx, cancelParent := context.WithCancel(context.Background())
+		fakeLLM := &preambleCaptureLLM{
+			embedFn: func(ctx context.Context, _ string) ([]float32, error) {
+				select {
+				case <-ctx.Done():
+					return nil, ctx.Err()
+				case <-time.After(60 * time.Millisecond):
+				}
+				v := make([]float32, llm.ExpectedEmbeddingDims)
+				for i := range v {
+					v[i] = 0.25
+				}
+				return v, nil
+			},
+			preambleFn: func(_ context.Context, _ llm.ChatStreamRequest, onChunk func(llm.ChatStreamChunk) error) (llm.ChatStreamResult, error) {
+				_ = onChunk(llm.ChatStreamChunk{Delta: "Checking Andrew's portfolio architecture notes."})
+				return llm.ChatStreamResult{Model: "stub-small", TokensUsed: 24}, nil
+			},
+			mainFn: func(_ context.Context, _ llm.ChatStreamRequest, onChunk func(llm.ChatStreamChunk) error) (llm.ChatStreamResult, error) {
+				// Emit 80 runes + 16-rune holdback filler so StreamGuard releases 80 runes before cancel.
+				_ = onChunk(llm.ChatStreamChunk{Delta: eightyRunes + strings.Repeat("b", 16)})
+				cancelParent()
+				return llm.ChatStreamResult{Model: "stub-main", TokensUsed: 0}, context.Canceled
+			},
+		}
+		store := pg.NewMemoryStore()
+		em := &orderingEmitter{supportsPreamble: true}
+		attemptID := "77777777-7777-4777-8777-777777777773"
+		_ = executeStreamingTurn(parentCtx, askStreamDeps{
+			provider:        fakeLLM,
+			vectorStore:     &qdrant.Client{BaseURL: qdrantSrv.URL},
+			store:           store,
+			privacyCfg:      privCfg,
+			preambleTimeout: 2 * time.Second,
+		}, askStreamInput{
+			Mode: "qa", Question: "How does Andrew deploy Go services on GKE?",
+			AttemptID: attemptID, SessionID: "sess-cancel-main",
+			Role: contracts.RoleGuest, CorrelationID: "corr-cancel-main",
+		}, func() (streamEmitter, func(), error) { return em, nil, nil })
+
+		turn, _, err := store.GetTurnByAttemptID(context.Background(), attemptID, "sess-cancel-main")
+		if err != nil {
+			t.Fatalf("GetTurnByAttemptID: %v", err)
+		}
+		// mainCharged = 80/4 = 20; total = 20 + 24 = 44
+		if turn.TokensUsed != 44 {
+			t.Fatalf("expected charged tokens=44 (20 main estimate + 24 preamble), got %d", turn.TokensUsed)
+		}
+		logText := logs.String()
+		if !strings.Contains(logText, `"deltaStatus":"aborted_partial"`) ||
+			!strings.Contains(logText, `"preambleTokens":24`) ||
+			!strings.Contains(logText, `"tokensUsed":44`) {
+			t.Fatalf("expected aborted_partial audit with preambleTokens=24 and tokensUsed=44, got:\n%s", logText)
+		}
+	})
+
+	t.Run("completed turn 2 reconciles combined preamble + rewrite + main tokens", func(t *testing.T) {
+		var logs strings.Builder
+		prevOut := log.Writer()
+		log.SetOutput(&logs)
+		defer log.SetOutput(prevOut)
+
+		store := pg.NewMemoryStore()
+		convID := "88888888-8888-4888-8888-888888888888"
+		// Seed turn 1 in conversation history so turn 2 invokes rewriteFollowUpQuery.
+		turn1Attempt := "77777777-7777-4777-8777-777777777774"
+		_, _, err := store.ReserveTurnTx(context.Background(), pg.ReserveTurnInput{
+			AttemptID: turn1Attempt, SessionID: "sess-turn2", Role: contracts.RoleGuest,
+			Mode: "qa", PromptHash: "h1", ConversationID: convID,
+			PromptText: "Who is Andrew?", CorrelationID: "corr-t1", ReserveTokens: 512,
+		})
+		if err != nil {
+			t.Fatalf("ReserveTurnTx turn 1: %v", err)
+		}
+		_, err = store.ReconcileTurnTx(context.Background(), turn1Attempt, contracts.AskResponse{
+			AttemptID: turn1Attempt, ConversationID: convID, TurnIndex: 1,
+			Grounded: true, Mode: "qa", Answer: "Andrew is a principal engineer.",
+			Provider: "stub", TokensUsed: 50, CorrelationID: "corr-t1",
+		})
+		if err != nil {
+			t.Fatalf("ReconcileTurnTx turn 1: %v", err)
+		}
+
+		fakeLLM := &preambleCaptureLLM{
+			embedFn: func(ctx context.Context, _ string) ([]float32, error) {
+				select {
+				case <-ctx.Done():
+					return nil, ctx.Err()
+				case <-time.After(60 * time.Millisecond):
+				}
+				v := make([]float32, llm.ExpectedEmbeddingDims)
+				for i := range v {
+					v[i] = 0.25
+				}
+				return v, nil
+			},
+			chatFn: func(_ context.Context, _ []llm.ChatMessage, _ int) (llm.Completion, error) {
+				return llm.Completion{Text: "Andrew Klapper GCP architecture", TokensUsed: 30, Model: "stub-small"}, nil
+			},
+			preambleFn: func(_ context.Context, _ llm.ChatStreamRequest, onChunk func(llm.ChatStreamChunk) error) (llm.ChatStreamResult, error) {
+				_ = onChunk(llm.ChatStreamChunk{Delta: "Checking Andrew's GCP architecture details now."})
+				return llm.ChatStreamResult{Model: "stub-small", TokensUsed: 20}, nil
+			},
+			mainFn: func(_ context.Context, _ llm.ChatStreamRequest, onChunk func(llm.ChatStreamChunk) error) (llm.ChatStreamResult, error) {
+				_ = onChunk(llm.ChatStreamChunk{Delta: "Andrew deploys Cloud Run SSR and Go services on GKE."})
+				return llm.ChatStreamResult{Model: "stub-main", TokensUsed: 150}, nil
+			},
+		}
+		em := &orderingEmitter{supportsPreamble: true}
+		attempt2 := "77777777-7777-4777-8777-777777777775"
+		syncFail := executeStreamingTurn(context.Background(), askStreamDeps{
+			provider:        fakeLLM,
+			vectorStore:     &qdrant.Client{BaseURL: qdrantSrv.URL},
+			store:           store,
+			privacyCfg:      privCfg,
+			preambleTimeout: 2 * time.Second,
+		}, askStreamInput{
+			Mode: "qa", Question: "How did he deploy that on GCP?",
+			AttemptID: attempt2, ConversationID: convID, SessionID: "sess-turn2",
+			Role: contracts.RoleGuest, CorrelationID: "corr-turn2",
+		}, func() (streamEmitter, func(), error) { return em, nil, nil })
+		if syncFail != nil {
+			t.Fatalf("unexpected syncFail: %+v", syncFail)
+		}
+
+		var doneEv *askStreamDone
+		for _, ev := range em.snapshot() {
+			if ev.name == "done" {
+				doneEv = ev.done
+			}
+		}
+		if doneEv == nil || doneEv.TokensUsed != 200 {
+			t.Fatalf("expected done.TokensUsed=200 (20+30+150), got %+v", doneEv)
+		}
+		turn2, _, err := store.GetTurnByAttemptID(context.Background(), attempt2, "sess-turn2")
+		if err != nil || turn2.TokensUsed != 200 {
+			t.Fatalf("expected persisted turn2.TokensUsed=200, got %+v err=%v", turn2, err)
+		}
+		logText := logs.String()
+		if !strings.Contains(logText, `"tokensUsed":200`) ||
+			!strings.Contains(logText, `"preambleTokens":20`) ||
+			!strings.Contains(logText, `"seam_type":"DELTA_AUDIT_GAP"`) {
+			t.Fatalf("expected reconciled audit with tokensUsed=200 and preambleTokens=20, got:\n%s", logText)
+		}
+	})
+}

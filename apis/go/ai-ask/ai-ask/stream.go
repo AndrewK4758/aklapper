@@ -238,6 +238,7 @@ func executeStreamingTurn(
 		stopRenewer()
 		finalizeStreamOutcome(
 			ctx, deps, emitter, attemptID, convID, turnIndex, contracts.GroundingTierBoundary, rewriteTokens,
+			preambleResult.tokensUsed, "preamble",
 			in, role, mode, nil, "", llm.ChatStreamResult{}, privacy.ErrPrivacyAborted, started,
 		)
 		return nil
@@ -326,6 +327,7 @@ func executeStreamingTurn(
 
 	finalizeStreamOutcome(
 		ctx, deps, emitter, attemptID, convID, turnIndex, tier, rewriteTokens,
+		preambleResult.tokensUsed, "main",
 		in, role, mode, sources, postGuard.String(), streamResult, streamErr, started,
 	)
 	return nil

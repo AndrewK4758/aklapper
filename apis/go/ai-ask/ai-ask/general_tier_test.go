@@ -132,8 +132,8 @@ func TestGeneralTierStreamingUnaryAndBoundaries(t *testing.T) {
 		}
 
 		turn, _, err := store.GetTurnByAttemptID(context.Background(), attemptID, "guest-general-stream")
-		if err != nil || turn.Status != contracts.TurnStatusCompleted || turn.TokensUsed != 37 {
-			t.Fatalf("expected completed general turn with 37 tokens, got turn=%+v err=%v", turn, err)
+		if err != nil || turn.Status != contracts.TurnStatusCompleted || turn.TokensUsed < 37 {
+			t.Fatalf("expected completed general turn with >=37 tokens (main + optional preamble), got turn=%+v err=%v", turn, err)
 		}
 		logText := logs.String()
 		if !strings.Contains(logText, `"event":"ai_ask.grounding.tier_selected"`) || !strings.Contains(logText, `"branch":"general"`) {
