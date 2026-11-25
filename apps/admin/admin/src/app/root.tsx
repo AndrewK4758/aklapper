@@ -39,6 +39,7 @@ import {
   redirect,
   Scripts,
   ScrollRestoration,
+  type ShouldRevalidateFunctionArgs,
   useLocation,
   useNavigate,
   useRouteLoaderData,
@@ -139,6 +140,30 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Ad
       },
     ),
   };
+}
+
+function normalizePathname(pathname: string): string {
+  return pathname.replace(/\/+$/, '') || '/';
+}
+
+export function shouldRevalidate({
+  currentUrl,
+  nextUrl,
+  formAction,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs): boolean {
+  const currentPath = normalizePathname(currentUrl.pathname);
+  const nextPath = normalizePathname(nextUrl.pathname);
+  if (currentPath === '/login' || nextPath === '/login') {
+    return defaultShouldRevalidate;
+  }
+  if (formAction && formAction.startsWith('/api/auth')) {
+    return defaultShouldRevalidate;
+  }
+  if (currentPath === nextPath && !formAction) {
+    return defaultShouldRevalidate;
+  }
+  return false;
 }
 
 export function meta({ loaderData, location }: Route.MetaArgs) {
