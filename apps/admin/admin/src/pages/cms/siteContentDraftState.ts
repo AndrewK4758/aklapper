@@ -148,7 +148,9 @@ export function createInitialSiteContentDraftState(
   emitDiagnostic: SiteContentDiagnosticEmitter = emitSiteContentDiagnostic,
 ): InitialSiteContentDraftResult {
   const known = isKnownSiteContentKey(row.key);
-  const initialObject = isPlainRecord(row.metadataJson) ? { ...row.metadataJson } : {};
+  const rawObject = isPlainRecord(row.metadataJson) ? { ...row.metadataJson } : {};
+  const hydratedValidation = known ? validateSiteContentMetadata(row.key, rawObject) : null;
+  const initialObject = hydratedValidation?.ok ? hydratedValidation.data : rawObject;
   const rawText = JSON.stringify(initialObject, null, 2);
 
   let schema: JsonSchemaObject | null = null;

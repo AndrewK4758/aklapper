@@ -87,11 +87,14 @@ type QuotaPolicy struct {
 }
 
 type CorpusDocument struct {
-	ID       string `json:"id"`
-	Title    string `json:"title"`
-	Snippet  string `json:"snippet"`
-	Category string `json:"category"`
-	Source   string `json:"source"`
+	ID             string `json:"id"`
+	ChunkIndex     int    `json:"chunkIndex,omitempty"`
+	Title          string `json:"title"`
+	SectionHeading string `json:"sectionHeading,omitempty"`
+	Snippet        string `json:"snippet"`
+	Category       string `json:"category"`
+	Kind           string `json:"kind,omitempty"`
+	Source         string `json:"source"`
 }
 
 type SandboxRunInput struct {
@@ -147,6 +150,8 @@ type Store struct {
 	policies            map[string]QuotaPolicy
 	buckets             map[string]*memBucket
 	turns               map[string]*TurnRecord
+	dossiers            map[string]CareerDossierRecord
+	reindexLocked       bool
 	runs                []*SandboxRun
 	runsByID            map[string]*SandboxRun
 	turnSeq             int
@@ -158,6 +163,7 @@ func NewMemoryStore() *Store {
 		policies:            defaultPolicies(),
 		buckets:             make(map[string]*memBucket),
 		turns:               make(map[string]*TurnRecord),
+		dossiers:            make(map[string]CareerDossierRecord),
 		runsByID:            make(map[string]*SandboxRun),
 	}
 }
@@ -166,7 +172,7 @@ func defaultPolicies() map[string]QuotaPolicy {
 	return map[string]QuotaPolicy{
 		contracts.RoleGuest: {
 			Role:                 contracts.RoleGuest,
-			MaxTurnsPerSession:   5,
+			MaxTurnsPerSession:   10,
 			MaxTokensPerRun:      4000,
 			MaxDailyGlobalTokens: 100000,
 		},
@@ -206,6 +212,7 @@ func Open(ctx context.Context, cfg Config) (*Store, error) {
 		policies:            defaultPolicies(),
 		buckets:             make(map[string]*memBucket),
 		turns:               make(map[string]*TurnRecord),
+		dossiers:            make(map[string]CareerDossierRecord),
 		runsByID:            make(map[string]*SandboxRun),
 	}, nil
 }

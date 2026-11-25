@@ -39,16 +39,24 @@ func PortfolioPointID(docKey string, chunkIndex int) string {
 	return DeterministicPointID(PortfolioNamespace, strings.TrimSpace(docKey)+"#"+strconv.Itoa(chunkIndex))
 }
 
-// CollectionPointID derives the canonical RFC 4122 UUIDv5 point identifier for a collection and docKey.
-// For portfolio_docs it delegates directly to PortfolioPointID(docKey, 0) so CLI seeding and
-// ai-ask POST /v1/ask/reindex always produce identical point IDs and never cross-prune each other.
-func CollectionPointID(collection, docKey string) string {
+// CollectionChunkPointID derives the canonical RFC 4122 UUIDv5 point identifier for a
+// collection, docKey, and chunkIndex. For portfolio_docs it delegates directly to
+// PortfolioPointID(docKey, chunkIndex) so CLI seeding and HTTP reindex produce identical IDs.
+func CollectionChunkPointID(collection, docKey string, chunkIndex int) string {
 	trimmedCol := strings.TrimSpace(collection)
 	trimmedDoc := strings.TrimSpace(docKey)
-	if trimmedCol == "" || trimmedCol == "portfolio_docs" {
-		return PortfolioPointID(trimmedDoc, 0)
+	if chunkIndex < 0 {
+		chunkIndex = 0
 	}
-	return DeterministicPointID(PortfolioNamespace, trimmedCol+":"+trimmedDoc+"#0")
+	if trimmedCol == "" || trimmedCol == "portfolio_docs" {
+		return PortfolioPointID(trimmedDoc, chunkIndex)
+	}
+	return DeterministicPointID(PortfolioNamespace, trimmedCol+":"+trimmedDoc+"#"+strconv.Itoa(chunkIndex))
+}
+
+// CollectionPointID derives the canonical RFC 4122 UUIDv5 point identifier for chunk 0.
+func CollectionPointID(collection, docKey string) string {
+	return CollectionChunkPointID(collection, docKey, 0)
 }
 
 const DefaultURL = "http://127.0.0.1:6333"

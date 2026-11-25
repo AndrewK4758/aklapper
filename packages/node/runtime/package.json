@@ -59,6 +59,12 @@
       "types": "./dist/auth.d.ts",
       "import": "./dist/auth.js",
       "default": "./dist/auth.js"
+    },
+    "./privacy": {
+      "@aklapper/source": "./src/privacy.ts",
+      "types": "./dist/privacy.d.ts",
+      "import": "./dist/privacy.js",
+      "default": "./dist/privacy.js"
     }
   },
   "dependencies": {

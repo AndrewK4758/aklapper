@@ -6,7 +6,15 @@ import type {
   PortalAskContent,
   QuotaStatus,
 } from '@aklapper/core';
-import { Button, Meter, OscStatusBadge } from '@aklapper/ui';
+import {
+  CitationSourceList,
+  DeepLinkCardRow,
+  Meter,
+  OscStatusBadge,
+  PaneLink,
+  StatusPill,
+  SuggestionChipRow,
+} from '@aklapper/ui';
 import type { ReactNode } from 'react';
 
 import styles from './PortalAskPage.module.css';
@@ -59,26 +67,21 @@ export function AskHeaderBadge({
 
 export function AskStarterRow({
   questions,
+  disabled = false,
   onSelect,
 }: {
   readonly questions: readonly string[];
+  readonly disabled?: boolean;
   readonly onSelect: (question: string) => void;
 }) {
   return (
-    <div className={styles.starterRow} aria-label='Starter questions'>
-      {questions.map((starter, idx) => (
-        <Button
-          key={starter}
-          type='button'
-          variant='ghost'
-          size='xs'
-          onClick={() => onSelect(starter)}
-          data-testid={`ask-starter-${idx}`}
-        >
-          <Button.Label>{starter}</Button.Label>
-        </Button>
-      ))}
-    </div>
+    <SuggestionChipRow
+      ariaLabel='Starter questions'
+      disabled={disabled}
+      testIdPrefix='ask-starter'
+      items={questions.map((starter, idx) => ({ id: String(idx), label: starter }))}
+      onSelect={item => onSelect(item.label)}
+    />
   );
 }
 
@@ -112,8 +115,10 @@ export function AskPendingCard({ turnState, submittedText }: AskPendingCardProps
             ? 'JD Fit Assessment (In Progress)'
             : `Q: ${submittedText}`}
         </strong>
-        <span className={styles.groundingPill} data-grounded='false'>
-          {turnState.status.toUpperCase()}
+        <span data-grounded='false'>
+          <StatusPill tone='warn' size='sm' pulse>
+            {turnState.status.toUpperCase()}
+          </StatusPill>
         </span>
       </div>
       <p className={styles.answerText}>
@@ -126,77 +131,100 @@ export function AskPendingCard({ turnState, submittedText }: AskPendingCardProps
   );
 }
 
-function CitationList({
-  sources,
-  ariaLabel,
-}: {
-  readonly sources: AskResponse['sources'];
-  readonly ariaLabel: string;
-}) {
-  if (sources.length === 0) return null;
-  return (
-    <ul className={styles.citations} aria-label={ariaLabel}>
-      {sources.map(source => (
-        <li key={source.id ?? source.title} className={styles.citationCard}>
-          <div className={styles.citationHeader}>
-            <strong>{source.title}</strong>
-            <span className={styles.citationScore}>
-              {source.category ?? 'corpus'} · {Math.round(source.score * 100)}%
-            </span>
-          </div>
-          <p className={styles.citationSnippet}>{source.snippet}</p>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function TelemetryLine({ response }: { readonly response: AskResponse }) {
   return (
     <p className={styles.metaLine} data-testid='ask-telemetry-line'>
       provider: {response.provider} · model: {response.model ?? 'default'} · tokens:{' '}
       {response.tokensUsed}
       {typeof response.latencyMs === 'number' ? ` · ${response.latencyMs}ms` : ''}
+      {response.groundingTier ? ` · tier: ${response.groundingTier}` : ''}
     </p>
   );
+}
+
+function resolveTierLabel(response: AskResponse): string {
+  if (!response.grounded) return 'ABSTAINED';
+  if (response.groundingTier === 'profile') return 'PROFILE · GROUNDED';
+  return 'GROUNDED';
 }
 
 export function AskQaTranscriptCard({
   question,
   response,
+  content,
+  isBusy = false,
+  onSelectFollowUp,
 }: {
   readonly question: string;
   readonly response: AskResponse;
+  readonly content: PortalAskContent;
+  readonly isBusy?: boolean;
+  readonly onSelectFollowUp?: (followUp: string) => void;
 }) {
   return (
-    <li className={styles.entryCard} data-testid='ask-qa-entry'>
+    <li
+      className={styles.entryCard}
+      data-testid='ask-qa-entry'
+      data-grounding-tier={response.groundingTier ?? (response.grounded ? 'evidence' : 'boundary')}
+    >
       <div className={styles.entryHeader}>
         <strong className={styles.entryQuestion}>Q: {question}</strong>
-        <span className={styles.groundingPill} data-grounded={response.grounded ? 'true' : 'false'}>
-          {response.grounded ? 'GROUNDED' : 'ABSTAINED'}
+        <span data-grounded={response.grounded ? 'true' : 'false'}>
+          <StatusPill tone={response.grounded ? 'success' : 'warn'} size='sm'>
+            {resolveTierLabel(response)}
+          </StatusPill>
         </span>
       </div>
       <p className={styles.answerText}>{response.answer}</p>
+      {!response.grounded && content.boundaryFallbackNotice ? (
+        <p className={styles.notice}>{content.boundaryFallbackNotice}</p>
+      ) : null}
       <TelemetryLine response={response} />
-      <CitationList sources={response.sources} ariaLabel='Grounded citations' />
+      <CitationSourceList heading={content.citationsHeading} sources={response.sources} />
+      {response.suggestedLinks && response.suggestedLinks.length > 0 ? (
+        <DeepLinkCardRow heading={content.suggestedLinksHeading} links={response.suggestedLinks} />
+      ) : !response.grounded ? (
+        <div className={styles.ctaRow}>
+          <PaneLink to={content.contactCtaHref} className={styles.ctaLink}>
+            {content.contactCtaLabel}
+          </PaneLink>
+        </div>
+      ) : null}
+      {onSelectFollowUp && response.followUpQuestions && response.followUpQuestions.length > 0 ? (
+        <SuggestionChipRow
+          ariaLabel={content.followUpsHeading}
+          disabled={isBusy}
+          testIdPrefix='ask-followup'
+          items={response.followUpQuestions.map((q, idx) => ({ id: String(idx), label: q }))}
+          onSelect={item => onSelectFollowUp(item.label)}
+        />
+      ) : null}
     </li>
   );
 }
 
-export function AskJdResultCard({ response }: { readonly response: AskResponse }) {
+export function AskJdResultCard({
+  response,
+  content,
+}: {
+  readonly response: AskResponse;
+  readonly content: PortalAskContent;
+}) {
   return (
     <section className={styles.entryCard} data-testid='ask-jd-result'>
       <div className={styles.entryHeader}>
         <strong className={styles.entryQuestion}>JD Fit Assessment</strong>
-        <span className={styles.groundingPill} data-grounded={response.grounded ? 'true' : 'false'}>
-          {response.grounded ? 'GROUNDED' : 'ABSTAINED'}
+        <span data-grounded={response.grounded ? 'true' : 'false'}>
+          <StatusPill tone={response.grounded ? 'success' : 'warn'} size='sm'>
+            {response.grounded ? 'GROUNDED' : 'ABSTAINED'}
+          </StatusPill>
         </span>
       </div>
 
       {typeof response.matchScore === 'number' && (
         <Meter.Root value={response.matchScore} min={0} max={100}>
           <div className={styles.meterHeader}>
-            <Meter.Label>Grounded Match Score</Meter.Label>
+            <Meter.Label>{content.jdMatchScoreLabel}</Meter.Label>
             <Meter.Value>{() => `${response.matchScore ?? 0}%`}</Meter.Value>
           </div>
           <Meter.Track>
@@ -210,28 +238,28 @@ export function AskJdResultCard({ response }: { readonly response: AskResponse }
 
       <div className={styles.jdGrid}>
         <div className={styles.jdColumn}>
-          <h3 className={styles.jdSubhead}>Verified Strengths</h3>
+          <h3 className={styles.jdSubhead}>{content.jdStrengthsHeading}</h3>
           <ul className={styles.jdList}>
             {(response.strengths ?? []).length > 0 ? (
               (response.strengths ?? []).map(item => <li key={item}>{item}</li>)
             ) : (
-              <li>No grounded overlap detected.</li>
+              <li>{content.jdEmptyStrengthsLabel}</li>
             )}
           </ul>
         </div>
         <div className={styles.jdColumn}>
-          <h3 className={styles.jdSubhead}>Gaps / Unverified</h3>
+          <h3 className={styles.jdSubhead}>{content.jdGapsHeading}</h3>
           <ul className={styles.jdList}>
             {(response.gaps ?? []).length > 0 ? (
               (response.gaps ?? []).map(item => <li key={item}>{item}</li>)
             ) : (
-              <li>No unverified gaps flagged.</li>
+              <li>{content.jdEmptyGapsLabel}</li>
             )}
           </ul>
         </div>
       </div>
 
-      <CitationList sources={response.sources} ariaLabel='JD Match citations' />
+      <CitationSourceList heading={content.citationsHeading} sources={response.sources} />
     </section>
   );
 }

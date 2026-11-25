@@ -131,7 +131,21 @@ function renderKeyPreview(contentKey: string, metadata: Record<string, unknown>)
           statusBadge={d.statusBadge}
           description={d.description}
         >
-          <ul className={styles.previewChipList}>
+          <div className={styles.previewSlotBox}>
+            <div>
+              Tabs: {d.qaTabLabel} | {d.jdTabLabel}
+            </div>
+            <div>Question placeholder: {d.questionPlaceholder}</div>
+            <div>Empty thread hint: {d.emptyThreadHint}</div>
+          </div>
+          <ul className={styles.previewChipList} aria-label='Visitor lenses preview'>
+            {d.visitorLenses.map(lens => (
+              <li key={lens.id} className={styles.previewChip}>
+                {lens.label}: {lens.description}
+              </li>
+            ))}
+          </ul>
+          <ul className={styles.previewChipList} aria-label='Starter questions preview'>
             {d.starterQuestions.map((question, idx) => (
               <li key={`${idx}-${question}`} className={styles.previewChip}>
                 {question}
@@ -141,6 +155,10 @@ function renderKeyPreview(contentKey: string, metadata: Record<string, unknown>)
           <div className={styles.previewSlotBox}>
             <div>JD placeholder: {d.jdPlaceholder}</div>
             <div>Abstention notice: {d.abstentionNotice}</div>
+            <div>Boundary notice: {d.boundaryFallbackNotice}</div>
+            <div>
+              Contact CTA: {d.contactCtaLabel} ({d.contactCtaHref})
+            </div>
           </div>
         </SiteContentWindowHeader>
       );

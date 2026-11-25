@@ -1,10 +1,11 @@
+import { PortalAskContentSchema } from '@aklapper/core';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ASK_TURN_STORAGE_KEY } from './askTurnRecovery';
 import { PortalAskPage, type PortalAskPageProps } from './PortalAskPage';
 
-const SAMPLE_CONTENT = {
+const SAMPLE_CONTENT = PortalAskContentSchema.parse({
   windowTitle: 'tui :: ask portfolio',
   statusBadge: {
     source: 'svc-ai-ask',
@@ -15,7 +16,7 @@ const SAMPLE_CONTENT = {
   starterQuestions: ['How does Cloud Run integrate with GKE?'],
   jdPlaceholder: 'Paste JD here...',
   abstentionNotice: 'Strict abstention active.',
-};
+});
 
 const SAMPLE_QUOTA = {
   role: 'guest' as const,
@@ -426,5 +427,69 @@ describe('PortalAskPage', () => {
     expect(banner.textContent).toContain('ERR_DB_UNAVAILABLE');
     expect(banner.textContent).toContain('Retry shortly or share ID.');
     expect(banner.textContent).toContain('corr-ask-503');
+  });
+
+  it('streams multi-turn Q&A via streamEndpoint, switches visitor lenses, and resets conversation cleanly', async () => {
+    const encoder = new TextEncoder();
+    const sseBody = [
+      'event: status\ndata: {"stage":"retrieving","label":"Searching portfolio records..."}\n\n',
+      'event: meta\ndata: {"attemptId":"88888888-8888-4888-8888-888888888888","conversationId":"99999999-9999-4999-8999-999999999999","turnIndex":1,"correlationId":"corr-s1","mode":"qa","provider":"local-llama-swap"}\n\n',
+      'event: sources\ndata: {"sources":[{"id":"dossier:profile#0","docKey":"dossier:profile","title":"Andrew Klapper Profile","sectionHeading":"Summary","snippet":"Principal engineer.","score":1,"category":"career_dossier"}]}\n\n',
+      'event: delta\ndata: {"text":"Andrew focuses on Cloud Run SSR and Go microservices."}\n\n',
+      'event: done\ndata: {"attemptId":"88888888-8888-4888-8888-888888888888","conversationId":"99999999-9999-4999-8999-999999999999","turnIndex":1,"grounded":true,"abstained":false,"groundingTier":"profile","answer":"Andrew focuses on Cloud Run SSR and Go microservices.","suggestedLinks":[{"route":"/contact","label":"Contact Andrew","reason":"Reach out directly."}],"followUpQuestions":["How does Andrew handle migrations?"],"provider":"local-llama-swap","model":"gemma-4","tokensUsed":95,"latencyMs":120,"correlationId":"corr-s1","quota":{"role":"guest","turnsUsed":1,"maxTurns":10,"tokensUsed":95,"maxTokens":40000}}\n\n',
+    ].join('');
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(encoder.encode(sseBody));
+            controller.close();
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'text/event-stream; charset=utf-8' } },
+      ),
+    );
+
+    render(
+      <PortalAskPage
+        content={SAMPLE_CONTENT}
+        quota={{ ...SAMPLE_QUOTA, maxTurns: 10 }}
+        streamEndpoint='/api/ask/stream'
+        isSubmitting={false}
+        onSubmitAsk={vi.fn<PortalAskPageProps['onSubmitAsk']>()}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    // Deterministic empty conversationId during SSR/initial mount prevents React 19 hydration mismatches
+    expect(screen.getByTestId('ask-workspace').getAttribute('data-conversation-id')).toBe('');
+
+    // Clicking a visitor lens updates selection and reveals lens starter chips
+    fireEvent.click(screen.getByTestId('ask-lens-engineering-peer'));
+    expect(screen.getByTestId('ask-lens-engineering-peer').getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+    fireEvent.click(screen.getByTestId('ask-starter-0'));
+    fireEvent.click(screen.getByTestId('ask-qa-submit'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('ask-qa-transcript')).toBeTruthy();
+    });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/ask/stream',
+      expect.objectContaining({ method: 'POST', credentials: 'same-origin' }),
+    );
+    expect(screen.getByText('Andrew focuses on Cloud Run SSR and Go microservices.')).toBeTruthy();
+    expect(screen.getByText('1/10 turns')).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Contact Andrew/i })).toBeTruthy();
+
+    // New Conversation clears transcript and rotates conversationId
+    const prevConvId = screen.getByTestId('ask-workspace').getAttribute('data-conversation-id');
+    fireEvent.click(screen.getByTestId('ask-new-conversation'));
+    expect(screen.queryByTestId('ask-qa-transcript')).toBeNull();
+    expect(screen.getByTestId('ask-workspace').getAttribute('data-conversation-id')).not.toBe(
+      prevConvId,
+    );
   });
 });

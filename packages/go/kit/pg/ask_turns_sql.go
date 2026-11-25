@@ -97,11 +97,13 @@ func (s *Store) refundLockedTurnPG(
 
 func scanAskTurnRow(row pgx.Row) (*TurnRecord, error) {
 	var rec TurnRecord
-	var resultText, errorCode *string
+	var resultText, errorCode, convID, promptText *string
+	var turnIndex *int
 	err := row.Scan(
 		&rec.AttemptID, &rec.SessionID, &rec.Role, &rec.Mode, &rec.PromptHash, &rec.Status,
 		&rec.TokensReserved, &rec.TokensUsed, &resultText, &errorCode, &rec.CorrelationID,
 		&rec.CreatedAt, &rec.UpdatedAt, &rec.LeaseExpiresAt, &rec.ExpiresAt,
+		&convID, &turnIndex, &promptText,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrTurnNotFound
@@ -111,6 +113,15 @@ func scanAskTurnRow(row pgx.Row) (*TurnRecord, error) {
 	}
 	if errorCode != nil {
 		rec.ErrorCode = *errorCode
+	}
+	if convID != nil {
+		rec.ConversationID = *convID
+	}
+	if turnIndex != nil {
+		rec.TurnIndex = *turnIndex
+	}
+	if promptText != nil {
+		rec.PromptText = *promptText
 	}
 	if resultText != nil && *resultText != "" {
 		var parsed contracts.AskResponse
@@ -123,7 +134,8 @@ func scanAskTurnRow(row pgx.Row) (*TurnRecord, error) {
 }
 
 const selectAskTurnColsSQL = `SELECT attempt_id, session_id, role, mode, prompt_hash, status, tokens_reserved, tokens_used,
-        result_json::text, error_code, correlation_id, created_at, updated_at, lease_expires_at, expires_at
+        result_json::text, error_code, correlation_id, created_at, updated_at, lease_expires_at, expires_at,
+        conversation_id, turn_index, prompt_text
  FROM ask_turns WHERE attempt_id = $1`
 
 func readAskTurnRowNoLock(ctx context.Context, tx pgx.Tx, attemptID string) (*TurnRecord, error) {

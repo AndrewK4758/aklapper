@@ -1,4 +1,9 @@
-import type { ActionErrorMetadata, AdminCmsLoaderData, QdrantHealthStatus } from '@aklapper/core';
+import type {
+  ActionErrorMetadata,
+  AdminCmsLoaderData,
+  PrivacySanitizationFinding,
+  QdrantHealthStatus,
+} from '@aklapper/core';
 import {
   ActionFeedbackBanner,
   Button,
@@ -10,7 +15,7 @@ import {
   Tabs,
   TuiWindow,
 } from '@aklapper/ui';
-import { type ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Form, useFetcher } from 'react-router';
 
 import { reportAdminLazyChunkError } from '../client-telemetry';
@@ -18,6 +23,9 @@ import { SiteContentEditorPanel } from './SiteContentEditorPanel';
 
 import styles from './AdminCmsPage.module.css';
 
+const LazyCareerDossierSection = lazyWithRetry(() =>
+  import('./CareerDossierSection').then(mod => ({ default: mod.CareerDossierSection })),
+);
 const LazyCmsMenuTab = lazyWithRetry(() =>
   import('./CmsMenuTab').then(mod => ({ default: mod.CmsMenuTab })),
 );
@@ -31,6 +39,7 @@ const LazyCmsAgensiPresetsTab = lazyWithRetry(() =>
 export interface AdminCmsActionData extends ActionErrorMetadata {
   ok: boolean;
   message: string;
+  sanitizationFindings?: readonly PrivacySanitizationFinding[];
 }
 
 export interface AdminCmsPageProps {
@@ -38,13 +47,46 @@ export interface AdminCmsPageProps {
   qdrant?: QdrantHealthStatus;
   qdrantStatusSlot?: ReactNode;
   actionData?: AdminCmsActionData | null;
+  activeTab?: string;
+  onActiveTabChange?: (tab: string) => void;
 }
 
-export function AdminCmsPage({ data, qdrant, qdrantStatusSlot, actionData }: AdminCmsPageProps) {
+export function AdminCmsPage({
+  data,
+  qdrant,
+  qdrantStatusSlot,
+  actionData,
+  activeTab,
+  onActiveTabChange,
+}: AdminCmsPageProps) {
   const maintenanceFetcher = useFetcher<AdminCmsActionData>();
   const reindexFetcher = useFetcher<AdminCmsActionData>();
 
-  const activeFeedback = maintenanceFetcher.data ?? reindexFetcher.data ?? actionData ?? null;
+  const [lastMaintenanceData, setLastMaintenanceData] = useState<AdminCmsActionData | undefined>(
+    undefined,
+  );
+  const [lastReindexData, setLastReindexData] = useState<AdminCmsActionData | undefined>(undefined);
+  const [lastActionData, setLastActionData] = useState<AdminCmsActionData | null | undefined>(
+    undefined,
+  );
+  const [latestFeedback, setLatestFeedback] = useState<AdminCmsActionData | null>(
+    () => actionData ?? null,
+  );
+
+  if (maintenanceFetcher.data && maintenanceFetcher.data !== lastMaintenanceData) {
+    setLastMaintenanceData(maintenanceFetcher.data);
+    setLatestFeedback(maintenanceFetcher.data);
+  } else if (reindexFetcher.data && reindexFetcher.data !== lastReindexData) {
+    setLastReindexData(reindexFetcher.data);
+    setLatestFeedback(reindexFetcher.data);
+  } else if (actionData !== lastActionData) {
+    setLastActionData(actionData);
+    if (actionData) {
+      setLatestFeedback(actionData);
+    }
+  }
+
+  const activeFeedback = latestFeedback ?? actionData ?? null;
 
   const optimisticMaintenance = maintenanceFetcher.formData
     ? maintenanceFetcher.formData.get('maintenanceModeDefault') === 'true'
@@ -63,14 +105,42 @@ export function AdminCmsPage({ data, qdrant, qdrantStatusSlot, actionData }: Adm
       <div className={styles.panel}>
         {activeFeedback ? <ActionFeedbackBanner {...activeFeedback} /> : null}
 
-        <Tabs.Root defaultValue='site'>
+        <Tabs.Root
+          {...(activeTab !== undefined
+            ? {
+                value: activeTab,
+                onValueChange: value => {
+                  onActiveTabChange?.(String(value));
+                },
+              }
+            : { defaultValue: 'site' })}
+        >
           <Tabs.List aria-label='CMS sections'>
             <Tabs.Tab value='site'>Site &amp; Maintenance</Tabs.Tab>
+            <Tabs.Tab value='dossiers'>Career Dossiers ({data.careerDossiers.length})</Tabs.Tab>
             <Tabs.Tab value='menu'>Menu Registry ({data.menuItems.length})</Tabs.Tab>
             <Tabs.Tab value='terminal'>Terminal &amp; Roadmap</Tabs.Tab>
             <Tabs.Tab value='agensi'>Agensi &amp; Presets</Tabs.Tab>
             <Tabs.Indicator />
           </Tabs.List>
+
+          <Tabs.Panel value='dossiers' className={styles.tabPanel}>
+            <LazyChunkBoundary
+              loadingLabel='Loading career dossier studio...'
+              errorTitle='Unable to load Career Dossiers tab'
+              onChunkError={error => {
+                reportAdminLazyChunkError('./CareerDossierSection', '/cms', error);
+              }}
+            >
+              <LazyCareerDossierSection
+                dossiers={data.careerDossiers}
+                qdrant={qdrant}
+                qdrantStatusSlot={qdrantStatusSlot}
+                sanitizationFindings={actionData?.sanitizationFindings}
+                reindexFetcher={reindexFetcher}
+              />
+            </LazyChunkBoundary>
+          </Tabs.Panel>
 
           <Tabs.Panel value='site' className={styles.tabPanel}>
             <section className={styles.card} aria-label='Portal maintenance controls'>

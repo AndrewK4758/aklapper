@@ -1,6 +1,7 @@
 import {
   AdminWakeDeploymentSchema,
   type AdminServiceHealth,
+  type AppErrorCode,
   type CadenceAdminStatus,
   CadenceAdminStatusSchema,
   type QdrantCollectionHealth,
@@ -243,12 +244,15 @@ export interface ReindexResult {
   indexed: number;
   collection: string;
   message: string;
+  status?: number;
+  code?: AppErrorCode;
 }
 
 interface RawReindexResponse {
   indexed?: number;
   collection?: string;
   provider?: string;
+  code?: string;
   error?: string;
   message?: string;
 }
@@ -260,6 +264,8 @@ export async function triggerQdrantReindex(): Promise<ReindexResult> {
       ok: false,
       indexed: 0,
       collection: 'portfolio_docs',
+      status: 503,
+      code: 'ERR_UPSTREAM_UNAVAILABLE',
       message: 'AI_ASK_URL is not configured; start svc-ai-ask to run Qdrant re-indexing.',
     };
   }
@@ -277,15 +283,18 @@ export async function triggerQdrantReindex(): Promise<ReindexResult> {
   });
 
   if (!result.ok || !result.data) {
+    const isConflict = result.status === 409;
     return {
       ok: false,
       indexed: 0,
       collection: 'portfolio_docs',
+      status: isConflict ? 409 : result.status || 503,
+      code: isConflict ? 'ERR_CONSTRAINT' : 'ERR_UPSTREAM_UNAVAILABLE',
       message:
         result.data?.message ??
         result.data?.error ??
         result.error ??
-        'Qdrant re-index request failed.',
+        (isConflict ? 'A Qdrant re-index is already running.' : 'Qdrant re-index request failed.'),
     };
   }
 

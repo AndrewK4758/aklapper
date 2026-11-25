@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"strings"
 	"time"
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
@@ -78,12 +79,27 @@ func (s *Store) reserveTurnMemory(
 	gb.turnsUsed++
 	gb.tokensUsed += reserveTokens
 
+	convID := strings.TrimSpace(in.ConversationID)
+	turnIndex := 0
+	if convID != "" {
+		maxIdx := 0
+		for _, existing := range s.turns {
+			if existing.SessionID == sessionID && existing.ConversationID == convID && existing.TurnIndex > maxIdx {
+				maxIdx = existing.TurnIndex
+			}
+		}
+		turnIndex = maxIdx + 1
+	}
+
 	rec := &TurnRecord{
 		AttemptID:      in.AttemptID,
 		SessionID:      sessionID,
 		Role:           role,
 		Mode:           in.Mode,
 		PromptHash:     in.PromptHash,
+		ConversationID: convID,
+		TurnIndex:      turnIndex,
+		PromptText:     truncateRunes(in.PromptText, MaxPromptTextRunes),
 		Status:         contracts.TurnStatusRunning,
 		TokensReserved: reserveTokens,
 		CorrelationID:  in.CorrelationID,

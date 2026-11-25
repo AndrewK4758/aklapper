@@ -1,0 +1,60 @@
+@layer component {
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sf-gap-xs);
+    align-items: var(--sf-align-stretch);
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-inline-size: 0;
+  }
+
+  .chip {
+    display: flex;
+    flex-direction: column;
+    align-items: var(--sf-align-start);
+    gap: var(--sf-gap-2xs);
+    padding: var(--sf-space-2) var(--sf-space-3);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-bg-panel);
+    color: var(--sf-fg-bone);
+    font-family: var(--sf-font-mono);
+    font-size: var(--sf-text-xs);
+    text-align: start;
+    cursor: pointer;
+    transition: var(--sf-transition-colors);
+  }
+
+  .chip:hover:not(:disabled) {
+    border-color: var(--sf-gold);
+    background: var(--sf-bg-elevated);
+  }
+
+  .chip:focus-visible {
+    outline: var(--sf-border-width) solid var(--sf-gold);
+    outline-offset: var(--sf-space-hairline);
+  }
+
+  .chip:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .chipSelected {
+    border-color: var(--sf-gold);
+    background: var(--sf-bg-elevated);
+    color: var(--sf-gold);
+  }
+
+  .chipLabel {
+    font-weight: var(--sf-weight-semibold);
+  }
+
+  .chipDescription {
+    color: var(--sf-fg-cmt);
+    font-size: var(--sf-text-2xs);
+    line-height: var(--sf-leading-snug);
+  }
+}

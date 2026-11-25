@@ -12,6 +12,7 @@ export const GCP_OPTIONAL_SECRET_MANAGER_SECRETS = [
   'ADMIN_PASSWORD',
   'AGENSI_API_KEY',
   'AI_PRIVACY_DENYLIST',
+  'DOSSIER_PRIVACY_DENYLIST',
 ] as const;
 
 export interface GcpSecretSyncEntry {

@@ -34,6 +34,7 @@ export interface ProxyPostSseOptions {
   readonly path: string;
   readonly body?: unknown;
   readonly headers?: Readonly<Record<string, string>>;
+  readonly extraResponseHeaders?: HeadersInit;
   readonly headerTimeoutMs?: number;
   readonly signal?: AbortSignal;
   readonly internalAuth?: SignInternalAuthTokenOptions;
@@ -43,6 +44,43 @@ export interface ProxyPostSseOptions {
   readonly logger?: SsrStructuredLogger;
   readonly env?: Record<string, string | undefined>;
   readonly fetchImpl?: typeof fetch;
+}
+
+const FORBIDDEN_EXTRA_SSE_HEADERS = new Set([
+  'connection',
+  'keep-alive',
+  'transfer-encoding',
+  'upgrade',
+  'proxy-connection',
+]);
+
+function applyExtraResponseHeaders(target: Headers, extra?: HeadersInit): void {
+  if (!extra) return;
+  const incoming = new Headers(extra);
+  const cookies = typeof incoming.getSetCookie === 'function' ? incoming.getSetCookie() : [];
+  for (const cookie of cookies) {
+    target.append('set-cookie', cookie);
+  }
+  incoming.forEach((value, key) => {
+    const lower = key.toLowerCase();
+    if (lower === 'set-cookie' || FORBIDDEN_EXTRA_SSE_HEADERS.has(lower)) {
+      return;
+    }
+    if (!target.has(key)) {
+      target.set(key, value);
+    }
+  });
+}
+
+function withExtraResponseHeaders(response: Response, extra?: HeadersInit): Response {
+  if (!extra) return response;
+  const headers = new Headers(response.headers);
+  applyExtraResponseHeaders(headers, extra);
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
 
 function wrapStreamWithTerminationTracking(
@@ -96,6 +134,7 @@ export async function proxyPostSse(options: ProxyPostSseOptions): Promise<Respon
     path,
     body,
     headers = {},
+    extraResponseHeaders,
     headerTimeoutMs = DEFAULT_SSE_HEADER_TIMEOUT_MS,
     signal,
     internalAuth,
@@ -148,10 +187,13 @@ export async function proxyPostSse(options: ProxyPostSseOptions): Promise<Respon
         'Failed to resolve Cloud Run OIDC identity token for POST SSE upstream',
       );
       emitSseTerminationMetric(logger, 'upstream_error', source, correlationId);
-      return Response.json(publicError, {
-        status: 503,
-        headers: { 'x-correlation-id': correlationId },
-      });
+      return withExtraResponseHeaders(
+        Response.json(publicError, {
+          status: 503,
+          headers: { 'x-correlation-id': correlationId },
+        }),
+        extraResponseHeaders,
+      );
     }
   }
 
@@ -208,10 +250,13 @@ export async function proxyPostSse(options: ProxyPostSseOptions): Promise<Respon
         'POST SSE upstream response header timeout exceeded',
       );
       emitSseTerminationMetric(logger, 'header_timeout', source, correlationId);
-      return Response.json(publicError, {
-        status: 504,
-        headers: { 'x-correlation-id': correlationId },
-      });
+      return withExtraResponseHeaders(
+        Response.json(publicError, {
+          status: 504,
+          headers: { 'x-correlation-id': correlationId },
+        }),
+        extraResponseHeaders,
+      );
     }
 
     if (signal?.aborted) {
@@ -219,10 +264,13 @@ export async function proxyPostSse(options: ProxyPostSseOptions): Promise<Respon
       const { publicError, diagnostic } = classifyServerError(abortErr, { correlationId, source });
       logDiagnosticError(logger, diagnostic);
       emitSseTerminationMetric(logger, 'client_aborted', source, correlationId);
-      return Response.json(publicError, {
-        status: 499,
-        headers: { 'x-correlation-id': correlationId },
-      });
+      return withExtraResponseHeaders(
+        Response.json(publicError, {
+          status: 499,
+          headers: { 'x-correlation-id': correlationId },
+        }),
+        extraResponseHeaders,
+      );
     }
 
     const { publicError } = enforcePublicErrorBoundary(
@@ -248,10 +296,13 @@ export async function proxyPostSse(options: ProxyPostSseOptions): Promise<Respon
       'POST SSE upstream transport failure',
     );
     emitSseTerminationMetric(logger, 'upstream_error', source, correlationId);
-    return Response.json(publicError, {
-      status: 502,
-      headers: { 'x-correlation-id': correlationId },
-    });
+    return withExtraResponseHeaders(
+      Response.json(publicError, {
+        status: 502,
+        headers: { 'x-correlation-id': correlationId },
+      }),
+      extraResponseHeaders,
+    );
   }
 
   clearTimeout(headerTimer);
@@ -263,12 +314,15 @@ export async function proxyPostSse(options: ProxyPostSseOptions): Promise<Respon
 
   if (!upstream.ok || !upstream.body) {
     const rawBody = await upstream.text().catch(() => '');
-    return buildSafeUpstreamSseErrorResponse(
-      upstream.ok ? 502 : upstream.status,
-      rawBody,
-      correlationId,
-      source,
-      logger,
+    return withExtraResponseHeaders(
+      buildSafeUpstreamSseErrorResponse(
+        upstream.ok ? 502 : upstream.status,
+        rawBody,
+        correlationId,
+        source,
+        logger,
+      ),
+      extraResponseHeaders,
     );
   }
 
@@ -295,6 +349,7 @@ export async function proxyPostSse(options: ProxyPostSseOptions): Promise<Respon
   responseHeaders.set('cache-control', 'no-cache');
   responseHeaders.set('x-accel-buffering', 'no');
   responseHeaders.set('x-correlation-id', correlationId);
+  applyExtraResponseHeaders(responseHeaders, extraResponseHeaders);
 
   const trackedBody = wrapStreamWithTerminationTracking(
     upstream.body,

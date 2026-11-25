@@ -1,0 +1,89 @@
+@layer component {
+  .container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-sm);
+    padding: var(--sf-space-3) var(--sf-space-4);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-bg-panel);
+  }
+
+  .header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    gap: var(--sf-gap-xs);
+  }
+
+  .pillGroup {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-gap-xs);
+  }
+
+  .statusPill {
+    display: inline-flex;
+    align-items: var(--sf-align-center);
+    padding: var(--sf-space-1) var(--sf-space-2);
+    border-radius: var(--sf-radius-pill);
+    border: var(--sf-border-width) solid var(--sf-border);
+    font-family: var(--sf-font-mono);
+    font-size: var(--sf-text-2xs);
+    font-weight: var(--sf-weight-semibold);
+  }
+
+  .statusPass {
+    background: var(--sf-success-bg);
+    border-color: var(--sf-success);
+    color: var(--sf-success);
+  }
+
+  .statusFail {
+    background: var(--sf-err-bg);
+    border-color: var(--sf-err);
+    color: var(--sf-err);
+  }
+
+  .metaBadge {
+    display: inline-flex;
+    align-items: var(--sf-align-center);
+    padding: var(--sf-space-1) var(--sf-space-2);
+    border-radius: var(--sf-radius-xs);
+    border: var(--sf-border-width) solid var(--sf-border-subtle);
+    background: var(--sf-bg-editor);
+    font-family: var(--sf-font-mono);
+    font-size: var(--sf-text-2xs);
+    color: var(--sf-fg-cmt);
+  }
+
+  .findingsList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-2xs);
+    margin: var(--sf-space-0);
+    padding: var(--sf-space-0);
+    list-style: none;
+  }
+
+  .findingItem {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sf-gap-xs);
+    padding: var(--sf-space-2) var(--sf-space-3);
+    border-radius: var(--sf-radius-xs);
+    border: var(--sf-border-width) solid var(--sf-err);
+    background: var(--sf-err-bg);
+    font-family: var(--sf-font-code);
+    font-size: var(--sf-text-2xs);
+    color: var(--sf-err);
+  }
+
+  .cleanNote {
+    margin: var(--sf-space-0);
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-prop);
+  }
+}

@@ -6,13 +6,19 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"regexp"
 	"strings"
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/llm"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
 )
 
-const maxEmbedChunkChars = 1800
+const (
+	maxEmbedChunkChars      = 1800
+	jdMaxEvidenceChunks     = 12
+	jdMaxEvidenceTotalChars = 9000
+)
 
 var errMalformedJDJSON = errors.New("llm returned invalid jd evaluation json")
 
@@ -83,12 +89,10 @@ func embedQueryText(ctx context.Context, provider llm.Provider, text string) ([]
 	return out, nil
 }
 
+var untrustedJobDescriptionTagRe = regexp.MustCompile(`(?i)<\s*/?\s*untrusted_job_description\b[^>]*>?`)
+
 func sanitizeUntrustedDelimitedText(raw string) string {
-	replacer := strings.NewReplacer(
-		"</untrusted_job_description>", "[closing-tag-redacted]",
-		"<untrusted_job_description>", "[opening-tag-redacted]",
-	)
-	return replacer.Replace(strings.TrimSpace(raw))
+	return untrustedJobDescriptionTagRe.ReplaceAllString(strings.TrimSpace(raw), "[tag-redacted]")
 }
 
 func extractJSONObject(raw string) string {
@@ -178,12 +182,38 @@ func evaluateJDWithLLM(
 	return repaired, repairComp, nil
 }
 
+// buildBoundedJDEvidence formats pinned profile_core plus up to 12 hybrid RRF chunks within
+// a strict character budget safely inside maxTokensPerRun = 4000.
+func buildBoundedJDEvidence(profileCore pg.CorpusDocument, candidates []hybridCandidate) (string, []contracts.AskSource) {
+	if len(candidates) > jdMaxEvidenceChunks {
+		candidates = candidates[:jdMaxEvidenceChunks]
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "[Profile Core] %s: %s\n", profileCore.Title, profileCore.Snippet)
+
+	included := make([]hybridCandidate, 0, len(candidates))
+	for i, c := range candidates {
+		heading := c.SectionHeading
+		if heading != "" {
+			heading = " / " + heading
+		}
+		line := fmt.Sprintf("[%d] %s%s (%s, score=%.2f): %s\n", i+1, c.Title, heading, c.Category, c.NormalizedScore, c.Snippet)
+		if b.Len()+len(line) > jdMaxEvidenceTotalChars && len(included) > 0 {
+			break
+		}
+		b.WriteString(line)
+		included = append(included, c)
+	}
+	return b.String(), candidatesToAskSources(included)
+}
+
 func buildJDAbsention(providerName, model, reason string, tokensUsed, latencyMs int, corrID, attemptID string, quota *contracts.QuotaStatus) contracts.AskResponse {
 	zero := 0
 	return contracts.AskResponse{
 		AttemptID:     attemptID,
 		Grounded:      false,
 		Abstained:     true,
+		GroundingTier: contracts.GroundingTierBoundary,
 		Mode:          "jd_match",
 		Answer:        reason,
 		Sources:       []contracts.AskSource{},

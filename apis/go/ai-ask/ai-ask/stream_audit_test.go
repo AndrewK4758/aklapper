@@ -23,6 +23,7 @@ type scriptedEmitter struct {
 	errorCodes  []string
 }
 
+func (e *scriptedEmitter) EmitStatus(_, _ string) error            { return nil }
 func (e *scriptedEmitter) EmitMeta(askStreamMeta) error            { return nil }
 func (e *scriptedEmitter) EmitSources([]contracts.AskSource) error { return nil }
 func (e *scriptedEmitter) EmitDone(askStreamDone) error            { e.doneCount++; return nil }
@@ -139,11 +140,11 @@ func TestStreamEmitDisconnectOrderingAndTurnAuditLogs(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GetTurnByAttemptID failed: %v", err)
 		}
-		if turn.Status != contracts.TurnStatusCompleted || turn.Result == nil {
-			t.Fatalf("expected reconciled completed partial turn, got status=%s result=%+v", turn.Status, turn.Result)
+		if turn.Status != contracts.TurnStatusFailed || turn.ErrorCode != contracts.ErrCodeStreamAborted || turn.TokensUsed < 1 {
+			t.Fatalf("expected failed partial-abort turn with consumed tokens charged, got status=%s code=%s tokens=%d", turn.Status, turn.ErrorCode, turn.TokensUsed)
 		}
-		if strings.Contains(turn.Result.Answer, "must NOT be persisted") {
-			t.Fatalf("undelivered chunk 2 was persisted into partial answer: %q", turn.Result.Answer)
+		if turn.Result != nil {
+			t.Fatalf("expected nil result on partial-aborted failed turn (excluded from recall), got %+v", turn.Result)
 		}
 		quota, _ := store.GetQuotaStatus(context.Background(), contracts.RoleGuest, "sess-chunk2-epipe")
 		if quota.TurnsUsed != 1 {

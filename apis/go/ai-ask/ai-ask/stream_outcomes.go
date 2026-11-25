@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -13,8 +12,16 @@ import (
 	"github.com/AndrewK4758/aklapper/packages/go/kit/llm"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/privacy"
-	"github.com/AndrewK4758/aklapper/packages/go/kit/qdrant"
 )
+
+func logStreamLifecycleOutcome(branch, attemptID, corrID string) {
+	logAskEvent("ai_ask.stream.lifecycle_outcome", map[string]any{
+		"seam_type":     "RULE_DIVERGENCE",
+		"branch":        branch,
+		"attemptId":     attemptID,
+		"correlationId": corrID,
+	})
+}
 
 func handleReusedStreamTurn(
 	turn pg.TurnRecord,
@@ -38,16 +45,34 @@ func handleReusedStreamTurn(
 		}
 		r := turn.Result
 		_ = emitter.EmitMeta(askStreamMeta{
-			AttemptID: turn.AttemptID, CorrelationID: turn.CorrelationID, Mode: turn.Mode, Provider: r.Provider, Model: r.Model,
+			AttemptID:      turn.AttemptID,
+			ConversationID: turn.ConversationID,
+			TurnIndex:      turn.TurnIndex,
+			CorrelationID:  turn.CorrelationID,
+			Mode:           turn.Mode,
+			Provider:       r.Provider,
+			Model:          r.Model,
 		})
 		_ = emitter.EmitSources(r.Sources)
 		if r.Answer != "" {
 			_ = emitter.EmitDelta(r.Answer)
 		}
 		_ = emitter.EmitDone(askStreamDone{
-			AttemptID: turn.AttemptID, Grounded: r.Grounded, Abstained: r.Abstained, Answer: r.Answer,
-			Provider: r.Provider, Model: r.Model, TokensUsed: r.TokensUsed, LatencyMs: r.LatencyMs,
-			CorrelationID: turn.CorrelationID, Quota: &quota,
+			AttemptID:         turn.AttemptID,
+			ConversationID:    turn.ConversationID,
+			TurnIndex:         turn.TurnIndex,
+			Grounded:          r.Grounded,
+			Abstained:         r.Abstained,
+			GroundingTier:     r.GroundingTier,
+			Answer:            r.Answer,
+			SuggestedLinks:    r.SuggestedLinks,
+			FollowUpQuestions: r.FollowUpQuestions,
+			Provider:          r.Provider,
+			Model:             r.Model,
+			TokensUsed:        r.TokensUsed,
+			LatencyMs:         r.LatencyMs,
+			CorrelationID:     turn.CorrelationID,
+			Quota:             &quota,
 		})
 		return nil
 	case contracts.TurnStatusFailed, contracts.TurnStatusExpired:
@@ -65,39 +90,12 @@ func handleReusedStreamTurn(
 	}
 }
 
-func filterGroundedHits(hits []qdrant.SearchHit) ([]qdrant.SearchHit, float64) {
-	filtered := make([]qdrant.SearchHit, 0, len(hits))
-	topScore := 0.0
-	for _, hit := range hits {
-		if hit.Score > topScore {
-			topScore = hit.Score
-		}
-		if hit.Score >= minGroundScore {
-			filtered = append(filtered, hit)
-		}
-	}
-	return filtered, topScore
-}
-
-func buildGroundedPromptContext(filtered []qdrant.SearchHit) ([]contracts.AskSource, string) {
-	var b strings.Builder
-	sources := make([]contracts.AskSource, 0, len(filtered))
-	for i, hit := range filtered {
-		docID := stringFromPayload(hit.Payload, "docId", fmt.Sprintf("%v", hit.ID))
-		title := stringFromPayload(hit.Payload, "title", "Portfolio Evidence")
-		snippet := stringFromPayload(hit.Payload, "snippet", "")
-		category := stringFromPayload(hit.Payload, "category", "portfolio")
-		sources = append(sources, contracts.AskSource{ID: docID, Title: title, Snippet: snippet, Score: hit.Score, Category: category})
-		fmt.Fprintf(&b, "[%d] %s (%s, score=%.2f): %s\n", i+1, title, category, hit.Score, snippet)
-	}
-	return sources, b.String()
-}
-
 func streamAbstainedTurn(
 	ctx context.Context,
 	deps askStreamDeps,
 	emitter streamEmitter,
-	attemptID string,
+	attemptID, convID string,
+	turnIndex int,
 	in askStreamInput,
 	role, mode string,
 	topScore float64,
@@ -106,13 +104,29 @@ func streamAbstainedTurn(
 ) {
 	_ = emitter.EmitSources([]contracts.AskSource{})
 	reason := fmt.Sprintf("Abstaining: top corpus evidence score (%.2f) fell below strict grounding threshold (%.2f).", topScore, minGroundScore)
-	if hitCount == 0 {
+	if hitCount == 0 && topScore == 0 {
 		reason = "Abstaining: no grounded portfolio evidence matched your request above threshold."
 	}
 	latency := int(time.Since(started).Milliseconds())
+	links := defaultSuggestedLinksForTier(contracts.GroundingTierBoundary, nil, in.CorrelationID)
+	followUps := defaultFollowUpQuestionsForTier(contracts.GroundingTierBoundary)
+
 	abstainedResp := contracts.AskResponse{
-		AttemptID: attemptID, Grounded: false, Abstained: true, Mode: mode, Answer: reason,
-		Sources: []contracts.AskSource{}, Provider: deps.provider.Name(), TokensUsed: 0, LatencyMs: latency, CorrelationID: in.CorrelationID,
+		AttemptID:         attemptID,
+		ConversationID:    convID,
+		TurnIndex:         turnIndex,
+		Grounded:          false,
+		Abstained:         true,
+		GroundingTier:     contracts.GroundingTierBoundary,
+		Mode:              mode,
+		Answer:            reason,
+		Sources:           []contracts.AskSource{},
+		SuggestedLinks:    links,
+		FollowUpQuestions: followUps,
+		Provider:          deps.provider.Name(),
+		TokensUsed:        0,
+		LatencyMs:         latency,
+		CorrelationID:     in.CorrelationID,
 	}
 	cleanCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), detachedCleanupTimeout)
 	defer cancel()
@@ -123,6 +137,11 @@ func streamAbstainedTurn(
 			Code: contracts.ErrCodeStreamTimeout, Status: http.StatusGatewayTimeout,
 			Message: "Section took too long to load.", Action: "Retry loading or refresh.", CorrelationID: in.CorrelationID,
 		}, &refQuota)
+		branch := "upstream_error"
+		if errors.Is(recErr, pg.ErrTurnLeaseExpired) {
+			branch = "lease_expired"
+		}
+		logStreamLifecycleOutcome(branch, attemptID, in.CorrelationID)
 		logAskEvent("ai_ask.turn.audit", map[string]any{
 			"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
 			"provider": deps.provider.Name(), "tokensReserved": pg.DefaultAskTurnReserveTokens,
@@ -132,12 +151,26 @@ func streamAbstainedTurn(
 		return
 	}
 	_ = emitter.EmitDone(askStreamDone{
-		AttemptID: attemptID, Grounded: false, Abstained: true, Answer: reason,
-		Provider: deps.provider.Name(), TokensUsed: 0, LatencyMs: latency, CorrelationID: in.CorrelationID, Quota: &quota,
+		AttemptID:         attemptID,
+		ConversationID:    convID,
+		TurnIndex:         turnIndex,
+		Grounded:          false,
+		Abstained:         true,
+		GroundingTier:     contracts.GroundingTierBoundary,
+		Answer:            reason,
+		SuggestedLinks:    links,
+		FollowUpQuestions: followUps,
+		Provider:          deps.provider.Name(),
+		TokensUsed:        0,
+		LatencyMs:         latency,
+		CorrelationID:     in.CorrelationID,
+		Quota:             &quota,
 	})
+	logStreamLifecycleOutcome("abstained", attemptID, in.CorrelationID)
 	logAskEvent("ai_ask.turn.audit", map[string]any{
 		"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
-		"provider": deps.provider.Name(), "tokensReserved": pg.DefaultAskTurnReserveTokens,
+		"groundingTier": contracts.GroundingTierBoundary,
+		"provider":      deps.provider.Name(), "tokensReserved": pg.DefaultAskTurnReserveTokens,
 		"tokensUsed": 0, "deltaStatus": "abstained", "correlationId": in.CorrelationID, "seam_type": "DELTA_AUDIT_GAP",
 	})
 }
@@ -146,7 +179,10 @@ func finalizeStreamOutcome(
 	ctx context.Context,
 	deps askStreamDeps,
 	emitter streamEmitter,
-	attemptID string,
+	attemptID, convID string,
+	turnIndex int,
+	tier string,
+	rewriteTokens int,
 	in askStreamInput,
 	role, mode string,
 	sources []contracts.AskSource,
@@ -165,6 +201,15 @@ func finalizeStreamOutcome(
 			Code: contracts.ErrCodeForbidden, Status: http.StatusForbidden,
 			Message: "Permission denied for action.", Action: "Return home or sign in again.", CorrelationID: in.CorrelationID,
 		}, &quota)
+		logAskEvent("ai_ask.stream.privacy_guard_triggered", map[string]any{
+			"seam_type":     "BOUNDARY_FAULT",
+			"severity":      "CRITICAL",
+			"attemptId":     attemptID,
+			"mode":          mode,
+			"action":        "aborted",
+			"correlationId": in.CorrelationID,
+		})
+		logStreamLifecycleOutcome("privacy_aborted", attemptID, in.CorrelationID)
 		logAskEvent("ai_ask.turn.audit", map[string]any{
 			"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
 			"provider": deps.provider.Name(), "tokensUsed": 0, "deltaStatus": "refunded",
@@ -181,6 +226,7 @@ func finalizeStreamOutcome(
 				Code: contracts.ErrCodeStreamAborted, Status: 499,
 				Message: "Request cancelled early.", Action: "Retry if you still need this view.", CorrelationID: in.CorrelationID,
 			}, &quota)
+			logStreamLifecycleOutcome("refunded_zero_token_abort", attemptID, in.CorrelationID)
 			logAskEvent("ai_ask.turn.audit", map[string]any{
 				"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
 				"provider": deps.provider.Name(), "tokensUsed": 0, "deltaStatus": "refunded",
@@ -188,19 +234,15 @@ func finalizeStreamOutcome(
 			})
 			return
 		}
-		charged := result.TokensUsed
+		charged := result.TokensUsed + rewriteTokens
 		if charged <= 0 {
 			charged = max(1, emittedRunes/4)
 		}
-		partialResp := contracts.AskResponse{
-			AttemptID: attemptID, Grounded: true, Abstained: false, Mode: mode, Answer: postGuardAnswer,
-			Sources: sources, Provider: deps.provider.Name(), Model: result.Model, TokensUsed: charged,
-			LatencyMs: latency, CorrelationID: in.CorrelationID,
-		}
 		deltaStatus := "aborted_partial"
-		if _, recErr := deps.store.ReconcileTurnTx(cleanCtx, attemptID, partialResp); recErr != nil {
+		if _, recErr := deps.store.ReconcilePartialAbortTurnTx(cleanCtx, attemptID, charged, contracts.ErrCodeStreamAborted); recErr != nil {
 			deltaStatus = "reconcile_failed"
 		}
+		logStreamLifecycleOutcome("partial_abort_reconciled", attemptID, in.CorrelationID)
 		logAskEvent("ai_ask.turn.audit", map[string]any{
 			"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
 			"provider": deps.provider.Name(), "model": result.Model, "tokensUsed": charged,
@@ -224,6 +266,7 @@ func finalizeStreamOutcome(
 		_ = emitter.EmitError(contracts.PublicAppError{
 			Code: errCode, Status: status, Message: msg, Action: action, CorrelationID: in.CorrelationID,
 		}, &quota)
+		logStreamLifecycleOutcome("upstream_error", attemptID, in.CorrelationID)
 		logAskEvent("ai_ask.turn.audit", map[string]any{
 			"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
 			"provider": deps.provider.Name(), "tokensUsed": 0, "deltaStatus": "refunded",
@@ -232,10 +275,26 @@ func finalizeStreamOutcome(
 		return
 	}
 
+	totalTokens := result.TokensUsed + rewriteTokens
+	links := defaultSuggestedLinksForTier(tier, sources, in.CorrelationID)
+	followUps := defaultFollowUpQuestionsForTier(tier)
 	resp := contracts.AskResponse{
-		AttemptID: attemptID, Grounded: true, Abstained: false, Mode: mode, Answer: postGuardAnswer,
-		Sources: sources, Provider: deps.provider.Name(), Model: result.Model, TokensUsed: result.TokensUsed,
-		LatencyMs: latency, CorrelationID: in.CorrelationID,
+		AttemptID:         attemptID,
+		ConversationID:    convID,
+		TurnIndex:         turnIndex,
+		Grounded:          true,
+		Abstained:         false,
+		GroundingTier:     tier,
+		Mode:              mode,
+		Answer:            postGuardAnswer,
+		Sources:           sources,
+		SuggestedLinks:    links,
+		FollowUpQuestions: followUps,
+		Provider:          deps.provider.Name(),
+		Model:             result.Model,
+		TokensUsed:        totalTokens,
+		LatencyMs:         latency,
+		CorrelationID:     in.CorrelationID,
 	}
 	quota, recErr := deps.store.ReconcileTurnTx(cleanCtx, attemptID, resp)
 	if recErr != nil {
@@ -244,6 +303,11 @@ func finalizeStreamOutcome(
 			Code: contracts.ErrCodeStreamTimeout, Status: http.StatusGatewayTimeout,
 			Message: "Section took too long to load.", Action: "Retry loading or refresh.", CorrelationID: in.CorrelationID,
 		}, &refQuota)
+		branch := "upstream_error"
+		if errors.Is(recErr, pg.ErrTurnLeaseExpired) {
+			branch = "lease_expired"
+		}
+		logStreamLifecycleOutcome(branch, attemptID, in.CorrelationID)
 		logAskEvent("ai_ask.turn.audit", map[string]any{
 			"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
 			"provider": deps.provider.Name(), "model": result.Model, "tokensReserved": pg.DefaultAskTurnReserveTokens,
@@ -253,13 +317,28 @@ func finalizeStreamOutcome(
 		return
 	}
 	_ = emitter.EmitDone(askStreamDone{
-		AttemptID: attemptID, Grounded: true, Abstained: false, Answer: postGuardAnswer,
-		Provider: deps.provider.Name(), Model: result.Model, TokensUsed: result.TokensUsed,
-		UsageEstimated: result.UsageEstimated, LatencyMs: latency, CorrelationID: in.CorrelationID, Quota: &quota,
+		AttemptID:         attemptID,
+		ConversationID:    convID,
+		TurnIndex:         turnIndex,
+		Grounded:          true,
+		Abstained:         false,
+		GroundingTier:     tier,
+		Answer:            postGuardAnswer,
+		SuggestedLinks:    links,
+		FollowUpQuestions: followUps,
+		Provider:          deps.provider.Name(),
+		Model:             result.Model,
+		TokensUsed:        totalTokens,
+		UsageEstimated:    result.UsageEstimated,
+		LatencyMs:         latency,
+		CorrelationID:     in.CorrelationID,
+		Quota:             &quota,
 	})
+	logStreamLifecycleOutcome("completed", attemptID, in.CorrelationID)
 	logAskEvent("ai_ask.turn.audit", map[string]any{
 		"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
-		"provider": deps.provider.Name(), "model": result.Model, "tokensReserved": pg.DefaultAskTurnReserveTokens,
-		"tokensUsed": result.TokensUsed, "deltaStatus": "reconciled", "correlationId": in.CorrelationID, "seam_type": "DELTA_AUDIT_GAP",
+		"groundingTier": tier,
+		"provider":      deps.provider.Name(), "model": result.Model, "tokensReserved": pg.DefaultAskTurnReserveTokens,
+		"tokensUsed": totalTokens, "deltaStatus": "reconciled", "correlationId": in.CorrelationID, "seam_type": "DELTA_AUDIT_GAP",
 	})
 }

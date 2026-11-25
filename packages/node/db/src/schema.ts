@@ -15,6 +15,8 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
+export { careerDossiers } from './schema-dossiers.ts';
+
 export const menuItems = pgTable('menu_items', {
   slug: text('slug').primaryKey(),
   keyShortcut: text('key_shortcut').notNull(),
@@ -240,10 +242,25 @@ export const askTurns = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     leaseExpiresAt: timestamp('lease_expires_at', { withTimezone: true }).notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    conversationId: text('conversation_id'),
+    turnIndex: integer('turn_index'),
+    promptText: text('prompt_text'),
   },
   table => [
+    check(
+      'ask_turns_prompt_text_length_check',
+      sql`${table.promptText} IS NULL OR char_length(${table.promptText}) <= 1000`,
+    ),
     index('ask_turns_session_expires_idx').on(table.sessionId, table.expiresAt),
     index('ask_turns_status_lease_idx').on(table.status, table.leaseExpiresAt),
+    index('ask_turns_session_conv_created_idx').on(
+      table.sessionId,
+      table.conversationId,
+      table.createdAt,
+    ),
+    uniqueIndex('ask_turns_conv_turn_idx')
+      .on(table.sessionId, table.conversationId, table.turnIndex)
+      .where(sql`${table.conversationId} IS NOT NULL AND ${table.turnIndex} IS NOT NULL`),
   ],
 );
 

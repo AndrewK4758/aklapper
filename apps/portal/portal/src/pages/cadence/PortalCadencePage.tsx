@@ -71,7 +71,7 @@ export interface PortalCadencePageProps {
 const DEFAULT_QUOTA: QuotaStatus = {
   role: 'guest',
   turnsUsed: 0,
-  maxTurns: 5,
+  maxTurns: 10,
   tokensUsed: 0,
   maxTokens: 100_000,
 };

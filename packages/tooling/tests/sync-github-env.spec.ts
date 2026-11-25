@@ -68,6 +68,7 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
         AGENSI_FETCH_TIMEOUT_MS: '1800',
         ADMIN_HANDLE: 'admin',
         ADMIN_PASSWORD: 'admin-password-val',
+        DOSSIER_PRIVACY_DENYLIST: 'WyJTeW50aGV0aWNDbGllbnRYIl0=',
       });
 
       expect(plan.missingRequired).toEqual([]);
@@ -79,6 +80,7 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
         'QDRANT_API_KEY',
         'AGENSI_API_KEY',
         'AI_PRIVACY_DENYLIST',
+        'DOSSIER_PRIVACY_DENYLIST',
       ]);
       expect(plan.skippedOptionalSecrets).toEqual([]);
       expect(plan.gcpSecrets.map(s => s.envKey)).toEqual([
@@ -90,6 +92,7 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
         'ADMIN_PASSWORD',
         'AGENSI_API_KEY',
         'AI_PRIVACY_DENYLIST',
+        'DOSSIER_PRIVACY_DENYLIST',
       ]);
       expect(plan.variables.map(v => v.key)).toEqual(
         expect.arrayContaining([
@@ -131,6 +134,7 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
         'QDRANT_API_KEY',
         'AGENSI_API_KEY',
         'AI_PRIVACY_DENYLIST',
+        'DOSSIER_PRIVACY_DENYLIST',
       ]);
       expect(minimalPlan.skippedOptionalVariables).toContain('VERTEX_THINKING_BUDGET');
       expect(minimalPlan.gcpSecrets.map(s => s.envKey)).toEqual([

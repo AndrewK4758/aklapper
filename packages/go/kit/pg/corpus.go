@@ -55,6 +55,9 @@ func (s *Store) LoadCorpusDocs(ctx context.Context) ([]CorpusDocument, error) {
 	}
 	docs := CuratedPortfolioDocs()
 	if s == nil || s.pool == nil {
+		if s != nil {
+			docs = append(docs, s.loadMemoryCareerDossierChunks()...)
+		}
 		return docs, nil
 	}
 	creatorHandle := strings.TrimSpace(s.AgensiCreatorHandle)
@@ -85,6 +88,12 @@ func loadCorpusDocsFromQuerier(ctx context.Context, q rowQuerier, creatorHandle 
 		return nil, err
 	}
 	docs = append(docs, mileDocs...)
+
+	dossierDocs, err := queryPublishedCareerDossierChunks(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+	docs = append(docs, dossierDocs...)
 
 	return docs, nil
 }

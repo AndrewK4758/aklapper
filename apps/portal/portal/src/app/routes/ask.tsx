@@ -325,6 +325,7 @@ export default function PortalAskRoute({ loaderData }: Route.ComponentProps) {
             askStatusPayload: loaderData.askStatusPayload,
             correlationId: loaderData.correlationId,
           })}
+          streamEndpoint={href('/api/ask/stream')}
           actionResult={fetcher.data}
           isSubmitting={fetcher.state !== 'idle'}
           onSubmitAsk={({ mode, text, attemptId }) => {

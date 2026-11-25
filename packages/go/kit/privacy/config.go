@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
 	"regexp"
 	"strings"
 	"unicode"
@@ -33,7 +32,7 @@ var (
 	// ErrPrivacyAborted is returned when a fail-closed privacy rule halts stream emission.
 	ErrPrivacyAborted = errors.New("stream aborted by privacy guard")
 
-	unboundedQuantifierRe = regexp.MustCompile(`(^|[^\\])(?:\.\*|\.\+|\*|\+|\{\d+,\})`)
+	unboundedQuantifierRe = regexp.MustCompile(`(^|[^\\])(?:\.\*|\.\+|\{\d+,\})`)
 
 	builtInSecretRules = []builtInSecretRule{
 		{
@@ -121,11 +120,11 @@ func ruleFingerprint(category string, idx int, canonical string) string {
 }
 
 func isSeparatorRune(r rune) bool {
-	if unicode.IsSpace(r) {
+	if unicode.IsSpace(r) || unicode.Is(unicode.Cf, r) {
 		return true
 	}
 	switch r {
-	case '-', '_', '\u200B', '\u200C', '\u200D', '\uFEFF', '\u00AD':
+	case '-', '_', '.', '/':
 		return true
 	default:
 		return false
@@ -254,18 +253,13 @@ func LoadConfig(in ConfigInput) (*Config, error) {
 	return cfg, nil
 }
 
-// LoadConfigFromEnv loads AI_PRIVACY_DENYLIST or AI_PRIVACY_DENYLIST_FILE from the environment.
+// LoadConfigFromEnv loads AI_PRIVACY_DENYLIST (or AI_PRIVACY_DENYLIST_FILE) merged with
+// DOSSIER_PRIVACY_DENYLIST (base64-JSON or plain JSON fallback) from the environment.
 // Empty denylist in production is permitted with built-in secrets active plus a WARN audit event.
 func LoadConfigFromEnv() (*Config, error) {
-	raw := strings.TrimSpace(os.Getenv("AI_PRIVACY_DENYLIST"))
-	if raw == "" {
-		if filePath := strings.TrimSpace(os.Getenv("AI_PRIVACY_DENYLIST_FILE")); filePath != "" {
-			data, err := os.ReadFile(filePath)
-			if err != nil {
-				return nil, fmt.Errorf("read AI_PRIVACY_DENYLIST_FILE: %w", err)
-			}
-			raw = string(data)
-		}
+	raw, err := resolveEnvDenylistRaw()
+	if err != nil {
+		return nil, err
 	}
 
 	cfg, err := LoadConfig(ConfigInput{

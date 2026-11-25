@@ -67,6 +67,10 @@ func toProtoError(e *contracts.PublicAppError) *ai_askv1.PublicAppError {
 	}
 }
 
+func (e *grpcStreamEmitter) EmitStatus(_, _ string) error {
+	return nil
+}
+
 func (e *grpcStreamEmitter) EmitMeta(meta askStreamMeta) error {
 	return e.stream.Send(&ai_askv1.AskStreamChunk{
 		Payload: &ai_askv1.AskStreamChunk_Meta{

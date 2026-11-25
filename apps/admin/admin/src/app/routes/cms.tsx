@@ -1,4 +1,9 @@
-import type { AdminCmsLoaderData, QdrantHealthStatus, StreamResult } from '@aklapper/core';
+import {
+  type AdminCmsLoaderData,
+  extractPrivacySanitizationFindings,
+  type QdrantHealthStatus,
+  type StreamResult,
+} from '@aklapper/core';
 import { classifyServerError } from '@aklapper/core/server-errors';
 import { getSharedDb, loadAdminCmsData } from '@aklapper/db';
 import {
@@ -9,6 +14,7 @@ import {
   logDiagnosticError,
 } from '@aklapper/node-runtime/ssr/stream';
 import { OscStatusBadge, RouteErrorBoundaryView, SuspenseElement } from '@aklapper/ui';
+import { useState } from 'react';
 import { data, href } from 'react-router';
 
 import { type AdminCmsActionData, AdminCmsPage } from '#pages/cms';
@@ -47,7 +53,7 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Ad
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
-  await requireAdminSession(request, { context, source: 'admin.cms.action' });
+  const { session } = await requireAdminSession(request, { context, source: 'admin.cms.action' });
   const correlationId = getOrCreateCorrelationId(request, context);
   const reqCtx = getRequestContext(context);
   const logger = reqCtx?.logger ?? createFallbackLogger('admin-cms');
@@ -72,9 +78,16 @@ export async function action({ request, context }: Route.ActionArgs) {
   const intent = String(formData.get('intent') ?? '');
 
   try {
-    const outcome = await dispatchAdminCmsIntent(intent, formData, correlationId, logger);
+    const outcome = await dispatchAdminCmsIntent(
+      intent,
+      formData,
+      correlationId,
+      logger,
+      session.handle,
+    );
     return data<AdminCmsActionData>(outcome.payload, { status: outcome.status, headers });
   } catch (error) {
+    const sanitizationFindings = extractPrivacySanitizationFindings(error);
     const { publicError, diagnostic } = classifyServerError(error, {
       correlationId,
       source: 'admin.cms.action',
@@ -87,6 +100,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         code: publicError.code,
         action: publicError.action,
         correlationId: publicError.correlationId,
+        ...(sanitizationFindings ? { sanitizationFindings } : {}),
       },
       { status: publicError.status, headers },
     );
@@ -104,6 +118,7 @@ export function meta({ matches, location }: Route.MetaArgs) {
 }
 
 export default function AdminCmsRoute({ loaderData, actionData }: Route.ComponentProps) {
+  const [activeTab, setActiveTab] = useState<string>('site');
   const qdrantStatusSlot = (
     <SuspenseElement<QdrantHealthStatus>
       resolve={loaderData.qdrantPayload}
@@ -152,6 +167,8 @@ export default function AdminCmsRoute({ loaderData, actionData }: Route.Componen
           data={cms}
           qdrantStatusSlot={qdrantStatusSlot}
           actionData={actionData ?? null}
+          activeTab={activeTab}
+          onActiveTabChange={setActiveTab}
         />
       )}
     </SuspenseElement>

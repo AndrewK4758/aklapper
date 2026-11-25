@@ -1,5 +1,4 @@
-import { type AppErrorCode, validateSiteContentMetadata } from '@aklapper/core';
-import { classifyServerError } from '@aklapper/core/server-errors';
+import { type AppErrorCode, SITE_CONTENT_KEYS, validateSiteContentMetadata } from '@aklapper/core';
 import {
   deleteCadencePreset,
   deleteMenuItem,
@@ -19,11 +18,15 @@ import {
   upsertTerminalInitialEntry,
   upsertTerminalProfile,
 } from '@aklapper/db';
-import { logDiagnosticError, type SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
+import type { SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
 
 import type { AdminCmsActionData } from '#pages/cms';
 
-import { triggerQdrantReindex } from './admin-ops.server';
+import { handleCareerDossierIntent, isCareerDossierIntent } from './career-dossier-actions.server';
+import {
+  handleReindexQdrantIntent,
+  validatePortalAskPrivacyOutcome,
+} from './cms-reindex-privacy.server';
 
 export interface CmsActionOutcome {
   readonly status: number;
@@ -66,29 +69,14 @@ export async function dispatchAdminCmsIntent(
   formData: FormData,
   correlationId: string,
   logger: SsrStructuredLogger,
+  adminActor = 'admin',
 ): Promise<CmsActionOutcome> {
+  if (isCareerDossierIntent(intent)) {
+    return handleCareerDossierIntent(intent, formData, { correlationId, logger, adminActor });
+  }
+
   if (intent === 'reindex-qdrant') {
-    const result = await triggerQdrantReindex();
-    if (result.ok) {
-      return ok(result.message);
-    }
-    const upstreamError = Object.assign(new Error(result.message), {
-      status: 503,
-      statusText: 'Service Unavailable',
-      data: null,
-    });
-    const { publicError, diagnostic } = classifyServerError(upstreamError, {
-      correlationId,
-      source: 'admin.cms.action.reindex_qdrant',
-    });
-    logDiagnosticError(logger, diagnostic);
-    return fail(
-      publicError.status,
-      publicError.message,
-      publicError.code,
-      publicError.action,
-      publicError.correlationId,
-    );
+    return handleReindexQdrantIntent(correlationId, logger);
   }
 
   if (intent === 'set-maintenance') {
@@ -169,6 +157,15 @@ export async function dispatchAdminCmsIntent(
         'Correct the highlighted schema fields and submit again.',
         correlationId,
       );
+    }
+
+    if (key === SITE_CONTENT_KEYS.portalAsk) {
+      const privacyFailure = validatePortalAskPrivacyOutcome(
+        markdownBody,
+        validation.data,
+        correlationId,
+      );
+      if (privacyFailure) return privacyFailure;
     }
 
     const saved = await upsertSiteContent(getSharedDb(), key, markdownBody, validation.data);

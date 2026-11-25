@@ -259,8 +259,12 @@ func TestAskStreamHTTPAndGRPCContracts(t *testing.T) {
 		hPart.ServeHTTP(httptest.NewRecorder(), reqP)
 
 		turnP, quotaP, err := store.GetTurnByAttemptID(context.Background(), attP, "guest-cancel-partial")
-		if err != nil || turnP.Status != contracts.TurnStatusCompleted || quotaP.TurnsUsed != 1 || turnP.TokensUsed < 1 {
-			t.Fatalf("expected partial-rune cancel reconciled with >=1 token charged, got turn=%+v quota=%+v err=%v", turnP, quotaP, err)
+		if err != nil || turnP.Status != contracts.TurnStatusFailed || turnP.ErrorCode != contracts.ErrCodeStreamAborted || quotaP.TurnsUsed != 1 || turnP.TokensUsed < 1 {
+			t.Fatalf("expected partial-rune cancel reconciled under failed status with >=1 token charged, got turn=%+v quota=%+v err=%v", turnP, quotaP, err)
+		}
+		histP, _ := store.ListConversationHistory(context.Background(), "guest-cancel-partial", turnP.ConversationID, 6)
+		if len(histP) != 0 {
+			t.Fatalf("expected partial-aborted failed turn excluded from conversation recall, got %+v", histP)
 		}
 	})
 

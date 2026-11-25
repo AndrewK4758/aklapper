@@ -240,4 +240,47 @@ export const routeDiscovery = { mode: 'lazy', manifestPath: '/__manifest' };
       rmSync(buildDir, { recursive: true, force: true });
     }
   });
+
+  it('forwards Set-Cookie via extraResponseHeaders on both 200 SSE and error responses without hop-by-hop headers', async () => {
+    const okRes = await proxyPostSse({
+      baseUrl: 'http://127.0.0.1:8083',
+      path: '/v1/ask/stream',
+      body: { mode: 'qa', question: 'Cookie test' },
+      extraResponseHeaders: {
+        'Set-Cookie': 'ak_guest_session=guest-test-1; Path=/; HttpOnly; SameSite=Lax',
+        Connection: 'keep-alive',
+      },
+      fetchImpl: async () =>
+        new Response('event: done\ndata: {"ok":true}\n\n', {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream; charset=utf-8' },
+        }),
+    });
+    expect(okRes.status).toBe(200);
+    expect(okRes.headers.get('set-cookie')).toContain('ak_guest_session=guest-test-1');
+    expect(okRes.headers.get('connection')).toBeNull();
+    expect(okRes.headers.get('x-accel-buffering')).toBe('no');
+
+    const errRes = await proxyPostSse({
+      baseUrl: 'http://127.0.0.1:8083',
+      path: '/v1/ask/stream',
+      body: { mode: 'qa', question: 'Cookie error test' },
+      extraResponseHeaders: {
+        'Set-Cookie': 'ak_guest_session=guest-test-2; Path=/; HttpOnly; SameSite=Lax',
+      },
+      fetchImpl: async () =>
+        Response.json(
+          {
+            code: 'ERR_RATE_LIMITED',
+            status: 429,
+            message: 'Too many requests received.',
+            action: 'Wait a moment and submit again.',
+            correlationId: 'corr-429-cookie',
+          },
+          { status: 429 },
+        ),
+    });
+    expect(errRes.status).toBe(429);
+    expect(errRes.headers.get('set-cookie')).toContain('ak_guest_session=guest-test-2');
+  });
 });

@@ -42,6 +42,13 @@ func handleReindex(provider llm.Provider, vectorStore *qdrant.Client, store *pg.
 		res, err := qdrantseed.SeedPortfolioDocs(r.Context(), provider, vectorStore, store, opts)
 		if err != nil {
 			switch {
+			case errors.Is(err, qdrantseed.ErrReindexLocked):
+				logAskEvent("ai_ask.reindex.lock_contended", map[string]any{
+					"correlationId": corrID,
+					"seam_type":     "UNSOUND_CONDITION",
+				})
+				writePublicError(w, http.StatusConflict, contracts.ErrCodeConstraint,
+					"A portfolio reindex is already in progress.", "Wait for the active reindex to complete and retry.", corrID)
 			case errors.Is(err, qdrantseed.ErrPostgresUnavailable):
 				logAskEvent("ai_ask.reindex.pg_error", map[string]any{
 					"correlationId": corrID,

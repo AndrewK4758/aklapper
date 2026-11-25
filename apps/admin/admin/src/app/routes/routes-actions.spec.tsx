@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   setMaintenanceModeDefault: vi.fn<AsyncUnknownFn>(),
   syncAgensiCatalog: vi.fn<AsyncUnknownFn>(),
   upsertSiteContent: vi.fn<AsyncUnknownFn>(),
+  upsertCareerDossier: vi.fn<AsyncUnknownFn>(),
   deleteMenuItem: vi.fn<AsyncUnknownFn>(),
   deleteContactSubmission: vi.fn<AsyncUnknownFn>(),
   deleteContactSubmissions: vi.fn<AsyncUnknownFn>(),
@@ -37,6 +38,7 @@ vi.mock('@aklapper/db', async importOriginal => {
     setMaintenanceModeDefault: mocks.setMaintenanceModeDefault,
     syncAgensiCatalog: mocks.syncAgensiCatalog,
     upsertSiteContent: mocks.upsertSiteContent,
+    upsertCareerDossier: mocks.upsertCareerDossier,
     deleteMenuItem: mocks.deleteMenuItem,
     deleteContactSubmission: mocks.deleteContactSubmission,
     deleteContactSubmissions: mocks.deleteContactSubmissions,
@@ -607,5 +609,57 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
       }),
     );
     expect(logger.error).toHaveBeenCalledTimes(1);
+  });
+
+  it('emits admin.cms.dossier_mutation_committed DELTA_AUDIT_GAP log on career dossier upsert', async () => {
+    mocks.upsertCareerDossier.mockResolvedValueOnce({
+      slug: 'cloud-platform-audit',
+      kind: 'architecture',
+      title: 'Cloud Platform Audit',
+      domainLabel: 'Cloud',
+      roleTitle: 'Architect',
+      timeframe: '2025',
+      skills: ['Go'],
+      summaryBody: 'Clean summary.',
+      sections: [{ heading: 'Security', body: 'Fail-closed design.' }],
+      publishStatus: 'draft',
+      sanitizationVerifiedAt: '2026-11-25T00:00:00.000Z',
+      denylistHash: 'hash',
+      sortOrder: 1,
+      updatedAt: '2026-11-25T00:00:00.000Z',
+    });
+
+    const { args, logger } = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      {
+        intent: 'upsert-career-dossier',
+        slug: 'cloud-platform-audit',
+        kind: 'architecture',
+        title: 'Cloud Platform Audit',
+        domainLabel: 'Cloud',
+        roleTitle: 'Architect',
+        timeframe: '2025',
+        skills: 'Go',
+        summaryBody: 'Clean summary.',
+        sectionsJson: JSON.stringify([{ heading: 'Security', body: 'Fail-closed design.' }]),
+        sortOrder: '1',
+      },
+      'corr-dossier-audit',
+    );
+    const res = (await cmsAction(args as never)) as unknown as DataWithStatus;
+    expect(res.data['ok']).toBe(true);
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'admin.cms.dossier_mutation_committed',
+        seam_type: 'DELTA_AUDIT_GAP',
+        slug: 'cloud-platform-audit',
+        publishStatus: 'draft',
+        chunkCount: 2,
+        adminActor: AUTH_STATUS.session.handle,
+        correlationId: 'corr-dossier-audit',
+      }),
+      expect.any(String),
+    );
   });
 });

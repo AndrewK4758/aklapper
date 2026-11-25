@@ -525,11 +525,17 @@ jobs:
             HAS_AGENSI_API_KEY="true"
           fi
 
+          HAS_DOSSIER_PRIVACY_DENYLIST="false"
+          if gcloud secrets versions describe latest --secret="DOSSIER_PRIVACY_DENYLIST" --project="$GCP_PROJECT_ID" >/dev/null 2>&1; then
+            HAS_DOSSIER_PRIVACY_DENYLIST="true"
+          fi
+
           echo "auth_url=${AUTH_URL}" >> "$GITHUB_OUTPUT"
           echo "analytics_url=${ANALYTICS_URL}" >> "$GITHUB_OUTPUT"
           echo "auth_service_url=${AUTH_SERVICE_URL}" >> "$GITHUB_OUTPUT"
           echo "analytics_service_url=${ANALYTICS_SERVICE_URL}" >> "$GITHUB_OUTPUT"
           echo "has_agensi_api_key=${HAS_AGENSI_API_KEY}" >> "$GITHUB_OUTPUT"
+          echo "has_dossier_privacy_denylist=${HAS_DOSSIER_PRIVACY_DENYLIST}" >> "$GITHUB_OUTPUT"
 
       - name: Deploy portal SSR to Cloud Run
         id: deploy-portal
@@ -618,8 +624,8 @@ jobs:
             ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_ADMIN == 'true' && '--allow-unauthenticated' || '--no-allow-unauthenticated' }}
             ${{ vars.CLOUD_SQL_INSTANCE != '' && format('--add-cloudsql-instances={0}', vars.CLOUD_SQL_INSTANCE) || '' }}
             --service-account=${{ vars.GCP_CLOUDRUN_SERVICE_ACCOUNT || secrets.GCP_WIF_SERVICE_ACCOUNT }}
-            --remove-env-vars=DATABASE_URL,TOTP_ENCRYPTION_KEY,INTERNAL_AUTH_SECRET,ANALYTICS_DAILY_SALT,QDRANT_API_KEY,AGENSI_API_KEY
-            --set-secrets=DATABASE_URL=DATABASE_URL:latest,TOTP_ENCRYPTION_KEY=TOTP_ENCRYPTION_KEY:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest,ANALYTICS_DAILY_SALT=ANALYTICS_DAILY_SALT:latest${{ vars.QDRANT_URL != '' && ',QDRANT_API_KEY=QDRANT_API_KEY:latest' || '' }}${{ steps.api-urls.outputs.has_agensi_api_key == 'true' && ',AGENSI_API_KEY=AGENSI_API_KEY:latest' || '' }}
+            --remove-env-vars=DATABASE_URL,TOTP_ENCRYPTION_KEY,INTERNAL_AUTH_SECRET,ANALYTICS_DAILY_SALT,QDRANT_API_KEY,AGENSI_API_KEY,DOSSIER_PRIVACY_DENYLIST
+            --set-secrets=DATABASE_URL=DATABASE_URL:latest,TOTP_ENCRYPTION_KEY=TOTP_ENCRYPTION_KEY:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest,ANALYTICS_DAILY_SALT=ANALYTICS_DAILY_SALT:latest${{ vars.QDRANT_URL != '' && ',QDRANT_API_KEY=QDRANT_API_KEY:latest' || '' }}${{ steps.api-urls.outputs.has_agensi_api_key == 'true' && ',AGENSI_API_KEY=AGENSI_API_KEY:latest' || '' }}${{ steps.api-urls.outputs.has_dossier_privacy_denylist == 'true' && ',DOSSIER_PRIVACY_DENYLIST=DOSSIER_PRIVACY_DENYLIST:latest' || '' }}
             --port=8080
             --min-instances=0
             --max-instances=2
@@ -808,6 +814,10 @@ jobs:
             gcloud secrets versions access latest --secret="AI_PRIVACY_DENYLIST" --project="$GCP_PROJECT_ID" > "${tmp_secrets_dir}/AI_PRIVACY_DENYLIST"
             chmod 600 "${tmp_secrets_dir}/AI_PRIVACY_DENYLIST"
           fi
+          if gcloud secrets versions describe latest --secret="DOSSIER_PRIVACY_DENYLIST" --project="$GCP_PROJECT_ID" >/dev/null 2>&1; then
+            gcloud secrets versions access latest --secret="DOSSIER_PRIVACY_DENYLIST" --project="$GCP_PROJECT_ID" > "${tmp_secrets_dir}/DOSSIER_PRIVACY_DENYLIST"
+            chmod 600 "${tmp_secrets_dir}/DOSSIER_PRIVACY_DENYLIST"
+          fi
 
           kubectl create configmap aklapper-runtime-config \
             -n portfolio-public \
@@ -836,6 +846,9 @@ jobs:
           fi
           if [ -s "${tmp_secrets_dir}/AI_PRIVACY_DENYLIST" ]; then
             public_secret_args+=(--from-file="AI_PRIVACY_DENYLIST=${tmp_secrets_dir}/AI_PRIVACY_DENYLIST")
+          fi
+          if [ -s "${tmp_secrets_dir}/DOSSIER_PRIVACY_DENYLIST" ]; then
+            public_secret_args+=(--from-file="DOSSIER_PRIVACY_DENYLIST=${tmp_secrets_dir}/DOSSIER_PRIVACY_DENYLIST")
           fi
           kubectl create secret generic aklapper-runtime-secrets \
             -n portfolio-public \

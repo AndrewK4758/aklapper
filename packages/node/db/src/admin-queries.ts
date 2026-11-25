@@ -66,9 +66,11 @@ import {
   TerminalProfileUpsertSchema,
 } from '@aklapper/core';
 import { resolveAgensiCreatorHandle } from '@aklapper/node-runtime/agensi';
+import { sanitizePortalAskSiteContent } from '@aklapper/node-runtime/privacy';
 import { asc, count, desc, eq, gte, ilike, inArray, lte, or, sql } from 'drizzle-orm';
 
 import { queryCreatorPublishedSkills, readAgensiSyncState } from './agensi-sync.ts';
+import { listCareerDossiers } from './career-dossiers.ts';
 import type { AppDatabase } from './client.ts';
 import { getMenuItems, getSiteContent, SITE_CONTENT_KEYS } from './queries.ts';
 import {
@@ -488,6 +490,7 @@ export async function loadAdminCmsData(
     agensiSkills,
     syncStateRow,
     presetRows,
+    careerDossiers,
   ] = await Promise.all([
     db.select().from(schema.siteContent).orderBy(asc(schema.siteContent.key)),
     db
@@ -529,6 +532,7 @@ export async function loadAdminCmsData(
       .select()
       .from(schema.cadencePresets)
       .orderBy(asc(schema.cadencePresets.sortOrder), asc(schema.cadencePresets.slug)),
+    listCareerDossiers(db),
   ]);
 
   const portalChromeRow = siteContentRows.find(row => row.key === SITE_CONTENT_KEYS.portalChrome);
@@ -574,6 +578,7 @@ export async function loadAdminCmsData(
         })
       : null,
     cadencePresets: presetRows.map(row => CadencePresetSchema.parse(row)),
+    careerDossiers,
   });
 }
 
@@ -590,6 +595,10 @@ export async function upsertSiteContent(
         ...SITE_CONTENT_SCHEMA_BY_KEY[parsed.key].parse(parsed.metadataJson),
       }
     : parsed.metadataJson;
+
+  if (parsed.key === SITE_CONTENT_KEYS.portalAsk) {
+    sanitizePortalAskSiteContent(parsed.markdownBody, validatedMetadata);
+  }
 
   const [row] = await db
     .insert(schema.siteContent)
