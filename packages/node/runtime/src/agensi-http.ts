@@ -77,6 +77,19 @@ export async function fetchWithValidatedRedirects(
   const normalizedAllowed = normalizeAllowedOrigins(options.allowedOrigins);
   const maxRedirects = options.maxRedirects ?? MAX_AGENSI_REDIRECTS;
 
+  if (!isOriginAllowedForFetch(parsedInitial, parsedInitial, normalizedAllowed)) {
+    emitAgensiSeamLog('BOUNDARY_FAULT', 'agensi.catalog.untrusted_redirect', {
+      correlationId: options.correlationId,
+      reason: 'untrusted_initial_origin',
+      hops: 0,
+    });
+    return {
+      ok: false,
+      errorCode: 'AGENSI_UNTRUSTED_ORIGIN',
+      message: 'Agensi upstream initial origin is not allowed.',
+    };
+  }
+
   let currentUrl = parsedInitial.toString();
   const currentHeaders = new Headers(options.headers);
 

@@ -1,6 +1,7 @@
-// Bounded context: Non-executing Agensi creator HTML extractor (TSR query graph + semantic card fallback).
-// Invariant: Zero eval/Function/vm, bounded token/depth/card caps, canonical skill URL synthesis.
+// Bounded context: Non-executing Agensi creator HTML extractor (TSR two-query graph + linear semantic card fallback).
+// Invariant: Zero eval/Function/vm, linear O(N) HTML scanners, bounded token/depth/card caps, canonical skill URLs.
 
+import { extractSemanticHtmlFallback, scanTagBlocksLinear } from './agensi-html-cards.ts';
 import {
   isTsrRefPlaceholder,
   MAX_TSR_DEPTH,
@@ -11,7 +12,6 @@ import {
 
 export { MAX_TSR_DEPTH, MAX_TSR_TOKENS };
 
-const MAX_SEMANTIC_CARDS = 200;
 const CANONICAL_SKILL_ORIGIN = 'https://agensi.io/skills/';
 
 export type AgensiHtmlParseMode = 'tsr_stream' | 'html_fallback';
@@ -33,6 +33,12 @@ export type AgensiHtmlParseResult =
       readonly reason: string;
       readonly message: string;
     };
+
+interface ProfileEntry {
+  readonly handle: string;
+  readonly creatorId: string | null;
+  readonly inlineSkills: readonly Record<string, unknown>[] | null;
+}
 
 function resolveRef(
   value: unknown,
@@ -66,203 +72,193 @@ function normalizeExtractedSkill(
   return out;
 }
 
+function extractQueryStateData(
+  record: Readonly<Record<string, unknown>>,
+  refs: ReadonlyMap<number, unknown>,
+): unknown {
+  const state = resolveRef(record['state'], refs, new Set()) as Record<string, unknown> | undefined;
+  if (state && typeof state === 'object' && 'data' in state) {
+    return resolveRef(state['data'], refs, new Set());
+  }
+  if ('data' in record) {
+    return resolveRef(record['data'], refs, new Set());
+  }
+  return record;
+}
+
+function normalizeSkillArray(
+  rawSkills: readonly unknown[],
+  refs: ReadonlyMap<number, unknown>,
+): readonly Record<string, unknown>[] {
+  return rawSkills
+    .map(item => normalizeExtractedSkill(item, refs))
+    .filter((item): item is Record<string, unknown> => item !== null);
+}
+
 function findCreatorProfileQuery(
   roots: readonly unknown[],
   refs: ReadonlyMap<number, unknown>,
   expectedCreator: string,
 ): { creatorHandle: string; skills: readonly Record<string, unknown>[] } | null {
   const visited = new WeakSet<object>();
-  const normalizedExpected = expectedCreator.trim().toLowerCase();
-  let fallbackMatch: { creatorHandle: string; skills: readonly Record<string, unknown>[] } | null =
-    null;
+  const profiles: ProfileEntry[] = [];
+  const skillsByKey = new Map<string, readonly Record<string, unknown>[]>();
 
-  const walk = (
-    node: unknown,
-    depth: number,
-  ): { creatorHandle: string; skills: readonly Record<string, unknown>[] } | null => {
-    if (depth > MAX_TSR_DEPTH) return null;
+  const walk = (node: unknown, depth: number): void => {
+    if (depth > MAX_TSR_DEPTH) return;
     const resolved = resolveRef(node, refs, new Set());
-    if (!resolved || typeof resolved !== 'object' || visited.has(resolved)) return null;
+    if (!resolved || typeof resolved !== 'object' || visited.has(resolved)) return;
     visited.add(resolved);
 
     if (Array.isArray(resolved)) {
-      for (const entry of resolved) {
-        const found = walk(entry, depth + 1);
-        if (found) return found;
-      }
-      return null;
+      for (const entry of resolved) walk(entry, depth + 1);
+      return;
     }
 
     const record = resolved as Record<string, unknown>;
     const queryKey = resolveRef(record['queryKey'], refs, new Set());
-    if (
-      Array.isArray(queryKey) &&
-      queryKey[0] === 'creator-profile' &&
-      typeof queryKey[1] === 'string'
-    ) {
-      const state = resolveRef(record['state'], refs, new Set()) as
-        | Record<string, unknown>
-        | undefined;
-      const data =
-        (state && typeof state === 'object'
-          ? (resolveRef(state['data'], refs, new Set()) as Record<string, unknown> | undefined)
-          : undefined) ??
-        (resolveRef(record['data'], refs, new Set()) as Record<string, unknown> | undefined) ??
-        record;
-      const rawSkills =
-        data && typeof data === 'object' ? resolveRef(data['skills'], refs, new Set()) : undefined;
-      if (Array.isArray(rawSkills)) {
+    if (Array.isArray(queryKey) && typeof queryKey[1] === 'string') {
+      const keyKind = queryKey[0];
+      const keyArg = queryKey[1].trim();
+      const data = extractQueryStateData(record, refs);
+
+      if (
+        keyKind === 'creator-profile' &&
+        data &&
+        typeof data === 'object' &&
+        !Array.isArray(data)
+      ) {
+        const dataRec = data as Record<string, unknown>;
         const handle =
-          (typeof data?.['slug'] === 'string' && data['slug'].trim()) ||
-          (typeof data?.['handle'] === 'string' && data['handle'].trim()) ||
-          queryKey[1].trim();
-        const skills = rawSkills
-          .map(item => normalizeExtractedSkill(item, refs))
-          .filter((item): item is Record<string, unknown> => item !== null);
-        const match = { creatorHandle: handle, skills };
-        if (handle.toLowerCase() === normalizedExpected) return match;
-        fallbackMatch ??= match;
+          (typeof dataRec['slug'] === 'string' && dataRec['slug'].trim()) ||
+          (typeof dataRec['handle'] === 'string' && dataRec['handle'].trim()) ||
+          keyArg;
+        const rawCreatorId =
+          (typeof dataRec['user_id'] === 'string' && dataRec['user_id'].trim()) ||
+          (typeof dataRec['id'] === 'string' && dataRec['id'].trim()) ||
+          null;
+        const rawInline = resolveRef(dataRec['skills'], refs, new Set());
+        profiles.push({
+          handle,
+          creatorId: rawCreatorId,
+          inlineSkills: Array.isArray(rawInline) ? normalizeSkillArray(rawInline, refs) : null,
+        });
+      } else if (keyKind === 'creator-skills' && keyArg) {
+        const rawList = Array.isArray(data)
+          ? data
+          : data && typeof data === 'object'
+            ? resolveRef((data as Record<string, unknown>)['skills'], refs, new Set())
+            : undefined;
+        if (Array.isArray(rawList)) {
+          skillsByKey.set(keyArg.toLowerCase(), normalizeSkillArray(rawList, refs));
+        }
       }
     }
 
-    for (const val of Object.values(record)) {
-      const found = walk(val, depth + 1);
-      if (found) return found;
-    }
-    return null;
+    for (const val of Object.values(record)) walk(val, depth + 1);
   };
 
-  for (const root of roots) {
-    const found = walk(root, 0);
-    if (found) return found;
-  }
-  return fallbackMatch;
-}
+  for (const root of roots) walk(root, 0);
+  if (profiles.length === 0) return null;
 
-function decodeHtmlEntities(input: string): string {
-  return input
-    .replaceAll('&amp;', '&')
-    .replaceAll('&lt;', '<')
-    .replaceAll('&gt;', '>')
-    .replaceAll('&quot;', '"')
-    .replaceAll('&#39;', "'")
-    .replaceAll('&apos;', "'")
-    .replace(/&#x([0-9a-fA-F]+);/g, (_match, hex: string) => {
-      const cp = Number.parseInt(hex, 16);
-      return Number.isFinite(cp) ? String.fromCodePoint(cp) : '';
-    })
-    .replace(/&#(\d+);/g, (_match, dec: string) => {
-      const cp = Number.parseInt(dec, 10);
-      return Number.isFinite(cp) ? String.fromCodePoint(cp) : '';
-    });
-}
+  const normalizedExpected = expectedCreator.trim().toLowerCase();
+  const matchedProfile =
+    profiles.find(p => p.handle.toLowerCase() === normalizedExpected) ?? profiles[0];
+  if (!matchedProfile) return null;
 
-function extractSemanticHtmlFallback(
-  html: string,
-  options: ParseAgensiHtmlOptions,
-): readonly Record<string, unknown>[] {
-  try {
-    const normalizedPath = new URL(options.finalUrl).pathname.replace(/\/+$/, '').toLowerCase();
-    const rawExpected = `/creators/${options.creatorHandle.trim().toLowerCase()}`;
-    const encExpected = `/creators/${encodeURIComponent(options.creatorHandle.trim()).toLowerCase()}`;
-    if (normalizedPath !== rawExpected && normalizedPath !== encExpected) return [];
-  } catch {
-    return [];
+  if (matchedProfile.inlineSkills) {
+    return { creatorHandle: matchedProfile.handle, skills: matchedProfile.inlineSkills };
   }
 
-  const items: Record<string, unknown>[] = [];
-  const seenSlugs = new Set<string>();
-  const anchorPattern = /<a\b[^>]*\bhref=["']\/skills\/([^"'/?#]+)["'][^>]*>([\s\S]*?)<\/a>/gi;
-  let match: RegExpExecArray | null;
+  const joined =
+    (matchedProfile.creatorId
+      ? skillsByKey.get(matchedProfile.creatorId.toLowerCase())
+      : undefined) ?? skillsByKey.get(matchedProfile.handle.toLowerCase());
+  if (!joined) return null;
 
-  while ((match = anchorPattern.exec(html)) !== null && items.length < MAX_SEMANTIC_CARDS) {
-    const slug = (match[1] ?? '').trim();
-    const body = match[2] ?? '';
-    if (!slug || seenSlugs.has(slug)) continue;
-    const h3Match = /<h3\b[^>]*>([\s\S]*?)<\/h3>/i.exec(body);
-    const pMatch = /<p\b[^>]*>([\s\S]*?)<\/p>/i.exec(body);
-    if (!h3Match?.[1] || !pMatch?.[1]) continue;
-    const name = decodeHtmlEntities(h3Match[1].replace(/<[^>]*>/g, ''))
-      .replace(/\s+/g, ' ')
-      .trim();
-    const summary = decodeHtmlEntities(pMatch[1].replace(/<[^>]*>/g, ''))
-      .replace(/\s+/g, ' ')
-      .trim();
-    if (!name || !summary) continue;
-
-    seenSlugs.add(slug);
-    items.push({
-      slug,
-      name,
-      summary,
-      tags: [],
-      url: `${CANONICAL_SKILL_ORIGIN}${encodeURIComponent(slug)}`,
-      status: 'live',
-      sortOrder: items.length + 1,
-    });
-  }
-  return items;
+  const expectedId = matchedProfile.creatorId?.toLowerCase() ?? null;
+  const verifiedSkills = joined.filter(item => {
+    const itemCreatorId =
+      (typeof item['creator_id'] === 'string' && item['creator_id'].trim().toLowerCase()) ||
+      (typeof item['creatorId'] === 'string' && item['creatorId'].trim().toLowerCase()) ||
+      null;
+    return !expectedId || !itemCreatorId || itemCreatorId === expectedId;
+  });
+  return { creatorHandle: matchedProfile.handle, skills: verifiedSkills };
 }
 
 /**
  * Parses an Agensi creator storefront HTML document using a strictly non-executing TSR stream
- * parser with a bounded semantic HTML card fallback.
+ * parser (supporting both inline and two-query `creator-profile` + `creator-skills` hydration) with
+ * a linear O(N) bounded semantic HTML card fallback.
  */
 export function parseAgensiCreatorHtml(
   html: string,
   options: ParseAgensiHtmlOptions,
 ): AgensiHtmlParseResult {
-  const scripts: string[] = [];
-  const scriptPattern = /<script\b[^>]*\bdata-tsr-stream-part\b[^>]*>([\s\S]*?)<\/script>/gi;
-  let match: RegExpExecArray | null;
-  while ((match = scriptPattern.exec(html)) !== null) {
-    if (match[1]) scripts.push(match[1]);
-  }
+  try {
+    const lowerHtml = html.toLowerCase();
+    const scripts = scanTagBlocksLinear(html, lowerHtml, 'script')
+      .filter(el => el.openTag.toLowerCase().includes('data-tsr-stream-part'))
+      .map(el => el.body)
+      .filter(Boolean);
 
-  if (scripts.length > 0) {
-    const refs = new Map<number, unknown>();
-    const roots: unknown[] = [];
-    try {
-      for (const scriptBody of scripts) {
-        roots.push(...parseTsrScriptBody(scriptBody, refs));
+    if (scripts.length > 0) {
+      const refs = new Map<number, unknown>();
+      const roots: unknown[] = [];
+      try {
+        for (const scriptBody of scripts) {
+          roots.push(...parseTsrScriptBody(scriptBody, refs));
+        }
+      } catch (error) {
+        if (error instanceof TsrLimitError) {
+          return { ok: false, reason: error.reason, message: error.message };
+        }
+        return {
+          ok: false,
+          reason: 'tsr_parse_error',
+          message: 'Agensi TSR stream payload could not be parsed.',
+        };
       }
-    } catch (error) {
-      if (error instanceof TsrLimitError) {
-        return { ok: false, reason: error.reason, message: error.message };
+      const found = findCreatorProfileQuery(
+        [...roots, ...refs.values()],
+        refs,
+        options.creatorHandle,
+      );
+      if (found) {
+        return {
+          ok: true,
+          parseMode: 'tsr_stream',
+          creatorHandle: found.creatorHandle,
+          items: found.skills,
+        };
       }
-      return {
-        ok: false,
-        reason: 'tsr_parse_error',
-        message: 'Agensi TSR stream payload could not be parsed.',
-      };
     }
-    const found = findCreatorProfileQuery(
-      [...roots, ...refs.values()],
-      refs,
+
+    const fallbackItems = extractSemanticHtmlFallback(
+      html,
+      lowerHtml,
       options.creatorHandle,
+      options.finalUrl,
     );
-    if (found) {
+    if (fallbackItems.length > 0) {
       return {
         ok: true,
-        parseMode: 'tsr_stream',
-        creatorHandle: found.creatorHandle,
-        items: found.skills,
+        parseMode: 'html_fallback',
+        creatorHandle: options.creatorHandle,
+        items: fallbackItems,
       };
     }
-  }
-
-  const fallbackItems = extractSemanticHtmlFallback(html, options);
-  if (fallbackItems.length > 0) {
     return {
-      ok: true,
-      parseMode: 'html_fallback',
-      creatorHandle: options.creatorHandle,
-      items: fallbackItems,
+      ok: false,
+      reason: 'no_creator_skills_found',
+      message: 'Agensi HTML response did not contain creator profile skills.',
+    };
+  } catch {
+    return {
+      ok: false,
+      reason: 'html_parse_error',
+      message: 'Agensi HTML response could not be parsed safely.',
     };
   }
-  return {
-    ok: false,
-    reason: 'no_creator_skills_found',
-    message: 'Agensi HTML response did not contain creator profile skills.',
-  };
 }

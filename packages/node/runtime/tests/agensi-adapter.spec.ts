@@ -674,4 +674,113 @@ describe('@aklapper/node-runtime/agensi adapter', () => {
     expect(warnLogs).toContain('BOUNDARY_FAULT');
     expect(warnLogs).not.toContain(secret);
   });
+
+  it('joins live two-query TSR creator-profile and creator-skills payloads and rejects mismatched creator_id items', async () => {
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const twoQueryHtml = `<!doctype html><html><body>
+      <script data-tsr-stream-part="">$R[0]={queryKey:["creator-profile","aklapper"],state:{data:{user_id:"66ef91f8-1111-4111-8111-111111111111",slug:"aklapper",total_skills:2}}};</script>
+      <script data-tsr-stream-part="">$R[1]={queryKey:["creator-skills","66ef91f8-1111-4111-8111-111111111111"],state:{data:[{slug:"joined-skill-one",name:"Joined Skill One",summary:"Live joined skill.",tags:["tsr","live"],creator_id:"66ef91f8-1111-4111-8111-111111111111",status:"live"},{slug:"foreign-uuid-skill",name:"Foreign UUID Skill",summary:"Must not attach to aklapper.",tags:["bad"],creator_id:"99999999-9999-4999-8999-999999999999",status:"live"}]}};</script>
+    </body></html>`;
+    const srv = await startLoopbackServer((_req, res) => {
+      res.setHeader('content-type', 'text/html; charset=utf-8');
+      res.end(twoQueryHtml);
+    });
+    servers.push(srv.close);
+
+    const res = await fetchAgensiCreatorCatalog({
+      baseUrl: srv.baseUrl,
+      apiPath: '/creators/aklapper',
+      creatorHandle: 'aklapper',
+      timeoutMs: 1_800,
+      maxPages: 10,
+      allowedOrigins: ['https://agensi.io', 'https://www.agensi.io'],
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok || res.notModified) throw new Error('Expected two-query TSR items');
+    expect(res.items.map(i => i.slug)).toEqual(['joined-skill-one']);
+    expect(res.items[0]?.url).toBe('https://agensi.io/skills/joined-skill-one');
+    expect(res.items[0]?.tags).toEqual(['tsr', 'live']);
+    expect(infoSpy.mock.calls.map(c => String(c[0])).join('\n')).toContain('tsr_stream');
+  });
+
+  it('extracts article stretched-link semantic cards skipping author bylines and decodes entities in a single pass without RangeError', async () => {
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const articleHtml = `<!doctype html><html><body>
+      <main>
+        <article class="skill-card">
+          <a href="/skills/stretched-card-skill" aria-label="Stretched Card"></a>
+          <div>
+            <h3>Stretched &amp;#9999999; Card &#9999999;&#x110000;</h3>
+            <p>by Andrew Klapper</p>
+            <p>Real summary with &amp; &lt;safe&gt; &quot;quotes&quot; &#39;ok&#39;.</p>
+          </div>
+        </article>
+      </main>
+    </body></html>`;
+    const srv = await startLoopbackServer((_req, res) => {
+      res.setHeader('content-type', 'text/html; charset=utf-8');
+      res.end(articleHtml);
+    });
+    servers.push(srv.close);
+
+    const res = await fetchAgensiCreatorCatalog({
+      baseUrl: srv.baseUrl,
+      apiPath: '/creators/aklapper',
+      creatorHandle: 'aklapper',
+      timeoutMs: 1_800,
+      maxPages: 10,
+      allowedOrigins: ['https://agensi.io', 'https://www.agensi.io'],
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok || res.notModified) throw new Error('Expected article fallback items');
+    expect(res.items).toHaveLength(1);
+    expect(res.items[0]?.slug).toBe('stretched-card-skill');
+    expect(res.items[0]?.name).toBe('Stretched &#9999999; Card');
+    expect(res.items[0]?.summary).toBe(`Real summary with & <safe> "quotes" 'ok'.`);
+    expect(infoSpy.mock.calls.map(c => String(c[0])).join('\n')).toContain('html_fallback');
+  });
+
+  it('parses 480 KiB of pathological unclosed script and anchor tags in linear time (<50ms)', async () => {
+    const { parseAgensiCreatorHtml } = await import('../src/agensi.ts');
+    const evilScripts = '<script data-tsr-stream-part="x" '.repeat(7_500);
+    const evilAnchors = '<a href="/skills/x" '.repeat(12_000);
+    const payload = `${evilScripts}${evilAnchors}`;
+    expect(payload.length).toBeGreaterThan(450_000);
+
+    const started = performance.now();
+    const res = parseAgensiCreatorHtml(payload, {
+      creatorHandle: 'aklapper',
+      finalUrl: 'https://www.agensi.io/creators/aklapper',
+    });
+    const elapsedMs = performance.now() - started;
+
+    expect(res.ok).toBe(false);
+    expect(elapsedMs).toBeLessThan(50);
+  });
+
+  it('rejects untrusted initial AGENSI_API_BASE_URL on hop 0 without calling fetchImpl or leaking x-api-key', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const fetchSpy = vi.fn<typeof fetch>();
+
+    const res = await fetchAgensiCreatorCatalog(
+      {
+        baseUrl: 'https://evil.example.com',
+        apiPath: '/creators/aklapper',
+        creatorHandle: 'aklapper',
+        apiKey: 'never-send-this-key',
+        timeoutMs: 1_800,
+        maxPages: 10,
+        allowedOrigins: ['https://agensi.io', 'https://www.agensi.io'],
+      },
+      { fetchImpl: fetchSpy },
+    );
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(res.ok).toBe(false);
+    if (res.ok) throw new Error('Expected untrusted initial origin failure');
+    expect(res.errorCode).toBe('AGENSI_UNTRUSTED_ORIGIN');
+    const warnLogs = warnSpy.mock.calls.map(c => String(c[0])).join('\n');
+    expect(warnLogs).toContain('agensi.catalog.untrusted_redirect');
+    expect(warnLogs).not.toContain('never-send-this-key');
+  });
 });

@@ -30,8 +30,9 @@ async function runIsolatedAgensiSyncFlow(
     }
     if (mode === 'tsr_html') {
       res.setHeader('content-type', 'text/html; charset=utf-8');
+      const creatorId = '66ef91f8-1111-4111-8111-111111111111';
       res.end(
-        `<!doctype html><html><body><script data-tsr-stream-part="">$R[0]=["creator-profile",${JSON.stringify(creatorHandle)}];$R[1]={slug:${JSON.stringify(skillOneSlug)},name:"Creator Skill Alpha",summary:"Published creator skill served via TSR HTML.",tags:["agents","e2e"],creator_id:"11111111-1111-4111-8111-111111111111",status:"live"};$R[2]={slug:${JSON.stringify(skillTwoSlug)},name:"Creator Skill Beta",summary:"Second published creator skill persisted to PostgreSQL.",tags:["go","e2e"],creator_id:"11111111-1111-4111-8111-111111111111",status:"live"};$R[3]={queryKey:$R[0],state:{data:{slug:${JSON.stringify(creatorHandle)},skills:[$R[1],$R[2]]}}};</script></body></html>`,
+        `<!doctype html><html><body><script data-tsr-stream-part="">$R[0]={queryKey:["creator-profile",${JSON.stringify(creatorHandle)}],state:{data:{user_id:${JSON.stringify(creatorId)},slug:${JSON.stringify(creatorHandle)},total_skills:2}}};</script><script data-tsr-stream-part="">$R[1]={slug:${JSON.stringify(skillOneSlug)},name:"Creator Skill Alpha",summary:"Published creator skill served via TSR HTML.",tags:["agents","e2e"],creator_id:${JSON.stringify(creatorId)},status:"live"};$R[2]={slug:${JSON.stringify(skillTwoSlug)},name:"Creator Skill Beta",summary:"Second published creator skill persisted to PostgreSQL.",tags:["go","e2e"],creator_id:${JSON.stringify(creatorId)},status:"live"};$R[3]={queryKey:["creator-skills",${JSON.stringify(creatorId)}],state:{data:[$R[1],$R[2]]}};</script></body></html>`,
       );
       return;
     }
