@@ -188,7 +188,40 @@ describe('Admin route workspace keep-alive and sign-out security boundary', () =
     ).toBe(true);
   });
 
-  it('shouldRevalidate returns false on authenticated child switches and defers on /login or auth actions', () => {
+  it('clears admin storage and unmounts workspace on /login even when loaderData.isLoginRoute is stale false', async () => {
+    const analyticsKey = buildRouteWorkspaceStorageKey('admin', '/analytics');
+    window.sessionStorage.setItem(analyticsKey, '{"stale":true}');
+
+    const Stub = createRoutesStub([
+      {
+        id: 'root',
+        path: '/',
+        loader: () => ({
+          runtimeSeo: { siteUrl: 'https://admin.andrew-k.us' },
+          correlationId: 'corr-admin-stale-login',
+          isLoginRoute: false,
+          session: ADMIN_SESSION,
+          authMeta: { totpEnabled: true, passkeyCount: 1 },
+          rootPayload: Promise.resolve<StreamResult<AdminRootLoaderData>>({
+            ok: true,
+            data: ADMIN_ROOT_DATA,
+          }),
+        }),
+        Component: AdminRoot,
+        ErrorBoundary,
+        children: [{ path: 'login', Component: () => <div>Admin Login Form</div> }],
+      },
+    ]);
+
+    const { container } = render(<Stub initialEntries={['/login']} />);
+    await screen.findByText('Admin Login Form');
+
+    expect(window.sessionStorage.getItem(analyticsKey)).toBeNull();
+    expect(container.querySelector('[data-route-workspace]')).toBeNull();
+    expect(container.querySelector('main[data-pane-workspace="false"]')).not.toBeNull();
+  });
+
+  it('shouldRevalidate returns false on authenticated child switches and unconditionally true on /login, auth actions, and 401/403 responses', () => {
     expect(
       shouldRevalidate({
         currentUrl: new URL('https://admin.andrew-k.us/analytics'),
@@ -201,7 +234,15 @@ describe('Admin route workspace keep-alive and sign-out security boundary', () =
       shouldRevalidate({
         currentUrl: new URL('https://admin.andrew-k.us/analytics'),
         nextUrl: new URL('https://admin.andrew-k.us/login'),
-        defaultShouldRevalidate: true,
+        defaultShouldRevalidate: false,
+      } as Parameters<typeof shouldRevalidate>[0]),
+    ).toBe(true);
+
+    expect(
+      shouldRevalidate({
+        currentUrl: new URL('https://admin.andrew-k.us/login'),
+        nextUrl: new URL('https://admin.andrew-k.us/analytics'),
+        defaultShouldRevalidate: false,
       } as Parameters<typeof shouldRevalidate>[0]),
     ).toBe(true);
 
@@ -210,7 +251,27 @@ describe('Admin route workspace keep-alive and sign-out security boundary', () =
         currentUrl: new URL('https://admin.andrew-k.us/analytics'),
         nextUrl: new URL('https://admin.andrew-k.us/analytics'),
         formAction: '/api/auth/logout',
-        defaultShouldRevalidate: true,
+        defaultShouldRevalidate: false,
+      } as Parameters<typeof shouldRevalidate>[0]),
+    ).toBe(true);
+
+    expect(
+      shouldRevalidate({
+        currentUrl: new URL('https://admin.andrew-k.us/analytics'),
+        nextUrl: new URL('https://admin.andrew-k.us/analytics'),
+        formAction: '/cms',
+        actionStatus: 401,
+        defaultShouldRevalidate: false,
+      } as Parameters<typeof shouldRevalidate>[0]),
+    ).toBe(true);
+
+    expect(
+      shouldRevalidate({
+        currentUrl: new URL('https://admin.andrew-k.us/analytics'),
+        nextUrl: new URL('https://admin.andrew-k.us/analytics'),
+        formAction: '/cms',
+        actionStatus: 403,
+        defaultShouldRevalidate: false,
       } as Parameters<typeof shouldRevalidate>[0]),
     ).toBe(true);
   });

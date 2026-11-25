@@ -7,7 +7,10 @@ import {
   OscStatusBadge,
   SolarForgeEmblem,
 } from '@aklapper/ui';
-import { createRouteWorkspaceStore } from '@aklapper/ui/workspace-storage';
+import {
+  createRouteWorkspaceStore,
+  normalizeWorkspaceRouteKey,
+} from '@aklapper/ui/workspace-storage';
 import { type ReactNode, useState } from 'react';
 import { href, Link, Outlet, useOutlet } from 'react-router';
 
@@ -126,15 +129,16 @@ export function AdminRootShell({
   const outlet = useOutlet();
   const [signingOut, setSigningOut] = useState(false);
   const { chrome, terminal } = rootData;
+  const effectiveIsLoginRoute = isLoginRoute || normalizeWorkspaceRouteKey(pathname) === '/login';
   const isAdminSession = session?.role === 'admin';
-  const resolvedTerminal = isLoginRoute || !isAdminSession ? undefined : terminal;
-  const hasGlobalWorkspace = !isLoginRoute && isAdminSession && Boolean(resolvedTerminal);
+  const resolvedTerminal = effectiveIsLoginRoute || !isAdminSession ? undefined : terminal;
+  const hasGlobalWorkspace = !effectiveIsLoginRoute && isAdminSession && Boolean(resolvedTerminal);
   const workspaceMountBranch: AdminWorkspaceMountBranch = hasGlobalWorkspace
     ? 'lazy-terminal-workspace'
     : 'login-outlet-only';
   emitAdminWorkspaceMountBranch(workspaceMountBranch, pathname);
 
-  if (isLoginRoute || !isAdminSession) {
+  if (effectiveIsLoginRoute || !isAdminSession) {
     if (typeof window !== 'undefined') {
       adminRouteWorkspaceStore.clearAll({ silent: true });
     }
@@ -215,7 +219,7 @@ export function AdminRootShell({
         </div>
       </header>
       <main className={styles.main} data-pane-workspace={hasGlobalWorkspace ? 'true' : 'false'}>
-        {!isLoginRoute && isAdminSession && resolvedTerminal ? (
+        {!effectiveIsLoginRoute && isAdminSession && resolvedTerminal ? (
           <LazyChunkBoundary
             loadingLabel='Loading terminal workspace...'
             errorTitle='Unable to load terminal workspace'

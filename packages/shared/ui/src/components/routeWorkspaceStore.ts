@@ -4,6 +4,7 @@ import {
   buildRouteWorkspaceStorageKey,
   buildRouteWorkspaceStoragePrefix,
   createDefaultRouteWorkspaceSnapshot,
+  isForbiddenPaneHistoryKey,
   normalizeWorkspaceRouteKey,
   parseRouteWorkspaceSnapshot,
   trimCommandHistory,
@@ -306,9 +307,14 @@ export function createRouteWorkspaceStore(
       });
       return;
     }
+    if (!paneId || isForbiddenPaneHistoryKey(paneId)) {
+      return;
+    }
     const current = ensureClientSnapshot(normalizedKey, initialOptions);
     const trimmed = trimCommandHistory(history);
-    const prevList = current.paneHistory[paneId];
+    const prevList = Object.hasOwn(current.paneHistory, paneId)
+      ? current.paneHistory[paneId]
+      : undefined;
     if (
       prevList &&
       prevList.length === trimmed.length &&
@@ -316,12 +322,14 @@ export function createRouteWorkspaceStore(
     ) {
       return;
     }
+    const nextPaneHistory = Object.assign(
+      Object.create(null) as Record<string, readonly string[]>,
+      current.paneHistory,
+      { [paneId]: trimmed },
+    );
     const nextSnapshot: RouteWorkspaceSnapshotV1 = {
       ...current,
-      paneHistory: {
-        ...current.paneHistory,
-        [paneId]: trimmed,
-      },
+      paneHistory: nextPaneHistory,
     };
     snapshots.set(normalizedKey, nextSnapshot);
     persistSnapshot(normalizedKey, nextSnapshot);

@@ -247,6 +247,46 @@ describe('RouteWorkspaceHost and TerminalWorkspace keep-alive containment', () =
     expect(container.querySelector('[data-tab-count="2"]')).not.toBeNull();
     expect(setItemSpy).not.toHaveBeenCalled();
   });
+
+  it('renders cleanly when a hydrated snapshot has a leaf pane id matching Object.prototype property names', () => {
+    const key = buildRouteWorkspaceStorageKey('portal', '/');
+    window.sessionStorage.setItem(
+      key,
+      JSON.stringify({
+        version: 1,
+        tabs: {
+          tabs: [
+            {
+              id: 'tab-1',
+              title: 'tty1',
+              workspace: {
+                root: {
+                  type: 'leaf',
+                  id: 'hasOwnProperty',
+                  ttyNumber: 1,
+                  tuiOpen: false,
+                  kind: 'terminal',
+                },
+                activePaneId: 'hasOwnProperty',
+                zoomedPaneId: null,
+                focusToken: 1,
+              },
+            },
+          ],
+          activeTabId: 'tab-1',
+          tabHistory: ['tab-1'],
+          nextTabNumber: 2,
+          nextPaneNumber: 2,
+        },
+        paneHistory: {},
+      }),
+    );
+
+    const store = createRouteWorkspaceStore({ namespace: 'portal' });
+    expect(() =>
+      render(<TerminalWorkspace terminal={TEST_TERMINAL} routeKey='/' workspaceStore={store} />),
+    ).not.toThrow();
+  });
 });
 
 describe('ZshP10kTerminal command history hydration and capping', () => {

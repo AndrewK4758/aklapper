@@ -143,6 +143,27 @@ describe('routeWorkspaceSnapshot', () => {
       ),
     ).toBeNull();
   });
+
+  it('rejects forbidden prototype keys in paneHistory during snapshot parse', () => {
+    const baseTabs = createInitialTabbedWorkspaceState({ pinnedPrimary: true });
+    const tabsJson = JSON.stringify(baseTabs);
+
+    expect(
+      parseRouteWorkspaceSnapshot(
+        `{"version":1,"tabs":${tabsJson},"paneHistory":{"__proto__":["evil"]}}`,
+      ),
+    ).toBeNull();
+    expect(
+      parseRouteWorkspaceSnapshot(
+        `{"version":1,"tabs":${tabsJson},"paneHistory":{"constructor":["evil"]}}`,
+      ),
+    ).toBeNull();
+    expect(
+      parseRouteWorkspaceSnapshot(
+        `{"version":1,"tabs":${tabsJson},"paneHistory":{"prototype":["evil"]}}`,
+      ),
+    ).toBeNull();
+  });
 });
 
 describe('createRouteWorkspaceStore', () => {
@@ -292,5 +313,32 @@ describe('createRouteWorkspaceStore', () => {
     adminStore.clearAll();
     expect(listener).toHaveBeenCalledTimes(1);
     unsub();
+  });
+
+  it('handles Object.prototype property names like hasOwnProperty in setPaneHistory without throwing and ignores forbidden prototype keys', () => {
+    const store = createRouteWorkspaceStore({ namespace: 'portal' });
+    expect(() => {
+      store.setPaneHistory('/', undefined, 'hasOwnProperty', ['ls']);
+    }).not.toThrow();
+
+    const snapshot = store.getClientSnapshot('/');
+    expect(Object.hasOwn(snapshot.paneHistory, 'hasOwnProperty')).toBe(true);
+    expect(snapshot.paneHistory['hasOwnProperty']).toEqual(['ls']);
+
+    // Repeat update with identical and changed history
+    expect(() => {
+      store.setPaneHistory('/', undefined, 'hasOwnProperty', ['ls']);
+      store.setPaneHistory('/', undefined, 'hasOwnProperty', ['pwd', 'ls']);
+    }).not.toThrow();
+    expect(store.getClientSnapshot('/').paneHistory['hasOwnProperty']).toEqual(['pwd', 'ls']);
+
+    // Forbidden prototype keys are ignored cleanly
+    store.setPaneHistory('/', undefined, '__proto__', ['evil']);
+    store.setPaneHistory('/', undefined, 'constructor', ['evil']);
+    store.setPaneHistory('/', undefined, 'prototype', ['evil']);
+    const after = store.getClientSnapshot('/');
+    expect(Object.hasOwn(after.paneHistory, '__proto__')).toBe(false);
+    expect(Object.hasOwn(after.paneHistory, 'constructor')).toBe(false);
+    expect(Object.hasOwn(after.paneHistory, 'prototype')).toBe(false);
   });
 });

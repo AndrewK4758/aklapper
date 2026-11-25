@@ -16,6 +16,11 @@ export const MAX_TERMINAL_HISTORY_ENTRIES = 100;
 const MIN_SNAPSHOT_SPLIT_RATIO = 0.15;
 const MAX_SNAPSHOT_SPLIT_RATIO = 0.85;
 const MAX_PANE_TREE_DEPTH = 64;
+const FORBIDDEN_PANE_HISTORY_KEYS = new Set<string>(['__proto__', 'constructor', 'prototype']);
+
+export function isForbiddenPaneHistoryKey(key: string): boolean {
+  return FORBIDDEN_PANE_HISTORY_KEYS.has(key);
+}
 
 export type WorkspaceStorageNamespace = 'portal' | 'admin';
 
@@ -60,7 +65,7 @@ export function createDefaultRouteWorkspaceSnapshot(
   return {
     version: ROUTE_WORKSPACE_SNAPSHOT_VERSION,
     tabs: createInitialTabbedWorkspaceState(initialOptions),
-    paneHistory: {},
+    paneHistory: Object.create(null) as Readonly<Record<string, readonly string[]>>,
   };
 }
 
@@ -298,9 +303,14 @@ function validatePaneHistory(value: unknown): Readonly<Record<string, readonly s
     return null;
   }
 
-  const result: Record<string, readonly string[]> = {};
+  const result = Object.create(null) as Record<string, readonly string[]>;
   for (const [paneId, entries] of Object.entries(value)) {
-    if (!isNonEmptyString(paneId) || !Array.isArray(entries)) {
+    if (
+      !Object.hasOwn(value, paneId) ||
+      !isNonEmptyString(paneId) ||
+      isForbiddenPaneHistoryKey(paneId) ||
+      !Array.isArray(entries)
+    ) {
       return null;
     }
     if (!entries.every(item => typeof item === 'string')) {

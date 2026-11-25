@@ -2351,7 +2351,11 @@ function StandaloneTerminalWorkspace({
                           isZoomed={isZoomed}
                           isDragging={isDraggingPane}
                           focusToken={ws.focusToken}
-                          initialCommandHistory={paneHistoryMap?.[pane.id]}
+                          initialCommandHistory={
+                            paneHistoryMap && Object.hasOwn(paneHistoryMap, pane.id)
+                              ? paneHistoryMap[pane.id]
+                              : undefined
+                          }
                           onCommandHistoryChange={handleCommandHistoryChange}
                           paneNav={paneNav}
                           renderPaneView={renderPaneView}
@@ -2404,7 +2408,11 @@ function StandaloneTerminalWorkspace({
                           isZoomed={isZoomed}
                           isDragging={isDraggingPane}
                           focusToken={ws.focusToken}
-                          initialCommandHistory={paneHistoryMap?.[pane.id]}
+                          initialCommandHistory={
+                            paneHistoryMap && Object.hasOwn(paneHistoryMap, pane.id)
+                              ? paneHistoryMap[pane.id]
+                              : undefined
+                          }
                           onCommandHistoryChange={handleCommandHistoryChange}
                           navigate={navigate}
                           paneNav={paneNav}
