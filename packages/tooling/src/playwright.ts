@@ -140,7 +140,11 @@ export async function assertSsrHealthz(
 }
 
 export async function waitForStreamedReveal(page: Page): Promise<void> {
-  await page.waitForFunction(() => document.querySelectorAll('div[hidden][id^="S:"]').length === 0);
+  await page.waitForFunction(
+    () =>
+      document.querySelectorAll('div[hidden][id^="S:"]').length === 0 &&
+      document.querySelectorAll('[data-hydrated="false"]').length === 0,
+  );
   await page.evaluate(
     () =>
       new Promise<void>(resolve => {

@@ -62,6 +62,7 @@ export {
   type TerminalWorkspacePrimaryPane,
   type TerminalWorkspaceProps,
 } from './components/TerminalWorkspace';
+export { useHydrated } from './components/useHydrated';
 export { useIsPaneActive } from './components/paneActiveContext';
 export {
   addWorkspaceTab,

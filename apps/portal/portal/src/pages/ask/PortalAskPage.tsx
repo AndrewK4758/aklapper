@@ -6,7 +6,15 @@ import type {
   PortalAskContent,
   QuotaStatus,
 } from '@aklapper/core';
-import { ActionFeedbackBanner, Button, Input, Separator, Tabs, TuiWindow } from '@aklapper/ui';
+import {
+  ActionFeedbackBanner,
+  Button,
+  Input,
+  Separator,
+  Tabs,
+  TuiWindow,
+  useHydrated,
+} from '@aklapper/ui';
 import { type FormEvent, type ReactNode, useEffect, useState, useSyncExternalStore } from 'react';
 
 import {
@@ -36,10 +44,6 @@ import styles from './PortalAskPage.module.css';
 
 export type { PortalAskActionResult };
 
-const subscribeAskHydrated = () => () => undefined;
-const getClientAskHydrated = () => true;
-const getServerAskHydrated = () => false;
-
 export interface PortalAskPageProps {
   content: PortalAskContent;
   quota: QuotaStatus;
@@ -66,11 +70,7 @@ export function PortalAskPage({
     readPersistedAskTurn,
     () => null,
   );
-  const isHydrated = useSyncExternalStore(
-    subscribeAskHydrated,
-    getClientAskHydrated,
-    getServerAskHydrated,
-  );
+  const isHydrated = useHydrated();
   const [activeTab, setActiveTab] = useState<AskMode>('qa');
   const [questionText, setQuestionText] = useState('');
   const [jdText, setJdText] = useState('');
