@@ -59,6 +59,7 @@ export {
 } from './components/TerminalWorkspace';
 export {
   addWorkspaceTab,
+  allocateNextTabNumber,
   closeActivePaneOrTab,
   closePaneById,
   closeWorkspaceTab,

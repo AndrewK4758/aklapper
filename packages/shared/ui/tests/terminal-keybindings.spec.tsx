@@ -518,6 +518,37 @@ describe('TerminalWorkspace keybind action validation', () => {
     expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-1');
   });
 
+  it('reuses lowest unused tab numbers after closing tabs and allows closing tab-1 when 2+ tabs are open', () => {
+    const { workspaceEl, submitCommand } = renderWorkspace();
+
+    // Open tab-2 and tab-3, then close tab-3 and tab-2
+    fireEvent.keyDown(window, { key: 'N', code: 'KeyN', altKey: true, shiftKey: true });
+    fireEvent.keyDown(window, { key: 'N', code: 'KeyN', altKey: true, shiftKey: true });
+    expect(workspaceEl.getAttribute('data-tab-count')).toBe('3');
+    expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-3');
+
+    fireEvent.keyDown(window, { key: 'W', code: 'KeyW', altKey: true, shiftKey: true });
+    expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-2');
+    fireEvent.keyDown(window, { key: 'W', code: 'KeyW', altKey: true, shiftKey: true });
+    expect(workspaceEl.getAttribute('data-tab-count')).toBe('1');
+    expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-1');
+
+    // Opening a new tab reuses tab-2 rather than skipping to tab-4
+    fireEvent.keyDown(window, { key: 'N', code: 'KeyN', altKey: true, shiftKey: true });
+    expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-2');
+
+    // Switch back to tab-1 and close it via "exit", then open a new tab -> reuses tab-1
+    fireEvent.keyDown(window, { key: '!', code: 'Digit1', altKey: true, shiftKey: true });
+    expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-1');
+    submitCommand('exit');
+    expect(workspaceEl.getAttribute('data-tab-count')).toBe('1');
+    expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-2');
+
+    submitCommand('tab');
+    expect(workspaceEl.getAttribute('data-tab-count')).toBe('2');
+    expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-1');
+  });
+
   it('navigates to /menu via Alt+M unless disableMenuShortcut is set', () => {
     const navigate = vi.fn<(to: string) => void>();
     const first = renderWorkspace({ navigate });
