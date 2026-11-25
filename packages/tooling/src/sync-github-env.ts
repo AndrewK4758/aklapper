@@ -39,13 +39,9 @@ export const GITHUB_OPTIONAL_ENV_VARS = [
   'WEBAUTHN_RP_ID',
   'WEBAUTHN_RP_NAME',
   'WEBAUTHN_ORIGIN',
-  'AUTH_API_URL',
-  'ANALYTICS_API_URL',
   'K8S_WATCH_URL',
   'CADENCE_DEMO_URL',
   'AI_ASK_URL',
-  'CADENCE_ADMIN_URL',
-  'CONTACT_API_URL',
   'QDRANT_URL',
   'AGENSI_API_BASE_URL',
   'AGENSI_API_PATH',
@@ -63,7 +59,6 @@ export const GITHUB_OPTIONAL_ENV_VARS = [
   'GCP_MIGRATOR_SERVICE_ACCOUNT',
   'GCP_GKE_WORKLOAD_SA',
   'CLOUD_RUN_ALLOW_UNAUTH_ADMIN',
-  'CLOUD_RUN_ALLOW_UNAUTH_APIS',
 ] as const;
 
 export type TargetEnvironment = 'production';
@@ -95,7 +90,14 @@ export interface SyncPlan {
 
 const DEFAULT_REPO = 'AndrewK4758/aklapper';
 const PLACEHOLDER_PATTERN = /REPLACE_ME|CHANGE_ME|YOUR_[A-Z0-9_]+/i;
-const RETIRED_ENV_KEYS = ['ADMIN_BOOTSTRAP_TOKEN'] as const;
+const RETIRED_ENV_KEYS = [
+  'ADMIN_BOOTSTRAP_TOKEN',
+  'AUTH_API_URL',
+  'ANALYTICS_API_URL',
+  'CADENCE_ADMIN_URL',
+  'CONTACT_API_URL',
+  'CLOUD_RUN_ALLOW_UNAUTH_APIS',
+] as const;
 
 export function parseEnvFileContent(content: string): Record<string, string> {
   const result: Record<string, string> = {};

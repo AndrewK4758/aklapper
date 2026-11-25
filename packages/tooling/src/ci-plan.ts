@@ -22,18 +22,6 @@ export const DOCKER_SERVICES: readonly DockerServiceSpec[] = [
     runtime: 'cloud-run',
   },
   {
-    service: 'node-api-auth',
-    project: 'node-api-auth',
-    dockerfile: 'apis/node/auth/auth/Dockerfile',
-    runtime: 'cloud-run',
-  },
-  {
-    service: 'node-api-analytics',
-    project: 'node-api-analytics',
-    dockerfile: 'apis/node/analytics/analytics/Dockerfile',
-    runtime: 'cloud-run',
-  },
-  {
     service: 'k8s-watch',
     project: 'go-k8s-watch',
     dockerfile: 'apis/go/k8s-watch/k8s-watch/Dockerfile',
@@ -51,18 +39,6 @@ export const DOCKER_SERVICES: readonly DockerServiceSpec[] = [
     dockerfile: 'apis/go/ai-ask/ai-ask/Dockerfile',
     runtime: 'gke',
   },
-  {
-    service: 'contact',
-    project: 'go-contact',
-    dockerfile: 'apis/go/contact/contact/Dockerfile',
-    runtime: 'gke',
-  },
-  {
-    service: 'cadence-admin',
-    project: 'go-cadence-admin',
-    dockerfile: 'apis/go/cadence-admin/cadence-admin/Dockerfile',
-    runtime: 'gke',
-  },
 ] as const;
 
 const PLAYWRIGHT_APP_MAP: Readonly<Record<string, string>> = {
@@ -70,12 +46,8 @@ const PLAYWRIGHT_APP_MAP: Readonly<Record<string, string>> = {
   'admin-e2e': 'admin',
 };
 
-const DB_BACKED_TEST_PROJECTS = new Set(['node-db', 'node-api-auth', 'node-api-analytics']);
-const DB_BACKED_API_E2E_PROJECTS = new Set([
-  'node-api-auth-e2e',
-  'node-api-analytics-e2e',
-  'go-ai-ask-e2e',
-]);
+const DB_BACKED_TEST_PROJECTS = new Set(['node-db']);
+const DB_BACKED_API_E2E_PROJECTS = new Set(['go-ai-ask-e2e']);
 
 export interface CiPlanInput {
   readonly runAll: boolean;

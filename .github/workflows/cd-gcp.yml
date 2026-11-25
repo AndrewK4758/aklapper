@@ -422,8 +422,6 @@ jobs:
       admin_url: ${{ steps.resolve-urls.outputs.admin_url }}
       portal_service_url: ${{ steps.resolve-urls.outputs.portal_service_url }}
       admin_service_url: ${{ steps.resolve-urls.outputs.admin_service_url }}
-      auth_service_url: ${{ steps.api-urls.outputs.auth_service_url }}
-      analytics_service_url: ${{ steps.api-urls.outputs.analytics_service_url }}
 
     steps:
       - name: Authenticate to Google Cloud (WIF)
@@ -437,89 +435,12 @@ jobs:
         with:
           install_components: beta
 
-      - name: Deploy node-api-auth to Cloud Run
-        id: deploy-api-auth
-        if: contains(fromJson(needs.resolve-plan.outputs.cloud_run_services_json), 'node-api-auth')
-        uses: google-github-actions/deploy-cloudrun@v3
-        with:
-          project_id: ${{ vars.GCP_PROJECT_ID }}
-          region: ${{ vars.GCP_REGION || 'us-central1' }}
-          service: node-api-auth
-          image: ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY || 'portfolio' }}/node-api-auth:${{ github.sha }}
-          env_vars: |
-            NODE_ENV=production
-            WEBAUTHN_RP_ID=${{ vars.WEBAUTHN_RP_ID || 'admin.andrew-k.us' }}
-            WEBAUTHN_RP_NAME=${{ vars.WEBAUTHN_RP_NAME || 'andrew-k.us Admin' }}
-            WEBAUTHN_ORIGIN=${{ vars.WEBAUTHN_ORIGIN || vars.PUBLIC_ADMIN_URL || 'https://admin.andrew-k.us' }}
-          flags: >-
-            ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_APIS == 'true' && '--allow-unauthenticated' || '--no-allow-unauthenticated' }}
-            ${{ vars.CLOUD_SQL_INSTANCE != '' && format('--add-cloudsql-instances={0}', vars.CLOUD_SQL_INSTANCE) || '' }}
-            --service-account=${{ vars.GCP_CLOUDRUN_SERVICE_ACCOUNT || secrets.GCP_WIF_SERVICE_ACCOUNT }}
-            --remove-env-vars=DATABASE_URL,TOTP_ENCRYPTION_KEY,INTERNAL_AUTH_SECRET
-            --set-secrets=DATABASE_URL=DATABASE_URL:latest,TOTP_ENCRYPTION_KEY=TOTP_ENCRYPTION_KEY:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest
-            --port=8080
-            --min-instances=0
-            --max-instances=3
-            --memory=256Mi
-            --cpu=1
-            --cpu-throttling
-
-      - name: Deploy node-api-analytics to Cloud Run
-        id: deploy-api-analytics
-        if: contains(fromJson(needs.resolve-plan.outputs.cloud_run_services_json), 'node-api-analytics')
-        uses: google-github-actions/deploy-cloudrun@v3
-        with:
-          project_id: ${{ vars.GCP_PROJECT_ID }}
-          region: ${{ vars.GCP_REGION || 'us-central1' }}
-          service: node-api-analytics
-          image: ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY || 'portfolio' }}/node-api-analytics:${{ github.sha }}
-          env_vars: |
-            NODE_ENV=production
-          flags: >-
-            ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_APIS == 'true' && '--allow-unauthenticated' || '--no-allow-unauthenticated' }}
-            ${{ vars.CLOUD_SQL_INSTANCE != '' && format('--add-cloudsql-instances={0}', vars.CLOUD_SQL_INSTANCE) || '' }}
-            --service-account=${{ vars.GCP_CLOUDRUN_SERVICE_ACCOUNT || secrets.GCP_WIF_SERVICE_ACCOUNT }}
-            --remove-env-vars=DATABASE_URL,ANALYTICS_DAILY_SALT,INTERNAL_AUTH_SECRET
-            --set-secrets=DATABASE_URL=DATABASE_URL:latest,ANALYTICS_DAILY_SALT=ANALYTICS_DAILY_SALT:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest
-            --port=8080
-            --min-instances=0
-            --max-instances=3
-            --memory=256Mi
-            --cpu=1
-            --cpu-throttling
-
-      - name: Resolve live Cloud Run API URLs for SSR apps
-        id: api-urls
+      - name: Check optional Secret Manager secrets for SSR apps
+        id: optional-secrets
         shell: bash
         env:
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-          GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
-          ALLOW_UNAUTH_APIS: ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_APIS || 'false' }}
-          CUSTOM_AUTH_URL: ${{ vars.AUTH_API_URL || '' }}
-          CUSTOM_ANALYTICS_URL: ${{ vars.ANALYTICS_API_URL || '' }}
         run: |
-          AUTH_SERVICE_URL="${{ steps.deploy-api-auth.outputs.url }}"
-          if [ -z "$AUTH_SERVICE_URL" ]; then
-            AUTH_SERVICE_URL="$(gcloud run services describe "node-api-auth" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.url)' 2>/dev/null || true)"
-          fi
-
-          ANALYTICS_SERVICE_URL="${{ steps.deploy-api-analytics.outputs.url }}"
-          if [ -z "$ANALYTICS_SERVICE_URL" ]; then
-            ANALYTICS_SERVICE_URL="$(gcloud run services describe "node-api-analytics" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.url)' 2>/dev/null || true)"
-          fi
-
-          if [ "$ALLOW_UNAUTH_APIS" = "true" ] && [ -n "$CUSTOM_AUTH_URL" ]; then
-            AUTH_URL="$CUSTOM_AUTH_URL"
-          else
-            AUTH_URL="$AUTH_SERVICE_URL"
-          fi
-
-          if [ "$ALLOW_UNAUTH_APIS" = "true" ] && [ -n "$CUSTOM_ANALYTICS_URL" ]; then
-            ANALYTICS_URL="$CUSTOM_ANALYTICS_URL"
-          else
-            ANALYTICS_URL="$ANALYTICS_SERVICE_URL"
-          fi
-
           HAS_AGENSI_API_KEY="false"
           if gcloud secrets versions describe latest --secret="AGENSI_API_KEY" --project="$GCP_PROJECT_ID" >/dev/null 2>&1; then
             HAS_AGENSI_API_KEY="true"
@@ -530,10 +451,6 @@ jobs:
             HAS_DOSSIER_PRIVACY_DENYLIST="true"
           fi
 
-          echo "auth_url=${AUTH_URL}" >> "$GITHUB_OUTPUT"
-          echo "analytics_url=${ANALYTICS_URL}" >> "$GITHUB_OUTPUT"
-          echo "auth_service_url=${AUTH_SERVICE_URL}" >> "$GITHUB_OUTPUT"
-          echo "analytics_service_url=${ANALYTICS_SERVICE_URL}" >> "$GITHUB_OUTPUT"
           echo "has_agensi_api_key=${HAS_AGENSI_API_KEY}" >> "$GITHUB_OUTPUT"
           echo "has_dossier_privacy_denylist=${HAS_DOSSIER_PRIVACY_DENYLIST}" >> "$GITHUB_OUTPUT"
 
@@ -559,11 +476,9 @@ jobs:
             GCP_LOCATION=${{ vars.GCP_LOCATION || vars.GCP_REGION || 'us-central1' }}
             VERTEX_MODEL=${{ vars.VERTEX_MODEL || '' }}
             VERTEX_EMBED_MODEL=${{ vars.VERTEX_EMBED_MODEL || '' }}
-            ANALYTICS_API_URL=${{ steps.api-urls.outputs.analytics_url }}
             K8S_WATCH_URL=${{ vars.K8S_WATCH_URL || '' }}
             CADENCE_DEMO_URL=${{ vars.CADENCE_DEMO_URL || '' }}
             AI_ASK_URL=${{ vars.AI_ASK_URL || '' }}
-            CONTACT_API_URL=${{ vars.CONTACT_API_URL || '' }}
             AGENSI_API_BASE_URL=${{ vars.AGENSI_API_BASE_URL || 'https://www.agensi.io' }}
             AGENSI_API_PATH=${{ vars.AGENSI_API_PATH || '/creators/aklapper' }}
             AGENSI_CREATOR_HANDLE=${{ vars.AGENSI_CREATOR_HANDLE || 'aklapper' }}
@@ -574,8 +489,8 @@ jobs:
             --allow-unauthenticated
             ${{ vars.CLOUD_SQL_INSTANCE != '' && format('--add-cloudsql-instances={0}', vars.CLOUD_SQL_INSTANCE) || '' }}
             --service-account=${{ vars.GCP_CLOUDRUN_SERVICE_ACCOUNT || secrets.GCP_WIF_SERVICE_ACCOUNT }}
-            --remove-env-vars=DATABASE_URL,INTERNAL_AUTH_SECRET,ANALYTICS_DAILY_SALT,QDRANT_API_KEY,AGENSI_API_KEY
-            ${{ steps.api-urls.outputs.has_agensi_api_key == 'true' && '--set-secrets=DATABASE_URL=DATABASE_URL:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest,ANALYTICS_DAILY_SALT=ANALYTICS_DAILY_SALT:latest,AGENSI_API_KEY=AGENSI_API_KEY:latest' || '--set-secrets=DATABASE_URL=DATABASE_URL:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest,ANALYTICS_DAILY_SALT=ANALYTICS_DAILY_SALT:latest' }}
+            --remove-env-vars=DATABASE_URL,INTERNAL_AUTH_SECRET,ANALYTICS_DAILY_SALT,QDRANT_API_KEY,AGENSI_API_KEY,ANALYTICS_API_URL,CONTACT_API_URL
+            ${{ steps.optional-secrets.outputs.has_agensi_api_key == 'true' && '--set-secrets=DATABASE_URL=DATABASE_URL:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest,ANALYTICS_DAILY_SALT=ANALYTICS_DAILY_SALT:latest,AGENSI_API_KEY=AGENSI_API_KEY:latest' || '--set-secrets=DATABASE_URL=DATABASE_URL:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest,ANALYTICS_DAILY_SALT=ANALYTICS_DAILY_SALT:latest' }}
             --port=8080
             --min-instances=0
             --max-instances=5
@@ -606,13 +521,9 @@ jobs:
             GCP_LOCATION=${{ vars.GCP_LOCATION || vars.GCP_REGION || 'us-central1' }}
             VERTEX_MODEL=${{ vars.VERTEX_MODEL || '' }}
             VERTEX_EMBED_MODEL=${{ vars.VERTEX_EMBED_MODEL || '' }}
-            AUTH_API_URL=${{ steps.api-urls.outputs.auth_url }}
-            ANALYTICS_API_URL=${{ steps.api-urls.outputs.analytics_url }}
             K8S_WATCH_URL=${{ vars.K8S_WATCH_URL || '' }}
             CADENCE_DEMO_URL=${{ vars.CADENCE_DEMO_URL || '' }}
             AI_ASK_URL=${{ vars.AI_ASK_URL || '' }}
-            CADENCE_ADMIN_URL=${{ vars.CADENCE_ADMIN_URL || '' }}
-            CONTACT_API_URL=${{ vars.CONTACT_API_URL || '' }}
             QDRANT_URL=${{ vars.QDRANT_URL || '' }}
             AGENSI_API_BASE_URL=${{ vars.AGENSI_API_BASE_URL || 'https://www.agensi.io' }}
             AGENSI_API_PATH=${{ vars.AGENSI_API_PATH || '/creators/aklapper' }}
@@ -624,8 +535,8 @@ jobs:
             ${{ vars.CLOUD_RUN_ALLOW_UNAUTH_ADMIN == 'true' && '--allow-unauthenticated' || '--no-allow-unauthenticated' }}
             ${{ vars.CLOUD_SQL_INSTANCE != '' && format('--add-cloudsql-instances={0}', vars.CLOUD_SQL_INSTANCE) || '' }}
             --service-account=${{ vars.GCP_CLOUDRUN_SERVICE_ACCOUNT || secrets.GCP_WIF_SERVICE_ACCOUNT }}
-            --remove-env-vars=DATABASE_URL,TOTP_ENCRYPTION_KEY,INTERNAL_AUTH_SECRET,ANALYTICS_DAILY_SALT,QDRANT_API_KEY,AGENSI_API_KEY,DOSSIER_PRIVACY_DENYLIST
-            --set-secrets=DATABASE_URL=DATABASE_URL:latest,TOTP_ENCRYPTION_KEY=TOTP_ENCRYPTION_KEY:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest,ANALYTICS_DAILY_SALT=ANALYTICS_DAILY_SALT:latest${{ vars.QDRANT_URL != '' && ',QDRANT_API_KEY=QDRANT_API_KEY:latest' || '' }}${{ steps.api-urls.outputs.has_agensi_api_key == 'true' && ',AGENSI_API_KEY=AGENSI_API_KEY:latest' || '' }}${{ steps.api-urls.outputs.has_dossier_privacy_denylist == 'true' && ',DOSSIER_PRIVACY_DENYLIST=DOSSIER_PRIVACY_DENYLIST:latest' || '' }}
+            --remove-env-vars=DATABASE_URL,TOTP_ENCRYPTION_KEY,INTERNAL_AUTH_SECRET,ANALYTICS_DAILY_SALT,QDRANT_API_KEY,AGENSI_API_KEY,DOSSIER_PRIVACY_DENYLIST,AUTH_API_URL,ANALYTICS_API_URL,CADENCE_ADMIN_URL,CONTACT_API_URL
+            --set-secrets=DATABASE_URL=DATABASE_URL:latest,TOTP_ENCRYPTION_KEY=TOTP_ENCRYPTION_KEY:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest,ANALYTICS_DAILY_SALT=ANALYTICS_DAILY_SALT:latest${{ vars.QDRANT_URL != '' && ',QDRANT_API_KEY=QDRANT_API_KEY:latest' || '' }}${{ steps.optional-secrets.outputs.has_agensi_api_key == 'true' && ',AGENSI_API_KEY=AGENSI_API_KEY:latest' || '' }}${{ steps.optional-secrets.outputs.has_dossier_privacy_denylist == 'true' && ',DOSSIER_PRIVACY_DENYLIST=DOSSIER_PRIVACY_DENYLIST:latest' || '' }}
             --port=8080
             --min-instances=0
             --max-instances=2
@@ -640,8 +551,6 @@ jobs:
           GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
           CLOUD_RUN_SERVICES_JSON: ${{ needs.resolve-plan.outputs.cloud_run_services_json }}
           ADMIN_URL: ${{ vars.PUBLIC_ADMIN_URL || 'https://admin.andrew-k.us' }}
-          AUTH_URL: ${{ vars.AUTH_API_URL || 'https://auth.bgdkapis.us' }}
-          ANALYTICS_URL: ${{ vars.ANALYTICS_API_URL || 'https://analytics.bgdkapis.us' }}
         run: |
           ensure_mapping() {
             local service="$1"
@@ -662,8 +571,6 @@ jobs:
           for svc in $(node -e 'console.log(JSON.parse(process.env.CLOUD_RUN_SERVICES_JSON).join(" "))'); do
             case "$svc" in
               admin) ensure_mapping "admin" "$ADMIN_URL" ;;
-              node-api-auth) ensure_mapping "node-api-auth" "$AUTH_URL" ;;
-              node-api-analytics) ensure_mapping "node-api-analytics" "$ANALYTICS_URL" ;;
             esac
           done
 
@@ -709,8 +616,6 @@ jobs:
             echo "- Portal (service): ${{ steps.resolve-urls.outputs.portal_service_url }}"
             echo "- Admin (public): ${{ steps.resolve-urls.outputs.admin_url }}"
             echo "- Admin (service): ${{ steps.resolve-urls.outputs.admin_service_url }}"
-            echo "- Auth API (service): ${{ steps.api-urls.outputs.auth_service_url }}"
-            echo "- Analytics API (service): ${{ steps.api-urls.outputs.analytics_service_url }}"
             echo "- Image tag: \`${{ github.sha }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -832,11 +737,6 @@ jobs:
             --from-literal="AGENSI_CREATOR_HANDLE=${AGENSI_CREATOR_HANDLE}" \
             --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 
-          kubectl create configmap aklapper-runtime-config \
-            -n cadence-admin \
-            --from-literal="APP_ENV=production" \
-            --dry-run=client -o yaml | kubectl apply -f - >/dev/null
-
           public_secret_args=(
             --from-file="DATABASE_URL=${tmp_secrets_dir}/DATABASE_URL"
             --from-file="INTERNAL_AUTH_SECRET=${tmp_secrets_dir}/INTERNAL_AUTH_SECRET"
@@ -853,12 +753,6 @@ jobs:
           kubectl create secret generic aklapper-runtime-secrets \
             -n portfolio-public \
             "${public_secret_args[@]}" \
-            --dry-run=client -o yaml | kubectl apply -f - >/dev/null
-
-          kubectl create secret generic aklapper-runtime-secrets \
-            -n cadence-admin \
-            --from-file="DATABASE_URL=${tmp_secrets_dir}/DATABASE_URL" \
-            --from-file="INTERNAL_AUTH_SECRET=${tmp_secrets_dir}/INTERNAL_AUTH_SECRET" \
             --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 
       - name: Render and apply complete GKE Autopilot manifests
@@ -925,15 +819,11 @@ jobs:
         env:
           PORTAL_SERVICE_URL: ${{ needs.deploy-cloud-run.outputs.portal_service_url }}
           ADMIN_SERVICE_URL: ${{ needs.deploy-cloud-run.outputs.admin_service_url }}
-          AUTH_SERVICE_URL: ${{ needs.deploy-cloud-run.outputs.auth_service_url }}
-          ANALYTICS_SERVICE_URL: ${{ needs.deploy-cloud-run.outputs.analytics_service_url }}
         run: |
           set -euo pipefail
           for entry in \
             "portal:${PORTAL_SERVICE_URL}" \
-            "admin:${ADMIN_SERVICE_URL}" \
-            "node-api-auth:${AUTH_SERVICE_URL}" \
-            "node-api-analytics:${ANALYTICS_SERVICE_URL}"; do
+            "admin:${ADMIN_SERVICE_URL}"; do
             svc="${entry%%:*}"
             url="${entry#*:}"
             if [ -z "$url" ]; then

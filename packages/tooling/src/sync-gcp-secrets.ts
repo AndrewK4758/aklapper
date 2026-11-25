@@ -350,11 +350,7 @@ export function ensureRuntimeServiceAccountBindings(
 
   const normalizedGkeSa = gkeWorkloadSa?.trim();
   if (normalizedGkeSa) {
-    for (const nsSa of [
-      'portfolio-public/ai-ask',
-      'portfolio-public/cadence-demo',
-      'cadence-admin/cadence-admin',
-    ]) {
+    for (const nsSa of ['portfolio-public/ai-ask', 'portfolio-public/cadence-demo']) {
       addServiceAccountBinding(
         normalizedProject,
         normalizedGkeSa,
