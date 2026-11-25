@@ -161,6 +161,7 @@ export type LinkActionSpec = z.infer<typeof LinkActionSpecSchema>;
 export const PortalChromeContentSchema = z.object({
   pageTitle: z.string().min(1),
   brandLabel: z.string().min(1),
+  brandContactEmail: z.string().min(1).optional(),
   shortcutHint: z.string().min(1).optional(),
   statusBadge: StatusBadgeSpecSchema,
   footerText: z.string().min(1),

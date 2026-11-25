@@ -141,7 +141,7 @@ describe('@aklapper/core (contracts)', () => {
 
     const chrome = PortalChromeContentSchema.parse({
       pageTitle: 'andrew-k.us // Solar Forge Terminal',
-      brandLabel: 'andrew-k.us :: tty1',
+      brandLabel: 'andrew-k.us',
       statusBadge: { source: 'gke-autopilot', state: 'idle', label: '0 pods (scale-to-0)' },
       footerText: 'Solar Forge // Fastify 5 + React Router 8 SSR',
       footerLinkLabel: 'agensi.io/creators/aklapper',

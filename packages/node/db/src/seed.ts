@@ -117,141 +117,146 @@ body{margin:0;padding:var(--a-pad);background:var(--a-bg);color:var(--a-fg);font
 </html>`;
 
 export const PORTAL_CHROME_SEED: PortalChromeContent = {
-  pageTitle: 'andrew-k.us // Solar Forge Terminal',
-  brandLabel: 'andrew-k.us :: tty1',
+  pageTitle: 'andrew-k.us — Andrew Klapper',
+  brandLabel: 'Andrew Klapper Portfolio',
+  brandContactEmail: 'andrew@andrew-k.us',
   shortcutHint: 'Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit · Alt+⇧T tab · Alt+T tui',
   statusBadge: {
     source: 'gke-autopilot',
     state: 'idle',
-    label: '0 pods (scale-to-0)',
+    label: 'Idle (on-demand services)',
   },
-  footerText: 'Solar Forge // Fastify 5 + React Router 8 SSR',
+  footerText: 'Andrew Klapper · Personal Portfolio',
   footerLinkLabel: 'agensi.io/creators/aklapper',
   footerLinkUrl: 'https://agensi.io/creators/aklapper',
   maintenanceModeDefault: false,
 };
 
 const PORTAL_HOME_SEED: PortalHomeContent = {
-  tuiTitle: 'tui :: solar-forge launcher',
+  tuiTitle: 'Portfolio Launcher',
   tuiBadge: {
     source: 'gke-autopilot',
     state: 'idle',
-    label: '0 pods (scale-to-0)',
+    label: 'Idle (on-demand services)',
   },
-  heading: 'Solar Forge Agentic Terminal — tty1',
+  heading: 'Andrew Klapper — Portfolio',
   description:
-    'Use this interactive TUI launcher or the Solar Forge terminal above to open the module menu, wake real GKE Autopilot scale-from-zero Go microservices on demand, and build live sandboxed artifacts with CADENCE.',
+    'Explore interactive demos, ask questions about my work and experience, browse published Agensi skills, or send a direct message. Use the launcher below or the terminal above to navigate.',
   actions: [
-    { label: 'Enter as Guest → /menu', to: '/menu', variant: 'primary' },
-    { label: 'Open CADENCE → /cadence', to: '/cadence', variant: 'default' },
+    { label: 'Open Menu → /menu', to: '/menu', variant: 'primary' },
+    { label: 'CADENCE Builder → /cadence', to: '/cadence', variant: 'default' },
     { label: 'Ask Portfolio → /ask', to: '/ask', variant: 'default' },
     { label: 'Agensi Storefront → /agensi', to: '/agensi', variant: 'default' },
-    { label: 'Open Contact → /contact', to: '/contact', variant: 'default' },
-    { label: 'Preview Changes in Progress', to: '/changes-in-progress', variant: 'default' },
+    { label: 'Contact → /contact', to: '/contact', variant: 'default' },
+    {
+      label: 'Maintenance Preview → /changes-in-progress',
+      to: '/changes-in-progress',
+      variant: 'default',
+    },
   ],
 };
 
 const PORTAL_MENU_SEED: PortalMenuContent = {
-  heading: 'Launch Menu',
-  description: 'Select a module. No pods wake until you invoke a live GKE workflow.',
+  heading: 'Module Menu',
+  description:
+    'Select a section below to open it. On-demand services start only when you run an interactive workflow.',
   localTargetLabel: 'local',
 };
 
 const PORTAL_AGENSI_SEED: PortalAgensiContent = {
-  windowTitle: 'tui :: agensi storefront // published skills',
+  windowTitle: 'Agensi Storefront — Published Skills',
   statusBadge: {
     source: 'agensi-catalog',
     state: 'ready',
-    label: 'catalog · live',
+    label: 'Catalog live',
   },
   description:
-    'Published commercial AI agent skills, SDLC guardrails, and cloud-native operational blueprints available on agensi.io/creators/aklapper.',
+    'Published AI agent skills, engineering workflows, and operational blueprints available on agensi.io/creators/aklapper.',
   searchPlaceholder: 'Filter skills by name, summary, or tag...',
-  emptyStateLabel: 'No Agensi skills match the current tag and search filters.',
-  outboundCtaLabel: 'Open on Agensi →',
+  emptyStateLabel: 'No skills match the current search or tag filters.',
+  outboundCtaLabel: 'View on Agensi →',
 };
 
 const PORTAL_ASK_SEED: PortalAskContent = {
-  windowTitle: 'tui :: ask portfolio // grounded rag & jd match',
+  windowTitle: 'Ask Portfolio — Q&A & Role Fit',
   statusBadge: {
     source: 'svc-ai-ask',
     state: 'idle',
-    label: '0/1 replicas · strict grounding',
+    label: 'On-demand · grounded answers only',
   },
   description:
-    'Ask grounded questions about Andrew Klapper’s architecture, Go microservices, React SSR stack, and published skills — or paste a Job Description for an evidence-backed fit assessment.',
+    'Ask questions about Andrew Klapper’s experience, projects, and published skills, or paste a job description for an evidence-based fit summary.',
   starterQuestions: [
-    'How does the Solar Forge portal integrate Cloud Run SSR with scale-to-zero GKE Go microservices?',
-    'What security and isolation guardrails protect the CADENCE artifact sandbox?',
-    'Which published Agensi skills cover multi-agent SDLC and Kubernetes delivery?',
+    'What kinds of systems and products has Andrew Klapper built and led?',
+    'How does the CADENCE builder isolate and verify generated artifacts?',
+    'Which published Agensi skills cover engineering workflows and delivery?',
   ],
   jdPlaceholder:
-    'Paste a Principal / Staff Engineer or AI Platform Architect Job Description to evaluate grounded portfolio fit...',
+    'Paste a job description to evaluate portfolio fit based on indexed project evidence...',
   abstentionNotice:
-    'Strict abstention active: answers are only emitted when indexed portfolio corpus evidence meets the minimum similarity threshold.',
+    'Grounded responses only: answers are returned only when indexed portfolio documents meet the minimum similarity threshold.',
 };
 
 const PORTAL_CADENCE_SEED: PortalCadenceContent = {
-  windowTitle: 'CADENCE Builder // portfolio-public',
+  windowTitle: 'CADENCE Builder — Artifact Sandbox',
   statusBadge: {
     source: 'svc-cadence-demo',
     state: 'idle',
-    label: '0/1 replicas',
+    label: 'On-demand',
   },
   description:
-    'Quota-gated prompt builder wired for live Go GKE scale-from-zero execution and Qdrant recall.',
+    'Quota-gated prompt builder that generates and previews sandboxed artifacts on demand.',
   iframeTitle: 'CADENCE Artifact Preview',
 };
 
 const PORTAL_CONTACT_SEED: PortalContactContent = {
-  windowTitle: 'tui :: contact // direct transmission',
+  windowTitle: 'Contact — Send a Message',
   statusBadge: {
     source: 'postgres-19',
     state: 'ready',
-    label: 'validated · pg19',
+    label: 'Ready',
   },
   description:
-    'Recursive Zod + JSON TUI form parser with client, server, and PostgreSQL 19 CHECK constraint validation.',
+    'Send a direct message to Andrew Klapper. All fields are validated before submission.',
   form: CONTACT_FORM_DEFINITION,
 };
 
 const PORTAL_MAINTENANCE_SEED: PortalMaintenanceContent = {
-  windowTitle: 'tui :: andrew-k.us // changes in progress',
+  windowTitle: 'andrew-k.us — Maintenance',
   statusBadge: {
-    source: 'solar-forge-v2',
+    source: 'site-maintenance',
     state: 'scaling',
-    label: 'CHANGES IN PROGRESS',
+    label: 'Maintenance in Progress',
   },
-  heading: 'Changes in Progress',
-  lead: 'andrew-k.us is being rebuilt into the Solar Forge v2 interactive terminal and TUI platform. Site navigation is temporarily disabled while the new architecture rolls out.',
+  heading: 'Site Updates in Progress',
+  lead: 'andrew-k.us is currently being updated. Site navigation is temporarily unavailable while updates are deployed.',
   progressPercent: 72,
-  progressAriaLabel: 'Solar Forge v2 rebuild progress',
-  metaLeft: 'mode: maintenance (no navigation)',
-  metaRight: 'progress: 72% · drag titlebar or type below',
+  progressAriaLabel: 'Site update progress',
+  metaLeft: 'Status: Maintenance mode (navigation disabled)',
+  metaRight: 'Progress: 72% · terminal available below',
 };
 
 const ADMIN_CHROME_SEED: AdminChromeContent = {
-  pageTitle: 'admin.andrew-k.us // Solar Forge Ops',
-  brandLabel: 'admin.andrew-k.us :: cadence-admin',
+  pageTitle: 'admin.andrew-k.us — Admin Console',
+  brandLabel: 'admin.andrew-k.us',
   shortcutHint: 'Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit · Alt+⇧T tab',
   statusBadge: {
     source: 'cadence-admin',
     state: 'gate',
-    label: 'Passkey Auth Required',
+    label: 'Passkey authentication required',
   },
 };
 
 const ADMIN_HOME_SEED: AdminHomeContent = {
   heading: 'Admin Operations Console',
   description:
-    'Isolated bundle for aklapper: WebAuthn Passkey + future TOTP 2FA gate, first-party analytics, Postgres 19 menu/quota CMS, and private cadence-admin namespace controls.',
-  actions: [{ label: 'Open Telemetry View', to: '/analytics', variant: 'primary' }],
+    'Private operations console for managing site content, contact messages, usage quotas, visitor analytics, and background services.',
+  actions: [{ label: 'Open Analytics', to: '/analytics', variant: 'primary' }],
 };
 
 const ADMIN_ANALYTICS_SEED: AdminAnalyticsContent = {
-  windowTitle: 'First-Party Visitor Analytics // Postgres 19',
-  description:
-    'Wired for node-api-analytics ingest queries, Core Web Vitals percentiles, and Agensi outbound conversion counts.',
+  windowTitle: 'First-Party Visitor Analytics',
+  description: 'Overview of page views, web performance metrics, and outbound Agensi link clicks.',
 };
 
 const SITE_CONTENT_SEEDS: ReadonlyArray<{

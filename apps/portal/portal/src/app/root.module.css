@@ -33,10 +33,29 @@
     --sf-border: var(--sf-guide);
   }
 
+  .brandGroup {
+    display: inline-flex;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-space-2);
+  }
+
   .brand {
     --sf-space-3: var(--sf-space-1);
     --sf-space-5: var(--sf-space-2);
     gap: var(--sf-space-4);
+    font-size: var(--sf-text-sm);
+    font-weight: var(--sf-weight-bold);
+  }
+
+  .brandSeparator {
+    color: var(--sf-fg-cmt);
+    font-size: var(--sf-text-sm);
+    user-select: none;
+  }
+
+  .brandEmail {
+    --sf-space-3: var(--sf-space-1);
+    --sf-space-5: var(--sf-space-2);
     font-size: var(--sf-text-sm);
     font-weight: var(--sf-weight-bold);
   }

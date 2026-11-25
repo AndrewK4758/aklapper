@@ -218,13 +218,28 @@ function PortalRootShell({ data, pathname, cluster, navigate }: PortalRootShellP
       <div className={styles.barWrap}>
         <header className={styles.bar}>
           <NavigationMenu.Root>
-            <NavigationMenu.List>
+            <NavigationMenu.List className={styles.brandGroup}>
               <NavigationMenu.Item>
                 <NavigationMenu.Link render={<Link to={href('/')} />} className={styles.brand}>
                   <SolarForgeEmblem size={18} />
                   <span>{chrome.brandLabel}</span>
                 </NavigationMenu.Link>
               </NavigationMenu.Item>
+              {chrome.brandContactEmail ? (
+                <>
+                  <li aria-hidden='true' className={styles.brandSeparator}>
+                    ::
+                  </li>
+                  <NavigationMenu.Item>
+                    <NavigationMenu.Link
+                      render={<Link to={href('/contact')} />}
+                      className={styles.brandEmail}
+                    >
+                      {chrome.brandContactEmail}
+                    </NavigationMenu.Link>
+                  </NavigationMenu.Item>
+                </>
+              ) : null}
             </NavigationMenu.List>
           </NavigationMenu.Root>
           <div className={styles.barMeta}>

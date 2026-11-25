@@ -98,7 +98,7 @@ describe('AdminRoot', () => {
     expect(screen.getByText('Passkey Auth Required')).toBeTruthy();
     expect(screen.getByText('Admin Probe')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Sign Out' })).toBeNull();
-    expect(screen.queryByText('andrew-k.us :: tty1')).toBeNull();
+    expect(screen.queryByText('andrew-k.us')).toBeNull();
   });
 
   it('renders session handle, typed nav links, and Sign Out button when admin session is active', async () => {
@@ -323,7 +323,7 @@ describe('AdminRoot', () => {
     expect(alert.textContent).toContain('ERR_STREAM_TIMEOUT');
     expect(alert.textContent).toContain('corr-admin-504');
     expect(screen.getByRole('button', { name: /Retry/i })).toBeTruthy();
-    expect(screen.queryByText('andrew-k.us :: tty1')).toBeNull();
+    expect(screen.queryByText('andrew-k.us')).toBeNull();
   });
 
   it('contains unexpected route render errors cleanly in exported ErrorBoundary', async () => {

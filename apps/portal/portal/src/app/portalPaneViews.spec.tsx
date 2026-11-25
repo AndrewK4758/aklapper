@@ -104,7 +104,7 @@ function PortalMenuBridge() {
 
 const CHROME: PortalRootLoaderData['chrome'] = {
   pageTitle: 'andrew-k.us // Solar Forge Terminal',
-  brandLabel: 'andrew-k.us :: tty1',
+  brandLabel: 'andrew-k.us',
   shortcutHint: 'Alt+T tui',
   statusBadge: { source: 'gke-autopilot', state: 'idle', label: '0 pods' },
   footerText: 'Solar Forge',

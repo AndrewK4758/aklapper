@@ -47,7 +47,7 @@ describe('db prerender fallback loaders', () => {
     expect(portalRoot.chrome.pageTitle).toContain('andrew-k.us');
     expect(portalRoot.chrome.shortcutHint).toContain('split');
     expect(getPrerenderPortalRootData(true).maintenance?.content.heading).toBe(
-      'Changes in Progress',
+      'Site Updates in Progress',
     );
     expect(portalHome.terminal.commands.length).toBeGreaterThan(0);
     expect(portalHome.terminal.initialEntries[0]?.command).toBe('ls');
@@ -91,7 +91,7 @@ describe('db prerender fallback loaders', () => {
     const contact = await loadPortalContactDataWithPrerender();
     const analytics = await loadAdminAnalyticsDataWithPrerender();
 
-    expect(home.content.heading).toContain('Solar Forge');
+    expect(home.content.heading).toContain('Andrew Klapper');
     expect(contact.content.form.nodes.length).toBeGreaterThan(0);
     expect(analytics.summary).toEqual({ totalSessions: 0, totalEvents: 0 });
   });

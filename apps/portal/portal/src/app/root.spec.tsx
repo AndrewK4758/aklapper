@@ -25,7 +25,8 @@ import PortalRoot, { ErrorBoundary, loader, meta } from './root';
 
 const CHROME_FIXTURE: PortalRootLoaderData['chrome'] = {
   pageTitle: 'andrew-k.us // Solar Forge Terminal',
-  brandLabel: 'andrew-k.us :: tty1',
+  brandLabel: 'Andrew Klapper Portfolio',
+  brandContactEmail: 'andrew@andrew-k.us',
   shortcutHint: 'Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit · Alt+⇧T tab · Alt+T tui',
   statusBadge: {
     source: 'gke-autopilot',
@@ -192,7 +193,9 @@ describe('PortalRoot', () => {
       },
     });
 
-    expect(await screen.findByText('andrew-k.us :: tty1')).toBeTruthy();
+    expect(await screen.findByText('Andrew Klapper Portfolio')).toBeTruthy();
+    const contactLink = await screen.findByRole('link', { name: 'andrew@andrew-k.us' });
+    expect(contactLink.getAttribute('href')).toBe('/contact');
     expect(
       screen.getByText('Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit · Alt+⇧T tab · Alt+T tui'),
     ).toBeTruthy();
