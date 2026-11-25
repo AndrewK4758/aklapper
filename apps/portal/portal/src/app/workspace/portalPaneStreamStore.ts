@@ -22,14 +22,10 @@ export function emitPaneTelemetryOnce(key: string, emit: () => void): void {
   if (typeof window === 'undefined') return;
   const now = Date.now();
   const prev = recentPaneTelemetry.get(key);
-  if (prev !== undefined && now - prev < PANE_TELEMETRY_DEDUP_MS) {
-    return;
-  }
+  if (prev !== undefined && now - prev < PANE_TELEMETRY_DEDUP_MS) return;
   if (recentPaneTelemetry.size >= MAX_PANE_TELEMETRY_ENTRIES) {
     for (const [entryKey, ts] of recentPaneTelemetry) {
-      if (now - ts >= PANE_TELEMETRY_DEDUP_MS) {
-        recentPaneTelemetry.delete(entryKey);
-      }
+      if (now - ts >= PANE_TELEMETRY_DEDUP_MS) recentPaneTelemetry.delete(entryKey);
     }
     if (recentPaneTelemetry.size >= MAX_PANE_TELEMETRY_ENTRIES) {
       const oldestKey = recentPaneTelemetry.keys().next().value;
@@ -129,13 +125,13 @@ export function createPortalPaneStreamStore(
 
   const records = new Map<string, PaneStreamRecord>();
   const listenersByKey = new Map<string, Set<() => void>>();
+  let lruSweepQueued = false;
+  let storeEpoch = 0;
 
   const notifyKey = (key: string): void => {
     const set = listenersByKey.get(key);
     if (!set || set.size === 0) return;
-    for (const listener of Array.from(set)) {
-      listener();
-    }
+    for (const listener of Array.from(set)) listener();
   };
 
   const emitSsrMutationBlocked = (method: string): void => {
@@ -160,6 +156,17 @@ export function createPortalPaneStreamStore(
       oldest.controller.abort();
       records.delete(candidateKey);
     }
+  };
+
+  const scheduleDeferredLruSweep = (): void => {
+    if (lruSweepQueued) return;
+    lruSweepQueued = true;
+    const epoch = storeEpoch;
+    queueMicrotask(() => {
+      lruSweepQueued = false;
+      if (epoch !== storeEpoch) return;
+      enforceLruCap();
+    });
   };
 
   const touchRecord = (key: string, record: PaneStreamRecord): void => {
@@ -309,9 +316,7 @@ export function createPortalPaneStreamStore(
     routePath: PortalPaneRoute,
     listener: () => void,
   ): (() => void) => {
-    if (typeof window === 'undefined') {
-      return () => undefined;
-    }
+    if (typeof window === 'undefined') return () => undefined;
     const key = buildKey(paneId, routePath);
     let set = listenersByKey.get(key);
     if (!set) {
@@ -319,15 +324,15 @@ export function createPortalPaneStreamStore(
       listenersByKey.set(key, set);
     }
     set.add(listener);
+    const active = records.get(key);
+    if (active) active.renderAccessed = true;
     return () => {
       set?.delete(listener);
       if (set && set.size === 0) {
         listenersByKey.delete(key);
         const record = records.get(key);
-        if (record) {
-          record.renderAccessed = false;
-        }
-        enforceLruCap();
+        if (record) record.renderAccessed = false;
+        scheduleDeferredLruSweep();
       }
     };
   };
@@ -337,8 +342,7 @@ export function createPortalPaneStreamStore(
     if (!existing) return;
     existing.controller.abort();
     records.delete(key);
-    // Do not notify subscribers on eviction: removed panes/views are unmounting,
-    // and notifying while still mounted would re-trigger getOrStart() via useSyncExternalStore.
+    // Do not notify subscribers on eviction: unmounting panes would re-trigger getOrStart().
     listenersByKey.delete(key);
   };
 
@@ -349,9 +353,7 @@ export function createPortalPaneStreamStore(
     }
     const prefix = `${paneId}:`;
     for (const key of Array.from(records.keys())) {
-      if (key.startsWith(prefix)) {
-        evictKey(key);
-      }
+      if (key.startsWith(prefix)) evictKey(key);
     }
   };
 
@@ -360,9 +362,7 @@ export function createPortalPaneStreamStore(
       emitSsrMutationBlocked('evictPaneViews');
       return;
     }
-    for (const view of views) {
-      evictKey(buildKey(view.paneId, view.routePath));
-    }
+    for (const view of views) evictKey(buildKey(view.paneId, view.routePath));
   };
 
   const setTransportForTest = (transport: PaneStreamTransport | null): void => {
@@ -370,9 +370,9 @@ export function createPortalPaneStreamStore(
   };
 
   const resetForTest = (): void => {
-    for (const record of records.values()) {
-      record.controller.abort();
-    }
+    storeEpoch += 1;
+    lruSweepQueued = false;
+    for (const record of records.values()) record.controller.abort();
     records.clear();
     listenersByKey.clear();
     resetPaneTelemetryDedupForTest();

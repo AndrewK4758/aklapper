@@ -155,7 +155,7 @@ describe('portalPaneStreamStore', () => {
     expect(signalsByPane.get(`pane-${MAX_CACHED_PANE_ENVELOPES + 1}`)?.aborted).toBe(false);
   });
 
-  it('never evicts actively subscribed entries past MAX_CACHED_PANE_ENVELOPES while still evicting unsubscribed entries', () => {
+  it('never evicts actively subscribed entries past MAX_CACHED_PANE_ENVELOPES while still evicting unsubscribed entries', async () => {
     const signalsByPane = new Map<string, AbortSignal>();
     let currentPane = '';
     const { loadSpy, transport } = createMockTransport((_routePath, signal) => {
@@ -181,15 +181,16 @@ describe('portalPaneStreamStore', () => {
     }
     expect(loadSpy).toHaveBeenCalledTimes(MAX_CACHED_PANE_ENVELOPES + 3);
 
-    // Unsubscribe mounted-1 -> clears renderAccessed and immediately evicts mounted-1 via enforceLruCap
+    // Unsubscribe mounted-1 -> clears renderAccessed and evicts mounted-1 cleanly on deferred microtask
     unsubs[0]?.();
+    await Promise.resolve();
     expect(signalsByPane.get('mounted-1')?.aborted).toBe(true);
     expect(signalsByPane.get('mounted-2')?.aborted).toBe(false);
 
     for (const unsub of unsubs.slice(1)) unsub();
   });
 
-  it('prevents self-eviction on prewarm -> getOrStart -> double getOrStart -> subscribe past 32 mounted panes', () => {
+  it('prevents self-eviction on prewarm -> getOrStart -> double getOrStart -> subscribe and same-commit unsubscribe/resubscribe past 32 mounted panes', async () => {
     const signalsByPane = new Map<string, AbortSignal>();
     let currentPane = '';
     const { loadSpy, transport } = createMockTransport((_routePath, signal) => {
@@ -212,19 +213,32 @@ describe('portalPaneStreamStore', () => {
     const prewarmed = store.prewarm('pane-33', '/agensi');
     const renderFirst = store.getOrStart('pane-33', '/agensi');
     const renderSecond = store.getOrStart('pane-33', '/agensi');
-    unsubs.push(store.subscribe('pane-33', '/agensi', () => undefined));
+    const unsub33 = store.subscribe('pane-33', '/agensi', () => undefined);
 
     expect(renderFirst).toBe(prewarmed);
     expect(renderSecond).toBe(prewarmed);
+    expect(loadSpy).toHaveBeenCalledTimes(MAX_CACHED_PANE_ENVELOPES + 1);
+
+    // Same-commit unsubscribe -> subscribe (detachPaneToNewTab / StrictMode double-effect): 0 aborts, 0 refetches
+    unsub33();
+    const resub33 = store.subscribe('pane-33', '/agensi', () => undefined);
+    await Promise.resolve();
+    expect(store.getOrStart('pane-33', '/agensi')).toBe(prewarmed);
     expect(loadSpy).toHaveBeenCalledTimes(MAX_CACHED_PANE_ENVELOPES + 1);
     for (let idx = 1; idx <= MAX_CACHED_PANE_ENVELOPES + 1; idx += 1) {
       expect(signalsByPane.get(`pane-${idx}`)?.aborted).toBe(false);
     }
 
+    // Genuine unmount without re-subscribe evicts pane-33 back down to 32 after one microtask
+    resub33();
+    await Promise.resolve();
+    expect(signalsByPane.get('pane-33')?.aborted).toBe(true);
+    expect(signalsByPane.get('pane-1')?.aborted).toBe(false);
+
     for (const unsub of unsubs) unsub();
   });
 
-  it('preserves all entries across simultaneous 35-pane render-phase getOrStart before any subscribe runs', () => {
+  it('preserves all entries across simultaneous 35-pane render-phase getOrStart before any subscribe runs', async () => {
     const signalsByPane = new Map<string, AbortSignal>();
     let currentPane = '';
     const { loadSpy, transport } = createMockTransport((_routePath, signal) => {
@@ -255,10 +269,11 @@ describe('portalPaneStreamStore', () => {
       expect(signalsByPane.get(`batch-${idx}`)?.aborted).toBe(false);
     }
 
-    // Unmounting batch-1..batch-3 releases them for immediate LRU eviction back to 32
+    // Unmounting batch-1..batch-3 releases them for deferred LRU eviction back to 32 after one microtask
     unsubs[0]?.();
     unsubs[1]?.();
     unsubs[2]?.();
+    await Promise.resolve();
     expect(signalsByPane.get('batch-1')?.aborted).toBe(true);
     expect(signalsByPane.get('batch-2')?.aborted).toBe(true);
     expect(signalsByPane.get('batch-3')?.aborted).toBe(true);
