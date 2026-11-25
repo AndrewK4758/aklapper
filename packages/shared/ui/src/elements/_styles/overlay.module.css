@@ -281,24 +281,24 @@
   }
 
   @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
-    .viewport {
+    .viewport:not([data-viewport='desktop']) {
       padding: max(var(--sf-space-4), env(safe-area-inset-top))
         max(var(--sf-space-4), env(safe-area-inset-right))
         max(var(--sf-space-4), env(safe-area-inset-bottom))
         max(var(--sf-space-4), env(safe-area-inset-left));
     }
 
-    .dialogPopup {
+    .dialogPopup:not([data-viewport='desktop']) {
       padding: var(--sf-space-6);
       max-height: calc(100dvh - var(--sf-space-8));
       overflow: auto;
     }
 
-    .dialogFooter {
+    .dialogFooter:not([data-viewport='desktop']) {
       flex-wrap: wrap;
     }
 
-    .drawerPopup {
+    .drawerPopup:not([data-viewport='desktop']) {
       width: 100%;
       padding: max(var(--sf-space-6), env(safe-area-inset-top))
         max(var(--sf-space-5), env(safe-area-inset-right))
@@ -307,12 +307,12 @@
       border-left: none;
     }
 
-    .floatingPopup,
-    .tooltipPopup {
+    .floatingPopup:not([data-viewport='desktop']),
+    .tooltipPopup:not([data-viewport='desktop']) {
       max-width: calc(100vw - var(--sf-space-6));
     }
 
-    .toastViewport {
+    .toastViewport:not([data-viewport='desktop']) {
       left: max(var(--sf-space-4), env(safe-area-inset-left));
       right: max(var(--sf-space-4), env(safe-area-inset-right));
       bottom: max(var(--sf-space-4), env(safe-area-inset-bottom));

@@ -7,10 +7,10 @@
     --sf-mobile-input-font-size: 1rem;
 
     /* Safe-area insets */
-    --sf-safe-top: env(safe-area-inset-top, 0px);
-    --sf-safe-right: env(safe-area-inset-right, 0px);
-    --sf-safe-bottom: env(safe-area-inset-bottom, 0px);
-    --sf-safe-left: env(safe-area-inset-left, 0px);
+    --sf-safe-top: env(safe-area-inset-top, 0);
+    --sf-safe-right: env(safe-area-inset-right, 0);
+    --sf-safe-bottom: env(safe-area-inset-bottom, 0);
+    --sf-safe-left: env(safe-area-inset-left, 0);
 
     /* Mobile workspace chrome dimensions */
     --sf-mobile-header-h: calc(var(--sf-space-unit) * 12);
@@ -97,7 +97,7 @@
     }
   }
 
-  /* Ultra-narrow compact phone tier (<= 26rem / 416px) */
+  /* Ultra-narrow compact phone tier (<= 26rem) */
   @media (max-width: 26rem) {
     :where(:root:not([data-viewport='desktop'])),
     [data-viewport='mobile-portrait'] {

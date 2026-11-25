@@ -224,6 +224,8 @@ export {
   mergeBaseClassName,
   type SlotProps,
   styledPart,
+  type StyledPartOptions,
+  viewportStyledPart,
 } from './elements/_internal/elementFactory';
 export * from './elements/base';
 export { OscStatusBadge, type OscStatusBadgeProps } from './elements/OscStatusBadge';

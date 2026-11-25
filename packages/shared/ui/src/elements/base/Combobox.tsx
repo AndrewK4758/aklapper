@@ -1,10 +1,11 @@
 import { Combobox as BaseCombobox } from '@base-ui/react/combobox';
 
-import { styledPart } from '../_internal/elementFactory';
+import { cx, styledPart, viewportStyledPart } from '../_internal/elementFactory';
 
 import controlStyles from '../_styles/control.module.css';
 import disclosureStyles from '../_styles/disclosure.module.css';
 import menuStyles from '../_styles/menu.module.css';
+import overlayMobileStyles from '../_styles/overlay-mobile.module.css';
 import overlayStyles from '../_styles/overlay.module.css';
 
 export const Combobox = {
@@ -17,10 +18,27 @@ export const Combobox = {
   List: styledPart(BaseCombobox.List, menuStyles.list, 'Combobox.List'),
   Status: styledPart(BaseCombobox.Status, menuStyles.status, 'Combobox.Status'),
   Portal: BaseCombobox.Portal,
-  Backdrop: styledPart(BaseCombobox.Backdrop, overlayStyles.backdrop, 'Combobox.Backdrop'),
-  Positioner: styledPart(BaseCombobox.Positioner, menuStyles.positioner, 'Combobox.Positioner'),
-  Popup: styledPart(BaseCombobox.Popup, menuStyles.popup, 'Combobox.Popup'),
-  Arrow: styledPart(BaseCombobox.Arrow, overlayStyles.arrow, 'Combobox.Arrow'),
+  Backdrop: viewportStyledPart(
+    BaseCombobox.Backdrop,
+    cx(overlayStyles.backdrop, overlayMobileStyles.sheetBackdrop),
+    'Combobox.Backdrop',
+  ),
+  Positioner: viewportStyledPart(
+    BaseCombobox.Positioner,
+    cx(menuStyles.positioner, overlayMobileStyles.sheetPositioner),
+    'Combobox.Positioner',
+  ),
+  Popup: viewportStyledPart(
+    BaseCombobox.Popup,
+    cx(menuStyles.popup, overlayMobileStyles.sheetPopup),
+    'Combobox.Popup',
+    { mobileSheet: true },
+  ),
+  Arrow: viewportStyledPart(
+    BaseCombobox.Arrow,
+    cx(overlayStyles.arrow, overlayMobileStyles.sheetArrow),
+    'Combobox.Arrow',
+  ),
   Icon: styledPart(BaseCombobox.Icon, menuStyles.icon, 'Combobox.Icon'),
   Group: styledPart(BaseCombobox.Group, menuStyles.group, 'Combobox.Group'),
   GroupLabel: styledPart(BaseCombobox.GroupLabel, menuStyles.groupLabel, 'Combobox.GroupLabel'),

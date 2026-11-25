@@ -2,8 +2,14 @@ import { Button as BaseButton, type ButtonProps as BaseButtonProps } from '@base
 import { useRender } from '@base-ui/react/use-render';
 import type { JSX } from 'react';
 
+import {
+  type ElementViewMode,
+  resolveElementViewport,
+} from '../../components/terminalViewportSplit';
+import { useViewportContext } from '../../components/ViewportProvider';
 import { createSlot, cx, mergeBaseClassName, type SlotProps } from '../_internal/elementFactory';
 
+import controlMobileStyles from '../_styles/control-mobile.module.css';
 import controlStyles from '../_styles/control.module.css';
 
 export type ButtonVariant = 'default' | 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -13,11 +19,13 @@ export interface ButtonRootProps extends BaseButtonProps {
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
+  readonly viewMode?: ElementViewMode;
 }
 
 export interface ButtonLinkProps extends useRender.ComponentProps<'a'> {
   variant?: ButtonVariant;
   size?: ButtonSize;
+  readonly viewMode?: ElementViewMode;
 }
 
 export type ButtonLabelProps = SlotProps<'span'>;
@@ -29,9 +37,12 @@ export function ButtonRoot({
   size = 'md',
   loading = false,
   disabled,
+  viewMode,
   className,
   ...props
 }: ButtonRootProps): JSX.Element {
+  const { layoutMode } = useViewportContext();
+  const resolvedViewport = viewMode ? resolveElementViewport(layoutMode, viewMode) : undefined;
   return (
     <BaseButton
       {...props}
@@ -39,7 +50,11 @@ export function ButtonRoot({
       data-variant={variant}
       data-size={size}
       data-loading={loading ? '' : undefined}
-      className={mergeBaseClassName(controlStyles.button, className)}
+      data-viewport={resolvedViewport}
+      className={mergeBaseClassName(
+        cx(controlStyles.button, controlMobileStyles.touchTarget),
+        className,
+      )}
     />
   );
 }
@@ -50,9 +65,12 @@ export function ButtonLink({
   render,
   variant = 'default',
   size = 'md',
+  viewMode,
   className,
   ...props
 }: ButtonLinkProps): JSX.Element {
+  const { layoutMode } = useViewportContext();
+  const resolvedViewport = viewMode ? resolveElementViewport(layoutMode, viewMode) : undefined;
   return useRender({
     defaultTagName: 'a',
     render,
@@ -60,7 +78,8 @@ export function ButtonLink({
       ...props,
       'data-variant': variant,
       'data-size': size,
-      className: cx(controlStyles.button, className),
+      ...(resolvedViewport ? { 'data-viewport': resolvedViewport } : {}),
+      className: cx(controlStyles.button, controlMobileStyles.touchTarget, className),
     },
   });
 }

@@ -1,0 +1,72 @@
+@layer element {
+  /* Touch-scrollable / stacked strips (Tabs, Menubar, Toolbar, ToggleGroup) */
+  :is([data-viewport='mobile-portrait'], [data-viewport='mobile-landscape']) .touchStrip,
+  .touchStrip:is([data-viewport='mobile-portrait'], [data-viewport='mobile-landscape']) {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: var(--sf-gap-xs);
+  }
+
+  :is([data-viewport='mobile-portrait'], [data-viewport='mobile-landscape']) .touchStrip::-webkit-scrollbar,
+  .touchStrip:is([data-viewport='mobile-portrait'], [data-viewport='mobile-landscape'])::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Minimum 2.75rem touch ergonomics */
+  :is([data-viewport='mobile-portrait'], [data-viewport='mobile-landscape']) .touchTarget,
+  .touchTarget:is([data-viewport='mobile-portrait'], [data-viewport='mobile-landscape']) {
+    min-height: var(--sf-mobile-touch-min);
+    min-width: var(--sf-mobile-touch-min);
+  }
+
+  :is([data-viewport='mobile-portrait'], [data-viewport='mobile-landscape']) .touchTarget:active:not(:disabled),
+  .touchTarget:is([data-viewport='mobile-portrait'], [data-viewport='mobile-landscape']):active:not(:disabled) {
+    transform: scale(var(--sf-mobile-active-scale));
+    opacity: var(--sf-mobile-active-opacity);
+  }
+
+  /* 1rem input font floor preventing iOS Safari auto-zoom */
+  :is([data-viewport='mobile-portrait'], [data-viewport='mobile-landscape']) .touchInput,
+  .touchInput:is([data-viewport='mobile-portrait'], [data-viewport='mobile-landscape']) {
+    min-height: var(--sf-mobile-touch-min);
+    font-size: var(--sf-mobile-input-font-size);
+  }
+
+  /* Enlarged hit areas for compact selection controls (Checkbox, Radio, Switch, Slider, OTP) */
+  :is([data-viewport='mobile-portrait'], [data-viewport='mobile-landscape']) .touchHitArea,
+  .touchHitArea:is([data-viewport='mobile-portrait'], [data-viewport='mobile-landscape']) {
+    position: relative;
+  }
+
+  :is([data-viewport='mobile-portrait'], [data-viewport='mobile-landscape']) .touchHitArea::after,
+  .touchHitArea:is([data-viewport='mobile-portrait'], [data-viewport='mobile-landscape'])::after {
+    content: '';
+    position: absolute;
+    inset: 50% auto auto 50%;
+    transform: translate(-50%, -50%);
+    min-width: var(--sf-mobile-touch-min);
+    min-height: var(--sf-mobile-touch-min);
+  }
+
+  @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
+    :where(:root:not([data-viewport='desktop'])) .touchStrip:not([data-viewport='desktop']) {
+      max-width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+    }
+
+    :where(:root:not([data-viewport='desktop'])) .touchTarget:not([data-viewport='desktop']) {
+      min-height: var(--sf-mobile-touch-min);
+      min-width: var(--sf-mobile-touch-min);
+    }
+
+    :where(:root:not([data-viewport='desktop'])) .touchInput:not([data-viewport='desktop']) {
+      min-height: var(--sf-mobile-touch-min);
+      font-size: var(--sf-mobile-input-font-size);
+    }
+  }
+}

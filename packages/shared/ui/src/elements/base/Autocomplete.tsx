@@ -1,10 +1,11 @@
 import { Autocomplete as BaseAutocomplete } from '@base-ui/react/autocomplete';
 
-import { styledPart } from '../_internal/elementFactory';
+import { cx, styledPart, viewportStyledPart } from '../_internal/elementFactory';
 
 import controlStyles from '../_styles/control.module.css';
 import disclosureStyles from '../_styles/disclosure.module.css';
 import menuStyles from '../_styles/menu.module.css';
+import overlayMobileStyles from '../_styles/overlay-mobile.module.css';
 import overlayStyles from '../_styles/overlay.module.css';
 
 export const Autocomplete = {
@@ -22,14 +23,27 @@ export const Autocomplete = {
   List: styledPart(BaseAutocomplete.List, menuStyles.list, 'Autocomplete.List'),
   Status: styledPart(BaseAutocomplete.Status, menuStyles.status, 'Autocomplete.Status'),
   Portal: BaseAutocomplete.Portal,
-  Backdrop: styledPart(BaseAutocomplete.Backdrop, overlayStyles.backdrop, 'Autocomplete.Backdrop'),
-  Positioner: styledPart(
+  Backdrop: viewportStyledPart(
+    BaseAutocomplete.Backdrop,
+    cx(overlayStyles.backdrop, overlayMobileStyles.sheetBackdrop),
+    'Autocomplete.Backdrop',
+  ),
+  Positioner: viewportStyledPart(
     BaseAutocomplete.Positioner,
-    menuStyles.positioner,
+    cx(menuStyles.positioner, overlayMobileStyles.sheetPositioner),
     'Autocomplete.Positioner',
   ),
-  Popup: styledPart(BaseAutocomplete.Popup, menuStyles.popup, 'Autocomplete.Popup'),
-  Arrow: styledPart(BaseAutocomplete.Arrow, overlayStyles.arrow, 'Autocomplete.Arrow'),
+  Popup: viewportStyledPart(
+    BaseAutocomplete.Popup,
+    cx(menuStyles.popup, overlayMobileStyles.sheetPopup),
+    'Autocomplete.Popup',
+    { mobileSheet: true },
+  ),
+  Arrow: viewportStyledPart(
+    BaseAutocomplete.Arrow,
+    cx(overlayStyles.arrow, overlayMobileStyles.sheetArrow),
+    'Autocomplete.Arrow',
+  ),
   Group: styledPart(BaseAutocomplete.Group, menuStyles.group, 'Autocomplete.Group'),
   GroupLabel: styledPart(
     BaseAutocomplete.GroupLabel,

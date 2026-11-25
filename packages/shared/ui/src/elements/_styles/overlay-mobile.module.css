@@ -1,0 +1,70 @@
+@layer element {
+  .sheetBackdrop[data-viewport='mobile-portrait'],
+  .sheetBackdrop[data-viewport='mobile-landscape'] {
+    z-index: calc(var(--sf-z-mobile-sheet) - 1);
+  }
+
+  .sheetViewport[data-viewport='mobile-portrait'],
+  .sheetViewport[data-viewport='mobile-landscape'] {
+    align-items: var(--sf-align-end);
+    justify-content: var(--sf-justify-center);
+    padding: var(--sf-space-0);
+    z-index: var(--sf-z-mobile-sheet);
+  }
+
+  .sheetPositioner[data-viewport='mobile-portrait'],
+  .sheetPositioner[data-viewport='mobile-landscape'] {
+    position: fixed !important;
+    inset: 0 !important;
+    transform: none !important;
+    display: flex;
+    align-items: var(--sf-align-end);
+    justify-content: var(--sf-justify-center);
+    width: 100%;
+    height: 100dvh;
+    z-index: var(--sf-z-mobile-sheet);
+    pointer-events: none;
+  }
+
+  .sheetPopup[data-viewport='mobile-portrait'],
+  .sheetPopup[data-viewport='mobile-landscape'] {
+    pointer-events: auto;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    max-height: var(--sf-mobile-sheet-max-h);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: var(--sf-mobile-sheet-radius) var(--sf-mobile-sheet-radius) 0 0;
+    border-bottom: none;
+    box-shadow: var(--sf-mobile-sheet-shadow);
+    padding-bottom: max(var(--sf-space-6), var(--sf-safe-bottom));
+    padding-left: max(var(--sf-space-5), var(--sf-safe-left));
+    padding-right: max(var(--sf-space-5), var(--sf-safe-right));
+  }
+
+  .sheetPopup[data-viewport='mobile-portrait']::before,
+  .sheetPopup[data-viewport='mobile-landscape']::before {
+    content: '';
+    display: block;
+    width: var(--sf-mobile-handle-w);
+    height: var(--sf-mobile-handle-h);
+    margin: var(--sf-space-0) auto var(--sf-space-4);
+    border-radius: var(--sf-radius-pill);
+    background: var(--sf-border-strong);
+    flex-shrink: 0;
+  }
+
+  .sheetArrow[data-viewport='mobile-portrait'],
+  .sheetArrow[data-viewport='mobile-landscape'] {
+    display: none;
+  }
+
+  .mobileTooltipPopup[data-viewport='mobile-portrait'],
+  .mobileTooltipPopup[data-viewport='mobile-landscape'] {
+    max-width: min(var(--sf-tooltip-max-w), calc(100vw - var(--sf-space-6)));
+    padding: var(--sf-space-3) var(--sf-space-4);
+    font-size: var(--sf-text-sm);
+    line-height: var(--sf-leading-snug);
+  }
+}
