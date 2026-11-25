@@ -117,7 +117,7 @@ export function PortalCadencePage({
   onClose,
 }: PortalCadencePageProps) {
   const defaultPreset = presets[0];
-  const initialSelectedRunId = recentRuns[0]?.runId ?? goldenRuns[0]?.runId ?? null;
+  const initialSelectedRunId = recentRuns[0]?.runId ?? null;
   const [activePresetSlug, setActivePresetSlug] = useState(
     defaultPreset?.slug ?? CUSTOM_PRESET_VALUE,
   );

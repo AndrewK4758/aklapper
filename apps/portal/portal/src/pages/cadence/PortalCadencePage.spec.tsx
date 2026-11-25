@@ -467,7 +467,7 @@ describe('PortalCadencePage', () => {
     );
   });
 
-  it('auto-loads the first Golden Showcase at $0 cost and hides gate override buttons on read-only Golden runs', async () => {
+  it('leaves Golden Showcases unselected on load, then loads a selected showcase at $0 cost with read-only gates', async () => {
     const user = userEvent.setup();
     const goldenRun: CadenceRunResult = {
       runId: '00000000-0000-4000-8000-000000000101',
@@ -484,7 +484,7 @@ describe('PortalCadencePage', () => {
         title: 'CHORD Behavioral Decomposition Workbench',
         summary: 'Zero-cost verified methodology showcase.',
         conditions: ['First paint on /cadence'],
-        handling: ['Auto-select goldenRuns[0]'],
+        handling: ['Load golden showcase on click'],
         outcomes: ['Zero LLM calls'],
         rules: ['Read-only Golden showcase'],
         deltas: ['No DB writes'],
@@ -511,6 +511,16 @@ describe('PortalCadencePage', () => {
     );
 
     expect(screen.getByTestId('cadence-golden-strip')).toBeTruthy();
+    const goldenChip = screen.getByTestId('cadence-golden-solar-forge-starter');
+    expect(goldenChip.getAttribute('data-active')).toBe('false');
+    expect(goldenChip.getAttribute('aria-pressed')).toBe('false');
+    expect(screen.queryByTitle('CADENCE Artifact Preview')).toBeNull();
+    expect(screen.queryByTestId('cadence-golden-readonly-pill')).toBeNull();
+
+    await user.click(goldenChip);
+    expect(goldenChip.getAttribute('data-active')).toBe('true');
+    expect(goldenChip.getAttribute('aria-pressed')).toBe('true');
+
     const liveSpecView = screen.getByTestId('cadence-live-spec-view');
     expect(liveSpecView.textContent).toContain('CHORD Behavioral Decomposition Workbench');
     expect(liveSpecView.textContent).toContain('First paint on /cadence');
