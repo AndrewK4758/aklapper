@@ -69,7 +69,9 @@ export default function PortalContactRoute({ loaderData, actionData }: Route.Com
         <PortalContactPage
           content={content}
           actionData={actionData}
-          isSubmitting={navigation.state === 'submitting'}
+          isSubmitting={
+            navigation.state === 'submitting' && navigation.formAction === href('/contact')
+          }
           formAction={href('/contact')}
           onClose={() => {
             if (paneNav?.docked) {

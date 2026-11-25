@@ -7,15 +7,63 @@ import {
   OscStatusBadge,
   SolarForgeEmblem,
 } from '@aklapper/ui';
-import { useState } from 'react';
-import { href, Link, Outlet } from 'react-router';
+import {
+  createRouteWorkspaceStore,
+  normalizeWorkspaceRouteKey,
+} from '@aklapper/ui/workspace-storage';
+import { type ReactNode, useState } from 'react';
+import { href, Link, Outlet, useOutlet } from 'react-router';
 
 import { reportAdminLazyChunkError } from './client-telemetry';
 
 import styles from './root.module.css';
 
-const LazyTerminalWorkspace = lazyWithRetry(() =>
-  import('@aklapper/ui/terminal-workspace').then(mod => ({ default: mod.TerminalWorkspace })),
+export const adminRouteWorkspaceStore = createRouteWorkspaceStore({
+  namespace: 'admin',
+});
+
+interface AdminRouteWorkspaceProps {
+  readonly pathname: string;
+  readonly outlet: ReactNode;
+  readonly terminal: NonNullable<AdminRootLoaderData['terminal']>;
+  readonly navigate: (to: string) => void | Promise<void>;
+}
+
+const LazyAdminRouteWorkspace = lazyWithRetry(() =>
+  import('@aklapper/ui/terminal-workspace').then(mod => {
+    const { RouteWorkspaceHost, TerminalWorkspace } = mod;
+    return {
+      default: function AdminRouteWorkspace({
+        pathname,
+        outlet,
+        terminal,
+        navigate,
+      }: AdminRouteWorkspaceProps) {
+        return (
+          <RouteWorkspaceHost
+            activeRouteKey={pathname}
+            outlet={outlet}
+            renderWorkspace={({ routeKey, outlet: layerOutlet, isActive }) => (
+              <TerminalWorkspace
+                terminal={terminal}
+                disableMenuShortcut
+                isActive={isActive}
+                routeKey={routeKey}
+                workspaceStore={adminRouteWorkspaceStore}
+                navigate={to => {
+                  void navigate(to);
+                }}
+                primaryPane={{
+                  title: getAdminPaneTitle(routeKey),
+                  content: layerOutlet,
+                }}
+              />
+            )}
+          />
+        );
+      },
+    };
+  }),
 );
 
 export type AdminWorkspaceMountBranch = 'login-outlet-only' | 'lazy-terminal-workspace';
@@ -78,21 +126,34 @@ export function AdminRootShell({
   pathname,
   navigate,
 }: AdminRootShellProps) {
+  const outlet = useOutlet();
   const [signingOut, setSigningOut] = useState(false);
   const { chrome, terminal } = rootData;
-  const resolvedTerminal = isLoginRoute ? undefined : terminal;
-  const hasGlobalWorkspace = !isLoginRoute && Boolean(resolvedTerminal);
+  const effectiveIsLoginRoute = isLoginRoute || normalizeWorkspaceRouteKey(pathname) === '/login';
   const isAdminSession = session?.role === 'admin';
+  const resolvedTerminal = effectiveIsLoginRoute || !isAdminSession ? undefined : terminal;
+  const hasGlobalWorkspace = !effectiveIsLoginRoute && isAdminSession && Boolean(resolvedTerminal);
   const workspaceMountBranch: AdminWorkspaceMountBranch = hasGlobalWorkspace
     ? 'lazy-terminal-workspace'
     : 'login-outlet-only';
   emitAdminWorkspaceMountBranch(workspaceMountBranch, pathname);
 
+  if (effectiveIsLoginRoute || !isAdminSession) {
+    if (typeof window !== 'undefined') {
+      adminRouteWorkspaceStore.clearAll({ silent: true });
+    }
+    adminRouteWorkspaceStore.recordRoutePolicy(pathname, 'admin-cleared');
+  } else if (hasGlobalWorkspace) {
+    adminRouteWorkspaceStore.recordRoutePolicy(pathname, 'cached-workspace');
+  }
+
   async function handleSignOut() {
     setSigningOut(true);
+    adminRouteWorkspaceStore.clearAll();
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
     } finally {
+      adminRouteWorkspaceStore.clearAll({ silent: true });
       window.location.assign(href('/login'));
     }
   }
@@ -158,7 +219,7 @@ export function AdminRootShell({
         </div>
       </header>
       <main className={styles.main} data-pane-workspace={hasGlobalWorkspace ? 'true' : 'false'}>
-        {!isLoginRoute && resolvedTerminal ? (
+        {!effectiveIsLoginRoute && isAdminSession && resolvedTerminal ? (
           <LazyChunkBoundary
             loadingLabel='Loading terminal workspace...'
             errorTitle='Unable to load terminal workspace'
@@ -166,16 +227,11 @@ export function AdminRootShell({
               reportAdminLazyChunkError('@aklapper/ui/terminal-workspace', pathname, error);
             }}
           >
-            <LazyTerminalWorkspace
+            <LazyAdminRouteWorkspace
+              pathname={pathname}
+              outlet={outlet}
               terminal={resolvedTerminal}
-              disableMenuShortcut
-              navigate={to => {
-                void navigate(to);
-              }}
-              primaryPane={{
-                title: getAdminPaneTitle(pathname),
-                content: <Outlet />,
-              }}
+              navigate={navigate}
             />
           </LazyChunkBoundary>
         ) : (

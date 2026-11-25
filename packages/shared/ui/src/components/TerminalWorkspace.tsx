@@ -17,12 +17,18 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
 
 import { Button, Toolbar, Tooltip } from '../elements/base';
 import { buildZshCommandHandlers } from './buildZshCommands';
 import { PaneActiveContext, useIsPaneActive } from './paneActiveContext';
 import { PaneNavigationContext, type PaneNavigationContextValue } from './paneNavigationContext';
+import {
+  normalizeWorkspaceRouteKey,
+  type RouteWorkspaceSnapshotV1,
+} from './routeWorkspaceSnapshot';
+import type { RouteWorkspaceStore } from './routeWorkspaceStore';
 import { type TerminalFormConfig } from './terminalFormSession';
 import {
   exitPaneTui,
@@ -124,6 +130,9 @@ export interface TerminalWorkspaceProps {
   canHandleInPaneRoute?: (to: string) => boolean;
   primaryPane?: TerminalWorkspacePrimaryPane;
   disableMenuShortcut?: boolean;
+  isActive?: boolean;
+  routeKey?: string;
+  workspaceStore?: RouteWorkspaceStore;
 }
 
 interface EmbeddedTerminalPaneContextValue {
@@ -132,6 +141,8 @@ interface EmbeddedTerminalPaneContextValue {
   readonly isMultiPane: boolean;
   readonly canCloseTab: boolean;
   readonly focusToken: number;
+  readonly initialCommandHistory?: readonly string[];
+  readonly onCommandHistoryChange?: (paneId: string, history: readonly string[]) => void;
   readonly onFocus: (paneId: string) => void;
   readonly onSplit: (paneId: string, direction: SplitCreateDirection) => void;
   readonly onRotate: (paneId: string) => void;
@@ -766,6 +777,8 @@ interface TerminalLeafContentProps {
   isMultiPane: boolean;
   canCloseTab: boolean;
   focusToken: number;
+  initialCommandHistory?: readonly string[];
+  onCommandHistoryChange?: (paneId: string, history: readonly string[]) => void;
   navigate?: (to: string) => void | Promise<void>;
   onFocus: (paneId: string) => void;
   onSplit: (paneId: string, direction: SplitCreateDirection) => void;
@@ -788,6 +801,8 @@ function TerminalLeafContent({
   isMultiPane,
   canCloseTab,
   focusToken,
+  initialCommandHistory,
+  onCommandHistoryChange,
   navigate,
   onFocus,
   onSplit,
@@ -934,6 +949,10 @@ function TerminalLeafContent({
         terminalForms={paneTerminalForms}
         quickCommands={terminal.quickCommands}
         initialEntries={pane.ttyNumber === 1 ? terminal.initialEntries : []}
+        initialCommandHistory={initialCommandHistory}
+        onCommandHistoryChange={
+          onCommandHistoryChange ? history => onCommandHistoryChange(pane.id, history) : undefined
+        }
         placeholder={terminal.placeholder}
         focusOnMount={isActive}
         isActive={isActive}
@@ -963,6 +982,8 @@ function TerminalLeafView({
   isZoomed,
   isDragging,
   focusToken,
+  initialCommandHistory,
+  onCommandHistoryChange,
   navigate,
   paneNav,
   renderPaneView,
@@ -1006,6 +1027,8 @@ function TerminalLeafView({
       isMultiPane={isMultiPane}
       canCloseTab={canCloseTab}
       focusToken={focusToken}
+      initialCommandHistory={initialCommandHistory}
+      onCommandHistoryChange={onCommandHistoryChange}
       navigate={navigate}
       onFocus={onFocus}
       onSplit={onSplit}
@@ -1176,6 +1199,8 @@ interface PrimaryPaneViewProps extends PaneDragHandlers {
   isZoomed: boolean;
   isDragging: boolean;
   focusToken: number;
+  initialCommandHistory?: readonly string[];
+  onCommandHistoryChange?: (paneId: string, history: readonly string[]) => void;
   paneNav: PaneNavigationContextValue | null;
   renderPaneView?: (context: TerminalPaneViewContext) => ReactNode;
   initialDeepLinkRoute: string | null;
@@ -1201,6 +1226,8 @@ function PrimaryPaneView({
   isZoomed,
   isDragging,
   focusToken,
+  initialCommandHistory,
+  onCommandHistoryChange,
   paneNav,
   renderPaneView,
   initialDeepLinkRoute,
@@ -1241,6 +1268,8 @@ function PrimaryPaneView({
       isMultiPane,
       canCloseTab,
       focusToken,
+      initialCommandHistory,
+      onCommandHistoryChange,
       onFocus,
       onSplit,
       onRotate,
@@ -1260,6 +1289,8 @@ function PrimaryPaneView({
       isMultiPane,
       canCloseTab,
       focusToken,
+      initialCommandHistory,
+      onCommandHistoryChange,
       onFocus,
       onSplit,
       onRotate,
@@ -1391,6 +1422,8 @@ function PaneReadlineScope({ paneId, registerHandle, children }: PaneReadlineSco
   );
 }
 
+const noopStoreSubscribe = () => () => undefined;
+
 function StandaloneTerminalWorkspace({
   terminal,
   terminalForms,
@@ -1403,16 +1436,62 @@ function StandaloneTerminalWorkspace({
   canHandleInPaneRoute = defaultCanHandleInPaneRoute,
   primaryPane,
   disableMenuShortcut = false,
+  isActive = true,
+  routeKey,
+  workspaceStore,
 }: TerminalWorkspaceProps) {
   const isDockedMode = dockTuiWindows ?? Boolean(renderPaneView);
   const initialDeepLinkRoute = initialPrimaryTuiStack?.[0] ?? null;
   const currentEmbeddedTerminal = primaryPane?.embeddedTerminal;
+  const isStoreBound = Boolean(workspaceStore && routeKey);
+  const normalizedRouteKey = routeKey ? normalizeWorkspaceRouteKey(routeKey) : '';
+  const pinnedPrimary = Boolean(primaryPane);
+  const initialStackKey = initialPrimaryTuiStack?.join('\0') ?? '';
+
+  const stableInitialOptions = useMemo(
+    () => ({
+      pinnedPrimary,
+      ...(initialStackKey.length > 0
+        ? { initialPrimaryTuiStack: initialStackKey.split('\0') }
+        : {}),
+    }),
+    [initialStackKey, pinnedPrimary],
+  );
+
+  const serverStoreSnapshot = useMemo<RouteWorkspaceSnapshotV1 | null>(
+    () =>
+      workspaceStore && normalizedRouteKey
+        ? workspaceStore.getServerSnapshot(normalizedRouteKey, stableInitialOptions)
+        : null,
+    [normalizedRouteKey, stableInitialOptions, workspaceStore],
+  );
+
+  const subscribeStore = useCallback(
+    (onStoreChange: () => void) =>
+      workspaceStore && normalizedRouteKey
+        ? workspaceStore.subscribe(normalizedRouteKey, onStoreChange)
+        : noopStoreSubscribe(),
+    [normalizedRouteKey, workspaceStore],
+  );
+
+  const getClientStoreSnapshot = useCallback(
+    (): RouteWorkspaceSnapshotV1 | null =>
+      workspaceStore && normalizedRouteKey
+        ? workspaceStore.getClientSnapshot(normalizedRouteKey, stableInitialOptions)
+        : null,
+    [normalizedRouteKey, stableInitialOptions, workspaceStore],
+  );
+
+  const getServerStoreSnapshot = useCallback(() => serverStoreSnapshot, [serverStoreSnapshot]);
+
+  const storeSnapshot = useSyncExternalStore(
+    subscribeStore,
+    getClientStoreSnapshot,
+    getServerStoreSnapshot,
+  );
 
   const [rawState, setRawState] = useState<SyncedTabState>(() => ({
-    tabs: createInitialTabbedWorkspaceState({
-      pinnedPrimary: Boolean(primaryPane),
-      initialPrimaryTuiStack,
-    }),
+    tabs: createInitialTabbedWorkspaceState(stableInitialOptions),
     embeddedTerminal: currentEmbeddedTerminal,
     deepLinkRoute: initialDeepLinkRoute,
   }));
@@ -1421,18 +1500,21 @@ function StandaloneTerminalWorkspace({
   const [dragState, setDragState] = useState<ActiveDragState | null>(null);
   const [resizingSplitId, setResizingSplitId] = useState<string | null>(null);
 
-  const reconciledState = reconcilePrimaryRouteState(
-    rawState,
-    currentEmbeddedTerminal,
-    initialDeepLinkRoute,
-  );
-  if (reconciledState !== rawState) {
+  const reconciledState = isStoreBound
+    ? rawState
+    : reconcilePrimaryRouteState(rawState, currentEmbeddedTerminal, initialDeepLinkRoute);
+  if (!isStoreBound && reconciledState !== rawState) {
     setRawState(reconciledState);
   }
-  const tabState = reconciledState.tabs;
+  const tabState = storeSnapshot ? storeSnapshot.tabs : reconciledState.tabs;
+  const paneHistoryMap = storeSnapshot?.paneHistory;
 
   const setTabState = useCallback(
     (updater: (prev: TerminalTabbedWorkspaceState) => TerminalTabbedWorkspaceState) => {
+      if (workspaceStore && normalizedRouteKey) {
+        workspaceStore.updateTabs(normalizedRouteKey, stableInitialOptions, updater);
+        return;
+      }
       setRawState(prev => {
         const base = reconcilePrimaryRouteState(
           prev,
@@ -1443,8 +1525,23 @@ function StandaloneTerminalWorkspace({
         return nextTabs === base.tabs && base === prev ? prev : { ...base, tabs: nextTabs };
       });
     },
-    [currentEmbeddedTerminal, initialDeepLinkRoute],
+    [
+      currentEmbeddedTerminal,
+      initialDeepLinkRoute,
+      normalizedRouteKey,
+      stableInitialOptions,
+      workspaceStore,
+    ],
   );
+
+  const handleCommandHistoryChange = useMemo(() => {
+    if (!workspaceStore || !normalizedRouteKey) {
+      return undefined;
+    }
+    return (paneId: string, history: readonly string[]) => {
+      workspaceStore.setPaneHistory(normalizedRouteKey, stableInitialOptions, paneId, history);
+    };
+  }, [normalizedRouteKey, stableInitialOptions, workspaceStore]);
 
   const paneAreaRef = useRef<HTMLDivElement | null>(null);
   const dragOriginRef = useRef<DragOrigin | null>(null);
@@ -1478,38 +1575,100 @@ function StandaloneTerminalWorkspace({
       ? activeWorkspace.zoomedPaneId
       : null;
 
-  const notifyIfPrimaryReturnedToShell = (
-    targetLeafPinned: boolean | undefined,
-    nextStackEmpty: boolean,
-  ) => {
-    if (nextStackEmpty && isPrimaryHostPane(activeTab.pinned, targetLeafPinned)) {
-      onPrimaryPaneReturnToShell?.();
-    }
-  };
+  const shouldPreserveDeepLinkBase = useCallback(
+    (targetLeafPinned: boolean | undefined): boolean =>
+      Boolean(
+        !primaryPane?.embeddedTerminal &&
+        initialDeepLinkRoute &&
+        onPrimaryPaneReturnToShell &&
+        isPrimaryHostPane(activeTab.pinned, targetLeafPinned),
+      ),
+    [
+      activeTab.pinned,
+      initialDeepLinkRoute,
+      onPrimaryPaneReturnToShell,
+      primaryPane?.embeddedTerminal,
+    ],
+  );
+
+  const notifyIfPrimaryReturnedToShell = useCallback(
+    (targetLeafPinned: boolean | undefined, nextStackEmpty: boolean) => {
+      if (nextStackEmpty && isPrimaryHostPane(activeTab.pinned, targetLeafPinned)) {
+        onPrimaryPaneReturnToShell?.();
+      }
+    },
+    [activeTab.pinned, onPrimaryPaneReturnToShell],
+  );
 
   const handlePushPaneView = (paneId: string, viewId: string) => {
     setTabState(prev => updateActiveTabWorkspace(prev, ws => pushPaneView(ws, paneId, viewId)));
   };
 
-  const handlePopPaneView = (paneId: string) => {
-    const targetLeaf = findLeafPane(activeWorkspace.root, paneId);
-    const currentLen = targetLeaf?.tuiStack?.length ?? 0;
-    if (currentLen === 0) {
-      return;
-    }
-    setTabState(prev => updateActiveTabWorkspace(prev, ws => popPaneView(ws, paneId)));
-    notifyIfPrimaryReturnedToShell(targetLeaf?.pinned, currentLen === 1);
-  };
+  const handlePopPaneView = useCallback(
+    (paneId: string) => {
+      const targetLeaf = findLeafPane(activeWorkspace.root, paneId);
+      const currentLen = targetLeaf?.tuiStack?.length ?? 0;
+      if (currentLen === 0) {
+        return;
+      }
+      if (
+        currentLen <= 1 &&
+        shouldPreserveDeepLinkBase(targetLeaf?.pinned) &&
+        initialDeepLinkRoute
+      ) {
+        if (targetLeaf?.tuiStack?.[0] !== initialDeepLinkRoute) {
+          setTabState(prev =>
+            updateActiveTabWorkspace(prev, ws =>
+              pushPaneView(exitPaneTui(ws, paneId), paneId, initialDeepLinkRoute),
+            ),
+          );
+        }
+        onPrimaryPaneReturnToShell?.();
+        return;
+      }
+      setTabState(prev => updateActiveTabWorkspace(prev, ws => popPaneView(ws, paneId)));
+      notifyIfPrimaryReturnedToShell(targetLeaf?.pinned, currentLen === 1);
+    },
+    [
+      activeWorkspace.root,
+      initialDeepLinkRoute,
+      notifyIfPrimaryReturnedToShell,
+      onPrimaryPaneReturnToShell,
+      setTabState,
+      shouldPreserveDeepLinkBase,
+    ],
+  );
 
-  const handleExitPaneTui = (paneId: string) => {
-    const targetLeaf = findLeafPane(activeWorkspace.root, paneId);
-    const currentLen = targetLeaf?.tuiStack?.length ?? 0;
-    if (currentLen === 0) {
-      return;
-    }
-    setTabState(prev => updateActiveTabWorkspace(prev, ws => exitPaneTui(ws, paneId)));
-    notifyIfPrimaryReturnedToShell(targetLeaf?.pinned, true);
-  };
+  const handleExitPaneTui = useCallback(
+    (paneId: string) => {
+      const targetLeaf = findLeafPane(activeWorkspace.root, paneId);
+      const currentLen = targetLeaf?.tuiStack?.length ?? 0;
+      if (currentLen === 0) {
+        return;
+      }
+      if (shouldPreserveDeepLinkBase(targetLeaf?.pinned) && initialDeepLinkRoute) {
+        if (currentLen > 1 || targetLeaf?.tuiStack?.[0] !== initialDeepLinkRoute) {
+          setTabState(prev =>
+            updateActiveTabWorkspace(prev, ws =>
+              pushPaneView(exitPaneTui(ws, paneId), paneId, initialDeepLinkRoute),
+            ),
+          );
+        }
+        onPrimaryPaneReturnToShell?.();
+        return;
+      }
+      setTabState(prev => updateActiveTabWorkspace(prev, ws => exitPaneTui(ws, paneId)));
+      notifyIfPrimaryReturnedToShell(targetLeaf?.pinned, true);
+    },
+    [
+      activeWorkspace.root,
+      initialDeepLinkRoute,
+      notifyIfPrimaryReturnedToShell,
+      onPrimaryPaneReturnToShell,
+      setTabState,
+      shouldPreserveDeepLinkBase,
+    ],
+  );
 
   const handleOpenViewInSplit = (paneId: string, viewId: string) => {
     const direction = resolveAutoSplitDirection();
@@ -1542,6 +1701,9 @@ function StandaloneTerminalWorkspace({
   };
 
   useEffect(() => {
+    if (!isActive) {
+      return;
+    }
     const handleGlobalKeyDown = (event: KeyboardEvent) => {
       if (renamingTabId !== null) {
         return;
@@ -1603,11 +1765,7 @@ function StandaloneTerminalWorkspace({
           event.key === 'ArrowLeft';
         if (isEscape || isAltLeft) {
           event.preventDefault();
-          const currentLen = activeLeaf.tuiStack?.length ?? 0;
-          setTabState(prev => updateActiveTabWorkspace(prev, ws => popPaneView(ws, activeLeaf.id)));
-          if (currentLen === 1 && isPrimaryHostPane(activeTab.pinned, activeLeaf.pinned)) {
-            onPrimaryPaneReturnToShell?.();
-          }
+          handlePopPaneView(activeLeaf.id);
           return;
         }
         if (
@@ -1618,10 +1776,7 @@ function StandaloneTerminalWorkspace({
           !event.defaultPrevented
         ) {
           event.preventDefault();
-          setTabState(prev => updateActiveTabWorkspace(prev, ws => exitPaneTui(ws, activeLeaf.id)));
-          if (isPrimaryHostPane(activeTab.pinned, activeLeaf.pinned)) {
-            onPrimaryPaneReturnToShell?.();
-          }
+          handleExitPaneTui(activeLeaf.id);
           return;
         }
       }
@@ -1758,13 +1913,7 @@ function StandaloneTerminalWorkspace({
         case 'toggle-tui':
           if (renderPaneView && activeLeaf) {
             if (activeLeafViewId === 'tui') {
-              const currentLen = activeLeaf.tuiStack?.length ?? 0;
-              setTabState(prev =>
-                updateActiveTabWorkspace(prev, ws => popPaneView(ws, activeLeaf.id)),
-              );
-              if (currentLen === 1 && isPrimaryHostPane(activeTab.pinned, activeLeaf.pinned)) {
-                onPrimaryPaneReturnToShell?.();
-              }
+              handlePopPaneView(activeLeaf.id);
             } else {
               setTabState(prev =>
                 updateActiveTabWorkspace(prev, ws => pushPaneView(ws, activeLeaf.id, 'tui')),
@@ -1814,7 +1963,10 @@ function StandaloneTerminalWorkspace({
     activeWorkspace.activePaneId,
     disableMenuShortcut,
     dragState,
+    handleExitPaneTui,
+    handlePopPaneView,
     initialDeepLinkRoute,
+    isActive,
     isActiveMultiPane,
     navigate,
     onPrimaryPaneReturnToShell,
@@ -2150,8 +2302,9 @@ function StandaloneTerminalWorkspace({
               {leaves.map(pane => {
                 const isZoomed = pane.id === zoomedPaneId;
                 const isHidden = Boolean(zoomedPaneId) && !isZoomed;
-                const isPaneActive = isCurrentTab && pane.id === ws.activePaneId;
-                const isDraggingPane = isCurrentTab && dragState?.sourcePaneId === pane.id;
+                const isPaneActive = isActive && isCurrentTab && pane.id === ws.activePaneId;
+                const isDraggingPane =
+                  isActive && isCurrentTab && dragState?.sourcePaneId === pane.id;
                 const rect = isZoomed
                   ? { x: 0, y: 0, width: 1, height: 1 }
                   : (rectsById.get(pane.id) ?? { x: 0, y: 0, width: 1, height: 1 });
@@ -2198,6 +2351,12 @@ function StandaloneTerminalWorkspace({
                           isZoomed={isZoomed}
                           isDragging={isDraggingPane}
                           focusToken={ws.focusToken}
+                          initialCommandHistory={
+                            paneHistoryMap && Object.hasOwn(paneHistoryMap, pane.id)
+                              ? paneHistoryMap[pane.id]
+                              : undefined
+                          }
+                          onCommandHistoryChange={handleCommandHistoryChange}
                           paneNav={paneNav}
                           renderPaneView={renderPaneView}
                           initialDeepLinkRoute={initialDeepLinkRoute}
@@ -2249,6 +2408,12 @@ function StandaloneTerminalWorkspace({
                           isZoomed={isZoomed}
                           isDragging={isDraggingPane}
                           focusToken={ws.focusToken}
+                          initialCommandHistory={
+                            paneHistoryMap && Object.hasOwn(paneHistoryMap, pane.id)
+                              ? paneHistoryMap[pane.id]
+                              : undefined
+                          }
+                          onCommandHistoryChange={handleCommandHistoryChange}
                           navigate={navigate}
                           paneNav={paneNav}
                           renderPaneView={renderPaneView}
@@ -2351,6 +2516,8 @@ export function TerminalWorkspace(props: TerminalWorkspaceProps) {
         isMultiPane={embeddedCtx.isMultiPane}
         canCloseTab={embeddedCtx.canCloseTab}
         focusToken={embeddedCtx.focusToken}
+        initialCommandHistory={embeddedCtx.initialCommandHistory}
+        onCommandHistoryChange={embeddedCtx.onCommandHistoryChange}
         navigate={props.navigate}
         onFocus={embeddedCtx.onFocus}
         onSplit={embeddedCtx.onSplit}

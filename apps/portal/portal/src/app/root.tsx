@@ -28,6 +28,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  type ShouldRevalidateFunctionArgs,
   useLocation,
   useNavigate,
   useRouteLoaderData,
@@ -83,6 +84,23 @@ export function loader({ request, context }: Route.LoaderArgs): PortalRootStream
 
 function normalizePathname(pathname: string): string {
   return pathname.replace(/\/+$/, '') || '/';
+}
+
+export function shouldRevalidate({
+  currentUrl,
+  nextUrl,
+  formAction,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs): boolean {
+  const currentPath = normalizePathname(currentUrl.pathname);
+  const nextPath = normalizePathname(nextUrl.pathname);
+  if (currentPath === '/changes-in-progress' || nextPath === '/changes-in-progress') {
+    return defaultShouldRevalidate;
+  }
+  if (currentPath === nextPath && !formAction) {
+    return defaultShouldRevalidate;
+  }
+  return false;
 }
 
 export function meta({ loaderData, location }: Route.MetaArgs) {

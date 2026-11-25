@@ -23,7 +23,7 @@ import {
   useMatches,
   useParams,
 } from 'react-router';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { PortalCadenceActionResult } from '#pages/cadence';
 
@@ -31,6 +31,7 @@ import { initPortalClientTelemetry, resetPortalClientTelemetryForTest } from './
 import { type PaneLoaderErrorEnvelope, type StreamLoaderEnvelope } from './pane-loader';
 import { runPaneSafeLoader } from './pane-loader.server';
 import { renderPortalPaneView } from './portalPaneViews';
+import { portalRouteWorkspaceStore } from './PortalRootShell';
 import PortalRoot, { type PortalRootStreamData } from './root';
 import PortalAgensiRoute from './routes/agensi';
 import PortalCadenceRoute from './routes/cadence';
@@ -254,6 +255,10 @@ const MENU_DATA: PortalMenuLoaderData = {
 };
 
 describe('Portal in-pane route adapters & deep-links', () => {
+  afterEach(() => {
+    portalRouteWorkspaceStore.resetForTest();
+    window.sessionStorage.clear();
+  });
   it('submits in-pane /contact form explicitly to /contact while keeping URL at /', async () => {
     const contactActionSpy = vi.fn<() => Promise<ContactActionResult>>(async () => ({
       ok: true,
@@ -518,15 +523,17 @@ describe('Portal in-pane route adapters & deep-links', () => {
 
     const { container } = render(<RouterProvider router={router} />);
 
+    const getActivePane1 = () =>
+      container.querySelector('[data-route-active="true"] [data-pane-id="pane-1"]') as HTMLElement;
+
     // Deep-link /agensi -> Exit TUI -> / -> Browser Back to /agensi -> Escape returns cleanly to /
     expect(await screen.findByText('Commercial AI skills.')).toBeTruthy();
-    const pane1 = container.querySelector('[data-pane-id="pane-1"]') as HTMLElement;
-    expect(pane1.getAttribute('data-tui-depth')).toBe('1');
+    expect(getActivePane1().getAttribute('data-tui-depth')).toBe('1');
 
     fireEvent.click(screen.getByRole('button', { name: 'Exit TUI' }));
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/');
-      expect(pane1.getAttribute('data-tui-depth')).toBe('0');
+      expect(getActivePane1().getAttribute('data-tui-depth')).toBe('0');
     });
 
     await act(async () => {
@@ -534,13 +541,13 @@ describe('Portal in-pane route adapters & deep-links', () => {
     });
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/agensi');
-      expect(pane1.getAttribute('data-tui-depth')).toBe('1');
+      expect(getActivePane1().getAttribute('data-tui-depth')).toBe('1');
     });
 
     fireEvent.keyDown(window, { key: 'Escape' });
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/');
-      expect(pane1.getAttribute('data-tui-depth')).toBe('0');
+      expect(getActivePane1().getAttribute('data-tui-depth')).toBe('0');
     });
 
     // Deep-link route switch: /menu -> /agensi -> Browser Back to /menu (no stale Agensi overlay)
@@ -549,7 +556,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
     });
     expect(await screen.findByRole('heading', { name: 'Launch Menu' })).toBeTruthy();
     await waitFor(() => {
-      expect(pane1.getAttribute('data-tui-depth')).toBe('1');
+      expect(getActivePane1().getAttribute('data-tui-depth')).toBe('1');
     });
 
     await act(async () => {
@@ -562,12 +569,13 @@ describe('Portal in-pane route adapters & deep-links', () => {
     });
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/menu');
-      expect(pane1.getAttribute('data-tui-depth')).toBe('1');
+      expect(getActivePane1().getAttribute('data-tui-depth')).toBe('1');
     });
-    const shellLayer = pane1.querySelector('[data-shell-layer="true"]') as HTMLElement;
+    const activeMenuPane1 = getActivePane1();
+    const shellLayer = activeMenuPane1.querySelector('[data-shell-layer="true"]') as HTMLElement;
     expect(shellLayer.hidden).toBe(false);
     expect(screen.getByRole('heading', { name: 'Launch Menu' })).toBeTruthy();
-    expect(screen.queryByText('Commercial AI skills.')).toBeNull();
+    expect(activeMenuPane1.textContent).not.toContain('Commercial AI skills.');
   });
 
   it('emits portal.pane_nav.unknown_view_id once per unregistered view and exits cleanly', () => {
@@ -755,7 +763,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
       { initialEntries: ['/'] },
     );
 
-    render(<RouterProvider router={router} />);
+    const { container } = render(<RouterProvider router={router} />);
     const input = (await screen.findByLabelText('Terminal command input')) as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'agensi' } });
     fireEvent.submit(input.closest('form') as HTMLFormElement);
@@ -768,7 +776,10 @@ describe('Portal in-pane route adapters & deep-links', () => {
     await act(async () => {
       await router.navigate('/agensi');
     });
-    expect(await screen.findByTestId('agensi-catalog-meta')).toBeTruthy();
+    await waitFor(() => {
+      const activeAgensiLayer = container.querySelector('[data-route-workspace="/agensi"]');
+      expect(activeAgensiLayer?.querySelector('[data-testid="agensi-catalog-meta"]')).toBeTruthy();
+    });
   });
 
   it('runs docked /cadence with Select Escape guard, live EventSource streaming, and gate approval without changing URL', async () => {
@@ -1438,6 +1449,8 @@ describe('Portal in-pane route adapters & deep-links', () => {
       { initialEntries: ['/'] },
     );
 
+    portalRouteWorkspaceStore.resetForTest();
+    window.sessionStorage.clear();
     render(<RouterProvider router={mismatchRouter} />);
     const input2 = (await screen.findByLabelText('Terminal command input')) as HTMLInputElement;
     fireEvent.change(input2, { target: { value: 'ask' } });

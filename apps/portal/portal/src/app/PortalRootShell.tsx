@@ -5,12 +5,14 @@ import {
   lazyWithRetry,
   NavigationMenu,
   OscStatusBadge,
+  RouteWorkspaceHost,
   Separator,
   SolarForgeEmblem,
   TerminalWorkspace,
 } from '@aklapper/ui';
+import { createRouteWorkspaceStore } from '@aklapper/ui/workspace-storage';
 import { useMemo } from 'react';
-import { href, Link, Outlet } from 'react-router';
+import { href, Link, Outlet, useOutlet } from 'react-router';
 
 import { PortalLauncherTui } from '#pages/home';
 
@@ -26,6 +28,10 @@ const LazyPortalChangesInProgressPage = lazyWithRetry(() =>
     default: mod.PortalChangesInProgressPage,
   })),
 );
+
+export const portalRouteWorkspaceStore = createRouteWorkspaceStore({
+  namespace: 'portal',
+});
 
 function getPortalPaneTitle(pathname: string): string {
   return pathname === '/' ? 'tty1' : `tui :: ${pathname}`;
@@ -62,12 +68,14 @@ export interface PortalRootShellProps {
 }
 
 export function PortalRootShell({ data, pathname, cluster, navigate }: PortalRootShellProps) {
+  const outlet = useOutlet();
   const terminalForms = useMemo(
     () => createPortalTerminalForms(data.contactForm, navigate),
     [data.contactForm, navigate],
   );
 
   if (data.maintenanceMode && data.maintenance) {
+    portalRouteWorkspaceStore.recordRoutePolicy(pathname, 'excluded-maintenance');
     return (
       <div className={styles.standaloneShell}>
         <main className={styles.standaloneMain}>
@@ -97,9 +105,10 @@ export function PortalRootShell({ data, pathname, cluster, navigate }: PortalRoo
 
   const { chrome, terminal, homeContent } = data;
   const isTerminalViewport = pathname === '/';
-  const isPortalPaneDeepLink = isPortalPaneRoute(pathname);
-  const initialPrimaryTuiStack = isPortalPaneDeepLink ? [pathname] : undefined;
   const hasGlobalWorkspace = Boolean(terminal);
+  if (hasGlobalWorkspace) {
+    portalRouteWorkspaceStore.recordRoutePolicy(pathname, 'cached-workspace');
+  }
   const headerBadgeState = cluster.connected ? cluster.summaryState : chrome.statusBadge.state;
   const headerBadgeLabel =
     cluster.connected && cluster.summaryLabel ? cluster.summaryLabel : chrome.statusBadge.label;
@@ -159,43 +168,59 @@ export function PortalRootShell({ data, pathname, cluster, navigate }: PortalRoo
         data-pane-workspace={hasGlobalWorkspace ? 'true' : 'false'}
       >
         {terminal ? (
-          <TerminalWorkspace
-            terminal={terminal}
-            terminalForms={terminalForms}
-            navigate={to => {
-              void navigate(to);
-            }}
-            initialPrimaryTuiStack={initialPrimaryTuiStack}
-            onPrimaryPaneReturnToShell={() => {
-              if (pathname !== '/') {
-                void navigate(href('/'));
-              }
-            }}
-            canHandleInPaneRoute={to => to === 'tui' || isPortalPaneRoute(to)}
-            renderPaneView={ctx =>
-              renderPortalPaneView({
-                ctx,
-                homeContent,
-                deployments: cluster.deployments,
-              })
-            }
-            renderTui={
-              homeContent
-                ? ({ ttyNumber, isSinglePane, closeTui }) => (
-                    <PortalLauncherTui
-                      content={homeContent}
-                      ttyNumber={ttyNumber}
-                      isSinglePane={isSinglePane}
-                      onClose={closeTui}
-                    />
-                  )
-                : undefined
-            }
-            primaryPane={{
-              title: getPortalPaneTitle(pathname),
-              content: <Outlet />,
-              flush: isTerminalViewport || isPortalPaneDeepLink,
-              embeddedTerminal: isTerminalViewport,
+          <RouteWorkspaceHost
+            activeRouteKey={pathname}
+            outlet={outlet}
+            renderWorkspace={({ routeKey, outlet: layerOutlet, isActive }) => {
+              const layerIsTerminalViewport = routeKey === '/';
+              const layerIsPortalPaneDeepLink = isPortalPaneRoute(routeKey);
+              const layerInitialPrimaryTuiStack = layerIsPortalPaneDeepLink
+                ? [routeKey]
+                : undefined;
+              return (
+                <TerminalWorkspace
+                  terminal={terminal}
+                  terminalForms={terminalForms}
+                  isActive={isActive}
+                  routeKey={routeKey}
+                  workspaceStore={portalRouteWorkspaceStore}
+                  navigate={to => {
+                    void navigate(to);
+                  }}
+                  initialPrimaryTuiStack={layerInitialPrimaryTuiStack}
+                  onPrimaryPaneReturnToShell={() => {
+                    if (routeKey !== '/') {
+                      void navigate(href('/'));
+                    }
+                  }}
+                  canHandleInPaneRoute={to => to === 'tui' || isPortalPaneRoute(to)}
+                  renderPaneView={ctx =>
+                    renderPortalPaneView({
+                      ctx,
+                      homeContent,
+                      deployments: cluster.deployments,
+                    })
+                  }
+                  renderTui={
+                    homeContent
+                      ? ({ ttyNumber, isSinglePane, closeTui }) => (
+                          <PortalLauncherTui
+                            content={homeContent}
+                            ttyNumber={ttyNumber}
+                            isSinglePane={isSinglePane}
+                            onClose={closeTui}
+                          />
+                        )
+                      : undefined
+                  }
+                  primaryPane={{
+                    title: getPortalPaneTitle(routeKey),
+                    content: layerOutlet,
+                    flush: layerIsTerminalViewport || layerIsPortalPaneDeepLink,
+                    embeddedTerminal: layerIsTerminalViewport,
+                  }}
+                />
+              );
             }}
           />
         ) : (
