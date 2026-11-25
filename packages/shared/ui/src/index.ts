@@ -34,11 +34,6 @@ export {
 } from './components/LazyChunkBoundary';
 export { LoadingElement, type LoadingElementProps } from './components/LoadingElement';
 export {
-  MobileAppShell,
-  type MobileAppShellProps,
-  type MobileNavItem,
-} from './components/MobileAppShell';
-export {
   RecursiveTuiForm,
   type RecursiveTuiFormProps,
   type RecursiveTuiFormRenderProps,

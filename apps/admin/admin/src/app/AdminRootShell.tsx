@@ -3,8 +3,6 @@ import {
   Button,
   LazyChunkBoundary,
   lazyWithRetry,
-  MobileAppShell,
-  type MobileNavItem,
   NavigationMenu,
   OscStatusBadge,
   SolarForgeEmblem,
@@ -17,6 +15,7 @@ import {
 import { type ReactNode, useState } from 'react';
 import { href, Link, Outlet, useOutlet } from 'react-router';
 
+import { AdminMobileWorkspaceHost } from './AdminMobileWorkspaceHost';
 import { reportAdminLazyChunkError } from './client-telemetry';
 
 import styles from './root.module.css';
@@ -72,7 +71,7 @@ const LazyAdminRouteWorkspace = lazyWithRetry(() =>
 export type AdminWorkspaceMountBranch =
   | 'login-outlet-only'
   | 'lazy-terminal-workspace'
-  | 'mobile-app-shell';
+  | 'mobile-tui-workspace';
 
 let lastEmittedWorkspaceBranchKey: string | null = null;
 let lastEmittedUnauthMobileKey: string | null = null;
@@ -123,34 +122,6 @@ const ADMIN_NAV_ITEMS = [
   { to: href('/ops'), label: 'Ops' },
 ] as const;
 
-const ADMIN_MOBILE_NAV = [
-  { id: 'home', to: href('/'), label: 'Home', icon: '⌂' },
-  { id: 'cms', to: href('/cms'), label: 'CMS', icon: '✎' },
-  { id: 'inbox', to: href('/inbox'), label: 'Inbox', icon: '✉' },
-  { id: 'ops', to: href('/ops'), label: 'Ops', icon: '⚙' },
-  { id: 'analytics', to: href('/analytics'), label: 'Analytics', icon: '◔' },
-] as const;
-
-function getAdminMobilePageTitle(pathname: string): string {
-  const normalized = pathname.replace(/\/+$/, '') || '/';
-  switch (normalized) {
-    case '/':
-      return 'Home';
-    case '/cms':
-      return 'CMS';
-    case '/inbox':
-      return 'Inbox';
-    case '/ops':
-      return 'Ops';
-    case '/analytics':
-      return 'Analytics';
-    case '/quotas':
-      return 'Quotas';
-    default:
-      return normalized.slice(1);
-  }
-}
-
 function isNavItemActive(pathname: string, to: string): boolean {
   const normalized = pathname.replace(/\/+$/, '') || '/';
   if (to === '/') return normalized === '/';
@@ -194,7 +165,7 @@ export function AdminRootShell({
   }
 
   const workspaceMountBranch: AdminWorkspaceMountBranch = isAuthenticatedHandheld
-    ? 'mobile-app-shell'
+    ? 'mobile-tui-workspace'
     : hasGlobalWorkspace
       ? 'lazy-terminal-workspace'
       : 'login-outlet-only';
@@ -221,62 +192,14 @@ export function AdminRootShell({
   }
 
   if (isAuthenticatedHandheld) {
-    const mobileNavItems: readonly MobileNavItem[] = ADMIN_MOBILE_NAV.map(item => ({
-      id: item.id,
-      label: item.label,
-      icon: item.icon,
-      active: isNavItemActive(pathname, item.to),
-      renderLink: linkProps => (
-        <Link to={item.to} prefetch='intent' {...linkProps}>
-          {linkProps.children}
-        </Link>
-      ),
-    }));
-
-    const quotasActive = isNavItemActive(pathname, href('/quotas'));
-    const mobileActions = (
-      <>
-        <Link
-          to={href('/quotas')}
-          prefetch='intent'
-          className={styles.mobileSecondaryLink}
-          data-active={quotasActive ? 'true' : 'false'}
-          aria-current={quotasActive ? 'page' : undefined}
-        >
-          Quotas
-        </Link>
-        <Button.Root
-          type='button'
-          variant='ghost'
-          size='sm'
-          className={styles.mobileSignOutButton}
-          loading={signingOut}
-          onClick={() => {
-            void handleSignOut();
-          }}
-        >
-          <Button.Label>Sign Out</Button.Label>
-        </Button.Root>
-      </>
-    );
-
     return (
-      <MobileAppShell
+      <AdminMobileWorkspaceHost
         layoutMode={layoutMode}
-        brand={
-          <Link to={href('/')} prefetch='intent' className={styles.mobileBrand}>
-            <SolarForgeEmblem size={18} />
-            <span>{chrome.brandLabel}</span>
-          </Link>
-        }
-        pageTitle={getAdminMobilePageTitle(pathname)}
-        navLabel='Admin mobile navigation'
-        navItems={mobileNavItems}
-        secondaryMenuItems={mobileActions}
-        railFooterActions={mobileActions}
-      >
-        <Outlet />
-      </MobileAppShell>
+        chrome={chrome}
+        pathname={pathname}
+        signingOut={signingOut}
+        onSignOut={handleSignOut}
+      />
     );
   }
 

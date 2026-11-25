@@ -52,6 +52,8 @@ describe.runIf(existsSync(ASSETS_DIR))('Admin production client chunk isolation'
     for (const forbiddenChunk of [
       /^terminal-workspace-/i,
       /^TerminalWorkspace-/,
+      /^mobile-tui-workspace-/i,
+      /^MobileTuiWorkspace-/,
       /^SiteContentPreviewPane-/,
       /^CmsMenuTab-/,
       /^CmsTerminalTab-/,
@@ -63,6 +65,8 @@ describe.runIf(existsSync(ASSETS_DIR))('Admin production client chunk isolation'
     for (const forbiddenMarker of [
       'ZshP10kTerminal',
       'Terminal command input',
+      'MobileTuiWorkspace',
+      'data-mobile-tui-dock',
       'data-pane-count',
       'SiteContentPreviewCanvas',
       'QrCodeSvg',
@@ -72,5 +76,6 @@ describe.runIf(existsSync(ASSETS_DIR))('Admin production client chunk isolation'
     }
 
     expect(allJsFiles.some(file => /^terminal-workspace-/i.test(file))).toBe(true);
+    expect(allJsFiles.some(file => /^mobile-tui-workspace-/i.test(file))).toBe(true);
   });
 });
