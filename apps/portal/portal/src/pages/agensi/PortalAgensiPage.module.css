@@ -54,16 +54,19 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
     gap: var(--sf-space-6);
+    min-width: var(--sf-space-0);
   }
 
   .card {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto 1fr auto;
     gap: var(--sf-gap-md);
     padding: var(--sf-inset-panel);
     border-radius: var(--sf-radius-md);
     border: var(--sf-border-width) solid var(--sf-border);
     background: var(--sf-bg-panel);
+    min-width: var(--sf-space-0);
   }
 
   .card:hover {
@@ -76,6 +79,8 @@
     justify-content: var(--sf-justify-between);
     gap: var(--sf-gap-sm);
     flex-wrap: wrap;
+    min-width: var(--sf-space-0);
+    max-width: 100%;
   }
 
   .cardTitle {
@@ -89,6 +94,9 @@
     color: var(--sf-fg-cmt);
     font-family: var(--sf-font-mono), monospace;
     font-size: var(--sf-text-xs);
+    min-width: var(--sf-space-0);
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
 
   .cardSummary {
