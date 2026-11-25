@@ -166,7 +166,7 @@ function isVisibleOpenPopup(el: Element): boolean {
 
 function hasOpenOverlayOrPopup(target: EventTarget | null): boolean {
   const popupSelector =
-    '[role="listbox"], [role="menu"], [data-popup-open][aria-haspopup], [aria-expanded="true"][aria-haspopup]';
+    '[role="listbox"], [role="menu"], [role="dialog"], [role="alertdialog"], dialog[open], [data-popup-open][aria-haspopup], [aria-expanded="true"][aria-haspopup]';
   if (
     target &&
     typeof target === 'object' &&

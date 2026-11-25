@@ -6,7 +6,13 @@ import {
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { TerminalWorkspace, ZshP10kTerminal, type TerminalFormConfig } from '../src';
+import {
+  AlertDialog,
+  Dialog,
+  TerminalWorkspace,
+  ZshP10kTerminal,
+  type TerminalFormConfig,
+} from '../src';
 
 const BASE_TERMINAL: TerminalProfileData = {
   slug: 'portal-home',
@@ -437,5 +443,73 @@ describe('TerminalWorkspace capture-level readline dispatch and isolation', () =
     expect(cancelEvent.defaultPrevented).toBe(true);
     expect(input.value).toBe('');
     expect(screen.getByText('status^C')).toBeTruthy();
+  });
+
+  it('blocks F2 tab rename and capture-phase readline shortcuts while an AlertDialog or Dialog modal is open', () => {
+    const first = render(
+      <div>
+        <TerminalWorkspace terminal={BASE_TERMINAL} />
+        <AlertDialog.Root open>
+          <AlertDialog.Portal>
+            <AlertDialog.Backdrop />
+            <AlertDialog.Popup>
+              <AlertDialog.Title>Confirm Delete</AlertDialog.Title>
+              <AlertDialog.Description>Permanently remove item?</AlertDialog.Description>
+            </AlertDialog.Popup>
+          </AlertDialog.Portal>
+        </AlertDialog.Root>
+      </div>,
+    );
+
+    const alertPopup = screen.getByRole('alertdialog');
+    const f2DuringAlert = dispatchWindowKey({ key: 'F2', code: 'F2' }, alertPopup);
+    expect(f2DuringAlert.defaultPrevented).toBe(false);
+    expect(screen.queryByLabelText('Rename tab')).toBeNull();
+
+    const ctrlLDuringAlert = dispatchWindowKey(
+      { key: 'l', code: 'KeyL', ctrlKey: true },
+      alertPopup,
+    );
+    expect(ctrlLDuringAlert.defaultPrevented).toBe(false);
+    expect(screen.getByText('INITIAL_SCROLLBACK_LINE')).toBeTruthy();
+
+    const altNDuringAlert = dispatchWindowKey(
+      { key: 'Dead', code: 'KeyN', altKey: true, isComposing: true },
+      alertPopup,
+    );
+    expect(altNDuringAlert.defaultPrevented).toBe(false);
+    first.unmount();
+
+    render(
+      <div>
+        <TerminalWorkspace terminal={BASE_TERMINAL} />
+        <Dialog.Root open>
+          <Dialog.Portal>
+            <Dialog.Backdrop />
+            <Dialog.Popup>
+              <Dialog.Title>Inspect Record</Dialog.Title>
+            </Dialog.Popup>
+          </Dialog.Portal>
+        </Dialog.Root>
+      </div>,
+    );
+
+    const dialogPopup = screen.getByRole('dialog');
+    const f2DuringDialog = dispatchWindowKey({ key: 'F2', code: 'F2' }, dialogPopup);
+    expect(f2DuringDialog.defaultPrevented).toBe(false);
+    expect(screen.queryByLabelText('Rename tab')).toBeNull();
+
+    const ctrlLDuringDialog = dispatchWindowKey(
+      { key: 'l', code: 'KeyL', ctrlKey: true },
+      dialogPopup,
+    );
+    expect(ctrlLDuringDialog.defaultPrevented).toBe(false);
+    expect(screen.getByText('INITIAL_SCROLLBACK_LINE')).toBeTruthy();
+
+    const altNDuringDialog = dispatchWindowKey(
+      { key: 'n', code: 'KeyN', altKey: true },
+      dialogPopup,
+    );
+    expect(altNDuringDialog.defaultPrevented).toBe(false);
   });
 });
