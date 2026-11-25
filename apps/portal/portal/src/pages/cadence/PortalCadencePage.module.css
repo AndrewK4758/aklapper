@@ -34,7 +34,7 @@
   .selectField {
     display: grid;
     gap: var(--sf-gap-xs);
-    flex: 1 1 18rem;
+    flex: 1 1 min(18rem, 100%);
     min-width: 0;
   }
 
@@ -151,7 +151,7 @@
     margin: var(--sf-space-0);
     padding: var(--sf-space-0);
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr));
     gap: var(--sf-gap-sm);
   }
 
@@ -266,5 +266,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  @media (max-width: 48rem) {
+    .modeToggle {
+      padding-top: var(--sf-space-0);
+    }
   }
 }

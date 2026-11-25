@@ -170,4 +170,30 @@
     background: linear-gradient(135deg, transparent 50%, var(--sf-gold) 50%);
     opacity: var(--sf-opacity-muted);
   }
+
+  @media (max-width: 48rem) {
+    .window {
+      min-width: var(--sf-space-0);
+      min-height: var(--sf-space-0);
+    }
+
+    .window[data-floating='true'] {
+      left: var(--sf-space-2);
+      top: var(--sf-space-2);
+      width: calc(100vw - var(--sf-space-4));
+      height: calc(100dvh - var(--sf-space-4));
+      max-width: calc(100vw - var(--sf-space-4));
+      max-height: calc(100dvh - var(--sf-space-4));
+    }
+
+    .titlebar {
+      padding: var(--sf-space-2) var(--sf-space-3);
+      gap: var(--sf-space-2);
+    }
+
+    .body {
+      padding: var(--sf-space-4);
+      gap: var(--sf-space-4);
+    }
+  }
 }

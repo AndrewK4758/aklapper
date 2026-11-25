@@ -142,6 +142,14 @@
     --sf-fg-bone: var(--sf-gold);
   }
 
+  .tabActions {
+    display: inline-flex;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-space-1);
+    flex-shrink: 0;
+  }
+
+  .splitPaneBtn,
   .newTabBtn {
     --sf-bg-panel: var(--sf-bg-editor);
     --sf-border: var(--sf-border);
@@ -154,6 +162,7 @@
     flex-shrink: 0;
   }
 
+  .splitPaneBtn:hover:not(:disabled, [data-disabled]),
   .newTabBtn:hover:not(:disabled, [data-disabled]) {
     --sf-bg-panel: var(--sf-surface-hover);
     --sf-border: var(--sf-gold);
@@ -283,6 +292,10 @@
 
   .paneAction:hover:not(:disabled, [data-disabled]) {
     --sf-fg-bone: var(--sf-gold);
+  }
+
+  .paneActionAutoSplit {
+    display: none;
   }
 
   .paneBody {
@@ -472,5 +485,72 @@
   .splitDivider[data-resizing='true']::before {
     background: var(--sf-gold);
     box-shadow: var(--sf-shadow-glow-gold);
+  }
+
+  @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
+    .tabStrip {
+      padding: var(--sf-space-1) max(var(--sf-space-2), env(safe-area-inset-right))
+        var(--sf-space-0) max(var(--sf-space-2), env(safe-area-inset-left));
+      gap: var(--sf-space-2);
+    }
+
+    .tabItem {
+      padding: var(--sf-space-1) var(--sf-space-3);
+    }
+
+    .paneBar {
+      padding: var(--sf-space-1) var(--sf-space-3);
+      gap: var(--sf-space-2);
+    }
+
+    .paneTitle {
+      min-width: var(--sf-space-0);
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .paneActionAutoSplit {
+      display: inline-flex;
+    }
+
+    .paneActionExplicitSplit {
+      display: none;
+    }
+
+    .primaryInner {
+      padding: var(--sf-space-5) var(--sf-space-4);
+      gap: var(--sf-space-5);
+    }
+
+    .tuiPaneBody {
+      padding: var(--sf-space-2);
+    }
+  }
+
+  @media (max-width: 48rem) and (orientation: portrait) {
+    .tabItem {
+      min-height: calc(var(--sf-space-unit) * 8);
+    }
+
+    .splitPaneBtn,
+    .newTabBtn {
+      --sf-control-h-xs: calc(var(--sf-space-unit) * 7.5);
+      min-width: calc(var(--sf-space-unit) * 8);
+    }
+
+    .paneAction {
+      --sf-control-h-xs: calc(var(--sf-space-unit) * 7);
+      min-width: calc(var(--sf-space-unit) * 7);
+    }
+  }
+
+  @media (pointer: coarse), (max-width: 48rem) {
+    .splitDivider[data-direction='vertical'] {
+      width: var(--sf-space-6);
+    }
+
+    .splitDivider[data-direction='horizontal'] {
+      height: var(--sf-space-6);
+    }
   }
 }

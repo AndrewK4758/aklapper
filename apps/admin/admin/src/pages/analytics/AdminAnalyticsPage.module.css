@@ -37,7 +37,7 @@
 
   .summaryGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr));
     gap: var(--sf-space-4);
   }
 
@@ -84,7 +84,7 @@
 
   .cwvGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr));
     gap: var(--sf-space-4);
   }
 
@@ -106,7 +106,7 @@
 
   .tableGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
     gap: var(--sf-space-5);
   }
 
@@ -117,6 +117,8 @@
     background: var(--sf-bg-panel);
     border: var(--sf-border-width) solid var(--sf-border);
     border-radius: var(--sf-radius-sm);
+    min-width: var(--sf-space-0);
+    overflow-x: auto;
   }
 
   .dataTable {

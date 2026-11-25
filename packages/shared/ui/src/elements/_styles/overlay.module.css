@@ -279,4 +279,45 @@
     border-color: var(--sf-gold);
     color: var(--sf-gold);
   }
+
+  @media (max-width: 48rem) {
+    .viewport {
+      padding: max(var(--sf-space-4), env(safe-area-inset-top))
+        max(var(--sf-space-4), env(safe-area-inset-right))
+        max(var(--sf-space-4), env(safe-area-inset-bottom))
+        max(var(--sf-space-4), env(safe-area-inset-left));
+    }
+
+    .dialogPopup {
+      padding: var(--sf-space-6);
+      max-height: calc(100dvh - var(--sf-space-8));
+      overflow: auto;
+    }
+
+    .dialogFooter {
+      flex-wrap: wrap;
+    }
+
+    .drawerPopup {
+      width: 100%;
+      padding: max(var(--sf-space-6), env(safe-area-inset-top))
+        max(var(--sf-space-5), env(safe-area-inset-right))
+        max(var(--sf-space-6), env(safe-area-inset-bottom))
+        max(var(--sf-space-5), env(safe-area-inset-left));
+      border-left: none;
+    }
+
+    .floatingPopup,
+    .tooltipPopup {
+      max-width: calc(100vw - var(--sf-space-6));
+    }
+
+    .toastViewport {
+      left: max(var(--sf-space-4), env(safe-area-inset-left));
+      right: max(var(--sf-space-4), env(safe-area-inset-right));
+      bottom: max(var(--sf-space-4), env(safe-area-inset-bottom));
+      width: auto;
+      max-width: none;
+    }
+  }
 }

@@ -30,7 +30,7 @@
 
   .namespaceGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
     gap: var(--sf-space-5);
   }
 
@@ -68,7 +68,7 @@
 
   .runtimeGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
     gap: var(--sf-space-5);
   }
 
@@ -175,6 +175,18 @@
   @media (max-width: 56rem) {
     .auditSplit {
       grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 48rem) {
+    .card,
+    .runDetail {
+      padding: var(--sf-space-4);
+    }
+
+    .statRow {
+      flex-wrap: wrap;
+      gap: var(--sf-space-2);
     }
   }
 }

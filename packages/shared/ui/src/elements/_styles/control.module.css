@@ -494,4 +494,30 @@
     font-size: var(--sf-text-sm);
     font-variant-numeric: tabular-nums;
   }
+
+  @media (max-width: 48rem) {
+    .toggleGroup {
+      flex-wrap: wrap;
+      max-width: 100%;
+    }
+
+    .otpRoot {
+      flex-wrap: wrap;
+      justify-content: var(--sf-justify-center);
+    }
+  }
+
+  @media (max-width: 48rem) and (pointer: coarse) {
+    .input,
+    .numberInput {
+      font-size: var(--sf-size-unit);
+    }
+  }
+
+  @media (max-width: 24rem) {
+    .otpInput {
+      width: calc(var(--sf-space-unit) * 8);
+      height: calc(var(--sf-space-unit) * 9.5);
+    }
+  }
 }

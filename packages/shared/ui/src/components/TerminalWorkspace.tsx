@@ -78,6 +78,7 @@ import {
   TerminalReadlineRegistryContext,
   type ZshTerminalHandle,
 } from './terminalReadlineRegistryContext';
+import { resolveAutoSplitDirection, useAutoSplitDirection } from './terminalViewportSplit';
 import { ZshP10kTerminal, type ZshCommandHandler } from './ZshP10kTerminal';
 
 import styles from './TerminalWorkspace.module.css';
@@ -343,6 +344,7 @@ interface TabStripProps {
   isDetachPreview: boolean;
   onSelectTab: (tabId: string) => void;
   onAddTab: () => void;
+  onSplitActivePane: () => void;
   onCloseTab: (tabId: string) => void;
   onStartRename: (tabId: string, currentTitle: string) => void;
   onChangeRenameDraft: (value: string) => void;
@@ -388,12 +390,23 @@ function TabStrip({
   isDetachPreview,
   onSelectTab,
   onAddTab,
+  onSplitActivePane,
   onCloseTab,
   onStartRename,
   onChangeRenameDraft,
   onCommitRename,
   onCancelRename,
 }: TabStripProps) {
+  const autoSplitDirection = useAutoSplitDirection();
+  const autoSplitLabel =
+    autoSplitDirection === 'down'
+      ? 'Split active pane horizontally'
+      : 'Split active pane vertically';
+  const autoSplitTooltip =
+    autoSplitDirection === 'down'
+      ? 'Split pane horizontally (portrait)'
+      : 'Split pane vertically (landscape)';
+
   return (
     <div
       className={styles.tabStrip}
@@ -470,17 +483,31 @@ function TabStrip({
         })}
       </div>
 
-      <WorkspaceTooltip label={NEW_TAB_TOOLTIP_LABEL}>
-        <Button.Root
-          type='button'
-          size='xs'
-          className={styles.newTabBtn}
-          aria-label='New terminal tab'
-          onClick={onAddTab}
-        >
-          <Button.Label>+</Button.Label>
-        </Button.Root>
-      </WorkspaceTooltip>
+      <div className={styles.tabActions}>
+        <WorkspaceTooltip label={autoSplitTooltip}>
+          <Button.Root
+            type='button'
+            size='xs'
+            className={styles.splitPaneBtn}
+            aria-label={autoSplitLabel}
+            onClick={onSplitActivePane}
+          >
+            <Button.Label>{autoSplitDirection === 'down' ? '⬓' : '◫'}</Button.Label>
+          </Button.Root>
+        </WorkspaceTooltip>
+
+        <WorkspaceTooltip label={NEW_TAB_TOOLTIP_LABEL}>
+          <Button.Root
+            type='button'
+            size='xs'
+            className={styles.newTabBtn}
+            aria-label='New terminal tab'
+            onClick={onAddTab}
+          >
+            <Button.Label>+</Button.Label>
+          </Button.Root>
+        </WorkspaceTooltip>
+      </div>
     </div>
   );
 }
@@ -522,6 +549,8 @@ function PaneChromeBar({
   onDragPointerUp,
   onDragPointerCancel,
 }: PaneChromeBarProps) {
+  const autoSplitDirection = useAutoSplitDirection();
+
   return (
     <div className={styles.paneBar}>
       <WorkspaceTooltip
@@ -557,7 +586,20 @@ function PaneChromeBar({
         <Button.Root
           type='button'
           size='xs'
-          className={styles.paneAction}
+          className={`${styles.paneAction} ${styles.paneActionAutoSplit}`}
+          aria-label={
+            autoSplitDirection === 'down'
+              ? `Split ${title} horizontally`
+              : `Split ${title} vertically`
+          }
+          onClick={() => onSplit(paneId, autoSplitDirection)}
+        >
+          <Button.Label>{autoSplitDirection === 'down' ? '⬓' : '◫'}</Button.Label>
+        </Button.Root>
+        <Button.Root
+          type='button'
+          size='xs'
+          className={`${styles.paneAction} ${styles.paneActionExplicitSplit}`}
           aria-label={`Split ${title} right`}
           onClick={() => onSplit(paneId, 'right')}
         >
@@ -566,7 +608,7 @@ function PaneChromeBar({
         <Button.Root
           type='button'
           size='xs'
-          className={styles.paneAction}
+          className={`${styles.paneAction} ${styles.paneActionExplicitSplit}`}
           aria-label={`Split ${title} down`}
           onClick={() => onSplit(paneId, 'down')}
         >
@@ -787,8 +829,14 @@ function TerminalLeafContent({
     return {
       ...base,
       split: () => {
-        onSplit(pane.id, 'right');
-        return { output: `opened new terminal pane to the right from tty${pane.ttyNumber}` };
+        const direction = resolveAutoSplitDirection();
+        onSplit(pane.id, direction);
+        return {
+          output:
+            direction === 'down'
+              ? `opened new terminal pane below tty${pane.ttyNumber}`
+              : `opened new terminal pane to the right from tty${pane.ttyNumber}`,
+        };
       },
       vsplit: () => {
         onSplit(pane.id, 'right');
@@ -1464,8 +1512,9 @@ function StandaloneTerminalWorkspace({
   };
 
   const handleOpenViewInSplit = (paneId: string, viewId: string) => {
+    const direction = resolveAutoSplitDirection();
     setTabState(prev =>
-      updateActiveTabWorkspace(prev, ws => openViewInSplit(ws, paneId, viewId, 'right')),
+      updateActiveTabWorkspace(prev, ws => openViewInSplit(ws, paneId, viewId, direction)),
     );
   };
 
@@ -1733,7 +1782,7 @@ function StandaloneTerminalWorkspace({
               return closeActivePaneOrTab(prev);
             }
             return updateActiveTabWorkspace(prev, ws =>
-              toggleTuiPane(ws, ws.activePaneId, 'right'),
+              toggleTuiPane(ws, ws.activePaneId, resolveAutoSplitDirection()),
             );
           });
           return;
@@ -1827,7 +1876,8 @@ function StandaloneTerminalWorkspace({
     if (!renderTui) {
       return;
     }
-    setTabState(prev => updateActiveTabWorkspace(prev, ws => openTuiPane(ws, paneId, 'right')));
+    const direction = resolveAutoSplitDirection();
+    setTabState(prev => updateActiveTabWorkspace(prev, ws => openTuiPane(ws, paneId, direction)));
   };
 
   const handleCloseTuiPane = (paneId: string) => {
@@ -2061,6 +2111,9 @@ function StandaloneTerminalWorkspace({
         isDetachPreview={dropTarget?.zone === 'detach-tab'}
         onSelectTab={handleSelectTab}
         onAddTab={handleAddTab}
+        onSplitActivePane={() =>
+          handleSplitPane(activeWorkspace.activePaneId, resolveAutoSplitDirection())
+        }
         onCloseTab={handleCloseTab}
         onStartRename={handleStartRename}
         onChangeRenameDraft={setRenameDraft}

@@ -124,7 +124,7 @@
   }
 
   .nodeGrid[data-columns='2'] {
-    grid-template-columns: repeat(auto-fit, minmax(var(--sf-container-xs), 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(var(--sf-container-xs), 100%), 1fr));
   }
 
   .field {
@@ -390,5 +390,29 @@
     display: inline-flex;
     align-items: var(--sf-align-center);
     gap: var(--sf-gap-sm);
+  }
+
+  @media (max-width: 48rem) {
+    .fieldset {
+      padding: var(--sf-space-4);
+    }
+
+    .footer {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .actions {
+      width: 100%;
+      justify-content: var(--sf-justify-end);
+      flex-wrap: wrap;
+    }
+  }
+
+  @media (max-width: 48rem) and (pointer: coarse) {
+    .textInput,
+    .textarea {
+      font-size: var(--sf-size-unit);
+    }
   }
 }
