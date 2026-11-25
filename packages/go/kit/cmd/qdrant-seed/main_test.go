@@ -8,6 +8,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/AndrewK4758/aklapper/packages/go/kit/llm"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/qdrantseed"
 )
 
 func TestQdrantSeedCLIFlagsDryRunAndPartialFailure(t *testing.T) {
@@ -129,6 +133,30 @@ func TestQdrantSeedCLIFlagsDryRunAndPartialFailure(t *testing.T) {
 		}
 		if !strings.Contains(stderr.String(), "portfolio_docs") || !strings.Contains(stderr.String(), "503") {
 			t.Fatalf("expected portfolio_docs + 503 diagnostic on stderr, got %s", stderr.String())
+		}
+	})
+
+	t.Run("providerFromEnvMap delegates to llm.NewFromEnvMap defaults and curated corpora reflect upgraded models", func(t *testing.T) {
+		prov, ok := providerFromEnvMap(map[string]string{
+			"AI_PROVIDER":    "vertex",
+			"GCP_PROJECT_ID": "games-424800",
+		}).(*llm.VertexClient)
+		if !ok {
+			t.Fatal("expected *llm.VertexClient")
+		}
+		if prov.Location != "global" || prov.Model != "gemini-3.8-flash" || prov.EmbedModel != "gemini-embedding-2" || prov.ThinkingLevel != "LOW" {
+			t.Fatalf("unexpected Vertex defaults from providerFromEnvMap: %+v", prov)
+		}
+
+		for _, doc := range pg.CuratedPortfolioDocs() {
+			if strings.Contains(doc.Snippet, "text-embedding-005") {
+				t.Fatalf("stale text-embedding-005 reference in pg curated doc %q", doc.ID)
+			}
+		}
+		for _, doc := range qdrantseed.CuratedPortfolioDocs() {
+			if strings.Contains(doc.Body, "text-embedding-005") {
+				t.Fatalf("stale text-embedding-005 reference in qdrantseed curated doc %q", doc.ID)
+			}
 		}
 	})
 }
