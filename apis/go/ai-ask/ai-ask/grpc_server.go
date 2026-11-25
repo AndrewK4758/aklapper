@@ -71,6 +71,18 @@ func (e *grpcStreamEmitter) EmitStatus(_, _ string) error {
 	return nil
 }
 
+func (e *grpcStreamEmitter) EmitPreambleDelta(_ string) error {
+	return nil
+}
+
+func (e *grpcStreamEmitter) EmitPreambleError(_ contracts.PublicAppError) error {
+	return nil
+}
+
+func (e *grpcStreamEmitter) SupportsPreamble() bool {
+	return false
+}
+
 func (e *grpcStreamEmitter) EmitMeta(meta askStreamMeta) error {
 	return e.stream.Send(&ai_askv1.AskStreamChunk{
 		Payload: &ai_askv1.AskStreamChunk_Meta{
