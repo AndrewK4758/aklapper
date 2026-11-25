@@ -55,6 +55,7 @@
     "./tokens/colors.css": "./src/styles/tokens/colors.css",
     "./tokens/typography.css": "./src/styles/tokens/typography.css",
     "./tokens/layout.css": "./src/styles/tokens/layout.css",
+    "./tokens/mobile.css": "./src/styles/tokens/mobile.css",
     "./tokens/animations.css": "./src/styles/tokens/animations.css",
     "./element.css": "./src/styles/element.css",
     "./solar-forge.css": "./src/styles/solar-forge.css"
