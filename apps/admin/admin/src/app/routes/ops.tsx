@@ -1,7 +1,8 @@
 import {
   AdminGateOverrideSchema,
-  type AdminOpsLoaderData,
   AdminWakeDeploymentSchema,
+  type CadenceAdminStatus,
+  type QdrantHealthStatus,
   type StreamResult,
 } from '@aklapper/core';
 import { classifyServerError } from '@aklapper/core/server-errors';
@@ -16,7 +17,13 @@ import {
 import { RouteErrorBoundaryView, SuspenseElement } from '@aklapper/ui';
 import { data, href } from 'react-router';
 
-import { type AdminOpsActionData, AdminOpsPage } from '#pages/ops';
+import {
+  type AdminOpsActionData,
+  AdminOpsPage,
+  type AdminOpsPrimaryData,
+  CadenceRuntimeStatusBody,
+  QdrantRuntimeStatusBody,
+} from '#pages/ops';
 
 import {
   fetchCadenceAdminStatus,
@@ -32,7 +39,9 @@ import type { Route } from './+types/ops';
 
 export interface AdminOpsStreamData {
   readonly correlationId: string;
-  readonly payload: Promise<StreamResult<AdminOpsLoaderData>>;
+  readonly payload: Promise<StreamResult<AdminOpsPrimaryData>>;
+  readonly cadenceStatusPayload: Promise<StreamResult<CadenceAdminStatus>>;
+  readonly qdrantStatusPayload: Promise<StreamResult<QdrantHealthStatus>>;
 }
 
 export async function loader({ request, context }: Route.LoaderArgs): Promise<AdminOpsStreamData> {
@@ -42,22 +51,26 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Ad
   return {
     correlationId,
     payload: deferStreamResult(
-      (async (): Promise<AdminOpsLoaderData> => {
+      (async (): Promise<AdminOpsPrimaryData> => {
         const db = getSharedDb();
-        const [cadenceAdminStatus, qdrantStatus, sandboxRuns] = await Promise.all([
-          fetchCadenceAdminStatus(),
-          fetchQdrantStatus(),
-          listAdminSandboxRuns(db, 25),
-        ]);
+        const sandboxRuns = await listAdminSandboxRuns(db, 25);
         return {
-          cadenceAdminStatus,
-          qdrantStatus,
           sandboxRuns,
           k8sWatchConfigured: Boolean(process.env['K8S_WATCH_URL']?.trim()),
         };
       })(),
       { request, context, source: 'admin.ops.loader' },
     ),
+    cadenceStatusPayload: deferStreamResult(fetchCadenceAdminStatus(), {
+      request,
+      context,
+      source: 'admin.ops.cadence',
+    }),
+    qdrantStatusPayload: deferStreamResult(fetchQdrantStatus(), {
+      request,
+      context,
+      source: 'admin.ops.qdrant',
+    }),
   };
 }
 
@@ -222,8 +235,52 @@ export function meta({ matches, location }: Route.MetaArgs) {
 }
 
 export default function AdminOpsRoute({ loaderData, actionData }: Route.ComponentProps) {
+  const cadenceStatusSlot = (
+    <SuspenseElement<CadenceAdminStatus>
+      resolve={loaderData.cadenceStatusPayload}
+      correlationId={loaderData.correlationId}
+      homeHref=''
+      loadingLabel='Probing cadence-admin runtime...'
+      onStreamError={error => {
+        reportAdminPublicError(error, { phase: 'stream' });
+        console.error(
+          JSON.stringify({
+            event: 'admin.secondary_stream.degraded',
+            slot: 'ops.cadence',
+            code: error.code,
+            correlationId: error.correlationId,
+          }),
+        );
+      }}
+    >
+      {status => <CadenceRuntimeStatusBody status={status} />}
+    </SuspenseElement>
+  );
+
+  const qdrantStatusSlot = (
+    <SuspenseElement<QdrantHealthStatus>
+      resolve={loaderData.qdrantStatusPayload}
+      correlationId={loaderData.correlationId}
+      homeHref=''
+      loadingLabel='Probing Qdrant vector index...'
+      onStreamError={error => {
+        reportAdminPublicError(error, { phase: 'stream' });
+        console.error(
+          JSON.stringify({
+            event: 'admin.secondary_stream.degraded',
+            slot: 'ops.qdrant',
+            code: error.code,
+            correlationId: error.correlationId,
+          }),
+        );
+      }}
+    >
+      {status => <QdrantRuntimeStatusBody status={status} />}
+    </SuspenseElement>
+  );
+
   return (
-    <SuspenseElement<AdminOpsLoaderData>
+    <SuspenseElement<AdminOpsPrimaryData>
       resolve={loaderData.payload}
       correlationId={loaderData.correlationId}
       homeHref={href('/')}
@@ -232,7 +289,14 @@ export default function AdminOpsRoute({ loaderData, actionData }: Route.Componen
         reportAdminPublicError(error, { phase: 'stream' });
       }}
     >
-      {resolved => <AdminOpsPage data={resolved} actionData={actionData ?? null} />}
+      {resolved => (
+        <AdminOpsPage
+          data={resolved}
+          cadenceStatusSlot={cadenceStatusSlot}
+          qdrantStatusSlot={qdrantStatusSlot}
+          actionData={actionData ?? null}
+        />
+      )}
     </SuspenseElement>
   );
 }

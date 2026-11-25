@@ -26,6 +26,12 @@ vi.mock('@aklapper/db', async importOriginal => {
   };
 });
 
+import { resetAdminRootBranchTelemetryForTest } from './AdminRootShell';
+import {
+  initAdminClientTelemetry,
+  reportAdminLazyChunkError,
+  resetAdminClientTelemetryForTest,
+} from './client-telemetry';
 import AdminRoot, { ErrorBoundary, loader, meta } from './root';
 
 const ADMIN_ROOT_FIXTURE: AdminRootLoaderData = {
@@ -64,6 +70,8 @@ function makeAdminLoaderArgs(
 describe('AdminRoot', () => {
   afterEach(() => {
     vi.clearAllMocks();
+    resetAdminRootBranchTelemetryForTest();
+    resetAdminClientTelemetryForTest();
   });
 
   it('streams loading status first and renders isolated cadence-admin chrome once rootPayload resolves', async () => {
@@ -343,5 +351,134 @@ describe('AdminRoot', () => {
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('ERR_INTERNAL');
     expect(alert.textContent).not.toContain('/srv/admin/internal.ts');
+  });
+
+  it('emits deduplicated admin.root.workspace_mount_branch for login-outlet-only and lazy-terminal-workspace without PII', async () => {
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+
+    try {
+      const LoginStub = createRoutesStub([
+        {
+          id: 'root',
+          path: '/login',
+          loader: () => ({
+            runtimeSeo: { siteUrl: 'https://admin.andrew-k.us' },
+            correlationId: 'corr-admin-login-branch',
+            isLoginRoute: true,
+            session: null,
+            authMeta: { totpEnabled: false, passkeyCount: 0 },
+            rootPayload: Promise.resolve<StreamResult<AdminRootLoaderData>>({
+              ok: true,
+              data: ADMIN_ROOT_FIXTURE,
+            }),
+          }),
+          Component: AdminRoot,
+          ErrorBoundary,
+          children: [{ index: true, Component: () => <div>Login Outlet</div> }],
+        },
+      ]);
+
+      const { unmount } = render(<LoginStub initialEntries={['/login']} />);
+      expect(await screen.findByText('Login Outlet')).toBeTruthy();
+
+      const loginEvents = infoSpy.mock.calls
+        .map(call => String(call[0]))
+        .filter(line => line.includes('admin.root.workspace_mount_branch'));
+      expect(loginEvents).toHaveLength(1);
+      expect(JSON.parse(loginEvents[0])).toEqual({
+        event: 'admin.root.workspace_mount_branch',
+        seamType: 'RULE_DIVERGENCE',
+        branch: 'login-outlet-only',
+        pathname: '/login',
+      });
+      unmount();
+
+      infoSpy.mockClear();
+      const WorkspaceStub = createRoutesStub([
+        {
+          id: 'root',
+          path: '/',
+          loader: () => ({
+            runtimeSeo: { siteUrl: 'https://admin.andrew-k.us' },
+            correlationId: 'corr-admin-ws-branch',
+            isLoginRoute: false,
+            session: ACTIVE_ADMIN_SESSION,
+            authMeta: { totpEnabled: true, passkeyCount: 1 },
+            rootPayload: Promise.resolve<StreamResult<AdminRootLoaderData>>({
+              ok: true,
+              data: {
+                ...ADMIN_ROOT_FIXTURE,
+                terminal: {
+                  slug: 'admin-ops',
+                  bannerTitle: 'Admin Ops',
+                  bannerMeta: 'cadence-admin',
+                  osLabel: 'linux',
+                  directory: '~',
+                  vcsBranch: 'main',
+                  vcsState: 'clean',
+                  contextLabel: 'admin',
+                  placeholder: 'Type a command...',
+                  quickCommands: [],
+                  initialEntries: [],
+                  commands: [],
+                },
+              },
+            }),
+          }),
+          Component: AdminRoot,
+          ErrorBoundary,
+          children: [{ index: true, Component: () => <div>Workspace Outlet</div> }],
+        },
+      ]);
+
+      render(<WorkspaceStub initialEntries={['/']} />);
+      expect(await screen.findByText('admin.andrew-k.us :: cadence-admin')).toBeTruthy();
+
+      const wsEvents = infoSpy.mock.calls
+        .map(call => String(call[0]))
+        .filter(line => line.includes('admin.root.workspace_mount_branch'));
+      expect(wsEvents).toHaveLength(1);
+      expect(JSON.parse(wsEvents[0])).toEqual({
+        event: 'admin.root.workspace_mount_branch',
+        seamType: 'RULE_DIVERGENCE',
+        branch: 'lazy-terminal-workspace',
+        pathname: '/',
+      });
+      expect(wsEvents[0]).not.toContain('aklapper');
+      expect(wsEvents[0]).not.toContain(ACTIVE_ADMIN_SESSION.sessionId);
+    } finally {
+      infoSpy.mockRestore();
+    }
+  });
+
+  it('reports ui.lazy_chunk.load_failed via reportAdminLazyChunkError', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const track = vi.fn<(...args: unknown[]) => void>();
+    initAdminClientTelemetry({
+      enabled: true,
+      sessionId: 'test-admin-session',
+      track,
+      startWebVitals: () => {},
+      flush: () => {},
+    });
+
+    try {
+      const decision = reportAdminLazyChunkError(
+        '@aklapper/ui/sandboxed-artifact-frame',
+        '/ops',
+        new TypeError('Failed to fetch dynamically imported module'),
+      );
+      expect(decision).toBe('emit');
+      expect(errorSpy).toHaveBeenCalledWith(
+        JSON.stringify({
+          event: 'ui.lazy_chunk.load_failed',
+          module: '@aklapper/ui/sandboxed-artifact-frame',
+          pathname: '/ops',
+        }),
+      );
+      expect(track).toHaveBeenCalledTimes(1);
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 });

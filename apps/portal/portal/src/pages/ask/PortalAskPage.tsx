@@ -6,24 +6,16 @@ import type {
   PortalAskContent,
   QuotaStatus,
 } from '@aklapper/core';
-import {
-  ActionFeedbackBanner,
-  Button,
-  Input,
-  OscStatusBadge,
-  Separator,
-  Tabs,
-  TuiWindow,
-} from '@aklapper/ui';
-import { type FormEvent, useEffect, useState, useSyncExternalStore } from 'react';
+import { ActionFeedbackBanner, Button, Input, Separator, Tabs, TuiWindow } from '@aklapper/ui';
+import { type FormEvent, type ReactNode, useEffect, useState, useSyncExternalStore } from 'react';
 
 import {
+  AskHeaderBadge,
   AskJdResultCard,
   AskPendingCard,
   AskQaTranscriptCard,
   AskQuotaMeter,
   AskStarterRow,
-  resolveAskBadgeStatus,
 } from './AskResultCard';
 import {
   buildRecoveringTurnState,
@@ -52,6 +44,7 @@ export interface PortalAskPageProps {
   content: PortalAskContent;
   quota: QuotaStatus;
   askStatus?: AskServiceStatus;
+  askStatusSlot?: ReactNode;
   actionResult?: PortalAskActionResult;
   isSubmitting: boolean;
   onSubmitAsk: (payload: { mode: AskMode; text: string; attemptId: string }) => void;
@@ -62,6 +55,7 @@ export function PortalAskPage({
   content,
   quota,
   askStatus,
+  askStatusSlot,
   actionResult,
   isSubmitting,
   onSubmitAsk,
@@ -232,7 +226,6 @@ export function PortalAskPage({
         : (qaTranscript[0]?.response ?? null);
 
   const isBusy = isSubmitting || hasPendingTurn;
-  const badge = resolveAskBadgeStatus(content, isBusy, latestResponse, askStatus);
   const activeError = recoveredError ?? (actionResult && !actionResult.ok ? actionResult : null);
 
   const dispatchTurn = (mode: AskMode, text: string) => {
@@ -267,10 +260,12 @@ export function PortalAskPage({
         title={content.windowTitle}
         onClose={onClose}
         badge={
-          <OscStatusBadge
-            source={content.statusBadge.source}
-            state={badge.state}
-            label={badge.label}
+          <AskHeaderBadge
+            content={content}
+            isBusy={isBusy}
+            latestResponse={latestResponse}
+            askStatus={askStatus}
+            askStatusSlot={askStatusSlot}
           />
         }
       >

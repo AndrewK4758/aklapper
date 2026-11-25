@@ -216,6 +216,8 @@ test.describe('admin SSR end-to-end journeys', () => {
         expect(layoutMetrics.scrollWidth).toBeLessThanOrEqual(layoutMetrics.innerWidth);
 
         await expect(page.getByLabel('Qdrant RAG Corpus Note (Markdown)')).toBeVisible();
+        await expect(page.getByLabel('Live site content preview')).toHaveCount(0);
+        await page.getByRole('button', { name: 'Show Preview', exact: true }).click();
         await expect(page.getByLabel('Live site content preview')).toBeVisible();
         await page.getByRole('button', { name: 'Mobile', exact: true }).click();
         await expect(page.locator('[data-preview-viewport="mobile"]')).toBeVisible();

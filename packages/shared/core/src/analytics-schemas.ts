@@ -58,7 +58,7 @@ export const AdminAiMetricsSchema = z.object({
 });
 export type AdminAiMetrics = z.infer<typeof AdminAiMetricsSchema>;
 
-export const AdminAnalyticsLoaderDataSchema = z.object({
+export const AdminAnalyticsSummaryDataSchema = z.object({
   content: AdminAnalyticsContentSchema,
   window: AdminAnalyticsWindowSchema,
   totalSessions: z.number().int().nonnegative(),
@@ -68,10 +68,19 @@ export const AdminAnalyticsLoaderDataSchema = z.object({
     totalEvents: z.number().int().nonnegative(),
   }),
   cwv: z.array(CwvPercentileRowSchema),
+  aiMetrics: AdminAiMetricsSchema,
+});
+export type AdminAnalyticsSummaryData = z.infer<typeof AdminAnalyticsSummaryDataSchema>;
+
+export const AdminAnalyticsBreakdownsDataSchema = z.object({
   topPaths: z.array(AnalyticsBreakdownRowSchema),
   topReferrers: z.array(AnalyticsBreakdownRowSchema),
   geoBreakdown: z.array(AnalyticsBreakdownRowSchema),
   agensiConversions: z.array(AgensiConversionRowSchema),
-  aiMetrics: AdminAiMetricsSchema,
 });
+export type AdminAnalyticsBreakdownsData = z.infer<typeof AdminAnalyticsBreakdownsDataSchema>;
+
+export const AdminAnalyticsLoaderDataSchema = AdminAnalyticsSummaryDataSchema.extend(
+  AdminAnalyticsBreakdownsDataSchema.shape,
+);
 export type AdminAnalyticsLoaderData = z.infer<typeof AdminAnalyticsLoaderDataSchema>;

@@ -55,7 +55,7 @@ export function PortalLauncherTui({
         renderAction={action => (
           <Button.Link
             key={action.to}
-            render={<PaneLink to={action.to} render={<Link to={action.to} />} />}
+            render={<PaneLink to={action.to} render={<Link to={action.to} prefetch='intent' />} />}
             variant={action.variant}
           >
             <Button.Label>{action.label}</Button.Label>

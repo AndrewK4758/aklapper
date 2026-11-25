@@ -2,32 +2,52 @@ import type {
   ActionErrorMetadata,
   AdminOpsLoaderData,
   AdminSandboxRun,
+  CadenceAdminStatus,
   CadenceGateVerdict,
   K8sPodEvent,
   Osc7501State,
+  QdrantHealthStatus,
 } from '@aklapper/core';
 import {
   ActionFeedbackBanner,
   Button,
+  LazyChunkBoundary,
+  lazyWithRetry,
   OscStatusBadge,
-  SandboxedArtifactFrame,
   Separator,
   TuiWindow,
 } from '@aklapper/ui';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Form, useFetcher } from 'react-router';
 
+import { reportAdminLazyChunkError } from '../client-telemetry';
+import { AdminOpsRuntimeCards } from './AdminOpsRuntimeCards';
 import { markDeploymentWaking, useOpsClusterStream } from './opsClusterStore';
 
 import styles from './AdminOpsPage.module.css';
+
+const LazySandboxedArtifactFrame = lazyWithRetry(() =>
+  import('@aklapper/ui/sandboxed-artifact-frame').then(mod => ({
+    default: mod.SandboxedArtifactFrame,
+  })),
+);
 
 export interface AdminOpsActionData extends ActionErrorMetadata {
   ok: boolean;
   message: string;
 }
 
+export interface AdminOpsPrimaryData {
+  readonly sandboxRuns: readonly AdminSandboxRun[];
+  readonly k8sWatchConfigured: boolean;
+  readonly cadenceAdminStatus?: CadenceAdminStatus;
+  readonly qdrantStatus?: QdrantHealthStatus;
+}
+
 export interface AdminOpsPageProps {
-  data: AdminOpsLoaderData;
+  data: AdminOpsPrimaryData | AdminOpsLoaderData;
+  cadenceStatusSlot?: ReactNode;
+  qdrantStatusSlot?: ReactNode;
   actionData?: AdminOpsActionData | null;
 }
 
@@ -50,7 +70,12 @@ function mapGateVerdictToOsc(verdict: CadenceGateVerdict): Osc7501State {
   return 'gate';
 }
 
-export function AdminOpsPage({ data, actionData }: AdminOpsPageProps) {
+export function AdminOpsPage({
+  data,
+  cadenceStatusSlot,
+  qdrantStatusSlot,
+  actionData,
+}: AdminOpsPageProps) {
   const cluster = useOpsClusterStream();
   const wakeFetcher = useFetcher<AdminOpsActionData>();
   const reindexFetcher = useFetcher<AdminOpsActionData>();
@@ -161,76 +186,12 @@ export function AdminOpsPage({ data, actionData }: AdminOpsPageProps) {
           </div>
         </section>
 
-        <div className={styles.runtimeGrid}>
-          <section className={styles.card} aria-label='cadence-admin runtime status'>
-            <div className={styles.cardHeader}>
-              <h2 className={styles.sectionTitle}>cadence-admin Runtime</h2>
-              <OscStatusBadge
-                source='cadence-admin'
-                state={data.cadenceAdminStatus.online ? 'ready' : 'idle'}
-                label={data.cadenceAdminStatus.online ? 'Online' : 'Offline / Direct PG19'}
-              />
-            </div>
-            <div className={styles.statList}>
-              <div className={styles.statRow}>
-                <span>Namespace</span>
-                <code>{data.cadenceAdminStatus.namespace}</code>
-              </div>
-              <div className={styles.statRow}>
-                <span>Mode</span>
-                <code>{data.cadenceAdminStatus.mode}</code>
-              </div>
-              <div className={styles.statRow}>
-                <span>PG19 Connected</span>
-                <strong>{data.cadenceAdminStatus.databaseConnected ? 'Yes' : 'No'}</strong>
-              </div>
-              <div className={styles.statRow}>
-                <span>Total Sandbox Runs / Pending Gates</span>
-                <strong>
-                  {data.cadenceAdminStatus.totalSandboxRuns} /{' '}
-                  {data.cadenceAdminStatus.pendingGates}
-                </strong>
-              </div>
-            </div>
-            {data.cadenceAdminStatus.detail ? (
-              <p className={styles.muted}>{data.cadenceAdminStatus.detail}</p>
-            ) : null}
-          </section>
-
-          <section className={styles.card} aria-label='Qdrant vector index health'>
-            <div className={styles.cardHeader}>
-              <h2 className={styles.sectionTitle}>Qdrant Vector Index</h2>
-              <OscStatusBadge
-                source='qdrant'
-                state={data.qdrantStatus.online ? 'ready' : 'idle'}
-                label={data.qdrantStatus.status}
-              />
-            </div>
-            <div className={styles.statList}>
-              <div className={styles.statRow}>
-                <span>Collection</span>
-                <code>{data.qdrantStatus.collection}</code>
-              </div>
-              <div className={styles.statRow}>
-                <span>Indexed Points</span>
-                <strong>{data.qdrantStatus.pointsCount}</strong>
-              </div>
-              <div className={styles.statRow}>
-                <span>Provider</span>
-                <code>{data.qdrantStatus.provider}</code>
-              </div>
-              {data.qdrantStatus.collections?.map(col => (
-                <div key={col.name} className={styles.statRow}>
-                  <span>{col.name}</span>
-                  <strong>
-                    {col.pointsCount} pts ({col.status})
-                  </strong>
-                </div>
-              ))}
-            </div>
-            {data.qdrantStatus.detail ? (
-              <p className={styles.muted}>{data.qdrantStatus.detail}</p>
-            ) : null}
+        <AdminOpsRuntimeCards
+          cadenceAdminStatus={data.cadenceAdminStatus}
+          qdrantStatus={data.qdrantStatus}
+          cadenceStatusSlot={cadenceStatusSlot}
+          qdrantStatusSlot={qdrantStatusSlot}
+          reindexForm={
             <reindexFetcher.Form method='post'>
               <input type='hidden' name='intent' value='reindex-qdrant' />
               <Button.Root
@@ -242,8 +203,8 @@ export function AdminOpsPage({ data, actionData }: AdminOpsPageProps) {
                 <Button.Label>Re-Index portfolio_docs</Button.Label>
               </Button.Root>
             </reindexFetcher.Form>
-          </section>
-        </div>
+          }
+        />
 
         <Separator.Root />
 
@@ -358,10 +319,22 @@ export function AdminOpsPage({ data, actionData }: AdminOpsPageProps) {
                   {selectedRun.artifactHtml ? (
                     <div>
                       <h4 className={styles.sectionTitle}>Sandboxed Artifact Preview</h4>
-                      <SandboxedArtifactFrame
-                        title={`Sandbox Run ${selectedRun.runId}`}
-                        srcDoc={selectedRun.artifactHtml}
-                      />
+                      <LazyChunkBoundary
+                        loadingLabel='Loading sandboxed artifact preview...'
+                        errorTitle='Unable to load artifact preview'
+                        onChunkError={error => {
+                          reportAdminLazyChunkError(
+                            '@aklapper/ui/sandboxed-artifact-frame',
+                            '/ops',
+                            error,
+                          );
+                        }}
+                      >
+                        <LazySandboxedArtifactFrame
+                          title={`Sandbox Run ${selectedRun.runId}`}
+                          srcDoc={selectedRun.artifactHtml}
+                        />
+                      </LazyChunkBoundary>
                     </div>
                   ) : null}
                 </article>

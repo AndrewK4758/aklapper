@@ -6,7 +6,8 @@ import type {
   PortalAskContent,
   QuotaStatus,
 } from '@aklapper/core';
-import { Button, Meter } from '@aklapper/ui';
+import { Button, Meter, OscStatusBadge } from '@aklapper/ui';
+import type { ReactNode } from 'react';
 
 import styles from './PortalAskPage.module.css';
 
@@ -32,6 +33,28 @@ export function resolveAskBadgeStatus(
     return { state: 'error', label: 'offline · upstream unreachable' };
   }
   return { state: content.statusBadge.state, label: content.statusBadge.label };
+}
+
+export function AskHeaderBadge({
+  content,
+  isBusy,
+  latestResponse,
+  askStatus,
+  askStatusSlot,
+}: {
+  readonly content: PortalAskContent;
+  readonly isBusy: boolean;
+  readonly latestResponse: AskResponse | null;
+  readonly askStatus?: AskServiceStatus;
+  readonly askStatusSlot?: ReactNode;
+}): ReactNode {
+  if (!isBusy && !latestResponse && askStatusSlot) {
+    return askStatusSlot;
+  }
+  const badge = resolveAskBadgeStatus(content, isBusy, latestResponse, askStatus);
+  return (
+    <OscStatusBadge source={content.statusBadge.source} state={badge.state} label={badge.label} />
+  );
 }
 
 export function AskStarterRow({
