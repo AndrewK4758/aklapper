@@ -156,15 +156,27 @@ export {
   type TerminalNavTarget,
 } from './components/terminalPaneNav';
 export {
+  detectServerViewportMode,
+  type ElementViewMode,
   isPortraitViewport,
   MOBILE_LANDSCAPE_MEDIA_QUERY,
   MOBILE_PORTRAIT_MEDIA_QUERY,
   resolveAutoSplitDirection,
+  resolveElementViewport,
   resolveViewportLayoutMode,
+  type ServerViewportLayoutMode,
   useAutoSplitDirection,
-  useViewportLayoutMode,
   type ViewportLayoutMode,
 } from './components/terminalViewportSplit';
+export {
+  useViewportContext,
+  useViewportLayoutMode,
+  ViewportContext,
+  type ViewportContextValue,
+  ViewportHtml,
+  ViewportProvider,
+  type ViewportProviderProps,
+} from './components/ViewportProvider';
 export { PaneLink, type PaneLinkProps } from './components/PaneLink';
 export {
   PaneNavigationContext,

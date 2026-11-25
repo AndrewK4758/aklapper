@@ -21,6 +21,28 @@ import { isAuthenticPrerenderRequest } from './stream-result.ts';
 
 export const streamTimeout = 5_000;
 
+const SSR_VIEWPORT_VARY_TOKENS = ['Sec-CH-UA-Mobile', 'User-Agent'] as const;
+
+export function mergeVaryHeader(headers: Headers, tokens: readonly string[]): void {
+  const existingRaw = headers.get('Vary') ?? '';
+  const existing = existingRaw
+    .split(',')
+    .map(token => token.trim())
+    .filter(Boolean);
+  const seen = new Set(existing.map(token => token.toLowerCase()));
+  const merged = [...existing];
+  for (const token of tokens) {
+    const normalized = token.trim();
+    if (normalized && !seen.has(normalized.toLowerCase())) {
+      seen.add(normalized.toLowerCase());
+      merged.push(normalized);
+    }
+  }
+  if (merged.length > 0) {
+    headers.set('Vary', merged.join(', '));
+  }
+}
+
 export interface EntryServerOptions {
   streamTimeout?: number;
 }
@@ -58,6 +80,7 @@ export function createEntryServer(options: EntryServerOptions = {}) {
     const logger = reqCtx?.logger ?? createFallbackLogger(reqCtx?.serviceName ?? 'ssr-entry');
 
     responseHeaders.set('X-Correlation-Id', correlationId);
+    mergeVaryHeader(responseHeaders, SSR_VIEWPORT_VARY_TOKENS);
 
     if (request.signal.aborted) {
       return new Response(null, {

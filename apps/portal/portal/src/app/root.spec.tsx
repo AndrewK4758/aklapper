@@ -109,9 +109,12 @@ const MAINTENANCE_FIXTURE: PortalMaintenanceLoaderData = {
   ],
 };
 
-function makeRootLoaderArgs(url = 'https://andrew-k.us/'): Parameters<typeof loader>[0] {
+function makeRootLoaderArgs(
+  url = 'https://andrew-k.us/',
+  headers?: HeadersInit,
+): Parameters<typeof loader>[0] {
   return {
-    request: new Request(url),
+    request: new Request(url, { headers }),
     params: {},
     context: new RouterContextProvider(),
     unstable_pattern: '/',
@@ -385,5 +388,25 @@ describe('PortalRoot', () => {
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('ERR_INTERNAL');
     expect(alert.textContent).not.toContain('/srv/secret/file.ts');
+  });
+
+  it('detects initialViewport synchronously from Sec-CH-UA-Mobile and User-Agent headers', () => {
+    loadPortalRootDataWithPrerenderMock.mockReturnValue(
+      Promise.resolve({
+        maintenanceMode: false,
+        chrome: CHROME_FIXTURE,
+        maintenance: null,
+      }),
+    );
+
+    const mobileResult = loader(
+      makeRootLoaderArgs('https://andrew-k.us/', { 'Sec-CH-UA-Mobile': '?1' }),
+    );
+    expect(mobileResult.initialViewport).toBe('mobile-portrait');
+
+    const desktopResult = loader(
+      makeRootLoaderArgs('https://andrew-k.us/', { 'Sec-CH-UA-Mobile': '?0' }),
+    );
+    expect(desktopResult.initialViewport).toBe('desktop');
   });
 });
