@@ -32,6 +32,7 @@ function PortalCadencePaneBody({
       isStreaming={controller.isStreaming}
       streamLogs={controller.streamLogs}
       onRunBuild={controller.onRunBuild}
+      onApproveSpec={controller.onApproveSpec}
       onGateVerdict={controller.onGateVerdict}
       onClose={onClose}
     />

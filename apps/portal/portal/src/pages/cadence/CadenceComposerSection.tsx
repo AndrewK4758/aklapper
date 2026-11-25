@@ -85,25 +85,8 @@ export function CadenceComposerSection({
           <p className={styles.presetPrompt}>
             {activePreset
               ? `${activePreset.expectedKind}: ${activePreset.starterPrompt}`
-              : content.fastModeHint}
+              : content.promptPlaceholder}
           </p>
-        </div>
-
-        <div className={styles.modeToggle}>
-          <Switch.Label>
-            <Switch.Root
-              checked={fastMode}
-              onCheckedChange={onFastModeChange}
-              aria-label={content.fastModeLabel}
-              data-testid='cadence-fast-mode-switch'
-            >
-              <Switch.Thumb />
-            </Switch.Root>
-            <span>
-              {content.fastModeLabel} (
-              {fastMode ? content.modeBadgeFastLabel : content.modeBadgeLiveLabel})
-            </span>
-          </Switch.Label>
         </div>
       </div>
 
@@ -122,7 +105,23 @@ export function CadenceComposerSection({
           data-testid='cadence-prompt-input'
         />
         <div className={styles.composerActions}>
-          <span className={styles.isolationHint}>{content.fastModeHint}</span>
+          <div className={styles.modeControlGroup}>
+            <Switch.Label>
+              <Switch.Root
+                checked={fastMode}
+                onCheckedChange={onFastModeChange}
+                aria-label={content.fastModeLabel}
+                data-testid='cadence-fast-mode-switch'
+              >
+                <Switch.Thumb />
+              </Switch.Root>
+              <span>
+                {content.fastModeLabel} (
+                {fastMode ? content.modeBadgeFastLabel : content.modeBadgeLiveLabel})
+              </span>
+            </Switch.Label>
+            <span className={styles.isolationHint}>{content.fastModeHint}</span>
+          </div>
           <Button
             type='submit'
             variant='primary'

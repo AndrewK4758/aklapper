@@ -152,6 +152,7 @@ export function ArtifactInspector({
 
   const modeBadge = resolveModeBadge(executionMode, labels);
   const streamText = streamLogs.join('\n');
+  const hasArtifactHtml = artifactHtml.trim().length > 0;
 
   return (
     <section className={cx(styles.inspector, className)} data-testid='artifact-inspector'>
@@ -195,6 +196,7 @@ export function ArtifactInspector({
               type='button'
               variant='ghost'
               size='xs'
+              disabled={!hasArtifactHtml}
               onClick={() => setFullscreenOpen(true)}
               data-testid='cadence-fullscreen-toggle'
             >
@@ -217,7 +219,7 @@ export function ArtifactInspector({
                 request a spec revision first.
               </p>
             </div>
-          ) : (
+          ) : hasArtifactHtml ? (
             <div className={styles.previewStack}>
               {isStreaming && streamLogs.length > 0 && (
                 <StreamingTextFeed
@@ -229,6 +231,28 @@ export function ArtifactInspector({
                 />
               )}
               <SandboxedArtifactFrame title={labels.iframeTitle} srcDoc={artifactHtml} />
+            </div>
+          ) : isStreaming || isPipelineBusy ? (
+            <div className={styles.previewStack} data-testid='cadence-preview-pending'>
+              <StreamingTextFeed
+                content={streamText}
+                isStreaming={isStreaming || isPipelineBusy}
+                ariaLabel={labels.streamLogHeading ?? 'Pipeline Stream Output'}
+                header={labels.streamLogHeading ?? 'Live Pipeline Stream'}
+                statusLabel='streaming'
+                emptyText='Executing CHORD pipeline — rendered artifact will appear after Spec approval and Build completion.'
+              />
+            </div>
+          ) : (
+            <div className={styles.buildLockedPanel} data-testid='cadence-preview-empty'>
+              <StatusPill tone='neutral' size='sm'>
+                No Artifact Built Yet
+              </StatusPill>
+              <p className={styles.specSummary}>
+                Submit a prompt to generate a CHORD specification, approve it at the Human Spec
+                Gate, and synthesize a sandboxed HTML5/CSS artifact — or select a Featured Showcase
+                above.
+              </p>
             </div>
           )}
         </Tabs.Panel>
@@ -245,13 +269,20 @@ export function ArtifactInspector({
         </Tabs.Panel>
 
         <Tabs.Panel value='source'>
-          <CodeArtifactViewer
-            code={artifactHtml}
-            fileName={fileName}
-            copyLabel={labels.copySourceLabel}
-            copiedLabel={labels.copiedSourceLabel}
-            downloadLabel={labels.downloadSourceLabel}
-          />
+          {hasArtifactHtml ? (
+            <CodeArtifactViewer
+              code={artifactHtml}
+              fileName={fileName}
+              copyLabel={labels.copySourceLabel}
+              copiedLabel={labels.copiedSourceLabel}
+              downloadLabel={labels.downloadSourceLabel}
+            />
+          ) : (
+            <p className={styles.emptyNotice} data-testid='cadence-source-empty'>
+              Source HTML will appear here after you approve the CHORD specification and Phase 3
+              (Build) completes.
+            </p>
+          )}
         </Tabs.Panel>
 
         <Tabs.Panel value='gate'>
