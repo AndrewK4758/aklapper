@@ -76,6 +76,43 @@ describe('proxyPostSse / proxySse 4xx error parity, correlationId bounds & gzip 
         wantCode: 'ERR_UNAUTHORIZED',
         expectedTurnsUsed: undefined,
       },
+      {
+        status: 401,
+        body: JSON.stringify({
+          error: 'invalid_token',
+          message:
+            'Audience https://ai-ask-abc123-uc.a.run.app rejected for sa@games-424800.iam.gserviceaccount.com',
+        }),
+        wantStatus: 401,
+        wantCode: 'ERR_UNAUTHORIZED',
+        expectedTurnsUsed: undefined,
+      },
+      {
+        status: 400,
+        body: JSON.stringify({
+          error: 'pq: relation "ask_turns" does not exist (stream.go:215)',
+        }),
+        wantStatus: 400,
+        wantCode: 'ERR_VALIDATION',
+        expectedTurnsUsed: undefined,
+      },
+      {
+        status: 429,
+        body: JSON.stringify({
+          code: 'ERR_RATE_LIMITED',
+          message: 'SQL error stack trace leaked',
+          quota: {
+            role: 'guest',
+            turnsUsed: 5,
+            maxTurns: 5,
+            tokensUsed: 500,
+            maxTokens: 20000,
+          },
+        }),
+        wantStatus: 429,
+        wantCode: 'ERR_RATE_LIMITED',
+        expectedTurnsUsed: 5,
+      },
     ];
 
     for (const tc of cases) {
@@ -96,6 +133,9 @@ describe('proxyPostSse / proxySse 4xx error parity, correlationId bounds & gzip 
       expect(parsed.status).toBe(tc.wantStatus);
       expect(parsed.message).not.toContain('postgres://');
       expect(parsed.message).not.toContain('SQL');
+      expect(parsed.message).not.toContain('a.run.app');
+      expect(parsed.message).not.toContain('gserviceaccount.com');
+      expect(parsed.message).not.toContain('stream.go');
       expect(parsed.quota?.turnsUsed).toBe(tc.expectedTurnsUsed);
     }
   });

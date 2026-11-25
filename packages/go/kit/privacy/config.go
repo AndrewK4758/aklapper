@@ -34,7 +34,61 @@ var (
 	ErrPrivacyAborted = errors.New("stream aborted by privacy guard")
 
 	unboundedQuantifierRe = regexp.MustCompile(`(^|[^\\])(?:\.\*|\.\+|\*|\+|\{\d+,\})`)
+
+	builtInSecretRules = []builtInSecretRule{
+		{
+			name:        "pem_private_key",
+			regex:       regexp.MustCompile(`-----BEGIN [A-Z0-9 ]{0,24}PRIVATE KEY-----`),
+			fingerprint: ruleFingerprint("builtin", 0, "pem_private_key"),
+		},
+		{
+			name:        "credentialed_url",
+			regex:       regexp.MustCompile(`(?i)\b(?:postgres(?:ql)?|mysql|redis|mongodb(?:\+srv)?|amqp|https?)://[^\s:@"'<>]{1,40}:[^\s@"'<>]{1,64}@[^\s"'<>]{1,64}`),
+			fingerprint: ruleFingerprint("builtin", 1, "credentialed_url"),
+		},
+		{
+			name:        "google_api_key",
+			regex:       regexp.MustCompile(`AIza[0-9A-Za-z_-]{35}`),
+			fingerprint: ruleFingerprint("builtin", 2, "google_api_key"),
+		},
+		{
+			name:        "github_token",
+			regex:       regexp.MustCompile(`\b(?:ghp_[0-9A-Za-z]{36}|github_pat_[0-9A-Za-z_]{22,82})\b`),
+			fingerprint: ruleFingerprint("builtin", 3, "github_token"),
+		},
+		{
+			name: "jwt_token",
+			// Header up to 114 base64url chars (3+111) covers real GCP OIDC (102-char 40-hex kid) and
+			// UUID-kid RS256 headers while guaranteeing minimum trigger <= 128 runes (MaxSecretHoldbackRunes).
+			regex:       regexp.MustCompile(`eyJ[A-Za-z0-9_-]{10,111}\.eyJ[A-Za-z0-9_-]{10,32}(?:[A-Za-z0-9_-]{0,900}(?:\.[A-Za-z0-9_-]{0,900})?)?`),
+			fingerprint: ruleFingerprint("builtin", 4, "jwt_token"),
+		},
+	}
+
+	secretAnchorPrefixes = []string{
+		"-----begin",
+		"postgresql://",
+		"postgres://",
+		"mongodb+srv://",
+		"mongodb://",
+		"mysql://",
+		"redis://",
+		"amqp://",
+		"https://",
+		"http://",
+		"://",
+		"eyj",
+		"aiza",
+		"ghp_",
+		"github_pat_",
+	}
 )
+
+type builtInSecretRule struct {
+	name        string
+	regex       *regexp.Regexp
+	fingerprint string
+}
 
 // ConfigInput supplies raw denylist text and optional policy overrides.
 type ConfigInput struct {

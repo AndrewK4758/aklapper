@@ -1,6 +1,7 @@
 package privacy
 
 import (
+	"encoding/base64"
 	"errors"
 	"log"
 	"strings"
@@ -217,9 +218,17 @@ func TestStreamGuardAbortsLongStreamedJWTAndNormalizesNFD(t *testing.T) {
 		if err != nil {
 			t.Fatalf("LoadConfig failed: %v", err)
 		}
+		gcpHeaderWithTyp := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"RS256","kid":"3d4b8c1f2a9e7b6d5c4f3e2a1b0c9d8e7f6a5b4c","typ":"JWT"}`))
+		gcpHeaderMin := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"RS256","kid":"3d4b8c1f2a9e7b6d5c4f3e2a1b0c9d8e7f6a5b4c"}`))
+		uuidKidHeader := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"RS256","typ":"JWT","kid":"550e8400-e29b-41d4-a716-446655440000"}`))
+		oidcPayload := base64.RawURLEncoding.EncodeToString([]byte(`{"iss":"https://accounts.google.com","aud":"https://ai-ask-abc.a.run.app","sub":"109876543210","email":"sa@games-424800.iam.gserviceaccount.com","iat":1795580000,"exp":1795583600}`))
+		oidcSig := strings.Repeat("S", 342)
 		jwts := []string{
 			"eyJ" + strings.Repeat("a", 60) + ".eyJ" + strings.Repeat("b", 60) + "." + strings.Repeat("c", 43),
 			"eyJ" + strings.Repeat("A", 50) + ".eyJ" + strings.Repeat("B", 300) + "." + strings.Repeat("C", 240),
+			gcpHeaderWithTyp + "." + oidcPayload + "." + oidcSig,
+			gcpHeaderMin + "." + oidcPayload + "." + oidcSig,
+			uuidKidHeader + "." + oidcPayload + "." + oidcSig,
 		}
 		for _, jwt := range jwts {
 			guard := NewStreamGuard(cfg, "corr-jwt-stream")
@@ -278,6 +287,85 @@ func TestStreamGuardAbortsLongStreamedJWTAndNormalizesNFD(t *testing.T) {
 		got := out1 + out2 + tail
 		if !strings.Contains(got, "[REDACTED]") || strings.Contains(got, "NDA") {
 			t.Fatalf("expected NFD Cafe\\u0301-NDA redacted, got %q", got)
+		}
+	})
+
+	t.Run("active denylist redaction cannot blind built-in secret abort on split DB URL or JWT", func(t *testing.T) {
+		// 1. Denylist term inside DB URL username split across chunks
+		cfgDB, err := LoadConfig(ConfigInput{RawDenylist: `["Acme"]`, DenylistAction: ActionRedact})
+		if err != nil {
+			t.Fatalf("LoadConfig failed: %v", err)
+		}
+		gDB := NewStreamGuard(cfgDB, "corr-secret-db-denylist")
+		out1, err := gDB.Process("Connect via postgres://acme_admin:SuperS3cr3tP4ssw0rd")
+		if err != nil {
+			t.Fatalf("unexpected chunk 1 error: %v", err)
+		}
+		if strings.Contains(out1, "SuperS3cr3tP4ssw0rd") || strings.Contains(out1, "postgres://") {
+			t.Fatalf("leaked DB URL prefix during chunk 1: %q", out1)
+		}
+		if _, err := gDB.Process("@db.prod.internal:5432/aklapper now."); !errors.Is(err, ErrPrivacyAborted) {
+			t.Fatalf("expected ErrPrivacyAborted on chunk 2 DB URL, got %v", err)
+		}
+
+		// 2. Denylist term matching scheme name before :// arrives
+		cfgScheme, err := LoadConfig(ConfigInput{RawDenylist: `["postgres"]`, DenylistAction: ActionRedact})
+		if err != nil {
+			t.Fatalf("LoadConfig failed: %v", err)
+		}
+		gScheme := NewStreamGuard(cfgScheme, "corr-secret-scheme")
+		outS1, err := gScheme.Process("DB is postgres")
+		if err != nil {
+			t.Fatalf("unexpected chunk 1 error: %v", err)
+		}
+		if strings.Contains(outS1, "postgres") {
+			t.Fatalf("leaked scheme prefix: %q", outS1)
+		}
+		if _, err := gScheme.Process("://admin:S3cr3tPass@db.internal:5432/app"); !errors.Is(err, ErrPrivacyAborted) {
+			t.Fatalf("expected ErrPrivacyAborted on split scheme+URL, got %v", err)
+		}
+
+		// 3. Regex denylist cannot blind HS256 JWT streamed in 8-rune chunks
+		cfgJWT, err := LoadConfig(ConfigInput{RawDenylist: `["Red","ACT","re:\\b[A-Z]{5,12}\\b"]`, DenylistAction: ActionRedact})
+		if err != nil {
+			t.Fatalf("LoadConfig failed: %v", err)
+		}
+		gJWT := NewStreamGuard(cfgJWT, "corr-secret-jwt-regex")
+		jwt := "Token is eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9." +
+			base64.RawURLEncoding.EncodeToString([]byte(`{"iss":"https://accounts.google.com","sub":"user-123"}`)) +
+			"." + strings.Repeat("z", 43)
+		aborted := false
+		var leaked strings.Builder
+		for i := 0; i < len(jwt); i += 8 {
+			out, pErr := gJWT.Process(jwt[i:min(len(jwt), i+8)])
+			leaked.WriteString(out)
+			if errors.Is(pErr, ErrPrivacyAborted) {
+				aborted = true
+				break
+			}
+			if pErr != nil {
+				t.Fatalf("unexpected error: %v", pErr)
+			}
+		}
+		if !aborted {
+			t.Fatalf("expected ErrPrivacyAborted for JWT with active regex denylist, leaked=%q", leaked.String())
+		}
+		if strings.Contains(leaked.String(), "eyJ") || strings.Contains(leaked.String(), "accounts.google.com") {
+			t.Fatalf("JWT content leaked before abort: %q", leaked.String())
+		}
+
+		// 4. Benign non-secret URL containing denylist term still redacts cleanly on Flush
+		gBenign := NewStreamGuard(cfgDB, "corr-benign-url")
+		b1, err := gBenign.Process("Visit https://acme.example.com/docs for info.")
+		if err != nil {
+			t.Fatalf("Process benign failed: %v", err)
+		}
+		b2, err := gBenign.Flush()
+		if err != nil {
+			t.Fatalf("Flush benign failed: %v", err)
+		}
+		if got := b1 + b2; strings.Contains(strings.ToLower(got), "acme") || !strings.Contains(got, "[REDACTED]") {
+			t.Fatalf("expected benign URL denylist term redacted on flush, got %q", got)
 		}
 	})
 }

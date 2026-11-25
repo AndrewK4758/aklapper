@@ -1,7 +1,6 @@
 package privacy
 
 import (
-	"regexp"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -12,60 +11,7 @@ import (
 const (
 	maxRawPendingRunes     = 4096
 	maxConsecutiveSepRunes = 64
-)
-
-type builtInSecretRule struct {
-	name        string
-	regex       *regexp.Regexp
-	fingerprint string
-}
-
-var (
-	builtInSecretRules = []builtInSecretRule{
-		{
-			name:        "pem_private_key",
-			regex:       regexp.MustCompile(`-----BEGIN [A-Z0-9 ]{0,24}PRIVATE KEY-----`),
-			fingerprint: ruleFingerprint("builtin", 0, "pem_private_key"),
-		},
-		{
-			name:        "credentialed_url",
-			regex:       regexp.MustCompile(`(?i)\b(?:postgres(?:ql)?|mysql|redis|mongodb(?:\+srv)?|amqp|https?)://[^\s:@"'<>]{1,40}:[^\s@"'<>]{1,64}@[^\s"'<>]{1,64}`),
-			fingerprint: ruleFingerprint("builtin", 1, "credentialed_url"),
-		},
-		{
-			name:        "google_api_key",
-			regex:       regexp.MustCompile(`AIza[0-9A-Za-z_-]{35}`),
-			fingerprint: ruleFingerprint("builtin", 2, "google_api_key"),
-		},
-		{
-			name:        "github_token",
-			regex:       regexp.MustCompile(`\b(?:ghp_[0-9A-Za-z]{36}|github_pat_[0-9A-Za-z_]{22,82})\b`),
-			fingerprint: ruleFingerprint("builtin", 3, "github_token"),
-		},
-		{
-			name:        "jwt_token",
-			regex:       regexp.MustCompile(`eyJ[A-Za-z0-9_-]{10,80}\.eyJ[A-Za-z0-9_-]{10,32}(?:[A-Za-z0-9_-]{0,900}(?:\.[A-Za-z0-9_-]{0,900})?)?`),
-			fingerprint: ruleFingerprint("builtin", 4, "jwt_token"),
-		},
-	}
-
-	secretAnchorPrefixes = []string{
-		"-----begin",
-		"postgresql://",
-		"postgres://",
-		"mongodb+srv://",
-		"mongodb://",
-		"mysql://",
-		"redis://",
-		"amqp://",
-		"https://",
-		"http://",
-		"://",
-		"eyj",
-		"aiza",
-		"ghp_",
-		"github_pat_",
-	}
+	rawSecretTailRunes     = MaxSecretHoldbackRunes + 256
 )
 
 type guardRune struct {
@@ -79,6 +25,7 @@ type StreamGuard struct {
 	cfg           *Config
 	correlationID string
 	pending       []guardRune
+	rawSecretBuf  []rune
 	aborted       bool
 }
 
@@ -111,13 +58,18 @@ func (g *StreamGuard) Process(chunk string) (string, error) {
 		return "", ErrPrivacyAborted
 	}
 	if chunk != "" {
-		for _, r := range chunk {
+		chunkRunes := []rune(chunk)
+		g.rawSecretBuf = append(g.rawSecretBuf, chunkRunes...)
+		for _, r := range chunkRunes {
 			g.pending = append(g.pending, guardRune{r: r})
 		}
 		g.collapseExtremeSeparators()
 	}
-	if err := g.applyRules(); err != nil {
+	if err := g.applyRules(false); err != nil {
 		return "", err
+	}
+	if len(g.rawSecretBuf) > rawSecretTailRunes {
+		g.rawSecretBuf = append([]rune(nil), g.rawSecretBuf[len(g.rawSecretBuf)-rawSecretTailRunes:]...)
 	}
 	flushEnd := g.safeFlushIndex()
 	if flushEnd <= 0 {
@@ -133,14 +85,16 @@ func (g *StreamGuard) Flush() (string, error) {
 	if g.aborted {
 		return "", ErrPrivacyAborted
 	}
-	if err := g.applyRules(); err != nil {
+	if err := g.applyRules(true); err != nil {
 		return "", err
 	}
 	if len(g.pending) == 0 {
+		g.rawSecretBuf = nil
 		return "", nil
 	}
 	out := pendingToString(g.pending)
 	g.pending = nil
+	g.rawSecretBuf = nil
 	return out, nil
 }
 
@@ -178,16 +132,19 @@ type runeSegment struct {
 	end   int
 }
 
-func unredactedSegments(items []guardRune) []runeSegment {
+func unredactedSegments(items []guardRune, limit int) []runeSegment {
+	if limit > len(items) {
+		limit = len(items)
+	}
 	var segs []runeSegment
 	i := 0
-	for i < len(items) {
+	for i < limit {
 		if items[i].redacted {
 			i++
 			continue
 		}
 		start := i
-		for i < len(items) && !items[i].redacted {
+		for i < limit && !items[i].redacted {
 			i++
 		}
 		segs = append(segs, runeSegment{start: start, end: i})
@@ -195,17 +152,31 @@ func unredactedSegments(items []guardRune) []runeSegment {
 	return segs
 }
 
-func (g *StreamGuard) applyRules() error {
+func (g *StreamGuard) applyRules(isFlush bool) error {
+	// 1a. For default fail-closed ActionAbort, scan the unmutated raw secret buffer FIRST so
+	// denylist ActionRedact can never split or blind a built-in credential/JWT/PEM secret.
+	if g.cfg.SecretAction == ActionAbort && len(g.rawSecretBuf) > 0 {
+		rawStr := string(g.rawSecretBuf)
+		for _, rule := range builtInSecretRules {
+			if rule.regex.FindStringIndex(rawStr) != nil {
+				g.recordTrigger("builtin_secret", ActionAbort, rule.fingerprint)
+				g.pending = nil
+				g.rawSecretBuf = nil
+				g.aborted = true
+				return ErrPrivacyAborted
+			}
+		}
+	}
+
 	maxIter := len(g.pending) + 64
 	for iter := 0; iter < maxIter; iter++ {
-		segs := unredactedSegments(g.pending)
-		if len(segs) == 0 {
+		// 1b. Always-on built-in secret patterns over unredacted segments (handles ActionRedact too).
+		allSegs := unredactedSegments(g.pending, len(g.pending))
+		if len(allSegs) == 0 {
 			return nil
 		}
-
-		// 1. Always-on built-in secret patterns (highest precedence, unredacted spans only).
 		matchedSecret := false
-		for _, seg := range segs {
+		for _, seg := range allSegs {
 			segStr := pendingToString(g.pending[seg.start:seg.end])
 			for _, rule := range builtInSecretRules {
 				loc := rule.regex.FindStringIndex(segStr)
@@ -215,6 +186,7 @@ func (g *StreamGuard) applyRules() error {
 				g.recordTrigger("builtin_secret", g.cfg.SecretAction, rule.fingerprint)
 				if g.cfg.SecretAction == ActionAbort {
 					g.pending = nil
+					g.rawSecretBuf = nil
 					g.aborted = true
 					return ErrPrivacyAborted
 				}
@@ -232,12 +204,21 @@ func (g *StreamGuard) applyRules() error {
 			continue
 		}
 
-		// 2. Configured runtime denylist (normalized non-separator literals + bounded regexes).
+		// 2. Configured runtime denylist (deferred past any active secret-anchor holdback during
+		// streaming so secret prefixes stay intact until secret detection clears or EOF Flush runs).
 		if len(g.cfg.rules) == 0 {
 			return nil
 		}
+		denylistLimit := len(g.pending)
+		if !isFlush {
+			denylistLimit = g.earliestActiveSecretAnchor()
+		}
+		denylistSegs := unredactedSegments(g.pending, denylistLimit)
+		if len(denylistSegs) == 0 {
+			return nil
+		}
 		matchedDenylist := false
-		for _, seg := range segs {
+		for _, seg := range denylistSegs {
 			segSlice := g.pending[seg.start:seg.end]
 			segStr := pendingToString(segSlice)
 			normStr, normMap := buildNormalizedMap(segSlice)
@@ -245,7 +226,7 @@ func (g *StreamGuard) applyRules() error {
 				var startRune, endRune int
 				found := false
 				if rule.regex != nil {
-					if loc := rule.regex.FindStringIndex(segStr); loc != nil {
+					if loc := rule.regex.FindStringIndex(segStr); loc != nil && loc[1] > loc[0] {
 						startRune = seg.start + utf8.RuneCountInString(segStr[:loc[0]])
 						endRune = startRune + utf8.RuneCountInString(segStr[loc[0]:loc[1]])
 						found = true
@@ -267,6 +248,7 @@ func (g *StreamGuard) applyRules() error {
 				g.recordTrigger("denylist", g.cfg.DenylistAction, rule.fingerprint)
 				if g.cfg.DenylistAction == ActionAbort {
 					g.pending = nil
+					g.rawSecretBuf = nil
 					g.aborted = true
 					return ErrPrivacyAborted
 				}
@@ -283,6 +265,7 @@ func (g *StreamGuard) applyRules() error {
 		}
 	}
 	g.pending = nil
+	g.rawSecretBuf = nil
 	g.aborted = true
 	return ErrPrivacyAborted
 }
@@ -329,14 +312,9 @@ func buildNormalizedMap(raw []guardRune) (string, []normRuneSpan) {
 	return b.String(), spans
 }
 
-func (g *StreamGuard) safeFlushIndex() int {
+func (g *StreamGuard) earliestActiveSecretAnchor() int {
 	n := len(g.pending)
-	if n == 0 {
-		return 0
-	}
-
-	// Constraint 1: adaptive built-in secret holdback (16-rune anchor baseline, up to 128 runes when anchor enters window).
-	safeSecret := max(0, n-BaselineSecretAnchorRunes)
+	earliest := n
 	lowerRunes := make([]rune, n)
 	for i, item := range g.pending {
 		if item.redacted {
@@ -355,12 +333,23 @@ func (g *StreamGuard) safeFlushIndex() int {
 			}
 			bytePos := searchFrom + rel
 			runePos := utf8.RuneCountInString(lowerStr[:bytePos])
-			if n-runePos <= MaxSecretHoldbackRunes && runePos < safeSecret {
-				safeSecret = runePos
+			if n-runePos <= MaxSecretHoldbackRunes && runePos < earliest {
+				earliest = runePos
 			}
 			searchFrom = bytePos + len(anchor)
 		}
 	}
+	return earliest
+}
+
+func (g *StreamGuard) safeFlushIndex() int {
+	n := len(g.pending)
+	if n == 0 {
+		return 0
+	}
+
+	// Constraint 1: adaptive built-in secret holdback (16-rune anchor baseline, up to 128 runes when anchor enters window).
+	safeSecret := min(max(0, n-BaselineSecretAnchorRunes), g.earliestActiveSecretAnchor())
 
 	// Constraint 2: non-separator normalized denylist holdback (unredacted runes only; blocks separator flooding).
 	safeDenylist := n
@@ -374,10 +363,7 @@ func (g *StreamGuard) safeFlushIndex() int {
 		}
 	}
 
-	flushEnd := safeSecret
-	if safeDenylist < flushEnd {
-		flushEnd = safeDenylist
-	}
+	flushEnd := min(safeSecret, safeDenylist)
 	// Never split an already-buffered combining mark cluster at the flush boundary.
 	for flushEnd > 0 && flushEnd < n && !g.pending[flushEnd].redacted && isCombiningMark(g.pending[flushEnd].r) {
 		flushEnd--

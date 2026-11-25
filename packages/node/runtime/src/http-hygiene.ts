@@ -172,29 +172,17 @@ export function buildSafeUpstreamSseErrorResponse(
     }
   }
 
-  const upstreamCandidate =
-    parsedJson && safeStatus < 500
-      ? {
-          code: typeof parsedJson['code'] === 'string' ? parsedJson['code'] : fallbackCode,
-          status: effectiveStatus,
-          message:
-            typeof parsedJson['message'] === 'string'
-              ? parsedJson['message']
-              : typeof parsedJson['error'] === 'string'
-                ? parsedJson['error']
-                : fallbackMsg,
-          action: typeof parsedJson['action'] === 'string' ? parsedJson['action'] : fallbackAction,
-          correlationId,
-        }
-      : {
-          code: fallbackCode,
-          status: effectiveStatus,
-          message: fallbackMsg,
-          action: fallbackAction,
-          correlationId,
-        };
+  // Always construct wire-safe error message and action strictly from the allow-listed catalog;
+  // never echo raw upstream message/error/action strings (even on 4xx JSON without a code field).
+  const catalogCandidate = {
+    code: fallbackCode,
+    status: effectiveStatus,
+    message: fallbackMsg,
+    action: fallbackAction,
+    correlationId,
+  };
 
-  const checked = enforcePublicErrorBoundary(upstreamCandidate, {
+  const checked = enforcePublicErrorBoundary(catalogCandidate, {
     correlationId,
     source,
     onViolation: fault => logger.error(fault as unknown as Record<string, unknown>, fault.reason),
@@ -222,9 +210,6 @@ export function buildSafeUpstreamSseErrorResponse(
     message: finalStatus === 504 ? 'Section took too long to load.' : resolvedError.message,
     action: finalStatus === 504 ? 'Retry loading or refresh.' : resolvedError.action,
     correlationId: safeCorrelationId,
-    ...(checked.violation === null && checked.publicError.fieldErrors
-      ? { fieldErrors: checked.publicError.fieldErrors }
-      : {}),
     ...(validatedQuota ? { quota: validatedQuota } : {}),
   });
 
