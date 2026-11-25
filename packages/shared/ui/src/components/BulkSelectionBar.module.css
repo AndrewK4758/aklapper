@@ -52,4 +52,27 @@
     justify-content: var(--sf-justify-center);
     flex-shrink: 0;
   }
+
+  :is([data-viewport='mobile-portrait']) .bar[data-has-selection='true'] {
+    position: sticky;
+    bottom: calc(var(--sf-mobile-dock-h) + var(--sf-safe-bottom));
+    z-index: calc(var(--sf-z-mobile-dock) - 1);
+    box-shadow: var(--sf-shadow-md);
+  }
+
+  :is([data-viewport='mobile-landscape']) .bar[data-has-selection='true'] {
+    position: sticky;
+    bottom: max(var(--sf-space-2), var(--sf-safe-bottom));
+    z-index: calc(var(--sf-z-mobile-dock) - 1);
+    box-shadow: var(--sf-shadow-md);
+  }
+
+  @media (max-width: 48rem) {
+    :where(:root:not([data-viewport='desktop'])) .bar[data-has-selection='true'] {
+      position: sticky;
+      bottom: calc(var(--sf-mobile-dock-h) + var(--sf-safe-bottom));
+      z-index: calc(var(--sf-z-mobile-dock) - 1);
+      box-shadow: var(--sf-shadow-md);
+    }
+  }
 }
