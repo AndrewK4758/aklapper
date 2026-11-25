@@ -62,13 +62,15 @@ func localStreamIdleTimeout(requested time.Duration) time.Duration {
 var ErrStreamIdleTimeout = errors.New("llm stream idle timeout exceeded")
 
 type ChatStreamRequest struct {
-	Messages       []ChatMessage
-	MaxTokens      int
-	Temperature    *float64
-	Model          string
-	ThinkingBudget *int
-	ResponseSchema *JSONSchema
-	IdleTimeout    time.Duration
+	Messages        []ChatMessage
+	MaxTokens       int
+	Temperature     *float64
+	Model           string
+	ThinkingLevel   string
+	IncludeThoughts bool
+	ThinkingBudget  *int
+	ResponseSchema  *JSONSchema
+	IdleTimeout     time.Duration
 }
 
 type ChatStreamChunk struct {
