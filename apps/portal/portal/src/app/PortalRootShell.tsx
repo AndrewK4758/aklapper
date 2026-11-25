@@ -37,6 +37,18 @@ function getPortalPaneTitle(pathname: string): string {
   return pathname === '/' ? 'tty1' : `tui :: ${pathname}`;
 }
 
+const PORTAL_NAV_ITEMS = [
+  { to: href('/cadence'), label: 'CADENCE' },
+  { to: href('/chat'), label: 'Chat' },
+  { to: href('/agensi'), label: 'Agensi' },
+  { to: href('/contact'), label: 'Contact' },
+] as const;
+
+function isPortalNavItemActive(pathname: string, to: string): boolean {
+  const normalized = pathname.replace(/\/+$/, '') || '/';
+  return normalized === to || normalized.startsWith(`${to}/`);
+}
+
 const PANE_LAUNCHER_ITEMS = [
   { label: 'CADENCE', viewId: '/cadence' },
   { label: 'Chat', viewId: '/chat' },
@@ -223,6 +235,24 @@ export function PortalRootShell({
                   </NavigationMenu.Item>
                 </>
               ) : null}
+              <li aria-hidden='true' className={styles.brandSeparator}>
+                |
+              </li>
+              {PORTAL_NAV_ITEMS.map(item => {
+                const active = isPortalNavItemActive(pathname, item.to);
+                return (
+                  <NavigationMenu.Item key={item.to}>
+                    <NavigationMenu.Link
+                      render={<Link to={item.to} prefetch='intent' />}
+                      className={styles.navLink}
+                      data-active={active ? 'true' : 'false'}
+                      aria-current={active ? 'page' : undefined}
+                    >
+                      {item.label}
+                    </NavigationMenu.Link>
+                  </NavigationMenu.Item>
+                );
+              })}
             </NavigationMenu.List>
           </NavigationMenu.Root>
           <div className={styles.barMeta}>
@@ -250,6 +280,7 @@ export function PortalRootShell({
             terminalForms={terminalForms}
             isActive
             disableMenuShortcut
+            navigatePrimaryInPaneRoutes
             routeKey={pathname}
             workspaceStore={portalWorkspaceStore}
             navigate={to => {

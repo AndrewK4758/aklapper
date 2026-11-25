@@ -67,15 +67,36 @@ test.describe('portal global desktop workspace persistence and header launcher',
     await expect(chatSplitPane.getByTestId('ask-question-input')).toBeVisible();
     await expect(page).toHaveURL(/\/$/);
 
-    // Switch via SPA header email link to /contact: zero hidden layers, Tab 2 "ops" & /chat split survive
-    await page.locator('header a[href="/contact"]').click();
+    // Switch via desktop header Contact nav link to /contact: active indicator updates, Tab 2 "ops" & /chat split survive
+    const headerContactLink = page
+      .locator('header')
+      .getByRole('link', { name: 'Contact', exact: true });
+    await headerContactLink.click();
     await expect(page).toHaveURL(/\/contact$/);
+    await expect(headerContactLink).toHaveAttribute('data-active', 'true');
+    await expect(headerContactLink).toHaveAttribute('aria-current', 'page');
     await expect(page.locator('[data-route-workspace]')).toHaveCount(0);
     await expect(workspace).toHaveAttribute('data-tab-count', '2');
     await expect(workspace).toHaveAttribute('data-pane-count', '2');
     await expect(page.getByRole('tab', { name: /ops/i })).toBeVisible();
     await expect(pane1.locator('textarea').first()).toBeVisible();
     await expect(chatSplitPane.getByTestId('ask-question-input')).toBeVisible();
+
+    // Switch via desktop header CADENCE link to /cadence while secondary /chat split & Tab 2 persist
+    const headerCadenceLink = page
+      .locator('header')
+      .getByRole('link', { name: 'CADENCE', exact: true });
+    await headerCadenceLink.click();
+    await expect(page).toHaveURL(/\/cadence$/);
+    await expect(headerCadenceLink).toHaveAttribute('data-active', 'true');
+    await expect(headerContactLink).toHaveAttribute('data-active', 'false');
+    await expect(workspace).toHaveAttribute('data-tab-count', '2');
+    await expect(workspace).toHaveAttribute('data-pane-count', '2');
+    await expect(chatSplitPane.getByTestId('ask-question-input')).toBeVisible();
+
+    // Return to /contact via header link before testing Open Pane menu Escape guard
+    await headerContactLink.click();
+    await expect(page).toHaveURL(/\/contact$/);
 
     // Opening header Open Pane menu and pressing Escape dismisses menu without exiting /contact
     await openPaneButton.click();

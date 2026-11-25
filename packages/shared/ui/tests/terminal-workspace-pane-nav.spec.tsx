@@ -548,4 +548,63 @@ describe('TerminalWorkspace in-pane TUI navigation', () => {
     const plainLink = screen.getByRole('link', { name: 'Plain Anchor' });
     expect(plainLink.getAttribute('href')).toBe('/agensi');
   });
+
+  it('routes plain primary-pane navigation to navigate() when navigatePrimaryInPaneRoutes is enabled while keeping tui and secondary splits/tabs in-pane', () => {
+    const navigate = vi.fn<(to: string) => void>();
+    const { container } = render(
+      <TerminalWorkspace
+        terminal={NAV_TERMINAL_FIXTURE}
+        navigate={navigate}
+        navigatePrimaryInPaneRoutes
+        renderPaneView={renderTestPaneView}
+        primaryPane={{
+          title: 'tty1',
+          content: <TerminalWorkspace terminal={NAV_TERMINAL_FIXTURE} />,
+          flush: true,
+          embeddedTerminal: true,
+        }}
+      />,
+    );
+
+    const pane1 = container.querySelector('[data-pane-id="pane-1"]') as HTMLElement;
+    const input = pane1.querySelector(
+      'input[aria-label="Terminal command input"]',
+    ) as HTMLInputElement;
+
+    // `tui` stays in-pane at `/` (never calls navigate)
+    fireEvent.change(input, { target: { value: 'tui' } });
+    fireEvent.submit(input.closest('form')!);
+    expect(navigate).not.toHaveBeenCalled();
+    expect(pane1.getAttribute('data-tui-depth')).toBe('1');
+
+    // Plain click on `<PaneLink to="/agensi">` in primary pane navigates to real route
+    fireEvent.click(within(pane1).getByRole('link', { name: 'Agensi' }));
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenLastCalledWith('/agensi');
+
+    // Shift+Click opens secondary split without calling navigate
+    fireEvent.click(within(pane1).getByRole('link', { name: 'Launch Menu' }), { shiftKey: true });
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[data-pane-count="2"]')).toBeTruthy();
+
+    // Plain `<PaneLink>` click inside secondary split pane-2 stays in-pane without calling navigate
+    const pane2 = container.querySelector('[data-pane-id="pane-2"]') as HTMLElement;
+    expect(pane2).toBeTruthy();
+    fireEvent.click(within(pane2).getByRole('link', { name: 'Contact Form' }));
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(pane2.getAttribute('data-tui-depth')).toBe('2');
+
+    // Ctrl+Click opens secondary tab without calling navigate
+    fireEvent.pointerDown(pane1);
+    fireEvent.click(within(pane1).getByRole('link', { name: 'Launch Menu' }), { ctrlKey: true });
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[data-tab-count="2"]')).toBeTruthy();
+
+    // Closing tab-1 transfers primary pin to tab-2; plain in-pane navigation there uses navigate()
+    fireEvent.click(screen.getByRole('button', { name: 'Close tab tui' }));
+    expect(container.querySelector('[data-tab-count="1"]')).toBeTruthy();
+    fireEvent.click(screen.getByRole('link', { name: 'Contact Form' }));
+    expect(navigate).toHaveBeenCalledTimes(2);
+    expect(navigate).toHaveBeenLastCalledWith('/contact');
+  });
 });
