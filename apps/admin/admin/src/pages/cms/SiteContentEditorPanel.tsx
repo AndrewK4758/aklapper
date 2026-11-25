@@ -5,6 +5,8 @@ import {
   LazyChunkBoundary,
   lazyWithRetry,
   type SiteContentPreviewViewport,
+  Tabs,
+  useViewportContext,
 } from '@aklapper/ui';
 import { useReducer, useState } from 'react';
 import { Form } from 'react-router';
@@ -44,14 +46,40 @@ function SiteContentEditorSession({
   onTogglePreview,
   onViewportChange,
 }: SiteContentEditorSessionProps) {
+  const { isMobile } = useViewportContext();
+  const [mobileTab, setMobileTab] = useState<'editor' | 'preview'>('editor');
   const [initialBundle] = useState(() => createInitialSiteContentDraftState(row));
   const [draft, dispatch] = useReducer(siteContentDraftReducer, initialBundle.state);
   const evaluated = evaluateSiteContentDraft(draft);
   const keyMeta = isKnownSiteContentKey(row.key) ? SITE_CONTENT_METADATA[row.key] : null;
 
-  return (
-    <div className={cx(styles.editorGrid, previewOpen && styles.editorGridSplit)}>
-      <Form method='post' className={styles.formStack}>
+  const previewNode = (
+    <LazyChunkBoundary
+      loadingLabel='Loading live preview...'
+      errorTitle='Unable to load live preview'
+      onChunkError={error => {
+        reportAdminLazyChunkError('./SiteContentPreviewPane', '/cms', error);
+      }}
+    >
+      <LazySiteContentPreviewPane
+        contentKey={row.key}
+        metadata={evaluated.previewObject}
+        viewport={previewViewport}
+        hasValidationErrors={!evaluated.canSubmit}
+        onViewportChange={onViewportChange}
+        onClose={() => {
+          if (isMobile) {
+            setMobileTab('editor');
+          } else {
+            onTogglePreview();
+          }
+        }}
+      />
+    </LazyChunkBoundary>
+  );
+
+  const editorFormNode = (
+    <Form method='post' className={styles.formStack}>
         <input type='hidden' name='intent' value='upsert-site-content' />
         <input type='hidden' name='key' value={row.key} />
         <input type='hidden' name='metadataJson' value={evaluated.serializedMetadataJson} />
@@ -198,25 +226,33 @@ function SiteContentEditorSession({
           </Button.Root>
         </div>
       </Form>
+  );
 
-      {previewOpen ? (
-        <LazyChunkBoundary
-          loadingLabel='Loading live preview...'
-          errorTitle='Unable to load live preview'
-          onChunkError={error => {
-            reportAdminLazyChunkError('./SiteContentPreviewPane', '/cms', error);
-          }}
-        >
-          <LazySiteContentPreviewPane
-            contentKey={row.key}
-            metadata={evaluated.previewObject}
-            viewport={previewViewport}
-            hasValidationErrors={!evaluated.canSubmit}
-            onViewportChange={onViewportChange}
-            onClose={onTogglePreview}
-          />
-        </LazyChunkBoundary>
-      ) : null}
+  if (isMobile) {
+    return (
+      <Tabs.Root
+        value={mobileTab}
+        onValueChange={next => {
+          if (next === 'editor' || next === 'preview') {
+            setMobileTab(next);
+          }
+        }}
+        data-cms-mobile-tabs='true'
+      >
+        <Tabs.List aria-label='CMS editor and preview'>
+          <Tabs.Tab value='editor'>Editor</Tabs.Tab>
+          <Tabs.Tab value='preview'>Preview</Tabs.Tab>
+        </Tabs.List>
+        <Tabs.Panel value='editor'>{editorFormNode}</Tabs.Panel>
+        <Tabs.Panel value='preview'>{previewNode}</Tabs.Panel>
+      </Tabs.Root>
+    );
+  }
+
+  return (
+    <div className={cx(styles.editorGrid, previewOpen && styles.editorGridSplit)}>
+      {editorFormNode}
+      {previewOpen ? previewNode : null}
     </div>
   );
 }

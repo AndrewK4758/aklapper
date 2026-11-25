@@ -230,5 +230,16 @@
     .inlineGrid3 {
       grid-template-columns: minmax(0, 1fr);
     }
+
+    .keyButton {
+      min-height: var(--sf-mobile-touch-min);
+    }
+
+    .input,
+    .select,
+    .textarea {
+      min-height: var(--sf-mobile-touch-min);
+      font-size: var(--sf-mobile-input-font-size);
+    }
   }
 }

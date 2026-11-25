@@ -76,4 +76,17 @@
     color: var(--sf-fg-cmt);
     font-size: var(--sf-text-xs);
   }
+
+  @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
+    .viewport {
+      height: auto;
+      overflow-x: clip;
+      overflow-y: visible;
+    }
+
+    .checkItem {
+      min-width: var(--sf-space-0);
+      overflow-wrap: anywhere;
+    }
+  }
 }
