@@ -149,7 +149,14 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(
       page.getByText(/CADENCE Builder — Interactive Multi-Artifact Showcase/i),
     ).toBeVisible();
-    await expect(page.getByTestId('cadence-golden-strip')).toBeVisible();
+    const goldenStrip = page.getByTestId('cadence-golden-strip');
+    await expect(goldenStrip).toBeVisible();
+    await expect(goldenStrip.locator('button[aria-pressed="true"]')).toHaveCount(0);
+    await expect(page.getByTestId('cadence-golden-readonly-pill')).toHaveCount(0);
+
+    const firstShowcase = goldenStrip.locator('button').first();
+    await firstShowcase.click();
+    await expect(firstShowcase).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByTestId('cadence-execution-mode-badge')).toContainText(
       /Golden Showcase/i,
     );
