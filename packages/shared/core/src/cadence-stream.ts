@@ -172,6 +172,7 @@ export function createCadenceRunStreamStore(
           ...currentSnapshot.run,
           runStatus: parsed.data.runStatus,
           status: parsed.data.status ?? currentSnapshot.run.status,
+          ...(parsed.data.spec ? { spec: parsed.data.spec } : {}),
           turns: [...upsertPhaseTurn(currentSnapshot.run.turns, parsed.data.turn)],
         },
         connectionState: 'streaming',

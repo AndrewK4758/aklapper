@@ -201,29 +201,37 @@ func newHandlerWithDeps(deps cadenceServiceDeps) http.Handler {
 
 		mode := strings.TrimSpace(req.Mode)
 		if mode == "" {
-			if req.DeferExecution {
-				mode = contracts.CadenceModeFast
-			} else {
-				mode = contracts.CadenceModeLLM
-			}
+			mode = contracts.CadenceModeLLM
 		}
 
-		// Pre-quota scoped prompt_hash cache lookup -> $0 isolated session-owned clone on hit.
-		cacheRes, cacheErr := resolveCacheLookupAndClone(
-			r.Context(),
-			deps.store,
-			sessionID,
-			"portal-proxy",
-			presetSlug,
-			mode,
-			strings.TrimSpace(req.Prompt),
-		)
-		if cacheErr == nil && cacheRes.Hit && cacheRes.ClonedRun != nil {
-			quota, _ := deps.store.GetQuotaStatus(r.Context(), role, sessionID)
-			readyStatus, osc := buildReadyStatus()
-			res := pg.SandboxRunToContractResult(cacheRes.ClonedRun, &quota, &readyStatus, osc)
-			httpkit.WriteJSON(w, http.StatusCreated, res)
-			return
+		// Compute canonical prompt_hash for auditability; only clone cached runs in fast mode so
+		// live LLM runs always execute fresh, varied Spec -> Build generations.
+		var cacheRes cacheLookupResult
+		if mode == contracts.CadenceModeFast {
+			var cacheErr error
+			cacheRes, cacheErr = resolveCacheLookupAndClone(
+				r.Context(),
+				deps.store,
+				sessionID,
+				"portal-proxy",
+				presetSlug,
+				mode,
+				strings.TrimSpace(req.Prompt),
+			)
+			if cacheErr == nil && cacheRes.Hit && cacheRes.ClonedRun != nil {
+				quota, _ := deps.store.GetQuotaStatus(r.Context(), role, sessionID)
+				readyStatus, osc := buildReadyStatus()
+				res := pg.SandboxRunToContractResult(cacheRes.ClonedRun, &quota, &readyStatus, osc)
+				httpkit.WriteJSON(w, http.StatusCreated, res)
+				return
+			}
+		} else {
+			cacheRes.PromptHash = computePromptHash(presetSlug, "", mode, strings.TrimSpace(req.Prompt))
+			logCadenceSeam("RULE_DIVERGENCE", "cadence.cache.lookup_outcome", "info", map[string]any{
+				"branch":     "bypass_live_llm",
+				"presetSlug": nonEmptyOr(presetSlug, "custom"),
+				"mode":       mode,
+			})
 		}
 
 		if req.DeferExecution {

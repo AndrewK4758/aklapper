@@ -66,9 +66,9 @@ describe('PortalCadencePage', () => {
     const selectTrigger = screen.getByTestId('cadence-preset-select');
     expect(selectTrigger).toBeTruthy();
 
-    // Fast mode Switch defaults to checked ('fast').
+    // Fast mode Switch defaults to unchecked ('llm') so Live LLM generation runs by default.
     const fastSwitch = screen.getByTestId('cadence-fast-mode-switch');
-    expect(fastSwitch.getAttribute('aria-checked')).toBe('true');
+    expect(fastSwitch.getAttribute('aria-checked')).toBe('false');
 
     // Open dropdown and select GKE Pod Telemetry Widget.
     await user.click(selectTrigger);
@@ -87,10 +87,10 @@ describe('PortalCadencePage', () => {
     expect(onRunBuild).toHaveBeenLastCalledWith({
       prompt: SAMPLE_PRESETS[1]?.starterPrompt ?? '',
       presetSlug: 'k8s-pod-telemetry',
-      mode: 'fast',
+      mode: 'llm',
     });
 
-    // Switch to custom free-form mode, verify <4 char guard, then submit in llm mode.
+    // Switch to custom free-form mode, verify <4 char guard, then toggle Fast Mode on and submit.
     await user.click(selectTrigger);
     await waitFor(() => {
       expect(selectTrigger.getAttribute('aria-expanded')).toBe('true');
@@ -110,13 +110,13 @@ describe('PortalCadencePage', () => {
     expect(submitBtn.disabled).toBe(false);
 
     await user.click(fastSwitch);
-    expect(fastSwitch.getAttribute('aria-checked')).toBe('false');
+    expect(fastSwitch.getAttribute('aria-checked')).toBe('true');
 
     await user.click(submitBtn);
     expect(onRunBuild).toHaveBeenLastCalledWith({
       prompt: 'Custom 48-char latency diagnostic dashboard card',
       presetSlug: 'custom',
-      mode: 'llm',
+      mode: 'fast',
     });
   });
 
@@ -508,6 +508,9 @@ describe('PortalCadencePage', () => {
     );
 
     expect(screen.getByTestId('cadence-golden-strip')).toBeTruthy();
+    const liveSpecView = screen.getByTestId('cadence-live-spec-view');
+    expect(liveSpecView.textContent).toContain('CHORD Behavioral Decomposition Workbench');
+    expect(liveSpecView.textContent).toContain('First paint on /cadence');
     const iframe = screen.getByTitle('CADENCE Artifact Preview') as HTMLIFrameElement;
     expect(iframe.getAttribute('srcdoc')).toContain('Golden Methodology Workbench');
     expect(screen.getByTestId('cadence-execution-mode-badge').textContent).toContain(

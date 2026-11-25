@@ -245,7 +245,7 @@ export async function handleCadenceRunAction(formData: FormData, ctx: CadenceAct
   const prompt = String(formData.get('prompt') ?? '').trim();
   const rawPreset = String(formData.get('presetSlug') ?? '').trim();
   const presetSlug = rawPreset && rawPreset !== '__custom__' ? rawPreset : 'custom';
-  const rawMode = String(formData.get('mode') ?? 'fast').trim();
+  const rawMode = String(formData.get('mode') ?? 'llm').trim();
 
   const validatedReq = CadenceRunRequestSchema.safeParse({
     prompt,
@@ -381,7 +381,7 @@ export async function handleCadenceRunAction(formData: FormData, ctx: CadenceAct
       mode: resolvedMode,
       prompt: validatedReq.data.prompt,
     });
-    if (cacheLookup.sourceRun) {
+    if (resolvedMode === 'fast' && cacheLookup.sourceRun) {
       const cloned = await cloneCachedSandboxRunForSession(
         db,
         { run: cacheLookup.sourceRun, turns: cacheLookup.sourceTurns },

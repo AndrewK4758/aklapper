@@ -190,11 +190,12 @@ type CadenceStreamLogEvent struct {
 }
 
 type CadenceStreamPhaseEvent struct {
-	RunID     string         `json:"runId"`
-	RunStatus string         `json:"runStatus"`
-	Status    *Osc7501Status `json:"status,omitempty"`
-	Progress  int            `json:"progress,omitempty"`
-	Turn      CadenceTurn    `json:"turn"`
+	RunID     string               `json:"runId"`
+	RunStatus string               `json:"runStatus"`
+	Status    *Osc7501Status       `json:"status,omitempty"`
+	Progress  int                  `json:"progress,omitempty"`
+	Turn      CadenceTurn          `json:"turn"`
+	Spec      *CadenceSpecArtifact `json:"spec,omitempty"`
 }
 
 type CadenceStreamCompleteEvent struct {

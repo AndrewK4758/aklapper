@@ -29,6 +29,24 @@
     gap: var(--sf-gap-xs);
   }
 
+  .previewStack {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--sf-gap-sm);
+  }
+
+  .liveSpecSection {
+    min-width: var(--sf-space-0);
+  }
+
+  .specHeaderRow {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    flex-wrap: wrap;
+    gap: var(--sf-gap-xs);
+  }
+
   .specCard {
     display: grid;
     gap: var(--sf-gap-sm);

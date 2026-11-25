@@ -78,6 +78,56 @@ function resolveModeBadge(
   }
 }
 
+interface SpecDocumentViewProps {
+  readonly spec: CadenceSpecArtifact;
+  readonly headingBadge?: string;
+}
+
+function SpecDocumentView({ spec, headingBadge }: SpecDocumentViewProps) {
+  const chordSections = [
+    { key: 'conditions', heading: 'Conditions', items: spec.conditions },
+    { key: 'handling', heading: 'Handling', items: spec.handling },
+    { key: 'outcomes', heading: 'Outcomes', items: spec.outcomes },
+    { key: 'rules', heading: 'Rules', items: spec.rules },
+    { key: 'deltas', heading: 'Deltas', items: spec.deltas },
+  ];
+
+  return (
+    <div className={styles.specCard}>
+      <div className={styles.specHeaderRow}>
+        <h3 className={styles.specTitle}>{spec.title}</h3>
+        {headingBadge ? (
+          <StatusPill tone='info' size='sm'>
+            {headingBadge}
+          </StatusPill>
+        ) : null}
+      </div>
+      <p className={styles.specSummary}>{spec.summary}</p>
+      <div className={styles.chordGrid}>
+        {chordSections.map(section => (
+          <div key={section.key} className={styles.chordGroup}>
+            <h4 className={styles.chordHeading}>{section.heading}</h4>
+            <ul className={styles.chordList}>
+              {section.items.map((item, idx) => (
+                <li key={`${section.key}-${idx}`}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+      {spec.recalledPatterns && spec.recalledPatterns.length > 0 ? (
+        <div className={styles.patternRow}>
+          {spec.recalledPatterns.map(pattern => (
+            <StatusPill key={pattern} tone='info' size='sm'>
+              {pattern}
+            </StatusPill>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function ArtifactInspector({
   artifactHtml,
   fileName = 'cadence-artifact.html',
@@ -99,16 +149,6 @@ export function ArtifactInspector({
 
   const modeBadge = resolveModeBadge(executionMode, labels);
   const streamText = streamLogs.join('\n');
-
-  const chordSections = spec
-    ? [
-        { key: 'conditions', heading: 'Conditions', items: spec.conditions },
-        { key: 'handling', heading: 'Handling', items: spec.handling },
-        { key: 'outcomes', heading: 'Outcomes', items: spec.outcomes },
-        { key: 'rules', heading: 'Rules', items: spec.rules },
-        { key: 'deltas', heading: 'Deltas', items: spec.deltas },
-      ]
-    : [];
 
   return (
     <section className={cx(styles.inspector, className)} data-testid='artifact-inspector'>
@@ -161,36 +201,27 @@ export function ArtifactInspector({
         </div>
 
         <Tabs.Panel value='preview'>
-          <SandboxedArtifactFrame title={labels.iframeTitle} srcDoc={artifactHtml} />
+          <div className={styles.previewStack}>
+            {spec ? (
+              <section
+                className={styles.liveSpecSection}
+                aria-label='CHORD Specification'
+                data-testid='cadence-live-spec-view'
+              >
+                <SpecDocumentView spec={spec} headingBadge='CHORD Spec' />
+              </section>
+            ) : isStreaming ? (
+              <p className={styles.emptyNotice} data-testid='cadence-spec-streaming-notice'>
+                Authoring live CHORD specification from your prompt...
+              </p>
+            ) : null}
+            <SandboxedArtifactFrame title={labels.iframeTitle} srcDoc={artifactHtml} />
+          </div>
         </Tabs.Panel>
 
         <Tabs.Panel value='spec' data-testid='cadence-spec-panel'>
           {spec ? (
-            <div className={styles.specCard}>
-              <h3 className={styles.specTitle}>{spec.title}</h3>
-              <p className={styles.specSummary}>{spec.summary}</p>
-              <div className={styles.chordGrid}>
-                {chordSections.map(section => (
-                  <div key={section.key} className={styles.chordGroup}>
-                    <h4 className={styles.chordHeading}>{section.heading}</h4>
-                    <ul className={styles.chordList}>
-                      {section.items.map((item, idx) => (
-                        <li key={`${section.key}-${idx}`}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-              {spec.recalledPatterns && spec.recalledPatterns.length > 0 ? (
-                <div className={styles.patternRow}>
-                  {spec.recalledPatterns.map(pattern => (
-                    <StatusPill key={pattern} tone='info' size='sm'>
-                      {pattern}
-                    </StatusPill>
-                  ))}
-                </div>
-              ) : null}
-            </div>
+            <SpecDocumentView spec={spec} />
           ) : (
             <p className={styles.emptyNotice}>
               {labels.emptySpecNotice ??

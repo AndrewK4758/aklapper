@@ -134,7 +134,7 @@ func (s *cadenceGRPCServer) StreamRun(
 		Prompt:      prompt,
 		PresetSlug:  presetSlug,
 		Mode:        mode,
-		OnPhase: func(turn contracts.CadenceTurn, _ string, _ int) {
+		OnPhase: func(turn contracts.CadenceTurn, _ string, _ int, _ *contracts.CadenceSpecArtifact) {
 			_ = stream.Send(&cadencev1.StreamRunResponse{
 				Payload: &cadencev1.StreamRunResponse_Phase{
 					Phase: &cadencev1.CadencePhaseEvent{

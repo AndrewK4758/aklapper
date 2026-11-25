@@ -483,8 +483,8 @@ func TestCadenceDemoFastStreamingAndSecurity(t *testing.T) {
 		}
 		wg.Wait()
 
-		if slowEmbedLLM.chatCalls.Load() != 1 {
-			t.Fatalf("expected exactly 1 Chat invocation across concurrent streams, got %d", slowEmbedLLM.chatCalls.Load())
+		if slowEmbedLLM.chatCalls.Load() != 2 {
+			t.Fatalf("expected exactly 2 Chat invocations (Spec + Build) across concurrent streams, got %d", slowEmbedLLM.chatCalls.Load())
 		}
 	})
 

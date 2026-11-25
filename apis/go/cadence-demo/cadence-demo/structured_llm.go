@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,16 +21,31 @@ const (
 	logProgressInterval   = 1200 * time.Millisecond
 )
 
-var errStructuredBufferCap = errors.New("structured llm output exceeded 96 KiB buffer cap")
+var (
+	errStructuredBufferCap = errors.New("structured llm output exceeded 96 KiB buffer cap")
+	specTemperature        = 0.8
+	buildTemperature       = 0.85
+)
 
-type structuredLLMOutput struct {
-	Triage       string                           `json:"triage"`
-	Spec         contracts.CadenceSpecArtifact    `json:"spec"`
+type structuredSpecOutput struct {
+	Triage string                        `json:"triage"`
+	Spec   contracts.CadenceSpecArtifact `json:"spec"`
+}
+
+type structuredBuildOutput struct {
 	GateChecks   []contracts.CadenceGateCheckItem `json:"gateChecks"`
 	ArtifactHTML string                           `json:"artifactHtml"`
 }
 
-func structuredArtifactSchema() *llm.JSONSchema {
+func randomVariationNonce() string {
+	var raw [6]byte
+	if _, err := rand.Read(raw[:]); err != nil {
+		return fmt.Sprintf("%x", time.Now().UnixNano())
+	}
+	return hex.EncodeToString(raw[:])
+}
+
+func structuredSpecSchema() *llm.JSONSchema {
 	strArr := func(desc string) *llm.JSONSchema {
 		return &llm.JSONSchema{
 			Type:        "array",
@@ -37,23 +54,33 @@ func structuredArtifactSchema() *llm.JSONSchema {
 		}
 	}
 	return &llm.JSONSchema{
-		Name: "cadence_structured_artifact",
+		Name: "cadence_chord_spec",
 		Type: "object",
 		Properties: map[string]*llm.JSONSchema{
 			"triage": {Type: "string", Description: "Brief triage classification summary"},
 			"spec": {
 				Type: "object",
 				Properties: map[string]*llm.JSONSchema{
-					"title":      {Type: "string"},
-					"summary":    {Type: "string"},
-					"conditions": strArr("CHORD preconditions and boundaries"),
-					"handling":   strArr("CHORD state handling steps"),
-					"outcomes":   strArr("CHORD observable outcomes"),
-					"rules":      strArr("CHORD non-negotiable invariants"),
-					"deltas":     strArr("CHORD state mutations"),
+					"title":      {Type: "string", Description: "Specific title for this tailored artifact"},
+					"summary":    {Type: "string", Description: "Architectural summary explaining the layout, interactive mechanics, and user value"},
+					"conditions": strArr("Concrete CHORD preconditions, inputs, and runtime boundaries"),
+					"handling":   strArr("Step-by-step CHORD state handling and interactive UI flows"),
+					"outcomes":   strArr("Observable visual and functional outcomes rendered in the artifact"),
+					"rules":      strArr("Non-negotiable security, layout, and behavioral invariants"),
+					"deltas":     strArr("Concrete state transitions and artifacts produced by this run"),
 				},
 				Required: []string{"title", "summary", "conditions", "handling", "outcomes", "rules", "deltas"},
 			},
+		},
+		Required: []string{"triage", "spec"},
+	}
+}
+
+func structuredBuildSchema() *llm.JSONSchema {
+	return &llm.JSONSchema{
+		Name: "cadence_html_artifact",
+		Type: "object",
+		Properties: map[string]*llm.JSONSchema{
 			"gateChecks": {
 				Type: "array",
 				Items: &llm.JSONSchema{
@@ -67,9 +94,9 @@ func structuredArtifactSchema() *llm.JSONSchema {
 					Required: []string{"id", "label", "status", "detail"},
 				},
 			},
-			"artifactHtml": {Type: "string", Description: "Self-contained HTML5/CSS document"},
+			"artifactHtml": {Type: "string", Description: "Self-contained HTML5/CSS document implementing the CHORD specification"},
 		},
-		Required: []string{"triage", "spec", "gateChecks", "artifactHtml"},
+		Required: []string{"gateChecks", "artifactHtml"},
 	}
 }
 
@@ -126,7 +153,7 @@ func guardStringSlice(cfg *privacy.Config, corrID, fieldPrefix string, items []s
 	return out, nil
 }
 
-func guardStructuredOutput(cfg *privacy.Config, corrID string, out *structuredLLMOutput) error {
+func guardSpecOutput(cfg *privacy.Config, corrID string, out *structuredSpecOutput) error {
 	var err error
 	if out.Triage, err = guardField(cfg, corrID, "triage", out.Triage); err != nil {
 		return err
@@ -152,6 +179,11 @@ func guardStructuredOutput(cfg *privacy.Config, corrID string, out *structuredLL
 	if out.Spec.Deltas, err = guardStringSlice(cfg, corrID, "spec.deltas", out.Spec.Deltas); err != nil {
 		return err
 	}
+	return nil
+}
+
+func guardBuildOutput(cfg *privacy.Config, corrID string, out *structuredBuildOutput) error {
+	var err error
 	for i := range out.GateChecks {
 		if out.GateChecks[i].Label, err = guardField(cfg, corrID, fmt.Sprintf("gateChecks[%d].label", i), out.GateChecks[i].Label); err != nil {
 			return err
@@ -168,39 +200,28 @@ func guardStructuredOutput(cfg *privacy.Config, corrID string, out *structuredLL
 
 type logEmitFn func(line string)
 
-func invokeStructuredLLM(
+func stripJSONCodeFence(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	if strings.HasPrefix(trimmed, "```") {
+		if nl := strings.Index(trimmed, "\n"); nl > 0 {
+			trimmed = strings.TrimSpace(trimmed[nl+1:])
+		}
+		trimmed = strings.TrimSuffix(trimmed, "```")
+		trimmed = strings.TrimSpace(trimmed)
+	}
+	return trimmed
+}
+
+func streamStructuredJSON(
 	ctx context.Context,
 	provider llm.Provider,
-	privacyCfg *privacy.Config,
-	corrID, presetSlug, prompt string,
-	recalledPatterns []string,
+	req llm.ChatStreamRequest,
+	stageTag string,
+	stageLabel string,
 	onLog logEmitFn,
-) (*structuredLLMOutput, int, error) {
+) (string, int, error) {
 	if provider == nil {
-		return nil, 0, errors.New("no live LLM provider configured")
-	}
-
-	patternHint := "none"
-	if len(recalledPatterns) > 0 {
-		patternHint = strings.Join(recalledPatterns, ", ")
-	}
-
-	req := llm.ChatStreamRequest{
-		Messages: []llm.ChatMessage{
-			{
-				Role: "system",
-				Content: "Respond ONLY with valid JSON matching the requested schema containing triage, spec (title, summary, conditions, handling, outcomes, rules, deltas), gateChecks, and artifactHtml. " +
-					"artifactHtml MUST be a self-contained single-file HTML5/CSS document with dark Solar Forge styling (#121110 bg, #1c1a17 panel, #ffd300 gold, #22c55e green, #f4efe6 text, monospace), fluid max-width:100% compact vertical rhythm with zero inner scrollbars, and interactive PURE HTML5/CSS controls (radio tabs, <details>, bars, tables). " +
-					"STRICT SECURITY: Never use <script>, <svg>, <iframe>, <object>, <link>, @import, or inline on* handlers.",
-			},
-			{
-				Role:    "user",
-				Content: fmt.Sprintf("Preset: %s\nRecalled Patterns: %s\nUser Prompt: %s", nonEmptyOr(presetSlug, "custom"), patternHint, prompt),
-			},
-		},
-		MaxTokens:      3200,
-		ResponseSchema: structuredArtifactSchema(),
-		IdleTimeout:    45 * time.Second,
+		return "", 0, errors.New("no live LLM provider configured")
 	}
 
 	var buf strings.Builder
@@ -212,7 +233,7 @@ func invokeStructuredLLM(
 			onLog(line)
 		}
 	}
-	emitProgress("[build] Streaming structured CHORD artifact from " + provider.Name() + "...")
+	emitProgress(fmt.Sprintf("[%s] Streaming %s from %s...", stageTag, stageLabel, provider.Name()))
 
 	stopTicker := make(chan struct{})
 	var tickerWG sync.WaitGroup
@@ -234,7 +255,7 @@ func invokeStructuredLLM(
 				bytesSoFar := buf.Len()
 				chunks := chunkCount
 				mu.Unlock()
-				emitProgress(fmt.Sprintf("[build] Synthesizing CHORD spec + HTML (%d chunks, %d bytes buffered, tick #%d)...", chunks, bytesSoFar, step))
+				emitProgress(fmt.Sprintf("[%s] Generating %s (%d chunks, %d bytes buffered, tick #%d)...", stageTag, stageLabel, chunks, bytesSoFar, step))
 			}
 		}
 	}()
@@ -253,34 +274,133 @@ func invokeStructuredLLM(
 	tickerWG.Wait()
 
 	if err != nil {
-		return nil, 0, err
+		return "", 0, err
 	}
 
 	rawJSON := strings.TrimSpace(buf.String())
 	if rawJSON == "" {
 		rawJSON = strings.TrimSpace(res.Text)
 	}
-	// Strip optional markdown JSON fences if a provider wrapped structured output.
-	if strings.HasPrefix(rawJSON, "```") {
-		if nl := strings.Index(rawJSON, "\n"); nl > 0 {
-			rawJSON = strings.TrimSpace(rawJSON[nl+1:])
-		}
-		rawJSON = strings.TrimSuffix(rawJSON, "```")
-		rawJSON = strings.TrimSpace(rawJSON)
+	return stripJSONCodeFence(rawJSON), res.TokensUsed, nil
+}
+
+func invokeLLMSpecStage(
+	ctx context.Context,
+	provider llm.Provider,
+	privacyCfg *privacy.Config,
+	corrID, presetSlug, prompt string,
+	recalledPatterns []string,
+	onLog logEmitFn,
+) (*structuredSpecOutput, int, error) {
+	patternHint := "none"
+	if len(recalledPatterns) > 0 {
+		patternHint = strings.Join(recalledPatterns, ", ")
+	}
+	nonce := randomVariationNonce()
+
+	req := llm.ChatStreamRequest{
+		Messages: []llm.ChatMessage{
+			{
+				Role: "system",
+				Content: "You are the CADENCE CHORD Specification Architect. Respond ONLY with valid JSON matching the requested schema containing `triage` and `spec` (title, summary, conditions, handling, outcomes, rules, deltas). " +
+					"Write a concrete, domain-specific engineering specification tailored directly to the user's prompt — never generic boilerplate. " +
+					"Include 3-5 crisp, actionable items in each CHORD section (conditions, handling, outcomes, rules, deltas) that specify exact UI widgets, data views, interactive controls, and failure/edge-case invariants. " +
+					"Each run includes a fresh variation seed; choose a distinct architectural angle, layout composition, and interactive emphasis every time.",
+			},
+			{
+				Role:    "user",
+				Content: fmt.Sprintf("Run Variation Seed: %s\nPreset: %s\nRecalled Patterns: %s\nUser Prompt: %s", nonce, nonEmptyOr(presetSlug, "custom"), patternHint, prompt),
+			},
+		},
+		MaxTokens:      1400,
+		Temperature:    &specTemperature,
+		ResponseSchema: structuredSpecSchema(),
+		IdleTimeout:    45 * time.Second,
 	}
 
-	var parsed structuredLLMOutput
+	rawJSON, tokensUsed, err := streamStructuredJSON(ctx, provider, req, "spec", "CHORD specification", onLog)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var parsed structuredSpecOutput
 	if unmarshalErr := json.Unmarshal([]byte(rawJSON), &parsed); unmarshalErr != nil {
-		return nil, res.TokensUsed, fmt.Errorf("invalid structured JSON output: %w", unmarshalErr)
+		return nil, tokensUsed, fmt.Errorf("invalid structured spec JSON output: %w", unmarshalErr)
+	}
+	if strings.TrimSpace(parsed.Spec.Title) == "" || strings.TrimSpace(parsed.Spec.Summary) == "" {
+		return nil, tokensUsed, errors.New("structured spec missing required title or summary")
+	}
+
+	if guardErr := guardSpecOutput(privacyCfg, corrID, &parsed); guardErr != nil {
+		return nil, tokensUsed, guardErr
+	}
+
+	return &parsed, tokensUsed, nil
+}
+
+func invokeLLMBuildStage(
+	ctx context.Context,
+	provider llm.Provider,
+	privacyCfg *privacy.Config,
+	corrID, presetSlug, prompt string,
+	spec *contracts.CadenceSpecArtifact,
+	recalledPatterns []string,
+	onLog logEmitFn,
+) (*structuredBuildOutput, int, error) {
+	patternHint := "none"
+	if len(recalledPatterns) > 0 {
+		patternHint = strings.Join(recalledPatterns, ", ")
+	}
+	specJSON, _ := json.MarshalIndent(spec, "", "  ")
+	nonce := randomVariationNonce()
+
+	req := llm.ChatStreamRequest{
+		Messages: []llm.ChatMessage{
+			{
+				Role: "system",
+				Content: "You are the CADENCE Artifact Builder. Respond ONLY with valid JSON matching the requested schema containing `gateChecks` and `artifactHtml`. " +
+					"Implement the provided CHORD specification faithfully as a bespoke, self-contained single-file HTML5/CSS document. " +
+					"Visual palette: dark Solar Forge (#121110 bg, #1c1a17 panels, #ffd300 gold accent, #22c55e green, #f59e0b amber, #f4efe6 text, monospace/sans typography), fluid max-width:100%, zero inner scrollbars. " +
+					"Be genuinely creative with layout and pure HTML5/CSS interactivity — vary structure across runs (e.g., split panels, comparison tables, CSS radio tabs, checkbox filters, collapsible <details> runbooks, timeline flows, status gauges, metric cards) so no two runs look like the same template. " +
+					"STRICT SECURITY: Never use <script>, <svg>, <iframe>, <object>, <link>, @import, or inline on* handlers.",
+			},
+			{
+				Role: "user",
+				Content: fmt.Sprintf(
+					"Run Variation Seed: %s\nPreset: %s\nRecalled Patterns: %s\nUser Prompt: %s\n\nApproved CHORD Specification to Implement:\n%s",
+					nonce,
+					nonEmptyOr(presetSlug, "custom"),
+					patternHint,
+					prompt,
+					string(specJSON),
+				),
+			},
+		},
+		MaxTokens:      3200,
+		Temperature:    &buildTemperature,
+		ResponseSchema: structuredBuildSchema(),
+		IdleTimeout:    45 * time.Second,
+	}
+
+	rawJSON, tokensUsed, err := streamStructuredJSON(ctx, provider, req, "build", "bespoke HTML5/CSS artifact", onLog)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var parsed structuredBuildOutput
+	if unmarshalErr := json.Unmarshal([]byte(rawJSON), &parsed); unmarshalErr != nil {
+		return nil, tokensUsed, fmt.Errorf("invalid structured build JSON output: %w", unmarshalErr)
 	}
 	if !strings.Contains(strings.ToLower(parsed.ArtifactHTML), "<html") {
-		return nil, res.TokensUsed, errors.New("structured artifactHtml missing <html> root")
+		return nil, tokensUsed, errors.New("structured artifactHtml missing <html> root")
 	}
 
-	emitProgress("[gate] Running post-parse privacy StreamGuard across all artifact fields...")
-	if guardErr := guardStructuredOutput(privacyCfg, corrID, &parsed); guardErr != nil {
-		return nil, res.TokensUsed, guardErr
+	if onLog != nil {
+		onLog("[gate] Running post-parse privacy StreamGuard across generated artifact...")
+	}
+	if guardErr := guardBuildOutput(privacyCfg, corrID, &parsed); guardErr != nil {
+		return nil, tokensUsed, guardErr
 	}
 
-	return &parsed, res.TokensUsed, nil
+	return &parsed, tokensUsed, nil
 }

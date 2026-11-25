@@ -29,7 +29,11 @@ function TurnPayloadDetails({ turn }: { readonly turn: CadenceTurn }) {
   const keywords = readStringArray(payload['detectedKeywords']);
   const patterns = readStringArray(payload['recalledPatterns']);
   const criteria = readStringArray(payload['acceptanceCriteria']);
+  const conditions = readStringArray(payload['conditions']);
+  const rules = readStringArray(payload['rules']);
   const checks = readStringArray(payload['checks']);
+  const specTitle = readString(payload['specTitle']);
+  const specSummary = readString(payload['specSummary']);
   const isolationPolicy = readString(payload['isolationPolicy']);
   const sandboxConstraints = readString(payload['sandboxConstraints']);
   const provider = readString(payload['provider']);
@@ -39,8 +43,18 @@ function TurnPayloadDetails({ turn }: { readonly turn: CadenceTurn }) {
     keywords.length > 0 ||
     patterns.length > 0 ||
     criteria.length > 0 ||
+    conditions.length > 0 ||
+    rules.length > 0 ||
     checks.length > 0 ||
-    Boolean(isolationPolicy || sandboxConstraints || provider || fallbackReason || artifactBytes);
+    Boolean(
+      specTitle ||
+      specSummary ||
+      isolationPolicy ||
+      sandboxConstraints ||
+      provider ||
+      fallbackReason ||
+      artifactBytes,
+    );
 
   if (!hasDetails) return null;
 
@@ -48,6 +62,12 @@ function TurnPayloadDetails({ turn }: { readonly turn: CadenceTurn }) {
     <details className={styles.turnDetails} data-testid={`cadence-turn-details-${turn.phase}`}>
       <summary className={styles.turnDetailsSummary}>Inspect {turn.phase} artifact</summary>
       <div className={styles.turnDetailsBody}>
+        {specTitle && (
+          <p className={styles.turnDetailLine}>
+            <strong>Spec:</strong> {specTitle}
+          </p>
+        )}
+        {specSummary && <p className={styles.turnDetailLine}>{specSummary}</p>}
         {provider && (
           <p className={styles.turnDetailLine}>
             <strong>Provider:</strong> {provider}
@@ -79,10 +99,24 @@ function TurnPayloadDetails({ turn }: { readonly turn: CadenceTurn }) {
             <strong>Qdrant Recall:</strong> {patterns.join(', ')}
           </p>
         )}
+        {conditions.length > 0 && (
+          <ul className={styles.turnDetailList}>
+            {conditions.map(item => (
+              <li key={`cond-${item}`}>{item}</li>
+            ))}
+          </ul>
+        )}
         {criteria.length > 0 && (
           <ul className={styles.turnDetailList}>
             {criteria.map(item => (
               <li key={item}>{item}</li>
+            ))}
+          </ul>
+        )}
+        {rules.length > 0 && (
+          <ul className={styles.turnDetailList}>
+            {rules.map(item => (
+              <li key={`rule-${item}`}>{item}</li>
             ))}
           </ul>
         )}
