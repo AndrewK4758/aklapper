@@ -33,10 +33,9 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
     expect(plan.playwrightBuildProjects).toEqual(['portal']);
     expect(plan.dockerServices.map(s => s.service)).toEqual(['portal']);
     expect(plan.cloudRunServices).toEqual(['portal']);
-    expect(plan.gkeServices).toEqual([]);
   });
 
-  it('enables ephemeral Postgres when DB-backed unit or API E2E tests are affected', () => {
+  it('enables ephemeral Postgres and Cloud Run Go images when DB-backed or Go projects are affected', () => {
     const plan = buildCiPlan({
       runAll: false,
       base: 'aaa111',
@@ -56,28 +55,7 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
     expect(plan.hasPlaywright).toBe(false);
     expect(plan.apiE2eProjects).toEqual(['go-ai-ask-e2e']);
     expect(plan.dockerServices.map(s => s.service)).toEqual(['ai-ask']);
-  });
-
-  it('enables Go toolchain and GKE images when Go projects or k8s manifests change', () => {
-    const plan = buildCiPlan({
-      runAll: false,
-      base: 'aaa111',
-      head: 'bbb222',
-      affectedAll: ['go-ai-ask', 'go-ai-ask-e2e'],
-      lintProjects: ['go-ai-ask', 'go-ai-ask-e2e'],
-      typecheckProjects: [],
-      buildProjects: ['go-ai-ask'],
-      testProjects: ['go-ai-ask'],
-      e2eProjects: ['go-ai-ask-e2e'],
-      k8sManifestsChanged: true,
-    });
-
-    expect(plan.needsGo).toBe(true);
-    expect(plan.hasTypecheck).toBe(false);
-    expect(plan.needsTestDb).toBe(false);
-    expect(plan.needsApiE2eDb).toBe(true);
-    expect(plan.hasPlaywright).toBe(false);
-    expect(plan.gkeServices).toEqual(['k8s-watch', 'cadence-demo', 'ai-ask']);
+    expect(plan.cloudRunServices).toEqual(['ai-ask']);
   });
 
   it('skips all heavy jobs when no projects are affected (e.g. docs-only change)', () => {
@@ -102,9 +80,11 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
     expect(outputs['has_playwright']).toBe('false');
     expect(outputs['has_docker']).toBe('false');
     expect(outputs['needs_go']).toBe('false');
+    expect(outputs['has_gke']).toBeUndefined();
+    expect(outputs['gke_services_json']).toBeUndefined();
   });
 
-  it('includes all 5 Docker services when runAll is true and parses CLI args cleanly', () => {
+  it('includes exactly 4 Cloud Run Docker services with zero k8s-watch or gke targets when runAll is true', () => {
     const plan = buildCiPlan({
       runAll: true,
       affectedAll: ['portal'],
@@ -115,10 +95,17 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
       e2eProjects: ['portal-e2e', 'admin-e2e'],
     });
 
-    expect(plan.dockerServices).toHaveLength(5);
+    expect(plan.dockerServices).toHaveLength(4);
     expect(plan.dockerServices).toHaveLength(DOCKER_SERVICES.length);
-    expect(plan.cloudRunServices).toEqual(['portal', 'admin']);
-    expect(plan.gkeServices).toEqual(['k8s-watch', 'cadence-demo', 'ai-ask']);
+    expect(plan.dockerServices.map(s => s.service)).toEqual([
+      'portal',
+      'admin',
+      'cadence-demo',
+      'ai-ask',
+    ]);
+    expect(plan.dockerServices.every(s => s.runtime === 'cloud-run')).toBe(true);
+    expect(plan.cloudRunServices).toEqual(['portal', 'admin', 'cadence-demo', 'ai-ask']);
+    expect(plan.dockerServices.some(s => s.service === 'k8s-watch')).toBe(false);
     expect(parseCiPlanCliArgs(['--all'])).toEqual({
       runAll: true,
       base: undefined,
@@ -134,24 +121,22 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
   });
 
   it('adds admin migration host image when migrateDb is enabled with active deployment targets and skips empty diffs', () => {
-    const withK8sAndMigrate = buildCiPlan({
+    const withDbAndMigrate = buildCiPlan({
       runAll: false,
       base: 'aaa111',
       head: 'bbb222',
-      affectedAll: [],
-      lintProjects: [],
-      typecheckProjects: [],
-      buildProjects: [],
-      testProjects: [],
+      affectedAll: ['node-db'],
+      lintProjects: ['node-db'],
+      typecheckProjects: ['node-db'],
+      buildProjects: ['node-db'],
+      testProjects: ['node-db'],
       e2eProjects: [],
-      k8sManifestsChanged: true,
       migrateDb: true,
     });
 
-    expect(withK8sAndMigrate.gkeServices).toEqual(['k8s-watch', 'cadence-demo', 'ai-ask']);
-    expect(withK8sAndMigrate.dockerServices.map(s => s.service)).toContain('admin');
-    expect(withK8sAndMigrate.hasAdminOrDbMigration).toBe(true);
-    expect(formatGithubOutputs(withK8sAndMigrate)['has_admin_or_db_migration']).toBe('true');
+    expect(withDbAndMigrate.dockerServices.map(s => s.service)).toContain('admin');
+    expect(withDbAndMigrate.hasAdminOrDbMigration).toBe(true);
+    expect(formatGithubOutputs(withDbAndMigrate)['has_admin_or_db_migration']).toBe('true');
 
     const docsOnlyWithMigrate = buildCiPlan({
       runAll: false,
@@ -163,45 +148,59 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
       buildProjects: [],
       testProjects: [],
       e2eProjects: [],
-      k8sManifestsChanged: false,
       migrateDb: true,
     });
     expect(docsOnlyWithMigrate.hasDocker).toBe(false);
     expect(docsOnlyWithMigrate.hasAdminOrDbMigration).toBe(false);
   });
 
-  it('configures cd-gcp.yml with migrate-db, Secret Manager mounts, dedicated SAs, GKE materialization, and WIF /healthz smoke gates', () => {
+  it('configures cd-gcp.yml for pure Cloud Run 2-wave deploy, Direct VPC Egress PG19 caps < 50, Direct IAP, and main push trigger', () => {
     const workflow = readFileSync(
       resolve(import.meta.dirname, '../../../.github/workflows/cd-gcp.yml'),
       'utf8',
     );
+    const cadenceDockerfile = readFileSync(
+      resolve(import.meta.dirname, '../../../apis/go/cadence-demo/cadence-demo/Dockerfile'),
+      'utf8',
+    );
 
+    expect(cadenceDockerfile).toContain('ENV APP_ENV=production');
+    expect(workflow).toContain('push:');
+    expect(workflow).toContain('branches:');
+    expect(workflow).toContain('- main');
+    expect(workflow).toContain('github.event.before');
     expect(workflow).not.toContain('ADMIN_BOOTSTRAP_TOKEN');
+    expect(workflow).not.toContain('deploy-gke:');
+    expect(workflow).not.toContain('render-k8s.ts');
+    expect(workflow).not.toContain('cloudsql-instances');
+    expect(workflow).not.toContain('CLOUD_RUN_ALLOW_UNAUTH_ADMIN');
+    expect(workflow).not.toContain('K8S_WATCH_URL');
     expect(workflow).toContain('migrate-db:');
     expect(workflow).toContain('aklapper-db-migrate');
-    expect(workflow).toContain('GCP_MIGRATOR_SERVICE_ACCOUNT');
-    expect(workflow).toContain('GCP_CLOUDRUN_SERVICE_ACCOUNT');
-    expect(workflow).toContain(
-      "needs.migrate-db.result == 'success' || needs.migrate-db.result == 'skipped'",
-    );
-    expect(workflow).toContain("vars.QDRANT_URL != ''");
+    expect(workflow).toContain('--network=default');
+    expect(workflow).toContain('--subnet=default');
+    expect(workflow).toContain('--vpc-egress=private-ranges-only');
+    expect(workflow).toContain('PG_MAX_CONNS=2');
+    expect(workflow).toContain('PG_MAX_CONNS=4');
+    expect(workflow).toContain('PG_MAX_CONNS=3');
+    expect(workflow).toContain('--no-allow-unauthenticated');
+    expect(workflow).toContain('--iap');
+    expect(workflow).toContain('--use-http2');
+    expect(workflow).toContain('--timeout=300');
+    expect(workflow).toContain('APP_ENV=production');
+    expect(workflow).toContain('ai_ask_service_url:');
+    expect(workflow).toContain('cadence_demo_service_url:');
     expect(workflow).toContain('portal_service_url:');
     expect(workflow).toContain('admin_service_url:');
-    expect(workflow).not.toContain('node-api-auth');
-    expect(workflow).not.toContain('node-api-analytics');
-    expect(workflow).not.toContain('-n cadence-admin');
-    expect(workflow).toContain(
-      '--remove-env-vars=DATABASE_URL,INTERNAL_AUTH_SECRET,ANALYTICS_DAILY_SALT,QDRANT_API_KEY,AGENSI_API_KEY,ANALYTICS_API_URL,CONTACT_API_URL',
-    );
-    expect(workflow).toContain(
-      '--remove-env-vars=DATABASE_URL,TOTP_ENCRYPTION_KEY,INTERNAL_AUTH_SECRET,ANALYTICS_DAILY_SALT,QDRANT_API_KEY,AGENSI_API_KEY,DOSSIER_PRIVACY_DENYLIST,AUTH_API_URL,ANALYTICS_API_URL,CADENCE_ADMIN_URL,CONTACT_API_URL',
-    );
-    expect(workflow).toContain('aklapper-runtime-secrets');
-    expect(workflow).toContain('render-k8s.ts');
-    expect(workflow).toContain('gcloud auth print-identity-token');
+    expect(workflow).toContain('cd.admin_iap.edge_unprotected');
     expect(workflow).toContain('cd.post_deploy_smoke.verified');
-    expect(workflow).toContain('--remove-env-vars=');
+    expect(workflow).toContain('gcloud auth print-identity-token');
     expect(workflow).toContain('^https://[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.run\\.app$');
     expect(workflow).toContain('--grep @smoke');
+
+    // Verify worst-case PG_MAX_CONNS aggregate ceiling stays strictly below PG19 max_connections=50.
+    const worstCasePgConns = 4 * 3 + 2 * 2 + 4 * 3 + 3 * 2 + 2;
+    expect(worstCasePgConns).toBe(36);
+    expect(worstCasePgConns).toBeLessThan(50);
   });
 });

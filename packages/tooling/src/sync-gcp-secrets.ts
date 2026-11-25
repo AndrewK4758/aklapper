@@ -1,4 +1,15 @@
-import { execFileSync } from 'node:child_process';
+import {
+  addServiceAccountBinding,
+  defaultGcloudExec,
+  ensureRuntimeServiceAccountBindings,
+  type GcloudExecRunner,
+} from './sync-gcp-iam.ts';
+
+export {
+  ensureRuntimeServiceAccountBindings,
+  type EnsureRuntimeServiceAccountBindingsOptions,
+  type GcloudExecRunner,
+} from './sync-gcp-iam.ts';
 
 export const GCP_SECRET_MANAGER_SECRETS = [
   'DATABASE_URL',
@@ -21,27 +32,7 @@ export interface GcpSecretSyncEntry {
   readonly value: string;
 }
 
-export type GcloudExecRunner = (args: readonly string[], input?: string) => string;
-
-export interface EnsureRuntimeServiceAccountBindingsOptions {
-  readonly projectId: string;
-  readonly deployerSa: string;
-  readonly runtimeSa?: string;
-  readonly migratorSa?: string;
-  readonly gkeWorkloadSa?: string;
-  readonly dryRun: boolean;
-  readonly execGcloud?: GcloudExecRunner;
-}
-
 const VALID_SECRET_ID_RE = /^[A-Za-z0-9_-]{1,255}$/;
-
-function defaultGcloudExec(args: readonly string[], input?: string): string {
-  return execFileSync('gcloud', [...args], {
-    input,
-    encoding: 'utf8',
-    stdio: input !== undefined ? ['pipe', 'pipe', 'pipe'] : ['ignore', 'pipe', 'pipe'],
-  });
-}
 
 export function resolveSecretId(envKey: string): string {
   const normalized = envKey.trim();
@@ -118,52 +109,6 @@ export function syncGcpSecretVersions(
   );
 }
 
-function addProjectBinding(
-  projectId: string,
-  member: string,
-  role: string,
-  dryRun: boolean,
-  execGcloud: GcloudExecRunner,
-): void {
-  if (dryRun) {
-    console.log(`[dry-run] Would grant ${role} on project ${projectId} to ${member}.`);
-    return;
-  }
-  execGcloud([
-    'projects',
-    'add-iam-policy-binding',
-    projectId,
-    `--member=${member}`,
-    `--role=${role}`,
-    '--condition=None',
-  ]);
-}
-
-function addServiceAccountBinding(
-  projectId: string,
-  targetSa: string,
-  role: string,
-  member: string,
-  dryRun: boolean,
-  execGcloud: GcloudExecRunner,
-): void {
-  if (dryRun) {
-    console.log(
-      `[dry-run] Would grant ${role} on service account ${targetSa} (${projectId}) to ${member}.`,
-    );
-    return;
-  }
-  execGcloud([
-    'iam',
-    'service-accounts',
-    'add-iam-policy-binding',
-    targetSa,
-    `--project=${projectId}`,
-    `--role=${role}`,
-    `--member=${member}`,
-  ]);
-}
-
 function extractWifPoolAndProvider(providerResourceName: string): {
   projectNumber: string;
   poolId: string;
@@ -202,7 +147,7 @@ export function bootstrapGcpWorkloadIdentity(
 
   if (dryRun) {
     console.log(
-      `[dry-run] Would ensure OIDC provider "${providerId}" in pool "${poolId}" (${projectId}) locked to "${repo}".`,
+      `[dry-run] Would ensure OIDC provider "${providerId}" in pool "${poolId}" (${projectId}) locked to "${repo}" refs/heads/main.`,
     );
   } else {
     let providerExists = true;
@@ -239,7 +184,7 @@ export function bootstrapGcpWorkloadIdentity(
         '--display-name=GitHub Actions OIDC',
         '--issuer-uri=https://token.actions.githubusercontent.com',
         '--attribute-mapping=google.subject=assertion.sub,attribute.actor=assertion.actor,attribute.repository=assertion.repository,attribute.ref=assertion.ref',
-        `--attribute-condition=assertion.repository == '${repo}'`,
+        `--attribute-condition=assertion.repository == '${repo}' && assertion.ref == 'refs/heads/main'`,
       ]);
     }
   }
@@ -263,102 +208,14 @@ export function bootstrapGcpWorkloadIdentity(
 
   ensureRuntimeServiceAccountBindings({
     projectId,
+    projectNumber,
+    region: values['GCP_REGION'],
     deployerSa,
     runtimeSa: values['GCP_CLOUDRUN_SERVICE_ACCOUNT'],
     migratorSa: values['GCP_MIGRATOR_SERVICE_ACCOUNT'],
-    gkeWorkloadSa: values['GCP_GKE_WORKLOAD_SA'],
+    pg19VmSa: values['GCP_PG19_VM_SERVICE_ACCOUNT'],
+    iapAccessorEmail: values['IAP_ACCESSOR_EMAIL'],
     dryRun,
     execGcloud,
   });
-}
-
-export function ensureRuntimeServiceAccountBindings(
-  options: EnsureRuntimeServiceAccountBindingsOptions,
-): void {
-  const {
-    projectId,
-    deployerSa,
-    runtimeSa,
-    migratorSa,
-    gkeWorkloadSa,
-    dryRun,
-    execGcloud = defaultGcloudExec,
-  } = options;
-  const normalizedProject = projectId.trim();
-  const normalizedDeployer = deployerSa.trim();
-  if (!normalizedProject || !normalizedDeployer) {
-    throw new Error('projectId and deployerSa are required for runtime SA IAM bindings.');
-  }
-
-  // Deployer WIF SA needs roles/run.invoker for post-deploy IAM-protected /healthz probes.
-  addProjectBinding(
-    normalizedProject,
-    `serviceAccount:${normalizedDeployer}`,
-    'roles/run.invoker',
-    dryRun,
-    execGcloud,
-  );
-
-  const saGrants: Array<{
-    sa?: string;
-    roles: readonly string[];
-    allowDeployerImpersonation: boolean;
-  }> = [
-    {
-      sa: runtimeSa,
-      roles: [
-        'roles/run.invoker',
-        'roles/cloudsql.client',
-        'roles/secretmanager.secretAccessor',
-        'roles/aiplatform.user',
-      ],
-      allowDeployerImpersonation: true,
-    },
-    {
-      sa: migratorSa,
-      roles: ['roles/cloudsql.client', 'roles/secretmanager.secretAccessor'],
-      allowDeployerImpersonation: true,
-    },
-    {
-      sa: gkeWorkloadSa,
-      roles: [
-        'roles/cloudsql.client',
-        'roles/secretmanager.secretAccessor',
-        'roles/aiplatform.user',
-      ],
-      allowDeployerImpersonation: false,
-    },
-  ];
-
-  for (const grant of saGrants) {
-    const targetSa = grant.sa?.trim();
-    if (!targetSa) continue;
-    for (const role of grant.roles) {
-      addProjectBinding(normalizedProject, `serviceAccount:${targetSa}`, role, dryRun, execGcloud);
-    }
-    if (grant.allowDeployerImpersonation) {
-      addServiceAccountBinding(
-        normalizedProject,
-        targetSa,
-        'roles/iam.serviceAccountUser',
-        `serviceAccount:${normalizedDeployer}`,
-        dryRun,
-        execGcloud,
-      );
-    }
-  }
-
-  const normalizedGkeSa = gkeWorkloadSa?.trim();
-  if (normalizedGkeSa) {
-    for (const nsSa of ['portfolio-public/ai-ask', 'portfolio-public/cadence-demo']) {
-      addServiceAccountBinding(
-        normalizedProject,
-        normalizedGkeSa,
-        'roles/iam.workloadIdentityUser',
-        `serviceAccount:${normalizedProject}.svc.id.goog[${nsSa}]`,
-        dryRun,
-        execGcloud,
-      );
-    }
-  }
 }

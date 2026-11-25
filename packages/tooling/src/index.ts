@@ -4,6 +4,6 @@ export * from './dossier-check.ts';
 export * from './e2e.ts';
 export * from './pg-test-container.ts';
 export * from './playwright.ts';
-export * from './render-k8s.ts';
+export * from './sync-gcp-iam.ts';
 export * from './sync-gcp-secrets.ts';
 export * from './sync-github-env.ts';

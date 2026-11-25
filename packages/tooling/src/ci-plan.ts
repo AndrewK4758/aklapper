@@ -5,7 +5,7 @@ export interface DockerServiceSpec {
   readonly service: string;
   readonly project: string;
   readonly dockerfile: string;
-  readonly runtime: 'cloud-run' | 'gke';
+  readonly runtime: 'cloud-run';
 }
 
 export const DOCKER_SERVICES: readonly DockerServiceSpec[] = [
@@ -22,22 +22,16 @@ export const DOCKER_SERVICES: readonly DockerServiceSpec[] = [
     runtime: 'cloud-run',
   },
   {
-    service: 'k8s-watch',
-    project: 'go-k8s-watch',
-    dockerfile: 'apis/go/k8s-watch/k8s-watch/Dockerfile',
-    runtime: 'gke',
-  },
-  {
     service: 'cadence-demo',
     project: 'go-cadence-demo',
     dockerfile: 'apis/go/cadence-demo/cadence-demo/Dockerfile',
-    runtime: 'gke',
+    runtime: 'cloud-run',
   },
   {
     service: 'ai-ask',
     project: 'go-ai-ask',
     dockerfile: 'apis/go/ai-ask/ai-ask/Dockerfile',
-    runtime: 'gke',
+    runtime: 'cloud-run',
   },
 ] as const;
 
@@ -59,7 +53,6 @@ export interface CiPlanInput {
   readonly buildProjects: readonly string[];
   readonly testProjects: readonly string[];
   readonly e2eProjects: readonly string[];
-  readonly k8sManifestsChanged?: boolean;
   readonly migrateDb?: boolean;
 }
 
@@ -83,7 +76,6 @@ export interface CiPlanOutput {
   readonly apiE2eProjects: readonly string[];
   readonly dockerServices: readonly DockerServiceSpec[];
   readonly cloudRunServices: readonly string[];
-  readonly gkeServices: readonly string[];
 }
 
 export function buildCiPlan(input: CiPlanInput): CiPlanOutput {
@@ -100,18 +92,10 @@ export function buildCiPlan(input: CiPlanInput): CiPlanOutput {
     if (input.runAll) {
       return true;
     }
-    if (affectedSet.has(spec.project)) {
-      return true;
-    }
-    return Boolean(input.k8sManifestsChanged && spec.runtime === 'gke');
+    return affectedSet.has(spec.project);
   });
 
-  const cloudRunServices = baseDockerServices
-    .filter(spec => spec.runtime === 'cloud-run')
-    .map(spec => spec.service);
-  const gkeServices = baseDockerServices
-    .filter(spec => spec.runtime === 'gke')
-    .map(spec => spec.service);
+  const cloudRunServices = baseDockerServices.map(spec => spec.service);
 
   const shouldBuildAdminForMigration = Boolean(
     input.migrateDb && (baseDockerServices.length > 0 || affectedSet.has('node-db')),
@@ -149,7 +133,6 @@ export function buildCiPlan(input: CiPlanInput): CiPlanOutput {
     apiE2eProjects,
     dockerServices,
     cloudRunServices,
-    gkeServices,
   };
 }
 
@@ -174,9 +157,7 @@ export function formatGithubOutputs(plan: CiPlanOutput): Record<string, string> 
     api_e2e_projects: plan.apiE2eProjects.join(','),
     docker_matrix_json: JSON.stringify(plan.dockerServices),
     cloud_run_services_json: JSON.stringify(plan.cloudRunServices),
-    gke_services_json: JSON.stringify(plan.gkeServices),
     has_cloud_run: String(plan.cloudRunServices.length > 0),
-    has_gke: String(plan.gkeServices.length > 0),
   };
 }
 
@@ -255,22 +236,6 @@ function queryNxProjects(
   return parsed.filter((item): item is string => typeof item === 'string');
 }
 
-function hasK8sManifestChanges(base?: string, head?: string): boolean {
-  if (!base) {
-    return false;
-  }
-  try {
-    const diffOutput = execFileSync(
-      'git',
-      ['diff', '--name-only', `${base}...${head || 'HEAD'}`, '--', 'infra/k8s'],
-      { encoding: 'utf8' },
-    ).trim();
-    return diffOutput.length > 0;
-  } catch {
-    return false;
-  }
-}
-
 function main(): void {
   const parsed = parseCiPlanCliArgs(process.argv.slice(2));
   const base = parsed.base ?? process.env['NX_BASE']?.trim() ?? '';
@@ -284,7 +249,6 @@ function main(): void {
   const buildProjects = queryNxProjects(queryOptions, 'build');
   const testProjects = queryNxProjects(queryOptions, 'test');
   const e2eProjects = queryNxProjects(queryOptions, 'e2e');
-  const k8sManifestsChanged = !runAll && hasK8sManifestChanges(base, head);
 
   const plan = buildCiPlan({
     runAll,
@@ -296,7 +260,6 @@ function main(): void {
     buildProjects,
     testProjects,
     e2eProjects,
-    k8sManifestsChanged,
     migrateDb: parsed.migrateDb ?? process.env['INPUT_MIGRATE_DB'] === 'true',
   });
 
