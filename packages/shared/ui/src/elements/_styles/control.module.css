@@ -15,6 +15,7 @@
     font-size: var(--sf-text-control);
     font-weight: var(--sf-weight-medium);
     line-height: var(--sf-leading-none);
+    font-variant-ligatures: contextual common-ligatures;
     font-feature-settings: var(--sf-font-features-ligatures);
     text-decoration: none;
     cursor: pointer;
@@ -172,6 +173,7 @@
     color: var(--sf-fg-bone);
     font-family: var(--sf-font-mono), monospace;
     font-size: var(--sf-text-control);
+    font-variant-ligatures: contextual common-ligatures;
     font-feature-settings: var(--sf-font-features-ligatures);
     transition: var(--sf-transition-colors);
   }
