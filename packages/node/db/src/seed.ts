@@ -1,11 +1,15 @@
 import {
+  ADMIN_CHROME_SHORTCUT_HINT,
   type AdminAnalyticsContent,
   type AdminChromeContent,
   type AdminHomeContent,
+  buildSplitHelpLines,
   buildTailoredCadenceArtifactHtml,
   CONTACT_FORM_DEFINITION,
   formatTerminalDirectoryListing,
   type MenuItem,
+  PORTAL_CHROME_SHORTCUT_HINT,
+  PORTAL_READLINE_HELP_LINES,
   type PortalAgensiContent,
   type PortalAskContent,
   type PortalCadenceContent,
@@ -122,7 +126,7 @@ export const PORTAL_CHROME_SEED: PortalChromeContent = {
   pageTitle: 'andrew-k.us — Andrew Klapper',
   brandLabel: 'Andrew Klapper Portfolio',
   brandContactEmail: 'andrew@andrew-k.us',
-  shortcutHint: 'Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit · Alt+⇧T tab · Alt+T tui',
+  shortcutHint: PORTAL_CHROME_SHORTCUT_HINT,
   statusBadge: {
     source: 'gke-autopilot',
     state: 'idle',
@@ -241,7 +245,7 @@ const PORTAL_MAINTENANCE_SEED: PortalMaintenanceContent = {
 const ADMIN_CHROME_SEED: AdminChromeContent = {
   pageTitle: 'admin.andrew-k.us — Admin Console',
   brandLabel: 'admin.andrew-k.us',
-  shortcutHint: 'Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit · Alt+⇧T tab',
+  shortcutHint: ADMIN_CHROME_SHORTCUT_HINT,
   statusBadge: {
     source: 'cadence-admin',
     state: 'gate',
@@ -322,31 +326,6 @@ const SITE_CONTENT_SEEDS: ReadonlyArray<{
     metadataJson: ADMIN_ANALYTICS_SEED,
   },
 ];
-
-function buildSplitHelpLines(options: { includeTui: boolean }): readonly string[] {
-  return [
-    '',
-    'Split panes & tabs (keybindings & commands):',
-    '  Ctrl+Shift+} / Ctrl+Shift+O / Cmd+D (or "split" / "vsplit") — split terminal right',
-    '  Ctrl+Shift+{ / Ctrl+Shift+E / Cmd+Shift+D (or "hsplit")     — split terminal down',
-    ...(options.includeTui
-      ? [
-          '  Alt+T (or "tui")                                            — open or toggle TUI split pane',
-        ]
-      : []),
-    '  Ctrl+Alt+Arrows / Cmd+Alt+Arrows (or Cmd+] / Cmd+[)         — focus neighbor pane',
-    '  Alt+Shift+Arrows / drag pane divider (double-click=50/50)   — resize active split',
-    '  Ctrl+Alt+Shift+Arrows (or "swap" / drag pane titlebar)      — swap or dock split pane',
-    '  Alt+Shift+R / Ctrl+Alt+Shift+R (or "rotate")                — rotate split orientation',
-    '  Ctrl+Shift+Enter / Cmd+Shift+Enter (or "zoom")              — toggle active pane zoom',
-    '  Ctrl+Alt+Shift+E / Ctrl+Shift+= / Cmd+Shift+=               — equalize split sizes',
-    '  Alt+Shift+T (or "tab")                                      — open a new tab',
-    '  Ctrl+Alt+Shift+T (or "detach" / drag pane to tab strip)     — move split to new tab',
-    '  Alt+Shift+A (or double-click tab)                           — rename active tab',
-    '  Alt+] / Alt+[ / Alt+1..9                                    — switch tabs',
-    '  Alt+Shift+W (or "exit")                                     — close active pane or tab',
-  ];
-}
 
 const TERMINAL_PROFILE_SEEDS = [
   {
@@ -510,11 +489,7 @@ const TERMINAL_COMMAND_SEEDS = [
       '  whoami     — display active terminal session',
       '  clear      — clear terminal scrollback',
       '',
-      'Keybindings:',
-      '  Tab / Right — accept autocomplete suggestion',
-      '  Up / Down (Ctrl+P / Ctrl+N) — command history',
-      '  Ctrl+L — clear · Ctrl+C — cancel line · Ctrl+U/K/W — edit line',
-      '  Alt+T — toggle TUI · Alt+M — open /menu · Esc — close TUI',
+      ...PORTAL_READLINE_HELP_LINES,
       ...buildSplitHelpLines({ includeTui: true }),
     ].join('\n'),
     targetRoute: null,

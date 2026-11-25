@@ -56,7 +56,8 @@ describe('db prerender fallback loaders', () => {
     const adminRoot = getPrerenderAdminRootData();
 
     expect(portalRoot.chrome.pageTitle).toContain('andrew-k.us');
-    expect(portalRoot.chrome.shortcutHint).toContain('split');
+    expect(portalRoot.chrome.shortcutHint).toContain('Alt+⇧N');
+    expect(portalRoot.chrome.shortcutHint).not.toMatch(/Alt\+⇧T|⌘D/);
     expect(getPrerenderPortalRootData(true).maintenance?.content.heading).toBe(
       'Site Updates in Progress',
     );
@@ -73,7 +74,12 @@ describe('db prerender fallback loaders', () => {
     );
     const portalHelp = portalHome.terminal.commands.find(cmd => cmd.name === 'help')?.output ?? '';
     expect(portalHelp).toContain('Split panes & tabs (keybindings & commands):');
-    expect(portalHelp).not.toMatch(/ghostty/i);
+    expect(portalHelp).toContain('Alt+Shift+N');
+    expect(portalHelp).toContain('F2');
+    expect(portalHelp).toContain('Alt+Shift+1..9');
+    expect(portalHelp).toContain('Alt+H/J/K/L');
+    expect(portalHelp).toContain('Alt+Backspace');
+    expect(portalHelp).not.toMatch(/ghostty|Ctrl\+Shift\+O|\bCmd\+D\b|\bCtrl\+W\b|\bCtrl\+N\b|Alt\+1\.\.9/i);
 
     expect(getPrerenderPortalMenuData().items.every(item => !item.adminOnly)).toBe(true);
     const prerenderAgensi = getPrerenderPortalAgensiData();
@@ -100,10 +106,13 @@ describe('db prerender fallback loaders', () => {
     expect(getPrerenderPortalMaintenanceData().milestones.length).toBeGreaterThan(0);
 
     expect(adminRoot.chrome.brandLabel).toContain('admin.andrew-k.us');
-    expect(adminRoot.chrome.shortcutHint).toContain('split');
+    expect(adminRoot.chrome.shortcutHint).toContain('Alt+⇧N');
+    expect(adminRoot.chrome.shortcutHint).not.toMatch(/Alt\+⇧T|⌘D/);
     const adminHelp = adminRoot.terminal?.commands.find(cmd => cmd.name === 'help')?.output ?? '';
     expect(adminHelp).toContain('Split panes & tabs (keybindings & commands):');
-    expect(adminHelp).not.toMatch(/ghostty/i);
+    expect(adminHelp).toContain('Alt+Shift+N');
+    expect(adminHelp).toContain('F2');
+    expect(adminHelp).not.toMatch(/ghostty|Ctrl\+Shift\+O|\bCmd\+D\b|Alt\+1\.\.9/i);
     expect(JSON.stringify(adminRoot.terminal)).not.toMatch(/ghostty/i);
     expect(JSON.stringify(portalHome.terminal)).not.toMatch(/ghostty/i);
 
