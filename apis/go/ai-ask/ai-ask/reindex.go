@@ -1,9 +1,10 @@
 package main
 
 import (
+	"errors"
 	"net/http"
+	"os"
 	"strings"
-	"sync"
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
@@ -11,6 +12,7 @@ import (
 	"github.com/AndrewK4758/aklapper/packages/go/kit/llm"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/qdrant"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/qdrantseed"
 )
 
 func handleReindex(provider llm.Provider, vectorStore *qdrant.Client, store *pg.Store) http.HandlerFunc {
@@ -22,8 +24,8 @@ func handleReindex(provider llm.Provider, vectorStore *qdrant.Client, store *pg.
 			return
 		}
 
-		docs, err := store.LoadCorpusDocs(r.Context())
-		if err != nil {
+		pgDisabled := strings.EqualFold(strings.TrimSpace(os.Getenv("PG_DISABLE_LIVE")), "true")
+		if !pgDisabled && (store == nil || !store.IsLivePG() || store.OpenError() != nil) {
 			logAskEvent("ai_ask.reindex.pg_error", map[string]any{
 				"correlationId": corrID,
 				"seam_type":     "BOUNDARY_FAULT",
@@ -33,118 +35,43 @@ func handleReindex(provider llm.Provider, vectorStore *qdrant.Client, store *pg.
 			return
 		}
 
-		dedup := make([]pg.CorpusDocument, 0, len(docs)+len(curatedSummaryDocs))
-		seenIDs := make(map[string]struct{}, len(docs)+len(curatedSummaryDocs))
-		for _, doc := range append(docs, curatedSummaryDocs...) {
-			if _, exists := seenIDs[doc.ID]; exists {
-				continue
-			}
-			seenIDs[doc.ID] = struct{}{}
-			dedup = append(dedup, doc)
-		}
+		opts := qdrantseed.DefaultSeedOptions()
+		opts.Collections = []string{portfolioCollection}
+		opts.PruneOrphans = true
 
-		type indexedSlot struct {
-			point qdrant.Point
-			ok    bool
-		}
-		slots := make([]indexedSlot, len(dedup))
-		sem := make(chan struct{}, 4)
-		var wg sync.WaitGroup
-		var mu sync.Mutex
-		var firstEmbedErr error
-
-		for i, doc := range dedup {
-			wg.Add(1)
-			go func(idx int, d pg.CorpusDocument) {
-				defer wg.Done()
-				sem <- struct{}{}
-				defer func() { <-sem }()
-
-				embedInput := strings.TrimSpace(d.Title + "\n" + d.Snippet)
-				vec, embedErr := provider.Embed(r.Context(), embedInput)
-				if embedErr == nil {
-					embedErr = llm.ValidateEmbeddingDims(vec)
-				}
-				if embedErr != nil {
-					mu.Lock()
-					if firstEmbedErr == nil {
-						firstEmbedErr = embedErr
-					}
-					mu.Unlock()
-					return
-				}
-				slots[idx] = indexedSlot{
-					ok: true,
-					point: qdrant.Point{
-						ID:     qdrant.PortfolioPointID(d.ID, 0),
-						Vector: vec,
-						Payload: map[string]any{
-							"docId":    d.ID,
-							"title":    d.Title,
-							"snippet":  d.Snippet,
-							"category": d.Category,
-							"source":   d.Source,
-						},
-					},
-				}
-			}(i, doc)
-		}
-		wg.Wait()
-
-		if firstEmbedErr != nil {
-			logAskEvent("ai_ask.reindex.embed_error", map[string]any{
-				"correlationId": corrID,
-				"seam_type":     "BOUNDARY_FAULT",
-			})
-			writePublicError(w, http.StatusBadGateway, contracts.ErrCodeUpstreamUnavailable,
-				"Upstream service unreachable.", "Retry shortly or go home.", corrID)
-			return
-		}
-
-		if err := vectorStore.EnsureCollection(r.Context(), portfolioCollection, llm.ExpectedEmbeddingDims); err != nil {
-			writePublicError(w, http.StatusBadGateway, contracts.ErrCodeUpstreamUnavailable,
-				"Upstream service unreachable.", "Retry shortly or go home.", corrID)
-			return
-		}
-
-		points := make([]qdrant.Point, 0, len(slots))
-		keepIDs := make(map[string]struct{}, len(slots))
-		for _, slot := range slots {
-			if slot.ok {
-				if idStr, ok := slot.point.ID.(string); ok {
-					keepIDs[idStr] = struct{}{}
-				}
-				points = append(points, slot.point)
-			}
-		}
-
-		if len(points) > 0 {
-			if err := vectorStore.UpsertPoints(r.Context(), portfolioCollection, points); err != nil {
+		res, err := qdrantseed.SeedPortfolioDocs(r.Context(), provider, vectorStore, store, opts)
+		if err != nil {
+			switch {
+			case errors.Is(err, qdrantseed.ErrPostgresUnavailable):
+				logAskEvent("ai_ask.reindex.pg_error", map[string]any{
+					"correlationId": corrID,
+					"seam_type":     "BOUNDARY_FAULT",
+				})
+				writePublicError(w, http.StatusServiceUnavailable, contracts.ErrCodeDbUnavailable,
+					"Database temporarily unavailable.", "Retry shortly or share ID.", corrID)
+			case errors.Is(err, qdrantseed.ErrOriginConfidentiality):
+				logAskEvent("ai_ask.reindex.confidentiality_rejected", map[string]any{
+					"correlationId": corrID,
+					"seam_type":     "BOUNDARY_FAULT",
+				})
+				writePublicError(w, http.StatusUnprocessableEntity, contracts.ErrCodeValidation,
+					"Corpus document rejected by content policy.", "Remove restricted content and retry.", corrID)
+			case errors.Is(err, qdrantseed.ErrEmbedOperation), errors.Is(err, qdrantseed.ErrInvalidVectorConfig):
+				logAskEvent("ai_ask.reindex.embed_error", map[string]any{
+					"correlationId": corrID,
+					"seam_type":     "BOUNDARY_FAULT",
+				})
 				writePublicError(w, http.StatusBadGateway, contracts.ErrCodeUpstreamUnavailable,
 					"Upstream service unreachable.", "Retry shortly or go home.", corrID)
-				return
-			}
-		}
-
-		existingIDs, listErr := vectorStore.ListTypedPointIDs(r.Context(), portfolioCollection)
-		if listErr != nil {
-			logAskEvent("ask.reindex.prune_mismatch", map[string]any{
-				"correlationId": corrID,
-				"seam_type":     "DELTA_AUDIT_GAP",
-				"stage":         "scroll",
-			})
-			writePublicError(w, http.StatusBadGateway, contracts.ErrCodeUpstreamUnavailable,
-				"Upstream service unreachable.", "Retry shortly or go home.", corrID)
-			return
-		}
-		staleIDs := make([]any, 0)
-		for _, pt := range existingIDs {
-			if _, keep := keepIDs[pt.Key]; !keep {
-				staleIDs = append(staleIDs, pt.Raw)
-			}
-		}
-		if len(staleIDs) > 0 {
-			if delErr := vectorStore.DeletePoints(r.Context(), portfolioCollection, staleIDs); delErr != nil {
+			case errors.Is(err, qdrantseed.ErrQdrantScroll):
+				logAskEvent("ask.reindex.prune_mismatch", map[string]any{
+					"correlationId": corrID,
+					"seam_type":     "DELTA_AUDIT_GAP",
+					"stage":         "scroll",
+				})
+				writePublicError(w, http.StatusBadGateway, contracts.ErrCodeUpstreamUnavailable,
+					"Upstream service unreachable.", "Retry shortly or go home.", corrID)
+			case errors.Is(err, qdrantseed.ErrQdrantDelete):
 				logAskEvent("ask.reindex.prune_mismatch", map[string]any{
 					"correlationId": corrID,
 					"seam_type":     "DELTA_AUDIT_GAP",
@@ -152,16 +79,19 @@ func handleReindex(provider llm.Provider, vectorStore *qdrant.Client, store *pg.
 				})
 				writePublicError(w, http.StatusBadGateway, contracts.ErrCodeUpstreamUnavailable,
 					"Upstream service unreachable.", "Retry shortly or go home.", corrID)
-				return
+			default:
+				writePublicError(w, http.StatusBadGateway, contracts.ErrCodeUpstreamUnavailable,
+					"Upstream service unreachable.", "Retry shortly or go home.", corrID)
 			}
+			return
 		}
 
 		httpkit.WriteJSON(w, http.StatusOK, map[string]any{
-			"indexed":       len(points),
-			"pruned":        len(staleIDs),
-			"collection":    portfolioCollection,
-			"vectorSize":    llm.ExpectedEmbeddingDims,
-			"provider":      provider.Name(),
+			"indexed":       res.Indexed,
+			"pruned":        res.Pruned,
+			"collection":    res.Collection,
+			"vectorSize":    res.VectorSize,
+			"provider":      res.Provider,
 			"correlationId": corrID,
 		})
 	}

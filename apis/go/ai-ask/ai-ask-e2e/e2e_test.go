@@ -107,7 +107,14 @@ func TestAiAskEndToEnd(t *testing.T) {
 				"result": map[string]any{
 					"status":       "green",
 					"points_count": 3,
-					"config":       map[string]any{"params": map[string]any{"vectors": map[string]any{"size": 768}}},
+					"config": map[string]any{
+						"params": map[string]any{
+							"vectors": map[string]any{
+								"size":     llm.ExpectedEmbeddingDims,
+								"distance": "Cosine",
+							},
+						},
+					},
 				},
 			})
 		case r.Method == http.MethodPut && r.URL.Path == "/collections/portfolio_docs":
@@ -119,7 +126,7 @@ func TestAiAskEndToEnd(t *testing.T) {
 		case r.Method == http.MethodPost && r.URL.Path == "/collections/portfolio_docs/points/scroll":
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"result": map[string]any{
-					"points":           []map[string]any{{"id": "stale-e2e-point"}},
+					"points":           []map[string]any{{"id": qdrant.PortfolioPointID("stale-e2e-point", 0)}},
 					"next_page_offset": nil,
 				},
 			})
@@ -142,10 +149,11 @@ func TestAiAskEndToEnd(t *testing.T) {
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"result": []map[string]any{{
-					"id":    qdrant.PortfolioPointID("doc-1", 0),
+					"id":    qdrant.PortfolioPointID("curated:architecture", 0),
 					"score": score,
 					"payload": map[string]any{
-						"docId": "doc-1", "title": "Portfolio Architecture",
+						"docId":    "curated:architecture",
+						"title":    "Portfolio Architecture",
 						"snippet":  "Monorepo built with Go, Node 26, React Router SSR, Kubernetes GKE, and PostgreSQL 19.",
 						"category": "architecture",
 					},

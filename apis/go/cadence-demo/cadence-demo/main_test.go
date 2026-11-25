@@ -128,4 +128,56 @@ func TestCadenceDemoUnitFlows(t *testing.T) {
 			t.Fatalf("expected 429 on 3rd run, got %d", rec3.Code)
 		}
 	})
+
+	t.Run("POST /v1/cadence/runs recalls seeded cadence_patterns into spec turn payload", func(t *testing.T) {
+		qdrantSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodPost && r.URL.Path == "/collections/cadence_patterns/points/search" {
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"result": []map[string]any{
+						{
+							"id":    qdrant.CollectionPointID("cadence_patterns", "pattern-solar-forge-telemetry"),
+							"score": 0.91,
+							"payload": map[string]any{
+								"docId":      "pattern-solar-forge-telemetry",
+								"title":      "Solar Forge Telemetry Card",
+								"summary":    "Telemetry widget pattern",
+								"category":   "telemetry",
+								"chordPhase": "build",
+								"source":     "curated",
+							},
+						},
+					},
+				})
+				return
+			}
+			http.NotFound(w, r)
+		}))
+		defer qdrantSrv.Close()
+
+		fallbackLLM := &stubBuildLLM{html: "not-html-uses-deterministic-starter"}
+		hRecall := newHandler(fallbackLLM, &qdrant.Client{BaseURL: qdrantSrv.URL, HTTPClient: qdrantSrv.Client()}, pg.NewMemoryStore())
+		req := httptest.NewRequest(http.MethodPost, "/v1/cadence/runs", bytes.NewReader([]byte(`{"prompt":"Build a telemetry monitor widget","sessionId":"recall-sess-1"}`)))
+		rec := httptest.NewRecorder()
+		hRecall.ServeHTTP(rec, req)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
+		}
+		var out struct {
+			Turns        []contracts.CadenceTurn `json:"turns"`
+			ArtifactHTML string                  `json:"artifactHtml"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if len(out.Turns) != 4 || out.Turns[1].Phase != "spec" {
+			t.Fatalf("unexpected turns: %+v", out.Turns)
+		}
+		rawPatterns, ok := out.Turns[1].Payload["recalledPatterns"].([]any)
+		if !ok || len(rawPatterns) != 1 || rawPatterns[0] != "Solar Forge Telemetry Card" {
+			t.Fatalf("expected recalledPatterns=[Solar Forge Telemetry Card], got %#v", out.Turns[1].Payload["recalledPatterns"])
+		}
+		if !strings.Contains(out.ArtifactHTML, "Solar Forge Telemetry Card") {
+			t.Fatalf("expected starter artifact HTML to cite recalled pattern, got %s", out.ArtifactHTML)
+		}
+	})
 }
