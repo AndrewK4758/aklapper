@@ -263,7 +263,7 @@ describe('Portal route workspace keep-alive and session persistence', () => {
   });
 
   it('maintenanceMode bypasses workspace caching without touching saved portal snapshots and emits policy telemetry', async () => {
-    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => undefined);
     const homeKey = buildRouteWorkspaceStorageKey('portal', '/');
     window.sessionStorage.setItem(homeKey, '{"sentinel":"keep"}');
 
@@ -297,7 +297,7 @@ describe('Portal route workspace keep-alive and session persistence', () => {
     await screen.findByText('Changes in Progress');
     expect(window.sessionStorage.getItem(homeKey)).toBe('{"sentinel":"keep"}');
     expect(
-      infoSpy.mock.calls.some(call => String(call[0]).includes('"branch":"excluded-maintenance"')),
+      debugSpy.mock.calls.some(call => String(call[0]).includes('"branch":"excluded-maintenance"')),
     ).toBe(true);
   });
 });

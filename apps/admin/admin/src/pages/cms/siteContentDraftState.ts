@@ -36,7 +36,7 @@ export function emitSiteContentDiagnostic(payload: SiteContentEditorDiagnosticEv
   if (payload.seamType === 'BOUNDARY_FAULT') {
     console.warn(line);
   } else {
-    console.info(line);
+    console.debug(line);
   }
 }
 
