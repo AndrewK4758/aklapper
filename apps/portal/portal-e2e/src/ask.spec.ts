@@ -117,6 +117,17 @@ test.describe('/chat end-to-end streaming assistant, general chat, JD Match, abs
     await waitForAskHydrated(page);
     await expect(page.getByTestId('ask-lens-hiring-manager')).toBeVisible();
 
+    // Mid-preamble cancel on /chat?pane=1 aborts cleanly without console or server errors
+    if (!IS_LIVE_DEPLOYMENT) {
+      await page
+        .getByTestId('ask-question-input')
+        .fill('Slow stream cancel check for Andrew Cloud Run and GKE architecture?');
+      await page.getByTestId('ask-qa-submit').click();
+      await expect(page.getByTestId('ask-stream-cancel')).toBeVisible();
+      await page.getByTestId('ask-stream-cancel').click();
+      await expect(page.getByTestId('ask-streaming-feed')).toHaveCount(0);
+    }
+
     expect(getErrors()).toEqual([]);
   });
 
