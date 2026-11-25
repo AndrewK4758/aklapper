@@ -106,6 +106,9 @@ export function PortalCadencePage({
   const [fastMode, setFastMode] = useState(true);
   const [runs, setRuns] = useState<readonly CadenceRunResult[]>(recentRuns);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(recentRuns[0]?.runId ?? null);
+  const [artifactViewMode, setArtifactViewMode] = useState<'preview' | 'source'>('preview');
+  const [copiedSource, setCopiedSource] = useState(false);
+  const [revisionNote, setRevisionNote] = useState('');
   const [lastPropQuota, setLastPropQuota] = useState<QuotaStatus>(quota);
   const [latestQuota, setLatestQuota] = useState<QuotaStatus>(quota);
   const [lastRecordedResult, setLastRecordedResult] = useState<
@@ -206,6 +209,49 @@ export function PortalCadencePage({
     });
   };
 
+  const handleCopyArtifactHtml = () => {
+    if (!previewHtml || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) return;
+    void navigator.clipboard.writeText(previewHtml).then(() => {
+      setCopiedSource(true);
+      setTimeout(() => setCopiedSource(false), 1800);
+    });
+  };
+
+  const handleDownloadArtifactHtml = () => {
+    if (
+      !previewHtml ||
+      typeof document === 'undefined' ||
+      typeof URL.createObjectURL !== 'function'
+    ) {
+      return;
+    }
+    const blob = new Blob([previewHtml], { type: 'text/html;charset=utf-8' });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = `cadence-${activeRun?.presetSlug ?? 'artifact'}.html`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+  };
+
+  const handleRevisionSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const note = revisionNote.trim();
+    if (!note || isPipelineBusy || !onRunBuild) return;
+    const basePrompt = activeRun?.prompt ?? promptText.trim();
+    const nextPrompt = `${basePrompt}\nRevision: ${note}`.slice(0, 1200);
+    setPromptText(nextPrompt);
+    setRevisionNote('');
+    onRunBuild({
+      prompt: nextPrompt,
+      presetSlug:
+        activePresetSlug === CUSTOM_PRESET_VALUE ? 'custom' : (activePreset?.slug ?? 'custom'),
+      mode: fastMode ? 'fast' : 'llm',
+    });
+  };
+
   return (
     <div className={styles.workspace}>
       <TuiWindow
@@ -296,7 +342,7 @@ export function PortalCadencePage({
               >
                 <Switch.Thumb />
               </Switch.Root>
-              <span>Fast Mode ({fastMode ? 'deterministic' : 'LLM'})</span>
+              <span>Fast Mode ({fastMode ? 'instant interactive demo' : 'Live LLM'})</span>
             </Switch.Label>
           </div>
         </div>
@@ -356,7 +402,111 @@ export function PortalCadencePage({
           />
         )}
 
-        <SandboxedArtifactFrame title={content.iframeTitle} srcDoc={previewHtml} />
+        {activeRun && isRunReady && activeRun.gateVerdict === 'approved' && (
+          <div
+            className={styles.gateActionBanner}
+            data-verdict='approved'
+            data-testid='cadence-approved-actions'
+          >
+            <span>Gate approved. Export this sanitized artifact:</span>
+            <div className={styles.artifactActions}>
+              <Button
+                type='button'
+                variant='primary'
+                size='xs'
+                onClick={handleDownloadArtifactHtml}
+                data-testid='cadence-download-html'
+              >
+                <Button.Label>Download .html</Button.Label>
+              </Button>
+              <Button type='button' variant='ghost' size='xs' onClick={handleCopyArtifactHtml}>
+                <Button.Label>{copiedSource ? 'Copied!' : 'Copy Approved HTML'}</Button.Label>
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {activeRun && isRunReady && activeRun.gateVerdict === 'rejected' && onRunBuild && (
+          <form
+            className={styles.revisionForm}
+            onSubmit={handleRevisionSubmit}
+            data-testid='cadence-revision-form'
+          >
+            <label className={styles.composerLabel} htmlFor='cadence-revision-input'>
+              Gate Rejected — Request Revision &amp; Re-run CHORD
+            </label>
+            <div className={styles.revisionRow}>
+              <input
+                id='cadence-revision-input'
+                type='text'
+                className={styles.revisionInput}
+                value={revisionNote}
+                onChange={event => setRevisionNote(event.currentTarget.value)}
+                placeholder='e.g. Add a latency breakdown table and highlight p99 thresholds...'
+                data-testid='cadence-revision-input'
+              />
+              <Button
+                type='submit'
+                variant='primary'
+                size='xs'
+                disabled={isPipelineBusy || revisionNote.trim().length < 3}
+                data-testid='cadence-revision-submit'
+              >
+                <Button.Label>Re-run with Revision</Button.Label>
+              </Button>
+            </div>
+          </form>
+        )}
+
+        <section className={styles.artifactSection}>
+          <div className={styles.artifactHeader}>
+            <div className={styles.artifactTabs} role='tablist' aria-label='Artifact view mode'>
+              <Button
+                type='button'
+                role='tab'
+                aria-selected={artifactViewMode === 'preview'}
+                variant={artifactViewMode === 'preview' ? 'secondary' : 'ghost'}
+                size='xs'
+                onClick={() => setArtifactViewMode('preview')}
+                data-testid='cadence-view-preview'
+              >
+                <Button.Label>Live Preview</Button.Label>
+              </Button>
+              <Button
+                type='button'
+                role='tab'
+                aria-selected={artifactViewMode === 'source'}
+                variant={artifactViewMode === 'source' ? 'secondary' : 'ghost'}
+                size='xs'
+                onClick={() => setArtifactViewMode('source')}
+                data-testid='cadence-view-source'
+              >
+                <Button.Label>Source HTML</Button.Label>
+              </Button>
+            </div>
+            <div className={styles.artifactActions}>
+              <span className={styles.isolationHint}>{previewHtml.length} bytes</span>
+              <Button
+                type='button'
+                variant='ghost'
+                size='xs'
+                onClick={handleCopyArtifactHtml}
+                disabled={!previewHtml}
+                data-testid='cadence-copy-html'
+              >
+                <Button.Label>{copiedSource ? 'Copied!' : 'Copy HTML'}</Button.Label>
+              </Button>
+            </div>
+          </div>
+
+          {artifactViewMode === 'preview' ? (
+            <SandboxedArtifactFrame title={content.iframeTitle} srcDoc={previewHtml} />
+          ) : (
+            <pre className={styles.sourcePre} data-testid='cadence-source-code'>
+              <code>{previewHtml}</code>
+            </pre>
+          )}
+        </section>
 
         {runs.length > 0 && (
           <section className={styles.historySection} data-testid='cadence-run-history'>

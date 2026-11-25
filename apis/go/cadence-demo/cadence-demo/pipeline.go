@@ -77,8 +77,15 @@ func executeChordSteps(
 	if err := emitUpdate("triage", "chord-triage", "running", "Evaluating prompt and isolation profile...", 0, 10, nil); err != nil {
 		return chordExecutionOutput{}, err
 	}
+	detectedKeywords := extractPromptKeywords(prompt, 6)
 	triageSummary := fmt.Sprintf("Classified prompt (%d chars) under preset %q (%s mode).", len(prompt), nonEmptyOr(presetSlug, "custom"), mode)
-	triagePayload := map[string]any{"presetSlug": nonEmptyOr(presetSlug, "custom"), "promptLen": len(prompt), "mode": mode}
+	triagePayload := map[string]any{
+		"presetSlug":       nonEmptyOr(presetSlug, "custom"),
+		"promptLen":        len(prompt),
+		"mode":             mode,
+		"detectedKeywords": detectedKeywords,
+		"isolationPolicy":  "sandbox=allow-scripts; opaque-origin; max-48KiB",
+	}
 	t1Ms := int(time.Since(t1Start).Milliseconds()) + 2
 	if err := emitUpdate("triage", "chord-triage", "completed", triageSummary, t1Ms, 25, triagePayload); err != nil {
 		return chordExecutionOutput{}, err
@@ -108,8 +115,17 @@ func executeChordSteps(
 		}
 		cancel()
 	}
-	specSummary := fmt.Sprintf("Drafted single-file HTML/CSS/JS spec (recalled %d Qdrant pattern(s)).", len(recalledPatterns))
-	specPayload := map[string]any{"recalledPatterns": recalledPatterns}
+	acceptanceCriteria := []string{
+		"Self-contained dark Solar Forge HTML5+CSS document filling 100% width with no scrollbars",
+		"Interactive controls using pure HTML5/CSS (radio-button tabs, <details>, progress/bar charts)",
+		"Zero external fetches, zero inline <script> or on* handlers, <= 48 KiB UTF-8",
+	}
+	specSummary := fmt.Sprintf("Drafted single-file HTML/CSS spec (recalled %d Qdrant pattern(s)).", len(recalledPatterns))
+	specPayload := map[string]any{
+		"recalledPatterns":   recalledPatterns,
+		"acceptanceCriteria": acceptanceCriteria,
+		"sandboxConstraints": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'",
+	}
 	t2Ms := int(time.Since(t2Start).Milliseconds()) + 4
 	if err := emitUpdate("spec", "chord-spec", "completed", specSummary, t2Ms, 50, specPayload); err != nil {
 		return chordExecutionOutput{}, err
@@ -123,21 +139,29 @@ func executeChordSteps(
 	tokensIn := len(prompt)/4 + 120
 	tokensOut := 480
 	buildMode := "deterministic-fast"
+	fallbackReason := ""
 	artifactHTML := buildTailoredArtifactHTML(prompt, presetSlug, preset, recalledPatterns)
 
 	if mode == contracts.CadenceModeLLM && provider != nil {
 		buildMode = "deterministic-fallback"
-		buildCtx, cancel := context.WithTimeout(ctx, 6*time.Second)
+		buildCtx, cancel := context.WithTimeout(ctx, 25*time.Second)
+		patternHint := "none"
+		if len(recalledPatterns) > 0 {
+			patternHint = strings.Join(recalledPatterns, ", ")
+		}
 		completion, err := provider.Chat(buildCtx, []llm.ChatMessage{
 			{
-				Role:    "system",
-				Content: "Generate a compact, self-contained single-file HTML5 document with dark Solar Forge styling for an isolated iframe sandbox. Never use <iframe>, parent., top.location, or document.cookie. Output raw HTML only.",
+				Role: "system",
+				Content: "Generate a rich, self-contained single-file HTML5 document with dark Solar Forge styling (#121110 bg, #1c1a17 panel, #ffd300 gold, #22c55e green, #f4efe6 text, monospace font) for an isolated iframe sandbox. " +
+					"Make it genuinely useful and interactive using PURE HTML5 and CSS: radio-button CSS tabs, <details>/<summary> accordions, CSS bar charts/gauges, metric grids, and tables. " +
+					"Fill 100% width with no outer scrollbars (scrollbar-width:none). " +
+					"STRICT SECURITY: Never use <script>, <svg>, <iframe>, <object>, <link>, @import, or inline on* event attributes. Output raw HTML only.",
 			},
 			{
 				Role:    "user",
-				Content: fmt.Sprintf("Preset: %s\nPrompt: %s", nonEmptyOr(presetSlug, "custom"), prompt),
+				Content: fmt.Sprintf("Preset: %s\nRecalled Qdrant Patterns: %s\nUser Prompt: %s", nonEmptyOr(presetSlug, "custom"), patternHint, prompt),
 			},
-		}, 900)
+		}, 2800)
 		cancel()
 		if err == nil && strings.Contains(strings.ToLower(completion.Text), "<html") {
 			artifactHTML = completion.Text
@@ -145,11 +169,24 @@ func executeChordSteps(
 			if completion.TokensUsed > 0 {
 				tokensOut = completion.TokensUsed
 			}
+		} else if err != nil {
+			fallbackReason = "LLM provider timed out or failed; fell back to structured interactive template."
+		} else {
+			fallbackReason = "LLM output did not contain a valid HTML document; fell back to structured interactive template."
 		}
+	} else if mode == contracts.CadenceModeLLM {
+		buildMode = "deterministic-fallback"
+		fallbackReason = "No live LLM provider configured on cadence-demo."
 	}
 	t3Ms := int(time.Since(t3Start).Milliseconds()) + 6
-	buildSummary := fmt.Sprintf("Synthesized bounded HTML/CSS/JS artifact (%d bytes) via %s.", len(artifactHTML), buildMode)
-	buildPayload := map[string]any{"provider": buildMode, "artifactBytes": len(artifactHTML)}
+	buildSummary := fmt.Sprintf("Synthesized bounded HTML/CSS artifact (%d bytes) via %s.", len(artifactHTML), buildMode)
+	buildPayload := map[string]any{
+		"provider":      buildMode,
+		"artifactBytes": len(artifactHTML),
+	}
+	if fallbackReason != "" {
+		buildPayload["fallbackReason"] = fallbackReason
+	}
 	if err := emitUpdate("build", "chord-builder", "completed", buildSummary, t3Ms, 80, buildPayload); err != nil {
 		return chordExecutionOutput{}, err
 	}
@@ -164,7 +201,17 @@ func executeChordSteps(
 	if stripped {
 		gateSummary = "Sanitizer neutralized restricted tags/escape hatches; ready for operator gate verdict."
 	}
-	gatePayload := map[string]any{"sanitized": stripped, "gateVerdict": "pending"}
+	gateChecks := []string{
+		"Strict CSP meta injected (default-src 'none', sha256-pinned probe script)",
+		fmt.Sprintf("Payload size verified (%d / %d bytes)", len(sanitizedHTML), maxArtifactBytes),
+		"Zero external network fetches, zero iframe/svg/object/event-handler escape hatches",
+	}
+	gatePayload := map[string]any{
+		"sanitized":     stripped,
+		"gateVerdict":   "pending",
+		"artifactBytes": len(sanitizedHTML),
+		"checks":        gateChecks,
+	}
 	t4Ms := int(time.Since(t4Start).Milliseconds()) + 3
 	if err := emitUpdate("gate", "chord-gate", "completed", gateSummary, t4Ms, 100, gatePayload); err != nil {
 		return chordExecutionOutput{}, err

@@ -1,12 +1,102 @@
 import type {
   CadenceGateVerdict,
   CadenceRunResult,
+  CadenceTurn,
   Osc7501State,
   PortalCadenceContent,
 } from '@aklapper/core';
 import { Button } from '@aklapper/ui';
 
 import styles from './PortalCadencePage.module.css';
+
+function readStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+}
+
+function readString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function readNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function TurnPayloadDetails({ turn }: { readonly turn: CadenceTurn }) {
+  const payload = turn.payload;
+  if (!payload) return null;
+
+  const keywords = readStringArray(payload['detectedKeywords']);
+  const patterns = readStringArray(payload['recalledPatterns']);
+  const criteria = readStringArray(payload['acceptanceCriteria']);
+  const checks = readStringArray(payload['checks']);
+  const isolationPolicy = readString(payload['isolationPolicy']);
+  const sandboxConstraints = readString(payload['sandboxConstraints']);
+  const provider = readString(payload['provider']);
+  const fallbackReason = readString(payload['fallbackReason']);
+  const artifactBytes = readNumber(payload['artifactBytes']);
+  const hasDetails =
+    keywords.length > 0 ||
+    patterns.length > 0 ||
+    criteria.length > 0 ||
+    checks.length > 0 ||
+    Boolean(isolationPolicy || sandboxConstraints || provider || fallbackReason || artifactBytes);
+
+  if (!hasDetails) return null;
+
+  return (
+    <details className={styles.turnDetails} data-testid={`cadence-turn-details-${turn.phase}`}>
+      <summary className={styles.turnDetailsSummary}>Inspect {turn.phase} artifact</summary>
+      <div className={styles.turnDetailsBody}>
+        {provider && (
+          <p className={styles.turnDetailLine}>
+            <strong>Provider:</strong> {provider}
+            {artifactBytes !== null ? ` (${artifactBytes} bytes)` : ''}
+          </p>
+        )}
+        {fallbackReason && <output className={styles.turnFallbackNote}>{fallbackReason}</output>}
+        {isolationPolicy && (
+          <p className={styles.turnDetailLine}>
+            <strong>Isolation:</strong> {isolationPolicy}
+          </p>
+        )}
+        {sandboxConstraints && (
+          <p className={styles.turnDetailLine}>
+            <strong>CSP:</strong> {sandboxConstraints}
+          </p>
+        )}
+        {keywords.length > 0 && (
+          <div className={styles.turnPillRow}>
+            {keywords.map(kw => (
+              <span key={kw} className={styles.turnPill}>
+                {kw}
+              </span>
+            ))}
+          </div>
+        )}
+        {patterns.length > 0 && (
+          <p className={styles.turnDetailLine}>
+            <strong>Qdrant Recall:</strong> {patterns.join(', ')}
+          </p>
+        )}
+        {criteria.length > 0 && (
+          <ul className={styles.turnDetailList}>
+            {criteria.map(item => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        )}
+        {checks.length > 0 && (
+          <ul className={styles.turnDetailList}>
+            {checks.map(check => (
+              <li key={check}>{check}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </details>
+  );
+}
 
 export function resolveCadenceBadge(
   content: PortalCadenceContent,
@@ -116,6 +206,7 @@ export function CadenceTimelineSection({
               <span className={styles.turnAgent}>{turn.agentName}</span>
             </div>
             <p className={styles.turnSummary}>{turn.summary}</p>
+            <TurnPayloadDetails turn={turn} />
           </li>
         ))}
       </ol>

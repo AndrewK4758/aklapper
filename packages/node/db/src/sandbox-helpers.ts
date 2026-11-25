@@ -5,6 +5,8 @@ import {
   type CadenceRunResult,
   CadenceRunResultSchema,
   type CadenceTurn,
+  type CadenceTurnPayloadValue,
+  CadenceTurnPayloadValueSchema,
   type QuotaStatus,
   type Role,
 } from '@aklapper/core';
@@ -27,6 +29,15 @@ export const DEFAULT_QUOTA_BY_ROLE: Readonly<
 };
 
 export function mapSandboxTurnRow(row: typeof schema.sandboxTurns.$inferSelect): CadenceTurn {
+  const { summary: rawSummary, ...restPayload } = row.payloadJson;
+  const parsedPayload: Record<string, CadenceTurnPayloadValue> = {};
+  for (const [key, value] of Object.entries(restPayload)) {
+    const parsed = CadenceTurnPayloadValueSchema.safeParse(value);
+    if (parsed.success) {
+      parsedPayload[key] = parsed.data;
+    }
+  }
+  const hasPayload = Object.keys(parsedPayload).length > 0;
   return {
     id: row.id,
     phase:
@@ -44,8 +55,9 @@ export function mapSandboxTurnRow(row: typeof schema.sandboxTurns.$inferSelect):
       row.status === 'failed'
         ? row.status
         : 'completed',
-    summary: typeof row.payloadJson['summary'] === 'string' ? row.payloadJson['summary'] : '',
+    summary: typeof rawSummary === 'string' ? rawSummary : '',
     latencyMs: row.latencyMs,
+    ...(hasPayload ? { payload: parsedPayload } : {}),
     createdAt: row.createdAt.toISOString(),
   };
 }

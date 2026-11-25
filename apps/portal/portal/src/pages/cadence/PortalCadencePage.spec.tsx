@@ -359,4 +359,107 @@ describe('PortalCadencePage', () => {
     );
     expect(screen.getByTestId('cadence-quota-meter').textContent).toContain('1/5 turns');
   });
+
+  it('toggles preview/source HTML, renders inspectable CHORD phase payloads, unlocks export on approval, and supports revision re-run on rejection', async () => {
+    const user = userEvent.setup();
+    const onRunBuild = vi.fn<NonNullable<PortalCadencePageProps['onRunBuild']>>();
+    const readyRun: CadenceRunResult = {
+      runId: '44444444-4444-4444-8444-444444444444',
+      prompt: 'Build an interactive pod monitor',
+      presetSlug: 'k8s-pod-telemetry',
+      runStatus: 'ready',
+      mode: 'fast',
+      gateVerdict: 'approved',
+      turns: [
+        {
+          phase: 'triage',
+          agentName: 'chord-triage',
+          status: 'completed',
+          summary: 'Classified prompt',
+          latencyMs: 2,
+          payload: {
+            detectedKeywords: ['pod', 'monitor'],
+            isolationPolicy: 'sandbox=allow-scripts',
+          },
+        },
+        {
+          phase: 'build',
+          agentName: 'chord-builder',
+          status: 'completed',
+          summary: 'Built artifact',
+          latencyMs: 12,
+          payload: {
+            provider: 'deterministic-fast',
+            artifactBytes: 2048,
+          },
+        },
+        {
+          phase: 'gate',
+          agentName: 'chord-gate',
+          status: 'completed',
+          summary: 'Sanitizer passed',
+          latencyMs: 3,
+          payload: {
+            checks: ['Strict CSP meta injected', 'Payload size verified'],
+          },
+        },
+      ],
+      artifactHtml: '<!doctype html><html><body><h1>Pod Telemetry</h1></body></html>',
+    };
+
+    const { rerender } = render(
+      <PortalCadencePage
+        content={SAMPLE_CONTENT}
+        presets={SAMPLE_PRESETS}
+        recentRuns={[readyRun]}
+        onRunBuild={onRunBuild}
+        onGateVerdict={vi.fn<NonNullable<PortalCadencePageProps['onGateVerdict']>>()}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    // Phase payload inspector details are rendered.
+    expect(screen.getByTestId('cadence-turn-details-triage').textContent).toContain('pod');
+    expect(screen.getByTestId('cadence-turn-details-build').textContent).toContain(
+      'deterministic-fast',
+    );
+    expect(screen.getByTestId('cadence-turn-details-gate').textContent).toContain(
+      'Strict CSP meta injected',
+    );
+
+    // Approved gate unlocks download banner.
+    expect(screen.getByTestId('cadence-approved-actions')).toBeTruthy();
+    expect(screen.getByTestId('cadence-download-html')).toBeTruthy();
+
+    // Toggle to Source HTML view and back to Live Preview.
+    await user.click(screen.getByTestId('cadence-view-source'));
+    expect(screen.getByTestId('cadence-source-code').textContent).toContain('Pod Telemetry');
+    await user.click(screen.getByTestId('cadence-view-preview'));
+    expect(screen.getByTitle('CADENCE Artifact Preview')).toBeTruthy();
+
+    // Rejected gate shows revision form and submits appended revision prompt.
+    rerender(
+      <PortalCadencePage
+        content={SAMPLE_CONTENT}
+        presets={SAMPLE_PRESETS}
+        actionResult={{
+          ok: true,
+          intent: 'gate',
+          run: { ...readyRun, gateVerdict: 'rejected' },
+        }}
+        onRunBuild={onRunBuild}
+        onGateVerdict={vi.fn<NonNullable<PortalCadencePageProps['onGateVerdict']>>()}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    expect(screen.getByTestId('cadence-revision-form')).toBeTruthy();
+    await user.type(screen.getByTestId('cadence-revision-input'), 'Add p99 latency bars');
+    await user.click(screen.getByTestId('cadence-revision-submit'));
+    expect(onRunBuild).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: expect.stringContaining('Revision: Add p99 latency bars'),
+      }),
+    );
+  });
 });

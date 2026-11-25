@@ -1,9 +1,19 @@
 @layer component {
   .frame {
+    display: block;
     width: 100%;
+    height: var(--sf-iframe-min-h);
     min-height: var(--sf-iframe-min-h);
     border: var(--sf-border-width) solid var(--sf-border);
     border-radius: var(--sf-radius-sm);
     background: var(--sf-bg-frame);
+    overflow: hidden;
+  }
+
+  @media (max-width: 48rem) {
+    .frame {
+      height: calc(var(--sf-size-unit) * 28);
+      min-height: calc(var(--sf-size-unit) * 28);
+    }
   }
 }
