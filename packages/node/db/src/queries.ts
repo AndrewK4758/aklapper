@@ -57,10 +57,23 @@ import { loadCreatorAgensiCatalog } from './agensi-loader.ts';
 import { type AgensiSyncOptions, queryCreatorPublishedSkills } from './agensi-sync.ts';
 import type { AppDatabase } from './client.ts';
 import {
-  mapSandboxTurnRow,
-  normalizeGateVerdict,
+  DEFAULT_QUOTA_BY_ROLE,
+  mapSandboxRunResult,
   updateSandboxRunGateVerdictRow,
 } from './sandbox-helpers.ts';
+import {
+  claimPendingSandboxRun,
+  completeSandboxRunRow,
+  createPendingSandboxRunWithQuota,
+  type CreatePendingSandboxRunInput,
+  type CreatePendingSandboxRunResult,
+  failSandboxRunRow,
+  getSandboxRunWithTurnsById,
+  type SessionGateVerdictOutcome,
+  updateSandboxRunGateVerdictForSession,
+  type UpdateSandboxTurnInput,
+  updateSandboxTurnRow,
+} from './sandbox-lifecycle.ts';
 import * as schema from './schema.ts';
 
 export {
@@ -76,6 +89,19 @@ export {
   type AuthRateLimitResult,
   consumeAuthRateLimit,
 } from './auth-rate-limit.ts';
+export {
+  claimPendingSandboxRun,
+  completeSandboxRunRow,
+  createPendingSandboxRunWithQuota,
+  type CreatePendingSandboxRunInput,
+  type CreatePendingSandboxRunResult,
+  failSandboxRunRow,
+  getSandboxRunWithTurnsById,
+  type SessionGateVerdictOutcome,
+  updateSandboxRunGateVerdictForSession,
+  type UpdateSandboxTurnInput,
+  updateSandboxTurnRow,
+};
 
 export { SITE_CONTENT_KEYS };
 
@@ -256,6 +282,23 @@ export async function getCadencePresets(db: AppDatabase): Promise<CadencePreset[
     .orderBy(asc(schema.cadencePresets.sortOrder), asc(schema.cadencePresets.slug));
 
   return rows.map(row => CadencePresetSchema.parse(row));
+}
+
+export async function getCadencePresetBySlug(
+  db: AppDatabase,
+  slug: string,
+): Promise<CadencePreset | null> {
+  const trimmed = slug.trim();
+  if (!trimmed || trimmed === 'custom' || trimmed === '__custom__') {
+    return null;
+  }
+  const [row] = await db
+    .select()
+    .from(schema.cadencePresets)
+    .where(eq(schema.cadencePresets.slug, trimmed))
+    .limit(1);
+
+  return row ? CadencePresetSchema.parse(row) : null;
 }
 
 export async function getAgensiSkills(
@@ -1048,16 +1091,6 @@ export async function ingestAnalyticsBatch(
   };
 }
 
-const DEFAULT_QUOTA_BY_ROLE: Readonly<
-  Record<
-    Role,
-    { maxTurnsPerSession: number; maxTokensPerRun: number; maxDailyGlobalTokens: number }
-  >
-> = {
-  guest: { maxTurnsPerSession: 5, maxTokensPerRun: 4_000, maxDailyGlobalTokens: 100_000 },
-  admin: { maxTurnsPerSession: 100, maxTokensPerRun: 32_000, maxDailyGlobalTokens: 2_000_000 },
-};
-
 export async function getQuotaStatusForSession(
   db: AppDatabase,
   role: Role,
@@ -1283,20 +1316,7 @@ export async function listSandboxRunsForSession(
       .where(eq(schema.sandboxTurns.runId, run.id))
       .orderBy(asc(schema.sandboxTurns.id));
 
-    const turns: CadenceTurn[] = turnRows.map(mapSandboxTurnRow);
-
-    results.push(
-      CadenceRunResultSchema.parse({
-        runId: run.id,
-        prompt: run.prompt,
-        gateVerdict: normalizeGateVerdict(run.gateVerdict),
-        turns,
-        artifactHtml: run.artifactHtml ?? '',
-        tokensIn: run.tokensIn,
-        tokensOut: run.tokensOut,
-        createdAt: run.createdAt.toISOString(),
-      }),
-    );
+    results.push(mapSandboxRunResult(run, turnRows));
   }
   return results;
 }
@@ -1312,6 +1332,16 @@ export async function updateSandboxRunGateVerdict(
   return CadenceRunResultSchema.parse({
     runId: result.run.id,
     prompt: result.run.prompt,
+    ...(result.run.menuSlug && result.run.menuSlug !== 'cadence'
+      ? { presetSlug: result.run.menuSlug }
+      : {}),
+    runStatus:
+      result.run.status === 'pending' ||
+      result.run.status === 'running' ||
+      result.run.status === 'ready' ||
+      result.run.status === 'failed'
+        ? result.run.status
+        : 'ready',
     gateVerdict: verdict,
     turns: result.turns,
     artifactHtml: result.run.artifactHtml ?? '',

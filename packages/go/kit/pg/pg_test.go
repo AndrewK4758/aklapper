@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -393,5 +394,101 @@ func TestOpenBestEffortAndLoadCorpusErrorPropagation(t *testing.T) {
 	}
 	if _, err := loadCorpusDocsFromQuerier(context.Background(), &stubCorpusQuerier{rowsErr: errors.New("boom rows")}, "aklapper", CuratedPortfolioDocs()); err == nil {
 		t.Fatal("expected rows.Err() to propagate")
+	}
+}
+
+func TestMemoryStorePendingRunLifecycleAndCAS(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	store := NewMemoryStore()
+	store.SetPolicyForTest(QuotaPolicy{
+		Role:                 contracts.RoleGuest,
+		MaxTurnsPerSession:   1,
+		MaxTokensPerRun:      4000,
+		MaxDailyGlobalTokens: 10000,
+	})
+
+	preset, err := store.GetCadencePreset(ctx, "chord-pipeline-monitor")
+	if err != nil || preset != nil {
+		t.Fatalf("expected nil preset gracefully on memory store, got %+v err=%v", preset, err)
+	}
+
+	pendingRun, q1, allowed, err := store.CreatePendingSandboxRunWithQuota(ctx, contracts.RoleGuest, "sess-cas", 1, 800, PendingSandboxRunInput{
+		SessionID:  "sess-cas",
+		IPHash:     "portal-proxy",
+		PresetSlug: "chord-pipeline-monitor",
+		Prompt:     "Inspect pipeline turn durations",
+		Mode:       contracts.CadenceModeFast,
+	})
+	if err != nil || !allowed || pendingRun == nil {
+		t.Fatalf("expected pending run created, got allowed=%v run=%+v err=%v", allowed, pendingRun, err)
+	}
+	if pendingRun.Status != contracts.CadenceStatusPending || len(pendingRun.Turns) != 4 || q1.TurnsUsed != 1 {
+		t.Fatalf("unexpected pending run: %+v quota=%+v", pendingRun, q1)
+	}
+
+	// Second request rejected on quota without creating orphan run.
+	rejectedRun, _, allowed2, err := store.CreatePendingSandboxRunWithQuota(ctx, contracts.RoleGuest, "sess-cas", 1, 800, PendingSandboxRunInput{
+		SessionID:  "sess-cas",
+		PresetSlug: "custom",
+		Prompt:     "Should not create orphan row",
+		Mode:       contracts.CadenceModeFast,
+	})
+	if err != nil || allowed2 || rejectedRun != nil {
+		t.Fatalf("expected quota rejection with nil run, got allowed=%v run=%+v err=%v", allowed2, rejectedRun, err)
+	}
+
+	// Concurrent CAS claims: strictly one claimant wins.
+	var wg sync.WaitGroup
+	wins := 0
+	var mu sync.Mutex
+	for range 4 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if claimedRun, ok, claimErr := store.ClaimPendingSandboxRun(ctx, pendingRun.RunID, "sess-cas"); claimErr == nil && ok && claimedRun != nil {
+				mu.Lock()
+				wins++
+				mu.Unlock()
+			}
+		}()
+	}
+	wg.Wait()
+	if wins != 1 {
+		t.Fatalf("expected exactly 1 CAS winner, got %d", wins)
+	}
+
+	// Updating triage turn preserves mode payload key.
+	updatedTurn, err := store.UpdateSandboxTurn(ctx, pendingRun.RunID, "triage", "completed", "Classified fast", 2, map[string]any{"promptLen": 31})
+	if err != nil || updatedTurn.Payload["mode"] != contracts.CadenceModeFast {
+		t.Fatalf("expected UpdateSandboxTurn to preserve mode, got %+v err=%v", updatedTurn, err)
+	}
+
+	completed, err := store.CompleteSandboxRun(ctx, pendingRun.RunID, 128, 360, "<html><body>Done</body></html>")
+	if err != nil || completed.Status != contracts.CadenceStatusReady || completed.ArtifactHTML == "" {
+		t.Fatalf("CompleteSandboxRun failed: %+v err=%v", completed, err)
+	}
+
+	if _, err := store.UpdateSandboxGateVerdictForSession(ctx, pendingRun.RunID, "", "approved"); !errors.Is(err, ErrForbiddenSession) {
+		t.Fatalf("expected ErrForbiddenSession when sessionID empty, got %v", err)
+	}
+	if _, err := store.UpdateSandboxGateVerdictForSession(ctx, pendingRun.RunID, "other-sess", "approved"); !errors.Is(err, ErrForbiddenSession) {
+		t.Fatalf("expected ErrForbiddenSession for wrong session, got %v", err)
+	}
+	gateOK, err := store.UpdateSandboxGateVerdictForSession(ctx, pendingRun.RunID, "sess-cas", "approved")
+	if err != nil || gateOK.GateVerdict != "approved" {
+		t.Fatalf("expected owner gate update to succeed, got %+v err=%v", gateOK, err)
+	}
+
+	if err := store.FailSandboxRun(ctx, pendingRun.RunID, "explicit fail test"); err != nil {
+		t.Fatalf("FailSandboxRun failed: %v", err)
+	}
+	if _, err := store.UpdateSandboxGateVerdictForSession(ctx, pendingRun.RunID, "sess-cas", "rejected"); !errors.Is(err, ErrRunNotReady) {
+		t.Fatalf("expected ErrRunNotReady on failed run, got %v", err)
+	}
+	fetched, err := store.GetSandboxRun(ctx, pendingRun.RunID)
+	if err != nil || fetched.Status != contracts.CadenceStatusFailed {
+		t.Fatalf("expected failed status after FailSandboxRun, got %+v err=%v", fetched, err)
 	}
 }

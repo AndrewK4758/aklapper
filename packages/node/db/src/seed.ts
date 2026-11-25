@@ -2,6 +2,7 @@ import {
   type AdminAnalyticsContent,
   type AdminChromeContent,
   type AdminHomeContent,
+  buildTailoredCadenceArtifactHtml,
   CONTACT_FORM_DEFINITION,
   formatTerminalDirectoryListing,
   type MenuItem,
@@ -913,7 +914,7 @@ const CADENCE_PRESET_SEEDS = [
     title: 'Solar Forge Sandbox Starter',
     starterPrompt:
       'Build a responsive Solar Forge diagnostic card with live status telemetry and keyboard shortcuts.',
-    expectedKind: 'html-sandbox',
+    expectedKind: 'diagnostic-card',
     starterArtifactHtml: STARTER_CADENCE_ARTIFACT_HTML,
     sortOrder: 1,
   },
@@ -922,9 +923,60 @@ const CADENCE_PRESET_SEEDS = [
     title: 'GKE Pod Telemetry Widget',
     starterPrompt:
       'Build a GKE Autopilot scale-from-zero pod monitor card showing cold-start latency, replica count, and health status.',
-    expectedKind: 'html-sandbox',
+    expectedKind: 'pod-telemetry',
     starterArtifactHtml: STARTER_K8S_TELEMETRY_ARTIFACT_HTML,
     sortOrder: 2,
+  },
+  {
+    slug: 'chord-pipeline-monitor',
+    title: 'CHORD Pipeline Latency Monitor',
+    starterPrompt:
+      'Build an interactive CHORD pipeline monitor tracking triage, spec, build, and gate stage latencies and replica readiness.',
+    expectedKind: 'pipeline-monitor',
+    starterArtifactHtml: buildTailoredCadenceArtifactHtml({
+      prompt:
+        'Build an interactive CHORD pipeline monitor tracking triage, spec, build, and gate stage latencies and replica readiness.',
+      preset: {
+        slug: 'chord-pipeline-monitor',
+        title: 'CHORD Pipeline Latency Monitor',
+        expectedKind: 'pipeline-monitor',
+      },
+    }),
+    sortOrder: 3,
+  },
+  {
+    slug: 'qdrant-rag-inspector',
+    title: 'Qdrant Grounded RAG Inspector',
+    starterPrompt:
+      'Create a grounded Qdrant retrieval inspector visualizing cosine similarity thresholds, citation cards, and fail-closed abstention.',
+    expectedKind: 'rag-inspector',
+    starterArtifactHtml: buildTailoredCadenceArtifactHtml({
+      prompt:
+        'Create a grounded Qdrant retrieval inspector visualizing cosine similarity thresholds, citation cards, and fail-closed abstention.',
+      preset: {
+        slug: 'qdrant-rag-inspector',
+        title: 'Qdrant Grounded RAG Inspector',
+        expectedKind: 'rag-inspector',
+      },
+    }),
+    sortOrder: 4,
+  },
+  {
+    slug: 'zero-trust-gate-panel',
+    title: 'Zero-Trust Gate Audit Panel',
+    starterPrompt:
+      'Generate a zero-trust sandbox gate verification card displaying HMAC auth checks, cookie isolation, and 48 KiB HTML policy status.',
+    expectedKind: 'security-gate',
+    starterArtifactHtml: buildTailoredCadenceArtifactHtml({
+      prompt:
+        'Generate a zero-trust sandbox gate verification card displaying HMAC auth checks, cookie isolation, and 48 KiB HTML policy status.',
+      preset: {
+        slug: 'zero-trust-gate-panel',
+        title: 'Zero-Trust Gate Audit Panel',
+        expectedKind: 'security-gate',
+      },
+    }),
+    sortOrder: 5,
   },
 ] as const;
 

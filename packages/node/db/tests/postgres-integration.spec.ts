@@ -8,24 +8,37 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   type AppDatabase,
   askTurns,
+  CADENCE_PRESET_SEEDS,
+  claimPendingSandboxRun,
+  completeSandboxRunRow,
   consumeQuotaForSession,
   ContactDbConstraintError,
   createDb,
   createDbPool,
+  createPendingSandboxRunWithQuota,
   deleteTerminalDirectoryEntry,
   extractPgConstraintViolation,
+  failSandboxRunRow,
   getAskTurnByAttemptId,
+  getCadencePresetBySlug,
+  getCadencePresets,
+  getQuotaStatusForSession,
+  getSandboxRunWithTurnsById,
   getTerminalDirectoryEntries,
   getTerminalProfile,
   insertContactSubmission,
+  listSandboxRunsForSession,
   loadAdminCmsData,
   loadAdminOverviewData,
   pruneExpiredAskTurns,
   rateLimitBuckets,
   resetRateLimitBucket,
   roadmapMilestones,
+  sandboxRuns,
   seedDatabase,
   TERMINAL_PROFILE_SLUGS,
+  updateSandboxRunGateVerdictForSession,
+  updateSandboxTurnRow,
   upsertTerminalDirectoryEntry,
 } from '../src/index.ts';
 import { runMigrationCli } from '../src/migrate.ts';
@@ -287,6 +300,146 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       await badPool.end();
       infoSpy.mockRestore();
       errorSpy.mockRestore();
+    }
+  });
+
+  it('seeds all 5 buildable CADENCE presets and enforces atomic pending run lifecycle + CAS claim', async () => {
+    const presets = await getCadencePresets(db);
+    expect(presets.map(p => p.slug)).toEqual(CADENCE_PRESET_SEEDS.map(p => p.slug));
+    expect(presets).toHaveLength(5);
+
+    const monitor = await getCadencePresetBySlug(db, 'chord-pipeline-monitor');
+    expect(monitor?.expectedKind).toBe('pipeline-monitor');
+
+    const sessionId = `pg19-test-${Date.now()}`;
+    try {
+      const init = await createPendingSandboxRunWithQuota(db, {
+        role: 'guest',
+        sessionId,
+        ipHash: 'test-ip',
+        presetSlug: 'chord-pipeline-monitor',
+        prompt: 'Measure CHORD stage latency across replicas in fast mode.',
+        mode: 'fast',
+        estimatedTokens: 800,
+      });
+
+      expect(init.allowed).toBe(true);
+      expect(init.run?.runStatus).toBe('pending');
+      expect(init.run?.mode).toBe('fast');
+      expect(init.run?.presetSlug).toBe('chord-pipeline-monitor');
+      expect(init.run?.turns).toHaveLength(4);
+      expect(init.quota.turnsUsed).toBe(1);
+
+      const runId = init.run?.runId ?? '';
+      expect(runId).toMatch(/^[0-9a-f-]{36}$/i);
+
+      // Gate mutation before run reaches 'ready' returns conflict.
+      const prematureGate = await updateSandboxRunGateVerdictForSession(
+        db,
+        runId,
+        'approved',
+        sessionId,
+      );
+      expect(prematureGate.outcome).toBe('conflict');
+
+      // Concurrent CAS claims allow at most one worker to execute pending -> running.
+      const [claimA, claimB] = await Promise.all([
+        claimPendingSandboxRun(db, runId, sessionId),
+        claimPendingSandboxRun(db, runId, sessionId),
+      ]);
+      const winners = [claimA, claimB].filter(Boolean);
+      expect(winners).toHaveLength(1);
+      expect(winners[0]?.mode).toBe('fast');
+
+      // Updating triage turn preserves persisted mode metadata.
+      await updateSandboxTurnRow(db, {
+        runId,
+        phase: 'triage',
+        status: 'completed',
+        summary: 'Classified fast-mode prompt',
+        latencyMs: 2,
+      });
+
+      const completed = await completeSandboxRunRow(db, {
+        runId,
+        tokensIn: 140,
+        tokensOut: 320,
+        artifactHtml: '<!doctype html><html><body>OK</body></html>',
+      });
+      expect(completed?.runStatus).toBe('ready');
+      expect(completed?.mode).toBe('fast');
+      expect(completed?.presetSlug).toBe('chord-pipeline-monitor');
+
+      // Cross-session gate verdict is rejected fail-closed.
+      const wrongSessionGate = await updateSandboxRunGateVerdictForSession(
+        db,
+        runId,
+        'approved',
+        'wrong-session-id',
+      );
+      expect(wrongSessionGate.outcome).toBe('forbidden');
+
+      const approvedGate = await updateSandboxRunGateVerdictForSession(
+        db,
+        runId,
+        'approved',
+        sessionId,
+      );
+      expect(approvedGate).toMatchObject({
+        outcome: 'ok',
+        run: { gateVerdict: 'approved' },
+      });
+
+      // Reload history returns runStatus, mode, and presetSlug.
+      const history = await listSandboxRunsForSession(db, sessionId, 5);
+      expect(history[0]?.runStatus).toBe('ready');
+      expect(history[0]?.presetSlug).toBe('chord-pipeline-monitor');
+
+      // Exhaust remaining 4 guest turns, then verify 6th rejects with zero orphan rows.
+      for (let i = 0; i < 4; i++) {
+        const nextInit = await createPendingSandboxRunWithQuota(db, {
+          role: 'guest',
+          sessionId,
+          ipHash: 'test-ip',
+          presetSlug: 'custom',
+          prompt: `Quota turn filler ${i + 2} validating transaction integrity`,
+          mode: 'fast',
+        });
+        expect(nextInit.allowed).toBe(true);
+      }
+
+      const exhausted = await createPendingSandboxRunWithQuota(db, {
+        role: 'guest',
+        sessionId,
+        ipHash: 'test-ip',
+        presetSlug: 'custom',
+        prompt: 'Sixth request must fail quota cleanly with zero orphan runs',
+        mode: 'fast',
+      });
+      expect(exhausted.allowed).toBe(false);
+      expect(exhausted.run).toBeNull();
+      expect(exhausted.quota.turnsUsed).toBe(5);
+
+      const rowsForSession = await db
+        .select()
+        .from(sandboxRuns)
+        .where(eq(sandboxRuns.sessionId, sessionId));
+      expect(rowsForSession).toHaveLength(5);
+
+      // Verify failSandboxRunRow marks a run failed cleanly.
+      const extraRunId = rowsForSession[1]?.id ?? '';
+      expect(extraRunId).toMatch(/^[0-9a-f-]{36}$/i);
+      await failSandboxRunRow(db, extraRunId, 'Simulated stream abort');
+      const failed = await getSandboxRunWithTurnsById(db, extraRunId);
+      expect(failed?.run.runStatus).toBe('failed');
+
+      const quota = await getQuotaStatusForSession(db, 'guest', sessionId);
+      expect(quota.turnsUsed).toBe(5);
+    } finally {
+      await db.delete(sandboxRuns).where(eq(sandboxRuns.sessionId, sessionId));
+      await db
+        .delete(rateLimitBuckets)
+        .where(eq(rateLimitBuckets.scopeKey, `session:${sessionId}`));
     }
   });
 });
