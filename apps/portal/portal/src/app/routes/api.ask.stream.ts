@@ -92,7 +92,7 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Re
       400,
       'ERR_VALIDATION',
       'Streaming endpoint supports qa mode only.',
-      'Submit JD Match requests through /ask.',
+      'Submit JD Match requests through /chat.',
       correlationId,
       setCookieHeader,
     );

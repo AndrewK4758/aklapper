@@ -54,7 +54,7 @@ func handleAskPost(provider llm.Provider, vectorStore *qdrant.Client, store *pg.
 		}
 		if mode != "qa" && mode != "jd_match" {
 			writePublicError(w, http.StatusBadRequest, contracts.ErrCodeValidation,
-				"Mode must be qa or jd_match.", "Select Ask Portfolio or JD Match and retry.", corrID)
+				"Mode must be qa or jd_match.", "Select Chat with Andrew or JD Match and retry.", corrID)
 			return
 		}
 
@@ -263,6 +263,9 @@ func executeTurnWorker(
 	)
 	if mode == "jd_match" {
 		evidenceCtx, sources = buildBoundedJDEvidence(profileCore, hybrid.Candidates)
+	} else if tier == contracts.GroundingTierGeneral {
+		sources = []contracts.AskSource{}
+		evidenceCtx = ""
 	} else if tier == contracts.GroundingTierProfile {
 		sources = []contracts.AskSource{{
 			ID:             profileCore.ID,
@@ -312,7 +315,10 @@ func executeTurnWorker(
 		}
 	} else {
 		systemPrompt := buildThirdPersonSystemPrompt(tier, profileCore)
-		userPrompt := fmt.Sprintf("Evidence:\n%s\n<untrusted_question>\n%s\n</untrusted_question>", evidenceCtx, sanitizeUntrustedQuestionText(queryText))
+		userPrompt := fmt.Sprintf("<untrusted_question>\n%s\n</untrusted_question>", sanitizeUntrustedQuestionText(queryText))
+		if tier != contracts.GroundingTierGeneral && strings.TrimSpace(evidenceCtx) != "" {
+			userPrompt = fmt.Sprintf("Evidence:\n%s\n%s", evidenceCtx, userPrompt)
+		}
 		comp, chatErr := provider.Chat(ctx, []llm.ChatMessage{
 			{Role: "system", Content: systemPrompt}, {Role: "user", Content: userPrompt},
 		}, 512)
@@ -336,7 +342,7 @@ func executeTurnWorker(
 		}
 		resp = contracts.AskResponse{
 			AttemptID:         attemptID,
-			Grounded:          true,
+			Grounded:          tier != contracts.GroundingTierGeneral,
 			Abstained:         false,
 			GroundingTier:     tier,
 			Mode:              mode,
@@ -368,7 +374,7 @@ func executeTurnWorker(
 	resp.Quota = &quota
 	logAskEvent("ai_ask.turn.audit", map[string]any{
 		"attemptId": attemptID, "sessionId": sessionID, "role": role, "mode": mode,
-		"provider": provider.Name(), "model": resp.Model, "tokensReserved": pg.DefaultAskTurnReserveTokens,
+		"groundingTier": tier, "provider": provider.Name(), "model": resp.Model, "tokensReserved": pg.DefaultAskTurnReserveTokens,
 		"tokensUsed": resp.TokensUsed, "deltaStatus": "reconciled", "correlationId": corrID, "seam_type": "DELTA_AUDIT_GAP",
 	})
 	return workerOutcome{httpStatus: http.StatusOK, response: &resp}

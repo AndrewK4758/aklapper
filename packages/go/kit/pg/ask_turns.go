@@ -280,7 +280,7 @@ func (s *Store) ReconcileTurnTx(ctx context.Context, attemptID string, res contr
 	res.Quota = &updatedQuota
 
 	status := contracts.TurnStatusCompleted
-	if !res.Grounded || res.Abstained {
+	if res.Abstained {
 		status = contracts.TurnStatusAbstained
 	}
 	rawJSON, err := json.Marshal(res)

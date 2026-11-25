@@ -162,7 +162,7 @@ describe('PortalAskPage', () => {
     expect(jdCard.textContent).toContain('940');
   });
 
-  it('recovers active pending turn from sessionStorage on mount without re-submitting POST /ask', async () => {
+  it('recovers active pending turn from sessionStorage on mount without re-submitting POST /chat', async () => {
     const attemptId = '55555555-5555-4555-8555-555555555555';
     window.sessionStorage.setItem(
       ASK_TURN_STORAGE_KEY,
@@ -491,5 +491,54 @@ describe('PortalAskPage', () => {
     expect(screen.getByTestId('ask-workspace').getAttribute('data-conversation-id')).not.toBe(
       prevConvId,
     );
+  });
+
+  it('renders GENERAL pill, conversational status badge, and suppresses boundaryFallbackNotice for general turns while preserving ABSTAINED for boundary turns', async () => {
+    const encoder = new TextEncoder();
+    const generalSse = [
+      'event: status\ndata: {"stage":"generating","label":"Chatting with Andrew\'s AI..."}\n\n',
+      'event: sources\ndata: {"sources":[]}\n\n',
+      'event: delta\ndata: {"text":"Hey there! Happy to chat."}\n\n',
+      'event: done\ndata: {"attemptId":"11111111-1111-4111-8111-111111111101","conversationId":"22222222-2222-4222-8222-222222222201","turnIndex":1,"grounded":false,"abstained":false,"groundingTier":"general","answer":"Hey there! Happy to chat.","sources":[],"suggestedLinks":[],"followUpQuestions":[],"provider":"local-llama-swap","model":"gemma-4","tokensUsed":25,"latencyMs":80,"correlationId":"corr-gen-1"}\n\n',
+    ].join('');
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(encoder.encode(generalSse));
+            controller.close();
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'text/event-stream; charset=utf-8' } },
+      ),
+    );
+
+    render(
+      <PortalAskPage
+        content={SAMPLE_CONTENT}
+        quota={SAMPLE_QUOTA}
+        streamEndpoint='/api/ask/stream'
+        isSubmitting={false}
+        onSubmitAsk={vi.fn<PortalAskPageProps['onSubmitAsk']>()}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('ask-question-input'), {
+      target: { value: 'Hey there, how is your day going?' },
+    });
+    fireEvent.click(screen.getByTestId('ask-qa-submit'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('ask-qa-entry')).toBeTruthy();
+    });
+    const entry = screen.getByTestId('ask-qa-entry');
+    expect(entry.getAttribute('data-grounding-tier')).toBe('general');
+    expect(entry.textContent).toContain('GENERAL');
+    expect(entry.textContent).not.toContain('ABSTAINED');
+    expect(entry.textContent).not.toContain(SAMPLE_CONTENT.boundaryFallbackNotice);
+    expect(entry.textContent).not.toContain(SAMPLE_CONTENT.contactCtaLabel);
+    expect(screen.getByText('general · conversational')).toBeTruthy();
   });
 });

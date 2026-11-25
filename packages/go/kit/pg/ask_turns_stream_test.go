@@ -110,4 +110,55 @@ func TestExtendTurnLeaseAndDevUnlimitedAndErrorMappings(t *testing.T) {
 			t.Fatalf("expected 499 ERR_STREAM_ABORTED, got %+v", aborted.Error)
 		}
 	})
+
+	t.Run("ReconcileTurnTx marks non-abstained general turns as completed and abstained turns as abstained", func(t *testing.T) {
+		store := NewMemoryStore()
+		generalAttempt := "33333333-3333-4333-8333-333333333301"
+		if _, ok, err := store.ReserveTurnTx(context.Background(), ReserveTurnInput{
+			AttemptID: generalAttempt, SessionID: "sess-tier", Role: contracts.RoleGuest,
+			Mode: "qa", PromptHash: "h-gen", CorrelationID: "c-gen", ReserveTokens: 512,
+		}); err != nil || !ok {
+			t.Fatalf("reserve general turn failed: ok=%v err=%v", ok, err)
+		}
+		if _, err := store.ReconcileTurnTx(context.Background(), generalAttempt, contracts.AskResponse{
+			Grounded:      false,
+			Abstained:     false,
+			GroundingTier: contracts.GroundingTierGeneral,
+			Mode:          "qa",
+			Answer:        "Happy to chat! Andrew focuses on distributed systems and streaming SSR.",
+			Sources:       []contracts.AskSource{},
+			Provider:      "local",
+			TokensUsed:    48,
+		}); err != nil {
+			t.Fatalf("reconcile general turn failed: %v", err)
+		}
+		recGen, _, err := store.GetTurnByAttemptID(context.Background(), generalAttempt, "sess-tier")
+		if err != nil || recGen.Status != contracts.TurnStatusCompleted || recGen.TokensUsed != 48 {
+			t.Fatalf("expected general turn completed with 48 tokens, got rec=%+v err=%v", recGen, err)
+		}
+
+		abstainAttempt := "33333333-3333-4333-8333-333333333302"
+		if _, ok, err := store.ReserveTurnTx(context.Background(), ReserveTurnInput{
+			AttemptID: abstainAttempt, SessionID: "sess-tier", Role: contracts.RoleGuest,
+			Mode: "qa", PromptHash: "h-abs", CorrelationID: "c-abs", ReserveTokens: 512,
+		}); err != nil || !ok {
+			t.Fatalf("reserve abstained turn failed: ok=%v err=%v", ok, err)
+		}
+		if _, err := store.ReconcileTurnTx(context.Background(), abstainAttempt, contracts.AskResponse{
+			Grounded:      false,
+			Abstained:     true,
+			GroundingTier: contracts.GroundingTierBoundary,
+			Mode:          "qa",
+			Answer:        "Abstaining: boundary probe.",
+			Sources:       []contracts.AskSource{},
+			Provider:      "local",
+			TokensUsed:    0,
+		}); err != nil {
+			t.Fatalf("reconcile abstained turn failed: %v", err)
+		}
+		recAbs, _, err := store.GetTurnByAttemptID(context.Background(), abstainAttempt, "sess-tier")
+		if err != nil || recAbs.Status != contracts.TurnStatusAbstained {
+			t.Fatalf("expected boundary turn abstained, got rec=%+v err=%v", recAbs, err)
+		}
+	})
 }

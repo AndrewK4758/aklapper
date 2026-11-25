@@ -19,7 +19,7 @@ import {
   unwrapPaneLoaderData,
 } from './pane-loader';
 
-export const PORTAL_PANE_ROUTES = ['/menu', '/agensi', '/ask', '/cadence', '/contact'] as const;
+export const PORTAL_PANE_ROUTES = ['/menu', '/agensi', '/chat', '/cadence', '/contact'] as const;
 export type PortalPaneRoute = (typeof PORTAL_PANE_ROUTES)[number];
 export type PortalPaneViewId = 'tui' | PortalPaneRoute;
 

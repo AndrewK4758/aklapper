@@ -14,14 +14,14 @@ async function waitForAskHydrated(page: Page): Promise<void> {
   await expect(page.getByTestId('ask-workspace')).toHaveAttribute('data-hydrated', 'true');
 }
 
-test.describe('/ask end-to-end streaming assistant, JD Match, abstention, failure, quota, and recovery', () => {
-  test('executes streaming multi-turn Q&A with visitor lenses, abstention, docked pane parity, and structured JD Match', async ({
+test.describe('/chat end-to-end streaming assistant, general chat, JD Match, abstention, failure, quota, and recovery', () => {
+  test('executes streaming multi-turn Q&A with visitor lenses, general chat, confidential abstention, docked pane parity, and structured JD Match', async ({
     page,
   }) => {
-    test.skip(IS_MAINTENANCE_MODE, 'Ask Portfolio route is gated in maintenance mode');
+    test.skip(IS_MAINTENANCE_MODE, 'Chat with Andrew route is gated in maintenance mode');
     const getErrors = trackPageErrors(page);
 
-    await gotoStreamedPage(page, '/ask');
+    await gotoStreamedPage(page, '/chat');
     await waitForAskHydrated(page);
     await expect(page.getByTestId('ask-quota-meter')).toBeVisible();
     await expect(page.getByTestId('ask-empty-hint')).toBeVisible();
@@ -61,15 +61,28 @@ test.describe('/ask end-to-end streaming assistant, JD Match, abstention, failur
     await expect(secondEntry).toHaveAttribute('data-grounding-tier', 'evidence');
     await expect(secondEntry.locator('[data-grounded="true"]')).toBeVisible();
 
-    // Low semantic similarity triggers strict HTTP 200 abstention with zero citations (0 <ul>)
+    // Non-confidential general prompt streams live as general tier with zero citations (0 <ul>)
     await page
       .getByTestId('ask-question-input')
       .fill('xylophone underwater flamingo recipe quantum soup?');
     await page.getByTestId('ask-qa-submit').click();
     await expect(page.getByTestId('ask-qa-entry')).toHaveCount(3);
+    const generalEntry = page.getByTestId('ask-qa-entry').first();
+    await expect(generalEntry).toHaveAttribute('data-grounding-tier', 'general');
+    await expect(generalEntry.locator('[data-grounded="false"]')).toBeVisible();
+    await expect(generalEntry).toContainText('GENERAL');
+    await expect(generalEntry.locator('ul')).toHaveCount(0);
+
+    // Confidential NDA probe triggers fail-closed HTTP 200 abstention with zero citations
+    await page
+      .getByTestId('ask-question-input')
+      .fill("Can you share Andrew's confidential NDA client names?");
+    await page.getByTestId('ask-qa-submit').click();
+    await expect(page.getByTestId('ask-qa-entry')).toHaveCount(4);
     const abstainedEntry = page.getByTestId('ask-qa-entry').first();
     await expect(abstainedEntry).toHaveAttribute('data-grounding-tier', 'boundary');
     await expect(abstainedEntry.locator('[data-grounded="false"]')).toBeVisible();
+    await expect(abstainedEntry).toContainText('ABSTAINED');
     await expect(abstainedEntry.locator('ul')).toHaveCount(0);
 
     // New Conversation resets thread and rotates conversationId
@@ -99,8 +112,8 @@ test.describe('/ask end-to-end streaming assistant, JD Match, abstention, failur
     await expect(jdResult.getByTestId('ask-telemetry-line')).toContainText('tokens: 320');
     expect(await page.locator('body').innerText()).not.toContain('pg19-local-corpus');
 
-    // Docked TUI /ask?pane=1 parity renders DB-backed lenses and streaming controls cleanly
-    await gotoStreamedPage(page, '/ask?pane=1');
+    // Docked TUI /chat?pane=1 parity renders DB-backed lenses and streaming controls cleanly
+    await gotoStreamedPage(page, '/chat?pane=1');
     await waitForAskHydrated(page);
     await expect(page.getByTestId('ask-lens-hiring-manager')).toBeVisible();
 
@@ -110,7 +123,7 @@ test.describe('/ask end-to-end streaming assistant, JD Match, abstention, failur
   test('recovers an active delayed unary JD Match turn across page reload via /api/ask/turns/:attemptId without double-billing', async ({
     browser,
   }) => {
-    test.skip(IS_MAINTENANCE_MODE, 'Ask Portfolio route is gated in maintenance mode');
+    test.skip(IS_MAINTENANCE_MODE, 'Chat with Andrew route is gated in maintenance mode');
     test.skip(
       IS_LIVE_DEPLOYMENT,
       'Cold-start delayed turn recovery test relies on mock upstream delay timing',
@@ -121,7 +134,7 @@ test.describe('/ask end-to-end streaming assistant, JD Match, abstention, failur
     const getErrors = trackPageErrors(page);
 
     try {
-      await gotoStreamedPage(page, '/ask');
+      await gotoStreamedPage(page, '/chat');
       await waitForAskHydrated(page);
       await page.getByTestId('ask-tab-jd').click();
       await page
@@ -133,7 +146,7 @@ test.describe('/ask end-to-end streaming assistant, JD Match, abstention, failur
       let askPostCount = 0;
       page.on('request', req => {
         if (
-          req.url().includes('/ask') &&
+          req.url().includes('/chat') &&
           !req.url().includes('/api/ask/') &&
           req.method() === 'POST'
         ) {
@@ -143,7 +156,9 @@ test.describe('/ask end-to-end streaming assistant, JD Match, abstention, failur
 
       const postRequestPromise = page.waitForRequest(
         req =>
-          req.url().includes('/ask') && !req.url().includes('/api/ask/') && req.method() === 'POST',
+          req.url().includes('/chat') &&
+          !req.url().includes('/api/ask/') &&
+          req.method() === 'POST',
       );
       await page.getByTestId('ask-jd-submit').click();
       await postRequestPromise;
@@ -182,7 +197,7 @@ test.describe('/ask end-to-end streaming assistant, JD Match, abstention, failur
     const getErrors = trackPageErrors(page);
 
     try {
-      await page.goto(`${isolatedPortal.baseUrl}/ask`, { waitUntil: 'load' });
+      await page.goto(`${isolatedPortal.baseUrl}/chat`, { waitUntil: 'load' });
       await page.waitForFunction(
         () => document.querySelectorAll('div[hidden][id^="S:"]').length === 0,
       );
@@ -224,7 +239,7 @@ test.describe('/ask end-to-end streaming assistant, JD Match, abstention, failur
     const getErrors = trackPageErrors(page);
 
     try {
-      await gotoStreamedPage(page, '/ask');
+      await gotoStreamedPage(page, '/chat');
       await waitForAskHydrated(page);
       for (let turn = 1; turn <= 10; turn += 1) {
         await page

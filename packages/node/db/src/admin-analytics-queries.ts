@@ -116,7 +116,14 @@ export async function loadAdminAnalyticsSummary(
     db.execute(sql`
       SELECT COUNT(*)::int AS abstentions
       FROM analytics_events
-      WHERE (name IN ('ask_abstained', 'ai_abstention') OR metadata_json->>'grounded' = 'false')
+      WHERE (
+        name IN ('ask_abstained', 'ai_abstention')
+        OR (
+          metadata_json->>'grounded' = 'false'
+          AND COALESCE(metadata_json->>'groundingTier', '') <> 'general'
+          AND COALESCE(metadata_json->>'abstained', 'true') <> 'false'
+        )
+      )
         ${eventAndCutoff}
     `),
   ]);

@@ -206,6 +206,9 @@ func buildStreamingPromptContext(
 	profileCore pg.CorpusDocument,
 	hybrid hybridSearchResult,
 ) ([]contracts.AskSource, string) {
+	if tier == contracts.GroundingTierGeneral {
+		return []contracts.AskSource{}, ""
+	}
 	if tier == contracts.GroundingTierProfile {
 		sources := []contracts.AskSource{{
 			ID:             profileCore.ID,
@@ -275,11 +278,19 @@ func buildStreamingMessages(
 			messages = append(messages, llm.ChatMessage{Role: "assistant", Content: a})
 		}
 	}
-	userPrompt := fmt.Sprintf(
-		"Evidence:\n%s\n<untrusted_question>\n%s\n</untrusted_question>",
-		evidenceCtx,
-		sanitizeUntrustedQuestionText(queryText),
-	)
+	var userPrompt string
+	if tier == contracts.GroundingTierGeneral || strings.TrimSpace(evidenceCtx) == "" {
+		userPrompt = fmt.Sprintf(
+			"<untrusted_question>\n%s\n</untrusted_question>",
+			sanitizeUntrustedQuestionText(queryText),
+		)
+	} else {
+		userPrompt = fmt.Sprintf(
+			"Evidence:\n%s\n<untrusted_question>\n%s\n</untrusted_question>",
+			evidenceCtx,
+			sanitizeUntrustedQuestionText(queryText),
+		)
+	}
 	messages = append(messages, llm.ChatMessage{Role: "user", Content: userPrompt})
 	return messages
 }

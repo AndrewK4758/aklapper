@@ -30,7 +30,7 @@ import { createAskStatusSlot } from '../askStatusSlot';
 import { reportPortalPublicError } from '../client-telemetry';
 import { resolveGuestSession } from '../guest-session.server';
 import { buildPortalPageMeta } from '../seo';
-import type { Route } from './+types/ask';
+import type { Route } from './+types/chat';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -76,14 +76,14 @@ export function loader({ request, context }: Route.LoaderArgs) {
       payload: deferStreamResult(loadPortalAskDataWithPrerender(sessionId), {
         request,
         context,
-        source: 'portal.ask.loader',
+        source: 'portal.chat.loader',
       }),
       askStatusPayload: deferStreamResult(
         probeAskServiceStatus(aiAskUrl, reqCtx?.signal ?? request.signal),
         {
           request,
           context,
-          source: 'portal.ask.status',
+          source: 'portal.chat.status',
         },
       ),
     },
@@ -95,7 +95,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const { sessionId, setCookieHeader } = resolveGuestSession(request);
   const reqCtx = getRequestContext(context);
   const correlationId = getOrCreateCorrelationId(request, context);
-  const logger = reqCtx?.logger ?? createFallbackLogger('portal-ask');
+  const logger = reqCtx?.logger ?? createFallbackLogger('portal-chat');
   const headers: Record<string, string> = {
     'X-Correlation-Id': correlationId,
     ...(setCookieHeader ? { 'Set-Cookie': setCookieHeader } : {}),
@@ -109,9 +109,9 @@ export async function action({ request, context }: Route.ActionArgs) {
       {
         ok: false,
         mode: 'qa',
-        error: 'Malformed ask submission payload.',
+        error: 'Malformed chat submission payload.',
         code: 'ERR_VALIDATION',
-        action: 'Review your question and retry.',
+        action: 'Review your message and retry.',
         correlationId,
       },
       { status: 400, headers },
@@ -177,7 +177,7 @@ export async function action({ request, context }: Route.ActionArgs) {
           correlationId,
         }),
       }),
-      { correlationId, source: 'portal.ask.action' },
+      { correlationId, source: 'portal.chat.action' },
     );
     logDiagnosticError(logger, diagnostic);
     return data<PortalAskActionResult>(
@@ -274,7 +274,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       statusText: 'Upstream Error',
       data: isPublicAppError(upstream.data) ? upstream.data : null,
     }),
-    { correlationId, source: 'portal.ask.action' },
+    { correlationId, source: 'portal.chat.action' },
   );
   logDiagnosticError(logger, diagnostic);
 
@@ -295,12 +295,13 @@ export function meta({ matches, location }: Route.MetaArgs) {
   return buildPortalPageMeta({
     matches,
     pathname: location.pathname,
-    title: 'Ask Portfolio & JD Match // andrew-k.us',
-    description: 'Grounded portfolio RAG Q&A and Job Description matcher with strict abstention.',
+    title: 'Chat with Andrew // andrew-k.us',
+    description:
+      "Chat with Andrew's AI about Andrew Klapper's portfolio, general engineering topics, or evaluate role fit against published career dossiers.",
   });
 }
 
-export default function PortalAskRoute({ loaderData }: Route.ComponentProps) {
+export default function PortalChatRoute({ loaderData }: Route.ComponentProps) {
   const fetcher = useFetcher<PortalAskActionResult>();
   const navigate = useNavigate();
   const paneNav = usePaneNavigation();
@@ -310,7 +311,7 @@ export default function PortalAskRoute({ loaderData }: Route.ComponentProps) {
       resolve={loaderData.payload}
       correlationId={loaderData.correlationId}
       homeHref={href('/')}
-      loadingLabel='Loading portfolio Q&A...'
+      loadingLabel='Loading Chat with Andrew...'
       onStreamError={error => {
         reportPortalPublicError(error, { phase: 'stream' });
       }}
@@ -331,7 +332,7 @@ export default function PortalAskRoute({ loaderData }: Route.ComponentProps) {
           onSubmitAsk={({ mode, text, attemptId }) => {
             void fetcher.submit(
               { mode, text, attemptId },
-              { method: 'post', action: href('/ask') },
+              { method: 'post', action: href('/chat') },
             );
           }}
           onClose={() => {

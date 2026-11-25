@@ -40,6 +40,7 @@ import {
   listGoldenSandboxRuns,
   listPublishedCareerDossiers,
   listSandboxRunsForSession,
+  loadAdminAnalyticsSummary,
   loadAdminCmsData,
   loadAdminOverviewData,
   pruneExpiredAskTurns,
@@ -80,7 +81,7 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       ['menu', 'Site menu'],
       ['tui', 'TUI version'],
       ['cadence', 'Agentic workflow example'],
-      ['ask', 'Ask about my work'],
+      ['chat', "Chat with Andrew's AI"],
       ['agensi', 'Published AI skills'],
       ['contact', 'Connect with me'],
       ['changes-in-progress', 'Maintenance preview'],
@@ -90,7 +91,7 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       'menu                  # Site menu',
       'tui                   # TUI version',
       'cadence               # Agentic workflow example',
-      'ask                   # Ask about my work',
+      "chat                  # Chat with Andrew's AI",
       'agensi                # Published AI skills',
       'contact               # Connect with me',
       'changes-in-progress   # Maintenance preview',
@@ -903,5 +904,60 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
     } finally {
       await db.delete(sandboxRuns).where(eq(sandboxRuns.sessionId, cacheSession));
     }
+  });
+
+  it('excludes non-abstained general turns from admin abstention counts and prunes retired ask rows on upsert seed', async () => {
+    const beforeOverview = await loadAdminAnalyticsSummary(db, 'all');
+    const markerSession = `sess-general-analytics-${Date.now()}`;
+    try {
+      await pool.query(
+        `INSERT INTO analytics_sessions (session_id, ip_hash) VALUES ($1, 'test-ip-hash') ON CONFLICT (session_id) DO NOTHING`,
+        [markerSession],
+      );
+      await pool.query(
+        `INSERT INTO analytics_events (session_id, type, name, path, metadata_json) VALUES
+          ($1, 'interaction', 'ask_completed', '/chat', '{"grounded": false, "abstained": false, "groundingTier": "general"}'::jsonb),
+          ($1, 'interaction', 'ask_abstained', '/chat', '{"grounded": false, "abstained": true, "groundingTier": "boundary"}'::jsonb)`,
+        [markerSession],
+      );
+      const afterOverview = await loadAdminAnalyticsSummary(db, 'all');
+      expect(afterOverview.aiMetrics.abstentionEvents).toBe(
+        beforeOverview.aiMetrics.abstentionEvents + 1,
+      );
+    } finally {
+      await pool.query(`DELETE FROM analytics_events WHERE session_id = $1`, [markerSession]);
+      await pool.query(`DELETE FROM analytics_sessions WHERE session_id = $1`, [markerSession]);
+    }
+
+    // Inject legacy 'ask' rows and confirm idempotent upsert seed prunes them
+    await pool.query(
+      `INSERT INTO menu_items (slug, key_shortcut, title, description, sort_order, enabled)
+       VALUES ('ask', '2', 'Legacy Ask', 'Retired', 2, true)
+       ON CONFLICT (slug) DO NOTHING`,
+    );
+    await pool.query(
+      `INSERT INTO terminal_commands (profile_slug, name, description, kind, output, target_route, allowed_routes, sort_order)
+       VALUES ('portal-home', 'ask', 'Legacy ask', 'navigate', 'opening /ask ...', '/ask', '{}', 6)
+       ON CONFLICT (profile_slug, name) DO NOTHING`,
+    );
+    await pool.query(
+      `INSERT INTO terminal_directory_entries (profile_slug, name, description, sort_order, enabled)
+       VALUES ('portal-home', 'ask', 'Legacy ask', 4, true)
+       ON CONFLICT (profile_slug, name) DO NOTHING`,
+    );
+
+    await seedDatabase(db, { mode: 'upsert', env: { ADMIN_PASSWORD: '' } });
+    await seedDatabase(db, { mode: 'upsert', env: { ADMIN_PASSWORD: '' } });
+
+    const legacyMenu = await pool.query(`SELECT slug FROM menu_items WHERE slug = 'ask'`);
+    const legacyCmd = await pool.query(
+      `SELECT name FROM terminal_commands WHERE profile_slug = 'portal-home' AND name = 'ask'`,
+    );
+    const legacyDir = await pool.query(
+      `SELECT name FROM terminal_directory_entries WHERE profile_slug = 'portal-home' AND name = 'ask'`,
+    );
+    expect(legacyMenu.rows).toHaveLength(0);
+    expect(legacyCmd.rows).toHaveLength(0);
+    expect(legacyDir.rows).toHaveLength(0);
   });
 });

@@ -2,7 +2,7 @@ export const PORTAL_NAVIGABLE_ROUTE_PATHS = [
   '/',
   '/menu',
   '/cadence',
-  '/ask',
+  '/chat',
   '/agensi',
   '/contact',
 ] as const;
@@ -19,7 +19,7 @@ export const PORTAL_ROUTE_PATHS = [
   '/',
   '/menu',
   '/cadence',
-  '/ask',
+  '/chat',
   '/agensi',
   '/contact',
   '/api/contact',

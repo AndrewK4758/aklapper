@@ -159,8 +159,11 @@ func TestTieredGroundingRewriteLinksAndJDBudget(t *testing.T) {
 	if tier := classifyGroundingTier("qa", "Who is Andrew Klapper and what does he focus on?", hybridSearchResult{}); tier != contracts.GroundingTierProfile {
 		t.Fatalf("expected profile tier, got %q", tier)
 	}
-	if tier := classifyGroundingTier("qa", "xylophone underwater flamingo soup?", hybridSearchResult{}); tier != contracts.GroundingTierBoundary {
-		t.Fatalf("expected boundary tier, got %q", tier)
+	if tier := classifyGroundingTier("qa", "xylophone underwater flamingo soup?", hybridSearchResult{}); tier != contracts.GroundingTierGeneral {
+		t.Fatalf("expected general tier for non-confidential low-hit qa, got %q", tier)
+	}
+	if tier := classifyGroundingTier("jd_match", "xylophone underwater flamingo soup?", hybridSearchResult{}); tier != contracts.GroundingTierBoundary {
+		t.Fatalf("expected boundary tier for low-hit jd_match, got %q", tier)
 	}
 	if tier := classifyGroundingTier("qa", "Which confidential NDA client did Andrew Klapper work for?", hybridSearchResult{}); tier != contracts.GroundingTierBoundary {
 		t.Fatalf("expected NDA probe mentioning owner name to route to boundary tier, got %q", tier)

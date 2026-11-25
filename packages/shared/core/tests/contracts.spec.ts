@@ -24,13 +24,17 @@ import {
   createPublicAppError,
   FormDefinitionSchema,
   formatTerminalDirectoryListing,
+  GroundingTierSchema,
   JdMatchEvaluationSchema,
   JdMatchRequestSchema,
   K8sPodEventSchema,
   MenuItemSchema,
   Osc7501StatusSchema,
   parseCadenceSseEvent,
+  PORTAL_NAVIGABLE_ROUTE_PATHS,
+  PORTAL_ROUTE_PATHS,
   type PortalAgensiLoaderData,
+  PortalAskContentSchema,
   PortalChromeContentSchema,
   resolveAllowedMimeType,
   sanitizeFilename,
@@ -754,5 +758,24 @@ describe('@aklapper/core (contracts)', () => {
     expect(store.getSnapshot().quota?.turnsUsed).toBe(1);
     expect(closed).toBe(true);
     unsub();
+  });
+
+  it('supports general grounding tier, canonical /chat route paths, and Chat with Andrew defaults', () => {
+    expect(GroundingTierSchema.parse('general')).toBe('general');
+    expect(PORTAL_NAVIGABLE_ROUTE_PATHS).toContain('/chat');
+    expect(PORTAL_NAVIGABLE_ROUTE_PATHS).not.toContain('/ask');
+    expect(PORTAL_ROUTE_PATHS).toContain('/chat');
+    expect(PORTAL_ROUTE_PATHS).not.toContain('/ask');
+
+    const parsed = PortalAskContentSchema.parse({
+      windowTitle: 'Chat with Andrew — AI Chat & Role Fit',
+      statusBadge: { source: 'svc-ai-ask', state: 'idle', label: 'Ready' },
+      description: "Chat with Andrew's AI about his work or anything else.",
+      starterQuestions: ['Who is Andrew Klapper?'],
+      jdPlaceholder: 'Paste a job description...',
+      abstentionNotice: 'Confidential boundaries remain enforced.',
+    });
+    expect(parsed.qaTabLabel).toContain('Chat with Andrew');
+    expect(parsed.submitQaLabel).toMatch(/Send|Chat/i);
   });
 });

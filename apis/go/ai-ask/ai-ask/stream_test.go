@@ -294,12 +294,12 @@ func TestAskStreamHTTPAndGRPCContracts(t *testing.T) {
 		lowQ := newTestQdrantServer(t, 0.12)
 		okProv := &streamStubLLM{chunks: []string{"should not be called"}}
 		hLow := newHandlerWithDeps(askStreamDeps{provider: okProv, vectorStore: &qdrant.Client{BaseURL: lowQ.URL}, store: store}, defaultSyncWaitWindow)
-		reqLow := httptest.NewRequest(http.MethodPost, "/v1/ask/stream", bytes.NewReader([]byte(`{"mode":"qa","question":"Unrelated topic"}`)))
+		reqLow := httptest.NewRequest(http.MethodPost, "/v1/ask/stream", bytes.NewReader([]byte(`{"mode":"qa","question":"Can you share confidential NDA client names?"}`)))
 		reqLow.Header.Set(internalauth.HeaderName, tok)
 		recLow := httptest.NewRecorder()
 		hLow.ServeHTTP(recLow, reqLow)
 		if recLow.Code != http.StatusOK || okProv.streamCalls.Load() != 0 || !strings.Contains(recLow.Body.String(), `"abstained":true`) {
-			t.Fatalf("expected low-score SSE abstention with 0 LLM calls, code=%d calls=%d body=%s", recLow.Code, okProv.streamCalls.Load(), recLow.Body.String())
+			t.Fatalf("expected boundary SSE abstention with 0 LLM calls, code=%d calls=%d body=%s", recLow.Code, okProv.streamCalls.Load(), recLow.Body.String())
 		}
 	})
 

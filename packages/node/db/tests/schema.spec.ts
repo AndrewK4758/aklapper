@@ -7,6 +7,7 @@ import {
   askTurns,
   CADENCE_PRESET_SEEDS,
   cadencePresets,
+  CAREER_DOSSIER_SEEDS,
   careerDossiers,
   ContactDbConstraintError,
   contactSubmissions,
@@ -14,6 +15,7 @@ import {
   extractPgConstraintViolation,
   insertContactSubmission,
   menuItems,
+  PORTAL_ASK_SEED,
   QDRANT_COLLECTIONS,
   roadmapMilestones,
   sandboxRuns,
@@ -295,17 +297,36 @@ describe('@aklapper/db', () => {
 
     try {
       await seedDatabase(mockDb, { ADMIN_PASSWORD: '' });
-      expect(deleteCalls).toHaveLength(0);
+      expect(deleteCalls).toEqual([menuItems, terminalCommands, terminalDirectoryEntries]);
       expect(onConflictUpdateCalls.length).toBeGreaterThan(0);
+      expect(onConflictUpdateCalls).toContain(careerDossiers);
 
+      deleteCalls.length = 0;
       onConflictUpdateCalls.length = 0;
       await seedDatabase(mockDb, { mode: 'bootstrap', env: { ADMIN_PASSWORD: '' } });
       expect(deleteCalls).toHaveLength(0);
       expect(onConflictUpdateCalls).toHaveLength(0);
       expect(onConflictNothingCalls.length).toBeGreaterThan(0);
 
+      deleteCalls.length = 0;
       await seedDatabase(mockDb, { pruneMissingMilestones: true, env: { ADMIN_PASSWORD: '' } });
-      expect(deleteCalls).toEqual([roadmapMilestones]);
+      expect(deleteCalls).toEqual([
+        menuItems,
+        terminalCommands,
+        terminalDirectoryEntries,
+        roadmapMilestones,
+      ]);
+
+      expect(DEFAULT_MENU_ITEMS.some(item => item.slug === 'chat')).toBe(true);
+      expect(DEFAULT_MENU_ITEMS.some(item => item.slug === 'ask')).toBe(false);
+      expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.map(entry => entry.name)).toContain('chat');
+      expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.map(entry => entry.name)).not.toContain('ask');
+      expect(PORTAL_ASK_SEED.windowTitle).toContain('Chat with Andrew');
+      const profileDossier = CAREER_DOSSIER_SEEDS.find(
+        d => d.slug === 'andrew-klapper-profile-core',
+      );
+      expect(JSON.stringify(profileDossier?.sectionsJson)).toContain('/chat');
+      expect(JSON.stringify(profileDossier?.sectionsJson)).not.toContain('/ask');
 
       const logged = infoSpy.mock.calls.flat().join('\n');
       expect(logged).toContain('db.seed.mode_branch');

@@ -14,7 +14,7 @@ import styles from './root.module.css';
 const PORTAL_MOBILE_NAV = [
   { id: 'terminal', to: href('/'), label: 'Terminal', shortLabel: 'TUI', icon: '>_' },
   { id: 'menu', to: href('/menu'), label: 'Menu', shortLabel: 'Menu', icon: '::' },
-  { id: 'ask', to: href('/ask'), label: 'Ask', shortLabel: 'Ask', icon: '?' },
+  { id: 'chat', to: href('/chat'), label: 'Chat', shortLabel: 'Chat', icon: '?' },
   { id: 'cadence', to: href('/cadence'), label: 'CADENCE', shortLabel: 'CAD', icon: '◈' },
   { id: 'contact', to: href('/contact'), label: 'Contact', shortLabel: 'Mail', icon: '@' },
 ] as const;

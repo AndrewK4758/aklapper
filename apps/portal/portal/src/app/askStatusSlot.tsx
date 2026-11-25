@@ -17,7 +17,7 @@ export function createAskStatusSlot({
   content,
   askStatusPayload,
   correlationId,
-  pathname = '/ask',
+  pathname = '/chat',
 }: CreateAskStatusSlotOptions): ReactNode {
   return (
     <SuspenseElement<AskServiceStatus | undefined>

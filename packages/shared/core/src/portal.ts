@@ -379,15 +379,15 @@ export const PortalAskContentSchema = z.object({
         starterQuestions: [...lens.starterQuestions],
       })),
     ),
-  qaTabLabel: z.string().min(1).default('Ask Andrew Assistant'),
+  qaTabLabel: z.string().min(1).default('Chat with Andrew'),
   jdTabLabel: z.string().min(1).default('JD Match'),
   questionPlaceholder: z
     .string()
     .min(1)
-    .default("Ask about Andrew's architecture, engineering leadership, or portfolio stack..."),
-  questionAriaLabel: z.string().min(1).default('Ask a question about Andrew Klapper'),
-  submitQaLabel: z.string().min(1).default('Ask Assistant'),
-  streamingQaLabel: z.string().min(1).default('Streaming Answer...'),
+    .default("Say hi or ask Andrew's AI about his work, architecture, or anything else..."),
+  questionAriaLabel: z.string().min(1).default("Message Andrew's AI"),
+  submitQaLabel: z.string().min(1).default('Send Message'),
+  streamingQaLabel: z.string().min(1).default('Chatting...'),
   newConversationLabel: z.string().min(1).default('New Conversation'),
   jdTextareaLabel: z
     .string()
@@ -399,7 +399,7 @@ export const PortalAskContentSchema = z.object({
     .string()
     .min(1)
     .default(
-      'Select a visitor lens or starter question below to begin a grounded multi-turn conversation.',
+      "Say hello, select a visitor lens, or pick a starter prompt below to chat with Andrew's AI.",
     ),
   boundaryFallbackNotice: z
     .string()

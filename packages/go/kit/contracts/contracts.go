@@ -38,6 +38,7 @@ const (
 
 	GroundingTierProfile  = "profile"
 	GroundingTierEvidence = "evidence"
+	GroundingTierGeneral  = "general"
 	GroundingTierBoundary = "boundary"
 
 	ErrCodeValidation          = "ERR_VALIDATION"
@@ -231,7 +232,7 @@ type AskSuggestedLink struct {
 // IsAllowedPortalNavigableRoute validates routes strictly against the navigable portal route allow-list.
 func IsAllowedPortalNavigableRoute(route string) bool {
 	switch strings.TrimSpace(route) {
-	case "/", "/menu", "/cadence", "/ask", "/agensi", "/contact":
+	case "/", "/menu", "/cadence", "/chat", "/agensi", "/contact":
 		return true
 	default:
 		return false
