@@ -93,6 +93,7 @@ jobs:
       run_smoke_e2e: ${{ steps.resolve.outputs.run_smoke_e2e }}
       smoke_engines_json: ${{ steps.resolve.outputs.smoke_engines_json }}
       has_docker: ${{ steps.plan.outputs.has_docker }}
+      has_db_migration: ${{ steps.plan.outputs.has_db_migration }}
       has_admin_or_db_migration: ${{ steps.plan.outputs.has_admin_or_db_migration }}
       has_cloud_run: ${{ steps.plan.outputs.has_cloud_run }}
       docker_matrix_json: ${{ steps.plan.outputs.docker_matrix_json }}
@@ -265,8 +266,7 @@ jobs:
       (needs.build-and-push.result == 'success' || needs.build-and-push.result == 'skipped') &&
       needs.resolve-plan.outputs.migrate_db == 'true' &&
       (
-        (needs.resolve-plan.outputs.deploy_cloud_run == 'true' && needs.resolve-plan.outputs.has_cloud_run == 'true') ||
-        needs.resolve-plan.outputs.has_admin_or_db_migration == 'true' ||
+        needs.resolve-plan.outputs.has_db_migration == 'true' ||
         needs.resolve-plan.outputs.seed_admin == 'true' ||
         needs.resolve-plan.outputs.seed_content == 'true'
       )

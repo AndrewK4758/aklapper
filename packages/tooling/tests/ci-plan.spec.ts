@@ -120,7 +120,7 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
     expect(() => parseCiPlanCliArgs(['--bogus'])).toThrow(/Unknown ci-plan option/);
   });
 
-  it('adds admin migration host image when migrateDb is enabled with active deployment targets and skips empty diffs', () => {
+  it('runs DB migrations and adds admin migration image only when node-db is affected (skipping portal/admin-UI-only diffs)', () => {
     const withDbAndMigrate = buildCiPlan({
       runAll: false,
       base: 'aaa111',
@@ -135,8 +135,43 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
     });
 
     expect(withDbAndMigrate.dockerServices.map(s => s.service)).toContain('admin');
+    expect(withDbAndMigrate.hasDbMigration).toBe(true);
     expect(withDbAndMigrate.hasAdminOrDbMigration).toBe(true);
+    expect(formatGithubOutputs(withDbAndMigrate)['has_db_migration']).toBe('true');
     expect(formatGithubOutputs(withDbAndMigrate)['has_admin_or_db_migration']).toBe('true');
+
+    const portalOnlyWithMigrate = buildCiPlan({
+      runAll: false,
+      base: 'aaa111',
+      head: 'bbb222',
+      affectedAll: ['portal'],
+      lintProjects: ['portal'],
+      typecheckProjects: ['portal'],
+      buildProjects: ['portal'],
+      testProjects: ['portal'],
+      e2eProjects: [],
+      migrateDb: true,
+    });
+    expect(portalOnlyWithMigrate.dockerServices.map(s => s.service)).toEqual(['portal']);
+    expect(portalOnlyWithMigrate.hasDbMigration).toBe(false);
+    expect(portalOnlyWithMigrate.hasAdminOrDbMigration).toBe(false);
+    expect(formatGithubOutputs(portalOnlyWithMigrate)['has_db_migration']).toBe('false');
+
+    const adminUiOnlyWithMigrate = buildCiPlan({
+      runAll: false,
+      base: 'aaa111',
+      head: 'bbb222',
+      affectedAll: ['admin'],
+      lintProjects: ['admin'],
+      typecheckProjects: ['admin'],
+      buildProjects: ['admin'],
+      testProjects: ['admin'],
+      e2eProjects: [],
+      migrateDb: true,
+    });
+    expect(adminUiOnlyWithMigrate.dockerServices.map(s => s.service)).toEqual(['admin']);
+    expect(adminUiOnlyWithMigrate.hasDbMigration).toBe(false);
+    expect(adminUiOnlyWithMigrate.hasAdminOrDbMigration).toBe(true);
 
     const docsOnlyWithMigrate = buildCiPlan({
       runAll: false,
@@ -151,6 +186,7 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
       migrateDb: true,
     });
     expect(docsOnlyWithMigrate.hasDocker).toBe(false);
+    expect(docsOnlyWithMigrate.hasDbMigration).toBe(false);
     expect(docsOnlyWithMigrate.hasAdminOrDbMigration).toBe(false);
   });
 

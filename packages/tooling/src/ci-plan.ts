@@ -67,6 +67,7 @@ export interface CiPlanOutput {
   readonly hasApiE2e: boolean;
   readonly hasPlaywright: boolean;
   readonly hasDocker: boolean;
+  readonly hasDbMigration: boolean;
   readonly hasAdminOrDbMigration: boolean;
   readonly needsGo: boolean;
   readonly needsTestDb: boolean;
@@ -97,9 +98,8 @@ export function buildCiPlan(input: CiPlanInput): CiPlanOutput {
 
   const cloudRunServices = baseDockerServices.map(spec => spec.service);
 
-  const shouldBuildAdminForMigration = Boolean(
-    input.migrateDb && (baseDockerServices.length > 0 || affectedSet.has('node-db')),
-  );
+  const hasDbMigration = Boolean(input.runAll || affectedSet.has('node-db'));
+  const shouldBuildAdminForMigration = Boolean(input.migrateDb && hasDbMigration);
   const adminSpec = DOCKER_SERVICES.find(spec => spec.service === 'admin');
   const dockerServices =
     shouldBuildAdminForMigration &&
@@ -124,6 +124,7 @@ export function buildCiPlan(input: CiPlanInput): CiPlanOutput {
     hasApiE2e: apiE2eProjects.length > 0,
     hasPlaywright: playwrightApps.length > 0,
     hasDocker: dockerServices.length > 0,
+    hasDbMigration,
     hasAdminOrDbMigration,
     needsGo,
     needsTestDb,
@@ -148,6 +149,7 @@ export function formatGithubOutputs(plan: CiPlanOutput): Record<string, string> 
     has_api_e2e: String(plan.hasApiE2e),
     has_playwright: String(plan.hasPlaywright),
     has_docker: String(plan.hasDocker),
+    has_db_migration: String(plan.hasDbMigration),
     has_admin_or_db_migration: String(plan.hasAdminOrDbMigration),
     needs_go: String(plan.needsGo),
     needs_test_db: String(plan.needsTestDb),
