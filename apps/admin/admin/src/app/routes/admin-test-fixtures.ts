@@ -39,8 +39,6 @@ export const ADMIN_OVERVIEW_FIXTURE: AdminOverviewLoaderData = {
       keyShortcut: '1',
       title: 'CADENCE Builder',
       description: 'Public sandbox',
-      targetK8sDeploy: 'svc-cadence-demo',
-      namespace: 'portfolio-public',
       adminOnly: false,
       sortOrder: 1,
       enabled: true,
@@ -50,8 +48,6 @@ export const ADMIN_OVERVIEW_FIXTURE: AdminOverviewLoaderData = {
       keyShortcut: '9',
       title: 'Admin Ops',
       description: 'Internal admin route',
-      targetK8sDeploy: null,
-      namespace: null,
       adminOnly: true,
       sortOrder: 9,
       enabled: true,
@@ -189,5 +185,4 @@ export const ADMIN_CMS_FIXTURE: AdminCmsLoaderData = {
 export const ADMIN_OPS_FIXTURE: AdminOpsLoaderData = {
   qdrantStatus: QDRANT_FIXTURE,
   sandboxRuns: [],
-  k8sWatchConfigured: false,
 };

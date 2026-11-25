@@ -19,9 +19,7 @@ const OVERVIEW_DATA: AdminOverviewLoaderData = {
       keyShortcut: 'a',
       sortOrder: 1,
       adminOnly: true,
-      namespace: 'portfolio-admin',
       enabled: true,
-      targetK8sDeploy: null,
     },
   ],
   health: {

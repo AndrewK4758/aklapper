@@ -54,7 +54,6 @@ const QUOTAS_DATA: AdminQuotasLoaderData = {
 const OPS_DATA: AdminOpsLoaderData = {
   qdrantStatus: QDRANT_FIXTURE,
   sandboxRuns: [],
-  k8sWatchConfigured: false,
 };
 
 const ERROR_FEEDBACK = {

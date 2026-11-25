@@ -10,7 +10,7 @@ export {
   QdrantRuntimeStatusBody,
 } from './AdminOpsRuntimeCards';
 export {
-  markDeploymentWaking,
-  type OpsClusterSnapshot,
-  useOpsClusterStream,
-} from './opsClusterStore';
+  type OpsRuntimeSnapshot,
+  refreshOpsRuntimeStatus,
+  useOpsRuntimeStatus,
+} from './opsRuntimeStore';

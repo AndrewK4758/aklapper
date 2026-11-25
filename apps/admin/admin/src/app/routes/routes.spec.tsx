@@ -44,7 +44,7 @@ import AdminAnalyticsRoute, {
   loader as analyticsLoader,
   meta as analyticsMeta,
 } from './analytics';
-import { loader as opsStreamLoader } from './api.ops.cluster.stream';
+import { loader as opsRuntimeStatusLoader } from './api.ops.runtime.status';
 import AdminCmsRoute, { ErrorBoundary as CmsErrorBoundary, loader as cmsLoader } from './cms';
 import AdminHomeRoute, { loader as homeLoader, meta as homeMeta } from './home';
 import AdminInboxRoute, { loader as inboxLoader } from './inbox';
@@ -167,7 +167,6 @@ describe('Admin streaming routes, auth guards & SEO', () => {
             ok: true as const,
             data: {
               sandboxRuns: ADMIN_OPS_FIXTURE.sandboxRuns,
-              k8sWatchConfigured: ADMIN_OPS_FIXTURE.k8sWatchConfigured,
             },
           }),
           qdrantStatusPayload: Promise.resolve({
@@ -208,8 +207,9 @@ describe('Admin streaming routes, auth guards & SEO', () => {
     r4.unmount();
 
     render(<Stub initialEntries={['/ops']} />);
-    expect(await screen.findByText('Namespace: portfolio-public')).toBeTruthy();
-    expect(screen.queryByText('Namespace: cadence-admin')).toBeNull();
+    expect(await screen.findByText('Cloud Run / Docker Runtime Health')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Refresh Health' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Wake/i })).toBeNull();
   });
 
   it('rejects unauthenticated direct loader calls with HTTP 401 across all 6 protected child routes and 2 resource routes', async () => {
@@ -229,10 +229,10 @@ describe('Admin streaming routes, auth guards & SEO', () => {
           }) as never,
         ),
       () =>
-        opsStreamLoader(
+        opsRuntimeStatusLoader(
           makeArgs(
-            'http://localhost:4301/api/ops/cluster/stream',
-            '/api/ops/cluster/stream',
+            'http://localhost:4301/api/ops/runtime/status',
+            '/api/ops/runtime/status',
           ) as never,
         ),
     ];
@@ -497,7 +497,6 @@ describe('Admin streaming routes, auth guards & SEO', () => {
               ok: true as const,
               data: {
                 sandboxRuns: ADMIN_OPS_FIXTURE.sandboxRuns,
-                k8sWatchConfigured: ADMIN_OPS_FIXTURE.k8sWatchConfigured,
               },
             }),
             qdrantStatusPayload: Promise.resolve({
@@ -660,7 +659,6 @@ describe('Admin streaming routes, auth guards & SEO', () => {
             ok: true as const,
             data: {
               sandboxRuns: ADMIN_OPS_FIXTURE.sandboxRuns,
-              k8sWatchConfigured: ADMIN_OPS_FIXTURE.k8sWatchConfigured,
             },
           }),
           qdrantStatusPayload: Promise.resolve<StreamResult<QdrantHealthStatus>>({
@@ -698,7 +696,7 @@ describe('Admin streaming routes, auth guards & SEO', () => {
     cmsView.unmount();
 
     const opsView = render(<Stub initialEntries={['/ops']} />);
-    expect(await screen.findByText('Namespace: portfolio-public')).toBeTruthy();
+    expect(await screen.findByText('Cloud Run / Docker Runtime Health')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Re-Index portfolio_docs' })).toBeTruthy();
     const opsAlert = await screen.findByRole('alert');
     expect(opsAlert.textContent).toContain('corr-ops-qdrant-503');

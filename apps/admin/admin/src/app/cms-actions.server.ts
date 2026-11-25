@@ -182,15 +182,11 @@ export async function dispatchAdminCmsIntent(
   }
 
   if (intent === 'upsert-menu-item') {
-    const targetDeploy = String(formData.get('targetK8sDeploy') ?? '').trim();
-    const namespace = String(formData.get('namespace') ?? '').trim();
     const saved = await upsertMenuItem(getSharedDb(), {
       slug: String(formData.get('slug') ?? ''),
       keyShortcut: String(formData.get('keyShortcut') ?? ''),
       title: String(formData.get('title') ?? ''),
       description: String(formData.get('description') ?? ''),
-      targetK8sDeploy: targetDeploy || null,
-      namespace: namespace || null,
       sortOrder: Number(formData.get('sortOrder') ?? 0),
       enabled: formData.get('enabled') === 'true',
       adminOnly: formData.get('adminOnly') === 'true',

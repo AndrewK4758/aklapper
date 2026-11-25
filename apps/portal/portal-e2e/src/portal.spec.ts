@@ -603,20 +603,24 @@ test.describe('portal SSR end-to-end journeys', () => {
     }
   });
 
-  test('streams public-only events from /api/cluster/stream and rejects /contact honeypot spam', async ({
+  test('returns runtime health JSON from /api/runtime/status and rejects /contact honeypot spam', async ({
     request,
   }) => {
     test.skip(
       IS_MAINTENANCE_MODE,
-      'Public cluster SSE and contact routes are gated in maintenance mode',
+      'Public runtime status and contact routes are gated in maintenance mode',
     );
 
-    const sseRes = await request.get('/api/cluster/stream');
-    expect(sseRes.status()).toBe(200);
-    expect(sseRes.headers()['content-type']).toContain('text/event-stream');
-    const sseBody = await sseRes.text();
-    expect(sseBody).toContain('portfolio-public');
-    expect(sseBody).not.toContain('cadence-admin');
+    const statusRes = await request.get('/api/runtime/status');
+    expect(statusRes.status()).toBe(200);
+    expect(statusRes.headers()['content-type']).toContain('application/json');
+    const statusJson = (await statusRes.json()) as {
+      runtime?: string;
+      services?: Array<{ service: string }>;
+    };
+    expect(['cloud-run', 'docker']).toContain(statusJson.runtime);
+    expect(Array.isArray(statusJson.services)).toBe(true);
+    expect(statusJson.services?.some(s => s.service === 'portal')).toBe(true);
 
     const spamRes = await request.post('/api/contact', {
       multipart: {
