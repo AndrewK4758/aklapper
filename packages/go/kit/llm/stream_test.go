@@ -336,3 +336,62 @@ func TestStreamChatFallsBackForLegacyProvider(t *testing.T) {
 		t.Fatalf("unexpected fallback result: got=%q res=%+v err=%v", got, res, err)
 	}
 }
+
+func TestLocalClientTimeoutsAllowColdLoadsWhileVertexStaysStrict(t *testing.T) {
+	t.Run("defaults give LocalClient 120s cold-load runway and keep VertexClient strict", func(t *testing.T) {
+		t.Setenv("AI_PROVIDER", "local")
+		t.Setenv("LOCAL_LLM_HTTP_TIMEOUT_MS", "")
+		t.Setenv("LOCAL_LLM_STREAM_HEADER_TIMEOUT_MS", "")
+		t.Setenv("LOCAL_LLM_STREAM_IDLE_TIMEOUT_MS", "")
+
+		localProv, ok := NewFromEnv().(*LocalClient)
+		if !ok {
+			t.Fatalf("expected *LocalClient from NewFromEnv")
+		}
+		if localProv.HTTPClient.Timeout != DefaultLocalHTTPTimeout {
+			t.Fatalf("expected LocalClient HTTPClient.Timeout=%v, got %v", DefaultLocalHTTPTimeout, localProv.HTTPClient.Timeout)
+		}
+		localTransport, ok := localProv.StreamHTTPClient.Transport.(*http.Transport)
+		if !ok || localTransport.ResponseHeaderTimeout != DefaultLocalStreamResponseHeaderTTL {
+			t.Fatalf("expected LocalClient StreamHTTPClient ResponseHeaderTimeout=%v, got %+v", DefaultLocalStreamResponseHeaderTTL, localProv.StreamHTTPClient.Transport)
+		}
+		if got := localStreamIdleTimeout(0); got != DefaultLocalStreamIdleTimeout {
+			t.Fatalf("expected LocalClient idle timeout=%v, got %v", DefaultLocalStreamIdleTimeout, got)
+		}
+
+		t.Setenv("AI_PROVIDER", "vertex")
+		vertexProv, ok := NewFromEnv().(*VertexClient)
+		if !ok {
+			t.Fatalf("expected *VertexClient from NewFromEnv")
+		}
+		if vertexProv.HTTPClient.Timeout != 30*time.Second {
+			t.Fatalf("expected VertexClient HTTPClient.Timeout=30s, got %v", vertexProv.HTTPClient.Timeout)
+		}
+		vertexTransport, ok := vertexProv.StreamHTTPClient.Transport.(*http.Transport)
+		if !ok || vertexTransport.ResponseHeaderTimeout != DefaultStreamResponseHeaderTTL {
+			t.Fatalf("expected VertexClient StreamHTTPClient ResponseHeaderTimeout=%v, got %+v", DefaultStreamResponseHeaderTTL, vertexProv.StreamHTTPClient.Transport)
+		}
+	})
+
+	t.Run("env overrides customize LocalClient timeouts", func(t *testing.T) {
+		t.Setenv("AI_PROVIDER", "local")
+		t.Setenv("LOCAL_LLM_HTTP_TIMEOUT_MS", "95000")
+		t.Setenv("LOCAL_LLM_STREAM_HEADER_TIMEOUT_MS", "85000")
+		t.Setenv("LOCAL_LLM_STREAM_IDLE_TIMEOUT_MS", "75000")
+
+		localProv, ok := NewFromEnv().(*LocalClient)
+		if !ok {
+			t.Fatalf("expected *LocalClient from NewFromEnv")
+		}
+		if localProv.HTTPClient.Timeout != 95*time.Second {
+			t.Fatalf("expected 95s HTTPClient.Timeout, got %v", localProv.HTTPClient.Timeout)
+		}
+		localTransport, ok := localProv.StreamHTTPClient.Transport.(*http.Transport)
+		if !ok || localTransport.ResponseHeaderTimeout != 85*time.Second {
+			t.Fatalf("expected 85s ResponseHeaderTimeout, got %v", localTransport.ResponseHeaderTimeout)
+		}
+		if got := localStreamIdleTimeout(0); got != 75*time.Second {
+			t.Fatalf("expected 75s idle timeout, got %v", got)
+		}
+	})
+}

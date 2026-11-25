@@ -17,7 +17,7 @@ func (c *LocalClient) streamHTTPClient() *http.Client {
 		return c.StreamHTTPClient
 	}
 	c.streamClientOnce.Do(func() {
-		c.defaultStreamClient = newDefaultStreamHTTPClient(c.HTTPClient)
+		c.defaultStreamClient = newStreamHTTPClient(c.HTTPClient, localStreamResponseHeaderTTL())
 	})
 	return c.defaultStreamClient
 }
@@ -79,7 +79,7 @@ func (c *LocalClient) ChatStream(
 	if err != nil {
 		return ChatStreamResult{}, err
 	}
-	watched := newIdleWatchReader(res.Body, effectiveIdleTimeout(req.IdleTimeout), cancel)
+	watched := newIdleWatchReader(res.Body, localStreamIdleTimeout(req.IdleTimeout), cancel)
 	defer watched.Close()
 
 	if res.StatusCode >= 300 {

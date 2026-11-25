@@ -71,7 +71,7 @@ func (c *LocalClient) httpClient() *http.Client {
 	if c.HTTPClient != nil {
 		return c.HTTPClient
 	}
-	return &http.Client{Timeout: 30 * time.Second}
+	return &http.Client{Timeout: localHTTPTimeout()}
 }
 
 func (c *LocalClient) Chat(ctx context.Context, messages []ChatMessage, maxTokens int) (Completion, error) {
@@ -443,7 +443,7 @@ func NewFromEnv() Provider {
 		BaseURL:          baseURL,
 		ChatModel:        os.Getenv("LOCAL_LLM_CHAT_MODEL"),
 		EmbedModel:       os.Getenv("LOCAL_LLM_EMBED_MODEL"),
-		HTTPClient:       &http.Client{Timeout: 30 * time.Second},
-		StreamHTTPClient: newDefaultStreamHTTPClient(nil),
+		HTTPClient:       &http.Client{Timeout: localHTTPTimeout()},
+		StreamHTTPClient: newStreamHTTPClient(nil, localStreamResponseHeaderTTL()),
 	}
 }

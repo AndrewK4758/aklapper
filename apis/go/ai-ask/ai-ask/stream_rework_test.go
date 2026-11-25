@@ -277,6 +277,7 @@ func TestStreamObservabilitySeamsAndRetrievalCancel499(t *testing.T) {
 			time.Sleep(50 * time.Millisecond)
 			cancel()
 		}()
+		emitter := &scriptedEmitter{}
 		attemptID := "bbbb7777-7777-4777-8777-777777777777"
 		syncFail := executeStreamingTurn(ctx, askStreamDeps{
 			provider:    &streamStubLLM{chunks: []string{"unused"}},
@@ -286,9 +287,12 @@ func TestStreamObservabilitySeamsAndRetrievalCancel499(t *testing.T) {
 		}, askStreamInput{
 			Mode: "qa", Question: "Describe retrieval timeout handling?", AttemptID: attemptID,
 			SessionID: "sess-ret-cancel", Role: contracts.RoleGuest, CorrelationID: "corr-ret-cancel",
-		}, func() (streamEmitter, func(), error) { return &scriptedEmitter{}, nil, nil })
-		if syncFail == nil || syncFail.HTTPStatus != 499 || syncFail.Error.Code != contracts.ErrCodeStreamAborted {
-			t.Fatalf("expected 499 ERR_STREAM_ABORTED on retrieval cancel, got %+v", syncFail)
+		}, func() (streamEmitter, func(), error) { return emitter, nil, nil })
+		if syncFail != nil {
+			t.Fatalf("expected SSE error event after early stream start, got syncFail=%+v", syncFail)
+		}
+		if len(emitter.errorCodes) != 1 || emitter.errorCodes[0] != contracts.ErrCodeStreamAborted {
+			t.Fatalf("expected ERR_STREAM_ABORTED error event on retrieval cancel, got %+v", emitter.errorCodes)
 		}
 		turn, quota, err := store.GetTurnByAttemptID(context.Background(), attemptID, "sess-ret-cancel")
 		if err != nil || turn.ErrorCode != contracts.ErrCodeStreamAborted || quota.TurnsUsed != 0 {
@@ -296,7 +300,7 @@ func TestStreamObservabilitySeamsAndRetrievalCancel499(t *testing.T) {
 		}
 	})
 
-	t.Run("mid-retrieval cancel with fast PG19 lexical hit returns 499 without starting stream or logging arm_degraded", func(t *testing.T) {
+	t.Run("mid-retrieval cancel with fast PG19 lexical hit emits 499 without emitting sources or logging arm_degraded", func(t *testing.T) {
 		slowQdrant := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			select {
 			case <-r.Context().Done():
@@ -330,7 +334,7 @@ func TestStreamObservabilitySeamsAndRetrievalCancel499(t *testing.T) {
 			time.Sleep(40 * time.Millisecond)
 			cancel()
 		}()
-		streamStarted := false
+		emitter := &scriptedEmitter{}
 		attemptID := "bbbb8888-8888-4888-8888-888888888888"
 		syncFail := executeStreamingTurn(ctx, askStreamDeps{
 			provider:    &streamStubLLM{chunks: []string{"unused"}},
@@ -341,14 +345,16 @@ func TestStreamObservabilitySeamsAndRetrievalCancel499(t *testing.T) {
 			Mode: "qa", Question: "How does Andrew build gRPC Cloud Run services?", AttemptID: attemptID,
 			SessionID: "sess-ret-cancel-lex", Role: contracts.RoleGuest, CorrelationID: "corr-ret-cancel-lex",
 		}, func() (streamEmitter, func(), error) {
-			streamStarted = true
-			return &scriptedEmitter{}, nil, nil
+			return emitter, nil, nil
 		})
-		if syncFail == nil || syncFail.HTTPStatus != 499 || syncFail.Error.Code != contracts.ErrCodeStreamAborted {
-			t.Fatalf("expected 499 ERR_STREAM_ABORTED on mid-retrieval cancel with fast lexical hit, got %+v", syncFail)
+		if syncFail != nil {
+			t.Fatalf("expected SSE error event after early stream start, got syncFail=%+v", syncFail)
 		}
-		if streamStarted {
-			t.Fatal("startStream must not be invoked after context cancellation during hybrid search")
+		if len(emitter.errorCodes) != 1 || emitter.errorCodes[0] != contracts.ErrCodeStreamAborted {
+			t.Fatalf("expected ERR_STREAM_ABORTED error event on mid-retrieval cancel, got %+v", emitter.errorCodes)
+		}
+		if emitter.sourcesCalls != 0 || emitter.deltaCalls != 0 || emitter.doneCount != 0 {
+			t.Fatalf("canceled retrieval must not emit sources/deltas/done, got sources=%d deltas=%d done=%d", emitter.sourcesCalls, emitter.deltaCalls, emitter.doneCount)
 		}
 		if strings.Contains(logs.String(), `"event":"ai_ask.retrieval.arm_degraded"`) {
 			t.Fatalf("canceled retrieval must not emit spurious ai_ask.retrieval.arm_degraded log: %s", logs.String())

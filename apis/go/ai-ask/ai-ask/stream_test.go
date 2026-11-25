@@ -36,6 +36,7 @@ type streamStubLLM struct {
 	tokensUsed   int
 	streamErr    error
 	embedErr     error
+	onEmbed      func()
 	ctxCancelled atomic.Bool
 	streamCalls  atomic.Int32
 }
@@ -47,6 +48,9 @@ func (s *streamStubLLM) Chat(_ context.Context, _ []llm.ChatMessage, _ int) (llm
 }
 
 func (s *streamStubLLM) Embed(_ context.Context, _ string) ([]float32, error) {
+	if s.onEmbed != nil {
+		s.onEmbed()
+	}
 	if s.embedErr != nil {
 		return nil, s.embedErr
 	}
@@ -268,17 +272,23 @@ func TestAskStreamHTTPAndGRPCContracts(t *testing.T) {
 		}
 	})
 
-	t.Run("Pre-stream embed failure returns synchronous 502 and refunds quota; low score abstains cleanly", func(t *testing.T) {
+	t.Run("Embed failure emits SSE error event and refunds quota after early status flush; low score abstains cleanly", func(t *testing.T) {
 		failProv := &streamStubLLM{embedErr: errors.New("embed offline")}
 		store := pg.NewMemoryStore()
 		hFail := newHandlerWithDeps(askStreamDeps{provider: failProv, vectorStore: &qdrant.Client{BaseURL: qSrv.URL}, store: store}, defaultSyncWaitWindow)
 		tok := signHeader(t, internalauth.RoleGuest, "guest-fail-pre")
-		req := httptest.NewRequest(http.MethodPost, "/v1/ask/stream", bytes.NewReader([]byte(`{"mode":"qa","question":"Will fail embed"}`)))
+		attemptID := "abababab-abab-4bab-8bab-abababababab"
+		req := httptest.NewRequest(http.MethodPost, "/v1/ask/stream", bytes.NewReader([]byte(`{"mode":"qa","attemptId":"`+attemptID+`","question":"Will fail embed"}`)))
 		req.Header.Set(internalauth.HeaderName, tok)
 		rec := httptest.NewRecorder()
 		hFail.ServeHTTP(rec, req)
-		if rec.Code != http.StatusBadGateway {
-			t.Fatalf("expected synchronous 502 before flushing SSE, got %d", rec.Code)
+		body := rec.Body.String()
+		if rec.Code != http.StatusOK || !strings.Contains(body, "event: status\n") || !strings.Contains(body, "event: error\n") || !strings.Contains(body, contracts.ErrCodeUpstreamUnavailable) {
+			t.Fatalf("expected early SSE headers followed by ERR_UPSTREAM_UNAVAILABLE error event, got code=%d body=%s", rec.Code, body)
+		}
+		turn, quota, err := store.GetTurnByAttemptID(context.Background(), attemptID, "guest-fail-pre")
+		if err != nil || turn.ErrorCode != contracts.ErrCodeUpstreamUnavailable || quota.TurnsUsed != 0 {
+			t.Fatalf("expected refunded ERR_UPSTREAM_UNAVAILABLE turn, got turn=%+v quota=%+v err=%v", turn, quota, err)
 		}
 
 		lowQ := newTestQdrantServer(t, 0.12)
@@ -290,6 +300,64 @@ func TestAskStreamHTTPAndGRPCContracts(t *testing.T) {
 		hLow.ServeHTTP(recLow, reqLow)
 		if recLow.Code != http.StatusOK || okProv.streamCalls.Load() != 0 || !strings.Contains(recLow.Body.String(), `"abstained":true`) {
 			t.Fatalf("expected low-score SSE abstention with 0 LLM calls, code=%d calls=%d body=%s", recLow.Code, okProv.streamCalls.Load(), recLow.Body.String())
+		}
+	})
+
+	t.Run("SSE headers and retrieving status flush before slow embedding cold load completes", func(t *testing.T) {
+		embedStarted := make(chan struct{})
+		releaseEmbed := make(chan struct{})
+		slowEmbedProv := &streamStubLLM{
+			chunks:     []string{"Cold-loaded ", "response."},
+			tokensUsed: 24,
+			onEmbed: func() {
+				close(embedStarted)
+				<-releaseEmbed
+			},
+		}
+		store := pg.NewMemoryStore()
+		h := newHandlerWithDeps(askStreamDeps{provider: slowEmbedProv, vectorStore: &qdrant.Client{BaseURL: qSrv.URL}, store: store, privacyCfg: privCfg}, defaultSyncWaitWindow)
+		srv := httptest.NewServer(h)
+		defer srv.Close()
+
+		tok := signHeader(t, internalauth.RoleGuest, "guest-cold-load")
+		req, err := http.NewRequest(http.MethodPost, srv.URL+"/v1/ask/stream", bytes.NewReader([]byte(`{"mode":"qa","question":"Explain architecture"}`)))
+		if err != nil {
+			t.Fatalf("NewRequest: %v", err)
+		}
+		req.Header.Set(internalauth.HeaderName, tok)
+
+		respCh := make(chan *http.Response, 1)
+		errCh := make(chan error, 1)
+		go func() {
+			res, doErr := srv.Client().Do(req)
+			if doErr != nil {
+				errCh <- doErr
+				return
+			}
+			respCh <- res
+		}()
+
+		<-embedStarted
+		select {
+		case doErr := <-errCh:
+			t.Fatalf("HTTP request failed while embed was blocked: %v", doErr)
+		case res := <-respCh:
+			defer res.Body.Close()
+			if res.StatusCode != http.StatusOK {
+				t.Fatalf("expected 200 SSE headers before embed finished, got %d", res.StatusCode)
+			}
+			close(releaseEmbed)
+			rawBytes, readErr := io.ReadAll(res.Body)
+			if readErr != nil {
+				t.Fatalf("ReadAll: %v", readErr)
+			}
+			raw := string(rawBytes)
+			if !strings.Contains(raw, `"stage":"retrieving"`) || !strings.Contains(raw, "event: sources\n") || !strings.Contains(raw, "event: delta\n") || !strings.Contains(raw, "event: done\n") {
+				t.Fatalf("expected full retrieving -> sources -> delta -> done SSE sequence, got:\n%s", raw)
+			}
+		case <-time.After(1 * time.Second):
+			close(releaseEmbed)
+			t.Fatal("timed out waiting for SSE response headers while embedding cold load was blocked")
 		}
 	})
 
