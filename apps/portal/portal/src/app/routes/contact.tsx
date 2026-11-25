@@ -40,13 +40,18 @@ export function meta({ matches, location }: Route.MetaArgs) {
 export async function action({ request, context }: Route.ActionArgs) {
   const reqCtx = getRequestContext(context);
   const correlationId = getOrCreateCorrelationId(request, context);
-  const { payload, status } = await processContactSubmission(request, {
+  const { payload, status, retryAfterSeconds } = await processContactSubmission(request, {
     correlationId,
     logger: reqCtx?.logger,
   });
   return data<ContactActionResult>(payload, {
     status,
-    headers: { 'X-Correlation-Id': correlationId },
+    headers: {
+      'X-Correlation-Id': correlationId,
+      ...(typeof retryAfterSeconds === 'number'
+        ? { 'Retry-After': String(retryAfterSeconds) }
+        : {}),
+    },
   });
 }
 

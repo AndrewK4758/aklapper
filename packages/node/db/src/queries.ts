@@ -87,6 +87,7 @@ export {
   type AuthRateLimitOptions,
   type AuthRateLimitResult,
   consumeAuthRateLimit,
+  consumeRateLimit,
 } from './auth-rate-limit.ts';
 export {
   claimPendingSandboxRun,

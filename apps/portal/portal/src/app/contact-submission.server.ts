@@ -13,10 +13,12 @@ import {
 import { classifyServerError } from '@aklapper/core/server-errors';
 import {
   ContactDbConstraintError,
+  consumeRateLimit,
   getSharedDb,
   insertContactSubmission,
   loadPortalContactData,
 } from '@aklapper/db';
+import { extractRightmostForwardedIp } from '@aklapper/node-runtime/http';
 import {
   createFallbackLogger,
   getOrCreateCorrelationId,
@@ -26,37 +28,28 @@ import {
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 20;
-const ipHits = new Map<string, number[]>();
 
 export function resetContactRateLimiterForTest(): void {
-  ipHits.clear();
+  // Rate limiting is persisted in PostgreSQL rate_limit_buckets; retained as a no-op for test compatibility.
 }
 
-function resolveClientKey(request: Request): string {
+export function resolveClientKey(request: Request): string {
   const headers = request.headers;
   if (!headers || typeof headers.get !== 'function') {
     return 'local-client';
   }
-  const forwarded = headers.get('x-forwarded-for');
-  if (forwarded) {
-    const first = forwarded.split(',')[0]?.trim();
-    if (first) return first;
+  const forwardedIp = extractRightmostForwardedIp(headers.get('x-forwarded-for'));
+  if (forwardedIp) {
+    return forwardedIp;
   }
   const realIp = headers.get('x-real-ip')?.trim();
   if (realIp) return realIp;
   return 'local-client';
 }
 
-function checkRateLimit(clientKey: string, now = Date.now()): boolean {
-  const cutoff = now - RATE_LIMIT_WINDOW_MS;
-  const existing = (ipHits.get(clientKey) ?? []).filter(ts => ts > cutoff);
-  if (existing.length >= RATE_LIMIT_MAX_REQUESTS) {
-    ipHits.set(clientKey, existing);
-    return false;
-  }
-  existing.push(now);
-  ipHits.set(clientKey, existing);
-  return true;
+function buildContactRateLimitScopeKey(clientKey: string): string {
+  const digest = createHash('sha256').update(clientKey).digest('hex').slice(0, 32);
+  return `contact:ip:${digest}`;
 }
 
 function addFieldError(map: FormFieldErrorMap, field: string, message: string): void {
@@ -128,6 +121,7 @@ export interface ContactSubmissionHttpResult {
   readonly payload: ContactActionResult;
   readonly status: number;
   readonly correlationId: string;
+  readonly retryAfterSeconds?: number;
 }
 
 export async function processContactSubmission(
@@ -137,22 +131,33 @@ export async function processContactSubmission(
   const correlationId = context.correlationId ?? getOrCreateCorrelationId(request);
   const logger = context.logger ?? createFallbackLogger('portal-contact');
 
-  const clientKey = resolveClientKey(request);
-  if (!checkRateLimit(clientKey)) {
-    return {
-      status: 429,
-      correlationId,
-      payload: {
-        ok: false,
-        source: 'server',
-        formError:
-          'Too many contact submissions from this address. Please wait a minute and retry.',
-        fieldErrors: {},
-        code: 'ERR_RATE_LIMITED',
-        action: 'Wait a moment and submit again.',
+  let db: ReturnType<typeof getSharedDb>;
+  try {
+    db = getSharedDb();
+    const clientKey = resolveClientKey(request);
+    const rateLimit = await consumeRateLimit(db, buildContactRateLimitScopeKey(clientKey), {
+      maxAttempts: RATE_LIMIT_MAX_REQUESTS,
+      windowMs: RATE_LIMIT_WINDOW_MS,
+    });
+    if (!rateLimit.allowed) {
+      return {
+        status: 429,
         correlationId,
-      },
-    };
+        retryAfterSeconds: rateLimit.retryAfterSeconds,
+        payload: {
+          ok: false,
+          source: 'server',
+          formError:
+            'Too many contact submissions from this address. Please wait a minute and retry.',
+          fieldErrors: {},
+          code: 'ERR_RATE_LIMITED',
+          action: 'Wait a moment and submit again.',
+          correlationId,
+        },
+      };
+    }
+  } catch (error) {
+    return buildClassifiedContactFailure(error, correlationId, 'portal.contact.rate_limit', logger);
   }
 
   let formData: FormData;
@@ -192,10 +197,8 @@ export async function processContactSubmission(
     };
   }
 
-  let db: ReturnType<typeof getSharedDb>;
   let content: Awaited<ReturnType<typeof loadPortalContactData>>['content'];
   try {
-    db = getSharedDb();
     ({ content } = await loadPortalContactData(db));
   } catch (error) {
     return buildClassifiedContactFailure(error, correlationId, 'portal.contact.load', logger);

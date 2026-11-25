@@ -412,8 +412,37 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
     const postReqInit = fetchSpy.mock.calls[0]?.[1];
     expect(new Headers(postReqInit?.headers).get('x-internal-auth')).toBeTruthy();
 
+    const pollMissingCookie = await askTurnPollLoader({
+      request: new Request(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`),
+      params: { attemptId: pendingAttemptId },
+      context: makeContext('corr-poll-401-missing').context,
+      url: new URL(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`),
+      pattern: '/api/ask/turns/:attemptId',
+    });
+    expect(pollMissingCookie.status).toBe(401);
+    expect(pollMissingCookie.headers.get('set-cookie')).toBeNull();
+
+    const pollForgedCookie = await askTurnPollLoader({
+      request: new Request(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`, {
+        headers: { cookie: 'ak_guest_session=guest_forged_unsigned_value' },
+      }),
+      params: { attemptId: pendingAttemptId },
+      context: makeContext('corr-poll-401-forged').context,
+      url: new URL(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`),
+      pattern: '/api/ask/turns/:attemptId',
+    });
+    expect(pollForgedCookie.status).toBe(401);
+    expect(pollForgedCookie.headers.get('set-cookie')).toBeNull();
+
+    const signedGuestCookieHeader = String(
+      (pendingRes.init?.headers as Record<string, string> | undefined)?.['Set-Cookie'] ?? '',
+    ).split(';')[0];
+    expect(signedGuestCookieHeader).toMatch(/^ak_guest_session=guest_[a-f0-9]+\./);
+
     const pollBadUuid = await askTurnPollLoader({
-      request: new Request('https://andrew-k.us/api/ask/turns/not-a-uuid'),
+      request: new Request('https://andrew-k.us/api/ask/turns/not-a-uuid', {
+        headers: { cookie: signedGuestCookieHeader },
+      }),
       params: { attemptId: 'not-a-uuid' },
       context: makeContext('corr-poll-400').context,
       url: new URL('https://andrew-k.us/api/ask/turns/not-a-uuid'),
@@ -423,7 +452,9 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
 
     vi.stubEnv('AI_ASK_URL', '');
     const pollNoUpstream = await askTurnPollLoader({
-      request: new Request(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`),
+      request: new Request(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`, {
+        headers: { cookie: signedGuestCookieHeader },
+      }),
       params: { attemptId: pendingAttemptId },
       context: makeContext('corr-poll-503').context,
       url: new URL(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`),
@@ -446,7 +477,9 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
       ),
     );
     const pollPending = await askTurnPollLoader({
-      request: new Request(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`),
+      request: new Request(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`, {
+        headers: { cookie: signedGuestCookieHeader },
+      }),
       params: { attemptId: pendingAttemptId },
       context: makeContext('corr-poll-202').context,
       url: new URL(`https://andrew-k.us/api/ask/turns/${pendingAttemptId}`),

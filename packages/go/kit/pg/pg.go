@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -39,8 +40,10 @@ var (
 )
 
 type Config struct {
-	DatabaseURL string
-	MaxConns    int
+	DatabaseURL          string
+	MaxConns             int
+	StartupMaxAttempts   int
+	StartupRetryInterval time.Duration
 }
 
 func ConfigFromEnv() (Config, error) {
@@ -68,7 +71,7 @@ func ConfigFromEnv() (Config, error) {
 func ValidateDSN(dsn string) error {
 	parsed, err := url.Parse(dsn)
 	if err != nil {
-		return err
+		return errors.New("DATABASE_URL is not a valid PostgreSQL URI")
 	}
 	if parsed.Scheme != "postgres" && parsed.Scheme != "postgresql" {
 		return errors.New("DATABASE_URL must use postgres:// or postgresql:// scheme")
@@ -195,13 +198,47 @@ func defaultPolicies() map[string]QuotaPolicy {
 	}
 }
 
+func resolveStartupRetryBudget(cfg Config) (int, time.Duration) {
+	maxAttempts := cfg.StartupMaxAttempts
+	if maxAttempts <= 0 {
+		if raw := strings.TrimSpace(os.Getenv("PG_STARTUP_MAX_ATTEMPTS")); raw != "" {
+			if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 {
+				maxAttempts = parsed
+			}
+		}
+	}
+	if maxAttempts <= 0 {
+		if internalauth.IsProductionEnv() {
+			maxAttempts = 5
+		} else {
+			maxAttempts = 1
+		}
+	}
+	if maxAttempts > 10 {
+		maxAttempts = 10
+	}
+
+	interval := cfg.StartupRetryInterval
+	if interval <= 0 {
+		if raw := strings.TrimSpace(os.Getenv("PG_STARTUP_RETRY_MS")); raw != "" {
+			if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 {
+				interval = time.Duration(parsed) * time.Millisecond
+			}
+		}
+	}
+	if interval <= 0 {
+		interval = 500 * time.Millisecond
+	}
+	return maxAttempts, interval
+}
+
 func Open(ctx context.Context, cfg Config) (*Store, error) {
 	if err := ValidateDSN(cfg.DatabaseURL); err != nil {
 		return nil, err
 	}
 	poolCfg, err := pgxpool.ParseConfig(cfg.DatabaseURL)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("DATABASE_URL could not be parsed by pgxpool")
 	}
 	if cfg.MaxConns > 0 {
 		poolCfg.MaxConns = int32(cfg.MaxConns)
@@ -210,11 +247,28 @@ func Open(ctx context.Context, cfg Config) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-	if err := pool.Ping(pingCtx); err != nil {
-		pool.Close()
-		return nil, err
+	maxAttempts, baseInterval := resolveStartupRetryBudget(cfg)
+	var lastPingErr error
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		lastPingErr = pool.Ping(pingCtx)
+		cancel()
+		if lastPingErr == nil {
+			break
+		}
+		if attempt == maxAttempts {
+			pool.Close()
+			return nil, lastPingErr
+		}
+		backoff := min(time.Duration(attempt)*baseInterval, 2*time.Second)
+		timer := time.NewTimer(backoff)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			pool.Close()
+			return nil, ctx.Err()
+		case <-timer.C:
+		}
 	}
 	return &Store{
 		pool:                pool,
@@ -254,6 +308,16 @@ func OpenFromEnvStrict(ctx context.Context) (*Store, error) {
 		maxConns = parsed
 	}
 	return Open(ctx, Config{DatabaseURL: dsn, MaxConns: maxConns})
+}
+
+// OpenServiceFromEnv enforces fail-closed PostgreSQL startup in production
+// (ignoring PG_DISABLE_LIVE=true) while preserving local/e2e best-effort fallback
+// in non-production environments.
+func OpenServiceFromEnv(ctx context.Context) (*Store, error) {
+	if internalauth.IsProductionEnv() {
+		return OpenFromEnvStrict(ctx)
+	}
+	return OpenBestEffort(ctx), nil
 }
 
 // OpenBestEffort connects to live PG19 when DATABASE_URL is reachable,

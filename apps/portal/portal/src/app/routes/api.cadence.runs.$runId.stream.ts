@@ -7,7 +7,6 @@ import {
   getSandboxRunWithTurnsById,
   getSharedDb,
 } from '@aklapper/db';
-import { GUEST_SESSION_COOKIE_NAME, parseCookieHeader } from '@aklapper/node-runtime/auth';
 import { proxySse } from '@aklapper/node-runtime/http';
 import {
   createFallbackLogger,
@@ -24,10 +23,10 @@ import {
   runFallbackChordBuildPhaseSse,
   runFallbackChordPipelineSse,
 } from '../cadence-fallback-stream.server';
+import { requireGuestSession } from '../guest-session.server';
 import type { Route } from './+types/api.cadence.runs.$runId.stream';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const SESSION_ID_RE = /^[a-zA-Z0-9_-]{8,96}$/;
 const SSE_BASE_HEADERS: Readonly<Record<string, string>> = {
   'content-type': 'text/event-stream; charset=utf-8',
   'cache-control': 'no-cache',
@@ -57,10 +56,19 @@ export async function loader({ request, params, context }: Route.LoaderArgs): Pr
     );
   }
 
-  // Strictly read cookie header without issuing a new session or reading URL query params.
-  const cookies = parseCookieHeader(request.headers.get('cookie'));
-  const sessionId = cookies[GUEST_SESSION_COOKIE_NAME]?.trim();
-  if (!sessionId || !SESSION_ID_RE.test(sessionId)) {
+  // Strictly verify signed guest cookie header without issuing a new session or reading URL query params.
+  let sessionId: string | null;
+  try {
+    sessionId = requireGuestSession(request);
+  } catch (error) {
+    const { publicError, diagnostic } = classifyServerError(error, {
+      correlationId,
+      source: 'portal.cadence.stream.session',
+    });
+    logDiagnosticError(logger, diagnostic);
+    return Response.json(publicError, { status: publicError.status, headers: jsonHeaders });
+  }
+  if (!sessionId) {
     logCadenceStreamSeam(
       'error',
       'UNSOUND_CONDITION',
@@ -180,10 +188,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs): Pr
     async start(controller) {
       const sink = createSafeSseSink(controller, encoder, isCancelled);
       try {
-        if (
-          record.run.runStatus === 'ready' ||
-          record.run.runStatus === 'awaiting_approval'
-        ) {
+        if (record.run.runStatus === 'ready' || record.run.runStatus === 'awaiting_approval') {
           logCadenceStreamSeam('info', 'RULE_DIVERGENCE', 'cadence.run.execution_branch', 'info', {
             runId,
             branch: 'stream-replay',

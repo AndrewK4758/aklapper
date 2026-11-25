@@ -1,30 +1,40 @@
 import { randomUUID } from 'node:crypto';
 
+import { isReactRouterPrerender } from '@aklapper/db';
 import {
   GUEST_SESSION_COOKIE_NAME,
   isSecureRequest,
   parseCookieHeader,
   serializeSessionCookie,
+  signGuestSessionCookie,
+  verifyGuestSessionCookie,
 } from '@aklapper/node-runtime/auth';
 
 const GUEST_SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
-const SESSION_ID_RE = /^[a-zA-Z0-9_-]{8,96}$/;
 
 export interface ResolvedGuestSession {
   readonly sessionId: string;
   readonly setCookieHeader?: string;
 }
 
-export function resolveGuestSession(request: Request): ResolvedGuestSession {
+export function requireGuestSession(request: Request): string | null {
   const cookies = parseCookieHeader(request.headers.get('cookie'));
-  const existing = cookies[GUEST_SESSION_COOKIE_NAME]?.trim();
-  if (existing && SESSION_ID_RE.test(existing)) {
-    return { sessionId: existing };
+  return verifyGuestSessionCookie(cookies[GUEST_SESSION_COOKIE_NAME]);
+}
+
+export function resolveGuestSession(request: Request): ResolvedGuestSession {
+  if (isReactRouterPrerender()) {
+    return { sessionId: 'guest_prerender' };
+  }
+  const existingSessionId = requireGuestSession(request);
+  if (existingSessionId) {
+    return { sessionId: existingSessionId };
   }
 
   const sessionId = `guest_${randomUUID().replaceAll('-', '')}`;
+  const signedCookieValue = signGuestSessionCookie(sessionId);
   const secure = isSecureRequest(request.url, request.headers.get('x-forwarded-proto'));
-  const setCookieHeader = serializeSessionCookie(GUEST_SESSION_COOKIE_NAME, sessionId, {
+  const setCookieHeader = serializeSessionCookie(GUEST_SESSION_COOKIE_NAME, signedCookieValue, {
     maxAgeSeconds: GUEST_SESSION_TTL_SECONDS,
     httpOnly: true,
     sameSite: 'Lax',
