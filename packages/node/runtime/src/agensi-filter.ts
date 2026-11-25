@@ -9,6 +9,7 @@ import {
   AgensiSkillSchema,
 } from '@aklapper/core';
 
+export const DEFAULT_AGENSI_API_BASE_URL = 'https://www.agensi.io';
 export const DEFAULT_AGENSI_CREATOR_HANDLE = 'aklapper';
 export const DEFAULT_AGENSI_CACHE_TTL_SECONDS = 300;
 export const DEFAULT_AGENSI_FETCH_TIMEOUT_MS = 1_800;
@@ -19,6 +20,7 @@ export const DEFAULT_AGENSI_ALLOWED_ORIGINS: readonly string[] = [
   'https://agensi.io',
   'https://www.agensi.io',
 ];
+export const PUBLISHED_AGENSI_STATUSES: ReadonlySet<string> = new Set(['published', 'live']);
 
 export interface AgensiCatalogAdapterConfig {
   readonly baseUrl: string;
@@ -58,19 +60,44 @@ export interface FilterCreatorPublishedSkillsContext {
 }
 
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]', '::1']);
+const AGENSI_OPT_OUT_SENTINELS = new Set(['', 'off', 'disabled', 'none']);
+
+export function isLoopbackHost(hostname: string): boolean {
+  return LOOPBACK_HOSTS.has(hostname.toLowerCase());
+}
+
+export function normalizeAllowedOrigins(allowedOrigins: readonly string[]): Set<string> {
+  return new Set(
+    allowedOrigins.map(origin => {
+      try {
+        return new URL(origin).origin.toLowerCase();
+      } catch {
+        return origin.trim().replace(/\/+$/, '').toLowerCase();
+      }
+    }),
+  );
+}
+
+function isTruthyFlag(value: string | undefined): boolean {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === 'true' || normalized === '1';
+}
 
 export function emitAgensiSeamLog(
-  seamType: 'UNSOUND_CONDITION' | 'BOUNDARY_FAULT',
+  seamType: 'UNSOUND_CONDITION' | 'BOUNDARY_FAULT' | 'RULE_DIVERGENCE',
   event: string,
   detail: Readonly<Record<string, unknown>>,
 ): void {
-  console.warn(
-    JSON.stringify({
-      seam_type: seamType,
-      event,
-      ...detail,
-    }),
-  );
+  const line = JSON.stringify({
+    seam_type: seamType,
+    event,
+    ...detail,
+  });
+  if (seamType === 'RULE_DIVERGENCE') {
+    console.info(line);
+    return;
+  }
+  console.warn(line);
 }
 
 /**
@@ -121,11 +148,23 @@ export function resolveAgensiCatalogConfig(
   env: Readonly<Record<string, string | undefined>> = process.env,
 ): ResolvedAgensiCatalogConfig {
   const creatorHandle = resolveAgensiCreatorHandle(env);
-  const rawBaseUrl = env['AGENSI_API_BASE_URL']?.trim() ?? '';
-  const baseUrl = rawBaseUrl ? isAllowedUpstreamBaseUrl(rawBaseUrl) : null;
+  let baseUrl: string | null;
+  if (isTruthyFlag(env['AGENSI_SYNC_DISABLED'])) {
+    baseUrl = null;
+  } else if (
+    Object.prototype.hasOwnProperty.call(env, 'AGENSI_API_BASE_URL') &&
+    env['AGENSI_API_BASE_URL'] !== undefined
+  ) {
+    const trimmedBaseUrl = env['AGENSI_API_BASE_URL'].trim();
+    baseUrl = AGENSI_OPT_OUT_SENTINELS.has(trimmedBaseUrl.toLowerCase())
+      ? null
+      : isAllowedUpstreamBaseUrl(trimmedBaseUrl);
+  } else {
+    baseUrl = DEFAULT_AGENSI_API_BASE_URL;
+  }
   const rawPath = env['AGENSI_API_PATH']?.trim();
   const apiPath =
-    rawPath && rawPath.length > 0 ? rawPath : `/api/creators/${encodeURIComponent(creatorHandle)}`;
+    rawPath && rawPath.length > 0 ? rawPath : `/creators/${encodeURIComponent(creatorHandle)}`;
   const rawApiKey = env['AGENSI_API_KEY']?.trim();
 
   const rawTtl = env['AGENSI_CACHE_TTL_SECONDS']?.trim();
@@ -166,7 +205,7 @@ function resolveCreatorCandidate(
   envelopeCreatorHandle?: string | null,
 ): string | null {
   const creatorRef: AgensiRemoteCreatorRef | undefined = item.creator;
-  const itemCandidate =
+  const explicitHandle =
     item.creatorHandle ??
     item.creator_handle ??
     item.creatorSlug ??
@@ -174,15 +213,16 @@ function resolveCreatorCandidate(
     item.authorHandle ??
     item.author_handle ??
     creatorRef?.handle ??
-    creatorRef?.slug ??
-    item.creatorId ??
-    item.creator_id ??
-    creatorRef?.id;
-  if (itemCandidate && itemCandidate.trim().length > 0) {
-    return itemCandidate.trim();
+    creatorRef?.slug;
+  if (explicitHandle && explicitHandle.trim().length > 0) {
+    return explicitHandle.trim();
   }
   if (envelopeCreatorHandle && envelopeCreatorHandle.trim().length > 0) {
     return envelopeCreatorHandle.trim();
+  }
+  const opaqueId = item.creatorId ?? item.creator_id ?? creatorRef?.id;
+  if (opaqueId && opaqueId.trim().length > 0) {
+    return opaqueId.trim();
   }
   return null;
 }
@@ -192,7 +232,7 @@ function isItemPublished(item: AgensiRemoteSkillItem, isCreatorProfileSkills: bo
     return false;
   }
   if (item.status !== undefined) {
-    return item.status.trim().toLowerCase() === 'published';
+    return PUBLISHED_AGENSI_STATUSES.has(item.status.trim().toLowerCase());
   }
   if (item.isPublished === true || item.is_published === true || item.published === true) {
     return true;
@@ -206,19 +246,11 @@ function isTrustedSkillUrl(rawUrl: string, allowedOrigins: readonly string[]): s
     if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
       return null;
     }
-    const normalizedAllowed = new Set(
-      allowedOrigins.map(origin => {
-        try {
-          return new URL(origin).origin.toLowerCase();
-        } catch {
-          return origin.trim().replace(/\/+$/, '').toLowerCase();
-        }
-      }),
-    );
+    const normalizedAllowed = normalizeAllowedOrigins(allowedOrigins);
     if (!normalizedAllowed.has(parsed.origin.toLowerCase())) {
       return null;
     }
-    if (parsed.protocol === 'http:' && !LOOPBACK_HOSTS.has(parsed.hostname.toLowerCase())) {
+    if (parsed.protocol === 'http:' && !isLoopbackHost(parsed.hostname)) {
       return null;
     }
     return parsed.toString();

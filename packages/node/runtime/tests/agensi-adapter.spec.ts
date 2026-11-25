@@ -287,12 +287,39 @@ describe('@aklapper/node-runtime/agensi adapter', () => {
     expect(timeoutRes.message).not.toContain(secret);
   });
 
-  it('skips network I/O when base URL is unset and stops runaway pagination at 10 pages', async () => {
-    const unconfiguredCfg = resolveAgensiCatalogConfig({});
-    expect(unconfiguredCfg.baseUrl).toBeNull();
+  it('defaults omitted Agensi env vars to public storefront and supports dual opt-out and untrusted URL fail-closed', async () => {
+    const defaultCfg = resolveAgensiCatalogConfig({});
+    expect(defaultCfg.baseUrl).toBe('https://www.agensi.io');
+    expect(defaultCfg.apiPath).toBe('/creators/aklapper');
+    expect(defaultCfg.creatorHandle).toBe('aklapper');
+    expect(defaultCfg.timeoutMs).toBe(DEFAULT_AGENSI_FETCH_TIMEOUT_MS);
+
+    expect(resolveAgensiCatalogConfig({ AGENSI_SYNC_DISABLED: 'true' }).baseUrl).toBeNull();
+    expect(resolveAgensiCatalogConfig({ AGENSI_SYNC_DISABLED: '1' }).baseUrl).toBeNull();
+    expect(
+      resolveAgensiCatalogConfig({
+        AGENSI_API_BASE_URL: 'https://www.agensi.io',
+        AGENSI_SYNC_DISABLED: 'true',
+      }).baseUrl,
+    ).toBeNull();
+
+    for (const disabledOrInvalid of [
+      '',
+      'off',
+      'disabled',
+      'none',
+      'https://user:pass@agensi.io',
+      'http://evil.example.com',
+      'ftp://agensi.io',
+    ]) {
+      expect(
+        resolveAgensiCatalogConfig({ AGENSI_API_BASE_URL: disabledOrInvalid }).baseUrl,
+      ).toBeNull();
+    }
+
     const unsetRes = await fetchAgensiCreatorCatalog({
       baseUrl: '',
-      apiPath: '/api/creators/aklapper',
+      apiPath: '/creators/aklapper',
       creatorHandle: 'aklapper',
       timeoutMs: 1_800,
       maxPages: 10,
