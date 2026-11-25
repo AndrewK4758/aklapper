@@ -1,6 +1,15 @@
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+import {
+  computeTotpCode,
+  encryptTotpSecret,
+  generateBackupCodes,
+  generateTotpSecret,
+  hashBackupCode,
+  hashPasswordArgon2id,
+} from '@aklapper/node-runtime/auth';
 import { PrivacySanitizationError } from '@aklapper/node-runtime/privacy';
 import { eq, sql } from 'drizzle-orm';
 import type { Pool } from 'pg';
@@ -15,12 +24,14 @@ import {
   cloneCachedSandboxRunForSession,
   completeSandboxRunRow,
   consumeQuotaForSession,
+  consumeTotpBackupCode,
   ContactDbConstraintError,
   createDb,
   createDbPool,
   createPendingSandboxRunWithQuota,
   deleteCareerDossier,
   deleteTerminalDirectoryEntry,
+  dispatchAuthAction,
   extractPgConstraintViolation,
   failSandboxRunRow,
   findCachedSandboxRun,
@@ -32,7 +43,9 @@ import {
   getSandboxRunWithTurnsById,
   getTerminalDirectoryEntries,
   getTerminalProfile,
+  getUserTotpSecret,
   GoldenRunImmutableError,
+  handleAdminAuthBffRequest,
   insertContactSubmission,
   isNodeDevUnlimitedEnabled,
   listAdminSandboxRuns,
@@ -55,10 +68,13 @@ import {
   unpublishCareerDossier,
   updateSandboxRunGateVerdictForSession,
   updateSandboxTurnRow,
+  upsertAdminUserPassword,
   upsertCareerDossier,
   upsertCareerDossierBatch,
   upsertSiteContent,
   upsertTerminalDirectoryEntry,
+  upsertUserTotpSecret,
+  users,
 } from '../src/index.ts';
 import { runMigrationCli } from '../src/migrate.ts';
 
@@ -957,5 +973,169 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
     expect(legacyMenu.rows).toHaveLength(0);
     expect(legacyCmd.rows).toHaveLength(0);
     expect(legacyDir.rows).toHaveLength(0);
+  });
+
+  it('atomically consumes TOTP backup codes across concurrent PostgreSQL 19 requests without replay or lost updates', async () => {
+    const authEnv: Record<string, string> = {
+      NODE_ENV: 'test',
+      INTERNAL_AUTH_SECRET: 'pg-concurrent-totp-internal-secret',
+      TOTP_ENCRYPTION_KEY: 'pg-concurrent-totp-aes-key',
+    };
+    const handle = `admin-backup-race-${Date.now()}`;
+    const clientIp = '198.51.100.77';
+    const ipHash = createHash('sha256').update(clientIp, 'utf8').digest('hex');
+
+    const { user: directUser } = await upsertAdminUserPassword(db, {
+      handle: `${handle}-direct`,
+      passwordHashArgon2: await hashPasswordArgon2id('direct-race-pass'),
+    });
+    const { user: bffUser } = await upsertAdminUserPassword(db, {
+      handle,
+      passwordHashArgon2: await hashPasswordArgon2id('bff-race-pass'),
+    });
+
+    try {
+      const directSecret = generateTotpSecret();
+      const directHashes = generateBackupCodes(4).map(hashBackupCode);
+      await upsertUserTotpSecret(db, {
+        userId: directUser.id,
+        encryptedSecret: encryptTotpSecret(directSecret, authEnv['TOTP_ENCRYPTION_KEY']),
+        backupCodesHash: directHashes,
+        enabled: true,
+      });
+
+      // 6 parallel attempts against the same hash allow exactly 1 winner
+      const sameHashOutcomes = await Promise.all(
+        Array.from({ length: 6 }, () => consumeTotpBackupCode(db, directUser.id, directHashes[0]!)),
+      );
+      expect(sameHashOutcomes.filter(Boolean)).toHaveLength(1);
+      expect(sameHashOutcomes.filter(ok => !ok)).toHaveLength(5);
+
+      const afterSameRace = await getUserTotpSecret(db, directUser.id);
+      expect(afterSameRace?.backupCodesHash).toEqual(directHashes.slice(1));
+
+      // 2 parallel attempts against distinct hashes remove both without lost update
+      const distinctOutcomes = await Promise.all([
+        consumeTotpBackupCode(db, directUser.id, directHashes[1]!),
+        consumeTotpBackupCode(db, directUser.id, directHashes[2]!),
+      ]);
+      expect(distinctOutcomes).toEqual([true, true]);
+
+      const afterDistinctRace = await getUserTotpSecret(db, directUser.id);
+      expect(afterDistinctRace?.backupCodesHash).toEqual([directHashes[3]!]);
+      expect(await consumeTotpBackupCode(db, directUser.id, directHashes[1]!)).toBe(false);
+      expect(await consumeTotpBackupCode(db, directUser.id, '')).toBe(false);
+
+      // End-to-end Admin auth BFF step-up verification via pendingToken under concurrency
+      const bffSecret = generateTotpSecret();
+      const bffCodes = generateBackupCodes(4);
+      const bffHashes = bffCodes.map(hashBackupCode);
+      await upsertUserTotpSecret(db, {
+        userId: bffUser.id,
+        encryptedSecret: encryptTotpSecret(bffSecret, authEnv['TOTP_ENCRYPTION_KEY']),
+        backupCodesHash: bffHashes,
+        enabled: true,
+      });
+
+      const loginRes = await dispatchAuthAction(
+        {
+          method: 'POST',
+          action: 'password/login',
+          clientIp,
+          body: { handle, password: 'bff-race-pass' },
+        },
+        { db, env: authEnv },
+      );
+      expect(loginRes.status).toBe(200);
+      expect(loginRes.body['requiresTotp']).toBe(true);
+      const pendingToken = String(loginRes.body['pendingToken']);
+
+      const parallelSameCodeResponses = await Promise.all(
+        Array.from({ length: 5 }, () =>
+          handleAdminAuthBffRequest(
+            new Request('https://admin.andrew-k.us/api/auth/totp/verify', {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                'x-forwarded-for': clientIp,
+              },
+              body: JSON.stringify({ code: bffCodes[0]!, pendingToken }),
+            }),
+            'totp/verify',
+            { db, env: authEnv },
+          ),
+        ),
+      );
+      const winners = parallelSameCodeResponses.filter(res => res.status === 200);
+      const losers = parallelSameCodeResponses.filter(res => res.status === 401);
+      expect(winners).toHaveLength(1);
+      expect(losers).toHaveLength(4);
+      expect(winners[0]?.headers.get('set-cookie')).toContain('ak_admin_session=');
+      expect(await winners[0]?.json()).toMatchObject({ verified: true });
+      for (const loser of losers) {
+        expect(loser.headers.get('set-cookie')).toBeNull();
+        expect(await loser.json()).toMatchObject({ error: 'INVALID_TOTP_CODE' });
+      }
+
+      const parallelDistinctResponses = await Promise.all(
+        [bffCodes[1]!, bffCodes[2]!].map(distinctCode =>
+          handleAdminAuthBffRequest(
+            new Request('https://admin.andrew-k.us/api/auth/totp/verify', {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                'x-forwarded-for': clientIp,
+              },
+              body: JSON.stringify({ code: distinctCode, pendingToken }),
+            }),
+            'totp/verify',
+            { db, env: authEnv },
+          ),
+        ),
+      );
+      expect(parallelDistinctResponses.map(res => res.status)).toEqual([200, 200]);
+      for (const okRes of parallelDistinctResponses) {
+        expect(okRes.headers.get('set-cookie')).toContain('ak_admin_session=');
+      }
+
+      const afterBffRace = await getUserTotpSecret(db, bffUser.id);
+      expect(afterBffRace?.backupCodesHash).toEqual([bffHashes[3]!]);
+
+      // Consumed codes stay rejected sequentially, while standard 6-digit TOTP still succeeds
+      const replayRes = await handleAdminAuthBffRequest(
+        new Request('https://admin.andrew-k.us/api/auth/totp/verify', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-forwarded-for': clientIp },
+          body: JSON.stringify({ code: bffCodes[1]!, pendingToken }),
+        }),
+        'totp/verify',
+        { db, env: authEnv },
+      );
+      expect(replayRes.status).toBe(401);
+      expect(replayRes.headers.get('set-cookie')).toBeNull();
+      expect(await replayRes.json()).toMatchObject({ error: 'INVALID_TOTP_CODE' });
+
+      const totpRes = await handleAdminAuthBffRequest(
+        new Request('https://admin.andrew-k.us/api/auth/totp/verify', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-forwarded-for': clientIp },
+          body: JSON.stringify({ code: computeTotpCode(bffSecret), pendingToken }),
+        }),
+        'totp/verify',
+        { db, env: authEnv },
+      );
+      expect(totpRes.status).toBe(200);
+      expect(totpRes.headers.get('set-cookie')).toContain('ak_admin_session=');
+
+      const finalSecretRow = await getUserTotpSecret(db, bffUser.id);
+      expect(finalSecretRow?.backupCodesHash).toEqual([bffHashes[3]!]);
+    } finally {
+      await db.delete(users).where(eq(users.id, directUser.id));
+      await db.delete(users).where(eq(users.id, bffUser.id));
+      await resetRateLimitBucket(db, `auth:login:ip:${ipHash}`);
+      await resetRateLimitBucket(db, `auth:login:handle:${handle}`);
+      await resetRateLimitBucket(db, `auth:totp:ip:${ipHash}`);
+      await resetRateLimitBucket(db, `auth:totp:user:${bffUser.id}`);
+    }
   });
 });

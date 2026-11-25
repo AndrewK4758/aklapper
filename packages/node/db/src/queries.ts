@@ -1010,16 +1010,29 @@ export async function enableUserTotpSecret(db: AppDatabase, userId: string): Pro
   return updated.length > 0;
 }
 
+/**
+ * Atomically removes a single consumed TOTP backup code hash in PostgreSQL and reports whether it
+ * was present.
+ */
 export async function consumeTotpBackupCode(
   db: AppDatabase,
   userId: string,
-  remainingHashes: string[],
-): Promise<void> {
-  if (!UUID_PATTERN.test(userId)) return;
-  await db
+  backupCodeHash: string,
+): Promise<boolean> {
+  if (!UUID_PATTERN.test(userId) || backupCodeHash.trim().length === 0) return false;
+  const updated = await db
     .update(schema.totpSecrets)
-    .set({ backupCodesHash: remainingHashes })
-    .where(eq(schema.totpSecrets.userId, userId));
+    .set({
+      backupCodesHash: sql`array_remove(${schema.totpSecrets.backupCodesHash}, ${backupCodeHash}::text)`,
+    })
+    .where(
+      and(
+        eq(schema.totpSecrets.userId, userId),
+        sql`${backupCodeHash}::text = ANY(${schema.totpSecrets.backupCodesHash})`,
+      ),
+    )
+    .returning({ userId: schema.totpSecrets.userId });
+  return updated.length > 0;
 }
 
 export async function disableUserTotpSecret(db: AppDatabase, userId: string): Promise<boolean> {

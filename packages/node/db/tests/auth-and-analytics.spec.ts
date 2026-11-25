@@ -1,9 +1,14 @@
 import { createHash } from 'node:crypto';
 
-import { computeTotpCode, hashPasswordArgon2id } from '@aklapper/node-runtime/auth';
+import { computeTotpCode, hashBackupCode, hashPasswordArgon2id } from '@aklapper/node-runtime/auth';
 import { vi } from 'vitest';
 
 type QueryFn = (...args: never[]) => Promise<unknown>;
+type VerifyAuthFn = typeof import('@simplewebauthn/server').verifyAuthenticationResponse;
+
+const verifyAuthenticationResponseMock = vi.hoisted(() =>
+  vi.fn<(...args: Parameters<VerifyAuthFn>) => ReturnType<VerifyAuthFn>>(),
+);
 
 const queryMocks = vi.hoisted(() => ({
   findOrCreateAdminUser: vi.fn<QueryFn>(),
@@ -48,6 +53,16 @@ vi.mock('../src/auth-queries.ts', () => ({
   upsertAdminUserPassword: queryMocks.upsertAdminUserPassword,
   countUserWebauthnCredentials: queryMocks.countUserWebauthnCredentials,
 }));
+vi.mock('@simplewebauthn/server', async importOriginal => {
+  const actual = await importOriginal<typeof import('@simplewebauthn/server')>();
+  verifyAuthenticationResponseMock.mockImplementation((...args) =>
+    actual.verifyAuthenticationResponse(...args),
+  );
+  return {
+    ...actual,
+    verifyAuthenticationResponse: verifyAuthenticationResponseMock,
+  };
+});
 
 import { handleAnalyticsIngestRequest } from '../src/analytics-bff.ts';
 import {
@@ -674,6 +689,221 @@ describe('@aklapper/db auth & analytics BFF services', () => {
     expect(logout.status).toBe(200);
     expect(logout.cookies).toHaveLength(2);
     expect(logout.cookies?.[0]).toContain('Max-Age=0');
+  });
+
+  it('requires atomic consumeTotpBackupCode confirmation for both pendingToken TOTP step-up and passkey login verification', async () => {
+    const adminSessionId = '44444444-4444-4444-8444-444444444444';
+    const userId = '55555555-5555-4555-8555-555555555555';
+    const adminSession = {
+      sessionId: adminSessionId,
+      role: 'admin' as const,
+      handle: 'admin',
+      expiresAt: '2026-12-01T00:00:00.000Z',
+    };
+
+    queryMocks.getValidAuthSession.mockResolvedValueOnce({
+      session: adminSession,
+      userId,
+      totpEnabled: false,
+      passkeyCount: 1,
+    });
+    let storedEncryptedSecret = '';
+    let storedBackupHashes: string[] = [];
+    queryMocks.upsertUserTotpSecret.mockImplementationOnce(
+      async (_db: unknown, input: { encryptedSecret: string; backupCodesHash: string[] }) => {
+        storedEncryptedSecret = input.encryptedSecret;
+        storedBackupHashes = input.backupCodesHash;
+        return {
+          userId,
+          encryptedSecret: input.encryptedSecret,
+          backupCodesHash: input.backupCodesHash,
+          enabled: false,
+        };
+      },
+    );
+
+    const enroll = await dispatchAuthAction(
+      {
+        method: 'POST',
+        action: 'totp/enroll',
+        cookieHeader: `ak_admin_session=${adminSessionId}`,
+      },
+      { db: FAKE_DB, env: TEST_ENV },
+    );
+    expect(enroll.status).toBe(200);
+    const backupCodes = enroll.body['backupCodes'] as string[];
+    expect(backupCodes).toHaveLength(8);
+    const firstCode = backupCodes[0]!;
+    const secondCode = backupCodes[1]!;
+    const firstHash = hashBackupCode(firstCode);
+    const secondHash = hashBackupCode(secondCode);
+
+    queryMocks.findAdminUserForPasswordLogin.mockResolvedValueOnce({
+      id: userId,
+      handle: 'admin',
+      role: 'admin' as const,
+      passwordHashArgon2: await hashPasswordArgon2id('backup-step-up-pass'),
+      createdAt: new Date(),
+    });
+    queryMocks.getUserTotpSecret.mockResolvedValue({
+      userId,
+      encryptedSecret: storedEncryptedSecret,
+      backupCodesHash: storedBackupHashes,
+      enabled: true,
+    });
+    const loginPending = await dispatchAuthAction(
+      {
+        method: 'POST',
+        action: 'password/login',
+        clientIp: '198.51.100.18',
+        body: { handle: 'admin', password: 'backup-step-up-pass' },
+      },
+      { db: FAKE_DB, env: TEST_ENV },
+    );
+    const pendingToken = String(loginPending.body['pendingToken']);
+
+    queryMocks.getUserById.mockResolvedValue({
+      id: userId,
+      handle: 'admin',
+      role: 'admin' as const,
+      createdAt: new Date(),
+    });
+
+    // Step-up accepts normalized backup code only when atomic consumption returns true
+    queryMocks.consumeTotpBackupCode.mockResolvedValueOnce(true);
+    queryMocks.createAuthSession.mockResolvedValueOnce(adminSession);
+    queryMocks.countUserWebauthnCredentials.mockResolvedValueOnce(1);
+
+    const stepUpWinner = await dispatchAuthAction(
+      {
+        method: 'POST',
+        action: 'totp/verify',
+        clientIp: '198.51.100.18',
+        isSecure: true,
+        body: { code: firstCode.toLowerCase().replace('-', ''), pendingToken },
+      },
+      { db: FAKE_DB, env: TEST_ENV },
+    );
+    expect(stepUpWinner.status).toBe(200);
+    expect(stepUpWinner.body).toEqual({
+      verified: true,
+      passkeyCount: 1,
+      session: adminSession,
+    });
+    expect(stepUpWinner.cookies?.[0]).toContain(`ak_admin_session=${adminSessionId}`);
+    expect(queryMocks.consumeTotpBackupCode).toHaveBeenCalledWith(FAKE_DB, userId, firstHash);
+
+    // Concurrent loser reading pre-consumption snapshot gets false from consumeTotpBackupCode -> 401
+    queryMocks.consumeTotpBackupCode.mockResolvedValueOnce(false);
+    const stepUpLoser = await dispatchAuthAction(
+      {
+        method: 'POST',
+        action: 'totp/verify',
+        clientIp: '198.51.100.19',
+        body: { code: firstCode, pendingToken },
+      },
+      { db: FAKE_DB, env: TEST_ENV },
+    );
+    expect(stepUpLoser.status).toBe(401);
+    expect(stepUpLoser.body).toEqual({
+      error: 'INVALID_TOTP_CODE',
+      message: 'Invalid TOTP or backup code',
+    });
+    expect(stepUpLoser.cookies).toBeUndefined();
+    expect(queryMocks.createAuthSession).toHaveBeenCalledTimes(1);
+
+    // Unmatched backup code fails closed without hitting consumeTotpBackupCode
+    queryMocks.consumeTotpBackupCode.mockClear();
+    const unknownCode = await dispatchAuthAction(
+      {
+        method: 'POST',
+        action: 'totp/verify',
+        clientIp: '198.51.100.20',
+        body: { code: '0000-0000', pendingToken },
+      },
+      { db: FAKE_DB, env: TEST_ENV },
+    );
+    expect(unknownCode.status).toBe(401);
+    expect(unknownCode.cookies).toBeUndefined();
+    expect(queryMocks.consumeTotpBackupCode).not.toHaveBeenCalled();
+
+    // Passkey login verification also enforces atomic consumeTotpBackupCode result
+    const challengePayload = {
+      id: '99999999-9999-4999-8999-999999999999',
+      challenge: 'passkey-chal',
+      userId,
+      kind: 'login' as const,
+      expiresAt: new Date(Date.now() + 60_000),
+      consumedAt: new Date(),
+      createdAt: new Date(),
+    };
+    const storedCredential = {
+      credentialId: 'cred-backup-1',
+      userId,
+      publicKey: 'AAAA',
+      counter: 0,
+      transports: [],
+      createdAt: new Date(),
+    };
+    queryMocks.consumeWebauthnChallenge.mockResolvedValue(challengePayload);
+    queryMocks.getWebauthnCredentialById.mockResolvedValue(storedCredential);
+    const verifiedAssertion = {
+      verified: true,
+      authenticationInfo: {
+        credentialID: 'cred-backup-1',
+        newCounter: 1,
+        userVerified: true,
+        credentialDeviceType: 'singleDevice' as const,
+        credentialBackedUp: false,
+        origin: 'http://localhost:4301',
+        rpID: 'localhost',
+      },
+    };
+    verifyAuthenticationResponseMock
+      .mockResolvedValueOnce(verifiedAssertion)
+      .mockResolvedValueOnce(verifiedAssertion);
+    queryMocks.consumeTotpBackupCode.mockResolvedValueOnce(true);
+    queryMocks.createAuthSession.mockResolvedValueOnce(adminSession);
+
+    const passkeyWinner = await dispatchAuthAction(
+      {
+        method: 'POST',
+        action: 'passkey/login/verify',
+        clientIp: '198.51.100.21',
+        body: {
+          challengeId: challengePayload.id,
+          response: { id: 'cred-backup-1' },
+          totpCode: secondCode,
+        },
+      },
+      { db: FAKE_DB, env: TEST_ENV },
+    );
+    expect(passkeyWinner.status).toBe(200);
+    expect(passkeyWinner.body['verified']).toBe(true);
+    expect(passkeyWinner.cookies?.[0]).toContain(`ak_admin_session=${adminSessionId}`);
+    expect(queryMocks.consumeTotpBackupCode).toHaveBeenCalledWith(FAKE_DB, userId, secondHash);
+
+    queryMocks.consumeTotpBackupCode.mockResolvedValueOnce(false);
+    const passkeyLoser = await dispatchAuthAction(
+      {
+        method: 'POST',
+        action: 'passkey/login/verify',
+        clientIp: '198.51.100.22',
+        body: {
+          challengeId: challengePayload.id,
+          response: { id: 'cred-backup-1' },
+          totpCode: secondCode,
+        },
+      },
+      { db: FAKE_DB, env: TEST_ENV },
+    );
+    expect(passkeyLoser.status).toBe(401);
+    expect(passkeyLoser.body).toEqual({
+      error: 'INVALID_TOTP_CODE',
+      message: 'Invalid TOTP or backup code',
+    });
+    expect(passkeyLoser.cookies).toBeUndefined();
+    expect(queryMocks.createAuthSession).toHaveBeenCalledTimes(2);
   });
 
   it('executes Admin auth BFF and session resolution directly against PG19 even if legacy AUTH_API_URL is set', async () => {
