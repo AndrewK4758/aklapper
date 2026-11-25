@@ -424,4 +424,74 @@ describe('normalizePinnedPrimaryHost', () => {
     valid = addWorkspaceTab(valid);
     expect(normalizePinnedPrimaryHost(valid)).toBe(valid);
   });
+
+  it('prefers non-tui leaves over pre-pinned tui leaves and normalizes tui-only pinned leaves to terminal', () => {
+    // Case A: pre-pinned kind:'tui' leaf alongside a terminal leaf -> promotes terminal leaf
+    const mixedTabBase = createInitialTabbedWorkspaceState({ pinnedPrimary: false });
+    const mixedSplit = updateActiveTabWorkspace(mixedTabBase, ws => splitActivePane(ws, 'right'));
+    const mixedTab = mixedSplit.tabs[0]!;
+    const mixedRoot = mixedTab.workspace.root;
+    expect(mixedRoot.type).toBe('split');
+    const corruptedMixed: TerminalTabbedWorkspaceState = {
+      ...mixedSplit,
+      tabs: [
+        {
+          ...mixedTab,
+          pinned: true,
+          workspace: {
+            ...mixedTab.workspace,
+            root:
+              mixedRoot.type === 'split' && mixedRoot.first.type === 'leaf'
+                ? {
+                    ...mixedRoot,
+                    first: { ...mixedRoot.first, kind: 'tui', tuiOpen: true, pinned: true },
+                  }
+                : mixedRoot,
+          },
+        },
+      ],
+    };
+
+    const normalizedMixed = normalizePinnedPrimaryHost(corruptedMixed);
+    const mixedLeaves = listLeafPanes(normalizedMixed.tabs[0]!.workspace.root);
+    const mixedPinned = mixedLeaves.filter(leaf => leaf.pinned === true);
+    expect(mixedPinned).toHaveLength(1);
+    expect(mixedPinned[0]?.id).toBe('pane-2');
+    expect(mixedPinned[0]?.kind).not.toBe('tui');
+    expect(mixedLeaves.find(leaf => leaf.id === 'pane-1')?.pinned).toBeUndefined();
+
+    // Case B: tab containing ONLY kind:'tui' leaves (both pre-pinned and 0-pin) normalizes pinned leaf to terminal/tuiOpen:false
+    const tuiOnlyBase = createInitialTabbedWorkspaceState({ pinnedPrimary: false });
+    const tuiOnlyLeaf = listLeafPanes(tuiOnlyBase.tabs[0]!.workspace.root)[0]!;
+    for (const prePinned of [true, false]) {
+      const tuiOnlyState: TerminalTabbedWorkspaceState = {
+        ...tuiOnlyBase,
+        tabs: [
+          {
+            ...tuiOnlyBase.tabs[0]!,
+            ...(prePinned ? { pinned: true } : {}),
+            workspace: {
+              ...tuiOnlyBase.tabs[0]!.workspace,
+              root: {
+                ...tuiOnlyLeaf,
+                kind: 'tui',
+                tuiOpen: true,
+                ...(prePinned ? { pinned: true } : {}),
+              },
+            },
+          },
+        ],
+      };
+
+      const normalizedTuiOnly = normalizePinnedPrimaryHost(tuiOnlyState);
+      const resultLeaves = listLeafPanes(normalizedTuiOnly.tabs[0]!.workspace.root);
+      expect(resultLeaves).toHaveLength(1);
+      expect(resultLeaves[0]).toMatchObject({
+        id: tuiOnlyLeaf.id,
+        kind: 'terminal',
+        tuiOpen: false,
+        pinned: true,
+      });
+    }
+  });
 });

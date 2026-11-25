@@ -131,19 +131,25 @@ export function CadencePaneView({ ctx }: { readonly ctx: TerminalPaneViewContext
   const { entry, retry } = usePortalPaneStream<PortalCadenceLoaderData>(ctx.paneId, '/cadence');
   const paneSubmit = usePaneActionSubmit<PortalCadenceActionResult>('/cadence');
 
+  const {
+    actionData: paneActionData,
+    isSubmitting: paneIsSubmitting,
+    submit: submitPaneAction,
+  } = paneSubmit;
+
   const paneAction = useMemo<CadencePaneActionAdapter>(
     () => ({
-      data: paneSubmit.actionData,
-      isSubmitting: paneSubmit.isSubmitting,
+      data: paneActionData,
+      isSubmitting: paneIsSubmitting,
       submit: fields => {
         const formData = new FormData();
         for (const [key, value] of Object.entries(fields)) {
           formData.set(key, value);
         }
-        paneSubmit.submit(formData);
+        submitPaneAction(formData);
       },
     }),
-    [paneSubmit],
+    [paneActionData, paneIsSubmitting, submitPaneAction],
   );
 
   return (

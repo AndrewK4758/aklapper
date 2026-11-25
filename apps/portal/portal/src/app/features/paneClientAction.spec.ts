@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { PortalAskActionResult } from '#pages/ask';
 import type { PortalCadenceActionResult } from '#pages/cadence';
 
+import { BEFOREUNLOAD_RESET_MS } from '../workspace/unloadGuard';
 import { createPrimaryRouteClientAction } from './paneClientAction';
 
 function buildClientActionArgs(
@@ -77,6 +78,85 @@ describe('createPrimaryRouteClientAction', () => {
         }),
       ),
     ).rejects.toBe(abortErr);
+  });
+
+  it('clears transient beforeunload state when unload is cancelled so offline/502 actions still classify fail-closed as 503', async () => {
+    vi.useFakeTimers();
+    try {
+      const clientAction = createPrimaryRouteClientAction<PortalAskActionResult>('/chat');
+      const deferred = Promise.withResolvers<unknown>();
+
+      const inFlightPromise = clientAction(
+        buildClientActionArgs(
+          'http://localhost/chat',
+          { mode: 'jd_match' },
+          () => deferred.promise,
+        ),
+      );
+
+      // Simulate user triggering beforeunload and then cancelling ("Stay on page", no pagehide/pageshow)
+      await Promise.resolve();
+      window.dispatchEvent(new Event('beforeunload'));
+      await vi.advanceTimersByTimeAsync(BEFOREUNLOAD_RESET_MS + 10);
+
+      // Rejecting after cancelled beforeunload MUST still classify fail-closed as 503
+      deferred.reject(new TypeError('Failed to fetch'));
+      const resumedResult = await inFlightPromise;
+      expect(resumedResult).toMatchObject({
+        type: 'DataWithResponseInit',
+        init: { status: 503 },
+        data: {
+          ok: false,
+          mode: 'jd_match',
+          code: 'ERR_UPSTREAM_UNAVAILABLE',
+        },
+      });
+
+      // And a subsequent action invocation also classifies fail-closed cleanly
+      const nextResult = await clientAction(
+        buildClientActionArgs('http://localhost/chat', { mode: 'qa' }, async () => {
+          throw { status: 502, statusText: 'Bad Gateway', data: 'proxy error' };
+        }),
+      );
+      expect(nextResult).toMatchObject({
+        type: 'DataWithResponseInit',
+        init: { status: 503 },
+        data: {
+          ok: false,
+          mode: 'qa',
+          code: 'ERR_UPSTREAM_UNAVAILABLE',
+        },
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('re-throws network errors during genuine pagehide unload without leaking listeners to later invocations', async () => {
+    const clientAction = createPrimaryRouteClientAction<PortalAskActionResult>('/chat');
+    const deferred = Promise.withResolvers<unknown>();
+    const networkErr = new TypeError('NetworkError when attempting to fetch resource.');
+
+    const inFlight = clientAction(
+      buildClientActionArgs('http://localhost/chat', { mode: 'jd_match' }, () => deferred.promise),
+    );
+    await Promise.resolve();
+    window.dispatchEvent(new Event('pagehide'));
+    deferred.reject(networkErr);
+
+    await expect(inFlight).rejects.toBe(networkErr);
+
+    // Next invocation starts with a fresh per-invocation tracker (never stuck unloading)
+    const afterResult = await clientAction(
+      buildClientActionArgs('http://localhost/chat', { mode: 'jd_match' }, async () => {
+        throw new TypeError('Failed to fetch');
+      }),
+    );
+    expect(afterResult).toMatchObject({
+      type: 'DataWithResponseInit',
+      init: { status: 503 },
+      data: { ok: false, mode: 'jd_match', code: 'ERR_UPSTREAM_UNAVAILABLE' },
+    });
   });
 
   it('returns fail-closed 503 data preserving /chat mode on offline TypeError', async () => {

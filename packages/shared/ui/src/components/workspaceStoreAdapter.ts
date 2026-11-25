@@ -38,14 +38,19 @@ export interface WorkspaceStoreAdapter {
 function normalizeLeafPins(node: TerminalPaneNode, pinnedLeafId: string | null): TerminalPaneNode {
   if (node.type === 'leaf') {
     const shouldPin = pinnedLeafId !== null && node.id === pinnedLeafId;
-    if (shouldPin && node.pinned === true) {
-      return node;
-    }
-    if (!shouldPin && node.pinned === undefined) {
-      return node;
-    }
     if (shouldPin) {
-      return { ...node, pinned: true };
+      const shouldNormalizeKind = node.kind === 'tui';
+      if (node.pinned === true && !shouldNormalizeKind) {
+        return node;
+      }
+      return {
+        ...node,
+        ...(shouldNormalizeKind ? { kind: 'terminal' as const, tuiOpen: false } : {}),
+        pinned: true,
+      };
+    }
+    if (node.pinned === undefined) {
+      return node;
     }
     const { pinned: _removed, ...rest } = node;
     return rest;
@@ -64,16 +69,20 @@ function resolvePrimaryHostLeafId(tab: TerminalWorkspaceTab): string | null {
   if (leaves.length === 0) {
     return null;
   }
-  const existingPinned = leaves.find(leaf => leaf.pinned === true);
-  if (existingPinned) {
-    return existingPinned.id;
+  const existingPinnedNonTui = leaves.find(leaf => leaf.pinned === true && leaf.kind !== 'tui');
+  if (existingPinnedNonTui) {
+    return existingPinnedNonTui.id;
   }
   const activeLeaf = findLeafPane(tab.workspace.root, tab.workspace.activePaneId);
   if (activeLeaf && activeLeaf.kind !== 'tui') {
     return activeLeaf.id;
   }
   const firstNonTui = leaves.find(leaf => leaf.kind !== 'tui');
-  return firstNonTui?.id ?? activeLeaf?.id ?? leaves[0]?.id ?? null;
+  if (firstNonTui) {
+    return firstNonTui.id;
+  }
+  const existingPinned = leaves.find(leaf => leaf.pinned === true);
+  return existingPinned?.id ?? activeLeaf?.id ?? leaves[0]?.id ?? null;
 }
 
 export function normalizePinnedPrimaryHost(

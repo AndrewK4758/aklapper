@@ -88,7 +88,7 @@ function createClaimedCadenceStreamStore(options: {
       };
     },
     getSnapshot: () => (claimDenied ? null : inner.getSnapshot()),
-    getServerSnapshot: inner.getServerSnapshot,
+    getServerSnapshot: NULL_SNAPSHOT,
     close: () => {
       inner.close();
       release();

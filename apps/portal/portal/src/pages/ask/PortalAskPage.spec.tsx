@@ -7,6 +7,7 @@ import {
   ASK_TURN_STORAGE_KEY,
   clearPersistedAskTurn,
   readPersistedAskTurn,
+  resolveAskTurnStorageKey,
   writePersistedAskTurn,
 } from './askTurnRecovery';
 import { PortalAskPage, type PortalAskPageProps } from './PortalAskPage';
@@ -839,7 +840,7 @@ describe('PortalAskPage', () => {
     expect(screen.queryByTestId('ask-streaming-feed')).toBeNull();
   });
 
-  it('isolates askTurnRecovery ownership across coexisting primary and secondary chat instances', async () => {
+  it('isolates askTurnRecovery storage and ownership across concurrent primary and secondary chat instances', async () => {
     const primaryAttemptId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
     writePersistedAskTurn({
       attemptId: primaryAttemptId,
@@ -849,6 +850,7 @@ describe('PortalAskPage', () => {
     });
 
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const secondarySubmitSpy = vi.fn<PortalAskPageProps['onSubmitAsk']>();
 
     // Secondary chat pane with different instanceId must NOT hijack or poll primary's persisted turn
     render(
@@ -862,7 +864,7 @@ describe('PortalAskPage', () => {
           mode: 'qa',
           error: 'Secondary pane settled error',
         }}
-        onSubmitAsk={vi.fn<PortalAskPageProps['onSubmitAsk']>()}
+        onSubmitAsk={secondarySubmitSpy}
         onClose={vi.fn<() => void>()}
       />,
     );
@@ -870,17 +872,40 @@ describe('PortalAskPage', () => {
     await Promise.resolve();
     expect(fetchSpy).not.toHaveBeenCalled();
 
-    // Settling or clearing from pane-2 must NOT wipe primary's persisted turn
+    // Starting a concurrent turn in pane:pane-2 writes to its own scoped storage key without overwriting primary:/chat
+    const qaInput = screen.getByTestId('ask-question-input');
+    fireEvent.change(qaInput, {
+      target: { value: 'Secondary pane concurrent question about Cloud Run?' },
+    });
+    fireEvent.click(screen.getByTestId('ask-qa-submit'));
+
+    expect(secondarySubmitSpy).toHaveBeenCalledTimes(1);
+    expect(window.sessionStorage.getItem(resolveAskTurnStorageKey('primary:/chat'))).toBeTruthy();
+    expect(window.sessionStorage.getItem(resolveAskTurnStorageKey('pane:pane-2'))).toBeTruthy();
+    expect(readPersistedAskTurn('primary:/chat')).toEqual({
+      attemptId: primaryAttemptId,
+      mode: 'qa',
+      question: 'Primary chat turn in flight',
+      ownerInstanceId: 'primary:/chat',
+    });
+    expect(readPersistedAskTurn('pane:pane-2')).toMatchObject({
+      mode: 'qa',
+      question: 'Secondary pane concurrent question about Cloud Run?',
+      ownerInstanceId: 'pane:pane-2',
+    });
+
+    // Clearing pane:pane-2 leaves primary:/chat completely intact
     clearPersistedAskTurn('pane:pane-2');
-    expect(readPersistedAskTurn()).toEqual({
+    expect(readPersistedAskTurn('pane:pane-2')).toBeNull();
+    expect(readPersistedAskTurn('primary:/chat')).toEqual({
       attemptId: primaryAttemptId,
       mode: 'qa',
       question: 'Primary chat turn in flight',
       ownerInstanceId: 'primary:/chat',
     });
 
-    // Clearing with matching ownerInstanceId removes the entry
+    // Clearing primary:/chat removes its scoped entry cleanly
     clearPersistedAskTurn('primary:/chat');
-    expect(readPersistedAskTurn()).toBeNull();
+    expect(readPersistedAskTurn('primary:/chat')).toBeNull();
   });
 });

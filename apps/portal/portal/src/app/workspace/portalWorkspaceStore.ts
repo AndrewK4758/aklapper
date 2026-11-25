@@ -135,8 +135,13 @@ export function createPortalWorkspaceStore(
         cleanedLegacyKeys = true;
         try {
           removePortalStorageKeys(storage, false);
-        } catch {
-          // Best-effort legacy key cleanup after global write succeeds.
+        } catch (cleanupError) {
+          const errorName = extractStorageErrorName(cleanupError);
+          emitOnce(`legacy-cleanup:${errorName}`, {
+            event: 'portal.workspace.write_failed',
+            seamType: 'DELTA_AUDIT_GAP',
+            errorName,
+          });
         }
       }
     } catch (error) {
@@ -313,12 +318,14 @@ export function createPortalWorkspaceStore(
       );
     },
     onPaneViewsAdded: listener => {
+      if (typeof window === 'undefined') return () => undefined;
       addedListeners.add(listener);
       return () => {
         addedListeners.delete(listener);
       };
     },
     onPaneViewsRemoved: listener => {
+      if (typeof window === 'undefined') return () => undefined;
       removedListeners.add(listener);
       return () => {
         removedListeners.delete(listener);

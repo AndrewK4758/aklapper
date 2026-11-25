@@ -242,21 +242,22 @@ describe('useAskStreaming post-abort race guards', () => {
       expect(fetchSpy).toHaveBeenCalledTimes(1);
     });
 
-    expect(readPersistedAskTurn()).toMatchObject({
+    expect(readPersistedAskTurn('route:/chat')).toMatchObject({
       question: 'Primary owned question',
       ownerInstanceId: 'route:/chat',
     });
+    expect(readPersistedAskTurn('pane-2:/chat')).toBeNull();
 
     // Secondary instance canceling must NOT clear primary's persisted turn
     act(() => {
       secondary.result.current.cancelStream();
     });
-    expect(readPersistedAskTurn()?.ownerInstanceId).toBe('route:/chat');
+    expect(readPersistedAskTurn('route:/chat')?.ownerInstanceId).toBe('route:/chat');
 
     // Primary canceling clears its own persisted turn
     act(() => {
       primary.result.current.cancelStream();
     });
-    expect(readPersistedAskTurn()).toBeNull();
+    expect(readPersistedAskTurn('route:/chat')).toBeNull();
   });
 });

@@ -3,6 +3,7 @@ import {
   WorkspaceLauncherContext,
   type WorkspaceLauncherContextValue,
 } from '@aklapper/ui';
+import { normalizeWorkspaceRouteKey } from '@aklapper/ui/workspace-storage';
 import {
   createContext,
   type ReactNode,
@@ -19,10 +20,6 @@ import { isPortalPaneRoute } from './portalWorkspaceSnapshot';
 import { type PortalWorkspaceStore, portalWorkspaceStore } from './portalWorkspaceStore';
 
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
-
-function normalizePathname(pathname: string): string {
-  return pathname.replace(/\/+$/, '') || '/';
-}
 
 export interface PortalWorkspaceContextValue extends WorkspaceLauncherContextValue {
   readonly store: PortalWorkspaceStore;
@@ -42,7 +39,7 @@ export function PortalWorkspaceProvider({
   locationKey,
   children,
 }: PortalWorkspaceProviderProps) {
-  const normalizedPathname = normalizePathname(pathname);
+  const normalizedPathname = normalizeWorkspaceRouteKey(pathname);
   const lastLocationRef = useRef<{ readonly pathname: string; readonly locationKey: string }>({
     pathname: normalizedPathname,
     locationKey,

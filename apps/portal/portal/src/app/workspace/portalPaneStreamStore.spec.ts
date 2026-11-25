@@ -155,7 +155,44 @@ describe('portalPaneStreamStore', () => {
     expect(signalsByPane.get(`pane-${MAX_CACHED_PANE_ENVELOPES + 1}`)?.aborted).toBe(false);
   });
 
-  it('guards SSR renders where window is undefined with zero module state mutation', () => {
+  it('never evicts actively subscribed entries past MAX_CACHED_PANE_ENVELOPES while still evicting unsubscribed entries', () => {
+    const signalsByPane = new Map<string, AbortSignal>();
+    let currentPane = '';
+    const { loadSpy, transport } = createMockTransport((_routePath, signal) => {
+      signalsByPane.set(currentPane, signal);
+      return new Promise(() => undefined);
+    });
+
+    const store = createPortalPaneStreamStore({ getTransport: () => transport });
+    const unsubs: Array<() => void> = [];
+
+    // Mount/subscribe 35 active pane views (> MAX_CACHED_PANE_ENVELOPES = 32)
+    for (let idx = 1; idx <= MAX_CACHED_PANE_ENVELOPES + 3; idx += 1) {
+      currentPane = `mounted-${idx}`;
+      unsubs.push(store.subscribe(currentPane, '/agensi', () => undefined));
+      store.getOrStart(currentPane, '/agensi');
+    }
+
+    // Zero subscribed entries were evicted or aborted; re-reading causes zero re-fetch thrash
+    for (let idx = 1; idx <= MAX_CACHED_PANE_ENVELOPES + 3; idx += 1) {
+      const paneId = `mounted-${idx}`;
+      expect(signalsByPane.get(paneId)?.aborted).toBe(false);
+      store.getOrStart(paneId, '/agensi');
+    }
+    expect(loadSpy).toHaveBeenCalledTimes(MAX_CACHED_PANE_ENVELOPES + 3);
+
+    // Unsubscribe mounted-1 and add one new unsubscribed prewarm -> only unsubscribed mounted-1 is evicted
+    unsubs[0]?.();
+    currentPane = 'unsub-extra';
+    store.prewarm(currentPane, '/agensi');
+    expect(signalsByPane.get('mounted-1')?.aborted).toBe(true);
+    expect(signalsByPane.get('mounted-2')?.aborted).toBe(false);
+
+    for (const unsub of unsubs.slice(1)) unsub();
+  });
+
+  it('guards SSR renders where window is undefined with zero module state mutation and emits UNSOUND_CONDITION telemetry', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const { loadSpy, transport } = createMockTransport(async () => ({
       correlationId: 'never',
       payload: Promise.resolve({ ok: true as const, data: null }),
@@ -173,8 +210,15 @@ describe('portalPaneStreamStore', () => {
       const snap2 = store.getServerSnapshot('pane-1', '/agensi');
       expect(snap1).toBe(snap2);
       store.prewarm('pane-1', '/agensi');
+      store.retry('pane-1', '/agensi');
+      store.evictPane('pane-1');
+      store.evictPaneViews([{ paneId: 'pane-1', routePath: '/agensi' }]);
       store.getOrStart('pane-1', '/agensi');
       expect(loadSpy).not.toHaveBeenCalled();
+      const ssrWarns = warnSpy.mock.calls
+        .map(args => String(args[0] ?? ''))
+        .filter(msg => msg.includes('portal.workspace.ssr_mutation_blocked'));
+      expect(ssrWarns).toHaveLength(4);
     } finally {
       Object.defineProperty(globalThis, 'window', {
         value: originalWindow,
@@ -246,6 +290,60 @@ describe('portalPaneTransport single-fetch behavior', () => {
     const cadenceSettled = await cadenceEnv.payload;
     expect(chatSettled.ok).toBe(false);
     expect(cadenceSettled.ok).toBe(false);
+  });
+
+  it('does not latch guestSessionPrimed on bare proxy HTTP 502 so pane 2 becomes the next leader while pane 3 still waits', async () => {
+    const resp1 = Promise.withResolvers<Response>();
+    const resp2 = Promise.withResolvers<Response>();
+    const resp3 = Promise.withResolvers<Response>();
+    const requestedUrls: string[] = [];
+
+    const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
+      input => {
+        requestedUrls.push(String(input));
+        if (requestedUrls.length === 1) return resp1.promise;
+        if (requestedUrls.length === 2) return resp2.promise;
+        return resp3.promise;
+      },
+    );
+
+    const transport = createSingleFetchPaneTransport({
+      fetchImpl: fetchMock as unknown as typeof fetch,
+    });
+
+    const load1 = transport.load('/chat', new AbortController().signal);
+    const load2 = transport.load('/cadence', new AbortController().signal);
+    const load3 = transport.load('/chat', new AbortController().signal);
+
+    // Only pane 1 is dispatched initially
+    await Promise.resolve();
+    expect(requestedUrls).toHaveLength(1);
+
+    // Pane 1 receives a bare proxy HTTP 502 (no X-Remix-Response) -> must NOT set guestSessionPrimed
+    resp1.resolve(new Response('<html>502 Bad Gateway</html>', { status: 502 }));
+
+    await vi.waitFor(() => {
+      expect(requestedUrls).toHaveLength(2);
+    });
+    // Yield extra microtasks: pane 3 MUST remain gated while pane 2 is the new cold-session leader!
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(requestedUrls).toHaveLength(2);
+
+    // Pane 2 returns HTTP 200 (Fastify SSR handled) -> latches guestSessionPrimed and ungates pane 3
+    resp2.resolve(
+      new Response('[]\n', {
+        status: 200,
+        headers: { 'X-Remix-Response': 'yes', 'Set-Cookie': 'ak_guest_session=ok; HttpOnly' },
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(requestedUrls).toHaveLength(3);
+    });
+
+    resp3.resolve(new Response('[]\n', { status: 200, headers: { 'X-Remix-Response': 'yes' } }));
+    await Promise.all([load1, load2, load3]);
   });
 
   it('classifies bare HTTP 502, HTTP 204 redirect, and offline errors fail-closed for submitPortalPaneAction across contact, chat, and cadence', async () => {

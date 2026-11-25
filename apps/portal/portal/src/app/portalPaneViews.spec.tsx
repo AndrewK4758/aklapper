@@ -29,6 +29,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { PortalCadenceActionResult } from '#pages/cadence';
 
+import { readPersistedAskTurn } from '../pages/ask/askTurnRecovery';
 import { resetCadenceAutoAttachRegistryForTest } from './cadence-stream';
 import { initPortalClientTelemetry, resetPortalClientTelemetryForTest } from './client-telemetry';
 import { type StreamLoaderEnvelope } from './pane-loader';
@@ -1879,6 +1880,112 @@ describe('Portal in-pane route adapters & deep-links', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Back to previous pane' }));
     await waitFor(() => {
       expect(mobileSignal?.aborted).toBe(true);
+    });
+  });
+
+  it('preserves secondary-pane ChatPaneView JD Match persisted turn recovery when reload/unload aborts submitPortalPaneAction', async () => {
+    const askData: PortalAskLoaderData = {
+      content: PortalAskContentSchema.parse({
+        windowTitle: 'Chat with Andrew',
+        statusBadge: { source: 'ai-ask', state: 'idle', label: 'idle' },
+        description: 'Grounded docked Q&A.',
+        abstentionNotice: 'Strict grounding enabled.',
+        starterQuestions: ['What stack powers this site?'],
+        jdPlaceholder: 'Paste JD...',
+      }),
+      quota: { role: 'guest', turnsUsed: 0, maxTurns: 10, tokensUsed: 0, maxTokens: 40_000 },
+    };
+
+    const actionDeferred = Promise.withResolvers<unknown>();
+    installTestPaneTransport({
+      loaders: {
+        '/chat': () => ({
+          correlationId: 'corr-chat-unload',
+          payload: Promise.resolve<StreamResult<PortalAskLoaderData>>({
+            ok: true,
+            data: askData,
+          }),
+          askStatusPayload: Promise.resolve<StreamResult<AskServiceStatus | undefined>>({
+            ok: true,
+            data: { status: 'ready', provider: 'vertex', pointsCount: 12 },
+          }),
+        }),
+      },
+      actions: {
+        '/chat': () => actionDeferred.promise,
+      },
+    });
+
+    const router = createMemoryRouter(
+      [
+        {
+          id: 'root',
+          path: '/',
+          loader: () =>
+            makeRootStreamData({
+              maintenanceMode: false,
+              chrome: CHROME,
+              maintenance: null,
+              terminal: TERMINAL,
+              homeContent: HOME_CONTENT,
+            }),
+          Component: PortalRootBridge,
+          children: [
+            {
+              index: true,
+              loader: () =>
+                streamOk<PortalHomeLoaderData>({
+                  content: HOME_CONTENT,
+                  terminal: TERMINAL,
+                  contactForm: CONTACT_FORM_DEFINITION,
+                }),
+              Component: PortalHomeBridge,
+            },
+          ],
+        },
+      ],
+      { initialEntries: ['/'] },
+    );
+
+    render(<RouterProvider router={router} />);
+    await screen.findByLabelText('Terminal command input');
+
+    // Open secondary /chat split ("pane-2") via header Open Pane menu
+    fireEvent.click(screen.getByRole('button', { name: 'Open Pane' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Chat (Split)' }));
+
+    // Switch to JD Match tab and submit a delayed unary turn
+    fireEvent.click(await screen.findByTestId('ask-tab-jd'));
+    fireEvent.change(await screen.findByTestId('ask-jd-textarea'), {
+      target: {
+        value:
+          'Staff Platform Engineer working on streaming SSR, Go microservices, and PostgreSQL 19.',
+      },
+    });
+    fireEvent.click(screen.getByTestId('ask-jd-submit'));
+
+    await waitFor(() => {
+      expect(readPersistedAskTurn('pane:pane-2')).toMatchObject({
+        mode: 'jd_match',
+        ownerInstanceId: 'pane:pane-2',
+      });
+    });
+
+    // Simulate browser reload/unload aborting the in-flight secondary pane POST action
+    act(() => {
+      window.dispatchEvent(new Event('pagehide'));
+      actionDeferred.reject(new DOMException('The operation was aborted.', 'AbortError'));
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // Persisted turn recovery entry for pane:pane-2 MUST remain intact (never cleared by unload abort)
+    expect(readPersistedAskTurn('pane:pane-2')).toMatchObject({
+      mode: 'jd_match',
+      ownerInstanceId: 'pane:pane-2',
     });
   });
 });

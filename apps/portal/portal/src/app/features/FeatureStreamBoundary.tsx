@@ -6,13 +6,38 @@ import {
   TuiWindow,
   usePaneNavigation,
 } from '@aklapper/ui';
-import { type ReactNode, useCallback, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { href, useNavigate } from 'react-router';
 
 import { reportPortalPublicError } from '../client-telemetry';
 import { type PaneStreamEntry, portalPaneStreamStore } from '../workspace/portalPaneStreamStore';
 import { submitPortalPaneAction } from '../workspace/portalPaneTransport';
 import type { PortalPaneRoute } from '../workspace/portalWorkspaceSnapshot';
+import {
+  createInvocationUnloadTracker,
+  type InvocationUnloadTracker,
+} from '../workspace/unloadGuard';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+
+function isAbortedActionResult(result: unknown): boolean {
+  return (
+    typeof result === 'object' &&
+    result !== null &&
+    'ok' in result &&
+    result.ok === false &&
+    'code' in result &&
+    result.code === 'ERR_STREAM_ABORTED'
+  );
+}
 
 export interface FeatureStreamBoundaryProps<T> {
   readonly mode: 'route' | 'pane';
@@ -75,18 +100,47 @@ export function usePaneActionSubmit<T>(routePath: PortalPaneRoute): {
   const [actionData, setActionData] = useState<T | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const seqRef = useRef(0);
+  const mountedRef = useRef(true);
   const abortRef = useRef<AbortController | null>(null);
+  const unloadRef = useRef<InvocationUnloadTracker | null>(null);
+
+  useIsomorphicLayoutEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      abortRef.current?.abort();
+      abortRef.current = null;
+      unloadRef.current?.dispose();
+      unloadRef.current = null;
+    };
+  }, []);
 
   const submit = useCallback(
     (formData: FormData) => {
       abortRef.current?.abort();
+      unloadRef.current?.dispose();
       const controller = new AbortController();
+      const unloadTracker = createInvocationUnloadTracker();
       abortRef.current = controller;
+      unloadRef.current = unloadTracker;
       const seq = seqRef.current + 1;
       seqRef.current = seq;
       setIsSubmitting(true);
       void submitPortalPaneAction<T>(routePath, formData, controller.signal).then(result => {
-        if (seqRef.current !== seq) return;
+        const unloading = unloadTracker.isUnloading();
+        unloadTracker.dispose();
+        if (unloadRef.current === unloadTracker) {
+          unloadRef.current = null;
+        }
+        if (
+          !mountedRef.current ||
+          seqRef.current !== seq ||
+          controller.signal.aborted ||
+          unloading ||
+          isAbortedActionResult(result)
+        ) {
+          return;
+        }
         setActionData(result);
         setIsSubmitting(false);
       });

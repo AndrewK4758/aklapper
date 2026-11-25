@@ -25,6 +25,14 @@ import {
   type StreamLoaderEnvelope,
 } from '../pane-loader';
 import type { PortalPaneRoute } from './portalWorkspaceSnapshot';
+import {
+  generateClientCorrelationId,
+  isAbortException,
+  isPlainRecord,
+  waitForAbortablePromise,
+} from './unloadGuard';
+
+export { generateClientCorrelationId };
 
 export const PORTAL_PANE_ROUTE_IDS: Readonly<Record<PortalPaneRoute, string>> = {
   '/agensi': 'routes/agensi',
@@ -57,22 +65,13 @@ let guestSessionPrimed = false;
 let guestSessionInflight: Promise<void> | null = null;
 
 export function markGuestSessionPrimed(): void {
+  if (typeof window === 'undefined') return;
   guestSessionPrimed = true;
 }
 
 export function resetGuestSessionBarrierForTest(): void {
   guestSessionPrimed = false;
   guestSessionInflight = null;
-}
-
-export function generateClientCorrelationId(): string {
-  return typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-    ? crypto.randomUUID()
-    : 'pane-client-err';
-}
-
-function isPlainRecord(value: unknown): value is Record<PropertyKey, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 const ERROR_SPEC: Readonly<Record<string, readonly [AppErrorCode, string, string]>> = {
@@ -111,7 +110,8 @@ export function createTransportPublicError(options: {
   readonly status?: number;
   readonly correlationId?: string;
 }): PublicAppError {
-  const correlationId = options.correlationId?.trim() || generateClientCorrelationId();
+  const correlationId =
+    options.correlationId?.trim().slice(0, 128) || generateClientCorrelationId();
   const { error, status } = options;
 
   if (isPublicAppError(error)) return error;
@@ -126,7 +126,7 @@ export function createTransportPublicError(options: {
   if (typeof status === 'number') {
     resolvedStatus = status >= 400 && status <= 599 ? status : 503;
     specKey = ERROR_SPEC[String(status)] ? String(status) : '503';
-  } else if (error instanceof Error && error.name === 'AbortError') {
+  } else if (isAbortException(error)) {
     resolvedStatus = 499;
     specKey = '499';
   } else if (
@@ -218,18 +218,6 @@ function failedEnvelope<T>(publicError: PublicAppError): StreamLoaderEnvelope<T>
   };
 }
 
-async function waitForAbortablePromise(promise: Promise<void>, signal: AbortSignal): Promise<void> {
-  if (signal.aborted) return;
-  await new Promise<void>(resolveWait => {
-    const done = () => {
-      signal.removeEventListener('abort', done);
-      resolveWait();
-    };
-    signal.addEventListener('abort', done, { once: true });
-    void promise.finally(done);
-  });
-}
-
 async function decodeSingleFetchBody(
   response: Response,
   correlationId: string,
@@ -286,7 +274,13 @@ export function createSingleFetchPaneTransport(
     guestSessionInflight = barrier.promise;
     try {
       const response = await doFetch();
-      guestSessionPrimed = true;
+      if (
+        response.status !== 204 &&
+        (response.headers.has('X-Remix-Response') ||
+          (response.status >= 200 && response.status < 400))
+      ) {
+        guestSessionPrimed = true;
+      }
       return response;
     } finally {
       if (guestSessionInflight === barrier.promise) guestSessionInflight = null;

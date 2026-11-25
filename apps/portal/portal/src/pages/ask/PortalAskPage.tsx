@@ -15,15 +15,14 @@ import {
   buildRecoveringTurnState,
   clearPersistedAskTurn,
   generateAskAttemptId,
+  getPersistedAskTurnStore,
   isPendingAskResult,
   type PortalAskActionResult,
   prependQaTranscriptEntry,
   type QaTranscriptEntry,
-  readPersistedAskTurn,
   type RecoveredErrorState,
   resolvePendingAskTurn,
   startAskTurnPolling,
-  subscribePersistedAskTurn,
   writePersistedAskTurn,
 } from './askTurnRecovery';
 import { useAskStreaming } from './useAskStreaming';
@@ -62,10 +61,11 @@ export function PortalAskPage({
   onSubmitAsk,
   onClose,
 }: PortalAskPageProps) {
+  const turnStore = getPersistedAskTurnStore(instanceId);
   const persistedTurn = useSyncExternalStore(
-    subscribePersistedAskTurn,
-    readPersistedAskTurn,
-    () => null,
+    turnStore.subscribe,
+    turnStore.getSnapshot,
+    turnStore.getServerSnapshot,
   );
   const isHydrated = useHydrated();
   const [activeTab, setActiveTab] = useState<AskMode>('qa');

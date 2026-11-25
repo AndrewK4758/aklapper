@@ -1,9 +1,18 @@
 import type { CadenceRunResult } from '@aklapper/core';
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { StrictMode } from 'react';
+import { hydrateRoot } from 'react-dom/client';
+import { renderToString } from 'react-dom/server';
+import type { FetcherWithComponents } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { resetCadenceAutoAttachRegistryForTest, useCadenceRunController } from './cadence-stream';
+import type { PortalCadenceActionResult } from '#pages/cadence';
+
+import {
+  type CadencePaneActionAdapter,
+  resetCadenceAutoAttachRegistryForTest,
+  useCadenceRunController,
+} from './cadence-stream';
 
 class FakeEventSource {
   readonly url: string;
@@ -77,6 +86,80 @@ describe('useCadenceRunController single-owner SSE claim registry', () => {
     expect(created.at(-1)?.closed).toBe(true);
   });
 
+  it('preserves SSR-to-hydration DOM parity when reloading an active running run and attaches SSE post-hydration', async () => {
+    const run = makeRunningRun('run-ssr-hydrate-1');
+    const created: FakeEventSource[] = [];
+    const eventSourceFactory = (url: string): EventSource => {
+      const es = new FakeEventSource(url);
+      created.push(es);
+      return es as unknown as EventSource;
+    };
+
+    function HydrationProbe() {
+      const controller = useCadenceRunController({
+        instanceId: 'primary:/cadence',
+        recentRuns: [run],
+        eventSourceFactory,
+      });
+      return (
+        <output
+          data-testid='cadence-hydration-probe'
+          data-state={controller.isStreaming ? 'streaming' : 'idle'}
+        >
+          {controller.isStreaming ? 'streaming' : 'idle'}
+        </output>
+      );
+    }
+
+    // Step 1: Server render with window undefined
+    const originalWindow = globalThis.window;
+    Object.defineProperty(globalThis, 'window', {
+      value: undefined,
+      configurable: true,
+      writable: true,
+    });
+    let ssrHtml = '';
+    try {
+      ssrHtml = renderToString(<HydrationProbe />);
+    } finally {
+      Object.defineProperty(globalThis, 'window', {
+        value: originalWindow,
+        configurable: true,
+        writable: true,
+      });
+    }
+    expect(ssrHtml).toContain('data-state="idle"');
+    expect(created).toHaveLength(0);
+
+    // Step 2: Hydrate on client -> getServerSnapshot returns null (zero mismatch), then attaches SSE
+    const container = document.createElement('div');
+    container.innerHTML = ssrHtml;
+    document.body.appendChild(container);
+    const recoverableErrors: unknown[] = [];
+    const root = hydrateRoot(container, <HydrationProbe />, {
+      onRecoverableError: err => {
+        recoverableErrors.push(err);
+      },
+    });
+
+    try {
+      await waitFor(() => {
+        expect(created).toHaveLength(1);
+        expect(
+          container
+            .querySelector('[data-testid="cadence-hydration-probe"]')
+            ?.getAttribute('data-state'),
+        ).toBe('streaming');
+      });
+      expect(recoverableErrors).toEqual([]);
+    } finally {
+      act(() => {
+        root.unmount();
+      });
+      container.remove();
+    }
+  });
+
   it('suppresses duplicate SSE attachment when a second coexisting instance mounts for the same runId and releases on owner unmount', () => {
     const created: FakeEventSource[] = [];
     const eventSourceFactory = (url: string): EventSource => {
@@ -127,18 +210,38 @@ describe('useCadenceRunController single-owner SSE claim registry', () => {
     tertiary.unmount();
   });
 
-  it('submits commands through paneAction adapter when provided instead of fetcher', () => {
+  it('routes commands through paneAction instead of fetcher and updates submitting, actionResult, and streaming states', () => {
+    const created: FakeEventSource[] = [];
+    const eventSourceFactory = (url: string): EventSource => {
+      const es = new FakeEventSource(url);
+      created.push(es);
+      return es as unknown as EventSource;
+    };
+
     const submitSpy = vi.fn<(fields: Readonly<Record<string, string>>) => void>();
-    const { result } = renderHook(() =>
-      useCadenceRunController({
-        instanceId: 'pane-2:/cadence',
-        recentRuns: [],
-        paneAction: {
-          data: undefined,
-          isSubmitting: false,
-          submit: submitSpy,
-        },
-      }),
+    const fetcherSubmitSpy = vi.fn<() => Promise<void>>(async () => undefined);
+    const fetcherStub = {
+      state: 'idle',
+      data: undefined,
+      submit: fetcherSubmitSpy,
+    } as unknown as FetcherWithComponents<PortalCadenceActionResult>;
+
+    const initialAdapter: CadencePaneActionAdapter = {
+      data: undefined,
+      isSubmitting: false,
+      submit: submitSpy,
+    };
+
+    const { result, rerender, unmount } = renderHook(
+      ({ paneAction }: { readonly paneAction: CadencePaneActionAdapter }) =>
+        useCadenceRunController({
+          instanceId: 'pane-2:/cadence',
+          recentRuns: [],
+          fetcher: fetcherStub,
+          paneAction,
+          eventSourceFactory,
+        }),
+      { initialProps: { paneAction: initialAdapter } },
     );
 
     act(() => {
@@ -156,5 +259,39 @@ describe('useCadenceRunController single-owner SSE claim registry', () => {
       mode: 'fast',
       requireSpecApproval: 'true',
     });
+    expect(fetcherSubmitSpy).not.toHaveBeenCalled();
+
+    // Transition to submitting state via paneAction adapter
+    rerender({
+      paneAction: {
+        data: undefined,
+        isSubmitting: true,
+        submit: submitSpy,
+      },
+    });
+    expect(result.current.isSubmitting).toBe(true);
+    expect(result.current.isStreaming).toBe(false);
+
+    // Transition to run-init response -> attaches EventSource and reflects live actionResult
+    const run = makeRunningRun('run-pane-action-1');
+    rerender({
+      paneAction: {
+        data: { ok: true, intent: 'run-init', run },
+        isSubmitting: false,
+        submit: submitSpy,
+      },
+    });
+
+    expect(result.current.isSubmitting).toBe(false);
+    expect(result.current.isStreaming).toBe(true);
+    expect(result.current.actionResult).toMatchObject({
+      ok: true,
+      intent: 'run-init',
+      run: { runId: 'run-pane-action-1' },
+    });
+    expect(created).toHaveLength(1);
+    expect(created[0]?.url).toContain('run-pane-action-1');
+
+    unmount();
   });
 });

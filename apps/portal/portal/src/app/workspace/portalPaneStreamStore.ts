@@ -137,13 +137,25 @@ export function createPortalPaneStreamStore(
     }
   };
 
+  const emitSsrMutationBlocked = (method: string): void => {
+    console.warn(
+      JSON.stringify({
+        event: 'portal.workspace.ssr_mutation_blocked',
+        seamType: 'UNSOUND_CONDITION',
+        store: 'portalPaneStreamStore',
+        method,
+      }),
+    );
+  };
+
   const enforceLruCap = (): void => {
-    while (records.size > maxEntries) {
-      const oldestKey = records.keys().next().value;
-      if (oldestKey === undefined) break;
-      const oldest = records.get(oldestKey);
+    if (records.size <= maxEntries) return;
+    for (const candidateKey of Array.from(records.keys())) {
+      if (records.size <= maxEntries) break;
+      if ((listenersByKey.get(candidateKey)?.size ?? 0) > 0) continue;
+      const oldest = records.get(candidateKey);
       oldest?.controller.abort();
-      records.delete(oldestKey);
+      records.delete(candidateKey);
     }
   };
 
@@ -255,11 +267,17 @@ export function createPortalPaneStreamStore(
     return startRecord<T>(paneId, routePath, 0, false);
   };
 
-  const prewarm = <T = unknown>(paneId: string, routePath: PortalPaneRoute): PaneStreamEntry<T> =>
-    getOrStart<T>(paneId, routePath);
+  const prewarm = <T = unknown>(paneId: string, routePath: PortalPaneRoute): PaneStreamEntry<T> => {
+    if (typeof window === 'undefined') {
+      emitSsrMutationBlocked('prewarm');
+      return getImmutableServerEntry<T>(paneId, routePath);
+    }
+    return getOrStart<T>(paneId, routePath);
+  };
 
   const retry = <T = unknown>(paneId: string, routePath: PortalPaneRoute): PaneStreamEntry<T> => {
     if (typeof window === 'undefined') {
+      emitSsrMutationBlocked('retry');
       return getImmutableServerEntry<T>(paneId, routePath);
     }
     const key = buildKey(paneId, routePath);
@@ -301,7 +319,10 @@ export function createPortalPaneStreamStore(
   };
 
   const evictPane = (paneId: string): void => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+      emitSsrMutationBlocked('evictPane');
+      return;
+    }
     const prefix = `${paneId}:`;
     for (const key of Array.from(records.keys())) {
       if (key.startsWith(prefix)) {
@@ -311,7 +332,10 @@ export function createPortalPaneStreamStore(
   };
 
   const evictPaneViews = (views: readonly PortalPaneViewRef[]): void => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+      emitSsrMutationBlocked('evictPaneViews');
+      return;
+    }
     for (const view of views) {
       evictKey(buildKey(view.paneId, view.routePath));
     }
