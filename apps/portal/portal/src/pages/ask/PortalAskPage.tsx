@@ -6,13 +6,7 @@ import type {
   PortalAskContent,
   QuotaStatus,
 } from '@aklapper/core';
-import {
-  ActionFeedbackBanner,
-  Separator,
-  Tabs,
-  TuiWindow,
-  useHydrated,
-} from '@aklapper/ui';
+import { ActionFeedbackBanner, Separator, Tabs, TuiWindow, useHydrated } from '@aklapper/ui';
 import { type FormEvent, type ReactNode, useEffect, useState, useSyncExternalStore } from 'react';
 
 import { AskJdPanel, AskQaPanel } from './AskPanels';

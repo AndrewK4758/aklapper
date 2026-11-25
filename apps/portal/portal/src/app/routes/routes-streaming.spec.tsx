@@ -3,6 +3,7 @@ import {
   CONTACT_FORM_DEFINITION,
   createPublicAppError,
   type PortalAgensiLoaderData,
+  PortalAskContentSchema,
   type PortalAskLoaderData,
   type PortalCadenceLoaderData,
   type PortalHomeLoaderData,
@@ -493,16 +494,36 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
   it('streams /ask primary form immediately while askStatusPayload settles independently and preserves live badge precedence', async () => {
     const askStatusDeferred = Promise.withResolvers<StreamResult<AskServiceStatus | undefined>>();
     const askData: PortalAskLoaderData = {
-      content: {
+      content: PortalAskContentSchema.parse({
         windowTitle: 'Ask Portfolio',
         statusBadge: { source: 'ai-ask', state: 'idle', label: 'idle' },
         description: 'Grounded portfolio Q&A.',
         abstentionNotice: 'Strictly grounded answers only.',
         starterQuestions: ['Explain the streaming SSR architecture'],
         jdPlaceholder: 'Paste job description...',
-      },
-      quota: { role: 'guest', turnsUsed: 0, maxTurns: 5, tokensUsed: 0, maxTokens: 20_000 },
+      }),
+      quota: { role: 'guest', turnsUsed: 0, maxTurns: 10, tokensUsed: 0, maxTokens: 40_000 },
     };
+
+    const encoder = new TextEncoder();
+    const sseBody = [
+      'event: meta\ndata: {"attemptId":"11111111-1111-4111-8111-111111111111","conversationId":"22222222-2222-4222-8222-222222222222","turnIndex":1,"correlationId":"corr-ask-split","mode":"qa","provider":"vertex"}\n\n',
+      'event: sources\ndata: {"sources":[{"id":"doc-1","title":"SSR Architecture","snippet":"Streaming SSR","score":0.95}]}\n\n',
+      'event: delta\ndata: {"text":"Streaming SSR uses deferStreamResult and SuspenseElement."}\n\n',
+      'event: done\ndata: {"attemptId":"11111111-1111-4111-8111-111111111111","conversationId":"22222222-2222-4222-8222-222222222222","turnIndex":1,"grounded":true,"abstained":false,"groundingTier":"evidence","answer":"Streaming SSR uses deferStreamResult and SuspenseElement.","provider":"vertex","tokensUsed":120,"correlationId":"corr-ask-split","quota":{"role":"guest","turnsUsed":1,"maxTurns":10,"tokensUsed":120,"maxTokens":40000}}\n\n',
+    ].join('');
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(encoder.encode(sseBody));
+            controller.close();
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'text/event-stream; charset=utf-8' } },
+      ),
+    );
 
     const Stub = createRoutesStub([
       {
@@ -511,27 +532,6 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
           correlationId: 'corr-ask-split',
           payload: Promise.resolve<StreamResult<PortalAskLoaderData>>({ ok: true, data: askData }),
           askStatusPayload: askStatusDeferred.promise,
-        }),
-        action: async () => ({
-          ok: true,
-          mode: 'qa',
-          submittedText: 'Explain the streaming SSR architecture',
-          attemptId: '11111111-1111-4111-8111-111111111111',
-          response: {
-            mode: 'qa',
-            answer: 'Streaming SSR uses deferStreamResult and SuspenseElement.',
-            grounded: true,
-            provider: 'vertex',
-            tokensUsed: 120,
-            sources: [
-              {
-                id: 'doc-1',
-                title: 'SSR Architecture',
-                snippet: 'Streaming SSR',
-                score: 0.95,
-              },
-            ],
-          },
         }),
         Component: PortalAskRoute,
       },
@@ -553,5 +553,9 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
     fireEvent.click(screen.getByTestId('ask-qa-submit'));
 
     expect(await screen.findByText(/grounded · 1 source\(s\)/i)).toBeTruthy();
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/ask/stream',
+      expect.objectContaining({ method: 'POST', credentials: 'same-origin' }),
+    );
   });
 });

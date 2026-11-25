@@ -4,6 +4,7 @@ import {
   CONTACT_FORM_DEFINITION,
   type ContactActionResult,
   type PortalAgensiLoaderData,
+  PortalAskContentSchema,
   type PortalAskLoaderData,
   type PortalCadenceLoaderData,
   type PortalContactLoaderData,
@@ -1342,15 +1343,15 @@ describe('Portal in-pane route adapters & deep-links', () => {
 
   it('streams askStatusPayload into docked /ask?pane=1 and logs envelope_shape_mismatch when omitted', async () => {
     const askData: PortalAskLoaderData = {
-      content: {
+      content: PortalAskContentSchema.parse({
         windowTitle: 'Ask Portfolio',
         statusBadge: { source: 'ai-ask', state: 'idle', label: 'idle' },
         description: 'Grounded docked Q&A.',
         abstentionNotice: 'Strict grounding enabled.',
         starterQuestions: ['What stack powers this site?'],
         jdPlaceholder: 'Paste JD...',
-      },
-      quota: { role: 'guest', turnsUsed: 0, maxTurns: 5, tokensUsed: 0, maxTokens: 20_000 },
+      }),
+      quota: { role: 'guest', turnsUsed: 0, maxTurns: 10, tokensUsed: 0, maxTokens: 40_000 },
     };
 
     const askStatusDeferred = Promise.withResolvers<StreamResult<AskServiceStatus | undefined>>();
