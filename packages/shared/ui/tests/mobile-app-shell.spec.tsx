@@ -247,6 +247,37 @@ describe('MobileAppShell', () => {
     expect(railToggle.getAttribute('aria-expanded')).toBe('true');
     expect(screen.getByRole('button', { name: 'Sign Out' })).toBeTruthy();
   });
+
+  it('renders an interactive brand link as a sibling of the rail toggle rather than nested inside it', () => {
+    render(
+      <MobileAppShell
+        layoutMode='mobile-landscape'
+        brand={<a href='/'>andrew-k.us</a>}
+        pageTitle='CADENCE'
+        navLabel='Primary mobile navigation'
+        navItems={SAMPLE_NAV_ITEMS}
+      >
+        <div>Landscape workspace</div>
+      </MobileAppShell>,
+    );
+
+    const railToggle = screen.getByRole('button', { name: 'Expand navigation rail' });
+    expect(screen.queryByRole('link', { name: 'andrew-k.us' })).toBeNull();
+
+    fireEvent.click(railToggle);
+
+    expect(railToggle.getAttribute('aria-expanded')).toBe('true');
+    expect(railToggle.querySelector('a')).toBeNull();
+
+    const brandLink = screen.getByRole('link', { name: 'andrew-k.us' });
+    expect(brandLink.getAttribute('href')).toBe('/');
+    expect(railToggle.contains(brandLink)).toBe(false);
+    expect(railToggle.parentElement?.contains(brandLink)).toBe(true);
+    expect(brandLink.parentElement?.previousElementSibling).toBe(railToggle);
+
+    fireEvent.click(brandLink);
+    expect(railToggle.getAttribute('aria-expanded')).toBe('true');
+  });
 });
 
 describe('TuiWindow handheld docking without PaneNavigationContext', () => {

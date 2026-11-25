@@ -68,8 +68,8 @@ export function MobileAppShell({
               onClick={() => setRailExpanded(expanded => !expanded)}
             >
               <Button.Icon aria-hidden='true'>{railExpanded ? '‹' : '›'}</Button.Icon>
-              {railExpanded ? <span className={styles.railBrand}>{brand}</span> : null}
             </Button.Root>
+            {railExpanded ? <div className={styles.railBrand}>{brand}</div> : null}
           </div>
           <ul className={styles.railList}>
             {navItems.map(item => (

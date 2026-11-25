@@ -193,6 +193,8 @@
   .railTop {
     display: flex;
     align-items: var(--sf-align-center);
+    gap: var(--sf-space-2);
+    min-width: var(--sf-space-0);
     flex-shrink: 0;
   }
 
@@ -201,15 +203,16 @@
     min-width: var(--sf-touch-target-min);
     min-height: var(--sf-touch-target-min);
     justify-content: var(--sf-justify-center);
-    gap: var(--sf-space-2);
     padding: var(--sf-space-1) var(--sf-space-2);
+    flex-shrink: 0;
   }
 
   .rail[data-expanded='true'] .railToggle {
-    justify-content: var(--sf-justify-start);
+    width: auto;
   }
 
   .railBrand {
+    flex: 1 1 auto;
     display: inline-flex;
     align-items: var(--sf-align-center);
     gap: var(--sf-space-2);
