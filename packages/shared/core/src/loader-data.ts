@@ -16,7 +16,6 @@ import type {
   PortalContactContent,
   PortalHomeContent,
   PortalMaintenanceContent,
-  PortalMenuContent,
   RoadmapMilestone,
 } from './portal.ts';
 import type { TerminalProfileData } from './terminal.ts';
@@ -41,11 +40,6 @@ export interface PortalHomeLoaderData {
   content: PortalHomeContent;
   terminal: TerminalProfileData;
   contactForm: FormDefinition;
-}
-
-export interface PortalMenuLoaderData {
-  content: PortalMenuContent;
-  items: readonly MenuItem[];
 }
 
 export interface PortalAgensiLoaderData {

@@ -21,6 +21,7 @@ import {
   sandboxRuns,
   seedDatabase,
   SITE_CONTENT_KEYS,
+  siteContent,
   TERMINAL_DIRECTORY_ENTRY_SEEDS,
   TERMINAL_PROFILE_SLUGS,
   terminalCommands,
@@ -58,7 +59,7 @@ describe('@aklapper/db', () => {
     expect(terminalCommands.allowedRoutes.name).toBe('allowed_routes');
     expect(terminalDirectoryEntries.profileSlug.name).toBe('profile_slug');
     expect(terminalDirectoryEntries.description.name).toBe('description');
-    expect(TERMINAL_DIRECTORY_ENTRY_SEEDS).toHaveLength(7);
+    expect(TERMINAL_DIRECTORY_ENTRY_SEEDS).toHaveLength(6);
     expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.every(entry => !entry.name.endsWith('/'))).toBe(true);
     expect(roadmapMilestones.status.name).toBe('status');
     expect(webauthnChallenges.challenge.name).toBe('challenge');
@@ -90,7 +91,7 @@ describe('@aklapper/db', () => {
       'spec-challenge-proof-ledger',
     ]);
     expect(DEFAULT_MENU_ITEMS.some(item => item.adminOnly)).toBe(true);
-    expect(Object.keys(SITE_CONTENT_KEYS)).toHaveLength(11);
+    expect(Object.keys(SITE_CONTENT_KEYS)).toHaveLength(10);
     expect(SITE_CONTENT_KEYS.portalAgensi).toBe('portal-agensi');
     expect(SITE_CONTENT_KEYS.portalAsk).toBe('portal-ask');
     expect(SITE_CONTENT_KEYS.portalContact).toBe('portal-contact');
@@ -297,7 +298,12 @@ describe('@aklapper/db', () => {
 
     try {
       await seedDatabase(mockDb, { ADMIN_PASSWORD: '' });
-      expect(deleteCalls).toEqual([menuItems, terminalCommands, terminalDirectoryEntries]);
+      expect(deleteCalls).toEqual([
+        menuItems,
+        siteContent,
+        terminalCommands,
+        terminalDirectoryEntries,
+      ]);
       expect(onConflictUpdateCalls.length).toBeGreaterThan(0);
       expect(onConflictUpdateCalls).toContain(careerDossiers);
 
@@ -312,6 +318,7 @@ describe('@aklapper/db', () => {
       await seedDatabase(mockDb, { pruneMissingMilestones: true, env: { ADMIN_PASSWORD: '' } });
       expect(deleteCalls).toEqual([
         menuItems,
+        siteContent,
         terminalCommands,
         terminalDirectoryEntries,
         roadmapMilestones,
@@ -321,6 +328,7 @@ describe('@aklapper/db', () => {
       expect(DEFAULT_MENU_ITEMS.some(item => item.slug === 'ask')).toBe(false);
       expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.map(entry => entry.name)).toContain('chat');
       expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.map(entry => entry.name)).not.toContain('ask');
+      expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.map(entry => entry.name)).not.toContain('menu');
       expect(PORTAL_ASK_SEED.windowTitle).toContain('Chat with Andrew');
       const profileDossier = CAREER_DOSSIER_SEEDS.find(
         d => d.slug === 'andrew-klapper-profile-core',

@@ -329,21 +329,13 @@ describe('@aklapper/core error contracts and server error classification', () =>
     expect(enrichedFail.ok).toBe(false);
     expect(enrichedFail.code).toBe('ERR_DB_UNAVAILABLE');
 
-    expect(PORTAL_NAVIGABLE_ROUTE_PATHS).toEqual([
-      '/',
-      '/menu',
-      '/cadence',
-      '/chat',
-      '/agensi',
-      '/contact',
-    ]);
+    expect(PORTAL_NAVIGABLE_ROUTE_PATHS).toEqual(['/', '/cadence', '/chat', '/agensi', '/contact']);
     expect(isPortalNavigableRoutePath('/contact')).toBe(true);
     expect(isPortalNavigableRoutePath('/api/contact')).toBe(false);
     expect(isPortalNavigableRoutePath('https://evil.example')).toBe(false);
 
     expect(PORTAL_ROUTE_PATHS).toEqual([
       '/',
-      '/menu',
       '/cadence',
       '/chat',
       '/agensi',

@@ -35,7 +35,6 @@ test.describe('portal SSR end-to-end journeys', () => {
 
     // Clean DB-driven `ls` directory listing without Unix permission columns or trailing `/`
     expect(initialBodyText).not.toMatch(/drwxr-xr-x|-rw-r--r--|menu\//);
-    await expect(page.getByText(/menu\s+# Site menu/)).toBeVisible();
     await expect(page.getByText(/tui\s+# TUI version/)).toBeVisible();
     await expect(page.getByText(/cadence\s+# Agentic workflow example/)).toBeVisible();
     await expect(page.getByText(/chat\s+# Chat with Andrew's AI/)).toBeVisible();
@@ -118,22 +117,22 @@ test.describe('portal SSR end-to-end journeys', () => {
     await splitPaneInput.press('Enter');
     await expect(page.locator('[data-pane-count="1"]')).toBeVisible();
 
-    // `menu` command opens /menu in-place while keeping URL at /
-    await commandInput.fill('menu');
+    // `tui` command opens the TUI launcher in-place while keeping URL at /
+    await commandInput.fill('tui');
     await commandInput.press('Enter');
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole('heading', { name: /Module Menu/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Andrew Klapper — Portfolio/i })).toBeVisible();
     await expect(page.getByText(/CADENCE Builder/i)).toBeVisible();
     await expect(page.getByText(/cadence-admin/i)).toHaveCount(0);
 
-    // Keybinding `1` on /menu pushes /cadence in-place, Escape pops back to /menu, q exits straight to shell
-    await page.keyboard.press('1');
+    // Clicking CADENCE Builder pushes /cadence in-place, Escape pops back to TUI, q exits straight to shell
+    await page.getByRole('link', { name: /CADENCE Builder/i }).click();
     await expect(page).toHaveURL(/\/$/);
     await expect(
       page.getByText(/CADENCE Builder — Interactive Multi-Artifact Showcase/i),
     ).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(page.getByRole('heading', { name: /Module Menu/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Andrew Klapper — Portfolio/i })).toBeVisible();
     await page.keyboard.press('q');
     await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '0');
 
@@ -351,14 +350,8 @@ test.describe('portal SSR end-to-end journeys', () => {
     );
     const getErrors = trackPageErrors(page);
 
-    await gotoStreamedPage(page, '/menu');
-    await expect(page.getByTestId('menu-deploy-status-cadence')).toBeVisible();
-    await expect(page.getByTestId('menu-deploy-status-chat')).toBeVisible();
-    await expect(page.getByTestId('menu-deploy-status-contact')).toBeVisible();
-
-    await page.keyboard.press('3');
-    await expect(page).toHaveURL(/\/menu$/);
-    await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '2');
+    await gotoStreamedPage(page, '/agensi');
+    await expect(page).toHaveURL(/\/agensi$/);
 
     const skillCards = page.locator('[data-testid^="agensi-card-"]');
     const emptyState = page.getByTestId('agensi-empty-state');
@@ -794,11 +787,6 @@ test.describe('portal SSR end-to-end journeys', () => {
     await page.keyboard.press('Escape');
     await expect(page.locator('[data-pane-id="pane-1"]')).toHaveAttribute('data-tui-depth', '0');
 
-    // 15. Alt+M opens /menu in-place while keeping URL at /
-    await page.keyboard.press('Alt+m');
-    await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole('heading', { name: /Module Menu/i })).toBeVisible();
-
     expect(getErrors()).toEqual([]);
   });
 
@@ -816,8 +804,8 @@ test.describe('portal SSR end-to-end journeys', () => {
     const workspace = page.locator('[data-pane-count]');
     const commandInput = page.getByLabel('Terminal command input', { exact: true });
 
-    // CLI --split opens a right split pane with /menu while keeping pane-1 in shell
-    await commandInput.fill('menu --split');
+    // CLI --split opens a right split pane with TUI launcher while keeping pane-1 in shell
+    await commandInput.fill('tui --split');
     await commandInput.press('Enter');
     await expect(workspace).toHaveAttribute('data-pane-count', '2');
     const pane2 = page.locator('[data-pane-id="pane-2"]');
@@ -834,11 +822,11 @@ test.describe('portal SSR end-to-end journeys', () => {
     await page.keyboard.press('Escape');
     await expect(pane2).toHaveAttribute('data-tui-depth', '2');
 
-    // Clicking Go back inside unfocused pane-2 both focuses pane-2 and pops it to /menu
+    // Clicking Go back inside unfocused pane-2 both focuses pane-2 and pops it to TUI launcher
     await pane2.getByRole('button', { name: 'Go back' }).click();
     await expect(pane2).toHaveAttribute('data-active', 'true');
     await expect(pane2).toHaveAttribute('data-tui-depth', '1');
-    await expect(pane2.getByRole('heading', { name: /Module Menu/i })).toBeVisible();
+    await expect(pane2.getByRole('heading', { name: /Andrew Klapper — Portfolio/i })).toBeVisible();
 
     // Shift+Click opens a split pane; Ctrl+Click opens a new tab
     await pane2.getByRole('link', { name: /Agensi/i }).click({ modifiers: ['Control'] });
@@ -902,7 +890,7 @@ test.describe('portal SSR end-to-end journeys', () => {
   }) => {
     test.skip(IS_MAINTENANCE_MODE, 'Crawler SSR route check is gated in maintenance mode');
 
-    const browserRes = await request.get('/menu', {
+    const browserRes = await request.get('/cadence', {
       headers: {
         'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/135.0.0.0',
       },
@@ -911,7 +899,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     expect(browserRes.headers()['x-accel-buffering']).toBe('no');
     expect(browserRes.headers()['x-correlation-id']).toMatch(/^[A-Za-z0-9._:-]{1,128}$/);
 
-    const botRes = await request.get('/menu', {
+    const botRes = await request.get('/cadence', {
       headers: {
         'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
       },
@@ -920,8 +908,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     expect(botRes.headers()['x-correlation-id']).toMatch(/^[A-Za-z0-9._:-]{1,128}$/);
     const botHtml = await botRes.text();
     expect(botHtml).toContain('CADENCE Builder');
-    expect(botHtml).toContain('data-testid="menu-deploy-status-cadence"');
-    expect(botHtml).not.toContain('Loading launch menu...');
+    expect(botHtml).not.toContain('Loading sandbox builder...');
     expect(botHtml).not.toContain('Initializing Solar Forge workspace...');
     expect(botHtml).not.toContain('aria-busy="true"');
     expect(botHtml).not.toMatch(/<div hidden="" id="S:/);

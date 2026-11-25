@@ -344,13 +344,13 @@ describe('PortalRoot', () => {
           }),
         }),
         Component: PortalRoot,
-        children: [{ path: 'menu', Component: () => <div>TUI Menu Probe</div> }],
+        children: [{ path: 'agensi', Component: () => <div>TUI Agensi Probe</div> }],
       },
     ]);
 
-    const { container } = render(<Stub initialEntries={['/menu']} />);
+    const { container } = render(<Stub initialEntries={['/agensi']} />);
 
-    expect(await screen.findByText('TUI Menu Probe')).toBeTruthy();
+    expect(await screen.findByText('TUI Agensi Probe')).toBeTruthy();
     const workspaceEl = container.querySelector('[data-pane-count]') as HTMLElement;
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
 
@@ -453,7 +453,7 @@ describe('PortalRoot', () => {
         ErrorBoundary,
         children: [
           { index: true, Component: StackTriggerHome },
-          { path: 'menu', Component: () => <div>Menu Route Content</div> },
+          { path: 'agensi', Component: () => <div>Agensi Route Content</div> },
         ],
       },
     ]);
@@ -471,10 +471,10 @@ describe('PortalRoot', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Back to previous pane' }));
     expect(await screen.findByText('Mobile Home Content')).toBeTruthy();
 
-    // Re-push stack, then navigate via bottom dock link -> resets stack and shows /menu
+    // Re-push stack, then navigate via bottom dock link -> resets stack and shows /agensi
     fireEvent.click(screen.getByRole('button', { name: 'Open Stacked TUI' }));
     expect(await screen.findByText('Welcome Launcher')).toBeTruthy();
-    fireEvent.click(screen.getByRole('link', { name: 'Menu' }));
-    expect(await screen.findByText('Menu Route Content')).toBeTruthy();
+    fireEvent.click(screen.getByRole('link', { name: 'Skills' }));
+    expect(await screen.findByText('Agensi Route Content')).toBeTruthy();
   });
 });

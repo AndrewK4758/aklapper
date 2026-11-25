@@ -110,7 +110,7 @@ describe('Admin CMS Career Dossier Studio, VisitorLensListEditor & 409/400 actio
     );
 
     expect(Array.isArray(init.state.draftObject['visitorLenses'])).toBe(true);
-    expect(init.state.draftObject['qaTabLabel']).toBe('Ask Andrew Assistant');
+    expect(init.state.draftObject['qaTabLabel']).toBe('Chat with Andrew');
 
     const changes: Array<{ path: readonly (string | number)[]; value: unknown }> = [];
     render(

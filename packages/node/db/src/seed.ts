@@ -14,7 +14,6 @@ import {
   type PortalContactContent,
   type PortalHomeContent,
   type PortalMaintenanceContent,
-  type PortalMenuContent,
   type TerminalProfileData,
   TerminalProfileDataSchema,
 } from '@aklapper/core';
@@ -134,8 +133,7 @@ const PORTAL_HOME_SEED: PortalHomeContent = {
   description:
     "Explore interactive demos, chat with Andrew's AI about his work and experience, browse published Agensi skills, or send a direct message. Use the launcher below or the terminal above to navigate.",
   actions: [
-    { label: 'Open Menu → /menu', to: '/menu', variant: 'primary' },
-    { label: 'CADENCE Builder → /cadence', to: '/cadence', variant: 'default' },
+    { label: 'CADENCE Builder → /cadence', to: '/cadence', variant: 'primary' },
     { label: 'Chat with Andrew → /chat', to: '/chat', variant: 'default' },
     { label: 'Agensi Storefront → /agensi', to: '/agensi', variant: 'default' },
     { label: 'Contact → /contact', to: '/contact', variant: 'default' },
@@ -145,13 +143,6 @@ const PORTAL_HOME_SEED: PortalHomeContent = {
       variant: 'default',
     },
   ],
-};
-
-const PORTAL_MENU_SEED: PortalMenuContent = {
-  heading: 'Module Menu',
-  description:
-    'Select a section below to open it. On-demand services start only when you run an interactive workflow.',
-  localTargetLabel: 'local',
 };
 
 const PORTAL_AGENSI_SEED: PortalAgensiContent = {
@@ -234,11 +225,6 @@ const SITE_CONTENT_SEEDS: ReadonlyArray<{
     metadataJson: PORTAL_HOME_SEED,
   },
   {
-    key: SITE_CONTENT_KEYS.portalMenu,
-    markdownBody: 'Portal launch menu heading and copy.',
-    metadataJson: PORTAL_MENU_SEED,
-  },
-  {
     key: SITE_CONTENT_KEYS.portalAgensi,
     markdownBody: 'Portal Agensi commercial skills storefront copy and filter labels.',
     metadataJson: PORTAL_AGENSI_SEED,
@@ -284,25 +270,14 @@ const TERMINAL_PROFILE_SEEDS = [
   {
     slug: TERMINAL_PROFILE_SLUGS.portalHome,
     bannerTitle: 'Solar Forge Terminal // tty1',
-    bannerMeta: 'tty1 · type "menu", "chat", "agensi", "cadence", or "contact" · Tab autocomplete',
+    bannerMeta: 'tty1 · type "tui", "cadence", "chat", "agensi", or "contact" · Tab autocomplete',
     osLabel: '⚡',
     directory: '~/projects/aklapper',
     vcsBranch: 'portfolio_v2',
     vcsState: 'clean' as const,
     contextLabel: 'guest@andrew-k.us',
-    placeholder: 'type a command (help, ls, menu, chat, agensi, cadence, contact, cd ...)',
-    quickCommands: [
-      'help',
-      'ls',
-      'menu',
-      'tui',
-      'cadence',
-      'chat',
-      'agensi',
-      'contact',
-      'status',
-      'clear',
-    ],
+    placeholder: 'type a command (help, ls, tui, cadence, chat, agensi, contact, cd ...)',
+    quickCommands: ['help', 'ls', 'tui', 'cadence', 'chat', 'agensi', 'contact', 'status', 'clear'],
   },
   {
     slug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
@@ -333,51 +308,44 @@ const TERMINAL_PROFILE_SEEDS = [
 const TERMINAL_DIRECTORY_ENTRY_SEEDS = [
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'menu',
-    description: 'Site menu',
-    sortOrder: 1,
-    enabled: true,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'tui',
     description: 'TUI version',
-    sortOrder: 2,
+    sortOrder: 1,
     enabled: true,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'cadence',
     description: 'Agentic workflow example',
-    sortOrder: 3,
+    sortOrder: 2,
     enabled: true,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'chat',
     description: "Chat with Andrew's AI",
-    sortOrder: 4,
+    sortOrder: 3,
     enabled: true,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'agensi',
     description: 'Published AI skills',
-    sortOrder: 5,
+    sortOrder: 4,
     enabled: true,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'contact',
     description: 'Connect with me',
-    sortOrder: 6,
+    sortOrder: 5,
     enabled: true,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'changes-in-progress',
     description: 'Maintenance preview',
-    sortOrder: 7,
+    sortOrder: 6,
     enabled: true,
   },
 ] as const;
@@ -431,13 +399,12 @@ const TERMINAL_COMMAND_SEEDS = [
     output: [
       'Available terminal commands:',
       '  ls         — list portal routes & workspaces',
-      '  menu       — open /menu module launcher',
       '  tui        — open TUI launcher in a split pane',
       '  cadence    — open /cadence artifact sandbox',
       "  chat       — open /chat to chat with Andrew's AI & JD match",
       '  agensi     — open /agensi commercial skills storefront',
       '  contact    — run inline terminal contact form (or "contact --tui" / "--help")',
-      '  cd <route> — navigate to /menu, /cadence, /chat, /agensi, /contact, or /changes-in-progress',
+      '  cd <route> — navigate to /cadence, /chat, /agensi, /contact, or /changes-in-progress',
       '  status     — inspect cluster & service state',
       '  whoami     — display active terminal session',
       '  clear      — clear terminal scrollback',
@@ -460,17 +427,6 @@ const TERMINAL_COMMAND_SEEDS = [
     allowedRoutes: [] as string[],
     errorTemplate: null,
     sortOrder: 2,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'menu',
-    description: 'open /menu module launcher',
-    kind: 'navigate' as const,
-    output: 'opening /menu ...',
-    targetRoute: '/menu',
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 3,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
@@ -530,13 +486,13 @@ const TERMINAL_COMMAND_SEEDS = [
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'cd',
-    description: 'navigate to /menu, /cadence, /chat, /agensi, /contact, or /changes-in-progress',
+    description: 'navigate to /cadence, /chat, /agensi, /contact, or /changes-in-progress',
     kind: 'cd' as const,
     output: 'cd /{{target}}',
     targetRoute: null,
-    allowedRoutes: ['menu', 'cadence', 'chat', 'agensi', 'contact', 'changes-in-progress'],
+    allowedRoutes: ['cadence', 'chat', 'agensi', 'contact', 'changes-in-progress'],
     errorTemplate:
-      'cd: no such route: {{input}}\nTry: cd menu | cd cadence | cd chat | cd agensi | cd contact | cd changes-in-progress',
+      'cd: no such route: {{input}}\nTry: cd cadence | cd chat | cd agensi | cd contact | cd changes-in-progress',
     sortOrder: 9,
   },
   {
@@ -1048,7 +1004,6 @@ export {
   PORTAL_CONTACT_SEED,
   PORTAL_HOME_SEED,
   PORTAL_MAINTENANCE_SEED,
-  PORTAL_MENU_SEED,
   ROADMAP_MILESTONE_SEEDS,
   seedAdminUserFromEnv,
   type SeedAdminUserResult,
@@ -1223,12 +1178,13 @@ export async function seedDatabase(
 
   if (!isBootstrap) {
     await db.delete(menuItems).where(eq(menuItems.slug, 'ask'));
+    await db.delete(siteContent).where(eq(siteContent.key, 'portal-menu'));
     await db
       .delete(terminalCommands)
       .where(
         and(
           eq(terminalCommands.profileSlug, TERMINAL_PROFILE_SLUGS.portalHome),
-          eq(terminalCommands.name, 'ask'),
+          inArray(terminalCommands.name, ['ask', 'menu']),
         ),
       );
     await db
@@ -1236,7 +1192,7 @@ export async function seedDatabase(
       .where(
         and(
           eq(terminalDirectoryEntries.profileSlug, TERMINAL_PROFILE_SLUGS.portalHome),
-          eq(terminalDirectoryEntries.name, 'ask'),
+          inArray(terminalDirectoryEntries.name, ['ask', 'menu']),
         ),
       );
   }

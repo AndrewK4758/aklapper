@@ -78,7 +78,6 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
   it('serves the clean DB-driven portal-home ls listing from terminal_directory_entries', async () => {
     const entries = await getTerminalDirectoryEntries(db, TERMINAL_PROFILE_SLUGS.portalHome);
     expect(entries.map(entry => [entry.name, entry.description])).toEqual([
-      ['menu', 'Site menu'],
       ['tui', 'TUI version'],
       ['cadence', 'Agentic workflow example'],
       ['chat', "Chat with Andrew's AI"],
@@ -88,7 +87,6 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
     ]);
 
     const expectedListing = [
-      'menu                  # Site menu',
       'tui                   # TUI version',
       'cadence               # Agentic workflow example',
       "chat                  # Chat with Andrew's AI",

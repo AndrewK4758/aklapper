@@ -87,7 +87,7 @@ export function PortalHomePage({
           if (paneNav) {
             paneNav.push('tui');
           } else {
-            void onNavigate?.('/menu');
+            void onNavigate?.('/cadence');
           }
         },
       }),

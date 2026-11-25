@@ -1,6 +1,5 @@
 export const PORTAL_NAVIGABLE_ROUTE_PATHS = [
   '/',
-  '/menu',
   '/cadence',
   '/chat',
   '/agensi',
@@ -17,7 +16,6 @@ export function isPortalNavigableRoutePath(value: string): value is PortalNaviga
 
 export const PORTAL_ROUTE_PATHS = [
   '/',
-  '/menu',
   '/cadence',
   '/chat',
   '/agensi',

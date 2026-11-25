@@ -34,8 +34,6 @@ import {
   PortalHomeContentSchema,
   type PortalMaintenanceLoaderData,
   PortalMaintenanceContentSchema,
-  type PortalMenuLoaderData,
-  PortalMenuContentSchema,
   type PortalRootLoaderData,
   type QuotaStatus,
   QuotaStatusSchema,
@@ -359,15 +357,6 @@ export async function loadPortalHomeData(db: AppDatabase): Promise<PortalHomeLoa
   ]);
 
   return { content, terminal, contactForm: contactContent.form };
-}
-
-export async function loadPortalMenuData(db: AppDatabase): Promise<PortalMenuLoaderData> {
-  const [content, items] = await Promise.all([
-    getSiteContent(db, SITE_CONTENT_KEYS.portalMenu, PortalMenuContentSchema),
-    getMenuItems(db, { includeAdminOnly: false, includeDisabled: false }),
-  ]);
-
-  return { content, items };
 }
 
 export async function loadPortalAgensiData(

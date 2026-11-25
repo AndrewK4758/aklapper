@@ -11,7 +11,6 @@ import {
   type PortalContactLoaderData,
   type PortalHomeContent,
   type PortalHomeLoaderData,
-  type PortalMenuLoaderData,
   type PortalRootLoaderData,
   type StreamResult,
   type TerminalProfileData,
@@ -38,7 +37,6 @@ import PortalRoot, { type PortalRootStreamData } from './root';
 import PortalAgensiRoute from './routes/agensi';
 import PortalCadenceRoute from './routes/cadence';
 import PortalGreeterRoute from './routes/home';
-import PortalMenuRoute from './routes/menu';
 
 function streamOk<T>(data: T, correlationId = 'corr-pane-test'): StreamLoaderEnvelope<T> {
   return {
@@ -91,20 +89,6 @@ function PortalAgensiBridge() {
   const matches = useMatches();
   return (
     <PortalAgensiRoute
-      loaderData={loaderData}
-      params={params}
-      matches={matches as never}
-      actionData={undefined}
-    />
-  );
-}
-
-function PortalMenuBridge() {
-  const loaderData = useLoaderData<StreamLoaderEnvelope<PortalMenuLoaderData>>();
-  const params = useParams();
-  const matches = useMatches();
-  return (
-    <PortalMenuRoute
       loaderData={loaderData}
       params={params}
       matches={matches as never}
@@ -236,27 +220,6 @@ const AGENSI_DATA: PortalAgensiLoaderData = {
   skills: [],
 };
 
-const MENU_DATA: PortalMenuLoaderData = {
-  content: {
-    heading: 'Launch Menu',
-    description: 'Select a module.',
-    localTargetLabel: 'local',
-  },
-  items: [
-    {
-      slug: 'agensi',
-      title: 'Agensi',
-      description: 'AI storefront',
-      keyShortcut: '1',
-      targetK8sDeploy: null,
-      adminOnly: false,
-      namespace: 'portfolio-public',
-      sortOrder: 1,
-      enabled: true,
-    },
-  ],
-};
-
 describe('Portal in-pane route adapters & deep-links', () => {
   afterEach(() => {
     portalRouteWorkspaceStore.resetForTest();
@@ -301,11 +264,6 @@ describe('Portal in-pane route adapters & deep-links', () => {
                   contactForm: CONTACT_FORM_DEFINITION,
                 }),
               Component: PortalHomeBridge,
-            },
-            {
-              path: 'menu',
-              loader: () => streamOk(MENU_DATA),
-              Component: () => <div>Menu SSR</div>,
             },
             {
               path: 'contact',
@@ -482,7 +440,16 @@ describe('Portal in-pane route adapters & deep-links', () => {
     errorSpy.mockRestore();
   });
 
-  it('handles browser Back/Forward re-entry from / to /agensi and /menu -> /agensi -> Back without deadlocks or stale overlays', async () => {
+  it('handles browser Back/Forward re-entry from / to /agensi and /cadence -> /agensi -> Back without deadlocks or stale overlays', async () => {
+    const CADENCE_DATA: PortalCadenceLoaderData = {
+      content: PortalCadenceContentSchema.parse({
+        windowTitle: 'CADENCE Builder',
+        statusBadge: { source: 'cadence', state: 'idle', label: 'Idle' },
+        description: 'Interactive sandbox builder.',
+        iframeTitle: 'CADENCE Preview',
+      }),
+      presets: [],
+    };
     const router = createMemoryRouter(
       [
         {
@@ -514,9 +481,9 @@ describe('Portal in-pane route adapters & deep-links', () => {
               Component: PortalAgensiBridge,
             },
             {
-              path: 'menu',
-              loader: () => streamOk(MENU_DATA),
-              Component: PortalMenuBridge,
+              path: 'cadence',
+              loader: () => streamOk(CADENCE_DATA),
+              Component: PortalCadenceBridge,
             },
           ],
         },
@@ -553,11 +520,11 @@ describe('Portal in-pane route adapters & deep-links', () => {
       expect(getActivePane1().getAttribute('data-tui-depth')).toBe('0');
     });
 
-    // Deep-link route switch: /menu -> /agensi -> Browser Back to /menu (no stale Agensi overlay)
+    // Deep-link route switch: /cadence -> /agensi -> Browser Back to /cadence (no stale Agensi overlay)
     await act(async () => {
-      await router.navigate('/menu');
+      await router.navigate('/cadence');
     });
-    expect(await screen.findByRole('heading', { name: 'Launch Menu' })).toBeTruthy();
+    expect(await screen.findByText('Interactive sandbox builder.')).toBeTruthy();
     await waitFor(() => {
       expect(getActivePane1().getAttribute('data-tui-depth')).toBe('1');
     });
@@ -571,14 +538,14 @@ describe('Portal in-pane route adapters & deep-links', () => {
       await router.navigate(-1);
     });
     await waitFor(() => {
-      expect(router.state.location.pathname).toBe('/menu');
+      expect(router.state.location.pathname).toBe('/cadence');
       expect(getActivePane1().getAttribute('data-tui-depth')).toBe('1');
     });
-    const activeMenuPane1 = getActivePane1();
-    const shellLayer = activeMenuPane1.querySelector('[data-shell-layer="true"]') as HTMLElement;
+    const activeCadencePane1 = getActivePane1();
+    const shellLayer = activeCadencePane1.querySelector('[data-shell-layer="true"]') as HTMLElement;
     expect(shellLayer.hidden).toBe(false);
-    expect(screen.getByRole('heading', { name: 'Launch Menu' })).toBeTruthy();
-    expect(activeMenuPane1.textContent).not.toContain('Commercial AI skills.');
+    expect(screen.getByText('Interactive sandbox builder.')).toBeTruthy();
+    expect(activeCadencePane1.textContent).not.toContain('Commercial AI skills.');
   });
 
   it('emits portal.pane_nav.unknown_view_id once per unregistered view and exits cleanly', () => {

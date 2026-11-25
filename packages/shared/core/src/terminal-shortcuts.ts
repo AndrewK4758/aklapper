@@ -48,7 +48,7 @@ export const PORTAL_READLINE_HELP_LINES: readonly string[] = [
   '  Tab / Right — accept autocomplete suggestion',
   '  Up / Down (Alt+P / Ctrl+P / Alt+N) — command history',
   '  Ctrl+L — clear · Ctrl+C — cancel line · Ctrl+U/K / Alt+Backspace — edit line',
-  '  Alt+T — toggle TUI · Alt+M — open /menu · Esc — close TUI',
+  '  Alt+T — toggle TUI · Esc — close TUI',
 ];
 
 export function buildSplitHelpLines(options: { readonly includeTui: boolean }): readonly string[] {

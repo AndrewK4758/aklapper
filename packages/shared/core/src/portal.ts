@@ -201,13 +201,6 @@ export const PortalHomeContentSchema = z.object({
 });
 export type PortalHomeContent = z.infer<typeof PortalHomeContentSchema>;
 
-export const PortalMenuContentSchema = z.object({
-  heading: z.string().min(1),
-  description: z.string().min(1),
-  localTargetLabel: z.string().min(1),
-});
-export type PortalMenuContent = z.infer<typeof PortalMenuContentSchema>;
-
 export const CadencePresetSchema = z.object({
   slug: z.string().min(1),
   title: z.string().min(1),
