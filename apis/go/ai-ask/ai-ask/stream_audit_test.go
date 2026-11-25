@@ -30,7 +30,7 @@ func (e *scriptedEmitter) EmitSources([]contracts.AskSource) error {
 	e.sourcesCalls++
 	return nil
 }
-func (e *scriptedEmitter) EmitDone(askStreamDone) error            { e.doneCount++; return nil }
+func (e *scriptedEmitter) EmitDone(askStreamDone) error { e.doneCount++; return nil }
 func (e *scriptedEmitter) EmitError(p contracts.PublicAppError, _ *contracts.QuotaStatus) error {
 	e.errorCodes = append(e.errorCodes, p.Code)
 	return nil
