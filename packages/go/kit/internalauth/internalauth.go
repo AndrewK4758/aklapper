@@ -176,12 +176,17 @@ func Verify(token, secret string) (*Claims, error) {
 	return VerifyAt(token, secret, time.Now().UTC())
 }
 
-// VerifyRequest extracts and verifies the X-Internal-Auth header on an HTTP request.
+// VerifyRequest extracts and verifies the single X-Internal-Auth header on an HTTP request,
+// failing closed with ErrInvalidToken when zero or multiple headers are present.
 func VerifyRequest(r *http.Request) (*Claims, error) {
 	if r == nil {
 		return nil, ErrInvalidToken
 	}
-	return Verify(r.Header.Get(HeaderName), "")
+	vals := r.Header.Values(HeaderName)
+	if len(vals) != 1 {
+		return nil, ErrInvalidToken
+	}
+	return Verify(vals[0], "")
 }
 
 // IsAdminRequest returns true strictly when r carries a valid signed X-Internal-Auth
