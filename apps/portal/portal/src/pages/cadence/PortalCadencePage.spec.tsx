@@ -179,9 +179,10 @@ describe('PortalCadencePage', () => {
     expect(screen.getByTestId('cadence-turn-triage').getAttribute('data-status')).toBe('pending');
     expect(screen.getByTestId('cadence-turn-spec').getAttribute('data-status')).toBe('pending');
 
-    // Do NOT show pre-baked starter HTML before Build completes.
+    // Do NOT show pre-baked starter HTML before Build completes, and auto-select the Pipeline Stream Output tab.
     expect(screen.queryByTitle('CADENCE Artifact Preview')).toBeNull();
-    expect(screen.getByTestId('cadence-preview-pending')).toBeTruthy();
+    expect(screen.getByTestId('cadence-view-stream').getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByTestId('cadence-stream-panel')).toBeTruthy();
 
     // Gate buttons remain disabled while runStatus !== 'ready'.
     const approveBtn = screen.getByTestId('cadence-gate-approve') as HTMLButtonElement;
@@ -252,6 +253,7 @@ describe('PortalCadencePage', () => {
       />,
     );
 
+    expect(screen.getByTestId('cadence-view-preview').getAttribute('aria-selected')).toBe('true');
     const iframe = screen.getByTitle('CADENCE Artifact Preview') as HTMLIFrameElement;
     expect(iframe.getAttribute('sandbox')).toBe('allow-scripts');
     expect(iframe.getAttribute('srcdoc')).toContain('Built Tailored Artifact');
@@ -512,6 +514,7 @@ describe('PortalCadencePage', () => {
     const liveSpecView = screen.getByTestId('cadence-live-spec-view');
     expect(liveSpecView.textContent).toContain('CHORD Behavioral Decomposition Workbench');
     expect(liveSpecView.textContent).toContain('First paint on /cadence');
+    expect(screen.getByTestId('cadence-view-preview').getAttribute('aria-selected')).toBe('true');
     const iframe = screen.getByTitle('CADENCE Artifact Preview') as HTMLIFrameElement;
     expect(iframe.getAttribute('srcdoc')).toContain('Golden Methodology Workbench');
     expect(screen.getByTestId('cadence-execution-mode-badge').textContent).toContain(
