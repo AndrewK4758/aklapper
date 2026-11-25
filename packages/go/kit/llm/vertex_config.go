@@ -73,9 +73,7 @@ func buildVertexEmbedPayload(model, text string) (action string, branch string, 
 			"content": map[string]any{
 				"parts": []map[string]string{{"text": text}},
 			},
-			"config": map[string]any{
-				"outputDimensionality": ExpectedEmbeddingDims,
-			},
+			"outputDimensionality": ExpectedEmbeddingDims,
 		}
 	}
 	p := map[string]any{

@@ -302,9 +302,11 @@ describe('@aklapper/node-runtime/ai', () => {
       );
       const parsed = JSON.parse(String(init?.body)) as {
         content: { parts: Array<{ text: string }> };
-        config: { outputDimensionality: number };
+        outputDimensionality: number;
+        config?: unknown;
       };
-      expect(parsed.config).toEqual({ outputDimensionality: 768 });
+      expect(parsed.outputDimensionality).toBe(768);
+      expect(parsed.config).toBeUndefined();
       const idx = Number(parsed.content.parts[0]?.text.replace('item-', ''));
       inFlight += 1;
       peakInFlight = Math.max(peakInFlight, inFlight);

@@ -251,9 +251,11 @@ func TestVertexClientEmbedContent768AndLegacyPredict(t *testing.T) {
 	if capturedPath != "/v1/projects/games-424800/locations/global/publishers/google/models/gemini-embedding-2:embedContent" {
 		t.Fatalf("unexpected embedContent path: %q", capturedPath)
 	}
-	cfg, _ := capturedBody["config"].(map[string]any)
-	if cfg == nil || cfg["outputDimensionality"] != float64(ExpectedEmbeddingDims) {
-		t.Fatalf("expected config.outputDimensionality=768, got %#v", capturedBody)
+	if capturedBody["outputDimensionality"] != float64(ExpectedEmbeddingDims) {
+		t.Fatalf("expected top-level outputDimensionality=768, got %#v", capturedBody)
+	}
+	if _, hasConfig := capturedBody["config"]; hasConfig {
+		t.Fatalf("expected no nested config field in :embedContent payload, got %#v", capturedBody)
 	}
 	content, _ := capturedBody["content"].(map[string]any)
 	parts, _ := content["parts"].([]any)

@@ -280,7 +280,7 @@ export function createVertexAiProvider(config: VertexAiConfig): AiProvider {
               },
               body: JSON.stringify({
                 content: { parts: [{ text }] },
-                config: { outputDimensionality: EXPECTED_VERTEX_EMBED_DIMS },
+                outputDimensionality: EXPECTED_VERTEX_EMBED_DIMS,
               }),
               signal: AbortSignal.any([batchController.signal, AbortSignal.timeout(30_000)]),
             });
