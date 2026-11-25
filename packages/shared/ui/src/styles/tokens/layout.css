@@ -119,7 +119,7 @@
     --sf-window-min-w: calc(var(--sf-size-unit) * 16.25);
     --sf-window-min-h: calc(var(--sf-size-unit) * 10);
     --sf-resize-handle-size: calc(var(--sf-space-unit) * 3.5);
-    --sf-iframe-min-h: calc(var(--sf-size-unit) * 30);
+    --sf-iframe-min-h: calc(var(--sf-size-unit) * 44);
 
     /* Z-index ladder */
     --sf-z-base: 0;

@@ -28,6 +28,7 @@ export interface CadenceRunController {
   readonly actionResult: PortalCadenceActionResult | undefined;
   readonly isSubmitting: boolean;
   readonly isStreaming: boolean;
+  readonly streamLogs: readonly string[];
   readonly onRunBuild: (payload: {
     prompt: string;
     presetSlug: string;
@@ -157,6 +158,7 @@ export function useCadenceRunController({
     actionResult,
     isSubmitting: fetcher.state !== 'idle',
     isStreaming,
+    streamLogs: streamSnapshot?.logs ?? [],
     onRunBuild: ({ prompt, presetSlug, mode }) => {
       void fetcher.submit(
         { intent: 'run', prompt, presetSlug, mode },

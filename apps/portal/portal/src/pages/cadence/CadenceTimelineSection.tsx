@@ -5,7 +5,7 @@ import type {
   Osc7501State,
   PortalCadenceContent,
 } from '@aklapper/core';
-import { Button } from '@aklapper/ui';
+import { Button, StatusPill } from '@aklapper/ui';
 
 import styles from './PortalCadencePage.module.css';
 
@@ -133,6 +133,7 @@ export function resolveCadenceBadge(
 }
 
 export interface CadenceTimelineSectionProps {
+  readonly content: PortalCadenceContent;
   readonly activeRun: CadenceRunResult;
   readonly isPipelineBusy: boolean;
   readonly isRunReady: boolean;
@@ -143,11 +144,14 @@ export interface CadenceTimelineSectionProps {
 }
 
 export function CadenceTimelineSection({
+  content,
   activeRun,
   isPipelineBusy,
   isRunReady,
   onGateVerdict,
 }: CadenceTimelineSectionProps) {
+  const isGoldenRun = Boolean(activeRun.isGolden);
+
   return (
     <section className={styles.runSection} data-testid='cadence-active-run'>
       <div className={styles.runHeader}>
@@ -160,29 +164,35 @@ export function CadenceTimelineSection({
           >
             gate: {activeRun.gateVerdict}
           </span>
-          {onGateVerdict && (
-            <>
-              <Button
-                type='button'
-                variant='primary'
-                size='xs'
-                disabled={isPipelineBusy || !isRunReady || activeRun.gateVerdict === 'approved'}
-                onClick={() => onGateVerdict({ runId: activeRun.runId, verdict: 'approved' })}
-                data-testid='cadence-gate-approve'
-              >
-                <Button.Label>Approve Gate</Button.Label>
-              </Button>
-              <Button
-                type='button'
-                variant='ghost'
-                size='xs'
-                disabled={isPipelineBusy || !isRunReady || activeRun.gateVerdict === 'rejected'}
-                onClick={() => onGateVerdict({ runId: activeRun.runId, verdict: 'rejected' })}
-                data-testid='cadence-gate-reject'
-              >
-                <Button.Label>Reject Gate</Button.Label>
-              </Button>
-            </>
+          {isGoldenRun ? (
+            <StatusPill tone='accent' size='sm' data-testid='cadence-golden-readonly-pill'>
+              {content.goldenVerifiedBadgeLabel}
+            </StatusPill>
+          ) : (
+            onGateVerdict && (
+              <>
+                <Button
+                  type='button'
+                  variant='primary'
+                  size='xs'
+                  disabled={isPipelineBusy || !isRunReady || activeRun.gateVerdict === 'approved'}
+                  onClick={() => onGateVerdict({ runId: activeRun.runId, verdict: 'approved' })}
+                  data-testid='cadence-gate-approve'
+                >
+                  <Button.Label>{content.approveGateLabel}</Button.Label>
+                </Button>
+                <Button
+                  type='button'
+                  variant='ghost'
+                  size='xs'
+                  disabled={isPipelineBusy || !isRunReady || activeRun.gateVerdict === 'rejected'}
+                  onClick={() => onGateVerdict({ runId: activeRun.runId, verdict: 'rejected' })}
+                  data-testid='cadence-gate-reject'
+                >
+                  <Button.Label>{content.rejectGateLabel}</Button.Label>
+                </Button>
+              </>
+            )
           )}
         </div>
       </div>

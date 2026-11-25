@@ -29,7 +29,6 @@ const SESSION_ID_RE = /^[a-zA-Z0-9_-]{8,96}$/;
 const SSE_BASE_HEADERS: Readonly<Record<string, string>> = {
   'content-type': 'text/event-stream; charset=utf-8',
   'cache-control': 'no-cache',
-  connection: 'keep-alive',
   'x-accel-buffering': 'no',
 };
 
@@ -93,6 +92,10 @@ export async function loader({ request, params, context }: Route.LoaderArgs): Pr
           'x-session-id': sessionId,
           'X-Correlation-Id': correlationId,
         },
+        headerTimeoutMs: 15_000,
+        correlationId,
+        source: 'portal.cadence.stream',
+        logger,
         internalAuth: { role: 'guest', subject: sessionId },
         signal: request.signal,
       });

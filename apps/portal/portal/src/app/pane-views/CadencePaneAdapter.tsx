@@ -25,10 +25,12 @@ function PortalCadencePaneBody({
       content={data.content}
       presets={data.presets}
       quota={data.quota}
+      goldenRuns={data.goldenRuns}
       recentRuns={data.recentRuns}
       actionResult={controller.actionResult}
       isSubmitting={controller.isSubmitting}
       isStreaming={controller.isStreaming}
+      streamLogs={controller.streamLogs}
       onRunBuild={controller.onRunBuild}
       onGateVerdict={controller.onGateVerdict}
       onClose={onClose}

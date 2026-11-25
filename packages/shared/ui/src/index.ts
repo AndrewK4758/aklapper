@@ -3,6 +3,13 @@ export {
   type ActionFeedbackBannerProps,
 } from './components/ActionFeedbackBanner';
 export {
+  ArtifactInspector,
+  type ArtifactInspectorLabels,
+  type ArtifactInspectorProps,
+} from './components/ArtifactInspector';
+export { CodeArtifactViewer, type CodeArtifactViewerProps } from './components/CodeArtifactViewer';
+export { GateAuditChecklist, type GateAuditChecklistProps } from './components/GateAuditChecklist';
+export {
   BulkSelectionBar,
   type BulkSelectionBarProps,
   pruneSelectedIds,

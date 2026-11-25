@@ -129,7 +129,9 @@ test.describe('portal SSR end-to-end journeys', () => {
     // Keybinding `1` on /menu pushes /cadence in-place, Escape pops back to /menu, q exits straight to shell
     await page.keyboard.press('1');
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByText(/CADENCE Builder — Artifact Sandbox/i)).toBeVisible();
+    await expect(
+      page.getByText(/CADENCE Builder — Interactive Multi-Artifact Showcase/i),
+    ).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(page.getByRole('heading', { name: /Module Menu/i })).toBeVisible();
     await page.keyboard.press('q');
@@ -145,8 +147,14 @@ test.describe('portal SSR end-to-end journeys', () => {
     const getErrors = trackPageErrors(page);
 
     await gotoStreamedPage(page, '/cadence');
-    await expect(page.getByText(/CADENCE Builder — Artifact Sandbox/i)).toBeVisible();
-    await expect(page.getByText(/On-demand/i)).toBeVisible();
+    await expect(
+      page.getByText(/CADENCE Builder — Interactive Multi-Artifact Showcase/i),
+    ).toBeVisible();
+    await expect(page.getByTestId('cadence-golden-strip')).toBeVisible();
+    await expect(page.getByTestId('cadence-execution-mode-badge')).toContainText(
+      /Golden Showcase/i,
+    );
+    await expect(page.getByTestId('cadence-golden-readonly-pill')).toBeVisible();
 
     const frame = page.locator('iframe[title="CADENCE Artifact Preview"]');
     await expect(frame).toBeVisible();
@@ -390,24 +398,32 @@ test.describe('portal SSR end-to-end journeys', () => {
     const fastSwitch = page.getByTestId('cadence-fast-mode-switch');
     await expect(fastSwitch).toHaveAttribute('aria-checked', 'true');
 
-    // Dropdown lists all 5 seeded buildable items plus the custom free-form option.
+    // Dropdown lists all 5 seeded CADENCE methodology showcases plus the custom option.
     await selectTrigger.click();
-    await expect(page.getByRole('option', { name: /Solar Forge Sandbox Starter/i })).toBeVisible();
-    await expect(page.getByRole('option', { name: /GKE Pod Telemetry Widget/i })).toBeVisible();
     await expect(
-      page.getByRole('option', { name: /CHORD Pipeline Latency Monitor/i }),
+      page.getByRole('option', { name: /CHORD Behavioral Decomposition Workbench/i }),
     ).toBeVisible();
     await expect(
-      page.getByRole('option', { name: /Qdrant Grounded RAG Inspector/i }),
+      page.getByRole('option', { name: /Change-Tier Blast-Radius & Gate Matrix/i }),
     ).toBeVisible();
-    await expect(page.getByRole('option', { name: /Zero-Trust Gate Audit Panel/i })).toBeVisible();
-    const customOption = page.getByRole('option', { name: /Custom Prompt \(Free-form\)/i });
+    await expect(
+      page.getByRole('option', { name: /Expand\/Contract Zero-Downtime Migration Blueprint/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('option', { name: /5-Boundary Resilience & Chaos Audit/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('option', { name: /Spec Challenge & Empirical Proof Ledger/i }),
+    ).toBeVisible();
+    const customOption = page.getByRole('option', { name: /^Custom Prompt$/i });
     await expect(customOption).toBeVisible();
 
     // Selecting a catalog preset populates its starter prompt; switching to Custom keeps user edits.
-    await page.getByRole('option', { name: /CHORD Pipeline Latency Monitor/i }).click();
+    await page
+      .getByRole('option', { name: /Expand\/Contract Zero-Downtime Migration Blueprint/i })
+      .click();
     const promptInput = page.getByTestId('cadence-prompt-input');
-    await expect(promptInput).toHaveValue(/triage, spec, build, and gate/i);
+    await expect(promptInput).toHaveValue(/Expand\/Contract|Zero-Downtime|migration/i);
 
     await selectTrigger.click();
     await customOption.click();
@@ -520,7 +536,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(page.getByTestId('cadence-prompt-input')).toBeVisible();
 
     await selectTrigger.click();
-    await page.getByRole('option', { name: /GKE Pod Telemetry Widget/i }).click();
+    await page.getByRole('option', { name: /Change-Tier Blast-Radius & Gate Matrix/i }).click();
     await page.getByTestId('cadence-run-submit').click();
 
     await expect(page.getByTestId('cadence-turn-triage')).toHaveAttribute(
@@ -551,13 +567,15 @@ test.describe('portal SSR end-to-end journeys', () => {
       await gotoStreamedPage(page, '/cadence');
       const selectTrigger = page.getByTestId('cadence-preset-select');
       await selectTrigger.click();
-      await page.getByRole('option', { name: /Custom Prompt \(Free-form\)/i }).click();
+      await page.getByRole('option', { name: /^Custom Prompt$/i }).click();
 
       const promptInput = page.getByTestId('cadence-prompt-input');
       await promptInput.fill(
         'Render probe <iframe src="https://evil.example"></iframe> <script>alert(1)</script>',
       );
       await page.getByTestId('cadence-run-submit').click();
+      await expect(page.getByTestId('cadence-quota-meter')).toContainText('1/10 turns');
+      await expect(page.getByTestId('cadence-gate-verdict')).toContainText('pending');
       await expect(page.getByTestId('cadence-turn-gate')).toHaveAttribute(
         'data-status',
         'completed',
@@ -869,7 +887,9 @@ test.describe('portal SSR end-to-end journeys', () => {
       await commandInput.fill('cadence');
       await commandInput.press('Enter');
       await expect(page).toHaveURL(/\/$/);
-      await expect(page.getByText(/CADENCE Builder — Artifact Sandbox/i)).toBeVisible();
+      await expect(
+        page.getByText(/CADENCE Builder — Interactive Multi-Artifact Showcase/i),
+      ).toBeVisible();
 
       expect(getErrors()).toEqual([]);
     } finally {

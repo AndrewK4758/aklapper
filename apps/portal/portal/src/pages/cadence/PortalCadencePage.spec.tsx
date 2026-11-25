@@ -1,11 +1,15 @@
-import type { CadencePreset, CadenceRunResult } from '@aklapper/core';
+import {
+  type CadencePreset,
+  type CadenceRunResult,
+  PortalCadenceContentSchema,
+} from '@aklapper/core';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import { PortalCadencePage, type PortalCadencePageProps } from './PortalCadencePage';
 
-const SAMPLE_CONTENT = {
+const SAMPLE_CONTENT = PortalCadenceContentSchema.parse({
   windowTitle: 'CADENCE Builder // portfolio-public',
   statusBadge: {
     source: 'svc-cadence-demo',
@@ -14,7 +18,7 @@ const SAMPLE_CONTENT = {
   },
   description: 'Quota-gated prompt builder.',
   iframeTitle: 'CADENCE Artifact Preview',
-};
+});
 
 const SAMPLE_PRESETS: readonly CadencePreset[] = [
   {
@@ -92,7 +96,7 @@ describe('PortalCadencePage', () => {
       expect(selectTrigger.getAttribute('aria-expanded')).toBe('true');
     });
     const customOption = await screen.findByRole('option', {
-      name: /Custom Prompt \(Free-form\)/i,
+      name: /Custom Prompt/i,
     });
     await user.click(customOption);
 
@@ -427,13 +431,10 @@ describe('PortalCadencePage', () => {
       'Strict CSP meta injected',
     );
 
-    // Approved gate unlocks download banner.
-    expect(screen.getByTestId('cadence-approved-actions')).toBeTruthy();
-    expect(screen.getByTestId('cadence-download-html')).toBeTruthy();
-
-    // Toggle to Source HTML view and back to Live Preview.
+    // Toggle to Source Code tab, inspect code & download button, and return to Preview.
     await user.click(screen.getByTestId('cadence-view-source'));
     expect(screen.getByTestId('cadence-source-code').textContent).toContain('Pod Telemetry');
+    expect(screen.getByTestId('cadence-download-html')).toBeTruthy();
     await user.click(screen.getByTestId('cadence-view-preview'));
     expect(screen.getByTitle('CADENCE Artifact Preview')).toBeTruthy();
 
@@ -461,5 +462,63 @@ describe('PortalCadencePage', () => {
         prompt: expect.stringContaining('Revision: Add p99 latency bars'),
       }),
     );
+  });
+
+  it('auto-loads the first Golden Showcase at $0 cost and hides gate override buttons on read-only Golden runs', async () => {
+    const user = userEvent.setup();
+    const goldenRun: CadenceRunResult = {
+      runId: '00000000-0000-4000-8000-000000000101',
+      prompt: 'Demonstrate CHORD decomposition.',
+      presetSlug: 'solar-forge-starter',
+      runStatus: 'ready',
+      mode: 'llm',
+      executionMode: 'golden',
+      isGolden: true,
+      gateVerdict: 'approved',
+      turns: [],
+      artifactHtml: '<!doctype html><html><body>Golden Methodology Workbench</body></html>',
+      spec: {
+        title: 'CHORD Behavioral Decomposition Workbench',
+        summary: 'Zero-cost verified methodology showcase.',
+        conditions: ['First paint on /cadence'],
+        handling: ['Auto-select goldenRuns[0]'],
+        outcomes: ['Zero LLM calls'],
+        rules: ['Read-only Golden showcase'],
+        deltas: ['No DB writes'],
+      },
+      gateAudit: {
+        summary: 'Verified Golden SHA-256 CSP.',
+        sanitized: false,
+        artifactBytes: 68,
+        checks: [
+          { id: 'csp', label: 'Strict CSP', status: 'pass', detail: 'No unsafe-inline scripts.' },
+        ],
+      },
+    };
+
+    render(
+      <PortalCadencePage
+        content={SAMPLE_CONTENT}
+        presets={SAMPLE_PRESETS}
+        goldenRuns={[goldenRun]}
+        recentRuns={[]}
+        onGateVerdict={vi.fn<NonNullable<PortalCadencePageProps['onGateVerdict']>>()}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    expect(screen.getByTestId('cadence-golden-strip')).toBeTruthy();
+    const iframe = screen.getByTitle('CADENCE Artifact Preview') as HTMLIFrameElement;
+    expect(iframe.getAttribute('srcdoc')).toContain('Golden Methodology Workbench');
+    expect(screen.getByTestId('cadence-execution-mode-badge').textContent).toContain(
+      'Golden Showcase',
+    );
+    expect(screen.getByTestId('cadence-golden-readonly-pill')).toBeTruthy();
+    expect(screen.queryByTestId('cadence-gate-approve')).toBeNull();
+    expect(screen.queryByTestId('cadence-gate-reject')).toBeNull();
+
+    await user.click(screen.getByTestId('cadence-view-gate'));
+    expect(screen.getByTestId('gate-audit-readonly-notice')).toBeTruthy();
+    expect(screen.queryByTestId('gate-audit-approve')).toBeNull();
   });
 });

@@ -7,6 +7,7 @@ import {
   type CadenceTurn,
   type CadenceTurnPhase,
   type CadenceTurnStatus,
+  PortalCadenceContentSchema,
   type PortalCadenceLoaderData,
   type QuotaStatus,
 } from '@aklapper/core';
@@ -124,17 +125,31 @@ vi.mock('@aklapper/db', async importOriginal => {
             .map(r => stateStore.toRunResult(r))
         : [];
       return {
-        content: {
+        content: PortalCadenceContentSchema.parse({
           windowTitle: 'CADENCE Builder // portfolio-public',
           statusBadge: { source: 'svc-cadence-demo', state: 'idle', label: '0/1 replicas' },
           description: 'Build interactive sandbox artifacts.',
           iframeTitle: 'CADENCE Sandbox Artifact Preview',
-        },
+        }),
         presets: TEST_PRESETS,
         quota: stateStore.getQuota(sessionId ?? 'anonymous'),
+        goldenRuns: [],
         recentRuns,
       };
     }),
+    findCachedSandboxRun: vi.fn<
+      () => Promise<{
+        promptHash: string;
+        scope: 'miss';
+        sourceRun: null;
+        sourceTurns: readonly never[];
+      }>
+    >(async () => ({
+      promptHash: 'test-hash',
+      scope: 'miss',
+      sourceRun: null,
+      sourceTurns: [],
+    })),
     getCadencePresetBySlug: vi.fn<(_db: unknown, slug: string) => Promise<CadencePreset | null>>(
       async (_db: unknown, slug: string) => {
         return TEST_PRESETS.find(p => p.slug === slug) ?? null;
@@ -808,7 +823,10 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
 
     const oidcStreamRes = await streamLoader(makeStreamArgs(runId, cookie));
     expect(oidcStreamRes.status).toBe(503);
-    expect(await oidcStreamRes.json()).toMatchObject({ error: 'GCP_OIDC_TOKEN_UNAVAILABLE' });
+    expect(await oidcStreamRes.json()).toMatchObject({
+      code: 'ERR_UPSTREAM_UNAVAILABLE',
+      status: 503,
+    });
   });
 
   it('fails closed with structured 500 responses when INTERNAL_AUTH_SECRET is missing in production', async () => {

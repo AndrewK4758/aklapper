@@ -1,4 +1,5 @@
 import { type QuotaStatus } from './auth.ts';
+import { type CadenceStreamLogEvent, CadenceStreamLogEventSchema } from './cadence-artifacts.ts';
 import {
   type CadenceRunResult,
   type CadenceStreamCompleteEvent,
@@ -11,8 +12,11 @@ import {
   type CadenceTurnPhase,
 } from './portal.ts';
 
+const MAX_STREAM_LOG_LINES = 200;
+
 export type ParsedCadenceSseEvent =
   | { readonly type: 'phase'; readonly data: CadenceStreamPhaseEvent }
+  | { readonly type: 'log'; readonly data: CadenceStreamLogEvent }
   | { readonly type: 'complete'; readonly data: CadenceStreamCompleteEvent }
   | { readonly type: 'error'; readonly data: CadenceStreamErrorEvent };
 
@@ -26,6 +30,7 @@ export type CadenceStreamConnectionState =
 export interface CadenceRunStreamSnapshot {
   readonly run: CadenceRunResult;
   readonly quota: QuotaStatus | null;
+  readonly logs: readonly string[];
   readonly connectionState: CadenceStreamConnectionState;
   readonly error: string | null;
 }
@@ -66,6 +71,10 @@ export function parseCadenceSseEvent(
     case 'phase': {
       const parsed = CadenceStreamPhaseEventSchema.safeParse(decoded);
       return parsed.success ? { type: 'phase', data: parsed.data } : null;
+    }
+    case 'log': {
+      const parsed = CadenceStreamLogEventSchema.safeParse(decoded);
+      return parsed.success ? { type: 'log', data: parsed.data } : null;
     }
     case 'complete': {
       const parsed = CadenceStreamCompleteEventSchema.safeParse(decoded);
@@ -117,6 +126,7 @@ export function createCadenceRunStreamStore(
   const initialSnapshot: CadenceRunStreamSnapshot = {
     run: options.initialRun,
     quota: options.initialRun.quota ?? null,
+    logs: [],
     connectionState: initialState,
     error: initialState === 'error' ? 'Run failed before artifact completion.' : null,
   };
@@ -170,12 +180,24 @@ export function createCadenceRunStreamStore(
       return;
     }
 
+    if (parsed.type === 'log') {
+      const nextLogs = [...currentSnapshot.logs, parsed.data.line].slice(-MAX_STREAM_LOG_LINES);
+      commitSnapshot({
+        ...currentSnapshot,
+        logs: nextLogs,
+        connectionState: 'streaming',
+        error: null,
+      });
+      return;
+    }
+
     if (parsed.type === 'complete') {
       terminalReached = true;
       close();
       commitSnapshot({
         run: parsed.data.run,
         quota: parsed.data.quota ?? parsed.data.run.quota ?? currentSnapshot.quota,
+        logs: currentSnapshot.logs,
         connectionState: 'completed',
         error: null,
       });
@@ -220,6 +242,7 @@ export function createCadenceRunStreamStore(
       };
 
       source.addEventListener('phase', onEvent('phase'));
+      source.addEventListener('log', onEvent('log'));
       source.addEventListener('complete', onEvent('complete'));
       source.addEventListener('error', onEvent('error'));
 

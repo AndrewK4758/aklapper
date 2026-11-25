@@ -32,8 +32,8 @@ type streamingStubLLM struct {
 	chunks []string
 }
 
-func (s *streamingStubLLM) Name() string                                             { return "stub-streaming-llm" }
-func (s *streamingStubLLM) Embed(_ context.Context, _ string) ([]float32, error)     { return nil, nil }
+func (s *streamingStubLLM) Name() string                                         { return "stub-streaming-llm" }
+func (s *streamingStubLLM) Embed(_ context.Context, _ string) ([]float32, error) { return nil, nil }
 func (s *streamingStubLLM) Chat(_ context.Context, _ []llm.ChatMessage, _ int) (llm.Completion, error) {
 	return llm.Completion{Text: strings.Join(s.chunks, ""), Model: "stub", TokensUsed: 120}, nil
 }

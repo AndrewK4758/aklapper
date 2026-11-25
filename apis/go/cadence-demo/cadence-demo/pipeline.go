@@ -129,8 +129,8 @@ func buildGateAudit(sanitizedHTML string, stripped bool, extraChecks []contracts
 			Detail: fmt.Sprintf("Verified %d / %d UTF-8 bytes.", len(sanitizedHTML), maxArtifactBytes),
 		},
 		{
-			ID:     "html-sanitizer",
-			Label:  "HTML/JS Isolation Sanitizer",
+			ID:    "html-sanitizer",
+			Label: "HTML/JS Isolation Sanitizer",
 			Status: func() string {
 				if stripped {
 					return "warn"

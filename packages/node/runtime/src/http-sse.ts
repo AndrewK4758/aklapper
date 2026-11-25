@@ -29,13 +29,13 @@ import {
 
 export const DEFAULT_SSE_HEADER_TIMEOUT_MS = 15_000;
 
-export interface ProxyPostSseOptions {
+export interface ProxyGetSseOptions {
   readonly baseUrl: string;
   readonly path: string;
-  readonly body?: unknown;
   readonly headers?: Readonly<Record<string, string>>;
   readonly extraResponseHeaders?: HeadersInit;
   readonly headerTimeoutMs?: number;
+  readonly timeoutMs?: number;
   readonly signal?: AbortSignal;
   readonly internalAuth?: SignInternalAuthTokenOptions;
   readonly oidcAuth?: OidcAuthMode;
@@ -44,6 +44,10 @@ export interface ProxyPostSseOptions {
   readonly logger?: SsrStructuredLogger;
   readonly env?: Record<string, string | undefined>;
   readonly fetchImpl?: typeof fetch;
+}
+
+export interface ProxyPostSseOptions extends ProxyGetSseOptions {
+  readonly body?: unknown;
 }
 
 const FORBIDDEN_EXTRA_SSE_HEADERS = new Set([
@@ -122,24 +126,56 @@ function wrapStreamWithTerminationTracking(
   });
 }
 
-/**
- * Proxies an HTTP/2 POST SSE upstream with header-only timeout (cleared on header receipt),
- * full-lifetime caller AbortSignal propagation, Cloud Run OIDC auth (evicting cache on 401/403
- * without retrying non-idempotent POST), RFC 9113 hop-by-hop stripping, and wire-safe
- * PublicAppError + 429 QuotaStatus error classification.
- */
-export async function proxyPostSse(options: ProxyPostSseOptions): Promise<Response> {
+function buildOidcTokenErrorResponse(
+  error: unknown,
+  logger: SsrStructuredLogger,
+  source: string,
+  correlationId: string,
+  extraResponseHeaders?: HeadersInit,
+): Response {
+  const publicError = createPublicAppError({
+    code: 'ERR_UPSTREAM_UNAVAILABLE',
+    status: 503,
+    message: 'Upstream service unreachable.',
+    action: 'Retry shortly or go home.',
+    correlationId,
+  });
+  logger.error(
+    {
+      seam_type: 'BOUNDARY_FAULT',
+      event: 'bff.sse.proxy_error_classified',
+      errorCode: publicError.code,
+      reason: error instanceof Error ? error.name : 'GcpOidcTokenError',
+      source,
+      correlationId,
+    },
+    'Failed to resolve Cloud Run OIDC identity token for SSE upstream',
+  );
+  emitSseTerminationMetric(logger, 'upstream_error', source, correlationId);
+  return withExtraResponseHeaders(
+    Response.json(publicError, {
+      status: 503,
+      headers: { 'x-correlation-id': correlationId },
+    }),
+    extraResponseHeaders,
+  );
+}
+
+async function proxySseInternal(
+  method: 'GET' | 'POST',
+  options: ProxyPostSseOptions,
+): Promise<Response> {
   const {
     baseUrl,
     path,
     body,
     headers = {},
     extraResponseHeaders,
-    headerTimeoutMs = DEFAULT_SSE_HEADER_TIMEOUT_MS,
+    headerTimeoutMs = options.timeoutMs ?? DEFAULT_SSE_HEADER_TIMEOUT_MS,
     signal,
     internalAuth,
     oidcAuth = 'auto',
-    source = 'bff.proxyPostSse',
+    source = method === 'GET' ? 'bff.proxySse' : 'bff.proxyPostSse',
     logger = createFallbackLogger('node-runtime'),
     env = process.env,
     fetchImpl = fetch,
@@ -168,37 +204,18 @@ export async function proxyPostSse(options: ProxyPostSseOptions): Promise<Respon
       const token = await resolveGcpIdentityToken(audience, { fetchImpl, env });
       requestHeaders.set('authorization', `Bearer ${token}`);
     } catch (error) {
-      const publicError = createPublicAppError({
-        code: 'ERR_UPSTREAM_UNAVAILABLE',
-        status: 503,
-        message: 'Upstream service unreachable.',
-        action: 'Retry shortly or go home.',
+      return buildOidcTokenErrorResponse(
+        error,
+        logger,
+        source,
         correlationId,
-      });
-      logger.error(
-        {
-          seam_type: 'BOUNDARY_FAULT',
-          event: 'bff.sse.upstream_error_classified',
-          errorCode: publicError.code,
-          reason: error instanceof Error ? error.name : 'GcpOidcTokenError',
-          source,
-          correlationId,
-        },
-        'Failed to resolve Cloud Run OIDC identity token for POST SSE upstream',
-      );
-      emitSseTerminationMetric(logger, 'upstream_error', source, correlationId);
-      return withExtraResponseHeaders(
-        Response.json(publicError, {
-          status: 503,
-          headers: { 'x-correlation-id': correlationId },
-        }),
         extraResponseHeaders,
       );
     }
   }
 
   let encodedBody: BodyInit | undefined;
-  if (body !== undefined) {
+  if (method === 'POST' && body !== undefined) {
     if (typeof body === 'string' || body instanceof Uint8Array || body instanceof ArrayBuffer) {
       encodedBody = body as BodyInit;
     } else {
@@ -223,11 +240,36 @@ export async function proxyPostSse(options: ProxyPostSseOptions): Promise<Respon
   let upstream: Response;
   try {
     upstream = await fetchImpl(targetUrl, {
-      method: 'POST',
+      method,
       headers: requestHeaders,
-      body: encodedBody,
+      ...(method === 'POST' ? { body: encodedBody } : {}),
       signal: compositeSignal,
     });
+    if (method === 'GET' && audience && (upstream.status === 401 || upstream.status === 403)) {
+      evictGcpIdentityTokenCache(audience);
+      try {
+        const freshToken = await resolveGcpIdentityToken(audience, {
+          fetchImpl,
+          env,
+          forceRefresh: true,
+        });
+        requestHeaders.set('authorization', `Bearer ${freshToken}`);
+        upstream = await fetchImpl(targetUrl, {
+          method: 'GET',
+          headers: requestHeaders,
+          signal: compositeSignal,
+        });
+      } catch (oidcError) {
+        clearTimeout(headerTimer);
+        return buildOidcTokenErrorResponse(
+          oidcError,
+          logger,
+          source,
+          correlationId,
+          extraResponseHeaders,
+        );
+      }
+    }
   } catch (error) {
     clearTimeout(headerTimer);
 
@@ -363,4 +405,23 @@ export async function proxyPostSse(options: ProxyPostSseOptions): Promise<Respon
     status: upstream.status,
     headers: responseHeaders,
   });
+}
+
+/**
+ * Proxies an HTTP/2 GET SSE upstream with header-only timeout (cleared on header receipt),
+ * full-lifetime caller AbortSignal propagation, Cloud Run OIDC auth with single 401/403 refresh,
+ * RFC 9113 hop-by-hop stripping, and wire-safe PublicAppError classification.
+ */
+export async function proxyGetSse(options: ProxyGetSseOptions): Promise<Response> {
+  return proxySseInternal('GET', options);
+}
+
+/**
+ * Proxies an HTTP/2 POST SSE upstream with header-only timeout (cleared on header receipt),
+ * full-lifetime caller AbortSignal propagation, Cloud Run OIDC auth (evicting cache on 401/403
+ * without retrying non-idempotent POST), RFC 9113 hop-by-hop stripping, and wire-safe
+ * PublicAppError + 429 QuotaStatus error classification.
+ */
+export async function proxyPostSse(options: ProxyPostSseOptions): Promise<Response> {
+  return proxySseInternal('POST', options);
 }
