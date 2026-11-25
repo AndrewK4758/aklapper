@@ -17,6 +17,30 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./terminal-workspace": {
+      "@aklapper/source": "./src/terminal-workspace.ts",
+      "types": "./dist/terminal-workspace.d.ts",
+      "import": "./dist/terminal-workspace.js",
+      "default": "./dist/terminal-workspace.js"
+    },
+    "./qr-code": {
+      "@aklapper/source": "./src/qr-code.ts",
+      "types": "./dist/qr-code.d.ts",
+      "import": "./dist/qr-code.js",
+      "default": "./dist/qr-code.js"
+    },
+    "./sandboxed-artifact-frame": {
+      "@aklapper/source": "./src/sandboxed-artifact-frame.ts",
+      "types": "./dist/sandboxed-artifact-frame.d.ts",
+      "import": "./dist/sandboxed-artifact-frame.js",
+      "default": "./dist/sandboxed-artifact-frame.js"
+    },
+    "./site-content-preview": {
+      "@aklapper/source": "./src/site-content-preview.ts",
+      "types": "./dist/site-content-preview.d.ts",
+      "import": "./dist/site-content-preview.js",
+      "default": "./dist/site-content-preview.js"
+    },
     "./theme.css": "./src/styles/theme.css",
     "./layers.css": "./src/styles/layers.css",
     "./fonts.css": "./src/styles/fonts.css",

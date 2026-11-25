@@ -16,6 +16,7 @@ export {
   type DocumentHeadTagsProps,
 } from './components/DocumentHeadTags';
 export { ErrorElement, type ErrorElementProps } from './components/ErrorElement';
+export { LazyChunkBoundary, type LazyChunkBoundaryProps } from './components/LazyChunkBoundary';
 export { LoadingElement, type LoadingElementProps } from './components/LoadingElement';
 export {
   RecursiveTuiForm,
@@ -55,8 +56,8 @@ export {
   type TerminalPaneViewContext,
   type TerminalWorkspacePrimaryPane,
   type TerminalWorkspaceProps,
-  useIsPaneActive,
 } from './components/TerminalWorkspace';
+export { useIsPaneActive } from './components/paneActiveContext';
 export {
   addWorkspaceTab,
   closeActivePaneOrTab,

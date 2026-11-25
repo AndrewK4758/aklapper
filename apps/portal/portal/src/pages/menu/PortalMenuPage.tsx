@@ -97,7 +97,10 @@ export function PortalMenuPage({ content, items, deployments, onNavigate }: Port
                 <NavigationMenu.Item key={item.slug} className={styles.menuItem}>
                   <NavigationMenu.Link
                     render={
-                      <PaneLink to={`/${item.slug}`} render={<Link to={`/${item.slug}`} />} />
+                      <PaneLink
+                        to={`/${item.slug}`}
+                        render={<Link to={`/${item.slug}`} prefetch='intent' />}
+                      />
                     }
                     className={styles.menuLink}
                   >

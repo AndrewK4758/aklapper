@@ -62,16 +62,18 @@ function renderPanel(rows: readonly SiteContentRow[] = SITE_ROWS) {
 }
 
 describe('SiteContentEditorPanel', () => {
-  it('renders structured Form controls, Qdrant corpus label, and live split preview outside the form', () => {
+  it('renders structured Form controls, defaults preview to closed, and mounts live split preview outside the form on demand', async () => {
     const { container } = renderPanel();
 
     expect(screen.getByLabelText('Qdrant RAG Corpus Note (Markdown)')).toBeTruthy();
     expect(screen.getByText(/LoadCorpusDocs/i)).toBeTruthy();
+    expect(screen.queryByLabelText('Live site content preview')).toBeNull();
 
     const headingInput = screen.getByLabelText(/^Heading/i);
     fireEvent.change(headingInput, { target: { value: 'Live Preview Updated Heading' } });
 
-    const preview = screen.getByLabelText('Live site content preview');
+    fireEvent.click(screen.getByRole('button', { name: 'Show Preview' }));
+    const preview = await screen.findByLabelText('Live site content preview');
     expect(within(preview).getByText('Live Preview Updated Heading')).toBeTruthy();
 
     // Preview must mount outside the editor <form> to avoid nested forms
@@ -80,11 +82,14 @@ describe('SiteContentEditorPanel', () => {
     expect(forms[0]?.contains(preview)).toBe(false);
   });
 
-  it('toggles Desktop/Mobile preview widths and Show/Hide preview without losing unsaved edits', () => {
+  it('toggles Desktop/Mobile preview widths and Show/Hide preview without losing unsaved edits', async () => {
     renderPanel();
 
     const headingInput = screen.getByLabelText(/^Heading/i) as HTMLInputElement;
     fireEvent.change(headingInput, { target: { value: 'Unsaved Draft Copy' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show Preview' }));
+    await screen.findByLabelText('Live site content preview');
 
     fireEvent.click(screen.getByRole('button', { name: 'Mobile' }));
     const canvas = document.querySelector('[data-preview-viewport="mobile"]');

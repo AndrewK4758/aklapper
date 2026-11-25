@@ -8,7 +8,7 @@ import {
   getRequestContext,
   logDiagnosticError,
 } from '@aklapper/node-runtime/ssr/stream';
-import { RouteErrorBoundaryView, SuspenseElement } from '@aklapper/ui';
+import { OscStatusBadge, RouteErrorBoundaryView, SuspenseElement } from '@aklapper/ui';
 import { data, href } from 'react-router';
 
 import { type AdminCmsActionData, AdminCmsPage } from '#pages/cms';
@@ -19,14 +19,10 @@ import { dispatchAdminCmsIntent } from '../cms-actions.server';
 import { buildAdminPageMeta } from '../seo';
 import type { Route } from './+types/cms';
 
-export interface CmsRouteLoaderData {
-  readonly cms: AdminCmsLoaderData;
-  readonly qdrant: QdrantHealthStatus;
-}
-
 export interface AdminCmsStreamData {
   readonly correlationId: string;
-  readonly payload: Promise<StreamResult<CmsRouteLoaderData>>;
+  readonly payload: Promise<StreamResult<AdminCmsLoaderData>>;
+  readonly qdrantPayload: Promise<StreamResult<QdrantHealthStatus>>;
 }
 
 export async function loader({ request, context }: Route.LoaderArgs): Promise<AdminCmsStreamData> {
@@ -36,13 +32,17 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Ad
   return {
     correlationId,
     payload: deferStreamResult(
-      (async (): Promise<CmsRouteLoaderData> => {
+      (async (): Promise<AdminCmsLoaderData> => {
         const db = getSharedDb();
-        const [cms, qdrant] = await Promise.all([loadAdminCmsData(db), fetchQdrantStatus()]);
-        return { cms, qdrant };
+        return loadAdminCmsData(db);
       })(),
       { request, context, source: 'admin.cms.loader' },
     ),
+    qdrantPayload: deferStreamResult(fetchQdrantStatus(), {
+      request,
+      context,
+      source: 'admin.cms.qdrant',
+    }),
   };
 }
 
@@ -104,8 +104,41 @@ export function meta({ matches, location }: Route.MetaArgs) {
 }
 
 export default function AdminCmsRoute({ loaderData, actionData }: Route.ComponentProps) {
+  const qdrantStatusSlot = (
+    <SuspenseElement<QdrantHealthStatus>
+      resolve={loaderData.qdrantPayload}
+      correlationId={loaderData.correlationId}
+      homeHref=''
+      loading={<OscStatusBadge source='qdrant' state='scaling' label='Checking Qdrant...' />}
+      onStreamError={error => {
+        reportAdminPublicError(error, { phase: 'stream' });
+        console.error(
+          JSON.stringify({
+            event: 'admin.secondary_stream.degraded',
+            slot: 'cms.qdrant',
+            code: error.code,
+            correlationId: error.correlationId,
+          }),
+        );
+      }}
+      errorElement={() => (
+        <OscStatusBadge source='qdrant' state='error' label='Qdrant status unavailable' />
+      )}
+    >
+      {qdrant => (
+        <OscStatusBadge
+          source='qdrant'
+          state={qdrant.online ? 'ready' : 'idle'}
+          label={
+            qdrant.online ? `${qdrant.collection}: ${qdrant.pointsCount} pts` : 'Qdrant offline'
+          }
+        />
+      )}
+    </SuspenseElement>
+  );
+
   return (
-    <SuspenseElement<CmsRouteLoaderData>
+    <SuspenseElement<AdminCmsLoaderData>
       resolve={loaderData.payload}
       correlationId={loaderData.correlationId}
       homeHref={href('/')}
@@ -114,8 +147,12 @@ export default function AdminCmsRoute({ loaderData, actionData }: Route.Componen
         reportAdminPublicError(error, { phase: 'stream' });
       }}
     >
-      {({ cms, qdrant }) => (
-        <AdminCmsPage data={cms} qdrant={qdrant} actionData={actionData ?? null} />
+      {cms => (
+        <AdminCmsPage
+          data={cms}
+          qdrantStatusSlot={qdrantStatusSlot}
+          actionData={actionData ?? null}
+        />
       )}
     </SuspenseElement>
   );

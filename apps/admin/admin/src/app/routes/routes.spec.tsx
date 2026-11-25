@@ -1,9 +1,12 @@
 import {
-  type AdminOpsLoaderData,
+  type AdminAnalyticsBreakdownsData,
+  type AdminAnalyticsSummaryData,
   type AdminOverviewLoaderData,
   type AdminRootLoaderData,
+  type CadenceAdminStatus,
   createPublicAppError,
   isPublicAppError,
+  type QdrantHealthStatus,
   type StreamResult,
 } from '@aklapper/core';
 import { ADMIN_OPS_TERMINAL_PROFILE } from '@aklapper/db';
@@ -112,7 +115,30 @@ describe('Admin streaming routes, auth guards & SEO', () => {
     const Stub = createRoutesStub([
       {
         path: '/analytics',
-        loader: okLoader('corr-analytics', ADMIN_ANALYTICS_FIXTURE),
+        loader: () => ({
+          correlationId: 'corr-analytics',
+          summaryPayload: Promise.resolve({
+            ok: true as const,
+            data: {
+              content: ADMIN_ANALYTICS_FIXTURE.content,
+              window: ADMIN_ANALYTICS_FIXTURE.window,
+              totalSessions: ADMIN_ANALYTICS_FIXTURE.totalSessions,
+              totalEvents: ADMIN_ANALYTICS_FIXTURE.totalEvents,
+              summary: ADMIN_ANALYTICS_FIXTURE.summary,
+              cwv: ADMIN_ANALYTICS_FIXTURE.cwv,
+              aiMetrics: ADMIN_ANALYTICS_FIXTURE.aiMetrics,
+            },
+          }),
+          breakdownsPayload: Promise.resolve({
+            ok: true as const,
+            data: {
+              topPaths: ADMIN_ANALYTICS_FIXTURE.topPaths,
+              topReferrers: ADMIN_ANALYTICS_FIXTURE.topReferrers,
+              geoBreakdown: ADMIN_ANALYTICS_FIXTURE.geoBreakdown,
+              agensiConversions: ADMIN_ANALYTICS_FIXTURE.agensiConversions,
+            },
+          }),
+        }),
         Component: AdminAnalyticsRoute,
       },
       {
@@ -127,10 +153,35 @@ describe('Admin streaming routes, auth guards & SEO', () => {
       },
       {
         path: '/cms',
-        loader: okLoader('corr-cms', { cms: ADMIN_CMS_FIXTURE, qdrant: QDRANT_FIXTURE }),
+        loader: () => ({
+          correlationId: 'corr-cms',
+          payload: Promise.resolve({ ok: true as const, data: ADMIN_CMS_FIXTURE }),
+          qdrantPayload: Promise.resolve({ ok: true as const, data: QDRANT_FIXTURE }),
+        }),
         Component: AdminCmsRoute,
       },
-      { path: '/ops', loader: okLoader('corr-ops', ADMIN_OPS_FIXTURE), Component: AdminOpsRoute },
+      {
+        path: '/ops',
+        loader: () => ({
+          correlationId: 'corr-ops',
+          payload: Promise.resolve({
+            ok: true as const,
+            data: {
+              sandboxRuns: ADMIN_OPS_FIXTURE.sandboxRuns,
+              k8sWatchConfigured: ADMIN_OPS_FIXTURE.k8sWatchConfigured,
+            },
+          }),
+          cadenceStatusPayload: Promise.resolve({
+            ok: true as const,
+            data: ADMIN_OPS_FIXTURE.cadenceAdminStatus,
+          }),
+          qdrantStatusPayload: Promise.resolve({
+            ok: true as const,
+            data: ADMIN_OPS_FIXTURE.qdrantStatus,
+          }),
+        }),
+        Component: AdminOpsRoute,
+      },
     ]);
 
     const r1 = render(<Stub initialEntries={['/analytics']} />);
@@ -155,7 +206,7 @@ describe('Admin streaming routes, auth guards & SEO', () => {
     const agensiTab = screen.getByRole('tab', { name: /Agensi & Presets/i });
     expect(agensiTab).toBeTruthy();
     fireEvent.click(agensiTab);
-    expect(screen.getByRole('button', { name: 'Sync Agensi Catalog' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Sync Agensi Catalog' })).toBeTruthy();
     expect(screen.getByText('cadence-governed-agentic-sdlc-framework')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Save Agensi Skill' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'New Skill' })).toBeNull();
@@ -288,6 +339,7 @@ describe('Admin streaming routes, auth guards & SEO', () => {
             loader: () => ({
               correlationId: 'corr-cms-stream-503',
               payload: Promise.resolve({ ok: false as const, error: dbErr }),
+              qdrantPayload: Promise.resolve({ ok: true as const, data: QDRANT_FIXTURE }),
             }),
             Component: AdminCmsRoute,
             ErrorBoundary: CmsErrorBoundary,
@@ -440,18 +492,25 @@ describe('Admin streaming routes, auth guards & SEO', () => {
         message: 'Re-indexed 11 documents into portfolio_docs.',
       });
 
-      const multiOpsData: AdminOpsLoaderData = {
-        ...ADMIN_OPS_FIXTURE,
-        qdrantStatus: status,
-      };
       const Stub = createRoutesStub([
         {
           path: '/ops',
           loader: () => ({
             correlationId: 'corr-ops-multi',
-            payload: Promise.resolve<StreamResult<AdminOpsLoaderData>>({
-              ok: true,
-              data: multiOpsData,
+            payload: Promise.resolve({
+              ok: true as const,
+              data: {
+                sandboxRuns: ADMIN_OPS_FIXTURE.sandboxRuns,
+                k8sWatchConfigured: ADMIN_OPS_FIXTURE.k8sWatchConfigured,
+              },
+            }),
+            cadenceStatusPayload: Promise.resolve({
+              ok: true as const,
+              data: ADMIN_OPS_FIXTURE.cadenceAdminStatus,
+            }),
+            qdrantStatusPayload: Promise.resolve({
+              ok: true as const,
+              data: status,
             }),
           }),
           Component: AdminOpsRoute,
@@ -568,5 +627,109 @@ describe('Admin streaming routes, auth guards & SEO', () => {
       if (origSecret === undefined) delete process.env['INTERNAL_AUTH_SECRET'];
       else process.env['INTERNAL_AUTH_SECRET'] = origSecret;
     }
+  });
+
+  it('paints primary /cms, /ops, and /analytics controls while secondary slots stream or fail independently', async () => {
+    const qdrantCmsDeferred = Promise.withResolvers<StreamResult<QdrantHealthStatus>>();
+    const cadenceOpsErr = createPublicAppError({
+      code: 'ERR_UPSTREAM_UNAVAILABLE',
+      status: 503,
+      message: 'Upstream service unreachable.',
+      action: 'Retry shortly or go home.',
+      correlationId: 'corr-ops-cadence-503',
+    });
+    const qdrantOpsDeferred = Promise.withResolvers<StreamResult<QdrantHealthStatus>>();
+    const breakdownsDeferred = Promise.withResolvers<StreamResult<AdminAnalyticsBreakdownsData>>();
+
+    const summaryData: AdminAnalyticsSummaryData = {
+      content: ADMIN_ANALYTICS_FIXTURE.content,
+      window: ADMIN_ANALYTICS_FIXTURE.window,
+      totalSessions: ADMIN_ANALYTICS_FIXTURE.totalSessions,
+      totalEvents: ADMIN_ANALYTICS_FIXTURE.totalEvents,
+      summary: ADMIN_ANALYTICS_FIXTURE.summary,
+      cwv: ADMIN_ANALYTICS_FIXTURE.cwv,
+      aiMetrics: ADMIN_ANALYTICS_FIXTURE.aiMetrics,
+    };
+
+    const Stub = createRoutesStub([
+      {
+        path: '/cms',
+        loader: () => ({
+          correlationId: 'corr-cms-split',
+          payload: Promise.resolve({ ok: true as const, data: ADMIN_CMS_FIXTURE }),
+          qdrantPayload: qdrantCmsDeferred.promise,
+        }),
+        Component: AdminCmsRoute,
+      },
+      {
+        path: '/ops',
+        loader: () => ({
+          correlationId: 'corr-ops-cadence-503',
+          payload: Promise.resolve({
+            ok: true as const,
+            data: {
+              sandboxRuns: ADMIN_OPS_FIXTURE.sandboxRuns,
+              k8sWatchConfigured: ADMIN_OPS_FIXTURE.k8sWatchConfigured,
+            },
+          }),
+          cadenceStatusPayload: Promise.resolve<StreamResult<CadenceAdminStatus>>({
+            ok: false,
+            error: cadenceOpsErr,
+          }),
+          qdrantStatusPayload: qdrantOpsDeferred.promise,
+        }),
+        Component: AdminOpsRoute,
+      },
+      {
+        path: '/analytics',
+        loader: () => ({
+          correlationId: 'corr-analytics-split',
+          summaryPayload: Promise.resolve<StreamResult<AdminAnalyticsSummaryData>>({
+            ok: true,
+            data: summaryData,
+          }),
+          breakdownsPayload: breakdownsDeferred.promise,
+        }),
+        Component: AdminAnalyticsRoute,
+      },
+    ]);
+
+    const cmsView = render(<Stub initialEntries={['/cms']} />);
+    expect(await screen.findByText(/Maintenance Mode Default/i)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Re-Index Qdrant Corpus' })).toBeTruthy();
+    expect(screen.getByText(/Checking Qdrant/i)).toBeTruthy();
+    qdrantCmsDeferred.resolve({
+      ok: true,
+      data: { ...QDRANT_FIXTURE, online: true, pointsCount: 42 },
+    });
+    expect(
+      await screen.findByText(new RegExp(`${QDRANT_FIXTURE.collection}: 42 pts`, 'i')),
+    ).toBeTruthy();
+    cmsView.unmount();
+
+    const opsView = render(<Stub initialEntries={['/ops']} />);
+    expect(await screen.findByText('Namespace: cadence-admin')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Re-Index portfolio_docs' })).toBeTruthy();
+    const opsAlert = await screen.findByRole('alert');
+    expect(opsAlert.textContent).toContain('corr-ops-cadence-503');
+    qdrantOpsDeferred.resolve({ ok: true, data: QDRANT_FIXTURE });
+    expect(await screen.findByText('portfolio_docs')).toBeTruthy();
+    opsView.unmount();
+
+    const analyticsView = render(<Stub initialEntries={['/analytics']} />);
+    expect(await screen.findByText('AI / CADENCE Gate & Abstention Metrics')).toBeTruthy();
+    expect(screen.getByText('150 / 150')).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toContain('Loading analytics breakdowns');
+    breakdownsDeferred.resolve({
+      ok: true,
+      data: {
+        topPaths: ADMIN_ANALYTICS_FIXTURE.topPaths,
+        topReferrers: ADMIN_ANALYTICS_FIXTURE.topReferrers,
+        geoBreakdown: ADMIN_ANALYTICS_FIXTURE.geoBreakdown,
+        agensiConversions: ADMIN_ANALYTICS_FIXTURE.agensiConversions,
+      },
+    });
+    expect(await screen.findByText(/node-api-analytics/i)).toBeTruthy();
+    analyticsView.unmount();
   });
 });

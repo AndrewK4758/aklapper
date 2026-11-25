@@ -21,6 +21,7 @@ import {
 
 import { Button, Toolbar, Tooltip } from '../elements/base';
 import { buildZshCommandHandlers } from './buildZshCommands';
+import { PaneActiveContext, useIsPaneActive } from './paneActiveContext';
 import { PaneNavigationContext, type PaneNavigationContextValue } from './paneNavigationContext';
 import { type TerminalFormConfig } from './terminalFormSession';
 import {
@@ -281,12 +282,9 @@ interface DividerDragOrigin {
 const DRAG_THRESHOLD_PX = 6;
 const DIVIDER_KEY_STEP = 0.05;
 
-const PaneActiveContext = createContext<boolean>(true);
 const EmbeddedTerminalPaneContext = createContext<EmbeddedTerminalPaneContextValue | null>(null);
 
-export function useIsPaneActive(): boolean {
-  return useContext(PaneActiveContext);
-}
+export { useIsPaneActive };
 
 function resolveTabDisplayTitle(
   tab: TerminalWorkspaceTab,

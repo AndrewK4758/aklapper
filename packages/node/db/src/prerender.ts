@@ -1,5 +1,7 @@
 import {
+  type AdminAnalyticsBreakdownsData,
   type AdminAnalyticsLoaderData,
+  type AdminAnalyticsSummaryData,
   type AdminAnalyticsWindow,
   type AdminHomeLoaderData,
   type AdminRootLoaderData,
@@ -19,7 +21,11 @@ import {
 } from '@aklapper/core';
 import { resolveAgensiCreatorHandle } from '@aklapper/node-runtime/agensi';
 
-import { loadAdminAnalyticsData } from './admin-queries.ts';
+import {
+  loadAdminAnalyticsBreakdowns,
+  loadAdminAnalyticsData,
+  loadAdminAnalyticsSummary,
+} from './admin-analytics-queries.ts';
 import type { AgensiSyncOptions } from './agensi-sync.ts';
 import { type AppDatabase, getSharedDb, isReactRouterPrerender } from './client.ts';
 import {
@@ -174,9 +180,9 @@ export function getPrerenderAdminHomeData(): AdminHomeLoaderData {
   };
 }
 
-export function getPrerenderAdminAnalyticsData(
+export function getPrerenderAdminAnalyticsSummaryData(
   window: AdminAnalyticsWindow = '7d',
-): AdminAnalyticsLoaderData {
+): AdminAnalyticsSummaryData {
   return {
     content: ADMIN_ANALYTICS_SEED,
     window,
@@ -192,10 +198,6 @@ export function getPrerenderAdminAnalyticsData(
       { metric: 'CLS', sampleCount: 0, p50: null, p75: null, p95: null },
       { metric: 'TTFB', sampleCount: 0, p50: null, p75: null, p95: null },
     ],
-    topPaths: [],
-    topReferrers: [],
-    geoBreakdown: [],
-    agensiConversions: [],
     aiMetrics: {
       totalRuns: 0,
       totalTokensIn: 0,
@@ -205,6 +207,24 @@ export function getPrerenderAdminAnalyticsData(
       pendingGates: 0,
       abstentionEvents: 0,
     },
+  };
+}
+
+export function getPrerenderAdminAnalyticsBreakdownsData(): AdminAnalyticsBreakdownsData {
+  return {
+    topPaths: [],
+    topReferrers: [],
+    geoBreakdown: [],
+    agensiConversions: [],
+  };
+}
+
+export function getPrerenderAdminAnalyticsData(
+  window: AdminAnalyticsWindow = '7d',
+): AdminAnalyticsLoaderData {
+  return {
+    ...getPrerenderAdminAnalyticsSummaryData(window),
+    ...getPrerenderAdminAnalyticsBreakdownsData(),
   };
 }
 
@@ -284,6 +304,24 @@ export function loadAdminRootDataWithPrerender(): Promise<AdminRootLoaderData> {
 
 export function loadAdminHomeDataWithPrerender(): Promise<AdminHomeLoaderData> {
   return withPrerenderFallback(loadAdminHomeData, getPrerenderAdminHomeData);
+}
+
+export function loadAdminAnalyticsSummaryWithPrerender(
+  window: AdminAnalyticsWindow = '7d',
+): Promise<AdminAnalyticsSummaryData> {
+  return withPrerenderFallback(
+    db => loadAdminAnalyticsSummary(db, window),
+    () => getPrerenderAdminAnalyticsSummaryData(window),
+  );
+}
+
+export function loadAdminAnalyticsBreakdownsWithPrerender(
+  window: AdminAnalyticsWindow = '7d',
+): Promise<AdminAnalyticsBreakdownsData> {
+  return withPrerenderFallback(
+    db => loadAdminAnalyticsBreakdowns(db, window),
+    getPrerenderAdminAnalyticsBreakdownsData,
+  );
 }
 
 export function loadAdminAnalyticsDataWithPrerender(

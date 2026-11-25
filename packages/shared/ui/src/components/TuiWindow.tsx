@@ -12,8 +12,8 @@ import { Button } from '../elements/base';
 import { ScrollArea } from '../elements/base';
 import { Toolbar } from '../elements/base';
 import { Tooltip } from '../elements/base';
+import { useIsPaneActive } from './paneActiveContext';
 import { usePaneNavigation } from './paneNavigationContext';
-import { useIsPaneActive } from './TerminalWorkspace';
 
 import styles from './TuiWindow.module.css';
 

@@ -1,6 +1,6 @@
 import { isKnownSiteContentKey, SITE_CONTENT_METADATA, type SiteContentRow } from '@aklapper/core';
-import { Button, cx, type SiteContentPreviewViewport } from '@aklapper/ui';
-import { useReducer, useState } from 'react';
+import { Button, cx, LazyChunkBoundary, type SiteContentPreviewViewport } from '@aklapper/ui';
+import { lazy, useReducer, useState } from 'react';
 import { Form } from 'react-router';
 
 import { JsonSchemaFormRenderer } from './JsonSchemaFormRenderer';
@@ -11,9 +11,12 @@ import {
   parsePlainJsonObject,
   siteContentDraftReducer,
 } from './siteContentDraftState';
-import { SiteContentPreviewPane } from './SiteContentPreviewPane';
 
 import styles from './SiteContentEditor.module.css';
+
+const LazySiteContentPreviewPane = lazy(() =>
+  import('./SiteContentPreviewPane').then(mod => ({ default: mod.SiteContentPreviewPane })),
+);
 
 export interface SiteContentEditorPanelProps {
   readonly siteContents: readonly SiteContentRow[];
@@ -190,14 +193,19 @@ function SiteContentEditorSession({
       </Form>
 
       {previewOpen ? (
-        <SiteContentPreviewPane
-          contentKey={row.key}
-          metadata={evaluated.previewObject}
-          viewport={previewViewport}
-          hasValidationErrors={!evaluated.canSubmit}
-          onViewportChange={onViewportChange}
-          onClose={onTogglePreview}
-        />
+        <LazyChunkBoundary
+          loadingLabel='Loading live preview...'
+          errorTitle='Unable to load live preview'
+        >
+          <LazySiteContentPreviewPane
+            contentKey={row.key}
+            metadata={evaluated.previewObject}
+            viewport={previewViewport}
+            hasValidationErrors={!evaluated.canSubmit}
+            onViewportChange={onViewportChange}
+            onClose={onTogglePreview}
+          />
+        </LazyChunkBoundary>
       ) : null}
     </div>
   );
@@ -207,7 +215,7 @@ export function SiteContentEditorPanel({ siteContents }: SiteContentEditorPanelP
   const [selectedSiteKey, setSelectedSiteKey] = useState<string>(
     siteContents[0]?.key ?? 'portal-home',
   );
-  const [previewOpen, setPreviewOpen] = useState<boolean>(true);
+  const [previewOpen, setPreviewOpen] = useState<boolean>(false);
   const [previewViewport, setPreviewViewport] = useState<SiteContentPreviewViewport>('desktop');
 
   const selectedSiteRow =

@@ -1,4 +1,5 @@
 import {
+  type AskServiceStatus,
   CONTACT_FORM_DEFINITION,
   createPublicAppError,
   type PortalAgensiLoaderData,
@@ -11,7 +12,7 @@ import {
 } from '@aklapper/core';
 import { GUEST_SESSION_COOKIE_NAME } from '@aklapper/node-runtime/auth';
 import { requestContextKey, type SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { createRoutesStub, RouterContextProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -49,7 +50,7 @@ vi.mock('@aklapper/db', async importOriginal => {
 
 import PortalAgensiRoute, { ErrorBoundary as AgensiErrorBoundary } from './agensi';
 import { loader as askTurnPollLoader } from './api.ask.turns.$attemptId';
-import { action as askAction, loader as askLoader } from './ask';
+import PortalAskRoute, { action as askAction, loader as askLoader } from './ask';
 import { action as cadenceAction, loader as cadenceLoader } from './cadence';
 import ChangesInProgressRoute, {
   ErrorBoundary as MaintenanceErrorBoundary,
@@ -487,5 +488,70 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
       correlationId: 'corr-cad-gate-503',
     });
     expect(cadGateErrCtx.errorCalls).toHaveLength(1);
+  });
+
+  it('streams /ask primary form immediately while askStatusPayload settles independently and preserves live badge precedence', async () => {
+    const askStatusDeferred = Promise.withResolvers<StreamResult<AskServiceStatus | undefined>>();
+    const askData: PortalAskLoaderData = {
+      content: {
+        windowTitle: 'Ask Portfolio',
+        statusBadge: { source: 'ai-ask', state: 'idle', label: 'idle' },
+        description: 'Grounded portfolio Q&A.',
+        abstentionNotice: 'Strictly grounded answers only.',
+        starterQuestions: ['Explain the streaming SSR architecture'],
+        jdPlaceholder: 'Paste job description...',
+      },
+      quota: { role: 'guest', turnsUsed: 0, maxTurns: 5, tokensUsed: 0, maxTokens: 20_000 },
+    };
+
+    const Stub = createRoutesStub([
+      {
+        path: '/ask',
+        loader: () => ({
+          correlationId: 'corr-ask-split',
+          payload: Promise.resolve<StreamResult<PortalAskLoaderData>>({ ok: true, data: askData }),
+          askStatusPayload: askStatusDeferred.promise,
+        }),
+        action: async () => ({
+          ok: true,
+          mode: 'qa',
+          submittedText: 'Explain the streaming SSR architecture',
+          attemptId: '11111111-1111-4111-8111-111111111111',
+          response: {
+            mode: 'qa',
+            answer: 'Streaming SSR uses deferStreamResult and SuspenseElement.',
+            grounded: true,
+            provider: 'vertex',
+            tokensUsed: 120,
+            sources: [
+              {
+                id: 'doc-1',
+                title: 'SSR Architecture',
+                snippet: 'Streaming SSR',
+                score: 0.95,
+              },
+            ],
+          },
+        }),
+        Component: PortalAskRoute,
+      },
+    ]);
+
+    render(<Stub initialEntries={['/ask']} />);
+    expect(await screen.findByTestId('ask-question-input')).toBeTruthy();
+    expect(screen.getByText(/probing · ai-ask/i)).toBeTruthy();
+
+    askStatusDeferred.resolve({
+      ok: true,
+      data: { status: 'ready', provider: 'vertex', pointsCount: 42 },
+    });
+    expect(await screen.findByText(/ready · 42 pts/i)).toBeTruthy();
+
+    fireEvent.change(screen.getByTestId('ask-question-input'), {
+      target: { value: 'Explain the streaming SSR architecture' },
+    });
+    fireEvent.click(screen.getByTestId('ask-qa-submit'));
+
+    expect(await screen.findByText(/grounded · 1 source\(s\)/i)).toBeTruthy();
   });
 });

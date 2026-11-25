@@ -26,6 +26,7 @@ import { data, href, useFetcher, useNavigate } from 'react-router';
 
 import { type PortalAskActionResult, PortalAskPage } from '#pages/ask';
 
+import { createAskStatusSlot } from '../askStatusSlot';
 import { reportPortalPublicError } from '../client-telemetry';
 import { resolveGuestSession } from '../guest-session.server';
 import { buildPortalPageMeta } from '../seo';
@@ -69,22 +70,22 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const aiAskUrl = process.env['AI_ASK_URL']?.trim();
   const reqCtx = getRequestContext(context);
 
-  const loadCombined = async (): Promise<PortalAskLoaderData> => {
-    const [base, askStatus] = await Promise.all([
-      loadPortalAskDataWithPrerender(sessionId),
-      probeAskServiceStatus(aiAskUrl, reqCtx?.signal ?? request.signal),
-    ]);
-    return askStatus ? { ...base, askStatus } : base;
-  };
-
   return data(
     {
       correlationId,
-      payload: deferStreamResult(loadCombined(), {
+      payload: deferStreamResult(loadPortalAskDataWithPrerender(sessionId), {
         request,
         context,
         source: 'portal.ask.loader',
       }),
+      askStatusPayload: deferStreamResult(
+        probeAskServiceStatus(aiAskUrl, reqCtx?.signal ?? request.signal),
+        {
+          request,
+          context,
+          source: 'portal.ask.status',
+        },
+      ),
     },
     setCookieHeader ? { headers: { 'Set-Cookie': setCookieHeader } } : undefined,
   );
@@ -319,6 +320,11 @@ export default function PortalAskRoute({ loaderData }: Route.ComponentProps) {
           content={content}
           quota={quota}
           askStatus={askStatus}
+          askStatusSlot={createAskStatusSlot({
+            content,
+            askStatusPayload: loaderData.askStatusPayload,
+            correlationId: loaderData.correlationId,
+          })}
           actionResult={fetcher.data}
           isSubmitting={fetcher.state !== 'idle'}
           onSubmitAsk={({ mode, text, attemptId }) => {

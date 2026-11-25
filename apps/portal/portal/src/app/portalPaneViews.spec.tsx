@@ -1,8 +1,10 @@
 import {
+  type AskServiceStatus,
   type CadenceRunResult,
   CONTACT_FORM_DEFINITION,
   type ContactActionResult,
   type PortalAgensiLoaderData,
+  type PortalAskLoaderData,
   type PortalCadenceLoaderData,
   type PortalContactLoaderData,
   type PortalHomeContent,
@@ -195,6 +197,16 @@ const TERMINAL: TerminalProfileData = {
       allowedRoutes: [],
       errorTemplate: null,
       sortOrder: 4,
+    },
+    {
+      name: 'ask',
+      description: 'open ask portfolio',
+      kind: 'navigate',
+      output: 'opening /ask ...',
+      targetRoute: '/ask',
+      allowedRoutes: [],
+      errorTemplate: null,
+      sortOrder: 5,
     },
   ],
 };
@@ -1315,5 +1327,128 @@ describe('Portal in-pane route adapters & deep-links', () => {
     } finally {
       globalThis.EventSource = originalEventSource;
     }
+  });
+
+  it('streams askStatusPayload into docked /ask?pane=1 and logs envelope_shape_mismatch when omitted', async () => {
+    const askData: PortalAskLoaderData = {
+      content: {
+        windowTitle: 'Ask Portfolio',
+        statusBadge: { source: 'ai-ask', state: 'idle', label: 'idle' },
+        description: 'Grounded docked Q&A.',
+        abstentionNotice: 'Strict grounding enabled.',
+        starterQuestions: ['What stack powers this site?'],
+        jdPlaceholder: 'Paste JD...',
+      },
+      quota: { role: 'guest', turnsUsed: 0, maxTurns: 5, tokensUsed: 0, maxTokens: 20_000 },
+    };
+
+    const askStatusDeferred = Promise.withResolvers<StreamResult<AskServiceStatus | undefined>>();
+    const router = createMemoryRouter(
+      [
+        {
+          id: 'root',
+          path: '/',
+          loader: () =>
+            makeRootStreamData({
+              maintenanceMode: false,
+              chrome: CHROME,
+              maintenance: null,
+              terminal: TERMINAL,
+              homeContent: HOME_CONTENT,
+            }),
+          Component: PortalRootBridge,
+          children: [
+            {
+              index: true,
+              loader: () =>
+                streamOk<PortalHomeLoaderData>({
+                  content: HOME_CONTENT,
+                  terminal: TERMINAL,
+                  contactForm: CONTACT_FORM_DEFINITION,
+                }),
+              Component: PortalHomeBridge,
+            },
+            {
+              path: 'ask',
+              loader: () => ({
+                correlationId: 'corr-ask-pane',
+                payload: Promise.resolve<StreamResult<PortalAskLoaderData>>({
+                  ok: true,
+                  data: askData,
+                }),
+                askStatusPayload: askStatusDeferred.promise,
+              }),
+              Component: () => <div>Ask SSR</div>,
+            },
+          ],
+        },
+      ],
+      { initialEntries: ['/'] },
+    );
+
+    const first = render(<RouterProvider router={router} />);
+    const input = (await screen.findByLabelText('Terminal command input')) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'ask' } });
+    fireEvent.submit(input.closest('form') as HTMLFormElement);
+
+    expect(await screen.findByTestId('ask-question-input')).toBeTruthy();
+    expect(screen.getByText(/probing · ai-ask/i)).toBeTruthy();
+
+    askStatusDeferred.resolve({
+      ok: true,
+      data: { status: 'ready', provider: 'vertex', pointsCount: 19 },
+    });
+    expect(await screen.findByText(/ready · 19 pts/i)).toBeTruthy();
+    first.unmount();
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const mismatchRouter = createMemoryRouter(
+      [
+        {
+          id: 'root',
+          path: '/',
+          loader: () =>
+            makeRootStreamData({
+              maintenanceMode: false,
+              chrome: CHROME,
+              maintenance: null,
+              terminal: TERMINAL,
+              homeContent: HOME_CONTENT,
+            }),
+          Component: PortalRootBridge,
+          children: [
+            {
+              index: true,
+              loader: () =>
+                streamOk<PortalHomeLoaderData>({
+                  content: HOME_CONTENT,
+                  terminal: TERMINAL,
+                  contactForm: CONTACT_FORM_DEFINITION,
+                }),
+              Component: PortalHomeBridge,
+            },
+            {
+              path: 'ask',
+              loader: () => streamOk(askData, 'corr-ask-mismatch'),
+              Component: () => <div>Ask SSR</div>,
+            },
+          ],
+        },
+      ],
+      { initialEntries: ['/'] },
+    );
+
+    render(<RouterProvider router={mismatchRouter} />);
+    const input2 = (await screen.findByLabelText('Terminal command input')) as HTMLInputElement;
+    fireEvent.change(input2, { target: { value: 'ask' } });
+    fireEvent.submit(input2.closest('form') as HTMLFormElement);
+
+    expect(await screen.findByTestId('ask-question-input')).toBeTruthy();
+    expect(
+      errorSpy.mock.calls.some(args =>
+        String(args[0] ?? '').includes('portal.pane_nav.envelope_shape_mismatch'),
+      ),
+    ).toBe(true);
+    errorSpy.mockRestore();
   });
 });

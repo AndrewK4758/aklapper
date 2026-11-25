@@ -22,27 +22,20 @@ import {
   logDiagnosticError,
 } from '@aklapper/node-runtime/ssr/stream';
 import {
-  Button,
   DirectionProvider,
   DocumentBodyAnalytics,
   DocumentHeadTags,
-  NavigationMenu,
-  OscStatusBadge,
   RouteErrorBoundaryView,
-  SolarForgeEmblem,
   SuspenseElement,
-  TerminalWorkspace,
   Tooltip,
   useAnimatedFavicon,
 } from '@aklapper/ui';
-import { type ReactNode, useState } from 'react';
+import type { ReactNode } from 'react';
 import {
   data,
   href,
-  Link,
   Links,
   Meta,
-  Outlet,
   redirect,
   Scripts,
   ScrollRestoration,
@@ -52,6 +45,7 @@ import {
 } from 'react-router';
 
 import type { Route } from './+types/root';
+import { AdminRootShell } from './AdminRootShell';
 import { reportAdminPublicError } from './client-telemetry';
 import { ADMIN_ROBOTS_DIRECTIVE, ADMIN_SITE_NAME, DEFAULT_ADMIN_SITE_URL } from './seo';
 
@@ -64,15 +58,6 @@ export type AdminRoutePathParityCheck = [
   AssertAssignable<RegisteredAdminHrefPath, AdminRoutePath>,
 ];
 
-const ADMIN_NAV_ITEMS = [
-  { to: href('/'), label: 'Overview' },
-  { to: href('/analytics'), label: 'Analytics' },
-  { to: href('/cms'), label: 'CMS' },
-  { to: href('/inbox'), label: 'Inbox' },
-  { to: href('/quotas'), label: 'Quotas' },
-  { to: href('/ops'), label: 'Ops' },
-] as const;
-
 export interface AdminRootStreamData {
   readonly runtimeSeo: DocumentSeoRuntimeConfig;
   readonly correlationId: string;
@@ -83,17 +68,6 @@ export interface AdminRootStreamData {
     readonly passkeyCount: number;
   };
   readonly rootPayload: Promise<StreamResult<AdminRootLoaderData>>;
-}
-
-function isNavItemActive(pathname: string, to: string): boolean {
-  const normalized = pathname.replace(/\/+$/, '') || '/';
-  if (to === '/') return normalized === '/';
-  return normalized === to || normalized.startsWith(`${to}/`);
-}
-
-function getAdminPaneTitle(pathname: string): string {
-  const normalized = pathname.replace(/\/+$/, '') || '/';
-  return normalized === '/' ? 'tui :: admin' : `tui :: admin${normalized}`;
 }
 
 export async function loader({ request, context }: Route.LoaderArgs): Promise<AdminRootStreamData> {
@@ -209,114 +183,6 @@ export function Layout({ children }: { children: ReactNode }) {
         <Scripts />
       </body>
     </html>
-  );
-}
-
-interface AdminRootShellProps {
-  readonly data: AdminRootLoaderData;
-  readonly session: AuthSession | null;
-  readonly isLoginRoute: boolean;
-  readonly pathname: string;
-  readonly navigate: (to: string) => void | Promise<void>;
-}
-
-function AdminRootShell({
-  data: rootData,
-  session,
-  isLoginRoute,
-  pathname,
-  navigate,
-}: AdminRootShellProps) {
-  const [signingOut, setSigningOut] = useState(false);
-  const { chrome, terminal } = rootData;
-  const resolvedTerminal = isLoginRoute ? undefined : terminal;
-  const hasGlobalWorkspace = Boolean(resolvedTerminal);
-  const isAdminSession = session?.role === 'admin';
-
-  async function handleSignOut() {
-    setSigningOut(true);
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-    } finally {
-      window.location.assign(href('/login'));
-    }
-  }
-
-  return (
-    <div className={styles.shell} data-pane-workspace={hasGlobalWorkspace ? 'true' : 'false'}>
-      <header className={styles.bar}>
-        <NavigationMenu.Root aria-label='Admin console navigation'>
-          <NavigationMenu.List className={styles.navList}>
-            <NavigationMenu.Item>
-              <NavigationMenu.Link render={<Link to={href('/')} />} className={styles.brand}>
-                <SolarForgeEmblem size={20} />
-                <span>{chrome.brandLabel}</span>
-              </NavigationMenu.Link>
-            </NavigationMenu.Item>
-            {isAdminSession
-              ? ADMIN_NAV_ITEMS.map(item => {
-                  const active = isNavItemActive(pathname, item.to);
-                  return (
-                    <NavigationMenu.Item key={item.to}>
-                      <NavigationMenu.Link
-                        render={<Link to={item.to} />}
-                        className={styles.navLink}
-                        data-active={active ? 'true' : 'false'}
-                        aria-current={active ? 'page' : undefined}
-                      >
-                        {item.label}
-                      </NavigationMenu.Link>
-                    </NavigationMenu.Item>
-                  );
-                })
-              : null}
-          </NavigationMenu.List>
-        </NavigationMenu.Root>
-        <div className={styles.barMeta}>
-          {hasGlobalWorkspace && chrome.shortcutHint ? (
-            <span className={styles.shortcutHint}>{chrome.shortcutHint}</span>
-          ) : null}
-          {isAdminSession && session ? (
-            <span className={styles.sessionHandle}>{session.handle}@admin</span>
-          ) : null}
-          <OscStatusBadge
-            source={chrome.statusBadge.source}
-            state={isAdminSession ? 'ready' : chrome.statusBadge.state}
-            label={isAdminSession ? 'Passkey Verified' : chrome.statusBadge.label}
-          />
-          {isAdminSession ? (
-            <Button.Root
-              type='button'
-              variant='ghost'
-              size='sm'
-              loading={signingOut}
-              onClick={() => {
-                void handleSignOut();
-              }}
-            >
-              <Button.Label>Sign Out</Button.Label>
-            </Button.Root>
-          ) : null}
-        </div>
-      </header>
-      <main className={styles.main} data-pane-workspace={hasGlobalWorkspace ? 'true' : 'false'}>
-        {resolvedTerminal ? (
-          <TerminalWorkspace
-            terminal={resolvedTerminal}
-            disableMenuShortcut
-            navigate={to => {
-              void navigate(to);
-            }}
-            primaryPane={{
-              title: getAdminPaneTitle(pathname),
-              content: <Outlet />,
-            }}
-          />
-        ) : (
-          <Outlet />
-        )}
-      </main>
-    </div>
   );
 }
 

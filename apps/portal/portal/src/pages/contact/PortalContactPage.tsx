@@ -105,7 +105,7 @@ export function PortalContactPage({
                   Return to Terminal
                 </Button>
               ) : (
-                <Button.Link variant='default' render={<Link to='/' />}>
+                <Button.Link variant='default' render={<Link to='/' prefetch='intent' />}>
                   Return to Terminal
                 </Button.Link>
               )}

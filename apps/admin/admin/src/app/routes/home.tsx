@@ -5,7 +5,7 @@ import { RouteErrorBoundaryView, SuspenseElement } from '@aklapper/ui';
 import { href } from 'react-router';
 
 import { AdminHomePage } from '#pages/home';
-import { createPasskeyCredential, type RegistrationOptionsJSON } from '#pages/login';
+import type { RegistrationOptionsJSON } from '#pages/login';
 
 import { buildOverviewHealthSummary, requireAdminSession } from '../admin-ops.server';
 import { reportAdminPublicError } from '../client-telemetry';
@@ -70,6 +70,7 @@ async function registerAdditionalPasskey(): Promise<void> {
     challengeId: string;
     options: RegistrationOptionsJSON;
   };
+  const { createPasskeyCredential } = await import('#pages/login');
   const credential = await createPasskeyCredential(options);
   const verifyRes = await fetch('/api/auth/passkey/register/verify', {
     method: 'POST',

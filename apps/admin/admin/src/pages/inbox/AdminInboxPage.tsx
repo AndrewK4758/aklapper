@@ -106,7 +106,11 @@ export function AdminInboxPage({ data, actionData }: AdminInboxPageProps) {
               <Button.Label>Search</Button.Label>
             </Button.Root>
             {query ? (
-              <Button.Link render={<Link to='/inbox' />} variant='ghost' size='sm'>
+              <Button.Link
+                render={<Link to='/inbox' prefetch='intent' />}
+                variant='ghost'
+                size='sm'
+              >
                 <Button.Label>Clear</Button.Label>
               </Button.Link>
             ) : null}
@@ -219,7 +223,7 @@ export function AdminInboxPage({ data, actionData }: AdminInboxPageProps) {
               <div className={styles.pager}>
                 {prevPage ? (
                   <Button.Link
-                    render={<Link to={buildPageHref(prevPage)} />}
+                    render={<Link to={buildPageHref(prevPage)} prefetch='intent' />}
                     variant='ghost'
                     size='sm'
                   >
@@ -230,7 +234,7 @@ export function AdminInboxPage({ data, actionData }: AdminInboxPageProps) {
                 )}
                 {nextPage ? (
                   <Button.Link
-                    render={<Link to={buildPageHref(nextPage)} />}
+                    render={<Link to={buildPageHref(nextPage)} prefetch='intent' />}
                     variant='ghost'
                     size='sm'
                   >

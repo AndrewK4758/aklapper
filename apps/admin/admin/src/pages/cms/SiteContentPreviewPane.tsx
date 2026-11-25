@@ -1,4 +1,8 @@
-import { Button, SiteContentPreviewCanvas, type SiteContentPreviewViewport } from '@aklapper/ui';
+import { Button } from '@aklapper/ui';
+import {
+  SiteContentPreviewCanvas,
+  type SiteContentPreviewViewport,
+} from '@aklapper/ui/site-content-preview';
 
 import styles from './SiteContentEditor.module.css';
 

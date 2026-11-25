@@ -3,31 +3,17 @@ import type {
   AdminServiceHealthStatus,
   Osc7501State,
 } from '@aklapper/core';
-import {
-  Button,
-  Drawer,
-  Field,
-  Meter,
-  OscStatusBadge,
-  QrCodeSvg,
-  Separator,
-  Toolbar,
-  TuiWindow,
-} from '@aklapper/ui';
+import { Button, Drawer, Meter, OscStatusBadge, Separator, Toolbar, TuiWindow } from '@aklapper/ui';
 import { type FormEvent, useState } from 'react';
 import { Link } from 'react-router';
+
+import { type TotpEnrollResponse, TotpEnrollmentSection } from './TotpEnrollmentSection';
 
 import styles from './AdminHomePage.module.css';
 
 export interface AdminHomePageProps {
   data: AdminOverviewLoaderData;
   onRegisterPasskey?: () => Promise<void>;
-}
-
-interface TotpEnrollResponse {
-  secret: string;
-  otpauthUrl: string;
-  backupCodes: string[];
 }
 
 interface ErrorPayload {
@@ -236,101 +222,22 @@ export function AdminHomePage({ data, onRegisterPasskey }: AdminHomePageProps) {
                           </div>
                         </section>
 
-                        <section className={styles.drawerSection}>
-                          <div className={styles.tileHeader}>
-                            <span className={styles.tileLabel}>TOTP Second Factor (2FA)</span>
-                            <OscStatusBadge
-                              source='totp'
-                              state={totpEnabled ? 'ready' : 'idle'}
-                              label={totpEnabled ? 'Enabled' : 'Disabled'}
-                            />
-                          </div>
-
-                          {totpEnabled ? (
-                            <div>
-                              <Button.Root
-                                type='button'
-                                variant='danger'
-                                loading={securityBusy}
-                                onClick={() => {
-                                  void handleDisableTotp();
-                                }}
-                              >
-                                <Button.Label>Disable TOTP 2FA</Button.Label>
-                              </Button.Root>
-                            </div>
-                          ) : (
-                            <div>
-                              <Button.Root
-                                type='button'
-                                variant='primary'
-                                loading={securityBusy}
-                                onClick={() => {
-                                  void handleStartTotpEnroll();
-                                }}
-                              >
-                                <Button.Label>Enroll TOTP 2FA</Button.Label>
-                              </Button.Root>
-                            </div>
-                          )}
-
-                          {enrollment ? (
-                            <div className={styles.secretBlock}>
-                              <div className={styles.qrFrame}>
-                                <QrCodeSvg
-                                  value={enrollment.otpauthUrl}
-                                  size={184}
-                                  label='TOTP 2FA QR Code'
-                                />
-                              </div>
-                              <div>
-                                <div className={styles.tileLabel}>Base32 Secret</div>
-                                <code data-testid='totp-secret' className={styles.codeText}>
-                                  {enrollment.secret}
-                                </code>
-                              </div>
-                              <div>
-                                <div className={styles.tileLabel}>otpauth:// URI</div>
-                                <code data-testid='totp-uri' className={styles.codeText}>
-                                  {enrollment.otpauthUrl}
-                                </code>
-                              </div>
-                              <div>
-                                <div className={styles.tileLabel}>Single-Use Backup Codes</div>
-                                <ul className={styles.backupGrid}>
-                                  {enrollment.backupCodes.map(code => (
-                                    <li key={code} className={styles.backupCode}>
-                                      {code}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                              <form
-                                className={styles.inlineForm}
-                                onSubmit={event => {
-                                  void handleVerifyTotp(event);
-                                }}
-                              >
-                                <Field.Root>
-                                  <Field.Label>6-Digit Verification Code</Field.Label>
-                                  <Field.Control
-                                    name='totpVerifyCode'
-                                    inputMode='numeric'
-                                    placeholder='123456'
-                                    value={verifyCode}
-                                    onChange={event => {
-                                      setVerifyCode(event.target.value);
-                                    }}
-                                    required
-                                  />
-                                </Field.Root>
-                                <Button.Root type='submit' variant='primary' loading={securityBusy}>
-                                  <Button.Label>Verify &amp; Enable TOTP</Button.Label>
-                                </Button.Root>
-                              </form>
-                            </div>
-                          ) : null}
-                        </section>
+                        <TotpEnrollmentSection
+                          totpEnabled={totpEnabled}
+                          securityBusy={securityBusy}
+                          enrollment={enrollment}
+                          verifyCode={verifyCode}
+                          onVerifyCodeChange={setVerifyCode}
+                          onStartEnroll={() => {
+                            void handleStartTotpEnroll();
+                          }}
+                          onDisableTotp={() => {
+                            void handleDisableTotp();
+                          }}
+                          onVerifyTotp={event => {
+                            void handleVerifyTotp(event);
+                          }}
+                        />
 
                         <div>
                           <Drawer.Close type='button'>Close</Drawer.Close>
@@ -418,7 +325,7 @@ export function AdminHomePage({ data, onRegisterPasskey }: AdminHomePageProps) {
             {content.actions.map(action => (
               <Button.Link
                 key={action.to}
-                render={<Link to={action.to} />}
+                render={<Link to={action.to} prefetch='intent' />}
                 variant={action.variant}
               >
                 <Button.Label>{action.label}</Button.Label>
@@ -427,7 +334,11 @@ export function AdminHomePage({ data, onRegisterPasskey }: AdminHomePageProps) {
             {QUICK_CONSOLE_LINKS.filter(
               item => !content.actions.some(action => action.to === item.to),
             ).map(item => (
-              <Button.Link key={item.to} render={<Link to={item.to} />} variant='secondary'>
+              <Button.Link
+                key={item.to}
+                render={<Link to={item.to} prefetch='intent' />}
+                variant='secondary'
+              >
                 <Button.Label>{item.label}</Button.Label>
               </Button.Link>
             ))}
