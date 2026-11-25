@@ -18,7 +18,19 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const DefaultDatabaseURL = "postgres://postgres:postgres@127.0.0.1:5439/aklapper?sslmode=disable"
+const (
+	DefaultDatabaseURL         = "postgres://postgres:postgres@127.0.0.1:5439/aklapper?sslmode=disable"
+	DefaultAgensiCreatorHandle = "aklapper"
+)
+
+// ResolveAgensiCreatorHandle returns AGENSI_CREATOR_HANDLE or DefaultAgensiCreatorHandle.
+func ResolveAgensiCreatorHandle() string {
+	handle := strings.TrimSpace(os.Getenv("AGENSI_CREATOR_HANDLE"))
+	if handle == "" {
+		return DefaultAgensiCreatorHandle
+	}
+	return handle
+}
 
 var (
 	ErrRunNotFound         = errors.New("sandbox run not found")
@@ -127,22 +139,24 @@ type memBucket struct {
 // Store provides PostgreSQL 19 persistence via pgxpool with an optional
 // thread-safe in-memory fallback when pool is nil (isolated unit tests).
 type Store struct {
-	pool     *pgxpool.Pool
-	mu       sync.Mutex
-	policies map[string]QuotaPolicy
-	buckets  map[string]*memBucket
-	turns    map[string]*TurnRecord
-	runs     []*SandboxRun
-	runsByID map[string]*SandboxRun
-	turnSeq  int
+	pool                *pgxpool.Pool
+	AgensiCreatorHandle string
+	mu                  sync.Mutex
+	policies            map[string]QuotaPolicy
+	buckets             map[string]*memBucket
+	turns               map[string]*TurnRecord
+	runs                []*SandboxRun
+	runsByID            map[string]*SandboxRun
+	turnSeq             int
 }
 
 func NewMemoryStore() *Store {
 	return &Store{
-		policies: defaultPolicies(),
-		buckets:  make(map[string]*memBucket),
-		turns:    make(map[string]*TurnRecord),
-		runsByID: make(map[string]*SandboxRun),
+		AgensiCreatorHandle: ResolveAgensiCreatorHandle(),
+		policies:            defaultPolicies(),
+		buckets:             make(map[string]*memBucket),
+		turns:               make(map[string]*TurnRecord),
+		runsByID:            make(map[string]*SandboxRun),
 	}
 }
 
@@ -185,11 +199,12 @@ func Open(ctx context.Context, cfg Config) (*Store, error) {
 		return nil, err
 	}
 	return &Store{
-		pool:     pool,
-		policies: defaultPolicies(),
-		buckets:  make(map[string]*memBucket),
-		turns:    make(map[string]*TurnRecord),
-		runsByID: make(map[string]*SandboxRun),
+		pool:                pool,
+		AgensiCreatorHandle: ResolveAgensiCreatorHandle(),
+		policies:            defaultPolicies(),
+		buckets:             make(map[string]*memBucket),
+		turns:               make(map[string]*TurnRecord),
+		runsByID:            make(map[string]*SandboxRun),
 	}, nil
 }
 
@@ -618,10 +633,18 @@ func (s *Store) loadSiteContentDocs(ctx context.Context) ([]CorpusDocument, erro
 	return docs, nil
 }
 
-func (s *Store) loadAgensiSkillDocs(ctx context.Context) ([]CorpusDocument, error) {
-	rows, err := s.pool.Query(ctx, `SELECT slug, name, summary, tags, url FROM agensi_skills ORDER BY sort_order ASC, slug ASC`)
+type rowQuerier interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+}
+
+func queryPublishedCreatorSkills(ctx context.Context, q rowQuerier, creatorHandle string) ([]CorpusDocument, error) {
+	rows, err := q.Query(
+		ctx,
+		`SELECT slug, name, summary, tags, url FROM agensi_skills WHERE lower(creator_handle) = lower($1) AND is_published = true ORDER BY sort_order ASC, slug ASC`,
+		creatorHandle,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("load agensi_skills corpus: %w", err)
+		return nil, fmt.Errorf("load agensi_skills corpus for %q: %w", creatorHandle, err)
 	}
 	defer rows.Close()
 
@@ -645,6 +668,14 @@ func (s *Store) loadAgensiSkillDocs(ctx context.Context) ([]CorpusDocument, erro
 		return nil, fmt.Errorf("iterate agensi_skills corpus: %w", rowsErr)
 	}
 	return docs, nil
+}
+
+func (s *Store) loadAgensiSkillDocs(ctx context.Context) ([]CorpusDocument, error) {
+	creatorHandle := strings.TrimSpace(s.AgensiCreatorHandle)
+	if creatorHandle == "" {
+		creatorHandle = ResolveAgensiCreatorHandle()
+	}
+	return queryPublishedCreatorSkills(ctx, s.pool, creatorHandle)
 }
 
 func (s *Store) loadRoadmapMilestoneDocs(ctx context.Context) ([]CorpusDocument, error) {

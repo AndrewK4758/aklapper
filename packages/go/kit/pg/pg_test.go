@@ -3,10 +3,12 @@ package pg
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
+	"github.com/jackc/pgx/v5"
 )
 
 func TestValidateDSN(t *testing.T) {
@@ -223,5 +225,96 @@ func TestAskTurnReserveReconcileRefundAndLeaseExpiry(t *testing.T) {
 	rec, qPoll, err := store.GetTurnByAttemptID(ctx, idLease, "guest_lease")
 	if err != nil || rec.Status != contracts.TurnStatusExpired || qPoll.TurnsUsed != 0 || qPoll.TokensUsed != 0 {
 		t.Fatalf("expected expired status and zeroed quota after lease refund, got rec=%+v q=%+v err=%v", rec, qPoll, err)
+	}
+}
+
+type fakeSkillRows struct {
+	pgx.Rows
+	idx   int
+	items []struct {
+		slug, name, summary, url string
+		tags                     []string
+	}
+	err error
+}
+
+func (r *fakeSkillRows) Close()     {}
+func (r *fakeSkillRows) Err() error { return r.err }
+func (r *fakeSkillRows) Next() bool {
+	if r.idx >= len(r.items) {
+		return false
+	}
+	r.idx++
+	return true
+}
+func (r *fakeSkillRows) Scan(dest ...any) error {
+	row := r.items[r.idx-1]
+	*(dest[0].(*string)) = row.slug
+	*(dest[1].(*string)) = row.name
+	*(dest[2].(*string)) = row.summary
+	*(dest[3].(*[]string)) = row.tags
+	*(dest[4].(*string)) = row.url
+	return nil
+}
+
+type stubQuerier struct {
+	sqlSeen  string
+	argsSeen []any
+	rows     pgx.Rows
+	err      error
+}
+
+func (q *stubQuerier) Query(_ context.Context, query string, args ...any) (pgx.Rows, error) {
+	q.sqlSeen = query
+	q.argsSeen = args
+	return q.rows, q.err
+}
+
+func TestResolveAgensiCreatorHandleAndLoadQuery(t *testing.T) {
+	t.Setenv("AGENSI_CREATOR_HANDLE", "")
+	if got := ResolveAgensiCreatorHandle(); got != DefaultAgensiCreatorHandle {
+		t.Fatalf("expected default %q, got %q", DefaultAgensiCreatorHandle, got)
+	}
+	t.Setenv("AGENSI_CREATOR_HANDLE", "  aklapper-custom ")
+	if got := ResolveAgensiCreatorHandle(); got != "aklapper-custom" {
+		t.Fatalf("expected trimmed handle, got %q", got)
+	}
+
+	q := &stubQuerier{
+		rows: &fakeSkillRows{
+			items: []struct {
+				slug, name, summary, url string
+				tags                     []string
+			}{
+				{
+					slug:    "cadence-governed-agentic-sdlc-framework",
+					name:    "CADENCE Framework",
+					summary: "Governed SDLC.",
+					tags:    []string{"sdlc"},
+					url:     "https://agensi.io/skills/cadence-governed-agentic-sdlc-framework",
+				},
+			},
+		},
+	}
+
+	docs, err := queryPublishedCreatorSkills(context.Background(), q, "aklapper")
+	if err != nil {
+		t.Fatalf("queryPublishedCreatorSkills failed: %v", err)
+	}
+	if !strings.Contains(q.sqlSeen, "lower(creator_handle) = lower($1)") || !strings.Contains(q.sqlSeen, "is_published = true") {
+		t.Fatalf("expected creator_handle and is_published filter in SQL, got: %s", q.sqlSeen)
+	}
+	if len(q.argsSeen) != 1 || q.argsSeen[0] != "aklapper" {
+		t.Fatalf("expected creator handle arg [aklapper], got %+v", q.argsSeen)
+	}
+	if len(docs) != 1 || docs[0].ID != "agensi:cadence-governed-agentic-sdlc-framework" {
+		t.Fatalf("unexpected docs: %+v", docs)
+	}
+
+	// Query error fails closed instead of silently returning partial results
+	errBoom := errors.New("pg connection lost")
+	qFail := &stubQuerier{err: errBoom}
+	if _, err := queryPublishedCreatorSkills(context.Background(), qFail, "aklapper"); !errors.Is(err, errBoom) {
+		t.Fatalf("expected live SQL error propagation, got %v", err)
 	}
 }

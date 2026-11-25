@@ -128,6 +128,11 @@ func handleReindex(provider llm.Provider, vectorStore *qdrant.Client, store *pg.
 
 		existingIDs, listErr := vectorStore.ListTypedPointIDs(r.Context(), portfolioCollection)
 		if listErr != nil {
+			logAskEvent("ask.reindex.prune_mismatch", map[string]any{
+				"correlationId": corrID,
+				"seam_type":     "DELTA_AUDIT_GAP",
+				"stage":         "scroll",
+			})
 			writePublicError(w, http.StatusBadGateway, contracts.ErrCodeUpstreamUnavailable,
 				"Upstream service unreachable.", "Retry shortly or go home.", corrID)
 			return
@@ -140,6 +145,11 @@ func handleReindex(provider llm.Provider, vectorStore *qdrant.Client, store *pg.
 		}
 		if len(staleIDs) > 0 {
 			if delErr := vectorStore.DeletePoints(r.Context(), portfolioCollection, staleIDs); delErr != nil {
+				logAskEvent("ask.reindex.prune_mismatch", map[string]any{
+					"correlationId": corrID,
+					"seam_type":     "DELTA_AUDIT_GAP",
+					"stage":         "delete",
+				})
 				writePublicError(w, http.StatusBadGateway, contracts.ErrCodeUpstreamUnavailable,
 					"Upstream service unreachable.", "Retry shortly or go home.", corrID)
 				return

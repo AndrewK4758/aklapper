@@ -230,6 +230,26 @@ func TestAiAskUnitFlows(t *testing.T) {
 		if nPts < 3 || pruned != 3 {
 			t.Fatalf("expected >=3 UUIDv5 points and 3 stale points pruned, got pts=%d pruned=%d", nPts, pruned)
 		}
+
+		// Mid-reindex embedding failure returns 502 and never deletes existing Qdrant points
+		mu.Lock()
+		deletedIDs = nil
+		mu.Unlock()
+		provider.embedErr = errors.New("embed offline")
+		defer func() { provider.embedErr = nil }()
+		reqEmbedErr := httptest.NewRequest(http.MethodPost, "/v1/ask/reindex", nil)
+		reqEmbedErr.Header.Set(internalauth.HeaderName, signHeader(t, internalauth.RoleAdmin, "aklapper"))
+		recEmbedErr := httptest.NewRecorder()
+		h.ServeHTTP(recEmbedErr, reqEmbedErr)
+		if recEmbedErr.Code != http.StatusBadGateway {
+			t.Fatalf("expected 502 on mid-reindex embed failure, got %d", recEmbedErr.Code)
+		}
+		mu.Lock()
+		prunedAfterErr := len(deletedIDs)
+		mu.Unlock()
+		if prunedAfterErr != 0 {
+			t.Fatalf("expected zero Qdrant deletions when embed fails, got %d", prunedAfterErr)
+		}
 	})
 
 	t.Run("POST /v1/ask jd_match parses LLM JSON, strips prompt injection, and refunds on malformed JSON", func(t *testing.T) {
