@@ -102,6 +102,9 @@ export async function streamAskQuestion(options: StreamAskQuestionOptions): Prom
       credentials: 'same-origin',
       signal,
       onFrame: frame => {
+        if (signal.aborted) {
+          return;
+        }
         const parsed = parseJsonSafe(frame.data);
         if (!parsed || typeof parsed !== 'object') {
           return;

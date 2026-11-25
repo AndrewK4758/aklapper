@@ -94,16 +94,19 @@ export function useAskStreaming({
       visitorLens,
       signal: controller.signal,
       onStatus: label => {
+        if (controller.signal.aborted || streamAbortRef.current !== controller) return;
         setActiveStream(prev =>
           prev?.attemptId === attemptId ? { ...prev, statusLabel: label } : prev,
         );
       },
       onMeta: meta => {
+        if (controller.signal.aborted || streamAbortRef.current !== controller) return;
         if (meta.conversationId) {
           setConversationId(meta.conversationId);
         }
       },
       onPreamble: preambleDelta => {
+        if (controller.signal.aborted || streamAbortRef.current !== controller) return;
         setActiveStream(prev =>
           prev?.attemptId === attemptId
             ? {
@@ -115,6 +118,7 @@ export function useAskStreaming({
         );
       },
       onPreambleError: preambleErr => {
+        if (controller.signal.aborted || streamAbortRef.current !== controller) return;
         setActiveStream(prev =>
           prev?.attemptId === attemptId
             ? { ...prev, preambleError: preambleErr, isPreambleLoading: false }
@@ -122,6 +126,7 @@ export function useAskStreaming({
         );
       },
       onSources: sources => {
+        if (controller.signal.aborted || streamAbortRef.current !== controller) return;
         capturedSources = sources;
         setActiveStream(prev =>
           prev?.attemptId === attemptId
@@ -130,6 +135,7 @@ export function useAskStreaming({
         );
       },
       onDelta: deltaText => {
+        if (controller.signal.aborted || streamAbortRef.current !== controller) return;
         setActiveStream(prev =>
           prev?.attemptId === attemptId
             ? { ...prev, text: prev.text + deltaText, isPreambleLoading: false }
@@ -137,6 +143,7 @@ export function useAskStreaming({
         );
       },
       onDone: response => {
+        if (controller.signal.aborted || streamAbortRef.current !== controller) return;
         clearPersistedAskTurn();
         setActiveStream(null);
         setFailedStreamSources([]);
@@ -146,6 +153,7 @@ export function useAskStreaming({
         onCompleted(attemptId, trimmed, response);
       },
       onError: (errState, errQuota) => {
+        if (controller.signal.aborted || streamAbortRef.current !== controller) return;
         clearPersistedAskTurn();
         setActiveStream(null);
         setFailedStreamSources(capturedSources.length > 0 ? capturedSources : []);

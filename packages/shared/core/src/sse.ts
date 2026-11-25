@@ -255,6 +255,9 @@ export async function consumePostSseStream(options: ConsumePostSseOptions): Prom
 
   const frames: SseFrame[] = [];
   const parser = createSseParser(frame => {
+    if (signal?.aborted) {
+      return;
+    }
     frames.push(frame);
     onFrame?.(frame);
   });
@@ -274,6 +277,9 @@ export async function consumePostSseStream(options: ConsumePostSseOptions): Prom
   try {
     for (;;) {
       const { done, value } = await reader.read();
+      if (signal?.aborted) {
+        break;
+      }
       if (done) {
         break;
       }

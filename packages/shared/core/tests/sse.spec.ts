@@ -272,4 +272,86 @@ describe('@aklapper/core/sse WHATWG POST SSE parser', () => {
       }).success,
     ).toBe(false);
   });
+
+  it('drops queued post-abort reader chunks and subsequent frames in the same chunk without invoking onFrame', async () => {
+    const encoder = new TextEncoder();
+    const controller = new AbortController();
+    let streamController: ReadableStreamDefaultController<Uint8Array> | undefined;
+
+    const stream = new ReadableStream<Uint8Array>({
+      start(c) {
+        streamController = c;
+        c.enqueue(encoder.encode('event: sources\ndata: {"sources":[]}\n\n'));
+      },
+    });
+
+    const received: SseFrame[] = [];
+    let onSourcesReceived: (() => void) | undefined;
+    const sourcesSeen = new Promise<void>(resolveSeen => {
+      onSourcesReceived = resolveSeen;
+    });
+
+    const consumePromise = consumePostSseStream({
+      url: 'https://andrew-k.us/api/ask/stream',
+      body: { question: 'Race test' },
+      signal: controller.signal,
+      fetchImpl: async () =>
+        new Response(stream, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        }),
+      onFrame: frame => {
+        received.push(frame);
+        if (frame.event === 'sources') {
+          onSourcesReceived?.();
+        }
+      },
+    });
+
+    await sourcesSeen;
+    // Let the read loop re-enter `await reader.read()` before enqueueing + aborting in the same turn.
+    await Promise.resolve();
+    streamController?.enqueue(
+      encoder.encode(
+        'event: error\ndata: {"code":"ERR_UPSTREAM_UNAVAILABLE","status":503,"message":"fail","action":"retry","correlationId":"c-1"}\n\n',
+      ),
+    );
+    controller.abort();
+
+    const frames = await consumePromise;
+    expect(frames).toHaveLength(1);
+    expect(received.map(f => f.event)).toEqual(['sources']);
+
+    // Also verify aborting inside onFrame stops a second frame bundled in the same chunk.
+    const sameChunkController = new AbortController();
+    const sameChunkFrames: SseFrame[] = [];
+    const sameChunkStream = new ReadableStream<Uint8Array>({
+      start(c) {
+        c.enqueue(
+          encoder.encode(
+            'event: sources\ndata: {"sources":[]}\n\nevent: done\ndata: {"ok":true}\n\n',
+          ),
+        );
+        c.close();
+      },
+    });
+
+    const resultFrames = await consumePostSseStream({
+      url: 'https://andrew-k.us/api/ask/stream',
+      body: { question: 'Same chunk abort' },
+      signal: sameChunkController.signal,
+      fetchImpl: async () =>
+        new Response(sameChunkStream, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        }),
+      onFrame: frame => {
+        sameChunkFrames.push(frame);
+        sameChunkController.abort();
+      },
+    });
+
+    expect(resultFrames).toHaveLength(1);
+    expect(sameChunkFrames.map(f => f.event)).toEqual(['sources']);
+  });
 });
