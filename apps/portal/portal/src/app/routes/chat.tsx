@@ -6,7 +6,6 @@ import {
   type AskServiceStatus,
   AskServiceStatusSchema,
   AskTurnStateSchema,
-  type PortalAskLoaderData,
   QuotaStatusSchema,
   createPublicAppError,
   isPublicAppError,
@@ -21,13 +20,14 @@ import {
   getRequestContext,
   logDiagnosticError,
 } from '@aklapper/node-runtime/ssr/stream';
-import { RouteErrorBoundaryView, SuspenseElement, usePaneNavigation } from '@aklapper/ui';
-import { data, href, useFetcher, useNavigate } from 'react-router';
+import { RouteErrorBoundaryView } from '@aklapper/ui';
+import { data, href } from 'react-router';
 
-import { type PortalAskActionResult, PortalAskPage } from '#pages/ask';
+import type { PortalAskActionResult } from '#pages/ask';
 
-import { createAskStatusSlot } from '../askStatusSlot';
 import { reportPortalPublicError } from '../client-telemetry';
+import { ChatRouteView } from '../features/ChatFeatureView';
+import { createPrimaryRouteClientAction } from '../features/paneClientAction';
 import { resolveGuestSession } from '../guest-session.server';
 import { buildPortalPageMeta } from '../seo';
 import type { Route } from './+types/chat';
@@ -291,6 +291,8 @@ export async function action({ request, context }: Route.ActionArgs) {
   );
 }
 
+export const clientAction = createPrimaryRouteClientAction<PortalAskActionResult>('/chat');
+
 export function meta({ matches, location }: Route.MetaArgs) {
   return buildPortalPageMeta({
     matches,
@@ -302,50 +304,7 @@ export function meta({ matches, location }: Route.MetaArgs) {
 }
 
 export default function PortalChatRoute({ loaderData }: Route.ComponentProps) {
-  const fetcher = useFetcher<PortalAskActionResult>();
-  const navigate = useNavigate();
-  const paneNav = usePaneNavigation();
-
-  return (
-    <SuspenseElement<PortalAskLoaderData>
-      resolve={loaderData.payload}
-      correlationId={loaderData.correlationId}
-      homeHref={href('/')}
-      loadingLabel='Loading Chat with Andrew...'
-      onStreamError={error => {
-        reportPortalPublicError(error, { phase: 'stream' });
-      }}
-    >
-      {({ content, quota, askStatus }) => (
-        <PortalAskPage
-          content={content}
-          quota={quota}
-          askStatus={askStatus}
-          askStatusSlot={createAskStatusSlot({
-            content,
-            askStatusPayload: loaderData.askStatusPayload,
-            correlationId: loaderData.correlationId,
-          })}
-          streamEndpoint={href('/api/ask/stream')}
-          actionResult={fetcher.data}
-          isSubmitting={fetcher.state !== 'idle'}
-          onSubmitAsk={({ mode, text, attemptId }) => {
-            void fetcher.submit(
-              { mode, text, attemptId },
-              { method: 'post', action: href('/chat') },
-            );
-          }}
-          onClose={() => {
-            if (paneNav?.docked) {
-              paneNav.exitTui();
-            } else {
-              void navigate(href('/'));
-            }
-          }}
-        />
-      )}
-    </SuspenseElement>
-  );
+  return <ChatRouteView loaderData={loaderData} />;
 }
 
 export function ErrorBoundary({ error, loaderData }: Route.ErrorBoundaryProps) {

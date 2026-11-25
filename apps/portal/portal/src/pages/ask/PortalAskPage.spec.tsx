@@ -3,7 +3,12 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { streamAskQuestion } from './askStreamClient';
-import { ASK_TURN_STORAGE_KEY } from './askTurnRecovery';
+import {
+  ASK_TURN_STORAGE_KEY,
+  clearPersistedAskTurn,
+  readPersistedAskTurn,
+  writePersistedAskTurn,
+} from './askTurnRecovery';
 import { PortalAskPage, type PortalAskPageProps } from './PortalAskPage';
 
 const SAMPLE_CONTENT = PortalAskContentSchema.parse({
@@ -832,5 +837,50 @@ describe('PortalAskPage', () => {
     fireEvent.click(screen.getByTestId('ask-stream-cancel'));
     expect(screen.queryByTestId('ask-preamble-feed')).toBeNull();
     expect(screen.queryByTestId('ask-streaming-feed')).toBeNull();
+  });
+
+  it('isolates askTurnRecovery ownership across coexisting primary and secondary chat instances', async () => {
+    const primaryAttemptId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    writePersistedAskTurn({
+      attemptId: primaryAttemptId,
+      mode: 'qa',
+      question: 'Primary chat turn in flight',
+      ownerInstanceId: 'primary:/chat',
+    });
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
+    // Secondary chat pane with different instanceId must NOT hijack or poll primary's persisted turn
+    render(
+      <PortalAskPage
+        instanceId='pane:pane-2'
+        content={SAMPLE_CONTENT}
+        quota={SAMPLE_QUOTA}
+        isSubmitting={false}
+        actionResult={{
+          ok: false,
+          mode: 'qa',
+          error: 'Secondary pane settled error',
+        }}
+        onSubmitAsk={vi.fn<PortalAskPageProps['onSubmitAsk']>()}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    await Promise.resolve();
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    // Settling or clearing from pane-2 must NOT wipe primary's persisted turn
+    clearPersistedAskTurn('pane:pane-2');
+    expect(readPersistedAskTurn()).toEqual({
+      attemptId: primaryAttemptId,
+      mode: 'qa',
+      question: 'Primary chat turn in flight',
+      ownerInstanceId: 'primary:/chat',
+    });
+
+    // Clearing with matching ownerInstanceId removes the entry
+    clearPersistedAskTurn('primary:/chat');
+    expect(readPersistedAskTurn()).toBeNull();
   });
 });

@@ -65,6 +65,66 @@ export interface PersistedAskTurn {
   readonly attemptId: string;
   readonly mode: AskMode;
   readonly question: string;
+  readonly ownerInstanceId?: string;
+}
+
+export function matchesPersistedAskTurnOwner(
+  turn: PersistedAskTurn | null,
+  instanceId?: string,
+): turn is PersistedAskTurn {
+  if (!turn) return false;
+  if (!turn.ownerInstanceId || !instanceId) return true;
+  return turn.ownerInstanceId === instanceId;
+}
+
+export interface PendingAskTurnSummary {
+  readonly hasPendingTurn: boolean;
+  readonly attemptId: string | undefined;
+  readonly mode: AskMode | undefined;
+  readonly submittedText: string | undefined;
+  readonly pollImmediately: boolean;
+}
+
+export function resolvePendingAskTurn(input: {
+  readonly pendingActionResult:
+    | Extract<PortalAskActionResult, { readonly pending: true }>
+    | undefined;
+  readonly persistedTurn: PersistedAskTurn | null;
+  readonly instanceId?: string;
+  readonly dispatchedAttemptId: string | null;
+  readonly settledPendingAttemptIds: ReadonlySet<string>;
+  readonly isSubmitting: boolean;
+  readonly hasActiveStream: boolean;
+  readonly actionSettled: boolean;
+}): PendingAskTurnSummary {
+  const { pendingActionResult, persistedTurn, instanceId } = input;
+  const isRecovered =
+    matchesPersistedAskTurnOwner(persistedTurn, instanceId) &&
+    persistedTurn.attemptId !== input.dispatchedAttemptId &&
+    !input.settledPendingAttemptIds.has(persistedTurn.attemptId) &&
+    !input.isSubmitting &&
+    !input.hasActiveStream &&
+    !input.actionSettled;
+  const hasPendingTurn = Boolean(pendingActionResult) || isRecovered;
+  return {
+    hasPendingTurn,
+    attemptId: pendingActionResult
+      ? pendingActionResult.attemptId
+      : isRecovered && persistedTurn
+        ? persistedTurn.attemptId
+        : undefined,
+    mode: pendingActionResult
+      ? pendingActionResult.mode
+      : isRecovered && persistedTurn
+        ? persistedTurn.mode
+        : undefined,
+    submittedText: pendingActionResult
+      ? pendingActionResult.submittedText
+      : isRecovered && persistedTurn
+        ? persistedTurn.question
+        : undefined,
+    pollImmediately: hasPendingTurn && !pendingActionResult,
+  };
 }
 
 export type PollTurnOutcome =
@@ -146,10 +206,15 @@ export function readPersistedAskTurn(): PersistedAskTurn | null {
       typeof parsed.question === 'string' &&
       parsed.question.length > 0
     ) {
+      const ownerInstanceId =
+        typeof parsed.ownerInstanceId === 'string' && parsed.ownerInstanceId.length > 0
+          ? parsed.ownerInstanceId
+          : undefined;
       cachedParsedSnapshot = {
         attemptId: parsed.attemptId,
         mode: parsed.mode,
         question: parsed.question,
+        ...(ownerInstanceId ? { ownerInstanceId } : {}),
       };
       return cachedParsedSnapshot;
     }
@@ -172,8 +237,14 @@ export function writePersistedAskTurn(turn: PersistedAskTurn): void {
   notifyPersistedAskListeners();
 }
 
-export function clearPersistedAskTurn(): void {
+export function clearPersistedAskTurn(ownerInstanceId?: string): void {
   if (typeof window === 'undefined') return;
+  if (ownerInstanceId) {
+    const existing = readPersistedAskTurn();
+    if (existing?.ownerInstanceId && existing.ownerInstanceId !== ownerInstanceId) {
+      return;
+    }
+  }
   try {
     window.sessionStorage.removeItem(ASK_TURN_STORAGE_KEY);
   } catch {
@@ -237,6 +308,7 @@ export async function pollAskTurnState(
 export interface StartAskTurnPollingOptions {
   readonly attemptId: string;
   readonly pollImmediately: boolean;
+  readonly ownerInstanceId?: string;
   readonly intervalMs?: number;
   readonly onPending: (state: AskTurnState) => void;
   readonly onSettled: (state: AskTurnState) => void;
@@ -244,7 +316,15 @@ export interface StartAskTurnPollingOptions {
 }
 
 export function startAskTurnPolling(options: StartAskTurnPollingOptions): () => void {
-  const { attemptId, pollImmediately, intervalMs = 700, onPending, onSettled, onError } = options;
+  const {
+    attemptId,
+    pollImmediately,
+    ownerInstanceId,
+    intervalMs = 700,
+    onPending,
+    onSettled,
+    onError,
+  } = options;
   const controller = new AbortController();
   let timerId: number | undefined;
   let cancelled = false;
@@ -264,7 +344,7 @@ export function startAskTurnPolling(options: StartAskTurnPollingOptions): () => 
         scheduleNext();
         return;
       }
-      clearPersistedAskTurn();
+      clearPersistedAskTurn(ownerInstanceId);
       if (outcome.kind === 'settled') {
         onSettled(outcome.state);
         return;

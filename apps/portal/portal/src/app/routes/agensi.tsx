@@ -1,12 +1,10 @@
-import type { PortalAgensiLoaderData } from '@aklapper/core';
 import { loadPortalAgensiDataWithPrerender } from '@aklapper/db';
 import { deferStreamResult, getOrCreateCorrelationId } from '@aklapper/node-runtime/ssr/stream';
-import { RouteErrorBoundaryView, SuspenseElement, usePaneNavigation } from '@aklapper/ui';
-import { href, useNavigate } from 'react-router';
-
-import { PortalAgensiPage } from '#pages/agensi';
+import { RouteErrorBoundaryView } from '@aklapper/ui';
+import { href } from 'react-router';
 
 import { reportPortalPublicError } from '../client-telemetry';
+import { AgensiRouteView } from '../features/AgensiFeatureView';
 import { buildPortalPageMeta } from '../seo';
 import type { Route } from './+types/agensi';
 
@@ -33,35 +31,7 @@ export function meta({ matches, location }: Route.MetaArgs) {
 }
 
 export default function PortalAgensiRoute({ loaderData }: Route.ComponentProps) {
-  const navigate = useNavigate();
-  const paneNav = usePaneNavigation();
-
-  return (
-    <SuspenseElement<PortalAgensiLoaderData>
-      resolve={loaderData.payload}
-      correlationId={loaderData.correlationId}
-      homeHref={href('/')}
-      loadingLabel='Loading Agensi storefront...'
-      onStreamError={error => {
-        reportPortalPublicError(error, { phase: 'stream' });
-      }}
-    >
-      {({ content, skills, catalogMeta }) => (
-        <PortalAgensiPage
-          content={content}
-          skills={skills}
-          catalogMeta={catalogMeta}
-          onClose={() => {
-            if (paneNav?.docked) {
-              paneNav.exitTui();
-            } else {
-              void navigate(href('/'));
-            }
-          }}
-        />
-      )}
-    </SuspenseElement>
-  );
+  return <AgensiRouteView loaderData={loaderData} />;
 }
 
 export function ErrorBoundary({ error, loaderData }: Route.ErrorBoundaryProps) {

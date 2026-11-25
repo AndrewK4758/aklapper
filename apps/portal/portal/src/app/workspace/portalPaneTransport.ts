@@ -140,17 +140,6 @@ export function createTransportPublicError(options: {
   return createPublicAppError({ code, status: resolvedStatus, message, action, correlationId });
 }
 
-export function extractAskMode(formData: FormData): AskMode {
-  return String(formData.get('mode') ?? 'qa').trim() === 'jd_match' ? 'jd_match' : 'qa';
-}
-
-export function extractCadenceIntent(
-  formData: FormData,
-): 'run' | 'gate' | 'spec-approve' | 'reset' {
-  const raw = String(formData.get('intent') ?? 'run').trim();
-  return raw === 'gate' || raw === 'spec-approve' || raw === 'reset' ? raw : 'run';
-}
-
 export function buildTypedPaneActionError(
   routePath: PortalPaneRoute,
   formData: FormData,
@@ -160,39 +149,31 @@ export function buildTypedPaneActionError(
   | PortalAskActionResult
   | PortalCadenceActionResult
   | Record<string, unknown> {
-  const { code, action, correlationId, message } = publicError;
+  const meta = {
+    code: publicError.code,
+    action: publicError.action,
+    correlationId: publicError.correlationId,
+  };
   if (routePath === '/contact') {
     return {
       ok: false,
       source: 'server',
-      formError: message,
+      formError: publicError.message,
       fieldErrors: {},
-      code,
-      action,
-      correlationId,
+      ...meta,
     };
   }
   if (routePath === '/chat') {
-    return {
-      ok: false,
-      mode: extractAskMode(formData),
-      error: message,
-      code,
-      action,
-      correlationId,
-    };
+    const mode: AskMode =
+      String(formData.get('mode') ?? 'qa').trim() === 'jd_match' ? 'jd_match' : 'qa';
+    return { ok: false, mode, error: publicError.message, ...meta };
   }
   if (routePath === '/cadence') {
-    return {
-      ok: false,
-      intent: extractCadenceIntent(formData),
-      error: message,
-      code,
-      action,
-      correlationId,
-    };
+    const raw = String(formData.get('intent') ?? 'run').trim();
+    const intent = raw === 'gate' || raw === 'spec-approve' || raw === 'reset' ? raw : 'run';
+    return { ok: false, intent, error: publicError.message, ...meta };
   }
-  return { ok: false, error: message, code, action, correlationId };
+  return { ok: false, error: publicError.message, ...meta };
 }
 
 function settleStreamPromise<T>(

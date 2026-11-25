@@ -1,4 +1,3 @@
-import type { PortalCadenceLoaderData } from '@aklapper/core';
 import { loadPortalCadenceDataWithPrerender } from '@aklapper/db';
 import {
   createFallbackLogger,
@@ -6,10 +5,10 @@ import {
   getOrCreateCorrelationId,
   getRequestContext,
 } from '@aklapper/node-runtime/ssr/stream';
-import { RouteErrorBoundaryView, SuspenseElement, usePaneNavigation } from '@aklapper/ui';
-import { data, type FetcherWithComponents, href, useFetcher, useNavigate } from 'react-router';
+import { RouteErrorBoundaryView } from '@aklapper/ui';
+import { data, href } from 'react-router';
 
-import { type PortalCadenceActionResult, PortalCadencePage } from '#pages/cadence';
+import type { PortalCadenceActionResult } from '#pages/cadence';
 
 import {
   handleCadenceGateAction,
@@ -17,8 +16,9 @@ import {
   handleCadenceRunAction,
   handleCadenceSpecApproveAction,
 } from '../cadence-action.server';
-import { useCadenceRunController } from '../cadence-stream';
 import { reportPortalPublicError } from '../client-telemetry';
+import { CadenceRouteView } from '../features/CadenceFeatureView';
+import { createPrimaryRouteClientAction } from '../features/paneClientAction';
 import { resolveGuestSession } from '../guest-session.server';
 import { buildPortalPageMeta } from '../seo';
 import type { Route } from './+types/cadence';
@@ -87,6 +87,8 @@ export async function action({ request, context }: Route.ActionArgs) {
   return handleCadenceRunAction(formData, actionCtx);
 }
 
+export const clientAction = createPrimaryRouteClientAction<PortalCadenceActionResult>('/cadence');
+
 export function meta({ matches, location }: Route.MetaArgs) {
   return buildPortalPageMeta({
     matches,
@@ -97,66 +99,8 @@ export function meta({ matches, location }: Route.MetaArgs) {
   });
 }
 
-function CadenceLoadedView({
-  loadedData,
-  fetcher,
-  onClose,
-}: {
-  readonly loadedData: PortalCadenceLoaderData;
-  readonly fetcher: FetcherWithComponents<PortalCadenceActionResult>;
-  readonly onClose: () => void;
-}) {
-  const controller = useCadenceRunController({ recentRuns: loadedData.recentRuns, fetcher });
-  return (
-    <PortalCadencePage
-      content={loadedData.content}
-      presets={loadedData.presets}
-      quota={loadedData.quota}
-      goldenRuns={loadedData.goldenRuns}
-      recentRuns={loadedData.recentRuns}
-      actionResult={controller.actionResult}
-      isSubmitting={controller.isSubmitting}
-      isStreaming={controller.isStreaming}
-      streamLogs={controller.streamLogs}
-      onRunBuild={controller.onRunBuild}
-      onApproveSpec={controller.onApproveSpec}
-      onGateVerdict={controller.onGateVerdict}
-      onReset={controller.onReset}
-      onClose={onClose}
-    />
-  );
-}
-
 export default function PortalCadenceRoute({ loaderData }: Route.ComponentProps) {
-  const fetcher = useFetcher<PortalCadenceActionResult>();
-  const navigate = useNavigate();
-  const paneNav = usePaneNavigation();
-
-  return (
-    <SuspenseElement<PortalCadenceLoaderData>
-      resolve={loaderData.payload}
-      correlationId={loaderData.correlationId}
-      homeHref={href('/')}
-      loadingLabel='Loading sandbox builder...'
-      onStreamError={error => {
-        reportPortalPublicError(error, { phase: 'stream' });
-      }}
-    >
-      {loadedData => (
-        <CadenceLoadedView
-          loadedData={loadedData}
-          fetcher={fetcher}
-          onClose={() => {
-            if (paneNav?.docked) {
-              paneNav.exitTui();
-            } else {
-              void navigate(href('/'));
-            }
-          }}
-        />
-      )}
-    </SuspenseElement>
-  );
+  return <CadenceRouteView loaderData={loaderData} />;
 }
 
 export function ErrorBoundary({ error, loaderData }: Route.ErrorBoundaryProps) {

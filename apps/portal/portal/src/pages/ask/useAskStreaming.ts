@@ -14,6 +14,7 @@ import {
 } from './askTurnRecovery';
 
 export interface UseAskStreamingOptions {
+  readonly instanceId?: string;
   readonly streamEndpoint?: string;
   readonly submittingLabel: string;
   readonly onDispatched: (attemptId: string) => void;
@@ -22,6 +23,7 @@ export interface UseAskStreamingOptions {
 }
 
 export function useAskStreaming({
+  instanceId,
   streamEndpoint,
   submittingLabel,
   onDispatched,
@@ -42,7 +44,7 @@ export function useAskStreaming({
   const cancelStream = () => {
     streamAbortRef.current?.abort();
     streamAbortRef.current = null;
-    clearPersistedAskTurn();
+    clearPersistedAskTurn(instanceId);
     setActiveStream(null);
     setFailedStreamSources([]);
   };
@@ -71,7 +73,12 @@ export function useAskStreaming({
     const attemptId = generateAskAttemptId();
     let capturedSources: readonly AskSource[] = [];
     onDispatched(attemptId);
-    writePersistedAskTurn({ attemptId, mode: 'qa', question: trimmed });
+    writePersistedAskTurn({
+      attemptId,
+      mode: 'qa',
+      question: trimmed,
+      ...(instanceId ? { ownerInstanceId: instanceId } : {}),
+    });
     setFailedStreamSources([]);
     setActiveStream({
       attemptId,
@@ -144,7 +151,7 @@ export function useAskStreaming({
       },
       onDone: response => {
         if (controller.signal.aborted || streamAbortRef.current !== controller) return;
-        clearPersistedAskTurn();
+        clearPersistedAskTurn(instanceId);
         setActiveStream(null);
         setFailedStreamSources([]);
         if (response.conversationId) {
@@ -154,7 +161,7 @@ export function useAskStreaming({
       },
       onError: (errState, errQuota) => {
         if (controller.signal.aborted || streamAbortRef.current !== controller) return;
-        clearPersistedAskTurn();
+        clearPersistedAskTurn(instanceId);
         setActiveStream(null);
         setFailedStreamSources(capturedSources.length > 0 ? capturedSources : []);
         onFailed(errState, errQuota);
