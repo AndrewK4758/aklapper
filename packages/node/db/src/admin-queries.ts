@@ -32,6 +32,7 @@ import {
   AgensiSkillSchema,
   type AgensiSkillUpsertInput,
   AgensiSkillUpsertSchema,
+  AgensiSyncStateSchema,
   type AnalyticsBreakdownRow,
   BucketPurgeSchema,
   BucketResetSchema,
@@ -74,8 +75,10 @@ import {
   type TerminalProfileUpsertInput,
   TerminalProfileUpsertSchema,
 } from '@aklapper/core';
+import { resolveAgensiCreatorHandle } from '@aklapper/node-runtime/agensi';
 import { asc, count, desc, eq, gte, ilike, inArray, lte, or, sql } from 'drizzle-orm';
 
+import { queryCreatorPublishedSkills, readAgensiSyncState } from './agensi-sync.ts';
 import type { AppDatabase } from './client.ts';
 import { getMenuItems, getSiteContent, SITE_CONTENT_KEYS } from './queries.ts';
 import {
@@ -684,7 +687,15 @@ export async function purgeStaleRateLimitBuckets(
   return deleted.length;
 }
 
-export async function loadAdminCmsData(db: AppDatabase): Promise<AdminCmsLoaderData> {
+export interface LoadAdminCmsOptions {
+  readonly creatorHandle?: string;
+}
+
+export async function loadAdminCmsData(
+  db: AppDatabase,
+  options: LoadAdminCmsOptions = {},
+): Promise<AdminCmsLoaderData> {
+  const creatorHandle = options.creatorHandle?.trim() || resolveAgensiCreatorHandle();
   const [
     siteContentRows,
     menuItemRows,
@@ -693,7 +704,8 @@ export async function loadAdminCmsData(db: AppDatabase): Promise<AdminCmsLoaderD
     entryRows,
     directoryEntryRows,
     milestoneRows,
-    skillRows,
+    agensiSkills,
+    syncStateRow,
     presetRows,
   ] = await Promise.all([
     db.select().from(schema.siteContent).orderBy(asc(schema.siteContent.key)),
@@ -730,10 +742,8 @@ export async function loadAdminCmsData(db: AppDatabase): Promise<AdminCmsLoaderD
       .select()
       .from(schema.roadmapMilestones)
       .orderBy(asc(schema.roadmapMilestones.sortOrder), asc(schema.roadmapMilestones.slug)),
-    db
-      .select()
-      .from(schema.agensiSkills)
-      .orderBy(asc(schema.agensiSkills.sortOrder), asc(schema.agensiSkills.slug)),
+    queryCreatorPublishedSkills(db, creatorHandle),
+    readAgensiSyncState(db, creatorHandle),
     db
       .select()
       .from(schema.cadencePresets)
@@ -769,7 +779,19 @@ export async function loadAdminCmsData(db: AppDatabase): Promise<AdminCmsLoaderD
       AdminTerminalDirectoryEntryRowSchema.parse(row),
     ),
     roadmapMilestones: milestoneRows.map(row => RoadmapMilestoneSchema.parse(row)),
-    agensiSkills: skillRows.map(row => AgensiSkillSchema.parse(row)),
+    agensiSkills,
+    agensiSyncState: syncStateRow
+      ? AgensiSyncStateSchema.parse({
+          creatorHandle: syncStateRow.creatorHandle,
+          lastSyncedAt: syncStateRow.lastSyncedAt ? syncStateRow.lastSyncedAt.toISOString() : null,
+          lastAttemptAt: syncStateRow.lastAttemptAt
+            ? syncStateRow.lastAttemptAt.toISOString()
+            : null,
+          lastStatus: syncStateRow.lastStatus,
+          lastError: syncStateRow.lastError ?? null,
+          itemCount: syncStateRow.itemCount,
+        })
+      : null,
     cadencePresets: presetRows.map(row => CadencePresetSchema.parse(row)),
   });
 }
@@ -1157,6 +1179,10 @@ export async function deleteRoadmapMilestone(db: AppDatabase, slug: string): Pro
   return deleted.length > 0;
 }
 
+/**
+ * @deprecated Admin CMS manual Agensi CRUD has been retired in favor of `syncAgensiCatalog`;
+ * retained for one release cycle compatibility before removal.
+ */
 export async function upsertAgensiSkill(
   db: AppDatabase,
   input: AgensiSkillUpsertInput,
@@ -1178,9 +1204,19 @@ export async function upsertAgensiSkill(
     .returning();
 
   if (!row) throw new Error(`Failed to upsert agensi_skills row "${parsed.slug}"`);
-  return AgensiSkillSchema.parse(row);
+  return AgensiSkillSchema.parse({
+    ...row,
+    creatorHandle: row.creatorHandle ?? null,
+    isPublished: row.isPublished,
+    syncedAt: row.syncedAt ? row.syncedAt.toISOString() : null,
+    source: row.source,
+  });
 }
 
+/**
+ * @deprecated Admin CMS manual Agensi CRUD has been retired in favor of `syncAgensiCatalog`;
+ * retained for one release cycle compatibility before removal.
+ */
 export async function deleteAgensiSkill(db: AppDatabase, slug: string): Promise<boolean> {
   const deleted = await db
     .delete(schema.agensiSkills)

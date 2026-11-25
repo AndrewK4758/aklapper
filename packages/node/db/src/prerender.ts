@@ -17,8 +17,10 @@ import {
   type QuotaStatus,
   RoadmapMilestoneSchema,
 } from '@aklapper/core';
+import { resolveAgensiCreatorHandle } from '@aklapper/node-runtime/agensi';
 
 import { loadAdminAnalyticsData } from './admin-queries.ts';
+import type { AgensiSyncOptions } from './agensi-sync.ts';
 import { type AppDatabase, getSharedDb, isReactRouterPrerender } from './client.ts';
 import {
   loadAdminHomeData,
@@ -111,14 +113,24 @@ export function getPrerenderPortalMenuData(): PortalMenuLoaderData {
 }
 
 export function getPrerenderPortalAgensiData(): PortalAgensiLoaderData {
+  const creatorHandle = resolveAgensiCreatorHandle();
   return {
     content: PORTAL_AGENSI_SEED,
     skills: AGENSI_SKILL_SEEDS.toSorted((a, b) => a.sortOrder - b.sortOrder).map(skill =>
       AgensiSkillSchema.parse({
         ...skill,
         tags: [...skill.tags],
+        creatorHandle,
+        isPublished: true,
+        syncedAt: null,
+        source: 'prerender',
       }),
     ),
+    catalogMeta: {
+      mode: 'prerender',
+      creatorHandle,
+      syncedAt: null,
+    },
   };
 }
 
@@ -232,8 +244,17 @@ export function loadPortalMenuDataWithPrerender(): Promise<PortalMenuLoaderData>
   return withPrerenderFallback(loadPortalMenuData, getPrerenderPortalMenuData);
 }
 
-export function loadPortalAgensiDataWithPrerender(): Promise<PortalAgensiLoaderData> {
-  return withPrerenderFallback(loadPortalAgensiData, getPrerenderPortalAgensiData);
+export function loadPortalAgensiDataWithPrerender(
+  options: AgensiSyncOptions = {},
+): Promise<PortalAgensiLoaderData> {
+  return withPrerenderFallback(
+    db =>
+      loadPortalAgensiData(db, {
+        ...options,
+        skipLiveSync: options.skipLiveSync ?? isReactRouterPrerender(),
+      }),
+    getPrerenderPortalAgensiData,
+  );
 }
 
 export function loadPortalAskDataWithPrerender(sessionId?: string): Promise<PortalAskLoaderData> {

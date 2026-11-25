@@ -16,8 +16,9 @@ import {
   type TerminalProfileData,
   TerminalProfileDataSchema,
 } from '@aklapper/core';
+import { resolveAgensiCreatorHandle } from '@aklapper/node-runtime/agensi';
 import { loadWorkspaceEnv } from '@aklapper/node-runtime/env';
-import { notInArray } from 'drizzle-orm';
+import { and, eq, inArray, notInArray, sql } from 'drizzle-orm';
 
 import { type AppDatabase, createDb, createDbPool } from './client.ts';
 import { resolveTerminalLsOutput, SITE_CONTENT_KEYS, TERMINAL_PROFILE_SLUGS } from './queries.ts';
@@ -927,51 +928,136 @@ const CADENCE_PRESET_SEEDS = [
   },
 ] as const;
 
+const RETIRED_PLACEHOLDER_SKILL_SLUGS = [
+  'cadence-sdlc',
+  'gke-scale-to-zero-go',
+  'grounded-qdrant-rag',
+  'solar-forge-react-ssr',
+  'pg19-quota-guardrails',
+] as const;
+
 const AGENSI_SKILL_SEEDS = [
   {
-    slug: 'cadence-sdlc',
-    name: 'CADENCE Agentic SDLC',
+    slug: 'cadence-governed-agentic-sdlc-framework',
+    name: 'CADENCE: Governed Agentic SDLC Framework',
     summary:
-      'Specification-driven multi-agent delivery framework with deterministic certainty gates, phased CHORD execution, and strict verification.',
-    tags: ['sdlc', 'agents', 'tdd'],
-    url: 'https://agensi.io/creators/aklapper',
+      'Complete 7-phase, provider-neutral agentic SDLC framework with 12 specialist roles, CHORD behavioral specs, strict BDD/TDD, zero-spec /tmp fault-injection review, expand/contract migrations, and 4 human approval gates.',
+    tags: [
+      'agents-orchestration',
+      'code-quality-review',
+      'testing-debugging',
+      'workflow-automation',
+      'security',
+      'sdlc',
+      'tdd',
+      'architecture',
+      'specifications',
+    ],
+    url: 'https://agensi.io/skills/cadence-governed-agentic-sdlc-framework',
     sortOrder: 1,
+    creatorHandle: 'aklapper',
+    isPublished: true,
+    source: 'seed' as const,
   },
   {
-    slug: 'gke-scale-to-zero-go',
-    name: 'GKE Scale-to-Zero Go Microservices',
+    slug: 'cadence-triage-risk-classifier',
+    name: 'CADENCE Triage & Risk Classifier',
     summary:
-      'Distroless Go HTTP services with Kubernetes Gateway API, KEDA scale-from-zero probes, and internal HMAC service authentication.',
-    tags: ['kubernetes', 'go', 'security'],
-    url: 'https://agensi.io/creators/aklapper',
+      'Classifies engineering tasks across 4 axes, runs bounded 20-file codebase recon, catches hidden sibling callers, and initializes structured ticket specs before coding starts.',
+    tags: [
+      'agents-orchestration',
+      'workflow-automation',
+      'code-quality-review',
+      'triage',
+      'planning',
+      'software-engineering',
+    ],
+    url: 'https://agensi.io/skills/cadence-triage-risk-classifier',
     sortOrder: 2,
+    creatorHandle: 'aklapper',
+    isPublished: true,
+    source: 'seed' as const,
   },
   {
-    slug: 'grounded-qdrant-rag',
-    name: 'Grounded Qdrant RAG & Abstention Kit',
+    slug: 'local-gpu-coprocessor-offload-for-coding-agents-fastmcp',
+    name: 'Local GPU Coprocessor Offload for Coding Agents (FastMCP)',
     summary:
-      'Evidence-first vector retrieval workflow combining Qdrant cosine similarity thresholds with fail-closed abstention and citation tracking.',
-    tags: ['rag', 'agents', 'go'],
-    url: 'https://agensi.io/creators/aklapper',
+      'Strictly read-only local GPU FastMCP server (AST semantic search, 30-line fast-path log compaction with /tmp raw escape hatches, and deterministic + LLM pre-PR diff review) to slash frontier token costs.',
+    tags: [
+      'llm-ops',
+      'agents-orchestration',
+      'testing-debugging',
+      'code-quality-review',
+      'local-llm',
+      'mcp',
+      'llama-cpp',
+      'ollama',
+    ],
+    url: 'https://agensi.io/skills/local-gpu-coprocessor-offload-for-coding-agents-fastmcp',
     sortOrder: 3,
+    creatorHandle: 'aklapper',
+    isPublished: true,
+    source: 'seed' as const,
   },
   {
-    slug: 'solar-forge-react-ssr',
-    name: 'Solar Forge React Router SSR Architecture',
+    slug: 'cadence-safe-database-migration-author-expand-contract',
+    name: 'CADENCE Safe Database Migration Author (Expand/Contract)',
     summary:
-      'React 19 + Fastify 5 SSR monorepo blueprint with Base UI primitives, strict 4-layer CSS tokens, and zero-any TypeScript ESM.',
-    tags: ['react', 'tdd', 'sdlc'],
-    url: 'https://agensi.io/creators/aklapper',
+      'Zero-downtime expand/contract database migration author and auditor for EF Core, Alembic, Prisma, Drizzle, Room, and raw SQL with DDL/DML separation, idempotency guards, and rollback proof.',
+    tags: [
+      'data-databases',
+      'apis-backend',
+      'code-quality-review',
+      'devops-cloud',
+      'migrations',
+      'sql',
+      'zero-downtime',
+    ],
+    url: 'https://agensi.io/skills/cadence-safe-database-migration-author-expand-contract',
     sortOrder: 4,
+    creatorHandle: 'aklapper',
+    isPublished: true,
+    source: 'seed' as const,
   },
   {
-    slug: 'pg19-quota-guardrails',
-    name: 'PostgreSQL 19 Quota & Constraint Guardrails',
+    slug: 'cadence-chord-specification-spec-challenger',
+    name: 'CADENCE CHORD Specification & Spec Challenger',
     summary:
-      'Fail-closed transactional rate limiting, CHECK constraint schema enforcement, and Drizzle ORM migration patterns for AI workloads.',
-    tags: ['security', 'kubernetes', 'tdd'],
-    url: 'https://agensi.io/creators/aklapper',
+      'Produces unranked multi-option design exploration, 6W×4L + CHORD behavioral specs, observability seams, Gherkin test plans, evidence manifests, and a 7-check Pre-Gate-1 Spec Challenger before coding.',
+    tags: [
+      'agents-orchestration',
+      'code-quality-review',
+      'technical-documentation',
+      'testing-debugging',
+      'architecture',
+      'specifications',
+      'bdd',
+    ],
+    url: 'https://agensi.io/skills/cadence-chord-specification-spec-challenger',
     sortOrder: 5,
+    creatorHandle: 'aklapper',
+    isPublished: true,
+    source: 'seed' as const,
+  },
+  {
+    slug: 'cadence-adversarial-pre-pr-review-gate',
+    name: 'CADENCE Adversarial Pre-PR Review Gate',
+    summary:
+      'Three-lens pre-PR review combining contract review, a zero-spec Cold Breaker that runs disposable /tmp fault-injection probes across 7 break vectors, and a security/concurrency audit.',
+    tags: [
+      'code-quality-review',
+      'security',
+      'testing-debugging',
+      'code-review',
+      'adversarial-testing',
+      'pre-pr',
+      'concurrency',
+    ],
+    url: 'https://agensi.io/skills/cadence-adversarial-pre-pr-review-gate',
+    sortOrder: 6,
+    creatorHandle: 'aklapper',
+    isPublished: true,
+    source: 'seed' as const,
   },
 ] as const;
 
@@ -1213,23 +1299,43 @@ export async function seedDatabase(
       });
   }
 
-  for (const skill of AGENSI_SKILL_SEEDS) {
-    await db
-      .insert(agensiSkills)
-      .values({
-        ...skill,
-        tags: [...skill.tags],
-      })
-      .onConflictDoUpdate({
-        target: agensiSkills.slug,
-        set: {
-          name: skill.name,
-          summary: skill.summary,
-          tags: [...skill.tags],
-          url: skill.url,
-          sortOrder: skill.sortOrder,
-        },
-      });
+  const isProductionEnv = (env['NODE_ENV'] ?? process.env['NODE_ENV']) === 'production';
+  const allowProdAgensiSeed = env['ALLOW_AGENSI_SEED_IN_PROD'] === 'true';
+  if (!isProductionEnv || allowProdAgensiSeed) {
+    const creatorHandle = resolveAgensiCreatorHandle(env);
+    const existingLiveRows = await db
+      .select({ slug: agensiSkills.slug })
+      .from(agensiSkills)
+      .where(
+        and(
+          sql`lower(${agensiSkills.creatorHandle}) = lower(${creatorHandle})`,
+          eq(agensiSkills.source, 'agensi_api'),
+        ),
+      )
+      .limit(1);
+
+    if (existingLiveRows.length === 0) {
+      await db
+        .delete(agensiSkills)
+        .where(
+          and(
+            inArray(agensiSkills.slug, RETIRED_PLACEHOLDER_SKILL_SLUGS),
+            eq(agensiSkills.source, 'seed'),
+          ),
+        );
+
+      for (const skill of AGENSI_SKILL_SEEDS) {
+        await db
+          .insert(agensiSkills)
+          .values({
+            ...skill,
+            tags: [...skill.tags],
+          })
+          .onConflictDoNothing({
+            target: agensiSkills.slug,
+          });
+      }
+    }
   }
 
   for (const policy of QUOTA_POLICY_SEEDS) {
