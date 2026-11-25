@@ -1060,9 +1060,7 @@ function isInvalidAuthSplat(splat: string): boolean {
   return splat.split('/').some(segment => segment.length === 0 || segment === '.');
 }
 
-/**
- * Direct PostgreSQL 19 Admin BFF auth handler.
- */
+/** Direct PostgreSQL 19 Admin BFF auth handler. */
 export async function handleAdminAuthBffRequest(
   request: Request,
   splat: string,
@@ -1112,9 +1110,7 @@ export async function handleAdminAuthBffRequest(
   return buildWebResponseFromDispatch(result);
 }
 
-/**
- * Resolves current session status directly from PostgreSQL 19 for the Admin SSR root loader guard.
- */
+/** Resolves current session status directly from PostgreSQL 19 for the Admin SSR root loader guard. */
 export async function resolveAdminSessionFromRequest(
   request: Request,
   options: BffAuthProxyOptions = {},

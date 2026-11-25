@@ -11,8 +11,8 @@ export interface AnalyticsBffOptions {
 }
 
 /**
- * Shared same-origin BFF handler for POST /api/analytics/ingest across Portal and Admin.
- * Persists directly to PostgreSQL 19 via @aklapper/db.
+ * Shared same-origin BFF handler for POST /api/analytics/ingest across Portal and Admin. Persists
+ * directly to PostgreSQL 19 via @aklapper/db.
  */
 export async function handleAnalyticsIngestRequest(
   request: Request,
