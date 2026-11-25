@@ -1,5 +1,5 @@
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
+import { Pool, type PoolClient } from 'pg';
 
 import * as schema from './schema.ts';
 
@@ -24,8 +24,8 @@ export function createDbPool(connectionString = process.env['DATABASE_URL']): Po
   });
 }
 
-export function createDb(pool: Pool): AppDatabase {
-  return drizzle(pool, { schema });
+export function createDb(client: Pool | PoolClient): AppDatabase {
+  return drizzle(client, { schema });
 }
 
 let sharedPool: Pool | null = null;

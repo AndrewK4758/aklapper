@@ -27,6 +27,9 @@
       "serve": {
         "continuous": true,
         "cache": false,
+        "dependsOn": [
+          "^db-migrate"
+        ],
         "executor": "nx:run-commands",
         "options": {
           "cwd": "apis/node/analytics/analytics",
