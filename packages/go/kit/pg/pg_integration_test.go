@@ -22,7 +22,7 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("OpenFromEnvStrict failed: %v", err)
 	}
-	defer store.Close()
+	t.Cleanup(store.Close)
 
 	// Seed rows across site_content, agensi_skills, and roadmap_milestones cleanly for live corpus queries
 	if _, err := store.pool.Exec(ctx, `
