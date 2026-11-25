@@ -11,16 +11,28 @@ import {
   shouldAttachGcpOidcToken,
   SINGLE_PROXY_HOP,
 } from './gcp-oidc.ts';
+import { HOP_BY_HOP_HEADERS, isProductionEnv, stripHopByHopHeaders } from './http-hygiene.ts';
+import {
+  DEFAULT_SSE_HEADER_TIMEOUT_MS,
+  proxyPostSse,
+  type ProxyPostSseOptions,
+} from './http-sse.ts';
 
 export {
   clearGcpIdentityTokenCacheForTest,
+  DEFAULT_SSE_HEADER_TIMEOUT_MS,
   emitOidcResolutionSeam,
   evictGcpIdentityTokenCache,
   extractRightmostForwardedIp,
   GcpOidcTokenError,
+  HOP_BY_HOP_HEADERS,
+  isProductionEnv,
+  proxyPostSse,
   resolveGcpIdentityToken,
   shouldAttachGcpOidcToken,
   SINGLE_PROXY_HOP,
+  stripHopByHopHeaders,
+  type ProxyPostSseOptions,
 };
 
 export const INTERNAL_AUTH_HEADER = 'x-internal-auth';
@@ -124,11 +136,13 @@ export function resolveInternalAuthSecret(explicitSecret?: string): string {
   const fromEnv = process.env['INTERNAL_AUTH_SECRET']?.trim();
   if (fromEnv) return fromEnv;
 
-  if (process.env['NODE_ENV'] !== 'production') {
+  if (!isProductionEnv(process.env)) {
     return DEV_FALLBACK_INTERNAL_AUTH_SECRET;
   }
 
-  throw new Error('INTERNAL_AUTH_SECRET is required when NODE_ENV=production');
+  throw new Error(
+    'INTERNAL_AUTH_SECRET is required in production (NODE_ENV or APP_ENV=production)',
+  );
 }
 
 export function signInternalAuthToken(options: SignInternalAuthTokenOptions): string {
@@ -224,7 +238,7 @@ export function resolveTrustedClientIpWithDetail(
 ): TrustedClientIpResolution {
   const token = getFirstHeader(request.headers[INTERNAL_CLIENT_IP_HEADER]);
   const internalSecret = env['INTERNAL_AUTH_SECRET']?.trim();
-  const isProd = (env['NODE_ENV'] ?? process.env['NODE_ENV']) === 'production';
+  const isProd = isProductionEnv(env) || isProductionEnv(process.env);
 
   if (token) {
     if (internalSecret || !isProd) {
@@ -256,7 +270,7 @@ export function resolveTrustedClientIp(
   return resolveTrustedClientIpWithDetail(request, env).ip;
 }
 
-function resolveTargetOidcAudience(
+export function resolveTargetOidcAudience(
   baseUrl: string,
   oidcAuth: OidcAuthMode | undefined,
   env: Record<string, string | undefined>,
@@ -522,12 +536,13 @@ export async function proxySse(options: ProxySseOptions): Promise<Response> {
       );
     }
 
-    const responseHeaders = new Headers({
-      'content-type': upstream.headers.get('content-type') ?? 'text/event-stream; charset=utf-8',
-      'cache-control': 'no-cache',
-      connection: 'keep-alive',
-      'x-accel-buffering': 'no',
-    });
+    const responseHeaders = stripHopByHopHeaders(upstream.headers);
+    responseHeaders.set(
+      'content-type',
+      upstream.headers.get('content-type') ?? 'text/event-stream; charset=utf-8',
+    );
+    responseHeaders.set('cache-control', 'no-cache');
+    responseHeaders.set('x-accel-buffering', 'no');
 
     return new Response(upstream.body, {
       status: upstream.status,

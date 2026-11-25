@@ -14,6 +14,7 @@ import { createRequestHandler, RouterContextProvider, type ServerBuild } from 'r
 
 import { AUTH_LOG_REDACT_PATHS } from './auth.ts';
 import { loadWorkspaceEnv } from './env.ts';
+import { collectHopByHopNames } from './http-hygiene.ts';
 import { SINGLE_PROXY_HOP } from './http.ts';
 import { extractCorrelationId, logDiagnosticError, requestContextKey } from './request-context.ts';
 
@@ -166,11 +167,20 @@ function isRawAuthApiTarget(rawUrl: string): boolean {
   return normalized.startsWith('/api/auth/') || normalized === '/api/auth';
 }
 
-function collectResponseHeaders(webHeaders: Headers): Record<string, string | string[]> {
+function collectResponseHeaders(webHeaders: Headers): {
+  readonly headers: Record<string, string | string[]>;
+  readonly stripped: readonly string[];
+} {
+  const forbidden = collectHopByHopNames(webHeaders);
   const responseHeaders: Record<string, string | string[]> = {};
+  const stripped: string[] = [];
   webHeaders.forEach((value, key) => {
     const lowerKey = key.toLowerCase();
     if (lowerKey === 'set-cookie') return;
+    if (forbidden.has(lowerKey)) {
+      if (!stripped.includes(lowerKey)) stripped.push(lowerKey);
+      return;
+    }
     const existing = responseHeaders[lowerKey];
     if (existing === undefined) {
       responseHeaders[lowerKey] = value;
@@ -188,7 +198,7 @@ function collectResponseHeaders(webHeaders: Headers): Record<string, string | st
     responseHeaders['set-cookie'] = setCookies;
   }
 
-  return responseHeaders;
+  return { headers: responseHeaders, stripped };
 }
 
 export async function createSsrServer(options: SsrServerOptions): Promise<SsrServerInstance> {
@@ -489,7 +499,21 @@ export async function createSsrServer(options: SsrServerOptions): Promise<SsrSer
       return;
     }
 
-    const responseHeaders = collectResponseHeaders(webResponse.headers);
+    const { headers: responseHeaders, stripped: strippedHopByHop } = collectResponseHeaders(
+      webResponse.headers,
+    );
+    if (strippedHopByHop.length > 0) {
+      childLogger.warn(
+        {
+          seam_type: 'BOUNDARY_FAULT',
+          event: 'ssr.request.hop_by_hop_stripped',
+          strippedHeaders: strippedHopByHop,
+          correlationId,
+          service: serviceName,
+        },
+        'Stripped RFC 9113 hop-by-hop response headers',
+      );
+    }
     responseHeaders['x-correlation-id'] = correlationId;
 
     if (
@@ -512,9 +536,6 @@ export async function createSsrServer(options: SsrServerOptions): Promise<SsrSer
     if (contentType.includes('text/event-stream')) {
       if (responseHeaders['cache-control'] === undefined) {
         responseHeaders['cache-control'] = 'no-cache';
-      }
-      if (responseHeaders['connection'] === undefined) {
-        responseHeaders['connection'] = 'keep-alive';
       }
     }
 

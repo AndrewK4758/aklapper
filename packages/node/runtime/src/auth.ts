@@ -7,6 +7,8 @@ import {
   timingSafeEqual,
 } from 'node:crypto';
 
+import { isProductionEnv } from './http-hygiene.ts';
+
 export {
   ARGON2ID_DEFAULTS,
   Argon2ConcurrencyError,
@@ -261,10 +263,12 @@ function resolveTotpEncryptionKey(explicitKey?: string): Buffer {
   const material =
     explicitKey?.trim() ||
     process.env['TOTP_ENCRYPTION_KEY']?.trim() ||
-    (process.env['NODE_ENV'] !== 'production' ? DEV_FALLBACK_TOTP_ENCRYPTION_KEY : '');
+    (!isProductionEnv(process.env) ? DEV_FALLBACK_TOTP_ENCRYPTION_KEY : '');
 
   if (!material) {
-    throw new Error('TOTP_ENCRYPTION_KEY is required when NODE_ENV=production');
+    throw new Error(
+      'TOTP_ENCRYPTION_KEY is required in production (NODE_ENV or APP_ENV=production)',
+    );
   }
   return createHash('sha256').update(material, 'utf8').digest();
 }
