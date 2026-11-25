@@ -11,13 +11,11 @@ import {
   PortalContactContentSchema,
   PortalHomeContentSchema,
   PortalMaintenanceContentSchema,
-  PortalMenuContentSchema,
 } from './portal.ts';
 
 export const SITE_CONTENT_KEYS = {
   portalChrome: 'portal-chrome',
   portalHome: 'portal-home',
-  portalMenu: 'portal-menu',
   portalAgensi: 'portal-agensi',
   portalAsk: 'portal-ask',
   portalCadence: 'portal-cadence',
@@ -42,7 +40,6 @@ export const SITE_CONTENT_SCHEMA_BY_KEY: Readonly<
 > = {
   [SITE_CONTENT_KEYS.portalChrome]: PortalChromeContentSchema,
   [SITE_CONTENT_KEYS.portalHome]: PortalHomeContentSchema,
-  [SITE_CONTENT_KEYS.portalMenu]: PortalMenuContentSchema,
   [SITE_CONTENT_KEYS.portalAgensi]: PortalAgensiContentSchema,
   [SITE_CONTENT_KEYS.portalAsk]: PortalAskContentSchema,
   [SITE_CONTENT_KEYS.portalCadence]: PortalCadenceContentSchema,
@@ -64,12 +61,6 @@ export const SITE_CONTENT_METADATA: Readonly<Record<SiteContentKey, SiteContentK
     key: SITE_CONTENT_KEYS.portalHome,
     label: 'Portal Home',
     description: 'Primary launcher hero window, heading, description, and action buttons.',
-    surface: 'portal',
-  },
-  [SITE_CONTENT_KEYS.portalMenu]: {
-    key: SITE_CONTENT_KEYS.portalMenu,
-    label: 'Portal Menu',
-    description: 'Command menu window heading, description, and local route badge label.',
     surface: 'portal',
   },
   [SITE_CONTENT_KEYS.portalAgensi]: {

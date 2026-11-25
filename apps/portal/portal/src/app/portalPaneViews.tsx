@@ -22,9 +22,6 @@ import {
 
 export { isPortalPaneRoute, PORTAL_PANE_ROUTES, type PortalPaneRoute, type PortalPaneViewId };
 
-const LazyMenuPaneAdapter = lazyWithRetry(() =>
-  import('./pane-views/MenuPaneAdapter').then(mod => ({ default: mod.MenuPaneAdapter })),
-);
 const LazyAgensiPaneAdapter = lazyWithRetry(() =>
   import('./pane-views/AgensiPaneAdapter').then(mod => ({ default: mod.AgensiPaneAdapter })),
 );
@@ -110,11 +107,7 @@ export interface RenderPortalPaneViewOptions {
   readonly deployments?: Readonly<Record<string, K8sPodEvent>>;
 }
 
-export function renderPortalPaneView({
-  ctx,
-  homeContent,
-  deployments,
-}: RenderPortalPaneViewOptions): ReactNode {
+export function renderPortalPaneView({ ctx, homeContent }: RenderPortalPaneViewOptions): ReactNode {
   switch (ctx.viewId) {
     case 'tui':
       return homeContent ? (
@@ -126,18 +119,6 @@ export function renderPortalPaneView({
         />
       ) : (
         <UnknownPaneView ctx={ctx} />
-      );
-    case '/menu':
-      return (
-        <LazyPaneSlot
-          key={`${ctx.paneId}:/menu`}
-          routePath='/menu'
-          title='Launch Menu'
-          loadingLabel='Loading launch menu...'
-          onExit={ctx.exitTui}
-        >
-          <LazyMenuPaneAdapter ctx={ctx} deployments={deployments} />
-        </LazyPaneSlot>
       );
     case '/agensi':
       return (

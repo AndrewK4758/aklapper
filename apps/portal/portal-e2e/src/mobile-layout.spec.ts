@@ -90,7 +90,7 @@ test.describe('portal mobile TUI workspace and adaptive layout', () => {
 
     // Navigate across primary routes, verifying aria-current, overflow, and native scroll
     const routeChecks: ReadonlyArray<{ path: string; label: string; expectScroll: boolean }> = [
-      { path: '/menu', label: 'Menu', expectScroll: false },
+      { path: '/agensi', label: 'Skills', expectScroll: false },
       { path: '/chat', label: 'Chat', expectScroll: false },
       { path: '/cadence', label: 'CAD', expectScroll: true },
       { path: '/contact', label: 'Mail', expectScroll: true },

@@ -13,7 +13,6 @@ import {
   Button,
   Meter,
   OscStatusBadge,
-  Separator,
   TuiWindow,
 } from '@aklapper/ui';
 import { type FormEvent, useState } from 'react';
@@ -271,47 +270,53 @@ export function PortalCadencePage({
           />
         }
       >
-        <p className={styles.intro}>{content.description}</p>
+        <section className={styles.topOverview} aria-label='CADENCE overview and showcases'>
+          <p className={styles.intro}>{content.description}</p>
 
-        <div className={styles.quotaBar} data-testid='cadence-quota-meter'>
-          <Meter.Root value={activeQuota.turnsUsed} min={0} max={Math.max(1, activeQuota.maxTurns)}>
-            <div className={styles.meterHeader}>
-              <Meter.Label>
-                {content.quotaMeterLabel} ({activeQuota.role})
-              </Meter.Label>
-              <Meter.Value>
-                {() => `${activeQuota.turnsUsed}/${activeQuota.maxTurns} turns`}
-              </Meter.Value>
-            </div>
-            <Meter.Track>
-              <Meter.Indicator />
-            </Meter.Track>
-          </Meter.Root>
-        </div>
+          <div className={styles.quotaBar} data-testid='cadence-quota-meter'>
+            <Meter.Root
+              value={activeQuota.turnsUsed}
+              min={0}
+              max={Math.max(1, activeQuota.maxTurns)}
+            >
+              <div className={styles.meterHeader}>
+                <Meter.Label>
+                  {content.quotaMeterLabel} ({activeQuota.role})
+                </Meter.Label>
+                <Meter.Value>
+                  {() => `${activeQuota.turnsUsed}/${activeQuota.maxTurns} turns`}
+                </Meter.Value>
+              </div>
+              <Meter.Track>
+                <Meter.Indicator />
+              </Meter.Track>
+            </Meter.Root>
+          </div>
 
-        <CadenceGoldenStrip
-          content={content}
-          goldenRuns={goldenRuns}
-          activeRunId={activeRun?.runId ?? null}
-          onSelectGolden={handleSelectGolden}
-        />
+          <CadenceGoldenStrip
+            content={content}
+            goldenRuns={goldenRuns}
+            activeRunId={activeRun?.runId ?? null}
+            onSelectGolden={handleSelectGolden}
+          />
+        </section>
 
-        <Separator.Root />
-
-        <CadenceComposerSection
-          content={content}
-          presets={presets}
-          activePresetSlug={activePresetSlug}
-          activePreset={activePreset}
-          promptText={promptText}
-          fastMode={fastMode}
-          isPipelineBusy={isPipelineBusy}
-          canSubmit={!isPipelineBusy && promptText.trim().length >= 4 && Boolean(onRunBuild)}
-          onPresetChange={handlePresetChange}
-          onPromptChange={setPromptText}
-          onFastModeChange={setFastMode}
-          onSubmit={handleRunSubmit}
-        />
+        <section className={styles.composerCard} aria-label='Build prompt composer'>
+          <CadenceComposerSection
+            content={content}
+            presets={presets}
+            activePresetSlug={activePresetSlug}
+            activePreset={activePreset}
+            promptText={promptText}
+            fastMode={fastMode}
+            isPipelineBusy={isPipelineBusy}
+            canSubmit={!isPipelineBusy && promptText.trim().length >= 4 && Boolean(onRunBuild)}
+            onPresetChange={handlePresetChange}
+            onPromptChange={setPromptText}
+            onFastModeChange={setFastMode}
+            onSubmit={handleRunSubmit}
+          />
+        </section>
 
         {actionResult && !actionResult.ok && (
           <ActionFeedbackBanner

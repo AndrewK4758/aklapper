@@ -50,7 +50,6 @@ describe.runIf(existsSync(ASSETS_DIR))('Portal production client chunk isolation
     expect(entryFiles.length).toBeGreaterThanOrEqual(3);
 
     for (const forbiddenChunk of [
-      /^MenuPaneAdapter-/,
       /^AgensiPaneAdapter-/,
       /^AskPaneAdapter-/,
       /^CadencePaneAdapter-/,
@@ -66,7 +65,6 @@ describe.runIf(existsSync(ASSETS_DIR))('Portal production client chunk isolation
       'cadence-preset-select',
       'agensi-catalog-meta',
       'useCadenceRunController',
-      'PortalMenuPage',
       'PortalAgensiPage',
       'PortalAskPage',
       'PortalCadencePage',
@@ -75,7 +73,6 @@ describe.runIf(existsSync(ASSETS_DIR))('Portal production client chunk isolation
       expect(combinedSource).not.toContain(forbiddenMarker);
     }
 
-    expect(allJsFiles.some(file => file.startsWith('MenuPaneAdapter-'))).toBe(true);
     expect(allJsFiles.some(file => file.startsWith('AgensiPaneAdapter-'))).toBe(true);
     expect(allJsFiles.some(file => file.startsWith('AskPaneAdapter-'))).toBe(true);
     expect(allJsFiles.some(file => file.startsWith('CadencePaneAdapter-'))).toBe(true);

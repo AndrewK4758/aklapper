@@ -97,7 +97,7 @@ export function CadenceComposerSection({
         <textarea
           id='cadence-prompt-input'
           name='prompt'
-          rows={2}
+          rows={3}
           className={styles.textarea}
           value={promptText}
           onChange={event => onPromptChange(event.currentTarget.value)}

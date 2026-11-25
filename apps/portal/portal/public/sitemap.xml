@@ -6,12 +6,17 @@
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://andrew-k.us/menu</loc>
+    <loc>https://andrew-k.us/cadence</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://andrew-k.us/cadence</loc>
+    <loc>https://andrew-k.us/chat</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://andrew-k.us/agensi</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>

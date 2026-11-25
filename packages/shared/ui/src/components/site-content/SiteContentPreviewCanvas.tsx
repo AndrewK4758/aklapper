@@ -9,7 +9,6 @@ import {
   PortalContactContentSchema,
   PortalHomeContentSchema,
   PortalMaintenanceContentSchema,
-  PortalMenuContentSchema,
   SITE_CONTENT_KEYS,
 } from '@aklapper/core';
 
@@ -86,21 +85,6 @@ function renderKeyPreview(contentKey: string, metadata: Record<string, unknown>)
             actionsAriaLabel='Admin overview actions preview'
           />
         </TuiWindow>
-      );
-    }
-
-    case SITE_CONTENT_KEYS.portalMenu: {
-      const parsed = PortalMenuContentSchema.safeParse(metadata);
-      if (!parsed.success) return null;
-      const d = parsed.data;
-      return (
-        <SiteContentWindowHeader
-          title='Portal Menu // Preview'
-          heading={d.heading}
-          description={d.description}
-        >
-          <span className={styles.previewChip}>{d.localTargetLabel}</span>
-        </SiteContentWindowHeader>
       );
     }
 

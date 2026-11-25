@@ -99,7 +99,7 @@ func TestGroundingTierAndPortalNavigableRoutes(t *testing.T) {
 	if !IsAllowedPortalNavigableRoute("/chat") {
 		t.Fatal("expected /chat to be an allowed navigable portal route")
 	}
-	if IsAllowedPortalNavigableRoute("/ask") {
-		t.Fatal("expected retired /ask route to be rejected by navigable route allow-list")
+	if IsAllowedPortalNavigableRoute("/ask") || IsAllowedPortalNavigableRoute("/menu") {
+		t.Fatal("expected retired /ask and /menu routes to be rejected by navigable route allow-list")
 	}
 }

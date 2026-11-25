@@ -24,12 +24,7 @@ const PREVIEW_FIXTURES: Record<SiteContentKey, Record<string, unknown>> = {
     tuiBadge: { source: 'portal', state: 'ready', label: 'Ready' },
     heading: 'Andrew Klapper',
     description: 'Principal engineer.',
-    actions: [{ label: 'Open Menu', to: '/menu', variant: 'primary' }],
-  },
-  [SITE_CONTENT_KEYS.portalMenu]: {
-    heading: 'Command Menu',
-    description: 'Select a destination.',
-    localTargetLabel: 'Local Route',
+    actions: [{ label: 'CADENCE Builder', to: '/cadence', variant: 'primary' }],
   },
   [SITE_CONTENT_KEYS.portalAgensi]: {
     windowTitle: 'Agensi Skills',
@@ -91,7 +86,7 @@ describe('@aklapper/ui site-content preview primitives', () => {
     expect(SF_LAYOUT_TOKENS.containerAdminWide).toBe('--sf-container-admin-wide');
   });
 
-  it('renders all 11 known site_content keys across desktop and mobile viewports without nested forms or iframes', () => {
+  it('renders all 10 known site_content keys across desktop and mobile viewports without nested forms or iframes', () => {
     for (const key of Object.values(SITE_CONTENT_KEYS)) {
       const { container, unmount } = render(
         <SiteContentPreviewCanvas
@@ -111,11 +106,10 @@ describe('@aklapper/ui site-content preview primitives', () => {
     const xssPayload = '<script>window.__xss=1</script>';
     const { container } = render(
       <SiteContentPreviewCanvas
-        contentKey={SITE_CONTENT_KEYS.portalMenu}
+        contentKey={SITE_CONTENT_KEYS.adminAnalytics}
         metadata={{
-          heading: xssPayload,
+          windowTitle: xssPayload,
           description: 'Safe text',
-          localTargetLabel: 'Local',
         }}
         viewport='desktop'
       />,

@@ -14,7 +14,6 @@ import {
   getPrerenderPortalContactData,
   getPrerenderPortalHomeData,
   getPrerenderPortalMaintenanceData,
-  getPrerenderPortalMenuData,
   getPrerenderPortalRootData,
   loadAdminAnalyticsDataWithPrerender,
   loadPortalAgensiDataWithPrerender,
@@ -64,8 +63,9 @@ describe('db prerender fallback loaders', () => {
     expect(portalHome.terminal.commands.length).toBeGreaterThan(0);
     expect(portalHome.terminal.initialEntries[0]?.command).toBe('ls');
     expect(portalHome.terminal.initialEntries[0]?.output).toContain(
-      'menu                  # Site menu',
+      'tui                   # TUI version',
     );
+    expect(portalHome.terminal.initialEntries[0]?.output).not.toContain('menu');
     expect(portalHome.terminal.initialEntries[0]?.output).toContain(
       'changes-in-progress   # Maintenance preview',
     );
@@ -83,7 +83,6 @@ describe('db prerender fallback loaders', () => {
       /ghostty|Ctrl\+Shift\+O|\bCmd\+D\b|\bCtrl\+W\b|\bCtrl\+N\b|Alt\+1\.\.9/i,
     );
 
-    expect(getPrerenderPortalMenuData().items.every(item => !item.adminOnly)).toBe(true);
     const prerenderAgensi = getPrerenderPortalAgensiData();
     expect(prerenderAgensi.skills).toHaveLength(6);
     expect(prerenderAgensi.catalogMeta?.mode).toBe('prerender');

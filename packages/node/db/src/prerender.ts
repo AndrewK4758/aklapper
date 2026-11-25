@@ -14,7 +14,6 @@ import {
   type PortalContactLoaderData,
   type PortalHomeLoaderData,
   type PortalMaintenanceLoaderData,
-  type PortalMenuLoaderData,
   type PortalRootLoaderData,
   type QuotaStatus,
   RoadmapMilestoneSchema,
@@ -37,7 +36,6 @@ import {
   loadPortalContactData,
   loadPortalHomeData,
   loadPortalMaintenanceData,
-  loadPortalMenuData,
   loadPortalRootData,
   TERMINAL_PROFILE_SLUGS,
 } from './queries.ts';
@@ -57,7 +55,6 @@ import {
   PORTAL_CONTACT_SEED,
   PORTAL_HOME_SEED,
   PORTAL_MAINTENANCE_SEED,
-  PORTAL_MENU_SEED,
   ROADMAP_MILESTONE_SEEDS,
 } from './seed.ts';
 
@@ -107,15 +104,6 @@ export function getPrerenderPortalHomeData(): PortalHomeLoaderData {
     content: PORTAL_HOME_SEED,
     terminal: buildSeedTerminalProfile(TERMINAL_PROFILE_SLUGS.portalHome),
     contactForm: PORTAL_CONTACT_SEED.form,
-  };
-}
-
-export function getPrerenderPortalMenuData(): PortalMenuLoaderData {
-  return {
-    content: PORTAL_MENU_SEED,
-    items: DEFAULT_MENU_ITEMS.filter(item => !item.adminOnly && item.enabled)
-      .toSorted((a, b) => a.sortOrder - b.sortOrder)
-      .map(item => MenuItemSchema.parse(item)),
   };
 }
 
@@ -260,10 +248,6 @@ export function loadPortalRootDataWithPrerender(
 
 export function loadPortalHomeDataWithPrerender(): Promise<PortalHomeLoaderData> {
   return withPrerenderFallback(loadPortalHomeData, getPrerenderPortalHomeData);
-}
-
-export function loadPortalMenuDataWithPrerender(): Promise<PortalMenuLoaderData> {
-  return withPrerenderFallback(loadPortalMenuData, getPrerenderPortalMenuData);
 }
 
 export function loadPortalAgensiDataWithPrerender(

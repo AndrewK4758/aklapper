@@ -27,12 +27,7 @@ const VALID_FIXTURES: Record<SiteContentKey, Record<string, unknown>> = {
     tuiBadge: { source: 'portal', state: 'ready', label: 'Ready' },
     heading: 'Andrew Klapper',
     description: 'Principal full-stack and platform engineer.',
-    actions: [{ label: 'Open Menu', to: '/menu', variant: 'primary' }],
-  },
-  [SITE_CONTENT_KEYS.portalMenu]: {
-    heading: 'Command Menu',
-    description: 'Select a workspace destination.',
-    localTargetLabel: 'Local Route',
+    actions: [{ label: 'CADENCE Builder', to: '/cadence', variant: 'primary' }],
   },
   [SITE_CONTENT_KEYS.portalAgensi]: {
     windowTitle: 'Agensi Skills',
@@ -92,7 +87,7 @@ const VALID_FIXTURES: Record<SiteContentKey, Record<string, unknown>> = {
 describe('@aklapper/core site_content registry', () => {
   it('registers all 11 site_content keys with schemas and display metadata', () => {
     const keys = Object.values(SITE_CONTENT_KEYS);
-    expect(keys).toHaveLength(11);
+    expect(keys).toHaveLength(10);
     for (const key of keys) {
       expect(isKnownSiteContentKey(key)).toBe(true);
       expect(SITE_CONTENT_SCHEMA_BY_KEY[key]).toBeDefined();
