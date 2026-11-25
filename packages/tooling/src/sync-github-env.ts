@@ -26,9 +26,6 @@ export const GITHUB_OPTIONAL_ENV_SECRETS = [
 export const GITHUB_REQUIRED_ENV_VARS = ['GCP_PROJECT_ID', 'GCP_REGION', 'GAR_REPOSITORY'] as const;
 
 export const GITHUB_OPTIONAL_ENV_VARS = [
-  'CLOUD_SQL_INSTANCE',
-  'GKE_CLUSTER_NAME',
-  'GKE_CLUSTER_LOCATION',
   'PORTAL_MAINTENANCE_MODE',
   'PUBLIC_PORTAL_URL',
   'PUBLIC_ADMIN_URL',
@@ -39,7 +36,6 @@ export const GITHUB_OPTIONAL_ENV_VARS = [
   'WEBAUTHN_RP_ID',
   'WEBAUTHN_RP_NAME',
   'WEBAUTHN_ORIGIN',
-  'K8S_WATCH_URL',
   'CADENCE_DEMO_URL',
   'AI_ASK_URL',
   'QDRANT_URL',
@@ -57,8 +53,8 @@ export const GITHUB_OPTIONAL_ENV_VARS = [
   'ADMIN_HANDLE',
   'GCP_CLOUDRUN_SERVICE_ACCOUNT',
   'GCP_MIGRATOR_SERVICE_ACCOUNT',
-  'GCP_GKE_WORKLOAD_SA',
-  'CLOUD_RUN_ALLOW_UNAUTH_ADMIN',
+  'GCP_PG19_VM_SERVICE_ACCOUNT',
+  'IAP_ACCESSOR_EMAIL',
 ] as const;
 
 export type TargetEnvironment = 'production';
@@ -90,13 +86,19 @@ export interface SyncPlan {
 
 const DEFAULT_REPO = 'AndrewK4758/aklapper';
 const PLACEHOLDER_PATTERN = /REPLACE_ME|CHANGE_ME|YOUR_[A-Z0-9_]+/i;
-const RETIRED_ENV_KEYS = [
+export const RETIRED_ENV_KEYS = [
   'ADMIN_BOOTSTRAP_TOKEN',
   'AUTH_API_URL',
   'ANALYTICS_API_URL',
   'CADENCE_ADMIN_URL',
   'CONTACT_API_URL',
   'CLOUD_RUN_ALLOW_UNAUTH_APIS',
+  'CLOUD_SQL_INSTANCE',
+  'GKE_CLUSTER_NAME',
+  'GKE_CLUSTER_LOCATION',
+  'GCP_GKE_WORKLOAD_SA',
+  'K8S_WATCH_URL',
+  'CLOUD_RUN_ALLOW_UNAUTH_ADMIN',
   'VERTEX_THINKING_BUDGET',
 ] as const;
 
@@ -203,6 +205,16 @@ export function buildSyncPlan(values: Readonly<Record<string, string>>): SyncPla
     if (!value) skippedOptionalVariables.push(key);
     else if (PLACEHOLDER_PATTERN.test(value)) pushUnique(placeholderKeys, key);
     else variables.push({ key, value });
+  }
+
+  if (retiredKeys.length > 0) {
+    console.warn(
+      JSON.stringify({
+        event: 'tooling.env_sync.retired_key_rejected',
+        seam: 'UNSOUND_CONDITION',
+        retiredKeys,
+      }),
+    );
   }
 
   if (missingRequired.length > 0 || placeholderKeys.length > 0 || retiredKeys.length > 0) {

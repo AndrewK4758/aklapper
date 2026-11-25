@@ -93,17 +93,16 @@ export const CAREER_DOSSIER_SEEDS: readonly CareerDossierSeedEntry[] = [
       'PostgreSQL 19',
       'Drizzle ORM',
       'Qdrant',
-      'Kubernetes',
-      'GKE Autopilot',
+      'Docker',
       'Cloud Run',
       'Vertex AI',
     ],
     summaryBody:
-      'Andrew Klapper is a principal full-stack and platform engineer specializing in streaming TypeScript SSR applications, Go microservices, PostgreSQL 19 relational reliability, Kubernetes cloud platforms on GCP, and grounded production AI workflows.',
+      'Andrew Klapper is a principal full-stack and platform engineer specializing in streaming TypeScript SSR applications, Go microservices, PostgreSQL 19 relational reliability, Cloud Run and Docker platforms on GCP, and grounded production AI workflows.',
     sectionsJson: [
       {
         heading: 'Core Architecture Strengths',
-        body: 'Designs zero-await streaming React Router SSR frontends paired with Fastify BFFs, typed Go services on GKE Autopilot, fail-closed security and privacy boundaries, and reversible expand/contract PostgreSQL migrations.',
+        body: 'Designs zero-await streaming React Router SSR frontends paired with Fastify BFFs, typed Go services on Cloud Run, fail-closed security and privacy boundaries, and reversible expand/contract PostgreSQL migrations.',
       },
       {
         heading: 'Portfolio Highlights',

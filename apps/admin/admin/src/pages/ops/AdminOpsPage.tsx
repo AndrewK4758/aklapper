@@ -3,9 +3,10 @@ import type {
   AdminOpsLoaderData,
   AdminSandboxRun,
   CadenceGateVerdict,
-  K8sPodEvent,
   Osc7501State,
   QdrantHealthStatus,
+  RuntimeServiceHealthItem,
+  RuntimeServiceHealthSnapshot,
 } from '@aklapper/core';
 import {
   ActionFeedbackBanner,
@@ -21,7 +22,7 @@ import { Form, useFetcher } from 'react-router';
 
 import { reportAdminLazyChunkError } from '../client-telemetry';
 import { AdminOpsRuntimeCards } from './AdminOpsRuntimeCards';
-import { markDeploymentWaking, useOpsClusterStream } from './opsClusterStore';
+import { refreshOpsRuntimeStatus, useOpsRuntimeStatus } from './opsRuntimeStore';
 
 import styles from './AdminOpsPage.module.css';
 
@@ -38,7 +39,7 @@ export interface AdminOpsActionData extends ActionErrorMetadata {
 
 export interface AdminOpsPrimaryData {
   readonly sandboxRuns: readonly AdminSandboxRun[];
-  readonly k8sWatchConfigured: boolean;
+  readonly runtimeHealth?: RuntimeServiceHealthSnapshot;
   readonly qdrantStatus?: QdrantHealthStatus;
 }
 
@@ -48,16 +49,10 @@ export interface AdminOpsPageProps {
   actionData?: AdminOpsActionData | null;
 }
 
-function mapPodPhaseToOsc(ev: K8sPodEvent): Osc7501State {
-  if (ev.ready || ev.phase === 'Running') return 'ready';
-  if (
-    ev.phase === 'TriggeredScaleUp' ||
-    ev.phase === 'ContainerCreating' ||
-    ev.phase === 'Pending'
-  ) {
-    return 'scaling';
-  }
-  if (ev.phase === 'Terminating') return 'error';
+function mapHealthStatusToOsc(status: RuntimeServiceHealthItem['status']): Osc7501State {
+  if (status === 'healthy') return 'ready';
+  if (status === 'degraded') return 'scaling';
+  if (status === 'offline') return 'error';
   return 'idle';
 }
 
@@ -68,8 +63,7 @@ function mapGateVerdictToOsc(verdict: CadenceGateVerdict): Osc7501State {
 }
 
 export function AdminOpsPage({ data, qdrantStatusSlot, actionData }: AdminOpsPageProps) {
-  const cluster = useOpsClusterStream();
-  const wakeFetcher = useFetcher<AdminOpsActionData>();
+  const runtimeState = useOpsRuntimeStatus();
   const reindexFetcher = useFetcher<AdminOpsActionData>();
   const [selectedRunId, setSelectedRunId] = useState<string | null>(
     data.sandboxRuns[0]?.runId ?? null,
@@ -78,71 +72,87 @@ export function AdminOpsPage({ data, qdrantStatusSlot, actionData }: AdminOpsPag
   const selectedRun: AdminSandboxRun | null =
     data.sandboxRuns.find(run => run.runId === selectedRunId) ?? data.sandboxRuns[0] ?? null;
 
-  const feedback = wakeFetcher.data ?? reindexFetcher.data ?? actionData ?? null;
-
-  function triggerWake(deployment: string) {
-    markDeploymentWaking(deployment);
-    const formData = new FormData();
-    formData.set('intent', 'wake-deployment');
-    formData.set('deployment', deployment);
-    void wakeFetcher.submit(formData, { method: 'post' });
-  }
+  const feedback = reindexFetcher.data ?? actionData ?? null;
+  const activeSnapshot = runtimeState.snapshot ?? data.runtimeHealth ?? null;
+  const services = activeSnapshot?.services ?? [];
 
   return (
-    <TuiWindow title='Cluster Watcher, Qdrant & Sandbox Audit // Ops'>
+    <TuiWindow title='Runtime Health, Qdrant & Sandbox Audit // Ops'>
       <div className={styles.panel}>
         {feedback ? <ActionFeedbackBanner {...feedback} /> : null}
 
-        <section className={styles.card} aria-label='Portfolio public cluster watcher'>
+        <section className={styles.card} aria-label='Cloud Run / Docker Runtime Health'>
           <div className={styles.cardHeader}>
-            <h2 className={styles.sectionTitle}>GKE Pod Watcher (SSE)</h2>
-            <OscStatusBadge
-              source='cluster-sse'
-              state={cluster.connected ? 'ready' : 'scaling'}
-              label={
-                cluster.connected
-                  ? data.k8sWatchConfigured
-                    ? 'Live GKE Stream'
-                    : 'Simulation Stream Connected'
-                  : 'Connecting / Fallback'
-              }
-            />
-          </div>
-
-          <div className={styles.namespaceGrid}>
-            <div>
-              <h3 className={styles.sectionTitle}>Namespace: portfolio-public</h3>
-              <ul className={styles.podList}>
-                {cluster.publicDeployments.map(ev => (
-                  <li key={`${ev.namespace}:${ev.deployment}`} className={styles.podRow}>
-                    <div className={styles.podMeta}>
-                      <strong>{ev.deployment}</strong>
-                      <span className={styles.muted}>
-                        {ev.podName} · {ev.message}
-                      </span>
-                    </div>
-                    <div className={styles.podActions}>
-                      <OscStatusBadge
-                        source={ev.deployment}
-                        state={mapPodPhaseToOsc(ev)}
-                        label={ev.phase}
-                      />
-                      <Button.Root
-                        type='button'
-                        variant='secondary'
-                        size='sm'
-                        onClick={() => {
-                          triggerWake(ev.deployment);
-                        }}
-                      >
-                        <Button.Label>Wake {ev.deployment}</Button.Label>
-                      </Button.Root>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+            <h2 className={styles.sectionTitle}>Cloud Run / Docker Runtime Health</h2>
+            <div className={styles.podActions}>
+              <OscStatusBadge
+                source={activeSnapshot?.runtime ?? 'cloud-run'}
+                state={
+                  runtimeState.error
+                    ? 'error'
+                    : activeSnapshot
+                      ? activeSnapshot.services.some(s => s.status === 'offline')
+                        ? 'error'
+                        : activeSnapshot.services.some(s => s.status === 'degraded')
+                          ? 'scaling'
+                          : 'ready'
+                      : 'idle'
+                }
+                label={
+                  runtimeState.error
+                    ? 'Probe Error'
+                    : (activeSnapshot?.summaryLabel ?? 'Awaiting runtime probe')
+                }
+              />
+              <Button.Root
+                type='button'
+                variant='secondary'
+                size='sm'
+                loading={runtimeState.loading}
+                onClick={() => {
+                  void refreshOpsRuntimeStatus();
+                }}
+              >
+                <Button.Label>Refresh Health</Button.Label>
+              </Button.Root>
             </div>
           </div>
+
+          {runtimeState.error ? (
+            <p className={styles.muted} role='alert'>
+              {runtimeState.error}
+            </p>
+          ) : null}
+
+          <ul className={styles.podList}>
+            {services.length === 0 ? (
+              <li className={styles.podRow}>
+                <span className={styles.muted}>
+                  Click &ldquo;Refresh Health&rdquo; to probe Cloud Run / Docker services on demand.
+                </span>
+              </li>
+            ) : (
+              services.map(item => (
+                <li key={item.service} className={styles.podRow}>
+                  <div className={styles.podMeta}>
+                    <strong>{item.service}</strong>
+                    <span className={styles.muted}>
+                      {item.runtime} ·{' '}
+                      {item.latencyMs !== null ? `${item.latencyMs}ms` : 'not probed'}
+                      {item.detail ? ` · ${item.detail}` : ''}
+                    </span>
+                  </div>
+                  <div className={styles.podActions}>
+                    <OscStatusBadge
+                      source={item.service}
+                      state={mapHealthStatusToOsc(item.status)}
+                      label={item.status}
+                    />
+                  </div>
+                </li>
+              ))
+            )}
+          </ul>
         </section>
 
         <AdminOpsRuntimeCards

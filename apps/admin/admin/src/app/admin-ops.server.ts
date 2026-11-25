@@ -1,5 +1,4 @@
 import {
-  AdminWakeDeploymentSchema,
   type AdminServiceHealth,
   type AppErrorCode,
   type QdrantCollectionHealth,
@@ -7,6 +6,7 @@ import {
   QdrantHealthStatusSchema,
 } from '@aklapper/core';
 import { proxyJson } from '@aklapper/node-runtime/http';
+import { probeRuntimeServices } from '@aklapper/node-runtime/runtime-health';
 
 export {
   type AuthenticatedAdminContext,
@@ -241,86 +241,30 @@ export async function triggerQdrantReindex(): Promise<ReindexResult> {
   };
 }
 
-export interface WakeDeploymentResult {
-  ok: boolean;
-  simulated: boolean;
-  deployment: string;
-  message: string;
-}
-
-interface RawWakeResponse {
-  deployment?: string;
-  phase?: string;
-  message?: string;
-  error?: string;
-}
-
-export async function triggerClusterWake(rawDeployment: string): Promise<WakeDeploymentResult> {
-  const { deployment } = AdminWakeDeploymentSchema.parse({ deployment: rawDeployment });
-  const watchUrl = process.env['K8S_WATCH_URL']?.trim();
-  if (!watchUrl) {
-    return {
-      ok: true,
-      simulated: true,
-      deployment,
-      message: `Simulated wake queued for ${deployment} (K8S_WATCH_URL unset).`,
-    };
-  }
-
-  const result = await proxyJson<RawWakeResponse>({
-    baseUrl: watchUrl,
-    path: `/v1/cluster/wake/${encodeURIComponent(deployment)}`,
-    method: 'POST',
-    body: {},
-    timeoutMs: 4_000,
-    internalAuth: {
-      role: 'admin',
-      subject: 'admin-ops-wake',
-    },
-  });
-
-  if (!result.ok) {
-    return {
-      ok: false,
-      simulated: false,
-      deployment,
-      message:
-        result.data?.message ??
-        result.data?.error ??
-        result.error ??
-        `Wake failed for ${deployment}.`,
-    };
-  }
-
-  return {
-    ok: true,
-    simulated: false,
-    deployment,
-    message: result.data?.message ?? `Wake signal delivered to ${deployment}.`,
-  };
-}
-
 export async function probePublicClusterHealth(): Promise<AdminServiceHealth> {
-  const watchUrl = process.env['K8S_WATCH_URL']?.trim();
-  if (!watchUrl) {
+  const snapshot = await probeRuntimeServices({
+    services: [
+      { service: 'ai-ask', url: process.env['AI_ASK_URL'] },
+      { service: 'cadence-demo', url: process.env['CADENCE_DEMO_URL'] },
+    ],
+    timeoutMs: 1_500,
+    ttlMs: 30_000,
+    cacheKey: 'admin-overview-runtime',
+  });
+  const configured = snapshot.services.filter(item => item.status !== 'unconfigured');
+  if (configured.length === 0) {
     return {
-      name: 'portfolio-public',
+      name: 'Cloud Run Services',
       status: 'degraded',
-      detail: 'Local simulation mode (K8S_WATCH_URL unset).',
+      detail: 'AI_ASK_URL and CADENCE_DEMO_URL not configured.',
     };
   }
-  const res = await proxyJson<{ ok?: boolean }>({
-    baseUrl: watchUrl,
-    path: '/healthz',
-    method: 'GET',
-    timeoutMs: 2_000,
-  });
+  const hasOffline = configured.some(item => item.status === 'offline');
+  const hasDegraded = configured.some(item => item.status === 'degraded');
   return {
-    name: 'portfolio-public',
-    status: res.ok ? 'ok' : 'offline',
-    detail: res.ok
-      ? 'k8s-watch scale-from-zero telemetry online.'
-      : (res.error ?? 'k8s-watch unreachable.'),
+    name: 'Cloud Run Services',
+    status: hasOffline ? 'offline' : hasDegraded ? 'degraded' : 'ok',
+    detail: snapshot.summaryLabel,
   };
 }
 

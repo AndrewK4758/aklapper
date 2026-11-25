@@ -57,6 +57,13 @@
       "when": 1795590000000,
       "tag": "0007_cadence_showcase_golden_and_cache",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795600000000,
+      "tag": "0008_drop_menu_item_k8s_columns",
+      "breakpoints": true
     }
   ]
 }

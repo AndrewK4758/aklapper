@@ -148,7 +148,7 @@ const GOLDEN_SHOWCASE_DEFINITIONS = [
       summary:
         'Verifies additive schema expansion, rolling pod compatibility, and reversible down-migration hygiene on ephemeral PG19.',
       conditions: [
-        'Production pods roll sequentially across Cloud Run and GKE Autopilot while sharing one PostgreSQL 19 schema.',
+        'Production revisions roll sequentially across Cloud Run services while sharing one PostgreSQL 19 schema.',
       ],
       handling: [
         'Use additive nullable or defaulted columns in Expand phase with idempotent SQL guards.',
@@ -196,7 +196,7 @@ const GOLDEN_SHOWCASE_DEFINITIONS = [
       summary:
         'Audits caller state resets, post-commit ambiguity, lock ordering, temporal cache asymmetry, and coupled-tuple atomicity.',
       conditions: [
-        'Distributed requests span Cloud Run SSR, GKE Go microservices, PostgreSQL 19, Qdrant, and streaming LLM providers.',
+        'Distributed requests span Cloud Run SSR, Cloud Run Go microservices, PostgreSQL 19, Qdrant, and streaming LLM providers.',
       ],
       handling: [
         'Enforce strict FOR UPDATE lock ordering across sandbox_runs and rate_limit_buckets.',

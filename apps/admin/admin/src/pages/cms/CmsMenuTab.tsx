@@ -36,7 +36,6 @@ export function CmsMenuTab({ menuItems }: CmsMenuTabProps) {
               <th>Key</th>
               <th>Slug</th>
               <th>Title</th>
-              <th>Target Deploy</th>
               <th>Order</th>
               <th>Flags</th>
               <th>Actions</th>
@@ -50,9 +49,6 @@ export function CmsMenuTab({ menuItems }: CmsMenuTabProps) {
                   <code>{item.slug}</code>
                 </td>
                 <td>{item.title}</td>
-                <td>
-                  <code>{item.targetK8sDeploy ?? 'local'}</code> ({item.namespace ?? 'none'})
-                </td>
                 <td>{item.sortOrder}</td>
                 <td>
                   {item.enabled ? 'enabled' : 'disabled'} · {item.adminOnly ? 'admin' : 'public'}
@@ -74,12 +70,6 @@ export function CmsMenuTab({ menuItems }: CmsMenuTabProps) {
                     <input type='hidden' name='keyShortcut' value={item.keyShortcut} />
                     <input type='hidden' name='title' value={item.title} />
                     <input type='hidden' name='description' value={item.description} />
-                    <input
-                      type='hidden'
-                      name='targetK8sDeploy'
-                      value={item.targetK8sDeploy ?? ''}
-                    />
-                    <input type='hidden' name='namespace' value={item.namespace ?? ''} />
                     <input type='hidden' name='sortOrder' value={String(item.sortOrder)} />
                     <input type='hidden' name='enabled' value={String(!item.enabled)} />
                     <input type='hidden' name='adminOnly' value={String(item.adminOnly)} />
@@ -133,21 +123,6 @@ export function CmsMenuTab({ menuItems }: CmsMenuTabProps) {
             <Field.Root>
               <Field.Label>Title</Field.Label>
               <Field.Control name='title' defaultValue={editingMenuItem?.title ?? ''} required />
-            </Field.Root>
-            <Field.Root>
-              <Field.Label>Target Deployment</Field.Label>
-              <Field.Control
-                name='targetK8sDeploy'
-                defaultValue={editingMenuItem?.targetK8sDeploy ?? ''}
-                placeholder='svc-portal'
-              />
-            </Field.Root>
-            <Field.Root>
-              <Field.Label>Namespace</Field.Label>
-              <Field.Control
-                name='namespace'
-                defaultValue={editingMenuItem?.namespace ?? 'portfolio-public'}
-              />
             </Field.Root>
             <Field.Root>
               <Field.Label>Sort Order</Field.Label>

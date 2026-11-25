@@ -40,8 +40,8 @@ import {
 
 import type { Route } from './+types/root';
 import { reportPortalPublicError } from './client-telemetry';
-import { useClusterTelemetry } from './cluster-stream';
 import { OfflineMaintenanceFallback, PortalRootShell } from './PortalRootShell';
+import { useRuntimeStatusTelemetry } from './runtime-status';
 import {
   DEFAULT_PORTAL_MAINTENANCE_DESCRIPTION,
   DEFAULT_PORTAL_SITE_URL,
@@ -120,7 +120,7 @@ export function meta({ loaderData, location }: Route.MetaArgs) {
       : 'andrew-k.us // Solar Forge Terminal',
     description: isNoIndex
       ? DEFAULT_PORTAL_MAINTENANCE_DESCRIPTION
-      : 'Interactive Solar Forge portfolio terminal, CADENCE sandboxed artifact builder, and GKE Autopilot scale-from-zero microservices showcase by Andrew Klapper.',
+      : 'Interactive Solar Forge portfolio terminal, CADENCE sandboxed artifact builder, and Cloud Run scale-to-zero Go microservices showcase by Andrew Klapper.',
     siteName: PORTAL_SITE_NAME,
     siteUrl,
     pathname,
@@ -167,7 +167,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
 export default function PortalRoot({ loaderData }: Route.ComponentProps) {
   useAnimatedFavicon();
-  const cluster = useClusterTelemetry();
+  const runtimeStatus = useRuntimeStatusTelemetry();
   const location = useLocation();
   const navigate = useNavigate();
   const pathname = normalizePathname(location.pathname);
@@ -207,7 +207,7 @@ export default function PortalRoot({ loaderData }: Route.ComponentProps) {
             <PortalRootShell
               data={data}
               pathname={pathname}
-              cluster={cluster}
+              runtimeStatus={runtimeStatus}
               navigate={navigate}
             />
           )}

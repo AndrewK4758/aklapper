@@ -7,7 +7,7 @@ import {
   type PortalContactLoaderData,
 } from '@aklapper/core';
 import { ContactDbConstraintError } from '@aklapper/db';
-import { INTERNAL_AUTH_HEADER, verifyInternalAuthToken } from '@aklapper/node-runtime/http';
+import { INTERNAL_AUTH_HEADER } from '@aklapper/node-runtime/http';
 import { requestContextKey, type SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
 import { RouterContextProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -364,27 +364,17 @@ describe('processContactSubmission & resource action routes', () => {
     expect(errorCalls).toHaveLength(3);
   });
 
-  it('persists contact directly to PG19 without outbound CONTACT_API_URL calls and signs public cluster SSE proxies', async () => {
+  it('persists contact directly to PG19 without outbound CONTACT_API_URL calls', async () => {
     const origContactUrl = process.env['CONTACT_API_URL'];
-    const origWatchUrl = process.env['K8S_WATCH_URL'];
-    const origSecret = process.env['INTERNAL_AUTH_SECRET'];
     const capturedCalls: Array<{ url: string; token: string | null }> = [];
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
       capturedCalls.push({ url, token: new Headers(init?.headers).get(INTERNAL_AUTH_HEADER) });
-      if (url.endsWith('/v1/cluster/stream')) {
-        return new Response('event: pod\ndata: {"deployment":"cadence-demo"}\n\n', {
-          status: 200,
-          headers: { 'content-type': 'text/event-stream' },
-        });
-      }
       throw new Error(`Unexpected outbound fetch to ${url}`);
     });
 
     try {
       process.env['CONTACT_API_URL'] = 'http://127.0.0.1:1';
-      process.env['K8S_WATCH_URL'] = 'http://127.0.0.1:8081';
-      process.env['INTERNAL_AUTH_SECRET'] = 'portal-bff-test-secret';
 
       loadPortalContactDataMock.mockResolvedValue(CONTACT_LOADER_FIXTURE);
       insertContactSubmissionMock.mockResolvedValueOnce({
@@ -410,31 +400,11 @@ describe('processContactSubmission & resource action routes', () => {
       expect(res.status).toBe(201);
       await new Promise(resolve => setTimeout(resolve, 0));
 
-      const { loader: clusterStreamLoader } = await import('./api.cluster.stream');
-      const sseRes = await clusterStreamLoader({
-        request: new Request('http://localhost/api/cluster/stream'),
-        params: {},
-        context: new RouterContextProvider(),
-        url: new URL('http://localhost/api/cluster/stream'),
-        pattern: '/api/cluster/stream',
-      } as never);
-      expect(sseRes.status).toBe(200);
-
       expect(capturedCalls.some(c => c.url.includes('/v1/contact/notify'))).toBe(false);
-      const streamCall = capturedCalls.find(c => c.url.endsWith('/v1/cluster/stream'));
-      expect(streamCall?.token).toBeTruthy();
-
-      const streamClaims = verifyInternalAuthToken(streamCall?.token, 'portal-bff-test-secret');
-      expect(streamClaims?.role).toBe('service');
-      expect(streamClaims?.sub).toBe('portal-cluster-stream');
     } finally {
       fetchSpy.mockRestore();
       if (origContactUrl === undefined) delete process.env['CONTACT_API_URL'];
       else process.env['CONTACT_API_URL'] = origContactUrl;
-      if (origWatchUrl === undefined) delete process.env['K8S_WATCH_URL'];
-      else process.env['K8S_WATCH_URL'] = origWatchUrl;
-      if (origSecret === undefined) delete process.env['INTERNAL_AUTH_SECRET'];
-      else process.env['INTERNAL_AUTH_SECRET'] = origSecret;
     }
   });
 

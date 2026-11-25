@@ -27,16 +27,17 @@ import {
   GroundingTierSchema,
   JdMatchEvaluationSchema,
   JdMatchRequestSchema,
-  K8sPodEventSchema,
   MenuItemSchema,
   Osc7501StatusSchema,
   parseCadenceSseEvent,
+  ADMIN_ROUTE_PATHS,
   PORTAL_NAVIGABLE_ROUTE_PATHS,
   PORTAL_ROUTE_PATHS,
   type PortalAgensiLoaderData,
   PortalAskContentSchema,
   PortalChromeContentSchema,
   resolveAllowedMimeType,
+  RuntimeServiceHealthSnapshotSchema,
   sanitizeFilename,
   TerminalDirectoryEntryUpsertSchema,
   TerminalProfileDataSchema,
@@ -49,9 +50,7 @@ describe('@aklapper/core (contracts)', () => {
       slug: 'cadence',
       keyShortcut: '1',
       title: 'CADENCE Builder',
-      description: 'Interactive spec-to-artifact sandbox on live GKE pods',
-      targetK8sDeploy: 'svc-cadence-demo',
-      namespace: 'portfolio-public',
+      description: 'Interactive spec-to-artifact sandbox on Cloud Run',
       adminOnly: false,
       sortOrder: 1,
       enabled: true,
@@ -59,30 +58,48 @@ describe('@aklapper/core (contracts)', () => {
 
     expect(parsed.slug).toBe('cadence');
     expect(parsed.adminOnly).toBe(false);
+    expect('targetK8sDeploy' in parsed).toBe(false);
+    expect('namespace' in parsed).toBe(false);
   });
 
-  it('validates K8s Watch and OSC 7501 events', () => {
+  it('validates RuntimeServiceHealthSnapshot and OSC 7501 events and route path parity', () => {
     const now = new Date().toISOString();
-    const podEvent = K8sPodEventSchema.parse({
-      eventId: 'evt-1',
-      namespace: 'portfolio-public',
-      deployment: 'svc-cadence-demo',
-      podName: 'svc-cadence-demo-abc12',
-      phase: 'TriggeredScaleUp',
-      ready: false,
-      message: 'Scaled replicas 0 -> 1',
-      timestamp: now,
+    const snapshot = RuntimeServiceHealthSnapshotSchema.parse({
+      runtime: 'cloud-run',
+      services: [
+        {
+          service: 'portal',
+          runtime: 'cloud-run',
+          status: 'healthy',
+          latencyMs: 12,
+          checkedAt: now,
+        },
+        {
+          service: 'ai-ask',
+          runtime: 'cloud-run',
+          status: 'healthy',
+          latencyMs: 34,
+          checkedAt: now,
+        },
+      ],
+      summaryLabel: 'Cloud Run · 2/2 healthy',
+      checkedAt: now,
+      cached: true,
     });
     const status = Osc7501StatusSchema.parse({
-      source: 'svc-cadence-demo',
-      state: 'scaling',
-      label: 'Waking GKE pod 0 -> 1',
+      source: 'cadence-demo',
+      state: 'running',
+      label: 'Running on Cloud Run',
       progress: 35,
       timestamp: now,
     });
 
-    expect(podEvent.phase).toBe('TriggeredScaleUp');
-    expect(status.state).toBe('scaling');
+    expect(snapshot.cached).toBe(true);
+    expect(status.state).toBe('running');
+    expect(PORTAL_ROUTE_PATHS).toContain('/api/runtime/status');
+    expect(PORTAL_ROUTE_PATHS).not.toContain('/api/cluster/stream');
+    expect(ADMIN_ROUTE_PATHS).toContain('/api/ops/runtime/status');
+    expect(ADMIN_ROUTE_PATHS).not.toContain('/api/ops/cluster/stream');
   });
 
   it('enforces CADENCE prompt bounds and analytics batches', () => {

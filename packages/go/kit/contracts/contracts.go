@@ -7,8 +7,6 @@ import (
 )
 
 const (
-	PublicNamespace = "portfolio-public"
-
 	RoleGuest = "guest"
 	RoleAdmin = "admin"
 
@@ -60,17 +58,6 @@ type Osc7501Status struct {
 	Label     string    `json:"label"`
 	Progress  *int      `json:"progress,omitempty"`
 	Timestamp time.Time `json:"timestamp"`
-}
-
-type K8sPodEvent struct {
-	EventID    string    `json:"eventId"`
-	Namespace  string    `json:"namespace"`
-	Deployment string    `json:"deployment"`
-	PodName    string    `json:"podName"`
-	Phase      string    `json:"phase"`
-	Ready      bool      `json:"ready"`
-	Message    string    `json:"message"`
-	Timestamp  time.Time `json:"timestamp"`
 }
 
 type QuotaStatus struct {
@@ -318,13 +305,11 @@ func ValidateUUID(value string) bool {
 }
 
 type MenuItem struct {
-	Slug            string  `json:"slug"`
-	KeyShortcut     string  `json:"keyShortcut"`
-	Title           string  `json:"title"`
-	Description     string  `json:"description"`
-	TargetK8sDeploy *string `json:"targetK8sDeploy"`
-	Namespace       *string `json:"namespace"`
-	AdminOnly       bool    `json:"adminOnly"`
-	SortOrder       int     `json:"sortOrder"`
-	Enabled         bool    `json:"enabled"`
+	Slug        string `json:"slug"`
+	KeyShortcut string `json:"keyShortcut"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	AdminOnly   bool   `json:"adminOnly"`
+	SortOrder   int    `json:"sortOrder"`
+	Enabled     bool   `json:"enabled"`
 }

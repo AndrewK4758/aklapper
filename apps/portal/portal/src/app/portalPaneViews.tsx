@@ -1,4 +1,4 @@
-import type { K8sPodEvent, PortalHomeContent } from '@aklapper/core';
+import type { PortalHomeContent } from '@aklapper/core';
 import {
   Button,
   LazyChunkBoundary,
@@ -104,7 +104,6 @@ function UnknownPaneView({ ctx }: { readonly ctx: TerminalPaneViewContext }) {
 export interface RenderPortalPaneViewOptions {
   readonly ctx: TerminalPaneViewContext;
   readonly homeContent?: PortalHomeContent;
-  readonly deployments?: Readonly<Record<string, K8sPodEvent>>;
 }
 
 export function renderPortalPaneView({ ctx, homeContent }: RenderPortalPaneViewOptions): ReactNode {

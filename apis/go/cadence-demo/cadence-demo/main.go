@@ -16,7 +16,6 @@ import (
 	"github.com/AndrewK4758/aklapper/packages/go/kit/grpckit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
-	"github.com/AndrewK4758/aklapper/packages/go/kit/k8sevents"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/llm"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/privacy"
@@ -139,7 +138,7 @@ func newHandlerWithDeps(deps cadenceServiceDeps) http.Handler {
 			role = contracts.RoleAdmin
 		}
 		quota, _ := deps.store.GetQuotaStatus(r.Context(), role, sessionID)
-		contractRun := pg.SandboxRunToContractResult(updated, &quota, &queuedStatus, k8sevents.FormatOSC7501(queuedStatus))
+		contractRun := pg.SandboxRunToContractResult(updated, &quota, &queuedStatus, contracts.FormatOSC7501(queuedStatus))
 		httpkit.WriteJSON(w, http.StatusAccepted, map[string]any{
 			"runId":  updated.RunID,
 			"status": updated.Status,
@@ -330,7 +329,7 @@ func newHandlerWithDeps(deps cadenceServiceDeps) http.Handler {
 				Progress:  &pct,
 				Timestamp: time.Now().UTC(),
 			}
-			res := pg.SandboxRunToContractResult(pendingRun, &quota, &queuedStatus, k8sevents.FormatOSC7501(queuedStatus))
+			res := pg.SandboxRunToContractResult(pendingRun, &quota, &queuedStatus, contracts.FormatOSC7501(queuedStatus))
 			httpkit.WriteJSON(w, http.StatusAccepted, res)
 			return
 		}

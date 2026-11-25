@@ -14,8 +14,6 @@ export const MenuItemSchema = z.object({
   keyShortcut: z.string().min(1).max(4),
   title: z.string().min(1),
   description: z.string(),
-  targetK8sDeploy: z.string().nullable(),
-  namespace: z.string().nullable(),
   adminOnly: z.boolean(),
   sortOrder: z.number().int().nonnegative(),
   enabled: z.boolean(),
@@ -33,25 +31,6 @@ export const Osc7501StatusSchema = z.object({
   timestamp: z.iso.datetime(),
 });
 export type Osc7501Status = z.infer<typeof Osc7501StatusSchema>;
-
-export const K8sPodEventSchema = z.object({
-  eventId: z.string().min(1),
-  namespace: z.string().min(1),
-  deployment: z.string().min(1),
-  podName: z.string().min(1),
-  phase: z.enum([
-    'ScaledZero',
-    'TriggeredScaleUp',
-    'Pending',
-    'ContainerCreating',
-    'Running',
-    'Terminating',
-  ]),
-  ready: z.boolean(),
-  message: z.string(),
-  timestamp: z.iso.datetime(),
-});
-export type K8sPodEvent = z.infer<typeof K8sPodEventSchema>;
 
 export const CadenceRunModeSchema = z.enum(['fast', 'llm']);
 export type CadenceRunMode = z.infer<typeof CadenceRunModeSchema>;
@@ -339,7 +318,7 @@ export const DEFAULT_PORTAL_ASK_VISITOR_LENSES: readonly VisitorLens[] = [
   {
     id: 'engineering-peer',
     label: 'Engineering Peer',
-    description: 'Deep dives on Go, TypeScript SSR, PostgreSQL 19, and Kubernetes.',
+    description: 'Deep dives on Go, TypeScript SSR, PostgreSQL 19, and Cloud Run.',
     starterQuestions: [
       'How does this portfolio combine streaming React Router SSR, Go services, and Qdrant?',
       'What concurrency and database reliability patterns does Andrew use in PostgreSQL 19?',

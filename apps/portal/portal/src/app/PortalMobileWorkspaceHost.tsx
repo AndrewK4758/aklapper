@@ -6,8 +6,8 @@ import { href, Link, Outlet } from 'react-router';
 
 import { PortalLauncherTui } from '#pages/home';
 
-import type { ClusterTelemetrySnapshot } from './cluster-stream';
 import { renderPortalPaneView } from './portalPaneViews';
+import type { RuntimeStatusTelemetrySnapshot } from './runtime-status';
 
 import styles from './root.module.css';
 
@@ -34,7 +34,7 @@ export interface PortalMobileWorkspaceHostProps {
   readonly layoutMode: 'mobile-portrait' | 'mobile-landscape';
   readonly data: PortalRootLoaderData;
   readonly pathname: string;
-  readonly cluster: ClusterTelemetrySnapshot;
+  readonly runtimeStatus: RuntimeStatusTelemetrySnapshot;
   readonly navigate: (to: string) => void | Promise<void>;
 }
 
@@ -42,7 +42,7 @@ export function PortalMobileWorkspaceHost({
   layoutMode,
   data,
   pathname,
-  cluster,
+  runtimeStatus,
   navigate,
 }: PortalMobileWorkspaceHostProps) {
   const [paneStack, setPaneStack] = useState<readonly string[]>([]);
@@ -67,9 +67,13 @@ export function PortalMobileWorkspaceHost({
   };
 
   const { chrome, homeContent } = data;
-  const headerBadgeState = cluster.connected ? cluster.summaryState : chrome.statusBadge.state;
+  const headerBadgeState = runtimeStatus.loaded
+    ? runtimeStatus.summaryState
+    : chrome.statusBadge.state;
   const headerBadgeLabel =
-    cluster.connected && cluster.summaryLabel ? cluster.summaryLabel : chrome.statusBadge.label;
+    runtimeStatus.loaded && runtimeStatus.summaryLabel
+      ? runtimeStatus.summaryLabel
+      : chrome.statusBadge.label;
 
   const mobileNavItems: readonly MobileNavItem[] = PORTAL_MOBILE_NAV.map(item => ({
     id: item.id,
@@ -166,7 +170,6 @@ export function PortalMobileWorkspaceHost({
             openInTab: pushPane,
           },
           homeContent,
-          deployments: cluster.deployments,
         })
       }
     >

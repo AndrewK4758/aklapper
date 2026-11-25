@@ -1,6 +1,5 @@
 import {
   AdminGateOverrideSchema,
-  AdminWakeDeploymentSchema,
   createPublicAppError,
   type QdrantHealthStatus,
   type StreamResult,
@@ -29,12 +28,7 @@ import {
   QdrantRuntimeStatusBody,
 } from '#pages/ops';
 
-import {
-  fetchQdrantStatus,
-  requireAdminSession,
-  triggerClusterWake,
-  triggerQdrantReindex,
-} from '../admin-ops.server';
+import { fetchQdrantStatus, requireAdminSession, triggerQdrantReindex } from '../admin-ops.server';
 import { reportAdminPublicError } from '../client-telemetry';
 import { buildAdminPageMeta } from '../seo';
 import type { Route } from './+types/ops';
@@ -57,7 +51,6 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Ad
         const sandboxRuns = await listAdminSandboxRuns(db, 25);
         return {
           sandboxRuns,
-          k8sWatchConfigured: Boolean(process.env['K8S_WATCH_URL']?.trim()),
         };
       })(),
       { request, context, source: 'admin.ops.loader' },
@@ -96,39 +89,6 @@ export async function action({ request, context }: Route.ActionArgs) {
   const intent = String(formData.get('intent') ?? '');
 
   try {
-    if (intent === 'wake-deployment') {
-      const { deployment } = AdminWakeDeploymentSchema.parse({
-        deployment: formData.get('deployment'),
-      });
-      const result = await triggerClusterWake(deployment);
-      if (result.ok) {
-        return data<AdminOpsActionData>(
-          { ok: true, message: result.message },
-          { status: 200, headers },
-        );
-      }
-      const upstreamError = Object.assign(new Error(result.message), {
-        status: 503,
-        statusText: 'Service Unavailable',
-        data: null,
-      });
-      const { publicError, diagnostic } = classifyServerError(upstreamError, {
-        correlationId,
-        source: 'admin.ops.action.wake_deployment',
-      });
-      logDiagnosticError(logger, diagnostic);
-      return data<AdminOpsActionData>(
-        {
-          ok: false,
-          message: publicError.message,
-          code: publicError.code,
-          action: publicError.action,
-          correlationId: publicError.correlationId,
-        },
-        { status: publicError.status, headers },
-      );
-    }
-
     if (intent === 'override-gate') {
       const parsed = AdminGateOverrideSchema.parse({
         runId: formData.get('runId'),
@@ -251,9 +211,9 @@ export function meta({ matches, location }: Route.MetaArgs) {
   return buildAdminPageMeta({
     matches,
     pathname: location.pathname,
-    title: 'Cluster & CADENCE Ops // admin.andrew-k.us',
+    title: 'Runtime Health & CADENCE Ops // admin.andrew-k.us',
     description:
-      'GKE portfolio-public pod watcher, Qdrant index management, and PostgreSQL sandbox gate audit.',
+      'Cloud Run / Docker runtime health, Qdrant index management, and PostgreSQL sandbox gate audit.',
   });
 }
 

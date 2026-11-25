@@ -8,6 +8,7 @@ import {
   MenuItemSchema,
   RoadmapMilestoneStatusSchema,
 } from './portal.ts';
+import { RuntimeServiceHealthSnapshotSchema } from './runtime-health.ts';
 import {
   TerminalCommandKindSchema,
   TerminalEntryStatusSchema,
@@ -132,8 +133,6 @@ export const MenuItemUpsertSchema = z.object({
   keyShortcut: z.string().trim().min(1).max(4),
   title: z.string().trim().min(1).max(120),
   description: z.string().trim().max(400),
-  targetK8sDeploy: z.string().trim().max(120).nullable(),
-  namespace: z.string().trim().max(120).nullable(),
   adminOnly: z.boolean(),
   sortOrder: z.coerce.number().int().min(0).max(1000),
   enabled: z.boolean(),
@@ -278,7 +277,7 @@ export type AdminSandboxRun = z.infer<typeof AdminSandboxRunSchema>;
 export const AdminOpsLoaderDataSchema = z.object({
   qdrantStatus: QdrantHealthStatusSchema,
   sandboxRuns: z.array(AdminSandboxRunSchema),
-  k8sWatchConfigured: z.boolean(),
+  runtimeHealth: RuntimeServiceHealthSnapshotSchema.optional(),
 });
 export type AdminOpsLoaderData = z.infer<typeof AdminOpsLoaderDataSchema>;
 
@@ -287,13 +286,3 @@ export const AdminGateOverrideSchema = z.object({
   gateVerdict: CadenceGateVerdictSchema,
 });
 export type AdminGateOverrideInput = z.infer<typeof AdminGateOverrideSchema>;
-
-export const AdminWakeDeploymentSchema = z.object({
-  deployment: z
-    .string()
-    .trim()
-    .min(1)
-    .max(120)
-    .regex(/^[a-z0-9-]+$/),
-});
-export type AdminWakeDeploymentInput = z.infer<typeof AdminWakeDeploymentSchema>;

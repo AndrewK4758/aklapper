@@ -509,38 +509,18 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(dbCall.logger.error).toHaveBeenCalledTimes(1);
   });
 
-  it('returns honest 200, 400, 404, and 503 responses in ops action including upstream wake/reindex failures', async () => {
-    const wakeSimCall = makeActionArgs(
+  it('returns honest 200, 400, 404, and 503 responses in ops action including upstream reindex failures', async () => {
+    const retiredWakeCall = makeActionArgs(
       'http://localhost:4301/ops',
       '/ops',
       { intent: 'wake-deployment', deployment: 'svc-ai-ask' },
-      'corr-ops-wake-200',
+      'corr-ops-retired-wake-400',
     );
-    const wakeSimRes = (await opsAction(wakeSimCall.args as never)) as unknown as DataWithStatus;
-    expect(wakeSimRes.init?.status).toBe(200);
-    expect(wakeSimRes.data['ok']).toBe(true);
-
-    process.env['K8S_WATCH_URL'] = 'http://127.0.0.1:9999';
-    const fetchSpy = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ error: 'cluster watch down' }), { status: 502 }),
-      );
-    try {
-      const wakeFailCall = makeActionArgs(
-        'http://localhost:4301/ops',
-        '/ops',
-        { intent: 'wake-deployment', deployment: 'svc-ai-ask' },
-        'corr-ops-wake-503',
-      );
-      const wakeFailRes = (await opsAction(
-        wakeFailCall.args as never,
-      )) as unknown as DataWithStatus;
-      expectUpstream503(wakeFailRes, wakeFailCall.logger, 'corr-ops-wake-503');
-    } finally {
-      fetchSpy.mockRestore();
-      delete process.env['K8S_WATCH_URL'];
-    }
+    const retiredWakeRes = (await opsAction(
+      retiredWakeCall.args as never,
+    )) as unknown as DataWithStatus;
+    expect(retiredWakeRes.init?.status).toBe(400);
+    expect(retiredWakeRes.data['ok']).toBe(false);
 
     const reindexFailCall = makeActionArgs(
       'http://localhost:4301/ops',

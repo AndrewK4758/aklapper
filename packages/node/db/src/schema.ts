@@ -23,8 +23,6 @@ export const menuItems = pgTable('menu_items', {
   keyShortcut: text('key_shortcut').notNull(),
   title: text('title').notNull(),
   description: text('description').notNull(),
-  targetK8sDeploy: text('target_k8s_deploy'),
-  namespace: text('namespace'),
   adminOnly: boolean('admin_only').notNull().default(false),
   sortOrder: integer('sort_order').notNull().default(0),
   enabled: boolean('enabled').notNull().default(true),

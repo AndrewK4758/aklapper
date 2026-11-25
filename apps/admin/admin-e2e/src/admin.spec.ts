@@ -64,8 +64,8 @@ test.describe('admin SSR end-to-end journeys', () => {
     );
     expect(attachmentRes.status()).toBe(401);
 
-    const sseRes = await request.get('/api/ops/cluster/stream');
-    expect(sseRes.status()).toBe(401);
+    const runtimeStatusRes = await request.get('/api/ops/runtime/status');
+    expect(runtimeStatusRes.status()).toBe(401);
 
     const unauthReg = await request.post('/api/auth/passkey/register/options', { data: {} });
     expect(unauthReg.status()).toBe(401);
@@ -332,12 +332,10 @@ test.describe('admin SSR end-to-end journeys', () => {
 
         await page.getByRole('link', { name: 'Ops', exact: true }).click();
         await expect(page).toHaveURL(/\/ops$/);
-        await page.getByRole('button', { name: 'Wake svc-cadence-demo' }).click();
-        await expect(
-          page.getByText(
-            /Simulated wake queued for svc-cadence-demo|Wake signal delivered to svc-cadence-demo/i,
-          ),
-        ).toBeVisible();
+        await expect(page.getByText('Cloud Run / Docker Runtime Health')).toBeVisible();
+        await expect(page.getByRole('button', { name: /Wake/i })).toHaveCount(0);
+        await page.getByRole('button', { name: 'Refresh Health' }).click();
+        await expect(page.getByText(/Cloud Run|Docker/i).first()).toBeVisible();
 
         // Sign out and sign back in via discoverable passkey (blank handle)
         await page.getByRole('button', { name: 'Sign Out' }).click();

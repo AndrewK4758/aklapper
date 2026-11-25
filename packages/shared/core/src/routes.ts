@@ -24,7 +24,7 @@ export const PORTAL_ROUTE_PATHS = [
   '/api/ask/stream',
   '/api/ask/turns/:attemptId',
   '/api/analytics/ingest',
-  '/api/cluster/stream',
+  '/api/runtime/status',
   '/api/cadence/runs/:runId/stream',
   '/changes-in-progress',
 ] as const;
@@ -41,7 +41,7 @@ export const ADMIN_ROUTE_PATHS = [
   '/quotas',
   '/ops',
   '/api/analytics/ingest',
-  '/api/ops/cluster/stream',
+  '/api/ops/runtime/status',
 ] as const;
 
 export type AdminRoutePath = (typeof ADMIN_ROUTE_PATHS)[number];

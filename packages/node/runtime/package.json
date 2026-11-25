@@ -65,6 +65,12 @@
       "types": "./dist/privacy.d.ts",
       "import": "./dist/privacy.js",
       "default": "./dist/privacy.js"
+    },
+    "./runtime-health": {
+      "@aklapper/source": "./src/runtime-health.ts",
+      "types": "./dist/runtime-health.d.ts",
+      "import": "./dist/runtime-health.js",
+      "default": "./dist/runtime-health.js"
     }
   },
   "dependencies": {
