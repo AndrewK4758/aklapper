@@ -15,4 +15,5 @@ export * from './rbac.ts';
 export * from './routes.ts';
 export * from './seo.ts';
 export * from './site-content-registry.ts';
+export * from './terminal-shortcuts.ts';
 export * from './terminal.ts';

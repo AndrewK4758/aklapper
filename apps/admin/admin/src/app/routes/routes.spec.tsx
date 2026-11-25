@@ -274,7 +274,7 @@ describe('Admin streaming routes, auth guards & SEO', () => {
               chrome: {
                 pageTitle: 'admin.andrew-k.us // Solar Forge Ops',
                 brandLabel: 'admin.andrew-k.us',
-                shortcutHint: 'Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit · Alt+⇧T tab',
+                shortcutHint: 'Ctrl+⇧} / Alt+⇧D split · Ctrl+⇧{ / Alt+⇧S hsplit · Alt+⇧N tab',
                 statusBadge: { source: 'passkey-gate', state: 'ready', label: 'isolated ops' },
               },
               terminal: ADMIN_OPS_TERMINAL_PROFILE,
@@ -313,7 +313,9 @@ describe('Admin streaming routes, auth guards & SEO', () => {
     const boundaryAlert = await screen.findByRole('alert');
     expect(boundaryAlert.textContent).toContain('ERR_INTERNAL');
     expect(screen.getByText('admin.andrew-k.us')).toBeTruthy();
-    expect(screen.getByText('Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit · Alt+⇧T tab')).toBeTruthy();
+    expect(
+      screen.getByText('Ctrl+⇧} / Alt+⇧D split · Ctrl+⇧{ / Alt+⇧S hsplit · Alt+⇧N tab'),
+    ).toBeTruthy();
 
     const workspaceEl = container.querySelector('[data-pane-count]') as HTMLElement;
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
@@ -325,7 +327,7 @@ describe('Admin streaming routes, auth guards & SEO', () => {
     fireEvent.submit(input.closest('form') as HTMLFormElement);
     expect(screen.getByText('admin@andrew-k.us (isolated ops shell)')).toBeTruthy();
 
-    fireEvent.keyDown(window, { key: 'W', ctrlKey: true, shiftKey: true });
+    fireEvent.keyDown(window, { key: 'W', code: 'KeyW', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
   });
 

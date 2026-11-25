@@ -1,3 +1,4 @@
+import { matchTerminalReadlineShortcut, type TerminalReadlineAction } from '@aklapper/core';
 import {
   type ChangeEvent,
   type DragEvent,
@@ -6,6 +7,7 @@ import {
   type ReactNode,
   type SyntheticEvent,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -32,6 +34,10 @@ import {
   type TerminalFormConfig,
   type TerminalFormSessionState,
 } from './terminalFormSession';
+import {
+  TerminalReadlineRegistryContext,
+  type ZshTerminalHandle,
+} from './terminalReadlineRegistryContext';
 
 import styles from './ZshP10kTerminal.module.css';
 
@@ -638,6 +644,86 @@ export function ZshP10kTerminal({
     }
   };
 
+  const readlineRegistry = useContext(TerminalReadlineRegistryContext);
+
+  const hasActiveTextSelection = (selStart: number, selEnd: number): boolean => {
+    if (selStart !== selEnd) {
+      return true;
+    }
+    const docSelection =
+      typeof window !== 'undefined' ? (window.getSelection()?.toString() ?? '') : '';
+    return docSelection.length > 0;
+  };
+
+  const applyReadlineAction = (
+    action: TerminalReadlineAction,
+    targetEl?: HTMLInputElement | HTMLTextAreaElement | null,
+  ) => {
+    if (action === 'clear') {
+      setEntries([]);
+      if (!isSubmittingForm) {
+        focusActiveInput();
+      }
+      return;
+    }
+
+    if (formSession !== null || isSubmittingForm) {
+      return;
+    }
+
+    const el = targetEl ?? (isTextareaStep ? textareaRef.current : inputRef.current);
+    const selStart = el?.selectionStart ?? input.length;
+    const selEnd = el?.selectionEnd ?? input.length;
+
+    switch (action) {
+      case 'kill-to-start':
+        setInput(input.slice(selStart));
+        if (el) {
+          scheduleCaret(el, 0);
+        }
+        focusActiveInput();
+        return;
+      case 'kill-to-end':
+        setInput(input.slice(0, selStart));
+        if (el) {
+          scheduleCaret(el, selStart);
+        }
+        focusActiveInput();
+        return;
+      case 'delete-word-back': {
+        const before = input.slice(0, selStart).replace(/\S+\s*$/, '');
+        const after = input.slice(selEnd);
+        setInput(`${before}${after}`);
+        if (el) {
+          scheduleCaret(el, before.length);
+        }
+        focusActiveInput();
+        return;
+      }
+      case 'history-prev':
+        navigateHistoryOlder();
+        focusActiveInput();
+        return;
+      case 'history-next':
+        navigateHistoryNewer();
+        focusActiveInput();
+        return;
+    }
+  };
+
+  const handleTerminalSectionRef = (node: HTMLElement | null) => {
+    if (!node || !readlineRegistry) {
+      return;
+    }
+    const handle: ZshTerminalHandle = {
+      executeReadlineAction: action => {
+        applyReadlineAction(action);
+      },
+      containsTarget: target => target instanceof Node && node.contains(target),
+    };
+    return readlineRegistry.registerHandle(readlineRegistry.paneId, handle);
+  };
+
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const el = event.currentTarget;
     const keyLower = event.key.toLowerCase();
@@ -648,11 +734,11 @@ export function ZshP10kTerminal({
     if (formSession !== null) {
       if (isCtrlOnly && keyLower === 'l') {
         event.preventDefault();
-        setEntries([]);
+        applyReadlineAction('clear', el);
         return;
       }
       if (isCtrlOnly && keyLower === 'c') {
-        if (selStart !== selEnd) {
+        if (hasActiveTextSelection(selStart, selEnd)) {
           return;
         }
         event.preventDefault();
@@ -690,14 +776,17 @@ export function ZshP10kTerminal({
       return;
     }
 
+    const readlineAction = matchTerminalReadlineShortcut(event);
+    if (readlineAction) {
+      event.preventDefault();
+      applyReadlineAction(readlineAction, el);
+      return;
+    }
+
     if (isCtrlOnly) {
       switch (keyLower) {
-        case 'l':
-          event.preventDefault();
-          setEntries([]);
-          return;
         case 'c': {
-          if (selStart !== selEnd) {
+          if (hasActiveTextSelection(selStart, selEnd)) {
             return;
           }
           event.preventDefault();
@@ -716,24 +805,6 @@ export function ZshP10kTerminal({
           setHistoryCursor(-1);
           return;
         }
-        case 'u':
-          event.preventDefault();
-          setInput(input.slice(selStart));
-          scheduleCaret(el, 0);
-          return;
-        case 'k':
-          event.preventDefault();
-          setInput(input.slice(0, selStart));
-          scheduleCaret(el, selStart);
-          return;
-        case 'w': {
-          event.preventDefault();
-          const before = input.slice(0, selStart).replace(/\S+\s*$/, '');
-          const after = input.slice(selEnd);
-          setInput(`${before}${after}`);
-          scheduleCaret(el, before.length);
-          return;
-        }
         case 'a':
           event.preventDefault();
           el.setSelectionRange(0, 0);
@@ -747,14 +818,6 @@ export function ZshP10kTerminal({
           } else {
             el.setSelectionRange(input.length, input.length);
           }
-          return;
-        case 'p':
-          event.preventDefault();
-          navigateHistoryOlder();
-          return;
-        case 'n':
-          event.preventDefault();
-          navigateHistoryNewer();
           return;
       }
     }
@@ -868,7 +931,9 @@ export function ZshP10kTerminal({
   return (
     // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- drag-and-drop dropzone on terminal landmark; keyboard parity via attach button
     <section
+      ref={handleTerminalSectionRef}
       className={styles.terminal}
+      data-terminal-root='true'
       data-variant={variant}
       data-active={isActive ? 'true' : 'false'}
       data-form-mode={formSession ? formSession.definition.cliCommand : undefined}

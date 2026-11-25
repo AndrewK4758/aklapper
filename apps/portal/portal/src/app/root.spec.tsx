@@ -27,7 +27,7 @@ const CHROME_FIXTURE: PortalRootLoaderData['chrome'] = {
   pageTitle: 'andrew-k.us // Solar Forge Terminal',
   brandLabel: 'Andrew Klapper Portfolio',
   brandContactEmail: 'andrew@andrew-k.us',
-  shortcutHint: 'Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit · Alt+⇧T tab · Alt+T tui',
+  shortcutHint: 'Ctrl+⇧} / Alt+⇧D split · Ctrl+⇧{ / Alt+⇧S hsplit · Alt+⇧N tab · Alt+T tui',
   statusBadge: {
     source: 'gke-autopilot',
     state: 'idle',
@@ -197,7 +197,7 @@ describe('PortalRoot', () => {
     const contactLink = await screen.findByRole('link', { name: 'andrew@andrew-k.us' });
     expect(contactLink.getAttribute('href')).toBe('/contact');
     expect(
-      screen.getByText('Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit · Alt+⇧T tab · Alt+T tui'),
+      screen.getByText('Ctrl+⇧} / Alt+⇧D split · Ctrl+⇧{ / Alt+⇧S hsplit · Alt+⇧N tab · Alt+T tui'),
     ).toBeTruthy();
     expect(screen.getByText('Home Probe')).toBeTruthy();
     expect(screen.queryByText('cadence-admin')).toBeNull();
@@ -359,10 +359,10 @@ describe('PortalRoot', () => {
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
     expect(container.querySelector('[data-pane-tty="tty2"]')).toBeTruthy();
 
-    fireEvent.keyDown(window, { key: 'W', ctrlKey: true, shiftKey: true });
+    fireEvent.keyDown(window, { key: 'W', code: 'KeyW', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
 
-    fireEvent.keyDown(window, { key: 'T', code: 'KeyT', altKey: true, shiftKey: true });
+    fireEvent.keyDown(window, { key: 'N', code: 'KeyN', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-tab-count')).toBe('2');
     fireEvent.keyDown(window, { key: 'W', code: 'KeyW', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-tab-count')).toBe('1');
