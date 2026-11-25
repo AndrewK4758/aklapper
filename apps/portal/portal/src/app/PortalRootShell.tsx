@@ -3,17 +3,17 @@ import {
   Button,
   LazyChunkBoundary,
   lazyWithRetry,
+  Menu,
   NavigationMenu,
   OscStatusBadge,
-  RouteWorkspaceHost,
   Separator,
   SolarForgeEmblem,
   TerminalWorkspace,
   useViewportLayoutMode,
+  useWorkspaceLauncher,
 } from '@aklapper/ui';
-import { createRouteWorkspaceStore } from '@aklapper/ui/workspace-storage';
 import { useMemo } from 'react';
-import { href, Link, Outlet, useOutlet } from 'react-router';
+import { href, Link, Outlet } from 'react-router';
 
 import { PortalLauncherTui } from '#pages/home';
 
@@ -22,6 +22,8 @@ import { PortalMobileWorkspaceHost } from './PortalMobileWorkspaceHost';
 import { isPortalPaneRoute, renderPortalPaneView } from './portalPaneViews';
 import type { RuntimeStatusTelemetrySnapshot } from './runtime-status';
 import { createPortalTerminalForms } from './terminalForms';
+import { PortalWorkspaceProvider } from './workspace/PortalWorkspaceContext';
+import { portalWorkspaceStore } from './workspace/portalWorkspaceStore';
 
 import styles from './root.module.css';
 
@@ -31,12 +33,60 @@ const LazyPortalChangesInProgressPage = lazyWithRetry(() =>
   })),
 );
 
-export const portalRouteWorkspaceStore = createRouteWorkspaceStore({
-  namespace: 'portal',
-});
-
 function getPortalPaneTitle(pathname: string): string {
   return pathname === '/' ? 'tty1' : `tui :: ${pathname}`;
+}
+
+const PANE_LAUNCHER_ITEMS = [
+  { label: 'CADENCE', viewId: '/cadence' },
+  { label: 'Chat', viewId: '/chat' },
+  { label: 'Agensi', viewId: '/agensi' },
+  { label: 'Contact', viewId: '/contact' },
+  { label: 'Launcher TUI', viewId: 'tui' },
+] as const;
+
+function PortalHeaderPaneMenu() {
+  const launcher = useWorkspaceLauncher();
+  if (!launcher) {
+    return null;
+  }
+
+  return (
+    <Menu.Root>
+      <Menu.Trigger className={styles.openPaneTrigger}>Open Pane</Menu.Trigger>
+      <Menu.Portal>
+        <Menu.Positioner align='end' sideOffset={6}>
+          <Menu.Popup aria-label='Open workspace pane'>
+            <Menu.Group>
+              <Menu.GroupLabel>Open in Split</Menu.GroupLabel>
+              {PANE_LAUNCHER_ITEMS.map(item => (
+                <Menu.Item
+                  key={`split:${item.viewId}`}
+                  onClick={() => launcher.openPane(item.viewId, 'split')}
+                >
+                  {item.label} (Split)
+                </Menu.Item>
+              ))}
+              <Menu.Item onClick={() => launcher.openTerminal('split')}>Terminal (Split)</Menu.Item>
+            </Menu.Group>
+            <Menu.Separator />
+            <Menu.Group>
+              <Menu.GroupLabel>Open in Tab</Menu.GroupLabel>
+              {PANE_LAUNCHER_ITEMS.map(item => (
+                <Menu.Item
+                  key={`tab:${item.viewId}`}
+                  onClick={() => launcher.openPane(item.viewId, 'tab')}
+                >
+                  {item.label} (Tab)
+                </Menu.Item>
+              ))}
+              <Menu.Item onClick={() => launcher.openTerminal('tab')}>Terminal (Tab)</Menu.Item>
+            </Menu.Group>
+          </Menu.Popup>
+        </Menu.Positioner>
+      </Menu.Portal>
+    </Menu.Root>
+  );
 }
 
 export function OfflineMaintenanceFallback({ error }: { readonly error: PublicAppError }) {
@@ -65,12 +115,18 @@ export function OfflineMaintenanceFallback({ error }: { readonly error: PublicAp
 export interface PortalRootShellProps {
   readonly data: PortalRootLoaderData;
   readonly pathname: string;
+  readonly locationKey?: string;
   readonly runtimeStatus: RuntimeStatusTelemetrySnapshot;
   readonly navigate: (to: string) => void | Promise<void>;
 }
 
-export function PortalRootShell({ data, pathname, runtimeStatus, navigate }: PortalRootShellProps) {
-  const outlet = useOutlet();
+export function PortalRootShell({
+  data,
+  pathname,
+  locationKey,
+  runtimeStatus,
+  navigate,
+}: PortalRootShellProps) {
   const layoutMode = useViewportLayoutMode();
   const terminalForms = useMemo(
     () => createPortalTerminalForms(data.contactForm, navigate),
@@ -78,7 +134,7 @@ export function PortalRootShell({ data, pathname, runtimeStatus, navigate }: Por
   );
 
   if (data.maintenanceMode && data.maintenance) {
-    portalRouteWorkspaceStore.recordRoutePolicy(pathname, 'excluded-maintenance');
+    portalWorkspaceStore.recordRoutePolicy(pathname, 'excluded-maintenance');
     return (
       <div className={styles.standaloneShell}>
         <main className={styles.standaloneMain}>
@@ -108,9 +164,10 @@ export function PortalRootShell({ data, pathname, runtimeStatus, navigate }: Por
 
   const { chrome, terminal, homeContent } = data;
   const isTerminalViewport = pathname === '/';
+  const isPortalPaneDeepLink = isPortalPaneRoute(pathname);
   const hasGlobalWorkspace = layoutMode === 'desktop' && Boolean(terminal);
   if (hasGlobalWorkspace) {
-    portalRouteWorkspaceStore.recordRoutePolicy(pathname, 'cached-workspace');
+    portalWorkspaceStore.recordRoutePolicy(pathname, 'global-workspace');
   }
   const headerBadgeState = runtimeStatus.loaded
     ? runtimeStatus.summaryState
@@ -132,7 +189,7 @@ export function PortalRootShell({ data, pathname, runtimeStatus, navigate }: Por
     );
   }
 
-  return (
+  const shellContent = (
     <div
       className={styles.shell}
       data-terminal-viewport={isTerminalViewport ? 'true' : 'false'}
@@ -169,6 +226,7 @@ export function PortalRootShell({ data, pathname, runtimeStatus, navigate }: Por
             </NavigationMenu.List>
           </NavigationMenu.Root>
           <div className={styles.barMeta}>
+            {hasGlobalWorkspace ? <PortalHeaderPaneMenu /> : null}
             {(hasGlobalWorkspace || isTerminalViewport) && chrome.shortcutHint ? (
               <span className={styles.shortcutHint}>{chrome.shortcutHint}</span>
             ) : null}
@@ -187,58 +245,46 @@ export function PortalRootShell({ data, pathname, runtimeStatus, navigate }: Por
         data-pane-workspace={hasGlobalWorkspace ? 'true' : 'false'}
       >
         {terminal ? (
-          <RouteWorkspaceHost
-            activeRouteKey={pathname}
-            outlet={outlet}
-            renderWorkspace={({ routeKey, outlet: layerOutlet, isActive }) => {
-              const layerIsTerminalViewport = routeKey === '/';
-              const layerIsPortalPaneDeepLink = isPortalPaneRoute(routeKey);
-              const layerInitialPrimaryTuiStack = layerIsPortalPaneDeepLink
-                ? [routeKey]
-                : undefined;
-              return (
-                <TerminalWorkspace
-                  terminal={terminal}
-                  terminalForms={terminalForms}
-                  isActive={isActive}
-                  routeKey={routeKey}
-                  workspaceStore={portalRouteWorkspaceStore}
-                  navigate={to => {
-                    void navigate(to);
-                  }}
-                  initialPrimaryTuiStack={layerInitialPrimaryTuiStack}
-                  onPrimaryPaneReturnToShell={() => {
-                    if (routeKey !== '/') {
-                      void navigate(href('/'));
-                    }
-                  }}
-                  canHandleInPaneRoute={to => to === 'tui' || isPortalPaneRoute(to)}
-                  renderPaneView={ctx =>
-                    renderPortalPaneView({
-                      ctx,
-                      homeContent,
-                    })
-                  }
-                  renderTui={
-                    homeContent
-                      ? ({ ttyNumber, isSinglePane, closeTui }) => (
-                          <PortalLauncherTui
-                            content={homeContent}
-                            ttyNumber={ttyNumber}
-                            isSinglePane={isSinglePane}
-                            onClose={closeTui}
-                          />
-                        )
-                      : undefined
-                  }
-                  primaryPane={{
-                    title: getPortalPaneTitle(routeKey),
-                    content: layerOutlet,
-                    flush: layerIsTerminalViewport || layerIsPortalPaneDeepLink,
-                    embeddedTerminal: layerIsTerminalViewport,
-                  }}
-                />
-              );
+          <TerminalWorkspace
+            terminal={terminal}
+            terminalForms={terminalForms}
+            isActive
+            disableMenuShortcut
+            routeKey={pathname}
+            workspaceStore={portalWorkspaceStore}
+            navigate={to => {
+              void navigate(to);
+            }}
+            onPrimaryPaneReturnToShell={() => {
+              if (pathname !== '/') {
+                void navigate(href('/'));
+              }
+            }}
+            canHandleInPaneRoute={to => to === 'tui' || isPortalPaneRoute(to)}
+            renderPaneView={ctx =>
+              renderPortalPaneView({
+                ctx,
+                homeContent,
+              })
+            }
+            renderTui={
+              homeContent
+                ? ({ ttyNumber, isSinglePane, closeTui }) => (
+                    <PortalLauncherTui
+                      content={homeContent}
+                      ttyNumber={ttyNumber}
+                      isSinglePane={isSinglePane}
+                      onClose={closeTui}
+                    />
+                  )
+                : undefined
+            }
+            primaryPane={{
+              title: getPortalPaneTitle(pathname),
+              content: <Outlet />,
+              flush: isTerminalViewport || isPortalPaneDeepLink,
+              embeddedTerminal: isTerminalViewport,
+              isRouteView: isPortalPaneDeepLink,
             }}
           />
         ) : (
@@ -272,5 +318,15 @@ export function PortalRootShell({ data, pathname, runtimeStatus, navigate }: Por
         </footer>
       </div>
     </div>
+  );
+
+  if (!hasGlobalWorkspace) {
+    return shellContent;
+  }
+
+  return (
+    <PortalWorkspaceProvider pathname={pathname} locationKey={locationKey ?? pathname}>
+      {shellContent}
+    </PortalWorkspaceProvider>
   );
 }

@@ -47,6 +47,7 @@ import {
   DEFAULT_PORTAL_SITE_URL,
   PORTAL_SITE_NAME,
 } from './seo';
+import { portalWorkspaceStore } from './workspace/portalWorkspaceStore';
 
 import styles from './root.module.css';
 
@@ -173,6 +174,7 @@ export default function PortalRoot({ loaderData }: Route.ComponentProps) {
   const pathname = normalizePathname(location.pathname);
 
   if (pathname === '/changes-in-progress' && !loaderData.maintenanceMode) {
+    portalWorkspaceStore.recordRoutePolicy(pathname, 'excluded-standalone');
     return (
       <DirectionProvider.Provider direction='ltr'>
         <Tooltip.Provider>
@@ -207,6 +209,7 @@ export default function PortalRoot({ loaderData }: Route.ComponentProps) {
             <PortalRootShell
               data={data}
               pathname={pathname}
+              locationKey={location.key}
               runtimeStatus={runtimeStatus}
               navigate={navigate}
             />

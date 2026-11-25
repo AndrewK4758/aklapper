@@ -73,6 +73,29 @@
     white-space: nowrap;
   }
 
+  .openPaneTrigger {
+    display: inline-flex;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-space-2);
+    padding: var(--sf-space-1) var(--sf-space-3);
+    border-radius: var(--sf-radius-sm);
+    border: var(--sf-border-width) solid var(--sf-border);
+    background: var(--sf-bg-editor);
+    color: var(--sf-gold);
+    font-family: var(--sf-font-mono), monospace;
+    font-size: var(--sf-text-xs);
+    font-weight: var(--sf-weight-semibold);
+    line-height: var(--sf-leading-tight);
+    cursor: pointer;
+    transition: var(--sf-transition-colors);
+  }
+
+  .openPaneTrigger:hover,
+  .openPaneTrigger[data-popup-open] {
+    border-color: var(--sf-accent-border);
+    background: var(--sf-accent-subtle);
+  }
+
   .standaloneShell {
     height: var(--sf-min-viewport-h);
     display: flex;
