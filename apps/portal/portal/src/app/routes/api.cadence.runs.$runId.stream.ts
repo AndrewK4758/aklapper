@@ -84,16 +84,29 @@ export async function loader({ request, params, context }: Route.LoaderArgs): Pr
 
   const cadenceDemoUrl = process.env['CADENCE_DEMO_URL']?.trim();
   if (cadenceDemoUrl) {
-    const upstream = await proxySse({
-      baseUrl: cadenceDemoUrl,
-      path: `/v1/cadence/runs/${encodeURIComponent(runId)}/stream`,
-      headers: {
-        'x-session-id': sessionId,
-        'X-Correlation-Id': correlationId,
-      },
-      internalAuth: { role: 'guest', subject: sessionId },
-      signal: request.signal,
-    });
+    let upstream: Response;
+    try {
+      upstream = await proxySse({
+        baseUrl: cadenceDemoUrl,
+        path: `/v1/cadence/runs/${encodeURIComponent(runId)}/stream`,
+        headers: {
+          'x-session-id': sessionId,
+          'X-Correlation-Id': correlationId,
+        },
+        internalAuth: { role: 'guest', subject: sessionId },
+        signal: request.signal,
+      });
+    } catch (error) {
+      const { publicError, diagnostic } = classifyServerError(error, {
+        correlationId,
+        source: 'portal.cadence.stream',
+      });
+      logDiagnosticError(logger, diagnostic);
+      return Response.json(
+        { error: publicError.message, ...publicError },
+        { status: publicError.status, headers: jsonHeaders },
+      );
+    }
     if (upstream.status !== 502 && upstream.status !== 504) {
       return upstream;
     }
@@ -200,7 +213,24 @@ export async function loader({ request, params, context }: Route.LoaderArgs): Pr
           runId,
           branch: `${claimed.mode}-node-fallback`,
         });
-        await runFallbackChordPipelineSse(db, claimed.run, claimed.mode, sessionId, sink);
+        await runFallbackChordPipelineSse(db, claimed.run, claimed.mode, sessionId, sink, {
+          correlationId,
+          logger,
+        });
+      } catch (error) {
+        const { publicError, diagnostic } = classifyServerError(error, {
+          correlationId,
+          source: 'portal.cadence.stream',
+        });
+        logDiagnosticError(logger, diagnostic);
+        if (!isCancelled()) {
+          sink.enqueue('error', {
+            runId,
+            error: publicError.message,
+            code: publicError.code,
+            runStatus: 'failed',
+          } satisfies CadenceStreamErrorEvent);
+        }
       } finally {
         sink.close();
       }

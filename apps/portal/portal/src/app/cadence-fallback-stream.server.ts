@@ -9,6 +9,7 @@ import {
   type QuotaStatus,
   sanitizeCadenceArtifactHtml,
 } from '@aklapper/core';
+import { classifyServerError } from '@aklapper/core/server-errors';
 import {
   type AppDatabase,
   completeSandboxRunRow,
@@ -18,6 +19,7 @@ import {
   getSandboxRunWithTurnsById,
   updateSandboxTurnRow,
 } from '@aklapper/db';
+import { logDiagnosticError, type SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
 
 export function logCadenceStreamSeam(
   level: 'info' | 'warn' | 'error',
@@ -206,6 +208,7 @@ export async function runFallbackChordPipelineSse(
   mode: CadenceRunMode,
   sessionId: string,
   sink: SseStreamSink,
+  telemetry?: { readonly correlationId: string; readonly logger: SsrStructuredLogger },
 ): Promise<void> {
   const emitStep = async (
     phase: CadenceTurn['phase'],
@@ -334,10 +337,21 @@ export async function runFallbackChordPipelineSse(
       quota,
     } satisfies CadenceStreamCompleteEvent);
   } catch (error) {
-    const rawMessage = error instanceof Error ? error.message : String(error);
+    const correlationId = telemetry?.correlationId ?? run.runId;
+    const { diagnostic } = classifyServerError(error, {
+      correlationId,
+      source: 'portal.cadence.stream',
+    });
+    if (telemetry) {
+      logDiagnosticError(telemetry.logger, diagnostic);
+    }
     try {
       await failSandboxRunRow(db, run.runId, SAFE_STREAM_FAILURE_SUMMARY);
     } catch (failErr) {
+      const failDiag = classifyServerError(failErr, {
+        correlationId,
+        source: 'portal.cadence.stream',
+      }).diagnostic;
       logCadenceStreamSeam(
         'error',
         'DELTA_AUDIT_GAP',
@@ -345,7 +359,8 @@ export async function runFallbackChordPipelineSse(
         'critical',
         {
           runId: run.runId,
-          error: failErr instanceof Error ? failErr.message : String(failErr),
+          correlationId,
+          error: failDiag.causeMessage ?? failDiag.reasoning,
         },
       );
     }
@@ -356,7 +371,8 @@ export async function runFallbackChordPipelineSse(
       'critical',
       {
         runId: run.runId,
-        error: rawMessage,
+        correlationId,
+        error: diagnostic.causeMessage ?? diagnostic.reasoning,
       },
     );
     sink.enqueue('error', {

@@ -97,10 +97,14 @@ const stateStore = vi.hoisted(() => {
       runs.clear();
       quotas.clear();
       seq = 0;
+      stateStore.failNextClaim = false;
+      stateStore.failNextTurnUpdate = false;
+      stateStore.failNextFailCommit = false;
     },
     getQuota,
     toRunResult,
     makeUuid,
+    failNextClaim: false,
     failNextTurnUpdate: false,
     failNextFailCommit: false,
   };
@@ -243,6 +247,15 @@ vi.mock('@aklapper/db', async importOriginal => {
         sessionId: string,
       ) => Promise<{ run: CadenceRunResult; mode: CadenceRunMode } | null>
     >(async (_db: unknown, runId: string, sessionId: string) => {
+      if (stateStore.failNextClaim) {
+        stateStore.failNextClaim = false;
+        throw Object.assign(new Error('Failed query: UPDATE sandbox_runs SET status = running'), {
+          name: 'DrizzleQueryError',
+          cause: Object.assign(new Error('terminating connection due to administrator command'), {
+            code: '57P01',
+          }),
+        });
+      }
       const row = stateStore.runs.get(runId);
       if (!row || row.sessionId !== sessionId || row.runStatus !== 'pending') {
         return null;
@@ -796,5 +809,84 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
     const oidcStreamRes = await streamLoader(makeStreamArgs(runId, cookie));
     expect(oidcStreamRes.status).toBe(503);
     expect(await oidcStreamRes.json()).toMatchObject({ error: 'GCP_OIDC_TOKEN_UNAVAILABLE' });
+  });
+
+  it('fails closed with structured 500 responses when INTERNAL_AUTH_SECRET is missing in production', async () => {
+    const cookie = `${GUEST_SESSION_COOKIE_NAME}=guest_session_prod001`;
+    const runId = '77777777-7777-4777-8777-777777777777';
+    const prevNodeEnv = process.env['NODE_ENV'];
+    const prevSecret = process.env['INTERNAL_AUTH_SECRET'];
+    const stderrChunks: string[] = [];
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(chunk => {
+      stderrChunks.push(String(chunk));
+      return true;
+    });
+
+    process.env['CADENCE_DEMO_URL'] = 'http://cadence-demo.internal';
+    process.env['NODE_ENV'] = 'production';
+    delete process.env['INTERNAL_AUTH_SECRET'];
+
+    try {
+      const runRes = unwrapDataResult(
+        await action(
+          makeActionArgs({ intent: 'run', prompt: 'Prod auth fail-closed test' }, cookie),
+        ),
+      );
+      expect(runRes.init?.status).toBe(500);
+      expect(runRes.data).toMatchObject({ ok: false, intent: 'run', code: 'ERR_INTERNAL' });
+      expect(JSON.stringify(runRes.data)).not.toContain('INTERNAL_AUTH_SECRET');
+      expect(stateStore.runs.size).toBe(0);
+
+      const gateRes = unwrapDataResult(
+        await action(makeActionArgs({ intent: 'gate', runId, verdict: 'approved' }, cookie)),
+      );
+      expect(gateRes.init?.status).toBe(500);
+      expect(gateRes.data).toMatchObject({ ok: false, intent: 'gate', code: 'ERR_INTERNAL' });
+      expect(JSON.stringify(gateRes.data)).not.toContain('INTERNAL_AUTH_SECRET');
+
+      const streamRes = await streamLoader(makeStreamArgs(runId, cookie));
+      expect(streamRes.status).toBe(500);
+      expect(streamRes.headers.get('X-Correlation-Id')).toBeTruthy();
+      const body = (await streamRes.json()) as Record<string, unknown>;
+      expect(body).toMatchObject({ code: 'ERR_INTERNAL', status: 500 });
+      expect(JSON.stringify(body)).not.toContain('INTERNAL_AUTH_SECRET');
+      expect(stderrSpy).toHaveBeenCalled();
+      expect(stderrChunks.join('')).toContain('"errorCode":"ERR_INTERNAL"');
+    } finally {
+      if (prevNodeEnv === undefined) delete process.env['NODE_ENV'];
+      else process.env['NODE_ENV'] = prevNodeEnv;
+      if (prevSecret === undefined) delete process.env['INTERNAL_AUTH_SECRET'];
+      else process.env['INTERNAL_AUTH_SECRET'] = prevSecret;
+    }
+  });
+
+  it('logs diagnostics and emits a safe SSE error event when DB fails inside ReadableStream.start', async () => {
+    const cookie = `${GUEST_SESSION_COOKIE_NAME}=guest_session_dbfail1`;
+    const initRes = unwrapDataResult(
+      await action(
+        makeActionArgs(
+          { intent: 'run', prompt: 'Stream DB claim failure test', mode: 'fast' },
+          cookie,
+        ),
+      ),
+    );
+    expect(initRes.init?.status).toBe(202);
+    const runId = (initRes.data as { run: CadenceRunResult }).run.runId;
+
+    stateStore.failNextClaim = true;
+    const stderrChunks: string[] = [];
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(chunk => {
+      stderrChunks.push(String(chunk));
+      return true;
+    });
+    const streamRes = await streamLoader(makeStreamArgs(runId, cookie));
+    expect(streamRes.status).toBe(200);
+    const text = await streamRes.text();
+    expect(text).toContain('event: error');
+    expect(text).toContain('ERR_DB_UNAVAILABLE');
+    expect(text).not.toContain('Failed query:');
+    expect(text).not.toContain('sandbox_runs');
+    expect(stderrSpy).toHaveBeenCalled();
+    expect(stderrChunks.join('')).toContain('"errorCode":"ERR_DB_UNAVAILABLE"');
   });
 });

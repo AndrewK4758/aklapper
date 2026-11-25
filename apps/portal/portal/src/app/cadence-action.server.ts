@@ -2,6 +2,7 @@ import {
   type AppErrorCode,
   CadenceRunRequestSchema,
   CadenceRunResultSchema,
+  type QuotaStatus,
   QuotaStatusSchema,
 } from '@aklapper/core';
 import { classifyServerError } from '@aklapper/core/server-errors';
@@ -48,32 +49,41 @@ function logGateUnsound(runId: string, reason: string): void {
   );
 }
 
+const HTTP_STATUS_ERROR_CODES: Readonly<Record<number, AppErrorCode>> = {
+  400: 'ERR_VALIDATION',
+  401: 'ERR_UNAUTHORIZED',
+  403: 'ERR_FORBIDDEN',
+  404: 'ERR_NOT_FOUND',
+  409: 'ERR_CONSTRAINT',
+  422: 'ERR_VALIDATION',
+  429: 'ERR_RATE_LIMITED',
+};
+
 function mapHttpStatusToErrorCode(status: number): AppErrorCode {
-  switch (status) {
-    case 400:
-    case 422:
-      return 'ERR_VALIDATION';
-    case 401:
-      return 'ERR_UNAUTHORIZED';
-    case 403:
-      return 'ERR_FORBIDDEN';
-    case 404:
-      return 'ERR_NOT_FOUND';
-    case 409:
-      return 'ERR_CONSTRAINT';
-    case 429:
-      return 'ERR_RATE_LIMITED';
-    default:
-      return status >= 500 ? 'ERR_UPSTREAM_UNAVAILABLE' : 'ERR_INTERNAL';
-  }
+  return (
+    HTTP_STATUS_ERROR_CODES[status] ?? (status >= 500 ? 'ERR_UPSTREAM_UNAVAILABLE' : 'ERR_INTERNAL')
+  );
 }
 
-function makeOidcUnavailableError(): Error & { status: number; statusText: string; data: null } {
-  return Object.assign(new Error('GCP_OIDC_TOKEN_UNAVAILABLE'), {
-    status: 503,
-    statusText: 'Service Unavailable',
-    data: null,
-  });
+function makeUpstreamStatusError(
+  status: number,
+  message: string,
+): Error & { status: number; statusText: string; data: null } {
+  return Object.assign(new Error(message), { status, statusText: message, data: null });
+}
+
+function actionError(
+  intent: 'run' | 'gate',
+  status: number,
+  error: string,
+  code: AppErrorCode,
+  ctx: Pick<CadenceActionContext, 'correlationId' | 'headers'>,
+  extra?: { readonly action?: string; readonly quota?: QuotaStatus },
+) {
+  return data<PortalCadenceActionResult>(
+    { ok: false, intent, error, code, correlationId: ctx.correlationId, ...extra },
+    { status, headers: ctx.headers },
+  );
 }
 
 export function classifyCadenceActionFailure(
@@ -88,16 +98,16 @@ export function classifyCadenceActionFailure(
     source: `portal.cadence.${intent}`,
   });
   logDiagnosticError(logger, diagnostic);
-  return data<PortalCadenceActionResult>(
+  return actionError(
+    intent,
+    publicError.status,
+    publicError.message,
+    publicError.code,
     {
-      ok: false,
-      intent,
-      error: publicError.message,
-      code: publicError.code,
-      action: publicError.action,
       correlationId: publicError.correlationId,
+      headers,
     },
-    { status: publicError.status, headers },
+    { action: publicError.action },
   );
 }
 
@@ -107,37 +117,33 @@ export async function handleCadenceGateAction(formData: FormData, ctx: CadenceAc
   const rawVerdict = String(formData.get('verdict') ?? '').trim();
 
   if (!UUID_RE.test(runId) || (rawVerdict !== 'approved' && rawVerdict !== 'rejected')) {
-    return data<PortalCadenceActionResult>(
-      {
-        ok: false,
-        intent: 'gate',
-        error: 'Invalid runId or gate verdict.',
-        code: 'ERR_VALIDATION',
-        correlationId,
-      },
-      { status: 400, headers },
-    );
+    return actionError('gate', 400, 'Invalid runId or gate verdict.', 'ERR_VALIDATION', ctx);
   }
 
   if (cadenceDemoUrl) {
-    const upstream = await proxyJson<Record<string, unknown>>({
-      baseUrl: cadenceDemoUrl,
-      path: `/v1/cadence/runs/${encodeURIComponent(runId)}/gate`,
-      method: 'POST',
-      headers: { 'x-session-id': sessionId, 'X-Correlation-Id': correlationId },
-      body: { verdict: rawVerdict },
-      timeoutMs: 6_000,
-      internalAuth: { role: 'guest', subject: sessionId },
-    });
+    let upstream: Awaited<ReturnType<typeof proxyJson<Record<string, unknown>>>>;
+    try {
+      upstream = await proxyJson<Record<string, unknown>>({
+        baseUrl: cadenceDemoUrl,
+        path: `/v1/cadence/runs/${encodeURIComponent(runId)}/gate`,
+        method: 'POST',
+        headers: { 'x-session-id': sessionId, 'X-Correlation-Id': correlationId },
+        body: { verdict: rawVerdict },
+        timeoutMs: 6_000,
+        internalAuth: { role: 'guest', subject: sessionId },
+      });
+    } catch (error) {
+      return classifyCadenceActionFailure(error, 'gate', correlationId, logger, headers);
+    }
 
     if (upstream.status !== 502 && upstream.status !== 504) {
       if (!upstream.ok) {
         if (upstream.status === 403) {
           logGateUnsound(runId, 'upstream_gate_forbidden');
         }
-        if (upstream.status === 503 && upstream.error === 'GCP_OIDC_TOKEN_UNAVAILABLE') {
+        if (upstream.status >= 500) {
           return classifyCadenceActionFailure(
-            makeOidcUnavailableError(),
+            makeUpstreamStatusError(upstream.status, upstream.error ?? 'Upstream gate failed.'),
             'gate',
             correlationId,
             logger,
@@ -148,30 +154,24 @@ export async function handleCadenceGateAction(formData: FormData, ctx: CadenceAc
           typeof upstream.data?.['error'] === 'string'
             ? upstream.data['error']
             : 'Upstream gate update failed.';
-        return data<PortalCadenceActionResult>(
-          {
-            ok: false,
-            intent: 'gate',
-            error: msg,
-            code: mapHttpStatusToErrorCode(upstream.status),
-            correlationId,
-          },
-          { status: upstream.status, headers },
+        return actionError(
+          'gate',
+          upstream.status,
+          msg,
+          mapHttpStatusToErrorCode(upstream.status),
+          ctx,
         );
       }
 
       const parsed = CadenceRunResultSchema.safeParse(upstream.data?.['run']);
       if (!parsed.success) {
-        return data<PortalCadenceActionResult>(
-          {
-            ok: false,
-            intent: 'gate',
-            error: 'Upstream gate payload failed contract validation.',
-            code: 'ERR_UPSTREAM_UNAVAILABLE',
-            action: 'Retry shortly.',
-            correlationId,
-          },
-          { status: 502, headers },
+        return actionError(
+          'gate',
+          502,
+          'Upstream gate payload failed contract validation.',
+          'ERR_UPSTREAM_UNAVAILABLE',
+          ctx,
+          { action: 'Retry shortly.' },
         );
       }
 
@@ -186,40 +186,25 @@ export async function handleCadenceGateAction(formData: FormData, ctx: CadenceAc
     const db = getSharedDb();
     const result = await updateSandboxRunGateVerdictForSession(db, runId, rawVerdict, sessionId);
     if (result.outcome === 'not-found') {
-      return data<PortalCadenceActionResult>(
-        {
-          ok: false,
-          intent: 'gate',
-          error: 'Sandbox run not found.',
-          code: 'ERR_NOT_FOUND',
-          correlationId,
-        },
-        { status: 404, headers },
-      );
+      return actionError('gate', 404, 'Sandbox run not found.', 'ERR_NOT_FOUND', ctx);
     }
     if (result.outcome === 'forbidden') {
       logGateUnsound(runId, 'gate_session_mismatch');
-      return data<PortalCadenceActionResult>(
-        {
-          ok: false,
-          intent: 'gate',
-          error: 'Sandbox run belongs to a different session.',
-          code: 'ERR_FORBIDDEN',
-          correlationId,
-        },
-        { status: 403, headers },
+      return actionError(
+        'gate',
+        403,
+        'Sandbox run belongs to a different session.',
+        'ERR_FORBIDDEN',
+        ctx,
       );
     }
     if (result.outcome === 'conflict') {
-      return data<PortalCadenceActionResult>(
-        {
-          ok: false,
-          intent: 'gate',
-          error: `Run is currently "${result.status}" and cannot accept a gate verdict yet.`,
-          code: 'ERR_CONSTRAINT',
-          correlationId,
-        },
-        { status: 409, headers },
+      return actionError(
+        'gate',
+        409,
+        `Run is currently "${result.status}" and cannot accept a gate verdict yet.`,
+        'ERR_CONSTRAINT',
+        ctx,
       );
     }
 
@@ -262,15 +247,20 @@ export async function handleCadenceRunAction(formData: FormData, ctx: CadenceAct
   const resolvedMode = validatedReq.data.mode ?? 'fast';
 
   if (cadenceDemoUrl) {
-    const upstream = await proxyJson<Record<string, unknown>>({
-      baseUrl: cadenceDemoUrl,
-      path: '/v1/cadence/runs',
-      method: 'POST',
-      headers: { 'x-session-id': sessionId, 'X-Correlation-Id': correlationId },
-      body: validatedReq.data,
-      timeoutMs: resolveInitTimeoutMs(resolvedMode),
-      internalAuth: { role: 'guest', subject: sessionId },
-    });
+    let upstream: Awaited<ReturnType<typeof proxyJson<Record<string, unknown>>>>;
+    try {
+      upstream = await proxyJson<Record<string, unknown>>({
+        baseUrl: cadenceDemoUrl,
+        path: '/v1/cadence/runs',
+        method: 'POST',
+        headers: { 'x-session-id': sessionId, 'X-Correlation-Id': correlationId },
+        body: validatedReq.data,
+        timeoutMs: resolveInitTimeoutMs(resolvedMode),
+        internalAuth: { role: 'guest', subject: sessionId },
+      });
+    } catch (error) {
+      return classifyCadenceActionFailure(error, 'run', correlationId, logger, headers);
+    }
 
     if (upstream.status !== 502 && upstream.status !== 504) {
       if (upstream.status === 429) {
@@ -293,9 +283,9 @@ export async function handleCadenceRunAction(formData: FormData, ctx: CadenceAct
       }
 
       if (!upstream.ok) {
-        if (upstream.status === 503 && upstream.error === 'GCP_OIDC_TOKEN_UNAVAILABLE') {
+        if (upstream.status >= 500) {
           return classifyCadenceActionFailure(
-            makeOidcUnavailableError(),
+            makeUpstreamStatusError(upstream.status, upstream.error ?? 'Upstream run failed.'),
             'run',
             correlationId,
             logger,

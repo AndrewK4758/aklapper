@@ -430,6 +430,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     expect(srcdoc).toContain('scale-from-zero pods');
     expect(srcdoc).not.toContain('allow-same-origin');
     const previewFrame = page.frameLocator('iframe[title="CADENCE Artifact Preview"]');
+    await expect(previewFrame.locator('body')).toContainText('scale-from-zero pods');
     await previewFrame.locator('#ping-btn').click();
     await expect(previewFrame.locator('#probe-val')).toContainText('#1');
 
