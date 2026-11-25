@@ -619,7 +619,7 @@ describe('PortalCadencePage', () => {
     );
   });
 
-  it('clears active mid-stream run state and invokes onReset when Reset is clicked', async () => {
+  it('resets timeline, pipeline steps, spec, preview, source code, gate audit, and prompt to a completely blank state', async () => {
     const user = userEvent.setup();
     const onReset = vi.fn<() => void>();
     const runningRun: CadenceRunResult = {
@@ -649,14 +649,65 @@ describe('PortalCadencePage', () => {
       artifactHtml: '',
     };
 
-    render(
+    const goldenRun: CadenceRunResult = {
+      runId: 'golden-run-1',
+      prompt: 'Golden showcase prompt',
+      presetSlug: 'solar-forge-starter',
+      runStatus: 'ready',
+      mode: 'fast',
+      executionMode: 'golden',
+      isGolden: true,
+      gateVerdict: 'approved',
+      turns: [
+        {
+          phase: 'triage',
+          agentName: 'chord-triage',
+          status: 'completed',
+          summary: 'Golden triage',
+          latencyMs: 2,
+        },
+      ],
+      artifactHtml: '<html><body>Golden HTML</body></html>',
+      spec: {
+        title: 'Golden Spec',
+        summary: 'Golden summary',
+        conditions: ['Condition A'],
+        handling: ['Handling A'],
+        outcomes: ['Outcome A'],
+        rules: ['Rule A'],
+        deltas: ['Delta A'],
+      },
+      gateAudit: {
+        summary: 'Passed',
+        sanitized: true,
+        artifactBytes: 38,
+        checks: [{ id: 'csp', label: 'CSP', status: 'pass', detail: 'ok' }],
+      },
+    };
+
+    const { rerender } = render(
       <PortalCadencePage
         content={SAMPLE_CONTENT}
         presets={SAMPLE_PRESETS}
+        goldenRuns={[goldenRun]}
         recentRuns={[runningRun]}
         isStreaming={true}
         onRunBuild={vi.fn<() => void>()}
-        onReset={onReset}
+        onReset={() => {
+          onReset();
+          rerender(
+            <PortalCadencePage
+              content={SAMPLE_CONTENT}
+              presets={SAMPLE_PRESETS}
+              goldenRuns={[goldenRun]}
+              recentRuns={[]}
+              isStreaming={false}
+              onRunBuild={vi.fn<() => void>()}
+              onReset={onReset}
+              onClose={vi.fn<() => void>()}
+            />,
+          );
+        }}
         onClose={vi.fn<() => void>()}
       />,
     );
@@ -670,8 +721,14 @@ describe('PortalCadencePage', () => {
     expect(onReset).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('cadence-run-history')).toBeNull();
     expect(screen.queryByTestId('cadence-active-run')).toBeNull();
-    expect((screen.getByTestId('cadence-prompt-input') as HTMLTextAreaElement).value).toBe(
-      SAMPLE_PRESETS[0]?.starterPrompt,
-    );
+    expect(screen.getByTestId('cadence-spec-status-pill').textContent).toBe('Ready');
+    for (const step of ['triage', 'spec', 'human-gate', 'build', 'gate']) {
+      expect(screen.getByTestId(`cadence-rail-${step}`).getAttribute('data-status')).toBe(
+        'pending',
+      );
+    }
+    expect((screen.getByTestId('cadence-prompt-input') as HTMLTextAreaElement).value).toBe('');
+    await user.click(screen.getByTestId('cadence-view-source'));
+    expect(screen.getByTestId('cadence-source-empty')).toBeTruthy();
   });
 });
