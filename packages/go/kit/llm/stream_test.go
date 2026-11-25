@@ -395,3 +395,47 @@ func TestLocalClientTimeoutsAllowColdLoadsWhileVertexStaysStrict(t *testing.T) {
 		}
 	})
 }
+
+func TestLocalAndVertexStreamForwardThoughtDeltasSeparately(t *testing.T) {
+	t.Run("local stream forwards reasoning_content as ThoughtDelta without polluting Text", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "text/event-stream")
+			_, _ = w.Write([]byte("data: {\"model\":\"laptop-egpu\",\"choices\":[{\"delta\":{\"reasoning_content\":\"Planning layout...\"},\"finish_reason\":\"\"}]}\n\n"))
+			_, _ = w.Write([]byte("data: {\"model\":\"laptop-egpu\",\"choices\":[{\"delta\":{\"content\":\"{\\\"ok\\\":true}\"},\"finish_reason\":\"stop\"}],\"usage\":{\"total_tokens\":42}}\n\n"))
+			_, _ = w.Write([]byte("data: [DONE]\n\n"))
+		}))
+		defer srv.Close()
+
+		client := &LocalClient{BaseURL: srv.URL, ChatModel: "inference", HTTPClient: srv.Client()}
+		var thoughts, outs strings.Builder
+		res, err := client.ChatStream(context.Background(), ChatStreamRequest{
+			Messages: []ChatMessage{{Role: "user", Content: "hi"}},
+		}, func(ch ChatStreamChunk) error {
+			thoughts.WriteString(ch.ThoughtDelta)
+			outs.WriteString(ch.Delta)
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("ChatStream: %v", err)
+		}
+		if thoughts.String() != "Planning layout..." {
+			t.Fatalf("expected ThoughtDelta 'Planning layout...', got %q", thoughts.String())
+		}
+		if res.Text != `{"ok":true}` || outs.String() != `{"ok":true}` {
+			t.Fatalf("expected clean output text without thought pollution, got res=%q outs=%q", res.Text, outs.String())
+		}
+	})
+
+	t.Run("vertex stream extracts thought parts into ThoughtDelta separately from output", func(t *testing.T) {
+		parts := []vertexPart{
+			{Text: "Checking invariants...", Thought: true},
+			{Text: `{"status":"ok"}`, Thought: false},
+		}
+		if got := extractVertexThoughtText(parts); got != "Checking invariants..." {
+			t.Fatalf("expected thought text, got %q", got)
+		}
+		if got := extractVertexNonThoughtText(parts); got != `{"status":"ok"}` {
+			t.Fatalf("expected non-thought text, got %q", got)
+		}
+	})
+}

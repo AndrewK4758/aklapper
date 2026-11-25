@@ -29,9 +29,10 @@ import (
 )
 
 type streamingStubLLM struct {
-	chunks    []string
-	responses [][]string
-	calls     int
+	chunks        []string
+	thoughtChunks []string
+	responses     [][]string
+	calls         int
 }
 
 func (s *streamingStubLLM) Name() string                                         { return "stub-streaming-llm" }
@@ -40,6 +41,14 @@ func (s *streamingStubLLM) Chat(_ context.Context, _ []llm.ChatMessage, _ int) (
 	return llm.Completion{Text: strings.Join(s.chunks, ""), Model: "stub", TokensUsed: 120}, nil
 }
 func (s *streamingStubLLM) ChatStream(ctx context.Context, _ llm.ChatStreamRequest, onChunk func(llm.ChatStreamChunk) error) (llm.ChatStreamResult, error) {
+	for _, th := range s.thoughtChunks {
+		if ctx.Err() != nil {
+			return llm.ChatStreamResult{}, ctx.Err()
+		}
+		if err := onChunk(llm.ChatStreamChunk{ThoughtDelta: th}); err != nil {
+			return llm.ChatStreamResult{}, err
+		}
+	}
 	activeChunks := s.chunks
 	if len(s.responses) > 0 {
 		idx := s.calls
@@ -308,6 +317,47 @@ func TestCadenceShowcaseCacheGoldenPrivacyAndGRPC(t *testing.T) {
 		q, _ := store.GetQuotaStatus(context.Background(), contracts.RoleGuest, "sess-A")
 		if q.TurnsUsed != 1 {
 			t.Fatalf("expected 1 total turn charged across gated Spec->Build run, got %d", q.TurnsUsed)
+		}
+	})
+
+	t.Run("live stream forwards StreamGuard-filtered ThoughtDelta and Delta into SSE log lines", func(t *testing.T) {
+		specJSON, _ := json.Marshal(map[string]any{
+			"triage": "Live stream test",
+			"spec": map[string]any{
+				"title":      "Live Streamed Spec",
+				"summary":    "Verifies live token forwarding.",
+				"conditions": []string{"c1"},
+				"handling":   []string{"h1"},
+				"outcomes":   []string{"o1"},
+				"rules":      []string{"r1"},
+				"deltas":     []string{"d1"},
+			},
+		})
+		stub := &streamingStubLLM{
+			thoughtChunks: []string{"Evaluating user prompt...\n"},
+			chunks:        []string{string(specJSON)},
+		}
+		privacyCfg, _ := privacy.LoadConfig(privacy.ConfigInput{})
+		var logs []string
+		_, _, err := invokeLLMSpecStage(
+			context.Background(),
+			stub,
+			privacyCfg,
+			"corr-live-log",
+			"custom",
+			"Build a live monitor",
+			nil,
+			func(line string) { logs = append(logs, line) },
+		)
+		if err != nil {
+			t.Fatalf("invokeLLMSpecStage: %v", err)
+		}
+		joined := strings.Join(logs, "\n")
+		if !strings.Contains(joined, "[spec:thought] Evaluating user prompt...") {
+			t.Fatalf("expected live thought log line, got:\n%s", joined)
+		}
+		if !strings.Contains(joined, "[spec:out] ") || !strings.Contains(joined, "Stream complete via stub") {
+			t.Fatalf("expected live output + completion telemetry lines, got:\n%s", joined)
 		}
 	})
 

@@ -96,7 +96,9 @@ func (c *LocalClient) ChatStream(
 		Error   *upstreamSSEError `json:"error,omitempty"`
 		Choices []struct {
 			Delta struct {
-				Content string `json:"content"`
+				Content          string `json:"content"`
+				ReasoningContent string `json:"reasoning_content"`
+				Reasoning        string `json:"reasoning"`
 			} `json:"delta"`
 			FinishReason string `json:"finish_reason"`
 		} `json:"choices"`
@@ -139,15 +141,23 @@ func (c *LocalClient) ChatStream(
 			return nil
 		}
 		delta := chunk.Choices[0].Delta.Content
+		thoughtDelta := chunk.Choices[0].Delta.ReasoningContent
+		if thoughtDelta == "" {
+			thoughtDelta = chunk.Choices[0].Delta.Reasoning
+		}
 		if chunk.Choices[0].FinishReason != "" {
 			finishReason = chunk.Choices[0].FinishReason
 		}
 		if delta != "" {
 			fullText.WriteString(delta)
-			if onChunk != nil {
-				if cbErr := onChunk(ChatStreamChunk{Delta: delta, FinishReason: finishReason}); cbErr != nil {
-					return cbErr
-				}
+		}
+		if (delta != "" || thoughtDelta != "") && onChunk != nil {
+			if cbErr := onChunk(ChatStreamChunk{
+				Delta:        delta,
+				ThoughtDelta: thoughtDelta,
+				FinishReason: finishReason,
+			}); cbErr != nil {
+				return cbErr
 			}
 		}
 		return nil
