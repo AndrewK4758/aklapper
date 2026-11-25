@@ -12,19 +12,30 @@ import (
 )
 
 var (
-	ErrForbiddenSession = errors.New("sandbox run belongs to a different session")
-	ErrRunNotReady      = errors.New("sandbox run is not ready for gate verdict")
+	ErrForbiddenSession       = errors.New("sandbox run belongs to a different session")
+	ErrRunNotReady            = errors.New("sandbox run is not ready for gate verdict")
+	ErrRunNotAwaitingApproval = errors.New("sandbox run is not awaiting spec approval")
 )
 
 type CadencePresetRecord = contracts.CadencePreset
 
 type PendingSandboxRunInput struct {
-	SessionID  string
-	IPHash     string
-	PresetSlug string
-	Prompt     string
-	Mode       string
-	PromptHash string
+	SessionID           string
+	IPHash              string
+	PresetSlug          string
+	Prompt              string
+	Mode                string
+	PromptHash          string
+	RequireSpecApproval bool
+}
+
+type PauseSpecApprovalInput struct {
+	RunID         string
+	TokensIn      int
+	TokensOut     int
+	ExecutionMode string
+	SpecJSON      *contracts.CadenceSpecArtifact
+	PromptHash    string
 }
 
 type CompleteSandboxRunInput struct {
@@ -419,4 +430,190 @@ func (s *Store) UpdateSandboxGateVerdictForSession(ctx context.Context, runID, s
 		return nil, ErrRunNotReady
 	}
 	return r, err
+}
+
+func ExtractRequireSpecApprovalFromTurns(turns []contracts.CadenceTurn) bool {
+	for _, t := range turns {
+		if t.Phase == "triage" && t.Payload != nil {
+			if raw, ok := t.Payload["requireSpecApproval"].(bool); ok {
+				return raw
+			}
+		}
+	}
+	return false
+}
+
+func (s *Store) PauseSandboxRunForSpecApproval(ctx context.Context, input PauseSpecApprovalInput) (*SandboxRun, error) {
+	if s == nil {
+		return nil, ErrRunNotFound
+	}
+	if s.pool == nil {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		run, ok := s.runsByID[input.RunID]
+		if !ok {
+			return nil, ErrRunNotFound
+		}
+		if run.IsGolden {
+			return nil, ErrGoldenRunImmutable
+		}
+		run.Status = contracts.CadenceStatusAwaitingApproval
+		run.TokensIn = input.TokensIn
+		run.TokensOut = input.TokensOut
+		if strings.TrimSpace(input.ExecutionMode) != "" {
+			run.ExecutionMode = strings.TrimSpace(input.ExecutionMode)
+		}
+		if input.SpecJSON != nil {
+			run.SpecJSON = input.SpecJSON
+		}
+		if strings.TrimSpace(input.PromptHash) != "" {
+			run.PromptHash = strings.TrimSpace(input.PromptHash)
+		}
+		copied := *run
+		copied.Turns = append([]contracts.CadenceTurn(nil), run.Turns...)
+		return &copied, nil
+	}
+
+	if !isValidUUIDString(input.RunID) {
+		return nil, ErrRunNotFound
+	}
+
+	var execModeParam any
+	if strings.TrimSpace(input.ExecutionMode) != "" {
+		execModeParam = strings.TrimSpace(input.ExecutionMode)
+	}
+	var promptHashParam any
+	if strings.TrimSpace(input.PromptHash) != "" {
+		promptHashParam = strings.TrimSpace(input.PromptHash)
+	}
+
+	r, err := s.scanSandboxRunRow(
+		ctx,
+		s.pool.QueryRow(
+			ctx,
+			`UPDATE sandbox_runs
+			 SET status = 'awaiting_approval',
+			     tokens_in = $2,
+			     tokens_out = $3,
+			     execution_mode = COALESCE($4, execution_mode),
+			     spec_json = COALESCE($5::jsonb, spec_json),
+			     prompt_hash = COALESCE($6, prompt_hash)
+			 WHERE id = $1::uuid AND is_golden = false
+			 RETURNING `+sandboxRunSelectColumns,
+			input.RunID,
+			input.TokensIn,
+			input.TokensOut,
+			execModeParam,
+			marshalNullableJSON(input.SpecJSON),
+			promptHashParam,
+		),
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrRunNotFound
+	}
+	return r, err
+}
+
+func (s *Store) ApproveSandboxRunSpecForSession(ctx context.Context, runID, sessionID string) (*SandboxRun, error) {
+	if s == nil {
+		return nil, ErrRunNotFound
+	}
+	trimmedSession := strings.TrimSpace(sessionID)
+	if trimmedSession == "" {
+		return nil, ErrForbiddenSession
+	}
+	if s.pool == nil {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		run, ok := s.runsByID[runID]
+		if !ok {
+			return nil, ErrRunNotFound
+		}
+		if run.IsGolden {
+			return nil, ErrGoldenRunImmutable
+		}
+		if run.SessionID != trimmedSession {
+			return nil, ErrForbiddenSession
+		}
+		if run.Status != contracts.CadenceStatusAwaitingApproval {
+			return nil, ErrRunNotAwaitingApproval
+		}
+		run.Status = contracts.CadenceStatusBuildQueued
+		copied := *run
+		copied.Turns = append([]contracts.CadenceTurn(nil), run.Turns...)
+		return &copied, nil
+	}
+
+	existing, err := s.GetSandboxRun(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	if existing.IsGolden {
+		return nil, ErrGoldenRunImmutable
+	}
+	if existing.SessionID != trimmedSession {
+		return nil, ErrForbiddenSession
+	}
+	if existing.Status != contracts.CadenceStatusAwaitingApproval {
+		return nil, ErrRunNotAwaitingApproval
+	}
+
+	r, err := s.scanSandboxRunRow(
+		ctx,
+		s.pool.QueryRow(
+			ctx,
+			`UPDATE sandbox_runs
+			 SET status = 'build_queued'
+			 WHERE id = $1::uuid AND session_id = $2 AND status = 'awaiting_approval' AND is_golden = false
+			 RETURNING `+sandboxRunSelectColumns,
+			runID,
+			trimmedSession,
+		),
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrRunNotAwaitingApproval
+	}
+	return r, err
+}
+
+func (s *Store) ClaimBuildQueuedSandboxRun(ctx context.Context, runID, sessionID string) (*SandboxRun, bool, error) {
+	if s == nil {
+		return nil, false, nil
+	}
+	if s.pool == nil {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		run, ok := s.runsByID[runID]
+		if !ok || run.SessionID != sessionID || run.Status != contracts.CadenceStatusBuildQueued {
+			return nil, false, nil
+		}
+		run.Status = contracts.CadenceStatusBuilding
+		copied := *run
+		copied.Turns = append([]contracts.CadenceTurn(nil), run.Turns...)
+		return &copied, true, nil
+	}
+
+	if !isValidUUIDString(runID) {
+		return nil, false, nil
+	}
+
+	r, err := s.scanSandboxRunRow(
+		ctx,
+		s.pool.QueryRow(
+			ctx,
+			`UPDATE sandbox_runs
+			 SET status = 'building'
+			 WHERE id = $1::uuid AND session_id = $2 AND status = 'build_queued' AND is_golden = false
+			 RETURNING `+sandboxRunSelectColumns,
+			runID,
+			sessionID,
+		),
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	return r, true, nil
 }

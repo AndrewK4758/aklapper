@@ -21,6 +21,8 @@ import { type FormEvent, useState } from 'react';
 import { CadenceComposerSection, CUSTOM_PRESET_VALUE } from './CadenceComposerSection';
 import { CadenceGoldenStrip } from './CadenceGoldenStrip';
 import { CadenceHistoryStrip } from './CadenceHistoryStrip';
+import { CadencePipelineRail } from './CadencePipelineRail';
+import { CadenceSpecGatePane } from './CadenceSpecGatePane';
 import { CadenceTimelineSection, resolveCadenceBadge } from './CadenceTimelineSection';
 
 import styles from './PortalCadencePage.module.css';
@@ -29,6 +31,12 @@ export type PortalCadenceActionResult =
   | {
       readonly ok: true;
       readonly intent: 'run-init';
+      readonly run: CadenceRunResult;
+      readonly quota?: QuotaStatus;
+    }
+  | {
+      readonly ok: true;
+      readonly intent: 'spec-approve';
       readonly run: CadenceRunResult;
       readonly quota?: QuotaStatus;
     }
@@ -45,7 +53,7 @@ export type PortalCadenceActionResult =
     }
   | ({
       readonly ok: false;
-      readonly intent: 'run' | 'gate';
+      readonly intent: 'run' | 'gate' | 'spec-approve';
       readonly error: string;
       readonly run?: CadenceRunResult;
       readonly quota?: QuotaStatus;
@@ -62,6 +70,7 @@ export interface PortalCadencePageProps {
   isStreaming?: boolean;
   streamLogs?: readonly string[];
   onRunBuild?: (payload: { prompt: string; presetSlug: string; mode: CadenceRunMode }) => void;
+  onApproveSpec?: (runId: string) => void;
   onGateVerdict?: (payload: {
     runId: string;
     verdict: Exclude<CadenceGateVerdict, 'pending'>;
@@ -98,6 +107,7 @@ export function PortalCadencePage({
   isStreaming = false,
   streamLogs = [],
   onRunBuild,
+  onApproveSpec,
   onGateVerdict,
   onClose,
 }: PortalCadencePageProps) {
@@ -184,7 +194,10 @@ export function PortalCadencePage({
     isSubmitting ||
     isStreaming ||
     (!hasActiveRunError &&
-      (activeRun?.runStatus === 'pending' || activeRun?.runStatus === 'running'));
+      (activeRun?.runStatus === 'pending' ||
+        activeRun?.runStatus === 'running' ||
+        activeRun?.runStatus === 'build_queued' ||
+        activeRun?.runStatus === 'building'));
 
   const handlePresetChange = (slug: string) => {
     setActivePresetSlug(slug);
@@ -209,6 +222,19 @@ export function PortalCadencePage({
     if (trimmed.length < 4 || isPipelineBusy || !onRunBuild) return;
     onRunBuild({
       prompt: trimmed,
+      presetSlug:
+        activePresetSlug === CUSTOM_PRESET_VALUE ? 'custom' : (activePreset?.slug ?? 'custom'),
+      mode: fastMode ? 'fast' : 'llm',
+    });
+  };
+
+  const handleReviseSpec = (feedback: string) => {
+    if (!feedback.trim() || isPipelineBusy || !onRunBuild) return;
+    const basePrompt = activeRun?.prompt ?? promptText.trim();
+    const nextPrompt = `${basePrompt}\nSpec Revision: ${feedback.trim()}`.slice(0, 1200);
+    setPromptText(nextPrompt);
+    onRunBuild({
+      prompt: nextPrompt,
       presetSlug:
         activePresetSlug === CUSTOM_PRESET_VALUE ? 'custom' : (activePreset?.slug ?? 'custom'),
       mode: fastMode ? 'fast' : 'llm',
@@ -297,25 +323,38 @@ export function PortalCadencePage({
           />
         )}
 
-        <ArtifactInspector
-          artifactHtml={previewHtml}
-          fileName={`cadence-${activeRun?.presetSlug ?? 'artifact'}.html`}
-          executionMode={activeRun?.executionMode}
-          isGolden={Boolean(activeRun?.isGolden)}
-          spec={activeRun?.spec}
-          gateAudit={activeRun?.gateAudit}
-          gateVerdict={activeRun?.gateVerdict ?? 'pending'}
-          isPipelineBusy={isPipelineBusy}
-          isRunReady={isRunReady}
-          isStreaming={isStreaming}
-          streamLogs={streamLogs}
-          labels={content}
-          onGateVerdict={
-            activeRun && !activeRun.isGolden && onGateVerdict
-              ? verdict => onGateVerdict({ runId: activeRun.runId, verdict })
-              : undefined
-          }
-        />
+        <CadencePipelineRail activeRun={activeRun} isStreaming={isStreaming} />
+
+        <div className={styles.workbenchSplit} data-testid='cadence-workbench-split'>
+          <CadenceSpecGatePane
+            activeRun={activeRun}
+            isStreaming={isStreaming}
+            isSubmitting={isSubmitting}
+            onApproveSpec={onApproveSpec}
+            onReviseSpec={onRunBuild ? handleReviseSpec : undefined}
+          />
+
+          <ArtifactInspector
+            artifactHtml={previewHtml}
+            fileName={`cadence-${activeRun?.presetSlug ?? 'artifact'}.html`}
+            executionMode={activeRun?.executionMode}
+            runStatus={activeRun?.runStatus}
+            isGolden={Boolean(activeRun?.isGolden)}
+            spec={activeRun?.spec}
+            gateAudit={activeRun?.gateAudit}
+            gateVerdict={activeRun?.gateVerdict ?? 'pending'}
+            isPipelineBusy={isPipelineBusy}
+            isRunReady={isRunReady}
+            isStreaming={isStreaming}
+            streamLogs={streamLogs}
+            labels={content}
+            onGateVerdict={
+              activeRun && !activeRun.isGolden && onGateVerdict
+                ? verdict => onGateVerdict({ runId: activeRun.runId, verdict })
+                : undefined
+            }
+          />
+        </div>
 
         {activeRun &&
           isRunReady &&

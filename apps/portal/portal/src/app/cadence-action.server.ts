@@ -7,6 +7,7 @@ import {
 } from '@aklapper/core';
 import { classifyServerError } from '@aklapper/core/server-errors';
 import {
+  approveSandboxRunSpecForSession,
   cloneCachedSandboxRunForSession,
   createPendingSandboxRunWithQuota,
   findCachedSandboxRun,
@@ -77,7 +78,7 @@ function makeUpstreamStatusError(
 }
 
 function actionError(
-  intent: 'run' | 'gate',
+  intent: 'run' | 'gate' | 'spec-approve',
   status: number,
   error: string,
   code: AppErrorCode,
@@ -92,7 +93,7 @@ function actionError(
 
 export function classifyCadenceActionFailure(
   error: unknown,
-  intent: 'run' | 'gate',
+  intent: 'run' | 'gate' | 'spec-approve',
   correlationId: string,
   logger: SsrStructuredLogger,
   headers: Record<string, string>,
@@ -240,12 +241,136 @@ export async function handleCadenceGateAction(formData: FormData, ctx: CadenceAc
   }
 }
 
+export async function handleCadenceSpecApproveAction(
+  formData: FormData,
+  ctx: CadenceActionContext,
+) {
+  const { sessionId, correlationId, logger, headers, cadenceDemoUrl } = ctx;
+  const runId = String(formData.get('runId') ?? '').trim();
+
+  if (!UUID_RE.test(runId)) {
+    return actionError('spec-approve', 400, 'Invalid runId for spec approval.', 'ERR_VALIDATION', ctx);
+  }
+
+  if (cadenceDemoUrl) {
+    let upstream: Awaited<ReturnType<typeof proxyJson<Record<string, unknown>>>>;
+    try {
+      upstream = await proxyJson<Record<string, unknown>>({
+        baseUrl: cadenceDemoUrl,
+        path: `/v1/cadence/runs/${encodeURIComponent(runId)}/spec-gate`,
+        method: 'POST',
+        headers: { 'x-session-id': sessionId, 'X-Correlation-Id': correlationId },
+        body: { approved: true },
+        timeoutMs: 8_000,
+        internalAuth: { role: 'guest', subject: sessionId },
+      });
+    } catch (error) {
+      return classifyCadenceActionFailure(error, 'spec-approve', correlationId, logger, headers);
+    }
+
+    if (upstream.status !== 502 && upstream.status !== 504) {
+      if (!upstream.ok) {
+        if (upstream.status >= 500) {
+          return classifyCadenceActionFailure(
+            makeUpstreamStatusError(
+              upstream.status,
+              upstream.error ?? 'Upstream spec approval failed.',
+            ),
+            'spec-approve',
+            correlationId,
+            logger,
+            headers,
+          );
+        }
+        const msg =
+          typeof upstream.data?.['error'] === 'string'
+            ? upstream.data['error']
+            : 'Upstream spec approval rejected.';
+        return actionError(
+          'spec-approve',
+          upstream.status,
+          msg,
+          mapHttpStatusToErrorCode(upstream.status),
+          ctx,
+        );
+      }
+
+      const parsedRun = CadenceRunResultSchema.safeParse(upstream.data?.['run']);
+      const parsedQuota = QuotaStatusSchema.safeParse(upstream.data?.['quota']);
+      if (!parsedRun.success) {
+        return actionError(
+          'spec-approve',
+          502,
+          'Upstream spec approval payload failed contract validation.',
+          'ERR_UPSTREAM_UNAVAILABLE',
+          ctx,
+          { action: 'Retry shortly.' },
+        );
+      }
+
+      return data<PortalCadenceActionResult>(
+        {
+          ok: true,
+          intent: 'spec-approve',
+          run: parsedRun.data,
+          ...(parsedQuota.success ? { quota: parsedQuota.data } : {}),
+        },
+        { status: 202, headers },
+      );
+    }
+  }
+
+  try {
+    const db = getSharedDb();
+    const result = await approveSandboxRunSpecForSession(db, runId, sessionId);
+    if (result.outcome === 'not-found') {
+      return actionError('spec-approve', 404, 'Sandbox run not found.', 'ERR_NOT_FOUND', ctx);
+    }
+    if (result.outcome === 'forbidden') {
+      return actionError(
+        'spec-approve',
+        403,
+        'Sandbox run belongs to a different session.',
+        'ERR_FORBIDDEN',
+        ctx,
+      );
+    }
+    if (result.outcome === 'conflict') {
+      return actionError(
+        'spec-approve',
+        409,
+        `Run is currently "${result.status}" and is not awaiting spec approval.`,
+        'ERR_CONSTRAINT',
+        ctx,
+      );
+    }
+
+    const quota = await getQuotaStatusForSession(db, 'guest', sessionId);
+    return data<PortalCadenceActionResult>(
+      { ok: true, intent: 'spec-approve', run: { ...result.run, quota }, quota },
+      { status: 202, headers },
+    );
+  } catch (error) {
+    if (error instanceof GoldenRunImmutableError) {
+      return actionError(
+        'spec-approve',
+        409,
+        'Golden showcase runs are read-only and cannot be mutated.',
+        'ERR_CONSTRAINT',
+        ctx,
+      );
+    }
+    return classifyCadenceActionFailure(error, 'spec-approve', correlationId, logger, headers);
+  }
+}
+
 export async function handleCadenceRunAction(formData: FormData, ctx: CadenceActionContext) {
   const { sessionId, correlationId, logger, headers, cadenceDemoUrl } = ctx;
   const prompt = String(formData.get('prompt') ?? '').trim();
   const rawPreset = String(formData.get('presetSlug') ?? '').trim();
   const presetSlug = rawPreset && rawPreset !== '__custom__' ? rawPreset : 'custom';
   const rawMode = String(formData.get('mode') ?? 'llm').trim();
+  const requireSpecApproval = String(formData.get('requireSpecApproval') ?? '').trim() === 'true';
 
   const validatedReq = CadenceRunRequestSchema.safeParse({
     prompt,
@@ -253,6 +378,7 @@ export async function handleCadenceRunAction(formData: FormData, ctx: CadenceAct
     sessionId,
     mode: rawMode,
     deferExecution: true,
+    ...(requireSpecApproval ? { requireSpecApproval: true } : {}),
   });
   if (!validatedReq.success) {
     return data<PortalCadenceActionResult>(
@@ -381,7 +507,7 @@ export async function handleCadenceRunAction(formData: FormData, ctx: CadenceAct
       mode: resolvedMode,
       prompt: validatedReq.data.prompt,
     });
-    if (resolvedMode === 'fast' && cacheLookup.sourceRun) {
+    if (resolvedMode === 'fast' && !requireSpecApproval && cacheLookup.sourceRun) {
       const cloned = await cloneCachedSandboxRunForSession(
         db,
         { run: cacheLookup.sourceRun, turns: cacheLookup.sourceTurns },
@@ -409,6 +535,7 @@ export async function handleCadenceRunAction(formData: FormData, ctx: CadenceAct
       mode: resolvedMode,
       promptHash: cacheLookup.promptHash,
       estimatedTokens: 800,
+      ...(requireSpecApproval ? { requireSpecApproval: true } : {}),
     });
 
     if (!initResult.allowed) {

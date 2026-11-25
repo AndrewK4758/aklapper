@@ -153,20 +153,19 @@ func buildGateAudit(sanitizedHTML string, stripped bool, extraChecks []contracts
 	}
 }
 
-func executeChordStepsWithOptions(ctx context.Context, in chordExecInput) (chordExecutionOutput, error) {
-	mode := in.Mode
-	if mode != contracts.CadenceModeLLM {
-		mode = contracts.CadenceModeFast
-	}
-	preset, _ := in.Store.GetCadencePreset(ctx, in.PresetSlug)
+type specPhaseOutput struct {
+	Spec             *contracts.CadenceSpecArtifact
+	RecalledPatterns []string
+	SpecTokens       int
+	TokensIn         int
+	ExecutionMode    string
+	Turns            []pg.SandboxTurnInput
+	Status           contracts.Osc7501Status
+	OSC7501          string
+}
 
-	emitLog := func(line string) {
-		if in.OnLog != nil && strings.TrimSpace(line) != "" {
-			in.OnLog(line)
-		}
-	}
-
-	emitUpdate := func(phase, agentName, status, summary string, latencyMs, progress int, payload map[string]any, spec *contracts.CadenceSpecArtifact) error {
+func makePhaseEmitHelper(ctx context.Context, in chordExecInput) func(phase, agentName, status, summary string, latencyMs, progress int, payload map[string]any, spec *contracts.CadenceSpecArtifact) error {
+	return func(phase, agentName, status, summary string, latencyMs, progress int, payload map[string]any, spec *contracts.CadenceSpecArtifact) error {
 		var emitted contracts.CadenceTurn
 		if in.RunID != "" {
 			dbCtx, dbCancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
@@ -184,12 +183,27 @@ func executeChordStepsWithOptions(ctx context.Context, in chordExecInput) (chord
 		}
 		return nil
 	}
+}
+
+func executeChordSpecPhase(ctx context.Context, in chordExecInput) (specPhaseOutput, error) {
+	mode := in.Mode
+	if mode != contracts.CadenceModeLLM {
+		mode = contracts.CadenceModeFast
+	}
+	preset, _ := in.Store.GetCadencePreset(ctx, in.PresetSlug)
+
+	emitLog := func(line string) {
+		if in.OnLog != nil && strings.TrimSpace(line) != "" {
+			in.OnLog(line)
+		}
+	}
+	emitUpdate := makePhaseEmitHelper(ctx, in)
 
 	// Phase 1: Triage
 	t1Start := time.Now()
 	emitLog("[triage] Evaluating prompt scope and sandbox isolation profile...")
 	if err := emitUpdate("triage", "chord-triage", "running", "Evaluating prompt and isolation profile...", 0, 10, nil, nil); err != nil {
-		return chordExecutionOutput{}, err
+		return specPhaseOutput{}, err
 	}
 	detectedKeywords := extractPromptKeywords(in.Prompt, 6)
 	triageSummary := fmt.Sprintf("Classified prompt (%d chars) under preset %q (%s mode).", len(in.Prompt), nonEmptyOr(in.PresetSlug, "custom"), mode)
@@ -202,14 +216,14 @@ func executeChordStepsWithOptions(ctx context.Context, in chordExecInput) (chord
 	}
 	t1Ms := int(time.Since(t1Start).Milliseconds()) + 2
 	if err := emitUpdate("triage", "chord-triage", "completed", triageSummary, t1Ms, 25, triagePayload, nil); err != nil {
-		return chordExecutionOutput{}, err
+		return specPhaseOutput{}, err
 	}
 
 	// Phase 2: Spec (+ bounded Qdrant recall + live LLM CHORD spec generation)
 	t2Start := time.Now()
 	emitLog("[spec] Running bounded Qdrant pattern recall and authoring CHORD specification...")
 	if err := emitUpdate("spec", "chord-spec", "running", "Authoring CHORD specification and running vector recall...", 0, 35, nil, nil); err != nil {
-		return chordExecutionOutput{}, err
+		return specPhaseOutput{}, err
 	}
 	recalledPatterns := []string{}
 	if in.Provider != nil && in.VectorStore != nil {
@@ -235,6 +249,7 @@ func executeChordStepsWithOptions(ctx context.Context, in chordExecInput) (chord
 	specProvider := "deterministic-fast"
 	specFallbackReason := ""
 	specTokens := 0
+	execMode := contracts.CadenceExecutionModeFast
 	if mode == contracts.CadenceModeLLM {
 		liveSpec, usedTokens, specErr := invokeLLMSpecStage(
 			ctx,
@@ -248,9 +263,10 @@ func executeChordStepsWithOptions(ctx context.Context, in chordExecInput) (chord
 		)
 		if specErr != nil {
 			if errors.Is(specErr, privacy.ErrPrivacyAborted) || errors.Is(specErr, context.Canceled) {
-				return chordExecutionOutput{}, specErr
+				return specPhaseOutput{}, specErr
 			}
 			specProvider = "deterministic-fallback"
+			execMode = contracts.CadenceExecutionModeFallback
 			specFallbackReason = "Live LLM spec stage failed or timed out; degraded explicitly to deterministic CHORD spec."
 			emitLog("[spec] " + specFallbackReason)
 			logCadenceSeam("RULE_DIVERGENCE", "cadence.spec.fallback", "warn", map[string]any{
@@ -262,6 +278,7 @@ func executeChordStepsWithOptions(ctx context.Context, in chordExecInput) (chord
 			specCopy.RecalledPatterns = recalledPatterns
 			specArtifact = &specCopy
 			specProvider = in.Provider.Name()
+			execMode = contracts.CadenceExecutionModeLive
 			specTokens = usedTokens
 			emitLog("[spec] CHORD specification ready: " + specArtifact.Title)
 		}
@@ -286,12 +303,59 @@ func executeChordStepsWithOptions(ctx context.Context, in chordExecInput) (chord
 	}
 	t2Ms := int(time.Since(t2Start).Milliseconds()) + 4
 	if err := emitUpdate("spec", "chord-spec", "completed", specSummary, t2Ms, 50, specPayload, specArtifact); err != nil {
-		return chordExecutionOutput{}, err
+		return specPhaseOutput{}, err
 	}
 
-	// Phase 3: Build (fast tailored synthesis vs live LLM implementing the Phase 2 CHORD spec)
+	pct := 50
+	gateStatus := contracts.Osc7501Status{
+		Source:    "cadence-demo",
+		State:     "gate",
+		Label:     "CHORD spec ready · awaiting human approval",
+		Progress:  &pct,
+		Timestamp: time.Now().UTC(),
+	}
+	return specPhaseOutput{
+		Spec:             specArtifact,
+		RecalledPatterns: recalledPatterns,
+		SpecTokens:       specTokens,
+		TokensIn:         len(in.Prompt)/4 + 120,
+		ExecutionMode:    execMode,
+		Status:           gateStatus,
+		OSC7501:          k8sevents.FormatOSC7501(gateStatus),
+		Turns: []pg.SandboxTurnInput{
+			{RunID: in.RunID, Phase: "triage", AgentName: "chord-triage", Status: "completed", Summary: triageSummary, PayloadJSON: triagePayload, LatencyMs: t1Ms},
+			{RunID: in.RunID, Phase: "spec", AgentName: "chord-spec", Status: "completed", Summary: specSummary, PayloadJSON: specPayload, LatencyMs: t2Ms},
+		},
+	}, nil
+}
+
+func executeChordBuildPhase(
+	ctx context.Context,
+	in chordExecInput,
+	specArtifact *contracts.CadenceSpecArtifact,
+	recalledPatterns []string,
+	specTokens int,
+	priorTurns []pg.SandboxTurnInput,
+) (chordExecutionOutput, error) {
+	mode := in.Mode
+	if mode != contracts.CadenceModeLLM {
+		mode = contracts.CadenceModeFast
+	}
+	preset, _ := in.Store.GetCadencePreset(ctx, in.PresetSlug)
+	if specArtifact == nil {
+		specArtifact = buildDeterministicSpec(in.Prompt, in.PresetSlug, preset, recalledPatterns)
+	}
+
+	emitLog := func(line string) {
+		if in.OnLog != nil && strings.TrimSpace(line) != "" {
+			in.OnLog(line)
+		}
+	}
+	emitUpdate := makePhaseEmitHelper(ctx, in)
+
+	// Phase 3: Build (fast tailored synthesis vs live LLM implementing the approved CHORD spec)
 	t3Start := time.Now()
-	if err := emitUpdate("build", "chord-builder", "running", "Synthesizing bespoke HTML5/CSS artifact from CHORD spec...", 0, 65, nil, nil); err != nil {
+	if err := emitUpdate("build", "chord-builder", "running", "Synthesizing bespoke HTML5/CSS artifact from approved CHORD spec...", 0, 65, nil, nil); err != nil {
 		return chordExecutionOutput{}, err
 	}
 	tokensIn := len(in.Prompt)/4 + 120
@@ -393,6 +457,13 @@ func executeChordStepsWithOptions(ctx context.Context, in chordExecInput) (chord
 		Timestamp: time.Now().UTC(),
 	}
 
+	allTurns := make([]pg.SandboxTurnInput, 0, len(priorTurns)+2)
+	allTurns = append(allTurns, priorTurns...)
+	allTurns = append(allTurns,
+		pg.SandboxTurnInput{RunID: in.RunID, Phase: "build", AgentName: "chord-builder", Status: "completed", Summary: buildSummary, PayloadJSON: buildPayload, LatencyMs: t3Ms},
+		pg.SandboxTurnInput{RunID: in.RunID, Phase: "gate", AgentName: "chord-gate", Status: "completed", Summary: gateAudit.Summary, PayloadJSON: gatePayload, LatencyMs: t4Ms},
+	)
+
 	return chordExecutionOutput{
 		ArtifactHTML:  sanitizedHTML,
 		ExecutionMode: executionMode,
@@ -402,11 +473,14 @@ func executeChordStepsWithOptions(ctx context.Context, in chordExecInput) (chord
 		TokensOut:     tokensOut,
 		Status:        readyStatus,
 		OSC7501:       k8sevents.FormatOSC7501(readyStatus),
-		Turns: []pg.SandboxTurnInput{
-			{RunID: in.RunID, Phase: "triage", AgentName: "chord-triage", Status: "completed", Summary: triageSummary, PayloadJSON: triagePayload, LatencyMs: t1Ms},
-			{RunID: in.RunID, Phase: "spec", AgentName: "chord-spec", Status: "completed", Summary: specSummary, PayloadJSON: specPayload, LatencyMs: t2Ms},
-			{RunID: in.RunID, Phase: "build", AgentName: "chord-builder", Status: "completed", Summary: buildSummary, PayloadJSON: buildPayload, LatencyMs: t3Ms},
-			{RunID: in.RunID, Phase: "gate", AgentName: "chord-gate", Status: "completed", Summary: gateAudit.Summary, PayloadJSON: gatePayload, LatencyMs: t4Ms},
-		},
+		Turns:         allTurns,
 	}, nil
+}
+
+func executeChordStepsWithOptions(ctx context.Context, in chordExecInput) (chordExecutionOutput, error) {
+	specOut, err := executeChordSpecPhase(ctx, in)
+	if err != nil {
+		return chordExecutionOutput{}, err
+	}
+	return executeChordBuildPhase(ctx, in, specOut.Spec, specOut.RecalledPatterns, specOut.SpecTokens, specOut.Turns)
 }

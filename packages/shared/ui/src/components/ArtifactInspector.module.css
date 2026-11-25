@@ -35,6 +35,18 @@
     gap: var(--sf-gap-sm);
   }
 
+  .buildLockedPanel {
+    display: grid;
+    align-content: center;
+    justify-items: start;
+    gap: var(--sf-gap-sm);
+    min-height: 16rem;
+    padding: var(--sf-space-6);
+    border: var(--sf-border-width) dashed var(--sf-gold);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-bg-panel);
+  }
+
   .liveSpecSection {
     min-width: var(--sf-space-0);
   }

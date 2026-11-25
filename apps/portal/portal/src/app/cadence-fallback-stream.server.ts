@@ -2,6 +2,7 @@ import {
   buildTailoredCadenceArtifactHtml,
   type CadenceRunMode,
   type CadenceRunResult,
+  type CadenceSpecArtifact,
   type CadenceStreamCompleteEvent,
   type CadenceStreamErrorEvent,
   type CadenceStreamPhaseEvent,
@@ -19,6 +20,7 @@ import {
   getCadencePresetBySlug,
   getQuotaStatusForSession,
   getSandboxRunWithTurnsById,
+  pauseSandboxRunForSpecApproval,
   updateSandboxTurnRow,
 } from '@aklapper/db';
 import { logDiagnosticError, type SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
@@ -242,6 +244,8 @@ export async function runFallbackChordPipelineSse(
   try {
     const presetSlug = run.presetSlug ?? 'custom';
     const preset = await getCadencePresetBySlug(db, presetSlug);
+    const triageTurn = run.turns.find(t => t.phase === 'triage');
+    const requireSpecApproval = Boolean(triageTurn?.payload?.['requireSpecApproval'] === true);
 
     await emitStep(
       'triage',
@@ -269,33 +273,169 @@ export async function runFallbackChordPipelineSse(
     );
 
     await emitStep('spec', 'chord-spec', 'running', 'Drafting tailored UI artifact spec...', 0, 40);
-    await emitStep(
-      'spec',
-      'chord-spec',
-      'completed',
-      'Drafted single-file Solar Forge HTML/CSS specification.',
-      4,
-      50,
-      {
+    const fallbackSpec: CadenceSpecArtifact = {
+      title: preset?.title ?? 'Custom CADENCE Artifact Specification',
+      summary: `Structured CHORD specification for "${presetSlug}" (${mode} fallback).`,
+      conditions: [
+        `Prompt received (${run.prompt.length} chars) under preset "${presetSlug}".`,
+        'Isolated opaque-origin sandbox iframe (sandbox=allow-scripts, referrerPolicy=no-referrer).',
+      ],
+      handling: [
+        'Run triage classification, CHORD spec drafting, HTML5/CSS synthesis, and strict CSP sanitization.',
+      ],
+      outcomes: [
+        'Self-contained dark Solar Forge HTML5+CSS document filling 100% width',
+        'Interactive controls using pure HTML5/CSS (tabs, collapsible panels, charts)',
+        'Zero external fetches, zero arbitrary inline JS, <= 48 KiB UTF-8',
+      ],
+      rules: [
+        "Strict CSP meta injected (default-src 'none', sha256-pinned probe script)",
+        'Zero inline <script>, <svg>, <iframe>, <object>, or on* event handlers.',
+      ],
+      deltas: ['Persists sandbox_runs row with structured spec_json and 4 sandbox_turns.'],
+    };
+    const specTurnUpdated = await updateSandboxTurnRow(db, {
+      runId: run.runId,
+      phase: 'spec',
+      status: 'completed',
+      summary: 'Drafted single-file Solar Forge HTML/CSS specification.',
+      latencyMs: 4,
+      payload: {
+        specTitle: fallbackSpec.title,
+        specSummary: fallbackSpec.summary,
+        conditions: fallbackSpec.conditions,
+        rules: fallbackSpec.rules,
         recalledPatterns: [],
-        acceptanceCriteria: [
-          'Self-contained dark Solar Forge HTML5+CSS document filling 100% width',
-          'Interactive controls using pure HTML5/CSS (tabs, collapsible panels, charts)',
-          'Zero external fetches, zero arbitrary inline JS, <= 48 KiB UTF-8',
-        ],
+        acceptanceCriteria: fallbackSpec.outcomes,
         sandboxConstraints:
           "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'",
       },
-    );
+    });
+    sink.enqueue('phase', {
+      runId: run.runId,
+      runStatus: 'running',
+      status: buildStatusBadge('running', 'CHORD spec · completed', 50),
+      progress: 50,
+      turn: specTurnUpdated ?? {
+        phase: 'spec',
+        agentName: 'chord-spec',
+        status: 'completed',
+        summary: 'Drafted single-file Solar Forge HTML/CSS specification.',
+        latencyMs: 4,
+      },
+      spec: fallbackSpec,
+    } satisfies CadenceStreamPhaseEvent);
 
-    await emitStep(
-      'build',
-      'chord-builder',
-      'running',
-      'Synthesizing sandbox HTML widget...',
-      0,
-      70,
+    if (requireSpecApproval) {
+      const paused = await pauseSandboxRunForSpecApproval(db, {
+        runId: run.runId,
+        tokensIn: Math.ceil(run.prompt.length / 4) + 120,
+        tokensOut: 160,
+        executionMode: mode === 'llm' ? 'fallback' : 'fast',
+        spec: fallbackSpec,
+      });
+      const quota = await getQuotaStatusForSession(db, 'guest', sessionId);
+      const pausedRun: CadenceRunResult = {
+        ...(paused ?? { ...run, runStatus: 'awaiting_approval', spec: fallbackSpec }),
+        quota,
+      };
+      sink.enqueue('complete', {
+        run: pausedRun,
+        quota,
+      } satisfies CadenceStreamCompleteEvent);
+      return;
+    }
+
+    await runFallbackChordBuildPhaseSse(db, { ...run, spec: fallbackSpec }, mode, sessionId, sink, telemetry);
+    return;
+  } catch (error) {
+    const correlationId = telemetry?.correlationId ?? run.runId;
+    const { diagnostic } = classifyServerError(error, {
+      correlationId,
+      source: 'portal.cadence.stream',
+    });
+    if (telemetry) {
+      logDiagnosticError(telemetry.logger, diagnostic);
+    }
+    try {
+      await failSandboxRunRow(db, run.runId, SAFE_STREAM_FAILURE_SUMMARY);
+    } catch (failErr) {
+      const failDiag = classifyServerError(failErr, {
+        correlationId,
+        source: 'portal.cadence.stream',
+      }).diagnostic;
+      logCadenceStreamSeam(
+        'error',
+        'DELTA_AUDIT_GAP',
+        'cadence.run.terminal_commit_gap',
+        'critical',
+        {
+          runId: run.runId,
+          correlationId,
+          error: failDiag.causeMessage ?? failDiag.reasoning,
+        },
+      );
+    }
+    logCadenceStreamSeam(
+      'error',
+      'DELTA_AUDIT_GAP',
+      'cadence.run.terminal_commit_gap',
+      'critical',
+      {
+        runId: run.runId,
+        correlationId,
+        error: diagnostic.causeMessage ?? diagnostic.reasoning,
+      },
     );
+    sink.enqueue('error', {
+      runId: run.runId,
+      error: SAFE_STREAM_FAILURE_SUMMARY,
+      code: 'ERR_CADENCE_STREAM',
+      runStatus: 'failed',
+    } satisfies CadenceStreamErrorEvent);
+  }
+}
+
+export async function runFallbackChordBuildPhaseSse(
+  db: AppDatabase,
+  run: CadenceRunResult,
+  mode: CadenceRunMode,
+  sessionId: string,
+  sink: SseStreamSink,
+  telemetry?: { readonly correlationId: string; readonly logger: SsrStructuredLogger },
+): Promise<void> {
+  const emitStep = async (
+    phase: CadenceTurn['phase'],
+    agentName: string,
+    status: CadenceTurn['status'],
+    summary: string,
+    latencyMs: number,
+    progress: number,
+    payload?: Record<string, unknown>,
+  ): Promise<void> => {
+    const updated = await updateSandboxTurnRow(db, {
+      runId: run.runId,
+      phase,
+      status,
+      summary,
+      latencyMs,
+      ...(payload ? { payload } : {}),
+    });
+    const turn: CadenceTurn = updated ?? { phase, agentName, status, summary, latencyMs };
+    sink.enqueue('phase', {
+      runId: run.runId,
+      runStatus: 'building',
+      status: buildStatusBadge('running', `CHORD ${phase} · ${status}`, progress),
+      progress,
+      turn,
+    } satisfies CadenceStreamPhaseEvent);
+  };
+
+  try {
+    const presetSlug = run.presetSlug ?? 'custom';
+    const preset = await getCadencePresetBySlug(db, presetSlug);
+
+    await emitStep('build', 'chord-builder', 'running', 'Synthesizing sandbox HTML widget...', 0, 70);
     const rawHtml = buildTailoredCadenceArtifactHtml({ prompt: run.prompt, preset });
     await emitStep(
       'build',
@@ -361,6 +501,7 @@ export async function runFallbackChordPipelineSse(
       tokensOut,
       artifactHtml: sanitized.html,
       executionMode: mode === 'llm' ? 'fallback' : 'fast',
+      ...(run.spec ? { spec: run.spec } : {}),
     });
     const quota = await getQuotaStatusForSession(db, 'guest', sessionId);
     const finalRun: CadenceRunResult = {

@@ -142,10 +142,24 @@ export function resolveCadenceBadge(
   if (activeRun?.runStatus === 'failed') {
     return { state: 'error', label: 'CHORD run failed' };
   }
+  if (activeRun?.runStatus === 'awaiting_approval') {
+    return { state: 'gate', label: '⏸ awaiting human spec approval' };
+  }
   const isRunPendingOrRunning =
-    activeRun?.runStatus === 'pending' || activeRun?.runStatus === 'running';
+    activeRun?.runStatus === 'pending' ||
+    activeRun?.runStatus === 'running' ||
+    activeRun?.runStatus === 'build_queued' ||
+    activeRun?.runStatus === 'building';
   if (isSubmitting || isStreaming || (isRunPendingOrRunning && !hasActiveRunError)) {
     const runningTurn = activeRun?.turns.find(turn => turn.status === 'running');
+    if (activeRun?.runStatus === 'build_queued' || activeRun?.runStatus === 'building') {
+      return {
+        state: 'running',
+        label: runningTurn
+          ? `live · ${runningTurn.phase} (approved spec)`
+          : 'live · building approved spec',
+      };
+    }
     return {
       state: isStreaming ? 'running' : 'scaling',
       label: runningTurn ? `live · ${runningTurn.phase} running` : 'waking · CHORD running',
