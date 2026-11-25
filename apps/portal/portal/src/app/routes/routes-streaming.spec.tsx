@@ -456,6 +456,7 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
     const pollReqInit = fetchSpy.mock.calls[1]?.[1];
     expect(new Headers(pollReqInit?.headers).get('x-internal-auth')).toBeTruthy();
 
+    vi.stubEnv('CADENCE_DEMO_URL', '');
     const drizzleError = Object.assign(
       new Error('Failed query: SELECT * FROM quotas params: [secret]'),
       { name: 'DrizzleQueryError', cause: new Error('connection terminated') },
