@@ -65,4 +65,14 @@
     border-color: var(--sf-gold);
     color: var(--sf-gold);
   }
+
+  @media (max-width: 48rem) {
+    .menuLink {
+      --sf-space-3: var(--sf-space-4);
+      --sf-space-5: var(--sf-space-4);
+      --sf-gap-sm: var(--sf-space-3);
+      flex-wrap: wrap;
+      gap: var(--sf-space-2);
+    }
+  }
 }

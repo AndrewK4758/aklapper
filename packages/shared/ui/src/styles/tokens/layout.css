@@ -175,4 +175,28 @@
     --active-tab-left: 0;
     --active-tab-width: 0;
   }
+
+  @media (max-width: 48rem) {
+    :root,
+    :root[data-theme='solar-forge'] {
+      --sf-inset-panel: var(--sf-space-5);
+      --sf-inset-section: var(--sf-space-6);
+      --sf-window-min-w: var(--sf-space-0);
+      --sf-window-min-h: var(--sf-space-0);
+      --sf-p10k-seg-h: calc(var(--sf-space-unit) * 5.25);
+      --sf-p10k-arrow-w: calc(var(--sf-space-unit) * 2);
+      --sf-p10k-tail-w: calc(var(--sf-space-unit) * 5);
+    }
+  }
+
+  @media (max-height: 32rem) and (orientation: landscape) {
+    :root,
+    :root[data-theme='solar-forge'] {
+      --sf-inset-panel: var(--sf-space-4);
+      --sf-inset-section: var(--sf-space-5);
+      --sf-p10k-seg-h: calc(var(--sf-space-unit) * 5);
+      --sf-p10k-arrow-w: calc(var(--sf-space-unit) * 2);
+      --sf-p10k-tail-w: calc(var(--sf-space-unit) * 4);
+    }
+  }
 }

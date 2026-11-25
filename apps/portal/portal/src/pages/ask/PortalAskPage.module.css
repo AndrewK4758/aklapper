@@ -188,7 +188,7 @@
 
   .jdGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
     gap: var(--sf-space-5);
   }
 
@@ -215,5 +215,15 @@
     color: var(--sf-fg-bone);
     font-size: var(--sf-text-xs);
     line-height: var(--sf-leading-base);
+  }
+
+  @media (max-width: 48rem) {
+    .actions {
+      flex-wrap: wrap;
+    }
+
+    .entryCard {
+      padding: var(--sf-space-4);
+    }
   }
 }

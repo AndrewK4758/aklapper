@@ -75,4 +75,10 @@
     white-space: nowrap;
     border: 0;
   }
+
+  @media (max-width: 48rem) {
+    .receiptList {
+      grid-template-columns: 1fr;
+    }
+  }
 }

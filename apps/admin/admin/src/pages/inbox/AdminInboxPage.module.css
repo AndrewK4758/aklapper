@@ -65,6 +65,7 @@
     display: flex;
     align-items: var(--sf-align-center);
     justify-content: var(--sf-justify-between);
+    flex-wrap: wrap;
     gap: var(--sf-space-3);
     font-size: var(--sf-text-sm);
   }
@@ -89,6 +90,7 @@
     background: var(--sf-bg-panel);
     border: var(--sf-border-width) solid var(--sf-border);
     border-radius: var(--sf-radius-sm);
+    min-width: var(--sf-space-0);
   }
 
   .detailHeader {
@@ -101,7 +103,7 @@
 
   .metaGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr));
     gap: var(--sf-space-3);
     font-size: var(--sf-text-xs);
   }
@@ -158,6 +160,12 @@
   @media (max-width: 56rem) {
     .splitLayout {
       grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 48rem) {
+    .detailCard {
+      padding: var(--sf-space-4);
     }
   }
 }

@@ -133,6 +133,11 @@ export {
   pushPaneView,
   type TerminalNavTarget,
 } from './components/terminalPaneNav';
+export {
+  isPortraitViewport,
+  resolveAutoSplitDirection,
+  useAutoSplitDirection,
+} from './components/terminalViewportSplit';
 export { PaneLink, type PaneLinkProps } from './components/PaneLink';
 export {
   PaneNavigationContext,
