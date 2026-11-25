@@ -139,6 +139,15 @@ describe('@aklapper/core/sse WHATWG POST SSE parser', () => {
     p.feed('data: a\rdata: b\r\n\r\n');
     p.flush();
     expect(manual).toEqual([{ event: 'message', data: 'a\nb' }]);
+
+    // WHATWG HTML §9.2.6: incomplete trailing frames without blank-line termination are discarded on EOF.
+    const truncated: SseFrame[] = [];
+    const pTrunc = createSseParser(f => truncated.push(f));
+    pTrunc.feed(
+      'event: delta\ndata: {"text":"complete"}\n\nevent: delta\ndata: {"text":"half-json',
+    );
+    pTrunc.flush();
+    expect(truncated).toEqual([{ event: 'delta', data: '{"text":"complete"}' }]);
   });
 
   it('contains strictly zero node:* imports, zero Buffer usage, exports ./sse, and keeps index.ts re-export-only', () => {

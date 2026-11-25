@@ -108,8 +108,9 @@ export async function proxyPostSse(options: ProxyPostSseOptions): Promise<Respon
 
   const targetUrl = joinUpstreamUrl(baseUrl, path);
   const requestHeaders = new Headers(headers);
-  const correlationId =
-    options.correlationId?.trim() || extractCorrelationId(requestHeaders).correlationId;
+  const correlationId = options.correlationId
+    ? extractCorrelationId({ 'x-correlation-id': options.correlationId }).correlationId
+    : extractCorrelationId(requestHeaders).correlationId;
 
   requestHeaders.set('accept', 'text/event-stream');
   requestHeaders.set('x-correlation-id', correlationId);
@@ -283,6 +284,10 @@ export async function proxyPostSse(options: ProxyPostSseOptions): Promise<Respon
       'Stripped RFC 9113 hop-by-hop headers from upstream SSE response',
     );
   });
+  // Node fetch (Undici) transparently decompresses upstream.body; forwarding content-encoding or
+  // compressed content-length causes downstream fetch/browser decoders to fail with decoding errors.
+  responseHeaders.delete('content-encoding');
+  responseHeaders.delete('content-length');
   responseHeaders.set(
     'content-type',
     upstream.headers.get('content-type') ?? 'text/event-stream; charset=utf-8',

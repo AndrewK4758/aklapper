@@ -247,18 +247,46 @@ func (r *idleWatchReader) Close() error {
 	return r.body.Close()
 }
 
-func scanSSEData(r io.Reader, onData func(data string) error) error {
+type upstreamSSEError struct {
+	Code    any    `json:"code"`
+	Message string `json:"message"`
+	Status  string `json:"status"`
+	Type    string `json:"type"`
+}
+
+func formatUpstreamSSEError(provider string, e *upstreamSSEError) error {
+	if e == nil {
+		return fmt.Errorf("%s stream returned error event", provider)
+	}
+	detail := strings.TrimSpace(e.Message)
+	if detail == "" {
+		detail = strings.TrimSpace(e.Status)
+	}
+	if detail == "" {
+		detail = strings.TrimSpace(e.Type)
+	}
+	if detail == "" {
+		detail = "upstream error"
+	}
+	return fmt.Errorf("%s stream error: %s", provider, detail)
+}
+
+func scanSSEData(r io.Reader, onData func(eventName, data string) error) error {
 	scanner := bufio.NewScanner(r)
 	scanner.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
 
+	var eventName string
 	var dataLines []string
 	flush := func() error {
 		if len(dataLines) == 0 {
+			eventName = ""
 			return nil
 		}
+		ev := eventName
 		joined := strings.Join(dataLines, "\n")
+		eventName = ""
 		dataLines = dataLines[:0]
-		return onData(joined)
+		return onData(ev, joined)
 	}
 
 	for scanner.Scan() {
@@ -270,6 +298,14 @@ func scanSSEData(r io.Reader, onData func(data string) error) error {
 			continue
 		}
 		if strings.HasPrefix(line, ":") {
+			continue
+		}
+		if strings.HasPrefix(line, "event:") {
+			val := line[len("event:"):]
+			if strings.HasPrefix(val, " ") {
+				val = val[1:]
+			}
+			eventName = strings.TrimSpace(val)
 			continue
 		}
 		if strings.HasPrefix(line, "data:") {

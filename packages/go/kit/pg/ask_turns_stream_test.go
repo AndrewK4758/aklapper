@@ -3,6 +3,8 @@ package pg
 import (
 	"context"
 	"errors"
+	"log"
+	"strings"
 	"testing"
 	"time"
 
@@ -10,7 +12,12 @@ import (
 )
 
 func TestExtendTurnLeaseAndDevUnlimitedAndErrorMappings(t *testing.T) {
-	t.Run("DevUnlimited bypasses quota cap in local dev while recording ask_turns and usage", func(t *testing.T) {
+	t.Run("DevUnlimited bypasses quota cap in local dev while recording ask_turns, usage, and audit log", func(t *testing.T) {
+		var logs strings.Builder
+		prevOut := log.Writer()
+		log.SetOutput(&logs)
+		defer log.SetOutput(prevOut)
+
 		store := NewMemoryStore()
 		store.SetPolicyForTest(QuotaPolicy{
 			Role: contracts.RoleGuest, MaxTurnsPerSession: 1, MaxTokensPerRun: 4000, MaxDailyGlobalTokens: 100000,
@@ -31,6 +38,12 @@ func TestExtendTurnLeaseAndDevUnlimitedAndErrorMappings(t *testing.T) {
 		})
 		if err != nil || !ok2 || res2.Quota.TurnsUsed != 2 {
 			t.Fatalf("turn 2 under DevUnlimited should succeed and persist turn/counters: res=%+v ok=%v err=%v", res2, ok2, err)
+		}
+		logText := logs.String()
+		if !strings.Contains(logText, `"seam_type":"DELTA_AUDIT_GAP"`) ||
+			!strings.Contains(logText, `"event":"ai_ask.turn.audit"`) ||
+			!strings.Contains(logText, `"deltaStatus":"dev_unlimited_bypass"`) {
+			t.Fatalf("expected DELTA_AUDIT_GAP ai_ask.turn.audit dev_unlimited_bypass log, got %s", logText)
 		}
 
 		// When disabled (prod/vertex), quota cap rejects turn 3

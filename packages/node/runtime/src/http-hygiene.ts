@@ -14,6 +14,7 @@ export const HOP_BY_HOP_HEADERS: ReadonlySet<string> = new Set([
   'connection',
   'keep-alive',
   'proxy-connection',
+  'te',
   'transfer-encoding',
   'upgrade',
 ]);
@@ -151,6 +152,7 @@ export function buildSafeUpstreamSseErrorResponse(
   const fallbackCode = mapUpstreamStatusToErrorCode(safeStatus);
   const [fallbackMsg, fallbackAction] = defaultCatalogTuple(fallbackCode);
   const mapped5xxStatus = safeStatus === 502 ? 502 : safeStatus === 504 ? 504 : 503;
+  const effectiveStatus = safeStatus < 500 ? safeStatus : mapped5xxStatus;
 
   let parsedJson: Record<string, unknown> | null = null;
   try {
@@ -174,7 +176,7 @@ export function buildSafeUpstreamSseErrorResponse(
     parsedJson && safeStatus < 500
       ? {
           code: typeof parsedJson['code'] === 'string' ? parsedJson['code'] : fallbackCode,
-          status: safeStatus,
+          status: effectiveStatus,
           message:
             typeof parsedJson['message'] === 'string'
               ? parsedJson['message']
@@ -186,30 +188,43 @@ export function buildSafeUpstreamSseErrorResponse(
         }
       : {
           code: fallbackCode,
-          status: mapped5xxStatus,
+          status: effectiveStatus,
           message: fallbackMsg,
           action: fallbackAction,
           correlationId,
         };
 
-  const { publicError } = enforcePublicErrorBoundary(upstreamCandidate, {
+  const checked = enforcePublicErrorBoundary(upstreamCandidate, {
     correlationId,
     source,
     onViolation: fault => logger.error(fault as unknown as Record<string, unknown>, fault.reason),
   });
+  const safeCorrelationId = checked.publicError.correlationId;
+  const resolvedError =
+    checked.violation !== null
+      ? {
+          code: fallbackCode,
+          status: effectiveStatus,
+          message: fallbackMsg,
+          action: fallbackAction,
+          correlationId: safeCorrelationId,
+        }
+      : checked.publicError;
 
   const finalStatus =
     safeStatus === 409 || safeStatus === 504 || safeStatus === 429 || safeStatus === 403
       ? safeStatus
-      : publicError.status;
+      : resolvedError.status;
 
   const payload: StreamErrorPayload = StreamErrorPayloadSchema.parse({
-    code: finalStatus === 504 ? 'ERR_STREAM_TIMEOUT' : publicError.code,
+    code: finalStatus === 504 ? 'ERR_STREAM_TIMEOUT' : resolvedError.code,
     status: finalStatus,
-    message: finalStatus === 504 ? 'Section took too long to load.' : publicError.message,
-    action: finalStatus === 504 ? 'Retry loading or refresh.' : publicError.action,
-    correlationId,
-    ...(publicError.fieldErrors ? { fieldErrors: publicError.fieldErrors } : {}),
+    message: finalStatus === 504 ? 'Section took too long to load.' : resolvedError.message,
+    action: finalStatus === 504 ? 'Retry loading or refresh.' : resolvedError.action,
+    correlationId: safeCorrelationId,
+    ...(checked.violation === null && checked.publicError.fieldErrors
+      ? { fieldErrors: checked.publicError.fieldErrors }
+      : {}),
     ...(validatedQuota ? { quota: validatedQuota } : {}),
   });
 
@@ -221,14 +236,14 @@ export function buildSafeUpstreamSseErrorResponse(
       errorCode: payload.code,
       httpStatus: payload.status,
       source,
-      correlationId,
+      correlationId: safeCorrelationId,
     },
     'Classified non-2xx POST SSE upstream response',
   );
-  emitSseTerminationMetric(logger, 'upstream_error', source, correlationId);
+  emitSseTerminationMetric(logger, 'upstream_error', source, safeCorrelationId);
 
   return Response.json(payload, {
     status: payload.status,
-    headers: { 'x-correlation-id': correlationId },
+    headers: { 'x-correlation-id': safeCorrelationId },
   });
 }

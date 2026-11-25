@@ -92,7 +92,8 @@ func (c *LocalClient) ChatStream(
 	resolvedModel := model
 
 	type openAIStreamChunk struct {
-		Model   string `json:"model"`
+		Model   string            `json:"model"`
+		Error   *upstreamSSEError `json:"error,omitempty"`
 		Choices []struct {
 			Delta struct {
 				Content string `json:"content"`
@@ -104,10 +105,19 @@ func (c *LocalClient) ChatStream(
 		} `json:"usage"`
 	}
 
-	scanErr := scanSSEData(watched, func(data string) error {
+	scanErr := scanSSEData(watched, func(eventName, data string) error {
 		trimmed := strings.TrimSpace(data)
 		if trimmed == "" {
 			return nil
+		}
+		if strings.EqualFold(eventName, "error") {
+			var envelope struct {
+				Error *upstreamSSEError `json:"error"`
+			}
+			if json.Unmarshal([]byte(trimmed), &envelope) == nil && envelope.Error != nil {
+				return formatUpstreamSSEError("local llm", envelope.Error)
+			}
+			return fmt.Errorf("local llm stream error event")
 		}
 		if trimmed == "[DONE]" {
 			return errStreamDone
@@ -115,6 +125,9 @@ func (c *LocalClient) ChatStream(
 		var chunk openAIStreamChunk
 		if unmarshalErr := json.Unmarshal([]byte(trimmed), &chunk); unmarshalErr != nil {
 			return fmt.Errorf("decode local llm stream chunk: %w", unmarshalErr)
+		}
+		if chunk.Error != nil {
+			return formatUpstreamSSEError("local llm", chunk.Error)
 		}
 		if strings.TrimSpace(chunk.Model) != "" {
 			resolvedModel = chunk.Model

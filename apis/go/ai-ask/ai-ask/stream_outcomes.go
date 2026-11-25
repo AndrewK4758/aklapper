@@ -123,6 +123,12 @@ func streamAbstainedTurn(
 			Code: contracts.ErrCodeStreamTimeout, Status: http.StatusGatewayTimeout,
 			Message: "Section took too long to load.", Action: "Retry loading or refresh.", CorrelationID: in.CorrelationID,
 		}, &refQuota)
+		logAskEvent("ai_ask.turn.audit", map[string]any{
+			"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
+			"provider": deps.provider.Name(), "tokensReserved": pg.DefaultAskTurnReserveTokens,
+			"tokensUsed": 0, "deltaStatus": "refunded", "reason": "reconcile_failed",
+			"correlationId": in.CorrelationID, "seam_type": "DELTA_AUDIT_GAP",
+		})
 		return
 	}
 	_ = emitter.EmitDone(askStreamDone{
@@ -167,7 +173,7 @@ func finalizeStreamOutcome(
 		return
 	}
 
-	if streamErr != nil && (errors.Is(ctx.Err(), context.Canceled) || errors.Is(streamErr, context.Canceled)) {
+	if streamErr != nil && (errors.Is(ctx.Err(), context.Canceled) || errors.Is(streamErr, context.Canceled) || errors.Is(streamErr, errClientDisconnected)) {
 		emittedRunes := utf8.RuneCountInString(postGuardAnswer)
 		if emittedRunes == 0 {
 			quota, _ := deps.store.RefundTurnTx(cleanCtx, attemptID, contracts.ErrCodeStreamAborted)
@@ -191,11 +197,14 @@ func finalizeStreamOutcome(
 			Sources: sources, Provider: deps.provider.Name(), Model: result.Model, TokensUsed: charged,
 			LatencyMs: latency, CorrelationID: in.CorrelationID,
 		}
-		_, _ = deps.store.ReconcileTurnTx(cleanCtx, attemptID, partialResp)
+		deltaStatus := "aborted_partial"
+		if _, recErr := deps.store.ReconcileTurnTx(cleanCtx, attemptID, partialResp); recErr != nil {
+			deltaStatus = "reconcile_failed"
+		}
 		logAskEvent("ai_ask.turn.audit", map[string]any{
 			"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
 			"provider": deps.provider.Name(), "model": result.Model, "tokensUsed": charged,
-			"deltaStatus": "aborted_partial", "correlationId": in.CorrelationID, "seam_type": "DELTA_AUDIT_GAP",
+			"deltaStatus": deltaStatus, "correlationId": in.CorrelationID, "seam_type": "DELTA_AUDIT_GAP",
 		})
 		return
 	}
@@ -235,6 +244,12 @@ func finalizeStreamOutcome(
 			Code: contracts.ErrCodeStreamTimeout, Status: http.StatusGatewayTimeout,
 			Message: "Section took too long to load.", Action: "Retry loading or refresh.", CorrelationID: in.CorrelationID,
 		}, &refQuota)
+		logAskEvent("ai_ask.turn.audit", map[string]any{
+			"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
+			"provider": deps.provider.Name(), "model": result.Model, "tokensReserved": pg.DefaultAskTurnReserveTokens,
+			"tokensUsed": 0, "deltaStatus": "refunded", "reason": "reconcile_failed",
+			"correlationId": in.CorrelationID, "seam_type": "DELTA_AUDIT_GAP",
+		})
 		return
 	}
 	_ = emitter.EmitDone(askStreamDone{

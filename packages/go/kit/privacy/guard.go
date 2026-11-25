@@ -44,7 +44,7 @@ var (
 		},
 		{
 			name:        "jwt_token",
-			regex:       regexp.MustCompile(`eyJ[A-Za-z0-9_-]{10,60}\.eyJ[A-Za-z0-9_-]{10,60}\.[A-Za-z0-9_-]{10,60}`),
+			regex:       regexp.MustCompile(`eyJ[A-Za-z0-9_-]{10,80}\.eyJ[A-Za-z0-9_-]{10,32}(?:[A-Za-z0-9_-]{0,900}(?:\.[A-Za-z0-9_-]{0,900})?)?`),
 			fingerprint: ruleFingerprint("builtin", 4, "jwt_token"),
 		},
 	}
@@ -68,12 +68,17 @@ var (
 	}
 )
 
+type guardRune struct {
+	r        rune
+	redacted bool
+}
+
 // StreamGuard inspects incremental stream chunks with a rolling holdback window,
 // catching split denylist terms, Unicode/separator obfuscation, and built-in secret patterns.
 type StreamGuard struct {
 	cfg           *Config
 	correlationID string
-	pending       []rune
+	pending       []guardRune
 	aborted       bool
 }
 
@@ -88,13 +93,27 @@ func NewStreamGuard(cfg *Config, correlationID string) *StreamGuard {
 	}
 }
 
+func pendingToString(items []guardRune) string {
+	out := make([]rune, len(items))
+	for i, item := range items {
+		out[i] = item.r
+	}
+	return string(out)
+}
+
+func isCombiningMark(r rune) bool {
+	return unicode.Is(unicode.Mn, r) || unicode.Is(unicode.Mc, r) || unicode.Is(unicode.Me, r)
+}
+
 // Process ingests the next incremental chunk and returns only text proven safe to emit.
 func (g *StreamGuard) Process(chunk string) (string, error) {
 	if g.aborted {
 		return "", ErrPrivacyAborted
 	}
 	if chunk != "" {
-		g.pending = append(g.pending, []rune(chunk)...)
+		for _, r := range chunk {
+			g.pending = append(g.pending, guardRune{r: r})
+		}
 		g.collapseExtremeSeparators()
 	}
 	if err := g.applyRules(); err != nil {
@@ -104,8 +123,8 @@ func (g *StreamGuard) Process(chunk string) (string, error) {
 	if flushEnd <= 0 {
 		return "", nil
 	}
-	safe := string(g.pending[:flushEnd])
-	g.pending = append([]rune(nil), g.pending[flushEnd:]...)
+	safe := pendingToString(g.pending[:flushEnd])
+	g.pending = append([]guardRune(nil), g.pending[flushEnd:]...)
 	return safe, nil
 }
 
@@ -120,7 +139,7 @@ func (g *StreamGuard) Flush() (string, error) {
 	if len(g.pending) == 0 {
 		return "", nil
 	}
-	out := string(g.pending)
+	out := pendingToString(g.pending)
 	g.pending = nil
 	return out, nil
 }
@@ -129,18 +148,18 @@ func (g *StreamGuard) collapseExtremeSeparators() {
 	if len(g.pending) <= maxRawPendingRunes {
 		return
 	}
-	out := make([]rune, 0, len(g.pending))
+	out := make([]guardRune, 0, len(g.pending))
 	sepRun := 0
-	for _, r := range g.pending {
-		if isSeparatorRune(r) {
+	for _, item := range g.pending {
+		if !item.redacted && isSeparatorRune(item.r) {
 			sepRun++
 			if sepRun <= maxConsecutiveSepRunes {
-				out = append(out, r)
+				out = append(out, item)
 			}
 			continue
 		}
 		sepRun = 0
-		out = append(out, r)
+		out = append(out, item)
 	}
 	g.pending = out
 }
@@ -154,27 +173,60 @@ func (g *StreamGuard) recordTrigger(category string, action Action, fingerprint 
 	})
 }
 
+type runeSegment struct {
+	start int
+	end   int
+}
+
+func unredactedSegments(items []guardRune) []runeSegment {
+	var segs []runeSegment
+	i := 0
+	for i < len(items) {
+		if items[i].redacted {
+			i++
+			continue
+		}
+		start := i
+		for i < len(items) && !items[i].redacted {
+			i++
+		}
+		segs = append(segs, runeSegment{start: start, end: i})
+	}
+	return segs
+}
+
 func (g *StreamGuard) applyRules() error {
-	for {
-		// 1. Always-on built-in secret patterns (highest precedence).
-		rawStr := string(g.pending)
+	maxIter := len(g.pending) + 64
+	for iter := 0; iter < maxIter; iter++ {
+		segs := unredactedSegments(g.pending)
+		if len(segs) == 0 {
+			return nil
+		}
+
+		// 1. Always-on built-in secret patterns (highest precedence, unredacted spans only).
 		matchedSecret := false
-		for _, rule := range builtInSecretRules {
-			loc := rule.regex.FindStringIndex(rawStr)
-			if loc == nil {
-				continue
+		for _, seg := range segs {
+			segStr := pendingToString(g.pending[seg.start:seg.end])
+			for _, rule := range builtInSecretRules {
+				loc := rule.regex.FindStringIndex(segStr)
+				if loc == nil {
+					continue
+				}
+				g.recordTrigger("builtin_secret", g.cfg.SecretAction, rule.fingerprint)
+				if g.cfg.SecretAction == ActionAbort {
+					g.pending = nil
+					g.aborted = true
+					return ErrPrivacyAborted
+				}
+				startRune := seg.start + utf8.RuneCountInString(segStr[:loc[0]])
+				endRune := startRune + utf8.RuneCountInString(segStr[loc[0]:loc[1]])
+				g.replacePendingSpan(startRune, endRune)
+				matchedSecret = true
+				break
 			}
-			g.recordTrigger("builtin_secret", g.cfg.SecretAction, rule.fingerprint)
-			if g.cfg.SecretAction == ActionAbort {
-				g.pending = nil
-				g.aborted = true
-				return ErrPrivacyAborted
+			if matchedSecret {
+				break
 			}
-			startRune := utf8.RuneCountInString(rawStr[:loc[0]])
-			endRune := startRune + utf8.RuneCountInString(rawStr[loc[0]:loc[1]])
-			g.replacePendingSpan(startRune, endRune)
-			matchedSecret = true
-			break
 		}
 		if matchedSecret {
 			continue
@@ -185,51 +237,63 @@ func (g *StreamGuard) applyRules() error {
 			return nil
 		}
 		matchedDenylist := false
-		normStr, normMap := buildNormalizedMap(g.pending)
-		for _, rule := range g.cfg.rules {
-			var startRune, endRune int
-			found := false
-			if rule.regex != nil {
-				if loc := rule.regex.FindStringIndex(rawStr); loc != nil {
-					startRune = utf8.RuneCountInString(rawStr[:loc[0]])
-					endRune = startRune + utf8.RuneCountInString(rawStr[loc[0]:loc[1]])
-					found = true
-				}
-			} else if rule.normalized != "" {
-				if idx := strings.Index(normStr, rule.normalized); idx >= 0 {
-					startNormRune := utf8.RuneCountInString(normStr[:idx])
-					endNormRune := startNormRune + utf8.RuneCountInString(rule.normalized)
-					if endNormRune > startNormRune && endNormRune <= len(normMap) {
-						startRune = normMap[startNormRune].rawStart
-						endRune = normMap[endNormRune-1].rawEnd
+		for _, seg := range segs {
+			segSlice := g.pending[seg.start:seg.end]
+			segStr := pendingToString(segSlice)
+			normStr, normMap := buildNormalizedMap(segSlice)
+			for _, rule := range g.cfg.rules {
+				var startRune, endRune int
+				found := false
+				if rule.regex != nil {
+					if loc := rule.regex.FindStringIndex(segStr); loc != nil {
+						startRune = seg.start + utf8.RuneCountInString(segStr[:loc[0]])
+						endRune = startRune + utf8.RuneCountInString(segStr[loc[0]:loc[1]])
 						found = true
 					}
+				} else if rule.normalized != "" {
+					if idx := strings.Index(normStr, rule.normalized); idx >= 0 {
+						startNormRune := utf8.RuneCountInString(normStr[:idx])
+						endNormRune := startNormRune + utf8.RuneCountInString(rule.normalized)
+						if endNormRune > startNormRune && endNormRune <= len(normMap) {
+							startRune = seg.start + normMap[startNormRune].rawStart
+							endRune = seg.start + normMap[endNormRune-1].rawEnd
+							found = true
+						}
+					}
 				}
+				if !found {
+					continue
+				}
+				g.recordTrigger("denylist", g.cfg.DenylistAction, rule.fingerprint)
+				if g.cfg.DenylistAction == ActionAbort {
+					g.pending = nil
+					g.aborted = true
+					return ErrPrivacyAborted
+				}
+				g.replacePendingSpan(startRune, endRune)
+				matchedDenylist = true
+				break
 			}
-			if !found {
-				continue
+			if matchedDenylist {
+				break
 			}
-			g.recordTrigger("denylist", g.cfg.DenylistAction, rule.fingerprint)
-			if g.cfg.DenylistAction == ActionAbort {
-				g.pending = nil
-				g.aborted = true
-				return ErrPrivacyAborted
-			}
-			g.replacePendingSpan(startRune, endRune)
-			matchedDenylist = true
-			break
 		}
 		if !matchedDenylist {
 			return nil
 		}
 	}
+	g.pending = nil
+	g.aborted = true
+	return ErrPrivacyAborted
 }
 
 func (g *StreamGuard) replacePendingSpan(startRune, endRune int) {
-	placeholder := []rune(RedactionPlaceholder)
-	updated := make([]rune, 0, len(g.pending)-(endRune-startRune)+len(placeholder))
+	placeholderRunes := []rune(RedactionPlaceholder)
+	updated := make([]guardRune, 0, len(g.pending)-(endRune-startRune)+len(placeholderRunes))
 	updated = append(updated, g.pending[:startRune]...)
-	updated = append(updated, placeholder...)
+	for _, r := range placeholderRunes {
+		updated = append(updated, guardRune{r: r, redacted: true})
+	}
 	updated = append(updated, g.pending[endRune:]...)
 	g.pending = updated
 }
@@ -239,21 +303,28 @@ type normRuneSpan struct {
 	rawEnd   int
 }
 
-func buildNormalizedMap(raw []rune) (string, []normRuneSpan) {
+func buildNormalizedMap(raw []guardRune) (string, []normRuneSpan) {
 	var b strings.Builder
 	spans := make([]normRuneSpan, 0, len(raw))
-	for i, r := range raw {
-		if isSeparatorRune(r) {
+	for i := 0; i < len(raw); {
+		if raw[i].redacted || isSeparatorRune(raw[i].r) {
+			i++
 			continue
 		}
-		expanded := norm.NFKC.String(string(r))
+		j := i + 1
+		for j < len(raw) && !raw[j].redacted && isCombiningMark(raw[j].r) {
+			j++
+		}
+		cluster := pendingToString(raw[i:j])
+		expanded := norm.NFKC.String(cluster)
 		for _, nr := range expanded {
 			if isSeparatorRune(nr) {
 				continue
 			}
 			b.WriteRune(unicode.ToLower(nr))
-			spans = append(spans, normRuneSpan{rawStart: i, rawEnd: i + 1})
+			spans = append(spans, normRuneSpan{rawStart: i, rawEnd: j})
 		}
+		i = j
 	}
 	return b.String(), spans
 }
@@ -267,8 +338,12 @@ func (g *StreamGuard) safeFlushIndex() int {
 	// Constraint 1: adaptive built-in secret holdback (16-rune anchor baseline, up to 128 runes when anchor enters window).
 	safeSecret := max(0, n-BaselineSecretAnchorRunes)
 	lowerRunes := make([]rune, n)
-	for i, r := range g.pending {
-		lowerRunes[i] = unicode.ToLower(r)
+	for i, item := range g.pending {
+		if item.redacted {
+			lowerRunes[i] = ' '
+		} else {
+			lowerRunes[i] = unicode.ToLower(item.r)
+		}
 	}
 	lowerStr := string(lowerRunes)
 	for _, anchor := range secretAnchorPrefixes {
@@ -287,7 +362,7 @@ func (g *StreamGuard) safeFlushIndex() int {
 		}
 	}
 
-	// Constraint 2: non-separator normalized denylist holdback (blocks separator flooding).
+	// Constraint 2: non-separator normalized denylist holdback (unredacted runes only; blocks separator flooding).
 	safeDenylist := n
 	if g.cfg.maxDenylistNonSep > 0 {
 		_, spans := buildNormalizedMap(g.pending)
@@ -299,8 +374,13 @@ func (g *StreamGuard) safeFlushIndex() int {
 		}
 	}
 
-	if safeDenylist < safeSecret {
-		return safeDenylist
+	flushEnd := safeSecret
+	if safeDenylist < flushEnd {
+		flushEnd = safeDenylist
 	}
-	return safeSecret
+	// Never split an already-buffered combining mark cluster at the flush boundary.
+	for flushEnd > 0 && flushEnd < n && !g.pending[flushEnd].redacted && isCombiningMark(g.pending[flushEnd].r) {
+		flushEnd--
+	}
+	return flushEnd
 }

@@ -178,6 +178,7 @@ func (v *VertexClient) ChatStream(
 	var tokensUsed int
 
 	type vertexStreamFrame struct {
+		Error      *upstreamSSEError `json:"error,omitempty"`
 		Candidates []struct {
 			Content struct {
 				Parts []vertexPart `json:"parts"`
@@ -191,14 +192,26 @@ func (v *VertexClient) ChatStream(
 		} `json:"usageMetadata"`
 	}
 
-	scanErr := scanSSEData(watched, func(data string) error {
+	scanErr := scanSSEData(watched, func(eventName, data string) error {
 		trimmed := strings.TrimSpace(data)
 		if trimmed == "" || trimmed == "[DONE]" {
 			return nil
 		}
+		if strings.EqualFold(eventName, "error") {
+			var envelope struct {
+				Error *upstreamSSEError `json:"error"`
+			}
+			if json.Unmarshal([]byte(trimmed), &envelope) == nil && envelope.Error != nil {
+				return formatUpstreamSSEError("vertex ai", envelope.Error)
+			}
+			return fmt.Errorf("vertex ai stream error event")
+		}
 		var frame vertexStreamFrame
 		if unmarshalErr := json.Unmarshal([]byte(trimmed), &frame); unmarshalErr != nil {
 			return fmt.Errorf("decode vertex stream frame: %w", unmarshalErr)
+		}
+		if frame.Error != nil {
+			return formatUpstreamSSEError("vertex ai", frame.Error)
 		}
 		if frame.UsageMetadata.TotalTokenCount > 0 {
 			tokensUsed = frame.UsageMetadata.TotalTokenCount

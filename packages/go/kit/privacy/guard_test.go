@@ -171,3 +171,113 @@ func TestLoadConfigRejectsUnboundedRegexAndWarnsEmptyInProd(t *testing.T) {
 		t.Fatalf("expected UNSOUND_CONDITION privacy.stream_guard.denylist_empty log, got %s", logs.String())
 	}
 }
+
+func TestStreamGuardRedactPlaceholderDoesNotLoop(t *testing.T) {
+	cases := []struct {
+		name     string
+		denylist string
+		input    string
+	}{
+		{name: "literal ACT substring of REDACTED", denylist: `["ACT"]`, input: "Built React app for ACT client."},
+		{name: "literal Red substring of REDACTED", denylist: `["Red"]`, input: "Project Red launched cleanly."},
+		{name: "bounded regex matching REDACTED", denylist: `["re:\\b[A-Z]{5,12}\\b"]`, input: "Project MERCURY launched cleanly."},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg, err := LoadConfig(ConfigInput{
+				RawDenylist:    tc.denylist,
+				DenylistAction: ActionRedact,
+			})
+			if err != nil {
+				t.Fatalf("LoadConfig failed: %v", err)
+			}
+			guard := NewStreamGuard(cfg, "corr-loop-check")
+			out1, err := guard.Process(tc.input)
+			if err != nil {
+				t.Fatalf("Process failed: %v", err)
+			}
+			tail, err := guard.Flush()
+			if err != nil {
+				t.Fatalf("Flush failed: %v", err)
+			}
+			got := out1 + tail
+			if !strings.Contains(got, "[REDACTED]") {
+				t.Fatalf("expected [REDACTED] in output, got %q", got)
+			}
+			if strings.Contains(got, "[RED[REDACTED]") {
+				t.Fatalf("recursive placeholder corruption detected: %q", got)
+			}
+		})
+	}
+}
+
+func TestStreamGuardAbortsLongStreamedJWTAndNormalizesNFD(t *testing.T) {
+	t.Run("171-rune and 600-rune JWTs abort across 8-rune chunks with zero leakage", func(t *testing.T) {
+		cfg, err := LoadConfig(ConfigInput{RawDenylist: ""})
+		if err != nil {
+			t.Fatalf("LoadConfig failed: %v", err)
+		}
+		jwts := []string{
+			"eyJ" + strings.Repeat("a", 60) + ".eyJ" + strings.Repeat("b", 60) + "." + strings.Repeat("c", 43),
+			"eyJ" + strings.Repeat("A", 50) + ".eyJ" + strings.Repeat("B", 300) + "." + strings.Repeat("C", 240),
+		}
+		for _, jwt := range jwts {
+			guard := NewStreamGuard(cfg, "corr-jwt-stream")
+			full := "Token: " + jwt + " end."
+			aborted := false
+			var emitted strings.Builder
+			for i := 0; i < len(full); i += 8 {
+				end := min(len(full), i+8)
+				out, procErr := guard.Process(full[i:end])
+				emitted.WriteString(out)
+				if errors.Is(procErr, ErrPrivacyAborted) {
+					aborted = true
+					break
+				}
+				if procErr != nil {
+					t.Fatalf("unexpected error: %v", procErr)
+				}
+			}
+			if !aborted {
+				if tail, flushErr := guard.Flush(); errors.Is(flushErr, ErrPrivacyAborted) {
+					aborted = true
+				} else {
+					emitted.WriteString(tail)
+				}
+			}
+			if !aborted {
+				t.Fatalf("expected ErrPrivacyAborted for len=%d JWT, leaked %q", len(jwt), emitted.String())
+			}
+			if strings.Contains(emitted.String(), "eyJ") {
+				t.Fatalf("JWT prefix flushed before abort: %q", emitted.String())
+			}
+		}
+	})
+
+	t.Run("NFD combining characters cannot bypass NFC denylist across chunks", func(t *testing.T) {
+		cfg, err := LoadConfig(ConfigInput{
+			RawDenylist:    `["Café-NDA"]`,
+			DenylistAction: ActionRedact,
+		})
+		if err != nil {
+			t.Fatalf("LoadConfig failed: %v", err)
+		}
+		guard := NewStreamGuard(cfg, "corr-nfd")
+		out1, err := guard.Process("Worked at Cafe")
+		if err != nil {
+			t.Fatalf("Process 1 failed: %v", err)
+		}
+		out2, err := guard.Process("\u0301-NDA last year.")
+		if err != nil {
+			t.Fatalf("Process 2 failed: %v", err)
+		}
+		tail, err := guard.Flush()
+		if err != nil {
+			t.Fatalf("Flush failed: %v", err)
+		}
+		got := out1 + out2 + tail
+		if !strings.Contains(got, "[REDACTED]") || strings.Contains(got, "NDA") {
+			t.Fatalf("expected NFD Cafe\\u0301-NDA redacted, got %q", got)
+		}
+	})
+}

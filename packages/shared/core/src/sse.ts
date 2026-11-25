@@ -205,11 +205,12 @@ export function createSseParser(onFrame: (frame: SseFrame) => void): SseParser {
       if (tail.length > 0) {
         processText(tail);
       }
-      if (pendingLine.length > 0) {
-        processLine(pendingLine);
-        pendingLine = '';
-      }
-      dispatchFrame();
+      // WHATWG HTML §9.2.6: discard incomplete trailing frame buffers on EOF.
+      pendingLine = '';
+      pendingCr = false;
+      eventName = '';
+      dataLines = [];
+      retryMs = undefined;
     },
   };
 }
@@ -239,14 +240,17 @@ function parseErrorPayload(
   status: number,
   correlationId: string,
 ): StreamErrorPayload {
+  let parsedJson: unknown;
   try {
-    const parsedJson: unknown = JSON.parse(rawText);
+    parsedJson = JSON.parse(rawText);
+  } catch {
+    parsedJson = undefined;
+  }
+  if (parsedJson !== undefined) {
     const strict = StreamErrorPayloadSchema.safeParse(parsedJson);
     if (strict.success) {
       return strict.data;
     }
-  } catch {
-    // Fall through to safe fallback payload below.
   }
 
   return StreamErrorPayloadSchema.parse({

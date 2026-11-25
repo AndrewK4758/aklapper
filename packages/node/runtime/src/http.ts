@@ -537,6 +537,8 @@ export async function proxySse(options: ProxySseOptions): Promise<Response> {
     }
 
     const responseHeaders = stripHopByHopHeaders(upstream.headers);
+    responseHeaders.delete('content-encoding');
+    responseHeaders.delete('content-length');
     responseHeaders.set(
       'content-type',
       upstream.headers.get('content-type') ?? 'text/event-stream; charset=utf-8',
