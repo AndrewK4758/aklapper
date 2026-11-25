@@ -22,4 +22,10 @@
     border: none;
     padding: var(--sf-space-0);
   }
+
+  @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
+    .workspace {
+      height: auto;
+    }
+  }
 }

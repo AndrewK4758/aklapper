@@ -495,7 +495,7 @@
     font-variant-numeric: tabular-nums;
   }
 
-  @media (max-width: 48rem) {
+  @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
     .toggleGroup {
       flex-wrap: wrap;
       max-width: 100%;
@@ -507,7 +507,8 @@
     }
   }
 
-  @media (max-width: 48rem) and (pointer: coarse) {
+  @media (max-width: 48rem) and (pointer: coarse),
+    (max-height: 32rem) and (orientation: landscape) and (pointer: coarse) {
     .input,
     .numberInput {
       font-size: var(--sf-size-unit);

@@ -43,6 +43,10 @@ test.describe('admin per-route workspace keep-alive and sign-out boundary', () =
     page,
   }, testInfo) => {
     test.skip(!HAS_DATABASE_URL, 'Requires DATABASE_URL for isolated admin credential seeding');
+    test.skip(
+      testInfo.project.name === 'mobile-chrome',
+      'Desktop per-route keep-alive workspace journey; handheld journeys are covered in mobile-layout.spec.ts',
+    );
 
     const getErrors = trackPageErrors(page);
     const projectName = testInfo.project.name;
@@ -72,7 +76,7 @@ test.describe('admin per-route workspace keep-alive and sign-out boundary', () =
       }
 
       // Navigate to /analytics and open a second tab
-      await page.getByRole('link', { name: 'Analytics' }).click();
+      await page.locator('header').getByRole('link', { name: 'Analytics', exact: true }).click();
       await expect(page).toHaveURL(/\/analytics$/);
       const analyticsLayer = page.locator('[data-route-workspace="/analytics"]');
       await expect(analyticsLayer).toHaveAttribute('data-route-active', 'true');
@@ -80,7 +84,7 @@ test.describe('admin per-route workspace keep-alive and sign-out boundary', () =
       await expect(analyticsLayer.locator('[data-tab-count="2"]')).toBeVisible();
 
       // Navigate to /cms — starts with 1 tab independently
-      await page.getByRole('link', { name: 'CMS' }).click();
+      await page.locator('header').getByRole('link', { name: 'CMS', exact: true }).click();
       await expect(page).toHaveURL(/\/cms$/);
       const cmsLayer = page.locator('[data-route-workspace="/cms"]');
       await expect(cmsLayer).toHaveAttribute('data-route-active', 'true');

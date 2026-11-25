@@ -3,9 +3,12 @@ import {
   Button,
   LazyChunkBoundary,
   lazyWithRetry,
+  MobileAppShell,
+  type MobileNavItem,
   NavigationMenu,
   OscStatusBadge,
   SolarForgeEmblem,
+  useViewportLayoutMode,
 } from '@aklapper/ui';
 import {
   createRouteWorkspaceStore,
@@ -66,12 +69,17 @@ const LazyAdminRouteWorkspace = lazyWithRetry(() =>
   }),
 );
 
-export type AdminWorkspaceMountBranch = 'login-outlet-only' | 'lazy-terminal-workspace';
+export type AdminWorkspaceMountBranch =
+  | 'login-outlet-only'
+  | 'lazy-terminal-workspace'
+  | 'mobile-app-shell';
 
 let lastEmittedWorkspaceBranchKey: string | null = null;
+let lastEmittedUnauthMobileKey: string | null = null;
 
 export function resetAdminRootBranchTelemetryForTest(): void {
   lastEmittedWorkspaceBranchKey = null;
+  lastEmittedUnauthMobileKey = null;
 }
 
 function emitAdminWorkspaceMountBranch(branch: AdminWorkspaceMountBranch, pathname: string): void {
@@ -91,6 +99,21 @@ function emitAdminWorkspaceMountBranch(branch: AdminWorkspaceMountBranch, pathna
   );
 }
 
+function emitAdminUnauthMobileShellBlocked(pathname: string): void {
+  if (typeof window === 'undefined') return;
+  if (lastEmittedUnauthMobileKey === pathname) {
+    return;
+  }
+  lastEmittedUnauthMobileKey = pathname;
+  console.warn(
+    JSON.stringify({
+      event: 'admin.root.unauth_mobile_shell_blocked',
+      seamType: 'UNSOUND_CONDITION',
+      pathname,
+    }),
+  );
+}
+
 const ADMIN_NAV_ITEMS = [
   { to: href('/'), label: 'Overview' },
   { to: href('/analytics'), label: 'Analytics' },
@@ -99,6 +122,34 @@ const ADMIN_NAV_ITEMS = [
   { to: href('/quotas'), label: 'Quotas' },
   { to: href('/ops'), label: 'Ops' },
 ] as const;
+
+const ADMIN_MOBILE_NAV = [
+  { id: 'home', to: href('/'), label: 'Home', icon: '⌂' },
+  { id: 'cms', to: href('/cms'), label: 'CMS', icon: '✎' },
+  { id: 'inbox', to: href('/inbox'), label: 'Inbox', icon: '✉' },
+  { id: 'ops', to: href('/ops'), label: 'Ops', icon: '⚙' },
+  { id: 'analytics', to: href('/analytics'), label: 'Analytics', icon: '◔' },
+] as const;
+
+function getAdminMobilePageTitle(pathname: string): string {
+  const normalized = pathname.replace(/\/+$/, '') || '/';
+  switch (normalized) {
+    case '/':
+      return 'Home';
+    case '/cms':
+      return 'CMS';
+    case '/inbox':
+      return 'Inbox';
+    case '/ops':
+      return 'Ops';
+    case '/analytics':
+      return 'Analytics';
+    case '/quotas':
+      return 'Quotas';
+    default:
+      return normalized.slice(1);
+  }
+}
 
 function isNavItemActive(pathname: string, to: string): boolean {
   const normalized = pathname.replace(/\/+$/, '') || '/';
@@ -128,14 +179,25 @@ export function AdminRootShell({
 }: AdminRootShellProps) {
   const outlet = useOutlet();
   const [signingOut, setSigningOut] = useState(false);
+  const layoutMode = useViewportLayoutMode();
   const { chrome, terminal } = rootData;
   const effectiveIsLoginRoute = isLoginRoute || normalizeWorkspaceRouteKey(pathname) === '/login';
   const isAdminSession = session?.role === 'admin';
+  const isHandheld = layoutMode !== 'desktop';
+  const isAuthenticatedHandheld = !effectiveIsLoginRoute && isAdminSession && isHandheld;
   const resolvedTerminal = effectiveIsLoginRoute || !isAdminSession ? undefined : terminal;
-  const hasGlobalWorkspace = !effectiveIsLoginRoute && isAdminSession && Boolean(resolvedTerminal);
-  const workspaceMountBranch: AdminWorkspaceMountBranch = hasGlobalWorkspace
-    ? 'lazy-terminal-workspace'
-    : 'login-outlet-only';
+  const hasGlobalWorkspace =
+    !effectiveIsLoginRoute && isAdminSession && !isHandheld && Boolean(resolvedTerminal);
+
+  if (!effectiveIsLoginRoute && !isAdminSession && isHandheld) {
+    emitAdminUnauthMobileShellBlocked(pathname);
+  }
+
+  const workspaceMountBranch: AdminWorkspaceMountBranch = isAuthenticatedHandheld
+    ? 'mobile-app-shell'
+    : hasGlobalWorkspace
+      ? 'lazy-terminal-workspace'
+      : 'login-outlet-only';
   emitAdminWorkspaceMountBranch(workspaceMountBranch, pathname);
 
   if (effectiveIsLoginRoute || !isAdminSession) {
@@ -156,6 +218,66 @@ export function AdminRootShell({
       adminRouteWorkspaceStore.clearAll({ silent: true });
       window.location.assign(href('/login'));
     }
+  }
+
+  if (isAuthenticatedHandheld) {
+    const mobileNavItems: readonly MobileNavItem[] = ADMIN_MOBILE_NAV.map(item => ({
+      id: item.id,
+      label: item.label,
+      icon: item.icon,
+      active: isNavItemActive(pathname, item.to),
+      renderLink: linkProps => (
+        <Link to={item.to} prefetch='intent' {...linkProps}>
+          {linkProps.children}
+        </Link>
+      ),
+    }));
+
+    const quotasActive = isNavItemActive(pathname, href('/quotas'));
+    const mobileActions = (
+      <>
+        <Link
+          to={href('/quotas')}
+          prefetch='intent'
+          className={styles.mobileSecondaryLink}
+          data-active={quotasActive ? 'true' : 'false'}
+          aria-current={quotasActive ? 'page' : undefined}
+        >
+          Quotas
+        </Link>
+        <Button.Root
+          type='button'
+          variant='ghost'
+          size='sm'
+          className={styles.mobileSignOutButton}
+          loading={signingOut}
+          onClick={() => {
+            void handleSignOut();
+          }}
+        >
+          <Button.Label>Sign Out</Button.Label>
+        </Button.Root>
+      </>
+    );
+
+    return (
+      <MobileAppShell
+        layoutMode={layoutMode}
+        brand={
+          <Link to={href('/')} prefetch='intent' className={styles.mobileBrand}>
+            <SolarForgeEmblem size={18} />
+            <span>{chrome.brandLabel}</span>
+          </Link>
+        }
+        pageTitle={getAdminMobilePageTitle(pathname)}
+        navLabel='Admin mobile navigation'
+        navItems={mobileNavItems}
+        secondaryMenuItems={mobileActions}
+        railFooterActions={mobileActions}
+      >
+        <Outlet />
+      </MobileAppShell>
+    );
   }
 
   return (

@@ -23,6 +23,11 @@ export {
 } from './components/LazyChunkBoundary';
 export { LoadingElement, type LoadingElementProps } from './components/LoadingElement';
 export {
+  MobileAppShell,
+  type MobileAppShellProps,
+  type MobileNavItem,
+} from './components/MobileAppShell';
+export {
   RecursiveTuiForm,
   type RecursiveTuiFormProps,
   type RecursiveTuiFormRenderProps,
@@ -141,8 +146,13 @@ export {
 } from './components/terminalPaneNav';
 export {
   isPortraitViewport,
+  MOBILE_LANDSCAPE_MEDIA_QUERY,
+  MOBILE_PORTRAIT_MEDIA_QUERY,
   resolveAutoSplitDirection,
+  resolveViewportLayoutMode,
   useAutoSplitDirection,
+  useViewportLayoutMode,
+  type ViewportLayoutMode,
 } from './components/terminalViewportSplit';
 export { PaneLink, type PaneLinkProps } from './components/PaneLink';
 export {

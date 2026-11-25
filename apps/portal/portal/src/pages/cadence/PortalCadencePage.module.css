@@ -411,7 +411,7 @@
     white-space: nowrap;
   }
 
-  @media (max-width: 48rem) {
+  @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
     .modeToggle {
       padding-top: var(--sf-space-0);
     }

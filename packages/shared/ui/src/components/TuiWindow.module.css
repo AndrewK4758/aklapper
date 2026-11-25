@@ -171,10 +171,24 @@
     opacity: var(--sf-opacity-muted);
   }
 
-  @media (max-width: 48rem) {
-    .window {
+  @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
+    .window,
+    .window[data-docked='true'] {
+      height: auto;
       min-width: var(--sf-space-0);
       min-height: var(--sf-space-0);
+      overflow: visible;
+    }
+
+    .scrollRoot {
+      flex: none;
+      height: auto;
+      overflow: visible;
+    }
+
+    .bodyViewport {
+      height: auto;
+      overflow: visible;
     }
 
     .window[data-floating='true'] {

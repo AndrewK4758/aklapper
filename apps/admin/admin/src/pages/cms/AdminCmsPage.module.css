@@ -181,7 +181,7 @@
     }
   }
 
-  @media (max-width: 48rem) {
+  @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
     .card {
       padding: var(--sf-space-4);
     }
