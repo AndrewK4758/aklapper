@@ -204,10 +204,10 @@ function isPrimaryHostTab(tab: TerminalWorkspaceTab): boolean {
 }
 
 function isPrimaryHostPane(
-  tab: TerminalWorkspaceTab,
-  pane: TerminalLeafPane | null | undefined,
+  tabPinned: boolean | undefined,
+  panePinned: boolean | undefined,
 ): boolean {
-  return Boolean(tab.pinned && pane?.pinned);
+  return Boolean(tabPinned && panePinned);
 }
 
 function findPrimaryHostPaneId(tab: TerminalWorkspaceTab): string | null {
@@ -1416,13 +1416,13 @@ function StandaloneTerminalWorkspace({
 
   const activeTab = getActiveWorkspaceTab(tabState);
   const activeWorkspace = activeTab.workspace;
-  const activeLeaves = useMemo(() => listLeafPanes(activeWorkspace.root), [activeWorkspace.root]);
+  const activeLeaves = listLeafPanes(activeWorkspace.root);
   const isActiveMultiPane = activeLeaves.length > 1;
   const activeLeaf = findLeafPane(activeWorkspace.root, activeWorkspace.activePaneId);
   const activeLeafViewId = activeLeaf ? getActivePaneViewId(activeLeaf) : null;
   const activeHasTuiStack = Boolean(renderPaneView && activeLeafViewId);
   const activeIsPrimaryNonTerminal =
-    isPrimaryHostPane(activeTab, activeLeaf) &&
+    isPrimaryHostPane(activeTab.pinned, activeLeaf?.pinned) &&
     Boolean(primaryPane) &&
     !primaryPane?.embeddedTerminal;
   const activeIsTuiPane = activeLeaf?.kind === 'tui';
@@ -1432,9 +1432,11 @@ function StandaloneTerminalWorkspace({
       ? activeWorkspace.zoomedPaneId
       : null;
 
-  const notifyIfPrimaryReturnedToShell = (paneId: string, nextStackEmpty: boolean) => {
-    const targetLeaf = findLeafPane(activeWorkspace.root, paneId);
-    if (nextStackEmpty && isPrimaryHostPane(activeTab, targetLeaf)) {
+  const notifyIfPrimaryReturnedToShell = (
+    targetLeafPinned: boolean | undefined,
+    nextStackEmpty: boolean,
+  ) => {
+    if (nextStackEmpty && isPrimaryHostPane(activeTab.pinned, targetLeafPinned)) {
       onPrimaryPaneReturnToShell?.();
     }
   };
@@ -1450,7 +1452,7 @@ function StandaloneTerminalWorkspace({
       return;
     }
     setTabState(prev => updateActiveTabWorkspace(prev, ws => popPaneView(ws, paneId)));
-    notifyIfPrimaryReturnedToShell(paneId, currentLen === 1);
+    notifyIfPrimaryReturnedToShell(targetLeaf?.pinned, currentLen === 1);
   };
 
   const handleExitPaneTui = (paneId: string) => {
@@ -1460,7 +1462,7 @@ function StandaloneTerminalWorkspace({
       return;
     }
     setTabState(prev => updateActiveTabWorkspace(prev, ws => exitPaneTui(ws, paneId)));
-    notifyIfPrimaryReturnedToShell(paneId, true);
+    notifyIfPrimaryReturnedToShell(targetLeaf?.pinned, true);
   };
 
   const handleOpenViewInSplit = (paneId: string, viewId: string) => {
@@ -1556,7 +1558,7 @@ function StandaloneTerminalWorkspace({
           event.preventDefault();
           const currentLen = activeLeaf.tuiStack?.length ?? 0;
           setTabState(prev => updateActiveTabWorkspace(prev, ws => popPaneView(ws, activeLeaf.id)));
-          if (currentLen === 1 && isPrimaryHostPane(activeTab, activeLeaf)) {
+          if (currentLen === 1 && isPrimaryHostPane(activeTab.pinned, activeLeaf.pinned)) {
             onPrimaryPaneReturnToShell?.();
           }
           return;
@@ -1570,7 +1572,7 @@ function StandaloneTerminalWorkspace({
         ) {
           event.preventDefault();
           setTabState(prev => updateActiveTabWorkspace(prev, ws => exitPaneTui(ws, activeLeaf.id)));
-          if (isPrimaryHostPane(activeTab, activeLeaf)) {
+          if (isPrimaryHostPane(activeTab.pinned, activeLeaf.pinned)) {
             onPrimaryPaneReturnToShell?.();
           }
           return;
@@ -1713,7 +1715,7 @@ function StandaloneTerminalWorkspace({
               setTabState(prev =>
                 updateActiveTabWorkspace(prev, ws => popPaneView(ws, activeLeaf.id)),
               );
-              if (currentLen === 1 && isPrimaryHostPane(activeTab, activeLeaf)) {
+              if (currentLen === 1 && isPrimaryHostPane(activeTab.pinned, activeLeaf.pinned)) {
                 onPrimaryPaneReturnToShell?.();
               }
             } else {
@@ -2135,7 +2137,7 @@ function StandaloneTerminalWorkspace({
                     }
                   >
                     <PaneReadlineScope paneId={pane.id} registerHandle={registerTerminalHandle}>
-                      {primaryPane && isPrimaryHostPane(tab, pane) ? (
+                      {primaryPane && isPrimaryHostPane(tab.pinned, pane.pinned) ? (
                         <PrimaryPaneView
                           pane={pane}
                           primaryPane={primaryPane}
