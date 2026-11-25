@@ -142,7 +142,8 @@
       },
       "test": {
         "dependsOn": [
-          "typegen"
+          "typegen",
+          "^build"
         ]
       },
       "typecheck": {

@@ -109,10 +109,12 @@
       "cache": true
     },
     "test": {
-      "cache": true
+      "cache": true,
+      "dependsOn": ["^build"]
     },
     "e2e": {
-      "cache": true
+      "cache": true,
+      "dependsOn": ["^build"]
     },
     "format": {
       "command": "oxfmt .",
