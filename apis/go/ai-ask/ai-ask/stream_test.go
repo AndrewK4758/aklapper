@@ -481,3 +481,102 @@ func TestAskStreamHTTPAndGRPCContracts(t *testing.T) {
 		}
 	})
 }
+
+type recordingBudgetLLM struct {
+	streamReqs    []llm.ChatStreamRequest
+	chatMaxTokens []int
+	chatReplies   []string
+}
+
+func (r *recordingBudgetLLM) Name() string { return "recording-budget-llm" }
+
+func (r *recordingBudgetLLM) Chat(_ context.Context, _ []llm.ChatMessage, maxTokens int) (llm.Completion, error) {
+	r.chatMaxTokens = append(r.chatMaxTokens, maxTokens)
+	reply := "Grounded answer."
+	if len(r.chatReplies) > 0 {
+		reply = r.chatReplies[0]
+		r.chatReplies = r.chatReplies[1:]
+	}
+	return llm.Completion{Text: reply, TokensUsed: 40, Model: "gemini-3.8-flash"}, nil
+}
+
+func (r *recordingBudgetLLM) Embed(_ context.Context, _ string) ([]float32, error) {
+	v := make([]float32, llm.ExpectedEmbeddingDims)
+	for i := range v {
+		v[i] = 0.25
+	}
+	return v, nil
+}
+
+func (r *recordingBudgetLLM) ChatStream(_ context.Context, req llm.ChatStreamRequest, onChunk func(llm.ChatStreamChunk) error) (llm.ChatStreamResult, error) {
+	r.streamReqs = append(r.streamReqs, req)
+	if onChunk != nil {
+		if err := onChunk(llm.ChatStreamChunk{Delta: "Grounded stream."}); err != nil {
+			return llm.ChatStreamResult{}, err
+		}
+	}
+	return llm.ChatStreamResult{Text: "Grounded stream.", TokensUsed: 40, Model: "gemini-3.8-flash", FinishReason: "STOP"}, nil
+}
+
+func TestAskGenerationTokenHeadroom(t *testing.T) {
+	t.Setenv("INTERNAL_AUTH_SECRET", "unit-test-secret")
+	qdrantSrv := newTestQdrantServer(t, 0.92)
+	recLLM := &recordingBudgetLLM{}
+	store := pg.NewMemoryStore()
+	h := newHandlerWithDeps(askStreamDeps{
+		provider:    recLLM,
+		vectorStore: &qdrant.Client{BaseURL: qdrantSrv.URL},
+		store:       store,
+	}, defaultSyncWaitWindow)
+	tok := signHeader(t, internalauth.RoleGuest, "guest-headroom")
+
+	// 1. Streaming QA -> MaxTokens 1024, IncludeThoughts false
+	streamReq := httptest.NewRequest(http.MethodPost, "/v1/ask/stream", bytes.NewReader([]byte(
+		`{"mode":"qa","attemptId":"11111111-1111-4111-8111-111111111111","question":"Describe Go architecture"}`,
+	)))
+	streamReq.Header.Set(internalauth.HeaderName, tok)
+	streamRec := httptest.NewRecorder()
+	h.ServeHTTP(streamRec, streamReq)
+	if streamRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for stream QA, got %d: %s", streamRec.Code, streamRec.Body.String())
+	}
+	if len(recLLM.streamReqs) != 1 || recLLM.streamReqs[0].MaxTokens != 1024 || recLLM.streamReqs[0].IncludeThoughts {
+		t.Fatalf("expected stream MaxTokens=1024 IncludeThoughts=false, got %+v", recLLM.streamReqs)
+	}
+
+	// 2. Unary QA -> maxTokens 1024
+	unaryReq := httptest.NewRequest(http.MethodPost, "/v1/ask", bytes.NewReader([]byte(
+		`{"mode":"qa","attemptId":"22222222-2222-4222-8222-222222222222","question":"Describe React Router SSR"}`,
+	)))
+	unaryReq.Header.Set(internalauth.HeaderName, tok)
+	unaryRec := httptest.NewRecorder()
+	h.ServeHTTP(unaryRec, unaryReq)
+	if unaryRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for unary QA, got %d: %s", unaryRec.Code, unaryRec.Body.String())
+	}
+	if len(recLLM.chatMaxTokens) != 1 || recLLM.chatMaxTokens[0] != 1024 {
+		t.Fatalf("expected unary QA maxTokens=1024, got %v", recLLM.chatMaxTokens)
+	}
+
+	// 3. JD Match synthesis + repair -> both maxTokens 1024
+	jdLLM := &recordingBudgetLLM{
+		chatReplies: []string{
+			"not valid json",
+			`{"answer":"Strong match","matchScore":88,"strengths":["Go"],"gaps":["None"]}`,
+		},
+	}
+	if _, _, err := evaluateJDWithLLM(context.Background(), jdLLM, "Evidence", "Senior Go Engineer"); err != nil {
+		t.Fatalf("evaluateJDWithLLM failed: %v", err)
+	}
+	if len(jdLLM.chatMaxTokens) != 2 || jdLLM.chatMaxTokens[0] != 1024 || jdLLM.chatMaxTokens[1] != 1024 {
+		t.Fatalf("expected JD synthesis and repair maxTokens=[1024 1024], got %v", jdLLM.chatMaxTokens)
+	}
+
+	// 4. Follow-up rewrite -> 384 tokens, 4s timeout
+	if followUpRewriteMaxTokens != 384 {
+		t.Fatalf("expected followUpRewriteMaxTokens=384, got %d", followUpRewriteMaxTokens)
+	}
+	if followUpRewriteTimeout != 4*time.Second {
+		t.Fatalf("expected followUpRewriteTimeout=4s, got %v", followUpRewriteTimeout)
+	}
+}
