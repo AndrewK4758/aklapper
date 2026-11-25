@@ -83,6 +83,10 @@ describe('@aklapper/ui design tokens', () => {
     expect(typographyCss).toContain('--sf-text-unit: 1rem;');
     expect(typographyCss).toContain('calc(var(--sf-text-unit) * 0.875)');
 
+    const elementCss = readFileSync(resolve(stylesDir, 'element.css'), 'utf8');
+    expect(elementCss).toContain('font-variant-ligatures: contextual common-ligatures;');
+    expect(elementCss).toContain('font-feature-settings: var(--sf-font-features-ligatures);');
+
     expect(layoutCss).toContain('--sf-size-unit: 1rem;');
     expect(layoutCss).toContain('--sf-space-unit: calc(var(--sf-size-unit) * 0.25);');
     expect(layoutCss).toContain('--sf-align-center: center;');
