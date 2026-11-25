@@ -24,27 +24,9 @@ const SIMULATED_ADMIN_CLUSTER_EVENTS: readonly Omit<K8sPodEvent, 'timestamp'>[] 
     message: 'Idle at 0/1 replicas (scale-to-0)',
     ready: false,
   },
-  {
-    eventId: 'sim-ops-contact',
-    namespace: 'portfolio-public',
-    deployment: 'svc-contact',
-    podName: 'svc-contact-0',
-    phase: 'ScaledZero',
-    message: 'Idle at 0/1 replicas (scale-to-0)',
-    ready: false,
-  },
-  {
-    eventId: 'sim-ops-cadence-admin',
-    namespace: 'cadence-admin',
-    deployment: 'cadence-admin',
-    podName: 'cadence-admin-0',
-    phase: 'ScaledZero',
-    message: 'Isolated cadence-admin runtime idle at 0/1 replicas',
-    ready: false,
-  },
 ];
 
-function createSimulatedDualNamespaceStream(correlationId: string): Response {
+function createSimulatedClusterStream(correlationId: string): Response {
   const now = new Date().toISOString();
   const body = SIMULATED_ADMIN_CLUSTER_EVENTS.map(ev => {
     const payload: K8sPodEvent = { ...ev, timestamp: now };
@@ -72,7 +54,7 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Re
 
   const watchUrl = process.env['K8S_WATCH_URL']?.trim();
   if (!watchUrl) {
-    return createSimulatedDualNamespaceStream(correlationId);
+    return createSimulatedClusterStream(correlationId);
   }
 
   const upstream = await proxySse({
@@ -87,7 +69,7 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Re
   });
 
   if (!upstream.ok) {
-    return createSimulatedDualNamespaceStream(correlationId);
+    return createSimulatedClusterStream(correlationId);
   }
 
   const headers = new Headers(upstream.headers);

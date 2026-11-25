@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 
 import { computeTotpCode, hashPasswordArgon2id } from '@aklapper/node-runtime/auth';
-import { verifyInternalAuthToken } from '@aklapper/node-runtime/http';
 import { vi } from 'vitest';
 
 type QueryFn = (...args: never[]) => Promise<unknown>;
@@ -385,7 +384,7 @@ describe('@aklapper/db auth & analytics BFF services', () => {
     expect(busyResponse?.body['error']).toBe('SERVICE_BUSY');
   });
 
-  it('enforces PG19 rate limiting with Retry-After and forwards client IP and forwarded proto across BFF modes', async () => {
+  it('enforces PG19 rate limiting with Retry-After directly in the Admin auth BFF', async () => {
     queryMocks.consumeAuthRateLimit.mockResolvedValueOnce({
       allowed: false,
       remaining: 0,
@@ -407,39 +406,6 @@ describe('@aklapper/db auth & analytics BFF services', () => {
     expect(directRes.status).toBe(429);
     expect(directRes.headers.get('retry-after')).toBe('42');
     expect(await directRes.json()).toMatchObject({ statusCode: 429, error: 'RATE_LIMITED' });
-
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({ statusCode: 429, error: 'RATE_LIMITED', message: 'slow down' }),
-        {
-          status: 429,
-          headers: {
-            'content-type': 'application/json',
-            'retry-after': '17',
-          },
-        },
-      ),
-    );
-
-    const proxiedRes = await handleAdminAuthBffRequest(
-      new Request('https://admin.andrew-k.us/api/auth/password/login', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-forwarded-for': '198.51.100.9',
-          'x-bootstrap-token': 'should-be-stripped',
-        },
-        body: JSON.stringify({ handle: 'admin', password: 'wrong' }),
-      }),
-      'password/login',
-      { authApiUrl: 'http://auth.internal:4101', fetchImpl: fetchMock },
-    );
-    expect(proxiedRes.status).toBe(429);
-    expect(proxiedRes.headers.get('retry-after')).toBe('17');
-    const forwardedHeaders = new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
-    expect(forwardedHeaders.get('x-forwarded-for')).toBe('198.51.100.9');
-    expect(forwardedHeaders.get('x-forwarded-proto')).toBe('https');
-    expect(forwardedHeaders.get('x-bootstrap-token')).toBeNull();
   });
 
   it('omits allowCredentials for discoverable passkey login and restricts production WebAuthn origins', async () => {
@@ -710,55 +676,72 @@ describe('@aklapper/db auth & analytics BFF services', () => {
     expect(logout.cookies?.[0]).toContain('Max-Age=0');
   });
 
-  it('forwards admin auth BFF requests to AUTH_API_URL when configured and resolves sessions', async () => {
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          authenticated: true,
-          session: {
-            sessionId: '66666666-6666-4666-8666-666666666666',
-            role: 'admin',
-            handle: 'admin',
-            expiresAt: '2026-12-01T00:00:00.000Z',
-          },
-          totpEnabled: false,
-          passkeyCount: 1,
+  it('executes Admin auth BFF and session resolution directly against PG19 even if legacy AUTH_API_URL is set', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    try {
+      const hash = await hashPasswordArgon2id('direct-pg-secret');
+      const adminSession = {
+        sessionId: '66666666-6666-4666-8666-666666666666',
+        role: 'admin' as const,
+        handle: 'admin',
+        expiresAt: '2026-12-01T00:00:00.000Z',
+      };
+      queryMocks.findAdminUserForPasswordLogin.mockResolvedValueOnce({
+        id: '22222222-2222-4222-8222-222222222222',
+        handle: 'admin',
+        role: 'admin' as const,
+        passwordHashArgon2: hash,
+        createdAt: new Date(),
+      });
+      queryMocks.getUserTotpSecret.mockResolvedValueOnce(null);
+      queryMocks.createAuthSession.mockResolvedValueOnce(adminSession);
+      queryMocks.countUserWebauthnCredentials.mockResolvedValueOnce(1);
+
+      const legacyEnv = { ...TEST_ENV, AUTH_API_URL: 'http://127.0.0.1:1' };
+      const loginRes = await handleAdminAuthBffRequest(
+        new Request('https://admin.andrew-k.us/api/auth/password/login', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ handle: 'admin', password: 'direct-pg-secret' }),
         }),
-        {
-          status: 200,
-          headers: {
-            'content-type': 'application/json',
-            'set-cookie': 'ak_admin_session=abc; Path=/; HttpOnly',
-          },
-        },
-      ),
-    );
+        'password/login',
+        { db: FAKE_DB, env: legacyEnv },
+      );
 
-    const res = await handleAdminAuthBffRequest(
-      new Request('http://localhost:4301/api/auth/session', {
-        headers: { cookie: 'ak_admin_session=abc' },
-      }),
-      'session',
-      {
-        authApiUrl: 'http://auth.internal:4101',
-        fetchImpl: fetchMock,
-      },
-    );
+      expect(loginRes.status).toBe(200);
+      expect(loginRes.headers.get('set-cookie')).toContain(
+        `ak_admin_session=${adminSession.sessionId}`,
+      );
+      expect(loginRes.headers.get('set-cookie')).toContain('HttpOnly');
 
-    expect(res.status).toBe(200);
-    expect(fetchMock).toHaveBeenCalledWith(
-      'http://auth.internal:4101/v1/auth/session',
-      expect.objectContaining({ method: 'GET' }),
-    );
+      queryMocks.getValidAuthSession.mockResolvedValueOnce({
+        session: adminSession,
+        userId: '22222222-2222-4222-8222-222222222222',
+        totpEnabled: false,
+        passkeyCount: 1,
+      });
 
-    const status = await resolveAdminSessionFromRequest(
-      new Request('http://localhost:4301/analytics'),
-      { db: FAKE_DB, env: TEST_ENV },
-    );
-    expect(status.authenticated).toBe(false);
+      const resolved = await resolveAdminSessionFromRequest(
+        new Request('https://admin.andrew-k.us/ops', {
+          headers: { cookie: `ak_admin_session=${adminSession.sessionId}` },
+        }),
+        { db: FAKE_DB, env: legacyEnv },
+      );
+      expect(resolved.authenticated).toBe(true);
+      expect(resolved.session?.role).toBe('admin');
+      expect(fetchSpy).not.toHaveBeenCalled();
+
+      const unauthStatus = await resolveAdminSessionFromRequest(
+        new Request('http://localhost:4301/analytics'),
+        { db: FAKE_DB, env: legacyEnv },
+      );
+      expect(unauthStatus.authenticated).toBe(false);
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 
-  it('uses rightmost client IP for rate-limit keys, signs upstream x-internal-client-ip, and rejects traversal paths', async () => {
+  it('uses rightmost client IP for rate-limit keys and rejects traversal splats without touching PostgreSQL', async () => {
     queryMocks.consumeAuthRateLimit.mockClear();
     queryMocks.findAdminUserForPasswordLogin.mockResolvedValue(null);
 
@@ -787,45 +770,11 @@ describe('@aklapper/db auth & analytics BFF services', () => {
     );
     expect(ipCalls.map(call => call[1])).toEqual([expectedIpKey, expectedIpKey]);
 
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
-      new Response(JSON.stringify({ ok: true }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      }),
-    );
-    const bffSecret = 'bff-internal-secret';
-    const proxiedRes = await handleAdminAuthBffRequest(
-      new Request('http://localhost:4301/api/auth/password/login', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-forwarded-for': '10.0.0.1, 203.0.113.66',
-          'x-internal-client-ip': 'v1.spoofed.token',
-        },
-        body: JSON.stringify({ handle: 'admin', password: 'pw' }),
-      }),
-      'password/login',
-      {
-        authApiUrl: 'http://auth.internal:4101',
-        env: { NODE_ENV: 'production', INTERNAL_AUTH_SECRET: bffSecret },
-        fetchImpl: fetchMock,
-      },
-    );
-    expect(proxiedRes.status).toBe(200);
-    const forwardedHeaders = fetchMock.mock.calls[0]?.[1]?.headers as Headers;
-    expect(forwardedHeaders.get('x-forwarded-for')).toBe('203.0.113.66');
-    const signedClientIp = forwardedHeaders.get('x-internal-client-ip');
-    expect(signedClientIp).toBeTruthy();
-    expect(verifyInternalAuthToken(signedClientIp, bffSecret)).toMatchObject({
-      role: 'service',
-      sub: 'client-ip:203.0.113.66',
-    });
-
-    const traversalCallsBefore = fetchMock.mock.calls.length;
+    const callsBeforeTraversal = queryMocks.consumeAuthRateLimit.mock.calls.length;
     const traversal = await handleAdminAuthBffRequest(
       new Request('http://localhost:4301/api/auth/../session'),
       '../session',
-      { authApiUrl: 'http://auth.internal:4101', fetchImpl: fetchMock },
+      { db: FAKE_DB, env: TEST_ENV },
     );
     expect(traversal.status).toBe(400);
     expect(await traversal.json()).toMatchObject({ error: 'INVALID_REQUEST' });
@@ -833,14 +782,14 @@ describe('@aklapper/db auth & analytics BFF services', () => {
     const encodedTraversal = await handleAdminAuthBffRequest(
       new Request('http://localhost:4301/api/auth/password/%2e%2e/session'),
       'password/%2e%2e/session',
-      { authApiUrl: 'http://auth.internal:4101', fetchImpl: fetchMock },
+      { db: FAKE_DB, env: TEST_ENV },
     );
     expect(encodedTraversal.status).toBe(400);
 
     const encodedSlashTraversal = await handleAdminAuthBffRequest(
       new Request('http://localhost:4301/api/auth/..%2Fsession'),
       '..%2Fsession',
-      { authApiUrl: 'http://auth.internal:4101', fetchImpl: fetchMock },
+      { db: FAKE_DB, env: TEST_ENV },
     );
     expect(encodedSlashTraversal.status).toBe(400);
     expect(await encodedSlashTraversal.json()).toMatchObject({ error: 'INVALID_REQUEST' });
@@ -848,89 +797,85 @@ describe('@aklapper/db auth & analytics BFF services', () => {
     const doubleEncodedAuth = await handleAdminAuthBffRequest(
       new Request('http://localhost:4301/api/auth/password%252Flogin'),
       'password%252Flogin',
-      { authApiUrl: 'http://auth.internal:4101', fetchImpl: fetchMock },
+      { db: FAKE_DB, env: TEST_ENV },
     );
     expect(doubleEncodedAuth.status).toBe(400);
-    expect(fetchMock.mock.calls.length).toBe(traversalCallsBefore);
+    expect(queryMocks.consumeAuthRateLimit.mock.calls.length).toBe(callsBeforeTraversal);
   });
 
-  it('handles same-origin analytics ingest BFF for both direct PG persistence and upstream proxy', async () => {
-    const invalidMethod = await handleAnalyticsIngestRequest(
-      new Request('http://localhost:4300/api/analytics/ingest', { method: 'GET' }),
-      { db: FAKE_DB, env: TEST_ENV },
-    );
-    expect(invalidMethod.status).toBe(405);
+  it('handles same-origin analytics ingest BFF directly against PG19 even if legacy ANALYTICS_API_URL is set', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    try {
+      const legacyEnv = { ...TEST_ENV, ANALYTICS_API_URL: 'http://127.0.0.1:1' };
+      const invalidMethod = await handleAnalyticsIngestRequest(
+        new Request('http://localhost:4300/api/analytics/ingest', { method: 'GET' }),
+        { db: FAKE_DB, env: legacyEnv },
+      );
+      expect(invalidMethod.status).toBe(405);
+      expect(await invalidMethod.json()).toEqual({ error: 'METHOD_NOT_ALLOWED' });
 
-    const invalidPayload = await handleAnalyticsIngestRequest(
-      new Request('http://localhost:4300/api/analytics/ingest', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ sessionId: 's1', events: [] }),
-      }),
-      { db: FAKE_DB, env: TEST_ENV },
-    );
-    expect(invalidPayload.status).toBe(400);
+      const invalidJson = await handleAnalyticsIngestRequest(
+        new Request('http://localhost:4300/api/analytics/ingest', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: '{not-json',
+        }),
+        { db: FAKE_DB, env: legacyEnv },
+      );
+      expect(invalidJson.status).toBe(400);
+      expect(await invalidJson.json()).toEqual({ error: 'INVALID_ANALYTICS_BATCH' });
 
-    queryMocks.ingestAnalyticsBatch.mockResolvedValueOnce({
-      accepted: 1,
-      sessionId: 'sess-1',
-      ipHash: 'a'.repeat(24),
-    });
+      const invalidPayload = await handleAnalyticsIngestRequest(
+        new Request('http://localhost:4300/api/analytics/ingest', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ sessionId: 's1', events: [] }),
+        }),
+        { db: FAKE_DB, env: legacyEnv },
+      );
+      expect(invalidPayload.status).toBe(400);
 
-    const batch = {
-      sessionId: 'sess-1',
-      events: [
-        {
-          type: 'page_view',
-          name: 'portal',
-          path: '/',
-          timestamp: '2026-11-24T12:00:00.000Z',
-        },
-      ],
-    };
+      queryMocks.ingestAnalyticsBatch.mockResolvedValueOnce({
+        accepted: 1,
+        sessionId: 'sess-1',
+        ipHash: 'a'.repeat(24),
+      });
 
-    const direct = await handleAnalyticsIngestRequest(
-      new Request('http://localhost:4300/api/analytics/ingest', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-forwarded-for': '203.0.113.7',
-          'x-cloud-country': 'US',
-          'x-cloud-region': 'GA',
-        },
-        body: JSON.stringify(batch),
-      }),
-      { db: FAKE_DB, env: TEST_ENV },
-    );
-    expect(direct.status).toBe(202);
-    expect(queryMocks.ingestAnalyticsBatch).toHaveBeenCalledWith(
-      FAKE_DB,
-      expect.objectContaining({ sessionId: 'sess-1' }),
-      expect.objectContaining({ country: 'US', region: 'GA' }),
-    );
+      const batch = {
+        sessionId: 'sess-1',
+        events: [
+          {
+            type: 'page_view',
+            name: 'portal',
+            path: '/',
+            timestamp: '2026-11-24T12:00:00.000Z',
+          },
+        ],
+      };
 
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
-      new Response(JSON.stringify({ accepted: 1, sessionId: 'sess-1', ipHash: 'b'.repeat(24) }), {
-        status: 202,
-        headers: { 'content-type': 'application/json' },
-      }),
-    );
-    const proxied = await handleAnalyticsIngestRequest(
-      new Request('http://localhost:4300/api/analytics/ingest', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(batch),
-      }),
-      {
-        upstreamUrl: 'http://analytics.internal:4102',
-        fetchImpl: fetchMock,
-      },
-    );
-    expect(proxied.status).toBe(202);
-    expect(fetchMock).toHaveBeenCalledWith(
-      'http://analytics.internal:4102/v1/analytics/ingest',
-      expect.objectContaining({ method: 'POST' }),
-    );
+      const direct = await handleAnalyticsIngestRequest(
+        new Request('http://localhost:4300/api/analytics/ingest', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'x-forwarded-for': '203.0.113.7',
+            'x-cloud-country': 'US',
+            'x-cloud-region': 'GA',
+          },
+          body: JSON.stringify(batch),
+        }),
+        { db: FAKE_DB, env: legacyEnv },
+      );
+      expect(direct.status).toBe(202);
+      expect(queryMocks.ingestAnalyticsBatch).toHaveBeenCalledWith(
+        FAKE_DB,
+        expect.objectContaining({ sessionId: 'sess-1' }),
+        expect.objectContaining({ country: 'US', region: 'GA', ipHash: expect.any(String) }),
+      );
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 
   it('returns unauthenticated status for cookie-less and unrelated-cookie requests without requiring DATABASE_URL', async () => {
@@ -966,107 +911,5 @@ describe('@aklapper/db auth & analytics BFF services', () => {
         process.env['DATABASE_URL'] = prevDatabaseUrl;
       }
     }
-  });
-
-  it('attaches GCP OIDC tokens to Cloud Run auth/analytics BFF calls, propagates GCP_OIDC_TOKEN_UNAVAILABLE, and signs x-internal-client-ip on analytics ingest', async () => {
-    const exp = Math.floor(Date.now() / 1000) + 600;
-    const mockOidcJwt = `${Buffer.from('{"alg":"RS256"}').toString('base64url')}.${Buffer.from(
-      JSON.stringify({ exp }),
-    ).toString('base64url')}.sig`;
-
-    const capturedAuthHeaders: Array<Headers> = [];
-    const cloudRunFetch: typeof fetch = async (input, init) => {
-      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-      if (url.startsWith('http://metadata.google.internal')) {
-        return new Response(mockOidcJwt, { status: 200 });
-      }
-      const headers = new Headers(init?.headers);
-      capturedAuthHeaders.push(headers);
-      if (url.includes('/v1/auth/session')) {
-        return Response.json({
-          authenticated: false,
-          session: null,
-          totpEnabled: false,
-          passkeyCount: 0,
-        });
-      }
-      return Response.json(
-        { accepted: 1, sessionId: 'sess-cr', ipHash: 'c'.repeat(24) },
-        { status: 202 },
-      );
-    };
-
-    const authBffRes = await handleAdminAuthBffRequest(
-      new Request('https://admin.andrew-k.us/api/auth/session', {
-        headers: { cookie: 'ak_admin_session=abc' },
-      }),
-      'session',
-      {
-        authApiUrl: 'https://node-api-auth-test.a.run.app',
-        env: { NODE_ENV: 'production', INTERNAL_AUTH_SECRET: 'cr-secret' },
-        fetchImpl: cloudRunFetch,
-      },
-    );
-    expect(authBffRes.status).toBe(200);
-    expect(capturedAuthHeaders[0]?.get('authorization')).toBe(`Bearer ${mockOidcJwt}`);
-
-    await resolveAdminSessionFromRequest(
-      new Request('https://admin.andrew-k.us/ops', {
-        headers: { cookie: 'ak_admin_session=abc' },
-      }),
-      {
-        authApiUrl: 'https://node-api-auth-test.a.run.app',
-        fetchImpl: cloudRunFetch,
-      },
-    );
-    expect(capturedAuthHeaders[1]?.get('authorization')).toBe(`Bearer ${mockOidcJwt}`);
-
-    const ingestRes = await handleAnalyticsIngestRequest(
-      new Request('https://andrew-k.us/api/analytics/ingest', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-forwarded-for': '198.51.100.1, 203.0.113.88',
-        },
-        body: JSON.stringify({
-          sessionId: 'sess-cr',
-          events: [
-            {
-              type: 'page_view',
-              name: 'portal',
-              path: '/',
-              timestamp: '2026-11-24T12:00:00.000Z',
-            },
-          ],
-        }),
-      }),
-      {
-        upstreamUrl: 'https://node-api-analytics-test.a.run.app',
-        env: { NODE_ENV: 'production', INTERNAL_AUTH_SECRET: 'cr-secret' },
-        fetchImpl: cloudRunFetch,
-      },
-    );
-    expect(ingestRes.status).toBe(202);
-    const analyticsHeaders = capturedAuthHeaders[2];
-    expect(analyticsHeaders?.get('authorization')).toBe(`Bearer ${mockOidcJwt}`);
-    expect(analyticsHeaders?.get('x-forwarded-for')).toBe('203.0.113.88');
-    const signedClientIp = verifyInternalAuthToken(
-      analyticsHeaders?.get('x-internal-client-ip'),
-      'cr-secret',
-    );
-    expect(signedClientIp).toMatchObject({ role: 'service', sub: 'client-ip:203.0.113.88' });
-
-    const { clearGcpIdentityTokenCacheForTest } = await import('@aklapper/node-runtime/http');
-    clearGcpIdentityTokenCacheForTest();
-    const oidcOutageRes = await handleAdminAuthBffRequest(
-      new Request('https://admin.andrew-k.us/api/auth/session'),
-      'session',
-      {
-        authApiUrl: 'https://node-api-auth-test.a.run.app',
-        fetchImpl: async () => new Response('metadata error', { status: 503 }),
-      },
-    );
-    expect(oidcOutageRes.status).toBe(503);
-    expect(await oidcOutageRes.json()).toMatchObject({ error: 'GCP_OIDC_TOKEN_UNAVAILABLE' });
   });
 });

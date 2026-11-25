@@ -330,10 +330,10 @@ test.describe('admin SSR end-to-end journeys', () => {
 
         await page.getByRole('link', { name: 'Ops', exact: true }).click();
         await expect(page).toHaveURL(/\/ops$/);
-        await page.getByRole('button', { name: 'Wake cadence-admin' }).click();
+        await page.getByRole('button', { name: 'Wake svc-cadence-demo' }).click();
         await expect(
           page.getByText(
-            /Simulated wake queued for cadence-admin|Wake signal delivered to cadence-admin/i,
+            /Simulated wake queued for svc-cadence-demo|Wake signal delivered to svc-cadence-demo/i,
           ),
         ).toBeVisible();
 

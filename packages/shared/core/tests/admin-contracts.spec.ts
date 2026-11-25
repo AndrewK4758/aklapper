@@ -37,7 +37,6 @@ describe('@aklapper/core admin console contracts', () => {
         postgres: { name: 'PostgreSQL 19', status: 'ok', detail: 'Connected' },
         qdrant: { name: 'Qdrant', status: 'ok', detail: '12 points' },
         portfolioPublic: { name: 'portfolio-public', status: 'ok', detail: 'Ready' },
-        cadenceAdmin: { name: 'cadence-admin', status: 'offline', detail: 'Not configured' },
       },
       metrics: {
         contactCount: 4,
@@ -162,8 +161,8 @@ describe('@aklapper/core admin console contracts', () => {
     expect(() =>
       AdminGateOverrideSchema.parse({ runId: 'not-a-uuid', gateVerdict: 'approved' }),
     ).toThrow(/UUID/i);
-    expect(AdminWakeDeploymentSchema.parse({ deployment: 'cadence-admin' }).deployment).toBe(
-      'cadence-admin',
+    expect(AdminWakeDeploymentSchema.parse({ deployment: 'svc-cadence-demo' }).deployment).toBe(
+      'svc-cadence-demo',
     );
     expect(() => AdminWakeDeploymentSchema.parse({ deployment: '../evil' })).toThrow(/Invalid/i);
   });
@@ -291,16 +290,6 @@ describe('@aklapper/core admin console contracts', () => {
     ).toBe('ops-tile');
 
     const ops = AdminOpsLoaderDataSchema.parse({
-      cadenceAdminStatus: {
-        online: true,
-        namespace: 'cadence-admin',
-        isolated: true,
-        mode: 'full-cadence-runtime',
-        databaseConnected: true,
-        totalSandboxRuns: 3,
-        pendingGates: 1,
-        timestamp: '2026-11-24T12:00:00.000Z',
-      },
       qdrantStatus: {
         online: true,
         collection: 'portfolio_docs',
@@ -311,7 +300,7 @@ describe('@aklapper/core admin console contracts', () => {
       sandboxRuns: [],
       k8sWatchConfigured: false,
     });
-    expect(ops.cadenceAdminStatus.isolated).toBe(true);
+    expect(ops.qdrantStatus.collection).toBe('portfolio_docs');
 
     const legacyHealth = QdrantHealthStatusSchema.parse({
       online: true,

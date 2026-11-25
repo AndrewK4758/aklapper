@@ -143,27 +143,15 @@ func (c *k8sAPIClient) listDeployments(ctx context.Context, namespace string) ([
 func simulatedEvents() []contracts.K8sPodEvent {
 	return []contracts.K8sPodEvent{
 		k8sevents.NewScaleEvent("evt-1", contracts.PublicNamespace, "cadence-demo", "ScaledZero", "Idle at 0 replicas", false),
-		k8sevents.NewScaleEvent("evt-2", contracts.AdminNamespace, "cadence-admin", "ScaledZero", "Isolated admin runtime", false),
+		k8sevents.NewScaleEvent("evt-2", contracts.PublicNamespace, "ai-ask", "ScaledZero", "Idle at 0 replicas", false),
 	}
 }
 
 func collectClusterEvents(ctx context.Context, client *k8sAPIClient, role string) []contracts.K8sPodEvent {
 	if client != nil {
-		namespaces := []string{contracts.PublicNamespace}
-		if role == contracts.RoleAdmin {
-			namespaces = append(namespaces, contracts.AdminNamespace)
-		}
-		live := make([]contracts.K8sPodEvent, 0, 6)
-		allFailed := true
-		for _, ns := range namespaces {
-			evs, err := client.listDeployments(ctx, ns)
-			if err == nil {
-				allFailed = false
-				live = append(live, evs...)
-			}
-		}
-		if !allFailed && len(live) > 0 {
-			return k8sevents.FilterForRole(live, role)
+		evs, err := client.listDeployments(ctx, contracts.PublicNamespace)
+		if err == nil && len(evs) > 0 {
+			return k8sevents.FilterForRole(evs, role)
 		}
 	}
 	return k8sevents.FilterForRole(simulatedEvents(), role)
@@ -193,8 +181,7 @@ func newHandler(client *k8sAPIClient) http.Handler {
 	})
 
 	mux.HandleFunc("POST /v1/cluster/wake/{deployment}", func(w http.ResponseWriter, r *http.Request) {
-		claims, ok := httpkit.RequireInternalAuth(w, r)
-		if !ok {
+		if _, ok := httpkit.RequireInternalAuth(w, r); !ok {
 			return
 		}
 		deployment := r.PathValue("deployment")
@@ -202,15 +189,7 @@ func newHandler(client *k8sAPIClient) http.Handler {
 			httpkit.WriteError(w, http.StatusBadRequest, "deployment is required")
 			return
 		}
-		if deployment == "cadence-admin" && claims.Role != internalauth.RoleAdmin {
-			httpkit.WriteError(w, http.StatusForbidden, "signed admin internal auth required to wake isolated admin workload")
-			return
-		}
-		ns := contracts.PublicNamespace
-		if deployment == "cadence-admin" {
-			ns = contracts.AdminNamespace
-		}
-		ev := k8sevents.NewScaleEvent("wake-"+deployment, ns, deployment, "TriggeredScaleUp", "Activator requested scale 0 -> 1", false)
+		ev := k8sevents.NewScaleEvent("wake-"+deployment, contracts.PublicNamespace, deployment, "TriggeredScaleUp", "Activator requested scale 0 -> 1", false)
 		pct := 25
 		osc := contracts.Osc7501Status{
 			Source:    deployment,

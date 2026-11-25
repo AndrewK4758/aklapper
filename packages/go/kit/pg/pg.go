@@ -33,10 +33,9 @@ func ResolveAgensiCreatorHandle() string {
 }
 
 var (
-	ErrRunNotFound         = errors.New("sandbox run not found")
-	ErrGoldenRunImmutable  = errors.New("golden showcase run is read-only and cannot be mutated")
-	ErrInvalidVerdict      = errors.New("gate verdict must be approved or rejected")
-	ErrInvalidAdminVerdict = errors.New("gate verdict must be approved, rejected, or pending")
+	ErrRunNotFound        = errors.New("sandbox run not found")
+	ErrGoldenRunImmutable = errors.New("golden showcase run is read-only and cannot be mutated")
+	ErrInvalidVerdict     = errors.New("gate verdict must be approved or rejected")
 )
 
 type Config struct {
@@ -906,13 +905,6 @@ func (s *Store) GetSandboxRunSummary(ctx context.Context) (int, int, error) {
 func (s *Store) UpdateSandboxGateVerdict(ctx context.Context, runID, verdict string) (*SandboxRun, error) {
 	if verdict != "approved" && verdict != "rejected" {
 		return nil, ErrInvalidVerdict
-	}
-	return s.setSandboxGateVerdict(ctx, runID, verdict)
-}
-
-func (s *Store) OverrideSandboxGateVerdict(ctx context.Context, runID, verdict string) (*SandboxRun, error) {
-	if verdict != "approved" && verdict != "rejected" && verdict != "pending" {
-		return nil, ErrInvalidAdminVerdict
 	}
 	return s.setSandboxGateVerdict(ctx, runID, verdict)
 }

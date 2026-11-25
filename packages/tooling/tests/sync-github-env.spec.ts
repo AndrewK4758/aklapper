@@ -148,7 +148,7 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
     }
   });
 
-  it('flags retired ADMIN_BOOTSTRAP_TOKEN, placeholders, and missing QDRANT_API_KEY for HTTPS Qdrant via UNSOUND_CONDITION telemetry', () => {
+  it('flags retired keys, placeholders, and missing QDRANT_API_KEY for HTTPS Qdrant via UNSOUND_CONDITION telemetry', () => {
     const logged: string[] = [];
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation((msg: unknown) => {
       logged.push(String(msg));
@@ -160,15 +160,33 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
           'postgres://postgres:REPLACE_ME_DB_PASSWORD@db.bgdkapis.us:5432/aklapper?sslmode=disable',
         QDRANT_URL: 'https://cluster.example.qdrant.io',
         ADMIN_BOOTSTRAP_TOKEN: 'legacy-secret-do-not-print',
+        AUTH_API_URL: 'https://auth.bgdkapis.us',
+        ANALYTICS_API_URL: 'https://analytics.bgdkapis.us',
+        CADENCE_ADMIN_URL: 'https://cadence-admin.bgdkapis.us',
+        CONTACT_API_URL: 'https://contact.bgdkapis.us',
+        CLOUD_RUN_ALLOW_UNAUTH_APIS: 'false',
       });
 
       expect(plan.placeholderKeys).toEqual(['DATABASE_URL']);
       expect(plan.missingRequired).toEqual(['QDRANT_API_KEY']);
-      expect(plan.retiredKeys).toEqual(['ADMIN_BOOTSTRAP_TOKEN']);
+      expect(plan.retiredKeys).toEqual([
+        'ADMIN_BOOTSTRAP_TOKEN',
+        'AUTH_API_URL',
+        'ANALYTICS_API_URL',
+        'CADENCE_ADMIN_URL',
+        'CONTACT_API_URL',
+        'CLOUD_RUN_ALLOW_UNAUTH_APIS',
+      ]);
+      expect(plan.variables.map(v => v.key)).not.toContain('AUTH_API_URL');
+      expect(plan.variables.map(v => v.key)).not.toContain('ANALYTICS_API_URL');
+      expect(plan.variables.map(v => v.key)).not.toContain('CADENCE_ADMIN_URL');
+      expect(plan.variables.map(v => v.key)).not.toContain('CONTACT_API_URL');
+      expect(plan.variables.map(v => v.key)).not.toContain('CLOUD_RUN_ALLOW_UNAUTH_APIS');
       expect(logged.join('\n')).toContain('deploy.env_sync.invalid_input');
       expect(logged.join('\n')).toContain('UNSOUND_CONDITION');
       expect(logged.join('\n')).toContain('QDRANT_API_KEY');
       expect(logged.join('\n')).toContain('ADMIN_BOOTSTRAP_TOKEN');
+      expect(logged.join('\n')).toContain('AUTH_API_URL');
       expect(logged.join('\n')).not.toContain('legacy-secret-do-not-print');
 
       const placeholderSecretPlan = buildSyncPlan({
@@ -280,9 +298,7 @@ describe('@aklapper/tooling GitHub Actions and GCP Secret Manager sync', () => {
     expect(renderedArgs).toContain(
       'iam service-accounts add-iam-policy-binding aklapper-gke@games-424800.iam.gserviceaccount.com --project=games-424800 --role=roles/iam.workloadIdentityUser --member=serviceAccount:games-424800.svc.id.goog[portfolio-public/cadence-demo]',
     );
-    expect(renderedArgs).toContain(
-      'iam service-accounts add-iam-policy-binding aklapper-gke@games-424800.iam.gserviceaccount.com --project=games-424800 --role=roles/iam.workloadIdentityUser --member=serviceAccount:games-424800.svc.id.goog[cadence-admin/cadence-admin]',
-    );
+    expect(renderedArgs.join('\n')).not.toContain('cadence-admin/cadence-admin');
   });
 
   it('parses CLI arguments with production default and rejects non-production environments', () => {

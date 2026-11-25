@@ -46,12 +46,12 @@ export const ADMIN_OVERVIEW_FIXTURE: AdminOverviewLoaderData = {
       enabled: true,
     },
     {
-      slug: 'cadence-admin',
+      slug: 'admin-ops',
       keyShortcut: '9',
       title: 'Admin Ops',
       description: 'Internal admin route',
-      targetK8sDeploy: 'svc-admin',
-      namespace: 'portfolio-admin',
+      targetK8sDeploy: null,
+      namespace: null,
       adminOnly: true,
       sortOrder: 9,
       enabled: true,
@@ -61,7 +61,6 @@ export const ADMIN_OVERVIEW_FIXTURE: AdminOverviewLoaderData = {
     postgres: { name: 'PostgreSQL 19', status: 'ok', detail: 'Connected' },
     qdrant: { name: 'Qdrant', status: 'degraded', detail: 'Unconfigured' },
     portfolioPublic: { name: 'portfolio-public', status: 'ok', detail: 'Ready' },
-    cadenceAdmin: { name: 'cadence-admin', status: 'ok', detail: 'Isolated' },
   },
   metrics: {
     contactCount: 3,
@@ -188,17 +187,6 @@ export const ADMIN_CMS_FIXTURE: AdminCmsLoaderData = {
 };
 
 export const ADMIN_OPS_FIXTURE: AdminOpsLoaderData = {
-  cadenceAdminStatus: {
-    online: false,
-    namespace: 'cadence-admin',
-    isolated: true,
-    mode: 'full-cadence-runtime',
-    databaseConnected: false,
-    totalSandboxRuns: 1,
-    pendingGates: 1,
-    timestamp: '2026-11-24T12:00:00.000Z',
-    detail: 'Local fallback',
-  },
   qdrantStatus: QDRANT_FIXTURE,
   sandboxRuns: [],
   k8sWatchConfigured: false,

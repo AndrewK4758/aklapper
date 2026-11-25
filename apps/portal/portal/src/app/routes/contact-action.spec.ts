@@ -364,7 +364,7 @@ describe('processContactSubmission & resource action routes', () => {
     expect(errorCalls).toHaveLength(3);
   });
 
-  it('attaches signed X-Internal-Auth service tokens on contact notify and public cluster SSE proxies', async () => {
+  it('persists contact directly to PG19 without outbound CONTACT_API_URL calls and signs public cluster SSE proxies', async () => {
     const origContactUrl = process.env['CONTACT_API_URL'];
     const origWatchUrl = process.env['K8S_WATCH_URL'];
     const origSecret = process.env['INTERNAL_AUTH_SECRET'];
@@ -378,14 +378,11 @@ describe('processContactSubmission & resource action routes', () => {
           headers: { 'content-type': 'text/event-stream' },
         });
       }
-      return Response.json({
-        accepted: true,
-        submissionId: '55555555-5555-4555-8555-555555555555',
-      });
+      throw new Error(`Unexpected outbound fetch to ${url}`);
     });
 
     try {
-      process.env['CONTACT_API_URL'] = 'http://127.0.0.1:8084';
+      process.env['CONTACT_API_URL'] = 'http://127.0.0.1:1';
       process.env['K8S_WATCH_URL'] = 'http://127.0.0.1:8081';
       process.env['INTERNAL_AUTH_SECRET'] = 'portal-bff-test-secret';
 
@@ -403,13 +400,14 @@ describe('processContactSubmission & resource action routes', () => {
       const validFd = new FormData();
       validFd.set('name', 'Grace Hopper');
       validFd.set('email', 'grace@example.com');
-      validFd.set('message', 'Verifying signed contact notify webhook forwarding.');
-      await processContactSubmission(
+      validFd.set('message', 'Verifying direct PG19 contact persistence without outbound notify.');
+      const res = await processContactSubmission(
         makeRequest(async () => validFd),
         {
-          correlationId: 'corr-signed-notify',
+          correlationId: 'corr-direct-pg19',
         },
       );
+      expect(res.status).toBe(201);
       await new Promise(resolve => setTimeout(resolve, 0));
 
       const { loader: clusterStreamLoader } = await import('./api.cluster.stream');
@@ -422,15 +420,11 @@ describe('processContactSubmission & resource action routes', () => {
       } as never);
       expect(sseRes.status).toBe(200);
 
-      const notifyCall = capturedCalls.find(c => c.url.endsWith('/v1/contact/notify'));
+      expect(capturedCalls.some(c => c.url.includes('/v1/contact/notify'))).toBe(false);
       const streamCall = capturedCalls.find(c => c.url.endsWith('/v1/cluster/stream'));
-      expect(notifyCall?.token).toBeTruthy();
       expect(streamCall?.token).toBeTruthy();
 
-      const notifyClaims = verifyInternalAuthToken(notifyCall?.token, 'portal-bff-test-secret');
       const streamClaims = verifyInternalAuthToken(streamCall?.token, 'portal-bff-test-secret');
-      expect(notifyClaims?.role).toBe('service');
-      expect(notifyClaims?.sub).toBe('portal-contact');
       expect(streamClaims?.role).toBe('service');
       expect(streamClaims?.sub).toBe('portal-cluster-stream');
     } finally {
@@ -441,6 +435,46 @@ describe('processContactSubmission & resource action routes', () => {
       else process.env['K8S_WATCH_URL'] = origWatchUrl;
       if (origSecret === undefined) delete process.env['INTERNAL_AUTH_SECRET'];
       else process.env['INTERNAL_AUTH_SECRET'] = origSecret;
+    }
+  });
+
+  it('emits outcome audit gap and returns classified 500 when insertContactSubmission lacks id', async () => {
+    const { logger, errorCalls } = makeMockLogger();
+    const stderrChunks: string[] = [];
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(chunk => {
+      stderrChunks.push(String(chunk));
+      return true;
+    });
+    try {
+      loadPortalContactDataMock.mockResolvedValue(CONTACT_LOADER_FIXTURE);
+      insertContactSubmissionMock.mockResolvedValueOnce({
+        id: '',
+        name: 'Grace Hopper',
+        email: 'grace@example.com',
+        phone: null,
+        attachmentName: null,
+        attachmentSizeBytes: null,
+        attachmentSha256: null,
+        createdAt: '2026-11-24T15:00:00.000Z',
+      });
+
+      const res = await processContactSubmission(
+        makeRequest(async () => makeValidFormData()),
+        { correlationId: 'corr-audit-gap', logger },
+      );
+      expect(res.status).toBe(500);
+      expect(res.payload).toMatchObject({
+        ok: false,
+        correlationId: 'corr-audit-gap',
+      });
+      expect(errorCalls).toHaveLength(1);
+      expect(
+        stderrChunks.some(
+          line => line.includes('DELTA_AUDIT_GAP') && line.includes('corr-audit-gap'),
+        ),
+      ).toBe(true);
+    } finally {
+      stderrSpy.mockRestore();
     }
   });
 });

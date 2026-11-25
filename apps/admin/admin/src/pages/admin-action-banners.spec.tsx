@@ -52,17 +52,6 @@ const QUOTAS_DATA: AdminQuotasLoaderData = {
 };
 
 const OPS_DATA: AdminOpsLoaderData = {
-  cadenceAdminStatus: {
-    online: false,
-    namespace: 'cadence-admin',
-    isolated: true,
-    mode: 'full-cadence-runtime',
-    databaseConnected: false,
-    totalSandboxRuns: 0,
-    pendingGates: 0,
-    timestamp: '2026-11-24T12:00:00.000Z',
-    detail: 'Local fallback',
-  },
   qdrantStatus: QDRANT_FIXTURE,
   sandboxRuns: [],
   k8sWatchConfigured: false,

@@ -22,15 +22,6 @@ const SIMULATED_PUBLIC_EVENTS: readonly Omit<K8sPodEvent, 'timestamp'>[] = [
     message: 'Idle at 0/1 replicas (scale-to-0)',
     ready: false,
   },
-  {
-    eventId: 'sim-contact',
-    namespace: 'portfolio-public',
-    deployment: 'svc-contact',
-    podName: 'svc-contact-0',
-    phase: 'ScaledZero',
-    message: 'Idle at 0/1 replicas (scale-to-0)',
-    ready: false,
-  },
 ];
 
 function createSimulatedPublicStream(): Response {

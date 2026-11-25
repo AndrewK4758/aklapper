@@ -51,7 +51,6 @@ export const AdminOverviewLoaderDataSchema = z.object({
     postgres: AdminServiceHealthSchema,
     qdrant: AdminServiceHealthSchema,
     portfolioPublic: AdminServiceHealthSchema,
-    cadenceAdmin: AdminServiceHealthSchema,
   }),
   metrics: AdminOverviewMetricsSchema,
   maintenanceModeDefault: z.boolean(),
@@ -250,19 +249,6 @@ export const CadencePresetUpsertSchema = z.object({
 });
 export type CadencePresetUpsertInput = z.infer<typeof CadencePresetUpsertSchema>;
 
-export const CadenceAdminStatusSchema = z.object({
-  online: z.boolean(),
-  namespace: z.string().min(1),
-  isolated: z.boolean(),
-  mode: z.string().min(1),
-  databaseConnected: z.boolean(),
-  totalSandboxRuns: z.number().int().nonnegative(),
-  pendingGates: z.number().int().nonnegative(),
-  timestamp: z.string(),
-  detail: z.string().optional(),
-});
-export type CadenceAdminStatus = z.infer<typeof CadenceAdminStatusSchema>;
-
 export const QdrantCollectionHealthSchema = z.object({
   name: z.string().min(1),
   online: z.boolean(),
@@ -290,7 +276,6 @@ export const AdminSandboxRunSchema = CadenceRunResultSchema.extend({
 export type AdminSandboxRun = z.infer<typeof AdminSandboxRunSchema>;
 
 export const AdminOpsLoaderDataSchema = z.object({
-  cadenceAdminStatus: CadenceAdminStatusSchema,
   qdrantStatus: QdrantHealthStatusSchema,
   sandboxRuns: z.array(AdminSandboxRunSchema),
   k8sWatchConfigured: z.boolean(),

@@ -25,10 +25,10 @@ describe('@aklapper/node-runtime gcp-oidc and trusted proxy helpers', () => {
   });
 
   it('scopes OIDC identity token attachment strictly to Cloud Run / configured GCP hosts', () => {
-    expect(shouldAttachGcpOidcToken('https://node-api-auth-xyz.a.run.app')).toBe(true);
+    expect(shouldAttachGcpOidcToken('https://ai-ask-xyz.a.run.app')).toBe(true);
     expect(
-      shouldAttachGcpOidcToken('https://auth.bgdkapis.us', {
-        GCP_OIDC_AUDIENCE_HOSTS: 'auth.bgdkapis.us,analytics.bgdkapis.us',
+      shouldAttachGcpOidcToken('https://ask.bgdkapis.us', {
+        GCP_OIDC_AUDIENCE_HOSTS: 'ask.bgdkapis.us,cadence.bgdkapis.us',
       }),
     ).toBe(true);
     expect(shouldAttachGcpOidcToken('http://127.0.0.1:4101')).toBe(false);
@@ -74,14 +74,14 @@ describe('@aklapper/node-runtime gcp-oidc and trusted proxy helpers', () => {
       };
 
       const res1 = await proxyJson<{ ok: boolean }>({
-        baseUrl: 'https://node-api-auth-abc.a.run.app',
-        path: '/v1/auth/session',
+        baseUrl: 'https://ai-ask-abc.a.run.app',
+        path: '/v1/ask',
         internalAuth: { role: 'service', subject: 'portal', secret: 'test-hmac-secret' },
         fetchImpl: mockFetch,
       });
       const res2 = await proxyJson<{ ok: boolean }>({
-        baseUrl: 'https://node-api-auth-abc.a.run.app',
-        path: '/v1/auth/session',
+        baseUrl: 'https://ai-ask-abc.a.run.app',
+        path: '/v1/ask',
         fetchImpl: mockFetch,
       });
 
@@ -97,8 +97,8 @@ describe('@aklapper/node-runtime gcp-oidc and trusted proxy helpers', () => {
       // Upstream 401 on GET evicts cache and retries metadata fetch once
       upstreamStatus = 401;
       const retried = await proxyJson<{ ok: boolean }>({
-        baseUrl: 'https://node-api-auth-abc.a.run.app',
-        path: '/v1/auth/session',
+        baseUrl: 'https://ai-ask-abc.a.run.app',
+        path: '/v1/ask',
         fetchImpl: mockFetch,
       });
       expect(retried.ok).toBe(true);
@@ -121,12 +121,12 @@ describe('@aklapper/node-runtime gcp-oidc and trusted proxy helpers', () => {
         return new Response(expCalls === 1 ? nearExpiry : refreshed, { status: 200 });
       };
       expect(
-        await resolveGcpIdentityToken('https://node-api-analytics-abc.a.run.app', {
+        await resolveGcpIdentityToken('https://cadence-demo-abc.a.run.app', {
           fetchImpl: expFetch,
         }),
       ).toBe(nearExpiry);
       expect(
-        await resolveGcpIdentityToken('https://node-api-analytics-abc.a.run.app', {
+        await resolveGcpIdentityToken('https://cadence-demo-abc.a.run.app', {
           fetchImpl: expFetch,
         }),
       ).toBe(refreshed);
@@ -150,14 +150,14 @@ describe('@aklapper/node-runtime gcp-oidc and trusted proxy helpers', () => {
       const failingMetadataFetch: typeof fetch = async () => new Response('down', { status: 503 });
 
       await expect(
-        resolveGcpIdentityToken('https://node-api-auth-abc.a.run.app', {
+        resolveGcpIdentityToken('https://ai-ask-abc.a.run.app', {
           fetchImpl: failingMetadataFetch,
         }),
       ).rejects.toThrow(/GCP_OIDC_TOKEN_UNAVAILABLE/);
 
       const failedProxy = await proxyJson({
-        baseUrl: 'https://node-api-auth-abc.a.run.app',
-        path: '/v1/auth/session',
+        baseUrl: 'https://ai-ask-abc.a.run.app',
+        path: '/v1/ask',
         fetchImpl: failingMetadataFetch,
       });
       expect(failedProxy.ok).toBe(false);

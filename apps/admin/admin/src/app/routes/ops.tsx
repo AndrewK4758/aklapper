@@ -1,7 +1,6 @@
 import {
   AdminGateOverrideSchema,
   AdminWakeDeploymentSchema,
-  type CadenceAdminStatus,
   createPublicAppError,
   type QdrantHealthStatus,
   type StreamResult,
@@ -27,14 +26,11 @@ import {
   type AdminOpsActionData,
   AdminOpsPage,
   type AdminOpsPrimaryData,
-  CadenceRuntimeStatusBody,
   QdrantRuntimeStatusBody,
 } from '#pages/ops';
 
 import {
-  fetchCadenceAdminStatus,
   fetchQdrantStatus,
-  forwardCadenceGateOverride,
   requireAdminSession,
   triggerClusterWake,
   triggerQdrantReindex,
@@ -46,7 +42,6 @@ import type { Route } from './+types/ops';
 export interface AdminOpsStreamData {
   readonly correlationId: string;
   readonly payload: Promise<StreamResult<AdminOpsPrimaryData>>;
-  readonly cadenceStatusPayload: Promise<StreamResult<CadenceAdminStatus>>;
   readonly qdrantStatusPayload: Promise<StreamResult<QdrantHealthStatus>>;
 }
 
@@ -67,11 +62,6 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Ad
       })(),
       { request, context, source: 'admin.ops.loader' },
     ),
-    cadenceStatusPayload: deferStreamResult(fetchCadenceAdminStatus(), {
-      request,
-      context,
-      source: 'admin.ops.cadence',
-    }),
     qdrantStatusPayload: deferStreamResult(fetchQdrantStatus(), {
       request,
       context,
@@ -161,7 +151,6 @@ export async function action({ request, context }: Route.ActionArgs) {
           { status: 404, headers },
         );
       }
-      await forwardCadenceGateOverride(parsed.runId, parsed.gateVerdict);
       return data<AdminOpsActionData>(
         {
           ok: true,
@@ -264,33 +253,11 @@ export function meta({ matches, location }: Route.MetaArgs) {
     pathname: location.pathname,
     title: 'Cluster & CADENCE Ops // admin.andrew-k.us',
     description:
-      'Dual-namespace GKE pod watcher, cadence-admin runtime controls, Qdrant index management, and gate audit.',
+      'GKE portfolio-public pod watcher, Qdrant index management, and PostgreSQL sandbox gate audit.',
   });
 }
 
 export default function AdminOpsRoute({ loaderData, actionData }: Route.ComponentProps) {
-  const cadenceStatusSlot = (
-    <SuspenseElement<CadenceAdminStatus>
-      resolve={loaderData.cadenceStatusPayload}
-      correlationId={loaderData.correlationId}
-      homeHref=''
-      loadingLabel='Probing cadence-admin runtime...'
-      onStreamError={error => {
-        reportAdminPublicError(error, { phase: 'stream' });
-        console.error(
-          JSON.stringify({
-            event: 'admin.secondary_stream.degraded',
-            slot: 'ops.cadence',
-            code: error.code,
-            correlationId: error.correlationId,
-          }),
-        );
-      }}
-    >
-      {status => <CadenceRuntimeStatusBody status={status} />}
-    </SuspenseElement>
-  );
-
   const qdrantStatusSlot = (
     <SuspenseElement<QdrantHealthStatus>
       resolve={loaderData.qdrantStatusPayload}
@@ -326,7 +293,6 @@ export default function AdminOpsRoute({ loaderData, actionData }: Route.Componen
       {resolved => (
         <AdminOpsPage
           data={resolved}
-          cadenceStatusSlot={cadenceStatusSlot}
           qdrantStatusSlot={qdrantStatusSlot}
           actionData={actionData ?? null}
         />

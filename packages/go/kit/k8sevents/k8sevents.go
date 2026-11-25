@@ -8,13 +8,12 @@ import (
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 )
 
-// VisibleToRole enforces the strict guest redaction boundary: guest sessions
-// can never observe pods or events belonging to the isolated cadence-admin namespace.
+// VisibleToRole restricts guest telemetry strictly to the portfolio-public namespace.
 func VisibleToRole(ev contracts.K8sPodEvent, role string) bool {
 	if role == contracts.RoleAdmin {
 		return true
 	}
-	return ev.Namespace != contracts.AdminNamespace
+	return ev.Namespace == contracts.PublicNamespace
 }
 
 func FilterForRole(events []contracts.K8sPodEvent, role string) []contracts.K8sPodEvent {

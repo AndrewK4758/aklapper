@@ -104,7 +104,6 @@ export interface LoadAdminOverviewOptions {
   totpEnabled?: boolean;
   qdrantHealth?: AdminServiceHealth;
   portfolioPublicHealth?: AdminServiceHealth;
-  cadenceAdminHealth?: AdminServiceHealth;
 }
 
 export async function loadAdminOverviewData(
@@ -204,11 +203,6 @@ export async function loadAdminOverviewData(
         name: 'portfolio-public',
         status: 'degraded',
         detail: 'Scale-to-0 local simulation',
-      },
-      cadenceAdmin: options.cadenceAdminHealth ?? {
-        name: 'cadence-admin',
-        status: 'offline',
-        detail: 'CADENCE_ADMIN_URL not configured (direct PG19 audit active)',
       },
     },
     metrics: {

@@ -182,7 +182,7 @@ export function meta({ loaderData, location }: Route.MetaArgs) {
   return buildRouteMetaTags({
     title: 'admin.andrew-k.us // Solar Forge Ops',
     description:
-      'Isolated operations console for andrew-k.us: passkey gate, first-party analytics telemetry, CMS, inbox, quotas, and cadence-admin controls.',
+      'Private operations console for andrew-k.us: passkey gate, first-party analytics telemetry, CMS, inbox, quotas, and cluster ops.',
     siteName: ADMIN_SITE_NAME,
     siteUrl,
     pathname: location.pathname,

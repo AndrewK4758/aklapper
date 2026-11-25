@@ -553,6 +553,36 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     )) as unknown as DataWithStatus;
     expectUpstream503(reindexFailRes, reindexFailCall.logger, 'corr-ops-reindex-503');
 
+    mocks.overrideSandboxGateVerdict.mockResolvedValueOnce({
+      runId: '11111111-1111-4111-8111-111111111111',
+      gateVerdict: 'approved',
+    });
+    const prevCadenceAdminUrl = process.env['CADENCE_ADMIN_URL'];
+    const gateFetchSpy = vi.spyOn(globalThis, 'fetch');
+    try {
+      process.env['CADENCE_ADMIN_URL'] = 'http://127.0.0.1:1';
+      const overrideOkCall = makeActionArgs(
+        'http://localhost:4301/ops',
+        '/ops',
+        {
+          intent: 'override-gate',
+          runId: '11111111-1111-4111-8111-111111111111',
+          gateVerdict: 'approved',
+        },
+        'corr-ops-override-200',
+      );
+      const overrideOkRes = (await opsAction(
+        overrideOkCall.args as never,
+      )) as unknown as DataWithStatus;
+      expect(overrideOkRes.init?.status).toBe(200);
+      expect(overrideOkRes.data['ok']).toBe(true);
+      expect(gateFetchSpy).not.toHaveBeenCalled();
+    } finally {
+      gateFetchSpy.mockRestore();
+      if (prevCadenceAdminUrl === undefined) delete process.env['CADENCE_ADMIN_URL'];
+      else process.env['CADENCE_ADMIN_URL'] = prevCadenceAdminUrl;
+    }
+
     mocks.overrideSandboxGateVerdict.mockResolvedValueOnce(null);
     const missingRunCall = makeActionArgs(
       'http://localhost:4301/ops',

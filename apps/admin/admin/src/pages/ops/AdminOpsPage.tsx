@@ -2,7 +2,6 @@ import type {
   ActionErrorMetadata,
   AdminOpsLoaderData,
   AdminSandboxRun,
-  CadenceAdminStatus,
   CadenceGateVerdict,
   K8sPodEvent,
   Osc7501State,
@@ -40,13 +39,11 @@ export interface AdminOpsActionData extends ActionErrorMetadata {
 export interface AdminOpsPrimaryData {
   readonly sandboxRuns: readonly AdminSandboxRun[];
   readonly k8sWatchConfigured: boolean;
-  readonly cadenceAdminStatus?: CadenceAdminStatus;
   readonly qdrantStatus?: QdrantHealthStatus;
 }
 
 export interface AdminOpsPageProps {
   data: AdminOpsPrimaryData | AdminOpsLoaderData;
-  cadenceStatusSlot?: ReactNode;
   qdrantStatusSlot?: ReactNode;
   actionData?: AdminOpsActionData | null;
 }
@@ -70,12 +67,7 @@ function mapGateVerdictToOsc(verdict: CadenceGateVerdict): Osc7501State {
   return 'gate';
 }
 
-export function AdminOpsPage({
-  data,
-  cadenceStatusSlot,
-  qdrantStatusSlot,
-  actionData,
-}: AdminOpsPageProps) {
+export function AdminOpsPage({ data, qdrantStatusSlot, actionData }: AdminOpsPageProps) {
   const cluster = useOpsClusterStream();
   const wakeFetcher = useFetcher<AdminOpsActionData>();
   const reindexFetcher = useFetcher<AdminOpsActionData>();
@@ -97,13 +89,13 @@ export function AdminOpsPage({
   }
 
   return (
-    <TuiWindow title='Cluster Watcher, cadence-admin & Sandbox Audit // Ops'>
+    <TuiWindow title='Cluster Watcher, Qdrant & Sandbox Audit // Ops'>
       <div className={styles.panel}>
         {feedback ? <ActionFeedbackBanner {...feedback} /> : null}
 
-        <section className={styles.card} aria-label='Dual-namespace cluster watcher'>
+        <section className={styles.card} aria-label='Portfolio public cluster watcher'>
           <div className={styles.cardHeader}>
-            <h2 className={styles.sectionTitle}>Dual-Namespace GKE Pod Watcher (SSE)</h2>
+            <h2 className={styles.sectionTitle}>GKE Pod Watcher (SSE)</h2>
             <OscStatusBadge
               source='cluster-sse'
               state={cluster.connected ? 'ready' : 'scaling'}
@@ -150,46 +142,11 @@ export function AdminOpsPage({
                 ))}
               </ul>
             </div>
-
-            <div>
-              <h3 className={styles.sectionTitle}>Namespace: cadence-admin</h3>
-              <ul className={styles.podList}>
-                {cluster.adminDeployments.map(ev => (
-                  <li key={`${ev.namespace}:${ev.deployment}`} className={styles.podRow}>
-                    <div className={styles.podMeta}>
-                      <strong>{ev.deployment}</strong>
-                      <span className={styles.muted}>
-                        {ev.podName} · {ev.message}
-                      </span>
-                    </div>
-                    <div className={styles.podActions}>
-                      <OscStatusBadge
-                        source={ev.deployment}
-                        state={mapPodPhaseToOsc(ev)}
-                        label={ev.phase}
-                      />
-                      <Button.Root
-                        type='button'
-                        variant='primary'
-                        size='sm'
-                        onClick={() => {
-                          triggerWake(ev.deployment);
-                        }}
-                      >
-                        <Button.Label>Wake {ev.deployment}</Button.Label>
-                      </Button.Root>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
           </div>
         </section>
 
         <AdminOpsRuntimeCards
-          cadenceAdminStatus={data.cadenceAdminStatus}
           qdrantStatus={data.qdrantStatus}
-          cadenceStatusSlot={cadenceStatusSlot}
           qdrantStatusSlot={qdrantStatusSlot}
           reindexForm={
             <reindexFetcher.Form method='post'>

@@ -117,7 +117,7 @@ test.describe('admin mobile TUI workspace and adaptive layout', () => {
       for (const route of [
         { path: '/cms', label: 'CMS', expectScroll: true },
         { path: '/inbox', label: 'Inbox', expectScroll: false },
-        { path: '/ops', label: 'Ops', expectScroll: true },
+        { path: '/ops', label: 'Ops', expectScroll: false },
         { path: '/analytics', label: 'Stats', expectScroll: false },
       ]) {
         await gotoStreamedPage(page, route.path);

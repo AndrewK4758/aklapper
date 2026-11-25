@@ -7,7 +7,6 @@ export {
 export {
   AdminOpsRuntimeCards,
   type AdminOpsRuntimeCardsProps,
-  CadenceRuntimeStatusBody,
   QdrantRuntimeStatusBody,
 } from './AdminOpsRuntimeCards';
 export {

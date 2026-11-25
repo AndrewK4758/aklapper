@@ -54,12 +54,7 @@ export function AdminHomePage({ data, onRegisterPasskey }: AdminHomePageProps) {
     rebuildProgressPercent,
     security,
   } = data;
-  const services = [
-    health.postgres,
-    health.qdrant,
-    health.portfolioPublic,
-    health.cadenceAdmin,
-  ] as const;
+  const services = [health.postgres, health.qdrant, health.portfolioPublic] as const;
   const [totpEnabled, setTotpEnabled] = useState(security.totpEnabled);
   const [passkeyCount, setPasskeyCount] = useState(security.passkeyCount);
   const [enrollment, setEnrollment] = useState<TotpEnrollResponse | null>(null);

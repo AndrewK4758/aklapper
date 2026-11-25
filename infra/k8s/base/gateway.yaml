@@ -16,7 +16,7 @@ spec:
             name: aklapper-go-tls
       allowedRoutes:
         namespaces:
-          from: All
+          from: Same
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -62,34 +62,3 @@ spec:
     - backendRefs:
         - name: ai-ask
           port: 8083
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: contact-route
-  namespace: portfolio-public
-spec:
-  parentRefs:
-    - name: aklapper-go-gateway
-  hostnames:
-    - contact.bgdkapis.us
-  rules:
-    - backendRefs:
-        - name: contact
-          port: 8084
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: cadence-admin-route
-  namespace: cadence-admin
-spec:
-  parentRefs:
-    - name: aklapper-go-gateway
-      namespace: portfolio-public
-  hostnames:
-    - cadence-admin.bgdkapis.us
-  rules:
-    - backendRefs:
-        - name: cadence-admin
-          port: 8085
