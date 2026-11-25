@@ -99,8 +99,8 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(tuiHeading).toHaveCount(0);
     await expect(page.locator('[data-pane-count="1"]')).toBeVisible();
 
-    // Ctrl+Shift+O splits a new terminal pane; `tui` takes over tty2 in-place, Escape returns tty2 to shell, exit closes tty2
-    await page.keyboard.press('Control+Shift+O');
+    // Alt+Shift+D splits a new terminal pane; `tui` takes over tty2 in-place, Escape returns tty2 to shell, exit closes tty2
+    await page.keyboard.press('Alt+Shift+KeyD');
     await expect(page.locator('[data-pane-count="2"]')).toBeVisible();
     const splitPaneInput = page.getByLabel('Terminal command input', { exact: true });
     await splitPaneInput.fill('tui');
@@ -148,8 +148,8 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(frame).toBeVisible();
     await expect(frame).toHaveAttribute('sandbox', /.+/);
 
-    // Ctrl+Shift+O opens a separate terminal pane directly alongside the CADENCE TUI
-    await page.keyboard.press('Control+Shift+O');
+    // Alt+Shift+D opens a separate terminal pane directly alongside the CADENCE TUI
+    await page.keyboard.press('Alt+Shift+KeyD');
     await expect(page.locator('[data-pane-count="2"]')).toBeVisible();
     await expect(frame).toBeVisible();
     const splitInput = page.getByLabel('Terminal command input', { exact: true });
@@ -619,14 +619,24 @@ test.describe('portal SSR end-to-end journeys', () => {
             ?.getAttribute('data-pane-id') ?? '',
       );
 
-    // 1. Header shortcut hint and DB-backed `help` output contain zero Ghostty references
+    // 1. Header shortcut hint and DB-backed `help` output contain only browser-safe bindings and zero stale chords
     await expect(page.locator('header')).toContainText('split');
     await commandInput.fill('help');
     await commandInput.press('Enter');
     await expect(page.getByText(/Split panes & tabs \(keybindings & commands\):/i)).toBeVisible();
-    expect(await page.locator('body').innerText()).not.toMatch(/ghostty/i);
+    const renderedText = await page.locator('body').innerText();
+    expect(renderedText).not.toMatch(
+      /ghostty|Ctrl\+Shift\+O|\bCmd\+D\b|\bCtrl\+W\b|\bCtrl\+N\b|\bAlt\+1\.\.9\b/i,
+    );
 
-    // 2. Split right: Control+Shift+} (BracketRight), Control+Shift+O, Alt+Shift+D
+    // 1b. Single-pane/single-tab disabled shortcuts are contained with zero stray characters in prompt
+    await commandInput.focus();
+    await page.keyboard.press('Alt+BracketRight');
+    await page.keyboard.press('Alt+Shift+Digit1');
+    await page.keyboard.press('Alt+Shift+KeyR');
+    await expect(commandInput).toHaveValue('');
+
+    // 2. Split right: Control+Shift+} (BracketRight)
     await page.keyboard.press('Control+Shift+BracketRight');
     await expect(workspace).toHaveAttribute('data-pane-count', '2');
     expect(await getPaneStyleVar('pane-1', '--sf-pane-w')).toBe('0.5');
@@ -638,23 +648,18 @@ test.describe('portal SSR end-to-end journeys', () => {
     await page.keyboard.press('Alt+Shift+ArrowLeft');
     expect(await getPaneStyleVar('pane-1', '--sf-pane-w')).toBe('0.5');
 
-    // 4. Equalize split sizes: resize to 0.6 then equalize via Control+Alt+Shift+E and Control+Shift+=
+    // 4. Equalize split sizes: resize to 0.6 then equalize via Control+Alt+Shift+E
     await page.keyboard.press('Alt+Shift+ArrowRight');
     await page.keyboard.press('Alt+Shift+ArrowRight');
     expect(await getPaneStyleVar('pane-1', '--sf-pane-w')).toBe('0.6');
     await page.keyboard.press('Control+Alt+Shift+KeyE');
     expect(await getPaneStyleVar('pane-1', '--sf-pane-w')).toBe('0.5');
 
-    await page.keyboard.press('Alt+Shift+ArrowRight');
-    expect(await getPaneStyleVar('pane-1', '--sf-pane-w')).toBe('0.55');
-    await page.keyboard.press('Control+Shift+Equal');
-    expect(await getPaneStyleVar('pane-1', '--sf-pane-w')).toBe('0.5');
-
-    // 5. Swap split panes: Control+Alt+Shift+ArrowLeft swaps pane-2 to left (x=0), ArrowRight swaps back
-    await page.keyboard.press('Control+Alt+Shift+ArrowLeft');
+    // 5. Swap split panes: Alt+Shift+H swaps pane-2 to left (x=0), Alt+Shift+L swaps back
+    await page.keyboard.press('Alt+Shift+KeyH');
     expect(await getPaneStyleVar('pane-2', '--sf-pane-x')).toBe('0');
     expect(await getPaneStyleVar('pane-1', '--sf-pane-x')).toBe('0.5');
-    await page.keyboard.press('Control+Alt+Shift+ArrowRight');
+    await page.keyboard.press('Alt+Shift+KeyL');
     expect(await getPaneStyleVar('pane-2', '--sf-pane-x')).toBe('0.5');
     expect(await getPaneStyleVar('pane-1', '--sf-pane-x')).toBe('0');
 
@@ -672,14 +677,14 @@ test.describe('portal SSR end-to-end journeys', () => {
     expect(await getPaneStyleVar('pane-2', '--sf-pane-h')).toBe('0.5');
     expect(await getPaneStyleVar('pane-3', '--sf-pane-y')).toBe('0.5');
 
-    // 8. Directional focus: Control+Alt+ArrowUp -> pane-2, ArrowDown -> pane-3, ArrowLeft -> pane-1, ArrowRight -> right col
-    await page.keyboard.press('Control+Alt+ArrowUp');
+    // 8. Directional focus: Alt+K -> pane-2, Alt+J -> pane-3, Alt+H -> pane-1, Alt+L -> right col
+    await page.keyboard.press('Alt+KeyK');
     expect(await getActivePaneId()).toBe('pane-2');
-    await page.keyboard.press('Control+Alt+ArrowDown');
+    await page.keyboard.press('Alt+KeyJ');
     expect(await getActivePaneId()).toBe('pane-3');
-    await page.keyboard.press('Control+Alt+ArrowLeft');
+    await page.keyboard.press('Alt+KeyH');
     expect(await getActivePaneId()).toBe('pane-1');
-    await page.keyboard.press('Control+Alt+ArrowRight');
+    await page.keyboard.press('Alt+KeyL');
     expect(['pane-2', 'pane-3']).toContain(await getActivePaneId());
 
     // 9. Zoom toggle: Control+Shift+Enter zooms and unzooms
@@ -694,23 +699,23 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(workspace).toHaveAttribute('data-active-tab', 'tab-2');
     await expect(workspace).toHaveAttribute('data-pane-count', '1');
 
-    // 11. New tab (Alt+Shift+T) and rename tab (Alt+Shift+A + Enter)
-    await page.keyboard.press('Alt+Shift+KeyT');
+    // 11. New tab (Alt+Shift+N) and rename tab (F2 + Enter)
+    await page.keyboard.press('Alt+Shift+KeyN');
     await expect(workspace).toHaveAttribute('data-tab-count', '3');
     await expect(workspace).toHaveAttribute('data-active-tab', 'tab-3');
-    await page.keyboard.press('Alt+Shift+KeyA');
+    await page.keyboard.press('F2');
     const renameInput = page.getByLabel('Rename tab');
     await expect(renameInput).toBeVisible();
     await renameInput.fill('keybind-lab');
     await renameInput.press('Enter');
     await expect(page.getByRole('tab', { name: 'keybind-lab' })).toBeVisible();
 
-    // 12. Switch tabs: Alt+1, Alt+2, Alt+9, Alt+], Alt+[
-    await page.keyboard.press('Alt+1');
+    // 12. Switch tabs: Alt+Shift+1, Alt+Shift+2, Alt+Shift+9, Alt+], Alt+[
+    await page.keyboard.press('Alt+Shift+Digit1');
     await expect(workspace).toHaveAttribute('data-active-tab', 'tab-1');
-    await page.keyboard.press('Alt+2');
+    await page.keyboard.press('Alt+Shift+Digit2');
     await expect(workspace).toHaveAttribute('data-active-tab', 'tab-2');
-    await page.keyboard.press('Alt+9');
+    await page.keyboard.press('Alt+Shift+Digit9');
     await expect(workspace).toHaveAttribute('data-active-tab', 'tab-3');
     await page.keyboard.press('Alt+BracketRight');
     await expect(workspace).toHaveAttribute('data-active-tab', 'tab-1');
@@ -725,7 +730,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(workspace).toHaveAttribute('data-pane-count', '2');
     await page.keyboard.press('Alt+Shift+KeyW');
     await expect(workspace).toHaveAttribute('data-pane-count', '1');
-    await page.keyboard.press('Alt+2');
+    await page.keyboard.press('Alt+Shift+Digit2');
     await expect(workspace).toHaveAttribute('data-active-tab', 'tab-2');
     await page.keyboard.press('Alt+Shift+KeyW');
     await expect(workspace).toHaveAttribute('data-tab-count', '1');
