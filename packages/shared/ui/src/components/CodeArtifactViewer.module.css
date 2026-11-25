@@ -1,6 +1,9 @@
 @layer component {
   .viewer {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: var(--sf-space-0);
+    max-width: 100%;
     gap: var(--sf-gap-xs);
     border: var(--sf-border-width) solid var(--sf-border);
     border-radius: var(--sf-radius-sm);

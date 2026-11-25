@@ -5,6 +5,7 @@
     min-height: 100dvh;
     width: 100%;
     max-width: 100%;
+    overflow-x: clip;
     background: var(--sf-bg-frame);
     color: var(--sf-fg-bone);
   }
@@ -15,6 +16,7 @@
     min-height: 100dvh;
     width: 100%;
     max-width: 100%;
+    overflow-x: clip;
     background: var(--sf-bg-frame);
     color: var(--sf-fg-bone);
   }
@@ -54,7 +56,9 @@
     display: inline-flex;
     align-items: var(--sf-align-center);
     gap: var(--sf-space-2);
-    flex-shrink: 0;
+    min-width: 0;
+    flex-shrink: 1;
+    overflow: hidden;
   }
 
   .backButton {
@@ -80,13 +84,17 @@
     display: inline-flex;
     align-items: var(--sf-align-center);
     gap: var(--sf-space-2);
+    min-width: 0;
     flex-shrink: 0;
   }
 
   .statusSlot {
     display: inline-flex;
     align-items: var(--sf-align-center);
-    flex-shrink: 0;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    flex-shrink: 1;
   }
 
   .headerIconButton {

@@ -4,11 +4,24 @@ import { expect, test } from '@playwright/test';
 const IS_MAINTENANCE_MODE = process.env['PORTAL_MAINTENANCE_MODE'] === 'true';
 
 async function assertNoHorizontalOverflow(page: import('@playwright/test').Page): Promise<void> {
-  const metrics = await page.evaluate(() => ({
-    scrollWidth: document.documentElement.scrollWidth,
-    innerWidth: window.innerWidth,
-  }));
+  const metrics = await page.evaluate(() => {
+    const innerScrollOffenders = Array.from(
+      document.querySelectorAll('[class*="scrollViewport"], [class*="bodyViewport"]'),
+    )
+      .filter(el => el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 1)
+      .map(el => ({
+        className: typeof el.className === 'string' ? el.className : '',
+        scrollWidth: el.scrollWidth,
+        clientWidth: el.clientWidth,
+      }));
+    return {
+      scrollWidth: document.documentElement.scrollWidth,
+      innerWidth: window.innerWidth,
+      innerScrollOffenders,
+    };
+  });
   expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.innerWidth);
+  expect(metrics.innerScrollOffenders).toEqual([]);
 }
 
 async function assertNativeVerticalScroll(page: import('@playwright/test').Page): Promise<void> {

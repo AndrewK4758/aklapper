@@ -158,6 +158,9 @@
   .body {
     padding: var(--sf-space-6);
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: var(--sf-space-0);
+    max-width: 100%;
     gap: var(--sf-space-6);
   }
 
@@ -183,12 +186,12 @@
     .scrollRoot {
       flex: none;
       height: auto;
-      overflow: visible;
+      overflow: visible !important;
     }
 
     .bodyViewport {
       height: auto;
-      overflow: visible;
+      overflow: visible !important;
     }
 
     .window[data-floating='true'] {
