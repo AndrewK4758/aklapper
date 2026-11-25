@@ -344,7 +344,7 @@ describe('@aklapper/core error contracts and server error classification', () =>
       '/api/ask/stream',
       '/api/ask/turns/:attemptId',
       '/api/analytics/ingest',
-      '/api/cluster/stream',
+      '/api/runtime/status',
       '/api/cadence/runs/:runId/stream',
       '/changes-in-progress',
     ]);
@@ -358,7 +358,7 @@ describe('@aklapper/core error contracts and server error classification', () =>
       '/quotas',
       '/ops',
       '/api/analytics/ingest',
-      '/api/ops/cluster/stream',
+      '/api/ops/runtime/status',
     ]);
 
     const srcDir = join(import.meta.dirname, '..', 'src');

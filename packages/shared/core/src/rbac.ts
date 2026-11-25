@@ -1,7 +1,5 @@
 import type { QuotaStatus, Role } from './auth.ts';
-import type { K8sPodEvent, MenuItem } from './portal.ts';
-
-export const PUBLIC_NAMESPACE = 'portfolio-public';
+import type { MenuItem } from './portal.ts';
 
 export function isAdminRole(role: Role): boolean {
   return role === 'admin';
@@ -11,11 +9,6 @@ export function filterMenuForRole(items: readonly MenuItem[], role: Role): MenuI
   return items
     .filter(item => item.enabled && (isAdminRole(role) || !item.adminOnly))
     .toSorted((a, b) => a.sortOrder - b.sortOrder);
-}
-
-export function isPodEventVisibleToRole(event: K8sPodEvent, role: Role): boolean {
-  if (isAdminRole(role)) return true;
-  return event.namespace === PUBLIC_NAMESPACE;
 }
 
 export function hasRemainingBudget(quota: QuotaStatus, estimatedTokens = 0): boolean {

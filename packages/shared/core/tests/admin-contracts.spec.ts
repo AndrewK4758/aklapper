@@ -7,7 +7,6 @@ import {
   AdminOpsLoaderDataSchema,
   AdminOverviewLoaderDataSchema,
   AdminQuotasLoaderDataSchema,
-  AdminWakeDeploymentSchema,
   AgensiSkillUpsertSchema,
   AgensiSyncStateSchema,
   BucketPurgeSchema,
@@ -161,10 +160,6 @@ describe('@aklapper/core admin console contracts', () => {
     expect(() =>
       AdminGateOverrideSchema.parse({ runId: 'not-a-uuid', gateVerdict: 'approved' }),
     ).toThrow(/UUID/i);
-    expect(AdminWakeDeploymentSchema.parse({ deployment: 'svc-cadence-demo' }).deployment).toBe(
-      'svc-cadence-demo',
-    );
-    expect(() => AdminWakeDeploymentSchema.parse({ deployment: '../evil' })).toThrow(/Invalid/i);
   });
 
   it('validates CMS loader and CRUD upsert schemas', () => {
@@ -208,8 +203,6 @@ describe('@aklapper/core admin console contracts', () => {
         keyShortcut: '7',
         title: 'Ops Check',
         description: 'Health check',
-        targetK8sDeploy: 'svc-ops',
-        namespace: 'portfolio-public',
         adminOnly: false,
         sortOrder: '7',
         enabled: true,
@@ -298,7 +291,13 @@ describe('@aklapper/core admin console contracts', () => {
         provider: 'local',
       },
       sandboxRuns: [],
-      k8sWatchConfigured: false,
+      runtimeHealth: {
+        runtime: 'cloud-run',
+        services: [],
+        summaryLabel: 'Cloud Run · healthy',
+        checkedAt: '2026-11-24T12:00:00.000Z',
+        cached: false,
+      },
     });
     expect(ops.qdrantStatus.collection).toBe('portfolio_docs');
 

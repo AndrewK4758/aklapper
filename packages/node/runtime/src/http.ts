@@ -292,6 +292,15 @@ export function resolveTargetOidcAudience(
     return origin;
   }
   if (baseUrl.startsWith('https://')) {
+    if (isProductionEnv(env)) {
+      console.warn(
+        JSON.stringify({
+          event: 'runtime.oidc.non_run_app_url',
+          seam: 'UNSOUND_CONDITION',
+          host: new URL(baseUrl).host,
+        }),
+      );
+    }
     emitOidcResolutionSeam('skipped_non_gcp_target', origin);
   }
   return null;
