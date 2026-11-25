@@ -29,9 +29,16 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 		INSERT INTO site_content (key, markdown_body, metadata_json)
 		VALUES ('test-site-corpus', 'Streaming SSR and Go microservices corpus text.', '{}'::jsonb)
 		ON CONFLICT (key) DO UPDATE SET markdown_body = EXCLUDED.markdown_body;
-		INSERT INTO agensi_skills (slug, name, summary, tags, url, sort_order)
-		VALUES ('test-skill-rag', 'RAG Search Skill', 'Indexed vector skill.', ARRAY['rag','go'], 'https://agensi.io/skills/test-rag', 999)
-		ON CONFLICT (slug) DO UPDATE SET summary = EXCLUDED.summary;
+		INSERT INTO agensi_skills (slug, name, summary, tags, url, sort_order, creator_handle, is_published, source)
+		VALUES
+			('test-skill-rag', 'RAG Search Skill', 'Indexed vector skill.', ARRAY['rag','go'], 'https://agensi.io/skills/test-rag', 999, 'aklapper', true, 'agensi_api'),
+			('test-skill-foreign', 'Foreign Creator Skill', 'Should be excluded from corpus.', ARRAY['foreign'], 'https://agensi.io/skills/test-foreign', 1000, 'other-creator', true, 'agensi_api'),
+			('test-skill-unpublished', 'Unpublished Skill', 'Should be excluded from corpus.', ARRAY['draft'], 'https://agensi.io/skills/test-unpublished', 1001, 'aklapper', false, 'agensi_api')
+		ON CONFLICT (slug) DO UPDATE SET
+			summary = EXCLUDED.summary,
+			creator_handle = EXCLUDED.creator_handle,
+			is_published = EXCLUDED.is_published,
+			source = EXCLUDED.source;
 		INSERT INTO roadmap_milestones (slug, status, label, sort_order, enabled)
 		VALUES ('test-milestone-pg', 'done', 'PG19 Vector Pipeline', 999, true)
 		ON CONFLICT (slug) DO UPDATE SET label = EXCLUDED.label;
@@ -41,7 +48,7 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 	t.Cleanup(func() {
 		_, _ = store.pool.Exec(context.Background(), `
 			DELETE FROM site_content WHERE key = 'test-site-corpus';
-			DELETE FROM agensi_skills WHERE slug = 'test-skill-rag';
+			DELETE FROM agensi_skills WHERE slug IN ('test-skill-rag', 'test-skill-foreign', 'test-skill-unpublished');
 			DELETE FROM roadmap_milestones WHERE slug = 'test-milestone-pg';
 		`)
 	})
@@ -52,6 +59,16 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 	}
 	if len(docs) < 7 {
 		t.Fatalf("expected curated + seeded site/skill/milestone docs (>=7), got %d", len(docs))
+	}
+	seenIDs := make(map[string]bool, len(docs))
+	for _, doc := range docs {
+		seenIDs[doc.ID] = true
+	}
+	if !seenIDs["agensi:test-skill-rag"] {
+		t.Fatalf("expected published creator skill agensi:test-skill-rag in corpus, got IDs=%v", seenIDs)
+	}
+	if seenIDs["agensi:test-skill-foreign"] || seenIDs["agensi:test-skill-unpublished"] {
+		t.Fatalf("expected foreign and unpublished skills excluded from corpus, got IDs=%v", seenIDs)
 	}
 
 	// Verify LoadCorpusDocs fails loudly on SQL errors (canceled context / aborted connection)
