@@ -38,6 +38,7 @@ import {
   TerminalReadlineRegistryContext,
   type ZshTerminalHandle,
 } from './terminalReadlineRegistryContext';
+import { useHydrated } from './useHydrated';
 
 import styles from './ZshP10kTerminal.module.css';
 
@@ -243,6 +244,7 @@ export function ZshP10kTerminal({
   onEscape,
 }: ZshP10kTerminalProps) {
   const shouldShowBanner = showBanner ?? variant !== 'viewport';
+  const isHydrated = useHydrated();
   const [entries, setEntries] = useState<ZshTerminalHistoryItem[]>(() =>
     initialEntries.map((item, idx) => ({ ...item, id: `init-${idx}` })),
   );
@@ -934,6 +936,7 @@ export function ZshP10kTerminal({
       ref={handleTerminalSectionRef}
       className={styles.terminal}
       data-terminal-root='true'
+      data-hydrated={isHydrated ? 'true' : 'false'}
       data-variant={variant}
       data-active={isActive ? 'true' : 'false'}
       data-form-mode={formSession ? formSession.definition.cliCommand : undefined}

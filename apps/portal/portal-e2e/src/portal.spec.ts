@@ -173,6 +173,10 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(page.locator('footer')).toHaveCount(0);
     expect(await page.locator('body').innerText()).not.toMatch(/\bzsh\b|p10k|powerlevel10k/i);
 
+    await expect(page.locator('[data-terminal-root="true"]')).toHaveAttribute(
+      'data-hydrated',
+      'true',
+    );
     const commandInput = page.getByLabel('Terminal command input');
     await commandInput.fill('stack');
     await commandInput.press('Enter');
