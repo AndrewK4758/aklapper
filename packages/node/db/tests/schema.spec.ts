@@ -1,20 +1,34 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { vi } from 'vitest';
 
 import {
+  agensiSkills,
+  agensiSyncState,
   type AppDatabase,
+  askTurns,
+  CADENCE_PRESET_SEEDS,
   cadencePresets,
+  CAREER_DOSSIER_SEEDS,
+  careerDossiers,
   ContactDbConstraintError,
   contactSubmissions,
   DEFAULT_MENU_ITEMS,
   extractPgConstraintViolation,
   insertContactSubmission,
   menuItems,
+  PORTAL_ASK_SEED,
   QDRANT_COLLECTIONS,
   roadmapMilestones,
   sandboxRuns,
+  seedDatabase,
   SITE_CONTENT_KEYS,
+  siteContent,
+  TERMINAL_DIRECTORY_ENTRY_SEEDS,
   TERMINAL_PROFILE_SLUGS,
   terminalCommands,
+  terminalDirectoryEntries,
   terminalInitialEntries,
   terminalProfiles,
   webauthnChallenges,
@@ -35,27 +49,89 @@ function createMockInsertDb(returningFn: () => Promise<unknown[]>) {
 describe('@aklapper/db', () => {
   it('defines Drizzle tables for portal/admin data and Qdrant vector collections', () => {
     expect(menuItems.slug.name).toBe('slug');
+    expect('targetK8sDeploy' in menuItems).toBe(false);
+    expect('namespace' in menuItems).toBe(false);
+    const journal = JSON.parse(
+      readFileSync(resolve(import.meta.dirname, '../drizzle/meta/_journal.json'), 'utf8'),
+    ) as { entries: Array<{ idx: number; tag: string }> };
+    expect(
+      journal.entries.some(e => e.idx === 8 && e.tag === '0008_drop_menu_item_k8s_columns'),
+    ).toBe(true);
+    const upSql = readFileSync(
+      resolve(import.meta.dirname, '../drizzle/0008_drop_menu_item_k8s_columns.sql'),
+      'utf8',
+    );
+    const downSql = readFileSync(
+      resolve(import.meta.dirname, '../drizzle/0008_drop_menu_item_k8s_columns.down.sql'),
+      'utf8',
+    );
+    expect(upSql).toContain('DROP COLUMN IF EXISTS "target_k8s_deploy"');
+    expect(upSql).toContain('DROP COLUMN IF EXISTS "namespace"');
+    expect(upSql).toContain('WHERE "slug" = \'cadence\' AND "description" LIKE \'%GKE%\'');
+    expect(downSql).toContain('ADD COLUMN IF NOT EXISTS "target_k8s_deploy"');
+    expect(downSql).toContain('ADD COLUMN IF NOT EXISTS "namespace"');
     expect(sandboxRuns.artifactHtml.name).toBe('artifact_html');
+    expect(sandboxRuns.isGolden.name).toBe('is_golden');
+    expect(sandboxRuns.promptHash.name).toBe('prompt_hash');
+    expect(sandboxRuns.executionMode.name).toBe('execution_mode');
+    expect(sandboxRuns.specJson.name).toBe('spec_json');
+    expect(sandboxRuns.gateAuditJson.name).toBe('gate_audit_json');
     expect(cadencePresets.starterArtifactHtml.name).toBe('starter_artifact_html');
     expect(contactSubmissions.attachmentSha256.name).toBe('attachment_sha256');
     expect(terminalProfiles.quickCommands.name).toBe('quick_commands');
     expect(terminalInitialEntries.profileSlug.name).toBe('profile_slug');
     expect(terminalCommands.allowedRoutes.name).toBe('allowed_routes');
+    expect(terminalDirectoryEntries.profileSlug.name).toBe('profile_slug');
+    expect(terminalDirectoryEntries.description.name).toBe('description');
+    expect(TERMINAL_DIRECTORY_ENTRY_SEEDS).toHaveLength(6);
+    expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.every(entry => !entry.name.endsWith('/'))).toBe(true);
     expect(roadmapMilestones.status.name).toBe('status');
     expect(webauthnChallenges.challenge.name).toBe('challenge');
     expect(webauthnChallenges.consumedAt.name).toBe('consumed_at');
     expect(webauthnChallenges.kind.name).toBe('kind');
-    expect(QDRANT_COLLECTIONS.map(c => c.name)).toEqual([
-      'ak_dossier',
-      'cadence_patterns',
-      'verified_artifacts',
+    expect(askTurns.attemptId.name).toBe('attempt_id');
+    expect(askTurns.leaseExpiresAt.name).toBe('lease_expires_at');
+    expect(askTurns.expiresAt.name).toBe('expires_at');
+    expect(askTurns.conversationId.name).toBe('conversation_id');
+    expect(askTurns.turnIndex.name).toBe('turn_index');
+    expect(askTurns.promptText.name).toBe('prompt_text');
+    expect(careerDossiers.slug.name).toBe('slug');
+    expect(careerDossiers.publishStatus.name).toBe('publish_status');
+    expect(careerDossiers.sanitizationVerifiedAt.name).toBe('sanitization_verified_at');
+    expect(careerDossiers.denylistHash.name).toBe('denylist_hash');
+    expect(careerDossiers.searchTsv.name).toBe('search_tsv');
+    expect(QDRANT_COLLECTIONS.map(c => [c.name, c.vectorSize])).toEqual([
+      ['cadence_patterns', 768],
+      ['portfolio_docs', 768],
+    ]);
+    expect(
+      QDRANT_COLLECTIONS.every(c => c.vectorSize === 768 && c.distance === 'Cosine' && c.onDisk),
+    ).toBe(true);
+    expect(CADENCE_PRESET_SEEDS.map(p => p.slug)).toEqual([
+      'chord-decomposition-workbench',
+      'change-tier-gate-matrix',
+      'expand-contract-migration',
+      'five-boundary-resilience-audit',
+      'spec-challenge-proof-ledger',
     ]);
     expect(DEFAULT_MENU_ITEMS.some(item => item.adminOnly)).toBe(true);
-    expect(Object.keys(SITE_CONTENT_KEYS)).toHaveLength(11);
+    expect(Object.keys(SITE_CONTENT_KEYS)).toHaveLength(10);
     expect(SITE_CONTENT_KEYS.portalAgensi).toBe('portal-agensi');
     expect(SITE_CONTENT_KEYS.portalAsk).toBe('portal-ask');
     expect(SITE_CONTENT_KEYS.portalContact).toBe('portal-contact');
     expect(TERMINAL_PROFILE_SLUGS.portalHome).toBe('portal-home');
+    expect(TERMINAL_PROFILE_SLUGS.adminOps).toBe('admin-ops');
+    expect(agensiSkills.creatorHandle.name).toBe('creator_handle');
+    expect(agensiSkills.isPublished.name).toBe('is_published');
+    expect(agensiSkills.syncedAt.name).toBe('synced_at');
+    expect(agensiSkills.source.name).toBe('source');
+    expect(agensiSyncState.creatorHandle.name).toBe('creator_handle');
+    expect(agensiSyncState.lastSyncedAt.name).toBe('last_synced_at');
+    expect(agensiSyncState.lastAttemptAt.name).toBe('last_attempt_at');
+    expect(agensiSyncState.lastStatus.name).toBe('last_status');
+    expect(agensiSyncState.lastError.name).toBe('last_error');
+    expect(agensiSyncState.itemCount.name).toBe('item_count');
+    expect(agensiSyncState.etag.name).toBe('etag');
   });
 
   it('maps Postgres 19 CHECK and NOT NULL errors to ContactDbConstraintError', () => {
@@ -187,5 +263,110 @@ describe('@aklapper/db', () => {
         attachment: null,
       }),
     ).rejects.toThrow(/Failed to persist contact submission/i);
+  });
+
+  it('preserves custom roadmap_milestones by default, supports non-overwriting bootstrap mode, and gates pruning behind pruneMissingMilestones', async () => {
+    const deleteCalls: unknown[] = [];
+    const onConflictUpdateCalls: unknown[] = [];
+    const onConflictNothingCalls: unknown[] = [];
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+
+    const onConflictDoUpdate = vi.fn<() => Promise<void>>(async () => {
+      onConflictUpdateCalls.push(lastTable);
+    });
+    const onConflictDoNothing = vi.fn<() => Promise<void>>(async () => {
+      onConflictNothingCalls.push(lastTable);
+    });
+    const whereFn = vi.fn<() => Promise<void>>(async () => {
+      deleteCalls.push(lastTable);
+    });
+    let lastTable: unknown = null;
+
+    const mockDb = {
+      select: vi.fn<
+        () => {
+          from: () => {
+            where: () => {
+              limit: () => Promise<Array<{ slug: string }>>;
+            };
+          };
+        }
+      >(() => ({
+        from: () => ({
+          where: () => ({
+            limit: async () => [{ slug: 'live-agensi-skill' }],
+          }),
+        }),
+      })),
+      insert: vi.fn<
+        (table: unknown) => {
+          values: () => {
+            onConflictDoUpdate: typeof onConflictDoUpdate;
+            onConflictDoNothing: typeof onConflictDoNothing;
+          };
+        }
+      >(table => {
+        lastTable = table;
+        return {
+          values: () => ({
+            onConflictDoUpdate,
+            onConflictDoNothing,
+          }),
+        };
+      }),
+      delete: vi.fn<(table: unknown) => { where: typeof whereFn }>(table => {
+        lastTable = table;
+        return { where: whereFn };
+      }),
+    } as unknown as AppDatabase;
+
+    try {
+      await seedDatabase(mockDb, { ADMIN_PASSWORD: '' });
+      expect(deleteCalls).toEqual([
+        menuItems,
+        siteContent,
+        terminalCommands,
+        terminalDirectoryEntries,
+      ]);
+      expect(onConflictUpdateCalls.length).toBeGreaterThan(0);
+      expect(onConflictUpdateCalls).toContain(careerDossiers);
+
+      deleteCalls.length = 0;
+      onConflictUpdateCalls.length = 0;
+      await seedDatabase(mockDb, { mode: 'bootstrap', env: { ADMIN_PASSWORD: '' } });
+      expect(deleteCalls).toHaveLength(0);
+      expect(onConflictUpdateCalls).toHaveLength(0);
+      expect(onConflictNothingCalls.length).toBeGreaterThan(0);
+
+      deleteCalls.length = 0;
+      await seedDatabase(mockDb, { pruneMissingMilestones: true, env: { ADMIN_PASSWORD: '' } });
+      expect(deleteCalls).toEqual([
+        menuItems,
+        siteContent,
+        terminalCommands,
+        terminalDirectoryEntries,
+        roadmapMilestones,
+      ]);
+
+      expect(DEFAULT_MENU_ITEMS.some(item => item.slug === 'chat')).toBe(true);
+      expect(DEFAULT_MENU_ITEMS.some(item => item.slug === 'ask')).toBe(false);
+      expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.map(entry => entry.name)).toContain('chat');
+      expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.map(entry => entry.name)).not.toContain('ask');
+      expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.map(entry => entry.name)).not.toContain('menu');
+      expect(PORTAL_ASK_SEED.windowTitle).toContain('Chat with Andrew');
+      const profileDossier = CAREER_DOSSIER_SEEDS.find(
+        d => d.slug === 'andrew-klapper-profile-core',
+      );
+      expect(JSON.stringify(profileDossier?.sectionsJson)).toContain('/chat');
+      expect(JSON.stringify(profileDossier?.sectionsJson)).not.toContain('/ask');
+
+      const logged = infoSpy.mock.calls.flat().join('\n');
+      expect(logged).toContain('db.seed.mode_branch');
+      expect(logged).toContain('RULE_DIVERGENCE');
+      expect(logged).toContain('bootstrap_missing_only');
+      expect(logged).toContain('explicit_prune_roadmap');
+    } finally {
+      infoSpy.mockRestore();
+    }
   });
 });

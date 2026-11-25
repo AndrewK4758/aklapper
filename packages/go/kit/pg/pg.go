@@ -14,21 +14,36 @@ import (
 	"time"
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const DefaultDatabaseURL = "postgres://postgres:postgres@127.0.0.1:5439/aklapper?sslmode=disable"
+const (
+	DefaultDatabaseURL         = "postgres://postgres:postgres@127.0.0.1:5439/aklapper?sslmode=disable"
+	DefaultAgensiCreatorHandle = "aklapper"
+)
+
+// ResolveAgensiCreatorHandle returns AGENSI_CREATOR_HANDLE or DefaultAgensiCreatorHandle.
+func ResolveAgensiCreatorHandle() string {
+	handle := strings.TrimSpace(os.Getenv("AGENSI_CREATOR_HANDLE"))
+	if handle == "" {
+		return DefaultAgensiCreatorHandle
+	}
+	return handle
+}
 
 var (
-	ErrRunNotFound         = errors.New("sandbox run not found")
-	ErrInvalidVerdict      = errors.New("gate verdict must be approved or rejected")
-	ErrInvalidAdminVerdict = errors.New("gate verdict must be approved, rejected, or pending")
+	ErrRunNotFound        = errors.New("sandbox run not found")
+	ErrGoldenRunImmutable = errors.New("golden showcase run is read-only and cannot be mutated")
+	ErrInvalidVerdict     = errors.New("gate verdict must be approved or rejected")
 )
 
 type Config struct {
-	DatabaseURL string
-	MaxConns    int
+	DatabaseURL          string
+	MaxConns             int
+	StartupMaxAttempts   int
+	StartupRetryInterval time.Duration
 }
 
 func ConfigFromEnv() (Config, error) {
@@ -56,12 +71,12 @@ func ConfigFromEnv() (Config, error) {
 func ValidateDSN(dsn string) error {
 	parsed, err := url.Parse(dsn)
 	if err != nil {
-		return err
+		return errors.New("DATABASE_URL is not a valid PostgreSQL URI")
 	}
 	if parsed.Scheme != "postgres" && parsed.Scheme != "postgresql" {
 		return errors.New("DATABASE_URL must use postgres:// or postgresql:// scheme")
 	}
-	if parsed.Host == "" {
+	if parsed.Host == "" && strings.TrimSpace(parsed.Query().Get("host")) == "" {
 		return errors.New("DATABASE_URL must include a host")
 	}
 	return nil
@@ -75,23 +90,31 @@ type QuotaPolicy struct {
 }
 
 type CorpusDocument struct {
-	ID       string `json:"id"`
-	Title    string `json:"title"`
-	Snippet  string `json:"snippet"`
-	Category string `json:"category"`
-	Source   string `json:"source"`
+	ID             string `json:"id"`
+	ChunkIndex     int    `json:"chunkIndex,omitempty"`
+	Title          string `json:"title"`
+	SectionHeading string `json:"sectionHeading,omitempty"`
+	Snippet        string `json:"snippet"`
+	Category       string `json:"category"`
+	Kind           string `json:"kind,omitempty"`
+	Source         string `json:"source"`
 }
 
 type SandboxRunInput struct {
-	SessionID    string
-	IPHash       string
-	MenuSlug     string
-	Prompt       string
-	Status       string
-	GateVerdict  string
-	TokensIn     int
-	TokensOut    int
-	ArtifactHTML string
+	SessionID     string
+	IPHash        string
+	MenuSlug      string
+	Prompt        string
+	Status        string
+	GateVerdict   string
+	TokensIn      int
+	TokensOut     int
+	ArtifactHTML  string
+	IsGolden      bool
+	PromptHash    string
+	ExecutionMode string
+	SpecJSON      *contracts.CadenceSpecArtifact
+	GateAuditJSON *contracts.CadenceGateAudit
 }
 
 type SandboxTurnInput struct {
@@ -105,17 +128,22 @@ type SandboxTurnInput struct {
 }
 
 type SandboxRun struct {
-	RunID        string                  `json:"runId"`
-	SessionID    string                  `json:"sessionId"`
-	MenuSlug     string                  `json:"menuSlug"`
-	Prompt       string                  `json:"prompt"`
-	Status       string                  `json:"status"`
-	GateVerdict  string                  `json:"gateVerdict"`
-	TokensIn     int                     `json:"tokensIn"`
-	TokensOut    int                     `json:"tokensOut"`
-	ArtifactHTML string                  `json:"artifactHtml"`
-	Turns        []contracts.CadenceTurn `json:"turns"`
-	CreatedAt    string                  `json:"createdAt"`
+	RunID         string                         `json:"runId"`
+	SessionID     string                         `json:"sessionId"`
+	MenuSlug      string                         `json:"menuSlug"`
+	Prompt        string                         `json:"prompt"`
+	Status        string                         `json:"status"`
+	GateVerdict   string                         `json:"gateVerdict"`
+	TokensIn      int                            `json:"tokensIn"`
+	TokensOut     int                            `json:"tokensOut"`
+	ArtifactHTML  string                         `json:"artifactHtml"`
+	IsGolden      bool                           `json:"isGolden"`
+	PromptHash    string                         `json:"promptHash,omitempty"`
+	ExecutionMode string                         `json:"executionMode,omitempty"`
+	SpecJSON      *contracts.CadenceSpecArtifact `json:"spec,omitempty"`
+	GateAuditJSON *contracts.CadenceGateAudit    `json:"gateAudit,omitempty"`
+	Turns         []contracts.CadenceTurn        `json:"turns"`
+	CreatedAt     string                         `json:"createdAt"`
 }
 
 type memBucket struct {
@@ -127,20 +155,37 @@ type memBucket struct {
 // Store provides PostgreSQL 19 persistence via pgxpool with an optional
 // thread-safe in-memory fallback when pool is nil (isolated unit tests).
 type Store struct {
-	pool     *pgxpool.Pool
-	mu       sync.Mutex
-	policies map[string]QuotaPolicy
-	buckets  map[string]*memBucket
-	runs     []*SandboxRun
-	runsByID map[string]*SandboxRun
-	turnSeq  int
+	pool                *pgxpool.Pool
+	openErr             error
+	AgensiCreatorHandle string
+	DevUnlimitedFn      func() bool
+	mu                  sync.Mutex
+	policies            map[string]QuotaPolicy
+	buckets             map[string]*memBucket
+	turns               map[string]*TurnRecord
+	dossiers            map[string]CareerDossierRecord
+	reindexLocked       bool
+	runs                []*SandboxRun
+	runsByID            map[string]*SandboxRun
+	turnSeq             int
+}
+
+func NewMemoryStore() *Store {
+	return &Store{
+		AgensiCreatorHandle: ResolveAgensiCreatorHandle(),
+		policies:            defaultPolicies(),
+		buckets:             make(map[string]*memBucket),
+		turns:               make(map[string]*TurnRecord),
+		dossiers:            make(map[string]CareerDossierRecord),
+		runsByID:            make(map[string]*SandboxRun),
+	}
 }
 
 func defaultPolicies() map[string]QuotaPolicy {
 	return map[string]QuotaPolicy{
 		contracts.RoleGuest: {
 			Role:                 contracts.RoleGuest,
-			MaxTurnsPerSession:   5,
+			MaxTurnsPerSession:   10,
 			MaxTokensPerRun:      4000,
 			MaxDailyGlobalTokens: 100000,
 		},
@@ -153,12 +198,38 @@ func defaultPolicies() map[string]QuotaPolicy {
 	}
 }
 
-func NewMemoryStore() *Store {
-	return &Store{
-		policies: defaultPolicies(),
-		buckets:  make(map[string]*memBucket),
-		runsByID: make(map[string]*SandboxRun),
+func resolveStartupRetryBudget(cfg Config) (int, time.Duration) {
+	maxAttempts := cfg.StartupMaxAttempts
+	if maxAttempts <= 0 {
+		if raw := strings.TrimSpace(os.Getenv("PG_STARTUP_MAX_ATTEMPTS")); raw != "" {
+			if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 {
+				maxAttempts = parsed
+			}
+		}
 	}
+	if maxAttempts <= 0 {
+		if internalauth.IsProductionEnv() {
+			maxAttempts = 5
+		} else {
+			maxAttempts = 1
+		}
+	}
+	if maxAttempts > 10 {
+		maxAttempts = 10
+	}
+
+	interval := cfg.StartupRetryInterval
+	if interval <= 0 {
+		if raw := strings.TrimSpace(os.Getenv("PG_STARTUP_RETRY_MS")); raw != "" {
+			if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 {
+				interval = time.Duration(parsed) * time.Millisecond
+			}
+		}
+	}
+	if interval <= 0 {
+		interval = 500 * time.Millisecond
+	}
+	return maxAttempts, interval
 }
 
 func Open(ctx context.Context, cfg Config) (*Store, error) {
@@ -167,7 +238,7 @@ func Open(ctx context.Context, cfg Config) (*Store, error) {
 	}
 	poolCfg, err := pgxpool.ParseConfig(cfg.DatabaseURL)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("DATABASE_URL could not be parsed by pgxpool")
 	}
 	if cfg.MaxConns > 0 {
 		poolCfg.MaxConns = int32(cfg.MaxConns)
@@ -176,17 +247,37 @@ func Open(ctx context.Context, cfg Config) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-	if err := pool.Ping(pingCtx); err != nil {
-		pool.Close()
-		return nil, err
+	maxAttempts, baseInterval := resolveStartupRetryBudget(cfg)
+	var lastPingErr error
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		lastPingErr = pool.Ping(pingCtx)
+		cancel()
+		if lastPingErr == nil {
+			break
+		}
+		if attempt == maxAttempts {
+			pool.Close()
+			return nil, lastPingErr
+		}
+		backoff := min(time.Duration(attempt)*baseInterval, 2*time.Second)
+		timer := time.NewTimer(backoff)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			pool.Close()
+			return nil, ctx.Err()
+		case <-timer.C:
+		}
 	}
 	return &Store{
-		pool:     pool,
-		policies: defaultPolicies(),
-		buckets:  make(map[string]*memBucket),
-		runsByID: make(map[string]*SandboxRun),
+		pool:                pool,
+		AgensiCreatorHandle: ResolveAgensiCreatorHandle(),
+		policies:            defaultPolicies(),
+		buckets:             make(map[string]*memBucket),
+		turns:               make(map[string]*TurnRecord),
+		dossiers:            make(map[string]CareerDossierRecord),
+		runsByID:            make(map[string]*SandboxRun),
 	}, nil
 }
 
@@ -198,15 +289,48 @@ func OpenFromEnv(ctx context.Context) (*Store, error) {
 	return Open(ctx, cfg)
 }
 
+// OpenFromEnvStrict requires an explicit valid DATABASE_URL and live PostgreSQL 19
+// connectivity, refusing both DefaultDatabaseURL and NewMemoryStore fallbacks.
+func OpenFromEnvStrict(ctx context.Context) (*Store, error) {
+	dsn := strings.TrimSpace(os.Getenv("DATABASE_URL"))
+	if dsn == "" {
+		return nil, errors.New("DATABASE_URL is required (strict mode refuses default or in-memory fallback)")
+	}
+	if err := ValidateDSN(dsn); err != nil {
+		return nil, err
+	}
+	maxConns := 10
+	if raw := strings.TrimSpace(os.Getenv("PG_MAX_CONNS")); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil || parsed <= 0 {
+			return nil, errors.New("PG_MAX_CONNS must be a positive integer")
+		}
+		maxConns = parsed
+	}
+	return Open(ctx, Config{DatabaseURL: dsn, MaxConns: maxConns})
+}
+
+// OpenServiceFromEnv enforces fail-closed PostgreSQL startup in production
+// (ignoring PG_DISABLE_LIVE=true) while preserving local/e2e best-effort fallback
+// in non-production environments.
+func OpenServiceFromEnv(ctx context.Context) (*Store, error) {
+	if internalauth.IsProductionEnv() {
+		return OpenFromEnvStrict(ctx)
+	}
+	return OpenBestEffort(ctx), nil
+}
+
 // OpenBestEffort connects to live PG19 when DATABASE_URL is reachable,
-// otherwise falls back cleanly to an isolated in-memory Store.
+// otherwise records openErr on an isolated fallback Store unless PG_DISABLE_LIVE=true.
 func OpenBestEffort(ctx context.Context) *Store {
 	if strings.EqualFold(strings.TrimSpace(os.Getenv("PG_DISABLE_LIVE")), "true") {
 		return NewMemoryStore()
 	}
 	store, err := OpenFromEnv(ctx)
 	if err != nil {
-		return NewMemoryStore()
+		mem := NewMemoryStore()
+		mem.openErr = err
+		return mem
 	}
 	return store
 }
@@ -219,6 +343,26 @@ func (s *Store) Close() {
 
 func (s *Store) IsLivePG() bool {
 	return s != nil && s.pool != nil
+}
+
+// Ping verifies live PostgreSQL pool health; returns nil for isolated in-memory test stores.
+func (s *Store) Ping(ctx context.Context) error {
+	if s == nil {
+		return errors.New("postgres store is nil")
+	}
+	if s.pool == nil {
+		return nil
+	}
+	pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	return s.pool.Ping(pingCtx)
+}
+
+func (s *Store) OpenError() error {
+	if s == nil {
+		return nil
+	}
+	return s.openErr
 }
 
 func (s *Store) SetPolicyForTest(policy QuotaPolicy) {
@@ -374,13 +518,16 @@ func (s *Store) CheckAndConsumeQuota(
 		if sb.turnsUsed+turnsDelta > policy.MaxTurnsPerSession ||
 			tokensDelta > policy.MaxTokensPerRun ||
 			gb.tokensUsed+tokensDelta > policy.MaxDailyGlobalTokens {
-			return contracts.QuotaStatus{
-				Role:       role,
-				TurnsUsed:  sb.turnsUsed,
-				MaxTurns:   policy.MaxTurnsPerSession,
-				TokensUsed: sb.tokensUsed,
-				MaxTokens:  maxSessionTokens,
-			}, false, nil
+			if !s.isDevUnlimitedEnabled() {
+				return contracts.QuotaStatus{
+					Role:       role,
+					TurnsUsed:  sb.turnsUsed,
+					MaxTurns:   policy.MaxTurnsPerSession,
+					TokensUsed: sb.tokensUsed,
+					MaxTokens:  maxSessionTokens,
+				}, false, nil
+			}
+			logDevUnlimitedBypass(role, sessionID, "", "")
 		}
 
 		sb.turnsUsed += turnsDelta
@@ -440,13 +587,16 @@ func (s *Store) CheckAndConsumeQuota(
 	if sessionTurns+turnsDelta > policy.MaxTurnsPerSession ||
 		tokensDelta > policy.MaxTokensPerRun ||
 		globalTokens+tokensDelta > policy.MaxDailyGlobalTokens {
-		return contracts.QuotaStatus{
-			Role:       role,
-			TurnsUsed:  sessionTurns,
-			MaxTurns:   policy.MaxTurnsPerSession,
-			TokensUsed: sessionTokens,
-			MaxTokens:  maxSessionTokens,
-		}, false, nil
+		if !s.isDevUnlimitedEnabled() {
+			return contracts.QuotaStatus{
+				Role:       role,
+				TurnsUsed:  sessionTurns,
+				MaxTurns:   policy.MaxTurnsPerSession,
+				TokensUsed: sessionTokens,
+				MaxTokens:  maxSessionTokens,
+			}, false, nil
+		}
+		logDevUnlimitedBypass(role, sessionID, "", "")
 	}
 
 	if _, err := tx.Exec(
@@ -485,117 +635,6 @@ func (s *Store) CheckAndConsumeQuota(
 	}, true, nil
 }
 
-// CuratedPortfolioDocs provides high-signal baseline portfolio facts always included during indexing.
-func CuratedPortfolioDocs() []CorpusDocument {
-	return []CorpusDocument{
-		{
-			ID:       "curated-stack",
-			Title:    "Andrew Klapper — Core Architecture & Stack",
-			Snippet:  "Principal full-stack and cloud systems engineer specializing in TypeScript, React 19, React Router 8 SSR, Fastify 5, Go 1.27 microservices, PostgreSQL 19 with Drizzle ORM, Qdrant vector search, and GCP (Cloud Run + GKE Autopilot scale-from-zero).",
-			Category: "dossier",
-			Source:   "curated",
-		},
-		{
-			ID:       "curated-cadence",
-			Title:    "CADENCE — Agentic SDLC & CHORD Pipeline",
-			Snippet:  "Designed CADENCE, a specification-driven multi-agent delivery methodology using the CHORD phased workflow (triage, spec, build, gate) with isolated worktrees, deterministic verification gates, and zero-trust sandboxed artifact previews.",
-			Category: "dossier",
-			Source:   "curated",
-		},
-		{
-			ID:       "curated-security",
-			Title:    "Security & Cloud Operations Posture",
-			Snippet:  "Implemented WebAuthn Passkeys with optional TOTP 2FA, HMAC-SHA256 signed internal service assertions between Node SSR BFFs and Go microservices, strict namespace redaction separating portfolio-public from cadence-admin, and PostgreSQL CHECK constraints.",
-			Category: "dossier",
-			Source:   "curated",
-		},
-		{
-			ID:       "curated-ai-rag",
-			Title:    "Grounded AI & Dual-Provider LLM Architecture",
-			Snippet:  "Built unified LLM and embedding adapters supporting both local llama-swap inference (:11434) and Google Cloud Vertex AI Gemini/text-embedding-005, paired with Qdrant cosine similarity retrieval and strict abstention thresholds.",
-			Category: "dossier",
-			Source:   "curated",
-		},
-	}
-}
-
-// LoadCorpusDocs loads portfolio documents from PostgreSQL (site_content, agensi_skills,
-// roadmap_milestones) combined with curated portfolio dossiers for Qdrant indexing.
-func (s *Store) LoadCorpusDocs(ctx context.Context) ([]CorpusDocument, error) {
-	docs := CuratedPortfolioDocs()
-	if s == nil || s.pool == nil {
-		return docs, nil
-	}
-
-	// site_content
-	rows, err := s.pool.Query(ctx, `SELECT key, markdown_body, metadata_json::text FROM site_content ORDER BY key ASC`)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var key, body, meta string
-			if scanErr := rows.Scan(&key, &body, &meta); scanErr != nil {
-				continue
-			}
-			snippet := strings.TrimSpace(body)
-			if len(meta) > 2 && len(meta) <= 600 {
-				snippet = strings.TrimSpace(snippet + " " + meta)
-			}
-			if snippet == "" {
-				continue
-			}
-			docs = append(docs, CorpusDocument{
-				ID:       "site:" + key,
-				Title:    "Site Content // " + key,
-				Snippet:  snippet,
-				Category: "site_content",
-				Source:   "postgres",
-			})
-		}
-	}
-
-	// agensi_skills
-	skillRows, err := s.pool.Query(ctx, `SELECT slug, name, summary, tags, url FROM agensi_skills ORDER BY sort_order ASC, slug ASC`)
-	if err == nil {
-		defer skillRows.Close()
-		for skillRows.Next() {
-			var slug, name, summary, link string
-			var tags []string
-			if scanErr := skillRows.Scan(&slug, &name, &summary, &tags, &link); scanErr != nil {
-				continue
-			}
-			snippet := fmt.Sprintf("%s Tags: %s. URL: %s", summary, strings.Join(tags, ", "), link)
-			docs = append(docs, CorpusDocument{
-				ID:       "agensi:" + slug,
-				Title:    "Agensi Skill // " + name,
-				Snippet:  snippet,
-				Category: "agensi_skills",
-				Source:   "postgres",
-			})
-		}
-	}
-
-	// roadmap_milestones
-	mileRows, err := s.pool.Query(ctx, `SELECT slug, status, label FROM roadmap_milestones WHERE enabled = true ORDER BY sort_order ASC`)
-	if err == nil {
-		defer mileRows.Close()
-		for mileRows.Next() {
-			var slug, status, label string
-			if scanErr := mileRows.Scan(&slug, &status, &label); scanErr != nil {
-				continue
-			}
-			docs = append(docs, CorpusDocument{
-				ID:       "milestone:" + slug,
-				Title:    fmt.Sprintf("Roadmap [%s] // %s", status, slug),
-				Snippet:  label,
-				Category: "roadmap_milestones",
-				Source:   "postgres",
-			})
-		}
-	}
-
-	return docs, nil
-}
-
 func newUUIDv4() string {
 	var b [16]byte
 	_, _ = rand.Read(b[:])
@@ -617,6 +656,13 @@ func (s *Store) CreateSandboxRun(ctx context.Context, input SandboxRunInput) (st
 	if input.IPHash == "" {
 		input.IPHash = "local"
 	}
+	if input.ExecutionMode == "" {
+		if input.IsGolden {
+			input.ExecutionMode = contracts.CadenceExecutionModeGolden
+		} else {
+			input.ExecutionMode = contracts.CadenceExecutionModeFast
+		}
+	}
 	input.SessionID = normalizeSessionID(input.SessionID)
 
 	if s == nil || s.pool == nil {
@@ -627,29 +673,39 @@ func (s *Store) CreateSandboxRun(ctx context.Context, input SandboxRunInput) (st
 		defer s.mu.Unlock()
 		id := newUUIDv4()
 		run := &SandboxRun{
-			RunID:        id,
-			SessionID:    input.SessionID,
-			MenuSlug:     input.MenuSlug,
-			Prompt:       input.Prompt,
-			Status:       input.Status,
-			GateVerdict:  input.GateVerdict,
-			TokensIn:     input.TokensIn,
-			TokensOut:    input.TokensOut,
-			ArtifactHTML: input.ArtifactHTML,
-			Turns:        []contracts.CadenceTurn{},
-			CreatedAt:    time.Now().UTC().Format(time.RFC3339),
+			RunID:         id,
+			SessionID:     input.SessionID,
+			MenuSlug:      input.MenuSlug,
+			Prompt:        input.Prompt,
+			Status:        input.Status,
+			GateVerdict:   input.GateVerdict,
+			TokensIn:      input.TokensIn,
+			TokensOut:     input.TokensOut,
+			ArtifactHTML:  input.ArtifactHTML,
+			IsGolden:      input.IsGolden,
+			PromptHash:    input.PromptHash,
+			ExecutionMode: input.ExecutionMode,
+			SpecJSON:      input.SpecJSON,
+			GateAuditJSON: input.GateAuditJSON,
+			Turns:         []contracts.CadenceTurn{},
+			CreatedAt:     time.Now().UTC().Format(time.RFC3339),
 		}
 		s.runs = append([]*SandboxRun{run}, s.runs...)
 		s.runsByID[id] = run
 		return id, nil
 	}
 
+	var promptHashParam any
+	if strings.TrimSpace(input.PromptHash) != "" {
+		promptHashParam = strings.TrimSpace(input.PromptHash)
+	}
 	var id string
 	err := s.pool.QueryRow(
 		ctx,
 		`INSERT INTO sandbox_runs
-		 (session_id, ip_hash, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out, artifact_html)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		 (session_id, ip_hash, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out,
+		  artifact_html, is_golden, prompt_hash, execution_mode, spec_json, gate_audit_json)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb, $14::jsonb)
 		 RETURNING id::text`,
 		input.SessionID,
 		input.IPHash,
@@ -660,6 +716,11 @@ func (s *Store) CreateSandboxRun(ctx context.Context, input SandboxRunInput) (st
 		input.TokensIn,
 		input.TokensOut,
 		input.ArtifactHTML,
+		input.IsGolden,
+		promptHashParam,
+		input.ExecutionMode,
+		marshalNullableJSON(input.SpecJSON),
+		marshalNullableJSON(input.GateAuditJSON),
 	).Scan(&id)
 	return id, err
 }
@@ -744,6 +805,9 @@ func (s *Store) ListSandboxRuns(ctx context.Context, sessionID string, limit int
 		defer s.mu.Unlock()
 		out := make([]SandboxRun, 0, limit)
 		for _, r := range s.runs {
+			if r.IsGolden {
+				continue
+			}
 			if sessionID != "" && r.SessionID != sessionID {
 				continue
 			}
@@ -764,9 +828,11 @@ func (s *Store) ListSandboxRuns(ctx context.Context, sessionID string, limit int
 	if sessionID != "" {
 		rows, err = s.pool.Query(
 			ctx,
-			`SELECT id::text, session_id, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out, COALESCE(artifact_html, ''), created_at
+			`SELECT id::text, session_id, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out,
+			        COALESCE(artifact_html, ''), is_golden, COALESCE(prompt_hash, ''), execution_mode,
+			        COALESCE(spec_json::text, ''), COALESCE(gate_audit_json::text, ''), created_at
 			 FROM sandbox_runs
-			 WHERE session_id = $1
+			 WHERE is_golden = false AND session_id = $1
 			 ORDER BY created_at DESC
 			 LIMIT $2`,
 			sessionID,
@@ -775,8 +841,11 @@ func (s *Store) ListSandboxRuns(ctx context.Context, sessionID string, limit int
 	} else {
 		rows, err = s.pool.Query(
 			ctx,
-			`SELECT id::text, session_id, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out, COALESCE(artifact_html, ''), created_at
+			`SELECT id::text, session_id, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out,
+			        COALESCE(artifact_html, ''), is_golden, COALESCE(prompt_hash, ''), execution_mode,
+			        COALESCE(spec_json::text, ''), COALESCE(gate_audit_json::text, ''), created_at
 			 FROM sandbox_runs
+			 WHERE is_golden = false
 			 ORDER BY created_at DESC
 			 LIMIT $1`,
 			limit,
@@ -789,23 +858,10 @@ func (s *Store) ListSandboxRuns(ctx context.Context, sessionID string, limit int
 
 	runs := make([]SandboxRun, 0, limit)
 	for rows.Next() {
-		var r SandboxRun
-		var createdAt time.Time
-		if err := rows.Scan(
-			&r.RunID,
-			&r.SessionID,
-			&r.MenuSlug,
-			&r.Prompt,
-			&r.Status,
-			&r.GateVerdict,
-			&r.TokensIn,
-			&r.TokensOut,
-			&r.ArtifactHTML,
-			&createdAt,
-		); err != nil {
-			return nil, err
+		r, scanErr := scanSandboxRunFields(rows)
+		if scanErr != nil {
+			return nil, scanErr
 		}
-		r.CreatedAt = createdAt.UTC().Format(time.RFC3339)
 		r.Turns = []contracts.CadenceTurn{}
 		runs = append(runs, r)
 	}
@@ -883,9 +939,13 @@ func (s *Store) GetSandboxRunSummary(ctx context.Context) (int, int, error) {
 		}
 		s.mu.Lock()
 		defer s.mu.Unlock()
-		total := len(s.runs)
+		total := 0
 		pending := 0
 		for _, r := range s.runs {
+			if r.IsGolden {
+				continue
+			}
+			total++
 			if r.GateVerdict == "pending" {
 				pending++
 			}
@@ -897,7 +957,8 @@ func (s *Store) GetSandboxRunSummary(ctx context.Context) (int, int, error) {
 	err := s.pool.QueryRow(
 		ctx,
 		`SELECT COUNT(*)::int, COUNT(*) FILTER (WHERE gate_verdict = 'pending')::int
-		 FROM sandbox_runs`,
+		 FROM sandbox_runs
+		 WHERE is_golden = false`,
 	).Scan(&total, &pending)
 	if err != nil {
 		return 0, 0, err
@@ -908,13 +969,6 @@ func (s *Store) GetSandboxRunSummary(ctx context.Context) (int, int, error) {
 func (s *Store) UpdateSandboxGateVerdict(ctx context.Context, runID, verdict string) (*SandboxRun, error) {
 	if verdict != "approved" && verdict != "rejected" {
 		return nil, ErrInvalidVerdict
-	}
-	return s.setSandboxGateVerdict(ctx, runID, verdict)
-}
-
-func (s *Store) OverrideSandboxGateVerdict(ctx context.Context, runID, verdict string) (*SandboxRun, error) {
-	if verdict != "approved" && verdict != "rejected" && verdict != "pending" {
-		return nil, ErrInvalidAdminVerdict
 	}
 	return s.setSandboxGateVerdict(ctx, runID, verdict)
 }
@@ -930,6 +984,9 @@ func (s *Store) setSandboxGateVerdict(ctx context.Context, runID, verdict string
 		if !ok {
 			return nil, ErrRunNotFound
 		}
+		if run.IsGolden {
+			return nil, ErrGoldenRunImmutable
+		}
 		run.GateVerdict = verdict
 		copied := *run
 		copied.Turns = append([]contracts.CadenceTurn(nil), run.Turns...)
@@ -940,36 +997,33 @@ func (s *Store) setSandboxGateVerdict(ctx context.Context, runID, verdict string
 		return nil, ErrRunNotFound
 	}
 
-	var r SandboxRun
-	var createdAt time.Time
-	err := s.pool.QueryRow(
+	var isGolden bool
+	if err := s.pool.QueryRow(ctx, `SELECT is_golden FROM sandbox_runs WHERE id = $1::uuid`, runID).Scan(&isGolden); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrRunNotFound
+		}
+		return nil, err
+	}
+	if isGolden {
+		return nil, ErrGoldenRunImmutable
+	}
+
+	r, err := s.scanSandboxRunRow(
 		ctx,
-		`UPDATE sandbox_runs
-		 SET gate_verdict = $2
-		 WHERE id = $1::uuid
-		 RETURNING id::text, session_id, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out, COALESCE(artifact_html, ''), created_at`,
-		runID,
-		verdict,
-	).Scan(
-		&r.RunID,
-		&r.SessionID,
-		&r.MenuSlug,
-		&r.Prompt,
-		&r.Status,
-		&r.GateVerdict,
-		&r.TokensIn,
-		&r.TokensOut,
-		&r.ArtifactHTML,
-		&createdAt,
+		s.pool.QueryRow(
+			ctx,
+			`UPDATE sandbox_runs
+			 SET gate_verdict = $2
+			 WHERE id = $1::uuid AND is_golden = false
+			 RETURNING id::text, session_id, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out,
+			           COALESCE(artifact_html, ''), is_golden, COALESCE(prompt_hash, ''), execution_mode,
+			           COALESCE(spec_json::text, ''), COALESCE(gate_audit_json::text, ''), created_at`,
+			runID,
+			verdict,
+		),
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrRunNotFound
 	}
-	if err != nil {
-		return nil, err
-	}
-	r.CreatedAt = createdAt.UTC().Format(time.RFC3339)
-	turns, _ := s.loadTurnsForRun(ctx, r.RunID)
-	r.Turns = turns
-	return &r, nil
+	return r, err
 }

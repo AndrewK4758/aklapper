@@ -30,11 +30,23 @@
       "import": "./dist/entry-server.js",
       "default": "./dist/entry-server.js"
     },
+    "./ssr/stream": {
+      "@aklapper/source": "./src/stream.ts",
+      "types": "./dist/stream.d.ts",
+      "import": "./dist/stream.js",
+      "default": "./dist/stream.js"
+    },
     "./ai": {
       "@aklapper/source": "./src/ai.ts",
       "types": "./dist/ai.d.ts",
       "import": "./dist/ai.js",
       "default": "./dist/ai.js"
+    },
+    "./agensi": {
+      "@aklapper/source": "./src/agensi.ts",
+      "types": "./dist/agensi.d.ts",
+      "import": "./dist/agensi.js",
+      "default": "./dist/agensi.js"
     },
     "./http": {
       "@aklapper/source": "./src/http.ts",
@@ -47,12 +59,25 @@
       "types": "./dist/auth.d.ts",
       "import": "./dist/auth.js",
       "default": "./dist/auth.js"
+    },
+    "./privacy": {
+      "@aklapper/source": "./src/privacy.ts",
+      "types": "./dist/privacy.d.ts",
+      "import": "./dist/privacy.js",
+      "default": "./dist/privacy.js"
+    },
+    "./runtime-health": {
+      "@aklapper/source": "./src/runtime-health.ts",
+      "types": "./dist/runtime-health.d.ts",
+      "import": "./dist/runtime-health.js",
+      "default": "./dist/runtime-health.js"
     }
   },
   "dependencies": {
     "@aklapper/core": "workspace:*",
     "@fastify/cookie": "^11.1.5",
     "@fastify/helmet": "^13.2.0",
+    "@fastify/rate-limit": "^11.3.0",
     "@fastify/static": "^10.1.12",
     "fastify": "^5.12.8",
     "isbot": "^5.2.3",

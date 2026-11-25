@@ -1,18 +1,33 @@
+import { matchTerminalReadlineShortcut, type TerminalReadlineAction } from '@aklapper/core';
 import {
   type ChangeEvent,
+  type DragEvent,
   type KeyboardEvent,
   type PointerEvent,
   type ReactNode,
   type SyntheticEvent,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
 
 import { Button, Form, Input, ScrollArea, Separator, Toolbar } from '../elements/base';
 import { SolarForgeEmblem } from '../elements/SolarForgeEmblem';
+import { MAX_TERMINAL_HISTORY_ENTRIES, trimCommandHistory } from './routeWorkspaceSnapshot';
+import {
+  dispatchTerminalAccessoryAction,
+  type TerminalAccessoryAction,
+  TerminalAccessoryBar,
+} from './TerminalAccessoryBar';
+import {
+  formatTerminalClock,
+  getTerminalClockSnapshot,
+  subscribeTerminalClock,
+} from './terminalClockStore';
 import {
   attachFileToTerminalForm,
   buildSessionFormData,
@@ -25,6 +40,12 @@ import {
   type TerminalFormConfig,
   type TerminalFormSessionState,
 } from './terminalFormSession';
+import {
+  TerminalReadlineRegistryContext,
+  type ZshTerminalHandle,
+} from './terminalReadlineRegistryContext';
+import { useHydrated } from './useHydrated';
+import { useViewportContext } from './ViewportProvider';
 
 import styles from './ZshP10kTerminal.module.css';
 
@@ -64,6 +85,9 @@ export interface ZshP10kTerminalProps {
   terminalForms?: Readonly<Record<string, TerminalFormConfig>>;
   quickCommands?: readonly string[];
   initialEntries?: readonly Omit<ZshTerminalHistoryItem, 'id'>[];
+  initialCommandHistory?: readonly string[];
+  maxCommandHistory?: number;
+  onCommandHistoryChange?: (history: readonly string[]) => void;
   placeholder?: string;
   initialTime?: string;
   focusOnMount?: boolean;
@@ -73,13 +97,6 @@ export interface ZshP10kTerminalProps {
   ariaLabel?: string;
   onFocusPane?: () => void;
   onEscape?: () => void;
-}
-
-function formatClock(date: Date): string {
-  const hh = String(date.getHours()).padStart(2, '0');
-  const mm = String(date.getMinutes()).padStart(2, '0');
-  const ss = String(date.getSeconds()).padStart(2, '0');
-  return `${hh}:${mm}:${ss}`;
 }
 
 function scheduleCaret(inputEl: HTMLInputElement | HTMLTextAreaElement, position: number): void {
@@ -226,6 +243,9 @@ export function ZshP10kTerminal({
   terminalForms,
   quickCommands = [],
   initialEntries = [],
+  initialCommandHistory,
+  maxCommandHistory = MAX_TERMINAL_HISTORY_ENTRIES,
+  onCommandHistoryChange,
   placeholder = 'type a command (try: help, status)',
   initialTime = '00:00:00',
   focusOnMount = false,
@@ -237,19 +257,43 @@ export function ZshP10kTerminal({
   onEscape,
 }: ZshP10kTerminalProps) {
   const shouldShowBanner = showBanner ?? variant !== 'viewport';
+  const isHydrated = useHydrated();
+  const { isMobile } = useViewportContext();
+  const [inputFocused, setInputFocused] = useState(false);
   const [entries, setEntries] = useState<ZshTerminalHistoryItem[]>(() =>
     initialEntries.map((item, idx) => ({ ...item, id: `init-${idx}` })),
   );
   const [input, setInput] = useState('');
   const [lastStatus, setLastStatus] = useState<'ok' | 'error'>('ok');
   const [lastDuration, setLastDuration] = useState('12ms');
-  const [clock, setClock] = useState(initialTime);
-  const [cmdHistory, setCmdHistory] = useState<string[]>([]);
+  const clock = useSyncExternalStore(
+    subscribeTerminalClock,
+    getTerminalClockSnapshot,
+    () => initialTime,
+  );
+  const [cmdHistory, setCmdHistory] = useState<string[]>(() =>
+    initialCommandHistory && initialCommandHistory.length > 0
+      ? [...trimCommandHistory(initialCommandHistory, maxCommandHistory)]
+      : [],
+  );
+  const [hydratedHistorySynced, setHydratedHistorySynced] = useState(
+    () => (initialCommandHistory?.length ?? 0) > 0,
+  );
+  const [hasLocalCommand, setHasLocalCommand] = useState(false);
   const [historyCursor, setHistoryCursor] = useState<number>(-1);
+
+  if (
+    !hydratedHistorySynced &&
+    !hasLocalCommand &&
+    initialCommandHistory &&
+    initialCommandHistory.length > 0
+  ) {
+    setHydratedHistorySynced(true);
+    setCmdHistory([...trimCommandHistory(initialCommandHistory, maxCommandHistory)]);
+  }
   const [formSession, setFormSession] = useState<TerminalFormSessionState | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const terminalRef = useRef<HTMLElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -271,19 +315,7 @@ export function ZshP10kTerminal({
   const activePromptBadge = formSession ? getFormPromptBadge(formSession) : null;
   const activePlaceholder = formSession ? getFormPromptPlaceholder(formSession) : placeholder;
   const textareaRows = isTextareaStep ? Math.min(8, Math.max(2, input.split('\n').length)) : 2;
-
-  useEffect(() => {
-    const immediate = setTimeout(() => {
-      setClock(formatClock(new Date()));
-    }, 0);
-    const interval = setInterval(() => {
-      setClock(formatClock(new Date()));
-    }, 1000);
-    return () => {
-      clearTimeout(immediate);
-      clearInterval(interval);
-    };
-  }, []);
+  const showDragOver = isDragOver && formSession !== null && !isSubmittingForm;
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -362,10 +394,9 @@ export function ZshP10kTerminal({
         ? Math.max(1, Math.round(performance.now() - startedAtMs))
         : 1;
     const durationLabel = `${elapsedMs}ms`;
-    const nowLabel = formatClock(new Date());
+    const nowLabel = formatTerminalClock(new Date());
     const resolved = resolveTerminalFormSubmitResult(session, result);
 
-    setClock(nowLabel);
     setLastStatus(resolved.status);
     setLastDuration(durationLabel);
     setFormSession(resolved.session);
@@ -387,7 +418,7 @@ export function ZshP10kTerminal({
       return;
     }
 
-    const nowLabel = formatClock(new Date());
+    const nowLabel = formatTerminalClock(new Date());
     const startMs = typeof performance !== 'undefined' ? performance.now() : 0;
     const promptLabel = getFormPromptBadge(formSession);
     const outcome = processTerminalFormInput(formSession, rawValue);
@@ -395,7 +426,6 @@ export function ZshP10kTerminal({
       typeof performance !== 'undefined' ? Math.max(1, Math.round(performance.now() - startMs)) : 1;
     const durationLabel = `${elapsedMs}ms`;
 
-    setClock(nowLabel);
     setLastDuration(durationLabel);
 
     if (outcome.kind === 'open-file-picker') {
@@ -467,12 +497,11 @@ export function ZshP10kTerminal({
         return;
       }
 
-      const nowLabel = formatClock(new Date());
+      const nowLabel = formatTerminalClock(new Date());
       const promptLabel = getFormPromptBadge(formSession);
       const wasOnFileStep = getActiveFormStep(formSession)?.field.fieldType === 'file';
       const outcome = attachFileToTerminalForm(formSession, file);
 
-      setClock(nowLabel);
       setLastStatus(outcome.status);
       setLastDuration('1ms');
       setFormSession(outcome.session);
@@ -507,8 +536,7 @@ export function ZshP10kTerminal({
 
   const executeCommand = (rawInput: string) => {
     const trimmed = rawInput.trim();
-    const nowLabel = formatClock(new Date());
-    setClock(nowLabel);
+    const nowLabel = formatTerminalClock(new Date());
 
     if (!trimmed) {
       return;
@@ -528,7 +556,10 @@ export function ZshP10kTerminal({
           : 1;
       const durationLabel = `${elapsedMs}ms`;
 
-      setCmdHistory(prev => [trimmed, ...prev]);
+      const nextHistory = [...trimCommandHistory([trimmed, ...cmdHistory], maxCommandHistory)];
+      setHasLocalCommand(true);
+      setCmdHistory(nextHistory);
+      onCommandHistoryChange?.(nextHistory);
       setHistoryCursor(-1);
       setLastDuration(durationLabel);
 
@@ -555,7 +586,7 @@ export function ZshP10kTerminal({
           durationLabel,
           timestamp: nowLabel,
         });
-        formConfig.openTuiRoute?.();
+        formConfig.openTuiRoute?.(outcome.navTarget);
         return;
       }
 
@@ -604,7 +635,10 @@ export function ZshP10kTerminal({
     const durationLabel = `${elapsedMs}ms`;
     const status = result.status ?? 'ok';
 
-    setCmdHistory(prev => [trimmed, ...prev]);
+    const nextHistory = [...trimCommandHistory([trimmed, ...cmdHistory], maxCommandHistory)];
+    setHasLocalCommand(true);
+    setCmdHistory(nextHistory);
+    onCommandHistoryChange?.(nextHistory);
     setHistoryCursor(-1);
     setLastStatus(status);
     setLastDuration(durationLabel);
@@ -651,6 +685,86 @@ export function ZshP10kTerminal({
     }
   };
 
+  const readlineRegistry = useContext(TerminalReadlineRegistryContext);
+
+  const hasActiveTextSelection = (selStart: number, selEnd: number): boolean => {
+    if (selStart !== selEnd) {
+      return true;
+    }
+    const docSelection =
+      typeof window !== 'undefined' ? (window.getSelection()?.toString() ?? '') : '';
+    return docSelection.length > 0;
+  };
+
+  const applyReadlineAction = (
+    action: TerminalReadlineAction,
+    targetEl?: HTMLInputElement | HTMLTextAreaElement | null,
+  ) => {
+    if (action === 'clear') {
+      setEntries([]);
+      if (!isSubmittingForm) {
+        focusActiveInput();
+      }
+      return;
+    }
+
+    if (formSession !== null || isSubmittingForm) {
+      return;
+    }
+
+    const el = targetEl ?? (isTextareaStep ? textareaRef.current : inputRef.current);
+    const selStart = el?.selectionStart ?? input.length;
+    const selEnd = el?.selectionEnd ?? input.length;
+
+    switch (action) {
+      case 'kill-to-start':
+        setInput(input.slice(selStart));
+        if (el) {
+          scheduleCaret(el, 0);
+        }
+        focusActiveInput();
+        return;
+      case 'kill-to-end':
+        setInput(input.slice(0, selStart));
+        if (el) {
+          scheduleCaret(el, selStart);
+        }
+        focusActiveInput();
+        return;
+      case 'delete-word-back': {
+        const before = input.slice(0, selStart).replace(/\S+\s*$/, '');
+        const after = input.slice(selEnd);
+        setInput(`${before}${after}`);
+        if (el) {
+          scheduleCaret(el, before.length);
+        }
+        focusActiveInput();
+        return;
+      }
+      case 'history-prev':
+        navigateHistoryOlder();
+        focusActiveInput();
+        return;
+      case 'history-next':
+        navigateHistoryNewer();
+        focusActiveInput();
+        return;
+    }
+  };
+
+  const handleTerminalSectionRef = (node: HTMLElement | null) => {
+    if (!node || !readlineRegistry) {
+      return;
+    }
+    const handle: ZshTerminalHandle = {
+      executeReadlineAction: action => {
+        applyReadlineAction(action);
+      },
+      containsTarget: target => target instanceof Node && node.contains(target),
+    };
+    return readlineRegistry.registerHandle(readlineRegistry.paneId, handle);
+  };
+
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const el = event.currentTarget;
     const keyLower = event.key.toLowerCase();
@@ -661,17 +775,16 @@ export function ZshP10kTerminal({
     if (formSession !== null) {
       if (isCtrlOnly && keyLower === 'l') {
         event.preventDefault();
-        setEntries([]);
+        applyReadlineAction('clear', el);
         return;
       }
       if (isCtrlOnly && keyLower === 'c') {
-        if (selStart !== selEnd) {
+        if (hasActiveTextSelection(selStart, selEnd)) {
           return;
         }
         event.preventDefault();
         submitSeqRef.current++;
-        const nowLabel = formatClock(new Date());
-        setClock(nowLabel);
+        const nowLabel = formatTerminalClock(new Date());
         appendEntry({
           promptLabel: getFormPromptBadge(formSession),
           command: `${input}^C`,
@@ -704,19 +817,21 @@ export function ZshP10kTerminal({
       return;
     }
 
+    const readlineAction = matchTerminalReadlineShortcut(event);
+    if (readlineAction) {
+      event.preventDefault();
+      applyReadlineAction(readlineAction, el);
+      return;
+    }
+
     if (isCtrlOnly) {
       switch (keyLower) {
-        case 'l':
-          event.preventDefault();
-          setEntries([]);
-          return;
         case 'c': {
-          if (selStart !== selEnd) {
+          if (hasActiveTextSelection(selStart, selEnd)) {
             return;
           }
           event.preventDefault();
-          const nowLabel = formatClock(new Date());
-          setClock(nowLabel);
+          const nowLabel = formatTerminalClock(new Date());
           if (input.length > 0) {
             appendEntry({
               command: `${input}^C`,
@@ -729,24 +844,6 @@ export function ZshP10kTerminal({
           }
           setInput('');
           setHistoryCursor(-1);
-          return;
-        }
-        case 'u':
-          event.preventDefault();
-          setInput(input.slice(selStart));
-          scheduleCaret(el, 0);
-          return;
-        case 'k':
-          event.preventDefault();
-          setInput(input.slice(0, selStart));
-          scheduleCaret(el, selStart);
-          return;
-        case 'w': {
-          event.preventDefault();
-          const before = input.slice(0, selStart).replace(/\S+\s*$/, '');
-          const after = input.slice(selEnd);
-          setInput(`${before}${after}`);
-          scheduleCaret(el, before.length);
           return;
         }
         case 'a':
@@ -762,14 +859,6 @@ export function ZshP10kTerminal({
           } else {
             el.setSelectionRange(input.length, input.length);
           }
-          return;
-        case 'p':
-          event.preventDefault();
-          navigateHistoryOlder();
-          return;
-        case 'n':
-          event.preventDefault();
-          navigateHistoryNewer();
           return;
       }
     }
@@ -823,44 +912,37 @@ export function ZshP10kTerminal({
     }
   };
 
-  useEffect(() => {
-    const node = terminalRef.current;
-    if (!node || !formSession || isSubmittingForm) {
+  const handleDragOver = (event: DragEvent<HTMLElement>) => {
+    if (!formSession || isSubmittingForm) {
       return;
     }
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'copy';
+    }
+    setIsDragOver(true);
+  };
 
-    const onDragOver = (event: globalThis.DragEvent) => {
-      event.preventDefault();
-      if (event.dataTransfer) {
-        event.dataTransfer.dropEffect = 'copy';
-      }
-      setIsDragOver(true);
-    };
-
-    const onDragLeave = (event: globalThis.DragEvent) => {
-      if (!node.contains(event.relatedTarget as Node | null)) {
-        setIsDragOver(false);
-      }
-    };
-
-    const onDrop = (event: globalThis.DragEvent) => {
-      event.preventDefault();
+  const handleDragLeave = (event: DragEvent<HTMLElement>) => {
+    if (!formSession || isSubmittingForm) {
+      return;
+    }
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
       setIsDragOver(false);
-      const file = event.dataTransfer?.files?.[0];
-      if (file) {
-        handleAttachFile(file);
-      }
-    };
+    }
+  };
 
-    node.addEventListener('dragover', onDragOver);
-    node.addEventListener('dragleave', onDragLeave);
-    node.addEventListener('drop', onDrop);
-    return () => {
-      node.removeEventListener('dragover', onDragOver);
-      node.removeEventListener('dragleave', onDragLeave);
-      node.removeEventListener('drop', onDrop);
-    };
-  }, [formSession, handleAttachFile, isSubmittingForm]);
+  const handleDrop = (event: DragEvent<HTMLElement>) => {
+    if (!formSession || isSubmittingForm) {
+      return;
+    }
+    event.preventDefault();
+    setIsDragOver(false);
+    const file = event.dataTransfer?.files?.[0];
+    if (file) {
+      handleAttachFile(file);
+    }
+  };
 
   const handleSurfacePointerDown = () => {
     onFocusPane?.();
@@ -888,16 +970,22 @@ export function ZshP10kTerminal({
   };
 
   return (
+    // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- drag-and-drop dropzone on terminal landmark; keyboard parity via attach button
     <section
-      ref={terminalRef}
+      ref={handleTerminalSectionRef}
       className={styles.terminal}
+      data-terminal-root='true'
+      data-hydrated={isHydrated ? 'true' : 'false'}
       data-variant={variant}
       data-active={isActive ? 'true' : 'false'}
       data-form-mode={formSession ? formSession.definition.cliCommand : undefined}
-      data-drag-over={isDragOver ? 'true' : 'false'}
+      data-drag-over={showDragOver ? 'true' : 'false'}
       aria-label={ariaLabel}
       onPointerDown={handleSurfacePointerDown}
       onPointerUp={handleSurfacePointerUp}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     >
       <input
         ref={fileInputRef}
@@ -1006,10 +1094,15 @@ export function ZshP10kTerminal({
                       value={input}
                       disabled={isSubmittingForm}
                       onChange={event => setInput(event.target.value)}
-                      onFocus={onFocusPane}
+                      onFocus={() => {
+                        setInputFocused(true);
+                        onFocusPane?.();
+                      }}
+                      onBlur={() => setInputFocused(false)}
                       onKeyDown={handleKeyDown}
                       placeholder={activePlaceholder}
                       aria-label={inputLabel}
+                      data-terminal-input='true'
                       data-form-field={activeFormStep?.field.name}
                       autoComplete='off'
                       autoCorrect='off'
@@ -1024,10 +1117,15 @@ export function ZshP10kTerminal({
                       value={input}
                       disabled={isSubmittingForm}
                       onChange={event => setInput(event.target.value)}
-                      onFocus={onFocusPane}
+                      onFocus={() => {
+                        setInputFocused(true);
+                        onFocusPane?.();
+                      }}
+                      onBlur={() => setInputFocused(false)}
                       onKeyDown={handleKeyDown}
                       placeholder={activePlaceholder}
                       aria-label={inputLabel}
+                      data-terminal-input='true'
                       data-form-field={activeFormStep?.field.name}
                       autoComplete='off'
                       autoCorrect='off'
@@ -1055,6 +1153,18 @@ export function ZshP10kTerminal({
           <ScrollArea.Thumb />
         </ScrollArea.Scrollbar>
       </ScrollArea.Root>
+
+      <TerminalAccessoryBar
+        visible={isMobile && inputFocused}
+        quickCommands={isFormActive ? [] : quickCommands}
+        onAction={(action: TerminalAccessoryAction) => {
+          dispatchTerminalAccessoryAction(
+            action,
+            isTextareaStep ? textareaRef.current : inputRef.current,
+            runQuickCommand,
+          );
+        }}
+      />
 
       {quickCommands.length > 0 ? (
         <>

@@ -1,25 +1,44 @@
 import type {
+  ActionErrorMetadata,
   CadenceGateVerdict,
   CadencePreset,
+  CadenceRunMode,
   CadenceRunResult,
-  Osc7501State,
   PortalCadenceContent,
   QuotaStatus,
 } from '@aklapper/core';
 import {
+  ActionFeedbackBanner,
+  ArtifactInspector,
   Button,
   Meter,
   OscStatusBadge,
-  SandboxedArtifactFrame,
-  Separator,
-  Tabs,
   TuiWindow,
 } from '@aklapper/ui';
 import { type FormEvent, useState } from 'react';
 
+import { CadenceComposerSection, CUSTOM_PRESET_VALUE } from './CadenceComposerSection';
+import { CadenceGoldenStrip } from './CadenceGoldenStrip';
+import { CadenceHistoryStrip } from './CadenceHistoryStrip';
+import { CadencePipelineRail } from './CadencePipelineRail';
+import { CadenceSpecGatePane } from './CadenceSpecGatePane';
+import { CadenceTimelineSection, resolveCadenceBadge } from './CadenceTimelineSection';
+
 import styles from './PortalCadencePage.module.css';
 
 export type PortalCadenceActionResult =
+  | {
+      readonly ok: true;
+      readonly intent: 'run-init';
+      readonly run: CadenceRunResult;
+      readonly quota?: QuotaStatus;
+    }
+  | {
+      readonly ok: true;
+      readonly intent: 'spec-approve';
+      readonly run: CadenceRunResult;
+      readonly quota?: QuotaStatus;
+    }
   | {
       readonly ok: true;
       readonly intent: 'run';
@@ -32,80 +51,106 @@ export type PortalCadenceActionResult =
       readonly run: CadenceRunResult;
     }
   | {
+      readonly ok: true;
+      readonly intent: 'reset';
+    }
+  | ({
       readonly ok: false;
-      readonly intent: 'run' | 'gate';
+      readonly intent: 'run' | 'gate' | 'spec-approve' | 'reset';
       readonly error: string;
+      readonly run?: CadenceRunResult;
       readonly quota?: QuotaStatus;
-    };
+    } & ActionErrorMetadata);
 
 export interface PortalCadencePageProps {
   content: PortalCadenceContent;
   presets: readonly CadencePreset[];
   quota?: QuotaStatus;
+  goldenRuns?: readonly CadenceRunResult[];
   recentRuns?: readonly CadenceRunResult[];
   actionResult?: PortalCadenceActionResult;
   isSubmitting?: boolean;
-  onRunBuild?: (payload: { prompt: string; presetSlug: string }) => void;
+  isStreaming?: boolean;
+  streamLogs?: readonly string[];
+  onRunBuild?: (payload: { prompt: string; presetSlug: string; mode: CadenceRunMode }) => void;
+  onApproveSpec?: (runId: string) => void;
   onGateVerdict?: (payload: {
     runId: string;
     verdict: Exclude<CadenceGateVerdict, 'pending'>;
   }) => void;
+  onReset?: () => void;
   onClose: () => void;
 }
 
 const DEFAULT_QUOTA: QuotaStatus = {
   role: 'guest',
   turnsUsed: 0,
-  maxTurns: 5,
+  maxTurns: 10,
   tokensUsed: 0,
   maxTokens: 100_000,
 };
 
-function resolveCadenceBadge(
-  content: PortalCadenceContent,
-  isSubmitting: boolean,
-  activeRun: CadenceRunResult | null,
-): { state: Osc7501State; label: string } {
-  if (isSubmitting) {
-    return { state: 'scaling', label: 'waking · CHORD running' };
-  }
-  if (!activeRun) {
-    return { state: content.statusBadge.state, label: content.statusBadge.label };
-  }
-  if (activeRun.gateVerdict === 'approved') {
-    return { state: 'ready', label: '1/1 replicas · gate approved' };
-  }
-  if (activeRun.gateVerdict === 'rejected') {
-    return { state: 'error', label: '1/1 replicas · gate rejected' };
-  }
-  return { state: 'gate', label: '1/1 replicas · gate pending' };
+function isSameQuotaValues(a: QuotaStatus, b: QuotaStatus): boolean {
+  return (
+    a.role === b.role &&
+    a.turnsUsed === b.turnsUsed &&
+    a.maxTurns === b.maxTurns &&
+    a.tokensUsed === b.tokensUsed &&
+    a.maxTokens === b.maxTokens
+  );
 }
 
 export function PortalCadencePage({
   content,
   presets,
   quota = DEFAULT_QUOTA,
+  goldenRuns = [],
   recentRuns = [],
   actionResult,
   isSubmitting = false,
+  isStreaming = false,
+  streamLogs = [],
   onRunBuild,
+  onApproveSpec,
   onGateVerdict,
+  onReset,
   onClose,
 }: PortalCadencePageProps) {
   const defaultPreset = presets[0];
-  const [activePresetSlug, setActivePresetSlug] = useState(defaultPreset?.slug ?? '');
+  const initialSelectedRunId = recentRuns[0]?.runId ?? null;
+  const [activePresetSlug, setActivePresetSlug] = useState(
+    defaultPreset?.slug ?? CUSTOM_PRESET_VALUE,
+  );
   const [promptText, setPromptText] = useState(defaultPreset?.starterPrompt ?? '');
+  const [fastMode, setFastMode] = useState(false);
   const [runs, setRuns] = useState<readonly CadenceRunResult[]>(recentRuns);
-  const [selectedRunId, setSelectedRunId] = useState<string | null>(recentRuns[0]?.runId ?? null);
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(initialSelectedRunId);
+  const [revisionNote, setRevisionNote] = useState('');
+  const [resetNonce, setResetNonce] = useState(0);
+  const [lastPropQuota, setLastPropQuota] = useState<QuotaStatus>(quota);
+  const [latestQuota, setLatestQuota] = useState<QuotaStatus>(quota);
   const [lastRecordedResult, setLastRecordedResult] = useState<
     PortalCadenceActionResult | undefined
   >(undefined);
 
-  // Sync completed fetcher actions during render without useEffect.
+  // Sync streamed & completed fetcher actions during render without useEffect.
+  const propQuotaChanged = !isSameQuotaValues(quota, lastPropQuota);
+  if (propQuotaChanged) {
+    setLastPropQuota(quota);
+    setLatestQuota(quota);
+  }
   if (actionResult && actionResult !== lastRecordedResult) {
     setLastRecordedResult(actionResult);
-    if (actionResult.ok) {
-      const updatedRun = actionResult.run;
+    const updatedRun = 'run' in actionResult ? actionResult.run : undefined;
+    const nextQuota = 'quota' in actionResult ? actionResult.quota : updatedRun?.quota;
+    if (nextQuota) {
+      setLatestQuota(nextQuota);
+    }
+    if (actionResult.ok && actionResult.intent === 'reset') {
+      setRuns([]);
+      setSelectedRunId(null);
+      setRevisionNote('');
+    } else if (updatedRun) {
       setRuns(prev => {
         const filtered = prev.filter(item => item.runId !== updatedRun.runId);
         return [updatedRun, ...filtered];
@@ -115,34 +160,124 @@ export function PortalCadencePage({
   }
 
   const activePreset =
-    presets.find(preset => preset.slug === activePresetSlug) ?? defaultPreset ?? null;
-  const activeRun = runs.find(run => run.runId === selectedRunId) ?? null;
+    activePresetSlug === CUSTOM_PRESET_VALUE
+      ? null
+      : (presets.find(preset => preset.slug === activePresetSlug) ?? defaultPreset ?? null);
+  const activeRun =
+    runs.find(run => run.runId === selectedRunId) ??
+    goldenRuns.find(run => run.runId === selectedRunId) ??
+    null;
 
-  const activeQuota =
-    actionResult?.ok && actionResult.intent === 'run' && actionResult.quota
+  const actionQuota = actionResult
+    ? 'quota' in actionResult
       ? actionResult.quota
-      : !actionResult?.ok && actionResult?.quota
-        ? actionResult.quota
-        : quota;
+      : 'run' in actionResult
+        ? actionResult.run?.quota
+        : undefined
+    : undefined;
+  const activeQuota = actionQuota ?? (propQuotaChanged ? quota : latestQuota);
 
-  const badge = resolveCadenceBadge(content, isSubmitting, activeRun);
-  const previewHtml = activeRun?.artifactHtml ?? activePreset?.starterArtifactHtml ?? '';
+  const hasActiveRunError = Boolean(
+    !isSubmitting &&
+    !isStreaming &&
+    actionResult &&
+    !actionResult.ok &&
+    actionResult.intent === 'run' &&
+    (!actionResult.run || actionResult.run.runId === activeRun?.runId),
+  );
+  const badge = resolveCadenceBadge(
+    content,
+    isSubmitting,
+    isStreaming,
+    activeRun,
+    hasActiveRunError,
+  );
+  const hasBuiltArtifact = Boolean(
+    activeRun &&
+    activeRun.artifactHtml &&
+    activeRun.artifactHtml.trim().length > 0 &&
+    (!activeRun.runStatus || activeRun.runStatus === 'ready' || activeRun.isGolden),
+  );
+  const previewHtml = hasBuiltArtifact ? (activeRun?.artifactHtml ?? '') : '';
+
+  const isRunReady = Boolean(
+    activeRun && (!activeRun.runStatus || activeRun.runStatus === 'ready'),
+  );
+  const isPipelineBusy =
+    isSubmitting ||
+    isStreaming ||
+    (!hasActiveRunError &&
+      (activeRun?.runStatus === 'pending' ||
+        activeRun?.runStatus === 'running' ||
+        activeRun?.runStatus === 'build_queued' ||
+        activeRun?.runStatus === 'building'));
 
   const handlePresetChange = (slug: string) => {
     setActivePresetSlug(slug);
+    if (slug === CUSTOM_PRESET_VALUE) return;
     const chosen = presets.find(preset => preset.slug === slug);
     if (chosen) {
       setPromptText(chosen.starterPrompt);
     }
   };
 
+  const handleSelectGolden = (run: CadenceRunResult) => {
+    setSelectedRunId(run.runId);
+    if (run.presetSlug && presets.some(preset => preset.slug === run.presetSlug)) {
+      setActivePresetSlug(run.presetSlug);
+    }
+    setPromptText(run.prompt);
+  };
+
   const handleRunSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = promptText.trim();
-    if (trimmed.length < 4 || isSubmitting || !onRunBuild) return;
+    if (trimmed.length < 4 || isPipelineBusy || !onRunBuild) return;
     onRunBuild({
       prompt: trimmed,
-      presetSlug: activePreset?.slug ?? 'solar-forge-starter',
+      presetSlug:
+        activePresetSlug === CUSTOM_PRESET_VALUE ? 'custom' : (activePreset?.slug ?? 'custom'),
+      mode: fastMode ? 'fast' : 'llm',
+    });
+  };
+
+  const handleReviseSpec = (feedback: string) => {
+    if (!feedback.trim() || isPipelineBusy || !onRunBuild) return;
+    const basePrompt = activeRun?.prompt ?? promptText.trim();
+    const nextPrompt = `${basePrompt}\nSpec Revision: ${feedback.trim()}`.slice(0, 1200);
+    setPromptText(nextPrompt);
+    onRunBuild({
+      prompt: nextPrompt,
+      presetSlug:
+        activePresetSlug === CUSTOM_PRESET_VALUE ? 'custom' : (activePreset?.slug ?? 'custom'),
+      mode: fastMode ? 'fast' : 'llm',
+    });
+  };
+
+  const handleReset = () => {
+    setRuns([]);
+    setSelectedRunId(null);
+    setActivePresetSlug(CUSTOM_PRESET_VALUE);
+    setPromptText('');
+    setFastMode(false);
+    setRevisionNote('');
+    setResetNonce(prev => prev + 1);
+    onReset?.();
+  };
+
+  const handleRevisionSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const note = revisionNote.trim();
+    if (!note || isPipelineBusy || !onRunBuild) return;
+    const basePrompt = activeRun?.prompt ?? promptText.trim();
+    const nextPrompt = `${basePrompt}\nRevision: ${note}`.slice(0, 1200);
+    setPromptText(nextPrompt);
+    setRevisionNote('');
+    onRunBuild({
+      prompt: nextPrompt,
+      presetSlug:
+        activePresetSlug === CUSTOM_PRESET_VALUE ? 'custom' : (activePreset?.slug ?? 'custom'),
+      mode: fastMode ? 'fast' : 'llm',
     });
   };
 
@@ -159,168 +294,153 @@ export function PortalCadencePage({
           />
         }
       >
-        <p className={styles.intro}>{content.description}</p>
+        <section className={styles.topOverview} aria-label='CADENCE overview and showcases'>
+          <p className={styles.intro}>{content.description}</p>
 
-        <div className={styles.quotaBar} data-testid='cadence-quota-meter'>
-          <Meter.Root value={activeQuota.turnsUsed} min={0} max={Math.max(1, activeQuota.maxTurns)}>
-            <div className={styles.meterHeader}>
-              <Meter.Label>CADENCE Sandbox Quota ({activeQuota.role})</Meter.Label>
-              <Meter.Value>
-                {() => `${activeQuota.turnsUsed}/${activeQuota.maxTurns} turns`}
-              </Meter.Value>
-            </div>
-            <Meter.Track>
-              <Meter.Indicator />
-            </Meter.Track>
-          </Meter.Root>
-        </div>
-
-        <Separator.Root />
-
-        {presets.length > 0 && (
-          <Tabs.Root
-            value={activePresetSlug}
-            onValueChange={val => handlePresetChange(String(val))}
-          >
-            <Tabs.List>
-              {presets.map(preset => (
-                <Tabs.Tab
-                  key={preset.slug}
-                  value={preset.slug}
-                  data-testid={`cadence-preset-${preset.slug}`}
-                >
-                  {preset.title}
-                </Tabs.Tab>
-              ))}
-              <Tabs.Indicator />
-            </Tabs.List>
-            {presets.map(preset => (
-              <Tabs.Panel key={preset.slug} value={preset.slug} className={styles.presetPanel}>
-                <p className={styles.presetPrompt}>Template: {preset.starterPrompt}</p>
-              </Tabs.Panel>
-            ))}
-          </Tabs.Root>
-        )}
-
-        <form className={styles.composer} onSubmit={handleRunSubmit}>
-          <label className={styles.composerLabel} htmlFor='cadence-prompt-input'>
-            CHORD Prompt Composer (4..1200 chars)
-          </label>
-          <textarea
-            id='cadence-prompt-input'
-            name='prompt'
-            rows={3}
-            className={styles.textarea}
-            value={promptText}
-            onChange={event => setPromptText(event.currentTarget.value)}
-            placeholder='Describe a self-contained Solar Forge diagnostic widget to build in the CHORD sandbox...'
-            data-testid='cadence-prompt-input'
-          />
-          <div className={styles.composerActions}>
-            <span className={styles.isolationHint}>
-              sandbox=&quot;allow-scripts&quot; (no allow-same-origin)
-            </span>
-            <Button
-              type='submit'
-              variant='primary'
-              disabled={isSubmitting || promptText.trim().length < 4 || !onRunBuild}
-              data-testid='cadence-run-submit'
+          <div className={styles.quotaBar} data-testid='cadence-quota-meter'>
+            <Meter.Root
+              value={activeQuota.turnsUsed}
+              min={0}
+              max={Math.max(1, activeQuota.maxTurns)}
             >
-              <Button.Label>
-                {isSubmitting ? 'Running CHORD Pipeline...' : 'Run CHORD Build'}
-              </Button.Label>
-            </Button>
+              <div className={styles.meterHeader}>
+                <Meter.Label>
+                  {content.quotaMeterLabel} ({activeQuota.role})
+                </Meter.Label>
+                <Meter.Value>
+                  {() => `${activeQuota.turnsUsed}/${activeQuota.maxTurns} turns`}
+                </Meter.Value>
+              </div>
+              <Meter.Track>
+                <Meter.Indicator />
+              </Meter.Track>
+            </Meter.Root>
           </div>
-        </form>
+
+          <CadenceGoldenStrip
+            content={content}
+            goldenRuns={goldenRuns}
+            activeRunId={activeRun?.runId ?? null}
+            onSelectGolden={handleSelectGolden}
+          />
+        </section>
+
+        <section className={styles.composerCard} aria-label='Build prompt composer'>
+          <CadenceComposerSection
+            content={content}
+            presets={presets}
+            activePresetSlug={activePresetSlug}
+            activePreset={activePreset}
+            promptText={promptText}
+            fastMode={fastMode}
+            isPipelineBusy={isPipelineBusy}
+            canSubmit={!isPipelineBusy && promptText.trim().length >= 4 && Boolean(onRunBuild)}
+            onPresetChange={handlePresetChange}
+            onPromptChange={setPromptText}
+            onFastModeChange={setFastMode}
+            onSubmit={handleRunSubmit}
+            onReset={handleReset}
+          />
+        </section>
 
         {actionResult && !actionResult.ok && (
-          <div className={styles.errorBanner} role='alert' data-testid='cadence-error-banner'>
-            {actionResult.error}
-          </div>
+          <ActionFeedbackBanner
+            ok={false}
+            message={actionResult.error}
+            action={actionResult.action}
+            code={actionResult.code}
+            correlationId={actionResult.correlationId}
+            testId='cadence-error-banner'
+          />
         )}
+
+        <CadencePipelineRail activeRun={activeRun} isStreaming={isStreaming} />
+
+        <div className={styles.workbenchSplit} data-testid='cadence-workbench-split'>
+          <CadenceSpecGatePane
+            key={`cadence-spec-pane-${resetNonce}`}
+            activeRun={activeRun}
+            isStreaming={isStreaming}
+            isSubmitting={isSubmitting}
+            onApproveSpec={onApproveSpec}
+            onReviseSpec={onRunBuild ? handleReviseSpec : undefined}
+          />
+
+          <ArtifactInspector
+            key={`cadence-inspector-${resetNonce}`}
+            artifactHtml={previewHtml}
+            fileName={`cadence-${activeRun?.presetSlug ?? 'artifact'}.html`}
+            executionMode={activeRun?.executionMode}
+            runStatus={activeRun?.runStatus}
+            isGolden={Boolean(activeRun?.isGolden)}
+            spec={activeRun?.spec}
+            gateAudit={activeRun?.gateAudit}
+            gateVerdict={activeRun?.gateVerdict ?? 'pending'}
+            isPipelineBusy={isPipelineBusy}
+            isRunReady={isRunReady}
+            isStreaming={isStreaming}
+            streamLogs={streamLogs}
+            labels={content}
+            onGateVerdict={
+              activeRun && !activeRun.isGolden && onGateVerdict
+                ? verdict => onGateVerdict({ runId: activeRun.runId, verdict })
+                : undefined
+            }
+          />
+        </div>
+
+        {activeRun &&
+          isRunReady &&
+          !activeRun.isGolden &&
+          activeRun.gateVerdict === 'rejected' &&
+          onRunBuild && (
+            <form
+              className={styles.revisionForm}
+              onSubmit={handleRevisionSubmit}
+              data-testid='cadence-revision-form'
+            >
+              <label className={styles.composerLabel} htmlFor='cadence-revision-input'>
+                {content.rejectGateLabel} — Revision Prompt
+              </label>
+              <div className={styles.revisionRow}>
+                <input
+                  id='cadence-revision-input'
+                  type='text'
+                  className={styles.revisionInput}
+                  value={revisionNote}
+                  onChange={event => setRevisionNote(event.currentTarget.value)}
+                  placeholder={content.promptPlaceholder}
+                  data-testid='cadence-revision-input'
+                />
+                <Button
+                  type='submit'
+                  variant='primary'
+                  size='xs'
+                  disabled={isPipelineBusy || revisionNote.trim().length < 3}
+                  data-testid='cadence-revision-submit'
+                >
+                  <Button.Label>{content.submitRunLabel}</Button.Label>
+                </Button>
+              </div>
+            </form>
+          )}
 
         {activeRun && (
-          <section className={styles.runSection} data-testid='cadence-active-run'>
-            <div className={styles.runHeader}>
-              <h2 className={styles.sectionTitle}>CHORD Execution Timeline</h2>
-              <div className={styles.gateControls}>
-                <span
-                  className={styles.verdictPill}
-                  data-verdict={activeRun.gateVerdict}
-                  data-testid='cadence-gate-verdict'
-                >
-                  gate: {activeRun.gateVerdict}
-                </span>
-                {onGateVerdict && (
-                  <>
-                    <Button
-                      type='button'
-                      variant='primary'
-                      size='xs'
-                      disabled={isSubmitting || activeRun.gateVerdict === 'approved'}
-                      onClick={() => onGateVerdict({ runId: activeRun.runId, verdict: 'approved' })}
-                      data-testid='cadence-gate-approve'
-                    >
-                      <Button.Label>Approve Gate</Button.Label>
-                    </Button>
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='xs'
-                      disabled={isSubmitting || activeRun.gateVerdict === 'rejected'}
-                      onClick={() => onGateVerdict({ runId: activeRun.runId, verdict: 'rejected' })}
-                      data-testid='cadence-gate-reject'
-                    >
-                      <Button.Label>Reject Gate</Button.Label>
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <ol className={styles.turnTimeline} data-testid='cadence-turn-timeline'>
-              {activeRun.turns.map(turn => (
-                <li
-                  key={`${activeRun.runId}-${turn.phase}-${turn.id ?? 0}`}
-                  className={styles.turnCard}
-                  data-testid={`cadence-turn-${turn.phase}`}
-                >
-                  <div className={styles.turnTop}>
-                    <span className={styles.turnPhase}>{turn.phase.toUpperCase()}</span>
-                    <span className={styles.turnAgent}>{turn.agentName}</span>
-                    <span className={styles.turnLatency}>{turn.latencyMs}ms</span>
-                  </div>
-                  <p className={styles.turnSummary}>{turn.summary}</p>
-                </li>
-              ))}
-            </ol>
-          </section>
+          <CadenceTimelineSection
+            content={content}
+            activeRun={activeRun}
+            isPipelineBusy={isPipelineBusy}
+            isRunReady={isRunReady}
+            onGateVerdict={onGateVerdict}
+          />
         )}
 
-        <SandboxedArtifactFrame title={content.iframeTitle} srcDoc={previewHtml} />
-
-        {runs.length > 0 && (
-          <section className={styles.historySection} aria-label='Session run history'>
-            <h2 className={styles.sectionTitle}>Session Run History ({runs.length})</h2>
-            <ul className={styles.historyList} data-testid='cadence-run-history'>
-              {runs.map(run => (
-                <li key={run.runId}>
-                  <button
-                    type='button'
-                    className={styles.historyItem}
-                    data-active={run.runId === activeRun?.runId ? 'true' : 'false'}
-                    onClick={() => setSelectedRunId(run.runId)}
-                  >
-                    <span className={styles.historyPrompt}>{run.prompt}</span>
-                    <span className={styles.verdictPill} data-verdict={run.gateVerdict}>
-                      {run.gateVerdict}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+        <CadenceHistoryStrip
+          content={content}
+          runs={runs}
+          activeRunId={activeRun?.runId ?? null}
+          onSelectRun={setSelectedRunId}
+        />
       </TuiWindow>
     </div>
   );

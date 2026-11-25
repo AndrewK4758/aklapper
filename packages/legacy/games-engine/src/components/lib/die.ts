@@ -1,5 +1,5 @@
 import type { IDie } from '../../types/index.ts';
-import { generateRandomNumber } from './utils.js';
+import { generateRandomNumber } from './utils.ts';
 
 export class Die implements IDie {
   Sides: number;

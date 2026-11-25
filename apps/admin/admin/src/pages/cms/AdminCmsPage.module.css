@@ -1,11 +1,15 @@
 @layer page {
   .panel {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: var(--sf-space-0);
     gap: var(--sf-space-6);
   }
 
   .tabPanel {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: var(--sf-space-0);
     gap: var(--sf-space-6);
     padding-top: var(--sf-space-5);
   }
@@ -17,6 +21,8 @@
     background: var(--sf-bg-panel);
     border: var(--sf-border-width) solid var(--sf-border);
     border-radius: var(--sf-radius-sm);
+    min-width: var(--sf-space-0);
+    overflow-x: auto;
   }
 
   .cardHeader {
@@ -90,7 +96,7 @@
 
   .formGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr));
     gap: var(--sf-space-4);
   }
 
@@ -161,33 +167,27 @@
     min-height: 18rem;
   }
 
-  .statusNote {
-    margin: var(--sf-space-0);
-    padding: var(--sf-space-3) var(--sf-space-4);
-    border-radius: var(--sf-radius-sm);
-    background: var(--sf-success-bg);
-    border: var(--sf-border-width) solid var(--sf-success);
-    font-size: var(--sf-text-xs);
-  }
-
-  .errorNote {
-    margin: var(--sf-space-0);
-    padding: var(--sf-space-3) var(--sf-space-4);
-    border-radius: var(--sf-radius-sm);
-    background: var(--sf-err-bg);
-    border: var(--sf-border-width) solid var(--sf-err);
-    font-size: var(--sf-text-xs);
-  }
-
   .muted {
     margin: var(--sf-space-0);
     font-size: var(--sf-text-xs);
     color: var(--sf-fg-cmt);
   }
 
+  .errorNote {
+    display: block;
+    font-size: var(--sf-text-xs);
+    color: var(--sf-err);
+  }
+
   @media (max-width: 56rem) {
     .splitGrid {
       grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
+    .card {
+      padding: var(--sf-space-4);
     }
   }
 }

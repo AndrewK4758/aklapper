@@ -1,20 +1,40 @@
-import type { TerminalProfileData } from '@aklapper/core';
+import {
+  isAltNReadlineChord,
+  matchTerminalReadlineShortcut,
+  NEW_TAB_TOOLTIP_LABEL,
+  type TerminalProfileData,
+} from '@aklapper/core';
 import {
   createContext,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
+  type ReactElement,
   type ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
 
-import { Button, Toolbar } from '../elements/base';
+import { Button, Toolbar, Tooltip } from '../elements/base';
 import { buildZshCommandHandlers } from './buildZshCommands';
+import { PaneActiveContext, useIsPaneActive } from './paneActiveContext';
+import { PaneNavigationContext, type PaneNavigationContextValue } from './paneNavigationContext';
+import { normalizeWorkspaceRouteKey } from './routeWorkspaceSnapshot';
 import { type TerminalFormConfig } from './terminalFormSession';
+import {
+  exitPaneTui,
+  getActivePaneViewId,
+  openViewInSplit,
+  openViewInTab,
+  popPaneView,
+  pushPaneView,
+  type TerminalNavTarget,
+} from './terminalPaneNav';
 import {
   addWorkspaceTab,
   closeActivePaneOrTab,
@@ -33,8 +53,9 @@ import {
   focusRelativePane,
   getActiveWorkspaceTab,
   listLeafPanes,
-  matchGhosttyShortcut,
+  matchWorkspaceShortcut,
   moveActiveSplit,
+  openTuiPane,
   type PaneDropTarget,
   renameWorkspaceTab,
   resizeActiveSplit,
@@ -42,18 +63,25 @@ import {
   selectRelativeWorkspaceTab,
   selectWorkspaceTab,
   selectWorkspaceTabByIndex,
-  setPaneTuiOpen,
   setSplitRatio,
   splitActivePane,
   type SplitCreateDirection,
   type SplitDirection,
   type SplitDividerRect,
+  swapActivePaneWithNeighbor,
   type TerminalLeafPane,
   type TerminalTabbedWorkspaceState,
   type TerminalWorkspaceTab,
+  toggleTuiPane,
   toggleZoomActivePane,
   updateActiveTabWorkspace,
 } from './terminalPaneTree';
+import {
+  TerminalReadlineRegistryContext,
+  type ZshTerminalHandle,
+} from './terminalReadlineRegistryContext';
+import { resolveAutoSplitDirection, useAutoSplitDirection } from './terminalViewportSplit';
+import { type WorkspaceStateSnapshot, type WorkspaceStoreAdapter } from './workspaceStoreAdapter';
 import { ZshP10kTerminal, type ZshCommandHandler } from './ZshP10kTerminal';
 
 import styles from './TerminalWorkspace.module.css';
@@ -65,11 +93,27 @@ export interface TerminalPaneTuiContext {
   readonly closeTui: () => void;
 }
 
+export interface TerminalPaneViewContext {
+  readonly paneId: string;
+  readonly ttyNumber: number;
+  readonly viewId: string;
+  readonly stack: readonly string[];
+  readonly isSinglePane: boolean;
+  readonly isActive: boolean;
+  readonly isInitialPrimaryDeepLink: boolean;
+  readonly push: (viewId: string) => void;
+  readonly pop: () => void;
+  readonly exitTui: () => void;
+  readonly openInSplit: (viewId: string) => void;
+  readonly openInTab: (viewId: string) => void;
+}
+
 export interface TerminalWorkspacePrimaryPane {
   readonly title: string;
   readonly content: ReactNode;
   readonly flush?: boolean;
   readonly embeddedTerminal?: boolean;
+  readonly isRouteView?: boolean;
 }
 
 export interface TerminalWorkspaceProps {
@@ -77,8 +121,17 @@ export interface TerminalWorkspaceProps {
   terminalForms?: Readonly<Record<string, TerminalFormConfig>>;
   navigate?: (to: string) => void | Promise<void>;
   renderTui?: (context: TerminalPaneTuiContext) => ReactNode;
+  renderPaneView?: (context: TerminalPaneViewContext) => ReactNode;
+  initialPrimaryTuiStack?: readonly string[];
+  onPrimaryPaneReturnToShell?: () => void;
+  dockTuiWindows?: boolean;
+  canHandleInPaneRoute?: (to: string) => boolean;
   primaryPane?: TerminalWorkspacePrimaryPane;
   disableMenuShortcut?: boolean;
+  isActive?: boolean;
+  routeKey?: string;
+  workspaceStore?: WorkspaceStoreAdapter;
+  navigatePrimaryInPaneRoutes?: boolean;
 }
 
 interface EmbeddedTerminalPaneContextValue {
@@ -87,6 +140,8 @@ interface EmbeddedTerminalPaneContextValue {
   readonly isMultiPane: boolean;
   readonly canCloseTab: boolean;
   readonly focusToken: number;
+  readonly initialCommandHistory?: readonly string[];
+  readonly onCommandHistoryChange?: (paneId: string, history: readonly string[]) => void;
   readonly onFocus: (paneId: string) => void;
   readonly onSplit: (paneId: string, direction: SplitCreateDirection) => void;
   readonly onRotate: (paneId: string) => void;
@@ -96,7 +151,140 @@ interface EmbeddedTerminalPaneContextValue {
   readonly onClose: (paneId: string) => void;
   readonly onNewTab: () => void;
   readonly onCloseCurrentTab: () => void;
-  readonly onSetTuiOpen: (paneId: string, open: boolean) => void;
+  readonly onOpenTui: (paneId: string, target?: TerminalNavTarget) => void;
+  readonly onNavigateView?: (paneId: string, viewId: string, target: TerminalNavTarget) => void;
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!target || typeof target !== 'object') {
+    return false;
+  }
+  const el = target as HTMLElement;
+  const tagName = el.tagName;
+  return (
+    tagName === 'INPUT' ||
+    tagName === 'TEXTAREA' ||
+    tagName === 'SELECT' ||
+    Boolean(el.isContentEditable)
+  );
+}
+
+function isVisibleOpenPopup(el: Element): boolean {
+  return (
+    el.closest('[hidden], [inert], [aria-hidden="true"]') === null &&
+    el.getAttribute('data-closed') === null
+  );
+}
+
+function hasOpenOverlayOrPopup(target: EventTarget | null): boolean {
+  const popupSelector =
+    '[role="listbox"], [role="menu"], [role="dialog"], [role="alertdialog"], [aria-modal="true"], [data-fullscreen="true"], dialog[open], [data-popup-open][aria-haspopup], [aria-expanded="true"][aria-haspopup]';
+  if (
+    target &&
+    typeof target === 'object' &&
+    'closest' in target &&
+    typeof (target as Element).closest === 'function'
+  ) {
+    const match = (target as Element).closest(popupSelector);
+    if (match && isVisibleOpenPopup(match)) {
+      return true;
+    }
+  }
+  if (typeof document !== 'undefined') {
+    const candidates = document.querySelectorAll(popupSelector);
+    for (const candidate of candidates) {
+      if (isVisibleOpenPopup(candidate)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function defaultCanHandleInPaneRoute(to: string): boolean {
+  return to !== '/changes-in-progress';
+}
+
+interface SyncedTabState {
+  readonly tabs: TerminalTabbedWorkspaceState;
+  readonly embeddedTerminal: boolean | undefined;
+  readonly deepLinkRoute: string | null;
+}
+
+function isPrimaryHostPane(
+  tabPinned: boolean | undefined,
+  panePinned: boolean | undefined,
+): boolean {
+  return Boolean(tabPinned && panePinned);
+}
+
+function findPrimaryHostPaneId(tab: TerminalWorkspaceTab): string | null {
+  if (!tab.pinned) {
+    return null;
+  }
+  const pinnedLeaf = listLeafPanes(tab.workspace.root).find(leaf => Boolean(leaf.pinned));
+  return pinnedLeaf?.id ?? tab.workspace.activePaneId;
+}
+
+function exitPrimaryPaneTui(state: TerminalTabbedWorkspaceState): TerminalTabbedWorkspaceState {
+  return {
+    ...state,
+    tabs: state.tabs.map(tab => {
+      const hostPaneId = findPrimaryHostPaneId(tab);
+      return hostPaneId ? { ...tab, workspace: exitPaneTui(tab.workspace, hostPaneId) } : tab;
+    }),
+  };
+}
+
+function seedPrimaryPaneDeepLink(
+  state: TerminalTabbedWorkspaceState,
+  deepLinkRoute: string,
+): TerminalTabbedWorkspaceState {
+  return {
+    ...state,
+    tabs: state.tabs.map(tab => {
+      const hostPaneId = findPrimaryHostPaneId(tab);
+      return hostPaneId
+        ? {
+            ...tab,
+            workspace: pushPaneView(
+              exitPaneTui(tab.workspace, hostPaneId),
+              hostPaneId,
+              deepLinkRoute,
+            ),
+          }
+        : tab;
+    }),
+  };
+}
+
+function reconcilePrimaryRouteState(
+  state: SyncedTabState,
+  embeddedTerminal: boolean | undefined,
+  deepLinkRoute: string | null,
+): SyncedTabState {
+  if (state.embeddedTerminal === embeddedTerminal && state.deepLinkRoute === deepLinkRoute) {
+    return state;
+  }
+  if (deepLinkRoute !== null && deepLinkRoute !== state.deepLinkRoute) {
+    return {
+      tabs: seedPrimaryPaneDeepLink(state.tabs, deepLinkRoute),
+      embeddedTerminal,
+      deepLinkRoute,
+    };
+  }
+  if (embeddedTerminal === true && state.embeddedTerminal === false) {
+    return {
+      tabs: exitPrimaryPaneTui(state.tabs),
+      embeddedTerminal,
+      deepLinkRoute,
+    };
+  }
+  return {
+    ...state,
+    embeddedTerminal,
+    deepLinkRoute,
+  };
 }
 
 interface DragOrigin {
@@ -126,34 +314,14 @@ interface DividerDragOrigin {
 const DRAG_THRESHOLD_PX = 6;
 const DIVIDER_KEY_STEP = 0.05;
 
-const PaneActiveContext = createContext<boolean>(true);
 const EmbeddedTerminalPaneContext = createContext<EmbeddedTerminalPaneContextValue | null>(null);
 
-export function useIsPaneActive(): boolean {
-  return useContext(PaneActiveContext);
-}
-
-const SPLIT_HELP_APPENDIX = [
-  '',
-  'Split panes & tabs (Ghostty / ghostty-union keybindings & commands):',
-  '  Ctrl+Shift+} / Ctrl+Shift+O / Cmd+D (or "split" / "vsplit") — split terminal right',
-  '  Ctrl+Shift+{ / Ctrl+Shift+E / Cmd+Shift+D (or "hsplit")     — split terminal down',
-  '  Ctrl+Alt+Arrows / Cmd+Alt+Arrows (or Cmd+] / Cmd+[)         — focus neighbor pane',
-  '  Alt+Shift+Arrows / drag pane divider (double-click=50/50)   — resize active split',
-  '  Ctrl+Alt+Shift+Arrows (or "swap" / drag pane titlebar)      — swap or dock split pane',
-  '  Ctrl+Shift+R / Ctrl+Alt+Shift+R (or "rotate")               — rotate split orientation',
-  '  Ctrl+Shift+Enter / Cmd+Shift+Enter (or "zoom")              — toggle active pane zoom',
-  '  Ctrl+Alt+Shift+E / Ctrl+Shift+= / Cmd+Shift+=               — equalize split sizes',
-  '  Ctrl+Shift+T / Alt+Shift+T (or "tab")                       — open a new tab',
-  '  Ctrl+Alt+Shift+T (or "detach" / drag pane to tab strip)     — move split to new tab',
-  '  Ctrl+Shift+A / Alt+Shift+A (or double-click tab)            — rename active tab',
-  '  Ctrl+Tab / Alt+] / Alt+[ / Alt+1..9                         — switch tabs',
-  '  Ctrl+Shift+W / Cmd+Shift+W / Alt+Shift+W (or "exit")        — close active pane or tab',
-].join('\n');
+export { useIsPaneActive };
 
 function resolveTabDisplayTitle(
   tab: TerminalWorkspaceTab,
   primaryPane?: TerminalWorkspacePrimaryPane,
+  initialDeepLinkRoute: string | null = null,
 ): string {
   if (tab.title) {
     return tab.title;
@@ -161,8 +329,28 @@ function resolveTabDisplayTitle(
   const activeLeaf =
     findLeafPane(tab.workspace.root, tab.workspace.activePaneId) ??
     listLeafPanes(tab.workspace.root)[0];
-  if (primaryPane && tab.id === 'tab-1' && !primaryPane.embeddedTerminal) {
-    return primaryPane.title;
+  const isPrimaryLeaf = Boolean(primaryPane && isPrimaryHostPane(tab.pinned, activeLeaf?.pinned));
+  const activeStack = activeLeaf?.tuiStack ?? [];
+  const activeViewId = activeLeaf ? getActivePaneViewId(activeLeaf) : null;
+  const isInitialPrimaryDeepLink = Boolean(
+    isPrimaryLeaf &&
+    !primaryPane?.embeddedTerminal &&
+    initialDeepLinkRoute &&
+    activeStack.length === 1 &&
+    activeStack[0] === initialDeepLinkRoute,
+  );
+  if (activeViewId && !isInitialPrimaryDeepLink) {
+    return activeViewId === 'tui' ? 'tui' : activeViewId.replace(/^\/+/, '');
+  }
+  if (isPrimaryLeaf && primaryPane) {
+    return primaryPane.embeddedTerminal
+      ? activeLeaf
+        ? `tty${activeLeaf.ttyNumber}`
+        : primaryPane.title
+      : primaryPane.title;
+  }
+  if (activeLeaf?.kind === 'tui') {
+    return 'tui';
   }
   return activeLeaf ? `tty${activeLeaf.ttyNumber}` : tab.id;
 }
@@ -171,11 +359,13 @@ interface TabStripProps {
   tabs: readonly TerminalWorkspaceTab[];
   activeTabId: string;
   primaryPane?: TerminalWorkspacePrimaryPane;
+  initialDeepLinkRoute?: string | null;
   renamingTabId: string | null;
   renameDraft: string;
   isDetachPreview: boolean;
   onSelectTab: (tabId: string) => void;
   onAddTab: () => void;
+  onSplitActivePane: () => void;
   onCloseTab: (tabId: string) => void;
   onStartRename: (tabId: string, currentTitle: string) => void;
   onChangeRenameDraft: (value: string) => void;
@@ -190,21 +380,55 @@ function focusRenameInput(node: HTMLInputElement | null): void {
   }
 }
 
+interface WorkspaceTooltipProps {
+  label: string;
+  disabled?: boolean;
+  children: ReactElement;
+}
+
+function WorkspaceTooltip({ label, disabled = false, children }: WorkspaceTooltipProps) {
+  if (disabled) {
+    return children;
+  }
+  return (
+    <Tooltip.Root>
+      <Tooltip.Trigger render={children} />
+      <Tooltip.Portal>
+        <Tooltip.Positioner sideOffset={6}>
+          <Tooltip.Popup>{label}</Tooltip.Popup>
+        </Tooltip.Positioner>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+  );
+}
+
 function TabStrip({
   tabs,
   activeTabId,
   primaryPane,
+  initialDeepLinkRoute = null,
   renamingTabId,
   renameDraft,
   isDetachPreview,
   onSelectTab,
   onAddTab,
+  onSplitActivePane,
   onCloseTab,
   onStartRename,
   onChangeRenameDraft,
   onCommitRename,
   onCancelRename,
 }: TabStripProps) {
+  const autoSplitDirection = useAutoSplitDirection();
+  const autoSplitLabel =
+    autoSplitDirection === 'down'
+      ? 'Split active pane horizontally'
+      : 'Split active pane vertically';
+  const autoSplitTooltip =
+    autoSplitDirection === 'down'
+      ? 'Split pane horizontally (portrait)'
+      : 'Split pane vertically (landscape)';
+
   return (
     <div
       className={styles.tabStrip}
@@ -214,9 +438,9 @@ function TabStrip({
       <div className={styles.tabList} role='tablist' aria-label='Terminal workspace tabs'>
         {tabs.map(tab => {
           const isActive = tab.id === activeTabId;
-          const displayTitle = resolveTabDisplayTitle(tab, primaryPane);
+          const displayTitle = resolveTabDisplayTitle(tab, primaryPane, initialDeepLinkRoute);
           const paneCount = listLeafPanes(tab.workspace.root).length;
-          const canClose = tabs.length > 1 && !tab.pinned;
+          const canClose = tabs.length > 1;
           const isRenaming = renamingTabId === tab.id;
 
           return (
@@ -246,22 +470,23 @@ function TabStrip({
                   onBlur={onCommitRename}
                 />
               ) : (
-                <button
-                  type='button'
-                  role='tab'
-                  aria-selected={isActive}
-                  className={styles.tabLabelButton}
-                  title='Click to switch · double-click to rename'
-                  onClick={() => onSelectTab(tab.id)}
-                  onDoubleClick={() => onStartRename(tab.id, displayTitle)}
-                >
-                  <span>{displayTitle}</span>
-                  {paneCount > 1 ? (
-                    <span className={styles.tabPaneCount} aria-label={`${paneCount} panes`}>
-                      {paneCount}
-                    </span>
-                  ) : null}
-                </button>
+                <WorkspaceTooltip label='Click to switch · double-click to rename'>
+                  <button
+                    type='button'
+                    role='tab'
+                    aria-selected={isActive}
+                    className={styles.tabLabelButton}
+                    onClick={() => onSelectTab(tab.id)}
+                    onDoubleClick={() => onStartRename(tab.id, displayTitle)}
+                  >
+                    <span>{displayTitle}</span>
+                    {paneCount > 1 ? (
+                      <span className={styles.tabPaneCount} aria-label={`${paneCount} panes`}>
+                        {paneCount}
+                      </span>
+                    ) : null}
+                  </button>
+                </WorkspaceTooltip>
               )}
 
               {canClose && !isRenaming ? (
@@ -280,16 +505,31 @@ function TabStrip({
         })}
       </div>
 
-      <Button.Root
-        type='button'
-        size='xs'
-        className={styles.newTabBtn}
-        aria-label='New terminal tab'
-        title='New Tab (Ctrl+Shift+T / Alt+Shift+T)'
-        onClick={onAddTab}
-      >
-        <Button.Label>+</Button.Label>
-      </Button.Root>
+      <div className={styles.tabActions}>
+        <WorkspaceTooltip label={autoSplitTooltip}>
+          <Button.Root
+            type='button'
+            size='xs'
+            className={styles.splitPaneBtn}
+            aria-label={autoSplitLabel}
+            onClick={onSplitActivePane}
+          >
+            <Button.Label>{autoSplitDirection === 'down' ? '⬓' : '◫'}</Button.Label>
+          </Button.Root>
+        </WorkspaceTooltip>
+
+        <WorkspaceTooltip label={NEW_TAB_TOOLTIP_LABEL}>
+          <Button.Root
+            type='button'
+            size='xs'
+            className={styles.newTabBtn}
+            aria-label='New terminal tab'
+            onClick={onAddTab}
+          >
+            <Button.Label>+</Button.Label>
+          </Button.Root>
+        </WorkspaceTooltip>
+      </div>
     </div>
   );
 }
@@ -331,38 +571,57 @@ function PaneChromeBar({
   onDragPointerUp,
   onDragPointerCancel,
 }: PaneChromeBarProps) {
+  const autoSplitDirection = useAutoSplitDirection();
+
   return (
     <div className={styles.paneBar}>
-      <span
-        className={styles.paneTitle}
-        data-draggable={canDrag ? 'true' : 'false'}
-        data-pane-drag-handle={paneId}
-        title={canDrag ? 'Drag to swap, dock, or drop onto tab strip to detach' : undefined}
-        onPointerDown={
-          canDrag && onDragPointerDown
-            ? event => onDragPointerDown(paneId, canClose, event)
-            : undefined
-        }
-        onPointerMove={canDrag ? onDragPointerMove : undefined}
-        onPointerUp={canDrag ? onDragPointerUp : undefined}
-        onPointerCancel={canDrag ? onDragPointerCancel : undefined}
+      <WorkspaceTooltip
+        label='Drag to swap, dock, or drop onto tab strip to detach'
+        disabled={!canDrag}
       >
-        {canDrag ? (
-          <span className={styles.paneGrip} aria-hidden='true'>
-            ⠿
+        <span
+          className={styles.paneTitle}
+          data-draggable={canDrag ? 'true' : 'false'}
+          data-pane-drag-handle={paneId}
+          onPointerDown={
+            canDrag && onDragPointerDown
+              ? event => onDragPointerDown(paneId, canClose, event)
+              : undefined
+          }
+          onPointerMove={canDrag ? onDragPointerMove : undefined}
+          onPointerUp={canDrag ? onDragPointerUp : undefined}
+          onPointerCancel={canDrag ? onDragPointerCancel : undefined}
+        >
+          {canDrag ? (
+            <span className={styles.paneGrip} aria-hidden='true'>
+              ⠿
+            </span>
+          ) : null}
+          <span className={styles.paneDot} aria-hidden='true' />
+          <span>
+            {title}
+            {isZoomed ? ' · zoomed' : ''}
           </span>
-        ) : null}
-        <span className={styles.paneDot} aria-hidden='true' />
-        <span>
-          {title}
-          {isZoomed ? ' · zoomed' : ''}
         </span>
-      </span>
+      </WorkspaceTooltip>
       <Toolbar.Root className={styles.paneToolbar} aria-label={`${title} pane controls`}>
         <Button.Root
           type='button'
           size='xs'
-          className={styles.paneAction}
+          className={`${styles.paneAction} ${styles.paneActionAutoSplit}`}
+          aria-label={
+            autoSplitDirection === 'down'
+              ? `Split ${title} horizontally`
+              : `Split ${title} vertically`
+          }
+          onClick={() => onSplit(paneId, autoSplitDirection)}
+        >
+          <Button.Label>{autoSplitDirection === 'down' ? '⬓' : '◫'}</Button.Label>
+        </Button.Root>
+        <Button.Root
+          type='button'
+          size='xs'
+          className={`${styles.paneAction} ${styles.paneActionExplicitSplit}`}
           aria-label={`Split ${title} right`}
           onClick={() => onSplit(paneId, 'right')}
         >
@@ -371,7 +630,7 @@ function PaneChromeBar({
         <Button.Root
           type='button'
           size='xs'
-          className={styles.paneAction}
+          className={`${styles.paneAction} ${styles.paneActionExplicitSplit}`}
           aria-label={`Split ${title} down`}
           onClick={() => onSplit(paneId, 'down')}
         >
@@ -422,6 +681,107 @@ function PaneChromeBar({
   );
 }
 
+interface PaneDragHandlers {
+  readonly onDragPointerDown?: (
+    paneId: string,
+    canDetach: boolean,
+    event: ReactPointerEvent<HTMLElement>,
+  ) => void;
+  readonly onDragPointerMove?: (event: ReactPointerEvent<HTMLElement>) => void;
+  readonly onDragPointerUp?: (event: ReactPointerEvent<HTMLElement>) => void;
+  readonly onDragPointerCancel?: () => void;
+}
+
+interface WorkspacePaneFrameProps extends PaneDragHandlers {
+  pane: TerminalLeafPane;
+  title: string;
+  paneKind: 'terminal' | 'primary' | 'tui';
+  tuiDepth?: number;
+  isActive: boolean;
+  isMultiPane: boolean;
+  isZoomed: boolean;
+  isDragging: boolean;
+  paneNav?: PaneNavigationContextValue | null;
+  onFocus: (paneId: string) => void;
+  onSplit: (paneId: string, direction: SplitCreateDirection) => void;
+  onRotate: (paneId: string) => void;
+  onDetach: (paneId: string) => void;
+  onToggleZoom: (paneId: string) => void;
+  onClose: (paneId: string) => void;
+  children: ReactNode;
+}
+
+function WorkspacePaneFrame({
+  pane,
+  title,
+  paneKind,
+  tuiDepth,
+  isActive,
+  isMultiPane,
+  isZoomed,
+  isDragging,
+  paneNav = null,
+  onFocus,
+  onSplit,
+  onRotate,
+  onDetach,
+  onToggleZoom,
+  onClose,
+  onDragPointerDown,
+  onDragPointerMove,
+  onDragPointerUp,
+  onDragPointerCancel,
+  children,
+}: WorkspacePaneFrameProps) {
+  const frameContent = (
+    <div
+      className={styles.pane}
+      data-pane-id={pane.id}
+      data-pane-tty={title}
+      data-pane-kind={paneKind}
+      data-tui-depth={tuiDepth ?? pane.tuiStack?.length ?? 0}
+      data-active={isActive ? 'true' : 'false'}
+      data-multi={isMultiPane ? 'true' : 'false'}
+      data-dragging={isDragging ? 'true' : 'false'}
+      onPointerDown={() => onFocus(pane.id)}
+      onFocus={() => onFocus(pane.id)}
+    >
+      {isMultiPane ? (
+        <PaneChromeBar
+          paneId={pane.id}
+          title={title}
+          isZoomed={isZoomed}
+          canClose={!pane.pinned}
+          canDrag={!isZoomed}
+          onSplit={onSplit}
+          onRotate={onRotate}
+          onDetach={onDetach}
+          onToggleZoom={onToggleZoom}
+          onClose={onClose}
+          onDragPointerDown={onDragPointerDown}
+          onDragPointerMove={onDragPointerMove}
+          onDragPointerUp={onDragPointerUp}
+          onDragPointerCancel={onDragPointerCancel}
+        />
+      ) : null}
+
+      {children}
+    </div>
+  );
+
+  return (
+    <PaneActiveContext.Provider value={isActive}>
+      {paneNav ? (
+        <PaneNavigationContext.Provider value={paneNav}>
+          {frameContent}
+        </PaneNavigationContext.Provider>
+      ) : (
+        frameContent
+      )}
+    </PaneActiveContext.Provider>
+  );
+}
+
 interface TerminalLeafContentProps {
   pane: TerminalLeafPane;
   terminal: TerminalProfileData;
@@ -430,8 +790,9 @@ interface TerminalLeafContentProps {
   isMultiPane: boolean;
   canCloseTab: boolean;
   focusToken: number;
+  initialCommandHistory?: readonly string[];
+  onCommandHistoryChange?: (paneId: string, history: readonly string[]) => void;
   navigate?: (to: string) => void | Promise<void>;
-  renderTui?: (context: TerminalPaneTuiContext) => ReactNode;
   onFocus: (paneId: string) => void;
   onSplit: (paneId: string, direction: SplitCreateDirection) => void;
   onRotate: (paneId: string) => void;
@@ -441,7 +802,8 @@ interface TerminalLeafContentProps {
   onClose: (paneId: string) => void;
   onNewTab: () => void;
   onCloseCurrentTab: () => void;
-  onSetTuiOpen: (paneId: string, open: boolean) => void;
+  onOpenTui: (paneId: string, target?: TerminalNavTarget) => void;
+  onNavigateView?: (paneId: string, viewId: string, target: TerminalNavTarget) => void;
 }
 
 function TerminalLeafContent({
@@ -452,8 +814,9 @@ function TerminalLeafContent({
   isMultiPane,
   canCloseTab,
   focusToken,
+  initialCommandHistory,
+  onCommandHistoryChange,
   navigate,
-  renderTui,
   onFocus,
   onSplit,
   onRotate,
@@ -463,27 +826,45 @@ function TerminalLeafContent({
   onClose,
   onNewTab,
   onCloseCurrentTab,
-  onSetTuiOpen,
+  onOpenTui,
+  onNavigateView,
 }: TerminalLeafContentProps) {
+  const paneTerminalForms = useMemo(() => {
+    if (!terminalForms || !onNavigateView) {
+      return terminalForms;
+    }
+    const wrapped: Record<string, TerminalFormConfig> = {};
+    for (const [key, config] of Object.entries(terminalForms)) {
+      wrapped[key] = {
+        ...config,
+        openTuiRoute: target => {
+          onNavigateView(pane.id, `/${key}`, target ?? 'in-pane');
+        },
+      };
+    }
+    return wrapped;
+  }, [onNavigateView, pane.id, terminalForms]);
+
   const commands = useMemo<Readonly<Record<string, ZshCommandHandler>>>(() => {
     const base = buildZshCommandHandlers(terminal.commands, {
       navigate,
-      openTui: () => onSetTuiOpen(pane.id, true),
+      navigateView: onNavigateView
+        ? (to, target) => onNavigateView(pane.id, to, target)
+        : undefined,
+      openTui: target => onOpenTui(pane.id, target),
     });
-    const baseHelp = base['help'];
 
     return {
       ...base,
-      help: (args, raw) => {
-        const res = baseHelp ? baseHelp(args, raw) : { output: '' };
-        return {
-          ...res,
-          output: res.output ? `${res.output}\n${SPLIT_HELP_APPENDIX}` : SPLIT_HELP_APPENDIX.trim(),
-        };
-      },
       split: () => {
-        onSplit(pane.id, 'right');
-        return { output: `opened new terminal pane to the right from tty${pane.ttyNumber}` };
+        const direction = resolveAutoSplitDirection();
+        onSplit(pane.id, direction);
+        return {
+          output:
+            direction === 'down'
+              ? `opened new terminal pane below tty${pane.ttyNumber}`
+              : `opened new terminal pane to the right from tty${pane.ttyNumber}`,
+        };
       },
       vsplit: () => {
         onSplit(pane.id, 'right');
@@ -529,15 +910,11 @@ function TerminalLeafContent({
         return { output: isMultiPane ? 'toggled pane zoom' : 'single pane already fills viewport' };
       },
       exit: () => {
-        if (pane.tuiOpen) {
-          onSetTuiOpen(pane.id, false);
-          return { output: `closed TUI in tty${pane.ttyNumber}` };
-        }
         if (isMultiPane && !pane.pinned) {
           onClose(pane.id);
           return { output: `closing tty${pane.ttyNumber} ...` };
         }
-        if (!isMultiPane && canCloseTab && !pane.pinned) {
+        if (!isMultiPane && canCloseTab) {
           onCloseCurrentTab();
           return { output: `closing tab for tty${pane.ttyNumber} ...` };
         }
@@ -553,16 +930,16 @@ function TerminalLeafContent({
     onClose,
     onCloseCurrentTab,
     onDetach,
+    onNavigateView,
     onNewTab,
+    onOpenTui,
     onRotate,
-    onSetTuiOpen,
     onSplit,
     onSwap,
     onToggleZoom,
     pane.id,
     pane.pinned,
     pane.ttyNumber,
-    pane.tuiOpen,
     terminal.commands,
   ]);
 
@@ -582,9 +959,13 @@ function TerminalLeafContent({
         vcsState={terminal.vcsState}
         contextLabel={terminal.contextLabel}
         commands={commands}
-        terminalForms={terminalForms}
+        terminalForms={paneTerminalForms}
         quickCommands={terminal.quickCommands}
         initialEntries={pane.ttyNumber === 1 ? terminal.initialEntries : []}
+        initialCommandHistory={initialCommandHistory}
+        onCommandHistoryChange={
+          onCommandHistoryChange ? history => onCommandHistoryChange(pane.id, history) : undefined
+        }
         placeholder={terminal.placeholder}
         focusOnMount={isActive}
         isActive={isActive}
@@ -592,34 +973,16 @@ function TerminalLeafContent({
         inputLabel={inputLabel}
         ariaLabel={`Interactive Terminal ${ttyLabel}`}
         onFocusPane={() => onFocus(pane.id)}
-        onEscape={() => onSetTuiOpen(pane.id, false)}
       />
-
-      {pane.tuiOpen && renderTui ? (
-        <div className={styles.tuiOverlay}>
-          {renderTui({
-            paneId: pane.id,
-            ttyNumber: pane.ttyNumber,
-            isSinglePane: !isMultiPane,
-            closeTui: () => onSetTuiOpen(pane.id, false),
-          })}
-        </div>
-      ) : null}
     </div>
   );
 }
 
-interface TerminalLeafViewProps extends TerminalLeafContentProps {
+interface TerminalLeafViewProps extends TerminalLeafContentProps, PaneDragHandlers {
   isZoomed: boolean;
   isDragging: boolean;
-  onDragPointerDown?: (
-    paneId: string,
-    canDetach: boolean,
-    event: ReactPointerEvent<HTMLElement>,
-  ) => void;
-  onDragPointerMove?: (event: ReactPointerEvent<HTMLElement>) => void;
-  onDragPointerUp?: (event: ReactPointerEvent<HTMLElement>) => void;
-  onDragPointerCancel?: () => void;
+  paneNav: PaneNavigationContextValue | null;
+  renderPaneView?: (context: TerminalPaneViewContext) => ReactNode;
 }
 
 function TerminalLeafView({
@@ -632,8 +995,11 @@ function TerminalLeafView({
   isZoomed,
   isDragging,
   focusToken,
+  initialCommandHistory,
+  onCommandHistoryChange,
   navigate,
-  renderTui,
+  paneNav,
+  renderPaneView,
   onFocus,
   onSplit,
   onRotate,
@@ -643,71 +1009,201 @@ function TerminalLeafView({
   onClose,
   onNewTab,
   onCloseCurrentTab,
-  onSetTuiOpen,
+  onOpenTui,
+  onNavigateView,
   onDragPointerDown,
   onDragPointerMove,
   onDragPointerUp,
   onDragPointerCancel,
 }: TerminalLeafViewProps) {
-  const ttyLabel = `tty${pane.ttyNumber}`;
+  const tuiBodyRef = useRef<HTMLDivElement | null>(null);
+  const stack = pane.tuiStack ?? [];
+  const activeViewId = getActivePaneViewId(pane);
+  const hasTuiView = Boolean(renderPaneView && activeViewId);
+
+  useEffect(() => {
+    if (!isActive || !hasTuiView) {
+      return;
+    }
+    const container = tuiBodyRef.current;
+    if (container && !container.contains(document.activeElement)) {
+      container.focus({ preventScroll: true });
+    }
+  }, [activeViewId, focusToken, hasTuiView, isActive]);
+
+  const leafContent = (
+    <TerminalLeafContent
+      pane={pane}
+      terminal={terminal}
+      terminalForms={terminalForms}
+      isActive={isActive && !hasTuiView}
+      isMultiPane={isMultiPane}
+      canCloseTab={canCloseTab}
+      focusToken={focusToken}
+      initialCommandHistory={initialCommandHistory}
+      onCommandHistoryChange={onCommandHistoryChange}
+      navigate={navigate}
+      onFocus={onFocus}
+      onSplit={onSplit}
+      onRotate={onRotate}
+      onSwap={onSwap}
+      onDetach={onDetach}
+      onToggleZoom={onToggleZoom}
+      onClose={onClose}
+      onNewTab={onNewTab}
+      onCloseCurrentTab={onCloseCurrentTab}
+      onOpenTui={onOpenTui}
+      onNavigateView={onNavigateView}
+    />
+  );
 
   return (
-    <PaneActiveContext.Provider value={isActive}>
-      <div
-        className={styles.pane}
-        data-pane-id={pane.id}
-        data-pane-tty={ttyLabel}
-        data-active={isActive ? 'true' : 'false'}
-        data-multi={isMultiPane ? 'true' : 'false'}
-        data-dragging={isDragging ? 'true' : 'false'}
-        onPointerDown={() => onFocus(pane.id)}
-      >
-        {isMultiPane ? (
-          <PaneChromeBar
-            paneId={pane.id}
-            title={ttyLabel}
-            isZoomed={isZoomed}
-            canClose={!pane.pinned}
-            canDrag={!isZoomed}
-            onSplit={onSplit}
-            onRotate={onRotate}
-            onDetach={onDetach}
-            onToggleZoom={onToggleZoom}
-            onClose={onClose}
-            onDragPointerDown={onDragPointerDown}
-            onDragPointerMove={onDragPointerMove}
-            onDragPointerUp={onDragPointerUp}
-            onDragPointerCancel={onDragPointerCancel}
-          />
-        ) : null}
-
-        <TerminalLeafContent
-          pane={pane}
-          terminal={terminal}
-          terminalForms={terminalForms}
-          isActive={isActive}
-          isMultiPane={isMultiPane}
-          canCloseTab={canCloseTab}
-          focusToken={focusToken}
-          navigate={navigate}
-          renderTui={renderTui}
-          onFocus={onFocus}
-          onSplit={onSplit}
-          onRotate={onRotate}
-          onSwap={onSwap}
-          onDetach={onDetach}
-          onToggleZoom={onToggleZoom}
-          onClose={onClose}
-          onNewTab={onNewTab}
-          onCloseCurrentTab={onCloseCurrentTab}
-          onSetTuiOpen={onSetTuiOpen}
-        />
-      </div>
-    </PaneActiveContext.Provider>
+    <WorkspacePaneFrame
+      pane={pane}
+      title={`tty${pane.ttyNumber}`}
+      paneKind={hasTuiView ? 'tui' : 'terminal'}
+      isActive={isActive}
+      isMultiPane={isMultiPane}
+      isZoomed={isZoomed}
+      isDragging={isDragging}
+      paneNav={paneNav}
+      onFocus={onFocus}
+      onSplit={onSplit}
+      onRotate={onRotate}
+      onDetach={onDetach}
+      onToggleZoom={onToggleZoom}
+      onClose={onClose}
+      onDragPointerDown={onDragPointerDown}
+      onDragPointerMove={onDragPointerMove}
+      onDragPointerUp={onDragPointerUp}
+      onDragPointerCancel={onDragPointerCancel}
+    >
+      {renderPaneView ? (
+        <>
+          <div
+            className={styles.shellLayer}
+            data-shell-layer='true'
+            hidden={hasTuiView}
+            aria-hidden={hasTuiView ? 'true' : undefined}
+            inert={hasTuiView}
+          >
+            {leafContent}
+          </div>
+          {hasTuiView && activeViewId && paneNav ? (
+            <div
+              ref={tuiBodyRef}
+              tabIndex={-1}
+              className={styles.tuiLayer}
+              data-tui-view={activeViewId}
+              data-tui-depth={stack.length}
+            >
+              {renderPaneView({
+                paneId: pane.id,
+                ttyNumber: pane.ttyNumber,
+                viewId: activeViewId,
+                stack,
+                isSinglePane: !isMultiPane,
+                isActive,
+                isInitialPrimaryDeepLink: false,
+                push: paneNav.push,
+                pop: paneNav.pop,
+                exitTui: paneNav.exitTui,
+                openInSplit: paneNav.openInSplit,
+                openInTab: paneNav.openInTab,
+              })}
+            </div>
+          ) : null}
+        </>
+      ) : (
+        leafContent
+      )}
+    </WorkspacePaneFrame>
   );
 }
 
-interface PrimaryPaneViewProps {
+interface TuiLeafViewProps extends PaneDragHandlers {
+  pane: TerminalLeafPane;
+  isActive: boolean;
+  isMultiPane: boolean;
+  isZoomed: boolean;
+  isDragging: boolean;
+  focusToken: number;
+  renderTui: (context: TerminalPaneTuiContext) => ReactNode;
+  onFocus: (paneId: string) => void;
+  onSplit: (paneId: string, direction: SplitCreateDirection) => void;
+  onRotate: (paneId: string) => void;
+  onDetach: (paneId: string) => void;
+  onToggleZoom: (paneId: string) => void;
+  onClose: (paneId: string) => void;
+  onCloseTui: (paneId: string) => void;
+}
+
+function TuiLeafView({
+  pane,
+  isActive,
+  isMultiPane,
+  isZoomed,
+  isDragging,
+  focusToken,
+  renderTui,
+  onFocus,
+  onSplit,
+  onRotate,
+  onDetach,
+  onToggleZoom,
+  onClose,
+  onCloseTui,
+  onDragPointerDown,
+  onDragPointerMove,
+  onDragPointerUp,
+  onDragPointerCancel,
+}: TuiLeafViewProps) {
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+
+  // Move DOM focus into the TUI split pane when opened or focused via keyboard navigation.
+  useEffect(() => {
+    if (!isActive) {
+      return;
+    }
+    const container = bodyRef.current;
+    if (container && !container.contains(document.activeElement)) {
+      container.focus({ preventScroll: true });
+    }
+  }, [focusToken, isActive]);
+
+  return (
+    <WorkspacePaneFrame
+      pane={pane}
+      title='tui'
+      paneKind='tui'
+      isActive={isActive}
+      isMultiPane={isMultiPane}
+      isZoomed={isZoomed}
+      isDragging={isDragging}
+      onFocus={onFocus}
+      onSplit={onSplit}
+      onRotate={onRotate}
+      onDetach={onDetach}
+      onToggleZoom={onToggleZoom}
+      onClose={onClose}
+      onDragPointerDown={onDragPointerDown}
+      onDragPointerMove={onDragPointerMove}
+      onDragPointerUp={onDragPointerUp}
+      onDragPointerCancel={onDragPointerCancel}
+    >
+      <div ref={bodyRef} tabIndex={-1} className={styles.tuiPaneBody}>
+        {renderTui({
+          paneId: pane.id,
+          ttyNumber: pane.ttyNumber,
+          isSinglePane: !isMultiPane,
+          closeTui: () => onCloseTui(pane.id),
+        })}
+      </div>
+    </WorkspacePaneFrame>
+  );
+}
+
+interface PrimaryPaneViewProps extends PaneDragHandlers {
   pane: TerminalLeafPane;
   primaryPane: TerminalWorkspacePrimaryPane;
   isActive: boolean;
@@ -716,6 +1212,11 @@ interface PrimaryPaneViewProps {
   isZoomed: boolean;
   isDragging: boolean;
   focusToken: number;
+  initialCommandHistory?: readonly string[];
+  onCommandHistoryChange?: (paneId: string, history: readonly string[]) => void;
+  paneNav: PaneNavigationContextValue | null;
+  renderPaneView?: (context: TerminalPaneViewContext) => ReactNode;
+  initialDeepLinkRoute: string | null;
   onFocus: (paneId: string) => void;
   onSplit: (paneId: string, direction: SplitCreateDirection) => void;
   onRotate: (paneId: string) => void;
@@ -725,15 +1226,8 @@ interface PrimaryPaneViewProps {
   onClose: (paneId: string) => void;
   onNewTab: () => void;
   onCloseCurrentTab: () => void;
-  onSetTuiOpen: (paneId: string, open: boolean) => void;
-  onDragPointerDown?: (
-    paneId: string,
-    canDetach: boolean,
-    event: ReactPointerEvent<HTMLElement>,
-  ) => void;
-  onDragPointerMove?: (event: ReactPointerEvent<HTMLElement>) => void;
-  onDragPointerUp?: (event: ReactPointerEvent<HTMLElement>) => void;
-  onDragPointerCancel?: () => void;
+  onOpenTui: (paneId: string, target?: TerminalNavTarget) => void;
+  onNavigateView?: (paneId: string, viewId: string, target: TerminalNavTarget) => void;
 }
 
 function PrimaryPaneView({
@@ -745,6 +1239,11 @@ function PrimaryPaneView({
   isZoomed,
   isDragging,
   focusToken,
+  initialCommandHistory,
+  onCommandHistoryChange,
+  paneNav,
+  renderPaneView,
+  initialDeepLinkRoute,
   onFocus,
   onSplit,
   onRotate,
@@ -754,20 +1253,37 @@ function PrimaryPaneView({
   onClose,
   onNewTab,
   onCloseCurrentTab,
-  onSetTuiOpen,
+  onOpenTui,
+  onNavigateView,
   onDragPointerDown,
   onDragPointerMove,
   onDragPointerUp,
   onDragPointerCancel,
 }: PrimaryPaneViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const tuiBodyRef = useRef<HTMLDivElement | null>(null);
+  const stack = pane.tuiStack ?? [];
+  const activeViewId = getActivePaneViewId(pane);
+  const hasTuiView = Boolean(renderPaneView && activeViewId);
+  const effectiveTuiDepth = stack.length + (primaryPane.isRouteView ? 1 : 0);
+  const isInitialPrimaryDeepLink = Boolean(
+    hasTuiView &&
+    !primaryPane.embeddedTerminal &&
+    initialDeepLinkRoute &&
+    stack.length === 1 &&
+    stack[0] === initialDeepLinkRoute,
+  );
+  const showOverlayTuiLayer = Boolean(hasTuiView && !isInitialPrimaryDeepLink && activeViewId);
+
   const embeddedContextValue = useMemo<EmbeddedTerminalPaneContextValue>(
     () => ({
       pane,
-      isActive,
+      isActive: isActive && !hasTuiView,
       isMultiPane,
       canCloseTab,
       focusToken,
+      initialCommandHistory,
+      onCommandHistoryChange,
       onFocus,
       onSplit,
       onRotate,
@@ -777,14 +1293,18 @@ function PrimaryPaneView({
       onClose,
       onNewTab,
       onCloseCurrentTab,
-      onSetTuiOpen,
+      onOpenTui,
+      onNavigateView,
     }),
     [
       pane,
       isActive,
+      hasTuiView,
       isMultiPane,
       canCloseTab,
       focusToken,
+      initialCommandHistory,
+      onCommandHistoryChange,
       onFocus,
       onSplit,
       onRotate,
@@ -794,23 +1314,34 @@ function PrimaryPaneView({
       onClose,
       onNewTab,
       onCloseCurrentTab,
-      onSetTuiOpen,
+      onOpenTui,
+      onNavigateView,
     ],
   );
 
-  // Move DOM focus back into a non-terminal primary pane when switched via Ghostty keyboard navigation.
+  // Move DOM focus back into a non-terminal primary pane when switched via workspace keyboard navigation.
   useEffect(() => {
-    if (!isActive || focusToken <= 1 || primaryPane.embeddedTerminal) {
+    if (!isActive || focusToken <= 1 || primaryPane.embeddedTerminal || showOverlayTuiLayer) {
       return;
     }
     const container = scrollContainerRef.current;
     if (container && !container.contains(document.activeElement)) {
       container.focus({ preventScroll: true });
     }
-  }, [focusToken, isActive, primaryPane.embeddedTerminal]);
+  }, [focusToken, isActive, primaryPane.embeddedTerminal, showOverlayTuiLayer]);
+
+  useEffect(() => {
+    if (!isActive || !showOverlayTuiLayer) {
+      return;
+    }
+    const container = tuiBodyRef.current;
+    if (container && !container.contains(document.activeElement)) {
+      container.focus({ preventScroll: true });
+    }
+  }, [activeViewId, focusToken, isActive, showOverlayTuiLayer]);
 
   const paneLabel = primaryPane.embeddedTerminal ? `tty${pane.ttyNumber}` : primaryPane.title;
-  const bodyNode = primaryPane.embeddedTerminal ? (
+  const baseBodyNode = primaryPane.embeddedTerminal ? (
     <EmbeddedTerminalPaneContext.Provider value={embeddedContextValue}>
       <div className={styles.primaryFlushBody}>{primaryPane.content}</div>
     </EmbeddedTerminalPaneContext.Provider>
@@ -824,82 +1355,430 @@ function PrimaryPaneView({
     </div>
   );
 
-  return (
-    <PaneActiveContext.Provider value={isActive}>
+  const bodyNode = renderPaneView ? (
+    <>
       <div
-        className={styles.pane}
-        data-pane-id={pane.id}
-        data-pane-tty={paneLabel}
-        data-pane-kind={primaryPane.embeddedTerminal ? 'terminal' : 'primary'}
-        data-active={isActive ? 'true' : 'false'}
-        data-multi={isMultiPane ? 'true' : 'false'}
-        data-dragging={isDragging ? 'true' : 'false'}
-        onPointerDown={() => onFocus(pane.id)}
+        className={styles.shellLayer}
+        data-shell-layer='true'
+        hidden={showOverlayTuiLayer}
+        aria-hidden={showOverlayTuiLayer ? 'true' : undefined}
+        inert={showOverlayTuiLayer}
       >
-        {isMultiPane ? (
-          <PaneChromeBar
-            paneId={pane.id}
-            title={paneLabel}
-            isZoomed={isZoomed}
-            canClose={!pane.pinned}
-            canDrag={!isZoomed}
-            onSplit={onSplit}
-            onRotate={onRotate}
-            onDetach={onDetach}
-            onToggleZoom={onToggleZoom}
-            onClose={onClose}
-            onDragPointerDown={onDragPointerDown}
-            onDragPointerMove={onDragPointerMove}
-            onDragPointerUp={onDragPointerUp}
-            onDragPointerCancel={onDragPointerCancel}
-          />
-        ) : null}
-
-        {bodyNode}
+        {baseBodyNode}
       </div>
-    </PaneActiveContext.Provider>
+      {showOverlayTuiLayer && activeViewId && paneNav ? (
+        <div
+          ref={tuiBodyRef}
+          tabIndex={-1}
+          className={styles.tuiLayer}
+          data-tui-view={activeViewId}
+          data-tui-depth={effectiveTuiDepth}
+        >
+          {renderPaneView({
+            paneId: pane.id,
+            ttyNumber: pane.ttyNumber,
+            viewId: activeViewId,
+            stack,
+            isSinglePane: !isMultiPane,
+            isActive,
+            isInitialPrimaryDeepLink: false,
+            push: paneNav.push,
+            pop: paneNav.pop,
+            exitTui: paneNav.exitTui,
+            openInSplit: paneNav.openInSplit,
+            openInTab: paneNav.openInTab,
+          })}
+        </div>
+      ) : null}
+    </>
+  ) : (
+    baseBodyNode
+  );
+
+  return (
+    <WorkspacePaneFrame
+      pane={pane}
+      title={paneLabel}
+      paneKind={
+        hasTuiView || primaryPane.isRouteView
+          ? 'tui'
+          : primaryPane.embeddedTerminal
+            ? 'terminal'
+            : 'primary'
+      }
+      tuiDepth={effectiveTuiDepth}
+      isActive={isActive}
+      isMultiPane={isMultiPane}
+      isZoomed={isZoomed}
+      isDragging={isDragging}
+      paneNav={paneNav}
+      onFocus={onFocus}
+      onSplit={onSplit}
+      onRotate={onRotate}
+      onDetach={onDetach}
+      onToggleZoom={onToggleZoom}
+      onClose={onClose}
+      onDragPointerDown={onDragPointerDown}
+      onDragPointerMove={onDragPointerMove}
+      onDragPointerUp={onDragPointerUp}
+      onDragPointerCancel={onDragPointerCancel}
+    >
+      {bodyNode}
+    </WorkspacePaneFrame>
   );
 }
+
+interface PaneReadlineScopeProps {
+  paneId: string;
+  registerHandle: (paneId: string, handle: ZshTerminalHandle) => () => void;
+  children: ReactNode;
+}
+
+function PaneReadlineScope({ paneId, registerHandle, children }: PaneReadlineScopeProps) {
+  const value = useMemo(() => ({ paneId, registerHandle }), [paneId, registerHandle]);
+  return (
+    <TerminalReadlineRegistryContext.Provider value={value}>
+      {children}
+    </TerminalReadlineRegistryContext.Provider>
+  );
+}
+
+const noopStoreSubscribe = () => () => undefined;
 
 function StandaloneTerminalWorkspace({
   terminal,
   terminalForms,
   navigate,
   renderTui,
+  renderPaneView,
+  initialPrimaryTuiStack,
+  onPrimaryPaneReturnToShell,
+  dockTuiWindows,
+  canHandleInPaneRoute = defaultCanHandleInPaneRoute,
   primaryPane,
   disableMenuShortcut = false,
+  isActive = true,
+  routeKey,
+  workspaceStore,
+  navigatePrimaryInPaneRoutes = false,
 }: TerminalWorkspaceProps) {
-  const [tabState, setTabState] = useState<TerminalTabbedWorkspaceState>(() =>
-    createInitialTabbedWorkspaceState({ pinnedPrimary: Boolean(primaryPane) }),
+  const isDockedMode = dockTuiWindows ?? Boolean(renderPaneView);
+  const initialDeepLinkRoute = initialPrimaryTuiStack?.[0] ?? null;
+  const currentEmbeddedTerminal = primaryPane?.embeddedTerminal;
+  const isStoreBound = Boolean(workspaceStore && routeKey);
+  const normalizedRouteKey = routeKey ? normalizeWorkspaceRouteKey(routeKey) : '';
+  const pinnedPrimary = Boolean(primaryPane);
+  const initialStackKey = initialPrimaryTuiStack?.join('\0') ?? '';
+
+  const stableInitialOptions = useMemo(
+    () => ({
+      pinnedPrimary,
+      ...(initialStackKey.length > 0
+        ? { initialPrimaryTuiStack: initialStackKey.split('\0') }
+        : {}),
+    }),
+    [initialStackKey, pinnedPrimary],
   );
+
+  const serverStoreSnapshot = useMemo<WorkspaceStateSnapshot | null>(
+    () =>
+      workspaceStore && normalizedRouteKey
+        ? workspaceStore.getServerSnapshot(normalizedRouteKey, stableInitialOptions)
+        : null,
+    [normalizedRouteKey, stableInitialOptions, workspaceStore],
+  );
+
+  const subscribeStore = useCallback(
+    (onStoreChange: () => void) =>
+      workspaceStore && normalizedRouteKey
+        ? workspaceStore.subscribe(normalizedRouteKey, onStoreChange)
+        : noopStoreSubscribe(),
+    [normalizedRouteKey, workspaceStore],
+  );
+
+  const getClientStoreSnapshot = useCallback(
+    (): WorkspaceStateSnapshot | null =>
+      workspaceStore && normalizedRouteKey
+        ? workspaceStore.getClientSnapshot(normalizedRouteKey, stableInitialOptions)
+        : null,
+    [normalizedRouteKey, stableInitialOptions, workspaceStore],
+  );
+
+  const getServerStoreSnapshot = useCallback(() => serverStoreSnapshot, [serverStoreSnapshot]);
+
+  const storeSnapshot = useSyncExternalStore(
+    subscribeStore,
+    getClientStoreSnapshot,
+    getServerStoreSnapshot,
+  );
+
+  const [rawState, setRawState] = useState<SyncedTabState>(() => ({
+    tabs: createInitialTabbedWorkspaceState(stableInitialOptions),
+    embeddedTerminal: currentEmbeddedTerminal,
+    deepLinkRoute: initialDeepLinkRoute,
+  }));
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
   const [dragState, setDragState] = useState<ActiveDragState | null>(null);
   const [resizingSplitId, setResizingSplitId] = useState<string | null>(null);
 
+  const reconciledState = isStoreBound
+    ? rawState
+    : reconcilePrimaryRouteState(rawState, currentEmbeddedTerminal, initialDeepLinkRoute);
+  if (!isStoreBound && reconciledState !== rawState) {
+    setRawState(reconciledState);
+  }
+  const tabState = storeSnapshot ? storeSnapshot.tabs : reconciledState.tabs;
+  const paneHistoryMap = storeSnapshot?.paneHistory;
+
+  const setTabState = useCallback(
+    (updater: (prev: TerminalTabbedWorkspaceState) => TerminalTabbedWorkspaceState) => {
+      if (workspaceStore && normalizedRouteKey) {
+        workspaceStore.updateTabs(normalizedRouteKey, stableInitialOptions, updater);
+        return;
+      }
+      setRawState(prev => {
+        const base = reconcilePrimaryRouteState(
+          prev,
+          currentEmbeddedTerminal,
+          initialDeepLinkRoute,
+        );
+        const nextTabs = updater(base.tabs);
+        return nextTabs === base.tabs && base === prev ? prev : { ...base, tabs: nextTabs };
+      });
+    },
+    [
+      currentEmbeddedTerminal,
+      initialDeepLinkRoute,
+      normalizedRouteKey,
+      stableInitialOptions,
+      workspaceStore,
+    ],
+  );
+
+  const handleCommandHistoryChange = useMemo(() => {
+    if (!workspaceStore || !normalizedRouteKey) {
+      return undefined;
+    }
+    return (paneId: string, history: readonly string[]) => {
+      workspaceStore.setPaneHistory(normalizedRouteKey, stableInitialOptions, paneId, history);
+    };
+  }, [normalizedRouteKey, stableInitialOptions, workspaceStore]);
+
   const paneAreaRef = useRef<HTMLDivElement | null>(null);
   const dragOriginRef = useRef<DragOrigin | null>(null);
   const dividerDragRef = useRef<DividerDragOrigin | null>(null);
+  const terminalHandlesRef = useRef<Map<string, ZshTerminalHandle>>(new Map());
+
+  const registerTerminalHandle = useCallback((paneId: string, handle: ZshTerminalHandle) => {
+    terminalHandlesRef.current.set(paneId, handle);
+    return () => {
+      if (terminalHandlesRef.current.get(paneId) === handle) {
+        terminalHandlesRef.current.delete(paneId);
+      }
+    };
+  }, []);
 
   const activeTab = getActiveWorkspaceTab(tabState);
   const activeWorkspace = activeTab.workspace;
-  const activeLeaves = useMemo(() => listLeafPanes(activeWorkspace.root), [activeWorkspace.root]);
+  const activeLeaves = listLeafPanes(activeWorkspace.root);
   const isActiveMultiPane = activeLeaves.length > 1;
   const activeLeaf = findLeafPane(activeWorkspace.root, activeWorkspace.activePaneId);
-  const activeIsTerminalPane =
-    activeTab.id !== 'tab-1' ||
-    activeLeaf?.id !== 'pane-1' ||
-    !primaryPane ||
-    Boolean(primaryPane.embeddedTerminal);
-  const activeTuiOpen = activeIsTerminalPane && Boolean(activeLeaf?.tuiOpen);
+  const activeLeafViewId = activeLeaf ? getActivePaneViewId(activeLeaf) : null;
+  const activeHasTuiStack = Boolean(renderPaneView && activeLeafViewId);
+  const activeIsPrimaryRouteView = Boolean(
+    primaryPane?.isRouteView && isPrimaryHostPane(activeTab.pinned, activeLeaf?.pinned),
+  );
+  const activeIsPrimaryNonTerminal =
+    isPrimaryHostPane(activeTab.pinned, activeLeaf?.pinned) &&
+    Boolean(primaryPane) &&
+    !primaryPane?.embeddedTerminal;
+  const activeIsTuiPane = activeLeaf?.kind === 'tui';
+  const activeCanToggleTui = Boolean(renderPaneView || (renderTui && !activeIsPrimaryNonTerminal));
   const activeZoomedPaneId =
     activeWorkspace.zoomedPaneId && findLeafPane(activeWorkspace.root, activeWorkspace.zoomedPaneId)
       ? activeWorkspace.zoomedPaneId
       : null;
 
+  const shouldPreserveDeepLinkBase = useCallback(
+    (targetLeafPinned: boolean | undefined): boolean =>
+      Boolean(
+        !primaryPane?.embeddedTerminal &&
+        initialDeepLinkRoute &&
+        onPrimaryPaneReturnToShell &&
+        isPrimaryHostPane(activeTab.pinned, targetLeafPinned),
+      ),
+    [
+      activeTab.pinned,
+      initialDeepLinkRoute,
+      onPrimaryPaneReturnToShell,
+      primaryPane?.embeddedTerminal,
+    ],
+  );
+
+  const notifyIfPrimaryReturnedToShell = useCallback(
+    (targetLeafPinned: boolean | undefined, nextStackEmpty: boolean) => {
+      if (nextStackEmpty && isPrimaryHostPane(activeTab.pinned, targetLeafPinned)) {
+        onPrimaryPaneReturnToShell?.();
+      }
+    },
+    [activeTab.pinned, onPrimaryPaneReturnToShell],
+  );
+
+  const handlePushPaneView = (paneId: string, viewId: string) => {
+    setTabState(prev => updateActiveTabWorkspace(prev, ws => pushPaneView(ws, paneId, viewId)));
+  };
+
+  const handlePopPaneView = useCallback(
+    (paneId: string) => {
+      const targetLeaf = findLeafPane(activeWorkspace.root, paneId);
+      const currentLen = targetLeaf?.tuiStack?.length ?? 0;
+      const isRouteBase = Boolean(
+        primaryPane?.isRouteView && isPrimaryHostPane(activeTab.pinned, targetLeaf?.pinned),
+      );
+      if (currentLen === 0) {
+        if (isRouteBase) {
+          onPrimaryPaneReturnToShell?.();
+        }
+        return;
+      }
+      if (
+        currentLen <= 1 &&
+        shouldPreserveDeepLinkBase(targetLeaf?.pinned) &&
+        initialDeepLinkRoute
+      ) {
+        if (targetLeaf?.tuiStack?.[0] !== initialDeepLinkRoute) {
+          setTabState(prev =>
+            updateActiveTabWorkspace(prev, ws =>
+              pushPaneView(exitPaneTui(ws, paneId), paneId, initialDeepLinkRoute),
+            ),
+          );
+        }
+        onPrimaryPaneReturnToShell?.();
+        return;
+      }
+      setTabState(prev => updateActiveTabWorkspace(prev, ws => popPaneView(ws, paneId)));
+      if (!isRouteBase) {
+        notifyIfPrimaryReturnedToShell(targetLeaf?.pinned, currentLen === 1);
+      }
+    },
+    [
+      activeTab.pinned,
+      activeWorkspace.root,
+      initialDeepLinkRoute,
+      notifyIfPrimaryReturnedToShell,
+      onPrimaryPaneReturnToShell,
+      primaryPane?.isRouteView,
+      setTabState,
+      shouldPreserveDeepLinkBase,
+    ],
+  );
+
+  const handleExitPaneTui = useCallback(
+    (paneId: string) => {
+      const targetLeaf = findLeafPane(activeWorkspace.root, paneId);
+      const currentLen = targetLeaf?.tuiStack?.length ?? 0;
+      const isRouteBase = Boolean(
+        primaryPane?.isRouteView && isPrimaryHostPane(activeTab.pinned, targetLeaf?.pinned),
+      );
+      if (currentLen === 0) {
+        if (isRouteBase) {
+          onPrimaryPaneReturnToShell?.();
+        }
+        return;
+      }
+      if (shouldPreserveDeepLinkBase(targetLeaf?.pinned) && initialDeepLinkRoute) {
+        if (currentLen > 1 || targetLeaf?.tuiStack?.[0] !== initialDeepLinkRoute) {
+          setTabState(prev =>
+            updateActiveTabWorkspace(prev, ws =>
+              pushPaneView(exitPaneTui(ws, paneId), paneId, initialDeepLinkRoute),
+            ),
+          );
+        }
+        onPrimaryPaneReturnToShell?.();
+        return;
+      }
+      setTabState(prev => updateActiveTabWorkspace(prev, ws => exitPaneTui(ws, paneId)));
+      notifyIfPrimaryReturnedToShell(targetLeaf?.pinned, true);
+    },
+    [
+      activeTab.pinned,
+      activeWorkspace.root,
+      initialDeepLinkRoute,
+      notifyIfPrimaryReturnedToShell,
+      onPrimaryPaneReturnToShell,
+      primaryPane?.isRouteView,
+      setTabState,
+      shouldPreserveDeepLinkBase,
+    ],
+  );
+
+  const handleOpenViewInSplit = (paneId: string, viewId: string) => {
+    const direction = resolveAutoSplitDirection();
+    setTabState(prev =>
+      updateActiveTabWorkspace(prev, ws => openViewInSplit(ws, paneId, viewId, direction)),
+    );
+  };
+
+  const handleOpenViewInTab = (viewId: string) => {
+    setRenamingTabId(null);
+    setTabState(prev => openViewInTab(prev, viewId));
+  };
+
+  const handleNavigateView = (paneId: string, viewId: string, target: TerminalNavTarget) => {
+    if (!canHandleInPaneRoute(viewId)) {
+      if (navigate) {
+        void navigate(viewId);
+      }
+      return;
+    }
+    if (target === 'tab') {
+      handleOpenViewInTab(viewId);
+      return;
+    }
+    if (target === 'split') {
+      handleOpenViewInSplit(paneId, viewId);
+      return;
+    }
+    const targetLeaf = findLeafPane(activeWorkspace.root, paneId);
+    const isPrimaryHost = isPrimaryHostPane(activeTab.pinned, targetLeaf?.pinned);
+    if (navigatePrimaryInPaneRoutes && isPrimaryHost && viewId !== 'tui' && navigate) {
+      void navigate(viewId);
+      return;
+    }
+    handlePushPaneView(paneId, viewId);
+  };
+
   useEffect(() => {
+    if (!isActive) {
+      return;
+    }
     const handleGlobalKeyDown = (event: KeyboardEvent) => {
-      if (event.isComposing || renamingTabId !== null) {
+      if (renamingTabId !== null) {
+        return;
+      }
+
+      const isVisibleTerminalPane =
+        !activeHasTuiStack &&
+        !activeIsTuiPane &&
+        !activeIsPrimaryRouteView &&
+        !hasOpenOverlayOrPopup(event.target);
+
+      // Intercept physical Alt+N before macOS dead-key tilde composition starts when a terminal is active.
+      if (isVisibleTerminalPane && isAltNReadlineChord(event)) {
+        const activeHandle = terminalHandlesRef.current.get(activeWorkspace.activePaneId);
+        if (
+          activeHandle &&
+          (!isEditableTarget(event.target) || activeHandle.containsTarget(event.target))
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          activeHandle.executeReadlineAction('history-next');
+          return;
+        }
+      }
+
+      if (event.isComposing) {
         return;
       }
 
@@ -923,23 +1802,88 @@ function StandaloneTerminalWorkspace({
         return;
       }
 
-      if (event.key === 'Escape' && !event.defaultPrevented && activeTuiOpen) {
+      if (
+        (activeHasTuiStack || activeIsPrimaryRouteView) &&
+        activeLeaf &&
+        !isEditableTarget(event.target) &&
+        !hasOpenOverlayOrPopup(event.target)
+      ) {
+        const isEscape = event.key === 'Escape' && !event.defaultPrevented;
+        const isAltLeft =
+          event.altKey &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.shiftKey &&
+          event.key === 'ArrowLeft';
+        if (isEscape || isAltLeft) {
+          event.preventDefault();
+          handlePopPaneView(activeLeaf.id);
+          return;
+        }
+        if (
+          event.key.toLowerCase() === 'q' &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.altKey &&
+          !event.defaultPrevented
+        ) {
+          event.preventDefault();
+          handleExitPaneTui(activeLeaf.id);
+          return;
+        }
+      }
+
+      if (
+        event.key === 'Escape' &&
+        !event.defaultPrevented &&
+        activeIsTuiPane &&
+        !hasOpenOverlayOrPopup(event.target)
+      ) {
         event.preventDefault();
-        setTabState(prev =>
-          updateActiveTabWorkspace(prev, ws => setPaneTuiOpen(ws, ws.activePaneId, false)),
-        );
+        setTabState(prev => closeActivePaneOrTab(prev));
         return;
       }
 
-      const action = matchGhosttyShortcut(event);
+      const action = matchWorkspaceShortcut(event);
       if (!action) {
+        if (isVisibleTerminalPane) {
+          const readlineAction = matchTerminalReadlineShortcut(event);
+          if (readlineAction) {
+            const activeHandle = terminalHandlesRef.current.get(activeWorkspace.activePaneId);
+            if (
+              activeHandle &&
+              (!isEditableTarget(event.target) || activeHandle.containsTarget(event.target))
+            ) {
+              event.preventDefault();
+              event.stopPropagation();
+              activeHandle.executeReadlineAction(readlineAction);
+            }
+          }
+        }
         return;
       }
 
-      if (action.type === 'toggle-tui' && !activeIsTerminalPane) {
+      if (action.type === 'rename-tab') {
+        const activeHandle = terminalHandlesRef.current.get(activeWorkspace.activePaneId);
+        if (
+          hasOpenOverlayOrPopup(event.target) ||
+          (isEditableTarget(event.target) && !activeHandle?.containsTarget(event.target))
+        ) {
+          return;
+        }
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (event.repeat && action.type !== 'resize') {
         return;
       }
-      if (action.type === 'open-menu' && (disableMenuShortcut || !navigate)) {
+
+      if (action.type === 'toggle-tui' && !activeCanToggleTui) {
+        return;
+      }
+      if (action.type === 'open-menu' && (disableMenuShortcut || (!renderPaneView && !navigate))) {
         return;
       }
       if (
@@ -957,13 +1901,6 @@ function StandaloneTerminalWorkspace({
         (action.type === 'focus-tab-relative' || action.type === 'focus-tab-index') &&
         tabState.tabs.length <= 1
       ) {
-        return;
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      if (event.repeat && action.type !== 'resize') {
         return;
       }
 
@@ -1009,7 +1946,7 @@ function StandaloneTerminalWorkspace({
           setTabState(prev => addWorkspaceTab(prev));
           return;
         case 'rename-tab': {
-          const currentTitle = resolveTabDisplayTitle(activeTab, primaryPane);
+          const currentTitle = resolveTabDisplayTitle(activeTab, primaryPane, initialDeepLinkRoute);
           setRenamingTabId(activeTab.id);
           setRenameDraft(currentTitle);
           return;
@@ -1026,11 +1963,37 @@ function StandaloneTerminalWorkspace({
           );
           return;
         case 'toggle-tui':
-          setTabState(prev =>
-            updateActiveTabWorkspace(prev, ws => setPaneTuiOpen(ws, ws.activePaneId, 'toggle')),
-          );
+          if (renderPaneView && activeLeaf) {
+            if (activeLeafViewId === 'tui') {
+              handlePopPaneView(activeLeaf.id);
+            } else {
+              setTabState(prev =>
+                updateActiveTabWorkspace(prev, ws => pushPaneView(ws, activeLeaf.id, 'tui')),
+              );
+            }
+            return;
+          }
+          setTabState(prev => {
+            const currentTab = getActiveWorkspaceTab(prev);
+            const currentActive = findLeafPane(
+              currentTab.workspace.root,
+              currentTab.workspace.activePaneId,
+            );
+            if (currentActive?.kind === 'tui') {
+              return closeActivePaneOrTab(prev);
+            }
+            return updateActiveTabWorkspace(prev, ws =>
+              toggleTuiPane(ws, ws.activePaneId, resolveAutoSplitDirection()),
+            );
+          });
           return;
         case 'open-menu':
+          if (renderPaneView && activeLeaf) {
+            setTabState(prev =>
+              updateActiveTabWorkspace(prev, ws => pushPaneView(ws, activeLeaf.id, '/menu')),
+            );
+            return;
+          }
           if (navigate) {
             void navigate('/menu');
           }
@@ -1043,20 +2006,34 @@ function StandaloneTerminalWorkspace({
       window.removeEventListener('keydown', handleGlobalKeyDown, { capture: true });
     };
   }, [
-    activeIsTerminalPane,
-    activeLeaf?.pinned,
+    activeCanToggleTui,
+    activeHasTuiStack,
+    activeIsPrimaryRouteView,
+    activeIsTuiPane,
+    activeLeaf,
+    activeLeafViewId,
     activeTab,
-    activeTuiOpen,
+    activeWorkspace.activePaneId,
     disableMenuShortcut,
     dragState,
+    handleExitPaneTui,
+    handlePopPaneView,
+    initialDeepLinkRoute,
+    isActive,
     isActiveMultiPane,
     navigate,
+    onPrimaryPaneReturnToShell,
     primaryPane,
+    renderPaneView,
     renamingTabId,
+    setTabState,
     tabState.tabs.length,
   ]);
 
   const handleFocusPane = (paneId: string) => {
+    if (activeWorkspace.activePaneId === paneId) {
+      return;
+    }
     setTabState(prev => updateActiveTabWorkspace(prev, ws => focusPaneById(ws, paneId, false)));
   };
 
@@ -1076,22 +2053,9 @@ function StandaloneTerminalWorkspace({
 
   const handleSwapPane = (paneId: string) => {
     setTabState(prev =>
-      updateActiveTabWorkspace(prev, ws => {
-        const focused = focusPaneById(ws, paneId, false);
-        const swappedRight = moveActiveSplit(focused, 'right');
-        if (swappedRight !== focused) {
-          return swappedRight;
-        }
-        const swappedLeft = moveActiveSplit(focused, 'left');
-        if (swappedLeft !== focused) {
-          return swappedLeft;
-        }
-        const swappedDown = moveActiveSplit(focused, 'down');
-        if (swappedDown !== focused) {
-          return swappedDown;
-        }
-        return moveActiveSplit(focused, 'up');
-      }),
+      updateActiveTabWorkspace(prev, ws =>
+        swapActivePaneWithNeighbor(focusPaneById(ws, paneId, false)),
+      ),
     );
   };
 
@@ -1109,8 +2073,30 @@ function StandaloneTerminalWorkspace({
     setTabState(prev => updateActiveTabWorkspace(prev, ws => closePaneById(ws, paneId)));
   };
 
-  const handleSetPaneTuiOpen = (paneId: string, open: boolean) => {
-    setTabState(prev => updateActiveTabWorkspace(prev, ws => setPaneTuiOpen(ws, paneId, open)));
+  const handleOpenTui = (paneId: string, target?: TerminalNavTarget) => {
+    if (renderPaneView) {
+      handleNavigateView(paneId, 'tui', target ?? 'in-pane');
+      return;
+    }
+    if (!renderTui) {
+      return;
+    }
+    const direction = resolveAutoSplitDirection();
+    setTabState(prev => updateActiveTabWorkspace(prev, ws => openTuiPane(ws, paneId, direction)));
+  };
+
+  const handleCloseTuiPane = (paneId: string) => {
+    setTabState(prev => {
+      const currentTab = getActiveWorkspaceTab(prev);
+      const leaves = listLeafPanes(currentTab.workspace.root);
+      if (leaves.length > 1) {
+        return updateActiveTabWorkspace(prev, ws => closePaneById(ws, paneId));
+      }
+      if (leaves[0]?.id === paneId) {
+        return closeWorkspaceTab(prev, currentTab.id);
+      }
+      return prev;
+    });
   };
 
   const handleAddTab = () => {
@@ -1325,11 +2311,15 @@ function StandaloneTerminalWorkspace({
         tabs={tabState.tabs}
         activeTabId={tabState.activeTabId}
         primaryPane={primaryPane}
+        initialDeepLinkRoute={initialDeepLinkRoute}
         renamingTabId={renamingTabId}
         renameDraft={renameDraft}
         isDetachPreview={dropTarget?.zone === 'detach-tab'}
         onSelectTab={handleSelectTab}
         onAddTab={handleAddTab}
+        onSplitActivePane={() =>
+          handleSplitPane(activeWorkspace.activePaneId, resolveAutoSplitDirection())
+        }
         onCloseTab={handleCloseTab}
         onStartRename={handleStartRename}
         onChangeRenameDraft={setRenameDraft}
@@ -1343,7 +2333,7 @@ function StandaloneTerminalWorkspace({
           const ws = tab.workspace;
           const leaves = listLeafPanes(ws.root);
           const isMultiPane = leaves.length > 1;
-          const canCloseThisTab = tabState.tabs.length > 1 && !tab.pinned;
+          const canCloseThisTab = tabState.tabs.length > 1;
           const zoomedPaneId =
             ws.zoomedPaneId && findLeafPane(ws.root, ws.zoomedPaneId) ? ws.zoomedPaneId : null;
           const rectsById = new Map<
@@ -1366,11 +2356,32 @@ function StandaloneTerminalWorkspace({
               {leaves.map(pane => {
                 const isZoomed = pane.id === zoomedPaneId;
                 const isHidden = Boolean(zoomedPaneId) && !isZoomed;
-                const isPaneActive = isCurrentTab && pane.id === ws.activePaneId;
-                const isDraggingPane = isCurrentTab && dragState?.sourcePaneId === pane.id;
+                const isPaneActive = isActive && isCurrentTab && pane.id === ws.activePaneId;
+                const isDraggingPane =
+                  isActive && isCurrentTab && dragState?.sourcePaneId === pane.id;
                 const rect = isZoomed
                   ? { x: 0, y: 0, width: 1, height: 1 }
                   : (rectsById.get(pane.id) ?? { x: 0, y: 0, width: 1, height: 1 });
+                const paneStack = pane.tuiStack ?? [];
+                const isPrimaryRoutePane = Boolean(
+                  primaryPane?.isRouteView && isPrimaryHostPane(tab.pinned, pane.pinned),
+                );
+                const paneNav: PaneNavigationContextValue | null = isDockedMode
+                  ? {
+                      paneId: pane.id,
+                      ttyNumber: pane.ttyNumber,
+                      isActive: isPaneActive,
+                      isSinglePane: !isMultiPane,
+                      docked: true,
+                      stack: paneStack,
+                      canGoBack: paneStack.length > 0 || isPrimaryRoutePane,
+                      push: viewId => handleNavigateView(pane.id, viewId, 'in-pane'),
+                      pop: () => handlePopPaneView(pane.id),
+                      exitTui: () => handleExitPaneTui(pane.id),
+                      openInSplit: viewId => handleNavigateView(pane.id, viewId, 'split'),
+                      openInTab: viewId => handleNavigateView(pane.id, viewId, 'tab'),
+                    }
+                  : null;
 
                 return (
                   <div
@@ -1386,60 +2397,101 @@ function StandaloneTerminalWorkspace({
                       } as CSSProperties
                     }
                   >
-                    {primaryPane && tab.id === 'tab-1' && pane.id === 'pane-1' ? (
-                      <PrimaryPaneView
-                        pane={pane}
-                        primaryPane={primaryPane}
-                        isActive={isPaneActive}
-                        isMultiPane={isMultiPane}
-                        canCloseTab={canCloseThisTab}
-                        isZoomed={isZoomed}
-                        isDragging={isDraggingPane}
-                        focusToken={ws.focusToken}
-                        onFocus={handleFocusPane}
-                        onSplit={handleSplitPane}
-                        onRotate={handleRotatePane}
-                        onSwap={handleSwapPane}
-                        onDetach={handleDetachPane}
-                        onToggleZoom={handleToggleZoom}
-                        onClose={handleClosePane}
-                        onNewTab={handleAddTab}
-                        onCloseCurrentTab={handleCloseCurrentTab}
-                        onSetTuiOpen={handleSetPaneTuiOpen}
-                        onDragPointerDown={handleDragPointerDown}
-                        onDragPointerMove={handleDragPointerMove}
-                        onDragPointerUp={handleDragPointerUp}
-                        onDragPointerCancel={clearDrag}
-                      />
-                    ) : (
-                      <TerminalLeafView
-                        pane={pane}
-                        terminal={terminal}
-                        terminalForms={terminalForms}
-                        isActive={isPaneActive}
-                        isMultiPane={isMultiPane}
-                        canCloseTab={canCloseThisTab}
-                        isZoomed={isZoomed}
-                        isDragging={isDraggingPane}
-                        focusToken={ws.focusToken}
-                        navigate={navigate}
-                        renderTui={renderTui}
-                        onFocus={handleFocusPane}
-                        onSplit={handleSplitPane}
-                        onRotate={handleRotatePane}
-                        onSwap={handleSwapPane}
-                        onDetach={handleDetachPane}
-                        onToggleZoom={handleToggleZoom}
-                        onClose={handleClosePane}
-                        onNewTab={handleAddTab}
-                        onCloseCurrentTab={handleCloseCurrentTab}
-                        onSetTuiOpen={handleSetPaneTuiOpen}
-                        onDragPointerDown={handleDragPointerDown}
-                        onDragPointerMove={handleDragPointerMove}
-                        onDragPointerUp={handleDragPointerUp}
-                        onDragPointerCancel={clearDrag}
-                      />
-                    )}
+                    <PaneReadlineScope paneId={pane.id} registerHandle={registerTerminalHandle}>
+                      {primaryPane && isPrimaryHostPane(tab.pinned, pane.pinned) ? (
+                        <PrimaryPaneView
+                          pane={pane}
+                          primaryPane={primaryPane}
+                          isActive={isPaneActive}
+                          isMultiPane={isMultiPane}
+                          canCloseTab={canCloseThisTab}
+                          isZoomed={isZoomed}
+                          isDragging={isDraggingPane}
+                          focusToken={ws.focusToken}
+                          initialCommandHistory={
+                            paneHistoryMap && Object.hasOwn(paneHistoryMap, pane.id)
+                              ? paneHistoryMap[pane.id]
+                              : undefined
+                          }
+                          onCommandHistoryChange={handleCommandHistoryChange}
+                          paneNav={paneNav}
+                          renderPaneView={renderPaneView}
+                          initialDeepLinkRoute={initialDeepLinkRoute}
+                          onFocus={handleFocusPane}
+                          onSplit={handleSplitPane}
+                          onRotate={handleRotatePane}
+                          onSwap={handleSwapPane}
+                          onDetach={handleDetachPane}
+                          onToggleZoom={handleToggleZoom}
+                          onClose={handleClosePane}
+                          onNewTab={handleAddTab}
+                          onCloseCurrentTab={handleCloseCurrentTab}
+                          onOpenTui={handleOpenTui}
+                          onNavigateView={renderPaneView ? handleNavigateView : undefined}
+                          onDragPointerDown={handleDragPointerDown}
+                          onDragPointerMove={handleDragPointerMove}
+                          onDragPointerUp={handleDragPointerUp}
+                          onDragPointerCancel={clearDrag}
+                        />
+                      ) : pane.kind === 'tui' && renderTui ? (
+                        <TuiLeafView
+                          pane={pane}
+                          isActive={isPaneActive}
+                          isMultiPane={isMultiPane}
+                          isZoomed={isZoomed}
+                          isDragging={isDraggingPane}
+                          focusToken={ws.focusToken}
+                          renderTui={renderTui}
+                          onFocus={handleFocusPane}
+                          onSplit={handleSplitPane}
+                          onRotate={handleRotatePane}
+                          onDetach={handleDetachPane}
+                          onToggleZoom={handleToggleZoom}
+                          onClose={handleClosePane}
+                          onCloseTui={handleCloseTuiPane}
+                          onDragPointerDown={handleDragPointerDown}
+                          onDragPointerMove={handleDragPointerMove}
+                          onDragPointerUp={handleDragPointerUp}
+                          onDragPointerCancel={clearDrag}
+                        />
+                      ) : (
+                        <TerminalLeafView
+                          pane={pane}
+                          terminal={terminal}
+                          terminalForms={terminalForms}
+                          isActive={isPaneActive}
+                          isMultiPane={isMultiPane}
+                          canCloseTab={canCloseThisTab}
+                          isZoomed={isZoomed}
+                          isDragging={isDraggingPane}
+                          focusToken={ws.focusToken}
+                          initialCommandHistory={
+                            paneHistoryMap && Object.hasOwn(paneHistoryMap, pane.id)
+                              ? paneHistoryMap[pane.id]
+                              : undefined
+                          }
+                          onCommandHistoryChange={handleCommandHistoryChange}
+                          navigate={navigate}
+                          paneNav={paneNav}
+                          renderPaneView={renderPaneView}
+                          onFocus={handleFocusPane}
+                          onSplit={handleSplitPane}
+                          onRotate={handleRotatePane}
+                          onSwap={handleSwapPane}
+                          onDetach={handleDetachPane}
+                          onToggleZoom={handleToggleZoom}
+                          onClose={handleClosePane}
+                          onNewTab={handleAddTab}
+                          onCloseCurrentTab={handleCloseCurrentTab}
+                          onOpenTui={handleOpenTui}
+                          onNavigateView={renderPaneView ? handleNavigateView : undefined}
+                          onDragPointerDown={handleDragPointerDown}
+                          onDragPointerMove={handleDragPointerMove}
+                          onDragPointerUp={handleDragPointerUp}
+                          onDragPointerCancel={clearDrag}
+                        />
+                      )}
+                    </PaneReadlineScope>
                   </div>
                 );
               })}
@@ -1448,34 +2500,37 @@ function StandaloneTerminalWorkspace({
                 const isResizing = isCurrentTab && resizingSplitId === divider.id;
                 const percent = Math.round(divider.ratio * 100);
                 return (
-                  <button
+                  <WorkspaceTooltip
                     key={divider.id}
-                    type='button'
-                    aria-label={
-                      divider.direction === 'vertical'
-                        ? `Resize vertical split (${percent}%)`
-                        : `Resize horizontal split (${percent}%)`
-                    }
-                    title='Drag to resize split · double-click to equalize'
-                    className={styles.splitDivider}
-                    data-split-divider={divider.id}
-                    data-direction={divider.direction}
-                    data-resizing={isResizing ? 'true' : 'false'}
-                    style={
-                      {
-                        '--sf-pane-x': divider.x,
-                        '--sf-pane-y': divider.y,
-                        '--sf-pane-w': divider.direction === 'horizontal' ? divider.length : 1,
-                        '--sf-pane-h': divider.direction === 'vertical' ? divider.length : 1,
-                      } as CSSProperties
-                    }
-                    onPointerDown={event => handleDividerPointerDown(divider, event)}
-                    onPointerMove={handleDividerPointerMove}
-                    onPointerUp={event => clearDividerDrag(event)}
-                    onPointerCancel={() => clearDividerDrag()}
-                    onDoubleClick={() => handleDividerDoubleClick(divider.id)}
-                    onKeyDown={event => handleDividerKeyDown(divider, event)}
-                  />
+                    label='Drag to resize split · double-click to equalize'
+                  >
+                    <button
+                      type='button'
+                      aria-label={
+                        divider.direction === 'vertical'
+                          ? `Resize vertical split (${percent}%)`
+                          : `Resize horizontal split (${percent}%)`
+                      }
+                      className={styles.splitDivider}
+                      data-split-divider={divider.id}
+                      data-direction={divider.direction}
+                      data-resizing={isResizing ? 'true' : 'false'}
+                      style={
+                        {
+                          '--sf-pane-x': divider.x,
+                          '--sf-pane-y': divider.y,
+                          '--sf-pane-w': divider.direction === 'horizontal' ? divider.length : 1,
+                          '--sf-pane-h': divider.direction === 'vertical' ? divider.length : 1,
+                        } as CSSProperties
+                      }
+                      onPointerDown={event => handleDividerPointerDown(divider, event)}
+                      onPointerMove={handleDividerPointerMove}
+                      onPointerUp={event => clearDividerDrag(event)}
+                      onPointerCancel={() => clearDividerDrag()}
+                      onDoubleClick={() => handleDividerDoubleClick(divider.id)}
+                      onKeyDown={event => handleDividerKeyDown(divider, event)}
+                    />
+                  </WorkspaceTooltip>
                 );
               })}
             </div>
@@ -1518,8 +2573,9 @@ export function TerminalWorkspace(props: TerminalWorkspaceProps) {
         isMultiPane={embeddedCtx.isMultiPane}
         canCloseTab={embeddedCtx.canCloseTab}
         focusToken={embeddedCtx.focusToken}
+        initialCommandHistory={embeddedCtx.initialCommandHistory}
+        onCommandHistoryChange={embeddedCtx.onCommandHistoryChange}
         navigate={props.navigate}
-        renderTui={props.renderTui}
         onFocus={embeddedCtx.onFocus}
         onSplit={embeddedCtx.onSplit}
         onRotate={embeddedCtx.onRotate}
@@ -1529,7 +2585,8 @@ export function TerminalWorkspace(props: TerminalWorkspaceProps) {
         onClose={embeddedCtx.onClose}
         onNewTab={embeddedCtx.onNewTab}
         onCloseCurrentTab={embeddedCtx.onCloseCurrentTab}
-        onSetTuiOpen={embeddedCtx.onSetTuiOpen}
+        onOpenTui={embeddedCtx.onOpenTui}
+        onNavigateView={embeddedCtx.onNavigateView}
       />
     );
   }

@@ -1,4 +1,4 @@
-import type { DocumentSeoRuntimeConfig } from './index.ts';
+import type { DocumentSeoRuntimeConfig } from './portal.ts';
 
 const GA4_ID_PATTERN = /^G-[A-Z0-9]+$/i;
 const GTM_ID_PATTERN = /^GTM-[A-Z0-9]+$/i;

@@ -68,4 +68,38 @@ describe('portal/pages/contact', () => {
     expect(screen.getByText('rcpt-001')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Return to Terminal' }).getAttribute('href')).toBe('/');
   });
+
+  it('forwards structured error code, action, and correlationId into the form alert banner', () => {
+    const failedResult: ContactActionResult = {
+      ok: false,
+      source: 'database',
+      formError: 'Database temporarily unavailable.',
+      fieldErrors: {},
+      code: 'ERR_DB_UNAVAILABLE',
+      action: 'Retry shortly or share ID.',
+      correlationId: 'corr-contact-503',
+    };
+
+    const router = createMemoryRouter([
+      {
+        path: '/',
+        element: (
+          <PortalContactPage
+            content={CONTENT}
+            actionData={failedResult}
+            isSubmitting={false}
+            onClose={vi.fn<() => void>()}
+          />
+        ),
+      },
+    ]);
+
+    render(<RouterProvider router={router} />);
+
+    const alert = screen.getByRole('alert');
+    expect(alert.textContent).toContain('Database temporarily unavailable.');
+    expect(alert.textContent).toContain('ERR_DB_UNAVAILABLE');
+    expect(alert.textContent).toContain('Retry shortly or share ID.');
+    expect(alert.textContent).toContain('corr-contact-503');
+  });
 });

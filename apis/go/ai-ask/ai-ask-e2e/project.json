@@ -18,7 +18,7 @@
       ],
       "options": {
         "cwd": "apis/go/ai-ask/ai-ask-e2e",
-        "command": "go test -v -count=1 ./..."
+        "command": "node --conditions=@aklapper/source ../../../../packages/tooling/src/run-with-ephemeral-pg.ts --label e2e -- go test -v -count=1 ./..."
       }
     }
   }

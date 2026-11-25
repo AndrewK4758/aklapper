@@ -1,5 +1,11 @@
 import { type ComponentPropsWithRef, createElement, type ElementType, type JSX } from 'react';
 
+import {
+  type ElementViewMode,
+  resolveElementViewport,
+} from '../../components/terminalViewportSplit';
+import { useViewportContext } from '../../components/ViewportProvider';
+
 export function cx(...classes: readonly (string | false | null | undefined)[]): string {
   return classes.filter(Boolean).join(' ');
 }
@@ -24,36 +30,86 @@ export function mergeBaseClassName<ClassProp>(
   return baseClass as ClassProp;
 }
 
-interface ClassNameBearingProps {
-  className?: unknown;
+export interface StyledPartOptions {
+  readonly stampViewport?: boolean;
+  readonly mobileSheet?: boolean;
 }
+
+interface ViewportClassBearingProps {
+  className?: unknown;
+  viewMode?: ElementViewMode;
+  'data-viewport'?: string;
+  'data-mobile-sheet'?: string;
+}
+
+export type WithElementViewMode<Component> = Component extends (props: infer Props) => infer Result
+  ? (props: Props & { readonly viewMode?: ElementViewMode }) => Result
+  : Component;
 
 export function styledPart<Component>(
   component: Component,
   baseClass: string,
   displayName: string,
-): Component {
-  const RenderTarget = component as unknown as ElementType<ClassNameBearingProps>;
+  options?: StyledPartOptions,
+): WithElementViewMode<Component> {
+  const RenderTarget = component as unknown as ElementType<ViewportClassBearingProps>;
+  const shouldStampViewport = options?.stampViewport === true;
+  const isMobileSheet = options?.mobileSheet === true;
 
-  function StyledPart(props: ClassNameBearingProps): JSX.Element {
-    const mergedClassName = mergeBaseClassName(baseClass, props.className);
-    return createElement(RenderTarget, { ...props, className: mergedClassName });
+  function StyledPart(props: ViewportClassBearingProps): JSX.Element {
+    const { layoutMode } = useViewportContext();
+    const { viewMode, className, ...restProps } = props;
+    const mergedClassName = mergeBaseClassName(baseClass, className);
+    const resolvedViewport = resolveElementViewport(layoutMode, viewMode);
+    const nextProps: ViewportClassBearingProps = {
+      ...restProps,
+      className: mergedClassName,
+    };
+
+    if (shouldStampViewport || viewMode !== undefined) {
+      nextProps['data-viewport'] = props['data-viewport'] ?? resolvedViewport;
+    }
+
+    if (isMobileSheet && resolvedViewport !== 'desktop') {
+      nextProps['data-mobile-sheet'] = 'true';
+    }
+
+    return createElement(RenderTarget, nextProps);
   }
 
   StyledPart.displayName = displayName;
-  return StyledPart as unknown as Component;
+  return StyledPart as unknown as WithElementViewMode<Component>;
 }
 
-export type SlotProps<Tag extends keyof JSX.IntrinsicElements> = ComponentPropsWithRef<Tag>;
+export function viewportStyledPart<Component>(
+  component: Component,
+  baseClass: string,
+  displayName: string,
+  options?: Omit<StyledPartOptions, 'stampViewport'>,
+): WithElementViewMode<Component> {
+  return styledPart(component, baseClass, displayName, {
+    ...options,
+    stampViewport: true,
+  });
+}
+
+export type SlotProps<Tag extends keyof JSX.IntrinsicElements> = ComponentPropsWithRef<Tag> & {
+  readonly viewMode?: ElementViewMode;
+};
 
 export function createSlot<Tag extends keyof JSX.IntrinsicElements>(
   tag: Tag,
   baseClass: string,
   displayName: string,
 ): (props: SlotProps<Tag>) => JSX.Element {
-  function Slot({ className, ...props }: SlotProps<Tag>): JSX.Element {
+  function Slot({ className, viewMode, ...props }: SlotProps<Tag>): JSX.Element {
+    const { layoutMode } = useViewportContext();
     const merged = cx(baseClass, typeof className === 'string' ? className : undefined);
-    return createElement(tag, { ...props, className: merged });
+    const viewportAttr =
+      viewMode !== undefined
+        ? { 'data-viewport': resolveElementViewport(layoutMode, viewMode) }
+        : undefined;
+    return createElement(tag, { ...props, ...viewportAttr, className: merged });
   }
 
   Slot.displayName = displayName;

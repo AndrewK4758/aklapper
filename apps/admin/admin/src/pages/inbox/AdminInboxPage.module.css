@@ -36,6 +36,13 @@
     gap: var(--sf-space-3);
   }
 
+  .itemRow {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: var(--sf-align-center);
+    gap: var(--sf-space-3);
+  }
+
   .itemButton {
     display: grid;
     gap: var(--sf-space-1);
@@ -58,6 +65,7 @@
     display: flex;
     align-items: var(--sf-align-center);
     justify-content: var(--sf-justify-between);
+    flex-wrap: wrap;
     gap: var(--sf-space-3);
     font-size: var(--sf-text-sm);
   }
@@ -82,6 +90,7 @@
     background: var(--sf-bg-panel);
     border: var(--sf-border-width) solid var(--sf-border);
     border-radius: var(--sf-radius-sm);
+    min-width: var(--sf-space-0);
   }
 
   .detailHeader {
@@ -94,7 +103,7 @@
 
   .metaGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr));
     gap: var(--sf-space-3);
     font-size: var(--sf-text-xs);
   }
@@ -148,27 +157,15 @@
     gap: var(--sf-space-4);
   }
 
-  .statusNote {
-    margin: var(--sf-space-0);
-    padding: var(--sf-space-3) var(--sf-space-4);
-    border-radius: var(--sf-radius-sm);
-    background: var(--sf-success-bg);
-    border: var(--sf-border-width) solid var(--sf-success);
-    font-size: var(--sf-text-xs);
-  }
-
-  .errorNote {
-    margin: var(--sf-space-0);
-    padding: var(--sf-space-3) var(--sf-space-4);
-    border-radius: var(--sf-radius-sm);
-    background: var(--sf-err-bg);
-    border: var(--sf-border-width) solid var(--sf-err);
-    font-size: var(--sf-text-xs);
-  }
-
   @media (max-width: 56rem) {
     .splitLayout {
       grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
+    .detailCard {
+      padding: var(--sf-space-4);
     }
   }
 }

@@ -279,4 +279,45 @@
     border-color: var(--sf-gold);
     color: var(--sf-gold);
   }
+
+  @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
+    .viewport:not([data-viewport='desktop']) {
+      padding: max(var(--sf-space-4), env(safe-area-inset-top))
+        max(var(--sf-space-4), env(safe-area-inset-right))
+        max(var(--sf-space-4), env(safe-area-inset-bottom))
+        max(var(--sf-space-4), env(safe-area-inset-left));
+    }
+
+    .dialogPopup:not([data-viewport='desktop']) {
+      padding: var(--sf-space-6);
+      max-height: calc(100dvh - var(--sf-space-8));
+      overflow: auto;
+    }
+
+    .dialogFooter:not([data-viewport='desktop']) {
+      flex-wrap: wrap;
+    }
+
+    .drawerPopup:not([data-viewport='desktop']) {
+      width: 100%;
+      padding: max(var(--sf-space-6), env(safe-area-inset-top))
+        max(var(--sf-space-5), env(safe-area-inset-right))
+        max(var(--sf-space-6), env(safe-area-inset-bottom))
+        max(var(--sf-space-5), env(safe-area-inset-left));
+      border-left: none;
+    }
+
+    .floatingPopup:not([data-viewport='desktop']),
+    .tooltipPopup:not([data-viewport='desktop']) {
+      max-width: calc(100vw - var(--sf-space-6));
+    }
+
+    .toastViewport:not([data-viewport='desktop']) {
+      left: max(var(--sf-space-4), env(safe-area-inset-left));
+      right: max(var(--sf-space-4), env(safe-area-inset-right));
+      bottom: max(var(--sf-space-4), env(safe-area-inset-bottom));
+      width: auto;
+      max-width: none;
+    }
+  }
 }

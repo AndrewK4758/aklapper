@@ -28,6 +28,24 @@
       "types": "./dist/e2e.d.ts",
       "import": "./dist/e2e.js",
       "default": "./dist/e2e.js"
+    },
+    "./pg": {
+      "@aklapper/source": "./src/pg-test-container.ts",
+      "types": "./dist/pg-test-container.d.ts",
+      "import": "./dist/pg-test-container.js",
+      "default": "./dist/pg-test-container.js"
+    },
+    "./vitest-pg-setup": {
+      "@aklapper/source": "./src/vitest-pg-setup.ts",
+      "types": "./dist/vitest-pg-setup.d.ts",
+      "import": "./dist/vitest-pg-setup.js",
+      "default": "./dist/vitest-pg-setup.js"
+    },
+    "./dossier-check": {
+      "@aklapper/source": "./src/dossier-check.ts",
+      "types": "./dist/dossier-check.d.ts",
+      "import": "./dist/dossier-check.js",
+      "default": "./dist/dossier-check.js"
     }
   },
   "dependencies": {

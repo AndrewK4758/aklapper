@@ -3,14 +3,8 @@ go 1.27.4
 use (
 	./apis/go/ai-ask/ai-ask
 	./apis/go/ai-ask/ai-ask-e2e
-	./apis/go/cadence-admin/cadence-admin
-	./apis/go/cadence-admin/cadence-admin-e2e
 	./apis/go/cadence-demo/cadence-demo
 	./apis/go/cadence-demo/cadence-demo-e2e
-	./apis/go/contact/contact
-	./apis/go/contact/contact-e2e
-	./apis/go/k8s-watch/k8s-watch
-	./apis/go/k8s-watch/k8s-watch-e2e
 	./packages/go/kit
 )
 

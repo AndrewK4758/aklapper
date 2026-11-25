@@ -1,354 +1,395 @@
 import type {
   AskMode,
   AskResponse,
-  Osc7501State,
+  AskServiceStatus,
+  AskTurnState,
   PortalAskContent,
   QuotaStatus,
 } from '@aklapper/core';
-import { Button, Input, Meter, OscStatusBadge, Separator, Tabs, TuiWindow } from '@aklapper/ui';
-import { type FormEvent, useState } from 'react';
+import { ActionFeedbackBanner, Separator, Tabs, TuiWindow, useHydrated } from '@aklapper/ui';
+import { type FormEvent, type ReactNode, useEffect, useState, useSyncExternalStore } from 'react';
+
+import { AskJdPanel, AskQaPanel } from './AskPanels';
+import { AskHeaderBadge, AskQuotaMeter } from './AskResultCard';
+import {
+  buildRecoveringTurnState,
+  clearPersistedAskTurn,
+  generateAskAttemptId,
+  getPersistedAskTurnStore,
+  isPendingAskResult,
+  type PortalAskActionResult,
+  prependQaTranscriptEntry,
+  type QaTranscriptEntry,
+  type RecoveredErrorState,
+  resolvePendingAskTurn,
+  startAskTurnPolling,
+  writePersistedAskTurn,
+} from './askTurnRecovery';
+import { useAskStreaming } from './useAskStreaming';
 
 import styles from './PortalAskPage.module.css';
 
-export type PortalAskActionResult =
-  | {
-      readonly ok: true;
-      readonly mode: AskMode;
-      readonly submittedText: string;
-      readonly response: AskResponse;
-    }
-  | {
-      readonly ok: false;
-      readonly mode: AskMode;
-      readonly error: string;
-      readonly quota?: QuotaStatus;
-    };
+export type { PortalAskActionResult };
 
 export interface PortalAskPageProps {
+  instanceId?: string;
   content: PortalAskContent;
   quota: QuotaStatus;
+  askStatus?: AskServiceStatus;
+  askStatusSlot?: ReactNode;
+  streamEndpoint?: string;
   actionResult?: PortalAskActionResult;
   isSubmitting: boolean;
-  onSubmitAsk: (payload: { mode: AskMode; text: string }) => void;
+  onSubmitAsk: (payload: {
+    mode: AskMode;
+    text: string;
+    attemptId: string;
+    conversationId?: string;
+  }) => void;
   onClose: () => void;
 }
 
-interface QaTranscriptEntry {
-  readonly id: string;
-  readonly question: string;
-  readonly response: AskResponse;
-}
-
-function resolveBadgeStatus(
-  content: PortalAskContent,
-  isSubmitting: boolean,
-  latestResponse: AskResponse | null,
-): { state: Osc7501State; label: string } {
-  if (isSubmitting) {
-    return { state: 'scaling', label: 'waking · querying corpus' };
-  }
-  if (!latestResponse) {
-    return { state: content.statusBadge.state, label: content.statusBadge.label };
-  }
-  if (latestResponse.grounded) {
-    return { state: 'ready', label: `grounded · ${latestResponse.sources.length} source(s)` };
-  }
-  return { state: 'gate', label: 'abstained · strict grounding' };
-}
-
 export function PortalAskPage({
+  instanceId,
   content,
   quota,
+  askStatus,
+  askStatusSlot,
+  streamEndpoint,
   actionResult,
   isSubmitting,
   onSubmitAsk,
   onClose,
 }: PortalAskPageProps) {
+  const turnStore = getPersistedAskTurnStore(instanceId);
+  const persistedTurn = useSyncExternalStore(
+    turnStore.subscribe,
+    turnStore.getSnapshot,
+    turnStore.getServerSnapshot,
+  );
+  const isHydrated = useHydrated();
   const [activeTab, setActiveTab] = useState<AskMode>('qa');
+  const [selectedLensId, setSelectedLensId] = useState<string>('');
   const [questionText, setQuestionText] = useState('');
   const [jdText, setJdText] = useState('');
   const [qaTranscript, setQaTranscript] = useState<readonly QaTranscriptEntry[]>([]);
   const [latestJdResult, setLatestJdResult] = useState<AskResponse | null>(null);
+  const [polledTurnState, setPolledTurnState] = useState<AskTurnState | null>(null);
+  const [polledQuota, setPolledQuota] = useState<QuotaStatus | null>(null);
+  const [recoveredError, setRecoveredError] = useState<RecoveredErrorState | null>(null);
+  const [dispatchedAttemptId, setDispatchedAttemptId] = useState<string | null>(null);
+  const [settledPendingAttemptIds, setSettledPendingAttemptIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
   const [lastRecordedResult, setLastRecordedResult] = useState<PortalAskActionResult | undefined>(
     undefined,
   );
 
-  // Sync completed fetcher results during render (no useEffect).
+  const {
+    conversationId,
+    activeStream,
+    failedStreamSources,
+    isStreaming,
+    startStreamingQa,
+    cancelStream,
+    resetConversation,
+    restoreConversationId,
+  } = useAskStreaming({
+    instanceId,
+    streamEndpoint,
+    submittingLabel: content.streamingQaLabel,
+    onDispatched: attemptId => {
+      setDispatchedAttemptId(attemptId);
+      setRecoveredError(null);
+    },
+    onCompleted: (attemptId, question, response) => {
+      setQuestionText('');
+      if (response.quota) setPolledQuota(response.quota);
+      setQaTranscript(prev => prependQaTranscriptEntry(prev, attemptId, question, response));
+    },
+    onFailed: (errState, errQuota) => {
+      if (errQuota) setPolledQuota(errQuota);
+      setRecoveredError(errState);
+    },
+  });
+
+  // Sync settled or 202 pending fetcher results during render without an extra effect pass.
   if (actionResult && actionResult !== lastRecordedResult) {
     setLastRecordedResult(actionResult);
-    if (actionResult.ok) {
+    setRecoveredError(null);
+    if (actionResult.ok && isPendingAskResult(actionResult)) {
+      setPolledTurnState(actionResult.turnState);
+      setPolledQuota(null);
+    } else if (actionResult.ok && !isPendingAskResult(actionResult)) {
+      setPolledTurnState(null);
+      setPolledQuota(null);
       if (actionResult.mode === 'qa') {
-        setQaTranscript(prev => [
-          {
-            id: `qa-${prev.length + 1}`,
-            question: actionResult.submittedText,
-            response: actionResult.response,
-          },
-          ...prev,
-        ]);
+        const entryId = actionResult.attemptId ?? `qa-${qaTranscript.length + 1}`;
+        setQaTranscript(prev =>
+          prependQaTranscriptEntry(
+            prev,
+            entryId,
+            actionResult.submittedText,
+            actionResult.response,
+          ),
+        );
       } else {
         setLatestJdResult(actionResult.response);
       }
+    } else if (!actionResult.ok) {
+      setPolledTurnState(null);
+      setPolledQuota(null);
     }
   }
 
-  const activeQuota =
-    actionResult?.ok && actionResult.response.quota
-      ? actionResult.response.quota
-      : !actionResult?.ok && actionResult?.quota
-        ? actionResult.quota
-        : quota;
+  const pendingActionResult =
+    isPendingAskResult(actionResult) && !settledPendingAttemptIds.has(actionResult.attemptId)
+      ? actionResult
+      : undefined;
+  const actionSettled = Boolean(actionResult && !isPendingAskResult(actionResult));
+  useEffect(() => {
+    if (actionSettled) clearPersistedAskTurn(instanceId);
+  }, [actionSettled, actionResult, instanceId]);
 
-  const latestResponse = actionResult?.ok
-    ? actionResult.response
-    : activeTab === 'jd_match'
+  // Recover sessionStorage turns strictly from prior mounts; same-mount dispatches manage their own lifecycle.
+  const {
+    hasPendingTurn,
+    attemptId: pendingAttemptId,
+    mode: pendingMode,
+    submittedText: pendingSubmittedText,
+    pollImmediately,
+  } = resolvePendingAskTurn({
+    pendingActionResult,
+    persistedTurn,
+    instanceId,
+    dispatchedAttemptId,
+    settledPendingAttemptIds,
+    isSubmitting,
+    hasActiveStream: Boolean(activeStream),
+    actionSettled,
+  });
+
+  const markPendingAttemptSettled = (attemptId: string) => {
+    setSettledPendingAttemptIds(prev =>
+      prev.has(attemptId) ? prev : new Set(prev).add(attemptId),
+    );
+  };
+
+  // Poll /api/ask/turns/:attemptId while an async 202 or sessionStorage-recovered turn is active.
+  useEffect(() => {
+    if (!pendingAttemptId || !pendingMode || pendingSubmittedText === undefined) return;
+    return startAskTurnPolling({
+      attemptId: pendingAttemptId,
+      pollImmediately,
+      ownerInstanceId: instanceId,
+      onPending: state => setPolledTurnState(state),
+      onSettled: state => {
+        markPendingAttemptSettled(pendingAttemptId);
+        setPolledTurnState(null);
+        setActiveTab(pendingMode);
+        if (!state.response) return;
+        const settled = state.response;
+        setPolledQuota(settled.quota ?? null);
+        setRecoveredError(null);
+        if (state.mode === 'qa') {
+          restoreConversationId(state.conversationId ?? settled.conversationId);
+          setQaTranscript(prev =>
+            prependQaTranscriptEntry(prev, pendingAttemptId, pendingSubmittedText, settled),
+          );
+        } else {
+          setLatestJdResult(settled);
+        }
+      },
+      onError: outcome => {
+        markPendingAttemptSettled(pendingAttemptId);
+        setPolledTurnState(null);
+        if (outcome.quota) setPolledQuota(outcome.quota);
+        setActiveTab(pendingMode);
+        setRecoveredError({
+          ok: false,
+          mode: pendingMode,
+          error: outcome.message,
+          code: outcome.code,
+          action: outcome.action,
+          correlationId: outcome.correlationId,
+        });
+      },
+    });
+  }, [
+    instanceId,
+    pendingAttemptId,
+    pendingMode,
+    pendingSubmittedText,
+    pollImmediately,
+    restoreConversationId,
+  ]);
+
+  const actionQuota = actionResult?.ok
+    ? pendingActionResult
+      ? pendingActionResult.turnState.quota
+      : isPendingAskResult(actionResult)
+        ? undefined
+        : actionResult.response.quota
+    : actionResult?.quota;
+  const activeQuota = polledQuota ?? actionQuota ?? quota;
+
+  const visibleTab = hasPendingTurn && pendingMode ? pendingMode : activeTab;
+  const visiblePendingTurnState =
+    hasPendingTurn && pendingAttemptId && pendingMode
+      ? polledTurnState?.attemptId === pendingAttemptId
+        ? polledTurnState
+        : pendingActionResult
+          ? pendingActionResult.turnState
+          : buildRecoveringTurnState(pendingAttemptId, pendingMode)
+      : null;
+
+  const latestResponse =
+    visibleTab === 'jd_match'
       ? latestJdResult
-      : (qaTranscript[0]?.response ?? null);
+      : (qaTranscript[0]?.response ??
+        (actionResult?.ok && !isPendingAskResult(actionResult) ? actionResult.response : null));
 
-  const badge = resolveBadgeStatus(content, isSubmitting, latestResponse);
+  const isBusy = isSubmitting || hasPendingTurn || isStreaming;
+  const activeError = recoveredError ?? (actionResult && !actionResult.ok ? actionResult : null);
+
+  const activeLens = selectedLensId
+    ? content.visitorLenses.find(lens => lens.id === selectedLensId)
+    : undefined;
+  const visibleStarters =
+    activeLens && activeLens.starterQuestions.length > 0
+      ? activeLens.starterQuestions
+      : content.starterQuestions;
+
+  const handleNewConversation = () => {
+    resetConversation();
+    setQaTranscript([]);
+    setRecoveredError(null);
+    setQuestionText('');
+  };
+
+  const dispatchUnaryTurn = (mode: AskMode, text: string) => {
+    const attemptId = generateAskAttemptId();
+    setDispatchedAttemptId(attemptId);
+    writePersistedAskTurn({
+      attemptId,
+      mode,
+      question: text,
+      ...(instanceId ? { ownerInstanceId: instanceId } : {}),
+    });
+    setRecoveredError(null);
+    onSubmitAsk({ mode, text, attemptId });
+  };
 
   const handleQaSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = questionText.trim();
-    if (trimmed.length < 4 || isSubmitting) return;
-    onSubmitAsk({ mode: 'qa', text: trimmed });
+    if (trimmed.length < 4 || trimmed.length > 800 || isBusy) return;
+    if (streamEndpoint) {
+      startStreamingQa(trimmed, activeLens?.id);
+    } else {
+      dispatchUnaryTurn('qa', trimmed);
+    }
   };
 
   const handleJdSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = jdText.trim();
-    if (trimmed.length < 20 || isSubmitting) return;
-    onSubmitAsk({ mode: 'jd_match', text: trimmed });
+    if (trimmed.length < 20 || trimmed.length > 8000 || isBusy) return;
+    dispatchUnaryTurn('jd_match', trimmed);
   };
 
   return (
-    <div className={styles.workspace}>
+    <div
+      className={styles.workspace}
+      data-testid='ask-workspace'
+      data-hydrated={isHydrated ? 'true' : 'false'}
+      data-conversation-id={conversationId}
+    >
       <TuiWindow
         title={content.windowTitle}
         onClose={onClose}
         badge={
-          <OscStatusBadge
-            source={content.statusBadge.source}
-            state={badge.state}
-            label={badge.label}
+          <AskHeaderBadge
+            content={content}
+            isBusy={isBusy}
+            latestResponse={latestResponse}
+            askStatus={askStatus}
+            askStatusSlot={askStatusSlot}
           />
         }
       >
         <p className={styles.intro}>{content.description}</p>
         <p className={styles.notice}>{content.abstentionNotice}</p>
 
-        <div className={styles.quotaBar} data-testid='ask-quota-meter'>
-          <Meter.Root value={activeQuota.turnsUsed} min={0} max={Math.max(1, activeQuota.maxTurns)}>
-            <div className={styles.meterHeader}>
-              <Meter.Label>Session Quota ({activeQuota.role})</Meter.Label>
-              <Meter.Value>
-                {() => `${activeQuota.turnsUsed}/${activeQuota.maxTurns} turns`}
-              </Meter.Value>
-            </div>
-            <Meter.Track>
-              <Meter.Indicator />
-            </Meter.Track>
-          </Meter.Root>
-        </div>
+        <AskQuotaMeter quota={activeQuota} />
 
         <Separator.Root />
 
-        {actionResult && !actionResult.ok && (
-          <div className={styles.errorBanner} role='alert' data-testid='ask-error-banner'>
-            {actionResult.error}
-          </div>
+        {activeError && (
+          <ActionFeedbackBanner
+            ok={false}
+            message={activeError.error}
+            action={activeError.action}
+            code={activeError.code}
+            correlationId={activeError.correlationId}
+            testId='ask-error-banner'
+          />
         )}
 
         <Tabs.Root
-          value={activeTab}
+          value={visibleTab}
           onValueChange={val => setActiveTab(val === 'jd_match' ? 'jd_match' : 'qa')}
         >
           <Tabs.List>
             <Tabs.Tab value='qa' data-testid='ask-tab-qa'>
-              Ask Portfolio
+              {content.qaTabLabel}
             </Tabs.Tab>
             <Tabs.Tab value='jd_match' data-testid='ask-tab-jd'>
-              JD Match
+              {content.jdTabLabel}
             </Tabs.Tab>
             <Tabs.Indicator />
           </Tabs.List>
 
           <Tabs.Panel value='qa' className={styles.panel}>
-            <div className={styles.starterRow} aria-label='Starter questions'>
-              {content.starterQuestions.map((starter, idx) => (
-                <Button
-                  key={starter}
-                  type='button'
-                  variant='ghost'
-                  size='xs'
-                  onClick={() => setQuestionText(starter)}
-                  data-testid={`ask-starter-${idx}`}
-                >
-                  <Button.Label>{starter}</Button.Label>
-                </Button>
-              ))}
-            </div>
-
-            <form className={styles.form} onSubmit={handleQaSubmit}>
-              <Input.Group className={styles.inputGroup}>
-                <Input.Prefix aria-hidden='true'>?</Input.Prefix>
-                <Input.Root
-                  type='text'
-                  name='question'
-                  value={questionText}
-                  onChange={event => setQuestionText(event.currentTarget.value)}
-                  placeholder='Ask a grounded question about architecture, Go services, or published skills...'
-                  aria-label='Portfolio question'
-                  data-testid='ask-question-input'
-                />
-              </Input.Group>
-              <div className={styles.actions}>
-                <Button
-                  type='submit'
-                  variant='primary'
-                  disabled={isSubmitting || questionText.trim().length < 4}
-                  data-testid='ask-qa-submit'
-                >
-                  <Button.Label>
-                    {isSubmitting ? 'Querying Corpus...' : 'Ask Portfolio'}
-                  </Button.Label>
-                </Button>
-              </div>
-            </form>
-
-            {qaTranscript.length > 0 && (
-              <ol className={styles.transcript} data-testid='ask-qa-transcript'>
-                {qaTranscript.map(entry => (
-                  <li key={entry.id} className={styles.entryCard} data-testid='ask-qa-entry'>
-                    <div className={styles.entryHeader}>
-                      <strong className={styles.entryQuestion}>Q: {entry.question}</strong>
-                      <span
-                        className={styles.groundingPill}
-                        data-grounded={entry.response.grounded ? 'true' : 'false'}
-                      >
-                        {entry.response.grounded ? 'GROUNDED' : 'ABSTAINED'}
-                      </span>
-                    </div>
-                    <p className={styles.answerText}>{entry.response.answer}</p>
-                    <p className={styles.metaLine}>
-                      provider: {entry.response.provider} · tokens: {entry.response.tokensUsed}
-                    </p>
-                    {entry.response.sources.length > 0 && (
-                      <ul className={styles.citations} aria-label='Grounded citations'>
-                        {entry.response.sources.map(source => (
-                          <li key={source.id} className={styles.citationCard}>
-                            <div className={styles.citationHeader}>
-                              <strong>{source.title}</strong>
-                              <span className={styles.citationScore}>
-                                {source.category} · {Math.round(source.score * 100)}%
-                              </span>
-                            </div>
-                            <p className={styles.citationSnippet}>{source.snippet}</p>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </li>
-                ))}
-              </ol>
-            )}
+            <AskQaPanel
+              content={content}
+              activeLensId={activeLens?.id}
+              visibleStarters={visibleStarters}
+              questionText={questionText}
+              isBusy={isBusy}
+              isStreaming={isStreaming}
+              activeStream={activeStream}
+              failedStreamSources={failedStreamSources}
+              visiblePendingTurnState={pendingMode === 'qa' ? visiblePendingTurnState : null}
+              pendingSubmittedText={pendingSubmittedText}
+              qaTranscript={qaTranscript}
+              onSelectLens={setSelectedLensId}
+              onSelectStarter={setQuestionText}
+              onChangeQuestion={setQuestionText}
+              onSubmitQa={handleQaSubmit}
+              onCancelStream={cancelStream}
+              onNewConversation={handleNewConversation}
+              onSelectFollowUp={followUp => {
+                if (streamEndpoint && !isBusy) {
+                  startStreamingQa(followUp, activeLens?.id);
+                } else {
+                  setQuestionText(followUp);
+                }
+              }}
+            />
           </Tabs.Panel>
 
           <Tabs.Panel value='jd_match' className={styles.panel}>
-            <form className={styles.form} onSubmit={handleJdSubmit}>
-              <label className={styles.textareaLabel} htmlFor='jd-match-textarea'>
-                Job Description (min 20 characters)
-              </label>
-              <textarea
-                id='jd-match-textarea'
-                name='jobDescription'
-                className={styles.textarea}
-                rows={6}
-                value={jdText}
-                onChange={event => setJdText(event.currentTarget.value)}
-                placeholder={content.jdPlaceholder}
-                data-testid='ask-jd-textarea'
-              />
-              <div className={styles.actions}>
-                <Button
-                  type='submit'
-                  variant='primary'
-                  disabled={isSubmitting || jdText.trim().length < 20}
-                  data-testid='ask-jd-submit'
-                >
-                  <Button.Label>
-                    {isSubmitting ? 'Evaluating Fit...' : 'Analyze JD Fit'}
-                  </Button.Label>
-                </Button>
-              </div>
-            </form>
-
-            {latestJdResult && (
-              <section className={styles.entryCard} data-testid='ask-jd-result'>
-                <div className={styles.entryHeader}>
-                  <strong className={styles.entryQuestion}>JD Fit Assessment</strong>
-                  <span
-                    className={styles.groundingPill}
-                    data-grounded={latestJdResult.grounded ? 'true' : 'false'}
-                  >
-                    {latestJdResult.grounded ? 'GROUNDED' : 'ABSTAINED'}
-                  </span>
-                </div>
-
-                {typeof latestJdResult.matchScore === 'number' && (
-                  <Meter.Root value={latestJdResult.matchScore} min={0} max={100}>
-                    <div className={styles.meterHeader}>
-                      <Meter.Label>Grounded Match Score</Meter.Label>
-                      <Meter.Value>{() => `${latestJdResult.matchScore ?? 0}%`}</Meter.Value>
-                    </div>
-                    <Meter.Track>
-                      <Meter.Indicator />
-                    </Meter.Track>
-                  </Meter.Root>
-                )}
-
-                <p className={styles.answerText}>{latestJdResult.answer}</p>
-
-                <div className={styles.jdGrid}>
-                  <div className={styles.jdColumn}>
-                    <h3 className={styles.jdSubhead}>Verified Strengths</h3>
-                    <ul className={styles.jdList}>
-                      {(latestJdResult.strengths ?? []).length > 0 ? (
-                        (latestJdResult.strengths ?? []).map(item => <li key={item}>{item}</li>)
-                      ) : (
-                        <li>No grounded overlap detected.</li>
-                      )}
-                    </ul>
-                  </div>
-                  <div className={styles.jdColumn}>
-                    <h3 className={styles.jdSubhead}>Gaps / Unverified</h3>
-                    <ul className={styles.jdList}>
-                      {(latestJdResult.gaps ?? []).length > 0 ? (
-                        (latestJdResult.gaps ?? []).map(item => <li key={item}>{item}</li>)
-                      ) : (
-                        <li>No unverified gaps flagged.</li>
-                      )}
-                    </ul>
-                  </div>
-                </div>
-
-                {latestJdResult.sources.length > 0 && (
-                  <ul className={styles.citations} aria-label='JD Match citations'>
-                    {latestJdResult.sources.map(source => (
-                      <li key={source.id} className={styles.citationCard}>
-                        <div className={styles.citationHeader}>
-                          <strong>{source.title}</strong>
-                          <span className={styles.citationScore}>
-                            {source.category} · {Math.round(source.score * 100)}%
-                          </span>
-                        </div>
-                        <p className={styles.citationSnippet}>{source.snippet}</p>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-            )}
+            <AskJdPanel
+              content={content}
+              jdText={jdText}
+              isBusy={isBusy}
+              visiblePendingTurnState={pendingMode === 'jd_match' ? visiblePendingTurnState : null}
+              pendingSubmittedText={pendingSubmittedText}
+              latestJdResult={latestJdResult}
+              onChangeJd={setJdText}
+              onSubmitJd={handleJdSubmit}
+            />
           </Tabs.Panel>
         </Tabs.Root>
       </TuiWindow>

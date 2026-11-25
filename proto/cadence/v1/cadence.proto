@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package cadence.v1;
+
+option go_package = "github.com/AndrewK4758/aklapper/packages/go/kit/gen/cadence/v1;cadencev1";
+
+service CadenceService {
+  rpc StreamRun(StreamRunRequest) returns (stream StreamRunResponse);
+}
+
+message StreamRunRequest {
+  string prompt = 1;
+  string preset_slug = 2;
+}
+
+message CadencePhaseEvent {
+  string run_id = 1;
+  string phase = 2;
+  string agent_name = 3;
+  string status = 4;
+  string summary = 5;
+  int32 latency_ms = 6;
+}
+
+message CadenceDeltaEvent {
+  string run_id = 1;
+  string phase = 2;
+  string text = 3;
+}
+
+message CadenceDoneEvent {
+  string run_id = 1;
+  string status = 2;
+  string gate_verdict = 3;
+  int32 tokens_in = 4;
+  int32 tokens_out = 5;
+  string artifact_html = 6;
+}
+
+message StreamRunResponse {
+  oneof payload {
+    CadencePhaseEvent phase = 1;
+    CadenceDeltaEvent delta = 2;
+    CadenceDoneEvent done = 3;
+  }
+}

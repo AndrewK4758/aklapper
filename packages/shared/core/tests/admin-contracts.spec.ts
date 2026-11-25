@@ -7,13 +7,14 @@ import {
   AdminOpsLoaderDataSchema,
   AdminOverviewLoaderDataSchema,
   AdminQuotasLoaderDataSchema,
-  AdminWakeDeploymentSchema,
   AgensiSkillUpsertSchema,
+  AgensiSyncStateSchema,
   BucketPurgeSchema,
   BucketResetSchema,
   CadencePresetUpsertSchema,
   MaintenanceModeUpdateSchema,
   MenuItemUpsertSchema,
+  QdrantHealthStatusSchema,
   QuotaPolicyUpdateSchema,
   RoadmapMilestoneUpsertSchema,
   SiteContentUpsertSchema,
@@ -35,7 +36,6 @@ describe('@aklapper/core admin console contracts', () => {
         postgres: { name: 'PostgreSQL 19', status: 'ok', detail: 'Connected' },
         qdrant: { name: 'Qdrant', status: 'ok', detail: '12 points' },
         portfolioPublic: { name: 'portfolio-public', status: 'ok', detail: 'Ready' },
-        cadenceAdmin: { name: 'cadence-admin', status: 'offline', detail: 'Not configured' },
       },
       metrics: {
         contactCount: 4,
@@ -160,10 +160,6 @@ describe('@aklapper/core admin console contracts', () => {
     expect(() =>
       AdminGateOverrideSchema.parse({ runId: 'not-a-uuid', gateVerdict: 'approved' }),
     ).toThrow(/UUID/i);
-    expect(AdminWakeDeploymentSchema.parse({ deployment: 'cadence-admin' }).deployment).toBe(
-      'cadence-admin',
-    );
-    expect(() => AdminWakeDeploymentSchema.parse({ deployment: '../evil' })).toThrow(/Invalid/i);
   });
 
   it('validates CMS loader and CRUD upsert schemas', () => {
@@ -207,8 +203,6 @@ describe('@aklapper/core admin console contracts', () => {
         keyShortcut: '7',
         title: 'Ops Check',
         description: 'Health check',
-        targetK8sDeploy: 'svc-ops',
-        namespace: 'portfolio-public',
         adminOnly: false,
         sortOrder: '7',
         enabled: true,
@@ -289,16 +283,6 @@ describe('@aklapper/core admin console contracts', () => {
     ).toBe('ops-tile');
 
     const ops = AdminOpsLoaderDataSchema.parse({
-      cadenceAdminStatus: {
-        online: true,
-        namespace: 'cadence-admin',
-        isolated: true,
-        mode: 'full-cadence-runtime',
-        databaseConnected: true,
-        totalSandboxRuns: 3,
-        pendingGates: 1,
-        timestamp: '2026-11-24T12:00:00.000Z',
-      },
       qdrantStatus: {
         online: true,
         collection: 'portfolio_docs',
@@ -307,8 +291,63 @@ describe('@aklapper/core admin console contracts', () => {
         provider: 'local',
       },
       sandboxRuns: [],
-      k8sWatchConfigured: false,
+      runtimeHealth: {
+        runtime: 'cloud-run',
+        services: [],
+        summaryLabel: 'Cloud Run · healthy',
+        checkedAt: '2026-11-24T12:00:00.000Z',
+        cached: false,
+      },
     });
-    expect(ops.cadenceAdminStatus.isolated).toBe(true);
+    expect(ops.qdrantStatus.collection).toBe('portfolio_docs');
+
+    const legacyHealth = QdrantHealthStatusSchema.parse({
+      online: true,
+      collection: 'portfolio_docs',
+      status: 'green',
+      pointsCount: 11,
+      provider: 'local',
+    });
+    expect(legacyHealth.collections).toBeUndefined();
+
+    const multiHealth = QdrantHealthStatusSchema.parse({
+      online: true,
+      collection: 'portfolio_docs',
+      status: 'green',
+      pointsCount: 11,
+      provider: 'qdrant-direct',
+      collections: [
+        { name: 'portfolio_docs', online: true, status: 'green', pointsCount: 11 },
+        { name: 'cadence_patterns', online: true, status: 'green', pointsCount: 8 },
+      ],
+    });
+    expect(multiHealth.collections).toHaveLength(2);
+  });
+
+  it('validates optional agensiSyncState inside AdminCmsLoaderDataSchema', () => {
+    const syncState = AgensiSyncStateSchema.parse({
+      creatorHandle: 'aklapper',
+      lastSyncedAt: '2026-11-24T12:00:00.000Z',
+      lastAttemptAt: '2026-11-24T12:05:00.000Z',
+      lastStatus: 'ok',
+      lastError: null,
+      itemCount: 6,
+    });
+    expect(syncState.itemCount).toBe(6);
+
+    const cmsWithSync = AdminCmsLoaderDataSchema.parse({
+      siteContents: [],
+      maintenanceModeDefault: false,
+      rebuildProgressPercent: 50,
+      menuItems: [],
+      terminalProfiles: [],
+      terminalCommands: [],
+      terminalInitialEntries: [],
+      roadmapMilestones: [],
+      agensiSkills: [],
+      agensiSyncState: syncState,
+      cadencePresets: [],
+    });
+    expect(cmsWithSync.agensiSyncState?.lastStatus).toBe('ok');
   });
 });

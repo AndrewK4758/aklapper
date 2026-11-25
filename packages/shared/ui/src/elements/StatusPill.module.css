@@ -1,0 +1,83 @@
+@layer element {
+  .pill {
+    display: inline-flex;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-gap-2xs);
+    max-width: 100%;
+    padding: var(--sf-space-1) var(--sf-space-3);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-pill);
+    background: var(--sf-bg-panel);
+    color: var(--sf-fg-bone);
+    font-family: var(--sf-font-mono);
+    font-size: var(--sf-text-xs);
+    font-weight: var(--sf-weight-medium);
+    line-height: var(--sf-leading-tight);
+    letter-spacing: var(--sf-tracking-wide);
+    vertical-align: middle;
+    transition: var(--sf-transition-colors);
+  }
+
+  .pill[data-size='md'] {
+    padding: var(--sf-space-2) var(--sf-space-4);
+    font-size: var(--sf-text-sm);
+    gap: var(--sf-gap-xs);
+  }
+
+  .pill[data-tone='neutral'] {
+    border-color: var(--sf-border);
+    background: var(--sf-bg-panel);
+    color: var(--sf-fg-prop);
+  }
+
+  .pill[data-tone='info'] {
+    border-color: var(--sf-info);
+    background: var(--sf-info-bg);
+    color: var(--sf-info);
+  }
+
+  .pill[data-tone='success'] {
+    border-color: var(--sf-success);
+    background: var(--sf-success-bg);
+    color: var(--sf-success);
+  }
+
+  .pill[data-tone='warn'] {
+    border-color: var(--sf-warn);
+    background: var(--sf-warn-bg);
+    color: var(--sf-gold);
+  }
+
+  .pill[data-tone='danger'] {
+    border-color: var(--sf-danger);
+    background: var(--sf-danger-bg);
+    color: var(--sf-err);
+  }
+
+  .pill[data-tone='accent'] {
+    border-color: var(--sf-accent-border);
+    background: var(--sf-accent-subtle);
+    color: var(--sf-gold);
+  }
+
+  .dot {
+    width: var(--sf-space-2);
+    height: var(--sf-space-2);
+    border-radius: var(--sf-radius-full);
+    background: currentColor;
+    flex-shrink: 0;
+    animation: sf-pulse var(--sf-duration-pulse) var(--sf-ease-in-out) infinite;
+  }
+
+  .label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dot {
+      animation: none;
+    }
+  }
+}

@@ -1,5 +1,7 @@
 import {
+  type AdminAnalyticsBreakdownsData,
   type AdminAnalyticsLoaderData,
+  type AdminAnalyticsSummaryData,
   type AdminAnalyticsWindow,
   type AdminHomeLoaderData,
   type AdminRootLoaderData,
@@ -12,18 +14,20 @@ import {
   type PortalContactLoaderData,
   type PortalHomeLoaderData,
   type PortalMaintenanceLoaderData,
-  type PortalMenuLoaderData,
   type PortalRootLoaderData,
   type QuotaStatus,
   RoadmapMilestoneSchema,
-  type TerminalProfileData,
-  TerminalProfileDataSchema,
 } from '@aklapper/core';
+import { resolveAgensiCreatorHandle } from '@aklapper/node-runtime/agensi';
 
-import { loadAdminAnalyticsData } from './admin-queries.ts';
+import {
+  loadAdminAnalyticsBreakdowns,
+  loadAdminAnalyticsData,
+  loadAdminAnalyticsSummary,
+} from './admin-analytics-queries.ts';
+import type { AgensiSyncOptions } from './agensi-sync.ts';
 import { type AppDatabase, getSharedDb, isReactRouterPrerender } from './client.ts';
 import {
-  ADMIN_OPS_TERMINAL_PROFILE,
   loadAdminHomeData,
   loadAdminRootData,
   loadPortalAgensiData,
@@ -32,15 +36,16 @@ import {
   loadPortalContactData,
   loadPortalHomeData,
   loadPortalMaintenanceData,
-  loadPortalMenuData,
   loadPortalRootData,
   TERMINAL_PROFILE_SLUGS,
 } from './queries.ts';
+import { getPrerenderGoldenSandboxRuns } from './seed-golden-runs.ts';
 import {
   ADMIN_ANALYTICS_SEED,
   ADMIN_CHROME_SEED,
   ADMIN_HOME_SEED,
   AGENSI_SKILL_SEEDS,
+  buildSeedTerminalProfile,
   CADENCE_PRESET_SEEDS,
   DEFAULT_MENU_ITEMS,
   PORTAL_AGENSI_SEED,
@@ -50,67 +55,21 @@ import {
   PORTAL_CONTACT_SEED,
   PORTAL_HOME_SEED,
   PORTAL_MAINTENANCE_SEED,
-  PORTAL_MENU_SEED,
   ROADMAP_MILESTONE_SEEDS,
-  TERMINAL_COMMAND_SEEDS,
-  TERMINAL_INITIAL_ENTRY_SEEDS,
-  TERMINAL_PROFILE_SEEDS,
 } from './seed.ts';
 
 const DEFAULT_GUEST_QUOTA: QuotaStatus = {
   role: 'guest',
   turnsUsed: 0,
-  maxTurns: 5,
+  maxTurns: 10,
   tokensUsed: 0,
-  maxTokens: 100_000,
+  maxTokens: 40_000,
 };
-
-function getSeedTerminalProfile(slug: string): TerminalProfileData {
-  const profile = TERMINAL_PROFILE_SEEDS.find(item => item.slug === slug);
-  if (!profile) {
-    throw new Error(`Missing seed terminal profile for prerender fallback: slug="${slug}"`);
-  }
-
-  return TerminalProfileDataSchema.parse({
-    slug: profile.slug,
-    bannerTitle: profile.bannerTitle,
-    bannerMeta: profile.bannerMeta,
-    osLabel: profile.osLabel,
-    directory: profile.directory,
-    vcsBranch: profile.vcsBranch,
-    vcsState: profile.vcsState,
-    contextLabel: profile.contextLabel,
-    placeholder: profile.placeholder,
-    quickCommands: [...profile.quickCommands],
-    initialEntries: TERMINAL_INITIAL_ENTRY_SEEDS.filter(entry => entry.profileSlug === slug)
-      .toSorted((a, b) => a.sortOrder - b.sortOrder)
-      .map(entry => ({
-        command: entry.command,
-        output: entry.output,
-        status: entry.status,
-        durationLabel: entry.durationLabel,
-        timestamp: entry.timestampLabel,
-        sortOrder: entry.sortOrder,
-      })),
-    commands: TERMINAL_COMMAND_SEEDS.filter(cmd => cmd.profileSlug === slug)
-      .toSorted((a, b) => a.sortOrder - b.sortOrder)
-      .map(cmd => ({
-        name: cmd.name,
-        description: cmd.description,
-        kind: cmd.kind,
-        output: cmd.output,
-        targetRoute: cmd.targetRoute,
-        allowedRoutes: [...cmd.allowedRoutes],
-        errorTemplate: cmd.errorTemplate,
-        sortOrder: cmd.sortOrder,
-      })),
-  });
-}
 
 export function getPrerenderPortalMaintenanceData(): PortalMaintenanceLoaderData {
   return {
     content: PORTAL_MAINTENANCE_SEED,
-    terminal: getSeedTerminalProfile(TERMINAL_PROFILE_SLUGS.portalMaintenance),
+    terminal: buildSeedTerminalProfile(TERMINAL_PROFILE_SLUGS.portalMaintenance),
     milestones: ROADMAP_MILESTONE_SEEDS.filter(m => m.enabled)
       .toSorted((a, b) => a.sortOrder - b.sortOrder)
       .map(m => RoadmapMilestoneSchema.parse(m)),
@@ -143,29 +102,30 @@ export function getPrerenderPortalRootData(
 export function getPrerenderPortalHomeData(): PortalHomeLoaderData {
   return {
     content: PORTAL_HOME_SEED,
-    terminal: getSeedTerminalProfile(TERMINAL_PROFILE_SLUGS.portalHome),
+    terminal: buildSeedTerminalProfile(TERMINAL_PROFILE_SLUGS.portalHome),
     contactForm: PORTAL_CONTACT_SEED.form,
   };
 }
 
-export function getPrerenderPortalMenuData(): PortalMenuLoaderData {
-  return {
-    content: PORTAL_MENU_SEED,
-    items: DEFAULT_MENU_ITEMS.filter(item => !item.adminOnly && item.enabled)
-      .toSorted((a, b) => a.sortOrder - b.sortOrder)
-      .map(item => MenuItemSchema.parse(item)),
-  };
-}
-
 export function getPrerenderPortalAgensiData(): PortalAgensiLoaderData {
+  const creatorHandle = resolveAgensiCreatorHandle();
   return {
     content: PORTAL_AGENSI_SEED,
     skills: AGENSI_SKILL_SEEDS.toSorted((a, b) => a.sortOrder - b.sortOrder).map(skill =>
       AgensiSkillSchema.parse({
         ...skill,
         tags: [...skill.tags],
+        creatorHandle,
+        isPublished: true,
+        syncedAt: null,
+        source: 'prerender',
       }),
     ),
+    catalogMeta: {
+      mode: 'prerender',
+      creatorHandle,
+      syncedAt: null,
+    },
   };
 }
 
@@ -184,6 +144,7 @@ export function getPrerenderPortalCadenceData(): PortalCadenceLoaderData {
     ),
     quota: DEFAULT_GUEST_QUOTA,
     recentRuns: [],
+    goldenRuns: getPrerenderGoldenSandboxRuns(),
   };
 }
 
@@ -196,7 +157,7 @@ export function getPrerenderPortalContactData(): PortalContactLoaderData {
 export function getPrerenderAdminRootData(): AdminRootLoaderData {
   return {
     chrome: ADMIN_CHROME_SEED,
-    terminal: ADMIN_OPS_TERMINAL_PROFILE,
+    terminal: buildSeedTerminalProfile(TERMINAL_PROFILE_SLUGS.adminOps),
   };
 }
 
@@ -209,9 +170,9 @@ export function getPrerenderAdminHomeData(): AdminHomeLoaderData {
   };
 }
 
-export function getPrerenderAdminAnalyticsData(
+export function getPrerenderAdminAnalyticsSummaryData(
   window: AdminAnalyticsWindow = '7d',
-): AdminAnalyticsLoaderData {
+): AdminAnalyticsSummaryData {
   return {
     content: ADMIN_ANALYTICS_SEED,
     window,
@@ -227,10 +188,6 @@ export function getPrerenderAdminAnalyticsData(
       { metric: 'CLS', sampleCount: 0, p50: null, p75: null, p95: null },
       { metric: 'TTFB', sampleCount: 0, p50: null, p75: null, p95: null },
     ],
-    topPaths: [],
-    topReferrers: [],
-    geoBreakdown: [],
-    agensiConversions: [],
     aiMetrics: {
       totalRuns: 0,
       totalTokensIn: 0,
@@ -240,6 +197,24 @@ export function getPrerenderAdminAnalyticsData(
       pendingGates: 0,
       abstentionEvents: 0,
     },
+  };
+}
+
+export function getPrerenderAdminAnalyticsBreakdownsData(): AdminAnalyticsBreakdownsData {
+  return {
+    topPaths: [],
+    topReferrers: [],
+    geoBreakdown: [],
+    agensiConversions: [],
+  };
+}
+
+export function getPrerenderAdminAnalyticsData(
+  window: AdminAnalyticsWindow = '7d',
+): AdminAnalyticsLoaderData {
+  return {
+    ...getPrerenderAdminAnalyticsSummaryData(window),
+    ...getPrerenderAdminAnalyticsBreakdownsData(),
   };
 }
 
@@ -275,12 +250,17 @@ export function loadPortalHomeDataWithPrerender(): Promise<PortalHomeLoaderData>
   return withPrerenderFallback(loadPortalHomeData, getPrerenderPortalHomeData);
 }
 
-export function loadPortalMenuDataWithPrerender(): Promise<PortalMenuLoaderData> {
-  return withPrerenderFallback(loadPortalMenuData, getPrerenderPortalMenuData);
-}
-
-export function loadPortalAgensiDataWithPrerender(): Promise<PortalAgensiLoaderData> {
-  return withPrerenderFallback(loadPortalAgensiData, getPrerenderPortalAgensiData);
+export function loadPortalAgensiDataWithPrerender(
+  options: AgensiSyncOptions = {},
+): Promise<PortalAgensiLoaderData> {
+  return withPrerenderFallback(
+    db =>
+      loadPortalAgensiData(db, {
+        ...options,
+        skipLiveSync: options.skipLiveSync ?? isReactRouterPrerender(),
+      }),
+    getPrerenderPortalAgensiData,
+  );
 }
 
 export function loadPortalAskDataWithPrerender(sessionId?: string): Promise<PortalAskLoaderData> {
@@ -310,6 +290,24 @@ export function loadAdminRootDataWithPrerender(): Promise<AdminRootLoaderData> {
 
 export function loadAdminHomeDataWithPrerender(): Promise<AdminHomeLoaderData> {
   return withPrerenderFallback(loadAdminHomeData, getPrerenderAdminHomeData);
+}
+
+export function loadAdminAnalyticsSummaryWithPrerender(
+  window: AdminAnalyticsWindow = '7d',
+): Promise<AdminAnalyticsSummaryData> {
+  return withPrerenderFallback(
+    db => loadAdminAnalyticsSummary(db, window),
+    () => getPrerenderAdminAnalyticsSummaryData(window),
+  );
+}
+
+export function loadAdminAnalyticsBreakdownsWithPrerender(
+  window: AdminAnalyticsWindow = '7d',
+): Promise<AdminAnalyticsBreakdownsData> {
+  return withPrerenderFallback(
+    db => loadAdminAnalyticsBreakdowns(db, window),
+    getPrerenderAdminAnalyticsBreakdownsData,
+  );
 }
 
 export function loadAdminAnalyticsDataWithPrerender(

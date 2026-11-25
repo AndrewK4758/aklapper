@@ -1,8 +1,15 @@
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 
-import { createSlot, type SlotProps, styledPart } from '../_internal/elementFactory';
+import {
+  createSlot,
+  cx,
+  type SlotProps,
+  styledPart,
+  viewportStyledPart,
+} from '../_internal/elementFactory';
 
 import controlStyles from '../_styles/control.module.css';
+import overlayMobileStyles from '../_styles/overlay-mobile.module.css';
 import overlayStyles from '../_styles/overlay.module.css';
 
 export type DialogHeaderProps = SlotProps<'div'>;
@@ -14,9 +21,22 @@ export const Dialog = {
   Root: BaseDialog.Root,
   Trigger: styledPart(BaseDialog.Trigger, controlStyles.button, 'Dialog.Trigger'),
   Portal: BaseDialog.Portal,
-  Backdrop: styledPart(BaseDialog.Backdrop, overlayStyles.backdrop, 'Dialog.Backdrop'),
-  Viewport: styledPart(BaseDialog.Viewport, overlayStyles.viewport, 'Dialog.Viewport'),
-  Popup: styledPart(BaseDialog.Popup, overlayStyles.dialogPopup, 'Dialog.Popup'),
+  Backdrop: viewportStyledPart(
+    BaseDialog.Backdrop,
+    cx(overlayStyles.backdrop, overlayMobileStyles.sheetBackdrop),
+    'Dialog.Backdrop',
+  ),
+  Viewport: viewportStyledPart(
+    BaseDialog.Viewport,
+    cx(overlayStyles.viewport, overlayMobileStyles.sheetViewport),
+    'Dialog.Viewport',
+  ),
+  Popup: viewportStyledPart(
+    BaseDialog.Popup,
+    cx(overlayStyles.dialogPopup, overlayMobileStyles.sheetPopup),
+    'Dialog.Popup',
+    { mobileSheet: true },
+  ),
   Header: createSlot('div', overlayStyles.dialogHeader, 'Dialog.Header'),
   Title: styledPart(BaseDialog.Title, overlayStyles.title, 'Dialog.Title'),
   Description: styledPart(BaseDialog.Description, overlayStyles.description, 'Dialog.Description'),

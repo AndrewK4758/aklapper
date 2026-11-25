@@ -1,3 +1,6 @@
+import { once } from 'node:events';
+import { createServer } from 'node:http';
+
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
@@ -11,9 +14,9 @@ import {
   getPrerenderPortalContactData,
   getPrerenderPortalHomeData,
   getPrerenderPortalMaintenanceData,
-  getPrerenderPortalMenuData,
   getPrerenderPortalRootData,
   loadAdminAnalyticsDataWithPrerender,
+  loadPortalAgensiDataWithPrerender,
   loadPortalContactDataWithPrerender,
   loadPortalHomeDataWithPrerender,
   withPrerenderFallback,
@@ -22,6 +25,7 @@ import {
 describe('db prerender fallback loaders', () => {
   const originalBuildReq = process.env['IS_RR_BUILD_REQUEST'];
   const originalDbUrl = process.env['DATABASE_URL'];
+  const originalAgensiBase = process.env['AGENSI_API_BASE_URL'];
 
   afterEach(async () => {
     await closeSharedDb();
@@ -37,21 +41,82 @@ describe('db prerender fallback loaders', () => {
     } else {
       process.env['DATABASE_URL'] = originalDbUrl;
     }
+
+    if (originalAgensiBase === undefined) {
+      delete process.env['AGENSI_API_BASE_URL'];
+    } else {
+      process.env['AGENSI_API_BASE_URL'] = originalAgensiBase;
+    }
   });
 
   it('builds complete validated seed snapshots for all portal and admin routes', () => {
-    expect(getPrerenderPortalRootData().chrome.pageTitle).toContain('andrew-k.us');
+    const portalRoot = getPrerenderPortalRootData();
+    const portalHome = getPrerenderPortalHomeData();
+    const adminRoot = getPrerenderAdminRootData();
+
+    expect(portalRoot.chrome.pageTitle).toContain('andrew-k.us');
+    expect(portalRoot.chrome.shortcutHint).toContain('Alt+⇧N');
+    expect(portalRoot.chrome.shortcutHint).not.toMatch(/Alt\+⇧T|⌘D/);
     expect(getPrerenderPortalRootData(true).maintenance?.content.heading).toBe(
-      'Changes in Progress',
+      'Site Updates in Progress',
     );
-    expect(getPrerenderPortalHomeData().terminal.commands.length).toBeGreaterThan(0);
-    expect(getPrerenderPortalMenuData().items.every(item => !item.adminOnly)).toBe(true);
-    expect(getPrerenderPortalAgensiData().skills.length).toBeGreaterThanOrEqual(4);
+    expect(portalHome.terminal.commands.length).toBeGreaterThan(0);
+    expect(portalHome.terminal.initialEntries[0]?.command).toBe('ls');
+    expect(portalHome.terminal.initialEntries[0]?.output).toContain(
+      'tui                   # TUI version',
+    );
+    expect(portalHome.terminal.initialEntries[0]?.output).not.toContain('menu');
+    expect(portalHome.terminal.initialEntries[0]?.output).toContain(
+      'changes-in-progress   # Maintenance preview',
+    );
+    expect(portalHome.terminal.initialEntries[0]?.output).not.toMatch(
+      /drwxr-xr-x|-rw-r--r--|menu\//,
+    );
+    const portalHelp = portalHome.terminal.commands.find(cmd => cmd.name === 'help')?.output ?? '';
+    expect(portalHelp).toContain('Split panes & tabs (keybindings & commands):');
+    expect(portalHelp).toContain('Alt+Shift+N');
+    expect(portalHelp).toContain('F2');
+    expect(portalHelp).toContain('Alt+Shift+1..9');
+    expect(portalHelp).toContain('Alt+H/J/K/L');
+    expect(portalHelp).toContain('Alt+Backspace');
+    expect(portalHelp).not.toMatch(
+      /ghostty|Ctrl\+Shift\+O|\bCmd\+D\b|\bCtrl\+W\b|\bCtrl\+N\b|Alt\+1\.\.9/i,
+    );
+
+    const prerenderAgensi = getPrerenderPortalAgensiData();
+    expect(prerenderAgensi.skills).toHaveLength(6);
+    expect(prerenderAgensi.catalogMeta?.mode).toBe('prerender');
+    expect(
+      prerenderAgensi.skills.every(
+        skill =>
+          skill.creatorHandle === 'aklapper' &&
+          skill.isPublished === true &&
+          skill.source === 'prerender',
+      ),
+    ).toBe(true);
     expect(getPrerenderPortalAskData().content.starterQuestions.length).toBeGreaterThan(0);
+    expect(getPrerenderPortalAskData().quota).toEqual({
+      role: 'guest',
+      turnsUsed: 0,
+      maxTurns: 10,
+      tokensUsed: 0,
+      maxTokens: 40_000,
+    });
     expect(getPrerenderPortalCadenceData().presets.length).toBeGreaterThan(0);
     expect(getPrerenderPortalContactData().content.form.id).toBe('contact-form');
     expect(getPrerenderPortalMaintenanceData().milestones.length).toBeGreaterThan(0);
-    expect(getPrerenderAdminRootData().chrome.brandLabel).toContain('admin.andrew-k.us');
+
+    expect(adminRoot.chrome.brandLabel).toContain('admin.andrew-k.us');
+    expect(adminRoot.chrome.shortcutHint).toContain('Alt+⇧N');
+    expect(adminRoot.chrome.shortcutHint).not.toMatch(/Alt\+⇧T|⌘D/);
+    const adminHelp = adminRoot.terminal?.commands.find(cmd => cmd.name === 'help')?.output ?? '';
+    expect(adminHelp).toContain('Split panes & tabs (keybindings & commands):');
+    expect(adminHelp).toContain('Alt+Shift+N');
+    expect(adminHelp).toContain('F2');
+    expect(adminHelp).not.toMatch(/ghostty|Ctrl\+Shift\+O|\bCmd\+D\b|Alt\+1\.\.9/i);
+    expect(JSON.stringify(adminRoot.terminal)).not.toMatch(/ghostty/i);
+    expect(JSON.stringify(portalHome.terminal)).not.toMatch(/ghostty/i);
+
     expect(getPrerenderAdminHomeData().menuItems.some(item => item.adminOnly)).toBe(true);
     expect(getPrerenderAdminAnalyticsData().summary).toEqual({ totalSessions: 0, totalEvents: 0 });
   });
@@ -64,7 +129,7 @@ describe('db prerender fallback loaders', () => {
     const contact = await loadPortalContactDataWithPrerender();
     const analytics = await loadAdminAnalyticsDataWithPrerender();
 
-    expect(home.content.heading).toContain('Solar Forge');
+    expect(home.content.heading).toContain('Andrew Klapper');
     expect(contact.content.form.nodes.length).toBeGreaterThan(0);
     expect(analytics.summary).toEqual({ totalSessions: 0, totalEvents: 0 });
   });
@@ -88,5 +153,45 @@ describe('db prerender fallback loaders', () => {
     delete process.env['DATABASE_URL'];
 
     await expect(loadPortalHomeDataWithPrerender()).rejects.toThrow(/DATABASE_URL is required/i);
+  });
+
+  it('skips live external Agensi HTTP calls when IS_RR_BUILD_REQUEST=yes', async () => {
+    let requestCount = 0;
+    const spyServer = createServer((_req, res) => {
+      requestCount += 1;
+      res.statusCode = 500;
+      res.end('should not be called');
+    });
+    spyServer.listen(0, '127.0.0.1');
+    await once(spyServer, 'listening');
+    const addr = spyServer.address();
+    if (!addr || typeof addr === 'string') {
+      throw new Error('Failed to bind spy server');
+    }
+
+    try {
+      process.env['IS_RR_BUILD_REQUEST'] = 'yes';
+      process.env['AGENSI_API_BASE_URL'] = `http://127.0.0.1:${addr.port}`;
+
+      // With DATABASE_URL unset -> returns creator-scoped prerender snapshot, zero HTTP
+      delete process.env['DATABASE_URL'];
+      const noDbData = await loadPortalAgensiDataWithPrerender({
+        correlationId: 'prerender-no-db',
+      });
+      expect(noDbData.skills).toHaveLength(6);
+      expect(noDbData.catalogMeta?.mode).toBe('prerender');
+      expect(requestCount).toBe(0);
+
+      // Even with DATABASE_URL active -> skipLiveSync suppresses upstream Agensi HTTP during build
+      expect(originalDbUrl).toBeTruthy();
+      process.env['DATABASE_URL'] = originalDbUrl;
+      const dbPrerenderData = await loadPortalAgensiDataWithPrerender({
+        correlationId: 'prerender-with-db',
+      });
+      expect(dbPrerenderData.skills.length).toBeGreaterThan(0);
+      expect(requestCount).toBe(0);
+    } finally {
+      await new Promise<void>(resolveClose => spyServer.close(() => resolveClose()));
+    }
   });
 });

@@ -10,6 +10,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 )
 
 type HealthResponse struct {
@@ -30,6 +32,15 @@ func WriteJSON(w http.ResponseWriter, status int, payload any) {
 
 func WriteError(w http.ResponseWriter, status int, message string) {
 	WriteJSON(w, status, ErrorResponse{Error: message})
+}
+
+func RequireInternalAuth(w http.ResponseWriter, r *http.Request) (*internalauth.Claims, bool) {
+	claims, err := internalauth.VerifyRequest(r)
+	if err != nil || claims == nil {
+		WriteError(w, http.StatusUnauthorized, "signed X-Internal-Auth header required")
+		return nil, false
+	}
+	return claims, true
 }
 
 func NewHealthHandler(serviceName string) http.HandlerFunc {

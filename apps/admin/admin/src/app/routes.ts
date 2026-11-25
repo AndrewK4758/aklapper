@@ -11,5 +11,5 @@ export default [
   route('ops', 'routes/ops.tsx'),
   route('api/auth/*', 'routes/api.auth.$.ts'),
   route('api/analytics/ingest', 'routes/api.analytics.ingest.ts'),
-  route('api/ops/cluster/stream', 'routes/api.ops.cluster.stream.ts'),
+  route('api/ops/runtime/status', 'routes/api.ops.runtime.status.ts'),
 ] satisfies RouteConfig;

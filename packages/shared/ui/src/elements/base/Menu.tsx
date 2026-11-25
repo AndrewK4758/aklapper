@@ -1,21 +1,39 @@
 import { Menu as BaseMenu } from '@base-ui/react/menu';
 
-import { styledPart } from '../_internal/elementFactory';
+import { cx, styledPart, viewportStyledPart } from '../_internal/elementFactory';
 
 import controlStyles from '../_styles/control.module.css';
 import disclosureStyles from '../_styles/disclosure.module.css';
 import menuStyles from '../_styles/menu.module.css';
+import overlayMobileStyles from '../_styles/overlay-mobile.module.css';
 import overlayStyles from '../_styles/overlay.module.css';
 
 export const Menu = {
   Root: BaseMenu.Root,
   Trigger: styledPart(BaseMenu.Trigger, menuStyles.trigger, 'Menu.Trigger'),
   Portal: BaseMenu.Portal,
-  Backdrop: styledPart(BaseMenu.Backdrop, overlayStyles.backdrop, 'Menu.Backdrop'),
-  Positioner: styledPart(BaseMenu.Positioner, menuStyles.positioner, 'Menu.Positioner'),
-  Popup: styledPart(BaseMenu.Popup, menuStyles.popup, 'Menu.Popup'),
-  Viewport: styledPart(BaseMenu.Viewport, overlayStyles.floatingViewport, 'Menu.Viewport'),
-  Arrow: styledPart(BaseMenu.Arrow, overlayStyles.arrow, 'Menu.Arrow'),
+  Backdrop: viewportStyledPart(
+    BaseMenu.Backdrop,
+    cx(overlayStyles.backdrop, overlayMobileStyles.sheetBackdrop),
+    'Menu.Backdrop',
+  ),
+  Positioner: viewportStyledPart(
+    BaseMenu.Positioner,
+    cx(menuStyles.positioner, overlayMobileStyles.sheetPositioner),
+    'Menu.Positioner',
+  ),
+  Popup: viewportStyledPart(
+    BaseMenu.Popup,
+    cx(menuStyles.popup, overlayMobileStyles.sheetPopup),
+    'Menu.Popup',
+    { mobileSheet: true },
+  ),
+  Viewport: viewportStyledPart(BaseMenu.Viewport, overlayStyles.floatingViewport, 'Menu.Viewport'),
+  Arrow: viewportStyledPart(
+    BaseMenu.Arrow,
+    cx(overlayStyles.arrow, overlayMobileStyles.sheetArrow),
+    'Menu.Arrow',
+  ),
   FilterProvider: BaseMenu.FilterProvider,
   Input: styledPart(BaseMenu.Input, controlStyles.input, 'Menu.Input'),
   List: styledPart(BaseMenu.List, menuStyles.list, 'Menu.List'),

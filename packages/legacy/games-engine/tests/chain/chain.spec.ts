@@ -1,6 +1,6 @@
 import type { Context, GameContextKeys } from '@aklapper/legacy-games/types';
 
-import { CommandBuilder, ChainBuilder, ContextBuilder } from '../../src/chain/lib/base.js';
+import { CommandBuilder, ChainBuilder, ContextBuilder } from '../../src/chain/lib/base.ts';
 
 describe('Test simple command & simple chain', () => {
   describe('Simple Command', () => {

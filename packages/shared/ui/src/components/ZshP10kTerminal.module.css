@@ -70,6 +70,8 @@
 
   .history {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: var(--sf-space-0);
     gap: var(--sf-space-6);
     align-content: start;
   }
@@ -495,6 +497,123 @@
     .segExec,
     .arrowStatusToExec {
       display: none;
+    }
+  }
+
+  @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
+    .terminal {
+      padding: var(--sf-space-4) var(--sf-space-4);
+      gap: var(--sf-space-3);
+      min-height: calc(var(--sf-size-unit) * 12);
+    }
+
+    .terminal[data-variant='viewport'] {
+      height: auto;
+      padding: var(--sf-space-3) var(--sf-space-4);
+      gap: var(--sf-space-3);
+    }
+
+    .historyRoot,
+    .historyViewport {
+      height: auto;
+      max-height: none;
+      overflow: visible !important;
+    }
+
+    .history {
+      gap: var(--sf-space-4);
+    }
+
+    .output {
+      padding-left: var(--sf-space-3);
+      font-size: var(--sf-text-sm);
+    }
+
+    .promptTop {
+      font-size: var(--sf-text-xs);
+    }
+
+    .seg {
+      padding-inline: var(--sf-space-3);
+    }
+
+    .quickBar {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: var(--sf-space-1);
+    }
+
+    .quickBar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .quickGroup {
+      flex-wrap: nowrap;
+      flex-shrink: 0;
+    }
+  }
+
+  @media (max-width: 36rem) {
+    .tailLeft,
+    .tailRight,
+    .frame {
+      display: none;
+    }
+
+    .gapLine {
+      min-width: var(--sf-space-2);
+      margin-inline: var(--sf-space-1);
+    }
+  }
+
+  @media (max-width: 30rem) {
+    .segTime,
+    .arrowCtxToTime {
+      display: none;
+    }
+  }
+
+  @media (max-width: 48rem) and (pointer: coarse),
+    (max-height: 32rem) and (orientation: landscape) and (pointer: coarse) {
+    .input,
+    .textarea,
+    .ghost,
+    .commandEcho {
+      --sf-text-control: var(--sf-size-unit);
+      font-size: var(--sf-size-unit);
+    }
+  }
+
+  @media (max-height: 32rem) and (orientation: landscape) {
+    .terminal[data-variant='viewport'] {
+      padding: var(--sf-space-2) var(--sf-space-4);
+      gap: var(--sf-space-2);
+    }
+
+    .history {
+      gap: var(--sf-space-3);
+    }
+
+    .output {
+      padding-left: var(--sf-space-3);
+      font-size: var(--sf-text-sm);
+    }
+
+    .quickBar {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .quickBar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .quickGroup {
+      flex-wrap: nowrap;
+      flex-shrink: 0;
     }
   }
 }

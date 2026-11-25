@@ -3,7 +3,7 @@ import { mockReqObj, mockRespObj } from '@aklapper/legacy-games/mocks';
 import { type Context, GameContextKeys, type ITestCtxOutput } from '@aklapper/legacy-games/types';
 import type { Request, Response } from 'express';
 
-import { outputContextResponse } from '../../src/chains/lib/commands/action-output/output-context-response.js';
+import { outputContextResponse } from '../../src/chains/lib/commands/action-output/output-context-response.ts';
 
 let ctx: Context<GameContextKeys>,
   output: ITestCtxOutput,

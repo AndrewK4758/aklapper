@@ -19,7 +19,6 @@
   "exclude": [
     "out-tsc",
     "dist",
-    "build",
     "src/pages/**",
     "src/**/*.spec.ts",
     "src/**/*.test.ts",
@@ -30,6 +29,9 @@
   ],
   "include": ["src/**/*.ts", "src/**/*.tsx", ".react-router/types/**/*"],
   "references": [
+    {
+      "path": "./tsconfig.pages.json"
+    },
     {
       "path": "../../../packages/shared/ui/tsconfig.lib.json"
     },

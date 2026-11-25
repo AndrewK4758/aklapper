@@ -1,10 +1,8 @@
-import { existsSync, readdirSync, rmSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { join } from 'node:path';
 
 import { nxReadySignal } from '@nx/vite/plugins/nx-ready-signal.plugin';
 import type { Config as ReactRouterConfig } from '@react-router/dev/config';
 import { reactRouter } from '@react-router/dev/vite';
-import { build as viteBuild } from 'vite';
 import dts from 'vite-plugin-dts';
 import { defineConfig, type ViteUserConfig } from 'vitest/config';
 
@@ -113,11 +111,11 @@ export function createSsrViteConfig(options: SsrAppViteConfigOptions): ViteUserC
 
     resolve: {
       conditions: SOURCE_CLIENT_CONDITIONS,
-      dedupe: ['react', 'react-dom', '@base-ui/react'],
+      dedupe: ['react', 'react-dom', 'react-router', '@base-ui/react'],
     },
 
     optimizeDeps: {
-      include: ['react', 'react-dom', '@base-ui/react', 'zod'],
+      include: ['react', 'react-dom', 'react-router', '@base-ui/react', 'zod'],
     },
 
     plugins: [...(process.env['VITEST'] ? [] : [reactRouter()]), nxReadySignal()],
@@ -147,27 +145,6 @@ export interface UiLibViteConfigOptions {
   cacheDir: string;
   tsconfigPath: string;
   entry?: Record<string, string>;
-}
-
-function createInjectCssImportPlugin(cssFileName: string) {
-  const cssAsset = `${cssFileName}.css`;
-  return {
-    name: 'aklapper-inject-page-css-import',
-    enforce: 'post' as const,
-    generateBundle(
-      _options: unknown,
-      bundle: Record<string, { type: string; isEntry?: boolean; code?: string }>,
-    ) {
-      if (!(cssAsset in bundle)) {
-        return;
-      }
-      for (const output of Object.values(bundle)) {
-        if (output.type === 'chunk' && output.isEntry && typeof output.code === 'string') {
-          output.code = `import './${cssAsset}';\n${output.code}`;
-        }
-      }
-    },
-  };
 }
 
 export function createUiLibViteConfig(options: UiLibViteConfigOptions): ViteUserConfig {
@@ -234,117 +211,4 @@ export function createUiLibViteConfig(options: UiLibViteConfigOptions): ViteUser
       include: ['tests/**/*.{test,spec}.{ts,tsx}'],
     },
   });
-}
-
-export interface AppPageArtifactsBuildOptions {
-  root: string;
-  pagesDir?: string;
-  outDir?: string;
-  tsconfigPath?: string;
-  cacheDir?: string;
-}
-
-/**
- * Builds every route page under `<root>/src/pages/<slug>/` into an isolated app-level built
- * artifact at `<root>/build/pages/<slug>/` (`index.js` + `index.css` + `index.d.ts`). Injects
- * `./index.css` into the built ESM entry so thin React Router route modules render the built
- * artifact directly via `#pages/<slug>`.
- */
-export async function buildAppPageArtifacts(
-  options: AppPageArtifactsBuildOptions,
-): Promise<readonly string[]> {
-  const {
-    root,
-    pagesDir = join(root, 'src', 'pages'),
-    outDir = join(root, 'build', 'pages'),
-    tsconfigPath = join(root, 'tsconfig.pages.json'),
-    cacheDir = join(root, '../../../node_modules/.vite/apps', basename(root), 'pages'),
-  } = options;
-
-  if (!existsSync(pagesDir)) {
-    throw new Error(`Pages directory not found: ${pagesDir}`);
-  }
-
-  const pageSlugs = readdirSync(pagesDir, { withFileTypes: true })
-    .filter(entry => entry.isDirectory())
-    .map(entry => entry.name)
-    .sort();
-
-  rmSync(outDir, { recursive: true, force: true });
-
-  const builtSlugs: string[] = [];
-  const appName = basename(root);
-
-  for (const slug of pageSlugs) {
-    const pageDir = join(pagesDir, slug);
-    const tsEntry = join(pageDir, 'index.ts');
-    const tsxEntry = join(pageDir, 'index.tsx');
-    const entryFile = existsSync(tsEntry) ? tsEntry : existsSync(tsxEntry) ? tsxEntry : null;
-    if (!entryFile) {
-      continue;
-    }
-
-    const pageOutDir = join(outDir, slug);
-
-    await viteBuild({
-      configFile: false,
-      root,
-      publicDir: false,
-      cacheDir: join(cacheDir, slug),
-      resolve: {
-        conditions: SOURCE_CLIENT_CONDITIONS,
-      },
-      ssr: {
-        resolve: {
-          conditions: SOURCE_SERVER_CONDITIONS,
-        },
-      },
-      oxc: {
-        jsx: {
-          runtime: 'automatic',
-        },
-      },
-      plugins: [
-        dts({
-          entryRoot: pageDir,
-          outDirs: pageOutDir,
-          tsconfigPath,
-          include: [pageDir],
-          exclude: ['**/*.spec.*', '**/*.test.*'],
-        }),
-        createInjectCssImportPlugin('index'),
-      ],
-      css: {
-        devSourcemap: true,
-        modules: {
-          scopeBehaviour: 'local',
-          localsConvention: 'camelCaseOnly',
-        },
-        transformer: 'lightningcss',
-        lightningcss: {
-          cssModules: LIGHTNINGCSS_MODULES,
-        },
-      },
-      build: {
-        outDir: pageOutDir,
-        emptyOutDir: true,
-        reportCompressedSize: true,
-        cssMinify: 'lightningcss',
-        target: 'esnext',
-        lib: {
-          entry: { index: entryFile },
-          name: `${appName}-page-${slug}`,
-          cssFileName: 'index',
-          formats: ['es'],
-        },
-        rolldownOptions: {
-          external,
-        },
-      },
-    });
-
-    builtSlugs.push(slug);
-  }
-
-  return builtSlugs;
 }

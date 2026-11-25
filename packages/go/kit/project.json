@@ -3,5 +3,31 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "projectType": "library",
   "sourceRoot": "packages/go/kit",
-  "tags": ["scope:go", "type:lib"]
+  "tags": ["scope:go", "type:lib"],
+  "targets": {
+    "qdrant-seed": {
+      "cache": false,
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/go/kit",
+        "command": "go run ./cmd/qdrant-seed"
+      }
+    },
+    "qdrant-dry-run": {
+      "cache": false,
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/go/kit",
+        "command": "go run ./cmd/qdrant-seed --dry-run"
+      }
+    },
+    "proto-gen": {
+      "cache": false,
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{workspaceRoot}",
+        "command": "buf lint && buf generate"
+      }
+    }
+  }
 }

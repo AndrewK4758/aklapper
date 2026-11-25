@@ -3,8 +3,10 @@ import { vi } from 'vitest';
 import {
   type AppDatabase,
   deleteContactSubmission,
+  deleteContactSubmissions,
   deleteTerminalCommand,
   deleteTerminalInitialEntry,
+  getAskTurnByAttemptId,
   getContactSubmissionAttachment,
   overrideSandboxGateVerdict,
   purgeStaleRateLimitBuckets,
@@ -44,7 +46,10 @@ describe('@aklapper/db admin queries & mutations', () => {
     } as unknown as AppDatabase;
 
     expect(await getContactSubmissionAttachment(db, 'not-a-uuid')).toBeNull();
+    expect(await getAskTurnByAttemptId(db, 'not-a-uuid', 'guest_1')).toBeNull();
     expect(await deleteContactSubmission(db, 'not-a-uuid')).toBe(false);
+    expect(await deleteContactSubmissions(db, [])).toBe(0);
+    expect(await deleteContactSubmissions(db, ['not-a-uuid', ''])).toBe(0);
     expect(await overrideSandboxGateVerdict(db, 'not-a-uuid', 'approved')).toBeNull();
     expect(await deleteTerminalCommand(db, -1)).toBe(false);
     expect(await deleteTerminalInitialEntry(db, 0)).toBe(false);
@@ -54,14 +59,15 @@ describe('@aklapper/db admin queries & mutations', () => {
     expect(db.delete).not.toHaveBeenCalled();
   });
 
-  it('validates known site_content schemas on upsertSiteContent', async () => {
-    const { db } = createReturningMockDb([
+  it('validates known site_content schemas on upsertSiteContent and preserves unknown extra keys', async () => {
+    const { db, values } = createReturningMockDb([
       {
         key: 'admin-analytics',
         markdownBody: '# Analytics',
         metadataJson: {
           windowTitle: 'Analytics // PG19',
           description: 'Live telemetry.',
+          customNote: 'keep-me',
         },
         updatedAt: new Date('2026-11-24T12:00:00.000Z'),
       },
@@ -74,9 +80,20 @@ describe('@aklapper/db admin queries & mutations', () => {
     const saved = await upsertSiteContent(db, 'admin-analytics', '# Analytics', {
       windowTitle: 'Analytics // PG19',
       description: 'Live telemetry.',
+      customNote: 'keep-me',
     });
     expect(saved.key).toBe('admin-analytics');
     expect(saved.metadataJson['windowTitle']).toBe('Analytics // PG19');
+    expect(saved.metadataJson['customNote']).toBe('keep-me');
+    expect(values).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadataJson: expect.objectContaining({
+          windowTitle: 'Analytics // PG19',
+          description: 'Live telemetry.',
+          customNote: 'keep-me',
+        }),
+      }),
+    );
   });
 
   it('updates quota policies, resets buckets, and purges stale buckets', async () => {
@@ -104,5 +121,23 @@ describe('@aklapper/db admin queries & mutations', () => {
       { scopeKey: 'session:old-2' },
     ]);
     expect(await purgeStaleRateLimitBuckets(purgeMock.db, 24)).toBe(2);
+  });
+
+  it('deduplicates and validates UUIDs before bulk deleting contact submissions in one query', async () => {
+    const id1 = '11111111-1111-4111-8111-111111111111';
+    const id2 = '22222222-2222-4222-8222-222222222222';
+    const deleteMock = createReturningMockDb([{ id: id1 }, { id: id2 }]);
+
+    const deletedCount = await deleteContactSubmissions(deleteMock.db, [
+      id1,
+      'not-a-uuid',
+      id2,
+      id1,
+    ]);
+
+    expect(deletedCount).toBe(2);
+    expect(deleteMock.db.delete).toHaveBeenCalledTimes(1);
+    expect(deleteMock.where).toHaveBeenCalledTimes(1);
+    expect(deleteMock.returning).toHaveBeenCalledTimes(1);
   });
 });

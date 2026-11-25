@@ -7,11 +7,11 @@ import { type Context, Color, GameContextKeys } from '@aklapper/legacy-games/typ
 import { getCurrentMinute } from '@aklapper/legacy-games/utils';
 import type { Request, Response } from 'express';
 
-import { createPlayerID } from '../../src/chains/lib/commands/action-register-player/create-player-id.js';
-import { filterSelectedAvatar } from '../../src/chains/lib/commands/action-register-player/filter-selected-avatar.js';
-import { playerCreated } from '../../src/chains/lib/commands/action-register-player/player-created.js';
-import { registerOnGameInstance } from '../../src/chains/lib/commands/action-register-player/register-on-game-instance.js';
-import { registerPlayerStart as registerAction } from '../../src/chains/lib/commands/action-register-player/register-player-start.js';
+import { createPlayerID } from '../../src/chains/lib/commands/action-register-player/create-player-id.ts';
+import { filterSelectedAvatar } from '../../src/chains/lib/commands/action-register-player/filter-selected-avatar.ts';
+import { playerCreated } from '../../src/chains/lib/commands/action-register-player/player-created.ts';
+import { registerOnGameInstance } from '../../src/chains/lib/commands/action-register-player/register-on-game-instance.ts';
+import { registerPlayerStart as registerAction } from '../../src/chains/lib/commands/action-register-player/register-player-start.ts';
 
 let ctx: Context<GameContextKeys | string>,
   game: InstanceOfGame,

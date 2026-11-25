@@ -6,7 +6,7 @@
 
   .policyGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
     gap: var(--sf-space-6);
   }
 
@@ -17,6 +17,8 @@
     background: var(--sf-bg-panel);
     border: var(--sf-border-width) solid var(--sf-border);
     border-radius: var(--sf-radius-sm);
+    min-width: var(--sf-space-0);
+    overflow-x: auto;
   }
 
   .cardHeader {
@@ -69,27 +71,15 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .statusNote {
-    margin: var(--sf-space-0);
-    padding: var(--sf-space-3) var(--sf-space-4);
-    border-radius: var(--sf-radius-sm);
-    background: var(--sf-success-bg);
-    border: var(--sf-border-width) solid var(--sf-success);
-    font-size: var(--sf-text-xs);
-  }
-
-  .errorNote {
-    margin: var(--sf-space-0);
-    padding: var(--sf-space-3) var(--sf-space-4);
-    border-radius: var(--sf-radius-sm);
-    background: var(--sf-err-bg);
-    border: var(--sf-border-width) solid var(--sf-err);
-    font-size: var(--sf-text-xs);
-  }
-
   .emptyNote {
     margin: var(--sf-space-0);
     font-size: var(--sf-text-xs);
     color: var(--sf-fg-cmt);
+  }
+
+  @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
+    .card {
+      padding: var(--sf-space-4);
+    }
   }
 }

@@ -1,7 +1,7 @@
 {
   "name": "andrew-k.us // Solar Forge Terminal",
   "short_name": "andrew-k.us",
-  "description": "Interactive portfolio terminal, CADENCE sandboxed artifact builder, and GKE Autopilot scale-from-zero showcase by Andrew Klapper.",
+  "description": "Interactive portfolio terminal, CADENCE sandboxed artifact builder, and Cloud Run scale-to-zero showcase by Andrew Klapper.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#121110",

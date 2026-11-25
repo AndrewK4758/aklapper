@@ -1,27 +1,96 @@
 export {
+  ActionFeedbackBanner,
+  type ActionFeedbackBannerProps,
+} from './components/ActionFeedbackBanner';
+export {
+  ArtifactInspector,
+  type ArtifactInspectorLabels,
+  type ArtifactInspectorProps,
+} from './components/ArtifactInspector';
+export { CodeArtifactViewer, type CodeArtifactViewerProps } from './components/CodeArtifactViewer';
+export { GateAuditChecklist, type GateAuditChecklistProps } from './components/GateAuditChecklist';
+export {
+  BulkSelectionBar,
+  type BulkSelectionBarProps,
+  pruneSelectedIds,
+  SelectionCheckbox,
+  type SelectionCheckboxProps,
+} from './components/BulkSelectionBar';
+export { CitationSourceList, type CitationSourceListProps } from './components/CitationSourceList';
+export { DeepLinkCardRow, type DeepLinkCardRowProps } from './components/DeepLinkCardRow';
+export {
+  SuggestionChipRow,
+  type SuggestionChipItem,
+  type SuggestionChipRowProps,
+} from './components/SuggestionChipRow';
+export {
+  ValidationGatePreview,
+  type ValidationGatePreviewProps,
+} from './components/ValidationGatePreview';
+export {
   DocumentBodyAnalytics,
   type DocumentBodyAnalyticsProps,
   DocumentHeadTags,
   type DocumentHeadTagsProps,
 } from './components/DocumentHeadTags';
+export { ErrorElement, type ErrorElementProps } from './components/ErrorElement';
+export {
+  LazyChunkBoundary,
+  type LazyChunkBoundaryProps,
+  lazyWithRetry,
+} from './components/LazyChunkBoundary';
+export { LoadingElement, type LoadingElementProps } from './components/LoadingElement';
 export {
   RecursiveTuiForm,
   type RecursiveTuiFormProps,
   type RecursiveTuiFormRenderProps,
 } from './components/RecursiveTuiForm';
 export {
+  RouteErrorBoundaryView,
+  type RouteErrorBoundaryViewProps,
+} from './components/RouteErrorBoundaryView';
+export {
+  RouteWorkspaceHost,
+  type RouteWorkspaceEntry,
+  type RouteWorkspaceHostProps,
+} from './components/RouteWorkspaceHost';
+export {
   SandboxedArtifactFrame,
   type SandboxedArtifactFrameProps,
 } from './components/SandboxedArtifactFrame';
 export {
+  MaintenanceProgressCard,
+  type MaintenanceProgressCardProps,
+} from './components/site-content/MaintenanceProgressCard';
+export {
+  SiteChromePreviewBar,
+  type SiteChromePreviewBarProps,
+} from './components/site-content/SiteChromePreviewBar';
+export {
+  SiteContentPreviewCanvas,
+  type SiteContentPreviewCanvasProps,
+  type SiteContentPreviewViewport,
+} from './components/site-content/SiteContentPreviewCanvas';
+export {
+  SiteContentWindowHeader,
+  type SiteContentWindowHeaderProps,
+} from './components/site-content/SiteContentWindowHeader';
+export { TuiHeroCard, type TuiHeroCardProps } from './components/site-content/TuiHeroCard';
+export { StreamingTextFeed, type StreamingTextFeedProps } from './components/StreamingTextFeed';
+export { SuspenseElement, type SuspenseElementProps } from './components/SuspenseElement';
+export {
   TerminalWorkspace,
   type TerminalPaneTuiContext,
+  type TerminalPaneViewContext,
   type TerminalWorkspacePrimaryPane,
   type TerminalWorkspaceProps,
-  useIsPaneActive,
 } from './components/TerminalWorkspace';
+export { useHydrated } from './components/useHydrated';
+export { useIsPaneActive } from './components/paneActiveContext';
 export {
   addWorkspaceTab,
+  allocateNextTabNumber,
+  allocateNextTtyNumber,
   closeActivePaneOrTab,
   closePaneById,
   closeWorkspaceTab,
@@ -35,17 +104,18 @@ export {
   type DropTargetOptions,
   equalizeAllSplits,
   findLeafPane,
+  findTuiPane,
   focusDirectionalPane,
   focusPaneById,
   focusRelativePane,
   getActiveWorkspaceTab,
-  type GhosttyShortcutAction,
   type InitialWorkspaceOptions,
   type KeyboardShortcutInput,
   listLeafPanes,
-  matchGhosttyShortcut,
+  matchWorkspaceShortcut,
   moveActiveSplit,
   type NormalizedBox,
+  openTuiPane,
   type PaneDropTarget,
   type PaneDropZone,
   type PaneNavDirection,
@@ -62,16 +132,64 @@ export {
   type SplitCreateDirection,
   type SplitDirection,
   type SplitDividerRect,
+  swapActivePaneWithNeighbor,
   swapPanes,
   type TerminalLeafPane,
+  type TerminalPaneKind,
   type TerminalPaneNode,
   type TerminalSplitPane,
   type TerminalTabbedWorkspaceState,
   type TerminalWorkspaceState,
   type TerminalWorkspaceTab,
+  toggleTuiPane,
   toggleZoomActivePane,
   updateActiveTabWorkspace,
+  type WorkspaceShortcutAction,
 } from './components/terminalPaneTree';
+export {
+  exitPaneTui,
+  getActivePaneViewId,
+  openViewInSplit,
+  openViewInTab,
+  parseCliNavFlags,
+  type ParsedCliNavFlags,
+  popPaneView,
+  pushPaneView,
+  type TerminalNavTarget,
+} from './components/terminalPaneNav';
+export {
+  detectServerViewportMode,
+  type ElementViewMode,
+  isPortraitViewport,
+  MOBILE_LANDSCAPE_MEDIA_QUERY,
+  MOBILE_PORTRAIT_MEDIA_QUERY,
+  resolveAutoSplitDirection,
+  resolveElementViewport,
+  resolveViewportLayoutMode,
+  type ServerViewportLayoutMode,
+  useAutoSplitDirection,
+  type ViewportLayoutMode,
+} from './components/terminalViewportSplit';
+export {
+  useViewportContext,
+  useViewportLayoutMode,
+  ViewportContext,
+  type ViewportContextValue,
+  ViewportHtml,
+  ViewportProvider,
+  type ViewportProviderProps,
+} from './components/ViewportProvider';
+export { PaneLink, type PaneLinkProps } from './components/PaneLink';
+export {
+  PaneNavigationContext,
+  type PaneNavigationContextValue,
+  usePaneNavigation,
+} from './components/paneNavigationContext';
+export {
+  WorkspaceLauncherContext,
+  type WorkspaceLauncherContextValue,
+  useWorkspaceLauncher,
+} from './components/workspaceLauncherContext';
 export { TuiWindow, type TuiWindowProps } from './components/TuiWindow';
 export {
   type TerminalVariant,
@@ -113,16 +231,27 @@ export {
   mergeBaseClassName,
   type SlotProps,
   styledPart,
+  type StyledPartOptions,
+  viewportStyledPart,
 } from './elements/_internal/elementFactory';
 export * from './elements/base';
 export { OscStatusBadge, type OscStatusBadgeProps } from './elements/OscStatusBadge';
+export { QrCodeSvg, type QrCodeSvgProps } from './elements/QrCodeSvg';
+export { generateQrMatrix, type QrMatrix } from './elements/qrMatrix';
 export { SolarForgeEmblem, type SolarForgeEmblemProps } from './elements/SolarForgeEmblem';
+export {
+  StatusPill,
+  type StatusPillProps,
+  type StatusPillSize,
+  type StatusPillTone,
+} from './elements/StatusPill';
 export { buildFaviconFrameDataUri, useAnimatedFavicon } from './elements/useAnimatedFavicon';
 export {
   SF_ALIGNMENT_TOKENS,
   SF_ANIMATION_TOKENS,
   SF_KEYFRAMES,
   SF_LAYOUT_TOKENS,
+  SF_MOBILE_TOKENS,
   SF_SPACING_TOKENS,
   SF_TOKENS,
   SF_TYPOGRAPHY_TOKENS,

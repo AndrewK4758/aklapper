@@ -1,17 +1,11 @@
 import {
-  type AdminChromeContent,
   AdminChromeContentSchema,
   type AdminHomeLoaderData,
   AdminHomeContentSchema,
   type AdminRootLoaderData,
   type AgensiSkill,
-  AgensiSkillSchema,
   type AnalyticsBatch,
   AnalyticsBatchSchema,
-  type AskMode,
-  type AskResponse,
-  AskResponseSchema,
-  type AskSource,
   type AuthSession,
   AuthSessionSchema,
   type CadenceGateVerdict,
@@ -40,45 +34,81 @@ import {
   PortalHomeContentSchema,
   type PortalMaintenanceLoaderData,
   PortalMaintenanceContentSchema,
-  type PortalMenuLoaderData,
-  PortalMenuContentSchema,
   type PortalRootLoaderData,
   type QuotaStatus,
   QuotaStatusSchema,
   type RoadmapMilestone,
   RoadmapMilestoneSchema,
   type Role,
+  SITE_CONTENT_KEYS,
+  type TerminalDirectoryEntry,
+  TerminalDirectoryEntrySchema,
   type TerminalProfileData,
   TerminalProfileDataSchema,
+  formatTerminalDirectoryListing,
 } from '@aklapper/core';
+import { resolveAgensiCreatorHandle } from '@aklapper/node-runtime/agensi';
 import { and, asc, count, desc, eq, gt, isNull, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 
+import { loadCreatorAgensiCatalog } from './agensi-loader.ts';
+import { type AgensiSyncOptions, queryCreatorPublishedSkills } from './agensi-sync.ts';
+import { isNodeDevUnlimitedEnabled, listGoldenSandboxRuns } from './cadence-showcase.ts';
 import type { AppDatabase } from './client.ts';
 import {
-  mapSandboxTurnRow,
-  normalizeGateVerdict,
+  DEFAULT_QUOTA_BY_ROLE,
+  mapSandboxRunResult,
   updateSandboxRunGateVerdictRow,
 } from './sandbox-helpers.ts';
+import {
+  claimPendingSandboxRun,
+  completeSandboxRunRow,
+  createPendingSandboxRunWithQuota,
+  type CreatePendingSandboxRunInput,
+  type CreatePendingSandboxRunResult,
+  failSandboxRunRow,
+  getSandboxRunWithTurnsById,
+  type SessionGateVerdictOutcome,
+  updateSandboxRunGateVerdictForSession,
+  type UpdateSandboxTurnInput,
+  updateSandboxTurnRow,
+} from './sandbox-lifecycle.ts';
 import * as schema from './schema.ts';
 
-export const SITE_CONTENT_KEYS = {
-  portalChrome: 'portal-chrome',
-  portalHome: 'portal-home',
-  portalMenu: 'portal-menu',
-  portalAgensi: 'portal-agensi',
-  portalAsk: 'portal-ask',
-  portalCadence: 'portal-cadence',
-  portalContact: 'portal-contact',
-  portalMaintenance: 'portal-maintenance',
-  adminChrome: 'admin-chrome',
-  adminHome: 'admin-home',
-  adminAnalytics: 'admin-analytics',
-} as const;
+export {
+  type AdminPasswordUserRecord,
+  countUserWebauthnCredentials,
+  findAdminUserForPasswordLogin,
+  type UpsertAdminPasswordInput,
+  type UpsertAdminPasswordResult,
+  upsertAdminUserPassword,
+} from './auth-queries.ts';
+export {
+  type AuthRateLimitOptions,
+  type AuthRateLimitResult,
+  consumeAuthRateLimit,
+  consumeRateLimit,
+} from './auth-rate-limit.ts';
+export {
+  claimPendingSandboxRun,
+  completeSandboxRunRow,
+  createPendingSandboxRunWithQuota,
+  type CreatePendingSandboxRunInput,
+  type CreatePendingSandboxRunResult,
+  failSandboxRunRow,
+  getSandboxRunWithTurnsById,
+  type SessionGateVerdictOutcome,
+  updateSandboxRunGateVerdictForSession,
+  type UpdateSandboxTurnInput,
+  updateSandboxTurnRow,
+};
+
+export { SITE_CONTENT_KEYS };
 
 export const TERMINAL_PROFILE_SLUGS = {
   portalHome: 'portal-home',
   portalMaintenance: 'portal-maintenance',
+  adminOps: 'admin-ops',
 } as const;
 
 export async function getSiteContent<T>(
@@ -99,6 +129,45 @@ export async function getSiteContent<T>(
   return contentSchema.parse(row.metadataJson);
 }
 
+export async function getTerminalDirectoryEntries(
+  db: AppDatabase,
+  profileSlug: string,
+): Promise<TerminalDirectoryEntry[]> {
+  const rows = await db
+    .select()
+    .from(schema.terminalDirectoryEntries)
+    .where(
+      and(
+        eq(schema.terminalDirectoryEntries.profileSlug, profileSlug),
+        eq(schema.terminalDirectoryEntries.enabled, true),
+      ),
+    )
+    .orderBy(
+      asc(schema.terminalDirectoryEntries.sortOrder),
+      asc(schema.terminalDirectoryEntries.id),
+    );
+
+  return rows.map(row =>
+    TerminalDirectoryEntrySchema.parse({
+      name: row.name,
+      description: row.description,
+      sortOrder: row.sortOrder,
+      enabled: row.enabled,
+    }),
+  );
+}
+
+export function resolveTerminalLsOutput(
+  commandName: string,
+  fallbackOutput: string,
+  directoryListing: string | null,
+): string {
+  if (directoryListing !== null && commandName.trim() === 'ls') {
+    return directoryListing;
+  }
+  return fallbackOutput;
+}
+
 export async function getTerminalProfile(
   db: AppDatabase,
   slug: string,
@@ -113,7 +182,7 @@ export async function getTerminalProfile(
     throw new Error(`Missing required terminal_profiles row in Postgres: slug="${slug}"`);
   }
 
-  const [entryRows, commandRows] = await Promise.all([
+  const [entryRows, commandRows, directoryEntries] = await Promise.all([
     db
       .select()
       .from(schema.terminalInitialEntries)
@@ -124,7 +193,11 @@ export async function getTerminalProfile(
       .from(schema.terminalCommands)
       .where(eq(schema.terminalCommands.profileSlug, slug))
       .orderBy(asc(schema.terminalCommands.sortOrder), asc(schema.terminalCommands.id)),
+    getTerminalDirectoryEntries(db, slug),
   ]);
+
+  const directoryListing =
+    directoryEntries.length > 0 ? formatTerminalDirectoryListing(directoryEntries) : null;
 
   return TerminalProfileDataSchema.parse({
     slug: profile.slug,
@@ -139,7 +212,7 @@ export async function getTerminalProfile(
     quickCommands: profile.quickCommands,
     initialEntries: entryRows.map(entry => ({
       command: entry.command,
-      output: entry.output,
+      output: resolveTerminalLsOutput(entry.command, entry.output, directoryListing),
       status: entry.status,
       durationLabel: entry.durationLabel,
       timestamp: entry.timestampLabel,
@@ -149,7 +222,7 @@ export async function getTerminalProfile(
       name: cmd.name,
       description: cmd.description,
       kind: cmd.kind,
-      output: cmd.output,
+      output: resolveTerminalLsOutput(cmd.name, cmd.output, directoryListing),
       targetRoute: cmd.targetRoute,
       allowedRoutes: cmd.allowedRoutes,
       errorTemplate: cmd.errorTemplate,
@@ -211,13 +284,28 @@ export async function getCadencePresets(db: AppDatabase): Promise<CadencePreset[
   return rows.map(row => CadencePresetSchema.parse(row));
 }
 
-export async function getAgensiSkills(db: AppDatabase): Promise<AgensiSkill[]> {
-  const rows = await db
+export async function getCadencePresetBySlug(
+  db: AppDatabase,
+  slug: string,
+): Promise<CadencePreset | null> {
+  const trimmed = slug.trim();
+  if (!trimmed || trimmed === 'custom' || trimmed === '__custom__') {
+    return null;
+  }
+  const [row] = await db
     .select()
-    .from(schema.agensiSkills)
-    .orderBy(asc(schema.agensiSkills.sortOrder), asc(schema.agensiSkills.slug));
+    .from(schema.cadencePresets)
+    .where(eq(schema.cadencePresets.slug, trimmed))
+    .limit(1);
 
-  return rows.map(row => AgensiSkillSchema.parse(row));
+  return row ? CadencePresetSchema.parse(row) : null;
+}
+
+export async function getAgensiSkills(
+  db: AppDatabase,
+  creatorHandle = resolveAgensiCreatorHandle(),
+): Promise<AgensiSkill[]> {
+  return queryCreatorPublishedSkills(db, creatorHandle);
 }
 
 export async function loadPortalMaintenanceData(
@@ -272,22 +360,25 @@ export async function loadPortalHomeData(db: AppDatabase): Promise<PortalHomeLoa
   return { content, terminal, contactForm: contactContent.form };
 }
 
-export async function loadPortalMenuData(db: AppDatabase): Promise<PortalMenuLoaderData> {
-  const [content, items] = await Promise.all([
-    getSiteContent(db, SITE_CONTENT_KEYS.portalMenu, PortalMenuContentSchema),
-    getMenuItems(db, { includeAdminOnly: false, includeDisabled: false }),
-  ]);
-
-  return { content, items };
-}
-
-export async function loadPortalAgensiData(db: AppDatabase): Promise<PortalAgensiLoaderData> {
-  const [content, skills] = await Promise.all([
+export async function loadPortalAgensiData(
+  db: AppDatabase,
+  options: AgensiSyncOptions = {},
+): Promise<PortalAgensiLoaderData> {
+  const [content, catalog] = await Promise.all([
     getSiteContent(db, SITE_CONTENT_KEYS.portalAgensi, PortalAgensiContentSchema),
-    getAgensiSkills(db),
+    loadCreatorAgensiCatalog(db, options),
   ]);
 
-  return { content, skills };
+  return {
+    content: catalog.statusBadgeOverride
+      ? {
+          ...content,
+          statusBadge: catalog.statusBadgeOverride,
+        }
+      : content,
+    skills: catalog.skills,
+    catalogMeta: catalog.catalogMeta,
+  };
 }
 
 export async function loadPortalAskData(
@@ -306,18 +397,19 @@ export async function loadPortalCadenceData(
   db: AppDatabase,
   sessionId?: string,
 ): Promise<PortalCadenceLoaderData> {
-  const [content, presets, quota, recentRuns] = await Promise.all([
+  const [content, presets, quota, recentRuns, goldenRuns] = await Promise.all([
     getSiteContent(db, SITE_CONTENT_KEYS.portalCadence, PortalCadenceContentSchema),
     getCadencePresets(db),
     getQuotaStatusForSession(db, 'guest', sessionId),
     sessionId ? listSandboxRunsForSession(db, sessionId, 8) : Promise.resolve([]),
+    listGoldenSandboxRuns(db),
   ]);
 
   if (presets.length === 0) {
     throw new Error('Missing required cadence_presets rows in Postgres');
   }
 
-  return { content, presets, quota, recentRuns };
+  return { content, presets, quota, recentRuns, goldenRuns };
 }
 
 export async function loadPortalContactData(db: AppDatabase): Promise<PortalContactLoaderData> {
@@ -465,152 +557,13 @@ export async function insertContactSubmission(
   };
 }
 
-export const ADMIN_OPS_TERMINAL_PROFILE: TerminalProfileData = TerminalProfileDataSchema.parse({
-  slug: 'admin-ops',
-  bannerTitle: 'Solar Forge Ops Terminal // admin',
-  bannerMeta: 'ops tty · type "help" or press Tab',
-  osLabel: '⚡',
-  directory: '~/admin.andrew-k.us',
-  vcsBranch: 'ops-isolated',
-  vcsState: 'clean',
-  contextLabel: 'admin@andrew-k.us',
-  placeholder: 'type an ops command (help, analytics, cms, inbox, quotas, ops, status, clear)',
-  quickCommands: ['help', 'analytics', 'cms', 'inbox', 'quotas', 'ops', 'status'],
-  initialEntries: [
-    {
-      command: 'status',
-      output: 'admin.andrew-k.us :: isolated ops console ready · Ghostty split panes enabled.',
-      status: 'ok',
-      durationLabel: '3ms',
-      timestamp: '00:00:00',
-      sortOrder: 0,
-    },
-  ],
-  commands: [
-    {
-      name: 'help',
-      description: 'list available ops commands',
-      kind: 'static',
-      output: [
-        'Available admin ops commands:',
-        '  help      — list available ops commands',
-        '  home      — open Operations Overview (/)',
-        '  analytics — open Telemetry & CWV Dashboard (/analytics)',
-        '  cms       — open Postgres 19 CMS (/cms)',
-        '  inbox     — open Contact Inbox & Attachments (/inbox)',
-        '  quotas    — open Quota Policies & Buckets (/quotas)',
-        '  ops       — open Cluster SSE & Sandbox Audit (/ops)',
-        '  status    — print isolated ops status',
-        '  whoami    — print active ops identity',
-        '  clear     — clear terminal scrollback',
-      ].join('\n'),
-      targetRoute: null,
-      allowedRoutes: [],
-      errorTemplate: null,
-      sortOrder: 1,
-    },
-    {
-      name: 'home',
-      description: 'open Operations Overview (/)',
-      kind: 'navigate',
-      output: 'opening / ...',
-      targetRoute: '/',
-      allowedRoutes: [],
-      errorTemplate: null,
-      sortOrder: 2,
-    },
-    {
-      name: 'analytics',
-      description: 'open Telemetry & CWV Dashboard (/analytics)',
-      kind: 'navigate',
-      output: 'opening /analytics ...',
-      targetRoute: '/analytics',
-      allowedRoutes: [],
-      errorTemplate: null,
-      sortOrder: 3,
-    },
-    {
-      name: 'cms',
-      description: 'open Postgres 19 CMS (/cms)',
-      kind: 'navigate',
-      output: 'opening /cms ...',
-      targetRoute: '/cms',
-      allowedRoutes: [],
-      errorTemplate: null,
-      sortOrder: 4,
-    },
-    {
-      name: 'inbox',
-      description: 'open Contact Inbox (/inbox)',
-      kind: 'navigate',
-      output: 'opening /inbox ...',
-      targetRoute: '/inbox',
-      allowedRoutes: [],
-      errorTemplate: null,
-      sortOrder: 5,
-    },
-    {
-      name: 'quotas',
-      description: 'open Quota Policies & Rate-Limit Buckets (/quotas)',
-      kind: 'navigate',
-      output: 'opening /quotas ...',
-      targetRoute: '/quotas',
-      allowedRoutes: [],
-      errorTemplate: null,
-      sortOrder: 6,
-    },
-    {
-      name: 'ops',
-      description: 'open Cluster SSE & Sandbox Ops (/ops)',
-      kind: 'navigate',
-      output: 'opening /ops ...',
-      targetRoute: '/ops',
-      allowedRoutes: [],
-      errorTemplate: null,
-      sortOrder: 7,
-    },
-    {
-      name: 'status',
-      description: 'print isolated ops status',
-      kind: 'static',
-      output:
-        'SURFACE : admin.andrew-k.us (noindex, nofollow, noarchive)\nAUTH    : WebAuthn passkey gate · Postgres 19 telemetry active',
-      targetRoute: null,
-      allowedRoutes: [],
-      errorTemplate: null,
-      sortOrder: 8,
-    },
-    {
-      name: 'whoami',
-      description: 'print active ops identity',
-      kind: 'static',
-      output: 'admin@andrew-k.us (isolated ops shell)',
-      targetRoute: null,
-      allowedRoutes: [],
-      errorTemplate: null,
-      sortOrder: 9,
-    },
-    {
-      name: 'clear',
-      description: 'clear terminal scrollback',
-      kind: 'clear',
-      output: '',
-      targetRoute: null,
-      allowedRoutes: [],
-      errorTemplate: null,
-      sortOrder: 10,
-    },
-  ],
-});
-
 export async function loadAdminRootData(db: AppDatabase): Promise<AdminRootLoaderData> {
-  const chrome: AdminChromeContent = await getSiteContent(
-    db,
-    SITE_CONTENT_KEYS.adminChrome,
-    AdminChromeContentSchema,
-  );
+  const [chrome, terminal] = await Promise.all([
+    getSiteContent(db, SITE_CONTENT_KEYS.adminChrome, AdminChromeContentSchema),
+    getTerminalProfile(db, TERMINAL_PROFILE_SLUGS.adminOps),
+  ]);
 
-  return { chrome, terminal: ADMIN_OPS_TERMINAL_PROFILE };
+  return { chrome, terminal };
 }
 
 export async function loadAdminHomeData(db: AppDatabase): Promise<AdminHomeLoaderData> {
@@ -1058,16 +1011,29 @@ export async function enableUserTotpSecret(db: AppDatabase, userId: string): Pro
   return updated.length > 0;
 }
 
+/**
+ * Atomically removes a single consumed TOTP backup code hash in PostgreSQL and reports whether it
+ * was present.
+ */
 export async function consumeTotpBackupCode(
   db: AppDatabase,
   userId: string,
-  remainingHashes: string[],
-): Promise<void> {
-  if (!UUID_PATTERN.test(userId)) return;
-  await db
+  backupCodeHash: string,
+): Promise<boolean> {
+  if (!UUID_PATTERN.test(userId) || backupCodeHash.trim().length === 0) return false;
+  const updated = await db
     .update(schema.totpSecrets)
-    .set({ backupCodesHash: remainingHashes })
-    .where(eq(schema.totpSecrets.userId, userId));
+    .set({
+      backupCodesHash: sql`array_remove(${schema.totpSecrets.backupCodesHash}, ${backupCodeHash}::text)`,
+    })
+    .where(
+      and(
+        eq(schema.totpSecrets.userId, userId),
+        sql`${backupCodeHash}::text = ANY(${schema.totpSecrets.backupCodesHash})`,
+      ),
+    )
+    .returning({ userId: schema.totpSecrets.userId });
+  return updated.length > 0;
 }
 
 export async function disableUserTotpSecret(db: AppDatabase, userId: string): Promise<boolean> {
@@ -1129,16 +1095,6 @@ export async function ingestAnalyticsBatch(
     ipHash: meta.ipHash,
   };
 }
-
-const DEFAULT_QUOTA_BY_ROLE: Readonly<
-  Record<
-    Role,
-    { maxTurnsPerSession: number; maxTokensPerRun: number; maxDailyGlobalTokens: number }
-  >
-> = {
-  guest: { maxTurnsPerSession: 5, maxTokensPerRun: 4_000, maxDailyGlobalTokens: 100_000 },
-  admin: { maxTurnsPerSession: 100, maxTokensPerRun: 32_000, maxDailyGlobalTokens: 2_000_000 },
-};
 
 export async function getQuotaStatusForSession(
   db: AppDatabase,
@@ -1212,22 +1168,25 @@ export async function consumeQuotaForSession(
       .select()
       .from(schema.rateLimitBuckets)
       .where(eq(schema.rateLimitBuckets.scopeKey, sessionKey))
+      .for('update')
       .limit(1);
     const [globalRow] = await tx
       .select()
       .from(schema.rateLimitBuckets)
       .where(eq(schema.rateLimitBuckets.scopeKey, globalKey))
+      .for('update')
       .limit(1);
 
     const sessionTurns = sessionRow?.turnsUsed ?? 0;
     const sessionTokens = sessionRow?.tokensUsed ?? 0;
     const globalTokens = globalRow?.tokensUsed ?? 0;
-
-    if (
+    const quotaExceeded =
       sessionTurns + turnsDelta > policy.maxTurnsPerSession ||
       tokensDelta > policy.maxTokensPerRun ||
-      globalTokens + tokensDelta > policy.maxDailyGlobalTokens
-    ) {
+      globalTokens + tokensDelta > policy.maxDailyGlobalTokens;
+    const devUnlimited = quotaExceeded && isNodeDevUnlimitedEnabled();
+
+    if (quotaExceeded && !devUnlimited) {
       return {
         allowed: false,
         quota: QuotaStatusSchema.parse({
@@ -1238,6 +1197,19 @@ export async function consumeQuotaForSession(
           maxTokens,
         }),
       };
+    }
+
+    if (devUnlimited) {
+      console.warn(
+        JSON.stringify({
+          seam_type: 'DELTA_AUDIT_GAP',
+          event: 'cadence.run.audit',
+          deltaStatus: 'dev_unlimited_bypass',
+          role,
+          sessionId: trimmedSession,
+          turnsUsed: sessionTurns,
+        }),
+      );
     }
 
     await tx
@@ -1351,7 +1323,7 @@ export async function listSandboxRunsForSession(
   const runs = await db
     .select()
     .from(schema.sandboxRuns)
-    .where(eq(schema.sandboxRuns.sessionId, sessionId))
+    .where(and(eq(schema.sandboxRuns.sessionId, sessionId), eq(schema.sandboxRuns.isGolden, false)))
     .orderBy(desc(schema.sandboxRuns.createdAt))
     .limit(limit);
 
@@ -1363,20 +1335,7 @@ export async function listSandboxRunsForSession(
       .where(eq(schema.sandboxTurns.runId, run.id))
       .orderBy(asc(schema.sandboxTurns.id));
 
-    const turns: CadenceTurn[] = turnRows.map(mapSandboxTurnRow);
-
-    results.push(
-      CadenceRunResultSchema.parse({
-        runId: run.id,
-        prompt: run.prompt,
-        gateVerdict: normalizeGateVerdict(run.gateVerdict),
-        turns,
-        artifactHtml: run.artifactHtml ?? '',
-        tokensIn: run.tokensIn,
-        tokensOut: run.tokensOut,
-        createdAt: run.createdAt.toISOString(),
-      }),
-    );
+    results.push(mapSandboxRunResult(run, turnRows));
   }
   return results;
 }
@@ -1392,192 +1351,21 @@ export async function updateSandboxRunGateVerdict(
   return CadenceRunResultSchema.parse({
     runId: result.run.id,
     prompt: result.run.prompt,
+    ...(result.run.menuSlug && result.run.menuSlug !== 'cadence'
+      ? { presetSlug: result.run.menuSlug }
+      : {}),
+    runStatus:
+      result.run.status === 'pending' ||
+      result.run.status === 'running' ||
+      result.run.status === 'ready' ||
+      result.run.status === 'failed'
+        ? result.run.status
+        : 'ready',
     gateVerdict: verdict,
     turns: result.turns,
     artifactHtml: result.run.artifactHtml ?? '',
     tokensIn: result.run.tokensIn,
     tokensOut: result.run.tokensOut,
     createdAt: result.run.createdAt.toISOString(),
-  });
-}
-
-const FALLBACK_STOPWORDS = new Set([
-  'the',
-  'and',
-  'for',
-  'with',
-  'that',
-  'this',
-  'from',
-  'about',
-  'what',
-  'does',
-  'have',
-  'your',
-  'into',
-  'role',
-  'will',
-  'team',
-  'are',
-  'you',
-  'can',
-  'how',
-  'why',
-  'who',
-]);
-
-function extractTerms(text: string): string[] {
-  return Array.from(
-    new Set(
-      text
-        .toLowerCase()
-        .replace(/[^a-z0-9+#.-]+/g, ' ')
-        .split(/\s+/)
-        .filter(term => term.length >= 2 && !FALLBACK_STOPWORDS.has(term)),
-    ),
-  );
-}
-
-const CURATED_FALLBACK_CORPUS: ReadonlyArray<{
-  id: string;
-  title: string;
-  snippet: string;
-  category: string;
-}> = [
-  {
-    id: 'dossier-stack',
-    title: 'Andrew Klapper — Core Architecture & Stack',
-    snippet:
-      'Principal full-stack and cloud systems engineer specializing in TypeScript, React 19, React Router 8 SSR, Fastify 5, Go 1.27 microservices, PostgreSQL 19 with Drizzle ORM, Qdrant vector search, and GCP Cloud Run + GKE Autopilot scale-from-zero workloads.',
-    category: 'dossier',
-  },
-  {
-    id: 'dossier-cadence',
-    title: 'CADENCE — Agentic SDLC & CHORD Sandbox',
-    snippet:
-      'Designed CADENCE, a specification-driven multi-agent delivery workflow using phased CHORD execution (triage, spec, build, gate), isolated git worktrees, deterministic verification gates, and zero-trust sandboxed iframe previews.',
-    category: 'dossier',
-  },
-  {
-    id: 'dossier-security',
-    title: 'Security & Cloud Operations Posture',
-    snippet:
-      'Implemented WebAuthn Passkeys + TOTP 2FA, HMAC-SHA256 signed internal service tokens between SSR BFFs and Go APIs, strict namespace redaction separating portfolio-public from cadence-admin, and PostgreSQL CHECK constraints.',
-    category: 'dossier',
-  },
-  {
-    id: 'dossier-ai',
-    title: 'Grounded RAG & Dual-Provider AI Pipeline',
-    snippet:
-      'Unified LLM and embedding layer supporting local llama-swap inference and Google Cloud Vertex AI Gemini/text-embedding-005 with Qdrant cosine similarity retrieval and strict abstention when evidence scores are below threshold.',
-    category: 'dossier',
-  },
-];
-
-export async function searchPortfolioCorpusFallback(
-  db: AppDatabase,
-  queryText: string,
-  mode: AskMode,
-  quota?: QuotaStatus,
-): Promise<AskResponse> {
-  const [skills, milestones] = await Promise.all([
-    getAgensiSkills(db).catch(() => []),
-    getRoadmapMilestones(db).catch(() => []),
-  ]);
-
-  const docs = [
-    ...CURATED_FALLBACK_CORPUS,
-    ...skills.map(skill => ({
-      id: `agensi:${skill.slug}`,
-      title: `Agensi Skill // ${skill.name}`,
-      snippet: `${skill.summary} Tags: ${skill.tags.join(', ')}.`,
-      category: 'agensi_skills',
-    })),
-    ...milestones.map(milestone => ({
-      id: `milestone:${milestone.slug}`,
-      title: `Roadmap [${milestone.status}] // ${milestone.slug}`,
-      snippet: milestone.label,
-      category: 'roadmap_milestones',
-    })),
-  ];
-
-  const terms = extractTerms(queryText);
-  const scored: Array<AskSource & { matchedTerms: string[] }> = [];
-
-  for (const doc of docs) {
-    const haystack = `${doc.title} ${doc.snippet}`.toLowerCase();
-    const matchedTerms = terms.filter(term => haystack.includes(term));
-    if (matchedTerms.length === 0) continue;
-    const rawScore = Math.min(0.95, 0.32 + matchedTerms.length * 0.14);
-    scored.push({
-      id: doc.id,
-      title: doc.title,
-      snippet: doc.snippet,
-      score: Math.round(rawScore * 100) / 100,
-      category: doc.category,
-      matchedTerms,
-    });
-  }
-
-  scored.sort((a, b) => b.score - a.score);
-  const topHits = scored.slice(0, 4);
-
-  if (topHits.length === 0 || (topHits[0]?.score ?? 0) < 0.35) {
-    return AskResponseSchema.parse({
-      grounded: false,
-      mode,
-      answer:
-        'Abstaining: no grounded portfolio evidence matched your request above the confidence threshold.',
-      sources: [],
-      ...(mode === 'jd_match'
-        ? {
-            matchScore: 0,
-            strengths: [],
-            gaps: [
-              'No overlapping verified portfolio evidence was found for the supplied description.',
-            ],
-          }
-        : {}),
-      provider: 'pg19-local-corpus',
-      tokensUsed: 0,
-      quota,
-    });
-  }
-
-  const sources: AskSource[] = topHits.map(({ matchedTerms: _ignored, ...src }) => src);
-  if (mode === 'jd_match') {
-    const allMatched = new Set(topHits.flatMap(hit => hit.matchedTerms));
-    const unmatched = terms.filter(term => !allMatched.has(term)).slice(0, 4);
-    const ratio = terms.length > 0 ? allMatched.size / Math.min(terms.length, 12) : 0.5;
-    const matchScore = Math.max(35, Math.min(96, Math.round(ratio * 100)));
-    const strengths = topHits.slice(0, 3).map(hit => `${hit.title}: ${hit.snippet.slice(0, 140)}`);
-    const gaps =
-      unmatched.length > 0
-        ? [`Not explicitly evidenced in indexed portfolio corpus: ${unmatched.join(', ')}.`]
-        : ['No major stack gaps detected against the verified portfolio corpus.'];
-
-    return AskResponseSchema.parse({
-      grounded: true,
-      mode,
-      answer: `Grounded JD alignment (${matchScore}% match) across ${sources.length} verified portfolio documents covering ${Array.from(allMatched).slice(0, 6).join(', ')}.`,
-      sources,
-      matchScore,
-      strengths,
-      gaps,
-      provider: 'pg19-local-corpus',
-      tokensUsed: 0,
-      quota,
-    });
-  }
-
-  const lead = topHits[0];
-  return AskResponseSchema.parse({
-    grounded: true,
-    mode,
-    answer: `Based on verified portfolio evidence (${lead?.title}): ${lead?.snippet}`,
-    sources,
-    provider: 'pg19-local-corpus',
-    tokensUsed: 0,
-    quota,
   });
 }

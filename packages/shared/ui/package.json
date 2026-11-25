@@ -17,12 +17,51 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./terminal-workspace": {
+      "@aklapper/source": "./src/terminal-workspace.ts",
+      "types": "./dist/terminal-workspace.d.ts",
+      "import": "./dist/terminal-workspace.js",
+      "default": "./dist/terminal-workspace.js"
+    },
+    "./mobile-tui-workspace": {
+      "@aklapper/source": "./src/mobile-tui-workspace.ts",
+      "types": "./dist/mobile-tui-workspace.d.ts",
+      "import": "./dist/mobile-tui-workspace.js",
+      "default": "./dist/mobile-tui-workspace.js"
+    },
+    "./workspace-storage": {
+      "@aklapper/source": "./src/workspace-storage.ts",
+      "types": "./dist/workspace-storage.d.ts",
+      "import": "./dist/workspace-storage.js",
+      "default": "./dist/workspace-storage.js"
+    },
+    "./qr-code": {
+      "@aklapper/source": "./src/qr-code.ts",
+      "types": "./dist/qr-code.d.ts",
+      "import": "./dist/qr-code.js",
+      "default": "./dist/qr-code.js"
+    },
+    "./sandboxed-artifact-frame": {
+      "@aklapper/source": "./src/sandboxed-artifact-frame.ts",
+      "types": "./dist/sandboxed-artifact-frame.d.ts",
+      "import": "./dist/sandboxed-artifact-frame.js",
+      "default": "./dist/sandboxed-artifact-frame.js"
+    },
+    "./site-content-preview": {
+      "@aklapper/source": "./src/site-content-preview.ts",
+      "types": "./dist/site-content-preview.d.ts",
+      "import": "./dist/site-content-preview.js",
+      "default": "./dist/site-content-preview.js"
+    },
     "./theme.css": "./src/styles/theme.css",
     "./layers.css": "./src/styles/layers.css",
+    "./fonts.css": "./src/styles/fonts.css",
+    "./fonts/*": "./src/styles/fonts/*",
     "./tokens.css": "./src/styles/tokens.css",
     "./tokens/colors.css": "./src/styles/tokens/colors.css",
     "./tokens/typography.css": "./src/styles/tokens/typography.css",
     "./tokens/layout.css": "./src/styles/tokens/layout.css",
+    "./tokens/mobile.css": "./src/styles/tokens/mobile.css",
     "./tokens/animations.css": "./src/styles/tokens/animations.css",
     "./element.css": "./src/styles/element.css",
     "./solar-forge.css": "./src/styles/solar-forge.css"
@@ -32,11 +71,13 @@
     "@base-ui/react": "^1.9.0"
   },
   "devDependencies": {
-    "@aklapper/tooling": "workspace:*"
+    "@aklapper/tooling": "workspace:*",
+    "react-router": "8.5.2"
   },
   "peerDependencies": {
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-router": "^8.0.0"
   },
   "nx": {
     "name": "shared-ui",

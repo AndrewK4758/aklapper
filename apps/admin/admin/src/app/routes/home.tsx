@@ -1,36 +1,57 @@
-import type { AdminOverviewLoaderData } from '@aklapper/core';
+import type { AdminOverviewLoaderData, StreamResult } from '@aklapper/core';
 import { getSharedDb, loadAdminOverviewData } from '@aklapper/db';
-import { resolveAdminSessionFromRequest } from '@aklapper/db/auth';
-import { type LoaderFunctionArgs, type MetaArgs, useLoaderData } from 'react-router';
+import { deferStreamResult, getOrCreateCorrelationId } from '@aklapper/node-runtime/ssr/stream';
+import { RouteErrorBoundaryView, SuspenseElement } from '@aklapper/ui';
+import { href } from 'react-router';
 
 import { AdminHomePage } from '#pages/home';
-import { createPasskeyCredential, type RegistrationOptionsJSON } from '#pages/login';
+import type { RegistrationOptionsJSON } from '#pages/login';
 
-import { buildOverviewHealthSummary } from '../admin-ops.server';
+import { buildOverviewHealthSummary, requireAdminSession } from '../admin-ops.server';
+import { reportAdminPublicError } from '../client-telemetry';
 import { buildAdminPageMeta } from '../seo';
+import type { Route } from './+types/home';
 
-export async function loader({ request }: LoaderFunctionArgs): Promise<AdminOverviewLoaderData> {
-  const [authStatus, health] = await Promise.all([
-    resolveAdminSessionFromRequest(request),
-    buildOverviewHealthSummary(),
-  ]);
-
-  const db = getSharedDb();
-  return loadAdminOverviewData(db, {
-    handle: authStatus.session?.handle ?? 'admin',
-    passkeyCount: authStatus.passkeyCount,
-    totpEnabled: authStatus.totpEnabled,
-    ...health,
-  });
+export interface AdminHomeStreamData {
+  readonly correlationId: string;
+  readonly payload: Promise<StreamResult<AdminOverviewLoaderData>>;
 }
 
-export function meta({ loaderData, matches, location }: MetaArgs<typeof loader>) {
+export async function loader({ request, context }: Route.LoaderArgs): Promise<AdminHomeStreamData> {
+  const correlationId = getOrCreateCorrelationId(request, context);
+  const { status, session } = await requireAdminSession(request, {
+    context,
+    source: 'admin.home.loader',
+  });
+
+  return {
+    correlationId,
+    payload: deferStreamResult(
+      (async () => {
+        const health = await buildOverviewHealthSummary();
+        const db = getSharedDb();
+        return loadAdminOverviewData(db, {
+          handle: session.handle,
+          passkeyCount: status.passkeyCount,
+          totpEnabled: status.totpEnabled,
+          ...health,
+        });
+      })(),
+      {
+        request,
+        context,
+        source: 'admin.home.loader',
+      },
+    ),
+  };
+}
+
+export function meta({ matches, location }: Route.MetaArgs) {
   return buildAdminPageMeta({
     matches,
     pathname: location.pathname,
     title: 'Andrew Klapper Admin',
     description:
-      loaderData?.content.description ??
       'Isolated operations console for andrew-k.us passkey auth, CMS, inbox, quotas, and telemetry.',
   });
 }
@@ -49,6 +70,7 @@ async function registerAdditionalPasskey(): Promise<void> {
     challengeId: string;
     options: RegistrationOptionsJSON;
   };
+  const { createPasskeyCredential } = await import('#pages/login');
   const credential = await createPasskeyCredential(options);
   const verifyRes = await fetch('/api/auth/passkey/register/verify', {
     method: 'POST',
@@ -61,7 +83,31 @@ async function registerAdditionalPasskey(): Promise<void> {
   }
 }
 
-export default function AdminHomeRoute() {
-  const data = useLoaderData() as AdminOverviewLoaderData;
-  return <AdminHomePage data={data} onRegisterPasskey={registerAdditionalPasskey} />;
+export default function AdminHomeRoute({ loaderData }: Route.ComponentProps) {
+  return (
+    <SuspenseElement<AdminOverviewLoaderData>
+      resolve={loaderData.payload}
+      correlationId={loaderData.correlationId}
+      homeHref={href('/')}
+      loadingLabel='Loading operations overview...'
+      onStreamError={error => {
+        reportAdminPublicError(error, { phase: 'stream' });
+      }}
+    >
+      {resolved => <AdminHomePage data={resolved} onRegisterPasskey={registerAdditionalPasskey} />}
+    </SuspenseElement>
+  );
+}
+
+export function ErrorBoundary({ error, loaderData }: Route.ErrorBoundaryProps) {
+  return (
+    <RouteErrorBoundaryView
+      error={error}
+      correlationId={loaderData?.correlationId}
+      homeHref={href('/')}
+      onError={publicError => {
+        reportAdminPublicError(publicError, { phase: 'boundary' });
+      }}
+    />
+  );
 }

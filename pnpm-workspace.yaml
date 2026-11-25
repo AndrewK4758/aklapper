@@ -1,6 +1,5 @@
 packages:
   - 'apps/*/*'
-  - 'apis/node/*/*'
   - 'packages/shared/*'
   - 'packages/node/*'
   - 'packages/legacy/*'
@@ -62,6 +61,12 @@ minimumReleaseAgeExclude:
   - '@oxlint/binding-win32-x64-msvc@1.95.0'
   - oxfmt@0.80.0
   - oxlint@1.95.0
+  - '@react-router/dev@8.5.3'
+  - '@react-router/node@8.5.3'
+  - '@types/node@26.6.7'
+  - '@types/react@19.3.1'
+  - isbot@5.2.4
+  - react-router@8.5.3
 
 overrides:
   typescript: 'catalog:typescript-compat'

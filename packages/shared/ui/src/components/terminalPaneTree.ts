@@ -1,3 +1,9 @@
+export {
+  matchWorkspaceShortcut,
+  type KeyboardShortcutInput,
+  type WorkspaceShortcutAction,
+} from '@aklapper/core';
+
 export type SplitDirection = 'vertical' | 'horizontal';
 export type SplitCreateDirection = 'right' | 'down';
 export type PaneNavDirection = 'left' | 'right' | 'up' | 'down';
@@ -14,11 +20,15 @@ export type PaneDropZone =
   | 'root-bottom'
   | 'detach-tab';
 
+export type TerminalPaneKind = 'terminal' | 'tui';
+
 export interface TerminalLeafPane {
   readonly type: 'leaf';
   readonly id: string;
   readonly ttyNumber: number;
+  readonly kind?: TerminalPaneKind;
   readonly tuiOpen: boolean;
+  readonly tuiStack?: readonly string[];
   readonly pinned?: boolean;
 }
 
@@ -89,35 +99,9 @@ export interface PaneDropTarget {
   readonly label: string;
 }
 
-export type GhosttyShortcutAction =
-  | { readonly type: 'split'; readonly direction: SplitCreateDirection }
-  | { readonly type: 'focus-relative'; readonly delta: 1 | -1 }
-  | { readonly type: 'focus-direction'; readonly direction: PaneNavDirection }
-  | { readonly type: 'resize'; readonly direction: PaneNavDirection }
-  | { readonly type: 'move-split'; readonly direction: PaneNavDirection }
-  | { readonly type: 'rotate-split' }
-  | { readonly type: 'toggle-zoom' }
-  | { readonly type: 'equalize' }
-  | { readonly type: 'close-pane' }
-  | { readonly type: 'new-tab' }
-  | { readonly type: 'rename-tab' }
-  | { readonly type: 'focus-tab-relative'; readonly delta: 1 | -1 }
-  | { readonly type: 'focus-tab-index'; readonly index: number | 'last' }
-  | { readonly type: 'detach-pane' }
-  | { readonly type: 'toggle-tui' }
-  | { readonly type: 'open-menu' };
-
-export interface KeyboardShortcutInput {
-  readonly key: string;
-  readonly code?: string;
-  readonly ctrlKey: boolean;
-  readonly metaKey: boolean;
-  readonly altKey: boolean;
-  readonly shiftKey: boolean;
-}
-
 export interface InitialWorkspaceOptions {
   readonly pinnedPrimary?: boolean;
+  readonly initialPrimaryTuiStack?: readonly string[];
 }
 
 const MIN_SPLIT_RATIO = 0.2;
@@ -128,12 +112,17 @@ const EPSILON = 1e-6;
 export function createInitialWorkspaceState(
   options?: InitialWorkspaceOptions,
 ): TerminalWorkspaceState {
+  const initialStack =
+    options?.initialPrimaryTuiStack && options.initialPrimaryTuiStack.length > 0
+      ? [...options.initialPrimaryTuiStack]
+      : undefined;
   return {
     root: {
       type: 'leaf',
       id: 'pane-1',
       ttyNumber: 1,
       tuiOpen: false,
+      ...(initialStack ? { tuiStack: initialStack } : {}),
       ...(options?.pinnedPrimary ? { pinned: true } : {}),
     },
     activePaneId: 'pane-1',
@@ -155,6 +144,13 @@ export function findLeafPane(node: TerminalPaneNode, paneId: string): TerminalLe
     return node.id === paneId ? node : null;
   }
   return findLeafPane(node.first, paneId) ?? findLeafPane(node.second, paneId);
+}
+
+export function findTuiPane(node: TerminalPaneNode): TerminalLeafPane | null {
+  if (node.type === 'leaf') {
+    return node.kind === 'tui' ? node : null;
+  }
+  return findTuiPane(node.first) ?? findTuiPane(node.second);
 }
 
 function containsPane(node: TerminalPaneNode, paneId: string): boolean {
@@ -192,21 +188,61 @@ function splitNode(
   return node;
 }
 
-export function splitActivePane(
+function allocateNextTtyNumberFromUsed(usedNumbers: ReadonlySet<number>): number {
+  let candidate = 1;
+  while (usedNumbers.has(candidate)) {
+    candidate += 1;
+  }
+  return candidate;
+}
+
+function allocateNextTtyNumberFromLeaves(leaves: readonly TerminalLeafPane[]): number {
+  const usedNumbers = new Set<number>();
+  for (const leaf of leaves) {
+    if (Number.isSafeInteger(leaf.ttyNumber) && leaf.ttyNumber >= 1) {
+      usedNumbers.add(leaf.ttyNumber);
+    }
+  }
+  return allocateNextTtyNumberFromUsed(usedNumbers);
+}
+
+function updateLeafTtyNumbers(
+  node: TerminalPaneNode,
+  replacements: ReadonlyMap<string, number>,
+): TerminalPaneNode {
+  if (node.type === 'leaf') {
+    const nextTty = replacements.get(node.id);
+    return nextTty !== undefined && nextTty !== node.ttyNumber
+      ? { ...node, ttyNumber: nextTty }
+      : node;
+  }
+  const nextFirst = updateLeafTtyNumbers(node.first, replacements);
+  const nextSecond = updateLeafTtyNumbers(node.second, replacements);
+  if (nextFirst === node.first && nextSecond === node.second) {
+    return node;
+  }
+  return { ...node, first: nextFirst, second: nextSecond };
+}
+
+function splitPaneWithKind(
   state: TerminalWorkspaceState,
+  targetPaneId: string,
   direction: SplitCreateDirection,
+  kind?: TerminalPaneKind,
 ): TerminalWorkspaceState {
   const paneNumber = state.nextPaneNumber;
+  const ttyNumber = allocateNextTtyNumberFromLeaves(listLeafPanes(state.root));
   const newLeaf: TerminalLeafPane = {
     type: 'leaf',
     id: `pane-${paneNumber}`,
-    ttyNumber: paneNumber,
-    tuiOpen: false,
+    ttyNumber,
+    ...(kind ? { kind } : {}),
+    tuiOpen: kind === 'tui',
   };
   const splitDirection: SplitDirection = direction === 'right' ? 'vertical' : 'horizontal';
   const nextRoot = splitNode(
     state.root,
-    state.activePaneId,
+    targetPaneId,
     splitDirection,
     `split-${paneNumber}`,
     newLeaf,
@@ -221,6 +257,13 @@ export function splitActivePane(
     nextPaneNumber: paneNumber + 1,
     focusToken: state.focusToken + 1,
   };
+}
+
+export function splitActivePane(
+  state: TerminalWorkspaceState,
+  direction: SplitCreateDirection,
+): TerminalWorkspaceState {
+  return splitPaneWithKind(state, state.activePaneId, direction);
 }
 
 function removeLeafNode(node: TerminalPaneNode, targetId: string): TerminalPaneNode | null {
@@ -706,6 +749,20 @@ export function moveActiveSplit(
   return dockPane(state, state.activePaneId, null, rootZone);
 }
 
+export function swapActivePaneWithNeighbor(state: TerminalWorkspaceState): TerminalWorkspaceState {
+  if (state.zoomedPaneId || listLeafPanes(state.root).length < 2) {
+    return state;
+  }
+  const directions: readonly PaneNavDirection[] = ['right', 'left', 'down', 'up'];
+  for (const direction of directions) {
+    const neighborId = findDirectionalNeighborId(state.root, state.activePaneId, direction);
+    if (neighborId) {
+      return swapPanes(state, state.activePaneId, neighborId);
+    }
+  }
+  return state;
+}
+
 function flipParentSplitOrientation(
   node: TerminalPaneNode,
   targetId: string,
@@ -760,8 +817,8 @@ const ROOT_EDGE_MARGIN_PX = 18;
 const DEFAULT_DETACH_BAND_PX = 52;
 
 /**
- * Pure geometric drop-zone resolver matching ghostty-union's TerminalTabPane::computeDropTarget:
- * tab-strip detach band, 18px outer root-dock margins, and per-pane center-swap / 25% edge zones.
+ * Pure geometric drop-zone resolver for pane drag-and-drop: tab-strip detach band, 18px outer
+ * root-dock margins, and per-pane center-swap / 25% edge zones.
  */
 export function computePaneDropTarget(
   root: TerminalPaneNode,
@@ -1098,8 +1155,67 @@ export function setPaneTuiOpen(
   };
 }
 
+export function openTuiPane(
+  state: TerminalWorkspaceState,
+  anchorPaneId?: string,
+  direction: SplitCreateDirection = 'right',
+): TerminalWorkspaceState {
+  const existing = findTuiPane(state.root);
+  if (existing) {
+    return focusPaneById(state, existing.id, true);
+  }
+  const targetPaneId =
+    anchorPaneId && containsPane(state.root, anchorPaneId) ? anchorPaneId : state.activePaneId;
+  return splitPaneWithKind(state, targetPaneId, direction, 'tui');
+}
+
+export function toggleTuiPane(
+  state: TerminalWorkspaceState,
+  anchorPaneId?: string,
+  direction: SplitCreateDirection = 'right',
+): TerminalWorkspaceState {
+  const existing = findTuiPane(state.root);
+  if (existing && state.activePaneId === existing.id) {
+    return closePaneById(state, existing.id);
+  }
+  return openTuiPane(state, anchorPaneId, direction);
+}
+
 function recordTabHistory(history: readonly string[], tabId: string): readonly string[] {
   return [tabId, ...history.filter(id => id !== tabId)];
+}
+
+const TAB_ID_NUMBER_PATTERN = /^tab-(\d+)$/;
+
+export function allocateNextTabNumber(tabs: readonly TerminalWorkspaceTab[]): number {
+  const usedNumbers = new Set<number>();
+  for (const tab of tabs) {
+    const match = TAB_ID_NUMBER_PATTERN.exec(tab.id);
+    if (!match?.[1]) {
+      continue;
+    }
+    const parsed = Number.parseInt(match[1], 10);
+    if (Number.isSafeInteger(parsed) && parsed >= 1) {
+      usedNumbers.add(parsed);
+    }
+  }
+  let candidate = 1;
+  while (usedNumbers.has(candidate)) {
+    candidate += 1;
+  }
+  return candidate;
+}
+
+export function allocateNextTtyNumber(tabs: readonly TerminalWorkspaceTab[]): number {
+  const usedNumbers = new Set<number>();
+  for (const tab of tabs) {
+    for (const leaf of listLeafPanes(tab.workspace.root)) {
+      if (Number.isSafeInteger(leaf.ttyNumber) && leaf.ttyNumber >= 1) {
+        usedNumbers.add(leaf.ttyNumber);
+      }
+    }
+  }
+  return allocateNextTtyNumberFromUsed(usedNumbers);
 }
 
 export function createInitialTabbedWorkspaceState(
@@ -1135,10 +1251,48 @@ export function updateActiveTabWorkspace(
     activeTab.workspace.nextPaneNumber < state.nextPaneNumber
       ? { ...activeTab.workspace, nextPaneNumber: state.nextPaneNumber }
       : activeTab.workspace;
-  const nextWorkspace = updater(syncedWorkspace);
-  if (nextWorkspace === syncedWorkspace) {
+  const rawNextWorkspace = updater(syncedWorkspace);
+  if (rawNextWorkspace === syncedWorkspace) {
     return state;
   }
+
+  let nextWorkspace = rawNextWorkspace;
+  const prevLeafIds = new Set(listLeafPanes(activeTab.workspace.root).map(leaf => leaf.id));
+  const nextLeaves = listLeafPanes(rawNextWorkspace.root);
+  const newLeaves = nextLeaves.filter(leaf => !prevLeafIds.has(leaf.id));
+  if (newLeaves.length > 0) {
+    const usedNumbers = new Set<number>();
+    for (const tab of state.tabs) {
+      if (tab.id === activeTab.id) {
+        continue;
+      }
+      for (const leaf of listLeafPanes(tab.workspace.root)) {
+        if (Number.isSafeInteger(leaf.ttyNumber) && leaf.ttyNumber >= 1) {
+          usedNumbers.add(leaf.ttyNumber);
+        }
+      }
+    }
+    for (const leaf of nextLeaves) {
+      if (prevLeafIds.has(leaf.id) && Number.isSafeInteger(leaf.ttyNumber) && leaf.ttyNumber >= 1) {
+        usedNumbers.add(leaf.ttyNumber);
+      }
+    }
+    const replacements = new Map<string, number>();
+    for (const newLeaf of newLeaves) {
+      const assigned = allocateNextTtyNumberFromUsed(usedNumbers);
+      usedNumbers.add(assigned);
+      if (assigned !== newLeaf.ttyNumber) {
+        replacements.set(newLeaf.id, assigned);
+      }
+    }
+    if (replacements.size > 0) {
+      nextWorkspace = {
+        ...rawNextWorkspace,
+        root: updateLeafTtyNumbers(rawNextWorkspace.root, replacements),
+      };
+    }
+  }
+
   const nextPaneNumber = Math.max(state.nextPaneNumber, nextWorkspace.nextPaneNumber);
   return {
     ...state,
@@ -1150,12 +1304,13 @@ export function updateActiveTabWorkspace(
 }
 
 export function addWorkspaceTab(state: TerminalTabbedWorkspaceState): TerminalTabbedWorkspaceState {
-  const tabNumber = state.nextTabNumber;
+  const tabNumber = allocateNextTabNumber(state.tabs);
   const paneNumber = state.nextPaneNumber;
+  const ttyNumber = allocateNextTtyNumber(state.tabs);
   const leaf: TerminalLeafPane = {
     type: 'leaf',
     id: `pane-${paneNumber}`,
-    ttyNumber: paneNumber,
+    ttyNumber,
     tuiOpen: false,
   };
   const newTab: TerminalWorkspaceTab = {
@@ -1169,11 +1324,12 @@ export function addWorkspaceTab(state: TerminalTabbedWorkspaceState): TerminalTa
       focusToken: 1,
     },
   };
+  const nextTabs = [...state.tabs, newTab];
   return {
-    tabs: [...state.tabs, newTab],
+    tabs: nextTabs,
     activeTabId: newTab.id,
     tabHistory: recordTabHistory(state.tabHistory, newTab.id),
-    nextTabNumber: tabNumber + 1,
+    nextTabNumber: allocateNextTabNumber(nextTabs),
     nextPaneNumber: paneNumber + 1,
   };
 }
@@ -1255,6 +1411,42 @@ export function renameWorkspaceTab(
   return changed ? { ...state, tabs: nextTabs } : state;
 }
 
+function setLeafPinned(
+  node: TerminalPaneNode,
+  targetPaneId: string,
+  pinned: boolean,
+  fallbackTuiStack?: readonly string[],
+): TerminalPaneNode {
+  if (node.type === 'leaf') {
+    const nextPinned = node.id === targetPaneId ? pinned : false;
+    const shouldAttachStack =
+      node.id === targetPaneId &&
+      nextPinned &&
+      (!node.tuiStack || node.tuiStack.length === 0) &&
+      Boolean(fallbackTuiStack && fallbackTuiStack.length > 0);
+    const shouldNormalizeKind = node.id === targetPaneId && nextPinned && node.kind === 'tui';
+    if (Boolean(node.pinned) === nextPinned && !shouldAttachStack && !shouldNormalizeKind) {
+      return node;
+    }
+    if (nextPinned) {
+      return {
+        ...node,
+        ...(shouldNormalizeKind ? { kind: 'terminal' as const, tuiOpen: false } : {}),
+        pinned: true,
+        ...(shouldAttachStack && fallbackTuiStack ? { tuiStack: [...fallbackTuiStack] } : {}),
+      };
+    }
+    const { pinned: _removed, ...rest } = node;
+    return rest;
+  }
+  const nextFirst = setLeafPinned(node.first, targetPaneId, pinned, fallbackTuiStack);
+  const nextSecond = setLeafPinned(node.second, targetPaneId, pinned, fallbackTuiStack);
+  if (nextFirst === node.first && nextSecond === node.second) {
+    return node;
+  }
+  return { ...node, first: nextFirst, second: nextSecond };
+}
+
 export function closeWorkspaceTab(
   state: TerminalTabbedWorkspaceState,
   tabId: string,
@@ -1264,10 +1456,12 @@ export function closeWorkspaceTab(
   }
   const targetIndex = state.tabs.findIndex(tab => tab.id === tabId);
   const target = state.tabs[targetIndex];
-  if (!target || target.pinned) {
+  if (!target) {
     return state;
   }
 
+  const closedPinnedLeaf = listLeafPanes(target.workspace.root).find(leaf => Boolean(leaf.pinned));
+  const closedHeldPin = Boolean(target.pinned) || Boolean(closedPinnedLeaf);
   const remainingTabs = state.tabs.filter(tab => tab.id !== tabId);
   const remainingHistory = state.tabHistory.filter(id => id !== tabId);
   let nextActiveTabId = state.activeTabId;
@@ -1277,23 +1471,52 @@ export function closeWorkspaceTab(
     nextActiveTabId = mruTabId ?? fallbackTab?.id ?? remainingTabs[0]!.id;
   }
 
-  const nextTabs = remainingTabs.map(tab =>
-    tab.id === nextActiveTabId && state.activeTabId === tabId
-      ? {
-          ...tab,
-          workspace: {
-            ...tab.workspace,
-            focusToken: tab.workspace.focusToken + 1,
-          },
-        }
-      : tab,
-  );
+  const nextTabs = remainingTabs.map(tab => {
+    const isNextActive = tab.id === nextActiveTabId;
+    const shouldBumpFocus = isNextActive && state.activeTabId === tabId;
+    if (closedHeldPin && isNextActive) {
+      const leaves = listLeafPanes(tab.workspace.root);
+      const activeLeaf = findLeafPane(tab.workspace.root, tab.workspace.activePaneId);
+      const targetPaneId =
+        (activeLeaf && activeLeaf.kind !== 'tui' ? activeLeaf.id : undefined) ??
+        leaves.find(leaf => leaf.kind !== 'tui')?.id ??
+        activeLeaf?.id ??
+        leaves[0]?.id ??
+        tab.workspace.activePaneId;
+      const nextRoot = setLeafPinned(
+        tab.workspace.root,
+        targetPaneId,
+        true,
+        closedPinnedLeaf?.tuiStack,
+      );
+      return {
+        ...tab,
+        pinned: true,
+        workspace: {
+          ...tab.workspace,
+          root: nextRoot,
+          focusToken: shouldBumpFocus ? tab.workspace.focusToken + 1 : tab.workspace.focusToken,
+        },
+      };
+    }
+    if (shouldBumpFocus) {
+      return {
+        ...tab,
+        workspace: {
+          ...tab.workspace,
+          focusToken: tab.workspace.focusToken + 1,
+        },
+      };
+    }
+    return tab;
+  });
 
   return {
     ...state,
     tabs: nextTabs,
     activeTabId: nextActiveTabId,
     tabHistory: recordTabHistory(remainingHistory, nextActiveTabId),
+    nextTabNumber: allocateNextTabNumber(nextTabs),
   };
 }
 
@@ -1329,7 +1552,7 @@ export function detachPaneToNewTab(
     return state;
   }
 
-  const tabNumber = state.nextTabNumber;
+  const tabNumber = allocateNextTabNumber(state.tabs);
   const detachedTab: TerminalWorkspaceTab = {
     id: `tab-${tabNumber}`,
     title: null,
@@ -1342,212 +1565,18 @@ export function detachPaneToNewTab(
     },
   };
 
+  const nextTabs = [
+    ...state.tabs.map(tab =>
+      tab.id === activeTab.id ? { ...tab, workspace: nextSourceWorkspace } : tab,
+    ),
+    detachedTab,
+  ];
+
   return {
-    tabs: [
-      ...state.tabs.map(tab =>
-        tab.id === activeTab.id ? { ...tab, workspace: nextSourceWorkspace } : tab,
-      ),
-      detachedTab,
-    ],
+    tabs: nextTabs,
     activeTabId: detachedTab.id,
     tabHistory: recordTabHistory(state.tabHistory, detachedTab.id),
-    nextTabNumber: tabNumber + 1,
+    nextTabNumber: allocateNextTabNumber(nextTabs),
     nextPaneNumber: state.nextPaneNumber,
   };
-}
-
-function mapArrowKeyToDirection(key: string): PaneNavDirection | null {
-  switch (key) {
-    case 'ArrowLeft':
-      return 'left';
-    case 'ArrowRight':
-      return 'right';
-    case 'ArrowUp':
-      return 'up';
-    case 'ArrowDown':
-      return 'down';
-    default:
-      return null;
-  }
-}
-
-function matchesLetter(keyLower: string, code: string, letter: string): boolean {
-  return keyLower === letter || code === `Key${letter.toUpperCase()}`;
-}
-
-function parseDigitIndex(key: string, code: string): number | 'last' | null {
-  if (/^[1-8]$/.test(key)) {
-    return Number(key) - 1;
-  }
-  if (key === '9') {
-    return 'last';
-  }
-  if (/^Digit[1-8]$/.test(code)) {
-    return Number(code.slice(5)) - 1;
-  }
-  if (code === 'Digit9') {
-    return 'last';
-  }
-  return null;
-}
-
-/**
- * Matches Ghostty & ghostty-union split/pane/tab keybindings across Linux (`Ctrl+Shift+}`/`]`/`O`,
- * `Ctrl+Shift+{`/`[`/`E`, `Ctrl+Alt+Arrow`, `Alt+Shift+Arrow`, `Ctrl+Alt+Shift+Arrow`,
- * `Ctrl+Shift+R`, `Ctrl+Alt+Shift+E`, `Ctrl+Shift+T`/`A`/`W`, `Ctrl+Tab`/`PageUp`/`PageDown`,
- * `Alt+1..9`) and macOS (`Cmd+D`, `Cmd+Shift+D`, `Cmd+]`/`[`, `Cmd+Alt+Arrow`, `Ctrl+Cmd+Arrow`),
- * plus browser-safe `Alt`/`Alt+Shift` fallbacks and Solar Forge's `Alt+T` / `Alt+M` shortcuts.
- */
-export function matchGhosttyShortcut(event: KeyboardShortcutInput): GhosttyShortcutAction | null {
-  const keyLower = event.key.toLowerCase();
-  const code = event.code ?? '';
-  const arrowDir = mapArrowKeyToDirection(event.key);
-  const isBracketRight = event.key === ']' || event.key === '}' || code === 'BracketRight';
-  const isBracketLeft = event.key === '[' || event.key === '{' || code === 'BracketLeft';
-  const isCtrlShiftOnly = event.ctrlKey && event.shiftKey && !event.metaKey && !event.altKey;
-  const isCtrlAltShiftOnly = event.ctrlKey && event.altKey && event.shiftKey && !event.metaKey;
-  const isAltShiftOnly = event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey;
-
-  // Move / swap active split directionally: Ctrl+Alt+Shift+Arrow* (ghostty-union)
-  if (arrowDir && isCtrlAltShiftOnly) {
-    return { type: 'move-split', direction: arrowDir };
-  }
-
-  // Resize active split: Alt+Shift+Arrow* (ghostty-union & Ghostty config) or Ctrl+Cmd+Arrow* (macOS Ghostty)
-  if (arrowDir && (isAltShiftOnly || (event.ctrlKey && event.metaKey && !event.altKey))) {
-    return { type: 'resize', direction: arrowDir };
-  }
-
-  // Directional split focus: Cmd+Alt+Arrow* (macOS Ghostty) or Ctrl+Alt+Arrow* (Linux Ghostty / ghostty-union)
-  if (
-    arrowDir &&
-    event.altKey &&
-    !event.shiftKey &&
-    ((event.metaKey && !event.ctrlKey) || (event.ctrlKey && !event.metaKey))
-  ) {
-    return { type: 'focus-direction', direction: arrowDir };
-  }
-
-  // Split right (side-by-side): Ctrl+Shift+}/] (ghostty-union / Ghostty config),
-  // Ctrl+Shift+O (Linux Ghostty / ghostty-union), Cmd+D (macOS Ghostty), Alt+Shift+D (browser fallback)
-  if (
-    (event.metaKey &&
-      !event.shiftKey &&
-      !event.ctrlKey &&
-      !event.altKey &&
-      matchesLetter(keyLower, code, 'd')) ||
-    (isCtrlShiftOnly && (isBracketRight || matchesLetter(keyLower, code, 'o'))) ||
-    (isAltShiftOnly && matchesLetter(keyLower, code, 'd'))
-  ) {
-    return { type: 'split', direction: 'right' };
-  }
-
-  // Split down (stacked): Ctrl+Shift+{/[ (ghostty-union / Ghostty config),
-  // Ctrl+Shift+E (Linux Ghostty / ghostty-union), Cmd+Shift+D (macOS Ghostty), Alt+Shift+S (browser fallback)
-  if (
-    (event.metaKey &&
-      event.shiftKey &&
-      !event.ctrlKey &&
-      !event.altKey &&
-      matchesLetter(keyLower, code, 'd')) ||
-    (isCtrlShiftOnly && (isBracketLeft || matchesLetter(keyLower, code, 'e'))) ||
-    (isAltShiftOnly && matchesLetter(keyLower, code, 's'))
-  ) {
-    return { type: 'split', direction: 'down' };
-  }
-
-  // Rotate active split orientation: Ctrl+Shift+R (ghostty-union) or Ctrl+Alt+Shift+R (browser-safe)
-  if ((isCtrlShiftOnly || isCtrlAltShiftOnly) && matchesLetter(keyLower, code, 'r')) {
-    return { type: 'rotate-split' };
-  }
-
-  // Detach active split pane to a new tab: Ctrl+Alt+Shift+T
-  if (isCtrlAltShiftOnly && matchesLetter(keyLower, code, 't')) {
-    return { type: 'detach-pane' };
-  }
-
-  // New tab: Ctrl+Shift+T (ghostty-union) or Alt+Shift+T (browser-safe)
-  if ((isCtrlShiftOnly || isAltShiftOnly) && matchesLetter(keyLower, code, 't')) {
-    return { type: 'new-tab' };
-  }
-
-  // Rename active tab: Ctrl+Shift+A (ghostty-union) or Alt+Shift+A (browser-safe)
-  if ((isCtrlShiftOnly || isAltShiftOnly) && matchesLetter(keyLower, code, 'a')) {
-    return { type: 'rename-tab' };
-  }
-
-  // Tab switching: Ctrl+Tab / Ctrl+PageDown (next), Ctrl+Shift+Tab / Ctrl+PageUp (prev)
-  if (event.ctrlKey && !event.metaKey && !event.altKey) {
-    if ((event.key === 'Tab' && !event.shiftKey) || event.key === 'PageDown') {
-      return { type: 'focus-tab-relative', delta: 1 };
-    }
-    if ((event.key === 'Tab' && event.shiftKey) || event.key === 'PageUp') {
-      return { type: 'focus-tab-relative', delta: -1 };
-    }
-  }
-
-  // Cycle next / previous split: Cmd+] / Cmd+[ (macOS Ghostty)
-  if (event.metaKey && !event.shiftKey && !event.ctrlKey && !event.altKey) {
-    if (isBracketRight) {
-      return { type: 'focus-relative', delta: 1 };
-    }
-    if (isBracketLeft) {
-      return { type: 'focus-relative', delta: -1 };
-    }
-  }
-
-  // Toggle split zoom: Cmd+Shift+Enter (macOS Ghostty) or Ctrl+Shift+Enter (Linux Ghostty / ghostty-union)
-  if (
-    event.key === 'Enter' &&
-    event.shiftKey &&
-    !event.altKey &&
-    ((event.metaKey && !event.ctrlKey) || (event.ctrlKey && !event.metaKey))
-  ) {
-    return { type: 'toggle-zoom' };
-  }
-
-  // Equalize splits: Ctrl+Alt+Shift+E (ghostty-union), Cmd+Shift+= / Ctrl+Shift+= (Ghostty)
-  const isEqualKey = event.key === '=' || event.key === '+' || code === 'Equal';
-  if (
-    (isCtrlAltShiftOnly && matchesLetter(keyLower, code, 'e')) ||
-    (isEqualKey &&
-      event.shiftKey &&
-      !event.altKey &&
-      ((event.metaKey && !event.ctrlKey) || (event.ctrlKey && !event.metaKey)))
-  ) {
-    return { type: 'equalize' };
-  }
-
-  // Close active split pane (or active tab if last pane): Cmd+Shift+W / Ctrl+Shift+W / Alt+Shift+W
-  if (
-    matchesLetter(keyLower, code, 'w') &&
-    event.shiftKey &&
-    ((event.metaKey && !event.ctrlKey && !event.altKey) ||
-      (event.ctrlKey && !event.metaKey && !event.altKey) ||
-      (event.altKey && !event.ctrlKey && !event.metaKey))
-  ) {
-    return { type: 'close-pane' };
-  }
-
-  // Alt-only shortcuts: Alt+1..9 tab switching, Alt+]/[ tab cycling, Alt+T TUI toggle, Alt+M launch menu
-  if (event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
-    const tabIndex = parseDigitIndex(event.key, code);
-    if (tabIndex !== null) {
-      return { type: 'focus-tab-index', index: tabIndex };
-    }
-    if (isBracketRight) {
-      return { type: 'focus-tab-relative', delta: 1 };
-    }
-    if (isBracketLeft) {
-      return { type: 'focus-tab-relative', delta: -1 };
-    }
-    if (matchesLetter(keyLower, code, 't')) {
-      return { type: 'toggle-tui' };
-    }
-    if (matchesLetter(keyLower, code, 'm')) {
-      return { type: 'open-menu' };
-    }
-  }
-
-  return null;
 }

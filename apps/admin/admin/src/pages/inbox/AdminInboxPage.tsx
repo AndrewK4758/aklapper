@@ -1,11 +1,22 @@
-import type { AdminInboxItem, AdminInboxLoaderData } from '@aklapper/core';
-import { AlertDialog, Button, Field, OscStatusBadge, Separator, TuiWindow } from '@aklapper/ui';
+import type { ActionErrorMetadata, AdminInboxItem, AdminInboxLoaderData } from '@aklapper/core';
+import {
+  ActionFeedbackBanner,
+  AlertDialog,
+  BulkSelectionBar,
+  Button,
+  Field,
+  OscStatusBadge,
+  pruneSelectedIds,
+  SelectionCheckbox,
+  Separator,
+  TuiWindow,
+} from '@aklapper/ui';
 import { useState } from 'react';
 import { Form, Link } from 'react-router';
 
 import styles from './AdminInboxPage.module.css';
 
-export interface AdminInboxActionData {
+export interface AdminInboxActionData extends ActionErrorMetadata {
   ok: boolean;
   message: string;
 }
@@ -30,9 +41,38 @@ export function AdminInboxPage({ data, actionData }: AdminInboxPageProps) {
   const { items, totalCount, page, pageSize, query } = data;
   const [selectedId, setSelectedId] = useState<string | null>(items[0]?.id ?? null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [rawSelectedIds, setRawSelectedIds] = useState<ReadonlySet<string>>(() => new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
 
   const selectedItem: AdminInboxItem | null =
     items.find(item => item.id === selectedId) ?? items[0] ?? null;
+
+  const itemIds = items.map(item => item.id);
+  const activeSelectedIds = pruneSelectedIds(rawSelectedIds, itemIds);
+  const selectedCount = activeSelectedIds.size;
+  const allSelected = items.length > 0 && selectedCount === items.length;
+  const indeterminate = selectedCount > 0 && selectedCount < items.length;
+  const orderedSelectedIds = itemIds.filter(id => activeSelectedIds.has(id));
+
+  const handleToggleItem = (id: string, checked: boolean) => {
+    setRawSelectedIds(prev => {
+      const next = new Set(pruneSelectedIds(prev, itemIds));
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  const handleToggleAll = (checked: boolean) => {
+    setRawSelectedIds(checked ? new Set(itemIds) : new Set());
+  };
+
+  const handleClearSelection = () => {
+    setRawSelectedIds(new Set());
+  };
 
   const totalPages = Math.max(1, Math.ceil(totalCount / Math.max(1, pageSize)));
   const prevPage = page > 1 ? page - 1 : null;
@@ -48,15 +88,7 @@ export function AdminInboxPage({ data, actionData }: AdminInboxPageProps) {
   return (
     <TuiWindow title='Contact Submissions Inbox // Postgres 19'>
       <div className={styles.panel}>
-        {actionData ? (
-          actionData.ok ? (
-            <output className={styles.statusNote}>{actionData.message}</output>
-          ) : (
-            <p role='alert' className={styles.errorNote}>
-              {actionData.message}
-            </p>
-          )
-        ) : null}
+        {actionData ? <ActionFeedbackBanner {...actionData} /> : null}
 
         <div className={styles.searchBar}>
           <Form method='get' action='/inbox' className={styles.searchForm}>
@@ -74,7 +106,11 @@ export function AdminInboxPage({ data, actionData }: AdminInboxPageProps) {
               <Button.Label>Search</Button.Label>
             </Button.Root>
             {query ? (
-              <Button.Link render={<Link to='/inbox' />} variant='ghost' size='sm'>
+              <Button.Link
+                render={<Link to='/inbox' prefetch='intent' />}
+                variant='ghost'
+                size='sm'
+              >
                 <Button.Label>Clear</Button.Label>
               </Button.Link>
             ) : null}
@@ -92,35 +128,102 @@ export function AdminInboxPage({ data, actionData }: AdminInboxPageProps) {
         ) : (
           <div className={styles.splitLayout}>
             <div className={styles.listColumn}>
+              <BulkSelectionBar
+                totalCount={items.length}
+                selectedCount={selectedCount}
+                allSelected={allSelected}
+                indeterminate={indeterminate}
+                onToggleAll={handleToggleAll}
+                onClear={handleClearSelection}
+                itemLabel='submission'
+                actions={
+                  <AlertDialog.Root
+                    open={bulkDeleteDialogOpen}
+                    onOpenChange={setBulkDeleteDialogOpen}
+                  >
+                    <AlertDialog.Trigger type='button' disabled={selectedCount === 0}>
+                      Delete Selected{selectedCount > 0 ? ` (${selectedCount})` : ''}
+                    </AlertDialog.Trigger>
+                    <AlertDialog.Portal>
+                      <AlertDialog.Backdrop />
+                      <AlertDialog.Viewport>
+                        <AlertDialog.Popup>
+                          <AlertDialog.Title>
+                            Delete {selectedCount} Contact Submission
+                            {selectedCount === 1 ? '' : 's'}?
+                          </AlertDialog.Title>
+                          <AlertDialog.Description>
+                            This permanently deletes {selectedCount} selected contact submission
+                            {selectedCount === 1 ? '' : 's'} and any stored attachments from
+                            PostgreSQL 19.
+                          </AlertDialog.Description>
+                          <AlertDialog.Actions>
+                            <AlertDialog.Close type='button'>Cancel</AlertDialog.Close>
+                            <Form
+                              method='post'
+                              onSubmit={() => {
+                                setBulkDeleteDialogOpen(false);
+                                setRawSelectedIds(new Set());
+                              }}
+                            >
+                              <input type='hidden' name='intent' value='delete-many' />
+                              {orderedSelectedIds.map(id => (
+                                <input key={id} type='hidden' name='id' value={id} />
+                              ))}
+                              <Button.Root type='submit' variant='danger'>
+                                <Button.Label>Confirm Bulk Delete</Button.Label>
+                              </Button.Root>
+                            </Form>
+                          </AlertDialog.Actions>
+                        </AlertDialog.Popup>
+                      </AlertDialog.Viewport>
+                    </AlertDialog.Portal>
+                  </AlertDialog.Root>
+                }
+              />
+
               {items.map(item => {
                 const isSelected = selectedItem?.id === item.id;
+                const isChecked = activeSelectedIds.has(item.id);
                 return (
-                  <button
+                  <div
                     key={item.id}
-                    type='button'
-                    aria-pressed={isSelected}
-                    data-selected={isSelected ? 'true' : 'false'}
-                    className={styles.itemButton}
-                    onClick={() => {
-                      setSelectedId(item.id);
-                    }}
+                    className={styles.itemRow}
+                    data-checked={isChecked ? 'true' : 'false'}
                   >
-                    <div className={styles.itemHeader}>
-                      <strong>{item.name}</strong>
-                      {item.attachmentName ? (
-                        <OscStatusBadge source='file' state='ready' label='Attachment' />
-                      ) : null}
-                    </div>
-                    <span className={styles.itemSub}>{item.email}</span>
-                    <span className={styles.itemSnippet}>{item.message}</span>
-                  </button>
+                    <SelectionCheckbox
+                      aria-label={`Select submission from ${item.name}`}
+                      checked={isChecked}
+                      onCheckedChange={checked => {
+                        handleToggleItem(item.id, checked);
+                      }}
+                    />
+                    <button
+                      type='button'
+                      aria-pressed={isSelected}
+                      data-selected={isSelected ? 'true' : 'false'}
+                      className={styles.itemButton}
+                      onClick={() => {
+                        setSelectedId(item.id);
+                      }}
+                    >
+                      <div className={styles.itemHeader}>
+                        <strong>{item.name}</strong>
+                        {item.attachmentName ? (
+                          <OscStatusBadge source='file' state='ready' label='Attachment' />
+                        ) : null}
+                      </div>
+                      <span className={styles.itemSub}>{item.email}</span>
+                      <span className={styles.itemSnippet}>{item.message}</span>
+                    </button>
+                  </div>
                 );
               })}
 
               <div className={styles.pager}>
                 {prevPage ? (
                   <Button.Link
-                    render={<Link to={buildPageHref(prevPage)} />}
+                    render={<Link to={buildPageHref(prevPage)} prefetch='intent' />}
                     variant='ghost'
                     size='sm'
                   >
@@ -131,7 +234,7 @@ export function AdminInboxPage({ data, actionData }: AdminInboxPageProps) {
                 )}
                 {nextPage ? (
                   <Button.Link
-                    render={<Link to={buildPageHref(nextPage)} />}
+                    render={<Link to={buildPageHref(nextPage)} prefetch='intent' />}
                     variant='ghost'
                     size='sm'
                   >

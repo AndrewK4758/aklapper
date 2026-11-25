@@ -1,7 +1,7 @@
 {
   "name": "admin.andrew-k.us // Solar Forge Ops",
   "short_name": "andrew-k.us Ops",
-  "description": "Isolated operations console for andrew-k.us passkey gate, telemetry, and cadence-admin workflows.",
+  "description": "Private operations console for andrew-k.us passkey gate, telemetry, CMS, and sandbox audit workflows.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#121110",

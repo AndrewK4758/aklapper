@@ -6,7 +6,7 @@ import {
   type IChutesAndLadders,
   type ILiteSpace,
 } from '../../types/index.ts';
-import AvatarTotemsChutesAndLadders from './avatar-totems_chutes-and-ladders.js';
+import AvatarTotemsChutesAndLadders from './avatar-totems_chutes-and-ladders.ts';
 
 export const TOTAL_SPACES = 100;
 export const START = 1;

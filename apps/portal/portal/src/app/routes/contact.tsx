@@ -1,53 +1,74 @@
-import type { ContactActionResult, PortalContactLoaderData } from '@aklapper/core';
+import type { ContactActionResult } from '@aklapper/core';
 import { loadPortalContactDataWithPrerender } from '@aklapper/db';
 import {
-  type ActionFunctionArgs,
-  data,
-  type MetaArgs,
-  useActionData,
-  useLoaderData,
-  useNavigate,
-  useNavigation,
-} from 'react-router';
+  deferStreamResult,
+  getOrCreateCorrelationId,
+  getRequestContext,
+} from '@aklapper/node-runtime/ssr/stream';
+import { RouteErrorBoundaryView } from '@aklapper/ui';
+import { data, href } from 'react-router';
 
-import { PortalContactPage } from '#pages/contact';
-
+import { reportPortalPublicError } from '../client-telemetry';
 import { processContactSubmission } from '../contact-submission.server';
+import { ContactRouteView } from '../features/ContactFeatureView';
+import { createPrimaryRouteClientAction } from '../features/paneClientAction';
 import { buildPortalPageMeta } from '../seo';
+import type { Route } from './+types/contact';
 
-export async function loader(): Promise<PortalContactLoaderData> {
-  return loadPortalContactDataWithPrerender();
+export function loader({ request, context }: Route.LoaderArgs) {
+  const correlationId = getOrCreateCorrelationId(request, context);
+  return {
+    correlationId,
+    payload: deferStreamResult(loadPortalContactDataWithPrerender(), {
+      request,
+      context,
+      source: 'portal.contact.loader',
+    }),
+  };
 }
 
-export function meta({ loaderData, matches, location }: MetaArgs<typeof loader>) {
+export function meta({ matches, location }: Route.MetaArgs) {
   return buildPortalPageMeta({
     matches,
     pathname: location.pathname,
     title: 'Contact // andrew-k.us',
     description:
-      loaderData?.content.description ??
       'Direct TUI contact form backed by recursive Zod/JSON schema validation and PostgreSQL 19 CHECK constraints.',
   });
 }
 
-export async function action({ request }: ActionFunctionArgs) {
-  const { payload, status } = await processContactSubmission(request);
-  return data<ContactActionResult>(payload, { status });
+export async function action({ request, context }: Route.ActionArgs) {
+  const reqCtx = getRequestContext(context);
+  const correlationId = getOrCreateCorrelationId(request, context);
+  const { payload, status, retryAfterSeconds } = await processContactSubmission(request, {
+    correlationId,
+    logger: reqCtx?.logger,
+  });
+  return data<ContactActionResult>(payload, {
+    status,
+    headers: {
+      'X-Correlation-Id': correlationId,
+      ...(typeof retryAfterSeconds === 'number'
+        ? { 'Retry-After': String(retryAfterSeconds) }
+        : {}),
+    },
+  });
 }
 
-export default function PortalContactRoute() {
-  const { content } = useLoaderData() as PortalContactLoaderData;
-  const actionData = useActionData<typeof action>() as ContactActionResult | undefined;
-  const navigation = useNavigation();
-  const navigate = useNavigate();
+export const clientAction = createPrimaryRouteClientAction<ContactActionResult>('/contact');
 
+export default function PortalContactRoute({ loaderData, actionData }: Route.ComponentProps) {
+  return <ContactRouteView loaderData={loaderData} actionData={actionData} />;
+}
+
+export function ErrorBoundary({ error, loaderData }: Route.ErrorBoundaryProps) {
   return (
-    <PortalContactPage
-      content={content}
-      actionData={actionData}
-      isSubmitting={navigation.state === 'submitting'}
-      onClose={() => {
-        void navigate('/');
+    <RouteErrorBoundaryView
+      error={error}
+      correlationId={loaderData?.correlationId}
+      homeHref={href('/')}
+      onError={publicError => {
+        reportPortalPublicError(publicError, { phase: 'boundary' });
       }}
     />
   );

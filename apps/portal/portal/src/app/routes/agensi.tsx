@@ -1,36 +1,47 @@
-import type { PortalAgensiLoaderData } from '@aklapper/core';
 import { loadPortalAgensiDataWithPrerender } from '@aklapper/db';
-import { type MetaArgs, useLoaderData, useNavigate } from 'react-router';
+import { deferStreamResult, getOrCreateCorrelationId } from '@aklapper/node-runtime/ssr/stream';
+import { RouteErrorBoundaryView } from '@aklapper/ui';
+import { href } from 'react-router';
 
-import { PortalAgensiPage } from '#pages/agensi';
-
+import { reportPortalPublicError } from '../client-telemetry';
+import { AgensiRouteView } from '../features/AgensiFeatureView';
 import { buildPortalPageMeta } from '../seo';
+import type { Route } from './+types/agensi';
 
-export async function loader(): Promise<PortalAgensiLoaderData> {
-  return loadPortalAgensiDataWithPrerender();
+export function loader({ request, context }: Route.LoaderArgs) {
+  const correlationId = getOrCreateCorrelationId(request, context);
+  return {
+    correlationId,
+    payload: deferStreamResult(loadPortalAgensiDataWithPrerender({ correlationId }), {
+      request,
+      context,
+      source: 'portal.agensi.loader',
+    }),
+  };
 }
 
-export function meta({ loaderData, matches, location }: MetaArgs<typeof loader>) {
+export function meta({ matches, location }: Route.MetaArgs) {
   return buildPortalPageMeta({
     matches,
     pathname: location.pathname,
     title: 'Agensi Storefront // andrew-k.us',
     description:
-      loaderData?.content.description ??
       'Published commercial AI agent skills and cloud-native operational blueprints on agensi.io.',
   });
 }
 
-export default function PortalAgensiRoute() {
-  const { content, skills } = useLoaderData() as PortalAgensiLoaderData;
-  const navigate = useNavigate();
+export default function PortalAgensiRoute({ loaderData }: Route.ComponentProps) {
+  return <AgensiRouteView loaderData={loaderData} />;
+}
 
+export function ErrorBoundary({ error, loaderData }: Route.ErrorBoundaryProps) {
   return (
-    <PortalAgensiPage
-      content={content}
-      skills={skills}
-      onClose={() => {
-        void navigate('/');
+    <RouteErrorBoundaryView
+      error={error}
+      correlationId={loaderData?.correlationId}
+      homeHref={href('/')}
+      onError={publicError => {
+        reportPortalPublicError(publicError, { phase: 'boundary' });
       }}
     />
   );

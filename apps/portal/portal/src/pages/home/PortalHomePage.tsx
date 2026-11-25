@@ -1,12 +1,18 @@
 import type { PortalHomeContent, TerminalProfileData } from '@aklapper/core';
 import {
+  buildZshCommandHandlers,
   Button,
   OscStatusBadge,
+  PaneLink,
   type TerminalFormConfig,
   TerminalWorkspace,
-  Toolbar,
+  TuiHeroCard,
   TuiWindow,
+  usePaneNavigation,
+  useViewportLayoutMode,
+  ZshP10kTerminal,
 } from '@aklapper/ui';
+import { useMemo } from 'react';
 import { Link } from 'react-router';
 
 import styles from './PortalHomePage.module.css';
@@ -44,17 +50,23 @@ export function PortalLauncherTui({
         />
       }
     >
-      <div className={styles.tuiBody}>
-        <h1>{content.heading}</h1>
-        <p>{content.description}</p>
-        <Toolbar.Root className={styles.actions} aria-label='Portal launch actions'>
-          {content.actions.map(action => (
-            <Button.Link key={action.to} render={<Link to={action.to} />} variant={action.variant}>
-              <Button.Label>{action.label}</Button.Label>
-            </Button.Link>
-          ))}
-        </Toolbar.Root>
-      </div>
+      <TuiHeroCard
+        heading={content.heading}
+        description={content.description}
+        actions={content.actions}
+        actionsAriaLabel='Portal launch actions'
+        className={styles.tuiBody}
+        actionsClassName={styles.actions}
+        renderAction={action => (
+          <Button.Link
+            key={action.to}
+            render={<PaneLink to={action.to} render={<Link to={action.to} prefetch='intent' />} />}
+            variant={action.variant}
+          >
+            <Button.Label>{action.label}</Button.Label>
+          </Button.Link>
+        )}
+      />
     </TuiWindow>
   );
 }
@@ -65,6 +77,44 @@ export function PortalHomePage({
   terminalForms,
   onNavigate,
 }: PortalHomePageProps) {
+  const layoutMode = useViewportLayoutMode();
+  const paneNav = usePaneNavigation();
+  const mobileCommands = useMemo(
+    () =>
+      buildZshCommandHandlers(terminal.commands, {
+        navigate: onNavigate,
+        openTui: () => {
+          if (paneNav) {
+            paneNav.push('tui');
+          } else {
+            void onNavigate?.('/cadence');
+          }
+        },
+      }),
+    [terminal.commands, onNavigate, paneNav],
+  );
+
+  if (layoutMode !== 'desktop') {
+    return (
+      <div className={styles.workspace}>
+        <ZshP10kTerminal
+          variant='viewport'
+          showBanner={false}
+          osLabel={terminal.osLabel}
+          directory={terminal.directory}
+          vcsBranch={terminal.vcsBranch}
+          vcsState={terminal.vcsState}
+          contextLabel={terminal.contextLabel}
+          commands={mobileCommands}
+          terminalForms={terminalForms}
+          quickCommands={terminal.quickCommands}
+          initialEntries={terminal.initialEntries}
+          placeholder={terminal.placeholder}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.workspace}>
       <TerminalWorkspace

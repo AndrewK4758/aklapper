@@ -1,7 +1,8 @@
 import { NumberField as BaseNumberField } from '@base-ui/react/number-field';
 
-import { styledPart } from '../_internal/elementFactory';
+import { cx, styledPart } from '../_internal/elementFactory';
 
+import controlMobileStyles from '../_styles/control-mobile.module.css';
 import controlStyles from '../_styles/control.module.css';
 
 export const NumberField = {
@@ -9,13 +10,17 @@ export const NumberField = {
   Group: styledPart(BaseNumberField.Group, controlStyles.numberGroup, 'NumberField.Group'),
   Decrement: styledPart(
     BaseNumberField.Decrement,
-    controlStyles.numberStep,
+    cx(controlStyles.numberStep, controlMobileStyles.touchTarget),
     'NumberField.Decrement',
   ),
-  Input: styledPart(BaseNumberField.Input, controlStyles.numberInput, 'NumberField.Input'),
+  Input: styledPart(
+    BaseNumberField.Input,
+    cx(controlStyles.numberInput, controlMobileStyles.touchInput),
+    'NumberField.Input',
+  ),
   Increment: styledPart(
     BaseNumberField.Increment,
-    controlStyles.numberStep,
+    cx(controlStyles.numberStep, controlMobileStyles.touchTarget),
     'NumberField.Increment',
   ),
   ScrubArea: styledPart(

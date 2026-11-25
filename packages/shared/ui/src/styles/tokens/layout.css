@@ -98,10 +98,16 @@
     --sf-container-lg: calc(var(--sf-size-unit) * 61.25);
     --sf-container-portal: calc(var(--sf-size-unit) * 61.25);
     --sf-container-admin: calc(var(--sf-size-unit) * 67.5);
+    --sf-container-admin-wide: calc(var(--sf-size-unit) * 110);
     --sf-container-xl: calc(var(--sf-size-unit) * 80);
     --sf-container-2xl: calc(var(--sf-size-unit) * 90);
     --sf-sidebar-w: calc(var(--sf-size-unit) * 16.25);
     --sf-topbar-h: calc(var(--sf-space-unit) * 12);
+    --sf-touch-target-min: calc(var(--sf-space-unit) * 11);
+    --sf-mobile-header-h: calc(var(--sf-space-unit) * 12);
+    --sf-mobile-nav-h: calc(var(--sf-space-unit) * 14);
+    --sf-mobile-rail-w: calc(var(--sf-space-unit) * 15);
+    --sf-mobile-rail-expanded-w: calc(var(--sf-space-unit) * 44);
     --sf-popup-min-w: calc(var(--sf-size-unit) * 11.25);
     --sf-popup-max-w: calc(var(--sf-size-unit) * 27.5);
     --sf-popup-max-h: calc(var(--sf-size-unit) * 22.5);
@@ -113,7 +119,7 @@
     --sf-window-min-w: calc(var(--sf-size-unit) * 16.25);
     --sf-window-min-h: calc(var(--sf-size-unit) * 10);
     --sf-resize-handle-size: calc(var(--sf-space-unit) * 3.5);
-    --sf-iframe-min-h: calc(var(--sf-size-unit) * 20);
+    --sf-iframe-min-h: calc(var(--sf-size-unit) * 44);
 
     /* Z-index ladder */
     --sf-z-base: 0;

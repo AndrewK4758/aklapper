@@ -1,15 +1,32 @@
 name: aklapper CI
 
+# Mandatory CI runs ONLY on pull requests targeting `main`.
+# Feature branches and `develop` never trigger CI automatically; use `workflow_dispatch`
+# to run CI explicitly on any branch.
 on:
   pull_request:
     branches:
       - main
-      - portfolio_v2
-  push:
-    branches:
-      - main
-      - portfolio_v2
+  workflow_dispatch:
+    inputs:
+      run_all:
+        description: Run all projects instead of only Nx affected projects
+        type: boolean
+        default: false
+      base_ref:
+        description: Base git ref/SHA for Nx affected comparison (defaults to origin/main)
+        type: string
+        default: origin/main
   workflow_call:
+    inputs:
+      run_all:
+        description: Run all projects instead of only Nx affected projects
+        type: boolean
+        default: false
+      base_ref:
+        description: Base git ref/SHA for Nx affected comparison
+        type: string
+        default: ''
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -23,50 +40,188 @@ env:
   PNPM_VERSION: 12.23.0
   NODE_VERSION: 26.13.1
   GO_VERSION: '1.27'
+  NX_DAEMON: 'false'
+  NX_NO_CLOUD: 'true'
 
 jobs:
-  verify:
-    name: Format, lint, test, build & typecheck
+  format:
+    name: Format check (oxfmt)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          pnpm-version: ${{ env.PNPM_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          restore-nx-cache: 'false'
+
+      - name: Check formatting
+        run: pnpm format:check
+
+  plan:
+    name: Plan Nx affected graph
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      run_all: ${{ steps.plan.outputs.run_all }}
+      base: ${{ steps.plan.outputs.base }}
+      head: ${{ steps.plan.outputs.head }}
+      has_lint: ${{ steps.plan.outputs.has_lint }}
+      has_typecheck: ${{ steps.plan.outputs.has_typecheck }}
+      has_build: ${{ steps.plan.outputs.has_build }}
+      has_test: ${{ steps.plan.outputs.has_test }}
+      has_api_e2e: ${{ steps.plan.outputs.has_api_e2e }}
+      has_playwright: ${{ steps.plan.outputs.has_playwright }}
+      has_docker: ${{ steps.plan.outputs.has_docker }}
+      needs_go: ${{ steps.plan.outputs.needs_go }}
+      needs_test_db: ${{ steps.plan.outputs.needs_test_db }}
+      needs_api_e2e_db: ${{ steps.plan.outputs.needs_api_e2e_db }}
+      playwright_apps_json: ${{ steps.plan.outputs.playwright_apps_json }}
+      playwright_build_projects: ${{ steps.plan.outputs.playwright_build_projects }}
+      api_e2e_projects: ${{ steps.plan.outputs.api_e2e_projects }}
+      docker_matrix_json: ${{ steps.plan.outputs.docker_matrix_json }}
+
+    steps:
+      - name: Checkout full history for Nx affected
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - name: Derive Nx base and head SHAs
+        if: inputs.run_all != true && inputs.base_ref == ''
+        uses: nrwl/nx-set-shas@v5
         with:
-          version: ${{ env.PNPM_VERSION }}
-          run_install: false
+          main-branch-name: main
 
-      - name: Install Node.js
-        uses: actions/setup-node@v4
+      - name: Setup workspace
+        uses: ./.github/actions/setup-workspace
         with:
+          pnpm-version: ${{ env.PNPM_VERSION }}
           node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
+          restore-nx-cache: 'false'
 
-      - name: Install Go
-        uses: actions/setup-go@v5
+      - name: Compute affected CI plan
+        id: plan
+        shell: bash
+        env:
+          INPUT_RUN_ALL: ${{ inputs.run_all }}
+          INPUT_BASE_REF: ${{ inputs.base_ref }}
+        run: |
+          if [ "$INPUT_RUN_ALL" = "true" ]; then
+            node --conditions=@aklapper/source packages/tooling/src/ci-plan.ts --all
+          elif [ -n "$INPUT_BASE_REF" ]; then
+            node --conditions=@aklapper/source packages/tooling/src/ci-plan.ts --base="$INPUT_BASE_REF" --head=HEAD
+          else
+            node --conditions=@aklapper/source packages/tooling/src/ci-plan.ts
+          fi
+
+  lint:
+    name: Lint (Nx affected)
+    needs: plan
+    if: needs.plan.outputs.has_lint == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
         with:
+          fetch-depth: 0
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          pnpm-version: ${{ env.PNPM_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
           go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: go.work
+          setup-go: ${{ needs.plan.outputs.needs_go }}
+          cache-scope: lint
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Run lint
+        shell: bash
+        run: |
+          if [ "${{ needs.plan.outputs.run_all }}" = "true" ]; then
+            pnpm exec nx run-many -t lint
+          else
+            pnpm exec nx affected -t lint --base="${{ needs.plan.outputs.base }}" --head="${{ needs.plan.outputs.head }}"
+          fi
 
-      - name: Check formatting (oxfmt)
-        run: pnpm format:check
+  typecheck:
+    name: Typecheck (Nx affected)
+    needs: plan
+    if: needs.plan.outputs.has_typecheck == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
 
-      - name: Lint, test, build, and typecheck
-        run: pnpm exec nx run-many -t lint test build typecheck --verbose
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          pnpm-version: ${{ env.PNPM_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          cache-scope: typecheck
+
+      - name: Run typecheck
+        shell: bash
+        run: |
+          if [ "${{ needs.plan.outputs.run_all }}" = "true" ]; then
+            pnpm exec nx run-many -t typecheck
+          else
+            pnpm exec nx affected -t typecheck --base="${{ needs.plan.outputs.base }}" --head="${{ needs.plan.outputs.head }}"
+          fi
+
+  build:
+    name: Build (Nx affected)
+    needs: plan
+    if: needs.plan.outputs.has_build == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          pnpm-version: ${{ env.PNPM_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          go-version: ${{ env.GO_VERSION }}
+          setup-go: ${{ needs.plan.outputs.needs_go }}
+          cache-scope: build
+
+      - name: Run build
+        shell: bash
+        run: |
+          if [ "${{ needs.plan.outputs.run_all }}" = "true" ]; then
+            pnpm exec nx run-many -t build
+          else
+            pnpm exec nx affected -t build --base="${{ needs.plan.outputs.base }}" --head="${{ needs.plan.outputs.head }}"
+          fi
+
+      - name: Ensure SSR bundles exist for affected Playwright E2E suites
+        if: needs.plan.outputs.playwright_build_projects != ''
+        run: pnpm exec nx run-many -t build -p "${{ needs.plan.outputs.playwright_build_projects }}"
 
       - name: Upload built SSR artifacts for Playwright E2E
-        uses: actions/upload-artifact@v4
+        if: needs.plan.outputs.has_playwright == 'true'
+        uses: actions/upload-artifact@v7
         with:
           name: ssr-dist-${{ github.run_id }}-${{ github.run_attempt }}
           retention-days: 1
+          if-no-files-found: ignore
           path: |
             apps/portal/portal/dist
             apps/admin/admin/dist
@@ -76,9 +231,81 @@ jobs:
             packages/shared/core/dist
             packages/tooling/dist
 
-  e2e:
-    name: E2E (${{ matrix.app }} / ${{ matrix.project }})
-    needs: verify
+  test:
+    name: Unit & integration tests (Nx affected)
+    needs: plan
+    if: needs.plan.outputs.has_test == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          pnpm-version: ${{ env.PNPM_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          go-version: ${{ env.GO_VERSION }}
+          setup-go: ${{ needs.plan.outputs.needs_go }}
+          cache-scope: test
+
+      - name: Run tests
+        shell: bash
+        run: |
+          if [ "${{ needs.plan.outputs.run_all }}" = "true" ]; then
+            TEST_CMD=(pnpm exec nx run-many -t test)
+          else
+            TEST_CMD=(pnpm exec nx affected -t test --base="${{ needs.plan.outputs.base }}" --head="${{ needs.plan.outputs.head }}")
+          fi
+
+          if [ "${{ needs.plan.outputs.needs_test_db }}" = "true" ]; then
+            node --conditions=@aklapper/source packages/tooling/src/run-with-ephemeral-pg.ts --label test -- "${TEST_CMD[@]}"
+          else
+            "${TEST_CMD[@]}"
+          fi
+
+  api-e2e:
+    name: API E2E tests (Nx affected)
+    needs: plan
+    if: needs.plan.outputs.has_api_e2e == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          pnpm-version: ${{ env.PNPM_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          go-version: ${{ env.GO_VERSION }}
+          setup-go: ${{ needs.plan.outputs.needs_go }}
+          cache-scope: api-e2e
+
+      - name: Run affected API E2E suites
+        shell: bash
+        run: |
+          E2E_CMD=(pnpm exec nx run-many -t e2e -p "${{ needs.plan.outputs.api_e2e_projects }}")
+          if [ "${{ needs.plan.outputs.needs_api_e2e_db }}" = "true" ]; then
+            node --conditions=@aklapper/source packages/tooling/src/run-with-ephemeral-pg.ts --label e2e -- "${E2E_CMD[@]}"
+          else
+            "${E2E_CMD[@]}"
+          fi
+
+  playwright-e2e:
+    name: Playwright E2E (${{ matrix.app }} / ${{ matrix.engine }})
+    needs:
+      - plan
+      - build
+    if: needs.plan.outputs.has_playwright == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -100,75 +327,69 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app:
-          - portal-e2e
-          - admin-e2e
-        project:
+        app: ${{ fromJson(needs.plan.outputs.playwright_apps_json) }}
+        engine:
           - chromium
           - firefox
           - webkit
-          - mobile-chrome
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - name: Setup workspace
+        uses: ./.github/actions/setup-workspace
         with:
-          version: ${{ env.PNPM_VERSION }}
-          run_install: false
-
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
+          pnpm-version: ${{ env.PNPM_VERSION }}
           node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          go-version: ${{ env.GO_VERSION }}
+          setup-go: ${{ matrix.app == 'portal-e2e' }}
+          cache-scope: e2e-${{ matrix.app }}-${{ matrix.engine }}
 
       - name: Download built SSR artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ssr-dist-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Migrate and seed PostgreSQL 19
         run: pnpm db:setup
 
-      - name: Resolve Playwright browser binary
-        id: browser
-        shell: bash
-        run: |
-          if [ "${{ matrix.project }}" = "mobile-chrome" ]; then
-            echo "binary=chromium" >> "$GITHUB_OUTPUT"
-          else
-            echo "binary=${{ matrix.project }}" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Cache Playwright browser
+      - name: Cache Playwright browser (${{ matrix.engine }})
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.browser.outputs.binary }}-${{ hashFiles('pnpm-lock.yaml') }}
+          key: playwright-v2-${{ runner.os }}-${{ matrix.engine }}-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Install Playwright browser & system dependencies
         run: |
-          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
-            pnpm exec playwright install-deps "${{ steps.browser.outputs.binary }}"
+          if [ "${{ matrix.engine }}" = "chromium" ]; then
+            if ! command -v google-chrome >/dev/null 2>&1 && ! command -v google-chrome-stable >/dev/null 2>&1; then
+              pnpm exec playwright install --with-deps chrome ffmpeg
+            else
+              pnpm exec playwright install-deps chrome
+              pnpm exec playwright install ffmpeg
+            fi
+          elif [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
+            pnpm exec playwright install-deps "${{ matrix.engine }}"
           else
-            pnpm exec playwright install --with-deps "${{ steps.browser.outputs.binary }}"
+            pnpm exec playwright install --with-deps "${{ matrix.engine }}"
           fi
 
       - name: Run Playwright E2E suite
-        run: pnpm exec nx run ${{ matrix.app }}:e2e -- --project=${{ matrix.project }}
+        shell: bash
+        run: |
+          if [ "${{ matrix.engine }}" = "chromium" ]; then
+            pnpm exec nx run "${{ matrix.app }}:e2e" -- --project=chromium --project=mobile-chrome
+          else
+            pnpm exec nx run "${{ matrix.app }}:e2e" -- --project="${{ matrix.engine }}"
+          fi
 
       - name: Upload Playwright report & failure artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
+        if: failure()
+        uses: actions/upload-artifact@v7
         with:
-          name: playwright-${{ matrix.app }}-${{ matrix.project }}
+          name: playwright-${{ matrix.app }}-${{ matrix.engine }}
           retention-days: 7
           if-no-files-found: ignore
           path: |
@@ -179,45 +400,63 @@ jobs:
 
   docker-build-check:
     name: Docker build check (${{ matrix.service }})
-    needs: verify
-    if: github.event_name == 'pull_request'
+    needs:
+      - plan
+      - build
+    if: github.event_name == 'pull_request' && needs.plan.outputs.has_docker == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - service: portal
-            dockerfile: apps/portal/portal/Dockerfile
-          - service: admin
-            dockerfile: apps/admin/admin/Dockerfile
-          - service: node-api-auth
-            dockerfile: apis/node/auth/auth/Dockerfile
-          - service: node-api-analytics
-            dockerfile: apis/node/analytics/analytics/Dockerfile
-          - service: k8s-watch
-            dockerfile: apis/go/k8s-watch/k8s-watch/Dockerfile
-          - service: cadence-demo
-            dockerfile: apis/go/cadence-demo/cadence-demo/Dockerfile
-          - service: ai-ask
-            dockerfile: apis/go/ai-ask/ai-ask/Dockerfile
-          - service: contact
-            dockerfile: apis/go/contact/contact/Dockerfile
-          - service: cadence-admin
-            dockerfile: apis/go/cadence-admin/cadence-admin/Dockerfile
+        include: ${{ fromJson(needs.plan.outputs.docker_matrix_json) }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Validate Docker image build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ${{ matrix.dockerfile }}
           push: false
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+  ci-status:
+    name: CI status gate
+    needs:
+      - format
+      - plan
+      - lint
+      - typecheck
+      - build
+      - test
+      - api-e2e
+      - playwright-e2e
+      - docker-build-check
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Verify all scheduled CI jobs succeeded
+        shell: bash
+        env:
+          RESULTS_JSON: ${{ toJson(needs) }}
+        run: |
+          node -e '
+            const needs = JSON.parse(process.env.RESULTS_JSON);
+            const failed = Object.entries(needs)
+              .filter(([, job]) => job.result !== "success" && job.result !== "skipped")
+              .map(([name, job]) => `${name}: ${job.result}`);
+            if (failed.length > 0) {
+              console.error("CI gate failed due to:", failed.join(", "));
+              process.exit(1);
+            }
+            console.log("All scheduled CI jobs passed or were cleanly skipped by Nx affected.");
+          '

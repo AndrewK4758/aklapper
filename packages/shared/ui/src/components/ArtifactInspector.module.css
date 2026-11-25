@@ -1,0 +1,178 @@
+@layer component {
+  .inspector {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: var(--sf-space-0);
+    max-width: 100%;
+    gap: var(--sf-gap-xs);
+  }
+
+  .header {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    flex-wrap: wrap;
+    gap: var(--sf-gap-xs);
+  }
+
+  .tabBar {
+    display: flex;
+    align-items: var(--sf-align-center);
+    flex-wrap: wrap;
+    gap: var(--sf-gap-xs);
+  }
+
+  .headerMeta {
+    display: inline-flex;
+    align-items: var(--sf-align-center);
+    flex-wrap: wrap;
+    gap: var(--sf-gap-xs);
+  }
+
+  .previewStack {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--sf-gap-sm);
+  }
+
+  .buildLockedPanel {
+    display: grid;
+    align-content: center;
+    justify-items: start;
+    gap: var(--sf-gap-sm);
+    min-height: 16rem;
+    padding: var(--sf-space-6);
+    border: var(--sf-border-width) dashed var(--sf-gold);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-bg-panel);
+  }
+
+  .liveSpecSection {
+    min-width: var(--sf-space-0);
+  }
+
+  .specHeaderRow {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    flex-wrap: wrap;
+    gap: var(--sf-gap-xs);
+  }
+
+  .specCard {
+    display: grid;
+    gap: var(--sf-gap-sm);
+    padding: var(--sf-space-4);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-bg-panel);
+  }
+
+  .specTitle {
+    margin: var(--sf-space-0);
+    color: var(--sf-gold);
+    font-family: var(--sf-font-mono), monospace;
+    font-size: var(--sf-text-sm);
+    font-weight: var(--sf-weight-bold);
+  }
+
+  .specSummary {
+    margin: var(--sf-space-0);
+    color: var(--sf-fg-bone);
+    font-size: var(--sf-text-xs);
+    line-height: var(--sf-leading-base);
+  }
+
+  .chordGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+    gap: var(--sf-gap-sm);
+  }
+
+  .chordGroup {
+    display: grid;
+    gap: var(--sf-space-1);
+    align-content: start;
+    padding: var(--sf-space-3);
+    border-radius: var(--sf-radius-xs);
+    border: var(--sf-border-width) solid var(--sf-border-subtle);
+    background: var(--sf-bg-editor);
+  }
+
+  .chordHeading {
+    margin: var(--sf-space-0);
+    color: var(--sf-gold);
+    font-family: var(--sf-font-mono), monospace;
+    font-size: var(--sf-text-2xs);
+    text-transform: uppercase;
+    letter-spacing: var(--sf-tracking-wide);
+  }
+
+  .chordList {
+    margin: var(--sf-space-0);
+    padding-left: var(--sf-space-4);
+    display: grid;
+    gap: var(--sf-space-1);
+    color: var(--sf-fg-prop);
+    font-size: var(--sf-text-xs);
+    line-height: var(--sf-leading-base);
+  }
+
+  .patternRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sf-gap-xs);
+  }
+
+  .emptyNotice {
+    margin: var(--sf-space-0);
+    padding: var(--sf-space-4);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-bg-panel);
+    color: var(--sf-fg-cmt);
+    font-family: var(--sf-font-mono), monospace;
+    font-size: var(--sf-text-xs);
+  }
+
+  .fullscreenBackdrop {
+    position: fixed;
+    inset: var(--sf-space-0);
+    z-index: var(--sf-z-modal);
+    background: var(--sf-backdrop);
+  }
+
+  .fullscreenPopup {
+    position: fixed;
+    inset: var(--sf-space-4);
+    z-index: var(--sf-z-modal);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-sm);
+    padding: var(--sf-space-4);
+    border: var(--sf-border-width) solid var(--sf-border-strong);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-bg-frame);
+    box-shadow: var(--sf-shadow-lg);
+  }
+
+  .fullscreenHeader {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    gap: var(--sf-gap-sm);
+  }
+
+  .fullscreenTitle {
+    margin: var(--sf-space-0);
+    color: var(--sf-gold);
+    font-family: var(--sf-font-mono), monospace;
+    font-size: var(--sf-text-sm);
+  }
+
+  .fullscreenFrame {
+    flex: 1 1 auto;
+    height: 100%;
+    min-height: var(--sf-space-0);
+  }
+}

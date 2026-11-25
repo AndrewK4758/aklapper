@@ -27,19 +27,13 @@ describe('portal SEO helper', () => {
     });
   });
 
-  it('overrides page meta with noindex maintenance metadata when maintenanceMode is active', () => {
+  it('overrides page meta with synchronous noindex maintenance defaults without awaited DB maintenance data', () => {
     const tags = buildPortalPageMeta({
       matches: [
         {
           id: 'root',
           loaderData: {
             maintenanceMode: true,
-            maintenance: {
-              content: {
-                heading: 'Scheduled Upgrade',
-                lead: 'Upgrading Solar Forge infrastructure.',
-              },
-            },
           },
         },
       ],
@@ -48,15 +42,41 @@ describe('portal SEO helper', () => {
       description: 'Normal description',
     });
 
-    expect(tags).toContainEqual({ title: 'Scheduled Upgrade // andrew-k.us' });
+    expect(tags).toContainEqual({ title: 'Changes in Progress // andrew-k.us' });
     expect(tags).toContainEqual({ name: 'robots', content: 'noindex, nofollow' });
     expect(tags).toContainEqual({
       name: 'description',
-      content: 'Upgrading Solar Forge infrastructure.',
+      content:
+        'andrew-k.us is being rebuilt into the Solar Forge v2 interactive terminal and TUI platform.',
     });
     expect(tags).toContainEqual({
       property: 'og:url',
       content: `${DEFAULT_PORTAL_SITE_URL}/cadence`,
     });
+  });
+
+  it('ignores legacy DB maintenance fields on root matches and stays strictly synchronous', () => {
+    const tags = buildPortalPageMeta({
+      matches: [
+        {
+          id: 'root',
+          loaderData: {
+            maintenanceMode: true,
+            maintenance: {
+              content: {
+                heading: 'DB Override Should Not Drive Sync Head',
+                lead: 'Async DB lead.',
+              },
+            },
+          },
+        },
+      ],
+      pathname: '/menu',
+      title: 'Launch Menu',
+      description: 'Menu description',
+    });
+
+    expect(tags).toContainEqual({ title: 'Changes in Progress // andrew-k.us' });
+    expect(tags).toContainEqual({ name: 'robots', content: 'noindex, nofollow' });
   });
 });

@@ -1,6 +1,6 @@
 import type { AllGameTypes } from '@aklapper/legacy-games/types';
 
-import { GameBuilder } from '../../src/models/lib/game-builder/game-builder.js';
+import { GameBuilder } from '../../src/models/lib/game-builder/game-builder.ts';
 
 let gb: GameBuilder;
 

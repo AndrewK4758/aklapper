@@ -1,9 +1,11 @@
 @import '@aklapper/ui/theme.css';
 
 @layer tokens {
-  :root {
+  :root,
+  :root[data-theme='solar-forge'],
+  :root[data-theme='solar-forge-high-contrast'] {
     /* Admin app-level token overrides on top of @aklapper/ui */
-    --sf-container-lg: var(--sf-container-admin);
+    --sf-container-lg: var(--sf-container-admin-wide);
     --sf-accent-border: var(--sf-vermilion);
     --sf-progress-indicator-bg: linear-gradient(90deg, var(--sf-vermilion), var(--sf-gold));
   }

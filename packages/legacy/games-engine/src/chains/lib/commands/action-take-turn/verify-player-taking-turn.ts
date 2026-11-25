@@ -1,7 +1,7 @@
 import { CommandBuilder } from '../../../../chain/index.ts';
 import { type Context, GameContextKeys, TurnStatus } from '../../../../types/index.ts';
 import { deRefContextObject, getPlayerID } from '../../../../utils/index.ts';
-import { gameCommandMap, type NextCommandMap } from '../../utils/context-next-map.js';
+import { gameCommandMap, type NextCommandMap } from '../../utils/context-next-map.ts';
 
 export const verifyPlayerTakingTurn = CommandBuilder.build(
   (context: Context<GameContextKeys | string>) => {

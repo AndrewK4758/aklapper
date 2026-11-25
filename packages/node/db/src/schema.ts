@@ -1,7 +1,9 @@
+import type { AgensiCatalogSource, AgensiSyncStatus } from '@aklapper/core';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
   check,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -13,13 +15,14 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
+export { careerDossiers } from './schema-dossiers.ts';
+export { sandboxRuns, sandboxTurns } from './schema-sandbox.ts';
+
 export const menuItems = pgTable('menu_items', {
   slug: text('slug').primaryKey(),
   keyShortcut: text('key_shortcut').notNull(),
   title: text('title').notNull(),
   description: text('description').notNull(),
-  targetK8sDeploy: text('target_k8s_deploy'),
-  namespace: text('namespace'),
   adminOnly: boolean('admin_only').notNull().default(false),
   sortOrder: integer('sort_order').notNull().default(0),
   enabled: boolean('enabled').notNull().default(true),
@@ -32,13 +35,38 @@ export const siteContent = pgTable('site_content', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const agensiSkills = pgTable('agensi_skills', {
-  slug: text('slug').primaryKey(),
-  name: text('name').notNull(),
-  summary: text('summary').notNull(),
-  tags: text('tags').array().notNull().default([]),
-  url: text('url').notNull(),
-  sortOrder: integer('sort_order').notNull().default(0),
+export const agensiSkills = pgTable(
+  'agensi_skills',
+  {
+    slug: text('slug').primaryKey(),
+    name: text('name').notNull(),
+    summary: text('summary').notNull(),
+    tags: text('tags').array().notNull().default([]),
+    url: text('url').notNull(),
+    sortOrder: integer('sort_order').notNull().default(0),
+    creatorHandle: text('creator_handle'),
+    isPublished: boolean('is_published').notNull().default(false),
+    syncedAt: timestamp('synced_at', { withTimezone: true }),
+    source: text('source').$type<AgensiCatalogSource>().notNull().default('seed'),
+  },
+  table => [
+    index('agensi_skills_creator_published_sort_idx').on(
+      table.creatorHandle,
+      table.isPublished,
+      table.sortOrder,
+      table.slug,
+    ),
+  ],
+);
+
+export const agensiSyncState = pgTable('agensi_sync_state', {
+  creatorHandle: text('creator_handle').primaryKey(),
+  lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
+  lastAttemptAt: timestamp('last_attempt_at', { withTimezone: true }),
+  lastStatus: text('last_status').$type<AgensiSyncStatus>().notNull().default('idle'),
+  lastError: text('last_error'),
+  itemCount: integer('item_count').notNull().default(0),
+  etag: text('etag'),
 });
 
 export const cadencePresets = pgTable('cadence_presets', {
@@ -105,6 +133,23 @@ export const terminalCommands = pgTable(
     sortOrder: integer('sort_order').notNull().default(0),
   },
   table => [uniqueIndex('terminal_commands_profile_name_idx').on(table.profileSlug, table.name)],
+);
+
+export const terminalDirectoryEntries = pgTable(
+  'terminal_directory_entries',
+  {
+    id: serial('id').primaryKey(),
+    profileSlug: text('profile_slug')
+      .notNull()
+      .references(() => terminalProfiles.slug, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    description: text('description').notNull(),
+    sortOrder: integer('sort_order').notNull().default(0),
+    enabled: boolean('enabled').notNull().default(true),
+  },
+  table => [
+    uniqueIndex('terminal_directory_entries_profile_name_idx').on(table.profileSlug, table.name),
+  ],
 );
 
 export const roadmapMilestones = pgTable('roadmap_milestones', {
@@ -176,32 +221,47 @@ export const rateLimitBuckets = pgTable('rate_limit_buckets', {
   tokensUsed: integer('tokens_used').notNull().default(0),
 });
 
-export const sandboxRuns = pgTable('sandbox_runs', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  sessionId: text('session_id').notNull(),
-  ipHash: text('ip_hash').notNull(),
-  menuSlug: text('menu_slug').notNull(),
-  prompt: text('prompt').notNull(),
-  status: text('status').notNull(),
-  gateVerdict: text('gate_verdict').notNull().default('pending'),
-  tokensIn: integer('tokens_in').notNull().default(0),
-  tokensOut: integer('tokens_out').notNull().default(0),
-  artifactHtml: text('artifact_html'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const sandboxTurns = pgTable('sandbox_turns', {
-  id: serial('id').primaryKey(),
-  runId: uuid('run_id')
-    .notNull()
-    .references(() => sandboxRuns.id, { onDelete: 'cascade' }),
-  phase: text('phase').notNull(),
-  agentName: text('agent_name').notNull(),
-  status: text('status').notNull(),
-  payloadJson: jsonb('payload_json').$type<Record<string, unknown>>().notNull().default({}),
-  latencyMs: integer('latency_ms').notNull().default(0),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+export const askTurns = pgTable(
+  'ask_turns',
+  {
+    attemptId: text('attempt_id').primaryKey(),
+    sessionId: text('session_id').notNull(),
+    role: text('role').$type<'guest' | 'admin'>().notNull(),
+    mode: text('mode').$type<'qa' | 'jd_match'>().notNull(),
+    promptHash: text('prompt_hash').notNull(),
+    status: text('status')
+      .$type<'pending' | 'running' | 'completed' | 'abstained' | 'failed' | 'expired'>()
+      .notNull(),
+    tokensReserved: integer('tokens_reserved').notNull().default(0),
+    tokensUsed: integer('tokens_used').notNull().default(0),
+    resultJson: jsonb('result_json').$type<Record<string, unknown> | null>(),
+    errorCode: text('error_code'),
+    correlationId: text('correlation_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    leaseExpiresAt: timestamp('lease_expires_at', { withTimezone: true }).notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    conversationId: text('conversation_id'),
+    turnIndex: integer('turn_index'),
+    promptText: text('prompt_text'),
+  },
+  table => [
+    check(
+      'ask_turns_prompt_text_length_check',
+      sql`${table.promptText} IS NULL OR char_length(${table.promptText}) <= 1000`,
+    ),
+    index('ask_turns_session_expires_idx').on(table.sessionId, table.expiresAt),
+    index('ask_turns_status_lease_idx').on(table.status, table.leaseExpiresAt),
+    index('ask_turns_session_conv_created_idx').on(
+      table.sessionId,
+      table.conversationId,
+      table.createdAt,
+    ),
+    uniqueIndex('ask_turns_conv_turn_idx')
+      .on(table.sessionId, table.conversationId, table.turnIndex)
+      .where(sql`${table.conversationId} IS NOT NULL AND ${table.turnIndex} IS NOT NULL`),
+  ],
+);
 
 export const analyticsSessions = pgTable('analytics_sessions', {
   sessionId: text('session_id').primaryKey(),

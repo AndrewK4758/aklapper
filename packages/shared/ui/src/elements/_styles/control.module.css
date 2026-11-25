@@ -15,6 +15,7 @@
     font-size: var(--sf-text-control);
     font-weight: var(--sf-weight-medium);
     line-height: var(--sf-leading-none);
+    font-variant-ligatures: contextual common-ligatures;
     font-feature-settings: var(--sf-font-features-ligatures);
     text-decoration: none;
     cursor: pointer;
@@ -172,6 +173,7 @@
     color: var(--sf-fg-bone);
     font-family: var(--sf-font-mono), monospace;
     font-size: var(--sf-text-control);
+    font-variant-ligatures: contextual common-ligatures;
     font-feature-settings: var(--sf-font-features-ligatures);
     transition: var(--sf-transition-colors);
   }
@@ -491,5 +493,32 @@
     color: var(--sf-fg-num);
     font-size: var(--sf-text-sm);
     font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
+    .toggleGroup {
+      flex-wrap: wrap;
+      max-width: 100%;
+    }
+
+    .otpRoot {
+      flex-wrap: wrap;
+      justify-content: var(--sf-justify-center);
+    }
+  }
+
+  @media (max-width: 48rem) and (pointer: coarse),
+    (max-height: 32rem) and (orientation: landscape) and (pointer: coarse) {
+    .input,
+    .numberInput {
+      font-size: var(--sf-size-unit);
+    }
+  }
+
+  @media (max-width: 24rem) {
+    .otpInput {
+      width: calc(var(--sf-space-unit) * 8);
+      height: calc(var(--sf-space-unit) * 9.5);
+    }
   }
 }

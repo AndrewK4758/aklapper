@@ -10,9 +10,12 @@
     margin: var(--sf-space-0);
     padding: var(--sf-space-0);
     min-height: var(--sf-min-viewport-h);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
+    overflow-x: clip;
     background: var(--sf-bg-frame);
     color: var(--sf-fg-bone);
     font-family: var(--sf-font-mono), monospace;
@@ -20,6 +23,7 @@
     font-weight: var(--sf-weight-normal);
     line-height: var(--sf-leading-base);
     letter-spacing: var(--sf-tracking-normal);
+    font-variant-ligatures: contextual common-ligatures;
     font-feature-settings: var(--sf-font-features-ligatures);
     font-variant-numeric: tabular-nums;
     -webkit-font-smoothing: antialiased;
@@ -36,7 +40,8 @@
     font-family: var(--sf-font-display), monospace;
     font-weight: var(--sf-weight-bold);
     line-height: var(--sf-leading-tight);
-    letter-spacing: var(--sf-tracking-tight);
+    letter-spacing: var(--sf-tracking-normal);
+    font-variant-ligatures: contextual common-ligatures;
   }
 
   h1 {
@@ -81,6 +86,7 @@
   pre,
   samp {
     font-family: var(--sf-font-code), monospace;
+    font-variant-ligatures: contextual common-ligatures;
     font-feature-settings: var(--sf-font-features-ligatures);
   }
 
@@ -118,6 +124,13 @@
     dialog[open] {
       opacity: 0;
       transform: translateY(var(--sf-dialog-enter-y));
+    }
+  }
+
+  @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
+    dialog {
+      max-width: calc(100vw - var(--sf-space-6));
+      padding: var(--sf-space-6);
     }
   }
 

@@ -37,7 +37,7 @@
 
   .healthGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
     gap: var(--sf-space-5);
   }
 
@@ -79,7 +79,7 @@
 
   .kpiGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr));
     gap: var(--sf-space-4);
   }
 
@@ -151,6 +151,15 @@
     background: var(--sf-bg-editor);
     border: var(--sf-border-width) solid var(--sf-accent-border);
     border-radius: var(--sf-radius-sm);
+  }
+
+  .qrFrame {
+    display: inline-flex;
+    justify-content: center;
+    padding: var(--sf-space-3);
+    background: oklch(1 0 0);
+    border-radius: var(--sf-radius-sm);
+    width: fit-content;
   }
 
   .codeText {

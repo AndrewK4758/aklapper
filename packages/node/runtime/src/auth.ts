@@ -7,6 +7,20 @@ import {
   timingSafeEqual,
 } from 'node:crypto';
 
+import { isProductionEnv } from './http-hygiene.ts';
+import { resolveInternalAuthSecret } from './http.ts';
+
+export {
+  ARGON2ID_DEFAULTS,
+  Argon2ConcurrencyError,
+  type Argon2HashOptions,
+  AUTH_LOG_REDACT_PATHS,
+  hashPasswordArgon2id,
+  parseArgon2idPhc,
+  type ParsedArgon2idPhc,
+  verifyPasswordArgon2id,
+} from './password.ts';
+
 export const ADMIN_SESSION_COOKIE_NAME = 'ak_admin_session';
 export const GUEST_SESSION_COOKIE_NAME = 'ak_guest_session';
 
@@ -53,9 +67,13 @@ export function isSecureRequest(
   forwardedProto?: string | null,
 ): boolean {
   if (forwardedProto) {
-    const primary = forwardedProto.split(',')[0]?.trim().toLowerCase();
-    if (primary === 'https') return true;
-    if (primary === 'http') return false;
+    const hops = forwardedProto
+      .split(',')
+      .map(part => part.trim().toLowerCase())
+      .filter(Boolean);
+    const trustedHop = hops[hops.length - 1];
+    if (trustedHop === 'https') return true;
+    if (trustedHop === 'http') return false;
   }
   if (urlOrProtocol instanceof URL) {
     return urlOrProtocol.protocol === 'https:';
@@ -246,10 +264,12 @@ function resolveTotpEncryptionKey(explicitKey?: string): Buffer {
   const material =
     explicitKey?.trim() ||
     process.env['TOTP_ENCRYPTION_KEY']?.trim() ||
-    (process.env['NODE_ENV'] !== 'production' ? DEV_FALLBACK_TOTP_ENCRYPTION_KEY : '');
+    (!isProductionEnv(process.env) ? DEV_FALLBACK_TOTP_ENCRYPTION_KEY : '');
 
   if (!material) {
-    throw new Error('TOTP_ENCRYPTION_KEY is required when NODE_ENV=production');
+    throw new Error(
+      'TOTP_ENCRYPTION_KEY is required in production (NODE_ENV or APP_ENV=production)',
+    );
   }
   return createHash('sha256').update(material, 'utf8').digest();
 }
@@ -342,4 +362,46 @@ export function buildDailyAnalyticsSalt(
 
 export function hashVisitorIp(ip: string, dailySalt = buildDailyAnalyticsSalt()): string {
   return createHash('sha256').update(`${dailySalt}:${ip}`).digest('hex').slice(0, 24);
+}
+
+const GUEST_SESSION_ID_RE = /^[a-zA-Z0-9_-]{8,96}$/;
+const GUEST_SESSION_HMAC_DOMAIN = 'aklapper:guest-session:v1';
+
+function resolveGuestSessionHmacKey(explicitSecret?: string): Buffer {
+  const dedicated = explicitSecret?.trim() || process.env['GUEST_SESSION_SECRET']?.trim();
+  const baseSecret = dedicated || resolveInternalAuthSecret();
+  return createHmac('sha256', baseSecret).update(GUEST_SESSION_HMAC_DOMAIN).digest();
+}
+
+export function signGuestSessionCookie(sessionId: string, explicitSecret?: string): string {
+  const trimmed = sessionId.trim();
+  if (!GUEST_SESSION_ID_RE.test(trimmed)) {
+    throw new Error('Guest session ID does not match allowed format');
+  }
+  const key = resolveGuestSessionHmacKey(explicitSecret);
+  const sig = createHmac('sha256', key).update(trimmed).digest('base64url');
+  return `${trimmed}.${sig}`;
+}
+
+export function verifyGuestSessionCookie(
+  cookieValue: string | null | undefined,
+  explicitSecret?: string,
+): string | null {
+  if (!cookieValue) return null;
+  const trimmed = cookieValue.trim();
+  const dotIdx = trimmed.indexOf('.');
+  if (dotIdx <= 0 || dotIdx !== trimmed.lastIndexOf('.')) {
+    return null;
+  }
+  const sessionId = trimmed.slice(0, dotIdx);
+  const providedSig = trimmed.slice(dotIdx + 1);
+  if (!GUEST_SESSION_ID_RE.test(sessionId) || providedSig.length < 32) {
+    return null;
+  }
+  const key = resolveGuestSessionHmacKey(explicitSecret);
+  const expectedSig = createHmac('sha256', key).update(sessionId).digest('base64url');
+  if (!timingSafeStringEqual(providedSig, expectedSig)) {
+    return null;
+  }
+  return sessionId;
 }

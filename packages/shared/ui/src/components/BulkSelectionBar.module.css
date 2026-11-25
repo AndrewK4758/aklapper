@@ -1,0 +1,78 @@
+@layer component {
+  .bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    gap: var(--sf-space-3);
+    padding: var(--sf-space-3) var(--sf-space-4);
+    background: var(--sf-bg-panel);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+  }
+
+  .bar[data-has-selection='true'] {
+    border-color: var(--sf-accent-border);
+    background: var(--sf-accent-subtle);
+  }
+
+  .leading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-space-3);
+  }
+
+  .selectAllLabel {
+    display: inline-flex;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-space-2);
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-bone);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .count {
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-prop);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-space-2);
+  }
+
+  .checkboxWrapper {
+    display: inline-flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-center);
+    flex-shrink: 0;
+  }
+
+  :is([data-viewport='mobile-portrait']) .bar[data-has-selection='true'] {
+    position: sticky;
+    bottom: calc(var(--sf-mobile-dock-h) + var(--sf-safe-bottom));
+    z-index: calc(var(--sf-z-mobile-dock) - 1);
+    box-shadow: var(--sf-shadow-md);
+  }
+
+  :is([data-viewport='mobile-landscape']) .bar[data-has-selection='true'] {
+    position: sticky;
+    bottom: max(var(--sf-space-2), var(--sf-safe-bottom));
+    z-index: calc(var(--sf-z-mobile-dock) - 1);
+    box-shadow: var(--sf-shadow-md);
+  }
+
+  @media (max-width: 48rem) {
+    :where(:root:not([data-viewport='desktop'])) .bar[data-has-selection='true'] {
+      position: sticky;
+      bottom: calc(var(--sf-mobile-dock-h) + var(--sf-safe-bottom));
+      z-index: calc(var(--sf-z-mobile-dock) - 1);
+      box-shadow: var(--sf-shadow-md);
+    }
+  }
+}

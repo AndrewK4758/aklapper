@@ -1,0 +1,133 @@
+@layer tokens {
+  :root,
+  :root[data-theme='solar-forge'],
+  :root[data-theme='solar-forge-high-contrast'] {
+    /* Touch ergonomics & iOS input zoom floor */
+    --sf-mobile-touch-min: 2.75rem;
+    --sf-mobile-input-font-size: 1rem;
+
+    /* Safe-area insets */
+    --sf-safe-top: env(safe-area-inset-top, 0);
+    --sf-safe-right: env(safe-area-inset-right, 0);
+    --sf-safe-bottom: env(safe-area-inset-bottom, 0);
+    --sf-safe-left: env(safe-area-inset-left, 0);
+
+    /* Mobile workspace chrome dimensions */
+    --sf-mobile-header-h: calc(var(--sf-space-unit) * 12);
+    --sf-mobile-dock-h: calc(var(--sf-space-unit) * 14);
+    --sf-mobile-rail-w: calc(var(--sf-space-unit) * 15);
+    --sf-mobile-rail-expanded-w: calc(var(--sf-space-unit) * 44);
+    --sf-mobile-accessory-h: calc(var(--sf-space-unit) * 11.5);
+
+    /* Bottom sheet geometry & elevation */
+    --sf-mobile-sheet-radius: var(--sf-radius-lg);
+    --sf-mobile-sheet-shadow: var(--sf-shadow-lg);
+    --sf-mobile-sheet-max-h: 85dvh;
+    --sf-mobile-handle-w: calc(var(--sf-space-unit) * 10);
+    --sf-mobile-handle-h: var(--sf-space-2);
+
+    /* Mobile z-index coordination */
+    --sf-z-mobile-dock: 35;
+    --sf-z-mobile-accessory: 45;
+    --sf-z-mobile-sheet: 65;
+
+    /* Coarse-pointer active feedback */
+    --sf-mobile-active-scale: 0.98;
+    --sf-mobile-active-opacity: 0.88;
+  }
+
+  /* Explicit portrait scope (root or container-scoped preview) */
+  [data-viewport='mobile-portrait'] {
+    --sf-touch-target-min: var(--sf-mobile-touch-min);
+    --sf-inset-panel: var(--sf-space-5);
+    --sf-inset-section: var(--sf-space-6);
+    --sf-window-min-w: var(--sf-space-0);
+    --sf-window-min-h: var(--sf-space-0);
+    --sf-p10k-seg-h: calc(var(--sf-space-unit) * 5.25);
+    --sf-p10k-arrow-w: calc(var(--sf-space-unit) * 2);
+    --sf-p10k-tail-w: calc(var(--sf-space-unit) * 5);
+    --sf-control-h-sm: var(--sf-mobile-touch-min);
+    --sf-control-h-md: var(--sf-mobile-touch-min);
+  }
+
+  /* Explicit landscape scope (root or container-scoped preview) */
+  [data-viewport='mobile-landscape'] {
+    --sf-touch-target-min: var(--sf-mobile-touch-min);
+    --sf-inset-panel: var(--sf-space-4);
+    --sf-inset-section: var(--sf-space-5);
+    --sf-window-min-w: var(--sf-space-0);
+    --sf-window-min-h: var(--sf-space-0);
+    --sf-p10k-seg-h: calc(var(--sf-space-unit) * 5);
+    --sf-p10k-arrow-w: calc(var(--sf-space-unit) * 2);
+    --sf-p10k-tail-w: calc(var(--sf-space-unit) * 4);
+    --sf-mobile-sheet-max-h: 92dvh;
+    --sf-control-h-sm: var(--sf-mobile-touch-min);
+    --sf-control-h-md: var(--sf-mobile-touch-min);
+  }
+
+  /* Zero-FOUC @media fallbacks (never clobber explicit [data-viewport='desktop']) */
+  @media (max-width: 48rem) {
+    :where(:root:not([data-viewport='desktop'])) {
+      --sf-touch-target-min: var(--sf-mobile-touch-min);
+      --sf-inset-panel: var(--sf-space-5);
+      --sf-inset-section: var(--sf-space-6);
+      --sf-window-min-w: var(--sf-space-0);
+      --sf-window-min-h: var(--sf-space-0);
+      --sf-p10k-seg-h: calc(var(--sf-space-unit) * 5.25);
+      --sf-p10k-arrow-w: calc(var(--sf-space-unit) * 2);
+      --sf-p10k-tail-w: calc(var(--sf-space-unit) * 5);
+      --sf-control-h-sm: var(--sf-mobile-touch-min);
+      --sf-control-h-md: var(--sf-mobile-touch-min);
+    }
+  }
+
+  @media (max-height: 32rem) and (orientation: landscape) {
+    :where(:root:not([data-viewport='desktop'])) {
+      --sf-touch-target-min: var(--sf-mobile-touch-min);
+      --sf-inset-panel: var(--sf-space-4);
+      --sf-inset-section: var(--sf-space-5);
+      --sf-window-min-w: var(--sf-space-0);
+      --sf-window-min-h: var(--sf-space-0);
+      --sf-p10k-seg-h: calc(var(--sf-space-unit) * 5);
+      --sf-p10k-arrow-w: calc(var(--sf-space-unit) * 2);
+      --sf-p10k-tail-w: calc(var(--sf-space-unit) * 4);
+      --sf-mobile-sheet-max-h: 92dvh;
+      --sf-control-h-sm: var(--sf-mobile-touch-min);
+      --sf-control-h-md: var(--sf-mobile-touch-min);
+    }
+  }
+
+  /* Ultra-narrow compact phone tier (<= 26rem) */
+  @media (max-width: 26rem) {
+    :where(:root:not([data-viewport='desktop'])),
+    [data-viewport='mobile-portrait'] {
+      --sf-inset-panel: var(--sf-space-4);
+      --sf-inset-section: var(--sf-space-5);
+      --sf-gap-md: var(--sf-space-3);
+      --sf-p10k-tail-w: calc(var(--sf-space-unit) * 3.5);
+    }
+  }
+
+  /* Coarse-pointer feedback */
+  @media (pointer: coarse) {
+    :where(:root:not([data-viewport='desktop'])) {
+      --sf-mobile-active-scale: 0.97;
+      --sf-mobile-active-opacity: 0.84;
+    }
+  }
+
+  /* Explicit desktop reset protection for scoped desktop previews on narrow screens */
+  [data-viewport='desktop'] {
+    --sf-inset-panel: var(--sf-space-7);
+    --sf-inset-section: var(--sf-space-9);
+    --sf-window-min-w: calc(var(--sf-size-unit) * 16.25);
+    --sf-window-min-h: calc(var(--sf-size-unit) * 10);
+    --sf-p10k-seg-h: calc(var(--sf-space-unit) * 6);
+    --sf-p10k-arrow-w: calc(var(--sf-space-unit) * 2.5);
+    --sf-p10k-tail-w: calc(var(--sf-space-unit) * 9);
+    --sf-control-h-sm: calc(var(--sf-space-unit) * 7);
+    --sf-control-h-md: calc(var(--sf-space-unit) * 8.5);
+    --sf-mobile-active-scale: 1;
+    --sf-mobile-active-opacity: 1;
+  }
+}

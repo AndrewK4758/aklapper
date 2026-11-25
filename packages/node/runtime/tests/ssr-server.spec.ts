@@ -1,4 +1,5 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { connect } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -58,7 +59,43 @@ describe('@aklapper/node-runtime/ssr', () => {
 
     expect(res.status).toBe(200);
     expect(res.headers.get('X-Test')).toBe('ok');
+    expect(res.headers.get('Vary')).toContain('Sec-CH-UA-Mobile');
+    expect(res.headers.get('Vary')).toContain('User-Agent');
     expect(res.body).toBeNull();
+  });
+
+  it('merges Vary header tokens without duplicates while preserving existing Vary values', async () => {
+    const entry = createEntryServer({ streamTimeout: 2_500 });
+    const headers = new Headers({ Vary: 'Accept-Encoding, User-Agent' });
+    const res = await entry.handleRequest(
+      new Request('http://localhost/', { method: 'HEAD' }),
+      200,
+      headers,
+      {} as EntryContext,
+    );
+
+    const varyTokens = (res.headers.get('Vary') ?? '')
+      .split(',')
+      .map(token => token.trim())
+      .filter(Boolean);
+    expect(varyTokens).toContain('Accept-Encoding');
+    expect(varyTokens).toContain('User-Agent');
+    expect(varyTokens).toContain('Sec-CH-UA-Mobile');
+    expect(varyTokens.filter(token => token.toLowerCase() === 'user-agent')).toHaveLength(1);
+    expect(varyTokens.filter(token => token.toLowerCase() === 'sec-ch-ua-mobile')).toHaveLength(1);
+  });
+
+  it('preserves Vary: * alone without appending tokens per RFC 9110', async () => {
+    const entry = createEntryServer({ streamTimeout: 2_500 });
+    const headers = new Headers({ Vary: '*' });
+    const res = await entry.handleRequest(
+      new Request('http://localhost/', { method: 'HEAD' }),
+      200,
+      headers,
+      {} as EntryContext,
+    );
+
+    expect(res.headers.get('Vary')).toBe('*');
   });
 
   it('serves /healthz and bridges SSR GET headers including multi-value Set-Cookie', async () => {
@@ -280,6 +317,328 @@ describe('@aklapper/node-runtime/ssr', () => {
       expect(rest).toContain('{"seq":2}');
     } finally {
       await server.app.close();
+    }
+  });
+
+  it('enforces scoped rate limiting, proxy IP fallback, and header forwarding for admin-ssr auth routes only', async () => {
+    const buildDir = await createFixtureBuildDir();
+    activeHandlerRef.current = async request => {
+      return Response.json({
+        forwardedFor: request.headers.get('x-forwarded-for'),
+        forwardedProto: request.headers.get('x-forwarded-proto'),
+      });
+    };
+
+    const adminServer = await createSsrServer({
+      serviceName: 'admin-ssr',
+      buildDir,
+      port: 0,
+      host: '127.0.0.1',
+    });
+    const portalServer = await createSsrServer({
+      serviceName: 'portal-ssr',
+      buildDir,
+      port: 0,
+      host: '127.0.0.1',
+    });
+
+    try {
+      const probe = await adminServer.app.inject({
+        method: 'POST',
+        url: '/api/auth/passkey/login/options',
+        headers: { 'content-type': 'application/json' },
+        payload: JSON.stringify({}),
+      });
+      expect(probe.statusCode).toBe(200);
+      expect(probe.json().forwardedFor).toBeTruthy();
+      expect(probe.json().forwardedProto).toBe('http');
+
+      for (let i = 0; i < 20; i += 1) {
+        const res = await adminServer.app.inject({
+          method: 'POST',
+          url: '/api/auth/password/login',
+          headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.50' },
+          payload: JSON.stringify({ handle: 'admin', password: 'wrong' }),
+        });
+        expect(res.statusCode).toBe(200);
+      }
+
+      const throttled = await adminServer.app.inject({
+        method: 'POST',
+        url: '/api/auth/password/login',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.50' },
+        payload: JSON.stringify({ handle: 'admin', password: 'wrong' }),
+      });
+      expect(throttled.statusCode).toBe(429);
+      expect(throttled.headers['retry-after']).toBeDefined();
+      expect(throttled.json()).toMatchObject({
+        statusCode: 429,
+        error: 'RATE_LIMITED',
+      });
+
+      const unthrottledRoute = await adminServer.app.inject({
+        method: 'GET',
+        url: '/login',
+        headers: { 'x-forwarded-for': '203.0.113.50' },
+      });
+      expect(unthrottledRoute.statusCode).toBe(200);
+
+      for (let i = 0; i < 25; i += 1) {
+        const portalRes = await portalServer.app.inject({
+          method: 'POST',
+          url: '/api/auth/password/login',
+          headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.50' },
+          payload: JSON.stringify({}),
+        });
+        expect(portalRes.statusCode).toBe(200);
+      }
+    } finally {
+      await adminServer.app.close();
+      await portalServer.app.close();
+    }
+  });
+
+  it('strips spoofed leftmost X-Forwarded-For hops and enforces rate limits across trailing-slash and %2F path variants', async () => {
+    const buildDir = await createFixtureBuildDir();
+    activeHandlerRef.current = async request =>
+      Response.json({
+        forwardedFor: request.headers.get('x-forwarded-for'),
+      });
+
+    const adminServer = await createSsrServer({
+      serviceName: 'admin-ssr',
+      buildDir,
+      port: 0,
+      host: '127.0.0.1',
+    });
+
+    try {
+      for (let i = 0; i < 10; i += 1) {
+        const res = await adminServer.app.inject({
+          method: 'POST',
+          url: '/api/auth/password/login',
+          headers: {
+            'content-type': 'application/json',
+            'x-forwarded-for': `10.0.0.${i + 1}, 203.0.113.91`,
+          },
+          payload: JSON.stringify({ handle: 'admin', password: 'wrong' }),
+        });
+        expect(res.statusCode).toBe(200);
+        expect(res.json()).toEqual({ forwardedFor: '203.0.113.91' });
+      }
+      for (let i = 0; i < 10; i += 1) {
+        const res = await adminServer.app.inject({
+          method: 'POST',
+          url: '/api/auth/password/login',
+          headers: {
+            'content-type': 'application/json',
+            'x-forwarded-for': `10.1.0.${i + 1}, 203.0.113.91`,
+          },
+          payload: JSON.stringify({ handle: 'admin', password: 'wrong' }),
+        });
+        expect(res.statusCode).toBe(200);
+      }
+
+      const spoofLimited = await adminServer.app.inject({
+        method: 'POST',
+        url: '/api/auth/password/login',
+        headers: {
+          'content-type': 'application/json',
+          'x-forwarded-for': '10.2.0.99, 203.0.113.91',
+        },
+        payload: JSON.stringify({ handle: 'admin', password: 'wrong' }),
+      });
+      expect(spoofLimited.statusCode).toBe(429);
+      expect(spoofLimited.json()).toMatchObject({ statusCode: 429, error: 'RATE_LIMITED' });
+
+      const passwordVariantUrls = ['/api/auth/password/login/', '/api/auth/password%2Flogin'];
+      for (let i = 0; i < 20; i += 1) {
+        const res = await adminServer.app.inject({
+          method: 'POST',
+          url: passwordVariantUrls[i % passwordVariantUrls.length]!,
+          headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.92' },
+          payload: JSON.stringify({ handle: 'admin', password: 'wrong' }),
+        });
+        expect(res.statusCode).toBe(200);
+        expect(res.headers['x-ratelimit-limit']).toBe('20');
+      }
+
+      const passwordVariantLimited = await adminServer.app.inject({
+        method: 'POST',
+        url: '/api/auth/foo/../password%2Flogin/',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.92' },
+        payload: JSON.stringify({ handle: 'admin', password: 'wrong' }),
+      });
+      expect(passwordVariantLimited.statusCode).toBe(429);
+      expect(passwordVariantLimited.json()).toMatchObject({
+        statusCode: 429,
+        error: 'RATE_LIMITED',
+      });
+
+      const totpVariantUrls = ['/api/auth/totp/verify/', '/api/auth/totp%2Fverify'];
+      for (let i = 0; i < 20; i += 1) {
+        const res = await adminServer.app.inject({
+          method: 'POST',
+          url: totpVariantUrls[i % totpVariantUrls.length]!,
+          headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.93' },
+          payload: JSON.stringify({ code: '123456' }),
+        });
+        expect(res.statusCode).toBe(200);
+        expect(res.headers['x-ratelimit-limit']).toBe('20');
+      }
+
+      const totpVariantLimited = await adminServer.app.inject({
+        method: 'POST',
+        url: '/api/auth/totp/verify/',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.93' },
+        payload: JSON.stringify({ code: '123456' }),
+      });
+      expect(totpVariantLimited.statusCode).toBe(429);
+      expect(totpVariantLimited.json()).toMatchObject({
+        statusCode: 429,
+        error: 'RATE_LIMITED',
+      });
+    } finally {
+      await adminServer.app.close();
+    }
+  });
+
+  it('rate-limits uppercase, double-encoded %252F, and HTTP/1.1 absolute-form request targets on admin-ssr', async () => {
+    const buildDir = await createFixtureBuildDir();
+    activeHandlerRef.current = async () => new Response('ok', { status: 200 });
+
+    const adminServer = await createSsrServer({
+      serviceName: 'admin-ssr',
+      buildDir,
+      port: 0,
+      host: '127.0.0.1',
+    });
+
+    const sendRawAbsoluteFormPost = async (
+      port: number,
+      target: string,
+      clientIp: string,
+    ): Promise<{ status: number; headers: string; body: string }> => {
+      return new Promise((resolvePromise, reject) => {
+        const socket = connect(port, '127.0.0.1', () => {
+          socket.write(
+            `POST ${target} HTTP/1.1\r\nHost: localhost\r\nX-Forwarded-For: ${clientIp}\r\nContent-Type: application/json\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}`,
+          );
+        });
+        let raw = '';
+        socket.on('data', chunk => {
+          raw += chunk.toString('utf8');
+        });
+        socket.on('error', reject);
+        socket.on('end', () => {
+          const [head = '', body = ''] = raw.split('\r\n\r\n', 2);
+          const status = Number(head.split('\r\n')[0]?.split(' ')[1] ?? '0');
+          resolvePromise({ status, headers: head.toLowerCase(), body });
+        });
+      });
+    };
+
+    try {
+      const address = new URL(await adminServer.start());
+      const port = Number(address.port);
+
+      for (const [idx, path] of [
+        '/API/AUTH/password/login',
+        '/api/auth/password%252Flogin',
+        '/Api/Auth/totp/verify',
+        '/api/auth/totp%252Fverify',
+      ].entries()) {
+        const ip = `203.0.113.${101 + idx}`;
+        for (let i = 0; i < 20; i += 1) {
+          const ok = await adminServer.app.inject({
+            method: 'POST',
+            url: path,
+            headers: { 'content-type': 'application/json', 'x-forwarded-for': ip },
+            payload: '{}',
+          });
+          expect(ok.statusCode).toBe(200);
+          expect(ok.headers['x-ratelimit-limit']).toBe('20');
+        }
+        const limited = await adminServer.app.inject({
+          method: 'POST',
+          url: path,
+          headers: { 'content-type': 'application/json', 'x-forwarded-for': ip },
+          payload: '{}',
+        });
+        expect(limited.statusCode).toBe(429);
+        expect(limited.json()).toMatchObject({ statusCode: 429, error: 'RATE_LIMITED' });
+      }
+
+      for (const [idx, target] of [
+        'http://localhost/api/auth/password/login',
+        'http://localhost/api/auth/totp/verify',
+      ].entries()) {
+        const ip = `203.0.113.${110 + idx}`;
+        for (let i = 0; i < 20; i += 1) {
+          const ok = await sendRawAbsoluteFormPost(port, target, ip);
+          expect(ok.status).toBe(200);
+          expect(ok.headers).toContain('x-ratelimit-limit: 20');
+        }
+        const limited = await sendRawAbsoluteFormPost(port, target, ip);
+        expect(limited.status).toBe(429);
+        expect(JSON.parse(limited.body)).toMatchObject({ statusCode: 429, error: 'RATE_LIMITED' });
+      }
+
+      const malformedAuth = await adminServer.app.inject({
+        method: 'POST',
+        url: '/api/auth/password%ZZlogin',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.120' },
+        payload: '{}',
+      });
+      expect(malformedAuth.statusCode).toBe(400);
+
+      const overEncodedAuth = await adminServer.app.inject({
+        method: 'POST',
+        url: '/api/auth/password%2525252Flogin',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.120' },
+        payload: '{}',
+      });
+      expect(overEncodedAuth.statusCode).toBe(400);
+      expect(overEncodedAuth.json()).toMatchObject({ statusCode: 400, error: 'INVALID_REQUEST' });
+
+      const nonAuthPercent = await adminServer.app.inject({
+        method: 'POST',
+        url: '/cms/100%25',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.120' },
+        payload: '{}',
+      });
+      expect(nonAuthPercent.statusCode).toBe(200);
+
+      for (const [idx, path] of [
+        '/api/auth/password/login.data',
+        '/api/auth/password/login/.data',
+        '/api/auth/password/login/_.data',
+        '/API/AUTH/password%252Flogin.data',
+        '/api/auth/totp/verify.data',
+        '/api/auth/totp/verify/_.data',
+      ].entries()) {
+        const ip = `203.0.113.${130 + idx}`;
+        for (let i = 0; i < 20; i += 1) {
+          const ok = await adminServer.app.inject({
+            method: 'POST',
+            url: path,
+            headers: { 'content-type': 'application/json', 'x-forwarded-for': ip },
+            payload: '{}',
+          });
+          expect(ok.statusCode).toBe(200);
+          expect(ok.headers['x-ratelimit-limit']).toBe('20');
+        }
+        const limited = await adminServer.app.inject({
+          method: 'POST',
+          url: path,
+          headers: { 'content-type': 'application/json', 'x-forwarded-for': ip },
+          payload: '{}',
+        });
+        expect(limited.statusCode).toBe(429);
+        expect(limited.json()).toMatchObject({ statusCode: 429, error: 'RATE_LIMITED' });
+      }
+    } finally {
+      await adminServer.app.close();
     }
   });
 });

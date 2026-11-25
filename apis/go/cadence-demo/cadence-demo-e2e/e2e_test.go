@@ -1,13 +1,16 @@
 package cadencedemo_e2e_test
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/AndrewK4758/aklapper/packages/go/kit/contracts"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit/e2etest"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 )
 
 type cadenceRunResponse struct {
@@ -40,6 +43,30 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 		}
 	})
 
+	guestTok, err := internalauth.Sign(internalauth.RoleGuest, "e2e-cadence-1", time.Minute, "")
+	if err != nil {
+		t.Fatalf("sign guest token: %v", err)
+	}
+	guestHeaders := map[string]string{internalauth.HeaderName: guestTok}
+
+	t.Run("rejects unauthenticated callers across run and gate endpoints", func(t *testing.T) {
+		resList, _ := e2etest.DoJSON[httpkit.ErrorResponse](t, http.MethodGet, baseURL+"/v1/cadence/runs?limit=50", nil, nil)
+		if resList.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected 401 without internal auth, got %d", resList.StatusCode)
+		}
+
+		resCreate, _ := e2etest.DoJSON[httpkit.ErrorResponse](
+			t,
+			http.MethodPost,
+			baseURL+"/v1/cadence/runs",
+			contracts.CadenceRunRequest{Prompt: "Unauthenticated run"},
+			nil,
+		)
+		if resCreate.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected 401 for unauthenticated run creation, got %d", resCreate.StatusCode)
+		}
+	})
+
 	var createdRunID string
 	t.Run("POST /v1/cadence/runs creates 4-phase CHORD sandbox artifact and escapes HTML", func(t *testing.T) {
 		res, run := e2etest.DoJSON[cadenceRunResponse](
@@ -51,7 +78,7 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 				PresetSlug: "solar-forge-starter",
 				SessionID:  "e2e-cadence-1",
 			},
-			nil,
+			guestHeaders,
 		)
 		if res.StatusCode != http.StatusCreated {
 			t.Fatalf("expected 201, got %d", res.StatusCode)
@@ -72,27 +99,60 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 		if strings.Contains(run.ArtifactHTML, `<script>alert`) || !strings.Contains(run.ArtifactHTML, "&lt;script&gt;") {
 			t.Fatalf("expected escaped script tags in artifactHtml, got %q", run.ArtifactHTML)
 		}
-		if run.Quota.Role != contracts.RoleGuest || run.Quota.TurnsUsed != 1 || run.Quota.MaxTurns != 5 {
+		if run.Quota.Role != contracts.RoleGuest || run.Quota.TurnsUsed != 1 || run.Quota.MaxTurns != 10 {
 			t.Fatalf("unexpected guest quota: %+v", run.Quota)
 		}
 	})
 
-	t.Run("POST /v1/cadence/runs/{id}/gate persists verdict and GET /v1/cadence/runs lists it", func(t *testing.T) {
-		resGate, gateOut := e2etest.DoJSON[map[string]any](
+	t.Run("POST /v1/cadence/runs/{id}/gate enforces internal auth and X-Session-Id, persists verdict, and GET /v1/cadence/runs lists it", func(t *testing.T) {
+		resGateUnauth, _ := e2etest.DoJSON[httpkit.ErrorResponse](
 			t,
 			http.MethodPost,
 			baseURL+"/v1/cadence/runs/"+createdRunID+"/gate",
 			map[string]string{"verdict": "approved"},
 			nil,
 		)
+		if resGateUnauth.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected 401 without internal auth on gate update, got %d", resGateUnauth.StatusCode)
+		}
+
+		resWrongSessGate, _ := e2etest.DoJSON[httpkit.ErrorResponse](
+			t,
+			http.MethodPost,
+			baseURL+"/v1/cadence/runs/"+createdRunID+"/gate",
+			map[string]string{"verdict": "approved"},
+			map[string]string{
+				internalauth.HeaderName: guestTok,
+				"X-Session-Id":          "e2e-other",
+			},
+		)
+		if resWrongSessGate.StatusCode != http.StatusForbidden {
+			t.Fatalf("expected 403 when X-Session-Id mismatches claims.Sub on gate update, got %d", resWrongSessGate.StatusCode)
+		}
+
+		resGate, gateOut := e2etest.DoJSON[map[string]any](
+			t,
+			http.MethodPost,
+			baseURL+"/v1/cadence/runs/"+createdRunID+"/gate",
+			map[string]string{"verdict": "approved"},
+			map[string]string{
+				internalauth.HeaderName: guestTok,
+				"X-Session-Id":          "e2e-cadence-1",
+			},
+		)
 		if resGate.StatusCode != http.StatusOK || gateOut["gateVerdict"] != "approved" {
 			t.Fatalf("expected 200 approved, got (%d): %+v", resGate.StatusCode, gateOut)
+		}
+
+		resNoSess, _ := e2etest.DoJSON[httpkit.ErrorResponse](t, http.MethodGet, baseURL+"/v1/cadence/runs?limit=50", nil, guestHeaders)
+		if resNoSess.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400 when non-admin caller omits sessionId, got %d", resNoSess.StatusCode)
 		}
 
 		resList, listOut := e2etest.DoJSON[struct {
 			Runs  []map[string]any      `json:"runs"`
 			Quota contracts.QuotaStatus `json:"quota"`
-		}](t, http.MethodGet, baseURL+"/v1/cadence/runs?sessionId=e2e-cadence-1", nil, nil)
+		}](t, http.MethodGet, baseURL+"/v1/cadence/runs?sessionId=e2e-cadence-1", nil, guestHeaders)
 		if resList.StatusCode != http.StatusOK || len(listOut.Runs) != 1 {
 			t.Fatalf("expected 1 run in history, got (%d): %+v", resList.StatusCode, listOut)
 		}
@@ -102,16 +162,21 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 	})
 
 	t.Run("POST /v1/cadence/runs enforces guest session quota with HTTP 429", func(t *testing.T) {
-		for i := range 5 {
+		quotaTok, err := internalauth.Sign(internalauth.RoleGuest, "e2e-quota-cap", time.Minute, "")
+		if err != nil {
+			t.Fatalf("sign quota token: %v", err)
+		}
+		quotaHeaders := map[string]string{internalauth.HeaderName: quotaTok}
+		for i := range 10 {
 			res, _ := e2etest.DoJSON[cadenceRunResponse](
 				t,
 				http.MethodPost,
 				baseURL+"/v1/cadence/runs",
 				contracts.CadenceRunRequest{
-					Prompt:    "Quota enforcement check prompt",
+					Prompt:    fmt.Sprintf("Quota enforcement check prompt iteration %d", i+1),
 					SessionID: "e2e-quota-cap",
 				},
-				nil,
+				quotaHeaders,
 			)
 			if res.StatusCode != http.StatusCreated {
 				t.Fatalf("run %d expected 201, got %d", i+1, res.StatusCode)
@@ -122,13 +187,75 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 			http.MethodPost,
 			baseURL+"/v1/cadence/runs",
 			contracts.CadenceRunRequest{
-				Prompt:    "Sixth run should exceed guest quota",
+				Prompt:    "Eleventh run should exceed guest quota",
 				SessionID: "e2e-quota-cap",
 			},
-			nil,
+			quotaHeaders,
 		)
 		if resOver.StatusCode != http.StatusTooManyRequests || body["quota"] == nil {
 			t.Fatalf("expected 429 with quota payload, got (%d): %+v", resOver.StatusCode, body)
+		}
+	})
+
+	t.Run("two-phase deferExecution init + SSE stream + session gate works end-to-end", func(t *testing.T) {
+		streamTok, err := internalauth.Sign(internalauth.RoleGuest, "e2e-stream-1", time.Minute, "")
+		if err != nil {
+			t.Fatalf("sign stream token: %v", err)
+		}
+		streamHeaders := map[string]string{internalauth.HeaderName: streamTok}
+		resInit, initRun := e2etest.DoJSON[contracts.CadenceRunResult](
+			t,
+			http.MethodPost,
+			baseURL+"/v1/cadence/runs",
+			contracts.CadenceRunRequest{
+				Prompt:         "Render GKE scale-from-zero telemetry card with latency probe",
+				PresetSlug:     "k8s-pod-telemetry",
+				SessionID:      "e2e-stream-1",
+				Mode:           contracts.CadenceModeFast,
+				DeferExecution: true,
+			},
+			streamHeaders,
+		)
+		if resInit.StatusCode != http.StatusAccepted || initRun.RunStatus != contracts.CadenceStatusPending {
+			t.Fatalf("expected 202 pending run, got (%d): %+v", resInit.StatusCode, initRun)
+		}
+
+		resNoToken, _ := e2etest.DoRequest(t, http.MethodGet, baseURL+"/v1/cadence/runs/"+initRun.RunID+"/stream", nil, map[string]string{"X-Session-Id": "e2e-stream-1"})
+		if resNoToken.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected 401 without internal auth on stream, got %d", resNoToken.StatusCode)
+		}
+
+		resWrong, _ := e2etest.DoRequest(t, http.MethodGet, baseURL+"/v1/cadence/runs/"+initRun.RunID+"/stream", nil, map[string]string{
+			internalauth.HeaderName: streamTok,
+			"X-Session-Id":          "e2e-other",
+		})
+		if resWrong.StatusCode != http.StatusForbidden {
+			t.Fatalf("expected 403 for wrong X-Session-Id, got %d", resWrong.StatusCode)
+		}
+
+		resStream, streamBytes := e2etest.DoRequest(t, http.MethodGet, baseURL+"/v1/cadence/runs/"+initRun.RunID+"/stream", nil, map[string]string{
+			internalauth.HeaderName: streamTok,
+			"X-Session-Id":          "e2e-stream-1",
+		})
+		streamText := string(streamBytes)
+		if resStream.StatusCode != http.StatusOK || !strings.Contains(streamText, "event: phase") || !strings.Contains(streamText, "event: complete") || !strings.Contains(streamText, "k8s-pod-telemetry") {
+			t.Fatalf("unexpected SSE stream response (%d): %s", resStream.StatusCode, streamText)
+		}
+
+		resGate, gateBody := e2etest.DoJSON[struct {
+			Run contracts.CadenceRunResult `json:"run"`
+		}](
+			t,
+			http.MethodPost,
+			baseURL+"/v1/cadence/runs/"+initRun.RunID+"/gate",
+			map[string]string{"verdict": "approved"},
+			map[string]string{
+				internalauth.HeaderName: streamTok,
+				"X-Session-Id":          "e2e-stream-1",
+			},
+		)
+		if resGate.StatusCode != http.StatusOK || gateBody.Run.GateVerdict != "approved" || gateBody.Run.RunStatus != contracts.CadenceStatusReady {
+			t.Fatalf("unexpected gate result (%d): %+v", resGate.StatusCode, gateBody)
 		}
 	})
 
@@ -138,7 +265,10 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 			http.MethodPost,
 			baseURL+"/v1/cadence/runs",
 			[]byte("not-json"),
-			map[string]string{"Content-Type": "application/json"},
+			map[string]string{
+				"Content-Type":          "application/json",
+				internalauth.HeaderName: guestTok,
+			},
 		)
 		if resBadJSON.StatusCode != http.StatusBadRequest {
 			t.Fatalf("expected 400 for malformed JSON, got %d", resBadJSON.StatusCode)
@@ -149,7 +279,7 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 			http.MethodPost,
 			baseURL+"/v1/cadence/runs",
 			contracts.CadenceRunRequest{Prompt: "abc"},
-			nil,
+			guestHeaders,
 		)
 		if resShort.StatusCode != http.StatusBadRequest {
 			t.Fatalf("expected 400 for short prompt, got %d", resShort.StatusCode)
@@ -160,7 +290,7 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 			http.MethodPost,
 			baseURL+"/v1/cadence/runs",
 			contracts.CadenceRunRequest{Prompt: strings.Repeat("x", 1201)},
-			nil,
+			guestHeaders,
 		)
 		if resLong.StatusCode != http.StatusBadRequest {
 			t.Fatalf("expected 400 for oversized prompt, got %d", resLong.StatusCode)

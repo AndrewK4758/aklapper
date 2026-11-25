@@ -4,10 +4,7 @@
   "private": true,
   "type": "module",
   "imports": {
-    "#pages/*": {
-      "types": "./build/pages/*/index.d.ts",
-      "default": "./build/pages/*/index.js"
-    }
+    "#pages/*": "./src/pages/*/index.ts"
   },
   "dependencies": {
     "@aklapper/core": "workspace:*",
@@ -36,33 +33,12 @@
       "runtime:ssr"
     ],
     "targets": {
-      "build-pages": {
-        "executor": "nx:run-commands",
-        "cache": true,
-        "dependsOn": [
-          "^build"
-        ],
-        "inputs": [
-          "{projectRoot}/src/pages/**/*",
-          "!{projectRoot}/src/pages/**/*.spec.*",
-          "!{projectRoot}/src/pages/**/*.test.*",
-          "{projectRoot}/tsconfig.pages.json",
-          "^production"
-        ],
-        "outputs": [
-          "{projectRoot}/build/pages"
-        ],
-        "options": {
-          "cwd": "apps/portal/portal",
-          "command": "node ../../../packages/tooling/dist/build-pages.js"
-        }
-      },
       "build": {
         "executor": "nx:run-commands",
         "cache": true,
         "defaultConfiguration": "production",
         "dependsOn": [
-          "build-pages",
+          "typegen",
           "^build"
         ],
         "inputs": [
@@ -93,11 +69,11 @@
       },
       "serve": {
         "cache": false,
+        "dependsOn": [
+          "^db-migrate"
+        ],
         "executor": "nx:run-commands",
         "defaultConfiguration": "development",
-        "dependsOn": [
-          "build-pages"
-        ],
         "options": {
           "cwd": "apps/portal/portal",
           "command": "react-router dev"
@@ -166,12 +142,12 @@
       },
       "test": {
         "dependsOn": [
-          "build-pages"
+          "typegen",
+          "^build"
         ]
       },
       "typecheck": {
         "dependsOn": [
-          "build-pages",
           "typegen",
           "^build",
           "^typecheck"

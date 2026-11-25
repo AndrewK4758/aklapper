@@ -1,59 +1,91 @@
 import './theme.css';
-import type { PortalRootLoaderData } from '@aklapper/core';
 import {
   buildCanonicalUrl,
   buildPortalJsonLd,
   buildRouteMetaTags,
+  type DocumentSeoRuntimeConfig,
+  type PortalRootLoaderData,
+  type PortalRoutePath,
   readSeoRuntimeConfig,
+  type StreamResult,
 } from '@aklapper/core';
 import { loadPortalRootDataWithPrerender } from '@aklapper/db';
+import { deferStreamResult, getOrCreateCorrelationId } from '@aklapper/node-runtime/ssr/stream';
 import {
-  Button,
+  detectServerViewportMode,
   DirectionProvider,
   DocumentBodyAnalytics,
   DocumentHeadTags,
-  NavigationMenu,
-  OscStatusBadge,
-  Separator,
-  SolarForgeEmblem,
-  TerminalWorkspace,
+  RouteErrorBoundaryView,
+  type ServerViewportLayoutMode,
+  SuspenseElement,
   Tooltip,
   useAnimatedFavicon,
+  ViewportHtml,
+  ViewportProvider,
 } from '@aklapper/ui';
-import { type ReactNode, useMemo } from 'react';
+import type { ReactNode } from 'react';
 import {
-  Link,
+  href,
   Links,
   Meta,
-  type MetaArgs,
   Outlet,
   Scripts,
   ScrollRestoration,
-  useLoaderData,
+  type ShouldRevalidateFunctionArgs,
   useLocation,
   useNavigate,
   useRouteLoaderData,
 } from 'react-router';
 
-import { PortalChangesInProgressPage } from '#pages/changes-in-progress';
-import { PortalLauncherTui } from '#pages/home';
-
-import { useClusterTelemetry } from './cluster-stream';
-import { DEFAULT_PORTAL_SITE_URL, PORTAL_SITE_NAME } from './seo';
-import { createPortalTerminalForms } from './terminalForms';
+import type { Route } from './+types/root';
+import { reportPortalPublicError } from './client-telemetry';
+import { OfflineMaintenanceFallback, PortalRootShell } from './PortalRootShell';
+import { useRuntimeStatusTelemetry } from './runtime-status';
+import {
+  DEFAULT_PORTAL_MAINTENANCE_DESCRIPTION,
+  DEFAULT_PORTAL_SITE_URL,
+  PORTAL_SITE_NAME,
+} from './seo';
+import { portalWorkspaceStore } from './workspace/portalWorkspaceStore';
 
 import styles from './root.module.css';
 
-export async function loader(): Promise<PortalRootLoaderData> {
+type RegisteredPortalHrefPath = Exclude<Parameters<typeof href>[0], '/*'>;
+type AssertAssignable<TActual extends TExpected, TExpected> = TActual;
+export type PortalRoutePathParityCheck = [
+  AssertAssignable<PortalRoutePath, RegisteredPortalHrefPath>,
+  AssertAssignable<RegisteredPortalHrefPath, PortalRoutePath>,
+];
+
+export interface PortalRootStreamData {
+  readonly runtimeSeo: DocumentSeoRuntimeConfig;
+  readonly correlationId: string;
+  readonly initialViewport: ServerViewportLayoutMode;
+  readonly maintenanceMode: boolean;
+  readonly rootPayload: Promise<StreamResult<PortalRootLoaderData>>;
+}
+
+export function loader({ request, context }: Route.LoaderArgs): PortalRootStreamData {
   const envFlag = process.env['PORTAL_MAINTENANCE_MODE'];
   const maintenanceModeOverride =
     envFlag === 'true' ? true : envFlag === 'false' ? false : undefined;
-  const data = await loadPortalRootDataWithPrerender(maintenanceModeOverride);
+  const correlationId = getOrCreateCorrelationId(request, context);
+  const initialViewport = detectServerViewportMode(request.headers);
+  const runtimeSeo = readSeoRuntimeConfig({
+    defaultSiteUrl: DEFAULT_PORTAL_SITE_URL,
+    siteUrlEnvKey: 'PUBLIC_PORTAL_URL',
+  });
+
   return {
-    ...data,
-    runtimeSeo: readSeoRuntimeConfig({
-      defaultSiteUrl: DEFAULT_PORTAL_SITE_URL,
-      siteUrlEnvKey: 'PUBLIC_PORTAL_URL',
+    runtimeSeo,
+    correlationId,
+    initialViewport,
+    maintenanceMode: maintenanceModeOverride === true,
+    rootPayload: deferStreamResult(loadPortalRootDataWithPrerender(maintenanceModeOverride), {
+      request,
+      context,
+      source: 'portal.root.loader',
     }),
   };
 }
@@ -62,18 +94,34 @@ function normalizePathname(pathname: string): string {
   return pathname.replace(/\/+$/, '') || '/';
 }
 
-function getPortalPaneTitle(pathname: string): string {
-  return pathname === '/' ? 'tty1' : `tui :: ${pathname}`;
+export function shouldRevalidate({
+  currentUrl,
+  nextUrl,
+  formAction,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs): boolean {
+  const currentPath = normalizePathname(currentUrl.pathname);
+  const nextPath = normalizePathname(nextUrl.pathname);
+  if (currentPath === '/changes-in-progress' || nextPath === '/changes-in-progress') {
+    return defaultShouldRevalidate;
+  }
+  if (currentPath === nextPath && !formAction) {
+    return defaultShouldRevalidate;
+  }
+  return false;
 }
 
-export function meta({ loaderData, location }: MetaArgs<typeof loader>) {
+export function meta({ loaderData, location }: Route.MetaArgs) {
   const siteUrl = loaderData?.runtimeSeo?.siteUrl ?? DEFAULT_PORTAL_SITE_URL;
   const pathname = normalizePathname(location.pathname);
   const isNoIndex = Boolean(loaderData?.maintenanceMode) || pathname === '/changes-in-progress';
   return buildRouteMetaTags({
-    title: loaderData?.chrome.pageTitle ?? 'andrew-k.us // Solar Forge Terminal',
-    description:
-      'Interactive Solar Forge portfolio terminal, CADENCE sandboxed artifact builder, and GKE Autopilot scale-from-zero microservices showcase by Andrew Klapper.',
+    title: isNoIndex
+      ? `Changes in Progress // ${PORTAL_SITE_NAME}`
+      : 'andrew-k.us // Solar Forge Terminal',
+    description: isNoIndex
+      ? DEFAULT_PORTAL_MAINTENANCE_DESCRIPTION
+      : 'Interactive Solar Forge portfolio terminal, CADENCE sandboxed artifact builder, and Cloud Run scale-to-zero Go microservices showcase by Andrew Klapper.',
     siteName: PORTAL_SITE_NAME,
     siteUrl,
     pathname,
@@ -82,7 +130,7 @@ export function meta({ loaderData, location }: MetaArgs<typeof loader>) {
 }
 
 export function Layout({ children }: { children: ReactNode }) {
-  const rootData = useRouteLoaderData('root') as PortalRootLoaderData | undefined;
+  const rootData = useRouteLoaderData<typeof loader>('root');
   const location = useLocation();
   const pathname = normalizePathname(location.pathname);
   const siteUrl = rootData?.runtimeSeo?.siteUrl ?? DEFAULT_PORTAL_SITE_URL;
@@ -90,57 +138,43 @@ export function Layout({ children }: { children: ReactNode }) {
   const canonicalUrl = buildCanonicalUrl(siteUrl, pathname);
 
   return (
-    <html lang='en' data-theme='solar-forge'>
-      <head>
-        <DocumentHeadTags
-          applicationName='andrew-k.us // Solar Forge'
-          canonicalUrl={canonicalUrl}
-          robots={isNoIndex ? 'noindex, nofollow' : 'index, follow'}
-          analyticsApp='portal'
-          runtimeSeo={rootData?.runtimeSeo}
-          jsonLd={isNoIndex ? undefined : buildPortalJsonLd(siteUrl)}
-        />
-        <Meta />
-        <Links />
-      </head>
-      <body>
-        <DocumentBodyAnalytics gtmId={rootData?.runtimeSeo?.gtmId} />
-        {children}
-        <ScrollRestoration />
-        <Scripts />
-      </body>
-    </html>
+    <ViewportProvider initialMode={rootData?.initialViewport ?? 'desktop'}>
+      <ViewportHtml lang='en' data-theme='solar-forge'>
+        <head>
+          <DocumentHeadTags
+            applicationName='andrew-k.us // Solar Forge'
+            canonicalUrl={canonicalUrl}
+            robots={isNoIndex ? 'noindex, nofollow' : 'index, follow'}
+            analyticsApp='portal'
+            runtimeSeo={rootData?.runtimeSeo}
+            jsonLd={isNoIndex ? undefined : buildPortalJsonLd(siteUrl)}
+          />
+          {rootData?.correlationId ? (
+            <meta name='aklapper-correlation-id' content={rootData.correlationId} />
+          ) : null}
+          <Meta />
+          <Links />
+        </head>
+        <body>
+          <DocumentBodyAnalytics gtmId={rootData?.runtimeSeo?.gtmId} />
+          {children}
+          <ScrollRestoration />
+          <Scripts />
+        </body>
+      </ViewportHtml>
+    </ViewportProvider>
   );
 }
 
-export default function PortalRoot() {
+export default function PortalRoot({ loaderData }: Route.ComponentProps) {
   useAnimatedFavicon();
-  const data = useLoaderData() as PortalRootLoaderData;
-  const cluster = useClusterTelemetry();
+  const runtimeStatus = useRuntimeStatusTelemetry();
   const location = useLocation();
   const navigate = useNavigate();
   const pathname = normalizePathname(location.pathname);
 
-  const terminalForms = useMemo(
-    () => createPortalTerminalForms(data.contactForm, navigate),
-    [data.contactForm, navigate],
-  );
-
-  if (data.maintenanceMode && data.maintenance) {
-    return (
-      <DirectionProvider.Provider direction='ltr'>
-        <Tooltip.Provider>
-          <div className={styles.standaloneShell}>
-            <main className={styles.standaloneMain}>
-              <PortalChangesInProgressPage data={data.maintenance} />
-            </main>
-          </div>
-        </Tooltip.Provider>
-      </DirectionProvider.Provider>
-    );
-  }
-
-  if (pathname === '/changes-in-progress') {
+  if (pathname === '/changes-in-progress' && !loaderData.maintenanceMode) {
+    portalWorkspaceStore.recordRoutePolicy(pathname, 'excluded-standalone');
     return (
       <DirectionProvider.Provider direction='ltr'>
         <Tooltip.Provider>
@@ -153,110 +187,54 @@ export default function PortalRoot() {
       </DirectionProvider.Provider>
     );
   }
-
-  const { chrome, terminal, homeContent } = data;
-  const isTerminalViewport = pathname === '/';
-  const hasGlobalWorkspace = Boolean(terminal);
-  const headerBadgeState = cluster.connected ? cluster.summaryState : chrome.statusBadge.state;
-  const headerBadgeLabel =
-    cluster.connected && cluster.summaryLabel ? cluster.summaryLabel : chrome.statusBadge.label;
 
   return (
     <DirectionProvider.Provider direction='ltr'>
       <Tooltip.Provider>
-        <div
-          className={styles.shell}
-          data-terminal-viewport={isTerminalViewport ? 'true' : 'false'}
-          data-pane-workspace={hasGlobalWorkspace ? 'true' : 'false'}
+        <SuspenseElement<PortalRootLoaderData>
+          resolve={loaderData.rootPayload}
+          correlationId={loaderData.correlationId}
+          homeHref={href('/')}
+          loadingLabel='Initializing Solar Forge workspace...'
+          onStreamError={error => {
+            reportPortalPublicError(error, { phase: 'stream' });
+          }}
+          errorElement={
+            loaderData.maintenanceMode
+              ? error => <OfflineMaintenanceFallback error={error} />
+              : undefined
+          }
         >
-          <div className={styles.barWrap}>
-            <header className={styles.bar}>
-              <NavigationMenu.Root>
-                <NavigationMenu.List>
-                  <NavigationMenu.Item>
-                    <NavigationMenu.Link render={<Link to='/' />} className={styles.brand}>
-                      <SolarForgeEmblem size={18} />
-                      <span>{chrome.brandLabel}</span>
-                    </NavigationMenu.Link>
-                  </NavigationMenu.Item>
-                </NavigationMenu.List>
-              </NavigationMenu.Root>
-              <div className={styles.barMeta}>
-                {hasGlobalWorkspace || isTerminalViewport ? (
-                  <span className={styles.shortcutHint}>
-                    {'Ctrl+⇧} / ⌘D split · Ctrl+⇧{ / ⌘⇧D hsplit · Alt+⇧T tab · Alt+T tui'}
-                  </span>
-                ) : null}
-                <OscStatusBadge
-                  source={chrome.statusBadge.source}
-                  state={headerBadgeState}
-                  label={headerBadgeLabel}
-                />
-              </div>
-            </header>
-            <Separator.Root className={styles.barDivider} />
-          </div>
-          <main
-            className={styles.main}
-            data-terminal-viewport={isTerminalViewport ? 'true' : 'false'}
-            data-pane-workspace={hasGlobalWorkspace ? 'true' : 'false'}
-          >
-            {terminal ? (
-              <TerminalWorkspace
-                terminal={terminal}
-                terminalForms={terminalForms}
-                navigate={to => {
-                  void navigate(to);
-                }}
-                renderTui={
-                  homeContent
-                    ? ({ ttyNumber, isSinglePane, closeTui }) => (
-                        <PortalLauncherTui
-                          content={homeContent}
-                          ttyNumber={ttyNumber}
-                          isSinglePane={isSinglePane}
-                          onClose={closeTui}
-                        />
-                      )
-                    : undefined
-                }
-                primaryPane={{
-                  title: getPortalPaneTitle(pathname),
-                  content: <Outlet />,
-                  flush: isTerminalViewport,
-                  embeddedTerminal: isTerminalViewport,
-                }}
-              />
-            ) : (
-              <Outlet />
-            )}
+          {data => (
+            <PortalRootShell
+              data={data}
+              pathname={pathname}
+              locationKey={location.key}
+              runtimeStatus={runtimeStatus}
+              navigate={navigate}
+            />
+          )}
+        </SuspenseElement>
+      </Tooltip.Provider>
+    </DirectionProvider.Provider>
+  );
+}
+
+export function ErrorBoundary({ error, loaderData }: Route.ErrorBoundaryProps) {
+  return (
+    <DirectionProvider.Provider direction='ltr'>
+      <Tooltip.Provider>
+        <div className={styles.standaloneShell}>
+          <main className={styles.standaloneMain}>
+            <RouteErrorBoundaryView
+              error={error}
+              correlationId={loaderData?.correlationId}
+              homeHref={href('/')}
+              onError={publicError => {
+                reportPortalPublicError(publicError, { phase: 'boundary' });
+              }}
+            />
           </main>
-          <div className={styles.footerWrap}>
-            <Separator.Root />
-            <footer className={styles.footer}>
-              <span>{chrome.footerText}</span>
-              <div className={styles.footerLinks}>
-                <Button.Link
-                  href='/sitemap.xml'
-                  variant='ghost'
-                  size='xs'
-                  className={styles.footerLink}
-                >
-                  <Button.Label>Sitemap</Button.Label>
-                </Button.Link>
-                <Button.Link
-                  href={chrome.footerLinkUrl}
-                  target='_blank'
-                  rel='noreferrer'
-                  variant='ghost'
-                  size='xs'
-                  className={styles.footerLink}
-                >
-                  <Button.Label>{chrome.footerLinkLabel}</Button.Label>
-                </Button.Link>
-              </div>
-            </footer>
-          </div>
         </div>
       </Tooltip.Provider>
     </DirectionProvider.Provider>

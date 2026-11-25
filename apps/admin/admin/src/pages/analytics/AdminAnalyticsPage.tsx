@@ -1,11 +1,21 @@
-import type { AdminAnalyticsLoaderData, AdminAnalyticsWindow, CwvMetricName } from '@aklapper/core';
+import type {
+  AdminAnalyticsBreakdownsData,
+  AdminAnalyticsLoaderData,
+  AdminAnalyticsSummaryData,
+  AdminAnalyticsWindow,
+  CwvMetricName,
+} from '@aklapper/core';
 import { Meter, Separator, TuiWindow } from '@aklapper/ui';
+import type { ReactNode } from 'react';
 import { Link } from 'react-router';
+
+import { AdminAnalyticsBreakdowns } from './AdminAnalyticsBreakdowns';
 
 import styles from './AdminAnalyticsPage.module.css';
 
 export interface AdminAnalyticsPageProps {
-  data: AdminAnalyticsLoaderData;
+  data: AdminAnalyticsSummaryData | AdminAnalyticsLoaderData;
+  breakdownsSlot?: ReactNode;
 }
 
 const WINDOWS: readonly { id: AdminAnalyticsWindow; label: string }[] = [
@@ -21,21 +31,23 @@ function formatCwvValue(metric: CwvMetricName, value: number | null): string {
   return `${Math.round(value)} ms`;
 }
 
-export function AdminAnalyticsPage({ data }: AdminAnalyticsPageProps) {
-  const {
-    content,
-    window: activeWindow,
-    totalSessions,
-    totalEvents,
-    cwv,
-    topPaths,
-    topReferrers,
-    geoBreakdown,
-    agensiConversions,
-    aiMetrics,
-  } = data;
+function hasBreakdownsData(
+  value: AdminAnalyticsSummaryData | AdminAnalyticsLoaderData,
+): value is AdminAnalyticsLoaderData {
+  return 'topPaths' in value && 'topReferrers' in value && 'geoBreakdown' in value;
+}
 
+export function AdminAnalyticsPage({ data, breakdownsSlot }: AdminAnalyticsPageProps) {
+  const { content, window: activeWindow, totalSessions, totalEvents, cwv, aiMetrics } = data;
   const eventCap = Math.max(totalEvents, 100);
+  const fallbackBreakdowns: AdminAnalyticsBreakdownsData | null = hasBreakdownsData(data)
+    ? {
+        topPaths: data.topPaths,
+        topReferrers: data.topReferrers,
+        geoBreakdown: data.geoBreakdown,
+        agensiConversions: data.agensiConversions,
+      }
+    : null;
 
   return (
     <TuiWindow title={content.windowTitle}>
@@ -47,6 +59,7 @@ export function AdminAnalyticsPage({ data }: AdminAnalyticsPageProps) {
               <Link
                 key={win.id}
                 to={`/analytics?window=${win.id}`}
+                prefetch='intent'
                 className={styles.windowLink}
                 data-active={activeWindow === win.id ? 'true' : 'false'}
                 aria-current={activeWindow === win.id ? 'true' : undefined}
@@ -114,135 +127,34 @@ export function AdminAnalyticsPage({ data }: AdminAnalyticsPageProps) {
           </div>
         </section>
 
+        <section className={styles.tableCard}>
+          <h2 className={styles.sectionTitle}>AI / CADENCE Gate &amp; Abstention Metrics</h2>
+          <table className={styles.dataTable}>
+            <tbody>
+              <tr>
+                <td>Approved Gates</td>
+                <td className={styles.numericCell}>{aiMetrics.approvedGates}</td>
+              </tr>
+              <tr>
+                <td>Rejected Gates</td>
+                <td className={styles.numericCell}>{aiMetrics.rejectedGates}</td>
+              </tr>
+              <tr>
+                <td>Pending Gates</td>
+                <td className={styles.numericCell}>{aiMetrics.pendingGates}</td>
+              </tr>
+              <tr>
+                <td>AI Abstention Events</td>
+                <td className={styles.numericCell}>{aiMetrics.abstentionEvents}</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
         <Separator.Root />
 
-        <div className={styles.tableGrid}>
-          <section className={styles.tableCard}>
-            <h2 className={styles.sectionTitle}>Top Paths</h2>
-            {topPaths.length === 0 ? (
-              <p className={styles.emptyNote}>No path events recorded in this window.</p>
-            ) : (
-              <table className={styles.dataTable}>
-                <thead>
-                  <tr>
-                    <th>Path</th>
-                    <th className={styles.numericCell}>Hits</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topPaths.map(row => (
-                    <tr key={row.label}>
-                      <td>{row.label}</td>
-                      <td className={styles.numericCell}>{row.count}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </section>
-
-          <section className={styles.tableCard}>
-            <h2 className={styles.sectionTitle}>Top Referrers</h2>
-            {topReferrers.length === 0 ? (
-              <p className={styles.emptyNote}>No referrer entries recorded in this window.</p>
-            ) : (
-              <table className={styles.dataTable}>
-                <thead>
-                  <tr>
-                    <th>Referrer</th>
-                    <th className={styles.numericCell}>Sessions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topReferrers.map(row => (
-                    <tr key={row.label}>
-                      <td>{row.label}</td>
-                      <td className={styles.numericCell}>{row.count}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </section>
-
-          <section className={styles.tableCard}>
-            <h2 className={styles.sectionTitle}>Country / Region Breakdown</h2>
-            {geoBreakdown.length === 0 ? (
-              <p className={styles.emptyNote}>No geo breakdown entries recorded in this window.</p>
-            ) : (
-              <table className={styles.dataTable}>
-                <thead>
-                  <tr>
-                    <th>Country</th>
-                    <th>Region</th>
-                    <th className={styles.numericCell}>Sessions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {geoBreakdown.map(row => (
-                    <tr key={`${row.label}:${row.secondaryLabel ?? ''}`}>
-                      <td>{row.label}</td>
-                      <td>{row.secondaryLabel ?? '—'}</td>
-                      <td className={styles.numericCell}>{row.count}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </section>
-        </div>
-
-        <div className={styles.tableGrid}>
-          <section className={styles.tableCard}>
-            <h2 className={styles.sectionTitle}>Agensi Outbound Conversion Funnel</h2>
-            {agensiConversions.length === 0 ? (
-              <p className={styles.emptyNote}>
-                No agensi_outbound_click conversions recorded in this window.
-              </p>
-            ) : (
-              <table className={styles.dataTable}>
-                <thead>
-                  <tr>
-                    <th>Skill Slug</th>
-                    <th className={styles.numericCell}>Outbound Clicks</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {agensiConversions.map(row => (
-                    <tr key={row.slug}>
-                      <td>{row.slug}</td>
-                      <td className={styles.numericCell}>{row.clicks}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </section>
-
-          <section className={styles.tableCard}>
-            <h2 className={styles.sectionTitle}>AI / CADENCE Gate &amp; Abstention Metrics</h2>
-            <table className={styles.dataTable}>
-              <tbody>
-                <tr>
-                  <td>Approved Gates</td>
-                  <td className={styles.numericCell}>{aiMetrics.approvedGates}</td>
-                </tr>
-                <tr>
-                  <td>Rejected Gates</td>
-                  <td className={styles.numericCell}>{aiMetrics.rejectedGates}</td>
-                </tr>
-                <tr>
-                  <td>Pending Gates</td>
-                  <td className={styles.numericCell}>{aiMetrics.pendingGates}</td>
-                </tr>
-                <tr>
-                  <td>AI Abstention Events</td>
-                  <td className={styles.numericCell}>{aiMetrics.abstentionEvents}</td>
-                </tr>
-              </tbody>
-            </table>
-          </section>
-        </div>
+        {breakdownsSlot ??
+          (fallbackBreakdowns ? <AdminAnalyticsBreakdowns data={fallbackBreakdowns} /> : null)}
       </div>
     </TuiWindow>
   );

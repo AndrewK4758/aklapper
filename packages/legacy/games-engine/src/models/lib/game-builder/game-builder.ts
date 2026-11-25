@@ -1,6 +1,6 @@
 import { ChainBuilder } from '../../../chain/index.ts';
 import type { Command, IBuiltGame, IGameBuilder } from '../../../types/index.ts';
-import { Rule } from '../rule/rule.js';
+import { Rule } from '../rule/rule.ts';
 
 export class GameBuilder implements IGameBuilder {
   Game: IBuiltGame;

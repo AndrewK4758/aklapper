@@ -98,7 +98,7 @@ export function createSsrPlaywrightConfig(
     projects: [
       {
         name: 'chromium',
-        use: { ...devices['Desktop Chrome'] },
+        use: { ...devices['Desktop Chrome'], channel: 'chrome' },
       },
       {
         name: 'firefox',
@@ -110,7 +110,7 @@ export function createSsrPlaywrightConfig(
       },
       {
         name: 'mobile-chrome',
-        use: { ...devices['Pixel 7'] },
+        use: { ...devices['Pixel 7'], channel: 'chrome' },
       },
     ],
     webServer: externalBaseURL
@@ -120,7 +120,7 @@ export function createSsrPlaywrightConfig(
             'sh -c "[ -f dist/server/index.js ] || pnpm exec react-router build --mode production; exec node --conditions=@aklapper/source ./src/server.ts"',
           cwd: appCwd,
           url: `http://127.0.0.1:${port}/healthz`,
-          reuseExistingServer: !isCI,
+          reuseExistingServer: !isCI && process.env['AKLAPPER_EPHEMERAL_PG_ACTIVE'] !== '1',
           timeout: 120_000,
           stdout: 'pipe',
           stderr: 'pipe',
@@ -137,6 +137,39 @@ export async function assertSsrHealthz(
   expect(response.ok()).toBe(true);
   const body = (await response.json()) as { status?: string; service?: string };
   expect(body).toEqual({ status: 'ok', service: expectedService });
+}
+
+export async function waitForStreamedReveal(page: Page): Promise<void> {
+  await page.waitForFunction(
+    () =>
+      document.querySelectorAll('div[hidden][id^="S:"]').length === 0 &&
+      document.querySelectorAll('[data-hydrated="false"]').length === 0,
+  );
+  await page.evaluate(
+    () =>
+      new Promise<void>(resolve => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => resolve());
+        });
+      }),
+  );
+}
+
+export async function gotoStreamedPage(
+  page: Page,
+  url: string,
+  options: { readonly waitUntil?: 'load' | 'domcontentloaded' | 'networkidle' } = {},
+): Promise<void> {
+  await page.goto(url, { waitUntil: options.waitUntil ?? 'load' });
+  await waitForStreamedReveal(page);
+}
+
+export async function reloadStreamedPage(
+  page: Page,
+  options: { readonly waitUntil?: 'load' | 'domcontentloaded' | 'networkidle' } = {},
+): Promise<void> {
+  await page.reload({ waitUntil: options.waitUntil ?? 'load' });
+  await waitForStreamedReveal(page);
 }
 
 export function trackPageErrors(page: Page): () => readonly Error[] {

@@ -1,59 +1,94 @@
 import {
   AdminGateOverrideSchema,
-  type AdminOpsLoaderData,
-  AdminWakeDeploymentSchema,
+  createPublicAppError,
+  type QdrantHealthStatus,
+  type StreamResult,
 } from '@aklapper/core';
-import { getSharedDb, listAdminSandboxRuns, overrideSandboxGateVerdict } from '@aklapper/db';
+import { classifyServerError } from '@aklapper/core/server-errors';
 import {
-  type ActionFunctionArgs,
-  type LoaderFunctionArgs,
-  type MetaArgs,
-  useActionData,
-  useLoaderData,
-} from 'react-router';
-
-import { type AdminOpsActionData, AdminOpsPage } from '#pages/ops';
+  getSharedDb,
+  GoldenRunImmutableError,
+  listAdminSandboxRuns,
+  overrideSandboxGateVerdict,
+} from '@aklapper/db';
+import {
+  createFallbackLogger,
+  deferStreamResult,
+  getOrCreateCorrelationId,
+  getRequestContext,
+  logDiagnosticError,
+} from '@aklapper/node-runtime/ssr/stream';
+import { RouteErrorBoundaryView, SuspenseElement } from '@aklapper/ui';
+import { data, href } from 'react-router';
 
 import {
-  fetchCadenceAdminStatus,
-  fetchQdrantStatus,
-  forwardCadenceGateOverride,
-  requireAdminSession,
-  triggerClusterWake,
-  triggerQdrantReindex,
-} from '../admin-ops.server';
+  type AdminOpsActionData,
+  AdminOpsPage,
+  type AdminOpsPrimaryData,
+  QdrantRuntimeStatusBody,
+} from '#pages/ops';
+
+import { fetchQdrantStatus, requireAdminSession, triggerQdrantReindex } from '../admin-ops.server';
+import { reportAdminPublicError } from '../client-telemetry';
 import { buildAdminPageMeta } from '../seo';
+import type { Route } from './+types/ops';
 
-export async function loader({ request }: LoaderFunctionArgs): Promise<AdminOpsLoaderData> {
-  await requireAdminSession(request);
-  const [cadenceAdminStatus, qdrantStatus, sandboxRuns] = await Promise.all([
-    fetchCadenceAdminStatus(),
-    fetchQdrantStatus(),
-    listAdminSandboxRuns(getSharedDb(), 25),
-  ]);
+export interface AdminOpsStreamData {
+  readonly correlationId: string;
+  readonly payload: Promise<StreamResult<AdminOpsPrimaryData>>;
+  readonly qdrantStatusPayload: Promise<StreamResult<QdrantHealthStatus>>;
+}
+
+export async function loader({ request, context }: Route.LoaderArgs): Promise<AdminOpsStreamData> {
+  const correlationId = getOrCreateCorrelationId(request, context);
+  await requireAdminSession(request, { context, source: 'admin.ops.loader' });
 
   return {
-    cadenceAdminStatus,
-    qdrantStatus,
-    sandboxRuns,
-    k8sWatchConfigured: Boolean(process.env['K8S_WATCH_URL']?.trim()),
+    correlationId,
+    payload: deferStreamResult(
+      (async (): Promise<AdminOpsPrimaryData> => {
+        const db = getSharedDb();
+        const sandboxRuns = await listAdminSandboxRuns(db, 25);
+        return {
+          sandboxRuns,
+        };
+      })(),
+      { request, context, source: 'admin.ops.loader' },
+    ),
+    qdrantStatusPayload: deferStreamResult(fetchQdrantStatus(), {
+      request,
+      context,
+      source: 'admin.ops.qdrant',
+    }),
   };
 }
 
-export async function action({ request }: ActionFunctionArgs): Promise<AdminOpsActionData> {
-  await requireAdminSession(request);
-  const formData = await request.formData();
+export async function action({ request, context }: Route.ActionArgs) {
+  await requireAdminSession(request, { context, source: 'admin.ops.action' });
+  const correlationId = getOrCreateCorrelationId(request, context);
+  const reqCtx = getRequestContext(context);
+  const logger = reqCtx?.logger ?? createFallbackLogger('admin-ops');
+  const headers = { 'X-Correlation-Id': correlationId };
+
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return data<AdminOpsActionData>(
+      {
+        ok: false,
+        message: 'Malformed ops request payload.',
+        code: 'ERR_VALIDATION',
+        action: 'Review your ops action parameters and retry.',
+        correlationId,
+      },
+      { status: 400, headers },
+    );
+  }
+
   const intent = String(formData.get('intent') ?? '');
 
   try {
-    if (intent === 'wake-deployment') {
-      const { deployment } = AdminWakeDeploymentSchema.parse({
-        deployment: formData.get('deployment'),
-      });
-      const result = await triggerClusterWake(deployment);
-      return { ok: result.ok, message: result.message };
-    }
-
     if (intent === 'override-gate') {
       const parsed = AdminGateOverrideSchema.parse({
         runId: formData.get('runId'),
@@ -65,41 +100,176 @@ export async function action({ request }: ActionFunctionArgs): Promise<AdminOpsA
         parsed.gateVerdict,
       );
       if (!updated) {
-        return { ok: false, message: `Sandbox run ${parsed.runId} not found.` };
+        return data<AdminOpsActionData>(
+          {
+            ok: false,
+            message: `Sandbox run ${parsed.runId} not found.`,
+            code: 'ERR_NOT_FOUND',
+            action: 'Refresh sandbox runs and retry.',
+            correlationId,
+          },
+          { status: 404, headers },
+        );
       }
-      await forwardCadenceGateOverride(parsed.runId, parsed.gateVerdict);
-      return {
-        ok: true,
-        message: `Updated gate verdict for run ${parsed.runId} to "${updated.gateVerdict}".`,
-      };
+      return data<AdminOpsActionData>(
+        {
+          ok: true,
+          message: `Updated gate verdict for run ${parsed.runId} to "${updated.gateVerdict}".`,
+        },
+        { status: 200, headers },
+      );
     }
 
     if (intent === 'reindex-qdrant') {
       const result = await triggerQdrantReindex();
-      return { ok: result.ok, message: result.message };
+      if (result.ok) {
+        return data<AdminOpsActionData>(
+          { ok: true, message: result.message },
+          { status: 200, headers },
+        );
+      }
+      const upstreamError = Object.assign(new Error(result.message), {
+        status: 503,
+        statusText: 'Service Unavailable',
+        data: null,
+      });
+      const { publicError, diagnostic } = classifyServerError(upstreamError, {
+        correlationId,
+        source: 'admin.ops.action.reindex_qdrant',
+      });
+      logDiagnosticError(logger, diagnostic);
+      return data<AdminOpsActionData>(
+        {
+          ok: false,
+          message: publicError.message,
+          code: publicError.code,
+          action: publicError.action,
+          correlationId: publicError.correlationId,
+        },
+        { status: publicError.status, headers },
+      );
     }
 
-    return { ok: false, message: `Unsupported ops action: ${intent}` };
+    return data<AdminOpsActionData>(
+      {
+        ok: false,
+        message: 'Unsupported ops action.',
+        code: 'ERR_VALIDATION',
+        action: 'Select a valid ops control and retry.',
+        correlationId,
+      },
+      { status: 400, headers },
+    );
   } catch (error) {
-    return {
-      ok: false,
-      message: error instanceof Error ? error.message : 'Ops action failed validation.',
-    };
+    if (error instanceof GoldenRunImmutableError) {
+      logger.warn(
+        {
+          seam_type: 'UNSOUND_CONDITION',
+          event: 'cadence.gate.golden_mutation_blocked',
+          runId: error.runId,
+          correlationId,
+        },
+        'Blocked admin gate override against read-only Golden showcase run',
+      );
+      const conflictError = createPublicAppError({
+        code: 'ERR_CONSTRAINT',
+        status: 409,
+        message: 'Golden showcase runs are read-only and cannot be mutated.',
+        action: 'Select a visitor sandbox run to override its gate verdict.',
+        correlationId,
+      });
+      return data<AdminOpsActionData>(
+        {
+          ok: false,
+          message: conflictError.message,
+          code: conflictError.code,
+          action: conflictError.action,
+          correlationId: conflictError.correlationId,
+        },
+        { status: 409, headers },
+      );
+    }
+    const { publicError, diagnostic } = classifyServerError(error, {
+      correlationId,
+      source: 'admin.ops.action',
+    });
+    logDiagnosticError(logger, diagnostic);
+    return data<AdminOpsActionData>(
+      {
+        ok: false,
+        message: publicError.message,
+        code: publicError.code,
+        action: publicError.action,
+        correlationId: publicError.correlationId,
+      },
+      { status: publicError.status, headers },
+    );
   }
 }
 
-export function meta({ matches, location }: MetaArgs<typeof loader>) {
+export function meta({ matches, location }: Route.MetaArgs) {
   return buildAdminPageMeta({
     matches,
     pathname: location.pathname,
-    title: 'Cluster & CADENCE Ops // admin.andrew-k.us',
+    title: 'Runtime Health & CADENCE Ops // admin.andrew-k.us',
     description:
-      'Dual-namespace GKE pod watcher, cadence-admin runtime controls, Qdrant index management, and CHORD gate audit.',
+      'Cloud Run / Docker runtime health, Qdrant index management, and PostgreSQL sandbox gate audit.',
   });
 }
 
-export default function AdminOpsRoute() {
-  const data = useLoaderData() as AdminOpsLoaderData;
-  const actionData = useActionData() as AdminOpsActionData | undefined;
-  return <AdminOpsPage data={data} actionData={actionData ?? null} />;
+export default function AdminOpsRoute({ loaderData, actionData }: Route.ComponentProps) {
+  const qdrantStatusSlot = (
+    <SuspenseElement<QdrantHealthStatus>
+      resolve={loaderData.qdrantStatusPayload}
+      correlationId={loaderData.correlationId}
+      homeHref=''
+      loadingLabel='Probing Qdrant vector index...'
+      onStreamError={error => {
+        reportAdminPublicError(error, { phase: 'stream' });
+        console.error(
+          JSON.stringify({
+            event: 'admin.secondary_stream.degraded',
+            slot: 'ops.qdrant',
+            code: error.code,
+            correlationId: error.correlationId,
+          }),
+        );
+      }}
+    >
+      {status => <QdrantRuntimeStatusBody status={status} />}
+    </SuspenseElement>
+  );
+
+  return (
+    <SuspenseElement<AdminOpsPrimaryData>
+      resolve={loaderData.payload}
+      correlationId={loaderData.correlationId}
+      homeHref={href('/')}
+      loadingLabel='Loading cluster & ops status...'
+      onStreamError={error => {
+        reportAdminPublicError(error, { phase: 'stream' });
+      }}
+    >
+      {resolved => (
+        <AdminOpsPage
+          data={resolved}
+          qdrantStatusSlot={qdrantStatusSlot}
+          actionData={actionData ?? null}
+        />
+      )}
+    </SuspenseElement>
+  );
+}
+
+export function ErrorBoundary({ error, loaderData }: Route.ErrorBoundaryProps) {
+  return (
+    <RouteErrorBoundaryView
+      error={error}
+      correlationId={loaderData?.correlationId}
+      homeHref={href('/')}
+      onError={publicError => {
+        reportAdminPublicError(publicError, { phase: 'boundary' });
+      }}
+    />
+  );
 }

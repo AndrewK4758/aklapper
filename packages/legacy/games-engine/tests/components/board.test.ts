@@ -1,7 +1,7 @@
 import { SpaceType } from '@aklapper/legacy-games/types';
 
-import { Board } from '../../src/components/lib/board.js';
-import { Space } from '../../src/components/lib/space.js';
+import { Board } from '../../src/components/lib/board.ts';
+import { Space } from '../../src/components/lib/space.ts';
 
 let space: Space;
 

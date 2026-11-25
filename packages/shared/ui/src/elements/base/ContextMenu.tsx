@@ -1,23 +1,37 @@
 import { ContextMenu as BaseContextMenu } from '@base-ui/react/context-menu';
 
-import { styledPart } from '../_internal/elementFactory';
+import { cx, styledPart, viewportStyledPart } from '../_internal/elementFactory';
 
 import disclosureStyles from '../_styles/disclosure.module.css';
 import menuStyles from '../_styles/menu.module.css';
+import overlayMobileStyles from '../_styles/overlay-mobile.module.css';
 import overlayStyles from '../_styles/overlay.module.css';
 
 export const ContextMenu = {
   Root: BaseContextMenu.Root,
   Trigger: BaseContextMenu.Trigger,
   Portal: BaseContextMenu.Portal,
-  Backdrop: styledPart(BaseContextMenu.Backdrop, overlayStyles.backdrop, 'ContextMenu.Backdrop'),
-  Positioner: styledPart(
+  Backdrop: viewportStyledPart(
+    BaseContextMenu.Backdrop,
+    cx(overlayStyles.backdrop, overlayMobileStyles.sheetBackdrop),
+    'ContextMenu.Backdrop',
+  ),
+  Positioner: viewportStyledPart(
     BaseContextMenu.Positioner,
-    menuStyles.positioner,
+    cx(menuStyles.positioner, overlayMobileStyles.sheetPositioner),
     'ContextMenu.Positioner',
   ),
-  Popup: styledPart(BaseContextMenu.Popup, menuStyles.popup, 'ContextMenu.Popup'),
-  Arrow: styledPart(BaseContextMenu.Arrow, overlayStyles.arrow, 'ContextMenu.Arrow'),
+  Popup: viewportStyledPart(
+    BaseContextMenu.Popup,
+    cx(menuStyles.popup, overlayMobileStyles.sheetPopup),
+    'ContextMenu.Popup',
+    { mobileSheet: true },
+  ),
+  Arrow: viewportStyledPart(
+    BaseContextMenu.Arrow,
+    cx(overlayStyles.arrow, overlayMobileStyles.sheetArrow),
+    'ContextMenu.Arrow',
+  ),
   Group: styledPart(BaseContextMenu.Group, menuStyles.group, 'ContextMenu.Group'),
   GroupLabel: styledPart(
     BaseContextMenu.GroupLabel,

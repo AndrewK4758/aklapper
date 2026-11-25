@@ -1,11 +1,4 @@
 import {
-  type AdminAiMetrics,
-  AdminAnalyticsContentSchema,
-  type AdminAnalyticsLoaderData,
-  AdminAnalyticsLoaderDataSchema,
-  type AdminAnalyticsWindow,
-  AdminAnalyticsWindowSchema,
-  AdminChromeContentSchema,
   type AdminCmsLoaderData,
   AdminCmsLoaderDataSchema,
   AdminHomeContentSchema,
@@ -22,16 +15,17 @@ import {
   type AdminServiceHealth,
   type AdminTerminalCommandRow,
   AdminTerminalCommandRowSchema,
+  type AdminTerminalDirectoryEntryRow,
+  AdminTerminalDirectoryEntryRowSchema,
   type AdminTerminalInitialEntryRow,
   AdminTerminalInitialEntryRowSchema,
   type AdminTerminalProfileRow,
   AdminTerminalProfileRowSchema,
-  type AgensiConversionRow,
   type AgensiSkill,
   AgensiSkillSchema,
   type AgensiSkillUpsertInput,
   AgensiSkillUpsertSchema,
-  type AnalyticsBreakdownRow,
+  AgensiSyncStateSchema,
   BucketPurgeSchema,
   BucketResetSchema,
   type CadenceGateVerdict,
@@ -41,21 +35,14 @@ import {
   type CadencePresetUpsertInput,
   CadencePresetUpsertSchema,
   type CadenceTurn,
-  type CwvMetricName,
-  type CwvPercentileRow,
+  isKnownSiteContentKey,
   MaintenanceModeUpdateSchema,
   type MenuItem,
   MenuItemSchema,
   type MenuItemUpsertInput,
   MenuItemUpsertSchema,
-  PortalAgensiContentSchema,
-  PortalAskContentSchema,
-  PortalCadenceContentSchema,
   PortalChromeContentSchema,
-  PortalContactContentSchema,
-  PortalHomeContentSchema,
   PortalMaintenanceContentSchema,
-  PortalMenuContentSchema,
   type QuotaPolicyRecord,
   QuotaPolicyRecordSchema,
   type QuotaPolicyUpdate,
@@ -65,19 +52,25 @@ import {
   RoadmapMilestoneSchema,
   type RoadmapMilestoneUpsertInput,
   RoadmapMilestoneUpsertSchema,
+  SITE_CONTENT_SCHEMA_BY_KEY,
   type SiteContentRow,
   SiteContentRowSchema,
   SiteContentUpsertSchema,
   type TerminalCommandUpsertInput,
   TerminalCommandUpsertSchema,
+  type TerminalDirectoryEntryUpsertInput,
+  TerminalDirectoryEntryUpsertSchema,
   type TerminalInitialEntryUpsertInput,
   TerminalInitialEntryUpsertSchema,
   type TerminalProfileUpsertInput,
   TerminalProfileUpsertSchema,
 } from '@aklapper/core';
+import { resolveAgensiCreatorHandle } from '@aklapper/node-runtime/agensi';
+import { sanitizePortalAskSiteContent } from '@aklapper/node-runtime/privacy';
 import { asc, count, desc, eq, gte, ilike, inArray, lte, or, sql } from 'drizzle-orm';
-import type { z } from 'zod';
 
+import { queryCreatorPublishedSkills, readAgensiSyncState } from './agensi-sync.ts';
+import { listCareerDossiers } from './career-dossiers.ts';
 import type { AppDatabase } from './client.ts';
 import { getMenuItems, getSiteContent, SITE_CONTENT_KEYS } from './queries.ts';
 import {
@@ -88,21 +81,6 @@ import {
 import * as schema from './schema.ts';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const CWV_METRICS: readonly CwvMetricName[] = ['LCP', 'INP', 'CLS', 'TTFB'];
-
-const SITE_CONTENT_SCHEMA_BY_KEY: Readonly<Record<string, z.ZodType<Record<string, unknown>>>> = {
-  [SITE_CONTENT_KEYS.portalChrome]: PortalChromeContentSchema,
-  [SITE_CONTENT_KEYS.portalHome]: PortalHomeContentSchema,
-  [SITE_CONTENT_KEYS.portalMenu]: PortalMenuContentSchema,
-  [SITE_CONTENT_KEYS.portalAgensi]: PortalAgensiContentSchema,
-  [SITE_CONTENT_KEYS.portalAsk]: PortalAskContentSchema,
-  [SITE_CONTENT_KEYS.portalCadence]: PortalCadenceContentSchema,
-  [SITE_CONTENT_KEYS.portalContact]: PortalContactContentSchema,
-  [SITE_CONTENT_KEYS.portalMaintenance]: PortalMaintenanceContentSchema,
-  [SITE_CONTENT_KEYS.adminChrome]: AdminChromeContentSchema,
-  [SITE_CONTENT_KEYS.adminHome]: AdminHomeContentSchema,
-  [SITE_CONTENT_KEYS.adminAnalytics]: AdminAnalyticsContentSchema,
-};
 
 function toNumber(value: unknown): number {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -113,29 +91,11 @@ function toNumber(value: unknown): number {
   return 0;
 }
 
-function toNullableNumber(value: unknown): number | null {
-  if (value === null || value === undefined) return null;
-  if (typeof value === 'number' && Number.isFinite(value)) return Math.round(value * 1000) / 1000;
-  if (typeof value === 'string' && value.trim().length > 0) {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) return Math.round(parsed * 1000) / 1000;
-  }
-  return null;
-}
-
-function resolveAnalyticsWindowCutoff(window: AdminAnalyticsWindow): Date | null {
-  const now = Date.now();
-  switch (window) {
-    case '24h':
-      return new Date(now - 24 * 60 * 60 * 1000);
-    case '7d':
-      return new Date(now - 7 * 24 * 60 * 60 * 1000);
-    case '30d':
-      return new Date(now - 30 * 24 * 60 * 60 * 1000);
-    case 'all':
-      return null;
-  }
-}
+export {
+  loadAdminAnalyticsBreakdowns,
+  loadAdminAnalyticsData,
+  loadAdminAnalyticsSummary,
+} from './admin-analytics-queries.ts';
 
 export interface LoadAdminOverviewOptions {
   userId?: string | null;
@@ -144,7 +104,6 @@ export interface LoadAdminOverviewOptions {
   totpEnabled?: boolean;
   qdrantHealth?: AdminServiceHealth;
   portfolioPublicHealth?: AdminServiceHealth;
-  cadenceAdminHealth?: AdminServiceHealth;
 }
 
 export async function loadAdminOverviewData(
@@ -185,11 +144,12 @@ export async function loadAdminOverviewData(
         COUNT(*)::int AS total_runs,
         COUNT(*) FILTER (WHERE gate_verdict = 'pending')::int AS pending_gates
       FROM sandbox_runs
+      WHERE is_golden = false
     `),
     db.execute(sql`
       SELECT COALESCE(SUM(tokens_in + tokens_out), 0)::bigint AS daily_tokens
       FROM sandbox_runs
-      WHERE created_at >= ${startOfUtcDay}
+      WHERE is_golden = false AND created_at >= ${startOfUtcDay}
     `),
     db.select().from(schema.quotaPolicies),
   ]);
@@ -237,17 +197,12 @@ export async function loadAdminOverviewData(
       qdrant: options.qdrantHealth ?? {
         name: 'Qdrant Vector Store',
         status: 'offline',
-        detail: 'AI_ASK_URL not configured (PG19 fallback active)',
+        detail: 'AI_ASK_URL not configured (fail-closed)',
       },
       portfolioPublic: options.portfolioPublicHealth ?? {
         name: 'portfolio-public',
         status: 'degraded',
         detail: 'Scale-to-0 local simulation',
-      },
-      cadenceAdmin: options.cadenceAdminHealth ?? {
-        name: 'cadence-admin',
-        status: 'offline',
-        detail: 'CADENCE_ADMIN_URL not configured (direct PG19 audit active)',
       },
     },
     metrics: {
@@ -266,209 +221,6 @@ export async function loadAdminOverviewData(
       passkeyCount,
       totpEnabled,
     },
-  });
-}
-
-export async function loadAdminAnalyticsData(
-  db: AppDatabase,
-  windowInput: AdminAnalyticsWindow = '7d',
-): Promise<AdminAnalyticsLoaderData> {
-  const window = AdminAnalyticsWindowSchema.parse(windowInput);
-  const cutoff = resolveAnalyticsWindowCutoff(window);
-
-  const sessionWhere = cutoff ? sql`WHERE started_at >= ${cutoff}` : sql``;
-  const eventWhere = cutoff ? sql`WHERE created_at >= ${cutoff}` : sql``;
-  const eventAndCutoff = cutoff ? sql`AND created_at >= ${cutoff}` : sql``;
-  const sandboxWhere = cutoff ? sql`WHERE created_at >= ${cutoff}` : sql``;
-
-  const [
-    content,
-    sessionCountRows,
-    eventCountRows,
-    cwvResult,
-    topPathsResult,
-    topReferrersResult,
-    geoResult,
-    agensiResult,
-    sandboxMetricsResult,
-    abstentionResult,
-  ] = await Promise.all([
-    getSiteContent(db, SITE_CONTENT_KEYS.adminAnalytics, AdminAnalyticsContentSchema),
-    cutoff
-      ? db
-          .select({ total: count() })
-          .from(schema.analyticsSessions)
-          .where(gte(schema.analyticsSessions.startedAt, cutoff))
-      : db.select({ total: count() }).from(schema.analyticsSessions),
-    cutoff
-      ? db
-          .select({ total: count() })
-          .from(schema.analyticsEvents)
-          .where(gte(schema.analyticsEvents.createdAt, cutoff))
-      : db.select({ total: count() }).from(schema.analyticsEvents),
-    db.execute(sql`
-      SELECT
-        name AS metric,
-        COUNT(*)::int AS sample_count,
-        percentile_cont(0.5) WITHIN GROUP (ORDER BY value) AS p50,
-        percentile_cont(0.75) WITHIN GROUP (ORDER BY value) AS p75,
-        percentile_cont(0.95) WITHIN GROUP (ORDER BY value) AS p95
-      FROM analytics_events
-      WHERE type = 'web_vital'
-        AND name IN ('LCP', 'INP', 'CLS', 'TTFB')
-        AND value IS NOT NULL
-        ${eventAndCutoff}
-      GROUP BY name
-    `),
-    db.execute(sql`
-      SELECT
-        path AS label,
-        COUNT(*)::int AS total
-      FROM analytics_events
-      ${eventWhere}
-      GROUP BY path
-      ORDER BY total DESC, path ASC
-      LIMIT 10
-    `),
-    db.execute(sql`
-      SELECT
-        COALESCE(NULLIF(BTRIM(referrer), ''), 'direct') AS label,
-        COUNT(*)::int AS total
-      FROM analytics_sessions
-      ${sessionWhere}
-      GROUP BY COALESCE(NULLIF(BTRIM(referrer), ''), 'direct')
-      ORDER BY total DESC, label ASC
-      LIMIT 10
-    `),
-    db.execute(sql`
-      SELECT
-        COALESCE(NULLIF(BTRIM(country), ''), 'Unknown') AS country_label,
-        COALESCE(NULLIF(BTRIM(region), ''), '—') AS region_label,
-        COUNT(*)::int AS total
-      FROM analytics_sessions
-      ${sessionWhere}
-      GROUP BY
-        COALESCE(NULLIF(BTRIM(country), ''), 'Unknown'),
-        COALESCE(NULLIF(BTRIM(region), ''), '—')
-      ORDER BY total DESC, country_label ASC
-      LIMIT 10
-    `),
-    db.execute(sql`
-      SELECT
-        COALESCE(NULLIF(BTRIM(metadata_json->>'slug'), ''), path) AS slug,
-        COUNT(*)::int AS clicks
-      FROM analytics_events
-      WHERE name = 'agensi_outbound_click'
-        ${eventAndCutoff}
-      GROUP BY COALESCE(NULLIF(BTRIM(metadata_json->>'slug'), ''), path)
-      ORDER BY clicks DESC, slug ASC
-      LIMIT 15
-    `),
-    db.execute(sql`
-      SELECT
-        COUNT(*)::int AS total_runs,
-        COALESCE(SUM(tokens_in), 0)::bigint AS total_tokens_in,
-        COALESCE(SUM(tokens_out), 0)::bigint AS total_tokens_out,
-        COUNT(*) FILTER (WHERE gate_verdict = 'approved')::int AS approved_gates,
-        COUNT(*) FILTER (WHERE gate_verdict = 'rejected')::int AS rejected_gates,
-        COUNT(*) FILTER (WHERE gate_verdict = 'pending')::int AS pending_gates
-      FROM sandbox_runs
-      ${sandboxWhere}
-    `),
-    db.execute(sql`
-      SELECT COUNT(*)::int AS abstentions
-      FROM analytics_events
-      WHERE (name IN ('ask_abstained', 'ai_abstention') OR metadata_json->>'grounded' = 'false')
-        ${eventAndCutoff}
-    `),
-  ]);
-
-  const cwvByMetric = new Map<CwvMetricName, CwvPercentileRow>();
-  for (const rawRow of cwvResult.rows) {
-    const row = rawRow as Record<string, unknown>;
-    const metric = row['metric'];
-    if (metric === 'LCP' || metric === 'INP' || metric === 'CLS' || metric === 'TTFB') {
-      cwvByMetric.set(metric, {
-        metric,
-        sampleCount: toNumber(row['sample_count']),
-        p50: toNullableNumber(row['p50']),
-        p75: toNullableNumber(row['p75']),
-        p95: toNullableNumber(row['p95']),
-      });
-    }
-  }
-
-  const cwv: CwvPercentileRow[] = CWV_METRICS.map(
-    metric =>
-      cwvByMetric.get(metric) ?? {
-        metric,
-        sampleCount: 0,
-        p50: null,
-        p75: null,
-        p95: null,
-      },
-  );
-
-  const topPaths: AnalyticsBreakdownRow[] = topPathsResult.rows.map(raw => {
-    const row = raw as Record<string, unknown>;
-    return {
-      label: String(row['label'] ?? '/'),
-      count: toNumber(row['total']),
-    };
-  });
-
-  const topReferrers: AnalyticsBreakdownRow[] = topReferrersResult.rows.map(raw => {
-    const row = raw as Record<string, unknown>;
-    return {
-      label: String(row['label'] ?? 'direct'),
-      count: toNumber(row['total']),
-    };
-  });
-
-  const geoBreakdown: AnalyticsBreakdownRow[] = geoResult.rows.map(raw => {
-    const row = raw as Record<string, unknown>;
-    return {
-      label: String(row['country_label'] ?? 'Unknown'),
-      secondaryLabel: String(row['region_label'] ?? '—'),
-      count: toNumber(row['total']),
-    };
-  });
-
-  const agensiConversions: AgensiConversionRow[] = agensiResult.rows.map(raw => {
-    const row = raw as Record<string, unknown>;
-    return {
-      slug: String(row['slug'] ?? 'unknown'),
-      clicks: toNumber(row['clicks']),
-    };
-  });
-
-  const sandboxRow = (sandboxMetricsResult.rows[0] ?? {}) as Record<string, unknown>;
-  const abstentionRow = (abstentionResult.rows[0] ?? {}) as Record<string, unknown>;
-  const aiMetrics: AdminAiMetrics = {
-    totalRuns: toNumber(sandboxRow['total_runs']),
-    totalTokensIn: toNumber(sandboxRow['total_tokens_in']),
-    totalTokensOut: toNumber(sandboxRow['total_tokens_out']),
-    approvedGates: toNumber(sandboxRow['approved_gates']),
-    rejectedGates: toNumber(sandboxRow['rejected_gates']),
-    pendingGates: toNumber(sandboxRow['pending_gates']),
-    abstentionEvents: toNumber(abstentionRow['abstentions']),
-  };
-
-  const totalSessions = sessionCountRows[0]?.total ?? 0;
-  const totalEvents = eventCountRows[0]?.total ?? 0;
-
-  return AdminAnalyticsLoaderDataSchema.parse({
-    content,
-    window,
-    totalSessions,
-    totalEvents,
-    summary: { totalSessions, totalEvents },
-    cwv,
-    topPaths,
-    topReferrers,
-    geoBreakdown,
-    agensiConversions,
-    aiMetrics,
   });
 }
 
@@ -620,6 +372,19 @@ export async function deleteContactSubmission(db: AppDatabase, id: string): Prom
   return deleted.length > 0;
 }
 
+export async function deleteContactSubmissions(
+  db: AppDatabase,
+  ids: readonly string[],
+): Promise<number> {
+  const validIds = [...new Set(ids.filter(id => UUID_PATTERN.test(id)))];
+  if (validIds.length === 0) return 0;
+  const deleted = await db
+    .delete(schema.contactSubmissions)
+    .where(inArray(schema.contactSubmissions.id, validIds))
+    .returning({ id: schema.contactSubmissions.id });
+  return deleted.length;
+}
+
 export async function listQuotaPoliciesAndBuckets(db: AppDatabase): Promise<AdminQuotasLoaderData> {
   const [policyRows, bucketRows] = await Promise.all([
     db.select().from(schema.quotaPolicies).orderBy(asc(schema.quotaPolicies.role)),
@@ -700,16 +465,27 @@ export async function purgeStaleRateLimitBuckets(
   return deleted.length;
 }
 
-export async function loadAdminCmsData(db: AppDatabase): Promise<AdminCmsLoaderData> {
+export interface LoadAdminCmsOptions {
+  readonly creatorHandle?: string;
+}
+
+export async function loadAdminCmsData(
+  db: AppDatabase,
+  options: LoadAdminCmsOptions = {},
+): Promise<AdminCmsLoaderData> {
+  const creatorHandle = options.creatorHandle?.trim() || resolveAgensiCreatorHandle();
   const [
     siteContentRows,
     menuItemRows,
     profileRows,
     commandRows,
     entryRows,
+    directoryEntryRows,
     milestoneRows,
-    skillRows,
+    agensiSkills,
+    syncStateRow,
     presetRows,
+    careerDossiers,
   ] = await Promise.all([
     db.select().from(schema.siteContent).orderBy(asc(schema.siteContent.key)),
     db
@@ -735,16 +511,23 @@ export async function loadAdminCmsData(db: AppDatabase): Promise<AdminCmsLoaderD
       ),
     db
       .select()
-      .from(schema.roadmapMilestones)
-      .orderBy(asc(schema.roadmapMilestones.sortOrder), asc(schema.roadmapMilestones.slug)),
+      .from(schema.terminalDirectoryEntries)
+      .orderBy(
+        asc(schema.terminalDirectoryEntries.profileSlug),
+        asc(schema.terminalDirectoryEntries.sortOrder),
+        asc(schema.terminalDirectoryEntries.id),
+      ),
     db
       .select()
-      .from(schema.agensiSkills)
-      .orderBy(asc(schema.agensiSkills.sortOrder), asc(schema.agensiSkills.slug)),
+      .from(schema.roadmapMilestones)
+      .orderBy(asc(schema.roadmapMilestones.sortOrder), asc(schema.roadmapMilestones.slug)),
+    queryCreatorPublishedSkills(db, creatorHandle),
+    readAgensiSyncState(db, creatorHandle),
     db
       .select()
       .from(schema.cadencePresets)
       .orderBy(asc(schema.cadencePresets.sortOrder), asc(schema.cadencePresets.slug)),
+    listCareerDossiers(db),
   ]);
 
   const portalChromeRow = siteContentRows.find(row => row.key === SITE_CONTENT_KEYS.portalChrome);
@@ -772,9 +555,25 @@ export async function loadAdminCmsData(db: AppDatabase): Promise<AdminCmsLoaderD
     terminalProfiles: profileRows.map(row => AdminTerminalProfileRowSchema.parse(row)),
     terminalCommands: commandRows.map(row => AdminTerminalCommandRowSchema.parse(row)),
     terminalInitialEntries: entryRows.map(row => AdminTerminalInitialEntryRowSchema.parse(row)),
+    terminalDirectoryEntries: directoryEntryRows.map(row =>
+      AdminTerminalDirectoryEntryRowSchema.parse(row),
+    ),
     roadmapMilestones: milestoneRows.map(row => RoadmapMilestoneSchema.parse(row)),
-    agensiSkills: skillRows.map(row => AgensiSkillSchema.parse(row)),
+    agensiSkills,
+    agensiSyncState: syncStateRow
+      ? AgensiSyncStateSchema.parse({
+          creatorHandle: syncStateRow.creatorHandle,
+          lastSyncedAt: syncStateRow.lastSyncedAt ? syncStateRow.lastSyncedAt.toISOString() : null,
+          lastAttemptAt: syncStateRow.lastAttemptAt
+            ? syncStateRow.lastAttemptAt.toISOString()
+            : null,
+          lastStatus: syncStateRow.lastStatus,
+          lastError: syncStateRow.lastError ?? null,
+          itemCount: syncStateRow.itemCount,
+        })
+      : null,
     cadencePresets: presetRows.map(row => CadencePresetSchema.parse(row)),
+    careerDossiers,
   });
 }
 
@@ -785,8 +584,16 @@ export async function upsertSiteContent(
   metadataJson: Record<string, unknown>,
 ): Promise<SiteContentRow> {
   const parsed = SiteContentUpsertSchema.parse({ key, markdownBody, metadataJson });
-  const keySchema = SITE_CONTENT_SCHEMA_BY_KEY[parsed.key];
-  const validatedMetadata = keySchema ? keySchema.parse(parsed.metadataJson) : parsed.metadataJson;
+  const validatedMetadata = isKnownSiteContentKey(parsed.key)
+    ? {
+        ...parsed.metadataJson,
+        ...SITE_CONTENT_SCHEMA_BY_KEY[parsed.key].parse(parsed.metadataJson),
+      }
+    : parsed.metadataJson;
+
+  if (parsed.key === SITE_CONTENT_KEYS.portalAsk) {
+    sanitizePortalAskSiteContent(parsed.markdownBody, validatedMetadata);
+  }
 
   const [row] = await db
     .insert(schema.siteContent)
@@ -895,8 +702,6 @@ export async function upsertMenuItem(
       keyShortcut: parsed.keyShortcut,
       title: parsed.title,
       description: parsed.description,
-      targetK8sDeploy: parsed.targetK8sDeploy || null,
-      namespace: parsed.namespace || null,
       adminOnly: parsed.adminOnly,
       sortOrder: parsed.sortOrder,
       enabled: parsed.enabled,
@@ -907,8 +712,6 @@ export async function upsertMenuItem(
         keyShortcut: parsed.keyShortcut,
         title: parsed.title,
         description: parsed.description,
-        targetK8sDeploy: parsed.targetK8sDeploy || null,
-        namespace: parsed.namespace || null,
         adminOnly: parsed.adminOnly,
         sortOrder: parsed.sortOrder,
         enabled: parsed.enabled,
@@ -1078,6 +881,54 @@ export async function deleteTerminalInitialEntry(db: AppDatabase, id: number): P
   return deleted.length > 0;
 }
 
+export async function upsertTerminalDirectoryEntry(
+  db: AppDatabase,
+  input: TerminalDirectoryEntryUpsertInput,
+): Promise<AdminTerminalDirectoryEntryRow> {
+  const parsed = TerminalDirectoryEntryUpsertSchema.parse(input);
+  const values = {
+    profileSlug: parsed.profileSlug,
+    name: parsed.name,
+    description: parsed.description,
+    sortOrder: parsed.sortOrder,
+    enabled: parsed.enabled,
+  };
+
+  if (parsed.id) {
+    const [updated] = await db
+      .update(schema.terminalDirectoryEntries)
+      .set(values)
+      .where(eq(schema.terminalDirectoryEntries.id, parsed.id))
+      .returning();
+    if (updated) return AdminTerminalDirectoryEntryRowSchema.parse(updated);
+  }
+
+  const [row] = await db
+    .insert(schema.terminalDirectoryEntries)
+    .values(values)
+    .onConflictDoUpdate({
+      target: [schema.terminalDirectoryEntries.profileSlug, schema.terminalDirectoryEntries.name],
+      set: {
+        description: parsed.description,
+        sortOrder: parsed.sortOrder,
+        enabled: parsed.enabled,
+      },
+    })
+    .returning();
+
+  if (!row) throw new Error(`Failed to upsert terminal_directory_entries row "${parsed.name}"`);
+  return AdminTerminalDirectoryEntryRowSchema.parse(row);
+}
+
+export async function deleteTerminalDirectoryEntry(db: AppDatabase, id: number): Promise<boolean> {
+  if (!Number.isInteger(id) || id <= 0) return false;
+  const deleted = await db
+    .delete(schema.terminalDirectoryEntries)
+    .where(eq(schema.terminalDirectoryEntries.id, id))
+    .returning({ id: schema.terminalDirectoryEntries.id });
+  return deleted.length > 0;
+}
+
 export async function upsertRoadmapMilestone(
   db: AppDatabase,
   input: RoadmapMilestoneUpsertInput,
@@ -1109,6 +960,10 @@ export async function deleteRoadmapMilestone(db: AppDatabase, slug: string): Pro
   return deleted.length > 0;
 }
 
+/**
+ * @deprecated Admin CMS manual Agensi CRUD has been retired in favor of `syncAgensiCatalog`;
+ * retained for one release cycle compatibility before removal.
+ */
 export async function upsertAgensiSkill(
   db: AppDatabase,
   input: AgensiSkillUpsertInput,
@@ -1130,9 +985,19 @@ export async function upsertAgensiSkill(
     .returning();
 
   if (!row) throw new Error(`Failed to upsert agensi_skills row "${parsed.slug}"`);
-  return AgensiSkillSchema.parse(row);
+  return AgensiSkillSchema.parse({
+    ...row,
+    creatorHandle: row.creatorHandle ?? null,
+    isPublished: row.isPublished,
+    syncedAt: row.syncedAt ? row.syncedAt.toISOString() : null,
+    source: row.source,
+  });
 }
 
+/**
+ * @deprecated Admin CMS manual Agensi CRUD has been retired in favor of `syncAgensiCatalog`;
+ * retained for one release cycle compatibility before removal.
+ */
 export async function deleteAgensiSkill(db: AppDatabase, slug: string): Promise<boolean> {
   const deleted = await db
     .delete(schema.agensiSkills)
@@ -1181,6 +1046,7 @@ export async function listAdminSandboxRuns(
   const runs = await db
     .select()
     .from(schema.sandboxRuns)
+    .where(eq(schema.sandboxRuns.isGolden, false))
     .orderBy(desc(schema.sandboxRuns.createdAt))
     .limit(clampedLimit);
 

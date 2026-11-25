@@ -1,0 +1,89 @@
+@layer component {
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-md);
+    padding: var(--sf-inset-panel);
+    border-radius: var(--sf-radius-md);
+    border: var(--sf-border-width) solid var(--sf-err);
+    background: var(--sf-err-bg);
+    color: var(--sf-fg-bone);
+    font-family: var(--sf-font-mono), monospace;
+  }
+
+  .header {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    gap: var(--sf-gap-sm);
+    flex-wrap: wrap;
+  }
+
+  .codeBadge {
+    display: inline-flex;
+    align-items: var(--sf-align-center);
+    padding: var(--sf-space-1) var(--sf-space-3);
+    border-radius: var(--sf-radius-sm);
+    border: var(--sf-border-width) solid var(--sf-err);
+    background: var(--sf-bg-frame);
+    color: var(--sf-err);
+    font-size: var(--sf-text-xs);
+    font-weight: var(--sf-weight-bold);
+    letter-spacing: var(--sf-tracking-wide);
+  }
+
+  .statusBadge {
+    color: var(--sf-fg-prop);
+    font-size: var(--sf-text-xs);
+    font-weight: var(--sf-weight-semibold);
+    font-feature-settings: var(--sf-font-features-tabular);
+  }
+
+  .body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-xs);
+  }
+
+  .message {
+    margin: var(--sf-space-0);
+    color: var(--sf-fg-bone);
+    font-size: var(--sf-text-base);
+    font-weight: var(--sf-weight-semibold);
+    line-height: var(--sf-leading-snug);
+  }
+
+  .action {
+    margin: var(--sf-space-0);
+    color: var(--sf-fg-prop);
+    font-size: var(--sf-text-sm);
+    line-height: var(--sf-leading-base);
+  }
+
+  .reference {
+    margin: var(--sf-space-0);
+    display: inline-flex;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-gap-xs);
+    flex-wrap: wrap;
+    color: var(--sf-fg-cmt);
+    font-size: var(--sf-text-xs);
+  }
+
+  .correlationId {
+    padding: var(--sf-space-1) var(--sf-space-2);
+    border-radius: var(--sf-radius-xs);
+    border: var(--sf-border-width) solid var(--sf-border-subtle);
+    background: var(--sf-bg-frame);
+    color: var(--sf-fg-bone);
+    font-size: var(--sf-text-xs);
+    word-break: break-all;
+  }
+
+  .controls {
+    display: flex;
+    align-items: var(--sf-align-center);
+    gap: var(--sf-gap-sm);
+    flex-wrap: wrap;
+  }
+}

@@ -1,9 +1,10 @@
 import type { TerminalProfileData } from '@aklapper/core';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
   addWorkspaceTab,
+  allocateNextTabNumber,
   closeActivePaneOrTab,
   closePaneById,
   closeWorkspaceTab,
@@ -16,24 +17,30 @@ import {
   dockPane,
   equalizeAllSplits,
   findLeafPane,
+  findTuiPane,
   focusDirectionalPane,
+  focusPaneById,
   focusRelativePane,
   getActiveWorkspaceTab,
   listLeafPanes,
-  matchGhosttyShortcut,
+  matchWorkspaceShortcut,
   moveActiveSplit,
+  openTuiPane,
   renameWorkspaceTab,
   resizeActiveSplit,
   rotateActiveSplit,
   selectRelativeWorkspaceTab,
   selectWorkspaceTab,
   selectWorkspaceTabByIndex,
+  Select,
   setPaneTuiOpen,
   setSplitRatio,
   splitActivePane,
   swapPanes,
   TerminalWorkspace,
+  toggleTuiPane,
   toggleZoomActivePane,
+  Tooltip,
   TuiWindow,
 } from '../src';
 
@@ -187,17 +194,9 @@ describe('terminalPaneTree', () => {
     expect(listLeafPanes(state.root).map(p => p.id)).toEqual(['pane-1']);
   });
 
-  it('matches Ghostty and ghostty-union macOS and Linux split keybindings', () => {
-    expect(matchGhosttyShortcut(makeKey({ key: 'd', metaKey: true }))).toEqual({
-      type: 'split',
-      direction: 'right',
-    });
-    expect(matchGhosttyShortcut(makeKey({ key: 'O', ctrlKey: true, shiftKey: true }))).toEqual({
-      type: 'split',
-      direction: 'right',
-    });
+  it('matches uniform browser-safe workspace split/tab keybindings via @aklapper/ui re-export', () => {
     expect(
-      matchGhosttyShortcut(
+      matchWorkspaceShortcut(
         makeKey({ key: '}', code: 'BracketRight', ctrlKey: true, shiftKey: true }),
       ),
     ).toEqual({
@@ -205,23 +204,13 @@ describe('terminalPaneTree', () => {
       direction: 'right',
     });
     expect(
-      matchGhosttyShortcut(
-        makeKey({ key: ']', code: 'BracketRight', ctrlKey: true, shiftKey: true }),
-      ),
+      matchWorkspaceShortcut(makeKey({ key: 'D', code: 'KeyD', altKey: true, shiftKey: true })),
     ).toEqual({
       type: 'split',
       direction: 'right',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'd', metaKey: true, shiftKey: true }))).toEqual({
-      type: 'split',
-      direction: 'down',
-    });
-    expect(matchGhosttyShortcut(makeKey({ key: 'E', ctrlKey: true, shiftKey: true }))).toEqual({
-      type: 'split',
-      direction: 'down',
-    });
     expect(
-      matchGhosttyShortcut(
+      matchWorkspaceShortcut(
         makeKey({ key: '{', code: 'BracketLeft', ctrlKey: true, shiftKey: true }),
       ),
     ).toEqual({
@@ -229,129 +218,112 @@ describe('terminalPaneTree', () => {
       direction: 'down',
     });
     expect(
-      matchGhosttyShortcut(
-        makeKey({ key: '[', code: 'BracketLeft', ctrlKey: true, shiftKey: true }),
-      ),
+      matchWorkspaceShortcut(makeKey({ key: 'S', code: 'KeyS', altKey: true, shiftKey: true })),
     ).toEqual({
       type: 'split',
       direction: 'down',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: ']', metaKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: ']', metaKey: true }))).toEqual({
       type: 'focus-relative',
       delta: 1,
     });
-    expect(matchGhosttyShortcut(makeKey({ key: '[', metaKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: '[', metaKey: true }))).toEqual({
       type: 'focus-relative',
       delta: -1,
     });
-    expect(
-      matchGhosttyShortcut(makeKey({ key: 'ArrowLeft', ctrlKey: true, altKey: true })),
-    ).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'h', code: 'KeyH', altKey: true }))).toEqual({
       type: 'focus-direction',
       direction: 'left',
     });
-    expect(
-      matchGhosttyShortcut(makeKey({ key: 'ArrowRight', metaKey: true, altKey: true })),
-    ).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'l', code: 'KeyL', altKey: true }))).toEqual({
       type: 'focus-direction',
       direction: 'right',
     });
     expect(
-      matchGhosttyShortcut(makeKey({ key: 'ArrowRight', altKey: true, shiftKey: true })),
+      matchWorkspaceShortcut(makeKey({ key: 'ArrowRight', altKey: true, shiftKey: true })),
     ).toEqual({
       type: 'resize',
       direction: 'right',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'ArrowUp', altKey: true, shiftKey: true }))).toEqual(
-      {
-        type: 'resize',
-        direction: 'up',
-      },
-    );
-    expect(matchGhosttyShortcut(makeKey({ key: 'Enter', metaKey: true, shiftKey: true }))).toEqual({
-      type: 'toggle-zoom',
-    });
-    expect(matchGhosttyShortcut(makeKey({ key: '+', ctrlKey: true, shiftKey: true }))).toEqual({
-      type: 'equalize',
+    expect(
+      matchWorkspaceShortcut(makeKey({ key: 'ArrowUp', altKey: true, shiftKey: true })),
+    ).toEqual({
+      type: 'resize',
+      direction: 'up',
     });
     expect(
-      matchGhosttyShortcut(
+      matchWorkspaceShortcut(makeKey({ key: 'Enter', metaKey: true, shiftKey: true })),
+    ).toEqual({
+      type: 'toggle-zoom',
+    });
+    expect(
+      matchWorkspaceShortcut(
         makeKey({ key: 'E', code: 'KeyE', ctrlKey: true, altKey: true, shiftKey: true }),
       ),
     ).toEqual({
       type: 'equalize',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'W', ctrlKey: true, shiftKey: true }))).toEqual({
+    expect(
+      matchWorkspaceShortcut(makeKey({ key: 'W', code: 'KeyW', altKey: true, shiftKey: true })),
+    ).toEqual({
       type: 'close-pane',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 't', altKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 't', code: 'KeyT', altKey: true }))).toEqual({
       type: 'toggle-tui',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'm', altKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'm', code: 'KeyM', altKey: true }))).toEqual({
       type: 'open-menu',
     });
     expect(
-      matchGhosttyShortcut(
-        makeKey({ key: 'ArrowLeft', ctrlKey: true, altKey: true, shiftKey: true }),
-      ),
+      matchWorkspaceShortcut(makeKey({ key: 'H', code: 'KeyH', altKey: true, shiftKey: true })),
     ).toEqual({
       type: 'move-split',
       direction: 'left',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'R', ctrlKey: true, shiftKey: true }))).toEqual({
-      type: 'rotate-split',
-    });
     expect(
-      matchGhosttyShortcut(makeKey({ key: 'R', ctrlKey: true, altKey: true, shiftKey: true })),
+      matchWorkspaceShortcut(makeKey({ key: 'R', code: 'KeyR', altKey: true, shiftKey: true })),
     ).toEqual({
       type: 'rotate-split',
     });
     expect(
-      matchGhosttyShortcut(makeKey({ key: 'T', ctrlKey: true, altKey: true, shiftKey: true })),
+      matchWorkspaceShortcut(
+        makeKey({ key: 'R', code: 'KeyR', ctrlKey: true, altKey: true, shiftKey: true }),
+      ),
+    ).toEqual({
+      type: 'rotate-split',
+    });
+    expect(
+      matchWorkspaceShortcut(
+        makeKey({ key: 'T', code: 'KeyT', ctrlKey: true, altKey: true, shiftKey: true }),
+      ),
     ).toEqual({
       type: 'detach-pane',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'T', ctrlKey: true, shiftKey: true }))).toEqual({
+    expect(
+      matchWorkspaceShortcut(makeKey({ key: 'N', code: 'KeyN', altKey: true, shiftKey: true })),
+    ).toEqual({
       type: 'new-tab',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'T', altKey: true, shiftKey: true }))).toEqual({
-      type: 'new-tab',
-    });
-    expect(matchGhosttyShortcut(makeKey({ key: 'A', ctrlKey: true, shiftKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'F2', code: 'F2' }))).toEqual({
       type: 'rename-tab',
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'A', altKey: true, shiftKey: true }))).toEqual({
-      type: 'rename-tab',
-    });
-    expect(matchGhosttyShortcut(makeKey({ key: 'Tab', ctrlKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: ']', altKey: true }))).toEqual({
       type: 'focus-tab-relative',
       delta: 1,
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'Tab', ctrlKey: true, shiftKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: '[', altKey: true }))).toEqual({
       type: 'focus-tab-relative',
       delta: -1,
     });
-    expect(matchGhosttyShortcut(makeKey({ key: 'PageDown', ctrlKey: true }))).toEqual({
-      type: 'focus-tab-relative',
-      delta: 1,
-    });
-    expect(matchGhosttyShortcut(makeKey({ key: 'PageUp', ctrlKey: true }))).toEqual({
-      type: 'focus-tab-relative',
-      delta: -1,
-    });
-    expect(matchGhosttyShortcut(makeKey({ key: ']', altKey: true }))).toEqual({
-      type: 'focus-tab-relative',
-      delta: 1,
-    });
-    expect(matchGhosttyShortcut(makeKey({ key: '[', altKey: true }))).toEqual({
-      type: 'focus-tab-relative',
-      delta: -1,
-    });
-    expect(matchGhosttyShortcut(makeKey({ key: '1', altKey: true }))).toEqual({
+    expect(
+      matchWorkspaceShortcut(makeKey({ key: '!', code: 'Digit1', altKey: true, shiftKey: true })),
+    ).toEqual({
       type: 'focus-tab-index',
       index: 0,
     });
-    expect(matchGhosttyShortcut(makeKey({ key: '9', altKey: true }))).toEqual({
+    expect(
+      matchWorkspaceShortcut(makeKey({ key: '(', code: 'Digit9', altKey: true, shiftKey: true })),
+    ).toEqual({
       type: 'focus-tab-index',
       index: 'last',
     });
@@ -396,7 +368,7 @@ describe('terminalPaneTree', () => {
     expect(pair.root).toMatchObject({ type: 'split', direction: 'vertical' });
   });
 
-  it('computes ghostty-union drop zones for detach-tab, root margins, center-swap, and 25% edges', () => {
+  it('computes workspace drop zones for detach-tab, root margins, center-swap, and 25% edges', () => {
     let state = splitActivePane(createInitialWorkspaceState(), 'right');
     state = splitActivePane(state, 'down'); // pane-1 (left half) | (pane-2 top-right / pane-3 bottom-right)
     const rect = { left: 100, top: 100, width: 800, height: 600 };
@@ -462,12 +434,7 @@ describe('terminalPaneTree', () => {
     tabs = renameWorkspaceTab(tabs, 'tab-2', 'build-logs');
     expect(tabs.tabs.find(t => t.id === 'tab-2')?.title).toBe('build-logs');
 
-    // Pinned tab-1 cannot be closed directly or via closeActivePaneOrTab
-    const afterPinnedAttempt = closeActivePaneOrTab(tabs);
-    expect(afterPinnedAttempt.tabs).toHaveLength(2);
-    expect(afterPinnedAttempt.tabs[0]?.id).toBe('tab-1');
-
-    // Split inside tab-1, then detach pane-2 to a new tab
+    // Split inside tab-1, verify pinned pane-1 cannot be closed or detached while multi-pane
     tabs = {
       ...tabs,
       tabs: tabs.tabs.map(t =>
@@ -475,6 +442,12 @@ describe('terminalPaneTree', () => {
       ),
     };
     const spawnedId = getActiveWorkspaceTab(tabs).workspace.activePaneId;
+    expect(closePaneById(getActiveWorkspaceTab(tabs).workspace, 'pane-1')).toBe(
+      getActiveWorkspaceTab(tabs).workspace,
+    );
+    expect(detachPaneToNewTab(tabs, 'pane-1')).toBe(tabs);
+
+    // Detach unpinned split pane to a new tab
     tabs = detachPaneToNewTab(tabs, spawnedId);
     expect(tabs.tabs).toHaveLength(3);
     expect(listLeafPanes(tabs.tabs[0]!.workspace.root)).toHaveLength(1);
@@ -483,11 +456,185 @@ describe('terminalPaneTree', () => {
     // closeActivePaneOrTab closes the detached single-pane tab
     tabs = closeActivePaneOrTab(tabs);
     expect(tabs.tabs).toHaveLength(2);
+
+    // Closing pinned tab-1 when 2+ tabs are open promotes surviving active tab-2 and its active leaf pane
+    tabs = selectWorkspaceTab(tabs, 'tab-1');
+    tabs = closeActivePaneOrTab(tabs);
+    expect(tabs.tabs).toHaveLength(1);
+    expect(tabs.activeTabId).toBe('tab-2');
+    expect(getActiveWorkspaceTab(tabs).pinned).toBe(true);
+    expect(
+      findLeafPane(
+        getActiveWorkspaceTab(tabs).workspace.root,
+        getActiveWorkspaceTab(tabs).workspace.activePaneId,
+      )?.pinned,
+    ).toBe(true);
+
+    // Sole remaining tab cannot be closed
+    expect(closeWorkspaceTab(tabs, 'tab-2')).toBe(tabs);
+    expect(closeActivePaneOrTab(tabs)).toBe(tabs);
+  });
+
+  it('transfers primary host pin when closing an inactive pinned tab and preserves deep-link stack', () => {
+    let tabs = createInitialTabbedWorkspaceState({
+      pinnedPrimary: true,
+      initialPrimaryTuiStack: ['/agensi'],
+    });
+    tabs = addWorkspaceTab(tabs);
+    expect(tabs.activeTabId).toBe('tab-2');
+
+    // Close inactive pinned tab-1 while tab-2 is active -> tab-2 stays active and inherits pin + deep-link stack
+    tabs = closeWorkspaceTab(tabs, 'tab-1');
+    expect(tabs.tabs.map(t => t.id)).toEqual(['tab-2']);
+    expect(tabs.activeTabId).toBe('tab-2');
+    expect(tabs.nextTabNumber).toBe(1);
+    const promotedTab = getActiveWorkspaceTab(tabs);
+    expect(promotedTab.pinned).toBe(true);
+    const promotedLeaf = findLeafPane(
+      promotedTab.workspace.root,
+      promotedTab.workspace.activePaneId,
+    );
+    expect(promotedLeaf?.pinned).toBe(true);
+    expect(promotedLeaf?.tuiStack).toEqual(['/agensi']);
+  });
+
+  it('prefers a non-TUI leaf when promoting a split tab with an active TUI pane, and normalizes kind to terminal for a detached single-pane TUI tab', () => {
+    // Path A: tab-2 has a terminal pane + active kind: 'tui' split pane -> closing tab-1 pins the terminal pane, not the TUI pane
+    let splitTabs = createInitialTabbedWorkspaceState({ pinnedPrimary: true });
+    splitTabs = addWorkspaceTab(splitTabs);
+    splitTabs = {
+      ...splitTabs,
+      tabs: splitTabs.tabs.map(t =>
+        t.id === 'tab-2' ? { ...t, workspace: openTuiPane(t.workspace) } : t,
+      ),
+    };
+    const splitTab2Before = getActiveWorkspaceTab(splitTabs);
+    const tuiPaneBefore = findTuiPane(splitTab2Before.workspace.root);
+    expect(tuiPaneBefore).toBeTruthy();
+    expect(splitTab2Before.workspace.activePaneId).toBe(tuiPaneBefore!.id);
+
+    splitTabs = closeWorkspaceTab(splitTabs, 'tab-1');
+    const promotedSplitTab = getActiveWorkspaceTab(splitTabs);
+    expect(promotedSplitTab.id).toBe('tab-2');
+    expect(promotedSplitTab.pinned).toBe(true);
+    const promotedSplitLeaves = listLeafPanes(promotedSplitTab.workspace.root);
+    const terminalLeaf = promotedSplitLeaves.find(leaf => leaf.kind !== 'tui');
+    const tuiLeaf = promotedSplitLeaves.find(leaf => leaf.kind === 'tui');
+    expect(terminalLeaf?.pinned).toBe(true);
+    expect(tuiLeaf?.pinned).toBeUndefined();
+    expect(tuiLeaf?.kind).toBe('tui');
+
+    // Path B: detached single-pane TUI tab is active -> closing tab-1 normalizes promoted leaf to kind: 'terminal'
+    let detachedTabs = createInitialTabbedWorkspaceState({ pinnedPrimary: true });
+    detachedTabs = addWorkspaceTab(detachedTabs);
+    detachedTabs = {
+      ...detachedTabs,
+      tabs: detachedTabs.tabs.map(t =>
+        t.id === 'tab-2' ? { ...t, workspace: openTuiPane(t.workspace) } : t,
+      ),
+    };
+    const detachedTuiPaneId = findTuiPane(getActiveWorkspaceTab(detachedTabs).workspace.root)!.id;
+    detachedTabs = detachPaneToNewTab(detachedTabs, detachedTuiPaneId);
+    expect(detachedTabs.activeTabId).toBe('tab-3');
+    expect(
+      findLeafPane(getActiveWorkspaceTab(detachedTabs).workspace.root, detachedTuiPaneId)?.kind,
+    ).toBe('tui');
+
+    // Close tab-1 while detached TUI tab-3 is active
+    detachedTabs = closeWorkspaceTab(detachedTabs, 'tab-1');
+    const promotedDetachedTab = getActiveWorkspaceTab(detachedTabs);
+    expect(promotedDetachedTab.id).toBe('tab-3');
+    expect(promotedDetachedTab.pinned).toBe(true);
+    const normalizedLeaf = findLeafPane(
+      promotedDetachedTab.workspace.root,
+      promotedDetachedTab.workspace.activePaneId,
+    );
+    expect(normalizedLeaf?.pinned).toBe(true);
+    expect(normalizedLeaf?.kind).toBe('terminal');
+    expect(normalizedLeaf?.tuiOpen).toBe(false);
+  });
+
+  it('reuses the lowest unused positive tab number in addWorkspaceTab and detachPaneToNewTab while keeping pane IDs monotonic', () => {
+    let tabs = createInitialTabbedWorkspaceState();
+    tabs = addWorkspaceTab(tabs);
+    tabs = addWorkspaceTab(tabs);
+    expect(tabs.tabs.map(t => t.id)).toEqual(['tab-1', 'tab-2', 'tab-3']);
+    expect(allocateNextTabNumber(tabs.tabs)).toBe(4);
+
+    // Close tab-2 and tab-3; next new tab should reuse tab-2 while pane IDs continue monotonically
+    tabs = closeWorkspaceTab(tabs, 'tab-2');
+    tabs = closeWorkspaceTab(tabs, 'tab-3');
+    expect(tabs.tabs.map(t => t.id)).toEqual(['tab-1']);
+    expect(allocateNextTabNumber(tabs.tabs)).toBe(2);
+
+    tabs = addWorkspaceTab(tabs);
+    expect(tabs.activeTabId).toBe('tab-2');
+    expect(tabs.tabs.map(t => t.id)).toEqual(['tab-1', 'tab-2']);
+    expect(getActiveWorkspaceTab(tabs).workspace.activePaneId).toBe('pane-4');
+
+    // Close tab-1 (unpinned); next detached pane should reuse tab-1 while preserving its monotonic pane ID
+    tabs = closeWorkspaceTab(tabs, 'tab-1');
+    expect(tabs.tabs.map(t => t.id)).toEqual(['tab-2']);
+    expect(allocateNextTabNumber(tabs.tabs)).toBe(1);
+
+    tabs = {
+      ...tabs,
+      tabs: tabs.tabs.map(t =>
+        t.id === 'tab-2' ? { ...t, workspace: splitActivePane(t.workspace, 'right') } : t,
+      ),
+      nextPaneNumber: Math.max(tabs.nextPaneNumber, 6),
+    };
+    const splitPaneId = getActiveWorkspaceTab(tabs).workspace.activePaneId;
+    tabs = detachPaneToNewTab(tabs, splitPaneId);
+    expect(tabs.activeTabId).toBe('tab-1');
+    expect(tabs.tabs.map(t => t.id)).toEqual(['tab-2', 'tab-1']);
+    expect(getActiveWorkspaceTab(tabs).workspace.activePaneId).toBe(splitPaneId);
+  });
+
+  it('opens, focuses, and toggles a snapped TUI split pane beside the anchor pane without duplicating', () => {
+    let state = createInitialWorkspaceState();
+    expect(findTuiPane(state.root)).toBeNull();
+
+    // Opening TUI splits right beside pane-1 and activates the new TUI pane
+    state = openTuiPane(state, 'pane-1', 'right');
+    const tuiLeaf = findTuiPane(state.root);
+    expect(tuiLeaf).toMatchObject({ id: 'pane-2', kind: 'tui', tuiOpen: true });
+    expect(state.activePaneId).toBe('pane-2');
+    expect(computeLeafRects(state.root)).toEqual([
+      { id: 'pane-1', x: 0, y: 0, width: 0.5, height: 1 },
+      { id: 'pane-2', x: 0.5, y: 0, width: 0.5, height: 1 },
+    ]);
+    expect(computeSplitDividers(state.root)).toHaveLength(1);
+
+    // Focus back on pane-1, then openTuiPane again focuses the existing TUI pane without spawning a 3rd pane
+    state = focusPaneById(state, 'pane-1');
+    expect(state.activePaneId).toBe('pane-1');
+    const beforeToken = state.focusToken;
+    state = openTuiPane(state, 'pane-1', 'right');
+    expect(listLeafPanes(state.root)).toHaveLength(2);
+    expect(state.activePaneId).toBe('pane-2');
+    expect(state.focusToken).toBe(beforeToken + 1);
+
+    // toggleTuiPane closes the TUI split pane when it is active and restores focus to pane-1
+    state = toggleTuiPane(state);
+    expect(findTuiPane(state.root)).toBeNull();
+    expect(listLeafPanes(state.root).map(p => p.id)).toEqual(['pane-1']);
+    expect(state.activePaneId).toBe('pane-1');
+
+    // toggleTuiPane re-opens when closed, and focuses existing when inactive
+    state = toggleTuiPane(state, 'pane-1', 'right');
+    const reopenedId = findTuiPane(state.root)?.id;
+    expect(reopenedId).toBe('pane-3');
+    expect(state.activePaneId).toBe('pane-3');
+    state = focusPaneById(state, 'pane-1');
+    state = toggleTuiPane(state, 'pane-1', 'right');
+    expect(state.activePaneId).toBe('pane-3');
+    expect(listLeafPanes(state.root)).toHaveLength(2);
   });
 });
 
 describe('TerminalWorkspace', () => {
-  it('opens split terminals via Ghostty keybindings, runs independent per-pane TUIs, preserves scrollback across zoom, and closes panes', () => {
+  it('opens split terminals via workspace keybindings, snaps TUI into a split pane, preserves scrollback across zoom, and closes panes', () => {
     const navigate = vi.fn<(to: string) => void>();
     const { container } = render(
       <TerminalWorkspace
@@ -495,7 +642,7 @@ describe('TerminalWorkspace', () => {
         navigate={navigate}
         renderTui={({ ttyNumber, closeTui }) => (
           <TuiWindow title={`tui :: tty${ttyNumber}`} closeOnEscape={false} onClose={closeTui}>
-            <div>Launcher inside tty{ttyNumber}</div>
+            <div>Launcher pane {ttyNumber}</div>
           </TuiWindow>
         )}
       />,
@@ -510,54 +657,65 @@ describe('TerminalWorkspace', () => {
     fireEvent.submit(pane1Input.closest('form') as HTMLFormElement);
     expect(screen.getByText('guest@andrew-k.us (tty1)')).toBeTruthy();
 
-    // Ghostty Cmd+D splits right into tty2 and focuses tty2
-    fireEvent.keyDown(window, { key: 'd', metaKey: true });
+    // Alt+Shift+D splits right into tty2 and focuses tty2
+    fireEvent.keyDown(window, { key: 'D', code: 'KeyD', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
 
     const pane2 = container.querySelector('[data-pane-tty="tty2"]') as HTMLElement;
     expect(pane2.getAttribute('data-active')).toBe('true');
 
-    // Open a TUI inside tty2 via `tui` command
+    // Running `tui` inside tty2 snaps a TUI split pane beside tty2 (3 panes total)
     const activeInput = screen.getByLabelText('Terminal command input') as HTMLInputElement;
     fireEvent.change(activeInput, { target: { value: 'tui' } });
     fireEvent.submit(activeInput.closest('form') as HTMLFormElement);
-    expect(within(pane2).getByText('Launcher inside tty2')).toBeTruthy();
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('3');
+    const tuiPane = container.querySelector('[data-pane-kind="tui"]') as HTMLElement;
+    expect(tuiPane).toBeTruthy();
+    expect(tuiPane.getAttribute('data-active')).toBe('true');
+    expect(within(tuiPane).getByText('Launcher pane 3')).toBeTruthy();
 
-    // Switch back to tty1 via Ghostty Ctrl+Alt+ArrowLeft and open its own TUI via Alt+T
-    fireEvent.keyDown(window, { key: 'ArrowLeft', ctrlKey: true, altKey: true });
+    // Switch back to tty1 via Alt+H; running `tui` again focuses existing TUI pane without duplicating
+    fireEvent.keyDown(window, { key: 'h', code: 'KeyH', altKey: true });
+    fireEvent.keyDown(window, { key: 'h', code: 'KeyH', altKey: true });
     const pane1 = container.querySelector('[data-pane-tty="tty1"]') as HTMLElement;
     expect(pane1.getAttribute('data-active')).toBe('true');
 
-    fireEvent.keyDown(window, { key: 't', altKey: true });
-    expect(within(pane1).getByText('Launcher inside tty1')).toBeTruthy();
-    expect(within(pane2).getByText('Launcher inside tty2')).toBeTruthy();
+    const tty1Input = screen.getByLabelText('Terminal command input') as HTMLInputElement;
+    fireEvent.change(tty1Input, { target: { value: 'tui' } });
+    fireEvent.submit(tty1Input.closest('form') as HTMLFormElement);
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('3');
+    expect(tuiPane.getAttribute('data-active')).toBe('true');
 
-    // Pressing Escape closes ONLY active pane's (tty1) TUI while tty2's TUI stays open
-    fireEvent.keyDown(window, { key: 'Escape' });
-    expect(within(pane1).queryByText('Launcher inside tty1')).toBeNull();
-    expect(within(pane2).getByText('Launcher inside tty2')).toBeTruthy();
-
-    // Zoom tty2 via Ghostty Ctrl+Shift+Enter, then unzoom and verify tty1 scrollback survived
-    fireEvent.keyDown(window, { key: ']', metaKey: true });
-    expect(pane2.getAttribute('data-active')).toBe('true');
+    // Zoom the TUI pane via Ctrl+Shift+Enter, then unzoom and verify tty1 scrollback survived
     fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-zoomed')).toBe('true');
     fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-zoomed')).toBe('false');
     expect(within(pane1).getByText('guest@andrew-k.us (tty1)')).toBeTruthy();
 
-    // Close active split pane (tty2) via Ghostty Ctrl+Shift+W
-    fireEvent.keyDown(window, { key: 'W', ctrlKey: true, shiftKey: true });
+    // Pressing Escape while the TUI pane is active closes the TUI split pane and returns to 2 panes
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
+    expect(container.querySelector('[data-pane-kind="tui"]')).toBeNull();
+
+    // Alt+T opens a snapped TUI split pane and pressing Alt+T again closes it
+    fireEvent.keyDown(window, { key: 't', altKey: true });
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('3');
+    expect(container.querySelector('[data-pane-kind="tui"]')).toBeTruthy();
+    fireEvent.keyDown(window, { key: 't', altKey: true });
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
+    expect(container.querySelector('[data-pane-kind="tui"]')).toBeNull();
+
+    // Close active split pane (tty2) via Alt+Shift+W
+    fireEvent.keyDown(window, { key: 'W', code: 'KeyW', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
 
-    // Help output mentions split keybindings without zsh/p10k leakage
+    // Help output renders directly from terminal.commands (DB-driven) with zero hardcoded Ghostty/zsh leakage
     const remainingInput = screen.getByLabelText('Terminal command input') as HTMLInputElement;
     fireEvent.change(remainingInput, { target: { value: 'help' } });
     fireEvent.submit(remainingInput.closest('form') as HTMLFormElement);
-    expect(
-      screen.getByText(/Split panes & tabs \(Ghostty \/ ghostty-union keybindings & commands\)/i),
-    ).toBeTruthy();
-    expect(container.textContent).not.toMatch(/\bzsh\b|p10k|powerlevel10k/i);
+    expect(screen.getByText(/Available terminal commands:/i)).toBeTruthy();
+    expect(container.textContent).not.toMatch(/ghostty|\bzsh\b|p10k|powerlevel10k/i);
 
     // Alt+M still navigates to /menu
     fireEvent.keyDown(window, { key: 'm', altKey: true });
@@ -734,7 +892,7 @@ describe('TerminalWorkspace', () => {
     expect(submit).toHaveBeenCalledTimes(2);
 
     // Split pane isolation: start `contact` in tty2 only; tty1 stays in normal shell mode; Ctrl+C cancels tty2
-    fireEvent.keyDown(window, { key: 'd', metaKey: true });
+    fireEvent.keyDown(window, { key: 'D', code: 'KeyD', altKey: true, shiftKey: true });
     submitActive('contact');
     const pane1 = container.querySelector('[data-pane-tty="tty1"]') as HTMLElement;
     const pane2 = container.querySelector('[data-pane-tty="tty2"]') as HTMLElement;
@@ -774,7 +932,7 @@ describe('TerminalWorkspace', () => {
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
     expect(screen.getByText('Contact Form Surface')).toBeTruthy();
 
-    // Ghostty physical KeyD (e.g. macOS Option+Shift+D) splits right from the TUI view
+    // Physical KeyD (e.g. macOS Option+Shift+D) splits right from the TUI view
     fireEvent.keyDown(window, { key: 'Î', code: 'KeyD', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
     expect(screen.getByText('Contact Form Surface')).toBeTruthy();
@@ -786,34 +944,43 @@ describe('TerminalWorkspace', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClosePrimaryTui).not.toHaveBeenCalled();
 
-    // Spawned tty2 pane can open its own TUI via Alt+T and close ONLY its own overlay on Escape
+    // Spawned tty2 pane can snap open a TUI split pane via Alt+T and close ONLY that TUI pane on Escape
     fireEvent.keyDown(window, { key: 't', altKey: true });
-    expect(within(pane2).getByText('Overlay inside tty2')).toBeTruthy();
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('3');
+    const tuiPane = container.querySelector('[data-pane-kind="tui"]') as HTMLElement;
+    expect(tuiPane).toBeTruthy();
+    expect(within(tuiPane).getByText('Overlay inside tty3')).toBeTruthy();
     fireEvent.keyDown(window, { key: 'Escape' });
-    expect(within(pane2).queryByText('Overlay inside tty2')).toBeNull();
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
+    expect(container.querySelector('[data-pane-kind="tui"]')).toBeNull();
     expect(onClosePrimaryTui).not.toHaveBeenCalled();
 
-    // Switch focus back to pane-1 via Ghostty Ctrl+Alt+ArrowLeft; trying to close pinned pane-1 is ignored
-    fireEvent.keyDown(window, { key: 'ArrowLeft', ctrlKey: true, altKey: true });
+    // Switch focus back to pane-1 via Alt+H; trying to close pinned pane-1 is ignored
+    fireEvent.keyDown(window, { key: 'h', code: 'KeyH', altKey: true });
     const pane1 = container.querySelector('[data-pane-id="pane-1"]') as HTMLElement;
     expect(pane1.getAttribute('data-active')).toBe('true');
-    fireEvent.keyDown(window, { key: 'W', ctrlKey: true, shiftKey: true });
+    fireEvent.keyDown(window, { key: 'W', code: 'KeyW', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
 
     // Now Escape closes the primary TUI because pane-1 is active
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClosePrimaryTui).toHaveBeenCalledTimes(1);
 
-    // Switch back to tty2 and close it via Ghostty Cmd+Shift+W
+    // Switch back to tty2 and close it via Alt+Shift+W
     fireEvent.keyDown(window, { key: ']', metaKey: true });
-    fireEvent.keyDown(window, { key: 'w', metaKey: true, shiftKey: true });
+    fireEvent.keyDown(window, { key: 'W', code: 'KeyW', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
   });
 
-  it('delegates cleanly without double-splitting when an embedded TerminalWorkspace mounts inside primaryPane', () => {
+  it('delegates splits and tui split panes cleanly without double-splitting when an embedded TerminalWorkspace mounts inside primaryPane', () => {
     const { container } = render(
       <TerminalWorkspace
         terminal={TERMINAL_FIXTURE}
+        renderTui={({ closeTui }) => (
+          <TuiWindow title='tui :: launcher' closeOnEscape={false} onClose={closeTui}>
+            <div>Embedded Launcher Surface</div>
+          </TuiWindow>
+        )}
         primaryPane={{
           title: 'tty1',
           flush: true,
@@ -827,12 +994,44 @@ describe('TerminalWorkspace', () => {
     expect(workspaces).toHaveLength(1);
     const workspaceEl = workspaces[0] as HTMLElement;
 
-    // One Ghostty Cmd+D splits into exactly 2 panes (no nested double-handling)
-    fireEvent.keyDown(window, { key: 'd', metaKey: true });
+    // Typing `tui` inside the embedded tty1 snaps open a TUI split pane in the outer workspace
+    const input = screen.getByLabelText('Terminal command input') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'tui' } });
+    fireEvent.submit(input.closest('form') as HTMLFormElement);
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
+    const tuiPane = container.querySelector('[data-pane-kind="tui"]') as HTMLElement;
+    expect(tuiPane).toBeTruthy();
+    expect(within(tuiPane).getByText('Embedded Launcher Surface')).toBeTruthy();
+
+    // Detaching the TUI pane moves it to its own tab labeled `tui`; clicking TuiWindow close closes that tab
+    fireEvent.keyDown(window, { key: 'T', ctrlKey: true, altKey: true, shiftKey: true });
+    expect(workspaceEl.getAttribute('data-tab-count')).toBe('2');
+    expect(screen.getByRole('tab', { name: 'tui' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Close window' }));
+    expect(workspaceEl.getAttribute('data-tab-count')).toBe('1');
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
+
+    // One Alt+Shift+D splits into exactly 2 panes (no nested double-handling)
+    fireEvent.keyDown(window, { key: 'D', code: 'KeyD', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
   });
 
-  it('splits horizontally and vertically via ghostty-union Ctrl+Shift+} and Ctrl+Shift+{ on terminal and TUI windows, resizes with Alt+Shift+Arrow, and equalizes with Ctrl+Alt+Shift+E', () => {
+  it('ignores tui command and Alt+T when renderTui is not provided', () => {
+    const { container } = render(<TerminalWorkspace terminal={TERMINAL_FIXTURE} />);
+    const workspaceEl = container.querySelector('[data-pane-count]') as HTMLElement;
+
+    const input = screen.getByLabelText('Terminal command input') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'tui' } });
+    fireEvent.submit(input.closest('form') as HTMLFormElement);
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
+    expect(container.querySelector('[data-pane-kind="tui"]')).toBeNull();
+
+    fireEvent.keyDown(window, { key: 't', altKey: true });
+    expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
+    expect(container.querySelector('[data-pane-kind="tui"]')).toBeNull();
+  });
+
+  it('splits horizontally and vertically via Ctrl+Shift+} and Ctrl+Shift+{ on terminal and TUI windows, resizes with Alt+Shift+Arrow, and equalizes with Ctrl+Alt+Shift+E', () => {
     const { container } = render(
       <TerminalWorkspace
         terminal={TERMINAL_FIXTURE}
@@ -907,7 +1106,7 @@ describe('TerminalWorkspace', () => {
     expect(pane3Slot.style.getPropertyValue('--sf-pane-h')).toBe('0.5');
   });
 
-  it('creates, switches, renames, preserves scrollback across, and closes tabs while protecting a pinned primary tab', () => {
+  it('creates, switches, renames, preserves scrollback across, and closes any tab when 2+ tabs are open while promoting the primary host', () => {
     const { container } = render(
       <TerminalWorkspace
         terminal={TERMINAL_FIXTURE}
@@ -925,11 +1124,17 @@ describe('TerminalWorkspace', () => {
     const workspaceEl = container.querySelector('[data-pane-count]') as HTMLElement;
     expect(workspaceEl.getAttribute('data-tab-count')).toBe('1');
     expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-1');
+    expect(
+      container.querySelector('[data-tab-id="tab-1"] button[aria-label^="Close tab"]'),
+    ).toBeNull();
 
     // Open tab-2 via + button and run a command so we can verify scrollback survives tab switches
     fireEvent.click(screen.getByRole('button', { name: 'New terminal tab' }));
     expect(workspaceEl.getAttribute('data-tab-count')).toBe('2');
     expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-2');
+    expect(
+      container.querySelector('[data-tab-id="tab-1"] button[aria-label^="Close tab"]'),
+    ).toBeTruthy();
 
     const tab2Input = screen.getByLabelText('Terminal command input') as HTMLInputElement;
     fireEvent.change(tab2Input, { target: { value: 'whoami' } });
@@ -937,12 +1142,12 @@ describe('TerminalWorkspace', () => {
     const tab2Panel = container.querySelector('[data-tab-panel="tab-2"]') as HTMLElement;
     expect(within(tab2Panel).getByText('guest@andrew-k.us (tty1)')).toBeTruthy();
 
-    // Open tab-3 via Ctrl+Shift+T, then rename via Ctrl+Shift+A (Escape cancels, then Enter commits)
-    fireEvent.keyDown(window, { key: 'T', code: 'KeyT', ctrlKey: true, shiftKey: true });
+    // Open tab-3 via Alt+Shift+N, then rename via F2 (Escape cancels, then Enter commits)
+    fireEvent.keyDown(window, { key: 'N', code: 'KeyN', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-tab-count')).toBe('3');
     expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-3');
 
-    fireEvent.keyDown(window, { key: 'A', code: 'KeyA', ctrlKey: true, shiftKey: true });
+    fireEvent.keyDown(window, { key: 'F2', code: 'F2' });
     const cancelInput = screen.getByLabelText('Rename tab') as HTMLInputElement;
     fireEvent.change(cancelInput, { target: { value: 'discarded' } });
     fireEvent.keyDown(cancelInput, { key: 'Escape' });
@@ -957,47 +1162,185 @@ describe('TerminalWorkspace', () => {
     fireEvent.keyDown(renameInput, { key: 'Enter' });
     expect(screen.getByRole('tab', { name: 'ops-shell' })).toBeTruthy();
 
-    // Switch to tab-1 via Alt+1, verify pinned tab-1 cannot be closed via Ctrl+Shift+W
-    fireEvent.keyDown(window, { key: '1', code: 'Digit1', altKey: true });
+    // Switch to tab-1 via Alt+Shift+1, cycle to tab-2 via Alt+] and confirm scrollback survived
+    fireEvent.keyDown(window, { key: '!', code: 'Digit1', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-1');
-    fireEvent.keyDown(window, { key: 'W', code: 'KeyW', ctrlKey: true, shiftKey: true });
-    expect(workspaceEl.getAttribute('data-tab-count')).toBe('3');
-
-    // Cycle to tab-2 via Alt+] and confirm scrollback survived tab switching
     fireEvent.keyDown(window, { key: ']', code: 'BracketRight', altKey: true });
     expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-2');
     expect(within(tab2Panel).getByText('guest@andrew-k.us (tty1)')).toBeTruthy();
 
-    // Jump to last tab via Alt+9 and close it via `exit`, then close tab-2 via tab close button
-    fireEvent.keyDown(window, { key: '9', code: 'Digit9', altKey: true });
+    // Jump to last tab via Alt+Shift+9 and close it via `exit`
+    fireEvent.keyDown(window, { key: '(', code: 'Digit9', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-3');
     const tab3Input = screen.getByLabelText('Terminal command input') as HTMLInputElement;
     fireEvent.change(tab3Input, { target: { value: 'exit' } });
     fireEvent.submit(tab3Input.closest('form') as HTMLFormElement);
     expect(workspaceEl.getAttribute('data-tab-count')).toBe('2');
 
-    const closeTab2Btn = container.querySelector(
-      '[data-tab-id="tab-2"] button[aria-label^="Close tab"]',
-    ) as HTMLButtonElement;
-    fireEvent.click(closeTab2Btn);
-    expect(workspaceEl.getAttribute('data-tab-count')).toBe('1');
+    // Switch to tab-1 and close it via Alt+Shift+W -> tab-2 becomes the sole primary host tab
+    fireEvent.keyDown(window, { key: '!', code: 'Digit1', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-1');
+    fireEvent.keyDown(window, { key: 'W', code: 'KeyW', altKey: true, shiftKey: true });
+    expect(workspaceEl.getAttribute('data-tab-count')).toBe('1');
+    expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-2');
+    expect(screen.getByText('Pinned Menu Tab')).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'tui :: /menu' })).toBeTruthy();
+
+    // Sole remaining tab has no close button and Alt+Shift+W keeps it open
+    expect(
+      container.querySelector('[data-tab-id="tab-2"] button[aria-label^="Close tab"]'),
+    ).toBeNull();
+    fireEvent.keyDown(window, { key: 'W', code: 'KeyW', altKey: true, shiftKey: true });
+    expect(workspaceEl.getAttribute('data-tab-count')).toBe('1');
+    expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-2');
   });
 
-  it('swaps splits with Ctrl+Alt+Shift+Arrow, rotates orientation with Ctrl+Shift+R only when split, and detaches panes to new tabs', () => {
+  it('closes pinned tab-1 via close button and exit command, transferring primaryPane and return-to-shell lifecycle to surviving tab', () => {
+    const onReturnToShell = vi.fn<() => void>();
+    const { container, unmount } = render(
+      <TerminalWorkspace
+        terminal={TERMINAL_FIXTURE}
+        initialPrimaryTuiStack={['/menu']}
+        onPrimaryPaneReturnToShell={onReturnToShell}
+        renderPaneView={ctx => (
+          <div>
+            <span>Pane View {ctx.viewId}</span>
+            <button type='button' onClick={ctx.exitTui}>
+              Exit View
+            </button>
+          </div>
+        )}
+        primaryPane={{
+          title: 'tui :: /menu',
+          content: (
+            <TuiWindow title='Menu TUI'>
+              <div>Primary Route Content</div>
+            </TuiWindow>
+          ),
+          flush: true,
+          embeddedTerminal: false,
+        }}
+      />,
+    );
+
+    const workspaceEl = container.querySelector('[data-pane-count]') as HTMLElement;
+    fireEvent.click(screen.getByRole('button', { name: 'New terminal tab' }));
+    expect(workspaceEl.getAttribute('data-tab-count')).toBe('2');
+    expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-2');
+
+    // Close inactive pinned tab-1 via tab close button
+    const closeTab1Btn = container.querySelector(
+      '[data-tab-id="tab-1"] button[aria-label^="Close tab"]',
+    ) as HTMLButtonElement;
+    fireEvent.click(closeTab1Btn);
+    expect(workspaceEl.getAttribute('data-tab-count')).toBe('1');
+    expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-2');
+    expect(screen.getByText('Primary Route Content')).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'tui :: /menu' })).toBeTruthy();
+
+    // Pressing Escape on the promoted primary tab exits the deep-link stack and calls onPrimaryPaneReturnToShell
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(onReturnToShell).toHaveBeenCalledTimes(1);
+    unmount();
+
+    // Embedded terminal primaryPane: closing tab-1 via "exit" works when 2+ tabs exist and blocks on last tab
+    const embedded = render(
+      <TerminalWorkspace
+        terminal={TERMINAL_FIXTURE}
+        primaryPane={{
+          title: 'tty1',
+          content: <TerminalWorkspace terminal={TERMINAL_FIXTURE} />,
+          flush: true,
+          embeddedTerminal: true,
+        }}
+      />,
+    );
+    const embeddedEl = embedded.container.querySelector('[data-pane-count]') as HTMLElement;
+    fireEvent.keyDown(window, { key: 'N', code: 'KeyN', altKey: true, shiftKey: true });
+    expect(embeddedEl.getAttribute('data-tab-count')).toBe('2');
+    fireEvent.keyDown(window, { key: '!', code: 'Digit1', altKey: true, shiftKey: true });
+    expect(embeddedEl.getAttribute('data-active-tab')).toBe('tab-1');
+
+    const tab1Panel = embedded.container.querySelector('[data-tab-panel="tab-1"]') as HTMLElement;
+    const tab1Input = within(tab1Panel).getByLabelText(
+      'Terminal command input',
+    ) as HTMLInputElement;
+    fireEvent.change(tab1Input, { target: { value: 'exit' } });
+    fireEvent.submit(tab1Input.closest('form') as HTMLFormElement);
+    expect(embeddedEl.getAttribute('data-tab-count')).toBe('1');
+    expect(embeddedEl.getAttribute('data-active-tab')).toBe('tab-2');
+
+    // Last remaining tab refuses "exit"
+    const survivingPanel = embedded.container.querySelector(
+      '[data-tab-panel="tab-2"]',
+    ) as HTMLElement;
+    const survivingInput = within(survivingPanel).getByLabelText(
+      'Terminal command input',
+    ) as HTMLInputElement;
+    fireEvent.change(survivingInput, { target: { value: 'exit' } });
+    fireEvent.submit(survivingInput.closest('form') as HTMLFormElement);
+    expect(embeddedEl.getAttribute('data-tab-count')).toBe('1');
+    expect(embeddedEl.getAttribute('data-active-tab')).toBe('tab-2');
+    embedded.unmount();
+
+    // Detached single-pane TUI tab promoted to primary host normalizes kind to terminal,
+    // no longer shows "tui" as tab title, and Escape does not close the primary tab
+    const detached = render(
+      <TerminalWorkspace
+        terminal={TERMINAL_FIXTURE}
+        renderTui={() => <div>Split TUI Content</div>}
+        primaryPane={{
+          title: 'tty1',
+          content: <TerminalWorkspace terminal={TERMINAL_FIXTURE} />,
+          flush: true,
+          embeddedTerminal: true,
+        }}
+      />,
+    );
+    const detachedEl = detached.container.querySelector('[data-pane-count]') as HTMLElement;
+    // Open tab-2, open a TUI split pane via Alt+T, detach it to tab-3 via Ctrl+Alt+Shift+T
+    fireEvent.keyDown(window, { key: 'N', code: 'KeyN', altKey: true, shiftKey: true });
+    fireEvent.keyDown(window, { key: 't', code: 'KeyT', altKey: true });
+    fireEvent.keyDown(window, {
+      key: 'T',
+      code: 'KeyT',
+      ctrlKey: true,
+      altKey: true,
+      shiftKey: true,
+    });
+    expect(detachedEl.getAttribute('data-tab-count')).toBe('3');
+    expect(detachedEl.getAttribute('data-active-tab')).toBe('tab-3');
+    expect(screen.getByRole('tab', { name: 'tui' })).toBeTruthy();
+
+    // Close inactive pinned tab-1 -> active tab-3 is promoted and normalized to terminal host
+    const closePrimaryBtn = detached.container.querySelector(
+      '[data-tab-id="tab-1"] button[aria-label^="Close tab"]',
+    ) as HTMLButtonElement;
+    fireEvent.click(closePrimaryBtn);
+    expect(detachedEl.getAttribute('data-tab-count')).toBe('2');
+    expect(detachedEl.getAttribute('data-active-tab')).toBe('tab-3');
+    expect(screen.queryByRole('tab', { name: 'tui' })).toBeNull();
+
+    // Pressing Escape on the promoted primary host tab does NOT close tab-3
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(detachedEl.getAttribute('data-tab-count')).toBe('2');
+    expect(detachedEl.getAttribute('data-active-tab')).toBe('tab-3');
+  });
+
+  it('swaps splits with Alt+Shift+H/J/K/L, rotates orientation with Alt+Shift+R, preserves Ctrl+Shift+R hard reload, and detaches panes to new tabs', () => {
     const { container } = render(<TerminalWorkspace terminal={TERMINAL_FIXTURE} />);
     const workspaceEl = container.querySelector('[data-pane-count]') as HTMLElement;
 
-    // On a single unsplit pane, Ctrl+Shift+R must NOT call preventDefault (preserves browser reload)
-    const singlePaneRotateEvent = new KeyboardEvent('keydown', {
+    // Ctrl+Shift+R must NEVER call preventDefault (preserves browser hard reload)
+    const hardReloadEvent = new KeyboardEvent('keydown', {
       key: 'R',
       code: 'KeyR',
       ctrlKey: true,
       shiftKey: true,
       cancelable: true,
     });
-    window.dispatchEvent(singlePaneRotateEvent);
-    expect(singlePaneRotateEvent.defaultPrevented).toBe(false);
+    window.dispatchEvent(hardReloadEvent);
+    expect(hardReloadEvent.defaultPrevented).toBe(false);
 
     // Split right: pane-1 (left) | pane-2 (right, active)
     fireEvent.keyDown(window, { key: '}', code: 'BracketRight', ctrlKey: true, shiftKey: true });
@@ -1010,18 +1353,18 @@ describe('TerminalWorkspace', () => {
     expect(pane1Slot().style.getPropertyValue('--sf-pane-x')).toBe('0');
     expect(pane2Slot().style.getPropertyValue('--sf-pane-x')).toBe('0.5');
 
-    // Ctrl+Alt+Shift+ArrowLeft swaps active pane-2 with pane-1
+    // Alt+Shift+H swaps active pane-2 with pane-1
     fireEvent.keyDown(window, {
-      key: 'ArrowLeft',
-      ctrlKey: true,
+      key: 'H',
+      code: 'KeyH',
       altKey: true,
       shiftKey: true,
     });
     expect(pane2Slot().style.getPropertyValue('--sf-pane-x')).toBe('0');
     expect(pane1Slot().style.getPropertyValue('--sf-pane-x')).toBe('0.5');
 
-    // Ctrl+Shift+R rotates vertical split into horizontal split (stacked top/bottom)
-    fireEvent.keyDown(window, { key: 'R', code: 'KeyR', ctrlKey: true, shiftKey: true });
+    // Alt+Shift+R rotates vertical split into horizontal split (stacked top/bottom)
+    fireEvent.keyDown(window, { key: 'R', code: 'KeyR', altKey: true, shiftKey: true });
     expect(pane2Slot().style.getPropertyValue('--sf-pane-w')).toBe('1');
     expect(pane2Slot().style.getPropertyValue('--sf-pane-h')).toBe('0.5');
     expect(pane1Slot().style.getPropertyValue('--sf-pane-y')).toBe('0.5');
@@ -1232,5 +1575,140 @@ describe('TerminalWorkspace', () => {
     expect(container.querySelectorAll('[data-split-divider]')).toHaveLength(0);
     fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true, shiftKey: true });
     expect(container.querySelectorAll('[data-split-divider]')).toHaveLength(2);
+  });
+
+  it('renders styled Tooltip popups without native title attributes for workspace controls and omits drag tooltip when zoomed', async () => {
+    const { container } = render(
+      <Tooltip.Provider delay={0}>
+        <TerminalWorkspace terminal={TERMINAL_FIXTURE} />
+      </Tooltip.Provider>,
+    );
+
+    // Split right to expose pane drag handles and split divider
+    fireEvent.keyDown(window, { key: '}', code: 'BracketRight', ctrlKey: true, shiftKey: true });
+
+    const tabButton = screen.getByRole('tab');
+    const newTabButton = screen.getByRole('button', { name: 'New terminal tab' });
+    const dragHandle = container.querySelector('[data-pane-drag-handle="pane-1"]') as HTMLElement;
+    const splitDivider = container.querySelector('[data-split-divider]') as HTMLElement;
+
+    expect(dragHandle).not.toBeNull();
+    expect(splitDivider).not.toBeNull();
+
+    // None of the four controls should expose native HTML title attributes
+    expect(tabButton.getAttribute('title')).toBeNull();
+    expect(newTabButton.getAttribute('title')).toBeNull();
+    expect(dragHandle.getAttribute('title')).toBeNull();
+    expect(splitDivider.getAttribute('title')).toBeNull();
+
+    // Tab label button tooltip on focus
+    fireEvent.focus(tabButton);
+    await waitFor(() => {
+      expect(screen.getByText('Click to switch · double-click to rename')).toBeTruthy();
+    });
+    fireEvent.blur(tabButton);
+
+    // New-tab button tooltip on focus
+    fireEvent.focus(newTabButton);
+    await waitFor(() => {
+      expect(screen.getByText('New Tab (Alt+Shift+N)')).toBeTruthy();
+    });
+    fireEvent.blur(newTabButton);
+
+    // Pane drag handle tooltip on pointer hover when draggable
+    fireEvent.pointerMove(dragHandle);
+    fireEvent.mouseEnter(dragHandle);
+    await waitFor(() => {
+      expect(screen.getByText('Drag to swap, dock, or drop onto tab strip to detach')).toBeTruthy();
+    });
+    fireEvent.mouseLeave(dragHandle);
+
+    // Split divider tooltip on focus
+    fireEvent.focus(splitDivider);
+    await waitFor(() => {
+      expect(screen.getByText('Drag to resize split · double-click to equalize')).toBeTruthy();
+    });
+    fireEvent.blur(splitDivider);
+
+    // Zooming sets canDrag=false; drag handle should have no title and show no drag tooltip
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom tty1' }));
+    const zoomedDragHandle = container.querySelector(
+      '[data-pane-drag-handle="pane-1"]',
+    ) as HTMLElement;
+    expect(zoomedDragHandle).not.toBeNull();
+    expect(zoomedDragHandle.getAttribute('data-draggable')).toBe('false');
+    expect(zoomedDragHandle.getAttribute('title')).toBeNull();
+    fireEvent.pointerMove(zoomedDragHandle);
+    fireEvent.mouseEnter(zoomedDragHandle);
+    expect(screen.queryByText('Drag to swap, dock, or drop onto tab strip to detach')).toBeNull();
+  });
+
+  it('allows Escape to exit TUI pane while passive Tooltip is open but blocks Escape while interactive Select popup is open', async () => {
+    const { container } = render(
+      <Tooltip.Provider delay={0}>
+        <TerminalWorkspace
+          terminal={TERMINAL_FIXTURE}
+          renderPaneView={ctx => {
+            if (ctx.viewId === 'tui') {
+              return (
+                <TuiWindow title='Interactive Select Pane' onClose={ctx.exitTui}>
+                  <Select.Root defaultValue='one'>
+                    <Select.Trigger data-testid='pane-select-trigger'>
+                      <Select.Value />
+                    </Select.Trigger>
+                    <Select.Portal>
+                      <Select.Positioner>
+                        <Select.Popup>
+                          <Select.List>
+                            <Select.Item value='one'>
+                              <Select.ItemText>Option One</Select.ItemText>
+                            </Select.Item>
+                          </Select.List>
+                        </Select.Popup>
+                      </Select.Positioner>
+                    </Select.Portal>
+                  </Select.Root>
+                </TuiWindow>
+              );
+            }
+            return null;
+          }}
+        />
+      </Tooltip.Provider>,
+    );
+
+    const openTui = () => {
+      const input = screen.getByLabelText('Terminal command input') as HTMLInputElement;
+      fireEvent.change(input, { target: { value: 'tui' } });
+      fireEvent.submit(input.closest('form') as HTMLFormElement);
+    };
+
+    const pane1 = () => container.querySelector('[data-pane-id="pane-1"]') as HTMLElement;
+
+    // 1. Open TUI and open interactive Select popup -> Escape closes popup without exiting TUI pane.
+    openTui();
+    expect(pane1().getAttribute('data-tui-depth')).toBe('1');
+    const selectTrigger = screen.getByTestId('pane-select-trigger');
+    fireEvent.click(selectTrigger);
+    await screen.findByRole('listbox');
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+    await waitFor(() => {
+      expect(screen.queryByRole('listbox')).toBeNull();
+    });
+    expect(pane1().getAttribute('data-tui-depth')).toBe('1');
+
+    // 2. Focus passive Tooltip trigger (sets data-popup-open without aria-haspopup) -> Escape MUST still exit TUI pane.
+    const newTabButton = screen.getByRole('button', { name: 'New terminal tab' });
+    fireEvent.focus(newTabButton);
+    await waitFor(() => {
+      expect(screen.getByText('New Tab (Alt+Shift+N)')).toBeTruthy();
+    });
+    expect(newTabButton.getAttribute('data-popup-open')).not.toBeNull();
+    expect(newTabButton.getAttribute('aria-haspopup')).toBeNull();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => {
+      expect(pane1().getAttribute('data-tui-depth')).toBe('0');
+    });
   });
 });

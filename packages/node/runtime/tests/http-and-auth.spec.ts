@@ -1,7 +1,13 @@
+import { PassThrough } from 'node:stream';
+
+import Fastify from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   ADMIN_SESSION_COOKIE_NAME,
+  ARGON2ID_DEFAULTS,
+  Argon2ConcurrencyError,
+  AUTH_LOG_REDACT_PATHS,
   buildDailyAnalyticsSalt,
   buildTotpOtpAuthUrl,
   clearSessionCookie,
@@ -13,13 +19,16 @@ import {
   generateTotpSecret,
   GUEST_SESSION_COOKIE_NAME,
   hashBackupCode,
+  hashPasswordArgon2id,
   hashVisitorIp,
   isSafeRedirectTarget,
   isSecureRequest,
+  parseArgon2idPhc,
   parseCookieHeader,
   sanitizeRedirectTarget,
   serializeSessionCookie,
   verifyBackupCode,
+  verifyPasswordArgon2id,
   verifyTotpCode,
 } from '../src/auth.ts';
 import {
@@ -180,6 +189,8 @@ describe('@aklapper/node-runtime/http & auth', () => {
     expect(isSecureRequest('https://admin.andrew-k.us/login')).toBe(true);
     expect(isSecureRequest('http://localhost:4301/login')).toBe(false);
     expect(isSecureRequest('http://localhost:4301/login', 'https')).toBe(true);
+    expect(isSecureRequest('http://localhost:4301/login', 'http, https')).toBe(true);
+    expect(isSecureRequest('https://admin.andrew-k.us/login', 'https, http')).toBe(false);
 
     expect(isSafeRedirectTarget('/analytics?window=7d')).toBe(true);
     expect(isSafeRedirectTarget('//evil.example/phish')).toBe(false);
@@ -224,5 +235,138 @@ describe('@aklapper/node-runtime/http & auth', () => {
     const salt = buildDailyAnalyticsSalt('test-salt', new Date('2026-11-24T12:00:00Z'));
     expect(salt).toBe('test-salt:2026-11-24');
     expect(hashVisitorIp('127.0.0.1', salt)).toMatch(/^[a-f0-9]{24}$/);
+  });
+
+  it('hashes and verifies passwords with bounded OWASP Argon2id PHC parameters', async () => {
+    expect(ARGON2ID_DEFAULTS).toEqual({
+      memory: 19456,
+      passes: 2,
+      parallelism: 1,
+      saltLength: 16,
+      tagLength: 32,
+    });
+
+    const hash = await hashPasswordArgon2id('correct-horse-battery-staple');
+    expect(hash.startsWith('$argon2id$v=19$m=19456,t=2,p=1$')).toBe(true);
+
+    const parsed = parseArgon2idPhc(hash);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.memory).toBe(19456);
+    expect(parsed?.passes).toBe(2);
+    expect(parsed?.parallelism).toBe(1);
+    expect(parsed?.salt.length).toBe(16);
+    expect(parsed?.hash.length).toBe(32);
+
+    expect(await verifyPasswordArgon2id('correct-horse-battery-staple', hash)).toBe(true);
+    expect(await verifyPasswordArgon2id('wrong-password', hash)).toBe(false);
+  });
+
+  it('rejects empty passwords and malformed, padded, or out-of-bounds Argon2id PHC hashes', async () => {
+    await expect(hashPasswordArgon2id('')).rejects.toThrow(/password/i);
+    await expect(hashPasswordArgon2id('a'.repeat(1025))).rejects.toThrow(/password/i);
+    await expect(hashPasswordArgon2id('valid-pw', { memory: 131072 })).rejects.toThrow(/memory/i);
+
+    const validSalt = Buffer.alloc(16, 0xff).toString('base64').replace(/=+$/, '');
+    const validTag = Buffer.alloc(32, 0xfe).toString('base64').replace(/=+$/, '');
+    const paddedSalt = `${validSalt}==`;
+    const urlSafeSalt = validSalt.replace(/\+/g, '-').replace(/\//g, '_');
+
+    const invalidHashes = [
+      '',
+      'not-a-phc',
+      `$argon2i$v=19$m=19456,t=2,p=1$${validSalt}$${validTag}`,
+      `$argon2id$v=18$m=19456,t=2,p=1$${validSalt}$${validTag}`,
+      `$argon2id$v=19$m=2048,t=2,p=1$${validSalt}$${validTag}`,
+      `$argon2id$v=19$m=131072,t=2,p=1$${validSalt}$${validTag}`,
+      `$argon2id$v=19$m=19456,t=0,p=1$${validSalt}$${validTag}`,
+      `$argon2id$v=19$m=19456,t=2,p=8$${validSalt}$${validTag}`,
+      `$argon2id$v=19$m=19456,t=2,p=1$${paddedSalt}$${validTag}`,
+      `$argon2id$v=19$m=19456,t=2,p=1$${urlSafeSalt}$${validTag}`,
+      `$argon2id$v=19$m=19456,t=2,p=1$short$short`,
+    ];
+
+    for (const bad of invalidHashes) {
+      expect(parseArgon2idPhc(bad)).toBeNull();
+      expect(await verifyPasswordArgon2id('any-password', bad)).toBe(false);
+    }
+
+    expect(await verifyPasswordArgon2id('any-password', null)).toBe(false);
+    expect(await verifyPasswordArgon2id('any-password', undefined)).toBe(false);
+  });
+
+  it('caps concurrent Argon2id derivations at 2 and recovers after slots clear', async () => {
+    const hash = await hashPasswordArgon2id('concurrency-test-secret');
+
+    const p1 = verifyPasswordArgon2id('concurrency-test-secret', hash);
+    const p2 = verifyPasswordArgon2id('concurrency-test-secret', hash);
+    const p3 = verifyPasswordArgon2id('concurrency-test-secret', hash);
+
+    const settled = await Promise.allSettled([p1, p2, p3]);
+    const rejected = settled.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+    expect(rejected.length).toBeGreaterThanOrEqual(1);
+    expect(rejected[0]?.reason).toBeInstanceOf(Argon2ConcurrencyError);
+
+    expect(await verifyPasswordArgon2id('concurrency-test-secret', hash)).toBe(true);
+  });
+
+  it('redacts sensitive auth headers, cookies, and credential fields in Pino logs', async () => {
+    const chunks: string[] = [];
+    const stream = new PassThrough();
+    stream.on('data', chunk => {
+      chunks.push(Buffer.from(chunk).toString('utf8'));
+    });
+
+    const app = Fastify({
+      logger: {
+        stream,
+        redact: {
+          paths: [...AUTH_LOG_REDACT_PATHS],
+          censor: '[REDACTED]',
+        },
+      },
+    });
+
+    app.post('/probe', async (request, reply) => {
+      request.log.info(
+        {
+          payload: {
+            password: 'super-secret-password',
+            passwordHashArgon2: '$argon2id$v=19$m=19456,t=2,p=1$abc$def',
+            secret: 'base32-totp-secret',
+            totpKey: 'aes-key-material',
+          },
+        },
+        'auth probe',
+      );
+      reply.header('set-cookie', 'ak_admin_session=secret-session-cookie; HttpOnly');
+      return { ok: true };
+    });
+
+    try {
+      await app.inject({
+        method: 'POST',
+        url: '/probe',
+        headers: {
+          cookie: 'ak_admin_session=incoming-cookie',
+          authorization: 'Bearer secret-bearer',
+          'x-internal-auth': 'v1.internal.hmac',
+          'x-bootstrap-token': 'legacy-boot-secret',
+        },
+      });
+    } finally {
+      await app.close();
+    }
+
+    const joined = chunks.join('');
+    expect(joined).not.toContain('super-secret-password');
+    expect(joined).not.toContain('$argon2id$v=19$m=19456');
+    expect(joined).not.toContain('base32-totp-secret');
+    expect(joined).not.toContain('aes-key-material');
+    expect(joined).not.toContain('incoming-cookie');
+    expect(joined).not.toContain('secret-bearer');
+    expect(joined).not.toContain('v1.internal.hmac');
+    expect(joined).not.toContain('legacy-boot-secret');
+    expect(joined).not.toContain('secret-session-cookie');
+    expect(joined).toContain('[REDACTED]');
   });
 });

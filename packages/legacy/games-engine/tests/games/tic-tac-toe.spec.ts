@@ -1,6 +1,6 @@
 import { Space } from '@aklapper/legacy-games/components';
 
-import { TicTacToe } from '../../src/games/lib/tic-tac-toe.js';
+import { TicTacToe } from '../../src/games/lib/tic-tac-toe.ts';
 
 let game: TicTacToe;
 
