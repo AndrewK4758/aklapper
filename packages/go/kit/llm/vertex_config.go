@@ -1,7 +1,9 @@
 package llm
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -63,6 +65,84 @@ func usesEmbedContent(model string) bool {
 
 func isGeminiEmbedding001(model string) bool {
 	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(model)), "gemini-embedding-001")
+}
+
+func buildVertexEmbedPayload(model, text string) (action string, branch string, payload map[string]any) {
+	if usesEmbedContent(model) {
+		return "embedContent", "embed_content_768", map[string]any{
+			"content": map[string]any{
+				"parts": []map[string]string{{"text": text}},
+			},
+			"config": map[string]any{
+				"outputDimensionality": ExpectedEmbeddingDims,
+			},
+		}
+	}
+	p := map[string]any{
+		"instances": []map[string]string{
+			{"content": text},
+		},
+	}
+	if isGeminiEmbedding001(model) {
+		p["parameters"] = map[string]any{
+			"outputDimensionality": ExpectedEmbeddingDims,
+		}
+	}
+	return "predict", "predict_legacy", p
+}
+
+func decodeVertexEmbedResponse(action, model, loc string, r io.Reader) ([]float32, error) {
+	if action == "embedContent" {
+		var parsed struct {
+			Embedding struct {
+				Values []float32 `json:"values"`
+			} `json:"embedding"`
+		}
+		if err := json.NewDecoder(r).Decode(&parsed); err != nil {
+			return nil, err
+		}
+		values := parsed.Embedding.Values
+		if len(values) == 0 {
+			logLLMSeam("BOUNDARY_FAULT", "llm.vertex.embed_dim_mismatch", map[string]any{
+				"action":   action,
+				"model":    model,
+				"location": loc,
+				"dims":     0,
+			})
+			return nil, fmt.Errorf("%w: vertex ai embedContent returned zero embeddings", ErrEmptyEmbedding)
+		}
+		if err := ValidateEmbeddingDims(values); err != nil {
+			logLLMSeam("BOUNDARY_FAULT", "llm.vertex.embed_dim_mismatch", map[string]any{
+				"action":   action,
+				"model":    model,
+				"location": loc,
+				"dims":     len(values),
+			})
+			return nil, fmt.Errorf("vertex ai embedContent dimension error: %w", err)
+		}
+		return values, nil
+	}
+
+	var parsed struct {
+		Predictions []struct {
+			Embeddings struct {
+				Values []float32 `json:"values"`
+			} `json:"embeddings"`
+		} `json:"predictions"`
+	}
+	if err := json.NewDecoder(r).Decode(&parsed); err != nil {
+		return nil, err
+	}
+	if len(parsed.Predictions) == 0 || len(parsed.Predictions[0].Embeddings.Values) == 0 {
+		logLLMSeam("BOUNDARY_FAULT", "llm.vertex.embed_dim_mismatch", map[string]any{
+			"action":   action,
+			"model":    model,
+			"location": loc,
+			"dims":     0,
+		})
+		return nil, fmt.Errorf("%w: vertex ai returned zero embeddings", ErrEmptyEmbedding)
+	}
+	return parsed.Predictions[0].Embeddings.Values, nil
 }
 
 // NewFromEnvMap constructs either a VertexClient or LocalClient using the provided env lookup.

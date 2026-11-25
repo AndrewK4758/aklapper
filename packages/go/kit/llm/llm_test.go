@@ -3,8 +3,11 @@ package llm
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -178,5 +181,134 @@ func TestVertexClientFailsClearlyWhenMetadataUnreachable(t *testing.T) {
 	}
 	if _, err := client.Chat(context.Background(), []ChatMessage{{Role: "user", Content: "hi"}}, 64); err == nil {
 		t.Fatal("expected clear error when metadata server is unreachable")
+	}
+}
+
+func TestVertexClientEmbedContent768AndLegacyPredict(t *testing.T) {
+	var logs strings.Builder
+	prevOut := log.Writer()
+	log.SetOutput(&logs)
+	defer log.SetOutput(prevOut)
+
+	vec768 := make([]float32, ExpectedEmbeddingDims)
+	for i := range vec768 {
+		vec768[i] = 0.01
+	}
+
+	var capturedPath string
+	var capturedBody map[string]any
+	var returnValues []float32
+	var forceStatus int
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		capturedBody = nil
+		_ = json.NewDecoder(r.Body).Decode(&capturedBody)
+		if forceStatus != 0 {
+			http.Error(w, "upstream failure", forceStatus)
+			return
+		}
+		if strings.HasSuffix(r.URL.Path, ":embedContent") {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"embedding": map[string]any{
+					"values": returnValues,
+				},
+			})
+			return
+		}
+		if strings.HasSuffix(r.URL.Path, ":predict") {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"predictions": []map[string]any{
+					{"embeddings": map[string]any{"values": returnValues}},
+				},
+			})
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer srv.Close()
+
+	// 1. gemini-embedding-2 -> :embedContent with config.outputDimensionality=768
+	returnValues = vec768
+	client := &VertexClient{
+		ProjectID:       "games-424800",
+		Location:        "global",
+		EmbedModel:      "gemini-embedding-2",
+		AccessToken:     "secret-oauth-token",
+		EndpointBaseURL: srv.URL,
+		HTTPClient:      srv.Client(),
+	}
+	got, err := client.Embed(context.Background(), "hello")
+	if err != nil {
+		t.Fatalf("Embed gemini-embedding-2 failed: %v", err)
+	}
+	if len(got) != ExpectedEmbeddingDims {
+		t.Fatalf("expected %d dims, got %d", ExpectedEmbeddingDims, len(got))
+	}
+	if err := ValidateEmbeddingDims(got); err != nil {
+		t.Fatalf("ValidateEmbeddingDims failed: %v", err)
+	}
+	if capturedPath != "/v1/projects/games-424800/locations/global/publishers/google/models/gemini-embedding-2:embedContent" {
+		t.Fatalf("unexpected embedContent path: %q", capturedPath)
+	}
+	cfg, _ := capturedBody["config"].(map[string]any)
+	if cfg == nil || cfg["outputDimensionality"] != float64(ExpectedEmbeddingDims) {
+		t.Fatalf("expected config.outputDimensionality=768, got %#v", capturedBody)
+	}
+	content, _ := capturedBody["content"].(map[string]any)
+	parts, _ := content["parts"].([]any)
+	if len(parts) != 1 || parts[0].(map[string]any)["text"] != "hello" {
+		t.Fatalf("unexpected content.parts payload: %#v", capturedBody)
+	}
+
+	// 2. Empty :embedContent response returns ErrEmptyEmbedding BEFORE ValidateEmbeddingDims
+	returnValues = []float32{}
+	if _, err := client.Embed(context.Background(), "empty"); !errors.Is(err, ErrEmptyEmbedding) {
+		t.Fatalf("expected ErrEmptyEmbedding for empty :embedContent vector, got %v", err)
+	}
+
+	// 3. Wrong-dim (3072) :embedContent response fails closed and logs BOUNDARY_FAULT
+	returnValues = make([]float32, 3072)
+	if _, err := client.Embed(context.Background(), "wrong-dim"); err == nil || errors.Is(err, ErrEmptyEmbedding) {
+		t.Fatalf("expected dimension mismatch error (not ErrEmptyEmbedding), got %v", err)
+	}
+
+	// 4. Legacy gemini-embedding-001 -> :predict with parameters.outputDimensionality=768
+	returnValues = vec768
+	legacy001 := &VertexClient{
+		ProjectID:       "games-424800",
+		Location:        "us-central1",
+		EmbedModel:      "gemini-embedding-001",
+		AccessToken:     "secret-oauth-token",
+		EndpointBaseURL: srv.URL,
+		HTTPClient:      srv.Client(),
+	}
+	if _, err := legacy001.Embed(context.Background(), "legacy"); err != nil {
+		t.Fatalf("Embed gemini-embedding-001 failed: %v", err)
+	}
+	if capturedPath != "/v1/projects/games-424800/locations/us-central1/publishers/google/models/gemini-embedding-001:predict" {
+		t.Fatalf("unexpected legacy001 path: %q", capturedPath)
+	}
+	params, _ := capturedBody["parameters"].(map[string]any)
+	if params == nil || params["outputDimensionality"] != float64(ExpectedEmbeddingDims) {
+		t.Fatalf("expected parameters.outputDimensionality=768 for gemini-embedding-001, got %#v", capturedBody)
+	}
+
+	// 5. Upstream HTTP 503 emits BOUNDARY_FAULT without leaking token
+	forceStatus = http.StatusServiceUnavailable
+	_, err = client.Embed(context.Background(), "fault")
+	if err == nil || strings.Contains(err.Error(), "secret-oauth-token") {
+		t.Fatalf("expected clean upstream error without token leak, got %v", err)
+	}
+
+	logOut := logs.String()
+	if !strings.Contains(logOut, "llm.vertex.embed_protocol_selected") || !strings.Contains(logOut, "embed_content_768") || !strings.Contains(logOut, "predict_legacy") {
+		t.Fatalf("expected RULE_DIVERGENCE llm.vertex.embed_protocol_selected logs, got %s", logOut)
+	}
+	if !strings.Contains(logOut, "llm.vertex.embed_dim_mismatch") || !strings.Contains(logOut, "llm.vertex.upstream_http_error") {
+		t.Fatalf("expected BOUNDARY_FAULT seam logs, got %s", logOut)
+	}
+	if strings.Contains(logOut, "secret-oauth-token") {
+		t.Fatalf("bearer token leaked in logs: %s", logOut)
 	}
 }
