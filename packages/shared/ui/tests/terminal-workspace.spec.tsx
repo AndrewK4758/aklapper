@@ -193,15 +193,7 @@ describe('terminalPaneTree', () => {
     expect(listLeafPanes(state.root).map(p => p.id)).toEqual(['pane-1']);
   });
 
-  it('matches macOS, Linux, and browser-safe workspace split/tab keybindings', () => {
-    expect(matchWorkspaceShortcut(makeKey({ key: 'd', metaKey: true }))).toEqual({
-      type: 'split',
-      direction: 'right',
-    });
-    expect(matchWorkspaceShortcut(makeKey({ key: 'O', ctrlKey: true, shiftKey: true }))).toEqual({
-      type: 'split',
-      direction: 'right',
-    });
+  it('matches uniform browser-safe workspace split/tab keybindings via @aklapper/ui re-export', () => {
     expect(
       matchWorkspaceShortcut(
         makeKey({ key: '}', code: 'BracketRight', ctrlKey: true, shiftKey: true }),
@@ -211,20 +203,10 @@ describe('terminalPaneTree', () => {
       direction: 'right',
     });
     expect(
-      matchWorkspaceShortcut(
-        makeKey({ key: ']', code: 'BracketRight', ctrlKey: true, shiftKey: true }),
-      ),
+      matchWorkspaceShortcut(makeKey({ key: 'D', code: 'KeyD', altKey: true, shiftKey: true })),
     ).toEqual({
       type: 'split',
       direction: 'right',
-    });
-    expect(matchWorkspaceShortcut(makeKey({ key: 'd', metaKey: true, shiftKey: true }))).toEqual({
-      type: 'split',
-      direction: 'down',
-    });
-    expect(matchWorkspaceShortcut(makeKey({ key: 'E', ctrlKey: true, shiftKey: true }))).toEqual({
-      type: 'split',
-      direction: 'down',
     });
     expect(
       matchWorkspaceShortcut(
@@ -235,9 +217,7 @@ describe('terminalPaneTree', () => {
       direction: 'down',
     });
     expect(
-      matchWorkspaceShortcut(
-        makeKey({ key: '[', code: 'BracketLeft', ctrlKey: true, shiftKey: true }),
-      ),
+      matchWorkspaceShortcut(makeKey({ key: 'S', code: 'KeyS', altKey: true, shiftKey: true })),
     ).toEqual({
       type: 'split',
       direction: 'down',
@@ -250,15 +230,11 @@ describe('terminalPaneTree', () => {
       type: 'focus-relative',
       delta: -1,
     });
-    expect(
-      matchWorkspaceShortcut(makeKey({ key: 'ArrowLeft', ctrlKey: true, altKey: true })),
-    ).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'h', code: 'KeyH', altKey: true }))).toEqual({
       type: 'focus-direction',
       direction: 'left',
     });
-    expect(
-      matchWorkspaceShortcut(makeKey({ key: 'ArrowRight', metaKey: true, altKey: true })),
-    ).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'l', code: 'KeyL', altKey: true }))).toEqual({
       type: 'focus-direction',
       direction: 'right',
     });
@@ -279,9 +255,6 @@ describe('terminalPaneTree', () => {
     ).toEqual({
       type: 'toggle-zoom',
     });
-    expect(matchWorkspaceShortcut(makeKey({ key: '+', ctrlKey: true, shiftKey: true }))).toEqual({
-      type: 'equalize',
-    });
     expect(
       matchWorkspaceShortcut(
         makeKey({ key: 'E', code: 'KeyE', ctrlKey: true, altKey: true, shiftKey: true }),
@@ -289,63 +262,49 @@ describe('terminalPaneTree', () => {
     ).toEqual({
       type: 'equalize',
     });
-    expect(matchWorkspaceShortcut(makeKey({ key: 'W', ctrlKey: true, shiftKey: true }))).toEqual({
+    expect(
+      matchWorkspaceShortcut(makeKey({ key: 'W', code: 'KeyW', altKey: true, shiftKey: true })),
+    ).toEqual({
       type: 'close-pane',
     });
-    expect(matchWorkspaceShortcut(makeKey({ key: 't', altKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 't', code: 'KeyT', altKey: true }))).toEqual({
       type: 'toggle-tui',
     });
-    expect(matchWorkspaceShortcut(makeKey({ key: 'm', altKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'm', code: 'KeyM', altKey: true }))).toEqual({
       type: 'open-menu',
     });
     expect(
-      matchWorkspaceShortcut(
-        makeKey({ key: 'ArrowLeft', ctrlKey: true, altKey: true, shiftKey: true }),
-      ),
+      matchWorkspaceShortcut(makeKey({ key: 'H', code: 'KeyH', altKey: true, shiftKey: true })),
     ).toEqual({
       type: 'move-split',
       direction: 'left',
     });
-    expect(matchWorkspaceShortcut(makeKey({ key: 'R', ctrlKey: true, shiftKey: true }))).toEqual({
-      type: 'rotate-split',
-    });
     expect(
-      matchWorkspaceShortcut(makeKey({ key: 'R', ctrlKey: true, altKey: true, shiftKey: true })),
+      matchWorkspaceShortcut(makeKey({ key: 'R', code: 'KeyR', altKey: true, shiftKey: true })),
     ).toEqual({
       type: 'rotate-split',
     });
     expect(
-      matchWorkspaceShortcut(makeKey({ key: 'T', ctrlKey: true, altKey: true, shiftKey: true })),
+      matchWorkspaceShortcut(
+        makeKey({ key: 'R', code: 'KeyR', ctrlKey: true, altKey: true, shiftKey: true }),
+      ),
+    ).toEqual({
+      type: 'rotate-split',
+    });
+    expect(
+      matchWorkspaceShortcut(
+        makeKey({ key: 'T', code: 'KeyT', ctrlKey: true, altKey: true, shiftKey: true }),
+      ),
     ).toEqual({
       type: 'detach-pane',
     });
-    expect(matchWorkspaceShortcut(makeKey({ key: 'T', ctrlKey: true, shiftKey: true }))).toEqual({
+    expect(
+      matchWorkspaceShortcut(makeKey({ key: 'N', code: 'KeyN', altKey: true, shiftKey: true })),
+    ).toEqual({
       type: 'new-tab',
     });
-    expect(matchWorkspaceShortcut(makeKey({ key: 'T', altKey: true, shiftKey: true }))).toEqual({
-      type: 'new-tab',
-    });
-    expect(matchWorkspaceShortcut(makeKey({ key: 'A', ctrlKey: true, shiftKey: true }))).toEqual({
+    expect(matchWorkspaceShortcut(makeKey({ key: 'F2', code: 'F2' }))).toEqual({
       type: 'rename-tab',
-    });
-    expect(matchWorkspaceShortcut(makeKey({ key: 'A', altKey: true, shiftKey: true }))).toEqual({
-      type: 'rename-tab',
-    });
-    expect(matchWorkspaceShortcut(makeKey({ key: 'Tab', ctrlKey: true }))).toEqual({
-      type: 'focus-tab-relative',
-      delta: 1,
-    });
-    expect(matchWorkspaceShortcut(makeKey({ key: 'Tab', ctrlKey: true, shiftKey: true }))).toEqual({
-      type: 'focus-tab-relative',
-      delta: -1,
-    });
-    expect(matchWorkspaceShortcut(makeKey({ key: 'PageDown', ctrlKey: true }))).toEqual({
-      type: 'focus-tab-relative',
-      delta: 1,
-    });
-    expect(matchWorkspaceShortcut(makeKey({ key: 'PageUp', ctrlKey: true }))).toEqual({
-      type: 'focus-tab-relative',
-      delta: -1,
     });
     expect(matchWorkspaceShortcut(makeKey({ key: ']', altKey: true }))).toEqual({
       type: 'focus-tab-relative',
@@ -355,11 +314,15 @@ describe('terminalPaneTree', () => {
       type: 'focus-tab-relative',
       delta: -1,
     });
-    expect(matchWorkspaceShortcut(makeKey({ key: '1', altKey: true }))).toEqual({
+    expect(
+      matchWorkspaceShortcut(makeKey({ key: '!', code: 'Digit1', altKey: true, shiftKey: true })),
+    ).toEqual({
       type: 'focus-tab-index',
       index: 0,
     });
-    expect(matchWorkspaceShortcut(makeKey({ key: '9', altKey: true }))).toEqual({
+    expect(
+      matchWorkspaceShortcut(makeKey({ key: '(', code: 'Digit9', altKey: true, shiftKey: true })),
+    ).toEqual({
       type: 'focus-tab-index',
       index: 'last',
     });
@@ -559,8 +522,8 @@ describe('TerminalWorkspace', () => {
     fireEvent.submit(pane1Input.closest('form') as HTMLFormElement);
     expect(screen.getByText('guest@andrew-k.us (tty1)')).toBeTruthy();
 
-    // Cmd+D splits right into tty2 and focuses tty2
-    fireEvent.keyDown(window, { key: 'd', metaKey: true });
+    // Alt+Shift+D splits right into tty2 and focuses tty2
+    fireEvent.keyDown(window, { key: 'D', code: 'KeyD', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
 
     const pane2 = container.querySelector('[data-pane-tty="tty2"]') as HTMLElement;
@@ -576,9 +539,9 @@ describe('TerminalWorkspace', () => {
     expect(tuiPane.getAttribute('data-active')).toBe('true');
     expect(within(tuiPane).getByText('Launcher pane 3')).toBeTruthy();
 
-    // Switch back to tty1 via Ctrl+Alt+ArrowLeft; running `tui` again focuses existing TUI pane without duplicating
-    fireEvent.keyDown(window, { key: 'ArrowLeft', ctrlKey: true, altKey: true });
-    fireEvent.keyDown(window, { key: 'ArrowLeft', ctrlKey: true, altKey: true });
+    // Switch back to tty1 via Alt+H; running `tui` again focuses existing TUI pane without duplicating
+    fireEvent.keyDown(window, { key: 'h', code: 'KeyH', altKey: true });
+    fireEvent.keyDown(window, { key: 'h', code: 'KeyH', altKey: true });
     const pane1 = container.querySelector('[data-pane-tty="tty1"]') as HTMLElement;
     expect(pane1.getAttribute('data-active')).toBe('true');
 
@@ -608,8 +571,8 @@ describe('TerminalWorkspace', () => {
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
     expect(container.querySelector('[data-pane-kind="tui"]')).toBeNull();
 
-    // Close active split pane (tty2) via Ctrl+Shift+W
-    fireEvent.keyDown(window, { key: 'W', ctrlKey: true, shiftKey: true });
+    // Close active split pane (tty2) via Alt+Shift+W
+    fireEvent.keyDown(window, { key: 'W', code: 'KeyW', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
 
     // Help output renders directly from terminal.commands (DB-driven) with zero hardcoded Ghostty/zsh leakage
@@ -794,7 +757,7 @@ describe('TerminalWorkspace', () => {
     expect(submit).toHaveBeenCalledTimes(2);
 
     // Split pane isolation: start `contact` in tty2 only; tty1 stays in normal shell mode; Ctrl+C cancels tty2
-    fireEvent.keyDown(window, { key: 'd', metaKey: true });
+    fireEvent.keyDown(window, { key: 'D', code: 'KeyD', altKey: true, shiftKey: true });
     submitActive('contact');
     const pane1 = container.querySelector('[data-pane-tty="tty1"]') as HTMLElement;
     const pane2 = container.querySelector('[data-pane-tty="tty2"]') as HTMLElement;
@@ -857,20 +820,20 @@ describe('TerminalWorkspace', () => {
     expect(container.querySelector('[data-pane-kind="tui"]')).toBeNull();
     expect(onClosePrimaryTui).not.toHaveBeenCalled();
 
-    // Switch focus back to pane-1 via Ctrl+Alt+ArrowLeft; trying to close pinned pane-1 is ignored
-    fireEvent.keyDown(window, { key: 'ArrowLeft', ctrlKey: true, altKey: true });
+    // Switch focus back to pane-1 via Alt+H; trying to close pinned pane-1 is ignored
+    fireEvent.keyDown(window, { key: 'h', code: 'KeyH', altKey: true });
     const pane1 = container.querySelector('[data-pane-id="pane-1"]') as HTMLElement;
     expect(pane1.getAttribute('data-active')).toBe('true');
-    fireEvent.keyDown(window, { key: 'W', ctrlKey: true, shiftKey: true });
+    fireEvent.keyDown(window, { key: 'W', code: 'KeyW', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
 
     // Now Escape closes the primary TUI because pane-1 is active
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClosePrimaryTui).toHaveBeenCalledTimes(1);
 
-    // Switch back to tty2 and close it via Cmd+Shift+W
+    // Switch back to tty2 and close it via Alt+Shift+W
     fireEvent.keyDown(window, { key: ']', metaKey: true });
-    fireEvent.keyDown(window, { key: 'w', metaKey: true, shiftKey: true });
+    fireEvent.keyDown(window, { key: 'W', code: 'KeyW', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
   });
 
@@ -913,8 +876,8 @@ describe('TerminalWorkspace', () => {
     expect(workspaceEl.getAttribute('data-tab-count')).toBe('1');
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('1');
 
-    // One Cmd+D splits into exactly 2 panes (no nested double-handling)
-    fireEvent.keyDown(window, { key: 'd', metaKey: true });
+    // One Alt+Shift+D splits into exactly 2 panes (no nested double-handling)
+    fireEvent.keyDown(window, { key: 'D', code: 'KeyD', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-pane-count')).toBe('2');
   });
 
@@ -1038,12 +1001,12 @@ describe('TerminalWorkspace', () => {
     const tab2Panel = container.querySelector('[data-tab-panel="tab-2"]') as HTMLElement;
     expect(within(tab2Panel).getByText('guest@andrew-k.us (tty1)')).toBeTruthy();
 
-    // Open tab-3 via Ctrl+Shift+T, then rename via Ctrl+Shift+A (Escape cancels, then Enter commits)
-    fireEvent.keyDown(window, { key: 'T', code: 'KeyT', ctrlKey: true, shiftKey: true });
+    // Open tab-3 via Alt+Shift+N, then rename via F2 (Escape cancels, then Enter commits)
+    fireEvent.keyDown(window, { key: 'N', code: 'KeyN', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-tab-count')).toBe('3');
     expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-3');
 
-    fireEvent.keyDown(window, { key: 'A', code: 'KeyA', ctrlKey: true, shiftKey: true });
+    fireEvent.keyDown(window, { key: 'F2', code: 'F2' });
     const cancelInput = screen.getByLabelText('Rename tab') as HTMLInputElement;
     fireEvent.change(cancelInput, { target: { value: 'discarded' } });
     fireEvent.keyDown(cancelInput, { key: 'Escape' });
@@ -1058,10 +1021,10 @@ describe('TerminalWorkspace', () => {
     fireEvent.keyDown(renameInput, { key: 'Enter' });
     expect(screen.getByRole('tab', { name: 'ops-shell' })).toBeTruthy();
 
-    // Switch to tab-1 via Alt+1, verify pinned tab-1 cannot be closed via Ctrl+Shift+W
-    fireEvent.keyDown(window, { key: '1', code: 'Digit1', altKey: true });
+    // Switch to tab-1 via Alt+Shift+1, verify pinned tab-1 cannot be closed via Alt+Shift+W
+    fireEvent.keyDown(window, { key: '!', code: 'Digit1', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-1');
-    fireEvent.keyDown(window, { key: 'W', code: 'KeyW', ctrlKey: true, shiftKey: true });
+    fireEvent.keyDown(window, { key: 'W', code: 'KeyW', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-tab-count')).toBe('3');
 
     // Cycle to tab-2 via Alt+] and confirm scrollback survived tab switching
@@ -1069,8 +1032,8 @@ describe('TerminalWorkspace', () => {
     expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-2');
     expect(within(tab2Panel).getByText('guest@andrew-k.us (tty1)')).toBeTruthy();
 
-    // Jump to last tab via Alt+9 and close it via `exit`, then close tab-2 via tab close button
-    fireEvent.keyDown(window, { key: '9', code: 'Digit9', altKey: true });
+    // Jump to last tab via Alt+Shift+9 and close it via `exit`, then close tab-2 via tab close button
+    fireEvent.keyDown(window, { key: '(', code: 'Digit9', altKey: true, shiftKey: true });
     expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-3');
     const tab3Input = screen.getByLabelText('Terminal command input') as HTMLInputElement;
     fireEvent.change(tab3Input, { target: { value: 'exit' } });
@@ -1085,20 +1048,20 @@ describe('TerminalWorkspace', () => {
     expect(workspaceEl.getAttribute('data-active-tab')).toBe('tab-1');
   });
 
-  it('swaps splits with Ctrl+Alt+Shift+Arrow, rotates orientation with Ctrl+Shift+R only when split, and detaches panes to new tabs', () => {
+  it('swaps splits with Alt+Shift+H/J/K/L, rotates orientation with Alt+Shift+R, preserves Ctrl+Shift+R hard reload, and detaches panes to new tabs', () => {
     const { container } = render(<TerminalWorkspace terminal={TERMINAL_FIXTURE} />);
     const workspaceEl = container.querySelector('[data-pane-count]') as HTMLElement;
 
-    // On a single unsplit pane, Ctrl+Shift+R must NOT call preventDefault (preserves browser reload)
-    const singlePaneRotateEvent = new KeyboardEvent('keydown', {
+    // Ctrl+Shift+R must NEVER call preventDefault (preserves browser hard reload)
+    const hardReloadEvent = new KeyboardEvent('keydown', {
       key: 'R',
       code: 'KeyR',
       ctrlKey: true,
       shiftKey: true,
       cancelable: true,
     });
-    window.dispatchEvent(singlePaneRotateEvent);
-    expect(singlePaneRotateEvent.defaultPrevented).toBe(false);
+    window.dispatchEvent(hardReloadEvent);
+    expect(hardReloadEvent.defaultPrevented).toBe(false);
 
     // Split right: pane-1 (left) | pane-2 (right, active)
     fireEvent.keyDown(window, { key: '}', code: 'BracketRight', ctrlKey: true, shiftKey: true });
@@ -1111,18 +1074,18 @@ describe('TerminalWorkspace', () => {
     expect(pane1Slot().style.getPropertyValue('--sf-pane-x')).toBe('0');
     expect(pane2Slot().style.getPropertyValue('--sf-pane-x')).toBe('0.5');
 
-    // Ctrl+Alt+Shift+ArrowLeft swaps active pane-2 with pane-1
+    // Alt+Shift+H swaps active pane-2 with pane-1
     fireEvent.keyDown(window, {
-      key: 'ArrowLeft',
-      ctrlKey: true,
+      key: 'H',
+      code: 'KeyH',
       altKey: true,
       shiftKey: true,
     });
     expect(pane2Slot().style.getPropertyValue('--sf-pane-x')).toBe('0');
     expect(pane1Slot().style.getPropertyValue('--sf-pane-x')).toBe('0.5');
 
-    // Ctrl+Shift+R rotates vertical split into horizontal split (stacked top/bottom)
-    fireEvent.keyDown(window, { key: 'R', code: 'KeyR', ctrlKey: true, shiftKey: true });
+    // Alt+Shift+R rotates vertical split into horizontal split (stacked top/bottom)
+    fireEvent.keyDown(window, { key: 'R', code: 'KeyR', altKey: true, shiftKey: true });
     expect(pane2Slot().style.getPropertyValue('--sf-pane-w')).toBe('1');
     expect(pane2Slot().style.getPropertyValue('--sf-pane-h')).toBe('0.5');
     expect(pane1Slot().style.getPropertyValue('--sf-pane-y')).toBe('0.5');
@@ -1369,7 +1332,7 @@ describe('TerminalWorkspace', () => {
     // New-tab button tooltip on focus
     fireEvent.focus(newTabButton);
     await waitFor(() => {
-      expect(screen.getByText('New Tab (Alt+Shift+T)')).toBeTruthy();
+      expect(screen.getByText('New Tab (Alt+Shift+N)')).toBeTruthy();
     });
     fireEvent.blur(newTabButton);
 
@@ -1459,7 +1422,7 @@ describe('TerminalWorkspace', () => {
     const newTabButton = screen.getByRole('button', { name: 'New terminal tab' });
     fireEvent.focus(newTabButton);
     await waitFor(() => {
-      expect(screen.getByText('New Tab (Alt+Shift+T)')).toBeTruthy();
+      expect(screen.getByText('New Tab (Alt+Shift+N)')).toBeTruthy();
     });
     expect(newTabButton.getAttribute('data-popup-open')).not.toBeNull();
     expect(newTabButton.getAttribute('aria-haspopup')).toBeNull();

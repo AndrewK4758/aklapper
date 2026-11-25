@@ -1,4 +1,9 @@
-import type { TerminalProfileData } from '@aklapper/core';
+import {
+  isAltNReadlineChord,
+  matchTerminalReadlineShortcut,
+  NEW_TAB_TOOLTIP_LABEL,
+  type TerminalProfileData,
+} from '@aklapper/core';
 import {
   createContext,
   type CSSProperties,
@@ -17,6 +22,10 @@ import {
 import { Button, Toolbar, Tooltip } from '../elements/base';
 import { buildZshCommandHandlers } from './buildZshCommands';
 import { PaneNavigationContext, type PaneNavigationContextValue } from './paneNavigationContext';
+import {
+  TerminalReadlineRegistryContext,
+  type ZshTerminalHandle,
+} from './terminalReadlineRegistryContext';
 import { type TerminalFormConfig } from './terminalFormSession';
 import {
   exitPaneTui,
@@ -438,7 +447,7 @@ function TabStrip({
         })}
       </div>
 
-      <WorkspaceTooltip label='New Tab (Alt+Shift+T)'>
+      <WorkspaceTooltip label={NEW_TAB_TOOLTIP_LABEL}>
         <Button.Root
           type='button'
           size='xs'
@@ -1296,6 +1305,21 @@ function PrimaryPaneView({
   );
 }
 
+interface PaneReadlineScopeProps {
+  paneId: string;
+  registerHandle: (paneId: string, handle: ZshTerminalHandle) => () => void;
+  children: ReactNode;
+}
+
+function PaneReadlineScope({ paneId, registerHandle, children }: PaneReadlineScopeProps) {
+  const value = useMemo(() => ({ paneId, registerHandle }), [paneId, registerHandle]);
+  return (
+    <TerminalReadlineRegistryContext.Provider value={value}>
+      {children}
+    </TerminalReadlineRegistryContext.Provider>
+  );
+}
+
 function StandaloneTerminalWorkspace({
   terminal,
   terminalForms,
@@ -1354,6 +1378,16 @@ function StandaloneTerminalWorkspace({
   const paneAreaRef = useRef<HTMLDivElement | null>(null);
   const dragOriginRef = useRef<DragOrigin | null>(null);
   const dividerDragRef = useRef<DividerDragOrigin | null>(null);
+  const terminalHandlesRef = useRef<Map<string, ZshTerminalHandle>>(new Map());
+
+  const registerTerminalHandle = useCallback((paneId: string, handle: ZshTerminalHandle) => {
+    terminalHandlesRef.current.set(paneId, handle);
+    return () => {
+      if (terminalHandlesRef.current.get(paneId) === handle) {
+        terminalHandlesRef.current.delete(paneId);
+      }
+    };
+  }, []);
 
   const activeTab = getActiveWorkspaceTab(tabState);
   const activeWorkspace = activeTab.workspace;
@@ -1435,7 +1469,28 @@ function StandaloneTerminalWorkspace({
 
   useEffect(() => {
     const handleGlobalKeyDown = (event: KeyboardEvent) => {
-      if (event.isComposing || renamingTabId !== null) {
+      if (renamingTabId !== null) {
+        return;
+      }
+
+      const isVisibleTerminalPane =
+        !activeHasTuiStack && !activeIsTuiPane && !hasOpenOverlayOrPopup(event.target);
+
+      // Intercept physical Alt+N before macOS dead-key tilde composition starts when a terminal is active.
+      if (isVisibleTerminalPane && isAltNReadlineChord(event)) {
+        const activeHandle = terminalHandlesRef.current.get(activeWorkspace.activePaneId);
+        if (
+          activeHandle &&
+          (!isEditableTarget(event.target) || activeHandle.containsTarget(event.target))
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          activeHandle.executeReadlineAction('history-next');
+          return;
+        }
+      }
+
+      if (event.isComposing) {
         return;
       }
 
@@ -1510,6 +1565,37 @@ function StandaloneTerminalWorkspace({
 
       const action = matchWorkspaceShortcut(event);
       if (!action) {
+        if (isVisibleTerminalPane) {
+          const readlineAction = matchTerminalReadlineShortcut(event);
+          if (readlineAction) {
+            const activeHandle = terminalHandlesRef.current.get(activeWorkspace.activePaneId);
+            if (
+              activeHandle &&
+              (!isEditableTarget(event.target) || activeHandle.containsTarget(event.target))
+            ) {
+              event.preventDefault();
+              event.stopPropagation();
+              activeHandle.executeReadlineAction(readlineAction);
+            }
+          }
+        }
+        return;
+      }
+
+      if (action.type === 'rename-tab') {
+        const activeHandle = terminalHandlesRef.current.get(activeWorkspace.activePaneId);
+        if (
+          hasOpenOverlayOrPopup(event.target) ||
+          (isEditableTarget(event.target) && !activeHandle?.containsTarget(event.target))
+        ) {
+          return;
+        }
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (event.repeat && action.type !== 'resize') {
         return;
       }
 
@@ -1534,13 +1620,6 @@ function StandaloneTerminalWorkspace({
         (action.type === 'focus-tab-relative' || action.type === 'focus-tab-index') &&
         tabState.tabs.length <= 1
       ) {
-        return;
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      if (event.repeat && action.type !== 'resize') {
         return;
       }
 
@@ -1658,6 +1737,7 @@ function StandaloneTerminalWorkspace({
     activeLeaf,
     activeLeafViewId,
     activeTab,
+    activeWorkspace.activePaneId,
     disableMenuShortcut,
     dragState,
     initialDeepLinkRoute,
@@ -2029,87 +2109,89 @@ function StandaloneTerminalWorkspace({
                       } as CSSProperties
                     }
                   >
-                    {primaryPane && tab.id === 'tab-1' && pane.id === 'pane-1' ? (
-                      <PrimaryPaneView
-                        pane={pane}
-                        primaryPane={primaryPane}
-                        isActive={isPaneActive}
-                        isMultiPane={isMultiPane}
-                        canCloseTab={canCloseThisTab}
-                        isZoomed={isZoomed}
-                        isDragging={isDraggingPane}
-                        focusToken={ws.focusToken}
-                        paneNav={paneNav}
-                        renderPaneView={renderPaneView}
-                        initialDeepLinkRoute={initialDeepLinkRoute}
-                        onFocus={handleFocusPane}
-                        onSplit={handleSplitPane}
-                        onRotate={handleRotatePane}
-                        onSwap={handleSwapPane}
-                        onDetach={handleDetachPane}
-                        onToggleZoom={handleToggleZoom}
-                        onClose={handleClosePane}
-                        onNewTab={handleAddTab}
-                        onCloseCurrentTab={handleCloseCurrentTab}
-                        onOpenTui={handleOpenTui}
-                        onNavigateView={renderPaneView ? handleNavigateView : undefined}
-                        onDragPointerDown={handleDragPointerDown}
-                        onDragPointerMove={handleDragPointerMove}
-                        onDragPointerUp={handleDragPointerUp}
-                        onDragPointerCancel={clearDrag}
-                      />
-                    ) : pane.kind === 'tui' && renderTui ? (
-                      <TuiLeafView
-                        pane={pane}
-                        isActive={isPaneActive}
-                        isMultiPane={isMultiPane}
-                        isZoomed={isZoomed}
-                        isDragging={isDraggingPane}
-                        focusToken={ws.focusToken}
-                        renderTui={renderTui}
-                        onFocus={handleFocusPane}
-                        onSplit={handleSplitPane}
-                        onRotate={handleRotatePane}
-                        onDetach={handleDetachPane}
-                        onToggleZoom={handleToggleZoom}
-                        onClose={handleClosePane}
-                        onCloseTui={handleCloseTuiPane}
-                        onDragPointerDown={handleDragPointerDown}
-                        onDragPointerMove={handleDragPointerMove}
-                        onDragPointerUp={handleDragPointerUp}
-                        onDragPointerCancel={clearDrag}
-                      />
-                    ) : (
-                      <TerminalLeafView
-                        pane={pane}
-                        terminal={terminal}
-                        terminalForms={terminalForms}
-                        isActive={isPaneActive}
-                        isMultiPane={isMultiPane}
-                        canCloseTab={canCloseThisTab}
-                        isZoomed={isZoomed}
-                        isDragging={isDraggingPane}
-                        focusToken={ws.focusToken}
-                        navigate={navigate}
-                        paneNav={paneNav}
-                        renderPaneView={renderPaneView}
-                        onFocus={handleFocusPane}
-                        onSplit={handleSplitPane}
-                        onRotate={handleRotatePane}
-                        onSwap={handleSwapPane}
-                        onDetach={handleDetachPane}
-                        onToggleZoom={handleToggleZoom}
-                        onClose={handleClosePane}
-                        onNewTab={handleAddTab}
-                        onCloseCurrentTab={handleCloseCurrentTab}
-                        onOpenTui={handleOpenTui}
-                        onNavigateView={renderPaneView ? handleNavigateView : undefined}
-                        onDragPointerDown={handleDragPointerDown}
-                        onDragPointerMove={handleDragPointerMove}
-                        onDragPointerUp={handleDragPointerUp}
-                        onDragPointerCancel={clearDrag}
-                      />
-                    )}
+                    <PaneReadlineScope paneId={pane.id} registerHandle={registerTerminalHandle}>
+                      {primaryPane && tab.id === 'tab-1' && pane.id === 'pane-1' ? (
+                        <PrimaryPaneView
+                          pane={pane}
+                          primaryPane={primaryPane}
+                          isActive={isPaneActive}
+                          isMultiPane={isMultiPane}
+                          canCloseTab={canCloseThisTab}
+                          isZoomed={isZoomed}
+                          isDragging={isDraggingPane}
+                          focusToken={ws.focusToken}
+                          paneNav={paneNav}
+                          renderPaneView={renderPaneView}
+                          initialDeepLinkRoute={initialDeepLinkRoute}
+                          onFocus={handleFocusPane}
+                          onSplit={handleSplitPane}
+                          onRotate={handleRotatePane}
+                          onSwap={handleSwapPane}
+                          onDetach={handleDetachPane}
+                          onToggleZoom={handleToggleZoom}
+                          onClose={handleClosePane}
+                          onNewTab={handleAddTab}
+                          onCloseCurrentTab={handleCloseCurrentTab}
+                          onOpenTui={handleOpenTui}
+                          onNavigateView={renderPaneView ? handleNavigateView : undefined}
+                          onDragPointerDown={handleDragPointerDown}
+                          onDragPointerMove={handleDragPointerMove}
+                          onDragPointerUp={handleDragPointerUp}
+                          onDragPointerCancel={clearDrag}
+                        />
+                      ) : pane.kind === 'tui' && renderTui ? (
+                        <TuiLeafView
+                          pane={pane}
+                          isActive={isPaneActive}
+                          isMultiPane={isMultiPane}
+                          isZoomed={isZoomed}
+                          isDragging={isDraggingPane}
+                          focusToken={ws.focusToken}
+                          renderTui={renderTui}
+                          onFocus={handleFocusPane}
+                          onSplit={handleSplitPane}
+                          onRotate={handleRotatePane}
+                          onDetach={handleDetachPane}
+                          onToggleZoom={handleToggleZoom}
+                          onClose={handleClosePane}
+                          onCloseTui={handleCloseTuiPane}
+                          onDragPointerDown={handleDragPointerDown}
+                          onDragPointerMove={handleDragPointerMove}
+                          onDragPointerUp={handleDragPointerUp}
+                          onDragPointerCancel={clearDrag}
+                        />
+                      ) : (
+                        <TerminalLeafView
+                          pane={pane}
+                          terminal={terminal}
+                          terminalForms={terminalForms}
+                          isActive={isPaneActive}
+                          isMultiPane={isMultiPane}
+                          canCloseTab={canCloseThisTab}
+                          isZoomed={isZoomed}
+                          isDragging={isDraggingPane}
+                          focusToken={ws.focusToken}
+                          navigate={navigate}
+                          paneNav={paneNav}
+                          renderPaneView={renderPaneView}
+                          onFocus={handleFocusPane}
+                          onSplit={handleSplitPane}
+                          onRotate={handleRotatePane}
+                          onSwap={handleSwapPane}
+                          onDetach={handleDetachPane}
+                          onToggleZoom={handleToggleZoom}
+                          onClose={handleClosePane}
+                          onNewTab={handleAddTab}
+                          onCloseCurrentTab={handleCloseCurrentTab}
+                          onOpenTui={handleOpenTui}
+                          onNavigateView={renderPaneView ? handleNavigateView : undefined}
+                          onDragPointerDown={handleDragPointerDown}
+                          onDragPointerMove={handleDragPointerMove}
+                          onDragPointerUp={handleDragPointerUp}
+                          onDragPointerCancel={clearDrag}
+                        />
+                      )}
+                    </PaneReadlineScope>
                   </div>
                 );
               })}

@@ -146,15 +146,15 @@ describe('@aklapper/ui', () => {
     fireEvent.submit(input.closest('form') as HTMLFormElement);
     expect(screen.getByText('all systems nominal')).toBeTruthy();
 
-    fireEvent.keyDown(input, { key: 'p', ctrlKey: true });
+    fireEvent.keyDown(input, { key: 'p', code: 'KeyP', ctrlKey: true });
     expect(input.value).toBe('status');
 
-    fireEvent.keyDown(input, { key: 'n', ctrlKey: true });
+    fireEvent.keyDown(input, { key: 'n', code: 'KeyN', altKey: true });
     expect(input.value).toBe('');
 
     fireEvent.change(input, { target: { value: 'hello world' } });
     input.setSelectionRange(11, 11);
-    fireEvent.keyDown(input, { key: 'w', ctrlKey: true });
+    fireEvent.keyDown(input, { key: 'Backspace', code: 'Backspace', altKey: true });
     expect(input.value).toBe('hello ');
 
     fireEvent.keyDown(input, { key: 'c', ctrlKey: true });
