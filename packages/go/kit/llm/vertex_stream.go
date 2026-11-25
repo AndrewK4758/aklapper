@@ -26,6 +26,17 @@ func extractVertexNonThoughtText(parts []vertexPart) string {
 	return out.String()
 }
 
+func extractVertexThoughtText(parts []vertexPart) string {
+	var out strings.Builder
+	for _, part := range parts {
+		if !part.Thought {
+			continue
+		}
+		out.WriteString(part.Text)
+	}
+	return out.String()
+}
+
 func buildVertexGeneratePayload(
 	messages []ChatMessage,
 	maxTokens int,
@@ -226,12 +237,17 @@ func (v *VertexClient) ChatStream(
 			finishReason = cand.FinishReason
 		}
 		delta := extractVertexNonThoughtText(cand.Content.Parts)
+		thoughtDelta := extractVertexThoughtText(cand.Content.Parts)
 		if delta != "" {
 			fullText.WriteString(delta)
-			if onChunk != nil {
-				if cbErr := onChunk(ChatStreamChunk{Delta: delta, FinishReason: finishReason}); cbErr != nil {
-					return cbErr
-				}
+		}
+		if (delta != "" || thoughtDelta != "") && onChunk != nil {
+			if cbErr := onChunk(ChatStreamChunk{
+				Delta:        delta,
+				ThoughtDelta: thoughtDelta,
+				FinishReason: finishReason,
+			}); cbErr != nil {
+				return cbErr
 			}
 		}
 		return nil

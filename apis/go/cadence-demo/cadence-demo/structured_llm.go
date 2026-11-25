@@ -22,6 +22,7 @@ const (
 	specStageTimeout      = 90 * time.Second
 	buildStageTimeout     = 90 * time.Second
 	stageIdleTimeout      = 75 * time.Second
+	streamLogLineFlushLen = 120
 )
 
 var (
@@ -215,9 +216,96 @@ func stripJSONCodeFence(raw string) string {
 	return trimmed
 }
 
+type streamLogForwarder struct {
+	prefix string
+	field  string
+	corrID string
+	guard  *privacy.StreamGuard
+	onLog  logEmitFn
+	line   strings.Builder
+}
+
+func newStreamLogForwarder(cfg *privacy.Config, corrID, prefix, field string, onLog logEmitFn) *streamLogForwarder {
+	return &streamLogForwarder{
+		prefix: prefix,
+		field:  field,
+		corrID: corrID,
+		guard:  privacy.NewStreamGuard(cfg, corrID),
+		onLog:  onLog,
+	}
+}
+
+func (f *streamLogForwarder) emitChunk(text string) {
+	if f.onLog == nil || text == "" {
+		return
+	}
+	for _, r := range text {
+		if r == '\r' {
+			continue
+		}
+		if r == '\n' {
+			if trimmed := strings.TrimSpace(f.line.String()); trimmed != "" {
+				f.onLog(f.prefix + trimmed)
+			}
+			f.line.Reset()
+			continue
+		}
+		f.line.WriteRune(r)
+		if f.line.Len() >= streamLogLineFlushLen && (r == ' ' || r == ',' || r == ';' || r == '>' || r == '}') {
+			if trimmed := strings.TrimSpace(f.line.String()); trimmed != "" {
+				f.onLog(f.prefix + trimmed)
+			}
+			f.line.Reset()
+		}
+	}
+}
+
+func (f *streamLogForwarder) Write(raw string) error {
+	if raw == "" {
+		return nil
+	}
+	cleaned, err := f.guard.Process(raw)
+	if err != nil {
+		if errors.Is(err, privacy.ErrPrivacyAborted) {
+			logCadenceSeam("BOUNDARY_FAULT", "cadence.privacy.stream_guard_triggered", "critical", map[string]any{
+				"ruleCategory":  "builtin_secret",
+				"action":        "abort",
+				"field":         f.field,
+				"correlationId": f.corrID,
+			})
+		}
+		return err
+	}
+	f.emitChunk(cleaned)
+	return nil
+}
+
+func (f *streamLogForwarder) Flush() error {
+	tail, err := f.guard.Flush()
+	if err != nil {
+		if errors.Is(err, privacy.ErrPrivacyAborted) {
+			logCadenceSeam("BOUNDARY_FAULT", "cadence.privacy.stream_guard_triggered", "critical", map[string]any{
+				"ruleCategory":  "builtin_secret",
+				"action":        "abort",
+				"field":         f.field,
+				"correlationId": f.corrID,
+			})
+		}
+		return err
+	}
+	f.emitChunk(tail)
+	if trimmed := strings.TrimSpace(f.line.String()); trimmed != "" && f.onLog != nil {
+		f.onLog(f.prefix + trimmed)
+	}
+	f.line.Reset()
+	return nil
+}
+
 func streamStructuredJSON(
 	ctx context.Context,
 	provider llm.Provider,
+	privacyCfg *privacy.Config,
+	corrID string,
 	req llm.ChatStreamRequest,
 	stageTag string,
 	stageLabel string,
@@ -230,6 +318,10 @@ func streamStructuredJSON(
 	var buf strings.Builder
 	var mu sync.Mutex
 	var chunkCount int
+	var thoughtChunkCount int
+
+	thoughtForwarder := newStreamLogForwarder(privacyCfg, corrID, fmt.Sprintf("[%s:thought] ", stageTag), stageTag+".thought", onLog)
+	outForwarder := newStreamLogForwarder(privacyCfg, corrID, fmt.Sprintf("[%s:out] ", stageTag), stageTag+".out", onLog)
 
 	emitProgress := func(line string) {
 		if onLog != nil {
@@ -255,10 +347,11 @@ func streamStructuredJSON(
 			case <-t.C:
 				step++
 				mu.Lock()
-				bytesSoFar := buf.Len()
-				chunks := chunkCount
+				hasLiveTokens := chunkCount > 0 || thoughtChunkCount > 0
 				mu.Unlock()
-				emitProgress(fmt.Sprintf("[%s] Generating %s (%d chunks, %d bytes buffered, tick #%d)...", stageTag, stageLabel, chunks, bytesSoFar, step))
+				if !hasLiveTokens {
+					emitProgress(fmt.Sprintf("[%s] Waiting for first token from %s (tick #%d)...", stageTag, provider.Name(), step))
+				}
 			}
 		}
 	}()
@@ -266,11 +359,22 @@ func streamStructuredJSON(
 	res, err := llm.StreamChat(ctx, provider, req, func(chunk llm.ChatStreamChunk) error {
 		mu.Lock()
 		defer mu.Unlock()
-		if buf.Len()+len(chunk.Delta) > maxStructuredLLMBytes {
-			return errStructuredBufferCap
+		if chunk.ThoughtDelta != "" {
+			thoughtChunkCount++
+			if fwErr := thoughtForwarder.Write(chunk.ThoughtDelta); fwErr != nil {
+				return fwErr
+			}
 		}
-		buf.WriteString(chunk.Delta)
-		chunkCount++
+		if chunk.Delta != "" {
+			if buf.Len()+len(chunk.Delta) > maxStructuredLLMBytes {
+				return errStructuredBufferCap
+			}
+			buf.WriteString(chunk.Delta)
+			chunkCount++
+			if fwErr := outForwarder.Write(chunk.Delta); fwErr != nil {
+				return fwErr
+			}
+		}
 		return nil
 	})
 	close(stopTicker)
@@ -279,11 +383,25 @@ func streamStructuredJSON(
 	if err != nil {
 		return "", 0, err
 	}
+	if flushErr := thoughtForwarder.Flush(); flushErr != nil {
+		return "", res.TokensUsed, flushErr
+	}
+	if flushErr := outForwarder.Flush(); flushErr != nil {
+		return "", res.TokensUsed, flushErr
+	}
 
 	rawJSON := strings.TrimSpace(buf.String())
 	if rawJSON == "" {
 		rawJSON = strings.TrimSpace(res.Text)
 	}
+	emitProgress(fmt.Sprintf(
+		"[%s] Stream complete via %s (%d tokens, %d bytes, finish=%s).",
+		stageTag,
+		nonEmptyOr(res.Model, provider.Name()),
+		res.TokensUsed,
+		len(rawJSON),
+		nonEmptyOr(res.FinishReason, "stop"),
+	))
 	return stripJSONCodeFence(rawJSON), res.TokensUsed, nil
 }
 
@@ -323,7 +441,7 @@ func invokeLLMSpecStage(
 
 	stageCtx, stageCancel := context.WithTimeout(ctx, specStageTimeout)
 	defer stageCancel()
-	rawJSON, tokensUsed, err := streamStructuredJSON(stageCtx, provider, req, "spec", "CHORD specification", onLog)
+	rawJSON, tokensUsed, err := streamStructuredJSON(stageCtx, provider, privacyCfg, corrID, req, "spec", "CHORD specification", onLog)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -389,7 +507,7 @@ func invokeLLMBuildStage(
 
 	stageCtx, stageCancel := context.WithTimeout(ctx, buildStageTimeout)
 	defer stageCancel()
-	rawJSON, tokensUsed, err := streamStructuredJSON(stageCtx, provider, req, "build", "bespoke HTML5/CSS artifact", onLog)
+	rawJSON, tokensUsed, err := streamStructuredJSON(stageCtx, provider, privacyCfg, corrID, req, "build", "bespoke HTML5/CSS artifact", onLog)
 	if err != nil {
 		return nil, 0, err
 	}

@@ -73,6 +73,7 @@ type ChatStreamRequest struct {
 
 type ChatStreamChunk struct {
 	Delta        string
+	ThoughtDelta string
 	FinishReason string
 }
 
