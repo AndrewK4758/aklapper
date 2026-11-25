@@ -32,6 +32,11 @@ export {
   type RouteErrorBoundaryViewProps,
 } from './components/RouteErrorBoundaryView';
 export {
+  RouteWorkspaceHost,
+  type RouteWorkspaceEntry,
+  type RouteWorkspaceHostProps,
+} from './components/RouteWorkspaceHost';
+export {
   SandboxedArtifactFrame,
   type SandboxedArtifactFrameProps,
 } from './components/SandboxedArtifactFrame';

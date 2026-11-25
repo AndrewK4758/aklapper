@@ -17,6 +17,7 @@ import {
 
 import { Button, Form, Input, ScrollArea, Separator, Toolbar } from '../elements/base';
 import { SolarForgeEmblem } from '../elements/SolarForgeEmblem';
+import { MAX_TERMINAL_HISTORY_ENTRIES, trimCommandHistory } from './routeWorkspaceSnapshot';
 import {
   formatTerminalClock,
   getTerminalClockSnapshot,
@@ -78,6 +79,9 @@ export interface ZshP10kTerminalProps {
   terminalForms?: Readonly<Record<string, TerminalFormConfig>>;
   quickCommands?: readonly string[];
   initialEntries?: readonly Omit<ZshTerminalHistoryItem, 'id'>[];
+  initialCommandHistory?: readonly string[];
+  maxCommandHistory?: number;
+  onCommandHistoryChange?: (history: readonly string[]) => void;
   placeholder?: string;
   initialTime?: string;
   focusOnMount?: boolean;
@@ -233,6 +237,9 @@ export function ZshP10kTerminal({
   terminalForms,
   quickCommands = [],
   initialEntries = [],
+  initialCommandHistory,
+  maxCommandHistory = MAX_TERMINAL_HISTORY_ENTRIES,
+  onCommandHistoryChange,
   placeholder = 'type a command (try: help, status)',
   initialTime = '00:00:00',
   focusOnMount = false,
@@ -256,8 +263,26 @@ export function ZshP10kTerminal({
     getTerminalClockSnapshot,
     () => initialTime,
   );
-  const [cmdHistory, setCmdHistory] = useState<string[]>([]);
+  const [cmdHistory, setCmdHistory] = useState<string[]>(() =>
+    initialCommandHistory && initialCommandHistory.length > 0
+      ? [...trimCommandHistory(initialCommandHistory, maxCommandHistory)]
+      : [],
+  );
+  const [hydratedHistorySynced, setHydratedHistorySynced] = useState(
+    () => (initialCommandHistory?.length ?? 0) > 0,
+  );
+  const [hasLocalCommand, setHasLocalCommand] = useState(false);
   const [historyCursor, setHistoryCursor] = useState<number>(-1);
+
+  if (
+    !hydratedHistorySynced &&
+    !hasLocalCommand &&
+    initialCommandHistory &&
+    initialCommandHistory.length > 0
+  ) {
+    setHydratedHistorySynced(true);
+    setCmdHistory([...trimCommandHistory(initialCommandHistory, maxCommandHistory)]);
+  }
   const [formSession, setFormSession] = useState<TerminalFormSessionState | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -523,7 +548,10 @@ export function ZshP10kTerminal({
           : 1;
       const durationLabel = `${elapsedMs}ms`;
 
-      setCmdHistory(prev => [trimmed, ...prev]);
+      const nextHistory = [...trimCommandHistory([trimmed, ...cmdHistory], maxCommandHistory)];
+      setHasLocalCommand(true);
+      setCmdHistory(nextHistory);
+      onCommandHistoryChange?.(nextHistory);
       setHistoryCursor(-1);
       setLastDuration(durationLabel);
 
@@ -599,7 +627,10 @@ export function ZshP10kTerminal({
     const durationLabel = `${elapsedMs}ms`;
     const status = result.status ?? 'ok';
 
-    setCmdHistory(prev => [trimmed, ...prev]);
+    const nextHistory = [...trimCommandHistory([trimmed, ...cmdHistory], maxCommandHistory)];
+    setHasLocalCommand(true);
+    setCmdHistory(nextHistory);
+    onCommandHistoryChange?.(nextHistory);
     setHistoryCursor(-1);
     setLastStatus(status);
     setLastDuration(durationLabel);
