@@ -169,7 +169,9 @@ func executeChordStepsWithOptions(ctx context.Context, in chordExecInput) (chord
 	emitUpdate := func(phase, agentName, status, summary string, latencyMs, progress int, payload map[string]any, spec *contracts.CadenceSpecArtifact) error {
 		var emitted contracts.CadenceTurn
 		if in.RunID != "" {
-			updated, err := in.Store.UpdateSandboxTurn(ctx, in.RunID, phase, status, summary, latencyMs, payload)
+			dbCtx, dbCancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+			updated, err := in.Store.UpdateSandboxTurn(dbCtx, in.RunID, phase, status, summary, latencyMs, payload)
+			dbCancel()
 			if err != nil {
 				return fmt.Errorf("update sandbox turn %s (%s): %w", phase, status, err)
 			}

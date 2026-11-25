@@ -170,7 +170,7 @@ func handleRunStream(deps cadenceServiceDeps) http.HandlerFunc {
 			workCancel context.CancelFunc
 		)
 		if mode == contracts.CadenceModeLLM {
-			workCtx, workCancel = context.WithTimeout(r.Context(), 90*time.Second)
+			workCtx, workCancel = context.WithTimeout(r.Context(), 180*time.Second)
 		} else {
 			workCtx, workCancel = context.WithTimeout(context.WithoutCancel(r.Context()), 15*time.Second)
 		}
@@ -347,7 +347,7 @@ func replayRun(sse *httpkit.SSEWriter, r *http.Request, store *pg.Store, role, s
 func pollActiveRun(sse *httpkit.SSEWriter, r *http.Request, store *pg.Store, role, sessionID, runID string) {
 	ticker := time.NewTicker(40 * time.Millisecond)
 	defer ticker.Stop()
-	deadline := time.NewTimer(75 * time.Second)
+	deadline := time.NewTimer(185 * time.Second)
 	defer deadline.Stop()
 
 	for {

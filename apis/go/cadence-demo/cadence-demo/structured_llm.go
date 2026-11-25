@@ -19,6 +19,9 @@ import (
 const (
 	maxStructuredLLMBytes = 96 * 1024
 	logProgressInterval   = 1200 * time.Millisecond
+	specStageTimeout      = 90 * time.Second
+	buildStageTimeout     = 90 * time.Second
+	stageIdleTimeout      = 75 * time.Second
 )
 
 var (
@@ -312,13 +315,15 @@ func invokeLLMSpecStage(
 				Content: fmt.Sprintf("Run Variation Seed: %s\nPreset: %s\nRecalled Patterns: %s\nUser Prompt: %s", nonce, nonEmptyOr(presetSlug, "custom"), patternHint, prompt),
 			},
 		},
-		MaxTokens:      1400,
+		MaxTokens:      3200,
 		Temperature:    &specTemperature,
 		ResponseSchema: structuredSpecSchema(),
-		IdleTimeout:    45 * time.Second,
+		IdleTimeout:    stageIdleTimeout,
 	}
 
-	rawJSON, tokensUsed, err := streamStructuredJSON(ctx, provider, req, "spec", "CHORD specification", onLog)
+	stageCtx, stageCancel := context.WithTimeout(ctx, specStageTimeout)
+	defer stageCancel()
+	rawJSON, tokensUsed, err := streamStructuredJSON(stageCtx, provider, req, "spec", "CHORD specification", onLog)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -376,13 +381,15 @@ func invokeLLMBuildStage(
 				),
 			},
 		},
-		MaxTokens:      3200,
+		MaxTokens:      6144,
 		Temperature:    &buildTemperature,
 		ResponseSchema: structuredBuildSchema(),
-		IdleTimeout:    45 * time.Second,
+		IdleTimeout:    stageIdleTimeout,
 	}
 
-	rawJSON, tokensUsed, err := streamStructuredJSON(ctx, provider, req, "build", "bespoke HTML5/CSS artifact", onLog)
+	stageCtx, stageCancel := context.WithTimeout(ctx, buildStageTimeout)
+	defer stageCancel()
+	rawJSON, tokensUsed, err := streamStructuredJSON(stageCtx, provider, req, "build", "bespoke HTML5/CSS artifact", onLog)
 	if err != nil {
 		return nil, 0, err
 	}
