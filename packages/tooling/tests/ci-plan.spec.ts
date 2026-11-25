@@ -174,7 +174,9 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
     expect(workflow).not.toContain('render-k8s.ts');
     expect(workflow).not.toContain('cloudsql-instances');
     expect(workflow).not.toContain('CLOUD_RUN_ALLOW_UNAUTH_ADMIN');
-    expect(workflow).not.toContain('K8S_WATCH_URL');
+    expect(workflow).not.toMatch(/K8S_WATCH_URL=/);
+    expect(workflow).toContain('PUBLIC_PORTAL_URL=${PUBLIC_PORTAL_URL}');
+    expect(workflow).toMatch(/--remove-env-vars=[^\n]*K8S_WATCH_URL/);
     expect(workflow).toContain('migrate-db:');
     expect(workflow).toContain('aklapper-db-migrate');
     expect(workflow).toContain('--network=default');

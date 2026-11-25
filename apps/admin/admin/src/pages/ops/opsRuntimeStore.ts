@@ -20,6 +20,8 @@ const SERVER_SNAPSHOT: OpsRuntimeSnapshot = {
 
 let currentSnapshot: OpsRuntimeSnapshot = SERVER_SNAPSHOT;
 let initialFetchStarted = false;
+let requestSeq = 0;
+let activeController: AbortController | null = null;
 const listeners = new Set<() => void>();
 
 function notifyListeners(): void {
@@ -33,10 +35,25 @@ function setSnapshot(next: OpsRuntimeSnapshot): void {
   notifyListeners();
 }
 
+export function resetOpsRuntimeStoreForTest(): void {
+  activeController?.abort();
+  activeController = null;
+  requestSeq += 1;
+  initialFetchStarted = false;
+  currentSnapshot = SERVER_SNAPSHOT;
+  listeners.clear();
+}
+
 async function fetchOpsRuntimeStatus(refresh: boolean): Promise<void> {
   if (typeof window === 'undefined' || typeof fetch !== 'function') {
     return;
   }
+
+  activeController?.abort();
+  const controller = new AbortController();
+  activeController = controller;
+  const seq = ++requestSeq;
+
   setSnapshot({
     ...currentSnapshot,
     loading: true,
@@ -48,7 +65,11 @@ async function fetchOpsRuntimeStatus(refresh: boolean): Promise<void> {
     const response = await fetch(endpoint, {
       method: 'GET',
       headers: { accept: 'application/json' },
+      signal: controller.signal,
     });
+    if (seq !== requestSeq) {
+      return;
+    }
     if (!response.ok) {
       setSnapshot({
         ...currentSnapshot,
@@ -58,6 +79,9 @@ async function fetchOpsRuntimeStatus(refresh: boolean): Promise<void> {
       return;
     }
     const parsed = RuntimeServiceHealthSnapshotSchema.safeParse(await response.json());
+    if (seq !== requestSeq) {
+      return;
+    }
     if (!parsed.success) {
       setSnapshot({
         ...currentSnapshot,
@@ -73,11 +97,18 @@ async function fetchOpsRuntimeStatus(refresh: boolean): Promise<void> {
       snapshot: parsed.data,
     });
   } catch {
+    if (seq !== requestSeq) {
+      return;
+    }
     setSnapshot({
       ...currentSnapshot,
       loading: false,
       error: refresh ? 'Unable to reach /api/ops/runtime/status.' : null,
     });
+  } finally {
+    if (activeController === controller) {
+      activeController = null;
+    }
   }
 }
 

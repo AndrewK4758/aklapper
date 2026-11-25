@@ -126,4 +126,86 @@ describe('@aklapper/node-runtime/runtime-health', () => {
       ),
     ).toBe(true);
   });
+
+  it('prevents slower in-flight probes from overwriting newer refresh snapshots and coalesces concurrent misses', async () => {
+    let resolveSlow!: (res: Response) => void;
+    let callCount = 0;
+
+    const mockFetch: typeof fetch = async () => {
+      callCount += 1;
+      if (callCount === 1) {
+        return new Promise<Response>(resolve => {
+          resolveSlow = resolve;
+        });
+      }
+      return Response.json({ status: 'ok', rev: 'fresh' });
+    };
+
+    const slowProbeA = probeRuntimeServices({
+      runtime: 'cloud-run',
+      services: [{ service: 'ai-ask', url: 'http://127.0.0.1:8083' }],
+      ttlMs: 60_000,
+      cacheKey: 'race-test',
+      nowMs: 2_000_000,
+      fetchImpl: mockFetch,
+    });
+    const slowProbeB = probeRuntimeServices({
+      runtime: 'cloud-run',
+      services: [{ service: 'ai-ask', url: 'http://127.0.0.1:8083' }],
+      ttlMs: 60_000,
+      cacheKey: 'race-test',
+      nowMs: 2_000_050,
+      fetchImpl: mockFetch,
+    });
+
+    expect(callCount).toBe(1);
+
+    const fastRefresh = await probeRuntimeServices({
+      runtime: 'cloud-run',
+      services: [{ service: 'ai-ask', url: 'http://127.0.0.1:8083' }],
+      ttlMs: 60_000,
+      bypassCache: true,
+      cacheKey: 'race-test',
+      nowMs: 2_000_100,
+      fetchImpl: mockFetch,
+    });
+    expect(fastRefresh.services[0]?.status).toBe('healthy');
+    expect(callCount).toBe(2);
+
+    resolveSlow(new Response('error', { status: 500 }));
+    const [resA, resB] = await Promise.all([slowProbeA, slowProbeB]);
+    expect(resA.services[0]?.status).toBe('degraded');
+    expect(resB.services[0]?.status).toBe('degraded');
+
+    const cachedAfter = await probeRuntimeServices({
+      runtime: 'cloud-run',
+      services: [{ service: 'ai-ask', url: 'http://127.0.0.1:8083' }],
+      ttlMs: 60_000,
+      cacheKey: 'race-test',
+      nowMs: 2_000_200,
+      fetchImpl: mockFetch,
+    });
+    expect(cachedAfter.cached).toBe(true);
+    expect(cachedAfter.services[0]?.status).toBe('healthy');
+    expect(callCount).toBe(2);
+  });
+
+  it('skips non-run.app OIDC warning when target sets oidcAuth: false', async () => {
+    const logs: Array<Record<string, unknown>> = [];
+    const logger = {
+      info: (entry: Record<string, unknown>) => logs.push(entry),
+      warn: (entry: Record<string, unknown>) => logs.push(entry),
+    };
+
+    const snapshot = await probeRuntimeServices({
+      runtime: 'cloud-run',
+      services: [{ service: 'portal', url: 'https://andrew-k.us', oidcAuth: false }],
+      env: { NODE_ENV: 'production' },
+      fetchImpl: async () => Response.json({ ok: true }),
+      logger,
+    });
+
+    expect(snapshot.services[0]?.status).toBe('healthy');
+    expect(logs.some(l => l['event'] === 'runtime.oidc.non_run_app_url')).toBe(false);
+  });
 });

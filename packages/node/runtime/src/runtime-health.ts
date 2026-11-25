@@ -15,6 +15,7 @@ export interface RuntimeProbeTarget {
   readonly url?: string | null;
   readonly localStatus?: RuntimeServiceHealthState;
   readonly detail?: string;
+  readonly oidcAuth?: false | 'auto';
 }
 
 export interface RuntimeHealthLogger {
@@ -38,15 +39,26 @@ export interface ProbeRuntimeServicesOptions {
 
 interface CachedRuntimeSnapshot {
   readonly expiresAtMs: number;
+  readonly generation: number;
   readonly snapshot: RuntimeServiceHealthSnapshot;
 }
 
 const DEFAULT_PROBE_TIMEOUT_MS = 1_500;
 const DEFAULT_TTL_MS = 60_000;
 const snapshotCache = new Map<string, CachedRuntimeSnapshot>();
+const inFlightProbes = new Map<string, Promise<RuntimeServiceHealthSnapshot>>();
+const cacheGenerations = new Map<string, number>();
+
+function nextCacheGeneration(cacheKey: string): number {
+  const next = (cacheGenerations.get(cacheKey) ?? 0) + 1;
+  cacheGenerations.set(cacheKey, next);
+  return next;
+}
 
 export function clearRuntimeHealthCacheForTest(): void {
   snapshotCache.clear();
+  inFlightProbes.clear();
+  cacheGenerations.clear();
 }
 
 export function detectRuntimeEnvironment(
@@ -166,7 +178,9 @@ async function probeSingleService(
     };
   }
 
+  const targetOidcAuth = target.oidcAuth ?? 'auto';
   if (
+    targetOidcAuth !== false &&
     isProductionEnv(env) &&
     trimmedUrl.toLowerCase().startsWith('https://') &&
     !shouldAttachGcpOidcToken(trimmedUrl, env)
@@ -186,7 +200,7 @@ async function probeSingleService(
     path: '/healthz',
     method: 'GET',
     timeoutMs,
-    oidcAuth: 'auto',
+    oidcAuth: targetOidcAuth,
     env,
     fetchImpl,
   });
@@ -285,36 +299,60 @@ export async function probeRuntimeServices(
         cached: true,
       };
     }
+
+    const existingInFlight = inFlightProbes.get(cacheKey);
+    if (existingInFlight) {
+      return existingInFlight;
+    }
   }
 
-  const checkedAt = new Date(nowMs).toISOString();
-  const items = await Promise.all(
-    services.map(target =>
-      probeSingleService(target, runtime, {
-        timeoutMs,
-        env,
-        fetchImpl,
-        correlationId,
-        logger,
-        checkedAt,
-      }),
-    ),
-  );
+  const probeGeneration = nextCacheGeneration(cacheKey);
+  const executeProbe = async (): Promise<RuntimeServiceHealthSnapshot> => {
+    const checkedAt = new Date(nowMs).toISOString();
+    const items = await Promise.all(
+      services.map(target =>
+        probeSingleService(target, runtime, {
+          timeoutMs,
+          env,
+          fetchImpl,
+          correlationId,
+          logger,
+          checkedAt,
+        }),
+      ),
+    );
 
-  const snapshot: RuntimeServiceHealthSnapshot = {
-    runtime,
-    services: items,
-    summaryLabel: buildSummaryLabel(runtime, items),
-    checkedAt,
-    cached: false,
+    const snapshot: RuntimeServiceHealthSnapshot = {
+      runtime,
+      services: items,
+      summaryLabel: buildSummaryLabel(runtime, items),
+      checkedAt,
+      cached: false,
+    };
+
+    if (ttlMs > 0) {
+      const existing = snapshotCache.get(cacheKey);
+      if (!existing || probeGeneration >= existing.generation) {
+        snapshotCache.set(cacheKey, {
+          expiresAtMs: nowMs + ttlMs,
+          generation: probeGeneration,
+          snapshot,
+        });
+      }
+    }
+
+    return snapshot;
   };
 
-  if (ttlMs > 0) {
-    snapshotCache.set(cacheKey, {
-      expiresAtMs: nowMs + ttlMs,
-      snapshot,
+  if (!bypassCache && ttlMs > 0) {
+    const promise = executeProbe().finally(() => {
+      if (inFlightProbes.get(cacheKey) === promise) {
+        inFlightProbes.delete(cacheKey);
+      }
     });
+    inFlightProbes.set(cacheKey, promise);
+    return promise;
   }
 
-  return snapshot;
+  return executeProbe();
 }
