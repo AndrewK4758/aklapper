@@ -1,11 +1,15 @@
 @layer page {
   .panel {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: var(--sf-space-0);
     gap: var(--sf-space-6);
   }
 
   .tabPanel {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: var(--sf-space-0);
     gap: var(--sf-space-6);
     padding-top: var(--sf-space-5);
   }
