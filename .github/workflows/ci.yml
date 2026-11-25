@@ -41,7 +41,7 @@ env:
   NODE_VERSION: 26.13.1
   GO_VERSION: '1.27'
   NX_DAEMON: 'false'
-  NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+  NX_NO_CLOUD: 'true'
 
 jobs:
   format:
