@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   AskStreamEventSchema,
+  AskStreamPreambleErrorEventSchema,
+  AskStreamPreambleEventSchema,
   consumePostSseStream,
   createSseParser,
   parseSseChunk,
@@ -201,5 +203,155 @@ describe('@aklapper/core/sse WHATWG POST SSE parser', () => {
       correlationId: 'corr-done-1',
     });
     expect(parsedDone.type).toBe('done');
+  });
+
+  it('validates preamble and preamble_error SSE events and rejects malformed payloads', () => {
+    const parsedPreamble = AskStreamEventSchema.parse({
+      type: 'preamble',
+      text: 'Looking through Andrew Klapper portfolio records now.',
+    });
+    expect(parsedPreamble).toEqual({
+      type: 'preamble',
+      text: 'Looking through Andrew Klapper portfolio records now.',
+    });
+    expect(
+      AskStreamPreambleEventSchema.safeParse({
+        type: 'preamble',
+        text: '',
+      }).success,
+    ).toBe(true);
+
+    const parsedPreambleErr = AskStreamEventSchema.parse({
+      type: 'preamble_error',
+      code: 'ERR_STREAM_TIMEOUT',
+      message: 'Quick preview timed out while searching portfolio records.',
+      action: 'Wait for the grounded answer below.',
+      correlationId: 'corr-pre-1',
+    });
+    expect(parsedPreambleErr).toEqual({
+      type: 'preamble_error',
+      code: 'ERR_STREAM_TIMEOUT',
+      message: 'Quick preview timed out while searching portfolio records.',
+      action: 'Wait for the grounded answer below.',
+      correlationId: 'corr-pre-1',
+    });
+
+    // Optional action may be omitted cleanly
+    expect(
+      AskStreamPreambleErrorEventSchema.safeParse({
+        type: 'preamble_error',
+        code: 'ERR_UPSTREAM_UNAVAILABLE',
+        message: 'Quick preview is temporarily unavailable while searching portfolio records.',
+        correlationId: 'corr-pre-2',
+      }).success,
+    ).toBe(true);
+
+    // Reject missing correlationId, empty message, or empty action string
+    expect(
+      AskStreamPreambleErrorEventSchema.safeParse({
+        type: 'preamble_error',
+        code: 'ERR_STREAM_TIMEOUT',
+        message: 'Timed out.',
+      }).success,
+    ).toBe(false);
+    expect(
+      AskStreamPreambleErrorEventSchema.safeParse({
+        type: 'preamble_error',
+        code: 'ERR_STREAM_TIMEOUT',
+        message: '',
+        correlationId: 'corr-pre-3',
+      }).success,
+    ).toBe(false);
+    expect(
+      AskStreamPreambleErrorEventSchema.safeParse({
+        type: 'preamble_error',
+        code: 'ERR_STREAM_TIMEOUT',
+        message: 'Timed out.',
+        action: '',
+        correlationId: 'corr-pre-4',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('drops queued post-abort reader chunks and subsequent frames in the same chunk without invoking onFrame', async () => {
+    const encoder = new TextEncoder();
+    const controller = new AbortController();
+    let streamController: ReadableStreamDefaultController<Uint8Array> | undefined;
+
+    const stream = new ReadableStream<Uint8Array>({
+      start(c) {
+        streamController = c;
+        c.enqueue(encoder.encode('event: sources\ndata: {"sources":[]}\n\n'));
+      },
+    });
+
+    const received: SseFrame[] = [];
+    let onSourcesReceived: (() => void) | undefined;
+    const sourcesSeen = new Promise<void>(resolveSeen => {
+      onSourcesReceived = resolveSeen;
+    });
+
+    const consumePromise = consumePostSseStream({
+      url: 'https://andrew-k.us/api/ask/stream',
+      body: { question: 'Race test' },
+      signal: controller.signal,
+      fetchImpl: async () =>
+        new Response(stream, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        }),
+      onFrame: frame => {
+        received.push(frame);
+        if (frame.event === 'sources') {
+          onSourcesReceived?.();
+        }
+      },
+    });
+
+    await sourcesSeen;
+    // Let the read loop re-enter `await reader.read()` before enqueueing + aborting in the same turn.
+    await Promise.resolve();
+    streamController?.enqueue(
+      encoder.encode(
+        'event: error\ndata: {"code":"ERR_UPSTREAM_UNAVAILABLE","status":503,"message":"fail","action":"retry","correlationId":"c-1"}\n\n',
+      ),
+    );
+    controller.abort();
+
+    const frames = await consumePromise;
+    expect(frames).toHaveLength(1);
+    expect(received.map(f => f.event)).toEqual(['sources']);
+
+    // Also verify aborting inside onFrame stops a second frame bundled in the same chunk.
+    const sameChunkController = new AbortController();
+    const sameChunkFrames: SseFrame[] = [];
+    const sameChunkStream = new ReadableStream<Uint8Array>({
+      start(c) {
+        c.enqueue(
+          encoder.encode(
+            'event: sources\ndata: {"sources":[]}\n\nevent: done\ndata: {"ok":true}\n\n',
+          ),
+        );
+        c.close();
+      },
+    });
+
+    const resultFrames = await consumePostSseStream({
+      url: 'https://andrew-k.us/api/ask/stream',
+      body: { question: 'Same chunk abort' },
+      signal: sameChunkController.signal,
+      fetchImpl: async () =>
+        new Response(sameChunkStream, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        }),
+      onFrame: frame => {
+        sameChunkFrames.push(frame);
+        sameChunkController.abort();
+      },
+    });
+
+    expect(resultFrames).toHaveLength(1);
+    expect(sameChunkFrames.map(f => f.event)).toEqual(['sources']);
   });
 });

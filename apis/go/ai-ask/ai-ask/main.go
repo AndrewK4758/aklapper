@@ -169,6 +169,13 @@ func newHandlerWithDeps(deps askStreamDeps, syncWait time.Duration) http.Handler
 	if deps.privacyCfg == nil {
 		deps.privacyCfg, _ = privacy.LoadConfig(privacy.ConfigInput{})
 	}
+	if deps.preambleTimeout <= 0 {
+		smallModel, preambleTimeout := resolvePreambleConfig()
+		if deps.smallChatModel == "" {
+			deps.smallChatModel = smallModel
+		}
+		deps.preambleTimeout = preambleTimeout
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", httpkit.NewHealthHandler("ai-ask"))
@@ -205,11 +212,14 @@ func main() {
 	}
 	defer store.Close()
 
+	smallChatModel, preambleTimeout := resolvePreambleConfig()
 	deps := askStreamDeps{
-		provider:    llm.NewFromEnv(),
-		vectorStore: qdrant.NewFromEnv(),
-		store:       store,
-		privacyCfg:  privacyCfg,
+		provider:        llm.NewFromEnv(),
+		vectorStore:     qdrant.NewFromEnv(),
+		store:           store,
+		privacyCfg:      privacyCfg,
+		smallChatModel:  smallChatModel,
+		preambleTimeout: preambleTimeout,
 	}
 	httpHandler := newHandlerWithDeps(deps, defaultSyncWaitWindow)
 	addr := httpkit.ListenAddr("8083")

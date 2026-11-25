@@ -1,4 +1,4 @@
-import type { AskResponse, QuotaStatus } from '@aklapper/core';
+import type { AskResponse, AskSource, QuotaStatus } from '@aklapper/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
@@ -30,6 +30,7 @@ export function useAskStreaming({
 }: UseAskStreamingOptions) {
   const [conversationId, setConversationId] = useState<string>('');
   const [activeStream, setActiveStream] = useState<ActiveAskStreamState | null>(null);
+  const [failedStreamSources, setFailedStreamSources] = useState<readonly AskSource[]>([]);
   const streamAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -43,6 +44,7 @@ export function useAskStreaming({
     streamAbortRef.current = null;
     clearPersistedAskTurn();
     setActiveStream(null);
+    setFailedStreamSources([]);
   };
 
   const resetConversation = () => {
@@ -67,13 +69,19 @@ export function useAskStreaming({
       setConversationId(activeConversationId);
     }
     const attemptId = generateAskAttemptId();
+    let capturedSources: readonly AskSource[] = [];
     onDispatched(attemptId);
     writePersistedAskTurn({ attemptId, mode: 'qa', question: trimmed });
+    setFailedStreamSources([]);
     setActiveStream({
       attemptId,
       conversationId: activeConversationId,
       question: trimmed,
       statusLabel: submittingLabel,
+      preambleText: '',
+      preambleError: null,
+      isPreambleLoading: true,
+      sourcesReceived: false,
       text: '',
       sources: [],
     });
@@ -86,34 +94,69 @@ export function useAskStreaming({
       visitorLens,
       signal: controller.signal,
       onStatus: label => {
+        if (controller.signal.aborted || streamAbortRef.current !== controller) return;
         setActiveStream(prev =>
           prev?.attemptId === attemptId ? { ...prev, statusLabel: label } : prev,
         );
       },
       onMeta: meta => {
+        if (controller.signal.aborted || streamAbortRef.current !== controller) return;
         if (meta.conversationId) {
           setConversationId(meta.conversationId);
         }
       },
+      onPreamble: preambleDelta => {
+        if (controller.signal.aborted || streamAbortRef.current !== controller) return;
+        setActiveStream(prev =>
+          prev?.attemptId === attemptId
+            ? {
+                ...prev,
+                preambleText: prev.preambleText + preambleDelta,
+                isPreambleLoading: false,
+              }
+            : prev,
+        );
+      },
+      onPreambleError: preambleErr => {
+        if (controller.signal.aborted || streamAbortRef.current !== controller) return;
+        setActiveStream(prev =>
+          prev?.attemptId === attemptId
+            ? { ...prev, preambleError: preambleErr, isPreambleLoading: false }
+            : prev,
+        );
+      },
       onSources: sources => {
-        setActiveStream(prev => (prev?.attemptId === attemptId ? { ...prev, sources } : prev));
+        if (controller.signal.aborted || streamAbortRef.current !== controller) return;
+        capturedSources = sources;
+        setActiveStream(prev =>
+          prev?.attemptId === attemptId
+            ? { ...prev, sources, sourcesReceived: true, isPreambleLoading: false }
+            : prev,
+        );
       },
       onDelta: deltaText => {
+        if (controller.signal.aborted || streamAbortRef.current !== controller) return;
         setActiveStream(prev =>
-          prev?.attemptId === attemptId ? { ...prev, text: prev.text + deltaText } : prev,
+          prev?.attemptId === attemptId
+            ? { ...prev, text: prev.text + deltaText, isPreambleLoading: false }
+            : prev,
         );
       },
       onDone: response => {
+        if (controller.signal.aborted || streamAbortRef.current !== controller) return;
         clearPersistedAskTurn();
         setActiveStream(null);
+        setFailedStreamSources([]);
         if (response.conversationId) {
           setConversationId(response.conversationId);
         }
         onCompleted(attemptId, trimmed, response);
       },
       onError: (errState, errQuota) => {
+        if (controller.signal.aborted || streamAbortRef.current !== controller) return;
         clearPersistedAskTurn();
         setActiveStream(null);
+        setFailedStreamSources(capturedSources.length > 0 ? capturedSources : []);
         onFailed(errState, errQuota);
       },
     });
@@ -122,6 +165,7 @@ export function useAskStreaming({
   return {
     conversationId,
     activeStream,
+    failedStreamSources,
     isStreaming: activeStream !== null,
     startStreamingQa,
     cancelStream,

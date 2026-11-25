@@ -1,7 +1,8 @@
 import { PortalAskContentSchema } from '@aklapper/core';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { streamAskQuestion } from './askStreamClient';
 import { ASK_TURN_STORAGE_KEY } from './askTurnRecovery';
 import { PortalAskPage, type PortalAskPageProps } from './PortalAskPage';
 
@@ -540,5 +541,296 @@ describe('PortalAskPage', () => {
     expect(entry.textContent).not.toContain(SAMPLE_CONTENT.boundaryFallbackNotice);
     expect(entry.textContent).not.toContain(SAMPLE_CONTENT.contactCtaLabel);
     expect(screen.getByText('general · conversational')).toBeTruthy();
+  });
+
+  it('holds loading until first preamble token, renders preamble above Live Retrieved Sources, and clears ephemeral preamble on done', async () => {
+    const encoder = new TextEncoder();
+    let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        streamController = controller;
+      },
+    });
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(stream, {
+        status: 200,
+        headers: { 'content-type': 'text/event-stream; charset=utf-8' },
+      }),
+    );
+
+    render(
+      <PortalAskPage
+        content={SAMPLE_CONTENT}
+        quota={SAMPLE_QUOTA}
+        streamEndpoint='/api/ask/stream'
+        isSubmitting={false}
+        onSubmitAsk={vi.fn<PortalAskPageProps['onSubmitAsk']>()}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('ask-starter-0'));
+    fireEvent.click(screen.getByTestId('ask-qa-submit'));
+
+    // Status + meta arrive with no preamble token yet -> loading state remains active
+    await act(async () => {
+      streamController.enqueue(
+        encoder.encode(
+          'event: status\ndata: {"stage":"retrieving","label":"Searching portfolio records..."}\n\n' +
+            'event: meta\ndata: {"attemptId":"11111111-1111-4111-8111-111111111111","conversationId":"22222222-2222-4222-8222-222222222222","turnIndex":1,"correlationId":"corr-p1","mode":"qa","provider":"local-llama-swap"}\n\n',
+        ),
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('ask-preamble-loading')).toBeTruthy();
+    });
+    expect(screen.queryByTestId('ask-preamble-feed')).toBeNull();
+
+    // Preamble arrives -> loading clears and preamble renders above Live Retrieved Sources
+    await act(async () => {
+      streamController.enqueue(
+        encoder.encode(
+          'event: preamble\ndata: {"text":"Checking Andrew\'s Cloud Run and GKE notes now."}\n\n',
+        ),
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('ask-preamble-feed').textContent).toContain(
+        "Checking Andrew's Cloud Run and GKE notes now.",
+      );
+    });
+    expect(screen.queryByTestId('ask-preamble-loading')).toBeNull();
+
+    // Sources arrive while preamble is still mounted -> preamble sits strictly above Live Retrieved Sources
+    await act(async () => {
+      streamController.enqueue(
+        encoder.encode(
+          'event: sources\ndata: {"sources":[{"id":"doc-1","title":"Cloud Run + GKE","snippet":"Hybrid topology.","score":0.94,"category":"architecture"}]}\n\n',
+        ),
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Live Retrieved Sources')).toBeTruthy();
+    });
+    const feedContainer = screen.getByTestId('ask-streaming-feed');
+    const preambleNode = screen.getByTestId('ask-preamble-feed');
+    const sourcesHeading = screen.getByText('Live Retrieved Sources');
+    expect(
+      Boolean(
+        preambleNode.compareDocumentPosition(sourcesHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ),
+    ).toBe(true);
+    expect(feedContainer.contains(preambleNode)).toBe(true);
+
+    // Delta and done arrive -> completed transcript shows grounded answer only
+    await act(async () => {
+      streamController.enqueue(
+        encoder.encode(
+          'event: delta\ndata: {"text":"Andrew runs Cloud Run SSR backed by GKE Autopilot."}\n\n' +
+            'event: done\ndata: {"attemptId":"11111111-1111-4111-8111-111111111111","conversationId":"22222222-2222-4222-8222-222222222222","turnIndex":1,"grounded":true,"abstained":false,"groundingTier":"evidence","answer":"Andrew runs Cloud Run SSR backed by GKE Autopilot.","provider":"local-llama-swap","model":"gemma-4","tokensUsed":110,"latencyMs":90,"correlationId":"corr-p1"}\n\n',
+        ),
+      );
+      streamController.close();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('ask-qa-entry')).toBeTruthy();
+    });
+    expect(screen.queryByTestId('ask-preamble-feed')).toBeNull();
+    const entry = screen.getByTestId('ask-qa-entry');
+    expect(entry.textContent).toContain('Andrew runs Cloud Run SSR backed by GKE Autopilot.');
+    expect(entry.textContent).not.toContain("Checking Andrew's Cloud Run and GKE notes now.");
+  });
+
+  it('kills loading state on preamble_error, shows non-technical message, and completes RAG + main synthesis', async () => {
+    const encoder = new TextEncoder();
+    let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        streamController = controller;
+      },
+    });
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(stream, {
+        status: 200,
+        headers: { 'content-type': 'text/event-stream; charset=utf-8' },
+      }),
+    );
+
+    render(
+      <PortalAskPage
+        content={SAMPLE_CONTENT}
+        quota={SAMPLE_QUOTA}
+        streamEndpoint='/api/ask/stream'
+        isSubmitting={false}
+        onSubmitAsk={vi.fn<PortalAskPageProps['onSubmitAsk']>()}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('ask-starter-0'));
+    fireEvent.click(screen.getByTestId('ask-qa-submit'));
+
+    await act(async () => {
+      streamController.enqueue(
+        encoder.encode(
+          'event: preamble_error\ndata: {"code":"ERR_STREAM_TIMEOUT","message":"Quick preview timed out while searching portfolio records.","action":"Wait for the grounded answer below.","correlationId":"corr-pe1"}\n\n',
+        ),
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('ask-preamble-error').textContent).toContain(
+        'Quick preview timed out while searching portfolio records.',
+      );
+    });
+    expect(screen.queryByTestId('ask-preamble-loading')).toBeNull();
+
+    await act(async () => {
+      streamController.enqueue(
+        encoder.encode(
+          'event: sources\ndata: {"sources":[{"id":"doc-2","title":"GKE Services","snippet":"Go microservices.","score":0.9,"category":"backend"}]}\n\n' +
+            'event: delta\ndata: {"text":"Grounded answer still completes cleanly."}\n\n' +
+            'event: done\ndata: {"attemptId":"11111111-1111-4111-8111-111111111112","conversationId":"22222222-2222-4222-8222-222222222223","turnIndex":1,"grounded":true,"abstained":false,"groundingTier":"evidence","answer":"Grounded answer still completes cleanly.","provider":"local-llama-swap","model":"gemma-4","tokensUsed":95,"latencyMs":110,"correlationId":"corr-pe1"}\n\n',
+        ),
+      );
+      streamController.close();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Grounded answer still completes cleanly.')).toBeTruthy();
+    });
+  });
+
+  it('retains Live Retrieved Sources alongside error banner when terminal error occurs after sources', async () => {
+    const encoder = new TextEncoder();
+    const sseBody = [
+      'event: sources\ndata: {"sources":[{"id":"doc-r1","title":"Retrieved Source One","snippet":"First snippet.","score":0.95,"category":"architecture"},{"id":"doc-r2","title":"Retrieved Source Two","snippet":"Second snippet.","score":0.88,"category":"backend"}]}\n\n',
+      'event: error\ndata: {"code":"ERR_UPSTREAM_UNAVAILABLE","status":502,"message":"Upstream service unreachable.","action":"Retry shortly or go home.","correlationId":"corr-post-src-err"}\n\n',
+    ].join('');
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(encoder.encode(sseBody));
+            controller.close();
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'text/event-stream; charset=utf-8' } },
+      ),
+    );
+
+    render(
+      <PortalAskPage
+        content={SAMPLE_CONTENT}
+        quota={SAMPLE_QUOTA}
+        streamEndpoint='/api/ask/stream'
+        isSubmitting={false}
+        onSubmitAsk={vi.fn<PortalAskPageProps['onSubmitAsk']>()}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('ask-starter-0'));
+    fireEvent.click(screen.getByTestId('ask-qa-submit'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('ask-error-banner')).toBeTruthy();
+    });
+    expect(screen.getByTestId('ask-failed-sources')).toBeTruthy();
+    expect(screen.getByText('Retrieved Source One')).toBeTruthy();
+    expect(screen.getByText('Retrieved Source Two')).toBeTruthy();
+  });
+
+  it('aborts cleanly on Cancel mid-preamble and safely ignores preamble frames for legacy callers', async () => {
+    const encoder = new TextEncoder();
+    const legacySse = [
+      'event: status\ndata: {"stage":"retrieving","label":"Searching..."}\n\n',
+      'event: preamble\ndata: {"text":"Ephemeral preamble"}\n\n',
+      'event: preamble_error\ndata: {"code":"ERR_STREAM_TIMEOUT","message":"Timed out.","correlationId":"corr-leg"}\n\n',
+      'event: sources\ndata: {"sources":[]}\n\n',
+      'event: delta\ndata: {"text":"Main grounded text."}\n\n',
+      'event: done\ndata: {"attemptId":"11111111-1111-4111-8111-111111111113","grounded":false,"abstained":false,"answer":"Main grounded text.","provider":"local-llama-swap","tokensUsed":40,"correlationId":"corr-leg"}\n\n',
+    ].join('');
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(encoder.encode(legacySse));
+            controller.close();
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'text/event-stream; charset=utf-8' } },
+      ),
+    );
+
+    let receivedDelta = '';
+    let receivedAnswer = '';
+    await streamAskQuestion({
+      url: '/api/ask/stream',
+      question: 'Test legacy compatibility',
+      attemptId: '11111111-1111-4111-8111-111111111113',
+      conversationId: '22222222-2222-4222-8222-222222222224',
+      signal: new AbortController().signal,
+      onStatus: () => undefined,
+      onMeta: () => undefined,
+      onSources: () => undefined,
+      onDelta: text => {
+        receivedDelta += text;
+      },
+      onDone: res => {
+        receivedAnswer = res.answer;
+      },
+      onError: () => {
+        throw new Error('unexpected error');
+      },
+    });
+    expect(receivedDelta).toBe('Main grounded text.');
+    expect(receivedAnswer).toBe('Main grounded text.');
+
+    // Cancel mid-preamble resets loading and preamble state
+    let cancelController!: ReadableStreamDefaultController<Uint8Array>;
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            cancelController = controller;
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'text/event-stream; charset=utf-8' } },
+      ),
+    );
+
+    render(
+      <PortalAskPage
+        content={SAMPLE_CONTENT}
+        quota={SAMPLE_QUOTA}
+        streamEndpoint='/api/ask/stream'
+        isSubmitting={false}
+        onSubmitAsk={vi.fn<PortalAskPageProps['onSubmitAsk']>()}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('ask-starter-0'));
+    fireEvent.click(screen.getByTestId('ask-qa-submit'));
+    await act(async () => {
+      cancelController.enqueue(
+        encoder.encode('event: preamble\ndata: {"text":"Starting quick preview..."}\n\n'),
+      );
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('ask-preamble-feed')).toBeTruthy();
+    });
+    fireEvent.click(screen.getByTestId('ask-stream-cancel'));
+    expect(screen.queryByTestId('ask-preamble-feed')).toBeNull();
+    expect(screen.queryByTestId('ask-streaming-feed')).toBeNull();
   });
 });

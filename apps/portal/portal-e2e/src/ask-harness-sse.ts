@@ -113,6 +113,31 @@ export async function handleMockChatCompletions(
     return;
   }
 
+  if (joined.includes('conversational preamble acknowledging')) {
+    if (joined.toLowerCase().includes('preamble error test')) {
+      writeJson(res, 503, { error: { message: 'mock small llm unavailable' } });
+      return;
+    }
+    const preambleText =
+      "Checking Andrew Klapper's portfolio architecture records while retrieving verified sources.";
+    if (body['stream'] === true) {
+      await writeMockOpenAiSseCompletion(
+        req,
+        res,
+        preambleText,
+        24,
+        joined.toLowerCase().includes('slow stream cancel'),
+      );
+      return;
+    }
+    writeJson(res, 200, {
+      model: 'gemma-4',
+      choices: [{ message: { content: preambleText } }],
+      usage: { total_tokens: 24 },
+    });
+    return;
+  }
+
   const isJdMatch = joined.includes('untrusted_job_description') || joined.includes('matchScore');
   const content = isJdMatch
     ? JSON.stringify({

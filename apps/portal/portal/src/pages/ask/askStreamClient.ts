@@ -3,6 +3,8 @@ import {
   type AskSource,
   AskStreamDoneEventSchema,
   AskStreamMetaEventSchema,
+  AskStreamPreambleErrorEventSchema,
+  AskStreamPreambleEventSchema,
   AskStreamSourcesEventSchema,
   AskStreamStatusEventSchema,
   consumePostSseStream,
@@ -13,11 +15,22 @@ import {
 
 import { type RecoveredErrorState } from './askTurnRecovery';
 
+export interface PreambleErrorState {
+  readonly code: string;
+  readonly message: string;
+  readonly action?: string;
+  readonly correlationId?: string;
+}
+
 export interface ActiveAskStreamState {
   readonly attemptId: string;
   readonly conversationId: string;
   readonly question: string;
   readonly statusLabel: string;
+  readonly preambleText: string;
+  readonly preambleError: PreambleErrorState | null;
+  readonly isPreambleLoading: boolean;
+  readonly sourcesReceived: boolean;
   readonly text: string;
   readonly sources: readonly AskSource[];
 }
@@ -31,6 +44,8 @@ export interface StreamAskQuestionOptions {
   readonly signal: AbortSignal;
   readonly onStatus: (label: string) => void;
   readonly onMeta: (meta: { conversationId?: string; turnIndex?: number }) => void;
+  readonly onPreamble?: (text: string) => void;
+  readonly onPreambleError?: (error: PreambleErrorState) => void;
   readonly onSources: (sources: readonly AskSource[]) => void;
   readonly onDelta: (deltaText: string) => void;
   readonly onDone: (response: AskResponse) => void;
@@ -62,6 +77,8 @@ export async function streamAskQuestion(options: StreamAskQuestionOptions): Prom
     signal,
     onStatus,
     onMeta,
+    onPreamble,
+    onPreambleError,
     onSources,
     onDelta,
     onDone,
@@ -85,6 +102,9 @@ export async function streamAskQuestion(options: StreamAskQuestionOptions): Prom
       credentials: 'same-origin',
       signal,
       onFrame: frame => {
+        if (signal.aborted) {
+          return;
+        }
         const parsed = parseJsonSafe(frame.data);
         if (!parsed || typeof parsed !== 'object') {
           return;
@@ -105,6 +125,30 @@ export async function streamAskQuestion(options: StreamAskQuestionOptions): Prom
             onMeta({
               conversationId: meta.data.conversationId,
               turnIndex: meta.data.turnIndex,
+            });
+          }
+          return;
+        }
+
+        if (frame.event === 'preamble') {
+          const preamble = AskStreamPreambleEventSchema.safeParse({ type: 'preamble', ...payload });
+          if (preamble.success && preamble.data.text) {
+            onPreamble?.(preamble.data.text);
+          }
+          return;
+        }
+
+        if (frame.event === 'preamble_error') {
+          const preambleErr = AskStreamPreambleErrorEventSchema.safeParse({
+            type: 'preamble_error',
+            ...payload,
+          });
+          if (preambleErr.success) {
+            onPreambleError?.({
+              code: preambleErr.data.code,
+              message: preambleErr.data.message,
+              ...(preambleErr.data.action ? { action: preambleErr.data.action } : {}),
+              correlationId: preambleErr.data.correlationId,
             });
           }
           return;

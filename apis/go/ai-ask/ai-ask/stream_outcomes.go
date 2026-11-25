@@ -145,7 +145,7 @@ func streamAbstainedTurn(
 		logAskEvent("ai_ask.turn.audit", map[string]any{
 			"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
 			"provider": deps.provider.Name(), "tokensReserved": pg.DefaultAskTurnReserveTokens,
-			"tokensUsed": 0, "deltaStatus": "refunded", "reason": "reconcile_failed",
+			"tokensUsed": 0, "preambleTokens": 0, "deltaStatus": "refunded", "reason": "reconcile_failed",
 			"correlationId": in.CorrelationID, "seam_type": "DELTA_AUDIT_GAP",
 		})
 		return
@@ -171,7 +171,7 @@ func streamAbstainedTurn(
 		"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
 		"groundingTier": contracts.GroundingTierBoundary,
 		"provider":      deps.provider.Name(), "tokensReserved": pg.DefaultAskTurnReserveTokens,
-		"tokensUsed": 0, "deltaStatus": "abstained", "correlationId": in.CorrelationID, "seam_type": "DELTA_AUDIT_GAP",
+		"tokensUsed": 0, "preambleTokens": 0, "deltaStatus": "abstained", "correlationId": in.CorrelationID, "seam_type": "DELTA_AUDIT_GAP",
 	})
 }
 
@@ -183,6 +183,8 @@ func finalizeStreamOutcome(
 	turnIndex int,
 	tier string,
 	rewriteTokens int,
+	preambleTokens int,
+	privacyPhase string,
 	in askStreamInput,
 	role, mode string,
 	sources []contracts.AskSource,
@@ -201,18 +203,22 @@ func finalizeStreamOutcome(
 			Code: contracts.ErrCodeForbidden, Status: http.StatusForbidden,
 			Message: "Permission denied for action.", Action: "Return home or sign in again.", CorrelationID: in.CorrelationID,
 		}, &quota)
-		logAskEvent("ai_ask.stream.privacy_guard_triggered", map[string]any{
+		privFields := map[string]any{
 			"seam_type":     "BOUNDARY_FAULT",
 			"severity":      "CRITICAL",
 			"attemptId":     attemptID,
 			"mode":          mode,
 			"action":        "aborted",
 			"correlationId": in.CorrelationID,
-		})
+		}
+		if privacyPhase != "" {
+			privFields["phase"] = privacyPhase
+		}
+		logAskEvent("ai_ask.stream.privacy_guard_triggered", privFields)
 		logStreamLifecycleOutcome("privacy_aborted", attemptID, in.CorrelationID)
 		logAskEvent("ai_ask.turn.audit", map[string]any{
 			"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
-			"provider": deps.provider.Name(), "tokensUsed": 0, "deltaStatus": "refunded",
+			"provider": deps.provider.Name(), "tokensUsed": 0, "preambleTokens": preambleTokens, "deltaStatus": "refunded",
 			"reason": "privacy_abort", "correlationId": in.CorrelationID, "seam_type": "DELTA_AUDIT_GAP",
 		})
 		return
@@ -229,15 +235,16 @@ func finalizeStreamOutcome(
 			logStreamLifecycleOutcome("refunded_zero_token_abort", attemptID, in.CorrelationID)
 			logAskEvent("ai_ask.turn.audit", map[string]any{
 				"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
-				"provider": deps.provider.Name(), "tokensUsed": 0, "deltaStatus": "refunded",
+				"provider": deps.provider.Name(), "tokensUsed": 0, "preambleTokens": preambleTokens, "deltaStatus": "refunded",
 				"reason": "client_aborted_zero_runes", "correlationId": in.CorrelationID, "seam_type": "DELTA_AUDIT_GAP",
 			})
 			return
 		}
-		charged := result.TokensUsed + rewriteTokens
-		if charged <= 0 {
-			charged = max(1, emittedRunes/4)
+		mainCharged := result.TokensUsed
+		if mainCharged <= 0 {
+			mainCharged = max(1, emittedRunes/4)
 		}
+		charged := mainCharged + rewriteTokens + preambleTokens
 		deltaStatus := "aborted_partial"
 		if _, recErr := deps.store.ReconcilePartialAbortTurnTx(cleanCtx, attemptID, charged, contracts.ErrCodeStreamAborted); recErr != nil {
 			deltaStatus = "reconcile_failed"
@@ -246,7 +253,7 @@ func finalizeStreamOutcome(
 		logAskEvent("ai_ask.turn.audit", map[string]any{
 			"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
 			"provider": deps.provider.Name(), "model": result.Model, "tokensUsed": charged,
-			"deltaStatus": deltaStatus, "correlationId": in.CorrelationID, "seam_type": "DELTA_AUDIT_GAP",
+			"preambleTokens": preambleTokens, "deltaStatus": deltaStatus, "correlationId": in.CorrelationID, "seam_type": "DELTA_AUDIT_GAP",
 		})
 		return
 	}
@@ -269,13 +276,13 @@ func finalizeStreamOutcome(
 		logStreamLifecycleOutcome("upstream_error", attemptID, in.CorrelationID)
 		logAskEvent("ai_ask.turn.audit", map[string]any{
 			"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
-			"provider": deps.provider.Name(), "tokensUsed": 0, "deltaStatus": "refunded",
+			"provider": deps.provider.Name(), "tokensUsed": 0, "preambleTokens": preambleTokens, "deltaStatus": "refunded",
 			"reason": "llm_stream_error", "correlationId": in.CorrelationID, "seam_type": "DELTA_AUDIT_GAP",
 		})
 		return
 	}
 
-	totalTokens := result.TokensUsed + rewriteTokens
+	totalTokens := result.TokensUsed + rewriteTokens + preambleTokens
 	isGrounded := tier != contracts.GroundingTierGeneral
 	links := defaultSuggestedLinksForTier(tier, sources, in.CorrelationID)
 	followUps := defaultFollowUpQuestionsForTier(tier)
@@ -312,7 +319,7 @@ func finalizeStreamOutcome(
 		logAskEvent("ai_ask.turn.audit", map[string]any{
 			"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
 			"provider": deps.provider.Name(), "model": result.Model, "tokensReserved": pg.DefaultAskTurnReserveTokens,
-			"tokensUsed": 0, "deltaStatus": "refunded", "reason": "reconcile_failed",
+			"tokensUsed": 0, "preambleTokens": preambleTokens, "deltaStatus": "refunded", "reason": "reconcile_failed",
 			"correlationId": in.CorrelationID, "seam_type": "DELTA_AUDIT_GAP",
 		})
 		return
@@ -340,6 +347,6 @@ func finalizeStreamOutcome(
 		"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
 		"groundingTier": tier,
 		"provider":      deps.provider.Name(), "model": result.Model, "tokensReserved": pg.DefaultAskTurnReserveTokens,
-		"tokensUsed": totalTokens, "deltaStatus": "reconciled", "correlationId": in.CorrelationID, "seam_type": "DELTA_AUDIT_GAP",
+		"tokensUsed": totalTokens, "preambleTokens": preambleTokens, "deltaStatus": "reconciled", "correlationId": in.CorrelationID, "seam_type": "DELTA_AUDIT_GAP",
 	})
 }

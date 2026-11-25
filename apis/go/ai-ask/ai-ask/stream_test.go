@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -168,12 +169,13 @@ func TestAskStreamHTTPAndGRPCContracts(t *testing.T) {
 		}
 
 		// Duplicate attemptId replays completed SSE without re-invoking LLM
+		callsBeforeReplay := provider.streamCalls.Load()
 		req2 := httptest.NewRequest(http.MethodPost, "/v1/ask/stream", bytes.NewReader(body))
 		req2.Header.Set(internalauth.HeaderName, tok)
 		rec2 := httptest.NewRecorder()
 		h.ServeHTTP(rec2, req2)
-		if rec2.Code != http.StatusOK || provider.streamCalls.Load() != 1 {
-			t.Fatalf("expected single LLM call and 200 SSE replay, calls=%d code=%d", provider.streamCalls.Load(), rec2.Code)
+		if rec2.Code != http.StatusOK || provider.streamCalls.Load() != callsBeforeReplay {
+			t.Fatalf("expected zero additional LLM calls on 200 SSE replay, before=%d after=%d code=%d", callsBeforeReplay, provider.streamCalls.Load(), rec2.Code)
 		}
 	})
 
@@ -483,6 +485,7 @@ func TestAskStreamHTTPAndGRPCContracts(t *testing.T) {
 }
 
 type recordingBudgetLLM struct {
+	mu            sync.Mutex
 	streamReqs    []llm.ChatStreamRequest
 	chatMaxTokens []int
 	chatReplies   []string
@@ -491,6 +494,8 @@ type recordingBudgetLLM struct {
 func (r *recordingBudgetLLM) Name() string { return "recording-budget-llm" }
 
 func (r *recordingBudgetLLM) Chat(_ context.Context, _ []llm.ChatMessage, maxTokens int) (llm.Completion, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.chatMaxTokens = append(r.chatMaxTokens, maxTokens)
 	reply := "Grounded answer."
 	if len(r.chatReplies) > 0 {
@@ -509,7 +514,9 @@ func (r *recordingBudgetLLM) Embed(_ context.Context, _ string) ([]float32, erro
 }
 
 func (r *recordingBudgetLLM) ChatStream(_ context.Context, req llm.ChatStreamRequest, onChunk func(llm.ChatStreamChunk) error) (llm.ChatStreamResult, error) {
+	r.mu.Lock()
 	r.streamReqs = append(r.streamReqs, req)
+	r.mu.Unlock()
 	if onChunk != nil {
 		if err := onChunk(llm.ChatStreamChunk{Delta: "Grounded stream."}); err != nil {
 			return llm.ChatStreamResult{}, err
@@ -540,8 +547,19 @@ func TestAskGenerationTokenHeadroom(t *testing.T) {
 	if streamRec.Code != http.StatusOK {
 		t.Fatalf("expected 200 for stream QA, got %d: %s", streamRec.Code, streamRec.Body.String())
 	}
-	if len(recLLM.streamReqs) != 1 || recLLM.streamReqs[0].MaxTokens != 1024 || recLLM.streamReqs[0].IncludeThoughts {
-		t.Fatalf("expected stream MaxTokens=1024 IncludeThoughts=false, got %+v", recLLM.streamReqs)
+	var sawMain1024 bool
+	for _, sreq := range recLLM.streamReqs {
+		if sreq.IncludeThoughts {
+			t.Fatalf("expected IncludeThoughts=false on all stream reqs, got %+v", sreq)
+		}
+		if sreq.MaxTokens == 1024 {
+			sawMain1024 = true
+		} else if sreq.MaxTokens != preambleMaxTokens {
+			t.Fatalf("unexpected stream MaxTokens=%d (expected 1024 or %d)", sreq.MaxTokens, preambleMaxTokens)
+		}
+	}
+	if !sawMain1024 {
+		t.Fatalf("expected main stream MaxTokens=1024 IncludeThoughts=false, got %+v", recLLM.streamReqs)
 	}
 
 	// 2. Unary QA -> maxTokens 1024

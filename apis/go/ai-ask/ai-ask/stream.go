@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 	"unicode/utf8"
 
@@ -137,6 +139,7 @@ func executeStreamingTurn(
 		Provider:       deps.provider.Name(),
 	})
 
+	var preambleResult preambleOutcome
 	refundStreamError := func(status int, errCode, msg, action, reason string) {
 		stopRenewer()
 		cleanCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), detachedCleanupTimeout)
@@ -152,16 +155,95 @@ func executeStreamingTurn(
 		logAskEvent("ai_ask.turn.audit", map[string]any{
 			"attemptId": attemptID, "sessionId": in.SessionID, "role": role, "mode": mode,
 			"provider": deps.provider.Name(), "tokensReserved": pg.DefaultAskTurnReserveTokens,
-			"tokensUsed": 0, "deltaStatus": "refunded", "reason": reason,
+			"tokensUsed": 0, "preambleTokens": preambleResult.tokensUsed, "deltaStatus": "refunded", "reason": reason,
 			"correlationId": in.CorrelationID, "seam_type": "DELTA_AUDIT_GAP",
 		})
 	}
 
-	history, _ := deps.store.ListConversationHistory(ctx, in.SessionID, convID, conversationRecallMax)
-	retrievalQuery, rewriteTokens := rewriteFollowUpQuery(ctx, deps.provider, history, queryText)
+	if isConfidentialBoundaryProbe(queryText) {
+		logAskEvent("ai_ask.preamble.boundary_suppressed", map[string]any{
+			"seam_type":     "UNSOUND_CONDITION",
+			"attemptId":     attemptID,
+			"correlationId": in.CorrelationID,
+		})
+		logAskEvent("ai_ask.preamble.outcome", map[string]any{
+			"seam_type":     "RULE_DIVERGENCE",
+			"branch":        "suppressed_boundary",
+			"attemptId":     attemptID,
+			"correlationId": in.CorrelationID,
+		})
+		logAskEvent("ai_ask.grounding.tier_selected", map[string]any{
+			"seam_type":     "RULE_DIVERGENCE",
+			"branch":        contracts.GroundingTierBoundary,
+			"mode":          mode,
+			"topDenseScore": 0.0,
+			"lexicalHits":   0,
+			"historyTurns":  0,
+			"correlationId": in.CorrelationID,
+		})
+		stopRenewer()
+		streamAbstainedTurn(ctx, deps, emitter, attemptID, convID, turnIndex, in, role, mode, 0, 0, started)
+		return nil
+	}
 
-	allowProfileFallback := isProfileOverviewIntent(queryText) && !isConfidentialBoundaryProbe(queryText)
-	hybrid, searchErr := executeHybridSearch(ctx, deps.provider, deps.vectorStore, deps.store, retrievalQuery, 6, in.CorrelationID, allowProfileFallback)
+	profileCore := resolvePinnedProfileCore(ctx, deps.store)
+	ragCtx, ragCancel := context.WithCancel(ctx)
+	defer ragCancel()
+
+	stopPreamble := func() {}
+	if emitter.SupportsPreamble() {
+		var ragDone atomic.Bool
+		preambleCtx, preambleCancel := context.WithTimeout(ctx, effectivePreambleTimeout(deps.preambleTimeout))
+		preambleDone := make(chan struct{})
+		go func() {
+			defer close(preambleDone)
+			preambleResult = runPreambleStream(ctx, preambleCtx, &ragDone, ragCancel, deps, emitter, profileCore, in, queryText)
+		}()
+		var stopPreambleOnce sync.Once
+		stopPreamble = func() {
+			stopPreambleOnce.Do(func() {
+				ragDone.Store(true)
+				preambleCancel()
+				<-preambleDone
+			})
+		}
+		defer stopPreamble()
+	} else {
+		logAskEvent("ai_ask.preamble.outcome", map[string]any{
+			"seam_type":     "RULE_DIVERGENCE",
+			"branch":        "skipped_unsupported",
+			"attemptId":     attemptID,
+			"correlationId": in.CorrelationID,
+		})
+	}
+
+	history, _ := deps.store.ListConversationHistory(ragCtx, in.SessionID, convID, conversationRecallMax)
+	retrievalQuery, rewriteTokens := rewriteFollowUpQuery(ragCtx, deps.provider, history, queryText)
+
+	allowProfileFallback := isProfileOverviewIntent(queryText)
+	hybrid, searchErr := executeHybridSearch(ragCtx, deps.provider, deps.vectorStore, deps.store, retrievalQuery, 6, in.CorrelationID, allowProfileFallback)
+	stopPreamble()
+
+	if emitter.SupportsPreamble() {
+		logAskEvent("ai_ask.preamble.outcome", map[string]any{
+			"seam_type":      "RULE_DIVERGENCE",
+			"branch":         preambleResult.branch,
+			"preambleTokens": preambleResult.tokensUsed,
+			"attemptId":      attemptID,
+			"correlationId":  in.CorrelationID,
+		})
+	}
+
+	if preambleResult.privacyAborted {
+		stopRenewer()
+		finalizeStreamOutcome(
+			ctx, deps, emitter, attemptID, convID, turnIndex, contracts.GroundingTierBoundary, rewriteTokens,
+			preambleResult.tokensUsed, "preamble",
+			in, role, mode, nil, "", llm.ChatStreamResult{}, privacy.ErrPrivacyAborted, started,
+		)
+		return nil
+	}
+
 	if searchErr != nil {
 		if errors.Is(ctx.Err(), context.Canceled) || errors.Is(searchErr, context.Canceled) {
 			refundStreamError(499, contracts.ErrCodeStreamAborted,
@@ -195,7 +277,6 @@ func executeStreamingTurn(
 		return nil
 	}
 
-	profileCore := resolvePinnedProfileCore(ctx, deps.store)
 	sources, evidenceCtx := buildStreamingPromptContext(tier, profileCore, hybrid)
 	_ = emitter.EmitSources(sources)
 	genStatusLabel := "Synthesizing grounded response..."
@@ -246,6 +327,7 @@ func executeStreamingTurn(
 
 	finalizeStreamOutcome(
 		ctx, deps, emitter, attemptID, convID, turnIndex, tier, rewriteTokens,
+		preambleResult.tokensUsed, "main",
 		in, role, mode, sources, postGuard.String(), streamResult, streamErr, started,
 	)
 	return nil

@@ -30,6 +30,8 @@ type askStreamDeps struct {
 	privacyCfg         *privacy.Config
 	heartbeatInterval  time.Duration
 	leaseRenewInterval time.Duration
+	smallChatModel     string
+	preambleTimeout    time.Duration
 }
 
 type askStreamInput struct {
@@ -75,10 +77,13 @@ type askStreamDone struct {
 type streamEmitter interface {
 	EmitStatus(stage, label string) error
 	EmitMeta(meta askStreamMeta) error
+	EmitPreambleDelta(text string) error
+	EmitPreambleError(pubErr contracts.PublicAppError) error
 	EmitSources(sources []contracts.AskSource) error
 	EmitDelta(text string) error
 	EmitDone(done askStreamDone) error
 	EmitError(pubErr contracts.PublicAppError, quota *contracts.QuotaStatus) error
+	SupportsPreamble() bool
 }
 
 type streamSyncFailure struct {
@@ -101,6 +106,26 @@ func (e *sseStreamEmitter) EmitStatus(stage, label string) error {
 
 func (e *sseStreamEmitter) EmitMeta(meta askStreamMeta) error {
 	return e.writer.WriteEvent("meta", meta)
+}
+
+func (e *sseStreamEmitter) EmitPreambleDelta(text string) error {
+	return e.writer.WriteEvent("preamble", map[string]string{"text": text})
+}
+
+func (e *sseStreamEmitter) EmitPreambleError(pubErr contracts.PublicAppError) error {
+	payload := map[string]any{
+		"code":          pubErr.Code,
+		"message":       pubErr.Message,
+		"correlationId": pubErr.CorrelationID,
+	}
+	if strings.TrimSpace(pubErr.Action) != "" {
+		payload["action"] = pubErr.Action
+	}
+	return e.writer.WriteEvent("preamble_error", payload)
+}
+
+func (e *sseStreamEmitter) SupportsPreamble() bool {
+	return true
 }
 
 func (e *sseStreamEmitter) EmitSources(sources []contracts.AskSource) error {

@@ -103,8 +103,8 @@ func TestGeneralTierStreamingUnaryAndBoundaries(t *testing.T) {
 		if rec.Code != http.StatusOK {
 			t.Fatalf("expected 200 SSE, got %d: %s", rec.Code, body)
 		}
-		if prov.streamCalls != 1 {
-			t.Fatalf("expected 1 StreamChat call, got %d", prov.streamCalls)
+		if prov.streamCalls < 1 || prov.streamCalls > 2 {
+			t.Fatalf("expected 1-2 StreamChat calls (preamble + main), got %d", prov.streamCalls)
 		}
 		if !strings.Contains(body, `"label":"Chatting with Andrew's AI..."`) {
 			t.Fatalf("expected conversational status label, got body:\n%s", body)
@@ -132,8 +132,8 @@ func TestGeneralTierStreamingUnaryAndBoundaries(t *testing.T) {
 		}
 
 		turn, _, err := store.GetTurnByAttemptID(context.Background(), attemptID, "guest-general-stream")
-		if err != nil || turn.Status != contracts.TurnStatusCompleted || turn.TokensUsed != 37 {
-			t.Fatalf("expected completed general turn with 37 tokens, got turn=%+v err=%v", turn, err)
+		if err != nil || turn.Status != contracts.TurnStatusCompleted || turn.TokensUsed < 37 {
+			t.Fatalf("expected completed general turn with >=37 tokens (main + optional preamble), got turn=%+v err=%v", turn, err)
 		}
 		logText := logs.String()
 		if !strings.Contains(logText, `"event":"ai_ask.grounding.tier_selected"`) || !strings.Contains(logText, `"branch":"general"`) {
