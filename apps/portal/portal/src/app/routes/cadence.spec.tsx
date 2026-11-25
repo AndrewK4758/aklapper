@@ -12,7 +12,7 @@ import {
   type PortalCadenceLoaderData,
   type QuotaStatus,
 } from '@aklapper/core';
-import { GUEST_SESSION_COOKIE_NAME } from '@aklapper/node-runtime/auth';
+import { GUEST_SESSION_COOKIE_NAME, signGuestSessionCookie } from '@aklapper/node-runtime/auth';
 import { INTERNAL_AUTH_HEADER } from '@aklapper/node-runtime/http';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -468,7 +468,7 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
   });
 
   it('initializes durable 202 pending runs, streams live phases via SSE, replays cleanly, and enforces gate ownership', async () => {
-    const cookie = `${GUEST_SESSION_COOKIE_NAME}=guest_session_alpha123`;
+    const cookie = `${GUEST_SESSION_COOKIE_NAME}=${signGuestSessionCookie('guest_session_alpha123')}`;
     const initRes = unwrapDataResult(
       await action(
         makeActionArgs(
@@ -512,7 +512,10 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
 
     // Cross-session cookie -> 403.
     const crossSession = await streamLoader(
-      makeStreamArgs(runId, `${GUEST_SESSION_COOKIE_NAME}=guest_session_beta9999`),
+      makeStreamArgs(
+        runId,
+        `${GUEST_SESSION_COOKIE_NAME}=${signGuestSessionCookie('guest_session_beta9999')}`,
+      ),
     );
     expect(crossSession.status).toBe(403);
 
@@ -546,7 +549,7 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
       await action(
         makeActionArgs(
           { intent: 'gate', runId, verdict: 'approved' },
-          `${GUEST_SESSION_COOKIE_NAME}=guest_session_beta9999`,
+          `${GUEST_SESSION_COOKIE_NAME}=${signGuestSessionCookie('guest_session_beta9999')}`,
         ),
       ),
     );
@@ -564,7 +567,7 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
   });
 
   it('honors legacy synchronous 201 upstream responses, fails closed on 502 schema errors, propagates 4xx, and falls back only on 502/504', async () => {
-    const cookie = `${GUEST_SESSION_COOKIE_NAME}=guest_session_upstream1`;
+    const cookie = `${GUEST_SESSION_COOKIE_NAME}=${signGuestSessionCookie('guest_session_upstream1')}`;
     process.env['CADENCE_DEMO_URL'] = 'http://cadence-demo.internal';
 
     // 1. Legacy synchronous 201 (omitted runStatus) preserves immediate ready intent.
@@ -650,7 +653,7 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
   });
 
   it('enforces atomic 429 quota caps with zero orphan rows and handles concurrent CAS + mid-stream failure', async () => {
-    const cookie = `${GUEST_SESSION_COOKIE_NAME}=guest_session_quota123`;
+    const cookie = `${GUEST_SESSION_COOKIE_NAME}=${signGuestSessionCookie('guest_session_quota123')}`;
     for (let i = 0; i < 5; i++) {
       const ok = unwrapDataResult(
         await action(
@@ -676,7 +679,7 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
     expect(stateStore.runs.size).toBe(5);
 
     // Mid-stream failure transitions runStatus -> failed, emits static safe SSE/DB summary, and logs raw detail server-side only.
-    const abortCookie = `${GUEST_SESSION_COOKIE_NAME}=guest_session_abort999`;
+    const abortCookie = `${GUEST_SESSION_COOKIE_NAME}=${signGuestSessionCookie('guest_session_abort999')}`;
     const initAbort = unwrapDataResult(
       await action(
         makeActionArgs(
@@ -700,7 +703,7 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
     expect(errSpy).toHaveBeenCalledWith(expect.stringContaining('Injected phase fault'));
 
     // Concurrent single-claim test: second stream emits invalid_claim_state and waits for completion.
-    const casCookie = `${GUEST_SESSION_COOKIE_NAME}=guest_session_cas99999`;
+    const casCookie = `${GUEST_SESSION_COOKIE_NAME}=${signGuestSessionCookie('guest_session_cas99999')}`;
     const initCas = unwrapDataResult(
       await action(
         makeActionArgs(
@@ -721,7 +724,7 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('UNSOUND_CONDITION'));
 
     // Client disconnect / ReadableStream cancel mid-stream must NOT corrupt healthy run to failed.
-    const cancelCookie = `${GUEST_SESSION_COOKIE_NAME}=guest_session_cancel77`;
+    const cancelCookie = `${GUEST_SESSION_COOKIE_NAME}=${signGuestSessionCookie('guest_session_cancel77')}`;
     const initCancel = unwrapDataResult(
       await action(
         makeActionArgs(
@@ -740,7 +743,7 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
   });
 
   it('attaches X-Internal-Auth on upstream proxy calls and preserves 503 GCP_OIDC_TOKEN_UNAVAILABLE without falling back', async () => {
-    const cookie = `${GUEST_SESSION_COOKIE_NAME}=guest_session_auth001`;
+    const cookie = `${GUEST_SESSION_COOKIE_NAME}=${signGuestSessionCookie('guest_session_auth001')}`;
     const runId = '66666666-6666-4666-8666-666666666666';
     process.env['CADENCE_DEMO_URL'] = 'http://cadence-demo.internal';
 
@@ -847,7 +850,7 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
   });
 
   it('fails closed with structured 500 responses when INTERNAL_AUTH_SECRET is missing in production', async () => {
-    const cookie = `${GUEST_SESSION_COOKIE_NAME}=guest_session_prod001`;
+    const cookie = `${GUEST_SESSION_COOKIE_NAME}=${signGuestSessionCookie('guest_session_prod001')}`;
     const runId = '77777777-7777-4777-8777-777777777777';
     const prevNodeEnv = process.env['NODE_ENV'];
     const prevSecret = process.env['INTERNAL_AUTH_SECRET'];
@@ -896,7 +899,7 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
   });
 
   it('logs diagnostics and emits a safe SSE error event when DB fails inside ReadableStream.start', async () => {
-    const cookie = `${GUEST_SESSION_COOKIE_NAME}=guest_session_dbfail1`;
+    const cookie = `${GUEST_SESSION_COOKIE_NAME}=${signGuestSessionCookie('guest_session_dbfail1')}`;
     const initRes = unwrapDataResult(
       await action(
         makeActionArgs(
@@ -926,7 +929,7 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
   });
 
   it('persists promptHash on fallback init and records executionMode as fallback for llm or fast for fast streams', async () => {
-    const cookie = `${GUEST_SESSION_COOKIE_NAME}=guest_session_meta123`;
+    const cookie = `${GUEST_SESSION_COOKIE_NAME}=${signGuestSessionCookie('guest_session_meta123')}`;
     const createMock = vi.mocked(createPendingSandboxRunWithQuota);
     const completeMock = vi.mocked(completeSandboxRunRow);
     createMock.mockClear();

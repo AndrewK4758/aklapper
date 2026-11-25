@@ -434,7 +434,10 @@ func main() {
 	}
 	_ = llm.IsDevUnlimitedEnabled()
 
-	store := pg.OpenBestEffort(context.Background())
+	store, err := pg.OpenServiceFromEnv(context.Background())
+	if err != nil {
+		log.Fatalf("cadence-demo failed to initialize PostgreSQL store: %v", err)
+	}
 	defer store.Close()
 
 	deps := cadenceServiceDeps{

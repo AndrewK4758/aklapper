@@ -8,6 +8,7 @@ import {
 } from 'node:crypto';
 
 import { isProductionEnv } from './http-hygiene.ts';
+import { resolveInternalAuthSecret } from './http.ts';
 
 export {
   ARGON2ID_DEFAULTS,
@@ -361,4 +362,46 @@ export function buildDailyAnalyticsSalt(
 
 export function hashVisitorIp(ip: string, dailySalt = buildDailyAnalyticsSalt()): string {
   return createHash('sha256').update(`${dailySalt}:${ip}`).digest('hex').slice(0, 24);
+}
+
+const GUEST_SESSION_ID_RE = /^[a-zA-Z0-9_-]{8,96}$/;
+const GUEST_SESSION_HMAC_DOMAIN = 'aklapper:guest-session:v1';
+
+function resolveGuestSessionHmacKey(explicitSecret?: string): Buffer {
+  const dedicated = explicitSecret?.trim() || process.env['GUEST_SESSION_SECRET']?.trim();
+  const baseSecret = dedicated || resolveInternalAuthSecret();
+  return createHmac('sha256', baseSecret).update(GUEST_SESSION_HMAC_DOMAIN).digest();
+}
+
+export function signGuestSessionCookie(sessionId: string, explicitSecret?: string): string {
+  const trimmed = sessionId.trim();
+  if (!GUEST_SESSION_ID_RE.test(trimmed)) {
+    throw new Error('Guest session ID does not match allowed format');
+  }
+  const key = resolveGuestSessionHmacKey(explicitSecret);
+  const sig = createHmac('sha256', key).update(trimmed).digest('base64url');
+  return `${trimmed}.${sig}`;
+}
+
+export function verifyGuestSessionCookie(
+  cookieValue: string | null | undefined,
+  explicitSecret?: string,
+): string | null {
+  if (!cookieValue) return null;
+  const trimmed = cookieValue.trim();
+  const dotIdx = trimmed.indexOf('.');
+  if (dotIdx <= 0 || dotIdx !== trimmed.lastIndexOf('.')) {
+    return null;
+  }
+  const sessionId = trimmed.slice(0, dotIdx);
+  const providedSig = trimmed.slice(dotIdx + 1);
+  if (!GUEST_SESSION_ID_RE.test(sessionId) || providedSig.length < 32) {
+    return null;
+  }
+  const key = resolveGuestSessionHmacKey(explicitSecret);
+  const expectedSig = createHmac('sha256', key).update(sessionId).digest('base64url');
+  if (!timingSafeStringEqual(providedSig, expectedSig)) {
+    return null;
+  }
+  return sessionId;
 }

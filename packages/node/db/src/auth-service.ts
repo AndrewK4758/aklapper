@@ -16,7 +16,9 @@ import {
   parseArgon2idPhc,
   parseCookieHeader,
   serializeSessionCookie,
+  signGuestSessionCookie,
   verifyBackupCode,
+  verifyGuestSessionCookie,
   verifyPasswordArgon2id,
   verifyTotpCode,
 } from '@aklapper/node-runtime/auth';
@@ -238,7 +240,7 @@ async function resolveAnySession(db: AppDatabase, cookieHeader?: string | null) 
     const adminRecord = await getValidAuthSession(db, adminSessionId);
     if (adminRecord) return adminRecord;
   }
-  const guestSessionId = cookies[GUEST_SESSION_COOKIE_NAME];
+  const guestSessionId = verifyGuestSessionCookie(cookies[GUEST_SESSION_COOKIE_NAME]);
   if (guestSessionId) {
     const guestRecord = await getValidAuthSession(db, guestSessionId);
     if (guestRecord) return guestRecord;
@@ -288,10 +290,14 @@ export async function dispatchAuthAction(
       status: 201,
       body: session,
       cookies: [
-        serializeSessionCookie(GUEST_SESSION_COOKIE_NAME, session.sessionId, {
-          maxAgeSeconds: GUEST_SESSION_TTL_MS / 1000,
-          secure: secureCookie,
-        }),
+        serializeSessionCookie(
+          GUEST_SESSION_COOKIE_NAME,
+          signGuestSessionCookie(session.sessionId),
+          {
+            maxAgeSeconds: GUEST_SESSION_TTL_MS / 1000,
+            secure: secureCookie,
+          },
+        ),
       ],
     };
   }
@@ -322,7 +328,10 @@ export async function dispatchAuthAction(
     const cookies = parseCookieHeader(req.cookieHeader);
     await Promise.all([
       revokeAuthSession(db, cookies[ADMIN_SESSION_COOKIE_NAME]),
-      revokeAuthSession(db, cookies[GUEST_SESSION_COOKIE_NAME]),
+      revokeAuthSession(
+        db,
+        verifyGuestSessionCookie(cookies[GUEST_SESSION_COOKIE_NAME]) ?? undefined,
+      ),
     ]);
     return {
       status: 200,

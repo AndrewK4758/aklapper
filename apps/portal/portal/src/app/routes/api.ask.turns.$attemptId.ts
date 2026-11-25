@@ -8,20 +8,43 @@ import {
   logDiagnosticError,
 } from '@aklapper/node-runtime/ssr/stream';
 
-import { resolveGuestSession } from '../guest-session.server';
+import { requireGuestSession } from '../guest-session.server';
 import type { Route } from './+types/api.ask.turns.$attemptId';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function loader({ request, params, context }: Route.LoaderArgs): Promise<Response> {
-  const { sessionId, setCookieHeader } = resolveGuestSession(request);
   const reqCtx = getRequestContext(context);
   const correlationId = getOrCreateCorrelationId(request, context);
   const logger = reqCtx?.logger ?? createFallbackLogger('portal-ask-turn-poll');
   const headers: Record<string, string> = {
     'X-Correlation-Id': correlationId,
-    ...(setCookieHeader ? { 'Set-Cookie': setCookieHeader } : {}),
   };
+
+  let sessionId: string | null;
+  try {
+    sessionId = requireGuestSession(request);
+  } catch (error) {
+    const { publicError, diagnostic } = classifyServerError(error, {
+      correlationId,
+      source: 'portal.ask.turn_poll.session',
+    });
+    logDiagnosticError(logger, diagnostic);
+    return Response.json(publicError, { status: publicError.status, headers });
+  }
+
+  if (!sessionId) {
+    return Response.json(
+      createPublicAppError({
+        code: 'ERR_UNAUTHORIZED',
+        status: 401,
+        message: 'Valid guest session cookie is required.',
+        action: 'Open /chat to establish a session and retry.',
+        correlationId,
+      }),
+      { status: 401, headers },
+    );
+  }
 
   const attemptId = (params.attemptId ?? '').trim();
   if (!UUID_RE.test(attemptId)) {

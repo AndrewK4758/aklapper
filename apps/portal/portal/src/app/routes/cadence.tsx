@@ -1,9 +1,11 @@
+import { classifyServerError } from '@aklapper/core/server-errors';
 import { loadPortalCadenceDataWithPrerender } from '@aklapper/db';
 import {
   createFallbackLogger,
   deferStreamResult,
   getOrCreateCorrelationId,
   getRequestContext,
+  logDiagnosticError,
 } from '@aklapper/node-runtime/ssr/stream';
 import { RouteErrorBoundaryView } from '@aklapper/ui';
 import { data, href } from 'react-router';
@@ -40,14 +42,9 @@ export function loader({ request, context }: Route.LoaderArgs) {
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
-  const { sessionId, setCookieHeader } = resolveGuestSession(request);
   const reqCtx = getRequestContext(context);
   const correlationId = getOrCreateCorrelationId(request, context);
   const logger = reqCtx?.logger ?? createFallbackLogger('portal-cadence');
-  const headers: Record<string, string> = {
-    'X-Correlation-Id': correlationId,
-    ...(setCookieHeader ? { 'Set-Cookie': setCookieHeader } : {}),
-  };
 
   let formData: FormData;
   try {
@@ -62,9 +59,42 @@ export async function action({ request, context }: Route.ActionArgs) {
         action: 'Review your prompt and retry.',
         correlationId,
       },
-      { status: 400, headers },
+      { status: 400, headers: { 'X-Correlation-Id': correlationId } },
     );
   }
+
+  const rawIntent = String(formData.get('intent') ?? 'run').trim();
+  const intent: PortalCadenceActionResult['intent'] =
+    rawIntent === 'reset' || rawIntent === 'spec-approve' || rawIntent === 'gate'
+      ? rawIntent
+      : 'run';
+
+  let sessionId: string;
+  let setCookieHeader: string | undefined;
+  try {
+    ({ sessionId, setCookieHeader } = resolveGuestSession(request));
+  } catch (error) {
+    const { publicError, diagnostic } = classifyServerError(error, {
+      correlationId,
+      source: 'portal.cadence.action.session',
+    });
+    logDiagnosticError(logger, diagnostic);
+    return data<PortalCadenceActionResult>(
+      {
+        ok: false,
+        intent,
+        error: publicError.message,
+        code: publicError.code,
+        action: publicError.action,
+        correlationId: publicError.correlationId,
+      },
+      { status: publicError.status, headers: { 'X-Correlation-Id': correlationId } },
+    );
+  }
+  const headers: Record<string, string> = {
+    'X-Correlation-Id': correlationId,
+    ...(setCookieHeader ? { 'Set-Cookie': setCookieHeader } : {}),
+  };
 
   const actionCtx = {
     sessionId,
@@ -73,7 +103,6 @@ export async function action({ request, context }: Route.ActionArgs) {
     headers,
     cadenceDemoUrl: process.env['CADENCE_DEMO_URL']?.trim(),
   };
-  const intent = String(formData.get('intent') ?? 'run').trim();
 
   if (intent === 'reset') {
     return handleCadenceResetAction(actionCtx);

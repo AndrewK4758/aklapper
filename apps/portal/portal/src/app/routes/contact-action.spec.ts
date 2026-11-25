@@ -14,11 +14,19 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const {
   getSharedDbMock,
+  consumeRateLimitMock,
   loadPortalContactDataMock,
   insertContactSubmissionMock,
   handleAnalyticsIngestRequestMock,
 } = vi.hoisted(() => ({
   getSharedDbMock: vi.fn<() => Record<string, never>>(() => ({})),
+  consumeRateLimitMock: vi.fn<
+    (
+      db: unknown,
+      scopeKey: string,
+      options: { maxAttempts: number; windowMs: number },
+    ) => Promise<{ allowed: boolean; remaining: number; retryAfterSeconds: number }>
+  >(async () => ({ allowed: true, remaining: 19, retryAfterSeconds: 60 })),
   loadPortalContactDataMock: vi.fn<() => Promise<PortalContactLoaderData>>(),
   insertContactSubmissionMock:
     vi.fn<(db: unknown, submission: ContactFormSubmission) => Promise<ContactSubmissionSummary>>(),
@@ -30,6 +38,7 @@ vi.mock('@aklapper/db', async importOriginal => {
   return {
     ...actual,
     getSharedDb: getSharedDbMock,
+    consumeRateLimit: consumeRateLimitMock,
     loadPortalContactData: loadPortalContactDataMock,
     insertContactSubmission: insertContactSubmissionMock,
   };
@@ -155,28 +164,47 @@ describe('processContactSubmission & resource action routes', () => {
     expect(insertContactSubmissionMock).not.toHaveBeenCalled();
   });
 
-  it('returns 429 ERR_RATE_LIMITED after 20 requests from the same client IP', async () => {
+  it('returns 429 ERR_RATE_LIMITED with Retry-After and hashes rightmost X-Forwarded-For IP', async () => {
     loadPortalContactDataMock.mockResolvedValue(CONTACT_LOADER_FIXTURE);
+    consumeRateLimitMock.mockResolvedValueOnce({
+      allowed: false,
+      remaining: 0,
+      retryAfterSeconds: 42,
+    });
     const badFd = new FormData();
-    for (let i = 0; i < 20; i += 1) {
-      await processContactSubmission(
-        makeRequest(async () => badFd, { 'x-forwarded-for': '203.0.113.10' }),
-        { correlationId: `corr-burst-${i}` },
-      );
-    }
-
     const limited = await processContactSubmission(
-      makeRequest(async () => badFd, { 'x-forwarded-for': '203.0.113.10' }),
+      makeRequest(async () => badFd, { 'x-forwarded-for': '198.51.100.1, 203.0.113.10' }),
       { correlationId: 'corr-429' },
     );
     expect(limited.status).toBe(429);
+    expect(limited.retryAfterSeconds).toBe(42);
     expect(limited.payload).toMatchObject({
       ok: false,
       source: 'server',
       code: 'ERR_RATE_LIMITED',
       correlationId: 'corr-429',
     });
+    const expectedDigest = createHash('sha256').update('203.0.113.10').digest('hex').slice(0, 32);
+    expect(consumeRateLimitMock).toHaveBeenCalledWith(
+      expect.anything(),
+      `contact:ip:${expectedDigest}`,
+      { maxAttempts: 20, windowMs: 60_000 },
+    );
     expect(insertContactSubmissionMock).not.toHaveBeenCalled();
+
+    consumeRateLimitMock.mockRejectedValueOnce(
+      Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:5439'), { code: 'ECONNREFUSED' }),
+    );
+    const failedClosed = await processContactSubmission(
+      makeRequest(async () => badFd, { 'x-forwarded-for': '203.0.113.10' }),
+      { correlationId: 'corr-503-rl' },
+    );
+    expect(failedClosed.status).toBe(503);
+    expect(failedClosed.payload).toMatchObject({
+      ok: false,
+      code: 'ERR_DB_UNAVAILABLE',
+      correlationId: 'corr-503-rl',
+    });
   });
 
   it('commits valid multipart submissions with SHA-256 digest and returns 201', async () => {

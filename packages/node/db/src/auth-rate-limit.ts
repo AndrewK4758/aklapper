@@ -61,3 +61,5 @@ export async function consumeAuthRateLimit(
     retryAfterSeconds,
   };
 }
+
+export const consumeRateLimit = consumeAuthRateLimit;

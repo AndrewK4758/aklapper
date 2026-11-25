@@ -484,3 +484,43 @@ func TestMemoryStorePendingRunLifecycleAndCAS(t *testing.T) {
 		t.Fatalf("expected failed status after FailSandboxRun, got %+v err=%v", fetched, err)
 	}
 }
+
+func TestValidateDSNRedactsCredentials(t *testing.T) {
+	err := ValidateDSN("postgres://admin:super-secret-pass@bad host:5432/db")
+	if err == nil {
+		t.Fatal("expected ValidateDSN error on malformed URI")
+	}
+	if strings.Contains(err.Error(), "super-secret-pass") {
+		t.Fatalf("expected ValidateDSN error to redact credentials, got %q", err.Error())
+	}
+}
+
+func TestOpenServiceFromEnvFailsClosedInProduction(t *testing.T) {
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("PG_DISABLE_LIVE", "true")
+	t.Setenv("DATABASE_URL", "")
+	store, err := OpenServiceFromEnv(context.Background())
+	if err == nil || store != nil {
+		t.Fatalf("expected OpenServiceFromEnv to fail closed in production even with PG_DISABLE_LIVE=true, got store=%v err=%v", store, err)
+	}
+
+	t.Setenv("APP_ENV", "development")
+	t.Setenv("NODE_ENV", "development")
+	store, err = OpenServiceFromEnv(context.Background())
+	if err != nil || store == nil || store.IsLivePG() {
+		t.Fatalf("expected non-production OpenServiceFromEnv with PG_DISABLE_LIVE=true to return memory store, got store=%v err=%v", store, err)
+	}
+}
+
+func TestOpenBoundedStartupRetryRespectsContextCancel(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Millisecond)
+	defer cancel()
+	_, err := Open(ctx, Config{
+		DatabaseURL:          "postgres://postgres:postgres@127.0.0.1:1/aklapper?sslmode=disable",
+		StartupMaxAttempts:   5,
+		StartupRetryInterval: 50 * time.Millisecond,
+	})
+	if err == nil {
+		t.Fatal("expected Open to fail on unreachable port")
+	}
+}
