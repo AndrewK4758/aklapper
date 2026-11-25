@@ -36,9 +36,10 @@ name: GCP Production Deploy
 #   - VERTEX_MODEL                   : Vertex AI generation model ID
 #   - VERTEX_EMBED_MODEL             : Vertex AI embedding model ID
 #   - ADMIN_HANDLE                   : Target admin handle when running `seed_admin=true` (default: 'admin')
-#   - AGENSI_API_BASE_URL            : https://agensi.io
-#   - AGENSI_API_PATH                : /api/creators/aklapper
+#   - AGENSI_API_BASE_URL            : https://www.agensi.io
+#   - AGENSI_API_PATH                : /creators/aklapper
 #   - AGENSI_CREATOR_HANDLE          : aklapper
+#   - AGENSI_SYNC_DISABLED           : 'true' | 'false' (optional, default: 'false')
 #   - AGENSI_CACHE_TTL_SECONDS       : 300
 #   - AGENSI_FETCH_TIMEOUT_MS        : 1800
 #   - PORTAL_MAINTENANCE_MODE        : 'true' | 'false' (default: 'false')
@@ -557,9 +558,10 @@ jobs:
             CADENCE_DEMO_URL=${{ vars.CADENCE_DEMO_URL || '' }}
             AI_ASK_URL=${{ vars.AI_ASK_URL || '' }}
             CONTACT_API_URL=${{ vars.CONTACT_API_URL || '' }}
-            AGENSI_API_BASE_URL=${{ vars.AGENSI_API_BASE_URL || 'https://agensi.io' }}
-            AGENSI_API_PATH=${{ vars.AGENSI_API_PATH || '/api/creators/aklapper' }}
+            AGENSI_API_BASE_URL=${{ vars.AGENSI_API_BASE_URL || 'https://www.agensi.io' }}
+            AGENSI_API_PATH=${{ vars.AGENSI_API_PATH || '/creators/aklapper' }}
             AGENSI_CREATOR_HANDLE=${{ vars.AGENSI_CREATOR_HANDLE || 'aklapper' }}
+            AGENSI_SYNC_DISABLED=${{ vars.AGENSI_SYNC_DISABLED || 'false' }}
             AGENSI_CACHE_TTL_SECONDS=${{ vars.AGENSI_CACHE_TTL_SECONDS || '300' }}
             AGENSI_FETCH_TIMEOUT_MS=${{ vars.AGENSI_FETCH_TIMEOUT_MS || '1800' }}
           flags: >-
@@ -606,9 +608,10 @@ jobs:
             CADENCE_ADMIN_URL=${{ vars.CADENCE_ADMIN_URL || '' }}
             CONTACT_API_URL=${{ vars.CONTACT_API_URL || '' }}
             QDRANT_URL=${{ vars.QDRANT_URL || '' }}
-            AGENSI_API_BASE_URL=${{ vars.AGENSI_API_BASE_URL || 'https://agensi.io' }}
-            AGENSI_API_PATH=${{ vars.AGENSI_API_PATH || '/api/creators/aklapper' }}
+            AGENSI_API_BASE_URL=${{ vars.AGENSI_API_BASE_URL || 'https://www.agensi.io' }}
+            AGENSI_API_PATH=${{ vars.AGENSI_API_PATH || '/creators/aklapper' }}
             AGENSI_CREATOR_HANDLE=${{ vars.AGENSI_CREATOR_HANDLE || 'aklapper' }}
+            AGENSI_SYNC_DISABLED=${{ vars.AGENSI_SYNC_DISABLED || 'false' }}
             AGENSI_CACHE_TTL_SECONDS=${{ vars.AGENSI_CACHE_TTL_SECONDS || '300' }}
             AGENSI_FETCH_TIMEOUT_MS=${{ vars.AGENSI_FETCH_TIMEOUT_MS || '1800' }}
           flags: >-
