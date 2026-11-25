@@ -1,5 +1,6 @@
 import type { PortalHomeContent, TerminalProfileData } from '@aklapper/core';
 import {
+  buildZshCommandHandlers,
   Button,
   OscStatusBadge,
   PaneLink,
@@ -7,7 +8,10 @@ import {
   TerminalWorkspace,
   TuiHeroCard,
   TuiWindow,
+  useViewportLayoutMode,
+  ZshP10kTerminal,
 } from '@aklapper/ui';
+import { useMemo } from 'react';
 import { Link } from 'react-router';
 
 import styles from './PortalHomePage.module.css';
@@ -72,6 +76,39 @@ export function PortalHomePage({
   terminalForms,
   onNavigate,
 }: PortalHomePageProps) {
+  const layoutMode = useViewportLayoutMode();
+  const mobileCommands = useMemo(
+    () =>
+      buildZshCommandHandlers(terminal.commands, {
+        navigate: onNavigate,
+        openTui: () => {
+          void onNavigate?.('/menu');
+        },
+      }),
+    [terminal.commands, onNavigate],
+  );
+
+  if (layoutMode !== 'desktop') {
+    return (
+      <div className={styles.workspace}>
+        <ZshP10kTerminal
+          variant='viewport'
+          showBanner={false}
+          osLabel={terminal.osLabel}
+          directory={terminal.directory}
+          vcsBranch={terminal.vcsBranch}
+          vcsState={terminal.vcsState}
+          contextLabel={terminal.contextLabel}
+          commands={mobileCommands}
+          terminalForms={terminalForms}
+          quickCommands={terminal.quickCommands}
+          initialEntries={terminal.initialEntries}
+          placeholder={terminal.placeholder}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.workspace}>
       <TerminalWorkspace

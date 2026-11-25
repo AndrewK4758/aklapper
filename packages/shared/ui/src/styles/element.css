@@ -127,7 +127,7 @@
     }
   }
 
-  @media (max-width: 48rem) {
+  @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
     dialog {
       max-width: calc(100vw - var(--sf-space-6));
       padding: var(--sf-space-6);

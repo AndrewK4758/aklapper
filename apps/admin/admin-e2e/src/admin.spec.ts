@@ -83,6 +83,10 @@ test.describe('admin SSR end-to-end journeys', () => {
     page,
   }, testInfo) => {
     test.skip(!HAS_DATABASE_URL, 'Requires DATABASE_URL for isolated admin credential seeding');
+    test.skip(
+      testInfo.project.name === 'mobile-chrome',
+      'Desktop admin shell journey; handheld journeys are covered in mobile-layout.spec.ts',
+    );
 
     const getErrors = trackPageErrors(page);
     const projectName = testInfo.project.name;

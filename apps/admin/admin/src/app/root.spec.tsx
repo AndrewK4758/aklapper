@@ -5,6 +5,7 @@ import {
   type StreamResult,
 } from '@aklapper/core';
 import { requestContextKey } from '@aklapper/node-runtime/ssr/stream';
+import { MOBILE_PORTRAIT_MEDIA_QUERY } from '@aklapper/ui';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createRoutesStub, RouterContextProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -448,6 +449,172 @@ describe('AdminRoot', () => {
       expect(wsEvents[0]).not.toContain(ACTIVE_ADMIN_SESSION.sessionId);
     } finally {
       infoSpy.mockRestore();
+    }
+  });
+
+  it('mounts MobileAppShell on authenticated handheld viewports, omits it on /login, and guards unexpected unauthenticated non-login handheld renders', async () => {
+    const originalMatchMedia = window.matchMedia;
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ loggedOut: true }), { status: 200 }));
+
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: vi.fn<(query: string) => MediaQueryList>((query: string): MediaQueryList => ({
+        matches: query === MOBILE_PORTRAIT_MEDIA_QUERY,
+        media: query,
+        onchange: null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        addListener: () => {},
+        removeListener: () => {},
+        dispatchEvent: () => true,
+      })),
+    });
+
+    try {
+      // 1. Authenticated handheld route -> mobile-app-shell branch
+      const AuthHandheldStub = createRoutesStub([
+        {
+          id: 'root',
+          path: '/cms',
+          loader: () => ({
+            runtimeSeo: { siteUrl: 'https://admin.andrew-k.us' },
+            correlationId: 'corr-admin-mobile-auth',
+            isLoginRoute: false,
+            session: ACTIVE_ADMIN_SESSION,
+            authMeta: { totpEnabled: true, passkeyCount: 1 },
+            rootPayload: Promise.resolve<StreamResult<AdminRootLoaderData>>({
+              ok: true,
+              data: ADMIN_ROOT_FIXTURE,
+            }),
+          }),
+          Component: AdminRoot,
+          ErrorBoundary,
+          children: [{ index: true, Component: () => <div>CMS Mobile View</div> }],
+        },
+      ]);
+
+      const { unmount: unmountAuth } = render(<AuthHandheldStub initialEntries={['/cms']} />);
+      expect(await screen.findByText('CMS Mobile View')).toBeTruthy();
+      expect(document.querySelector('[data-mobile-bottom-nav="true"]')).toBeTruthy();
+      expect(screen.getByRole('link', { name: 'CMS' }).getAttribute('aria-current')).toBe('page');
+      expect(
+        infoSpy.mock.calls.some(
+          call =>
+            String(call[0]).includes('admin.root.workspace_mount_branch') &&
+            String(call[0]).includes('"branch":"mobile-app-shell"'),
+        ),
+      ).toBe(true);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Open navigation menu' }));
+      expect(screen.getByRole('link', { name: 'Quotas' }).getAttribute('href')).toBe('/quotas');
+      fireEvent.click(screen.getByRole('button', { name: 'Sign Out' }));
+      await waitFor(() => {
+        expect(fetchSpy).toHaveBeenCalledWith('/api/auth/logout', { method: 'POST' });
+      });
+      unmountAuth();
+
+      // 2. Unauthenticated /login on handheld -> login-outlet-only, zero UNSOUND_CONDITION
+      infoSpy.mockClear();
+      warnSpy.mockClear();
+      resetAdminRootBranchTelemetryForTest();
+
+      const LoginHandheldStub = createRoutesStub([
+        {
+          id: 'root',
+          path: '/login',
+          loader: () => ({
+            runtimeSeo: { siteUrl: 'https://admin.andrew-k.us' },
+            correlationId: 'corr-admin-mobile-login',
+            isLoginRoute: true,
+            session: null,
+            authMeta: { totpEnabled: false, passkeyCount: 0 },
+            rootPayload: Promise.resolve<StreamResult<AdminRootLoaderData>>({
+              ok: true,
+              data: ADMIN_ROOT_FIXTURE,
+            }),
+          }),
+          Component: AdminRoot,
+          ErrorBoundary,
+          children: [{ index: true, Component: () => <div>Mobile Login Form</div> }],
+        },
+      ]);
+
+      const { unmount: unmountLogin } = render(<LoginHandheldStub initialEntries={['/login']} />);
+      expect(await screen.findByText('Mobile Login Form')).toBeTruthy();
+      expect(document.querySelector('[data-mobile-bottom-nav="true"]')).toBeNull();
+      expect(
+        infoSpy.mock.calls.some(
+          call =>
+            String(call[0]).includes('admin.root.workspace_mount_branch') &&
+            String(call[0]).includes('"branch":"login-outlet-only"'),
+        ),
+      ).toBe(true);
+      expect(
+        warnSpy.mock.calls.some(call =>
+          String(call[0]).includes('admin.root.unauth_mobile_shell_blocked'),
+        ),
+      ).toBe(false);
+      unmountLogin();
+
+      // 3. Unexpected unauthenticated non-login handheld render -> UNSOUND_CONDITION + login-outlet-only
+      infoSpy.mockClear();
+      warnSpy.mockClear();
+      resetAdminRootBranchTelemetryForTest();
+
+      const UnauthNonLoginStub = createRoutesStub([
+        {
+          id: 'root',
+          path: '/cms',
+          loader: () => ({
+            runtimeSeo: { siteUrl: 'https://admin.andrew-k.us' },
+            correlationId: 'corr-admin-mobile-unauth-guard',
+            isLoginRoute: false,
+            session: null,
+            authMeta: { totpEnabled: false, passkeyCount: 0 },
+            rootPayload: Promise.resolve<StreamResult<AdminRootLoaderData>>({
+              ok: true,
+              data: ADMIN_ROOT_FIXTURE,
+            }),
+          }),
+          Component: AdminRoot,
+          ErrorBoundary,
+          children: [{ index: true, Component: () => <div>Guarded Outlet</div> }],
+        },
+      ]);
+
+      render(<UnauthNonLoginStub initialEntries={['/cms']} />);
+      expect(await screen.findByText('Guarded Outlet')).toBeTruthy();
+      expect(document.querySelector('[data-mobile-bottom-nav="true"]')).toBeNull();
+      expect(
+        warnSpy.mock.calls.some(call => {
+          const raw = String(call[0]);
+          return (
+            raw.includes('admin.root.unauth_mobile_shell_blocked') &&
+            raw.includes('"seamType":"UNSOUND_CONDITION"')
+          );
+        }),
+      ).toBe(true);
+      expect(
+        infoSpy.mock.calls.some(
+          call =>
+            String(call[0]).includes('admin.root.workspace_mount_branch') &&
+            String(call[0]).includes('"branch":"login-outlet-only"'),
+        ),
+      ).toBe(true);
+    } finally {
+      Object.defineProperty(window, 'matchMedia', {
+        configurable: true,
+        writable: true,
+        value: originalMatchMedia,
+      });
+      infoSpy.mockRestore();
+      warnSpy.mockRestore();
+      fetchSpy.mockRestore();
     }
   });
 

@@ -82,7 +82,7 @@
     border: 0;
   }
 
-  @media (max-width: 48rem) {
+  @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
     .receiptList {
       grid-template-columns: 1fr;
     }

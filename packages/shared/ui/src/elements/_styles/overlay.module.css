@@ -280,7 +280,7 @@
     color: var(--sf-gold);
   }
 
-  @media (max-width: 48rem) {
+  @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
     .viewport {
       padding: max(var(--sf-space-4), env(safe-area-inset-top))
         max(var(--sf-space-4), env(safe-area-inset-right))

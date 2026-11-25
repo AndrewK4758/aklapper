@@ -392,7 +392,7 @@
     gap: var(--sf-gap-sm);
   }
 
-  @media (max-width: 48rem) {
+  @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
     .fieldset {
       padding: var(--sf-space-4);
     }
@@ -409,7 +409,8 @@
     }
   }
 
-  @media (max-width: 48rem) and (pointer: coarse) {
+  @media (max-width: 48rem) and (pointer: coarse),
+    (max-height: 32rem) and (orientation: landscape) and (pointer: coarse) {
     .textInput,
     .textarea {
       font-size: var(--sf-size-unit);

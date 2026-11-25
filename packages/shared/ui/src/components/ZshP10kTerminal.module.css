@@ -498,7 +498,7 @@
     }
   }
 
-  @media (max-width: 48rem) {
+  @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
     .terminal {
       padding: var(--sf-space-4) var(--sf-space-4);
       gap: var(--sf-space-3);
@@ -506,8 +506,16 @@
     }
 
     .terminal[data-variant='viewport'] {
+      height: auto;
       padding: var(--sf-space-3) var(--sf-space-4);
       gap: var(--sf-space-3);
+    }
+
+    .historyRoot,
+    .historyViewport {
+      height: auto;
+      max-height: none;
+      overflow: visible;
     }
 
     .history {
@@ -565,7 +573,8 @@
     }
   }
 
-  @media (max-width: 48rem) and (pointer: coarse) {
+  @media (max-width: 48rem) and (pointer: coarse),
+    (max-height: 32rem) and (orientation: landscape) and (pointer: coarse) {
     .input,
     .textarea,
     .ghost,

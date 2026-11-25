@@ -488,6 +488,22 @@
   }
 
   @media (max-width: 48rem), (max-height: 32rem) and (orientation: landscape) {
+    .workspace,
+    .pane,
+    .paneArea,
+    .tabPanel,
+    .paneSlot {
+      height: auto;
+      overflow: visible;
+    }
+
+    .tabPanel,
+    .paneSlot {
+      position: static;
+      inset: auto;
+      width: 100%;
+    }
+
     .tabStrip {
       padding: var(--sf-space-1) max(var(--sf-space-2), env(safe-area-inset-right))
         var(--sf-space-0) max(var(--sf-space-2), env(safe-area-inset-left));

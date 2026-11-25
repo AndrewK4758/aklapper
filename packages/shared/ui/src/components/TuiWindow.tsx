@@ -14,6 +14,7 @@ import { Toolbar } from '../elements/base';
 import { Tooltip } from '../elements/base';
 import { useIsPaneActive } from './paneActiveContext';
 import { usePaneNavigation } from './paneNavigationContext';
+import { useViewportLayoutMode } from './terminalViewportSplit';
 
 import styles from './TuiWindow.module.css';
 
@@ -98,7 +99,8 @@ export function TuiWindow({
 }: TuiWindowProps) {
   const isPaneActive = useIsPaneActive();
   const paneNav = usePaneNavigation();
-  const isDocked = dockedProp ?? Boolean(paneNav?.docked);
+  const layoutMode = useViewportLayoutMode();
+  const isDocked = dockedProp ?? (Boolean(paneNav?.docked) || layoutMode !== 'desktop');
   const [floating, setFloating] = useState<FloatingRect | null>(null);
   const frameRef = useRef<HTMLElement | null>(null);
   const dragOrigin = useRef<{ dx: number; dy: number } | null>(null);

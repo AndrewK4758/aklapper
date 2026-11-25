@@ -3,12 +3,15 @@ import {
   Button,
   LazyChunkBoundary,
   lazyWithRetry,
+  MobileAppShell,
+  type MobileNavItem,
   NavigationMenu,
   OscStatusBadge,
   RouteWorkspaceHost,
   Separator,
   SolarForgeEmblem,
   TerminalWorkspace,
+  useViewportLayoutMode,
 } from '@aklapper/ui';
 import { createRouteWorkspaceStore } from '@aklapper/ui/workspace-storage';
 import { useMemo } from 'react';
@@ -36,6 +39,40 @@ export const portalRouteWorkspaceStore = createRouteWorkspaceStore({
 function getPortalPaneTitle(pathname: string): string {
   return pathname === '/' ? 'tty1' : `tui :: ${pathname}`;
 }
+
+function getPortalMobilePageTitle(pathname: string): string {
+  const normalized = pathname.replace(/\/+$/, '') || '/';
+  switch (normalized) {
+    case '/':
+      return 'Terminal';
+    case '/menu':
+      return 'Menu';
+    case '/ask':
+      return 'Ask';
+    case '/cadence':
+      return 'CADENCE';
+    case '/contact':
+      return 'Contact';
+    case '/agensi':
+      return 'Agensi';
+    default:
+      return normalized.slice(1);
+  }
+}
+
+function isPortalNavActive(pathname: string, to: string): boolean {
+  const normalized = pathname.replace(/\/+$/, '') || '/';
+  if (to === '/') return normalized === '/';
+  return normalized === to || normalized.startsWith(`${to}/`);
+}
+
+const PORTAL_MOBILE_NAV = [
+  { id: 'terminal', to: href('/'), label: 'Terminal', icon: '>_' },
+  { id: 'menu', to: href('/menu'), label: 'Menu', icon: '::' },
+  { id: 'ask', to: href('/ask'), label: 'Ask', icon: '?' },
+  { id: 'cadence', to: href('/cadence'), label: 'CADENCE', icon: '◈' },
+  { id: 'contact', to: href('/contact'), label: 'Contact', icon: '@' },
+] as const;
 
 export function OfflineMaintenanceFallback({ error }: { readonly error: PublicAppError }) {
   return (
@@ -69,6 +106,7 @@ export interface PortalRootShellProps {
 
 export function PortalRootShell({ data, pathname, cluster, navigate }: PortalRootShellProps) {
   const outlet = useOutlet();
+  const layoutMode = useViewportLayoutMode();
   const terminalForms = useMemo(
     () => createPortalTerminalForms(data.contactForm, navigate),
     [data.contactForm, navigate],
@@ -105,13 +143,76 @@ export function PortalRootShell({ data, pathname, cluster, navigate }: PortalRoo
 
   const { chrome, terminal, homeContent } = data;
   const isTerminalViewport = pathname === '/';
-  const hasGlobalWorkspace = Boolean(terminal);
+  const hasGlobalWorkspace = layoutMode === 'desktop' && Boolean(terminal);
   if (hasGlobalWorkspace) {
     portalRouteWorkspaceStore.recordRoutePolicy(pathname, 'cached-workspace');
   }
   const headerBadgeState = cluster.connected ? cluster.summaryState : chrome.statusBadge.state;
   const headerBadgeLabel =
     cluster.connected && cluster.summaryLabel ? cluster.summaryLabel : chrome.statusBadge.label;
+
+  if (layoutMode !== 'desktop') {
+    const mobileNavItems: readonly MobileNavItem[] = PORTAL_MOBILE_NAV.map(item => ({
+      id: item.id,
+      label: item.label,
+      icon: item.icon,
+      active: isPortalNavActive(pathname, item.to),
+      renderLink: linkProps => (
+        <Link to={item.to} prefetch='intent' {...linkProps}>
+          {linkProps.children}
+        </Link>
+      ),
+    }));
+
+    const agensiActive = isPortalNavActive(pathname, href('/agensi'));
+    const secondaryActions = (
+      <>
+        <Link
+          to={href('/agensi')}
+          prefetch='intent'
+          className={styles.mobileSecondaryLink}
+          data-active={agensiActive ? 'true' : 'false'}
+          aria-current={agensiActive ? 'page' : undefined}
+        >
+          Agensi
+        </Link>
+        <OscStatusBadge
+          source={chrome.statusBadge.source}
+          state={headerBadgeState}
+          label={headerBadgeLabel}
+        />
+      </>
+    );
+
+    return (
+      <MobileAppShell
+        layoutMode={layoutMode}
+        brand={
+          <Link to={href('/')} prefetch='intent' className={styles.mobileBrand}>
+            <SolarForgeEmblem size={18} />
+            <span>{chrome.brandLabel}</span>
+          </Link>
+        }
+        pageTitle={getPortalMobilePageTitle(pathname)}
+        navLabel='Portal mobile navigation'
+        navItems={mobileNavItems}
+        secondaryMenuItems={secondaryActions}
+        railFooterActions={
+          <Link
+            to={href('/agensi')}
+            prefetch='intent'
+            className={styles.mobileSecondaryLink}
+            data-active={agensiActive ? 'true' : 'false'}
+            aria-current={agensiActive ? 'page' : undefined}
+          >
+            Agensi
+          </Link>
+        }
+      >
+        <Outlet />
+      </MobileAppShell>
+    );
+  }
 
   return (
     <div

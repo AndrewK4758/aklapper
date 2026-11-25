@@ -10,8 +10,12 @@ test.describe('portal SSR end-to-end journeys', () => {
 
   test('renders terminal-only greeter, opens tui and menu via commands and keybindings, and hides admin items @smoke', async ({
     page,
-  }) => {
+  }, testInfo) => {
     test.skip(IS_MAINTENANCE_MODE, 'Full greeter and menu routes are gated in maintenance mode');
+    test.skip(
+      testInfo.project.name === 'mobile-chrome',
+      'Desktop multi-pane workspace journey; handheld journeys are covered in mobile-layout.spec.ts',
+    );
     const getErrors = trackPageErrors(page);
 
     await gotoStreamedPage(page, '/');
@@ -136,7 +140,7 @@ test.describe('portal SSR end-to-end journeys', () => {
 
   test('navigates to /cadence and renders sandboxed artifact preview iframe @smoke', async ({
     page,
-  }) => {
+  }, testInfo) => {
     test.skip(IS_MAINTENANCE_MODE, 'CADENCE builder route is gated in maintenance mode');
     const getErrors = trackPageErrors(page);
 
@@ -148,16 +152,18 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(frame).toBeVisible();
     await expect(frame).toHaveAttribute('sandbox', /.+/);
 
-    // Alt+Shift+D opens a separate terminal pane directly alongside the CADENCE TUI
-    await page.keyboard.press('Alt+Shift+KeyD');
-    await expect(page.locator('[data-pane-count="2"]')).toBeVisible();
-    await expect(frame).toBeVisible();
-    const splitInput = page.getByLabel('Terminal command input', { exact: true });
-    await splitInput.fill('whoami');
-    await splitInput.press('Enter');
-    await expect(page.getByText('guest@andrew-k.us (tty1)')).toBeVisible();
-    await page.keyboard.press('Alt+Shift+KeyW');
-    await expect(page.locator('[data-pane-count="1"]')).toBeVisible();
+    if (testInfo.project.name !== 'mobile-chrome') {
+      // Alt+Shift+D opens a separate terminal pane directly alongside the CADENCE TUI
+      await page.keyboard.press('Alt+Shift+KeyD');
+      await expect(page.locator('[data-pane-count="2"]')).toBeVisible();
+      await expect(frame).toBeVisible();
+      const splitInput = page.getByLabel('Terminal command input', { exact: true });
+      await splitInput.fill('whoami');
+      await splitInput.press('Enter');
+      await expect(page.getByText('guest@andrew-k.us (tty1)')).toBeVisible();
+      await page.keyboard.press('Alt+Shift+KeyW');
+      await expect(page.locator('[data-pane-count="1"]')).toBeVisible();
+    }
 
     expect(getErrors()).toEqual([]);
   });
@@ -188,8 +194,12 @@ test.describe('portal SSR end-to-end journeys', () => {
   test('renders /contact recursive TUI form with client, server, and Postgres 19 validation', async ({
     page,
     request,
-  }) => {
+  }, testInfo) => {
     test.skip(IS_MAINTENANCE_MODE, 'Contact route is gated in maintenance mode');
+    test.skip(
+      testInfo.project.name === 'mobile-chrome',
+      'Desktop in-pane contact --tui journey; handheld journeys are covered in mobile-layout.spec.ts',
+    );
     const getErrors = trackPageErrors(page);
 
     // Launch /contact TUI explicitly via `contact --tui` (stays in-pane on `/`)
@@ -251,8 +261,12 @@ test.describe('portal SSR end-to-end journeys', () => {
 
   test('runs contact form inline in terminal mode without jumping to TUI and persists to Postgres 19', async ({
     page,
-  }) => {
+  }, testInfo) => {
     test.skip(IS_MAINTENANCE_MODE, 'Contact route is gated in maintenance mode');
+    test.skip(
+      testInfo.project.name === 'mobile-chrome',
+      'Desktop workspace terminal form journey; handheld journeys are covered in mobile-layout.spec.ts',
+    );
     const getErrors = trackPageErrors(page);
 
     await gotoStreamedPage(page, '/');
@@ -321,8 +335,12 @@ test.describe('portal SSR end-to-end journeys', () => {
 
   test('renders /agensi storefront with Base UI tag filter, search filter, and outbound Agensi CTA @smoke', async ({
     page,
-  }) => {
+  }, testInfo) => {
     test.skip(IS_MAINTENANCE_MODE, 'Agensi storefront route is gated in maintenance mode');
+    test.skip(
+      testInfo.project.name === 'mobile-chrome',
+      'Desktop in-pane hotkey navigation journey; handheld journeys are covered in mobile-layout.spec.ts',
+    );
     const getErrors = trackPageErrors(page);
 
     await gotoStreamedPage(page, '/menu');
@@ -435,8 +453,10 @@ test.describe('portal SSR end-to-end journeys', () => {
     expect(srcdoc).not.toContain('allow-same-origin');
     const previewFrame = page.frameLocator('iframe[title="CADENCE Artifact Preview"]');
     await expect(previewFrame.locator('body')).toContainText('scale-from-zero pods');
-    await previewFrame.locator('#ping-btn').click();
-    await expect(previewFrame.locator('#probe-val')).toContainText('#1');
+    await expect(async () => {
+      await previewFrame.locator('#ping-btn').click();
+      await expect(previewFrame.locator('#probe-val')).toContainText('#1');
+    }).toPass();
 
     await page.getByTestId('cadence-gate-approve').click();
     await expect(page.getByTestId('cadence-gate-verdict')).toContainText('approved');
@@ -470,10 +490,14 @@ test.describe('portal SSR end-to-end journeys', () => {
 
   test('runs cadence inside docked terminal pane with Select Escape guard and approves gate on /', async ({
     page,
-  }) => {
+  }, testInfo) => {
     if (IS_MAINTENANCE_MODE) {
       return;
     }
+    test.skip(
+      testInfo.project.name === 'mobile-chrome',
+      'Desktop docked pane journey; handheld journeys are covered in mobile-layout.spec.ts',
+    );
     const getErrors = trackPageErrors(page);
 
     await gotoStreamedPage(page, '/');
@@ -596,8 +620,12 @@ test.describe('portal SSR end-to-end journeys', () => {
 
   test('renders DB-backed help without Ghostty references and validates every workspace keybind action', async ({
     page,
-  }) => {
+  }, testInfo) => {
     test.skip(IS_MAINTENANCE_MODE, 'Workspace keybindings are tested in full portal mode');
+    test.skip(
+      testInfo.project.name === 'mobile-chrome',
+      'Desktop workspace keybindings; handheld journeys are covered in mobile-layout.spec.ts',
+    );
     const getErrors = trackPageErrors(page);
 
     await gotoStreamedPage(page, '/');
@@ -758,8 +786,12 @@ test.describe('portal SSR end-to-end journeys', () => {
 
   test('supports explicit split/tab escape hatches, focus-scoped pane controls, and deep-link return', async ({
     page,
-  }) => {
+  }, testInfo) => {
     test.skip(IS_MAINTENANCE_MODE, 'Workspace navigation is gated in maintenance mode');
+    test.skip(
+      testInfo.project.name === 'mobile-chrome',
+      'Desktop split/tab escape hatches; handheld journeys are covered in mobile-layout.spec.ts',
+    );
     const getErrors = trackPageErrors(page);
 
     await gotoStreamedPage(page, '/');
@@ -806,8 +838,12 @@ test.describe('portal SSR end-to-end journeys', () => {
 
   test('persists guest session cookie on fresh-context in-pane /ask and /cadence loads @smoke', async ({
     browser,
-  }) => {
+  }, testInfo) => {
     test.skip(IS_MAINTENANCE_MODE, 'Ask and CADENCE routes are gated in maintenance mode');
+    test.skip(
+      testInfo.project.name === 'mobile-chrome',
+      'Desktop in-pane navigation journey; handheld journeys are covered in mobile-layout.spec.ts',
+    );
     const context = await browser.newContext();
     const page = await context.newPage();
     const getErrors = trackPageErrors(page);
