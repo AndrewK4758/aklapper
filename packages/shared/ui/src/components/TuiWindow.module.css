@@ -38,6 +38,7 @@
 
   .titlebar {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: var(--sf-space-4);
@@ -61,10 +62,12 @@
 
   .titleGroup {
     display: inline-flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--sf-space-3);
     flex: 1 1 auto;
     min-width: var(--sf-space-0);
+    max-width: 100%;
     overflow: hidden;
   }
 
@@ -109,9 +112,12 @@
 
   .actions {
     display: inline-flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--sf-space-2);
     flex-shrink: 0;
+    min-width: var(--sf-space-0);
+    max-width: 100%;
   }
 
   @container (max-width: 24rem) {

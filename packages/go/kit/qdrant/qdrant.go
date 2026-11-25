@@ -271,10 +271,12 @@ func parseStoredPointID(raw any) (StoredPointID, bool) {
 
 // ListTypedPointIDs scrolls all stored point IDs while preserving string vs uint64 wire types.
 func (c *Client) ListTypedPointIDs(ctx context.Context, collection string) ([]StoredPointID, error) {
+	const maxScrollPages = 1000
 	ids := []StoredPointID{}
 	var offset any
+	seenOffsets := make(map[string]struct{})
 
-	for {
+	for range maxScrollPages {
 		body := map[string]any{
 			"limit":        256,
 			"with_payload": false,
@@ -323,6 +325,11 @@ func (c *Client) ListTypedPointIDs(ctx context.Context, collection string) ([]St
 		if parsed.Result.NextPageOffset == nil {
 			break
 		}
+		offsetKey := fmt.Sprint(parsed.Result.NextPageOffset)
+		if _, seen := seenOffsets[offsetKey]; seen {
+			break
+		}
+		seenOffsets[offsetKey] = struct{}{}
 		offset = parsed.Result.NextPageOffset
 	}
 	return ids, nil

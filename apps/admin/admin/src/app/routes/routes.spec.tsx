@@ -145,6 +145,13 @@ describe('Admin streaming routes, auth guards & SEO', () => {
 
     const r4 = render(<Stub initialEntries={['/cms']} />);
     expect(await screen.findByText(/Maintenance Mode Default/i)).toBeTruthy();
+    const agensiTab = screen.getByRole('tab', { name: /Agensi & Presets/i });
+    expect(agensiTab).toBeTruthy();
+    fireEvent.click(agensiTab);
+    expect(screen.getByRole('button', { name: 'Sync Agensi Catalog' })).toBeTruthy();
+    expect(screen.getByText('cadence-governed-agentic-sdlc-framework')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Save Agensi Skill' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'New Skill' })).toBeNull();
     r4.unmount();
 
     render(<Stub initialEntries={['/ops']} />);

@@ -11,6 +11,13 @@
     line-height: var(--sf-leading-base);
   }
 
+  .catalogMeta {
+    margin: var(--sf-space-0);
+    color: var(--sf-fg-cmt);
+    font-family: var(--sf-font-mono), monospace;
+    font-size: var(--sf-text-xs);
+  }
+
   .controls {
     display: grid;
     gap: var(--sf-gap-md);

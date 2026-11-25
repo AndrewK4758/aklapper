@@ -13,15 +13,20 @@ export const AUTH_LOG_REDACT_PATHS: readonly string[] = [
   'req.headers.authorization',
   'req.headers["x-internal-auth"]',
   'req.headers["x-bootstrap-token"]',
+  'req.headers["x-api-key"]',
   'res.headers["set-cookie"]',
   'password',
   'passwordHashArgon2',
   'secret',
   'totpKey',
+  'apiKey',
+  'agensiApiKey',
   '*.password',
   '*.passwordHashArgon2',
   '*.secret',
   '*.totpKey',
+  '*.apiKey',
+  '*.agensiApiKey',
 ];
 
 const MIN_MEMORY_KIB = 4096;

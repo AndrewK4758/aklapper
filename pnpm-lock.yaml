@@ -391,6 +391,9 @@ importers:
 
   apps/portal/portal-e2e:
     devDependencies:
+      '@aklapper/db':
+        specifier: workspace:*
+        version: link:../../../packages/node/db
       '@aklapper/tooling':
         specifier: workspace:*
         version: link:../../../packages/tooling
@@ -9715,7 +9718,7 @@ snapshots:
       dedent: 1.7.2(babel-plugin-macros@3.1.0)
       es-module-lexer: 2.3.2
       exit-hook: 5.1.0
-      isbot: 5.2.3
+      isbot: 5.2.4
       jsesc: 3.1.0
       lodash: 4.18.1
       p-map: 7.1.1

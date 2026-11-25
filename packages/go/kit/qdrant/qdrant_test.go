@@ -3,6 +3,7 @@ package qdrant
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -254,5 +255,37 @@ func TestQdrantListTypedPointIDsPreservesUint64ForDelete(t *testing.T) {
 	}
 	if len(deletedWireIDs) != 2 || deletedWireIDs[0].String() != "1" || deletedWireIDs[1].String() != "2" {
 		t.Fatalf("expected JSON numbers [1, 2], got %+v", deletedWireIDs)
+	}
+}
+
+func TestQdrantListTypedPointIDsStopsOnRepeatingOffset(t *testing.T) {
+	t.Parallel()
+
+	scrollCalls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/collections/portfolio_docs/points/scroll" {
+			http.NotFound(w, r)
+			return
+		}
+		scrollCalls++
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"result": map[string]any{
+				"points":           []map[string]any{{"id": fmt.Sprintf("pt-%d", scrollCalls)}},
+				"next_page_offset": "stuck-cursor",
+			},
+		})
+	}))
+	defer srv.Close()
+
+	client := &Client{BaseURL: srv.URL, HTTPClient: srv.Client()}
+	typed, err := client.ListTypedPointIDs(context.Background(), "portfolio_docs")
+	if err != nil {
+		t.Fatalf("ListTypedPointIDs failed on repeating offset: %v", err)
+	}
+	if scrollCalls != 2 {
+		t.Fatalf("expected cycle guard to stop after 2 pages on repeating offset, got %d calls", scrollCalls)
+	}
+	if len(typed) != 2 {
+		t.Fatalf("expected 2 collected IDs before cycle break, got %+v", typed)
 	}
 }

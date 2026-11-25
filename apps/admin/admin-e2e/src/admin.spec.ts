@@ -243,6 +243,9 @@ test.describe('admin SSR end-to-end journeys', () => {
         }
 
         await page.getByRole('tab', { name: /Agensi & Presets/i }).click();
+        await expect(page.getByRole('heading', { name: /Creator Agensi Cache/i })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Sync Agensi Catalog' })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Save Agensi Skill' })).toHaveCount(0);
         await expect(page.locator('iframe[sandbox="allow-scripts"]')).toBeVisible();
 
         await page.getByRole('link', { name: 'Inbox', exact: true }).click();

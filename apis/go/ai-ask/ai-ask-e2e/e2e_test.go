@@ -95,6 +95,7 @@ func TestAiAskEndToEnd(t *testing.T) {
 	}))
 	t.Cleanup(llmServer.Close)
 
+	var prunedCount atomic.Int32
 	qdrantServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodGet && r.URL.Path == "/collections/portfolio_docs":
@@ -116,7 +117,20 @@ func TestAiAskEndToEnd(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"status":"ok"}`))
 		case r.Method == http.MethodPost && r.URL.Path == "/collections/portfolio_docs/points/scroll":
-			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"points": []any{}}})
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"result": map[string]any{
+					"points":           []map[string]any{{"id": "stale-e2e-point"}},
+					"next_page_offset": nil,
+				},
+			})
+		case r.Method == http.MethodPost && r.URL.Path == "/collections/portfolio_docs/points/delete":
+			var body struct {
+				Points []any `json:"points"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			prunedCount.Add(int32(len(body.Points)))
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"status":"ok"}`))
 		case r.Method == http.MethodPost && r.URL.Path == "/collections/portfolio_docs/points/search":
 			if qdrantEmpty.Load() {
 				_ = json.NewEncoder(w).Encode(map[string]any{"result": []any{}})
@@ -212,6 +226,9 @@ func TestAiAskEndToEnd(t *testing.T) {
 		)
 		if resOK.StatusCode != http.StatusOK || int(out["vectorSize"].(float64)) != llm.ExpectedEmbeddingDims {
 			t.Fatalf("unexpected reindex (%d): %+v", resOK.StatusCode, out)
+		}
+		if prunedCount.Load() != 1 {
+			t.Fatalf("expected 1 stale point pruned in E2E reindex, got %d", prunedCount.Load())
 		}
 	})
 

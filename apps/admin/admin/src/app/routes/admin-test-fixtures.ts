@@ -161,7 +161,28 @@ export const ADMIN_CMS_FIXTURE: AdminCmsLoaderData = {
   terminalInitialEntries: [],
   terminalDirectoryEntries: [],
   roadmapMilestones: [],
-  agensiSkills: [],
+  agensiSkills: [
+    {
+      slug: 'cadence-governed-agentic-sdlc-framework',
+      name: 'CADENCE: Governed Agentic SDLC Framework',
+      summary: 'Governed agentic SDLC framework.',
+      tags: ['sdlc', 'agents'],
+      url: 'https://agensi.io/skills/cadence-governed-agentic-sdlc-framework',
+      sortOrder: 1,
+      creatorHandle: 'aklapper',
+      isPublished: true,
+      syncedAt: '2026-11-24T12:00:00.000Z',
+      source: 'agensi_api',
+    },
+  ],
+  agensiSyncState: {
+    creatorHandle: 'aklapper',
+    lastSyncedAt: '2026-11-24T12:00:00.000Z',
+    lastAttemptAt: '2026-11-24T12:00:00.000Z',
+    lastStatus: 'ok',
+    lastError: null,
+    itemCount: 1,
+  },
   cadencePresets: [],
 };
 

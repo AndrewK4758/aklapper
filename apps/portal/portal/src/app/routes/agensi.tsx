@@ -14,7 +14,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const correlationId = getOrCreateCorrelationId(request, context);
   return {
     correlationId,
-    payload: deferStreamResult(loadPortalAgensiDataWithPrerender(), {
+    payload: deferStreamResult(loadPortalAgensiDataWithPrerender({ correlationId }), {
       request,
       context,
       source: 'portal.agensi.loader',
@@ -46,10 +46,11 @@ export default function PortalAgensiRoute({ loaderData }: Route.ComponentProps) 
         reportPortalPublicError(error, { phase: 'stream' });
       }}
     >
-      {({ content, skills }) => (
+      {({ content, skills, catalogMeta }) => (
         <PortalAgensiPage
           content={content}
           skills={skills}
+          catalogMeta={catalogMeta}
           onClose={() => {
             if (paneNav?.docked) {
               paneNav.exitTui();

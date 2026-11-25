@@ -4,7 +4,6 @@ import {
   AdminHomeContentSchema,
   type AdminRootLoaderData,
   type AgensiSkill,
-  AgensiSkillSchema,
   type AnalyticsBatch,
   AnalyticsBatchSchema,
   type AuthSession,
@@ -50,9 +49,12 @@ import {
   TerminalProfileDataSchema,
   formatTerminalDirectoryListing,
 } from '@aklapper/core';
+import { resolveAgensiCreatorHandle } from '@aklapper/node-runtime/agensi';
 import { and, asc, count, desc, eq, gt, isNull, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 
+import { loadCreatorAgensiCatalog } from './agensi-loader.ts';
+import { type AgensiSyncOptions, queryCreatorPublishedSkills } from './agensi-sync.ts';
 import type { AppDatabase } from './client.ts';
 import {
   mapSandboxTurnRow,
@@ -256,13 +258,11 @@ export async function getCadencePresets(db: AppDatabase): Promise<CadencePreset[
   return rows.map(row => CadencePresetSchema.parse(row));
 }
 
-export async function getAgensiSkills(db: AppDatabase): Promise<AgensiSkill[]> {
-  const rows = await db
-    .select()
-    .from(schema.agensiSkills)
-    .orderBy(asc(schema.agensiSkills.sortOrder), asc(schema.agensiSkills.slug));
-
-  return rows.map(row => AgensiSkillSchema.parse(row));
+export async function getAgensiSkills(
+  db: AppDatabase,
+  creatorHandle = resolveAgensiCreatorHandle(),
+): Promise<AgensiSkill[]> {
+  return queryCreatorPublishedSkills(db, creatorHandle);
 }
 
 export async function loadPortalMaintenanceData(
@@ -326,13 +326,25 @@ export async function loadPortalMenuData(db: AppDatabase): Promise<PortalMenuLoa
   return { content, items };
 }
 
-export async function loadPortalAgensiData(db: AppDatabase): Promise<PortalAgensiLoaderData> {
-  const [content, skills] = await Promise.all([
+export async function loadPortalAgensiData(
+  db: AppDatabase,
+  options: AgensiSyncOptions = {},
+): Promise<PortalAgensiLoaderData> {
+  const [content, catalog] = await Promise.all([
     getSiteContent(db, SITE_CONTENT_KEYS.portalAgensi, PortalAgensiContentSchema),
-    getAgensiSkills(db),
+    loadCreatorAgensiCatalog(db, options),
   ]);
 
-  return { content, skills };
+  return {
+    content: catalog.statusBadgeOverride
+      ? {
+          ...content,
+          statusBadge: catalog.statusBadgeOverride,
+        }
+      : content,
+    skills: catalog.skills,
+    catalogMeta: catalog.catalogMeta,
+  };
 }
 
 export async function loadPortalAskData(

@@ -42,6 +42,12 @@
       "import": "./dist/ai.js",
       "default": "./dist/ai.js"
     },
+    "./agensi": {
+      "@aklapper/source": "./src/agensi.ts",
+      "types": "./dist/agensi.d.ts",
+      "import": "./dist/agensi.js",
+      "default": "./dist/agensi.js"
+    },
     "./http": {
       "@aklapper/source": "./src/http.ts",
       "types": "./dist/http.d.ts",
