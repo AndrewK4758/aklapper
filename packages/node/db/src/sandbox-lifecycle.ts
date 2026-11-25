@@ -1,7 +1,10 @@
 import {
+  type CadenceExecutionMode,
+  type CadenceGateAudit,
   type CadenceGateVerdict,
   type CadenceRunMode,
   type CadenceRunResult,
+  type CadenceSpecArtifact,
   type CadenceTurn,
   type CadenceTurnPhase,
   type CadenceTurnStatus,
@@ -11,10 +14,12 @@ import {
 } from '@aklapper/core';
 import { and, asc, eq, sql } from 'drizzle-orm';
 
+import { isNodeDevUnlimitedEnabled } from './cadence-showcase.ts';
 import type { AppDatabase } from './client.ts';
 import {
   DEFAULT_QUOTA_BY_ROLE,
   extractRunModeFromTurnRows,
+  GoldenRunImmutableError,
   mapSandboxRunResult,
   mapSandboxTurnRow,
   SANDBOX_UUID_PATTERN,
@@ -38,6 +43,7 @@ export interface CreatePendingSandboxRunInput {
   readonly presetSlug?: string;
   readonly prompt: string;
   readonly mode: CadenceRunMode;
+  readonly promptHash?: string | null;
   readonly estimatedTokens?: number;
 }
 
@@ -88,12 +94,13 @@ export async function createPendingSandboxRunWithQuota(
     const sessionTurns = sessionRow?.turnsUsed ?? 0;
     const sessionTokens = sessionRow?.tokensUsed ?? 0;
     const globalTokens = globalRow?.tokensUsed ?? 0;
-
-    if (
+    const quotaExceeded =
       sessionTurns + 1 > policy.maxTurnsPerSession ||
       tokensDelta > policy.maxTokensPerRun ||
-      globalTokens + tokensDelta > policy.maxDailyGlobalTokens
-    ) {
+      globalTokens + tokensDelta > policy.maxDailyGlobalTokens;
+    const devUnlimited = quotaExceeded && isNodeDevUnlimitedEnabled();
+
+    if (quotaExceeded && !devUnlimited) {
       return {
         allowed: false,
         quota: QuotaStatusSchema.parse({
@@ -105,6 +112,19 @@ export async function createPendingSandboxRunWithQuota(
         }),
         run: null,
       };
+    }
+
+    if (devUnlimited) {
+      console.warn(
+        JSON.stringify({
+          seam_type: 'DELTA_AUDIT_GAP',
+          event: 'cadence.run.audit',
+          deltaStatus: 'dev_unlimited_bypass',
+          role: input.role,
+          sessionId: trimmedSession,
+          turnsUsed: sessionTurns,
+        }),
+      );
     }
 
     await tx
@@ -135,6 +155,9 @@ export async function createPendingSandboxRunWithQuota(
         tokensIn: 0,
         tokensOut: 0,
         artifactHtml: '',
+        isGolden: false,
+        promptHash: input.promptHash ?? null,
+        executionMode: input.mode === 'llm' ? 'live' : 'fast',
       })
       .returning();
 
@@ -149,7 +172,12 @@ export async function createPendingSandboxRunWithQuota(
       status: 'pending',
       payloadJson:
         spec.phase === 'triage'
-          ? { summary: 'Queued in CHORD pipeline', presetSlug, mode: input.mode }
+          ? {
+              summary: 'Queued in CHORD pipeline',
+              presetSlug,
+              mode: input.mode,
+              reservedTokens: tokensDelta,
+            }
           : { summary: 'Queued' },
       latencyMs: 0,
     }));
@@ -272,6 +300,10 @@ export async function completeSandboxRunRow(
     readonly tokensIn: number;
     readonly tokensOut: number;
     readonly artifactHtml: string;
+    readonly executionMode?: CadenceExecutionMode;
+    readonly spec?: CadenceSpecArtifact | null;
+    readonly gateAudit?: CadenceGateAudit | null;
+    readonly promptHash?: string | null;
   },
 ): Promise<CadenceRunResult | null> {
   if (!SANDBOX_UUID_PATTERN.test(input.runId)) return null;
@@ -283,8 +315,12 @@ export async function completeSandboxRunRow(
       tokensIn: input.tokensIn,
       tokensOut: input.tokensOut,
       artifactHtml: input.artifactHtml,
+      ...(input.executionMode ? { executionMode: input.executionMode } : {}),
+      ...(input.spec !== undefined ? { specJson: input.spec } : {}),
+      ...(input.gateAudit !== undefined ? { gateAuditJson: input.gateAudit } : {}),
+      ...(input.promptHash !== undefined ? { promptHash: input.promptHash } : {}),
     })
-    .where(eq(schema.sandboxRuns.id, input.runId))
+    .where(and(eq(schema.sandboxRuns.id, input.runId), eq(schema.sandboxRuns.isGolden, false)))
     .returning();
 
   if (!updated) return null;
@@ -346,6 +382,16 @@ export async function updateSandboxRunGateVerdictForSession(
   if (!existing) {
     return { outcome: 'not-found' };
   }
+  if (existing.isGolden) {
+    console.warn(
+      JSON.stringify({
+        seam_type: 'UNSOUND_CONDITION',
+        event: 'cadence.gate.golden_mutation_blocked',
+        runId,
+      }),
+    );
+    throw new GoldenRunImmutableError(runId);
+  }
   if (existing.sessionId !== sessionId) {
     return { outcome: 'forbidden' };
   }
@@ -361,6 +407,7 @@ export async function updateSandboxRunGateVerdictForSession(
         eq(schema.sandboxRuns.id, runId),
         eq(schema.sandboxRuns.sessionId, sessionId),
         eq(schema.sandboxRuns.status, 'ready'),
+        eq(schema.sandboxRuns.isGolden, false),
       ),
     )
     .returning();

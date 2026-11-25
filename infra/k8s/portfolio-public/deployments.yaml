@@ -82,10 +82,17 @@ spec:
         - name: cadence-demo
           image: us-central1-docker.pkg.dev/PROJECT_ID/aklapper/cadence-demo:latest
           ports:
-            - containerPort: 8082
+            - name: http
+              containerPort: 8082
+            - name: grpc
+              containerPort: 9090
           env:
             - name: APP_ENV
               value: production
+            - name: PORT
+              value: '8082'
+            - name: GRPC_PORT
+              value: '9090'
           envFrom:
             - configMapRef:
                 name: aklapper-runtime-config

@@ -202,4 +202,30 @@ describe('siteContentDraftState pure reducer & validation', () => {
       infoSpy.mockRestore();
     }
   });
+
+  it('hydrates flat portal-cadence .default(...) fields on both initial load and SWITCH_TO_FORM', () => {
+    const legacy4FieldRow = makeRow(SITE_CONTENT_KEYS.portalCadence, {
+      windowTitle: 'CADENCE Sandbox',
+      statusBadge: { source: 'cadence', state: 'idle', label: 'Standby' },
+      description: 'Interactive showcase.',
+      iframeTitle: 'CADENCE Artifact Preview',
+    });
+
+    const init = createInitialSiteContentDraftState(legacy4FieldRow);
+    expect(init.state.mode).toBe('form');
+    expect(init.state.draftObject['modeBadgeGoldenLabel']).toBe('Golden Showcase');
+    expect(init.state.draftObject['tabSpecLabel']).toBe('Spec');
+    expect(init.state.draftObject['goldenShowcaseHeading']).toBe('Featured CADENCE Showcases');
+
+    const jsonMode = siteContentDraftReducer(init.state, { type: 'SWITCH_TO_JSON' });
+    const strippedTo4Fields = siteContentDraftReducer(jsonMode, {
+      type: 'SET_RAW_TEXT',
+      rawText: JSON.stringify(legacy4FieldRow.metadataJson, null, 2),
+    });
+    const backToForm = siteContentDraftReducer(strippedTo4Fields, { type: 'SWITCH_TO_FORM' });
+    expect(backToForm.mode).toBe('form');
+    expect(backToForm.draftObject['modeBadgeGoldenLabel']).toBe('Golden Showcase');
+    expect(backToForm.draftObject['tabGateAuditLabel']).toBe('Gate Audit');
+    expect(backToForm.draftObject['recentRunsHeading']).toBe('Recent Session Runs');
+  });
 });

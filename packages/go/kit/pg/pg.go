@@ -34,6 +34,7 @@ func ResolveAgensiCreatorHandle() string {
 
 var (
 	ErrRunNotFound         = errors.New("sandbox run not found")
+	ErrGoldenRunImmutable  = errors.New("golden showcase run is read-only and cannot be mutated")
 	ErrInvalidVerdict      = errors.New("gate verdict must be approved or rejected")
 	ErrInvalidAdminVerdict = errors.New("gate verdict must be approved, rejected, or pending")
 )
@@ -98,15 +99,20 @@ type CorpusDocument struct {
 }
 
 type SandboxRunInput struct {
-	SessionID    string
-	IPHash       string
-	MenuSlug     string
-	Prompt       string
-	Status       string
-	GateVerdict  string
-	TokensIn     int
-	TokensOut    int
-	ArtifactHTML string
+	SessionID     string
+	IPHash        string
+	MenuSlug      string
+	Prompt        string
+	Status        string
+	GateVerdict   string
+	TokensIn      int
+	TokensOut     int
+	ArtifactHTML  string
+	IsGolden      bool
+	PromptHash    string
+	ExecutionMode string
+	SpecJSON      *contracts.CadenceSpecArtifact
+	GateAuditJSON *contracts.CadenceGateAudit
 }
 
 type SandboxTurnInput struct {
@@ -120,17 +126,22 @@ type SandboxTurnInput struct {
 }
 
 type SandboxRun struct {
-	RunID        string                  `json:"runId"`
-	SessionID    string                  `json:"sessionId"`
-	MenuSlug     string                  `json:"menuSlug"`
-	Prompt       string                  `json:"prompt"`
-	Status       string                  `json:"status"`
-	GateVerdict  string                  `json:"gateVerdict"`
-	TokensIn     int                     `json:"tokensIn"`
-	TokensOut    int                     `json:"tokensOut"`
-	ArtifactHTML string                  `json:"artifactHtml"`
-	Turns        []contracts.CadenceTurn `json:"turns"`
-	CreatedAt    string                  `json:"createdAt"`
+	RunID         string                         `json:"runId"`
+	SessionID     string                         `json:"sessionId"`
+	MenuSlug      string                         `json:"menuSlug"`
+	Prompt        string                         `json:"prompt"`
+	Status        string                         `json:"status"`
+	GateVerdict   string                         `json:"gateVerdict"`
+	TokensIn      int                            `json:"tokensIn"`
+	TokensOut     int                            `json:"tokensOut"`
+	ArtifactHTML  string                         `json:"artifactHtml"`
+	IsGolden      bool                           `json:"isGolden"`
+	PromptHash    string                         `json:"promptHash,omitempty"`
+	ExecutionMode string                         `json:"executionMode,omitempty"`
+	SpecJSON      *contracts.CadenceSpecArtifact `json:"spec,omitempty"`
+	GateAuditJSON *contracts.CadenceGateAudit    `json:"gateAudit,omitempty"`
+	Turns         []contracts.CadenceTurn        `json:"turns"`
+	CreatedAt     string                         `json:"createdAt"`
 }
 
 type memBucket struct {
@@ -582,6 +593,13 @@ func (s *Store) CreateSandboxRun(ctx context.Context, input SandboxRunInput) (st
 	if input.IPHash == "" {
 		input.IPHash = "local"
 	}
+	if input.ExecutionMode == "" {
+		if input.IsGolden {
+			input.ExecutionMode = contracts.CadenceExecutionModeGolden
+		} else {
+			input.ExecutionMode = contracts.CadenceExecutionModeFast
+		}
+	}
 	input.SessionID = normalizeSessionID(input.SessionID)
 
 	if s == nil || s.pool == nil {
@@ -592,29 +610,39 @@ func (s *Store) CreateSandboxRun(ctx context.Context, input SandboxRunInput) (st
 		defer s.mu.Unlock()
 		id := newUUIDv4()
 		run := &SandboxRun{
-			RunID:        id,
-			SessionID:    input.SessionID,
-			MenuSlug:     input.MenuSlug,
-			Prompt:       input.Prompt,
-			Status:       input.Status,
-			GateVerdict:  input.GateVerdict,
-			TokensIn:     input.TokensIn,
-			TokensOut:    input.TokensOut,
-			ArtifactHTML: input.ArtifactHTML,
-			Turns:        []contracts.CadenceTurn{},
-			CreatedAt:    time.Now().UTC().Format(time.RFC3339),
+			RunID:         id,
+			SessionID:     input.SessionID,
+			MenuSlug:      input.MenuSlug,
+			Prompt:        input.Prompt,
+			Status:        input.Status,
+			GateVerdict:   input.GateVerdict,
+			TokensIn:      input.TokensIn,
+			TokensOut:     input.TokensOut,
+			ArtifactHTML:  input.ArtifactHTML,
+			IsGolden:      input.IsGolden,
+			PromptHash:    input.PromptHash,
+			ExecutionMode: input.ExecutionMode,
+			SpecJSON:      input.SpecJSON,
+			GateAuditJSON: input.GateAuditJSON,
+			Turns:         []contracts.CadenceTurn{},
+			CreatedAt:     time.Now().UTC().Format(time.RFC3339),
 		}
 		s.runs = append([]*SandboxRun{run}, s.runs...)
 		s.runsByID[id] = run
 		return id, nil
 	}
 
+	var promptHashParam any
+	if strings.TrimSpace(input.PromptHash) != "" {
+		promptHashParam = strings.TrimSpace(input.PromptHash)
+	}
 	var id string
 	err := s.pool.QueryRow(
 		ctx,
 		`INSERT INTO sandbox_runs
-		 (session_id, ip_hash, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out, artifact_html)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		 (session_id, ip_hash, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out,
+		  artifact_html, is_golden, prompt_hash, execution_mode, spec_json, gate_audit_json)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb, $14::jsonb)
 		 RETURNING id::text`,
 		input.SessionID,
 		input.IPHash,
@@ -625,6 +653,11 @@ func (s *Store) CreateSandboxRun(ctx context.Context, input SandboxRunInput) (st
 		input.TokensIn,
 		input.TokensOut,
 		input.ArtifactHTML,
+		input.IsGolden,
+		promptHashParam,
+		input.ExecutionMode,
+		marshalNullableJSON(input.SpecJSON),
+		marshalNullableJSON(input.GateAuditJSON),
 	).Scan(&id)
 	return id, err
 }
@@ -709,6 +742,9 @@ func (s *Store) ListSandboxRuns(ctx context.Context, sessionID string, limit int
 		defer s.mu.Unlock()
 		out := make([]SandboxRun, 0, limit)
 		for _, r := range s.runs {
+			if r.IsGolden {
+				continue
+			}
 			if sessionID != "" && r.SessionID != sessionID {
 				continue
 			}
@@ -729,9 +765,11 @@ func (s *Store) ListSandboxRuns(ctx context.Context, sessionID string, limit int
 	if sessionID != "" {
 		rows, err = s.pool.Query(
 			ctx,
-			`SELECT id::text, session_id, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out, COALESCE(artifact_html, ''), created_at
+			`SELECT id::text, session_id, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out,
+			        COALESCE(artifact_html, ''), is_golden, COALESCE(prompt_hash, ''), execution_mode,
+			        COALESCE(spec_json::text, ''), COALESCE(gate_audit_json::text, ''), created_at
 			 FROM sandbox_runs
-			 WHERE session_id = $1
+			 WHERE is_golden = false AND session_id = $1
 			 ORDER BY created_at DESC
 			 LIMIT $2`,
 			sessionID,
@@ -740,8 +778,11 @@ func (s *Store) ListSandboxRuns(ctx context.Context, sessionID string, limit int
 	} else {
 		rows, err = s.pool.Query(
 			ctx,
-			`SELECT id::text, session_id, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out, COALESCE(artifact_html, ''), created_at
+			`SELECT id::text, session_id, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out,
+			        COALESCE(artifact_html, ''), is_golden, COALESCE(prompt_hash, ''), execution_mode,
+			        COALESCE(spec_json::text, ''), COALESCE(gate_audit_json::text, ''), created_at
 			 FROM sandbox_runs
+			 WHERE is_golden = false
 			 ORDER BY created_at DESC
 			 LIMIT $1`,
 			limit,
@@ -754,23 +795,10 @@ func (s *Store) ListSandboxRuns(ctx context.Context, sessionID string, limit int
 
 	runs := make([]SandboxRun, 0, limit)
 	for rows.Next() {
-		var r SandboxRun
-		var createdAt time.Time
-		if err := rows.Scan(
-			&r.RunID,
-			&r.SessionID,
-			&r.MenuSlug,
-			&r.Prompt,
-			&r.Status,
-			&r.GateVerdict,
-			&r.TokensIn,
-			&r.TokensOut,
-			&r.ArtifactHTML,
-			&createdAt,
-		); err != nil {
-			return nil, err
+		r, scanErr := scanSandboxRunFields(rows)
+		if scanErr != nil {
+			return nil, scanErr
 		}
-		r.CreatedAt = createdAt.UTC().Format(time.RFC3339)
 		r.Turns = []contracts.CadenceTurn{}
 		runs = append(runs, r)
 	}
@@ -848,9 +876,13 @@ func (s *Store) GetSandboxRunSummary(ctx context.Context) (int, int, error) {
 		}
 		s.mu.Lock()
 		defer s.mu.Unlock()
-		total := len(s.runs)
+		total := 0
 		pending := 0
 		for _, r := range s.runs {
+			if r.IsGolden {
+				continue
+			}
+			total++
 			if r.GateVerdict == "pending" {
 				pending++
 			}
@@ -862,7 +894,8 @@ func (s *Store) GetSandboxRunSummary(ctx context.Context) (int, int, error) {
 	err := s.pool.QueryRow(
 		ctx,
 		`SELECT COUNT(*)::int, COUNT(*) FILTER (WHERE gate_verdict = 'pending')::int
-		 FROM sandbox_runs`,
+		 FROM sandbox_runs
+		 WHERE is_golden = false`,
 	).Scan(&total, &pending)
 	if err != nil {
 		return 0, 0, err
@@ -895,6 +928,9 @@ func (s *Store) setSandboxGateVerdict(ctx context.Context, runID, verdict string
 		if !ok {
 			return nil, ErrRunNotFound
 		}
+		if run.IsGolden {
+			return nil, ErrGoldenRunImmutable
+		}
 		run.GateVerdict = verdict
 		copied := *run
 		copied.Turns = append([]contracts.CadenceTurn(nil), run.Turns...)
@@ -905,36 +941,33 @@ func (s *Store) setSandboxGateVerdict(ctx context.Context, runID, verdict string
 		return nil, ErrRunNotFound
 	}
 
-	var r SandboxRun
-	var createdAt time.Time
-	err := s.pool.QueryRow(
+	var isGolden bool
+	if err := s.pool.QueryRow(ctx, `SELECT is_golden FROM sandbox_runs WHERE id = $1::uuid`, runID).Scan(&isGolden); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrRunNotFound
+		}
+		return nil, err
+	}
+	if isGolden {
+		return nil, ErrGoldenRunImmutable
+	}
+
+	r, err := s.scanSandboxRunRow(
 		ctx,
-		`UPDATE sandbox_runs
-		 SET gate_verdict = $2
-		 WHERE id = $1::uuid
-		 RETURNING id::text, session_id, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out, COALESCE(artifact_html, ''), created_at`,
-		runID,
-		verdict,
-	).Scan(
-		&r.RunID,
-		&r.SessionID,
-		&r.MenuSlug,
-		&r.Prompt,
-		&r.Status,
-		&r.GateVerdict,
-		&r.TokensIn,
-		&r.TokensOut,
-		&r.ArtifactHTML,
-		&createdAt,
+		s.pool.QueryRow(
+			ctx,
+			`UPDATE sandbox_runs
+			 SET gate_verdict = $2
+			 WHERE id = $1::uuid AND is_golden = false
+			 RETURNING id::text, session_id, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out,
+			           COALESCE(artifact_html, ''), is_golden, COALESCE(prompt_hash, ''), execution_mode,
+			           COALESCE(spec_json::text, ''), COALESCE(gate_audit_json::text, ''), created_at`,
+			runID,
+			verdict,
+		),
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrRunNotFound
 	}
-	if err != nil {
-		return nil, err
-	}
-	r.CreatedAt = createdAt.UTC().Format(time.RFC3339)
-	turns, _ := s.loadTurnsForRun(ctx, r.RunID)
-	r.Turns = turns
-	return &r, nil
+	return r, err
 }

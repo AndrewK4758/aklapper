@@ -15,6 +15,7 @@ import {
 
 import { cx } from '../../elements/_internal/elementFactory';
 import { OscStatusBadge } from '../../elements/OscStatusBadge';
+import { StatusPill } from '../../elements/StatusPill';
 import { RecursiveTuiForm } from '../RecursiveTuiForm';
 import { TuiWindow } from '../TuiWindow';
 import { ViewportProvider } from '../ViewportProvider';
@@ -175,6 +176,46 @@ function renderKeyPreview(contentKey: string, metadata: Record<string, unknown>)
           statusBadge={d.statusBadge}
           description={d.description}
         >
+          <div className={styles.previewSlotBox}>
+            <div>
+              {d.goldenShowcaseHeading} · {d.goldenVerifiedBadgeLabel}
+            </div>
+            <div>{d.goldenReadOnlyNotice}</div>
+          </div>
+          <ul className={styles.previewChipList} aria-label='Execution mode badges preview'>
+            <li>
+              <StatusPill tone='accent' size='sm'>
+                {d.modeBadgeGoldenLabel}
+              </StatusPill>
+            </li>
+            <li>
+              <StatusPill tone='success' size='sm'>
+                {d.modeBadgeCachedLabel}
+              </StatusPill>
+            </li>
+            <li>
+              <StatusPill tone='info' size='sm'>
+                {d.modeBadgeLiveLabel}
+              </StatusPill>
+            </li>
+            <li>
+              <StatusPill tone='neutral' size='sm'>
+                {d.modeBadgeFastLabel}
+              </StatusPill>
+            </li>
+            <li>
+              <StatusPill tone='warn' size='sm'>
+                {d.modeBadgeFallbackLabel}
+              </StatusPill>
+            </li>
+          </ul>
+          <ul className={styles.previewChipList} aria-label='Inspector tabs preview'>
+            <li className={styles.previewChip}>{d.tabPreviewLabel}</li>
+            <li className={styles.previewChip}>{d.tabSpecLabel}</li>
+            <li className={styles.previewChip}>{d.tabSourceLabel}</li>
+            <li className={styles.previewChip}>{d.tabGateAuditLabel}</li>
+            <li className={styles.previewChip}>{d.streamLogHeading}</li>
+          </ul>
           <div className={styles.previewSlotBox}>
             Sandboxed artifact frame slot: {d.iframeTitle} (non-executing preview)
           </div>

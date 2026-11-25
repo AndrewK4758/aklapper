@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 
 import { cx } from './_internal/elementFactory';
 
@@ -7,7 +7,10 @@ import styles from './StatusPill.module.css';
 export type StatusPillTone = 'neutral' | 'info' | 'success' | 'warn' | 'danger' | 'accent';
 export type StatusPillSize = 'sm' | 'md';
 
-export interface StatusPillProps {
+export interface StatusPillProps extends Omit<
+  HTMLAttributes<HTMLElement>,
+  'children' | 'className'
+> {
   readonly tone?: StatusPillTone;
   readonly size?: StatusPillSize;
   readonly pulse?: boolean;
@@ -23,10 +26,12 @@ export function StatusPill({
   as = 'span',
   children,
   className,
+  ...rest
 }: StatusPillProps) {
   const Tag = as;
   return (
     <Tag
+      {...rest}
       className={cx(styles.pill, className)}
       data-tone={tone}
       data-size={size}

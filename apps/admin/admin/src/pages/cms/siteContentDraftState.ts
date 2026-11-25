@@ -262,12 +262,13 @@ export function siteContentDraftReducer(
         };
       }
       const validation = validateSiteContentMetadata(state.key, parsed.value);
+      const hydrated = validation.ok ? validation.data : parsed.value;
       return {
         ...state,
         mode: 'form',
-        draftObject: parsed.value,
+        draftObject: hydrated,
         jsonParseError: null,
-        lastValidPreviewObject: validation.ok ? parsed.value : state.lastValidPreviewObject,
+        lastValidPreviewObject: validation.ok ? hydrated : state.lastValidPreviewObject,
       };
     }
   }

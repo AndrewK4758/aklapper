@@ -14,7 +14,9 @@ import {
 import { HOP_BY_HOP_HEADERS, isProductionEnv, stripHopByHopHeaders } from './http-hygiene.ts';
 import {
   DEFAULT_SSE_HEADER_TIMEOUT_MS,
+  proxyGetSse,
   proxyPostSse,
+  type ProxyGetSseOptions,
   type ProxyPostSseOptions,
 } from './http-sse.ts';
 
@@ -94,17 +96,7 @@ export interface ProxyJsonResult<T = unknown> {
   error?: string;
 }
 
-export interface ProxySseOptions {
-  baseUrl: string;
-  path: string;
-  headers?: Readonly<Record<string, string>>;
-  timeoutMs?: number;
-  signal?: AbortSignal;
-  internalAuth?: SignInternalAuthTokenOptions;
-  oidcAuth?: OidcAuthMode;
-  env?: Record<string, string | undefined>;
-  fetchImpl?: typeof fetch;
-}
+export type ProxySseOptions = ProxyGetSseOptions;
 
 export interface ClientIpRequest {
   headers: Readonly<Record<string, string | string[] | undefined>>;
@@ -450,114 +442,5 @@ export async function proxyJson<T = unknown>(
 }
 
 export async function proxySse(options: ProxySseOptions): Promise<Response> {
-  const {
-    baseUrl,
-    path,
-    headers = {},
-    timeoutMs,
-    signal,
-    internalAuth,
-    oidcAuth = 'auto',
-    env = process.env,
-    fetchImpl = fetch,
-  } = options;
-
-  const targetUrl = joinUpstreamUrl(baseUrl, path);
-  const requestHeaders = new Headers(headers);
-  requestHeaders.set('accept', 'text/event-stream');
-  if (internalAuth) {
-    requestHeaders.set(INTERNAL_AUTH_HEADER, signInternalAuthToken(internalAuth));
-  }
-
-  const audience = resolveTargetOidcAudience(
-    baseUrl,
-    oidcAuth,
-    env,
-    requestHeaders.has('authorization'),
-  );
-  if (audience) {
-    try {
-      const token = await resolveGcpIdentityToken(audience, { fetchImpl, env });
-      requestHeaders.set('authorization', `Bearer ${token}`);
-    } catch {
-      return Response.json(
-        {
-          error: 'GCP_OIDC_TOKEN_UNAVAILABLE',
-          message: 'Cloud Run identity token unavailable for SSE upstream',
-        },
-        { status: 503 },
-      );
-    }
-  }
-
-  const effectiveSignal =
-    timeoutMs !== undefined ? buildCompositeSignal(timeoutMs, signal) : signal;
-
-  try {
-    let upstream = await fetchImpl(targetUrl, {
-      method: 'GET',
-      headers: requestHeaders,
-      signal: effectiveSignal,
-    });
-
-    if (audience && (upstream.status === 401 || upstream.status === 403)) {
-      evictGcpIdentityTokenCache(audience);
-      try {
-        const freshToken = await resolveGcpIdentityToken(audience, {
-          fetchImpl,
-          env,
-          forceRefresh: true,
-        });
-        requestHeaders.set('authorization', `Bearer ${freshToken}`);
-        upstream = await fetchImpl(targetUrl, {
-          method: 'GET',
-          headers: requestHeaders,
-          signal: effectiveSignal,
-        });
-      } catch {
-        return Response.json(
-          {
-            error: 'GCP_OIDC_TOKEN_UNAVAILABLE',
-            message: 'Cloud Run identity token unavailable for SSE upstream',
-          },
-          { status: 503 },
-        );
-      }
-    }
-
-    if (!upstream.ok || !upstream.body) {
-      const fallbackBody = await upstream.text().catch(() => '');
-      return Response.json(
-        {
-          error: `UPSTREAM_SSE_${upstream.status}`,
-          message: fallbackBody || 'Upstream SSE stream unavailable',
-        },
-        { status: upstream.ok ? 502 : upstream.status },
-      );
-    }
-
-    const responseHeaders = stripHopByHopHeaders(upstream.headers);
-    responseHeaders.delete('content-encoding');
-    responseHeaders.delete('content-length');
-    responseHeaders.set(
-      'content-type',
-      upstream.headers.get('content-type') ?? 'text/event-stream; charset=utf-8',
-    );
-    responseHeaders.set('cache-control', 'no-cache');
-    responseHeaders.set('x-accel-buffering', 'no');
-
-    return new Response(upstream.body, {
-      status: upstream.status,
-      headers: responseHeaders,
-    });
-  } catch (error) {
-    const timedOut = isTimeoutError(error);
-    return Response.json(
-      {
-        error: timedOut ? 'UPSTREAM_TIMEOUT' : 'UPSTREAM_UNAVAILABLE',
-        message: 'Failed to connect to upstream SSE stream',
-      },
-      { status: timedOut ? 504 : 502 },
-    );
-  }
+  return proxyGetSse(options);
 }

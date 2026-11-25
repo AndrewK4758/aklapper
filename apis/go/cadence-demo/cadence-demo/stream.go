@@ -11,21 +11,9 @@ import (
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/k8sevents"
-	"github.com/AndrewK4758/aklapper/packages/go/kit/llm"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
-	"github.com/AndrewK4758/aklapper/packages/go/kit/qdrant"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/privacy"
 )
-
-func setSSEHeaders(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-	if flusher, ok := w.(http.Flusher); ok {
-		flusher.Flush()
-	}
-}
 
 func buildReadyStatus() (contracts.Osc7501Status, string) {
 	pct := 100
@@ -39,7 +27,39 @@ func buildReadyStatus() (contracts.Osc7501Status, string) {
 	return st, k8sevents.FormatOSC7501(st)
 }
 
-func handleRunStream(provider llm.Provider, vectorStore *qdrant.Client, store *pg.Store) http.HandlerFunc {
+func resolveAuthorizedSession(w http.ResponseWriter, r *http.Request, claims *internalauth.Claims, candidate string, requireCandidate bool) (string, bool) {
+	trimmed := strings.TrimSpace(candidate)
+	if claims != nil && claims.Role == internalauth.RoleAdmin {
+		if trimmed == "" {
+			trimmed = strings.TrimSpace(claims.Sub)
+		}
+		return trimmed, true
+	}
+	claimSub := ""
+	if claims != nil {
+		claimSub = strings.TrimSpace(claims.Sub)
+	}
+	if requireCandidate && trimmed == "" {
+		httpkit.WriteError(w, http.StatusBadRequest, "sessionId is required")
+		return "", false
+	}
+	if claimSub != "" && trimmed != "" && trimmed != claimSub {
+		logCadenceSeam("UNSOUND_CONDITION", "cadence.auth.session_claim_mismatch", "critical", map[string]any{
+			"path": r.URL.Path,
+		})
+		httpkit.WriteError(w, http.StatusForbidden, "session id does not match authenticated principal")
+		return "", false
+	}
+	if claimSub != "" {
+		return claimSub, true
+	}
+	if trimmed != "" {
+		return trimmed, true
+	}
+	return "", true
+}
+
+func handleRunStream(deps cadenceServiceDeps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		claims, ok := httpkit.RequireInternalAuth(w, r)
 		if !ok {
@@ -52,8 +72,8 @@ func handleRunStream(provider llm.Provider, vectorStore *qdrant.Client, store *p
 			return
 		}
 
-		sessionID := strings.TrimSpace(r.Header.Get("X-Session-Id"))
-		if sessionID == "" {
+		headerSession := strings.TrimSpace(r.Header.Get("X-Session-Id"))
+		if headerSession == "" && (claims == nil || strings.TrimSpace(claims.Sub) == "") {
 			logCadenceSeam("UNSOUND_CONDITION", "cadence.stream.session_mismatch_or_missing", "critical", map[string]any{
 				"runId":  runID,
 				"reason": "missing_session",
@@ -61,8 +81,12 @@ func handleRunStream(provider llm.Provider, vectorStore *qdrant.Client, store *p
 			httpkit.WriteError(w, http.StatusUnauthorized, "missing X-Session-Id header")
 			return
 		}
+		sessionID, authOK := resolveAuthorizedSession(w, r, claims, headerSession, false)
+		if !authOK {
+			return
+		}
 
-		run, err := store.GetSandboxRun(r.Context(), runID)
+		run, err := deps.store.GetSandboxRun(r.Context(), runID)
 		if err != nil {
 			if errors.Is(err, pg.ErrRunNotFound) {
 				httpkit.WriteError(w, http.StatusNotFound, "sandbox run not found")
@@ -85,8 +109,11 @@ func handleRunStream(provider llm.Provider, vectorStore *qdrant.Client, store *p
 		if claims.Role == internalauth.RoleAdmin {
 			role = contracts.RoleAdmin
 		}
+		corrID := strings.TrimSpace(r.Header.Get("X-Correlation-Id"))
 
-		setSSEHeaders(w)
+		sse := httpkit.NewSSEWriter(w)
+		stopHeartbeat := sse.StartHeartbeat(r.Context(), httpkit.DefaultSSEHeartbeatInterval)
+		defer stopHeartbeat()
 
 		// Case 1: Already ready -> replay persisted turns and complete cleanly without re-running or charging quota.
 		if run.Status == contracts.CadenceStatusReady {
@@ -94,12 +121,12 @@ func handleRunStream(provider llm.Provider, vectorStore *qdrant.Client, store *p
 				"branch": "stream-replay",
 				"runId":  runID,
 			})
-			replayRun(w, r, store, role, sessionID, run)
+			replayRun(sse, r, deps.store, role, sessionID, run)
 			return
 		}
 
 		if run.Status == contracts.CadenceStatusFailed {
-			_ = httpkit.WriteSSEEvent(w, "error", contracts.CadenceStreamErrorEvent{
+			_ = sse.WriteEvent("error", contracts.CadenceStreamErrorEvent{
 				RunID:     runID,
 				Error:     "sandbox run failed before artifact completion",
 				RunStatus: contracts.CadenceStatusFailed,
@@ -108,21 +135,21 @@ func handleRunStream(provider llm.Provider, vectorStore *qdrant.Client, store *p
 		}
 
 		// Case 2: Attempt atomic pending -> running claim.
-		claimed, ok, claimErr := store.ClaimPendingSandboxRun(r.Context(), runID, sessionID)
+		claimed, claimedOK, claimErr := deps.store.ClaimPendingSandboxRun(r.Context(), runID, sessionID)
 		if claimErr != nil {
-			_ = httpkit.WriteSSEEvent(w, "error", contracts.CadenceStreamErrorEvent{
+			_ = sse.WriteEvent("error", contracts.CadenceStreamErrorEvent{
 				RunID:     runID,
 				Error:     "failed to claim sandbox run",
 				RunStatus: contracts.CadenceStatusFailed,
 			})
 			return
 		}
-		if !ok || claimed == nil {
+		if !claimedOK || claimed == nil {
 			logCadenceSeam("UNSOUND_CONDITION", "cadence.run.invalid_claim_state", "warn", map[string]any{
 				"runId":  runID,
 				"status": run.Status,
 			})
-			pollActiveRun(w, r, store, role, sessionID, runID)
+			pollActiveRun(sse, r, deps.store, role, sessionID, runID)
 			return
 		}
 
@@ -137,24 +164,29 @@ func handleRunStream(provider llm.Provider, vectorStore *qdrant.Client, store *p
 			"runId":  runID,
 		})
 
-		// Detach DB lifecycle commits from HTTP client cancel so reloads see durable terminal state.
-		workTimeout := 15 * time.Second
+		// Live llm cancels immediately on client disconnect and refunds quota; fast detaches for reload continuity.
+		var (
+			workCtx    context.Context
+			workCancel context.CancelFunc
+		)
 		if mode == contracts.CadenceModeLLM {
-			workTimeout = 45 * time.Second
+			workCtx, workCancel = context.WithTimeout(r.Context(), 60*time.Second)
+		} else {
+			workCtx, workCancel = context.WithTimeout(context.WithoutCancel(r.Context()), 15*time.Second)
 		}
-		workCtx, workCancel := context.WithTimeout(context.WithoutCancel(r.Context()), workTimeout)
 		defer workCancel()
 
-		out, execErr := executeChordSteps(
-			workCtx,
-			provider,
-			vectorStore,
-			store,
-			runID,
-			claimed.Prompt,
-			presetSlug,
-			mode,
-			func(turn contracts.CadenceTurn, runStatus string, progress int) {
+		out, execErr := executeChordStepsWithOptions(workCtx, chordExecInput{
+			Provider:    deps.provider,
+			VectorStore: deps.vectorStore,
+			Store:       deps.store,
+			PrivacyCfg:  deps.privacyCfg,
+			CorrID:      corrID,
+			RunID:       runID,
+			Prompt:      claimed.Prompt,
+			PresetSlug:  presetSlug,
+			Mode:        mode,
+			OnPhase: func(turn contracts.CadenceTurn, runStatus string, progress int) {
 				if r.Context().Err() != nil {
 					return
 				}
@@ -165,7 +197,7 @@ func handleRunStream(provider llm.Provider, vectorStore *qdrant.Client, store *p
 					Progress:  &progress,
 					Timestamp: time.Now().UTC(),
 				}
-				_ = httpkit.WriteSSEEvent(w, "phase", contracts.CadenceStreamPhaseEvent{
+				_ = sse.WriteEvent("phase", contracts.CadenceStreamPhaseEvent{
 					RunID:     runID,
 					RunStatus: runStatus,
 					Status:    &st,
@@ -173,49 +205,81 @@ func handleRunStream(provider llm.Provider, vectorStore *qdrant.Client, store *p
 					Turn:      turn,
 				})
 			},
-		)
-		if execErr != nil {
-			const safeFailureSummary = "CHORD execution failed before completion"
-			logCadenceSeam("DELTA_AUDIT_GAP", "cadence.run.execution_failed", "critical", map[string]any{
-				"runId": runID,
-				"error": execErr.Error(),
-			})
-			failCtx, failCancel := context.WithTimeout(context.WithoutCancel(r.Context()), 3*time.Second)
-			if failErr := store.FailSandboxRun(failCtx, runID, safeFailureSummary); failErr != nil {
-				logCadenceSeam("DELTA_AUDIT_GAP", "cadence.run.terminal_commit_gap", "critical", map[string]any{
-					"runId": runID,
-					"error": failErr.Error(),
+			OnLog: func(line string) {
+				if r.Context().Err() != nil {
+					return
+				}
+				_ = sse.WriteEvent("log", contracts.CadenceStreamLogEvent{
+					RunID:     runID,
+					Line:      line,
+					Timestamp: time.Now().UTC().Format(time.RFC3339),
 				})
+			},
+		})
+		if execErr != nil {
+			failCtx, failCancel := context.WithTimeout(context.WithoutCancel(r.Context()), 5*time.Second)
+			defer failCancel()
+
+			if errors.Is(execErr, context.Canceled) && mode == contracts.CadenceModeLLM {
+				refunded, _ := deps.store.RefundSandboxRunQuotaTx(failCtx, runID)
+				logCadenceSeam("DELTA_AUDIT_GAP", "cadence.run.audit", "info", map[string]any{
+					"deltaStatus":   "refunded",
+					"runId":         runID,
+					"refunded":      refunded,
+					"executionMode": contracts.CadenceExecutionModeLive,
+					"isGolden":      false,
+					"tokensIn":      0,
+					"tokensOut":     0,
+					"correlationId": corrID,
+				})
+				return
 			}
-			failCancel()
+
+			code := "ERR_CADENCE_STREAM"
+			deltaStatus := "failed"
+			safeFailureSummary := "CHORD execution failed before completion"
+			if errors.Is(execErr, privacy.ErrPrivacyAborted) {
+				code = contracts.ErrCodeForbidden
+				deltaStatus = "privacy_aborted"
+				safeFailureSummary = "Generated output blocked by privacy policy."
+			}
+			_ = deps.store.FailSandboxRun(failCtx, runID, safeFailureSummary)
+			logCadenceSeam("DELTA_AUDIT_GAP", "cadence.run.audit", "critical", map[string]any{
+				"deltaStatus":   deltaStatus,
+				"runId":         runID,
+				"executionMode": mode,
+				"isGolden":      false,
+				"tokensIn":      0,
+				"tokensOut":     0,
+				"correlationId": corrID,
+			})
 			if r.Context().Err() == nil {
-				_ = httpkit.WriteSSEEvent(w, "error", contracts.CadenceStreamErrorEvent{
+				_ = sse.WriteEvent("error", contracts.CadenceStreamErrorEvent{
 					RunID:     runID,
 					Error:     safeFailureSummary,
-					Code:      "ERR_CADENCE_STREAM",
+					Code:      code,
 					RunStatus: contracts.CadenceStatusFailed,
 				})
 			}
 			return
 		}
 
-		completed, compErr := store.CompleteSandboxRun(workCtx, runID, out.TokensIn, out.TokensOut, out.ArtifactHTML)
+		commitCtx, commitCancel := context.WithTimeout(context.WithoutCancel(r.Context()), 5*time.Second)
+		defer commitCancel()
+		completed, compErr := deps.store.CompleteSandboxRunWithArtifacts(commitCtx, pg.CompleteSandboxRunInput{
+			RunID:         runID,
+			TokensIn:      out.TokensIn,
+			TokensOut:     out.TokensOut,
+			ArtifactHTML:  out.ArtifactHTML,
+			ExecutionMode: out.ExecutionMode,
+			SpecJSON:      out.Spec,
+			GateAuditJSON: out.GateAudit,
+			PromptHash:    claimed.PromptHash,
+		})
 		if compErr != nil {
-			const safeFailureSummary = "CHORD execution failed before completion"
-			logCadenceSeam("DELTA_AUDIT_GAP", "cadence.run.terminal_commit_gap", "critical", map[string]any{
-				"runId": runID,
-				"error": compErr.Error(),
-			})
-			failCtx, failCancel := context.WithTimeout(context.WithoutCancel(r.Context()), 3*time.Second)
-			if failErr := store.FailSandboxRun(failCtx, runID, safeFailureSummary); failErr != nil {
-				logCadenceSeam("DELTA_AUDIT_GAP", "cadence.run.terminal_commit_gap", "critical", map[string]any{
-					"runId": runID,
-					"error": failErr.Error(),
-				})
-			}
-			failCancel()
+			_ = deps.store.FailSandboxRun(commitCtx, runID, "CHORD execution failed before completion")
 			if r.Context().Err() == nil {
-				_ = httpkit.WriteSSEEvent(w, "error", contracts.CadenceStreamErrorEvent{
+				_ = sse.WriteEvent("error", contracts.CadenceStreamErrorEvent{
 					RunID:     runID,
 					Error:     "failed to commit completed run",
 					Code:      "ERR_CADENCE_COMMIT",
@@ -225,10 +289,20 @@ func handleRunStream(provider llm.Provider, vectorStore *qdrant.Client, store *p
 			return
 		}
 
+		logCadenceSeam("DELTA_AUDIT_GAP", "cadence.run.audit", "info", map[string]any{
+			"deltaStatus":   out.ExecutionMode,
+			"runId":         completed.RunID,
+			"executionMode": out.ExecutionMode,
+			"isGolden":      false,
+			"tokensIn":      completed.TokensIn,
+			"tokensOut":     completed.TokensOut,
+			"correlationId": corrID,
+		})
+
 		if r.Context().Err() == nil {
-			quota, _ := store.GetQuotaStatus(workCtx, role, sessionID)
+			quota, _ := deps.store.GetQuotaStatus(commitCtx, role, sessionID)
 			result := pg.SandboxRunToContractResult(completed, &quota, &out.Status, out.OSC7501)
-			_ = httpkit.WriteSSEEvent(w, "complete", contracts.CadenceStreamCompleteEvent{
+			_ = sse.WriteEvent("complete", contracts.CadenceStreamCompleteEvent{
 				Run:   result,
 				Quota: &quota,
 			})
@@ -236,7 +310,7 @@ func handleRunStream(provider llm.Provider, vectorStore *qdrant.Client, store *p
 	}
 }
 
-func replayRun(w http.ResponseWriter, r *http.Request, store *pg.Store, role, sessionID string, run *pg.SandboxRun) {
+func replayRun(sse *httpkit.SSEWriter, r *http.Request, store *pg.Store, role, sessionID string, run *pg.SandboxRun) {
 	for idx, turn := range run.Turns {
 		if r.Context().Err() != nil {
 			return
@@ -245,7 +319,7 @@ func replayRun(w http.ResponseWriter, r *http.Request, store *pg.Store, role, se
 		if progress > 100 {
 			progress = 100
 		}
-		_ = httpkit.WriteSSEEvent(w, "phase", contracts.CadenceStreamPhaseEvent{
+		_ = sse.WriteEvent("phase", contracts.CadenceStreamPhaseEvent{
 			RunID:     run.RunID,
 			RunStatus: run.Status,
 			Progress:  progress,
@@ -258,16 +332,16 @@ func replayRun(w http.ResponseWriter, r *http.Request, store *pg.Store, role, se
 	quota, _ := store.GetQuotaStatus(r.Context(), role, sessionID)
 	readyStatus, osc := buildReadyStatus()
 	result := pg.SandboxRunToContractResult(run, &quota, &readyStatus, osc)
-	_ = httpkit.WriteSSEEvent(w, "complete", contracts.CadenceStreamCompleteEvent{
+	_ = sse.WriteEvent("complete", contracts.CadenceStreamCompleteEvent{
 		Run:   result,
 		Quota: &quota,
 	})
 }
 
-func pollActiveRun(w http.ResponseWriter, r *http.Request, store *pg.Store, role, sessionID, runID string) {
+func pollActiveRun(sse *httpkit.SSEWriter, r *http.Request, store *pg.Store, role, sessionID, runID string) {
 	ticker := time.NewTicker(40 * time.Millisecond)
 	defer ticker.Stop()
-	deadline := time.NewTimer(12 * time.Second)
+	deadline := time.NewTimer(75 * time.Second)
 	defer deadline.Stop()
 
 	for {
@@ -279,7 +353,7 @@ func pollActiveRun(w http.ResponseWriter, r *http.Request, store *pg.Store, role
 			if r.Context().Err() != nil {
 				return
 			}
-			_ = httpkit.WriteSSEEvent(w, "error", contracts.CadenceStreamErrorEvent{
+			_ = sse.WriteEvent("error", contracts.CadenceStreamErrorEvent{
 				RunID:     runID,
 				Error:     "failed reading active run",
 				RunStatus: contracts.CadenceStatusFailed,
@@ -287,11 +361,11 @@ func pollActiveRun(w http.ResponseWriter, r *http.Request, store *pg.Store, role
 			return
 		}
 		if latest.Status == contracts.CadenceStatusReady {
-			replayRun(w, r, store, role, sessionID, latest)
+			replayRun(sse, r, store, role, sessionID, latest)
 			return
 		}
 		if latest.Status == contracts.CadenceStatusFailed {
-			_ = httpkit.WriteSSEEvent(w, "error", contracts.CadenceStreamErrorEvent{
+			_ = sse.WriteEvent("error", contracts.CadenceStreamErrorEvent{
 				RunID:     runID,
 				Error:     "sandbox run failed",
 				RunStatus: contracts.CadenceStatusFailed,
@@ -303,7 +377,7 @@ func pollActiveRun(w http.ResponseWriter, r *http.Request, store *pg.Store, role
 		case <-r.Context().Done():
 			return
 		case <-deadline.C:
-			_ = httpkit.WriteSSEEvent(w, "error", contracts.CadenceStreamErrorEvent{
+			_ = sse.WriteEvent("error", contracts.CadenceStreamErrorEvent{
 				RunID:     runID,
 				Error:     "timed out waiting for active stream completion",
 				RunStatus: contracts.CadenceStatusRunning,

@@ -2,11 +2,17 @@ import {
   AdminGateOverrideSchema,
   AdminWakeDeploymentSchema,
   type CadenceAdminStatus,
+  createPublicAppError,
   type QdrantHealthStatus,
   type StreamResult,
 } from '@aklapper/core';
 import { classifyServerError } from '@aklapper/core/server-errors';
-import { getSharedDb, listAdminSandboxRuns, overrideSandboxGateVerdict } from '@aklapper/db';
+import {
+  getSharedDb,
+  GoldenRunImmutableError,
+  listAdminSandboxRuns,
+  overrideSandboxGateVerdict,
+} from '@aklapper/db';
 import {
   createFallbackLogger,
   deferStreamResult,
@@ -206,6 +212,34 @@ export async function action({ request, context }: Route.ActionArgs) {
       { status: 400, headers },
     );
   } catch (error) {
+    if (error instanceof GoldenRunImmutableError) {
+      logger.warn(
+        {
+          seam_type: 'UNSOUND_CONDITION',
+          event: 'cadence.gate.golden_mutation_blocked',
+          runId: error.runId,
+          correlationId,
+        },
+        'Blocked admin gate override against read-only Golden showcase run',
+      );
+      const conflictError = createPublicAppError({
+        code: 'ERR_CONSTRAINT',
+        status: 409,
+        message: 'Golden showcase runs are read-only and cannot be mutated.',
+        action: 'Select a visitor sandbox run to override its gate verdict.',
+        correlationId,
+      });
+      return data<AdminOpsActionData>(
+        {
+          ok: false,
+          message: conflictError.message,
+          code: conflictError.code,
+          action: conflictError.action,
+          correlationId: conflictError.correlationId,
+        },
+        { status: 409, headers },
+      );
+    }
     const { publicError, diagnostic } = classifyServerError(error, {
       correlationId,
       source: 'admin.ops.action',

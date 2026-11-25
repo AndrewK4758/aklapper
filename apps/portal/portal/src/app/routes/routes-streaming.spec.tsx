@@ -23,6 +23,7 @@ const {
   loadPortalAskMock,
   loadPortalCadenceMock,
   consumeQuotaMock,
+  findCachedSandboxRunMock,
   createPendingRunMock,
   updateGateForSessionMock,
 } = vi.hoisted(() => ({
@@ -31,6 +32,19 @@ const {
   loadPortalAskMock: vi.fn<(sid?: string) => Promise<PortalAskLoaderData>>(),
   loadPortalCadenceMock: vi.fn<(sid?: string) => Promise<PortalCadenceLoaderData>>(),
   consumeQuotaMock: vi.fn<() => Promise<{ allowed: boolean; quota: QuotaStatus }>>(),
+  findCachedSandboxRunMock: vi.fn<
+    () => Promise<{
+      promptHash: string;
+      scope: 'miss';
+      sourceRun: null;
+      sourceTurns: readonly never[];
+    }>
+  >(async () => ({
+    promptHash: 'mock-hash',
+    scope: 'miss',
+    sourceRun: null,
+    sourceTurns: [],
+  })),
   createPendingRunMock: vi.fn<() => Promise<never>>(),
   updateGateForSessionMock: vi.fn<() => Promise<never>>(),
 }));
@@ -44,6 +58,7 @@ vi.mock('@aklapper/db', async importOriginal => {
     loadPortalAskDataWithPrerender: loadPortalAskMock,
     loadPortalCadenceDataWithPrerender: loadPortalCadenceMock,
     consumeQuotaForSession: consumeQuotaMock,
+    findCachedSandboxRun: findCachedSandboxRunMock,
     createPendingSandboxRunWithQuota: createPendingRunMock,
     updateSandboxRunGateVerdictForSession: updateGateForSessionMock,
   };

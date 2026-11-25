@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
 import { QuotaStatusSchema } from './auth.ts';
+import {
+  CadenceExecutionModeSchema,
+  CadenceGateAuditSchema,
+  CadenceSpecArtifactSchema,
+} from './cadence-artifacts.ts';
 import { FormDefinitionSchema } from './forms.ts';
 import { PORTAL_NAVIGABLE_ROUTE_PATHS } from './routes.ts';
 
@@ -99,6 +104,10 @@ export const CadenceRunResultSchema = z.object({
   presetSlug: z.string().optional(),
   runStatus: CadenceRunLifecycleStatusSchema.optional(),
   mode: CadenceRunModeSchema.optional(),
+  executionMode: CadenceExecutionModeSchema.optional(),
+  isGolden: z.boolean().optional(),
+  spec: CadenceSpecArtifactSchema.optional(),
+  gateAudit: CadenceGateAuditSchema.optional(),
   status: Osc7501StatusSchema.optional(),
   osc7501: z.string().optional(),
   gateVerdict: CadenceGateVerdictSchema,
@@ -204,6 +213,54 @@ export const PortalCadenceContentSchema = z.object({
   statusBadge: StatusBadgeSpecSchema,
   description: z.string().min(1),
   iframeTitle: z.string().min(1),
+  modeBadgeGoldenLabel: z.string().min(1).default('Golden Showcase'),
+  modeBadgeCachedLabel: z.string().min(1).default('Cached ($0)'),
+  modeBadgeLiveLabel: z.string().min(1).default('Live LLM'),
+  modeBadgeFastLabel: z.string().min(1).default('Fast Synthesis'),
+  modeBadgeFallbackLabel: z.string().min(1).default('Fallback Template'),
+  tabPreviewLabel: z.string().min(1).default('Preview'),
+  tabSpecLabel: z.string().min(1).default('Spec'),
+  tabSourceLabel: z.string().min(1).default('Source Code'),
+  tabGateAuditLabel: z.string().min(1).default('Gate Audit'),
+  goldenShowcaseHeading: z.string().min(1).default('Featured CADENCE Showcases'),
+  goldenSelectorLabel: z.string().min(1).default('Select a verified showcase run'),
+  goldenReadOnlyNotice: z
+    .string()
+    .min(1)
+    .default(
+      'Verified Golden Showcase run — read-only reference artifact. Run a prompt to test gate approvals on your own session build.',
+    ),
+  goldenVerifiedBadgeLabel: z.string().min(1).default('Verified Golden'),
+  presetSelectLabel: z.string().min(1).default('CADENCE Showcase Preset'),
+  customPresetLabel: z.string().min(1).default('Custom Prompt'),
+  promptLabel: z.string().min(1).default('Build Specification Prompt'),
+  promptPlaceholder: z
+    .string()
+    .min(1)
+    .default('Describe a CADENCE workbench, migration verifier, or architecture scorecard...'),
+  fastModeLabel: z.string().min(1).default('Fast Mode'),
+  fastModeHint: z
+    .string()
+    .min(1)
+    .default(
+      'Fast mode runs deterministic CHORD synthesis in under a second; disable for live streaming LLM generation.',
+    ),
+  submitRunLabel: z.string().min(1).default('Run CADENCE Pipeline'),
+  runningRunLabel: z.string().min(1).default('Running Pipeline...'),
+  quotaMeterLabel: z.string().min(1).default('Session Quota'),
+  copySourceLabel: z.string().min(1).default('Copy HTML'),
+  copiedSourceLabel: z.string().min(1).default('Copied'),
+  downloadSourceLabel: z.string().min(1).default('Download HTML'),
+  fullscreenLabel: z.string().min(1).default('Fullscreen'),
+  exitFullscreenLabel: z.string().min(1).default('Exit Fullscreen'),
+  approveGateLabel: z.string().min(1).default('Approve Gate'),
+  rejectGateLabel: z.string().min(1).default('Reject Gate'),
+  streamLogHeading: z.string().min(1).default('Pipeline Stream Output'),
+  recentRunsHeading: z.string().min(1).default('Recent Session Runs'),
+  emptySpecNotice: z
+    .string()
+    .min(1)
+    .default('Structured CHORD specification metadata is not available for this run.'),
 });
 export type PortalCadenceContent = z.infer<typeof PortalCadenceContentSchema>;
 

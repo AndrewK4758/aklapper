@@ -65,6 +65,7 @@ export interface PortalCadenceLoaderData {
   presets: readonly CadencePreset[];
   quota?: QuotaStatus;
   recentRuns?: readonly CadenceRunResult[];
+  goldenRuns?: readonly CadenceRunResult[];
 }
 
 export interface PortalContactLoaderData {

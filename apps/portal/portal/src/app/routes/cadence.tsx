@@ -101,10 +101,12 @@ function CadenceLoadedView({
       content={loadedData.content}
       presets={loadedData.presets}
       quota={loadedData.quota}
+      goldenRuns={loadedData.goldenRuns}
       recentRuns={loadedData.recentRuns}
       actionResult={controller.actionResult}
       isSubmitting={controller.isSubmitting}
       isStreaming={controller.isStreaming}
+      streamLogs={controller.streamLogs}
       onRunBuild={controller.onRunBuild}
       onGateVerdict={controller.onGateVerdict}
       onClose={onClose}

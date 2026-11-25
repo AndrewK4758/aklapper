@@ -189,6 +189,9 @@ export function JsonSchemaFormRenderer({
           propKey === 'emptyThreadHint' ||
           propKey === 'jdPlaceholder' ||
           propKey === 'jdTextareaLabel' ||
+          propKey === 'goldenReadOnlyNotice' ||
+          propKey === 'fastModeHint' ||
+          propKey === 'emptySpecNotice' ||
           propKey === 'footerText';
 
         return (

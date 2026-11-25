@@ -1,6 +1,7 @@
 package cadencedemo_e2e_test
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -115,15 +116,18 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 			t.Fatalf("expected 401 without internal auth on gate update, got %d", resGateUnauth.StatusCode)
 		}
 
-		resNoSessGate, _ := e2etest.DoJSON[httpkit.ErrorResponse](
+		resWrongSessGate, _ := e2etest.DoJSON[httpkit.ErrorResponse](
 			t,
 			http.MethodPost,
 			baseURL+"/v1/cadence/runs/"+createdRunID+"/gate",
 			map[string]string{"verdict": "approved"},
-			guestHeaders,
+			map[string]string{
+				internalauth.HeaderName: guestTok,
+				"X-Session-Id":          "e2e-other",
+			},
 		)
-		if resNoSessGate.StatusCode != http.StatusUnauthorized {
-			t.Fatalf("expected 401 when X-Session-Id is omitted on gate update, got %d", resNoSessGate.StatusCode)
+		if resWrongSessGate.StatusCode != http.StatusForbidden {
+			t.Fatalf("expected 403 when X-Session-Id mismatches claims.Sub on gate update, got %d", resWrongSessGate.StatusCode)
 		}
 
 		resGate, gateOut := e2etest.DoJSON[map[string]any](
@@ -158,16 +162,21 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 	})
 
 	t.Run("POST /v1/cadence/runs enforces guest session quota with HTTP 429", func(t *testing.T) {
+		quotaTok, err := internalauth.Sign(internalauth.RoleGuest, "e2e-quota-cap", time.Minute, "")
+		if err != nil {
+			t.Fatalf("sign quota token: %v", err)
+		}
+		quotaHeaders := map[string]string{internalauth.HeaderName: quotaTok}
 		for i := range 10 {
 			res, _ := e2etest.DoJSON[cadenceRunResponse](
 				t,
 				http.MethodPost,
 				baseURL+"/v1/cadence/runs",
 				contracts.CadenceRunRequest{
-					Prompt:    "Quota enforcement check prompt",
+					Prompt:    fmt.Sprintf("Quota enforcement check prompt iteration %d", i+1),
 					SessionID: "e2e-quota-cap",
 				},
-				guestHeaders,
+				quotaHeaders,
 			)
 			if res.StatusCode != http.StatusCreated {
 				t.Fatalf("run %d expected 201, got %d", i+1, res.StatusCode)
@@ -181,7 +190,7 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 				Prompt:    "Eleventh run should exceed guest quota",
 				SessionID: "e2e-quota-cap",
 			},
-			guestHeaders,
+			quotaHeaders,
 		)
 		if resOver.StatusCode != http.StatusTooManyRequests || body["quota"] == nil {
 			t.Fatalf("expected 429 with quota payload, got (%d): %+v", resOver.StatusCode, body)
@@ -189,6 +198,11 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 	})
 
 	t.Run("two-phase deferExecution init + SSE stream + session gate works end-to-end", func(t *testing.T) {
+		streamTok, err := internalauth.Sign(internalauth.RoleGuest, "e2e-stream-1", time.Minute, "")
+		if err != nil {
+			t.Fatalf("sign stream token: %v", err)
+		}
+		streamHeaders := map[string]string{internalauth.HeaderName: streamTok}
 		resInit, initRun := e2etest.DoJSON[contracts.CadenceRunResult](
 			t,
 			http.MethodPost,
@@ -200,7 +214,7 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 				Mode:           contracts.CadenceModeFast,
 				DeferExecution: true,
 			},
-			guestHeaders,
+			streamHeaders,
 		)
 		if resInit.StatusCode != http.StatusAccepted || initRun.RunStatus != contracts.CadenceStatusPending {
 			t.Fatalf("expected 202 pending run, got (%d): %+v", resInit.StatusCode, initRun)
@@ -211,13 +225,8 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 			t.Fatalf("expected 401 without internal auth on stream, got %d", resNoToken.StatusCode)
 		}
 
-		resMissing, _ := e2etest.DoRequest(t, http.MethodGet, baseURL+"/v1/cadence/runs/"+initRun.RunID+"/stream", nil, guestHeaders)
-		if resMissing.StatusCode != http.StatusUnauthorized {
-			t.Fatalf("expected 401 without X-Session-Id, got %d", resMissing.StatusCode)
-		}
-
 		resWrong, _ := e2etest.DoRequest(t, http.MethodGet, baseURL+"/v1/cadence/runs/"+initRun.RunID+"/stream", nil, map[string]string{
-			internalauth.HeaderName: guestTok,
+			internalauth.HeaderName: streamTok,
 			"X-Session-Id":          "e2e-other",
 		})
 		if resWrong.StatusCode != http.StatusForbidden {
@@ -225,7 +234,7 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 		}
 
 		resStream, streamBytes := e2etest.DoRequest(t, http.MethodGet, baseURL+"/v1/cadence/runs/"+initRun.RunID+"/stream", nil, map[string]string{
-			internalauth.HeaderName: guestTok,
+			internalauth.HeaderName: streamTok,
 			"X-Session-Id":          "e2e-stream-1",
 		})
 		streamText := string(streamBytes)
@@ -241,7 +250,7 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 			baseURL+"/v1/cadence/runs/"+initRun.RunID+"/gate",
 			map[string]string{"verdict": "approved"},
 			map[string]string{
-				internalauth.HeaderName: guestTok,
+				internalauth.HeaderName: streamTok,
 				"X-Session-Id":          "e2e-stream-1",
 			},
 		)

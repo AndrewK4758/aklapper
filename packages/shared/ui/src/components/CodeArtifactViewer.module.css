@@ -1,0 +1,109 @@
+@layer component {
+  .viewer {
+    display: grid;
+    gap: var(--sf-gap-xs);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-bg-frame);
+    overflow: hidden;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    flex-wrap: wrap;
+    gap: var(--sf-gap-xs);
+    padding: var(--sf-space-2) var(--sf-space-3);
+    border-bottom: var(--sf-border-width) solid var(--sf-border-subtle);
+    background: var(--sf-bg-panel);
+  }
+
+  .meta {
+    display: inline-flex;
+    align-items: var(--sf-align-center);
+    flex-wrap: wrap;
+    gap: var(--sf-gap-xs);
+  }
+
+  .actions {
+    display: inline-flex;
+    align-items: var(--sf-align-center);
+    flex-wrap: wrap;
+    gap: var(--sf-gap-xs);
+  }
+
+  .copyError {
+    margin: var(--sf-space-0);
+    padding: var(--sf-space-2) var(--sf-space-3);
+    border-bottom: var(--sf-border-width) solid var(--sf-err);
+    background: var(--sf-err-bg);
+    color: var(--sf-err);
+    font-family: var(--sf-font-mono), monospace;
+    font-size: var(--sf-text-xs);
+  }
+
+  .codeScroll {
+    max-height: var(--sf-iframe-min-h);
+    overflow: auto;
+    background: var(--sf-bg-frame);
+  }
+
+  .pre {
+    margin: var(--sf-space-0);
+    padding: var(--sf-space-3);
+    font-family: var(--sf-font-code), monospace;
+    font-size: var(--sf-text-xs);
+    line-height: var(--sf-leading-base);
+    color: var(--sf-fg-bone);
+    white-space: pre;
+    tab-size: 2;
+  }
+
+  .line {
+    display: grid;
+    grid-template-columns: calc(var(--sf-space-unit) * 10) minmax(0, 1fr);
+    gap: var(--sf-gap-sm);
+  }
+
+  .lineNum {
+    color: var(--sf-fg-cmt);
+    text-align: right;
+    user-select: none;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lineContent {
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .tokTag {
+    color: var(--sf-fg-tag);
+  }
+
+  .tokAttr {
+    color: var(--sf-fg-type);
+  }
+
+  .tokString {
+    color: var(--sf-fg-str);
+  }
+
+  .tokComment {
+    color: var(--sf-fg-cmt);
+    font-style: italic;
+  }
+
+  .tokPunct {
+    color: var(--sf-fg-op);
+  }
+
+  .empty {
+    margin: var(--sf-space-0);
+    padding: var(--sf-space-4);
+    color: var(--sf-fg-cmt);
+    font-family: var(--sf-font-mono), monospace;
+    font-size: var(--sf-text-xs);
+  }
+}

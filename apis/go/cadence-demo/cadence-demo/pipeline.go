@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -12,19 +13,37 @@ import (
 	"github.com/AndrewK4758/aklapper/packages/go/kit/k8sevents"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/llm"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
+	"github.com/AndrewK4758/aklapper/packages/go/kit/privacy"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/qdrant"
 )
 
 type chordExecutionOutput struct {
-	Turns        []pg.SandboxTurnInput
-	ArtifactHTML string
-	TokensIn     int
-	TokensOut    int
-	Status       contracts.Osc7501Status
-	OSC7501      string
+	Turns         []pg.SandboxTurnInput
+	ArtifactHTML  string
+	ExecutionMode string
+	Spec          *contracts.CadenceSpecArtifact
+	GateAudit     *contracts.CadenceGateAudit
+	TokensIn      int
+	TokensOut     int
+	Status        contracts.Osc7501Status
+	OSC7501       string
 }
 
 type phaseEmitFn func(turn contracts.CadenceTurn, runStatus string, progress int)
+
+type chordExecInput struct {
+	Provider    llm.Provider
+	VectorStore *qdrant.Client
+	Store       *pg.Store
+	PrivacyCfg  *privacy.Config
+	CorrID      string
+	RunID       string
+	Prompt      string
+	PresetSlug  string
+	Mode        string
+	OnPhase     phaseEmitFn
+	OnLog       logEmitFn
+}
 
 func logCadenceSeam(seamType, eventName, severity string, fields map[string]any) {
 	entry := map[string]any{
@@ -50,15 +69,107 @@ func executeChordSteps(
 	runID, prompt, presetSlug, mode string,
 	onPhase phaseEmitFn,
 ) (chordExecutionOutput, error) {
+	return executeChordStepsWithOptions(ctx, chordExecInput{
+		Provider:    provider,
+		VectorStore: vectorStore,
+		Store:       store,
+		RunID:       runID,
+		Prompt:      prompt,
+		PresetSlug:  presetSlug,
+		Mode:        mode,
+		OnPhase:     onPhase,
+	})
+}
+
+func buildDeterministicSpec(prompt, presetSlug string, preset *pg.CadencePresetRecord, recalledPatterns []string) *contracts.CadenceSpecArtifact {
+	title := "Custom CADENCE Artifact Specification"
+	if preset != nil && strings.TrimSpace(preset.Title) != "" {
+		title = preset.Title
+	}
+	return &contracts.CadenceSpecArtifact{
+		Title:   title,
+		Summary: fmt.Sprintf("Deterministic CHORD specification for preset %q.", nonEmptyOr(presetSlug, "custom")),
+		Conditions: []string{
+			fmt.Sprintf("Prompt received (%d chars) under preset %q.", len(strings.TrimSpace(prompt)), nonEmptyOr(presetSlug, "custom")),
+			"Isolated opaque-origin sandbox iframe (sandbox=allow-scripts, referrerPolicy=no-referrer).",
+		},
+		Handling: []string{
+			"Run triage classification, bounded Qdrant pattern recall, HTML5/CSS synthesis, and strict CSP sanitization.",
+		},
+		Outcomes: []string{
+			"Self-contained dark Solar Forge HTML5+CSS document <= 48 KiB with pure-CSS interactive controls.",
+		},
+		Rules: []string{
+			"Strict SHA-256 CSP meta (default-src 'none', zero unsafe-inline scripts, zero external fetches).",
+			"Zero inline <script>, <svg>, <iframe>, <object>, or on* event handlers.",
+		},
+		Deltas: []string{
+			"Persists sandbox_runs row with structured spec_json, gate_audit_json, and 4 sandbox_turns.",
+		},
+		RecalledPatterns: recalledPatterns,
+	}
+}
+
+func buildGateAudit(sanitizedHTML string, stripped bool, extraChecks []contracts.CadenceGateCheckItem) *contracts.CadenceGateAudit {
+	summary := "Artifact passed HTML/JS isolation sanitizer; ready for operator gate verdict."
+	if stripped {
+		summary = "Sanitizer neutralized restricted tags/escape hatches; ready for operator gate verdict."
+	}
+	checks := []contracts.CadenceGateCheckItem{
+		{
+			ID:     "csp-sha256",
+			Label:  "Strict SHA-256 CSP Meta",
+			Status: "pass",
+			Detail: "default-src 'none'; sha256-pinned probe script only; zero unsafe-inline scripts.",
+		},
+		{
+			ID:     "payload-cap",
+			Label:  "48 KiB Payload Budget",
+			Status: "pass",
+			Detail: fmt.Sprintf("Verified %d / %d UTF-8 bytes.", len(sanitizedHTML), maxArtifactBytes),
+		},
+		{
+			ID:    "html-sanitizer",
+			Label: "HTML/JS Isolation Sanitizer",
+			Status: func() string {
+				if stripped {
+					return "warn"
+				}
+				return "pass"
+			}(),
+			Detail: summary,
+		},
+	}
+	for _, c := range extraChecks {
+		if strings.TrimSpace(c.ID) != "" && strings.TrimSpace(c.Label) != "" {
+			checks = append(checks, c)
+		}
+	}
+	return &contracts.CadenceGateAudit{
+		Summary:       summary,
+		Sanitized:     stripped,
+		ArtifactBytes: len(sanitizedHTML),
+		Checks:        checks,
+	}
+}
+
+func executeChordStepsWithOptions(ctx context.Context, in chordExecInput) (chordExecutionOutput, error) {
+	mode := in.Mode
 	if mode != contracts.CadenceModeLLM {
 		mode = contracts.CadenceModeFast
 	}
-	preset, _ := store.GetCadencePreset(ctx, presetSlug)
+	preset, _ := in.Store.GetCadencePreset(ctx, in.PresetSlug)
+
+	emitLog := func(line string) {
+		if in.OnLog != nil && strings.TrimSpace(line) != "" {
+			in.OnLog(line)
+		}
+	}
 
 	emitUpdate := func(phase, agentName, status, summary string, latencyMs, progress int, payload map[string]any) error {
 		var emitted contracts.CadenceTurn
-		if runID != "" {
-			updated, err := store.UpdateSandboxTurn(ctx, runID, phase, status, summary, latencyMs, payload)
+		if in.RunID != "" {
+			updated, err := in.Store.UpdateSandboxTurn(ctx, in.RunID, phase, status, summary, latencyMs, payload)
 			if err != nil {
 				return fmt.Errorf("update sandbox turn %s (%s): %w", phase, status, err)
 			}
@@ -66,22 +177,23 @@ func executeChordSteps(
 		} else {
 			emitted = contracts.CadenceTurn{Phase: phase, AgentName: agentName, Status: status, Summary: summary, LatencyMs: latencyMs, Payload: payload}
 		}
-		if onPhase != nil {
-			onPhase(emitted, contracts.CadenceStatusRunning, progress)
+		if in.OnPhase != nil {
+			in.OnPhase(emitted, contracts.CadenceStatusRunning, progress)
 		}
 		return nil
 	}
 
 	// Phase 1: Triage
 	t1Start := time.Now()
+	emitLog("[triage] Evaluating prompt scope and sandbox isolation profile...")
 	if err := emitUpdate("triage", "chord-triage", "running", "Evaluating prompt and isolation profile...", 0, 10, nil); err != nil {
 		return chordExecutionOutput{}, err
 	}
-	detectedKeywords := extractPromptKeywords(prompt, 6)
-	triageSummary := fmt.Sprintf("Classified prompt (%d chars) under preset %q (%s mode).", len(prompt), nonEmptyOr(presetSlug, "custom"), mode)
+	detectedKeywords := extractPromptKeywords(in.Prompt, 6)
+	triageSummary := fmt.Sprintf("Classified prompt (%d chars) under preset %q (%s mode).", len(in.Prompt), nonEmptyOr(in.PresetSlug, "custom"), mode)
 	triagePayload := map[string]any{
-		"presetSlug":       nonEmptyOr(presetSlug, "custom"),
-		"promptLen":        len(prompt),
+		"presetSlug":       nonEmptyOr(in.PresetSlug, "custom"),
+		"promptLen":        len(in.Prompt),
 		"mode":             mode,
 		"detectedKeywords": detectedKeywords,
 		"isolationPolicy":  "sandbox=allow-scripts; opaque-origin; max-48KiB",
@@ -93,19 +205,20 @@ func executeChordSteps(
 
 	// Phase 2: Spec (+ bounded Qdrant recall)
 	t2Start := time.Now()
+	emitLog("[spec] Running bounded Qdrant pattern recall and drafting CHORD spec...")
 	if err := emitUpdate("spec", "chord-spec", "running", "Drafting sandbox spec and bounded vector recall...", 0, 35, nil); err != nil {
 		return chordExecutionOutput{}, err
 	}
 	recalledPatterns := []string{}
-	if provider != nil && vectorStore != nil {
+	if in.Provider != nil && in.VectorStore != nil {
 		recallBudget := 250 * time.Millisecond
 		if mode == contracts.CadenceModeLLM {
 			recallBudget = 1500 * time.Millisecond
 		}
 		recallCtx, cancel := context.WithTimeout(ctx, recallBudget)
-		vec, err := provider.Embed(recallCtx, prompt)
+		vec, err := in.Provider.Embed(recallCtx, in.Prompt)
 		if err == nil && len(vec) > 0 {
-			if hits, searchErr := vectorStore.Search(recallCtx, cadencePatternsCollection, vec, 2); searchErr == nil {
+			if hits, searchErr := in.VectorStore.Search(recallCtx, cadencePatternsCollection, vec, 2); searchErr == nil {
 				for _, hit := range hits {
 					if title, ok := hit.Payload["title"].(string); ok && strings.TrimSpace(title) != "" {
 						recalledPatterns = append(recalledPatterns, strings.TrimSpace(title))
@@ -115,15 +228,11 @@ func executeChordSteps(
 		}
 		cancel()
 	}
-	acceptanceCriteria := []string{
-		"Self-contained dark Solar Forge HTML5+CSS document filling 100% width with no scrollbars",
-		"Interactive controls using pure HTML5/CSS (radio-button tabs, <details>, progress/bar charts)",
-		"Zero external fetches, zero inline <script> or on* handlers, <= 48 KiB UTF-8",
-	}
+	specArtifact := buildDeterministicSpec(in.Prompt, in.PresetSlug, preset, recalledPatterns)
 	specSummary := fmt.Sprintf("Drafted single-file HTML/CSS spec (recalled %d Qdrant pattern(s)).", len(recalledPatterns))
 	specPayload := map[string]any{
 		"recalledPatterns":   recalledPatterns,
-		"acceptanceCriteria": acceptanceCriteria,
+		"acceptanceCriteria": specArtifact.Outcomes,
 		"sandboxConstraints": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'",
 	}
 	t2Ms := int(time.Since(t2Start).Milliseconds()) + 4
@@ -131,57 +240,73 @@ func executeChordSteps(
 		return chordExecutionOutput{}, err
 	}
 
-	// Phase 3: Build (fast tailored synthesis vs optional LLM)
+	// Phase 3: Build (fast tailored synthesis vs single-call structured streaming LLM)
 	t3Start := time.Now()
 	if err := emitUpdate("build", "chord-builder", "running", "Synthesizing tailored Solar Forge artifact...", 0, 65, nil); err != nil {
 		return chordExecutionOutput{}, err
 	}
-	tokensIn := len(prompt)/4 + 120
+	tokensIn := len(in.Prompt)/4 + 120
 	tokensOut := 480
 	buildMode := "deterministic-fast"
+	executionMode := contracts.CadenceExecutionModeFast
 	fallbackReason := ""
-	artifactHTML := buildTailoredArtifactHTML(prompt, presetSlug, preset, recalledPatterns)
+	artifactHTML := buildTailoredArtifactHTML(in.Prompt, in.PresetSlug, preset, recalledPatterns)
+	var extraChecks []contracts.CadenceGateCheckItem
 
-	if mode == contracts.CadenceModeLLM && provider != nil {
-		buildMode = "deterministic-fallback"
-		buildCtx, cancel := context.WithTimeout(ctx, 25*time.Second)
-		patternHint := "none"
-		if len(recalledPatterns) > 0 {
-			patternHint = strings.Join(recalledPatterns, ", ")
-		}
-		completion, err := provider.Chat(buildCtx, []llm.ChatMessage{
-			{
-				Role: "system",
-				Content: "Generate a rich, self-contained single-file HTML5 document with dark Solar Forge styling (#121110 bg, #1c1a17 panel, #ffd300 gold, #22c55e green, #f4efe6 text, monospace font) for an isolated iframe sandbox. " +
-					"Make it genuinely useful and interactive using PURE HTML5 and CSS: radio-button CSS tabs, <details>/<summary> accordions, CSS bar charts/gauges, metric grids, and tables. " +
-					"Fill 100% width with no outer scrollbars (scrollbar-width:none). " +
-					"STRICT SECURITY: Never use <script>, <svg>, <iframe>, <object>, <link>, @import, or inline on* event attributes. Output raw HTML only.",
-			},
-			{
-				Role:    "user",
-				Content: fmt.Sprintf("Preset: %s\nRecalled Qdrant Patterns: %s\nUser Prompt: %s", nonEmptyOr(presetSlug, "custom"), patternHint, prompt),
-			},
-		}, 2800)
-		cancel()
-		if err == nil && strings.Contains(strings.ToLower(completion.Text), "<html") {
-			artifactHTML = completion.Text
-			buildMode = provider.Name()
-			if completion.TokensUsed > 0 {
-				tokensOut = completion.TokensUsed
+	if mode == contracts.CadenceModeLLM {
+		structured, usedTokens, err := invokeStructuredLLM(
+			ctx,
+			in.Provider,
+			in.PrivacyCfg,
+			in.CorrID,
+			in.PresetSlug,
+			in.Prompt,
+			recalledPatterns,
+			emitLog,
+		)
+		if err != nil {
+			if errors.Is(err, privacy.ErrPrivacyAborted) || errors.Is(err, context.Canceled) {
+				return chordExecutionOutput{}, err
 			}
-		} else if err != nil {
-			fallbackReason = "LLM provider timed out or failed; fell back to structured interactive template."
-		} else {
-			fallbackReason = "LLM output did not contain a valid HTML document; fell back to structured interactive template."
+			executionMode = contracts.CadenceExecutionModeFallback
+			buildMode = "deterministic-fallback"
+			fallbackReason = "Live structured LLM failed or timed out; degraded explicitly to deterministic template."
+			emitLog("[build] " + fallbackReason)
+			logCadenceSeam("RULE_DIVERGENCE", "cadence.run.execution_mode_selected", "warn", map[string]any{
+				"branch": contracts.CadenceExecutionModeFallback,
+				"runId":  in.RunID,
+				"reason": err.Error(),
+			})
+		} else if structured != nil {
+			executionMode = contracts.CadenceExecutionModeLive
+			buildMode = in.Provider.Name()
+			artifactHTML = structured.ArtifactHTML
+			if usedTokens > 0 {
+				tokensOut = usedTokens
+			}
+			if strings.TrimSpace(structured.Spec.Title) != "" {
+				specCopy := structured.Spec
+				specCopy.RecalledPatterns = recalledPatterns
+				specArtifact = &specCopy
+			}
+			extraChecks = structured.GateChecks
+			logCadenceSeam("RULE_DIVERGENCE", "cadence.run.execution_mode_selected", "info", map[string]any{
+				"branch": contracts.CadenceExecutionModeLive,
+				"runId":  in.RunID,
+			})
 		}
-	} else if mode == contracts.CadenceModeLLM {
-		buildMode = "deterministic-fallback"
-		fallbackReason = "No live LLM provider configured on cadence-demo."
+	} else {
+		logCadenceSeam("RULE_DIVERGENCE", "cadence.run.execution_mode_selected", "info", map[string]any{
+			"branch": contracts.CadenceExecutionModeFast,
+			"runId":  in.RunID,
+		})
 	}
+
 	t3Ms := int(time.Since(t3Start).Milliseconds()) + 6
 	buildSummary := fmt.Sprintf("Synthesized bounded HTML/CSS artifact (%d bytes) via %s.", len(artifactHTML), buildMode)
 	buildPayload := map[string]any{
 		"provider":      buildMode,
+		"executionMode": executionMode,
 		"artifactBytes": len(artifactHTML),
 	}
 	if fallbackReason != "" {
@@ -193,27 +318,24 @@ func executeChordSteps(
 
 	// Phase 4: Gate — sanitize & validate
 	t4Start := time.Now()
+	emitLog("[gate] Running strict SHA-256 CSP HTML sanitizer...")
 	if err := emitUpdate("gate", "chord-gate", "running", "Running HTML/JS isolation sanitizer...", 0, 90, nil); err != nil {
 		return chordExecutionOutput{}, err
 	}
 	sanitizedHTML, stripped := sanitizeArtifactHTML(artifactHTML)
-	gateSummary := "Artifact passed HTML/JS isolation sanitizer; ready for operator gate verdict."
-	if stripped {
-		gateSummary = "Sanitizer neutralized restricted tags/escape hatches; ready for operator gate verdict."
-	}
-	gateChecks := []string{
-		"Strict CSP meta injected (default-src 'none', sha256-pinned probe script)",
-		fmt.Sprintf("Payload size verified (%d / %d bytes)", len(sanitizedHTML), maxArtifactBytes),
-		"Zero external network fetches, zero iframe/svg/object/event-handler escape hatches",
+	gateAudit := buildGateAudit(sanitizedHTML, stripped, extraChecks)
+	gateCheckLabels := make([]string, 0, len(gateAudit.Checks))
+	for _, c := range gateAudit.Checks {
+		gateCheckLabels = append(gateCheckLabels, c.Label+": "+c.Detail)
 	}
 	gatePayload := map[string]any{
 		"sanitized":     stripped,
 		"gateVerdict":   "pending",
 		"artifactBytes": len(sanitizedHTML),
-		"checks":        gateChecks,
+		"checks":        gateCheckLabels,
 	}
 	t4Ms := int(time.Since(t4Start).Milliseconds()) + 3
-	if err := emitUpdate("gate", "chord-gate", "completed", gateSummary, t4Ms, 100, gatePayload); err != nil {
+	if err := emitUpdate("gate", "chord-gate", "completed", gateAudit.Summary, t4Ms, 100, gatePayload); err != nil {
 		return chordExecutionOutput{}, err
 	}
 
@@ -227,16 +349,19 @@ func executeChordSteps(
 	}
 
 	return chordExecutionOutput{
-		ArtifactHTML: sanitizedHTML,
-		TokensIn:     tokensIn,
-		TokensOut:    tokensOut,
-		Status:       readyStatus,
-		OSC7501:      k8sevents.FormatOSC7501(readyStatus),
+		ArtifactHTML:  sanitizedHTML,
+		ExecutionMode: executionMode,
+		Spec:          specArtifact,
+		GateAudit:     gateAudit,
+		TokensIn:      tokensIn,
+		TokensOut:     tokensOut,
+		Status:        readyStatus,
+		OSC7501:       k8sevents.FormatOSC7501(readyStatus),
 		Turns: []pg.SandboxTurnInput{
-			{RunID: runID, Phase: "triage", AgentName: "chord-triage", Status: "completed", Summary: triageSummary, PayloadJSON: triagePayload, LatencyMs: t1Ms},
-			{RunID: runID, Phase: "spec", AgentName: "chord-spec", Status: "completed", Summary: specSummary, PayloadJSON: specPayload, LatencyMs: t2Ms},
-			{RunID: runID, Phase: "build", AgentName: "chord-builder", Status: "completed", Summary: buildSummary, PayloadJSON: buildPayload, LatencyMs: t3Ms},
-			{RunID: runID, Phase: "gate", AgentName: "chord-gate", Status: "completed", Summary: gateSummary, PayloadJSON: gatePayload, LatencyMs: t4Ms},
+			{RunID: in.RunID, Phase: "triage", AgentName: "chord-triage", Status: "completed", Summary: triageSummary, PayloadJSON: triagePayload, LatencyMs: t1Ms},
+			{RunID: in.RunID, Phase: "spec", AgentName: "chord-spec", Status: "completed", Summary: specSummary, PayloadJSON: specPayload, LatencyMs: t2Ms},
+			{RunID: in.RunID, Phase: "build", AgentName: "chord-builder", Status: "completed", Summary: buildSummary, PayloadJSON: buildPayload, LatencyMs: t3Ms},
+			{RunID: in.RunID, Phase: "gate", AgentName: "chord-gate", Status: "completed", Summary: gateAudit.Summary, PayloadJSON: gatePayload, LatencyMs: t4Ms},
 		},
 	}, nil
 }

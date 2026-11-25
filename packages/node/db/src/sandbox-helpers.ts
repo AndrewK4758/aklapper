@@ -1,19 +1,36 @@
 import {
+  CadenceExecutionModeSchema,
+  type CadenceGateAudit,
+  CadenceGateAuditSchema,
   type CadenceGateVerdict,
   type CadenceRunLifecycleStatus,
   type CadenceRunMode,
   type CadenceRunResult,
   CadenceRunResultSchema,
+  type CadenceSpecArtifact,
+  CadenceSpecArtifactSchema,
   type CadenceTurn,
   type CadenceTurnPayloadValue,
   CadenceTurnPayloadValueSchema,
   type QuotaStatus,
   type Role,
 } from '@aklapper/core';
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 
 import type { AppDatabase } from './client.ts';
 import * as schema from './schema.ts';
+
+export class GoldenRunImmutableError extends Error {
+  readonly status = 409;
+  readonly code = 'ERR_CONFLICT';
+  readonly runId: string;
+
+  constructor(runId: string) {
+    super(`Golden showcase run "${runId}" is read-only and cannot be mutated.`);
+    this.name = 'GoldenRunImmutableError';
+    this.runId = runId;
+  }
+}
 
 export const SANDBOX_UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -103,12 +120,26 @@ export function mapSandboxRunResult(
 ): CadenceRunResult {
   const presetSlug = extractPresetSlugFromTurnRows(turnRows, run.menuSlug);
   const mode = extractRunModeFromTurnRows(turnRows);
+  const parsedExecutionMode = CadenceExecutionModeSchema.safeParse(run.executionMode);
+  const parsedSpec = run.specJson ? CadenceSpecArtifactSchema.safeParse(run.specJson) : null;
+  const parsedGateAudit = run.gateAuditJson
+    ? CadenceGateAuditSchema.safeParse(run.gateAuditJson)
+    : null;
+  const spec: CadenceSpecArtifact | undefined = parsedSpec?.success ? parsedSpec.data : undefined;
+  const gateAudit: CadenceGateAudit | undefined = parsedGateAudit?.success
+    ? parsedGateAudit.data
+    : undefined;
+
   return CadenceRunResultSchema.parse({
     runId: run.id,
     prompt: run.prompt,
     ...(presetSlug ? { presetSlug } : {}),
     runStatus: normalizeRunLifecycleStatus(run.status),
     ...(mode ? { mode } : {}),
+    ...(parsedExecutionMode.success ? { executionMode: parsedExecutionMode.data } : {}),
+    isGolden: Boolean(run.isGolden),
+    ...(spec ? { spec } : {}),
+    ...(gateAudit ? { gateAudit } : {}),
     gateVerdict: normalizeGateVerdict(run.gateVerdict),
     turns: turnRows.map(mapSandboxTurnRow),
     artifactHtml: run.artifactHtml ?? '',
@@ -129,10 +160,28 @@ export async function updateSandboxRunGateVerdictRow(
 } | null> {
   if (!SANDBOX_UUID_PATTERN.test(runId)) return null;
 
+  const [existing] = await db
+    .select({ id: schema.sandboxRuns.id, isGolden: schema.sandboxRuns.isGolden })
+    .from(schema.sandboxRuns)
+    .where(eq(schema.sandboxRuns.id, runId))
+    .limit(1);
+
+  if (!existing) return null;
+  if (existing.isGolden) {
+    console.warn(
+      JSON.stringify({
+        seam_type: 'UNSOUND_CONDITION',
+        event: 'cadence.gate.golden_mutation_blocked',
+        runId,
+      }),
+    );
+    throw new GoldenRunImmutableError(runId);
+  }
+
   const [updated] = await db
     .update(schema.sandboxRuns)
     .set({ gateVerdict: verdict })
-    .where(eq(schema.sandboxRuns.id, runId))
+    .where(and(eq(schema.sandboxRuns.id, runId), eq(schema.sandboxRuns.isGolden, false)))
     .returning();
 
   if (!updated) return null;

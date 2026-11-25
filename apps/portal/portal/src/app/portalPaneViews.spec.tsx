@@ -6,6 +6,7 @@ import {
   type PortalAgensiLoaderData,
   PortalAskContentSchema,
   type PortalAskLoaderData,
+  PortalCadenceContentSchema,
   type PortalCadenceLoaderData,
   type PortalContactLoaderData,
   type PortalHomeContent,
@@ -786,12 +787,12 @@ describe('Portal in-pane route adapters & deep-links', () => {
 
   it('runs docked /cadence with Select Escape guard, live EventSource streaming, and gate approval without changing URL', async () => {
     const cadenceData: PortalCadenceLoaderData = {
-      content: {
+      content: PortalCadenceContentSchema.parse({
         windowTitle: 'CADENCE Builder // portfolio-public',
         statusBadge: { source: 'svc-cadence-demo', state: 'idle', label: '0/1 replicas' },
         description: 'Build interactive artifacts inside pane.',
         iframeTitle: 'CADENCE Artifact Preview',
-      },
+      }),
       presets: [
         {
           slug: 'solar-forge-starter',
@@ -1026,12 +1027,12 @@ describe('Portal in-pane route adapters & deep-links', () => {
 
   it('displays 429 error banner inside docked cadence pane after a prior streamed run completes without crashing workspace', async () => {
     const cadenceData: PortalCadenceLoaderData = {
-      content: {
+      content: PortalCadenceContentSchema.parse({
         windowTitle: 'CADENCE Builder // portfolio-public',
         statusBadge: { source: 'svc-cadence-demo', state: 'idle', label: '0/1 replicas' },
         description: 'Build widgets cleanly.',
         iframeTitle: 'CADENCE Artifact Preview',
-      },
+      }),
       presets: [
         {
           slug: 'solar-forge-starter',
@@ -1243,12 +1244,12 @@ describe('Portal in-pane route adapters & deep-links', () => {
     };
 
     const cadenceData: PortalCadenceLoaderData = {
-      content: {
+      content: PortalCadenceContentSchema.parse({
         windowTitle: 'CADENCE Builder // portfolio-public',
         statusBadge: { source: 'svc-cadence-demo', state: 'idle', label: '0/1 replicas' },
         description: 'Async recovery check.',
         iframeTitle: 'CADENCE Artifact Preview',
-      },
+      }),
       presets: [
         {
           slug: 'solar-forge-starter',

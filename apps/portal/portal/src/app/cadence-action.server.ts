@@ -7,8 +7,12 @@ import {
 } from '@aklapper/core';
 import { classifyServerError } from '@aklapper/core/server-errors';
 import {
+  cloneCachedSandboxRunForSession,
   createPendingSandboxRunWithQuota,
+  findCachedSandboxRun,
+  getQuotaStatusForSession,
   getSharedDb,
+  GoldenRunImmutableError,
   updateSandboxRunGateVerdictForSession,
 } from '@aklapper/db';
 import { proxyJson } from '@aklapper/node-runtime/http';
@@ -213,6 +217,25 @@ export async function handleCadenceGateAction(formData: FormData, ctx: CadenceAc
       { status: 200, headers },
     );
   } catch (error) {
+    if (error instanceof GoldenRunImmutableError) {
+      logger.warn(
+        {
+          seam_type: 'UNSOUND_CONDITION',
+          event: 'cadence.gate.golden_mutation_blocked',
+          runId: error.runId,
+          correlationId,
+        },
+        'Blocked portal gate update against read-only Golden showcase run',
+      );
+      return actionError(
+        'gate',
+        409,
+        'Golden showcase runs are read-only and cannot be mutated.',
+        'ERR_CONSTRAINT',
+        ctx,
+        { action: 'Run your own prompt to test gate approvals.' },
+      );
+    }
     return classifyCadenceActionFailure(error, 'gate', correlationId, logger, headers);
   }
 }
@@ -352,6 +375,31 @@ export async function handleCadenceRunAction(formData: FormData, ctx: CadenceAct
   // Fallback ONLY when CADENCE_DEMO_URL is unset or returned 502/504.
   try {
     const db = getSharedDb();
+    const cacheLookup = await findCachedSandboxRun(db, {
+      sessionId,
+      presetSlug,
+      mode: resolvedMode,
+      prompt: validatedReq.data.prompt,
+    });
+    if (cacheLookup.sourceRun) {
+      const cloned = await cloneCachedSandboxRunForSession(
+        db,
+        { run: cacheLookup.sourceRun, turns: cacheLookup.sourceTurns },
+        {
+          sessionId,
+          ipHash: 'portal-ssr',
+          presetSlug,
+          prompt: validatedReq.data.prompt,
+          promptHash: cacheLookup.promptHash,
+        },
+      );
+      const quota = await getQuotaStatusForSession(db, 'guest', sessionId);
+      return data<PortalCadenceActionResult>(
+        { ok: true, intent: 'run', run: { ...cloned, quota }, quota },
+        { status: 201, headers },
+      );
+    }
+
     const initResult = await createPendingSandboxRunWithQuota(db, {
       role: 'guest',
       sessionId,
@@ -359,6 +407,7 @@ export async function handleCadenceRunAction(formData: FormData, ctx: CadenceAct
       presetSlug,
       prompt: validatedReq.data.prompt,
       mode: resolvedMode,
+      promptHash: cacheLookup.promptHash,
       estimatedTokens: 800,
     });
 

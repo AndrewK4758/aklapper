@@ -66,6 +66,13 @@ describe('@aklapper/tooling GKE manifest renderer', () => {
     expect(rendered).toContain('containerPort: 9090');
     expect(rendered).toContain('name: GRPC_PORT');
     expect(rendered).toContain("value: '9090'");
+    expect(rendered).toContain('name: cadence-demo-qdrant-egress');
+    const cadenceServiceDoc =
+      rendered
+        .split('\n---\n')
+        .find(doc => doc.includes('kind: Service\n') && doc.includes('name: cadence-demo')) ?? '';
+    expect(cadenceServiceDoc).toContain('port: 9090');
+    expect(cadenceServiceDoc).toContain('appProtocol: kubernetes.io/h2c');
     expect(rendered).toContain('port: 8084');
     expect(rendered).toContain('port: 8085');
     expect(rendered).toContain('port: 443');

@@ -16,6 +16,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 export { careerDossiers } from './schema-dossiers.ts';
+export { sandboxRuns, sandboxTurns } from './schema-sandbox.ts';
 
 export const menuItems = pgTable('menu_items', {
   slug: text('slug').primaryKey(),
@@ -263,33 +264,6 @@ export const askTurns = pgTable(
       .where(sql`${table.conversationId} IS NOT NULL AND ${table.turnIndex} IS NOT NULL`),
   ],
 );
-
-export const sandboxRuns = pgTable('sandbox_runs', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  sessionId: text('session_id').notNull(),
-  ipHash: text('ip_hash').notNull(),
-  menuSlug: text('menu_slug').notNull(),
-  prompt: text('prompt').notNull(),
-  status: text('status').notNull(),
-  gateVerdict: text('gate_verdict').notNull().default('pending'),
-  tokensIn: integer('tokens_in').notNull().default(0),
-  tokensOut: integer('tokens_out').notNull().default(0),
-  artifactHtml: text('artifact_html'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const sandboxTurns = pgTable('sandbox_turns', {
-  id: serial('id').primaryKey(),
-  runId: uuid('run_id')
-    .notNull()
-    .references(() => sandboxRuns.id, { onDelete: 'cascade' }),
-  phase: text('phase').notNull(),
-  agentName: text('agent_name').notNull(),
-  status: text('status').notNull(),
-  payloadJson: jsonb('payload_json').$type<Record<string, unknown>>().notNull().default({}),
-  latencyMs: integer('latency_ms').notNull().default(0),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
 
 export const analyticsSessions = pgTable('analytics_sessions', {
   sessionId: text('session_id').primaryKey(),
