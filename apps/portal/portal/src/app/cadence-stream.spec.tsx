@@ -34,13 +34,12 @@ function makeRunningRun(runId: string): CadenceRunResult {
   return {
     runId,
     presetSlug: 'feature-spec',
-    mode: 'full',
-    status: 'spec_pending',
+    mode: 'fast',
     runStatus: 'running',
+    gateVerdict: 'pending',
     prompt: 'Implement workspace transport',
     turns: [],
-    createdAt: '2026-11-25T10:00:00.000Z',
-    updatedAt: '2026-11-25T10:00:01.000Z',
+    artifactHtml: '',
   };
 }
 
@@ -146,7 +145,7 @@ describe('useCadenceRunController single-owner SSE claim registry', () => {
       result.current.onRunBuild({
         prompt: 'Add streaming view',
         presetSlug: 'feature-spec',
-        mode: 'full',
+        mode: 'fast',
       });
     });
 
@@ -154,7 +153,7 @@ describe('useCadenceRunController single-owner SSE claim registry', () => {
       intent: 'run',
       prompt: 'Add streaming view',
       presetSlug: 'feature-spec',
-      mode: 'full',
+      mode: 'fast',
       requireSpecApproval: 'true',
     });
   });

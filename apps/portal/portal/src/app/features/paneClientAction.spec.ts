@@ -22,9 +22,8 @@ function buildClientActionArgs(
     request,
     params: {},
     context: {} as ClientActionFunctionArgs['context'],
-    unstable_pattern: url,
     serverAction: serverAction as ClientActionFunctionArgs['serverAction'],
-  };
+  } as ClientActionFunctionArgs;
 }
 
 describe('createPrimaryRouteClientAction', () => {
@@ -32,8 +31,16 @@ describe('createPrimaryRouteClientAction', () => {
     const clientAction = createPrimaryRouteClientAction<ContactActionResult>('/contact');
     const okPayload: ContactActionResult = {
       ok: true,
-      source: 'server',
-      message: 'Message received.',
+      submission: {
+        id: 'contact-1',
+        name: 'Ada',
+        email: 'ada@example.com',
+        phone: null,
+        attachmentName: null,
+        attachmentSizeBytes: null,
+        attachmentSha256: null,
+        createdAt: '2026-11-25T00:00:00Z',
+      },
     };
     const result = await clientAction(
       buildClientActionArgs(

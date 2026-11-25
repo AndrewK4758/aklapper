@@ -1,9 +1,9 @@
 import type { ContactActionResult, PortalContactLoaderData } from '@aklapper/core';
-import type { TerminalPaneViewContext } from '@aklapper/ui';
+import type { RecursiveTuiFormRenderProps, TerminalPaneViewContext } from '@aklapper/ui';
 import type { JSX } from 'react';
 import { href, useNavigation } from 'react-router';
 
-import { type PortalContactFormRenderProps, PortalContactPage } from '#pages/contact';
+import { PortalContactPage } from '#pages/contact';
 
 import type { StreamLoaderEnvelope } from '../pane-loader';
 import {
@@ -23,7 +23,7 @@ export interface ContactFeatureViewProps {
   readonly isRetrying?: boolean;
   readonly onRetry?: () => void;
   readonly onClose: () => void;
-  readonly renderFormElement?: (props: PortalContactFormRenderProps) => JSX.Element;
+  readonly renderFormElement?: (props: RecursiveTuiFormRenderProps) => JSX.Element;
 }
 
 export function ContactFeatureView({
@@ -104,9 +104,9 @@ export function ContactPaneView({ ctx }: { readonly ctx: TerminalPaneViewContext
       isRetrying={entry.status === 'loading' && entry.retryNonce > 0}
       onRetry={retry}
       onClose={ctx.exitTui}
-      renderFormElement={({ action, className, onSubmit, children }) => (
+      renderFormElement={({ className, onSubmit, children }) => (
         <form
-          action={action}
+          action={href('/contact')}
           method='post'
           encType='multipart/form-data'
           noValidate

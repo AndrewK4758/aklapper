@@ -295,7 +295,9 @@ export function createPortalPaneStreamStore(
     if (!existing) return;
     existing.controller.abort();
     records.delete(key);
-    notifyKey(key);
+    // Do not notify subscribers on eviction: removed panes/views are unmounting,
+    // and notifying while still mounted would re-trigger getOrStart() via useSyncExternalStore.
+    listenersByKey.delete(key);
   };
 
   const evictPane = (paneId: string): void => {

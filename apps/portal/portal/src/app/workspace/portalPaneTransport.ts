@@ -195,18 +195,20 @@ function settleStreamPromise<T>(
 }
 
 export function settleEnvelopeStreams<T>(envelope: PaneLoadedEnvelope<T>): PaneLoadedEnvelope<T> {
-  const settledPayload = settleStreamPromise(envelope.payload, envelope.correlationId);
   if (isAskStreamLoaderEnvelope(envelope)) {
     return {
       ...envelope,
-      payload: settledPayload as Promise<StreamResult<never>>,
+      payload: settleStreamPromise(envelope.payload, envelope.correlationId),
       askStatusPayload: settleStreamPromise<AskServiceStatus | undefined>(
         envelope.askStatusPayload,
         envelope.correlationId,
       ),
-    } as AskStreamLoaderEnvelope;
+    };
   }
-  return { ...envelope, payload: settledPayload };
+  return {
+    ...envelope,
+    payload: settleStreamPromise(envelope.payload, envelope.correlationId),
+  };
 }
 
 function failedEnvelope<T>(publicError: PublicAppError): StreamLoaderEnvelope<T> {

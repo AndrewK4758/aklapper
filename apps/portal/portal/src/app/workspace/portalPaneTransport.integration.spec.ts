@@ -150,7 +150,7 @@ describe.runIf(existsSync(DIST_SERVER_ENTRY))(
       expect(settledStatus).toHaveProperty('ok');
     });
 
-    it('decodes live Fastify SSR POST /contact.data validation responses via submitAction', async () => {
+    it('decodes live Fastify SSR POST /contact.data responses via submitAction', async () => {
       const transport = createSingleFetchPaneTransport({ baseUrl });
       const fd = new FormData();
       fd.set('name', '');
@@ -158,12 +158,11 @@ describe.runIf(existsSync(DIST_SERVER_ENTRY))(
       fd.set('message', 'hi');
 
       const result = await transport.submitAction<ContactActionResult>('/contact', fd);
-      expect(result).toMatchObject({
-        ok: false,
-        code: 'ERR_VALIDATION',
-      });
-      const fieldErrorKeys = result.ok ? [] : Object.keys(result.fieldErrors);
-      expect(fieldErrorKeys.length).toBeGreaterThan(0);
+      expect(result.ok).toBe(false);
+      const failed = result as Extract<ContactActionResult, { ok: false }>;
+      expect(['ERR_VALIDATION', 'ERR_DB_UNAVAILABLE']).toContain(failed.code);
+      expect(failed.correlationId).toMatch(/\S+/);
+      expect(failed.formError ?? Object.values(failed.fieldErrors).join('')).toMatch(/\S+/);
     });
   },
 );

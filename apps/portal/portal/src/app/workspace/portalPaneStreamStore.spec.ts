@@ -12,12 +12,39 @@ import type { PortalCadenceActionResult } from '#pages/cadence';
 import { createPortalPaneStreamStore, MAX_CACHED_PANE_ENVELOPES } from './portalPaneStreamStore';
 import {
   createSingleFetchPaneTransport,
+  type PaneLoadedEnvelope,
   type PaneStreamTransport,
   PORTAL_PANE_ROUTE_IDS,
   resetGuestSessionBarrierForTest,
   setActivePaneTransportForTest,
   submitPortalPaneAction,
 } from './portalPaneTransport';
+import type { PortalPaneRoute } from './portalWorkspaceSnapshot';
+
+function createMockTransport(
+  loadImpl: (
+    routePath: PortalPaneRoute,
+    signal: AbortSignal,
+  ) => Promise<PaneLoadedEnvelope<unknown>>,
+): {
+  readonly loadSpy: ReturnType<
+    typeof vi.fn<
+      (routePath: PortalPaneRoute, signal: AbortSignal) => Promise<PaneLoadedEnvelope<unknown>>
+    >
+  >;
+  readonly transport: PaneStreamTransport;
+} {
+  const loadSpy =
+    vi.fn<
+      (routePath: PortalPaneRoute, signal: AbortSignal) => Promise<PaneLoadedEnvelope<unknown>>
+    >(loadImpl);
+  const transport: PaneStreamTransport = {
+    load: <T = unknown>(routePath: PortalPaneRoute, signal: AbortSignal) =>
+      loadSpy(routePath, signal) as Promise<PaneLoadedEnvelope<T>>,
+    submitAction: async <T = unknown>() => ({ ok: true }) as T,
+  };
+  return { loadSpy, transport };
+}
 
 describe('portalPaneStreamStore', () => {
   beforeEach(() => {
@@ -34,20 +61,17 @@ describe('portalPaneStreamStore', () => {
   it('prewarms synchronously, stays idempotent across StrictMode double-calls, and isolates duplicate pane retries', async () => {
     let loadCount = 0;
     const signals = new Map<number, AbortSignal>();
-    const transport: PaneStreamTransport = {
-      load: vi.fn<PaneStreamTransport['load']>(async (_routePath, signal) => {
-        loadCount += 1;
-        signals.set(loadCount, signal);
-        return {
-          correlationId: `corr-${loadCount}`,
-          payload: Promise.resolve<StreamResult<never>>({
-            ok: true,
-            data: { attempt: loadCount } as never,
-          }),
-        };
-      }),
-      submitAction: vi.fn<PaneStreamTransport['submitAction']>(async () => ({ ok: true }) as never),
-    };
+    const { loadSpy, transport } = createMockTransport(async (_routePath, signal) => {
+      loadCount += 1;
+      signals.set(loadCount, signal);
+      return {
+        correlationId: `corr-${loadCount}`,
+        payload: Promise.resolve<StreamResult<unknown>>({
+          ok: true,
+          data: { attempt: loadCount },
+        }),
+      };
+    });
 
     const store = createPortalPaneStreamStore({ getTransport: () => transport });
     const prewarmed = store.prewarm('pane-2', '/cadence');
@@ -56,12 +80,12 @@ describe('portalPaneStreamStore', () => {
 
     expect(strictRender1).toBe(prewarmed);
     expect(strictRender2).toBe(prewarmed);
-    expect(transport.load).toHaveBeenCalledTimes(1);
+    expect(loadSpy).toHaveBeenCalledTimes(1);
 
     // Second duplicate /cadence pane gets its own isolated entry
     const pane3Entry = store.getOrStart('pane-3', '/cadence');
     expect(pane3Entry.key).toBe('pane-3:/cadence');
-    expect(transport.load).toHaveBeenCalledTimes(2);
+    expect(loadSpy).toHaveBeenCalledTimes(2);
 
     const pane2Listener = vi.fn<() => void>();
     const pane3Listener = vi.fn<() => void>();
@@ -89,13 +113,10 @@ describe('portalPaneStreamStore', () => {
 
   it('aborts in-flight loads and evicts entries on evictPane and evictPaneViews (pane close & in-pane pop/exit)', () => {
     const abortSignals: AbortSignal[] = [];
-    const transport: PaneStreamTransport = {
-      load: vi.fn<PaneStreamTransport['load']>((_routePath, signal) => {
-        abortSignals.push(signal);
-        return new Promise(() => undefined);
-      }),
-      submitAction: vi.fn<PaneStreamTransport['submitAction']>(async () => ({ ok: true }) as never),
-    };
+    const { transport } = createMockTransport((_routePath, signal) => {
+      abortSignals.push(signal);
+      return new Promise(() => undefined);
+    });
 
     const store = createPortalPaneStreamStore({ getTransport: () => transport });
     store.prewarm('pane-1', '/agensi');
@@ -118,13 +139,10 @@ describe('portalPaneStreamStore', () => {
     expect(MAX_CACHED_PANE_ENVELOPES).toBe(32);
     const signalsByPane = new Map<string, AbortSignal>();
     let currentPane = '';
-    const transport: PaneStreamTransport = {
-      load: vi.fn<PaneStreamTransport['load']>((_routePath, signal) => {
-        signalsByPane.set(currentPane, signal);
-        return new Promise(() => undefined);
-      }),
-      submitAction: vi.fn<PaneStreamTransport['submitAction']>(async () => ({ ok: true }) as never),
-    };
+    const { transport } = createMockTransport((_routePath, signal) => {
+      signalsByPane.set(currentPane, signal);
+      return new Promise(() => undefined);
+    });
 
     const store = createPortalPaneStreamStore({ getTransport: () => transport });
     for (let idx = 1; idx <= MAX_CACHED_PANE_ENVELOPES + 1; idx += 1) {
@@ -138,13 +156,10 @@ describe('portalPaneStreamStore', () => {
   });
 
   it('guards SSR renders where window is undefined with zero module state mutation', () => {
-    const transport: PaneStreamTransport = {
-      load: vi.fn<PaneStreamTransport['load']>(async () => ({
-        correlationId: 'never',
-        payload: Promise.resolve({ ok: true as const, data: null as never }),
-      })),
-      submitAction: vi.fn<PaneStreamTransport['submitAction']>(async () => ({ ok: true }) as never),
-    };
+    const { loadSpy, transport } = createMockTransport(async () => ({
+      correlationId: 'never',
+      payload: Promise.resolve({ ok: true as const, data: null }),
+    }));
 
     const store = createPortalPaneStreamStore({ getTransport: () => transport });
     const originalWindow = globalThis.window;
@@ -159,7 +174,7 @@ describe('portalPaneStreamStore', () => {
       expect(snap1).toBe(snap2);
       store.prewarm('pane-1', '/agensi');
       store.getOrStart('pane-1', '/agensi');
-      expect(transport.load).not.toHaveBeenCalled();
+      expect(loadSpy).not.toHaveBeenCalled();
     } finally {
       Object.defineProperty(globalThis, 'window', {
         value: originalWindow,
