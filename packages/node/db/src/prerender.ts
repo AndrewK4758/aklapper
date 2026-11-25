@@ -41,6 +41,7 @@ import {
   loadPortalRootData,
   TERMINAL_PROFILE_SLUGS,
 } from './queries.ts';
+import { getPrerenderGoldenSandboxRuns } from './seed-golden-runs.ts';
 import {
   ADMIN_ANALYTICS_SEED,
   ADMIN_CHROME_SEED,
@@ -155,6 +156,7 @@ export function getPrerenderPortalCadenceData(): PortalCadenceLoaderData {
     ),
     quota: DEFAULT_GUEST_QUOTA,
     recentRuns: [],
+    goldenRuns: getPrerenderGoldenSandboxRuns(),
   };
 }
 

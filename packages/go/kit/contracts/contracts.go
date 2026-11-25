@@ -24,6 +24,12 @@ const (
 	CadenceModeFast = "fast"
 	CadenceModeLLM  = "llm"
 
+	CadenceExecutionModeGolden   = "golden"
+	CadenceExecutionModeCached   = "cached"
+	CadenceExecutionModeLive     = "live"
+	CadenceExecutionModeFast     = "fast"
+	CadenceExecutionModeFallback = "fallback"
+
 	CadenceStatusPending = "pending"
 	CadenceStatusRunning = "running"
 	CadenceStatusReady   = "ready"
@@ -125,21 +131,62 @@ type CadencePreset struct {
 	SortOrder           int    `json:"sortOrder"`
 }
 
+type CadenceSpecArtifact struct {
+	Title            string   `json:"title"`
+	Summary          string   `json:"summary"`
+	Conditions       []string `json:"conditions"`
+	Handling         []string `json:"handling"`
+	Outcomes         []string `json:"outcomes"`
+	Rules            []string `json:"rules"`
+	Deltas           []string `json:"deltas"`
+	RecalledPatterns []string `json:"recalledPatterns,omitempty"`
+}
+
+type CadenceGateCheckItem struct {
+	ID     string `json:"id"`
+	Label  string `json:"label"`
+	Status string `json:"status"`
+	Detail string `json:"detail"`
+}
+
+type CadenceGateAudit struct {
+	Summary       string                 `json:"summary"`
+	Sanitized     bool                   `json:"sanitized"`
+	ArtifactBytes int                    `json:"artifactBytes"`
+	Checks        []CadenceGateCheckItem `json:"checks"`
+}
+
+// NormalizeCadencePrompt trims outer whitespace, collapses internal ASCII/Unicode whitespace runs
+// to a single space, and lowercases, matching TS normalizeCadencePrompt byte-for-byte.
+func NormalizeCadencePrompt(raw string) string {
+	return strings.ToLower(strings.Join(strings.Fields(raw), " "))
+}
+
 type CadenceRunResult struct {
-	RunID        string         `json:"runId"`
-	Prompt       string         `json:"prompt"`
-	PresetSlug   string         `json:"presetSlug,omitempty"`
-	RunStatus    string         `json:"runStatus,omitempty"`
-	Mode         string         `json:"mode,omitempty"`
-	Status       *Osc7501Status `json:"status,omitempty"`
-	OSC7501      string         `json:"osc7501,omitempty"`
-	GateVerdict  string         `json:"gateVerdict"`
-	Turns        []CadenceTurn  `json:"turns"`
-	ArtifactHTML string         `json:"artifactHtml"`
-	TokensIn     int            `json:"tokensIn,omitempty"`
-	TokensOut    int            `json:"tokensOut,omitempty"`
-	Quota        *QuotaStatus   `json:"quota,omitempty"`
-	CreatedAt    string         `json:"createdAt,omitempty"`
+	RunID         string               `json:"runId"`
+	Prompt        string               `json:"prompt"`
+	PresetSlug    string               `json:"presetSlug,omitempty"`
+	RunStatus     string               `json:"runStatus,omitempty"`
+	Mode          string               `json:"mode,omitempty"`
+	ExecutionMode string               `json:"executionMode,omitempty"`
+	IsGolden      bool                 `json:"isGolden,omitempty"`
+	Spec          *CadenceSpecArtifact `json:"spec,omitempty"`
+	GateAudit     *CadenceGateAudit    `json:"gateAudit,omitempty"`
+	Status        *Osc7501Status       `json:"status,omitempty"`
+	OSC7501       string               `json:"osc7501,omitempty"`
+	GateVerdict   string               `json:"gateVerdict"`
+	Turns         []CadenceTurn        `json:"turns"`
+	ArtifactHTML  string               `json:"artifactHtml"`
+	TokensIn      int                  `json:"tokensIn,omitempty"`
+	TokensOut     int                  `json:"tokensOut,omitempty"`
+	Quota         *QuotaStatus         `json:"quota,omitempty"`
+	CreatedAt     string               `json:"createdAt,omitempty"`
+}
+
+type CadenceStreamLogEvent struct {
+	RunID     string `json:"runId"`
+	Line      string `json:"line"`
+	Timestamp string `json:"timestamp,omitempty"`
 }
 
 type CadenceStreamPhaseEvent struct {

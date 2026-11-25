@@ -12,6 +12,7 @@ import {
   CADENCE_PRESET_SEEDS,
   careerDossiers,
   claimPendingSandboxRun,
+  cloneCachedSandboxRunForSession,
   completeSandboxRunRow,
   consumeQuotaForSession,
   ContactDbConstraintError,
@@ -22,6 +23,7 @@ import {
   deleteTerminalDirectoryEntry,
   extractPgConstraintViolation,
   failSandboxRunRow,
+  findCachedSandboxRun,
   getAskTurnByAttemptId,
   getCadencePresetBySlug,
   getCadencePresets,
@@ -30,8 +32,12 @@ import {
   getSandboxRunWithTurnsById,
   getTerminalDirectoryEntries,
   getTerminalProfile,
+  GoldenRunImmutableError,
   insertContactSubmission,
+  isNodeDevUnlimitedEnabled,
+  listAdminSandboxRuns,
   listCareerDossiers,
+  listGoldenSandboxRuns,
   listPublishedCareerDossiers,
   listSandboxRunsForSession,
   loadAdminCmsData,
@@ -320,8 +326,8 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
     expect(presets.map(p => p.slug)).toEqual(CADENCE_PRESET_SEEDS.map(p => p.slug));
     expect(presets).toHaveLength(5);
 
-    const monitor = await getCadencePresetBySlug(db, 'chord-pipeline-monitor');
-    expect(monitor?.expectedKind).toBe('pipeline-monitor');
+    const workbench = await getCadencePresetBySlug(db, 'chord-decomposition-workbench');
+    expect(workbench?.expectedKind).toBe('chord-workbench');
 
     const sessionId = `pg19-test-${Date.now()}`;
     try {
@@ -329,7 +335,7 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
         role: 'guest',
         sessionId,
         ipHash: 'test-ip',
-        presetSlug: 'chord-pipeline-monitor',
+        presetSlug: 'chord-decomposition-workbench',
         prompt: 'Measure CHORD stage latency across replicas in fast mode.',
         mode: 'fast',
         estimatedTokens: 800,
@@ -338,7 +344,7 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       expect(init.allowed).toBe(true);
       expect(init.run?.runStatus).toBe('pending');
       expect(init.run?.mode).toBe('fast');
-      expect(init.run?.presetSlug).toBe('chord-pipeline-monitor');
+      expect(init.run?.presetSlug).toBe('chord-decomposition-workbench');
       expect(init.run?.turns).toHaveLength(4);
       expect(init.quota.turnsUsed).toBe(1);
 
@@ -380,7 +386,7 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       });
       expect(completed?.runStatus).toBe('ready');
       expect(completed?.mode).toBe('fast');
-      expect(completed?.presetSlug).toBe('chord-pipeline-monitor');
+      expect(completed?.presetSlug).toBe('chord-decomposition-workbench');
 
       // Cross-session gate verdict is rejected fail-closed.
       const wrongSessionGate = await updateSandboxRunGateVerdictForSession(
@@ -405,7 +411,7 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       // Reload history returns runStatus, mode, and presetSlug.
       const history = await listSandboxRunsForSession(db, sessionId, 5);
       expect(history[0]?.runStatus).toBe('ready');
-      expect(history[0]?.presetSlug).toBe('chord-pipeline-monitor');
+      expect(history[0]?.presetSlug).toBe('chord-decomposition-workbench');
 
       // Exhaust remaining 9 guest turns (10-turn guest cap), then verify 11th rejects with zero orphan rows.
       for (let i = 0; i < 9; i++) {
@@ -765,5 +771,137 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
     await seedDatabase(db);
     const restoredCore = await getCareerDossierBySlug(db, 'andrew-klapper-profile-core');
     expect(restoredCore?.publishStatus).toBe('published');
+  });
+
+  it('seeds 5 Golden Showcases, enforces CHECK & 409 immutability, isolates admin metrics, clones $0 cache hits, and proves 0007 down -> up -> bootstrap reversibility', async () => {
+    // 1. Verify 5 seeded Golden Showcase runs exist with 4 turns each and zero tokens.
+    const goldenRuns = await listGoldenSandboxRuns(db);
+    expect(goldenRuns).toHaveLength(5);
+    expect(
+      goldenRuns.every(
+        r =>
+          r.isGolden === true &&
+          r.executionMode === 'golden' &&
+          r.gateVerdict === 'approved' &&
+          r.tokensIn === 0 &&
+          r.tokensOut === 0 &&
+          r.turns.length === 4 &&
+          Boolean(r.spec) &&
+          Boolean(r.gateAudit),
+      ),
+    ).toBe(true);
+
+    const firstGoldenId = goldenRuns[0]?.runId ?? '';
+    expect(firstGoldenId).toBe('00000000-0000-4000-8000-000000000101');
+
+    // 2. SQL CHECK constraint blocks mutating Golden rows directly.
+    let goldenCheckErr: unknown = null;
+    try {
+      await db.execute(sql`
+        UPDATE sandbox_runs SET gate_verdict = 'rejected' WHERE id = ${firstGoldenId}::uuid
+      `);
+    } catch (err) {
+      goldenCheckErr = err;
+    }
+    expect(extractPgConstraintViolation(goldenCheckErr)?.constraintName).toBe(
+      'sandbox_runs_golden_immutable_check',
+    );
+
+    // 3. Node writer throws GoldenRunImmutableError (HTTP 409) on Golden gate mutation.
+    await expect(
+      updateSandboxRunGateVerdictForSession(db, firstGoldenId, 'rejected', 'golden-showcase'),
+    ).rejects.toBeInstanceOf(GoldenRunImmutableError);
+
+    // 4. Admin overview & admin sandbox list exclude Golden rows.
+    const adminRuns = await listAdminSandboxRuns(db, 50);
+    expect(adminRuns.some(r => r.runId === firstGoldenId)).toBe(false);
+
+    // 5. Scoped prompt_hash cache hit clones a $0 session-owned row without debiting quota.
+    const cacheSession = `cache-clone-sess-${Date.now()}`;
+    try {
+      const preset = CADENCE_PRESET_SEEDS[0];
+      expect(preset).toBeDefined();
+      const lookup = await findCachedSandboxRun(db, {
+        sessionId: cacheSession,
+        presetSlug: preset?.slug,
+        mode: 'llm',
+        prompt: `  ${preset?.starterPrompt.toUpperCase() ?? ''}  `,
+      });
+      expect(lookup.scope).toBe('preset_global_hit');
+      expect(lookup.sourceRun?.id).toBe(firstGoldenId);
+
+      const cloned = await cloneCachedSandboxRunForSession(
+        db,
+        { run: lookup.sourceRun!, turns: lookup.sourceTurns },
+        {
+          sessionId: cacheSession,
+          ipHash: 'test-ip',
+          presetSlug: preset?.slug,
+          prompt: preset?.starterPrompt ?? '',
+          promptHash: lookup.promptHash,
+        },
+      );
+      expect(cloned.executionMode).toBe('cached');
+      expect(cloned.isGolden).toBe(false);
+      expect(cloned.tokensIn).toBe(0);
+      expect(cloned.tokensOut).toBe(0);
+      expect(cloned.gateVerdict).toBe('pending');
+      expect(cloned.turns).toHaveLength(4);
+
+      const quotaAfterClone = await getQuotaStatusForSession(db, 'guest', cacheSession);
+      expect(quotaAfterClone.turnsUsed).toBe(0);
+
+      // 6. Verify fail-closed AI_DEV_UNLIMITED parity in Node.
+      expect(
+        isNodeDevUnlimitedEnabled({
+          AI_DEV_UNLIMITED: 'true',
+          NODE_ENV: 'production',
+          AI_PROVIDER: 'local',
+        }),
+      ).toBe(false);
+      expect(
+        isNodeDevUnlimitedEnabled({
+          AI_DEV_UNLIMITED: 'true',
+          NODE_ENV: 'development',
+          AI_PROVIDER: 'vertex',
+        }),
+      ).toBe(false);
+      expect(
+        isNodeDevUnlimitedEnabled({
+          AI_DEV_UNLIMITED: 'true',
+          NODE_ENV: 'development',
+          APP_ENV: 'development',
+          AI_PROVIDER: 'local',
+        }),
+      ).toBe(true);
+
+      // 7. Migration 0007 down -> up -> bootstrap reversibility preserves visitor row and cleans/restores Golden rows.
+      const drizzleDir = resolve(import.meta.dirname, '../drizzle');
+      const down0007 = readFileSync(
+        resolve(drizzleDir, '0007_cadence_showcase_golden_and_cache.down.sql'),
+        'utf8',
+      );
+      const up0007 = readFileSync(
+        resolve(drizzleDir, '0007_cadence_showcase_golden_and_cache.sql'),
+        'utf8',
+      );
+      await pool.query(down0007);
+      const afterDown = await pool.query(
+        `SELECT COUNT(*)::int AS cnt FROM sandbox_runs WHERE session_id = 'golden-showcase'`,
+      );
+      expect(Number(afterDown.rows[0]?.['cnt'])).toBe(0);
+      const visitorSurvived = await pool.query(
+        `SELECT COUNT(*)::int AS cnt FROM sandbox_runs WHERE id = $1::uuid`,
+        [cloned.runId],
+      );
+      expect(Number(visitorSurvived.rows[0]?.['cnt'])).toBe(1);
+
+      await pool.query(up0007);
+      await seedDatabase(db, { mode: 'bootstrap', env: { ADMIN_PASSWORD: '' } });
+      const restoredGolden = await listGoldenSandboxRuns(db);
+      expect(restoredGolden).toHaveLength(5);
+    } finally {
+      await db.delete(sandboxRuns).where(eq(sandboxRuns.sessionId, cacheSession));
+    }
   });
 });

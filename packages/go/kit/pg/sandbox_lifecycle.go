@@ -24,6 +24,18 @@ type PendingSandboxRunInput struct {
 	PresetSlug string
 	Prompt     string
 	Mode       string
+	PromptHash string
+}
+
+type CompleteSandboxRunInput struct {
+	RunID         string
+	TokensIn      int
+	TokensOut     int
+	ArtifactHTML  string
+	ExecutionMode string
+	SpecJSON      *contracts.CadenceSpecArtifact
+	GateAuditJSON *contracts.CadenceGateAudit
+	PromptHash    string
 }
 
 var chordPhaseSpecs = []struct {
@@ -48,24 +60,10 @@ func cloneTurnPayload(src map[string]any) map[string]any {
 }
 
 func (s *Store) scanSandboxRunRow(ctx context.Context, row pgx.Row) (*SandboxRun, error) {
-	var r SandboxRun
-	var createdAt time.Time
-	err := row.Scan(
-		&r.RunID,
-		&r.SessionID,
-		&r.MenuSlug,
-		&r.Prompt,
-		&r.Status,
-		&r.GateVerdict,
-		&r.TokensIn,
-		&r.TokensOut,
-		&r.ArtifactHTML,
-		&createdAt,
-	)
+	r, err := scanSandboxRunFields(row)
 	if err != nil {
 		return nil, err
 	}
-	r.CreatedAt = createdAt.UTC().Format(time.RFC3339)
 	turns, _ := s.loadTurnsForRun(ctx, r.RunID)
 	r.Turns = turns
 	return &r, nil
@@ -95,7 +93,7 @@ func (s *Store) GetSandboxRun(ctx context.Context, runID string) (*SandboxRun, e
 		ctx,
 		s.pool.QueryRow(
 			ctx,
-			`SELECT id::text, session_id, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out, COALESCE(artifact_html, ''), created_at
+			`SELECT `+sandboxRunSelectColumns+`
 			 FROM sandbox_runs
 			 WHERE id = $1::uuid`,
 			runID,
@@ -134,8 +132,8 @@ func (s *Store) ClaimPendingSandboxRun(ctx context.Context, runID, sessionID str
 			ctx,
 			`UPDATE sandbox_runs
 			 SET status = 'running'
-			 WHERE id = $1::uuid AND session_id = $2 AND status = 'pending'
-			 RETURNING id::text, session_id, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out, COALESCE(artifact_html, ''), created_at`,
+			 WHERE id = $1::uuid AND session_id = $2 AND status = 'pending' AND is_golden = false
+			 RETURNING `+sandboxRunSelectColumns,
 			runID,
 			sessionID,
 		),
@@ -226,27 +224,60 @@ func (s *Store) UpdateSandboxTurn(
 }
 
 func (s *Store) CompleteSandboxRun(ctx context.Context, runID string, tokensIn, tokensOut int, artifactHTML string) (*SandboxRun, error) {
+	return s.CompleteSandboxRunWithArtifacts(ctx, CompleteSandboxRunInput{
+		RunID:        runID,
+		TokensIn:     tokensIn,
+		TokensOut:    tokensOut,
+		ArtifactHTML: artifactHTML,
+	})
+}
+
+func (s *Store) CompleteSandboxRunWithArtifacts(ctx context.Context, input CompleteSandboxRunInput) (*SandboxRun, error) {
 	if s == nil {
 		return nil, ErrRunNotFound
 	}
 	if s.pool == nil {
 		s.mu.Lock()
 		defer s.mu.Unlock()
-		run, ok := s.runsByID[runID]
+		run, ok := s.runsByID[input.RunID]
 		if !ok {
 			return nil, ErrRunNotFound
 		}
+		if run.IsGolden {
+			return nil, ErrGoldenRunImmutable
+		}
 		run.Status = contracts.CadenceStatusReady
-		run.TokensIn = tokensIn
-		run.TokensOut = tokensOut
-		run.ArtifactHTML = artifactHTML
+		run.TokensIn = input.TokensIn
+		run.TokensOut = input.TokensOut
+		run.ArtifactHTML = input.ArtifactHTML
+		if strings.TrimSpace(input.ExecutionMode) != "" {
+			run.ExecutionMode = strings.TrimSpace(input.ExecutionMode)
+		}
+		if input.SpecJSON != nil {
+			run.SpecJSON = input.SpecJSON
+		}
+		if input.GateAuditJSON != nil {
+			run.GateAuditJSON = input.GateAuditJSON
+		}
+		if strings.TrimSpace(input.PromptHash) != "" {
+			run.PromptHash = strings.TrimSpace(input.PromptHash)
+		}
 		copied := *run
 		copied.Turns = append([]contracts.CadenceTurn(nil), run.Turns...)
 		return &copied, nil
 	}
 
-	if !isValidUUIDString(runID) {
+	if !isValidUUIDString(input.RunID) {
 		return nil, ErrRunNotFound
+	}
+
+	var execModeParam any
+	if strings.TrimSpace(input.ExecutionMode) != "" {
+		execModeParam = strings.TrimSpace(input.ExecutionMode)
+	}
+	var promptHashParam any
+	if strings.TrimSpace(input.PromptHash) != "" {
+		promptHashParam = strings.TrimSpace(input.PromptHash)
 	}
 
 	r, err := s.scanSandboxRunRow(
@@ -254,13 +285,24 @@ func (s *Store) CompleteSandboxRun(ctx context.Context, runID string, tokensIn, 
 		s.pool.QueryRow(
 			ctx,
 			`UPDATE sandbox_runs
-			 SET status = 'ready', tokens_in = $2, tokens_out = $3, artifact_html = $4
-			 WHERE id = $1::uuid
-			 RETURNING id::text, session_id, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out, COALESCE(artifact_html, ''), created_at`,
-			runID,
-			tokensIn,
-			tokensOut,
-			artifactHTML,
+			 SET status = 'ready',
+			     tokens_in = $2,
+			     tokens_out = $3,
+			     artifact_html = $4,
+			     execution_mode = COALESCE($5, execution_mode),
+			     spec_json = COALESCE($6::jsonb, spec_json),
+			     gate_audit_json = COALESCE($7::jsonb, gate_audit_json),
+			     prompt_hash = COALESCE($8, prompt_hash)
+			 WHERE id = $1::uuid AND is_golden = false
+			 RETURNING `+sandboxRunSelectColumns,
+			input.RunID,
+			input.TokensIn,
+			input.TokensOut,
+			input.ArtifactHTML,
+			execModeParam,
+			marshalNullableJSON(input.SpecJSON),
+			marshalNullableJSON(input.GateAuditJSON),
+			promptHashParam,
 		),
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -331,6 +373,9 @@ func (s *Store) UpdateSandboxGateVerdictForSession(ctx context.Context, runID, s
 		if !ok {
 			return nil, ErrRunNotFound
 		}
+		if run.IsGolden {
+			return nil, ErrGoldenRunImmutable
+		}
 		if run.SessionID != trimmedSession {
 			return nil, ErrForbiddenSession
 		}
@@ -347,6 +392,9 @@ func (s *Store) UpdateSandboxGateVerdictForSession(ctx context.Context, runID, s
 	if err != nil {
 		return nil, err
 	}
+	if existing.IsGolden {
+		return nil, ErrGoldenRunImmutable
+	}
 	if existing.SessionID != trimmedSession {
 		return nil, ErrForbiddenSession
 	}
@@ -360,8 +408,8 @@ func (s *Store) UpdateSandboxGateVerdictForSession(ctx context.Context, runID, s
 			ctx,
 			`UPDATE sandbox_runs
 			 SET gate_verdict = $3
-			 WHERE id = $1::uuid AND session_id = $2 AND status = 'ready'
-			 RETURNING id::text, session_id, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out, COALESCE(artifact_html, ''), created_at`,
+			 WHERE id = $1::uuid AND session_id = $2 AND status = 'ready' AND is_golden = false
+			 RETURNING `+sandboxRunSelectColumns,
 			runID,
 			trimmedSession,
 			verdict,

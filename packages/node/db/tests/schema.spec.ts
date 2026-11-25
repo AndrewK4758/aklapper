@@ -44,6 +44,11 @@ describe('@aklapper/db', () => {
   it('defines Drizzle tables for portal/admin data and Qdrant vector collections', () => {
     expect(menuItems.slug.name).toBe('slug');
     expect(sandboxRuns.artifactHtml.name).toBe('artifact_html');
+    expect(sandboxRuns.isGolden.name).toBe('is_golden');
+    expect(sandboxRuns.promptHash.name).toBe('prompt_hash');
+    expect(sandboxRuns.executionMode.name).toBe('execution_mode');
+    expect(sandboxRuns.specJson.name).toBe('spec_json');
+    expect(sandboxRuns.gateAuditJson.name).toBe('gate_audit_json');
     expect(cadencePresets.starterArtifactHtml.name).toBe('starter_artifact_html');
     expect(contactSubmissions.attachmentSha256.name).toBe('attachment_sha256');
     expect(terminalProfiles.quickCommands.name).toBe('quick_commands');
@@ -76,11 +81,11 @@ describe('@aklapper/db', () => {
       QDRANT_COLLECTIONS.every(c => c.vectorSize === 768 && c.distance === 'Cosine' && c.onDisk),
     ).toBe(true);
     expect(CADENCE_PRESET_SEEDS.map(p => p.slug)).toEqual([
-      'solar-forge-starter',
-      'k8s-pod-telemetry',
-      'chord-pipeline-monitor',
-      'qdrant-rag-inspector',
-      'zero-trust-gate-panel',
+      'chord-decomposition-workbench',
+      'change-tier-gate-matrix',
+      'expand-contract-migration',
+      'five-boundary-resilience-audit',
+      'spec-challenge-proof-ledger',
     ]);
     expect(DEFAULT_MENU_ITEMS.some(item => item.adminOnly)).toBe(true);
     expect(Object.keys(SITE_CONTENT_KEYS)).toHaveLength(11);

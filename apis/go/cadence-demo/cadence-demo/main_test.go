@@ -155,24 +155,26 @@ func TestCadenceDemoUnitFlows(t *testing.T) {
 		}
 	})
 
-	t.Run("POST /v1/cadence/runs/{id}/gate requires internal auth and X-Session-Id, updates verdict, and rejects invalid verdict", func(t *testing.T) {
+	t.Run("POST /v1/cadence/runs/{id}/gate requires internal auth, binds claims.Sub when X-Session-Id omitted, updates verdict, and rejects invalid verdict", func(t *testing.T) {
 		recGateUnauth := httptest.NewRecorder()
 		h.ServeHTTP(recGateUnauth, httptest.NewRequest(http.MethodPost, "/v1/cadence/runs/"+createdRunID+"/gate", bytes.NewReader([]byte(`{"verdict":"approved"}`))))
 		if recGateUnauth.Code != http.StatusUnauthorized {
 			t.Fatalf("expected 401 for unauthenticated gate update, got %d", recGateUnauth.Code)
 		}
 
-		reqNoSession := httptest.NewRequest(http.MethodPost, "/v1/cadence/runs/"+createdRunID+"/gate", bytes.NewReader([]byte(`{"verdict":"approved"}`)))
-		reqNoSession.Header.Set(internalauth.HeaderName, guestTok)
-		recNoSession := httptest.NewRecorder()
-		h.ServeHTTP(recNoSession, reqNoSession)
-		if recNoSession.Code != http.StatusUnauthorized {
-			t.Fatalf("expected 401 when X-Session-Id missing, got %d", recNoSession.Code)
+		// Mismatched X-Session-Id vs HMAC claims.Sub fails closed with 403.
+		reqMismatch := httptest.NewRequest(http.MethodPost, "/v1/cadence/runs/"+createdRunID+"/gate", bytes.NewReader([]byte(`{"verdict":"approved"}`)))
+		reqMismatch.Header.Set(internalauth.HeaderName, guestTok)
+		reqMismatch.Header.Set("X-Session-Id", "other-session")
+		recMismatch := httptest.NewRecorder()
+		h.ServeHTTP(recMismatch, reqMismatch)
+		if recMismatch.Code != http.StatusForbidden {
+			t.Fatalf("expected 403 when X-Session-Id mismatches claims.Sub, got %d", recMismatch.Code)
 		}
 
+		// Omitting X-Session-Id binds ownership strictly to claims.Sub and rejects invalid verdict with 400.
 		reqBad := httptest.NewRequest(http.MethodPost, "/v1/cadence/runs/"+createdRunID+"/gate", bytes.NewReader([]byte(`{"verdict":"maybe"}`)))
 		reqBad.Header.Set(internalauth.HeaderName, guestTok)
-		reqBad.Header.Set("X-Session-Id", "unit-sess-1")
 		recBad := httptest.NewRecorder()
 		h.ServeHTTP(recBad, reqBad)
 		if recBad.Code != http.StatusBadRequest {
@@ -252,8 +254,9 @@ func TestCadenceDemoUnitFlows(t *testing.T) {
 
 		fallbackLLM := &stubBuildLLM{html: "not-html-uses-deterministic-starter"}
 		hRecall := newHandler(fallbackLLM, &qdrant.Client{BaseURL: qdrantSrv.URL, HTTPClient: qdrantSrv.Client()}, pg.NewMemoryStore())
+		recallTok, _ := internalauth.Sign(internalauth.RoleGuest, "recall-sess-1", time.Minute, "cadence-demo-unit-secret")
 		req := httptest.NewRequest(http.MethodPost, "/v1/cadence/runs", bytes.NewReader([]byte(`{"prompt":"Build a telemetry monitor widget","sessionId":"recall-sess-1"}`)))
-		req.Header.Set(internalauth.HeaderName, guestTok)
+		req.Header.Set(internalauth.HeaderName, recallTok)
 		rec := httptest.NewRecorder()
 		hRecall.ServeHTTP(rec, req)
 		if rec.Code != http.StatusCreated {
@@ -358,14 +361,6 @@ func TestCadenceDemoFastStreamingAndSecurity(t *testing.T) {
 			t.Fatalf("expected 400 for non-UUID stream id, got %d", badIDRec.Code)
 		}
 
-		unauthReq := httptest.NewRequest(http.MethodGet, "/v1/cadence/runs/"+deferredRunID+"/stream", nil)
-		unauthReq.Header.Set(internalauth.HeaderName, guestTok)
-		unauthRec := httptest.NewRecorder()
-		h.ServeHTTP(unauthRec, unauthReq)
-		if unauthRec.Code != http.StatusUnauthorized {
-			t.Fatalf("expected 401 when X-Session-Id missing, got %d", unauthRec.Code)
-		}
-
 		wrongSessReq := httptest.NewRequest(http.MethodGet, "/v1/cadence/runs/"+deferredRunID+"/stream", nil)
 		wrongSessReq.Header.Set(internalauth.HeaderName, guestTok)
 		wrongSessReq.Header.Set("X-Session-Id", "other-session")
@@ -375,7 +370,7 @@ func TestCadenceDemoFastStreamingAndSecurity(t *testing.T) {
 			t.Fatalf("expected 403 for cross-session stream request, got %d", wrongSessRec.Code)
 		}
 
-		// Execute live fast stream (caps embed at 250ms and skips Chat).
+		// Execute live fast stream (caps embed at 250ms, skips Chat, omits Connection: keep-alive).
 		start := time.Now()
 		streamReq := httptest.NewRequest(http.MethodGet, "/v1/cadence/runs/"+deferredRunID+"/stream", nil)
 		streamReq.Header.Set(internalauth.HeaderName, guestTok)
@@ -385,6 +380,9 @@ func TestCadenceDemoFastStreamingAndSecurity(t *testing.T) {
 		elapsed := time.Since(start)
 		if streamRec.Code != http.StatusOK {
 			t.Fatalf("expected 200 SSE stream, got %d: %s", streamRec.Code, streamRec.Body.String())
+		}
+		if gotConn := streamRec.Header().Get("Connection"); gotConn != "" {
+			t.Fatalf("expected no Connection header on HTTP/2 SSE stream, got %q", gotConn)
 		}
 		if elapsed > 2*time.Second {
 			t.Fatalf("expected fast stream to cap slow dependencies well under 2s, took %v", elapsed)
@@ -457,8 +455,9 @@ func TestCadenceDemoFastStreamingAndSecurity(t *testing.T) {
 	})
 
 	t.Run("optional llm mode invokes provider Chat and concurrent streams execute at most once", func(t *testing.T) {
+		llmTok, _ := internalauth.Sign(internalauth.RoleGuest, "llm-sess-1", time.Minute, "cadence-demo-stream-secret")
 		llmInitReq := httptest.NewRequest(http.MethodPost, "/v1/cadence/runs", bytes.NewReader([]byte(`{"prompt":"Generate custom LLM mode panel","presetSlug":"custom","sessionId":"llm-sess-1","mode":"llm","deferExecution":true}`)))
-		llmInitReq.Header.Set(internalauth.HeaderName, guestTok)
+		llmInitReq.Header.Set(internalauth.HeaderName, llmTok)
 		llmInitRec := httptest.NewRecorder()
 		h.ServeHTTP(llmInitRec, llmInitReq)
 		if llmInitRec.Code != http.StatusAccepted {
@@ -473,7 +472,7 @@ func TestCadenceDemoFastStreamingAndSecurity(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				req := httptest.NewRequest(http.MethodGet, "/v1/cadence/runs/"+llmInit.RunID+"/stream", nil)
-				req.Header.Set(internalauth.HeaderName, guestTok)
+				req.Header.Set(internalauth.HeaderName, llmTok)
 				req.Header.Set("X-Session-Id", "llm-sess-1")
 				rec := httptest.NewRecorder()
 				h.ServeHTTP(rec, req)
@@ -490,8 +489,9 @@ func TestCadenceDemoFastStreamingAndSecurity(t *testing.T) {
 	})
 
 	t.Run("client context cancel during SSE stream does not strand run in running state", func(t *testing.T) {
+		cancelTok, _ := internalauth.Sign(internalauth.RoleGuest, "cancel-sess-1", time.Minute, "cadence-demo-stream-secret")
 		initReq := httptest.NewRequest(http.MethodPost, "/v1/cadence/runs", bytes.NewReader([]byte(`{"prompt":"Disconnect resilience stream check","presetSlug":"solar-forge-starter","sessionId":"cancel-sess-1","mode":"fast","deferExecution":true}`)))
-		initReq.Header.Set(internalauth.HeaderName, guestTok)
+		initReq.Header.Set(internalauth.HeaderName, cancelTok)
 		initRec := httptest.NewRecorder()
 		h.ServeHTTP(initRec, initReq)
 		if initRec.Code != http.StatusAccepted {
@@ -502,7 +502,7 @@ func TestCadenceDemoFastStreamingAndSecurity(t *testing.T) {
 
 		cancelCtx, cancel := context.WithCancel(context.Background())
 		streamReq := httptest.NewRequest(http.MethodGet, "/v1/cadence/runs/"+initRun.RunID+"/stream", nil).WithContext(cancelCtx)
-		streamReq.Header.Set(internalauth.HeaderName, guestTok)
+		streamReq.Header.Set(internalauth.HeaderName, cancelTok)
 		streamReq.Header.Set("X-Session-Id", "cancel-sess-1")
 		cancel()
 

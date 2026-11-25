@@ -5,6 +5,7 @@ export * from './analytics-schemas.ts';
 export * from './analytics.ts';
 export * from './ask.ts';
 export * from './auth.ts';
+export * from './cadence-artifacts.ts';
 export * from './cadence-sandbox.ts';
 export * from './cadence-stream.ts';
 export * from './career-dossiers.ts';

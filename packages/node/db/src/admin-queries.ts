@@ -145,11 +145,12 @@ export async function loadAdminOverviewData(
         COUNT(*)::int AS total_runs,
         COUNT(*) FILTER (WHERE gate_verdict = 'pending')::int AS pending_gates
       FROM sandbox_runs
+      WHERE is_golden = false
     `),
     db.execute(sql`
       SELECT COALESCE(SUM(tokens_in + tokens_out), 0)::bigint AS daily_tokens
       FROM sandbox_runs
-      WHERE created_at >= ${startOfUtcDay}
+      WHERE is_golden = false AND created_at >= ${startOfUtcDay}
     `),
     db.select().from(schema.quotaPolicies),
   ]);
@@ -1055,6 +1056,7 @@ export async function listAdminSandboxRuns(
   const runs = await db
     .select()
     .from(schema.sandboxRuns)
+    .where(eq(schema.sandboxRuns.isGolden, false))
     .orderBy(desc(schema.sandboxRuns.createdAt))
     .limit(clampedLimit);
 

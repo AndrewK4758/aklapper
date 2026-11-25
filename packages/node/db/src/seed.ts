@@ -4,14 +4,12 @@ import {
   type AdminChromeContent,
   type AdminHomeContent,
   buildSplitHelpLines,
-  buildTailoredCadenceArtifactHtml,
   CONTACT_FORM_DEFINITION,
   formatTerminalDirectoryListing,
   type MenuItem,
   PORTAL_CHROME_SHORTCUT_HINT,
   PORTAL_READLINE_HELP_LINES,
   type PortalAgensiContent,
-  type PortalCadenceContent,
   type PortalChromeContent,
   type PortalContactContent,
   type PortalHomeContent,
@@ -33,6 +31,8 @@ import {
   menuItems,
   quotaPolicies,
   roadmapMilestones,
+  sandboxRuns,
+  sandboxTurns,
   siteContent,
   terminalCommands,
   terminalDirectoryEntries,
@@ -41,6 +41,11 @@ import {
 } from './schema.ts';
 import { seedAdminUserFromEnv, type SeedAdminUserResult } from './seed-admin.ts';
 import { CAREER_DOSSIER_SEEDS, PORTAL_ASK_SEED } from './seed-dossiers.ts';
+import {
+  CADENCE_GOLDEN_RUN_SEEDS,
+  CADENCE_PRESET_SEEDS,
+  PORTAL_CADENCE_SEED,
+} from './seed-golden-runs.ts';
 
 export const DEFAULT_MENU_ITEMS: readonly MenuItem[] = [
   {
@@ -102,27 +107,6 @@ export const DEFAULT_MENU_ITEMS: readonly MenuItem[] = [
   },
 ];
 
-const STARTER_CADENCE_ARTIFACT_HTML = `<!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><style>
-:root{--a-bg:#121110;--a-fg:#e8e2d5;--a-accent:#ffd300;--a-pad:16px;--a-font:monospace}
-body{margin:0;padding:var(--a-pad);background:var(--a-bg);color:var(--a-fg);font-family:var(--a-font),monospace}
-strong{color:var(--a-accent)}
-</style></head>
-<body><strong>CADENCE Sandbox Ready</strong><p>Submit a prompt to spin up svc-cadence-demo on GKE.</p></body>
-</html>`;
-
-const STARTER_K8S_TELEMETRY_ARTIFACT_HTML = `<!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><style>
-:root{--a-bg:#121110;--a-panel:#1c1a17;--a-fg:#e8e2d5;--a-accent:#ffd300;--a-green:#22c55e;--a-pad:16px;--a-font:monospace}
-body{margin:0;padding:var(--a-pad);background:var(--a-bg);color:var(--a-fg);font-family:var(--a-font),monospace}
-.card{border:1px solid var(--a-accent);background:var(--a-panel);padding:12px}
-.ok{color:var(--a-green)}
-</style></head>
-<body><div class="card"><strong>GKE Autopilot // portfolio-public</strong><p class="ok">svc-cadence-demo · scale-to-0 ready</p><p>Submit a prompt to synthesize a live telemetry widget.</p></div></body>
-</html>`;
-
 export const PORTAL_CHROME_SEED: PortalChromeContent = {
   pageTitle: 'andrew-k.us — Andrew Klapper',
   brandLabel: 'Andrew Klapper Portfolio',
@@ -182,18 +166,6 @@ const PORTAL_AGENSI_SEED: PortalAgensiContent = {
   searchPlaceholder: 'Filter skills by name, summary, or tag...',
   emptyStateLabel: 'No skills match the current search or tag filters.',
   outboundCtaLabel: 'View on Agensi →',
-};
-
-const PORTAL_CADENCE_SEED: PortalCadenceContent = {
-  windowTitle: 'CADENCE Builder — Artifact Sandbox',
-  statusBadge: {
-    source: 'svc-cadence-demo',
-    state: 'idle',
-    label: 'On-demand',
-  },
-  description:
-    'Quota-gated prompt builder that generates and previews sandboxed artifacts on demand.',
-  iframeTitle: 'CADENCE Artifact Preview',
 };
 
 const PORTAL_CONTACT_SEED: PortalContactContent = {
@@ -864,78 +836,6 @@ const ROADMAP_MILESTONE_SEEDS = [
   },
 ] as const;
 
-const CADENCE_PRESET_SEEDS = [
-  {
-    slug: 'solar-forge-starter',
-    title: 'Solar Forge Sandbox Starter',
-    starterPrompt:
-      'Build a responsive Solar Forge diagnostic card with live status telemetry and keyboard shortcuts.',
-    expectedKind: 'diagnostic-card',
-    starterArtifactHtml: STARTER_CADENCE_ARTIFACT_HTML,
-    sortOrder: 1,
-  },
-  {
-    slug: 'k8s-pod-telemetry',
-    title: 'GKE Pod Telemetry Widget',
-    starterPrompt:
-      'Build a GKE Autopilot scale-from-zero pod monitor card showing cold-start latency, replica count, and health status.',
-    expectedKind: 'pod-telemetry',
-    starterArtifactHtml: STARTER_K8S_TELEMETRY_ARTIFACT_HTML,
-    sortOrder: 2,
-  },
-  {
-    slug: 'chord-pipeline-monitor',
-    title: 'CHORD Pipeline Latency Monitor',
-    starterPrompt:
-      'Build an interactive CHORD pipeline monitor tracking triage, spec, build, and gate stage latencies and replica readiness.',
-    expectedKind: 'pipeline-monitor',
-    starterArtifactHtml: buildTailoredCadenceArtifactHtml({
-      prompt:
-        'Build an interactive CHORD pipeline monitor tracking triage, spec, build, and gate stage latencies and replica readiness.',
-      preset: {
-        slug: 'chord-pipeline-monitor',
-        title: 'CHORD Pipeline Latency Monitor',
-        expectedKind: 'pipeline-monitor',
-      },
-    }),
-    sortOrder: 3,
-  },
-  {
-    slug: 'qdrant-rag-inspector',
-    title: 'Qdrant Grounded RAG Inspector',
-    starterPrompt:
-      'Create a grounded Qdrant retrieval inspector visualizing cosine similarity thresholds, citation cards, and fail-closed abstention.',
-    expectedKind: 'rag-inspector',
-    starterArtifactHtml: buildTailoredCadenceArtifactHtml({
-      prompt:
-        'Create a grounded Qdrant retrieval inspector visualizing cosine similarity thresholds, citation cards, and fail-closed abstention.',
-      preset: {
-        slug: 'qdrant-rag-inspector',
-        title: 'Qdrant Grounded RAG Inspector',
-        expectedKind: 'rag-inspector',
-      },
-    }),
-    sortOrder: 4,
-  },
-  {
-    slug: 'zero-trust-gate-panel',
-    title: 'Zero-Trust Gate Audit Panel',
-    starterPrompt:
-      'Generate a zero-trust sandbox gate verification card displaying HMAC auth checks, cookie isolation, and 48 KiB HTML policy status.',
-    expectedKind: 'security-gate',
-    starterArtifactHtml: buildTailoredCadenceArtifactHtml({
-      prompt:
-        'Generate a zero-trust sandbox gate verification card displaying HMAC auth checks, cookie isolation, and 48 KiB HTML policy status.',
-      preset: {
-        slug: 'zero-trust-gate-panel',
-        title: 'Zero-Trust Gate Audit Panel',
-        expectedKind: 'security-gate',
-      },
-    }),
-    sortOrder: 5,
-  },
-] as const;
-
 const RETIRED_PLACEHOLDER_SKILL_SLUGS = [
   'cadence-sdlc',
   'gke-scale-to-zero-go',
@@ -1366,6 +1266,67 @@ export async function seedDatabase(
             sortOrder: preset.sortOrder,
           },
         }));
+  }
+
+  for (const golden of CADENCE_GOLDEN_RUN_SEEDS) {
+    const runStmt = db.insert(sandboxRuns).values({
+      id: golden.id,
+      sessionId: golden.sessionId,
+      ipHash: golden.ipHash,
+      menuSlug: golden.menuSlug,
+      prompt: golden.prompt,
+      status: golden.status,
+      gateVerdict: golden.gateVerdict,
+      tokensIn: golden.tokensIn,
+      tokensOut: golden.tokensOut,
+      artifactHtml: golden.artifactHtml,
+      isGolden: golden.isGolden,
+      promptHash: golden.promptHash,
+      executionMode: golden.executionMode,
+      specJson: golden.specJson,
+      gateAuditJson: golden.gateAuditJson,
+    });
+    await (isBootstrap
+      ? runStmt.onConflictDoNothing({ target: sandboxRuns.id })
+      : runStmt.onConflictDoUpdate({
+          target: sandboxRuns.id,
+          set: {
+            menuSlug: golden.menuSlug,
+            prompt: golden.prompt,
+            status: golden.status,
+            gateVerdict: golden.gateVerdict,
+            tokensIn: golden.tokensIn,
+            tokensOut: golden.tokensOut,
+            artifactHtml: golden.artifactHtml,
+            isGolden: golden.isGolden,
+            promptHash: golden.promptHash,
+            executionMode: golden.executionMode,
+            specJson: golden.specJson,
+            gateAuditJson: golden.gateAuditJson,
+          },
+        }));
+
+    for (const turn of golden.turns) {
+      const turnStmt = db.insert(sandboxTurns).values({
+        runId: golden.id,
+        phase: turn.phase,
+        agentName: turn.agentName,
+        status: turn.status,
+        payloadJson: turn.payloadJson,
+        latencyMs: turn.latencyMs,
+      });
+      await (isBootstrap
+        ? turnStmt.onConflictDoNothing({ target: [sandboxTurns.runId, sandboxTurns.phase] })
+        : turnStmt.onConflictDoUpdate({
+            target: [sandboxTurns.runId, sandboxTurns.phase],
+            set: {
+              agentName: turn.agentName,
+              status: turn.status,
+              payloadJson: turn.payloadJson,
+              latencyMs: turn.latencyMs,
+            },
+          }));
+    }
   }
 
   const isProductionEnv = (env['NODE_ENV'] ?? process.env['NODE_ENV']) === 'production';

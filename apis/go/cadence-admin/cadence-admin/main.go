@@ -101,6 +101,18 @@ func newHandler(store *pg.Store) http.Handler {
 			httpkit.WriteError(w, http.StatusBadRequest, err.Error())
 			return
 		}
+		if errors.Is(err, pg.ErrGoldenRunImmutable) {
+			if raw, mErr := json.Marshal(map[string]any{
+				"seam_type": "UNSOUND_CONDITION",
+				"event":     "cadence.gate.golden_mutation_blocked",
+				"service":   "cadence-admin",
+				"runId":     runID,
+			}); mErr == nil {
+				log.Println(string(raw))
+			}
+			httpkit.WriteError(w, http.StatusConflict, err.Error())
+			return
+		}
 		if errors.Is(err, pg.ErrRunNotFound) {
 			httpkit.WriteError(w, http.StatusNotFound, err.Error())
 			return

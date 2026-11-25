@@ -63,7 +63,9 @@ export async function loadAdminAnalyticsSummary(
   const cutoff = resolveAnalyticsWindowCutoff(window);
 
   const eventAndCutoff = cutoff ? sql`AND created_at >= ${cutoff}` : sql``;
-  const sandboxWhere = cutoff ? sql`WHERE created_at >= ${cutoff}` : sql``;
+  const sandboxWhere = cutoff
+    ? sql`WHERE is_golden = false AND created_at >= ${cutoff}`
+    : sql`WHERE is_golden = false`;
 
   const [
     content,

@@ -48,20 +48,24 @@ func SandboxRunToContractResult(run *SandboxRun, quota *contracts.QuotaStatus, s
 		turns = []contracts.CadenceTurn{}
 	}
 	return contracts.CadenceRunResult{
-		RunID:        run.RunID,
-		Prompt:       run.Prompt,
-		PresetSlug:   ExtractPresetSlugFromTurns(turns, run.MenuSlug),
-		RunStatus:    run.Status,
-		Mode:         ExtractModeFromTurns(turns),
-		Status:       status,
-		OSC7501:      osc7501,
-		GateVerdict:  run.GateVerdict,
-		Turns:        turns,
-		ArtifactHTML: run.ArtifactHTML,
-		TokensIn:     run.TokensIn,
-		TokensOut:    run.TokensOut,
-		Quota:        quota,
-		CreatedAt:    run.CreatedAt,
+		RunID:         run.RunID,
+		Prompt:        run.Prompt,
+		PresetSlug:    ExtractPresetSlugFromTurns(turns, run.MenuSlug),
+		RunStatus:     run.Status,
+		Mode:          ExtractModeFromTurns(turns),
+		ExecutionMode: run.ExecutionMode,
+		IsGolden:      run.IsGolden,
+		Spec:          run.SpecJSON,
+		GateAudit:     run.GateAuditJSON,
+		Status:        status,
+		OSC7501:       osc7501,
+		GateVerdict:   run.GateVerdict,
+		Turns:         turns,
+		ArtifactHTML:  run.ArtifactHTML,
+		TokensIn:      run.TokensIn,
+		TokensOut:     run.TokensOut,
+		Quota:         quota,
+		CreatedAt:     run.CreatedAt,
 	}
 }
 
@@ -119,9 +123,10 @@ func (s *Store) CreatePendingSandboxRunWithQuota(
 		}
 
 		maxSessionTokens := policy.MaxTokensPerRun * policy.MaxTurnsPerSession
-		if sb.turnsUsed+turnsDelta > policy.MaxTurnsPerSession ||
+		quotaExceeded := sb.turnsUsed+turnsDelta > policy.MaxTurnsPerSession ||
 			tokensDelta > policy.MaxTokensPerRun ||
-			gb.tokensUsed+tokensDelta > policy.MaxDailyGlobalTokens {
+			gb.tokensUsed+tokensDelta > policy.MaxDailyGlobalTokens
+		if quotaExceeded && !s.isDevUnlimitedEnabled() {
 			return nil, contracts.QuotaStatus{
 				Role:       role,
 				TurnsUsed:  sb.turnsUsed,
@@ -129,6 +134,9 @@ func (s *Store) CreatePendingSandboxRunWithQuota(
 				TokensUsed: sb.tokensUsed,
 				MaxTokens:  maxSessionTokens,
 			}, false, nil
+		}
+		if quotaExceeded {
+			logDevUnlimitedBypass(role, sessionID, "cadence-pending", "")
 		}
 
 		sb.turnsUsed += turnsDelta
@@ -138,15 +146,20 @@ func (s *Store) CreatePendingSandboxRunWithQuota(
 
 		runID := newUUIDv4()
 		nowStr := time.Now().UTC().Format(time.RFC3339)
+		execMode := contracts.CadenceExecutionModeFast
+		if mode == contracts.CadenceModeLLM {
+			execMode = contracts.CadenceExecutionModeLive
+		}
 		turns := make([]contracts.CadenceTurn, 0, len(chordPhaseSpecs))
 		for _, spec := range chordPhaseSpecs {
 			s.turnSeq++
 			payload := map[string]any{"summary": "Queued"}
 			if spec.Phase == "triage" {
 				payload = map[string]any{
-					"summary":    "Queued in CHORD pipeline",
-					"presetSlug": presetSlug,
-					"mode":       mode,
+					"summary":        "Queued in CHORD pipeline",
+					"presetSlug":     presetSlug,
+					"mode":           mode,
+					"reservedTokens": tokensDelta,
 				}
 			}
 			turns = append(turns, contracts.CadenceTurn{
@@ -162,14 +175,16 @@ func (s *Store) CreatePendingSandboxRunWithQuota(
 		}
 
 		run := &SandboxRun{
-			RunID:       runID,
-			SessionID:   sessionID,
-			MenuSlug:    presetSlug,
-			Prompt:      input.Prompt,
-			Status:      contracts.CadenceStatusPending,
-			GateVerdict: contracts.CadenceStatusPending,
-			Turns:       turns,
-			CreatedAt:   nowStr,
+			RunID:         runID,
+			SessionID:     sessionID,
+			MenuSlug:      presetSlug,
+			Prompt:        input.Prompt,
+			Status:        contracts.CadenceStatusPending,
+			GateVerdict:   contracts.CadenceStatusPending,
+			PromptHash:    strings.TrimSpace(input.PromptHash),
+			ExecutionMode: execMode,
+			Turns:         turns,
+			CreatedAt:     nowStr,
 		}
 		s.runs = append([]*SandboxRun{run}, s.runs...)
 		s.runsByID[runID] = run
@@ -224,9 +239,10 @@ func (s *Store) CreatePendingSandboxRunWithQuota(
 		return nil, contracts.QuotaStatus{}, false, err
 	}
 
-	if sessionTurns+turnsDelta > policy.MaxTurnsPerSession ||
+	quotaExceeded := sessionTurns+turnsDelta > policy.MaxTurnsPerSession ||
 		tokensDelta > policy.MaxTokensPerRun ||
-		globalTokens+tokensDelta > policy.MaxDailyGlobalTokens {
+		globalTokens+tokensDelta > policy.MaxDailyGlobalTokens
+	if quotaExceeded && !s.isDevUnlimitedEnabled() {
 		return nil, contracts.QuotaStatus{
 			Role:       role,
 			TurnsUsed:  sessionTurns,
@@ -234,6 +250,9 @@ func (s *Store) CreatePendingSandboxRunWithQuota(
 			TokensUsed: sessionTokens,
 			MaxTokens:  maxSessionTokens,
 		}, false, nil
+	}
+	if quotaExceeded {
+		logDevUnlimitedBypass(role, sessionID, "cadence-pending", "")
 	}
 
 	if _, err := tx.Exec(
@@ -259,42 +278,44 @@ func (s *Store) CreatePendingSandboxRunWithQuota(
 		return nil, contracts.QuotaStatus{}, false, err
 	}
 
-	var run SandboxRun
-	var createdAt time.Time
-	if err := tx.QueryRow(
-		ctx,
-		`INSERT INTO sandbox_runs
-		 (session_id, ip_hash, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out, artifact_html)
-		 VALUES ($1, $2, $3, $4, 'pending', 'pending', 0, 0, '')
-		 RETURNING id::text, session_id, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out, COALESCE(artifact_html, ''), created_at`,
-		sessionID,
-		ipHash,
-		presetSlug,
-		input.Prompt,
-	).Scan(
-		&run.RunID,
-		&run.SessionID,
-		&run.MenuSlug,
-		&run.Prompt,
-		&run.Status,
-		&run.GateVerdict,
-		&run.TokensIn,
-		&run.TokensOut,
-		&run.ArtifactHTML,
-		&createdAt,
-	); err != nil {
+	execMode := contracts.CadenceExecutionModeFast
+	if mode == contracts.CadenceModeLLM {
+		execMode = contracts.CadenceExecutionModeLive
+	}
+	var promptHashParam any
+	if strings.TrimSpace(input.PromptHash) != "" {
+		promptHashParam = strings.TrimSpace(input.PromptHash)
+	}
+
+	run, err := scanSandboxRunFields(
+		tx.QueryRow(
+			ctx,
+			`INSERT INTO sandbox_runs
+			 (session_id, ip_hash, menu_slug, prompt, status, gate_verdict, tokens_in, tokens_out,
+			  artifact_html, is_golden, prompt_hash, execution_mode)
+			 VALUES ($1, $2, $3, $4, 'pending', 'pending', 0, 0, '', false, $5, $6)
+			 RETURNING `+sandboxRunSelectColumns,
+			sessionID,
+			ipHash,
+			presetSlug,
+			input.Prompt,
+			promptHashParam,
+			execMode,
+		),
+	)
+	if err != nil {
 		return nil, contracts.QuotaStatus{}, false, err
 	}
-	run.CreatedAt = createdAt.UTC().Format(time.RFC3339)
 
 	run.Turns = make([]contracts.CadenceTurn, 0, len(chordPhaseSpecs))
 	for _, spec := range chordPhaseSpecs {
 		payload := map[string]any{"summary": "Queued"}
 		if spec.Phase == "triage" {
 			payload = map[string]any{
-				"summary":    "Queued in CHORD pipeline",
-				"presetSlug": presetSlug,
-				"mode":       mode,
+				"summary":        "Queued in CHORD pipeline",
+				"presetSlug":     presetSlug,
+				"mode":           mode,
+				"reservedTokens": tokensDelta,
 			}
 		}
 		rawJSON, err := json.Marshal(payload)

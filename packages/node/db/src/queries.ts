@@ -55,6 +55,7 @@ import type { z } from 'zod';
 
 import { loadCreatorAgensiCatalog } from './agensi-loader.ts';
 import { type AgensiSyncOptions, queryCreatorPublishedSkills } from './agensi-sync.ts';
+import { isNodeDevUnlimitedEnabled, listGoldenSandboxRuns } from './cadence-showcase.ts';
 import type { AppDatabase } from './client.ts';
 import {
   DEFAULT_QUOTA_BY_ROLE,
@@ -406,18 +407,19 @@ export async function loadPortalCadenceData(
   db: AppDatabase,
   sessionId?: string,
 ): Promise<PortalCadenceLoaderData> {
-  const [content, presets, quota, recentRuns] = await Promise.all([
+  const [content, presets, quota, recentRuns, goldenRuns] = await Promise.all([
     getSiteContent(db, SITE_CONTENT_KEYS.portalCadence, PortalCadenceContentSchema),
     getCadencePresets(db),
     getQuotaStatusForSession(db, 'guest', sessionId),
     sessionId ? listSandboxRunsForSession(db, sessionId, 8) : Promise.resolve([]),
+    listGoldenSandboxRuns(db),
   ]);
 
   if (presets.length === 0) {
     throw new Error('Missing required cadence_presets rows in Postgres');
   }
 
-  return { content, presets, quota, recentRuns };
+  return { content, presets, quota, recentRuns, goldenRuns };
 }
 
 export async function loadPortalContactData(db: AppDatabase): Promise<PortalContactLoaderData> {
@@ -1175,12 +1177,13 @@ export async function consumeQuotaForSession(
     const sessionTurns = sessionRow?.turnsUsed ?? 0;
     const sessionTokens = sessionRow?.tokensUsed ?? 0;
     const globalTokens = globalRow?.tokensUsed ?? 0;
-
-    if (
+    const quotaExceeded =
       sessionTurns + turnsDelta > policy.maxTurnsPerSession ||
       tokensDelta > policy.maxTokensPerRun ||
-      globalTokens + tokensDelta > policy.maxDailyGlobalTokens
-    ) {
+      globalTokens + tokensDelta > policy.maxDailyGlobalTokens;
+    const devUnlimited = quotaExceeded && isNodeDevUnlimitedEnabled();
+
+    if (quotaExceeded && !devUnlimited) {
       return {
         allowed: false,
         quota: QuotaStatusSchema.parse({
@@ -1191,6 +1194,19 @@ export async function consumeQuotaForSession(
           maxTokens,
         }),
       };
+    }
+
+    if (devUnlimited) {
+      console.warn(
+        JSON.stringify({
+          seam_type: 'DELTA_AUDIT_GAP',
+          event: 'cadence.run.audit',
+          deltaStatus: 'dev_unlimited_bypass',
+          role,
+          sessionId: trimmedSession,
+          turnsUsed: sessionTurns,
+        }),
+      );
     }
 
     await tx
@@ -1304,7 +1320,7 @@ export async function listSandboxRunsForSession(
   const runs = await db
     .select()
     .from(schema.sandboxRuns)
-    .where(eq(schema.sandboxRuns.sessionId, sessionId))
+    .where(and(eq(schema.sandboxRuns.sessionId, sessionId), eq(schema.sandboxRuns.isGolden, false)))
     .orderBy(desc(schema.sandboxRuns.createdAt))
     .limit(limit);
 

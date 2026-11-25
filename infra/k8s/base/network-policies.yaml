@@ -111,3 +111,27 @@ spec:
       ports:
         - protocol: TCP
           port: 6333
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cadence-demo-qdrant-egress
+  namespace: portfolio-public
+spec:
+  podSelector:
+    matchLabels:
+      app: cadence-demo
+  policyTypes:
+    - Egress
+  egress:
+    # External Qdrant Cloud port 6333, excluding internal cluster RFC1918 CIDRs
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 6333
