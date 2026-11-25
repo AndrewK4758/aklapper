@@ -3,6 +3,13 @@ export {
   type ActionFeedbackBannerProps,
 } from './components/ActionFeedbackBanner';
 export {
+  BulkSelectionBar,
+  type BulkSelectionBarProps,
+  pruneSelectedIds,
+  SelectionCheckbox,
+  type SelectionCheckboxProps,
+} from './components/BulkSelectionBar';
+export {
   DocumentBodyAnalytics,
   type DocumentBodyAnalyticsProps,
   DocumentHeadTags,

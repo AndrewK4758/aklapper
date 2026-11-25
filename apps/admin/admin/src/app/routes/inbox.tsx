@@ -1,6 +1,11 @@
 import type { AdminInboxLoaderData, StreamResult } from '@aklapper/core';
 import { classifyServerError } from '@aklapper/core/server-errors';
-import { deleteContactSubmission, getSharedDb, listContactSubmissions } from '@aklapper/db';
+import {
+  deleteContactSubmission,
+  deleteContactSubmissions,
+  getSharedDb,
+  listContactSubmissions,
+} from '@aklapper/db';
 import {
   createFallbackLogger,
   deferStreamResult,
@@ -95,6 +100,50 @@ export async function action({ request, context }: Route.ActionArgs) {
             {
               ok: false,
               message: 'Submission not found or already deleted.',
+              code: 'ERR_NOT_FOUND',
+              action: 'Refresh the inbox list.',
+              correlationId,
+            },
+            { status: 404, headers },
+          );
+    }
+
+    if (intent === 'delete-many') {
+      const uniqueIds = [
+        ...new Set(
+          formData
+            .getAll('id')
+            .map(entry => String(entry).trim())
+            .filter(id => id.length > 0),
+        ),
+      ];
+
+      if (uniqueIds.length === 0) {
+        return data<AdminInboxActionData>(
+          {
+            ok: false,
+            message: 'Select at least one submission to delete.',
+            code: 'ERR_VALIDATION',
+            action: 'Select one or more contact submissions and retry.',
+            correlationId,
+          },
+          { status: 400, headers },
+        );
+      }
+
+      const deletedCount = await deleteContactSubmissions(getSharedDb(), uniqueIds);
+      return deletedCount > 0
+        ? data<AdminInboxActionData>(
+            {
+              ok: true,
+              message: `Deleted ${deletedCount} contact submission${deletedCount === 1 ? '' : 's'} from PostgreSQL 19.`,
+            },
+            { status: 200, headers },
+          )
+        : data<AdminInboxActionData>(
+            {
+              ok: false,
+              message: 'Selected submissions were not found or were already deleted.',
               code: 'ERR_NOT_FOUND',
               action: 'Refresh the inbox list.',
               correlationId,
