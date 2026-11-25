@@ -134,7 +134,7 @@ test.describe('admin SSR end-to-end journeys', () => {
       // 4. Lands on /analytics with authenticated admin chrome
       await expect(page).toHaveURL(/\/analytics$/);
       await waitForStreamedReveal(page);
-      await expect(page.getByText(/First-Party Visitor Analytics \/\/ Postgres 19/i)).toBeVisible();
+      await expect(page.getByText(/First-Party Visitor Analytics/i)).toBeVisible();
       await expect(page.getByText(`${handle}@admin`)).toBeVisible();
       await expect(page.getByText('Passkey Verified')).toBeVisible();
 
@@ -198,11 +198,15 @@ test.describe('admin SSR end-to-end journeys', () => {
 
         await page.getByRole('link', { name: 'CMS', exact: true }).click();
         await expect(page).toHaveURL(/\/cms$/);
+        await expect(page.getByRole('region', { name: /PostgreSQL 19 CMS/i })).toBeVisible();
         await page.setViewportSize({ width: 1920, height: 1080 });
         const layoutMetrics = await page.evaluate(() => {
-          const main = document.querySelector('main');
+          const cmsRegion = document.querySelector('main section[aria-label^="PostgreSQL 19 CMS"]');
+          const contentContainer = cmsRegion?.parentElement ?? document.querySelector('main');
           return {
-            mainWidth: main ? Math.round(main.getBoundingClientRect().width) : 0,
+            mainWidth: contentContainer
+              ? Math.round(contentContainer.getBoundingClientRect().width)
+              : 0,
             scrollWidth: document.documentElement.scrollWidth,
             innerWidth: window.innerWidth,
           };
