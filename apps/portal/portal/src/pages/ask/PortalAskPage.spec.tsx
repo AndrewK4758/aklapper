@@ -1,10 +1,11 @@
+import { PortalAskContentSchema } from '@aklapper/core';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ASK_TURN_STORAGE_KEY } from './askTurnRecovery';
 import { PortalAskPage, type PortalAskPageProps } from './PortalAskPage';
 
-const SAMPLE_CONTENT = {
+const SAMPLE_CONTENT = PortalAskContentSchema.parse({
   windowTitle: 'tui :: ask portfolio',
   statusBadge: {
     source: 'svc-ai-ask',
@@ -15,7 +16,7 @@ const SAMPLE_CONTENT = {
   starterQuestions: ['How does Cloud Run integrate with GKE?'],
   jdPlaceholder: 'Paste JD here...',
   abstentionNotice: 'Strict abstention active.',
-};
+});
 
 const SAMPLE_QUOTA = {
   role: 'guest' as const,

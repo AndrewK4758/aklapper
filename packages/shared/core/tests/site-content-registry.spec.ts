@@ -1,7 +1,9 @@
 import {
+  AdminCmsLoaderDataSchema,
   CONTACT_FORM_DEFINITION,
   introspectSiteContentSchema,
   isKnownSiteContentKey,
+  PortalAskContentSchema,
   SITE_CONTENT_KEYS,
   SITE_CONTENT_METADATA,
   SITE_CONTENT_SCHEMA_BY_KEY,
@@ -149,5 +151,38 @@ describe('@aklapper/core site_content registry', () => {
 
     const unknownResult = validateSiteContentMetadata('custom-banner', { banner: 'hello' });
     expect(unknownResult).toEqual({ ok: true, data: { banner: 'hello' } });
+  });
+
+  it('hydrates defaults cleanly for legacy 6-field portal-ask rows and rejects disallowed contactCtaHref routes', () => {
+    const legacyParsed = PortalAskContentSchema.parse(VALID_FIXTURES[SITE_CONTENT_KEYS.portalAsk]);
+    expect(legacyParsed.visitorLenses.length).toBeGreaterThanOrEqual(3);
+    expect(legacyParsed.qaTabLabel).toBe('Ask Andrew Assistant');
+    expect(legacyParsed.jdTabLabel).toBe('JD Match');
+    expect(legacyParsed.contactCtaHref).toBe('/contact');
+
+    const invalidCta = validateSiteContentMetadata(SITE_CONTENT_KEYS.portalAsk, {
+      ...VALID_FIXTURES[SITE_CONTENT_KEYS.portalAsk],
+      contactCtaHref: 'https://evil.example/phish',
+    });
+    expect(invalidCta).toEqual(
+      expect.objectContaining({
+        ok: false,
+        issues: expect.arrayContaining([expect.objectContaining({ pathKey: 'contactCtaHref' })]),
+      }),
+    );
+
+    const cmsLoader = AdminCmsLoaderDataSchema.parse({
+      siteContents: [],
+      maintenanceModeDefault: false,
+      rebuildProgressPercent: 50,
+      menuItems: [],
+      terminalProfiles: [],
+      terminalCommands: [],
+      terminalInitialEntries: [],
+      roadmapMilestones: [],
+      agensiSkills: [],
+      cadencePresets: [],
+    });
+    expect(cmsLoader.careerDossiers).toEqual([]);
   });
 });

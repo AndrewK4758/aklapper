@@ -11,7 +11,6 @@ import {
   PORTAL_CHROME_SHORTCUT_HINT,
   PORTAL_READLINE_HELP_LINES,
   type PortalAgensiContent,
-  type PortalAskContent,
   type PortalCadenceContent,
   type PortalChromeContent,
   type PortalContactContent,
@@ -30,6 +29,7 @@ import { resolveTerminalLsOutput, SITE_CONTENT_KEYS, TERMINAL_PROFILE_SLUGS } fr
 import {
   agensiSkills,
   cadencePresets,
+  careerDossiers,
   menuItems,
   quotaPolicies,
   roadmapMilestones,
@@ -40,6 +40,7 @@ import {
   terminalProfiles,
 } from './schema.ts';
 import { seedAdminUserFromEnv, type SeedAdminUserResult } from './seed-admin.ts';
+import { CAREER_DOSSIER_SEEDS, PORTAL_ASK_SEED } from './seed-dossiers.ts';
 
 export const DEFAULT_MENU_ITEMS: readonly MenuItem[] = [
   {
@@ -181,26 +182,6 @@ const PORTAL_AGENSI_SEED: PortalAgensiContent = {
   searchPlaceholder: 'Filter skills by name, summary, or tag...',
   emptyStateLabel: 'No skills match the current search or tag filters.',
   outboundCtaLabel: 'View on Agensi →',
-};
-
-const PORTAL_ASK_SEED: PortalAskContent = {
-  windowTitle: 'Ask Portfolio — Q&A & Role Fit',
-  statusBadge: {
-    source: 'svc-ai-ask',
-    state: 'idle',
-    label: 'On-demand · grounded answers only',
-  },
-  description:
-    'Ask questions about Andrew Klapper’s experience, projects, and published skills, or paste a job description for an evidence-based fit summary.',
-  starterQuestions: [
-    'What kinds of systems and products has Andrew Klapper built and led?',
-    'How does the CADENCE builder isolate and verify generated artifacts?',
-    'Which published Agensi skills cover engineering workflows and delivery?',
-  ],
-  jdPlaceholder:
-    'Paste a job description to evaluate portfolio fit based on indexed project evidence...',
-  abstentionNotice:
-    'Grounded responses only: answers are returned only when indexed portfolio documents meet the minimum similarity threshold.',
 };
 
 const PORTAL_CADENCE_SEED: PortalCadenceContent = {
@@ -1091,7 +1072,7 @@ const AGENSI_SKILL_SEEDS = [
 const QUOTA_POLICY_SEEDS = [
   {
     role: 'guest' as const,
-    maxTurnsPerSession: 5,
+    maxTurnsPerSession: 10,
     maxTokensPerRun: 4_000,
     maxDailyGlobalTokens: 100_000,
   },
@@ -1427,17 +1408,34 @@ export async function seedDatabase(
   }
 
   for (const policy of QUOTA_POLICY_SEEDS) {
-    const stmt = db.insert(quotaPolicies).values(policy);
-    await (isBootstrap
-      ? stmt.onConflictDoNothing({ target: quotaPolicies.role })
-      : stmt.onConflictDoUpdate({
-          target: quotaPolicies.role,
-          set: {
-            maxTurnsPerSession: policy.maxTurnsPerSession,
-            maxTokensPerRun: policy.maxTokensPerRun,
-            maxDailyGlobalTokens: policy.maxDailyGlobalTokens,
-          },
-        }));
+    await db
+      .insert(quotaPolicies)
+      .values(policy)
+      .onConflictDoNothing({ target: quotaPolicies.role });
+  }
+
+  for (const dossier of CAREER_DOSSIER_SEEDS) {
+    await db
+      .insert(careerDossiers)
+      .values({
+        slug: dossier.slug,
+        kind: dossier.kind,
+        title: dossier.title,
+        domainLabel: dossier.domainLabel,
+        roleTitle: dossier.roleTitle,
+        timeframe: dossier.timeframe,
+        skills: [...dossier.skills],
+        summaryBody: dossier.summaryBody,
+        sectionsJson: dossier.sectionsJson.map(section => ({
+          heading: section.heading,
+          body: section.body,
+        })),
+        publishStatus: dossier.publishStatus,
+        sanitizationVerifiedAt: dossier.sanitizationVerifiedAt,
+        denylistHash: dossier.denylistHash,
+        sortOrder: dossier.sortOrder,
+      })
+      .onConflictDoNothing({ target: careerDossiers.slug });
   }
 
   await seedAdminUserFromEnv(db, env);

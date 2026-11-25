@@ -9,6 +9,17 @@ export {
   SelectionCheckbox,
   type SelectionCheckboxProps,
 } from './components/BulkSelectionBar';
+export { CitationSourceList, type CitationSourceListProps } from './components/CitationSourceList';
+export { DeepLinkCardRow, type DeepLinkCardRowProps } from './components/DeepLinkCardRow';
+export {
+  SuggestionChipRow,
+  type SuggestionChipItem,
+  type SuggestionChipRowProps,
+} from './components/SuggestionChipRow';
+export {
+  ValidationGatePreview,
+  type ValidationGatePreviewProps,
+} from './components/ValidationGatePreview';
 export {
   DocumentBodyAnalytics,
   type DocumentBodyAnalyticsProps,

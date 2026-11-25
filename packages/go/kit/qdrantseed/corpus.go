@@ -1,16 +1,23 @@
 package qdrantseed
 
-import "github.com/AndrewK4758/aklapper/packages/go/kit/pg"
+import (
+	"fmt"
+
+	"github.com/AndrewK4758/aklapper/packages/go/kit/pg"
+)
 
 // SeedDocument defines one vector-indexed document or starter pattern.
 type SeedDocument struct {
-	ID         string   `json:"id"`
-	Title      string   `json:"title"`
-	Body       string   `json:"body"`
-	Category   string   `json:"category"`
-	Source     string   `json:"source"`
-	ChordPhase string   `json:"chordPhase,omitempty"`
-	Tags       []string `json:"tags,omitempty"`
+	ID             string   `json:"id"`
+	ChunkIndex     int      `json:"chunkIndex,omitempty"`
+	Title          string   `json:"title"`
+	SectionHeading string   `json:"sectionHeading,omitempty"`
+	Body           string   `json:"body"`
+	Category       string   `json:"category"`
+	Kind           string   `json:"kind,omitempty"`
+	Source         string   `json:"source"`
+	ChordPhase     string   `json:"chordPhase,omitempty"`
+	Tags           []string `json:"tags,omitempty"`
 }
 
 // CuratedCadencePatterns returns self-contained public-safe starter patterns for cadence_patterns.
@@ -153,26 +160,30 @@ func FromPGCorpus(docs []pg.CorpusDocument) []SeedDocument {
 	out := make([]SeedDocument, 0, len(docs))
 	for _, d := range docs {
 		out = append(out, SeedDocument{
-			ID:       d.ID,
-			Title:    d.Title,
-			Body:     d.Snippet,
-			Category: d.Category,
-			Source:   d.Source,
+			ID:             d.ID,
+			ChunkIndex:     d.ChunkIndex,
+			Title:          d.Title,
+			SectionHeading: d.SectionHeading,
+			Body:           d.Snippet,
+			Category:       d.Category,
+			Kind:           d.Kind,
+			Source:         d.Source,
 		})
 	}
 	return out
 }
 
-// MergeSeedDocuments combines document slices while preserving order and deduplicating by ID.
+// MergeSeedDocuments combines document slices while preserving order and deduplicating by (ID, ChunkIndex).
 func MergeSeedDocuments(groups ...[]SeedDocument) []SeedDocument {
 	seen := make(map[string]struct{})
 	var merged []SeedDocument
 	for _, group := range groups {
 		for _, doc := range group {
-			if _, ok := seen[doc.ID]; ok {
+			key := fmt.Sprintf("%s#%d", doc.ID, doc.ChunkIndex)
+			if _, ok := seen[key]; ok {
 				continue
 			}
-			seen[doc.ID] = struct{}{}
+			seen[key] = struct{}{}
 			merged = append(merged, doc)
 		}
 	}

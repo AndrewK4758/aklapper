@@ -24,7 +24,7 @@ export const DEFAULT_QUOTA_BY_ROLE: Readonly<
     { maxTurnsPerSession: number; maxTokensPerRun: number; maxDailyGlobalTokens: number }
   >
 > = {
-  guest: { maxTurnsPerSession: 5, maxTokensPerRun: 4_000, maxDailyGlobalTokens: 100_000 },
+  guest: { maxTurnsPerSession: 10, maxTokensPerRun: 4_000, maxDailyGlobalTokens: 100_000 },
   admin: { maxTurnsPerSession: 100, maxTokensPerRun: 32_000, maxDailyGlobalTokens: 2_000_000 },
 };
 

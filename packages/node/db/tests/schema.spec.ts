@@ -7,6 +7,7 @@ import {
   askTurns,
   CADENCE_PRESET_SEEDS,
   cadencePresets,
+  careerDossiers,
   ContactDbConstraintError,
   contactSubmissions,
   DEFAULT_MENU_ITEMS,
@@ -59,6 +60,14 @@ describe('@aklapper/db', () => {
     expect(askTurns.attemptId.name).toBe('attempt_id');
     expect(askTurns.leaseExpiresAt.name).toBe('lease_expires_at');
     expect(askTurns.expiresAt.name).toBe('expires_at');
+    expect(askTurns.conversationId.name).toBe('conversation_id');
+    expect(askTurns.turnIndex.name).toBe('turn_index');
+    expect(askTurns.promptText.name).toBe('prompt_text');
+    expect(careerDossiers.slug.name).toBe('slug');
+    expect(careerDossiers.publishStatus.name).toBe('publish_status');
+    expect(careerDossiers.sanitizationVerifiedAt.name).toBe('sanitization_verified_at');
+    expect(careerDossiers.denylistHash.name).toBe('denylist_hash');
+    expect(careerDossiers.searchTsv.name).toBe('search_tsv');
     expect(QDRANT_COLLECTIONS.map(c => [c.name, c.vectorSize])).toEqual([
       ['cadence_patterns', 768],
       ['portfolio_docs', 768],

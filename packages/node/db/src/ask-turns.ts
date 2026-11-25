@@ -26,6 +26,24 @@ function mapErrorCodeToPublicError(
       correlationId,
     });
   }
+  if (errorCode === 'ERR_STREAM_ABORTED') {
+    return createPublicAppError({
+      code: 'ERR_STREAM_ABORTED',
+      status: 499,
+      message: 'Request cancelled early.',
+      action: 'Retry if you still need this view.',
+      correlationId,
+    });
+  }
+  if (errorCode === 'ERR_FORBIDDEN') {
+    return createPublicAppError({
+      code: 'ERR_FORBIDDEN',
+      status: 403,
+      message: 'Permission denied for action.',
+      action: 'Return home or sign in again.',
+      correlationId,
+    });
+  }
   return createPublicAppError({
     code: 'ERR_UPSTREAM_UNAVAILABLE',
     status: 503,
@@ -67,6 +85,8 @@ export async function getAskTurnByAttemptId(
     attemptId: row.attemptId,
     status: row.status,
     mode: row.mode,
+    ...(row.conversationId ? { conversationId: row.conversationId } : {}),
+    ...(row.turnIndex !== null && row.turnIndex !== undefined ? { turnIndex: row.turnIndex } : {}),
     correlationId: row.correlationId,
     leaseExpiresAt: row.leaseExpiresAt.toISOString(),
     expiresAt: row.expiresAt.toISOString(),

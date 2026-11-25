@@ -99,9 +99,9 @@ describe('db prerender fallback loaders', () => {
     expect(getPrerenderPortalAskData().quota).toEqual({
       role: 'guest',
       turnsUsed: 0,
-      maxTurns: 5,
+      maxTurns: 10,
       tokensUsed: 0,
-      maxTokens: 20_000,
+      maxTokens: 40_000,
     });
     expect(getPrerenderPortalCadenceData().presets.length).toBeGreaterThan(0);
     expect(getPrerenderPortalContactData().content.form.id).toBe('contact-form');

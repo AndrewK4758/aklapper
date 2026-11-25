@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+import { PrivacySanitizationError } from '@aklapper/node-runtime/privacy';
 import { eq, sql } from 'drizzle-orm';
 import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -9,6 +10,7 @@ import {
   type AppDatabase,
   askTurns,
   CADENCE_PRESET_SEEDS,
+  careerDossiers,
   claimPendingSandboxRun,
   completeSandboxRunRow,
   consumeQuotaForSession,
@@ -16,29 +18,38 @@ import {
   createDb,
   createDbPool,
   createPendingSandboxRunWithQuota,
+  deleteCareerDossier,
   deleteTerminalDirectoryEntry,
   extractPgConstraintViolation,
   failSandboxRunRow,
   getAskTurnByAttemptId,
   getCadencePresetBySlug,
   getCadencePresets,
+  getCareerDossierBySlug,
   getQuotaStatusForSession,
   getSandboxRunWithTurnsById,
   getTerminalDirectoryEntries,
   getTerminalProfile,
   insertContactSubmission,
+  listCareerDossiers,
+  listPublishedCareerDossiers,
   listSandboxRunsForSession,
   loadAdminCmsData,
   loadAdminOverviewData,
   pruneExpiredAskTurns,
+  publishCareerDossier,
   rateLimitBuckets,
   resetRateLimitBucket,
   roadmapMilestones,
   sandboxRuns,
   seedDatabase,
+  SITE_CONTENT_KEYS,
   TERMINAL_PROFILE_SLUGS,
+  unpublishCareerDossier,
   updateSandboxRunGateVerdictForSession,
   updateSandboxTurnRow,
+  upsertCareerDossier,
+  upsertSiteContent,
   upsertTerminalDirectoryEntry,
 } from '../src/index.ts';
 import { runMigrationCli } from '../src/migrate.ts';
@@ -151,11 +162,11 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
 
     try {
       const results = await Promise.all(
-        Array.from({ length: 7 }, () => consumeQuotaForSession(db, 'guest', sessionId, 1, 512)),
+        Array.from({ length: 12 }, () => consumeQuotaForSession(db, 'guest', sessionId, 1, 512)),
       );
       const allowedCount = results.filter(r => r.allowed).length;
       const rejectedCount = results.filter(r => !r.allowed).length;
-      expect(allowedCount).toBe(5);
+      expect(allowedCount).toBe(10);
       expect(rejectedCount).toBe(2);
 
       const [bucketRow] = await db
@@ -163,8 +174,8 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
         .from(rateLimitBuckets)
         .where(eq(rateLimitBuckets.scopeKey, `session:${sessionId}`))
         .limit(1);
-      expect(bucketRow?.turnsUsed).toBe(5);
-      expect(bucketRow?.tokensUsed).toBe(5 * 512);
+      expect(bucketRow?.turnsUsed).toBe(10);
+      expect(bucketRow?.tokensUsed).toBe(10 * 512);
     } finally {
       await resetRateLimitBucket(db, `session:${sessionId}`);
       await resetRateLimitBucket(db, todayKey);
@@ -395,8 +406,8 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       expect(history[0]?.runStatus).toBe('ready');
       expect(history[0]?.presetSlug).toBe('chord-pipeline-monitor');
 
-      // Exhaust remaining 4 guest turns, then verify 6th rejects with zero orphan rows.
-      for (let i = 0; i < 4; i++) {
+      // Exhaust remaining 9 guest turns (10-turn guest cap), then verify 11th rejects with zero orphan rows.
+      for (let i = 0; i < 9; i++) {
         const nextInit = await createPendingSandboxRunWithQuota(db, {
           role: 'guest',
           sessionId,
@@ -413,18 +424,18 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
         sessionId,
         ipHash: 'test-ip',
         presetSlug: 'custom',
-        prompt: 'Sixth request must fail quota cleanly with zero orphan runs',
+        prompt: 'Eleventh request must fail quota cleanly with zero orphan runs',
         mode: 'fast',
       });
       expect(exhausted.allowed).toBe(false);
       expect(exhausted.run).toBeNull();
-      expect(exhausted.quota.turnsUsed).toBe(5);
+      expect(exhausted.quota.turnsUsed).toBe(10);
 
       const rowsForSession = await db
         .select()
         .from(sandboxRuns)
         .where(eq(sandboxRuns.sessionId, sessionId));
-      expect(rowsForSession).toHaveLength(5);
+      expect(rowsForSession).toHaveLength(10);
 
       // Verify failSandboxRunRow marks a run failed cleanly.
       const extraRunId = rowsForSession[1]?.id ?? '';
@@ -434,12 +445,212 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       expect(failed?.run.runStatus).toBe('failed');
 
       const quota = await getQuotaStatusForSession(db, 'guest', sessionId);
-      expect(quota.turnsUsed).toBe(5);
+      expect(quota.turnsUsed).toBe(10);
     } finally {
       await db.delete(sandboxRuns).where(eq(sandboxRuns.sessionId, sessionId));
       await db
         .delete(rateLimitBuckets)
         .where(eq(rateLimitBuckets.scopeKey, `session:${sessionId}`));
+    }
+  });
+
+  it('enforces career_dossiers privacy guard, trigger search_tsv acronyms, SQL CHECK constraints, and ERR_STREAM_ABORTED/ERR_FORBIDDEN turn mapping', async () => {
+    const slug = `pg-dossier-${Date.now()}`;
+    const denylistV1 = Buffer.from(
+      JSON.stringify(['SyntheticConfidentialClientX']),
+      'utf8',
+    ).toString('base64');
+    const denylistV2 = Buffer.from(
+      JSON.stringify(['SyntheticConfidentialClientX', 'RotatingSecretTermY']),
+      'utf8',
+    ).toString('base64');
+
+    // Seeded baseline profile_core exists and is published
+    const seeded = await getCareerDossierBySlug(db, 'andrew-klapper-profile-core');
+    expect(seeded?.publishStatus).toBe('published');
+    expect(seeded?.kind).toBe('profile_core');
+
+    // Direct persistence guard blocks denylist terms on career_dossiers AND site_content['portal-ask']
+    await expect(
+      upsertCareerDossier(
+        db,
+        {
+          slug,
+          kind: 'architecture',
+          title: 'Blocked Draft',
+          domainLabel: 'Cloud',
+          roleTitle: 'Architect',
+          timeframe: '2025',
+          skills: ['K8s'],
+          summaryBody: 'Contains SyntheticConfidentialClientX which must fail closed.',
+          sections: [],
+          sortOrder: 5,
+        },
+        { rawDenylist: denylistV1 },
+      ),
+    ).rejects.toBeInstanceOf(PrivacySanitizationError);
+
+    const prevEnvDenylist = process.env['DOSSIER_PRIVACY_DENYLIST'];
+    process.env['DOSSIER_PRIVACY_DENYLIST'] = denylistV1;
+    try {
+      await expect(
+        upsertSiteContent(db, SITE_CONTENT_KEYS.portalAsk, 'Clean body', {
+          windowTitle: 'Ask Portfolio',
+          statusBadge: { source: 'svc-ai-ask', state: 'idle', label: 'Ready' },
+          description: 'Mentions SyntheticConfidentialClientX',
+          starterQuestions: ['Question 1'],
+          jdPlaceholder: 'Paste JD',
+          abstentionNotice: 'Grounded only.',
+        }),
+      ).rejects.toBeInstanceOf(PrivacySanitizationError);
+    } finally {
+      if (prevEnvDenylist === undefined) delete process.env['DOSSIER_PRIVACY_DENYLIST'];
+      else process.env['DOSSIER_PRIVACY_DENYLIST'] = prevEnvDenylist;
+    }
+
+    try {
+      const savedDraft = await upsertCareerDossier(
+        db,
+        {
+          slug,
+          kind: 'architecture',
+          title: 'Multi-Region gRPC Platform',
+          domainLabel: 'Cloud Infrastructure',
+          roleTitle: 'Principal Engineer',
+          timeframe: '2024-2026',
+          skills: ['K8s', 'gRPC', 'PG19', 'OAuth2'],
+          summaryBody: 'Built high-throughput services with RotatingSecretTermY observability.',
+          sections: [
+            {
+              heading: 'Lexical Trigger Verification',
+              body: 'Verifies weighted tsvector matching across acronyms and section bodies.',
+            },
+          ],
+          sortOrder: 40,
+        },
+        { rawDenylist: denylistV1 },
+      );
+      expect(savedDraft.publishStatus).toBe('draft');
+      expect(savedDraft.sanitizationVerifiedAt).toBeTruthy();
+
+      // Draft is excluded from listPublishedCareerDossiers
+      const publishedBefore = await listPublishedCareerDossiers(db);
+      expect(publishedBefore.some(d => d.slug === slug)).toBe(false);
+      expect((await listCareerDossiers(db)).some(d => d.slug === slug)).toBe(true);
+
+      // Production publish fails closed when denylist is empty
+      await expect(
+        publishCareerDossier(db, slug, {
+          rawDenylist: '',
+          env: { NODE_ENV: 'production' },
+        }),
+      ).rejects.toBeInstanceOf(PrivacySanitizationError);
+
+      // Rotated denylist catches newly blocked term in previously saved draft at publish time
+      await expect(
+        publishCareerDossier(db, slug, {
+          rawDenylist: denylistV2,
+          env: { NODE_ENV: 'production' },
+        }),
+      ).rejects.toBeInstanceOf(PrivacySanitizationError);
+
+      // Clean publish under v1 denylist succeeds
+      const published = await publishCareerDossier(db, slug, {
+        rawDenylist: denylistV1,
+        env: { NODE_ENV: 'production' },
+      });
+      expect(published?.publishStatus).toBe('published');
+
+      // Dual-dictionary search_tsv trigger matches technical acronyms K8s / gRPC / PG19 / OAuth2
+      const lexicalMatch = await db.execute(sql`
+        SELECT slug FROM career_dossiers
+        WHERE slug = ${slug}
+          AND (
+            search_tsv @@ websearch_to_tsquery('simple', 'gRPC PG19 OAuth2')
+            OR search_tsv @@ websearch_to_tsquery('english', 'gRPC PG19 OAuth2')
+          )
+      `);
+      expect(lexicalMatch.rows).toHaveLength(1);
+
+      // Direct SQL bypass (published without sanitization_verified_at) fails with SQLSTATE 23514
+      let checkErr: unknown = null;
+      try {
+        await db.execute(sql`
+          INSERT INTO career_dossiers (
+            slug, kind, title, domain_label, role_title, timeframe,
+            summary_body, publish_status, sanitization_verified_at
+          ) VALUES (
+            ${`${slug}-bypass`}, 'experience', 'Bypass', 'Domain', 'Role', '2025',
+            'Summary', 'published', NULL
+          )
+        `);
+      } catch (err) {
+        checkErr = err;
+      }
+      expect(extractPgConstraintViolation(checkErr)?.constraintName).toBe(
+        'career_dossiers_published_verified_check',
+      );
+
+      // Unpublish transitions back to draft immediately
+      const unpublished = await unpublishCareerDossier(db, slug);
+      expect(unpublished?.publishStatus).toBe('draft');
+      expect((await listPublishedCareerDossiers(db)).some(d => d.slug === slug)).toBe(false);
+    } finally {
+      await deleteCareerDossier(db, slug);
+      await db.delete(careerDossiers).where(eq(careerDossiers.slug, `${slug}-bypass`));
+    }
+
+    // ERR_STREAM_ABORTED -> 499 and ERR_FORBIDDEN -> 403 mapping on ask_turns recovery
+    const abortedAttemptId = '33333333-3333-4333-8333-333333333339';
+    const forbiddenAttemptId = '44444444-4444-4444-8444-444444444449';
+    const convId = '55555555-5555-4555-8555-555555555559';
+    const now = new Date();
+    const future = new Date(now.getTime() + 300_000);
+    try {
+      await db.insert(askTurns).values([
+        {
+          attemptId: abortedAttemptId,
+          sessionId: 'guest_err_map',
+          role: 'guest',
+          mode: 'qa',
+          promptHash: 'c'.repeat(64),
+          status: 'failed',
+          errorCode: 'ERR_STREAM_ABORTED',
+          correlationId: 'corr-aborted-499',
+          conversationId: convId,
+          turnIndex: 1,
+          promptText: 'Cancelled turn prompt',
+          leaseExpiresAt: future,
+          expiresAt: future,
+        },
+        {
+          attemptId: forbiddenAttemptId,
+          sessionId: 'guest_err_map',
+          role: 'guest',
+          mode: 'qa',
+          promptHash: 'd'.repeat(64),
+          status: 'failed',
+          errorCode: 'ERR_FORBIDDEN',
+          correlationId: 'corr-forbidden-403',
+          conversationId: convId,
+          turnIndex: 2,
+          leaseExpiresAt: future,
+          expiresAt: future,
+        },
+      ]);
+
+      const abortedState = await getAskTurnByAttemptId(db, abortedAttemptId, 'guest_err_map');
+      expect(abortedState?.conversationId).toBe(convId);
+      expect(abortedState?.turnIndex).toBe(1);
+      expect(abortedState?.error?.code).toBe('ERR_STREAM_ABORTED');
+      expect(abortedState?.error?.status).toBe(499);
+
+      const forbiddenState = await getAskTurnByAttemptId(db, forbiddenAttemptId, 'guest_err_map');
+      expect(forbiddenState?.error?.code).toBe('ERR_FORBIDDEN');
+      expect(forbiddenState?.error?.status).toBe(403);
+    } finally {
+      await db.delete(askTurns).where(eq(askTurns.attemptId, abortedAttemptId));
+      await db.delete(askTurns).where(eq(askTurns.attemptId, forbiddenAttemptId));
     }
   });
 });

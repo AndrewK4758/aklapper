@@ -98,7 +98,7 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 		if strings.Contains(run.ArtifactHTML, `<script>alert`) || !strings.Contains(run.ArtifactHTML, "&lt;script&gt;") {
 			t.Fatalf("expected escaped script tags in artifactHtml, got %q", run.ArtifactHTML)
 		}
-		if run.Quota.Role != contracts.RoleGuest || run.Quota.TurnsUsed != 1 || run.Quota.MaxTurns != 5 {
+		if run.Quota.Role != contracts.RoleGuest || run.Quota.TurnsUsed != 1 || run.Quota.MaxTurns != 10 {
 			t.Fatalf("unexpected guest quota: %+v", run.Quota)
 		}
 	})
@@ -158,7 +158,7 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 	})
 
 	t.Run("POST /v1/cadence/runs enforces guest session quota with HTTP 429", func(t *testing.T) {
-		for i := range 5 {
+		for i := range 10 {
 			res, _ := e2etest.DoJSON[cadenceRunResponse](
 				t,
 				http.MethodPost,
@@ -178,7 +178,7 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 			http.MethodPost,
 			baseURL+"/v1/cadence/runs",
 			contracts.CadenceRunRequest{
-				Prompt:    "Sixth run should exceed guest quota",
+				Prompt:    "Eleventh run should exceed guest quota",
 				SessionID: "e2e-quota-cap",
 			},
 			guestHeaders,

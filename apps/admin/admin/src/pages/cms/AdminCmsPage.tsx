@@ -1,4 +1,9 @@
-import type { ActionErrorMetadata, AdminCmsLoaderData, QdrantHealthStatus } from '@aklapper/core';
+import type {
+  ActionErrorMetadata,
+  AdminCmsLoaderData,
+  PrivacySanitizationFinding,
+  QdrantHealthStatus,
+} from '@aklapper/core';
 import {
   ActionFeedbackBanner,
   Button,
@@ -18,6 +23,9 @@ import { SiteContentEditorPanel } from './SiteContentEditorPanel';
 
 import styles from './AdminCmsPage.module.css';
 
+const LazyCareerDossierSection = lazyWithRetry(() =>
+  import('./CareerDossierSection').then(mod => ({ default: mod.CareerDossierSection })),
+);
 const LazyCmsMenuTab = lazyWithRetry(() =>
   import('./CmsMenuTab').then(mod => ({ default: mod.CmsMenuTab })),
 );
@@ -31,6 +39,7 @@ const LazyCmsAgensiPresetsTab = lazyWithRetry(() =>
 export interface AdminCmsActionData extends ActionErrorMetadata {
   ok: boolean;
   message: string;
+  sanitizationFindings?: readonly PrivacySanitizationFinding[];
 }
 
 export interface AdminCmsPageProps {
@@ -66,11 +75,29 @@ export function AdminCmsPage({ data, qdrant, qdrantStatusSlot, actionData }: Adm
         <Tabs.Root defaultValue='site'>
           <Tabs.List aria-label='CMS sections'>
             <Tabs.Tab value='site'>Site &amp; Maintenance</Tabs.Tab>
+            <Tabs.Tab value='dossiers'>Career Dossiers ({data.careerDossiers.length})</Tabs.Tab>
             <Tabs.Tab value='menu'>Menu Registry ({data.menuItems.length})</Tabs.Tab>
             <Tabs.Tab value='terminal'>Terminal &amp; Roadmap</Tabs.Tab>
             <Tabs.Tab value='agensi'>Agensi &amp; Presets</Tabs.Tab>
             <Tabs.Indicator />
           </Tabs.List>
+
+          <Tabs.Panel value='dossiers' className={styles.tabPanel}>
+            <LazyChunkBoundary
+              loadingLabel='Loading career dossier studio...'
+              errorTitle='Unable to load Career Dossiers tab'
+              onChunkError={error => {
+                reportAdminLazyChunkError('./CareerDossierSection', '/cms', error);
+              }}
+            >
+              <LazyCareerDossierSection
+                dossiers={data.careerDossiers}
+                qdrant={qdrant}
+                qdrantStatusSlot={qdrantStatusSlot}
+                sanitizationFindings={actionData?.sanitizationFindings}
+              />
+            </LazyChunkBoundary>
+          </Tabs.Panel>
 
           <Tabs.Panel value='site' className={styles.tabPanel}>
             <section className={styles.card} aria-label='Portal maintenance controls'>

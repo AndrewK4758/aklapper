@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { QuotaStatusSchema } from './auth.ts';
 import { FormDefinitionSchema } from './forms.ts';
+import { PORTAL_NAVIGABLE_ROUTE_PATHS } from './routes.ts';
 
 export const MenuItemSchema = z.object({
   slug: z.string().min(1),
@@ -257,6 +258,44 @@ export const PortalAgensiContentSchema = z.object({
 });
 export type PortalAgensiContent = z.infer<typeof PortalAgensiContentSchema>;
 
+export const VisitorLensSchema = z.object({
+  id: z.string().trim().min(1).max(48),
+  label: z.string().trim().min(1).max(80),
+  description: z.string().trim().min(1).max(240),
+  starterQuestions: z.array(z.string().trim().min(1).max(240)).min(1),
+});
+export type VisitorLens = z.infer<typeof VisitorLensSchema>;
+
+export const DEFAULT_PORTAL_ASK_VISITOR_LENSES: readonly VisitorLens[] = [
+  {
+    id: 'hiring-manager',
+    label: 'Hiring Manager',
+    description: 'Architecture leadership, delivery scope, and team impact.',
+    starterQuestions: [
+      'Who is Andrew Klapper and what kinds of systems does he architect?',
+      'How has Andrew led platform modernization and multi-service cloud migrations?',
+    ],
+  },
+  {
+    id: 'engineering-peer',
+    label: 'Engineering Peer',
+    description: 'Deep dives on Go, TypeScript SSR, PostgreSQL 19, and Kubernetes.',
+    starterQuestions: [
+      'How does this portfolio combine streaming React Router SSR, Go services, and Qdrant?',
+      'What concurrency and database reliability patterns does Andrew use in PostgreSQL 19?',
+    ],
+  },
+  {
+    id: 'technical-partner',
+    label: 'Technical Partner',
+    description: 'System boundaries, security posture, and pragmatic AI engineering.',
+    starterQuestions: [
+      'How does Andrew approach fail-closed security, observability, and privacy boundaries?',
+      'What production AI and retrieval architectures has Andrew built?',
+    ],
+  },
+];
+
 export const PortalAskContentSchema = z.object({
   windowTitle: z.string().min(1),
   statusBadge: StatusBadgeSpecSchema,
@@ -264,6 +303,59 @@ export const PortalAskContentSchema = z.object({
   starterQuestions: z.array(z.string().min(1)).min(1),
   jdPlaceholder: z.string().min(1),
   abstentionNotice: z.string().min(1),
+  visitorLenses: z
+    .array(VisitorLensSchema)
+    .min(1)
+    .default(
+      DEFAULT_PORTAL_ASK_VISITOR_LENSES.map(lens => ({
+        ...lens,
+        starterQuestions: [...lens.starterQuestions],
+      })),
+    ),
+  qaTabLabel: z.string().min(1).default('Ask Andrew Assistant'),
+  jdTabLabel: z.string().min(1).default('JD Match'),
+  questionPlaceholder: z
+    .string()
+    .min(1)
+    .default("Ask about Andrew's architecture, engineering leadership, or portfolio stack..."),
+  questionAriaLabel: z.string().min(1).default('Ask a question about Andrew Klapper'),
+  submitQaLabel: z.string().min(1).default('Send Question'),
+  streamingQaLabel: z.string().min(1).default('Streaming Answer...'),
+  newConversationLabel: z.string().min(1).default('New Conversation'),
+  jdTextareaLabel: z
+    .string()
+    .min(1)
+    .default('Paste a job description to evaluate fit against published career dossiers'),
+  submitJdLabel: z.string().min(1).default('Evaluate Fit'),
+  evaluatingJdLabel: z.string().min(1).default('Evaluating Fit...'),
+  emptyThreadHint: z
+    .string()
+    .min(1)
+    .default(
+      'Select a visitor lens or starter question below to begin a grounded multi-turn conversation.',
+    ),
+  boundaryFallbackNotice: z
+    .string()
+    .min(1)
+    .default(
+      'That question falls outside published portfolio records or confidential client boundaries. Use the contact page to reach Andrew directly.',
+    ),
+  contactCtaLabel: z.string().min(1).default('Contact Andrew Directly'),
+  contactCtaHref: z.enum(PORTAL_NAVIGABLE_ROUTE_PATHS).default('/contact'),
+  citationsHeading: z.string().min(1).default('Grounded Sources'),
+  suggestedLinksHeading: z.string().min(1).default('Explore Related Sections'),
+  followUpsHeading: z.string().min(1).default('Suggested Follow-Ups'),
+  jdMatchScoreLabel: z.string().min(1).default('Overall Fit Score'),
+  jdStrengthsHeading: z.string().min(1).default('Verified Strengths'),
+  jdGapsHeading: z.string().min(1).default('Gaps or Unverified Requirements'),
+  jdEmptyStrengthsLabel: z
+    .string()
+    .min(1)
+    .default('No directly verified strengths matched this description.'),
+  jdEmptyGapsLabel: z
+    .string()
+    .min(1)
+    .default('No major gaps identified against published portfolio evidence.'),
 });
 export type PortalAskContent = z.infer<typeof PortalAskContentSchema>;
 

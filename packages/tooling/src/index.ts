@@ -1,5 +1,6 @@
 export * from './build.ts';
 export * from './ci-plan.ts';
+export * from './dossier-check.ts';
 export * from './e2e.ts';
 export * from './pg-test-container.ts';
 export * from './playwright.ts';

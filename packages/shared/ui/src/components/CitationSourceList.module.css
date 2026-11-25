@@ -1,0 +1,91 @@
+@layer component {
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-xs);
+  }
+
+  .heading {
+    margin: var(--sf-space-0);
+    font-family: var(--sf-font-mono);
+    font-size: var(--sf-text-xs);
+    font-weight: var(--sf-weight-semibold);
+    color: var(--sf-fg-cmt);
+    letter-spacing: var(--sf-tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-xs);
+  }
+
+  .card {
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-bg-panel);
+    overflow: hidden;
+  }
+
+  .trigger {
+    width: 100%;
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    gap: var(--sf-gap-sm);
+    padding: var(--sf-space-2) var(--sf-space-3);
+    background: transparent;
+    border: none;
+    color: var(--sf-fg-bone);
+    font-family: var(--sf-font-mono);
+    font-size: var(--sf-text-xs);
+    cursor: pointer;
+    text-align: start;
+  }
+
+  .triggerTitle {
+    font-weight: var(--sf-weight-semibold);
+  }
+
+  .scoreBadge {
+    font-family: var(--sf-font-code);
+    font-size: var(--sf-text-2xs);
+    color: var(--sf-gold);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-pill);
+    padding: var(--sf-space-0) var(--sf-space-2);
+    background: var(--sf-bg-elevated);
+  }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-2xs);
+    padding: var(--sf-space-2) var(--sf-space-3) var(--sf-space-3);
+    border-top: var(--sf-border-width) solid var(--sf-border-subtle);
+    font-size: var(--sf-text-xs);
+  }
+
+  .metaRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sf-gap-xs);
+    font-family: var(--sf-font-mono);
+    font-size: var(--sf-text-2xs);
+    color: var(--sf-fg-cmt);
+  }
+
+  .metaTag {
+    border: var(--sf-border-width) solid var(--sf-border-subtle);
+    border-radius: var(--sf-radius-xs);
+    padding: var(--sf-space-0) var(--sf-space-2);
+    background: var(--sf-bg-editor);
+  }
+
+  .snippet {
+    margin: var(--sf-space-0);
+    color: var(--sf-fg-prop);
+    line-height: var(--sf-leading-relaxed);
+  }
+}

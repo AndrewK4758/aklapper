@@ -3,6 +3,7 @@ import { Switch } from '@aklapper/ui';
 
 import { FormDefinitionBuilder } from './FormDefinitionBuilder';
 import { LinkActionListEditor, StatusBadgeEditor, StringListEditor } from './SiteContentSubEditors';
+import { VisitorLensListEditor } from './VisitorLensListEditor';
 
 import styles from './SiteContentEditor.module.css';
 
@@ -62,6 +63,19 @@ export function JsonSchemaFormRenderer({
         if (propKey === 'actions') {
           return (
             <LinkActionListEditor
+              key={propKey}
+              fieldKey={propKey}
+              label={label}
+              value={currentValue}
+              issuesByPath={issuesByPath}
+              onChange={onChange}
+            />
+          );
+        }
+
+        if (propKey === 'visitorLenses') {
+          return (
+            <VisitorLensListEditor
               key={propKey}
               fieldKey={propKey}
               label={label}
@@ -171,6 +185,10 @@ export function JsonSchemaFormRenderer({
           propKey === 'description' ||
           propKey === 'lead' ||
           propKey === 'abstentionNotice' ||
+          propKey === 'boundaryFallbackNotice' ||
+          propKey === 'emptyThreadHint' ||
+          propKey === 'jdPlaceholder' ||
+          propKey === 'jdTextareaLabel' ||
           propKey === 'footerText';
 
         return (

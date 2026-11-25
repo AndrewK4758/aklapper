@@ -184,6 +184,7 @@ export const ADMIN_CMS_FIXTURE: AdminCmsLoaderData = {
     itemCount: 1,
   },
   cadencePresets: [],
+  careerDossiers: [],
 };
 
 export const ADMIN_OPS_FIXTURE: AdminOpsLoaderData = {

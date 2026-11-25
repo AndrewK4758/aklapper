@@ -1,0 +1,73 @@
+@layer component {
+  .nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-xs);
+  }
+
+  .heading {
+    margin: var(--sf-space-0);
+    font-family: var(--sf-font-mono);
+    font-size: var(--sf-text-xs);
+    font-weight: var(--sf-weight-semibold);
+    color: var(--sf-fg-cmt);
+    letter-spacing: var(--sf-tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(var(--sf-container-xs), 1fr));
+    gap: var(--sf-gap-xs);
+  }
+
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-2xs);
+    padding: var(--sf-space-3);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-bg-panel);
+    color: var(--sf-fg-bone);
+    text-decoration: none;
+    transition: var(--sf-transition-colors);
+  }
+
+  .card:hover {
+    border-color: var(--sf-gold);
+    background: var(--sf-bg-elevated);
+  }
+
+  .card:focus-visible {
+    outline: var(--sf-border-width) solid var(--sf-gold);
+    outline-offset: var(--sf-space-hairline);
+  }
+
+  .cardHeader {
+    display: flex;
+    align-items: var(--sf-align-center);
+    justify-content: var(--sf-justify-between);
+    gap: var(--sf-gap-xs);
+  }
+
+  .cardLabel {
+    font-family: var(--sf-font-mono);
+    font-size: var(--sf-text-xs);
+    font-weight: var(--sf-weight-semibold);
+    color: var(--sf-gold);
+  }
+
+  .cardRoute {
+    font-family: var(--sf-font-code);
+    font-size: var(--sf-text-2xs);
+    color: var(--sf-fg-cmt);
+  }
+
+  .cardReason {
+    margin: var(--sf-space-0);
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-prop);
+    line-height: var(--sf-leading-snug);
+  }
+}

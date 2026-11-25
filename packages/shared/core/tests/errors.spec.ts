@@ -14,8 +14,11 @@ import {
   ADMIN_ROUTE_PATHS,
   AppErrorCodeSchema,
   createPublicAppError,
+  extractPrivacySanitizationFindings,
+  isPortalNavigableRoutePath,
   isPublicAppError,
   isStreamResult,
+  PORTAL_NAVIGABLE_ROUTE_PATHS,
   PORTAL_ROUTE_PATHS,
   PublicAppErrorSchema,
   type ContactActionResult,
@@ -114,6 +117,32 @@ describe('@aklapper/core error contracts and server error classification', () =>
         code: 'ERR_INTERNAL',
       }),
     );
+
+    const privacyErr = Object.assign(new Error('Content failed privacy sanitization policy.'), {
+      name: 'PrivacySanitizationError',
+      code: 'ERR_CONSTRAINT',
+      status: 422,
+      findings: [
+        {
+          ruleId: 'denylist.term_1',
+          category: 'denylist',
+          field: 'summaryBody',
+          location: 'line:1',
+        },
+      ],
+    });
+    const privacyClassified = classifyServerError(privacyErr, context);
+    expect(privacyClassified.publicError.code).toBe('ERR_CONSTRAINT');
+    expect(privacyClassified.publicError.status).toBe(422);
+    expect(extractPrivacySanitizationFindings(privacyErr)).toEqual([
+      {
+        ruleId: 'denylist.term_1',
+        category: 'denylist',
+        field: 'summaryBody',
+        location: 'line:1',
+      },
+    ]);
+    expect(extractPrivacySanitizationFindings(new Error('plain'))).toBeNull();
 
     // Cycle-safe cause unwrapping must never hang
     const cyclicA = new Error('cyclic A') as Error & { cause?: unknown };
@@ -299,6 +328,18 @@ describe('@aklapper/core error contracts and server error classification', () =>
     expect(legacyFail.ok).toBe(false);
     expect(enrichedFail.ok).toBe(false);
     expect(enrichedFail.code).toBe('ERR_DB_UNAVAILABLE');
+
+    expect(PORTAL_NAVIGABLE_ROUTE_PATHS).toEqual([
+      '/',
+      '/menu',
+      '/cadence',
+      '/ask',
+      '/agensi',
+      '/contact',
+    ]);
+    expect(isPortalNavigableRoutePath('/contact')).toBe(true);
+    expect(isPortalNavigableRoutePath('/api/contact')).toBe(false);
+    expect(isPortalNavigableRoutePath('https://evil.example')).toBe(false);
 
     expect(PORTAL_ROUTE_PATHS).toEqual([
       '/',

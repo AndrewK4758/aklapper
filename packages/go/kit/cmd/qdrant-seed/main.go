@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -173,6 +174,10 @@ func runCLI(ctx context.Context, args []string, env map[string]string, stdout, s
 	}
 	results, seedErr := qdrantseed.SeedAll(ctx, providerFromEnvMap(env), qdrantFromEnvMap(env), store, opts)
 	if seedErr != nil {
+		if errors.Is(seedErr, qdrantseed.ErrReindexLocked) {
+			_, _ = fmt.Fprintf(stderr, "UNSOUND_CONDITION ai_ask.reindex.lock_contended: %v\n", seedErr)
+			return 1
+		}
 		_, _ = fmt.Fprintf(stderr, "qdrant-seed error: %v\n", seedErr)
 		return 1
 	}

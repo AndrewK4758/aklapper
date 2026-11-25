@@ -334,9 +334,9 @@ func TestAiAskEndToEnd(t *testing.T) {
 		_ = pg.DefaultAskTurnReserveTokens // compile check that pg kit aligns cleanly
 	})
 
-	t.Run("POST /v1/ask enforces guest session 5-turn quota with HTTP 429", func(t *testing.T) {
+	t.Run("POST /v1/ask enforces guest session 10-turn quota with HTTP 429", func(t *testing.T) {
 		headers := guestHeaders(t, "e2e-quota-guest", secret)
-		for i := range 5 {
+		for i := range 10 {
 			res, _ := e2etest.DoJSON[contracts.AskResponse](
 				t, http.MethodPost, baseURL+"/v1/ask",
 				map[string]string{"question": "Check quota turn tracking"},
@@ -348,7 +348,7 @@ func TestAiAskEndToEnd(t *testing.T) {
 		}
 		resOver, body := e2etest.DoJSON[map[string]any](
 			t, http.MethodPost, baseURL+"/v1/ask",
-			map[string]string{"question": "Sixth turn rejected"},
+			map[string]string{"question": "Eleventh turn rejected"},
 			headers,
 		)
 		if resOver.StatusCode != http.StatusTooManyRequests || body["quota"] == nil {

@@ -27,6 +27,7 @@ var (
 	ErrQdrantOperation     = errors.New("qdrant operation failed")
 	ErrQdrantScroll        = errors.New("qdrant scroll failed")
 	ErrQdrantDelete        = errors.New("qdrant delete failed")
+	ErrReindexLocked       = errors.New("portfolio reindex lock already held")
 )
 
 type SeedOptions struct {
@@ -89,9 +90,22 @@ func buildPointPayload(collection string, doc SeedDocument) map[string]any {
 			"category": doc.Category, "chordPhase": doc.ChordPhase, "tags": tags, "source": doc.Source,
 		}
 	}
-	return map[string]any{
-		"docId": doc.ID, "title": doc.Title, "snippet": doc.Body, "category": doc.Category, "source": doc.Source,
+	payload := map[string]any{
+		"docId":      doc.ID,
+		"docKey":     doc.ID,
+		"chunkIndex": doc.ChunkIndex,
+		"title":      doc.Title,
+		"snippet":    doc.Body,
+		"category":   doc.Category,
+		"source":     doc.Source,
 	}
+	if doc.SectionHeading != "" {
+		payload["sectionHeading"] = doc.SectionHeading
+	}
+	if doc.Kind != "" {
+		payload["dossierKind"] = doc.Kind
+	}
+	return payload
 }
 
 func embedAllConcurrently(ctx context.Context, provider llm.Provider, docs []SeedDocument, concurrency int) ([][]float32, int, error) {
@@ -237,7 +251,7 @@ func seedCollectionWithDocs(
 	points := make([]qdrant.Point, 0, len(docs))
 	activeIDs := make(map[string]struct{}, len(docs))
 	for i, doc := range docs {
-		ptID := qdrant.CollectionPointID(collection, doc.ID)
+		ptID := qdrant.CollectionChunkPointID(collection, doc.ID, doc.ChunkIndex)
 		activeIDs[ptID] = struct{}{}
 		points = append(points, qdrant.Point{ID: ptID, Vector: vectors[i], Payload: buildPointPayload(collection, doc)})
 	}
@@ -270,6 +284,20 @@ func SeedCadencePatterns(ctx context.Context, provider llm.Provider, vectorStore
 // SeedPortfolioDocs loads PostgreSQL corpus docs (if store != nil), merges consolidated curated
 // portfolio/methodology docs, validates confidentiality, and upserts + prunes portfolio_docs.
 func SeedPortfolioDocs(ctx context.Context, provider llm.Provider, vectorStore *qdrant.Client, store *pg.Store, opts SeedOptions) (CollectionResult, error) {
+	if !opts.DryRun && store != nil && store.IsLivePG() {
+		release, acquired, lockErr := store.TryAcquireReindexLock(ctx)
+		if lockErr != nil {
+			emitSeam(opts.LogWriter, "UNSOUND_CONDITION", "qdrant.seed.pg_corpus_unavailable", CollectionPortfolioDocs, map[string]any{"detail": lockErr.Error()})
+			emitSeam(opts.LogWriter, "RULE_DIVERGENCE", "qdrant.seed.execution_outcome", CollectionPortfolioDocs, map[string]any{"branch": "failed_pg"})
+			return CollectionResult{}, fmt.Errorf("%w: %v", ErrPostgresUnavailable, lockErr)
+		}
+		if !acquired {
+			emitSeam(opts.LogWriter, "UNSOUND_CONDITION", "ai_ask.reindex.lock_contended", CollectionPortfolioDocs, map[string]any{"branch": "lock_contended"})
+			return CollectionResult{}, ErrReindexLocked
+		}
+		defer func() { _ = release(context.Background()) }()
+	}
+
 	var pgDocs []SeedDocument
 	if store != nil {
 		rawDocs, err := store.LoadCorpusDocs(ctx)

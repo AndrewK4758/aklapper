@@ -6,6 +6,7 @@ import {
   type PublicAppError,
 } from './errors.ts';
 import type { FormFieldErrorMap } from './forms.ts';
+import { isPrivacySanitizationErrorLike } from './privacy-error-match.ts';
 
 export type DiagnosticSeverity = 'WARN' | 'ERROR' | 'CRITICAL';
 
@@ -285,6 +286,9 @@ function matchErrorChain(chain: readonly unknown[]): Match {
         'Database constraint violation',
         fieldErrors ? { fieldErrors } : undefined,
       );
+    }
+    if (isPrivacySanitizationErrorLike(node)) {
+      return mkMatch('ERR_CONSTRAINT', 'WARN', 'Content failed privacy sanitization policy');
     }
   }
   for (const node of chain) {

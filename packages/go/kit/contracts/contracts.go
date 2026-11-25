@@ -29,6 +29,10 @@ const (
 	CadenceStatusReady   = "ready"
 	CadenceStatusFailed  = "failed"
 
+	GroundingTierProfile  = "profile"
+	GroundingTierEvidence = "evidence"
+	GroundingTierBoundary = "boundary"
+
 	ErrCodeValidation          = "ERR_VALIDATION"
 	ErrCodeConstraint          = "ERR_CONSTRAINT"
 	ErrCodeNotFound            = "ERR_NOT_FOUND"
@@ -159,11 +163,29 @@ type CadenceStreamErrorEvent struct {
 }
 
 type AskSource struct {
-	ID       string  `json:"id,omitempty"`
-	Title    string  `json:"title"`
-	Snippet  string  `json:"snippet"`
-	Score    float64 `json:"score"`
-	Category string  `json:"category,omitempty"`
+	ID             string  `json:"id,omitempty"`
+	Title          string  `json:"title"`
+	Snippet        string  `json:"snippet"`
+	Score          float64 `json:"score"`
+	Category       string  `json:"category,omitempty"`
+	SectionHeading string  `json:"sectionHeading,omitempty"`
+	DocKey         string  `json:"docKey,omitempty"`
+}
+
+type AskSuggestedLink struct {
+	Route  string `json:"route"`
+	Label  string `json:"label"`
+	Reason string `json:"reason"`
+}
+
+// IsAllowedPortalNavigableRoute validates routes strictly against the navigable portal route allow-list.
+func IsAllowedPortalNavigableRoute(route string) bool {
+	switch strings.TrimSpace(route) {
+	case "/", "/menu", "/cadence", "/ask", "/agensi", "/contact":
+		return true
+	default:
+		return false
+	}
 }
 
 type JdMatchEvaluation struct {
@@ -173,27 +195,34 @@ type JdMatchEvaluation struct {
 }
 
 type AskResponse struct {
-	AttemptID     string       `json:"attemptId,omitempty"`
-	Grounded      bool         `json:"grounded"`
-	Abstained     bool         `json:"abstained"`
-	Mode          string       `json:"mode"`
-	Answer        string       `json:"answer"`
-	Sources       []AskSource  `json:"sources"`
-	MatchScore    *int         `json:"matchScore,omitempty"`
-	Strengths     []string     `json:"strengths,omitempty"`
-	Gaps          []string     `json:"gaps,omitempty"`
-	Provider      string       `json:"provider"`
-	Model         string       `json:"model,omitempty"`
-	TokensUsed    int          `json:"tokensUsed"`
-	LatencyMs     int          `json:"latencyMs,omitempty"`
-	CorrelationID string       `json:"correlationId,omitempty"`
-	Quota         *QuotaStatus `json:"quota,omitempty"`
+	AttemptID         string             `json:"attemptId,omitempty"`
+	Grounded          bool               `json:"grounded"`
+	Abstained         bool               `json:"abstained"`
+	GroundingTier     string             `json:"groundingTier,omitempty"`
+	ConversationID    string             `json:"conversationId,omitempty"`
+	TurnIndex         int                `json:"turnIndex,omitempty"`
+	Mode              string             `json:"mode"`
+	Answer            string             `json:"answer"`
+	Sources           []AskSource        `json:"sources"`
+	SuggestedLinks    []AskSuggestedLink `json:"suggestedLinks,omitempty"`
+	FollowUpQuestions []string           `json:"followUpQuestions,omitempty"`
+	MatchScore        *int               `json:"matchScore,omitempty"`
+	Strengths         []string           `json:"strengths,omitempty"`
+	Gaps              []string           `json:"gaps,omitempty"`
+	Provider          string             `json:"provider"`
+	Model             string             `json:"model,omitempty"`
+	TokensUsed        int                `json:"tokensUsed"`
+	LatencyMs         int                `json:"latencyMs,omitempty"`
+	CorrelationID     string             `json:"correlationId,omitempty"`
+	Quota             *QuotaStatus       `json:"quota,omitempty"`
 }
 
 type AskTurnState struct {
 	AttemptID      string          `json:"attemptId"`
 	Status         string          `json:"status"`
 	Mode           string          `json:"mode"`
+	ConversationID string          `json:"conversationId,omitempty"`
+	TurnIndex      int             `json:"turnIndex,omitempty"`
 	CorrelationID  string          `json:"correlationId"`
 	LeaseExpiresAt string          `json:"leaseExpiresAt"`
 	ExpiresAt      string          `json:"expiresAt"`

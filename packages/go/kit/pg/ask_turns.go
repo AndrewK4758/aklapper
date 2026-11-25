@@ -23,13 +23,15 @@ var (
 )
 
 type ReserveTurnInput struct {
-	AttemptID     string
-	SessionID     string
-	Role          string
-	Mode          string
-	PromptHash    string
-	CorrelationID string
-	ReserveTokens int
+	AttemptID      string
+	SessionID      string
+	Role           string
+	Mode           string
+	PromptHash     string
+	ConversationID string
+	PromptText     string
+	CorrelationID  string
+	ReserveTokens  int
 }
 
 type TurnRecord struct {
@@ -38,6 +40,9 @@ type TurnRecord struct {
 	Role           string
 	Mode           string
 	PromptHash     string
+	ConversationID string
+	TurnIndex      int
+	PromptText     string
 	Status         string
 	TokensReserved int
 	TokensUsed     int
@@ -61,6 +66,8 @@ func (r TurnRecord) ToState(quota *contracts.QuotaStatus) contracts.AskTurnState
 		AttemptID:      r.AttemptID,
 		Status:         r.Status,
 		Mode:           r.Mode,
+		ConversationID: r.ConversationID,
+		TurnIndex:      r.TurnIndex,
 		CorrelationID:  r.CorrelationID,
 		LeaseExpiresAt: r.LeaseExpiresAt.UTC().Format(time.RFC3339),
 		ExpiresAt:      r.ExpiresAt.UTC().Format(time.RFC3339),
@@ -83,6 +90,9 @@ func (s *Store) ReserveTurnTx(ctx context.Context, in ReserveTurnInput) (TurnRes
 	if s == nil || s.pool == nil {
 		return s.reserveTurnMemory(now, in, role, sessionID, reserveTokens)
 	}
+
+	// Best-effort out-of-transaction bounded purge of expired terminal rows before acquiring quota locks.
+	_, _ = s.PruneExpiredTerminalAskTurns(ctx, DefaultExpiredTurnPruneLimit)
 
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
@@ -146,18 +156,25 @@ func (s *Store) ReserveTurnTx(ctx context.Context, in ReserveTurnInput) (TurnRes
 		logDevUnlimitedBypass(role, sessionID, in.AttemptID, in.CorrelationID)
 	}
 
+	convID, convIDArg, turnIndex, turnIndexArg, promptText, promptTextArg, err := resolveConversationTurnArgs(
+		ctx, tx, sessionID, in.ConversationID, in.PromptText,
+	)
+	if err != nil {
+		return TurnReservation{}, false, err
+	}
+
 	leaseExp := now.Add(AskTurnLeaseDuration)
 	exp := now.Add(AskTurnRecoveryTTL)
 	var insertedID string
 	err = tx.QueryRow(
 		ctx,
 		`INSERT INTO ask_turns
-		 (attempt_id, session_id, role, mode, prompt_hash, status, tokens_reserved, tokens_used, correlation_id, created_at, updated_at, lease_expires_at, expires_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, 0, $8, $9, $9, $10, $11)
+		 (attempt_id, session_id, role, mode, prompt_hash, status, tokens_reserved, tokens_used, correlation_id, created_at, updated_at, lease_expires_at, expires_at, conversation_id, turn_index, prompt_text)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, 0, $8, $9, $9, $10, $11, $12, $13, $14)
 		 ON CONFLICT (attempt_id) DO NOTHING
 		 RETURNING attempt_id`,
 		in.AttemptID, sessionID, role, in.Mode, in.PromptHash, contracts.TurnStatusRunning,
-		reserveTokens, in.CorrelationID, now, leaseExp, exp,
+		reserveTokens, in.CorrelationID, now, leaseExp, exp, convIDArg, turnIndexArg, promptTextArg,
 	).Scan(&insertedID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		_ = tx.Rollback(ctx)
@@ -195,6 +212,9 @@ func (s *Store) ReserveTurnTx(ctx context.Context, in ReserveTurnInput) (TurnRes
 			Role:           role,
 			Mode:           in.Mode,
 			PromptHash:     in.PromptHash,
+			ConversationID: convID,
+			TurnIndex:      turnIndex,
+			PromptText:     promptText,
 			Status:         contracts.TurnStatusRunning,
 			TokensReserved: reserveTokens,
 			CorrelationID:  in.CorrelationID,

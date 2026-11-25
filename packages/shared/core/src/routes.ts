@@ -1,3 +1,20 @@
+export const PORTAL_NAVIGABLE_ROUTE_PATHS = [
+  '/',
+  '/menu',
+  '/cadence',
+  '/ask',
+  '/agensi',
+  '/contact',
+] as const;
+
+export type PortalNavigableRoutePath = (typeof PORTAL_NAVIGABLE_ROUTE_PATHS)[number];
+
+const PORTAL_NAVIGABLE_ROUTE_SET = new Set<string>(PORTAL_NAVIGABLE_ROUTE_PATHS);
+
+export function isPortalNavigableRoutePath(value: string): value is PortalNavigableRoutePath {
+  return PORTAL_NAVIGABLE_ROUTE_SET.has(value);
+}
+
 export const PORTAL_ROUTE_PATHS = [
   '/',
   '/menu',

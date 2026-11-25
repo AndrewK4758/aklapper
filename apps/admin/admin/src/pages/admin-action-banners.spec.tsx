@@ -35,6 +35,7 @@ const CMS_DATA: AdminCmsLoaderData = {
   roadmapMilestones: [],
   agensiSkills: [],
   cadencePresets: [],
+  careerDossiers: [],
 };
 
 const INBOX_DATA: AdminInboxLoaderData = {

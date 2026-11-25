@@ -40,6 +40,12 @@
       "types": "./dist/vitest-pg-setup.d.ts",
       "import": "./dist/vitest-pg-setup.js",
       "default": "./dist/vitest-pg-setup.js"
+    },
+    "./dossier-check": {
+      "@aklapper/source": "./src/dossier-check.ts",
+      "types": "./dist/dossier-check.d.ts",
+      "import": "./dist/dossier-check.js",
+      "default": "./dist/dossier-check.js"
     }
   },
   "dependencies": {
