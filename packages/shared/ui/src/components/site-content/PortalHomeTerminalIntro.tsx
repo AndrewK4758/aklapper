@@ -40,7 +40,7 @@ export function PortalHomeTerminalIntro({
         </div>
 
         <div className={styles.contentCol}>
-          <header className={styles.header}>
+          <div className={styles.header}>
             <p className={styles.name}>{resumeSummary.name}</p>
             <p className={styles.roleLine}>{resumeSummary.roleLine}</p>
             <div className={styles.linksRow}>
@@ -59,7 +59,7 @@ export function PortalHomeTerminalIntro({
                 {resumeSummary.githubLabel}
               </a>
             </div>
-          </header>
+          </div>
 
           <p className={styles.bio}>{resumeSummary.bio}</p>
 
