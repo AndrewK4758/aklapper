@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { PortalAboutContentSchema } from './about.ts';
 import {
   AdminAnalyticsContentSchema,
   AdminChromeContentSchema,
@@ -15,6 +16,7 @@ import {
 export const SITE_CONTENT_KEYS = {
   portalChrome: 'portal-chrome',
   portalHome: 'portal-home',
+  portalAbout: 'portal-about',
   portalAgensi: 'portal-agensi',
   portalAsk: 'portal-ask',
   portalCadence: 'portal-cadence',
@@ -38,6 +40,7 @@ export const SITE_CONTENT_SCHEMA_BY_KEY: Readonly<
 > = {
   [SITE_CONTENT_KEYS.portalChrome]: PortalChromeContentSchema,
   [SITE_CONTENT_KEYS.portalHome]: PortalHomeContentSchema,
+  [SITE_CONTENT_KEYS.portalAbout]: PortalAboutContentSchema,
   [SITE_CONTENT_KEYS.portalAgensi]: PortalAgensiContentSchema,
   [SITE_CONTENT_KEYS.portalAsk]: PortalAskContentSchema,
   [SITE_CONTENT_KEYS.portalCadence]: PortalCadenceContentSchema,
@@ -59,6 +62,13 @@ export const SITE_CONTENT_METADATA: Readonly<Record<SiteContentKey, SiteContentK
     label: 'Portal Home',
     description:
       'Home terminal greyscale portrait, sanitized resume summary, and launcher hero window.',
+    surface: 'portal',
+  },
+  [SITE_CONTENT_KEYS.portalAbout]: {
+    key: SITE_CONTENT_KEYS.portalAbout,
+    label: 'Portal About',
+    description:
+      'Public-safe resume framing, greyscale terminal portrait metadata, technical skill groups, education, and platform services guide.',
     surface: 'portal',
   },
   [SITE_CONTENT_KEYS.portalAgensi]: {

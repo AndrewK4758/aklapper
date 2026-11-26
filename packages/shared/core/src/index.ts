@@ -1,3 +1,4 @@
+export * from './about.ts';
 export * from './admin-cms-contracts.ts';
 export * from './admin-contracts.ts';
 export * from './agensi.ts';

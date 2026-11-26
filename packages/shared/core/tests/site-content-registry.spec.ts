@@ -5,6 +5,7 @@ import {
   DEFAULT_PORTAL_HOME_RESUME_SUMMARY,
   introspectSiteContentSchema,
   isKnownSiteContentKey,
+  PortalAboutContentSchema,
   PortalAskContentSchema,
   PortalHomeContentSchema,
   SITE_CONTENT_KEYS,
@@ -13,6 +14,64 @@ import {
   type SiteContentKey,
   validateSiteContentMetadata,
 } from '../src/index.ts';
+
+const VALID_PORTAL_ABOUT_FIXTURE: Record<string, unknown> = {
+  windowTitle: 'About Andrew Klapper // Resume & Services',
+  statusBadge: { source: 'portal-about', state: 'ready', label: 'Sanitized Profile' },
+  description: 'Public-safe engineering resume and interactive platform services guide.',
+  identity: {
+    fullName: 'Andrew Klapper',
+    roleHeadline: 'Senior Full-Stack & Systems Engineer',
+    location: 'Marietta, GA',
+    githubLabel: 'github.com/AndrewK4758',
+    githubUrl: 'https://github.com/AndrewK4758',
+    websiteLabel: 'andrew-k.us',
+    websiteUrl: 'https://andrew-k.us',
+  },
+  portrait: {
+    alt: 'Andrew Klapper greyscale terminal portrait',
+    caption: 'Andrew Klapper · Marietta, GA',
+    ttyLabel: 'portrait // greyscale',
+  },
+  skillGroups: [
+    { category: 'Languages', skills: ['C# (.NET 10)', 'Go (1.26+)', 'TypeScript'] },
+    { category: 'Cloud & DevOps', skills: ['Docker', 'Kubernetes (AKS)', 'GCP'] },
+  ],
+  education: [
+    {
+      institution: 'Kennesaw State University',
+      location: 'Kennesaw, GA',
+      program: 'Professional Sales (29 credits completed)',
+    },
+  ],
+  servicesIntro: 'Explore interactive tools and services available directly in this workspace.',
+  services: [
+    {
+      id: 'chat',
+      title: 'Chat with Andrew',
+      to: '/chat',
+      badge: 'AI + JD Match',
+      summary: 'Ask grounded questions or evaluate role fit against published career dossiers.',
+      ctaLabel: 'Open Chat →',
+    },
+    {
+      id: 'agensi',
+      title: 'Agensi Storefront',
+      to: '/agensi',
+      badge: 'Skills Catalog',
+      summary: 'Browse published commercial AI agent skills and operational workflows.',
+      ctaLabel: 'Open Agensi →',
+    },
+    {
+      id: 'cadence',
+      title: 'CADENCE Builder',
+      to: '/cadence',
+      badge: 'Interactive Demo',
+      summary: 'Run deterministic or live spec-driven artifact synthesis workflows.',
+      ctaLabel: 'Open CADENCE →',
+    },
+  ],
+};
 
 const VALID_FIXTURES: Record<SiteContentKey, Record<string, unknown>> = {
   [SITE_CONTENT_KEYS.portalChrome]: {
@@ -31,6 +90,7 @@ const VALID_FIXTURES: Record<SiteContentKey, Record<string, unknown>> = {
     description: 'Principal full-stack and platform engineer.',
     actions: [{ label: 'CADENCE Builder', to: '/cadence', variant: 'primary' }],
   },
+  [SITE_CONTENT_KEYS.portalAbout]: VALID_PORTAL_ABOUT_FIXTURE,
   [SITE_CONTENT_KEYS.portalAgensi]: {
     windowTitle: 'Agensi Skills',
     statusBadge: { source: 'agensi', state: 'ready', label: 'Indexed' },
@@ -77,9 +137,11 @@ const VALID_FIXTURES: Record<SiteContentKey, Record<string, unknown>> = {
 };
 
 describe('@aklapper/core site_content registry', () => {
-  it('registers all 9 active site_content keys without portal-maintenance', () => {
+  it('registers all 10 active site_content keys including portal-about without portal-maintenance', () => {
     const keys = Object.values(SITE_CONTENT_KEYS);
-    expect(keys).toHaveLength(9);
+    expect(keys).toHaveLength(10);
+    expect(keys).toContain('portal-about');
+    expect(SITE_CONTENT_METADATA[SITE_CONTENT_KEYS.portalAbout].surface).toBe('portal');
     expect(keys).not.toContain('portal-maintenance');
     expect(isKnownSiteContentKey('portal-maintenance')).toBe(false);
     for (const key of keys) {
@@ -91,7 +153,7 @@ describe('@aklapper/core site_content registry', () => {
     expect(isKnownSiteContentKey('custom-banner')).toBe(false);
   });
 
-  it('introspects all 9 schemas cleanly via z.toJSONSchema with cycle refs and memoization', () => {
+  it('introspects all 10 schemas cleanly via z.toJSONSchema with cycle refs and memoization', () => {
     for (const key of Object.values(SITE_CONTENT_KEYS)) {
       const schema = introspectSiteContentSchema(key);
       expect(schema.type).toBe('object');
@@ -100,9 +162,11 @@ describe('@aklapper/core site_content registry', () => {
     }
     const contactSchema = introspectSiteContentSchema(SITE_CONTENT_KEYS.portalContact);
     expect(contactSchema.properties?.['form']).toBeDefined();
+    const aboutSchema = introspectSiteContentSchema(SITE_CONTENT_KEYS.portalAbout);
+    expect(aboutSchema.properties?.['services']).toBeDefined();
   });
 
-  it('validates all 9 fixtures and strips unknown or retired keys on registered site_content rows', () => {
+  it('validates all 10 fixtures and strips unknown or retired keys on registered site_content rows', () => {
     for (const key of Object.values(SITE_CONTENT_KEYS)) {
       const candidate = {
         ...VALID_FIXTURES[key],
@@ -256,5 +320,53 @@ describe('@aklapper/core site_content registry', () => {
         }),
       );
     }
+  });
+
+  it('validates portal-about defaults and rejects disallowed service routes, postal ZIP locations, and empty required framing fields', () => {
+    const parsedAbout = PortalAboutContentSchema.parse(VALID_PORTAL_ABOUT_FIXTURE);
+    expect(parsedAbout.skillsHeading).toBe('Technical Skills');
+    expect(parsedAbout.contactCtaHref).toBe('/contact');
+
+    const invalidServiceAndZip = validateSiteContentMetadata(SITE_CONTENT_KEYS.portalAbout, {
+      ...VALID_PORTAL_ABOUT_FIXTURE,
+      identity: {
+        ...(VALID_PORTAL_ABOUT_FIXTURE['identity'] as Record<string, unknown>),
+        location: 'Marietta, GA 30062',
+      },
+      services: [
+        {
+          id: 'phish',
+          title: 'Untrusted',
+          to: 'https://untrusted.example/phish',
+          badge: 'External',
+          summary: 'External link must be blocked.',
+          ctaLabel: 'Open',
+        },
+      ],
+    });
+    expect(invalidServiceAndZip).toEqual(
+      expect.objectContaining({
+        ok: false,
+        issues: expect.arrayContaining([
+          expect.objectContaining({ pathKey: 'identity.location' }),
+          expect.objectContaining({ pathKey: 'services.0.to' }),
+        ]),
+      }),
+    );
+
+    const missingRequired = validateSiteContentMetadata(SITE_CONTENT_KEYS.portalAbout, {
+      ...VALID_PORTAL_ABOUT_FIXTURE,
+      windowTitle: '   ',
+      skillGroups: [],
+    });
+    expect(missingRequired).toEqual(
+      expect.objectContaining({
+        ok: false,
+        issues: expect.arrayContaining([
+          expect.objectContaining({ pathKey: 'windowTitle' }),
+          expect.objectContaining({ pathKey: 'skillGroups' }),
+        ]),
+      }),
+    );
   });
 });

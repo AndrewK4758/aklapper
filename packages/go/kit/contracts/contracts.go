@@ -219,7 +219,7 @@ type AskSuggestedLink struct {
 // IsAllowedPortalNavigableRoute validates routes strictly against the navigable portal route allow-list.
 func IsAllowedPortalNavigableRoute(route string) bool {
 	switch strings.TrimSpace(route) {
-	case "/", "/cadence", "/chat", "/agensi", "/contact":
+	case "/", "/about", "/cadence", "/chat", "/agensi", "/contact":
 		return true
 	default:
 		return false
