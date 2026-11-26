@@ -269,13 +269,55 @@ describe('PortalRoot', () => {
     expect(singleFetchContactResult.rootPayload).toBeInstanceOf(Promise);
     expect(loadPortalRootDataWithPrerenderMock).toHaveBeenCalledTimes(3);
 
-    // Single Fetch for unmatched route still executes zero DB queries
+    // Single Fetch for unmatched route (and stale /_root.data) executes zero DB queries
     const singleFetchNotFound = loader(
       makeRootLoaderArgs('https://andrew-k.us/changes-in-progress.data?_routes=root').args,
     );
     expect(singleFetchNotFound.isNotFound).toBe(true);
     expect(singleFetchNotFound.rootPayload).toBeNull();
+
+    const staleRootDataResult = loader(makeRootLoaderArgs('https://andrew-k.us/_root.data').args);
+    expect(staleRootDataResult.isNotFound).toBe(true);
+    expect(staleRootDataResult.rootPayload).toBeNull();
     expect(loadPortalRootDataWithPrerenderMock).toHaveBeenCalledTimes(3);
+
+    // Segment-safe percent-decoding matches React Router 8 route resolution and fails closed on %2F / malformed %
+    for (const encodedPath of [
+      '/%63hat',
+      '/%63adence',
+      '/%61gensi',
+      '/%63ontact',
+      '/%43hat',
+      '/%63hat/',
+    ]) {
+      expect(isNavigablePath(encodedPath)).toBe(true);
+    }
+    expect(isNavigablePath('/%63hat%2F')).toBe(false);
+    expect(isNavigablePath('/%2Fcontact')).toBe(false);
+    expect(isNavigablePath('/%ZZ')).toBe(false);
+
+    loadPortalRootDataWithPrerenderMock.mockReturnValueOnce(
+      Promise.resolve({ chrome: CHROME_FIXTURE }),
+    );
+    const encodedSingleFetchResult = loader(
+      makeRootLoaderArgs('https://andrew-k.us/%63hat.data?_routes=root,routes/chat').args,
+    );
+    expect(encodedSingleFetchResult.isNotFound).toBe(false);
+    expect(encodedSingleFetchResult.rootPayload).toBeInstanceOf(Promise);
+    expect(loadPortalRootDataWithPrerenderMock).toHaveBeenCalledTimes(4);
+
+    // Malformed percent-encoding and slash-heavy 16k probes execute in linear time without throwing
+    const malformedResult = loader(makeRootLoaderArgs('https://andrew-k.us/%ZZ').args);
+    expect(malformedResult.isNotFound).toBe(true);
+    expect(malformedResult.rootPayload).toBeNull();
+
+    const slashHeavyPath = `/a${'/'.repeat(16_000)}b`;
+    const redosStartMs = performance.now();
+    expect(isNavigablePath(slashHeavyPath)).toBe(false);
+    const redosResult = loader(makeRootLoaderArgs(`https://andrew-k.us${slashHeavyPath}`).args);
+    expect(redosResult.isNotFound).toBe(true);
+    expect(performance.now() - redosStartMs).toBeLessThan(100);
+    expect(loadPortalRootDataWithPrerenderMock).toHaveBeenCalledTimes(4);
 
     // 404 -> / must return literal true even when defaultShouldRevalidate is false
     expect(

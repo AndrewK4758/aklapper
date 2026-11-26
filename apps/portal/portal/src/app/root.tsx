@@ -5,6 +5,7 @@ import {
   buildRouteMetaTags,
   type DocumentSeoRuntimeConfig,
   isPortalNavigableRoutePath,
+  normalizePathname,
   type PortalRootLoaderData,
   type PortalRoutePath,
   readSeoRuntimeConfig,
@@ -67,19 +68,27 @@ export interface PortalRootStreamData {
   readonly rootPayload: Promise<StreamResult<PortalRootLoaderData>> | null;
 }
 
-function normalizePathname(pathname: string): string {
-  return pathname.replace(/\/+$/, '') || '/';
+function safeDecodePathname(value: string): string | null {
+  try {
+    return value
+      .split('/')
+      .map(segment => decodeURIComponent(segment).replaceAll('/', '%2F'))
+      .join('/');
+  } catch {
+    return null;
+  }
+}
+
+function resolveCanonicalPathname(rawPathname: string): string {
+  const decoded = safeDecodePathname(rawPathname);
+  return normalizePathname(decoded ?? rawPathname);
 }
 
 function resolveLoaderPathname(request: Request): string {
   const rawPathname = new URL(request.url).pathname;
-  // React Router Single Fetch passes raw `.data` request paths into server loaders
-  // (`/_.data` / `/_root.data` for `/` and `/<route>.data` for child routes).
-  if (rawPathname === '/_.data' || rawPathname === '/_root.data') {
-    return '/';
-  }
+  // React Router 8 Single Fetch requests `/_.data` for `/` and `/<route>.data` for child routes.
   if (rawPathname.endsWith('/_.data')) {
-    return normalizePathname(rawPathname.slice(0, -'/_.data'.length));
+    return normalizePathname(rawPathname.slice(0, -'_.data'.length));
   }
   if (rawPathname.endsWith('.data')) {
     return normalizePathname(rawPathname.slice(0, -'.data'.length));
@@ -88,7 +97,11 @@ function resolveLoaderPathname(request: Request): string {
 }
 
 export function isNavigablePath(pathname: string): boolean {
-  return isPortalNavigableRoutePath(normalizePathname(pathname).toLowerCase());
+  const decoded = safeDecodePathname(pathname);
+  if (decoded === null) {
+    return false;
+  }
+  return isPortalNavigableRoutePath(normalizePathname(decoded).toLowerCase());
 }
 
 export function loader({ request, context }: Route.LoaderArgs): PortalRootStreamData {
@@ -153,8 +166,8 @@ export function shouldRevalidate({
 
 export function meta({ loaderData, location, error }: Route.MetaArgs) {
   const siteUrl = loaderData?.runtimeSeo?.siteUrl ?? DEFAULT_PORTAL_SITE_URL;
-  const pathname = normalizePathname(location.pathname);
-  const isNotFound = Boolean(loaderData?.isNotFound) || !isNavigablePath(pathname);
+  const pathname = resolveCanonicalPathname(location.pathname);
+  const isNotFound = Boolean(loaderData?.isNotFound) || !isNavigablePath(location.pathname);
   const isErrorOrNotFound = Boolean(error) || isNotFound;
 
   return buildRouteMetaTags({
@@ -179,10 +192,10 @@ export function Layout({ children }: { children: ReactNode }) {
   const rootData = useRouteLoaderData<typeof loader>('root');
   const routeError = useRouteError();
   const location = useLocation();
-  const pathname = normalizePathname(location.pathname);
+  const pathname = resolveCanonicalPathname(location.pathname);
   const siteUrl = rootData?.runtimeSeo?.siteUrl ?? DEFAULT_PORTAL_SITE_URL;
   const isErrorOrNotFound =
-    Boolean(routeError) || Boolean(rootData?.isNotFound) || !isNavigablePath(pathname);
+    Boolean(routeError) || Boolean(rootData?.isNotFound) || !isNavigablePath(location.pathname);
   const canonicalUrl = buildCanonicalUrl(siteUrl, pathname);
 
   return (
@@ -256,7 +269,7 @@ function PortalWorkspaceRoot({
 export default function PortalRoot({ loaderData }: Route.ComponentProps) {
   useAnimatedFavicon();
   const location = useLocation();
-  const pathname = normalizePathname(location.pathname);
+  const pathname = resolveCanonicalPathname(location.pathname);
 
   if (loaderData.isNotFound || loaderData.rootPayload === null) {
     return (

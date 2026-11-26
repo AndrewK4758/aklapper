@@ -75,6 +75,7 @@ import PortalHomeRoute, {
   meta as homeMeta,
 } from './home';
 import PortalNotFoundRoute, {
+  action as notFoundAction,
   ErrorBoundary as NotFoundErrorBoundary,
   loader as notFoundLoader,
   meta as notFoundMeta,
@@ -306,6 +307,38 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
         headers: { 'X-Correlation-Id': 'corr-html-404' },
       },
     });
+
+    // Catch-all not-found action throws 404 PublicAppError on POST/DELETE instead of 405 Method Not Allowed
+    for (const reqUrl of [
+      'https://andrew-k.us/changes-in-progress',
+      'https://andrew-k.us/changes-in-progress.data',
+    ]) {
+      const actionCtx = makeContext('corr-html-action-404');
+      let actionThrown: unknown = null;
+      try {
+        notFoundAction({
+          request: new Request(reqUrl, { method: 'POST' }),
+          params: { '*': 'changes-in-progress' },
+          context: actionCtx.context,
+          url: new URL(reqUrl),
+          pattern: '/*',
+        });
+      } catch (error) {
+        actionThrown = error;
+      }
+      expect(actionThrown).toMatchObject({
+        type: 'DataWithResponseInit',
+        data: {
+          code: 'ERR_NOT_FOUND',
+          status: 404,
+          correlationId: 'corr-html-action-404',
+        },
+        init: {
+          status: 404,
+          headers: { 'X-Correlation-Id': 'corr-html-action-404' },
+        },
+      });
+    }
 
     const tags = notFoundMeta({
       loaderData: undefined,

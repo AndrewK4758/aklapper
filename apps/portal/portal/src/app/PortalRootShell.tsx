@@ -1,4 +1,4 @@
-import type { PortalRootLoaderData } from '@aklapper/core';
+import { normalizePathname, type PortalRootLoaderData } from '@aklapper/core';
 import {
   Button,
   Menu,
@@ -36,7 +36,7 @@ const PORTAL_NAV_ITEMS = [
 ] as const;
 
 function isPortalNavItemActive(pathname: string, to: string): boolean {
-  const normalized = pathname.replace(/\/+$/, '') || '/';
+  const normalized = normalizePathname(pathname);
   return normalized === to || normalized.startsWith(`${to}/`);
 }
 

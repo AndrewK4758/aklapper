@@ -8,7 +8,7 @@ import type { loader as rootLoader } from '../root';
 import { buildPortalPageMeta } from '../seo';
 import type { Route } from './+types/not-found';
 
-export function loader({ request, context }: Route.LoaderArgs): null {
+function throwNotFound(request: Request, context: Route.LoaderArgs['context']): never {
   const correlationId = getOrCreateCorrelationId(request, context);
   const publicError = createPublicAppError({
     code: 'ERR_NOT_FOUND',
@@ -22,6 +22,14 @@ export function loader({ request, context }: Route.LoaderArgs): null {
     status: 404,
     headers: { 'X-Correlation-Id': correlationId },
   });
+}
+
+export function loader({ request, context }: Route.LoaderArgs): null {
+  return throwNotFound(request, context);
+}
+
+export function action({ request, context }: Route.ActionArgs): null {
+  return throwNotFound(request, context);
 }
 
 export function meta({ matches, location }: Route.MetaArgs) {

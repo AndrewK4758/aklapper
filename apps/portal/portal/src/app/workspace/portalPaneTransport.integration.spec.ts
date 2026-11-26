@@ -223,11 +223,40 @@ describe.runIf(existsSync(DIST_SERVER_ENTRY))(
         expect(apiBody.correlationId).toBe(apiCorr);
       }
 
-      // Case-insensitive navigable route GET /Contact -> 200 OK
-      const mixedCaseRes = await fetch(`${baseUrl}/Contact`);
-      expect(mixedCaseRes.status).toBe(200);
-      const mixedCaseHtml = await mixedCaseRes.text();
-      expect(mixedCaseHtml).toContain('name="robots" content="index, follow"');
+      // Case-insensitive and percent-encoded navigable routes -> 200 OK with PortalRootShell (index, follow)
+      for (const navigablePath of ['/Contact', '/%63ontact', '/%63hat']) {
+        const navRes = await fetch(`${baseUrl}${navigablePath}`);
+        expect(navRes.status).toBe(200);
+        const navHtml = await navRes.text();
+        expect(navHtml).toContain('name="robots" content="index, follow"');
+        expect(navHtml).toContain('name="googlebot" content="index, follow"');
+        expect(navHtml).not.toContain('name="googlebot" content="noindex, nofollow"');
+        expect(navHtml).toContain('<header');
+      }
+
+      // POST to retired /changes-in-progress and Single Fetch .data endpoint -> 404 ERR_NOT_FOUND (never 405 or route-id leak)
+      for (const postPath of ['/changes-in-progress', '/changes-in-progress.data']) {
+        const postRes = await fetch(`${baseUrl}${postPath}`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/x-www-form-urlencoded' },
+          body: 'probe=1',
+        });
+        expect(postRes.status).toBe(404);
+        expect(postRes.headers.get('x-correlation-id')).toMatch(/\S+/);
+        const postBody = await postRes.text();
+        expect(postBody).toContain('ERR_NOT_FOUND');
+        expect(postBody).not.toMatch(/Method Not Allowed|did not provide an [`']?action/i);
+        expect(postBody).not.toContain('ERR_INTERNAL');
+      }
+
+      // Stale /_root.data returns 404 and malformed /%ZZ fails closed (400/404) without 500 or URIError
+      const staleRootRes = await fetch(`${baseUrl}/_root.data`);
+      expect(staleRootRes.status).toBe(404);
+      expect(await staleRootRes.text()).not.toContain('ERR_INTERNAL');
+
+      const malformedRes = await fetch(`${baseUrl}/%ZZ`);
+      expect([400, 404]).toContain(malformedRes.status);
+      expect(await malformedRes.text()).not.toContain('ERR_INTERNAL');
 
       // Burst of 50 concurrent 404 probes completes cleanly without DB pool saturation
       const burstResponses = await Promise.all(

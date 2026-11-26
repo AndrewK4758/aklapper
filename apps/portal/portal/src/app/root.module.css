@@ -282,14 +282,6 @@
       font-size: var(--sf-text-xs);
       gap: var(--sf-space-2);
     }
-
-    .offlineMaintenance {
-      padding: var(--sf-space-4);
-    }
-
-    .offlineMaintenanceCard {
-      padding: var(--sf-space-5);
-    }
   }
 
   @media (max-width: 32rem) {
