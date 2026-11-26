@@ -401,6 +401,34 @@ describe('@aklapper/node-runtime/privacy fail-closed sanitization', () => {
       expect(warnLogs.join('\n')).toContain('UNSOUND_CONDITION');
       expect(warnLogs.join('\n')).toContain('site_content.portal-home');
       expect(infoLogs.join('\n')).toContain('"branch":"rejected_unconfigured_prod_denylist"');
+
+      // Markdown bold/heading/list-formatted References variants are also blocked
+      for (const formattedRef of [
+        '**References**',
+        '### **References**',
+        '- References: available on request',
+      ]) {
+        expect(() =>
+          sanitizePortalHomeSiteContent(
+            formattedRef,
+            { heading: 'Clean' },
+            encodedDenylist,
+            'corr-home-ref-md',
+            { NODE_ENV: 'production' },
+          ),
+        ).toThrow(PrivacySanitizationError);
+      }
+
+      // Linear-time ReDoS check on 60 KB whitespace after zip/postal keywords (< 250ms)
+      const redosStart = performance.now();
+      sanitizePortalHomeSiteContent(
+        `zip${' '.repeat(60_000)}x\npostal${' '.repeat(60_000)}x`,
+        { heading: 'Clean' },
+        encodedDenylist,
+        'corr-home-redos',
+        { NODE_ENV: 'production' },
+      );
+      expect(performance.now() - redosStart).toBeLessThan(250);
     } finally {
       warnSpy.mockRestore();
       infoSpy.mockRestore();

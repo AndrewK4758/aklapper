@@ -28,13 +28,13 @@ const PORTAL_HOME_EXTRA_PRIVACY_RULES: readonly PrivacyPatternRule[] = [
   {
     ruleId: 'pii.us_postal_address_zip',
     category: 'pii',
-    regex: /\b(?:zip|postal)(?:\s+code)?\s*[:#-]?\s*\d{5}(?:-\d{4})?\b/gi,
+    regex: /\b(?:zip|postal)(?:[ \t]+code)?[ \t]*(?:[:#-][ \t]*)?\d{5}(?:-\d{4})?\b/gi,
   },
   {
     ruleId: 'pii.references_section',
     category: 'pii',
     regex:
-      /^\s*(?:#{1,6}\s+)?(?:(?:professional|personal|work|character)\s+)?references(?:\s*[:—–-].*|\s*)$/gi,
+      /^[ \t]*(?:(?:#{1,6}|[-*+])[ \t]+)?(?:\*{1,2}|_{1,2})?(?:(?:professional|personal|work|character)[ \t]+)?references(?:\*{1,2}|_{1,2})?[ \t]*(?:[:—–-].*)?$/gi,
   },
 ];
 
