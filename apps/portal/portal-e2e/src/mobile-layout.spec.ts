@@ -55,6 +55,21 @@ test.describe('portal mobile TUI workspace and adaptive layout', () => {
     const bottomDock = page.locator('[data-mobile-tui-dock="true"]');
     await expect(bottomDock).toBeVisible();
     await expect(page.locator('[data-mobile-rail="true"]')).toHaveCount(0);
+    const mobileCompanion = page.locator('[data-terminal-companion="true"]');
+    await expect(mobileCompanion).toBeVisible();
+    const mobilePortrait = mobileCompanion.locator('[data-terminal-portrait="true"] img');
+    await expect(mobilePortrait).toBeVisible();
+    await expect
+      .poll(() =>
+        mobilePortrait.evaluate(img => {
+          const el = img as HTMLImageElement;
+          return el.complete && el.naturalWidth > 0;
+        }),
+      )
+      .toBe(true);
+    await expect(
+      mobileCompanion.getByText('Senior Full-Stack & Systems Engineer · Marietta, GA'),
+    ).toBeVisible();
     await assertNoHorizontalOverflow(page);
 
     // Verify 16px+ input font floor on mobile terminal input
@@ -164,6 +179,10 @@ test.describe('portal mobile TUI workspace and adaptive layout', () => {
     await assertNativeVerticalScroll(page);
 
     await gotoStreamedPage(page, '/contact');
+    await assertNoHorizontalOverflow(page);
+
+    await gotoStreamedPage(page, '/');
+    await expect(page.locator('[data-terminal-companion="true"]')).toBeVisible();
     await assertNoHorizontalOverflow(page);
 
     const landscapeNotFound = await page.goto('/nonexistent-route', { waitUntil: 'load' });

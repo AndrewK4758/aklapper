@@ -26,9 +26,74 @@ test.describe('portal SSR end-to-end journeys', () => {
     const tuiHeading = page.getByRole('heading', { name: /Andrew Klapper — Portfolio/i });
     await expect(tuiHeading).toHaveCount(0);
 
-    // Zero zsh or p10k references in rendered portal content
+    // Zero zsh, p10k, References, phone, or postal ZIP references in rendered portal content
     const initialBodyText = await page.locator('body').innerText();
     expect(initialBodyText).not.toMatch(/\bzsh\b|p10k|powerlevel10k/i);
+    expect(initialBodyText).not.toMatch(/\bReferences\b/i);
+    expect(initialBodyText).not.toMatch(/\(\d{3}\)\s*\d{3}-\d{4}/);
+    expect(initialBodyText).not.toMatch(/\bGA\s+\d{5}\b/);
+
+    // Greyscale portrait and resume summary render between first `ls` prompt bar and active input prompt bar
+    const companion = page.locator('[data-terminal-companion="true"]');
+    await expect(companion).toBeVisible();
+    const portraitImg = companion.locator('[data-terminal-portrait="true"] img');
+    await expect(portraitImg).toBeVisible();
+    await expect
+      .poll(() =>
+        portraitImg.evaluate(img => {
+          const el = img as HTMLImageElement;
+          return el.complete && el.naturalWidth > 0;
+        }),
+      )
+      .toBe(true);
+
+    const layoutOrder = await page.evaluate(() => {
+      const logViewport = document.querySelector('[role="log"]') as HTMLElement | null;
+      const companionEl = document.querySelector('[data-terminal-companion="true"]');
+      const activeForm = document.querySelector('[data-terminal-root="true"] form');
+      const firstEcho = document.querySelector('[data-terminal-root="true"] [class*="entry"]');
+      return {
+        scrollTop: logViewport?.scrollTop ?? -1,
+        scrollWidth: document.documentElement.scrollWidth,
+        innerWidth: window.innerWidth,
+        companionInsideFirstEntry: Boolean(
+          firstEcho && companionEl && firstEcho.contains(companionEl),
+        ),
+        companionBeforeForm: Boolean(
+          companionEl &&
+          activeForm &&
+          companionEl.compareDocumentPosition(activeForm) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
+        brokenAboutLinks: document.querySelectorAll('a[href="/about"]').length,
+      };
+    });
+    expect(layoutOrder.scrollTop).toBe(0);
+    expect(layoutOrder.scrollWidth).toBeLessThanOrEqual(layoutOrder.innerWidth);
+    expect(layoutOrder.companionInsideFirstEntry).toBe(true);
+    expect(layoutOrder.companionBeforeForm).toBe(true);
+    expect(layoutOrder.brokenAboutLinks).toBe(0);
+
+    await expect(
+      companion.getByText('Senior Full-Stack & Systems Engineer · Marietta, GA'),
+    ).toBeVisible();
+    await expect(companion.getByRole('link', { name: 'andrew@andrew-k.us' })).toHaveAttribute(
+      'href',
+      'mailto:andrew@andrew-k.us',
+    );
+    await expect(companion.getByRole('link', { name: 'github.com/AndrewK4758' })).toHaveAttribute(
+      'href',
+      'https://github.com/AndrewK4758',
+    );
+    for (const highlight of [
+      'Build Technology Group',
+      'Gitasy',
+      'CADENCE',
+      'Ghostty Union',
+      'Gemma 4 fine-tuning',
+      'Woodstock Developers Group',
+    ]) {
+      expect(initialBodyText).toContain(highlight);
+    }
 
     // Clean DB-driven `ls` directory listing without Unix permission columns or trailing `/`
     expect(initialBodyText).not.toMatch(/drwxr-xr-x|-rw-r--r--|menu\//);
@@ -71,9 +136,14 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(page.getByText(/command not found: invalid-cmd/i)).toBeVisible();
     expect(await page.locator('body').innerText()).not.toMatch(/\bzsh\b|p10k|powerlevel10k/i);
 
-    // Ctrl+L clears scrollback
+    // Ctrl+L clears scrollback and portrait companion cleanly; subsequent `ls` prints terse listing only
     await commandInput.press('Control+l');
     await expect(page.getByText('guest@andrew-k.us (tty1)')).toHaveCount(0);
+    await expect(page.locator('[data-terminal-companion="true"]')).toHaveCount(0);
+    await commandInput.fill('ls');
+    await commandInput.press('Enter');
+    await expect(page.getByText(/tui\s+# TUI version/)).toBeVisible();
+    await expect(page.locator('[data-terminal-companion="true"]')).toHaveCount(0);
 
     // `tui` command takes over the current pane in-place without splitting, and Escape returns to shell
     await commandInput.fill('whoami');
@@ -740,9 +810,12 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(page.locator('header')).toContainText('split');
     await commandInput.fill('help');
     await commandInput.press('Enter');
-    await expect(page.getByText(/Split panes & tabs \(keybindings & commands\):/i)).toBeVisible();
-    const renderedText = await page.locator('body').innerText();
-    expect(renderedText).not.toMatch(
+    const helpOutput = page.locator('[data-terminal-root="true"] pre').filter({
+      hasText: /Split panes & tabs \(keybindings & commands\):/i,
+    });
+    await expect(helpOutput).toBeVisible();
+    const headerAndHelpText = `${await page.locator('header').innerText()}\n${await helpOutput.innerText()}`;
+    expect(headerAndHelpText).not.toMatch(
       /ghostty|Ctrl\+Shift\+O|\bCmd\+D\b|\bCtrl\+W\b|\bCtrl\+N\b|\bAlt\+1\.\.9\b/i,
     );
 
@@ -753,9 +826,18 @@ test.describe('portal SSR end-to-end journeys', () => {
     await page.keyboard.press('Alt+Shift+KeyR');
     await expect(commandInput).toHaveValue('');
 
-    // 2. Split right: Control+Shift+} (BracketRight)
+    // 2. Split right: Control+Shift+} (BracketRight); tty2 does not duplicate the home portrait companion
     await page.keyboard.press('Control+Shift+BracketRight');
     await expect(workspace).toHaveAttribute('data-pane-count', '2');
+    await expect(
+      page.locator('[data-pane-tty="tty2"] [data-terminal-companion="true"]'),
+    ).toHaveCount(0);
+    await expect(page.locator('[data-terminal-companion="true"]')).toHaveCount(1);
+    const splitOverflow = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      innerWidth: window.innerWidth,
+    }));
+    expect(splitOverflow.scrollWidth).toBeLessThanOrEqual(splitOverflow.innerWidth);
     expect(await getPaneStyleVar('pane-1', '--sf-pane-w')).toBe('0.5');
     expect(await getPaneStyleVar('pane-2', '--sf-pane-x')).toBe('0.5');
 

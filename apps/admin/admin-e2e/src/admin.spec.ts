@@ -222,11 +222,53 @@ test.describe('admin SSR end-to-end journeys', () => {
 
         await expect(page.getByLabel('Qdrant RAG Corpus Note (Markdown)')).toBeVisible();
         await expect(page.getByLabel('Live site content preview')).toHaveCount(0);
+
+        // Verify portal-home structured sub-editors, desktop/mobile live preview portrait load, privacy 422 guard, and save persistence
+        await page.getByRole('button', { name: /portal-home/i }).click();
+        const portraitSrcInput = page.getByLabel('Portrait Source Path');
+        const bioInput = page.getByLabel('Engineering Bio');
+        await expect(portraitSrcInput).toHaveValue('/images/andrew-klapper-portrait.webp');
+        const originalBio = await bioInput.inputValue();
+
         await page.getByRole('button', { name: 'Show Preview', exact: true }).click();
-        await expect(page.getByLabel('Live site content preview')).toBeVisible();
+        const livePreview = page.getByLabel('Live site content preview');
+        await expect(livePreview).toBeVisible();
+        const previewPortrait = livePreview.locator('[data-terminal-portrait="true"] img');
+        await expect(previewPortrait).toBeVisible();
+        await expect
+          .poll(() =>
+            previewPortrait.evaluate(img => {
+              const el = img as HTMLImageElement;
+              return el.complete && el.naturalWidth > 0;
+            }),
+          )
+          .toBe(true);
+        await expect(livePreview.locator('form')).toHaveCount(0);
         await page.getByRole('button', { name: 'Mobile', exact: true }).click();
         await expect(page.locator('[data-preview-viewport="mobile"]')).toBeVisible();
         await page.getByRole('button', { name: 'Desktop', exact: true }).click();
+
+        // Privacy 422 rejection on portal-home blocks synthetic phone / postal ZIP without echoing sensitive literals
+        await bioInput.fill(`${originalBio} Reach (555) 010-1234 in Marietta, GA 99999.`);
+        await page.getByRole('button', { name: 'Save Site Content', exact: true }).click();
+        await expect(page.getByRole('alert')).toContainText('ERR_CONSTRAINT');
+        expect(await page.getByRole('alert').innerText()).not.toContain('(555) 010-1234');
+
+        // Clean save persists across reload, then restore original bio cleanly
+        const updatedBio = `${originalBio} Verified CMS round-trip.`;
+        try {
+          await bioInput.fill(updatedBio);
+          await page.getByRole('button', { name: 'Save Site Content', exact: true }).click();
+          await expect(page.getByText(/Saved site_content key "portal-home"/i)).toBeVisible();
+          await gotoStreamedPage(page, '/cms');
+          await page.getByRole('button', { name: /portal-home/i }).click();
+          await expect(page.getByLabel('Engineering Bio')).toHaveValue(updatedBio);
+        } finally {
+          await page.getByLabel('Engineering Bio').fill(originalBio);
+          await page.getByRole('button', { name: 'Save Site Content', exact: true }).click();
+          await expect(page.getByText(/Saved site_content key "portal-home"/i)).toBeVisible();
+        }
+
         await page.getByRole('button', { name: 'Raw JSON', exact: true }).click();
         await expect(page.getByLabel('Raw Metadata JSON')).toBeVisible();
         await page.getByRole('button', { name: 'Form', exact: true }).click();
