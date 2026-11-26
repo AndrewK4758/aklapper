@@ -73,6 +73,28 @@ describe('db prerender fallback loaders', () => {
       /drwxr-xr-x|-rw-r--r--|menu\//,
     );
     expect(portalHome.content.actions.some(a => a.to === '/changes-in-progress')).toBe(false);
+    expect(portalHome.content.portrait).toEqual({
+      src: '/images/andrew-klapper-portrait.webp',
+      alt: 'Greyscale terminal portrait of Andrew Klapper',
+      caption: 'andrew@andrew-k.us :: tty1',
+      width: 440,
+      height: 520,
+    });
+    expect(portalRoot.homeContent?.portrait).toEqual(portalHome.content.portrait);
+    expect(portalRoot.homeContent?.resumeSummary).toEqual(portalHome.content.resumeSummary);
+    expect(portalHome.content.resumeSummary.publicEmail).toBe('andrew@andrew-k.us');
+    expect(portalHome.content.resumeSummary.githubUrl).toBe('https://github.com/AndrewK4758');
+    expect(portalHome.content.resumeSummary.highlights.join('\n')).toMatch(/Ghostty Union/);
+    expect(portalHome.content.resumeSummary.services.map(s => s.command)).toEqual([
+      'cadence',
+      'chat',
+      'agensi',
+      'about',
+      'contact',
+    ]);
+    const homeSummaryJson = JSON.stringify(portalHome.content.resumeSummary);
+    expect(homeSummaryJson).not.toMatch(/References|\bGA\s+\d{5}\b|\(\d{3}\)\s*\d{3}-\d{4}/i);
+    expect(homeSummaryJson).not.toMatch(/\bzsh\b|p10k|powerlevel10k/i);
     const cdCommand = portalHome.terminal.commands.find(cmd => cmd.name === 'cd');
     expect(cdCommand?.allowedRoutes).toEqual(['cadence', 'chat', 'agensi', 'contact']);
     expect(cdCommand?.errorTemplate).not.toContain('changes-in-progress');

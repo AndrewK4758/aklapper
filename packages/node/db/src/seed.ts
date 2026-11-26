@@ -4,6 +4,8 @@ import {
   type AdminChromeContent,
   type AdminHomeContent,
   buildSplitHelpLines,
+  cloneDefaultPortalHomePortrait,
+  cloneDefaultPortalHomeResumeSummary,
   CONTACT_FORM_DEFINITION,
   formatTerminalDirectoryListing,
   type MenuItem,
@@ -124,6 +126,8 @@ const PORTAL_HOME_SEED: PortalHomeContent = {
     { label: 'Agensi Storefront → /agensi', to: '/agensi', variant: 'default' },
     { label: 'Contact → /contact', to: '/contact', variant: 'default' },
   ],
+  portrait: cloneDefaultPortalHomePortrait(),
+  resumeSummary: cloneDefaultPortalHomeResumeSummary(),
 };
 
 const PORTAL_AGENSI_SEED: PortalAgensiContent = {

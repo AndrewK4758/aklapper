@@ -56,6 +56,7 @@ import {
   loadAdminAnalyticsSummary,
   loadAdminCmsData,
   loadAdminOverviewData,
+  loadPortalHomeData,
   loadPortalRootData,
   pruneExpiredAskTurns,
   publishCareerDossier,
@@ -1646,6 +1647,120 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
         `DELETE FROM terminal_directory_entries
          WHERE profile_slug = 'portal-home' AND name = 'changes-in-progress'`,
       );
+    }
+  });
+
+  it('hydrates legacy 5-field portal-home rows on bootstrap, persists portrait/resume on upsert, and guards portal-home upserts against invalid portrait.src and PII/References', async () => {
+    const originalHome = await pool.query<{
+      markdown_body: string;
+      metadata_json: Record<string, unknown>;
+    }>(`SELECT markdown_body, metadata_json FROM site_content WHERE key = 'portal-home'`);
+
+    const prevDenylist = process.env['DOSSIER_PRIVACY_DENYLIST'];
+    const encodedDenylist = Buffer.from(
+      JSON.stringify(['SyntheticConfidentialClientX']),
+      'utf8',
+    ).toString('base64');
+    process.env['DOSSIER_PRIVACY_DENYLIST'] = encodedDenylist;
+
+    const warnLogs: string[] = [];
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation((msg: unknown) => {
+      warnLogs.push(String(msg));
+    });
+
+    const legacyFiveFieldHome = {
+      tuiTitle: 'Legacy Launcher',
+      tuiBadge: { source: 'cloud-run', state: 'idle', label: 'Idle' },
+      heading: 'Legacy Heading',
+      description: 'Legacy 5-field portal-home row.',
+      actions: [{ label: 'Contact', to: '/contact', variant: 'primary' }],
+    };
+
+    try {
+      // Seed a legacy 5-field row directly in PG19 and run bootstrap mode (must preserve row, hydrate via Zod defaults)
+      await pool.query(
+        `UPDATE site_content SET markdown_body = $1, metadata_json = $2::jsonb WHERE key = 'portal-home'`,
+        ['# Legacy body', JSON.stringify(legacyFiveFieldHome)],
+      );
+      await seedDatabase(db, { mode: 'bootstrap', env: { ADMIN_PASSWORD: '' } });
+
+      const rawAfterBootstrap = await pool.query<{ metadata_json: Record<string, unknown> }>(
+        `SELECT metadata_json FROM site_content WHERE key = 'portal-home'`,
+      );
+      expect(rawAfterBootstrap.rows[0]?.metadata_json['heading']).toBe('Legacy Heading');
+      expect('portrait' in (rawAfterBootstrap.rows[0]?.metadata_json ?? {})).toBe(false);
+
+      const hydratedHome = await loadPortalHomeData(db);
+      expect(hydratedHome.content.heading).toBe('Legacy Heading');
+      expect(hydratedHome.content.portrait.src).toBe('/images/andrew-klapper-portrait.webp');
+      expect(hydratedHome.content.resumeSummary.publicEmail).toBe('andrew@andrew-k.us');
+
+      // Upsert mode persists canonical portrait & resumeSummary into PostgreSQL JSONB
+      await seedDatabase(db, { mode: 'upsert', env: { ADMIN_PASSWORD: '' } });
+      const rawAfterUpsert = await pool.query<{ metadata_json: Record<string, unknown> }>(
+        `SELECT metadata_json FROM site_content WHERE key = 'portal-home'`,
+      );
+      expect(rawAfterUpsert.rows[0]?.metadata_json['portrait']).toBeDefined();
+      expect(rawAfterUpsert.rows[0]?.metadata_json['resumeSummary']).toBeDefined();
+
+      const seededHome = await loadPortalHomeData(db);
+      const validMeta = seededHome.content;
+
+      // Reject non-root-relative portrait.src and emit UNSOUND_CONDITION seam without raw URI
+      warnLogs.length = 0;
+      const hostilePortraitUri = 'https://evil.example.invalid/hotlink-portrait.webp';
+      await expect(
+        upsertSiteContent(db, SITE_CONTENT_KEYS.portalHome, '# Home', {
+          ...validMeta,
+          portrait: { ...validMeta.portrait, src: hostilePortraitUri },
+        }),
+      ).rejects.toThrow(/root-relative/i);
+      const portraitWarnBlob = warnLogs.join('\n');
+      expect(portraitWarnBlob).toContain('portal.home.portrait_src_invalid');
+      expect(portraitWarnBlob).toContain('UNSOUND_CONDITION');
+      expect(portraitWarnBlob).not.toContain(hostilePortraitUri);
+
+      // Reject PII / References / denylist in portal-home write without mutating PostgreSQL
+      await expect(
+        upsertSiteContent(db, SITE_CONTENT_KEYS.portalHome, '# Home', {
+          ...validMeta,
+          resumeSummary: {
+            ...validMeta.resumeSummary,
+            bio: 'Call (555) 010-1234 or email reference.contact@example.com in Marietta, GA 99999.',
+          },
+        }),
+      ).rejects.toBeInstanceOf(PrivacySanitizationError);
+
+      await expect(
+        upsertSiteContent(db, SITE_CONTENT_KEYS.portalHome, '## References\nJane Synthetic', {
+          ...validMeta,
+        }),
+      ).rejects.toBeInstanceOf(PrivacySanitizationError);
+
+      // Clean portal-home upsert containing allow-listed andrew@andrew-k.us succeeds and persists
+      const updatedBio =
+        'Updated clean bio with andrew@andrew-k.us verified across Go, TypeScript, and PostgreSQL 19.';
+      const saved = await upsertSiteContent(db, SITE_CONTENT_KEYS.portalHome, '# Home clean', {
+        ...validMeta,
+        resumeSummary: {
+          ...validMeta.resumeSummary,
+          bio: updatedBio,
+        },
+      });
+      expect((saved.metadataJson['resumeSummary'] as Record<string, unknown>)['bio']).toBe(
+        updatedBio,
+      );
+    } finally {
+      warnSpy.mockRestore();
+      if (prevDenylist === undefined) delete process.env['DOSSIER_PRIVACY_DENYLIST'];
+      else process.env['DOSSIER_PRIVACY_DENYLIST'] = prevDenylist;
+
+      if (originalHome.rows[0]) {
+        await pool.query(
+          `UPDATE site_content SET markdown_body = $1, metadata_json = $2::jsonb WHERE key = 'portal-home'`,
+          [originalHome.rows[0].markdown_body, JSON.stringify(originalHome.rows[0].metadata_json)],
+        );
+      }
     }
   });
 });

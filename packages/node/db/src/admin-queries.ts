@@ -59,7 +59,10 @@ import {
   TerminalProfileUpsertSchema,
 } from '@aklapper/core';
 import { resolveAgensiCreatorHandle } from '@aklapper/node-runtime/agensi';
-import { sanitizePortalAskSiteContent } from '@aklapper/node-runtime/privacy';
+import {
+  sanitizePortalAskSiteContent,
+  sanitizePortalHomeSiteContent,
+} from '@aklapper/node-runtime/privacy';
 import { asc, count, desc, eq, gte, ilike, inArray, lte, or, sql } from 'drizzle-orm';
 
 import { queryCreatorPublishedSkills, readAgensiSyncState } from './agensi-sync.ts';
@@ -562,12 +565,36 @@ export async function upsertSiteContent(
   metadataJson: Record<string, unknown>,
 ): Promise<SiteContentRow> {
   const parsed = SiteContentUpsertSchema.parse({ key, markdownBody, metadataJson });
-  const validatedMetadata = isKnownSiteContentKey(parsed.key)
-    ? SITE_CONTENT_SCHEMA_BY_KEY[parsed.key].parse(parsed.metadataJson)
-    : parsed.metadataJson;
+  let validatedMetadata: Record<string, unknown>;
+  if (isKnownSiteContentKey(parsed.key)) {
+    const schemaResult = SITE_CONTENT_SCHEMA_BY_KEY[parsed.key].safeParse(parsed.metadataJson);
+    if (!schemaResult.success) {
+      if (
+        parsed.key === SITE_CONTENT_KEYS.portalHome &&
+        schemaResult.error.issues.some(
+          issue =>
+            issue.path.length === 2 && issue.path[0] === 'portrait' && issue.path[1] === 'src',
+        )
+      ) {
+        console.warn(
+          JSON.stringify({
+            event: 'portal.home.portrait_src_invalid',
+            seam_type: 'UNSOUND_CONDITION',
+            surface: 'site_content.portal-home',
+          }),
+        );
+      }
+      throw schemaResult.error;
+    }
+    validatedMetadata = schemaResult.data;
+  } else {
+    validatedMetadata = parsed.metadataJson;
+  }
 
   if (parsed.key === SITE_CONTENT_KEYS.portalAsk) {
     sanitizePortalAskSiteContent(parsed.markdownBody, validatedMetadata);
+  } else if (parsed.key === SITE_CONTENT_KEYS.portalHome) {
+    sanitizePortalHomeSiteContent(parsed.markdownBody, validatedMetadata);
   }
 
   const [row] = await db
