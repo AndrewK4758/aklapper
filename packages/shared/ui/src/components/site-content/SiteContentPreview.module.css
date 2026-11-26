@@ -98,33 +98,6 @@
     gap: var(--sf-gap-sm);
   }
 
-  .maintenanceGrid {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sf-gap-md);
-  }
-
-  .maintenanceLead {
-    margin: 0;
-    color: var(--sf-fg-prop);
-    font-size: var(--sf-text-sm);
-  }
-
-  .maintenanceProgress {
-    width: 100%;
-  }
-
-  .maintenanceMetaRow {
-    display: flex;
-    align-items: var(--sf-align-center);
-    justify-content: var(--sf-justify-between);
-    gap: var(--sf-gap-sm);
-    flex-wrap: wrap;
-    font-family: var(--sf-font-mono);
-    font-size: var(--sf-text-xs);
-    color: var(--sf-fg-cmt);
-  }
-
   .windowHeaderBody {
     display: flex;
     flex-direction: column;
@@ -178,8 +151,7 @@
 
   @container sf-site-content-preview (max-width: 32rem) {
     .chromeHeader,
-    .chromeFooter,
-    .maintenanceMetaRow {
+    .chromeFooter {
       flex-direction: column;
       align-items: var(--sf-align-start);
     }

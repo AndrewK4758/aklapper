@@ -180,7 +180,7 @@ describe('@aklapper/ui', () => {
     expect(screen.getByText('visitor@andrew-k.us (tty1)')).toBeTruthy();
   });
 
-  it('builds command handlers dynamically from DB command specs', () => {
+  it('builds command handlers dynamically from DB command specs', async () => {
     const navigate = vi.fn<(to: string) => void>();
     const openTui = vi.fn<() => void>();
     const handlers = buildZshCommandHandlers(
@@ -217,9 +217,9 @@ describe('@aklapper/ui', () => {
         },
         {
           name: 'roadmap',
-          description: 'milestones',
+          description: 'legacy roadmap fallback',
           kind: 'roadmap',
-          output: '',
+          output: 'legacy static roadmap text',
           targetRoute: null,
           allowedRoutes: [],
           errorTemplate: null,
@@ -239,9 +239,6 @@ describe('@aklapper/ui', () => {
       {
         navigate,
         openTui,
-        milestones: [
-          { slug: 'm1', status: 'done', label: 'Postgres 19 wired', sortOrder: 1, enabled: true },
-        ],
         getUptimeSeconds: () => 42,
       },
     );
@@ -255,8 +252,13 @@ describe('@aklapper/ui', () => {
       status: 'error',
       output: 'cd: no such route: bad',
     });
-    expect(handlers['roadmap']?.([], 'roadmap')).toEqual({ output: '[x] Postgres 19 wired' });
+    expect(handlers['roadmap']?.([], 'roadmap')).toEqual({
+      output: 'legacy static roadmap text',
+    });
     expect(handlers['uptime']?.([], 'uptime')).toEqual({ output: 'up 42s' });
+    const uiExports = await import('../src/index');
+    expect('formatRoadmapMarker' in uiExports).toBe(false);
+    expect('formatRoadmapMilestones' in uiExports).toBe(false);
   });
 
   it('recursively parses nested fieldsets/fields in RecursiveTuiForm and enforces client validation', async () => {

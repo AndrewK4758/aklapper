@@ -59,10 +59,6 @@ export {
   type SandboxedArtifactFrameProps,
 } from './components/SandboxedArtifactFrame';
 export {
-  MaintenanceProgressCard,
-  type MaintenanceProgressCardProps,
-} from './components/site-content/MaintenanceProgressCard';
-export {
   SiteChromePreviewBar,
   type SiteChromePreviewBarProps,
 } from './components/site-content/SiteChromePreviewBar';
@@ -219,12 +215,7 @@ export {
   resolveTerminalFormSubmitResult,
   startTerminalFormSession,
 } from './components/terminalFormSession';
-export {
-  buildZshCommandHandlers,
-  formatRoadmapMarker,
-  formatRoadmapMilestones,
-  type ZshCommandRuntime,
-} from './components/buildZshCommands';
+export { buildZshCommandHandlers, type ZshCommandRuntime } from './components/buildZshCommands';
 export {
   createSlot,
   cx,

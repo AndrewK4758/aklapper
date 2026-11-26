@@ -201,8 +201,8 @@ function hasOpenOverlayOrPopup(target: EventTarget | null): boolean {
   return false;
 }
 
-function defaultCanHandleInPaneRoute(to: string): boolean {
-  return to !== '/changes-in-progress';
+function defaultCanHandleInPaneRoute(): boolean {
+  return true;
 }
 
 interface SyncedTabState {

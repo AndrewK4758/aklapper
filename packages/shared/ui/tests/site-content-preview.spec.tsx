@@ -1,12 +1,8 @@
 import { CONTACT_FORM_DEFINITION, SITE_CONTENT_KEYS, type SiteContentKey } from '@aklapper/core';
 import { render, screen } from '@testing-library/react';
 
-import {
-  MaintenanceProgressCard,
-  SF_LAYOUT_TOKENS,
-  SiteContentPreviewCanvas,
-  TuiHeroCard,
-} from '../src/index';
+import * as uiExports from '../src/index';
+import { SF_LAYOUT_TOKENS, SiteContentPreviewCanvas, TuiHeroCard } from '../src/index';
 
 const PREVIEW_FIXTURES: Record<SiteContentKey, Record<string, unknown>> = {
   [SITE_CONTENT_KEYS.portalChrome]: {
@@ -17,7 +13,6 @@ const PREVIEW_FIXTURES: Record<SiteContentKey, Record<string, unknown>> = {
     footerText: 'Built with Solar Forge',
     footerLinkLabel: 'GitHub',
     footerLinkUrl: 'https://github.com/AndrewK4758',
-    maintenanceModeDefault: false,
   },
   [SITE_CONTENT_KEYS.portalHome]: {
     tuiTitle: 'launcher :: home',
@@ -54,16 +49,6 @@ const PREVIEW_FIXTURES: Record<SiteContentKey, Record<string, unknown>> = {
     description: 'Send a direct message.',
     form: CONTACT_FORM_DEFINITION,
   },
-  [SITE_CONTENT_KEYS.portalMaintenance]: {
-    windowTitle: 'Maintenance',
-    statusBadge: { source: 'maintenance', state: 'scaling', label: 'Rebuilding' },
-    heading: 'Changes in Progress',
-    lead: 'Deploying updates.',
-    progressPercent: 72,
-    progressAriaLabel: 'Rebuild progress',
-    metaLeft: 'Cluster: games-424800',
-    metaRight: 'ETA: soon',
-  },
   [SITE_CONTENT_KEYS.adminChrome]: {
     pageTitle: 'Admin Console',
     brandLabel: 'admin.andrew-k.us',
@@ -82,11 +67,12 @@ const PREVIEW_FIXTURES: Record<SiteContentKey, Record<string, unknown>> = {
 };
 
 describe('@aklapper/ui site-content preview primitives', () => {
-  it('registers the wide admin container layout token', () => {
+  it('registers the wide admin container layout token and omits retired maintenance preview exports', () => {
     expect(SF_LAYOUT_TOKENS.containerAdminWide).toBe('--sf-container-admin-wide');
+    expect('MaintenanceProgressCard' in uiExports).toBe(false);
   });
 
-  it('renders all 10 known site_content keys across desktop and mobile viewports without nested forms or iframes', () => {
+  it('renders all 9 known site_content keys across desktop and mobile viewports without nested forms or iframes', () => {
     for (const key of Object.values(SITE_CONTENT_KEYS)) {
       const { container, unmount } = render(
         <SiteContentPreviewCanvas
@@ -100,6 +86,21 @@ describe('@aklapper/ui site-content preview primitives', () => {
       expect(container.querySelector('form')).toBeNull();
       unmount();
     }
+  });
+
+  it('omits maintenance-mode status from portal-chrome preview even if legacy metadata still has it', () => {
+    render(
+      <SiteContentPreviewCanvas
+        contentKey={SITE_CONTENT_KEYS.portalChrome}
+        metadata={{
+          ...PREVIEW_FIXTURES[SITE_CONTENT_KEYS.portalChrome],
+          maintenanceModeDefault: true,
+        }}
+        viewport='desktop'
+      />,
+    );
+    expect(screen.getByText('andrew-k.us')).toBeTruthy();
+    expect(screen.queryByText(/Maintenance default/i)).toBeNull();
   });
 
   it('renders script-like strings as escaped text and shows notice for unknown keys', () => {
@@ -127,12 +128,12 @@ describe('@aklapper/ui site-content preview primitives', () => {
     expect(screen.getByText(/no ui preview/i)).toBeTruthy();
   });
 
-  it('supports shared TuiHeroCard and MaintenanceProgressCard composition', () => {
+  it('supports shared TuiHeroCard composition', () => {
     render(
       <TuiHeroCard
         heading='Hero Title'
         description='Hero Copy'
-        actions={[{ label: 'Launch', to: '/menu', variant: 'primary' }]}
+        actions={[{ label: 'Launch', to: '/cadence', variant: 'primary' }]}
         renderAction={action => (
           <a key={action.to} href={action.to}>
             {action.label}
@@ -142,19 +143,5 @@ describe('@aklapper/ui site-content preview primitives', () => {
     );
     expect(screen.getByRole('heading', { name: 'Hero Title' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Launch' })).toBeTruthy();
-
-    render(
-      <MaintenanceProgressCard
-        heading='Rebuilding'
-        lead='Progressing smoothly'
-        progressPercent={80}
-        progressAriaLabel='Rebuild progress'
-        metaLeft='Left'
-        metaRight='Right'
-      >
-        <p>Milestone slot</p>
-      </MaintenanceProgressCard>,
-    );
-    expect(screen.getByText('Milestone slot')).toBeTruthy();
   });
 });

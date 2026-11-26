@@ -8,7 +8,6 @@ import {
   PortalChromeContentSchema,
   PortalContactContentSchema,
   PortalHomeContentSchema,
-  PortalMaintenanceContentSchema,
   SITE_CONTENT_KEYS,
 } from '@aklapper/core';
 
@@ -18,7 +17,6 @@ import { StatusPill } from '../../elements/StatusPill';
 import { RecursiveTuiForm } from '../RecursiveTuiForm';
 import { TuiWindow } from '../TuiWindow';
 import { ViewportProvider } from '../ViewportProvider';
-import { MaintenanceProgressCard } from './MaintenanceProgressCard';
 import { SiteChromePreviewBar } from './SiteChromePreviewBar';
 import { SiteContentWindowHeader } from './SiteContentWindowHeader';
 import { TuiHeroCard } from './TuiHeroCard';
@@ -222,33 +220,6 @@ function renderKeyPreview(contentKey: string, metadata: Record<string, unknown>)
             renderForm={({ className, children }) => <div className={className}>{children}</div>}
           />
         </SiteContentWindowHeader>
-      );
-    }
-
-    case SITE_CONTENT_KEYS.portalMaintenance: {
-      const parsed = PortalMaintenanceContentSchema.safeParse(metadata);
-      if (!parsed.success) return null;
-      const d = parsed.data;
-      return (
-        <TuiWindow
-          title={d.windowTitle}
-          badge={
-            <OscStatusBadge
-              source={d.statusBadge.source}
-              state={d.statusBadge.state}
-              label={d.statusBadge.label}
-            />
-          }
-        >
-          <MaintenanceProgressCard
-            heading={d.heading}
-            lead={d.lead}
-            progressPercent={d.progressPercent}
-            progressAriaLabel={d.progressAriaLabel}
-            metaLeft={d.metaLeft}
-            metaRight={d.metaRight}
-          />
-        </TuiWindow>
       );
     }
 

@@ -13,7 +13,6 @@ export interface SiteChromePreviewBarProps {
   readonly footerText?: string | undefined;
   readonly footerLinkLabel?: string | undefined;
   readonly footerLinkUrl?: string | undefined;
-  readonly maintenanceModeDefault?: boolean | undefined;
 }
 
 export function SiteChromePreviewBar({
@@ -24,7 +23,6 @@ export function SiteChromePreviewBar({
   footerText,
   footerLinkLabel,
   footerLinkUrl,
-  maintenanceModeDefault,
 }: SiteChromePreviewBarProps) {
   return (
     <div className={styles.chromeShell}>
@@ -43,7 +41,7 @@ export function SiteChromePreviewBar({
         />
       </div>
 
-      {footerText || footerLinkLabel || maintenanceModeDefault !== undefined ? (
+      {footerText || footerLinkLabel ? (
         <div className={styles.chromeFooter}>
           <span>{footerText ?? ''}</span>
           {footerLinkLabel ? (
@@ -66,11 +64,6 @@ export function SiteChromePreviewBar({
             ) : (
               <span className={styles.chromeLink}>{footerLinkLabel}</span>
             )
-          ) : null}
-          {maintenanceModeDefault !== undefined ? (
-            <span className={styles.chromeMeta}>
-              Maintenance default: {maintenanceModeDefault ? 'ON' : 'OFF'}
-            </span>
           ) : null}
         </div>
       ) : null}
