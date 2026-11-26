@@ -121,6 +121,12 @@ export const PORTAL_CHROME_SEED: PortalChromeContent = {
   footerLinkUrl: 'https://agensi.io/creators/aklapper',
 };
 
+const PORTAL_HOME_ABOUT_ACTION = {
+  label: 'About & Resume → /about',
+  to: '/about',
+  variant: 'default',
+} as const;
+
 const PORTAL_HOME_SEED: PortalHomeContent = {
   tuiTitle: 'Portfolio Launcher',
   tuiBadge: {
@@ -132,7 +138,7 @@ const PORTAL_HOME_SEED: PortalHomeContent = {
   description:
     "Explore interactive demos, chat with Andrew's AI about his work and experience, browse published Agensi skills, or send a direct message. Use the launcher below or the terminal above to navigate.",
   actions: [
-    { label: 'About & Resume → /about', to: '/about', variant: 'default' },
+    PORTAL_HOME_ABOUT_ACTION,
     { label: 'CADENCE Builder → /cadence', to: '/cadence', variant: 'primary' },
     { label: 'Chat with Andrew → /chat', to: '/chat', variant: 'default' },
     { label: 'Agensi Storefront → /agensi', to: '/agensi', variant: 'default' },
@@ -887,10 +893,11 @@ function resolveSeedOptions(
   }
   const maybeOpts = optionsOrEnv as SeedDatabaseOptions;
   if (
-    'mode' in maybeOpts ||
-    'siteContentSeeds' in maybeOpts ||
-    'careerDossierSeeds' in maybeOpts ||
-    (typeof maybeOpts.env === 'object' && maybeOpts.env !== null)
+    optionsOrEnv !== process.env &&
+    ('mode' in maybeOpts ||
+      'siteContentSeeds' in maybeOpts ||
+      'careerDossierSeeds' in maybeOpts ||
+      (typeof maybeOpts.env === 'object' && maybeOpts.env !== null))
   ) {
     return {
       mode: maybeOpts.mode === 'bootstrap' ? 'bootstrap' : 'upsert',
@@ -905,6 +912,76 @@ function resolveSeedOptions(
     siteContentSeeds: SITE_CONTENT_SEEDS,
     careerDossierSeeds: CAREER_DOSSIER_SEEDS,
   };
+}
+
+async function mergeBootstrapAboutNavigation(db: AppDatabase): Promise<void> {
+  const [cdRow] = await db
+    .select({
+      allowedRoutes: terminalCommands.allowedRoutes,
+    })
+    .from(terminalCommands)
+    .where(
+      and(
+        eq(terminalCommands.profileSlug, TERMINAL_PROFILE_SLUGS.portalHome),
+        eq(terminalCommands.name, 'cd'),
+      ),
+    )
+    .limit(1);
+  if (Array.isArray(cdRow?.allowedRoutes) && !cdRow.allowedRoutes.includes('about')) {
+    await db
+      .update(terminalCommands)
+      .set({ allowedRoutes: [...cdRow.allowedRoutes, 'about'] })
+      .where(
+        and(
+          eq(terminalCommands.profileSlug, TERMINAL_PROFILE_SLUGS.portalHome),
+          eq(terminalCommands.name, 'cd'),
+        ),
+      );
+  }
+
+  const [profileRow] = await db
+    .select({
+      quickCommands: terminalProfiles.quickCommands,
+    })
+    .from(terminalProfiles)
+    .where(eq(terminalProfiles.slug, TERMINAL_PROFILE_SLUGS.portalHome))
+    .limit(1);
+  if (Array.isArray(profileRow?.quickCommands) && !profileRow.quickCommands.includes('about')) {
+    await db
+      .update(terminalProfiles)
+      .set({ quickCommands: [...profileRow.quickCommands, 'about'] })
+      .where(eq(terminalProfiles.slug, TERMINAL_PROFILE_SLUGS.portalHome));
+  }
+
+  const [homeRow] = await db
+    .select({
+      metadataJson: siteContent.metadataJson,
+    })
+    .from(siteContent)
+    .where(eq(siteContent.key, SITE_CONTENT_KEYS.portalHome))
+    .limit(1);
+  const metadataJson = homeRow?.metadataJson;
+  if (metadataJson && typeof metadataJson === 'object' && Array.isArray(metadataJson['actions'])) {
+    const existingActions = metadataJson['actions'] as unknown[];
+    const hasAboutAction = existingActions.some(
+      action =>
+        action !== null &&
+        typeof action === 'object' &&
+        (action as Record<string, unknown>)['to'] === '/about',
+    );
+    if (!hasAboutAction) {
+      await db
+        .update(siteContent)
+        .set({
+          metadataJson: {
+            ...metadataJson,
+            actions: [...existingActions, PORTAL_HOME_ABOUT_ACTION],
+          },
+          updatedAt: new Date(),
+        })
+        .where(eq(siteContent.key, SITE_CONTENT_KEYS.portalHome));
+    }
+  }
 }
 
 export async function seedDatabase(
@@ -1083,7 +1160,9 @@ export async function seedDatabase(
         }));
   }
 
-  if (!isBootstrap) {
+  if (isBootstrap) {
+    await mergeBootstrapAboutNavigation(db);
+  } else {
     await db.delete(menuItems).where(eq(menuItems.slug, 'ask'));
     await db
       .delete(siteContent)

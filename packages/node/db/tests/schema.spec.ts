@@ -379,6 +379,28 @@ describe('@aklapper/db', () => {
       expect(logged).toContain('RULE_DIVERGENCE');
       expect(logged).toContain('bootstrap_missing_only');
       expect(logged).toContain('upsert_safe');
+
+      // Exported process.env.mode='bootstrap' must NOT hijack default upsert mode on seedDatabase(db)
+      const prevModeEnv = process.env['mode'];
+      const prevAdminPassword = process.env['ADMIN_PASSWORD'];
+      const prevNodeEnv = process.env['NODE_ENV'];
+      try {
+        process.env['mode'] = 'bootstrap';
+        process.env['ADMIN_PASSWORD'] = '';
+        process.env['NODE_ENV'] = 'test';
+        infoSpy.mockClear();
+        onConflictUpdateCalls.length = 0;
+        await seedDatabase(mockDb);
+        expect(onConflictUpdateCalls.length).toBeGreaterThan(0);
+        expect(infoSpy.mock.calls.flat().join('\n')).toContain('upsert_safe');
+      } finally {
+        if (prevModeEnv === undefined) delete process.env['mode'];
+        else process.env['mode'] = prevModeEnv;
+        if (prevAdminPassword === undefined) delete process.env['ADMIN_PASSWORD'];
+        else process.env['ADMIN_PASSWORD'] = prevAdminPassword;
+        if (prevNodeEnv === undefined) delete process.env['NODE_ENV'];
+        else process.env['NODE_ENV'] = prevNodeEnv;
+      }
     } finally {
       infoSpy.mockRestore();
     }

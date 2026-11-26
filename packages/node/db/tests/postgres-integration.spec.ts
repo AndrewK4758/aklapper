@@ -1940,4 +1940,104 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       });
     }
   });
+
+  it('additively merges /about navigation into pre-existing portal-home rows during bootstrap mode without overwriting operator edits', async () => {
+    const prodDenylist = JSON.stringify(['SyntheticConfidentialClientX']);
+
+    try {
+      // Simulate a pre-upgrade PG19 database missing portal-about & /about navigation, with custom operator portal-home copy
+      await pool.query(`DELETE FROM site_content WHERE key = 'portal-about'`);
+      await pool.query(
+        `DELETE FROM terminal_commands WHERE profile_slug = 'portal-home' AND name = 'about'`,
+      );
+      await pool.query(
+        `DELETE FROM terminal_directory_entries WHERE profile_slug = 'portal-home' AND name = 'about'`,
+      );
+      await pool.query(
+        `UPDATE terminal_commands
+         SET allowed_routes = ARRAY['cadence', 'chat', 'agensi', 'contact']
+         WHERE profile_slug = 'portal-home' AND name = 'cd'`,
+      );
+      await pool.query(
+        `UPDATE terminal_profiles
+         SET quick_commands = ARRAY['ls', 'tui', 'cadence', 'chat', 'agensi', 'contact', 'help', 'clear']
+         WHERE slug = 'portal-home'`,
+      );
+
+      const homeRow = await pool.query<{ metadata_json: Record<string, unknown> }>(
+        `SELECT metadata_json FROM site_content WHERE key = 'portal-home'`,
+      );
+      const currentMeta = homeRow.rows[0]?.metadata_json ?? {};
+      const existingActions = Array.isArray(currentMeta['actions'])
+        ? (currentMeta['actions'] as Array<Record<string, unknown>>).filter(
+            a => a['to'] !== '/about',
+          )
+        : [];
+      await pool.query(
+        `UPDATE site_content SET metadata_json = $1::jsonb WHERE key = 'portal-home'`,
+        [
+          JSON.stringify({
+            ...currentMeta,
+            tuiTitle: 'Custom Operator Launcher Title',
+            heading: 'Custom Operator Heading',
+            actions: existingActions,
+          }),
+        ],
+      );
+
+      await seedDatabase(db, {
+        mode: 'bootstrap',
+        env: {
+          ADMIN_PASSWORD: '',
+          NODE_ENV: 'production',
+          DOSSIER_PRIVACY_DENYLIST: prodDenylist,
+        },
+      });
+
+      // portal-about, terminal_commands['about'], and terminal_directory_entries['about'] backfilled
+      const aboutData = await loadPortalAboutData(db);
+      expect(aboutData.content.identity.fullName).toBe('Andrew Klapper');
+
+      const aboutCmd = await pool.query(
+        `SELECT name FROM terminal_commands WHERE profile_slug = 'portal-home' AND name = 'about'`,
+      );
+      expect(aboutCmd.rows).toHaveLength(1);
+
+      const aboutDir = await pool.query(
+        `SELECT name FROM terminal_directory_entries WHERE profile_slug = 'portal-home' AND name = 'about'`,
+      );
+      expect(aboutDir.rows).toHaveLength(1);
+
+      // Additive merge into existing rows: cd.allowed_routes, quick_commands, portal-home.actions
+      const cdRow = await pool.query<{ allowed_routes: string[] }>(
+        `SELECT allowed_routes FROM terminal_commands WHERE profile_slug = 'portal-home' AND name = 'cd'`,
+      );
+      expect(cdRow.rows[0]?.allowed_routes).toContain('about');
+
+      const profileRow = await pool.query<{ quick_commands: string[] }>(
+        `SELECT quick_commands FROM terminal_profiles WHERE slug = 'portal-home'`,
+      );
+      expect(profileRow.rows[0]?.quick_commands).toContain('about');
+
+      const updatedHome = await pool.query<{ metadata_json: Record<string, unknown> }>(
+        `SELECT metadata_json FROM site_content WHERE key = 'portal-home'`,
+      );
+      const updatedMeta = updatedHome.rows[0]?.metadata_json ?? {};
+      expect(updatedMeta['tuiTitle']).toBe('Custom Operator Launcher Title');
+      expect(updatedMeta['heading']).toBe('Custom Operator Heading');
+      const updatedActions = Array.isArray(updatedMeta['actions'])
+        ? (updatedMeta['actions'] as Array<Record<string, unknown>>)
+        : [];
+      expect(updatedActions.some(a => a['to'] === '/about')).toBe(true);
+    } finally {
+      await seedDatabase(db, {
+        mode: 'upsert',
+        env: {
+          ADMIN_PASSWORD: '',
+          NODE_ENV: 'test',
+          DOSSIER_PRIVACY_DENYLIST: prodDenylist,
+        },
+      });
+    }
+  });
 });
