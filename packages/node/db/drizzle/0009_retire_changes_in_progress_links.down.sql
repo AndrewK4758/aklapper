@@ -83,3 +83,11 @@ END
 WHERE "profile_slug" = 'portal-home'
   AND "command" = 'ls'
   AND "output" !~ '(^|\n)[[:space:]]*changes-in-progress([[:space:]]|$)';
+--> statement-breakpoint
+UPDATE "site_content"
+SET
+  "metadata_json" = jsonb_set("metadata_json", '{maintenanceModeDefault}', 'false'::jsonb, true),
+  "updated_at" = now()
+WHERE "key" = 'portal-chrome'
+  AND jsonb_typeof("metadata_json") = 'object'
+  AND NOT ("metadata_json" ? 'maintenanceModeDefault');

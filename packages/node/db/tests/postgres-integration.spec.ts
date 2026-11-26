@@ -1368,9 +1368,30 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
         [JSON.stringify(savedPostUpActions)],
       );
 
-      // 2. Roll back 0009 twice (verifies complete reversibility and rollback idempotency).
+      // Simulate a Stage 1 CMS save stripping maintenanceModeDefault before rolling back to N-1.
+      const chromeBeforeStrip = await pool.query<{
+        markdown_body: string;
+        metadata_json: Record<string, unknown>;
+      }>(`SELECT markdown_body, metadata_json FROM site_content WHERE key = 'portal-chrome'`);
+      const strippedChrome = await upsertSiteContent(
+        db,
+        SITE_CONTENT_KEYS.portalChrome,
+        chromeBeforeStrip.rows[0]?.markdown_body ?? 'Portal chrome',
+        chromeBeforeStrip.rows[0]?.metadata_json ?? {},
+      );
+      expect('maintenanceModeDefault' in strippedChrome.metadataJson).toBe(false);
+
+      // 2. Roll back 0009 twice (verifies complete reversibility, N-1 portal-chrome backfill, and idempotency).
       await pool.query(down0009);
       await pool.query(down0009);
+
+      const chromeAfterDown = await pool.query<{
+        metadata_json: Record<string, unknown>;
+      }>(`SELECT metadata_json FROM site_content WHERE key = 'portal-chrome'`);
+      expect(chromeAfterDown.rows[0]?.metadata_json['maintenanceModeDefault']).toBe(false);
+      expect(chromeAfterDown.rows[0]?.metadata_json['brandLabel']).toBe(
+        strippedChrome.metadataJson['brandLabel'],
+      );
 
       const dirAfterDown = await pool.query<{ name: string }>(
         `SELECT name FROM terminal_directory_entries
