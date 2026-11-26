@@ -1,8 +1,52 @@
-import { CONTACT_FORM_DEFINITION, SITE_CONTENT_KEYS, type SiteContentKey } from '@aklapper/core';
+import {
+  type CareerDossier,
+  CONTACT_FORM_DEFINITION,
+  SITE_CONTENT_KEYS,
+  type SiteContentKey,
+} from '@aklapper/core';
 import { render, screen } from '@testing-library/react';
 
 import * as uiExports from '../src/index';
 import { SF_LAYOUT_TOKENS, SiteContentPreviewCanvas, TuiHeroCard } from '../src/index';
+
+const PORTAL_ABOUT_PREVIEW_FIXTURE: Record<string, unknown> = {
+  windowTitle: 'About Andrew Klapper // Resume & Services',
+  statusBadge: { source: 'portal-about', state: 'ready', label: 'Sanitized' },
+  description: 'Public-safe resume and interactive platform services guide.',
+  identity: {
+    fullName: 'Andrew Klapper',
+    roleHeadline: 'Senior Full-Stack & Systems Engineer',
+    location: 'Marietta, GA',
+    githubLabel: 'github.com/AndrewK4758',
+    githubUrl: 'https://github.com/AndrewK4758',
+    websiteLabel: 'andrew-k.us',
+    websiteUrl: 'https://andrew-k.us',
+  },
+  portrait: {
+    alt: 'Andrew Klapper greyscale portrait',
+    caption: 'Andrew Klapper · Marietta, GA',
+    ttyLabel: 'portrait // greyscale',
+  },
+  skillGroups: [{ category: 'Languages', skills: ['C# (.NET 10)', 'Go (1.26+)', 'TypeScript'] }],
+  education: [
+    {
+      institution: 'Kennesaw State University',
+      location: 'Kennesaw, GA',
+      program: 'Professional Sales (29 credits completed)',
+    },
+  ],
+  servicesIntro: 'Explore live workspace services.',
+  services: [
+    {
+      id: 'chat',
+      title: 'Chat with Andrew',
+      to: '/chat',
+      badge: 'AI + JD Match',
+      summary: 'Ask grounded questions against published dossiers.',
+      ctaLabel: 'Open Chat',
+    },
+  ],
+};
 
 const PREVIEW_FIXTURES: Record<SiteContentKey, Record<string, unknown>> = {
   [SITE_CONTENT_KEYS.portalChrome]: {
@@ -21,6 +65,7 @@ const PREVIEW_FIXTURES: Record<SiteContentKey, Record<string, unknown>> = {
     description: 'Principal engineer.',
     actions: [{ label: 'CADENCE Builder', to: '/cadence', variant: 'primary' }],
   },
+  [SITE_CONTENT_KEYS.portalAbout]: PORTAL_ABOUT_PREVIEW_FIXTURE,
   [SITE_CONTENT_KEYS.portalAgensi]: {
     windowTitle: 'Agensi Skills',
     statusBadge: { source: 'agensi', state: 'ready', label: 'Indexed' },
@@ -72,7 +117,7 @@ describe('@aklapper/ui site-content preview primitives', () => {
     expect('MaintenanceProgressCard' in uiExports).toBe(false);
   });
 
-  it('renders all 9 known site_content keys across desktop and mobile viewports without nested forms or iframes', () => {
+  it('renders all 10 known site_content keys across desktop and mobile viewports without nested forms or iframes', () => {
     for (const key of Object.values(SITE_CONTENT_KEYS)) {
       const { container, unmount } = render(
         <SiteContentPreviewCanvas
@@ -86,6 +131,90 @@ describe('@aklapper/ui site-content preview primitives', () => {
       expect(container.querySelector('form')).toBeNull();
       unmount();
     }
+  });
+
+  it('renders portal-about preview with published+verified dossiers only and excludes draft or unverified dossiers', () => {
+    const dossiers: CareerDossier[] = [
+      {
+        slug: 'published-profile',
+        kind: 'profile_core',
+        title: 'Published Core Profile',
+        domainLabel: 'Systems Engineering',
+        roleTitle: 'Senior Full-Stack & Systems Engineer',
+        timeframe: 'Present',
+        skills: ['Go', 'TypeScript'],
+        summaryBody: 'Verified published engineering summary.',
+        sections: [],
+        publishStatus: 'published',
+        sanitizationVerifiedAt: '2026-11-26T00:00:00.000Z',
+        denylistHash: 'a'.repeat(64),
+        sortOrder: 0,
+        updatedAt: '2026-11-26T00:00:00.000Z',
+      },
+      {
+        slug: 'unpublished-draft-role',
+        kind: 'experience',
+        title: 'Secret Draft Role Title',
+        domainLabel: 'Draft Domain',
+        roleTitle: 'Draft Engineer',
+        timeframe: 'Draft',
+        skills: ['HiddenSkill'],
+        summaryBody: 'Unpublished draft body must never leak into live preview.',
+        sections: [],
+        publishStatus: 'draft',
+        sanitizationVerifiedAt: '2026-11-26T00:00:00.000Z',
+        denylistHash: 'a'.repeat(64),
+        sortOrder: 10,
+        updatedAt: '2026-11-26T00:00:00.000Z',
+      },
+      {
+        slug: 'unverified-published-role',
+        kind: 'project',
+        title: 'Unverified Project Title',
+        domainLabel: 'Unverified Domain',
+        roleTitle: 'Author',
+        timeframe: '2026',
+        skills: ['Unverified'],
+        summaryBody: 'Unverified dossier must also be excluded.',
+        sections: [],
+        publishStatus: 'published',
+        sanitizationVerifiedAt: null,
+        denylistHash: null,
+        sortOrder: 20,
+        updatedAt: '2026-11-26T00:00:00.000Z',
+      },
+    ];
+
+    const { container, rerender } = render(
+      <SiteContentPreviewCanvas
+        contentKey={SITE_CONTENT_KEYS.portalAbout}
+        metadata={PORTAL_ABOUT_PREVIEW_FIXTURE}
+        viewport='desktop'
+        careerDossiers={dossiers}
+        brandContactEmail='andrew@andrew-k.us'
+      />,
+    );
+
+    expect(container.querySelector('form')).toBeNull();
+    expect(container.querySelector('iframe')).toBeNull();
+    expect(screen.getByText('andrew@andrew-k.us')).toBeTruthy();
+    expect(screen.getByText('Verified published engineering summary.')).toBeTruthy();
+    expect(screen.queryByText('Secret Draft Role Title')).toBeNull();
+    expect(screen.queryByText(/Unpublished draft body/)).toBeNull();
+    expect(screen.queryByText('Unverified Project Title')).toBeNull();
+
+    // Empty published dossiers renders explicit notice
+    rerender(
+      <SiteContentPreviewCanvas
+        contentKey={SITE_CONTENT_KEYS.portalAbout}
+        metadata={PORTAL_ABOUT_PREVIEW_FIXTURE}
+        viewport='mobile'
+        careerDossiers={[dossiers[1]!]}
+        brandContactEmail='andrew@andrew-k.us'
+      />,
+    );
+    expect(screen.getByTestId('about-preview-dossiers-empty')).toBeTruthy();
+    expect(screen.queryByText('Secret Draft Role Title')).toBeNull();
   });
 
   it('omits maintenance-mode status from portal-chrome preview even if legacy metadata still has it', () => {

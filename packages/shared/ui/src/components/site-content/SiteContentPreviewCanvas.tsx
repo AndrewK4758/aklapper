@@ -2,6 +2,8 @@ import {
   AdminAnalyticsContentSchema,
   AdminChromeContentSchema,
   AdminHomeContentSchema,
+  type CareerDossier,
+  PortalAboutContentSchema,
   PortalAgensiContentSchema,
   PortalAskContentSchema,
   PortalCadenceContentSchema,
@@ -17,6 +19,7 @@ import { StatusPill } from '../../elements/StatusPill';
 import { RecursiveTuiForm } from '../RecursiveTuiForm';
 import { TuiWindow } from '../TuiWindow';
 import { ViewportProvider } from '../ViewportProvider';
+import { PortalAboutPreview } from './PortalAboutPreview';
 import { PortalHomeTerminalIntro } from './PortalHomeTerminalIntro';
 import { SiteChromePreviewBar } from './SiteChromePreviewBar';
 import { SiteContentWindowHeader } from './SiteContentWindowHeader';
@@ -30,9 +33,16 @@ export interface SiteContentPreviewCanvasProps {
   readonly contentKey: string;
   readonly metadata: Record<string, unknown>;
   readonly viewport: SiteContentPreviewViewport;
+  readonly careerDossiers?: readonly CareerDossier[];
+  readonly brandContactEmail?: string;
 }
 
-function renderKeyPreview(contentKey: string, metadata: Record<string, unknown>) {
+function renderKeyPreview(
+  contentKey: string,
+  metadata: Record<string, unknown>,
+  careerDossiers?: readonly CareerDossier[],
+  brandContactEmail?: string,
+) {
   switch (contentKey) {
     case SITE_CONTENT_KEYS.portalChrome: {
       const parsed = PortalChromeContentSchema.safeParse(metadata);
@@ -95,6 +105,18 @@ function renderKeyPreview(contentKey: string, metadata: Record<string, unknown>)
             actionsAriaLabel='Admin overview actions preview'
           />
         </TuiWindow>
+      );
+    }
+
+    case SITE_CONTENT_KEYS.portalAbout: {
+      const parsed = PortalAboutContentSchema.safeParse(metadata);
+      if (!parsed.success) return null;
+      return (
+        <PortalAboutPreview
+          content={parsed.data}
+          careerDossiers={careerDossiers}
+          brandContactEmail={brandContactEmail}
+        />
       );
     }
 
@@ -255,8 +277,10 @@ export function SiteContentPreviewCanvas({
   contentKey,
   metadata,
   viewport,
+  careerDossiers,
+  brandContactEmail,
 }: SiteContentPreviewCanvasProps) {
-  const rendered = renderKeyPreview(contentKey, metadata);
+  const rendered = renderKeyPreview(contentKey, metadata, careerDossiers, brandContactEmail);
   const scopedViewportMode = viewport === 'mobile' ? 'mobile-portrait' : 'desktop';
 
   return (

@@ -43,7 +43,9 @@ export function TerminalPortrait({
 }: TerminalPortraitProps) {
   const normalizedSrc = src?.trim() ?? '';
   const resolvedSrc =
-    !normalizedSrc || normalizedSrc === DEFAULT_PORTRAIT_PATH
+    !normalizedSrc ||
+    normalizedSrc === DEFAULT_PORTRAIT_PATH ||
+    normalizedSrc === DEFAULT_PORTRAIT_SRC
       ? DEFAULT_PORTRAIT_SRC
       : isValidRootRelativePortraitSrc(normalizedSrc)
         ? normalizedSrc
@@ -106,7 +108,13 @@ export function TerminalPortrait({
               fetchPriority={priority ? 'high' : undefined}
               onError={handleImageError}
             />
-            {showScanlines ? <span className={styles.scanlines} aria-hidden='true' /> : null}
+            {showScanlines ? (
+              <span
+                className={styles.scanlines}
+                aria-hidden='true'
+                data-portrait-scanlines='true'
+              />
+            ) : null}
           </>
         )}
       </div>
