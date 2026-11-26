@@ -7,6 +7,12 @@ import {
   CadenceSpecArtifactSchema,
 } from './cadence-artifacts.ts';
 import { FormDefinitionSchema } from './forms.ts';
+import {
+  cloneDefaultPortalHomePortrait,
+  cloneDefaultPortalHomeResumeSummary,
+  PortalHomePortraitSchema,
+  PortalHomeResumeSummarySchema,
+} from './portal-home-profile.ts';
 import { PORTAL_NAVIGABLE_ROUTE_PATHS } from './routes.ts';
 
 export const MenuItemSchema = z.object({
@@ -192,6 +198,8 @@ export const PortalHomeContentSchema = z.object({
   heading: z.string().min(1),
   description: z.string().min(1),
   actions: z.array(LinkActionSpecSchema).min(1),
+  portrait: PortalHomePortraitSchema.default(cloneDefaultPortalHomePortrait),
+  resumeSummary: PortalHomeResumeSummarySchema.default(cloneDefaultPortalHomeResumeSummary),
 });
 export type PortalHomeContent = z.infer<typeof PortalHomeContentSchema>;
 

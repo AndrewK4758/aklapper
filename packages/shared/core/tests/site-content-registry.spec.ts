@@ -1,9 +1,12 @@
 import {
   AdminCmsLoaderDataSchema,
   CONTACT_FORM_DEFINITION,
+  DEFAULT_PORTAL_HOME_PORTRAIT,
+  DEFAULT_PORTAL_HOME_RESUME_SUMMARY,
   introspectSiteContentSchema,
   isKnownSiteContentKey,
   PortalAskContentSchema,
+  PortalHomeContentSchema,
   SITE_CONTENT_KEYS,
   SITE_CONTENT_METADATA,
   SITE_CONTENT_SCHEMA_BY_KEY,
@@ -158,5 +161,90 @@ describe('@aklapper/core site_content registry', () => {
       cadencePresets: [],
     });
     expect(cmsLoader.careerDossiers).toEqual([]);
+  });
+
+  it('hydrates default portrait and sanitized resumeSummary for legacy 5-field portal-home rows with isolated clones', () => {
+    const first = PortalHomeContentSchema.parse(VALID_FIXTURES[SITE_CONTENT_KEYS.portalHome]);
+    expect(first.portrait).toEqual(DEFAULT_PORTAL_HOME_PORTRAIT);
+    expect(first.portrait.src).toBe('/images/andrew-klapper-portrait.webp');
+    expect(first.portrait.width).toBe(440);
+    expect(first.portrait.height).toBe(520);
+    expect(first.resumeSummary).toEqual(DEFAULT_PORTAL_HOME_RESUME_SUMMARY);
+    expect(first.resumeSummary.publicEmail).toBe('andrew@andrew-k.us');
+    expect(first.resumeSummary.githubUrl).toBe('https://github.com/AndrewK4758');
+    expect(first.resumeSummary.services.map(s => s.command)).toEqual([
+      'cadence',
+      'chat',
+      'agensi',
+      'about',
+      'contact',
+    ]);
+
+    const serializedDefault = JSON.stringify(first.resumeSummary);
+    expect(serializedDefault).not.toMatch(/References|\bzsh\b|p10k|powerlevel10k/i);
+    expect(serializedDefault).not.toMatch(/\bGA\s+\d{5}\b/);
+    expect(serializedDefault).not.toMatch(/\(\d{3}\)\s*\d{3}-\d{4}/);
+
+    // Mutating returned arrays/objects must not leak into subsequent parses
+    first.resumeSummary.highlights.push('Mutated highlight');
+    first.resumeSummary.services[0]!.summary = 'Mutated service';
+    const second = PortalHomeContentSchema.parse(VALID_FIXTURES[SITE_CONTENT_KEYS.portalHome]);
+    expect(second.resumeSummary.highlights).not.toContain('Mutated highlight');
+    expect(second.resumeSummary.services[0]?.summary).not.toBe('Mutated service');
+
+    const homeJsonSchema = introspectSiteContentSchema(SITE_CONTENT_KEYS.portalHome);
+    expect(homeJsonSchema.properties?.['portrait']).toBeDefined();
+    expect(homeJsonSchema.properties?.['resumeSummary']).toBeDefined();
+  });
+
+  it('rejects non-root-relative portrait.src paths and non-HTTPS githubUrl values on portal-home', () => {
+    for (const badSrc of [
+      'https://cdn.example.invalid/photo.webp',
+      'http://cdn.example.invalid/photo.webp',
+      '//cdn.example.invalid/photo.webp',
+      '/\\cdn.example.invalid/photo.webp',
+      '/images\\photo.webp',
+      '/images/../secret.webp',
+      'javascript:alert(1)',
+      'data:image/webp;base64,AAAA',
+      'images/relative-no-leading-slash.webp',
+    ]) {
+      const result = validateSiteContentMetadata(SITE_CONTENT_KEYS.portalHome, {
+        ...VALID_FIXTURES[SITE_CONTENT_KEYS.portalHome],
+        portrait: {
+          ...DEFAULT_PORTAL_HOME_PORTRAIT,
+          src: badSrc,
+        },
+      });
+      expect(result, `expected rejection for portrait.src=${badSrc}`).toEqual(
+        expect.objectContaining({
+          ok: false,
+          issues: expect.arrayContaining([expect.objectContaining({ pathKey: 'portrait.src' })]),
+        }),
+      );
+    }
+
+    for (const badGithubUrl of [
+      'javascript:alert(1)',
+      'data:text/html,hi',
+      'http://github.com/AndrewK4758',
+      'ftp://github.com/AndrewK4758',
+    ]) {
+      const result = validateSiteContentMetadata(SITE_CONTENT_KEYS.portalHome, {
+        ...VALID_FIXTURES[SITE_CONTENT_KEYS.portalHome],
+        resumeSummary: {
+          ...DEFAULT_PORTAL_HOME_RESUME_SUMMARY,
+          githubUrl: badGithubUrl,
+        },
+      });
+      expect(result, `expected rejection for githubUrl=${badGithubUrl}`).toEqual(
+        expect.objectContaining({
+          ok: false,
+          issues: expect.arrayContaining([
+            expect.objectContaining({ pathKey: 'resumeSummary.githubUrl' }),
+          ]),
+        }),
+      );
+    }
   });
 });

@@ -57,7 +57,8 @@ export const SITE_CONTENT_METADATA: Readonly<Record<SiteContentKey, SiteContentK
   [SITE_CONTENT_KEYS.portalHome]: {
     key: SITE_CONTENT_KEYS.portalHome,
     label: 'Portal Home',
-    description: 'Primary launcher hero window, heading, description, and action buttons.',
+    description:
+      'Home terminal greyscale portrait, sanitized resume summary, and launcher hero window.',
     surface: 'portal',
   },
   [SITE_CONTENT_KEYS.portalAgensi]: {

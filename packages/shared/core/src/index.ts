@@ -12,6 +12,7 @@ export * from './career-dossiers.ts';
 export * from './errors.ts';
 export * from './forms.ts';
 export * from './loader-data.ts';
+export * from './portal-home-profile.ts';
 export * from './portal.ts';
 export * from './privacy-error-match.ts';
 export * from './rbac.ts';
