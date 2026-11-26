@@ -18,7 +18,7 @@ RUN pnpm --dir packages/shared/core exec tsc --build tsconfig.lib.json \
   && pnpm --dir packages/tooling exec tsc --build tsconfig.lib.json \
   && pnpm --dir packages/shared/ui exec vite build \
   && pnpm --dir apps/portal/portal exec react-router build --mode production
-RUN pnpm --filter @aklapper/portal deploy --prod --legacy /prod/portal \
+RUN pnpm --config.shamefully-hoist=true --filter @aklapper/portal deploy --prod --legacy /prod/portal \
   && rm -rf /prod/portal/dist \
   && cp -r /workspace/apps/portal/portal/dist /prod/portal/dist \
   && mkdir -p /prod/portal/src \
