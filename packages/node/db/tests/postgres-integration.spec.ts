@@ -19,6 +19,7 @@ import {
   type AppDatabase,
   askTurns,
   CADENCE_PRESET_SEEDS,
+  CAREER_DOSSIER_SEEDS,
   careerDossiers,
   claimPendingSandboxRun,
   cloneCachedSandboxRunForSession,
@@ -1776,9 +1777,24 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
   it('seeds 10 sanitized resume dossiers atomically, upgrades pre-existing PG19 databases safely, and enforces pre-write + upsertSiteContent privacy boundaries', async () => {
     const prodDenylist = JSON.stringify(['SyntheticConfidentialClientX']);
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+
+    const readAboutSourceBranchEvents = () =>
+      infoSpy.mock.calls
+        .map(call => {
+          try {
+            return JSON.parse(String(call[0])) as Record<string, unknown>;
+          } catch {
+            return null;
+          }
+        })
+        .filter(
+          (entry): entry is Record<string, unknown> =>
+            entry !== null && entry['event'] === 'portal.about.loader_source_branch',
+        );
 
     try {
-      // 1. Fresh/live loadPortalAboutData returns portal-about, 10 published dossiers, and portal-chrome brandContactEmail
+      // 1. Fresh/live loadPortalAboutData returns portal-about, 10 published dossiers, and emits postgres_live branch seam
       await seedDatabase(db, {
         mode: 'upsert',
         env: {
@@ -1787,11 +1803,20 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
           DOSSIER_PRIVACY_DENYLIST: prodDenylist,
         },
       });
+      infoSpy.mockClear();
       const liveAbout = await loadPortalAboutData(db);
       expect(liveAbout.content.identity.fullName).toBe('Andrew Klapper');
       expect(liveAbout.content.skillGroups).toHaveLength(5);
       expect(liveAbout.dossiers).toHaveLength(10);
       expect(liveAbout.brandContactEmail).toBe('andrew@andrew-k.us');
+      expect(readAboutSourceBranchEvents()).toEqual([
+        expect.objectContaining({
+          event: 'portal.about.loader_source_branch',
+          seamType: 'RULE_DIVERGENCE',
+          branch: 'postgres_live',
+          dossierCount: 10,
+        }),
+      ]);
 
       // 2. Prerender fallback resolves without DATABASE_URL when prerender flag is active
       const prevPrerender = process.env['IS_RR_BUILD_REQUEST'];
@@ -1845,6 +1870,32 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       ).rejects.toMatchObject({ status: 422 });
       const untouchedAbout = await loadPortalAboutData(db);
       expect(untouchedAbout.content.description).not.toContain('555');
+
+      // 4b. Poisoned mid-batch careerDossierSeeds aborts pre-write before mutating even clean earlier batch entries
+      const cleanFirstSeed = CAREER_DOSSIER_SEEDS[0];
+      const secondSeed = CAREER_DOSSIER_SEEDS[1];
+      if (!cleanFirstSeed || !secondSeed) {
+        throw new Error('Expected at least 2 seeded career dossiers');
+      }
+      await expect(
+        seedDatabase(db, {
+          mode: 'upsert',
+          env: { ADMIN_PASSWORD: '', DOSSIER_PRIVACY_DENYLIST: prodDenylist },
+          careerDossierSeeds: [
+            {
+              ...cleanFirstSeed,
+              title: 'Should Never Commit Before Poisoned Entry',
+            },
+            {
+              ...secondSeed,
+              summaryBody:
+                'Poisoned mid-batch dossier for SyntheticConfidentialClientX at (555) 010-1234.',
+            },
+          ],
+        }),
+      ).rejects.toMatchObject({ status: 422 });
+      const untouchedFirst = await getCareerDossierBySlug(db, cleanFirstSeed.slug);
+      expect(untouchedFirst?.title).toBe(cleanFirstSeed.title);
 
       // 5. Existing-database upgrade path: simulate pre-upgrade DB missing portal-about & stale profile_core
       await pool.query(`DELETE FROM site_content WHERE key = 'portal-about'`);
@@ -1927,7 +1978,22 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       expect(
         afterUnpublish.dossiers.some(d => d.slug === 'woodstock-developers-group-mentor'),
       ).toBe(false);
+
+      // 8. All dossiers unpublished -> returns empty dossiers array and emits empty_dossiers_degraded branch seam
+      await pool.query(`UPDATE career_dossiers SET publish_status = 'draft'`);
+      infoSpy.mockClear();
+      const emptyAbout = await loadPortalAboutData(db);
+      expect(emptyAbout.dossiers).toEqual([]);
+      expect(readAboutSourceBranchEvents()).toEqual([
+        expect.objectContaining({
+          event: 'portal.about.loader_source_branch',
+          seamType: 'RULE_DIVERGENCE',
+          branch: 'empty_dossiers_degraded',
+          dossierCount: 0,
+        }),
+      ]);
     } finally {
+      infoSpy.mockRestore();
       warnSpy.mockRestore();
       // Restore canonical seed state for subsequent tests
       await seedDatabase(db, {

@@ -1,7 +1,7 @@
 import { once } from 'node:events';
 import { createServer } from 'node:http';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import * as dbExports from '../src/index.ts';
 import {
@@ -138,10 +138,35 @@ describe('db prerender fallback loaders', () => {
     });
     expect(getPrerenderPortalCadenceData().presets.length).toBeGreaterThan(0);
     expect(getPrerenderPortalContactData().content.form.id).toBe('contact-form');
-    const prerenderAbout = getPrerenderPortalAboutData();
-    expect(prerenderAbout.content.identity.fullName).toBe('Andrew Klapper');
-    expect(prerenderAbout.dossiers).toHaveLength(10);
-    expect(prerenderAbout.brandContactEmail).toBe('andrew@andrew-k.us');
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    try {
+      const prerenderAbout = getPrerenderPortalAboutData();
+      expect(prerenderAbout.content.identity.fullName).toBe('Andrew Klapper');
+      expect(prerenderAbout.dossiers).toHaveLength(10);
+      expect(prerenderAbout.brandContactEmail).toBe('andrew@andrew-k.us');
+      const branchEvents = infoSpy.mock.calls
+        .map(call => {
+          try {
+            return JSON.parse(String(call[0])) as Record<string, unknown>;
+          } catch {
+            return null;
+          }
+        })
+        .filter(
+          (entry): entry is Record<string, unknown> =>
+            entry !== null && entry['event'] === 'portal.about.loader_source_branch',
+        );
+      expect(branchEvents).toEqual([
+        expect.objectContaining({
+          event: 'portal.about.loader_source_branch',
+          seamType: 'RULE_DIVERGENCE',
+          branch: 'prerender_seed_fallback',
+          dossierCount: 10,
+        }),
+      ]);
+    } finally {
+      infoSpy.mockRestore();
+    }
 
     expect(adminRoot.chrome.brandLabel).toContain('admin.andrew-k.us');
     expect(adminRoot.chrome.shortcutHint).toContain('Alt+⇧N');
