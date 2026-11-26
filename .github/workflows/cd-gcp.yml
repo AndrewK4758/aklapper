@@ -424,6 +424,8 @@ jobs:
       - name: Setup gcloud CLI (with beta for Direct IAP)
         uses: google-github-actions/setup-gcloud@v3
         with:
+          install_components: 'beta'
+        with:
           install_components: beta
 
       - name: Check optional Secret Manager secrets
