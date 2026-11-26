@@ -1,7 +1,4 @@
-import {
-  DEFAULT_PORTAL_HOME_PORTRAIT_PATH,
-  isValidRootRelativePortraitSrc,
-} from '@aklapper/core';
+import { DEFAULT_PORTAL_HOME_PORTRAIT_PATH, isValidRootRelativePortraitSrc } from '@aklapper/core';
 import { type CSSProperties, useState } from 'react';
 
 import defaultPortraitSrc from '../assets/andrew-klapper-portrait.webp';
@@ -84,8 +81,13 @@ export function TerminalPortrait({
       <div className={styles.frame} style={frameStyle}>
         {ttyLabel ? <span className={styles.ttyBadge}>{ttyLabel}</span> : null}
         {hasLoadError ? (
-          // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- accessible text monogram fallback rendered only when <img> fails or is blocked
-          <div className={styles.fallback} role='img' aria-label={alt} data-portrait-fallback='true'>
+          <div
+            className={styles.fallback}
+            // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- accessible text monogram fallback rendered only when <img> fails or is blocked
+            role='img'
+            aria-label={alt}
+            data-portrait-fallback='true'
+          >
             <span className={styles.monogram} aria-hidden='true'>
               AK
             </span>

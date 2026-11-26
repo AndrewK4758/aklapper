@@ -9,6 +9,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useEffectEvent,
   useMemo,
   useRef,
   useState,
@@ -371,25 +372,21 @@ export function ZshP10kTerminal({
     }
   }, [entries]);
 
+  const focusTerminalInput = useEffectEvent(() => {
+    const focusOptions: FocusOptions | undefined =
+      Boolean(initialEntryCompanion) && !hasLocalCommand ? { preventScroll: true } : undefined;
+    if (isTextareaStep) {
+      textareaRef.current?.focus(focusOptions);
+    } else {
+      inputRef.current?.focus(focusOptions);
+    }
+  });
+
   useEffect(() => {
     if ((focusOnMount || isFormActive) && isActive) {
-      const focusOptions: FocusOptions | undefined =
-        Boolean(initialEntryCompanion) && !hasLocalCommand ? { preventScroll: true } : undefined;
-      if (isTextareaStep) {
-        textareaRef.current?.focus(focusOptions);
-      } else {
-        inputRef.current?.focus(focusOptions);
-      }
+      focusTerminalInput();
     }
-  }, [
-    focusOnMount,
-    isActive,
-    focusToken,
-    isFormActive,
-    isTextareaStep,
-    initialEntryCompanion,
-    hasLocalCommand,
-  ]);
+  }, [focusOnMount, isActive, focusToken, isFormActive, isTextareaStep]);
 
   const commandNames = useMemo(() => {
     const merged = new Set<string>(Object.keys(commands));

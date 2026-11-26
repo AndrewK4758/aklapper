@@ -95,12 +95,15 @@ export function PortalHomePage({
     [terminal.commands, onNavigate, paneNav],
   );
 
-  const initialEntryCompanion = (
-    <PortalHomeTerminalIntro
-      portrait={content.portrait}
-      resumeSummary={content.resumeSummary}
-      priorityPortrait
-    />
+  const initialEntryCompanion = useMemo(
+    () => (
+      <PortalHomeTerminalIntro
+        portrait={content.portrait}
+        resumeSummary={content.resumeSummary}
+        priorityPortrait={layoutMode === 'desktop'}
+      />
+    ),
+    [content.portrait, content.resumeSummary, layoutMode],
   );
 
   if (layoutMode !== 'desktop') {

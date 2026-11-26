@@ -166,12 +166,7 @@ describe('@aklapper/ui TerminalPortrait, PortalHomeTerminalIntro, and terminal c
       expect(warnLogs.join('\n')).toContain('portal.home.portrait_load_fallback');
       expect(warnLogs.join('\n')).toContain('BOUNDARY_FAULT');
 
-      rerender(
-        <TerminalPortrait
-          src='   '
-          alt='Greyscale terminal portrait of Andrew Klapper'
-        />,
-      );
+      rerender(<TerminalPortrait src='   ' alt='Greyscale terminal portrait of Andrew Klapper' />);
       expect(container.querySelector('[data-portrait-fallback="true"]')).toBeNull();
       expect(container.querySelector('img')?.getAttribute('src')).toBe(DEFAULT_PORTRAIT_SRC);
 
@@ -190,10 +185,7 @@ describe('@aklapper/ui TerminalPortrait, PortalHomeTerminalIntro, and terminal c
         '/\t/attacker.example/pixel.webp',
       ]) {
         rerender(
-          <TerminalPortrait
-            src={hostileSrc}
-            alt='Greyscale terminal portrait of Andrew Klapper'
-          />,
+          <TerminalPortrait src={hostileSrc} alt='Greyscale terminal portrait of Andrew Klapper' />,
         );
         expect(container.querySelector('img')).toBeNull();
         expect(container.querySelector('[data-portrait-fallback="true"]')).not.toBeNull();
@@ -365,6 +357,90 @@ describe('@aklapper/ui TerminalPortrait, PortalHomeTerminalIntro, and terminal c
       expect(debugLogs.join('\n')).toContain('"branch":"tty-without-companion"');
     } finally {
       debugSpy.mockRestore();
+    }
+  });
+
+  it('does not steal focus on parent re-render with a fresh initialEntryCompanion and preserves tty1 tab renaming', () => {
+    const externalButton = document.createElement('button');
+    externalButton.textContent = 'External action';
+    document.body.appendChild(externalButton);
+
+    try {
+      const renderZsh = (tick: number) => (
+        <ZshP10kTerminal
+          directory='~/andrew-k.us'
+          vcsBranch='main'
+          contextLabel='guest@andrew-k.us'
+          ariaLabel='Interactive Terminal tty1'
+          focusOnMount
+          isActive
+          initialEntries={SAMPLE_TERMINAL.initialEntries}
+          initialEntryCompanion={
+            <PortalHomeTerminalIntro
+              key={`intro-${tick}`}
+              portrait={DEFAULT_PORTAL_HOME_PORTRAIT}
+              resumeSummary={DEFAULT_PORTAL_HOME_RESUME_SUMMARY}
+            />
+          }
+          commands={{
+            ls: () => ({ output: 'tui       # TUI version' }),
+          }}
+        />
+      );
+
+      const { rerender, unmount } = render(renderZsh(1));
+      const terminalInput = screen.getByLabelText('Terminal command input');
+      expect(document.activeElement).toBe(terminalInput);
+
+      externalButton.focus();
+      expect(document.activeElement).toBe(externalButton);
+
+      // Re-rendering with a newly allocated initialEntryCompanion JSX node must NOT steal focus
+      rerender(renderZsh(2));
+      expect(document.activeElement).toBe(externalButton);
+      unmount();
+
+      // Double-clicking tty1 tab inside TerminalWorkspace keeps Rename tab input focused even across parent re-renders
+      const renderWorkspace = (tick: number) => (
+        <TerminalWorkspace
+          terminal={SAMPLE_TERMINAL}
+          initialEntryCompanion={
+            <PortalHomeTerminalIntro
+              portrait={DEFAULT_PORTAL_HOME_PORTRAIT}
+              resumeSummary={{
+                ...DEFAULT_PORTAL_HOME_RESUME_SUMMARY,
+                highlightsHeading: `Current Work (${tick})`,
+              }}
+            />
+          }
+        />
+      );
+      const wsView = render(renderWorkspace(1));
+
+      // Open a second tab so the tab bar renders, then switch back to tab-1 (tty1)
+      fireEvent.keyDown(window, { key: 'N', code: 'KeyN', altKey: true, shiftKey: true });
+      fireEvent.keyDown(window, { key: '!', code: 'Digit1', altKey: true, shiftKey: true });
+
+      const tab1Button = wsView.container.querySelector(
+        '[data-tab-id="tab-1"] [role="tab"]',
+      ) as HTMLButtonElement;
+      expect(tab1Button).not.toBeNull();
+      fireEvent.doubleClick(tab1Button);
+
+      const renameInput = screen.getByLabelText('Rename tab') as HTMLInputElement;
+      renameInput.focus();
+      expect(document.activeElement).toBe(renameInput);
+
+      // Trigger a parent re-render with a fresh initialEntryCompanion object while renaming tab-1
+      wsView.rerender(renderWorkspace(2));
+      expect(document.activeElement).toBe(renameInput);
+
+      fireEvent.change(renameInput, { target: { value: 'home-tty1' } });
+      fireEvent.keyDown(renameInput, { key: 'Enter' });
+      expect(screen.getByRole('tab', { name: 'home-tty1' })).toBeTruthy();
+      wsView.unmount();
+    } finally {
+      externalButton.remove();
     }
   });
 });
