@@ -2,7 +2,6 @@ import {
   type PortalAgensiLoaderData,
   PortalCadenceContentSchema,
   type PortalCadenceLoaderData,
-  type PortalMaintenanceLoaderData,
   type PortalRootLoaderData,
   type StreamResult,
 } from '@aklapper/core';
@@ -46,43 +45,21 @@ const TEST_TERMINAL: NonNullable<PortalRootLoaderData['terminal']> = {
 };
 
 const PORTAL_ROOT_FIXTURE: PortalRootLoaderData = {
-  maintenanceMode: false,
   chrome: {
     pageTitle: 'andrew-k.us // Solar Forge Terminal',
     brandLabel: 'Andrew Klapper Portfolio',
     brandContactEmail: 'andrew@andrew-k.us',
     shortcutHint: 'Alt+⇧N tab',
     statusBadge: {
-      source: 'gke-autopilot',
+      source: 'cloud-run',
       state: 'idle',
-      label: '0 pods',
+      label: '0 instances',
     },
     footerText: 'Solar Forge',
     footerLinkLabel: 'agensi.io',
     footerLinkUrl: 'https://agensi.io',
-    maintenanceModeDefault: false,
-  },
-  maintenance: null,
-  terminal: TEST_TERMINAL,
-};
-
-const MAINTENANCE_FIXTURE: PortalMaintenanceLoaderData = {
-  content: {
-    windowTitle: 'tui :: changes in progress',
-    statusBadge: {
-      source: 'solar-forge-v2',
-      state: 'scaling',
-      label: 'CHANGES IN PROGRESS',
-    },
-    heading: 'Changes in Progress',
-    lead: 'Scheduled maintenance.',
-    progressPercent: 75,
-    progressAriaLabel: 'Progress',
-    metaLeft: 'mode: maintenance',
-    metaRight: '75%',
   },
   terminal: TEST_TERMINAL,
-  milestones: [],
 };
 
 const AGENSI_PAYLOAD: PortalAgensiLoaderData = {
@@ -134,7 +111,8 @@ describe('Portal global workspace persistence and exclusions', () => {
         loader: () => ({
           runtimeSeo: { siteUrl: 'https://andrew-k.us' },
           correlationId: 'corr-portal-global',
-          maintenanceMode: false,
+          initialViewport: 'desktop' as const,
+          isNotFound: false,
           rootPayload: Promise.resolve<StreamResult<PortalRootLoaderData>>({
             ok: true,
             data: PORTAL_ROOT_FIXTURE,
@@ -234,7 +212,8 @@ describe('Portal global workspace persistence and exclusions', () => {
         loader: () => ({
           runtimeSeo: { siteUrl: 'https://andrew-k.us' },
           correlationId: 'corr-portal-focus',
-          maintenanceMode: false,
+          initialViewport: 'desktop' as const,
+          isNotFound: false,
           rootPayload: Promise.resolve<StreamResult<PortalRootLoaderData>>({
             ok: true,
             data: PORTAL_ROOT_FIXTURE,
@@ -315,7 +294,8 @@ describe('Portal global workspace persistence and exclusions', () => {
         loader: () => ({
           runtimeSeo: { siteUrl: 'https://andrew-k.us' },
           correlationId: 'corr-portal-menu',
-          maintenanceMode: false,
+          initialViewport: 'desktop' as const,
+          isNotFound: false,
           rootPayload: Promise.resolve<StreamResult<PortalRootLoaderData>>({
             ok: true,
             data: PORTAL_ROOT_FIXTURE,
@@ -358,7 +338,7 @@ describe('Portal global workspace persistence and exclusions', () => {
     expect(container.querySelector('[data-tab-count="2"]')).toBeTruthy();
   });
 
-  it('shouldRevalidate returns false on routine child navigations/actions and defers on /changes-in-progress', () => {
+  it('shouldRevalidate returns false on routine navigable transitions and true across navigable/not-found boundaries', () => {
     expect(
       shouldRevalidate({
         currentUrl: new URL('https://andrew-k.us/'),
@@ -380,75 +360,44 @@ describe('Portal global workspace persistence and exclusions', () => {
       shouldRevalidate({
         currentUrl: new URL('https://andrew-k.us/'),
         nextUrl: new URL('https://andrew-k.us/changes-in-progress'),
-        defaultShouldRevalidate: true,
+        defaultShouldRevalidate: false,
+      } as Parameters<typeof shouldRevalidate>[0]),
+    ).toBe(true);
+
+    expect(
+      shouldRevalidate({
+        currentUrl: new URL('https://andrew-k.us/changes-in-progress'),
+        nextUrl: new URL('https://andrew-k.us/'),
+        defaultShouldRevalidate: false,
       } as Parameters<typeof shouldRevalidate>[0]),
     ).toBe(true);
   });
 
-  it('maintenanceMode and /changes-in-progress preserve saved v1:global snapshots unread and emit policy telemetry', async () => {
-    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => undefined);
+  it('standalone 404 renders preserve saved v1:global workspace snapshots unread', async () => {
     window.sessionStorage.setItem(PORTAL_GLOBAL_STORAGE_KEY, '{"sentinel":"keep"}');
 
-    const MaintenanceStub = createRoutesStub([
+    const NotFoundStub = createRoutesStub([
       {
         id: 'root',
         path: '/',
         loader: () => ({
           runtimeSeo: { siteUrl: 'https://andrew-k.us' },
-          correlationId: 'corr-portal-maint',
-          maintenanceMode: true,
-          rootPayload: Promise.resolve<StreamResult<PortalRootLoaderData>>({
-            ok: true,
-            data: {
-              ...PORTAL_ROOT_FIXTURE,
-              maintenanceMode: true,
-              maintenance: MAINTENANCE_FIXTURE,
-            },
-          }),
+          correlationId: 'corr-portal-404',
+          initialViewport: 'desktop' as const,
+          isNotFound: true,
+          rootPayload: null,
         }),
         Component: PortalRoot,
         ErrorBoundary,
-        children: [{ index: true, Component: () => <div>unused</div> }],
-      },
-    ]);
-
-    const first = render(<MaintenanceStub initialEntries={['/']} />);
-    await screen.findByText('Changes in Progress');
-    expect(window.sessionStorage.getItem(PORTAL_GLOBAL_STORAGE_KEY)).toBe('{"sentinel":"keep"}');
-    expect(
-      debugSpy.mock.calls.some(call => String(call[0]).includes('"branch":"excluded-maintenance"')),
-    ).toBe(true);
-    expect(screen.queryByRole('button', { name: 'Open Pane' })).toBeNull();
-    first.unmount();
-
-    const StandaloneStub = createRoutesStub([
-      {
-        id: 'root',
-        path: '/',
-        loader: () => ({
-          runtimeSeo: { siteUrl: 'https://andrew-k.us' },
-          correlationId: 'corr-portal-standalone',
-          maintenanceMode: false,
-          rootPayload: Promise.resolve<StreamResult<PortalRootLoaderData>>({
-            ok: true,
-            data: PORTAL_ROOT_FIXTURE,
-          }),
-        }),
-        Component: PortalRoot,
-        ErrorBoundary,
-        children: [
-          { path: 'changes-in-progress', Component: () => <div>Standalone Changes View</div> },
-        ],
+        children: [{ path: '*', Component: () => <div>Standalone 404 View</div> }],
       },
     ]);
 
     await act(async () => {
-      render(<StandaloneStub initialEntries={['/changes-in-progress']} />);
+      render(<NotFoundStub initialEntries={['/changes-in-progress']} />);
     });
-    expect(await screen.findByText('Standalone Changes View')).toBeTruthy();
+    expect(await screen.findByText('Standalone 404 View')).toBeTruthy();
     expect(window.sessionStorage.getItem(PORTAL_GLOBAL_STORAGE_KEY)).toBe('{"sentinel":"keep"}');
-    expect(
-      debugSpy.mock.calls.some(call => String(call[0]).includes('"branch":"excluded-standalone"')),
-    ).toBe(true);
+    expect(screen.queryByRole('button', { name: 'Open Pane' })).toBeNull();
   });
 });

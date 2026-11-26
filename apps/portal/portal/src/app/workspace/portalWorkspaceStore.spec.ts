@@ -310,27 +310,11 @@ describe('createPortalWorkspaceStore', () => {
 
     // Route policy branch telemetry
     store.recordRoutePolicy('/', 'global-workspace');
-    store.recordRoutePolicy('/changes-in-progress', 'excluded-standalone');
-    store.recordRoutePolicy('/', 'excluded-maintenance');
     expect(events).toContainEqual(
       expect.objectContaining({
         event: 'portal.workspace.route_policy_branch',
         seamType: 'RULE_DIVERGENCE',
         branch: 'global-workspace',
-      }),
-    );
-    expect(events).toContainEqual(
-      expect.objectContaining({
-        event: 'portal.workspace.route_policy_branch',
-        seamType: 'RULE_DIVERGENCE',
-        branch: 'excluded-standalone',
-      }),
-    );
-    expect(events).toContainEqual(
-      expect.objectContaining({
-        event: 'portal.workspace.route_policy_branch',
-        seamType: 'RULE_DIVERGENCE',
-        branch: 'excluded-maintenance',
       }),
     );
 

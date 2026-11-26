@@ -7,7 +7,7 @@ import {
   type PortalAskLoaderData,
   type PortalCadenceLoaderData,
   type PortalHomeLoaderData,
-  type PortalMaintenanceLoaderData,
+  type PublicAppError,
   type QuotaStatus,
   type StreamResult,
 } from '@aklapper/core';
@@ -66,17 +66,19 @@ vi.mock('@aklapper/db', async importOriginal => {
 
 import PortalAgensiRoute, { ErrorBoundary as AgensiErrorBoundary } from './agensi';
 import { loader as askTurnPollLoader } from './api.ask.turns.$attemptId';
+import * as apiNotFoundModule from './api.not-found';
 import { action as cadenceAction, loader as cadenceLoader } from './cadence';
-import ChangesInProgressRoute, {
-  ErrorBoundary as MaintenanceErrorBoundary,
-  meta as maintenanceMeta,
-} from './changes-in-progress';
 import PortalChatRoute, { action as chatAction, loader as chatLoader } from './chat';
 import PortalHomeRoute, {
   ErrorBoundary as HomeErrorBoundary,
   loader as homeLoader,
   meta as homeMeta,
 } from './home';
+import PortalNotFoundRoute, {
+  ErrorBoundary as NotFoundErrorBoundary,
+  loader as notFoundLoader,
+  meta as notFoundMeta,
+} from './not-found';
 
 const HOME_FIXTURE: PortalHomeLoaderData = {
   content: {
@@ -101,21 +103,6 @@ const HOME_FIXTURE: PortalHomeLoaderData = {
     commands: [],
   },
   contactForm: CONTACT_FORM_DEFINITION,
-};
-
-const MAINTENANCE_FIXTURE: PortalMaintenanceLoaderData = {
-  content: {
-    windowTitle: 'tui :: maintenance',
-    statusBadge: { source: 'solar-forge', state: 'scaling', label: 'MAINTENANCE' },
-    heading: 'Changes in Progress',
-    lead: 'Scheduled rebuild in progress.',
-    progressPercent: 75,
-    progressAriaLabel: 'Rebuild progress',
-    metaLeft: 'mode: maintenance',
-    metaRight: '75%',
-  },
-  terminal: HOME_FIXTURE.terminal,
-  milestones: [],
 };
 
 function makeContext(correlationId: string) {
@@ -181,7 +168,7 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
             runtimeSeo: { siteUrl: 'https://andrew-k.us' },
             correlationId: 'corr-root',
             initialViewport: 'desktop',
-            maintenanceMode: false,
+            isNotFound: false,
             rootPayload: Promise.withResolvers<never>().promise,
           },
         },
@@ -252,10 +239,76 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
     expect(alert.textContent).not.toContain('Unexpected Server Error');
   });
 
-  it('streams catch-all maintenance path cleanly with synchronous noindex robots meta', async () => {
-    const deferred = Promise.withResolvers<StreamResult<PortalMaintenanceLoaderData>>();
-    const tags = maintenanceMeta({
-      loaderData: { correlationId: 'corr-catchall', payload: deferred.promise },
+  it('fails closed on unmatched GET/POST /api/* via resource catch-all and renders correlated 404 ErrorBoundary on HTML * routes', async () => {
+    // Resource route must export ONLY loader and action (zero default / ErrorBoundary)
+    expect('default' in apiNotFoundModule).toBe(false);
+    expect('ErrorBoundary' in apiNotFoundModule).toBe(false);
+
+    const apiGetCtx = makeContext('corr-api-get-404');
+    const apiGetRes = apiNotFoundModule.loader({
+      request: new Request('https://andrew-k.us/api/nonexistent-endpoint', { method: 'GET' }),
+      params: { '*': 'nonexistent-endpoint' },
+      context: apiGetCtx.context,
+      url: new URL('https://andrew-k.us/api/nonexistent-endpoint'),
+      pattern: '/api/*',
+    });
+    expect(apiGetRes.status).toBe(404);
+    expect(apiGetRes.headers.get('content-type')).toContain('application/json');
+    expect(apiGetRes.headers.get('X-Correlation-Id')).toBe('corr-api-get-404');
+    const getBody = (await apiGetRes.json()) as PublicAppError;
+    expect(getBody).toMatchObject({
+      code: 'ERR_NOT_FOUND',
+      status: 404,
+      correlationId: 'corr-api-get-404',
+    });
+
+    const apiPostCtx = makeContext('corr-api-post-404');
+    const apiPostRes = apiNotFoundModule.action({
+      request: new Request('https://andrew-k.us/api/nonexistent-endpoint', { method: 'POST' }),
+      params: { '*': 'nonexistent-endpoint' },
+      context: apiPostCtx.context,
+      url: new URL('https://andrew-k.us/api/nonexistent-endpoint'),
+      pattern: '/api/*',
+    });
+    expect(apiPostRes.status).toBe(404);
+    expect(apiPostRes.headers.get('content-type')).toContain('application/json');
+    expect(apiPostRes.headers.get('X-Correlation-Id')).toBe('corr-api-post-404');
+    const postBody = (await apiPostRes.json()) as PublicAppError;
+    expect(postBody).toMatchObject({
+      code: 'ERR_NOT_FOUND',
+      status: 404,
+      correlationId: 'corr-api-post-404',
+    });
+
+    // HTML catch-all not-found loader throws 404 DataWithResponseInit with PublicAppError and X-Correlation-Id
+    const htmlCtx = makeContext('corr-html-404');
+    let thrown: unknown = null;
+    try {
+      notFoundLoader({
+        request: new Request('https://andrew-k.us/changes-in-progress'),
+        params: { '*': 'changes-in-progress' },
+        context: htmlCtx.context,
+        url: new URL('https://andrew-k.us/changes-in-progress'),
+        pattern: '/*',
+      });
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toMatchObject({
+      type: 'DataWithResponseInit',
+      data: {
+        code: 'ERR_NOT_FOUND',
+        status: 404,
+        correlationId: 'corr-html-404',
+      },
+      init: {
+        status: 404,
+        headers: { 'X-Correlation-Id': 'corr-html-404' },
+      },
+    });
+
+    const tags = notFoundMeta({
+      loaderData: undefined,
       matches: [
         {
           id: 'root',
@@ -264,44 +317,62 @@ describe('Portal streaming child routes, guest sessions, actions, and boundaries
           meta: [],
           loaderData: {
             runtimeSeo: { siteUrl: 'https://andrew-k.us' },
-            correlationId: 'corr-root',
+            correlationId: 'corr-root-404',
             initialViewport: 'desktop',
-            maintenanceMode: false,
-            rootPayload: Promise.withResolvers<never>().promise,
+            isNotFound: true,
+            rootPayload: null,
           },
         },
         {
-          id: 'routes/changes-in-progress-catchall',
-          params: { '*': 'nonexistent-legacy-path' },
-          pathname: '/nonexistent-legacy-path',
+          id: 'routes/not-found',
+          params: { '*': 'changes-in-progress' },
+          pathname: '/changes-in-progress',
           meta: [],
-          loaderData: { correlationId: 'corr-catchall', payload: deferred.promise },
+          loaderData: null,
         },
       ],
       location: {
-        pathname: '/nonexistent-legacy-path',
+        pathname: '/changes-in-progress',
         search: '',
         hash: '',
         state: null,
-        key: 'c1',
+        key: 'nf1',
       },
-      params: { '*': 'nonexistent-legacy-path' },
+      params: { '*': 'changes-in-progress' },
     });
     expect(tags).toContainEqual({ name: 'robots', content: 'noindex, nofollow' });
+    expect(tags).toContainEqual({ title: 'Not Found // andrew-k.us' });
 
+    // ErrorBoundary renders RouteErrorBoundaryView with root correlationId fallback and Return Home link
     const Stub = createRoutesStub([
       {
-        path: '/*',
-        loader: () => ({ correlationId: 'corr-catchall', payload: deferred.promise }),
-        Component: ChangesInProgressRoute,
-        ErrorBoundary: MaintenanceErrorBoundary,
+        id: 'root',
+        path: '/',
+        loader: () => ({
+          runtimeSeo: { siteUrl: 'https://andrew-k.us' },
+          correlationId: 'corr-root-fallback-404',
+          initialViewport: 'desktop' as const,
+          isNotFound: true,
+          rootPayload: null,
+        }),
+        children: [
+          {
+            path: '*',
+            loader: () => {
+              throw new Response('Not Found', { status: 404 });
+            },
+            Component: PortalNotFoundRoute,
+            ErrorBoundary: NotFoundErrorBoundary,
+          },
+        ],
       },
     ]);
-    render(<Stub initialEntries={['/nonexistent-legacy-path']} />);
-    expect(await screen.findByRole('status')).toBeTruthy();
-
-    deferred.resolve({ ok: true, data: MAINTENANCE_FIXTURE });
-    expect(await screen.findByRole('heading', { name: 'Changes in Progress' })).toBeTruthy();
+    render(<Stub initialEntries={['/changes-in-progress']} />);
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('ERR_NOT_FOUND');
+    expect(alert.textContent).toContain('HTTP 404');
+    expect(alert.textContent).toContain('corr-root-fallback-404');
+    expect(screen.getByRole('link', { name: 'Return Home' }).getAttribute('href')).toBe('/');
   });
 
   it('emits synchronous Set-Cookie on /chat and /cadence loaders and classifies DB action faults to HTTP 503', async () => {

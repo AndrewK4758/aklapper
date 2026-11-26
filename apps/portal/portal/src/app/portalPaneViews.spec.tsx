@@ -118,7 +118,7 @@ function makeRootStreamData(data: PortalRootLoaderData): PortalRootStreamData {
     runtimeSeo: { siteUrl: 'https://andrew-k.us' },
     correlationId: 'corr-root-pane',
     initialViewport: 'desktop',
-    maintenanceMode: data.maintenanceMode,
+    isNotFound: false,
     rootPayload: Promise.resolve<StreamResult<PortalRootLoaderData>>({ ok: true, data }),
   };
 }
@@ -187,7 +187,6 @@ const CHROME: PortalRootLoaderData['chrome'] = {
   footerText: 'Solar Forge',
   footerLinkLabel: 'agensi.io',
   footerLinkUrl: 'https://agensi.io',
-  maintenanceModeDefault: false,
 };
 
 const HOME_CONTENT: PortalHomeContent = {
@@ -333,9 +332,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
           path: '/',
           loader: () =>
             makeRootStreamData({
-              maintenanceMode: false,
               chrome: CHROME,
-              maintenance: null,
               terminal: TERMINAL,
               homeContent: HOME_CONTENT,
             }),
@@ -400,9 +397,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
           path: '/',
           loader: () =>
             makeRootStreamData({
-              maintenanceMode: false,
               chrome: CHROME,
-              maintenance: null,
               terminal: TERMINAL,
               homeContent: HOME_CONTENT,
             }),
@@ -468,9 +463,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
           path: '/',
           loader: () =>
             makeRootStreamData({
-              maintenanceMode: false,
               chrome: CHROME,
-              maintenance: null,
               terminal: TERMINAL,
               homeContent: HOME_CONTENT,
             }),
@@ -554,9 +547,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
           path: '/',
           loader: () =>
             makeRootStreamData({
-              maintenanceMode: false,
               chrome: CHROME,
-              maintenance: null,
               terminal: TERMINAL,
               homeContent: HOME_CONTENT,
             }),
@@ -716,9 +707,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
           path: '/',
           loader: () =>
             makeRootStreamData({
-              maintenanceMode: false,
               chrome: CHROME,
-              maintenance: null,
               terminal: TERMINAL,
               homeContent: HOME_CONTENT,
             }),
@@ -811,9 +800,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
           path: '/',
           loader: () =>
             makeRootStreamData({
-              maintenanceMode: false,
               chrome: CHROME,
-              maintenance: null,
               terminal: TERMINAL,
               homeContent: HOME_CONTENT,
             }),
@@ -988,9 +975,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
             path: '/',
             loader: () =>
               makeRootStreamData({
-                maintenanceMode: false,
                 chrome: CHROME,
-                maintenance: null,
                 terminal: TERMINAL,
                 homeContent: HOME_CONTENT,
               }),
@@ -1224,9 +1209,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
             path: '/',
             loader: () =>
               makeRootStreamData({
-                maintenanceMode: false,
                 chrome: CHROME,
-                maintenance: null,
                 terminal: TERMINAL,
                 homeContent: HOME_CONTENT,
               }),
@@ -1390,9 +1373,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
             path: '/',
             loader: () =>
               makeRootStreamData({
-                maintenanceMode: false,
                 chrome: CHROME,
-                maintenance: null,
                 terminal: TERMINAL,
                 homeContent: HOME_CONTENT,
               }),
@@ -1475,9 +1456,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
           path: '/',
           loader: () =>
             makeRootStreamData({
-              maintenanceMode: false,
               chrome: CHROME,
-              maintenance: null,
               terminal: TERMINAL,
               homeContent: HOME_CONTENT,
             }),
@@ -1534,9 +1513,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
           path: '/',
           loader: () =>
             makeRootStreamData({
-              maintenanceMode: false,
               chrome: CHROME,
-              maintenance: null,
               terminal: TERMINAL,
               homeContent: HOME_CONTENT,
             }),
@@ -1605,9 +1582,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
           path: '/',
           loader: () =>
             makeRootStreamData({
-              maintenanceMode: false,
               chrome: CHROME,
-              maintenance: null,
               terminal: TERMINAL,
               homeContent: HOME_CONTENT,
             }),
@@ -1703,9 +1678,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
           path: '/',
           loader: () =>
             makeRootStreamData({
-              maintenanceMode: false,
               chrome: CHROME,
-              maintenance: null,
               terminal: TERMINAL,
               homeContent: HOME_CONTENT,
             }),
@@ -1791,9 +1764,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
           path: '/',
           loader: () =>
             makeRootStreamData({
-              maintenanceMode: false,
               chrome: CHROME,
-              maintenance: null,
               terminal: TERMINAL,
               homeContent: HOME_CONTENT,
             }),
@@ -1849,9 +1820,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
           path: '/',
           loader: () => ({
             ...makeRootStreamData({
-              maintenanceMode: false,
               chrome: CHROME,
-              maintenance: null,
               terminal: TERMINAL,
               homeContent: HOME_CONTENT,
             }),
@@ -1926,9 +1895,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
           path: '/',
           loader: () =>
             makeRootStreamData({
-              maintenanceMode: false,
               chrome: CHROME,
-              maintenance: null,
               terminal: TERMINAL,
               homeContent: HOME_CONTENT,
             }),
@@ -2047,9 +2014,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
           path: '/',
           loader: () =>
             makeRootStreamData({
-              maintenanceMode: false,
               chrome: CHROME,
-              maintenance: null,
               terminal: TERMINAL,
               homeContent: HOME_CONTENT,
             }),

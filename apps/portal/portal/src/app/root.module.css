@@ -187,51 +187,6 @@
     --sf-space-4: var(--sf-space-2);
   }
 
-  .offlineMaintenance {
-    flex: 1 1 auto;
-    display: grid;
-    place-items: center;
-    padding: var(--sf-space-8);
-    background: var(--sf-bg-frame);
-  }
-
-  .offlineMaintenanceCard {
-    width: min(36rem, 100%);
-    display: grid;
-    gap: var(--sf-space-5);
-    padding: var(--sf-space-8);
-    border-radius: var(--sf-radius-md);
-    border: var(--sf-border-width) solid var(--sf-border);
-    background: var(--sf-bg-panel);
-    color: var(--sf-fg-bone);
-  }
-
-  .offlineMaintenanceHeader {
-    display: flex;
-    align-items: var(--sf-align-center);
-    gap: var(--sf-space-4);
-  }
-
-  .offlineMaintenanceHeader h1 {
-    margin: var(--sf-space-0);
-    color: var(--sf-gold);
-    font-size: var(--sf-text-lg);
-  }
-
-  .offlineMaintenanceLead {
-    margin: var(--sf-space-0);
-    color: var(--sf-fg-prop);
-    font-size: var(--sf-text-sm);
-    line-height: var(--sf-leading-base);
-  }
-
-  .offlineMaintenanceRef {
-    margin: var(--sf-space-0);
-    color: var(--sf-fg-cmt);
-    font-family: var(--sf-font-mono), monospace;
-    font-size: var(--sf-text-xs);
-  }
-
   .mobileBrand {
     position: relative;
     display: inline-flex;

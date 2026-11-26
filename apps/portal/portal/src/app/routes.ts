@@ -12,6 +12,6 @@ export default [
   route('api/analytics/ingest', 'routes/api.analytics.ingest.ts'),
   route('api/runtime/status', 'routes/api.runtime.status.ts'),
   route('api/cadence/runs/:runId/stream', 'routes/api.cadence.runs.$runId.stream.ts'),
-  route('changes-in-progress', 'routes/changes-in-progress.tsx'),
-  route('*', 'routes/changes-in-progress.tsx', { id: 'routes/changes-in-progress-catchall' }),
+  route('api/*', 'routes/api.not-found.ts'),
+  route('*', 'routes/not-found.tsx'),
 ] satisfies RouteConfig;

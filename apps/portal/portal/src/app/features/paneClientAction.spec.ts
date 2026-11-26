@@ -57,7 +57,7 @@ describe('createPrimaryRouteClientAction', () => {
     const clientAction = createPrimaryRouteClientAction<ContactActionResult>('/contact');
     const redirectResponse = new Response(null, {
       status: 302,
-      headers: { Location: '/changes-in-progress' },
+      headers: { Location: '/contact' },
     });
     await expect(
       clientAction(

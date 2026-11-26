@@ -3,13 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { buildPortalPageMeta, DEFAULT_PORTAL_SITE_URL } from './seo';
 
 describe('portal SEO helper', () => {
-  it('generates indexable canonical and OpenGraph tags in normal mode', () => {
+  it('generates indexable canonical and OpenGraph tags by default', () => {
     const tags = buildPortalPageMeta({
       matches: [
         {
           id: 'root',
           loaderData: {
-            maintenanceMode: false,
             runtimeSeo: { siteUrl: 'https://preview.andrew-k.us' },
           },
         },
@@ -27,56 +26,20 @@ describe('portal SEO helper', () => {
     });
   });
 
-  it('overrides page meta with synchronous noindex maintenance defaults without awaited DB maintenance data', () => {
+  it('supports explicit noindex, nofollow directives and falls back to DEFAULT_PORTAL_SITE_URL', () => {
     const tags = buildPortalPageMeta({
-      matches: [
-        {
-          id: 'root',
-          loaderData: {
-            maintenanceMode: true,
-          },
-        },
-      ],
-      pathname: '/cadence',
-      title: 'CADENCE Builder',
-      description: 'Normal description',
+      matches: [],
+      pathname: '/changes-in-progress',
+      title: 'Not Found // andrew-k.us',
+      description: 'The requested page could not be found on andrew-k.us.',
+      robots: 'noindex, nofollow',
     });
 
-    expect(tags).toContainEqual({ title: 'Changes in Progress // andrew-k.us' });
+    expect(tags).toContainEqual({ title: 'Not Found // andrew-k.us' });
     expect(tags).toContainEqual({ name: 'robots', content: 'noindex, nofollow' });
-    expect(tags).toContainEqual({
-      name: 'description',
-      content:
-        'andrew-k.us is being rebuilt into the Solar Forge v2 interactive terminal and TUI platform.',
-    });
     expect(tags).toContainEqual({
       property: 'og:url',
-      content: `${DEFAULT_PORTAL_SITE_URL}/cadence`,
+      content: `${DEFAULT_PORTAL_SITE_URL}/changes-in-progress`,
     });
-  });
-
-  it('ignores legacy DB maintenance fields on root matches and stays strictly synchronous', () => {
-    const tags = buildPortalPageMeta({
-      matches: [
-        {
-          id: 'root',
-          loaderData: {
-            maintenanceMode: true,
-            maintenance: {
-              content: {
-                heading: 'DB Override Should Not Drive Sync Head',
-                lead: 'Async DB lead.',
-              },
-            },
-          },
-        },
-      ],
-      pathname: '/menu',
-      title: 'Launch Menu',
-      description: 'Menu description',
-    });
-
-    expect(tags).toContainEqual({ title: 'Changes in Progress // andrew-k.us' });
-    expect(tags).toContainEqual({ name: 'robots', content: 'noindex, nofollow' });
   });
 });

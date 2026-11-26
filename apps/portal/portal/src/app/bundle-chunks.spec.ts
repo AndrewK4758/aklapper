@@ -41,7 +41,7 @@ function collectStaticImportClosure(assetsDir: string, entryPatterns: readonly R
 }
 
 describe.runIf(existsSync(ASSETS_DIR))('Portal production client chunk isolation', () => {
-  it('omits off-screen pane adapters, SSE controller, and maintenance page from the / static closure', () => {
+  it('omits off-screen pane adapters and SSE controller from the / static closure and emits zero changes-in-progress chunks', () => {
     const { allJsFiles, entryFiles, closureFiles, combinedSource } = collectStaticImportClosure(
       ASSETS_DIR,
       [/^entry\.client-/, /^root-/, /^home-/],
@@ -55,7 +55,6 @@ describe.runIf(existsSync(ASSETS_DIR))('Portal production client chunk isolation
       /^CadenceFeatureView-/,
       /^ContactFeatureView-/,
       /^cadence-stream-/,
-      /^changes-in-progress-/,
     ]) {
       expect(closureFiles.some(file => forbiddenChunk.test(file))).toBe(false);
     }
@@ -77,6 +76,6 @@ describe.runIf(existsSync(ASSETS_DIR))('Portal production client chunk isolation
     expect(allJsFiles.some(file => file.startsWith('ChatFeatureView-'))).toBe(true);
     expect(allJsFiles.some(file => file.startsWith('CadenceFeatureView-'))).toBe(true);
     expect(allJsFiles.some(file => file.startsWith('ContactFeatureView-'))).toBe(true);
-    expect(allJsFiles.some(file => file.startsWith('changes-in-progress-'))).toBe(true);
+    expect(allJsFiles.some(file => file.startsWith('changes-in-progress-'))).toBe(false);
   });
 });

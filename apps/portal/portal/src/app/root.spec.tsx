@@ -1,17 +1,18 @@
 import {
   createPublicAppError,
-  type PortalMaintenanceLoaderData,
   type PortalRootLoaderData,
   type StreamResult,
+  type TerminalProfileData,
 } from '@aklapper/core';
+import { requestContextKey, type SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
 import { usePaneNavigation, ViewportProvider } from '@aklapper/ui';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { createRoutesStub, RouterContextProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const { loadPortalRootDataWithPrerenderMock } = vi.hoisted(() => ({
-  loadPortalRootDataWithPrerenderMock:
-    vi.fn<(override?: boolean) => Promise<PortalRootLoaderData>>(),
+const { loadPortalRootDataWithPrerenderMock, reportPortalPublicErrorMock } = vi.hoisted(() => ({
+  loadPortalRootDataWithPrerenderMock: vi.fn<() => Promise<PortalRootLoaderData>>(),
+  reportPortalPublicErrorMock: vi.fn<(error: unknown, context?: unknown) => void>(),
 }));
 
 vi.mock('@aklapper/db', async importOriginal => {
@@ -22,7 +23,22 @@ vi.mock('@aklapper/db', async importOriginal => {
   };
 });
 
-import PortalRoot, { ErrorBoundary, loader, meta } from './root';
+vi.mock('./client-telemetry', async importOriginal => {
+  const actual = await importOriginal<typeof import('./client-telemetry')>();
+  return {
+    ...actual,
+    reportPortalPublicError: reportPortalPublicErrorMock,
+  };
+});
+
+import PortalRoot, {
+  ErrorBoundary,
+  isNavigablePath,
+  Layout,
+  loader,
+  meta,
+  shouldRevalidate,
+} from './root';
 
 const CHROME_FIXTURE: PortalRootLoaderData['chrome'] = {
   pageTitle: 'andrew-k.us // Solar Forge Terminal',
@@ -30,82 +46,47 @@ const CHROME_FIXTURE: PortalRootLoaderData['chrome'] = {
   brandContactEmail: 'andrew@andrew-k.us',
   shortcutHint: 'Ctrl+⇧} / Alt+⇧D split · Ctrl+⇧{ / Alt+⇧S hsplit · Alt+⇧N tab · Alt+T tui',
   statusBadge: {
-    source: 'gke-autopilot',
+    source: 'cloud-run',
     state: 'idle',
-    label: '0 pods (scale-to-0)',
+    label: '0 instances (scale-to-0)',
   },
   footerText: 'Solar Forge // Fastify 5 + React Router 8 SSR',
   footerLinkLabel: 'agensi.io/creators/aklapper',
   footerLinkUrl: 'https://agensi.io/creators/aklapper',
-  maintenanceModeDefault: false,
 };
 
-const MAINTENANCE_FIXTURE: PortalMaintenanceLoaderData = {
-  content: {
-    windowTitle: 'tui :: andrew-k.us // changes in progress',
-    statusBadge: {
-      source: 'solar-forge-v2',
-      state: 'scaling',
-      label: 'CHANGES IN PROGRESS',
-    },
-    heading: 'Changes in Progress',
-    lead: 'andrew-k.us is being rebuilt into the Solar Forge v2 interactive terminal and TUI platform.',
-    progressPercent: 72,
-    progressAriaLabel: 'Solar Forge v2 rebuild progress',
-    metaLeft: 'mode: maintenance (no navigation)',
-    metaRight: 'progress: 72% · drag titlebar or type below',
-  },
-  terminal: {
-    slug: 'portal-maintenance',
-    bannerTitle: 'Solar Forge Terminal // andrew-k.us (maintenance)',
-    bannerMeta: 'tty1 · type "help" or press Tab',
-    osLabel: '⚡',
-    directory: '~/andrew-k.us',
-    vcsBranch: 'portfolio_v2 !wip',
-    vcsState: 'modified',
-    contextLabel: 'visitor@andrew-k.us',
-    placeholder: 'type a command',
-    quickCommands: ['whoami', 'clear'],
-    initialEntries: [
-      {
-        command: 'status',
-        output: 'andrew-k.us :: Solar Forge v2 rebuild is actively underway.',
-        status: 'ok',
-        durationLabel: '8ms',
-        timestamp: '00:00:00',
-        sortOrder: 0,
-      },
-    ],
-    commands: [
-      {
-        name: 'whoami',
-        description: 'active session identity',
-        kind: 'static',
-        output: 'visitor@andrew-k.us (read-only maintenance tty1)',
-        targetRoute: null,
-        allowedRoutes: [],
-        errorTemplate: null,
-        sortOrder: 1,
-      },
-      {
-        name: 'clear',
-        description: 'clear terminal',
-        kind: 'clear',
-        output: '',
-        targetRoute: null,
-        allowedRoutes: [],
-        errorTemplate: null,
-        sortOrder: 2,
-      },
-    ],
-  },
-  milestones: [
+const TERMINAL_FIXTURE: TerminalProfileData = {
+  slug: 'portal-home',
+  bannerTitle: 'Solar Forge Terminal // tty1',
+  bannerMeta: 'tty1 · interactive shell',
+  osLabel: '⚡',
+  directory: '~/andrew-k.us',
+  vcsBranch: 'portfolio_v2',
+  vcsState: 'clean',
+  contextLabel: 'guest@andrew-k.us',
+  placeholder: 'type a command',
+  quickCommands: ['whoami', 'clear'],
+  initialEntries: [],
+  commands: [
     {
-      slug: 'solar-forge-theme',
-      status: 'done',
-      label: 'Solar Forge 4-layer CSS variable theme & animated reticle emblem',
+      name: 'whoami',
+      description: 'active session identity',
+      kind: 'static',
+      output: 'guest@andrew-k.us (tty1)',
+      targetRoute: null,
+      allowedRoutes: [],
+      errorTemplate: null,
       sortOrder: 1,
-      enabled: true,
+    },
+    {
+      name: 'clear',
+      description: 'clear terminal',
+      kind: 'clear',
+      output: '',
+      targetRoute: null,
+      allowedRoutes: [],
+      errorTemplate: null,
+      sortOrder: 2,
     },
   ],
 };
@@ -113,15 +94,36 @@ const MAINTENANCE_FIXTURE: PortalMaintenanceLoaderData = {
 function makeRootLoaderArgs(
   url = 'https://andrew-k.us/',
   headers?: HeadersInit,
-): Parameters<typeof loader>[0] {
+  correlationId?: string,
+) {
+  const infoCalls: Array<{ obj: Record<string, unknown>; msg?: string }> = [];
+  const logger: SsrStructuredLogger = {
+    info: vi.fn<(obj: Record<string, unknown>, msg?: string) => void>((obj, msg) => {
+      infoCalls.push({ obj, msg });
+    }),
+    warn: vi.fn<(obj: Record<string, unknown>, msg?: string) => void>(),
+    error: vi.fn<(obj: Record<string, unknown>, msg?: string) => void>(),
+  };
+  const context = new RouterContextProvider();
+  if (correlationId) {
+    context.set(requestContextKey, {
+      correlationId,
+      logger,
+      serviceName: 'portal-ssr',
+      signal: new AbortController().signal,
+    });
+  }
   return {
-    request: new Request(url, { headers }),
-    params: {},
-    context: new RouterContextProvider(),
-    unstable_pattern: '/',
-    url: new URL(url),
-    pattern: '/',
-  } as Parameters<typeof loader>[0];
+    args: {
+      request: new Request(url, { headers }),
+      params: {},
+      context,
+      unstable_pattern: '/',
+      url: new URL(url),
+      pattern: '/',
+    } as Parameters<typeof loader>[0],
+    infoCalls,
+  };
 }
 
 describe('PortalRoot', () => {
@@ -133,35 +135,293 @@ describe('PortalRoot', () => {
     } else {
       process.env['PORTAL_MAINTENANCE_MODE'] = originalMaintenanceEnv;
     }
+    vi.restoreAllMocks();
     vi.clearAllMocks();
   });
 
-  it('returns deferred rootPayload synchronously and forwards tri-state maintenanceModeOverride', async () => {
-    delete process.env['PORTAL_MAINTENANCE_MODE'];
+  it('streams navigable routes without maintenance branching even if stale PORTAL_MAINTENANCE_MODE=true is set', async () => {
+    process.env['PORTAL_MAINTENANCE_MODE'] = 'true';
     const pending = Promise.withResolvers<PortalRootLoaderData>();
     loadPortalRootDataWithPrerenderMock.mockReturnValueOnce(pending.promise);
 
-    const result = loader(makeRootLoaderArgs());
+    const { args, infoCalls } = makeRootLoaderArgs('https://andrew-k.us/', undefined, 'corr-nav-1');
+    const result = loader(args);
 
-    expect(result.maintenanceMode).toBe(false);
-    expect(result.correlationId).toMatch(/\S+/);
-    expect(loadPortalRootDataWithPrerenderMock).toHaveBeenCalledWith(undefined);
+    expect(result.isNotFound).toBe(false);
+    expect('maintenanceMode' in result).toBe(false);
+    expect(result.correlationId).toBe('corr-nav-1');
+    expect(loadPortalRootDataWithPrerenderMock).toHaveBeenCalledTimes(1);
+    expect(loadPortalRootDataWithPrerenderMock).toHaveBeenCalledWith();
     expect(result.rootPayload).toBeInstanceOf(Promise);
+    expect(infoCalls).toContainEqual(
+      expect.objectContaining({
+        obj: expect.objectContaining({
+          seam_type: 'RULE_DIVERGENCE',
+          event: 'portal.routing.unmatched_route_branch',
+          branch: 'navigable_route_stream',
+          correlationId: 'corr-nav-1',
+        }),
+      }),
+    );
 
-    pending.resolve({
-      maintenanceMode: false,
-      chrome: CHROME_FIXTURE,
-      maintenance: null,
+    const tags = meta({
+      loaderData: result,
+      matches: [
+        {
+          id: 'root',
+          params: {},
+          pathname: '/',
+          meta: [],
+          loaderData: result,
+        },
+      ],
+      location: { pathname: '/', search: '', hash: '', state: null, key: 'r1' },
+      params: {},
     });
+    expect(tags).toContainEqual({ name: 'robots', content: 'index, follow' });
+
+    pending.resolve({ chrome: CHROME_FIXTURE });
     const settled = await result.rootPayload;
     expect(settled).toEqual({
       ok: true,
-      data: {
-        maintenanceMode: false,
-        chrome: CHROME_FIXTURE,
-        maintenance: null,
-      },
+      data: { chrome: CHROME_FIXTURE },
     });
+  });
+
+  it('short-circuits PostgreSQL queries on /changes-in-progress and unknown paths while preserving correlationId and mobile viewport', () => {
+    const { args: desktopArgs, infoCalls } = makeRootLoaderArgs(
+      'https://andrew-k.us/changes-in-progress',
+      { 'Sec-CH-UA-Mobile': '?0' },
+      'corr-404-desktop',
+    );
+    const desktopResult = loader(desktopArgs);
+
+    expect(desktopResult.isNotFound).toBe(true);
+    expect(desktopResult.rootPayload).toBeNull();
+    expect(desktopResult.correlationId).toBe('corr-404-desktop');
+    expect(desktopResult.initialViewport).toBe('desktop');
+    expect(loadPortalRootDataWithPrerenderMock).not.toHaveBeenCalled();
+    expect(infoCalls).toContainEqual(
+      expect.objectContaining({
+        obj: expect.objectContaining({
+          seam_type: 'RULE_DIVERGENCE',
+          event: 'portal.routing.unmatched_route_branch',
+          branch: 'not_found_zero_db_404',
+          correlationId: 'corr-404-desktop',
+        }),
+      }),
+    );
+
+    const { args: mobileArgs } = makeRootLoaderArgs(
+      'https://andrew-k.us/nonexistent-route/nested/',
+      { 'Sec-CH-UA-Mobile': '?1' },
+      'corr-404-mobile',
+    );
+    const mobileResult = loader(mobileArgs);
+    expect(mobileResult.isNotFound).toBe(true);
+    expect(mobileResult.rootPayload).toBeNull();
+    expect(mobileResult.initialViewport).toBe('mobile-portrait');
+    expect(loadPortalRootDataWithPrerenderMock).not.toHaveBeenCalled();
+
+    // Burst of 50 concurrent bot-scan 404 requests executes zero DB queries
+    const burst = Array.from({ length: 50 }, (_, idx) =>
+      loader(makeRootLoaderArgs(`https://andrew-k.us/bot-probe-${idx + 1}`).args),
+    );
+    expect(burst.every(res => res.isNotFound && res.rootPayload === null)).toBe(true);
+    expect(loadPortalRootDataWithPrerenderMock).not.toHaveBeenCalled();
+  });
+
+  it('matches navigable route paths case-insensitively and revalidates across navigable/not-found boundaries', () => {
+    expect(isNavigablePath('/')).toBe(true);
+    expect(isNavigablePath('/Contact')).toBe(true);
+    expect(isNavigablePath('/CADENCE/')).toBe(true);
+    expect(isNavigablePath('/changes-in-progress')).toBe(false);
+    expect(isNavigablePath('/changes-in-progress/')).toBe(false);
+    expect(isNavigablePath('/unknown/nested')).toBe(false);
+
+    loadPortalRootDataWithPrerenderMock.mockReturnValueOnce(
+      Promise.resolve({ chrome: CHROME_FIXTURE }),
+    );
+    const mixedCaseResult = loader(
+      makeRootLoaderArgs('https://andrew-k.us/Contact', undefined, 'corr-contact-case').args,
+    );
+    expect(mixedCaseResult.isNotFound).toBe(false);
+    expect(mixedCaseResult.rootPayload).toBeInstanceOf(Promise);
+    expect(loadPortalRootDataWithPrerenderMock).toHaveBeenCalledTimes(1);
+
+    // 404 -> / must return literal true even when defaultShouldRevalidate is false
+    expect(
+      shouldRevalidate({
+        currentUrl: new URL('https://andrew-k.us/changes-in-progress'),
+        nextUrl: new URL('https://andrew-k.us/'),
+        defaultShouldRevalidate: false,
+      } as Parameters<typeof shouldRevalidate>[0]),
+    ).toBe(true);
+
+    // / -> 404 must also return literal true
+    expect(
+      shouldRevalidate({
+        currentUrl: new URL('https://andrew-k.us/'),
+        nextUrl: new URL('https://andrew-k.us/nonexistent'),
+        defaultShouldRevalidate: false,
+      } as Parameters<typeof shouldRevalidate>[0]),
+    ).toBe(true);
+
+    // / -> /Contact stays within navigable set -> false
+    expect(
+      shouldRevalidate({
+        currentUrl: new URL('https://andrew-k.us/'),
+        nextUrl: new URL('https://andrew-k.us/Contact'),
+        defaultShouldRevalidate: true,
+      } as Parameters<typeof shouldRevalidate>[0]),
+    ).toBe(false);
+  });
+
+  it('renders standalone Outlet on 404 without mounting PortalRootShell or calling /api/runtime/status, and Return Home revalidates root.loader to mount /', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const rootLoaderSpy = vi.fn<(args: { request: Request }) => ReturnType<typeof loader>>(
+      ({ request }) => {
+        const pathname = new URL(request.url).pathname;
+        if (!isNavigablePath(pathname)) {
+          return {
+            runtimeSeo: { siteUrl: 'https://andrew-k.us' },
+            correlationId: 'corr-root-404',
+            initialViewport: 'desktop' as const,
+            isNotFound: true,
+            rootPayload: null,
+          };
+        }
+        return {
+          runtimeSeo: { siteUrl: 'https://andrew-k.us' },
+          correlationId: 'corr-root-home',
+          initialViewport: 'desktop' as const,
+          isNotFound: false,
+          rootPayload: Promise.resolve<StreamResult<PortalRootLoaderData>>({
+            ok: true,
+            data: { chrome: CHROME_FIXTURE },
+          }),
+        };
+      },
+    );
+
+    const { default: PortalNotFoundRoute, ErrorBoundary: NotFoundErrorBoundary } =
+      await import('./routes/not-found');
+
+    const Stub = createRoutesStub([
+      {
+        id: 'root',
+        path: '/',
+        loader: rootLoaderSpy,
+        shouldRevalidate,
+        Component: PortalRoot,
+        ErrorBoundary,
+        children: [
+          { index: true, Component: () => <div>Recovered Home Workspace</div> },
+          {
+            path: '*',
+            loader: () => {
+              throw new Response('Not Found', { status: 404 });
+            },
+            Component: PortalNotFoundRoute,
+            ErrorBoundary: NotFoundErrorBoundary,
+          },
+        ],
+      },
+    ]);
+
+    render(<Stub initialEntries={['/changes-in-progress']} />);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('ERR_NOT_FOUND');
+    expect(alert.textContent).toContain('corr-root-404');
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Open Pane' })).toBeNull();
+    expect(fetchSpy.mock.calls.some(call => String(call[0]).includes('/api/runtime/status'))).toBe(
+      false,
+    );
+    expect(rootLoaderSpy).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('link', { name: 'Return Home' }));
+
+    expect(await screen.findByText('Recovered Home Workspace')).toBeTruthy();
+    expect(screen.getByText('Andrew Klapper Portfolio')).toBeTruthy();
+    expect(rootLoaderSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('emits noindex, nofollow for both robots and googlebot without JSON-LD or duplicate robots tags on 404 and root errors', async () => {
+    const notFoundData = loader(
+      makeRootLoaderArgs('https://andrew-k.us/changes-in-progress', undefined, 'corr-head-404')
+        .args,
+    );
+
+    const notFoundMetaTags = meta({
+      loaderData: notFoundData,
+      matches: [
+        {
+          id: 'root',
+          params: {},
+          pathname: '/',
+          meta: [],
+          loaderData: notFoundData,
+        },
+      ],
+      location: { pathname: '/changes-in-progress', search: '', hash: '', state: null, key: 'nf' },
+      params: {},
+    });
+    const robotsTags = notFoundMetaTags.filter(tag => 'name' in tag && tag.name === 'robots');
+    expect(robotsTags).toEqual([{ name: 'robots', content: 'noindex, nofollow' }]);
+
+    const errorMetaTags = meta({
+      loaderData: undefined,
+      error: new Error('Unexpected root loader fault'),
+      matches: [
+        {
+          id: 'root',
+          params: {},
+          pathname: '/',
+          meta: [],
+          loaderData: notFoundData,
+        },
+      ],
+      location: { pathname: '/', search: '', hash: '', state: null, key: 'err' },
+      params: {},
+    });
+    expect(errorMetaTags.filter(tag => 'name' in tag && tag.name === 'robots')).toEqual([
+      { name: 'robots', content: 'noindex, nofollow' },
+    ]);
+
+    // Verify Layout omits JSON-LD and emits googlebot="noindex, nofollow" without duplicating meta[name="robots"]
+    const Stub = createRoutesStub([
+      {
+        id: 'root',
+        path: '/',
+        loader: () => notFoundData,
+        Component: () => (
+          <Layout>
+            <div>404 Body</div>
+          </Layout>
+        ),
+        children: [{ path: '*', Component: () => null }],
+      },
+    ]);
+
+    const { unmount } = render(<Stub initialEntries={['/changes-in-progress']} />);
+    try {
+      expect(await screen.findByText('404 Body')).toBeTruthy();
+      expect(document.head.querySelector('meta[name="googlebot"]')?.getAttribute('content')).toBe(
+        'noindex, nofollow',
+      );
+      // Layout itself does not emit a duplicate meta[name="robots"]; <Meta /> owns that tag
+      expect(document.head.querySelectorAll('meta[name="robots"]')).toHaveLength(0);
+      expect(document.head.querySelector('script[type="application/ld+json"]')).toBeNull();
+      expect(
+        document.head
+          .querySelector('meta[name="aklapper-correlation-id"]')
+          ?.getAttribute('content'),
+      ).toBe('corr-head-404');
+    } finally {
+      unmount();
+    }
   });
 
   it('streams loading status first and then renders Solar Forge portal chrome without admin leakage', async () => {
@@ -173,7 +433,8 @@ describe('PortalRoot', () => {
         loader: () => ({
           runtimeSeo: { siteUrl: 'https://andrew-k.us' },
           correlationId: 'corr-root-ok',
-          maintenanceMode: false,
+          initialViewport: 'desktop' as const,
+          isNotFound: false,
           rootPayload: deferred.promise,
         }),
         Component: PortalRoot,
@@ -190,11 +451,7 @@ describe('PortalRoot', () => {
 
     deferred.resolve({
       ok: true,
-      data: {
-        maintenanceMode: false,
-        chrome: CHROME_FIXTURE,
-        maintenance: null,
-      },
+      data: { chrome: CHROME_FIXTURE },
     });
 
     expect(await screen.findByText('Andrew Klapper Portfolio')).toBeTruthy();
@@ -209,94 +466,13 @@ describe('PortalRoot', () => {
     expect(screen.getByRole('main').getAttribute('data-terminal-viewport')).toBe('true');
   });
 
-  it('switches streamed body to Changes in Progress when env is unset and DB maintenanceMode is active', async () => {
-    const Stub = createRoutesStub([
-      {
-        id: 'root',
-        path: '/',
-        loader: () => ({
-          runtimeSeo: { siteUrl: 'https://andrew-k.us' },
-          correlationId: 'corr-db-maint',
-          maintenanceMode: false,
-          rootPayload: Promise.resolve<StreamResult<PortalRootLoaderData>>({
-            ok: true,
-            data: {
-              maintenanceMode: true,
-              chrome: { ...CHROME_FIXTURE, maintenanceModeDefault: true },
-              maintenance: MAINTENANCE_FIXTURE,
-            },
-          }),
-        }),
-        Component: PortalRoot,
-        children: [{ index: true, Component: () => <div>Should Not Render</div> }],
-      },
-    ]);
-
-    render(<Stub initialEntries={['/']} />);
-
-    expect(await screen.findByRole('heading', { name: 'Changes in Progress' })).toBeTruthy();
-    expect(screen.queryAllByRole('link')).toHaveLength(0);
-    expect(screen.queryByText('Should Not Render')).toBeNull();
-    expect(
-      screen
-        .getByRole('progressbar', { name: 'Solar Forge v2 rebuild progress' })
-        .getAttribute('aria-valuenow'),
-    ).toBe('72');
-
-    const input = screen.getByLabelText('Terminal command input');
-    fireEvent.change(input, { target: { value: 'whoami' } });
-    fireEvent.submit(input.closest('form') as HTMLFormElement);
-    expect(screen.getByText(/visitor@andrew-k\.us \(read-only maintenance tty1\)/)).toBeTruthy();
-  });
-
-  it('emits synchronous noindex meta and static offline maintenance fallback when PORTAL_MAINTENANCE_MODE=true and Postgres is offline', async () => {
-    process.env['PORTAL_MAINTENANCE_MODE'] = 'true';
-    loadPortalRootDataWithPrerenderMock.mockRejectedValueOnce(new Error('connection terminated'));
-
-    const loaderData = loader(makeRootLoaderArgs());
-    expect(loaderData.maintenanceMode).toBe(true);
-    expect(loadPortalRootDataWithPrerenderMock).toHaveBeenCalledWith(true);
-
-    const tags = meta({
-      loaderData,
-      matches: [
-        {
-          id: 'root',
-          params: {},
-          pathname: '/',
-          meta: [],
-          loaderData,
-        },
-      ],
-      location: { pathname: '/', search: '', hash: '', state: null, key: 'r1' },
-      params: {},
-    });
-    expect(tags).toContainEqual({ name: 'robots', content: 'noindex, nofollow' });
-
-    const Stub = createRoutesStub([
-      {
-        id: 'root',
-        path: '/',
-        loader: () => loaderData,
-        Component: PortalRoot,
-      },
-    ]);
-
-    render(<Stub initialEntries={['/']} />);
-
-    expect(await screen.findByTestId('offline-maintenance-fallback')).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Changes in Progress' })).toBeTruthy();
-    expect(screen.getByText(loaderData.correlationId)).toBeTruthy();
-    expect(screen.queryAllByRole('link')).toHaveLength(0);
-  });
-
-  it('renders correlated ErrorElement inside intact shell on root stream timeout', async () => {
-    const timeoutError = createPublicAppError({
-      code: 'ERR_STREAM_TIMEOUT',
-      status: 504,
-      message: 'Section took too long to load.',
-      action: 'Retry loading or refresh.',
-      correlationId: 'corr-root-504',
+  it('renders standard correlated ErrorElement on Postgres outage instead of OfflineMaintenanceFallback', async () => {
+    const dbError = createPublicAppError({
+      code: 'ERR_DB_UNAVAILABLE',
+      status: 503,
+      message: 'Database temporarily unavailable.',
+      action: 'Retry shortly or share ID.',
+      correlationId: 'corr-root-503',
     });
 
     const Stub = createRoutesStub([
@@ -305,11 +481,12 @@ describe('PortalRoot', () => {
         path: '/',
         loader: () => ({
           runtimeSeo: { siteUrl: 'https://andrew-k.us' },
-          correlationId: 'corr-root-504',
-          maintenanceMode: false,
+          correlationId: 'corr-root-503',
+          initialViewport: 'desktop' as const,
+          isNotFound: false,
           rootPayload: Promise.resolve<StreamResult<PortalRootLoaderData>>({
             ok: false,
-            error: timeoutError,
+            error: dbError,
           }),
         }),
         Component: PortalRoot,
@@ -319,12 +496,13 @@ describe('PortalRoot', () => {
     render(<Stub initialEntries={['/']} />);
 
     const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toContain('ERR_STREAM_TIMEOUT');
-    expect(alert.textContent).toContain('corr-root-504');
+    expect(alert.textContent).toContain('ERR_DB_UNAVAILABLE');
+    expect(alert.textContent).toContain('corr-root-503');
     expect(screen.getByRole('button', { name: /Retry/i })).toBeTruthy();
+    expect(screen.queryByTestId('offline-maintenance-fallback')).toBeNull();
   });
 
-  it('supports Ghostty split keybindings globally on portal TUI routes', async () => {
+  it('supports split keybindings globally on portal TUI routes', async () => {
     const Stub = createRoutesStub([
       {
         id: 'root',
@@ -332,14 +510,13 @@ describe('PortalRoot', () => {
         loader: () => ({
           runtimeSeo: { siteUrl: 'https://andrew-k.us' },
           correlationId: 'corr-pane',
-          maintenanceMode: false,
+          initialViewport: 'desktop' as const,
+          isNotFound: false,
           rootPayload: Promise.resolve<StreamResult<PortalRootLoaderData>>({
             ok: true,
             data: {
-              maintenanceMode: false,
               chrome: CHROME_FIXTURE,
-              maintenance: null,
-              terminal: MAINTENANCE_FIXTURE.terminal,
+              terminal: TERMINAL_FIXTURE,
             },
           }),
         }),
@@ -372,41 +549,64 @@ describe('PortalRoot', () => {
     expect(workspaceEl.getAttribute('data-tab-count')).toBe('1');
   });
 
-  it('contains unexpected route errors cleanly in exported ErrorBoundary', async () => {
-    const Stub = createRoutesStub([
+  it('suppresses client analytics beacons on 404 errors while reporting 500 errors cleanly', async () => {
+    const notFoundError = createPublicAppError({
+      code: 'ERR_NOT_FOUND',
+      status: 404,
+      message: 'Resource could not be found.',
+      action: 'Verify the URL or return home.',
+      correlationId: 'corr-404-suppress',
+    });
+
+    const NotFoundStub = createRoutesStub([
       {
         id: 'root',
         path: '/',
         Component: () => {
-          throw new Error('Internal crash at /srv/secret/file.ts:42');
+          throw notFoundError;
         },
         ErrorBoundary,
       },
     ]);
 
-    render(<Stub initialEntries={['/']} />);
+    const first = render(<NotFoundStub initialEntries={['/']} />);
+    const alert404 = await screen.findByRole('alert');
+    expect(alert404.textContent).toContain('ERR_NOT_FOUND');
+    expect(alert404.textContent).toContain('corr-404-suppress');
+    expect(reportPortalPublicErrorMock).not.toHaveBeenCalled();
+    first.unmount();
 
-    const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toContain('ERR_INTERNAL');
-    expect(alert.textContent).not.toContain('/srv/secret/file.ts');
+    const crashError = new Error('Internal crash at /srv/secret/file.ts:42');
+    const ErrorStub = createRoutesStub([
+      {
+        id: 'root',
+        path: '/',
+        Component: () => {
+          throw crashError;
+        },
+        ErrorBoundary,
+      },
+    ]);
+
+    render(<ErrorStub initialEntries={['/']} />);
+    const alert500 = await screen.findByRole('alert');
+    expect(alert500.textContent).toContain('ERR_INTERNAL');
+    expect(alert500.textContent).not.toContain('/srv/secret/file.ts');
+    expect(reportPortalPublicErrorMock).toHaveBeenCalledTimes(1);
   });
 
   it('detects initialViewport synchronously from Sec-CH-UA-Mobile and User-Agent headers', () => {
     loadPortalRootDataWithPrerenderMock.mockReturnValue(
-      Promise.resolve({
-        maintenanceMode: false,
-        chrome: CHROME_FIXTURE,
-        maintenance: null,
-      }),
+      Promise.resolve({ chrome: CHROME_FIXTURE }),
     );
 
     const mobileResult = loader(
-      makeRootLoaderArgs('https://andrew-k.us/', { 'Sec-CH-UA-Mobile': '?1' }),
+      makeRootLoaderArgs('https://andrew-k.us/', { 'Sec-CH-UA-Mobile': '?1' }).args,
     );
     expect(mobileResult.initialViewport).toBe('mobile-portrait');
 
     const desktopResult = loader(
-      makeRootLoaderArgs('https://andrew-k.us/', { 'Sec-CH-UA-Mobile': '?0' }),
+      makeRootLoaderArgs('https://andrew-k.us/', { 'Sec-CH-UA-Mobile': '?0' }).args,
     );
     expect(desktopResult.initialViewport).toBe('desktop');
   });
@@ -432,13 +632,11 @@ describe('PortalRoot', () => {
           runtimeSeo: { siteUrl: 'https://andrew-k.us' },
           correlationId: 'corr-mobile-stack',
           initialViewport: 'mobile-portrait' as const,
-          maintenanceMode: false,
+          isNotFound: false,
           rootPayload: Promise.resolve<StreamResult<PortalRootLoaderData>>({
             ok: true,
             data: {
-              maintenanceMode: false,
               chrome: CHROME_FIXTURE,
-              maintenance: null,
               homeContent: {
                 tuiTitle: 'Solar Forge Launcher',
                 tuiBadge: { source: 'portal', state: 'ready', label: 'READY' },
@@ -467,11 +665,9 @@ describe('PortalRoot', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Open Stacked TUI' }));
     expect(await screen.findByText('Welcome Launcher')).toBeTruthy();
 
-    // Activating Back button in sticky TUI header pops stack and restores home content
     fireEvent.click(screen.getByRole('button', { name: 'Back to previous pane' }));
     expect(await screen.findByText('Mobile Home Content')).toBeTruthy();
 
-    // Re-push stack, then navigate via bottom dock link -> resets stack and shows /agensi
     fireEvent.click(screen.getByRole('button', { name: 'Open Stacked TUI' }));
     expect(await screen.findByText('Welcome Launcher')).toBeTruthy();
     fireEvent.click(screen.getByRole('link', { name: 'Skills' }));

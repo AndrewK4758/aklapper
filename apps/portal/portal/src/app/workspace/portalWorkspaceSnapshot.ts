@@ -188,10 +188,7 @@ export type PortalWorkspaceEventName =
   | 'portal.workspace.write_failed'
   | 'portal.workspace.route_policy_branch';
 
-export type PortalWorkspaceRoutePolicyBranch =
-  | 'global-workspace'
-  | 'excluded-maintenance'
-  | 'excluded-standalone';
+export type PortalWorkspaceRoutePolicyBranch = 'global-workspace';
 
 export interface PortalWorkspaceEvent {
   readonly event: PortalWorkspaceEventName;
