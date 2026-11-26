@@ -76,6 +76,7 @@ env:
   NODE_VERSION: 26.13.1
   NX_DAEMON: 'false'
   NX_NO_CLOUD: 'true'
+  CLOUDSDK_CORE_DISABLE_PROMPTS: '1'
 
 jobs:
   resolve-plan:
@@ -423,8 +424,6 @@ jobs:
 
       - name: Setup gcloud CLI (with beta for Direct IAP)
         uses: google-github-actions/setup-gcloud@v3
-        with:
-          install_components: 'beta'
         with:
           install_components: beta
 
