@@ -10,6 +10,7 @@ import {
   PrivacySanitizationError,
   redactTextForStorage,
   sanitizeCareerDossierPayload,
+  sanitizePortalAboutSiteContent,
   sanitizePortalAskSiteContent,
   sanitizePortalHomeSiteContent,
   scanTextForPrivacyFindings,
@@ -432,6 +433,142 @@ describe('@aklapper/node-runtime/privacy fail-closed sanitization', () => {
     } finally {
       warnSpy.mockRestore();
       infoSpy.mockRestore();
+    }
+  });
+
+  it('blocks US postal ZIP patterns via pii.us_postal_zip without false positives on technical 5-digit numbers or lowercase prepositions', () => {
+    const emptyDenylist = parseDossierPrivacyDenylist('');
+
+    for (const blockedZip of [
+      'Marietta, GA 30062',
+      'GA 30062',
+      'NY, 10001-1234',
+      '90210-1234',
+      'ZIP 30062',
+      'zip code: 30062',
+      'Zip#30062-4321',
+    ]) {
+      const findings = scanTextForPrivacyFindings(blockedZip, 'location', emptyDenylist);
+      expect(
+        findings.some(f => f.ruleId === 'pii.us_postal_zip' && f.category === 'pii'),
+        `expected pii.us_postal_zip for ${JSON.stringify(blockedZip)}`,
+      ).toBe(true);
+    }
+
+    for (const safeTechnical of [
+      'Listens on localhost:11434 and processes 40000 requests',
+      'Trained in 40000 steps or 40000 tokens',
+      'Row id 12345 completed in ms 15000',
+      'Marietta, GA — Senior Full-Stack & Systems Engineer',
+      'C# (.NET 10), Go (1.26+), PostgreSQL 19, ISO-8601',
+    ]) {
+      const findings = scanTextForPrivacyFindings(safeTechnical, 'description', emptyDenylist);
+      expect(findings, `expected zero findings for ${JSON.stringify(safeTechnical)}`).toEqual([]);
+    }
+  });
+
+  it('enforces strict fail-closed privacy on portal-about writes without email allowlist bypasses and logs structured seams', () => {
+    const warnLogs: string[] = [];
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation((msg: unknown) => {
+      warnLogs.push(String(msg));
+    });
+    const encodedDenylist = encodeBase64Denylist(['SyntheticConfidentialClientX']);
+
+    try {
+      // Clean technical portal-about content passes
+      expect(() =>
+        sanitizePortalAboutSiteContent(
+          'Public resume framing for Marietta, GA covering localhost:11434 and 40000 items.',
+          {
+            identity: {
+              fullName: 'Andrew Klapper',
+              location: 'Marietta, GA',
+            },
+            servicesIntro: 'Built in 40000 iterations for Build Technology Group and Gitasy.',
+          },
+          encodedDenylist,
+          'corr-about-clean',
+          { NODE_ENV: 'production' },
+        ),
+      ).not.toThrow();
+
+      // Rejects email, phone, US ZIP, ZIP+4, tracker key, and denylist terms without echoing raw PII
+      const syntheticEmail = 'reference.contact@example.com';
+      const syntheticPhone = '(555) 010-1234';
+      const syntheticZip = 'Marietta, GA 30062';
+      const syntheticZipPlus4 = '90210-1234';
+      const syntheticTracker = `${'A' + 'KL'}-999`;
+
+      let caught: unknown = null;
+      try {
+        sanitizePortalAboutSiteContent(
+          `Contact ${syntheticEmail} at ${syntheticPhone} (${syntheticZip}, ${syntheticZipPlus4}) ref ${syntheticTracker}`,
+          {
+            description: 'Mentions SyntheticConfidentialClientX',
+          },
+          encodedDenylist,
+          'corr-about-reject',
+          { NODE_ENV: 'production' },
+        );
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught).toBeInstanceOf(PrivacySanitizationError);
+      const err = caught as PrivacySanitizationError;
+      expect(err.status).toBe(422);
+      expect(err.code).toBe('ERR_CONSTRAINT');
+      expect(err.findings.map(f => f.ruleId)).toEqual(
+        expect.arrayContaining([
+          'pii.email_address',
+          'pii.us_phone',
+          'pii.us_postal_zip',
+          'tracker.issue_key',
+          'denylist.term_1',
+        ]),
+      );
+
+      const serialized = `${JSON.stringify(err.findings)}\n${warnLogs.join('\n')}`;
+      for (const forbidden of [
+        syntheticEmail,
+        syntheticPhone,
+        '30062',
+        syntheticZipPlus4,
+        syntheticTracker,
+        'SyntheticConfidentialClientX',
+      ]) {
+        expect(serialized).not.toContain(forbidden);
+      }
+      expect(warnLogs.join('\n')).toContain('admin.privacy.sanitization_rejected');
+      expect(warnLogs.join('\n')).toContain('site_content.portal-about');
+      expect(warnLogs.join('\n')).toContain('BOUNDARY_FAULT');
+
+      // Empty denylist in production fails closed with UNSOUND_CONDITION
+      warnLogs.length = 0;
+      let prodEmptyErr: unknown = null;
+      try {
+        sanitizePortalAboutSiteContent(
+          'Clean markdown',
+          { description: 'Clean metadata' },
+          '',
+          'corr-about-empty-prod',
+          { NODE_ENV: 'production' },
+        );
+      } catch (error) {
+        prodEmptyErr = error;
+      }
+      expect(prodEmptyErr).toBeInstanceOf(PrivacySanitizationError);
+      expect((prodEmptyErr as PrivacySanitizationError).findings).toEqual([
+        expect.objectContaining({
+          ruleId: 'config.denylist_empty_in_prod',
+          category: 'config',
+        }),
+      ]);
+      expect(warnLogs.join('\n')).toContain('admin.privacy.denylist_empty_in_prod');
+      expect(warnLogs.join('\n')).toContain('UNSOUND_CONDITION');
+      expect(warnLogs.join('\n')).toContain('site_content.portal-about');
+    } finally {
+      warnSpy.mockRestore();
     }
   });
 });

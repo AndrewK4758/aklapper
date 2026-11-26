@@ -1,6 +1,7 @@
 import type { CareerDossierUpsertInput, PrivacySanitizationFinding } from '@aklapper/core';
 
 import {
+  emitDenylistEmptyInProdLog,
   emitSanitizationRejectedLog,
   isProductionPrivacyEnv,
   parseDenylistFileContent,
@@ -13,7 +14,6 @@ import {
   buildSeparatorObfuscatedRegex,
   buildTermWordRegex,
   collapseForSeparatorMatch,
-  collectStringLeaves,
   computeDenylistHash,
   isBlockedTrackerPrefix,
   PRIVACY_PATTERN_RULES,
@@ -25,6 +25,11 @@ import {
   PORTAL_HOME_ALLOWED_PUBLIC_EMAILS,
   sanitizePortalHomeSiteContent,
 } from './privacy-portal-home.ts';
+import {
+  sanitizePortalAboutSiteContent,
+  sanitizePortalAskSiteContent,
+  sanitizeSiteContentPayload,
+} from './privacy-site-content.ts';
 
 export {
   computeDenylistHash,
@@ -33,7 +38,10 @@ export {
   parseDossierPrivacyDenylist,
   PORTAL_HOME_ALLOWED_PUBLIC_EMAILS,
   PrivacySanitizationError,
+  sanitizePortalAboutSiteContent,
+  sanitizePortalAskSiteContent,
   sanitizePortalHomeSiteContent,
+  sanitizeSiteContentPayload,
   scanTextForPrivacyFindings,
   type ParsedDenylist,
   type PrivacySanitizationFinding,
@@ -61,14 +69,7 @@ export function sanitizeCareerDossierPayload(
   const parsed = parseDossierPrivacyDenylist(rawDenylist);
 
   if (opts.requireConfiguredDenylist && !parsed.configured) {
-    console.warn(
-      JSON.stringify({
-        event: 'admin.privacy.denylist_empty_in_prod',
-        seam_type: 'UNSOUND_CONDITION',
-        severity: 'CRITICAL',
-        ...(opts.correlationId ? { correlationId: opts.correlationId } : {}),
-      }),
-    );
+    emitDenylistEmptyInProdLog(undefined, opts.correlationId);
     throw new PrivacySanitizationError([
       {
         ruleId: 'config.denylist_empty_in_prod',
@@ -111,47 +112,6 @@ export function sanitizeCareerDossierPayload(
     denylistHash: parsed.denylistHash,
     verifiedAt: new Date(),
   };
-}
-
-export function sanitizePortalAskSiteContent(
-  markdownBody: string,
-  metadataJson: Record<string, unknown>,
-  rawDenylist?: string,
-  correlationId?: string,
-  env: NodeJS.ProcessEnv = process.env,
-): void {
-  const parsed = parseDossierPrivacyDenylist(rawDenylist ?? env['DOSSIER_PRIVACY_DENYLIST']);
-  if (isProductionPrivacyEnv(env) && !parsed.configured) {
-    console.warn(
-      JSON.stringify({
-        event: 'admin.privacy.denylist_empty_in_prod',
-        seam_type: 'UNSOUND_CONDITION',
-        severity: 'CRITICAL',
-        surface: 'site_content.portal-ask',
-        ...(correlationId ? { correlationId } : {}),
-      }),
-    );
-    throw new PrivacySanitizationError([
-      {
-        ruleId: 'config.denylist_empty_in_prod',
-        category: 'config',
-        field: 'DOSSIER_PRIVACY_DENYLIST',
-        location: 'site_content.portal-ask',
-      },
-    ]);
-  }
-  const leaves: Array<readonly [field: string, text: string]> = [['markdownBody', markdownBody]];
-  collectStringLeaves(metadataJson, 'metadataJson', leaves);
-
-  const findings: PrivacySanitizationFinding[] = [];
-  for (const [field, value] of leaves) {
-    findings.push(...scanTextForPrivacyFindings(value, field, parsed));
-  }
-
-  if (findings.length > 0) {
-    emitSanitizationRejectedLog(findings, 'site_content.portal-ask', correlationId);
-    throw new PrivacySanitizationError(findings);
-  }
 }
 
 export function redactTextForStorage(raw: string, rawDenylist?: string, maxRunes = 1000): string {

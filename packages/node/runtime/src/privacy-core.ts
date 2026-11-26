@@ -265,3 +265,15 @@ export function emitSanitizationRejectedLog(
     }),
   );
 }
+
+export function emitDenylistEmptyInProdLog(surface?: string, correlationId?: string): void {
+  console.warn(
+    JSON.stringify({
+      event: 'admin.privacy.denylist_empty_in_prod',
+      seam_type: 'UNSOUND_CONDITION',
+      severity: 'CRITICAL',
+      ...(surface ? { surface } : {}),
+      ...(correlationId ? { correlationId } : {}),
+    }),
+  );
+}
