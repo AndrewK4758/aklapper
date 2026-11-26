@@ -6,10 +6,12 @@ import {
   isProductionPrivacyEnv,
   parseDenylistFileContent,
   parseDossierPrivacyDenylist,
+  PORTAL_HOME_ALLOWED_PUBLIC_EMAILS,
   PrivacySanitizationError,
   redactTextForStorage,
   sanitizeCareerDossierPayload,
   sanitizePortalAskSiteContent,
+  sanitizePortalHomeSiteContent,
   scanTextForPrivacyFindings,
 } from '../src/privacy.ts';
 
@@ -247,5 +249,161 @@ describe('@aklapper/node-runtime/privacy fail-closed sanitization', () => {
     scanTextForPrivacyFindings('111-'.repeat(15_000), 'body', parsed);
     const elapsedMs = performance.now() - start;
     expect(elapsedMs).toBeLessThan(200);
+  });
+
+  it('sanitizes portal-home with exact andrew@andrew-k.us allow-list while blocking multi-email lines, phones, postal ZIPs, References, denylist terms, and prod empty denylist', () => {
+    const encodedDenylist = encodeBase64Denylist(['SyntheticConfidentialClientX']);
+    const warnLogs: string[] = [];
+    const infoLogs: string[] = [];
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation((msg: unknown) => {
+      warnLogs.push(String(msg));
+    });
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation((msg: unknown) => {
+      infoLogs.push(String(msg));
+    });
+
+    try {
+      expect(PORTAL_HOME_ALLOWED_PUBLIC_EMAILS.has('andrew@andrew-k.us')).toBe(true);
+      expect(PORTAL_HOME_ALLOWED_PUBLIC_EMAILS.size).toBe(1);
+
+      // Clean portal-home with allow-listed email and lowercase tech numbers ("in 40000", "or 40000", "id 12345", "ms 15000") succeeds
+      expect(() =>
+        sanitizePortalHomeSiteContent(
+          '# Home corpus note',
+          {
+            portrait: {
+              src: '/images/andrew-klapper-portrait.webp',
+              alt: 'Greyscale terminal portrait of Andrew Klapper',
+              caption: 'andrew@andrew-k.us :: tty1',
+              width: 440,
+              height: 520,
+            },
+            resumeSummary: {
+              name: 'Andrew Klapper',
+              roleLine: 'Senior Full-Stack & Systems Engineer · Marietta, GA',
+              publicEmail: 'andrew@andrew-k.us',
+              githubLabel: 'github.com/AndrewK4758',
+              githubUrl: 'https://github.com/AndrewK4758',
+              bio: 'Scaled throughput in 40000 requests or 40000 records with trace id 12345 in ms 15000 while keeping architecture references clean.',
+              highlights: ['Build Technology Group — .NET 10 modernization'],
+              services: [{ command: 'about', summary: 'Background and career overview.' }],
+            },
+          },
+          encodedDenylist,
+          'corr-home-clean',
+          { NODE_ENV: 'production' },
+        ),
+      ).not.toThrow();
+
+      expect(infoLogs.join('\n')).toContain('admin.cms.portal_home_privacy_branch');
+      expect(infoLogs.join('\n')).toContain('"branch":"clean_allowed"');
+
+      // Disallowed cases: multi-email line, phone, uppercase state+ZIP, explicit ZIP label, References heading, denylist
+      const forbiddenSamples: ReadonlyArray<{
+        label: string;
+        markdownBody: string;
+        metadata: Record<string, unknown>;
+        expectedRule: string;
+        secretLiteral: string;
+      }> = [
+        {
+          label: 'multi-email line mixing allow-listed and external email',
+          markdownBody: '',
+          metadata: {
+            resumeSummary: { bio: 'Reach andrew@andrew-k.us, reference.contact@example.com' },
+          },
+          expectedRule: 'pii.email_address',
+          secretLiteral: 'reference.contact@example.com',
+        },
+        {
+          label: 'US phone number',
+          markdownBody: '',
+          metadata: { resumeSummary: { bio: 'Call (555) 010-1234 anytime.' } },
+          expectedRule: 'pii.us_phone',
+          secretLiteral: '(555) 010-1234',
+        },
+        {
+          label: 'US state and 5-digit ZIP',
+          markdownBody: '',
+          metadata: { resumeSummary: { roleLine: 'Marietta, GA 99999' } },
+          expectedRule: 'pii.us_postal_address_zip',
+          secretLiteral: '99999',
+        },
+        {
+          label: 'explicit postal ZIP label',
+          markdownBody: '',
+          metadata: { resumeSummary: { bio: 'Postal code: 99999-1234' } },
+          expectedRule: 'pii.us_postal_address_zip',
+          secretLiteral: '99999-1234',
+        },
+        {
+          label: 'References section heading',
+          markdownBody: '## References\nAvailable upon request',
+          metadata: { resumeSummary: { bio: 'Clean bio' } },
+          expectedRule: 'pii.references_section',
+          secretLiteral: 'Available upon request',
+        },
+        {
+          label: 'References inline label',
+          markdownBody: '',
+          metadata: { resumeSummary: { highlights: ['References: Jane Synthetic'] } },
+          expectedRule: 'pii.references_section',
+          secretLiteral: 'Jane Synthetic',
+        },
+        {
+          label: 'configured denylist term',
+          markdownBody: '',
+          metadata: { resumeSummary: { bio: 'Built tooling for SyntheticConfidentialClientX.' } },
+          expectedRule: 'denylist.term_1',
+          secretLiteral: 'SyntheticConfidentialClientX',
+        },
+      ];
+
+      for (const sample of forbiddenSamples) {
+        warnLogs.length = 0;
+        infoLogs.length = 0;
+        let caught: unknown = null;
+        try {
+          sanitizePortalHomeSiteContent(
+            sample.markdownBody,
+            sample.metadata,
+            encodedDenylist,
+            'corr-home-reject',
+            { NODE_ENV: 'production' },
+          );
+        } catch (error) {
+          caught = error;
+        }
+        expect(caught, `expected rejection for ${sample.label}`).toBeInstanceOf(
+          PrivacySanitizationError,
+        );
+        const privErr = caught as PrivacySanitizationError;
+        expect(privErr.status).toBe(422);
+        expect(privErr.code).toBe('ERR_CONSTRAINT');
+        expect(privErr.findings.some(f => f.ruleId === sample.expectedRule)).toBe(true);
+
+        const logBlob = `${JSON.stringify(privErr.findings)}\n${warnLogs.join('\n')}`;
+        expect(logBlob).toContain('admin.privacy.sanitization_rejected');
+        expect(logBlob).toContain('site_content.portal-home');
+        expect(logBlob).not.toContain(sample.secretLiteral);
+        expect(infoLogs.join('\n')).toContain('"branch":"rejected_pii_or_denylist"');
+      }
+
+      // Empty denylist fails closed in production with UNSOUND_CONDITION seam
+      warnLogs.length = 0;
+      infoLogs.length = 0;
+      expect(() =>
+        sanitizePortalHomeSiteContent('Clean', { heading: 'Clean' }, '', 'corr-home-prod-empty', {
+          NODE_ENV: 'production',
+        }),
+      ).toThrow(PrivacySanitizationError);
+      expect(warnLogs.join('\n')).toContain('admin.privacy.denylist_empty_in_prod');
+      expect(warnLogs.join('\n')).toContain('UNSOUND_CONDITION');
+      expect(warnLogs.join('\n')).toContain('site_content.portal-home');
+      expect(infoLogs.join('\n')).toContain('"branch":"rejected_unconfigured_prod_denylist"');
+    } finally {
+      warnSpy.mockRestore();
+      infoSpy.mockRestore();
+    }
   });
 });
