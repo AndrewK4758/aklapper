@@ -254,6 +254,67 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect([302, 401]).toContain(status);
     expect(unauthCall.logger.warn).not.toHaveBeenCalled();
     expect(mocks.getSharedDb).not.toHaveBeenCalled();
+
+    // Active CMS intents targeting retired portal-maintenance key/profile also return HTTP 410 with zero DB calls
+    const retiredTargetCases: ReadonlyArray<Record<string, string>> = [
+      {
+        intent: 'upsert-site-content',
+        key: 'portal-maintenance',
+        markdownBody: '# Dormant',
+        metadataJson: '{"heading":"Legacy"}',
+      },
+      {
+        intent: 'upsert-site-content',
+        key: ' PORTAL-MAINTENANCE ',
+        markdownBody: '# Dormant',
+        metadataJson: '{"heading":"Legacy"}',
+      },
+      {
+        intent: 'upsert-terminal-profile',
+        slug: 'portal-maintenance',
+        bannerTitle: 'Legacy',
+      },
+      {
+        intent: 'upsert-terminal-command',
+        profileSlug: 'portal-maintenance',
+        name: 'roadmap',
+      },
+      {
+        intent: 'upsert-terminal-entry',
+        profileSlug: 'portal-maintenance',
+        command: 'status',
+      },
+      {
+        intent: 'upsert-terminal-directory-entry',
+        profileSlug: 'portal-maintenance',
+        name: 'changes-in-progress',
+      },
+    ];
+
+    for (const [idx, fields] of retiredTargetCases.entries()) {
+      mocks.getSharedDb.mockClear();
+      mocks.upsertSiteContent.mockClear();
+      const cid = `corr-retired-target-${idx}`;
+      const call = makeActionArgs('http://localhost:4301/cms', '/cms', fields, cid);
+      const res = (await cmsAction(call.args as never)) as unknown as DataWithStatus;
+      expect(res.init?.status).toBe(410);
+      expect(res.data).toMatchObject({
+        ok: false,
+        code: 'ERR_VALIDATION',
+        correlationId: cid,
+      });
+      expect(mocks.getSharedDb).not.toHaveBeenCalled();
+      expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
+      expect(call.logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          seam_type: 'UNSOUND_CONDITION',
+          event: 'admin.cms.retired_maintenance_intent_blocked',
+          intent: fields['intent'],
+          correlationId: cid,
+        }),
+        expect.any(String),
+      );
+    }
   });
 
   it('validates site_content payloads server-side and emits structured warning and commit audit logs', async () => {

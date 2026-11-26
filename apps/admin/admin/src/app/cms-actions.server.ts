@@ -61,6 +61,37 @@ function notFound(message: string, correlationId: string): CmsActionOutcome {
   );
 }
 
+const RETIRED_MAINTENANCE_KEY = 'portal-maintenance';
+
+function isRetiredMaintenanceTarget(value: string): boolean {
+  return value.trim().toLowerCase() === RETIRED_MAINTENANCE_KEY;
+}
+
+function blockRetiredMaintenanceMutation(
+  intent: string,
+  correlationId: string,
+  logger: SsrStructuredLogger,
+  target?: string,
+): CmsActionOutcome {
+  logger.warn(
+    {
+      seam_type: 'UNSOUND_CONDITION',
+      event: 'admin.cms.retired_maintenance_intent_blocked',
+      intent,
+      ...(target ? { target } : {}),
+      correlationId,
+    },
+    'Blocked retired maintenance or roadmap CMS mutation.',
+  );
+  return fail(
+    410,
+    'Maintenance mode and roadmap milestone controls have been retired.',
+    'ERR_VALIDATION',
+    'Reload the CMS view to use active content controls.',
+    correlationId,
+  );
+}
+
 export async function dispatchAdminCmsIntent(
   intent: string,
   formData: FormData,
@@ -81,26 +112,14 @@ export async function dispatchAdminCmsIntent(
     intent === 'upsert-roadmap-milestone' ||
     intent === 'delete-roadmap-milestone'
   ) {
-    logger.warn(
-      {
-        seam_type: 'UNSOUND_CONDITION',
-        event: 'admin.cms.retired_maintenance_intent_blocked',
-        intent,
-        correlationId,
-      },
-      'Blocked retired maintenance or roadmap CMS mutation.',
-    );
-    return fail(
-      410,
-      'Maintenance mode and roadmap milestone controls have been retired.',
-      'ERR_VALIDATION',
-      'Reload the CMS view to use active content controls.',
-      correlationId,
-    );
+    return blockRetiredMaintenanceMutation(intent, correlationId, logger);
   }
 
   if (intent === 'upsert-site-content') {
     const key = String(formData.get('key') ?? '').trim();
+    if (isRetiredMaintenanceTarget(key)) {
+      return blockRetiredMaintenanceMutation(intent, correlationId, logger, key);
+    }
     const markdownBody = String(formData.get('markdownBody') ?? '');
     const rawJson = String(formData.get('metadataJson') ?? '{}');
     let parsedMetadata: Record<string, unknown>;
@@ -212,8 +231,12 @@ export async function dispatchAdminCmsIntent(
   }
 
   if (intent === 'upsert-terminal-profile') {
+    const slug = String(formData.get('slug') ?? '').trim();
+    if (isRetiredMaintenanceTarget(slug)) {
+      return blockRetiredMaintenanceMutation(intent, correlationId, logger, slug);
+    }
     const saved = await upsertTerminalProfile(getSharedDb(), {
-      slug: String(formData.get('slug') ?? ''),
+      slug,
       bannerTitle: String(formData.get('bannerTitle') ?? ''),
       bannerMeta: String(formData.get('bannerMeta') ?? ''),
       osLabel: String(formData.get('osLabel') ?? 'linux'),
@@ -228,12 +251,16 @@ export async function dispatchAdminCmsIntent(
   }
 
   if (intent === 'upsert-terminal-command') {
+    const profileSlug = String(formData.get('profileSlug') ?? '').trim();
+    if (isRetiredMaintenanceTarget(profileSlug)) {
+      return blockRetiredMaintenanceMutation(intent, correlationId, logger, profileSlug);
+    }
     const rawId = formData.get('id');
     const targetRoute = String(formData.get('targetRoute') ?? '').trim();
     const errorTemplate = String(formData.get('errorTemplate') ?? '').trim();
     const saved = await upsertTerminalCommand(getSharedDb(), {
       ...(rawId ? { id: Number(rawId) } : {}),
-      profileSlug: String(formData.get('profileSlug') ?? ''),
+      profileSlug,
       name: String(formData.get('name') ?? ''),
       description: String(formData.get('description') ?? ''),
       kind: String(formData.get('kind') ?? 'static') as
@@ -262,10 +289,14 @@ export async function dispatchAdminCmsIntent(
   }
 
   if (intent === 'upsert-terminal-entry') {
+    const profileSlug = String(formData.get('profileSlug') ?? '').trim();
+    if (isRetiredMaintenanceTarget(profileSlug)) {
+      return blockRetiredMaintenanceMutation(intent, correlationId, logger, profileSlug);
+    }
     const rawId = formData.get('id');
     const saved = await upsertTerminalInitialEntry(getSharedDb(), {
       ...(rawId ? { id: Number(rawId) } : {}),
-      profileSlug: String(formData.get('profileSlug') ?? ''),
+      profileSlug,
       command: String(formData.get('command') ?? ''),
       output: String(formData.get('output') ?? ''),
       status: String(formData.get('status') ?? 'ok') as 'ok' | 'error',
@@ -285,10 +316,14 @@ export async function dispatchAdminCmsIntent(
   }
 
   if (intent === 'upsert-terminal-directory-entry') {
+    const profileSlug = String(formData.get('profileSlug') ?? '').trim();
+    if (isRetiredMaintenanceTarget(profileSlug)) {
+      return blockRetiredMaintenanceMutation(intent, correlationId, logger, profileSlug);
+    }
     const rawId = formData.get('id');
     const saved = await upsertTerminalDirectoryEntry(getSharedDb(), {
       ...(rawId ? { id: Number(rawId) } : {}),
-      profileSlug: String(formData.get('profileSlug') ?? ''),
+      profileSlug,
       name: String(formData.get('name') ?? ''),
       description: String(formData.get('description') ?? ''),
       sortOrder: Number(formData.get('sortOrder') ?? 0),
