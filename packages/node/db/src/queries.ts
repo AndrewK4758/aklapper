@@ -20,6 +20,8 @@ import {
   type FormFieldErrorMap,
   type MenuItem,
   MenuItemSchema,
+  PortalAboutContentSchema,
+  type PortalAboutLoaderData,
   PortalAgensiContentSchema,
   type PortalAgensiLoaderData,
   PortalAskContentSchema,
@@ -50,6 +52,7 @@ import type { z } from 'zod';
 import { loadCreatorAgensiCatalog } from './agensi-loader.ts';
 import { type AgensiSyncOptions, queryCreatorPublishedSkills } from './agensi-sync.ts';
 import { isNodeDevUnlimitedEnabled, listGoldenSandboxRuns } from './cadence-showcase.ts';
+import { listPublishedCareerDossiers } from './career-dossiers.ts';
 import type { AppDatabase } from './client.ts';
 import {
   DEFAULT_QUOTA_BY_ROLE,
@@ -319,6 +322,29 @@ export async function loadPortalHomeData(db: AppDatabase): Promise<PortalHomeLoa
   ]);
 
   return { content, terminal, contactForm: contactContent.form };
+}
+
+export async function loadPortalAboutData(db: AppDatabase): Promise<PortalAboutLoaderData> {
+  const [content, dossiers, chrome] = await Promise.all([
+    getSiteContent(db, SITE_CONTENT_KEYS.portalAbout, PortalAboutContentSchema),
+    listPublishedCareerDossiers(db),
+    getSiteContent(db, SITE_CONTENT_KEYS.portalChrome, PortalChromeContentSchema),
+  ]);
+
+  console.info(
+    JSON.stringify({
+      event: 'portal.about.loader_source_branch',
+      seamType: 'RULE_DIVERGENCE',
+      branch: dossiers.length > 0 ? 'postgres_live' : 'empty_dossiers_degraded',
+      dossierCount: dossiers.length,
+    }),
+  );
+
+  return {
+    content,
+    dossiers,
+    ...(chrome.brandContactEmail ? { brandContactEmail: chrome.brandContactEmail } : {}),
+  };
 }
 
 export async function loadPortalAgensiData(

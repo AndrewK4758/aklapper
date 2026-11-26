@@ -56,6 +56,8 @@ import {
   loadAdminAnalyticsSummary,
   loadAdminCmsData,
   loadAdminOverviewData,
+  loadPortalAboutData,
+  loadPortalAboutDataWithPrerender,
   loadPortalHomeData,
   loadPortalRootData,
   pruneExpiredAskTurns,
@@ -96,6 +98,7 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
   it('serves the clean DB-driven portal-home ls listing from terminal_directory_entries', async () => {
     const entries = await getTerminalDirectoryEntries(db, TERMINAL_PROFILE_SLUGS.portalHome);
     expect(entries.map(entry => [entry.name, entry.description])).toEqual([
+      ['about', 'Resume & platform services guide'],
       ['tui', 'TUI version'],
       ['cadence', 'Agentic workflow example'],
       ['chat', "Chat with Andrew's AI"],
@@ -104,6 +107,7 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
     ]);
 
     const expectedListing = [
+      'about     # Resume & platform services guide',
       'tui       # TUI version',
       'cadence   # Agentic workflow example',
       "chat      # Chat with Andrew's AI",
@@ -1265,6 +1269,7 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       );
       expect(dirAfterUp.rows.map(r => r.name)).not.toContain('changes-in-progress');
       expect(dirAfterUp.rows.map(r => r.name)).toEqual([
+        'about',
         'tui',
         'cadence',
         'chat',
@@ -1284,6 +1289,7 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       );
       expect(homeAfterUp.rows[0]?.heading).toBe(customHeading);
       expect(homeAfterUp.rows[0]?.actions.map(a => a.to)).toEqual([
+        '/about',
         '/cadence',
         '/chat',
         '/agensi',
@@ -1304,7 +1310,7 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       const cdAfterUp = cmdsAfterUp.rows.find(r => r.name === 'cd');
       const helpAfterUp = cmdsAfterUp.rows.find(r => r.name === 'help');
       const lsCmdAfterUp = cmdsAfterUp.rows.find(r => r.name === 'ls');
-      expect(cdAfterUp?.allowed_routes).toEqual(['cadence', 'chat', 'agensi', 'contact']);
+      expect(cdAfterUp?.allowed_routes).toEqual(['about', 'cadence', 'chat', 'agensi', 'contact']);
       expect(cdAfterUp?.description).toContain(', or /contact');
       expect(cdAfterUp?.description).not.toContain('changes-in-progress');
       expect(cdAfterUp?.error_template).not.toContain('changes-in-progress');
@@ -1412,6 +1418,7 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       );
       expect(homeAfterDown.rows[0]?.heading).toBe(customHeading);
       expect(homeAfterDown.rows[0]?.actions.map(a => a.to)).toEqual([
+        '/about',
         '/cadence',
         '/chat',
         '/agensi',
@@ -1434,6 +1441,7 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       const helpAfterDown = cmdsAfterDown.rows.find(r => r.name === 'help');
       const lsCmdAfterDown = cmdsAfterDown.rows.find(r => r.name === 'ls');
       expect(cdAfterDown?.allowed_routes).toEqual([
+        'about',
         'cadence',
         'chat',
         'agensi',
@@ -1473,6 +1481,7 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       );
       expect(homeAfterReapply.rows[0]?.heading).toBe(customHeading);
       expect(homeAfterReapply.rows[0]?.actions.map(a => a.to)).toEqual([
+        '/about',
         '/cadence',
         '/chat',
         '/agensi',
@@ -1761,6 +1770,174 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
           [originalHome.rows[0].markdown_body, JSON.stringify(originalHome.rows[0].metadata_json)],
         );
       }
+    }
+  });
+
+  it('seeds 10 sanitized resume dossiers atomically, upgrades pre-existing PG19 databases safely, and enforces pre-write + upsertSiteContent privacy boundaries', async () => {
+    const prodDenylist = JSON.stringify(['SyntheticConfidentialClientX']);
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    try {
+      // 1. Fresh/live loadPortalAboutData returns portal-about, 10 published dossiers, and portal-chrome brandContactEmail
+      await seedDatabase(db, {
+        mode: 'upsert',
+        env: {
+          ADMIN_PASSWORD: '',
+          NODE_ENV: 'production',
+          DOSSIER_PRIVACY_DENYLIST: prodDenylist,
+        },
+      });
+      const liveAbout = await loadPortalAboutData(db);
+      expect(liveAbout.content.identity.fullName).toBe('Andrew Klapper');
+      expect(liveAbout.content.skillGroups).toHaveLength(5);
+      expect(liveAbout.dossiers).toHaveLength(10);
+      expect(liveAbout.brandContactEmail).toBe('andrew@andrew-k.us');
+
+      // 2. Prerender fallback resolves without DATABASE_URL when prerender flag is active
+      const prevPrerender = process.env['IS_RR_BUILD_REQUEST'];
+      const prevDbUrl = process.env['DATABASE_URL'];
+      try {
+        process.env['IS_RR_BUILD_REQUEST'] = 'yes';
+        delete process.env['DATABASE_URL'];
+        const prerendered = await loadPortalAboutDataWithPrerender();
+        expect(prerendered.content.identity.location).toBe('Marietta, GA');
+        expect(prerendered.dossiers).toHaveLength(10);
+        expect(prerendered.brandContactEmail).toBe('andrew@andrew-k.us');
+      } finally {
+        if (prevPrerender === undefined) delete process.env['IS_RR_BUILD_REQUEST'];
+        else process.env['IS_RR_BUILD_REQUEST'] = prevPrerender;
+        if (prevDbUrl !== undefined) process.env['DATABASE_URL'] = prevDbUrl;
+      }
+
+      // 3. Production seedDatabase fails closed before mutating PG19 when DOSSIER_PRIVACY_DENYLIST is unset
+      await expect(
+        seedDatabase(db, {
+          mode: 'upsert',
+          env: {
+            ADMIN_PASSWORD: '',
+            NODE_ENV: 'production',
+            DOSSIER_PRIVACY_DENYLIST: '',
+          },
+        }),
+      ).rejects.toMatchObject({
+        status: 422,
+        findings: expect.arrayContaining([
+          expect.objectContaining({ ruleId: 'config.denylist_empty_in_prod' }),
+        ]),
+      });
+
+      // 4. Pre-write sanitization aborts BEFORE writing any site_content or career_dossiers row
+      await expect(
+        seedDatabase(db, {
+          mode: 'upsert',
+          env: { ADMIN_PASSWORD: '', DOSSIER_PRIVACY_DENYLIST: prodDenylist },
+          siteContentSeeds: [
+            {
+              key: SITE_CONTENT_KEYS.portalAbout,
+              markdownBody: 'Clean',
+              metadataJson: {
+                ...liveAbout.content,
+                description: 'Synthetic phone (555) 010-1234 should abort pre-write',
+              },
+            },
+          ],
+        }),
+      ).rejects.toMatchObject({ status: 422 });
+      const untouchedAbout = await loadPortalAboutData(db);
+      expect(untouchedAbout.content.description).not.toContain('555');
+
+      // 5. Existing-database upgrade path: simulate pre-upgrade DB missing portal-about & stale profile_core
+      await pool.query(`DELETE FROM site_content WHERE key = 'portal-about'`);
+      await pool.query(
+        `UPDATE career_dossiers SET role_title = 'Stale Legacy Role', skills = ARRAY['Legacy']
+         WHERE slug = 'andrew-klapper-profile-core'`,
+      );
+      await pool.query(
+        `DELETE FROM terminal_commands WHERE profile_slug = 'portal-home' AND name = 'about'`,
+      );
+
+      // Upsert upgrade restores portal-about, terminal about command, and full-column dossier metadata atomically
+      await seedDatabase(db, {
+        mode: 'upsert',
+        env: {
+          ADMIN_PASSWORD: '',
+          NODE_ENV: 'production',
+          DOSSIER_PRIVACY_DENYLIST: prodDenylist,
+        },
+      });
+      const upgraded = await loadPortalAboutData(db);
+      const profileCore = upgraded.dossiers.find(d => d.slug === 'andrew-klapper-profile-core');
+      expect(profileCore?.roleTitle).toBe('Senior Full-Stack & Systems Engineer');
+      expect(profileCore?.skills).toContain('C# (.NET 10)');
+      const aboutCmd = await pool.query(
+        `SELECT name FROM terminal_commands WHERE profile_slug = 'portal-home' AND name = 'about'`,
+      );
+      expect(aboutCmd.rows).toHaveLength(1);
+
+      // Bootstrap mode preserves operator edits while backfilling missing rows
+      const operatorEdited = await upsertSiteContent(
+        db,
+        SITE_CONTENT_KEYS.portalAbout,
+        'Operator edited markdown',
+        {
+          ...upgraded.content,
+          servicesIntro: 'Operator customized services intro.',
+        },
+        { rawDenylist: prodDenylist, env: { NODE_ENV: 'production' } },
+      );
+      expect(operatorEdited.metadataJson['servicesIntro']).toBe(
+        'Operator customized services intro.',
+      );
+      await seedDatabase(db, {
+        mode: 'bootstrap',
+        env: {
+          ADMIN_PASSWORD: '',
+          NODE_ENV: 'production',
+          DOSSIER_PRIVACY_DENYLIST: prodDenylist,
+        },
+      });
+      const afterBootstrap = await loadPortalAboutData(db);
+      expect(afterBootstrap.content.servicesIntro).toBe('Operator customized services intro.');
+
+      // 6. upsertSiteContent rejects portal-about PII/ZIP and empty prod denylist with HTTP 422
+      await expect(
+        upsertSiteContent(
+          db,
+          SITE_CONTENT_KEYS.portalAbout,
+          'Bad ZIP Marietta, GA 30062',
+          upgraded.content,
+          { rawDenylist: prodDenylist, env: { NODE_ENV: 'production' } },
+        ),
+      ).rejects.toMatchObject({ status: 422 });
+      await expect(
+        upsertSiteContent(db, SITE_CONTENT_KEYS.portalAbout, 'Clean', upgraded.content, {
+          rawDenylist: '',
+          env: { NODE_ENV: 'production' },
+        }),
+      ).rejects.toMatchObject({
+        status: 422,
+        findings: expect.arrayContaining([
+          expect.objectContaining({ ruleId: 'config.denylist_empty_in_prod' }),
+        ]),
+      });
+
+      // 7. Live PG19 authority: unpublishing a dossier immediately removes it from loadPortalAboutData
+      await unpublishCareerDossier(db, 'woodstock-developers-group-mentor');
+      const afterUnpublish = await loadPortalAboutData(db);
+      expect(
+        afterUnpublish.dossiers.some(d => d.slug === 'woodstock-developers-group-mentor'),
+      ).toBe(false);
+    } finally {
+      warnSpy.mockRestore();
+      // Restore canonical seed state for subsequent tests
+      await seedDatabase(db, {
+        mode: 'upsert',
+        env: {
+          ADMIN_PASSWORD: '',
+          NODE_ENV: 'test',
+          DOSSIER_PRIVACY_DENYLIST: prodDenylist,
+        },
+      });
     }
   });
 });

@@ -9,6 +9,7 @@ import {
   getPrerenderAdminAnalyticsData,
   getPrerenderAdminHomeData,
   getPrerenderAdminRootData,
+  getPrerenderPortalAboutData,
   getPrerenderPortalAgensiData,
   getPrerenderPortalAskData,
   getPrerenderPortalCadenceData,
@@ -16,6 +17,7 @@ import {
   getPrerenderPortalHomeData,
   getPrerenderPortalRootData,
   loadAdminAnalyticsDataWithPrerender,
+  loadPortalAboutDataWithPrerender,
   loadPortalAgensiDataWithPrerender,
   loadPortalContactDataWithPrerender,
   loadPortalHomeDataWithPrerender,
@@ -65,6 +67,9 @@ describe('db prerender fallback loaders', () => {
     expect('getRoadmapMilestones' in dbExports).toBe(false);
     expect(portalHome.terminal.commands.length).toBeGreaterThan(0);
     expect(portalHome.terminal.initialEntries[0]?.command).toBe('ls');
+    expect(portalHome.terminal.initialEntries[0]?.output).toContain(
+      'about     # Resume & platform services guide',
+    );
     expect(portalHome.terminal.initialEntries[0]?.output).toContain('tui       # TUI version');
     expect(portalHome.terminal.initialEntries[0]?.output).not.toContain('menu');
     expect(portalHome.terminal.initialEntries[0]?.output).not.toContain('changes-in-progress');
@@ -72,6 +77,7 @@ describe('db prerender fallback loaders', () => {
     expect(portalHome.terminal.initialEntries[0]?.output).not.toMatch(
       /drwxr-xr-x|-rw-r--r--|menu\//,
     );
+    expect(portalHome.content.actions.some(a => a.to === '/about')).toBe(true);
     expect(portalHome.content.actions.some(a => a.to === '/changes-in-progress')).toBe(false);
     expect(portalHome.content.portrait).toEqual({
       src: '/images/andrew-klapper-portrait.webp',
@@ -96,9 +102,10 @@ describe('db prerender fallback loaders', () => {
     expect(homeSummaryJson).not.toMatch(/References|\bGA\s+\d{5}\b|\(\d{3}\)\s*\d{3}-\d{4}/i);
     expect(homeSummaryJson).not.toMatch(/\bzsh\b|p10k|powerlevel10k/i);
     const cdCommand = portalHome.terminal.commands.find(cmd => cmd.name === 'cd');
-    expect(cdCommand?.allowedRoutes).toEqual(['cadence', 'chat', 'agensi', 'contact']);
+    expect(cdCommand?.allowedRoutes).toEqual(['about', 'cadence', 'chat', 'agensi', 'contact']);
     expect(cdCommand?.errorTemplate).not.toContain('changes-in-progress');
     const portalHelp = portalHome.terminal.commands.find(cmd => cmd.name === 'help')?.output ?? '';
+    expect(portalHelp).toContain('about');
     expect(portalHelp).not.toContain('changes-in-progress');
     expect(portalHelp).toContain('Split panes & tabs (keybindings & commands):');
     expect(portalHelp).toContain('Alt+Shift+N');
@@ -131,6 +138,10 @@ describe('db prerender fallback loaders', () => {
     });
     expect(getPrerenderPortalCadenceData().presets.length).toBeGreaterThan(0);
     expect(getPrerenderPortalContactData().content.form.id).toBe('contact-form');
+    const prerenderAbout = getPrerenderPortalAboutData();
+    expect(prerenderAbout.content.identity.fullName).toBe('Andrew Klapper');
+    expect(prerenderAbout.dossiers).toHaveLength(10);
+    expect(prerenderAbout.brandContactEmail).toBe('andrew@andrew-k.us');
 
     expect(adminRoot.chrome.brandLabel).toContain('admin.andrew-k.us');
     expect(adminRoot.chrome.shortcutHint).toContain('Alt+⇧N');
@@ -152,10 +163,13 @@ describe('db prerender fallback loaders', () => {
     delete process.env['DATABASE_URL'];
 
     const home = await loadPortalHomeDataWithPrerender();
+    const about = await loadPortalAboutDataWithPrerender();
     const contact = await loadPortalContactDataWithPrerender();
     const analytics = await loadAdminAnalyticsDataWithPrerender();
 
     expect(home.content.heading).toContain('Andrew Klapper');
+    expect(about.content.identity.location).toBe('Marietta, GA');
+    expect(about.dossiers).toHaveLength(10);
     expect(contact.content.form.nodes.length).toBeGreaterThan(0);
     expect(analytics.summary).toEqual({ totalSessions: 0, totalEvents: 0 });
   });

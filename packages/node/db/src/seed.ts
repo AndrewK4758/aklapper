@@ -20,6 +20,12 @@ import {
 } from '@aklapper/core';
 import { resolveAgensiCreatorHandle } from '@aklapper/node-runtime/agensi';
 import { loadWorkspaceEnv } from '@aklapper/node-runtime/env';
+import {
+  isProductionPrivacyEnv,
+  sanitizeCareerDossierPayload,
+  sanitizePortalAboutSiteContent,
+  sanitizePortalAskSiteContent,
+} from '@aklapper/node-runtime/privacy';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import { type AppDatabase, createDb, createDbPool } from './client.ts';
@@ -38,8 +44,13 @@ import {
   terminalInitialEntries,
   terminalProfiles,
 } from './schema.ts';
+import { PORTAL_ABOUT_SEED } from './seed-about.ts';
 import { seedAdminUserFromEnv, type SeedAdminUserResult } from './seed-admin.ts';
-import { CAREER_DOSSIER_SEEDS, PORTAL_ASK_SEED } from './seed-dossiers.ts';
+import {
+  CAREER_DOSSIER_SEEDS,
+  type CareerDossierSeedEntry,
+  PORTAL_ASK_SEED,
+} from './seed-dossiers.ts';
 import {
   CADENCE_GOLDEN_RUN_SEEDS,
   CADENCE_PRESET_SEEDS,
@@ -121,6 +132,7 @@ const PORTAL_HOME_SEED: PortalHomeContent = {
   description:
     "Explore interactive demos, chat with Andrew's AI about his work and experience, browse published Agensi skills, or send a direct message. Use the launcher below or the terminal above to navigate.",
   actions: [
+    { label: 'About & Resume → /about', to: '/about', variant: 'default' },
     { label: 'CADENCE Builder → /cadence', to: '/cadence', variant: 'primary' },
     { label: 'Chat with Andrew → /chat', to: '/chat', variant: 'default' },
     { label: 'Agensi Storefront → /agensi', to: '/agensi', variant: 'default' },
@@ -195,6 +207,11 @@ const SITE_CONTENT_SEEDS: ReadonlyArray<{
     metadataJson: PORTAL_HOME_SEED,
   },
   {
+    key: SITE_CONTENT_KEYS.portalAbout,
+    markdownBody: 'Portal public-safe resume framing, skills, education, and platform services guide.',
+    metadataJson: PORTAL_ABOUT_SEED,
+  },
+  {
     key: SITE_CONTENT_KEYS.portalAgensi,
     markdownBody: 'Portal Agensi commercial skills storefront copy and filter labels.',
     metadataJson: PORTAL_AGENSI_SEED,
@@ -235,14 +252,26 @@ const TERMINAL_PROFILE_SEEDS = [
   {
     slug: TERMINAL_PROFILE_SLUGS.portalHome,
     bannerTitle: 'Solar Forge Terminal // tty1',
-    bannerMeta: 'tty1 · type "tui", "cadence", "chat", "agensi", or "contact" · Tab autocomplete',
+    bannerMeta:
+      'tty1 · type "about", "tui", "cadence", "chat", "agensi", or "contact" · Tab autocomplete',
     osLabel: '⚡',
     directory: '~/projects/aklapper',
     vcsBranch: 'portfolio_v2',
     vcsState: 'clean' as const,
     contextLabel: 'guest@andrew-k.us',
-    placeholder: 'type a command (help, ls, tui, cadence, chat, agensi, contact, cd ...)',
-    quickCommands: ['help', 'ls', 'tui', 'cadence', 'chat', 'agensi', 'contact', 'status', 'clear'],
+    placeholder: 'type a command (help, ls, about, tui, cadence, chat, agensi, contact, cd ...)',
+    quickCommands: [
+      'help',
+      'ls',
+      'about',
+      'tui',
+      'cadence',
+      'chat',
+      'agensi',
+      'contact',
+      'status',
+      'clear',
+    ],
   },
   {
     slug: TERMINAL_PROFILE_SLUGS.adminOps,
@@ -261,37 +290,44 @@ const TERMINAL_PROFILE_SEEDS = [
 const TERMINAL_DIRECTORY_ENTRY_SEEDS = [
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
+    name: 'about',
+    description: 'Resume & platform services guide',
+    sortOrder: 1,
+    enabled: true,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'tui',
     description: 'TUI version',
-    sortOrder: 1,
+    sortOrder: 2,
     enabled: true,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'cadence',
     description: 'Agentic workflow example',
-    sortOrder: 2,
+    sortOrder: 3,
     enabled: true,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'chat',
     description: "Chat with Andrew's AI",
-    sortOrder: 3,
+    sortOrder: 4,
     enabled: true,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'agensi',
     description: 'Published AI skills',
-    sortOrder: 4,
+    sortOrder: 5,
     enabled: true,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'contact',
     description: 'Connect with me',
-    sortOrder: 5,
+    sortOrder: 6,
     enabled: true,
   },
 ] as const;
@@ -332,12 +368,13 @@ const TERMINAL_COMMAND_SEEDS = [
     output: [
       'Available terminal commands:',
       '  ls         — list portal routes & workspaces',
+      '  about      — open /about resume & platform services guide',
       '  tui        — open TUI launcher in a split pane',
       '  cadence    — open /cadence artifact sandbox',
       "  chat       — open /chat to chat with Andrew's AI & JD match",
       '  agensi     — open /agensi commercial skills storefront',
       '  contact    — run inline terminal contact form (or "contact --tui" / "--help")',
-      '  cd <route> — navigate to /cadence, /chat, /agensi, or /contact',
+      '  cd <route> — navigate to /about, /cadence, /chat, /agensi, or /contact',
       '  status     — inspect cluster & service state',
       '  whoami     — display active terminal session',
       '  clear      — clear terminal scrollback',
@@ -360,6 +397,17 @@ const TERMINAL_COMMAND_SEEDS = [
     allowedRoutes: [] as string[],
     errorTemplate: null,
     sortOrder: 2,
+  },
+  {
+    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
+    name: 'about',
+    description: 'open /about resume & platform services guide',
+    kind: 'navigate' as const,
+    output: 'opening /about ...',
+    targetRoute: '/about',
+    allowedRoutes: [] as string[],
+    errorTemplate: null,
+    sortOrder: 3,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
@@ -419,13 +467,13 @@ const TERMINAL_COMMAND_SEEDS = [
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'cd',
-    description: 'navigate to /cadence, /chat, /agensi, or /contact',
+    description: 'navigate to /about, /cadence, /chat, /agensi, or /contact',
     kind: 'cd' as const,
     output: 'cd /{{target}}',
     targetRoute: null,
-    allowedRoutes: ['cadence', 'chat', 'agensi', 'contact'],
+    allowedRoutes: ['about', 'cadence', 'chat', 'agensi', 'contact'],
     errorTemplate:
-      'cd: no such route: {{input}}\nTry: cd cadence | cd chat | cd agensi | cd contact',
+      'cd: no such route: {{input}}\nTry: cd about | cd cadence | cd chat | cd agensi | cd contact',
     sortOrder: 9,
   },
   {
@@ -793,6 +841,7 @@ export {
   ADMIN_HOME_SEED,
   AGENSI_SKILL_SEEDS,
   CADENCE_PRESET_SEEDS,
+  PORTAL_ABOUT_SEED,
   PORTAL_AGENSI_SEED,
   PORTAL_ASK_SEED,
   PORTAL_CADENCE_SEED,
@@ -806,9 +855,17 @@ export {
   TERMINAL_PROFILE_SEEDS,
 };
 
+export interface SeedSiteContentEntry {
+  readonly key: string;
+  readonly markdownBody: string;
+  readonly metadataJson: Record<string, unknown>;
+}
+
 export interface SeedDatabaseOptions {
   mode?: 'upsert' | 'bootstrap';
   env?: Record<string, string | undefined>;
+  siteContentSeeds?: readonly SeedSiteContentEntry[];
+  careerDossierSeeds?: readonly CareerDossierSeedEntry[];
 }
 
 function resolveSeedOptions(
@@ -816,20 +873,36 @@ function resolveSeedOptions(
 ): {
   mode: 'upsert' | 'bootstrap';
   env: Record<string, string | undefined>;
+  siteContentSeeds: readonly SeedSiteContentEntry[];
+  careerDossierSeeds: readonly CareerDossierSeedEntry[];
 } {
   if (!optionsOrEnv) {
-    return { mode: 'upsert', env: process.env };
+    return {
+      mode: 'upsert',
+      env: process.env,
+      siteContentSeeds: SITE_CONTENT_SEEDS,
+      careerDossierSeeds: CAREER_DOSSIER_SEEDS,
+    };
   }
   const maybeOpts = optionsOrEnv as SeedDatabaseOptions;
-  if ('mode' in maybeOpts || (typeof maybeOpts.env === 'object' && maybeOpts.env !== null)) {
+  if (
+    'mode' in maybeOpts ||
+    'siteContentSeeds' in maybeOpts ||
+    'careerDossierSeeds' in maybeOpts ||
+    (typeof maybeOpts.env === 'object' && maybeOpts.env !== null)
+  ) {
     return {
       mode: maybeOpts.mode === 'bootstrap' ? 'bootstrap' : 'upsert',
       env: maybeOpts.env ?? process.env,
+      siteContentSeeds: maybeOpts.siteContentSeeds ?? SITE_CONTENT_SEEDS,
+      careerDossierSeeds: maybeOpts.careerDossierSeeds ?? CAREER_DOSSIER_SEEDS,
     };
   }
   return {
     mode: 'upsert',
     env: optionsOrEnv as Record<string, string | undefined>,
+    siteContentSeeds: SITE_CONTENT_SEEDS,
+    careerDossierSeeds: CAREER_DOSSIER_SEEDS,
   };
 }
 
@@ -837,8 +910,58 @@ export async function seedDatabase(
   db: AppDatabase,
   optionsOrEnv: SeedDatabaseOptions | Record<string, string | undefined> = process.env,
 ): Promise<void> {
-  const { mode, env } = resolveSeedOptions(optionsOrEnv);
+  const { mode, env, siteContentSeeds, careerDossierSeeds } = resolveSeedOptions(optionsOrEnv);
   const isBootstrap = mode === 'bootstrap';
+  const requireConfiguredDenylist = isProductionPrivacyEnv(env);
+  const rawDenylist = env['DOSSIER_PRIVACY_DENYLIST'];
+
+  // Pre-write fail-closed privacy sanitization executes BEFORE any database mutation.
+  for (const content of siteContentSeeds) {
+    if (content.key === SITE_CONTENT_KEYS.portalAbout) {
+      sanitizePortalAboutSiteContent(
+        content.markdownBody,
+        content.metadataJson,
+        rawDenylist,
+        undefined,
+        env,
+      );
+    } else if (content.key === SITE_CONTENT_KEYS.portalAsk) {
+      sanitizePortalAskSiteContent(
+        content.markdownBody,
+        content.metadataJson,
+        rawDenylist,
+        undefined,
+        env,
+      );
+    }
+  }
+
+  const sanitizedDossiers = careerDossierSeeds.map(dossier => {
+    const sections = dossier.sectionsJson.map(section => ({
+      heading: section.heading,
+      body: section.body,
+    }));
+    const verification = sanitizeCareerDossierPayload(
+      {
+        slug: dossier.slug,
+        kind: dossier.kind,
+        title: dossier.title,
+        domainLabel: dossier.domainLabel,
+        roleTitle: dossier.roleTitle,
+        timeframe: dossier.timeframe,
+        skills: [...dossier.skills],
+        summaryBody: dossier.summaryBody,
+        sections,
+        sortOrder: dossier.sortOrder,
+      },
+      {
+        env,
+        rawDenylist,
+        requireConfiguredDenylist,
+      },
+    );
+    return { dossier, sections, verification };
+  });
 
   console.info(
     JSON.stringify({
@@ -865,7 +988,7 @@ export async function seedDatabase(
         }));
   }
 
-  for (const content of SITE_CONTENT_SEEDS) {
+  for (const content of siteContentSeeds) {
     const stmt = db.insert(siteContent).values(content);
     await (isBootstrap
       ? stmt.onConflictDoNothing({ target: siteContent.key })
@@ -1106,37 +1229,46 @@ export async function seedDatabase(
       .onConflictDoNothing({ target: quotaPolicies.role });
   }
 
-  for (const dossier of CAREER_DOSSIER_SEEDS) {
-    const sections = dossier.sectionsJson.map(section => ({
-      heading: section.heading,
-      body: section.body,
-    }));
-    const dossierStmt = db.insert(careerDossiers).values({
-      slug: dossier.slug,
-      kind: dossier.kind,
-      title: dossier.title,
-      domainLabel: dossier.domainLabel,
-      roleTitle: dossier.roleTitle,
-      timeframe: dossier.timeframe,
-      skills: [...dossier.skills],
-      summaryBody: dossier.summaryBody,
-      sectionsJson: sections,
-      publishStatus: dossier.publishStatus,
-      sanitizationVerifiedAt: dossier.sanitizationVerifiedAt,
-      denylistHash: dossier.denylistHash,
-      sortOrder: dossier.sortOrder,
-    });
-    await (isBootstrap
-      ? dossierStmt.onConflictDoNothing({ target: careerDossiers.slug })
-      : dossierStmt.onConflictDoUpdate({
-          target: careerDossiers.slug,
-          set: {
-            summaryBody: dossier.summaryBody,
-            sectionsJson: sections,
-            updatedAt: new Date(),
-          },
-        }));
-  }
+  await db.transaction(async tx => {
+    for (const { dossier, sections, verification } of sanitizedDossiers) {
+      const dossierStmt = tx.insert(careerDossiers).values({
+        slug: dossier.slug,
+        kind: dossier.kind,
+        title: dossier.title,
+        domainLabel: dossier.domainLabel,
+        roleTitle: dossier.roleTitle,
+        timeframe: dossier.timeframe,
+        skills: [...dossier.skills],
+        summaryBody: dossier.summaryBody,
+        sectionsJson: sections,
+        publishStatus: dossier.publishStatus,
+        sanitizationVerifiedAt: verification.verifiedAt,
+        denylistHash: verification.denylistHash,
+        sortOrder: dossier.sortOrder,
+        updatedAt: verification.verifiedAt,
+      });
+      await (isBootstrap
+        ? dossierStmt.onConflictDoNothing({ target: careerDossiers.slug })
+        : dossierStmt.onConflictDoUpdate({
+            target: careerDossiers.slug,
+            set: {
+              kind: dossier.kind,
+              title: dossier.title,
+              domainLabel: dossier.domainLabel,
+              roleTitle: dossier.roleTitle,
+              timeframe: dossier.timeframe,
+              skills: [...dossier.skills],
+              summaryBody: dossier.summaryBody,
+              sectionsJson: sections,
+              publishStatus: dossier.publishStatus,
+              sanitizationVerifiedAt: verification.verifiedAt,
+              denylistHash: verification.denylistHash,
+              sortOrder: dossier.sortOrder,
+              updatedAt: verification.verifiedAt,
+            },
+          }));
+    }
+  });
 
   await seedAdminUserFromEnv(db, env);
 }

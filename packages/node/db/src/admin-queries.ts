@@ -60,6 +60,7 @@ import {
 } from '@aklapper/core';
 import { resolveAgensiCreatorHandle } from '@aklapper/node-runtime/agensi';
 import {
+  sanitizePortalAboutSiteContent,
   sanitizePortalAskSiteContent,
   sanitizePortalHomeSiteContent,
 } from '@aklapper/node-runtime/privacy';
@@ -558,11 +559,18 @@ export async function loadAdminCmsData(
   });
 }
 
+export interface UpsertSiteContentOptions {
+  readonly rawDenylist?: string;
+  readonly env?: NodeJS.ProcessEnv;
+  readonly correlationId?: string;
+}
+
 export async function upsertSiteContent(
   db: AppDatabase,
   key: string,
   markdownBody: string,
   metadataJson: Record<string, unknown>,
+  options: UpsertSiteContentOptions = {},
 ): Promise<SiteContentRow> {
   const parsed = SiteContentUpsertSchema.parse({ key, markdownBody, metadataJson });
   let validatedMetadata: Record<string, unknown>;
@@ -592,9 +600,29 @@ export async function upsertSiteContent(
   }
 
   if (parsed.key === SITE_CONTENT_KEYS.portalAsk) {
-    sanitizePortalAskSiteContent(parsed.markdownBody, validatedMetadata);
+    sanitizePortalAskSiteContent(
+      parsed.markdownBody,
+      validatedMetadata,
+      options.rawDenylist,
+      options.correlationId,
+      options.env,
+    );
   } else if (parsed.key === SITE_CONTENT_KEYS.portalHome) {
-    sanitizePortalHomeSiteContent(parsed.markdownBody, validatedMetadata);
+    sanitizePortalHomeSiteContent(
+      parsed.markdownBody,
+      validatedMetadata,
+      options.rawDenylist,
+      options.correlationId,
+      options.env,
+    );
+  } else if (parsed.key === SITE_CONTENT_KEYS.portalAbout) {
+    sanitizePortalAboutSiteContent(
+      parsed.markdownBody,
+      validatedMetadata,
+      options.rawDenylist,
+      options.correlationId,
+      options.env,
+    );
   }
 
   const [row] = await db

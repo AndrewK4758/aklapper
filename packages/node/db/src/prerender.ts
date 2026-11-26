@@ -7,7 +7,9 @@ import {
   type AdminRootLoaderData,
   AgensiSkillSchema,
   CadencePresetSchema,
+  CareerDossierSchema,
   MenuItemSchema,
+  type PortalAboutLoaderData,
   type PortalAgensiLoaderData,
   type PortalAskLoaderData,
   type PortalCadenceLoaderData,
@@ -28,6 +30,7 @@ import { type AppDatabase, getSharedDb, isReactRouterPrerender } from './client.
 import {
   loadAdminHomeData,
   loadAdminRootData,
+  loadPortalAboutData,
   loadPortalAgensiData,
   loadPortalAskData,
   loadPortalCadenceData,
@@ -36,6 +39,7 @@ import {
   loadPortalRootData,
   TERMINAL_PROFILE_SLUGS,
 } from './queries.ts';
+import { CAREER_DOSSIER_SEEDS } from './seed-dossiers.ts';
 import { getPrerenderGoldenSandboxRuns } from './seed-golden-runs.ts';
 import {
   ADMIN_ANALYTICS_SEED,
@@ -45,6 +49,7 @@ import {
   buildSeedTerminalProfile,
   CADENCE_PRESET_SEEDS,
   DEFAULT_MENU_ITEMS,
+  PORTAL_ABOUT_SEED,
   PORTAL_AGENSI_SEED,
   PORTAL_ASK_SEED,
   PORTAL_CADENCE_SEED,
@@ -76,6 +81,45 @@ export function getPrerenderPortalHomeData(): PortalHomeLoaderData {
     content: PORTAL_HOME_SEED,
     terminal: buildSeedTerminalProfile(TERMINAL_PROFILE_SLUGS.portalHome),
     contactForm: PORTAL_CONTACT_SEED.form,
+  };
+}
+
+export function getPrerenderPortalAboutData(): PortalAboutLoaderData {
+  console.info(
+    JSON.stringify({
+      event: 'portal.about.loader_source_branch',
+      seamType: 'RULE_DIVERGENCE',
+      branch: 'prerender_seed_fallback',
+      dossierCount: CAREER_DOSSIER_SEEDS.length,
+    }),
+  );
+
+  return {
+    content: PORTAL_ABOUT_SEED,
+    dossiers: CAREER_DOSSIER_SEEDS.toSorted((a, b) => a.sortOrder - b.sortOrder).map(dossier =>
+      CareerDossierSchema.parse({
+        slug: dossier.slug,
+        kind: dossier.kind,
+        title: dossier.title,
+        domainLabel: dossier.domainLabel,
+        roleTitle: dossier.roleTitle,
+        timeframe: dossier.timeframe,
+        skills: [...dossier.skills],
+        summaryBody: dossier.summaryBody,
+        sections: dossier.sectionsJson.map(section => ({
+          heading: section.heading,
+          body: section.body,
+        })),
+        publishStatus: dossier.publishStatus,
+        sanitizationVerifiedAt: dossier.sanitizationVerifiedAt.toISOString(),
+        denylistHash: dossier.denylistHash,
+        sortOrder: dossier.sortOrder,
+        updatedAt: dossier.sanitizationVerifiedAt.toISOString(),
+      }),
+    ),
+    ...(PORTAL_CHROME_SEED.brandContactEmail
+      ? { brandContactEmail: PORTAL_CHROME_SEED.brandContactEmail }
+      : {}),
   };
 }
 
@@ -215,6 +259,10 @@ export function loadPortalRootDataWithPrerender(): Promise<PortalRootLoaderData>
 
 export function loadPortalHomeDataWithPrerender(): Promise<PortalHomeLoaderData> {
   return withPrerenderFallback(loadPortalHomeData, getPrerenderPortalHomeData);
+}
+
+export function loadPortalAboutDataWithPrerender(): Promise<PortalAboutLoaderData> {
+  return withPrerenderFallback(loadPortalAboutData, getPrerenderPortalAboutData);
 }
 
 export function loadPortalAgensiDataWithPrerender(

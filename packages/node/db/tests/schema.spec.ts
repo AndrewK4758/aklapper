@@ -16,8 +16,10 @@ import {
   contactSubmissions,
   DEFAULT_MENU_ITEMS,
   extractPgConstraintViolation,
+  getPrerenderPortalAboutData,
   insertContactSubmission,
   menuItems,
+  PORTAL_ABOUT_SEED,
   PORTAL_ASK_SEED,
   QDRANT_COLLECTIONS,
   roadmapMilestones,
@@ -90,7 +92,8 @@ describe('@aklapper/db', () => {
     expect(drizzleFiles.some(file => file.startsWith('0010_'))).toBe(false);
     expect(terminalDirectoryEntries.profileSlug.name).toBe('profile_slug');
     expect(terminalDirectoryEntries.description.name).toBe('description');
-    expect(TERMINAL_DIRECTORY_ENTRY_SEEDS).toHaveLength(5);
+    expect(TERMINAL_DIRECTORY_ENTRY_SEEDS).toHaveLength(6);
+    expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.map(entry => String(entry.name))).toContain('about');
     expect(TERMINAL_DIRECTORY_ENTRY_SEEDS.map(entry => String(entry.name))).not.toContain(
       'changes-in-progress',
     );
@@ -125,7 +128,8 @@ describe('@aklapper/db', () => {
       'spec-challenge-proof-ledger',
     ]);
     expect(DEFAULT_MENU_ITEMS.some(item => item.adminOnly)).toBe(true);
-    expect(Object.keys(SITE_CONTENT_KEYS)).toHaveLength(9);
+    expect(Object.keys(SITE_CONTENT_KEYS)).toHaveLength(10);
+    expect(SITE_CONTENT_KEYS.portalAbout).toBe('portal-about');
     expect(SITE_CONTENT_KEYS.portalAgensi).toBe('portal-agensi');
     expect(SITE_CONTENT_KEYS.portalAsk).toBe('portal-ask');
     expect(SITE_CONTENT_KEYS.portalContact).toBe('portal-contact');
@@ -329,6 +333,9 @@ describe('@aklapper/db', () => {
         lastTable = table;
         return { where: whereFn };
       }),
+      transaction: vi.fn<(fn: (tx: unknown) => Promise<unknown>) => Promise<unknown>>(async fn =>
+        fn(mockDb),
+      ),
     } as unknown as AppDatabase;
 
     try {
@@ -375,5 +382,57 @@ describe('@aklapper/db', () => {
     } finally {
       infoSpy.mockRestore();
     }
+  });
+
+  it('seeds 10 sanitized resume dossiers within Go 1400-rune chunk bounds, excludes References/phones/ZIPs, and provides prerender /about data', () => {
+    expect(CAREER_DOSSIER_SEEDS).toHaveLength(10);
+    expect(CAREER_DOSSIER_SEEDS.map(d => d.slug)).toEqual([
+      'andrew-klapper-profile-core',
+      'btg-software-engineer',
+      'gitasy-software-engineer',
+      'shipping-services-logistics-owner',
+      'cadence-agentic-sdlc',
+      'ghostty-union-terminal',
+      'gemma-4-dual-gpu-finetuning',
+      'distributed-ai-document-ecosystem',
+      'antigravity-android-blitz-oss',
+      'woodstock-developers-group-mentor',
+    ]);
+
+    for (const dossier of CAREER_DOSSIER_SEEDS) {
+      const metaParts = [
+        `Domain: ${dossier.domainLabel.trim()}`,
+        `Role: ${dossier.roleTitle.trim()}`,
+        `Timeframe: ${dossier.timeframe.trim()}`,
+        ...(dossier.skills.length > 0 ? [`Skills: ${dossier.skills.join(', ')}`] : []),
+      ];
+      const chunk0 = `${dossier.summaryBody.trim()}\n${metaParts.join(' | ')}`;
+      expect(
+        Array.from(chunk0).length,
+        `${dossier.slug} Chunk #0 exceeds 1400 runes`,
+      ).toBeLessThanOrEqual(1400);
+      for (const section of dossier.sectionsJson) {
+        const sectionChunk = `${section.heading.trim()}: ${section.body.trim()}`;
+        expect(
+          Array.from(sectionChunk).length,
+          `${dossier.slug} section "${section.heading}" exceeds 1400 runes`,
+        ).toBeLessThanOrEqual(1400);
+      }
+    }
+
+    expect(PORTAL_ABOUT_SEED.skillGroups).toHaveLength(5);
+    expect(PORTAL_ABOUT_SEED.services.map(s => s.to)).toEqual(['/chat', '/agensi', '/cadence']);
+    expect(PORTAL_ABOUT_SEED.contactCtaHref).toBe('/contact');
+
+    const serializedAll = JSON.stringify({ PORTAL_ABOUT_SEED, CAREER_DOSSIER_SEEDS });
+    expect(serializedAll).not.toMatch(/\bReferences\b/i);
+    expect(serializedAll).not.toMatch(/(?:\(\d{3}\)[-.\s]?|\d{3}[-.\s])\d{3}[-.\s]\d{4}/);
+    expect(serializedAll).not.toMatch(/\bGA\s+\d{5}\b/);
+    expect(serializedAll).not.toContain('30008');
+
+    const prerenderAbout = getPrerenderPortalAboutData();
+    expect(prerenderAbout.content.identity.fullName).toBe('Andrew Klapper');
+    expect(prerenderAbout.dossiers).toHaveLength(10);
+    expect(prerenderAbout.brandContactEmail).toBe('andrew@andrew-k.us');
   });
 });
