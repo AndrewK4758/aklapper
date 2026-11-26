@@ -5,8 +5,10 @@ import {
   buildPortalJsonLd,
   buildRouteMetaTags,
   getRootDataFromMatches,
+  normalizePathname,
   readSeoRuntimeConfig,
   serializeJsonLd,
+  trimTrailingSlashes,
 } from '../src/seo.ts';
 
 describe('@aklapper/core/seo', () => {
@@ -105,5 +107,25 @@ describe('@aklapper/core/seo', () => {
     ).toEqual({ site: 'admin' });
 
     expect(getRootDataFromMatches([{ id: 'routes/home' }])).toBeUndefined();
+  });
+
+  it('trims trailing slashes in linear time without polynomial backtracking on slash-heavy paths', () => {
+    const slashHeavy = `/a${'/'.repeat(16_000)}b`;
+    const allSlashes = '/'.repeat(16_000);
+
+    const startMs = performance.now();
+    expect(trimTrailingSlashes(slashHeavy)).toBe(slashHeavy);
+    expect(trimTrailingSlashes(`${slashHeavy}///`)).toBe(slashHeavy);
+    expect(trimTrailingSlashes(allSlashes)).toBe('');
+    expect(normalizePathname(slashHeavy)).toBe(slashHeavy);
+    expect(normalizePathname(`${slashHeavy}///`)).toBe(slashHeavy);
+    expect(normalizePathname(allSlashes)).toBe('/');
+    expect(buildCanonicalUrl(`https://andrew-k.us${allSlashes}`, slashHeavy)).toBe(
+      `https://andrew-k.us${slashHeavy}`,
+    );
+    expect(buildCanonicalUrl('https://andrew-k.us/', allSlashes)).toBe('https://andrew-k.us/');
+    const elapsedMs = performance.now() - startMs;
+
+    expect(elapsedMs).toBeLessThan(100);
   });
 });
