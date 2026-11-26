@@ -6,7 +6,6 @@ import {
   CadenceGateVerdictSchema,
   CadenceRunResultSchema,
   MenuItemSchema,
-  RoadmapMilestoneStatusSchema,
 } from './portal.ts';
 import { RuntimeServiceHealthSnapshotSchema } from './runtime-health.ts';
 import {
@@ -54,8 +53,6 @@ export const AdminOverviewLoaderDataSchema = z.object({
     portfolioPublic: AdminServiceHealthSchema,
   }),
   metrics: AdminOverviewMetricsSchema,
-  maintenanceModeDefault: z.boolean(),
-  rebuildProgressPercent: z.number().int().min(0).max(100),
   security: AdminSecuritySummarySchema,
 });
 export type AdminOverviewLoaderData = z.infer<typeof AdminOverviewLoaderDataSchema>;
@@ -198,20 +195,6 @@ export const TerminalDirectoryEntryUpsertSchema = z.object({
   enabled: z.boolean().default(true),
 });
 export type TerminalDirectoryEntryUpsertInput = z.infer<typeof TerminalDirectoryEntryUpsertSchema>;
-
-export const RoadmapMilestoneUpsertSchema = z.object({
-  slug: z
-    .string()
-    .trim()
-    .min(1)
-    .max(64)
-    .regex(/^[a-z0-9-]+$/),
-  status: RoadmapMilestoneStatusSchema,
-  label: z.string().trim().min(1).max(240),
-  sortOrder: z.coerce.number().int().min(0).max(1000),
-  enabled: z.boolean(),
-});
-export type RoadmapMilestoneUpsertInput = z.infer<typeof RoadmapMilestoneUpsertSchema>;
 
 /**
  * @deprecated Admin CMS manual skill CRUD has been retired in favor of creator-scoped Agensi catalog sync;

@@ -1,3 +1,4 @@
+import * as coreExports from '../src/index.ts';
 import {
   AdminAnalyticsLoaderDataSchema,
   AdminAnalyticsWindowSchema,
@@ -12,11 +13,9 @@ import {
   BucketPurgeSchema,
   BucketResetSchema,
   CadencePresetUpsertSchema,
-  MaintenanceModeUpdateSchema,
   MenuItemUpsertSchema,
   QdrantHealthStatusSchema,
   QuotaPolicyUpdateSchema,
-  RoadmapMilestoneUpsertSchema,
   SiteContentUpsertSchema,
   TerminalCommandUpsertSchema,
   TerminalInitialEntryUpsertSchema,
@@ -46,8 +45,6 @@ describe('@aklapper/core admin console contracts', () => {
         totalSandboxRuns: 7,
         pendingGates: 2,
       },
-      maintenanceModeDefault: false,
-      rebuildProgressPercent: 72,
       security: {
         handle: 'aklapper',
         passkeyCount: 2,
@@ -57,6 +54,8 @@ describe('@aklapper/core admin console contracts', () => {
 
     expect(parsed.metrics.pendingGates).toBe(2);
     expect(parsed.security.totpEnabled).toBe(true);
+    expect('maintenanceModeDefault' in parsed).toBe(false);
+    expect('rebuildProgressPercent' in parsed).toBe(false);
   });
 
   it('validates windowed AdminAnalyticsLoaderDataSchema with CWV percentiles and funnels', () => {
@@ -168,21 +167,24 @@ describe('@aklapper/core admin console contracts', () => {
         {
           key: 'portal-chrome',
           markdownBody: '# Chrome',
-          metadataJson: { maintenanceModeDefault: false },
+          metadataJson: { brandLabel: 'andrew-k.us' },
           updatedAt: '2026-11-24T12:00:00.000Z',
         },
       ],
-      maintenanceModeDefault: false,
-      rebuildProgressPercent: 60,
       menuItems: [],
       terminalProfiles: [],
       terminalCommands: [],
       terminalInitialEntries: [],
-      roadmapMilestones: [],
       agensiSkills: [],
       cadencePresets: [],
     });
     expect(cms.siteContents).toHaveLength(1);
+    expect('maintenanceModeDefault' in cms).toBe(false);
+    expect('rebuildProgressPercent' in cms).toBe(false);
+    expect('roadmapMilestones' in cms).toBe(false);
+    expect('MaintenanceModeUpdateSchema' in coreExports).toBe(false);
+    expect('RoadmapMilestoneUpsertSchema' in coreExports).toBe(false);
+    expect('PortalMaintenanceContentSchema' in coreExports).toBe(false);
 
     expect(
       SiteContentUpsertSchema.parse({
@@ -191,11 +193,6 @@ describe('@aklapper/core admin console contracts', () => {
         metadataJson: { heading: 'Ops' },
       }).key,
     ).toBe('admin-home');
-
-    expect(
-      MaintenanceModeUpdateSchema.parse({ enabled: true, rebuildProgressPercent: '85' })
-        .rebuildProgressPercent,
-    ).toBe(85);
 
     expect(
       MenuItemUpsertSchema.parse({
@@ -249,16 +246,6 @@ describe('@aklapper/core admin console contracts', () => {
         sortOrder: '0',
       }).status,
     ).toBe('ok');
-
-    expect(
-      RoadmapMilestoneUpsertSchema.parse({
-        slug: 'phase-5',
-        status: 'active',
-        label: 'Admin console launch',
-        sortOrder: '5',
-        enabled: true,
-      }).status,
-    ).toBe('active');
 
     expect(
       AgensiSkillUpsertSchema.parse({
@@ -337,13 +324,10 @@ describe('@aklapper/core admin console contracts', () => {
 
     const cmsWithSync = AdminCmsLoaderDataSchema.parse({
       siteContents: [],
-      maintenanceModeDefault: false,
-      rebuildProgressPercent: 50,
       menuItems: [],
       terminalProfiles: [],
       terminalCommands: [],
       terminalInitialEntries: [],
-      roadmapMilestones: [],
       agensiSkills: [],
       agensiSyncState: syncState,
       cadencePresets: [],

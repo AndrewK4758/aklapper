@@ -26,7 +26,6 @@ export const PORTAL_ROUTE_PATHS = [
   '/api/analytics/ingest',
   '/api/runtime/status',
   '/api/cadence/runs/:runId/stream',
-  '/changes-in-progress',
 ] as const;
 
 export type PortalRoutePath = (typeof PORTAL_ROUTE_PATHS)[number];

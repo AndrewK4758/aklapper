@@ -15,21 +15,11 @@ import type {
   PortalChromeContent,
   PortalContactContent,
   PortalHomeContent,
-  PortalMaintenanceContent,
-  RoadmapMilestone,
 } from './portal.ts';
 import type { TerminalProfileData } from './terminal.ts';
 
-export interface PortalMaintenanceLoaderData {
-  content: PortalMaintenanceContent;
-  terminal: TerminalProfileData;
-  milestones: readonly RoadmapMilestone[];
-}
-
 export interface PortalRootLoaderData {
-  maintenanceMode: boolean;
   chrome: PortalChromeContent;
-  maintenance: PortalMaintenanceLoaderData | null;
   terminal?: TerminalProfileData;
   homeContent?: PortalHomeContent;
   contactForm?: FormDefinition;

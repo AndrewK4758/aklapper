@@ -132,9 +132,21 @@ export const CadenceStreamErrorEventSchema = z.object({
 });
 export type CadenceStreamErrorEvent = z.infer<typeof CadenceStreamErrorEventSchema>;
 
+/**
+ * @deprecated Retained temporarily until the roadmap_milestones contraction migration drops the
+ *   table.
+ */
 export const RoadmapMilestoneStatusSchema = z.enum(['done', 'active', 'queued']);
+/**
+ * @deprecated Retained temporarily until the roadmap_milestones contraction migration drops the
+ *   table.
+ */
 export type RoadmapMilestoneStatus = z.infer<typeof RoadmapMilestoneStatusSchema>;
 
+/**
+ * @deprecated Retained temporarily until the roadmap_milestones contraction migration drops the
+ *   table.
+ */
 export const RoadmapMilestoneSchema = z.object({
   slug: z.string().min(1),
   status: RoadmapMilestoneStatusSchema,
@@ -142,6 +154,10 @@ export const RoadmapMilestoneSchema = z.object({
   sortOrder: z.number().int().nonnegative(),
   enabled: z.boolean(),
 });
+/**
+ * @deprecated Retained temporarily until the roadmap_milestones contraction migration drops the
+ *   table.
+ */
 export type RoadmapMilestone = z.infer<typeof RoadmapMilestoneSchema>;
 
 export const StatusBadgeSpecSchema = z.object({
@@ -167,7 +183,6 @@ export const PortalChromeContentSchema = z.object({
   footerText: z.string().min(1),
   footerLinkLabel: z.string().min(1),
   footerLinkUrl: z.url(),
-  maintenanceModeDefault: z.boolean(),
 });
 export type PortalChromeContent = z.infer<typeof PortalChromeContentSchema>;
 
@@ -253,18 +268,6 @@ export const PortalContactContentSchema = z.object({
   form: FormDefinitionSchema,
 });
 export type PortalContactContent = z.infer<typeof PortalContactContentSchema>;
-
-export const PortalMaintenanceContentSchema = z.object({
-  windowTitle: z.string().min(1),
-  statusBadge: StatusBadgeSpecSchema,
-  heading: z.string().min(1),
-  lead: z.string().min(1),
-  progressPercent: z.number().int().min(0).max(100),
-  progressAriaLabel: z.string().min(1),
-  metaLeft: z.string().min(1),
-  metaRight: z.string().min(1),
-});
-export type PortalMaintenanceContent = z.infer<typeof PortalMaintenanceContentSchema>;
 
 export const AdminChromeContentSchema = z.object({
   pageTitle: z.string().min(1),

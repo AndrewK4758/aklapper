@@ -10,7 +10,6 @@ import {
   PortalChromeContentSchema,
   PortalContactContentSchema,
   PortalHomeContentSchema,
-  PortalMaintenanceContentSchema,
 } from './portal.ts';
 
 export const SITE_CONTENT_KEYS = {
@@ -20,7 +19,6 @@ export const SITE_CONTENT_KEYS = {
   portalAsk: 'portal-ask',
   portalCadence: 'portal-cadence',
   portalContact: 'portal-contact',
-  portalMaintenance: 'portal-maintenance',
   adminChrome: 'admin-chrome',
   adminHome: 'admin-home',
   adminAnalytics: 'admin-analytics',
@@ -44,7 +42,6 @@ export const SITE_CONTENT_SCHEMA_BY_KEY: Readonly<
   [SITE_CONTENT_KEYS.portalAsk]: PortalAskContentSchema,
   [SITE_CONTENT_KEYS.portalCadence]: PortalCadenceContentSchema,
   [SITE_CONTENT_KEYS.portalContact]: PortalContactContentSchema,
-  [SITE_CONTENT_KEYS.portalMaintenance]: PortalMaintenanceContentSchema,
   [SITE_CONTENT_KEYS.adminChrome]: AdminChromeContentSchema,
   [SITE_CONTENT_KEYS.adminHome]: AdminHomeContentSchema,
   [SITE_CONTENT_KEYS.adminAnalytics]: AdminAnalyticsContentSchema,
@@ -54,7 +51,7 @@ export const SITE_CONTENT_METADATA: Readonly<Record<SiteContentKey, SiteContentK
   [SITE_CONTENT_KEYS.portalChrome]: {
     key: SITE_CONTENT_KEYS.portalChrome,
     label: 'Portal Chrome',
-    description: 'Top navigation bar, footer, status badge, and default maintenance toggle.',
+    description: 'Top navigation bar, footer, and status badge.',
     surface: 'portal',
   },
   [SITE_CONTENT_KEYS.portalHome]: {
@@ -86,12 +83,6 @@ export const SITE_CONTENT_METADATA: Readonly<Record<SiteContentKey, SiteContentK
     key: SITE_CONTENT_KEYS.portalContact,
     label: 'Portal Contact',
     description: 'Contact page header and recursive form fieldsets/fields definition.',
-    surface: 'portal',
-  },
-  [SITE_CONTENT_KEYS.portalMaintenance]: {
-    key: SITE_CONTENT_KEYS.portalMaintenance,
-    label: 'Portal Maintenance',
-    description: 'Changes-in-progress window copy, rebuild progress percent, and status footer.',
     surface: 'portal',
   },
   [SITE_CONTENT_KEYS.adminChrome]: {
@@ -194,6 +185,6 @@ export function validateSiteContentMetadata(
 
   return {
     ok: true,
-    data: { ...candidate, ...parsed.data },
+    data: { ...parsed.data },
   };
 }

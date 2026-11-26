@@ -135,8 +135,8 @@ describe('@aklapper/core (contracts)', () => {
         {
           command: 'ls',
           output: formatTerminalDirectoryListing([
-            { name: 'menu', description: 'Site menu' },
-            { name: 'changes-in-progress', description: 'Maintenance preview' },
+            { name: 'cadence', description: 'CADENCE Builder' },
+            { name: 'contact', description: 'Connect with me' },
           ]),
           status: 'ok',
           durationLabel: '6ms',
@@ -159,9 +159,7 @@ describe('@aklapper/core (contracts)', () => {
     });
     expect(profile.initialEntries).toHaveLength(1);
     expect(profile.initialEntries[0]?.output).toBe(
-      ['menu                  # Site menu', 'changes-in-progress   # Maintenance preview'].join(
-        '\n',
-      ),
+      ['cadence   # CADENCE Builder', 'contact   # Connect with me'].join('\n'),
     );
     expect(formatTerminalDirectoryListing([])).toBe('');
     expect(
@@ -184,13 +182,25 @@ describe('@aklapper/core (contracts)', () => {
     const chrome = PortalChromeContentSchema.parse({
       pageTitle: 'andrew-k.us // Solar Forge Terminal',
       brandLabel: 'andrew-k.us',
-      statusBadge: { source: 'gke-autopilot', state: 'idle', label: '0 pods (scale-to-0)' },
+      statusBadge: { source: 'cloud-run', state: 'idle', label: '0 instances (scale-to-0)' },
       footerText: 'Solar Forge // Fastify 5 + React Router 8 SSR',
       footerLinkLabel: 'agensi.io/creators/aklapper',
       footerLinkUrl: 'https://agensi.io/creators/aklapper',
-      maintenanceModeDefault: false,
     });
-    expect(chrome.maintenanceModeDefault).toBe(false);
+    expect(chrome.brandLabel).toBe('andrew-k.us');
+    expect('maintenanceModeDefault' in chrome).toBe(false);
+
+    // Legacy JSONB rows containing maintenanceModeDefault parse cleanly and strip the retired key
+    const legacyChrome = PortalChromeContentSchema.parse({
+      pageTitle: 'andrew-k.us // Solar Forge Terminal',
+      brandLabel: 'andrew-k.us',
+      statusBadge: { source: 'cloud-run', state: 'idle', label: '0 instances (scale-to-0)' },
+      footerText: 'Solar Forge // Fastify 5 + React Router 8 SSR',
+      footerLinkLabel: 'agensi.io/creators/aklapper',
+      footerLinkUrl: 'https://agensi.io/creators/aklapper',
+      maintenanceModeDefault: true,
+    });
+    expect('maintenanceModeDefault' in legacyChrome).toBe(false);
   });
 
   it('parses recursive Zod contact form schema and enforces required vs optional fields', () => {

@@ -346,8 +346,8 @@ describe('@aklapper/core error contracts and server error classification', () =>
       '/api/analytics/ingest',
       '/api/runtime/status',
       '/api/cadence/runs/:runId/stream',
-      '/changes-in-progress',
     ]);
+    expect(PORTAL_ROUTE_PATHS).not.toContain('/changes-in-progress');
     expect(ADMIN_ROUTE_PATHS).toEqual([
       '/',
       '/login',

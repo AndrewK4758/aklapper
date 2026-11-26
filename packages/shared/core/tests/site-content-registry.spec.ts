@@ -20,7 +20,6 @@ const VALID_FIXTURES: Record<SiteContentKey, Record<string, unknown>> = {
     footerText: 'Built with Solar Forge',
     footerLinkLabel: 'GitHub',
     footerLinkUrl: 'https://github.com/AndrewK4758',
-    maintenanceModeDefault: false,
   },
   [SITE_CONTENT_KEYS.portalHome]: {
     tuiTitle: 'launcher :: home',
@@ -57,16 +56,6 @@ const VALID_FIXTURES: Record<SiteContentKey, Record<string, unknown>> = {
     description: 'Send a direct message.',
     form: CONTACT_FORM_DEFINITION,
   },
-  [SITE_CONTENT_KEYS.portalMaintenance]: {
-    windowTitle: 'Maintenance',
-    statusBadge: { source: 'maintenance', state: 'scaling', label: 'Rebuilding' },
-    heading: 'Changes in Progress',
-    lead: 'Deploying portfolio upgrades.',
-    progressPercent: 72,
-    progressAriaLabel: 'Rebuild progress',
-    metaLeft: 'Cluster: games-424800',
-    metaRight: 'ETA: soon',
-  },
   [SITE_CONTENT_KEYS.adminChrome]: {
     pageTitle: 'Admin Console',
     brandLabel: 'admin.andrew-k.us',
@@ -85,9 +74,11 @@ const VALID_FIXTURES: Record<SiteContentKey, Record<string, unknown>> = {
 };
 
 describe('@aklapper/core site_content registry', () => {
-  it('registers all 11 site_content keys with schemas and display metadata', () => {
+  it('registers all 9 active site_content keys without portal-maintenance', () => {
     const keys = Object.values(SITE_CONTENT_KEYS);
-    expect(keys).toHaveLength(10);
+    expect(keys).toHaveLength(9);
+    expect(keys).not.toContain('portal-maintenance');
+    expect(isKnownSiteContentKey('portal-maintenance')).toBe(false);
     for (const key of keys) {
       expect(isKnownSiteContentKey(key)).toBe(true);
       expect(SITE_CONTENT_SCHEMA_BY_KEY[key]).toBeDefined();
@@ -97,7 +88,7 @@ describe('@aklapper/core site_content registry', () => {
     expect(isKnownSiteContentKey('custom-banner')).toBe(false);
   });
 
-  it('introspects all 11 schemas cleanly via z.toJSONSchema with cycle refs and memoization', () => {
+  it('introspects all 9 schemas cleanly via z.toJSONSchema with cycle refs and memoization', () => {
     for (const key of Object.values(SITE_CONTENT_KEYS)) {
       const schema = introspectSiteContentSchema(key);
       expect(schema.type).toBe('object');
@@ -108,20 +99,22 @@ describe('@aklapper/core site_content registry', () => {
     expect(contactSchema.properties?.['form']).toBeDefined();
   });
 
-  it('validates all 11 fixtures and preserves unknown extra keys losslessly', () => {
+  it('validates all 9 fixtures and strips unknown or retired keys on registered site_content rows', () => {
     for (const key of Object.values(SITE_CONTENT_KEYS)) {
-      const candidate = { ...VALID_FIXTURES[key], customNote: 'keep-me' };
+      const candidate = {
+        ...VALID_FIXTURES[key],
+        maintenanceModeDefault: true,
+        customNote: 'strip-me',
+      };
       const result = validateSiteContentMetadata(key, candidate);
-      expect(result).toEqual(
-        expect.objectContaining({
-          ok: true,
-          data: expect.objectContaining({ customNote: 'keep-me' }),
-        }),
-      );
+      expect(result.ok).toBe(true);
+      const data = result.ok ? result.data : {};
+      expect('maintenanceModeDefault' in data).toBe(false);
+      expect('customNote' in data).toBe(false);
     }
   });
 
-  it('reports field-level validation issues for invalid known payloads and passes unknown keys', () => {
+  it('reports field-level validation issues for invalid known payloads and passes unknown keys verbatim', () => {
     const invalidChrome = validateSiteContentMetadata(SITE_CONTENT_KEYS.portalChrome, {
       ...VALID_FIXTURES[SITE_CONTENT_KEYS.portalChrome],
       footerLinkUrl: 'not-a-valid-url',
@@ -130,17 +123,6 @@ describe('@aklapper/core site_content registry', () => {
       expect.objectContaining({
         ok: false,
         issues: expect.arrayContaining([expect.objectContaining({ pathKey: 'footerLinkUrl' })]),
-      }),
-    );
-
-    const invalidMaint = validateSiteContentMetadata(SITE_CONTENT_KEYS.portalMaintenance, {
-      ...VALID_FIXTURES[SITE_CONTENT_KEYS.portalMaintenance],
-      progressPercent: 150,
-    });
-    expect(invalidMaint).toEqual(
-      expect.objectContaining({
-        ok: false,
-        issues: expect.arrayContaining([expect.objectContaining({ pathKey: 'progressPercent' })]),
       }),
     );
 
@@ -168,13 +150,10 @@ describe('@aklapper/core site_content registry', () => {
 
     const cmsLoader = AdminCmsLoaderDataSchema.parse({
       siteContents: [],
-      maintenanceModeDefault: false,
-      rebuildProgressPercent: 50,
       menuItems: [],
       terminalProfiles: [],
       terminalCommands: [],
       terminalInitialEntries: [],
-      roadmapMilestones: [],
       agensiSkills: [],
       cadencePresets: [],
     });
