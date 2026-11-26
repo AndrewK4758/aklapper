@@ -28,7 +28,6 @@ const SITE_ROWS: SiteContentRow[] = [
       footerText: 'Built with Solar Forge',
       footerLinkLabel: 'GitHub',
       footerLinkUrl: 'https://github.com/AndrewK4758',
-      maintenanceModeDefault: false,
     },
     updatedAt: '2026-11-24T22:00:00.000Z',
   },

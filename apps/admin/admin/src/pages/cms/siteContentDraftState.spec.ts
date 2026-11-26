@@ -31,14 +31,17 @@ const PORTAL_HOME_METADATA: Record<string, unknown> = {
 };
 
 describe('siteContentDraftState pure reducer & validation', () => {
-  it('synchronizes Form edits to Raw JSON and Raw JSON edits back to Form while preserving extra keys', () => {
+  it('synchronizes Form edits to Raw JSON and Raw JSON edits back to Form while stripping retired keys on known schemas', () => {
     const row = makeRow(SITE_CONTENT_KEYS.portalHome, {
       ...PORTAL_HOME_METADATA,
-      customNote: 'keep-me',
+      maintenanceModeDefault: true,
+      customNote: 'strip-me',
     });
     const init = createInitialSiteContentDraftState(row);
     expect(init.state.mode).toBe('form');
     expect(init.schema).not.toBeNull();
+    expect('maintenanceModeDefault' in init.state.draftObject).toBe(false);
+    expect('customNote' in init.state.draftObject).toBe(false);
 
     const afterFormEdit = siteContentDraftReducer(init.state, {
       type: 'UPDATE_PATH',
@@ -46,17 +49,17 @@ describe('siteContentDraftState pure reducer & validation', () => {
       value: 'Updated Heading',
     });
     expect(afterFormEdit.draftObject['heading']).toBe('Updated Heading');
-    expect(afterFormEdit.draftObject['customNote']).toBe('keep-me');
 
     const inJsonMode = siteContentDraftReducer(afterFormEdit, { type: 'SWITCH_TO_JSON' });
     expect(inJsonMode.mode).toBe('json');
     expect(inJsonMode.rawText).toContain('Updated Heading');
-    expect(inJsonMode.rawText).toContain('keep-me');
+    expect(inJsonMode.rawText).not.toContain('strip-me');
 
     const editedJson = JSON.stringify(
       {
         ...afterFormEdit.draftObject,
         description: 'Edited in Raw JSON.',
+        maintenanceModeDefault: true,
       },
       null,
       2,
@@ -68,7 +71,7 @@ describe('siteContentDraftState pure reducer & validation', () => {
     const backToForm = siteContentDraftReducer(afterJsonEdit, { type: 'SWITCH_TO_FORM' });
     expect(backToForm.mode).toBe('form');
     expect(backToForm.draftObject['description']).toBe('Edited in Raw JSON.');
-    expect(backToForm.draftObject['customNote']).toBe('keep-me');
+    expect('maintenanceModeDefault' in backToForm.draftObject).toBe(false);
   });
 
   it('blocks switching to Form mode on malformed or non-object JSON without losing rawText', () => {
@@ -113,7 +116,6 @@ describe('siteContentDraftState pure reducer & validation', () => {
       footerText: 'Solar Forge',
       footerLinkLabel: 'GitHub',
       footerLinkUrl: 'https://github.com/AndrewK4758',
-      maintenanceModeDefault: false,
     });
     const { state } = createInitialSiteContentDraftState(row);
     const invalid = siteContentDraftReducer(state, {

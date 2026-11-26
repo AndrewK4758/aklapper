@@ -25,14 +25,11 @@ const QDRANT_FIXTURE: QdrantHealthStatus = {
 
 const CMS_DATA: AdminCmsLoaderData = {
   siteContents: [],
-  maintenanceModeDefault: false,
-  rebuildProgressPercent: 50,
   menuItems: [],
   terminalProfiles: [],
   terminalCommands: [],
   terminalInitialEntries: [],
   terminalDirectoryEntries: [],
-  roadmapMilestones: [],
   agensiSkills: [],
   cadencePresets: [],
   careerDossiers: [],

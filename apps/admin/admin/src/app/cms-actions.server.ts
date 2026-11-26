@@ -2,16 +2,13 @@ import { type AppErrorCode, SITE_CONTENT_KEYS, validateSiteContentMetadata } fro
 import {
   deleteCadencePreset,
   deleteMenuItem,
-  deleteRoadmapMilestone,
   deleteTerminalCommand,
   deleteTerminalDirectoryEntry,
   deleteTerminalInitialEntry,
   getSharedDb,
-  setMaintenanceModeDefault,
   syncAgensiCatalog,
   upsertCadencePreset,
   upsertMenuItem,
-  upsertRoadmapMilestone,
   upsertSiteContent,
   upsertTerminalCommand,
   upsertTerminalDirectoryEntry,
@@ -79,14 +76,26 @@ export async function dispatchAdminCmsIntent(
     return handleReindexQdrantIntent(correlationId, logger);
   }
 
-  if (intent === 'set-maintenance') {
-    const enabled = formData.get('maintenanceModeDefault') === 'true';
-    const rawProgress = formData.get('rebuildProgressPercent');
-    const progress =
-      rawProgress !== null && String(rawProgress).trim() !== '' ? Number(rawProgress) : undefined;
-    const result = await setMaintenanceModeDefault(getSharedDb(), enabled, progress);
-    return ok(
-      `Maintenance mode is now ${result.maintenanceModeDefault ? 'ON' : 'OFF'} (rebuild progress ${result.rebuildProgressPercent}%).`,
+  if (
+    intent === 'set-maintenance' ||
+    intent === 'upsert-roadmap-milestone' ||
+    intent === 'delete-roadmap-milestone'
+  ) {
+    logger.warn(
+      {
+        seam_type: 'UNSOUND_CONDITION',
+        event: 'admin.cms.retired_maintenance_intent_blocked',
+        intent,
+        correlationId,
+      },
+      'Blocked retired maintenance or roadmap CMS mutation.',
+    );
+    return fail(
+      410,
+      'Maintenance mode and roadmap milestone controls have been retired.',
+      'ERR_VALIDATION',
+      'Reload the CMS view to use active content controls.',
+      correlationId,
     );
   }
 
@@ -294,25 +303,6 @@ export async function dispatchAdminCmsIntent(
     return deleted
       ? ok(`Deleted terminal directory entry #${id}.`)
       : notFound(`Terminal directory entry #${id} not found.`, correlationId);
-  }
-
-  if (intent === 'upsert-roadmap-milestone') {
-    const saved = await upsertRoadmapMilestone(getSharedDb(), {
-      slug: String(formData.get('slug') ?? ''),
-      status: String(formData.get('status') ?? 'active') as 'done' | 'active' | 'queued',
-      label: String(formData.get('label') ?? ''),
-      sortOrder: Number(formData.get('sortOrder') ?? 0),
-      enabled: formData.get('enabled') === 'true',
-    });
-    return ok(`Saved roadmap milestone "${saved.slug}".`);
-  }
-
-  if (intent === 'delete-roadmap-milestone') {
-    const slug = String(formData.get('slug') ?? '').trim();
-    const deleted = await deleteRoadmapMilestone(getSharedDb(), slug);
-    return deleted
-      ? ok(`Deleted roadmap milestone "${slug}".`)
-      : notFound(`Milestone "${slug}" not found.`, correlationId);
   }
 
   if (intent === 'sync-agensi-catalog') {

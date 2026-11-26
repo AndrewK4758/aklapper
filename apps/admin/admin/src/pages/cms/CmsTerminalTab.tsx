@@ -1,20 +1,14 @@
 import type { AdminCmsLoaderData } from '@aklapper/core';
-import { Button, Field, Separator } from '@aklapper/ui';
+import { Button, Field } from '@aklapper/ui';
 import { useState } from 'react';
 import { Form } from 'react-router';
-
-import { CmsRoadmapSection } from './CmsRoadmapSection';
 
 import styles from './AdminCmsPage.module.css';
 
 export interface CmsTerminalTabProps {
   readonly data: Pick<
     AdminCmsLoaderData,
-    | 'terminalProfiles'
-    | 'terminalCommands'
-    | 'terminalInitialEntries'
-    | 'terminalDirectoryEntries'
-    | 'roadmapMilestones'
+    'terminalProfiles' | 'terminalCommands' | 'terminalInitialEntries' | 'terminalDirectoryEntries'
   >;
 }
 
@@ -181,7 +175,6 @@ export function CmsTerminalTab({ data }: CmsTerminalTabProps) {
                 <option value='navigate'>navigate</option>
                 <option value='cd'>cd</option>
                 <option value='tui'>tui</option>
-                <option value='roadmap'>roadmap</option>
                 <option value='uptime'>uptime</option>
                 <option value='clear'>clear</option>
               </select>
@@ -376,10 +369,6 @@ export function CmsTerminalTab({ data }: CmsTerminalTabProps) {
           </div>
         </Form>
       </section>
-
-      <Separator.Root />
-
-      <CmsRoadmapSection roadmapMilestones={data.roadmapMilestones} />
     </>
   );
 }

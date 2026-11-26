@@ -45,15 +45,7 @@ async function readErrorMessage(response: Response, fallback: string): Promise<s
 }
 
 export function AdminHomePage({ data, onRegisterPasskey }: AdminHomePageProps) {
-  const {
-    content,
-    menuItems,
-    health,
-    metrics,
-    maintenanceModeDefault,
-    rebuildProgressPercent,
-    security,
-  } = data;
+  const { content, menuItems, health, metrics, security } = data;
   const services = [health.postgres, health.qdrant, health.portfolioPublic] as const;
   const [totpEnabled, setTotpEnabled] = useState(security.totpEnabled);
   const [passkeyCount, setPasskeyCount] = useState(security.passkeyCount);
@@ -283,19 +275,6 @@ export function AdminHomePage({ data, onRegisterPasskey }: AdminHomePageProps) {
                 <span className={styles.tileLabel}>Pending CHORD Gates</span>
                 <strong className={styles.tileValue}>{metrics.pendingGates}</strong>
                 <p className={styles.tileDetail}>Awaiting human approval in /ops</p>
-              </article>
-              <article
-                className={
-                  maintenanceModeDefault
-                    ? `${styles.tile} ${styles.maintenanceActive}`
-                    : styles.tile
-                }
-              >
-                <span className={styles.tileLabel}>Portal Maintenance</span>
-                <strong className={styles.tileValue}>
-                  {maintenanceModeDefault ? 'MAINTENANCE ON' : 'PORTAL LIVE'}
-                </strong>
-                <p className={styles.tileDetail}>Rebuild progress: {rebuildProgressPercent}%</p>
               </article>
             </div>
           </section>

@@ -9,7 +9,6 @@ type LogFn = (obj: Record<string, unknown>, msg?: string) => void;
 const mocks = vi.hoisted(() => ({
   resolveAdminSessionFromRequest: vi.fn<(request: Request) => Promise<unknown>>(),
   getSharedDb: vi.fn<() => unknown>(),
-  setMaintenanceModeDefault: vi.fn<AsyncUnknownFn>(),
   syncAgensiCatalog: vi.fn<AsyncUnknownFn>(),
   upsertSiteContent: vi.fn<AsyncUnknownFn>(),
   upsertCareerDossier: vi.fn<AsyncUnknownFn>(),
@@ -35,7 +34,6 @@ vi.mock('@aklapper/db', async importOriginal => {
   return {
     ...actual,
     getSharedDb: mocks.getSharedDb,
-    setMaintenanceModeDefault: mocks.setMaintenanceModeDefault,
     syncAgensiCatalog: mocks.syncAgensiCatalog,
     upsertSiteContent: mocks.upsertSiteContent,
     upsertCareerDossier: mocks.upsertCareerDossier,
@@ -48,7 +46,7 @@ vi.mock('@aklapper/db', async importOriginal => {
   };
 });
 
-import { ADMIN_CMS_FIXTURE, AUTH_STATUS } from './admin-test-fixtures';
+import { ADMIN_CMS_FIXTURE, AUTH_STATUS, UNAUTH_STATUS } from './admin-test-fixtures';
 import { action as analyticsIngestAction } from './api.analytics.ingest';
 import { action as cmsAction } from './cms';
 import { action as inboxAction } from './inbox';
@@ -134,14 +132,11 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
   });
 
   it('returns honest 200, 400, 404, and classified 503 responses in cms action without leaking raw SQL', async () => {
-    mocks.setMaintenanceModeDefault.mockResolvedValueOnce({
-      maintenanceModeDefault: true,
-      rebuildProgressPercent: 75,
-    });
+    mocks.deleteMenuItem.mockResolvedValueOnce(true);
     const okCall = makeActionArgs(
       'http://localhost:4301/cms',
       '/cms',
-      { intent: 'set-maintenance', maintenanceModeDefault: 'true', rebuildProgressPercent: '75' },
+      { intent: 'delete-menu-item', slug: 'legacy-item' },
       'corr-cms-200',
     );
     const okRes = (await cmsAction(okCall.args as never)) as unknown as DataWithStatus;
@@ -171,14 +166,14 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(missingRes.data['code']).toBe('ERR_NOT_FOUND');
 
     const dbErr = Object.assign(
-      new Error('Failed query: UPDATE portal_chrome; connection terminated'),
+      new Error('Failed query: DELETE FROM menu_items; connection terminated'),
       { name: 'DrizzleQueryError', cause: new Error('connection terminated') },
     );
-    mocks.setMaintenanceModeDefault.mockRejectedValueOnce(dbErr);
+    mocks.deleteMenuItem.mockRejectedValueOnce(dbErr);
     const failCall = makeActionArgs(
       'http://localhost:4301/cms',
       '/cms',
-      { intent: 'set-maintenance', maintenanceModeDefault: 'true' },
+      { intent: 'delete-menu-item', slug: 'broken-item' },
       'corr-cms-503',
     );
     const failRes = (await cmsAction(failCall.args as never)) as unknown as DataWithStatus;
@@ -187,7 +182,7 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     expect(failRes.data['code']).toBe('ERR_DB_UNAVAILABLE');
     expect(failRes.data['correlationId']).toBe('corr-cms-503');
     expect(String(failRes.data['message'])).not.toContain('connection terminated');
-    expect(String(failRes.data['message'])).not.toContain('UPDATE');
+    expect(String(failRes.data['message'])).not.toContain('DELETE');
     expect(failCall.logger.error).toHaveBeenCalledTimes(1);
 
     mocks.getSharedDb.mockClear();
@@ -202,6 +197,62 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
     );
     const reindexRes = (await cmsAction(reindexCall.args as never)) as unknown as DataWithStatus;
     expectUpstream503(reindexRes, reindexCall.logger, 'corr-cms-reindex-503');
+    expect(mocks.getSharedDb).not.toHaveBeenCalled();
+  });
+
+  it('rejects retired maintenance and roadmap CMS intents with HTTP 410 and UNSOUND_CONDITION log without mutating Postgres', async () => {
+    for (const intent of [
+      'set-maintenance',
+      'upsert-roadmap-milestone',
+      'delete-roadmap-milestone',
+    ] as const) {
+      mocks.getSharedDb.mockClear();
+      const cid = `corr-retired-${intent}`;
+      const call = makeActionArgs(
+        'http://localhost:4301/cms',
+        '/cms',
+        { intent, slug: 'phase-1', maintenanceModeDefault: 'true' },
+        cid,
+      );
+      const res = (await cmsAction(call.args as never)) as unknown as DataWithStatus;
+      expect(res.init?.status).toBe(410);
+      expect(res.data).toMatchObject({
+        ok: false,
+        code: 'ERR_VALIDATION',
+        correlationId: cid,
+      });
+      expect(mocks.getSharedDb).not.toHaveBeenCalled();
+      expect(call.logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          seam_type: 'UNSOUND_CONDITION',
+          event: 'admin.cms.retired_maintenance_intent_blocked',
+          intent,
+          correlationId: cid,
+        }),
+        expect.any(String),
+      );
+    }
+
+    // Unauthorized caller posting a retired intent fails closed before CMS dispatch
+    mocks.resolveAdminSessionFromRequest.mockResolvedValueOnce(UNAUTH_STATUS);
+    const unauthCall = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      { intent: 'set-maintenance', maintenanceModeDefault: 'true' },
+      'corr-unauth-retired',
+    );
+    let thrown: unknown = null;
+    try {
+      await cmsAction(unauthCall.args as never);
+    } catch (error) {
+      thrown = error;
+    }
+    const status =
+      thrown instanceof Response
+        ? thrown.status
+        : (thrown as { init?: { status?: number } } | null)?.init?.status;
+    expect([302, 401]).toContain(status);
+    expect(unauthCall.logger.warn).not.toHaveBeenCalled();
     expect(mocks.getSharedDb).not.toHaveBeenCalled();
   });
 
@@ -220,7 +271,6 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
           footerText: 'Solar Forge',
           footerLinkLabel: 'GitHub',
           footerLinkUrl: 'not-a-valid-url',
-          maintenanceModeDefault: false,
         }),
       },
       'corr-sc-invalid',

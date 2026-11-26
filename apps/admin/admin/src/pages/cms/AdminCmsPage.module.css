@@ -40,20 +40,6 @@
     font-weight: var(--sf-weight-semibold);
   }
 
-  .maintenanceRow {
-    display: flex;
-    align-items: var(--sf-align-center);
-    justify-content: var(--sf-justify-between);
-    flex-wrap: wrap;
-    gap: var(--sf-space-5);
-  }
-
-  .switchGroup {
-    display: inline-flex;
-    align-items: var(--sf-align-center);
-    gap: var(--sf-space-4);
-  }
-
   .inlineForm {
     display: flex;
     flex-wrap: wrap;

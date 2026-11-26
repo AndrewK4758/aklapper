@@ -36,8 +36,6 @@ const OVERVIEW_DATA: AdminOverviewLoaderData = {
     totalSandboxRuns: 3,
     pendingGates: 1,
   },
-  maintenanceModeDefault: false,
-  rebuildProgressPercent: 60,
   security: {
     handle: 'admin',
     passkeyCount: 1,
@@ -60,7 +58,12 @@ describe('admin/pages/home', () => {
     expect(screen.getByText('PostgreSQL 19')).toBeTruthy();
     expect(screen.getAllByText('portfolio-public').length).toBeGreaterThan(0);
     expect(screen.queryByText('cadence-admin')).toBeNull();
-    expect(screen.getByText('PORTAL LIVE')).toBeTruthy();
+    expect(screen.getByText('Contact Submissions')).toBeTruthy();
+    expect(screen.getByText('24h Sessions / Events')).toBeTruthy();
+    expect(screen.getByText('Pending CHORD Gates')).toBeTruthy();
+    expect(screen.queryByText('Portal Maintenance')).toBeNull();
+    expect(screen.queryByText('PORTAL LIVE')).toBeNull();
+    expect(screen.queryByText(/Rebuild progress/i)).toBeNull();
     expect(screen.getByRole('button', { name: 'Security Settings' })).toBeTruthy();
     expect(screen.getByText(/\(admin\)/)).toBeTruthy();
   });

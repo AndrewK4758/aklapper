@@ -7,16 +7,14 @@ import type {
 import {
   ActionFeedbackBanner,
   Button,
-  Field,
   LazyChunkBoundary,
   lazyWithRetry,
   OscStatusBadge,
-  Switch,
   Tabs,
   TuiWindow,
 } from '@aklapper/ui';
 import { type ReactNode, useState } from 'react';
-import { Form, useFetcher } from 'react-router';
+import { useFetcher } from 'react-router';
 
 import { reportAdminLazyChunkError } from '../client-telemetry';
 import { SiteContentEditorPanel } from './SiteContentEditorPanel';
@@ -59,12 +57,8 @@ export function AdminCmsPage({
   activeTab,
   onActiveTabChange,
 }: AdminCmsPageProps) {
-  const maintenanceFetcher = useFetcher<AdminCmsActionData>();
   const reindexFetcher = useFetcher<AdminCmsActionData>();
 
-  const [lastMaintenanceData, setLastMaintenanceData] = useState<AdminCmsActionData | undefined>(
-    undefined,
-  );
   const [lastReindexData, setLastReindexData] = useState<AdminCmsActionData | undefined>(undefined);
   const [lastActionData, setLastActionData] = useState<AdminCmsActionData | null | undefined>(
     undefined,
@@ -73,10 +67,7 @@ export function AdminCmsPage({
     () => actionData ?? null,
   );
 
-  if (maintenanceFetcher.data && maintenanceFetcher.data !== lastMaintenanceData) {
-    setLastMaintenanceData(maintenanceFetcher.data);
-    setLatestFeedback(maintenanceFetcher.data);
-  } else if (reindexFetcher.data && reindexFetcher.data !== lastReindexData) {
+  if (reindexFetcher.data && reindexFetcher.data !== lastReindexData) {
     setLastReindexData(reindexFetcher.data);
     setLatestFeedback(reindexFetcher.data);
   } else if (actionData !== lastActionData) {
@@ -87,18 +78,6 @@ export function AdminCmsPage({
   }
 
   const activeFeedback = latestFeedback ?? actionData ?? null;
-
-  const optimisticMaintenance = maintenanceFetcher.formData
-    ? maintenanceFetcher.formData.get('maintenanceModeDefault') === 'true'
-    : data.maintenanceModeDefault;
-
-  function handleMaintenanceSwitch(nextChecked: boolean) {
-    const payload = new FormData();
-    payload.set('intent', 'set-maintenance');
-    payload.set('maintenanceModeDefault', String(nextChecked));
-    payload.set('rebuildProgressPercent', String(data.rebuildProgressPercent));
-    void maintenanceFetcher.submit(payload, { method: 'post' });
-  }
 
   return (
     <TuiWindow title='PostgreSQL 19 CMS // Site, Registry, Terminal & Presets'>
@@ -116,10 +95,10 @@ export function AdminCmsPage({
             : { defaultValue: 'site' })}
         >
           <Tabs.List aria-label='CMS sections'>
-            <Tabs.Tab value='site'>Site &amp; Maintenance</Tabs.Tab>
+            <Tabs.Tab value='site'>Site Content</Tabs.Tab>
             <Tabs.Tab value='dossiers'>Career Dossiers ({data.careerDossiers.length})</Tabs.Tab>
             <Tabs.Tab value='menu'>Menu Registry ({data.menuItems.length})</Tabs.Tab>
-            <Tabs.Tab value='terminal'>Terminal &amp; Roadmap</Tabs.Tab>
+            <Tabs.Tab value='terminal'>Terminal</Tabs.Tab>
             <Tabs.Tab value='agensi'>Agensi &amp; Presets</Tabs.Tab>
             <Tabs.Indicator />
           </Tabs.List>
@@ -143,57 +122,9 @@ export function AdminCmsPage({
           </Tabs.Panel>
 
           <Tabs.Panel value='site' className={styles.tabPanel}>
-            <section className={styles.card} aria-label='Portal maintenance controls'>
+            <section className={styles.card} aria-label='Qdrant index controls'>
               <div className={styles.cardHeader}>
-                <h2 className={styles.sectionTitle}>Live Maintenance Mode &amp; Qdrant Index</h2>
-                <OscStatusBadge
-                  source='portal-mode'
-                  state={optimisticMaintenance ? 'scaling' : 'ready'}
-                  label={optimisticMaintenance ? 'Maintenance Active' : 'Portal Live'}
-                />
-              </div>
-
-              <div className={styles.maintenanceRow}>
-                <div className={styles.switchGroup}>
-                  <Switch.Root
-                    id='maintenance-mode-switch'
-                    aria-label='Maintenance Mode'
-                    checked={optimisticMaintenance}
-                    onCheckedChange={checked => {
-                      handleMaintenanceSwitch(Boolean(checked));
-                    }}
-                  >
-                    <Switch.Thumb />
-                  </Switch.Root>
-                  <Switch.Label htmlFor='maintenance-mode-switch'>
-                    Maintenance Mode Default ({optimisticMaintenance ? 'ON' : 'OFF'})
-                  </Switch.Label>
-                </div>
-
-                <Form method='post' className={styles.inlineForm}>
-                  <input type='hidden' name='intent' value='set-maintenance' />
-                  <input
-                    type='hidden'
-                    name='maintenanceModeDefault'
-                    value={String(optimisticMaintenance)}
-                  />
-                  <Field.Root>
-                    <Field.Label>Rebuild Progress (%)</Field.Label>
-                    <Field.Control
-                      name='rebuildProgressPercent'
-                      type='number'
-                      min={0}
-                      max={100}
-                      defaultValue={data.rebuildProgressPercent}
-                      key={data.rebuildProgressPercent}
-                      required
-                    />
-                  </Field.Root>
-                  <Button.Root type='submit' variant='secondary' size='sm'>
-                    <Button.Label>Update Progress</Button.Label>
-                  </Button.Root>
-                </Form>
-
+                <h2 className={styles.sectionTitle}>Qdrant Corpus Index</h2>
                 <reindexFetcher.Form method='post' className={styles.inlineForm}>
                   <input type='hidden' name='intent' value='reindex-qdrant' />
                   {qdrantStatusSlot ?? (
@@ -241,8 +172,8 @@ export function AdminCmsPage({
 
           <Tabs.Panel value='terminal' className={styles.tabPanel}>
             <LazyChunkBoundary
-              loadingLabel='Loading terminal & roadmap editor...'
-              errorTitle='Unable to load Terminal & Roadmap tab'
+              loadingLabel='Loading terminal editor...'
+              errorTitle='Unable to load Terminal tab'
               onChunkError={error => {
                 reportAdminLazyChunkError('./CmsTerminalTab', '/cms', error);
               }}
