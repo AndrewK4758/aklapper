@@ -53,6 +53,12 @@
       "import": "./dist/site-content-preview.js",
       "default": "./dist/site-content-preview.js"
     },
+    "./terminal-portrait": {
+      "@aklapper/source": "./src/terminal-portrait.ts",
+      "types": "./dist/terminal-portrait.d.ts",
+      "import": "./dist/terminal-portrait.js",
+      "default": "./dist/terminal-portrait.js"
+    },
     "./theme.css": "./src/styles/theme.css",
     "./layers.css": "./src/styles/layers.css",
     "./fonts.css": "./src/styles/fonts.css",

@@ -17,6 +17,7 @@ import { StatusPill } from '../../elements/StatusPill';
 import { RecursiveTuiForm } from '../RecursiveTuiForm';
 import { TuiWindow } from '../TuiWindow';
 import { ViewportProvider } from '../ViewportProvider';
+import { PortalHomeTerminalIntro } from './PortalHomeTerminalIntro';
 import { SiteChromePreviewBar } from './SiteChromePreviewBar';
 import { SiteContentWindowHeader } from './SiteContentWindowHeader';
 import { TuiHeroCard } from './TuiHeroCard';
@@ -50,23 +51,34 @@ function renderKeyPreview(contentKey: string, metadata: Record<string, unknown>)
       if (!parsed.success) return null;
       const d = parsed.data;
       return (
-        <TuiWindow
-          title={d.tuiTitle}
-          badge={
-            <OscStatusBadge
-              source={d.tuiBadge.source}
-              state={d.tuiBadge.state}
-              label={d.tuiBadge.label}
+        <div className={styles.homePreviewStack}>
+          <div className={styles.terminalGreetingPreview}>
+            <div className={styles.terminalPromptEcho}>
+              <span className={styles.terminalPromptGlyph} aria-hidden='true'>
+                ❯
+              </span>
+              <code>ls</code>
+            </div>
+            <PortalHomeTerminalIntro portrait={d.portrait} resumeSummary={d.resumeSummary} />
+          </div>
+          <TuiWindow
+            title={d.tuiTitle}
+            badge={
+              <OscStatusBadge
+                source={d.tuiBadge.source}
+                state={d.tuiBadge.state}
+                label={d.tuiBadge.label}
+              />
+            }
+          >
+            <TuiHeroCard
+              heading={d.heading}
+              description={d.description}
+              actions={d.actions}
+              actionsAriaLabel='Portal launch actions preview'
             />
-          }
-        >
-          <TuiHeroCard
-            heading={d.heading}
-            description={d.description}
-            actions={d.actions}
-            actionsAriaLabel='Portal launch actions preview'
-          />
-        </TuiWindow>
+          </TuiWindow>
+        </div>
       );
     }
 

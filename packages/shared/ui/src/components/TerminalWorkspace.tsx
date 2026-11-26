@@ -119,6 +119,7 @@ export interface TerminalWorkspacePrimaryPane {
 export interface TerminalWorkspaceProps {
   terminal: TerminalProfileData;
   terminalForms?: Readonly<Record<string, TerminalFormConfig>>;
+  initialEntryCompanion?: ReactNode;
   navigate?: (to: string) => void | Promise<void>;
   renderTui?: (context: TerminalPaneTuiContext) => ReactNode;
   renderPaneView?: (context: TerminalPaneViewContext) => ReactNode;
@@ -786,6 +787,7 @@ interface TerminalLeafContentProps {
   pane: TerminalLeafPane;
   terminal: TerminalProfileData;
   terminalForms?: Readonly<Record<string, TerminalFormConfig>>;
+  initialEntryCompanion?: ReactNode;
   isActive: boolean;
   isMultiPane: boolean;
   canCloseTab: boolean;
@@ -810,6 +812,7 @@ function TerminalLeafContent({
   pane,
   terminal,
   terminalForms,
+  initialEntryCompanion,
   isActive,
   isMultiPane,
   canCloseTab,
@@ -962,6 +965,7 @@ function TerminalLeafContent({
         terminalForms={paneTerminalForms}
         quickCommands={terminal.quickCommands}
         initialEntries={pane.ttyNumber === 1 ? terminal.initialEntries : []}
+        initialEntryCompanion={pane.ttyNumber === 1 ? initialEntryCompanion : undefined}
         initialCommandHistory={initialCommandHistory}
         onCommandHistoryChange={
           onCommandHistoryChange ? history => onCommandHistoryChange(pane.id, history) : undefined
@@ -989,6 +993,7 @@ function TerminalLeafView({
   pane,
   terminal,
   terminalForms,
+  initialEntryCompanion,
   isActive,
   isMultiPane,
   canCloseTab,
@@ -1036,6 +1041,7 @@ function TerminalLeafView({
       pane={pane}
       terminal={terminal}
       terminalForms={terminalForms}
+      initialEntryCompanion={initialEntryCompanion}
       isActive={isActive && !hasTuiView}
       isMultiPane={isMultiPane}
       canCloseTab={canCloseTab}
@@ -1448,6 +1454,7 @@ const noopStoreSubscribe = () => () => undefined;
 function StandaloneTerminalWorkspace({
   terminal,
   terminalForms,
+  initialEntryCompanion,
   navigate,
   renderTui,
   renderPaneView,
@@ -2459,6 +2466,7 @@ function StandaloneTerminalWorkspace({
                           pane={pane}
                           terminal={terminal}
                           terminalForms={terminalForms}
+                          initialEntryCompanion={initialEntryCompanion}
                           isActive={isPaneActive}
                           isMultiPane={isMultiPane}
                           canCloseTab={canCloseThisTab}
@@ -2569,6 +2577,7 @@ export function TerminalWorkspace(props: TerminalWorkspaceProps) {
         pane={embeddedCtx.pane}
         terminal={props.terminal}
         terminalForms={props.terminalForms}
+        initialEntryCompanion={props.initialEntryCompanion}
         isActive={embeddedCtx.isActive}
         isMultiPane={embeddedCtx.isMultiPane}
         canCloseTab={embeddedCtx.canCloseTab}

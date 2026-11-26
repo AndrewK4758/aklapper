@@ -16,5 +16,6 @@ export default createUiLibViteConfig({
     'qr-code': 'src/qr-code.ts',
     'sandboxed-artifact-frame': 'src/sandboxed-artifact-frame.ts',
     'site-content-preview': 'src/site-content-preview.ts',
+    'terminal-portrait': 'src/terminal-portrait.ts',
   },
 });

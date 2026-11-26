@@ -70,6 +70,39 @@ export interface ZshTerminalHistoryItem {
   timestamp: string;
 }
 
+export type TerminalIntroMountBranch =
+  | 'tty1-with-companion'
+  | 'tty-without-companion'
+  | 'companion-cleared';
+
+const lastTerminalIntroBranchByLabel = new Map<string, TerminalIntroMountBranch>();
+
+export function resetTerminalIntroBranchTelemetryForTest(): void {
+  lastTerminalIntroBranchByLabel.clear();
+}
+
+function emitTerminalIntroMountBranch(
+  terminalLabel: string,
+  branch: TerminalIntroMountBranch,
+): void {
+  if (typeof window === 'undefined') return;
+  if (lastTerminalIntroBranchByLabel.get(terminalLabel) === branch) {
+    return;
+  }
+  if (lastTerminalIntroBranchByLabel.size >= 64) {
+    lastTerminalIntroBranchByLabel.clear();
+  }
+  lastTerminalIntroBranchByLabel.set(terminalLabel, branch);
+  console.debug(
+    JSON.stringify({
+      event: 'portal.home.terminal_intro_mount_branch',
+      seam_type: 'RULE_DIVERGENCE',
+      terminalLabel,
+      branch,
+    }),
+  );
+}
+
 export interface ZshP10kTerminalProps {
   variant?: TerminalVariant;
   showBanner?: boolean;
@@ -85,6 +118,7 @@ export interface ZshP10kTerminalProps {
   terminalForms?: Readonly<Record<string, TerminalFormConfig>>;
   quickCommands?: readonly string[];
   initialEntries?: readonly Omit<ZshTerminalHistoryItem, 'id'>[];
+  initialEntryCompanion?: ReactNode;
   initialCommandHistory?: readonly string[];
   maxCommandHistory?: number;
   onCommandHistoryChange?: (history: readonly string[]) => void;
@@ -243,6 +277,7 @@ export function ZshP10kTerminal({
   terminalForms,
   quickCommands = [],
   initialEntries = [],
+  initialEntryCompanion,
   initialCommandHistory,
   maxCommandHistory = MAX_TERMINAL_HISTORY_ENTRIES,
   onCommandHistoryChange,
@@ -298,8 +333,19 @@ export function ZshP10kTerminal({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const prevEntriesLengthRef = useRef(entries.length);
   const nextId = useRef(initialEntries.length + 1);
   const submitSeqRef = useRef(0);
+
+  const hasInitCompanionEntry = Boolean(
+    initialEntryCompanion && entries.some(entry => entry.id === 'init-0'),
+  );
+  const introMountBranch: TerminalIntroMountBranch = initialEntryCompanion
+    ? hasInitCompanionEntry
+      ? 'tty1-with-companion'
+      : 'companion-cleared'
+    : 'tty-without-companion';
+  emitTerminalIntroMountBranch(ariaLabel, introMountBranch);
 
   const activeFormStep = formSession ? getActiveFormStep(formSession) : null;
   const isTextareaStep = activeFormStep?.field.fieldType === 'textarea';
@@ -318,20 +364,32 @@ export function ZshP10kTerminal({
   const showDragOver = isDragOver && formSession !== null && !isSubmittingForm;
 
   useEffect(() => {
-    if (scrollRef.current) {
+    const prevLength = prevEntriesLengthRef.current;
+    prevEntriesLengthRef.current = entries.length;
+    if (entries.length > prevLength && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [entries]);
 
   useEffect(() => {
     if ((focusOnMount || isFormActive) && isActive) {
+      const focusOptions: FocusOptions | undefined =
+        Boolean(initialEntryCompanion) && !hasLocalCommand ? { preventScroll: true } : undefined;
       if (isTextareaStep) {
-        textareaRef.current?.focus();
+        textareaRef.current?.focus(focusOptions);
       } else {
-        inputRef.current?.focus();
+        inputRef.current?.focus(focusOptions);
       }
     }
-  }, [focusOnMount, isActive, focusToken, isFormActive, isTextareaStep]);
+  }, [
+    focusOnMount,
+    isActive,
+    focusToken,
+    isFormActive,
+    isTextareaStep,
+    initialEntryCompanion,
+    hasLocalCommand,
+  ]);
 
   const commandNames = useMemo(() => {
     const merged = new Set<string>(Object.keys(commands));
@@ -1022,38 +1080,52 @@ export function ZshP10kTerminal({
           aria-live='polite'
         >
           <ScrollArea.Content className={styles.history}>
-            {entries.map(entry => (
-              <div key={entry.id} className={styles.entry}>
-                <div className={styles.promptBlock}>
-                  <PromptHeader
-                    osLabel={osLabel}
-                    directory={directory}
-                    vcsBranch={vcsBranch}
-                    vcsState={vcsState}
-                    status={entry.status}
-                    durationLabel={entry.durationLabel}
-                    contextLabel={contextLabel}
-                    timestamp={entry.timestamp}
-                  />
-                  <div className={styles.promptBottom}>
-                    <span className={styles.frame}>╰─</span>
-                    {entry.promptLabel ? (
-                      <span className={styles.formBadge}>{entry.promptLabel}</span>
-                    ) : null}
-                    <span className={styles.promptChar} data-status={entry.status}>
-                      ❯
-                    </span>
-                    <span className={styles.commandEcho}>{entry.command}</span>
-                    <span className={styles.frame}>─╯</span>
+            {entries.map(entry => {
+              const showCompanion = entry.id === 'init-0' && Boolean(initialEntryCompanion);
+              return (
+                <div key={entry.id} className={styles.entry}>
+                  <div className={styles.promptBlock}>
+                    <PromptHeader
+                      osLabel={osLabel}
+                      directory={directory}
+                      vcsBranch={vcsBranch}
+                      vcsState={vcsState}
+                      status={entry.status}
+                      durationLabel={entry.durationLabel}
+                      contextLabel={contextLabel}
+                      timestamp={entry.timestamp}
+                    />
+                    <div className={styles.promptBottom}>
+                      <span className={styles.frame}>╰─</span>
+                      {entry.promptLabel ? (
+                        <span className={styles.formBadge}>{entry.promptLabel}</span>
+                      ) : null}
+                      <span className={styles.promptChar} data-status={entry.status}>
+                        ❯
+                      </span>
+                      <span className={styles.commandEcho}>{entry.command}</span>
+                      <span className={styles.frame}>─╯</span>
+                    </div>
                   </div>
+                  {showCompanion ? (
+                    <div className={styles.entryBodyWithCompanion} data-terminal-companion='true'>
+                      {entry.output ? (
+                        <pre className={styles.output} data-status={entry.status}>
+                          {entry.output}
+                        </pre>
+                      ) : null}
+                      <div className={styles.entryCompanion} aria-live='off'>
+                        {initialEntryCompanion}
+                      </div>
+                    </div>
+                  ) : entry.output ? (
+                    <pre className={styles.output} data-status={entry.status}>
+                      {entry.output}
+                    </pre>
+                  ) : null}
                 </div>
-                {entry.output ? (
-                  <pre className={styles.output} data-status={entry.status}>
-                    {entry.output}
-                  </pre>
-                ) : null}
-              </div>
-            ))}
+              );
+            })}
 
             <Form.Root className={styles.promptBlock} onSubmit={handleSubmit}>
               <PromptHeader

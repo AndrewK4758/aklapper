@@ -77,8 +77,30 @@
   }
 
   .entry {
+    container-type: inline-size;
+    container-name: sf-terminal-entry;
     display: grid;
     gap: var(--sf-space-3);
+    min-width: var(--sf-space-0);
+  }
+
+  .entryBodyWithCompanion {
+    display: grid;
+    grid-template-columns: minmax(calc(var(--sf-size-unit) * 17), auto) minmax(0, 1fr);
+    gap: var(--sf-space-6);
+    align-items: start;
+    min-width: var(--sf-space-0);
+  }
+
+  .entryCompanion {
+    min-width: var(--sf-space-0);
+  }
+
+  @container sf-terminal-entry (max-width: 54rem) {
+    .entryBodyWithCompanion {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--sf-space-4);
+    }
   }
 
   .output {

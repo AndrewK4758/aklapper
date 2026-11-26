@@ -103,6 +103,25 @@ describe('@aklapper/ui site-content preview primitives', () => {
     expect(screen.queryByText(/Maintenance default/i)).toBeNull();
   });
 
+  it('renders portal-home terminal greeting portrait and resume summary above launcher with zero forms across desktop and mobile', () => {
+    for (const viewport of ['desktop', 'mobile'] as const) {
+      const { container, unmount } = render(
+        <SiteContentPreviewCanvas
+          contentKey={SITE_CONTENT_KEYS.portalHome}
+          metadata={PREVIEW_FIXTURES[SITE_CONTENT_KEYS.portalHome]}
+          viewport={viewport}
+        />,
+      );
+      expect(container.querySelector('form')).toBeNull();
+      expect(container.querySelector('iframe')).toBeNull();
+      expect(container.querySelector('[data-portal-home-intro="true"]')).not.toBeNull();
+      expect(container.querySelector('[data-terminal-portrait="true"]')).not.toBeNull();
+      expect(screen.getByText('Senior Full-Stack & Systems Engineer · Marietta, GA')).toBeTruthy();
+      expect(screen.getByRole('heading', { name: 'Andrew Klapper' })).toBeTruthy();
+      unmount();
+    }
+  });
+
   it('renders script-like strings as escaped text and shows notice for unknown keys', () => {
     const xssPayload = '<script>window.__xss=1</script>';
     const { container } = render(

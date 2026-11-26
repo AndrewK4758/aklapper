@@ -77,6 +77,38 @@
     gap: var(--sf-gap-md);
   }
 
+  .homePreviewStack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-gap-md);
+    min-width: var(--sf-space-0);
+  }
+
+  .terminalGreetingPreview {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sf-space-3);
+    border: var(--sf-border-width) solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    background: var(--sf-bg-frame);
+    padding: var(--sf-space-4);
+    min-width: var(--sf-space-0);
+  }
+
+  .terminalPromptEcho {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sf-space-2);
+    font-family: var(--sf-font-mono), monospace;
+    font-size: var(--sf-text-xs);
+    color: var(--sf-fg-bone);
+  }
+
+  .terminalPromptGlyph {
+    color: var(--sf-p10k-prompt-ok);
+    font-weight: var(--sf-weight-bold);
+  }
+
   .heroHeading {
     margin: 0;
     font-family: var(--sf-font-display);
