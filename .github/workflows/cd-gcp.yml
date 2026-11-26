@@ -556,7 +556,6 @@ jobs:
           env_vars: |
             NODE_ENV=production
             PG_MAX_CONNS=4
-            PORTAL_MAINTENANCE_MODE=${{ vars.PORTAL_MAINTENANCE_MODE || 'false' }}
             PUBLIC_PORTAL_URL=${{ vars.PUBLIC_PORTAL_URL || 'https://andrew-k.us' }}
             PUBLIC_ANALYTICS_ENDPOINT=${{ vars.PUBLIC_ANALYTICS_ENDPOINT || '' }}
             PUBLIC_GA_MEASUREMENT_ID=${{ vars.PUBLIC_GA_MEASUREMENT_ID || '' }}
@@ -582,7 +581,7 @@ jobs:
             --subnet=default
             --vpc-egress=private-ranges-only
             --service-account=${{ vars.GCP_CLOUDRUN_SERVICE_ACCOUNT || secrets.GCP_WIF_SERVICE_ACCOUNT }}
-            --remove-env-vars=DATABASE_URL,INTERNAL_AUTH_SECRET,ANALYTICS_DAILY_SALT,QDRANT_API_KEY,AGENSI_API_KEY,ANALYTICS_API_URL,CONTACT_API_URL,AUTH_API_URL,CADENCE_ADMIN_URL,K8S_WATCH_URL,VERTEX_THINKING_BUDGET
+            --remove-env-vars=DATABASE_URL,INTERNAL_AUTH_SECRET,ANALYTICS_DAILY_SALT,QDRANT_API_KEY,AGENSI_API_KEY,ANALYTICS_API_URL,CONTACT_API_URL,AUTH_API_URL,CADENCE_ADMIN_URL,K8S_WATCH_URL,VERTEX_THINKING_BUDGET,PORTAL_MAINTENANCE_MODE
             --set-secrets=DATABASE_URL=DATABASE_URL:latest,INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest,ANALYTICS_DAILY_SALT=ANALYTICS_DAILY_SALT:latest${{ steps.optional-secrets.outputs.has_agensi_api_key == 'true' && ',AGENSI_API_KEY=AGENSI_API_KEY:latest' || '' }}
             --port=8080
             --timeout=300
@@ -864,7 +863,6 @@ jobs:
       - name: Run live Playwright @smoke suite against deployed portal
         env:
           PORTAL_BASE_URL: ${{ needs.deploy-cloud-run.outputs.portal_url }}
-          PORTAL_MAINTENANCE_MODE: ${{ vars.PORTAL_MAINTENANCE_MODE || 'false' }}
         shell: bash
         run: |
           if [ "${{ matrix.engine }}" = "chromium" ]; then
