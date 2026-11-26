@@ -1,6 +1,7 @@
 import { extractPrivacySanitizationFindings } from '@aklapper/core';
 import { classifyServerError } from '@aklapper/core/server-errors';
 import {
+  sanitizePortalAboutSiteContent,
   sanitizePortalAskSiteContent,
   sanitizePortalHomeSiteContent,
 } from '@aklapper/node-runtime/privacy';
@@ -107,6 +108,20 @@ export function validatePortalHomePrivacyOutcome(
       sanitizePortalHomeSiteContent(markdownBody, metadata, undefined, correlationId);
     },
     'Portal Home content failed privacy sanitization policy.',
+    correlationId,
+  );
+}
+
+export function validatePortalAboutPrivacyOutcome(
+  markdownBody: string,
+  metadata: Record<string, unknown>,
+  correlationId: string,
+): ReindexPrivacyOutcome | null {
+  return runSiteContentPrivacyCheck(
+    () => {
+      sanitizePortalAboutSiteContent(markdownBody, metadata, undefined, correlationId);
+    },
+    'Portal About content failed privacy sanitization policy.',
     correlationId,
   );
 }

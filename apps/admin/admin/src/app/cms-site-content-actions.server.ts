@@ -5,6 +5,7 @@ import type { SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
 import type { AdminCmsActionData } from '#pages/cms';
 
 import {
+  validatePortalAboutPrivacyOutcome,
   validatePortalAskPrivacyOutcome,
   validatePortalHomePrivacyOutcome,
 } from './cms-reindex-privacy.server';
@@ -135,9 +136,19 @@ export async function handleUpsertSiteContentIntent(
     );
     if (privacyFailure) return privacyFailure;
     sanitizationVerified = true;
+  } else if (key === SITE_CONTENT_KEYS.portalAbout) {
+    const privacyFailure = validatePortalAboutPrivacyOutcome(
+      markdownBody,
+      validation.data,
+      correlationId,
+    );
+    if (privacyFailure) return privacyFailure;
+    sanitizationVerified = true;
   }
 
-  const saved = await upsertSiteContent(getSharedDb(), key, markdownBody, validation.data);
+  const saved = await upsertSiteContent(getSharedDb(), key, markdownBody, validation.data, {
+    correlationId,
+  });
   logger.info(
     {
       event: 'admin.cms.site_content_upsert_committed',

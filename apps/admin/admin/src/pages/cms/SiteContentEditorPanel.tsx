@@ -1,4 +1,10 @@
-import { isKnownSiteContentKey, SITE_CONTENT_METADATA, type SiteContentRow } from '@aklapper/core';
+import {
+  type CareerDossier,
+  isKnownSiteContentKey,
+  SITE_CONTENT_KEYS,
+  SITE_CONTENT_METADATA,
+  type SiteContentRow,
+} from '@aklapper/core';
 import {
   Button,
   cx,
@@ -29,10 +35,13 @@ const LazySiteContentPreviewPane = lazyWithRetry(() =>
 
 export interface SiteContentEditorPanelProps {
   readonly siteContents: readonly SiteContentRow[];
+  readonly careerDossiers?: readonly CareerDossier[];
 }
 
 interface SiteContentEditorSessionProps {
   readonly row: SiteContentRow;
+  readonly careerDossiers?: readonly CareerDossier[];
+  readonly brandContactEmail?: string;
   readonly previewOpen: boolean;
   readonly previewViewport: SiteContentPreviewViewport;
   readonly onTogglePreview: () => void;
@@ -41,6 +50,8 @@ interface SiteContentEditorSessionProps {
 
 function SiteContentEditorSession({
   row,
+  careerDossiers,
+  brandContactEmail,
   previewOpen,
   previewViewport,
   onTogglePreview,
@@ -65,6 +76,8 @@ function SiteContentEditorSession({
         contentKey={row.key}
         metadata={evaluated.previewObject}
         viewport={previewViewport}
+        careerDossiers={careerDossiers}
+        brandContactEmail={brandContactEmail}
         hasValidationErrors={!evaluated.canSubmit}
         onViewportChange={onViewportChange}
         onClose={() => {
@@ -257,7 +270,10 @@ function SiteContentEditorSession({
   );
 }
 
-export function SiteContentEditorPanel({ siteContents }: SiteContentEditorPanelProps) {
+export function SiteContentEditorPanel({
+  siteContents,
+  careerDossiers,
+}: SiteContentEditorPanelProps) {
   const [selectedSiteKey, setSelectedSiteKey] = useState<string>(
     siteContents[0]?.key ?? 'portal-home',
   );
@@ -266,6 +282,12 @@ export function SiteContentEditorPanel({ siteContents }: SiteContentEditorPanelP
 
   const selectedSiteRow =
     siteContents.find(row => row.key === selectedSiteKey) ?? siteContents[0] ?? null;
+  const chromeRow = siteContents.find(row => row.key === SITE_CONTENT_KEYS.portalChrome);
+  const rawContactEmail = chromeRow?.metadataJson['brandContactEmail'];
+  const brandContactEmail =
+    typeof rawContactEmail === 'string' && rawContactEmail.trim().length > 0
+      ? rawContactEmail.trim()
+      : undefined;
 
   return (
     <div className={styles.workspace}>
@@ -293,6 +315,8 @@ export function SiteContentEditorPanel({ siteContents }: SiteContentEditorPanelP
         <SiteContentEditorSession
           key={`${selectedSiteRow.key}:${selectedSiteRow.updatedAt}`}
           row={selectedSiteRow}
+          careerDossiers={careerDossiers}
+          brandContactEmail={brandContactEmail}
           previewOpen={previewOpen}
           previewViewport={previewViewport}
           onTogglePreview={() => {

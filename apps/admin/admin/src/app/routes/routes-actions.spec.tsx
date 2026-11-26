@@ -2,7 +2,9 @@ import {
   DEFAULT_PORTAL_HOME_PORTRAIT,
   DEFAULT_PORTAL_HOME_RESUME_SUMMARY,
   isPublicAppError,
+  SITE_CONTENT_KEYS,
 } from '@aklapper/core';
+import { PORTAL_ABOUT_SEED } from '@aklapper/db';
 import { requestContextKey } from '@aklapper/node-runtime/ssr/stream';
 import { RouterContextProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -918,6 +920,123 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
         chunkCount: 2,
         adminActor: AUTH_STATUS.session.handle,
         correlationId: 'corr-dossier-audit',
+      }),
+      expect.any(String),
+    );
+  });
+
+  it('enforces schema HTTP 400, fail-closed privacy HTTP 422, auth gate, and audit commit log on portal-about CMS mutations', async () => {
+    // 1. Unauthenticated request is rejected before touching DB
+    mocks.resolveAdminSessionFromRequest.mockResolvedValueOnce(UNAUTH_STATUS);
+    const unauthCall = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      {
+        intent: 'upsert-site-content',
+        key: SITE_CONTENT_KEYS.portalAbout,
+        markdownBody: 'Clean note',
+        metadataJson: JSON.stringify(PORTAL_ABOUT_SEED),
+      },
+      'corr-about-unauth',
+    );
+    let authRejected: unknown = null;
+    try {
+      const res = await cmsAction(unauthCall.args as never);
+      authRejected = res;
+    } catch (error) {
+      authRejected = error;
+    }
+    expect(authRejected).toBeTruthy();
+    expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
+
+    // 2. Schema-invalid portal-about returns HTTP 400
+    const badSchemaCall = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      {
+        intent: 'upsert-site-content',
+        key: SITE_CONTENT_KEYS.portalAbout,
+        markdownBody: 'Clean',
+        metadataJson: JSON.stringify({
+          ...PORTAL_ABOUT_SEED,
+          services: [
+            {
+              ...PORTAL_ABOUT_SEED.services[0],
+              to: 'https://untrusted.example/phish',
+            },
+          ],
+        }),
+      },
+      'corr-about-400',
+    );
+    const badSchemaRes = (await cmsAction(badSchemaCall.args as never)) as unknown as DataWithStatus;
+    expect(badSchemaRes.init?.status).toBe(400);
+    expect(badSchemaRes.data['code']).toBe('ERR_VALIDATION');
+    expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
+
+    // 3. Privacy violation (synthetic phone / US ZIP / email) returns HTTP 422 + sanitizationFindings
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const piiCall = makeActionArgs(
+        'http://localhost:4301/cms',
+        '/cms',
+        {
+          intent: 'upsert-site-content',
+          key: SITE_CONTENT_KEYS.portalAbout,
+          markdownBody: 'Contact reference.contact@example.com at (555) 010-1234 in Marietta, GA 30062',
+          metadataJson: JSON.stringify(PORTAL_ABOUT_SEED),
+        },
+        'corr-about-422',
+      );
+      const piiRes = (await cmsAction(piiCall.args as never)) as unknown as DataWithStatus;
+      expect(piiRes.init?.status).toBe(422);
+      expect(piiRes.data['code']).toBe('ERR_CONSTRAINT');
+      expect(piiRes.data['sanitizationFindings']).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ ruleId: 'pii.email_address' }),
+          expect.objectContaining({ ruleId: 'pii.us_phone' }),
+          expect.objectContaining({ ruleId: 'pii.us_postal_zip' }),
+        ]),
+      );
+      expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
+    } finally {
+      warnSpy.mockRestore();
+    }
+
+    // 4. Valid clean portal-about commits and emits admin.cms.site_content_upsert_committed
+    mocks.upsertSiteContent.mockResolvedValueOnce({
+      key: SITE_CONTENT_KEYS.portalAbout,
+      markdownBody: 'Updated about note for port :11434 and 40000 items.',
+      metadataJson: PORTAL_ABOUT_SEED,
+      updatedAt: '2026-11-26T18:00:00.000Z',
+    });
+    const validCall = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      {
+        intent: 'upsert-site-content',
+        key: SITE_CONTENT_KEYS.portalAbout,
+        markdownBody: 'Updated about note for port :11434 and 40000 items.',
+        metadataJson: JSON.stringify(PORTAL_ABOUT_SEED),
+      },
+      'corr-about-200',
+    );
+    const validRes = (await cmsAction(validCall.args as never)) as unknown as DataWithStatus;
+    expect(validRes.init?.status).toBe(200);
+    expect(validRes.data['ok']).toBe(true);
+    expect(mocks.upsertSiteContent).toHaveBeenCalledWith(
+      expect.anything(),
+      SITE_CONTENT_KEYS.portalAbout,
+      'Updated about note for port :11434 and 40000 items.',
+      expect.objectContaining({ windowTitle: PORTAL_ABOUT_SEED.windowTitle }),
+      { correlationId: 'corr-about-200' },
+    );
+    expect(validCall.logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'admin.cms.site_content_upsert_committed',
+        key: SITE_CONTENT_KEYS.portalAbout,
+        updatedAt: '2026-11-26T18:00:00.000Z',
+        correlationId: 'corr-about-200',
       }),
       expect.any(String),
     );

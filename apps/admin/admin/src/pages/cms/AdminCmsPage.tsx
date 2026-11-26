@@ -154,7 +154,10 @@ export function AdminCmsPage({
               <h2 className={styles.sectionTitle}>
                 Site Content Structured Editor &amp; Live Preview
               </h2>
-              <SiteContentEditorPanel siteContents={data.siteContents} />
+              <SiteContentEditorPanel
+                siteContents={data.siteContents}
+                careerDossiers={data.careerDossiers}
+              />
             </section>
           </Tabs.Panel>
 

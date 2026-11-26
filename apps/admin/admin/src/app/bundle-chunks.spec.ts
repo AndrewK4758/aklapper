@@ -70,6 +70,7 @@ describe.runIf(existsSync(ASSETS_DIR))('Admin production client chunk isolation'
       'data-pane-count',
       'SiteContentPreviewCanvas',
       'PortalHomeTerminalIntro',
+      'PortalAboutPreview',
       'TerminalPortrait',
       'data-terminal-portrait',
       'data-portal-home-intro',
