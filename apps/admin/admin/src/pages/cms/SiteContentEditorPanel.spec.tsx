@@ -196,4 +196,55 @@ describe('SiteContentEditorPanel', () => {
     expect(screen.getByText('Invalid node at index 1')).toBeTruthy();
     expect(screen.getByRole('alert')).toBeTruthy();
   });
+
+  it('renders dedicated portal-home portrait and resumeSummary sub-editors, blocks silent default resurrection on clear, and updates desktop/mobile live preview', async () => {
+    const { container } = renderPanel();
+
+    // Hydrated legacy 5-field portal-home opens with dedicated Portrait and Resume Summary fieldsets
+    const portraitSrcInput = screen.getByLabelText('Portrait Source Path') as HTMLInputElement;
+    const bioTextarea = screen.getByLabelText('Engineering Bio') as HTMLTextAreaElement;
+    expect(portraitSrcInput.value).toBe('/images/andrew-klapper-portrait.webp');
+    expect(bioTextarea.value).toContain('Senior Full-Stack & Systems Engineer');
+
+    // Clearing a required nested field keeps empty string (no default resurrection) and disables Save
+    fireEvent.change(portraitSrcInput, { target: { value: '' } });
+    expect(portraitSrcInput.value).toBe('');
+    expect(portraitSrcInput.getAttribute('aria-invalid')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Save Site Content' })).toHaveProperty(
+      'disabled',
+      true,
+    );
+
+    // Restore valid portrait src and update bio + add a highlight
+    fireEvent.change(portraitSrcInput, {
+      target: { value: '/images/andrew-klapper-portrait.webp' },
+    });
+    const customBio =
+      'Updated bio showcasing Go, TypeScript/React, and PostgreSQL 19 architecture.';
+    fireEvent.change(bioTextarea, { target: { value: customBio } });
+    fireEvent.click(screen.getByRole('button', { name: '+ Add Highlight' }));
+
+    // Round-trip Form -> Raw JSON -> Form preserves edits
+    fireEvent.click(screen.getByRole('button', { name: 'Raw JSON' }));
+    const rawJson = screen.getByLabelText('Raw Metadata JSON') as HTMLTextAreaElement;
+    expect(rawJson.value).toContain(customBio);
+    fireEvent.click(screen.getByRole('button', { name: 'Form' }));
+    expect((screen.getByLabelText('Engineering Bio') as HTMLTextAreaElement).value).toBe(customBio);
+
+    // Live Preview shows portrait + updated bio + launcher across Desktop & Mobile with single <form>
+    fireEvent.click(screen.getByRole('button', { name: 'Show Preview' }));
+    const preview = await screen.findByLabelText('Live site content preview');
+    expect(within(preview).getByText(customBio)).toBeTruthy();
+    expect(preview.querySelector('[data-terminal-portrait="true"]')).not.toBeNull();
+    expect(preview.querySelector('form')).toBeNull();
+    expect(preview.querySelector('iframe')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mobile' }));
+    expect(preview.querySelector('[data-preview-viewport="mobile"]')).not.toBeNull();
+    expect(container.querySelectorAll('form')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Save Site Content' })).toHaveProperty(
+      'disabled',
+      false,
+    );
+  });
 });

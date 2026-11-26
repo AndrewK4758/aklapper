@@ -1,4 +1,4 @@
-import { type AppErrorCode, SITE_CONTENT_KEYS, validateSiteContentMetadata } from '@aklapper/core';
+import type { AppErrorCode } from '@aklapper/core';
 import {
   deleteCadencePreset,
   deleteMenuItem,
@@ -9,7 +9,6 @@ import {
   syncAgensiCatalog,
   upsertCadencePreset,
   upsertMenuItem,
-  upsertSiteContent,
   upsertTerminalCommand,
   upsertTerminalDirectoryEntry,
   upsertTerminalInitialEntry,
@@ -20,10 +19,8 @@ import type { SsrStructuredLogger } from '@aklapper/node-runtime/ssr/stream';
 import type { AdminCmsActionData } from '#pages/cms';
 
 import { handleCareerDossierIntent, isCareerDossierIntent } from './career-dossier-actions.server';
-import {
-  handleReindexQdrantIntent,
-  validatePortalAskPrivacyOutcome,
-} from './cms-reindex-privacy.server';
+import { handleReindexQdrantIntent } from './cms-reindex-privacy.server';
+import { handleUpsertSiteContentIntent } from './cms-site-content-actions.server';
 
 export interface CmsActionOutcome {
   readonly status: number;
@@ -120,93 +117,7 @@ export async function dispatchAdminCmsIntent(
     if (isRetiredMaintenanceTarget(key)) {
       return blockRetiredMaintenanceMutation(intent, correlationId, logger, key);
     }
-    const markdownBody = String(formData.get('markdownBody') ?? '');
-    const rawJson = String(formData.get('metadataJson') ?? '{}');
-    let parsedMetadata: Record<string, unknown>;
-    try {
-      const candidate: unknown = JSON.parse(rawJson);
-      if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
-        logger.warn(
-          {
-            event: 'admin.cms.site_content_invalid_payload',
-            key,
-            correlationId,
-            reason: 'non_object_json',
-          },
-          'Rejected non-object site_content metadata payload.',
-        );
-        return fail(
-          400,
-          'Metadata JSON must be a JSON object.',
-          'ERR_VALIDATION',
-          'Provide a valid JSON object and submit again.',
-          correlationId,
-        );
-      }
-      parsedMetadata = candidate as Record<string, unknown>;
-    } catch {
-      logger.warn(
-        {
-          event: 'admin.cms.site_content_invalid_payload',
-          key,
-          correlationId,
-          reason: 'malformed_json',
-        },
-        'Rejected malformed site_content metadata JSON.',
-      );
-      return fail(
-        400,
-        'Invalid JSON in metadataJson.',
-        'ERR_VALIDATION',
-        'Fix JSON syntax errors and submit again.',
-        correlationId,
-      );
-    }
-
-    const validation = validateSiteContentMetadata(key, parsedMetadata);
-    if (!validation.ok) {
-      const firstIssue = validation.issues[0];
-      logger.warn(
-        {
-          event: 'admin.cms.site_content_invalid_payload',
-          key,
-          correlationId,
-          reason: 'schema_validation_failed',
-          issueCount: validation.issues.length,
-        },
-        'Rejected schema-invalid site_content metadata payload.',
-      );
-      return fail(
-        400,
-        firstIssue
-          ? `Invalid metadata for "${key}" (${firstIssue.pathKey || 'root'}): ${firstIssue.message}`
-          : `Invalid metadata payload for "${key}".`,
-        'ERR_VALIDATION',
-        'Correct the highlighted schema fields and submit again.',
-        correlationId,
-      );
-    }
-
-    if (key === SITE_CONTENT_KEYS.portalAsk) {
-      const privacyFailure = validatePortalAskPrivacyOutcome(
-        markdownBody,
-        validation.data,
-        correlationId,
-      );
-      if (privacyFailure) return privacyFailure;
-    }
-
-    const saved = await upsertSiteContent(getSharedDb(), key, markdownBody, validation.data);
-    logger.info(
-      {
-        event: 'admin.cms.site_content_upsert_committed',
-        key: saved.key,
-        updatedAt: saved.updatedAt,
-        correlationId,
-      },
-      'Committed site_content update.',
-    );
-    return ok(`Saved site_content key "${saved.key}".`);
+    return handleUpsertSiteContentIntent(formData, { correlationId, logger, adminActor });
   }
 
   if (intent === 'upsert-menu-item') {

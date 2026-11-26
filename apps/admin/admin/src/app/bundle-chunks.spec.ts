@@ -69,6 +69,11 @@ describe.runIf(existsSync(ASSETS_DIR))('Admin production client chunk isolation'
       'data-mobile-tui-dock',
       'data-pane-count',
       'SiteContentPreviewCanvas',
+      'PortalHomeTerminalIntro',
+      'TerminalPortrait',
+      'data-terminal-portrait',
+      'data-portal-home-intro',
+      '/assets/andrew-klapper-portrait-',
       'QrCodeSvg',
       'SandboxedArtifactFrame',
     ]) {
@@ -77,5 +82,9 @@ describe.runIf(existsSync(ASSETS_DIR))('Admin production client chunk isolation'
 
     expect(allJsFiles.some(file => /^terminal-workspace-/i.test(file))).toBe(true);
     expect(allJsFiles.some(file => /^mobile-tui-workspace-/i.test(file))).toBe(true);
+    const portraitWebpFiles = readdirSync(ASSETS_DIR).filter(
+      file => file.startsWith('andrew-klapper-portrait-') && file.endsWith('.webp'),
+    );
+    expect(portraitWebpFiles).toHaveLength(1);
   });
 });

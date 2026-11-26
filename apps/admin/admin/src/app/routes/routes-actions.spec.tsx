@@ -1,4 +1,8 @@
-import { isPublicAppError } from '@aklapper/core';
+import {
+  DEFAULT_PORTAL_HOME_PORTRAIT,
+  DEFAULT_PORTAL_HOME_RESUME_SUMMARY,
+  isPublicAppError,
+} from '@aklapper/core';
 import { requestContextKey } from '@aklapper/node-runtime/ssr/stream';
 import { RouterContextProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -377,6 +381,141 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
         key: 'admin-analytics',
         updatedAt: '2026-11-24T22:45:00.000Z',
         correlationId: 'corr-sc-valid',
+      }),
+      expect.any(String),
+    );
+    const analyticsLogPayload = validCall.logger.info.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(analyticsLogPayload['sanitizationVerified']).toBeUndefined();
+  });
+
+  it('guards portal-home upserts against invalid portrait.src, non-HTTPS githubUrl, and PII/References while auditing sanitized commits', async () => {
+    const basePortalHome = {
+      tuiTitle: 'Portfolio Launcher',
+      tuiBadge: { source: 'cloud-run', state: 'idle', label: 'Idle' },
+      heading: 'Andrew Klapper — Portfolio',
+      description: 'Interactive terminal portfolio.',
+      actions: [{ label: 'Contact', to: '/contact', variant: 'primary' }],
+      portrait: { ...DEFAULT_PORTAL_HOME_PORTRAIT },
+      resumeSummary: {
+        ...DEFAULT_PORTAL_HOME_RESUME_SUMMARY,
+        highlights: [...DEFAULT_PORTAL_HOME_RESUME_SUMMARY.highlights],
+        services: DEFAULT_PORTAL_HOME_RESUME_SUMMARY.services.map(s => ({ ...s })),
+      },
+    };
+
+    // 1. Invalid portrait.src returns HTTP 400 ERR_VALIDATION and emits UNSOUND_CONDITION seam without raw URI
+    const hostilePortrait = 'https://evil.example.invalid/hotlink.webp';
+    const badSrcCall = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      {
+        intent: 'upsert-site-content',
+        key: 'portal-home',
+        markdownBody: '# Home',
+        metadataJson: JSON.stringify({
+          ...basePortalHome,
+          portrait: { ...basePortalHome.portrait, src: hostilePortrait },
+        }),
+      },
+      'corr-home-bad-src',
+    );
+    const badSrcRes = (await cmsAction(badSrcCall.args as never)) as unknown as DataWithStatus;
+    expect(badSrcRes.init?.status).toBe(400);
+    expect(badSrcRes.data['code']).toBe('ERR_VALIDATION');
+    expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
+    expect(badSrcCall.logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'portal.home.portrait_src_invalid',
+        seam_type: 'UNSOUND_CONDITION',
+        key: 'portal-home',
+        correlationId: 'corr-home-bad-src',
+      }),
+      expect.any(String),
+    );
+    expect(JSON.stringify(badSrcCall.logger.warn.mock.calls)).not.toContain(hostilePortrait);
+
+    // 2. Non-HTTPS githubUrl returns HTTP 400 ERR_VALIDATION with zero DB write
+    const badGithubCall = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      {
+        intent: 'upsert-site-content',
+        key: 'portal-home',
+        markdownBody: '# Home',
+        metadataJson: JSON.stringify({
+          ...basePortalHome,
+          resumeSummary: {
+            ...basePortalHome.resumeSummary,
+            githubUrl: 'javascript:alert(1)',
+          },
+        }),
+      },
+      'corr-home-bad-gh',
+    );
+    const badGithubRes = (await cmsAction(
+      badGithubCall.args as never,
+    )) as unknown as DataWithStatus;
+    expect(badGithubRes.init?.status).toBe(400);
+    expect(badGithubRes.data['code']).toBe('ERR_VALIDATION');
+    expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
+
+    // 3. Disallowed phone / postal ZIP / References returns HTTP 422 ERR_CONSTRAINT with sanitizationFindings
+    const piiCall = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      {
+        intent: 'upsert-site-content',
+        key: 'portal-home',
+        markdownBody: '## References\nJane Synthetic',
+        metadataJson: JSON.stringify({
+          ...basePortalHome,
+          resumeSummary: {
+            ...basePortalHome.resumeSummary,
+            roleLine: 'Senior Engineer · Marietta, GA 99999 · (555) 010-1234',
+          },
+        }),
+      },
+      'corr-home-pii',
+    );
+    const piiRes = (await cmsAction(piiCall.args as never)) as unknown as DataWithStatus;
+    expect(piiRes.init?.status).toBe(422);
+    expect(piiRes.data['code']).toBe('ERR_CONSTRAINT');
+    expect(Array.isArray(piiRes.data['sanitizationFindings'])).toBe(true);
+    expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
+
+    // 4. Clean portal-home with allow-listed andrew@andrew-k.us persists and emits commit audit with adminActor + sanitizationVerified
+    mocks.upsertSiteContent.mockResolvedValueOnce({
+      key: 'portal-home',
+      markdownBody: '# Home clean',
+      metadataJson: basePortalHome,
+      updatedAt: '2026-11-26T22:00:00.000Z',
+    });
+    const cleanHomeCall = makeActionArgs(
+      'http://localhost:4301/cms',
+      '/cms',
+      {
+        intent: 'upsert-site-content',
+        key: 'portal-home',
+        markdownBody: '# Home clean',
+        metadataJson: JSON.stringify(basePortalHome),
+      },
+      'corr-home-ok',
+    );
+    const cleanHomeRes = (await cmsAction(
+      cleanHomeCall.args as never,
+    )) as unknown as DataWithStatus;
+    expect(cleanHomeRes.init?.status).toBe(200);
+    expect(cleanHomeRes.data['ok']).toBe(true);
+    expect(mocks.upsertSiteContent).toHaveBeenCalledTimes(1);
+    expect(cleanHomeCall.logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'admin.cms.site_content_upsert_committed',
+        seam_type: 'DELTA_AUDIT_GAP',
+        key: 'portal-home',
+        adminActor: AUTH_STATUS.session.handle,
+        sanitizationVerified: true,
+        updatedAt: '2026-11-26T22:00:00.000Z',
+        correlationId: 'corr-home-ok',
       }),
       expect.any(String),
     );

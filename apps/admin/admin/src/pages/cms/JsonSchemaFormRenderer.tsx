@@ -2,6 +2,7 @@ import type { JsonSchemaObject } from '@aklapper/core';
 import { Switch } from '@aklapper/ui';
 
 import { FormDefinitionBuilder } from './FormDefinitionBuilder';
+import { HomePortraitEditor, HomeResumeSummaryEditor } from './PortalHomeSubEditors';
 import { LinkActionListEditor, StatusBadgeEditor, StringListEditor } from './SiteContentSubEditors';
 import { VisitorLensListEditor } from './VisitorLensListEditor';
 
@@ -76,6 +77,32 @@ export function JsonSchemaFormRenderer({
         if (propKey === 'visitorLenses') {
           return (
             <VisitorLensListEditor
+              key={propKey}
+              fieldKey={propKey}
+              label={label}
+              value={currentValue}
+              issuesByPath={issuesByPath}
+              onChange={onChange}
+            />
+          );
+        }
+
+        if (propKey === 'portrait') {
+          return (
+            <HomePortraitEditor
+              key={propKey}
+              fieldKey={propKey}
+              label={label}
+              value={currentValue}
+              issuesByPath={issuesByPath}
+              onChange={onChange}
+            />
+          );
+        }
+
+        if (propKey === 'resumeSummary') {
+          return (
+            <HomeResumeSummaryEditor
               key={propKey}
               fieldKey={propKey}
               label={label}
