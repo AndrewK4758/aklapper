@@ -4,6 +4,7 @@ import {
   Button,
   OscStatusBadge,
   PaneLink,
+  PortalHomeTerminalIntro,
   type TerminalFormConfig,
   TerminalWorkspace,
   TuiHeroCard,
@@ -94,6 +95,14 @@ export function PortalHomePage({
     [terminal.commands, onNavigate, paneNav],
   );
 
+  const initialEntryCompanion = (
+    <PortalHomeTerminalIntro
+      portrait={content.portrait}
+      resumeSummary={content.resumeSummary}
+      priorityPortrait
+    />
+  );
+
   if (layoutMode !== 'desktop') {
     return (
       <div className={styles.workspace}>
@@ -109,6 +118,7 @@ export function PortalHomePage({
           terminalForms={terminalForms}
           quickCommands={terminal.quickCommands}
           initialEntries={terminal.initialEntries}
+          initialEntryCompanion={initialEntryCompanion}
           placeholder={terminal.placeholder}
         />
       </div>
@@ -120,6 +130,7 @@ export function PortalHomePage({
       <TerminalWorkspace
         terminal={terminal}
         terminalForms={terminalForms}
+        initialEntryCompanion={initialEntryCompanion}
         navigate={onNavigate}
         renderTui={({ ttyNumber, isSinglePane, closeTui }) => (
           <PortalLauncherTui

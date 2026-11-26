@@ -10,6 +10,7 @@ import {
   type PortalCadenceLoaderData,
   type PortalContactLoaderData,
   type PortalHomeContent,
+  PortalHomeContentSchema,
   type PortalHomeLoaderData,
   type PortalRootLoaderData,
   type StreamResult,
@@ -189,7 +190,7 @@ const CHROME: PortalRootLoaderData['chrome'] = {
   footerLinkUrl: 'https://agensi.io',
 };
 
-const HOME_CONTENT: PortalHomeContent = {
+const HOME_CONTENT: PortalHomeContent = PortalHomeContentSchema.parse({
   tuiTitle: 'tui :: launcher',
   tuiBadge: { source: 'portal', state: 'ready', label: 'READY' },
   heading: 'Portal Launcher',
@@ -198,7 +199,7 @@ const HOME_CONTENT: PortalHomeContent = {
     { label: 'Launch Menu', to: '/menu', variant: 'primary' },
     { label: 'Contact', to: '/contact', variant: 'default' },
   ],
-};
+});
 
 const TERMINAL: TerminalProfileData = {
   slug: 'portal-home',

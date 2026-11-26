@@ -77,5 +77,9 @@ describe.runIf(existsSync(ASSETS_DIR))('Portal production client chunk isolation
     expect(allJsFiles.some(file => file.startsWith('CadenceFeatureView-'))).toBe(true);
     expect(allJsFiles.some(file => file.startsWith('ContactFeatureView-'))).toBe(true);
     expect(allJsFiles.some(file => file.startsWith('changes-in-progress-'))).toBe(false);
+    const portraitWebpFiles = readdirSync(ASSETS_DIR).filter(
+      file => file.startsWith('andrew-klapper-portrait-') && file.endsWith('.webp'),
+    );
+    expect(portraitWebpFiles).toHaveLength(1);
   });
 });

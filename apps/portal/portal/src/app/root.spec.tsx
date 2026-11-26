@@ -1,4 +1,6 @@
 import {
+  cloneDefaultPortalHomePortrait,
+  cloneDefaultPortalHomeResumeSummary,
   createPublicAppError,
   type PortalRootLoaderData,
   type StreamResult,
@@ -713,6 +715,8 @@ describe('PortalRoot', () => {
                 heading: 'Welcome Launcher',
                 description: 'Pick a view',
                 actions: [],
+                portrait: cloneDefaultPortalHomePortrait(),
+                resumeSummary: cloneDefaultPortalHomeResumeSummary(),
               },
             },
           }),

@@ -6,6 +6,7 @@ import {
   PortalAskContentSchema,
   type PortalAskLoaderData,
   type PortalCadenceLoaderData,
+  PortalHomeContentSchema,
   type PortalHomeLoaderData,
   type PublicAppError,
   type QuotaStatus,
@@ -82,13 +83,13 @@ import PortalNotFoundRoute, {
 } from './not-found';
 
 const HOME_FIXTURE: PortalHomeLoaderData = {
-  content: {
+  content: PortalHomeContentSchema.parse({
     tuiTitle: 'tui :: solar-forge launcher',
     tuiBadge: { source: 'gke-autopilot', state: 'idle', label: '0 pods' },
     heading: 'Solar Forge Agentic Terminal — tty1',
     description: 'Interactive Solar Forge terminal workspace.',
     actions: [{ label: 'Open Menu', to: '/menu', variant: 'primary' }],
-  },
+  }),
   terminal: {
     slug: 'portal-home',
     bannerTitle: 'Solar Forge Terminal',
