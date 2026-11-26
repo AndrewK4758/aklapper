@@ -93,7 +93,10 @@ describe('Portal /about streaming SSR route', () => {
     expect(tags).toContainEqual({ name: 'robots', content: 'index, follow' });
     expect(tags).toContainEqual({ property: 'og:url', content: 'https://andrew-k.us/about' });
 
-    const sitemapXml = readFileSync(resolve(import.meta.dirname, '../../../public/sitemap.xml'), 'utf8');
+    const sitemapXml = readFileSync(
+      resolve(import.meta.dirname, '../../../public/sitemap.xml'),
+      'utf8',
+    );
     expect(sitemapXml).toContain('<loc>https://andrew-k.us/about</loc>');
 
     const Stub = createRoutesStub([

@@ -275,6 +275,40 @@ test.describe('admin SSR end-to-end journeys', () => {
         await page.getByRole('button', { name: /portal-contact/i }).click();
         await expect(page.getByText('Contact Form Builder')).toBeVisible();
 
+        // Verify AdminRootShell isolation (no portal /about nav link) and portal-about structured editor + live preview + 422 privacy gate
+        await expect(page.locator('header').getByRole('link', { name: 'About' })).toHaveCount(0);
+        await page.getByRole('button', { name: /portal-about/i }).click();
+        const skillCategoryInput = page.getByLabel('Skill Group 1 Category');
+        await expect(skillCategoryInput).toBeVisible();
+        const originalCategory = await skillCategoryInput.inputValue();
+        await skillCategoryInput.fill('Core Languages');
+
+        const previewAside = page.getByLabel('Live site content preview');
+        await expect(previewAside).toBeVisible();
+        await expect(previewAside).toContainText('Core Languages');
+        await expect(previewAside).toContainText('andrew@andrew-k.us');
+        expect(await previewAside.locator('form').count()).toBe(0);
+        expect(await previewAside.locator('iframe').count()).toBe(0);
+
+        await page.getByRole('button', { name: 'Mobile', exact: true }).click();
+        await expect(previewAside.locator('[data-preview-viewport="mobile"]')).toBeVisible();
+        await page.getByRole('button', { name: 'Desktop', exact: true }).click();
+
+        // Restore category and verify privacy rejection (synthetic phone + ZIP) returns HTTP 422 without saving
+        await skillCategoryInput.fill(originalCategory);
+        const markdownTextarea = page.getByLabel('Qdrant RAG Corpus Note (Markdown)');
+        const originalMarkdown = await markdownTextarea.inputValue();
+        await markdownTextarea.fill(
+          'Synthetic blocked contact (555) 010-1234 in Marietta, GA 30062',
+        );
+        await page.getByRole('button', { name: 'Save Site Content' }).click();
+        await expect(page.getByRole('alert')).toContainText(/privacy sanitization policy/i);
+
+        // Restore clean note and persist valid save
+        await markdownTextarea.fill(originalMarkdown);
+        await page.getByRole('button', { name: 'Save Site Content' }).click();
+        await expect(page.getByText(/Saved site_content key "portal-about"/i)).toBeVisible();
+
         // Verify retired maintenance/roadmap controls are removed while Qdrant Re-Index remains intact
         await expect(page.getByRole('tab', { name: 'Site Content', exact: true })).toBeVisible();
         await expect(page.getByRole('tab', { name: 'Terminal', exact: true })).toBeVisible();

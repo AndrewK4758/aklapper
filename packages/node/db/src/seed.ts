@@ -208,7 +208,8 @@ const SITE_CONTENT_SEEDS: ReadonlyArray<{
   },
   {
     key: SITE_CONTENT_KEYS.portalAbout,
-    markdownBody: 'Portal public-safe resume framing, skills, education, and platform services guide.',
+    markdownBody:
+      'Portal public-safe resume framing, skills, education, and platform services guide.',
     metadataJson: PORTAL_ABOUT_SEED,
   },
   {

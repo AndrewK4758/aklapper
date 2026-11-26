@@ -119,15 +119,24 @@ test.describe('portal mobile TUI workspace and adaptive layout', () => {
       }
     }
 
-    // Open overflow bottom sheet and navigate to /agensi
+    // Open overflow bottom sheet and navigate to /about (zero duplicate Agensi link)
     await page.getByRole('button', { name: 'Open workspace menu' }).click();
     const overflowSheet = page.locator('[data-mobile-overflow-sheet="true"]');
     await expect(overflowSheet).toBeVisible();
-    const agensiLink = overflowSheet.getByRole('link', { name: 'Agensi', exact: true });
-    await expect(agensiLink).toBeVisible();
-    await agensiLink.click();
-    await expect(page).toHaveURL(/\/agensi$/);
+    await expect(overflowSheet.getByRole('link', { name: 'Agensi', exact: true })).toHaveCount(0);
+    const aboutLink = overflowSheet.getByRole('link', { name: 'About', exact: true });
+    await expect(aboutLink).toBeVisible();
+    await aboutLink.click();
+    await expect(page).toHaveURL(/\/about$/);
+    await expect(page.getByRole('heading', { name: 'Andrew Klapper' })).toBeVisible();
     await assertNoHorizontalOverflow(page);
+    await assertNativeVerticalScroll(page);
+
+    // Narrow 360x800 portrait check on /about
+    await page.setViewportSize({ width: 360, height: 800 });
+    await expect(page.getByRole('heading', { name: 'Andrew Klapper' })).toBeVisible();
+    await assertNoHorizontalOverflow(page);
+    await page.setViewportSize({ width: 390, height: 844 });
 
     // Verify retired /changes-in-progress returns standalone HTTP 404 overflow-free on mobile portrait
     const notFoundRes = await page.goto('/changes-in-progress', { waitUntil: 'load' });
@@ -183,6 +192,10 @@ test.describe('portal mobile TUI workspace and adaptive layout', () => {
 
     await gotoStreamedPage(page, '/');
     await expect(page.locator('[data-terminal-companion="true"]')).toBeVisible();
+    await assertNoHorizontalOverflow(page);
+
+    await gotoStreamedPage(page, '/about');
+    await expect(page.getByRole('heading', { name: 'Andrew Klapper' })).toBeVisible();
     await assertNoHorizontalOverflow(page);
 
     const landscapeNotFound = await page.goto('/nonexistent-route', { waitUntil: 'load' });

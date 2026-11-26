@@ -2181,9 +2181,7 @@ describe('Portal in-pane route adapters & deep-links', () => {
 
       // 1. Primary /about route renders and clicking a Services Guide link updates the browser URL
       expect(await screen.findByRole('heading', { name: 'Andrew Klapper' })).toBeTruthy();
-      expect(
-        screen.getByRole('link', { name: 'About' }).getAttribute('aria-current'),
-      ).toBe('page');
+      expect(screen.getByRole('link', { name: 'About' }).getAttribute('aria-current')).toBe('page');
       fireEvent.click(screen.getByTestId('about-service-link-agensi'));
       await waitFor(() => {
         expect(router.state.location.pathname).toBe('/agensi');

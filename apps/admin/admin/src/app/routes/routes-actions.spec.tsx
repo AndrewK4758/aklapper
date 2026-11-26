@@ -969,7 +969,9 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
       },
       'corr-about-400',
     );
-    const badSchemaRes = (await cmsAction(badSchemaCall.args as never)) as unknown as DataWithStatus;
+    const badSchemaRes = (await cmsAction(
+      badSchemaCall.args as never,
+    )) as unknown as DataWithStatus;
     expect(badSchemaRes.init?.status).toBe(400);
     expect(badSchemaRes.data['code']).toBe('ERR_VALIDATION');
     expect(mocks.upsertSiteContent).not.toHaveBeenCalled();
@@ -983,7 +985,8 @@ describe('Admin mutation actions & classified HTTP status semantics', () => {
         {
           intent: 'upsert-site-content',
           key: SITE_CONTENT_KEYS.portalAbout,
-          markdownBody: 'Contact reference.contact@example.com at (555) 010-1234 in Marietta, GA 30062',
+          markdownBody:
+            'Contact reference.contact@example.com at (555) 010-1234 in Marietta, GA 30062',
           metadataJson: JSON.stringify(PORTAL_ABOUT_SEED),
         },
         'corr-about-422',

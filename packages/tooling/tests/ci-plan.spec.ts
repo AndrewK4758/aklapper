@@ -237,7 +237,9 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
     expect(workflow).toContain('--grep @smoke');
     expect(workflow).toContain('seed_mode:');
     expect(workflow).toContain('DOSSIER_PRIVACY_DENYLIST=DOSSIER_PRIVACY_DENYLIST:latest');
-    expect(workflow).toContain('--args="node_modules/@aklapper/db/dist/seed.js,--mode=${SEED_MODE}"');
+    expect(workflow).toContain(
+      '--args="node_modules/@aklapper/db/dist/seed.js,--mode=${SEED_MODE}"',
+    );
 
     // Verify worst-case PG_MAX_CONNS aggregate ceiling stays strictly below PG19 max_connections=50.
     const worstCasePgConns = 4 * 3 + 2 * 2 + 4 * 3 + 3 * 2 + 2;

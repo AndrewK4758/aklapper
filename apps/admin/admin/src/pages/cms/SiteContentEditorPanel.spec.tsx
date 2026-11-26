@@ -311,9 +311,7 @@ describe('SiteContentEditorPanel', () => {
       const categoryInput = screen.getByLabelText('Skill Group 1 Category') as HTMLInputElement;
       fireEvent.change(categoryInput, { target: { value: 'Core Languages' } });
 
-      const serviceSummaryInput = screen.getByLabelText(
-        'Service 1 Summary',
-      ) as HTMLTextAreaElement;
+      const serviceSummaryInput = screen.getByLabelText('Service 1 Summary') as HTMLTextAreaElement;
       fireEvent.change(serviceSummaryInput, {
         target: { value: 'Updated live chat summary for preview verification.' },
       });

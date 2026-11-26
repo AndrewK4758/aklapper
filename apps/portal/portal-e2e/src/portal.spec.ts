@@ -97,6 +97,7 @@ test.describe('portal SSR end-to-end journeys', () => {
 
     // Clean DB-driven `ls` directory listing without Unix permission columns or trailing `/`
     expect(initialBodyText).not.toMatch(/drwxr-xr-x|-rw-r--r--|menu\//);
+    await expect(page.getByText(/about\s+# Resume & platform services guide/)).toBeVisible();
     await expect(page.getByText(/tui\s+# TUI version/)).toBeVisible();
     await expect(page.getByText(/cadence\s+# Agentic workflow example/)).toBeVisible();
     await expect(page.getByText(/chat\s+# Chat with Andrew's AI/)).toBeVisible();
@@ -1069,5 +1070,91 @@ test.describe('portal SSR end-to-end journeys', () => {
     expect(botHtml).not.toContain('Initializing Solar Forge workspace...');
     expect(botHtml).not.toContain('aria-busy="true"');
     expect(botHtml).not.toMatch(/<div hidden="" id="S:/);
+  });
+
+  test('renders sanitized /about SSR resume, portrait, Services Guide, pane docking, and terminal navigation @smoke', async ({
+    page,
+    request,
+  }, testInfo) => {
+    const getErrors = trackPageErrors(page);
+
+    const sitemapRes = await request.get('/sitemap.xml');
+    expect(sitemapRes.status()).toBe(200);
+    expect(await sitemapRes.text()).toContain('<loc>https://andrew-k.us/about</loc>');
+
+    await gotoStreamedPage(page, '/about');
+    await expect(page).toHaveTitle(/About Andrew Klapper/i);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/about$/);
+
+    await expect(page.getByRole('heading', { name: 'Andrew Klapper' })).toBeVisible();
+    await expect(page.getByText('Senior Full-Stack & Systems Engineer')).toBeVisible();
+    await expect(page.getByText('Marietta, GA')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'andrew@andrew-k.us' }).first()).toBeVisible();
+    await expect(page.locator('[data-terminal-portrait="true"] img')).toBeVisible();
+
+    // Full sanitized resume sections & Services Guide
+    await expect(page.getByText('Software Engineer | Build Technology Group')).toBeVisible();
+    await expect(page.getByText('Hardware Interfacing Platform')).toBeVisible();
+    await expect(page.getByText('Legacy ERP Modernization')).toBeVisible();
+    await expect(page.getByText('Software Engineer | Gitasy')).toBeVisible();
+    await expect(page.getByText('Owner | Shipping Services & Logistics LLC')).toBeVisible();
+    await expect(page.getByText('Ghostty Union - Native Linux Terminal Emulator')).toBeVisible();
+    await expect(page.getByText('Instructor & Mentor | Woodstock Developers Group')).toBeVisible();
+    await expect(page.getByText('Kennesaw State University')).toBeVisible();
+
+    await expect(page.getByTestId('about-service-link-chat')).toHaveAttribute('href', '/chat');
+    await expect(page.getByTestId('about-service-link-agensi')).toHaveAttribute('href', '/agensi');
+    await expect(page.getByTestId('about-service-link-cadence')).toHaveAttribute(
+      'href',
+      '/cadence',
+    );
+    await expect(page.getByTestId('about-contact-cta')).toHaveAttribute('href', '/contact');
+
+    // Privacy hygiene on live rendered /about HTML
+    const bodyText = await page.locator('body').innerText();
+    expect(bodyText).not.toMatch(/\bReferences\b/i);
+    expect(bodyText).not.toMatch(/(?:\(\d{3}\)[-.\s]?|\d{3}[-.\s])\d{3}[-.\s]\d{4}/);
+    expect(bodyText).not.toMatch(/\bGA\s+\d{5}\b/);
+    expect(bodyText).not.toContain('30008');
+
+    const overflow = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      innerWidth: window.innerWidth,
+    }));
+    expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.innerWidth);
+
+    if (testInfo.project.name !== 'mobile-chrome') {
+      // Desktop header About active indicator
+      await expect(page.locator('header').getByRole('link', { name: 'About' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      );
+
+      // Clicking Services Guide link in primary pane updates browser URL
+      await page.getByTestId('about-service-link-agensi').click();
+      await expect(page).toHaveURL(/\/agensi$/);
+
+      // Navigate via terminal `cd about`, then return to `/` and dock `/about` in a secondary split pane
+      await gotoStreamedPage(page, '/');
+      const commandInput = page.getByLabel('Terminal command input');
+      await commandInput.fill('cd about');
+      await commandInput.press('Enter');
+      await expect(page).toHaveURL(/\/about$/);
+
+      await gotoStreamedPage(page, '/');
+      await page.getByRole('button', { name: 'Open Pane' }).click();
+      await page.getByRole('menuitem', { name: 'About (Split)' }).click();
+      await expect(page.locator('[data-pane-count="2"]')).toBeVisible();
+      await expect(page).toHaveURL(/\/$/);
+      const pane2 = page.locator('[data-pane-id="pane-2"]');
+      await expect(pane2.getByRole('heading', { name: 'Andrew Klapper' })).toBeVisible();
+
+      // Clicking a service card inside secondary split pane transitions that pane without changing URL
+      await pane2.getByTestId('about-service-link-agensi').click();
+      await expect(pane2.getByTestId('agensi-search-input')).toBeVisible();
+      await expect(page).toHaveURL(/\/$/);
+    }
+
+    expect(getErrors()).toEqual([]);
   });
 });
