@@ -71,6 +71,22 @@ function normalizePathname(pathname: string): string {
   return pathname.replace(/\/+$/, '') || '/';
 }
 
+function resolveLoaderPathname(request: Request): string {
+  const rawPathname = new URL(request.url).pathname;
+  // React Router Single Fetch passes raw `.data` request paths into server loaders
+  // (`/_.data` / `/_root.data` for `/` and `/<route>.data` for child routes).
+  if (rawPathname === '/_.data' || rawPathname === '/_root.data') {
+    return '/';
+  }
+  if (rawPathname.endsWith('/_.data')) {
+    return normalizePathname(rawPathname.slice(0, -'/_.data'.length));
+  }
+  if (rawPathname.endsWith('.data')) {
+    return normalizePathname(rawPathname.slice(0, -'.data'.length));
+  }
+  return normalizePathname(rawPathname);
+}
+
 export function isNavigablePath(pathname: string): boolean {
   return isPortalNavigableRoutePath(normalizePathname(pathname).toLowerCase());
 }
@@ -82,7 +98,7 @@ export function loader({ request, context }: Route.LoaderArgs): PortalRootStream
     defaultSiteUrl: DEFAULT_PORTAL_SITE_URL,
     siteUrlEnvKey: 'PUBLIC_PORTAL_URL',
   });
-  const pathname = new URL(request.url).pathname;
+  const pathname = resolveLoaderPathname(request);
   const isNotFound = !isNavigablePath(pathname);
 
   getRequestContext(context)?.logger.info(

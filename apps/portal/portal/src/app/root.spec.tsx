@@ -249,6 +249,34 @@ describe('PortalRoot', () => {
     expect(mixedCaseResult.rootPayload).toBeInstanceOf(Promise);
     expect(loadPortalRootDataWithPrerenderMock).toHaveBeenCalledTimes(1);
 
+    // Single Fetch client revalidation URLs (/_.data, /contact.data) resolve to navigable routes
+    loadPortalRootDataWithPrerenderMock.mockReturnValueOnce(
+      Promise.resolve({ chrome: CHROME_FIXTURE }),
+    );
+    const singleFetchRootResult = loader(
+      makeRootLoaderArgs('https://andrew-k.us/_.data?_routes=root,routes/home').args,
+    );
+    expect(singleFetchRootResult.isNotFound).toBe(false);
+    expect(singleFetchRootResult.rootPayload).toBeInstanceOf(Promise);
+
+    loadPortalRootDataWithPrerenderMock.mockReturnValueOnce(
+      Promise.resolve({ chrome: CHROME_FIXTURE }),
+    );
+    const singleFetchContactResult = loader(
+      makeRootLoaderArgs('https://andrew-k.us/contact.data?_routes=root,routes/contact').args,
+    );
+    expect(singleFetchContactResult.isNotFound).toBe(false);
+    expect(singleFetchContactResult.rootPayload).toBeInstanceOf(Promise);
+    expect(loadPortalRootDataWithPrerenderMock).toHaveBeenCalledTimes(3);
+
+    // Single Fetch for unmatched route still executes zero DB queries
+    const singleFetchNotFound = loader(
+      makeRootLoaderArgs('https://andrew-k.us/changes-in-progress.data?_routes=root').args,
+    );
+    expect(singleFetchNotFound.isNotFound).toBe(true);
+    expect(singleFetchNotFound.rootPayload).toBeNull();
+    expect(loadPortalRootDataWithPrerenderMock).toHaveBeenCalledTimes(3);
+
     // 404 -> / must return literal true even when defaultShouldRevalidate is false
     expect(
       shouldRevalidate({
