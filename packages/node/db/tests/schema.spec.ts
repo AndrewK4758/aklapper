@@ -384,7 +384,7 @@ describe('@aklapper/db', () => {
     }
   });
 
-  it('seeds 10 sanitized resume dossiers within Go 1400-rune chunk bounds, excludes References/phones/ZIPs, and provides prerender /about data', () => {
+  it('seeds 10 sanitized resume dossiers within Go 1400-rune chunk bounds, excludes personal contacts/phones/ZIPs, and provides prerender /about data', () => {
     expect(CAREER_DOSSIER_SEEDS).toHaveLength(10);
     expect(CAREER_DOSSIER_SEEDS.map(d => d.slug)).toEqual([
       'andrew-klapper-profile-core',
@@ -425,10 +425,10 @@ describe('@aklapper/db', () => {
     expect(PORTAL_ABOUT_SEED.contactCtaHref).toBe('/contact');
 
     const serializedAll = JSON.stringify({ PORTAL_ABOUT_SEED, CAREER_DOSSIER_SEEDS });
-    expect(serializedAll).not.toMatch(/\bReferences\b/i);
+    expect(serializedAll).not.toMatch(/\bref(?:erence)?s\b/i);
     expect(serializedAll).not.toMatch(/(?:\(\d{3}\)[-.\s]?|\d{3}[-.\s])\d{3}[-.\s]\d{4}/);
-    expect(serializedAll).not.toMatch(/\bGA\s+\d{5}\b/);
-    expect(serializedAll).not.toContain('30008');
+    expect(serializedAll).not.toMatch(/\b[A-Z]{2}\s+\d{5}(?:-\d{4})?\b/);
+    expect(serializedAll).not.toMatch(/\b\d{5}-\d{4}\b/);
 
     const prerenderAbout = getPrerenderPortalAboutData();
     expect(prerenderAbout.content.identity.fullName).toBe('Andrew Klapper');

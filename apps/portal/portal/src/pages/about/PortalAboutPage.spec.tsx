@@ -71,12 +71,12 @@ describe('PortalAboutPage', () => {
     expect(screen.getByTestId('about-service-link-cadence').getAttribute('href')).toBe('/cadence');
     expect(screen.getByTestId('about-contact-cta').getAttribute('href')).toBe('/contact');
 
-    // Privacy hygiene: zero References, personal phone numbers, or residential ZIP codes
+    // Privacy hygiene: zero contact reference sections, personal phone numbers, or residential ZIP codes
     const renderedText = container.textContent ?? '';
-    expect(renderedText).not.toMatch(/\bReferences\b/i);
+    expect(renderedText).not.toMatch(/\bref(?:erence)?s\b/i);
     expect(renderedText).not.toMatch(/(?:\(\d{3}\)[-.\s]?|\d{3}[-.\s])\d{3}[-.\s]\d{4}/);
-    expect(renderedText).not.toMatch(/\bGA\s+\d{5}\b/);
-    expect(renderedText).not.toContain('30008');
+    expect(renderedText).not.toMatch(/\b[A-Z]{2}\s+\d{5}(?:-\d{4})?\b/);
+    expect(renderedText).not.toMatch(/\b\d{5}-\d{4}\b/);
   });
 
   it('renders an explicit empty-dossiers notice cleanly when zero published dossiers exist', () => {

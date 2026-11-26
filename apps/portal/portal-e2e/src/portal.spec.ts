@@ -1086,21 +1086,45 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(page).toHaveTitle(/About Andrew Klapper/i);
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/about$/);
 
-    await expect(page.getByRole('heading', { name: 'Andrew Klapper' })).toBeVisible();
-    await expect(page.getByText('Senior Full-Stack & Systems Engineer')).toBeVisible();
-    await expect(page.getByText('Marietta, GA')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Andrew Klapper', exact: true })).toBeVisible();
+    await expect(
+      page.getByText('Senior Full-Stack & Systems Engineer', { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText('Marietta, GA', { exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'andrew@andrew-k.us' }).first()).toBeVisible();
     await expect(page.locator('[data-terminal-portrait="true"] img')).toBeVisible();
 
     // Full sanitized resume sections & Services Guide
-    await expect(page.getByText('Software Engineer | Build Technology Group')).toBeVisible();
-    await expect(page.getByText('Hardware Interfacing Platform')).toBeVisible();
-    await expect(page.getByText('Legacy ERP Modernization')).toBeVisible();
-    await expect(page.getByText('Software Engineer | Gitasy')).toBeVisible();
-    await expect(page.getByText('Owner | Shipping Services & Logistics LLC')).toBeVisible();
-    await expect(page.getByText('Ghostty Union - Native Linux Terminal Emulator')).toBeVisible();
-    await expect(page.getByText('Instructor & Mentor | Woodstock Developers Group')).toBeVisible();
-    await expect(page.getByText('Kennesaw State University')).toBeVisible();
+    await expect(
+      page.getByRole('heading', {
+        name: 'Software Engineer | Build Technology Group',
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(page.getByText('Hardware Interfacing Platform', { exact: true })).toBeVisible();
+    await expect(page.getByText('Legacy ERP Modernization', { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Software Engineer | Gitasy', exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', {
+        name: 'Owner | Shipping Services & Logistics LLC',
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', {
+        name: 'Ghostty Union - Native Linux Terminal Emulator',
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', {
+        name: 'Instructor & Mentor | Woodstock Developers Group',
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(page.getByText('Kennesaw State University', { exact: true })).toBeVisible();
 
     await expect(page.getByTestId('about-service-link-chat')).toHaveAttribute('href', '/chat');
     await expect(page.getByTestId('about-service-link-agensi')).toHaveAttribute('href', '/agensi');
@@ -1112,10 +1136,10 @@ test.describe('portal SSR end-to-end journeys', () => {
 
     // Privacy hygiene on live rendered /about HTML
     const bodyText = await page.locator('body').innerText();
-    expect(bodyText).not.toMatch(/\bReferences\b/i);
+    expect(bodyText).not.toMatch(/\bref(?:erence)?s\b/i);
     expect(bodyText).not.toMatch(/(?:\(\d{3}\)[-.\s]?|\d{3}[-.\s])\d{3}[-.\s]\d{4}/);
-    expect(bodyText).not.toMatch(/\bGA\s+\d{5}\b/);
-    expect(bodyText).not.toContain('30008');
+    expect(bodyText).not.toMatch(/\b[A-Z]{2}\s+\d{5}(?:-\d{4})?\b/);
+    expect(bodyText).not.toMatch(/\b\d{5}-\d{4}\b/);
 
     const overflow = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
@@ -1125,10 +1149,9 @@ test.describe('portal SSR end-to-end journeys', () => {
 
     if (testInfo.project.name !== 'mobile-chrome') {
       // Desktop header About active indicator
-      await expect(page.locator('header').getByRole('link', { name: 'About' })).toHaveAttribute(
-        'aria-current',
-        'page',
-      );
+      await expect(
+        page.locator('header').getByRole('link', { name: 'About', exact: true }),
+      ).toHaveAttribute('aria-current', 'page');
 
       // Clicking Services Guide link in primary pane updates browser URL
       await page.getByTestId('about-service-link-agensi').click();
@@ -1136,7 +1159,7 @@ test.describe('portal SSR end-to-end journeys', () => {
 
       // Navigate via terminal `cd about`, then return to `/` and dock `/about` in a secondary split pane
       await gotoStreamedPage(page, '/');
-      const commandInput = page.getByLabel('Terminal command input');
+      const commandInput = page.getByLabel('Terminal command input', { exact: true });
       await commandInput.fill('cd about');
       await commandInput.press('Enter');
       await expect(page).toHaveURL(/\/about$/);
@@ -1146,12 +1169,14 @@ test.describe('portal SSR end-to-end journeys', () => {
       await page.getByRole('menuitem', { name: 'About (Split)' }).click();
       await expect(page.locator('[data-pane-count="2"]')).toBeVisible();
       await expect(page).toHaveURL(/\/$/);
-      const pane2 = page.locator('[data-pane-id="pane-2"]');
-      await expect(pane2.getByRole('heading', { name: 'Andrew Klapper' })).toBeVisible();
+      const secondaryPane = page.locator('[data-pane-id]').nth(1);
+      await expect(
+        secondaryPane.getByRole('heading', { name: 'Andrew Klapper', exact: true }),
+      ).toBeVisible();
 
       // Clicking a service card inside secondary split pane transitions that pane without changing URL
-      await pane2.getByTestId('about-service-link-agensi').click();
-      await expect(pane2.getByTestId('agensi-search-input')).toBeVisible();
+      await secondaryPane.getByTestId('about-service-link-agensi').click();
+      await expect(secondaryPane.getByTestId('agensi-search-input')).toBeVisible();
       await expect(page).toHaveURL(/\/$/);
     }
 
