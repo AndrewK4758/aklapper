@@ -1,6 +1,7 @@
-import type { CareerDossier, PortalAboutContent } from '@aklapper/core';
+import { type CareerDossier, isSafeHttpUrl, type PortalAboutContent } from '@aklapper/core';
 import { Button, OscStatusBadge, PaneLink, Separator, StatusPill, TuiWindow } from '@aklapper/ui';
 import { TerminalPortrait } from '@aklapper/ui/terminal-portrait';
+import { useId } from 'react';
 import { Link, useInRouterContext } from 'react-router';
 
 import styles from './PortalAboutPage.module.css';
@@ -22,8 +23,8 @@ function DossierCard({ dossier }: { readonly dossier: CareerDossier }) {
       <p className={styles.summaryCopy}>{dossier.summaryBody}</p>
       {dossier.sections.length > 0 ? (
         <div className={styles.subProjectList}>
-          {dossier.sections.map(section => (
-            <div key={section.heading} className={styles.subProject}>
+          {dossier.sections.map((section, sectionIndex) => (
+            <div key={`${section.heading}-${sectionIndex}`} className={styles.subProject}>
               <h4 className={styles.subProjectTitle}>{section.heading}</h4>
               <p className={styles.summaryCopy}>{section.body}</p>
             </div>
@@ -32,8 +33,8 @@ function DossierCard({ dossier }: { readonly dossier: CareerDossier }) {
       ) : null}
       {dossier.skills.length > 0 ? (
         <ul className={styles.pillList} aria-label={`${dossier.title} technologies`}>
-          {dossier.skills.map(skill => (
-            <li key={skill} className={styles.pill}>
+          {dossier.skills.map((skill, skillIndex) => (
+            <li key={`${skill}-${skillIndex}`} className={styles.pill}>
               {skill}
             </li>
           ))}
@@ -50,6 +51,12 @@ export function PortalAboutPage({
   onClose,
 }: PortalAboutPageProps) {
   const inRouter = useInRouterContext();
+  const headingIdBase = useId();
+  const skillsHeadingId = `${headingIdBase}-skills`;
+  const experienceHeadingId = `${headingIdBase}-experience`;
+  const projectsHeadingId = `${headingIdBase}-projects`;
+  const communityHeadingId = `${headingIdBase}-community`;
+  const servicesHeadingId = `${headingIdBase}-services`;
 
   // Pure render-time grouping of live published career dossiers (zero useEffect).
   const profileCore = dossiers.find(dossier => dossier.kind === 'profile_core');
@@ -58,6 +65,12 @@ export function PortalAboutPage({
     dossier => dossier.kind === 'project' || dossier.kind === 'architecture',
   );
   const leadershipDossiers = dossiers.filter(dossier => dossier.kind === 'leadership');
+  const safeGithubUrl = isSafeHttpUrl(content.identity.githubUrl)
+    ? content.identity.githubUrl.trim()
+    : null;
+  const safeWebsiteUrl = isSafeHttpUrl(content.identity.websiteUrl)
+    ? content.identity.websiteUrl.trim()
+    : null;
 
   const renderNavLink = (to: string) =>
     inRouter ? (
@@ -105,24 +118,32 @@ export function PortalAboutPage({
                   </li>
                 ) : null}
                 <li>
-                  <a
-                    href={content.identity.githubUrl}
-                    target='_blank'
-                    rel='noreferrer'
-                    className={styles.metaLink}
-                  >
-                    {content.identity.githubLabel}
-                  </a>
+                  {safeGithubUrl ? (
+                    <a
+                      href={safeGithubUrl}
+                      target='_blank'
+                      rel='noreferrer'
+                      className={styles.metaLink}
+                    >
+                      {content.identity.githubLabel}
+                    </a>
+                  ) : (
+                    <span>{content.identity.githubLabel}</span>
+                  )}
                 </li>
                 <li>
-                  <a
-                    href={content.identity.websiteUrl}
-                    target='_blank'
-                    rel='noreferrer'
-                    className={styles.metaLink}
-                  >
-                    {content.identity.websiteLabel}
-                  </a>
+                  {safeWebsiteUrl ? (
+                    <a
+                      href={safeWebsiteUrl}
+                      target='_blank'
+                      rel='noreferrer'
+                      className={styles.metaLink}
+                    >
+                      {content.identity.websiteLabel}
+                    </a>
+                  ) : (
+                    <span>{content.identity.websiteLabel}</span>
+                  )}
                 </li>
               </ul>
               <p className={styles.summaryCopy}>
@@ -133,17 +154,17 @@ export function PortalAboutPage({
 
           <Separator.Root />
 
-          <section className={styles.section} aria-labelledby='about-skills-heading'>
-            <h2 id='about-skills-heading' className={styles.sectionHeading}>
+          <section className={styles.section} aria-labelledby={skillsHeadingId}>
+            <h2 id={skillsHeadingId} className={styles.sectionHeading}>
               {content.skillsHeading}
             </h2>
             <ul className={styles.skillsGrid}>
-              {content.skillGroups.map(group => (
-                <li key={group.category} className={styles.skillCard}>
+              {content.skillGroups.map((group, groupIndex) => (
+                <li key={`${group.category}-${groupIndex}`} className={styles.skillCard}>
                   <h3 className={styles.skillCategory}>{group.category}</h3>
                   <ul className={styles.pillList}>
-                    {group.skills.map(skill => (
-                      <li key={skill} className={styles.pill}>
+                    {group.skills.map((skill, skillIndex) => (
+                      <li key={`${skill}-${skillIndex}`} className={styles.pill}>
                         {skill}
                       </li>
                     ))}
@@ -160,8 +181,8 @@ export function PortalAboutPage({
           ) : (
             <>
               {experienceDossiers.length > 0 ? (
-                <section className={styles.section} aria-labelledby='about-experience-heading'>
-                  <h2 id='about-experience-heading' className={styles.sectionHeading}>
+                <section className={styles.section} aria-labelledby={experienceHeadingId}>
+                  <h2 id={experienceHeadingId} className={styles.sectionHeading}>
                     {content.experienceHeading}
                   </h2>
                   <ul className={styles.dossierList}>
@@ -173,8 +194,8 @@ export function PortalAboutPage({
               ) : null}
 
               {projectDossiers.length > 0 ? (
-                <section className={styles.section} aria-labelledby='about-projects-heading'>
-                  <h2 id='about-projects-heading' className={styles.sectionHeading}>
+                <section className={styles.section} aria-labelledby={projectsHeadingId}>
+                  <h2 id={projectsHeadingId} className={styles.sectionHeading}>
                     {content.projectsHeading}
                   </h2>
                   <ul className={styles.dossierList}>
@@ -187,16 +208,19 @@ export function PortalAboutPage({
             </>
           )}
 
-          <section className={styles.section} aria-labelledby='about-community-heading'>
-            <h2 id='about-community-heading' className={styles.sectionHeading}>
+          <section className={styles.section} aria-labelledby={communityHeadingId}>
+            <h2 id={communityHeadingId} className={styles.sectionHeading}>
               {content.communityHeading}
             </h2>
             <ul className={styles.dossierList}>
               {leadershipDossiers.map(dossier => (
                 <DossierCard key={dossier.slug} dossier={dossier} />
               ))}
-              {content.education.map(edu => (
-                <li key={`${edu.institution}-${edu.program}`} className={styles.dossierCard}>
+              {content.education.map((edu, eduIndex) => (
+                <li
+                  key={`${edu.institution}-${edu.program}-${eduIndex}`}
+                  className={styles.dossierCard}
+                >
                   <div className={styles.dossierHeader}>
                     <h3 className={styles.dossierTitle}>{edu.institution}</h3>
                     <span className={styles.dossierTimeframe}>{edu.location}</span>
@@ -209,14 +233,14 @@ export function PortalAboutPage({
 
           <Separator.Root />
 
-          <section className={styles.section} aria-labelledby='about-services-heading'>
-            <h2 id='about-services-heading' className={styles.sectionHeading}>
+          <section className={styles.section} aria-labelledby={servicesHeadingId}>
+            <h2 id={servicesHeadingId} className={styles.sectionHeading}>
               {content.servicesHeading}
             </h2>
             <p className={styles.summaryCopy}>{content.servicesIntro}</p>
             <ul className={styles.servicesGrid} data-testid='about-services-grid'>
-              {content.services.map(service => (
-                <li key={service.id} className={styles.serviceCard}>
+              {content.services.map((service, serviceIndex) => (
+                <li key={`${service.id}-${serviceIndex}`} className={styles.serviceCard}>
                   <div className={styles.serviceHeader}>
                     <h3 className={styles.serviceTitle}>{service.title}</h3>
                     <StatusPill tone='accent' size='sm'>

@@ -5,6 +5,43 @@ import { PORTAL_NAVIGABLE_ROUTE_PATHS } from './routes.ts';
 
 const US_POSTAL_ZIP_RE = /\b\d{5}(?:-\d{4})?\b/;
 
+function hasAsciiControlChar(value: string): boolean {
+  for (let i = 0; i < value.length; i += 1) {
+    const code = value.charCodeAt(i);
+    if (code <= 0x1f || code === 0x7f) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function isSafeHttpUrl(raw: string): boolean {
+  if (hasAsciiControlChar(raw)) {
+    return false;
+  }
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return false;
+  }
+  try {
+    const parsed = new URL(trimmed);
+    return (
+      (parsed.protocol === 'http:' || parsed.protocol === 'https:') &&
+      parsed.username === '' &&
+      parsed.password === ''
+    );
+  } catch {
+    return false;
+  }
+}
+
+const SafeHttpUrlSchema = z
+  .string()
+  .refine(val => !hasAsciiControlChar(val), 'URL must not contain control characters')
+  .trim()
+  .pipe(z.url({ protocol: /^https?$/ }))
+  .refine(isSafeHttpUrl, 'URL must use http(s) without control characters or embedded credentials');
+
 export const PortalAboutIdentitySchema = z.object({
   fullName: z.string().trim().min(1).max(80),
   roleHeadline: z.string().trim().min(1).max(120),
@@ -15,9 +52,9 @@ export const PortalAboutIdentitySchema = z.object({
     .max(80)
     .refine(val => !US_POSTAL_ZIP_RE.test(val), 'Location must omit postal ZIP codes'),
   githubLabel: z.string().trim().min(1).max(80),
-  githubUrl: z.url(),
+  githubUrl: SafeHttpUrlSchema,
   websiteLabel: z.string().trim().min(1).max(80),
-  websiteUrl: z.url(),
+  websiteUrl: SafeHttpUrlSchema,
 });
 export type PortalAboutIdentity = z.infer<typeof PortalAboutIdentitySchema>;
 
@@ -36,7 +73,12 @@ export type PortalAboutSkillGroup = z.infer<typeof PortalAboutSkillGroupSchema>;
 
 export const PortalAboutEducationSchema = z.object({
   institution: z.string().trim().min(1).max(120),
-  location: z.string().trim().min(1).max(80),
+  location: z
+    .string()
+    .trim()
+    .min(1)
+    .max(80)
+    .refine(val => !US_POSTAL_ZIP_RE.test(val), 'Location must omit postal ZIP codes'),
   program: z.string().trim().min(1).max(160),
 });
 export type PortalAboutEducation = z.infer<typeof PortalAboutEducationSchema>;

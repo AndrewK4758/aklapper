@@ -66,4 +66,32 @@ describe('@aklapper/ui/terminal-portrait', () => {
     rerender(<TerminalPortrait src={DEFAULT_PORTRAIT_SRC} alt='Recovered portrait' />);
     expect(container.querySelector('img')).not.toBeNull();
   });
+
+  it('rejects control chars, whitespace, encoded traversal, query/hash, and external custom portrait sources cleanly', () => {
+    for (const unsafeSrc of [
+      '/\t/evil.com/x.webp',
+      '/%2e%2e/x.webp',
+      '/%2f/evil.webp',
+      '/%5c/evil.webp',
+      '//evil.example/x.webp',
+      '/images/../secret.webp',
+      '/images/portrait.webp?x=1',
+      '/images/portrait.webp#frag',
+      'javascript:alert(1)',
+      'https://evil.example/portrait.webp',
+    ]) {
+      const { container, unmount } = render(
+        <TerminalPortrait src={unsafeSrc} alt='Unsafe portrait source' />,
+      );
+      expect(
+        container.querySelector('img'),
+        `expected img omitted for ${JSON.stringify(unsafeSrc)}`,
+      ).toBeNull();
+      expect(
+        container.querySelector('[data-portrait-fallback="true"]'),
+        `expected fallback monogram for ${JSON.stringify(unsafeSrc)}`,
+      ).not.toBeNull();
+      unmount();
+    }
+  });
 });

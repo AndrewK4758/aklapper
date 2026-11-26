@@ -368,5 +368,50 @@ describe('@aklapper/core site_content registry', () => {
         ]),
       }),
     );
+
+    // Reject non-HTTP(S) URLs, embedded credentials, control chars, and education ZIP codes
+    for (const unsafeUrl of [
+      'javascript:alert(1)',
+      'data:text/html,<script>alert(1)</script>',
+      'https://user:pass@github.com/a',
+      'https://github.com/a\n',
+    ]) {
+      const invalidGithub = validateSiteContentMetadata(SITE_CONTENT_KEYS.portalAbout, {
+        ...VALID_PORTAL_ABOUT_FIXTURE,
+        identity: {
+          ...(VALID_PORTAL_ABOUT_FIXTURE['identity'] as Record<string, unknown>),
+          githubUrl: unsafeUrl,
+          websiteUrl: unsafeUrl,
+        },
+      });
+      expect(invalidGithub, `expected rejection for ${JSON.stringify(unsafeUrl)}`).toEqual(
+        expect.objectContaining({
+          ok: false,
+          issues: expect.arrayContaining([
+            expect.objectContaining({ pathKey: 'identity.githubUrl' }),
+            expect.objectContaining({ pathKey: 'identity.websiteUrl' }),
+          ]),
+        }),
+      );
+    }
+
+    const educationZip = validateSiteContentMetadata(SITE_CONTENT_KEYS.portalAbout, {
+      ...VALID_PORTAL_ABOUT_FIXTURE,
+      education: [
+        {
+          institution: 'Kennesaw State University',
+          location: 'Kennesaw 30144',
+          program: 'Professional Sales',
+        },
+      ],
+    });
+    expect(educationZip).toEqual(
+      expect.objectContaining({
+        ok: false,
+        issues: expect.arrayContaining([
+          expect.objectContaining({ pathKey: 'education.0.location' }),
+        ]),
+      }),
+    );
   });
 });

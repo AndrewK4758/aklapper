@@ -100,4 +100,43 @@ describe('PortalAboutPage', () => {
     expect(screen.queryByRole('heading', { name: seeded.content.experienceHeading })).toBeNull();
     expect(screen.queryByRole('heading', { name: seeded.content.projectsHeading })).toBeNull();
   });
+
+  it('suppresses non-HTTP or credentialed identity links defensively and scopes heading IDs uniquely across split panes', () => {
+    const seeded = getPrerenderPortalAboutData();
+
+    const { container } = render(
+      <>
+        <PortalAboutPage
+          content={{
+            ...seeded.content,
+            identity: {
+              ...seeded.content.identity,
+              githubUrl: 'javascript:alert(1)',
+              websiteUrl: 'https://user:pass@andrew-k.us',
+            },
+          }}
+          dossiers={seeded.dossiers}
+          brandContactEmail={seeded.brandContactEmail}
+          onClose={vi.fn<() => void>()}
+        />
+        <PortalAboutPage
+          content={seeded.content}
+          dossiers={seeded.dossiers}
+          brandContactEmail={seeded.brandContactEmail}
+          onClose={vi.fn<() => void>()}
+        />
+      </>,
+    );
+
+    const anchors = Array.from(container.querySelectorAll('a'));
+    expect(anchors.some(a => (a.getAttribute('href') ?? '').startsWith('javascript:'))).toBe(false);
+    expect(anchors.some(a => (a.getAttribute('href') ?? '').includes('user:pass@'))).toBe(false);
+    expect(screen.getAllByText(seeded.content.identity.githubLabel)).toHaveLength(2);
+    expect(screen.getAllByText(seeded.content.identity.websiteLabel)).toHaveLength(2);
+
+    // Every section heading id must be globally unique when two panes mount side-by-side
+    const headingIds = Array.from(container.querySelectorAll('h2[id]')).map(h => h.id);
+    expect(headingIds.length).toBeGreaterThanOrEqual(8);
+    expect(new Set(headingIds).size).toBe(headingIds.length);
+  });
 });

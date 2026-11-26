@@ -64,8 +64,8 @@ export function PortalAboutPreview({
       <section className={styles.aboutSection}>
         <h4 className={styles.aboutSectionTitle}>{content.skillsHeading}</h4>
         <div className={styles.aboutSkillList}>
-          {content.skillGroups.map(group => (
-            <div key={group.category} className={styles.aboutSkillRow}>
+          {content.skillGroups.map((group, groupIndex) => (
+            <div key={`${group.category}-${groupIndex}`} className={styles.aboutSkillRow}>
               <strong className={styles.aboutSkillCategory}>{group.category}:</strong>{' '}
               <span>{group.skills.join(', ')}</span>
             </div>
@@ -128,8 +128,11 @@ export function PortalAboutPreview({
       <section className={styles.aboutSection}>
         <h4 className={styles.aboutSectionTitle}>Education</h4>
         <ul className={styles.aboutDossierList}>
-          {content.education.map(edu => (
-            <li key={`${edu.institution}-${edu.program}`} className={styles.aboutDossierItem}>
+          {content.education.map((edu, eduIndex) => (
+            <li
+              key={`${edu.institution}-${edu.program}-${eduIndex}`}
+              className={styles.aboutDossierItem}
+            >
               <strong>{edu.institution}</strong> ·{' '}
               <span className={styles.chromeMeta}>{edu.location}</span>
               <div className={styles.aboutSummary}>{edu.program}</div>
@@ -142,8 +145,8 @@ export function PortalAboutPreview({
         <h4 className={styles.aboutSectionTitle}>{content.servicesHeading}</h4>
         <p className={styles.windowDescription}>{content.servicesIntro}</p>
         <ul className={styles.aboutServiceGrid} aria-label='Platform services preview'>
-          {content.services.map(service => (
-            <li key={service.id} className={styles.aboutServiceCard}>
+          {content.services.map((service, serviceIndex) => (
+            <li key={`${service.id}-${serviceIndex}`} className={styles.aboutServiceCard}>
               <div className={styles.aboutServiceHeader}>
                 <strong>{service.title}</strong>
                 <StatusPill tone='accent' size='sm'>
