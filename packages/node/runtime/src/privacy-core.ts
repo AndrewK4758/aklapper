@@ -180,6 +180,8 @@ export function scanTextForPrivacyFindings(
     }
   };
 
+  const matchedPatternRules = new Set<string>();
+
   for (let lineIdx = 0; lineIdx < lines.length; lineIdx += 1) {
     const rawLine = lines[lineIdx] ?? '';
     if (!rawLine.trim()) {
@@ -207,6 +209,7 @@ export function scanTextForPrivacyFindings(
       }
 
       if (rule.regex.test(normalizedLine)) {
+        matchedPatternRules.add(rule.ruleId);
         addFindingUnique(findings, seen, {
           ruleId: rule.ruleId,
           category: rule.category,
@@ -235,9 +238,26 @@ export function scanTextForPrivacyFindings(
     scanDenylistTarget(foldDiacriticsForMatch(normalizedLine), location, false);
   }
 
-  if (lines.length > 1 && denylistEntries.length > 0) {
-    const foldedJoined = foldDiacriticsForMatch(lines.join(' '));
-    scanDenylistTarget(foldedJoined, 'multiline', true);
+  if (lines.length > 1) {
+    const normalizedJoined = stripInvisibleAndNormalize(lines.join(' '));
+    for (const rule of PRIVACY_PATTERN_RULES) {
+      if (matchedPatternRules.has(rule.ruleId)) {
+        continue;
+      }
+      rule.regex.lastIndex = 0;
+      if (rule.regex.test(normalizedJoined)) {
+        matchedPatternRules.add(rule.ruleId);
+        addFindingUnique(findings, seen, {
+          ruleId: rule.ruleId,
+          category: rule.category,
+          field,
+          location: 'multiline',
+        });
+      }
+    }
+    if (denylistEntries.length > 0) {
+      scanDenylistTarget(foldDiacriticsForMatch(normalizedJoined), 'multiline', true);
+    }
   }
 
   return findings;

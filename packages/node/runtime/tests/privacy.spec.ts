@@ -571,4 +571,62 @@ describe('@aklapper/node-runtime/privacy fail-closed sanitization', () => {
       warnSpy.mockRestore();
     }
   });
+
+  it('catches multiline-split US postal ZIP and phone patterns without false positives, duplicate findings, or nonlinear latency', () => {
+    const emptyDenylist = parseDossierPrivacyDenylist('');
+
+    for (const [payload, expectedRuleId] of [
+      ['Marietta, GA\n30062', 'pii.us_postal_zip'],
+      ['ZIP\n30062', 'pii.us_postal_zip'],
+      ['(555)\n010-1234', 'pii.us_phone'],
+    ] as const) {
+      const findings = scanTextForPrivacyFindings(payload, 'description', emptyDenylist);
+      expect(
+        findings,
+        `expected multiline finding ${expectedRuleId} for ${JSON.stringify(payload)}`,
+      ).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            ruleId: expectedRuleId,
+            category: 'pii',
+            location: 'multiline',
+          }),
+        ]),
+      );
+    }
+
+    // Rule already matched on a single line MUST NOT emit a duplicate multiline finding
+    const singleLinePlusMultiline = scanTextForPrivacyFindings(
+      'Marietta, GA 30062\nAdditional context line',
+      'description',
+      emptyDenylist,
+    );
+    expect(singleLinePlusMultiline.filter(f => f.ruleId === 'pii.us_postal_zip')).toEqual([
+      expect.objectContaining({
+        ruleId: 'pii.us_postal_zip',
+        location: 'line:1',
+      }),
+    ]);
+
+    // Benign multiline prose produces zero false positives
+    expect(
+      scanTextForPrivacyFindings(
+        'deployed in\n40000 pods\nserving id\n12345 in ms\n15000',
+        'description',
+        emptyDenylist,
+      ),
+    ).toEqual([]);
+
+    // Linear timing on 60 KB multiline input (< 50 ms)
+    const largeMultiline = Array.from(
+      { length: 1_000 },
+      (_, idx) => `service cluster ${idx} deployed in 40000 pods across regions`,
+    ).join('\n');
+    expect(largeMultiline.length).toBeGreaterThanOrEqual(55_000);
+    const start = performance.now();
+    const largeFindings = scanTextForPrivacyFindings(largeMultiline, 'body', emptyDenylist);
+    const elapsedMs = performance.now() - start;
+    expect(largeFindings).toEqual([]);
+    expect(elapsedMs).toBeLessThan(50);
+  });
 });
