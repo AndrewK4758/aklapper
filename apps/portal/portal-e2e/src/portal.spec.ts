@@ -1,8 +1,6 @@
 import { assertSsrHealthz, gotoStreamedPage, trackPageErrors } from '@aklapper/tooling/playwright';
 import { expect, test } from '@playwright/test';
 
-const IS_MAINTENANCE_MODE = process.env['PORTAL_MAINTENANCE_MODE'] === 'true';
-
 test.describe('portal SSR end-to-end journeys', () => {
   test('serves healthy Fastify SSR /healthz endpoint @smoke', async ({ request }) => {
     await assertSsrHealthz(request, 'portal-ssr');
@@ -11,7 +9,6 @@ test.describe('portal SSR end-to-end journeys', () => {
   test('renders terminal-only greeter, opens tui and menu via commands and keybindings, and hides admin items @smoke', async ({
     page,
   }, testInfo) => {
-    test.skip(IS_MAINTENANCE_MODE, 'Full greeter and menu routes are gated in maintenance mode');
     test.skip(
       testInfo.project.name === 'mobile-chrome',
       'Desktop multi-pane workspace journey; handheld journeys are covered in mobile-layout.spec.ts',
@@ -40,7 +37,14 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(page.getByText(/chat\s+# Chat with Andrew's AI/)).toBeVisible();
     await expect(page.getByText(/agensi\s+# Published AI skills/)).toBeVisible();
     await expect(page.getByText(/contact\s+# Connect with me/)).toBeVisible();
-    await expect(page.getByText(/changes-in-progress\s+# Maintenance preview/)).toBeVisible();
+    expect(initialBodyText).not.toContain('changes-in-progress');
+    expect(initialBodyText).not.toMatch(/Maintenance preview/i);
+
+    // Retired route command stays on "/" and reports unknown route
+    await commandInput.fill('cd changes-in-progress');
+    await commandInput.press('Enter');
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByText(/no such route|unknown|not found/i)).toBeVisible();
 
     // Typing `ls` produces the same clean DB-driven listing
     await commandInput.fill('ls');
@@ -124,6 +128,7 @@ test.describe('portal SSR end-to-end journeys', () => {
     await expect(page.getByRole('heading', { name: /Andrew Klapper — Portfolio/i })).toBeVisible();
     await expect(page.getByText(/CADENCE Builder/i)).toBeVisible();
     await expect(page.getByText(/cadence-admin/i)).toHaveCount(0);
+    await expect(page.getByText(/Maintenance Preview/i)).toHaveCount(0);
 
     // Clicking CADENCE Builder from primary TUI navigates to /cadence; Escape exits back to /
     await page.getByRole('link', { name: /CADENCE Builder/i }).click();
@@ -141,7 +146,6 @@ test.describe('portal SSR end-to-end journeys', () => {
   test('navigates to /cadence and renders sandboxed artifact preview iframe @smoke', async ({
     page,
   }, testInfo) => {
-    test.skip(IS_MAINTENANCE_MODE, 'CADENCE builder route is gated in maintenance mode');
     const getErrors = trackPageErrors(page);
 
     await gotoStreamedPage(page, '/cadence');
@@ -181,27 +185,93 @@ test.describe('portal SSR end-to-end journeys', () => {
     expect(getErrors()).toEqual([]);
   });
 
-  test('renders standalone /changes-in-progress maintenance shell without main nav @smoke', async ({
+  test('returns standalone HTTP 404 with noindex SEO, zero status polling, and clean recovery for retired and unknown routes @smoke', async ({
     page,
-  }) => {
+    request,
+  }, testInfo) => {
     const getErrors = trackPageErrors(page);
+    const disallowedNotFoundRequests: string[] = [];
+    page.on('request', req => {
+      const url = req.url();
+      if (url.includes('/api/runtime/status')) {
+        disallowedNotFoundRequests.push(`${req.method()} ${url}`);
+        return;
+      }
+      if (url.includes('/api/analytics/ingest') && req.method() === 'POST') {
+        try {
+          const payload = req.postDataJSON() as {
+            events?: Array<{ type?: string; name?: string }>;
+          } | null;
+          if (payload?.events?.some(ev => ev.type === 'error')) {
+            disallowedNotFoundRequests.push(`POST ${url} (client_error)`);
+          }
+        } catch {
+          // Ignore non-JSON beacon bodies
+        }
+      }
+    });
 
-    await gotoStreamedPage(page, '/changes-in-progress');
-    await expect(page.getByRole('heading', { name: /Site Updates in Progress/i })).toBeVisible();
-    await expect(page.locator('header')).toHaveCount(0);
-    await expect(page.locator('footer')).toHaveCount(0);
-    expect(await page.locator('body').innerText()).not.toMatch(/\bzsh\b|p10k|powerlevel10k/i);
+    for (const unmatchedPath of ['/changes-in-progress', '/nonexistent-route']) {
+      disallowedNotFoundRequests.length = 0;
+      const res = await page.goto(unmatchedPath, { waitUntil: 'load' });
+      expect(res?.status()).toBe(404);
+      const correlationId = res?.headers()['x-correlation-id'] ?? '';
+      expect(correlationId).toMatch(/^[A-Za-z0-9._:-]{1,128}$/);
 
-    await expect(page.locator('[data-terminal-root="true"]')).toHaveAttribute(
-      'data-hydrated',
-      'true',
-    );
-    const commandInput = page.getByLabel('Terminal command input');
-    await commandInput.fill('stack');
-    await commandInput.press('Enter');
-    await expect(
-      page.getByText(/Cloud Run \(4-service scale-to-0\) \+ Direct VPC Egress PG19/i),
-    ).toBeVisible();
+      const errorCard = page.locator('[data-error-code="ERR_NOT_FOUND"]');
+      await expect(errorCard).toBeVisible();
+      await expect(errorCard).toHaveAttribute('data-http-status', '404');
+      await expect(errorCard).toContainText(correlationId);
+      await expect(page.locator('header')).toHaveCount(0);
+      await expect(page.locator('footer')).toHaveCount(0);
+      await expect(page.locator('[data-pane-count]')).toHaveCount(0);
+
+      const robotsMeta = page.locator('meta[name="robots"]');
+      await expect(robotsMeta).toHaveCount(1);
+      await expect(robotsMeta).toHaveAttribute('content', 'noindex, nofollow');
+      const googlebotMeta = page.locator('meta[name="googlebot"]');
+      await expect(googlebotMeta).toHaveCount(1);
+      await expect(googlebotMeta).toHaveAttribute('content', 'noindex, nofollow');
+      await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(0);
+
+      // Allow hydration effects to settle and confirm zero 404 runtime polling or client-error telemetry
+      await page.waitForTimeout(250);
+      expect(disallowedNotFoundRequests).toEqual([]);
+    }
+
+    // Clicking Return Home from the hydrated 404 page transitions cleanly to "/" with full workspace shell & indexable SEO
+    await page.getByRole('link', { name: 'Return Home' }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByLabel('Terminal command input')).toBeVisible();
+    if (testInfo.project.name === 'mobile-chrome') {
+      await expect(page.locator('[data-mobile-tui-header="true"]')).toBeVisible();
+    } else {
+      await expect(page.locator('header')).toBeVisible();
+      await expect(page.locator('[data-pane-count="1"]')).toBeVisible();
+    }
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'index, follow');
+
+    // Unmatched /api/* endpoints return JSON PublicAppError 404 without HTML
+    for (const method of ['get', 'post'] as const) {
+      const apiRes = await request[method]('/api/nonexistent-endpoint');
+      expect(apiRes.status()).toBe(404);
+      expect(apiRes.headers()['content-type']).toContain('application/json');
+      const apiCorr = apiRes.headers()['x-correlation-id'] ?? '';
+      expect(apiCorr).toMatch(/^[A-Za-z0-9._:-]{1,128}$/);
+      expect(await apiRes.json()).toMatchObject({
+        code: 'ERR_NOT_FOUND',
+        status: 404,
+        correlationId: apiCorr,
+      });
+    }
+
+    // Sitemap and robots.txt omit /changes-in-progress
+    const sitemapRes = await request.get('/sitemap.xml');
+    expect(sitemapRes.status()).toBe(200);
+    expect(await sitemapRes.text()).not.toContain('changes-in-progress');
+    const robotsRes = await request.get('/robots.txt');
+    expect(robotsRes.status()).toBe(200);
+    expect(await robotsRes.text()).not.toContain('changes-in-progress');
 
     expect(getErrors()).toEqual([]);
   });
@@ -210,7 +280,6 @@ test.describe('portal SSR end-to-end journeys', () => {
     page,
     request,
   }, testInfo) => {
-    test.skip(IS_MAINTENANCE_MODE, 'Contact route is gated in maintenance mode');
     test.skip(
       testInfo.project.name === 'mobile-chrome',
       'Desktop in-pane contact --tui journey; handheld journeys are covered in mobile-layout.spec.ts',
@@ -277,7 +346,6 @@ test.describe('portal SSR end-to-end journeys', () => {
   test('runs contact form inline in terminal mode without jumping to TUI and persists to Postgres 19', async ({
     page,
   }, testInfo) => {
-    test.skip(IS_MAINTENANCE_MODE, 'Contact route is gated in maintenance mode');
     test.skip(
       testInfo.project.name === 'mobile-chrome',
       'Desktop workspace terminal form journey; handheld journeys are covered in mobile-layout.spec.ts',
@@ -351,7 +419,6 @@ test.describe('portal SSR end-to-end journeys', () => {
   test('renders /agensi storefront with Base UI tag filter, search filter, and outbound Agensi CTA @smoke', async ({
     page,
   }, testInfo) => {
-    test.skip(IS_MAINTENANCE_MODE, 'Agensi storefront route is gated in maintenance mode');
     test.skip(
       testInfo.project.name === 'mobile-chrome',
       'Desktop in-pane hotkey navigation journey; handheld journeys are covered in mobile-layout.spec.ts',
@@ -388,7 +455,6 @@ test.describe('portal SSR end-to-end journeys', () => {
     page,
     request,
   }) => {
-    test.skip(IS_MAINTENANCE_MODE, 'CADENCE builder route is gated in maintenance mode');
     const getErrors = trackPageErrors(page);
 
     await gotoStreamedPage(page, '/cadence');
@@ -511,9 +577,6 @@ test.describe('portal SSR end-to-end journeys', () => {
   test('runs cadence from primary terminal to /cadence with Select Escape guard and approves gate', async ({
     page,
   }, testInfo) => {
-    if (IS_MAINTENANCE_MODE) {
-      return;
-    }
     test.skip(
       testInfo.project.name === 'mobile-chrome',
       'Desktop docked pane journey; handheld journeys are covered in mobile-layout.spec.ts',
@@ -563,9 +626,6 @@ test.describe('portal SSR end-to-end journeys', () => {
   });
 
   test('sanitizes unsafe markup and enforces 429 quota exhaustion cleanly', async ({ browser }) => {
-    if (IS_MAINTENANCE_MODE) {
-      return;
-    }
     const context = await browser.newContext();
     const page = await context.newPage();
     const getErrors = trackPageErrors(page);
@@ -622,11 +682,6 @@ test.describe('portal SSR end-to-end journeys', () => {
   test('returns runtime health JSON from /api/runtime/status and rejects /contact honeypot spam', async ({
     request,
   }) => {
-    test.skip(
-      IS_MAINTENANCE_MODE,
-      'Public runtime status and contact routes are gated in maintenance mode',
-    );
-
     const statusRes = await request.get('/api/runtime/status');
     expect(statusRes.status()).toBe(200);
     expect(statusRes.headers()['content-type']).toContain('application/json');
@@ -652,7 +707,6 @@ test.describe('portal SSR end-to-end journeys', () => {
   test('renders DB-backed help without Ghostty references and validates every workspace keybind action', async ({
     page,
   }, testInfo) => {
-    test.skip(IS_MAINTENANCE_MODE, 'Workspace keybindings are tested in full portal mode');
     test.skip(
       testInfo.project.name === 'mobile-chrome',
       'Desktop workspace keybindings; handheld journeys are covered in mobile-layout.spec.ts',
@@ -813,7 +867,6 @@ test.describe('portal SSR end-to-end journeys', () => {
   test('supports explicit split/tab escape hatches, focus-scoped pane controls, and deep-link return', async ({
     page,
   }, testInfo) => {
-    test.skip(IS_MAINTENANCE_MODE, 'Workspace navigation is gated in maintenance mode');
     test.skip(
       testInfo.project.name === 'mobile-chrome',
       'Desktop split/tab escape hatches; handheld journeys are covered in mobile-layout.spec.ts',
@@ -867,7 +920,6 @@ test.describe('portal SSR end-to-end journeys', () => {
   test('persists guest session cookie on fresh-context in-pane /chat and /cadence loads @smoke', async ({
     browser,
   }, testInfo) => {
-    test.skip(IS_MAINTENANCE_MODE, 'Chat and CADENCE routes are gated in maintenance mode');
     test.skip(
       testInfo.project.name === 'mobile-chrome',
       'Desktop in-pane navigation journey; handheld journeys are covered in mobile-layout.spec.ts',
@@ -913,8 +965,6 @@ test.describe('portal SSR end-to-end journeys', () => {
   test('emits streaming SSR headers and serves complete onAllReady HTML to search crawlers', async ({
     request,
   }) => {
-    test.skip(IS_MAINTENANCE_MODE, 'Crawler SSR route check is gated in maintenance mode');
-
     const browserRes = await request.get('/cadence', {
       headers: {
         'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/135.0.0.0',

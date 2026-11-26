@@ -1,8 +1,6 @@
 import { gotoStreamedPage, trackPageErrors } from '@aklapper/tooling/playwright';
 import { expect, test } from '@playwright/test';
 
-const IS_MAINTENANCE_MODE = process.env['PORTAL_MAINTENANCE_MODE'] === 'true';
-
 async function assertNoHorizontalOverflow(page: import('@playwright/test').Page): Promise<void> {
   const metrics = await page.evaluate(() => {
     const innerScrollOffenders = Array.from(
@@ -44,7 +42,6 @@ test.describe('portal mobile TUI workspace and adaptive layout', () => {
   test('renders portrait TUI status header, 44px+ bottom dock, bottom sheets, terminal accessory bar, and overflow-free routes at 390x844 @smoke', async ({
     page,
   }) => {
-    test.skip(IS_MAINTENANCE_MODE, 'Full portal navigation is gated in maintenance mode');
     const getErrors = trackPageErrors(page);
 
     await page.setViewportSize({ width: 390, height: 844 });
@@ -117,9 +114,23 @@ test.describe('portal mobile TUI workspace and adaptive layout', () => {
     await expect(page).toHaveURL(/\/agensi$/);
     await assertNoHorizontalOverflow(page);
 
-    // Verify /changes-in-progress renders overflow-free on mobile portrait
-    await gotoStreamedPage(page, '/changes-in-progress');
+    // Verify retired /changes-in-progress returns standalone HTTP 404 overflow-free on mobile portrait
+    const notFoundRes = await page.goto('/changes-in-progress', { waitUntil: 'load' });
+    expect(notFoundRes?.status()).toBe(404);
+    await expect(page.locator('[data-error-code="ERR_NOT_FOUND"]')).toBeVisible();
+    await expect(page.locator('[data-mobile-tui-dock="true"]')).toHaveCount(0);
+    await expect(page.locator('[data-mobile-rail="true"]')).toHaveCount(0);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+      'content',
+      'noindex, nofollow',
+    );
     await assertNoHorizontalOverflow(page);
+
+    // Clicking Return Home recovers cleanly to mobile "/" workspace
+    await page.getByRole('link', { name: 'Return Home' }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByLabel('Terminal command input')).toBeVisible();
+    await expect(page.locator('[data-mobile-tui-dock="true"]')).toBeVisible();
 
     expect(getErrors()).toEqual([]);
   });
@@ -127,7 +138,6 @@ test.describe('portal mobile TUI workspace and adaptive layout', () => {
   test('renders collapsible left rail and overflow-free routes in 844x390 landscape @smoke', async ({
     page,
   }) => {
-    test.skip(IS_MAINTENANCE_MODE, 'Full portal navigation is gated in maintenance mode');
     const getErrors = trackPageErrors(page);
 
     await page.setViewportSize({ width: 844, height: 390 });
@@ -153,16 +163,18 @@ test.describe('portal mobile TUI workspace and adaptive layout', () => {
     await assertNoHorizontalOverflow(page);
     await assertNativeVerticalScroll(page);
 
-    for (const path of ['/contact', '/changes-in-progress']) {
-      await gotoStreamedPage(page, path);
-      await assertNoHorizontalOverflow(page);
-    }
+    await gotoStreamedPage(page, '/contact');
+    await assertNoHorizontalOverflow(page);
+
+    const landscapeNotFound = await page.goto('/nonexistent-route', { waitUntil: 'load' });
+    expect(landscapeNotFound?.status()).toBe(404);
+    await expect(page.locator('[data-error-code="ERR_NOT_FOUND"]')).toBeVisible();
+    await assertNoHorizontalOverflow(page);
 
     expect(getErrors()).toEqual([]);
   });
 
   test('preserves unmodified desktop workspace shell at 1280x800', async ({ page }) => {
-    test.skip(IS_MAINTENANCE_MODE, 'Full portal workspace is gated in maintenance mode');
     const getErrors = trackPageErrors(page);
 
     await page.setViewportSize({ width: 1280, height: 800 });

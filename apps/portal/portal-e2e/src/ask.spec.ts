@@ -7,7 +7,6 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { startIsolatedPortalWithoutAsk } from './ask-harness.ts';
 
-const IS_MAINTENANCE_MODE = process.env['PORTAL_MAINTENANCE_MODE'] === 'true';
 const IS_LIVE_DEPLOYMENT = Boolean(process.env['PORTAL_BASE_URL']?.trim());
 
 async function waitForAskHydrated(page: Page): Promise<void> {
@@ -18,7 +17,6 @@ test.describe('/chat end-to-end streaming assistant, general chat, JD Match, abs
   test('executes streaming multi-turn Q&A with visitor lenses, general chat, confidential abstention, docked pane parity, and structured JD Match', async ({
     page,
   }) => {
-    test.skip(IS_MAINTENANCE_MODE, 'Chat with Andrew route is gated in maintenance mode');
     const getErrors = trackPageErrors(page);
 
     await gotoStreamedPage(page, '/chat');
@@ -134,7 +132,6 @@ test.describe('/chat end-to-end streaming assistant, general chat, JD Match, abs
   test('recovers an active delayed unary JD Match turn across page reload via /api/ask/turns/:attemptId without double-billing', async ({
     browser,
   }) => {
-    test.skip(IS_MAINTENANCE_MODE, 'Chat with Andrew route is gated in maintenance mode');
     test.skip(
       IS_LIVE_DEPLOYMENT,
       'Cold-start delayed turn recovery test relies on mock upstream delay timing',
@@ -196,7 +193,6 @@ test.describe('/chat end-to-end streaming assistant, general chat, JD Match, abs
   test('fails closed with HTTP 503 error banner when AI_ASK_URL points to an unreachable port', async ({
     browser,
   }) => {
-    test.skip(IS_MAINTENANCE_MODE, 'Ask Portfolio route is gated in maintenance mode');
     test.skip(
       IS_LIVE_DEPLOYMENT,
       'Unreachable upstream port isolation runs only against local managed E2E environment',
@@ -239,7 +235,6 @@ test.describe('/chat end-to-end streaming assistant, general chat, JD Match, abs
   test('enforces 10-turn guest session quota and displays 429 error banner on 11th turn', async ({
     browser,
   }) => {
-    test.skip(IS_MAINTENANCE_MODE, 'Ask Portfolio route is gated in maintenance mode');
     test.skip(
       IS_LIVE_DEPLOYMENT,
       'Quota exhaustion check is guarded off live production deployments',

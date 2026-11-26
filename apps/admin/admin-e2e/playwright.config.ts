@@ -32,7 +32,7 @@ const baseConfig = createSsrPlaywrightConfig({
 
 const config: PlaywrightTestConfig = {
   ...baseConfig,
-  // Admin E2E mutates shared singleton Postgres rows (maintenance mode and guest quota policy)
+  // Admin E2E mutates shared singleton Postgres rows (guest quota policy)
   // across browser projects; run serially to prevent cross-project races.
   fullyParallel: false,
   workers: 1,

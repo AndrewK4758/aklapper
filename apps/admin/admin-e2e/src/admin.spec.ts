@@ -3,7 +3,6 @@ import { randomUUID } from 'node:crypto';
 import {
   assertSsrHealthz,
   gotoStreamedPage,
-  reloadStreamedPage,
   trackPageErrors,
   waitForStreamedReveal,
 } from '@aklapper/tooling/playwright';
@@ -101,7 +100,6 @@ test.describe('admin SSR end-to-end journeys', () => {
     ];
 
     let authenticator: { cdp: CDPSession; authenticatorId: string } | null = null;
-    let maintenanceToggledOn = false;
     const quotaCleanupState: { originalGuestMaxTurns: string | null } = {
       originalGuestMaxTurns: null,
     };
@@ -148,6 +146,7 @@ test.describe('admin SSR end-to-end journeys', () => {
       await page.getByRole('link', { name: 'Overview', exact: true }).click();
       await expect(page).toHaveURL(/\/$/);
       await expect(page.getByRole('heading', { name: /Admin Operations Console/i })).toBeVisible();
+      await expect(page.getByText('Portal Maintenance')).toHaveCount(0);
 
       await page.getByRole('button', { name: 'Security Settings' }).click();
       await expect(
@@ -234,21 +233,17 @@ test.describe('admin SSR end-to-end journeys', () => {
         await page.getByRole('button', { name: /portal-contact/i }).click();
         await expect(page.getByText('Contact Form Builder')).toBeVisible();
 
-        const maintSwitch = page.getByRole('switch', { name: 'Maintenance Mode' });
-        await expect(maintSwitch).toBeVisible();
-        if ((await maintSwitch.getAttribute('aria-checked')) !== 'true') {
-          await maintSwitch.click();
-          maintenanceToggledOn = true;
-          await expect(page.getByText(/Maintenance mode is now ON/i)).toBeVisible();
-          await reloadStreamedPage(page);
-          await expect(page.getByRole('switch', { name: 'Maintenance Mode' })).toHaveAttribute(
-            'aria-checked',
-            'true',
-          );
-          await page.getByRole('switch', { name: 'Maintenance Mode' }).click();
-          await expect(page.getByText(/Maintenance mode is now OFF/i)).toBeVisible();
-          maintenanceToggledOn = false;
-        }
+        // Verify retired maintenance/roadmap controls are removed while Qdrant Re-Index remains intact
+        await expect(page.getByRole('tab', { name: 'Site Content', exact: true })).toBeVisible();
+        await expect(page.getByRole('tab', { name: 'Terminal', exact: true })).toBeVisible();
+        await expect(page.getByRole('switch', { name: /Maintenance Mode/i })).toHaveCount(0);
+        await expect(
+          page.getByText(/Rebuild Progress|Roadmap Milestones|portal-maintenance/i),
+        ).toHaveCount(0);
+        await expect(page.getByRole('button', { name: 'Re-Index Qdrant Corpus' })).toBeVisible();
+
+        await page.getByRole('tab', { name: 'Terminal', exact: true }).click();
+        await expect(page.getByText(/portal-maintenance|Roadmap Milestones/i)).toHaveCount(0);
 
         await page.getByRole('tab', { name: /Agensi & Presets/i }).click();
         await expect(page.getByRole('heading', { name: /Creator Agensi Cache/i })).toBeVisible();
@@ -332,10 +327,13 @@ test.describe('admin SSR end-to-end journeys', () => {
 
         await page.getByRole('link', { name: 'Ops', exact: true }).click();
         await expect(page).toHaveURL(/\/ops$/);
-        await expect(page.getByText('Cloud Run / Docker Runtime Health')).toBeVisible();
+        const runtimeHealthRegion = page.getByRole('region', {
+          name: 'Cloud Run / Docker Runtime Health',
+        });
+        await expect(runtimeHealthRegion).toBeVisible();
         await expect(page.getByRole('button', { name: /Wake/i })).toHaveCount(0);
         await page.getByRole('button', { name: 'Refresh Health' }).click();
-        await expect(page.getByText(/Cloud Run|Docker/i).first()).toBeVisible();
+        await expect(runtimeHealthRegion.getByText(/Cloud Run|Docker/i).first()).toBeVisible();
 
         // Sign out and sign back in via discoverable passkey (blank handle)
         await page.getByRole('button', { name: 'Sign Out' }).click();
@@ -352,17 +350,6 @@ test.describe('admin SSR end-to-end journeys', () => {
 
       expect(getErrors()).toEqual([]);
     } finally {
-      if (maintenanceToggledOn) {
-        try {
-          await gotoStreamedPage(page, '/cms');
-          const sw = page.getByRole('switch', { name: 'Maintenance Mode' });
-          if ((await sw.getAttribute('aria-checked')) === 'true') {
-            await sw.click();
-          }
-        } catch {
-          // best-effort cleanup
-        }
-      }
       if (quotaCleanupState.originalGuestMaxTurns !== null) {
         try {
           await gotoStreamedPage(page, '/quotas');

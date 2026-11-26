@@ -223,7 +223,6 @@ export async function startIsolatedPortalWithoutAsk(): Promise<RunningNodeApi> {
       INTERNAL_AUTH_SECRET: secret,
       AI_ASK_URL: `http://127.0.0.1:${closedPort}`,
       CADENCE_DEMO_URL: '',
-      PORTAL_MAINTENANCE_MODE: process.env['PORTAL_MAINTENANCE_MODE'] ?? 'false',
     },
     stdio: 'ignore',
   });
