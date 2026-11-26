@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import {
@@ -1136,6 +1136,366 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       await resetRateLimitBucket(db, `auth:login:handle:${handle}`);
       await resetRateLimitBucket(db, `auth:totp:ip:${ipHash}`);
       await resetRateLimitBucket(db, `auth:totp:user:${bffUser.id}`);
+    }
+  });
+
+  it('applies, rolls back, and reapplies reversible 0009 migration while preserving custom CMS edits and legacy maintenance rows', async () => {
+    const drizzleDir = resolve(import.meta.dirname, '../drizzle');
+    const journalPath = resolve(drizzleDir, 'meta/_journal.json');
+    const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as {
+      entries: Array<{ idx: number; tag: string }>;
+    };
+
+    expect(
+      journal.entries.some(e => e.idx === 9 && e.tag === '0009_retire_changes_in_progress_links'),
+    ).toBe(true);
+    expect(journal.entries.some(e => e.tag.startsWith('0010_'))).toBe(false);
+    expect(readdirSync(drizzleDir).some(name => name.startsWith('0010_'))).toBe(false);
+
+    const upPath = resolve(drizzleDir, '0009_retire_changes_in_progress_links.sql');
+    const downPath = resolve(drizzleDir, '0009_retire_changes_in_progress_links.down.sql');
+    expect(existsSync(upPath)).toBe(true);
+    expect(existsSync(downPath)).toBe(true);
+    const up0009 = readFileSync(upPath, 'utf8');
+    const down0009 = readFileSync(downPath, 'utf8');
+
+    const snapshotHomeContent = await pool.query<{ metadata_json: Record<string, unknown> }>(
+      `SELECT metadata_json FROM site_content WHERE key = 'portal-home'`,
+    );
+    const snapshotChromeContent = await pool.query<{ metadata_json: Record<string, unknown> }>(
+      `SELECT metadata_json FROM site_content WHERE key = 'portal-chrome'`,
+    );
+    const snapshotDirEntries = await pool.query<{
+      name: string;
+      description: string;
+      sort_order: number;
+      enabled: boolean;
+    }>(
+      `SELECT name, description, sort_order, enabled
+       FROM terminal_directory_entries
+       WHERE profile_slug = 'portal-home'
+       ORDER BY sort_order, id`,
+    );
+    const snapshotCommands = await pool.query<{
+      name: string;
+      description: string;
+      allowed_routes: string[];
+      error_template: string | null;
+      output: string;
+    }>(
+      `SELECT name, description, allowed_routes, error_template, output
+       FROM terminal_commands
+       WHERE profile_slug = 'portal-home' AND name IN ('cd', 'help', 'ls')`,
+    );
+    const snapshotInitialLs = await pool.query<{ id: number; output: string }>(
+      `SELECT id, output
+       FROM terminal_initial_entries
+       WHERE profile_slug = 'portal-home' AND command = 'ls'`,
+    );
+
+    const originalHomeMeta = snapshotHomeContent.rows[0]?.metadata_json;
+    const originalChromeMeta = snapshotChromeContent.rows[0]?.metadata_json;
+    expect(originalHomeMeta).toBeDefined();
+    expect(originalChromeMeta).toBeDefined();
+
+    const hadMaintenanceContent =
+      (await pool.query(`SELECT 1 FROM site_content WHERE key = 'portal-maintenance'`)).rows
+        .length > 0;
+    const hadMaintenanceProfile =
+      (await pool.query(`SELECT 1 FROM terminal_profiles WHERE slug = 'portal-maintenance'`)).rows
+        .length > 0;
+    const hadRoadmapRows =
+      (await pool.query(`SELECT 1 FROM roadmap_milestones LIMIT 1`)).rows.length > 0;
+    const sentinelMilestoneSlug = 'sentinel-legacy-compat-check';
+
+    try {
+      // Ensure pre-migration baseline rows exist even if seeds later remove changes-in-progress.
+      await pool.query(down0009);
+
+      if (!hadMaintenanceContent) {
+        await pool.query(
+          `INSERT INTO site_content (key, markdown_body, metadata_json)
+           VALUES ('portal-maintenance', 'Legacy maintenance sentinel', '{"heading":"Maintenance"}'::jsonb)
+           ON CONFLICT (key) DO NOTHING`,
+        );
+      }
+      if (!hadMaintenanceProfile) {
+        await pool.query(
+          `INSERT INTO terminal_profiles (
+             slug, banner_title, banner_meta, os_label, directory, vcs_branch,
+             vcs_state, context_label, placeholder, quick_commands
+           ) VALUES (
+             'portal-maintenance', 'Maintenance', 'meta', '⚡', '~/site', 'main',
+             'clean', 'visitor@andrew-k.us', 'help', ARRAY['help']
+           ) ON CONFLICT (slug) DO NOTHING`,
+        );
+      }
+      if (!hadRoadmapRows) {
+        await pool.query(
+          `INSERT INTO roadmap_milestones (slug, status, label, sort_order, enabled)
+           VALUES ($1, 'active', 'Legacy milestone sentinel', 99, true)
+           ON CONFLICT (slug) DO NOTHING`,
+          [sentinelMilestoneSlug],
+        );
+      }
+      await pool.query(
+        `UPDATE site_content
+         SET metadata_json = jsonb_set(metadata_json, '{maintenanceModeDefault}', 'false'::jsonb, true)
+         WHERE key = 'portal-chrome'`,
+      );
+
+      // Inject custom operator heading on portal-home to verify surgical JSONB preservation.
+      const customHeading = 'Custom Operator Portfolio Heading';
+      await pool.query(
+        `UPDATE site_content
+         SET metadata_json = jsonb_set(metadata_json, '{heading}', to_jsonb($1::text), true)
+         WHERE key = 'portal-home'`,
+        [customHeading],
+      );
+
+      // 1. Apply 0009 forward twice (verifies both forward transformation and idempotency).
+      await pool.query(up0009);
+      await pool.query(up0009);
+
+      const dirAfterUp = await pool.query<{ name: string }>(
+        `SELECT name FROM terminal_directory_entries
+         WHERE profile_slug = 'portal-home'
+         ORDER BY sort_order, id`,
+      );
+      expect(dirAfterUp.rows.map(r => r.name)).not.toContain('changes-in-progress');
+      expect(dirAfterUp.rows.map(r => r.name)).toEqual([
+        'tui',
+        'cadence',
+        'chat',
+        'agensi',
+        'contact',
+      ]);
+
+      const homeAfterUp = await pool.query<{
+        heading: string;
+        actions: Array<{ to: string; label: string; variant: string }>;
+      }>(
+        `SELECT
+           metadata_json->>'heading' AS heading,
+           metadata_json->'actions' AS actions
+         FROM site_content
+         WHERE key = 'portal-home'`,
+      );
+      expect(homeAfterUp.rows[0]?.heading).toBe(customHeading);
+      expect(homeAfterUp.rows[0]?.actions.map(a => a.to)).toEqual([
+        '/cadence',
+        '/chat',
+        '/agensi',
+        '/contact',
+      ]);
+
+      const cmdsAfterUp = await pool.query<{
+        name: string;
+        description: string;
+        allowed_routes: string[];
+        error_template: string | null;
+        output: string;
+      }>(
+        `SELECT name, description, allowed_routes, error_template, output
+         FROM terminal_commands
+         WHERE profile_slug = 'portal-home' AND name IN ('cd', 'help', 'ls')`,
+      );
+      const cdAfterUp = cmdsAfterUp.rows.find(r => r.name === 'cd');
+      const helpAfterUp = cmdsAfterUp.rows.find(r => r.name === 'help');
+      const lsCmdAfterUp = cmdsAfterUp.rows.find(r => r.name === 'ls');
+      expect(cdAfterUp?.allowed_routes).toEqual(['cadence', 'chat', 'agensi', 'contact']);
+      expect(cdAfterUp?.description).toContain(', or /contact');
+      expect(cdAfterUp?.description).not.toContain('changes-in-progress');
+      expect(cdAfterUp?.error_template).not.toContain('changes-in-progress');
+      expect(cdAfterUp?.error_template).toMatch(/cd contact$/);
+      expect(helpAfterUp?.output).toContain(', or /contact');
+      expect(helpAfterUp?.output).not.toContain('changes-in-progress');
+      expect(lsCmdAfterUp?.output).not.toContain('changes-in-progress');
+      expect(lsCmdAfterUp?.output).toContain('contact');
+      expect(lsCmdAfterUp?.output.endsWith('\n')).toBe(false);
+
+      const initialLsAfterUp = await pool.query<{ output: string }>(
+        `SELECT output
+         FROM terminal_initial_entries
+         WHERE profile_slug = 'portal-home' AND command = 'ls'`,
+      );
+      expect(initialLsAfterUp.rows[0]?.output).not.toContain('changes-in-progress');
+      expect(initialLsAfterUp.rows[0]?.output).toContain('contact');
+      expect(initialLsAfterUp.rows[0]?.output.endsWith('\n')).toBe(false);
+
+      // Verify legacy maintenance tables/rows remain intact for concurrent prior revisions.
+      const roadmapCount = await pool.query<{ cnt: number }>(
+        `SELECT COUNT(*)::int AS cnt FROM roadmap_milestones`,
+      );
+      expect(Number(roadmapCount.rows[0]?.cnt)).toBeGreaterThanOrEqual(1);
+      const maintenanceSite = await pool.query(
+        `SELECT key FROM site_content WHERE key = 'portal-maintenance'`,
+      );
+      expect(maintenanceSite.rows).toHaveLength(1);
+      const maintenanceProfile = await pool.query(
+        `SELECT slug FROM terminal_profiles WHERE slug = 'portal-maintenance'`,
+      );
+      expect(maintenanceProfile.rows).toHaveLength(1);
+      const chromeLegacyFlag = await pool.query<{ has_flag: boolean }>(
+        `SELECT (metadata_json ? 'maintenanceModeDefault') AS has_flag
+         FROM site_content
+         WHERE key = 'portal-chrome'`,
+      );
+      expect(chromeLegacyFlag.rows[0]?.has_flag).toBe(true);
+
+      // Verify actions.min(1) guard refuses to empty an actions array containing only /changes-in-progress.
+      const savedPostUpActions = homeAfterUp.rows[0]?.actions ?? [];
+      await pool.query(
+        `UPDATE site_content
+         SET metadata_json = jsonb_set(
+           metadata_json,
+           '{actions}',
+           '[{"label":"Maintenance Preview → /changes-in-progress","to":"/changes-in-progress","variant":"default"}]'::jsonb,
+           false
+         )
+         WHERE key = 'portal-home'`,
+      );
+      await pool.query(up0009);
+      const guardedActions = await pool.query<{ actions: Array<{ to: string }> }>(
+        `SELECT metadata_json->'actions' AS actions FROM site_content WHERE key = 'portal-home'`,
+      );
+      expect(guardedActions.rows[0]?.actions).toHaveLength(1);
+      expect(guardedActions.rows[0]?.actions[0]?.to).toBe('/changes-in-progress');
+      await pool.query(
+        `UPDATE site_content
+         SET metadata_json = jsonb_set(metadata_json, '{actions}', $1::jsonb, false)
+         WHERE key = 'portal-home'`,
+        [JSON.stringify(savedPostUpActions)],
+      );
+
+      // 2. Roll back 0009 twice (verifies complete reversibility and rollback idempotency).
+      await pool.query(down0009);
+      await pool.query(down0009);
+
+      const dirAfterDown = await pool.query<{ name: string }>(
+        `SELECT name FROM terminal_directory_entries
+         WHERE profile_slug = 'portal-home' AND name = 'changes-in-progress'`,
+      );
+      expect(dirAfterDown.rows).toHaveLength(1);
+
+      const homeAfterDown = await pool.query<{
+        heading: string;
+        actions: Array<{ to: string }>;
+      }>(
+        `SELECT
+           metadata_json->>'heading' AS heading,
+           metadata_json->'actions' AS actions
+         FROM site_content
+         WHERE key = 'portal-home'`,
+      );
+      expect(homeAfterDown.rows[0]?.heading).toBe(customHeading);
+      expect(homeAfterDown.rows[0]?.actions.map(a => a.to)).toEqual([
+        '/cadence',
+        '/chat',
+        '/agensi',
+        '/contact',
+        '/changes-in-progress',
+      ]);
+
+      const cmdsAfterDown = await pool.query<{
+        name: string;
+        description: string;
+        allowed_routes: string[];
+        error_template: string | null;
+        output: string;
+      }>(
+        `SELECT name, description, allowed_routes, error_template, output
+         FROM terminal_commands
+         WHERE profile_slug = 'portal-home' AND name IN ('cd', 'help', 'ls')`,
+      );
+      const cdAfterDown = cmdsAfterDown.rows.find(r => r.name === 'cd');
+      const helpAfterDown = cmdsAfterDown.rows.find(r => r.name === 'help');
+      const lsCmdAfterDown = cmdsAfterDown.rows.find(r => r.name === 'ls');
+      expect(cdAfterDown?.allowed_routes).toEqual([
+        'cadence',
+        'chat',
+        'agensi',
+        'contact',
+        'changes-in-progress',
+      ]);
+      expect(cdAfterDown?.description).toContain(', /contact, or /changes-in-progress');
+      expect(cdAfterDown?.error_template).toContain(' | cd changes-in-progress');
+      expect(helpAfterDown?.output).toContain(', /contact, or /changes-in-progress');
+      expect(lsCmdAfterDown?.output.match(/changes-in-progress/g)).toHaveLength(1);
+
+      const initialLsAfterDown = await pool.query<{ output: string }>(
+        `SELECT output
+         FROM terminal_initial_entries
+         WHERE profile_slug = 'portal-home' AND command = 'ls'`,
+      );
+      expect(initialLsAfterDown.rows[0]?.output.match(/changes-in-progress/g)).toHaveLength(1);
+
+      // 3. Reapply 0009 forward and verify clean retirement persists.
+      await pool.query(up0009);
+
+      const dirAfterReapply = await pool.query<{ name: string }>(
+        `SELECT name FROM terminal_directory_entries
+         WHERE profile_slug = 'portal-home' AND name = 'changes-in-progress'`,
+      );
+      expect(dirAfterReapply.rows).toHaveLength(0);
+
+      const homeAfterReapply = await pool.query<{
+        heading: string;
+        actions: Array<{ to: string }>;
+      }>(
+        `SELECT
+           metadata_json->>'heading' AS heading,
+           metadata_json->'actions' AS actions
+         FROM site_content
+         WHERE key = 'portal-home'`,
+      );
+      expect(homeAfterReapply.rows[0]?.heading).toBe(customHeading);
+      expect(homeAfterReapply.rows[0]?.actions.map(a => a.to)).toEqual([
+        '/cadence',
+        '/chat',
+        '/agensi',
+        '/contact',
+      ]);
+    } finally {
+      await pool.query(
+        `UPDATE site_content SET metadata_json = $1::jsonb WHERE key = 'portal-home'`,
+        [JSON.stringify(originalHomeMeta)],
+      );
+      await pool.query(
+        `UPDATE site_content SET metadata_json = $1::jsonb WHERE key = 'portal-chrome'`,
+        [JSON.stringify(originalChromeMeta)],
+      );
+      await pool.query(`DELETE FROM terminal_directory_entries WHERE profile_slug = 'portal-home'`);
+      for (const entry of snapshotDirEntries.rows) {
+        await pool.query(
+          `INSERT INTO terminal_directory_entries (profile_slug, name, description, sort_order, enabled)
+           VALUES ('portal-home', $1, $2, $3, $4)`,
+          [entry.name, entry.description, entry.sort_order, entry.enabled],
+        );
+      }
+      for (const cmd of snapshotCommands.rows) {
+        await pool.query(
+          `UPDATE terminal_commands
+           SET description = $1, allowed_routes = $2, error_template = $3, output = $4
+           WHERE profile_slug = 'portal-home' AND name = $5`,
+          [cmd.description, cmd.allowed_routes, cmd.error_template, cmd.output, cmd.name],
+        );
+      }
+      for (const entry of snapshotInitialLs.rows) {
+        await pool.query(`UPDATE terminal_initial_entries SET output = $1 WHERE id = $2`, [
+          entry.output,
+          entry.id,
+        ]);
+      }
+      if (!hadMaintenanceContent) {
+        await pool.query(`DELETE FROM site_content WHERE key = 'portal-maintenance'`);
+      }
+      if (!hadMaintenanceProfile) {
+        await pool.query(`DELETE FROM terminal_profiles WHERE slug = 'portal-maintenance'`);
+      }
+      if (!hadRoadmapRows) {
+        await pool.query(`DELETE FROM roadmap_milestones WHERE slug = $1`, [sentinelMilestoneSlug]);
+      }
     }
   });
 });
