@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -24,10 +25,13 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 	}
 	t.Cleanup(store.Close)
 
-	// Seed rows across site_content, agensi_skills, and roadmap_milestones cleanly for live corpus queries
+	// Seed active and dormant rows across site_content, agensi_skills, and roadmap_milestones
+	// to verify LoadCorpusDocs includes active rows while excluding dormant maintenance/roadmap rows.
 	if _, err := store.pool.Exec(ctx, `
 		INSERT INTO site_content (key, markdown_body, metadata_json)
-		VALUES ('test-site-corpus', 'Streaming SSR and Go microservices corpus text.', '{}'::jsonb)
+		VALUES
+			('test-site-corpus', 'Streaming SSR and Go microservices corpus text.', '{}'::jsonb),
+			('portal-maintenance', 'Dormant maintenance body excluded from RAG corpus.', '{}'::jsonb)
 		ON CONFLICT (key) DO UPDATE SET markdown_body = EXCLUDED.markdown_body;
 		INSERT INTO agensi_skills (slug, name, summary, tags, url, sort_order, creator_handle, is_published, source)
 		VALUES
@@ -40,14 +44,14 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 			is_published = EXCLUDED.is_published,
 			source = EXCLUDED.source;
 		INSERT INTO roadmap_milestones (slug, status, label, sort_order, enabled)
-		VALUES ('test-milestone-pg', 'done', 'PG19 Vector Pipeline', 999, true)
+		VALUES ('test-milestone-pg', 'done', 'Dormant Milestone Excluded From Corpus', 999, true)
 		ON CONFLICT (slug) DO UPDATE SET label = EXCLUDED.label;
 	`); err != nil {
 		t.Fatalf("seed corpus rows failed: %v", err)
 	}
 	t.Cleanup(func() {
 		_, _ = store.pool.Exec(context.Background(), `
-			DELETE FROM site_content WHERE key = 'test-site-corpus';
+			DELETE FROM site_content WHERE key IN ('test-site-corpus', 'portal-maintenance');
 			DELETE FROM agensi_skills WHERE slug IN ('test-skill-rag', 'test-skill-foreign', 'test-skill-unpublished');
 			DELETE FROM roadmap_milestones WHERE slug = 'test-milestone-pg';
 		`)
@@ -57,12 +61,21 @@ func TestPostgresLiveQuotaTurnsAndLoadCorpusDocs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadCorpusDocs failed: %v", err)
 	}
-	if len(docs) < 7 {
-		t.Fatalf("expected curated + seeded site/skill/milestone docs (>=7), got %d", len(docs))
+	if len(docs) < 6 {
+		t.Fatalf("expected curated + seeded site/skill docs (>=6), got %d", len(docs))
 	}
 	seenIDs := make(map[string]bool, len(docs))
 	for _, doc := range docs {
 		seenIDs[doc.ID] = true
+		if strings.HasPrefix(doc.ID, "milestone:") {
+			t.Fatalf("expected zero milestone:* docs in corpus, found %q", doc.ID)
+		}
+	}
+	if !seenIDs["site:test-site-corpus"] {
+		t.Fatalf("expected active site_content doc site:test-site-corpus in corpus, got IDs=%v", seenIDs)
+	}
+	if seenIDs["site:portal-maintenance"] {
+		t.Fatalf("expected dormant site:portal-maintenance excluded from corpus, got IDs=%v", seenIDs)
 	}
 	if !seenIDs["agensi:test-skill-rag"] {
 		t.Fatalf("expected published creator skill agensi:test-skill-rag in corpus, got IDs=%v", seenIDs)

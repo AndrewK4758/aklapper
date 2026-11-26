@@ -16,9 +16,11 @@ type stubCorpusQuerier struct {
 	queryErr error
 	rowsErr  error
 	scanErr  error
+	queries  []string
 }
 
-func (q *stubCorpusQuerier) Query(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+func (q *stubCorpusQuerier) Query(_ context.Context, sql string, _ ...any) (pgx.Rows, error) {
+	q.queries = append(q.queries, sql)
 	if q.queryErr != nil {
 		return nil, q.queryErr
 	}
@@ -386,6 +388,27 @@ func TestOpenBestEffortAndLoadCorpusErrorPropagation(t *testing.T) {
 	}
 	if _, err := loadCorpusDocsFromQuerier(context.Background(), &stubCorpusQuerier{rowsErr: errors.New("boom rows")}, "aklapper", CuratedPortfolioDocs()); err == nil {
 		t.Fatal("expected rows.Err() to propagate")
+	}
+
+	recorder := &stubCorpusQuerier{}
+	if _, err := loadCorpusDocsFromQuerier(context.Background(), recorder, "aklapper", CuratedPortfolioDocs()); err != nil {
+		t.Fatalf("unexpected loadCorpusDocsFromQuerier error: %v", err)
+	}
+	foundSiteContentFilter := false
+	for _, sql := range recorder.queries {
+		lower := strings.ToLower(sql)
+		if strings.Contains(lower, "roadmap_milestones") {
+			t.Fatalf("expected loadCorpusDocsFromQuerier not to query retired roadmap_milestones, got SQL: %s", sql)
+		}
+		if strings.Contains(lower, "from site_content") {
+			if !strings.Contains(lower, "key <> 'portal-maintenance'") && !strings.Contains(lower, "key != 'portal-maintenance'") {
+				t.Fatalf("expected site_content corpus query to exclude portal-maintenance, got SQL: %s", sql)
+			}
+			foundSiteContentFilter = true
+		}
+	}
+	if !foundSiteContentFilter {
+		t.Fatalf("expected site_content corpus query to run, recorded queries=%v", recorder.queries)
 	}
 }
 
