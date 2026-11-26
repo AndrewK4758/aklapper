@@ -1,3 +1,4 @@
+import { isValidRootRelativePortraitSrc } from '@aklapper/core';
 import { type CSSProperties, useState } from 'react';
 
 import defaultPortraitSrc from '../assets/andrew-klapper-portrait.webp';
@@ -40,7 +41,12 @@ export function TerminalPortrait({
   showScanlines = true,
   className,
 }: TerminalPortraitProps) {
-  const resolvedSrc = !src || src === DEFAULT_PORTRAIT_PATH ? DEFAULT_PORTRAIT_SRC : src;
+  const resolvedSrc =
+    !src || src === DEFAULT_PORTRAIT_PATH
+      ? DEFAULT_PORTRAIT_SRC
+      : isValidRootRelativePortraitSrc(src)
+        ? src
+        : '';
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const hasLoadError = !resolvedSrc || failedSrc === resolvedSrc;
 

@@ -173,6 +173,16 @@ describe('@aklapper/ui TerminalPortrait, PortalHomeTerminalIntro, and terminal c
       );
       expect(container.querySelector('[data-portrait-fallback="true"]')).toBeNull();
       expect(container.querySelector('img')?.getAttribute('src')).toBe(DEFAULT_PORTRAIT_SRC);
+
+      // Hostile external or script custom src fails closed to monogram fallback with zero <img> request
+      rerender(
+        <TerminalPortrait
+          src='https://evil.example.invalid/tracker.webp'
+          alt='Greyscale terminal portrait of Andrew Klapper'
+        />,
+      );
+      expect(container.querySelector('img')).toBeNull();
+      expect(container.querySelector('[data-portrait-fallback="true"]')).not.toBeNull();
     } finally {
       warnSpy.mockRestore();
     }
