@@ -235,6 +235,8 @@ describe('PortalRoot', () => {
 
   it('matches navigable route paths case-insensitively and revalidates across navigable/not-found boundaries', () => {
     expect(isNavigablePath('/')).toBe(true);
+    expect(isNavigablePath('/about')).toBe(true);
+    expect(isNavigablePath('/About/')).toBe(true);
     expect(isNavigablePath('/Contact')).toBe(true);
     expect(isNavigablePath('/CADENCE/')).toBe(true);
     expect(isNavigablePath('/changes-in-progress')).toBe(false);

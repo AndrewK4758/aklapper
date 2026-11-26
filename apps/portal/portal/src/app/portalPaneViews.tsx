@@ -22,6 +22,9 @@ import {
 
 export { isPortalPaneRoute, PORTAL_PANE_ROUTES, type PortalPaneRoute, type PortalPaneViewId };
 
+const LazyAboutPaneView = lazyWithRetry(() =>
+  import('./features/AboutFeatureView').then(mod => ({ default: mod.AboutPaneView })),
+);
 const LazyAgensiPaneView = lazyWithRetry(() =>
   import('./features/AgensiFeatureView').then(mod => ({ default: mod.AgensiPaneView })),
 );
@@ -118,6 +121,18 @@ export function renderPortalPaneView({ ctx, homeContent }: RenderPortalPaneViewO
         />
       ) : (
         <UnknownPaneView ctx={ctx} />
+      );
+    case '/about':
+      return (
+        <LazyPaneSlot
+          key={`${ctx.paneId}:/about`}
+          routePath='/about'
+          title='About Andrew Klapper'
+          loadingLabel='Loading resume & services guide...'
+          onExit={ctx.exitTui}
+        >
+          <LazyAboutPaneView ctx={ctx} />
+        </LazyPaneSlot>
       );
     case '/agensi':
       return (

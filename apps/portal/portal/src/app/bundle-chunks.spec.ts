@@ -50,6 +50,7 @@ describe.runIf(existsSync(ASSETS_DIR))('Portal production client chunk isolation
     expect(entryFiles.length).toBeGreaterThanOrEqual(3);
 
     for (const forbiddenChunk of [
+      /^AboutFeatureView-/,
       /^AgensiFeatureView-/,
       /^ChatFeatureView-/,
       /^CadenceFeatureView-/,
@@ -64,6 +65,7 @@ describe.runIf(existsSync(ASSETS_DIR))('Portal production client chunk isolation
       'cadence-preset-select',
       'agensi-catalog-meta',
       'useCadenceRunController',
+      'PortalAboutPage',
       'PortalAgensiPage',
       'PortalAskPage',
       'PortalCadencePage',
@@ -72,6 +74,7 @@ describe.runIf(existsSync(ASSETS_DIR))('Portal production client chunk isolation
       expect(combinedSource).not.toContain(forbiddenMarker);
     }
 
+    expect(allJsFiles.some(file => file.startsWith('AboutFeatureView-'))).toBe(true);
     expect(allJsFiles.some(file => file.startsWith('AgensiFeatureView-'))).toBe(true);
     expect(allJsFiles.some(file => file.startsWith('ChatFeatureView-'))).toBe(true);
     expect(allJsFiles.some(file => file.startsWith('CadenceFeatureView-'))).toBe(true);

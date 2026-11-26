@@ -119,16 +119,16 @@ export function PortalMobileWorkspaceHost({
     ),
   }));
 
-  const agensiActive = isPortalNavActive(pathname, href('/agensi'));
-  const agensiLink = (
+  const aboutActive = isPortalNavActive(pathname, href('/about'));
+  const aboutLink = (
     <Link
-      to={href('/agensi')}
+      to={href('/about')}
       prefetch='intent'
       className={styles.mobileSecondaryLink}
-      data-active={agensiActive ? 'true' : 'false'}
-      aria-current={agensiActive ? 'page' : undefined}
+      data-active={aboutActive ? 'true' : 'false'}
+      aria-current={aboutActive ? 'page' : undefined}
     >
-      Agensi
+      About
     </Link>
   );
 
@@ -160,7 +160,7 @@ export function PortalMobileWorkspaceHost({
       onExitPane={exitPane}
       overflowItems={
         <>
-          {agensiLink}
+          {aboutLink}
           {chrome.brandContactEmail ? (
             <Link to={href('/contact')} prefetch='intent' className={styles.mobileSecondaryLink}>
               {chrome.brandContactEmail}
@@ -180,10 +180,10 @@ export function PortalMobileWorkspaceHost({
             }}
           />
         ) : (
-          agensiLink
+          aboutLink
         )
       }
-      railFooterActions={agensiLink}
+      railFooterActions={aboutLink}
       renderStackedPane={viewId =>
         renderPortalPaneView({
           ctx: {

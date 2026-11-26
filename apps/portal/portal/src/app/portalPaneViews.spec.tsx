@@ -3,6 +3,7 @@ import {
   type CadenceRunResult,
   CONTACT_FORM_DEFINITION,
   type ContactActionResult,
+  type PortalAboutLoaderData,
   type PortalAgensiLoaderData,
   PortalAskContentSchema,
   type PortalAskLoaderData,
@@ -16,6 +17,7 @@ import {
   type StreamResult,
   type TerminalProfileData,
 } from '@aklapper/core';
+import { getPrerenderPortalAboutData } from '@aklapper/db';
 import { usePaneNavigation, ViewportProvider } from '@aklapper/ui';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import {
@@ -37,6 +39,7 @@ import { type StreamLoaderEnvelope } from './pane-loader';
 import { runPaneSafeLoader } from './pane-loader.server';
 import { renderPortalPaneView } from './portalPaneViews';
 import PortalRoot, { type PortalRootStreamData } from './root';
+import PortalAboutRoute from './routes/about';
 import PortalAgensiRoute from './routes/agensi';
 import PortalCadenceRoute from './routes/cadence';
 import PortalGreeterRoute from './routes/home';
@@ -144,6 +147,20 @@ function PortalHomeBridge() {
   const matches = useMatches();
   return (
     <PortalGreeterRoute
+      loaderData={loaderData}
+      params={params}
+      matches={matches as never}
+      actionData={undefined}
+    />
+  );
+}
+
+function PortalAboutBridge() {
+  const loaderData = useLoaderData<StreamLoaderEnvelope<PortalAboutLoaderData>>();
+  const params = useParams();
+  const matches = useMatches();
+  return (
+    <PortalAboutRoute
       loaderData={loaderData}
       params={params}
       matches={matches as never}
@@ -263,6 +280,16 @@ const TERMINAL: TerminalProfileData = {
       allowedRoutes: [],
       errorTemplate: null,
       sortOrder: 5,
+    },
+    {
+      name: 'about',
+      description: 'open about resume & services guide',
+      kind: 'navigate',
+      output: 'opening /about ...',
+      targetRoute: '/about',
+      allowedRoutes: [],
+      errorTemplate: null,
+      sortOrder: 6,
     },
   ],
 };
@@ -2089,5 +2116,112 @@ describe('Portal in-pane route adapters & deep-links', () => {
     const errorBanner = await screen.findByTestId('ask-error-banner');
     expect(errorBanner.textContent).toContain('ERR_STREAM_ABORTED');
     expect((screen.getByTestId('ask-jd-submit') as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('supports /about primary deep-link, Open Pane split/tab docking, Services Guide pane link isolation, and HTTP 503 Retry recovery', async () => {
+    const aboutData = getPrerenderPortalAboutData();
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    let aboutFetchAttempts = 0;
+
+    installTestPaneTransport({
+      loaders: {
+        '/about': request =>
+          runPaneSafeLoader<PortalAboutLoaderData>(request, async () => {
+            aboutFetchAttempts += 1;
+            if (aboutFetchAttempts === 1) {
+              throw new Response('upstream unavailable', { status: 503 });
+            }
+            return aboutData;
+          }),
+        '/agensi': () => streamOk(AGENSI_DATA),
+      },
+    });
+
+    const router = createMemoryRouter(
+      [
+        {
+          id: 'root',
+          path: '/',
+          loader: () =>
+            makeRootStreamData({
+              chrome: CHROME,
+              terminal: TERMINAL,
+              homeContent: HOME_CONTENT,
+            }),
+          Component: PortalRootBridge,
+          children: [
+            {
+              index: true,
+              loader: () =>
+                streamOk<PortalHomeLoaderData>({
+                  content: HOME_CONTENT,
+                  terminal: TERMINAL,
+                  contactForm: CONTACT_FORM_DEFINITION,
+                }),
+              Component: PortalHomeBridge,
+            },
+            {
+              path: 'about',
+              loader: () => streamOk(aboutData),
+              Component: PortalAboutBridge,
+            },
+            {
+              path: 'agensi',
+              loader: () => streamOk(AGENSI_DATA),
+              Component: PortalAgensiBridge,
+            },
+          ],
+        },
+      ],
+      { initialEntries: ['/about'] },
+    );
+
+    try {
+      const { container } = render(<RouterProvider router={router} />);
+
+      // 1. Primary /about route renders and clicking a Services Guide link updates the browser URL
+      expect(await screen.findByRole('heading', { name: 'Andrew Klapper' })).toBeTruthy();
+      expect(
+        screen.getByRole('link', { name: 'About' }).getAttribute('aria-current'),
+      ).toBe('page');
+      fireEvent.click(screen.getByTestId('about-service-link-agensi'));
+      await waitFor(() => {
+        expect(router.state.location.pathname).toBe('/agensi');
+      });
+
+      // 2. Return to "/" and open /about in secondary split via terminal command -> HTTP 503 isolated -> Retry recovers
+      await act(async () => {
+        await router.navigate('/');
+      });
+      const input = (await screen.findByLabelText('Terminal command input')) as HTMLInputElement;
+      fireEvent.change(input, { target: { value: 'about --split' } });
+      fireEvent.submit(input.closest('form') as HTMLFormElement);
+
+      expect(await screen.findByRole('alert')).toBeTruthy();
+      expect(container.querySelector('[data-pane-count="2"]')).toBeTruthy();
+      expect(router.state.location.pathname).toBe('/');
+      expect(
+        errorSpy.mock.calls.some(args =>
+          String(args[0]).includes('portal.pane_nav.fetcher_load_failed'),
+        ),
+      ).toBe(true);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+      expect(await screen.findByRole('heading', { name: 'Andrew Klapper' })).toBeTruthy();
+
+      // 3. Clicking Agensi service link INSIDE secondary split pane navigates in-pane while browser URL stays "/"
+      fireEvent.click(screen.getByTestId('about-service-link-agensi'));
+      expect(await screen.findByText('Commercial AI skills.')).toBeTruthy();
+      expect(router.state.location.pathname).toBe('/');
+
+      // 4. Open Pane -> About (Tab) opens /about in a new tab while browser URL stays "/"
+      fireEvent.click(screen.getByRole('button', { name: 'Open Pane' }));
+      fireEvent.click(await screen.findByRole('menuitem', { name: 'About (Tab)' }));
+      expect(await screen.findByRole('heading', { name: 'Andrew Klapper' })).toBeTruthy();
+      expect(container.querySelector('[data-tab-count="2"]')).toBeTruthy();
+      expect(router.state.location.pathname).toBe('/');
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 });

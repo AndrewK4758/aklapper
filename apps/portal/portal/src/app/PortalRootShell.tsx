@@ -29,6 +29,7 @@ function getPortalPaneTitle(pathname: string): string {
 }
 
 const PORTAL_NAV_ITEMS = [
+  { to: href('/about'), label: 'About' },
   { to: href('/cadence'), label: 'CADENCE' },
   { to: href('/chat'), label: 'Chat' },
   { to: href('/agensi'), label: 'Agensi' },
@@ -41,6 +42,7 @@ function isPortalNavItemActive(pathname: string, to: string): boolean {
 }
 
 const PANE_LAUNCHER_ITEMS = [
+  { label: 'About', viewId: '/about' },
   { label: 'CADENCE', viewId: '/cadence' },
   { label: 'Chat', viewId: '/chat' },
   { label: 'Agensi', viewId: '/agensi' },
