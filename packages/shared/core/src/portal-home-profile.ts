@@ -2,14 +2,46 @@ import { z } from 'zod';
 
 export const DEFAULT_PORTAL_HOME_PORTRAIT_PATH = '/images/andrew-klapper-portrait.webp';
 
+const PORTRAIT_URL_BASE = 'https://portrait.local';
+// oxlint-disable-next-line no-control-regex -- reject ASCII control chars and whitespace before WHATWG URL parsing
+const DISALLOWED_PORTRAIT_CHAR_RE = /[\u0000-\u0020\u007f?#\\]/;
+const ENCODED_TRAVERSAL_OR_SLASH_RE = /%2e|%2f|%5c/i;
+// oxlint-disable-next-line no-control-regex -- reject ASCII control chars in external HTTPS URLs
+const ASCII_CONTROL_CHAR_RE = /[\u0000-\u001f\u007f]/;
+
 export function isValidRootRelativePortraitSrc(value: string): boolean {
-  return (
-    value.startsWith('/') &&
-    !value.startsWith('//') &&
-    !value.startsWith('/\\') &&
-    !value.includes('\\') &&
-    !value.includes('..')
-  );
+  if (
+    !value.startsWith('/') ||
+    value.startsWith('//') ||
+    value.includes('..') ||
+    DISALLOWED_PORTRAIT_CHAR_RE.test(value) ||
+    ENCODED_TRAVERSAL_OR_SLASH_RE.test(value)
+  ) {
+    return false;
+  }
+  try {
+    const parsed = new URL(value, PORTRAIT_URL_BASE);
+    return (
+      parsed.origin === PORTRAIT_URL_BASE &&
+      parsed.pathname === value &&
+      parsed.search === '' &&
+      parsed.hash === ''
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isSafeHttpsUrl(value: string): boolean {
+  if (ASCII_CONTROL_CHAR_RE.test(value)) {
+    return false;
+  }
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:' && parsed.username === '' && parsed.password === '';
+  } catch {
+    return false;
+  }
 }
 
 export const PortalHomePortraitSchema = z.object({
@@ -40,7 +72,14 @@ export const PortalHomeResumeSummarySchema = z.object({
   roleLine: z.string().trim().min(1).max(200),
   publicEmail: z.email(),
   githubLabel: z.string().trim().min(1).max(80),
-  githubUrl: z.url({ protocol: /^https$/ }),
+  githubUrl: z
+    .string()
+    .trim()
+    .refine(
+      isSafeHttpsUrl,
+      'GitHub URL must be a valid HTTPS URL without credentials or control characters.',
+    )
+    .pipe(z.url({ protocol: /^https$/ })),
   bio: z.string().trim().min(1).max(800),
   highlightsHeading: z.string().trim().min(1).max(80),
   highlights: z.array(z.string().trim().min(1).max(220)).min(1).max(12),

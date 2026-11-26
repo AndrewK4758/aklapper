@@ -205,6 +205,14 @@ describe('@aklapper/core site_content registry', () => {
       '/\\cdn.example.invalid/photo.webp',
       '/images\\photo.webp',
       '/images/../secret.webp',
+      '/\t/attacker.example/pixel.webp',
+      '/\n/attacker.example/pixel.webp',
+      '/\r/attacker.example/pixel.webp',
+      '/images/.\t./secret.webp',
+      '/%2e%2e/secret.webp',
+      '/images/a\u0000b.webp',
+      '/images/a?b=1',
+      '/images/a#frag',
       'javascript:alert(1)',
       'data:image/webp;base64,AAAA',
       'images/relative-no-leading-slash.webp',
@@ -229,6 +237,8 @@ describe('@aklapper/core site_content registry', () => {
       'data:text/html,hi',
       'http://github.com/AndrewK4758',
       'ftp://github.com/AndrewK4758',
+      'https://user:pass@github.com/AndrewK4758',
+      'https://github.com/AndrewK4758\t/evil',
     ]) {
       const result = validateSiteContentMetadata(SITE_CONTENT_KEYS.portalHome, {
         ...VALID_FIXTURES[SITE_CONTENT_KEYS.portalHome],

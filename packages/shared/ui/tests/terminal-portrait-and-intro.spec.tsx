@@ -161,28 +161,43 @@ describe('@aklapper/ui TerminalPortrait, PortalHomeTerminalIntro, and terminal c
       expect(container.querySelector('img')).toBeNull();
       const fallback = container.querySelector('[data-portrait-fallback="true"]');
       expect(fallback).not.toBeNull();
+      expect(fallback?.getAttribute('role')).toBe('img');
       expect(fallback?.textContent).toContain('AK');
       expect(warnLogs.join('\n')).toContain('portal.home.portrait_load_fallback');
       expect(warnLogs.join('\n')).toContain('BOUNDARY_FAULT');
 
       rerender(
         <TerminalPortrait
-          src={DEFAULT_PORTRAIT_PATH}
+          src='   '
           alt='Greyscale terminal portrait of Andrew Klapper'
         />,
       );
       expect(container.querySelector('[data-portrait-fallback="true"]')).toBeNull();
       expect(container.querySelector('img')?.getAttribute('src')).toBe(DEFAULT_PORTRAIT_SRC);
 
-      // Hostile external or script custom src fails closed to monogram fallback with zero <img> request
       rerender(
         <TerminalPortrait
-          src='https://evil.example.invalid/tracker.webp'
+          src={`  ${DEFAULT_PORTRAIT_PATH}  `}
           alt='Greyscale terminal portrait of Andrew Klapper'
         />,
       );
-      expect(container.querySelector('img')).toBeNull();
-      expect(container.querySelector('[data-portrait-fallback="true"]')).not.toBeNull();
+      expect(container.querySelector('[data-portrait-fallback="true"]')).toBeNull();
+      expect(container.querySelector('img')?.getAttribute('src')).toBe(DEFAULT_PORTRAIT_SRC);
+
+      // Hostile external or WHATWG-whitespace-obfuscated custom src fails closed to monogram fallback
+      for (const hostileSrc of [
+        'https://evil.example.invalid/tracker.webp',
+        '/\t/attacker.example/pixel.webp',
+      ]) {
+        rerender(
+          <TerminalPortrait
+            src={hostileSrc}
+            alt='Greyscale terminal portrait of Andrew Klapper'
+          />,
+        );
+        expect(container.querySelector('img')).toBeNull();
+        expect(container.querySelector('[data-portrait-fallback="true"]')).not.toBeNull();
+      }
     } finally {
       warnSpy.mockRestore();
     }
