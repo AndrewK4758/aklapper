@@ -13,13 +13,12 @@ import {
   type PortalChromeContent,
   type PortalContactContent,
   type PortalHomeContent,
-  type PortalMaintenanceContent,
   type TerminalProfileData,
   TerminalProfileDataSchema,
 } from '@aklapper/core';
 import { resolveAgensiCreatorHandle } from '@aklapper/node-runtime/agensi';
 import { loadWorkspaceEnv } from '@aklapper/node-runtime/env';
-import { and, eq, inArray, notInArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import { type AppDatabase, createDb, createDbPool } from './client.ts';
 import { resolveTerminalLsOutput, SITE_CONTENT_KEYS, TERMINAL_PROFILE_SLUGS } from './queries.ts';
@@ -29,7 +28,6 @@ import {
   careerDossiers,
   menuItems,
   quotaPolicies,
-  roadmapMilestones,
   sandboxRuns,
   sandboxTurns,
   siteContent,
@@ -108,7 +106,6 @@ export const PORTAL_CHROME_SEED: PortalChromeContent = {
   footerText: 'Andrew Klapper · Personal Portfolio',
   footerLinkLabel: 'agensi.io/creators/aklapper',
   footerLinkUrl: 'https://agensi.io/creators/aklapper',
-  maintenanceModeDefault: false,
 };
 
 const PORTAL_HOME_SEED: PortalHomeContent = {
@@ -126,11 +123,6 @@ const PORTAL_HOME_SEED: PortalHomeContent = {
     { label: 'Chat with Andrew → /chat', to: '/chat', variant: 'default' },
     { label: 'Agensi Storefront → /agensi', to: '/agensi', variant: 'default' },
     { label: 'Contact → /contact', to: '/contact', variant: 'default' },
-    {
-      label: 'Maintenance Preview → /changes-in-progress',
-      to: '/changes-in-progress',
-      variant: 'default',
-    },
   ],
 };
 
@@ -158,21 +150,6 @@ const PORTAL_CONTACT_SEED: PortalContactContent = {
   description:
     'Send a direct message to Andrew Klapper. All fields are validated before submission.',
   form: CONTACT_FORM_DEFINITION,
-};
-
-const PORTAL_MAINTENANCE_SEED: PortalMaintenanceContent = {
-  windowTitle: 'andrew-k.us — Maintenance',
-  statusBadge: {
-    source: 'site-maintenance',
-    state: 'scaling',
-    label: 'Maintenance in Progress',
-  },
-  heading: 'Site Updates in Progress',
-  lead: 'andrew-k.us is currently being updated. Site navigation is temporarily unavailable while updates are deployed.',
-  progressPercent: 72,
-  progressAriaLabel: 'Site update progress',
-  metaLeft: 'Status: Maintenance mode (navigation disabled)',
-  metaRight: 'Progress: 72% · terminal available below',
 };
 
 const ADMIN_CHROME_SEED: AdminChromeContent = {
@@ -205,7 +182,7 @@ const SITE_CONTENT_SEEDS: ReadonlyArray<{
 }> = [
   {
     key: SITE_CONTENT_KEYS.portalChrome,
-    markdownBody: 'Portal global shell chrome and maintenance default.',
+    markdownBody: 'Portal global shell chrome and status badge.',
     metadataJson: PORTAL_CHROME_SEED,
   },
   {
@@ -232,11 +209,6 @@ const SITE_CONTENT_SEEDS: ReadonlyArray<{
     key: SITE_CONTENT_KEYS.portalContact,
     markdownBody: 'Portal contact form TUI content and recursive JSON schema.',
     metadataJson: PORTAL_CONTACT_SEED,
-  },
-  {
-    key: SITE_CONTENT_KEYS.portalMaintenance,
-    markdownBody: 'Portal standalone changes-in-progress maintenance screen.',
-    metadataJson: PORTAL_MAINTENANCE_SEED,
   },
   {
     key: SITE_CONTENT_KEYS.adminChrome,
@@ -267,18 +239,6 @@ const TERMINAL_PROFILE_SEEDS = [
     contextLabel: 'guest@andrew-k.us',
     placeholder: 'type a command (help, ls, tui, cadence, chat, agensi, contact, cd ...)',
     quickCommands: ['help', 'ls', 'tui', 'cadence', 'chat', 'agensi', 'contact', 'status', 'clear'],
-  },
-  {
-    slug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
-    bannerTitle: 'Solar Forge Terminal // andrew-k.us (maintenance)',
-    bannerMeta: 'tty1 · type "help" or press Tab',
-    osLabel: '⚡',
-    directory: '~/andrew-k.us',
-    vcsBranch: 'portfolio_v2 !wip',
-    vcsState: 'modified' as const,
-    contextLabel: 'visitor@andrew-k.us',
-    placeholder: 'type a command: help, status, roadmap, stack, clear',
-    quickCommands: ['help', 'status', 'roadmap', 'stack', 'whoami', 'clear'],
   },
   {
     slug: TERMINAL_PROFILE_SLUGS.adminOps,
@@ -330,13 +290,6 @@ const TERMINAL_DIRECTORY_ENTRY_SEEDS = [
     sortOrder: 5,
     enabled: true,
   },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
-    name: 'changes-in-progress',
-    description: 'Maintenance preview',
-    sortOrder: 6,
-    enabled: true,
-  },
 ] as const;
 
 const PORTAL_HOME_DIRECTORY_LISTING = formatTerminalDirectoryListing(
@@ -352,19 +305,6 @@ const TERMINAL_INITIAL_ENTRY_SEEDS = [
     output: PORTAL_HOME_DIRECTORY_LISTING,
     status: 'ok' as const,
     durationLabel: '6ms',
-    timestampLabel: '00:00:00',
-    sortOrder: 0,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
-    command: 'status',
-    output: [
-      'andrew-k.us :: Solar Forge v2 rebuild is actively underway.',
-      'Navigation is temporarily offline while services migrate to Cloud Run (4-service Docker architecture).',
-      'Type "help" at the ❯ prompt below to inspect the rebuild status.',
-    ].join('\n'),
-    status: 'ok' as const,
-    durationLabel: '8ms',
     timestampLabel: '00:00:00',
     sortOrder: 0,
   },
@@ -393,7 +333,7 @@ const TERMINAL_COMMAND_SEEDS = [
       "  chat       — open /chat to chat with Andrew's AI & JD match",
       '  agensi     — open /agensi commercial skills storefront',
       '  contact    — run inline terminal contact form (or "contact --tui" / "--help")',
-      '  cd <route> — navigate to /cadence, /chat, /agensi, /contact, or /changes-in-progress',
+      '  cd <route> — navigate to /cadence, /chat, /agensi, or /contact',
       '  status     — inspect cluster & service state',
       '  whoami     — display active terminal session',
       '  clear      — clear terminal scrollback',
@@ -475,13 +415,13 @@ const TERMINAL_COMMAND_SEEDS = [
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.portalHome,
     name: 'cd',
-    description: 'navigate to /cadence, /chat, /agensi, /contact, or /changes-in-progress',
+    description: 'navigate to /cadence, /chat, /agensi, or /contact',
     kind: 'cd' as const,
     output: 'cd /{{target}}',
     targetRoute: null,
-    allowedRoutes: ['cadence', 'chat', 'agensi', 'contact', 'changes-in-progress'],
+    allowedRoutes: ['cadence', 'chat', 'agensi', 'contact'],
     errorTemplate:
-      'cd: no such route: {{input}}\nTry: cd cadence | cd chat | cd agensi | cd contact | cd changes-in-progress',
+      'cd: no such route: {{input}}\nTry: cd cadence | cd chat | cd agensi | cd contact',
     sortOrder: 9,
   },
   {
@@ -516,113 +456,6 @@ const TERMINAL_COMMAND_SEEDS = [
     allowedRoutes: [] as string[],
     errorTemplate: null,
     sortOrder: 12,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
-    name: 'help',
-    description: 'list available maintenance commands',
-    kind: 'static' as const,
-    output: [
-      'Available commands (maintenance tty1):',
-      '  status    — current rebuild & deployment status',
-      '  roadmap   — active Solar Forge v2 milestones',
-      '  stack     — runtime & cloud architecture summary',
-      '  whoami    — active session identity',
-      '  uname     — print platform kernel banner',
-      '  uptime    — show browser session uptime',
-      '  clear     — clear terminal scrollback',
-    ].join('\n'),
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 1,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
-    name: 'status',
-    description: 'current rebuild & deployment status',
-    kind: 'static' as const,
-    output: [
-      'STATE    : CHANGES IN PROGRESS (maintenance mode)',
-      'HOST     : andrew-k.us',
-      'RUNTIME  : Google Cloud Run (us-central1, scale-to-0)',
-      'PROGRESS : [██████████████░░░░░░] 72%',
-      'NOTICE   : Full portal navigation will unlock as soon as v2 rollout completes.',
-    ].join('\n'),
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 2,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
-    name: 'roadmap',
-    description: 'active Solar Forge v2 milestones',
-    kind: 'roadmap' as const,
-    output: '',
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 3,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
-    name: 'stack',
-    description: 'runtime & cloud architecture summary',
-    kind: 'static' as const,
-    output: [
-      'Frontend : React 19 · React Router 8 SSR · Vite 8 · CSS Modules + @layer tokens',
-      'Backend  : Go microservices + Fastify 5 Node 24/26 native TS · PostgreSQL 19 · Qdrant',
-      'Infra    : Cloud Run (4-service scale-to-0) + Direct VPC Egress PG19',
-    ].join('\n'),
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 4,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
-    name: 'whoami',
-    description: 'active session identity',
-    kind: 'static' as const,
-    output: 'visitor@andrew-k.us (read-only maintenance tty1)',
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 5,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
-    name: 'uname',
-    description: 'print platform kernel banner',
-    kind: 'static' as const,
-    output: 'SolarForge 2.0.0 andrew-k.us x86_64 CloudRun/Linux',
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 6,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
-    name: 'uptime',
-    description: 'show browser session uptime',
-    kind: 'uptime' as const,
-    output: 'up {{seconds}}s · 1 user · load average: 0.00, 0.00, 0.00',
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 7,
-  },
-  {
-    profileSlug: TERMINAL_PROFILE_SLUGS.portalMaintenance,
-    name: 'clear',
-    description: 'clear terminal scrollback',
-    kind: 'clear' as const,
-    output: '',
-    targetRoute: null,
-    allowedRoutes: [] as string[],
-    errorTemplate: null,
-    sortOrder: 8,
   },
   {
     profileSlug: TERMINAL_PROFILE_SLUGS.adminOps,
@@ -747,37 +580,6 @@ const TERMINAL_COMMAND_SEEDS = [
     allowedRoutes: [] as string[],
     errorTemplate: null,
     sortOrder: 10,
-  },
-] as const;
-
-const ROADMAP_MILESTONE_SEEDS = [
-  {
-    slug: 'solar-forge-theme',
-    status: 'done' as const,
-    label: 'Solar Forge 4-layer CSS variable theme & animated reticle emblem',
-    sortOrder: 1,
-    enabled: true,
-  },
-  {
-    slug: 'cloud-run-ssr',
-    status: 'done' as const,
-    label: 'React Router 8 + Fastify 5 SSR migrated from App Engine to Cloud Run',
-    sortOrder: 2,
-    enabled: true,
-  },
-  {
-    slug: 'terminal-tui-workspace',
-    status: 'active' as const,
-    label: 'Interactive Solar Forge terminal & draggable TUI workspace',
-    sortOrder: 3,
-    enabled: true,
-  },
-  {
-    slug: 'gke-go-cadence',
-    status: 'queued' as const,
-    label: 'Scale-from-zero Go microservices & CADENCE live sandbox rollout',
-    sortOrder: 4,
-    enabled: true,
   },
 ] as const;
 
@@ -992,8 +794,6 @@ export {
   PORTAL_CADENCE_SEED,
   PORTAL_CONTACT_SEED,
   PORTAL_HOME_SEED,
-  PORTAL_MAINTENANCE_SEED,
-  ROADMAP_MILESTONE_SEEDS,
   seedAdminUserFromEnv,
   type SeedAdminUserResult,
   TERMINAL_COMMAND_SEEDS,
@@ -1004,7 +804,6 @@ export {
 
 export interface SeedDatabaseOptions {
   mode?: 'upsert' | 'bootstrap';
-  pruneMissingMilestones?: boolean;
   env?: Record<string, string | undefined>;
 }
 
@@ -1012,27 +811,20 @@ function resolveSeedOptions(
   optionsOrEnv?: SeedDatabaseOptions | Record<string, string | undefined>,
 ): {
   mode: 'upsert' | 'bootstrap';
-  pruneMissingMilestones: boolean;
   env: Record<string, string | undefined>;
 } {
   if (!optionsOrEnv) {
-    return { mode: 'upsert', pruneMissingMilestones: false, env: process.env };
+    return { mode: 'upsert', env: process.env };
   }
   const maybeOpts = optionsOrEnv as SeedDatabaseOptions;
-  if (
-    'mode' in maybeOpts ||
-    'pruneMissingMilestones' in maybeOpts ||
-    (typeof maybeOpts.env === 'object' && maybeOpts.env !== null)
-  ) {
+  if ('mode' in maybeOpts || (typeof maybeOpts.env === 'object' && maybeOpts.env !== null)) {
     return {
       mode: maybeOpts.mode === 'bootstrap' ? 'bootstrap' : 'upsert',
-      pruneMissingMilestones: Boolean(maybeOpts.pruneMissingMilestones),
       env: maybeOpts.env ?? process.env,
     };
   }
   return {
     mode: 'upsert',
-    pruneMissingMilestones: false,
     env: optionsOrEnv as Record<string, string | undefined>,
   };
 }
@@ -1041,7 +833,7 @@ export async function seedDatabase(
   db: AppDatabase,
   optionsOrEnv: SeedDatabaseOptions | Record<string, string | undefined> = process.env,
 ): Promise<void> {
-  const { mode, pruneMissingMilestones, env } = resolveSeedOptions(optionsOrEnv);
+  const { mode, env } = resolveSeedOptions(optionsOrEnv);
   const isBootstrap = mode === 'bootstrap';
 
   console.info(
@@ -1165,7 +957,10 @@ export async function seedDatabase(
 
   if (!isBootstrap) {
     await db.delete(menuItems).where(eq(menuItems.slug, 'ask'));
-    await db.delete(siteContent).where(eq(siteContent.key, 'portal-menu'));
+    await db
+      .delete(siteContent)
+      .where(inArray(siteContent.key, ['portal-menu', 'portal-maintenance']));
+    await db.delete(terminalProfiles).where(eq(terminalProfiles.slug, 'portal-maintenance'));
     await db
       .delete(terminalCommands)
       .where(
@@ -1179,40 +974,9 @@ export async function seedDatabase(
       .where(
         and(
           eq(terminalDirectoryEntries.profileSlug, TERMINAL_PROFILE_SLUGS.portalHome),
-          inArray(terminalDirectoryEntries.name, ['ask', 'menu']),
+          inArray(terminalDirectoryEntries.name, ['ask', 'menu', 'changes-in-progress']),
         ),
       );
-  }
-
-  if (pruneMissingMilestones) {
-    console.info(
-      JSON.stringify({
-        event: 'db.seed.mode_branch',
-        seam: 'RULE_DIVERGENCE',
-        branch: 'explicit_prune_roadmap',
-      }),
-    );
-    await db.delete(roadmapMilestones).where(
-      notInArray(
-        roadmapMilestones.slug,
-        ROADMAP_MILESTONE_SEEDS.map(milestone => milestone.slug),
-      ),
-    );
-  }
-
-  for (const milestone of ROADMAP_MILESTONE_SEEDS) {
-    const stmt = db.insert(roadmapMilestones).values(milestone);
-    await (isBootstrap
-      ? stmt.onConflictDoNothing({ target: roadmapMilestones.slug })
-      : stmt.onConflictDoUpdate({
-          target: roadmapMilestones.slug,
-          set: {
-            status: milestone.status,
-            label: milestone.label,
-            sortOrder: milestone.sortOrder,
-            enabled: milestone.enabled,
-          },
-        }));
   }
 
   for (const preset of CADENCE_PRESET_SEEDS) {
@@ -1377,16 +1141,14 @@ if (import.meta.main) {
   loadWorkspaceEnv({ startDir: import.meta.dirname });
   const argv = process.argv.slice(2);
   let mode: 'upsert' | 'bootstrap' = 'upsert';
-  let pruneMissingMilestones = false;
   for (const arg of argv) {
     if (arg === '--mode=bootstrap') mode = 'bootstrap';
     else if (arg === '--mode=upsert') mode = 'upsert';
-    else if (arg === '--prune') pruneMissingMilestones = true;
   }
   const pool = createDbPool();
   try {
     const db = createDb(pool);
-    await seedDatabase(db, { mode, pruneMissingMilestones });
+    await seedDatabase(db, { mode });
     console.log('Postgres seed data applied successfully.');
   } finally {
     await pool.end();

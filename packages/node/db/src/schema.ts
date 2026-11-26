@@ -152,6 +152,10 @@ export const terminalDirectoryEntries = pgTable(
   ],
 );
 
+/**
+ * @deprecated Retired with maintenance-mode scaffolding; kept temporarily until the
+ * follow-up contraction migration drops `roadmap_milestones` after all services deploy.
+ */
 export const roadmapMilestones = pgTable('roadmap_milestones', {
   slug: text('slug').primaryKey(),
   status: text('status').$type<'done' | 'active' | 'queued'>().notNull(),

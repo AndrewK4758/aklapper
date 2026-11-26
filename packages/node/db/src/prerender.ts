@@ -13,10 +13,8 @@ import {
   type PortalCadenceLoaderData,
   type PortalContactLoaderData,
   type PortalHomeLoaderData,
-  type PortalMaintenanceLoaderData,
   type PortalRootLoaderData,
   type QuotaStatus,
-  RoadmapMilestoneSchema,
 } from '@aklapper/core';
 import { resolveAgensiCreatorHandle } from '@aklapper/node-runtime/agensi';
 
@@ -35,7 +33,6 @@ import {
   loadPortalCadenceData,
   loadPortalContactData,
   loadPortalHomeData,
-  loadPortalMaintenanceData,
   loadPortalRootData,
   TERMINAL_PROFILE_SLUGS,
 } from './queries.ts';
@@ -54,8 +51,6 @@ import {
   PORTAL_CHROME_SEED,
   PORTAL_CONTACT_SEED,
   PORTAL_HOME_SEED,
-  PORTAL_MAINTENANCE_SEED,
-  ROADMAP_MILESTONE_SEEDS,
 } from './seed.ts';
 
 const DEFAULT_GUEST_QUOTA: QuotaStatus = {
@@ -66,33 +61,10 @@ const DEFAULT_GUEST_QUOTA: QuotaStatus = {
   maxTokens: 40_000,
 };
 
-export function getPrerenderPortalMaintenanceData(): PortalMaintenanceLoaderData {
-  return {
-    content: PORTAL_MAINTENANCE_SEED,
-    terminal: buildSeedTerminalProfile(TERMINAL_PROFILE_SLUGS.portalMaintenance),
-    milestones: ROADMAP_MILESTONE_SEEDS.filter(m => m.enabled)
-      .toSorted((a, b) => a.sortOrder - b.sortOrder)
-      .map(m => RoadmapMilestoneSchema.parse(m)),
-  };
-}
-
-export function getPrerenderPortalRootData(
-  maintenanceModeOverride?: boolean,
-): PortalRootLoaderData {
-  const maintenanceMode = maintenanceModeOverride ?? PORTAL_CHROME_SEED.maintenanceModeDefault;
-  if (maintenanceMode) {
-    return {
-      maintenanceMode,
-      chrome: PORTAL_CHROME_SEED,
-      maintenance: getPrerenderPortalMaintenanceData(),
-    };
-  }
-
+export function getPrerenderPortalRootData(): PortalRootLoaderData {
   const { content: homeContent, terminal, contactForm } = getPrerenderPortalHomeData();
   return {
-    maintenanceMode,
     chrome: PORTAL_CHROME_SEED,
-    maintenance: null,
     terminal,
     homeContent,
     contactForm,
@@ -237,13 +209,8 @@ export async function withPrerenderFallback<T>(
   }
 }
 
-export function loadPortalRootDataWithPrerender(
-  maintenanceModeOverride?: boolean,
-): Promise<PortalRootLoaderData> {
-  return withPrerenderFallback(
-    db => loadPortalRootData(db, maintenanceModeOverride),
-    () => getPrerenderPortalRootData(maintenanceModeOverride),
-  );
+export function loadPortalRootDataWithPrerender(): Promise<PortalRootLoaderData> {
+  return withPrerenderFallback(loadPortalRootData, getPrerenderPortalRootData);
 }
 
 export function loadPortalHomeDataWithPrerender(): Promise<PortalHomeLoaderData> {
@@ -278,10 +245,6 @@ export function loadPortalCadenceDataWithPrerender(
 
 export function loadPortalContactDataWithPrerender(): Promise<PortalContactLoaderData> {
   return withPrerenderFallback(loadPortalContactData, getPrerenderPortalContactData);
-}
-
-export function loadPortalMaintenanceDataWithPrerender(): Promise<PortalMaintenanceLoaderData> {
-  return withPrerenderFallback(loadPortalMaintenanceData, getPrerenderPortalMaintenanceData);
 }
 
 export function loadAdminRootDataWithPrerender(): Promise<AdminRootLoaderData> {

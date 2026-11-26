@@ -32,13 +32,9 @@ import {
   PortalContactContentSchema,
   type PortalHomeLoaderData,
   PortalHomeContentSchema,
-  type PortalMaintenanceLoaderData,
-  PortalMaintenanceContentSchema,
   type PortalRootLoaderData,
   type QuotaStatus,
   QuotaStatusSchema,
-  type RoadmapMilestone,
-  RoadmapMilestoneSchema,
   type Role,
   SITE_CONTENT_KEYS,
   type TerminalDirectoryEntry,
@@ -107,7 +103,6 @@ export { SITE_CONTENT_KEYS };
 
 export const TERMINAL_PROFILE_SLUGS = {
   portalHome: 'portal-home',
-  portalMaintenance: 'portal-maintenance',
   adminOps: 'admin-ops',
 } as const;
 
@@ -265,16 +260,6 @@ export async function getMenuItems(
   return rows.map(row => MenuItemSchema.parse(row));
 }
 
-export async function getRoadmapMilestones(db: AppDatabase): Promise<RoadmapMilestone[]> {
-  const rows = await db
-    .select()
-    .from(schema.roadmapMilestones)
-    .where(eq(schema.roadmapMilestones.enabled, true))
-    .orderBy(asc(schema.roadmapMilestones.sortOrder), asc(schema.roadmapMilestones.slug));
-
-  return rows.map(row => RoadmapMilestoneSchema.parse(row));
-}
-
 export async function getCadencePresets(db: AppDatabase): Promise<CadencePreset[]> {
   const rows = await db
     .select()
@@ -308,42 +293,18 @@ export async function getAgensiSkills(
   return queryCreatorPublishedSkills(db, creatorHandle);
 }
 
-export async function loadPortalMaintenanceData(
-  db: AppDatabase,
-): Promise<PortalMaintenanceLoaderData> {
-  const [content, terminal, milestones] = await Promise.all([
-    getSiteContent(db, SITE_CONTENT_KEYS.portalMaintenance, PortalMaintenanceContentSchema),
-    getTerminalProfile(db, TERMINAL_PROFILE_SLUGS.portalMaintenance),
-    getRoadmapMilestones(db),
+export async function loadPortalRootData(db: AppDatabase): Promise<PortalRootLoaderData> {
+  const [chrome, { content: homeContent, terminal, contactForm }] = await Promise.all([
+    getSiteContent<PortalChromeContent>(
+      db,
+      SITE_CONTENT_KEYS.portalChrome,
+      PortalChromeContentSchema,
+    ),
+    loadPortalHomeData(db),
   ]);
 
-  return { content, terminal, milestones };
-}
-
-export async function loadPortalRootData(
-  db: AppDatabase,
-  maintenanceModeOverride?: boolean,
-): Promise<PortalRootLoaderData> {
-  const chrome: PortalChromeContent = await getSiteContent(
-    db,
-    SITE_CONTENT_KEYS.portalChrome,
-    PortalChromeContentSchema,
-  );
-  const maintenanceMode = maintenanceModeOverride ?? chrome.maintenanceModeDefault;
-  if (maintenanceMode) {
-    const maintenance = await loadPortalMaintenanceData(db);
-    return {
-      maintenanceMode,
-      chrome,
-      maintenance,
-    };
-  }
-
-  const { content: homeContent, terminal, contactForm } = await loadPortalHomeData(db);
   return {
-    maintenanceMode,
     chrome,
-    maintenance: null,
     terminal,
     homeContent,
     contactForm,

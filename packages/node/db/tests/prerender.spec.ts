@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
+import * as dbExports from '../src/index.ts';
 import {
   closeSharedDb,
   getPrerenderAdminAnalyticsData,
@@ -13,7 +14,6 @@ import {
   getPrerenderPortalCadenceData,
   getPrerenderPortalContactData,
   getPrerenderPortalHomeData,
-  getPrerenderPortalMaintenanceData,
   getPrerenderPortalRootData,
   loadAdminAnalyticsDataWithPrerender,
   loadPortalAgensiDataWithPrerender,
@@ -57,22 +57,27 @@ describe('db prerender fallback loaders', () => {
     expect(portalRoot.chrome.pageTitle).toContain('andrew-k.us');
     expect(portalRoot.chrome.shortcutHint).toContain('Alt+⇧N');
     expect(portalRoot.chrome.shortcutHint).not.toMatch(/Alt\+⇧T|⌘D/);
-    expect(getPrerenderPortalRootData(true).maintenance?.content.heading).toBe(
-      'Site Updates in Progress',
-    );
+    expect('maintenanceMode' in portalRoot).toBe(false);
+    expect('maintenance' in portalRoot).toBe(false);
+    expect('getPrerenderPortalMaintenanceData' in dbExports).toBe(false);
+    expect('loadPortalMaintenanceDataWithPrerender' in dbExports).toBe(false);
+    expect('loadPortalMaintenanceData' in dbExports).toBe(false);
+    expect('getRoadmapMilestones' in dbExports).toBe(false);
     expect(portalHome.terminal.commands.length).toBeGreaterThan(0);
     expect(portalHome.terminal.initialEntries[0]?.command).toBe('ls');
-    expect(portalHome.terminal.initialEntries[0]?.output).toContain(
-      'tui                   # TUI version',
-    );
+    expect(portalHome.terminal.initialEntries[0]?.output).toContain('tui       # TUI version');
     expect(portalHome.terminal.initialEntries[0]?.output).not.toContain('menu');
-    expect(portalHome.terminal.initialEntries[0]?.output).toContain(
-      'changes-in-progress   # Maintenance preview',
-    );
+    expect(portalHome.terminal.initialEntries[0]?.output).not.toContain('changes-in-progress');
+    expect(portalHome.terminal.initialEntries[0]?.output).not.toContain('Maintenance preview');
     expect(portalHome.terminal.initialEntries[0]?.output).not.toMatch(
       /drwxr-xr-x|-rw-r--r--|menu\//,
     );
+    expect(portalHome.content.actions.some(a => a.to === '/changes-in-progress')).toBe(false);
+    const cdCommand = portalHome.terminal.commands.find(cmd => cmd.name === 'cd');
+    expect(cdCommand?.allowedRoutes).toEqual(['cadence', 'chat', 'agensi', 'contact']);
+    expect(cdCommand?.errorTemplate).not.toContain('changes-in-progress');
     const portalHelp = portalHome.terminal.commands.find(cmd => cmd.name === 'help')?.output ?? '';
+    expect(portalHelp).not.toContain('changes-in-progress');
     expect(portalHelp).toContain('Split panes & tabs (keybindings & commands):');
     expect(portalHelp).toContain('Alt+Shift+N');
     expect(portalHelp).toContain('F2');
@@ -104,7 +109,6 @@ describe('db prerender fallback loaders', () => {
     });
     expect(getPrerenderPortalCadenceData().presets.length).toBeGreaterThan(0);
     expect(getPrerenderPortalContactData().content.form.id).toBe('contact-form');
-    expect(getPrerenderPortalMaintenanceData().milestones.length).toBeGreaterThan(0);
 
     expect(adminRoot.chrome.brandLabel).toContain('admin.andrew-k.us');
     expect(adminRoot.chrome.shortcutHint).toContain('Alt+⇧N');

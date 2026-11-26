@@ -56,6 +56,7 @@ import {
   loadAdminAnalyticsSummary,
   loadAdminCmsData,
   loadAdminOverviewData,
+  loadPortalRootData,
   pruneExpiredAskTurns,
   publishCareerDossier,
   rateLimitBuckets,
@@ -99,22 +100,21 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       ['chat', "Chat with Andrew's AI"],
       ['agensi', 'Published AI skills'],
       ['contact', 'Connect with me'],
-      ['changes-in-progress', 'Maintenance preview'],
     ]);
 
     const expectedListing = [
-      'tui                   # TUI version',
-      'cadence               # Agentic workflow example',
-      "chat                  # Chat with Andrew's AI",
-      'agensi                # Published AI skills',
-      'contact               # Connect with me',
-      'changes-in-progress   # Maintenance preview',
+      'tui       # TUI version',
+      'cadence   # Agentic workflow example',
+      "chat      # Chat with Andrew's AI",
+      'agensi    # Published AI skills',
+      'contact   # Connect with me',
     ].join('\n');
 
     const profile = await getTerminalProfile(db, TERMINAL_PROFILE_SLUGS.portalHome);
     expect(profile.initialEntries[0]?.command).toBe('ls');
     expect(profile.initialEntries[0]?.output).toBe(expectedListing);
     expect(profile.commands.find(cmd => cmd.name === 'ls')?.output).toBe(expectedListing);
+    expect(profile.initialEntries[0]?.output).not.toContain('changes-in-progress');
     expect(profile.initialEntries[0]?.output).not.toMatch(/drwxr-xr-x|-rw-r--r--|menu\//);
   });
 
@@ -130,10 +130,10 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
     try {
       const updatedProfile = await getTerminalProfile(db, TERMINAL_PROFILE_SLUGS.portalHome);
       expect(updatedProfile.initialEntries[0]?.output).toContain(
-        'status-board          # Live cluster health',
+        'status-board   # Live cluster health',
       );
       expect(updatedProfile.commands.find(cmd => cmd.name === 'ls')?.output).toContain(
-        'status-board          # Live cluster health',
+        'status-board   # Live cluster health',
       );
 
       const cms = await loadAdminCmsData(db);
@@ -1496,6 +1496,135 @@ describe('@aklapper/db PostgreSQL 19 integration (ephemeral container)', () => {
       if (!hadRoadmapRows) {
         await pool.query(`DELETE FROM roadmap_milestones WHERE slug = $1`, [sentinelMilestoneSlug]);
       }
+    }
+  });
+
+  it('tolerates dormant portal-maintenance rows and kind=roadmap commands, strips retired keys on registered site_content saves, and prunes retired rows on upsert seed', async () => {
+    const originalChrome = await pool.query<{
+      markdown_body: string;
+      metadata_json: Record<string, unknown>;
+    }>(`SELECT markdown_body, metadata_json FROM site_content WHERE key = 'portal-chrome'`);
+    const originalHome = await pool.query<{
+      markdown_body: string;
+      metadata_json: Record<string, unknown>;
+    }>(`SELECT markdown_body, metadata_json FROM site_content WHERE key = 'portal-home'`);
+
+    try {
+      // Seed dormant legacy rows simulating an in-flight rollout database.
+      await pool.query(
+        `UPDATE site_content
+         SET metadata_json = jsonb_set(metadata_json, '{maintenanceModeDefault}', 'true'::jsonb, true)
+         WHERE key = 'portal-chrome'`,
+      );
+      await pool.query(
+        `INSERT INTO site_content (key, markdown_body, metadata_json)
+         VALUES ('portal-maintenance', 'Legacy maintenance copy', '{"heading":"Maintenance"}'::jsonb)
+         ON CONFLICT (key) DO NOTHING`,
+      );
+      await pool.query(
+        `INSERT INTO terminal_profiles (
+           slug, banner_title, banner_meta, os_label, directory, vcs_branch,
+           vcs_state, context_label, placeholder, quick_commands
+         ) VALUES (
+           'portal-maintenance', 'Maintenance', 'meta', '⚡', '~/site', 'main',
+           'clean', 'visitor@andrew-k.us', 'help', ARRAY['help']
+         ) ON CONFLICT (slug) DO NOTHING`,
+      );
+      await pool.query(
+        `INSERT INTO terminal_commands (
+           profile_slug, name, description, kind, output, target_route,
+           allowed_routes, error_template, sort_order
+         ) VALUES (
+           'portal-maintenance', 'roadmap', 'legacy roadmap', 'roadmap', '', NULL,
+           ARRAY[]::text[], NULL, 1
+         ) ON CONFLICT (profile_slug, name) DO NOTHING`,
+      );
+      await pool.query(
+        `INSERT INTO terminal_directory_entries (profile_slug, name, description, sort_order, enabled)
+         VALUES ('portal-home', 'changes-in-progress', 'Maintenance preview', 6, true)
+         ON CONFLICT (profile_slug, name) DO NOTHING`,
+      );
+
+      // Portal root loader succeeds against legacy portal-chrome JSONB with no maintenance properties.
+      const portalRoot = await loadPortalRootData(db);
+      expect('maintenanceMode' in portalRoot).toBe(false);
+      expect('maintenance' in portalRoot).toBe(false);
+      expect('maintenanceModeDefault' in portalRoot.chrome).toBe(false);
+
+      // Admin overview succeeds without maintenance fields.
+      const overview = await loadAdminOverviewData(db);
+      expect('maintenanceModeDefault' in overview).toBe(false);
+      expect('rebuildProgressPercent' in overview).toBe(false);
+
+      // Admin CMS loads cleanly without ZodError and filters dormant portal-maintenance rows out of display lists.
+      const cms = await loadAdminCmsData(db);
+      expect(cms.siteContents.some(row => row.key === 'portal-maintenance')).toBe(false);
+      expect(cms.terminalProfiles.some(row => row.slug === 'portal-maintenance')).toBe(false);
+      expect(cms.terminalCommands.some(row => row.profileSlug === 'portal-maintenance')).toBe(
+        false,
+      );
+      expect('roadmapMilestones' in cms).toBe(false);
+
+      // Saving a registered site_content row strips retired/unknown keys (such as maintenanceModeDefault).
+      const chromeBody = originalChrome.rows[0]?.markdown_body ?? 'Portal chrome';
+      const chromeMeta = originalChrome.rows[0]?.metadata_json ?? {};
+      const savedChrome = await upsertSiteContent(db, SITE_CONTENT_KEYS.portalChrome, chromeBody, {
+        ...chromeMeta,
+        maintenanceModeDefault: true,
+        unexpectedLegacyField: 'remove-me',
+      });
+      expect('maintenanceModeDefault' in savedChrome.metadataJson).toBe(false);
+      expect('unexpectedLegacyField' in savedChrome.metadataJson).toBe(false);
+
+      // Bootstrap seed mode is non-destructive and preserves legacy rows.
+      await seedDatabase(db, { mode: 'bootstrap', env: { ADMIN_PASSWORD: '' } });
+      const bootstrapMaint = await pool.query(
+        `SELECT key FROM site_content WHERE key = 'portal-maintenance'`,
+      );
+      expect(bootstrapMaint.rows).toHaveLength(1);
+      const bootstrapDir = await pool.query(
+        `SELECT name FROM terminal_directory_entries
+         WHERE profile_slug = 'portal-home' AND name = 'changes-in-progress'`,
+      );
+      expect(bootstrapDir.rows).toHaveLength(1);
+
+      // Upsert seed mode prunes retired portal-maintenance and changes-in-progress rows cleanly.
+      await seedDatabase(db, { mode: 'upsert', env: { ADMIN_PASSWORD: '' } });
+      const upsertMaintSite = await pool.query(
+        `SELECT key FROM site_content WHERE key = 'portal-maintenance'`,
+      );
+      expect(upsertMaintSite.rows).toHaveLength(0);
+      const upsertMaintProfile = await pool.query(
+        `SELECT slug FROM terminal_profiles WHERE slug = 'portal-maintenance'`,
+      );
+      expect(upsertMaintProfile.rows).toHaveLength(0);
+      const upsertDir = await pool.query(
+        `SELECT name FROM terminal_directory_entries
+         WHERE profile_slug = 'portal-home' AND name = 'changes-in-progress'`,
+      );
+      expect(upsertDir.rows).toHaveLength(0);
+    } finally {
+      if (originalChrome.rows[0]) {
+        await pool.query(
+          `UPDATE site_content SET markdown_body = $1, metadata_json = $2::jsonb WHERE key = 'portal-chrome'`,
+          [
+            originalChrome.rows[0].markdown_body,
+            JSON.stringify(originalChrome.rows[0].metadata_json),
+          ],
+        );
+      }
+      if (originalHome.rows[0]) {
+        await pool.query(
+          `UPDATE site_content SET markdown_body = $1, metadata_json = $2::jsonb WHERE key = 'portal-home'`,
+          [originalHome.rows[0].markdown_body, JSON.stringify(originalHome.rows[0].metadata_json)],
+        );
+      }
+      await pool.query(`DELETE FROM site_content WHERE key = 'portal-maintenance'`);
+      await pool.query(`DELETE FROM terminal_profiles WHERE slug = 'portal-maintenance'`);
+      await pool.query(
+        `DELETE FROM terminal_directory_entries
+         WHERE profile_slug = 'portal-home' AND name = 'changes-in-progress'`,
+      );
     }
   });
 });
