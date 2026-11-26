@@ -18,7 +18,7 @@ RUN pnpm --dir packages/shared/core exec tsc --build tsconfig.lib.json \
   && pnpm --dir packages/tooling exec tsc --build tsconfig.lib.json \
   && pnpm --dir packages/shared/ui exec vite build \
   && pnpm --dir apps/admin/admin exec react-router build --mode production
-RUN pnpm --filter @aklapper/admin deploy --prod --legacy /prod/admin \
+RUN pnpm --config.shamefully-hoist=true --filter @aklapper/admin deploy --prod --legacy /prod/admin \
   && rm -rf /prod/admin/dist \
   && cp -r /workspace/apps/admin/admin/dist /prod/admin/dist \
   && mkdir -p /prod/admin/src \
