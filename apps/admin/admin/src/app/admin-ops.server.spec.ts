@@ -214,15 +214,33 @@ describe('admin-ops.server Qdrant diagnostics and reindex timeout', () => {
     const summary = await buildOverviewHealthSummary('corr-degraded-2');
     expect(summary.qdrantHealth.status).toBe('offline');
 
-    // 2. Transport Unavailable falls back cleanly to direct QDRANT_URL HTTP probing.
+    // 2. Transport Unavailable falls back cleanly to direct QDRANT_URL HTTP probing and threads optional logger.
     fetchSpy.mockClear();
+    const errorLogs: Array<Record<string, unknown>> = [];
+    const logger = {
+      info: () => undefined,
+      warn: () => undefined,
+      error: (obj: Record<string, unknown>) => {
+        errorLogs.push(obj);
+      },
+    };
     grpcMocks.getAskStatus.mockRejectedValueOnce(
       new ConnectError('dial tcp 127.0.0.1:8083: connection refused', Code.Unavailable),
     );
-    const fallbackStatus = await fetchQdrantStatus('corr-fallback-1');
+    const fallbackStatus = await fetchQdrantStatus('corr-fallback-1', logger);
     expect(fallbackStatus.online).toBe(true);
     expect(fallbackStatus.provider).toBe('qdrant-direct');
     expect(fallbackStatus.pointsCount).toBe(25);
     expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(errorLogs).toContainEqual(
+      expect.objectContaining({
+        seam_type: 'BOUNDARY_FAULT',
+        event: 'bff.grpc.upstream_error_classified',
+        errorCode: 'ERR_UPSTREAM_UNAVAILABLE',
+        grpcCode: 'Unavailable',
+        source: 'admin.ops.qdrant_status',
+        correlationId: 'corr-fallback-1',
+      }),
+    );
   });
 });

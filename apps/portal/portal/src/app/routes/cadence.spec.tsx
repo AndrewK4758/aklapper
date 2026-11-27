@@ -564,6 +564,12 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
 
   it('initializes durable 202 pending runs, streams live phases via SSE, replays cleanly, and enforces gate ownership', async () => {
     const cookie = `${GUEST_SESSION_COOKIE_NAME}=${signGuestSessionCookie('guest_session_alpha123')}`;
+    const stdoutChunks: string[] = [];
+    vi.spyOn(process.stdout, 'write').mockImplementation(chunk => {
+      stdoutChunks.push(String(chunk));
+      return true;
+    });
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
     const initRes = unwrapDataResult(
       await action(
         makeActionArgs(
@@ -579,6 +585,9 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
     );
 
     expect(initRes.init?.status).toBe(202);
+    expect(stdoutChunks.join('')).toContain('"event":"bff.cadence.transport_branch"');
+    expect(stdoutChunks.join('')).toContain('"branch":"pg19_fallback_unconfigured"');
+    expect(stdoutChunks.join('')).toContain('"seam_type":"RULE_DIVERGENCE"');
     expect(initRes.data).toMatchObject({
       ok: true,
       intent: 'run-init',
@@ -621,6 +630,12 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
     // Owner stream executes all 4 phases and streams SSE frames.
     const sseRes = await streamLoader(makeStreamArgs(runId, cookie));
     expect(sseRes.status).toBe(200);
+    expect(infoSpy).toHaveBeenCalledWith(
+      expect.stringContaining('"event":"bff.cadence.transport_branch"'),
+    );
+    expect(infoSpy).toHaveBeenCalledWith(
+      expect.stringContaining('"branch":"pg19_fallback_unconfigured"'),
+    );
     expect(sseRes.headers.get('content-type')).toContain('text/event-stream');
     const sseText = await sseRes.text();
     expect(sseText).toContain('event: phase');
@@ -664,6 +679,11 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
   it('honors synchronous 201 upstream responses, fails closed on 502 schema errors, propagates 4xx redacted, and falls back only on Unavailable/DeadlineExceeded', async () => {
     const cookie = `${GUEST_SESSION_COOKIE_NAME}=${signGuestSessionCookie('guest_session_upstream1')}`;
     process.env['CADENCE_DEMO_URL'] = 'http://cadence-demo.internal';
+    const stdoutChunks: string[] = [];
+    vi.spyOn(process.stdout, 'write').mockImplementation(chunk => {
+      stdoutChunks.push(String(chunk));
+      return true;
+    });
 
     // 1. Synchronous 201 (createdImmediately=true) preserves immediate ready intent.
     const syncRun: CadenceRunResult = {
@@ -736,6 +756,27 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
     );
     expect(fallbackInit.init?.status).toBe(202);
     expect(stateStore.runs.size).toBe(1);
+    const branchLogs = stdoutChunks
+      .join('')
+      .split('\n')
+      .filter(Boolean)
+      .map(line => JSON.parse(line) as Record<string, unknown>);
+    expect(branchLogs).toContainEqual(
+      expect.objectContaining({
+        seam_type: 'RULE_DIVERGENCE',
+        event: 'bff.cadence.transport_branch',
+        branch: 'grpc_primary',
+        intent: 'run',
+      }),
+    );
+    expect(branchLogs).toContainEqual(
+      expect.objectContaining({
+        seam_type: 'RULE_DIVERGENCE',
+        event: 'bff.cadence.transport_branch',
+        branch: 'pg19_fallback_transport_unavailable',
+        intent: 'run',
+      }),
+    );
   });
 
   it('enforces atomic 429 quota caps with zero orphan rows and handles concurrent CAS + mid-stream failure', async () => {
@@ -909,9 +950,14 @@ describe('/cadence action & /api/cadence/runs/:runId/stream SSE handler', () => 
       (initRes.init?.headers as Record<string, string> | undefined)?.['X-Correlation-Id'],
     ).toBeTruthy();
 
+    const streamInfoSpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
     const streamRes = await streamLoader(makeStreamArgs(runId, cookie));
     expect(streamRes.status).toBe(200);
     expect(await streamRes.text()).toContain('event: log');
+    expect(streamInfoSpy).toHaveBeenCalledWith(
+      expect.stringContaining('"event":"bff.cadence.transport_branch"'),
+    );
+    expect(streamInfoSpy).toHaveBeenCalledWith(expect.stringContaining('"branch":"grpc_primary"'));
 
     const gateRes = unwrapDataResult(
       await action(makeActionArgs({ intent: 'gate', runId, verdict: 'approved' }, cookie)),

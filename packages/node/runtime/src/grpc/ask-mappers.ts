@@ -58,7 +58,10 @@ export function mapProtoPublicErrorToDomain(
   return parsed.success ? (parsed.data as PublicAppError) : undefined;
 }
 
-export function mapProtoAskSourceToDomain(src: ProtoAskSource): AskSource {
+export function mapProtoAskSourceToDomain(
+  src: ProtoAskSource,
+  logger?: SsrStructuredLogger,
+): AskSource {
   const candidate = {
     ...(nonEmpty(src.id) ? { id: src.id } : {}),
     title: src.title,
@@ -70,6 +73,7 @@ export function mapProtoAskSourceToDomain(src: ProtoAskSource): AskSource {
   };
   const parsed = AskSourceSchema.safeParse(candidate);
   if (!parsed.success) {
+    logAskPayloadViolation(logger, 'AskSourceSchema', undefined);
     throw new GrpcPayloadContractError('AskSourceSchema', parsed.error.message);
   }
   return parsed.data;
@@ -91,7 +95,7 @@ export function mapProtoAskResponseToDomain(
       : {}),
     mode: proto.mode,
     answer: proto.answer,
-    sources: proto.sources.map(mapProtoAskSourceToDomain),
+    sources: proto.sources.map(src => mapProtoAskSourceToDomain(src, logger)),
     ...(proto.suggestedLinks.length > 0
       ? {
           suggestedLinks: proto.suggestedLinks.map(l => ({
@@ -205,7 +209,7 @@ export function mapProtoAskChunkToSse(
       return { event: 'preamble_error', data };
     }
     case 'sources': {
-      const sources = payload.value.sources.map(mapProtoAskSourceToDomain);
+      const sources = payload.value.sources.map(src => mapProtoAskSourceToDomain(src, logger));
       return { event: 'sources', data: { sources } };
     }
     case 'delta':

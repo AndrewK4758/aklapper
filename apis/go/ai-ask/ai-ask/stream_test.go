@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -27,6 +28,17 @@ import (
 	"github.com/AndrewK4758/aklapper/packages/go/kit/privacy"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/qdrant"
 )
+
+type lockedLogWriter struct {
+	mu  *sync.Mutex
+	buf *bytes.Buffer
+}
+
+func (w lockedLogWriter) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.buf.Write(p)
+}
 
 type streamStubLLM struct {
 	chunks       []string
@@ -473,8 +485,18 @@ func TestAskStreamHTTPAndGRPCContracts(t *testing.T) {
 			t.Fatalf("expected CodeNotFound on cross-session GetTurn, got %v", otherErr)
 		}
 
-		// Non-admin Reindex fails closed with CodePermissionDenied + ErrorDetailEnvelope
-		_, reindexGuestErr := client.Reindex(context.Background(), connect.NewRequest(&ai_askv1.ReindexRequest{}))
+		// Non-admin Reindex fails closed with CodePermissionDenied + ErrorDetailEnvelope and emits ai_ask.reindex.unauthorized_role
+		var reindexLogMu sync.Mutex
+		var reindexLogBuf bytes.Buffer
+		var reindexGuestErr error
+		func() {
+			prevLogOut := log.Writer()
+			log.SetOutput(lockedLogWriter{mu: &reindexLogMu, buf: &reindexLogBuf})
+			defer log.SetOutput(prevLogOut)
+			reindexReq := connect.NewRequest(&ai_askv1.ReindexRequest{})
+			reindexReq.Header().Set(grpckit.MetadataCorrelationID, "corr-reindex-rbac")
+			_, reindexGuestErr = client.Reindex(context.Background(), reindexReq)
+		}()
 		var permErr *connect.Error
 		if !errors.As(reindexGuestErr, &permErr) || permErr.Code() != connect.CodePermissionDenied || len(permErr.Details()) == 0 {
 			t.Fatalf("expected CodePermissionDenied with detail on guest Reindex, got %v", reindexGuestErr)
@@ -483,6 +505,15 @@ func TestAskStreamHTTPAndGRPCContracts(t *testing.T) {
 		env, ok := val.(*commonv1.ErrorDetailEnvelope)
 		if valErr != nil || !ok || env.GetError().GetCode() != contracts.ErrCodeForbidden {
 			t.Fatalf("expected ERR_FORBIDDEN ErrorDetailEnvelope, got %+v err=%v", val, valErr)
+		}
+		reindexLogMu.Lock()
+		reindexLogOut := reindexLogBuf.String()
+		reindexLogMu.Unlock()
+		if !strings.Contains(reindexLogOut, `"event":"ai_ask.reindex.unauthorized_role"`) ||
+			!strings.Contains(reindexLogOut, `"seam_type":"UNSOUND_CONDITION"`) ||
+			!strings.Contains(reindexLogOut, `"role":"guest"`) ||
+			!strings.Contains(reindexLogOut, `"correlationId":"corr-reindex-rbac"`) {
+			t.Fatalf("expected structured ai_ask.reindex.unauthorized_role log, got: %s", reindexLogOut)
 		}
 
 		// Unauthenticated client fails closed

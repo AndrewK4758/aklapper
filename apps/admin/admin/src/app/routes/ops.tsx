@@ -42,6 +42,7 @@ export interface AdminOpsStreamData {
 
 export async function loader({ request, context }: Route.LoaderArgs): Promise<AdminOpsStreamData> {
   const correlationId = getOrCreateCorrelationId(request, context);
+  const reqCtx = getRequestContext(context);
   await requireAdminSession(request, { context, source: 'admin.ops.loader' });
 
   return {
@@ -56,7 +57,7 @@ export async function loader({ request, context }: Route.LoaderArgs): Promise<Ad
       })(),
       { request, context, source: 'admin.ops.loader' },
     ),
-    qdrantStatusPayload: deferStreamResult(fetchQdrantStatus(correlationId), {
+    qdrantStatusPayload: deferStreamResult(fetchQdrantStatus(correlationId, reqCtx?.logger), {
       request,
       context,
       source: 'admin.ops.qdrant',

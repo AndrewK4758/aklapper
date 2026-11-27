@@ -29,9 +29,9 @@ export interface GrpcHealthProbeResult {
 export async function probeGrpcServiceHealth(
   options: ProbeGrpcServiceHealthOptions,
 ): Promise<GrpcHealthProbeResult> {
-  const transport = options.transport ?? getOrCreateGoGrpcTransport(options.baseUrl);
-  const client = createClient(Health, transport);
   try {
+    const transport = options.transport ?? getOrCreateGoGrpcTransport(options.baseUrl);
+    const client = createClient(Health, transport);
     const res = await invokeUnaryWithAuth(
       '/grpc.health.v1.Health/Check',
       {

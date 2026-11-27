@@ -1,6 +1,7 @@
 package grpckit
 
 import (
+	"context"
 	"mime"
 	"net/http"
 	"strings"
@@ -50,8 +51,20 @@ func NewHandlerOptions(explicitSecret string) []connect.HandlerOption {
 	}
 }
 
+type checkOnlyChecker struct {
+	inner grpchealth.Checker
+}
+
+func (c checkOnlyChecker) Check(
+	ctx context.Context,
+	req *grpchealth.CheckRequest,
+) (*grpchealth.CheckResponse, error) {
+	return c.inner.Check(ctx, req)
+}
+
 // NewHealthHandler constructs a strict gRPC-only /grpc.health.v1.Health/ handler marking ""
-// and every non-empty serviceName as SERVING without requiring x-internal-auth.
+// and every non-empty serviceName as SERVING for unary Check without requiring x-internal-auth,
+// while leaving streaming Watch unimplemented and auth-gated.
 func NewHealthHandler(serviceNames ...string) (string, http.Handler) {
 	cleaned := make([]string, 0, len(serviceNames))
 	for _, svc := range serviceNames {
@@ -59,7 +72,7 @@ func NewHealthHandler(serviceNames ...string) (string, http.Handler) {
 			cleaned = append(cleaned, trimmed)
 		}
 	}
-	checker := grpchealth.NewStaticChecker(cleaned...)
+	checker := checkOnlyChecker{inner: grpchealth.NewStaticChecker(cleaned...)}
 	path, handler := grpchealth.NewHandler(
 		checker,
 		connect.WithInterceptors(NewServerAuthInterceptor("")),

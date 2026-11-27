@@ -18,8 +18,11 @@ import (
 	"github.com/AndrewK4758/aklapper/packages/go/kit/httpkit"
 	"github.com/AndrewK4758/aklapper/packages/go/kit/internalauth"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 type testAskHandler struct {
@@ -104,6 +107,7 @@ func startTestH2CServer(t *testing.T, mux *http.ServeMux) string {
 
 func TestConnectGRPCAuthMiddlewareAndWireInterop(t *testing.T) {
 	const secret = "grpc-unit-secret"
+	t.Setenv("INTERNAL_AUTH_SECRET", secret)
 	var logs strings.Builder
 	prevOut := log.Writer()
 	log.SetOutput(&logs)
@@ -134,6 +138,51 @@ func TestConnectGRPCAuthMiddlewareAndWireInterop(t *testing.T) {
 			if err != nil || res.GetStatus() != healthpb.HealthCheckResponse_SERVING {
 				t.Fatalf("expected SERVING for %q without auth, got res=%v err=%v", svc, res, err)
 			}
+		}
+	})
+
+	t.Run("Health Watch fails closed with Unauthenticated without HMAC and Unimplemented with valid HMAC", func(t *testing.T) {
+		conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			t.Fatalf("grpc.NewClient: %v", err)
+		}
+		defer conn.Close()
+
+		hc := healthpb.NewHealthClient(conn)
+
+		// 1. Unauthenticated /grpc.health.v1.Health/Watch must be rejected with Unauthenticated.
+		unauthCtx, unauthCancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer unauthCancel()
+		unauthStream, watchErr := hc.Watch(unauthCtx, &healthpb.HealthCheckRequest{Service: ""})
+		if watchErr == nil {
+			_, watchErr = unauthStream.Recv()
+		}
+		if status.Code(watchErr) != codes.Unauthenticated {
+			t.Fatalf("expected Unauthenticated on unauthenticated Health/Watch, got code=%v err=%v", status.Code(watchErr), watchErr)
+		}
+
+		// 2. Authenticated /grpc.health.v1.Health/Watch must fail closed with Unimplemented.
+		tok, signErr := internalauth.Sign(internalauth.RoleService, "health-watch-probe", time.Minute, secret)
+		if signErr != nil {
+			t.Fatalf("internalauth.Sign: %v", signErr)
+		}
+		authCtx, authCancel := context.WithTimeout(
+			metadata.AppendToOutgoingContext(context.Background(), MetadataInternalAuth, tok),
+			2*time.Second,
+		)
+		defer authCancel()
+		authStream, authWatchErr := hc.Watch(authCtx, &healthpb.HealthCheckRequest{Service: "ai_ask.v1.AskService"})
+		if authWatchErr == nil {
+			_, authWatchErr = authStream.Recv()
+		}
+		if status.Code(authWatchErr) != codes.Unimplemented {
+			t.Fatalf("expected Unimplemented on authenticated Health/Watch, got code=%v err=%v", status.Code(authWatchErr), authWatchErr)
+		}
+
+		// 3. /grpc.health.v1.Health/Check without auth still returns SERVING.
+		checkRes, checkErr := hc.Check(context.Background(), &healthpb.HealthCheckRequest{Service: "ai_ask.v1.AskService"})
+		if checkErr != nil || checkRes.GetStatus() != healthpb.HealthCheckResponse_SERVING {
+			t.Fatalf("expected SERVING on Health/Check after Watch checks, got res=%v err=%v", checkRes, checkErr)
 		}
 	})
 

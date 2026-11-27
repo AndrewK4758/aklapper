@@ -9,6 +9,7 @@ import { Code, ConnectError } from '@connectrpc/connect';
 
 import { GcpOidcTokenError } from '../gcp-oidc.ts';
 import {
+  createFallbackLogger,
   extractCorrelationId,
   logDiagnosticError,
   type SsrStructuredLogger,
@@ -62,9 +63,9 @@ function logClassifiedGrpcSeam(
   grpcCode: string,
   fallbackEligible: boolean,
 ): void {
-  if (!logger) return;
-  logDiagnosticError(logger, diagnostic);
-  logger.error(
+  const effectiveLogger = logger ?? createFallbackLogger('node-runtime');
+  logDiagnosticError(effectiveLogger, diagnostic);
+  effectiveLogger.error(
     {
       seam_type: 'BOUNDARY_FAULT',
       event: 'bff.grpc.upstream_error_classified',

@@ -18,7 +18,7 @@ import (
 const (
 	MetadataInternalAuth  = "x-internal-auth"
 	MetadataCorrelationID = "x-correlation-id"
-	HealthMethodPrefix    = "/grpc.health.v1.Health/"
+	HealthCheckProcedure  = "/grpc.health.v1.Health/Check"
 	defaultClientTokenTTL = 60 * time.Second
 )
 
@@ -102,7 +102,7 @@ type serverAuthInterceptor struct {
 }
 
 // NewServerAuthInterceptor enforces default-deny HMAC auth and x-correlation-id echo
-// across both unary and streaming ConnectRPC procedures, allow-listing only /grpc.health.v1.Health/.
+// across both unary and streaming ConnectRPC procedures, allow-listing only /grpc.health.v1.Health/Check.
 func NewServerAuthInterceptor(explicitSecret string) connect.Interceptor {
 	return &serverAuthInterceptor{explicitSecret: explicitSecret}
 }
@@ -114,7 +114,7 @@ func (i *serverAuthInterceptor) authenticate(
 	corrID string,
 ) (context.Context, error) {
 	ctx = context.WithValue(ctx, correlationIDContextKey, corrID)
-	if strings.HasPrefix(procedure, HealthMethodPrefix) {
+	if procedure == HealthCheckProcedure {
 		return ctx, nil
 	}
 

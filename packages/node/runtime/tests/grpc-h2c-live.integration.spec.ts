@@ -5,7 +5,7 @@ import type { AddressInfo } from 'node:net';
 import { create, toBinary } from '@bufbuild/protobuf';
 import { Code, ConnectError, createConnectRouter } from '@connectrpc/connect';
 import { connectNodeAdapter } from '@connectrpc/connect-node';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   bridgeGrpcStreamToSse,
@@ -19,6 +19,7 @@ import {
 } from '../src/grpc.ts';
 import {
   AskService,
+  type AskStreamChunk,
   AskStreamChunkSchema,
   GetAskStatusResponseSchema,
 } from '../src/grpc/gen/ai_ask/v1/ask_pb.ts';
@@ -38,6 +39,7 @@ import {
   HealthCheckResponse_ServingStatus,
   HealthCheckResponseSchema,
 } from '../src/grpc/gen/grpc/health/v1/health_pb.ts';
+import type { SsrStructuredLogger } from '../src/request-context.ts';
 import { clearRuntimeHealthCacheForTest, probeRuntimeServices } from '../src/runtime-health.ts';
 
 const serversToClose: Array<() => Promise<void>> = [];
@@ -245,10 +247,20 @@ describe('Live Node 26 HTTP/2 h2c gRPC transport & SSE bridge integration', () =
       });
     });
 
+    const stallErrorLogs: Array<Record<string, unknown>> = [];
+    const stallLogger: SsrStructuredLogger = {
+      info: () => undefined,
+      warn: () => undefined,
+      error: obj => {
+        stallErrorLogs.push(obj);
+      },
+    };
+
     const response = await bridgeGrpcStreamToSse({
       headerTimeoutMs: 180,
       correlationId: 'corr-stall-1',
       source: 'test.header_stall',
+      logger: stallLogger,
       startStream: ({ signal, onHeader }) =>
         streamAsk(
           {
@@ -260,13 +272,22 @@ describe('Live Node 26 HTTP/2 h2c gRPC transport & SSE bridge integration', () =
           { question: 'Will stall before headers' },
           { onHeader },
         ),
-      mapChunkToSse: chunk => mapProtoAskChunkToSse(chunk),
+      mapChunkToSse: chunk => mapProtoAskChunkToSse(chunk, stallLogger),
     });
 
     expect(response.status).toBe(504);
     const json = (await response.json()) as { code: string; correlationId: string };
     expect(json.code).toBe('ERR_STREAM_TIMEOUT');
     expect(json.correlationId).toBe('corr-stall-1');
+    expect(stallErrorLogs).toContainEqual(
+      expect.objectContaining({
+        seam_type: 'BOUNDARY_FAULT',
+        event: 'bff.grpc.stream_header_timeout',
+        headerTimeoutMs: 180,
+        source: 'test.header_stall',
+        correlationId: 'corr-stall-1',
+      }),
+    );
 
     // Allow RST_STREAM to propagate to server handler.
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -514,5 +535,205 @@ describe('Live Node 26 HTTP/2 h2c gRPC transport & SSE bridge integration', () =
 
     await new Promise(resolve => setTimeout(resolve, 120));
     expect(serverCancelled).toBe(true);
+  });
+
+  it('catches post-header GrpcPayloadContractError, emits BOUNDARY_FAULT + catalog-safe SSE error, aborts upstream, and clears keepalive interval', async () => {
+    let serverObservedAbort = false;
+    const { baseUrl } = await startH2cConnectServer(router => {
+      router.service(AskService, {
+        async *streamAsk(_req, ctx) {
+          yield create(AskStreamChunkSchema, {
+            payload: { case: 'status', value: { stage: 'retrieving', label: 'Starting' } },
+          });
+          // Malformed AskSource violates AskSourceSchema (empty title + out-of-range score).
+          yield create(AskStreamChunkSchema, {
+            payload: {
+              case: 'sources',
+              value: {
+                sources: [{ title: '', snippet: 'malformed source', score: 5.5 }],
+              },
+            },
+          });
+          await new Promise<void>(resolve => {
+            if (ctx.signal.aborted) {
+              serverObservedAbort = true;
+              resolve();
+              return;
+            }
+            ctx.signal.addEventListener(
+              'abort',
+              () => {
+                serverObservedAbort = true;
+                resolve();
+              },
+              { once: true },
+            );
+            setTimeout(resolve, 2000);
+          });
+        },
+      });
+    });
+
+    const errorLogs: Array<Record<string, unknown>> = [];
+    const logger: SsrStructuredLogger = {
+      info: () => undefined,
+      warn: () => undefined,
+      error: obj => {
+        errorLogs.push(obj);
+      },
+    };
+
+    const realSetInterval = globalThis.setInterval;
+    const realClearInterval = globalThis.clearInterval;
+    let activeIntervalHandle: ReturnType<typeof setInterval> | undefined;
+    let streamFinished = false;
+    let leakedTicksAfterClose = 0;
+
+    const setIntervalSpy = vi.spyOn(globalThis, 'setInterval').mockImplementation(((
+      cb: (...args: unknown[]) => void,
+      ms?: number,
+      ...args: unknown[]
+    ) => {
+      const handle = realSetInterval(() => {
+        if (streamFinished) {
+          leakedTicksAfterClose += 1;
+        }
+        cb(...args);
+      }, ms);
+      activeIntervalHandle = handle;
+      return handle;
+    }) as typeof setInterval);
+    const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval');
+
+    try {
+      const response = await bridgeGrpcStreamToSse({
+        headerTimeoutMs: 2000,
+        heartbeatIntervalMs: 30,
+        correlationId: 'corr-post-schema-1',
+        source: 'test.post_schema_fault',
+        logger,
+        startStream: ({ signal, onHeader }) =>
+          streamAsk(
+            {
+              baseUrl,
+              internalAuth: { role: 'guest', subject: 'guest-schema', secret: 'test-secret' },
+              correlationId: 'corr-post-schema-1',
+              signal,
+            },
+            { question: 'Trigger malformed post-header sources chunk' },
+            { onHeader },
+          ),
+        mapChunkToSse: chunk => mapProtoAskChunkToSse(chunk, logger),
+      });
+
+      expect(response.status).toBe(200);
+      const sseText = await response.text();
+      streamFinished = true;
+
+      expect(sseText).toContain('event: status\n');
+      expect(sseText).toContain('event: error\n');
+      expect(sseText).toContain('ERR_UPSTREAM_UNAVAILABLE');
+      expect(sseText).not.toContain('AskSourceSchema');
+      expect(errorLogs).toContainEqual(
+        expect.objectContaining({
+          seam_type: 'BOUNDARY_FAULT',
+          event: 'bff.grpc.payload_contract_violation',
+          schema: 'AskSourceSchema',
+        }),
+      );
+      expect(errorLogs).toContainEqual(
+        expect.objectContaining({
+          seam_type: 'BOUNDARY_FAULT',
+          event: 'bff.grpc.upstream_error_classified',
+          errorCode: 'ERR_UPSTREAM_UNAVAILABLE',
+          grpcCode: 'PAYLOAD_CONTRACT_VIOLATION',
+          correlationId: 'corr-post-schema-1',
+        }),
+      );
+
+      await new Promise(resolve => setTimeout(resolve, 120));
+      expect(serverObservedAbort).toBe(true);
+      expect(activeIntervalHandle).toBeDefined();
+      expect(clearIntervalSpy).toHaveBeenCalledWith(activeIntervalHandle);
+      expect(leakedTicksAfterClose).toBe(0);
+    } finally {
+      if (activeIntervalHandle !== undefined) {
+        realClearInterval(activeIntervalHandle);
+      }
+      setIntervalSpy.mockRestore();
+      clearIntervalSpy.mockRestore();
+    }
+  });
+
+  it('returns 504 ERR_STREAM_TIMEOUT and invokes onPreStreamFailure when header deadline expires concurrently with first-frame arrival', async () => {
+    const errorLogs: Array<Record<string, unknown>> = [];
+    const logger: SsrStructuredLogger = {
+      info: () => undefined,
+      warn: () => undefined,
+      error: obj => {
+        errorLogs.push(obj);
+      },
+    };
+
+    let iteratorReturnCalled = false;
+    let preStreamFailureCode: string | undefined;
+    let preStreamFailureStatus: number | undefined;
+
+    const response = await bridgeGrpcStreamToSse({
+      headerTimeoutMs: 40,
+      correlationId: 'corr-header-race-504',
+      source: 'test.header_race',
+      logger,
+      startStream: ({ signal }): AsyncIterable<AskStreamChunk> => ({
+        [Symbol.asyncIterator]() {
+          return {
+            next(): Promise<IteratorResult<AskStreamChunk>> {
+              return new Promise<IteratorResult<AskStreamChunk>>(resolve => {
+                const firstChunk = create(AskStreamChunkSchema, {
+                  payload: {
+                    case: 'status',
+                    value: { stage: 'retrieving', label: 'Late frame 1' },
+                  },
+                });
+                signal.addEventListener(
+                  'abort',
+                  () => {
+                    resolve({ value: firstChunk, done: false });
+                  },
+                  { once: true },
+                );
+              });
+            },
+            async return(): Promise<IteratorResult<AskStreamChunk>> {
+              iteratorReturnCalled = true;
+              return { value: undefined, done: true };
+            },
+          };
+        },
+      }),
+      mapChunkToSse: chunk => mapProtoAskChunkToSse(chunk, logger),
+      onPreStreamFailure: failure => {
+        preStreamFailureCode = failure.publicError.code;
+        preStreamFailureStatus = failure.publicError.status;
+        return null;
+      },
+    });
+
+    expect(response.status).toBe(504);
+    const body = (await response.json()) as { code: string; correlationId: string };
+    expect(body.code).toBe('ERR_STREAM_TIMEOUT');
+    expect(body.correlationId).toBe('corr-header-race-504');
+    expect(preStreamFailureCode).toBe('ERR_STREAM_TIMEOUT');
+    expect(preStreamFailureStatus).toBe(504);
+    expect(iteratorReturnCalled).toBe(true);
+    expect(errorLogs).toContainEqual(
+      expect.objectContaining({
+        seam_type: 'BOUNDARY_FAULT',
+        event: 'bff.grpc.stream_header_timeout',
+        headerTimeoutMs: 40,
+        source: 'test.header_race',
+        correlationId: 'corr-header-race-504',
+      }),
+    );
   });
 });

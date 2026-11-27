@@ -25,12 +25,14 @@ import {
   isGfeIamAuthRejection,
   mapProtoAskChunkToSse,
   mapProtoAskResponseToDomain,
+  mapProtoAskSourceToDomain,
   mapProtoCadenceChunkToSse,
   mapProtoCadenceRunToDomain,
   triggerReindex,
 } from '../src/grpc.ts';
 import {
   AskResponseSchema as ProtoAskResponseSchema,
+  AskSourceSchema as ProtoAskSourceSchema,
   AskStreamChunkSchema,
   GetAskStatusResponseSchema,
 } from '../src/grpc/gen/ai_ask/v1/ask_pb.ts';
@@ -47,6 +49,7 @@ import {
   PublicAppErrorSchema as ProtoPublicAppErrorSchema,
   QuotaStatusSchema as ProtoQuotaStatusSchema,
 } from '../src/grpc/gen/common/v1/error_pb.ts';
+import type { SsrStructuredLogger } from '../src/request-context.ts';
 
 afterEach(() => {
   clearGcpIdentityTokenCacheForTest();
@@ -275,6 +278,49 @@ describe('Proto3-to-Zod zero-value & optional presence mappers', () => {
     expect(completeFrame?.event).toBe('complete');
     expect(CadenceStreamCompleteEventSchema.safeParse(completeFrame?.data).success).toBe(true);
   });
+
+  it('emits bff.grpc.payload_contract_violation BOUNDARY_FAULT before throwing on malformed AskSource and CadenceRunResult payloads', () => {
+    const errorLogs: Array<Record<string, unknown>> = [];
+    const logger: SsrStructuredLogger = {
+      info: () => undefined,
+      warn: () => undefined,
+      error: obj => {
+        errorLogs.push(obj);
+      },
+    };
+
+    expect(() =>
+      mapProtoAskSourceToDomain(
+        create(ProtoAskSourceSchema, { title: '', snippet: 'bad', score: 2.5 }),
+        logger,
+      ),
+    ).toThrow(GrpcPayloadContractError);
+    expect(errorLogs).toContainEqual(
+      expect.objectContaining({
+        seam_type: 'BOUNDARY_FAULT',
+        event: 'bff.grpc.payload_contract_violation',
+        schema: 'AskSourceSchema',
+      }),
+    );
+
+    expect(() =>
+      mapProtoCadenceRunToDomain(
+        create(ProtoCadenceRunResultSchema, {
+          runId: '',
+          prompt: '',
+          gateVerdict: 'invalid-verdict',
+        }),
+        logger,
+      ),
+    ).toThrow(GrpcPayloadContractError);
+    expect(errorLogs).toContainEqual(
+      expect.objectContaining({
+        seam_type: 'BOUNDARY_FAULT',
+        event: 'bff.grpc.payload_contract_violation',
+        schema: 'CadenceRunResultSchema',
+      }),
+    );
+  });
 });
 
 describe('classifyGrpcError fail-closed redaction and fallback boundary', () => {
@@ -419,6 +465,74 @@ describe('classifyGrpcError fail-closed redaction and fallback boundary', () => 
     expect(res422.publicError.status).toBe(422);
     expect(res422.publicError.code).toBe('ERR_CONSTRAINT');
   });
+
+  it('emits bff.grpc.upstream_error_classified via explicit logger and falls back to structured stderr logger when omitted', () => {
+    const errorLogs: Array<Record<string, unknown>> = [];
+    const logger: SsrStructuredLogger = {
+      info: () => undefined,
+      warn: () => undefined,
+      error: obj => {
+        errorLogs.push(obj);
+      },
+    };
+
+    const explicitFailure = classifyGrpcError(
+      new ConnectError('upstream unavailable', Code.Unavailable),
+      {
+        correlationId: 'corr-seam-explicit',
+        source: 'test.explicit_logger',
+        logger,
+      },
+    );
+    expect(explicitFailure.publicError.status).toBe(502);
+    expect(explicitFailure.publicError.code).toBe('ERR_UPSTREAM_UNAVAILABLE');
+    expect(errorLogs).toContainEqual(
+      expect.objectContaining({
+        seam_type: 'BOUNDARY_FAULT',
+        event: 'bff.grpc.upstream_error_classified',
+        errorCode: 'ERR_UPSTREAM_UNAVAILABLE',
+        httpStatus: 502,
+        grpcCode: 'Unavailable',
+        isFallbackTransportError: true,
+        source: 'test.explicit_logger',
+        correlationId: 'corr-seam-explicit',
+      }),
+    );
+
+    const stderrChunks: string[] = [];
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(chunk => {
+      stderrChunks.push(String(chunk));
+      return true;
+    });
+    const fallbackFailure = classifyGrpcError(
+      new ConnectError('deadline exceeded', Code.DeadlineExceeded),
+      {
+        correlationId: 'corr-seam-fallback',
+        source: 'test.fallback_logger',
+      },
+    );
+    expect(fallbackFailure.publicError.status).toBe(504);
+    expect(fallbackFailure.publicError.code).toBe('ERR_STREAM_TIMEOUT');
+    expect(stderrSpy).toHaveBeenCalled();
+    const parsedEntries = stderrChunks
+      .join('')
+      .split('\n')
+      .filter(Boolean)
+      .map(line => JSON.parse(line) as Record<string, unknown>);
+    expect(parsedEntries).toContainEqual(
+      expect.objectContaining({
+        service: 'node-runtime',
+        seam_type: 'BOUNDARY_FAULT',
+        event: 'bff.grpc.upstream_error_classified',
+        errorCode: 'ERR_STREAM_TIMEOUT',
+        httpStatus: 504,
+        grpcCode: 'DeadlineExceeded',
+        isFallbackTransportError: true,
+        source: 'test.fallback_logger',
+        correlationId: 'corr-seam-fallback',
+      }),
+    );
+  });
 });
 
 describe('OIDC + HMAC auth interceptor & IAM 401/403 disambiguation', () => {
@@ -428,6 +542,14 @@ describe('OIDC + HMAC auth interceptor & IAM 401/403 disambiguation', () => {
     expect(IDEMPOTENT_OIDC_RETRY_PROCEDURES.has('/ai_ask.v1.AskService/Reindex')).toBe(false);
 
     let metadataFetches = 0;
+    const oidcInfoLogs: Array<Record<string, unknown>> = [];
+    const oidcLogger: SsrStructuredLogger = {
+      info: obj => {
+        oidcInfoLogs.push(obj);
+      },
+      warn: () => undefined,
+      error: () => undefined,
+    };
     const mockFetch: typeof fetch = vi.fn<typeof fetch>(async () => {
       metadataFetches += 1;
       const exp = Math.floor(Date.now() / 1000) + 3600;
@@ -466,12 +588,22 @@ describe('OIDC + HMAC auth interceptor & IAM 401/403 disambiguation', () => {
       internalAuth: { role: 'service', subject: 'portal-ask-status', secret: 'test-secret' },
       correlationId: 'corr-idemp-1',
       fetchImpl: mockFetch,
+      logger: oidcLogger,
       transport: statusTransport,
     });
     expect(status.status).toBe('ready');
     expect(statusCalls).toBe(2);
     expect(metadataFetches).toBe(2);
     expect(seenAuthHeaders[0]).not.toBe(seenAuthHeaders[1]);
+    expect(oidcInfoLogs).toContainEqual(
+      expect.objectContaining({
+        seam_type: 'RULE_DIVERGENCE',
+        event: 'bff.grpc.oidc_auth_branch',
+        branch: 'gfe_evict_retry_idempotent',
+        procedure: '/ai_ask.v1.AskService/GetAskStatus',
+        correlationId: 'corr-idemp-1',
+      }),
+    );
 
     // 2. Container-level CodePermissionDenied carrying echoed x-correlation-id + application/grpc does NOT evict OIDC cache.
     const containerPermErr = new ConnectError(
@@ -495,10 +627,20 @@ describe('OIDC + HMAC auth interceptor & IAM 401/403 disambiguation', () => {
         internalAuth: { role: 'guest', subject: 'guest-1', secret: 'test-secret' },
         correlationId: 'corr-app-403',
         fetchImpl: mockFetch,
+        logger: oidcLogger,
         transport: reindexTransport,
       }),
     ).rejects.toThrow(ConnectError);
     expect(reindexCalls).toBe(1);
+    expect(oidcInfoLogs).toContainEqual(
+      expect.objectContaining({
+        seam_type: 'RULE_DIVERGENCE',
+        event: 'bff.grpc.oidc_auth_branch',
+        branch: 'app_auth_passthrough',
+        procedure: '/ai_ask.v1.AskService/Reindex',
+        correlationId: 'corr-app-403',
+      }),
+    );
     // Token remained cached (no eviction -> next read reuses metadataFetches === 2).
     const cachedTransport = createFakeTransport(async () => ({
       message: create(GetAskStatusResponseSchema, { status: 'ready', provider: 'vertex' }),
@@ -525,12 +667,22 @@ describe('OIDC + HMAC auth interceptor & IAM 401/403 disambiguation', () => {
           internalAuth: { role: 'guest', subject: 'guest-2', secret: 'test-secret' },
           correlationId: 'corr-mut-1',
           fetchImpl: mockFetch,
+          logger: oidcLogger,
           transport: mutatingTransport,
         },
         { mode: 'qa', question: 'Do not double debit quota' },
       ),
     ).rejects.toThrow(ConnectError);
     expect(askCalls).toBe(1);
+    expect(oidcInfoLogs).toContainEqual(
+      expect.objectContaining({
+        seam_type: 'RULE_DIVERGENCE',
+        event: 'bff.grpc.oidc_auth_branch',
+        branch: 'gfe_evict_no_retry_mutating',
+        procedure: '/ai_ask.v1.AskService/Ask',
+        correlationId: 'corr-mut-1',
+      }),
+    );
     // Next call fetches a fresh token (proving eviction happened without retrying mutating RPC).
     await getAskStatus({
       baseUrl: 'https://ai-ask-test.a.run.app',

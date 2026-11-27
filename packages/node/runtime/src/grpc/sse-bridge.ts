@@ -194,6 +194,11 @@ export async function bridgeGrpcStreamToSse<TChunk>(
     return handlePreStreamError(error);
   }
 
+  if (headerTimedOut || streamAbort.signal.aborted) {
+    await iterator.return?.().catch(() => undefined);
+    return handlePreStreamError(streamAbort.signal.reason);
+  }
+
   const encoder = new TextEncoder();
   const keepaliveBytes = encoder.encode(': keepalive\n\n');
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
@@ -213,6 +218,14 @@ export async function bridgeGrpcStreamToSse<TChunk>(
     emitSseTerminationMetric(logger, branch, options.source, correlationId);
   };
 
+  const safeCloseController = (controller: ReadableStreamDefaultController<Uint8Array>): void => {
+    try {
+      controller.close();
+    } catch {
+      closed = true;
+    }
+  };
+
   const responseHeaders = new Headers({
     'content-type': 'text/event-stream; charset=utf-8',
     'cache-control': 'no-cache',
@@ -229,31 +242,48 @@ export async function bridgeGrpcStreamToSse<TChunk>(
           try {
             controller.enqueue(keepaliveBytes);
           } catch {
-            // Stream already closed.
+            if (!streamAbort.signal.aborted) {
+              streamAbort.abort(new DOMException('SSE controller closed', 'AbortError'));
+            }
+            stopResources('client_aborted');
           }
         }, heartbeatIntervalMs);
+        heartbeatTimer.unref?.();
       }
     },
     async pull(controller) {
       while (!closed) {
-        let item: IteratorResult<TChunk>;
         try {
+          let item: IteratorResult<TChunk>;
           if (queuedFirst !== null) {
             item = queuedFirst;
             queuedFirst = null;
           } else {
             item = await iterator.next();
           }
-        } catch (error) {
-          if (streamAbort.signal.aborted || options.signal?.aborted) {
-            stopResources('client_aborted');
-            try {
-              controller.close();
-            } catch {
-              // Ignore already closed stream.
-            }
+          if (closed) return;
+
+          if (item.done) {
+            stopResources(options.signal?.aborted ? 'client_aborted' : 'completed');
+            safeCloseController(controller);
             return;
           }
+
+          const mapped = options.mapChunkToSse(item.value);
+          if (mapped) {
+            controller.enqueue(encodeSseFrame(mapped.event, mapped.data));
+            return;
+          }
+        } catch (error) {
+          if (closed || streamAbort.signal.aborted || options.signal?.aborted) {
+            stopResources('client_aborted');
+            safeCloseController(controller);
+            return;
+          }
+          if (!streamAbort.signal.aborted) {
+            streamAbort.abort(error);
+          }
+          void iterator.return?.().catch(() => undefined);
           const failure = classifyGrpcError(error, {
             correlationId,
             source: options.source,
@@ -268,24 +298,8 @@ export async function bridgeGrpcStreamToSse<TChunk>(
             controller.enqueue(encodeSseFrame(frame.event, frame.data));
             controller.close();
           } catch {
-            // Ignore already closed stream.
+            closed = true;
           }
-          return;
-        }
-
-        if (item.done) {
-          stopResources(options.signal?.aborted ? 'client_aborted' : 'completed');
-          try {
-            controller.close();
-          } catch {
-            // Ignore already closed stream.
-          }
-          return;
-        }
-
-        const mapped = options.mapChunkToSse(item.value);
-        if (mapped) {
-          controller.enqueue(encodeSseFrame(mapped.event, mapped.data));
           return;
         }
       }

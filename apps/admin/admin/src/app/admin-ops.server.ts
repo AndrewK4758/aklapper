@@ -92,7 +92,10 @@ function toCollectionHealth(entry: QdrantCollectionHealth): QdrantCollectionHeal
 
 export const QDRANT_REINDEX_TIMEOUT_MS = 90_000;
 
-export async function fetchQdrantStatus(correlationId?: string): Promise<QdrantHealthStatus> {
+export async function fetchQdrantStatus(
+  correlationId?: string,
+  logger?: SsrStructuredLogger,
+): Promise<QdrantHealthStatus> {
   const resolvedCorrId = correlationId?.trim() || randomUUID();
   const [aiAskUrl, qdrantUrl, qdrantApiKey] = [
     process.env['AI_ASK_URL']?.trim(),
@@ -109,6 +112,7 @@ export async function fetchQdrantStatus(correlationId?: string): Promise<QdrantH
         internalAuth: { role: 'admin', subject: 'admin-console-status' },
         correlationId: resolvedCorrId,
         timeoutMs: 2_500,
+        ...(logger ? { logger } : {}),
       });
       const col = res.collection;
       const provider = res.provider.trim() || 'dual-provider';
@@ -146,6 +150,7 @@ export async function fetchQdrantStatus(correlationId?: string): Promise<QdrantH
       const failure = classifyGrpcError(error, {
         correlationId: resolvedCorrId,
         source: 'admin.ops.qdrant_status',
+        ...(logger ? { logger } : {}),
       });
       if (!isFallbackTransportError(failure)) {
         return parse({
@@ -298,12 +303,15 @@ export async function probePublicClusterHealth(
   };
 }
 
-export async function buildOverviewHealthSummary(correlationId?: string): Promise<{
+export async function buildOverviewHealthSummary(
+  correlationId?: string,
+  logger?: SsrStructuredLogger,
+): Promise<{
   qdrantHealth: AdminServiceHealth;
   portfolioPublicHealth: AdminServiceHealth;
 }> {
   const [qdrant, portfolioPublicHealth] = await Promise.all([
-    fetchQdrantStatus(correlationId),
+    fetchQdrantStatus(correlationId, logger),
     probePublicClusterHealth(correlationId),
   ]);
 
