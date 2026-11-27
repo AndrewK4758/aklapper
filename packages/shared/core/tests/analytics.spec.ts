@@ -186,6 +186,11 @@ describe('@aklapper/core/analytics', () => {
       await vi.advanceTimersByTimeAsync(1000);
       expect(fetchSpy).toHaveBeenCalledTimes(1);
 
+      // Interactive pane opens also flush promptly after the debounce window
+      trackPaneOpen('/about', 'desktop');
+      await vi.advanceTimersByTimeAsync(350);
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+
       unsubscribe();
     } finally {
       vi.useRealTimers();

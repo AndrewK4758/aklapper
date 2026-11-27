@@ -234,7 +234,7 @@ export function createAnalyticsClient(options: AnalyticsClientOptions): Analytic
       flush();
       return;
     }
-    if (event.type === 'page_view') {
+    if (event.type === 'page_view' || event.type === 'interaction') {
       schedulePromptFlush();
     }
   };
