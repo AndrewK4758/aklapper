@@ -105,7 +105,13 @@ func StartBinary(t *testing.T, serviceDir string, extraEnv ...string) string {
 		}
 	})
 
-	client := &http.Client{Timeout: 500 * time.Millisecond}
+	client := &http.Client{
+		Timeout: 500 * time.Millisecond,
+		Transport: &http.Transport{
+			DisableKeepAlives: true,
+		},
+	}
+	defer client.CloseIdleConnections()
 	deadline := time.Now().Add(10 * time.Second)
 	for time.Now().Before(deadline) {
 		select {
@@ -148,7 +154,14 @@ func DoRequest(t *testing.T, method, url string, rawBody []byte, headers map[str
 		req.Header.Set(k, v)
 	}
 
-	res, err := (&http.Client{Timeout: 10 * time.Second}).Do(req)
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+		Transport: &http.Transport{
+			DisableKeepAlives: true,
+		},
+	}
+	defer client.CloseIdleConnections()
+	res, err := client.Do(req)
 	if err != nil {
 		t.Fatalf("http %s %s: %v", method, url, err)
 	}

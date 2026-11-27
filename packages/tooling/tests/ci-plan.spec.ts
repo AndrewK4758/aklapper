@@ -232,7 +232,10 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
     expect(workflow).toContain('admin_service_url:');
     expect(workflow).toContain('cd.admin_iap.edge_unprotected');
     expect(workflow).toContain('cd.post_deploy_smoke.verified');
-    expect(workflow).toContain('gcloud auth print-identity-token');
+    expect(workflow).toContain("token_format: 'id_token'");
+    expect(workflow).toContain('id_token_audience:');
+    expect(workflow).toContain('sparse-checkout: .github/workflows');
+    expect(workflow).not.toContain('gcloud auth print-identity-token');
     expect(workflow).toContain('^https://[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.run\\.app$');
     expect(workflow).toContain('--grep @smoke');
     expect(workflow).toContain('seed_mode:');
