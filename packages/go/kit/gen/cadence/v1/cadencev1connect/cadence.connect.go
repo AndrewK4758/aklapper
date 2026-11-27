@@ -44,6 +44,9 @@ const (
 	// CadenceServiceSubmitGateVerdictProcedure is the fully-qualified name of the CadenceService's
 	// SubmitGateVerdict RPC.
 	CadenceServiceSubmitGateVerdictProcedure = "/cadence.v1.CadenceService/SubmitGateVerdict"
+	// CadenceServiceClearSessionRunsProcedure is the fully-qualified name of the CadenceService's
+	// ClearSessionRuns RPC.
+	CadenceServiceClearSessionRunsProcedure = "/cadence.v1.CadenceService/ClearSessionRuns"
 	// CadenceServiceStreamRunProcedure is the fully-qualified name of the CadenceService's StreamRun
 	// RPC.
 	CadenceServiceStreamRunProcedure = "/cadence.v1.CadenceService/StreamRun"
@@ -55,6 +58,7 @@ type CadenceServiceClient interface {
 	ListRuns(context.Context, *connect.Request[v1.ListRunsRequest]) (*connect.Response[v1.ListRunsResponse], error)
 	ApproveSpecGate(context.Context, *connect.Request[v1.ApproveSpecGateRequest]) (*connect.Response[v1.ApproveSpecGateResponse], error)
 	SubmitGateVerdict(context.Context, *connect.Request[v1.SubmitGateVerdictRequest]) (*connect.Response[v1.SubmitGateVerdictResponse], error)
+	ClearSessionRuns(context.Context, *connect.Request[v1.ClearSessionRunsRequest]) (*connect.Response[v1.ClearSessionRunsResponse], error)
 	StreamRun(context.Context, *connect.Request[v1.StreamRunRequest]) (*connect.ServerStreamForClient[v1.StreamRunResponse], error)
 }
 
@@ -93,6 +97,12 @@ func NewCadenceServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(cadenceServiceMethods.ByName("SubmitGateVerdict")),
 			connect.WithClientOptions(opts...),
 		),
+		clearSessionRuns: connect.NewClient[v1.ClearSessionRunsRequest, v1.ClearSessionRunsResponse](
+			httpClient,
+			baseURL+CadenceServiceClearSessionRunsProcedure,
+			connect.WithSchema(cadenceServiceMethods.ByName("ClearSessionRuns")),
+			connect.WithClientOptions(opts...),
+		),
 		streamRun: connect.NewClient[v1.StreamRunRequest, v1.StreamRunResponse](
 			httpClient,
 			baseURL+CadenceServiceStreamRunProcedure,
@@ -108,6 +118,7 @@ type cadenceServiceClient struct {
 	listRuns          *connect.Client[v1.ListRunsRequest, v1.ListRunsResponse]
 	approveSpecGate   *connect.Client[v1.ApproveSpecGateRequest, v1.ApproveSpecGateResponse]
 	submitGateVerdict *connect.Client[v1.SubmitGateVerdictRequest, v1.SubmitGateVerdictResponse]
+	clearSessionRuns  *connect.Client[v1.ClearSessionRunsRequest, v1.ClearSessionRunsResponse]
 	streamRun         *connect.Client[v1.StreamRunRequest, v1.StreamRunResponse]
 }
 
@@ -131,6 +142,11 @@ func (c *cadenceServiceClient) SubmitGateVerdict(ctx context.Context, req *conne
 	return c.submitGateVerdict.CallUnary(ctx, req)
 }
 
+// ClearSessionRuns calls cadence.v1.CadenceService.ClearSessionRuns.
+func (c *cadenceServiceClient) ClearSessionRuns(ctx context.Context, req *connect.Request[v1.ClearSessionRunsRequest]) (*connect.Response[v1.ClearSessionRunsResponse], error) {
+	return c.clearSessionRuns.CallUnary(ctx, req)
+}
+
 // StreamRun calls cadence.v1.CadenceService.StreamRun.
 func (c *cadenceServiceClient) StreamRun(ctx context.Context, req *connect.Request[v1.StreamRunRequest]) (*connect.ServerStreamForClient[v1.StreamRunResponse], error) {
 	return c.streamRun.CallServerStream(ctx, req)
@@ -142,6 +158,7 @@ type CadenceServiceHandler interface {
 	ListRuns(context.Context, *connect.Request[v1.ListRunsRequest]) (*connect.Response[v1.ListRunsResponse], error)
 	ApproveSpecGate(context.Context, *connect.Request[v1.ApproveSpecGateRequest]) (*connect.Response[v1.ApproveSpecGateResponse], error)
 	SubmitGateVerdict(context.Context, *connect.Request[v1.SubmitGateVerdictRequest]) (*connect.Response[v1.SubmitGateVerdictResponse], error)
+	ClearSessionRuns(context.Context, *connect.Request[v1.ClearSessionRunsRequest]) (*connect.Response[v1.ClearSessionRunsResponse], error)
 	StreamRun(context.Context, *connect.Request[v1.StreamRunRequest], *connect.ServerStream[v1.StreamRunResponse]) error
 }
 
@@ -176,6 +193,12 @@ func NewCadenceServiceHandler(svc CadenceServiceHandler, opts ...connect.Handler
 		connect.WithSchema(cadenceServiceMethods.ByName("SubmitGateVerdict")),
 		connect.WithHandlerOptions(opts...),
 	)
+	cadenceServiceClearSessionRunsHandler := connect.NewUnaryHandler(
+		CadenceServiceClearSessionRunsProcedure,
+		svc.ClearSessionRuns,
+		connect.WithSchema(cadenceServiceMethods.ByName("ClearSessionRuns")),
+		connect.WithHandlerOptions(opts...),
+	)
 	cadenceServiceStreamRunHandler := connect.NewServerStreamHandler(
 		CadenceServiceStreamRunProcedure,
 		svc.StreamRun,
@@ -192,6 +215,8 @@ func NewCadenceServiceHandler(svc CadenceServiceHandler, opts ...connect.Handler
 			cadenceServiceApproveSpecGateHandler.ServeHTTP(w, r)
 		case CadenceServiceSubmitGateVerdictProcedure:
 			cadenceServiceSubmitGateVerdictHandler.ServeHTTP(w, r)
+		case CadenceServiceClearSessionRunsProcedure:
+			cadenceServiceClearSessionRunsHandler.ServeHTTP(w, r)
 		case CadenceServiceStreamRunProcedure:
 			cadenceServiceStreamRunHandler.ServeHTTP(w, r)
 		default:
@@ -217,6 +242,10 @@ func (UnimplementedCadenceServiceHandler) ApproveSpecGate(context.Context, *conn
 
 func (UnimplementedCadenceServiceHandler) SubmitGateVerdict(context.Context, *connect.Request[v1.SubmitGateVerdictRequest]) (*connect.Response[v1.SubmitGateVerdictResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cadence.v1.CadenceService.SubmitGateVerdict is not implemented"))
+}
+
+func (UnimplementedCadenceServiceHandler) ClearSessionRuns(context.Context, *connect.Request[v1.ClearSessionRunsRequest]) (*connect.Response[v1.ClearSessionRunsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cadence.v1.CadenceService.ClearSessionRuns is not implemented"))
 }
 
 func (UnimplementedCadenceServiceHandler) StreamRun(context.Context, *connect.Request[v1.StreamRunRequest], *connect.ServerStream[v1.StreamRunResponse]) error {

@@ -389,3 +389,100 @@ func TestConnectGRPCAuthMiddlewareAndWireInterop(t *testing.T) {
 		}
 	})
 }
+
+func TestExtractSignedClientIPAndErrorDetails(t *testing.T) {
+	const secret = "client-ip-test-secret"
+	var logs strings.Builder
+	prevOut := log.Writer()
+	log.SetOutput(&logs)
+	defer log.SetOutput(prevOut)
+
+	validIPv4Tok, err := internalauth.Sign(internalauth.RoleService, "client-ip:198.51.100.42", time.Minute, secret)
+	if err != nil {
+		t.Fatalf("sign ipv4: %v", err)
+	}
+	validIPv6Tok, err := internalauth.Sign(internalauth.RoleService, "client-ip:2001:db8::42", time.Minute, secret)
+	if err != nil {
+		t.Fatalf("sign ipv6: %v", err)
+	}
+	expiredTok, _ := internalauth.SignWithClock(internalauth.RoleService, "client-ip:198.51.100.99", time.Now().Add(-5*time.Minute), time.Minute, secret)
+	wrongRoleTok, _ := internalauth.Sign(internalauth.RoleGuest, "client-ip:198.51.100.42", time.Minute, secret)
+	wrongPrefixTok, _ := internalauth.Sign(internalauth.RoleService, "portal-ssr", time.Minute, secret)
+	badIPTok, _ := internalauth.Sign(internalauth.RoleService, "client-ip:not-an-ip", time.Minute, secret)
+
+	hdrOK := http.Header{}
+	hdrOK.Set(MetadataInternalClientIP, validIPv4Tok)
+	ip, err := ExtractSignedClientIP(hdrOK, secret)
+	if err != nil || ip != "198.51.100.42" {
+		t.Fatalf("expected 198.51.100.42, got ip=%q err=%v", ip, err)
+	}
+
+	hdrV6 := http.Header{}
+	hdrV6.Set(MetadataInternalClientIP, validIPv6Tok)
+	ipv6, err := ExtractSignedClientIP(hdrV6, secret)
+	if err != nil || ipv6 != "2001:db8::42" {
+		t.Fatalf("expected 2001:db8::42, got ip=%q err=%v", ipv6, err)
+	}
+
+	rejectCases := []struct {
+		name string
+		vals []string
+	}{
+		{"missing", nil},
+		{"duplicate", []string{validIPv4Tok, validIPv4Tok}},
+		{"expired", []string{expiredTok}},
+		{"forged", []string{validIPv4Tok + "tamper"}},
+		{"wrong_role", []string{wrongRoleTok}},
+		{"wrong_prefix", []string{wrongPrefixTok}},
+		{"invalid_ip", []string{badIPTok}},
+	}
+	for _, tc := range rejectCases {
+		h := http.Header{}
+		for _, v := range tc.vals {
+			h.Add(MetadataInternalClientIP, v)
+		}
+		_, rejErr := ExtractSignedClientIP(h, secret)
+		var cErr *connect.Error
+		if !errors.As(rejErr, &cErr) || cErr.Code() != connect.CodeUnauthenticated {
+			t.Fatalf("case %s: expected CodeUnauthenticated, got %v", tc.name, rejErr)
+		}
+	}
+
+	logText := logs.String()
+	if !strings.Contains(logText, "portal_api.client_ip.untrusted") {
+		t.Fatalf("expected UNSOUND_CONDITION portal_api.client_ip.untrusted log, got %s", logText)
+	}
+	if strings.Contains(logText, "198.51.100.42") || strings.Contains(logText, "198.51.100.99") || strings.Contains(logText, validIPv4Tok) {
+		t.Fatalf("client IP or signed token leaked into logs: %s", logText)
+	}
+
+	retryAfter := int32(45)
+	detailed := NewDetailedConnectErrorWithRetryAfter(
+		connect.CodeFailedPrecondition,
+		ToProtoPublicError(&contracts.PublicAppError{
+			Code:          contracts.ErrCodeConstraint,
+			Status:        http.StatusUnprocessableEntity,
+			Message:       "Data failed storage validation.",
+			Action:        "Check highlighted fields and retry.",
+			CorrelationID: "corr-detail-01",
+			FieldErrors:   map[string][]string{"message": {"Message too short."}},
+		}),
+		nil,
+		&retryAfter,
+	)
+	if len(detailed.Details()) != 1 {
+		t.Fatalf("expected 1 detail envelope, got %d", len(detailed.Details()))
+	}
+	rawVal, err := detailed.Details()[0].Value()
+	if err != nil {
+		t.Fatalf("decode detail: %v", err)
+	}
+	env, ok := rawVal.(*commonv1.ErrorDetailEnvelope)
+	if !ok || env.GetRetryAfterSeconds() != 45 {
+		t.Fatalf("expected retry_after_seconds=45, got %+v", rawVal)
+	}
+	msgs := env.GetError().GetFieldErrors()["message"].GetMessages()
+	if len(msgs) != 1 || msgs[0] != "Message too short." {
+		t.Fatalf("expected mapped field_errors, got %+v", env.GetError().GetFieldErrors())
+	}
+}

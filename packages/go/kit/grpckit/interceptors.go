@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
+	"net/netip"
 	"regexp"
 	"strings"
 	"time"
@@ -16,10 +18,12 @@ import (
 )
 
 const (
-	MetadataInternalAuth  = "x-internal-auth"
-	MetadataCorrelationID = "x-correlation-id"
-	HealthCheckProcedure  = "/grpc.health.v1.Health/Check"
-	defaultClientTokenTTL = 60 * time.Second
+	MetadataInternalAuth     = "x-internal-auth"
+	MetadataInternalClientIP = "x-internal-client-ip"
+	MetadataCorrelationID    = "x-correlation-id"
+	HealthCheckProcedure     = "/grpc.health.v1.Health/Check"
+	clientIPSubjectPrefix    = "client-ip:"
+	defaultClientTokenTTL    = 60 * time.Second
 )
 
 var correlationIDPattern = regexp.MustCompile(`^[A-Za-z0-9._:-]{1,128}$`)
@@ -55,6 +59,54 @@ func CorrelationIDFromContext(ctx context.Context) string {
 	}
 	corrID, _ := ctx.Value(correlationIDContextKey).(string)
 	return corrID
+}
+
+// ExtractSignedClientIP verifies a single HMAC-signed x-internal-client-ip header carrying
+// role="service" and sub="client-ip:<valid-ip>". Rejects missing, duplicate, expired, tampered,
+// or non-IP values fail-closed without logging raw visitor IPs or tokens.
+func ExtractSignedClientIP(header http.Header, explicitSecret string) (string, error) {
+	if header == nil {
+		logGRPCSeam("UNSOUND_CONDITION", "portal_api.client_ip.untrusted", map[string]any{
+			"reason": "missing_header",
+		})
+		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("signed x-internal-client-ip metadata required"))
+	}
+	vals := header.Values(MetadataInternalClientIP)
+	if len(vals) != 1 {
+		reason := "missing_header"
+		if len(vals) > 1 {
+			reason = "duplicate_header"
+		}
+		logGRPCSeam("UNSOUND_CONDITION", "portal_api.client_ip.untrusted", map[string]any{
+			"reason":      reason,
+			"headerCount": len(vals),
+		})
+		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("signed x-internal-client-ip metadata required"))
+	}
+
+	claims, err := internalauth.Verify(vals[0], explicitSecret)
+	if err != nil || claims == nil {
+		logGRPCSeam("UNSOUND_CONDITION", "portal_api.client_ip.untrusted", map[string]any{
+			"reason": "invalid_or_expired_token",
+		})
+		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("invalid signed client IP token"))
+	}
+	if claims.Role != internalauth.RoleService || !strings.HasPrefix(claims.Sub, clientIPSubjectPrefix) {
+		logGRPCSeam("UNSOUND_CONDITION", "portal_api.client_ip.untrusted", map[string]any{
+			"reason": "invalid_claims_scope",
+		})
+		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("invalid signed client IP claims"))
+	}
+
+	rawIP := strings.TrimSpace(strings.TrimPrefix(claims.Sub, clientIPSubjectPrefix))
+	addr, parseErr := netip.ParseAddr(rawIP)
+	if parseErr != nil || !addr.IsValid() {
+		logGRPCSeam("UNSOUND_CONDITION", "portal_api.client_ip.untrusted", map[string]any{
+			"reason": "invalid_ip_address",
+		})
+		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("invalid client IP address in signed metadata"))
+	}
+	return addr.Unmap().String(), nil
 }
 
 func logGRPCSeam(seamType, event string, fields map[string]any) {

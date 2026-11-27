@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package portal.v1;
+
+option go_package = "github.com/AndrewK4758/aklapper/packages/go/kit/gen/portal/v1;portalv1";
+
+service AgensiService {
+  rpc GetCatalog(GetCatalogRequest) returns (GetCatalogResponse);
+}
+
+message StatusBadgeSpec {
+  string source = 1;
+  string state = 2;
+  string label = 3;
+}
+
+message AgensiSkill {
+  string slug = 1;
+  string name = 2;
+  string summary = 3;
+  repeated string tags = 4;
+  string url = 5;
+  int32 sort_order = 6;
+  optional string creator_handle = 7;
+  bool is_published = 8;
+  optional string synced_at = 9;
+  string source = 10;
+}
+
+message AgensiCatalogMeta {
+  string mode = 1;
+  string creator_handle = 2;
+  optional string synced_at = 3;
+}
+
+message AgensiSyncState {
+  string creator_handle = 1;
+  optional string last_synced_at = 2;
+  optional string last_attempt_at = 3;
+  string last_status = 4;
+  optional string last_error = 5;
+  int32 item_count = 6;
+}
+
+message GetCatalogRequest {
+  bool force_refresh = 1;
+}
+
+message GetCatalogResponse {
+  string content_json = 1;
+  repeated AgensiSkill skills = 2;
+  AgensiCatalogMeta catalog_meta = 3;
+  StatusBadgeSpec status_badge_override = 4;
+  AgensiSyncState sync_state = 5;
+}

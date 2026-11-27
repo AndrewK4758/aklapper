@@ -406,6 +406,19 @@ func TestCadenceDemoEndToEnd(t *testing.T) {
 		if err != nil || len(listRes.Msg.GetRuns()) != 1 || listRes.Msg.GetQuota() == nil {
 			t.Fatalf("ListRuns failed: %+v err=%v", listRes, err)
 		}
+
+		clearRes, err := client.ClearSessionRuns(context.Background(), connect.NewRequest(&cadencev1.ClearSessionRunsRequest{}))
+		if err != nil || clearRes.Msg.GetDeletedCount() != 1 {
+			t.Fatalf("ClearSessionRuns failed: %+v err=%v", clearRes, err)
+		}
+
+		listAfterClear, err := client.ListRuns(context.Background(), connect.NewRequest(&cadencev1.ListRunsRequest{
+			SessionId: "e2e-grpc-cadence",
+			Limit:     10,
+		}))
+		if err != nil || len(listAfterClear.Msg.GetRuns()) != 0 {
+			t.Fatalf("expected 0 runs after ClearSessionRuns, got %+v err=%v", listAfterClear, err)
+		}
 	})
 
 	t.Run("Production startup fails closed when INTERNAL_AUTH_SECRET is absent", func(t *testing.T) {

@@ -118,9 +118,47 @@ func (s *cadenceConnectServer) ListRuns(
 		contractRun := pg.SandboxRunToContractResult(&runs[i], nil, nil, "")
 		protoRuns = append(protoRuns, toProtoCadenceRunResult(contractRun))
 	}
+
+	goldenRuns, gErr := s.deps.store.ListGoldenSandboxRuns(ctx)
+	if gErr != nil {
+		return nil, newCadenceError(http.StatusInternalServerError, connect.CodeInternal,
+			contracts.ErrCodeInternal, "failed to list golden showcase runs", "Retry or share the reference ID.", corrID, nil).toConnectError()
+	}
+	protoGolden := make([]*cadencev1.CadenceRunResult, 0, len(goldenRuns))
+	for i := range goldenRuns {
+		contractRun := pg.SandboxRunToContractResult(&goldenRuns[i], nil, nil, "")
+		protoGolden = append(protoGolden, toProtoCadenceRunResult(contractRun))
+	}
+
 	return connect.NewResponse(&cadencev1.ListRunsResponse{
-		Runs:  protoRuns,
-		Quota: grpckit.ToProtoQuota(&quota),
+		Runs:       protoRuns,
+		Quota:      grpckit.ToProtoQuota(&quota),
+		GoldenRuns: protoGolden,
+	}), nil
+}
+
+func (s *cadenceConnectServer) ClearSessionRuns(
+	ctx context.Context,
+	_ *connect.Request[cadencev1.ClearSessionRunsRequest],
+) (*connect.Response[cadencev1.ClearSessionRunsResponse], error) {
+	claims, ok := grpckit.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("signed x-internal-auth metadata required"))
+	}
+	corrID := resolveCadenceCorrID(ctx)
+	sessionID := strings.TrimSpace(claims.Sub)
+	if sessionID == "" {
+		return nil, newCadenceError(http.StatusUnauthorized, connect.CodeUnauthenticated,
+			contracts.ErrCodeUnauthorized, "missing session principal", "Refresh your session and retry.", corrID, nil).toConnectError()
+	}
+
+	deleted, err := s.deps.store.ClearSandboxRunsForSession(ctx, sessionID)
+	if err != nil {
+		return nil, newCadenceError(http.StatusInternalServerError, connect.CodeInternal,
+			contracts.ErrCodeInternal, "failed to reset session runs", "Retry or share the reference ID.", corrID, nil).toConnectError()
+	}
+	return connect.NewResponse(&cadencev1.ClearSessionRunsResponse{
+		DeletedCount: int32(deleted),
 	}), nil
 }
 

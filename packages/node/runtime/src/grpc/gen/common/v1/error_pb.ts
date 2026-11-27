@@ -10,8 +10,22 @@ import { fileDesc, messageDesc } from '@bufbuild/protobuf/codegenv2';
 export const file_common_v1_error: GenFile =
   /*@__PURE__*/
   fileDesc(
-    'ChVjb21tb24vdjEvZXJyb3IucHJvdG8SCWNvbW1vbi52MSJnCg5QdWJsaWNBcHBFcnJvchIMCgRjb2RlGAEgASgJEg4KBnN0YXR1cxgCIAEoBRIPCgdtZXNzYWdlGAMgASgJEg4KBmFjdGlvbhgEIAEoCRIWCg5jb3JyZWxhdGlvbl9pZBgFIAEoCSJrCgtRdW90YVN0YXR1cxIMCgRyb2xlGAEgASgJEhIKCnR1cm5zX3VzZWQYAiABKAUSEQoJbWF4X3R1cm5zGAMgASgFEhMKC3Rva2Vuc191c2VkGAQgASgFEhIKCm1heF90b2tlbnMYBSABKAUiZgoTRXJyb3JEZXRhaWxFbnZlbG9wZRIoCgVlcnJvchgBIAEoCzIZLmNvbW1vbi52MS5QdWJsaWNBcHBFcnJvchIlCgVxdW90YRgCIAEoCzIWLmNvbW1vbi52MS5RdW90YVN0YXR1c0KoAQoNY29tLmNvbW1vbi52MUIKRXJyb3JQcm90b1ABWkZnaXRodWIuY29tL0FuZHJld0s0NzU4L2FrbGFwcGVyL3BhY2thZ2VzL2dvL2tpdC9nZW4vY29tbW9uL3YxO2NvbW1vbnYxogIDQ1hYqgIJQ29tbW9uLlYxygIJQ29tbW9uXFYx4gIVQ29tbW9uXFYxXEdQQk1ldGFkYXRh6gIKQ29tbW9uOjpWMWIGcHJvdG8z',
+    'ChVjb21tb24vdjEvZXJyb3IucHJvdG8SCWNvbW1vbi52MSIiCg5GaWVsZEVycm9yTGlzdBIQCghtZXNzYWdlcxgBIAMoCSL4AQoOUHVibGljQXBwRXJyb3ISDAoEY29kZRgBIAEoCRIOCgZzdGF0dXMYAiABKAUSDwoHbWVzc2FnZRgDIAEoCRIOCgZhY3Rpb24YBCABKAkSFgoOY29ycmVsYXRpb25faWQYBSABKAkSQAoMZmllbGRfZXJyb3JzGAYgAygLMiouY29tbW9uLnYxLlB1YmxpY0FwcEVycm9yLkZpZWxkRXJyb3JzRW50cnkaTQoQRmllbGRFcnJvcnNFbnRyeRILCgNrZXkYASABKAkSKAoFdmFsdWUYAiABKAsyGS5jb21tb24udjEuRmllbGRFcnJvckxpc3Q6AjgBImsKC1F1b3RhU3RhdHVzEgwKBHJvbGUYASABKAkSEgoKdHVybnNfdXNlZBgCIAEoBRIRCgltYXhfdHVybnMYAyABKAUSEwoLdG9rZW5zX3VzZWQYBCABKAUSEgoKbWF4X3Rva2VucxgFIAEoBSKgAQoTRXJyb3JEZXRhaWxFbnZlbG9wZRIoCgVlcnJvchgBIAEoCzIZLmNvbW1vbi52MS5QdWJsaWNBcHBFcnJvchIlCgVxdW90YRgCIAEoCzIWLmNvbW1vbi52MS5RdW90YVN0YXR1cxIgChNyZXRyeV9hZnRlcl9zZWNvbmRzGAMgASgFSACIAQFCFgoUX3JldHJ5X2FmdGVyX3NlY29uZHNCqAEKDWNvbS5jb21tb24udjFCCkVycm9yUHJvdG9QAVpGZ2l0aHViLmNvbS9BbmRyZXdLNDc1OC9ha2xhcHBlci9wYWNrYWdlcy9nby9raXQvZ2VuL2NvbW1vbi92MTtjb21tb252MaICA0NYWKoCCUNvbW1vbi5WMcoCCUNvbW1vblxWMeICFUNvbW1vblxWMVxHUEJNZXRhZGF0YeoCCkNvbW1vbjo6VjFiBnByb3RvMw',
   );
+
+/** @generated from message common.v1.FieldErrorList */
+export type FieldErrorList = Message<'common.v1.FieldErrorList'> & {
+  /** @generated from field: repeated string messages = 1; */
+  messages: string[];
+};
+
+/**
+ * Describes the message common.v1.FieldErrorList. Use `create(FieldErrorListSchema)` to create a
+ * new message.
+ */
+export const FieldErrorListSchema: GenMessage<FieldErrorList> =
+  /*@__PURE__*/
+  messageDesc(file_common_v1_error, 0);
 
 /** @generated from message common.v1.PublicAppError */
 export type PublicAppError = Message<'common.v1.PublicAppError'> & {
@@ -29,6 +43,9 @@ export type PublicAppError = Message<'common.v1.PublicAppError'> & {
 
   /** @generated from field: string correlation_id = 5; */
   correlationId: string;
+
+  /** @generated from field: map<string, common.v1.FieldErrorList> field_errors = 6; */
+  fieldErrors: { [key: string]: FieldErrorList };
 };
 
 /**
@@ -37,7 +54,7 @@ export type PublicAppError = Message<'common.v1.PublicAppError'> & {
  */
 export const PublicAppErrorSchema: GenMessage<PublicAppError> =
   /*@__PURE__*/
-  messageDesc(file_common_v1_error, 0);
+  messageDesc(file_common_v1_error, 1);
 
 /** @generated from message common.v1.QuotaStatus */
 export type QuotaStatus = Message<'common.v1.QuotaStatus'> & {
@@ -63,7 +80,7 @@ export type QuotaStatus = Message<'common.v1.QuotaStatus'> & {
  */
 export const QuotaStatusSchema: GenMessage<QuotaStatus> =
   /*@__PURE__*/
-  messageDesc(file_common_v1_error, 1);
+  messageDesc(file_common_v1_error, 2);
 
 /** @generated from message common.v1.ErrorDetailEnvelope */
 export type ErrorDetailEnvelope = Message<'common.v1.ErrorDetailEnvelope'> & {
@@ -72,6 +89,9 @@ export type ErrorDetailEnvelope = Message<'common.v1.ErrorDetailEnvelope'> & {
 
   /** @generated from field: common.v1.QuotaStatus quota = 2; */
   quota?: QuotaStatus | undefined;
+
+  /** @generated from field: optional int32 retry_after_seconds = 3; */
+  retryAfterSeconds?: number | undefined;
 };
 
 /**
@@ -80,4 +100,4 @@ export type ErrorDetailEnvelope = Message<'common.v1.ErrorDetailEnvelope'> & {
  */
 export const ErrorDetailEnvelopeSchema: GenMessage<ErrorDetailEnvelope> =
   /*@__PURE__*/
-  messageDesc(file_common_v1_error, 2);
+  messageDesc(file_common_v1_error, 3);

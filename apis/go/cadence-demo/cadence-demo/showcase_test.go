@@ -745,3 +745,121 @@ func TestCadenceStructuredStagesEnableIncludeThoughts(t *testing.T) {
 		t.Fatalf("expected IncludeThoughts=true for both spec and build stages, got %+v", stub.reqs)
 	}
 }
+
+func TestCadenceClearSessionRunsAndGoldenRunsGRPC(t *testing.T) {
+	const secret = "cadence-reset-unit-secret"
+	t.Setenv("INTERNAL_AUTH_SECRET", secret)
+
+	store := pg.NewMemoryStore()
+	ctx := context.Background()
+	_, err := store.CreateSandboxRun(ctx, pg.SandboxRunInput{
+		SessionID:     "golden-showcase",
+		MenuSlug:      "chord-decomposition-workbench",
+		Prompt:        "Golden showcase reference",
+		Status:        contracts.CadenceStatusReady,
+		GateVerdict:   "approved",
+		IsGolden:      true,
+		ExecutionMode: contracts.CadenceExecutionModeGolden,
+	})
+	if err != nil {
+		t.Fatalf("create golden run: %v", err)
+	}
+	_, err = store.CreateSandboxRun(ctx, pg.SandboxRunInput{
+		SessionID:     "guest_alpha123",
+		MenuSlug:      "custom",
+		Prompt:        "Alpha session run",
+		Status:        contracts.CadenceStatusReady,
+		GateVerdict:   "pending",
+		IsGolden:      false,
+		ExecutionMode: contracts.CadenceExecutionModeFast,
+	})
+	if err != nil {
+		t.Fatalf("create alpha run: %v", err)
+	}
+	_, err = store.CreateSandboxRun(ctx, pg.SandboxRunInput{
+		SessionID:     "guest_other999",
+		MenuSlug:      "custom",
+		Prompt:        "Other session run",
+		Status:        contracts.CadenceStatusReady,
+		GateVerdict:   "pending",
+		IsGolden:      false,
+		ExecutionMode: contracts.CadenceExecutionModeFast,
+	})
+	if err != nil {
+		t.Fatalf("create other run: %v", err)
+	}
+
+	h := newHandler(nil, nil, store)
+	srvCtx, cancel := context.WithCancel(context.Background())
+	readyCh := make(chan string, 1)
+	doneCh := make(chan error, 1)
+	go func() {
+		doneCh <- httpkit.ListenAndServeH2CGraceful(srvCtx, httpkit.H2CServerConfig{
+			Addr:            "127.0.0.1:0",
+			Handler:         h,
+			ShutdownTimeout: 2 * time.Second,
+			OnReady:         func(addr string) { readyCh <- addr },
+		})
+	}()
+	addr := <-readyCh
+	t.Cleanup(func() {
+		cancel()
+		<-doneCh
+	})
+
+	h2cHTTP := grpckit.NewH2CClient()
+	t.Cleanup(h2cHTTP.CloseIdleConnections)
+	alphaClient := cadencev1connect.NewCadenceServiceClient(
+		h2cHTTP,
+		"http://"+addr,
+		connect.WithGRPC(),
+		connect.WithInterceptors(grpckit.NewClientAuthInterceptor(grpckit.ClientAuthConfig{
+			Role: internalauth.RoleGuest, Subject: "guest_alpha123", Secret: secret, TTL: time.Minute,
+		})),
+	)
+	otherClient := cadencev1connect.NewCadenceServiceClient(
+		h2cHTTP,
+		"http://"+addr,
+		connect.WithGRPC(),
+		connect.WithInterceptors(grpckit.NewClientAuthInterceptor(grpckit.ClientAuthConfig{
+			Role: internalauth.RoleGuest, Subject: "guest_other999", Secret: secret, TTL: time.Minute,
+		})),
+	)
+
+	listBefore, err := alphaClient.ListRuns(ctx, connect.NewRequest(&cadencev1.ListRunsRequest{
+		SessionId: "guest_alpha123",
+		Limit:     10,
+	}))
+	if err != nil {
+		t.Fatalf("ListRuns before clear: %v", err)
+	}
+	if len(listBefore.Msg.GetRuns()) != 1 || len(listBefore.Msg.GetGoldenRuns()) != 1 {
+		t.Fatalf("expected 1 session run and 1 golden run, got runs=%d golden=%d",
+			len(listBefore.Msg.GetRuns()), len(listBefore.Msg.GetGoldenRuns()))
+	}
+
+	clearRes, err := alphaClient.ClearSessionRuns(ctx, connect.NewRequest(&cadencev1.ClearSessionRunsRequest{}))
+	if err != nil || clearRes.Msg.GetDeletedCount() != 1 {
+		t.Fatalf("expected deleted_count=1, got res=%+v err=%v", clearRes, err)
+	}
+
+	listAfter, err := alphaClient.ListRuns(ctx, connect.NewRequest(&cadencev1.ListRunsRequest{
+		SessionId: "guest_alpha123",
+		Limit:     10,
+	}))
+	if err != nil {
+		t.Fatalf("ListRuns after clear: %v", err)
+	}
+	if len(listAfter.Msg.GetRuns()) != 0 || len(listAfter.Msg.GetGoldenRuns()) != 1 {
+		t.Fatalf("expected 0 session runs and preserved 1 golden run, got runs=%d golden=%d",
+			len(listAfter.Msg.GetRuns()), len(listAfter.Msg.GetGoldenRuns()))
+	}
+
+	otherList, err := otherClient.ListRuns(ctx, connect.NewRequest(&cadencev1.ListRunsRequest{
+		SessionId: "guest_other999",
+		Limit:     10,
+	}))
+	if err != nil || len(otherList.Msg.GetRuns()) != 1 {
+		t.Fatalf("expected guest_other999 run preserved, got runs=%d err=%v", len(otherList.Msg.GetRuns()), err)
+	}
+}
