@@ -40,12 +40,12 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
       runAll: false,
       base: 'aaa111',
       head: 'bbb222',
-      affectedAll: ['node-db', 'go-ai-ask', 'go-ai-ask-e2e'],
-      lintProjects: ['node-db', 'go-ai-ask', 'go-ai-ask-e2e'],
+      affectedAll: ['node-db', 'go-portal-api', 'go-portal-api-e2e', 'go-ai-ask', 'go-ai-ask-e2e'],
+      lintProjects: ['node-db', 'go-portal-api', 'go-portal-api-e2e', 'go-ai-ask', 'go-ai-ask-e2e'],
       typecheckProjects: ['node-db'],
-      buildProjects: ['node-db', 'go-ai-ask'],
-      testProjects: ['node-db', 'go-ai-ask'],
-      e2eProjects: ['go-ai-ask-e2e'],
+      buildProjects: ['node-db', 'go-portal-api', 'go-ai-ask'],
+      testProjects: ['node-db', 'go-portal-api', 'go-ai-ask'],
+      e2eProjects: ['go-portal-api-e2e', 'go-ai-ask-e2e'],
     });
 
     expect(plan.needsGo).toBe(true);
@@ -53,9 +53,9 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
     expect(plan.needsApiE2eDb).toBe(true);
     expect(plan.hasApiE2e).toBe(true);
     expect(plan.hasPlaywright).toBe(false);
-    expect(plan.apiE2eProjects).toEqual(['go-ai-ask-e2e']);
-    expect(plan.dockerServices.map(s => s.service)).toEqual(['ai-ask']);
-    expect(plan.cloudRunServices).toEqual(['ai-ask']);
+    expect(plan.apiE2eProjects).toEqual(['go-portal-api-e2e', 'go-ai-ask-e2e']);
+    expect(plan.dockerServices.map(s => s.service)).toEqual(['portal-api', 'ai-ask']);
+    expect(plan.cloudRunServices).toEqual(['portal-api', 'ai-ask']);
   });
 
   it('skips all heavy jobs when no projects are affected (e.g. docs-only change)', () => {
@@ -84,7 +84,7 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
     expect(outputs['gke_services_json']).toBeUndefined();
   });
 
-  it('includes exactly 4 Cloud Run Docker services with zero k8s-watch or gke targets when runAll is true', () => {
+  it('includes exactly 5 Cloud Run Docker services with zero k8s-watch or gke targets when runAll is true', () => {
     const plan = buildCiPlan({
       runAll: true,
       affectedAll: ['portal'],
@@ -95,16 +95,23 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
       e2eProjects: ['portal-e2e', 'admin-e2e'],
     });
 
-    expect(plan.dockerServices).toHaveLength(4);
+    expect(plan.dockerServices).toHaveLength(5);
     expect(plan.dockerServices).toHaveLength(DOCKER_SERVICES.length);
     expect(plan.dockerServices.map(s => s.service)).toEqual([
       'portal',
       'admin',
+      'portal-api',
       'cadence-demo',
       'ai-ask',
     ]);
     expect(plan.dockerServices.every(s => s.runtime === 'cloud-run')).toBe(true);
-    expect(plan.cloudRunServices).toEqual(['portal', 'admin', 'cadence-demo', 'ai-ask']);
+    expect(plan.cloudRunServices).toEqual([
+      'portal',
+      'admin',
+      'portal-api',
+      'cadence-demo',
+      'ai-ask',
+    ]);
     expect(plan.dockerServices.some(s => s.service === 'k8s-watch')).toBe(false);
     expect(parseCiPlanCliArgs(['--all'])).toEqual({
       runAll: true,
@@ -190,7 +197,7 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
     expect(docsOnlyWithMigrate.hasAdminOrDbMigration).toBe(false);
   });
 
-  it('configures cd-gcp.yml for pure Cloud Run 2-wave deploy, Direct VPC Egress PG19 caps < 50, Direct IAP, and main push trigger', () => {
+  it('configures cd-gcp.yml for 5-service 2-wave deploy, zero-VPC/DB portal isolation, Direct VPC Egress PG19 caps <= 27, Direct IAP, and main push trigger', () => {
     const workflow = readFileSync(
       resolve(import.meta.dirname, '../../../.github/workflows/cd-gcp.yml'),
       'utf8',
@@ -218,14 +225,21 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
     expect(workflow).toContain('--network=default');
     expect(workflow).toContain('--subnet=default');
     expect(workflow).toContain('--vpc-egress=private-ranges-only');
+    expect(workflow).toContain('--clear-network');
+    expect(workflow).toContain('PORTAL_DATABASE_URL=PORTAL_DATABASE_URL:latest');
+    expect(workflow).toContain('GCP_PORTAL_API_SERVICE_ACCOUNT');
+    expect(workflow).toContain('GCP_PORTAL_SERVICE_ACCOUNT');
+    expect(workflow).toContain('gcloud run services add-iam-policy-binding portal-api');
+    expect(workflow).toContain('cd.portal_isolation.verified');
     expect(workflow).toContain('PG_MAX_CONNS=2');
-    expect(workflow).toContain('PG_MAX_CONNS=4');
     expect(workflow).toContain('PG_MAX_CONNS=3');
+    expect(workflow).not.toContain('PG_MAX_CONNS=4');
     expect(workflow).toContain('--no-allow-unauthenticated');
     expect(workflow).toContain('--iap');
     expect(workflow).toContain('--use-http2');
     expect(workflow).toContain('--timeout=300');
     expect(workflow).toContain('APP_ENV=production');
+    expect(workflow).toContain('portal_api_service_url:');
     expect(workflow).toContain('ai_ask_service_url:');
     expect(workflow).toContain('cadence_demo_service_url:');
     expect(workflow).toContain('portal_service_url:');
@@ -248,9 +262,34 @@ describe('@aklapper/tooling CI/CD affected planner', () => {
       '--args="node_modules/@aklapper/db/dist/seed.js,--mode=${SEED_MODE}"',
     );
 
-    // Verify worst-case PG_MAX_CONNS aggregate ceiling stays strictly below PG19 max_connections=50.
-    const worstCasePgConns = 4 * 3 + 2 * 2 + 4 * 3 + 3 * 2 + 2;
-    expect(worstCasePgConns).toBe(36);
-    expect(worstCasePgConns).toBeLessThan(50);
+    // Ensure portal deploy uses dedicated SA + --clear-network and strips DB/salt/VPC.
+    const portalDeployIdx = workflow.indexOf('id: deploy-portal\n');
+    const portalVerifyIdx = workflow.indexOf(
+      'Verify portal Cloud Run zero-VPC and zero-DB/salt isolation',
+    );
+    expect(portalDeployIdx).toBeGreaterThan(-1);
+    expect(portalVerifyIdx).toBeGreaterThan(portalDeployIdx);
+    const portalDeployBlock = workflow.slice(portalDeployIdx, portalVerifyIdx);
+    expect(portalDeployBlock).toContain('--clear-network');
+    expect(portalDeployBlock).toContain('--service-account=${{ vars.GCP_PORTAL_SERVICE_ACCOUNT }}');
+    expect(portalDeployBlock).toContain(
+      '--set-secrets=INTERNAL_AUTH_SECRET=INTERNAL_AUTH_SECRET:latest',
+    );
+    expect(portalDeployBlock).not.toContain('--network=default');
+    expect(portalDeployBlock).not.toContain('DATABASE_URL=DATABASE_URL:latest');
+    expect(portalDeployBlock).not.toContain('ANALYTICS_DAILY_SALT=ANALYTICS_DAILY_SALT:latest');
+    expect(portalDeployBlock).not.toContain('GCP_CLOUDRUN_SERVICE_ACCOUNT');
+
+    // Wave 1 portal-api invoker binding MUST appear strictly before Wave 2 deploy-portal.
+    const invokerBindIdx = workflow.indexOf(
+      'gcloud run services add-iam-policy-binding portal-api',
+    );
+    expect(invokerBindIdx).toBeGreaterThan(-1);
+    expect(invokerBindIdx).toBeLessThan(portalDeployIdx);
+
+    // Verify worst-case PG_MAX_CONNS aggregate ceiling stays strictly within PG19 max_connections=30 (27 non-superuser slots).
+    const worstCasePgConns = 0 + 2 * 3 + 2 * 2 + 2 * 3 + 2 * 2 + 2;
+    expect(worstCasePgConns).toBe(22);
+    expect(worstCasePgConns).toBeLessThanOrEqual(27);
   });
 });

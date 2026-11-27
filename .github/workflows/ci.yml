@@ -363,6 +363,8 @@ jobs:
           --health-retries=10
     env:
       DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5439/aklapper?sslmode=disable
+      PORTAL_DATABASE_URL: postgres://portal_app:portal_app_local_dev_password@127.0.0.1:5439/aklapper?sslmode=disable
+      ANALYTICS_DAILY_SALT: dev-only-rotate-daily
     strategy:
       fail-fast: false
       matrix:
