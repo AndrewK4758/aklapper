@@ -6,6 +6,11 @@ import type { AddressInfo } from 'node:net';
 import { resolve } from 'node:path';
 
 import type { ContactActionResult, PortalAskLoaderData } from '@aklapper/core';
+import {
+  clearGoGrpcTransportCacheForTest,
+  startPortalApiStubServerForTest,
+  type PortalApiStubServer,
+} from '@aklapper/node-runtime/grpc';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { createPortalServer } from '../../server';
@@ -99,8 +104,14 @@ describe.runIf(existsSync(DIST_SERVER_ENTRY))(
   () => {
     let baseUrl = '';
     let closeServer: (() => Promise<void>) | null = null;
+    let portalApiStub: PortalApiStubServer | null = null;
+    const prevPortalApiUrl = process.env['PORTAL_API_URL'];
+    const prevInternalAuthSecret = process.env['INTERNAL_AUTH_SECRET'];
 
     beforeAll(async () => {
+      portalApiStub = await startPortalApiStubServerForTest();
+      process.env['PORTAL_API_URL'] = portalApiStub.baseUrl;
+      process.env['INTERNAL_AUTH_SECRET'] = 'portal-integration-test-secret';
       const portalServer = await createPortalServer({
         host: '127.0.0.1',
         port: 0,
@@ -114,6 +125,14 @@ describe.runIf(existsSync(DIST_SERVER_ENTRY))(
       if (closeServer) {
         await closeServer();
       }
+      clearGoGrpcTransportCacheForTest();
+      if (portalApiStub) {
+        await portalApiStub.close();
+      }
+      if (prevPortalApiUrl === undefined) delete process.env['PORTAL_API_URL'];
+      else process.env['PORTAL_API_URL'] = prevPortalApiUrl;
+      if (prevInternalAuthSecret === undefined) delete process.env['INTERNAL_AUTH_SECRET'];
+      else process.env['INTERNAL_AUTH_SECRET'] = prevInternalAuthSecret;
     });
 
     beforeEach(() => {
@@ -258,11 +277,13 @@ describe.runIf(existsSync(DIST_SERVER_ENTRY))(
       expect([400, 404]).toContain(malformedRes.status);
       expect(await malformedRes.text()).not.toContain('ERR_INTERNAL');
 
-      // Burst of 50 concurrent 404 probes completes cleanly without DB pool saturation
+      // Burst of 50 concurrent 404 probes completes cleanly with zero portal-api gRPC calls
+      portalApiStub?.resetRequestCount();
       const burstResponses = await Promise.all(
         Array.from({ length: 50 }, (_, idx) => fetch(`${baseUrl}/bot-probe-${idx + 1}`)),
       );
       expect(burstResponses.every(res => res.status === 404)).toBe(true);
+      expect(portalApiStub?.getRequestCount()).toBe(0);
     });
   },
 );

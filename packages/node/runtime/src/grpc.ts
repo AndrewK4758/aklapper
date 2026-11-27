@@ -92,6 +92,10 @@ export {
   mapProtoTerminalProfileToDomain,
 } from './grpc/portal-mappers.ts';
 export {
+  startPortalApiStubServerForTest,
+  type PortalApiStubServer,
+} from './grpc/portal-test-server.ts';
+export {
   bridgeGrpcStreamToSse,
   DEFAULT_GRPC_SSE_HEARTBEAT_MS,
   type GrpcSseBridgeOptions,
